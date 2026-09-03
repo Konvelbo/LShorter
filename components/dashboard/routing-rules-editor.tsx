@@ -11,11 +11,13 @@ import {
   Globe2,
   Smartphone,
   Layers,
-  Crown
+  Crown,
+  AlertCircle
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { PlanType } from "@/types";
 import { triggerPlanUpgrade } from "@/lib/plan-guard";
+import { cn } from "@/lib/utils";
 
 // Comprehensive World Countries List (All 195+ Countries with ISO codes)
 export const ALL_WORLD_COUNTRIES = [
@@ -520,14 +522,50 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                 {/* Target URL Destination ("Alors aller à") */}
                 <div className="flex flex-col gap-1.5 pt-2 border-t border-[#222225]">
                   <label className="text-xs font-semibold text-neutral-300">
-                    Alors aller à
+                    Alors aller à <span className="text-[#ff6600]">*</span>
                   </label>
-                  <Input
-                    required
-                    placeholder="https://shop.example.com/promo-specifique"
-                    value={rule.destinationUrl}
-                    onChange={(e) => handleUpdateDestination(rule.id, e.target.value)}
-                  />
+                  {(() => {
+                    const trimmed = (rule.destinationUrl || "").trim();
+                    let isInvalid = false;
+                    if (trimmed) {
+                      if (/\s/.test(trimmed)) {
+                        isInvalid = true;
+                      } else {
+                        const withProto = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+                        try {
+                          const u = new URL(withProto);
+                          if (!u.hostname || (!u.hostname.includes(".") && u.hostname !== "localhost")) {
+                            isInvalid = true;
+                          }
+                        } catch {
+                          isInvalid = true;
+                        }
+                      }
+                    }
+
+                    return (
+                      <>
+                        <Input
+                          required
+                          placeholder="https://shop.example.com/promo-specifique"
+                          value={rule.destinationUrl}
+                          onChange={(e) => handleUpdateDestination(rule.id, e.target.value)}
+                          className={cn(
+                            isInvalid &&
+                              "border-red-500 focus:border-red-500 focus:ring-red-500/30 bg-red-950/20 text-red-100"
+                          )}
+                        />
+                        {isInvalid && (
+                          <div className="flex items-center gap-1.5 text-xs text-red-400 bg-red-500/10 border border-red-500/30 rounded-[8px] px-2.5 py-1.5 mt-1 animate-in fade-in slide-in-from-top-1">
+                            <AlertCircle className="w-3.5 h-3.5 shrink-0 text-red-500" />
+                            <span className="font-medium">
+                              Format d&apos;URL invalide. Doit être une adresse Web valide (ex: https://shop.example.com/promo).
+                            </span>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
             )}

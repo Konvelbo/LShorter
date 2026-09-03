@@ -44,5 +44,11 @@
     "tailwindcss": "^4",
     "typescript": "^5"
   },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "bcryptjs"
+    ]
+  },
   "packageManager": "pnpm@11.17.0"
 }

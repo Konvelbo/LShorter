@@ -22,7 +22,8 @@ import {
   ChevronRight,
   Crown,
   Eye,
-  EyeOff
+  EyeOff,
+  AlertCircle
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useQuery } from "convex/react";
@@ -35,6 +36,7 @@ import { RoutingRulesEditor, RoutingRule } from "./routing-rules-editor";
 import { compileRoutingRules } from "@/lib/routing-utils";
 import { triggerPlanUpgrade } from "@/lib/plan-guard";
 import { showToast } from "@/components/ui/toast-provider";
+import { cn } from "@/lib/utils";
 import confetti from "canvas-confetti";
 
 interface LinkCreateModalProps {
@@ -42,6 +44,17 @@ interface LinkCreateModalProps {
   onClose: () => void;
   onSuccess?: (created: ShortLink) => void;
   initialUrl?: string;
+}
+
+// ─── Reusable Error Alert Component ──────────────────────────────────────────
+function FieldErrorAlert({ message }: { message?: string }) {
+  if (!message) return null;
+  return (
+    <div className="flex items-center gap-1.5 text-xs text-red-400 bg-red-500/10 border border-red-500/30 rounded-[8px] px-2.5 py-1.5 mt-1.5 animate-in fade-in slide-in-from-top-1">
+      <AlertCircle className="w-3.5 h-3.5 shrink-0 text-red-500" />
+      <span className="font-medium leading-tight">{message}</span>
+    </div>
+  );
 }
 
 // ─── Reusable Frosted Glass Locked PRO Feature Overlay ─────────────────────────
@@ -252,12 +265,210 @@ export function LinkCreateModal({
     reader.readAsDataURL(file);
   };
 
+  // ─── Format Validation Functions ─────────────────────────────────────────
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
+
+  const checkUrlFormat = (val: string, isRequired = false): string => {
+    const trimmed = val.trim();
+    if (!trimmed) {
+      return isRequired ? "L'URL de destination est obligatoire." : "";
+    }
+    if (/\s/.test(trimmed)) {
+      return "L'URL ne doit pas contenir d'espaces.";
+    }
+    const withProto = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+    try {
+      const urlObj = new URL(withProto);
+      if (
+        !urlObj.hostname ||
+        (!urlObj.hostname.includes(".") && urlObj.hostname !== "localhost") ||
+        urlObj.hostname.startsWith(".") ||
+        urlObj.hostname.endsWith(".")
+      ) {
+        return "Nom de domaine invalide (ex: https://monsite.com).";
+      }
+    } catch {
+      return "Format d'URL invalide. Exemple attendu : https://monsite.com/page";
+    }
+    return "";
+  };
+
+  const checkSlugFormat = (val: string): string => {
+    const trimmed = val.trim();
+    if (!trimmed) return "";
+    if (/\s/.test(trimmed)) {
+      return "Le slug ne doit pas contenir d'espaces.";
+    }
+    if (trimmed.includes("/")) {
+      return "Le slug ne doit pas comporter de slash (/).";
+    }
+    if (!/^[a-zA-Z0-9_-]+$/.test(trimmed)) {
+      return "Format strict requis : seuls les lettres, chiffres, tirets (-) et underscores (_) sont autorisés sans accents ni caractères spéciaux.";
+    }
+    if (trimmed.length < 2) {
+      return "Le slug doit contenir au moins 2 caractères.";
+    }
+    if (trimmed.length > 80) {
+      return "Le slug ne doit pas dépasser 80 caractères.";
+    }
+    return "";
+  };
+
+  const checkPasswordFormat = (val: string): string => {
+    if (!val) return "";
+    if (val.length < 4) {
+      return "Le mot de passe doit comporter au moins 4 caractères.";
+    }
+    return "";
+  };
+
+  const checkExpiresAtFormat = (val: string): string => {
+    if (!val) return "";
+    const time = new Date(val).getTime();
+    if (isNaN(time)) return "Format de date invalide.";
+    if (time <= Date.now()) {
+      return "La date d'expiration doit être strictement ultérieure à la date et heure actuelles.";
+    }
+    return "";
+  };
+
+  const checkMaxClicksFormat = (val: string | number, enabled: boolean): string => {
+    if (!enabled) return "";
+    const n = Number(val);
+    if (isNaN(n) || n < 1 || !Number.isInteger(n)) {
+      return "Le plafond de clics doit être un nombre entier supérieur ou égal à 1.";
+    }
+    return "";
+  };
+
+  const checkFallbackUrlFormat = (val: string, enabled: boolean): string => {
+    if (!enabled || !val.trim()) return "";
+    return checkUrlFormat(val, false);
+  };
+
+  // Live validation on value changes
+  useEffect(() => {
+    if (!hasAttemptedSubmit && !targetUrl && !slug) return;
+    const errors: Record<string, string> = {};
+
+    if (hasAttemptedSubmit || targetUrl) {
+      const targetErr = checkUrlFormat(targetUrl, true);
+      if (targetErr) errors.targetUrl = targetErr;
+    }
+
+    if (slug) {
+      const slugErr = checkSlugFormat(slug);
+      if (slugErr) errors.slug = slugErr;
+    }
+
+    if (password) {
+      const pwdErr = checkPasswordFormat(password);
+      if (pwdErr) errors.password = pwdErr;
+    }
+
+    if (expiresAt) {
+      const expErr = checkExpiresAtFormat(expiresAt);
+      if (expErr) errors.expiresAt = expErr;
+    }
+
+    if (hasClickLimit) {
+      const clicksErr = checkMaxClicksFormat(maxClicks, hasClickLimit);
+      if (clicksErr) errors.maxClicks = clicksErr;
+
+      if (fallbackUrl) {
+        const fbErr = checkFallbackUrlFormat(fallbackUrl, hasClickLimit);
+        if (fbErr) errors.fallbackUrl = fbErr;
+      }
+    }
+
+    if (abVariations.length > 0) {
+      abVariations.forEach((v, idx) => {
+        if (v.url && v.url.trim()) {
+          const err = checkUrlFormat(v.url, false);
+          if (err) errors[`abVariation_${idx}`] = `Variante ${String.fromCharCode(66 + idx)} : ${err}`;
+        }
+      });
+      const totalWeight = mainWeight + abVariations.reduce((sum, v) => sum + (Number(v.weight) || 0), 0);
+      if (totalWeight !== 100) {
+        errors.abTotal = `La somme des pourcentages de trafic doit être égale à 100% (actuellement ${totalWeight}%).`;
+      }
+    }
+
+    setFieldErrors(errors);
+  }, [targetUrl, slug, password, expiresAt, hasClickLimit, maxClicks, fallbackUrl, abVariations, mainWeight, hasAttemptedSubmit]);
+
+  const hasProtectionErrors = Boolean(
+    fieldErrors.password ||
+    fieldErrors.expiresAt ||
+    fieldErrors.maxClicks ||
+    fieldErrors.fallbackUrl
+  );
+
+  const hasAbErrors = Boolean(
+    fieldErrors.abTotal ||
+    Object.keys(fieldErrors).some((k) => k.startsWith("abVariation_"))
+  );
+
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!targetUrl.trim()) {
-      showToast.error("L'URL de destination est requise.");
+    setHasAttemptedSubmit(true);
+
+    const errors: Record<string, string> = {};
+    const targetErr = checkUrlFormat(targetUrl, true);
+    if (targetErr) errors.targetUrl = targetErr;
+
+    if (slug) {
+      const slugErr = checkSlugFormat(slug);
+      if (slugErr) errors.slug = slugErr;
+    }
+
+    if (password) {
+      const pwdErr = checkPasswordFormat(password);
+      if (pwdErr) errors.password = pwdErr;
+    }
+
+    if (expiresAt) {
+      const expErr = checkExpiresAtFormat(expiresAt);
+      if (expErr) errors.expiresAt = expErr;
+    }
+
+    if (hasClickLimit) {
+      const clicksErr = checkMaxClicksFormat(maxClicks, hasClickLimit);
+      if (clicksErr) errors.maxClicks = clicksErr;
+
+      if (fallbackUrl) {
+        const fbErr = checkFallbackUrlFormat(fallbackUrl, hasClickLimit);
+        if (fbErr) errors.fallbackUrl = fbErr;
+      }
+    }
+
+    if (abVariations.length > 0) {
+      abVariations.forEach((v, idx) => {
+        if (v.url && v.url.trim()) {
+          const err = checkUrlFormat(v.url, false);
+          if (err) errors[`abVariation_${idx}`] = `Variante ${String.fromCharCode(66 + idx)} : ${err}`;
+        }
+      });
+      const totalWeight = mainWeight + abVariations.reduce((sum, v) => sum + (Number(v.weight) || 0), 0);
+      if (totalWeight !== 100) {
+        errors.abTotal = `La somme des pourcentages de trafic doit être égale à 100% (actuellement ${totalWeight}%).`;
+      }
+    }
+
+    setFieldErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
+      if (errors.targetUrl || errors.slug) {
+        // focus remains on main inputs
+      } else if (errors.password || errors.expiresAt || errors.maxClicks || errors.fallbackUrl) {
+        setActiveTab("protection");
+      } else if (errors.abTotal || Object.keys(errors).some((k) => k.startsWith("abVariation_"))) {
+        setActiveTab("ab_testing");
+      }
+      showToast.error("Certains champs ne respectent pas le format strict. Veuillez corriger les alertes en rouge.");
       return;
     }
 
@@ -438,8 +649,19 @@ export function LinkCreateModal({
               required
               placeholder="https://example.com/votre-page-de-vente"
               value={targetUrl}
-              onChange={(e) => setTargetUrl(e.target.value)}
+              onChange={(e) => {
+                setTargetUrl(e.target.value);
+                if (fieldErrors.targetUrl) {
+                  const err = checkUrlFormat(e.target.value, true);
+                  setFieldErrors((prev) => ({ ...prev, targetUrl: err }));
+                }
+              }}
+              className={cn(
+                fieldErrors.targetUrl &&
+                  "border-red-500 focus:border-red-500 focus:ring-red-500/30 bg-red-950/20 text-red-100"
+              )}
             />
+            <FieldErrorAlert message={fieldErrors.targetUrl} />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
@@ -473,8 +695,19 @@ export function LinkCreateModal({
               <Input
                 placeholder="mon-slug-personnalise"
                 value={slug}
-                onChange={(e) => setSlug(e.target.value)}
+                onChange={(e) => {
+                  setSlug(e.target.value);
+                  if (fieldErrors.slug) {
+                    const err = checkSlugFormat(e.target.value);
+                    setFieldErrors((prev) => ({ ...prev, slug: err }));
+                  }
+                }}
+                className={cn(
+                  fieldErrors.slug &&
+                    "border-red-500 focus:border-red-500 focus:ring-red-500/30 bg-red-950/20 text-red-100"
+                )}
               />
+              <FieldErrorAlert message={fieldErrors.slug} />
             </div>
           </div>
         </div>
@@ -531,6 +764,9 @@ export function LinkCreateModal({
           >
             <Shield className="w-3.5 h-3.5" />
             <span>Protection & Expiry</span>
+            {hasProtectionErrors && (
+              <span className="w-2 h-2 rounded-full bg-red-500 ring-2 ring-red-400 animate-pulse ml-0.5" />
+            )}
           </button>
 
           <button
@@ -544,6 +780,9 @@ export function LinkCreateModal({
           >
             <Split className="w-3.5 h-3.5" />
             <span>A/B Testing</span>
+            {hasAbErrors && (
+              <span className="w-2 h-2 rounded-full bg-red-500 ring-2 ring-red-400 animate-pulse ml-0.5" />
+            )}
           </button>
 
           <button
@@ -823,10 +1062,20 @@ export function LinkCreateModal({
                   <div className="relative">
                     <Input
                       type={showPassword ? "text" : "password"}
-                      placeholder="Laisser vide si public"
+                      placeholder="Laisser vide si public (min. 4 caractères)"
                       value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="pr-10"
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        if (fieldErrors.password) {
+                          const err = checkPasswordFormat(e.target.value);
+                          setFieldErrors((prev) => ({ ...prev, password: err }));
+                        }
+                      }}
+                      className={cn(
+                        "pr-10",
+                        fieldErrors.password &&
+                          "border-red-500 focus:border-red-500 focus:ring-red-500/30 bg-red-950/20 text-red-100"
+                      )}
                     />
                     <button
                       type="button"
@@ -837,6 +1086,7 @@ export function LinkCreateModal({
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
+                  <FieldErrorAlert message={fieldErrors.password} />
                 </div>
               </LockedProFeature>
 
@@ -878,8 +1128,17 @@ export function LinkCreateModal({
                             type="number"
                             min="1"
                             value={maxClicks}
-                            onChange={(e) => setMaxClicks(e.target.value)}
-                            className="w-16 text-center bg-transparent text-xs font-mono font-bold text-white focus:outline-none px-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            onChange={(e) => {
+                              setMaxClicks(e.target.value);
+                              if (fieldErrors.maxClicks) {
+                                const err = checkMaxClicksFormat(e.target.value, hasClickLimit);
+                                setFieldErrors((prev) => ({ ...prev, maxClicks: err }));
+                              }
+                            }}
+                            className={cn(
+                              "w-16 text-center bg-transparent text-xs font-mono font-bold text-white focus:outline-none px-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
+                              fieldErrors.maxClicks && "text-red-400 font-extrabold"
+                            )}
                           />
                           <button
                             type="button"
@@ -891,6 +1150,7 @@ export function LinkCreateModal({
                           </button>
                         </div>
                       </div>
+                      <FieldErrorAlert message={fieldErrors.maxClicks} />
 
                       <div>
                         <label className="block text-[10px] text-neutral-400 mb-1">
@@ -900,9 +1160,20 @@ export function LinkCreateModal({
                           type="url"
                           placeholder="https://monsite.com/expire"
                           value={fallbackUrl}
-                          onChange={(e) => setFallbackUrl(e.target.value)}
-                          className="h-8 text-xs bg-[#121215] border-[#2a2a32] focus:border-[#ff6600]"
+                          onChange={(e) => {
+                            setFallbackUrl(e.target.value);
+                            if (fieldErrors.fallbackUrl) {
+                              const err = checkFallbackUrlFormat(e.target.value, hasClickLimit);
+                              setFieldErrors((prev) => ({ ...prev, fallbackUrl: err }));
+                            }
+                          }}
+                          className={cn(
+                            "h-8 text-xs bg-[#121215] border-[#2a2a32] focus:border-[#ff6600]",
+                            fieldErrors.fallbackUrl &&
+                              "border-red-500 focus:border-red-500 focus:ring-red-500/30 bg-red-950/20 text-red-100"
+                          )}
                         />
+                        <FieldErrorAlert message={fieldErrors.fallbackUrl} />
                       </div>
                     </div>
                   )}
@@ -922,8 +1193,19 @@ export function LinkCreateModal({
                   <Input
                     type="datetime-local"
                     value={expiresAt}
-                    onChange={(e) => setExpiresAt(e.target.value)}
+                    onChange={(e) => {
+                      setExpiresAt(e.target.value);
+                      if (fieldErrors.expiresAt) {
+                        const err = checkExpiresAtFormat(e.target.value);
+                        setFieldErrors((prev) => ({ ...prev, expiresAt: err }));
+                      }
+                    }}
+                    className={cn(
+                      fieldErrors.expiresAt &&
+                        "border-red-500 focus:border-red-500 focus:ring-red-500/30 bg-red-950/20 text-red-100"
+                    )}
                   />
+                  <FieldErrorAlert message={fieldErrors.expiresAt} />
                 </div>
               </LockedProFeature>
             </div>
@@ -1014,8 +1296,13 @@ export function LinkCreateModal({
                           updated[i].url = e.target.value;
                           setAbVariations(updated);
                         }}
-                        className="h-9 text-xs bg-[#121215] border-[#27272a] focus:border-[#ff6600]"
+                        className={cn(
+                          "h-9 text-xs bg-[#121215] border-[#27272a] focus:border-[#ff6600]",
+                          fieldErrors[`abVariation_${i}`] &&
+                            "border-red-500 focus:border-red-500 focus:ring-red-500/30 bg-red-950/20 text-red-100"
+                        )}
                       />
+                      <FieldErrorAlert message={fieldErrors[`abVariation_${i}`]} />
                     </div>
                   ))}
 
@@ -1040,17 +1327,24 @@ export function LinkCreateModal({
                     </button>
                   </div>
 
-                  {/* Total Traffic Badge */}
+                  {/* Total Traffic Badge with Strict Format Alert */}
                   {(() => {
                     const total = mainWeight + abVariations.reduce((sum, v) => sum + (Number(v.weight) || 0), 0);
                     return (
-                      <div className={`p-2.5 rounded-lg text-xs flex items-center justify-between ${
-                        total === 100 
-                          ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-400" 
-                          : "bg-amber-500/10 border border-amber-500/30 text-amber-400"
-                      }`}>
-                        <span>Total de la répartition :</span>
-                        <span className="font-mono font-bold">{total}% {total === 100 ? "✓ (Parfait)" : "(Ajustez pour atteindre 100%)"}</span>
+                      <div className="flex flex-col gap-1.5">
+                        <div className={`p-2.5 rounded-lg text-xs flex items-center justify-between ${
+                          total === 100 
+                            ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-400" 
+                            : "bg-red-500/15 border border-red-500/40 text-red-400"
+                        }`}>
+                          <span>Total de la répartition :</span>
+                          <span className="font-mono font-bold">
+                            {total}% {total === 100 ? "✓ (Parfait)" : "❌ (Doit faire exactement 100%)"}
+                          </span>
+                        </div>
+                        {total !== 100 && (
+                          <FieldErrorAlert message={`La somme des pourcentages fait ${total}%. Cliquez sur "Équilibrer automatiquement (100%)" ou ajustez manuellement pour atteindre 100%.`} />
+                        )}
                       </div>
                     );
                   })()}
@@ -1091,6 +1385,19 @@ export function LinkCreateModal({
                   className="w-4 h-4 accent-[#ff6600] cursor-pointer"
                 />
               </label>
+            </div>
+          )}
+
+          {/* Validation Error Summary Alert */}
+          {hasAttemptedSubmit && Object.keys(fieldErrors).length > 0 && (
+            <div className="p-3.5 rounded-[10px] bg-red-500/15 border border-red-500/40 text-red-400 text-xs flex items-start gap-2.5 animate-in fade-in">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-500" />
+              <div className="flex flex-col gap-0.5">
+                <span className="font-bold text-red-300">Format strict non respecté :</span>
+                <span className="text-[11px] text-red-300">
+                  Certains champs contiennent des erreurs indiquées en rouge ci-dessus. Veuillez les corriger avant de pouvoir créer le lien.
+                </span>
+              </div>
             </div>
           )}
 

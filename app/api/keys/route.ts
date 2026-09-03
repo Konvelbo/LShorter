@@ -1,79 +1,62 @@
 import { NextResponse } from "next/server";
-
-const WORKER_URL =
-  process.env.NEXT_PUBLIC_BACKEND_API_URL ||
-  "https://lshorter-api.fiatechnologiecam.workers.dev";
-const FRONTEND_SECRET =
-  process.env.FRONTEND_API_SECRET || "lsh_secret_live_prod_2026";
+import {
+  getApiKeysForUser,
+  createApiKeyForUser,
+} from "@/lib/api-keys-store";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const userId = searchParams.get("userId") || "";
 
   try {
-    const res = await fetch(`${WORKER_URL}/api/v1/api-keys?userId=${userId}`, {
-      headers: {
-        "X-Frontend-Secret": FRONTEND_SECRET,
-        Authorization: `Bearer ${FRONTEND_SECRET}`,
-      },
-    });
-
-    if (!res.ok) {
-      return NextResponse.json({ success: true, data: [] });
-    }
-
-    const data = await res.json();
-    return NextResponse.json(data);
+    const keys = getApiKeysForUser(userId);
+    return NextResponse.json({ success: true, data: keys });
   } catch (error) {
-    console.warn("[API Keys Proxy GET] Worker offline, returning fallback:", error);
+    console.warn("[API Keys GET] Error retrieving keys:", error);
     return NextResponse.json({ success: true, data: [] });
   }
 }
 
 export async function POST(req: Request) {
   const { searchParams } = new URL(req.url);
-  const userId = searchParams.get("userId") || "";
+  const queryUserId = searchParams.get("userId") || "";
 
   try {
-    const body = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const userId = body.userId || queryUserId;
 
-    const res = await fetch(`${WORKER_URL}/api/v1/api-keys`, {
-      method: "POST",
-      headers: {
-        "X-Frontend-Secret": FRONTEND_SECRET,
-        Authorization: `Bearer ${FRONTEND_SECRET}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ ...body, userId: body.userId || userId }),
-    });
-
-    if (!res.ok) {
-      const errorData = await res.json().catch(() => ({}));
+    if (!userId) {
       return NextResponse.json(
-        {
-          success: false,
-          error: errorData.message || errorData.error || "Erreur création clé API",
-        },
-        { status: res.status }
+        { success: false, error: "Identifiant utilisateur requis (userId)" },
+        { status: 400 }
       );
     }
 
-    const data = await res.json();
-    return NextResponse.json(data, { status: res.status });
-  } catch (error) {
-    console.warn("[API Keys Proxy POST] Worker offline, returning fallback:", error);
-    return NextResponse.json({
-      success: true,
-      data: {
-        id: `key_${Date.now()}`,
-        name: "Clé API (Mode Local)",
-        prefix: "lsh_live_demo",
-        raw_key: "lsh_live_mock_key_" + Math.random().toString(36).substring(2),
-        scope: "read_write",
-        rate_limit: 600,
-        created_at: new Date().toISOString(),
-      },
+    const { key, rawKey } = createApiKeyForUser({
+      userId,
+      name: body.name || "Clé API",
+      scope: body.scope || "read_write",
+      rateLimit: body.rateLimit || 600,
     });
+
+    return NextResponse.json(
+      {
+        success: true,
+        data: {
+          ...key,
+          raw_key: rawKey,
+          rawKey: rawKey,
+        },
+      },
+      { status: 201 }
+    );
+  } catch (error: any) {
+    console.error("[API Keys POST] Error generating key:", error);
+    return NextResponse.json(
+      { success: false, error: error?.message || "Erreur création clé API" },
+      { status: 500 }
+    );
   }
 }
+
 

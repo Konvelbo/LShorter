@@ -317,23 +317,24 @@ export async function cfDeleteDomain(id: string, userId?: string) {
 export async function cfGetApiKeys(userId: string) {
   return cfFetch<{ success: true; data: any[] }>(
     `/api/keys?userId=${userId}`,
-    `/api/v1/api-keys?userId=${userId}`
+    `/api/keys?userId=${userId}`
   );
 }
 
 export async function cfCreateApiKey(data: { userId: string; name: string; scope?: string }) {
   return cfFetch<{ success: true; data: any }>(
     `/api/keys?userId=${data.userId}`,
-    "/api/v1/api-keys",
+    `/api/keys?userId=${data.userId}`,
     "POST",
     data
   );
 }
 
-export async function cfRevokeApiKey(id: string) {
+export async function cfRevokeApiKey(id: string, userId?: string) {
+  const query = userId ? `?userId=${userId}` : "";
   return cfFetch<{ success: true }>(
-    `/api/keys/${id}`,
-    `/api/v1/api-keys/${id}`,
+    `/api/keys/${id}${query}`,
+    `/api/keys/${id}${query}`,
     "DELETE"
   );
 }
