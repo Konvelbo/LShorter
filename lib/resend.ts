@@ -15,7 +15,7 @@ const isLiveKey =
 
 const resend = isLiveKey ? new Resend(resendApiKey) : null;
 const FROM_EMAIL =
-  process.env.RESEND_FROM_EMAIL || "LShorter Security <onboarding@resend.dev>";
+  process.env.RESEND_FROM_EMAIL || "LShorter Security <security@lsho.cc>";
 const FEEDBACK_RECEIVER =
   process.env.FEEDBACK_RECEIVER_EMAIL || "delivered@resend.dev";
 
