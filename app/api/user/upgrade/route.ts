@@ -1,12 +1,32 @@
 import { NextResponse } from "next/server";
+import { auth } from "@/auth";
 
 const WORKER_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || process.env.QUICKLINK_API_URL || "https://click_tracker.fiatechnologiecam.workers.dev";
 const FRONTEND_SECRET = process.env.FRONTEND_API_SECRET || process.env.QUICKLINK_MASTER_KEY || "lsh_secret_live_prod_2026";
 
 export async function POST(req: Request) {
   try {
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json(
+        { success: false, error: "Authentification requise." },
+        { status: 401 }
+      );
+    }
+
     const body = await req.json();
-    const { userId, plan } = body;
+    const targetUserId = body.userId || session.user.id;
+    const plan = body.plan;
+
+    // Strict IDOR protection: a user can only change their own plan
+    if (session.user.id && targetUserId !== session.user.id) {
+      return NextResponse.json(
+        { success: false, error: "Non autorisé à modifier le forfait d'un autre utilisateur." },
+        { status: 403 }
+      );
+    }
+
+    const userId = targetUserId;
 
     if (!userId || !plan) {
       return NextResponse.json(

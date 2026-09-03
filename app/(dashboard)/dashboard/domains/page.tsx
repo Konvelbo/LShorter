@@ -493,7 +493,7 @@ export default function DomainsPage() {
         onClose={() => setDeleteTarget({ isOpen: false, id: "", domain: "" })}
         onConfirm={confirmDeleteDomain}
         title="Supprimer ce domaine personnalisé ?"
-        description={`Le domaine ${deleteTarget.domain} sera dissocié. Vos liens courts continueront de fonctionner sous le domaine par défaut qlsk.cc.`}
+        description={`Le domaine ${deleteTarget.domain} sera dissocié. Vos liens courts continueront de fonctionner sous le domaine par défaut lsho.cc.`}
         itemLabels={deleteTarget.domain ? [deleteTarget.domain] : []}
         isDeleting={isDeleting}
       />

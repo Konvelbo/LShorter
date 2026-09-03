@@ -199,11 +199,14 @@ export function CobeGlobe({ className = "", topCountries = [] }: CobeGlobeProps)
   const modalBackdropRef = useRef<HTMLDivElement>(null);
   const modalContentRef = useRef<HTMLDivElement>(null);
 
-  // Rotation angles & drag state
+  // Rotation angles, drag state & smooth mobile momentum physics
   const rotX = useRef(0.18);
   const rotY = useRef(0.3);
   const isDragging = useRef(false);
   const lastMousePos = useRef({ x: 0, y: 0 });
+  const velocityX = useRef(0);
+  const velocityY = useRef(0);
+  const pointerIdRef = useRef<number | null>(null);
 
   // True Geographic 3D coordinates calculation (North is UP, Greenwich meridian facing front)
   const latLngTo3D = (lat: number, lng: number, radius: number) => {
@@ -491,7 +494,15 @@ export function CobeGlobe({ className = "", topCountries = [] }: CobeGlobeProps)
       time += 0.02;
 
       if (!isDragging.current) {
-        rotY.current += 0.0035;
+        // Silky smooth momentum inertia when released
+        if (Math.abs(velocityX.current) > 0.00005 || Math.abs(velocityY.current) > 0.00005) {
+          rotY.current += velocityX.current;
+          rotX.current = Math.max(-0.85, Math.min(0.85, rotX.current + velocityY.current));
+          velocityX.current *= 0.92; // smooth aerodynamic friction
+          velocityY.current *= 0.92;
+        } else {
+          rotY.current += 0.0035;
+        }
       }
 
       if (canvasRef.current) {
@@ -511,10 +522,13 @@ export function CobeGlobe({ className = "", topCountries = [] }: CobeGlobeProps)
     };
   }, [isExpanded]);
 
-  // Handle Resize for both canvases
+  // Handle Resize with mobile performance optimization (lower DPR on mobile for ultra-smooth 60/120fps)
   useEffect(() => {
     const handleResize = () => {
-      const dpr = Math.min(window.devicePixelRatio || 2, 2);
+      const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+      const dpr = isMobile
+        ? Math.min(window.devicePixelRatio || 1, 1.25)
+        : Math.min(window.devicePixelRatio || 2, 2);
 
       if (canvasRef.current && containerRef.current) {
         const rect = containerRef.current.getBoundingClientRect();
@@ -543,25 +557,42 @@ export function CobeGlobe({ className = "", topCountries = [] }: CobeGlobeProps)
     return () => window.removeEventListener("resize", handleResize);
   }, [isExpanded]);
 
-  // Pointer drag handlers
-  const handlePointerDown = (e: React.PointerEvent) => {
+  // Pointer drag handlers with capture and velocity tracking
+  const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
     isDragging.current = true;
     lastMousePos.current = { x: e.clientX, y: e.clientY };
+    velocityX.current = 0;
+    velocityY.current = 0;
+    pointerIdRef.current = e.pointerId;
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {}
   };
 
-  const handlePointerMove = (e: React.PointerEvent) => {
+  const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (!isDragging.current) return;
     const dx = e.clientX - lastMousePos.current.x;
     const dy = e.clientY - lastMousePos.current.y;
 
-    rotY.current += dx * 0.007;
-    rotX.current = Math.max(-0.8, Math.min(0.8, rotX.current - dy * 0.007));
+    const speed = 0.0055;
+    rotY.current += dx * speed;
+    rotX.current = Math.max(-0.85, Math.min(0.85, rotX.current - dy * speed));
+
+    // Measure velocity for seamless swipe release
+    velocityX.current = dx * speed * 0.75;
+    velocityY.current = -dy * speed * 0.75;
 
     lastMousePos.current = { x: e.clientX, y: e.clientY };
   };
 
-  const handlePointerUp = () => {
+  const handlePointerUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
     isDragging.current = false;
+    try {
+      if (pointerIdRef.current !== null) {
+        e.currentTarget.releasePointerCapture(pointerIdRef.current);
+      }
+    } catch {}
+    pointerIdRef.current = null;
   };
 
   // Close modal on Escape
@@ -599,8 +630,10 @@ export function CobeGlobe({ className = "", topCountries = [] }: CobeGlobeProps)
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
           onPointerLeave={handlePointerUp}
-          className="w-full h-full cursor-grab active:cursor-grabbing rounded-full shadow-2xl"
+          style={{ touchAction: "none" }}
+          className="w-full h-full cursor-grab active:cursor-grabbing rounded-full shadow-2xl touch-none select-none"
         />
       </div>
 
@@ -664,8 +697,10 @@ export function CobeGlobe({ className = "", topCountries = [] }: CobeGlobeProps)
               onPointerDown={handlePointerDown}
               onPointerMove={handlePointerMove}
               onPointerUp={handlePointerUp}
+              onPointerCancel={handlePointerUp}
               onPointerLeave={handlePointerUp}
-              className="w-full h-full rounded-full shadow-[0_0_80px_rgba(0,210,255,0.25)] md:shadow-[0_0_80px_rgba(255,102,0,0.25)]"
+              style={{ touchAction: "none" }}
+              className="w-full h-full rounded-full shadow-[0_0_80px_rgba(0,210,255,0.25)] md:shadow-[0_0_80px_rgba(255,102,0,0.25)] touch-none select-none"
             />
           </div>
 

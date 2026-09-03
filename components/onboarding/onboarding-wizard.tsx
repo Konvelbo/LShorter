@@ -248,7 +248,7 @@ export function OnboardingWizard() {
       <div className="max-w-4xl w-full mx-auto flex items-center justify-between z-10">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-[10px] bg-[#ff6600] flex items-center justify-center font-bebas text-xl text-white font-bold tracking-wider shadow-lg shadow-[#ff6600]/30">
-            QL
+            LS
           </div>
           <span className="font-bebas text-2xl text-white tracking-wider">
             L<span className="text-[#ff6600]">SHORTER</span>

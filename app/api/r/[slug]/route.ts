@@ -49,7 +49,12 @@ function evaluateTargetUrl(baseTargetUrl: string, req: Request, meta?: any) {
     }
   }
 
-  return baseTargetUrl;
+  // Protocol sanitization: strictly enforce http:// or https:// (prevent javascript:, data:, vbscript: XSS)
+  const trimmed = (baseTargetUrl || "").trim();
+  if (!/^https?:\/\//i.test(trimmed)) {
+    return `https://${trimmed.replace(/^[a-z]+:/i, "")}`;
+  }
+  return trimmed;
 }
 
 async function resolveLinkData(slug: string, req: Request) {

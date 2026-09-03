@@ -28,10 +28,19 @@ CREATE TABLE IF NOT EXISTS analytics_events (
   id TEXT PRIMARY KEY,
   link_id TEXT NOT NULL,
   slug TEXT NOT NULL,
-  country TEXT DEFAULT 'FR�	�]HVQ�US	�[��ۛ�YI��\�\��Y�[�V��Y�\��\�VQ�US	�\�X�	��ܙX]Y�]VQ�US
-]][YJ	ۛ���JB�N�ԑPUHS�VQ���VT��Y�[�[]X���[���Yӈ[�[]X���]�[��[���Y
-NԑPUHS�VQ���VT��Y�[�[]X����Y�ӈ[�[]X���]�[���Y�NԑPUHS�VQ���VT��Y�[�[]X���ܙX]Y�]ӈ[�[]X���]�[��ܙX]Y�]
-N�KHˈ�\��H�XZ[��X�B�ԑPUHP�HQ���VT���XZ[��
-�YV�SPT�H�VK�\�\��YV���S��XZ[�V���SS�TUQK��]\�VQ�US	�X�]�I��ܙX]Y�]VQ�US
-]][YJ	ۛ���JB�N�ԑPUHS�VQ���VT��Y��XZ[���\�\��Yӈ�XZ[��\�\��Y
-NԑPUHS�TUQHS�VQ���VT��Y��XZ[����XZ[�ӈ�XZ[���XZ[�N�
+  country TEXT DEFAULT 'FR',
+  city TEXT DEFAULT 'Inconnue',
+  referrer TEXT DEFAULT 'Direct',
+  device TEXT DEFAULT 'desktop',
+  browser TEXT DEFAULT 'Chrome',
+  os TEXT DEFAULT 'Windows',
+  ip_hash TEXT,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+
+-- Crucial Indexes for Analytics
+CREATE INDEX IF NOT EXISTS idx_analytics_link_id ON analytics_events(link_id);
+CREATE INDEX IF NOT EXISTS idx_analytics_slug ON analytics_events(slug);
+CREATE INDEX IF NOT EXISTS idx_analytics_created_at ON analytics_events(created_at);
+CREATE INDEX IF NOT EXISTS idx_analytics_country ON analytics_events(country);
+CREATE INDEX IF NOT EXISTS idx_analytics_device ON analytics_events(device);

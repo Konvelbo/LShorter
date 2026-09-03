@@ -48,7 +48,7 @@ export function QRGenerator() {
   const [contentType, setContentType] = useState<QRContentType>("link");
 
   // Content Inputs
-  const [websiteUrl, setWebsiteUrl] = useState("https://qlsk.cc/mon-lien");
+  const [websiteUrl, setWebsiteUrl] = useState("https://lsho.cc/mon-lien");
   const [textContent, setTextContent] = useState("");
   const [wifiSsid, setWifiSsid] = useState("");
   const [wifiPassword, setWifiPassword] = useState("");
@@ -526,7 +526,7 @@ export function QRGenerator() {
         ctx.font = "900 16px 'Bebas Neue', sans-serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText("QL", centerBoxX + centerBoxSize / 2, centerBoxY + centerBoxSize / 2 + 1);
+        ctx.fillText("LS", centerBoxX + centerBoxSize / 2, centerBoxY + centerBoxSize / 2 + 1);
       } else if (selectedLogo === "facebook") {
         ctx.fillStyle = "#1877F2";
         ctx.font = "bold 20px sans-serif";
@@ -1304,7 +1304,7 @@ export function QRGenerator() {
                 CUSTOM TEXT
               </button>
 
-              {/* LShorter QL Logo (Free) */}
+              {/* LShorter LS Logo (Free) */}
               <button
                 type="button"
                 onClick={() => setSelectedLogo("ql")}
@@ -1314,7 +1314,7 @@ export function QRGenerator() {
                     : "bg-[#1a1a1e] border-[#27272a] text-[#ff6600]"
                 }`}
               >
-                QL
+                LS
               </button>
 
               {/* Facebook Logo (Free) */}

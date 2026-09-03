@@ -52,10 +52,24 @@ export async function sendPasswordResetPinAction({
     });
 
     if (!emailResult.success) {
-      console.warn(
-        "[PasswordReset] Email sending warning:",
-        emailResult.error
-      );
+      console.warn("[PasswordReset] Email sending warning:", emailResult.error);
+      const isSandboxRestriction =
+        emailResult.error?.includes("testing email address") ||
+        emailResult.error?.includes("validation_error") ||
+        emailResult.error?.includes("only send testing emails");
+
+      if (isSandboxRestriction) {
+        return {
+          success: true,
+          message: `Code PIN généré ! (Note test Resend : e-mail livrable uniquement à fiatechnologiecam@gmail.com. Votre code test est : ${pin})`,
+          isDevFallback: true,
+        };
+      }
+
+      return {
+        success: false,
+        message: emailResult.error || "Échec de l'envoi de l'e-mail.",
+      };
     }
 
     return {

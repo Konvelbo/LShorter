@@ -8,16 +8,37 @@ const convex = new ConvexHttpClient(
 
 export async function POST(req: NextRequest) {
   try {
-    const { name, email, passwordHash } = await req.json();
+    const body = await req.json();
+    const { name, email, password, passwordHash } = body;
 
-    if (!email || !passwordHash || !name) {
+    if (!email || (!password && !passwordHash) || !name) {
       return NextResponse.json({ error: "Données manquantes." }, { status: 400 });
     }
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      return NextResponse.json({ error: "Format d'adresse e-mail invalide." }, { status: 400 });
+    }
+
+    const bcrypt = await import("bcryptjs");
+    let finalHash = passwordHash;
+
+    if (password) {
+      if (typeof password !== "string" || password.length < 8) {
+        return NextResponse.json(
+          { error: "Le mot de passe doit comporter au moins 8 caractères." },
+          { status: 400 }
+        );
+      }
+      finalHash = await bcrypt.hash(password, 10);
+    } else if (passwordHash && !passwordHash.startsWith("$2")) {
+      finalHash = await bcrypt.hash(passwordHash, 10);
+    }
+
     const result = await convex.mutation(api.users.registerWithEmail, {
-      name,
-      email,
-      passwordHash,
+      name: name.trim(),
+      email: email.trim().toLowerCase(),
+      passwordHash: finalHash,
     });
 
     return NextResponse.json({ success: true, userId: result.userId }, { status: 201 });

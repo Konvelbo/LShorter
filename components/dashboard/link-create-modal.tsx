@@ -140,11 +140,11 @@ export function LinkCreateModal({
 
   const bannerInputRef = useRef<HTMLInputElement>(null);
 
-  const DEFAULT_DOMAIN = "lshorter-api.fiatechnologiecam.workers.dev/r";
+  const DEFAULT_DOMAIN = "lsho.cc";
 
   // Base Info
   const [targetUrl, setTargetUrl] = useState(initialUrl || "");
-  const [domainName, setDomainName] = useState("lshorter-api.fiatechnologiecam.workers.dev/r");
+  const [domainName, setDomainName] = useState("lsho.cc");
   const [slug, setSlug] = useState("");
 
   // Dynamic domain list from Cloudflare
@@ -674,11 +674,11 @@ export function LinkCreateModal({
                 onChange={(e) => setDomainName(e.target.value)}
                 className="w-full h-11 rounded-[10px] bg-[#141416] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
               >
-                <option value="lshorter-api.fiatechnologiecam.workers.dev/r" className="bg-[#141416] text-white">
-                  lshorter-api.fiatechnologiecam.workers.dev/r (Cloudflare Actif)
+                <option value="lsho.cc" className="bg-[#141416] text-white font-bold">
+                  lsho.cc (Domaine Officiel · Par défaut)
                 </option>
-                <option value="lsho.cc" className="bg-[#141416] text-white">
-                  lsho.cc (Futur domaine)
+                <option value="lshorter-api.fiatechnologiecam.workers.dev/r" className="bg-[#141416] text-white">
+                  lshorter-api.fiatechnologiecam.workers.dev/r (Worker Edge)
                 </option>
                 {customDomains.map((d) => (
                   <option key={d.id} value={d.domain} className="bg-[#141416] text-white">

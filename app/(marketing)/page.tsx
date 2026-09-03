@@ -26,7 +26,7 @@ export default function LandingPage() {
   const handleDemoShorten = (e: React.FormEvent) => {
     e.preventDefault();
     if (!demoUrl.trim()) return;
-    setShortenedDemo(`https://qlsk.cc/${Math.random().toString(36).substring(2, 8)}`);
+    setShortenedDemo(`https://lsho.cc/${Math.random().toString(36).substring(2, 8)}`);
   };
 
   return (
@@ -212,7 +212,11 @@ export default function LandingPage() {
           Rejoignez des milliers de créateurs et d&apos;entreprises qui font confiance à LShorter.
         </p>
         <Link href="/login">
-          <Button variant="glow" size="lg" className="font-bebas text-2xl px-10 py-6 tracking-wide">
+          <Button
+            variant="glow"
+            size="lg"
+            className="font-bebas text-xl sm:text-2xl px-8 sm:px-12 py-5 sm:py-6 tracking-wider h-auto leading-tight shadow-xl shadow-[#ff6600]/30 hover:scale-105 transition-transform max-w-full"
+          >
             CRÉER MON PREMIER LIEN COURT
           </Button>
         </Link>

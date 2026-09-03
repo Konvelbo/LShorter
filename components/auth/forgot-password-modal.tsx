@@ -108,7 +108,7 @@ export function ForgotPasswordModal({
         showToast.success(
           res.isDevFallback
             ? "Code PIN généré (mode test activé) !"
-            : "Code PIN envoyé par e-mail via Resend !"
+            : "Code PIN envoyé par e-mail avec succès !"
         );
         setStep("pin");
         setCountdown(60); // 60s cooldown
@@ -228,7 +228,7 @@ export function ForgotPasswordModal({
                   MOT DE PASSE OUBLIÉ ?
                 </h3>
                 <p className="text-xs text-neutral-400">
-                  Recevez un code de sécurité par e-mail via Resend.
+                  Recevez un code de sécurité à 6 chiffres par e-mail.
                 </p>
               </div>
             </div>

@@ -37,7 +37,24 @@ export default {
       });
     };
 
-    // ─── 1. UCHE KV REDIRECTION 0 D1 READS ────────────────(����������Ѡ��х���]�Ѡ���ȼ�����(����������Ёͱ՜����Ѡ�ɕ��������ȼ��������ɥ����(�����������ͱ՜��ɕ��ɸ�I�����͔�ɕ��ɕ�Р������輽�͡��ѕȹ��������Ȥ�((��������Ё������ձ��((������������ع1%9-M}-X���(������������(��������������ЁɅ܀�݅�Ё��ع1%9-M}-X���Сͱ՜��(��������������Ʌܤ��(����������������Ʌ܀���9=Q}=U9����(��������������ɕ��ɸ���܁I�����͔��1�������ɽ�م���������х������а��������聍���!�����́���(�������������(������������������)M=8����͔�Ʌܤ�(�����������(��������􁍅э�����Ȥ��(���������������le.warn('[KV Read Error]:', err);
+    // ─── 1. ULTRA-FAST KV REDIRECTION (0.3ms latency) ─────────────────────
+    // Supports both /r/:slug and direct /:slug on custom domain lsho.cc
+    const isApiRoute = path.startsWith('/api/') || path.startsWith('/v1/');
+    if (!isApiRoute && path.length > 1) {
+      const slug = path.startsWith('/r/') ? path.slice(3) : path.slice(1);
+      let link = null;
+
+      if (env.LINKS_KV) {
+        try {
+          const cached = await env.LINKS_KV.get(slug);
+          if (cached === 'NOT_FOUND') {
+            return new Response('Lien introuvable ou expire.', { status: 404, headers: corsHeaders });
+          }
+          if (cached) {
+            link = JSON.parse(cached);
+          }
+        } catch (err) {
+          console.warn('[KV Read Error]:', err);
         }
       }
 

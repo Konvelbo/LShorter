@@ -4,10 +4,6 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  BarChart3,
-  Target,
-  Lock,
-  Code2,
   Sparkles,
   ArrowRight,
   Shield,
@@ -175,7 +171,15 @@ export default function LoginPage({ initialMode = "login" }: { initialMode?: "lo
   const handleOAuthLogin = async (provider: "google" | "github") => {
     setIsLoading(true);
     try {
-      // Redirect to the lightweight /auth/success page, NOT the full dashboard
+      const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+
+      // On mobile devices, always use native full-page OAuth redirect
+      if (isMobile) {
+        await signIn(provider, { callbackUrl: "/dashboard" });
+        return;
+      }
+
+      // On desktop, try seamless popup or fallback to direct redirect
       const res = await signIn(provider, {
         callbackUrl: "/auth/success",
         redirect: false,
@@ -192,11 +196,12 @@ export default function LoginPage({ initialMode = "login" }: { initialMode?: "lo
           `width=${width},height=${height},left=${left},top=${top},status=no,menubar=no,toolbar=no`
         );
 
-        if (!popup) {
-          window.open(res.url, "_blank");
+        if (!popup || popup.closed || typeof popup.closed === "undefined") {
+          // If popup was blocked by browser, perform direct redirect
+          await signIn(provider, { callbackUrl: "/dashboard" });
         }
       } else {
-        await signIn(provider, { callbackUrl: "/auth/success" });
+        await signIn(provider, { callbackUrl: "/dashboard" });
       }
     } catch (error) {
       console.error("OAuth Sign-in error:", error);
@@ -209,94 +214,23 @@ export default function LoginPage({ initialMode = "login" }: { initialMode?: "lo
   };
 
   return (
-    <div className="min-h-screen bg-[#09090b] text-[#fafafa] flex flex-col lg:flex-row">
-      {/* Left Column: Value Proposition */}
-      <div className="flex-1 bg-[#0d0d10] border-r border-[#222225] p-8 lg:p-16 flex flex-col justify-between relative overflow-hidden">
-        {/* Background glow */}
-        <div className="absolute top-0 left-0 w-96 h-96 bg-[#ff6600]/10 rounded-full blur-3xl pointer-events-none" />
+    <div className="min-h-screen bg-[#09090b] text-[#fafafa] flex items-center justify-center p-4 sm:p-8 relative overflow-hidden">
+      {/* Background ambient glow */}
+      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#ff6600]/10 rounded-full blur-[140px] pointer-events-none" />
 
-        <div className="flex flex-col gap-10 z-10">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-[10px] bg-[#ff6600] flex items-center justify-center shadow-lg shadow-[#ff6600]/30 font-bebas text-2xl text-white font-bold tracking-wider">
-              QL
+      {/* Centered Authentication Card */}
+      <div className="w-full max-w-md flex flex-col gap-6 z-10 my-auto">
+        {/* Brand Logo with LS Badge */}
+        <div className="flex justify-center">
+          <Link href="/" className="flex items-center gap-3 group select-none">
+            <div className="w-10 h-10 rounded-[10px] bg-[#ff6600] flex items-center justify-center shadow-lg shadow-[#ff6600]/30 font-bebas text-2xl text-white font-bold tracking-wider group-hover:scale-105 transition-transform">
+              LS
             </div>
             <span className="font-bebas text-3xl text-white tracking-wider flex items-center gap-1">
               L<span className="text-[#ff6600]">SHORTER</span>
             </span>
           </Link>
-
-          {/* Headline */}
-          <div>
-            <h1 className="font-bebas text-4xl sm:text-5xl lg:text-6xl text-white leading-[1.05] tracking-wide max-w-lg">
-              DES LIENS QUI{" "}
-              <span className="text-[#ff6600] drop-shadow-[0_0_25px_rgba(255,102,0,0.4)]">
-                TRAVAILLENT
-              </span>{" "}
-              POUR VOUS
-            </h1>
-          </div>
-
-          {/* Features List */}
-          <div className="flex flex-col gap-4 max-w-md">
-            <div className="flex items-center gap-3.5 p-3 rounded-[10px] bg-white/[0.02] border border-[#222225]">
-              <div className="w-9 h-9 rounded-[8px] bg-[#ff6600]/15 border border-[#ff6600]/30 flex items-center justify-center text-[#ff6600] shrink-0">
-                <BarChart3 className="w-5 h-5" />
-              </div>
-              <span className="text-xs sm:text-sm font-medium text-neutral-200">
-                Analytics en temps réel par pays et appareil
-              </span>
-            </div>
-
-            <div className="flex items-center gap-3.5 p-3 rounded-[10px] bg-white/[0.02] border border-[#222225]">
-              <div className="w-9 h-9 rounded-[8px] bg-[#ff6600]/15 border border-[#ff6600]/30 flex items-center justify-center text-[#ff6600] shrink-0">
-                <Target className="w-5 h-5" />
-              </div>
-              <span className="text-xs sm:text-sm font-medium text-neutral-200">
-                Smart routing Geo &amp; Device automatique
-              </span>
-            </div>
-
-            <div className="flex items-center gap-3.5 p-3 rounded-[10px] bg-white/[0.02] border border-[#222225]">
-              <div className="w-9 h-9 rounded-[8px] bg-[#ff6600]/15 border border-[#ff6600]/30 flex items-center justify-center text-[#ff6600] shrink-0">
-                <Lock className="w-5 h-5" />
-              </div>
-              <span className="text-xs sm:text-sm font-medium text-neutral-200">
-                Protection par mot de passe &amp; URL Cloaking
-              </span>
-            </div>
-
-            <div className="flex items-center gap-3.5 p-3 rounded-[10px] bg-white/[0.02] border border-[#222225]">
-              <div className="w-9 h-9 rounded-[8px] bg-[#ff6600]/15 border border-[#ff6600]/30 flex items-center justify-center text-[#ff6600] shrink-0">
-                <Code2 className="w-5 h-5" />
-              </div>
-              <span className="text-xs sm:text-sm font-medium text-neutral-200">
-                API REST haute performance &lt; 15ms
-              </span>
-            </div>
-          </div>
         </div>
-
-        {/* Testimonial Quote */}
-        <div className="pt-8 border-t border-[#222225] mt-10 z-10">
-          <p className="text-xs sm:text-sm text-neutral-400 italic leading-relaxed">
-            &ldquo;LShorter nous a permis de router notre trafic publicitaire par pays en un clic. Notre taux de conversion a augmenté de 28% dès la première semaine.&rdquo;
-          </p>
-          <div className="flex items-center gap-3 mt-3">
-            <div className="w-8 h-8 rounded-full bg-[#ff6600] flex items-center justify-center font-bold text-xs text-white">
-              S
-            </div>
-            <div>
-              <p className="text-xs font-bold text-white">Directeur E-commerce</p>
-              <p className="text-[11px] text-neutral-500">Scale-up Retail</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Right Column: Authentication Card */}
-      <div className="flex-1 flex items-center justify-center p-6 sm:p-12 lg:p-16">
-        <div className="w-full max-w-md flex flex-col gap-6">
           {/* Mode Switcher */}
           <div className="grid grid-cols-2 p-1 bg-[#141416] border border-[#27272a] rounded-[10px] text-xs font-semibold">
             <button
@@ -507,15 +441,14 @@ export default function LoginPage({ initialMode = "login" }: { initialMode?: "lo
             .
           </p>
         </div>
-      </div>
 
-      {/* Forgot Password Modal (Resend PIN) */}
-      <ForgotPasswordModal
-        isOpen={isForgotPasswordOpen}
-        onClose={() => setIsForgotPasswordOpen(false)}
-        initialEmail={email}
-      />
-    </div>
+        {/* Forgot Password Modal (Resend PIN) */}
+        <ForgotPasswordModal
+          isOpen={isForgotPasswordOpen}
+          onClose={() => setIsForgotPasswordOpen(false)}
+          initialEmail={email}
+        />
+      </div>
   );
 }
 
