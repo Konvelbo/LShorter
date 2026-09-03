@@ -1,3 +1,5 @@
+dangerouslyAllowAllBuilds: true
 allowBuilds:
   esbuild: true
   bcryptjs: true
+  unrs-resolver: true
