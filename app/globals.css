@@ -1,0 +1,220 @@
+@import "tailwindcss";
+
+:root {
+  --background: #09090b;
+  --foreground: #fafafa;
+  --card: #141416;
+  --card-foreground: #fafafa;
+  --card-border: #222225;
+  --popover: #141416;
+  --popover-foreground: #fafafa;
+  --primary: #ff6600;
+  --primary-foreground: #ffffff;
+  --secondary: #27272a;
+  --secondary-foreground: #fafafa;
+  --muted: #18181b;
+  --muted-foreground: #a1a1aa;
+  --accent: #27272a;
+  --accent-foreground: #fafafa;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: #27272a;
+  --input: #1f1f23;
+  --ring: #ff6600;
+  --radius: 10px;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
+  overflow-x: hidden;
+}
+
+.font-bebas {
+  font-family: var(--font-bebas), sans-serif;
+  letter-spacing: 0.04em;
+}
+
+.font-sans {
+  font-family: var(--font-inter), sans-serif;
+}
+
+/* Strict 10px radius default for UI */
+.rounded-saas {
+  border-radius: 10px;
+}
+
+/* Custom glowing and glass styling */
+.glass-card {
+  background: #141416;
+  border: 1px solid #222225;
+  border-radius: 10px;
+}
+
+.glass-card-hover {
+  background: #141416;
+  border: 1px solid #222225;
+  border-radius: 10px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-card-hover:hover {
+  border-color: rgba(255, 102, 0, 0.4);
+  box-shadow: 0 0 25px -5px rgba(255, 102, 0, 0.15);
+}
+
+.orange-glow {
+  box-shadow: 0 0 20px -2px rgba(255, 102, 0, 0.35);
+}
+
+/* ==========================================================================
+   PURE HARDWARE-ACCELERATED CSS HOVER & SCALE ANIMATIONS
+   ========================================================================== */
+
+/* Sidebar Link Button Hover */
+.sidebar-link-btn {
+  transition: background-color 0.16s ease, color 0.16s ease, transform 0.16s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.16s ease !important;
+  will-change: transform;
+}
+.sidebar-link-btn:hover {
+  background-color: #222226 !important;
+  color: #ffffff !important;
+  transform: translateX(3px) scale(1.02) !important;
+}
+.sidebar-link-btn:active {
+  transform: scale(0.98) !important;
+}
+.sidebar-link-active {
+  background-color: #ff6600 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(255, 102, 0, 0.35) !important;
+}
+.sidebar-link-active:hover {
+  background-color: #ff771a !important;
+  transform: translateX(3px) scale(1.02) !important;
+}
+
+/* General interactive button hover scale */
+.btn-hover-scale {
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s ease, filter 0.18s ease !important;
+  will-change: transform;
+}
+.btn-hover-scale:hover {
+  transform: scale(1.06) !important;
+}
+.btn-hover-scale:active {
+  transform: scale(0.95) !important;
+}
+
+/* Card hover lift */
+.card-hover-lift {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease, box-shadow 0.2s ease !important;
+  will-change: transform;
+}
+.card-hover-lift:hover {
+  transform: translateY(-2px) scale(1.01) !important;
+  border-color: rgba(255, 102, 0, 0.4) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Icon hover glow */
+.icon-hover-glow {
+  transition: transform 0.18s ease, filter 0.18s ease !important;
+  will-change: transform;
+}
+.icon-hover-glow:hover {
+  transform: scale(1.15) !important;
+  filter: drop-shadow(0 0 6px rgba(255, 102, 0, 0.7)) !important;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #09090b;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3f3f46;
+}
+
+/* ==========================================================================
+   MOBILE FULL CYBER BLUE THEME (< 768px)
+   Automatically converts ALL orange elements to Electric Cyber Blue on mobile!
+   ========================================================================== */
+@media (max-width: 767px) {
+  :root {
+    --primary: #0066FF;
+    --ring: #0066FF;
+  }
+
+  /* 1. All text colors */
+  [class*="text-[#ff6600]"],
+  [class*="text-[#ff771a]"] {
+    color: #0066FF !important;
+  }
+
+  /* 2. All backgrounds */
+  [class*="bg-[#ff6600]"],
+  [class*="bg-[#ff771a]"] {
+    background-color: #0066FF !important;
+  }
+
+  /* 3. Translucent backgrounds */
+  [class*="bg-[#ff6600]/10"],
+  [class*="bg-[#ff6600]/15"],
+  [class*="bg-[#ff6600]/20"] {
+    background-color: rgba(0, 102, 255, 0.15) !important;
+  }
+
+  /* 4. All borders */
+  [class*="border-[#ff6600]"],
+  [class*="border-[#ff771a]"] {
+    border-color: #0066FF !important;
+  }
+
+  /* 5. Translucent borders */
+  [class*="border-[#ff6600]/20"],
+  [class*="border-[#ff6600]/30"],
+  [class*="border-[#ff6600]/40"] {
+    border-color: rgba(0, 102, 255, 0.35) !important;
+  }
+
+  /* 6. Shadows and glows */
+  [class*="shadow-[#ff6600]"] {
+    box-shadow: 0 4px 16px rgba(0, 102, 255, 0.45) !important;
+  }
+
+  .orange-glow {
+    box-shadow: 0 0 20px -2px rgba(0, 102, 255, 0.45) !important;
+  }
+
+  /* 7. Drop shadows */
+  [class*="drop-shadow-"][class*="rgba(255,102,0"] {
+    filter: drop-shadow(0 0 15px rgba(0, 102, 255, 0.6)) !important;
+  }
+
+  /* 8. Active sidebar buttons & general primary buttons */
+  .sidebar-link-active {
+    background-color: #0066FF !important;
+    box-shadow: 0 4px 14px rgba(0, 102, 255, 0.4) !important;
+  }
+
+  /* 9. SVG Strokes and Fills */
+  [class*="stroke-[#ff6600]"] {
+    stroke: #0066FF !important;
+  }
+  [class*="fill-[#ff6600]"] {
+    fill: #0066FF !important;
+  }
+}
+

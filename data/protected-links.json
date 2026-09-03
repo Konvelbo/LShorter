@@ -1,0 +1,147 @@
+[
+  {
+    "slug": "secret-vip-i97l",
+    "password": "supersecret",
+    "isCloaked": true,
+    "targetUrl": "https://google.com/search?q=unlocked_target",
+    "userId": "cb705616-10c9-47de-b3e9-750beccb71de",
+    "updatedAt": "2026-09-03T14:11:50.741Z"
+  },
+  {
+    "slug": "groupe-priver",
+    "password": "Azerty@7833",
+    "isCloaked": true,
+    "metaTitle": null,
+    "targetUrl": "https://talktoome.netlify.app/",
+    "userId": "cb705616-10c9-47de-b3e9-750beccb71de",
+    "updatedAt": "2026-09-03T14:33:16.481Z"
+  },
+  {
+    "slug": "mon-lien-secret-ajg5",
+    "password": "mypassword789",
+    "isCloaked": true,
+    "targetUrl": "https://talktoome.netlify.app/",
+    "userId": "cb705616-10c9-47de-b3e9-750beccb71de",
+    "updatedAt": "2026-09-03T14:31:51.842Z"
+  },
+  {
+    "slug": "dsfdfsdfa",
+    "isCloaked": false,
+    "targetUrl": "https://talktoome.netlify.app/",
+    "userId": "cb705616-10c9-47de-b3e9-750beccb71de",
+    "updatedAt": "2026-09-03T14:39:38.548Z",
+    "routingRules": [
+      {
+        "id": "rule_default_1",
+        "title": "Règle 1",
+        "isCollapsed": false,
+        "conditions": [
+          {
+            "id": "cond_1",
+            "type": "appareil",
+            "operator": "est",
+            "value": "desktop"
+          }
+        ],
+        "destinationUrl": "https://vercel.com/"
+      }
+    ],
+    "deviceTargeting": {
+      "windows": "https://vercel.com/",
+      "macos": "https://vercel.com/",
+      "linux": "https://vercel.com/",
+      "desktop": "https://vercel.com/"
+    }
+  },
+  {
+    "slug": "test-desk-n40b",
+    "isCloaked": false,
+    "targetUrl": "https://talktoome.netlify.app/",
+    "deviceTargeting": {
+      "windows": "https://vercel.com/",
+      "macos": "https://vercel.com/",
+      "linux": "https://vercel.com/",
+      "desktop": "https://vercel.com/"
+    },
+    "userId": "cb705616-10c9-47de-b3e9-750beccb71de",
+    "updatedAt": "2026-09-03T14:38:23.195Z"
+  },
+  {
+    "slug": "tage-1",
+    "isCloaked": false,
+    "targetUrl": "https://talktoome.netlify.app/?utm_source=twitter&utm_medium=social&utm_campaign=solde+du+jour&utm_term=funnnn&utm_content=je-ne-sais-pas",
+    "userId": "cb705616-10c9-47de-b3e9-750beccb71de",
+    "updatedAt": "2026-09-03T14:59:42.078Z"
+  },
+  {
+    "slug": "test-limit-xbf0",
+    "isCloaked": false,
+    "targetUrl": "https://talktoome.netlify.app/",
+    "maxClicks": 2,
+    "fallbackUrl": "https://google.com/search?q=fallback_quota_reached",
+    "clicksCount": 2,
+    "userId": "cb705616-10c9-47de-b3e9-750beccb71de",
+    "updatedAt": "2026-09-03T15:31:57.039Z"
+  },
+  {
+    "slug": "test-no-fb-cs52",
+    "isCloaked": false,
+    "targetUrl": "https://talktoome.netlify.app/",
+    "maxClicks": 0,
+    "clicksCount": 1,
+    "userId": "cb705616-10c9-47de-b3e9-750beccb71de",
+    "updatedAt": "2026-09-03T17:27:17.359Z",
+    "metaTitle": null,
+    "routingRules": null,
+    "geoTargeting": null,
+    "deviceTargeting": null,
+    "passParams": true
+  },
+  {
+    "slug": "test-ab-wsen",
+    "isCloaked": false,
+    "targetUrl": "https://mon-produit-a.com",
+    "abVariations": [
+      {
+        "url": "https://mon-produit-b.com",
+        "weight": 50
+      }
+    ],
+    "mainWeight": 50,
+    "clicksCount": 21,
+    "userId": "cb705616-10c9-47de-b3e9-750beccb71de",
+    "updatedAt": "2026-09-03T15:53:18.049Z"
+  },
+  {
+    "slug": "test-pass-vln7",
+    "isCloaked": false,
+    "targetUrl": "https://talktoome.netlify.app/",
+    "passParams": true,
+    "clicksCount": 1,
+    "userId": "cb705616-10c9-47de-b3e9-750beccb71de",
+    "updatedAt": "2026-09-03T17:23:04.504Z"
+  },
+  {
+    "slug": "baniaire-1",
+    "isCloaked": false,
+    "metaTitle": "dgfgdgsdgfgdf",
+    "targetUrl": "https://talktoome.netlify.app/",
+    "passParams": true,
+    "clicksCount": 0,
+    "userId": "cb705616-10c9-47de-b3e9-750beccb71de",
+    "updatedAt": "2026-09-03T17:30:40.034Z"
+  },
+  {
+    "slug": "test-banner-6mmn",
+    "isCloaked": false,
+    "metaTitle": "Offre Exclusive LShorter 2026",
+    "ogTitle": "Offre Exclusive LShorter 2026",
+    "ogDescription": "La meilleure solution de liens raccourcis du marché",
+    "ogImage": "https://images.unsplash.com/photo-1507238691740-187a5b1d37b8",
+    "targetUrl": "https://talktoome.netlify.app/",
+    "passParams": true,
+    "clicksCount": 1,
+    "userId": "cb705616-10c9-47de-b3e9-750beccb71de",
+    "updatedAt": "2026-09-03T17:36:50.228Z"
+  }
+]

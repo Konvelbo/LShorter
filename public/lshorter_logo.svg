@@ -1,0 +1,31 @@
+<svg width="680" height="200" viewBox="0 0 680 200" role="img" xmlns="http://www.w3.org/2000/svg">
+  <title>LShorter logo</title>
+  <desc>Logo du SaaS LShorter avec icône de lien court et texte en orange et blanc</desc>
+
+  <!-- Chain link icon -->
+  <g transform="translate(168, 50)">
+    <!-- Left link piece -->
+    <rect x="0" y="28" width="72" height="44" rx="22" fill="#FF5B00"/>
+    <rect x="22" y="48" width="28" height="4" fill="#ffffff" opacity="0.3"/>
+    <!-- Right link piece -->
+    <rect x="48" y="28" width="72" height="44" rx="22" fill="#ffffff"/>
+    <rect x="70" y="48" width="28" height="4" fill="#FF5B00" opacity="0.3"/>
+    <!-- Arrow indicating shortening -->
+    <g transform="translate(52, -8)">
+      <line x1="0" y1="20" x2="16" y2="12" stroke="#FF5B00" stroke-width="3" stroke-linecap="round"/>
+      <line x1="16" y1="12" x2="10" y2="6" stroke="#FF5B00" stroke-width="3" stroke-linecap="round"/>
+      <line x1="16" y1="12" x2="22" y2="18" stroke="#FF5B00" stroke-width="3" stroke-linecap="round"/>
+    </g>
+  </g>
+
+  <!-- L letter accent -->
+  <g transform="translate(154, 38)">
+    <rect x="0" y="0" width="8" height="36" rx="4" fill="#FF5B00"/>
+    <rect x="0" y="28" width="22" height="8" rx="4" fill="#FF5B00"/>
+  </g>
+
+  <!-- LShorter text -->
+  <text x="264" y="140" font-family="'Inter','Segoe UI',sans-serif" font-size="62" font-weight="700" fill="#FF5B00" letter-spacing="-1">L</text>
+  <text x="303" y="140" font-family="'Inter','Segoe UI',sans-serif" font-size="62" font-weight="700" fill="#ffffff" letter-spacing="-1">Shorter</text>
+
+</svg>
