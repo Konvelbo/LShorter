@@ -6,6 +6,15 @@ import bcrypt from "bcryptjs";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "@/convex/_generated/api";
 
+// If NEXTAUTH_URL or AUTH_URL is hardcoded to vercel.app, unset it so NextAuth
+// dynamically uses the active domain (e.g. lsho.cc) from request headers with trustHost: true
+if (process.env.NEXTAUTH_URL && process.env.NEXTAUTH_URL.includes("vercel.app")) {
+  delete process.env.NEXTAUTH_URL;
+}
+if (process.env.AUTH_URL && process.env.AUTH_URL.includes("vercel.app")) {
+  delete process.env.AUTH_URL;
+}
+
 const convex = new ConvexHttpClient(
   process.env.NEXT_PUBLIC_CONVEX_URL || "https://greedy-mastiff-107.convex.cloud"
 );

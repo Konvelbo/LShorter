@@ -188,52 +188,12 @@ export default function LoginPage({ initialMode = "login" }: { initialMode?: "lo
   const handleOAuthLogin = async (provider: "google" | "github") => {
     setIsLoading(true);
     try {
-      const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
-
-      // On mobile devices, always use native full-page OAuth redirect
-      if (isMobile) {
-        await signIn(provider, { callbackUrl: "/dashboard" });
-        return;
-      }
-
-      // On desktop, try seamless popup or fallback to direct redirect
-      const res = await signIn(provider, {
-        callbackUrl: "/auth/success",
-        redirect: false,
-      });
-
-      if (res?.url) {
-        if (res.url.includes("error=Configuration")) {
-          showToast.error(
-            "Identifiants OAuth non configurés sur Vercel (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET)."
-          );
-          setIsLoading(false);
-          return;
-        }
-
-        const width = 540;
-        const height = 680;
-        const left = window.screenX + (window.outerWidth - width) / 2;
-        const top = window.screenY + (window.outerHeight - height) / 2;
-        const popup = window.open(
-          res.url,
-          "lshorter_oauth_window",
-          `width=${width},height=${height},left=${left},top=${top},status=no,menubar=no,toolbar=no`
-        );
-
-        if (!popup || popup.closed || typeof popup.closed === "undefined") {
-          // If popup was blocked by browser, perform direct redirect
-          await signIn(provider, { callbackUrl: "/dashboard" });
-        }
-      } else {
-        await signIn(provider, { callbackUrl: "/dashboard" });
-      }
+      await signIn(provider, { callbackUrl: "/dashboard" });
     } catch (error) {
       console.error("OAuth Sign-in error:", error);
       showToast.error(
         `Erreur OAuth ${provider === "google" ? "Google" : "GitHub"}. Vérifiez votre configuration.`
       );
-    } finally {
       setIsLoading(false);
     }
   };
