@@ -78,14 +78,14 @@ export function AnalyticsPieChart({
         </div>
 
         {/* View Switcher */}
-        <div className="flex items-center gap-1 p-1 bg-[#1a1a1e] border border-[#27272a] rounded-[8px] text-xs">
+        <div className="w-full sm:w-auto grid grid-cols-2 sm:flex sm:items-center gap-1 p-1 bg-[#1a1a1e] border border-[#27272a] rounded-[8px] text-xs">
           <button
             type="button"
             onClick={() => {
               setActiveTab("links");
               setHoveredSlice(null);
             }}
-            className={`px-2.5 py-1 rounded-[6px] font-semibold transition-all cursor-pointer ${
+            className={`text-center px-3 py-1.5 rounded-[6px] font-semibold transition-all cursor-pointer ${
               activeTab === "links"
                 ? "bg-[#ff6600] text-white shadow-md font-bold"
                 : "text-neutral-400 hover:text-white"
@@ -99,7 +99,7 @@ export function AnalyticsPieChart({
               setActiveTab("channels");
               setHoveredSlice(null);
             }}
-            className={`px-2.5 py-1 rounded-[6px] font-semibold transition-all cursor-pointer ${
+            className={`text-center px-3 py-1.5 rounded-[6px] font-semibold transition-all cursor-pointer ${
               activeTab === "channels"
                 ? "bg-[#ff6600] text-white shadow-md font-bold"
                 : "text-neutral-400 hover:text-white"

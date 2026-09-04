@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import {
   ComposableMap,
   Geographies,
@@ -17,7 +17,7 @@ import {
   WORLD_COUNTRIES,
   getCountryData,
 } from "@/lib/geo-coordinates";
-import { Globe2, ZoomIn, ZoomOut, RotateCcw, MapPin, MousePointerClick, Activity } from "lucide-react";
+import { Globe2, ZoomIn, ZoomOut, RotateCcw, MapPin, MousePointerClick, Activity, Maximize2, Minimize2, X } from "lucide-react";
 
 // Standard high-resolution World Atlas TopoJSON
 const GEO_URL = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
@@ -59,10 +59,23 @@ export function ContinentsVectorMap({
     percentage: number;
   } | null>(null);
 
+  const [isExpanded, setIsExpanded] = useState(false);
+
   const [position, setPosition] = useState<{ coordinates: [number, number]; zoom: number }>({
     coordinates: [10, 15],
     zoom: 1,
   });
+
+  // Close modal on Escape
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isExpanded) {
+        setIsExpanded(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isExpanded]);
 
   // Active country clicks lookup
   const countryClicksMap = useMemo(() => {
@@ -90,7 +103,8 @@ export function ContinentsVectorMap({
   const totalAllClicks = totalClicks || 1;
 
   return (
-    <div className="rounded-[16px] bg-[#141416] border border-[#222225] p-5 sm:p-6 shadow-2xl relative overflow-hidden flex flex-col justify-between">
+    <>
+    <div className="rounded-[16px] bg-[#141416] border border-[#222225] p-5 sm:p-6 shadow-2xl relative overflow-hidden flex flex-col justify-between group">
       {/* Header & Map Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-3 z-10">
         <div>
@@ -125,7 +139,7 @@ export function ContinentsVectorMap({
           </p>
         </div>
 
-        {/* Map Zoom & Reset Controls */}
+        {/* Map Zoom & Reset Controls & Fullscreen Button */}
         <div className="flex items-center gap-2 self-start sm:self-auto">
           {(selectedContinent !== "ALL" || (selectedCountry && selectedCountry !== "ALL")) && (
             <button
@@ -166,11 +180,25 @@ export function ContinentsVectorMap({
               <RotateCcw className="w-3.5 h-3.5" />
             </button>
           </div>
+
+          {/* Fullscreen Expand Button */}
+          <button
+            type="button"
+            onClick={() => setIsExpanded(true)}
+            className="p-1.5 rounded-[8px] bg-cyan-500/10 md:bg-[#ff6600]/10 hover:bg-cyan-500 md:hover:bg-[#ff6600] text-cyan-400 md:text-[#ff6600] hover:text-white border border-cyan-500/25 md:border-[#ff6600]/25 shadow-sm transition-all cursor-pointer"
+            title="Agrandir en plein écran (Double-clic)"
+          >
+            <Maximize2 className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
       {/* Interactive react-simple-maps Canvas Container */}
-      <div className="relative w-full aspect-[2.1/1] max-h-[460px] my-1 flex items-center justify-center bg-[#0d0d10] rounded-[14px] border border-[#1f1f23] overflow-hidden select-none">
+      <div
+        onDoubleClick={() => setIsExpanded(true)}
+        className="relative w-full aspect-[2.1/1] max-h-[460px] my-1 flex items-center justify-center bg-[#0d0d10] rounded-[14px] border border-[#1f1f23] overflow-hidden select-none cursor-pointer"
+        title="Double-cliquez pour agrandir en plein écran"
+      >
         <ComposableMap
           projection="geoMercator"
           projectionConfig={{
@@ -401,5 +429,272 @@ export function ContinentsVectorMap({
         })}
       </div>
     </div>
+
+    {/* FULLSCREEN IMMERSIVE 2D VECTOR MAP MODAL */}
+    {isExpanded && (
+      <div
+        onClick={() => setIsExpanded(false)}
+        className="fixed inset-0 z-[99999] bg-black/85 backdrop-blur-2xl flex flex-col items-center justify-between p-3 sm:p-6 select-none cursor-pointer animate-in fade-in duration-200"
+      >
+        {/* Modal Header */}
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="w-full max-w-6xl flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 p-3.5 sm:p-4 rounded-[14px] bg-[#141416]/95 border border-[#27272a] shadow-2xl backdrop-blur-md cursor-default shrink-0"
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-[10px] bg-cyan-500 md:bg-[#ff6600] flex items-center justify-center text-white shadow-lg shadow-cyan-500/30 md:shadow-[#ff6600]/30 font-bold shrink-0">
+              <Globe2 className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-sm sm:text-base font-bold text-white flex items-center gap-2 truncate">
+                <span>Cartographie Mondiale Interactive — Vue Plein Écran</span>
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+              </h2>
+              <p className="text-[11px] sm:text-xs text-neutral-400 truncate">
+                Zoomez, déplacez et survolez les pays • Appuyez sur Échap ou cliquez pour quitter
+              </p>
+            </div>
+          </div>
+
+          {/* Modal Controls */}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center bg-[#1a1a1e] border border-[#27272a] rounded-[8px] p-0.5">
+              <button
+                type="button"
+                onClick={handleZoomIn}
+                title="Zoomer"
+                className="p-1.5 text-neutral-400 hover:text-white hover:bg-white/5 rounded-[6px] transition-colors cursor-pointer"
+              >
+                <ZoomIn className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={handleZoomOut}
+                title="Dézoomer"
+                className="p-1.5 text-neutral-400 hover:text-white hover:bg-white/5 rounded-[6px] transition-colors cursor-pointer"
+              >
+                <ZoomOut className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={handleResetZoom}
+                title="Réinitialiser vue"
+                className="p-1.5 text-neutral-400 hover:text-white hover:bg-white/5 rounded-[6px] transition-colors cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsExpanded(false)}
+              className="p-2 rounded-[8px] bg-white/5 hover:bg-red-500/20 text-neutral-400 hover:text-red-400 cursor-pointer transition-colors"
+              title="Fermer la vue plein écran (Échap)"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Modal Center Large Map */}
+        <div
+          onClick={(e) => e.stopPropagation()}
+          onDoubleClick={() => setIsExpanded(false)}
+          className="relative w-full max-w-6xl flex-1 my-3 flex items-center justify-center bg-[#0a0a0d] rounded-[16px] border border-[#1f1f24] overflow-hidden select-none cursor-grab active:cursor-grabbing shadow-2xl min-h-[320px]"
+        >
+          <ComposableMap
+            projection="geoMercator"
+            projectionConfig={{
+              scale: 140,
+              center: [10, 20],
+            }}
+            className="w-full h-full"
+          >
+            <ZoomableGroup
+              zoom={position.zoom}
+              center={position.coordinates}
+              onMoveEnd={(pos) => setPosition(pos)}
+            >
+              <Geographies geography={GEO_URL}>
+                {({ geographies }) =>
+                  geographies.map((geo) => {
+                    const countryData: CountryGeoData = getCountryFromGeography(geo);
+                    const continent = countryData.continent;
+                    const continentMeta = CONTINENTS_META[continent];
+                    const continentClicks = continentsData[continent]?.clicks || 0;
+                    const countryClicks = countryClicksMap.get(countryData.code.toUpperCase()) || 0;
+
+                    const isContinentSelected = selectedContinent === "ALL" || selectedContinent === continent;
+                    const isCountrySelected = !selectedCountry || selectedCountry === "ALL" || selectedCountry === countryData.code;
+                    const isHovered = hoveredCountry?.code === countryData.code;
+
+                    let fillColor = "#1b1b22";
+                    let strokeColor = "#272730";
+
+                    if (countryClicks > 0) {
+                      fillColor = continentMeta.color;
+                      strokeColor = "#ffffff";
+                    } else if (continentClicks > 0 && isContinentSelected) {
+                      fillColor = `${continentMeta.color}35`;
+                      strokeColor = `${continentMeta.color}60`;
+                    }
+
+                    if (isHovered) {
+                      fillColor = continentMeta.color;
+                      strokeColor = "#ffffff";
+                    }
+
+                    return (
+                      <Geography
+                        key={geo.rsmKey}
+                        geography={geo}
+                        onMouseEnter={() => {
+                          const count = countryClicksMap.get(countryData.code.toUpperCase()) || 0;
+                          const pct = totalAllClicks > 0 ? Math.round((count / totalAllClicks) * 100) : 0;
+                          setHoveredCountry({
+                            code: countryData.code,
+                            name: countryData.name,
+                            flag: countryData.flag,
+                            continent,
+                            clicks: count,
+                            percentage: pct,
+                          });
+                        }}
+                        onMouseLeave={() => setHoveredCountry(null)}
+                        onClick={() => {
+                          if (onSelectCountry) {
+                            onSelectCountry(selectedCountry === countryData.code ? "ALL" : countryData.code);
+                          }
+                        }}
+                        style={{
+                          default: {
+                            fill: fillColor,
+                            stroke: strokeColor,
+                            strokeWidth: countryClicks > 0 || isHovered ? 0.8 : 0.4,
+                            outline: "none",
+                            transition: "all 250ms ease",
+                            cursor: "pointer",
+                            opacity: isContinentSelected && isCountrySelected ? 1 : 0.25,
+                          },
+                          hover: {
+                            fill: continentMeta.color,
+                            stroke: "#ffffff",
+                            strokeWidth: 1.2,
+                            outline: "none",
+                            cursor: "pointer",
+                          },
+                          pressed: {
+                            fill: continentMeta.color,
+                            stroke: "#ffffff",
+                            strokeWidth: 1.2,
+                            outline: "none",
+                          },
+                        }}
+                      />
+                    );
+                  })
+                }
+              </Geographies>
+
+              {/* Glowing Markers for active visitor countries in Fullscreen */}
+              {topCountries.filter((c) => c.count > 0).map((c) => {
+                const geoData = WORLD_COUNTRIES[c.code.toUpperCase()] || getCountryData(c.code);
+                if (!geoData || !geoData.lng || !geoData.lat) return null;
+                const meta = CONTINENTS_META[geoData.continent];
+                const isSelected = selectedCountry === c.code;
+
+                return (
+                  <Marker
+                    key={`modal-marker-${c.code}`}
+                    coordinates={[geoData.lng, geoData.lat]}
+                    onMouseEnter={() => {
+                      setHoveredCountry({
+                        code: c.code,
+                        name: geoData.name,
+                        flag: geoData.flag,
+                        continent: geoData.continent,
+                        clicks: c.count,
+                        percentage: totalAllClicks > 0 ? Math.round((c.count / totalAllClicks) * 100) : 0,
+                      });
+                    }}
+                    onMouseLeave={() => setHoveredCountry(null)}
+                    onClick={() => onSelectCountry && onSelectCountry(isSelected ? "ALL" : c.code)}
+                  >
+                    <g className="cursor-pointer">
+                      {/* Pulsing ring */}
+                      <circle r="14" fill={meta.color} opacity="0.3" className="animate-ping pointer-events-none" />
+                      <circle r="7" fill={meta.color} opacity="0.6" className="pointer-events-none" />
+                      <circle
+                        r="4"
+                        fill="#ffffff"
+                        stroke={meta.color}
+                        strokeWidth="2.5"
+                      />
+                    </g>
+                  </Marker>
+                );
+              })}
+            </ZoomableGroup>
+          </ComposableMap>
+
+          {/* Floating Tooltip in Fullscreen */}
+          {hoveredCountry && (
+            <div className="absolute bottom-4 left-4 z-20 flex items-center gap-3 p-3 rounded-[12px] bg-[#141416]/95 border border-[#27272a] shadow-2xl backdrop-blur-md animate-in fade-in duration-150">
+              <span className="text-2xl">{hoveredCountry.flag}</span>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-white text-xs">{hoveredCountry.name}</span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded font-bold uppercase" style={{ color: CONTINENTS_META[hoveredCountry.continent].color, backgroundColor: `${CONTINENTS_META[hoveredCountry.continent].color}15` }}>
+                    {CONTINENTS_META[hoveredCountry.continent].name}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 mt-0.5 text-[11px] text-neutral-400">
+                  <span>Clics: <strong className="text-white">{hoveredCountry.clicks}</strong></span>
+                  <span>Part: <strong className="text-white">{hoveredCountry.percentage}%</strong></span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Modal Bottom Continents Ribbon */}
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="w-full max-w-6xl grid grid-cols-3 sm:grid-cols-6 gap-2 p-2.5 rounded-[12px] bg-[#141416]/95 border border-[#27272a] backdrop-blur-md shrink-0 cursor-default"
+        >
+          {(Object.keys(CONTINENTS_META) as Continent[]).map((cont) => {
+            const meta = CONTINENTS_META[cont];
+            const data = continentsData[cont] || { clicks: 0, percentage: 0, uniqueVisitors: 0, countriesCount: 0 };
+            const isSelected = selectedContinent === cont;
+
+            return (
+              <button
+                key={cont}
+                type="button"
+                onClick={() => onSelectContinent(isSelected ? "ALL" : cont)}
+                className={`p-2 rounded-[8px] border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                  isSelected
+                    ? "bg-white/10 border-white shadow-md scale-102"
+                    : data.clicks > 0
+                    ? "bg-[#1a1a1e] border-[#27272a] hover:border-white/40 hover:bg-white/5"
+                    : "bg-[#141416]/60 border-[#222225] opacity-60 hover:opacity-100"
+                }`}
+              >
+                <div className="flex items-center justify-between gap-1">
+                  <span className="text-[11px] font-bold text-white truncate flex items-center gap-1">
+                    <span>{meta.icon}</span>
+                    <span className="truncate">{meta.name}</span>
+                  </span>
+                  <span className="text-[11px] font-mono font-bold" style={{ color: meta.color }}>
+                    {data.clicks}
+                  </span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    )}
+    </>
   );
 }

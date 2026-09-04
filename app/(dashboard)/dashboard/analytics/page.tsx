@@ -506,63 +506,70 @@ export default function AnalyticsPage() {
       )}
 
       {/* Time Range Filter Bar (Jour, Semaine, Mois, An) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-2 rounded-[12px] bg-[#141416] border border-[#222225]">
-        <div className="flex items-center gap-1.5 text-xs">
-          <span className="text-neutral-400 font-medium px-2 flex items-center gap-1.5">
-            <Calendar className="w-3.5 h-3.5 text-[#ff6600]" />
-            <span>Période :</span>
-          </span>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-2 sm:p-2.5 rounded-[12px] bg-[#141416] border border-[#222225]">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-xs w-full sm:w-auto">
+          <div className="flex items-center justify-between sm:justify-start gap-1.5 px-1 sm:px-2 text-neutral-400 font-medium">
+            <span className="flex items-center gap-1.5">
+              <Calendar className="w-3.5 h-3.5 text-[#ff6600]" />
+              <span className="whitespace-nowrap">Période :</span>
+            </span>
+            <span className="sm:hidden text-neutral-500 text-[11px] font-medium">
+              {rangeLabels[selectedRange]}
+            </span>
+          </div>
 
-          <button
-            type="button"
-            onClick={() => handleRangeChange("day")}
-            className={`px-3 py-1.5 rounded-[8px] font-semibold transition-all cursor-pointer ${
-              selectedRange === "day"
-                ? "bg-[#ff6600] text-white shadow-md font-bold"
-                : "text-neutral-400 hover:text-white hover:bg-white/5"
-            }`}
-          >
-            Jour (24h)
-          </button>
+          <div className="grid grid-cols-4 gap-1 p-1 bg-[#0d0d10] border border-[#1f1f24] rounded-[10px] sm:flex sm:items-center sm:bg-transparent sm:border-0 sm:p-0">
+            <button
+              type="button"
+              onClick={() => handleRangeChange("day")}
+              className={`text-center py-1.5 px-2 sm:px-3 rounded-[8px] font-semibold transition-all cursor-pointer text-xs ${
+                selectedRange === "day"
+                  ? "bg-[#ff6600] text-white shadow-md font-bold"
+                  : "text-neutral-400 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              24h
+            </button>
 
-          <button
-            type="button"
-            onClick={() => handleRangeChange("week")}
-            className={`px-3 py-1.5 rounded-[8px] font-semibold transition-all cursor-pointer ${
-              selectedRange === "week"
-                ? "bg-[#ff6600] text-white shadow-md font-bold"
-                : "text-neutral-400 hover:text-white hover:bg-white/5"
-            }`}
-          >
-            Semaine (7j)
-          </button>
+            <button
+              type="button"
+              onClick={() => handleRangeChange("week")}
+              className={`text-center py-1.5 px-2 sm:px-3 rounded-[8px] font-semibold transition-all cursor-pointer text-xs ${
+                selectedRange === "week"
+                  ? "bg-[#ff6600] text-white shadow-md font-bold"
+                  : "text-neutral-400 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              7 jours
+            </button>
 
-          <button
-            type="button"
-            onClick={() => handleRangeChange("month")}
-            className={`px-3 py-1.5 rounded-[8px] font-semibold transition-all cursor-pointer ${
-              selectedRange === "month"
-                ? "bg-[#ff6600] text-white shadow-md font-bold"
-                : "text-neutral-400 hover:text-white hover:bg-white/5"
-            }`}
-          >
-            Mois (30j)
-          </button>
+            <button
+              type="button"
+              onClick={() => handleRangeChange("month")}
+              className={`text-center py-1.5 px-2 sm:px-3 rounded-[8px] font-semibold transition-all cursor-pointer text-xs ${
+                selectedRange === "month"
+                  ? "bg-[#ff6600] text-white shadow-md font-bold"
+                  : "text-neutral-400 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              30 jours
+            </button>
 
-          <button
-            type="button"
-            onClick={() => handleRangeChange("year")}
-            className={`px-3 py-1.5 rounded-[8px] font-semibold transition-all cursor-pointer ${
-              selectedRange === "year"
-                ? "bg-[#ff6600] text-white shadow-md font-bold"
-                : "text-neutral-400 hover:text-white hover:bg-white/5"
-            }`}
-          >
-            An (12 mois)
-          </button>
+            <button
+              type="button"
+              onClick={() => handleRangeChange("year")}
+              className={`text-center py-1.5 px-2 sm:px-3 rounded-[8px] font-semibold transition-all cursor-pointer text-xs ${
+                selectedRange === "year"
+                  ? "bg-[#ff6600] text-white shadow-md font-bold"
+                  : "text-neutral-400 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              1 an
+            </button>
+          </div>
         </div>
 
-        <span className="text-neutral-400 text-xs px-2 font-medium">
+        <span className="hidden sm:inline-block text-neutral-400 text-xs px-2 font-medium">
           {rangeLabels[selectedRange]}
         </span>
       </div>
@@ -1098,11 +1105,11 @@ export default function AnalyticsPage() {
         </div>
 
         {/* DataGrid Pagination Controls */}
-        <div className="flex items-center justify-between text-xs text-neutral-400 pt-2 border-t border-[#222225]">
-          <span>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-neutral-400 pt-3 border-t border-[#222225]">
+          <span className="text-center sm:text-left">
             Affichage de {((perfPage - 1) * perfPageSize) + 1} à {Math.min(perfPage * perfPageSize, filteredLinks.length)} sur {filteredLinks.length} liens
           </span>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-center gap-2">
             <Button
               size="sm"
               variant="outline"
@@ -1112,7 +1119,9 @@ export default function AnalyticsPage() {
             >
               <ChevronLeft className="w-3.5 h-3.5" />
             </Button>
-            <span className="font-mono text-white px-2">Page {perfPage} / {totalPerfPages}</span>
+            <span className="font-mono text-white text-xs px-3 py-1 bg-[#1a1a1e] border border-[#27272a] rounded-[6px] whitespace-nowrap">
+              Page {perfPage} / {totalPerfPages}
+            </span>
             <Button
               size="sm"
               variant="outline"
@@ -1273,11 +1282,11 @@ export default function AnalyticsPage() {
         </div>
 
         {/* DataGrid Pagination Controls */}
-        <div className="flex items-center justify-between text-xs text-neutral-400 pt-2 border-t border-[#222225]">
-          <span>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-neutral-400 pt-3 border-t border-[#222225]">
+          <span className="text-center sm:text-left">
             Affichage de {((streamPage - 1) * streamPageSize) + 1} à {Math.min(streamPage * streamPageSize, filteredEvents.length)} sur {filteredEvents.length} événements
           </span>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-center gap-2">
             <Button
               size="sm"
               variant="outline"
@@ -1287,7 +1296,9 @@ export default function AnalyticsPage() {
             >
               <ChevronLeft className="w-3.5 h-3.5" />
             </Button>
-            <span className="font-mono text-white px-2">Page {streamPage} / {totalStreamPages}</span>
+            <span className="font-mono text-white text-xs px-3 py-1 bg-[#1a1a1e] border border-[#27272a] rounded-[6px] whitespace-nowrap">
+              Page {streamPage} / {totalStreamPages}
+            </span>
             <Button
               size="sm"
               variant="outline"

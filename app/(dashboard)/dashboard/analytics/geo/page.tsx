@@ -770,13 +770,13 @@ export default function GeoAnalyticsPage() {
         </div>
 
         {/* Pagination Bar */}
-        <div className="flex items-center justify-between pt-4 mt-3 border-t border-[#222225] text-xs text-neutral-400">
-          <span>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 mt-3 border-t border-[#222225] text-xs text-neutral-400">
+          <span className="text-center sm:text-left">
             Affichage de {(currentPage - 1) * pageSize + 1} à{" "}
             {Math.min(currentPage * pageSize, filteredEvents.length)} sur {filteredEvents.length} événements
           </span>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center justify-center gap-1.5">
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
@@ -784,7 +784,7 @@ export default function GeoAnalyticsPage() {
             >
               <ChevronLeft className="w-3.5 h-3.5" />
             </button>
-            <span className="px-2 font-mono text-white">
+            <span className="px-3 py-1 font-mono text-white text-xs bg-[#1a1a1e] border border-[#27272a] rounded-[6px] whitespace-nowrap">
               Page {currentPage} / {totalPages}
             </span>
             <button
