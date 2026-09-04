@@ -26,7 +26,7 @@ import {
 import { useSession } from "next-auth/react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { cfUpdateLink, cfUploadImage, cfInvalidateCache } from "@/lib/cloudflare-api";
+import { cfUpdateLink, cfUploadImage, cfNormalizeImageUrl, cfInvalidateCache } from "@/lib/cloudflare-api";
 import { compressImageFile } from "@/lib/image-compress";
 import { ShortLink } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -149,6 +149,7 @@ export function LinkEditModal({
   const [ogTitle, setOgTitle] = useState("");
   const [ogDescription, setOgDescription] = useState("");
   const [ogImage, setOgImage] = useState("");
+  const [previewImage, setPreviewImage] = useState("");
   const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   // Routing Rules
@@ -177,6 +178,7 @@ export function LinkEditModal({
       setOgTitle(link.ogTitle || link.metaTitle || "");
       setOgDescription(link.ogDescription || "");
       setOgImage(link.ogImage || "");
+      setPreviewImage("");
 
       // Routing rules initialization
       let parsedRules: RoutingRule[] = [];
@@ -229,12 +231,17 @@ export function LinkEditModal({
       return;
     }
 
+    try {
+      const localUrl = URL.createObjectURL(file);
+      setPreviewImage(localUrl);
+    } catch {}
+
     setIsUploadingImage(true);
     try {
       const res = await cfUploadImage(file);
       if (res?.url) {
         setOgImage(res.url);
-        showToast.success("Bannière compressée et uploadée sur le CDN avec succès !");
+        showToast.success("Bannière prête !");
       } else {
         const compressed = await compressImageFile(file, 1200, 630, 0.82);
         if (typeof compressed === "string") {
@@ -694,16 +701,24 @@ export function LinkEditModal({
                       />
                     </label>
 
-                    {ogImage && (
+                    {(previewImage || ogImage) && (
                       <div className="relative group w-32 h-20 rounded-[10px] overflow-hidden border border-[#333338] shrink-0 bg-black">
                         <img
-                          src={ogImage}
+                          src={previewImage || cfNormalizeImageUrl(ogImage)}
                           alt="Bannière actuelle"
                           className="w-full h-full object-cover"
+                          onError={(e) => {
+                            if (previewImage && e.currentTarget.src !== previewImage) {
+                              e.currentTarget.src = previewImage;
+                            }
+                          }}
                         />
                         <button
                           type="button"
-                          onClick={() => setOgImage("")}
+                          onClick={() => {
+                            setOgImage("");
+                            setPreviewImage("");
+                          }}
                           className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-red-400 hover:text-red-300 transition-opacity cursor-pointer"
                           title="Supprimer la bannière"
                         >
@@ -721,12 +736,17 @@ export function LinkEditModal({
                   Aperçu en direct sur les Réseaux Sociaux (Twitter/X, WhatsApp, Facebook) :
                 </label>
                 <div className="rounded-[10px] border border-[#2a2a2e] bg-[#0c0c0e] overflow-hidden shadow-xl max-w-md mx-auto">
-                  {ogImage ? (
+                  {(previewImage || ogImage) ? (
                     <div className="relative w-full h-44 bg-black">
                       <img
-                        src={ogImage}
+                        src={previewImage || cfNormalizeImageUrl(ogImage)}
                         alt="Preview banner"
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          if (previewImage && e.currentTarget.src !== previewImage) {
+                            e.currentTarget.src = previewImage;
+                          }
+                        }}
                       />
                     </div>
                   ) : (

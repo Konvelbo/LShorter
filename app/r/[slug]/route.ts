@@ -172,10 +172,17 @@ export async function GET(
     // AND custom social metadata (ogImage, ogTitle, ogDescription) is present, serve Open Graph HTML
     if (isBot && (meta?.ogImage || meta?.ogTitle || meta?.ogDescription || meta?.metaTitle)) {
       const finalTarget = meta?.targetUrl || "https://lshorter.io";
+      let fullOgImage = meta?.ogImage || "";
+      if (fullOgImage && !fullOgImage.startsWith("http") && !fullOgImage.startsWith("data:")) {
+        try {
+          fullOgImage = new URL(fullOgImage, req.url).toString();
+        } catch {}
+      }
+
       return renderSocialHtml({
         title: meta.ogTitle || meta.metaTitle || slug,
         description: meta.ogDescription || "",
-        image: meta.ogImage || "",
+        image: fullOgImage,
         destinationUrl: finalTarget,
         canonicalUrl: req.url,
       });

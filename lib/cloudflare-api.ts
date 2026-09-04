@@ -119,26 +119,69 @@ export async function cfGetLinks(userId: string) {
   );
 }
 
-export async function cfUploadImage(base64OrFile: string | File): Promise<{ success: boolean; url: string }> {
+export function cfNormalizeImageUrl(url?: string): string {
+  if (!url) return "";
+  if (url.startsWith("data:") || url.startsWith("blob:")) return url;
+  if (url.includes("workers.dev/api/v1/images/")) {
+    const filename = url.split("workers.dev/api/v1/images/")[1];
+    return `/api/images/${filename}`;
+  }
+  return url;
+}
+
+export async function cfUploadImage(base64OrFile: string | File): Promise<{ success: boolean; url: string; imageId?: string }> {
   try {
     const compressed = await compressImageFile(base64OrFile, 1200, 630, 0.82);
+    const isBrowser = typeof window !== "undefined";
+    const endpoint = isBrowser ? "/api/upload" : `${WORKER_URL}/api/v1/upload-image`;
 
+    let res: Response;
     if (typeof compressed === "string" && compressed.startsWith("data:")) {
-      const res = await fetch("https://lshorter-api.fiatechnologiecam.workers.dev/api/v1/upload-image", {
+      res = await fetch(endpoint, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(!isBrowser ? { "X-Frontend-Secret": SECRET } : {}),
+        },
         body: JSON.stringify({ data: compressed }),
       });
-      return await res.json();
     } else {
       const formData = new FormData();
       formData.append("file", compressed as Blob);
-      const res = await fetch("https://lshorter-api.fiatechnologiecam.workers.dev/api/v1/upload-image", {
+      res = await fetch(endpoint, {
         method: "POST",
+        headers: {
+          ...(!isBrowser ? { "X-Frontend-Secret": SECRET } : {}),
+        },
         body: formData,
       });
-      return await res.json();
     }
+
+    if (!res.ok) {
+      if (isBrowser && endpoint !== `${WORKER_URL}/api/v1/upload-image`) {
+        if (typeof compressed === "string" && compressed.startsWith("data:")) {
+          const fallbackRes = await fetch(`${WORKER_URL}/api/v1/upload-image`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ data: compressed }),
+          });
+          const fbData = await fallbackRes.json().catch(() => ({}));
+          return {
+            success: fbData.success ?? Boolean(fbData.url),
+            url: cfNormalizeImageUrl(fbData.url),
+            imageId: fbData.imageId,
+          };
+        }
+      }
+      return { success: false, url: "" };
+    }
+
+    const data = await res.json().catch(() => ({}));
+    return {
+      success: data.success ?? Boolean(data.url),
+      url: cfNormalizeImageUrl(data.url),
+      imageId: data.imageId,
+    };
   } catch (err) {
     console.error("Image upload failed:", err);
     return { success: false, url: "" };

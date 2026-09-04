@@ -29,7 +29,7 @@ import {
 import { useSession } from "next-auth/react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { cfCreateLink, cfGetDomains, cfUploadImage, cfInvalidateCache } from "@/lib/cloudflare-api";
+import { cfCreateLink, cfGetDomains, cfUploadImage, cfNormalizeImageUrl, cfInvalidateCache } from "@/lib/cloudflare-api";
 import { compressImageFile } from "@/lib/image-compress";
 import { ShortLink } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -172,6 +172,7 @@ export function LinkCreateModal({
   const [ogTitle, setOgTitle] = useState("");
   const [ogDescription, setOgDescription] = useState("");
   const [ogImage, setOgImage] = useState("");
+  const [previewImage, setPreviewImage] = useState("");
 
   // Tracking & UTM
   const [tagsInput, setTagsInput] = useState("");
@@ -262,12 +263,17 @@ export function LinkCreateModal({
       return;
     }
 
+    try {
+      const localUrl = URL.createObjectURL(file);
+      setPreviewImage(localUrl);
+    } catch {}
+
     setIsUploadingImage(true);
     try {
       const res = await cfUploadImage(file);
       if (res?.url) {
         setOgImage(res.url);
-        showToast.success("Bannière compressée et hébergée sur le CDN avec succès !");
+        showToast.success("Bannière prête !");
       } else {
         const compressed = await compressImageFile(file, 1200, 630, 0.82);
         if (typeof compressed === "string") {
@@ -905,16 +911,19 @@ export function LinkCreateModal({
                       {isUploadingImage ? (
                         <div className="flex flex-col items-center gap-2 text-neutral-400">
                           <Loader2 className="w-6 h-6 animate-spin text-[#ff6600]" />
-                          <span className="text-xs font-medium">Optimisation et upload de l'image...</span>
+                          <span className="text-xs font-medium">Optimisation de l&apos;image...</span>
                         </div>
-                      ) : ogImage ? (
+                      ) : (previewImage || ogImage) ? (
                         <>
-                          <Image
-                            src={ogImage}
+                          <img
+                            src={previewImage || cfNormalizeImageUrl(ogImage)}
                             alt="OG Preview"
-                            fill
-                            className="object-cover"
-                            unoptimized
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              if (previewImage && e.currentTarget.src !== previewImage) {
+                                e.currentTarget.src = previewImage;
+                              }
+                            }}
                           />
                           <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                             <span className="text-xs font-semibold text-white bg-black/70 px-2.5 py-1 rounded-[10px] flex items-center gap-1">
@@ -925,8 +934,9 @@ export function LinkCreateModal({
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setOgImage("");
+                                setPreviewImage("");
                               }}
-                              className="text-xs font-semibold text-red-400 bg-black/70 px-2.5 py-1 rounded-[10px] hover:text-red-300"
+                              className="text-xs font-semibold text-red-400 bg-black/70 px-2.5 py-1 rounded-[10px] hover:text-red-300 cursor-pointer"
                             >
                               Supprimer
                             </button>
