@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import {
   X,
@@ -21,7 +21,8 @@ import {
   Power,
   Eye,
   EyeOff,
-  AlertCircle
+  AlertCircle,
+  ImageIcon
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useQuery } from "convex/react";
@@ -151,6 +152,7 @@ export function LinkEditModal({
   const [ogImage, setOgImage] = useState("");
   const [previewImage, setPreviewImage] = useState("");
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
 
   // Routing Rules
   const [routingRules, setRoutingRules] = useState<RoutingRule[]>([]);
@@ -231,6 +233,9 @@ export function LinkEditModal({
       return;
     }
 
+    // Reset input value so selecting the same file again triggers onChange
+    e.target.value = "";
+
     try {
       const localUrl = URL.createObjectURL(file);
       setPreviewImage(localUrl);
@@ -241,15 +246,19 @@ export function LinkEditModal({
       const res = await cfUploadImage(file);
       if (res?.url) {
         setOgImage(res.url);
+        setPreviewImage(res.url);
         showToast.success("Bannière prête !");
       } else {
         const compressed = await compressImageFile(file, 1200, 630, 0.82);
         if (typeof compressed === "string") {
           setOgImage(compressed);
+          setPreviewImage(compressed);
         } else {
           const reader = new FileReader();
           reader.onload = (event) => {
-            setOgImage(event.target?.result as string);
+            const dataUrl = (event.target?.result as string) || "";
+            setOgImage(dataUrl);
+            setPreviewImage(dataUrl);
           };
           reader.readAsDataURL(compressed as Blob);
         }
@@ -257,7 +266,7 @@ export function LinkEditModal({
       }
     } catch (err) {
       console.error("Upload error:", err);
-      showToast.error("Erreur lors de l'upload de l'image.");
+      showToast.error("Erreur lors du traitement de l'image.");
     } finally {
       setIsUploadingImage(false);
     }
@@ -492,38 +501,38 @@ export function LinkEditModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-3xl max-h-[92vh] flex flex-col bg-[#141416] border border-[#222225] rounded-[10px] shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="relative w-full max-w-3xl max-h-[92vh] flex flex-col bg-[#141416] border border-[#27272a] rounded-[10px] shadow-2xl overflow-hidden">
         {/* Modal Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#222225] bg-[#1a1a1e]/60">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-[10px] bg-[#ff6600]/10 border border-[#ff6600]/20 flex items-center justify-center text-[#ff6600]">
+        <div className="flex items-start justify-between p-4 sm:p-6 border-b border-[#222225] bg-[#1a1a1e]/80">
+          <div className="flex items-start gap-3.5 pr-4 flex-1 min-w-0">
+            <div className="w-10 h-10 min-w-[40px] min-h-[40px] shrink-0 aspect-square rounded-[10px] bg-[#ff6600]/10 border border-[#ff6600]/20 flex items-center justify-center text-[#ff6600]">
               <Edit3 className="w-5 h-5" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg font-bold text-white tracking-wide">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-base sm:text-lg font-bold text-white tracking-wide">
                   Modifier le Lien Court
                 </h2>
-                <span className="font-mono text-xs px-2 py-0.5 rounded-[10px] bg-[#ff6600]/10 text-[#ff6600] font-semibold border border-[#ff6600]/20">
+                <span className="font-mono text-xs px-2 py-0.5 rounded-[10px] bg-[#ff6600]/10 text-[#ff6600] font-semibold border border-[#ff6600]/20 truncate max-w-[200px]">
                   {link.domainName}/{link.slug}
                 </span>
               </div>
-              <p className="text-xs text-neutral-400 mt-0.5">
+              <p className="text-xs text-neutral-400 mt-0.5 leading-relaxed">
                 Personnalisez la bannière, l&apos;URL cible, les règles de routage et la sécurité.
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-neutral-400 hover:text-white rounded-[10px] hover:bg-white/10 transition-colors cursor-pointer"
+            className="w-8 h-8 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 flex items-center justify-center text-neutral-400 hover:text-white transition-all cursor-pointer shrink-0"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex items-center gap-2 px-6 pt-3 pb-2 border-b border-[#222225] bg-[#141416] overflow-x-auto">
+        <div className="flex items-center gap-2 px-4 sm:px-6 pt-3 pb-2 border-b border-[#222225] bg-[#141416] overflow-x-auto no-scrollbar scroll-smooth">
           {[
             { id: "general", label: "Général", icon: Sliders },
             { id: "social", label: "Bannière & Réseaux Sociaux", icon: Share2 },
@@ -652,83 +661,57 @@ export function LinkEditModal({
 
           {/* TAB 2: SOCIAL PREVIEW & BANNER */}
           {activeTab === "social" && (
-            <div className="space-y-5 animate-in fade-in duration-200">
-              <div className="p-4 rounded-[10px] bg-[#1a1a1e] border border-[#26262a] space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 animate-in fade-in duration-200">
+              {/* Left Column: Form Controls */}
+              <div className="flex flex-col gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-neutral-300 uppercase tracking-wider mb-1.5">
-                    Titre d&apos;Aperçu Social (OpenGraph / Twitter)
+                  <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
+                    Titre OpenGraph
                   </label>
                   <Input
                     value={ogTitle}
                     onChange={(e) => setOgTitle(e.target.value)}
                     placeholder="Titre accrocheur pour Twitter, Facebook, WhatsApp..."
-                    className="bg-[#0e0e10] border-[#2a2a2e] text-white text-sm focus:border-[#ff6600]"
+                    className="bg-[#1a1a1e] border-[#27272a] text-white text-xs focus:border-[#ff6600]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-neutral-300 uppercase tracking-wider mb-1.5">
-                    Description d&apos;Aperçu Social
+                  <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
+                    Description OpenGraph
                   </label>
-                  <Input
+                  <textarea
+                    rows={3}
                     value={ogDescription}
                     onChange={(e) => setOgDescription(e.target.value)}
                     placeholder="Découvrez notre nouvelle offre spéciale et nos services exclusifs..."
-                    className="bg-[#0e0e10] border-[#2a2a2e] text-white text-sm focus:border-[#ff6600]"
+                    className="w-full rounded-[10px] bg-[#1a1a1e] border border-[#27272a] p-3 text-xs text-neutral-200 focus:outline-none focus:border-[#ff6600]"
                   />
                 </div>
 
                 {/* Banner Upload Area */}
-                <div>
-                  <label className="block text-xs font-semibold text-neutral-300 uppercase tracking-wider mb-1.5">
-                    Bannière Image (Carte Grand Format)
+                <div className="flex flex-col gap-2">
+                  <label className="block text-xs font-semibold text-neutral-300">
+                    Bannière Image (1200×630)
                   </label>
 
-                  <div className="flex flex-col gap-3">
-                    <div className="flex items-center gap-2">
-                      <Input
-                        placeholder="https://images.unsplash.com/... ou importer un fichier"
-                        value={ogImage}
-                        onChange={(e) => {
-                          setOgImage(e.target.value);
-                          setPreviewImage("");
-                        }}
-                        className="bg-[#0e0e10] border-[#2a2a2e] text-white text-xs font-mono focus:border-[#ff6600]"
-                      />
-                      <label className="shrink-0 h-10 px-3.5 flex items-center justify-center gap-1.5 rounded-[10px] bg-[#1a1a1e] hover:bg-[#25252a] text-white border border-[#333338] hover:border-[#ff6600] text-xs font-semibold cursor-pointer transition-colors select-none">
-                        <Upload className="w-3.5 h-3.5 text-[#ff6600]" />
-                        <span>{isUploadingImage ? "Upload..." : "Importer"}</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleBannerUpload}
-                          className="hidden"
-                        />
-                      </label>
-                    </div>
+                  {/* Hidden file input */}
+                  <input
+                    type="file"
+                    ref={bannerInputRef}
+                    accept="image/*"
+                    onChange={handleBannerUpload}
+                    className="hidden"
+                  />
 
-                    <div className="flex flex-col sm:flex-row gap-3 items-center">
-                      <label className="w-full sm:w-auto flex-1 flex flex-col items-center justify-center p-4 rounded-[10px] border border-dashed border-[#333338] hover:border-[#ff6600] bg-[#0e0e10] active:bg-[#141416] text-white hover:text-white transition-all cursor-pointer group select-none">
-                        <Upload className="w-6 h-6 text-neutral-400 group-hover:text-[#ff6600] transition-colors mb-1.5" />
-                        <span className="text-xs font-semibold text-white">
-                          {isUploadingImage ? "Upload en cours sur le CDN..." : "Changer l'image (PNG, JPG, WebP max 5Mo)"}
-                        </span>
-                        <span className="text-[10px] text-neutral-500 mt-0.5">
-                          Glissez-déposez ou cliquez pour parcourir vos fichiers
-                        </span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleBannerUpload}
-                          className="hidden"
-                        />
-                      </label>
-
-                      {(previewImage || ogImage) && (
-                        <div className="relative group w-32 h-20 rounded-[10px] overflow-hidden border border-[#333338] shrink-0 bg-black">
+                  {(previewImage || ogImage) ? (
+                    /* Display full active banner with management actions */
+                    <div className="rounded-[10px] border border-[#333338] bg-[#141416] p-3 space-y-3 shadow-md">
+                      <div className="flex items-center gap-3">
+                        <div className="w-20 h-12 rounded-lg bg-black border border-[#27272a] overflow-hidden shrink-0">
                           <img
                             src={previewImage || cfNormalizeImageUrl(ogImage)}
-                            alt="Bannière actuelle"
+                            alt="Bannière active"
                             className="w-full h-full object-cover"
                             onError={(e) => {
                               const current = e.currentTarget.src;
@@ -740,33 +723,101 @@ export function LinkEditModal({
                               }
                             }}
                           />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setOgImage("");
-                              setPreviewImage("");
-                            }}
-                            className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 flex items-center justify-center text-red-400 hover:text-red-300 transition-opacity cursor-pointer font-semibold text-xs gap-1"
-                            title="Supprimer la bannière"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                            <span>Retirer</span>
-                          </button>
                         </div>
-                      )}
+
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-white truncate">
+                            {ogImage.startsWith("data:") ? "Image prête" : ogImage.includes("b-cdn.net") ? "Hébergée sur Bunny CDN" : "Bannière sélectionnée"}
+                          </p>
+                          <p className="text-[10px] text-neutral-400 truncate font-mono mt-0.5">
+                            {ogImage.startsWith("data:") ? "Base64 (Optimisée)" : ogImage}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Card actions */}
+                      <div className="flex items-center gap-2 pt-1 border-t border-[#222226]">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={isUploadingImage}
+                          onClick={() => {
+                            if (bannerInputRef.current) {
+                              bannerInputRef.current.value = "";
+                              bannerInputRef.current.click();
+                            }
+                          }}
+                          className="h-8 text-xs font-semibold text-white border-[#333338] hover:border-[#ff6600] flex-1 cursor-pointer"
+                        >
+                          <Upload className="w-3.5 h-3.5 mr-1.5 text-[#ff6600]" />
+                          <span>{isUploadingImage ? "Téléversement..." : "Remplacer l'image"}</span>
+                        </Button>
+
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setOgImage("");
+                            setPreviewImage("");
+                            if (bannerInputRef.current) bannerInputRef.current.value = "";
+                          }}
+                          className="h-8 text-xs font-semibold text-red-400 hover:text-red-300 border-red-500/20 hover:bg-red-500/10 px-3 cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 mr-1" />
+                          <span>Supprimer</span>
+                        </Button>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    /* When NO image is set: clean Dropzone + Direct URL input */
+                    <div className="space-y-2.5">
+                      <div
+                        onClick={() => {
+                          if (bannerInputRef.current) {
+                            bannerInputRef.current.value = "";
+                            bannerInputRef.current.click();
+                          }
+                        }}
+                        className="rounded-[10px] border-2 border-dashed border-[#27272a] hover:border-[#ff6600] bg-[#1a1a1e] hover:bg-[#222226] p-4 text-center transition-colors cursor-pointer group select-none"
+                      >
+                        <div className="w-8 h-8 rounded-full bg-[#ff6600]/10 text-[#ff6600] flex items-center justify-center mx-auto mb-1.5 group-hover:scale-110 transition-transform">
+                          <Upload className="w-4 h-4" />
+                        </div>
+                        <p className="text-xs font-semibold text-white">
+                          {isUploadingImage ? "Téléversement en cours..." : "Importer une bannière"}
+                        </p>
+                        <p className="text-[10px] text-neutral-400 mt-0.5">
+                          PNG, JPG, WebP jusqu'à 8 Mo · 1200×630
+                        </p>
+                      </div>
+
+                      <div>
+                        <Input
+                          placeholder="Ou coller une URL d'image directe (https://...)"
+                          value={ogImage}
+                          onChange={(e) => {
+                            setOgImage(e.target.value);
+                            setPreviewImage(e.target.value);
+                          }}
+                          className="text-xs font-mono"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* Live Card Preview (Twitter / X Large Format) */}
-              <div>
-                <label className="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-2">
-                  Aperçu en direct sur les Réseaux Sociaux (Twitter/X, WhatsApp, Facebook) :
+              {/* Right Column: STRICTLY Non-Interactive Social Preview Simulation */}
+              <div className="flex flex-col gap-2">
+                <label className="block text-xs font-semibold text-neutral-300">
+                  Aperçu
                 </label>
-                <div className="rounded-[10px] border border-[#2a2a2e] bg-[#0c0c0e] overflow-hidden shadow-xl max-w-md mx-auto">
-                  {(previewImage || ogImage) ? (
-                    <div className="relative w-full h-44 bg-black">
+
+                <div className="rounded-[10px] bg-[#1a1a1e] border border-[#27272a] overflow-hidden shadow-lg select-none pointer-events-none">
+                  <div className="w-full h-40 bg-neutral-900 relative flex items-center justify-center overflow-hidden border-b border-[#27272a]">
+                    {(previewImage || ogImage) ? (
                       <img
                         src={previewImage || cfNormalizeImageUrl(ogImage)}
                         alt="Preview banner"
@@ -781,20 +832,25 @@ export function LinkEditModal({
                           }
                         }}
                       />
-                    </div>
-                  ) : (
-                    <div className="w-full h-32 bg-gradient-to-br from-[#1c1c20] to-[#121215] flex flex-col items-center justify-center text-neutral-500 border-b border-[#222226]">
-                      <Share2 className="w-8 h-8 opacity-40 mb-1" />
-                      <span className="text-[11px]">Aucune image sélectionnée</span>
-                    </div>
-                  )}
-                  <div className="p-3.5 space-y-1 bg-[#141416]">
-                    <div className="text-[11px] font-mono text-neutral-500 truncate">
-                      {link.domainName || "lsho.cc"}
-                    </div>
-                    <div className="text-xs text-neutral-400 line-clamp-2">
-                      {ogDescription || "Description de votre page qui apparaîtra lors du partage sur Twitter, WhatsApp ou Facebook."}
-                    </div>
+                    ) : (
+                      <div className="text-neutral-500 text-xs flex flex-col items-center gap-1.5 p-4 text-center">
+                        <ImageIcon className="w-6 h-6 text-neutral-600 mb-1" />
+                        <span className="font-semibold text-neutral-400">Aucune bannière configurée</span>
+                        <span className="text-[10px] text-neutral-600">L'image apparaîtra ici au format 1200×630</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="p-3.5 flex flex-col gap-1.5 text-xs bg-[#141416]">
+                    <span className="text-[10px] text-[#ff6600] font-mono tracking-wide">
+                      {link?.domainName || "lsho.cc"}/{link?.slug}
+                    </span>
+                    <p className="font-bold text-white line-clamp-1 text-sm">
+                      {ogTitle || link?.ogTitle || link?.metaTitle || "Titre de la page partagée"}
+                    </p>
+                    <p className="text-[11px] text-neutral-400 line-clamp-2 leading-relaxed">
+                      {ogDescription || link?.ogDescription || "Description qui s'affiche automatiquement dans le flux de réseaux sociaux (WhatsApp, Twitter, LinkedIn)."}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -817,7 +873,7 @@ export function LinkEditModal({
           {activeTab === "protection" && (
             <div className="space-y-4 animate-in fade-in duration-200">
               {/* Hide Referrer */}
-              <div className="p-4 rounded-[10px] bg-[#1a1a1e] border border-[#26262a] flex items-center justify-between">
+              <div className="p-4 rounded-[10px] bg-[#1a1a1e] border border-[#26262a] flex items-center justify-between gap-3">
                 <div>
                   <span className="text-xs font-semibold text-white">Masquage du Référent (No-Referrer)</span>
                   <p className="text-[11px] text-neutral-400 mt-0.5">
@@ -826,15 +882,19 @@ export function LinkEditModal({
                 </div>
                 <button
                   type="button"
+                  role="switch"
+                  aria-checked={hideReferrer}
                   onClick={() => setHideReferrer(!hideReferrer)}
-                  className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer ${
-                    hideReferrer ? "bg-[#ff6600]" : "bg-neutral-800"
-                  }`}
+                  className={cn(
+                    "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                    hideReferrer ? "bg-[#ff6600]" : "bg-[#27272a]"
+                  )}
                 >
                   <span
-                    className={`block w-4 h-4 rounded-full bg-white transition-transform ${
-                      hideReferrer ? "translate-x-6" : "translate-x-1"
-                    }`}
+                    className={cn(
+                      "pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-md transform ring-0 transition duration-200 ease-in-out",
+                      hideReferrer ? "translate-x-5" : "translate-x-0"
+                    )}
                   />
                 </button>
               </div>
@@ -845,7 +905,7 @@ export function LinkEditModal({
                 description="Garde votre nom de domaine dans la barre d'adresse du navigateur sans révéler la destination."
                 isUnlocked={isProPlan}
               >
-                <div className="p-4 rounded-[10px] bg-[#1a1a1e] border border-[#26262a] flex items-center justify-between">
+                <div className="p-4 rounded-[10px] bg-[#1a1a1e] border border-[#26262a] flex items-center justify-between gap-3">
                   <div>
                     <div className="flex items-center gap-2">
                       <Shield className="w-4 h-4 text-purple-400" />
@@ -857,15 +917,19 @@ export function LinkEditModal({
                   </div>
                   <button
                     type="button"
+                    role="switch"
+                    aria-checked={isCloaked}
                     onClick={() => setIsCloaked(!isCloaked)}
-                    className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer ${
-                      isCloaked ? "bg-[#ff6600]" : "bg-neutral-800"
-                    }`}
+                    className={cn(
+                      "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                      isCloaked ? "bg-[#ff6600]" : "bg-[#27272a]"
+                    )}
                   >
                     <span
-                      className={`block w-4 h-4 rounded-full bg-white transition-transform ${
-                        isCloaked ? "translate-x-6" : "translate-x-1"
-                      }`}
+                      className={cn(
+                        "pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-md transform ring-0 transition duration-200 ease-in-out",
+                        isCloaked ? "translate-x-5" : "translate-x-0"
+                      )}
                     />
                   </button>
                 </div>
@@ -920,17 +984,28 @@ export function LinkEditModal({
                 isUnlocked={isProPlan}
               >
                 <div className="p-4 rounded-[10px] bg-[#1a1a1e] border border-[#26262a] space-y-3">
-                  <label className="flex items-center justify-between cursor-pointer select-none">
+                  <div className="flex items-center justify-between gap-3 select-none">
                     <div className="flex items-center gap-2">
                       <span className="font-semibold text-white text-xs">Limiter le nombre d&apos;accès</span>
                     </div>
-                    <input
-                      type="checkbox"
-                      checked={hasClickLimit}
-                      onChange={(e) => setHasClickLimit(e.target.checked)}
-                      className="w-4 h-4 accent-[#ff6600] rounded-[10px] cursor-pointer"
-                    />
-                  </label>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={hasClickLimit}
+                      onClick={() => setHasClickLimit(!hasClickLimit)}
+                      className={cn(
+                        "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                        hasClickLimit ? "bg-[#ff6600]" : "bg-[#27272a]"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-md transform ring-0 transition duration-200 ease-in-out",
+                          hasClickLimit ? "translate-x-5" : "translate-x-0"
+                        )}
+                      />
+                    </button>
+                  </div>
 
                   {hasClickLimit && (
                     <div className="pt-2.5 border-t border-[#26262e] space-y-2.5 animate-in fade-in duration-200">

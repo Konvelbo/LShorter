@@ -339,17 +339,29 @@ export default function AnalyticsPage() {
 
     setIsExporting(true);
     try {
-      const response = await fetch(`/api/analytics/export?linkId=${selectedLinkId === "all" ? "" : selectedLinkId}`);
+      const activeLink = selectedLinkId === "all" ? "" : selectedLinkId;
+      const response = await fetch(
+        `/api/analytics/export?format=excel&userId=${encodeURIComponent(userId || "")}&linkId=${encodeURIComponent(activeLink)}&range=${encodeURIComponent(selectedRange)}`
+      );
+
+      if (!response.ok) {
+        const errJson = await response.json().catch(() => ({}));
+        throw new Error(errJson.error || `Erreur serveur (${response.status})`);
+      }
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `lshorter_analytics_${selectedRange}_${new Date().toISOString().split("T")[0]}.csv`;
+      a.download = `lshorter_analytics_${selectedRange}_${new Date().toISOString().split("T")[0]}.xls`;
       document.body.appendChild(a);
       a.click();
       a.remove();
-    } catch (e) {
+      window.URL.revokeObjectURL(url);
+      showToast.success("Rapport Excel avec vos données réelles téléchargé !");
+    } catch (e: any) {
       console.error("Export error:", e);
+      showToast.error(e?.message || "Erreur lors de l'exportation du fichier");
     } finally {
       setIsExporting(false);
     }

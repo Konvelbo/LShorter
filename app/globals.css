@@ -31,6 +31,11 @@ body {
   overflow-x: hidden;
 }
 
+select option {
+  background-color: #141416;
+  color: #ffffff;
+}
+
 .font-bebas {
   font-family: var(--font-bebas), sans-serif;
   letter-spacing: 0.04em;
@@ -173,6 +178,114 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #3f3f46;
+}
+
+/* ==========================================================================
+   MOBILE FULL CYBER BLUE THEME (< 768px)
+   Converts orange accents to Electric Cyber Blue on mobile!
+   Guarantees that input fields, textareas, and upload dropzones retain their
+   dark sleek background and clear white readable text.
+   ========================================================================== */
+@media (max-width: 767px) {
+  :root {
+    --primary: #0066FF;
+    --ring: #0066FF;
+  }
+
+  /* 1. Text colors: orange -> cyber blue */
+  [class*="text-[#ff6600]"],
+  [class*="text-[#ff771a]"],
+  [class*="text-[#ff7711]"] {
+    color: #0066FF !important;
+  }
+
+  /* 2. Solid buttons, badges, active tabs, and indicators */
+  button[class*="bg-[#ff6600]"],
+  a[class*="bg-[#ff6600]"],
+  div[class*="bg-[#ff6600]"],
+  span[class*="bg-[#ff6600]"],
+  [class*="hover:bg-[#ff771a]"]:hover,
+  .sidebar-link-active {
+    background-color: #0066FF !important;
+    color: #ffffff !important;
+  }
+
+  /* 3. Translucent backgrounds (tags, badges, subtle highlights) */
+  [class*="bg-[#ff6600]/10"],
+  [class*="bg-[#ff6600]/15"],
+  [class*="bg-[#ff6600]/20"],
+  [class*="bg-[#ff6600]/25"],
+  [class*="bg-[#ff6600]/30"],
+  [class*="bg-[#ff6600]/40"] {
+    background-color: rgba(0, 102, 255, 0.18) !important;
+  }
+
+  /* 4. Borders & focus rings */
+  [class*="border-[#ff6600]"],
+  [class*="border-[#ff771a]"],
+  [class*="focus:border-[#ff6600]"]:focus,
+  [class*="focus-within:border-[#ff6600]"]:focus-within {
+    border-color: #0066FF !important;
+  }
+
+  [class*="border-[#ff6600]/20"],
+  [class*="border-[#ff6600]/30"],
+  [class*="border-[#ff6600]/40"] {
+    border-color: rgba(0, 102, 255, 0.35) !important;
+  }
+
+  [class*="focus:ring-[#ff6600]"]:focus {
+    --tw-ring-color: rgba(0, 102, 255, 0.35) !important;
+  }
+
+  /* 5. Shadows and glows */
+  [class*="shadow-[#ff6600]"] {
+    box-shadow: 0 4px 16px rgba(0, 102, 255, 0.45) !important;
+  }
+
+  .orange-glow {
+    box-shadow: 0 0 20px -2px rgba(0, 102, 255, 0.45) !important;
+  }
+
+  /* 6. SVG Strokes and Fills */
+  [class*="stroke-[#ff6600]"] {
+    stroke: #0066FF !important;
+  }
+  [class*="fill-[#ff6600]"] {
+    fill: #0066FF !important;
+  }
+
+  /* 7. STRICT DARK THEME FOR INPUTS, SELECTS, & DROPZONES ON MOBILE:
+     Inputs, textareas, and selects retain their sleek dark background (#141416),
+     dark borders (#222225), and crisp white text (#ffffff). */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]),
+  textarea,
+  select {
+    background-color: #141416 !important;
+    color: #ffffff !important;
+    border-color: #222225 !important;
+  }
+
+  select option {
+    background-color: #141416 !important;
+    color: #ffffff !important;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: #71717a !important;
+  }
+
+  label[class*="border-dashed"] {
+    background-color: #0e0e10 !important;
+    color: #ffffff !important;
+    border-color: #333338 !important;
+  }
+  label[class*="border-dashed"]:hover,
+  label[class*="border-dashed"]:active {
+    background-color: #141416 !important;
+    border-color: #0066FF !important;
+  }
 }
 
 

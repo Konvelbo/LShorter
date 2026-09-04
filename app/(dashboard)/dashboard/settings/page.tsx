@@ -31,13 +31,14 @@ import {
   FileText,
   Sliders,
   ExternalLink,
-  Laptop
+  Laptop,
+  Upload
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { cfGetApiKeys, cfCreateApiKey, cfRevokeApiKey, cfGetLinks, cfGetDomains, cfGetAnalytics } from "@/lib/cloudflare-api";
+import { cfGetApiKeys, cfCreateApiKey, cfRevokeApiKey, cfGetLinks, cfGetDomains, cfGetAnalytics, cfUploadImage } from "@/lib/cloudflare-api";
 import QRCode from "qrcode";
 import bcrypt from "bcryptjs";
 import {
@@ -82,7 +83,27 @@ export default function SettingsPage() {
   const [language, setLanguage] = useState("Français (FR)");
   const [timezone, setTimezone] = useState("Europe/Paris (UTC+1)");
   const [avatarUrl, setAvatarUrl] = useState(session?.user?.image || "");
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [profileSuccess, setProfileSuccess] = useState(false);
+
+  const handleAvatarFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingAvatar(true);
+    try {
+      const uploadRes = await cfUploadImage(file, "lshorter/avatars");
+      if (uploadRes.success && uploadRes.url) {
+        setAvatarUrl(uploadRes.url);
+        showToast.success("Photo de profil téléversée avec succès sur Bunny CDN !");
+      } else {
+        showToast.error("Échec du téléversement de la photo de profil");
+      }
+    } catch {
+      showToast.error("Erreur lors du téléversement");
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
 
   const [accountStats, setAccountStats] = useState({ linksCount: 0, clicksThisMonth: 0, domainsCount: 0 });
 
@@ -452,6 +473,22 @@ export default function SettingsPage() {
   const handleExportData = async (type: "json" | "csv") => {
     if (!userId) return;
     try {
+      if (type === "csv") {
+        const res = await fetch(`/api/analytics/export?format=csv&userId=${encodeURIComponent(userId)}`);
+        if (!res.ok) throw new Error("Erreur export CSV");
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `lshorter_donnees_${userId}_${new Date().toISOString().split("T")[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        showToast.success("Données exportées en CSV avec succès !");
+        return;
+      }
+
       const [linksRes, domainsRes, analyticsRes] = await Promise.all([
         cfGetLinks(userId).catch(() => ({ data: [] })),
         cfGetDomains(userId).catch(() => ({ data: [] })),
@@ -468,11 +505,14 @@ export default function SettingsPage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `lshorter_archive_${userId}.${type === "csv" ? "json" : "json"}`;
+      a.download = `lshorter_archive_${userId}.json`;
+      document.body.appendChild(a);
       a.click();
+      a.remove();
       URL.revokeObjectURL(url);
+      showToast.success("Archive JSON exportée avec succès !");
     } catch (err) {
-      showToast.error("Erreur lors de l'export.");
+      showToast.error("Erreur lors de l'export des données.");
     }
   };
 
@@ -540,31 +580,66 @@ export default function SettingsPage() {
               </div>
 
               {/* Avatar Selector */}
-              <div className="flex items-center gap-5">
-                <div className="w-16 h-16 rounded-[10px] overflow-hidden bg-neutral-800 border-2 border-[#ff6600] shadow-lg shrink-0 flex items-center justify-center font-bebas text-2xl font-bold text-white">
-                  {avatarUrl ? (
-                    /* eslint-disable-next-line @next/next/no-img-element */
-                    <img
-                      src={avatarUrl}
-                      alt={user.name}
-                      referrerPolicy="no-referrer"
-                      crossOrigin="anonymous"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-[#ff6600]">
-                      {user.name.charAt(0).toUpperCase() || "U"}
-                    </span>
-                  )}
-                </div>
-                <div className="flex flex-col gap-1.5 flex-1">
-                  <label className="text-xs font-semibold text-neutral-300">
-                    URL de votre Avatar
-                  </label>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 p-4 rounded-xl bg-neutral-900/60 border border-neutral-800">
+                <label className="relative group cursor-pointer shrink-0">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAvatarFile}
+                    disabled={isUploadingAvatar}
+                  />
+                  <div className="w-16 h-16 rounded-[10px] overflow-hidden bg-neutral-800 border-2 border-[#ff6600] shadow-lg flex items-center justify-center font-bebas text-2xl font-bold text-white relative">
+                    {avatarUrl ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img
+                        src={avatarUrl}
+                        alt={user.name}
+                        referrerPolicy="no-referrer"
+                        crossOrigin="anonymous"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-[#ff6600]">
+                        {user.name.charAt(0).toUpperCase() || "U"}
+                      </span>
+                    )}
+
+                    {/* Hover overlay */}
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <Upload className="w-5 h-5 text-white" />
+                    </div>
+
+                    {isUploadingAvatar && (
+                      <div className="absolute inset-0 bg-black/75 flex items-center justify-center">
+                        <RefreshCw className="w-5 h-5 text-[#ff6600] animate-spin" />
+                      </div>
+                    )}
+                  </div>
+                </label>
+
+                <div className="flex flex-col gap-2 flex-1 w-full">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-neutral-300">
+                      Photo de profil (Hébergée sur Bunny CDN)
+                    </label>
+                    <label className="cursor-pointer text-xs font-medium text-[#ff6600] hover:text-[#ff8533] flex items-center gap-1 transition-colors">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleAvatarFile}
+                        disabled={isUploadingAvatar}
+                      />
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>{isUploadingAvatar ? "Téléversement..." : "Changer de photo"}</span>
+                    </label>
+                  </div>
                   <Input
                     value={avatarUrl}
                     onChange={(e) => setAvatarUrl(e.target.value)}
-                    placeholder="https://..."
+                    placeholder="https://mon-storage.b-cdn.net/avatars/..."
+                    className="text-xs font-mono"
                   />
                 </div>
               </div>

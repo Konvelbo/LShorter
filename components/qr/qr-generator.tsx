@@ -38,6 +38,7 @@ import { Input } from "@/components/ui/input";
 import { triggerPlanUpgrade, checkPlanFeatureAccess } from "@/lib/plan-guard";
 import { showToast } from "@/components/ui/toast-provider";
 import confetti from "canvas-confetti";
+import { cfUploadImage } from "@/lib/cloudflare-api";
 
 export function QRGenerator() {
   const { data: session } = useSession();
@@ -597,7 +598,7 @@ export function QRGenerator() {
     setPixelColor(hex);
   };
 
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!isProPlan) {
       triggerPlanUpgrade({
         reason: "Le téléversement de votre propre logo est réservé au forfait Pro.",
@@ -609,14 +610,27 @@ export function QRGenerator() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // 1. Instant local preview
     const reader = new FileReader();
     reader.onload = (event) => {
       setUploadedLogo(event.target?.result as string);
       setSelectedLogo("custom");
       confetti({ particleCount: 30, spread: 50, origin: { y: 0.7 } });
-      showToast.success("Logo personnalisé chargé avec succès !");
     };
     reader.readAsDataURL(file);
+
+    // 2. Upload to Bunny Storage under 'qr_logos'
+    try {
+      const uploadRes = await cfUploadImage(file, "qr_logos");
+      if (uploadRes.success && uploadRes.url) {
+        setUploadedLogo(uploadRes.url);
+        showToast.success("Logo personnalisé téléversé avec succès sur le Cloud !");
+      } else {
+        showToast.success("Logo personnalisé chargé localement !");
+      }
+    } catch {
+      showToast.success("Logo personnalisé chargé avec succès !");
+    }
   };
 
   const downloadPNG = () => {

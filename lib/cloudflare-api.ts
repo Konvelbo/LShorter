@@ -122,6 +122,7 @@ export async function cfGetLinks(userId: string) {
 export function cfNormalizeImageUrl(url?: string): string {
   if (!url) return "";
   if (url.startsWith("data:") || url.startsWith("blob:")) return url;
+  if (url.includes("b-cdn.net")) return url;
   if (url.includes("workers.dev/api/v1/images/")) {
     const filename = url.split("workers.dev/api/v1/images/")[1];
     return `/api/images/${filename}`;
@@ -129,59 +130,82 @@ export function cfNormalizeImageUrl(url?: string): string {
   return url;
 }
 
-export async function cfUploadImage(base64OrFile: string | File): Promise<{ success: boolean; url: string; imageId?: string }> {
+export async function cfUploadImage(
+  base64OrFile: string | File,
+  folder: string = "lshorter/banners"
+): Promise<{ success: boolean; url: string; imageId?: string }> {
   try {
-    const compressed = await compressImageFile(base64OrFile, 1200, 630, 0.82);
-    const isBrowser = typeof window !== "undefined";
-    const endpoint = isBrowser ? "/api/upload" : `${WORKER_URL}/api/v1/upload-image`;
+    let base64Data = "";
+    let compressedFile: File | Blob | null = null;
 
-    let res: Response;
-    if (typeof compressed === "string" && compressed.startsWith("data:")) {
-      res = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(!isBrowser ? { "X-Frontend-Secret": SECRET } : {}),
-        },
-        body: JSON.stringify({ data: compressed }),
-      });
-    } else {
-      const formData = new FormData();
-      formData.append("file", compressed as Blob);
-      res = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          ...(!isBrowser ? { "X-Frontend-Secret": SECRET } : {}),
-        },
-        body: formData,
-      });
+    if (typeof base64OrFile === "string" && base64OrFile.startsWith("data:")) {
+      const compressed = await compressImageFile(base64OrFile, 1200, 630, 0.82);
+      base64Data = typeof compressed === "string" ? compressed : base64OrFile;
+    } else if (typeof base64OrFile === "string" && (base64OrFile.startsWith("http://") || base64OrFile.startsWith("https://") || base64OrFile.startsWith("/api/images/"))) {
+      return { success: true, url: base64OrFile };
+    } else if (typeof base64OrFile !== "string") {
+      const compressed = await compressImageFile(base64OrFile, 1200, 630, 0.82);
+      if (typeof compressed === "string") {
+        base64Data = compressed;
+      } else {
+        compressedFile = compressed as Blob;
+        base64Data = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (e) => resolve((e.target?.result as string) || "");
+          reader.onerror = () => resolve("");
+          reader.readAsDataURL(compressed as Blob);
+        });
+      }
     }
 
-    if (!res.ok) {
-      if (isBrowser && endpoint !== `${WORKER_URL}/api/v1/upload-image`) {
-        if (typeof compressed === "string" && compressed.startsWith("data:")) {
-          const fallbackRes = await fetch(`${WORKER_URL}/api/v1/upload-image`, {
+    const isBrowser = typeof window !== "undefined";
+
+    // Tier 1: Try Next.js local upload proxy (/api/upload) -> Bunny.net Storage / CDN / Local
+    if (isBrowser) {
+      try {
+        let localRes: Response;
+        if (base64Data) {
+          localRes = await fetch("/api/upload", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ data: compressed }),
+            body: JSON.stringify({ data: base64Data, folder }),
           });
-          const fbData = await fallbackRes.json().catch(() => ({}));
-          return {
-            success: fbData.success ?? Boolean(fbData.url),
-            url: cfNormalizeImageUrl(fbData.url),
-            imageId: fbData.imageId,
-          };
+        } else if (compressedFile) {
+          const fd = new FormData();
+          fd.append("file", compressedFile);
+          fd.append("folder", folder);
+          localRes = await fetch("/api/upload", {
+            method: "POST",
+            body: fd,
+          });
+        } else {
+          localRes = new Response(null, { status: 400 });
         }
+
+        if (localRes.ok) {
+          const data = await localRes.json().catch(() => ({}));
+          if (data?.url || data?.imageId) {
+            return {
+              success: true,
+              url: cfNormalizeImageUrl(data.url || `/api/images/${data.imageId}`),
+              imageId: data.imageId,
+            };
+          }
+        }
+      } catch (proxyErr) {
+        console.warn("[cfUploadImage] Local /api/upload proxy failed:", proxyErr);
       }
-      return { success: false, url: "" };
     }
 
-    const data = await res.json().catch(() => ({}));
-    return {
-      success: data.success ?? Boolean(data.url),
-      url: cfNormalizeImageUrl(data.url),
-      imageId: data.imageId,
-    };
+    // Tier 2: Base64 fallback (instant preview without sending anything to Cloudflare)
+    if (base64Data) {
+      return {
+        success: true,
+        url: base64Data,
+      };
+    }
+
+    return { success: false, url: "" };
   } catch (err) {
     console.error("Image upload failed:", err);
     return { success: false, url: "" };

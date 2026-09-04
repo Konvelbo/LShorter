@@ -24,7 +24,9 @@ import {
   Eye,
   EyeOff,
   AlertCircle,
-  Loader2
+  Loader2,
+  ChevronDown,
+  ImageIcon
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useQuery } from "convex/react";
@@ -148,6 +150,8 @@ export function LinkCreateModal({
   const [targetUrl, setTargetUrl] = useState(initialUrl || "");
   const [domainName, setDomainName] = useState("lsho.cc");
   const [slug, setSlug] = useState("");
+  const [isDomainDropdownOpen, setIsDomainDropdownOpen] = useState(false);
+  const domainDropdownRef = useRef<HTMLDivElement>(null);
 
   // Dynamic domain list from Cloudflare
   const [customDomains, setCustomDomains] = useState<Array<{ id: string; domain: string; status: string }>>([]);
@@ -162,6 +166,17 @@ export function LinkCreateModal({
         .catch(() => {});
     }
   }, [userId, isOpen]);
+
+  // Click outside listener for domain dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (domainDropdownRef.current && !domainDropdownRef.current.contains(event.target as Node)) {
+        setIsDomainDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // Tab State
   const [activeTab, setActiveTab] = useState<
@@ -263,6 +278,9 @@ export function LinkCreateModal({
       return;
     }
 
+    // Reset input value so selecting the same file again triggers onChange
+    e.target.value = "";
+
     try {
       const localUrl = URL.createObjectURL(file);
       setPreviewImage(localUrl);
@@ -273,15 +291,19 @@ export function LinkCreateModal({
       const res = await cfUploadImage(file);
       if (res?.url) {
         setOgImage(res.url);
+        setPreviewImage(res.url);
         showToast.success("Bannière prête !");
       } else {
         const compressed = await compressImageFile(file, 1200, 630, 0.82);
         if (typeof compressed === "string") {
           setOgImage(compressed);
+          setPreviewImage(compressed);
         } else {
           const reader = new FileReader();
           reader.onload = (event) => {
-            setOgImage(event.target?.result as string);
+            const dataUrl = (event.target?.result as string) || "";
+            setOgImage(dataUrl);
+            setPreviewImage(dataUrl);
           };
           reader.readAsDataURL(compressed as Blob);
         }
@@ -289,7 +311,7 @@ export function LinkCreateModal({
       }
     } catch (err) {
       console.error("Banner upload error:", err);
-      showToast.error("Erreur lors de l'optimisation de l'image.");
+      showToast.error("Erreur lors du traitement de l'image.");
     } finally {
       setIsUploadingImage(false);
     }
@@ -577,13 +599,9 @@ export function LinkCreateModal({
     try {
       let finalOgImage = ogImage;
       if (ogImage && ogImage.startsWith("data:")) {
-        if (ogImage.length > 150000) {
-          const uploadRes = await cfUploadImage(ogImage);
-          if (uploadRes?.url) {
-            finalOgImage = uploadRes.url;
-          } else {
-            finalOgImage = "";
-          }
+        const uploadRes = await cfUploadImage(ogImage);
+        if (uploadRes?.url) {
+          finalOgImage = uploadRes.url;
         }
       }
 
@@ -668,24 +686,24 @@ export function LinkCreateModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in select-none">
-      <div className="relative w-full max-w-3xl rounded-[10px] bg-[#141416] border border-[#27272a] p-6 sm:p-8 shadow-2xl text-white max-h-[92vh] overflow-y-auto">
-        {/* Close button */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-md animate-in fade-in select-none">
+      <div className="relative w-full max-w-3xl rounded-[10px] bg-[#141416] border border-[#27272a] p-4 sm:p-8 shadow-2xl text-white max-h-[92vh] overflow-y-auto">
+        {/* Close button with circular touch target */}
         <button
           onClick={onClose}
-          className="absolute right-5 top-5 text-neutral-400 hover:text-white p-1 cursor-pointer"
+          className="absolute right-4 top-4 w-8 h-8 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 flex items-center justify-center text-neutral-400 hover:text-white transition-all cursor-pointer z-10"
         >
-          <X className="w-5 h-5" />
+          <X className="w-4 h-4" />
         </button>
 
         {/* Modal Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 rounded-[10px] bg-[#ff6600] flex items-center justify-center text-white shadow-lg shadow-[#ff6600]/30 font-bold">
-            <Plus className="w-6 h-6" />
+        <div className="flex items-start gap-3.5 pr-8 mb-6">
+          <div className="w-10 h-10 min-w-[40px] min-h-[40px] shrink-0 aspect-square rounded-[10px] bg-[#ff6600] flex items-center justify-center text-white shadow-lg shadow-[#ff6600]/30 font-bold">
+            <Plus className="w-5 h-5" />
           </div>
-          <div>
-            <h2 className="text-xl font-bold text-white">Créer un Nouveau Lien</h2>
-            <p className="text-xs text-neutral-400">
+          <div className="flex-1 min-w-0">
+            <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight leading-snug">Créer un Nouveau Lien</h2>
+            <p className="text-xs text-neutral-400 leading-relaxed mt-0.5">
               Configurez votre redirection courte, paramètres de tracking UTM et règles de routage.
             </p>
           </div>
@@ -717,24 +735,77 @@ export function LinkCreateModal({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
-            <div className="sm:col-span-5">
+            <div className="sm:col-span-5" ref={domainDropdownRef}>
               <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
                 Domaine
               </label>
-              <select
-                value={domainName}
-                onChange={(e) => setDomainName(e.target.value)}
-                className="w-full h-11 rounded-[10px] bg-[#141416] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
-              >
-                <option value="lsho.cc" className="bg-[#141416] text-white font-bold">
-                  lsho.cc (Domaine Officiel · Par défaut)
-                </option>
-                {customDomains.map((d) => (
-                  <option key={d.id} value={d.domain} className="bg-[#141416] text-white">
-                    {d.domain} (Personnalisé · Actif)
-                  </option>
-                ))}
-              </select>
+              <div className="relative w-full">
+                <button
+                  type="button"
+                  onClick={() => setIsDomainDropdownOpen(!isDomainDropdownOpen)}
+                  className="w-full h-11 rounded-[10px] bg-[#141416] text-white border border-[#27272a] hover:border-[#ff6600]/40 px-3 text-xs flex items-center justify-between cursor-pointer transition-colors shadow-sm text-left truncate"
+                >
+                  <span className="truncate font-semibold">{domainName}</span>
+                  <ChevronDown
+                    className={cn(
+                      "w-4 h-4 text-neutral-400 shrink-0 transition-transform duration-200",
+                      isDomainDropdownOpen && "rotate-180 text-white"
+                    )}
+                  />
+                </button>
+
+                {isDomainDropdownOpen && (
+                  <div className="absolute left-0 right-0 top-full mt-1.5 w-full rounded-[10px] bg-[#18181c] border border-[#2a2a32] shadow-2xl py-1 z-50 animate-in fade-in zoom-in-95 duration-150 max-h-56 overflow-y-auto">
+                    {/* Default Official Domain */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDomainName("lsho.cc");
+                        setIsDomainDropdownOpen(false);
+                      }}
+                      className={cn(
+                        "w-full px-3 py-2 text-xs flex items-center justify-between transition-colors text-left cursor-pointer",
+                        domainName === "lsho.cc"
+                          ? "bg-[#ff6600]/15 text-[#ff6600] font-bold"
+                          : "text-neutral-200 hover:bg-white/5 hover:text-white"
+                      )}
+                    >
+                      <div className="flex items-center gap-1.5 truncate">
+                        <span className="truncate font-semibold">lsho.cc</span>
+                        <span className="text-[10px] text-neutral-400 font-normal shrink-0">
+                          (Officiel)
+                        </span>
+                      </div>
+                      {domainName === "lsho.cc" && (
+                        <Check className="w-3.5 h-3.5 text-[#ff6600] shrink-0 ml-1" />
+                      )}
+                    </button>
+
+                    {/* Custom Domains */}
+                    {customDomains.map((d) => (
+                      <button
+                        key={d.id}
+                        type="button"
+                        onClick={() => {
+                          setDomainName(d.domain);
+                          setIsDomainDropdownOpen(false);
+                        }}
+                        className={cn(
+                          "w-full px-3 py-2 text-xs flex items-center justify-between transition-colors text-left cursor-pointer",
+                          domainName === d.domain
+                            ? "bg-[#ff6600]/15 text-[#ff6600] font-bold"
+                            : "text-neutral-200 hover:bg-white/5 hover:text-white"
+                        )}
+                      >
+                        <span className="truncate font-semibold">{d.domain}</span>
+                        {domainName === d.domain && (
+                          <Check className="w-3.5 h-3.5 text-[#ff6600] shrink-0 ml-1" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="sm:col-span-7">
@@ -868,10 +939,13 @@ export function LinkCreateModal({
                 className="hidden"
               />
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex flex-col gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {/* Left Column: Form Controls */}
+                <div className="flex flex-col gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-neutral-300 mb-1">Titre OpenGraph</label>
+                    <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
+                      Titre OpenGraph
+                    </label>
                     <Input
                       placeholder="Offre Spéciale d'Été ☀️"
                       value={ogTitle}
@@ -880,7 +954,9 @@ export function LinkCreateModal({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-neutral-300 mb-1">Description</label>
+                    <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
+                      Description OpenGraph
+                    </label>
                     <textarea
                       rows={3}
                       placeholder="Profitez de -30% sur toute la boutique."
@@ -890,87 +966,162 @@ export function LinkCreateModal({
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-semibold text-neutral-300 mb-1">URL ou Fichier de l&apos;image</label>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        placeholder="https://images.unsplash.com/... ou importer"
-                        value={ogImage}
-                        onChange={(e) => setOgImage(e.target.value)}
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => bannerInputRef.current?.click()}
-                        className="shrink-0 h-10 text-xs font-semibold text-white border-[#27272a] hover:border-[#ff6600] cursor-pointer"
-                      >
-                        <Upload className="w-3.5 h-3.5 mr-1 text-[#ff6600]" /> Importer
-                      </Button>
-                    </div>
+                  {/* Banner Image Selection */}
+                  <div className="flex flex-col gap-2">
+                    <label className="block text-xs font-semibold text-neutral-300">
+                      Bannière Image (1200×630)
+                    </label>
+
+                    {(previewImage || ogImage) ? (
+                      /* Active Image Card */
+                      <div className="rounded-[10px] border border-[#333338] bg-[#141416] p-3 space-y-3 shadow-md">
+                        <div className="flex items-center gap-3">
+                          <div className="w-20 h-12 rounded-lg bg-black border border-[#27272a] overflow-hidden shrink-0">
+                            <img
+                              src={previewImage || cfNormalizeImageUrl(ogImage)}
+                              alt="Bannière active"
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                const current = e.currentTarget.src;
+                                if (current.includes("/api/images/")) {
+                                  const fname = current.split("/api/images/")[1];
+                                  e.currentTarget.src = `https://lshorter-api.fiatechnologiecam.workers.dev/api/v1/images/${fname}`;
+                                } else if (previewImage && current !== previewImage) {
+                                  e.currentTarget.src = previewImage;
+                                }
+                              }}
+                            />
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold text-white truncate">
+                              {ogImage.startsWith("data:") ? "Image prête" : ogImage.includes("b-cdn.net") ? "Hébergée sur Bunny CDN" : "Bannière sélectionnée"}
+                            </p>
+                            <p className="text-[10px] text-neutral-400 truncate font-mono mt-0.5">
+                              {ogImage.startsWith("data:") ? "Base64 (Optimisée)" : ogImage}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 pt-1 border-t border-[#222226]">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={isUploadingImage}
+                            onClick={() => {
+                              if (bannerInputRef.current) {
+                                bannerInputRef.current.value = "";
+                                bannerInputRef.current.click();
+                              }
+                            }}
+                            className="h-8 text-xs font-semibold text-white border-[#333338] hover:border-[#ff6600] flex-1 cursor-pointer"
+                          >
+                            <Upload className="w-3.5 h-3.5 mr-1.5 text-[#ff6600]" />
+                            <span>{isUploadingImage ? "Téléversement..." : "Remplacer l'image"}</span>
+                          </Button>
+
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setOgImage("");
+                              setPreviewImage("");
+                              if (bannerInputRef.current) bannerInputRef.current.value = "";
+                            }}
+                            className="h-8 text-xs font-semibold text-red-400 hover:text-red-300 border-red-500/20 hover:bg-red-500/10 px-3 cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 mr-1" />
+                            <span>Supprimer</span>
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      /* Clean Dropzone + Direct URL input */
+                      <div className="space-y-2.5">
+                        <div
+                          onClick={() => {
+                            if (bannerInputRef.current) {
+                              bannerInputRef.current.value = "";
+                              bannerInputRef.current.click();
+                            }
+                          }}
+                          className="rounded-[10px] border-2 border-dashed border-[#27272a] hover:border-[#ff6600] bg-[#1a1a1e] hover:bg-[#222226] p-4 text-center transition-colors cursor-pointer group select-none"
+                        >
+                          <div className="w-8 h-8 rounded-full bg-[#ff6600]/10 text-[#ff6600] flex items-center justify-center mx-auto mb-1.5 group-hover:scale-110 transition-transform">
+                            <Upload className="w-4 h-4" />
+                          </div>
+                          <p className="text-xs font-semibold text-white">
+                            {isUploadingImage ? "Téléversement en cours..." : "Importer une bannière"}
+                          </p>
+                          <p className="text-[10px] text-neutral-400 mt-0.5">
+                            PNG, JPG, WebP jusqu'à 8 Mo · 1200×630
+                          </p>
+                        </div>
+
+                        <div>
+                          <Input
+                            placeholder="Ou coller une URL d'image directe (https://...)"
+                            value={ogImage}
+                            onChange={(e) => {
+                              setOgImage(e.target.value);
+                              setPreviewImage(e.target.value);
+                            }}
+                            className="text-xs font-mono"
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                {/* Live Social Card Preview */}
+                {/* Right Column: STRICTLY Non-Interactive Social Preview Simulation */}
                 <div className="flex flex-col gap-2">
-                  <span className="text-xs font-semibold text-neutral-400">Aperçu en direct (Twitter / WhatsApp)</span>
-                  <div className="rounded-[10px] bg-[#1a1a1e] border border-[#27272a] overflow-hidden shadow-lg">
-                    <div
-                      onClick={() => !isUploadingImage && bannerInputRef.current?.click()}
-                      className="w-full h-36 bg-neutral-800 relative flex items-center justify-center overflow-hidden cursor-pointer group hover:bg-neutral-750 transition-colors"
-                      title="Cliquez pour importer une image"
-                    >
+                  <label className="block text-xs font-semibold text-neutral-300">
+                    Aperçu
+                  </label>
+
+                  <div className="rounded-[10px] bg-[#1a1a1e] border border-[#27272a] overflow-hidden shadow-lg select-none pointer-events-none">
+                    <div className="w-full h-40 bg-neutral-900 relative flex items-center justify-center overflow-hidden border-b border-[#27272a]">
                       {isUploadingImage ? (
                         <div className="flex flex-col items-center gap-2 text-neutral-400">
                           <Loader2 className="w-6 h-6 animate-spin text-[#ff6600]" />
-                          <span className="text-xs font-medium">Optimisation de l&apos;image...</span>
+                          <span className="text-xs font-medium">Traitement de l'image...</span>
                         </div>
                       ) : (previewImage || ogImage) ? (
-                        <>
-                          <img
-                            src={previewImage || cfNormalizeImageUrl(ogImage)}
-                            alt="OG Preview"
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              const current = e.currentTarget.src;
-                              if (current.includes("/api/images/")) {
-                                const fname = current.split("/api/images/")[1];
-                                e.currentTarget.src = `https://lshorter-api.fiatechnologiecam.workers.dev/api/v1/images/${fname}`;
-                              } else if (previewImage && current !== previewImage) {
-                                e.currentTarget.src = previewImage;
-                              }
-                            }}
-                          />
-                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                            <span className="text-xs font-semibold text-white bg-black/70 px-2.5 py-1 rounded-[10px] flex items-center gap-1">
-                              <Upload className="w-3 h-3 text-[#ff6600]" /> Remplacer
-                            </span>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setOgImage("");
-                                setPreviewImage("");
-                              }}
-                              className="text-xs font-semibold text-red-400 bg-black/70 px-2.5 py-1 rounded-[10px] hover:text-red-300 cursor-pointer"
-                            >
-                              Supprimer
-                            </button>
-                          </div>
-                        </>
+                        <img
+                          src={previewImage || cfNormalizeImageUrl(ogImage)}
+                          alt="Aperçu OpenGraph"
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            const current = e.currentTarget.src;
+                            if (current.includes("/api/images/")) {
+                              const fname = current.split("/api/images/")[1];
+                              e.currentTarget.src = `https://lshorter-api.fiatechnologiecam.workers.dev/api/v1/images/${fname}`;
+                            } else if (previewImage && current !== previewImage) {
+                              e.currentTarget.src = previewImage;
+                            }
+                          }}
+                        />
                       ) : (
-                        <div className="text-neutral-400 text-xs flex flex-col items-center gap-1.5 p-4 text-center group-hover:text-white transition-colors">
-                          <Upload className="w-5 h-5 text-[#ff6600]" />
-                          <span className="font-semibold">Cliquez pour importer une bannière</span>
-                          <span className="text-[10px] text-neutral-500">1200×630 recommandé (JPG, PNG, WebP)</span>
+                        <div className="text-neutral-500 text-xs flex flex-col items-center gap-1.5 p-4 text-center">
+                          <ImageIcon className="w-6 h-6 text-neutral-600 mb-1" />
+                          <span className="font-semibold text-neutral-400">Aucune bannière configurée</span>
+                          <span className="text-[10px] text-neutral-600">L'image apparaîtra ici au format 1200×630</span>
                         </div>
                       )}
                     </div>
-                    <div className="p-3 flex flex-col gap-1 text-xs">
-                      <span className="text-[10px] text-[#ff6600] font-mono">{domainName}/{slug || "votre-lien"}</span>
-                      <p className="font-bold text-white line-clamp-1">{ogTitle || "Titre de la page partagée"}</p>
-                      <p className="text-[11px] text-neutral-400 line-clamp-2">
-                        {ogDescription || "Description qui s'affiche automatiquement dans le flux de réseaux sociaux."}
+
+                    <div className="p-3.5 flex flex-col gap-1.5 text-xs bg-[#141416]">
+                      <span className="text-[10px] text-[#ff6600] font-mono tracking-wide">
+                        {domainName}/{slug || "votre-lien"}
+                      </span>
+                      <p className="font-bold text-white line-clamp-1 text-sm">
+                        {ogTitle || "Titre de la page partagée"}
+                      </p>
+                      <p className="text-[11px] text-neutral-400 line-clamp-2 leading-relaxed">
+                        {ogDescription || "Description qui s'affiche automatiquement dans le flux de réseaux sociaux (WhatsApp, Twitter, LinkedIn)."}
                       </p>
                     </div>
                   </div>
@@ -1074,20 +1225,31 @@ export function LinkCreateModal({
           {/* TAB 4: PROTECTION & EXPIRY */}
           {activeTab === "protection" && (
             <div className="flex flex-col gap-4 animate-in fade-in text-xs">
-              <label className="flex items-center justify-between p-3.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] cursor-pointer">
+              <div className="flex items-center justify-between p-3.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] gap-3">
                 <div>
                   <span className="font-bold text-white block">Masquer le référent (no-referrer)</span>
                   <span className="text-[11px] text-neutral-400">
                     Ne transmet pas votre domaine source au site de destination.
                   </span>
                 </div>
-                <input
-                  type="checkbox"
-                  checked={hideReferrer}
-                  onChange={(e) => setHideReferrer(e.target.checked)}
-                  className="w-4 h-4 accent-[#ff6600] cursor-pointer"
-                />
-              </label>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={hideReferrer}
+                  onClick={() => setHideReferrer(!hideReferrer)}
+                  className={cn(
+                    "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                    hideReferrer ? "bg-[#ff6600]" : "bg-[#27272a]"
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-md transform ring-0 transition duration-200 ease-in-out",
+                      hideReferrer ? "translate-x-5" : "translate-x-0"
+                    )}
+                  />
+                </button>
+              </div>
 
               {/* Cloaking Feature Gated */}
               <LockedProFeature
@@ -1095,20 +1257,31 @@ export function LinkCreateModal({
                 description="Garde le domaine court affiché dans la barre d'adresse sans révéler l'URL finale."
                 isUnlocked={isProPlan}
               >
-                <label className="flex items-center justify-between p-3.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] cursor-pointer">
+                <div className="flex items-center justify-between p-3.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] gap-3">
                   <div>
                     <span className="font-bold text-white block">Masquage d&apos;URL (Cloaking)</span>
                     <span className="text-[11px] text-neutral-400">
                       Garde le domaine court affiché dans la barre d&apos;adresse du navigateur.
                     </span>
                   </div>
-                  <input
-                    type="checkbox"
-                    checked={isCloaked}
-                    onChange={(e) => setIsCloaked(e.target.checked)}
-                    className="w-4 h-4 accent-[#ff6600] cursor-pointer"
-                  />
-                </label>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={isCloaked}
+                    onClick={() => setIsCloaked(!isCloaked)}
+                    className={cn(
+                      "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                      isCloaked ? "bg-[#ff6600]" : "bg-[#27272a]"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-md transform ring-0 transition duration-200 ease-in-out",
+                        isCloaked ? "translate-x-5" : "translate-x-0"
+                      )}
+                    />
+                  </button>
+                </div>
               </LockedProFeature>
 
               {/* Password Protection Gated */}
@@ -1159,17 +1332,28 @@ export function LinkCreateModal({
                 isUnlocked={isProPlan}
               >
                 <div className="p-3.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] space-y-3">
-                  <label className="flex items-center justify-between cursor-pointer select-none">
+                  <div className="flex items-center justify-between gap-3 select-none">
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-white text-xs">Limiter le nombre d&apos;accès</span>
                     </div>
-                    <input
-                      type="checkbox"
-                      checked={hasClickLimit}
-                      onChange={(e) => setHasClickLimit(e.target.checked)}
-                      className="w-4 h-4 accent-[#ff6600] rounded-[10px] cursor-pointer"
-                    />
-                  </label>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={hasClickLimit}
+                      onClick={() => setHasClickLimit(!hasClickLimit)}
+                      className={cn(
+                        "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                        hasClickLimit ? "bg-[#ff6600]" : "bg-[#27272a]"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-md transform ring-0 transition duration-200 ease-in-out",
+                          hasClickLimit ? "translate-x-5" : "translate-x-0"
+                        )}
+                      />
+                    </button>
+                  </div>
 
                   {hasClickLimit && (
                     <div className="pt-2.5 border-t border-[#26262e] space-y-2.5 animate-in fade-in duration-200">
@@ -1422,31 +1606,55 @@ export function LinkCreateModal({
                 <label className="block font-semibold text-neutral-300 mb-1.5">
                   Code de redirection HTTP
                 </label>
-                <select
-                  value={redirectType}
-                  onChange={(e) => setRedirectType(e.target.value as any)}
-                  className="w-full h-11 rounded-[10px] bg-[#141416] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
-                >
-                  <option value="302" className="bg-[#141416] text-white">302 — Redirection temporaire (Recommandé)</option>
-                  <option value="301" className="bg-[#141416] text-white">301 — Redirection permanente (SEO)</option>
-                  <option value="307" className="bg-[#141416] text-white">307 — Redirection stricte</option>
-                </select>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { val: "302", label: "302 (Temp)", desc: "Recommandé" },
+                    { val: "301", label: "301 (Perm)", desc: "SEO" },
+                    { val: "307", label: "307 (Strict)", desc: "Strict" },
+                  ].map((item) => (
+                    <button
+                      key={item.val}
+                      type="button"
+                      onClick={() => setRedirectType(item.val as any)}
+                      className={cn(
+                        "h-11 rounded-[10px] text-xs font-semibold flex flex-col items-center justify-center border transition-all cursor-pointer",
+                        redirectType === item.val
+                          ? "bg-[#ff6600] text-white border-[#ff6600] shadow-md shadow-[#ff6600]/30 font-bold"
+                          : "bg-[#141416] text-neutral-300 border-[#27272a] hover:border-neutral-500"
+                      )}
+                    >
+                      <span className="font-bold">{item.val}</span>
+                      <span className="text-[10px] opacity-80">{item.desc}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              <label className="flex items-center justify-between p-3.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] cursor-pointer">
+              <div className="flex items-center justify-between p-3.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] gap-3">
                 <div>
                   <span className="font-bold text-white block">Transmettre les paramètres d&apos;URL</span>
                   <span className="text-[11px] text-neutral-400">
                     Transfère automatiquement les paramètres de requête reçus vers la destination.
                   </span>
                 </div>
-                <input
-                  type="checkbox"
-                  checked={passParams}
-                  onChange={(e) => setPassParams(e.target.checked)}
-                  className="w-4 h-4 accent-[#ff6600] rounded-[10px] cursor-pointer"
-                />
-              </label>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={passParams}
+                  onClick={() => setPassParams(!passParams)}
+                  className={cn(
+                    "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                    passParams ? "bg-[#ff6600]" : "bg-[#27272a]"
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-md transform ring-0 transition duration-200 ease-in-out",
+                      passParams ? "translate-x-5" : "translate-x-0"
+                    )}
+                  />
+                </button>
+              </div>
             </div>
           )}
 
