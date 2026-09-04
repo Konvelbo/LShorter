@@ -96,7 +96,7 @@ export function EmptyState({ onLinkCreated, analytics }: EmptyStateProps) {
       </div>
 
       {/* Big Center Shorten Box matching Screenshot 1 */}
-      <div className="p-8 md:p-12 rounded-[14px] bg-[#141416] border-2 border-dashed border-[#ff6600]/40 flex flex-col items-center justify-center text-center relative overflow-hidden">
+      <div className="p-8 md:p-12 rounded-[10px] bg-[#141416] border-2 border-dashed border-[#ff6600]/40 flex flex-col items-center justify-center text-center relative overflow-hidden">
         {/* Decorative background glow */}
         <div className="absolute w-72 h-72 bg-[#ff6600]/5 rounded-full blur-3xl pointer-events-none -top-10" />
 
@@ -140,7 +140,7 @@ export function EmptyState({ onLinkCreated, analytics }: EmptyStateProps) {
 
         {/* 3 Steps Timeline */}
         <div className="flex flex-wrap items-center justify-center gap-3 md:gap-6 text-xs text-neutral-400">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-[8px] bg-[#1a1a1e] border border-[#27272a]">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a]">
             <span className="w-5 h-5 rounded-full bg-[#ff6600] text-white font-bold text-[11px] flex items-center justify-center">
               1
             </span>
@@ -149,7 +149,7 @@ export function EmptyState({ onLinkCreated, analytics }: EmptyStateProps) {
 
           <span className="text-neutral-600">→</span>
 
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-[8px] bg-[#1a1a1e] border border-[#27272a]">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a]">
             <span className="w-5 h-5 rounded-full bg-[#ff6600] text-white font-bold text-[11px] flex items-center justify-center">
               2
             </span>
@@ -158,7 +158,7 @@ export function EmptyState({ onLinkCreated, analytics }: EmptyStateProps) {
 
           <span className="text-neutral-600">→</span>
 
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-[8px] bg-[#1a1a1e] border border-[#27272a]">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a]">
             <span className="w-5 h-5 rounded-full bg-[#ff6600] text-white font-bold text-[11px] flex items-center justify-center">
               3
             </span>

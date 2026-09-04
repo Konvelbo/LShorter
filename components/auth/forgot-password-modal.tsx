@@ -188,7 +188,7 @@ export function ForgotPasswordModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
-      <div className="relative w-full max-w-md rounded-[16px] bg-[#141416] border border-[#27272a] p-6 sm:p-8 shadow-2xl text-white">
+      <div className="relative w-full max-w-md rounded-[10px] bg-[#141416] border border-[#27272a] p-6 sm:p-8 shadow-2xl text-white">
         {/* Close button */}
         <button
           onClick={onClose}
@@ -200,17 +200,17 @@ export function ForgotPasswordModal({
         {/* Step Indicator */}
         <div className="flex items-center gap-2 mb-6">
           <div
-            className={`h-1.5 flex-1 rounded-full transition-all ${
+            className={`h-1.5 flex-1 rounded-[10px] transition-all ${
               step === "email" ? "bg-[#ff6600]" : "bg-[#ff6600]/40"
             }`}
           />
           <div
-            className={`h-1.5 flex-1 rounded-full transition-all ${
+            className={`h-1.5 flex-1 rounded-[10px] transition-all ${
               step === "pin" ? "bg-[#ff6600]" : step === "password" ? "bg-[#ff6600]/40" : "bg-[#27272a]"
             }`}
           />
           <div
-            className={`h-1.5 flex-1 rounded-full transition-all ${
+            className={`h-1.5 flex-1 rounded-[10px] transition-all ${
               step === "password" ? "bg-[#ff6600]" : "bg-[#27272a]"
             }`}
           />
@@ -290,7 +290,7 @@ export function ForgotPasswordModal({
                 placeholder="123456"
                 value={pin}
                 onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                className="w-full h-14 rounded-[12px] bg-[#1a1a1e] border-2 border-[#27272a] focus:border-[#ff6600] text-center font-mono text-3xl font-bold tracking-[0.6em] text-white focus:outline-none transition-colors"
+                className="w-full h-14 rounded-[10px] bg-[#1a1a1e] border-2 border-[#27272a] focus:border-[#ff6600] text-center font-mono text-3xl font-bold tracking-[0.6em] text-white focus:outline-none transition-colors"
               />
               <p className="text-[11px] text-neutral-500 text-center mt-2">
                 ⏱️ Ce code expire dans 15 minutes.
@@ -377,7 +377,7 @@ export function ForgotPasswordModal({
                     <span>Force</span>
                     <span className="text-white font-bold">{passwordStrength}%</span>
                   </div>
-                  <div className="w-full h-1.5 rounded-full bg-[#27272a] overflow-hidden">
+                  <div className="w-full h-1.5 rounded-[10px] bg-[#27272a] overflow-hidden">
                     <div
                       className={`h-full transition-all ${
                         passwordStrength < 50

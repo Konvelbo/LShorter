@@ -248,7 +248,7 @@ console.log("Top Pays :", topAudience.topCountries);`
 
       {/* Secret Key Modal Banner if just created */}
       {newlyCreatedKey && (
-        <div className="p-6 rounded-[12px] bg-[#141416] border-2 border-[#ff6600] shadow-2xl flex flex-col gap-3 animate-in zoom-in-95">
+        <div className="p-6 rounded-[10px] bg-[#141416] border-2 border-[#ff6600] shadow-2xl flex flex-col gap-3 animate-in zoom-in-95">
           <div className="flex items-center justify-between">
             <h3 className="text-base font-bold text-white flex items-center gap-2">
               <ShieldCheck className="w-5 h-5 text-emerald-400" />
@@ -286,7 +286,7 @@ console.log("Top Pays :", topAudience.topCountries);`
       {isGenerating && (
         <form
           onSubmit={handleCreateKey}
-          className="p-6 rounded-[12px] bg-[#141416] border border-[#27272a] shadow-xl flex flex-col gap-4 animate-in fade-in"
+          className="p-6 rounded-[10px] bg-[#141416] border border-[#27272a] shadow-xl flex flex-col gap-4 animate-in fade-in"
         >
           <h3 className="text-base font-bold text-white flex items-center gap-2">
             <KeyRound className="w-4 h-4 text-[#ff6600]" />
@@ -346,7 +346,7 @@ console.log("Top Pays :", topAudience.topCountries);`
                   <td className="py-3.5 text-right pr-2">
                     <button
                       onClick={() => promptRevokeKey(key)}
-                      className="p-1.5 rounded-[6px] hover:bg-red-500/20 text-neutral-400 hover:text-red-400 transition-colors cursor-pointer"
+                      className="p-1.5 rounded-[10px] hover:bg-red-500/20 text-neutral-400 hover:text-red-400 transition-colors cursor-pointer"
                       title="Révoquer la clé"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -360,7 +360,7 @@ console.log("Top Pays :", topAudience.topCountries);`
       </div>
 
       {/* TypeScript SDK Code Preview Section */}
-      <div className="rounded-[14px] bg-[#141416] border border-[#222225] p-6 lg:p-8 flex flex-col gap-5 shadow-2xl">
+      <div className="rounded-[10px] bg-[#141416] border border-[#222225] p-6 lg:p-8 flex flex-col gap-5 shadow-2xl">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-[10px] bg-[#3178c6]/20 border border-[#3178c6]/40 flex items-center justify-center text-[#3178c6]">
@@ -375,7 +375,7 @@ console.log("Top Pays :", topAudience.topCountries);`
           <div className="flex items-center gap-2 p-1 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] text-xs">
             <button
               onClick={() => setActiveCodeTab("create")}
-              className={`px-3 py-1.5 rounded-[8px] font-medium transition-colors cursor-pointer ${
+              className={`px-3 py-1.5 rounded-[10px] font-medium transition-colors cursor-pointer ${
                 activeCodeTab === "create"
                   ? "bg-[#ff6600] text-white"
                   : "text-neutral-400 hover:text-white"
@@ -385,7 +385,7 @@ console.log("Top Pays :", topAudience.topCountries);`
             </button>
             <button
               onClick={() => setActiveCodeTab("track")}
-              className={`px-3 py-1.5 rounded-[8px] font-medium transition-colors cursor-pointer ${
+              className={`px-3 py-1.5 rounded-[10px] font-medium transition-colors cursor-pointer ${
                 activeCodeTab === "track"
                   ? "bg-[#ff6600] text-white"
                   : "text-neutral-400 hover:text-white"
@@ -395,7 +395,7 @@ console.log("Top Pays :", topAudience.topCountries);`
             </button>
             <button
               onClick={() => setActiveCodeTab("analytics")}
-              className={`px-3 py-1.5 rounded-[8px] font-medium transition-colors cursor-pointer ${
+              className={`px-3 py-1.5 rounded-[10px] font-medium transition-colors cursor-pointer ${
                 activeCodeTab === "analytics"
                   ? "bg-[#ff6600] text-white"
                   : "text-neutral-400 hover:text-white"

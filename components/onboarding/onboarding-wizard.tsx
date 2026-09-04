@@ -628,7 +628,7 @@ export function OnboardingWizard() {
                               onChange={(e) => setCountrySearch(e.target.value)}
                               placeholder="Rechercher un pays..."
                               autoFocus
-                              className="w-full h-8 pl-8 pr-3 rounded-[8px] bg-[#121215] border border-[#27272a] text-xs text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#ff6600] md:focus:border-[#ff6600] focus:border-[#0066FF]"
+                              className="w-full h-8 pl-8 pr-3 rounded-[10px] bg-[#121215] border border-[#27272a] text-xs text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#ff6600] md:focus:border-[#ff6600] focus:border-[#0066FF]"
                             />
                           </div>
 
@@ -644,7 +644,7 @@ export function OnboardingWizard() {
                                     setIsCountryMenuOpen(false);
                                     setCountrySearch("");
                                   }}
-                                  className={`p-2 rounded-[8px] hover:bg-[#222226] text-neutral-300 hover:text-white cursor-pointer flex items-center justify-between transition-colors ${
+                                  className={`p-2 rounded-[10px] hover:bg-[#222226] text-neutral-300 hover:text-white cursor-pointer flex items-center justify-between transition-colors ${
                                     isSelected ? "bg-[#222226] text-white font-semibold" : ""
                                   }`}
                                 >

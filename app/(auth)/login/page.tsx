@@ -221,7 +221,7 @@ export default function LoginPage({ initialMode = "login" }: { initialMode?: "lo
             <button
               type="button"
               onClick={() => setAuthMode("login")}
-              className={`py-2.5 rounded-[8px] transition-all cursor-pointer ${
+              className={`py-2.5 rounded-[10px] transition-all cursor-pointer ${
                 authMode === "login"
                   ? "bg-[#ff6600] text-white shadow-md font-bold"
                   : "text-neutral-400 hover:text-white"
@@ -232,7 +232,7 @@ export default function LoginPage({ initialMode = "login" }: { initialMode?: "lo
             <button
               type="button"
               onClick={() => setAuthMode("register")}
-              className={`py-2.5 rounded-[8px] transition-all cursor-pointer ${
+              className={`py-2.5 rounded-[10px] transition-all cursor-pointer ${
                 authMode === "register"
                   ? "bg-[#ff6600] text-white shadow-md font-bold"
                   : "text-neutral-400 hover:text-white"

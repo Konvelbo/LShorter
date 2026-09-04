@@ -49,7 +49,7 @@ interface LinkEditModalProps {
 function FieldErrorAlert({ message }: { message?: string }) {
   if (!message) return null;
   return (
-    <div className="flex items-center gap-1.5 text-xs text-red-400 bg-red-500/10 border border-red-500/30 rounded-[8px] px-2.5 py-1.5 mt-1.5 animate-in fade-in slide-in-from-top-1">
+    <div className="flex items-center gap-1.5 text-xs text-red-400 bg-red-500/10 border border-red-500/30 rounded-[10px] px-2.5 py-1.5 mt-1.5 animate-in fade-in slide-in-from-top-1">
       <AlertCircle className="w-3.5 h-3.5 shrink-0 text-red-500" />
       <span className="font-medium leading-tight">{message}</span>
     </div>
@@ -73,7 +73,7 @@ function LockedProFeature({
   }
 
   return (
-    <div className="relative rounded-[12px] overflow-hidden border border-amber-500/25 bg-[#16161a] p-4 group select-none">
+    <div className="relative rounded-[10px] overflow-hidden border border-amber-500/25 bg-[#16161a] p-4 group select-none">
       {/* Blurred & Disabled Content */}
       <div className="opacity-25 pointer-events-none select-none filter blur-[1.5px]">
         {children}
@@ -82,13 +82,13 @@ function LockedProFeature({
       {/* Frosted Glass Overlay */}
       <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/80 to-black/90 backdrop-blur-[3px] flex flex-col sm:flex-row items-center justify-between px-5 py-3 gap-3.5 z-10">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shrink-0 shadow-lg shadow-amber-500/10">
+          <div className="w-8 h-8 rounded-[10px] bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shrink-0 shadow-lg shadow-amber-500/10">
             <Lock className="w-4 h-4 text-amber-400" />
           </div>
           <div>
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold text-white tracking-wide">{title}</span>
-              <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 font-extrabold text-[9px] border border-amber-500/30 tracking-wider">
+              <span className="px-1.5 py-0.5 rounded-[10px] bg-amber-500/20 text-amber-400 font-extrabold text-[9px] border border-amber-500/30 tracking-wider">
                 PLAN PRO
               </span>
             </div>
@@ -107,7 +107,7 @@ function LockedProFeature({
               targetPlan: "PRO",
             })
           }
-          className="px-3.5 py-1.5 rounded-[8px] bg-gradient-to-r from-[#ff6600] to-amber-500 hover:from-[#ff7711] hover:to-amber-400 text-white font-bold text-xs shadow-lg shadow-[#ff6600]/25 transition-all flex items-center gap-1.5 shrink-0 cursor-pointer"
+          className="px-3.5 py-1.5 rounded-[10px] bg-gradient-to-r from-[#ff6600] to-amber-500 hover:from-[#ff7711] hover:to-amber-400 text-white font-bold text-xs shadow-lg shadow-[#ff6600]/25 transition-all flex items-center gap-1.5 shrink-0 cursor-pointer"
         >
           <Sparkles className="w-3.5 h-3.5" />
           <span>Débloquer avec PRO</span>
@@ -486,11 +486,11 @@ export function LinkEditModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-3xl max-h-[92vh] flex flex-col bg-[#141416] border border-[#222225] rounded-[16px] shadow-2xl overflow-hidden">
+      <div className="relative w-full max-w-3xl max-h-[92vh] flex flex-col bg-[#141416] border border-[#222225] rounded-[10px] shadow-2xl overflow-hidden">
         {/* Modal Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#222225] bg-[#1a1a1e]/60">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#ff6600]/10 border border-[#ff6600]/20 flex items-center justify-center text-[#ff6600]">
+            <div className="w-10 h-10 rounded-[10px] bg-[#ff6600]/10 border border-[#ff6600]/20 flex items-center justify-center text-[#ff6600]">
               <Edit3 className="w-5 h-5" />
             </div>
             <div>
@@ -498,7 +498,7 @@ export function LinkEditModal({
                 <h2 className="text-lg font-bold text-white tracking-wide">
                   Modifier le Lien Court
                 </h2>
-                <span className="font-mono text-xs px-2 py-0.5 rounded bg-[#ff6600]/10 text-[#ff6600] font-semibold border border-[#ff6600]/20">
+                <span className="font-mono text-xs px-2 py-0.5 rounded-[10px] bg-[#ff6600]/10 text-[#ff6600] font-semibold border border-[#ff6600]/20">
                   {link.domainName}/{link.slug}
                 </span>
               </div>
@@ -509,7 +509,7 @@ export function LinkEditModal({
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-neutral-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+            className="p-2 text-neutral-400 hover:text-white rounded-[10px] hover:bg-white/10 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -530,7 +530,7 @@ export function LinkEditModal({
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer whitespace-nowrap ${
+                className={`flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-[10px] transition-all cursor-pointer whitespace-nowrap ${
                   isActiveTab
                     ? "bg-[#ff6600] text-black shadow-lg shadow-[#ff6600]/20"
                     : "text-neutral-400 hover:text-white hover:bg-white/5"
@@ -608,7 +608,7 @@ export function LinkEditModal({
                   <button
                     type="button"
                     onClick={() => setIsActive(!isActive)}
-                    className={`w-full h-10 px-3 flex items-center justify-between rounded-lg border text-xs font-semibold transition-colors cursor-pointer ${
+                    className={`w-full h-10 px-3 flex items-center justify-between rounded-[10px] border text-xs font-semibold transition-colors cursor-pointer ${
                       isActive
                         ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
                         : "bg-red-500/10 border-red-500/30 text-red-400"
@@ -618,7 +618,7 @@ export function LinkEditModal({
                       <Power className="w-4 h-4" />
                       {isActive ? "Lien Actif (Redirige)" : "Lien en Pause (Désactivé)"}
                     </span>
-                    <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-black/40">
+                    <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-[10px] bg-black/40">
                       {isActive ? "ON" : "OFF"}
                     </span>
                   </button>
@@ -646,7 +646,7 @@ export function LinkEditModal({
           {/* TAB 2: SOCIAL PREVIEW & BANNER */}
           {activeTab === "social" && (
             <div className="space-y-5 animate-in fade-in duration-200">
-              <div className="p-4 rounded-xl bg-[#1a1a1e] border border-[#26262a] space-y-4">
+              <div className="p-4 rounded-[10px] bg-[#1a1a1e] border border-[#26262a] space-y-4">
                 <div>
                   <label className="block text-xs font-semibold text-neutral-300 uppercase tracking-wider mb-1.5">
                     Titre d&apos;Aperçu Social (OpenGraph / Twitter)
@@ -678,7 +678,7 @@ export function LinkEditModal({
                   </label>
 
                   <div className="flex flex-col sm:flex-row gap-3 items-center">
-                    <label className="w-full sm:w-auto flex-1 flex flex-col items-center justify-center p-4 rounded-xl border border-dashed border-[#333338] hover:border-[#ff6600] bg-[#0e0e10] hover:bg-[#ff6600]/5 transition-all cursor-pointer group">
+                    <label className="w-full sm:w-auto flex-1 flex flex-col items-center justify-center p-4 rounded-[10px] border border-dashed border-[#333338] hover:border-[#ff6600] bg-[#0e0e10] hover:bg-[#ff6600]/5 transition-all cursor-pointer group">
                       <Upload className="w-6 h-6 text-neutral-400 group-hover:text-[#ff6600] transition-colors mb-1.5" />
                       <span className="text-xs font-semibold text-white">
                         {isUploadingImage ? "Upload en cours sur le CDN..." : "Changer l'image (PNG, JPG, WebP max 5Mo)"}
@@ -695,7 +695,7 @@ export function LinkEditModal({
                     </label>
 
                     {ogImage && (
-                      <div className="relative group w-32 h-20 rounded-lg overflow-hidden border border-[#333338] shrink-0 bg-black">
+                      <div className="relative group w-32 h-20 rounded-[10px] overflow-hidden border border-[#333338] shrink-0 bg-black">
                         <img
                           src={ogImage}
                           alt="Bannière actuelle"
@@ -720,7 +720,7 @@ export function LinkEditModal({
                 <label className="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-2">
                   Aperçu en direct sur les Réseaux Sociaux (Twitter/X, WhatsApp, Facebook) :
                 </label>
-                <div className="rounded-xl border border-[#2a2a2e] bg-[#0c0c0e] overflow-hidden shadow-xl max-w-md mx-auto">
+                <div className="rounded-[10px] border border-[#2a2a2e] bg-[#0c0c0e] overflow-hidden shadow-xl max-w-md mx-auto">
                   {ogImage ? (
                     <div className="relative w-full h-44 bg-black">
                       <img
@@ -739,9 +739,6 @@ export function LinkEditModal({
                     <div className="text-[11px] font-mono text-neutral-500 truncate">
                       {link.domainName || "lsho.cc"}
                     </div>
-                    <div className="text-sm font-bold text-white line-clamp-1">
-                      {ogTitle || "Titre de votre page"}
-                    </div>
                     <div className="text-xs text-neutral-400 line-clamp-2">
                       {ogDescription || "Description de votre page qui apparaîtra lors du partage sur Twitter, WhatsApp ou Facebook."}
                     </div>
@@ -750,8 +747,6 @@ export function LinkEditModal({
               </div>
             </div>
           )}
-
-          {/* TAB 3: ROUTING RULES */}
           {activeTab === "routing" && (
             <div className="space-y-4 animate-in fade-in duration-200">
               <p className="text-xs text-neutral-400">
@@ -769,7 +764,7 @@ export function LinkEditModal({
           {activeTab === "protection" && (
             <div className="space-y-4 animate-in fade-in duration-200">
               {/* Hide Referrer */}
-              <div className="p-4 rounded-xl bg-[#1a1a1e] border border-[#26262a] flex items-center justify-between">
+              <div className="p-4 rounded-[10px] bg-[#1a1a1e] border border-[#26262a] flex items-center justify-between">
                 <div>
                   <span className="text-xs font-semibold text-white">Masquage du Référent (No-Referrer)</span>
                   <p className="text-[11px] text-neutral-400 mt-0.5">
@@ -797,7 +792,7 @@ export function LinkEditModal({
                 description="Garde votre nom de domaine dans la barre d'adresse du navigateur sans révéler la destination."
                 isUnlocked={isProPlan}
               >
-                <div className="p-4 rounded-xl bg-[#1a1a1e] border border-[#26262a] flex items-center justify-between">
+                <div className="p-4 rounded-[10px] bg-[#1a1a1e] border border-[#26262a] flex items-center justify-between">
                   <div>
                     <div className="flex items-center gap-2">
                       <Shield className="w-4 h-4 text-purple-400" />
@@ -829,7 +824,7 @@ export function LinkEditModal({
                 description="Sécurisez l'accès à votre destination avec un mot de passe obligatoire."
                 isUnlocked={isProPlan}
               >
-                <div className="p-4 rounded-xl bg-[#1a1a1e] border border-[#26262a] space-y-2">
+                <div className="p-4 rounded-[10px] bg-[#1a1a1e] border border-[#26262a] space-y-2">
                   <div className="flex items-center gap-2">
                     <Lock className="w-4 h-4 text-amber-400" />
                     <span className="text-xs font-semibold text-white">Protection par Mot de Passe</span>
@@ -871,7 +866,7 @@ export function LinkEditModal({
                 description="Désactivez automatiquement le lien ou redirigez vers une URL de secours après un nombre de clics défini."
                 isUnlocked={isProPlan}
               >
-                <div className="p-4 rounded-xl bg-[#1a1a1e] border border-[#26262a] space-y-3">
+                <div className="p-4 rounded-[10px] bg-[#1a1a1e] border border-[#26262a] space-y-3">
                   <label className="flex items-center justify-between cursor-pointer select-none">
                     <div className="flex items-center gap-2">
                       <span className="font-semibold text-white text-xs">Limiter le nombre d&apos;accès</span>
@@ -880,7 +875,7 @@ export function LinkEditModal({
                       type="checkbox"
                       checked={hasClickLimit}
                       onChange={(e) => setHasClickLimit(e.target.checked)}
-                      className="w-4 h-4 accent-[#ff6600] rounded cursor-pointer"
+                      className="w-4 h-4 accent-[#ff6600] rounded-[10px] cursor-pointer"
                     />
                   </label>
 
@@ -890,11 +885,11 @@ export function LinkEditModal({
                         <span className="text-[11px] text-neutral-300 font-medium">
                           Nombre maximal de clics :
                         </span>
-                        <div className="inline-flex items-center rounded-lg bg-[#0e0e10] border border-[#2a2a32] p-0.5 focus-within:border-[#ff6600] transition-colors">
+                        <div className="inline-flex items-center rounded-[10px] bg-[#0e0e10] border border-[#2a2a32] p-0.5 focus-within:border-[#ff6600] transition-colors">
                           <button
                             type="button"
                             onClick={() => setMaxClicks((prev) => Math.max(1, (Number(prev) || 1) - 1))}
-                            className="w-7 h-7 flex items-center justify-center rounded-md text-neutral-400 hover:text-white hover:bg-[#202026] active:scale-95 transition-all text-xs cursor-pointer font-bold"
+                            className="w-7 h-7 flex items-center justify-center rounded-[10px] text-neutral-400 hover:text-white hover:bg-[#202026] active:scale-95 transition-all text-xs cursor-pointer font-bold"
                             title="Diminuer"
                           >
                             -
@@ -918,7 +913,7 @@ export function LinkEditModal({
                           <button
                             type="button"
                             onClick={() => setMaxClicks((prev) => (Number(prev) || 0) + 1)}
-                            className="w-7 h-7 flex items-center justify-center rounded-md text-neutral-400 hover:text-white hover:bg-[#202026] active:scale-95 transition-all text-xs cursor-pointer font-bold"
+                            className="w-7 h-7 flex items-center justify-center rounded-[10px] text-neutral-400 hover:text-white hover:bg-[#202026] active:scale-95 transition-all text-xs cursor-pointer font-bold"
                             title="Augmenter"
                           >
                             +
@@ -943,7 +938,7 @@ export function LinkEditModal({
                             }
                           }}
                           className={cn(
-                            "h-8 text-xs bg-[#0e0e10] border-[#2a2a32] focus:border-[#ff6600]",
+                            "h-8 text-xs bg-[#0e0e10] border-[#2a2a2e] focus:border-[#ff6600]",
                             fieldErrors.fallbackUrl &&
                               "border-red-500 focus:border-red-500 focus:ring-red-500/30 bg-red-950/20 text-red-100"
                           )}
@@ -961,7 +956,7 @@ export function LinkEditModal({
                 description="Programmez la désactivation ou la redirection alternative à une date précise."
                 isUnlocked={isProPlan}
               >
-                <div className="p-4 rounded-xl bg-[#1a1a1e] border border-[#26262a] space-y-2">
+                <div className="p-4 rounded-[10px] bg-[#1a1a1e] border border-[#26262a] space-y-2">
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-sky-400" />
                     <span className="text-xs font-semibold text-white">Date d&apos;Expiration</span>

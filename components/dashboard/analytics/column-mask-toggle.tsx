@@ -40,7 +40,7 @@ export function ColumnMaskToggle({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-1.5 rounded-[8px] bg-[#1a1a1e] hover:bg-white/10 text-neutral-300 hover:text-white border border-[#27272a] text-xs font-semibold transition-all cursor-pointer shadow-sm"
+        className="flex items-center gap-2 px-3 py-1.5 rounded-[10px] bg-[#1a1a1e] hover:bg-white/10 text-neutral-300 hover:text-white border border-[#27272a] text-xs font-semibold transition-all cursor-pointer shadow-sm"
         title="Personnaliser les colonnes visibles"
       >
         <SlidersHorizontal className="w-3.5 h-3.5 text-[#ff6600]" />
@@ -48,7 +48,7 @@ export function ColumnMaskToggle({
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-64 rounded-[12px] bg-[#141416] border border-[#27272a] p-3 shadow-2xl z-50 animate-in fade-in zoom-in-95 text-white">
+        <div className="absolute right-0 top-full mt-2 w-64 rounded-[10px] bg-[#141416] border border-[#27272a] p-3 shadow-2xl z-50 animate-in fade-in zoom-in-95 text-white">
           <div className="flex items-center justify-between pb-2 mb-2 border-b border-[#222225]">
             <span className="text-xs font-bold text-white flex items-center gap-1.5">
               <Eye className="w-3.5 h-3.5 text-[#ff6600]" />
@@ -70,7 +70,7 @@ export function ColumnMaskToggle({
                   key={col.key}
                   type="button"
                   onClick={() => onToggleColumn(col.key)}
-                  className={`flex items-center justify-between px-2.5 py-1.5 rounded-[6px] text-xs transition-colors cursor-pointer ${
+                  className={`flex items-center justify-between px-2.5 py-1.5 rounded-[10px] text-xs transition-colors cursor-pointer ${
                     isVisible
                       ? "bg-[#ff6600]/10 text-white font-medium"
                       : "text-neutral-500 hover:text-neutral-300 hover:bg-white/5"

@@ -629,7 +629,7 @@ export default function DocsPage() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#222225]">
                 <div className="flex items-center gap-3">
                   <span
-                    className={`px-2.5 py-1 rounded-[6px] text-xs font-mono font-extrabold ${
+                    className={`px-2.5 py-1 rounded-[10px] text-xs font-mono font-extrabold ${
                       ep.method === "POST"
                         ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
                         : ep.method === "GET"

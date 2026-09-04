@@ -19,7 +19,7 @@ export default function MarketingLayout({
       <footer className="border-t border-[#222225] bg-[#0c0c0e] py-12 px-6 lg:px-12 text-xs text-neutral-500">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
-            <div className="w-7 h-7 rounded-[8px] bg-[#ff6600] flex items-center justify-center font-bebas text-lg text-white font-bold">
+            <div className="w-7 h-7 rounded-[10px] bg-[#ff6600] flex items-center justify-center font-bebas text-lg text-white font-bold">
               LS
             </div>
             <span className="font-bebas text-xl text-white tracking-wider">

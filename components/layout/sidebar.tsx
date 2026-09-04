@@ -152,14 +152,14 @@ export function Sidebar() {
           {isCollapsed ? (
             <div className="flex flex-col items-center gap-2 pt-1">
               <Link href="/dashboard" className="cursor-pointer" title="LShorter Dashboard">
-                <div className="w-8.5 h-8.5 rounded-[8px] bg-[#ff6600] flex items-center justify-center font-bebas text-lg font-black text-white shadow-md shadow-[#ff6600]/30 hover:shadow-[#ff6600]/60 transition-all">
+                <div className="w-8.5 h-8.5 rounded-[10px] bg-[#ff6600] flex items-center justify-center font-bebas text-lg font-black text-white shadow-md shadow-[#ff6600]/30 hover:shadow-[#ff6600]/60 transition-all">
                   LS
                 </div>
               </Link>
               <button
                 onClick={toggleCollapse}
                 title="Déplier la barre latérale"
-                className="w-7 h-7 rounded-[6px] bg-white/5 border border-white/10 text-neutral-400 hover:text-white hover:bg-[#ff6600]/20 hover:border-[#ff6600]/40 flex items-center justify-center transition-all cursor-pointer"
+                className="w-7 h-7 rounded-[10px] bg-white/5 border border-white/10 text-neutral-400 hover:text-white hover:bg-[#ff6600]/20 hover:border-[#ff6600]/40 flex items-center justify-center transition-all cursor-pointer"
               >
                 <PanelLeftOpen className="w-3.5 h-3.5 text-neutral-300" />
               </button>
@@ -167,7 +167,7 @@ export function Sidebar() {
           ) : (
             <div className="flex items-center justify-between px-0.5">
               <Link href="/dashboard" className="flex items-center gap-2.5 group cursor-pointer">
-                <div className="w-8 h-8 rounded-[8px] bg-[#ff6600] flex items-center justify-center font-bebas text-lg font-black text-white shadow-md shadow-[#ff6600]/30 group-hover:shadow-[#ff6600]/60 transition-all shrink-0">
+                <div className="w-8 h-8 rounded-[10px] bg-[#ff6600] flex items-center justify-center font-bebas text-lg font-black text-white shadow-md shadow-[#ff6600]/30 group-hover:shadow-[#ff6600]/60 transition-all shrink-0">
                   LS
                 </div>
                 <div className="flex flex-col min-w-0">
@@ -183,7 +183,7 @@ export function Sidebar() {
               <button
                 onClick={toggleCollapse}
                 title="Rétracter la barre latérale"
-                className="w-7 h-7 rounded-[6px] bg-white/5 border border-white/10 text-neutral-400 hover:text-white hover:bg-white/10 flex items-center justify-center transition-all cursor-pointer"
+                className="w-7 h-7 rounded-[10px] bg-white/5 border border-white/10 text-neutral-400 hover:text-white hover:bg-white/10 flex items-center justify-center transition-all cursor-pointer"
               >
                 <PanelLeftClose className="w-3.5 h-3.5" />
               </button>
@@ -197,8 +197,8 @@ export function Sidebar() {
             className={cn(
               "bg-[#ff6600] hover:bg-[#ff771a] text-white font-bold flex items-center justify-center shadow-md shadow-[#ff6600]/20 hover:shadow-[#ff6600]/40 transition-all active:scale-95 cursor-pointer",
               isCollapsed
-                ? "w-8.5 h-8.5 rounded-[8px] mx-auto"
-                : "w-full h-8.5 rounded-[8px] text-xs gap-1.5"
+                ? "w-8.5 h-8.5 rounded-[10px] mx-auto"
+                : "w-full h-8.5 rounded-[10px] text-xs gap-1.5"
             )}
           >
             <Plus className="w-3.5 h-3.5 stroke-[3]" />
@@ -221,7 +221,7 @@ export function Sidebar() {
                   href={item.href}
                   title={isCollapsed ? item.name : undefined}
                   className={cn(
-                    "sidebar-link-btn flex items-center rounded-[7px] text-xs font-medium cursor-pointer transition-colors",
+                    "sidebar-link-btn flex items-center rounded-[10px] text-xs font-medium cursor-pointer transition-colors",
                     isCollapsed
                       ? "w-8.5 h-8.5 justify-center mx-auto"
                       : "gap-2.5 px-2.5 py-1.5 w-full",
@@ -253,7 +253,7 @@ export function Sidebar() {
                   href={item.href}
                   title={isCollapsed ? item.name : undefined}
                   className={cn(
-                    "sidebar-link-btn flex items-center rounded-[7px] text-xs font-medium cursor-pointer transition-colors",
+                    "sidebar-link-btn flex items-center rounded-[10px] text-xs font-medium cursor-pointer transition-colors",
                     isCollapsed
                       ? "w-8.5 h-8.5 justify-center mx-auto"
                       : "gap-2.5 px-2.5 py-1.5 w-full",
@@ -273,7 +273,7 @@ export function Sidebar() {
         {/* Bottom Section: Quota Card & Feedback */}
         <div className="flex flex-col gap-2.5 pt-3 border-t border-[#222225]/80">
           {!isCollapsed ? (
-            <div className="rounded-[8px] bg-[#141416] border border-[#27272a] p-2.5 text-xs flex flex-col gap-1.5 hover:border-[#ff6600]/40 transition-colors">
+            <div className="rounded-[10px] bg-[#141416] border border-[#27272a] p-2.5 text-xs flex flex-col gap-1.5 hover:border-[#ff6600]/40 transition-colors">
               <div className="flex items-center justify-between text-neutral-400">
                 <span className="font-bold text-[10px] text-[#ff6600]">PLAN {plan}</span>
                 <span className="font-mono text-white text-[10px]">
@@ -292,7 +292,7 @@ export function Sidebar() {
               </div>
             </div>
           ) : (
-            <div title={`Plan ${plan} : ${clicksThisMonth.toLocaleString()} clics`} className="w-8.5 h-8.5 rounded-[8px] bg-[#141416] border border-[#27272a] mx-auto flex items-center justify-center">
+            <div title={`Plan ${plan} : ${clicksThisMonth.toLocaleString()} clics`} className="w-8.5 h-8.5 rounded-[10px] bg-[#141416] border border-[#27272a] mx-auto flex items-center justify-center">
               <Sparkles className="w-3.5 h-3.5 text-[#ff6600]" />
             </div>
           )}
@@ -302,13 +302,13 @@ export function Sidebar() {
             onClick={() => setIsFeedbackOpen(true)}
             title="Aide & Feedback"
             className={cn(
-              "flex items-center rounded-[8px] text-xs font-medium text-neutral-400 hover:text-white hover:bg-[#222226] transition-all cursor-pointer group",
+              "flex items-center rounded-[10px] text-xs font-medium text-neutral-400 hover:text-white hover:bg-[#222226] transition-all cursor-pointer group",
               isCollapsed
                 ? "w-8.5 h-8.5 justify-center mx-auto"
                 : "w-full gap-2 px-2.5 py-1.5"
             )}
           >
-            <div className="w-5 h-5 rounded-[4px] bg-white/5 border border-white/10 flex items-center justify-center text-neutral-400 group-hover:text-white group-hover:bg-[#ff6600] transition-colors">
+            <div className="w-5 h-5 rounded-[10px] bg-white/5 border border-white/10 flex items-center justify-center text-neutral-400 group-hover:text-white group-hover:bg-[#ff6600] transition-colors">
               <HelpCircle className="w-3.5 h-3.5" />
             </div>
             {!isCollapsed && <span className="text-[11px]">Aide & Feedback</span>}
@@ -334,7 +334,7 @@ export function Sidebar() {
           {/* Mobile Drawer Header */}
           <div className="flex items-center justify-between pb-3 border-b border-white/10">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-[8px] bg-[#0066FF] flex items-center justify-center font-bebas text-lg font-black text-white shadow-md shadow-[#0066FF]/40">
+              <div className="w-8 h-8 rounded-[10px] bg-[#0066FF] flex items-center justify-center font-bebas text-lg font-black text-white shadow-md shadow-[#0066FF]/40">
                 LS
               </div>
               <div className="flex flex-col">
@@ -346,7 +346,7 @@ export function Sidebar() {
             </div>
             <button
               onClick={() => setIsMobileOpen(false)}
-              className="w-7 h-7 rounded-full bg-white/5 text-neutral-400 hover:text-white flex items-center justify-center"
+              className="w-7 h-7 rounded-[10px] bg-white/5 text-neutral-400 hover:text-white flex items-center justify-center"
             >
               <X className="w-4 h-4" />
             </button>
@@ -375,7 +375,7 @@ export function Sidebar() {
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "flex items-center gap-2.5 px-3 py-1.5 rounded-[8px] text-xs font-medium transition-colors",
+                    "flex items-center gap-2.5 px-3 py-1.5 rounded-[10px] text-xs font-medium transition-colors",
                     isActive
                       ? "bg-[#0066FF]/15 text-[#38bdf8] font-bold border border-[#0066FF]/30"
                       : "text-neutral-300 hover:text-white hover:bg-white/5"
@@ -399,7 +399,7 @@ export function Sidebar() {
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "flex items-center gap-2.5 px-3 py-1.5 rounded-[8px] text-xs font-medium transition-colors",
+                    "flex items-center gap-2.5 px-3 py-1.5 rounded-[10px] text-xs font-medium transition-colors",
                     isActive
                       ? "bg-[#0066FF]/15 text-[#38bdf8] font-bold border border-[#0066FF]/30"
                       : "text-neutral-300 hover:text-white hover:bg-white/5"
@@ -435,7 +435,7 @@ export function Sidebar() {
       </div>
 
       {/* ─── 3. FLOATING MOBILE BOTTOM NAV BAR (< 768px - Cyber Blue Theme) ─── */}
-      <div className="fixed bottom-3 left-3 right-3 h-14 bg-[#0d121f]/95 backdrop-blur-xl border border-[#1e2942] rounded-[20px] px-3 flex items-center justify-around z-30 shadow-2xl shadow-[#0066FF]/25 md:hidden">
+      <div className="fixed bottom-3 left-3 right-3 h-14 bg-[#0d121f]/95 backdrop-blur-xl border border-[#1e2942] rounded-[10px] px-3 flex items-center justify-around z-30 shadow-2xl shadow-[#0066FF]/25 md:hidden">
         <Link
           href="/dashboard"
           className={cn(
@@ -460,7 +460,7 @@ export function Sidebar() {
 
         <button
           onClick={() => setIsCreateLinkOpen(true)}
-          className="w-10 h-10 -mt-5 rounded-full bg-[#0066FF] text-white flex items-center justify-center shadow-lg shadow-[#0066FF]/60 active:scale-90 transition-transform cursor-pointer border-2 border-[#09090b]"
+          className="w-10 h-10 -mt-5 rounded-[10px] bg-[#0066FF] text-white flex items-center justify-center shadow-lg shadow-[#0066FF]/60 active:scale-90 transition-transform cursor-pointer border-2 border-[#09090b]"
         >
           <Plus className="w-5 h-5 stroke-[3]" />
         </button>

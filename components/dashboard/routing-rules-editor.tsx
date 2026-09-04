@@ -326,7 +326,7 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
         {rules.map((rule, ruleIdx) => (
           <div
             key={rule.id}
-            className="rounded-[12px] bg-[#141416] border border-[#27272a] p-4 sm:p-5 flex flex-col gap-4 shadow-xl relative animate-in fade-in"
+            className="rounded-[10px] bg-[#141416] border border-[#27272a] p-4 sm:p-5 flex flex-col gap-4 shadow-xl relative animate-in fade-in"
           >
             {/* Rule Header matching screenshots media_1788192235523.png & media_1788192481738.png */}
             <div className="flex items-center justify-between">
@@ -339,7 +339,7 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                 <button
                   type="button"
                   onClick={() => handleToggleCollapse(rule.id)}
-                  className="flex items-center gap-1 text-xs text-neutral-400 hover:text-white px-2 py-1 rounded-[6px] hover:bg-white/5 cursor-pointer"
+                  className="flex items-center gap-1 text-xs text-neutral-400 hover:text-white px-2 py-1 rounded-[10px] hover:bg-white/5 cursor-pointer"
                 >
                   {rule.isCollapsed ? (
                     <>
@@ -357,7 +357,7 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                 <button
                   type="button"
                   onClick={() => handleDeleteRule(rule.id)}
-                  className="text-red-400 hover:text-red-300 p-1 hover:bg-red-500/10 rounded-[6px] cursor-pointer"
+                  className="text-red-400 hover:text-red-300 p-1 hover:bg-red-500/10 rounded-[10px] cursor-pointer"
                   title="Supprimer la règle"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -372,12 +372,12 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                   {rule.conditions.map((cond, condIdx) => (
                     <div
                       key={cond.id}
-                      className="p-3 sm:p-2 rounded-xl bg-[#141418] border border-[#27272f] sm:bg-transparent sm:border-0 flex flex-col gap-2 sm:grid sm:grid-cols-12 sm:gap-2 sm:items-center"
+                      className="p-3 sm:p-2 rounded-[10px] bg-[#141418] border border-[#27272f] sm:bg-transparent sm:border-0 flex flex-col gap-2 sm:grid sm:grid-cols-12 sm:gap-2 sm:items-center"
                     >
                       {/* Mobile Header: Prefix + Delete */}
                       <div className="flex items-center justify-between sm:contents">
                         <div className="sm:col-span-1 text-xs font-bold text-neutral-300">
-                          <span className="px-2 py-0.5 rounded-md bg-white/5 sm:bg-transparent text-[#ff6600] font-mono">
+                          <span className="px-2 py-0.5 rounded-[10px] bg-white/5 sm:bg-transparent text-[#ff6600] font-mono">
                             {condIdx === 0 ? "Si" : "Et"}
                           </span>
                         </div>
@@ -386,7 +386,7 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                           <button
                             type="button"
                             onClick={() => handleDeleteCondition(rule.id, cond.id)}
-                            className="sm:hidden text-red-400 hover:text-red-300 p-1 rounded-md"
+                            className="sm:hidden text-red-400 hover:text-red-300 p-1 rounded-[10px]"
                             title="Supprimer la condition"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -406,7 +406,7 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                                 value: e.target.value === "pays" ? "FR" : "ios",
                               })
                             }
-                            className="w-full h-10 rounded-lg bg-[#1a1a1e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
+                            className="w-full h-10 rounded-[10px] bg-[#1a1a1e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
                           >
                             <option value="pays" className="bg-[#141416] text-white">Pays</option>
                             <option value="plateforme" className="bg-[#141416] text-white">Plateforme</option>
@@ -424,7 +424,7 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                                 operator: e.target.value as any,
                               })
                             }
-                            className="w-full h-10 rounded-lg bg-[#1a1a1e] text-white border border-[#27272a] px-2.5 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer text-center"
+                            className="w-full h-10 rounded-[10px] bg-[#1a1a1e] text-white border border-[#27272a] px-2.5 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer text-center"
                           >
                             <option value="est" className="bg-[#141416] text-white">est</option>
                             <option value="nest_pas" className="bg-[#141416] text-white">n&apos;est pas</option>
@@ -442,7 +442,7 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                                 value: e.target.value,
                               })
                             }
-                            className="w-full h-10 rounded-lg bg-[#1a1a1e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
+                            className="w-full h-10 rounded-[10px] bg-[#1a1a1e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
                           >
                             {ALL_WORLD_COUNTRIES.map((c) => (
                               <option
@@ -464,7 +464,7 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                                 value: e.target.value,
                               })
                             }
-                            className="w-full h-10 rounded-lg bg-[#1a1a1e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
+                            className="w-full h-10 rounded-[10px] bg-[#1a1a1e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
                           >
                             <option value="ios" className="bg-[#141416] text-white">iOS (iPhone &amp; iPad)</option>
                             <option value="android" className="bg-[#141416] text-white">Android</option>
@@ -482,7 +482,7 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                                 value: e.target.value,
                               })
                             }
-                            className="w-full h-10 rounded-lg bg-[#1a1a1e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
+                            className="w-full h-10 rounded-[10px] bg-[#1a1a1e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
                           >
                             <option value="mobile" className="bg-[#141416] text-white">Mobile (Smartphones)</option>
                             <option value="tablet" className="bg-[#141416] text-white">Tablette</option>
@@ -498,7 +498,7 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                                 value: e.target.value,
                               })
                             }
-                            className="w-full h-10 rounded-lg bg-[#1a1a1e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
+                            className="w-full h-10 rounded-[10px] bg-[#1a1a1e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
                           >
                             <option value="europe" className="bg-[#141416] text-white">Europe (UE)</option>
                             <option value="west_africa" className="bg-[#141416] text-white">Afrique de l&apos;Ouest (CEDEAO)</option>
@@ -515,7 +515,7 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                           <button
                             type="button"
                             onClick={() => handleDeleteCondition(rule.id, cond.id)}
-                            className="text-neutral-500 hover:text-red-400 p-1.5 hover:bg-red-500/10 rounded-md transition-colors cursor-pointer"
+                            className="text-neutral-500 hover:text-red-400 p-1.5 hover:bg-red-500/10 rounded-[10px] transition-colors cursor-pointer"
                             title="Supprimer la condition"
                           >
                             <X className="w-4 h-4" />
@@ -530,7 +530,7 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                     <button
                       type="button"
                       onClick={() => handleAddCondition(rule.id)}
-                      className="text-[#ff6600] hover:text-[#ff771a] font-semibold text-xs flex items-center gap-1 px-3 py-1.5 rounded-lg hover:bg-[#ff6600]/10 border border-[#ff6600]/20 transition-all cursor-pointer"
+                      className="text-[#ff6600] hover:text-[#ff771a] font-semibold text-xs flex items-center gap-1 px-3 py-1.5 rounded-[10px] hover:bg-[#ff6600]/10 border border-[#ff6600]/20 transition-all cursor-pointer"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       <span>Ajouter une condition</span>
@@ -575,7 +575,7 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                           )}
                         />
                         {isInvalid && (
-                          <div className="flex items-center gap-1.5 text-xs text-red-400 bg-red-500/10 border border-red-500/30 rounded-[8px] px-2.5 py-1.5 mt-1 animate-in fade-in slide-in-from-top-1">
+                          <div className="flex items-center gap-1.5 text-xs text-red-400 bg-red-500/10 border border-red-500/30 rounded-[10px] px-2.5 py-1.5 mt-1 animate-in fade-in slide-in-from-top-1">
                             <AlertCircle className="w-3.5 h-3.5 shrink-0 text-red-500" />
                             <span className="font-medium">
                               Format d&apos;URL invalide. Doit être une adresse Web valide (ex: https://shop.example.com/promo).
@@ -596,7 +596,7 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
       <button
         type="button"
         onClick={handleAddRule}
-        className="w-full sm:w-fit px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 active:scale-98 text-neutral-200 hover:text-white border border-[#27272a] hover:border-[#ff6600] font-semibold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm"
+        className="w-full sm:w-fit px-4 py-2.5 rounded-[10px] bg-white/5 hover:bg-white/10 active:scale-98 text-neutral-200 hover:text-white border border-[#27272a] hover:border-[#ff6600] font-semibold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm"
       >
         <Plus className="w-4 h-4 text-[#ff6600]" />
         <span>Ajouter une règle</span>

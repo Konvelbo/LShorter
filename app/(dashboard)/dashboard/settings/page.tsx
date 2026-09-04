@@ -501,7 +501,7 @@ export default function SettingsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Left Tabs Navigation (3 cols) */}
-        <div className="lg:col-span-3 flex flex-col gap-1 p-2 rounded-[12px] bg-[#141416] border border-[#222225] sticky top-24">
+        <div className="lg:col-span-3 flex flex-col gap-1 p-2 rounded-[10px] bg-[#141416] border border-[#222225] sticky top-24">
           {tabs.map((t) => {
             const Icon = t.icon;
             const isActive = activeTab === t.id;
@@ -509,7 +509,7 @@ export default function SettingsPage() {
               <button
                 key={t.id}
                 onClick={() => setActiveTab(t.id)}
-                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-[8px] text-xs font-semibold transition-all cursor-pointer ${
+                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-[10px] text-xs font-semibold transition-all cursor-pointer ${
                   isActive
                     ? "bg-[#ff6600] text-white shadow-md shadow-[#ff6600]/25 font-bold"
                     : "text-neutral-400 hover:text-white hover:bg-white/5"
@@ -523,7 +523,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Right Content Area (9 cols) */}
-        <div className="lg:col-span-9 rounded-[14px] bg-[#141416] border border-[#222225] p-6 lg:p-8 shadow-2xl">
+        <div className="lg:col-span-9 rounded-[10px] bg-[#141416] border border-[#222225] p-6 lg:p-8 shadow-2xl">
           {/* TAB 1: PROFILE */}
           {activeTab === "profile" && (
             <form onSubmit={handleSaveProfile} className="flex flex-col gap-6">
@@ -541,7 +541,7 @@ export default function SettingsPage() {
 
               {/* Avatar Selector */}
               <div className="flex items-center gap-5">
-                <div className="w-16 h-16 rounded-[12px] overflow-hidden bg-neutral-800 border-2 border-[#ff6600] shadow-lg shrink-0 flex items-center justify-center font-bebas text-2xl font-bold text-white">
+                <div className="w-16 h-16 rounded-[10px] overflow-hidden bg-neutral-800 border-2 border-[#ff6600] shadow-lg shrink-0 flex items-center justify-center font-bebas text-2xl font-bold text-white">
                   {avatarUrl ? (
                     /* eslint-disable-next-line @next/next/no-img-element */
                     <img
@@ -834,7 +834,7 @@ export default function SettingsPage() {
 
               <div className="p-4 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] flex flex-col gap-3 text-xs">
                 <span className="font-bold text-white">Domaine par défaut sélectionné :</span>
-                <div className="flex items-center justify-between p-3 rounded-[8px] bg-black/40 border border-[#27272a]">
+                <div className="flex items-center justify-between p-3 rounded-[10px] bg-black/40 border border-[#27272a]">
                   <div className="flex items-center gap-2">
                     <Globe2 className="w-4 h-4 text-[#ff6600]" />
                     <span className="font-bold text-white font-mono">link.monentreprise.com</span>
@@ -975,7 +975,7 @@ export default function SettingsPage() {
                       <button
                         type="button"
                         onClick={() => handleTogglePixel(px.id)}
-                        className={`px-3 py-1 rounded-[6px] font-semibold text-xs transition-colors cursor-pointer ${
+                        className={`px-3 py-1 rounded-[10px] font-semibold text-xs transition-colors cursor-pointer ${
                           px.isActive ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40" : "bg-neutral-800 text-neutral-500"
                         }`}
                       >
@@ -1087,7 +1087,7 @@ export default function SettingsPage() {
                   {sessions.map((s) => (
                     <div
                       key={s.id}
-                      className="p-3 rounded-[8px] bg-[#1a1a1e] border border-[#27272a] flex items-center justify-between text-xs"
+                      className="p-3 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] flex items-center justify-between text-xs"
                     >
                       <div className="flex items-center gap-3">
                         <Laptop className="w-4 h-4 text-neutral-400" />
@@ -1246,11 +1246,11 @@ export default function SettingsPage() {
                 LShorter est une plateforme Edge SaaS haute performance propulsée par le réseau mondial Cloudflare Workers, D1 et KV.
               </p>
               <div className="grid grid-cols-2 gap-3 pt-2">
-                <div className="p-3 rounded-[8px] bg-[#1a1a1e] border border-[#27272a]">
+                <div className="p-3 rounded-[10px] bg-[#1a1a1e] border border-[#27272a]">
                   <span className="text-neutral-500">Version</span>
                   <p className="font-mono text-white font-bold text-sm">v1.2.0 (Production)</p>
                 </div>
-                <div className="p-3 rounded-[8px] bg-[#1a1a1e] border border-[#27272a]">
+                <div className="p-3 rounded-[10px] bg-[#1a1a1e] border border-[#27272a]">
                   <span className="text-neutral-500">Statut Edge API</span>
                   <p className="text-emerald-400 font-bold text-sm flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -1266,13 +1266,13 @@ export default function SettingsPage() {
       {/* 2FA Setup Modal */}
       {show2FAModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-          <div className="w-full max-w-sm rounded-[14px] bg-[#141416] border border-[#27272a] p-6 text-white shadow-2xl flex flex-col gap-4 text-center">
+          <div className="w-full max-w-sm rounded-[10px] bg-[#141416] border border-[#27272a] p-6 text-white shadow-2xl flex flex-col gap-4 text-center">
             <h3 className="text-base font-bold">Activer la Double Authentification</h3>
             <p className="text-xs text-neutral-400">
               Scannez ce QR Code avec votre application d&apos;authentification (Google Authenticator, Authy, 1Password) :
             </p>
 
-            <div className="w-40 h-40 bg-white p-2 rounded-[12px] mx-auto flex items-center justify-center shadow-lg">
+            <div className="w-40 h-40 bg-white p-2 rounded-[10px] mx-auto flex items-center justify-center shadow-lg">
               {twoFactorQrCode ? (
                 /* eslint-disable-next-line @next/next/no-img-element */
                 <img
@@ -1281,13 +1281,13 @@ export default function SettingsPage() {
                   className="w-full h-full object-contain"
                 />
               ) : (
-                <div className="w-full h-full bg-neutral-900 rounded flex items-center justify-center font-mono text-[10px] text-white p-2">
+                <div className="w-full h-full bg-neutral-900 rounded-[10px] flex items-center justify-center font-mono text-[10px] text-white p-2">
                   Génération du QR...
                 </div>
               )}
             </div>
 
-            <div className="p-2.5 rounded-[8px] bg-[#1a1a1e] border border-[#27272a] text-[11px] flex items-center justify-between">
+            <div className="p-2.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] text-[11px] flex items-center justify-between">
               <span className="text-neutral-400 font-mono">Clé : {twoFactorSecret}</span>
               <button
                 type="button"

@@ -191,11 +191,11 @@ export function LinkShareModal({ link, isOpen, onClose }: LinkShareModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in">
-      <div className="relative w-full max-w-2xl rounded-[16px] bg-[#141416] border border-[#27272a] p-6 sm:p-7 shadow-2xl text-white max-h-[92vh] overflow-y-auto">
+      <div className="relative w-full max-w-2xl rounded-[10px] bg-[#141416] border border-[#27272a] p-6 sm:p-7 shadow-2xl text-white max-h-[92vh] overflow-y-auto">
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 text-neutral-400 hover:text-white p-1.5 rounded-full hover:bg-white/10 transition-colors cursor-pointer"
+          className="absolute right-4 top-4 text-neutral-400 hover:text-white p-1.5 rounded-[10px] hover:bg-white/10 transition-colors cursor-pointer"
         >
           <X className="w-5 h-5" />
         </button>
@@ -216,7 +216,7 @@ export function LinkShareModal({ link, isOpen, onClose }: LinkShareModalProps) {
           <span className="text-xs font-mono text-[#ff6600] truncate">{link.shortUrl}</span>
           <button
             onClick={handleCopy}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-[8px] bg-[#ff6600] hover:bg-[#ff771a] text-white text-xs font-bold shrink-0 transition-all hover:scale-105 active:scale-95 shadow-md shadow-[#ff6600]/25 cursor-pointer"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-[10px] bg-[#ff6600] hover:bg-[#ff771a] text-white text-xs font-bold shrink-0 transition-all hover:scale-105 active:scale-95 shadow-md shadow-[#ff6600]/25 cursor-pointer"
           >
             {copied ? (
               <>
@@ -235,7 +235,7 @@ export function LinkShareModal({ link, isOpen, onClose }: LinkShareModalProps) {
         {/* 2-Columns Grid: Left = Customizable QR Code, Right = Official Vector Social Sharing */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
           {/* Left Column: QR Code Box (6 cols) */}
-          <div className="md:col-span-6 rounded-[12px] bg-[#1a1a1e] border border-[#27272a] p-4 flex flex-col items-center justify-between gap-4">
+          <div className="md:col-span-6 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] p-4 flex flex-col items-center justify-between gap-4">
             <div className="flex items-center justify-between w-full">
               <span className="text-xs font-bold text-white flex items-center gap-1.5">
                 <QrCode className="w-4 h-4 text-[#ff6600]" />
@@ -333,7 +333,7 @@ export function LinkShareModal({ link, isOpen, onClose }: LinkShareModalProps) {
               onClick={() => {
                 window.location.href = `/dashboard/qr-code?url=${encodeURIComponent(link.shortUrl)}`;
               }}
-              className="mt-2 w-full py-2.5 rounded-[8px] bg-white/5 hover:bg-white/10 text-neutral-300 hover:text-white text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer border border-[#27272a]"
+              className="mt-2 w-full py-2.5 rounded-[10px] bg-white/5 hover:bg-white/10 text-neutral-300 hover:text-white text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer border border-[#27272a]"
             >
               <Sliders className="w-3.5 h-3.5 text-[#ff6600]" />
               <span>Éditeur QR complet (Logo, Styles)</span>

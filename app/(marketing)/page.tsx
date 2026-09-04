@@ -57,13 +57,13 @@ export default function LandingPage() {
         {/* CTA Buttons */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2 w-full max-w-sm sm:max-w-none">
           <Link href="/login" className="w-full sm:w-auto">
-            <Button variant="glow" size="lg" className="w-full sm:w-auto font-bebas text-2xl px-8 py-5 tracking-wide gap-2 rounded-2xl sm:rounded-full">
+            <Button variant="glow" size="lg" className="w-full sm:w-auto font-bebas text-2xl px-8 py-5 tracking-wide gap-2 rounded-[10px]">
               <span>COMMENCER GRATUITEMENT</span>
               <ArrowRight className="w-5 h-5" />
             </Button>
           </Link>
           <Link href="/pricing" className="w-full sm:w-auto">
-            <Button variant="outline" size="lg" className="w-full sm:w-auto font-bebas text-2xl px-8 py-5 tracking-wide text-neutral-300 rounded-2xl sm:rounded-full border-[#27272a]">
+            <Button variant="outline" size="lg" className="w-full sm:w-auto font-bebas text-2xl px-8 py-5 tracking-wide text-neutral-300 rounded-[10px] border-[#27272a]">
               VOIR LES TARIFS
             </Button>
           </Link>
@@ -96,7 +96,7 @@ export default function LandingPage() {
           </form>
 
           {shortenedDemo && (
-            <div className="mt-3 p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex flex-col sm:flex-row items-center justify-between gap-2.5 text-xs animate-in zoom-in-95 duration-200 shadow-lg">
+            <div className="mt-3 p-3 rounded-[10px] bg-emerald-500/10 border border-emerald-500/25 flex flex-col sm:flex-row items-center justify-between gap-2.5 text-xs animate-in zoom-in-95 duration-200 shadow-lg">
               <div className="flex items-center gap-2 min-w-0">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
                 <span className="font-mono text-emerald-400 font-bold break-all text-xs sm:text-sm">{shortenedDemo}</span>
@@ -123,7 +123,7 @@ export default function LandingPage() {
       </section>
 
       {/* 3D GLOBE SHOWCASE SECTION */}
-      <section className="rounded-[16px] bg-[#141416] border border-[#222225] p-8 lg:p-14 flex flex-col lg:flex-row items-center gap-12 shadow-2xl relative overflow-hidden">
+      <section className="rounded-[10px] bg-[#141416] border border-[#222225] p-8 lg:p-14 flex flex-col lg:flex-row items-center gap-12 shadow-2xl relative overflow-hidden">
         <div className="flex-1 flex flex-col gap-5 z-10">
           <span className="text-xs font-bold uppercase tracking-widest text-[#ff6600]">
             Technologie Edge Mondiale
@@ -165,7 +165,7 @@ export default function LandingPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Card 1 */}
-          <div className="p-6 rounded-[12px] bg-[#141416] border border-[#222225] hover:border-[#ff6600]/40 transition-all flex flex-col gap-3 group">
+          <div className="p-6 rounded-[10px] bg-[#141416] border border-[#222225] hover:border-[#ff6600]/40 transition-all flex flex-col gap-3 group">
             <div className="w-10 h-10 rounded-[10px] bg-[#ff6600]/15 border border-[#ff6600]/30 flex items-center justify-center text-[#ff6600] group-hover:scale-110 transition-transform">
               <Globe2 className="w-5 h-5" />
             </div>
@@ -176,7 +176,7 @@ export default function LandingPage() {
           </div>
 
           {/* Card 2 */}
-          <div className="p-6 rounded-[12px] bg-[#141416] border border-[#222225] hover:border-[#ff6600]/40 transition-all flex flex-col gap-3 group">
+          <div className="p-6 rounded-[10px] bg-[#141416] border border-[#222225] hover:border-[#ff6600]/40 transition-all flex flex-col gap-3 group">
             <div className="w-10 h-10 rounded-[10px] bg-[#ff6600]/15 border border-[#ff6600]/30 flex items-center justify-center text-[#ff6600] group-hover:scale-110 transition-transform">
               <EyeOff className="w-5 h-5" />
             </div>
@@ -187,7 +187,7 @@ export default function LandingPage() {
           </div>
 
           {/* Card 3 */}
-          <div className="p-6 rounded-[12px] bg-[#141416] border border-[#222225] hover:border-[#ff6600]/40 transition-all flex flex-col gap-3 group">
+          <div className="p-6 rounded-[10px] bg-[#141416] border border-[#222225] hover:border-[#ff6600]/40 transition-all flex flex-col gap-3 group">
             <div className="w-10 h-10 rounded-[10px] bg-[#ff6600]/15 border border-[#ff6600]/30 flex items-center justify-center text-[#ff6600] group-hover:scale-110 transition-transform">
               <QrCode className="w-5 h-5" />
             </div>
@@ -198,7 +198,7 @@ export default function LandingPage() {
           </div>
 
           {/* Card 4 */}
-          <div className="p-6 rounded-[12px] bg-[#141416] border border-[#222225] hover:border-[#ff6600]/40 transition-all flex flex-col gap-3 group">
+          <div className="p-6 rounded-[10px] bg-[#141416] border border-[#222225] hover:border-[#ff6600]/40 transition-all flex flex-col gap-3 group">
             <div className="w-10 h-10 rounded-[10px] bg-[#ff6600]/15 border border-[#ff6600]/30 flex items-center justify-center text-[#ff6600] group-hover:scale-110 transition-transform">
               <Lock className="w-5 h-5" />
             </div>
@@ -209,7 +209,7 @@ export default function LandingPage() {
           </div>
 
           {/* Card 5 */}
-          <div className="p-6 rounded-[12px] bg-[#141416] border border-[#222225] hover:border-[#ff6600]/40 transition-all flex flex-col gap-3 group">
+          <div className="p-6 rounded-[10px] bg-[#141416] border border-[#222225] hover:border-[#ff6600]/40 transition-all flex flex-col gap-3 group">
             <div className="w-10 h-10 rounded-[10px] bg-[#ff6600]/15 border border-[#ff6600]/30 flex items-center justify-center text-[#ff6600] group-hover:scale-110 transition-transform">
               <BarChart3 className="w-5 h-5" />
             </div>
@@ -220,7 +220,7 @@ export default function LandingPage() {
           </div>
 
           {/* Card 6 */}
-          <div className="p-6 rounded-[12px] bg-[#141416] border border-[#222225] hover:border-[#ff6600]/40 transition-all flex flex-col gap-3 group">
+          <div className="p-6 rounded-[10px] bg-[#141416] border border-[#222225] hover:border-[#ff6600]/40 transition-all flex flex-col gap-3 group">
             <div className="w-10 h-10 rounded-[10px] bg-[#ff6600]/15 border border-[#ff6600]/30 flex items-center justify-center text-[#ff6600] group-hover:scale-110 transition-transform">
               <Terminal className="w-5 h-5" />
             </div>
@@ -233,7 +233,7 @@ export default function LandingPage() {
       </section>
 
       {/* FINAL CTA */}
-      <section className="text-center p-12 lg:p-16 rounded-[16px] bg-gradient-to-b from-[#141416] to-[#09090b] border border-[#ff6600]/30 shadow-2xl flex flex-col items-center gap-6">
+      <section className="text-center p-12 lg:p-16 rounded-[10px] bg-gradient-to-b from-[#141416] to-[#09090b] border border-[#ff6600]/30 shadow-2xl flex flex-col items-center gap-6">
         <h2 className="font-bebas text-4xl sm:text-6xl text-white tracking-wide">
           PRÊT À ACCÉLÉRER VOS REDIRECTIONS ?
         </h2>
@@ -244,7 +244,7 @@ export default function LandingPage() {
           <Button
             variant="glow"
             size="lg"
-            className="font-bebas text-xl sm:text-2xl px-8 sm:px-12 py-5 sm:py-6 tracking-wider h-auto leading-tight shadow-xl shadow-[#ff6600]/30 hover:scale-105 transition-transform max-w-full"
+            className="font-bebas text-xl sm:text-2xl px-8 sm:px-12 py-5 sm:py-6 tracking-wider h-auto leading-tight shadow-xl shadow-[#ff6600]/30 hover:scale-105 transition-transform max-w-full rounded-[10px]"
           >
             CRÉER MON PREMIER LIEN COURT
           </Button>

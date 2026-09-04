@@ -109,7 +109,7 @@ function AnimatedToastCard({
 
   let borderStyle = "border-[#27272a] shadow-black/80";
   let iconBadge = (
-    <div className="w-7 h-7 md:w-8 md:h-8 rounded-full border-2 border-sky-500/80 bg-sky-500/10 flex items-center justify-center shrink-0 text-sky-400">
+    <div className="w-7 h-7 md:w-8 md:h-8 rounded-[10px] border-2 border-sky-500/80 bg-sky-500/10 flex items-center justify-center shrink-0 text-sky-400">
       <Info className="w-4 h-4 md:w-4.5 md:h-4.5 stroke-[2.5]" />
     </div>
   );
@@ -117,21 +117,21 @@ function AnimatedToastCard({
   if (toast.type === "success") {
     borderStyle = "border-emerald-500/35 shadow-emerald-950/20";
     iconBadge = (
-      <div className="w-7 h-7 md:w-8 md:h-8 rounded-full border-2 border-emerald-500/85 bg-emerald-500/15 flex items-center justify-center shrink-0 text-emerald-400">
+      <div className="w-7 h-7 md:w-8 md:h-8 rounded-[10px] border-2 border-emerald-500/85 bg-emerald-500/15 flex items-center justify-center shrink-0 text-emerald-400">
         <Check className="w-4 h-4 md:w-4.5 md:h-4.5 stroke-[2.75]" />
       </div>
     );
   } else if (toast.type === "error") {
     borderStyle = "border-rose-500/35 shadow-rose-950/20";
     iconBadge = (
-      <div className="w-7 h-7 md:w-8 md:h-8 rounded-full border-2 border-rose-500/85 bg-rose-500/15 flex items-center justify-center shrink-0 text-rose-400">
+      <div className="w-7 h-7 md:w-8 md:h-8 rounded-[10px] border-2 border-rose-500/85 bg-rose-500/15 flex items-center justify-center shrink-0 text-rose-400">
         <AlertCircle className="w-4 h-4 md:w-4.5 md:h-4.5 stroke-[2.5]" />
       </div>
     );
   } else if (toast.type === "upgrade") {
     borderStyle = "border-[#ff6600]/35 shadow-[#ff6600]/20";
     iconBadge = (
-      <div className="w-7 h-7 md:w-8 md:h-8 rounded-full border-2 border-[#ff6600]/85 bg-[#ff6600]/15 flex items-center justify-center shrink-0 text-[#ff6600]">
+      <div className="w-7 h-7 md:w-8 md:h-8 rounded-[10px] border-2 border-[#ff6600]/85 bg-[#ff6600]/15 flex items-center justify-center shrink-0 text-[#ff6600]">
         <Sparkles className="w-4 h-4 md:w-4.5 md:h-4.5 stroke-[2.5]" />
       </div>
     );
@@ -156,9 +156,9 @@ function AnimatedToastCard({
     <div
       ref={cardRef}
       onClick={handleClose}
-      className={`pointer-events-auto flex items-start sm:items-center gap-3 px-3.5 py-2.5 sm:px-4.5 sm:py-3.5 rounded-[12px] md:rounded-[14px] bg-[#121316]/98 backdrop-blur-2xl border ${borderStyle} shadow-[0_12px_36px_rgba(0,0,0,0.85)] text-white cursor-pointer active:scale-98 w-full md:min-w-[420px] lg:min-w-[480px] justify-between will-change-transform`}
+      className={`pointer-events-auto flex items-start sm:items-center gap-3 px-3.5 py-2.5 sm:px-4.5 sm:py-3.5 rounded-[10px] bg-[#121316]/98 backdrop-blur-2xl border ${borderStyle} shadow-[0_12px_36px_rgba(0,0,0,0.85)] text-white cursor-pointer active:scale-98 w-full md:min-w-[420px] lg:min-w-[480px] justify-between will-change-transform`}
     >
-      {/* Left Circular Icon & Text Layout */}
+      {/* Left Icon & Text Layout */}
       <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1">
         {iconBadge}
         <div className="flex-1 min-w-0 pr-1">
@@ -178,7 +178,7 @@ function AnimatedToastCard({
           e.stopPropagation();
           handleClose();
         }}
-        className="w-5 h-5 rounded-md text-neutral-400 hover:text-white hover:bg-white/10 flex items-center justify-center transition-colors shrink-0 cursor-pointer -mr-0.5 mt-0.5 sm:mt-0"
+        className="w-5 h-5 rounded-[10px] text-neutral-400 hover:text-white hover:bg-white/10 flex items-center justify-center transition-colors shrink-0 cursor-pointer -mr-0.5 mt-0.5 sm:mt-0"
         aria-label="Fermer"
       >
         <X className="w-3.5 h-3.5" />

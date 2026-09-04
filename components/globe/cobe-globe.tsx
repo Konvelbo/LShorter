@@ -619,7 +619,7 @@ export function CobeGlobe({ className = "", topCountries = [] }: CobeGlobeProps)
         <button
           type="button"
           onClick={() => setIsExpanded(true)}
-          className="btn-hover-scale absolute top-2 right-2 z-10 p-2 rounded-[8px] bg-black/60 hover:bg-cyan-500 md:hover:bg-[#ff6600] text-neutral-300 hover:text-white border border-[#27272a] hover:border-cyan-400 md:hover:border-[#ff6600] shadow-lg backdrop-blur-md cursor-pointer opacity-80 group-hover:opacity-100 transition-all"
+          className="btn-hover-scale absolute top-2 right-2 z-10 p-2 rounded-[10px] bg-black/60 hover:bg-cyan-500 md:hover:bg-[#ff6600] text-neutral-300 hover:text-white border border-[#27272a] hover:border-cyan-400 md:hover:border-[#ff6600] shadow-lg backdrop-blur-md cursor-pointer opacity-80 group-hover:opacity-100 transition-all"
           title="Double-cliquez pour agrandir en plein écran"
         >
           <Maximize2 className="w-4 h-4" />
@@ -647,7 +647,7 @@ export function CobeGlobe({ className = "", topCountries = [] }: CobeGlobeProps)
           {/* Floating Top Header Bar */}
           <div
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-5xl flex items-center justify-between p-4 rounded-[14px] bg-[#141416]/90 border border-[#27272a] shadow-2xl backdrop-blur-md cursor-default"
+            className="w-full max-w-5xl flex items-center justify-between p-4 rounded-[10px] bg-[#141416]/90 border border-[#27272a] shadow-2xl backdrop-blur-md cursor-default"
           >
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-[10px] bg-cyan-500 md:bg-[#ff6600] flex items-center justify-center text-white shadow-lg shadow-cyan-500/30 md:shadow-[#ff6600]/30 font-bold">
@@ -666,7 +666,7 @@ export function CobeGlobe({ className = "", topCountries = [] }: CobeGlobeProps)
 
             {/* Hub stats pills & Close Button */}
             <div className="flex items-center gap-3">
-              <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-[8px] bg-[#1a1a1e] border border-[#27272a] text-xs">
+              <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] text-xs">
                 <Radio className="w-3.5 h-3.5 text-cyan-400 md:text-[#ff6600] animate-pulse" />
                 <span className="font-semibold text-white">
                   {markers.length > 0 ? `${markers.length} Pays Visiteur${markers.length > 1 ? "s" : ""}` : "Cloudflare Edge Actif"}
@@ -677,7 +677,7 @@ export function CobeGlobe({ className = "", topCountries = [] }: CobeGlobeProps)
               <button
                 type="button"
                 onClick={() => setIsExpanded(false)}
-                className="btn-hover-scale p-2 rounded-[8px] bg-white/5 hover:bg-red-500/20 text-neutral-400 hover:text-red-400 cursor-pointer"
+                className="btn-hover-scale p-2 rounded-[10px] bg-white/5 hover:bg-red-500/20 text-neutral-400 hover:text-red-400 cursor-pointer"
                 title="Fermer la vue plein écran (Échap)"
               >
                 <X className="w-5 h-5" />
@@ -707,7 +707,7 @@ export function CobeGlobe({ className = "", topCountries = [] }: CobeGlobeProps)
           {/* Bottom Floating Hubs Ribbon */}
           <div
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-5xl flex items-center justify-between gap-2 p-3 rounded-[12px] bg-[#141416]/90 border border-[#27272a] overflow-x-auto text-xs cursor-default backdrop-blur-md"
+            className="w-full max-w-5xl flex items-center justify-between gap-2 p-3 rounded-[10px] bg-[#141416]/90 border border-[#27272a] overflow-x-auto text-xs cursor-default backdrop-blur-md"
           >
             <div className="flex items-center gap-2 overflow-x-auto py-1">
               {markers.length === 0 ? (
@@ -718,7 +718,7 @@ export function CobeGlobe({ className = "", topCountries = [] }: CobeGlobeProps)
                 markers.map((m) => (
                   <div
                     key={m.label}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] bg-[#1a1a1e] border border-[#27272a] text-neutral-300 whitespace-nowrap shrink-0 hover:border-cyan-500/40 md:hover:border-[#ff6600]/40 transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] text-neutral-300 whitespace-nowrap shrink-0 hover:border-cyan-500/40 md:hover:border-[#ff6600]/40 transition-colors"
                   >
                     <span className="w-2 h-2 rounded-full bg-cyan-400 md:bg-[#ff6600]" />
                     <span className="font-semibold text-white">{m.label}</span>
@@ -733,7 +733,7 @@ export function CobeGlobe({ className = "", topCountries = [] }: CobeGlobeProps)
             <button
               type="button"
               onClick={() => setIsExpanded(false)}
-              className="btn-hover-scale px-3 py-1.5 rounded-[8px] bg-cyan-500 hover:bg-cyan-400 md:bg-[#ff6600] md:hover:bg-[#ff771a] text-white font-bold text-xs shrink-0 cursor-pointer shadow-md shadow-cyan-500/25 md:shadow-[#ff6600]/25"
+              className="btn-hover-scale px-3 py-1.5 rounded-[10px] bg-cyan-500 hover:bg-cyan-400 md:bg-[#ff6600] md:hover:bg-[#ff771a] text-white font-bold text-xs shrink-0 cursor-pointer shadow-md shadow-cyan-500/25 md:shadow-[#ff6600]/25"
             >
               Fermer la vue
             </button>

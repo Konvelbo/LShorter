@@ -441,7 +441,7 @@ export default function LinksPage() {
             </button>
 
             {isTagDropdownOpen && (
-              <div className="absolute right-0 top-full mt-1.5 w-56 rounded-xl bg-[#18181c] border border-[#2a2a32] shadow-2xl shadow-black/90 py-1.5 z-40 animate-in fade-in zoom-in-95 duration-150 max-h-72 overflow-y-auto">
+              <div className="absolute right-0 top-full mt-1.5 w-56 rounded-[10px] bg-[#18181c] border border-[#2a2a32] shadow-2xl shadow-black/90 py-1.5 z-40 animate-in fade-in zoom-in-95 duration-150 max-h-72 overflow-y-auto">
               <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-neutral-500">
                 Filtrer par catégorie / tag
               </div>
@@ -463,7 +463,7 @@ export default function LinksPage() {
                   <Globe2 className="w-3.5 h-3.5 text-cyan-400 md:text-[#ff6600]" />
                   <span>Tous les liens</span>
                 </span>
-                <span className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-white/5 text-neutral-400">
+                <span className="text-[11px] font-mono px-1.5 py-0.5 rounded-[10px] bg-white/5 text-neutral-400">
                   {links.length}
                 </span>
               </button>
@@ -491,7 +491,7 @@ export default function LinksPage() {
                       <Tag className="w-3 h-3 text-[#ff6600] shrink-0" />
                       <span className="truncate">#{t}</span>
                     </span>
-                    <span className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-white/5 text-neutral-400">
+                    <span className="text-[11px] font-mono px-1.5 py-0.5 rounded-[10px] bg-white/5 text-neutral-400">
                       {count}
                     </span>
                   </button>
@@ -505,7 +505,7 @@ export default function LinksPage() {
 
       {/* Floating Bulk Actions Bar */}
       {selectedLinkIds.size > 0 && (
-        <div className="rounded-xl bg-[#1c1414] border border-red-500/40 p-3.5 px-4.5 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-2xl shadow-red-950/40 animate-in slide-in-from-top-2 duration-200">
+        <div className="rounded-[10px] bg-[#1c1414] border border-red-500/40 p-3.5 px-4.5 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-2xl shadow-red-950/40 animate-in slide-in-from-top-2 duration-200">
           <div className="flex items-center gap-3">
             <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></span>
             <span className="text-xs font-bold text-white">
@@ -522,13 +522,13 @@ export default function LinksPage() {
           <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
             <button
               onClick={() => setSelectedLinkIds(new Set())}
-              className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-neutral-300 text-xs font-medium transition-colors cursor-pointer"
+              className="px-3 py-1.5 rounded-[10px] bg-white/5 hover:bg-white/10 text-neutral-300 text-xs font-medium transition-colors cursor-pointer"
             >
               Annuler
             </button>
             <button
               onClick={promptDeleteBulk}
-              className="px-3.5 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white font-bold text-xs shadow-lg shadow-red-600/30 flex items-center gap-1.5 cursor-pointer transition-all"
+              className="px-3.5 py-1.5 rounded-[10px] bg-red-600 hover:bg-red-500 text-white font-bold text-xs shadow-lg shadow-red-600/30 flex items-center gap-1.5 cursor-pointer transition-all"
             >
               <Trash2 className="w-3.5 h-3.5" />
               <span>Supprimer la sélection ({selectedLinkIds.size})</span>
@@ -538,7 +538,7 @@ export default function LinksPage() {
       )}
 
       {/* Links Container */}
-      <div className="rounded-[12px] bg-[#141416] border border-[#222225] p-3 sm:p-5 shadow-xl">
+      <div className="rounded-[10px] bg-[#141416] border border-[#222225] p-3 sm:p-5 shadow-xl">
         {filteredLinks.length === 0 ? (
           <div className="py-12 text-center text-xs text-neutral-500">
             Aucun lien trouvé pour cette recherche.
@@ -572,7 +572,7 @@ export default function LinksPage() {
                     onMouseLeave={cancelLongPress}
                     onClick={(e) => handleMobileCardClick(link.id, e)}
                     className={cn(
-                      "rounded-xl bg-[#18181c] border p-3 flex flex-col gap-2 transition-all select-none relative",
+                      "rounded-[10px] bg-[#18181c] border p-3 flex flex-col gap-2 transition-all select-none relative",
                       isSelected
                         ? "border-[#ff6600] bg-[#ff6600]/10 ring-2 ring-[#ff6600]/40 shadow-lg shadow-[#ff6600]/10"
                         : "border-[#27272a] hover:border-[#ff6600]/40 active:bg-white/[0.02]",
@@ -619,7 +619,7 @@ export default function LinksPage() {
                       <div className="font-mono text-[#ff6600] text-xs font-semibold truncate">
                         {link.domainName || "lsho.cc"}/{link.slug}
                       </div>
-                      <div className="flex items-center gap-1.5 text-[11px] text-neutral-400 bg-[#090b10] px-2 py-1 rounded border border-[#222225] truncate">
+                      <div className="flex items-center gap-1.5 text-[11px] text-neutral-400 bg-[#090b10] px-2 py-1 rounded-[10px] border border-[#222225] truncate">
                         <span className="text-[#ff6600] font-bold shrink-0">↳</span>
                         <span className="truncate">{link.targetUrl}</span>
                       </div>
@@ -629,22 +629,22 @@ export default function LinksPage() {
                     <div className="flex items-center justify-between gap-2 flex-wrap">
                       <div className="flex items-center gap-1 text-neutral-400">
                         {link.geoTargeting && Object.keys(link.geoTargeting).length > 0 && (
-                          <span title="Ciblage par pays actif" className="p-1 rounded bg-white/5">
+                          <span title="Ciblage par pays actif" className="p-1 rounded-[10px] bg-white/5">
                             <Globe2 className="w-3 h-3 text-sky-400" />
                           </span>
                         )}
                         {link.deviceTargeting && Object.values(link.deviceTargeting).some(Boolean) && (
-                          <span title="Ciblage par appareil actif" className="p-1 rounded bg-white/5">
+                          <span title="Ciblage par appareil actif" className="p-1 rounded-[10px] bg-white/5">
                             <Smartphone className="w-3 h-3 text-emerald-400" />
                           </span>
                         )}
                         {link.isPasswordProtected && (
-                          <span title="Protégé par mot de passe" className="p-1 rounded bg-white/5">
+                          <span title="Protégé par mot de passe" className="p-1 rounded-[10px] bg-white/5">
                             <Lock className="w-3 h-3 text-amber-400" />
                           </span>
                         )}
                         {link.isCloaked && (
-                          <span title="Masquage Cloaking actif" className="p-1 rounded bg-white/5">
+                          <span title="Masquage Cloaking actif" className="p-1 rounded-[10px] bg-white/5">
                             <EyeOff className="w-3 h-3 text-purple-400" />
                           </span>
                         )}
@@ -655,7 +655,7 @@ export default function LinksPage() {
                           {link.tags.map((t) => (
                             <span
                               key={t}
-                              className="text-[9.5px] font-mono px-1.5 py-0.5 rounded bg-neutral-800 text-neutral-400"
+                              className="text-[9.5px] font-mono px-1.5 py-0.5 rounded-[10px] bg-neutral-800 text-neutral-400"
                             >
                               #{t}
                             </span>
@@ -685,7 +685,7 @@ export default function LinksPage() {
                             e.stopPropagation();
                             handleCopy(link);
                           }}
-                          className="px-2.5 py-1.5 rounded-lg bg-[#ff6600]/15 text-[#ff771a] border border-[#ff6600]/30 hover:bg-[#ff6600] hover:text-white text-[11px] font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
+                          className="px-2.5 py-1.5 rounded-[10px] bg-[#ff6600]/15 text-[#ff771a] border border-[#ff6600]/30 hover:bg-[#ff6600] hover:text-white text-[11px] font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
                         >
                           {isCopied ? (
                             <>
@@ -708,7 +708,7 @@ export default function LinksPage() {
                               e.stopPropagation();
                               setOpenMenuId(isMenuOpen ? null : `mobile-${link.id}`);
                             }}
-                            className="w-8 h-8 rounded-lg bg-white/[0.04] hover:bg-white/[0.1] text-neutral-300 hover:text-white border border-white/10 flex items-center justify-center transition-all cursor-pointer inline-flex"
+                            className="w-8 h-8 rounded-[10px] bg-white/[0.04] hover:bg-white/[0.1] text-neutral-300 hover:text-white border border-white/10 flex items-center justify-center transition-all cursor-pointer inline-flex"
                             title="Options"
                           >
                             <MoreVertical className="w-4 h-4" />
@@ -717,7 +717,7 @@ export default function LinksPage() {
                           {isMenuOpen && (
                             <div
                               className={cn(
-                                "absolute right-0 w-48 rounded-xl bg-[#1c1c24] border border-white/15 shadow-2xl py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150 text-xs text-neutral-200 text-left",
+                                "absolute right-0 w-48 rounded-[10px] bg-[#1c1c24] border border-white/15 shadow-2xl py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150 text-xs text-neutral-200 text-left",
                                 isDropUp ? "bottom-full mb-1.5 origin-bottom-right" : "top-full mt-1.5 origin-top-right"
                               )}
                             >
@@ -956,7 +956,7 @@ export default function LinksPage() {
                                 e.stopPropagation();
                                 setOpenMenuId(isMenuOpen ? null : link.id);
                               }}
-                              className="w-8 h-8 rounded-lg bg-white/[0.04] hover:bg-white/[0.1] text-neutral-300 hover:text-white border border-white/10 flex items-center justify-center transition-all cursor-pointer inline-flex"
+                              className="w-8 h-8 rounded-[10px] bg-white/[0.04] hover:bg-white/[0.1] text-neutral-300 hover:text-white border border-white/10 flex items-center justify-center transition-all cursor-pointer inline-flex"
                               title="Options"
                             >
                               <MoreVertical className="w-4 h-4" />
@@ -965,7 +965,7 @@ export default function LinksPage() {
                             {isMenuOpen && (
                               <div
                                 className={cn(
-                                  "absolute right-0 w-48 rounded-xl bg-[#1c1c24] border border-white/15 shadow-2xl py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150 text-xs text-neutral-200 text-left",
+                                  "absolute right-0 w-48 rounded-[10px] bg-[#1c1c24] border border-white/15 shadow-2xl py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150 text-xs text-neutral-200 text-left",
                                   isDropUp ? "bottom-full mb-1.5 origin-bottom-right" : "top-full mt-1.5 origin-top-right"
                                 )}
                               >

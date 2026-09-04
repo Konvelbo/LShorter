@@ -68,7 +68,7 @@ export function StatsBarChart({
 
       {/* Hover tooltip */}
       {hoveredPoint && (
-        <div className="absolute top-14 right-5 bg-[#1f1f23] border border-[#27272a] rounded-[8px] px-3 py-2 text-xs shadow-xl pointer-events-none z-10 animate-in fade-in">
+        <div className="absolute top-14 right-5 bg-[#1f1f23] border border-[#27272a] rounded-[10px] px-3 py-2 text-xs shadow-xl pointer-events-none z-10 animate-in fade-in">
           <p className="text-neutral-400 text-[10px]">{hoveredPoint.label} ({hoveredPoint.date})</p>
           <p className="text-white font-bold text-sm">
             <span className="text-[#ff6600]">{formatNumber(hoveredPoint.clicks)}</span> clic{hoveredPoint.clicks > 1 ? "s" : ""}

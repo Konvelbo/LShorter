@@ -42,7 +42,7 @@ export default function AuthSuccessPage() {
 
   return (
     <div className="min-h-screen bg-[#09090b] text-[#fafafa] flex items-center justify-center p-6 selection:bg-[#ff6600] selection:text-white">
-      <div className="w-full max-w-md rounded-[18px] bg-[#141416] border border-[#27272a] p-8 shadow-2xl text-center flex flex-col items-center gap-6 animate-in fade-in zoom-in-95">
+      <div className="w-full max-w-md rounded-[10px] bg-[#141416] border border-[#27272a] p-8 shadow-2xl text-center flex flex-col items-center gap-6 animate-in fade-in zoom-in-95">
         {/* Success Icon */}
         <div className="w-20 h-20 rounded-full bg-emerald-500/15 border-2 border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-lg shadow-emerald-500/10">
           <CheckCircle2 className="w-10 h-10 animate-bounce" />

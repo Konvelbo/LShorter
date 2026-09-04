@@ -255,7 +255,7 @@ export default function DevicesAnalyticsPage() {
               setSelectedLinkId(e.target.value);
               loadData(selectedRange, e.target.value);
             }}
-            className="px-3 py-1.5 rounded-[8px] bg-[#1a1a1e] border border-[#27272a] text-xs font-semibold text-white focus:outline-none focus:border-[#ff6600] cursor-pointer"
+            className="px-3 py-1.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] text-xs font-semibold text-white focus:outline-none focus:border-[#ff6600] cursor-pointer"
           >
             <option value="all">Tous les liens combinés</option>
             {links.map((l) => (
@@ -265,7 +265,7 @@ export default function DevicesAnalyticsPage() {
             ))}
           </select>
 
-          <div className="flex items-center gap-1 p-1 rounded-[8px] bg-[#141416] border border-[#222225] text-xs">
+          <div className="flex items-center gap-1 p-1 rounded-[10px] bg-[#141416] border border-[#222225] text-xs">
             {(["day", "week", "month", "year"] as const).map((r) => (
               <button
                 key={r}
@@ -273,7 +273,7 @@ export default function DevicesAnalyticsPage() {
                   setSelectedRange(r);
                   loadData(r, selectedLinkId);
                 }}
-                className={`px-2.5 py-1 rounded-[6px] font-semibold transition-all cursor-pointer ${
+                className={`px-2.5 py-1 rounded-[10px] font-semibold transition-all cursor-pointer ${
                   selectedRange === r
                     ? "bg-[#ff6600] text-white font-bold"
                     : "text-neutral-400 hover:text-white"
@@ -286,7 +286,7 @@ export default function DevicesAnalyticsPage() {
 
           <button
             onClick={() => loadData(selectedRange, selectedLinkId)}
-            className="p-2 rounded-[8px] bg-[#1a1a1e] hover:bg-white/10 text-neutral-300 hover:text-white border border-[#27272a] transition-all cursor-pointer"
+            className="p-2 rounded-[10px] bg-[#1a1a1e] hover:bg-white/10 text-neutral-300 hover:text-white border border-[#27272a] transition-all cursor-pointer"
             title="Rafraîchir"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin text-[#ff6600]" : ""}`} />
@@ -296,7 +296,7 @@ export default function DevicesAnalyticsPage() {
 
       {/* Top Device KPI Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-        <div className="p-4 rounded-[12px] bg-[#141416] border border-[#222225] flex flex-col justify-between">
+        <div className="p-4 rounded-[10px] bg-[#141416] border border-[#222225] flex flex-col justify-between">
           <span className="text-[11px] font-semibold text-neutral-400">Trafic Ordinateur (Desktop)</span>
           <div className="my-1.5 flex items-baseline gap-2">
             <span className="font-bebas text-3xl font-bold text-blue-400">
@@ -307,7 +307,7 @@ export default function DevicesAnalyticsPage() {
           <span className="text-[10px] text-neutral-500 font-mono">Grand format & Écrans larges</span>
         </div>
 
-        <div className="p-4 rounded-[12px] bg-[#141416] border border-[#222225] flex flex-col justify-between">
+        <div className="p-4 rounded-[10px] bg-[#141416] border border-[#222225] flex flex-col justify-between">
           <span className="text-[11px] font-semibold text-neutral-400">Trafic Mobile & Tactile</span>
           <div className="my-1.5 flex items-baseline gap-2">
             <span className="font-bebas text-3xl font-bold text-emerald-400">
@@ -318,7 +318,7 @@ export default function DevicesAnalyticsPage() {
           <span className="text-[10px] text-neutral-500 font-mono">Smartphones & Réseaux Sociaux</span>
         </div>
 
-        <div className="p-4 rounded-[12px] bg-[#141416] border border-[#222225] flex flex-col justify-between">
+        <div className="p-4 rounded-[10px] bg-[#141416] border border-[#222225] flex flex-col justify-between">
           <span className="text-[11px] font-semibold text-neutral-400">Navigateur Dominant</span>
           <div className="my-1.5 flex items-center gap-2 truncate">
             <Cpu className="w-5 h-5 text-[#ff6600] shrink-0" />
@@ -331,7 +331,7 @@ export default function DevicesAnalyticsPage() {
           </span>
         </div>
 
-        <div className="p-4 rounded-[12px] bg-[#141416] border border-[#222225] flex flex-col justify-between">
+        <div className="p-4 rounded-[10px] bg-[#141416] border border-[#222225] flex flex-col justify-between">
           <span className="text-[11px] font-semibold text-neutral-400">Système Majoritaire</span>
           <div className="my-1.5 flex items-center gap-2 truncate">
             <Layers className="w-5 h-5 text-purple-400 shrink-0" />
@@ -348,7 +348,7 @@ export default function DevicesAnalyticsPage() {
       {/* 3-COLUMNS: FORMATS, OS & NAVIGATEURS */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Formats d'Appareils */}
-        <div className="rounded-[16px] bg-[#141416] border border-[#222225] p-5 shadow-2xl flex flex-col justify-between">
+        <div className="rounded-[10px] bg-[#141416] border border-[#222225] p-5 shadow-2xl flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-3 pb-2 border-b border-[#222225]">
               <span className="text-xs font-bold text-white flex items-center gap-1.5">
@@ -390,7 +390,7 @@ export default function DevicesAnalyticsPage() {
         </div>
 
         {/* Systèmes d'Exploitation (OS) */}
-        <div className="rounded-[16px] bg-[#141416] border border-[#222225] p-5 shadow-2xl flex flex-col justify-between">
+        <div className="rounded-[10px] bg-[#141416] border border-[#222225] p-5 shadow-2xl flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-3 pb-2 border-b border-[#222225]">
               <span className="text-xs font-bold text-white flex items-center gap-1.5">
@@ -433,7 +433,7 @@ export default function DevicesAnalyticsPage() {
         </div>
 
         {/* Navigateurs Web */}
-        <div className="rounded-[16px] bg-[#141416] border border-[#222225] p-5 shadow-2xl flex flex-col justify-between">
+        <div className="rounded-[10px] bg-[#141416] border border-[#222225] p-5 shadow-2xl flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-3 pb-2 border-b border-[#222225]">
               <span className="text-xs font-bold text-white flex items-center gap-1.5">
@@ -466,7 +466,7 @@ export default function DevicesAnalyticsPage() {
       </div>
 
       {/* DETAILED TECHNOLOGICAL CLICK STREAM TABLE */}
-      <div className="rounded-[16px] bg-[#141416] border border-[#222225] p-5 sm:p-6 shadow-2xl">
+      <div className="rounded-[10px] bg-[#141416] border border-[#222225] p-5 sm:p-6 shadow-2xl">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5 pb-4 border-b border-[#222225]">
           <div>
             <h3 className="text-lg font-bold text-white flex items-center gap-2">
@@ -480,7 +480,7 @@ export default function DevicesAnalyticsPage() {
 
           <div className="flex flex-wrap items-center gap-2.5">
             {/* Filter by Device */}
-            <div className="flex items-center gap-1 p-1 rounded-[8px] bg-[#1a1a1e] border border-[#27272a] text-xs">
+            <div className="flex items-center gap-1 p-1 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] text-xs">
               {(["ALL", "desktop", "mobile"] as const).map((d) => (
                 <button
                   key={d}
@@ -488,7 +488,7 @@ export default function DevicesAnalyticsPage() {
                     setSelectedDeviceFilter(d);
                     setCurrentPage(1);
                   }}
-                  className={`px-2.5 py-1 rounded-[6px] font-semibold transition-all cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-[10px] font-semibold transition-all cursor-pointer ${
                     selectedDeviceFilter === d
                       ? "bg-blue-600 text-white font-bold"
                       : "text-neutral-400 hover:text-white"
@@ -510,7 +510,7 @@ export default function DevicesAnalyticsPage() {
                   setSearchQuery(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-full pl-8 pr-3 py-1.5 rounded-[8px] bg-[#1a1a1e] border border-[#27272a] text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-blue-500"
+                className="w-full pl-8 pr-3 py-1.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-blue-500"
               />
             </div>
 
@@ -529,15 +529,15 @@ export default function DevicesAnalyticsPage() {
           {paginatedEvents.map((ev) => (
             <div
               key={ev.id}
-              className="rounded-xl bg-[#18181c] border border-[#27272a] p-3.5 flex flex-col gap-2.5 hover:border-purple-500/40 transition-colors"
+              className="rounded-[10px] bg-[#18181c] border border-[#27272a] p-3.5 flex flex-col gap-2.5 hover:border-purple-500/40 transition-colors"
             >
               {/* Top Row: Device & OS Badges + Relative Time */}
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1.5 font-mono text-[10px] font-bold">
-                  <span className="px-2 py-0.5 rounded-md bg-blue-500/15 text-blue-400 border border-blue-500/30 capitalize">
+                  <span className="px-2 py-0.5 rounded-[10px] bg-blue-500/15 text-blue-400 border border-blue-500/30 capitalize">
                     {ev.device}
                   </span>
-                  <span className="px-2 py-0.5 rounded-md bg-purple-500/15 text-purple-400 border border-purple-500/30">
+                  <span className="px-2 py-0.5 rounded-[10px] bg-purple-500/15 text-purple-400 border border-purple-500/30">
                     {ev.os}
                   </span>
                 </div>
@@ -558,10 +558,10 @@ export default function DevicesAnalyticsPage() {
 
               {/* Bottom Row: Target Link & Referrer */}
               <div className="flex items-center justify-between pt-2 border-t border-[#222228] text-[11px] gap-2">
-                <span className="font-mono font-bold text-cyan-400 md:text-[#ff6600] bg-cyan-500/10 md:bg-[#ff6600]/10 px-2 py-0.5 rounded border border-cyan-500/20 md:border-[#ff6600]/20 truncate">
+                <span className="font-mono font-bold text-cyan-400 md:text-[#ff6600] bg-cyan-500/10 md:bg-[#ff6600]/10 px-2 py-0.5 rounded-[10px] border border-cyan-500/20 md:border-[#ff6600]/20 truncate">
                   /{ev.slug}
                 </span>
-                <span className="px-2 py-0.5 rounded bg-white/5 border border-[#27272a] text-[10px] font-mono text-neutral-400 shrink-0">
+                <span className="px-2 py-0.5 rounded-[10px] bg-white/5 border border-[#27272a] text-[10px] font-mono text-neutral-400 shrink-0">
                   {ev.referrer || "Direct"}
                 </span>
               </div>
@@ -600,7 +600,7 @@ export default function DevicesAnalyticsPage() {
 
                   {visibleColumns.has("device") && (
                     <td className="py-3 px-3 font-semibold text-white capitalize whitespace-nowrap">
-                      <span className="px-2 py-0.5 rounded-[6px] bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[10px]">
+                      <span className="px-2 py-0.5 rounded-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[10px]">
                         {ev.device}
                       </span>
                     </td>
@@ -614,7 +614,7 @@ export default function DevicesAnalyticsPage() {
 
                   {visibleColumns.has("os") && (
                     <td className="py-3 px-3 font-semibold whitespace-nowrap">
-                      <span className="px-2 py-0.5 rounded-[6px] bg-purple-500/10 text-purple-400 border border-purple-500/20 text-[10px]">
+                      <span className="px-2 py-0.5 rounded-[10px] bg-purple-500/10 text-purple-400 border border-purple-500/20 text-[10px]">
                         {ev.os}
                       </span>
                     </td>
@@ -634,7 +634,7 @@ export default function DevicesAnalyticsPage() {
 
                   {visibleColumns.has("referrer") && (
                     <td className="py-3 px-3 text-neutral-400">
-                      <span className="px-2 py-0.5 rounded-[6px] bg-white/5 border border-[#27272a] text-[10px] font-mono">
+                      <span className="px-2 py-0.5 rounded-[10px] bg-white/5 border border-[#27272a] text-[10px] font-mono">
                         {ev.referrer || "Direct"}
                       </span>
                     </td>
@@ -664,17 +664,17 @@ export default function DevicesAnalyticsPage() {
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="p-1.5 rounded-[6px] bg-[#1a1a1e] border border-[#27272a] disabled:opacity-40 hover:bg-white/10 text-white cursor-pointer"
+              className="p-1.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] disabled:opacity-40 hover:bg-white/10 text-white cursor-pointer"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
             </button>
-            <span className="px-3 py-1 font-mono text-white text-xs bg-[#1a1a1e] border border-[#27272a] rounded-[6px] whitespace-nowrap">
+            <span className="px-3 py-1 font-mono text-white text-xs bg-[#1a1a1e] border border-[#27272a] rounded-[10px] whitespace-nowrap">
               Page {currentPage} / {totalPages}
             </span>
             <button
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
-              className="p-1.5 rounded-[6px] bg-[#1a1a1e] border border-[#27272a] disabled:opacity-40 hover:bg-white/10 text-white cursor-pointer"
+              className="p-1.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] disabled:opacity-40 hover:bg-white/10 text-white cursor-pointer"
             >
               <ChevronRight className="w-3.5 h-3.5" />
             </button>

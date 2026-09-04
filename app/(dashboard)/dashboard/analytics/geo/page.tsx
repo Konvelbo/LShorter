@@ -319,7 +319,7 @@ export default function GeoAnalyticsPage() {
               setSelectedLinkId(e.target.value);
               loadData(selectedRange, e.target.value);
             }}
-            className="px-3 py-1.5 rounded-[8px] bg-[#1a1a1e] border border-[#27272a] text-xs font-semibold text-white focus:outline-none focus:border-[#ff6600] cursor-pointer"
+            className="px-3 py-1.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] text-xs font-semibold text-white focus:outline-none focus:border-[#ff6600] cursor-pointer"
           >
             <option value="all">Tous les liens combinés</option>
             {links.map((l) => (
@@ -330,7 +330,7 @@ export default function GeoAnalyticsPage() {
           </select>
 
           {/* Period Range Buttons */}
-          <div className="flex items-center gap-1 p-1 rounded-[8px] bg-[#141416] border border-[#222225] text-xs">
+          <div className="flex items-center gap-1 p-1 rounded-[10px] bg-[#141416] border border-[#222225] text-xs">
             {(["day", "week", "month", "year"] as const).map((r) => (
               <button
                 key={r}
@@ -338,7 +338,7 @@ export default function GeoAnalyticsPage() {
                   setSelectedRange(r);
                   loadData(r, selectedLinkId);
                 }}
-                className={`px-2.5 py-1 rounded-[6px] font-semibold transition-all cursor-pointer ${
+                className={`px-2.5 py-1 rounded-[10px] font-semibold transition-all cursor-pointer ${
                   selectedRange === r
                     ? "bg-[#ff6600] text-white font-bold"
                     : "text-neutral-400 hover:text-white"
@@ -352,7 +352,7 @@ export default function GeoAnalyticsPage() {
           {/* Refresh Button */}
           <button
             onClick={() => loadData(selectedRange, selectedLinkId)}
-            className="p-2 rounded-[8px] bg-[#1a1a1e] hover:bg-white/10 text-neutral-300 hover:text-white border border-[#27272a] transition-all cursor-pointer"
+            className="p-2 rounded-[10px] bg-[#1a1a1e] hover:bg-white/10 text-neutral-300 hover:text-white border border-[#27272a] transition-all cursor-pointer"
             title="Rafraîchir les données"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin text-[#ff6600]" : ""}`} />
@@ -362,7 +362,7 @@ export default function GeoAnalyticsPage() {
 
       {/* Top Geo KPI Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5">
-        <div className="p-4 rounded-[12px] bg-[#141416] border border-[#222225] flex flex-col justify-between">
+        <div className="p-4 rounded-[10px] bg-[#141416] border border-[#222225] flex flex-col justify-between">
           <span className="text-[11px] font-semibold text-neutral-400">Total Clics Géolocalisés</span>
           <div className="my-1.5 flex items-baseline gap-2">
             <span className="font-bebas text-3xl font-bold text-white">
@@ -373,7 +373,7 @@ export default function GeoAnalyticsPage() {
           <span className="text-[10px] text-neutral-500 font-mono">Précision IP Edge</span>
         </div>
 
-        <div className="p-4 rounded-[12px] bg-[#141416] border border-[#222225] flex flex-col justify-between">
+        <div className="p-4 rounded-[10px] bg-[#141416] border border-[#222225] flex flex-col justify-between">
           <span className="text-[11px] font-semibold text-neutral-400">Top Continent</span>
           <div className="my-1.5 flex items-center gap-2 truncate">
             <span className="text-xl">{topContinent ? CONTINENTS_META[topContinent.continent]?.icon : "🌍"}</span>
@@ -386,7 +386,7 @@ export default function GeoAnalyticsPage() {
           </span>
         </div>
 
-        <div className="p-4 rounded-[12px] bg-[#141416] border border-[#222225] flex flex-col justify-between">
+        <div className="p-4 rounded-[10px] bg-[#141416] border border-[#222225] flex flex-col justify-between">
           <span className="text-[11px] font-semibold text-neutral-400">Top Pays</span>
           <div className="my-1.5 flex items-center gap-2 truncate">
             <span className="text-xl">
@@ -401,7 +401,7 @@ export default function GeoAnalyticsPage() {
           </span>
         </div>
 
-        <div className="p-4 rounded-[12px] bg-[#141416] border border-[#222225] flex flex-col justify-between">
+        <div className="p-4 rounded-[10px] bg-[#141416] border border-[#222225] flex flex-col justify-between">
           <span className="text-[11px] font-semibold text-neutral-400">Top Ville</span>
           <div className="my-1.5 flex items-center gap-1.5 truncate">
             <MapPin className="w-4 h-4 text-[#ff6600] shrink-0" />
@@ -414,7 +414,7 @@ export default function GeoAnalyticsPage() {
           </span>
         </div>
 
-        <div className="p-4 rounded-[12px] bg-[#141416] border border-[#222225] flex flex-col justify-between col-span-2 lg:col-span-1">
+        <div className="p-4 rounded-[10px] bg-[#141416] border border-[#222225] flex flex-col justify-between col-span-2 lg:col-span-1">
           <span className="text-[11px] font-semibold text-neutral-400">Couverture Mondiale</span>
           <div className="my-1.5 flex items-baseline gap-1.5">
             <span className="font-bebas text-3xl font-bold text-emerald-400">
@@ -447,7 +447,7 @@ export default function GeoAnalyticsPage() {
       {/* 2-COLUMNS: TOP PAYS & TOP VILLES GRANULAR BREAKDOWN */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Top Pays Box */}
-        <div className="rounded-[16px] bg-[#141416] border border-[#222225] p-5 shadow-2xl flex flex-col justify-between">
+        <div className="rounded-[10px] bg-[#141416] border border-[#222225] p-5 shadow-2xl flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-3 pb-2 border-b border-[#222225]">
               <span className="text-xs font-bold text-white flex items-center gap-1.5">
@@ -512,7 +512,7 @@ export default function GeoAnalyticsPage() {
         </div>
 
         {/* Top Villes & Métropoles Box */}
-        <div className="rounded-[16px] bg-[#141416] border border-[#222225] p-5 shadow-2xl flex flex-col justify-between">
+        <div className="rounded-[10px] bg-[#141416] border border-[#222225] p-5 shadow-2xl flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-3 pb-2 border-b border-[#222225]">
               <span className="text-xs font-bold text-white flex items-center gap-1.5">
@@ -567,7 +567,7 @@ export default function GeoAnalyticsPage() {
       </div>
 
       {/* ADVANCED LIVE GEOLOCATION STREAM (JOURNAL GÉOGRAPHIQUE AVANCÉ) */}
-      <div className="rounded-[16px] bg-[#141416] border border-[#222225] p-5 sm:p-6 shadow-2xl">
+      <div className="rounded-[10px] bg-[#141416] border border-[#222225] p-5 sm:p-6 shadow-2xl">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5 pb-4 border-b border-[#222225]">
           <div>
             <h3 className="text-lg font-bold text-white flex items-center gap-2">
@@ -591,7 +591,7 @@ export default function GeoAnalyticsPage() {
                   setSearchQuery(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-full pl-8 pr-3 py-1.5 rounded-[8px] bg-[#1a1a1e] border border-[#27272a] text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-[#ff6600]"
+                className="w-full pl-8 pr-3 py-1.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-[#ff6600]"
               />
             </div>
 
@@ -615,7 +615,7 @@ export default function GeoAnalyticsPage() {
             return (
               <div
                 key={ev.id}
-                className="rounded-xl bg-[#18181c] border border-[#27272a] p-3.5 flex flex-col gap-2.5 hover:border-cyan-500/40 transition-colors"
+                className="rounded-[10px] bg-[#18181c] border border-[#27272a] p-3.5 flex flex-col gap-2.5 hover:border-cyan-500/40 transition-colors"
               >
                 {/* Top Row: Flag & Country + Relative Time */}
                 <div className="flex items-center justify-between gap-2">
@@ -648,14 +648,14 @@ export default function GeoAnalyticsPage() {
 
                 {/* Bottom Row: Link & Device Tech Tags */}
                 <div className="flex items-center justify-between pt-2 border-t border-[#222228] text-[11px] gap-2">
-                  <span className="font-mono font-bold text-cyan-400 md:text-[#ff6600] bg-cyan-500/10 md:bg-[#ff6600]/10 px-2 py-0.5 rounded border border-cyan-500/20 md:border-[#ff6600]/20 truncate">
+                  <span className="font-mono font-bold text-cyan-400 md:text-[#ff6600] bg-cyan-500/10 md:bg-[#ff6600]/10 px-2 py-0.5 rounded-[10px] border border-cyan-500/20 md:border-[#ff6600]/20 truncate">
                     /{ev.slug}
                   </span>
                   <div className="flex items-center gap-1.5 text-[10px] shrink-0 font-mono">
-                    <span className="px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 capitalize">
+                    <span className="px-1.5 py-0.5 rounded-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 capitalize">
                       {ev.device}
                     </span>
-                    <span className="px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                    <span className="px-1.5 py-0.5 rounded-[10px] bg-purple-500/10 text-purple-400 border border-purple-500/20">
                       {ev.browser}
                     </span>
                   </div>
@@ -749,7 +749,7 @@ export default function GeoAnalyticsPage() {
 
                     {visibleColumns.has("referrer") && (
                       <td className="py-3 px-3 text-neutral-300">
-                        <span className="px-2 py-0.5 rounded-[6px] bg-white/5 border border-[#27272a] text-[10px] font-mono">
+                        <span className="px-2 py-0.5 rounded-[10px] bg-white/5 border border-[#27272a] text-[10px] font-mono">
                           {ev.referrer || "Direct"}
                         </span>
                       </td>
@@ -780,17 +780,17 @@ export default function GeoAnalyticsPage() {
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="p-1.5 rounded-[6px] bg-[#1a1a1e] border border-[#27272a] disabled:opacity-40 hover:bg-white/10 text-white cursor-pointer"
+              className="p-1.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] disabled:opacity-40 hover:bg-white/10 text-white cursor-pointer"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
             </button>
-            <span className="px-3 py-1 font-mono text-white text-xs bg-[#1a1a1e] border border-[#27272a] rounded-[6px] whitespace-nowrap">
+            <span className="px-3 py-1 font-mono text-white text-xs bg-[#1a1a1e] border border-[#27272a] rounded-[10px] whitespace-nowrap">
               Page {currentPage} / {totalPages}
             </span>
             <button
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
-              className="p-1.5 rounded-[6px] bg-[#1a1a1e] border border-[#27272a] disabled:opacity-40 hover:bg-white/10 text-white cursor-pointer"
+              className="p-1.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] disabled:opacity-40 hover:bg-white/10 text-white cursor-pointer"
             >
               <ChevronRight className="w-3.5 h-3.5" />
             </button>

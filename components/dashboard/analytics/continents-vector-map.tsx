@@ -104,7 +104,7 @@ export function ContinentsVectorMap({
 
   return (
     <>
-    <div className="rounded-[16px] bg-[#141416] border border-[#222225] p-5 sm:p-6 shadow-2xl relative overflow-hidden flex flex-col justify-between group">
+    <div className="rounded-[10px] bg-[#141416] border border-[#222225] p-5 sm:p-6 shadow-2xl relative overflow-hidden flex flex-col justify-between group">
       {/* Header & Map Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-3 z-10">
         <div>
@@ -148,18 +148,18 @@ export function ContinentsVectorMap({
                 onSelectContinent("ALL");
                 if (onSelectCountry) onSelectCountry("ALL");
               }}
-              className="px-2.5 py-1.5 rounded-[8px] bg-white/5 hover:bg-white/10 text-neutral-300 hover:text-white text-xs font-semibold border border-[#27272a] transition-all cursor-pointer"
+              className="px-2.5 py-1.5 rounded-[10px] bg-white/5 hover:bg-white/10 text-neutral-300 hover:text-white text-xs font-semibold border border-[#27272a] transition-all cursor-pointer"
             >
               Réinitialiser Filtres
             </button>
           )}
 
-          <div className="flex items-center bg-[#1a1a1e] border border-[#27272a] rounded-[8px] p-0.5">
+          <div className="flex items-center bg-[#1a1a1e] border border-[#27272a] rounded-[10px] p-0.5">
             <button
               type="button"
               onClick={handleZoomIn}
               title="Zoomer"
-              className="p-1.5 text-neutral-400 hover:text-white hover:bg-white/5 rounded-[6px] transition-colors cursor-pointer"
+              className="p-1.5 text-neutral-400 hover:text-white hover:bg-white/5 rounded-[10px] transition-colors cursor-pointer"
             >
               <ZoomIn className="w-3.5 h-3.5" />
             </button>
@@ -167,7 +167,7 @@ export function ContinentsVectorMap({
               type="button"
               onClick={handleZoomOut}
               title="Dézoomer"
-              className="p-1.5 text-neutral-400 hover:text-white hover:bg-white/5 rounded-[6px] transition-colors cursor-pointer"
+              className="p-1.5 text-neutral-400 hover:text-white hover:bg-white/5 rounded-[10px] transition-colors cursor-pointer"
             >
               <ZoomOut className="w-3.5 h-3.5" />
             </button>
@@ -175,7 +175,7 @@ export function ContinentsVectorMap({
               type="button"
               onClick={handleResetZoom}
               title="Réinitialiser vue"
-              className="p-1.5 text-neutral-400 hover:text-white hover:bg-white/5 rounded-[6px] transition-colors cursor-pointer"
+              className="p-1.5 text-neutral-400 hover:text-white hover:bg-white/5 rounded-[10px] transition-colors cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5" />
             </button>
@@ -185,7 +185,7 @@ export function ContinentsVectorMap({
           <button
             type="button"
             onClick={() => setIsExpanded(true)}
-            className="p-1.5 rounded-[8px] bg-cyan-500/10 md:bg-[#ff6600]/10 hover:bg-cyan-500 md:hover:bg-[#ff6600] text-cyan-400 md:text-[#ff6600] hover:text-white border border-cyan-500/25 md:border-[#ff6600]/25 shadow-sm transition-all cursor-pointer"
+            className="p-1.5 rounded-[10px] bg-cyan-500/10 md:bg-[#ff6600]/10 hover:bg-cyan-500 md:hover:bg-[#ff6600] text-cyan-400 md:text-[#ff6600] hover:text-white border border-cyan-500/25 md:border-[#ff6600]/25 shadow-sm transition-all cursor-pointer"
             title="Agrandir en plein écran (Double-clic)"
           >
             <Maximize2 className="w-4 h-4" />
@@ -196,7 +196,7 @@ export function ContinentsVectorMap({
       {/* Interactive react-simple-maps Canvas Container */}
       <div
         onDoubleClick={() => setIsExpanded(true)}
-        className="relative w-full aspect-[2.1/1] max-h-[460px] my-1 flex items-center justify-center bg-[#0d0d10] rounded-[14px] border border-[#1f1f23] overflow-hidden select-none cursor-pointer"
+        className="relative w-full aspect-[2.1/1] max-h-[460px] my-1 flex items-center justify-center bg-[#0d0d10] rounded-[10px] border border-[#1f1f23] overflow-hidden select-none cursor-pointer"
         title="Double-cliquez pour agrandir en plein écran"
       >
         <ComposableMap
@@ -384,7 +384,7 @@ export function ContinentsVectorMap({
               key={cont}
               type="button"
               onClick={() => onSelectContinent(isSelected ? "ALL" : cont)}
-              className={`p-3 rounded-[12px] border text-left transition-all cursor-pointer flex flex-col justify-between ${
+              className={`p-3 rounded-[10px] border text-left transition-all cursor-pointer flex flex-col justify-between ${
                 isSelected
                   ? "bg-white/10 border-white shadow-lg scale-102"
                   : data.clicks > 0
@@ -439,7 +439,7 @@ export function ContinentsVectorMap({
         {/* Modal Header */}
         <div
           onClick={(e) => e.stopPropagation()}
-          className="w-full max-w-6xl flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 p-3.5 sm:p-4 rounded-[14px] bg-[#141416]/95 border border-[#27272a] shadow-2xl backdrop-blur-md cursor-default shrink-0"
+          className="w-full max-w-6xl flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 p-3.5 sm:p-4 rounded-[10px] bg-[#141416]/95 border border-[#27272a] shadow-2xl backdrop-blur-md cursor-default shrink-0"
         >
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-[10px] bg-cyan-500 md:bg-[#ff6600] flex items-center justify-center text-white shadow-lg shadow-cyan-500/30 md:shadow-[#ff6600]/30 font-bold shrink-0">
@@ -458,12 +458,12 @@ export function ContinentsVectorMap({
 
           {/* Modal Controls */}
           <div className="flex items-center gap-2">
-            <div className="flex items-center bg-[#1a1a1e] border border-[#27272a] rounded-[8px] p-0.5">
+            <div className="flex items-center bg-[#1a1a1e] border border-[#27272a] rounded-[10px] p-0.5">
               <button
                 type="button"
                 onClick={handleZoomIn}
                 title="Zoomer"
-                className="p-1.5 text-neutral-400 hover:text-white hover:bg-white/5 rounded-[6px] transition-colors cursor-pointer"
+                className="p-1.5 text-neutral-400 hover:text-white hover:bg-white/5 rounded-[10px] transition-colors cursor-pointer"
               >
                 <ZoomIn className="w-3.5 h-3.5" />
               </button>
@@ -471,7 +471,7 @@ export function ContinentsVectorMap({
                 type="button"
                 onClick={handleZoomOut}
                 title="Dézoomer"
-                className="p-1.5 text-neutral-400 hover:text-white hover:bg-white/5 rounded-[6px] transition-colors cursor-pointer"
+                className="p-1.5 text-neutral-400 hover:text-white hover:bg-white/5 rounded-[10px] transition-colors cursor-pointer"
               >
                 <ZoomOut className="w-3.5 h-3.5" />
               </button>
@@ -479,7 +479,7 @@ export function ContinentsVectorMap({
                 type="button"
                 onClick={handleResetZoom}
                 title="Réinitialiser vue"
-                className="p-1.5 text-neutral-400 hover:text-white hover:bg-white/5 rounded-[6px] transition-colors cursor-pointer"
+                className="p-1.5 text-neutral-400 hover:text-white hover:bg-white/5 rounded-[10px] transition-colors cursor-pointer"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
               </button>
@@ -488,7 +488,7 @@ export function ContinentsVectorMap({
             <button
               type="button"
               onClick={() => setIsExpanded(false)}
-              className="p-2 rounded-[8px] bg-white/5 hover:bg-red-500/20 text-neutral-400 hover:text-red-400 cursor-pointer transition-colors"
+              className="p-2 rounded-[10px] bg-white/5 hover:bg-red-500/20 text-neutral-400 hover:text-red-400 cursor-pointer transition-colors"
               title="Fermer la vue plein écran (Échap)"
             >
               <X className="w-5 h-5" />
@@ -500,7 +500,7 @@ export function ContinentsVectorMap({
         <div
           onClick={(e) => e.stopPropagation()}
           onDoubleClick={() => setIsExpanded(false)}
-          className="relative w-full max-w-6xl flex-1 my-3 flex items-center justify-center bg-[#0a0a0d] rounded-[16px] border border-[#1f1f24] overflow-hidden select-none cursor-grab active:cursor-grabbing shadow-2xl min-h-[320px]"
+          className="relative w-full max-w-6xl flex-1 my-3 flex items-center justify-center bg-[#0a0a0d] rounded-[10px] border border-[#1f1f24] overflow-hidden select-none cursor-grab active:cursor-grabbing shadow-2xl min-h-[320px]"
         >
           <ComposableMap
             projection="geoMercator"
@@ -639,12 +639,12 @@ export function ContinentsVectorMap({
 
           {/* Floating Tooltip in Fullscreen */}
           {hoveredCountry && (
-            <div className="absolute bottom-4 left-4 z-20 flex items-center gap-3 p-3 rounded-[12px] bg-[#141416]/95 border border-[#27272a] shadow-2xl backdrop-blur-md animate-in fade-in duration-150">
+            <div className="absolute bottom-4 left-4 z-20 flex items-center gap-3 p-3 rounded-[10px] bg-[#141416]/95 border border-[#27272a] shadow-2xl backdrop-blur-md animate-in fade-in duration-150">
               <span className="text-2xl">{hoveredCountry.flag}</span>
               <div>
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-white text-xs">{hoveredCountry.name}</span>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded font-bold uppercase" style={{ color: CONTINENTS_META[hoveredCountry.continent].color, backgroundColor: `${CONTINENTS_META[hoveredCountry.continent].color}15` }}>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-[10px] font-bold uppercase" style={{ color: CONTINENTS_META[hoveredCountry.continent].color, backgroundColor: `${CONTINENTS_META[hoveredCountry.continent].color}15` }}>
                     {CONTINENTS_META[hoveredCountry.continent].name}
                   </span>
                 </div>
@@ -660,7 +660,7 @@ export function ContinentsVectorMap({
         {/* Modal Bottom Continents Ribbon */}
         <div
           onClick={(e) => e.stopPropagation()}
-          className="w-full max-w-6xl grid grid-cols-3 sm:grid-cols-6 gap-2 p-2.5 rounded-[12px] bg-[#141416]/95 border border-[#27272a] backdrop-blur-md shrink-0 cursor-default"
+          className="w-full max-w-6xl grid grid-cols-3 sm:grid-cols-6 gap-2 p-2.5 rounded-[10px] bg-[#141416]/95 border border-[#27272a] backdrop-blur-md shrink-0 cursor-default"
         >
           {(Object.keys(CONTINENTS_META) as Continent[]).map((cont) => {
             const meta = CONTINENTS_META[cont];
@@ -672,7 +672,7 @@ export function ContinentsVectorMap({
                 key={cont}
                 type="button"
                 onClick={() => onSelectContinent(isSelected ? "ALL" : cont)}
-                className={`p-2 rounded-[8px] border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                className={`p-2 rounded-[10px] border text-left transition-all cursor-pointer flex flex-col justify-between ${
                   isSelected
                     ? "bg-white/10 border-white shadow-md scale-102"
                     : data.clicks > 0

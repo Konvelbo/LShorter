@@ -235,7 +235,7 @@ export default function DomainsPage() {
       {isAdding && (
         <form
           onSubmit={handleAddDomain}
-          className="p-6 rounded-[12px] bg-[#141416] border border-[#ff6600]/40 shadow-2xl flex flex-col gap-5 animate-in fade-in zoom-in-98"
+          className="p-6 rounded-[10px] bg-[#141416] border border-[#ff6600]/40 shadow-2xl flex flex-col gap-5 animate-in fade-in zoom-in-98"
         >
           <h3 className="text-base font-bold text-white flex items-center gap-2">
             <Globe2 className="w-4 h-4 text-[#ff6600]" />
@@ -255,7 +255,7 @@ export default function DomainsPage() {
               href={process.env.NEXT_PUBLIC_HOSTINGER_AFFILIATE_LINK || "https://hostinger.com/fr"}
               target="_blank"
               rel="noopener noreferrer"
-              className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[8px] bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold transition-colors"
+              className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold transition-colors"
             >
               <ExternalLink className="w-3.5 h-3.5" />
               Acheter un domaine · Hostinger
@@ -302,7 +302,7 @@ export default function DomainsPage() {
 
 
       {/* Search & Filtering Bar */}
-      <div className="p-3 rounded-[12px] bg-[#141416] border border-[#222225] flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+      <div className="p-3 rounded-[10px] bg-[#141416] border border-[#222225] flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
         {/* Search */}
         <div className="relative flex-1 max-w-md">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" />
@@ -311,7 +311,7 @@ export default function DomainsPage() {
             placeholder="Rechercher un nom de domaine..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full h-10 pl-9 pr-3 rounded-[8px] bg-[#1a1a1e] border border-[#27272a] text-xs text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#ff6600]"
+            className="w-full h-10 pl-9 pr-3 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] text-xs text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#ff6600]"
           />
         </div>
 
@@ -320,7 +320,7 @@ export default function DomainsPage() {
           <button
             type="button"
             onClick={() => setStatusFilter("all")}
-            className={`px-3 py-1.5 rounded-[8px] font-semibold transition-all cursor-pointer ${
+            className={`px-3 py-1.5 rounded-[10px] font-semibold transition-all cursor-pointer ${
               statusFilter === "all"
                 ? "bg-[#ff6600] text-white shadow font-bold"
                 : "text-neutral-400 hover:text-white hover:bg-white/5"
@@ -332,7 +332,7 @@ export default function DomainsPage() {
           <button
             type="button"
             onClick={() => setStatusFilter("active")}
-            className={`px-3 py-1.5 rounded-[8px] font-semibold transition-all cursor-pointer ${
+            className={`px-3 py-1.5 rounded-[10px] font-semibold transition-all cursor-pointer ${
               statusFilter === "active"
                 ? "bg-emerald-500 text-white shadow font-bold"
                 : "text-neutral-400 hover:text-white hover:bg-white/5"
@@ -344,7 +344,7 @@ export default function DomainsPage() {
           <button
             type="button"
             onClick={() => setStatusFilter("pending")}
-            className={`px-3 py-1.5 rounded-[8px] font-semibold transition-all cursor-pointer ${
+            className={`px-3 py-1.5 rounded-[10px] font-semibold transition-all cursor-pointer ${
               statusFilter === "pending"
                 ? "bg-amber-500 text-white shadow font-bold"
                 : "text-neutral-400 hover:text-white hover:bg-white/5"
@@ -360,7 +360,7 @@ export default function DomainsPage() {
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as any)}
-            className="h-9 rounded-[8px] bg-[#1a1a1e] text-white border border-[#27272a] px-2.5 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
+            className="h-9 rounded-[10px] bg-[#1a1a1e] text-white border border-[#27272a] px-2.5 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
           >
             <option value="date" className="bg-[#141416] text-white">Plus récents</option>
             <option value="name" className="bg-[#141416] text-white">Nom (A-Z)</option>
@@ -372,14 +372,14 @@ export default function DomainsPage() {
       {/* Domains List */}
       <div className="flex flex-col gap-6">
         {filteredDomains.length === 0 ? (
-          <div className="p-8 rounded-[12px] bg-[#141416] border border-[#222225] text-center text-neutral-400 text-xs">
+          <div className="p-8 rounded-[10px] bg-[#141416] border border-[#222225] text-center text-neutral-400 text-xs">
             Aucun domaine ne correspond à vos critères de recherche.
           </div>
         ) : (
           filteredDomains.map((dom) => (
             <div
               key={dom.id}
-              className="rounded-[12px] bg-[#141416] border border-[#222225] p-6 flex flex-col gap-5 shadow-xl"
+              className="rounded-[10px] bg-[#141416] border border-[#222225] p-6 flex flex-col gap-5 shadow-xl"
             >
               {/* Domain Header */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#222225]">
@@ -419,7 +419,7 @@ export default function DomainsPage() {
                   )}
                   <button
                     onClick={() => promptDeleteDomain(dom)}
-                    className="p-2 rounded-[8px] hover:bg-red-500/20 text-neutral-400 hover:text-red-400 transition-colors cursor-pointer"
+                    className="p-2 rounded-[10px] hover:bg-red-500/20 text-neutral-400 hover:text-red-400 transition-colors cursor-pointer"
                     title="Supprimer le domaine"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -448,7 +448,7 @@ export default function DomainsPage() {
                       {dom.dnsRecords.map((rec, i) => (
                         <tr key={i} className="hover:bg-white/[0.02]">
                           <td className="py-2.5 px-3 font-bold text-white">
-                            <span className="px-2 py-0.5 rounded bg-black/40 border border-neutral-700 text-[10px]">
+                            <span className="px-2 py-0.5 rounded-[10px] bg-black/40 border border-neutral-700 text-[10px]">
                               {rec.type}
                             </span>
                           </td>
@@ -458,7 +458,7 @@ export default function DomainsPage() {
                           <td className="py-2.5 px-3 text-right">
                             <button
                               onClick={() => handleCopy(rec.value)}
-                              className="p-1 rounded hover:bg-white/10 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+                              className="p-1 rounded-[10px] hover:bg-white/10 text-neutral-400 hover:text-white transition-colors cursor-pointer"
                               title="Copier la valeur"
                             >
                               {copiedValue === rec.value ? (
@@ -476,7 +476,7 @@ export default function DomainsPage() {
               </div>
 
               {/* Note / Instruction */}
-              <div className="flex items-start gap-2 p-3 rounded-[8px] bg-neutral-900/60 border border-[#27272a] text-xs text-neutral-400">
+              <div className="flex items-start gap-2 p-3 rounded-[10px] bg-neutral-900/60 border border-[#27272a] text-xs text-neutral-400">
                 <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                 <span>
                   Le certificat SSL Let&apos;s Encrypt sera automatiquement émis et renouvelé par les serveurs Edge Cloudflare dès que la propagation DNS sera terminée (entre 5 min et 48h).

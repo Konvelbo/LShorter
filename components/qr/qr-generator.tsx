@@ -679,7 +679,7 @@ export function QRGenerator() {
 
         <button
           onClick={copyConfigJSON}
-          className="btn-hover-scale px-3.5 py-2 rounded-[8px] bg-white/5 hover:bg-white/10 border border-[#27272a] text-xs font-semibold text-neutral-300 hover:text-white flex items-center gap-2 cursor-pointer w-fit"
+          className="btn-hover-scale px-3.5 py-2 rounded-[10px] bg-white/5 hover:bg-white/10 border border-[#27272a] text-xs font-semibold text-neutral-300 hover:text-white flex items-center gap-2 cursor-pointer w-fit"
           title="Copier le JSON pour l'API Backend"
         >
           <Save className="w-3.5 h-3.5 text-[#ff6600]" />
@@ -719,7 +719,7 @@ export function QRGenerator() {
           </div>
 
           {/* Dynamic Content Inputs */}
-          <div className="p-4 sm:p-5 rounded-[12px] bg-[#141416] border border-[#222225] flex flex-col gap-4">
+          <div className="p-4 sm:p-5 rounded-[10px] bg-[#141416] border border-[#222225] flex flex-col gap-4">
             {contentType === "link" && (
               <div>
                 <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
@@ -858,7 +858,7 @@ export function QRGenerator() {
           </div>
 
           {/* SECTION 1: SÉLECTIONNEZ UN STYLE */}
-          <div className="p-4 sm:p-5 rounded-[12px] bg-[#141416] border border-[#222225] flex flex-col gap-5">
+          <div className="p-4 sm:p-5 rounded-[10px] bg-[#141416] border border-[#222225] flex flex-col gap-5">
             <h3 className="text-sm font-bold text-white tracking-wide">Sélectionnez un style</h3>
 
             {/* Pixels Style */}
@@ -1041,7 +1041,7 @@ export function QRGenerator() {
           </div>
 
           {/* SECTION 2: CHOISISSEZ VOS COULEURS */}
-          <div className="p-4 sm:p-5 rounded-[12px] bg-[#141416] border border-[#222225] flex flex-col gap-5">
+          <div className="p-4 sm:p-5 rounded-[10px] bg-[#141416] border border-[#222225] flex flex-col gap-5">
             <h3 className="text-sm font-bold text-white tracking-wide">Choisissez vos couleurs</h3>
 
             {/* Prédéfini */}
@@ -1103,7 +1103,7 @@ export function QRGenerator() {
                     }
                     setColorMode(mode);
                   }}
-                  className="w-full h-10 rounded-[8px] bg-[#1a1a1e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
+                  className="w-full h-10 rounded-[10px] bg-[#1a1a1e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
                 >
                   <option value="monochrome" className="bg-[#141416] text-white">Monochrome</option>
                   <option value="gradient" className="bg-[#141416] text-white">Dégradé (Gradient) 👑</option>
@@ -1129,7 +1129,7 @@ export function QRGenerator() {
                       }
                       setPixelColor(e.target.value);
                     }}
-                    className="w-8 h-8 rounded-[6px] bg-transparent border-0 cursor-pointer hover:scale-105"
+                    className="w-8 h-8 rounded-[10px] bg-transparent border-0 cursor-pointer hover:scale-105"
                   />
                   <Input
                     value={pixelColor}
@@ -1141,7 +1141,7 @@ export function QRGenerator() {
                       type="color"
                       value={pixelColor2}
                       onChange={(e) => setPixelColor2(e.target.value)}
-                      className="w-8 h-8 rounded-[6px] bg-transparent border-0 cursor-pointer hover:scale-105"
+                      className="w-8 h-8 rounded-[10px] bg-transparent border-0 cursor-pointer hover:scale-105"
                     />
                   )}
                 </div>
@@ -1165,7 +1165,7 @@ export function QRGenerator() {
                     }
                     setBgMode(mode);
                   }}
-                  className="w-full h-10 rounded-[8px] bg-[#1a1a1e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
+                  className="w-full h-10 rounded-[10px] bg-[#1a1a1e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
                 >
                   <option value="monochrome" className="bg-[#141416] text-white">Monochrome</option>
                   <option value="transparent" className="bg-[#141416] text-white">Transparent 👑</option>
@@ -1180,7 +1180,7 @@ export function QRGenerator() {
                     type="color"
                     value={bgColor}
                     onChange={(e) => setBgColor(e.target.value)}
-                    className="w-8 h-8 rounded-[6px] bg-transparent border-0 cursor-pointer hover:scale-105"
+                    className="w-8 h-8 rounded-[10px] bg-transparent border-0 cursor-pointer hover:scale-105"
                   />
                   <Input
                     value={bgColor}
@@ -1192,7 +1192,7 @@ export function QRGenerator() {
             </div>
 
             {/* Angles Toggle */}
-            <label className="flex items-center justify-between p-3 rounded-[8px] bg-[#1a1a1e] border border-[#27272a] cursor-pointer text-xs">
+            <label className="flex items-center justify-between p-3 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] cursor-pointer text-xs">
               <span className="font-semibold text-neutral-300">
                 Couleur personnalisée pour les angles (Yeux)
               </span>
@@ -1217,7 +1217,7 @@ export function QRGenerator() {
                     type="color"
                     value={eyeColor}
                     onChange={(e) => setEyeColor(e.target.value)}
-                    className="w-6 h-6 rounded bg-transparent border-0 cursor-pointer hover:scale-105"
+                    className="w-6 h-6 rounded-[10px] bg-transparent border-0 cursor-pointer hover:scale-105"
                   />
                 )}
               </div>
@@ -1225,11 +1225,11 @@ export function QRGenerator() {
           </div>
 
           {/* SECTION 3: AJOUTER UN LOGO OU DU TEXTE AU CENTRE */}
-          <div className="p-4 sm:p-5 rounded-[12px] bg-[#141416] border border-[#222225] flex flex-col gap-4">
+          <div className="p-4 sm:p-5 rounded-[10px] bg-[#141416] border border-[#222225] flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-white tracking-wide">Ajouter un logo ou du texte au centre</h3>
               {!isProPlan && (
-                <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 text-[10px] font-bold">
+                <span className="px-2 py-0.5 rounded-[10px] bg-amber-500/20 text-amber-400 text-[10px] font-bold">
                   👑 SURCLASSEZ VOTRE FORFAIT
                 </span>
               )}
@@ -1412,7 +1412,7 @@ export function QRGenerator() {
           </div>
 
           {/* SECTION 4: SÉLECTIONNEZ UN CADRE */}
-          <div className="p-4 sm:p-5 rounded-[12px] bg-[#141416] border border-[#222225] flex flex-col gap-4">
+          <div className="p-4 sm:p-5 rounded-[10px] bg-[#141416] border border-[#222225] flex flex-col gap-4">
             <h3 className="text-sm font-bold text-white tracking-wide">Sélectionnez un cadre</h3>
 
             <div className="flex flex-wrap items-center gap-2.5">
@@ -1439,7 +1439,7 @@ export function QRGenerator() {
                     : "bg-[#1a1a1e] border-[#27272a] text-neutral-400 hover:text-white"
                 }`}
               >
-                <div className="w-7 h-7 border-2 border-current rounded-sm" />
+                <div className="w-7 h-7 border-2 border-current rounded-[10px]" />
                 <span>Cadre</span>
               </button>
 
@@ -1453,8 +1453,8 @@ export function QRGenerator() {
                     : "bg-[#1a1a1e] border-[#27272a] text-neutral-400 hover:text-white"
                 }`}
               >
-                <div className="w-6 h-6 border-2 border-current rounded-sm mb-0.5" />
-                <span className="bg-[#ff6600] text-white px-1 rounded text-[7px] font-bold">SCAN ME</span>
+                <div className="w-6 h-6 border-2 border-current rounded-[10px] mb-0.5" />
+                <span className="bg-[#ff6600] text-white px-1 rounded-[10px] text-[7px] font-bold">SCAN ME</span>
               </button>
 
               {/* Top Header CTA */}
@@ -1477,8 +1477,8 @@ export function QRGenerator() {
                 }`}
               >
                 {!isProPlan && <Crown className="w-3.5 h-3.5 text-amber-400 absolute -top-1 -right-1" />}
-                <span className="bg-[#ff6600] text-white px-1 rounded text-[7px] font-bold mb-0.5">SCAN</span>
-                <div className="w-6 h-6 border-2 border-current rounded-sm" />
+                <span className="bg-[#ff6600] text-white px-1 rounded-[10px] text-[7px] font-bold mb-0.5">SCAN</span>
+                <div className="w-6 h-6 border-2 border-current rounded-[10px]" />
               </button>
 
               {/* Hand Arrow */}
@@ -1576,7 +1576,7 @@ export function QRGenerator() {
                       type="color"
                       value={frameColor}
                       onChange={(e) => setFrameColor(e.target.value)}
-                      className="w-8 h-8 rounded bg-transparent border-0 cursor-pointer hover:scale-105"
+                      className="w-8 h-8 rounded-[10px] bg-transparent border-0 cursor-pointer hover:scale-105"
                     />
                     <Input
                       value={frameColor}
@@ -1595,8 +1595,8 @@ export function QRGenerator() {
           <span className="text-xs font-semibold text-neutral-300">Aperçu en direct</span>
 
           {/* Big White Card for QR Code Container */}
-          <div className="rounded-[16px] bg-[#141416] border border-[#222225] p-6 flex flex-col items-center justify-center shadow-2xl overflow-hidden">
-            <div className="p-4 rounded-[14px] bg-white flex items-center justify-center shadow-xl">
+          <div className="rounded-[10px] bg-[#141416] border border-[#222225] p-6 flex flex-col items-center justify-center shadow-2xl overflow-hidden">
+            <div className="p-4 rounded-[10px] bg-white flex items-center justify-center shadow-xl">
               <canvas ref={canvasRef} className="max-w-full h-auto object-contain" />
             </div>
           </div>

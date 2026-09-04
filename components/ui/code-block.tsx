@@ -180,7 +180,7 @@ export function CodeBlock({
                     key={idx}
                     type="button"
                     onClick={() => setActiveTabIdx(idx)}
-                    className={`px-2.5 py-1 rounded-[6px] text-[11px] font-medium transition-all cursor-pointer ${
+                    className={`px-2.5 py-1 rounded-[10px] text-[11px] font-medium transition-all cursor-pointer ${
                       isActive
                         ? "bg-[#222226] text-white border border-white/10 shadow-sm"
                         : "text-neutral-400 hover:text-neutral-200 hover:bg-white/5"
@@ -203,14 +203,14 @@ export function CodeBlock({
 
         {/* Right: Language Badge & Copy Button */}
         <div className="flex items-center gap-2">
-          <span className="hidden sm:inline-block px-2 py-0.5 rounded-[4px] bg-white/5 text-[10px] uppercase font-bold text-neutral-400 border border-white/5">
+          <span className="hidden sm:inline-block px-2 py-0.5 rounded-[10px] bg-white/5 text-[10px] uppercase font-bold text-neutral-400 border border-white/5">
             {activeLang}
           </span>
 
           <button
             type="button"
             onClick={handleCopy}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] border transition-all text-[11px] font-medium cursor-pointer ${
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-[10px] border transition-all text-[11px] font-medium cursor-pointer ${
               copied
                 ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 shadow-sm"
                 : "bg-white/5 hover:bg-white/10 border-transparent text-neutral-300 hover:text-white"

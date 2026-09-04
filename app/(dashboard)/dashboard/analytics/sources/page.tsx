@@ -239,7 +239,7 @@ export default function SourcesAnalyticsPage() {
               setSelectedLinkId(e.target.value);
               loadData(selectedRange, e.target.value);
             }}
-            className="px-3 py-1.5 rounded-[8px] bg-[#1a1a1e] border border-[#27272a] text-xs font-semibold text-white focus:outline-none focus:border-[#ff6600] cursor-pointer"
+            className="px-3 py-1.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] text-xs font-semibold text-white focus:outline-none focus:border-[#ff6600] cursor-pointer"
           >
             <option value="all">Tous les liens combinés</option>
             {links.map((l) => (
@@ -249,7 +249,7 @@ export default function SourcesAnalyticsPage() {
             ))}
           </select>
 
-          <div className="flex items-center gap-1 p-1 rounded-[8px] bg-[#141416] border border-[#222225] text-xs">
+          <div className="flex items-center gap-1 p-1 rounded-[10px] bg-[#141416] border border-[#222225] text-xs">
             {(["day", "week", "month", "year"] as const).map((r) => (
               <button
                 key={r}
@@ -257,7 +257,7 @@ export default function SourcesAnalyticsPage() {
                   setSelectedRange(r);
                   loadData(r, selectedLinkId);
                 }}
-                className={`px-2.5 py-1 rounded-[6px] font-semibold transition-all cursor-pointer ${
+                className={`px-2.5 py-1 rounded-[10px] font-semibold transition-all cursor-pointer ${
                   selectedRange === r
                     ? "bg-[#ff6600] text-white font-bold"
                     : "text-neutral-400 hover:text-white"
@@ -270,7 +270,7 @@ export default function SourcesAnalyticsPage() {
 
           <button
             onClick={() => loadData(selectedRange, selectedLinkId)}
-            className="p-2 rounded-[8px] bg-[#1a1a1e] hover:bg-white/10 text-neutral-300 hover:text-white border border-[#27272a] transition-all cursor-pointer"
+            className="p-2 rounded-[10px] bg-[#1a1a1e] hover:bg-white/10 text-neutral-300 hover:text-white border border-[#27272a] transition-all cursor-pointer"
             title="Rafraîchir"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin text-[#ff6600]" : ""}`} />
@@ -280,7 +280,7 @@ export default function SourcesAnalyticsPage() {
 
       {/* Top Source KPI Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-        <div className="p-4 rounded-[12px] bg-[#141416] border border-[#222225] flex flex-col justify-between">
+        <div className="p-4 rounded-[10px] bg-[#141416] border border-[#222225] flex flex-col justify-between">
           <span className="text-[11px] font-semibold text-neutral-400">Réseaux Sociaux</span>
           <div className="my-1.5 flex items-baseline gap-2">
             <span className="font-bebas text-3xl font-bold text-[#ff6600]">
@@ -291,7 +291,7 @@ export default function SourcesAnalyticsPage() {
           <span className="text-[10px] text-neutral-500 font-mono">LinkedIn, Twitter/X, WhatsApp</span>
         </div>
 
-        <div className="p-4 rounded-[12px] bg-[#141416] border border-[#222225] flex flex-col justify-between">
+        <div className="p-4 rounded-[10px] bg-[#141416] border border-[#222225] flex flex-col justify-between">
           <span className="text-[11px] font-semibold text-neutral-400">Accès Direct & Messagerie</span>
           <div className="my-1.5 flex items-baseline gap-2">
             <span className="font-bebas text-3xl font-bold text-emerald-400">
@@ -302,7 +302,7 @@ export default function SourcesAnalyticsPage() {
           <span className="text-[10px] text-neutral-500 font-mono">QR codes, SMS & Liens copiés</span>
         </div>
 
-        <div className="p-4 rounded-[12px] bg-[#141416] border border-[#222225] flex flex-col justify-between">
+        <div className="p-4 rounded-[10px] bg-[#141416] border border-[#222225] flex flex-col justify-between">
           <span className="text-[11px] font-semibold text-neutral-400">Top Plateforme Sociale</span>
           <div className="my-1.5 flex items-center gap-2 truncate">
             <Share2 className="w-5 h-5 text-blue-400 shrink-0" />
@@ -315,7 +315,7 @@ export default function SourcesAnalyticsPage() {
           </span>
         </div>
 
-        <div className="p-4 rounded-[12px] bg-[#141416] border border-[#222225] flex flex-col justify-between">
+        <div className="p-4 rounded-[10px] bg-[#141416] border border-[#222225] flex flex-col justify-between">
           <span className="text-[11px] font-semibold text-neutral-400">Canaux Référents Actifs</span>
           <div className="my-1.5 flex items-baseline gap-2">
             <span className="font-bebas text-3xl font-bold text-purple-400">
@@ -330,7 +330,7 @@ export default function SourcesAnalyticsPage() {
       {/* 2-COLUMNS: SOCIAL NETWORKS & ALL REFERRERS */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Réseaux Sociaux Dédiés */}
-        <div className="rounded-[16px] bg-[#141416] border border-[#222225] p-5 shadow-2xl flex flex-col justify-between">
+        <div className="rounded-[10px] bg-[#141416] border border-[#222225] p-5 shadow-2xl flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-3 pb-2 border-b border-[#222225]">
               <span className="text-xs font-bold text-white flex items-center gap-1.5">
@@ -383,7 +383,7 @@ export default function SourcesAnalyticsPage() {
         </div>
 
         {/* Tous les Référents & Canaux */}
-        <div className="rounded-[16px] bg-[#141416] border border-[#222225] p-5 shadow-2xl flex flex-col justify-between">
+        <div className="rounded-[10px] bg-[#141416] border border-[#222225] p-5 shadow-2xl flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-3 pb-2 border-b border-[#222225]">
               <span className="text-xs font-bold text-white flex items-center gap-1.5">
@@ -418,7 +418,7 @@ export default function SourcesAnalyticsPage() {
       </div>
 
       {/* DETAILED SOURCES CLICK STREAM TABLE */}
-      <div className="rounded-[16px] bg-[#141416] border border-[#222225] p-5 sm:p-6 shadow-2xl">
+      <div className="rounded-[10px] bg-[#141416] border border-[#222225] p-5 sm:p-6 shadow-2xl">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5 pb-4 border-b border-[#222225]">
           <div>
             <h3 className="text-lg font-bold text-white flex items-center gap-2">
@@ -432,7 +432,7 @@ export default function SourcesAnalyticsPage() {
 
           <div className="flex flex-wrap items-center gap-2.5">
             {/* Filter Channel */}
-            <div className="flex items-center gap-1 p-1 rounded-[8px] bg-[#1a1a1e] border border-[#27272a] text-xs">
+            <div className="flex items-center gap-1 p-1 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] text-xs">
               {(["ALL", "social", "direct"] as const).map((ch) => (
                 <button
                   key={ch}
@@ -440,7 +440,7 @@ export default function SourcesAnalyticsPage() {
                     setSelectedChannelFilter(ch);
                     setCurrentPage(1);
                   }}
-                  className={`px-2.5 py-1 rounded-[6px] font-semibold transition-all cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-[10px] font-semibold transition-all cursor-pointer ${
                     selectedChannelFilter === ch
                       ? "bg-emerald-600 text-white font-bold"
                       : "text-neutral-400 hover:text-white"
@@ -462,7 +462,7 @@ export default function SourcesAnalyticsPage() {
                   setSearchQuery(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-full pl-8 pr-3 py-1.5 rounded-[8px] bg-[#1a1a1e] border border-[#27272a] text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-emerald-500"
+                className="w-full pl-8 pr-3 py-1.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-emerald-500"
               />
             </div>
 
@@ -518,7 +518,7 @@ export default function SourcesAnalyticsPage() {
 
                     {visibleColumns.has("referrer") && (
                       <td className="py-3 px-3 font-semibold text-white">
-                        <span className="px-2 py-0.5 rounded-[6px] bg-white/5 border border-[#27272a] text-[10px] font-mono">
+                        <span className="px-2 py-0.5 rounded-[10px] bg-white/5 border border-[#27272a] text-[10px] font-mono">
                           {ref}
                         </span>
                       </td>
@@ -567,17 +567,17 @@ export default function SourcesAnalyticsPage() {
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="p-1.5 rounded-[6px] bg-[#1a1a1e] border border-[#27272a] disabled:opacity-40 hover:bg-white/10 text-white cursor-pointer"
+              className="p-1.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] disabled:opacity-40 hover:bg-white/10 text-white cursor-pointer"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
             </button>
-            <span className="px-3 py-1 font-mono text-white text-xs bg-[#1a1a1e] border border-[#27272a] rounded-[6px] whitespace-nowrap">
+            <span className="px-3 py-1 font-mono text-white text-xs bg-[#1a1a1e] border border-[#27272a] rounded-[10px] whitespace-nowrap">
               Page {currentPage} / {totalPages}
             </span>
             <button
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
-              className="p-1.5 rounded-[6px] bg-[#1a1a1e] border border-[#27272a] disabled:opacity-40 hover:bg-white/10 text-white cursor-pointer"
+              className="p-1.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] disabled:opacity-40 hover:bg-white/10 text-white cursor-pointer"
             >
               <ChevronRight className="w-3.5 h-3.5" />
             </button>

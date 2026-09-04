@@ -82,7 +82,7 @@ const StatsBarChart = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="h-64 rounded-[12px] bg-[#141416] border border-[#222225] animate-pulse flex items-center justify-center text-xs text-neutral-500 font-mono">
+      <div className="h-64 rounded-[10px] bg-[#141416] border border-[#222225] animate-pulse flex items-center justify-center text-xs text-neutral-500 font-mono">
         Chargement des graphiques Edge...
       </div>
     ),
@@ -94,7 +94,7 @@ const AnalyticsPieChart = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="h-64 rounded-[12px] bg-[#141416] border border-[#222225] animate-pulse flex items-center justify-center text-xs text-neutral-500 font-mono">
+      <div className="h-64 rounded-[10px] bg-[#141416] border border-[#222225] animate-pulse flex items-center justify-center text-xs text-neutral-500 font-mono">
         Chargement répartition...
       </div>
     ),
@@ -478,9 +478,9 @@ export default function AnalyticsPage() {
 
       {/* Selected Link Banner (if specific link selected) */}
       {selectedLinkObj && (
-        <div className="p-4 rounded-[12px] bg-[#141416] border border-[#ff6600]/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-in fade-in">
+        <div className="p-4 rounded-[10px] bg-[#141416] border border-[#ff6600]/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-in fade-in">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-[8px] bg-[#ff6600] flex items-center justify-center font-bold text-white">
+            <div className="w-9 h-9 rounded-[10px] bg-[#ff6600] flex items-center justify-center font-bold text-white">
               <Zap className="w-5 h-5" />
             </div>
             <div>
@@ -506,7 +506,7 @@ export default function AnalyticsPage() {
       )}
 
       {/* Time Range Filter Bar (Jour, Semaine, Mois, An) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-2 sm:p-2.5 rounded-[12px] bg-[#141416] border border-[#222225]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-2 sm:p-2.5 rounded-[10px] bg-[#141416] border border-[#222225]">
         <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-xs w-full sm:w-auto">
           <div className="flex items-center justify-between sm:justify-start gap-1.5 px-1 sm:px-2 text-neutral-400 font-medium">
             <span className="flex items-center gap-1.5">
@@ -522,7 +522,7 @@ export default function AnalyticsPage() {
             <button
               type="button"
               onClick={() => handleRangeChange("day")}
-              className={`text-center py-1.5 px-2 sm:px-3 rounded-[8px] font-semibold transition-all cursor-pointer text-xs ${
+              className={`text-center py-1.5 px-2 sm:px-3 rounded-[10px] font-semibold transition-all cursor-pointer text-xs ${
                 selectedRange === "day"
                   ? "bg-[#ff6600] text-white shadow-md font-bold"
                   : "text-neutral-400 hover:text-white hover:bg-white/5"
@@ -534,7 +534,7 @@ export default function AnalyticsPage() {
             <button
               type="button"
               onClick={() => handleRangeChange("week")}
-              className={`text-center py-1.5 px-2 sm:px-3 rounded-[8px] font-semibold transition-all cursor-pointer text-xs ${
+              className={`text-center py-1.5 px-2 sm:px-3 rounded-[10px] font-semibold transition-all cursor-pointer text-xs ${
                 selectedRange === "week"
                   ? "bg-[#ff6600] text-white shadow-md font-bold"
                   : "text-neutral-400 hover:text-white hover:bg-white/5"
@@ -546,7 +546,7 @@ export default function AnalyticsPage() {
             <button
               type="button"
               onClick={() => handleRangeChange("month")}
-              className={`text-center py-1.5 px-2 sm:px-3 rounded-[8px] font-semibold transition-all cursor-pointer text-xs ${
+              className={`text-center py-1.5 px-2 sm:px-3 rounded-[10px] font-semibold transition-all cursor-pointer text-xs ${
                 selectedRange === "month"
                   ? "bg-[#ff6600] text-white shadow-md font-bold"
                   : "text-neutral-400 hover:text-white hover:bg-white/5"
@@ -558,7 +558,7 @@ export default function AnalyticsPage() {
             <button
               type="button"
               onClick={() => handleRangeChange("year")}
-              className={`text-center py-1.5 px-2 sm:px-3 rounded-[8px] font-semibold transition-all cursor-pointer text-xs ${
+              className={`text-center py-1.5 px-2 sm:px-3 rounded-[10px] font-semibold transition-all cursor-pointer text-xs ${
                 selectedRange === "year"
                   ? "bg-[#ff6600] text-white shadow-md font-bold"
                   : "text-neutral-400 hover:text-white hover:bg-white/5"
@@ -652,7 +652,7 @@ export default function AnalyticsPage() {
       {/* 3D GLOBE SHOWCASE & TIME SERIES HISTOGRAM */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
         {/* 3D Cobe Globe (5 cols) */}
-        <div className="lg:col-span-5 rounded-[14px] bg-[#141416] border border-[#222225] p-6 flex flex-col justify-between shadow-2xl relative overflow-hidden">
+        <div className="lg:col-span-5 rounded-[10px] bg-[#141416] border border-[#222225] p-6 flex flex-col justify-between shadow-2xl relative overflow-hidden">
           <div>
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-bold uppercase tracking-wider text-[#ff6600] flex items-center gap-1.5">
@@ -672,13 +672,13 @@ export default function AnalyticsPage() {
           </div>
 
           <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-[#222225]">
-            <div className="p-2.5 rounded-[8px] bg-[#1a1a1e]">
+            <div className="p-2.5 rounded-[10px] bg-[#1a1a1e]">
               <span className="text-[10px] text-neutral-400">Top Zone</span>
               <p className="font-bold text-white text-sm truncate">
                 {analytics.topCountries.length > 0 ? analytics.topCountries[0].name : "En attente"}
               </p>
             </div>
-            <div className="p-2.5 rounded-[8px] bg-[#1a1a1e]">
+            <div className="p-2.5 rounded-[10px] bg-[#1a1a1e]">
               <span className="text-[10px] text-neutral-400">Latence Edge</span>
               <p className="font-bold text-emerald-400 text-sm">&lt; 0.8 ms</p>
             </div>
@@ -720,7 +720,7 @@ export default function AnalyticsPage() {
           {/* Top Pays (Links to /dashboard/analytics/geo) */}
           <Link
             href="/dashboard/analytics/geo"
-            className="p-5 rounded-[12px] bg-[#141416] hover:bg-[#1a1a1e] border border-[#222225] hover:border-[#ff6600]/60 flex flex-col justify-between transition-all group cursor-pointer shadow-lg"
+            className="p-5 rounded-[10px] bg-[#141416] hover:bg-[#1a1a1e] border border-[#222225] hover:border-[#ff6600]/60 flex flex-col justify-between transition-all group cursor-pointer shadow-lg"
           >
             <div>
               <div className="flex items-center justify-between mb-3">
@@ -759,7 +759,7 @@ export default function AnalyticsPage() {
           {/* Top Villes (Links to /dashboard/analytics/geo) */}
           <Link
             href="/dashboard/analytics/geo"
-            className="p-5 rounded-[12px] bg-[#141416] hover:bg-[#1a1a1e] border border-[#222225] hover:border-emerald-500/60 flex flex-col justify-between transition-all group cursor-pointer shadow-lg"
+            className="p-5 rounded-[10px] bg-[#141416] hover:bg-[#1a1a1e] border border-[#222225] hover:border-emerald-500/60 flex flex-col justify-between transition-all group cursor-pointer shadow-lg"
           >
             <div>
               <div className="flex items-center justify-between mb-3">
@@ -793,7 +793,7 @@ export default function AnalyticsPage() {
           {/* Appareils (Links to /dashboard/analytics/devices) */}
           <Link
             href="/dashboard/analytics/devices"
-            className="p-5 rounded-[12px] bg-[#141416] hover:bg-[#1a1a1e] border border-[#222225] hover:border-blue-500/60 flex flex-col justify-between transition-all group cursor-pointer shadow-lg"
+            className="p-5 rounded-[10px] bg-[#141416] hover:bg-[#1a1a1e] border border-[#222225] hover:border-blue-500/60 flex flex-col justify-between transition-all group cursor-pointer shadow-lg"
           >
             <div>
               <div className="flex items-center justify-between mb-3">
@@ -825,7 +825,7 @@ export default function AnalyticsPage() {
           {/* Sources / Référents (Links to /dashboard/analytics/sources) */}
           <Link
             href="/dashboard/analytics/sources"
-            className="p-5 rounded-[12px] bg-[#141416] hover:bg-[#1a1a1e] border border-[#222225] hover:border-purple-500/60 flex flex-col justify-between transition-all group cursor-pointer shadow-lg"
+            className="p-5 rounded-[10px] bg-[#141416] hover:bg-[#1a1a1e] border border-[#222225] hover:border-purple-500/60 flex flex-col justify-between transition-all group cursor-pointer shadow-lg"
           >
             <div>
               <div className="flex items-center justify-between mb-3">
@@ -857,7 +857,7 @@ export default function AnalyticsPage() {
       </div>
 
       {/* DATAGRID 1: PERFORMANCE COMPARÉE PAR LIEN (With Scrollable Body & Pagination & Column Masking) */}
-      <div className="rounded-[14px] bg-[#141416] border border-[#222225] p-6 shadow-xl flex flex-col gap-4">
+      <div className="rounded-[10px] bg-[#141416] border border-[#222225] p-6 shadow-xl flex flex-col gap-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h3 className="text-base font-bold text-white">Performance Comparée par Lien</h3>
@@ -876,7 +876,7 @@ export default function AnalyticsPage() {
                   setSearchLinkQuery(e.target.value);
                   setPerfPage(1);
                 }}
-                className="w-full h-9 rounded-[8px] bg-[#1a1a1e] border border-[#27272a] px-3 text-xs text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#ff6600]"
+                className="w-full h-9 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] px-3 text-xs text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#ff6600]"
               />
             </div>
 
@@ -904,7 +904,7 @@ export default function AnalyticsPage() {
             return (
               <div
                 key={l.id}
-                className={`rounded-2xl bg-[#18181c] border border-[#27272a] p-3.5 flex flex-col gap-2.5 transition-all ${
+                className={`rounded-[10px] bg-[#18181c] border border-[#27272a] p-3.5 flex flex-col gap-2.5 transition-all ${
                   isSelected ? "border-[#ff6600] bg-[#ff6600]/5" : "hover:border-[#ff6600]/40"
                 }`}
               >
@@ -953,7 +953,7 @@ export default function AnalyticsPage() {
                 {/* Action button */}
                 <button
                   onClick={() => handleLinkSelectChange(l.id)}
-                  className={`w-full py-1.5 rounded-lg text-xs font-semibold transition-colors mt-0.5 cursor-pointer ${
+                  className={`w-full py-1.5 rounded-[10px] text-xs font-semibold transition-colors mt-0.5 cursor-pointer ${
                     isSelected
                       ? "bg-[#ff6600] text-white shadow-md shadow-[#ff6600]/30"
                       : "bg-white/5 hover:bg-[#ff6600] text-neutral-300 hover:text-white"
@@ -1091,7 +1091,7 @@ export default function AnalyticsPage() {
                       <td className="py-3.5 text-right pr-3">
                         <button
                           onClick={() => handleLinkSelectChange(l.id)}
-                          className="px-2.5 py-1 rounded-[6px] bg-white/5 hover:bg-[#ff6600] text-neutral-300 hover:text-white text-[11px] font-medium transition-colors cursor-pointer"
+                          className="px-2.5 py-1 rounded-[10px] bg-white/5 hover:bg-[#ff6600] text-neutral-300 hover:text-white text-[11px] font-medium transition-colors cursor-pointer"
                         >
                           {isSelected ? "Actif ✓" : "Analyser"}
                         </button>
@@ -1119,7 +1119,7 @@ export default function AnalyticsPage() {
             >
               <ChevronLeft className="w-3.5 h-3.5" />
             </Button>
-            <span className="font-mono text-white text-xs px-3 py-1 bg-[#1a1a1e] border border-[#27272a] rounded-[6px] whitespace-nowrap">
+            <span className="font-mono text-white text-xs px-3 py-1 bg-[#1a1a1e] border border-[#27272a] rounded-[10px] whitespace-nowrap">
               Page {perfPage} / {totalPerfPages}
             </span>
             <Button
@@ -1136,7 +1136,7 @@ export default function AnalyticsPage() {
       </div>
 
       {/* DATAGRID 2: REAL-TIME LIVE CLICK STREAM (With Scrollable Body & Pagination & Column Masking) */}
-      <div className="rounded-[14px] bg-[#141416] border border-[#222225] p-6 shadow-xl flex flex-col gap-4">
+      <div className="rounded-[10px] bg-[#141416] border border-[#222225] p-6 shadow-xl flex flex-col gap-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Activity className="w-5 h-5 text-[#ff6600] animate-pulse" />
@@ -1153,7 +1153,7 @@ export default function AnalyticsPage() {
                   setStreamSearch(e.target.value);
                   setStreamPage(1);
                 }}
-                className="w-full h-9 rounded-[8px] bg-[#1a1a1e] border border-[#27272a] px-3 text-xs text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#ff6600]"
+                className="w-full h-9 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] px-3 text-xs text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#ff6600]"
               />
             </div>
 
@@ -1176,7 +1176,7 @@ export default function AnalyticsPage() {
             paginatedEvents.map((evt) => (
               <div
                 key={evt.id}
-                className="rounded-xl bg-[#18181c] border border-[#27272a] p-3 flex flex-col gap-2 transition-all hover:border-[#ff6600]/40"
+                className="rounded-[10px] bg-[#18181c] border border-[#27272a] p-3 flex flex-col gap-2 transition-all hover:border-[#ff6600]/40"
               >
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-1.5 min-w-0">
@@ -1190,7 +1190,7 @@ export default function AnalyticsPage() {
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between text-[11px] bg-[#090b10] px-2.5 py-1.5 rounded-lg border border-[#222225]">
+                <div className="flex items-center justify-between text-[11px] bg-[#090b10] px-2.5 py-1.5 rounded-[10px] border border-[#222225]">
                   <span className="font-mono font-bold text-[#ff6600]">/{evt.slug}</span>
                   <div className="flex items-center gap-1 text-neutral-400 text-[10px]">
                     <span>{evt.device?.toLowerCase().includes("mobile") ? "📱 Mobile" : "💻 Desktop"}</span>
@@ -1258,7 +1258,7 @@ export default function AnalyticsPage() {
 
                   {visibleStreamCols.has("source") && (
                     <td className="py-3 text-neutral-400">
-                      <span className="px-2 py-0.5 rounded-[6px] bg-white/5 border border-[#27272a] text-[10px] font-mono">
+                      <span className="px-2 py-0.5 rounded-[10px] bg-white/5 border border-[#27272a] text-[10px] font-mono">
                         {evt.referrer}
                       </span>
                     </td>
@@ -1296,7 +1296,7 @@ export default function AnalyticsPage() {
             >
               <ChevronLeft className="w-3.5 h-3.5" />
             </Button>
-            <span className="font-mono text-white text-xs px-3 py-1 bg-[#1a1a1e] border border-[#27272a] rounded-[6px] whitespace-nowrap">
+            <span className="font-mono text-white text-xs px-3 py-1 bg-[#1a1a1e] border border-[#27272a] rounded-[10px] whitespace-nowrap">
               Page {streamPage} / {totalStreamPages}
             </span>
             <Button

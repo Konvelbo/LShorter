@@ -240,7 +240,7 @@ export default function PricingPage() {
           return (
             <div
               key={p.id}
-              className={`relative flex flex-col justify-between p-6 sm:p-7 rounded-[16px] bg-[#141416] border transition-all duration-300 ${
+              className={`relative flex flex-col justify-between p-6 sm:p-7 rounded-[10px] bg-[#141416] border transition-all duration-300 ${
                 p.popular
                   ? "border-[#ff6600] shadow-2xl shadow-[#ff6600]/15 ring-1 ring-[#ff6600]"
                   : "border-[#27272a] hover:border-neutral-500"
@@ -329,7 +329,7 @@ export default function PricingPage() {
           </p>
         </div>
 
-        <div className="rounded-[14px] bg-[#141416] border border-[#27272a] overflow-hidden shadow-2xl">
+        <div className="rounded-[10px] bg-[#141416] border border-[#27272a] overflow-hidden shadow-2xl">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
               <thead>

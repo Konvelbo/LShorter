@@ -30,7 +30,7 @@ export function DeleteConfirmModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
       <div
-        className="relative w-full max-w-md bg-[#141416] border border-[#27272a] rounded-[16px] shadow-2xl p-6 flex flex-col gap-5 animate-in zoom-in-95 duration-200"
+        className="relative w-full max-w-md bg-[#141416] border border-[#27272a] rounded-[10px] shadow-2xl p-6 flex flex-col gap-5 animate-in zoom-in-95 duration-200"
         role="dialog"
         aria-modal="true"
       >
@@ -38,7 +38,7 @@ export function DeleteConfirmModal({
         <button
           onClick={onClose}
           disabled={isDeleting}
-          className="absolute right-4 top-4 p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-50"
+          className="absolute right-4 top-4 p-1.5 rounded-[10px] text-neutral-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-50"
           aria-label="Fermer"
         >
           <X className="w-4 h-4" />
@@ -46,7 +46,7 @@ export function DeleteConfirmModal({
 
         {/* Header with Danger Icon */}
         <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500 shrink-0 shadow-lg shadow-red-500/10">
+          <div className="w-12 h-12 rounded-[10px] bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500 shrink-0 shadow-lg shadow-red-500/10">
             <AlertTriangle className="w-6 h-6 animate-pulse" />
           </div>
           <div className="flex flex-col gap-1 pr-4">
@@ -61,11 +61,11 @@ export function DeleteConfirmModal({
 
         {/* Items preview if any */}
         {itemLabels.length > 0 && (
-          <div className="bg-[#1a1a1e] border border-[#27272a] rounded-xl p-3 max-h-28 overflow-y-auto flex flex-wrap gap-1.5">
+          <div className="bg-[#1a1a1e] border border-[#27272a] rounded-[10px] p-3 max-h-28 overflow-y-auto flex flex-wrap gap-1.5">
             {itemLabels.slice(0, 10).map((label, idx) => (
               <span
                 key={idx}
-                className="px-2 py-0.5 rounded-md bg-red-500/10 border border-red-500/20 text-red-400 font-mono text-[11px] font-semibold"
+                className="px-2 py-0.5 rounded-[10px] bg-red-500/10 border border-red-500/20 text-red-400 font-mono text-[11px] font-semibold"
               >
                 /{label}
               </span>

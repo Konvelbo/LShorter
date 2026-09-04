@@ -279,7 +279,7 @@ export function PopulatedState({ links, analytics, onRefresh }: PopulatedStatePr
               {recentLinks.map((link) => (
                 <div
                   key={link.id}
-                  className="rounded-xl bg-[#18181c] border border-[#27272a] p-3 flex flex-col gap-2 transition-all hover:border-[#ff6600]/40"
+                  className="rounded-[10px] bg-[#18181c] border border-[#27272a] p-3 flex flex-col gap-2 transition-all hover:border-[#ff6600]/40"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
@@ -307,7 +307,7 @@ export function PopulatedState({ links, analytics, onRefresh }: PopulatedStatePr
                   <div className="flex items-center justify-between pt-2 border-t border-[#222225] text-xs">
                     <button
                       onClick={() => handleCopy(link)}
-                      className="px-2.5 py-1 rounded-lg bg-[#ff6600]/15 text-[#ff771a] border border-[#ff6600]/30 hover:bg-[#ff6600] hover:text-white text-[11px] font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
+                      className="px-2.5 py-1 rounded-[10px] bg-[#ff6600]/15 text-[#ff771a] border border-[#ff6600]/30 hover:bg-[#ff6600] hover:text-white text-[11px] font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
                     >
                       {copiedId === link.id ? (
                         <>
@@ -325,21 +325,21 @@ export function PopulatedState({ links, analytics, onRefresh }: PopulatedStatePr
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => setSelectedEditLink(link)}
-                        className="p-1.5 rounded-lg bg-white/5 text-neutral-400 hover:text-white"
+                        className="p-1.5 rounded-[10px] bg-white/5 text-neutral-400 hover:text-white"
                         title="Modifier"
                       >
                         <Edit3 className="w-3.5 h-3.5 text-[#ff6600]" />
                       </button>
                       <button
                         onClick={() => setSelectedQRLink(link)}
-                        className="p-1.5 rounded-lg bg-white/5 text-neutral-400 hover:text-white"
+                        className="p-1.5 rounded-[10px] bg-white/5 text-neutral-400 hover:text-white"
                         title="QR Code"
                       >
                         <QrCode className="w-3.5 h-3.5 text-[#ff6600]" />
                       </button>
                       <button
                         onClick={() => setSelectedShareLink(link)}
-                        className="p-1.5 rounded-lg bg-white/5 text-neutral-400 hover:text-white"
+                        className="p-1.5 rounded-[10px] bg-white/5 text-neutral-400 hover:text-white"
                         title="Partager"
                       >
                         <Share2 className="w-3.5 h-3.5" />
@@ -348,7 +348,7 @@ export function PopulatedState({ links, analytics, onRefresh }: PopulatedStatePr
                         href={link.shortUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-1.5 rounded-lg bg-white/5 text-neutral-400 hover:text-white"
+                        className="p-1.5 rounded-[10px] bg-white/5 text-neutral-400 hover:text-white"
                         title="Tester"
                       >
                         <ExternalLink className="w-3.5 h-3.5" />
@@ -390,7 +390,7 @@ export function PopulatedState({ links, analytics, onRefresh }: PopulatedStatePr
                           <span>{link.shortUrl}</span>
                           <button
                             onClick={() => handleCopy(link)}
-                            className="text-neutral-500 hover:text-white p-1 rounded transition-colors cursor-pointer"
+                            className="text-neutral-500 hover:text-white p-1 rounded-[10px] transition-colors cursor-pointer"
                             title="Copier le lien"
                           >
                             {copiedId === link.id ? (
@@ -416,21 +416,21 @@ export function PopulatedState({ links, analytics, onRefresh }: PopulatedStatePr
                         <div className="flex items-center justify-end gap-1">
                           <button
                             onClick={() => setSelectedEditLink(link)}
-                            className="p-1.5 rounded-[6px] text-neutral-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                            className="p-1.5 rounded-[10px] text-neutral-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
                             title="Modifier le lien"
                           >
                             <Edit3 className="w-3.5 h-3.5 text-[#ff6600]" />
                           </button>
                           <button
                             onClick={() => setSelectedQRLink(link)}
-                            className="p-1.5 rounded-[6px] text-neutral-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                            className="p-1.5 rounded-[10px] text-neutral-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
                             title="Générer QR Code"
                           >
                             <QrCode className="w-3.5 h-3.5 text-[#ff6600]" />
                           </button>
                           <button
                             onClick={() => setSelectedShareLink(link)}
-                            className="p-1.5 rounded-[6px] text-neutral-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                            className="p-1.5 rounded-[10px] text-neutral-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
                             title="Partager"
                           >
                             <Share2 className="w-3.5 h-3.5" />
@@ -439,7 +439,7 @@ export function PopulatedState({ links, analytics, onRefresh }: PopulatedStatePr
                             href={link.shortUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="p-1.5 rounded-[6px] text-neutral-400 hover:text-white hover:bg-white/10 transition-colors"
+                            className="p-1.5 rounded-[10px] text-neutral-400 hover:text-white hover:bg-white/10 transition-colors"
                             title="Tester la redirection"
                           >
                             <ExternalLink className="w-3.5 h-3.5" />

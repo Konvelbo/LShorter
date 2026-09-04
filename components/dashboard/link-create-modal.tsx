@@ -52,7 +52,7 @@ interface LinkCreateModalProps {
 function FieldErrorAlert({ message }: { message?: string }) {
   if (!message) return null;
   return (
-    <div className="flex items-center gap-1.5 text-xs text-red-400 bg-red-500/10 border border-red-500/30 rounded-[8px] px-2.5 py-1.5 mt-1.5 animate-in fade-in slide-in-from-top-1">
+    <div className="flex items-center gap-1.5 text-xs text-red-400 bg-red-500/10 border border-red-500/30 rounded-[10px] px-2.5 py-1.5 mt-1.5 animate-in fade-in slide-in-from-top-1">
       <AlertCircle className="w-3.5 h-3.5 shrink-0 text-red-500" />
       <span className="font-medium leading-tight">{message}</span>
     </div>
@@ -76,7 +76,7 @@ function LockedProFeature({
   }
 
   return (
-    <div className="relative rounded-[12px] overflow-hidden border border-amber-500/25 bg-[#16161a] p-4 group select-none">
+    <div className="relative rounded-[10px] overflow-hidden border border-amber-500/25 bg-[#16161a] p-4 group select-none">
       {/* Blurred & Disabled Content */}
       <div className="opacity-25 pointer-events-none select-none filter blur-[1.5px]">
         {children}
@@ -85,13 +85,13 @@ function LockedProFeature({
       {/* Frosted Glass Overlay */}
       <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/80 to-black/90 backdrop-blur-[3px] flex flex-col sm:flex-row items-center justify-between px-5 py-3 gap-3.5 z-10">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shrink-0 shadow-lg shadow-amber-500/10">
+          <div className="w-8 h-8 rounded-[10px] bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shrink-0 shadow-lg shadow-amber-500/10">
             <Lock className="w-4 h-4 text-amber-400" />
           </div>
           <div>
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold text-white tracking-wide">{title}</span>
-              <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 font-extrabold text-[9px] border border-amber-500/30 tracking-wider">
+              <span className="px-1.5 py-0.5 rounded-[10px] bg-amber-500/20 text-amber-400 font-extrabold text-[9px] border border-amber-500/30 tracking-wider">
                 PLAN PRO
               </span>
             </div>
@@ -110,7 +110,7 @@ function LockedProFeature({
               targetPlan: "PRO",
             })
           }
-          className="px-3.5 py-1.5 rounded-[8px] bg-gradient-to-r from-[#ff6600] to-amber-500 hover:from-[#ff7711] hover:to-amber-400 text-white font-bold text-xs shadow-lg shadow-[#ff6600]/25 transition-all flex items-center gap-1.5 shrink-0 cursor-pointer"
+          className="px-3.5 py-1.5 rounded-[10px] bg-gradient-to-r from-[#ff6600] to-amber-500 hover:from-[#ff7711] hover:to-amber-400 text-white font-bold text-xs shadow-lg shadow-[#ff6600]/25 transition-all flex items-center gap-1.5 shrink-0 cursor-pointer"
         >
           <Sparkles className="w-3.5 h-3.5" />
           <span>Débloquer avec PRO</span>
@@ -651,7 +651,7 @@ export function LinkCreateModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in select-none">
-      <div className="relative w-full max-w-3xl rounded-[14px] bg-[#141416] border border-[#27272a] p-6 sm:p-8 shadow-2xl text-white max-h-[92vh] overflow-y-auto">
+      <div className="relative w-full max-w-3xl rounded-[10px] bg-[#141416] border border-[#27272a] p-6 sm:p-8 shadow-2xl text-white max-h-[92vh] overflow-y-auto">
         {/* Close button */}
         <button
           onClick={onClose}
@@ -674,7 +674,7 @@ export function LinkCreateModal({
         </div>
 
         {/* Top Common Fields: Destination URL & Short Link */}
-        <div className="p-4 rounded-[12px] bg-[#1a1a1e] border border-[#27272a] flex flex-col gap-4 mb-6">
+        <div className="p-4 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] flex flex-col gap-4 mb-6">
           <div>
             <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
               URL de destination <span className="text-[#ff6600]">*</span>
@@ -748,7 +748,7 @@ export function LinkCreateModal({
           <button
             type="button"
             onClick={() => setActiveTab("social")}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-semibold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] font-semibold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
               activeTab === "social"
                 ? "bg-[#ff6600] text-white shadow-md font-bold"
                 : "text-neutral-400 hover:text-white hover:bg-white/5"
@@ -761,7 +761,7 @@ export function LinkCreateModal({
           <button
             type="button"
             onClick={() => setActiveTab("tracking")}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-semibold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] font-semibold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
               activeTab === "tracking"
                 ? "bg-[#ff6600] text-white shadow-md font-bold"
                 : "text-neutral-400 hover:text-white hover:bg-white/5"
@@ -774,7 +774,7 @@ export function LinkCreateModal({
           <button
             type="button"
             onClick={() => setActiveTab("routing")}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-semibold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] font-semibold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
               activeTab === "routing"
                 ? "bg-[#ff6600] text-white shadow-md font-bold"
                 : "text-neutral-400 hover:text-white hover:bg-white/5"
@@ -787,7 +787,7 @@ export function LinkCreateModal({
           <button
             type="button"
             onClick={() => setActiveTab("protection")}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-semibold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] font-semibold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
               activeTab === "protection"
                 ? "bg-[#ff6600] text-white shadow-md font-bold"
                 : "text-neutral-400 hover:text-white hover:bg-white/5"
@@ -803,7 +803,7 @@ export function LinkCreateModal({
           <button
             type="button"
             onClick={() => setActiveTab("ab_testing")}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-semibold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] font-semibold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
               activeTab === "ab_testing"
                 ? "bg-[#ff6600] text-white shadow-md font-bold"
                 : "text-neutral-400 hover:text-white hover:bg-white/5"
@@ -819,7 +819,7 @@ export function LinkCreateModal({
           <button
             type="button"
             onClick={() => setActiveTab("advanced")}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-semibold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] font-semibold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
               activeTab === "advanced"
                 ? "bg-[#ff6600] text-white shadow-md font-bold"
                 : "text-neutral-400 hover:text-white hover:bg-white/5"
@@ -896,7 +896,7 @@ export function LinkCreateModal({
                 {/* Live Social Card Preview */}
                 <div className="flex flex-col gap-2">
                   <span className="text-xs font-semibold text-neutral-400">Aperçu en direct (Twitter / WhatsApp)</span>
-                  <div className="rounded-[12px] bg-[#1a1a1e] border border-[#27272a] overflow-hidden shadow-lg">
+                  <div className="rounded-[10px] bg-[#1a1a1e] border border-[#27272a] overflow-hidden shadow-lg">
                     <div
                       onClick={() => !isUploadingImage && bannerInputRef.current?.click()}
                       className="w-full h-36 bg-neutral-800 relative flex items-center justify-center overflow-hidden cursor-pointer group hover:bg-neutral-750 transition-colors"
@@ -917,7 +917,7 @@ export function LinkCreateModal({
                             unoptimized
                           />
                           <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                            <span className="text-xs font-semibold text-white bg-black/70 px-2.5 py-1 rounded flex items-center gap-1">
+                            <span className="text-xs font-semibold text-white bg-black/70 px-2.5 py-1 rounded-[10px] flex items-center gap-1">
                               <Upload className="w-3 h-3 text-[#ff6600]" /> Remplacer
                             </span>
                             <button
@@ -926,7 +926,7 @@ export function LinkCreateModal({
                                 e.stopPropagation();
                                 setOgImage("");
                               }}
-                              className="text-xs font-semibold text-red-400 bg-black/70 px-2.5 py-1 rounded hover:text-red-300"
+                              className="text-xs font-semibold text-red-400 bg-black/70 px-2.5 py-1 rounded-[10px] hover:text-red-300"
                             >
                               Supprimer
                             </button>
@@ -1141,7 +1141,7 @@ export function LinkCreateModal({
                       type="checkbox"
                       checked={hasClickLimit}
                       onChange={(e) => setHasClickLimit(e.target.checked)}
-                      className="w-4 h-4 accent-[#ff6600] rounded cursor-pointer"
+                      className="w-4 h-4 accent-[#ff6600] rounded-[10px] cursor-pointer"
                     />
                   </label>
 
@@ -1151,11 +1151,11 @@ export function LinkCreateModal({
                         <span className="text-[11px] text-neutral-300 font-medium">
                           Nombre maximal de clics :
                         </span>
-                        <div className="inline-flex items-center rounded-lg bg-[#121215] border border-[#2a2a32] p-0.5 focus-within:border-[#ff6600] transition-colors">
+                        <div className="inline-flex items-center rounded-[10px] bg-[#121215] border border-[#2a2a32] p-0.5 focus-within:border-[#ff6600] transition-colors">
                           <button
                             type="button"
                             onClick={() => setMaxClicks((prev) => Math.max(1, (Number(prev) || 1) - 1))}
-                            className="w-7 h-7 flex items-center justify-center rounded-md text-neutral-400 hover:text-white hover:bg-[#202026] active:scale-95 transition-all text-xs cursor-pointer font-bold"
+                            className="w-7 h-7 flex items-center justify-center rounded-[10px] text-neutral-400 hover:text-white hover:bg-[#202026] active:scale-95 transition-all text-xs cursor-pointer font-bold"
                             title="Diminuer"
                           >
                             -
@@ -1179,7 +1179,7 @@ export function LinkCreateModal({
                           <button
                             type="button"
                             onClick={() => setMaxClicks((prev) => (Number(prev) || 0) + 1)}
-                            className="w-7 h-7 flex items-center justify-center rounded-md text-neutral-400 hover:text-white hover:bg-[#202026] active:scale-95 transition-all text-xs cursor-pointer font-bold"
+                            className="w-7 h-7 flex items-center justify-center rounded-[10px] text-neutral-400 hover:text-white hover:bg-[#202026] active:scale-95 transition-all text-xs cursor-pointer font-bold"
                             title="Augmenter"
                           >
                             +
@@ -1256,7 +1256,7 @@ export function LinkCreateModal({
                 isUnlocked={isProPlan}
               >
                 <div className="flex flex-col gap-3">
-                  <div className="p-3 rounded-xl bg-[#ff6600]/10 border border-[#ff6600]/30 text-xs text-[#ff6600] flex items-start gap-2">
+                  <div className="p-3 rounded-[10px] bg-[#ff6600]/10 border border-[#ff6600]/30 text-xs text-[#ff6600] flex items-start gap-2">
                     <Split className="w-4 h-4 shrink-0 mt-0.5" />
                     <div>
                       <strong>A/B Testing Multi-Variantes :</strong> Répartissez automatiquement les visiteurs de votre lien court vers différentes pages de vente ou produits pour voir laquelle performe le mieux.
@@ -1264,10 +1264,10 @@ export function LinkCreateModal({
                   </div>
 
                   {/* Variante A : Destination Principale */}
-                  <div className="p-3.5 rounded-xl bg-[#19191d] border border-[#27272e] flex flex-col gap-2">
+                  <div className="p-3.5 rounded-[10px] bg-[#19191d] border border-[#27272e] flex flex-col gap-2">
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-white flex items-center gap-1.5 text-xs">
-                        <span className="w-5 h-5 rounded-full bg-[#ff6600] text-white flex items-center justify-center text-[10px] font-bold">A</span>
+                        <span className="w-5 h-5 rounded-[10px] bg-[#ff6600] text-white flex items-center justify-center text-[10px] font-bold">A</span>
                         <span>Variante A (URL Principale)</span>
                       </span>
                       <div className="flex items-center gap-1.5">
@@ -1278,22 +1278,22 @@ export function LinkCreateModal({
                           max="100"
                           value={mainWeight}
                           onChange={(e) => setMainWeight(Math.max(1, Math.min(100, Number(e.target.value) || 0)))}
-                          className="w-14 h-8 rounded-lg bg-[#121215] border border-[#27272a] text-center text-xs font-mono font-bold text-white focus:border-[#ff6600] focus:outline-none"
+                          className="w-14 h-8 rounded-[10px] bg-[#121215] border border-[#27272a] text-center text-xs font-mono font-bold text-white focus:border-[#ff6600] focus:outline-none"
                         />
                         <span className="text-neutral-400 font-bold">%</span>
                       </div>
                     </div>
-                    <div className="text-[11px] font-mono text-neutral-300 bg-[#121215] px-3 py-2 rounded-lg border border-[#222227] truncate">
+                    <div className="text-[11px] font-mono text-neutral-300 bg-[#121215] px-3 py-2 rounded-[10px] border border-[#222227] truncate">
                       {targetUrl.trim() || <span className="text-neutral-500 italic">Renseignez l&apos;URL de destination ci-dessus</span>}
                     </div>
                   </div>
 
                   {/* Variantes additionnelles B, C, D... */}
                   {abVariations.map((v, i) => (
-                    <div key={i} className="p-3.5 rounded-xl bg-[#19191d] border border-[#27272e] flex flex-col gap-2">
+                    <div key={i} className="p-3.5 rounded-[10px] bg-[#19191d] border border-[#27272e] flex flex-col gap-2">
                       <div className="flex items-center justify-between">
                         <span className="font-bold text-white flex items-center gap-1.5 text-xs">
-                          <span className="w-5 h-5 rounded-full bg-sky-500 text-white flex items-center justify-center text-[10px] font-bold">
+                          <span className="w-5 h-5 rounded-[10px] bg-sky-500 text-white flex items-center justify-center text-[10px] font-bold">
                             {String.fromCharCode(66 + i)}
                           </span>
                           <span>Variante {String.fromCharCode(66 + i)}</span>
@@ -1310,13 +1310,13 @@ export function LinkCreateModal({
                               updated[i].weight = Math.max(1, Math.min(100, Number(e.target.value) || 0));
                               setAbVariations(updated);
                             }}
-                            className="w-14 h-8 rounded-lg bg-[#121215] border border-[#27272a] text-center text-xs font-mono font-bold text-white focus:border-[#ff6600] focus:outline-none"
+                            className="w-14 h-8 rounded-[10px] bg-[#121215] border border-[#27272a] text-center text-xs font-mono font-bold text-white focus:border-[#ff6600] focus:outline-none"
                           />
                           <span className="text-neutral-400 font-bold">%</span>
                           <button
                             type="button"
                             onClick={() => handleRemoveVariation(i)}
-                            className="w-7 h-7 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 flex items-center justify-center ml-1 transition-colors"
+                            className="w-7 h-7 rounded-[10px] bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 flex items-center justify-center ml-1 transition-colors"
                             title="Supprimer cette variante"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -1347,7 +1347,7 @@ export function LinkCreateModal({
                     <button
                       type="button"
                       onClick={handleAddVariation}
-                      className="w-full flex items-center justify-center gap-1.5 h-10 px-3.5 rounded-xl bg-[#202026] hover:bg-[#282830] active:scale-98 text-neutral-200 hover:text-white font-semibold text-xs border border-[#2c2c34] transition-all cursor-pointer shadow-sm"
+                      className="w-full flex items-center justify-center gap-1.5 h-10 px-3.5 rounded-[10px] bg-[#202026] hover:bg-[#282830] active:scale-98 text-neutral-200 hover:text-white font-semibold text-xs border border-[#2c2c34] transition-all cursor-pointer shadow-sm"
                     >
                       <Plus className="w-4 h-4 text-[#ff6600]" />
                       <span>Ajouter une variante</span>
@@ -1356,7 +1356,7 @@ export function LinkCreateModal({
                     <button
                       type="button"
                       onClick={handleAutoBalance}
-                      className="w-full flex items-center justify-center gap-1.5 h-10 px-3.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 active:scale-98 text-amber-400 text-xs font-semibold border border-amber-500/30 transition-all cursor-pointer shadow-sm"
+                      className="w-full flex items-center justify-center gap-1.5 h-10 px-3.5 rounded-[10px] bg-amber-500/10 hover:bg-amber-500/20 active:scale-98 text-amber-400 text-xs font-semibold border border-amber-500/30 transition-all cursor-pointer shadow-sm"
                     >
                       <Sparkles className="w-4 h-4" />
                       <span>Équilibrer automatiquement (100%)</span>
@@ -1368,7 +1368,7 @@ export function LinkCreateModal({
                     const total = mainWeight + abVariations.reduce((sum, v) => sum + (Number(v.weight) || 0), 0);
                     return (
                       <div className="flex flex-col gap-1.5">
-                        <div className={`p-2.5 rounded-lg text-xs flex items-center justify-between ${
+                        <div className={`p-2.5 rounded-[10px] text-xs flex items-center justify-between ${
                           total === 100 
                             ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-400" 
                             : "bg-red-500/15 border border-red-500/40 text-red-400"
@@ -1418,7 +1418,7 @@ export function LinkCreateModal({
                   type="checkbox"
                   checked={passParams}
                   onChange={(e) => setPassParams(e.target.checked)}
-                  className="w-4 h-4 accent-[#ff6600] cursor-pointer"
+                  className="w-4 h-4 accent-[#ff6600] rounded-[10px] cursor-pointer"
                 />
               </label>
             </div>
@@ -1443,7 +1443,7 @@ export function LinkCreateModal({
               type="button"
               variant="outline"
               onClick={onClose}
-              className="h-11 sm:h-9 text-xs cursor-pointer rounded-xl border-[#27272a] text-white hover:bg-white/5"
+              className="h-11 sm:h-9 text-xs cursor-pointer rounded-[10px] border-[#27272a] text-white hover:bg-white/5"
             >
               Annuler
             </Button>
@@ -1451,7 +1451,7 @@ export function LinkCreateModal({
               type="submit"
               variant="glow"
               disabled={isSubmitting}
-              className="h-11 sm:h-9 text-xs font-bold cursor-pointer rounded-xl shadow-lg shadow-[#ff6600]/25"
+              className="h-11 sm:h-9 text-xs font-bold cursor-pointer rounded-[10px] shadow-lg shadow-[#ff6600]/25"
             >
               {isSubmitting ? "Création..." : "Créer le Lien"}
             </Button>

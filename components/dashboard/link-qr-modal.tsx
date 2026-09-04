@@ -115,7 +115,7 @@ export function LinkQRModal({ isOpen, onClose, link }: LinkQRModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in">
-      <div className="relative w-full max-w-md rounded-[14px] bg-[#141416] border border-[#27272a] p-6 shadow-2xl text-white">
+      <div className="relative w-full max-w-md rounded-[10px] bg-[#141416] border border-[#27272a] p-6 shadow-2xl text-white">
         {/* Close Button */}
         <button
           onClick={onClose}
@@ -138,7 +138,7 @@ export function LinkQRModal({ isOpen, onClose, link }: LinkQRModalProps) {
         </div>
 
         {/* QR Code Canvas Preview */}
-        <div className="p-4 rounded-[12px] bg-white flex items-center justify-center shadow-lg mb-5 aspect-square max-w-[220px] mx-auto">
+        <div className="p-4 rounded-[10px] bg-white flex items-center justify-center shadow-lg mb-5 aspect-square max-w-[220px] mx-auto">
           <canvas ref={canvasRef} className="w-full h-full object-contain" />
         </div>
 
@@ -193,7 +193,7 @@ export function LinkQRModal({ isOpen, onClose, link }: LinkQRModalProps) {
               type="checkbox"
               checked={includeQuietZone}
               onChange={(e) => setIncludeQuietZone(e.target.checked)}
-              className="w-4 h-4 accent-[#ff6600] cursor-pointer"
+              className="w-4 h-4 accent-[#ff6600] rounded-[10px] cursor-pointer"
             />
             <span>Bordure de marge blanche (Quiet zone)</span>
           </label>
@@ -237,7 +237,7 @@ export function LinkQRModal({ isOpen, onClose, link }: LinkQRModalProps) {
           onClick={() => {
             window.location.href = `/dashboard/qr-code?url=${encodeURIComponent(link.shortUrl)}`;
           }}
-          className="w-full py-2 rounded-[8px] bg-white/5 hover:bg-white/10 text-neutral-400 hover:text-white text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+          className="w-full py-2 rounded-[10px] bg-white/5 hover:bg-white/10 text-neutral-400 hover:text-white text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
         >
           <Sliders className="w-3.5 h-3.5 text-[#ff6600]" />
           <span>Personnaliser dans l&apos;éditeur complet (Logo, Styles)</span>

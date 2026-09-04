@@ -62,7 +62,7 @@ export function AnalyticsPieChart({
   };
 
   return (
-    <div className="rounded-[14px] bg-[#141416] border border-[#222225] p-6 flex flex-col justify-between shadow-2xl relative overflow-hidden h-full">
+    <div className="rounded-[10px] bg-[#141416] border border-[#222225] p-6 flex flex-col justify-between shadow-2xl relative overflow-hidden h-full">
       {/* Top Header with Switcher */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#222225]">
         <div>
@@ -78,14 +78,14 @@ export function AnalyticsPieChart({
         </div>
 
         {/* View Switcher */}
-        <div className="w-full sm:w-auto grid grid-cols-2 sm:flex sm:items-center gap-1 p-1 bg-[#1a1a1e] border border-[#27272a] rounded-[8px] text-xs">
+        <div className="w-full sm:w-auto grid grid-cols-2 sm:flex sm:items-center gap-1 p-1 bg-[#1a1a1e] border border-[#27272a] rounded-[10px] text-xs">
           <button
             type="button"
             onClick={() => {
               setActiveTab("links");
               setHoveredSlice(null);
             }}
-            className={`text-center px-3 py-1.5 rounded-[6px] font-semibold transition-all cursor-pointer ${
+            className={`text-center px-3 py-1.5 rounded-[10px] font-semibold transition-all cursor-pointer ${
               activeTab === "links"
                 ? "bg-[#ff6600] text-white shadow-md font-bold"
                 : "text-neutral-400 hover:text-white"
@@ -99,7 +99,7 @@ export function AnalyticsPieChart({
               setActiveTab("channels");
               setHoveredSlice(null);
             }}
-            className={`text-center px-3 py-1.5 rounded-[6px] font-semibold transition-all cursor-pointer ${
+            className={`text-center px-3 py-1.5 rounded-[10px] font-semibold transition-all cursor-pointer ${
               activeTab === "channels"
                 ? "bg-[#ff6600] text-white shadow-md font-bold"
                 : "text-neutral-400 hover:text-white"
@@ -212,7 +212,7 @@ export function AnalyticsPieChart({
                       {formatNumber(slice.value)}
                     </span>
                     <span
-                      className="px-2 py-0.5 rounded-[6px] text-[10px] font-extrabold font-mono"
+                      className="px-2 py-0.5 rounded-[10px] text-[10px] font-extrabold font-mono"
                       style={{
                         backgroundColor: `${slice.color}20`,
                         color: slice.color,

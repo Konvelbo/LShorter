@@ -49,7 +49,7 @@ export function MarketingHeader() {
               >
                 <span>{item.label}</span>
                 {item.badge && (
-                  <span className="px-1.5 py-0.5 rounded-md bg-white/10 text-neutral-400 text-[10px] font-mono transition-colors duration-200">
+                  <span className="px-1.5 py-0.5 rounded-[10px] bg-white/10 text-neutral-400 text-[10px] font-mono transition-colors duration-200">
                     {item.badge}
                   </span>
                 )}
@@ -85,10 +85,10 @@ export function MarketingHeader() {
       {/* =========================================================================
           MOBILE NAVBAR: Preserved exactly for mobile devices
           ========================================================================= */}
-      <header className="flex md:hidden max-w-6xl mx-auto bg-[#0d0d12]/85 backdrop-blur-2xl border border-white/10 shadow-[0_12px_40px_rgba(0,0,0,0.65),0_0_20px_rgba(0,102,255,0.12)] rounded-2xl px-3.5 py-2 items-center justify-between pointer-events-auto transition-all duration-300">
+      <header className="flex md:hidden max-w-6xl mx-auto bg-[#0d0d12]/85 backdrop-blur-2xl border border-white/10 shadow-[0_12px_40px_rgba(0,0,0,0.65),0_0_20px_rgba(0,102,255,0.12)] rounded-[10px] px-3.5 py-2 items-center justify-between pointer-events-auto transition-all duration-300">
         {/* Brand Logo with LS Badge */}
         <Link href="/" className="flex items-center gap-2.5 group select-none">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#0066FF] to-[#38bdf8] flex items-center justify-center shadow-lg shadow-[#0066FF]/30 font-bebas text-xl text-white font-bold tracking-wider">
+          <div className="w-8 h-8 rounded-[10px] bg-gradient-to-tr from-[#0066FF] to-[#38bdf8] flex items-center justify-center shadow-lg shadow-[#0066FF]/30 font-bebas text-xl text-white font-bold tracking-wider">
             LS
           </div>
           <span className="font-bebas text-2xl text-white tracking-wider flex items-center gap-0.5">
@@ -111,11 +111,11 @@ export function MarketingHeader() {
 
       {/* Mobile Animated Floating Dropdown Frame */}
       {isMobileMenuOpen && (
-        <div className="md:hidden max-w-6xl mx-auto mt-2 rounded-2xl bg-[#0d0d12]/95 backdrop-blur-2xl border border-white/10 shadow-2xl p-4 flex flex-col gap-2.5 animate-in slide-in-from-top-2 duration-200 pointer-events-auto">
+        <div className="md:hidden max-w-6xl mx-auto mt-2 rounded-[10px] bg-[#0d0d12]/95 backdrop-blur-2xl border border-white/10 shadow-2xl p-4 flex flex-col gap-2.5 animate-in slide-in-from-top-2 duration-200 pointer-events-auto">
           <Link
             href="/"
             onClick={() => setIsMobileMenuOpen(false)}
-            className="nav-link-item flex items-center justify-between p-2.5 rounded-xl text-sm font-medium"
+            className="nav-link-item flex items-center justify-between p-2.5 rounded-[10px] text-sm font-medium"
           >
             <span>Accueil</span>
             <span className="text-xs text-neutral-500">→</span>
@@ -123,7 +123,7 @@ export function MarketingHeader() {
           <Link
             href="/pricing"
             onClick={() => setIsMobileMenuOpen(false)}
-            className="nav-link-item flex items-center justify-between p-2.5 rounded-xl text-sm font-medium"
+            className="nav-link-item flex items-center justify-between p-2.5 rounded-[10px] text-sm font-medium"
           >
             <span>Tarifs &amp; Abonnements</span>
             <span className="text-xs text-neutral-500">→</span>
@@ -131,25 +131,25 @@ export function MarketingHeader() {
           <Link
             href="/docs"
             onClick={() => setIsMobileMenuOpen(false)}
-            className="nav-link-item flex items-center justify-between p-2.5 rounded-xl text-sm font-medium"
+            className="nav-link-item flex items-center justify-between p-2.5 rounded-[10px] text-sm font-medium"
           >
             <span className="flex items-center gap-2">
               <Code2 className="w-4 h-4 text-[#0066FF]" />
               <span>Documentation API &amp; SDK</span>
             </span>
-            <span className="px-1.5 py-0.5 rounded bg-white/10 text-neutral-400 text-[10px] font-mono">
+            <span className="px-1.5 py-0.5 rounded-[10px] bg-white/10 text-neutral-400 text-[10px] font-mono">
               v1
             </span>
           </Link>
 
           <div className="pt-3 border-t border-white/10 flex flex-col gap-2 mt-1">
             <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
-              <Button variant="outline" className="w-full text-xs h-9 justify-center cursor-pointer border-[#27272a] text-white rounded-xl hover:text-[#ff6600] hover:border-[#ff6600]/30 hover:bg-[#ff6600]/10">
+              <Button variant="outline" className="w-full text-xs h-9 justify-center cursor-pointer border-[#27272a] text-white rounded-[10px] hover:text-[#ff6600] hover:border-[#ff6600]/30 hover:bg-[#ff6600]/10">
                 Se connecter
               </Button>
             </Link>
             <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
-              <Button variant="glow" className="w-full text-xs h-9 justify-center font-bold cursor-pointer bg-[#0066FF] md:bg-[#ff6600] hover:bg-[#0052cc] md:hover:bg-[#ff771a] text-white border-none rounded-xl">
+              <Button variant="glow" className="w-full text-xs h-9 justify-center font-bold cursor-pointer bg-[#0066FF] md:bg-[#ff6600] hover:bg-[#0052cc] md:hover:bg-[#ff771a] text-white border-none rounded-[10px]">
                 <span>Créer un compte gratuit</span>
                 <ArrowRight className="w-3.5 h-3.5 ml-1" />
               </Button>
