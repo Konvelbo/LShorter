@@ -71,14 +71,14 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
 
   const categories: Array<{ id: CategoryType; label: string; icon: React.ReactNode }> = [
     { id: "Question", label: "Question", icon: <HelpCircle className="w-4 h-4" /> },
-    { id: "Bug", label: "Bug", icon: <Bug className="w-4 h-4" /> },
-    { id: "Feature", label: "Feature", icon: <Lightbulb className="w-4 h-4" /> },
-    { id: "Other", label: "Other", icon: <MessageSquare className="w-4 h-4" /> },
+    { id: "Bug", label: "Signaler un Bug", icon: <Bug className="w-4 h-4" /> },
+    { id: "Feature", label: "Fonctionnalité", icon: <Lightbulb className="w-4 h-4" /> },
+    { id: "Other", label: "Autre", icon: <MessageSquare className="w-4 h-4" /> },
   ];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-lg rounded-[14px] bg-[#141416] border border-[#27272a] p-6 shadow-2xl text-white">
+      <div className="relative w-full max-w-lg rounded-[10px] bg-[#141416] border border-[#27272a] p-6 shadow-2xl text-white">
         {/* Close button */}
         <button
           onClick={onClose}
@@ -98,9 +98,9 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
         ) : (
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div>
-              <h2 className="text-xl font-bold text-neutral-100">Help & Feedback</h2>
+              <h2 className="text-xl font-bold text-neutral-100">Aide & Retours</h2>
               <p className="text-xs text-neutral-400 mt-1">
-                We&apos;ll send this to <span className="text-sky-400 hover:underline cursor-pointer">support@lshorter.io</span> or find instant answers in the <span className="text-sky-400 hover:underline cursor-pointer">Help Center</span>
+                Une question, un bug ou une suggestion ? Notre équipe technique vous répond rapidement.
               </p>
             </div>
 
@@ -116,7 +116,11 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
                     className={cn(
                       "flex items-center gap-2 px-3.5 py-1.5 rounded-[10px] text-xs font-medium border transition-all cursor-pointer",
                       isActive
-                        ? "bg-sky-500/15 border-sky-500 text-sky-400 shadow-sm"
+                        ? cat.id === "Bug"
+                          ? "bg-rose-500/15 border-rose-500 text-rose-400 shadow-sm"
+                          : cat.id === "Feature"
+                            ? "bg-sky-500/15 border-sky-500 text-sky-400 shadow-sm"
+                            : "bg-[#ff6600]/15 border-[#ff6600] text-[#ff6600] shadow-sm"
                         : "bg-[#1b1b1e] border-[#27272a] text-neutral-300 hover:bg-[#27272a]"
                     )}
                   >
@@ -147,7 +151,13 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
                 maxLength={5000}
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                placeholder="What can we help with? Include any error messages, steps to reproduce, or what you'd like to see."
+                placeholder={
+                  category === "Bug"
+                    ? "Décrivez le problème rencontré, les étapes pour le reproduire ou le message d'erreur..."
+                    : category === "Feature"
+                      ? "Décrivez la fonctionnalité que vous aimeriez voir sur LShorter..."
+                      : "Comment pouvons-nous vous aider ?"
+                }
                 className="w-full rounded-[10px] bg-[#1a1a1e] border border-[#27272a] p-3.5 text-sm text-neutral-200 placeholder:text-neutral-500 focus:outline-none focus:border-[#ff6600] transition-colors resize-none"
               />
             </div>
@@ -157,19 +167,19 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
               <div className="flex items-center gap-3">
                 <button
                   type="button"
-                  title="Attach file"
+                  title="Pièce jointe"
                   className="text-neutral-400 hover:text-white transition-colors cursor-pointer p-1"
                 >
                   <Paperclip className="w-4 h-4" />
                 </button>
                 <button
                   type="button"
-                  title="User profile"
+                  title="Profil utilisateur"
                   className="text-neutral-400 hover:text-white transition-colors cursor-pointer p-1"
                 >
                   <User className="w-4 h-4" />
                 </button>
-                <span className="text-neutral-500">on {currentPath}</span>
+                <span className="text-neutral-500">sur {currentPath}</span>
               </div>
 
               <div className="flex items-center gap-3">
@@ -179,15 +189,15 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
                   onClick={onClose}
                   className="px-3 py-1.5 text-neutral-300 hover:text-white transition-colors cursor-pointer font-medium"
                 >
-                  Cancel
+                  Annuler
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting || !message.trim()}
-                  className="flex items-center gap-1.5 px-4 py-1.5 rounded-[10px] bg-[#0284c7] hover:bg-[#0369a1] text-white font-medium shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  className="flex items-center gap-1.5 px-4 py-1.5 rounded-[10px] bg-[#ff6600] hover:bg-[#e65c00] text-white font-medium shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
                   <Send className="w-3.5 h-3.5" />
-                  <span>{isSubmitting ? "Envoi..." : "Send"}</span>
+                  <span>{isSubmitting ? "Envoi..." : "Envoyer"}</span>
                 </button>
               </div>
             </div>

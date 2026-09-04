@@ -16,8 +16,9 @@ const isLiveKey =
 const resend = isLiveKey ? new Resend(resendApiKey) : null;
 const FROM_EMAIL =
   process.env.RESEND_FROM_EMAIL || "LShorter Security <security@lsho.cc>";
-const FEEDBACK_RECEIVER =
-  process.env.FEEDBACK_RECEIVER_EMAIL || "delivered@resend.dev";
+const BUG_FEATURE_RECEIVER = "fiatechnologiecam@gmail.com";
+const DEFAULT_FEEDBACK_RECEIVER =
+  process.env.FEEDBACK_RECEIVER_EMAIL || "fiatechnologiecam@gmail.com";
 
 /**
  * Send Password Reset PIN Code Email (15-min validity)
@@ -63,7 +64,7 @@ export async function sendPasswordResetPinEmail({
           <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #09090b; padding: 40px 20px;">
             <tr>
               <td align="center">
-                <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 520px; background-color: #141416; border: 1px solid #27272a; border-radius: 14px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.6);">
+                <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 520px; background-color: #141416; border: 1px solid #27272a; border-radius: 10px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.6);">
                   <!-- Header -->
                   <tr>
                     <td style="padding: 32px 32px 20px 32px; text-align: center; border-bottom: 1px solid #222225;">
@@ -86,7 +87,7 @@ export async function sendPasswordResetPinEmail({
                       </p>
 
                       <!-- PIN Code Box -->
-                      <div style="background-color: #1a1a1e; border: 2px solid #ff6600; border-radius: 12px; padding: 24px; text-align: center; margin: 0 0 24px 0;">
+                      <div style="background-color: #1a1a1e; border: 2px solid #ff6600; border-radius: 10px; padding: 24px; text-align: center; margin: 0 0 24px 0;">
                         <span style="font-family: 'Courier New', Courier, monospace; font-size: 36px; font-weight: 800; color: #ff6600; letter-spacing: 12px; display: inline-block;">
                           ${pin}
                         </span>
@@ -131,25 +132,60 @@ export async function sendPasswordResetPinEmail({
 }
 
 /**
- * Send User Feedback Notification Email to Admin (sko107282@gmail.com)
+ * Send User Feedback Notification Email
+ * Automatically routes Bug reports and Feature requests to fiatechnologiecam@gmail.com
  */
 export async function sendFeedbackNotificationEmail({
   category,
   senderEmail,
   message,
   pageContext,
+  recipientEmail,
 }: {
   category: string;
   senderEmail: string;
   message: string;
   pageContext?: string;
+  recipientEmail?: string;
 }): Promise<{ success: boolean; isDevFallback?: boolean; error?: string }> {
+  const normCategory = category.trim().toLowerCase();
+  const isBug =
+    normCategory.includes("bug") ||
+    normCategory.includes("bogue") ||
+    normCategory.includes("erreur");
+  const isFeature =
+    normCategory.includes("feature") ||
+    normCategory.includes("fonctionnalit") ||
+    normCategory.includes("suggestion") ||
+    normCategory.includes("idée");
+  const isBugOrFeature = isBug || isFeature;
+
+  // Direct bug / feature to fiatechnologiecam@gmail.com
+  const targetEmail = recipientEmail
+    ? recipientEmail
+    : isBugOrFeature
+      ? BUG_FEATURE_RECEIVER
+      : DEFAULT_FEEDBACK_RECEIVER;
+
+  const categoryBadgeColor = isBug ? "#ef4444" : isFeature ? "#38bdf8" : "#ff6600";
+  const categoryLabel = isBug
+    ? "🚨 BUG REPORT"
+    : isFeature
+      ? "💡 FEATURE REQUEST"
+      : category.toUpperCase();
+  const subjectTag = isBug
+    ? "[LShorter BUG]"
+    : isFeature
+      ? "[LShorter FEATURE]"
+      : `[LShorter Feedback - ${category}]`;
+
   if (!resend) {
     console.log(
       `\n💬 ==================== [DEV MODE FEEDBACK] ====================`
     );
+    console.log(`🎯 Destinataire : ${targetEmail} ${isBugOrFeature ? "(Routage automatique fiatechnologiecam@gmail.com)" : ""}`);
     console.log(`👤 Expéditeur : ${senderEmail}`);
-    console.log(`🏷️  Catégorie : ${category}`);
+    console.log(`🏷️  Catégorie : ${category} (${categoryLabel})`);
     console.log(`📄 Page : ${pageContext || "Non spécifiée"}`);
     console.log(`✉️  Message :\n${message}`);
     console.log(
@@ -161,34 +197,52 @@ export async function sendFeedbackNotificationEmail({
   try {
     const { error } = await resend.emails.send({
       from: FROM_EMAIL,
-      to: FEEDBACK_RECEIVER,
-      subject: `[LShorter Feedback] ${category} - de ${senderEmail}`,
+      to: targetEmail,
+      replyTo: senderEmail,
+      subject: `${subjectTag} de ${senderEmail}`,
       html: `
         <!DOCTYPE html>
-        <html>
-        <body style="margin: 0; padding: 20px; background-color: #09090b; color: #ffffff; font-family: sans-serif;">
-          <div style="max-width: 600px; margin: 0 auto; background-color: #141416; border: 1px solid #27272a; border-radius: 12px; padding: 24px;">
-            <h2 style="color: #ff6600; margin-top: 0;">Nouveau Feedback Utilisateur</h2>
-            <table style="width: 100%; font-size: 13px; color: #d4d4d8; margin-bottom: 20px;">
+        <html lang="fr">
+        <head>
+          <meta charset="utf-8">
+          <title>${subjectTag}</title>
+        </head>
+        <body style="margin: 0; padding: 24px; background-color: #09090b; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+          <div style="max-width: 600px; margin: 0 auto; background-color: #141416; border: 1px solid #27272a; border-radius: 10px; padding: 28px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; border-bottom: 1px solid #222225; padding-bottom: 16px;">
+              <h2 style="color: #ffffff; margin: 0; font-size: 18px; font-weight: 700;">Nouveau Retour Utilisateur</h2>
+              <span style="background-color: ${categoryBadgeColor}; color: #ffffff; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">
+                ${categoryLabel}
+              </span>
+            </div>
+
+            <table style="width: 100%; font-size: 13px; color: #d4d4d8; margin-bottom: 20px; border-collapse: collapse;">
               <tr>
-                <td style="padding: 6px 0; color: #a1a1aa; width: 120px;"><strong>Expéditeur :</strong></td>
-                <td style="padding: 6px 0;"><a href="mailto:${senderEmail}" style="color: #38bdf8;">${senderEmail}</a></td>
+                <td style="padding: 6px 0; color: #a1a1aa; width: 130px;"><strong>Expéditeur :</strong></td>
+                <td style="padding: 6px 0;"><a href="mailto:${senderEmail}" style="color: #38bdf8; text-decoration: none; font-weight: 600;">${senderEmail}</a></td>
               </tr>
               <tr>
                 <td style="padding: 6px 0; color: #a1a1aa;"><strong>Catégorie :</strong></td>
-                <td style="padding: 6px 0;"><span style="background-color: #ff6600; color: #fff; padding: 2px 8px; border-radius: 4px; font-weight: bold;">${category}</span></td>
+                <td style="padding: 6px 0;"><span style="color: #fafafa; font-weight: 600;">${category}</span></td>
               </tr>
               <tr>
                 <td style="padding: 6px 0; color: #a1a1aa;"><strong>Page Source :</strong></td>
-                <td style="padding: 6px 0; font-family: monospace;">${pageContext || "Non spécifiée"}</td>
+                <td style="padding: 6px 0; font-family: monospace; color: #e4e4e7;">${pageContext || "/dashboard"}</td>
               </tr>
               <tr>
-                <td style="padding: 6px 0; color: #a1a1aa;"><strong>Date :</strong></td>
-                <td style="padding: 6px 0;">${new Date().toLocaleString("fr-FR")}</td>
+                <td style="padding: 6px 0; color: #a1a1aa;"><strong>Date & Heure :</strong></td>
+                <td style="padding: 6px 0; color: #a1a1aa;">${new Date().toLocaleString("fr-FR")}</td>
               </tr>
             </table>
-            <div style="background-color: #1a1a1e; border-left: 3px solid #ff6600; padding: 16px; border-radius: 6px; font-size: 14px; line-height: 1.6; white-space: pre-wrap; color: #fafafa;">
+
+            <div style="background-color: #1a1a1e; border-left: 3px solid ${categoryBadgeColor}; padding: 18px; border-radius: 8px; font-size: 14px; line-height: 1.6; white-space: pre-wrap; color: #fafafa;">
               ${message}
+            </div>
+
+            <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #222225; text-align: center;">
+              <p style="color: #52525b; font-size: 11px; margin: 0;">
+                LShorter Notifications &bull; Routé vers <span style="color: #71717a;">${targetEmail}</span>
+              </p>
             </div>
           </div>
         </body>

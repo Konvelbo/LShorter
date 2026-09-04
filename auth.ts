@@ -155,7 +155,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           if (convexUser) {
             token.userId = convexUser.userId;
             token.plan = convexUser.plan;
-            token.hasCompletedOnboarding = convexUser.hasCompletedOnboarding;
+            token.hasCompletedOnboarding = convexUser.hasCompletedOnboarding ?? false;
             token.clicksThisMonth = convexUser.clicksThisMonth;
             token.clicksLimit = convexUser.clicksLimit;
             if (convexUser.avatarUrl) {
@@ -165,9 +165,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             if (convexUser.name) {
               token.name = convexUser.name;
             }
+          } else if (token.hasCompletedOnboarding === undefined) {
+            token.hasCompletedOnboarding = false;
           }
         } catch {
-          // Convex unavailable — continue with basic token
+          if (token.hasCompletedOnboarding === undefined) {
+            token.hasCompletedOnboarding = false;
+          }
         }
       }
 

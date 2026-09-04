@@ -68,9 +68,20 @@ body {
   box-shadow: 0 0 20px -2px rgba(255, 102, 0, 0.35);
 }
 
-/* ==========================================================================
-   PURE HARDWARE-ACCELERATED CSS HOVER & SCALE ANIMATIONS
-   ========================================================================== */
+/* Navbar links simple hover to bright white #ffffff */
+.nav-link-item {
+  color: #a1a1aa !important;
+  transition: color 0.2s ease-in-out !important;
+  text-decoration: none !important;
+}
+
+.nav-link-item:hover {
+  color: #ffffff !important;
+}
+
+.nav-link-item.active {
+  color: #ffffff !important;
+}
 
 /* Sidebar Link Button Hover */
 .sidebar-link-btn {
@@ -126,6 +137,23 @@ body {
 .icon-hover-glow:hover {
   transform: scale(1.15) !important;
   filter: drop-shadow(0 0 6px rgba(255, 102, 0, 0.7)) !important;
+}
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #121215;
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #3f3f46;
 }
 
 /* Custom scrollbars */

@@ -36,7 +36,7 @@ export async function POST(req: Request) {
       console.warn("[Feedback] Could not save to Convex DB:", dbErr);
     }
 
-    // 2. Send notification email via Resend to sko107282@gmail.com
+    // 2. Send notification email via Resend (auto-routed to fiatechnologiecam@gmail.com for Bug / Feature)
     await sendFeedbackNotificationEmail({
       category: cleanCategory,
       senderEmail: cleanEmail,

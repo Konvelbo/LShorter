@@ -5,10 +5,19 @@ import { mutation, query } from "./_generated/server";
 export const getCurrentUser = query({
   args: { userId: v.string() },
   handler: async (ctx, args) => {
-    return await ctx.db
+    let user = await ctx.db
       .query("users")
       .withIndex("by_userId", (q) => q.eq("userId", args.userId))
       .first();
+
+    if (!user && args.userId.includes("@")) {
+      user = await ctx.db
+        .query("users")
+        .withIndex("by_email", (q) => q.eq("email", args.userId.toLowerCase()))
+        .first();
+    }
+
+    return user;
   },
 });
 
@@ -50,14 +59,16 @@ export const storeUser = mutation({
     const now = new Date().toISOString();
 
     if (existing) {
+      const hasCompleted = existing.hasCompletedOnboarding ?? false;
       await ctx.db.patch(existing._id, {
         name: args.name || existing.name,
         email: cleanEmail,
         avatarUrl: args.avatarUrl || existing.avatarUrl,
         provider: args.provider || existing.provider,
+        hasCompletedOnboarding: hasCompleted,
         updatedAt: now,
       });
-      return { id: existing._id, userId: existing.userId, isNew: false };
+      return { id: existing._id, userId: existing.userId, isNew: false, hasCompletedOnboarding: hasCompleted };
     }
 
     const id = await ctx.db.insert("users", {
@@ -116,17 +127,32 @@ export const registerWithEmail = mutation({
 export const completeOnboarding = mutation({
   args: {
     userId: v.string(),
-    role: v.string(),
-    goal: v.string(),
-    source: v.string(),
+    country: v.optional(v.string()),
+    city: v.optional(v.string()),
+    language: v.optional(v.string()),
+    profession: v.optional(v.string()),
+    professionOther: v.optional(v.string()),
+    source: v.optional(v.string()),
+    sourceOther: v.optional(v.string()),
+    useCases: v.optional(v.array(v.string())),
+    useCasesOther: v.optional(v.string()),
+    role: v.optional(v.string()),
+    goal: v.optional(v.string()),
     workspaceName: v.optional(v.string()),
-    monthlyClicksEstimate: v.string(),
+    monthlyClicksEstimate: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db
+    let user = await ctx.db
       .query("users")
       .withIndex("by_userId", (q) => q.eq("userId", args.userId))
       .first();
+
+    if (!user && args.userId.includes("@")) {
+      user = await ctx.db
+        .query("users")
+        .withIndex("by_email", (q) => q.eq("email", args.userId.toLowerCase()))
+        .first();
+    }
 
     const now = new Date().toISOString();
 
@@ -134,9 +160,17 @@ export const completeOnboarding = mutation({
       await ctx.db.patch(user._id, {
         hasCompletedOnboarding: true,
         onboarding: {
-          role: args.role,
-          goal: args.goal,
+          country: args.country,
+          city: args.city,
+          language: args.language,
+          profession: args.profession,
+          professionOther: args.professionOther,
           source: args.source,
+          sourceOther: args.sourceOther,
+          useCases: args.useCases,
+          useCasesOther: args.useCasesOther,
+          role: args.role || args.profession,
+          goal: args.goal || (args.useCases && args.useCases[0]),
           workspaceName: args.workspaceName,
           monthlyClicksEstimate: args.monthlyClicksEstimate,
           completedAt: now,
@@ -147,11 +181,19 @@ export const completeOnboarding = mutation({
       await ctx.db.insert("onboarding", {
         userId: args.userId,
         email: user.email,
-        role: args.role,
-        goal: args.goal,
-        source: args.source,
+        country: args.country,
+        city: args.city,
+        language: args.language,
+        profession: args.profession || args.role || "other",
+        professionOther: args.professionOther,
+        source: args.source || "other",
+        sourceOther: args.sourceOther,
+        useCases: args.useCases || [],
+        useCasesOther: args.useCasesOther,
+        role: args.role || args.profession || "other",
+        goal: args.goal || (args.useCases && args.useCases[0]) || "general",
         workspaceName: args.workspaceName || "Mon Workspace",
-        monthlyClicksEstimate: args.monthlyClicksEstimate,
+        monthlyClicksEstimate: args.monthlyClicksEstimate || "10k-100k",
         submittedAt: now,
       });
     }

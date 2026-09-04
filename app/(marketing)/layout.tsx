@@ -39,7 +39,14 @@ export default function MarketingLayout({
             </Link>
           </div>
 
-          <p>© 2026 LShorter Inc. Propulsé par Cloudflare Edge Workers & D1.</p>
+          <div className="flex flex-col sm:flex-row items-center gap-1.5 sm:gap-2 text-center md:text-right text-neutral-500">
+            <p>© 2026 LShorter Inc.</p>
+            <span className="hidden sm:inline">•</span>
+            <p>
+              Créé par{" "}
+              <span className="text-neutral-300 font-semibold">KONVELBO W B Samuel B</span>
+            </p>
+          </div>
         </div>
       </footer>
     </div>

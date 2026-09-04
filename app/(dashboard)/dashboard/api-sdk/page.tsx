@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input";
 import { ApiKeysPageSkeleton } from "@/components/ui/skeleton";
 import { showToast } from "@/components/ui/toast-provider";
 import { DeleteConfirmModal } from "@/components/dashboard/delete-confirm-modal";
+import { CodeBlock } from "@/components/ui/code-block";
 import confetti from "canvas-confetti";
 
 export default function ApiSdkPage() {
@@ -406,25 +407,11 @@ console.log("Top Pays :", topAudience.topCountries);`
         </div>
 
         {/* Code Box */}
-        <div className="relative rounded-[10px] bg-[#09090b] border border-[#27272a] p-4 font-mono text-xs text-neutral-200 overflow-x-auto">
-          <button
-            onClick={() => handleCopy(codeSnippets[activeCodeTab])}
-            className="absolute top-3 right-3 flex items-center gap-1 px-2.5 py-1 rounded-[6px] bg-white/10 hover:bg-white/20 text-white text-[11px] transition-colors cursor-pointer"
-          >
-            {copiedKey === codeSnippets[activeCodeTab] ? (
-              <>
-                <Check className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Copié !</span>
-              </>
-            ) : (
-              <>
-                <Copy className="w-3.5 h-3.5" />
-                <span>Copier</span>
-              </>
-            )}
-          </button>
-          <pre className="pt-2 leading-relaxed">{codeSnippets[activeCodeTab]}</pre>
-        </div>
+        <CodeBlock
+          code={codeSnippets[activeCodeTab]}
+          language="bash"
+          filename={`curl - ${activeCodeTab}`}
+        />
       </div>
 
       {/* Revoke API Key Modal */}

@@ -5,6 +5,8 @@ import { auth } from "@/auth";
 export default auth((req) => {
   const { pathname } = req.nextUrl;
   const isAuthenticated = Boolean(req.auth);
+  const user = req.auth?.user as any;
+  const hasCompletedOnboarding = user?.hasCompletedOnboarding;
 
   // Security Headers
   const response = NextResponse.next();
@@ -17,7 +19,7 @@ export default auth((req) => {
     "camera=(), microphone=(), geolocation=()"
   );
 
-  // 1. Protect Dashboard & Onboarding Routes
+  // 1. Protect Dashboard & Onboarding Routes from unauthenticated users
   const isProtectedPath =
     pathname.startsWith("/dashboard") || pathname.startsWith("/onboarding");
 
@@ -27,9 +29,22 @@ export default auth((req) => {
     return NextResponse.redirect(loginUrl);
   }
 
-  // 2. Redirect already authenticated users away from /login or /register
+  // 2. Redirect authenticated users who haven't completed onboarding away from dashboard
+  if (isAuthenticated && hasCompletedOnboarding === false && pathname.startsWith("/dashboard")) {
+    return NextResponse.redirect(new URL("/onboarding", req.nextUrl.origin));
+  }
+
+  // 3. Redirect authenticated users who have already completed onboarding away from /onboarding
+  if (isAuthenticated && hasCompletedOnboarding === true && pathname.startsWith("/onboarding")) {
+    return NextResponse.redirect(new URL("/dashboard", req.nextUrl.origin));
+  }
+
+  // 4. Redirect already authenticated users away from /login or /register
   const isAuthPath = pathname === "/login" || pathname === "/register";
   if (isAuthPath && isAuthenticated) {
+    if (hasCompletedOnboarding === false) {
+      return NextResponse.redirect(new URL("/onboarding", req.nextUrl.origin));
+    }
     return NextResponse.redirect(new URL("/dashboard", req.nextUrl.origin));
   }
 

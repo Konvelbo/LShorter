@@ -27,6 +27,7 @@ import {
   Tag
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { CodeBlock } from "@/components/ui/code-block";
 
 type Language = "curl" | "typescript" | "python" | "php" | "go";
 
@@ -654,49 +655,34 @@ export default function DocsPage() {
               </div>
 
               {/* Code Snippet Box with Language Label & Copy */}
-              <div className="rounded-[12px] bg-[#0c0c0e] border border-[#27272a] overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-2 bg-[#141418] border-b border-[#27272a] text-xs text-neutral-400 font-mono">
-                  <span className="uppercase text-[11px] text-[#ff6600] font-bold">
-                    Exemple {selectedLanguage}
-                  </span>
-                  <button
-                    onClick={() => handleCopyCode(ep.id, activeSnippet)}
-                    className="flex items-center gap-1.5 text-xs text-neutral-300 hover:text-white transition-colors cursor-pointer"
-                  >
-                    {isCopied ? (
-                      <>
-                        <Check className="w-3.5 h-3.5 text-emerald-400" />
-                        <span className="text-emerald-400 font-sans">Copié !</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3.5 h-3.5" />
-                        <span className="font-sans">Copier le snippet</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-                <pre className="p-4 font-mono text-xs text-neutral-200 leading-relaxed overflow-x-auto">
-                  {activeSnippet}
-                </pre>
-              </div>
+              <CodeBlock
+                code={activeSnippet}
+                language={selectedLanguage}
+                filename={`Exemple ${selectedLanguage.toUpperCase()}`}
+              />
 
               {/* Request & Response Schema Grid */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 text-xs font-mono">
                 {ep.requestBody && (
-                  <div className="p-4 rounded-[10px] bg-[#18181c] border border-[#27272a]">
-                    <span className="text-neutral-400 font-bold block mb-2 font-sans">Corps de Requête (JSON Body) :</span>
-                    <pre className="text-neutral-300 overflow-x-auto text-[11px]">
-                      {JSON.stringify(ep.requestBody, null, 2)}
-                    </pre>
+                  <div className="space-y-1.5">
+                    <span className="text-neutral-400 font-bold block font-sans">Corps de Requête (JSON Body) :</span>
+                    <CodeBlock
+                      code={JSON.stringify(ep.requestBody, null, 2)}
+                      language="json"
+                      filename="request.json"
+                      showLineNumbers={false}
+                    />
                   </div>
                 )}
 
-                <div className="p-4 rounded-[10px] bg-[#18181c] border border-[#27272a]">
-                  <span className="text-emerald-400 font-bold block mb-2 font-sans">Réponse HTTP 200 / 201 (JSON) :</span>
-                  <pre className="text-neutral-300 overflow-x-auto text-[11px]">
-                    {JSON.stringify(ep.responseExample, null, 2)}
-                  </pre>
+                <div className="space-y-1.5">
+                  <span className="text-emerald-400 font-bold block font-sans">Réponse HTTP 200 / 201 (JSON) :</span>
+                  <CodeBlock
+                    code={JSON.stringify(ep.responseExample, null, 2)}
+                    language="json"
+                    filename="response.json"
+                    showLineNumbers={false}
+                  />
                 </div>
               </div>
             </div>
