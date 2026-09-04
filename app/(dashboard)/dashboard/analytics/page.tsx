@@ -305,6 +305,21 @@ export default function AnalyticsPage() {
     }
   }, [status, userId, selectedRange, selectedLinkId]);
 
+  // Listen for global link creation/update events to refresh analytics and link selectors
+  useEffect(() => {
+    const handleUpdate = () => {
+      cfInvalidateCache();
+      refreshData();
+    };
+
+    window.addEventListener("lshorter_links_updated", handleUpdate);
+    window.addEventListener("lshorter_data_change", handleUpdate);
+    return () => {
+      window.removeEventListener("lshorter_links_updated", handleUpdate);
+      window.removeEventListener("lshorter_data_change", handleUpdate);
+    };
+  }, [userId, selectedRange, selectedLinkId]);
+
   const handleRangeChange = (range: TimeRange) => {
     setSelectedRange(range);
   };

@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { EmptyState } from "@/components/dashboard/empty-state";
 import { PopulatedState } from "@/components/dashboard/populated-state";
 import { ShortLink, GlobalAnalytics } from "@/types";
-import { cfGetLinks, cfGetAnalytics, EMPTY_ANALYTICS } from "@/lib/cloudflare-api";
+import { cfGetLinks, cfGetAnalytics, cfInvalidateCache, EMPTY_ANALYTICS } from "@/lib/cloudflare-api";
 import { EMPTY_ANALYTICS as _EA } from "@/lib/api-client";
 
 // Re-export from cloudflare-api for convenience
@@ -190,6 +190,21 @@ export default function DashboardOverviewPage() {
       loadData();
     }
   }, [status, userId]);
+
+  // Listen for global link creation/update events (from sidebar, modals, etc.)
+  useEffect(() => {
+    const handleUpdate = () => {
+      cfInvalidateCache();
+      loadData(true);
+    };
+
+    window.addEventListener("lshorter_links_updated", handleUpdate);
+    window.addEventListener("lshorter_data_change", handleUpdate);
+    return () => {
+      window.removeEventListener("lshorter_links_updated", handleUpdate);
+      window.removeEventListener("lshorter_data_change", handleUpdate);
+    };
+  }, [userId]);
 
   if (status === "loading" || isLoading) {
     return <DashboardOverviewSkeleton />;

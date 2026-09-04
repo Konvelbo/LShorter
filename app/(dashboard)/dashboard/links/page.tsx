@@ -133,6 +133,24 @@ export default function LinksPage() {
     }
   }, [status, userId]);
 
+  // Listen for global link creation/update events (from sidebar, overview, etc.)
+  useEffect(() => {
+    const handleUpdate = (e?: any) => {
+      cfInvalidateCache();
+      if (e?.detail?.id) {
+        setLinks((prev) => [e.detail, ...prev.filter((l) => l.id !== e.detail.id)]);
+      }
+      loadLinks(true);
+    };
+
+    window.addEventListener("lshorter_links_updated", handleUpdate);
+    window.addEventListener("lshorter_data_change", handleUpdate);
+    return () => {
+      window.removeEventListener("lshorter_links_updated", handleUpdate);
+      window.removeEventListener("lshorter_data_change", handleUpdate);
+    };
+  }, [userId]);
+
   // Click outside listener for tag dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -1046,14 +1064,26 @@ export default function LinksPage() {
       <LinkCreateModal
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
-        onSuccess={() => loadLinks()}
+        onSuccess={(created) => {
+          cfInvalidateCache();
+          if (created?.id) {
+            setLinks((prev) => [created, ...prev.filter((l) => l.id !== created.id)]);
+          }
+          loadLinks(true);
+        }}
       />
 
       <LinkEditModal
         isOpen={Boolean(selectedEditLink)}
         link={selectedEditLink}
         onClose={() => setSelectedEditLink(null)}
-        onSuccess={() => loadLinks()}
+        onSuccess={(updated) => {
+          cfInvalidateCache();
+          if (updated?.id) {
+            setLinks((prev) => prev.map((l) => (l.id === updated.id ? updated : l)));
+          }
+          loadLinks(true);
+        }}
       />
 
       <LinkShareModal

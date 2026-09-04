@@ -26,7 +26,7 @@ import {
 import { useSession } from "next-auth/react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { cfUpdateLink, cfUploadImage } from "@/lib/cloudflare-api";
+import { cfUpdateLink, cfUploadImage, cfInvalidateCache } from "@/lib/cloudflare-api";
 import { ShortLink } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -447,6 +447,12 @@ export function LinkEditModal({
         maxClicks: updates.maxClicks || undefined,
         fallbackUrl: updates.fallbackUrl || undefined,
       };
+
+      cfInvalidateCache();
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("lshorter_links_updated", { detail: updatedShortLink }));
+        window.dispatchEvent(new Event("lshorter_data_change"));
+      }
 
       confetti({
         particleCount: 50,
