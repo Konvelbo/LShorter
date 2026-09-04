@@ -14,9 +14,12 @@ import {
   CheckCircle2,
   Terminal,
   Smartphone,
-  EyeOff
+  EyeOff,
+  Link2,
+  Copy
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { showToast } from "@/components/ui/toast-provider";
 import { CobeGlobe } from "@/components/globe/cobe-globe";
 
 export default function LandingPage() {
@@ -52,42 +55,68 @@ export default function LandingPage() {
         </p>
 
         {/* CTA Buttons */}
-        <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
-          <Link href="/login">
-            <Button variant="glow" size="lg" className="font-bebas text-2xl px-8 py-6 tracking-wide gap-2">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2 w-full max-w-sm sm:max-w-none">
+          <Link href="/login" className="w-full sm:w-auto">
+            <Button variant="glow" size="lg" className="w-full sm:w-auto font-bebas text-2xl px-8 py-5 tracking-wide gap-2 rounded-2xl sm:rounded-full">
               <span>COMMENCER GRATUITEMENT</span>
               <ArrowRight className="w-5 h-5" />
             </Button>
           </Link>
-          <Link href="/pricing">
-            <Button variant="outline" size="lg" className="font-bebas text-2xl px-8 py-6 tracking-wide text-neutral-300">
+          <Link href="/pricing" className="w-full sm:w-auto">
+            <Button variant="outline" size="lg" className="w-full sm:w-auto font-bebas text-2xl px-8 py-5 tracking-wide text-neutral-300 rounded-2xl sm:rounded-full border-[#27272a]">
               VOIR LES TARIFS
             </Button>
           </Link>
         </div>
 
-        {/* Interactive Hero Shortener Bar */}
-        <div className="w-full max-w-2xl mt-8 p-3 rounded-[14px] bg-[#141416] border border-[#27272a] shadow-2xl">
-          <form onSubmit={handleDemoShorten} className="flex flex-col sm:flex-row gap-2">
+        {/* Interactive Hero Shortener Bar - Single Unified Capsule Pill */}
+        <div className="w-full max-w-xl mx-auto mt-4 transition-all">
+          <form
+            onSubmit={handleDemoShorten}
+            className="w-full h-13 sm:h-14 p-1.5 rounded-full bg-[#0d0d12]/95 backdrop-blur-2xl border border-white/15 hover:border-white/25 focus-within:border-[#0066FF] md:focus-within:border-[#ff6600] focus-within:shadow-[0_0_25px_rgba(0,102,255,0.25)] shadow-[0_12px_40px_rgba(0,0,0,0.75)] flex items-center gap-2 transition-all"
+          >
+            <div className="pl-3 sm:pl-4 flex items-center text-neutral-400">
+              <Link2 className="w-4 h-4 text-[#0066FF] md:text-[#ff6600] shrink-0" />
+            </div>
             <input
               type="url"
               required
-              placeholder="Collez une longue URL pour tester (ex: https://example.com/mon-produit)..."
+              placeholder="Collez une URL à raccourcir..."
               value={demoUrl}
               onChange={(e) => setDemoUrl(e.target.value)}
-              className="flex-1 h-12 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] px-4 text-xs sm:text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#ff6600]"
+              className="flex-1 min-w-0 bg-transparent text-xs sm:text-sm text-white placeholder:text-neutral-500 focus:outline-none"
             />
-            <Button type="submit" variant="glow" className="h-12 px-6 font-bebas text-xl tracking-wide shrink-0">
-              RACCOURCIR
-            </Button>
+            <button
+              type="submit"
+              className="h-10 sm:h-11 px-4 sm:px-6 rounded-full bg-gradient-to-r from-[#0066FF] to-[#0052cc] md:from-[#ff6600] md:to-[#e65c00] hover:brightness-110 active:scale-95 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-md shadow-[#0066FF]/35 md:shadow-[#ff6600]/35 transition-all cursor-pointer shrink-0"
+            >
+              <span>Raccourcir</span>
+              <Sparkles className="w-3.5 h-3.5" />
+            </button>
           </form>
 
           {shortenedDemo && (
-            <div className="mt-3 p-3 rounded-[10px] bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between text-xs animate-in zoom-in-95">
-              <span className="font-mono text-emerald-400 font-bold">{shortenedDemo}</span>
-              <Link href="/login" className="text-white font-semibold hover:underline">
-                Créer un compte pour personnaliser →
-              </Link>
+            <div className="mt-3 p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex flex-col sm:flex-row items-center justify-between gap-2.5 text-xs animate-in zoom-in-95 duration-200 shadow-lg">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                <span className="font-mono text-emerald-400 font-bold break-all text-xs sm:text-sm">{shortenedDemo}</span>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(shortenedDemo);
+                    showToast.success("Lien court copié dans le presse-papier !");
+                  }}
+                  className="px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 text-white text-[11px] font-semibold transition-all flex items-center gap-1 cursor-pointer"
+                >
+                  <Copy className="w-3 h-3" />
+                  <span>Copier</span>
+                </button>
+                <Link href="/login" className="px-3 py-1.5 rounded-full bg-blue-500/15 hover:bg-blue-500/25 text-[#0066FF] md:text-[#ff6600] font-semibold transition-colors text-[11px]">
+                  Personnaliser →
+                </Link>
+              </div>
             </div>
           )}
         </div>

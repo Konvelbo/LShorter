@@ -20,12 +20,14 @@ import {
   RefreshCw,
   ChevronDown,
   Tag,
+  MoreVertical,
+  BarChart2,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { cfGetLinks, cfDeleteLink, cfInvalidateCache } from "@/lib/cloudflare-api";
 import { ShortLink } from "@/types";
-import { formatNumber, formatDateRelative } from "@/lib/utils";
+import { cn, formatNumber, formatDateRelative } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { LinksPageSkeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -53,6 +55,8 @@ export default function LinksPage() {
   const [selectedShareLink, setSelectedShareLink] = useState<ShortLink | null>(null);
   const [selectedQRLink, setSelectedQRLink] = useState<ShortLink | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   // Checkbox Selection & Bulk Actions
   const [selectedLinkIds, setSelectedLinkIds] = useState<Set<string>>(new Set());
@@ -140,6 +144,17 @@ export default function LinksPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Click outside listener for action dropdown menus
+  useEffect(() => {
+    const handleMenuClickOutside = (event: MouseEvent) => {
+      if (openMenuId && !(event.target as HTMLElement).closest(".dropdown-anchor")) {
+        setOpenMenuId(null);
+      }
+    };
+    document.addEventListener("mousedown", handleMenuClickOutside);
+    return () => document.removeEventListener("mousedown", handleMenuClickOutside);
+  }, [openMenuId]);
+
   const handleCopy = (link: ShortLink) => {
     navigator.clipboard.writeText(link.shortUrl);
     setCopiedId(link.id);
@@ -163,6 +178,66 @@ export default function LinksPage() {
       setSelectedLinkIds(new Set());
     } else {
       setSelectedLinkIds(new Set(filteredLinks.map((l) => l.id)));
+    }
+  };
+
+  // Mobile Long Press Selection Refs & Handlers
+  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isLongPressActiveRef = useRef<boolean>(false);
+  const touchStartPosRef = useRef<{ x: number; y: number } | null>(null);
+
+  const startLongPress = (linkId: string, e: React.TouchEvent | React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest("button, a, input, select, .dropdown-anchor")) {
+      return;
+    }
+
+    if ("touches" in e && e.touches.length > 0) {
+      touchStartPosRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    } else if ("clientX" in e) {
+      touchStartPosRef.current = { x: e.clientX, y: e.clientY };
+    }
+
+    isLongPressActiveRef.current = false;
+    if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+
+    longPressTimerRef.current = setTimeout(() => {
+      isLongPressActiveRef.current = true;
+      toggleSelectLink(linkId);
+      if (typeof window !== "undefined" && window.navigator && window.navigator.vibrate) {
+        try {
+          window.navigator.vibrate(45);
+        } catch (_) {}
+      }
+    }, 450);
+  };
+
+  const cancelLongPress = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!touchStartPosRef.current || !e.touches[0]) return;
+    const dx = Math.abs(e.touches[0].clientX - touchStartPosRef.current.x);
+    const dy = Math.abs(e.touches[0].clientY - touchStartPosRef.current.y);
+    if (dx > 8 || dy > 8) {
+      cancelLongPress();
+    }
+  };
+
+  const handleMobileCardClick = (linkId: string, e: React.MouseEvent) => {
+    if (isLongPressActiveRef.current) {
+      isLongPressActiveRef.current = false;
+      return;
+    }
+    if ((e.target as HTMLElement).closest("button, a, input, select, .dropdown-anchor")) {
+      return;
+    }
+    // If selection mode is active, tapping anywhere on card toggles selection
+    if (selectedLinkIds.size > 0) {
+      toggleSelectLink(linkId);
     }
   };
 
@@ -226,7 +301,7 @@ export default function LinksPage() {
     new Set(links.flatMap((l) => l.tags || []))
   );
 
-  // Filter links by search and selected tag
+  // Filter links by search, selected tag, and status
   const filteredLinks = links.filter((l) => {
     const matchesSearch =
       l.slug.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -236,7 +311,13 @@ export default function LinksPage() {
     const matchesTag =
       selectedTag === "all" || (l.tags && l.tags.includes(selectedTag));
 
-    return matchesSearch && matchesTag;
+    const isExpired = Boolean(l.expiresAt && new Date(l.expiresAt) < new Date());
+    let matchesStatus = true;
+    if (statusFilter === "active") matchesStatus = l.isActive && !isExpired;
+    else if (statusFilter === "expired") matchesStatus = isExpired;
+    else if (statusFilter === "protected") matchesStatus = Boolean(l.isPasswordProtected);
+
+    return matchesSearch && matchesTag && matchesStatus;
   });
 
   const isAllSelected = filteredLinks.length > 0 && selectedLinkIds.size === filteredLinks.length;
@@ -286,45 +367,63 @@ export default function LinksPage() {
       </div>
 
       {/* Filter & Search Bar */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
+      <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2.5">
         {/* Search */}
-        <div className="relative flex-1">
+        <div className="relative flex-1 min-w-0">
           <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-500" />
           <input
             type="text"
-            placeholder="Rechercher par slug, URL de destination, ou tag..."
+            placeholder="Rechercher par slug, URL, tag..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full h-11 pl-10 pr-4 rounded-[10px] bg-[#141416] border border-[#222225] text-xs text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#ff6600]"
+            className="w-full h-10 pl-10 pr-4 rounded-[10px] bg-[#141416] border border-[#222225] text-xs text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#ff6600]"
           />
         </div>
 
-        {/* Tag Filter Dropdown */}
-        <div className="relative shrink-0" ref={tagDropdownRef}>
-          <button
-            type="button"
-            onClick={() => setIsTagDropdownOpen(!isTagDropdownOpen)}
-            className="h-11 px-3.5 rounded-[10px] bg-[#141416] border border-[#222225] hover:border-[#333338] text-xs font-semibold text-white flex items-center justify-between gap-3 min-w-[170px] transition-colors cursor-pointer shadow-sm"
-          >
-            <div className="flex items-center gap-2 truncate">
-              {selectedTag === "all" ? (
-                <Globe2 className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
-              ) : (
-                <Tag className="w-3.5 h-3.5 text-[#ff6600] shrink-0" />
-              )}
-              <span className="truncate">
-                {selectedTag === "all" ? `Tous les liens (${links.length})` : `#${selectedTag}`}
-              </span>
-            </div>
-            <ChevronDown
-              className={`w-3.5 h-3.5 text-neutral-400 shrink-0 transition-transform duration-200 ${
-                isTagDropdownOpen ? "rotate-180" : ""
-              }`}
-            />
-          </button>
+        {/* Filter Controls: Side by side on mobile / inline on desktop */}
+        <div className="flex items-center gap-2">
+          {/* Status Filter */}
+          <div className="relative flex-1 md:flex-initial">
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              aria-label="Filtrer par statut"
+              className="w-full md:w-auto h-10 pl-3 pr-8 rounded-[10px] bg-[#141416] border border-[#222225] text-xs font-semibold text-white focus:outline-none focus:border-[#ff6600] cursor-pointer shadow-sm appearance-none truncate"
+            >
+              <option value="all">Tous les statuts</option>
+              <option value="active">Actifs</option>
+              <option value="expired">Expirés</option>
+              <option value="protected">Protégés (🔒)</option>
+            </select>
+            <ChevronDown className="w-3.5 h-3.5 text-neutral-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
 
-          {isTagDropdownOpen && (
-            <div className="absolute right-0 top-full mt-1.5 w-60 rounded-xl bg-[#18181c] border border-[#2a2a32] shadow-2xl shadow-black/90 py-1.5 z-40 animate-in fade-in zoom-in-95 duration-150 max-h-72 overflow-y-auto">
+          {/* Tag Filter Dropdown */}
+          <div className="relative flex-1 md:flex-initial" ref={tagDropdownRef}>
+            <button
+              type="button"
+              onClick={() => setIsTagDropdownOpen(!isTagDropdownOpen)}
+              className="w-full md:w-auto h-10 px-3 rounded-[10px] bg-[#141416] border border-[#222225] hover:border-[#333338] text-xs font-semibold text-white flex items-center justify-between gap-2 md:min-w-[155px] transition-colors cursor-pointer shadow-sm truncate"
+            >
+              <div className="flex items-center gap-1.5 truncate">
+                {selectedTag === "all" ? (
+                  <Globe2 className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
+                ) : (
+                  <Tag className="w-3.5 h-3.5 text-[#ff6600] shrink-0" />
+                )}
+                <span className="truncate">
+                  {selectedTag === "all" ? `Tous (${links.length})` : `#${selectedTag}`}
+                </span>
+              </div>
+              <ChevronDown
+                className={`w-3.5 h-3.5 text-neutral-400 shrink-0 transition-transform duration-200 ${
+                  isTagDropdownOpen ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
+            {isTagDropdownOpen && (
+              <div className="absolute right-0 top-full mt-1.5 w-56 rounded-xl bg-[#18181c] border border-[#2a2a32] shadow-2xl shadow-black/90 py-1.5 z-40 animate-in fade-in zoom-in-95 duration-150 max-h-72 overflow-y-auto">
               <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-neutral-500">
                 Filtrer par catégorie / tag
               </div>
@@ -384,6 +483,7 @@ export default function LinksPage() {
           )}
         </div>
       </div>
+    </div>
 
       {/* Floating Bulk Actions Bar */}
       {selectedLinkIds.size > 0 && (
@@ -420,46 +520,72 @@ export default function LinksPage() {
       )}
 
       {/* Links Container */}
-      <div className="rounded-[12px] bg-[#141416] border border-[#222225] p-4 sm:p-6 shadow-xl">
+      <div className="rounded-[12px] bg-[#141416] border border-[#222225] p-3 sm:p-5 shadow-xl">
         {filteredLinks.length === 0 ? (
           <div className="py-12 text-center text-xs text-neutral-500">
             Aucun lien trouvé pour cette recherche.
           </div>
         ) : (
           <>
-            {/* 1. Mobile Cards Layout (< 768px) */}
-            <div className="flex flex-col gap-3 md:hidden">
-              {filteredLinks.map((link) => {
+            {/* 1. Mobile Cards Layout (< 768px) - Clutter-free with long-press selection */}
+            <div className="flex flex-col gap-2.5 md:hidden">
+              {selectedLinkIds.size === 0 && filteredLinks.length > 0 && (
+                <div className="text-[11px] text-neutral-500 text-center py-1 flex items-center justify-center gap-1.5 select-none">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#ff6600]/70 animate-pulse"></span>
+                  <span>Astuce : Maintenez un appui long sur un lien pour le sélectionner</span>
+                </div>
+              )}
+
+              {filteredLinks.map((link, index) => {
                 const isCopied = copiedId === link.id;
                 const isExpired = Boolean(link.expiresAt && new Date(link.expiresAt) < new Date());
                 const isSelected = selectedLinkIds.has(link.id);
+                const isMenuOpen = openMenuId === `mobile-${link.id}`;
+                const isDropUp = index >= 2 && (index >= filteredLinks.length - 2 || index >= 3);
 
                 return (
                   <div
                     key={link.id}
-                    className={`rounded-2xl bg-[#18181c] border p-3.5 flex flex-col gap-2.5 transition-all ${
+                    onTouchStart={(e) => startLongPress(link.id, e)}
+                    onTouchMove={handleTouchMove}
+                    onTouchEnd={cancelLongPress}
+                    onMouseDown={(e) => startLongPress(link.id, e)}
+                    onMouseUp={cancelLongPress}
+                    onMouseLeave={cancelLongPress}
+                    onClick={(e) => handleMobileCardClick(link.id, e)}
+                    className={cn(
+                      "rounded-xl bg-[#18181c] border p-3 flex flex-col gap-2 transition-all select-none relative",
                       isSelected
-                        ? "border-[#ff6600] bg-[#ff6600]/5 ring-1 ring-[#ff6600]/30 shadow-lg shadow-[#ff6600]/10"
-                        : "border-[#27272a] hover:border-[#ff6600]/40"
-                    }`}
+                        ? "border-[#ff6600] bg-[#ff6600]/10 ring-2 ring-[#ff6600]/40 shadow-lg shadow-[#ff6600]/10"
+                        : "border-[#27272a] hover:border-[#ff6600]/40 active:bg-white/[0.02]",
+                      isMenuOpen && "z-30"
+                    )}
                   >
-                    {/* Header: Checkbox + Slug, Status Badge */}
+                    {/* Header: Status dot / Checkmark + Slug + Status Badge */}
                     <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        {/* Mobile Checkbox */}
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => toggleSelectLink(link.id)}
-                          aria-label={`Sélectionner ${link.slug}`}
-                          className="w-4 h-4 rounded border-[#27272a] bg-[#1a1a1e] accent-[#ff6600] cursor-pointer shrink-0"
-                        />
-                        <span className={`w-2 h-2 rounded-full shrink-0 ${isExpired ? "bg-amber-400" : !link.isActive ? "bg-neutral-500" : "bg-emerald-400"}`}></span>
-                        <span className="font-mono font-bold text-white text-sm truncate">
+                      <div className="flex items-center gap-2 min-w-0">
+                        {isSelected ? (
+                          <span className="w-5 h-5 rounded-full bg-[#ff6600] text-white flex items-center justify-center text-[11px] font-black shrink-0 animate-in zoom-in-75">
+                            ✓
+                          </span>
+                        ) : (
+                          <span
+                            className={cn(
+                              "w-2.5 h-2.5 rounded-full shrink-0",
+                              isExpired ? "bg-amber-400" : !link.isActive ? "bg-neutral-500" : "bg-emerald-400"
+                            )}
+                          />
+                        )}
+                        <span className="font-mono font-bold text-white text-xs truncate">
                           /{link.slug}
                         </span>
                       </div>
-                      <div className="shrink-0">
+                      <div className="shrink-0 flex items-center gap-1.5">
+                        {isSelected && (
+                          <span className="text-[10px] font-bold text-[#ff6600] bg-[#ff6600]/20 px-2 py-0.5 rounded-full border border-[#ff6600]/30">
+                            Sélectionné
+                          </span>
+                        )}
                         {isExpired ? (
                           <Badge variant="expire">Expiré</Badge>
                         ) : !link.isActive ? (
@@ -470,44 +596,78 @@ export default function LinksPage() {
                       </div>
                     </div>
 
-                    {/* Target URL */}
-                    <div className="flex items-center gap-1.5 text-[11px] text-neutral-400 bg-[#090b10] px-2.5 py-1.5 rounded-lg border border-[#222225] truncate">
-                      <span className="text-[#ff6600] font-bold shrink-0">↳</span>
-                      <span className="truncate">{link.targetUrl}</span>
+                    {/* Short URL & Target URL */}
+                    <div className="flex flex-col gap-1">
+                      <div className="font-mono text-[#ff6600] text-xs font-semibold truncate">
+                        {link.domainName || "lsho.cc"}/{link.slug}
+                      </div>
+                      <div className="flex items-center gap-1.5 text-[11px] text-neutral-400 bg-[#090b10] px-2 py-1 rounded border border-[#222225] truncate">
+                        <span className="text-[#ff6600] font-bold shrink-0">↳</span>
+                        <span className="truncate">{link.targetUrl}</span>
+                      </div>
                     </div>
 
-                    {/* Tags if any */}
-                    {link.tags && link.tags.length > 0 && (
-                      <div className="flex items-center gap-1 flex-wrap">
-                        {link.tags.map((t) => (
-                          <span
-                            key={t}
-                            className="text-[9.5px] font-mono px-1.5 py-0.2 rounded bg-neutral-800 text-neutral-400"
-                          >
-                            #{t}
+                    {/* Targeting icons + Tags */}
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <div className="flex items-center gap-1 text-neutral-400">
+                        {link.geoTargeting && Object.keys(link.geoTargeting).length > 0 && (
+                          <span title="Ciblage par pays actif" className="p-1 rounded bg-white/5">
+                            <Globe2 className="w-3 h-3 text-sky-400" />
                           </span>
-                        ))}
+                        )}
+                        {link.deviceTargeting && Object.values(link.deviceTargeting).some(Boolean) && (
+                          <span title="Ciblage par appareil actif" className="p-1 rounded bg-white/5">
+                            <Smartphone className="w-3 h-3 text-emerald-400" />
+                          </span>
+                        )}
+                        {link.isPasswordProtected && (
+                          <span title="Protégé par mot de passe" className="p-1 rounded bg-white/5">
+                            <Lock className="w-3 h-3 text-amber-400" />
+                          </span>
+                        )}
+                        {link.isCloaked && (
+                          <span title="Masquage Cloaking actif" className="p-1 rounded bg-white/5">
+                            <EyeOff className="w-3 h-3 text-purple-400" />
+                          </span>
+                        )}
                       </div>
-                    )}
+
+                      {link.tags && link.tags.length > 0 && (
+                        <div className="flex items-center gap-1 flex-wrap">
+                          {link.tags.map((t) => (
+                            <span
+                              key={t}
+                              className="text-[9.5px] font-mono px-1.5 py-0.5 rounded bg-neutral-800 text-neutral-400"
+                            >
+                              #{t}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
 
                     {/* Metrics & Actions Row */}
-                    <div className="flex items-center justify-between pt-1 text-xs">
-                      <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-between pt-1 text-xs border-t border-[#222225]">
+                      <div className="flex items-center gap-2">
                         <div className="flex items-center gap-1 text-white font-bold">
-                          <span className="text-[#ff6600] font-mono text-sm">{formatNumber(link.clicksCount)}</span>
+                          <span className="text-[#ff6600] font-mono text-xs">{formatNumber(link.clicksCount)}</span>
                           <span className="text-[10px] text-neutral-400 font-normal">clics</span>
                         </div>
                         <div className="flex items-center gap-1 text-neutral-300">
-                          <span className="font-mono text-sm">{formatNumber(link.uniqueClicks || 0)}</span>
+                          <span className="font-mono text-xs">{formatNumber(link.uniqueClicks || 0)}</span>
                           <span className="text-[10px] text-neutral-400">uniques</span>
                         </div>
                       </div>
 
-                      {/* Quick Action Buttons */}
-                      <div className="flex items-center gap-1">
+                      {/* Quick Actions: Copier + 3-dots Menu */}
+                      <div className="flex items-center gap-1.5">
                         <button
-                          onClick={() => handleCopy(link)}
-                          className="px-2.5 py-1 rounded-lg bg-[#ff6600]/15 text-[#ff771a] border border-[#ff6600]/30 hover:bg-[#ff6600] hover:text-white text-[10.5px] font-bold transition-colors flex items-center gap-1 cursor-pointer"
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCopy(link);
+                          }}
+                          className="px-2.5 py-1.5 rounded-lg bg-[#ff6600]/15 text-[#ff771a] border border-[#ff6600]/30 hover:bg-[#ff6600] hover:text-white text-[11px] font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
                         >
                           {isCopied ? (
                             <>
@@ -521,34 +681,117 @@ export default function LinksPage() {
                             </>
                           )}
                         </button>
-                        <button
-                          onClick={() => setSelectedQRLink(link)}
-                          className="p-1.5 rounded-lg bg-white/5 text-neutral-400 hover:text-white"
-                          title="QR Code"
-                        >
-                          <QrCode className="w-3.5 h-3.5 text-[#ff6600]" />
-                        </button>
-                        <button
-                          onClick={() => setSelectedEditLink(link)}
-                          className="p-1.5 rounded-lg bg-white/5 text-neutral-400 hover:text-white"
-                          title="Modifier"
-                        >
-                          <Edit3 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => setSelectedShareLink(link)}
-                          className="p-1.5 rounded-lg bg-white/5 text-neutral-400 hover:text-white"
-                          title="Partager"
-                        >
-                          <Share2 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => promptDeleteSingle(link)}
-                          className="p-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 cursor-pointer transition-colors"
-                          title="Supprimer"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+
+                        {/* 3-dots Menu */}
+                        <div className="relative inline-block dropdown-anchor">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenMenuId(isMenuOpen ? null : `mobile-${link.id}`);
+                            }}
+                            className="w-8 h-8 rounded-lg bg-white/[0.04] hover:bg-white/[0.1] text-neutral-300 hover:text-white border border-white/10 flex items-center justify-center transition-all cursor-pointer inline-flex"
+                            title="Options"
+                          >
+                            <MoreVertical className="w-4 h-4" />
+                          </button>
+
+                          {isMenuOpen && (
+                            <div
+                              className={cn(
+                                "absolute right-0 w-48 rounded-xl bg-[#1c1c24] border border-white/15 shadow-2xl py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150 text-xs text-neutral-200 text-left",
+                                isDropUp ? "bottom-full mb-1.5 origin-bottom-right" : "top-full mt-1.5 origin-top-right"
+                              )}
+                            >
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpenMenuId(null);
+                                  handleCopy(link);
+                                }}
+                                className="w-full px-3 py-2 text-left hover:bg-white/5 flex items-center gap-2.5 transition-colors cursor-pointer"
+                              >
+                                <Copy className="w-3.5 h-3.5 text-neutral-300" />
+                                <span>Copier le lien</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpenMenuId(null);
+                                  setSelectedQRLink(link);
+                                }}
+                                className="w-full px-3 py-2 text-left hover:bg-white/5 flex items-center gap-2.5 transition-colors cursor-pointer"
+                              >
+                                <QrCode className="w-3.5 h-3.5 text-[#ff6600]" />
+                                <span>Afficher QR Code</span>
+                              </button>
+                              <a
+                                href={link.shortUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpenMenuId(null);
+                                }}
+                                className="w-full px-3 py-2 text-left hover:bg-white/5 flex items-center gap-2.5 transition-colors cursor-pointer"
+                              >
+                                <ExternalLink className="w-3.5 h-3.5 text-neutral-300" />
+                                <span>Tester la redirection</span>
+                              </a>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpenMenuId(null);
+                                  setSelectedEditLink(link);
+                                }}
+                                className="w-full px-3 py-2 text-left hover:bg-white/5 flex items-center gap-2.5 transition-colors cursor-pointer"
+                              >
+                                <Edit3 className="w-3.5 h-3.5 text-[#ff6600]" />
+                                <span>Modifier le lien</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpenMenuId(null);
+                                  setSelectedShareLink(link);
+                                }}
+                                className="w-full px-3 py-2 text-left hover:bg-white/5 flex items-center gap-2.5 transition-colors cursor-pointer"
+                              >
+                                <Share2 className="w-3.5 h-3.5 text-sky-400" />
+                                <span>Partager</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpenMenuId(null);
+                                  router.push("/dashboard/analytics");
+                                }}
+                                className="w-full px-3 py-2 text-left hover:bg-white/5 flex items-center gap-2.5 transition-colors cursor-pointer"
+                              >
+                                <BarChart2 className="w-3.5 h-3.5 text-emerald-400" />
+                                <span>Voir les statistiques</span>
+                              </button>
+                              <div className="h-px bg-white/10 my-1" />
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpenMenuId(null);
+                                  promptDeleteSingle(link);
+                                }}
+                                className="w-full px-3 py-2 text-left hover:bg-red-500/10 text-red-400 flex items-center gap-2.5 transition-colors cursor-pointer"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                <span>Supprimer</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -556,12 +799,12 @@ export default function LinksPage() {
               })}
             </div>
 
-            {/* 2. Desktop Table (>= 768px) */}
-            <div className="hidden md:block overflow-x-auto">
-              <table className="w-full text-left text-xs text-neutral-400">
+            {/* 2. Desktop Table (>= 768px) - Tight, compact column spacing */}
+            <div className="hidden md:block overflow-x-auto min-h-[300px]">
+              <table className="w-full text-left text-xs text-neutral-400 border-collapse">
                 <thead>
                   <tr className="border-b border-[#222225] text-[11px] uppercase tracking-wider text-neutral-500 font-semibold">
-                    <th className="pb-3 pl-3 w-10">
+                    <th className="pb-2.5 pl-3 pr-1 w-9">
                       <input
                         type="checkbox"
                         checked={isAllSelected}
@@ -573,29 +816,33 @@ export default function LinksPage() {
                         className="w-4 h-4 rounded border-[#27272a] bg-[#1a1a1e] accent-[#ff6600] cursor-pointer"
                       />
                     </th>
-                    <th className="pb-3 pl-2">Lien & Destination</th>
-                    <th className="pb-3">URL Courte</th>
-                    <th className="pb-3 text-center">Options</th>
-                    <th className="pb-3 text-right pr-4">Clics</th>
-                    <th className="pb-3">Statut</th>
-                    <th className="pb-3 text-right pr-2">Actions</th>
+                    <th className="pb-2.5 px-2">Destination</th>
+                    <th className="pb-2.5 px-2 w-[170px]">URL Courte</th>
+                    <th className="pb-2.5 px-2 text-center w-[90px]">Options</th>
+                    <th className="pb-2.5 px-2 text-right w-[70px]">Clics</th>
+                    <th className="pb-2.5 px-2 w-[80px]">Statut</th>
+                    <th className="pb-2.5 pr-4 pl-1 text-right w-[70px]">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#222225]">
-                  {filteredLinks.map((link) => {
+                <tbody className="divide-y divide-[#202024]">
+                  {filteredLinks.map((link, index) => {
                     const isCopied = copiedId === link.id;
                     const isExpired = Boolean(link.expiresAt && new Date(link.expiresAt) < new Date());
                     const isSelected = selectedLinkIds.has(link.id);
+                    const isMenuOpen = openMenuId === link.id;
+                    const isDropUp = index >= 2 && (index >= filteredLinks.length - 3 || index >= 3);
 
                     return (
                       <tr
                         key={link.id}
-                        className={`hover:bg-white/[0.02] transition-colors group ${
-                          isSelected ? "bg-[#ff6600]/10 border-l-2 border-l-[#ff6600]" : ""
-                        }`}
+                        className={cn(
+                          "hover:bg-white/[0.02] transition-colors group",
+                          isSelected && "bg-[#ff6600]/10 border-l-2 border-l-[#ff6600]",
+                          isMenuOpen && "relative z-30"
+                        )}
                       >
                         {/* Checkbox */}
-                        <td className="py-4 pl-3 w-10">
+                        <td className="py-2.5 pl-3 pr-1 w-9">
                           <input
                             type="checkbox"
                             checked={isSelected}
@@ -605,21 +852,24 @@ export default function LinksPage() {
                           />
                         </td>
 
-                        {/* Name & Target URL */}
-                        <td className="py-4 pl-2 max-w-xs">
-                          <div className="flex flex-col">
-                            <span className="font-bold text-white text-sm group-hover:text-[#ff6600] transition-colors">
+                        {/* Slug & Target URL */}
+                        <td className="py-2.5 px-2 max-w-[260px]">
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-bold text-white text-xs group-hover:text-[#ff6600] transition-colors truncate">
                               {link.slug}
                             </span>
-                            <span className="text-[11px] text-neutral-500 truncate" title={link.targetUrl}>
-                              → {link.targetUrl}
+                            <span
+                              className="text-[11px] text-neutral-500 truncate"
+                              title={link.targetUrl}
+                            >
+                              ↳ {link.targetUrl}
                             </span>
                             {link.tags && link.tags.length > 0 && (
-                              <div className="flex items-center gap-1.5 mt-1.5">
+                              <div className="flex items-center gap-1 mt-1 flex-wrap">
                                 {link.tags.map((t) => (
                                   <span
                                     key={t}
-                                    className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-neutral-800 text-neutral-400"
+                                    className="text-[9.5px] font-mono px-1.5 py-0.5 rounded bg-neutral-800 text-neutral-400"
                                   >
                                     #{t}
                                   </span>
@@ -630,13 +880,13 @@ export default function LinksPage() {
                         </td>
 
                         {/* Short URL */}
-                        <td className="py-4 font-mono text-[#ff6600] font-medium">
-                          {link.domainName}/{link.slug}
+                        <td className="py-2.5 px-2 font-mono text-[#ff6600] text-xs font-medium whitespace-nowrap">
+                          {link.domainName || "lsho.cc"}/{link.slug}
                         </td>
 
                         {/* Options icons (Geo, Device, Lock, Cloak) */}
-                        <td className="py-4 text-center">
-                          <div className="flex items-center justify-center gap-1.5 text-neutral-400">
+                        <td className="py-2.5 px-2 text-center whitespace-nowrap">
+                          <div className="flex items-center justify-center gap-1 text-neutral-400">
                             {link.geoTargeting && Object.keys(link.geoTargeting).length > 0 && (
                               <span title="Ciblage par pays actif">
                                 <Globe2 className="w-3.5 h-3.5 text-sky-400" />
@@ -657,16 +907,19 @@ export default function LinksPage() {
                                 <EyeOff className="w-3.5 h-3.5 text-purple-400" />
                               </span>
                             )}
+                            {!link.geoTargeting && !link.deviceTargeting && !link.isPasswordProtected && !link.isCloaked && (
+                              <span className="text-neutral-600">—</span>
+                            )}
                           </div>
                         </td>
 
                         {/* Clics */}
-                        <td className="py-4 text-right pr-4 font-bold text-white font-mono text-sm">
+                        <td className="py-2.5 px-2 text-right font-bold text-white font-mono text-xs whitespace-nowrap">
                           {formatNumber(link.clicksCount)}
                         </td>
 
                         {/* Statut */}
-                        <td className="py-4">
+                        <td className="py-2.5 px-2 whitespace-nowrap">
                           {isExpired ? (
                             <Badge variant="expire">Expiré</Badge>
                           ) : !link.isActive ? (
@@ -677,67 +930,106 @@ export default function LinksPage() {
                         </td>
 
                         {/* Actions */}
-                        <td className="py-4 text-right pr-2">
-                          <div className="flex items-center justify-end gap-1 text-neutral-400">
-                            {/* Copy */}
+                        <td className="py-2.5 pr-4 pl-1 text-right whitespace-nowrap">
+                          <div className="relative inline-block dropdown-anchor">
                             <button
-                              onClick={() => handleCopy(link)}
-                              title="Copier le lien"
-                              className="p-1.5 rounded-[6px] hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setOpenMenuId(isMenuOpen ? null : link.id);
+                              }}
+                              className="w-8 h-8 rounded-lg bg-white/[0.04] hover:bg-white/[0.1] text-neutral-300 hover:text-white border border-white/10 flex items-center justify-center transition-all cursor-pointer inline-flex"
+                              title="Options"
                             >
-                              {isCopied ? (
-                                <Check className="w-4 h-4 text-emerald-400" />
-                              ) : (
-                                <Copy className="w-4 h-4" />
-                              )}
+                              <MoreVertical className="w-4 h-4" />
                             </button>
 
-                            {/* QR Code */}
-                            <button
-                              onClick={() => setSelectedQRLink(link)}
-                              title="Afficher et personnaliser le QR Code"
-                              className="p-1.5 rounded-[6px] hover:bg-white/10 hover:text-[#ff6600] transition-colors cursor-pointer"
-                            >
-                              <QrCode className="w-4 h-4" />
-                            </button>
-
-                            {/* Open Short Link */}
-                            <a
-                              href={link.shortUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              title="Tester la redirection courte"
-                              className="p-1.5 rounded-[6px] hover:bg-white/10 hover:text-[#ff6600] transition-colors"
-                            >
-                              <ExternalLink className="w-4 h-4" />
-                            </a>
-
-                            {/* Edit Link */}
-                            <button
-                              onClick={() => setSelectedEditLink(link)}
-                              title="Modifier le lien"
-                              className="p-1.5 rounded-[6px] hover:bg-white/10 hover:text-[#ff6600] transition-colors cursor-pointer"
-                            >
-                              <Edit3 className="w-4 h-4" />
-                            </button>
-
-                            {/* Share */}
-                            <button
-                              onClick={() => setSelectedShareLink(link)}
-                              title="Partager"
-                              className="p-1.5 rounded-[6px] hover:bg-white/10 hover:text-[#ff6600] transition-colors cursor-pointer"
-                            >
-                              <Share2 className="w-4 h-4" />
-                            </button>
-
-                            {/* Delete */}
-                            <button
-                              onClick={() => promptDeleteSingle(link)}
-                              title="Supprimer"
-                              className="p-1.5 rounded-[6px] hover:bg-red-500/20 hover:text-red-400 transition-colors cursor-pointer"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            {isMenuOpen && (
+                              <div
+                                className={cn(
+                                  "absolute right-0 w-48 rounded-xl bg-[#1c1c24] border border-white/15 shadow-2xl py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150 text-xs text-neutral-200 text-left",
+                                  isDropUp ? "bottom-full mb-1.5 origin-bottom-right" : "top-full mt-1.5 origin-top-right"
+                                )}
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setOpenMenuId(null);
+                                    handleCopy(link);
+                                  }}
+                                  className="w-full px-3 py-2 text-left hover:bg-white/5 flex items-center gap-2.5 transition-colors cursor-pointer"
+                                >
+                                  <Copy className="w-3.5 h-3.5 text-neutral-300" />
+                                  <span>Copier le lien</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setOpenMenuId(null);
+                                    setSelectedQRLink(link);
+                                  }}
+                                  className="w-full px-3 py-2 text-left hover:bg-white/5 flex items-center gap-2.5 transition-colors cursor-pointer"
+                                >
+                                  <QrCode className="w-3.5 h-3.5 text-[#ff6600]" />
+                                  <span>Afficher QR Code</span>
+                                </button>
+                                <a
+                                  href={link.shortUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={() => setOpenMenuId(null)}
+                                  className="w-full px-3 py-2 text-left hover:bg-white/5 flex items-center gap-2.5 transition-colors cursor-pointer"
+                                >
+                                  <ExternalLink className="w-3.5 h-3.5 text-neutral-300" />
+                                  <span>Tester la redirection</span>
+                                </a>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setOpenMenuId(null);
+                                    setSelectedEditLink(link);
+                                  }}
+                                  className="w-full px-3 py-2 text-left hover:bg-white/5 flex items-center gap-2.5 transition-colors cursor-pointer"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5 text-[#ff6600]" />
+                                  <span>Modifier le lien</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setOpenMenuId(null);
+                                    setSelectedShareLink(link);
+                                  }}
+                                  className="w-full px-3 py-2 text-left hover:bg-white/5 flex items-center gap-2.5 transition-colors cursor-pointer"
+                                >
+                                  <Share2 className="w-3.5 h-3.5 text-sky-400" />
+                                  <span>Partager</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setOpenMenuId(null);
+                                    router.push("/dashboard/analytics");
+                                  }}
+                                  className="w-full px-3 py-2 text-left hover:bg-white/5 flex items-center gap-2.5 transition-colors cursor-pointer"
+                                >
+                                  <BarChart2 className="w-3.5 h-3.5 text-emerald-400" />
+                                  <span>Voir les statistiques</span>
+                                </button>
+                                <div className="h-px bg-white/10 my-1" />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setOpenMenuId(null);
+                                    promptDeleteSingle(link);
+                                  }}
+                                  className="w-full px-3 py-2 text-left hover:bg-red-500/10 text-red-400 flex items-center gap-2.5 transition-colors cursor-pointer"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                  <span>Supprimer</span>
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </td>
                       </tr>

@@ -368,53 +368,71 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
             {!rule.isCollapsed && (
               <div className="flex flex-col gap-4 pt-1 border-t border-[#222225]">
                 {/* Conditions Block */}
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-2.5">
                   {rule.conditions.map((cond, condIdx) => (
                     <div
                       key={cond.id}
-                      className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center"
+                      className="p-3 sm:p-2 rounded-xl bg-[#141418] border border-[#27272f] sm:bg-transparent sm:border-0 flex flex-col gap-2 sm:grid sm:grid-cols-12 sm:gap-2 sm:items-center"
                     >
-                      {/* Prefix Label ("Si" for first, "Et" for rest) */}
-                      <div className="sm:col-span-1 text-xs font-semibold text-neutral-400">
-                        {condIdx === 0 ? "Si" : "Et"}
+                      {/* Mobile Header: Prefix + Delete */}
+                      <div className="flex items-center justify-between sm:contents">
+                        <div className="sm:col-span-1 text-xs font-bold text-neutral-300">
+                          <span className="px-2 py-0.5 rounded-md bg-white/5 sm:bg-transparent text-[#ff6600] font-mono">
+                            {condIdx === 0 ? "Si" : "Et"}
+                          </span>
+                        </div>
+
+                        {rule.conditions.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteCondition(rule.id, cond.id)}
+                            className="sm:hidden text-red-400 hover:text-red-300 p-1 rounded-md"
+                            title="Supprimer la condition"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
 
-                      {/* Type Dropdown (Pays, Région, Appareil, Plateforme) */}
-                      <div className="sm:col-span-3">
-                        <select
-                          value={cond.type}
-                          onChange={(e) =>
-                            handleUpdateCondition(rule.id, cond.id, {
-                              type: e.target.value as any,
-                              value: e.target.value === "pays" ? "FR" : "ios",
-                            })
-                          }
-                          className="w-full h-10 rounded-[8px] bg-[#1a1a1e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
-                        >
-                          <option value="pays" className="bg-[#141416] text-white">Pays</option>
-                          <option value="plateforme" className="bg-[#141416] text-white">Plateforme</option>
-                          <option value="appareil" className="bg-[#141416] text-white">Appareil</option>
-                          <option value="region" className="bg-[#141416] text-white">Région</option>
-                        </select>
+                      {/* Row 1 on Mobile: Type + Operator */}
+                      <div className="grid grid-cols-2 gap-2 sm:contents">
+                        {/* Type Dropdown */}
+                        <div className="sm:col-span-3">
+                          <select
+                            value={cond.type}
+                            onChange={(e) =>
+                              handleUpdateCondition(rule.id, cond.id, {
+                                type: e.target.value as any,
+                                value: e.target.value === "pays" ? "FR" : "ios",
+                              })
+                            }
+                            className="w-full h-10 rounded-lg bg-[#1a1a1e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
+                          >
+                            <option value="pays" className="bg-[#141416] text-white">Pays</option>
+                            <option value="plateforme" className="bg-[#141416] text-white">Plateforme</option>
+                            <option value="appareil" className="bg-[#141416] text-white">Appareil</option>
+                            <option value="region" className="bg-[#141416] text-white">Région</option>
+                          </select>
+                        </div>
+
+                        {/* Operator Dropdown */}
+                        <div className="sm:col-span-2">
+                          <select
+                            value={cond.operator}
+                            onChange={(e) =>
+                              handleUpdateCondition(rule.id, cond.id, {
+                                operator: e.target.value as any,
+                              })
+                            }
+                            className="w-full h-10 rounded-lg bg-[#1a1a1e] text-white border border-[#27272a] px-2.5 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer text-center"
+                          >
+                            <option value="est" className="bg-[#141416] text-white">est</option>
+                            <option value="nest_pas" className="bg-[#141416] text-white">n&apos;est pas</option>
+                          </select>
+                        </div>
                       </div>
 
-                      {/* Operator Dropdown (est, n'est pas) */}
-                      <div className="sm:col-span-2">
-                        <select
-                          value={cond.operator}
-                          onChange={(e) =>
-                            handleUpdateCondition(rule.id, cond.id, {
-                              operator: e.target.value as any,
-                            })
-                          }
-                          className="w-full h-10 rounded-[8px] bg-[#1a1a1e] text-white border border-[#27272a] px-2.5 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer text-center"
-                        >
-                          <option value="est" className="bg-[#141416] text-white">est</option>
-                          <option value="nest_pas" className="bg-[#141416] text-white">n&apos;est pas</option>
-                        </select>
-                      </div>
-
-                      {/* Values Selector (All Countries / Platforms / OS / Regions) */}
+                      {/* Row 2 on Mobile: Value Selector */}
                       <div className="sm:col-span-5">
                         {cond.type === "pays" && (
                           <select
@@ -424,7 +442,7 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                                 value: e.target.value,
                               })
                             }
-                            className="w-full h-10 rounded-[8px] bg-[#1a1a1e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
+                            className="w-full h-10 rounded-lg bg-[#1a1a1e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
                           >
                             {ALL_WORLD_COUNTRIES.map((c) => (
                               <option
@@ -446,9 +464,9 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                                 value: e.target.value,
                               })
                             }
-                            className="w-full h-10 rounded-[8px] bg-[#1a1a1e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
+                            className="w-full h-10 rounded-lg bg-[#1a1a1e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
                           >
-                            <option value="ios" className="bg-[#141416] text-white">iOS (iPhone & iPad)</option>
+                            <option value="ios" className="bg-[#141416] text-white">iOS (iPhone &amp; iPad)</option>
                             <option value="android" className="bg-[#141416] text-white">Android</option>
                             <option value="windows" className="bg-[#141416] text-white">Windows</option>
                             <option value="macos" className="bg-[#141416] text-white">macOS</option>
@@ -464,7 +482,7 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                                 value: e.target.value,
                               })
                             }
-                            className="w-full h-10 rounded-[8px] bg-[#1a1a1e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
+                            className="w-full h-10 rounded-lg bg-[#1a1a1e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
                           >
                             <option value="mobile" className="bg-[#141416] text-white">Mobile (Smartphones)</option>
                             <option value="tablet" className="bg-[#141416] text-white">Tablette</option>
@@ -480,24 +498,25 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                                 value: e.target.value,
                               })
                             }
-                            className="w-full h-10 rounded-[8px] bg-[#1a1a1e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
+                            className="w-full h-10 rounded-lg bg-[#1a1a1e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
                           >
                             <option value="europe" className="bg-[#141416] text-white">Europe (UE)</option>
                             <option value="west_africa" className="bg-[#141416] text-white">Afrique de l&apos;Ouest (CEDEAO)</option>
                             <option value="central_africa" className="bg-[#141416] text-white">Afrique Centrale</option>
                             <option value="north_america" className="bg-[#141416] text-white">Amérique du Nord</option>
-                            <option value="asia" className="bg-[#141416] text-white">Asie & Pacifique</option>
+                            <option value="asia" className="bg-[#141416] text-white">Asie &amp; Pacifique</option>
                           </select>
                         )}
                       </div>
 
-                      {/* Remove Condition Button */}
-                      <div className="sm:col-span-1 flex justify-end">
+                      {/* Desktop Remove Condition Button */}
+                      <div className="hidden sm:flex sm:col-span-1 justify-end">
                         {rule.conditions.length > 1 && (
                           <button
                             type="button"
                             onClick={() => handleDeleteCondition(rule.id, cond.id)}
-                            className="text-neutral-500 hover:text-red-400 p-1 cursor-pointer"
+                            className="text-neutral-500 hover:text-red-400 p-1.5 hover:bg-red-500/10 rounded-md transition-colors cursor-pointer"
+                            title="Supprimer la condition"
                           >
                             <X className="w-4 h-4" />
                           </button>
@@ -511,7 +530,7 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                     <button
                       type="button"
                       onClick={() => handleAddCondition(rule.id)}
-                      className="text-[#ff6600] hover:text-[#ff771a] font-semibold text-xs flex items-center gap-1 px-2.5 py-1 rounded-[6px] hover:bg-[#ff6600]/10 transition-colors cursor-pointer"
+                      className="text-[#ff6600] hover:text-[#ff771a] font-semibold text-xs flex items-center gap-1 px-3 py-1.5 rounded-lg hover:bg-[#ff6600]/10 border border-[#ff6600]/20 transition-all cursor-pointer"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       <span>Ajouter une condition</span>
@@ -577,7 +596,7 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
       <button
         type="button"
         onClick={handleAddRule}
-        className="w-fit px-4 py-2 rounded-[8px] bg-white/5 hover:bg-white/10 text-neutral-200 hover:text-white border border-[#27272a] hover:border-[#ff6600] font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+        className="w-full sm:w-fit px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 active:scale-98 text-neutral-200 hover:text-white border border-[#27272a] hover:border-[#ff6600] font-semibold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm"
       >
         <Plus className="w-4 h-4 text-[#ff6600]" />
         <span>Ajouter une règle</span>

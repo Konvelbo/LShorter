@@ -175,5 +175,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     process.env.NEXTAUTH_SECRET ||
     "lshorter_nextauth_super_secret_key_prod_2026",
 
+  trustHost: true,
+
   session: { strategy: "jwt" },
 });
