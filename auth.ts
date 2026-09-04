@@ -2,6 +2,7 @@ import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import GitHub from "next-auth/providers/github";
 import Credentials from "next-auth/providers/credentials";
+import bcrypt from "bcryptjs";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "@/convex/_generated/api";
 
@@ -17,12 +18,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         process.env.GOOGLE_CLIENT_ID ||
         process.env.AUTH_GOOGLE_ID ||
         process.env.GOOGLE_ID ||
-        "",
+        undefined,
       clientSecret:
         process.env.GOOGLE_CLIENT_SECRET ||
         process.env.AUTH_GOOGLE_SECRET ||
         process.env.GOOGLE_SECRET ||
-        "",
+        undefined,
     }),
 
     // ─── GitHub OAuth ───────────────────────────────────────────────────────────
@@ -31,12 +32,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         process.env.GITHUB_ID ||
         process.env.GITHUB_CLIENT_ID ||
         process.env.AUTH_GITHUB_ID ||
-        "",
+        undefined,
       clientSecret:
         process.env.GITHUB_SECRET ||
         process.env.GITHUB_CLIENT_SECRET ||
         process.env.AUTH_GITHUB_SECRET ||
-        "",
+        undefined,
     }),
 
     // ─── Email + Password ───────────────────────────────────────────────────────
@@ -50,9 +51,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (!credentials?.email || !credentials?.password) return null;
 
         try {
-          const bcrypt = await import("bcryptjs");
+          const cleanEmail = String(credentials.email).toLowerCase().trim();
           const user = await convex.query(api.users.getUserByEmail, {
-            email: String(credentials.email),
+            email: cleanEmail,
           });
 
           if (!user || !user.passwordHash) return null;

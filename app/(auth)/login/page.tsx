@@ -64,15 +64,11 @@ export default function LoginPage({ initialMode = "login" }: { initialMode?: "lo
       const userName = cleanName.charAt(0).toUpperCase() + cleanName.slice(1) || "Mon Compte";
 
       if (authMode === "register") {
-        // Hash password client-side before sending to Convex
-        const bcrypt = await import("bcryptjs");
-        const passwordHash = await bcrypt.hash(password, 10);
-
-        // Call the Convex mutation directly via HTTP (server action alternative)
+        // Send registration to server route which securely hashes password and saves user
         const res = await fetch("/api/auth/register", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: userName, email: cleanEmail, passwordHash }),
+          body: JSON.stringify({ name: userName, email: cleanEmail, password }),
         });
 
         const json = await res.json();
@@ -111,13 +107,34 @@ export default function LoginPage({ initialMode = "login" }: { initialMode?: "lo
       }
     } catch (error) {
       console.error("Auth error:", error);
-      showToast.error("Une erreur est survenue. Veuillez réessayer.");
+      showToast.error("Une erreur est survenue lors de l'authentification. Veuillez réessayer.");
       setIsLoading(false);
     }
   };
 
-  // Listen for authentication completion from the popup/new tab
+  // Check URL parameters for OAuth errors and listen for authentication completion from the popup/new tab
   useEffect(() => {
+    // Check if redirected with OAuth error in query params
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const err = params.get("error");
+      if (err) {
+        if (err === "Configuration") {
+          showToast.error(
+            "Configuration OAuth incomplète : GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET manquants dans Vercel."
+          );
+        } else if (err === "OAuthCallbackError" || err === "OAuthCallback") {
+          showToast.error(
+            "Erreur de callback OAuth : Vérifiez l'URI de redirection https://lsho.cc/api/auth/callback/google."
+          );
+        } else if (err === "AccessDenied") {
+          showToast.error("Accès refusé par le fournisseur de connexion.");
+        } else {
+          showToast.error(`Erreur d'authentification : ${err}`);
+        }
+      }
+    }
+
     let hasRedirected = false;
 
     const handleAuthSuccess = () => {
@@ -186,6 +203,14 @@ export default function LoginPage({ initialMode = "login" }: { initialMode?: "lo
       });
 
       if (res?.url) {
+        if (res.url.includes("error=Configuration")) {
+          showToast.error(
+            "Identifiants OAuth non configurés sur Vercel (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET)."
+          );
+          setIsLoading(false);
+          return;
+        }
+
         const width = 540;
         const height = 680;
         const left = window.screenX + (window.outerWidth - width) / 2;
