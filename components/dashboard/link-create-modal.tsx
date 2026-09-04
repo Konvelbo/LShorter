@@ -620,6 +620,18 @@ export function LinkCreateModal({
           id: res.data.id || createdLink.id,
           shortUrl: res.data.short_url || createdLink.shortUrl,
           slug: res.data.slug || createdLink.slug,
+          ogImage: res.data.og_image || res.data.ogImage || finalOgImage || undefined,
+          ogTitle: res.data.og_title || res.data.ogTitle || ogTitle || undefined,
+          ogDescription: res.data.og_description || res.data.ogDescription || ogDescription || undefined,
+          metaTitle: res.data.meta_title || res.data.metaTitle || ogTitle || metaTitle || undefined,
+        };
+      } else {
+        createdLink = {
+          ...createdLink,
+          ogImage: finalOgImage || undefined,
+          ogTitle: ogTitle || undefined,
+          ogDescription: ogDescription || undefined,
+          metaTitle: ogTitle || metaTitle || undefined,
         };
       }
     } catch (err: any) {

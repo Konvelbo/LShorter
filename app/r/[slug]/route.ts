@@ -1,5 +1,11 @@
 import { NextResponse } from "next/server";
-import { getProtectedLink, recordLinkClick, resolveAbTargetUrl } from "@/lib/protected-links-store";
+import { getProtectedLink, saveProtectedLink, recordLinkClick, resolveAbTargetUrl } from "@/lib/protected-links-store";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "@/convex/_generated/api";
+
+const convex = new ConvexHttpClient(
+  process.env.NEXT_PUBLIC_CONVEX_URL || "https://greedy-mastiff-107.convex.cloud"
+);
 
 const WORKER_URL =
   process.env.NEXT_PUBLIC_BACKEND_API_URL ||
@@ -166,7 +172,36 @@ export async function GET(
     }
 
     // Check in-memory store (<1ms lookup)
-    const meta = getProtectedLink(slug);
+    let meta = getProtectedLink(slug);
+
+    if (!meta) {
+      try {
+        const cxLink: any = await convex.query(api.links.getLinkBySlug, { slug });
+        if (cxLink) {
+          meta =
+            saveProtectedLink({
+              slug: cxLink.slug,
+              password: cxLink.password,
+              isCloaked: cxLink.isCloaked || cxLink.cloaking,
+              metaTitle: cxLink.metaTitle || cxLink.title,
+              ogTitle: cxLink.ogTitle || cxLink.title,
+              ogDescription: cxLink.ogDescription,
+              ogImage: cxLink.ogImage,
+              targetUrl: cxLink.targetUrl,
+              routingRules: cxLink.routingRules,
+              geoTargeting: cxLink.geoTargeting,
+              deviceTargeting: cxLink.deviceTargeting,
+              maxClicks: cxLink.maxClicks,
+              fallbackUrl: cxLink.fallbackUrl,
+              abVariations: cxLink.abVariations,
+              mainWeight: cxLink.mainWeight,
+              userId: cxLink.userId,
+            }) || null;
+        }
+      } catch (cxErr) {
+        console.warn("[Route Slug Convex Query Error]:", cxErr);
+      }
+    }
 
     // If request comes from a social crawler (Twitterbot, facebookexternalhit, WhatsApp, Discord...)
     // AND custom social metadata (ogImage, ogTitle, ogDescription) is present, serve Open Graph HTML
@@ -175,7 +210,8 @@ export async function GET(
       let fullOgImage = meta?.ogImage || "";
       if (fullOgImage && !fullOgImage.startsWith("http") && !fullOgImage.startsWith("data:")) {
         try {
-          fullOgImage = new URL(fullOgImage, req.url).toString();
+          const origin = new URL(req.url).origin;
+          fullOgImage = `${origin}${fullOgImage.startsWith("/") ? "" : "/"}${fullOgImage}`;
         } catch {}
       }
 

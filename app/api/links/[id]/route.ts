@@ -1,11 +1,17 @@
 import { NextResponse } from "next/server";
 import { saveProtectedLink, deleteProtectedLink } from "@/lib/protected-links-store";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "@/convex/_generated/api";
 
 const WORKER_URL =
   process.env.NEXT_PUBLIC_BACKEND_API_URL ||
   "https://lshorter-api.fiatechnologiecam.workers.dev";
 const FRONTEND_SECRET =
   process.env.FRONTEND_API_SECRET || "lsh_secret_live_prod_2026";
+
+const convex = new ConvexHttpClient(
+  process.env.NEXT_PUBLIC_CONVEX_URL || "https://greedy-mastiff-107.convex.cloud"
+);
 
 export async function PATCH(
   req: Request,
@@ -25,6 +31,41 @@ export async function PATCH(
         ? undefined
         : (body.ogImage || body.og_image);
 
+    // 1. Persist in Convex Cloud DB
+    if (body.slug) {
+      try {
+        await convex.mutation(api.links.upsertLink, {
+          userId: userId || "usr_default",
+          slug: body.slug,
+          targetUrl: body.targetUrl || body.target_url || "",
+          domainName: body.domainName || body.domain_name || "lsho.cc",
+          title: body.ogTitle || body.metaTitle || body.title || body.slug,
+          metaTitle: body.metaTitle || body.meta_title || body.ogTitle,
+          ogTitle: body.ogTitle || body.og_title,
+          ogDescription: body.ogDescription || body.og_description,
+          ogImage: sanitizedOgImage,
+          password: body.password,
+          isPasswordProtected: Boolean(body.password),
+          isCloaked: body.isCloaked !== undefined ? Boolean(body.isCloaked) : undefined,
+          cloaking: body.isCloaked !== undefined ? Boolean(body.isCloaked) : undefined,
+          hideReferrer: body.hideReferrer !== undefined ? Boolean(body.hideReferrer) : undefined,
+          expiresAt: body.expiresAt || body.expires_at,
+          maxClicks: body.maxClicks !== undefined ? Number(body.maxClicks) : undefined,
+          fallbackUrl: body.fallbackUrl || body.fallback_url,
+          tags: body.tags,
+          routingRules: body.routingRules || body.routing_rules,
+          geoTargeting: body.geoTargeting || body.geo_targeting,
+          deviceTargeting: body.deviceTargeting || body.device_targeting,
+          abVariations: body.abVariations || body.ab_variations,
+          mainWeight: body.mainWeight !== undefined ? Number(body.mainWeight) : undefined,
+          isActive: body.isActive !== undefined ? Boolean(body.isActive) : undefined,
+        });
+      } catch (cxErr) {
+        console.warn("[Convex PATCH upsertLink error]:", cxErr);
+      }
+    }
+
+    // 2. Persist in local in-memory store
     if (body.slug) {
       try {
         saveProtectedLink({
@@ -50,6 +91,7 @@ export async function PATCH(
       }
     }
 
+    // 3. Forward to Cloudflare Worker
     const workerPayload = {
       ...body,
       ogImage: sanitizedOgImage,
@@ -107,12 +149,19 @@ export async function PATCH(
               ...retryData,
               data: {
                 ...(retryData.data || {}),
+                ogImage: sanitizedOgImage,
+                og_image: sanitizedOgImage,
+                ogTitle: body.ogTitle || body.og_title,
+                og_title: body.ogTitle || body.og_title,
+                ogDescription: body.ogDescription || body.og_description,
+                og_description: body.ogDescription || body.og_description,
+                metaTitle: body.metaTitle || body.meta_title,
                 password: body.password || undefined,
                 isCloaked: Boolean(body.isCloaked || body.is_cloaked),
                 routingRules: body.routingRules || body.routing_rules || undefined,
                 geoTargeting: body.geoTargeting || body.geo_targeting || undefined,
                 deviceTargeting: body.deviceTargeting || body.device_targeting || undefined,
-                maxClicks: body.maxClicks !== undefined ? Number(body.maxClicks) : body.max_clicks !== undefined ? Number(body.max_clicks) : undefined,
+                maxClicks: body.maxClicks !== undefined ? Number(body.maxClicks) : undefined,
                 fallbackUrl: body.fallbackUrl || body.fallback_url || undefined,
               },
             },
@@ -127,12 +176,19 @@ export async function PATCH(
         ...data,
         data: {
           ...(data.data || {}),
+          ogImage: sanitizedOgImage,
+          og_image: sanitizedOgImage,
+          ogTitle: body.ogTitle || body.og_title,
+          og_title: body.ogTitle || body.og_title,
+          ogDescription: body.ogDescription || body.og_description,
+          og_description: body.ogDescription || body.og_description,
+          metaTitle: body.metaTitle || body.meta_title,
           password: body.password || undefined,
           isCloaked: Boolean(body.isCloaked || body.is_cloaked),
           routingRules: body.routingRules || body.routing_rules || undefined,
           geoTargeting: body.geoTargeting || body.geo_targeting || undefined,
           deviceTargeting: body.deviceTargeting || body.device_targeting || undefined,
-          maxClicks: body.maxClicks !== undefined ? Number(body.maxClicks) : body.max_clicks !== undefined ? Number(body.max_clicks) : undefined,
+          maxClicks: body.maxClicks !== undefined ? Number(body.maxClicks) : undefined,
           fallbackUrl: body.fallbackUrl || body.fallback_url || undefined,
         },
       },
@@ -166,20 +222,15 @@ export async function DELETE(
         Authorization: `Bearer ${FRONTEND_SECRET}`,
         ...(userId ? { "X-User-Id": userId } : {}),
       },
+      cache: "no-store",
     });
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       return NextResponse.json(
-        { success: false, error: err.error || "Erreur suppression Worker" },
+        { success: false, error: err.error || "Erreur Worker Cloudflare" },
         { status: res.status }
       );
-    }
-
-    // Attempt to cleanup local protected store if slug is provided
-    const slug = searchParams.get("slug");
-    if (slug) {
-      deleteProtectedLink(slug);
     }
 
     const data = await res.json().catch(() => ({ success: true }));

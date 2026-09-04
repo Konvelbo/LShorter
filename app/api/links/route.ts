@@ -1,11 +1,17 @@
 import { NextResponse } from "next/server";
 import { saveProtectedLink } from "@/lib/protected-links-store";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "@/convex/_generated/api";
 
 const WORKER_URL =
   process.env.NEXT_PUBLIC_BACKEND_API_URL ||
   "https://lshorter-api.fiatechnologiecam.workers.dev";
 const FRONTEND_SECRET =
   process.env.FRONTEND_API_SECRET || "lsh_secret_live_prod_2026";
+
+const convex = new ConvexHttpClient(
+  process.env.NEXT_PUBLIC_CONVEX_URL || "https://greedy-mastiff-107.convex.cloud"
+);
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -15,25 +21,73 @@ export async function GET(req: Request) {
     const url = new URL(`${WORKER_URL}/api/v1/links`);
     if (userId) url.searchParams.set("userId", userId);
 
-    const res = await fetch(url.toString(), {
-      headers: {
-        "X-Frontend-Secret": FRONTEND_SECRET,
-        Authorization: `Bearer ${FRONTEND_SECRET}`,
-        ...(userId ? { "X-User-Id": userId } : {}),
-      },
-      cache: "no-store",
-    });
+    const [workerData, convexLinks] = await Promise.all([
+      fetch(url.toString(), {
+        headers: {
+          "X-Frontend-Secret": FRONTEND_SECRET,
+          Authorization: `Bearer ${FRONTEND_SECRET}`,
+          ...(userId ? { "X-User-Id": userId } : {}),
+        },
+        cache: "no-store",
+      })
+        .then((r) => (r.ok ? r.json() : { success: true, data: [] }))
+        .catch(() => ({ success: true, data: [] })),
+      userId && userId !== "all"
+        ? convex.query(api.links.listUserLinks, { userId }).catch(() => [])
+        : Promise.resolve([]),
+    ]);
 
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      return NextResponse.json(
-        { success: false, error: err.error || "Erreur Worker Cloudflare" },
-        { status: res.status }
-      );
+    const convexMap = new Map<string, any>();
+    if (Array.isArray(convexLinks)) {
+      convexLinks.forEach((cl: any) => {
+        if (cl.slug) convexMap.set(cl.slug.toLowerCase(), cl);
+      });
     }
 
-    const data = await res.json();
-    return NextResponse.json(data);
+    const workerList = Array.isArray(workerData?.data)
+      ? workerData.data
+      : Array.isArray((workerData?.data as any)?.data)
+      ? (workerData.data as any).data
+      : [];
+
+    const mergedList = workerList.map((l: any) => {
+      const slugKey = (l.slug || "").toLowerCase();
+      const cx = convexMap.get(slugKey) || {};
+
+      return {
+        ...l,
+        meta_title: l.meta_title || l.metaTitle || cx.metaTitle || cx.title,
+        metaTitle: l.metaTitle || l.meta_title || cx.metaTitle || cx.title,
+        og_title: l.og_title || l.ogTitle || cx.ogTitle || cx.title,
+        ogTitle: l.ogTitle || l.og_title || cx.ogTitle || cx.title,
+        og_description: l.og_description || l.ogDescription || cx.ogDescription,
+        ogDescription: l.ogDescription || l.og_description || cx.ogDescription,
+        og_image: l.og_image || l.ogImage || cx.ogImage,
+        ogImage: l.ogImage || l.og_image || cx.ogImage,
+        password: l.password || cx.password,
+        has_password: Boolean(l.password || l.has_password || cx.password),
+        is_cloaked: l.is_cloaked !== undefined ? l.is_cloaked : cx.isCloaked ? 1 : 0,
+        isCloaked: Boolean(l.isCloaked || l.is_cloaked || cx.isCloaked),
+        hide_referrer: l.hide_referrer !== undefined ? l.hide_referrer : cx.hideReferrer ? 1 : 0,
+        hideReferrer: Boolean(l.hideReferrer || l.hide_referrer || cx.hideReferrer),
+        routing_rules: l.routing_rules || cx.routingRules,
+        routingRules: l.routingRules || cx.routingRules,
+        geo_targeting: l.geo_targeting || cx.geoTargeting,
+        geoTargeting: l.geoTargeting || cx.geoTargeting,
+        device_targeting: l.device_targeting || cx.deviceTargeting,
+        deviceTargeting: l.deviceTargeting || cx.deviceTargeting,
+        max_clicks: l.max_clicks !== undefined ? l.max_clicks : cx.maxClicks,
+        maxClicks: l.maxClicks !== undefined ? l.maxClicks : cx.maxClicks,
+        fallback_url: l.fallback_url || cx.fallbackUrl,
+        fallbackUrl: l.fallbackUrl || cx.fallbackUrl,
+        ab_variations: l.ab_variations || cx.abVariations,
+        abVariations: l.abVariations || cx.abVariations,
+        main_weight: l.main_weight !== undefined ? l.main_weight : cx.mainWeight,
+        mainWeight: l.mainWeight !== undefined ? l.mainWeight : cx.mainWeight,
+      };
+    });
+
+    return NextResponse.json({ success: true, data: mergedList });
   } catch (error: any) {
     console.warn("[Links Proxy GET] Error connecting to Worker:", error);
     return NextResponse.json(
@@ -52,9 +106,43 @@ export async function POST(req: Request) {
     const sanitizedOgImage =
       body.ogImage && body.ogImage.startsWith("data:") && body.ogImage.length > 100000
         ? undefined
-        : body.ogImage;
+        : body.ogImage || body.og_image;
 
-    // Persist all metadata locally (password, cloaking, meta title, targeting rules, click limits, A/B testing)
+    // 1. Persist in Convex Cloud DB for permanent 100% cloud reliability
+    if (body.slug && body.userId) {
+      try {
+        await convex.mutation(api.links.upsertLink, {
+          userId: body.userId,
+          slug: body.slug,
+          targetUrl: body.targetUrl || body.target_url,
+          domainName: body.domainName || body.domain_name || "lsho.cc",
+          title: body.ogTitle || body.metaTitle || body.slug,
+          metaTitle: body.metaTitle || body.meta_title || body.ogTitle,
+          ogTitle: body.ogTitle || body.og_title,
+          ogDescription: body.ogDescription || body.og_description,
+          ogImage: sanitizedOgImage,
+          password: body.password,
+          isPasswordProtected: Boolean(body.password),
+          isCloaked: Boolean(body.isCloaked || body.is_cloaked),
+          cloaking: Boolean(body.isCloaked || body.is_cloaked),
+          hideReferrer: Boolean(body.hideReferrer || body.hide_referrer),
+          expiresAt: body.expiresAt || body.expires_at,
+          maxClicks: body.maxClicks !== undefined ? Number(body.maxClicks) : undefined,
+          fallbackUrl: body.fallbackUrl || body.fallback_url,
+          tags: body.tags,
+          routingRules: body.routingRules || body.routing_rules,
+          geoTargeting: body.geoTargeting || body.geo_targeting,
+          deviceTargeting: body.deviceTargeting || body.device_targeting,
+          abVariations: body.abVariations || body.ab_variations,
+          mainWeight: body.mainWeight !== undefined ? Number(body.mainWeight) : undefined,
+          isActive: body.isActive !== false && body.is_active !== 0,
+        });
+      } catch (cxErr) {
+        console.warn("[Convex upsertLink error]:", cxErr);
+      }
+    }
+
+    // 2. Persist in local in-memory store
     if (body.slug) {
       try {
         saveProtectedLink({
@@ -69,7 +157,7 @@ export async function POST(req: Request) {
           routingRules: body.routingRules || body.routing_rules,
           geoTargeting: body.geoTargeting || body.geo_targeting,
           deviceTargeting: body.deviceTargeting || body.device_targeting,
-          maxClicks: body.maxClicks !== undefined ? Number(body.maxClicks) : body.max_clicks !== undefined ? Number(body.max_clicks) : undefined,
+          maxClicks: body.maxClicks !== undefined ? Number(body.maxClicks) : undefined,
           fallbackUrl: body.fallbackUrl || body.fallback_url || undefined,
           abVariations: body.abVariations || body.ab_variations || undefined,
           mainWeight: body.mainWeight !== undefined ? Number(body.mainWeight) : undefined,
@@ -80,9 +168,11 @@ export async function POST(req: Request) {
       }
     }
 
+    // 3. Forward to Cloudflare Worker D1 & KV
     const workerPayload = {
       ...body,
       ogImage: sanitizedOgImage,
+      og_image: sanitizedOgImage,
       plan: effectivePlan,
       userPlan: effectivePlan,
     };
@@ -106,7 +196,6 @@ export async function POST(req: Request) {
 
     if (res.status === 403 || res.status === 400) {
       if (isPro) {
-        // User is PRO in application: create the core short link on Worker without triggering worker's freemium plan guard
         const sanitizedBody = { ...workerPayload };
         delete sanitizedBody.password;
         delete sanitizedBody.isCloaked;
@@ -140,12 +229,19 @@ export async function POST(req: Request) {
               ...retryData,
               data: {
                 ...(retryData.data || {}),
+                ogImage: sanitizedOgImage,
+                og_image: sanitizedOgImage,
+                ogTitle: body.ogTitle || body.og_title,
+                og_title: body.ogTitle || body.og_title,
+                ogDescription: body.ogDescription || body.og_description,
+                og_description: body.ogDescription || body.og_description,
+                metaTitle: body.metaTitle || body.meta_title,
                 password: body.password || undefined,
                 isCloaked: Boolean(body.isCloaked || body.is_cloaked),
                 routingRules: body.routingRules || body.routing_rules || undefined,
                 geoTargeting: body.geoTargeting || body.geo_targeting || undefined,
                 deviceTargeting: body.deviceTargeting || body.device_targeting || undefined,
-                maxClicks: body.maxClicks !== undefined ? Number(body.maxClicks) : body.max_clicks !== undefined ? Number(body.max_clicks) : undefined,
+                maxClicks: body.maxClicks !== undefined ? Number(body.maxClicks) : undefined,
                 fallbackUrl: body.fallbackUrl || body.fallback_url || undefined,
               },
             },
@@ -179,12 +275,19 @@ export async function POST(req: Request) {
         ...data,
         data: {
           ...(data.data || {}),
+          ogImage: sanitizedOgImage,
+          og_image: sanitizedOgImage,
+          ogTitle: body.ogTitle || body.og_title,
+          og_title: body.ogTitle || body.og_title,
+          ogDescription: body.ogDescription || body.og_description,
+          og_description: body.ogDescription || body.og_description,
+          metaTitle: body.metaTitle || body.meta_title,
           password: body.password || undefined,
           isCloaked: Boolean(body.isCloaked || body.is_cloaked),
           routingRules: body.routingRules || body.routing_rules || undefined,
           geoTargeting: body.geoTargeting || body.geo_targeting || undefined,
           deviceTargeting: body.deviceTargeting || body.device_targeting || undefined,
-          maxClicks: body.maxClicks !== undefined ? Number(body.maxClicks) : body.max_clicks !== undefined ? Number(body.max_clicks) : undefined,
+          maxClicks: body.maxClicks !== undefined ? Number(body.maxClicks) : undefined,
           fallbackUrl: body.fallbackUrl || body.fallback_url || undefined,
         },
       },
