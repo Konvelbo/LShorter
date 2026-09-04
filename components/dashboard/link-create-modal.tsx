@@ -932,7 +932,11 @@ export function LinkCreateModal({
                             alt="OG Preview"
                             className="w-full h-full object-cover"
                             onError={(e) => {
-                              if (previewImage && e.currentTarget.src !== previewImage) {
+                              const current = e.currentTarget.src;
+                              if (current.includes("/api/images/")) {
+                                const fname = current.split("/api/images/")[1];
+                                e.currentTarget.src = `https://lshorter-api.fiatechnologiecam.workers.dev/api/v1/images/${fname}`;
+                              } else if (previewImage && current !== previewImage) {
                                 e.currentTarget.src = previewImage;
                               }
                             }}

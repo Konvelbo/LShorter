@@ -276,10 +276,17 @@ export async function GET(
         const found = list.find((l: any) => l.slug?.toLowerCase() === slug.toLowerCase());
         if (found) {
           if (isBot && (found.og_image || found.ogImage || found.og_title || found.ogTitle || found.meta_title)) {
+            let fullOgImage = found.og_image || found.ogImage || "";
+            if (fullOgImage && !fullOgImage.startsWith("http") && !fullOgImage.startsWith("data:")) {
+              try {
+                const origin = new URL(req.url).origin;
+                fullOgImage = `${origin}${fullOgImage.startsWith("/") ? "" : "/"}${fullOgImage}`;
+              } catch {}
+            }
             return renderSocialHtml({
               title: found.og_title || found.ogTitle || found.meta_title || slug,
               description: found.og_description || found.ogDescription || "",
-              image: found.og_image || found.ogImage || "",
+              image: fullOgImage,
               destinationUrl: found.target_url || found.targetUrl || "https://lshorter.io",
               canonicalUrl: req.url,
             });

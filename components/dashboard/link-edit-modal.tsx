@@ -684,48 +684,77 @@ export function LinkEditModal({
                     Bannière Image (Carte Grand Format)
                   </label>
 
-                  <div className="flex flex-col sm:flex-row gap-3 items-center">
-                    <label className="w-full sm:w-auto flex-1 flex flex-col items-center justify-center p-4 rounded-[10px] border border-dashed border-[#333338] hover:border-[#ff6600] bg-[#0e0e10] hover:bg-[#ff6600]/5 transition-all cursor-pointer group">
-                      <Upload className="w-6 h-6 text-neutral-400 group-hover:text-[#ff6600] transition-colors mb-1.5" />
-                      <span className="text-xs font-semibold text-white">
-                        {isUploadingImage ? "Upload en cours sur le CDN..." : "Changer l'image (PNG, JPG, WebP max 5Mo)"}
-                      </span>
-                      <span className="text-[10px] text-neutral-500 mt-0.5">
-                        Glissez-déposez ou cliquez pour importer
-                      </span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleBannerUpload}
-                        className="hidden"
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center gap-2">
+                      <Input
+                        placeholder="https://images.unsplash.com/... ou importer un fichier"
+                        value={ogImage}
+                        onChange={(e) => {
+                          setOgImage(e.target.value);
+                          setPreviewImage("");
+                        }}
+                        className="bg-[#0e0e10] border-[#2a2a2e] text-white text-xs font-mono focus:border-[#ff6600]"
                       />
-                    </label>
-
-                    {(previewImage || ogImage) && (
-                      <div className="relative group w-32 h-20 rounded-[10px] overflow-hidden border border-[#333338] shrink-0 bg-black">
-                        <img
-                          src={previewImage || cfNormalizeImageUrl(ogImage)}
-                          alt="Bannière actuelle"
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            if (previewImage && e.currentTarget.src !== previewImage) {
-                              e.currentTarget.src = previewImage;
-                            }
-                          }}
+                      <label className="shrink-0 h-10 px-3.5 flex items-center justify-center gap-1.5 rounded-[10px] bg-[#1a1a1e] hover:bg-[#25252a] text-white border border-[#333338] hover:border-[#ff6600] text-xs font-semibold cursor-pointer transition-colors select-none">
+                        <Upload className="w-3.5 h-3.5 text-[#ff6600]" />
+                        <span>{isUploadingImage ? "Upload..." : "Importer"}</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleBannerUpload}
+                          className="hidden"
                         />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setOgImage("");
-                            setPreviewImage("");
-                          }}
-                          className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-red-400 hover:text-red-300 transition-opacity cursor-pointer"
-                          title="Supprimer la bannière"
-                        >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
-                      </div>
-                    )}
+                      </label>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row gap-3 items-center">
+                      <label className="w-full sm:w-auto flex-1 flex flex-col items-center justify-center p-4 rounded-[10px] border border-dashed border-[#333338] hover:border-[#ff6600] bg-[#0e0e10] active:bg-[#141416] text-white hover:text-white transition-all cursor-pointer group select-none">
+                        <Upload className="w-6 h-6 text-neutral-400 group-hover:text-[#ff6600] transition-colors mb-1.5" />
+                        <span className="text-xs font-semibold text-white">
+                          {isUploadingImage ? "Upload en cours sur le CDN..." : "Changer l'image (PNG, JPG, WebP max 5Mo)"}
+                        </span>
+                        <span className="text-[10px] text-neutral-500 mt-0.5">
+                          Glissez-déposez ou cliquez pour parcourir vos fichiers
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleBannerUpload}
+                          className="hidden"
+                        />
+                      </label>
+
+                      {(previewImage || ogImage) && (
+                        <div className="relative group w-32 h-20 rounded-[10px] overflow-hidden border border-[#333338] shrink-0 bg-black">
+                          <img
+                            src={previewImage || cfNormalizeImageUrl(ogImage)}
+                            alt="Bannière actuelle"
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              const current = e.currentTarget.src;
+                              if (current.includes("/api/images/")) {
+                                const fname = current.split("/api/images/")[1];
+                                e.currentTarget.src = `https://lshorter-api.fiatechnologiecam.workers.dev/api/v1/images/${fname}`;
+                              } else if (previewImage && current !== previewImage) {
+                                e.currentTarget.src = previewImage;
+                              }
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setOgImage("");
+                              setPreviewImage("");
+                            }}
+                            className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 flex items-center justify-center text-red-400 hover:text-red-300 transition-opacity cursor-pointer font-semibold text-xs gap-1"
+                            title="Supprimer la bannière"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            <span>Retirer</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -743,7 +772,11 @@ export function LinkEditModal({
                         alt="Preview banner"
                         className="w-full h-full object-cover"
                         onError={(e) => {
-                          if (previewImage && e.currentTarget.src !== previewImage) {
+                          const current = e.currentTarget.src;
+                          if (current.includes("/api/images/")) {
+                            const fname = current.split("/api/images/")[1];
+                            e.currentTarget.src = `https://lshorter-api.fiatechnologiecam.workers.dev/api/v1/images/${fname}`;
+                          } else if (previewImage && current !== previewImage) {
                             e.currentTarget.src = previewImage;
                           }
                         }}
