@@ -493,7 +493,7 @@ export default function DocsPage() {
   return (
     <div className="py-12 px-6 lg:px-12 max-w-6xl mx-auto flex flex-col gap-10 animate-in fade-in">
       {/* Hero Developer Header */}
-      <div className="p-8 sm:p-10 rounded-[18px] bg-[#141416] border border-[#ff6600]/40 shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-8 relative overflow-hidden">
+      <div className="p-8 sm:p-10 rounded-[10px] bg-[#141416] border border-[#ff6600]/40 shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-8 relative overflow-hidden">
         <div className="flex flex-col gap-3 z-10 max-w-2xl">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#ff6600]/15 border border-[#ff6600]/30 text-xs font-bold text-[#ff6600] w-fit">
             <Cpu className="w-3.5 h-3.5" />
@@ -527,33 +527,33 @@ export default function DocsPage() {
       </div>
 
       {/* Quick Start SDK Box */}
-      <div className="rounded-[16px] bg-[#141416] border border-[#222225] p-6 sm:p-8 flex flex-col gap-6 shadow-xl">
+      <div className="rounded-[10px] bg-[#141416] border border-[#222225] p-6 sm:p-8 flex flex-col gap-6 shadow-xl">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <Terminal className="w-5 h-5 text-[#ff6600]" />
             <h2 className="text-lg font-bold text-white">Démarrage Rapide (Quickstart)</h2>
           </div>
-          <span className="text-[11px] font-mono px-2.5 py-1 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold">
+          <span className="text-[11px] font-mono px-2.5 py-1 rounded-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold">
             v1.0.4 Prêt
           </span>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="p-4 rounded-[12px] bg-[#1a1a1e] border border-[#27272a] flex flex-col gap-2">
+          <div className="p-4 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] flex flex-col gap-2">
             <span className="text-xs font-bold text-[#ff6600] font-mono">1. AUTHENTIFICATION</span>
             <p className="text-xs text-neutral-400 leading-relaxed">
               Toutes les requêtes API nécessitent un en-tête HTTP <code className="text-white font-mono bg-black/40 px-1.5 py-0.5 rounded">Authorization: Bearer lsh_live_...</code>.
             </p>
           </div>
 
-          <div className="p-4 rounded-[12px] bg-[#1a1a1e] border border-[#27272a] flex flex-col gap-2">
+          <div className="p-4 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] flex flex-col gap-2">
             <span className="text-xs font-bold text-sky-400 font-mono">2. BASE URL EDGE</span>
             <p className="text-xs text-neutral-400 leading-relaxed">
               Point d&apos;entrée direct mondial : <code className="text-white font-mono bg-black/40 px-1.5 py-0.5 rounded text-[11px]">https://lshorter-api.fiatechnologiecam.workers.dev</code>
             </p>
           </div>
 
-          <div className="p-4 rounded-[12px] bg-[#1a1a1e] border border-[#27272a] flex flex-col gap-2">
+          <div className="p-4 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] flex flex-col gap-2">
             <span className="text-xs font-bold text-purple-400 font-mono">3. FORMATS & JSON</span>
             <p className="text-xs text-neutral-400 leading-relaxed">
               Toutes les requêtes et réponses utilisent exclusivement le format <code className="text-white font-mono bg-black/40 px-1.5 py-0.5 rounded">application/json</code>.
@@ -563,7 +563,7 @@ export default function DocsPage() {
       </div>
 
       {/* Language Switcher & Search Bar */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 p-4 rounded-[14px] bg-[#141416] border border-[#222225] sticky top-4 z-20 shadow-2xl backdrop-blur-md">
+      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 p-4 rounded-[10px] bg-[#141416] border border-[#222225] sticky top-4 z-20 shadow-2xl backdrop-blur-md">
         {/* Language Tabs */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
           {(["curl", "typescript", "python", "php", "go"] as Language[]).map((lang) => (
@@ -571,7 +571,7 @@ export default function DocsPage() {
               key={lang}
               type="button"
               onClick={() => setSelectedLanguage(lang)}
-              className={`px-3 py-1.5 rounded-[8px] text-xs font-mono font-bold uppercase transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-[10px] text-xs font-mono font-bold uppercase transition-all cursor-pointer ${
                 selectedLanguage === lang
                   ? "bg-[#ff6600] text-white shadow-md shadow-[#ff6600]/25"
                   : "text-neutral-400 hover:text-white hover:bg-white/5"
@@ -590,7 +590,7 @@ export default function DocsPage() {
             placeholder="Rechercher route, méthode, paramètre..."
             value={searchFilter}
             onChange={(e) => setSearchFilter(e.target.value)}
-            className="w-full h-9 pl-9 pr-3 rounded-[8px] bg-[#1a1a1e] border border-[#27272a] text-xs text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#ff6600]"
+            className="w-full h-9 pl-9 pr-3 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] text-xs text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#ff6600]"
           />
         </div>
       </div>
@@ -623,7 +623,7 @@ export default function DocsPage() {
             <div
               key={ep.id}
               id={ep.id}
-              className="rounded-[16px] bg-[#141416] border border-[#222225] p-6 sm:p-8 flex flex-col gap-6 shadow-2xl hover:border-neutral-700 transition-colors"
+              className="rounded-[10px] bg-[#141416] border border-[#222225] p-6 sm:p-8 flex flex-col gap-6 shadow-2xl hover:border-neutral-700 transition-colors"
             >
               {/* Header Endpoint Info */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#222225]">
@@ -644,7 +644,7 @@ export default function DocsPage() {
                   <span className="font-mono text-white text-sm sm:text-base font-bold">{ep.path}</span>
                 </div>
 
-                <span className="text-[11px] font-mono text-neutral-400 bg-[#1a1a1e] px-2.5 py-1 rounded-md border border-[#27272a] shrink-0">
+                <span className="text-[11px] font-mono text-neutral-400 bg-[#1a1a1e] px-2.5 py-1 rounded-[10px] border border-[#27272a] shrink-0">
                   Rate Limit : {ep.rateLimit}
                 </span>
               </div>
@@ -691,7 +691,7 @@ export default function DocsPage() {
       </div>
 
       {/* HTTP Error Codes Reference */}
-      <div className="rounded-[16px] bg-[#141416] border border-[#222225] p-6 sm:p-8 flex flex-col gap-4 shadow-xl">
+      <div className="rounded-[10px] bg-[#141416] border border-[#222225] p-6 sm:p-8 flex flex-col gap-4 shadow-xl">
         <h3 className="text-base font-bold text-white flex items-center gap-2">
           <ShieldCheck className="w-4 h-4 text-emerald-400" />
           <span>Codes de Réponses & Erreurs HTTP Standard</span>

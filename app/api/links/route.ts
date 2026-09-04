@@ -49,27 +49,43 @@ export async function POST(req: Request) {
     const effectivePlan = (body.userPlan || body.plan || "PRO").toUpperCase();
     const isPro = effectivePlan === "PRO" || effectivePlan === "BUSINESS" || effectivePlan === "ENTERPRISE";
 
+    const sanitizedOgImage =
+      body.ogImage && body.ogImage.startsWith("data:") && body.ogImage.length > 100000
+        ? undefined
+        : body.ogImage;
+
     // Persist all metadata locally (password, cloaking, meta title, targeting rules, click limits, A/B testing)
     if (body.slug) {
-      saveProtectedLink({
-        slug: body.slug,
-        password: body.password || undefined,
-        isCloaked: Boolean(body.isCloaked || body.is_cloaked),
-        metaTitle: body.metaTitle || body.meta_title || body.ogTitle || body.og_title,
-        ogTitle: body.ogTitle || body.og_title || body.metaTitle || body.meta_title,
-        ogDescription: body.ogDescription || body.og_description,
-        ogImage: body.ogImage || body.og_image,
-        targetUrl: body.targetUrl || body.target_url,
-        routingRules: body.routingRules || body.routing_rules,
-        geoTargeting: body.geoTargeting || body.geo_targeting,
-        deviceTargeting: body.deviceTargeting || body.device_targeting,
-        maxClicks: body.maxClicks !== undefined ? Number(body.maxClicks) : body.max_clicks !== undefined ? Number(body.max_clicks) : undefined,
-        fallbackUrl: body.fallbackUrl || body.fallback_url || undefined,
-        abVariations: body.abVariations || body.ab_variations || undefined,
-        mainWeight: body.mainWeight !== undefined ? Number(body.mainWeight) : undefined,
-        userId: body.userId,
-      });
+      try {
+        saveProtectedLink({
+          slug: body.slug,
+          password: body.password || undefined,
+          isCloaked: Boolean(body.isCloaked || body.is_cloaked),
+          metaTitle: body.metaTitle || body.meta_title || body.ogTitle || body.og_title,
+          ogTitle: body.ogTitle || body.og_title || body.metaTitle || body.meta_title,
+          ogDescription: body.ogDescription || body.og_description,
+          ogImage: sanitizedOgImage,
+          targetUrl: body.targetUrl || body.target_url,
+          routingRules: body.routingRules || body.routing_rules,
+          geoTargeting: body.geoTargeting || body.geo_targeting,
+          deviceTargeting: body.deviceTargeting || body.device_targeting,
+          maxClicks: body.maxClicks !== undefined ? Number(body.maxClicks) : body.max_clicks !== undefined ? Number(body.max_clicks) : undefined,
+          fallbackUrl: body.fallbackUrl || body.fallback_url || undefined,
+          abVariations: body.abVariations || body.ab_variations || undefined,
+          mainWeight: body.mainWeight !== undefined ? Number(body.mainWeight) : undefined,
+          userId: body.userId,
+        });
+      } catch (storeErr) {
+        console.warn("[ProtectedLinkStore] Non-fatal save warning:", storeErr);
+      }
     }
+
+    const workerPayload = {
+      ...body,
+      ogImage: sanitizedOgImage,
+      plan: effectivePlan,
+      userPlan: effectivePlan,
+    };
 
     const res = await fetch(`${WORKER_URL}/api/v1/links`, {
       method: "POST",
@@ -82,10 +98,8 @@ export async function POST(req: Request) {
         "X-User-Plan": effectivePlan,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        ...body,
-        plan: effectivePlan,
-      }),
+      body: JSON.stringify(workerPayload),
+      cache: "no-store",
     });
 
     const data = await res.json().catch(() => ({}));
@@ -93,7 +107,7 @@ export async function POST(req: Request) {
     if (res.status === 403 || res.status === 400) {
       if (isPro) {
         // User is PRO in application: create the core short link on Worker without triggering worker's freemium plan guard
-        const sanitizedBody = { ...body };
+        const sanitizedBody = { ...workerPayload };
         delete sanitizedBody.password;
         delete sanitizedBody.isCloaked;
         delete sanitizedBody.is_cloaked;
@@ -112,9 +126,11 @@ export async function POST(req: Request) {
             ...(body.userId ? { "X-User-Id": body.userId } : {}),
             ...(body.userEmail ? { "X-User-Email": body.userEmail } : {}),
             ...(body.userName ? { "X-User-Name": body.userName } : {}),
+            "X-User-Plan": effectivePlan,
             "Content-Type": "application/json",
           },
           body: JSON.stringify(sanitizedBody),
+          cache: "no-store",
         });
 
         if (retryRes.ok) {

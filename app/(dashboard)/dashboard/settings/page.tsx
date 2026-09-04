@@ -51,6 +51,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { CodeBlock } from "@/components/ui/code-block";
 import { showToast } from "@/components/ui/toast-provider";
 import { syncUserToCloudflare } from "@/app/actions/sync-user";
 import confetti from "canvas-confetti";
@@ -902,16 +903,18 @@ export default function SettingsPage() {
 
               {/* Webhook Test Response Viewer */}
               {webhookTestResponse && (
-                <div className="p-4 rounded-[10px] bg-[#09090b] border border-emerald-500/40 flex flex-col gap-2 animate-in fade-in">
-                  <div className="flex items-center justify-between text-xs text-emerald-400 font-bold">
+                <div className="flex flex-col gap-2 animate-in fade-in">
+                  <div className="flex items-center justify-between text-xs text-emerald-400 font-bold px-1">
                     <span>✓ Réponse reçue (HTTP 200 OK en 42ms) :</span>
-                    <button onClick={() => setWebhookTestResponse(null)} className="text-neutral-400 hover:text-white">
+                    <button onClick={() => setWebhookTestResponse(null)} className="text-neutral-400 hover:text-white cursor-pointer">
                       Fermer ✕
                     </button>
                   </div>
-                  <pre className="font-mono text-[11px] text-neutral-300 overflow-x-auto leading-relaxed">
-                    {webhookTestResponse}
-                  </pre>
+                  <CodeBlock
+                    code={webhookTestResponse}
+                    language="json"
+                    filename="Webhook Payload (HTTP 200 OK)"
+                  />
                 </div>
               )}
             </div>

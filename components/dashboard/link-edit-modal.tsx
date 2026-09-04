@@ -27,6 +27,7 @@ import { useSession } from "next-auth/react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { cfUpdateLink, cfUploadImage, cfInvalidateCache } from "@/lib/cloudflare-api";
+import { compressImageFile } from "@/lib/image-compress";
 import { ShortLink } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -223,8 +224,8 @@ export function LinkEditModal({
   const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      showToast.error("L'image ne doit pas dépasser 5 Mo.");
+    if (file.size > 8 * 1024 * 1024) {
+      showToast.error("L'image ne doit pas dépasser 8 Mo.");
       return;
     }
 
@@ -233,15 +234,19 @@ export function LinkEditModal({
       const res = await cfUploadImage(file);
       if (res?.url) {
         setOgImage(res.url);
-        showToast.success("Bannière uploadée sur le CDN avec succès !");
+        showToast.success("Bannière compressée et uploadée sur le CDN avec succès !");
       } else {
-        // Fallback to Data URL
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          setOgImage(event.target?.result as string);
-          showToast.success("Bannière importée !");
-        };
-        reader.readAsDataURL(file);
+        const compressed = await compressImageFile(file, 1200, 630, 0.82);
+        if (typeof compressed === "string") {
+          setOgImage(compressed);
+        } else {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            setOgImage(event.target?.result as string);
+          };
+          reader.readAsDataURL(compressed as Blob);
+        }
+        showToast.success("Bannière importée !");
       }
     } catch (err) {
       console.error("Upload error:", err);

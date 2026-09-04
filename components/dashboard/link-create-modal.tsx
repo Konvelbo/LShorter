@@ -23,12 +23,14 @@ import {
   Crown,
   Eye,
   EyeOff,
-  AlertCircle
+  AlertCircle,
+  Loader2
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { cfCreateLink, cfGetDomains, cfUploadImage, cfInvalidateCache } from "@/lib/cloudflare-api";
+import { compressImageFile } from "@/lib/image-compress";
 import { ShortLink } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -250,19 +252,41 @@ export function LinkCreateModal({
   const [passParams, setPassParams] = useState(true);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
-  const handleBannerUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      showToast.error("L'image ne doit pas dépasser 5 Mo.");
+    if (file.size > 8 * 1024 * 1024) {
+      showToast.error("L'image ne doit pas dépasser 8 Mo.");
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => {
-      setOgImage(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+
+    setIsUploadingImage(true);
+    try {
+      const res = await cfUploadImage(file);
+      if (res?.url) {
+        setOgImage(res.url);
+        showToast.success("Bannière compressée et hébergée sur le CDN avec succès !");
+      } else {
+        const compressed = await compressImageFile(file, 1200, 630, 0.82);
+        if (typeof compressed === "string") {
+          setOgImage(compressed);
+        } else {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            setOgImage(event.target?.result as string);
+          };
+          reader.readAsDataURL(compressed as Blob);
+        }
+        showToast.success("Bannière importée !");
+      }
+    } catch (err) {
+      console.error("Banner upload error:", err);
+      showToast.error("Erreur lors de l'optimisation de l'image.");
+    } finally {
+      setIsUploadingImage(false);
+    }
   };
 
   // ─── Format Validation Functions ─────────────────────────────────────────
@@ -547,9 +571,13 @@ export function LinkCreateModal({
     try {
       let finalOgImage = ogImage;
       if (ogImage && ogImage.startsWith("data:")) {
-        const uploadRes = await cfUploadImage(ogImage);
-        if (uploadRes?.url) {
-          finalOgImage = uploadRes.url;
+        if (ogImage.length > 150000) {
+          const uploadRes = await cfUploadImage(ogImage);
+          if (uploadRes?.url) {
+            finalOgImage = uploadRes.url;
+          } else {
+            finalOgImage = "";
+          }
         }
       }
 
@@ -870,11 +898,16 @@ export function LinkCreateModal({
                   <span className="text-xs font-semibold text-neutral-400">Aperçu en direct (Twitter / WhatsApp)</span>
                   <div className="rounded-[12px] bg-[#1a1a1e] border border-[#27272a] overflow-hidden shadow-lg">
                     <div
-                      onClick={() => bannerInputRef.current?.click()}
+                      onClick={() => !isUploadingImage && bannerInputRef.current?.click()}
                       className="w-full h-36 bg-neutral-800 relative flex items-center justify-center overflow-hidden cursor-pointer group hover:bg-neutral-750 transition-colors"
                       title="Cliquez pour importer une image"
                     >
-                      {ogImage ? (
+                      {isUploadingImage ? (
+                        <div className="flex flex-col items-center gap-2 text-neutral-400">
+                          <Loader2 className="w-6 h-6 animate-spin text-[#ff6600]" />
+                          <span className="text-xs font-medium">Optimisation et upload de l'image...</span>
+                        </div>
+                      ) : ogImage ? (
                         <>
                           <Image
                             src={ogImage}

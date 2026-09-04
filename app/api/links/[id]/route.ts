@@ -18,26 +18,45 @@ export async function PATCH(
     const effectivePlan = (body.userPlan || body.plan || "PRO").toUpperCase();
     const isPro = effectivePlan === "PRO" || effectivePlan === "BUSINESS" || effectivePlan === "ENTERPRISE";
 
+    const sanitizedOgImage =
+      (body.ogImage || body.og_image) &&
+      (body.ogImage || body.og_image).startsWith("data:") &&
+      (body.ogImage || body.og_image).length > 100000
+        ? undefined
+        : (body.ogImage || body.og_image);
+
     if (body.slug) {
-      saveProtectedLink({
-        slug: body.slug,
-        password: body.password,
-        isCloaked: body.isCloaked !== undefined ? Boolean(body.isCloaked) : undefined,
-        metaTitle: body.metaTitle || body.ogTitle,
-        ogTitle: body.ogTitle || body.og_title || body.metaTitle,
-        ogDescription: body.ogDescription || body.og_description,
-        ogImage: body.ogImage || body.og_image,
-        targetUrl: body.targetUrl,
-        routingRules: body.routingRules || body.routing_rules,
-        geoTargeting: body.geoTargeting || body.geo_targeting,
-        deviceTargeting: body.deviceTargeting || body.device_targeting,
-        maxClicks: body.maxClicks !== undefined ? Number(body.maxClicks) : body.max_clicks !== undefined ? Number(body.max_clicks) : undefined,
-        fallbackUrl: body.fallbackUrl || body.fallback_url || undefined,
-        abVariations: body.abVariations || body.ab_variations || undefined,
-        mainWeight: body.mainWeight !== undefined ? Number(body.mainWeight) : undefined,
-        userId: body.userId,
-      });
+      try {
+        saveProtectedLink({
+          slug: body.slug,
+          password: body.password,
+          isCloaked: body.isCloaked !== undefined ? Boolean(body.isCloaked) : undefined,
+          metaTitle: body.metaTitle || body.ogTitle,
+          ogTitle: body.ogTitle || body.og_title || body.metaTitle,
+          ogDescription: body.ogDescription || body.og_description,
+          ogImage: sanitizedOgImage,
+          targetUrl: body.targetUrl,
+          routingRules: body.routingRules || body.routing_rules,
+          geoTargeting: body.geoTargeting || body.geo_targeting,
+          deviceTargeting: body.deviceTargeting || body.device_targeting,
+          maxClicks: body.maxClicks !== undefined ? Number(body.maxClicks) : body.max_clicks !== undefined ? Number(body.max_clicks) : undefined,
+          fallbackUrl: body.fallbackUrl || body.fallback_url || undefined,
+          abVariations: body.abVariations || body.ab_variations || undefined,
+          mainWeight: body.mainWeight !== undefined ? Number(body.mainWeight) : undefined,
+          userId: body.userId,
+        });
+      } catch (storeErr) {
+        console.warn("[ProtectedLinkStore] Non-fatal save warning:", storeErr);
+      }
     }
+
+    const workerPayload = {
+      ...body,
+      ogImage: sanitizedOgImage,
+      og_image: sanitizedOgImage,
+      plan: effectivePlan,
+      userPlan: effectivePlan,
+    };
 
     const url = new URL(`${WORKER_URL}/api/v1/links/${id}`);
     if (userId) url.searchParams.set("userId", userId);
@@ -51,10 +70,8 @@ export async function PATCH(
         "X-User-Plan": effectivePlan,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        ...body,
-        plan: effectivePlan,
-      }),
+      body: JSON.stringify(workerPayload),
+      cache: "no-store",
     });
 
     const data = await res.json().catch(() => ({}));

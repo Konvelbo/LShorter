@@ -5,6 +5,8 @@
  * User profile data lives in Convex — NOT here.
  */
 
+import { compressImageFile } from "./image-compress";
+
 const WORKER_URL =
   process.env.NEXT_PUBLIC_BACKEND_API_URL ||
   "https://lshorter-api.fiatechnologiecam.workers.dev";
@@ -119,17 +121,18 @@ export async function cfGetLinks(userId: string) {
 
 export async function cfUploadImage(base64OrFile: string | File): Promise<{ success: boolean; url: string }> {
   try {
-    if (typeof base64OrFile === "string" && base64OrFile.startsWith("data:")) {
+    const compressed = await compressImageFile(base64OrFile, 1200, 630, 0.82);
+
+    if (typeof compressed === "string" && compressed.startsWith("data:")) {
       const res = await fetch("https://lshorter-api.fiatechnologiecam.workers.dev/api/v1/upload-image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ data: base64OrFile, image: base64OrFile, base64: base64OrFile }),
+        body: JSON.stringify({ data: compressed }),
       });
       return await res.json();
     } else {
       const formData = new FormData();
-      formData.append("file", base64OrFile);
-      formData.append("data", base64OrFile);
+      formData.append("file", compressed as Blob);
       const res = await fetch("https://lshorter-api.fiatechnologiecam.workers.dev/api/v1/upload-image", {
         method: "POST",
         body: formData,
