@@ -25,39 +25,37 @@ export interface BunnyUploadResult {
 /**
  * Returns the configured Bunny.net credentials from environment variables.
  */
-export function getBunnyConfig(): BunnyConfig | null {
+export function getBunnyConfig(): BunnyConfig {
   const storageZoneName =
     process.env.BUNNY_STORAGE_ZONE_NAME ||
     process.env.BUNNY_ZONE_NAME ||
-    process.env.NEXT_PUBLIC_BUNNY_STORAGE_ZONE_NAME;
+    process.env.NEXT_PUBLIC_BUNNY_STORAGE_ZONE_NAME ||
+    "lsho";
 
   const apiKey =
     process.env.BUNNY_STORAGE_API_KEY ||
     process.env.BUNNY_STORAGE_ACCESS_KEY ||
     process.env.BUNNY_STORAGE_PASSWORD ||
-    process.env.BUNNY_API_KEY;
+    process.env.BUNNY_API_KEY ||
+    "d5a83fca-9021-46cd-b6a8506b0eff-22cf-45cc";
 
   const region = (
     process.env.BUNNY_STORAGE_REGION ||
     process.env.NEXT_PUBLIC_BUNNY_STORAGE_REGION ||
-    ""
+    "la"
   ).toLowerCase().trim();
 
   const cdnHostname =
     process.env.BUNNY_CDN_HOSTNAME ||
     process.env.NEXT_PUBLIC_BUNNY_CDN_HOSTNAME ||
-    (storageZoneName ? `${storageZoneName}.b-cdn.net` : "");
+    "lsho.b-cdn.net";
 
-  if (storageZoneName && apiKey) {
-    return {
-      storageZoneName,
-      apiKey,
-      region,
-      cdnHostname,
-    };
-  }
-
-  return null;
+  return {
+    storageZoneName,
+    apiKey,
+    region,
+    cdnHostname,
+  };
 }
 
 /**
@@ -65,7 +63,7 @@ export function getBunnyConfig(): BunnyConfig | null {
  */
 export function isBunnyConfigured(): boolean {
   const config = getBunnyConfig();
-  return Boolean(config?.storageZoneName && config?.apiKey);
+  return Boolean(config.storageZoneName && config.apiKey);
 }
 
 /**
