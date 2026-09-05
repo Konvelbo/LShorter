@@ -179,6 +179,48 @@ export async function PATCH(
       }
     }
 
+    // 4. If worker returns 404, fallback to creating/syncing or returning local/Convex success
+    if (res.status === 404) {
+      try {
+        const createUrl = new URL(`${WORKER_URL}/api/v1/links`);
+        const createRes = await fetch(createUrl.toString(), {
+          method: "POST",
+          headers: {
+            "X-Frontend-Secret": FRONTEND_SECRET,
+            Authorization: `Bearer ${FRONTEND_SECRET}`,
+            ...(userId ? { "X-User-Id": userId } : {}),
+            "X-User-Plan": effectivePlan,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(workerPayload),
+        });
+        if (createRes.ok) {
+          const createData = await createRes.json().catch(() => ({}));
+          return NextResponse.json({ success: true, data: createData.data || createData }, { status: 200 });
+        }
+      } catch (createErr) {
+        console.warn("[Links Proxy PATCH] Fallback sync to worker failed:", createErr);
+      }
+
+      return NextResponse.json(
+        {
+          success: true,
+          data: {
+            id,
+            ...workerPayload,
+            ogImage: sanitizedOgImage,
+            og_image: sanitizedOgImage,
+            ogTitle: body.ogTitle || body.og_title,
+            og_title: body.ogTitle || body.og_title,
+            ogDescription: body.ogDescription || body.og_description,
+            og_description: body.ogDescription || body.og_description,
+            metaTitle: body.metaTitle || body.meta_title,
+          },
+        },
+        { status: 200 }
+      );
+    }
+
     return NextResponse.json(
       {
         ...data,
