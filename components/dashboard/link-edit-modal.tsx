@@ -243,27 +243,21 @@ export function LinkEditModal({
 
     setIsUploadingImage(true);
     try {
-      const res = await cfUploadImage(file);
-      if (res?.url) {
-        setOgImage(res.url);
-        setPreviewImage(res.url);
-        showToast.success("Bannière prête !");
+      // Instant local preview (no Bunny upload until form submission)
+      const compressed = await compressImageFile(file, 1200, 630, 0.82);
+      if (typeof compressed === "string") {
+        setOgImage(compressed);
+        setPreviewImage(compressed);
       } else {
-        const compressed = await compressImageFile(file, 1200, 630, 0.82);
-        if (typeof compressed === "string") {
-          setOgImage(compressed);
-          setPreviewImage(compressed);
-        } else {
-          const reader = new FileReader();
-          reader.onload = (event) => {
-            const dataUrl = (event.target?.result as string) || "";
-            setOgImage(dataUrl);
-            setPreviewImage(dataUrl);
-          };
-          reader.readAsDataURL(compressed as Blob);
-        }
-        showToast.success("Bannière importée !");
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const dataUrl = (event.target?.result as string) || "";
+          setOgImage(dataUrl);
+          setPreviewImage(dataUrl);
+        };
+        reader.readAsDataURL(compressed as Blob);
       }
+      showToast.success("Bannière sélectionnée !");
     } catch (err) {
       console.error("Upload error:", err);
       showToast.error("Erreur lors du traitement de l'image.");
