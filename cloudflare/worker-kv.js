@@ -144,19 +144,21 @@ export default {
 
       // Serve OpenGraph / Twitter Cards for social bots without redirecting
       if (isBot && (ogImage || ogTitle || ogDescription)) {
-        const canonical = `https://${url.host}${path}`;
+        const reqHost = request.headers.get('x-forwarded-host') || request.headers.get('host') || '';
+        const domain = (reqHost && !reqHost.includes('workers.dev')) ? reqHost : 'lsho.cc';
+        const canonical = `https://${domain}${path}`;
         const dest = link.target_url || link.targetUrl || 'https://lshorter.io';
 
         // Convert data:image to public HTTPS URL so Twitter/FB crawlers can load it
         let publicImageUrl = ogImage;
         if (ogImage && ogImage.startsWith('data:')) {
-          publicImageUrl = `https://${url.host}/api/v1/images/${slug}.jpg`;
+          publicImageUrl = `https://${domain}/api/v1/images/${slug}.jpg`;
         }
 
         const escapeHtml = (s = '') => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         const safeTitle = escapeHtml(ogTitle);
         const safeDesc = escapeHtml(ogDescription || 'Cliquez pour ouvrir le lien sécurisé.');
-        const safeImg = escapeHtml(publicImageUrl);
+        const safeImg = escapeHtml(publicImageUrl.replace(/&amp;/g, '&'));
         const safeCanonical = escapeHtml(canonical);
         const safeDest = escapeHtml(dest);
 
@@ -187,7 +189,7 @@ export default {
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:site" content="@LShorter" />
   <meta name="twitter:creator" content="@LShorter" />
-  <meta name="twitter:domain" content="${url.host}" />
+  <meta name="twitter:domain" content="${domain}" />
   <meta name="twitter:url" content="${safeCanonical}" />
   <meta name="twitter:title" content="${safeTitle}" />
   <meta name="twitter:description" content="${safeDesc}" />

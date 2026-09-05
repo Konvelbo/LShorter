@@ -118,8 +118,16 @@ function renderSocialHtml(meta: {
     }
   }
 
-  const safeImg = escapeHtml(imageUrl);
-  const safeCanonical = escapeHtml(meta.canonicalUrl);
+  let cleanCanonical = meta.canonicalUrl;
+  let domainName = "lsho.cc";
+  try {
+    const u = new URL(meta.canonicalUrl);
+    domainName = u.host.replace(/^www\./, "");
+    cleanCanonical = meta.canonicalUrl.replace("lshorter-api.fiatechnologiecam.workers.dev", "www.lsho.cc");
+  } catch {}
+
+  const safeImg = escapeHtml(imageUrl.replace(/&amp;/g, "&"));
+  const safeCanonical = escapeHtml(cleanCanonical);
   const safeDest = escapeHtml(meta.destinationUrl);
   const jsDest = escapeJs(meta.destinationUrl);
 
@@ -150,7 +158,7 @@ function renderSocialHtml(meta: {
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:site" content="@LShorter" />
   <meta name="twitter:creator" content="@LShorter" />
-  <meta name="twitter:domain" content="lsho.cc" />
+  <meta name="twitter:domain" content="${domainName}" />
   <meta name="twitter:url" content="${safeCanonical}" />
   <meta name="twitter:title" content="${safeTitle}" />
   <meta name="twitter:description" content="${safeDesc}" />
@@ -271,19 +279,22 @@ export async function GET(
 
     // Fallback 1: Worker direct request (Passes bot user-agent to get Worker OpenGraph if available)
     try {
+      const originHost = req.headers.get("host") || "www.lsho.cc";
       const workerRes = await fetch(`${WORKER_URL}/r/${slug}`, {
         method: "GET",
         headers: {
           "User-Agent": userAgent,
           "X-Frontend-Secret": FRONTEND_SECRET,
+          "X-Forwarded-Host": originHost,
         },
         redirect: "manual",
         cache: "no-store",
       });
 
       if (isBot && workerRes.status === 200) {
-        const workerHtml = await workerRes.text();
+        let workerHtml = await workerRes.text();
         if (workerHtml && (workerHtml.includes("og:image") || workerHtml.includes("twitter:image"))) {
+          workerHtml = workerHtml.replaceAll("lshorter-api.fiatechnologiecam.workers.dev", originHost);
           return new Response(workerHtml, {
             status: 200,
             headers: {
