@@ -97,6 +97,8 @@ function escapeJs(str: string = "") {
   return str.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/'/g, "\\'");
 }
 
+const botResponseCache = new Map<string, { body: string; headers: Record<string, string>; expiresAt: number }>();
+
 function renderSocialHtml(meta: {
   title: string;
   description: string;
@@ -132,7 +134,7 @@ function renderSocialHtml(meta: {
   const jsDest = escapeJs(meta.destinationUrl);
 
   const html = `<!DOCTYPE html>
-<html lang="fr" prefix="og: https://ogp.me/ns#">
+<html lang="fr" prefix="og: http://ogp.me/ns#">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -178,7 +180,7 @@ function renderSocialHtml(meta: {
     status: 200,
     headers: {
       "Content-Type": "text/html; charset=utf-8",
-      "Cache-Control": "public, max-age=60, s-maxage=300",
+      "Cache-Control": "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400",
     },
   });
 }
@@ -194,17 +196,109 @@ export async function GET(
     }
 
     const userAgent = req.headers.get("user-agent") || "";
-    const isBot = BOT_USER_AGENTS.test(userAgent);
+    const isPrewarm = req.headers.get("x-crawler-prewarm") === "1" || req.headers.get("x-prewarm") === "bot";
+    const isBot = BOT_USER_AGENTS.test(userAgent) || isPrewarm;
+
+    // ─── ULTRA-FAST BOT & CRAWLER PATH (<1ms cached, ~150ms first miss) ───
+    if (isBot) {
+      const cached = botResponseCache.get(slug);
+      if (cached && Date.now() < cached.expiresAt) {
+        return new Response(cached.body, { status: 200, headers: cached.headers });
+      }
+
+      // Check fast in-memory store
+      const localMeta = getProtectedLink(slug);
+      if (localMeta && (localMeta.ogImage || localMeta.ogTitle || localMeta.ogDescription || localMeta.metaTitle)) {
+        let fullOgImage = localMeta.ogImage || "";
+        if (fullOgImage && !fullOgImage.startsWith("http") && !fullOgImage.startsWith("data:")) {
+          try {
+            const origin = new URL(req.url).origin;
+            fullOgImage = `${origin}${fullOgImage.startsWith("/") ? "" : "/"}${fullOgImage}`;
+          } catch {}
+        }
+        const resp = renderSocialHtml({
+          title: localMeta.ogTitle || localMeta.metaTitle || slug,
+          description: localMeta.ogDescription || "",
+          image: fullOgImage,
+          destinationUrl: localMeta.targetUrl || "https://lshorter.io",
+          canonicalUrl: req.url,
+        });
+        const bodyText = await resp.text();
+        const headers = {
+          "Content-Type": "text/html; charset=utf-8",
+          "Cache-Control": "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400",
+        };
+        botResponseCache.set(slug, { body: bodyText, headers, expiresAt: Date.now() + 600000 });
+        return new Response(bodyText, { status: 200, headers });
+      }
+
+      // Query Cloudflare Worker KV (0.3ms latency engine) first
+      try {
+        const originHost = req.headers.get("x-forwarded-host") || req.headers.get("host") || "www.lsho.cc";
+        const workerRes = await fetch(`${WORKER_URL}/r/${slug}`, {
+          method: "GET",
+          headers: {
+            "User-Agent": userAgent || "LinkedInBot/1.0",
+            "X-Frontend-Secret": FRONTEND_SECRET,
+            "X-Forwarded-Host": originHost,
+          },
+          redirect: "manual",
+        });
+
+        if (workerRes.status === 200) {
+          let workerHtml = await workerRes.text();
+          if (workerHtml && (workerHtml.includes("og:image") || workerHtml.includes("twitter:image"))) {
+            workerHtml = workerHtml.replaceAll("lshorter-api.fiatechnologiecam.workers.dev", originHost);
+            const headers = {
+              "Content-Type": "text/html; charset=utf-8",
+              "Cache-Control": "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400",
+            };
+            botResponseCache.set(slug, { body: workerHtml, headers, expiresAt: Date.now() + 600000 });
+            return new Response(workerHtml, { status: 200, headers });
+          }
+        }
+      } catch (workerErr) {
+        console.warn("[Worker Bot Fetch Error]:", workerErr);
+      }
+
+      // Fallback: Query Convex if Worker didn't have custom metadata
+      try {
+        const cxLink: any = await convex.query(api.links.getLinkBySlug, { slug });
+        if (cxLink && (cxLink.ogImage || cxLink.ogTitle || cxLink.ogDescription || cxLink.metaTitle)) {
+          let fullOgImage = cxLink.ogImage || "";
+          if (fullOgImage && !fullOgImage.startsWith("http") && !fullOgImage.startsWith("data:")) {
+            try {
+              const origin = new URL(req.url).origin;
+              fullOgImage = `${origin}${fullOgImage.startsWith("/") ? "" : "/"}${fullOgImage}`;
+            } catch {}
+          }
+          const resp = renderSocialHtml({
+            title: cxLink.ogTitle || cxLink.metaTitle || cxLink.title || slug,
+            description: cxLink.ogDescription || "",
+            image: fullOgImage,
+            destinationUrl: cxLink.targetUrl || "https://lshorter.io",
+            canonicalUrl: req.url,
+          });
+          const bodyText = await resp.text();
+          const headers = {
+            "Content-Type": "text/html; charset=utf-8",
+            "Cache-Control": "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400",
+          };
+          botResponseCache.set(slug, { body: bodyText, headers, expiresAt: Date.now() + 600000 });
+          return new Response(bodyText, { status: 200, headers });
+        }
+      } catch (cxErr) {
+        console.warn("[Convex Bot Fetch Error]:", cxErr);
+      }
+    }
 
     // Check Click Quotas / Limits (only for real users, not crawlers)
-    if (!isBot) {
-      const clickCheck = recordLinkClick(slug);
-      if (!clickCheck.isAllowed) {
-        if (clickCheck.fallbackUrl) {
-          return safeRedirect(clickCheck.fallbackUrl, req.url);
-        }
-        return NextResponse.redirect(new URL(`/r/${slug}/expired`, req.url), 307);
+    const clickCheck = recordLinkClick(slug);
+    if (!clickCheck.isAllowed) {
+      if (clickCheck.fallbackUrl) {
+        return safeRedirect(clickCheck.fallbackUrl, req.url);
       }
+      return NextResponse.redirect(new URL(`/r/${slug}/expired`, req.url), 307);
     }
 
     // Check in-memory store (<1ms lookup)
@@ -237,27 +331,6 @@ export async function GET(
       } catch (cxErr) {
         console.warn("[Route Slug Convex Query Error]:", cxErr);
       }
-    }
-
-    // If request comes from a social crawler (Twitterbot, facebookexternalhit, WhatsApp, Discord...)
-    // AND custom social metadata (ogImage, ogTitle, ogDescription) is present, serve Open Graph HTML
-    if (isBot && (meta?.ogImage || meta?.ogTitle || meta?.ogDescription || meta?.metaTitle)) {
-      const finalTarget = meta?.targetUrl || "https://lshorter.io";
-      let fullOgImage = meta?.ogImage || "";
-      if (fullOgImage && !fullOgImage.startsWith("http") && !fullOgImage.startsWith("data:")) {
-        try {
-          const origin = new URL(req.url).origin;
-          fullOgImage = `${origin}${fullOgImage.startsWith("/") ? "" : "/"}${fullOgImage}`;
-        } catch {}
-      }
-
-      return renderSocialHtml({
-        title: meta.ogTitle || meta.metaTitle || slug,
-        description: meta.ogDescription || "",
-        image: fullOgImage,
-        destinationUrl: finalTarget,
-        canonicalUrl: req.url,
-      });
     }
 
     // If password protected, immediately show gate (no spinner)

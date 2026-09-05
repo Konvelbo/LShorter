@@ -170,7 +170,7 @@ export default {
         const safeDest = escapeHtml(dest);
 
         const html = `<!DOCTYPE html>
-<html lang="fr" prefix="og: https://ogp.me/ns#">
+<html lang="fr" prefix="og: http://ogp.me/ns#">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -217,7 +217,7 @@ export default {
           headers: {
             ...corsHeaders,
             'Content-Type': 'text/html; charset=utf-8',
-            'Cache-Control': 'public, max-age=60, s-maxage=300',
+            'Cache-Control': 'public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400',
           },
         });
       }
