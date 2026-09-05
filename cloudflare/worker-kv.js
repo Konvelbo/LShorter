@@ -4,6 +4,7 @@
  * - 0.3ms latency via Cloudflare KV (Cache 100% in-memory)
  * - Negative Lookup Caching (Protects D1 against bots/crawlers)
  * - 0 D1 Queries for redirections, favicon, robots.txt
+ * - Automatic Base64 Image Streaming & Universal Social Cards (Twitter, WhatsApp, FB, LinkedIn, Discord)
  * - Full CRUD REST API support (GET, POST, PATCH, PUT, DELETE)
  */
 
@@ -36,8 +37,59 @@ export default {
       });
     };
 
+    // ─── 0. PUBLIC IMAGE STREAMING ENDPOINT (Decodes base64 or redirects) ──
+    if (path.startsWith('/api/v1/images/') || path.startsWith('/api/images/')) {
+      const filename = path.split('/').pop() || '';
+      const slugWithoutExt = filename.replace(/\.(jpg|jpeg|png|webp|gif|svg)$/i, '');
+
+      let link = null;
+      if (env.LINKS_KV) {
+        try {
+          const cached = await env.LINKS_KV.get(slugWithoutExt);
+          if (cached && cached !== 'NOT_FOUND') {
+            link = JSON.parse(cached);
+          }
+        } catch {}
+      }
+      if (!link && env.DB) {
+        try {
+          link = await env.DB.prepare('SELECT * FROM links WHERE slug = ? OR id = ? LIMIT 1').bind(slugWithoutExt, slugWithoutExt).first();
+        } catch {}
+      }
+
+      const rawImg = link?.og_image || link?.ogImage || '';
+      if (rawImg.startsWith('data:')) {
+        const commaIdx = rawImg.indexOf(',');
+        const meta = rawImg.substring(0, commaIdx);
+        const base64Data = rawImg.substring(commaIdx + 1);
+        const mimeMatch = meta.match(/data:([^;,]+)/);
+        const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+
+        try {
+          const binaryStr = atob(base64Data);
+          const bytes = new Uint8Array(binaryStr.length);
+          for (let i = 0; i < binaryStr.length; i++) {
+            bytes[i] = binaryStr.charCodeAt(i);
+          }
+          return new Response(bytes, {
+            status: 200,
+            headers: {
+              ...corsHeaders,
+              'Content-Type': mime,
+              'Cache-Control': 'public, max-age=31536000, immutable',
+            },
+          });
+        } catch (decodeErr) {
+          console.warn('[Image Decode Error]:', decodeErr);
+        }
+      } else if (rawImg.startsWith('http://') || rawImg.startsWith('https://')) {
+        return Response.redirect(rawImg, 302);
+      }
+
+      return new Response('Image not found', { status: 404, headers: corsHeaders });
+    }
+
     // ─── 1. ULTRA-FAST KV REDIRECTION (0.3ms latency) ─────────────────────
-    // Supports both /r/:slug and direct /:slug on custom domain lsho.cc
     const isApiRoute = path.startsWith('/api/') || path.startsWith('/v1/');
     if (!isApiRoute && path.length > 1) {
       const slug = path.startsWith('/r/') ? path.slice(3) : path.slice(1);
@@ -67,7 +119,6 @@ export default {
               ctx.waitUntil(env.LINKS_KV.put(slug, JSON.stringify(row)));
             }
           } else if (env.LINKS_KV) {
-            // Cache Negative Lookups for 5 minutes to block repeated bot scans
             ctx.waitUntil(env.LINKS_KV.put(slug, 'NOT_FOUND', { expirationTtl: 300 }));
           }
         } catch (err) {
@@ -96,10 +147,16 @@ export default {
         const canonical = `https://${url.host}${path}`;
         const dest = link.target_url || link.targetUrl || 'https://lshorter.io';
 
+        // Convert data:image to public HTTPS URL so Twitter/FB crawlers can load it
+        let publicImageUrl = ogImage;
+        if (ogImage && ogImage.startsWith('data:')) {
+          publicImageUrl = `https://${url.host}/api/v1/images/${slug}.jpg`;
+        }
+
         const escapeHtml = (s = '') => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         const safeTitle = escapeHtml(ogTitle);
         const safeDesc = escapeHtml(ogDescription || 'Cliquez pour ouvrir le lien sécurisé.');
-        const safeImg = escapeHtml(ogImage);
+        const safeImg = escapeHtml(publicImageUrl);
         const safeCanonical = escapeHtml(canonical);
         const safeDest = escapeHtml(dest);
 
@@ -193,7 +250,6 @@ export default {
         targetUrl = geoTargeting[country];
       }
 
-      // Async log click
       if (env.DB) {
         ctx.waitUntil(
           (async () => {
@@ -242,7 +298,6 @@ export default {
             return jsonResponse({ success: true, data: [] });
           }
         } else {
-          // Single link query
           if (env.LINKS_KV) {
             try {
               const cached = await env.LINKS_KV.get(linkIdOrSlug);
@@ -385,7 +440,6 @@ export default {
             updated_at: new Date().toISOString(),
           };
 
-          // Update KV
           if (env.LINKS_KV && slug) {
             await env.LINKS_KV.put(slug, JSON.stringify(updatedLinkObj));
             if (existingLink?.slug && existingLink.slug !== slug) {
@@ -393,7 +447,6 @@ export default {
             }
           }
 
-          // Update D1
           if (env.DB) {
             try {
               const res = await env.DB.prepare(`

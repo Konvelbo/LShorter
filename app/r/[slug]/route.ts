@@ -106,7 +106,19 @@ function renderSocialHtml(meta: {
 }) {
   const safeTitle = escapeHtml(meta.title || "Lien partagé");
   const safeDesc = escapeHtml(meta.description || "Cliquez pour accéder au lien sécurisé.");
-  const safeImg = escapeHtml(meta.image || "");
+  
+  let imageUrl = meta.image || "";
+  if (imageUrl && imageUrl.startsWith("data:")) {
+    try {
+      const u = new URL(meta.canonicalUrl);
+      const cleanSlug = u.pathname.split("/").pop() || "banner";
+      imageUrl = `${u.origin}/api/images/${cleanSlug}.jpg`;
+    } catch {
+      imageUrl = "https://www.lsho.cc/api/images/banner.jpg";
+    }
+  }
+
+  const safeImg = escapeHtml(imageUrl);
   const safeCanonical = escapeHtml(meta.canonicalUrl);
   const safeDest = escapeHtml(meta.destinationUrl);
   const jsDest = escapeJs(meta.destinationUrl);
