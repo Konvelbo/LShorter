@@ -82,7 +82,7 @@ function evaluateTargetUrl(baseTargetUrl: string, req: Request, meta?: any) {
 }
 
 const BOT_USER_AGENTS =
-  /bot|crawl|slurp|spider|facebookexternalhit|twitterbot|whatsapp|telegrambot|linkedinbot|discordbot|slackbot|applebot|bingbot|googlebot|pinterest|skypeuripreview/i;
+  /bot|crawl|slurp|spider|facebookexternalhit|facebook|twitter|twitterbot|xbot|whatsapp|telegram|telegrambot|linkedin|linkedinbot|discord|discordbot|slack|slackbot|applebot|bingbot|google|googlebot|pinterest|skype|skypeuripreview|embedly|quora|iframely|redditbot|vkshare/i;
 
 function escapeHtml(str: string = "") {
   return str
@@ -104,37 +104,52 @@ function renderSocialHtml(meta: {
   destinationUrl: string;
   canonicalUrl: string;
 }) {
+  const safeTitle = escapeHtml(meta.title || "Lien partagé");
+  const safeDesc = escapeHtml(meta.description || "Cliquez pour accéder au lien sécurisé.");
+  const safeImg = escapeHtml(meta.image || "");
+  const safeCanonical = escapeHtml(meta.canonicalUrl);
+  const safeDest = escapeHtml(meta.destinationUrl);
+  const jsDest = escapeJs(meta.destinationUrl);
+
   const html = `<!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" prefix="og: https://ogp.me/ns#">
 <head>
   <meta charset="utf-8" />
-  <title>${escapeHtml(meta.title)}</title>
-  <meta name="description" content="${escapeHtml(meta.description)}" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${safeTitle}</title>
+  <meta name="description" content="${safeDesc}" />
 
   <!-- Open Graph / Facebook / LinkedIn / WhatsApp -->
-  <meta property="og:type" content="website" />
-  <meta property="og:url" content="${escapeHtml(meta.canonicalUrl)}" />
-  <meta property="og:title" content="${escapeHtml(meta.title)}" />
-  <meta property="og:description" content="${escapeHtml(meta.description)}" />
-  ${meta.image ? `<meta property="og:image" content="${escapeHtml(meta.image)}" />` : ""}
-  ${meta.image ? `<meta property="og:image:secure_url" content="${escapeHtml(meta.image)}" />` : ""}
-  ${meta.image ? `<meta property="og:image:alt" content="${escapeHtml(meta.title)}" />` : ""}
   <meta property="og:site_name" content="LShorter" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="${safeCanonical}" />
+  <meta property="og:title" content="${safeTitle}" />
+  <meta property="og:description" content="${safeDesc}" />
+  ${safeImg ? `<meta property="og:image" content="${safeImg}" />` : ""}
+  ${safeImg ? `<meta property="og:image:url" content="${safeImg}" />` : ""}
+  ${safeImg ? `<meta property="og:image:secure_url" content="${safeImg}" />` : ""}
+  ${safeImg ? `<meta property="og:image:type" content="image/jpeg" />` : ""}
+  ${safeImg ? `<meta property="og:image:width" content="1200" />` : ""}
+  ${safeImg ? `<meta property="og:image:height" content="630" />` : ""}
+  ${safeImg ? `<meta property="og:image:alt" content="${safeTitle}" />` : ""}
 
-  <!-- Twitter / X Card (Large Banner) -->
+  <!-- Twitter / X Cards (Large Banner Format) -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:url" content="${escapeHtml(meta.canonicalUrl)}" />
-  <meta name="twitter:title" content="${escapeHtml(meta.title)}" />
-  <meta name="twitter:description" content="${escapeHtml(meta.description)}" />
-  ${meta.image ? `<meta name="twitter:image" content="${escapeHtml(meta.image)}" />` : ""}
-  ${meta.image ? `<meta name="twitter:image:alt" content="${escapeHtml(meta.title)}" />` : ""}
-
-  <!-- Instant Redirection fallback -->
-  <meta http-equiv="refresh" content="0;url=${escapeHtml(meta.destinationUrl)}" />
+  <meta name="twitter:site" content="@LShorter" />
+  <meta name="twitter:creator" content="@LShorter" />
+  <meta name="twitter:url" content="${safeCanonical}" />
+  <meta name="twitter:title" content="${safeTitle}" />
+  <meta name="twitter:description" content="${safeDesc}" />
+  ${safeImg ? `<meta name="twitter:image" content="${safeImg}" />` : ""}
+  ${safeImg ? `<meta name="twitter:image:src" content="${safeImg}" />` : ""}
+  ${safeImg ? `<meta name="twitter:image:alt" content="${safeTitle}" />` : ""}
 </head>
-<body>
-  <p>Redirection en cours vers <a href="${escapeHtml(meta.destinationUrl)}">${escapeHtml(meta.destinationUrl)}</a>...</p>
-  <script>window.location.replace("${escapeJs(meta.destinationUrl)}");</script>
+<body style="background:#09090b;color:#fafafa;font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
+  <div style="text-align:center;padding:20px;">
+    <p style="font-size:16px;color:#e4e4e7;margin-bottom:12px;">Redirection vers <a href="${safeDest}" style="color:#0066FF;text-decoration:none;font-weight:600;">${safeDest}</a>...</p>
+    <script>window.location.replace("${jsDest}");</script>
+    <noscript><meta http-equiv="refresh" content="1;url=${safeDest}" /></noscript>
+  </div>
 </body>
 </html>`;
 
@@ -241,15 +256,32 @@ export async function GET(
       return safeRedirect(finalUrl, req.url, req.url, meta.passParams !== false);
     }
 
-    // Fallback 1: Worker direct redirect (302)
+    // Fallback 1: Worker direct request (Passes bot user-agent to get Worker OpenGraph if available)
     try {
       const workerRes = await fetch(`${WORKER_URL}/r/${slug}`, {
         method: "GET",
+        headers: {
+          "User-Agent": userAgent,
+          "X-Frontend-Secret": FRONTEND_SECRET,
+        },
         redirect: "manual",
         cache: "no-store",
       });
 
-      if (workerRes.status === 302) {
+      if (isBot && workerRes.status === 200) {
+        const workerHtml = await workerRes.text();
+        if (workerHtml && (workerHtml.includes("og:image") || workerHtml.includes("twitter:image"))) {
+          return new Response(workerHtml, {
+            status: 200,
+            headers: {
+              "Content-Type": "text/html; charset=utf-8",
+              "Cache-Control": "public, max-age=60, s-maxage=300",
+            },
+          });
+        }
+      }
+
+      if (workerRes.status === 302 || workerRes.status === 307) {
         const location = workerRes.headers.get("location");
         if (location) {
           const finalUrl = evaluateTargetUrl(location, req, meta);
@@ -275,7 +307,7 @@ export async function GET(
         const list = Array.isArray(listData?.data) ? listData.data : [];
         const found = list.find((l: any) => l.slug?.toLowerCase() === slug.toLowerCase());
         if (found) {
-          if (isBot && (found.og_image || found.ogImage || found.og_title || found.ogTitle || found.meta_title)) {
+          if (isBot && (found.og_image || found.ogImage || found.og_title || found.ogTitle || found.meta_title || found.title)) {
             let fullOgImage = found.og_image || found.ogImage || "";
             if (fullOgImage && !fullOgImage.startsWith("http") && !fullOgImage.startsWith("data:")) {
               try {
@@ -284,7 +316,7 @@ export async function GET(
               } catch {}
             }
             return renderSocialHtml({
-              title: found.og_title || found.ogTitle || found.meta_title || slug,
+              title: found.og_title || found.ogTitle || found.meta_title || found.title || slug,
               description: found.og_description || found.ogDescription || "",
               image: fullOgImage,
               destinationUrl: found.target_url || found.targetUrl || "https://lshorter.io",

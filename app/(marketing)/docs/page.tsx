@@ -465,6 +465,217 @@ func main() {
 }`,
     },
   },
+
+  // ─── 5. WEBHOOKS & AUTOMATISATIONS ───────────────────────────────────────
+  {
+    id: "webhooks-guide",
+    category: "Webhooks & Automatisations",
+    method: "POST",
+    path: "/api/v1/webhooks",
+    title: "Enregistrer un Webhook (Événements Temps Réel)",
+    desc: "Déclenche une requête HTTP POST instantanée vers votre serveur, Zapier, Make, n8n ou Slack à chaque clic sur vos liens. Permet de synchroniser votre CRM ou déclencher des automatisations.",
+    rateLimit: "100 req/min",
+    requestBody: {
+      url: "https://votre-serveur.com/api/webhooks/lshorter",
+      events: ["link.clicked", "link.created"],
+      secret: "whsec_mon_secret_hache_sha256",
+      name: "Sync CRM HubSpot & Slack Alerts",
+    },
+    responseExample: {
+      event: "link.clicked",
+      timestamp: "2026-09-05T08:30:00.000Z",
+      signature: "t=1788597200,v1=9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+      data: {
+        linkId: "lnk_8f2a9b1c",
+        slug: "promo-ete-2026",
+        shortUrl: "https://lsho.cc/promo-ete-2026",
+        targetUrl: "https://ma-boutique.com/produit-vedette",
+        visitor: {
+          ipCountry: "FR",
+          ipCity: "Paris",
+          device: "Mobile",
+          os: "iOS 18",
+          browser: "Safari",
+          referrer: "https://instagram.com/",
+        },
+      },
+    },
+    snippets: {
+      curl: `curl -X POST https://lshorter-api.fiatechnologiecam.workers.dev/api/v1/webhooks \\
+  -H "Authorization: Bearer lsh_live_votre_cle_api" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "url": "https://votre-serveur.com/api/webhooks/lshorter",
+    "events": ["link.clicked"],
+    "secret": "whsec_mon_secret"
+  }'`,
+      typescript: `import { LShorter } from "@lshorter/sdk";
+
+const lsh = new LShorter({ apiKey: "lsh_live_votre_cle_api" });
+
+const webhook = await lsh.webhooks.create({
+  url: "https://votre-serveur.com/api/webhooks/lshorter",
+  events: ["link.clicked"],
+  secret: "whsec_secret_key"
+});
+
+console.log("Webhook actif :", webhook.id);`,
+      python: `import requests
+
+res = requests.post(
+    "https://lshorter-api.fiatechnologiecam.workers.dev/api/v1/webhooks",
+    headers={"Authorization": "Bearer lsh_live_votre_cle_api"},
+    json={
+        "url": "https://votre-serveur.com/api/webhooks/lshorter",
+        "events": ["link.clicked"],
+        "secret": "whsec_secret_key"
+    }
+)
+print(res.json())`,
+      php: `<?php
+$ch = curl_init("https://lshorter-api.fiatechnologiecam.workers.dev/api/v1/webhooks");
+curl_setopt_array($ch, [
+  CURLOPT_POST => true,
+  CURLOPT_RETURNTRANSFER => true,
+  CURLOPT_HTTPHEADER => [
+    "Authorization: Bearer lsh_live_votre_cle_api",
+    "Content-Type: application/json"
+  ],
+  CURLOPT_POSTFIELDS => json_encode([
+    "url" => "https://votre-serveur.com/api/webhooks/lshorter",
+    "events" => ["link.clicked"],
+    "secret" => "whsec_secret_key"
+  ])
+]);
+$res = curl_exec($ch);
+curl_close($ch);
+print_r(json_decode($res, true));`,
+      go: `package main
+
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"net/http"
+)
+
+func main() {
+	payload, _ := json.Marshal(map[string]interface{}{
+		"url":    "https://votre-serveur.com/api/webhooks/lshorter",
+		"events": []string{"link.clicked"},
+		"secret": "whsec_secret_key",
+	})
+	req, _ := http.NewRequest("POST", "https://lshorter-api.fiatechnologiecam.workers.dev/api/v1/webhooks", bytes.NewBuffer(payload))
+	req.Header.Set("Authorization", "Bearer lsh_live_votre_cle_api")
+	req.Header.Set("Content-Type", "application/json")
+	client := &http.Client{}
+	resp, _ := client.Do(req)
+	defer resp.Body.Close()
+	fmt.Println("Status:", resp.Status)
+}`,
+    },
+  },
+
+  // ─── 6. PIXELS RETARGETING ────────────────────────────────────────────────
+  {
+    id: "pixels-guide",
+    category: "Pixels & Retargeting",
+    method: "POST",
+    path: "/api/v1/pixels",
+    title: "Associer un Pixel de Retargeting Publicitaire",
+    desc: "Injecte vos balises Meta (Facebook/Instagram), Google Ads / GA4, TikTok Ads et LinkedIn Insight Tag sur vos redirections de liens courts, vous permettant de recibler des prospects même s'ils visitent des sites tiers (Amazon, YouTube, presse, etc.).",
+    rateLimit: "100 req/min",
+    requestBody: {
+      platform: "facebook",
+      pixelId: "987654321098765",
+      name: "Meta Ads Pixel Principal",
+    },
+    responseExample: {
+      success: true,
+      data: {
+        id: "px_3b8a1c9e",
+        platform: "facebook",
+        pixelId: "987654321098765",
+        name: "Meta Ads Pixel Principal",
+        isActive: true,
+        created_at: "2026-09-05T08:30:00.000Z",
+      },
+    },
+    snippets: {
+      curl: `curl -X POST https://lshorter-api.fiatechnologiecam.workers.dev/api/v1/pixels \\
+  -H "Authorization: Bearer lsh_live_votre_cle_api" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "platform": "facebook",
+    "pixelId": "987654321098765",
+    "name": "Pixel Facebook Ads"
+  }'`,
+      typescript: `import { LShorter } from "@lshorter/sdk";
+
+const lsh = new LShorter({ apiKey: "lsh_live_votre_cle_api" });
+
+const pixel = await lsh.pixels.create({
+  platform: "facebook",
+  pixelId: "987654321098765",
+  name: "Pixel Facebook Ads"
+});
+
+console.log("Pixel connecté :", pixel.id);`,
+      python: `import requests
+
+res = requests.post(
+    "https://lshorter-api.fiatechnologiecam.workers.dev/api/v1/pixels",
+    headers={"Authorization": "Bearer lsh_live_votre_cle_api"},
+    json={
+        "platform": "facebook",
+        "pixelId": "987654321098765",
+        "name": "Pixel Facebook Ads"
+    }
+)
+print(res.json())`,
+      php: `<?php
+$ch = curl_init("https://lshorter-api.fiatechnologiecam.workers.dev/api/v1/pixels");
+curl_setopt_array($ch, [
+  CURLOPT_POST => true,
+  CURLOPT_RETURNTRANSFER => true,
+  CURLOPT_HTTPHEADER => [
+    "Authorization: Bearer lsh_live_votre_cle_api",
+    "Content-Type: application/json"
+  ],
+  CURLOPT_POSTFIELDS => json_encode([
+    "platform" => "facebook",
+    "pixelId" => "987654321098765",
+    "name" => "Pixel Facebook Ads"
+  ])
+]);
+$res = curl_exec($ch);
+curl_close($ch);
+print_r(json_decode($res, true));`,
+      go: `package main
+
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"net/http"
+)
+
+func main() {
+	payload, _ := json.Marshal(map[string]string{
+		"platform": "facebook",
+		"pixelId":  "987654321098765",
+		"name":     "Pixel Facebook Ads",
+	})
+	req, _ := http.NewRequest("POST", "https://lshorter-api.fiatechnologiecam.workers.dev/api/v1/pixels", bytes.NewBuffer(payload))
+	req.Header.Set("Authorization", "Bearer lsh_live_votre_cle_api")
+	req.Header.Set("Content-Type", "application/json")
+	client := &http.Client{}
+	resp, _ := client.Do(req)
+	defer resp.Body.Close()
+	fmt.Println("Status:", resp.Status)
+}`,
+    },
+  },
 ];
 
 export default function DocsPage() {
@@ -473,7 +684,15 @@ export default function DocsPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
   const [copiedSnippetId, setCopiedSnippetId] = useState<string | null>(null);
 
-  const categories = ["ALL", "Liens & Redirections", "Analytics & Tracking", "Domaines Personnalisés", "Bannières & Open Graph"];
+  const categories = [
+    "ALL",
+    "Liens & Redirections",
+    "Analytics & Tracking",
+    "Domaines Personnalisés",
+    "Webhooks & Automatisations",
+    "Pixels & Retargeting",
+    "Bannières & Open Graph",
+  ];
 
   const filteredEndpoints = ENDPOINTS_DOCS.filter((ep) => {
     const matchCategory = selectedCategory === "ALL" || ep.category === selectedCategory;

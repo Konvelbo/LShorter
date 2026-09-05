@@ -88,15 +88,81 @@ export default {
       }
 
       const userAgent = (request.headers.get('user-agent') || '').toLowerCase();
+      const isBot = /bot|crawl|slurp|spider|facebookexternalhit|facebook|twitter|twitterbot|xbot|whatsapp|telegram|telegrambot|linkedin|linkedinbot|discord|discordbot|slack|slackbot|applebot|bingbot|google|googlebot|pinterest|skype|skypeuripreview|embedly|quora|iframely|redditbot|vkshare/i.test(userAgent);
       const country = (request.headers.get('cf-ipcountry') || 'FR').toUpperCase();
-      const city = request.headers.get('cf-ipcity') || 'Inconnue';
-      const referrer = request.headers.get('referer') || 'Direct';
 
+      const ogImage = link.og_image || link.ogImage || '';
+      const ogTitle = link.og_title || link.ogTitle || link.meta_title || link.metaTitle || link.title || slug;
+      const ogDescription = link.og_description || link.ogDescription || '';
+
+      // Serve OpenGraph / Twitter Cards for social bots without redirecting
+      if (isBot && (ogImage || ogTitle || ogDescription)) {
+        const canonical = `https://${url.host}${path}`;
+        const dest = link.target_url || link.targetUrl || 'https://lshorter.io';
+
+        const escapeHtml = (s = '') => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        const safeTitle = escapeHtml(ogTitle);
+        const safeDesc = escapeHtml(ogDescription || 'Cliquez pour ouvrir le lien sécurisé.');
+        const safeImg = escapeHtml(ogImage);
+        const safeCanonical = escapeHtml(canonical);
+        const safeDest = escapeHtml(dest);
+
+        const html = `<!DOCTYPE html>
+<html lang="fr" prefix="og: https://ogp.me/ns#">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${safeTitle}</title>
+  <meta name="description" content="${safeDesc}" />
+
+  <!-- Open Graph / Facebook / LinkedIn / WhatsApp -->
+  <meta property="og:site_name" content="LShorter" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="${safeCanonical}" />
+  <meta property="og:title" content="${safeTitle}" />
+  <meta property="og:description" content="${safeDesc}" />
+  ${safeImg ? `<meta property="og:image" content="${safeImg}" />` : ''}
+  ${safeImg ? `<meta property="og:image:url" content="${safeImg}" />` : ''}
+  ${safeImg ? `<meta property="og:image:secure_url" content="${safeImg}" />` : ''}
+  ${safeImg ? `<meta property="og:image:type" content="image/jpeg" />` : ''}
+  ${safeImg ? `<meta property="og:image:width" content="1200" />` : ''}
+  ${safeImg ? `<meta property="og:image:height" content="630" />` : ''}
+  ${safeImg ? `<meta property="og:image:alt" content="${safeTitle}" />` : ''}
+
+  <!-- Twitter / X Cards (Large Banner Format) -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:site" content="@LShorter" />
+  <meta name="twitter:creator" content="@LShorter" />
+  <meta name="twitter:url" content="${safeCanonical}" />
+  <meta name="twitter:title" content="${safeTitle}" />
+  <meta name="twitter:description" content="${safeDesc}" />
+  ${safeImg ? `<meta name="twitter:image" content="${safeImg}" />` : ''}
+  ${safeImg ? `<meta name="twitter:image:src" content="${safeImg}" />` : ''}
+  ${safeImg ? `<meta name="twitter:image:alt" content="${safeTitle}" />` : ''}
+</head>
+<body style="background:#09090b;color:#fafafa;font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
+  <div style="text-align:center;padding:20px;">
+    <p style="font-size:16px;color:#e4e4e7;margin-bottom:12px;">Redirection vers <a href="${safeDest}" style="color:#0066FF;text-decoration:none;font-weight:600;">${safeDest}</a>...</p>
+    <script>window.location.replace("${safeDest.replace(/"/g, '\\"')}");</script>
+    <noscript><meta http-equiv="refresh" content="1;url=${safeDest}" /></noscript>
+  </div>
+</body>
+</html>`;
+
+        return new Response(html, {
+          status: 200,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'text/html; charset=utf-8',
+            'Cache-Control': 'public, max-age=60, s-maxage=300',
+          },
+        });
+      }
 
       let deviceTargeting = {};
       if (link.device_targeting) {
         try {
-          deviceTargeting = typeof link.device_targeting === 'string' ? JSON.parse(linkdevice_targeting) : link.device_targeting;
+          deviceTargeting = typeof link.device_targeting === 'string' ? JSON.parse(link.device_targeting) : link.device_targeting;
         } catch {}
       } else if (link.deviceTargeting) {
         deviceTargeting = link.deviceTargeting;
@@ -105,7 +171,7 @@ export default {
       let geoTargeting = {};
       if (link.geo_targeting) {
         try {
-          geoTargeting = typeof link.geo_targeting === 'string' ? JSON.parse(link.geo_targeting) : linkData.geo_targeting;
+          geoTargeting = typeof link.geo_targeting === 'string' ? JSON.parse(link.geo_targeting) : link.geo_targeting;
         } catch {}
       } else if (link.geoTargeting) {
         geoTargeting = link.geoTargeting;
@@ -116,7 +182,7 @@ export default {
       const isMobile = isAndroid || isIos || userAgent.includes('mobile');
       const isDesktop = userAgent.includes('windows') || userAgent.includes('macintosh') || userAgent.includes('linux');
 
-      let targetUrl = link.target_url || linkTargetUrl || 'https://lshorter.com';
+      let targetUrl = link.target_url || link.targetUrl || 'https://lshorter.com';
 
 
       if (isAndroid && deviceTargeting.android) {
@@ -179,7 +245,11 @@ export default {
           const isActive = body.isActive !== false && body.is_active !== 0 ? 1 : 0;
           const routingRules = typeof body.routingRules === 'string' ? body.routingRules : JSON.stringify(body.routingRules || []);
           const geoTargeting = typeof body.geoTargeting === 'string' ? body.geoTargeting : JSON.stringify(body.geoTargeting || {});
-          const deviceTargeting = typeof body.geoTargeting === 'string' ? body.deviceTargeting : JSON.stringify(body.deviceTargeting || {});
+          const deviceTargeting = typeof body.deviceTargeting === 'string' ? body.deviceTargeting : JSON.stringify(body.deviceTargeting || {});
+          const ogImage = body.ogImage || body.og_image || '';
+          const ogTitle = body.ogTitle || body.og_title || body.metaTitle || body.meta_title || '';
+          const ogDescription = body.ogDescription || body.og_description || '';
+          const metaTitle = body.metaTitle || body.meta_title || ogTitle || '';
 
           const linkObj = {
             id,
@@ -193,6 +263,14 @@ export default {
             routing_rules: routingRules,
             geo_targeting: geoTargeting,
             device_targeting: deviceTargeting,
+            og_image: ogImage,
+            ogImage,
+            og_title: ogTitle,
+            ogTitle,
+            og_description: ogDescription,
+            ogDescription,
+            meta_title: metaTitle,
+            metaTitle,
             created_at: new Date().toISOString(),
           };
 
@@ -202,9 +280,15 @@ export default {
 
           if (env.DB) {
             await env.DB.prepare(`
-              INSERT INTO links (id, user_id, domain_name, slug, short_url, target_url, clicks_count, is_active, routing_rules, geo_targeting, device_targeting, created_at)
-              VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, datetime('now'))
-            `).bind(id, userId, domainName, slug, shortUrl, targetUrl, isActive, routingRules, geoTargeting, deviceTargeting).run();
+              INSERT INTO links (id, user_id, domain_name, slug, short_url, target_url, clicks_count, is_active, routing_rules, geo_targeting, device_targeting, og_image, og_title, og_description, meta_title, created_at)
+              VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+            `).bind(id, userId, domainName, slug, shortUrl, targetUrl, isActive, routingRules, geoTargeting, deviceTargeting, ogImage, ogTitle, ogDescription, metaTitle).run().catch(async () => {
+              // If columns don't exist yet in D1 schema, fallback to basic insert
+              await env.DB.prepare(`
+                INSERT INTO links (id, user_id, domain_name, slug, short_url, target_url, clicks_count, is_active, routing_rules, geo_targeting, device_targeting, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, datetime('now'))
+              `).bind(id, userId, domainName, slug, shortUrl, targetUrl, isActive, routingRules, geoTargeting, deviceTargeting).run();
+            });
           }
 
           return jsonResponse({ success: true, data: linkObj }, 201);
@@ -214,12 +298,12 @@ export default {
       }
     }
 
-    // 3. SINGLE LINK�PRS��	�S�SUP�Y�
-]OOH	��\K݌K�[�[]X���]OOH	��\K�[�[]X���H�ۜ�\�\�YH\���X\��\�[\˙�]
-	�\�\�Y	�NY�
-Y[����H�]\����۔�\�ۜ�J��X��\�Έ�YK]N���[��X��ΈHJN�H�ۜ��]�H]�Z][������\\�J��SP��SJ�X������[�
-H\��[��X������H[���	�\�\�Y	��\�\�YOOH	�[	��	��T�H\�\��YH���	��B�
-K��[�
+    return new Response('Not Found', { status: 404, headers: corsHeaders });
+  },
+};
+
+
+
 ���\�\�Y	��\�\�YOOH	�[	���\�\�YH��JJK��\��
 
 N�]\����۔�\�ۜ�J��X��\�Έ�YK]N���[��X��Έ�]�˝�[��X���[�\]YW��X��ΈX]���[�

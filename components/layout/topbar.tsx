@@ -15,7 +15,6 @@ import {
   Settings,
   CreditCard,
   FileText,
-  Menu,
 } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 import { useQuery } from "convex/react";
@@ -107,30 +106,15 @@ export function Topbar() {
     <header className="border-b border-[#222225] bg-[#09090b]/85 backdrop-blur-md sticky top-0 z-30 select-none transition-all">
       {/* ─── 1. MOBILE DEDICATED TOPBAR (< 768px - Cyber Blue Theme) ─── */}
       <div className="flex md:hidden h-14 px-3.5 items-center justify-between">
-        {/* Left: Blue Hamburger + Blue LS Badge + Title */}
-        <div className="flex items-center gap-2.5">
-          <button
-            type="button"
-            onClick={() => {
-              if (typeof window !== "undefined") {
-                window.dispatchEvent(new CustomEvent("lshorter_toggle_mobile_drawer"));
-              }
-            }}
-            className="w-8.5 h-8.5 rounded-[8px] bg-[#10141f] border border-[#1e2942] text-[#0066FF] hover:border-[#0066FF] flex items-center justify-center transition-colors cursor-pointer active:scale-95 shadow-sm shadow-[#0066FF]/20"
-            title="Ouvrir le menu mobile"
-          >
-            <Menu className="w-4.5 h-4.5" />
-          </button>
-
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-[7px] bg-[#0066FF] flex items-center justify-center font-bebas text-base font-black text-white shadow-md shadow-[#0066FF]/40">
-              LS
-            </div>
-            <span className="font-bebas text-lg font-bold tracking-wider text-white leading-none">
-              L <span className="text-[#0066FF]">SHORTER</span>
-            </span>
-          </Link>
-        </div>
+        {/* Left: Blue LS Badge + Title */}
+        <Link href="/dashboard" className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-[8px] bg-[#0066FF] flex items-center justify-center font-bebas text-lg font-black text-white shadow-md shadow-[#0066FF]/40">
+            LS
+          </div>
+          <span className="font-bebas text-xl font-bold tracking-wider text-white leading-none">
+            L <span className="text-[#0066FF]">SHORTER</span>
+          </span>
+        </Link>
 
         {/* Right: Blue Notification Dot & Blue Avatar Ring */}
         <div className="flex items-center gap-2">

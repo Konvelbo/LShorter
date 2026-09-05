@@ -3,12 +3,15 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowRight, Menu, X, Code2 } from "lucide-react";
+import { ArrowRight, Menu, X, Code2, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useSession } from "next-auth/react";
 
 export function MarketingHeader() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
+  const { data: session, status } = useSession();
+  const isAuthenticated = status === "authenticated" || Boolean((session as any)?.user);
 
   const navLinks = [
     { label: "Accueil", href: "/" },
@@ -62,23 +65,37 @@ export function MarketingHeader() {
           })}
         </nav>
 
-        {/* Right CTA Actions with Simple CSS Hover to #ffffff */}
+        {/* Right CTA Actions: Conditional based on Authentication */}
         <div className="flex items-center gap-2.5">
-          <Link
-            href="/login"
-            className="nav-link-item text-xs font-semibold px-4 py-2 cursor-pointer"
-          >
-            Se connecter
-          </Link>
-          <Link
-            href="/login"
-            className="group relative overflow-hidden px-5 py-2 rounded-full bg-[#ff6600] hover:bg-[#ff771a] text-white font-bold text-xs shadow-lg shadow-[#ff6600]/30 hover:shadow-[0_0_25px_rgba(255,102,0,0.6)] hover:scale-105 active:scale-95 transition-all duration-300 flex items-center gap-1.5 cursor-pointer"
-          >
-            {/* Shimmer light sweep */}
-            <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/25 to-transparent pointer-events-none" />
-            <span>Commencer gratuitement</span>
-            <ArrowRight className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-1" />
-          </Link>
+          {isAuthenticated ? (
+            <Link
+              href="/dashboard"
+              className="group relative overflow-hidden px-5 py-2 rounded-full bg-[#ff6600] hover:bg-[#ff771a] text-white font-bold text-xs shadow-lg shadow-[#ff6600]/30 hover:shadow-[0_0_25px_rgba(255,102,0,0.6)] hover:scale-105 active:scale-95 transition-all duration-300 flex items-center gap-1.5 cursor-pointer"
+            >
+              <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/25 to-transparent pointer-events-none" />
+              <LayoutDashboard className="w-3.5 h-3.5" />
+              <span>Tableau de bord</span>
+              <ArrowRight className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-1" />
+            </Link>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="nav-link-item text-xs font-semibold px-4 py-2 cursor-pointer"
+              >
+                Se connecter
+              </Link>
+              <Link
+                href="/login"
+                className="group relative overflow-hidden px-5 py-2 rounded-full bg-[#ff6600] hover:bg-[#ff771a] text-white font-bold text-xs shadow-lg shadow-[#ff6600]/30 hover:shadow-[0_0_25px_rgba(255,102,0,0.6)] hover:scale-105 active:scale-95 transition-all duration-300 flex items-center gap-1.5 cursor-pointer"
+              >
+                {/* Shimmer light sweep */}
+                <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/25 to-transparent pointer-events-none" />
+                <span>Commencer gratuitement</span>
+                <ArrowRight className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-1" />
+              </Link>
+            </>
+          )}
         </div>
       </header>
 
@@ -143,17 +160,28 @@ export function MarketingHeader() {
           </Link>
 
           <div className="pt-3 border-t border-white/10 flex flex-col gap-2 mt-1">
-            <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
-              <Button variant="outline" className="w-full text-xs h-9 justify-center cursor-pointer border-[#27272a] text-white rounded-[10px] hover:text-[#ff6600] hover:border-[#ff6600]/30 hover:bg-[#ff6600]/10">
-                Se connecter
-              </Button>
-            </Link>
-            <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
-              <Button variant="glow" className="w-full text-xs h-9 justify-center font-bold cursor-pointer bg-[#0066FF] md:bg-[#ff6600] hover:bg-[#0052cc] md:hover:bg-[#ff771a] text-white border-none rounded-[10px]">
-                <span>Créer un compte gratuit</span>
-                <ArrowRight className="w-3.5 h-3.5 ml-1" />
-              </Button>
-            </Link>
+            {isAuthenticated ? (
+              <Link href="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>
+                <Button variant="glow" className="w-full text-xs h-9 justify-center font-bold cursor-pointer bg-[#0066FF] md:bg-[#ff6600] hover:bg-[#0052cc] md:hover:bg-[#ff771a] text-white border-none rounded-[10px]">
+                  <span>Accéder au Tableau de bord</span>
+                  <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                </Button>
+              </Link>
+            ) : (
+              <>
+                <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
+                  <Button variant="outline" className="w-full text-xs h-9 justify-center cursor-pointer border-[#27272a] text-white rounded-[10px] hover:text-[#ff6600] hover:border-[#ff6600]/30 hover:bg-[#ff6600]/10">
+                    Se connecter
+                  </Button>
+                </Link>
+                <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
+                  <Button variant="glow" className="w-full text-xs h-9 justify-center font-bold cursor-pointer bg-[#0066FF] md:bg-[#ff6600] hover:bg-[#0052cc] md:hover:bg-[#ff771a] text-white border-none rounded-[10px]">
+                    <span>Créer un compte gratuit</span>
+                    <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       )}

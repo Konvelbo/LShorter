@@ -30,7 +30,7 @@ import { cn } from "@/lib/utils";
 import { useSession } from "next-auth/react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { cfGetAnalytics } from "@/lib/cloudflare-api";
+import { cfGetAnalytics, cfGetLinks } from "@/lib/cloudflare-api";
 import { LinkCreateModal } from "@/components/dashboard/link-create-modal";
 import { FeedbackModal } from "@/components/feedback/feedback-modal";
 
@@ -102,9 +102,15 @@ export function Sidebar() {
     if (!userId) return;
     const fetchLiveClicks = async () => {
       try {
-        const res = await cfGetAnalytics(userId, "30d").catch(() => null);
-        const total = (res?.data?.totalClicks ?? res?.data?.total_clicks ?? 0);
-        setLiveClicks(total);
+        const [res, linksRes] = await Promise.all([
+          cfGetAnalytics(userId, "30d").catch(() => null),
+          cfGetLinks(userId).catch(() => null),
+        ]);
+        const analyticsTotal = (res?.data?.totalClicks ?? res?.data?.total_clicks ?? 0);
+        const linksTotal = Array.isArray(linksRes?.data)
+          ? linksRes.data.reduce((acc: number, l: any) => acc + (Number(l.clicks_count) || 0), 0)
+          : 0;
+        setLiveClicks(Math.max(analyticsTotal, linksTotal));
       } catch {}
     };
 

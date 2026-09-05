@@ -2,7 +2,7 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
-  variant?: "active" | "expire" | "inactive" | "orange" | "secondary" | "outline";
+  variant?: "active" | "expire" | "inactive" | "orange" | "blue" | "purple" | "secondary" | "outline";
 }
 
 export function Badge({ className, variant = "secondary", children, ...props }: BadgeProps) {
@@ -11,6 +11,8 @@ export function Badge({ className, variant = "secondary", children, ...props }: 
     expire: "bg-amber-500/15 text-amber-400 border border-amber-500/30",
     inactive: "bg-red-500/15 text-red-400 border border-red-500/30",
     orange: "bg-[#ff6600]/15 text-[#ff6600] border border-[#ff6600]/30",
+    blue: "bg-sky-500/15 text-sky-400 border border-sky-500/30",
+    purple: "bg-purple-500/15 text-purple-400 border border-purple-500/30",
     secondary: "bg-[#27272a] text-neutral-300 border border-neutral-700",
     outline: "bg-transparent text-neutral-300 border border-[#27272a]"
   };

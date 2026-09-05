@@ -414,6 +414,87 @@ export const changePassword = mutation({
   },
 });
 
+// ─── Update Profile Preferences ──────────────────────────────────────────────
+export const updateProfilePreferences = mutation({
+  args: {
+    userId: v.string(),
+    name: v.optional(v.string()),
+    avatarUrl: v.optional(v.string()),
+    language: v.optional(v.string()),
+    timezone: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .first();
+
+    if (!user) throw new Error("USER_NOT_FOUND");
+
+    const patch: any = { updatedAt: new Date().toISOString() };
+    if (args.name !== undefined) patch.name = args.name;
+    if (args.avatarUrl !== undefined) patch.avatarUrl = args.avatarUrl;
+    if (args.language !== undefined) patch.language = args.language;
+    if (args.timezone !== undefined) patch.timezone = args.timezone;
+
+    await ctx.db.patch(user._id, patch);
+    return { success: true };
+  },
+});
+
+// ─── Delete User Account (RGPD / Complete wipe) ──────────────────────────────
+export const deleteUserAccount = mutation({
+  args: { userId: v.string() },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .first();
+
+    if (user) {
+      await ctx.db.delete(user._id);
+    }
+
+    // Delete user links
+    const userLinks = await ctx.db
+      .query("links")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .collect();
+    for (const link of userLinks) {
+      await ctx.db.delete(link._id);
+    }
+
+    // Delete user domains
+    const userDomains = await ctx.db
+      .query("domains")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .collect();
+    for (const d of userDomains) {
+      await ctx.db.delete(d._id);
+    }
+
+    // Delete user webhooks
+    const userWebhooks = await ctx.db
+      .query("webhooks")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .collect();
+    for (const w of userWebhooks) {
+      await ctx.db.delete(w._id);
+    }
+
+    // Delete user retargeting pixels
+    const userPixels = await ctx.db
+      .query("retargetingPixels")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .collect();
+    for (const p of userPixels) {
+      await ctx.db.delete(p._id);
+    }
+
+    return { success: true };
+  },
+});
+
 // ─── Store User Feedback ──────────────────────────────────────────────────────
 export const storeFeedback = mutation({
   args: {
