@@ -78,7 +78,25 @@ export function LinkShareModal({ link, isOpen, onClose }: LinkShareModalProps) {
   const [selectedColor, setSelectedColor] = useState("#ff6600");
   const [bgColor, setBgColor] = useState("#ffffff");
   const [qrSize, setQrSize] = useState(200);
+  const [showInstagramGuide, setShowInstagramGuide] = useState(false);
+  const [showTelegramGuide, setShowTelegramGuide] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Reset guides when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setShowInstagramGuide(false);
+      setShowTelegramGuide(false);
+    }
+  }, [isOpen]);
+
+  // Pre-warm Edge / Node cache for crawlers (LinkedInBot, Twitterbot)
+  useEffect(() => {
+    if (!isOpen || !link?.slug) return;
+    fetch(`/r/${link.slug}`, {
+      headers: { "x-crawler-prewarm": "1" },
+    }).catch(() => {});
+  }, [isOpen, link?.slug]);
 
   useEffect(() => {
     if (!isOpen || !link || !canvasRef.current) return;
@@ -149,17 +167,6 @@ export function LinkShareModal({ link, isOpen, onClose }: LinkShareModalProps) {
       console.error(e);
     }
   };
-
-  const [showInstagramGuide, setShowInstagramGuide] = useState(false);
-  const [showTelegramGuide, setShowTelegramGuide] = useState(false);
-
-  // Pre-warm Edge / Node cache for crawlers (LinkedInBot, Twitterbot)
-  useEffect(() => {
-    if (!isOpen || !link?.slug) return;
-    fetch(`/r/${link.slug}`, {
-      headers: { "x-crawler-prewarm": "1" },
-    }).catch(() => {});
-  }, [isOpen, link?.slug]);
 
   const handleInstagramShare = () => {
     navigator.clipboard.writeText(url);
