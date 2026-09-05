@@ -118,8 +118,9 @@ function renderSocialHtml(meta: {
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>${safeTitle}</title>
   <meta name="description" content="${safeDesc}" />
+  <meta name="theme-color" content="#ff6600" />
 
-  <!-- Open Graph / Facebook / LinkedIn / WhatsApp -->
+  <!-- Open Graph / WhatsApp / Facebook / LinkedIn / Telegram / Slack / Discord -->
   <meta property="og:site_name" content="LShorter" />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="${safeCanonical}" />
@@ -137,6 +138,7 @@ function renderSocialHtml(meta: {
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:site" content="@LShorter" />
   <meta name="twitter:creator" content="@LShorter" />
+  <meta name="twitter:domain" content="lsho.cc" />
   <meta name="twitter:url" content="${safeCanonical}" />
   <meta name="twitter:title" content="${safeTitle}" />
   <meta name="twitter:description" content="${safeDesc}" />
@@ -148,7 +150,6 @@ function renderSocialHtml(meta: {
   <div style="text-align:center;padding:20px;">
     <p style="font-size:16px;color:#e4e4e7;margin-bottom:12px;">Redirection vers <a href="${safeDest}" style="color:#0066FF;text-decoration:none;font-weight:600;">${safeDest}</a>...</p>
     <script>window.location.replace("${jsDest}");</script>
-    <noscript><meta http-equiv="refresh" content="1;url=${safeDest}" /></noscript>
   </div>
 </body>
 </html>`;

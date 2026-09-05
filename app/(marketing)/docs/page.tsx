@@ -42,7 +42,10 @@ import {
   Lightbulb,
   MousePointerClick,
   Compass,
-  Download
+  Download,
+  Boxes,
+  Code,
+  CheckCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CodeBlock } from "@/components/ui/code-block";
@@ -308,11 +311,14 @@ const FEATURE_GUIDES: FeatureGuide[] = [
 interface EndpointDoc {
   id: string;
   category: string;
+  categoryKey: string;
   method: "GET" | "POST" | "PATCH" | "DELETE";
   path: string;
   title: string;
   desc: string;
   rateLimit: string;
+  planRequired: "Gratuit (Freemium)" | "Plan PRO" | "Plan BUSINESS";
+  paramsList?: Array<{ name: string; type: string; required: boolean; desc: string }>;
   requestBody?: Record<string, any>;
   responseExample: Record<string, any>;
   snippets: Record<Language, string>;
@@ -323,40 +329,35 @@ const ENDPOINTS_DOCS: EndpointDoc[] = [
   {
     id: "create-link",
     category: "Liens & Redirections",
+    categoryKey: "links",
     method: "POST",
     path: "/api/v1/links",
     title: "Créer un lien court intelligent",
     desc: "Génère un lien raccourci avec ciblage géographique, appareils, protection par mot de passe, cloaking, tests A/B et bannière Open Graph.",
     rateLimit: "600 req/min (Illimité en PRO/BUSINESS)",
+    planRequired: "Gratuit (Freemium)",
+    paramsList: [
+      { name: "targetUrl", type: "string", required: true, desc: "L'URL de destination longue complète." },
+      { name: "slug", type: "string", required: false, desc: "Alias personnalisé du lien (ex: promo-2026)." },
+      { name: "domainName", type: "string", required: false, desc: "Votre domaine personnalisé (ex: go.mon-site.com)." },
+      { name: "geoTargeting", type: "object", required: false, desc: "Mapping des pays vers les URLs cibles (ex: { FR: 'https://...' })." },
+      { name: "deviceTargeting", type: "object", required: false, desc: "URLs spécifiques pour iOS, Android et Desktop." },
+      { name: "passParams", type: "boolean", required: false, desc: "Transmet automatiquement les paramètres GET d'affiliation/UTM." },
+    ],
     requestBody: {
       targetUrl: "https://ma-boutique.com/produit-vedette",
       slug: "promo-ete-2026",
       domainName: "lsho.cc",
-      routingRules: [
-        {
-          conditions: [{ type: "pays", operator: "est", value: "FR" }],
-          destinationUrl: "https://ma-boutique.fr/promo",
-        },
-      ],
       geoTargeting: {
+        FR: "https://ma-boutique.fr/promo",
         US: "https://ma-boutique.com/us-deal",
-        CA: "https://ma-boutique.ca",
       },
       deviceTargeting: {
         ios: "https://apps.apple.com/app/id123456",
         android: "https://play.google.com/store/apps/details?id=com.app",
       },
-      abVariations: [
-        { url: "https://ma-boutique.com/landing-b", weight: 50 },
-      ],
-      mainWeight: 50,
-      isPasswordProtected: false,
-      isCloaked: false,
       passParams: true,
-      ogTitle: "Offre Exclusive Été 2026",
-      ogDescription: "Profitez de -40% sur toute la collection avec livraison offerte.",
-      ogImage: "https://ma-boutique.com/images/banner.jpg",
-      tags: ["marketing", "campagne-ete", "influenceurs"],
+      tags: ["marketing", "campagne-ete"],
     },
     responseExample: {
       success: true,
@@ -382,7 +383,7 @@ const ENDPOINTS_DOCS: EndpointDoc[] = [
     "geoTargeting": { "FR": "https://ma-boutique.fr/promo" },
     "passParams": true
   }'`,
-      typescript: `import { LShorter } from "@lshorter/sdk";
+      typescript: `import { LShorter } from "lshorter";
 
 const lsh = new LShorter({ apiKey: "lsh_live_votre_cle_api" });
 
@@ -394,7 +395,7 @@ const link = await lsh.links.create({
   tags: ["ete-2026"]
 });
 
-console.log("Lien créé :", link.shortUrl);`,
+console.log("Lien créé :", link.short_url);`,
       python: `import requests
 
 url = "https://lshorter-api.fiatechnologiecam.workers.dev/api/v1/links"
@@ -456,11 +457,13 @@ func main() {
   {
     id: "list-links",
     category: "Liens & Redirections",
+    categoryKey: "links",
     method: "GET",
     path: "/api/v1/links",
     title: "Lister les liens courts",
     desc: "Récupère la liste complète de vos liens avec compteurs de clics, tags et métadonnées.",
     rateLimit: "1 200 req/min",
+    planRequired: "Gratuit (Freemium)",
     responseExample: {
       success: true,
       data: [
@@ -478,7 +481,7 @@ func main() {
     snippets: {
       curl: `curl -X GET "https://lshorter-api.fiatechnologiecam.workers.dev/api/v1/links" \\
   -H "Authorization: Bearer lsh_live_votre_cle_api"`,
-      typescript: `import { LShorter } from "@lshorter/sdk";
+      typescript: `import { LShorter } from "lshorter";
 
 const lsh = new LShorter({ apiKey: "lsh_live_votre_cle_api" });
 const links = await lsh.links.list();
@@ -519,11 +522,17 @@ func main() {
   {
     id: "get-analytics",
     category: "Analytics & Tracking",
+    categoryKey: "analytics",
     method: "GET",
     path: "/api/v1/analytics",
     title: "Obtenir les analytics de trafic",
     desc: "Retourne les statistiques complètes de clics, top pays géolocalisés, villes, appareils, navigateurs et flux en direct.",
     rateLimit: "600 req/min",
+    planRequired: "Gratuit (Freemium)",
+    paramsList: [
+      { name: "period", type: "string", required: false, desc: "Période d'analyse : '24h', '7d', '30d', '90d', 'all' (défaut: 30d)." },
+      { name: "linkId", type: "string", required: false, desc: "ID ou slug d'un lien spécifique pour restreindre les métriques." },
+    ],
     responseExample: {
       success: true,
       data: {
@@ -543,7 +552,7 @@ func main() {
     snippets: {
       curl: `curl -X GET "https://lshorter-api.fiatechnologiecam.workers.dev/api/v1/analytics?period=30d" \\
   -H "Authorization: Bearer lsh_live_votre_cle_api"`,
-      typescript: `import { LShorter } from "@lshorter/sdk";
+      typescript: `import { LShorter } from "lshorter";
 
 const lsh = new LShorter({ apiKey: "lsh_live_votre_cle_api" });
 const stats = await lsh.analytics.get({ period: "30d" });
@@ -584,11 +593,16 @@ func main() {
   {
     id: "add-domain",
     category: "Domaines Personnalisés",
+    categoryKey: "domains",
     method: "POST",
     path: "/api/v1/domains",
     title: "Connecter un domaine personnalisé",
     desc: "Déclare un nom de domaine ou sous-domaine en marque blanche et génère automatiquement les enregistrements DNS CNAME et TXT pour la délivrance du certificat SSL.",
     rateLimit: "100 req/min",
+    planRequired: "Plan PRO",
+    paramsList: [
+      { name: "domain", type: "string", required: true, desc: "Le nom de domaine ou sous-domaine complet (ex: go.mon-entreprise.com)." },
+    ],
     requestBody: {
       domain: "go.mon-entreprise.com",
     },
@@ -621,7 +635,7 @@ func main() {
   -H "Authorization: Bearer lsh_live_votre_cle_api" \\
   -H "Content-Type: application/json" \\
   -d '{ "domain": "go.mon-entreprise.com" }'`,
-      typescript: `import { LShorter } from "@lshorter/sdk";
+      typescript: `import { LShorter } from "lshorter";
 
 const lsh = new LShorter({ apiKey: "lsh_live_votre_cle_api" });
 const domain = await lsh.domains.add({ domain: "go.mon-entreprise.com" });
@@ -670,85 +684,23 @@ func main() {
     },
   },
 
-  // ─── 4. SOCIAL BANNERS ────────────────────────────────────────────────────
-  {
-    id: "upload-image",
-    category: "Bannières & Open Graph",
-    method: "POST",
-    path: "/api/v1/upload-image",
-    title: "Upload d'image pour aperçu social",
-    desc: "Téléverse une image d'aperçu pour les cartes Twitter et Open Graph (Facebook, WhatsApp, LinkedIn, Discord).",
-    rateLimit: "120 req/min",
-    requestBody: {
-      data: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...",
-    },
-    responseExample: {
-      success: true,
-      url: "https://lshorter-api.fiatechnologiecam.workers.dev/cdn/banner_img_9918.png",
-    },
-    snippets: {
-      curl: `curl -X POST https://lshorter-api.fiatechnologiecam.workers.dev/api/v1/upload-image \\
-  -H "Authorization: Bearer lsh_live_votre_cle_api" \\
-  -H "Content-Type: application/json" \\
-  -d '{ "data": "data:image/png;base64,..." }'`,
-      typescript: `import { LShorter } from "@lshorter/sdk";
-
-const lsh = new LShorter({ apiKey: "lsh_live_votre_cle_api" });
-const upload = await lsh.media.upload({ base64: "data:image/png;base64,..." });
-console.log("URL CDN :", upload.url);`,
-      python: `import requests
-
-res = requests.post(
-    "https://lshorter-api.fiatechnologiecam.workers.dev/api/v1/upload-image",
-    headers={"Authorization": "Bearer lsh_live_votre_cle_api"},
-    json={"data": "data:image/png;base64,..."}
-)
-print(res.json()["url"])`,
-      php: `<?php
-$ch = curl_init("https://lshorter-api.fiatechnologiecam.workers.dev/api/v1/upload-image");
-curl_setopt_array($ch, [
-  CURLOPT_POST => true,
-  CURLOPT_RETURNTRANSFER => true,
-  CURLOPT_HTTPHEADER => [
-    "Authorization: Bearer lsh_live_votre_cle_api",
-    "Content-Type: application/json"
-  ],
-  CURLOPT_POSTFIELDS => json_encode(["data" => "data:image/png;base64,..."])
-]);
-$res = curl_exec($ch);
-curl_close($ch);
-print_r(json_decode($res, true));`,
-      go: `package main
-
-import (
-	"bytes"
-	"encoding/json"
-	"fmt"
-	"net/http"
-)
-
-func main() {
-	payload, _ := json.Marshal(map[string]string{"data": "data:image/png;base64,..."})
-	req, _ := http.NewRequest("POST", "https://lshorter-api.fiatechnologiecam.workers.dev/api/v1/upload-image", bytes.NewBuffer(payload))
-	req.Header.Set("Authorization", "Bearer lsh_live_votre_cle_api")
-	req.Header.Set("Content-Type", "application/json")
-	client := &http.Client{}
-	resp, _ := client.Do(req)
-	defer resp.Body.Close()
-	fmt.Println("Status:", resp.Status)
-}`,
-    },
-  },
-
-  // ─── 5. WEBHOOKS & AUTOMATISATIONS ───────────────────────────────────────
+  // ─── 4. WEBHOOKS ──────────────────────────────────────────────────────────
   {
     id: "webhooks-guide",
     category: "Webhooks & Automatisations",
+    categoryKey: "webhooks",
     method: "POST",
     path: "/api/v1/webhooks",
     title: "Enregistrer un Webhook (Événements Temps Réel)",
     desc: "Déclenche une requête HTTP POST instantanée vers votre serveur, Zapier, Make, n8n ou Slack à chaque clic sur vos liens. Permet de synchroniser votre CRM ou déclencher des automatisations.",
     rateLimit: "100 req/min",
+    planRequired: "Plan PRO",
+    paramsList: [
+      { name: "url", type: "string", required: true, desc: "L'URL HTTP(S) de destination qui recevra les payloads POST." },
+      { name: "events", type: "array", required: false, desc: "Liste des événements écoutés : ['link.clicked', 'link.created', 'conversion.created']." },
+      { name: "secret", type: "string", required: false, desc: "Clé secrète partagée pour vérifier la signature HMAC-SHA256." },
+      { name: "name", type: "string", required: false, desc: "Nom mémo de l'intégration (ex: Sync Zapier)." },
+    ],
     requestBody: {
       url: "https://votre-serveur.com/api/webhooks/lshorter",
       events: ["link.clicked", "link.created"],
@@ -783,7 +735,7 @@ func main() {
     "events": ["link.clicked"],
     "secret": "whsec_mon_secret"
   }'`,
-      typescript: `import { LShorter } from "@lshorter/sdk";
+      typescript: `import { LShorter } from "lshorter";
 
 const lsh = new LShorter({ apiKey: "lsh_live_votre_cle_api" });
 
@@ -850,15 +802,22 @@ func main() {
     },
   },
 
-  // ─── 6. PIXELS RETARGETING ────────────────────────────────────────────────
+  // ─── 5. PIXELS RETARGETING ────────────────────────────────────────────────
   {
     id: "pixels-guide",
     category: "Pixels & Retargeting",
+    categoryKey: "pixels",
     method: "POST",
     path: "/api/v1/pixels",
     title: "Associer un Pixel de Retargeting Publicitaire",
     desc: "Injecte vos balises Meta (Facebook/Instagram), Google Ads / GA4, TikTok Ads et LinkedIn Insight Tag sur vos redirections de liens courts, vous permettant de recibler des prospects même s'ils visitent des sites tiers (Amazon, YouTube, presse, etc.).",
     rateLimit: "100 req/min",
+    planRequired: "Plan BUSINESS",
+    paramsList: [
+      { name: "platform", type: "string", required: true, desc: "'facebook' | 'google_tag' | 'tiktok' | 'linkedin'" },
+      { name: "pixelId", type: "string", required: true, desc: "L'identifiant du pixel publicitaire (ex: 987654321098765 ou G-XXXXXX)." },
+      { name: "name", type: "string", required: false, desc: "Nom mémo du pixel (ex: Meta Ads Campagne)." },
+    ],
     requestBody: {
       platform: "facebook",
       pixelId: "987654321098765",
@@ -884,7 +843,7 @@ func main() {
     "pixelId": "987654321098765",
     "name": "Pixel Facebook Ads"
   }'`,
-      typescript: `import { LShorter } from "@lshorter/sdk";
+      typescript: `import { LShorter } from "lshorter";
 
 const lsh = new LShorter({ apiKey: "lsh_live_votre_cle_api" });
 
@@ -950,6 +909,78 @@ func main() {
 }`,
     },
   },
+
+  // ─── 6. BANNIÈRES OPEN GRAPH ──────────────────────────────────────────────
+  {
+    id: "upload-image",
+    category: "Bannières & Open Graph",
+    categoryKey: "media",
+    method: "POST",
+    path: "/api/v1/upload-image",
+    title: "Upload d'image pour aperçu social (CDN Bunny.net)",
+    desc: "Téléverse une image d'aperçu pour les cartes Twitter et Open Graph (Facebook, WhatsApp, LinkedIn, Discord).",
+    rateLimit: "120 req/min",
+    planRequired: "Gratuit (Freemium)",
+    requestBody: {
+      data: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...",
+    },
+    responseExample: {
+      success: true,
+      url: "https://lshorter-api.fiatechnologiecam.workers.dev/cdn/banner_img_9918.png",
+    },
+    snippets: {
+      curl: `curl -X POST https://lshorter-api.fiatechnologiecam.workers.dev/api/v1/upload-image \\
+  -H "Authorization: Bearer lsh_live_votre_cle_api" \\
+  -H "Content-Type: application/json" \\
+  -d '{ "data": "data:image/png;base64,..." }'`,
+      typescript: `import { LShorter } from "lshorter";
+
+const lsh = new LShorter({ apiKey: "lsh_live_votre_cle_api" });
+const upload = await lsh.media.upload({ base64: "data:image/png;base64,..." });
+console.log("URL CDN :", upload.url);`,
+      python: `import requests
+
+res = requests.post(
+    "https://lshorter-api.fiatechnologiecam.workers.dev/api/v1/upload-image",
+    headers={"Authorization": "Bearer lsh_live_votre_cle_api"},
+    json={"data": "data:image/png;base64,..."}
+)
+print(res.json()["url"])`,
+      php: `<?php
+$ch = curl_init("https://lshorter-api.fiatechnologiecam.workers.dev/api/v1/upload-image");
+curl_setopt_array($ch, [
+  CURLOPT_POST => true,
+  CURLOPT_RETURNTRANSFER => true,
+  CURLOPT_HTTPHEADER => [
+    "Authorization: Bearer lsh_live_votre_cle_api",
+    "Content-Type: application/json"
+  ],
+  CURLOPT_POSTFIELDS => json_encode(["data" => "data:image/png;base64,..."])
+]);
+$res = curl_exec($ch);
+curl_close($ch);
+print_r(json_decode($res, true));`,
+      go: `package main
+
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"net/http"
+)
+
+func main() {
+	payload, _ := json.Marshal(map[string]string{"data": "data:image/png;base64,..."})
+	req, _ := http.NewRequest("POST", "https://lshorter-api.fiatechnologiecam.workers.dev/api/v1/upload-image", bytes.NewBuffer(payload))
+	req.Header.Set("Authorization", "Bearer lsh_live_votre_cle_api")
+	req.Header.Set("Content-Type", "application/json")
+	client := &http.Client{}
+	resp, _ := client.Do(req)
+	defer resp.Body.Close()
+	fmt.Println("Status:", resp.Status)
+}`,
+    },
+  },
 ];
 
 // ─── 3. FAQ DATA ─────────────────────────────────────────────────────────────
@@ -994,24 +1025,23 @@ const FAQ_ITEMS: FAQItem[] = [
 
 export default function DocsPage() {
   const [mainTab, setMainTab] = useState<MainTab>("features");
-  const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
+  const [selectedApiCategory, setSelectedApiCategory] = useState<string>("ALL");
   const [featureCategory, setFeatureCategory] = useState<string>("ALL");
   const [searchFilter, setSearchFilter] = useState("");
   const [selectedLanguage, setSelectedLanguage] = useState<Language>("curl");
-  const [copiedSnippetId, setCopiedSnippetId] = useState<string | null>(null);
 
-  const categories = [
-    "ALL",
-    "Liens & Redirections",
-    "Analytics & Tracking",
-    "Domaines Personnalisés",
-    "Webhooks & Automatisations",
-    "Pixels & Retargeting",
-    "Bannières & Open Graph",
+  const apiCategories = [
+    { id: "ALL", label: "Tous les Endpoints" },
+    { id: "links", label: "🔗 Liens & Redirections" },
+    { id: "analytics", label: "📊 Analytics & Tracking" },
+    { id: "domains", label: "🌐 Domaines Personnalisés" },
+    { id: "webhooks", label: "⚡ Webhooks & Automatisations" },
+    { id: "pixels", label: "🎯 Pixels & Retargeting" },
+    { id: "media", label: "🖼️ Bannières Open Graph" },
   ];
 
   const filteredEndpoints = ENDPOINTS_DOCS.filter((ep) => {
-    const matchCategory = selectedCategory === "ALL" || ep.category === selectedCategory;
+    const matchCategory = selectedApiCategory === "ALL" || ep.categoryKey === selectedApiCategory;
     const matchSearch =
       ep.title.toLowerCase().includes(searchFilter.toLowerCase()) ||
       ep.path.toLowerCase().includes(searchFilter.toLowerCase()) ||
@@ -1040,17 +1070,17 @@ export default function DocsPage() {
   return (
     <div className="py-10 px-4 sm:px-6 lg:px-12 max-w-7xl mx-auto flex flex-col gap-10 animate-in fade-in">
       {/* ─── Hero Header ─── */}
-      <div className="p-8 sm:p-10 rounded-[12px] bg-[#141416] border border-[#ff6600]/40 shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-8 relative overflow-hidden">
+      <div className="p-8 sm:p-10 rounded-[14px] bg-[#141416] border border-[#ff6600]/40 shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-8 relative overflow-hidden">
         <div className="flex flex-col gap-3 z-10 max-w-2xl">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#ff6600]/15 border border-[#ff6600]/30 text-xs font-bold text-[#ff6600] w-fit">
-            <BookOpen className="w-3.5 h-3.5" />
-            <span>CENTRE DE DOCUMENTATION & GUIDES OFFICIELS</span>
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#ff6600]/15 border border-[#ff6600]/30 text-xs font-bold text-[#ff6600] w-fit">
+            <BookOpen className="w-4 h-4" />
+            <span>CENTRE DE DOCUMENTATION OFFICIEL</span>
           </div>
           <h1 className="font-bebas text-3xl sm:text-5xl text-white tracking-wide leading-tight">
-            GUIDE COMPLET DES FONCTIONNALITÉS & RÉFÉRENCE API
+            GUIDE COMPLET DES FONCTIONNALITÉS &amp; RÉFÉRENCE API
           </h1>
           <p className="text-xs sm:text-sm text-neutral-300 leading-relaxed">
-            Découvrez tout le potentiel de LShorter : raccourcissement intelligent, ciblage géographique &amp; appareils, pixels de retargeting, webhooks temps réel, domaines marque blanche et API Edge ultra-rapide (&lt; 1 ms).
+            Découvrez comment tirer le meilleur de LShorter : raccourcissement intelligent, ciblage pays &amp; appareils, pixels de retargeting, webhooks temps réel, domaines de marque blanche et API Edge ultra-rapide (&lt; 1 ms).
           </p>
         </div>
 
@@ -1067,7 +1097,7 @@ export default function DocsPage() {
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] hover:border-[#ff6600]/50 text-xs font-bold text-white transition-colors cursor-pointer"
             >
               <KeyRound className="w-4 h-4 text-[#ff6600]" />
-              <span>Clés API</span>
+              <span>Générer Clé API</span>
             </button>
           </Link>
         </div>
@@ -1085,7 +1115,7 @@ export default function DocsPage() {
           }`}
         >
           <Layers className="w-4 h-4" />
-          <span>Guide des Fonctionnalités</span>
+          <span>Guide Utilisateur &amp; Fonctionnalités</span>
         </button>
 
         <button
@@ -1178,7 +1208,7 @@ export default function DocsPage() {
                 <div
                   key={feat.id}
                   id={feat.id}
-                  className="rounded-[12px] bg-[#141416] border border-[#222225] p-6 sm:p-7 flex flex-col justify-between gap-6 shadow-xl hover:border-neutral-700 transition-all group"
+                  className="rounded-[14px] bg-[#141416] border border-[#222225] p-6 sm:p-7 flex flex-col justify-between gap-6 shadow-xl hover:border-neutral-700 transition-all group"
                 >
                   <div className="flex flex-col gap-4">
                     {/* Header with Icon & Badge */}
@@ -1282,75 +1312,99 @@ export default function DocsPage() {
       {mainTab === "api" && (
         <div className="flex flex-col gap-8 animate-in fade-in">
           {/* Quick Start SDK Box */}
-          <div className="rounded-[12px] bg-[#141416] border border-[#222225] p-6 sm:p-8 flex flex-col gap-6 shadow-xl">
-            <div className="flex items-center justify-between">
+          <div className="rounded-[14px] bg-[#141416] border border-[#222225] p-6 sm:p-8 flex flex-col gap-6 shadow-xl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-2.5">
                 <Terminal className="w-5 h-5 text-[#ff6600]" />
-                <h2 className="text-lg font-bold text-white">Démarrage Rapide API &amp; SDK (Quickstart)</h2>
+                <h2 className="text-lg font-bold text-white">Démarrage Rapide API REST &amp; SDK (Quickstart)</h2>
               </div>
-              <span className="text-[11px] font-mono px-2.5 py-1 rounded-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold">
-                v1.0.4 Prêt
+              <span className="text-[11px] font-mono px-3 py-1 rounded-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold w-fit">
+                NPM / pnpm : lshorter@1.0.0
               </span>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="p-4 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] flex flex-col gap-2">
-                <span className="text-xs font-bold text-[#ff6600] font-mono">1. AUTHENTIFICATION</span>
+                <span className="text-xs font-bold text-[#ff6600] font-mono flex items-center gap-1.5">
+                  <KeyRound className="w-3.5 h-3.5" />
+                  <span>1. AUTHENTIFICATION</span>
+                </span>
                 <p className="text-xs text-neutral-400 leading-relaxed">
                   Toutes les requêtes API nécessitent un en-tête HTTP <code className="text-white font-mono bg-black/40 px-1.5 py-0.5 rounded">Authorization: Bearer lsh_live_...</code>.
                 </p>
               </div>
 
               <div className="p-4 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] flex flex-col gap-2">
-                <span className="text-xs font-bold text-sky-400 font-mono">2. BASE URL EDGE</span>
+                <span className="text-xs font-bold text-sky-400 font-mono flex items-center gap-1.5">
+                  <Zap className="w-3.5 h-3.5" />
+                  <span>2. BASE URL EDGE</span>
+                </span>
                 <p className="text-xs text-neutral-400 leading-relaxed">
-                  Point d'entrée direct mondial : <code className="text-white font-mono bg-black/40 px-1.5 py-0.5 rounded text-[11px]">https://lshorter-api.fiatechnologiecam.workers.dev</code>
+                  Point d'entrée mondial direct : <code className="text-white font-mono bg-black/40 px-1.5 py-0.5 rounded text-[11px]">https://lshorter-api.fiatechnologiecam.workers.dev</code>
                 </p>
               </div>
 
               <div className="p-4 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] flex flex-col gap-2">
-                <span className="text-xs font-bold text-purple-400 font-mono">3. FORMATS &amp; JSON</span>
+                <span className="text-xs font-bold text-purple-400 font-mono flex items-center gap-1.5">
+                  <Code2 className="w-3.5 h-3.5" />
+                  <span>3. SDK OFFICIEL</span>
+                </span>
                 <p className="text-xs text-neutral-400 leading-relaxed">
-                  Toutes les requêtes et réponses utilisent exclusivement le format standard <code className="text-white font-mono bg-black/40 px-1.5 py-0.5 rounded">application/json</code>.
+                  Installez le client officiel via <code className="text-white font-mono bg-black/40 px-1.5 py-0.5 rounded text-[11px]">pnpm add lshorter</code> ou <code className="text-white font-mono bg-black/40 px-1.5 py-0.5 rounded text-[11px]">npm i lshorter</code>.
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Language Switcher & Category Pills */}
-          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 p-4 rounded-[12px] bg-[#141416] border border-[#222225] sticky top-4 z-20 shadow-2xl backdrop-blur-md">
-            {/* Language Tabs */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
+          {/* ─── Clean Separated Header: 1. Category Bar ─── */}
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-neutral-400 font-mono flex items-center gap-1.5">
+                <Boxes className="w-4 h-4 text-[#ff6600]" />
+                <span>Modules &amp; Catégories de l'API :</span>
+              </span>
+            </div>
+
+            {/* Category Pills Row */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-2 text-xs">
+              {apiCategories.map((cat) => (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => setSelectedApiCategory(cat.id)}
+                  className={`px-3.5 py-2 rounded-[10px] font-semibold transition-all shrink-0 cursor-pointer border ${
+                    selectedApiCategory === cat.id
+                      ? "bg-[#ff6600]/15 text-[#ff6600] border-[#ff6600]/50 font-bold shadow-md shadow-[#ff6600]/10"
+                      : "bg-[#141416] text-neutral-400 border-[#27272a] hover:text-white hover:border-neutral-600"
+                  }`}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* ─── Clean Separated Header: 2. Global Language Switcher ─── */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-[12px] bg-[#141416] border border-[#222225] shadow-md">
+            <div className="flex items-center gap-2 text-xs font-bold text-neutral-300">
+              <Code className="w-4 h-4 text-[#ff6600]" />
+              <span>Langage de programmation pour les exemples de code :</span>
+            </div>
+
+            {/* Language Segmented Control */}
+            <div className="flex items-center gap-1 p-1 bg-[#1a1a1e] rounded-[10px] border border-[#27272a]">
               {(["curl", "typescript", "python", "php", "go"] as Language[]).map((lang) => (
                 <button
                   key={lang}
                   type="button"
                   onClick={() => setSelectedLanguage(lang)}
-                  className={`px-3 py-1.5 rounded-[10px] text-xs font-mono font-bold uppercase transition-all cursor-pointer ${
+                  className={`px-3 py-1.5 rounded-[8px] text-xs font-mono font-bold uppercase transition-all cursor-pointer ${
                     selectedLanguage === lang
                       ? "bg-[#ff6600] text-white shadow-md shadow-[#ff6600]/25"
                       : "text-neutral-400 hover:text-white hover:bg-white/5"
                   }`}
                 >
                   {lang}
-                </button>
-              ))}
-            </div>
-
-            {/* Category Pills */}
-            <div className="flex items-center gap-2 overflow-x-auto text-xs">
-              {categories.map((cat) => (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`px-3 py-1.5 rounded-full font-semibold transition-all shrink-0 cursor-pointer ${
-                    selectedCategory === cat
-                      ? "bg-[#ff6600]/20 text-[#ff6600] border border-[#ff6600]/40 font-bold"
-                      : "bg-[#1a1a1e] text-neutral-400 border border-[#27272a] hover:text-white"
-                  }`}
-                >
-                  {cat === "ALL" ? "Tous" : cat}
                 </button>
               ))}
             </div>
@@ -1365,13 +1419,13 @@ export default function DocsPage() {
                 <div
                   key={ep.id}
                   id={ep.id}
-                  className="rounded-[12px] bg-[#141416] border border-[#222225] p-6 sm:p-8 flex flex-col gap-6 shadow-2xl hover:border-neutral-700 transition-colors"
+                  className="rounded-[14px] bg-[#141416] border border-[#222225] p-6 sm:p-8 flex flex-col gap-6 shadow-2xl hover:border-neutral-700 transition-colors"
                 >
                   {/* Header Endpoint Info */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#222225]">
                     <div className="flex items-center gap-3">
                       <span
-                        className={`px-2.5 py-1 rounded-[10px] text-xs font-mono font-extrabold ${
+                        className={`px-2.5 py-1 rounded-[8px] text-xs font-mono font-extrabold ${
                           ep.method === "POST"
                             ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
                             : ep.method === "GET"
@@ -1386,9 +1440,23 @@ export default function DocsPage() {
                       <span className="font-mono text-white text-sm sm:text-base font-bold">{ep.path}</span>
                     </div>
 
-                    <span className="text-[11px] font-mono text-neutral-400 bg-[#1a1a1e] px-2.5 py-1 rounded-[10px] border border-[#27272a] shrink-0">
-                      Rate Limit : {ep.rateLimit}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        variant={
+                          ep.planRequired.includes("BUSINESS")
+                            ? "purple"
+                            : ep.planRequired.includes("PRO")
+                            ? "blue"
+                            : "secondary"
+                        }
+                        className="text-[11px]"
+                      >
+                        {ep.planRequired}
+                      </Badge>
+                      <span className="text-[11px] font-mono text-neutral-400 bg-[#1a1a1e] px-2.5 py-1 rounded-[8px] border border-[#27272a] shrink-0">
+                        {ep.rateLimit}
+                      </span>
+                    </div>
                   </div>
 
                   <div>
@@ -1396,18 +1464,62 @@ export default function DocsPage() {
                     <p className="text-xs text-neutral-300 leading-relaxed">{ep.desc}</p>
                   </div>
 
+                  {/* Parameter List Table if available */}
+                  {ep.paramsList && ep.paramsList.length > 0 && (
+                    <div className="space-y-2">
+                      <span className="text-xs font-bold text-neutral-400 uppercase font-mono tracking-wider block">
+                        Paramètres de la requête :
+                      </span>
+                      <div className="overflow-x-auto rounded-[10px] border border-[#27272a]">
+                        <table className="w-full text-left text-xs text-neutral-300 bg-[#1a1a1e]">
+                          <thead>
+                            <tr className="border-b border-[#27272a] text-neutral-400 text-[11px] font-mono">
+                              <th className="py-2 px-3">Champ</th>
+                              <th className="py-2 px-3">Type</th>
+                              <th className="py-2 px-3">Requis</th>
+                              <th className="py-2 px-3">Description</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-[#27272a]/60">
+                            {ep.paramsList.map((p, pIdx) => (
+                              <tr key={pIdx}>
+                                <td className="py-2 px-3 font-mono text-white font-bold">{p.name}</td>
+                                <td className="py-2 px-3 font-mono text-sky-400">{p.type}</td>
+                                <td className="py-2 px-3 font-mono">
+                                  {p.required ? (
+                                    <span className="text-amber-400 font-bold">Oui</span>
+                                  ) : (
+                                    <span className="text-neutral-500">Optionnel</span>
+                                  )}
+                                </td>
+                                <td className="py-2 px-3 text-neutral-300">{p.desc}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Code Snippet Box with Language Label & Copy */}
-                  <CodeBlock
-                    code={activeSnippet}
-                    language={selectedLanguage}
-                    filename={`Exemple ${selectedLanguage.toUpperCase()}`}
-                  />
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-neutral-400 uppercase font-mono tracking-wider">
+                        Exemple de code ({selectedLanguage.toUpperCase()}) :
+                      </span>
+                    </div>
+                    <CodeBlock
+                      code={activeSnippet}
+                      language={selectedLanguage}
+                      filename={`Snippet ${selectedLanguage.toUpperCase()}`}
+                    />
+                  </div>
 
                   {/* Request & Response Schema Grid */}
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 text-xs font-mono">
                     {ep.requestBody && (
                       <div className="space-y-1.5">
-                        <span className="text-neutral-400 font-bold block font-sans">Corps de Requête (JSON Body) :</span>
+                        <span className="text-neutral-400 font-bold block font-sans">Corps de Requête JSON (Body) :</span>
                         <CodeBlock
                           code={JSON.stringify(ep.requestBody, null, 2)}
                           language="json"
@@ -1433,7 +1545,7 @@ export default function DocsPage() {
           </div>
 
           {/* HTTP Error Codes Reference */}
-          <div className="rounded-[12px] bg-[#141416] border border-[#222225] p-6 sm:p-8 flex flex-col gap-4 shadow-xl">
+          <div className="rounded-[14px] bg-[#141416] border border-[#222225] p-6 sm:p-8 flex flex-col gap-4 shadow-xl">
             <h3 className="text-base font-bold text-white flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-emerald-400" />
               <span>Codes de Réponses &amp; Erreurs HTTP Standard</span>
@@ -1487,7 +1599,7 @@ export default function DocsPage() {
       {mainTab === "security" && (
         <div className="flex flex-col gap-6 animate-in fade-in">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="p-6 rounded-[12px] bg-[#141416] border border-[#222225] space-y-3">
+            <div className="p-6 rounded-[14px] bg-[#141416] border border-[#222225] space-y-3">
               <div className="w-9 h-9 rounded-[10px] bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
                 <ShieldCheck className="w-5 h-5" />
               </div>
@@ -1497,7 +1609,7 @@ export default function DocsPage() {
               </p>
             </div>
 
-            <div className="p-6 rounded-[12px] bg-[#141416] border border-[#222225] space-y-3">
+            <div className="p-6 rounded-[14px] bg-[#141416] border border-[#222225] space-y-3">
               <div className="w-9 h-9 rounded-[10px] bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400">
                 <Zap className="w-5 h-5" />
               </div>
@@ -1507,7 +1619,7 @@ export default function DocsPage() {
               </p>
             </div>
 
-            <div className="p-6 rounded-[12px] bg-[#141416] border border-[#222225] space-y-3">
+            <div className="p-6 rounded-[14px] bg-[#141416] border border-[#222225] space-y-3">
               <div className="w-9 h-9 rounded-[10px] bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400">
                 <Lock className="w-5 h-5" />
               </div>
@@ -1517,7 +1629,7 @@ export default function DocsPage() {
               </p>
             </div>
 
-            <div className="p-6 rounded-[12px] bg-[#141416] border border-[#222225] space-y-3">
+            <div className="p-6 rounded-[14px] bg-[#141416] border border-[#222225] space-y-3">
               <div className="w-9 h-9 rounded-[10px] bg-[#ff6600]/10 border border-[#ff6600]/30 flex items-center justify-center text-[#ff6600]">
                 <KeyRound className="w-5 h-5" />
               </div>
@@ -1538,7 +1650,7 @@ export default function DocsPage() {
           {filteredFaq.map((item, idx) => (
             <div
               key={idx}
-              className="p-5 sm:p-6 rounded-[12px] bg-[#141416] border border-[#222225] hover:border-neutral-700 transition-colors flex flex-col gap-2"
+              className="p-5 sm:p-6 rounded-[14px] bg-[#141416] border border-[#222225] hover:border-neutral-700 transition-colors flex flex-col gap-2"
             >
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded-[6px] bg-[#ff6600]/15 text-[#ff6600] font-bold">
