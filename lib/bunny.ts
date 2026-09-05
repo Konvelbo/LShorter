@@ -139,14 +139,15 @@ export async function uploadToBunny(
 
   // 1. Process base64 strings (Data URI or raw base64)
   if (typeof fileData === "string") {
-    if (fileData.startsWith("data:")) {
-      const match = fileData.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
-      if (match && match.length === 3) {
-        detectedMime = match[1];
-        buffer = Buffer.from(match[2], "base64");
-      } else {
-        buffer = Buffer.from(fileData, "base64");
+    const commaIdx = fileData.indexOf(",");
+    if (commaIdx !== -1) {
+      const meta = fileData.substring(0, commaIdx);
+      const raw = fileData.substring(commaIdx + 1);
+      const mimeMatch = meta.match(/data:([^;,]+)/);
+      if (mimeMatch) {
+        detectedMime = mimeMatch[1];
       }
+      buffer = Buffer.from(raw, "base64");
     } else {
       buffer = Buffer.from(fileData, "base64");
     }

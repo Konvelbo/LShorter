@@ -714,11 +714,7 @@ export function LinkEditModal({
                             alt="Bannière active"
                             className="w-full h-full object-cover"
                             onError={(e) => {
-                              const current = e.currentTarget.src;
-                              if (current.includes("/api/images/")) {
-                                const fname = current.split("/api/images/")[1];
-                                e.currentTarget.src = `https://lshorter-api.fiatechnologiecam.workers.dev/api/v1/images/${fname}`;
-                              } else if (previewImage && current !== previewImage) {
+                              if (previewImage && e.currentTarget.src !== previewImage) {
                                 e.currentTarget.src = previewImage;
                               }
                             }}

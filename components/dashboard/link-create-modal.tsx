@@ -278,9 +278,6 @@ export function LinkCreateModal({
       return;
     }
 
-    // Reset input value so selecting the same file again triggers onChange
-    e.target.value = "";
-
     try {
       const localUrl = URL.createObjectURL(file);
       setPreviewImage(localUrl);
@@ -314,6 +311,7 @@ export function LinkCreateModal({
       showToast.error("Erreur lors du traitement de l'image.");
     } finally {
       setIsUploadingImage(false);
+      if (bannerInputRef.current) bannerInputRef.current.value = "";
     }
   };
 
@@ -982,11 +980,7 @@ export function LinkCreateModal({
                               alt="Bannière active"
                               className="w-full h-full object-cover"
                               onError={(e) => {
-                                const current = e.currentTarget.src;
-                                if (current.includes("/api/images/")) {
-                                  const fname = current.split("/api/images/")[1];
-                                  e.currentTarget.src = `https://lshorter-api.fiatechnologiecam.workers.dev/api/v1/images/${fname}`;
-                                } else if (previewImage && current !== previewImage) {
+                                if (previewImage && e.currentTarget.src !== previewImage) {
                                   e.currentTarget.src = previewImage;
                                 }
                               }}

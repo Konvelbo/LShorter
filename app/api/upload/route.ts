@@ -8,22 +8,27 @@ export async function POST(req: Request) {
     const contentType = req.headers.get("content-type") || "";
     let base64Data = "";
     let fileBuffer: Buffer | null = null;
-    let fileName = `banner_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.jpg`;
     let mimeType = "image/jpeg";
-
     let uploadFolder = "banners";
+    let originalName = "upload";
 
     if (contentType.includes("application/json")) {
       const body = await req.json();
       uploadFolder = body.folder ? body.folder.replace(/^lshorter\/?/, "") : uploadFolder;
       base64Data = body.data || body.file || "";
-      if (base64Data.startsWith("data:")) {
-        const matches = base64Data.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
-        if (matches && matches.length === 3) {
-          mimeType = matches[1];
-          fileBuffer = Buffer.from(matches[2], "base64");
-          const ext = mimeType.split("/")[1] || "jpg";
-          fileName = `upload_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${ext}`;
+
+      if (base64Data) {
+        const commaIdx = base64Data.indexOf(",");
+        if (commaIdx !== -1) {
+          const meta = base64Data.substring(0, commaIdx);
+          const rawBase64 = base64Data.substring(commaIdx + 1);
+          const mimeMatch = meta.match(/data:([^;,]+)/);
+          if (mimeMatch) {
+            mimeType = mimeMatch[1];
+          }
+          fileBuffer = Buffer.from(rawBase64, "base64");
+        } else {
+          fileBuffer = Buffer.from(base64Data, "base64");
         }
       }
     } else {
@@ -32,13 +37,26 @@ export async function POST(req: Request) {
       uploadFolder = uploadFolder.replace(/^lshorter\/?/, "");
       const file = formData.get("file") as File | null;
       if (file) {
-        fileName = `upload_${Date.now()}_${Math.random().toString(36).substring(2, 7)}_${file.name.replace(/[^a-zA-Z0-9._-]/g, "")}`;
         mimeType = file.type || "image/jpeg";
+        originalName = file.name ? file.name.replace(/[^a-zA-Z0-9._-]/g, "") : "upload";
         const bytes = await file.arrayBuffer();
         fileBuffer = Buffer.from(bytes);
         base64Data = `data:${mimeType};base64,${fileBuffer.toString("base64")}`;
       }
     }
+
+    if (!fileBuffer && !base64Data) {
+      return NextResponse.json(
+        { success: false, error: "Aucun fichier image reçu" },
+        { status: 400 }
+      );
+    }
+
+    // Determine extension and clean filename
+    const ext = (mimeType.split("/")[1] || "jpg").replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
+    const safeExt = ext === "jpeg" ? "jpg" : ext;
+    const randomSlug = Math.random().toString(36).substring(2, 7);
+    const fileName = `upload_${Date.now()}_${randomSlug}.${safeExt}`;
 
     // 1. Primary Tier: Bunny.net Storage & CDN (Ultra-fast, Pay-as-you-go, 120+ Edge PoPs)
     if (isBunnyConfigured() && (fileBuffer || base64Data)) {
@@ -60,17 +78,18 @@ export async function POST(req: Request) {
             provider: "bunny",
             url: finalUrl,
             cdnUrl: bunnyResult.cdnUrl || finalUrl,
-            filename: bunnyResult.filename,
+            filename: bunnyResult.filename || fileName,
             storagePath: bunnyResult.storagePath,
           });
+        } else {
+          console.warn("[Upload API] Bunny.net returned non-success, using local fallback:", bunnyResult.error);
         }
       } catch (bunnyErr) {
-        console.warn("[Upload API] Bunny.net upload error, trying fallbacks:", bunnyErr);
+        console.warn("[Upload API] Bunny.net upload exception, using local fallback:", bunnyErr);
       }
     }
 
-
-    // 3. Localhost fallback (when remote CDN credentials are being configured): Save directly to public/uploads directory
+    // 2. Localhost & Server Storage fallback (Save directly to public/uploads directory)
     if (fileBuffer) {
       try {
         const uploadsDir = path.join(process.cwd(), "public", "uploads");
@@ -92,7 +111,7 @@ export async function POST(req: Request) {
       }
     }
 
-    // 4. Last fallback: return the base64 data URL
+    // 3. Last fallback: return the base64 data URL
     if (base64Data) {
       return NextResponse.json({
         success: true,
@@ -103,8 +122,8 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json(
-      { success: false, error: "Aucun fichier image reçu" },
-      { status: 400 }
+      { success: false, error: "Échec du traitement de l'image" },
+      { status: 500 }
     );
   } catch (err: any) {
     console.error("[Upload API Proxy Error]:", err);
