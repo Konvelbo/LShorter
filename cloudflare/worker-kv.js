@@ -26,7 +26,14 @@ export default {
     }
 
     // INSTANT STATIC ROUTES - ZERO D1 QUERIES
-    if (path === '/' || path === '/favicon.ico' || path === '/robots.txt' || path === '/health') {
+    if (path === '/robots.txt') {
+      return new Response("User-agent: *\nAllow: /\n\nUser-agent: Twitterbot\nAllow: /\n\nUser-agent: facebookexternalhit\nAllow: /\n\nUser-agent: LinkedInBot\nAllow: /\n", {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'text/plain; charset=utf-8' },
+      });
+    }
+
+    if (path === '/' || path === '/favicon.ico' || path === '/health') {
       return new Response('LShorter Edge OK', { status: 200, headers: corsHeaders });
     }
 
