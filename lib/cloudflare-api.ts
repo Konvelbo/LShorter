@@ -20,6 +20,26 @@ const apiCache = new Map<string, { data: any; expiresAt: number }>();
 const inFlightRequests = new Map<string, Promise<any>>();
 const CACHE_TTL_MS = 2000; // 2 seconds cache for identical GET queries (ensures rapid real-time updates)
 
+export function sanitizeClientError(raw: any): string {
+  if (!raw) return "Une erreur inattendue est survenue. Veuillez réessayer.";
+  const msg = typeof raw === "string" ? raw : raw.message || raw.error || String(raw);
+  const lower = msg.toLowerCase();
+
+  if (lower.includes("unique") || lower.includes("idx_links_slug") || lower.includes("already exists")) {
+    return "Ce slug personnalisé est déjà utilisé. Veuillez en choisir un autre.";
+  }
+  if (lower.includes("403") || lower.includes("plan_upgrade") || lower.includes("forbidden") || lower.includes("quota")) {
+    return "Cette fonctionnalité nécessite un forfait supérieur.";
+  }
+  if (lower.includes("foreign key") || lower.includes("constraint failed") || lower.includes("sqlite")) {
+    return "Erreur temporaire de synchronisation du compte. Veuillez réessayer.";
+  }
+  if (lower.includes("d1_error") || lower.includes("prepare(") || lower.includes("bind(") || lower.includes("table ") || lower.includes("column ") || lower.includes("sqlite_")) {
+    return "Une erreur technique est survenue. Veuillez réessayer.";
+  }
+  return msg;
+}
+
 export function cfInvalidateCache(pattern?: string) {
   if (!pattern) {
     apiCache.clear();
@@ -89,7 +109,8 @@ async function cfFetch<T>(
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: res.statusText }));
-        throw new Error((err as any).error || (err as any).message || `HTTP ${res.status}`);
+        const rawMsg = (err as any).error || (err as any).message || `HTTP ${res.status}`;
+        throw new Error(sanitizeClientError(rawMsg));
       }
 
       const data = (await res.json()) as T;
@@ -108,7 +129,7 @@ async function cfFetch<T>(
       if (method === "GET") {
         return { success: true, data: [] } as unknown as T;
       }
-      throw err;
+      throw new Error(sanitizeClientError(err?.message || err));
     } finally {
       if (isBrowser && method === "GET") {
         inFlightRequests.delete(url);

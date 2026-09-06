@@ -27,7 +27,7 @@ import {
 import { useSession } from "next-auth/react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { cfUpdateLink, cfUploadImage, cfNormalizeImageUrl, cfInvalidateCache } from "@/lib/cloudflare-api";
+import { cfUpdateLink, cfUploadImage, cfNormalizeImageUrl, cfInvalidateCache, sanitizeClientError } from "@/lib/cloudflare-api";
 import { compressImageFile } from "@/lib/image-compress";
 import { ShortLink } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -490,7 +490,7 @@ export function LinkEditModal({
         });
         return;
       }
-      showToast.error(msg || "Erreur lors de la modification du lien.");
+      showToast.error(sanitizeClientError(msg));
     }
   };
 

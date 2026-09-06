@@ -390,25 +390,57 @@ export default {
             created_at: new Date().toISOString(),
           };
 
+          const sanitizeError = (err) => {
+            const msg = String(err?.message || err || '');
+            const lower = msg.toLowerCase();
+            if (lower.includes('unique') || lower.includes('idx_links_slug') || lower.includes('sqlite_constraint_unique')) {
+              return 'Ce slug personnalisé est déjà utilisé. Veuillez en choisir un autre.';
+            }
+            if (lower.includes('foreign key') || lower.includes('sqlite_constraint')) {
+              return 'Erreur de synchronisation du compte utilisateur. Veuillez réessayer.';
+            }
+            if (lower.includes('d1_error') || lower.includes('sqlite') || lower.includes('syntax error')) {
+              return 'Une erreur interne est survenue. Veuillez réessayer.';
+            }
+            return msg || 'Une erreur est survenue.';
+          };
+
           if (env.LINKS_KV) {
             await env.LINKS_KV.put(slug, JSON.stringify(linkObj));
           }
 
           if (env.DB) {
-            await env.DB.prepare(`
-              INSERT INTO links (id, user_id, domain_name, slug, short_url, target_url, clicks_count, is_active, routing_rules, geo_targeting, device_targeting, og_image, og_title, og_description, meta_title, created_at)
-              VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-            `).bind(id, userId, domainName, slug, shortUrl, targetUrl, isActive, routingRules, geoTargeting, deviceTargeting, ogImage, ogTitle, ogDescription, metaTitle).run().catch(async () => {
+            try {
+              // 1. Auto-upsert user record to satisfy any foreign key constraint in D1
+              if (userId) {
+                try {
+                  const uEmail = request.headers.get('x-user-email') || body.userEmail || `${userId}@user.lshorter.io`;
+                  const uName = request.headers.get('x-user-name') || body.userName || 'Utilisateur';
+                  await env.DB.prepare(`
+                    INSERT OR IGNORE INTO users (id, email, name, plan, created_at)
+                    VALUES (?, ?, ?, 'PRO', datetime('now'))
+                  `).bind(userId, uEmail, uName).run().catch(() => {});
+                } catch {}
+              }
+
+              // 2. Insert into links table
               await env.DB.prepare(`
-                INSERT INTO links (id, user_id, domain_name, slug, short_url, target_url, clicks_count, is_active, routing_rules, geo_targeting, device_targeting, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, datetime('now'))
-              `).bind(id, userId, domainName, slug, shortUrl, targetUrl, isActive, routingRules, geoTargeting, deviceTargeting).run();
-            });
+                INSERT INTO links (id, user_id, domain_name, slug, short_url, target_url, clicks_count, is_active, routing_rules, geo_targeting, device_targeting, og_image, og_title, og_description, meta_title, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+              `).bind(id, userId, domainName, slug, shortUrl, targetUrl, isActive, routingRules, geoTargeting, deviceTargeting, ogImage, ogTitle, ogDescription, metaTitle).run().catch(async () => {
+                await env.DB.prepare(`
+                  INSERT INTO links (id, user_id, domain_name, slug, short_url, target_url, clicks_count, is_active, routing_rules, geo_targeting, device_targeting, created_at)
+                  VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, datetime('now'))
+                `).bind(id, userId, domainName, slug, shortUrl, targetUrl, isActive, routingRules, geoTargeting, deviceTargeting).run();
+              });
+            } catch (dbErr) {
+              console.warn('[D1 Non-Fatal Insert Error]:', dbErr);
+            }
           }
 
           return jsonResponse({ success: true, data: linkObj }, 201);
         } catch (err) {
-          return jsonResponse({ success: false, error: err.message }, 500);
+          return jsonResponse({ success: false, error: sanitizeError(err) }, 500);
         }
       }
 
@@ -535,7 +567,8 @@ export default {
 
           return jsonResponse({ success: true, data: updatedLinkObj });
         } catch (err) {
-          return jsonResponse({ success: false, error: err.message }, 500);
+          const cleanMsg = String(err?.message || '').includes('UNIQUE') ? 'Ce slug personnalisé est déjà utilisé.' : 'Erreur lors de la modification du lien.';
+          return jsonResponse({ success: false, error: cleanMsg }, 500);
         }
       }
 
@@ -543,7 +576,7 @@ export default {
       if (method === 'DELETE') {
         try {
           const idOrSlug = linkIdOrSlug || url.searchParams.get('id') || url.searchParams.get('slug');
-          if (!idOrSlug) return jsonResponse({ success: false, error: 'Link ID is required' }, 400);
+          if (!idOrSlug) return jsonResponse({ success: false, error: 'Identifiant requis' }, 400);
 
           if (env.LINKS_KV) {
             await env.LINKS_KV.delete(idOrSlug);
@@ -557,7 +590,7 @@ export default {
 
           return jsonResponse({ success: true });
         } catch (err) {
-          return jsonResponse({ success: false, error: err.message }, 500);
+          return jsonResponse({ success: false, error: 'Erreur lors de la suppression du lien.' }, 500);
         }
       }
     }

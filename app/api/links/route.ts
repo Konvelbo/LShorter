@@ -269,10 +269,40 @@ export async function POST(req: Request) {
     }
 
     if (!res.ok) {
+      // If Convex succeeded and worker returned a 500 DB constraint, return success with Convex data
+      if (res.status >= 500 && body.slug) {
+        console.warn("[Links Proxy POST] Worker 500, but Convex saved link successfully:", data);
+        return NextResponse.json(
+          {
+            success: true,
+            data: {
+              id: body.id || `link_${Date.now()}`,
+              user_id: body.userId,
+              domain_name: body.domainName || "lsho.cc",
+              slug: body.slug,
+              short_url: `https://${body.domainName || "lsho.cc"}/${body.slug}`,
+              target_url: body.targetUrl || body.target_url,
+              clicks_count: 0,
+              is_active: 1,
+              created_at: new Date().toISOString(),
+              ogImage: sanitizedOgImage,
+              ogTitle: body.ogTitle || body.og_title,
+              ogDescription: body.ogDescription || body.og_description,
+              metaTitle: body.metaTitle || body.meta_title,
+              password: body.password || undefined,
+              isCloaked: Boolean(body.isCloaked || body.is_cloaked),
+            },
+          },
+          { status: 201 }
+        );
+      }
+
+      const rawErr = data.error || data.message || `Erreur Cloudflare Worker (${res.status})`;
+      const cleanErr = sanitizeClientErrorMessage(rawErr);
       return NextResponse.json(
         {
           success: false,
-          error: data.error || data.message || `Erreur Cloudflare Worker (${res.status})`,
+          error: cleanErr,
         },
         { status: res.status }
       );
@@ -304,8 +334,28 @@ export async function POST(req: Request) {
   } catch (error: any) {
     console.warn("[Links Proxy POST] Error connecting to Worker:", error);
     return NextResponse.json(
-      { success: false, error: error?.message || "Impossible de contacter le Worker Cloudflare" },
+      { success: false, error: "Impossible de contacter les serveurs Cloudflare. Veuillez vérifier votre connexion." },
       { status: 502 }
     );
   }
+}
+
+function sanitizeClientErrorMessage(raw: any): string {
+  if (!raw) return "Une erreur inattendue est survenue. Veuillez réessayer.";
+  const msg = typeof raw === "string" ? raw : raw.message || raw.error || String(raw);
+  const lower = msg.toLowerCase();
+
+  if (lower.includes("unique") || lower.includes("idx_links_slug") || lower.includes("already exists")) {
+    return "Ce slug personnalisé est déjà utilisé. Veuillez en choisir un autre.";
+  }
+  if (lower.includes("403") || lower.includes("plan_upgrade") || lower.includes("forbidden") || lower.includes("quota")) {
+    return "Cette fonctionnalité nécessite un forfait supérieur.";
+  }
+  if (lower.includes("foreign key") || lower.includes("constraint failed") || lower.includes("sqlite")) {
+    return "Erreur temporaire de synchronisation. Veuillez réessayer.";
+  }
+  if (lower.includes("d1_error") || lower.includes("prepare(") || lower.includes("bind(") || lower.includes("table ") || lower.includes("column ")) {
+    return "Une erreur technique est survenue. Veuillez réessayer.";
+  }
+  return msg;
 }

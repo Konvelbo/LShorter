@@ -31,7 +31,7 @@ import {
 import { useSession } from "next-auth/react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { cfCreateLink, cfGetDomains, cfUploadImage, cfNormalizeImageUrl, cfInvalidateCache } from "@/lib/cloudflare-api";
+import { cfCreateLink, cfGetDomains, cfUploadImage, cfNormalizeImageUrl, cfInvalidateCache, sanitizeClientError } from "@/lib/cloudflare-api";
 import { compressImageFile } from "@/lib/image-compress";
 import { ShortLink } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -662,7 +662,7 @@ export function LinkCreateModal({
         });
         return;
       }
-      showToast.error(msg || "Erreur lors de la création du lien.");
+      showToast.error(sanitizeClientError(msg));
       return;
     }
 
