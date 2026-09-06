@@ -153,6 +153,13 @@ export function LinkCreateModal({
   const [isDomainDropdownOpen, setIsDomainDropdownOpen] = useState(false);
   const domainDropdownRef = useRef<HTMLDivElement>(null);
 
+  // Synchronize targetUrl with initialUrl prop when modal opens or initialUrl updates
+  useEffect(() => {
+    if (isOpen && initialUrl) {
+      setTargetUrl(initialUrl);
+    }
+  }, [isOpen, initialUrl]);
+
   // Dynamic domain list from Cloudflare
   const [customDomains, setCustomDomains] = useState<Array<{ id: string; domain: string; status: string }>>([]);
 

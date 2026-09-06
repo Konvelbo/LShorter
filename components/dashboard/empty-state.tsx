@@ -34,7 +34,12 @@ export function EmptyState({ onLinkCreated, analytics }: EmptyStateProps) {
 
   const handleShortenClick = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!urlInput.trim()) return;
+    let cleaned = urlInput.trim();
+    if (!cleaned) return;
+    if (!/^https?:\/\//i.test(cleaned)) {
+      cleaned = `https://${cleaned}`;
+      setUrlInput(cleaned);
+    }
     setIsModalOpen(true);
   };
 
@@ -269,6 +274,7 @@ export function EmptyState({ onLinkCreated, analytics }: EmptyStateProps) {
         initialUrl={urlInput}
         onClose={() => setIsModalOpen(false)}
         onSuccess={() => {
+          setUrlInput("");
           if (onLinkCreated) onLinkCreated();
         }}
       />
