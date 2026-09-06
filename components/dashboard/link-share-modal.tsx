@@ -78,17 +78,7 @@ export function LinkShareModal({ link, isOpen, onClose }: LinkShareModalProps) {
   const [selectedColor, setSelectedColor] = useState("#ff6600");
   const [bgColor, setBgColor] = useState("#ffffff");
   const [qrSize, setQrSize] = useState(200);
-  const [showInstagramGuide, setShowInstagramGuide] = useState(false);
-  const [showTelegramGuide, setShowTelegramGuide] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  // Reset guides when modal closes
-  useEffect(() => {
-    if (!isOpen) {
-      setShowInstagramGuide(false);
-      setShowTelegramGuide(false);
-    }
-  }, [isOpen]);
 
   // Pre-warm Edge / Node cache for crawlers (LinkedInBot, Twitterbot)
   useEffect(() => {
@@ -168,23 +158,45 @@ export function LinkShareModal({ link, isOpen, onClose }: LinkShareModalProps) {
     }
   };
 
-  const handleInstagramShare = () => {
+  const handleInstagramShare = async () => {
     navigator.clipboard.writeText(url);
     setCopied(true);
     confetti({ particleCount: 35, spread: 55, origin: { y: 0.6 } });
-    setShowInstagramGuide(true);
-    setShowTelegramGuide(false);
-    setTimeout(() => setCopied(false), 2500);
+
+    // On mobile devices, native share sheet opens Instagram app directly
+    if (typeof navigator !== "undefined" && navigator.share && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+      try {
+        await navigator.share({
+          title: link.metaTitle || `Lien : ${link.slug}`,
+          text: `Découvrez ce lien : ${url}`,
+          url: url,
+        });
+        setTimeout(() => setCopied(false), 2000);
+        return;
+      } catch {
+        // Fallback if dismissed
+      }
+    }
+
+    // Direct open to Instagram (short URL is already in clipboard)
+    window.open("https://www.instagram.com/", "_blank", "noopener,noreferrer");
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const handleTelegramShare = () => {
     navigator.clipboard.writeText(url);
     setCopied(true);
     confetti({ particleCount: 30, spread: 50, origin: { y: 0.6 } });
-    setShowTelegramGuide(true);
-    setShowInstagramGuide(false);
-    window.open(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${title}`, "_blank", "noopener,noreferrer");
-    setTimeout(() => setCopied(false), 2500);
+
+    const isMobile = typeof navigator !== "undefined" && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    // On mobile, t.me launches the installed Telegram app.
+    // On desktop, web.telegram.org opens Telegram Web directly with the share intent without needing desktop client installation.
+    const tgUrl = isMobile
+      ? `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${title}`
+      : `https://web.telegram.org/k/#?tgaddr=${encodeURIComponent(`tg://msg_url?url=${encodeURIComponent(url)}&text=${title}`)}`;
+
+    window.open(tgUrl, "_blank", "noopener,noreferrer");
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const handleLinkedInShare = () => {
@@ -382,84 +394,6 @@ export function LinkShareModal({ link, isOpen, onClose }: LinkShareModalProps) {
                 );
               })}
             </div>
-
-            {/* Dedicated Instagram Sharing Helper */}
-            {showInstagramGuide && (
-              <div className="p-3.5 rounded-[10px] bg-[#E4405F]/10 border border-[#E4405F]/30 flex flex-col gap-2.5 animate-in fade-in slide-in-from-top-1">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-[#E4405F] font-bold text-xs">
-                    <InstagramIcon className="w-4 h-4" />
-                    <span>Partage Instagram — Lien copié !</span>
-                  </div>
-                  <button
-                    onClick={() => setShowInstagramGuide(false)}
-                    className="text-neutral-400 hover:text-white p-0.5 rounded transition-colors"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-                <p className="text-[11px] text-neutral-300 leading-snug">
-                  Instagram ne supporte pas le partage direct par lien web. Votre lien est copié dans le presse-papier ! Choisissez où le coller :
-                </p>
-                <div className="grid grid-cols-3 gap-1.5 text-xs">
-                  <a
-                    href="https://www.instagram.com/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-2 rounded-[8px] bg-white/5 hover:bg-white/10 border border-[#27272a] hover:border-[#E4405F]/50 flex flex-col gap-0.5 transition-all text-left"
-                  >
-                    <span className="font-semibold text-white text-[11px] flex items-center justify-between">
-                      Story
-                      <ExternalLink className="w-2.5 h-2.5 text-neutral-400" />
-                    </span>
-                    <span className="text-[9px] text-neutral-400">Sticker "Lien"</span>
-                  </a>
-                  <a
-                    href="https://www.instagram.com/accounts/edit/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-2 rounded-[8px] bg-white/5 hover:bg-white/10 border border-[#27272a] hover:border-[#E4405F]/50 flex flex-col gap-0.5 transition-all text-left"
-                  >
-                    <span className="font-semibold text-white text-[11px] flex items-center justify-between">
-                      Bio
-                      <ExternalLink className="w-2.5 h-2.5 text-neutral-400" />
-                    </span>
-                    <span className="text-[9px] text-neutral-400">Ajouter au profil</span>
-                  </a>
-                  <a
-                    href="https://www.instagram.com/direct/inbox/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-2 rounded-[8px] bg-white/5 hover:bg-white/10 border border-[#27272a] hover:border-[#E4405F]/50 flex flex-col gap-0.5 transition-all text-left"
-                  >
-                    <span className="font-semibold text-white text-[11px] flex items-center justify-between">
-                      Messages
-                      <ExternalLink className="w-2.5 h-2.5 text-neutral-400" />
-                    </span>
-                    <span className="text-[9px] text-neutral-400">Envoyer en DM</span>
-                  </a>
-                </div>
-              </div>
-            )}
-
-            {/* Dedicated Telegram Helper */}
-            {showTelegramGuide && (
-              <div className="p-3 rounded-[10px] bg-[#229ED9]/10 border border-[#229ED9]/30 flex items-center justify-between gap-2 text-xs animate-in fade-in slide-in-from-top-1">
-                <div className="flex items-center gap-1.5 text-neutral-300 text-[11px]">
-                  <TelegramIcon className="w-3.5 h-3.5 text-[#229ED9] shrink-0" />
-                  <span>Bouton "SHARE" inactif ?</span>
-                </div>
-                <a
-                  href="https://web.telegram.org/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-2.5 py-1 rounded-[6px] bg-[#229ED9] hover:bg-[#229ED9]/80 text-white font-semibold text-[10px] shrink-0 flex items-center gap-1"
-                >
-                  <span>Telegram Web</span>
-                  <ExternalLink className="w-2.5 h-2.5" />
-                </a>
-              </div>
-            )}
 
             {/* Full Editor Link */}
             <button
