@@ -262,9 +262,11 @@ function AnalyticsContent() {
           ? ((d.totalClicks ?? d.total_clicks) || sumLinksClicks)
           : ((d.totalClicks ?? d.total_clicks) || linkClicks);
 
-        const baseUnique = isAll
-          ? ((d.uniqueClicks ?? d.unique_clicks) || sumUniqueClicks || baseTotal)
-          : ((d.uniqueClicks ?? d.unique_clicks) || linkUnique || baseTotal);
+        const baseUnique = baseTotal === 0
+          ? 0
+          : (isAll
+              ? ((d.uniqueClicks ?? d.unique_clicks) ?? sumUniqueClicks ?? baseTotal)
+              : ((d.uniqueClicks ?? d.unique_clicks) ?? linkUnique ?? baseTotal));
 
         const baseRevenue = isAll
           ? ((d.totalRevenue ?? d.total_revenue) ?? sumRevenue)

@@ -69,7 +69,11 @@ export async function GET(req: Request) {
 
     const convexClicks = convexAnalytics?.totalClicks || 0;
     const effectiveTotalClicks = Math.max(convexClicks, targetLink ? targetLinkClicks : sumTotalClicks);
-    const effectiveUniqueClicks = convexAnalytics?.uniqueClicks || Math.max(1, Math.round(effectiveTotalClicks * 0.9));
+    const effectiveUniqueClicks = effectiveTotalClicks > 0
+      ? (convexAnalytics?.uniqueClicks !== undefined && convexAnalytics?.uniqueClicks > 0
+          ? convexAnalytics.uniqueClicks
+          : Math.max(1, Math.round(effectiveTotalClicks * 0.9)))
+      : 0;
 
     // 3. Prepare Country & Geo breakdown
     let topCountries = convexAnalytics?.topCountries || [];

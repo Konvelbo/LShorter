@@ -97,7 +97,7 @@ export default function DashboardOverviewPage() {
         if (analyticsRes?.data) {
           const d = analyticsRes.data;
           const total = (d.total_clicks || d.totalClicks || 0) || sumLinksClicks;
-          const unique = (d.unique_clicks || d.uniqueClicks || 0) || sumUniqueClicks || total;
+          const unique = total > 0 ? ((d.unique_clicks ?? d.uniqueClicks) ?? sumUniqueClicks ?? total) : 0;
 
           setAnalytics({
             totalClicks: total,
