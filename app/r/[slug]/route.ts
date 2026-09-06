@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getProtectedLink, saveProtectedLink, recordLinkClick, resolveAbTargetUrl } from "@/lib/protected-links-store";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "@/convex/_generated/api";
+import { parseVisitorDetails } from "@/lib/device-detection";
 
 const convex = new ConvexHttpClient(
   process.env.NEXT_PUBLIC_CONVEX_URL || "https://greedy-mastiff-107.convex.cloud"
@@ -12,6 +13,46 @@ const WORKER_URL =
   "https://lshorter-api.fiatechnologiecam.workers.dev";
 const FRONTEND_SECRET =
   process.env.FRONTEND_API_SECRET || "lsh_secret_live_prod_2026";
+
+function trackClickAsync(req: Request, slug: string, meta?: any) {
+  try {
+    const details = parseVisitorDetails(req);
+    const userId = meta?.userId || meta?.user_id || "usr_default";
+    const linkId = meta?.id || slug;
+
+    // 1. Record detailed visitor analytics event in Convex
+    convex.mutation(api.analytics.recordClick, {
+      linkId,
+      slug,
+      userId,
+      country: details.countryCode,
+      countryCode: details.countryCode,
+      city: details.city,
+      device: details.device,
+      browser: details.browser,
+      os: details.os,
+      referrer: details.referrer,
+      ipHash: details.ipMasked,
+      isUnique: true,
+      isBot: false,
+    }).catch((err) => {
+      console.warn("[Click Track Convex Error]:", err?.message || err);
+    });
+
+    // 2. Increment D1 database clicks_count in Cloudflare Worker
+    fetch(`${WORKER_URL}/api/v1/links/${encodeURIComponent(slug)}/click`, {
+      method: "POST",
+      headers: {
+        "X-Frontend-Secret": FRONTEND_SECRET,
+        "Content-Type": "application/json",
+      },
+    }).catch((err) => {
+      console.warn("[Worker Click Increment Error]:", err?.message || err);
+    });
+  } catch (err) {
+    console.warn("[Click Track Error]:", err);
+  }
+}
 
 function safeRedirect(urlStr: string, base: string, reqUrl?: string, passParams: boolean = true) {
   try {
@@ -81,8 +122,37 @@ function evaluateTargetUrl(baseTargetUrl: string, req: Request, meta?: any) {
   return baseTargetUrl;
 }
 
-const BOT_USER_AGENTS =
-  /bot|crawl|slurp|spider|facebookexternalhit|facebook|twitter|twitterbot|xbot|whatsapp|telegram|telegrambot|linkedin|linkedinbot|discord|discordbot|slack|slackbot|applebot|bingbot|google|googlebot|pinterest|skype|skypeuripreview|embedly|quora|iframely|redditbot|vkshare/i;
+/**
+ * Strict bot detection: ONLY match automated preview / scraper crawlers.
+ * NEVER match regular browsers or mobile in-app webviews (FB, WhatsApp, Telegram, etc.)
+ */
+function isSocialCrawler(ua: string): boolean {
+  if (!ua) return false;
+  const lower = ua.toLowerCase();
+  return (
+    lower.includes("facebookexternalhit") ||
+    lower.includes("facebot") ||
+    lower.includes("twitterbot") ||
+    lower.includes("xbot") ||
+    lower.includes("linkedinbot") ||
+    lower.includes("whatsapp/") ||
+    lower.includes("telegrambot") ||
+    lower.includes("discordbot") ||
+    lower.includes("slackbot") ||
+    lower.includes("slack-imgbatcher") ||
+    lower.includes("pinterestbot") ||
+    lower.includes("pinterest/") ||
+    lower.includes("skypeuripreview") ||
+    lower.includes("google-structured-data-testing-tool") ||
+    lower.includes("googlebot") ||
+    lower.includes("bingbot") ||
+    lower.includes("applebot") ||
+    lower.includes("yandexbot") ||
+    lower.includes("duckduckbot") ||
+    lower.includes("baiduspider") ||
+    lower.includes("ia_archiver")
+  );
+}
 
 function escapeHtml(str: string = "") {
   return str
@@ -91,10 +161,6 @@ function escapeHtml(str: string = "") {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
-}
-
-function escapeJs(str: string = "") {
-  return str.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/'/g, "\\'");
 }
 
 const botResponseCache = new Map<string, { body: string; headers: Record<string, string>; expiresAt: number }>();
@@ -107,7 +173,7 @@ function renderSocialHtml(meta: {
   canonicalUrl: string;
 }) {
   const safeTitle = escapeHtml(meta.title || "Lien partagé");
-  const safeDesc = escapeHtml(meta.description || "Cliquez pour accéder au lien sécurisé.");
+  const safeDesc = escapeHtml(meta.description || "Cliquez pour accéder au lien.");
   
   let imageUrl = meta.image || "";
   if (imageUrl && imageUrl.startsWith("data:")) {
@@ -130,8 +196,6 @@ function renderSocialHtml(meta: {
 
   const safeImg = escapeHtml(imageUrl.replace(/&amp;/g, "&"));
   const safeCanonical = escapeHtml(cleanCanonical);
-  const safeDest = escapeHtml(meta.destinationUrl);
-  const jsDest = escapeJs(meta.destinationUrl);
 
   const html = `<!DOCTYPE html>
 <html lang="fr" prefix="og: http://ogp.me/ns#">
@@ -168,11 +232,7 @@ function renderSocialHtml(meta: {
   ${safeImg ? `<meta name="twitter:image:src" content="${safeImg}" />` : ""}
   ${safeImg ? `<meta name="twitter:image:alt" content="${safeTitle}" />` : ""}
 </head>
-<body style="background:#09090b;color:#fafafa;font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
-  <div style="text-align:center;padding:20px;">
-    <p style="font-size:16px;color:#e4e4e7;margin-bottom:12px;">Redirection vers <a href="${safeDest}" style="color:#0066FF;text-decoration:none;font-weight:600;">${safeDest}</a>...</p>
-    <script>window.location.replace("${jsDest}");</script>
-  </div>
+<body style="background:#09090b;">
 </body>
 </html>`;
 
@@ -196,17 +256,16 @@ export async function GET(
     }
 
     const userAgent = req.headers.get("user-agent") || "";
-    const isPrewarm = req.headers.get("x-crawler-prewarm") === "1" || req.headers.get("x-prewarm") === "bot";
-    const isBot = BOT_USER_AGENTS.test(userAgent) || isPrewarm;
+    const isCrawler = isSocialCrawler(userAgent);
 
-    // ─── ULTRA-FAST BOT & CRAWLER PATH (<1ms cached, ~150ms first miss) ───
-    if (isBot) {
+    // ─── 1. SOCIAL CRAWLER & SCRAPER BOT PATH ONLY ───
+    if (isCrawler) {
       const cached = botResponseCache.get(slug);
       if (cached && Date.now() < cached.expiresAt) {
         return new Response(cached.body, { status: 200, headers: cached.headers });
       }
 
-      // Check fast in-memory store
+      // Check in-memory store
       const localMeta = getProtectedLink(slug);
       if (localMeta && (localMeta.ogImage || localMeta.ogTitle || localMeta.ogDescription || localMeta.metaTitle)) {
         let fullOgImage = localMeta.ogImage || "";
@@ -232,36 +291,7 @@ export async function GET(
         return new Response(bodyText, { status: 200, headers });
       }
 
-      // Query Cloudflare Worker KV (0.3ms latency engine) first
-      try {
-        const originHost = req.headers.get("x-forwarded-host") || req.headers.get("host") || "www.lsho.cc";
-        const workerRes = await fetch(`${WORKER_URL}/r/${slug}`, {
-          method: "GET",
-          headers: {
-            "User-Agent": userAgent || "LinkedInBot/1.0",
-            "X-Frontend-Secret": FRONTEND_SECRET,
-            "X-Forwarded-Host": originHost,
-          },
-          redirect: "manual",
-        });
-
-        if (workerRes.status === 200) {
-          let workerHtml = await workerRes.text();
-          if (workerHtml && (workerHtml.includes("og:image") || workerHtml.includes("twitter:image"))) {
-            workerHtml = workerHtml.replaceAll("lshorter-api.fiatechnologiecam.workers.dev", originHost);
-            const headers = {
-              "Content-Type": "text/html; charset=utf-8",
-              "Cache-Control": "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400",
-            };
-            botResponseCache.set(slug, { body: workerHtml, headers, expiresAt: Date.now() + 600000 });
-            return new Response(workerHtml, { status: 200, headers });
-          }
-        }
-      } catch (workerErr) {
-        console.warn("[Worker Bot Fetch Error]:", workerErr);
-      }
-
-      // Fallback: Query Convex if Worker didn't have custom metadata
+      // Check Convex
       try {
         const cxLink: any = await convex.query(api.links.getLinkBySlug, { slug });
         if (cxLink && (cxLink.ogImage || cxLink.ogTitle || cxLink.ogDescription || cxLink.metaTitle)) {
@@ -292,7 +322,9 @@ export async function GET(
       }
     }
 
-    // Check Click Quotas / Limits (only for real users, not crawlers)
+    // ─── 2. REAL VISITOR / HUMAN PATH (INSTANT HTTP 307 REDIRECT) ───
+
+    // Check Click Quotas / Limits
     const clickCheck = recordLinkClick(slug);
     if (!clickCheck.isAllowed) {
       if (clickCheck.fallbackUrl) {
@@ -333,24 +365,25 @@ export async function GET(
       }
     }
 
-    // If password protected, immediately show gate (no spinner)
+    // If password protected, show gate
     if (meta?.password) {
       return NextResponse.redirect(new URL(`/r/${slug}/gate`, req.url), 307);
     }
 
-    // If cloaked, immediately render view
+    // If cloaked, show view
     if (meta?.isCloaked && meta?.targetUrl) {
       return NextResponse.redirect(new URL(`/r/${slug}/view`, req.url), 307);
     }
 
-    // If targetUrl is cached locally, evaluate A/B testing & routing and redirect INSTANTLY with 307
+    // If targetUrl is available locally/from Convex, redirect INSTANTLY with 307
     if (meta?.targetUrl) {
+      trackClickAsync(req, slug, meta);
       const splitUrl = resolveAbTargetUrl(meta, meta.targetUrl);
       const finalUrl = evaluateTargetUrl(splitUrl, req, meta);
       return safeRedirect(finalUrl, req.url, req.url, meta.passParams !== false);
     }
 
-    // Fallback 1: Worker direct request (Passes bot user-agent to get Worker OpenGraph if available)
+    // Fallback: Query Worker
     try {
       const originHost = req.headers.get("host") || "www.lsho.cc";
       const workerRes = await fetch(`${WORKER_URL}/r/${slug}`, {
@@ -364,23 +397,10 @@ export async function GET(
         cache: "no-store",
       });
 
-      if (isBot && workerRes.status === 200) {
-        let workerHtml = await workerRes.text();
-        if (workerHtml && (workerHtml.includes("og:image") || workerHtml.includes("twitter:image"))) {
-          workerHtml = workerHtml.replaceAll("lshorter-api.fiatechnologiecam.workers.dev", originHost);
-          return new Response(workerHtml, {
-            status: 200,
-            headers: {
-              "Content-Type": "text/html; charset=utf-8",
-              "Cache-Control": "public, max-age=60, s-maxage=300",
-            },
-          });
-        }
-      }
-
       if (workerRes.status === 302 || workerRes.status === 307) {
         const location = workerRes.headers.get("location");
         if (location) {
+          trackClickAsync(req, slug, meta);
           const finalUrl = evaluateTargetUrl(location, req, meta);
           return safeRedirect(finalUrl, req.url, req.url, meta?.passParams !== false);
         }
@@ -389,7 +409,7 @@ export async function GET(
       console.warn("[Worker Redirect Resolution error]:", err);
     }
 
-    // Fallback 2: Worker /api/v1/links
+    // Fallback: Query Worker /api/v1/links
     try {
       const listRes = await fetch(`${WORKER_URL}/api/v1/links`, {
         headers: {
@@ -404,22 +424,6 @@ export async function GET(
         const list = Array.isArray(listData?.data) ? listData.data : [];
         const found = list.find((l: any) => l.slug?.toLowerCase() === slug.toLowerCase());
         if (found) {
-          if (isBot && (found.og_image || found.ogImage || found.og_title || found.ogTitle || found.meta_title || found.title)) {
-            let fullOgImage = found.og_image || found.ogImage || "";
-            if (fullOgImage && !fullOgImage.startsWith("http") && !fullOgImage.startsWith("data:")) {
-              try {
-                const origin = new URL(req.url).origin;
-                fullOgImage = `${origin}${fullOgImage.startsWith("/") ? "" : "/"}${fullOgImage}`;
-              } catch {}
-            }
-            return renderSocialHtml({
-              title: found.og_title || found.ogTitle || found.meta_title || found.title || slug,
-              description: found.og_description || found.ogDescription || "",
-              image: fullOgImage,
-              destinationUrl: found.target_url || found.targetUrl || "https://lshorter.io",
-              canonicalUrl: req.url,
-            });
-          }
           if (found.password || found.is_password_protected || found.has_password) {
             return NextResponse.redirect(new URL(`/r/${slug}/gate`, req.url), 307);
           }
@@ -428,6 +432,7 @@ export async function GET(
           }
           const target = found.target_url || found.targetUrl;
           if (target) {
+            trackClickAsync(req, slug, found);
             const finalUrl = evaluateTargetUrl(target, req, found);
             return safeRedirect(finalUrl, req.url, req.url, found?.passParams !== false);
           }
@@ -443,3 +448,4 @@ export async function GET(
     return NextResponse.redirect(new URL("/", req.url), 307);
   }
 }
+

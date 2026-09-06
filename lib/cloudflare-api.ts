@@ -18,7 +18,7 @@ type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 const apiCache = new Map<string, { data: any; expiresAt: number }>();
 const inFlightRequests = new Map<string, Promise<any>>();
-const CACHE_TTL_MS = 30000; // 30 seconds cache for identical GET queries
+const CACHE_TTL_MS = 2000; // 2 seconds cache for identical GET queries (ensures rapid real-time updates)
 
 export function cfInvalidateCache(pattern?: string) {
   if (!pattern) {
@@ -30,6 +30,18 @@ export function cfInvalidateCache(pattern?: string) {
       apiCache.delete(key);
     }
   }
+}
+
+// Auto-invalidate cache on browser tab focus / visibility change
+if (typeof window !== "undefined") {
+  window.addEventListener("focus", () => {
+    cfInvalidateCache();
+  });
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      cfInvalidateCache();
+    }
+  });
 }
 
 async function cfFetch<T>(

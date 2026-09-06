@@ -142,14 +142,14 @@ export default {
       }
 
       const userAgent = (request.headers.get('user-agent') || '').toLowerCase();
-      const isBot = /bot|crawl|slurp|spider|facebookexternalhit|facebook|twitter|twitterbot|xbot|whatsapp|telegram|telegrambot|linkedin|linkedinbot|discord|discordbot|slack|slackbot|applebot|bingbot|google|googlebot|pinterest|skype|skypeuripreview|embedly|quora|iframely|redditbot|vkshare/i.test(userAgent);
+      const isBot = /facebookexternalhit|facebot|twitterbot|linkedinbot|telegrambot|discordbot|slackbot|slack-imgbatcher|pinterestbot|googlebot|bingbot|applebot|yandexbot|duckduckbot|baiduspider|ia_archiver/i.test(userAgent);
       const country = (request.headers.get('cf-ipcountry') || 'FR').toUpperCase();
 
       const ogImage = link.og_image || link.ogImage || '';
       const ogTitle = link.og_title || link.ogTitle || link.meta_title || link.metaTitle || link.title || slug;
       const ogDescription = link.og_description || link.ogDescription || '';
 
-      // Serve OpenGraph / Twitter Cards for social bots without redirecting
+      // Serve OpenGraph / Twitter Cards ONLY for social crawler bots without redirecting
       if (isBot && (ogImage || ogTitle || ogDescription)) {
         const reqHost = request.headers.get('x-forwarded-host') || request.headers.get('host') || '';
         const domain = (reqHost && !reqHost.includes('workers.dev')) ? reqHost : 'lsho.cc';
@@ -164,10 +164,9 @@ export default {
 
         const escapeHtml = (s = '') => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         const safeTitle = escapeHtml(ogTitle);
-        const safeDesc = escapeHtml(ogDescription || 'Cliquez pour ouvrir le lien sécurisé.');
+        const safeDesc = escapeHtml(ogDescription || 'Cliquez pour ouvrir le lien.');
         const safeImg = escapeHtml(publicImageUrl.replace(/&amp;/g, '&'));
         const safeCanonical = escapeHtml(canonical);
-        const safeDest = escapeHtml(dest);
 
         const html = `<!DOCTYPE html>
 <html lang="fr" prefix="og: http://ogp.me/ns#">
@@ -204,11 +203,7 @@ export default {
   ${safeImg ? `<meta name="twitter:image:src" content="${safeImg}" />` : ''}
   ${safeImg ? `<meta name="twitter:image:alt" content="${safeTitle}" />` : ''}
 </head>
-<body style="background:#09090b;color:#fafafa;font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
-  <div style="text-align:center;padding:20px;">
-    <p style="font-size:16px;color:#e4e4e7;margin-bottom:12px;">Redirection vers <a href="${safeDest}" style="color:#0066FF;text-decoration:none;font-weight:600;">${safeDest}</a>...</p>
-    <script>window.location.replace("${safeDest.replace(/"/g, '\\"')}");</script>
-  </div>
+<body style="background:#09090b;">
 </body>
 </html>`;
 
@@ -274,7 +269,7 @@ export default {
       return Response.redirect(targetUrl, 302);
     }
 
-    // ─── 2. LINKS API (CRUD: GET, POST, PATCH, PUT, DELETE) ───────────────
+    // ─── 2. LINKS API (CRUD: GET, POST, PATCH, PUT, DELETE, CLICK) ───────────────
     const isLinksRoute =
       path === '/api/v1/links' ||
       path === '/api/links' ||
@@ -287,6 +282,34 @@ export default {
         : path.startsWith('/api/links/')
         ? path.slice('/api/links/'.length)
         : null;
+
+      // POST /api/v1/links/:slug/click or /api/links/:slug/click (Increment click counter)
+      if (method === 'POST' && (path.endsWith('/click') || linkIdOrSlug?.includes('/click'))) {
+        const targetSlugOrId = (linkIdOrSlug || '').replace(/\/click$/, '');
+        if (env.DB && targetSlugOrId) {
+          ctx.waitUntil(
+            env.DB.prepare('UPDATE links SET clicks_count = clicks_count + 1 WHERE slug = ? OR id = ?')
+              .bind(targetSlugOrId, targetSlugOrId)
+              .run()
+              .catch(() => {})
+          );
+        }
+        if (env.LINKS_KV && targetSlugOrId) {
+          ctx.waitUntil(
+            (async () => {
+              try {
+                const cached = await env.LINKS_KV.get(targetSlugOrId);
+                if (cached && cached !== 'NOT_FOUND') {
+                  const obj = JSON.parse(cached);
+                  obj.clicks_count = (obj.clicks_count || 0) + 1;
+                  await env.LINKS_KV.put(targetSlugOrId, JSON.stringify(obj));
+                }
+              } catch {}
+            })()
+          );
+        }
+        return jsonResponse({ success: true, countIncremented: true });
+      }
 
       // GET /api/v1/links OR /api/v1/links/:id
       if (method === 'GET') {

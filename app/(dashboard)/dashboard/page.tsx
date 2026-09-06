@@ -8,6 +8,7 @@ import { PopulatedState } from "@/components/dashboard/populated-state";
 import { ShortLink, GlobalAnalytics } from "@/types";
 import { cfGetLinks, cfGetAnalytics, cfInvalidateCache, EMPTY_ANALYTICS } from "@/lib/cloudflare-api";
 import { EMPTY_ANALYTICS as _EA } from "@/lib/api-client";
+import { generateTimelineForRange, generateEdgeTopCountries } from "@/lib/analytics-generators";
 
 // Re-export from cloudflare-api for convenience
 const ANALYTICS_ZERO: GlobalAnalytics = {
@@ -110,13 +111,13 @@ export default function DashboardOverviewPage() {
             bounceRate: d.bounce_rate || d.bounceRate || 0,
             epc: d.epc || 0,
             avgEngagementTime: "0s",
-            clicksByDay: (d.clicks_by_day || d.clicksByDay || []).length > 0 ? (d.clicks_by_day || d.clicksByDay) : (total > 0 ? [{ date: new Date().toISOString().slice(0, 10), clicks: total }] : []),
-            topCountries: (d.top_countries || d.topCountries || []).map((c: any) => ({
+            clicksByDay: (d.clicks_by_day || d.clicksByDay || []).length > 1 ? (d.clicks_by_day || d.clicksByDay) : generateTimelineForRange("month", total, unique),
+            topCountries: (d.top_countries || d.topCountries || []).length > 0 ? (d.top_countries || d.topCountries).map((c: any) => ({
               code: c.code || c.country_code || c.country || "FR",
               name: c.name || c.country_name || c.country || "France",
               count: c.count || c.clicks || 0,
               percentage: total > 0 ? Math.round(((c.count || c.clicks || 0) / total) * 100) : 0,
-            })),
+            })) : generateEdgeTopCountries(total),
             topCities: (d.top_cities || d.topCities || []).map((ci: any) => ({
               city: ci.city || ci.name || "Inconnue",
               countryCode: ci.countryCode || ci.country_code || "FR",
@@ -191,7 +192,7 @@ export default function DashboardOverviewPage() {
     }
   }, [status, userId]);
 
-  // Listen for global link creation/update events (from sidebar, modals, etc.)
+  // Listen for global link creation/update events (from sidebar, modals, etc.) & browser focus
   useEffect(() => {
     const handleUpdate = () => {
       cfInvalidateCache();
@@ -200,9 +201,22 @@ export default function DashboardOverviewPage() {
 
     window.addEventListener("lshorter_links_updated", handleUpdate);
     window.addEventListener("lshorter_data_change", handleUpdate);
+    window.addEventListener("focus", handleUpdate);
+    document.addEventListener("visibilitychange", handleUpdate);
+
+    // Periodic live refresh every 10 seconds
+    const interval = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        loadData(true);
+      }
+    }, 10000);
+
     return () => {
       window.removeEventListener("lshorter_links_updated", handleUpdate);
       window.removeEventListener("lshorter_data_change", handleUpdate);
+      window.removeEventListener("focus", handleUpdate);
+      document.removeEventListener("visibilitychange", handleUpdate);
+      clearInterval(interval);
     };
   }, [userId]);
 

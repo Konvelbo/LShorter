@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 
-const WORKER_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || process.env.QUICKLINK_API_URL || "https://click_tracker.fiatechnologiecam.workers.dev";
-const FRONTEND_SECRET = process.env.FRONTEND_API_SECRET || process.env.QUICKLINK_MASTER_KEY || "lsh_secret_live_prod_2026";
+const WORKER_URL =
+  process.env.NEXT_PUBLIC_BACKEND_API_URL ||
+  "https://lshorter-api.fiatechnologiecam.workers.dev";
+const FRONTEND_SECRET =
+  process.env.FRONTEND_API_SECRET || "lsh_secret_live_prod_2026";
 
 export async function POST(req: Request) {
   try {

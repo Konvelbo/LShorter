@@ -1,5 +1,11 @@
 import { NextResponse } from "next/server";
 import { getProtectedLink } from "@/lib/protected-links-store";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "@/convex/_generated/api";
+
+const convex = new ConvexHttpClient(
+  process.env.NEXT_PUBLIC_CONVEX_URL || "https://greedy-mastiff-107.convex.cloud"
+);
 
 const WORKER_URL =
   process.env.NEXT_PUBLIC_BACKEND_API_URL ||
@@ -60,9 +66,17 @@ function evaluateTargetUrl(baseTargetUrl: string, req: Request, meta?: any) {
 async function resolveLinkData(slug: string, req: Request) {
   const protectedMeta = getProtectedLink(slug);
 
-  // 1. Check if Worker knows this slug via /r/ redirect (302)
+  // 1. Check Convex Cloud DB
+  let cxLink: any = null;
+  try {
+    cxLink = await convex.query(api.links.getLinkBySlug, { slug });
+  } catch (cxErr) {
+    console.warn("[Convex resolveLinkData error]:", cxErr);
+  }
+
+  // 2. Check if Worker knows this slug via /r/ redirect (302)
   let workerTargetUrl: string | null = null;
-  let isActive = true;
+  let isActive = cxLink ? (cxLink.isActive !== false) : true;
 
   try {
     const redirectRes = await fetch(`${WORKER_URL}/r/${slug}`, {
@@ -71,16 +85,16 @@ async function resolveLinkData(slug: string, req: Request) {
       cache: "no-store",
     });
 
-    if (redirectRes.status === 302) {
+    if (redirectRes.status === 302 || redirectRes.status === 307) {
       workerTargetUrl = redirectRes.headers.get("location");
     } else if (redirectRes.status === 404 || redirectRes.status === 403) {
-      isActive = false;
+      if (!cxLink) isActive = false;
     }
   } catch (err) {
     console.warn("[Worker Redirect Resolution error]:", err);
   }
 
-  // 2. Also try /api/v1/links
+  // 3. Also try /api/v1/links
   let linkObj: any = null;
   try {
     const listRes = await fetch(`${WORKER_URL}/api/v1/links`, {
@@ -101,6 +115,7 @@ async function resolveLinkData(slug: string, req: Request) {
   }
 
   const rawTargetUrl =
+    cxLink?.targetUrl ||
     workerTargetUrl ||
     linkObj?.target_url ||
     linkObj?.targetUrl ||
@@ -111,23 +126,28 @@ async function resolveLinkData(slug: string, req: Request) {
     return null;
   }
 
-  const evaluatedTargetUrl = evaluateTargetUrl(rawTargetUrl, req, protectedMeta || linkObj);
+  const evaluatedTargetUrl = evaluateTargetUrl(rawTargetUrl, req, cxLink || protectedMeta || linkObj);
 
-  const password = protectedMeta?.password || linkObj?.password;
+  const password = cxLink?.password || protectedMeta?.password || linkObj?.password;
   const hasPassword = Boolean(
     password ||
+    cxLink?.isPasswordProtected ||
     linkObj?.is_password_protected ||
     linkObj?.isPasswordProtected ||
     linkObj?.has_password
   );
 
   const isCloaked = Boolean(
-    protectedMeta?.isCloaked !== undefined
+    cxLink?.isCloaked !== undefined
+      ? cxLink.isCloaked
+      : protectedMeta?.isCloaked !== undefined
       ? protectedMeta.isCloaked
-      : linkObj?.is_cloaked || linkObj?.isCloaked
+      : linkObj?.is_cloaked || linkObj?.isCloaked || cxLink?.cloaking
   );
 
   const metaTitle =
+    cxLink?.metaTitle ||
+    cxLink?.title ||
     protectedMeta?.metaTitle ||
     linkObj?.meta_title ||
     linkObj?.metaTitle ||

@@ -133,7 +133,7 @@ export default function LinksPage() {
     }
   }, [status, userId]);
 
-  // Listen for global link creation/update events (from sidebar, overview, etc.)
+  // Listen for global link creation/update events (from sidebar, overview, etc.) & browser focus
   useEffect(() => {
     const handleUpdate = (e?: any) => {
       cfInvalidateCache();
@@ -143,11 +143,29 @@ export default function LinksPage() {
       loadLinks(true);
     };
 
+    const handleFocus = () => {
+      cfInvalidateCache();
+      loadLinks(true);
+    };
+
     window.addEventListener("lshorter_links_updated", handleUpdate);
     window.addEventListener("lshorter_data_change", handleUpdate);
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleFocus);
+
+    // Light background polling every 10 seconds for real-time link counters
+    const interval = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        loadLinks(true);
+      }
+    }, 10000);
+
     return () => {
       window.removeEventListener("lshorter_links_updated", handleUpdate);
       window.removeEventListener("lshorter_data_change", handleUpdate);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleFocus);
+      clearInterval(interval);
     };
   }, [userId]);
 
@@ -666,7 +684,14 @@ export default function LinksPage() {
 
                     {/* Metrics & Actions Row */}
                     <div className="flex items-center justify-between pt-1 text-xs border-t border-[#222225]">
-                      <div className="flex items-center gap-2">
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/dashboard/analytics?linkId=${encodeURIComponent(link.id)}&slug=${encodeURIComponent(link.slug)}`);
+                        }}
+                        className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+                        title="Voir les statistiques de ce lien"
+                      >
                         <div className="flex items-center gap-1 text-white font-bold">
                           <span className="text-[#ff6600] font-mono text-xs">{formatNumber(link.clicksCount)}</span>
                           <span className="text-[10px] text-neutral-400 font-normal">clics</span>
@@ -752,6 +777,8 @@ export default function LinksPage() {
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setOpenMenuId(null);
+                                  cfInvalidateCache("links");
+                                  setTimeout(() => loadLinks(true), 1500);
                                 }}
                                 className="w-full px-3 py-2 text-left hover:bg-white/5 flex items-center gap-2.5 transition-colors cursor-pointer"
                               >
@@ -787,7 +814,7 @@ export default function LinksPage() {
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setOpenMenuId(null);
-                                  router.push("/dashboard/analytics");
+                                  router.push(`/dashboard/analytics?linkId=${encodeURIComponent(link.id)}&slug=${encodeURIComponent(link.slug)}`);
                                 }}
                                 className="w-full px-3 py-2 text-left hover:bg-white/5 flex items-center gap-2.5 transition-colors cursor-pointer"
                               >
@@ -932,7 +959,13 @@ export default function LinksPage() {
                         </td>
 
                         {/* Clics */}
-                        <td className="py-2.5 px-2 text-right font-bold text-white font-mono text-xs whitespace-nowrap">
+                        <td
+                          onClick={() => {
+                            router.push(`/dashboard/analytics?linkId=${encodeURIComponent(link.id)}&slug=${encodeURIComponent(link.slug)}`);
+                          }}
+                          className="py-2.5 px-2 text-right font-bold text-white hover:text-[#ff6600] font-mono text-xs whitespace-nowrap cursor-pointer transition-colors"
+                          title="Voir les statistiques de ce lien"
+                        >
                           {formatNumber(link.clicksCount)}
                         </td>
 
@@ -995,7 +1028,11 @@ export default function LinksPage() {
                                   href={link.shortUrl}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  onClick={() => setOpenMenuId(null)}
+                                  onClick={() => {
+                                    setOpenMenuId(null);
+                                    cfInvalidateCache("links");
+                                    setTimeout(() => loadLinks(true), 1500);
+                                  }}
                                   className="w-full px-3 py-2 text-left hover:bg-white/5 flex items-center gap-2.5 transition-colors cursor-pointer"
                                 >
                                   <ExternalLink className="w-3.5 h-3.5 text-neutral-300" />
@@ -1027,7 +1064,7 @@ export default function LinksPage() {
                                   type="button"
                                   onClick={() => {
                                     setOpenMenuId(null);
-                                    router.push("/dashboard/analytics");
+                                    router.push(`/dashboard/analytics?linkId=${encodeURIComponent(link.id)}&slug=${encodeURIComponent(link.slug)}`);
                                   }}
                                   className="w-full px-3 py-2 text-left hover:bg-white/5 flex items-center gap-2.5 transition-colors cursor-pointer"
                                 >

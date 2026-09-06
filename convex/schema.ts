@@ -183,21 +183,29 @@ export default defineSchema({
     .index("by_userId", ["userId"])
     .index("by_domain", ["domain"]),
 
-  // ─── Clicks Table (Legacy Convex Analytics) ───────────────────────────────────
+  // ─── Clicks Table (Real-time Convex Analytics) ──────────────────────────────
   clicks: defineTable({
     userId: v.string(),
     linkId: v.optional(v.string()),
     slug: v.optional(v.string()),
     isUnique: v.optional(v.boolean()),
     revenue: v.optional(v.number()),
+    country: v.optional(v.string()),
     countryCode: v.optional(v.string()),
+    city: v.optional(v.string()),
     device: v.optional(v.string()),
     browser: v.optional(v.string()),
+    os: v.optional(v.string()),
     referrer: v.optional(v.string()),
     ip: v.optional(v.string()),
+    ipHash: v.optional(v.string()),
+    isBot: v.optional(v.boolean()),
+    userAgent: v.optional(v.string()),
     timestamp: v.optional(v.union(v.number(), v.string())),
     createdAt: v.optional(v.string()),
-  }).index("by_userId", ["userId"]),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_slug", ["slug"]),
 
   // ─── Analytics Events Table ───────────────────────────────────────────────────
   analytics_events: defineTable({
