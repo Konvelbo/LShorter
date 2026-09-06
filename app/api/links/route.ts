@@ -50,11 +50,16 @@ export async function GET(req: Request) {
       ? (workerData.data as any).data
       : [];
 
-    const mergedList = workerList.map((l: any) => {
+    const seenSlugs = new Set<string>();
+    const mergedList: any[] = [];
+
+    // 1. Merge workerList links with Convex data
+    for (const l of workerList) {
       const slugKey = (l.slug || "").toLowerCase();
+      seenSlugs.add(slugKey);
       const cx = convexMap.get(slugKey) || {};
 
-      return {
+      mergedList.push({
         ...l,
         meta_title: l.meta_title || l.metaTitle || cx.metaTitle || cx.title,
         metaTitle: l.metaTitle || l.meta_title || cx.metaTitle || cx.title,
@@ -84,8 +89,57 @@ export async function GET(req: Request) {
         abVariations: l.abVariations || cx.abVariations,
         main_weight: l.main_weight !== undefined ? l.main_weight : cx.mainWeight,
         mainWeight: l.mainWeight !== undefined ? l.mainWeight : cx.mainWeight,
-      };
-    });
+      });
+    }
+
+    // 2. Also add any links from Convex that are not present in workerList
+    if (Array.isArray(convexLinks)) {
+      for (const cl of convexLinks) {
+        const slugKey = (cl.slug || "").toLowerCase();
+        if (!seenSlugs.has(slugKey)) {
+          seenSlugs.add(slugKey);
+          mergedList.push({
+            id: cl._id || `link_${Date.now()}`,
+            user_id: cl.userId,
+            domain_name: cl.domainName || "lsho.cc",
+            slug: cl.slug,
+            short_url: cl.shortUrl || `https://${cl.domainName || "lsho.cc"}/${cl.slug}`,
+            target_url: cl.targetUrl,
+            clicks_count: cl.clicksCount || 0,
+            is_active: cl.isActive !== false ? 1 : 0,
+            created_at: cl.createdAt || new Date(cl._creationTime || Date.now()).toISOString(),
+            meta_title: cl.metaTitle || cl.title,
+            metaTitle: cl.metaTitle || cl.title,
+            og_title: cl.ogTitle || cl.title,
+            ogTitle: cl.ogTitle || cl.title,
+            og_description: cl.ogDescription,
+            ogDescription: cl.ogDescription,
+            og_image: cl.ogImage,
+            ogImage: cl.ogImage,
+            password: cl.password,
+            has_password: Boolean(cl.password),
+            is_cloaked: cl.isCloaked ? 1 : 0,
+            isCloaked: Boolean(cl.isCloaked),
+            hide_referrer: cl.hideReferrer ? 1 : 0,
+            hideReferrer: Boolean(cl.hideReferrer),
+            routing_rules: cl.routingRules,
+            routingRules: cl.routingRules,
+            geo_targeting: cl.geoTargeting,
+            geoTargeting: cl.geoTargeting,
+            device_targeting: cl.deviceTargeting,
+            deviceTargeting: cl.deviceTargeting,
+            max_clicks: cl.maxClicks,
+            maxClicks: cl.maxClicks,
+            fallback_url: cl.fallbackUrl,
+            fallbackUrl: cl.fallbackUrl,
+            ab_variations: cl.abVariations,
+            abVariations: cl.abVariations,
+            main_weight: cl.mainWeight,
+            mainWeight: cl.mainWeight,
+          });
+        }
+      }
+    }
 
     return NextResponse.json({ success: true, data: mergedList });
   } catch (error: any) {

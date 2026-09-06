@@ -11,7 +11,9 @@
 import type * as analytics from "../analytics.js";
 import type * as domains from "../domains.js";
 import type * as links from "../links.js";
+import type * as pixels from "../pixels.js";
 import type * as users from "../users.js";
+import type * as webhooks from "../webhooks.js";
 
 import type {
   ApiFromModules,
@@ -23,7 +25,9 @@ declare const fullApi: ApiFromModules<{
   analytics: typeof analytics;
   domains: typeof domains;
   links: typeof links;
+  pixels: typeof pixels;
   users: typeof users;
+  webhooks: typeof webhooks;
 }>;
 
 /**

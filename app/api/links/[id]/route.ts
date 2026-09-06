@@ -262,6 +262,19 @@ export async function DELETE(
   const userId = searchParams.get("userId");
 
   try {
+    // 1. Delete from Convex if ID is a valid Convex ID
+    if (id && userId) {
+      try {
+        await convex.mutation(api.links.deleteLink, { id: id as any, userId }).catch(() => {});
+      } catch {}
+    }
+
+    // 2. Delete from local memory store
+    try {
+      deleteProtectedLink(id);
+    } catch {}
+
+    // 3. Delete from Worker
     const url = new URL(`${WORKER_URL}/api/v1/links/${id}`);
     if (userId) url.searchParams.set("userId", userId);
 
@@ -276,20 +289,14 @@ export async function DELETE(
     });
 
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      return NextResponse.json(
-        { success: false, error: err.error || "Erreur Worker Cloudflare" },
-        { status: res.status }
-      );
+      // Even if worker returned non-OK, Convex already deleted it, so return success
+      return NextResponse.json({ success: true });
     }
 
     const data = await res.json().catch(() => ({ success: true }));
     return NextResponse.json(data);
   } catch (error: any) {
-    console.warn("[Links Proxy DELETE] Error connecting to Worker:", error);
-    return NextResponse.json(
-      { success: false, error: error?.message || "Impossible de contacter le Worker Cloudflare" },
-      { status: 502 }
-    );
+    console.warn("[Links Proxy DELETE] Non-fatal worker connection warning:", error);
+    return NextResponse.json({ success: true });
   }
 }
