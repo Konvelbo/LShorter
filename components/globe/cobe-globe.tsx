@@ -267,21 +267,22 @@ export function CobeGlobe({ className = "", topCountries = [] }: CobeGlobeProps)
       const height = rect.height || (isModal ? 720 : 420);
       const cx = width / 2;
       const cy = height / 2;
-      const radius = width * (isModal ? 0.40 : 0.38);
+      const radius = width * (isModal ? 0.40 : 0.42);
 
       const isMobileScreen = typeof window !== "undefined" && window.innerWidth < 768;
       const isBlue = isMobileScreen;
 
       ctx.clearRect(0, 0, width, height);
 
-      // 1. Atmosphere Aura
-      const glowGrad = ctx.createRadialGradient(cx, cy, radius * 0.85, cx, cy, radius * 1.3);
-      glowGrad.addColorStop(0, isBlue ? "rgba(0, 210, 255, 0.22)" : "rgba(255, 102, 0, 0.18)");
-      glowGrad.addColorStop(0.5, isBlue ? "rgba(0, 180, 255, 0.08)" : "rgba(255, 102, 0, 0.07)");
+      // 1. Atmosphere Aura (Tight, refined halo that hugs the globe without bulky overflow)
+      const auraOuter = radius * 1.09;
+      const glowGrad = ctx.createRadialGradient(cx, cy, radius * 0.94, cx, cy, auraOuter);
+      glowGrad.addColorStop(0, isBlue ? "rgba(0, 210, 255, 0.35)" : "rgba(255, 102, 0, 0.35)");
+      glowGrad.addColorStop(0.5, isBlue ? "rgba(0, 180, 255, 0.12)" : "rgba(255, 102, 0, 0.12)");
       glowGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
       ctx.fillStyle = glowGrad;
       ctx.beginPath();
-      ctx.arc(cx, cy, radius * 1.3, 0, Math.PI * 2);
+      ctx.arc(cx, cy, auraOuter, 0, Math.PI * 2);
       ctx.fill();
 
       // 2. Planet Sphere
@@ -532,7 +533,7 @@ export function CobeGlobe({ className = "", topCountries = [] }: CobeGlobeProps)
 
       if (canvasRef.current && containerRef.current) {
         const rect = containerRef.current.getBoundingClientRect();
-        const size = Math.min(rect.width || 420, 440);
+        const size = Math.min(rect.width || 320, 360);
         canvasRef.current.width = size * dpr;
         canvasRef.current.height = size * dpr;
         canvasRef.current.style.width = `${size}px`;
@@ -612,8 +613,8 @@ export function CobeGlobe({ className = "", topCountries = [] }: CobeGlobeProps)
       <div
         ref={containerRef}
         onDoubleClick={() => setIsExpanded(true)}
-        className={`relative w-full aspect-square max-w-[440px] mx-auto flex items-center justify-center select-none group ${className}`}
-        style={{ minHeight: "340px" }}
+        className={`relative w-full aspect-square max-w-[340px] sm:max-w-[360px] mx-auto flex items-center justify-center select-none group ${className}`}
+        style={{ minHeight: "260px" }}
       >
         {/* Floating Expand Button */}
         <button
@@ -633,7 +634,7 @@ export function CobeGlobe({ className = "", topCountries = [] }: CobeGlobeProps)
           onPointerCancel={handlePointerUp}
           onPointerLeave={handlePointerUp}
           style={{ touchAction: "none" }}
-          className="w-full h-full cursor-grab active:cursor-grabbing rounded-full shadow-2xl touch-none select-none"
+          className="w-full h-full cursor-grab active:cursor-grabbing rounded-full touch-none select-none"
         />
       </div>
 

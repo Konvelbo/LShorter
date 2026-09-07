@@ -1070,23 +1070,23 @@ export default function DocsPage() {
   return (
     <div className="py-10 px-4 sm:px-6 lg:px-12 max-w-7xl mx-auto flex flex-col gap-10 animate-in fade-in">
       {/* ─── Hero Header ─── */}
-      <div className="p-8 sm:p-10 rounded-[14px] bg-[#141416] border border-[#ff6600]/40 shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-8 relative overflow-hidden">
+      <div className="p-8 sm:p-10 rounded-[14px] bg-white dark:bg-[#141416] border border-neutral-200 dark:border-[#ff6600]/40 shadow-xl dark:shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-8 relative overflow-hidden">
         <div className="flex flex-col gap-3 z-10 max-w-2xl">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#ff6600]/15 border border-[#ff6600]/30 text-xs font-bold text-[#ff6600] w-fit">
             <BookOpen className="w-4 h-4" />
             <span>CENTRE DE DOCUMENTATION OFFICIEL</span>
           </div>
-          <h1 className="font-bebas text-3xl sm:text-5xl text-white tracking-wide leading-tight">
+          <h1 className="font-bebas text-3xl sm:text-5xl text-neutral-900 dark:text-white tracking-wide leading-tight">
             GUIDE COMPLET DES FONCTIONNALITÉS &amp; RÉFÉRENCE API
           </h1>
-          <p className="text-xs sm:text-sm text-neutral-300 leading-relaxed">
+          <p className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-300 leading-relaxed">
             Découvrez comment tirer le meilleur de LShorter : raccourcissement intelligent, ciblage pays &amp; appareils, pixels de retargeting, webhooks temps réel, domaines de marque blanche et API Edge ultra-rapide (&lt; 1 ms).
           </p>
         </div>
 
         <div className="flex flex-col sm:flex-row items-center gap-3 z-10 shrink-0 w-full md:w-auto">
           <Link href="/dashboard" className="w-full sm:w-auto">
-            <Button variant="glow" className="w-full sm:w-auto font-bebas text-xl px-6 py-3 tracking-wide gap-2">
+            <Button variant="glow" className="w-full sm:w-auto font-bebas text-xl px-6 py-3 tracking-wide gap-2 bg-[#ff6600] text-white">
               <Sparkles className="w-4 h-4" />
               <span>TABLEAU DE BORD</span>
             </Button>
@@ -1094,7 +1094,7 @@ export default function DocsPage() {
           <Link href="/dashboard/api-sdk" className="w-full sm:w-auto">
             <button
               type="button"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] hover:border-[#ff6600]/50 text-xs font-bold text-white transition-colors cursor-pointer"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 rounded-[10px] bg-neutral-100 hover:bg-neutral-200 dark:bg-[#1a1a1e] border border-neutral-300 dark:border-[#27272a] hover:border-[#ff6600]/50 text-xs font-bold text-neutral-900 dark:text-white transition-colors cursor-pointer"
             >
               <KeyRound className="w-4 h-4 text-[#ff6600]" />
               <span>Générer Clé API</span>
@@ -1104,14 +1104,14 @@ export default function DocsPage() {
       </div>
 
       {/* ─── Main Tabs Navigation ─── */}
-      <div className="flex flex-wrap items-center gap-2 p-1.5 rounded-[12px] bg-[#141416] border border-[#222225] shadow-xl">
+      <div className="flex flex-wrap items-center gap-2 p-1.5 rounded-[12px] bg-neutral-200/70 dark:bg-[#141416] border border-neutral-300 dark:border-[#222225] shadow-sm dark:shadow-xl">
         <button
           type="button"
           onClick={() => setMainTab("features")}
           className={`flex items-center gap-2 px-5 py-2.5 rounded-[10px] text-xs sm:text-sm font-bold transition-all cursor-pointer ${
             mainTab === "features"
               ? "bg-[#ff6600] text-white shadow-lg shadow-[#ff6600]/25"
-              : "text-neutral-400 hover:text-white hover:bg-white/5"
+              : "text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-white dark:hover:bg-white/5"
           }`}
         >
           <Layers className="w-4 h-4" />
@@ -1124,7 +1124,7 @@ export default function DocsPage() {
           className={`flex items-center gap-2 px-5 py-2.5 rounded-[10px] text-xs sm:text-sm font-bold transition-all cursor-pointer ${
             mainTab === "api"
               ? "bg-[#ff6600] text-white shadow-lg shadow-[#ff6600]/25"
-              : "text-neutral-400 hover:text-white hover:bg-white/5"
+              : "text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-white dark:hover:bg-white/5"
           }`}
         >
           <Terminal className="w-4 h-4" />
@@ -1137,7 +1137,7 @@ export default function DocsPage() {
           className={`flex items-center gap-2 px-5 py-2.5 rounded-[10px] text-xs sm:text-sm font-bold transition-all cursor-pointer ${
             mainTab === "security"
               ? "bg-[#ff6600] text-white shadow-lg shadow-[#ff6600]/25"
-              : "text-neutral-400 hover:text-white hover:bg-white/5"
+              : "text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-white dark:hover:bg-white/5"
           }`}
         >
           <ShieldCheck className="w-4 h-4" />
@@ -1150,7 +1150,7 @@ export default function DocsPage() {
           className={`flex items-center gap-2 px-5 py-2.5 rounded-[10px] text-xs sm:text-sm font-bold transition-all cursor-pointer ${
             mainTab === "faq"
               ? "bg-[#ff6600] text-white shadow-lg shadow-[#ff6600]/25"
-              : "text-neutral-400 hover:text-white hover:bg-white/5"
+              : "text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-white dark:hover:bg-white/5"
           }`}
         >
           <HelpCircle className="w-4 h-4" />
@@ -1160,13 +1160,13 @@ export default function DocsPage() {
 
       {/* ─── Search Bar ─── */}
       <div className="relative">
-        <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500" />
+        <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 dark:text-neutral-500" />
         <input
           type="text"
           placeholder="Rechercher une fonctionnalité, un paramètre, une route API, un cas d'usage..."
           value={searchFilter}
           onChange={(e) => setSearchFilter(e.target.value)}
-          className="w-full h-12 pl-11 pr-4 rounded-[12px] bg-[#141416] border border-[#27272a] text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#ff6600] shadow-xl"
+          className="w-full h-12 pl-11 pr-4 rounded-[12px] bg-white dark:bg-[#141416] border border-neutral-300 dark:border-[#27272a] text-sm text-neutral-900 dark:text-white placeholder:text-neutral-400 dark:placeholder:text-neutral-500 focus:outline-none focus:border-[#ff6600] shadow-sm dark:shadow-xl"
         />
       </div>
 
@@ -1192,7 +1192,7 @@ export default function DocsPage() {
                 className={`px-4 py-2 rounded-full font-semibold transition-all shrink-0 cursor-pointer ${
                   featureCategory === cat.id
                     ? "bg-[#ff6600]/20 text-[#ff6600] border border-[#ff6600]/40 font-bold shadow-md shadow-[#ff6600]/10"
-                    : "bg-[#141416] text-neutral-400 border border-[#27272a] hover:text-white"
+                    : "bg-white dark:bg-[#141416] text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-[#27272a] hover:text-neutral-900 dark:hover:text-white"
                 }`}
               >
                 {cat.label}
@@ -1208,7 +1208,7 @@ export default function DocsPage() {
                 <div
                   key={feat.id}
                   id={feat.id}
-                  className="rounded-[14px] bg-[#141416] border border-[#222225] p-6 sm:p-7 flex flex-col justify-between gap-6 shadow-xl hover:border-neutral-700 transition-all group"
+                  className="rounded-[14px] bg-white dark:bg-[#141416] border border-neutral-200 dark:border-[#222225] p-6 sm:p-7 flex flex-col justify-between gap-6 shadow-sm dark:shadow-xl hover:border-neutral-400 dark:hover:border-neutral-700 transition-all group"
                 >
                   <div className="flex flex-col gap-4">
                     {/* Header with Icon & Badge */}
@@ -1239,51 +1239,51 @@ export default function DocsPage() {
                     </div>
 
                     {/* What is it & Why */}
-                    <div className="space-y-2 pt-2 border-t border-[#222225]">
+                    <div className="space-y-2 pt-2 border-t border-neutral-200 dark:border-[#222225]">
                       <div>
                         <span className="text-[11px] font-bold text-[#ff6600] uppercase tracking-wider block font-mono">
                           À quoi ça sert ?
                         </span>
-                        <p className="text-xs text-neutral-300 leading-relaxed mt-0.5">
+                        <p className="text-xs text-neutral-700 dark:text-neutral-300 leading-relaxed mt-0.5">
                           {feat.whatIsIt}
                         </p>
                       </div>
 
                       <div>
-                        <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider block font-mono">
+                        <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider block font-mono">
                           Bénéfice &amp; Impact
                         </span>
-                        <p className="text-xs text-neutral-300 leading-relaxed mt-0.5">
+                        <p className="text-xs text-neutral-700 dark:text-neutral-300 leading-relaxed mt-0.5">
                           {feat.whyUseIt}
                         </p>
                       </div>
                     </div>
 
                     {/* How it works */}
-                    <div className="p-3.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] space-y-1.5">
-                      <span className="text-[11px] font-bold text-sky-400 uppercase tracking-wider block font-mono">
+                    <div className="p-3.5 rounded-[10px] bg-neutral-50 dark:bg-[#1a1a1e] border border-neutral-200 dark:border-[#27272a] space-y-1.5">
+                      <span className="text-[11px] font-bold text-sky-600 dark:text-sky-400 uppercase tracking-wider block font-mono">
                         Comment l'utiliser pas à pas :
                       </span>
-                      <ul className="space-y-1 text-xs text-neutral-300">
+                      <ul className="space-y-1 text-xs text-neutral-700 dark:text-neutral-300">
                         {feat.howItWorks.map((step, idx) => (
                           <li key={idx} className="flex items-start gap-2">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-sky-400 shrink-0 mt-0.5" />
+                            <CheckCircle2 className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400 shrink-0 mt-0.5" />
                             <span className="leading-snug">{step}</span>
                           </li>
                         ))}
                       </ul>
                     </div>
 
-                    {/* Use cases */}
+                    {/* Use cases (High contrast in Light Mode) */}
                     <div className="space-y-1.5">
-                      <span className="text-[11px] font-bold text-purple-400 uppercase tracking-wider block font-mono">
+                      <span className="text-[11px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider block font-mono">
                         Cas d'usage concrets :
                       </span>
                       <div className="flex flex-wrap gap-1.5">
                         {feat.useCases.map((uc, idx) => (
                           <span
                             key={idx}
-                            className="text-[11px] bg-black/40 text-neutral-300 border border-white/5 px-2.5 py-1 rounded-[8px]"
+                            className="text-[11px] bg-neutral-100 dark:bg-black/40 text-neutral-800 dark:text-neutral-200 border border-neutral-300 dark:border-white/10 px-2.5 py-1 rounded-[8px] font-medium"
                           >
                             • {uc}
                           </span>
@@ -1293,9 +1293,9 @@ export default function DocsPage() {
 
                     {/* Pro tip */}
                     {feat.proTip && (
-                      <div className="p-3 rounded-[8px] bg-amber-500/10 border border-amber-500/25 flex items-start gap-2.5 text-xs text-amber-300 leading-relaxed">
-                        <Lightbulb className="w-4 h-4 shrink-0 text-amber-400 mt-0.5" />
-                        <span><strong>Astuce Pro :</strong> {feat.proTip}</span>
+                      <div className="p-3 rounded-[8px] bg-amber-500/10 border border-amber-500/30 flex items-start gap-2.5 text-xs text-amber-900 dark:text-amber-300 leading-relaxed">
+                        <Lightbulb className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+                        <span><strong className="text-amber-950 dark:text-amber-200">Astuce Pro :</strong> {feat.proTip}</span>
                       </div>
                     )}
                   </div>
@@ -1312,45 +1312,45 @@ export default function DocsPage() {
       {mainTab === "api" && (
         <div className="flex flex-col gap-8 animate-in fade-in">
           {/* Quick Start SDK Box */}
-          <div className="rounded-[14px] bg-[#141416] border border-[#222225] p-6 sm:p-8 flex flex-col gap-6 shadow-xl">
+          <div className="rounded-[14px] bg-white dark:bg-[#141416] border border-neutral-200 dark:border-[#222225] p-6 sm:p-8 flex flex-col gap-6 shadow-sm dark:shadow-xl">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-2.5">
                 <Terminal className="w-5 h-5 text-[#ff6600]" />
-                <h2 className="text-lg font-bold text-white">Démarrage Rapide API REST &amp; SDK (Quickstart)</h2>
+                <h2 className="text-lg font-bold text-neutral-900 dark:text-white">Démarrage Rapide API REST &amp; SDK (Quickstart)</h2>
               </div>
-              <span className="text-[11px] font-mono px-3 py-1 rounded-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold w-fit">
+              <span className="text-[11px] font-mono px-3 py-1 rounded-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-bold w-fit">
                 NPM / pnpm : lshorter@1.0.0
               </span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="p-4 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] flex flex-col gap-2">
+              <div className="p-4 rounded-[10px] bg-neutral-50 dark:bg-[#1a1a1e] border border-neutral-200 dark:border-[#27272a] flex flex-col gap-2">
                 <span className="text-xs font-bold text-[#ff6600] font-mono flex items-center gap-1.5">
                   <KeyRound className="w-3.5 h-3.5" />
                   <span>1. AUTHENTIFICATION</span>
                 </span>
-                <p className="text-xs text-neutral-400 leading-relaxed">
-                  Toutes les requêtes API nécessitent un en-tête HTTP <code className="text-white font-mono bg-black/40 px-1.5 py-0.5 rounded">Authorization: Bearer lsh_live_...</code>.
+                <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed">
+                  Toutes les requêtes API nécessitent un en-tête HTTP <code className="text-neutral-900 dark:text-white font-mono bg-neutral-200/80 dark:bg-black/40 border border-neutral-300 dark:border-transparent px-1.5 py-0.5 rounded text-[11px]">Authorization: Bearer lsh_live_...</code>.
                 </p>
               </div>
 
-              <div className="p-4 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] flex flex-col gap-2">
-                <span className="text-xs font-bold text-sky-400 font-mono flex items-center gap-1.5">
+              <div className="p-4 rounded-[10px] bg-neutral-50 dark:bg-[#1a1a1e] border border-neutral-200 dark:border-[#27272a] flex flex-col gap-2">
+                <span className="text-xs font-bold text-sky-600 dark:text-sky-400 font-mono flex items-center gap-1.5">
                   <Zap className="w-3.5 h-3.5" />
                   <span>2. BASE URL EDGE</span>
                 </span>
-                <p className="text-xs text-neutral-400 leading-relaxed">
-                  Point d'entrée mondial direct : <code className="text-white font-mono bg-black/40 px-1.5 py-0.5 rounded text-[11px]">https://lshorter-api.fiatechnologiecam.workers.dev</code>
+                <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed">
+                  Point d'entrée mondial direct : <code className="text-neutral-900 dark:text-white font-mono bg-neutral-200/80 dark:bg-black/40 border border-neutral-300 dark:border-transparent px-1.5 py-0.5 rounded text-[11px]">https://lshorter-api.fiatechnologiecam.workers.dev</code>
                 </p>
               </div>
 
-              <div className="p-4 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] flex flex-col gap-2">
-                <span className="text-xs font-bold text-purple-400 font-mono flex items-center gap-1.5">
+              <div className="p-4 rounded-[10px] bg-neutral-50 dark:bg-[#1a1a1e] border border-neutral-200 dark:border-[#27272a] flex flex-col gap-2">
+                <span className="text-xs font-bold text-purple-600 dark:text-purple-400 font-mono flex items-center gap-1.5">
                   <Code2 className="w-3.5 h-3.5" />
                   <span>3. SDK OFFICIEL</span>
                 </span>
-                <p className="text-xs text-neutral-400 leading-relaxed">
-                  Installez le client officiel via <code className="text-white font-mono bg-black/40 px-1.5 py-0.5 rounded text-[11px]">pnpm add lshorter</code> ou <code className="text-white font-mono bg-black/40 px-1.5 py-0.5 rounded text-[11px]">npm i lshorter</code>.
+                <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed">
+                  Installez le client officiel via <code className="text-neutral-900 dark:text-white font-mono bg-neutral-200/80 dark:bg-black/40 border border-neutral-300 dark:border-transparent px-1.5 py-0.5 rounded text-[11px]">pnpm add lshorter</code> ou <code className="text-neutral-900 dark:text-white font-mono bg-neutral-200/80 dark:bg-black/40 border border-neutral-300 dark:border-transparent px-1.5 py-0.5 rounded text-[11px]">npm i lshorter</code>.
                 </p>
               </div>
             </div>
@@ -1375,7 +1375,7 @@ export default function DocsPage() {
                   className={`px-3.5 py-2 rounded-[10px] font-semibold transition-all shrink-0 cursor-pointer border ${
                     selectedApiCategory === cat.id
                       ? "bg-[#ff6600]/15 text-[#ff6600] border-[#ff6600]/50 font-bold shadow-md shadow-[#ff6600]/10"
-                      : "bg-[#141416] text-neutral-400 border-[#27272a] hover:text-white hover:border-neutral-600"
+                      : "bg-white dark:bg-[#141416] text-neutral-600 dark:text-neutral-400 border-neutral-200 dark:border-[#27272a] hover:text-neutral-900 dark:hover:text-white hover:border-neutral-400 dark:hover:border-neutral-600"
                   }`}
                 >
                   {cat.label}
@@ -1385,14 +1385,14 @@ export default function DocsPage() {
           </div>
 
           {/* ─── Clean Separated Header: 2. Global Language Switcher ─── */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-[12px] bg-[#141416] border border-[#222225] shadow-md">
-            <div className="flex items-center gap-2 text-xs font-bold text-neutral-300">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-[12px] bg-white dark:bg-[#141416] border border-neutral-200 dark:border-[#222225] shadow-sm dark:shadow-md">
+            <div className="flex items-center gap-2 text-xs font-bold text-neutral-800 dark:text-neutral-300">
               <Code className="w-4 h-4 text-[#ff6600]" />
               <span>Langage de programmation pour les exemples de code :</span>
             </div>
 
             {/* Language Segmented Control */}
-            <div className="flex items-center gap-1 p-1 bg-[#1a1a1e] rounded-[10px] border border-[#27272a]">
+            <div className="flex items-center gap-1 p-1 bg-neutral-100 dark:bg-[#1a1a1e] rounded-[10px] border border-neutral-200 dark:border-[#27272a]">
               {(["curl", "typescript", "python", "php", "go"] as Language[]).map((lang) => (
                 <button
                   key={lang}
@@ -1401,7 +1401,7 @@ export default function DocsPage() {
                   className={`px-3 py-1.5 rounded-[8px] text-xs font-mono font-bold uppercase transition-all cursor-pointer ${
                     selectedLanguage === lang
                       ? "bg-[#ff6600] text-white shadow-md shadow-[#ff6600]/25"
-                      : "text-neutral-400 hover:text-white hover:bg-white/5"
+                      : "text-neutral-600 hover:text-neutral-900 hover:bg-neutral-200 dark:text-neutral-400 dark:hover:text-white dark:hover:bg-white/5"
                   }`}
                 >
                   {lang}
@@ -1419,25 +1419,25 @@ export default function DocsPage() {
                 <div
                   key={ep.id}
                   id={ep.id}
-                  className="rounded-[14px] bg-[#141416] border border-[#222225] p-6 sm:p-8 flex flex-col gap-6 shadow-2xl hover:border-neutral-700 transition-colors"
+                  className="rounded-[14px] bg-white dark:bg-[#141416] border border-neutral-200 dark:border-[#222225] p-6 sm:p-8 flex flex-col gap-6 shadow-sm dark:shadow-2xl hover:border-neutral-400 dark:hover:border-neutral-700 transition-colors"
                 >
                   {/* Header Endpoint Info */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#222225]">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-neutral-200 dark:border-[#222225]">
                     <div className="flex items-center gap-3">
                       <span
                         className={`px-2.5 py-1 rounded-[8px] text-xs font-mono font-extrabold ${
                           ep.method === "POST"
-                            ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                            ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
                             : ep.method === "GET"
-                            ? "bg-sky-500/15 text-sky-400 border border-sky-500/30"
+                            ? "bg-sky-500/15 text-sky-600 dark:text-sky-400 border border-sky-500/30"
                             : ep.method === "PATCH"
-                            ? "bg-amber-500/15 text-amber-400 border border-amber-500/30"
-                            : "bg-red-500/15 text-red-400 border border-red-500/30"
+                            ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30"
+                            : "bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/30"
                         }`}
                       >
                         {ep.method}
                       </span>
-                      <span className="font-mono text-white text-sm sm:text-base font-bold">{ep.path}</span>
+                      <span className="font-mono text-neutral-900 dark:text-white text-sm sm:text-base font-bold">{ep.path}</span>
                     </div>
 
                     <div className="flex items-center gap-2">
@@ -1545,46 +1545,46 @@ export default function DocsPage() {
           </div>
 
           {/* HTTP Error Codes Reference */}
-          <div className="rounded-[14px] bg-[#141416] border border-[#222225] p-6 sm:p-8 flex flex-col gap-4 shadow-xl">
-            <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+          <div className="rounded-[14px] bg-white dark:bg-[#141416] border border-neutral-200 dark:border-[#222225] p-6 sm:p-8 flex flex-col gap-4 shadow-sm dark:shadow-xl">
+            <h3 className="text-base font-bold text-neutral-900 dark:text-white flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-500" />
               <span>Codes de Réponses &amp; Erreurs HTTP Standard</span>
             </h3>
 
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-neutral-300">
+              <table className="w-full text-left text-xs text-neutral-700 dark:text-neutral-300">
                 <thead>
-                  <tr className="border-b border-[#27272a] text-neutral-500 uppercase font-mono text-[10px]">
+                  <tr className="border-b border-neutral-200 dark:border-[#27272a] text-neutral-500 uppercase font-mono text-[10px]">
                     <th className="py-2.5 px-3">Code</th>
                     <th className="py-2.5 px-3">Signification</th>
                     <th className="py-2.5 px-3">Description</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#222228]">
+                <tbody className="divide-y divide-neutral-200 dark:divide-[#222228]">
                   <tr>
-                    <td className="py-2.5 px-3 font-mono text-emerald-400 font-bold">200 OK / 201 Created</td>
-                    <td className="py-2.5 px-3 font-semibold text-white">Succès</td>
-                    <td className="py-2.5 px-3 text-neutral-400">La requête a été exécutée et traitée sans erreur.</td>
+                    <td className="py-2.5 px-3 font-mono text-emerald-600 dark:text-emerald-400 font-bold">200 OK / 201 Created</td>
+                    <td className="py-2.5 px-3 font-semibold text-neutral-900 dark:text-white">Succès</td>
+                    <td className="py-2.5 px-3 text-neutral-600 dark:text-neutral-400">La requête a été exécutée et traitée sans erreur.</td>
                   </tr>
                   <tr>
-                    <td className="py-2.5 px-3 font-mono text-amber-400 font-bold">400 Bad Request</td>
-                    <td className="py-2.5 px-3 font-semibold text-white">Paramètres Invalides</td>
-                    <td className="py-2.5 px-3 text-neutral-400">URL cible manquante, format d'URL malformé ou slug non conforme.</td>
+                    <td className="py-2.5 px-3 font-mono text-amber-600 dark:text-amber-400 font-bold">400 Bad Request</td>
+                    <td className="py-2.5 px-3 font-semibold text-neutral-900 dark:text-white">Paramètres Invalides</td>
+                    <td className="py-2.5 px-3 text-neutral-600 dark:text-neutral-400">URL cible manquante, format d'URL malformé ou slug non conforme.</td>
                   </tr>
                   <tr>
-                    <td className="py-2.5 px-3 font-mono text-red-400 font-bold">401 Unauthorized</td>
-                    <td className="py-2.5 px-3 font-semibold text-white">Clé API Invalide</td>
-                    <td className="py-2.5 px-3 text-neutral-400">Clé API manquante dans l'en-tête Authorization ou clé révoquée.</td>
+                    <td className="py-2.5 px-3 font-mono text-red-600 dark:text-red-400 font-bold">401 Unauthorized</td>
+                    <td className="py-2.5 px-3 font-semibold text-neutral-900 dark:text-white">Clé API Invalide</td>
+                    <td className="py-2.5 px-3 text-neutral-600 dark:text-neutral-400">Clé API manquante dans l'en-tête Authorization ou clé révoquée.</td>
                   </tr>
                   <tr>
-                    <td className="py-2.5 px-3 font-mono text-red-400 font-bold">403 Forbidden</td>
-                    <td className="py-2.5 px-3 font-semibold text-white">Quota Dépassé</td>
-                    <td className="py-2.5 px-3 text-neutral-400">Limite de liens ou de domaines personnalisés atteinte pour votre forfait.</td>
+                    <td className="py-2.5 px-3 font-mono text-red-600 dark:text-red-400 font-bold">403 Forbidden</td>
+                    <td className="py-2.5 px-3 font-semibold text-neutral-900 dark:text-white">Quota Dépassé</td>
+                    <td className="py-2.5 px-3 text-neutral-600 dark:text-neutral-400">Limite de liens ou de domaines personnalisés atteinte pour votre forfait.</td>
                   </tr>
                   <tr>
-                    <td className="py-2.5 px-3 font-mono text-purple-400 font-bold">429 Too Many Requests</td>
-                    <td className="py-2.5 px-3 font-semibold text-white">Rate Limit</td>
-                    <td className="py-2.5 px-3 text-neutral-400">Dépassement du débit autorisé par minute (temporairement bridé).</td>
+                    <td className="py-2.5 px-3 font-mono text-purple-600 dark:text-purple-400 font-bold">429 Too Many Requests</td>
+                    <td className="py-2.5 px-3 font-semibold text-neutral-900 dark:text-white">Rate Limit</td>
+                    <td className="py-2.5 px-3 text-neutral-600 dark:text-neutral-400">Dépassement du débit autorisé par minute (temporairement bridé).</td>
                   </tr>
                 </tbody>
               </table>
@@ -1599,43 +1599,43 @@ export default function DocsPage() {
       {mainTab === "security" && (
         <div className="flex flex-col gap-6 animate-in fade-in">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="p-6 rounded-[14px] bg-[#141416] border border-[#222225] space-y-3">
-              <div className="w-9 h-9 rounded-[10px] bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+            <div className="p-6 rounded-[14px] bg-white dark:bg-[#141416] border border-neutral-200 dark:border-[#222225] space-y-3 shadow-sm">
+              <div className="w-9 h-9 rounded-[10px] bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
                 <ShieldCheck className="w-5 h-5" />
               </div>
-              <h3 className="text-base font-bold text-white">Conformité RGPD &amp; Protection de la Vie Privée</h3>
-              <p className="text-xs text-neutral-300 leading-relaxed">
+              <h3 className="text-base font-bold text-neutral-900 dark:text-white">Conformité RGPD &amp; Protection de la Vie Privée</h3>
+              <p className="text-xs text-neutral-600 dark:text-neutral-300 leading-relaxed">
                 LShorter anonymise les adresses IP des visiteurs avant tout stockage analytique. Aucune donnée personnelle identifiable (PII) n'est vendue ni partagée avec des tiers. Nos systèmes respectent les normes strictes du RGPD et du CCPA.
               </p>
             </div>
 
-            <div className="p-6 rounded-[14px] bg-[#141416] border border-[#222225] space-y-3">
-              <div className="w-9 h-9 rounded-[10px] bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400">
+            <div className="p-6 rounded-[14px] bg-white dark:bg-[#141416] border border-neutral-200 dark:border-[#222225] space-y-3 shadow-sm">
+              <div className="w-9 h-9 rounded-[10px] bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-600 dark:text-sky-400">
                 <Zap className="w-5 h-5" />
               </div>
-              <h3 className="text-base font-bold text-white">Réseau Edge Cloudflare &amp; Haute Disponibilité (99.99%)</h3>
-              <p className="text-xs text-neutral-300 leading-relaxed">
+              <h3 className="text-base font-bold text-neutral-900 dark:text-white">Réseau Edge Cloudflare &amp; Haute Disponibilité (99.99%)</h3>
+              <p className="text-xs text-neutral-600 dark:text-neutral-300 leading-relaxed">
                 Vos liens courts sont répliqués en temps réel sur plus de 300 points de présence (PoP) Cloudflare mondiaux avec protection anti-DDoS automatique, mise en cache KV et basculement instantané.
               </p>
             </div>
 
-            <div className="p-6 rounded-[14px] bg-[#141416] border border-[#222225] space-y-3">
-              <div className="w-9 h-9 rounded-[10px] bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400">
+            <div className="p-6 rounded-[14px] bg-white dark:bg-[#141416] border border-neutral-200 dark:border-[#222225] space-y-3 shadow-sm">
+              <div className="w-9 h-9 rounded-[10px] bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-600 dark:text-purple-400">
                 <Lock className="w-5 h-5" />
               </div>
-              <h3 className="text-base font-bold text-white">Chiffrement SSL / TLS 1.3 de Bout en Bout</h3>
-              <p className="text-xs text-neutral-300 leading-relaxed">
+              <h3 className="text-base font-bold text-neutral-900 dark:text-white">Chiffrement SSL / TLS 1.3 de Bout en Bout</h3>
+              <p className="text-xs text-neutral-600 dark:text-neutral-300 leading-relaxed">
                 Toutes les redirections, endpoints API et domaines personnalisés bénéficient d'un certificat SSL Let's Encrypt / Cloudflare géré et renouvelé automatiquement sans aucune intervention de votre part.
               </p>
             </div>
 
-            <div className="p-6 rounded-[14px] bg-[#141416] border border-[#222225] space-y-3">
+            <div className="p-6 rounded-[14px] bg-white dark:bg-[#141416] border border-neutral-200 dark:border-[#222225] space-y-3 shadow-sm">
               <div className="w-9 h-9 rounded-[10px] bg-[#ff6600]/10 border border-[#ff6600]/30 flex items-center justify-center text-[#ff6600]">
                 <KeyRound className="w-5 h-5" />
               </div>
-              <h3 className="text-base font-bold text-white">Signature Cryptographique des Webhooks (HMAC-SHA256)</h3>
-              <p className="text-xs text-neutral-300 leading-relaxed">
-                Chaque requête Webhook est signée à la volée avec votre secret d'intégration via le header <code className="text-white font-mono bg-black/40 px-1 py-0.5 rounded">X-LShorter-Signature</code>, empêchant toute tentative de spoofing ou d'attaque par rejeu.
+              <h3 className="text-base font-bold text-neutral-900 dark:text-white">Signature Cryptographique des Webhooks (HMAC-SHA256)</h3>
+              <p className="text-xs text-neutral-600 dark:text-neutral-300 leading-relaxed">
+                Chaque requête Webhook est signée à la volée avec votre secret d'intégration via le header <code className="text-neutral-800 dark:text-white font-mono bg-neutral-100 dark:bg-black/40 border border-neutral-200 dark:border-transparent px-1 py-0.5 rounded">X-LShorter-Signature</code>, empêchant toute tentative de spoofing ou d'attaque par rejeu.
               </p>
             </div>
           </div>
@@ -1650,15 +1650,15 @@ export default function DocsPage() {
           {filteredFaq.map((item, idx) => (
             <div
               key={idx}
-              className="p-5 sm:p-6 rounded-[14px] bg-[#141416] border border-[#222225] hover:border-neutral-700 transition-colors flex flex-col gap-2"
+              className="p-5 sm:p-6 rounded-[14px] bg-white dark:bg-[#141416] border border-neutral-200 dark:border-[#222225] hover:border-neutral-400 dark:hover:border-neutral-700 transition-colors flex flex-col gap-2 shadow-sm"
             >
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded-[6px] bg-[#ff6600]/15 text-[#ff6600] font-bold">
                   {item.category}
                 </span>
-                <h3 className="text-sm sm:text-base font-bold text-white">{item.question}</h3>
+                <h3 className="text-sm sm:text-base font-bold text-neutral-900 dark:text-white">{item.question}</h3>
               </div>
-              <p className="text-xs sm:text-sm text-neutral-300 leading-relaxed pl-1">
+              <p className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-300 leading-relaxed pl-1">
                 {item.answer}
               </p>
             </div>

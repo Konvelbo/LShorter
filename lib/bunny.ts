@@ -30,25 +30,25 @@ export function getBunnyConfig(): BunnyConfig {
     process.env.BUNNY_STORAGE_ZONE_NAME ||
     process.env.BUNNY_ZONE_NAME ||
     process.env.NEXT_PUBLIC_BUNNY_STORAGE_ZONE_NAME ||
-    "lsho";
+    "lsho-cdn";
 
   const apiKey =
     process.env.BUNNY_STORAGE_API_KEY ||
     process.env.BUNNY_STORAGE_ACCESS_KEY ||
     process.env.BUNNY_STORAGE_PASSWORD ||
     process.env.BUNNY_API_KEY ||
-    "d5a83fca-9021-46cd-b6a8506b0eff-22cf-45cc";
+    "f9e2f690-f13d-41b5-ac330022a215-7d6f-4bdb";
 
   const region = (
     process.env.BUNNY_STORAGE_REGION ||
     process.env.NEXT_PUBLIC_BUNNY_STORAGE_REGION ||
-    "la"
+    "de"
   ).toLowerCase().trim();
 
   const cdnHostname =
     process.env.BUNNY_CDN_HOSTNAME ||
     process.env.NEXT_PUBLIC_BUNNY_CDN_HOSTNAME ||
-    "lsho.b-cdn.net";
+    "lsho-cdn.b-cdn.net";
 
   return {
     storageZoneName,
@@ -104,6 +104,7 @@ export function getBunnyStorageEndpoint(region?: string): string {
     case "de":
     case "eu":
     case "falkenstein":
+    case "frankfurt":
     default:
       return "https://storage.bunnycdn.com";
   }

@@ -165,7 +165,7 @@ export default function LandingPage() {
             <Button
               variant="outline"
               size="lg"
-              className="w-full sm:w-auto font-bebas text-xl sm:text-2xl px-6 sm:px-8 py-3.5 sm:py-5 tracking-wide text-neutral-300 rounded-[10px] border-[#27272a] hover:bg-white/5 hover:text-white h-auto leading-normal"
+              className="w-full sm:w-auto font-bebas text-xl sm:text-2xl px-6 sm:px-8 py-3.5 sm:py-5 tracking-wide text-neutral-700 dark:text-neutral-300 rounded-[10px] border-neutral-300 dark:border-[#27272a] hover:bg-neutral-100 dark:hover:bg-white/5 hover:text-neutral-900 dark:hover:text-white h-auto leading-normal"
             >
               VOIR LES TARIFS
             </Button>
@@ -173,17 +173,17 @@ export default function LandingPage() {
         </div>
 
         {/* Quick Value Metrics Pill Line */}
-        <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-8 pt-2 text-xs text-neutral-400">
+        <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-8 pt-2 text-xs text-neutral-600 dark:text-neutral-400">
           <div className="flex items-center gap-1.5">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
             <span>100 000 clics gratuits / mois</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
             <span>Sans carte bancaire</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
             <span>Conforme RGPD & Zéro cookie</span>
           </div>
         </div>
@@ -192,7 +192,7 @@ export default function LandingPage() {
         <div className="w-full max-w-2xl mx-auto mt-2 sm:mt-4 transition-all">
           <form
             onSubmit={handleDemoShorten}
-            className="w-full h-13 sm:h-16 p-1 sm:p-1.5 rounded-full bg-[#0d0d12]/95 backdrop-blur-2xl border border-white/15 hover:border-white/25 focus-within:border-[#0066FF] md:focus-within:border-[#ff6600] focus-within:shadow-[0_0_30px_rgba(0,102,255,0.3)] md:focus-within:shadow-[0_0_30px_rgba(255,102,0,0.3)] shadow-[0_12px_40px_rgba(0,0,0,0.75)] flex items-center gap-2 transition-all"
+            className="w-full h-13 sm:h-16 p-1 sm:p-1.5 rounded-full bg-white dark:bg-[#0d0d12]/95 backdrop-blur-2xl border border-neutral-300 dark:border-white/15 hover:border-neutral-400 dark:hover:border-white/25 focus-within:border-[#0066FF] md:focus-within:border-[#ff6600] focus-within:shadow-[0_0_30px_rgba(0,102,255,0.25)] md:focus-within:shadow-[0_0_30px_rgba(255,102,0,0.25)] shadow-[0_10px_35px_rgba(0,0,0,0.08)] dark:shadow-[0_12px_40px_rgba(0,0,0,0.75)] flex items-center gap-2 transition-all"
           >
             <div className="pl-3 sm:pl-4 flex items-center text-neutral-400">
               <Link2 className="w-4 h-4 sm:w-5 h-5 text-[#0066FF] md:text-[#ff6600] shrink-0" />
@@ -203,7 +203,7 @@ export default function LandingPage() {
               placeholder="Collez votre lien long ici..."
               value={demoUrl}
               onChange={(e) => setDemoUrl(e.target.value)}
-              className="flex-1 min-w-0 bg-transparent text-xs sm:text-sm text-white placeholder:text-neutral-500 focus:outline-none px-2"
+              className="flex-1 min-w-0 bg-transparent text-xs sm:text-sm text-neutral-900 dark:text-white placeholder:text-neutral-400 dark:placeholder:text-neutral-500 focus:outline-none px-2 border-none shadow-none ring-0 focus:ring-0"
             />
             {/* Button: BLUE on mobile (<768px), ORANGE on desktop (md:) */}
             <button
@@ -252,7 +252,7 @@ export default function LandingPage() {
           2. 3D GLOBE SHOWCASE & EDGE NETWORK STATS
       ───────────────────────────────────────────────────────────── */}
       <section className="rounded-[12px] bg-[#141416] border border-[#222225] p-6 sm:p-10 lg:p-14 flex flex-col lg:flex-row items-center gap-8 lg:gap-14 shadow-2xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-80 h-80 bg-[#0066FF]/10 md:bg-[#ff6600]/10 rounded-full blur-3xl pointer-events-none -z-0" />
+        <div className="absolute top-0 right-0 w-80 h-80 bg-[#0066FF]/10 md:bg-[#ff6600]/10 rounded-full blur-3xl pointer-events-none -z-0 opacity-40 dark:opacity-100" />
 
         <div className="flex-1 flex flex-col gap-4 sm:gap-5 z-10">
           <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#0066FF] md:text-[#ff6600]">
@@ -284,8 +284,8 @@ export default function LandingPage() {
           </div>
         </div>
 
-        <div className="flex-1 flex items-center justify-center w-full min-h-[300px] sm:min-h-[400px]">
-          <CobeGlobe />
+        <div className="flex-1 flex items-center justify-center w-full max-w-[380px] min-h-[260px] sm:min-h-[340px]">
+          <CobeGlobe className="max-w-[340px]" />
         </div>
       </section>
 
@@ -1092,7 +1092,7 @@ export default function LandingPage() {
               <button
                 type="button"
                 onClick={() => toggleFaq(idx)}
-                className="w-full p-4 sm:p-6 text-left flex items-center justify-between gap-4 text-xs sm:text-base font-bold text-white hover:text-[#0066FF] md:hover:text-[#ff6600] transition-colors cursor-pointer"
+                className="w-full p-4 sm:p-6 text-left flex items-center justify-between gap-4 text-xs sm:text-base font-bold text-neutral-900 dark:text-white hover:text-[#0066FF] md:hover:text-[#ff6600] dark:hover:text-[#ff6600] transition-colors cursor-pointer"
               >
                 <span>{item.q}</span>
                 <ChevronDown
@@ -1102,7 +1102,7 @@ export default function LandingPage() {
                 />
               </button>
               {openFaq === idx && (
-                <div className="px-4 sm:px-6 pb-4 sm:pb-6 text-xs sm:text-sm text-neutral-300 leading-relaxed border-t border-[#222225]/60 pt-3 sm:pt-4 animate-in fade-in duration-150">
+                <div className="px-4 sm:px-6 pb-4 sm:pb-6 text-xs sm:text-sm text-neutral-600 dark:text-neutral-300 leading-relaxed border-t border-[#222225]/60 pt-3 sm:pt-4 animate-in fade-in duration-150">
                   {item.a}
                 </div>
               )}
@@ -1114,20 +1114,20 @@ export default function LandingPage() {
       {/* ─────────────────────────────────────────────────────────────
           7. FINAL CONVERSION CTA (Clean Mobile & Desktop Layout)
       ───────────────────────────────────────────────────────────── */}
-      <section className="text-center p-6 sm:p-14 lg:p-20 rounded-[12px] bg-gradient-to-b from-[#141416] via-[#111114] to-[#09090b] border border-[#0066FF]/30 md:border-[#ff6600]/30 shadow-2xl flex flex-col items-center gap-5 sm:gap-6 relative overflow-hidden">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] sm:w-[500px] h-[200px] sm:h-[300px] bg-[#0066FF]/15 md:bg-[#ff6600]/15 rounded-full blur-[100px] pointer-events-none -z-0" />
+      <section className="text-center p-6 sm:p-14 lg:p-20 rounded-[12px] bg-white dark:bg-gradient-to-b dark:from-[#141416] dark:via-[#111114] dark:to-[#09090b] border border-neutral-200 dark:border-[#0066FF]/30 md:dark:border-[#ff6600]/30 shadow-xl dark:shadow-2xl flex flex-col items-center gap-5 sm:gap-6 relative overflow-hidden">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] sm:w-[500px] h-[200px] sm:h-[300px] bg-[#0066FF]/10 md:bg-[#ff6600]/10 rounded-full blur-[100px] pointer-events-none -z-0 opacity-40 dark:opacity-100" />
 
-        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#0066FF]/15 md:bg-[#ff6600]/15 border border-[#0066FF]/30 md:border-[#ff6600]/30 text-xs font-bold text-[#0066FF] md:text-[#ff6600]">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#0066FF]/10 md:bg-[#ff6600]/10 border border-[#0066FF]/30 md:border-[#ff6600]/30 text-xs font-bold text-[#0066FF] md:text-[#ff6600]">
           <Sparkles className="w-3.5 h-3.5 shrink-0" />
           <span>Prêt à booster vos conversions dès aujourd&apos;hui ?</span>
         </div>
 
-        <h2 className="font-bebas text-3xl sm:text-6xl lg:text-7xl text-white tracking-wide max-w-3xl leading-[0.95] z-10">
+        <h2 className="font-bebas text-3xl sm:text-6xl lg:text-7xl text-neutral-900 dark:text-white tracking-wide max-w-3xl leading-[0.95] z-10">
           REJOIGNEZ DES MILLIERS DE CRÉATEURS ET D&apos;ENTREPRISES
         </h2>
 
-        <p className="text-xs sm:text-sm lg:text-base text-neutral-300 max-w-xl z-10 leading-relaxed px-2">
-          Créez votre compte en moins de 30 secondes, raccourcissez vos liens et profitez de <strong className="text-white">100 000 clics gratuits chaque mois</strong>.
+        <p className="text-xs sm:text-sm lg:text-base text-neutral-600 dark:text-neutral-300 max-w-xl z-10 leading-relaxed px-2">
+          Créez votre compte en moins de 30 secondes, raccourcissez vos liens et profitez de <strong className="text-neutral-900 dark:text-white">100 000 clics gratuits chaque mois</strong>.
         </p>
 
         {/* Clean Stacked Layout on Mobile, Inline on Desktop */}
@@ -1136,7 +1136,7 @@ export default function LandingPage() {
             <Button
               variant="glow"
               size="lg"
-              className="w-full sm:w-auto font-bebas text-xl sm:text-2xl px-6 sm:px-10 py-3.5 sm:py-5 tracking-wider shadow-xl shadow-[#0066FF]/30 md:shadow-[#ff6600]/30 hover:scale-105 transition-transform rounded-[10px] h-auto leading-normal whitespace-nowrap bg-[#0066FF] md:bg-[#ff6600]"
+              className="w-full sm:w-auto font-bebas text-xl sm:text-2xl px-6 sm:px-10 py-3.5 sm:py-5 tracking-wider shadow-xl shadow-[#0066FF]/30 md:shadow-[#ff6600]/30 hover:scale-105 transition-transform rounded-[10px] h-auto leading-normal whitespace-nowrap bg-[#0066FF] md:bg-[#ff6600] text-white"
             >
               CRÉER MON PREMIER LIEN COURT
             </Button>
@@ -1145,7 +1145,7 @@ export default function LandingPage() {
             <Button
               variant="outline"
               size="lg"
-              className="w-full sm:w-auto font-bebas text-xl sm:text-2xl px-6 sm:px-8 py-3.5 sm:py-5 tracking-wide text-neutral-300 rounded-[10px] border-[#27272a] hover:bg-white/5 hover:text-white h-auto leading-normal whitespace-nowrap"
+              className="w-full sm:w-auto font-bebas text-xl sm:text-2xl px-6 sm:px-8 py-3.5 sm:py-5 tracking-wide text-neutral-700 dark:text-neutral-300 rounded-[10px] border-neutral-300 dark:border-[#27272a] hover:bg-neutral-100 dark:hover:bg-white/5 hover:text-neutral-900 dark:hover:text-white h-auto leading-normal whitespace-nowrap"
             >
               CONSULTER LES FORFAITS
             </Button>

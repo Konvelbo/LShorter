@@ -232,7 +232,7 @@ export function PopulatedState({ links, analytics, onRefresh }: PopulatedStatePr
                     </div>
 
                     {/* Progress bar */}
-                    <div className="w-full h-1.5 rounded-full bg-[#27272a] overflow-hidden">
+                    <div className="w-full h-1.5 rounded-full bg-neutral-200 dark:bg-[#27272a] overflow-hidden">
                       <div
                         className="h-full bg-[#ff6600] rounded-full transition-all duration-500"
                         style={{ width: `${country.percentage}%` }}

@@ -850,8 +850,8 @@ function AnalyticsContent() {
             </p>
           </div>
 
-          <div className="my-4 flex items-center justify-center">
-            <CobeGlobe className="max-h-[340px]" topCountries={analytics.topCountries} />
+          <div className="my-2 flex items-center justify-center">
+            <CobeGlobe className="max-h-[290px] max-w-[290px]" topCountries={analytics.topCountries} />
           </div>
 
           <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-[#222225]">

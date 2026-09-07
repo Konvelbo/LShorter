@@ -200,19 +200,19 @@ export default function PricingPage() {
         <span className="px-3 py-1 rounded-full bg-[#ff6600]/15 text-[#ff6600] border border-[#ff6600]/30 text-xs font-bold uppercase tracking-wider">
           Grille Tarifaire Compétitive
         </span>
-        <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+        <h1 className="text-3xl sm:text-4xl font-extrabold text-neutral-900 dark:text-white tracking-tight">
           Des forfaits conçus pour <span className="text-[#ff6600]">dominer le marché</span>
         </h1>
-        <p className="text-sm text-neutral-400 leading-relaxed">
+        <p className="text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed">
           Grâce à l&apos;avantage technologique de Cloudflare Edge, profitez du ciblage avancé (Géo &amp; Appareil) dès le plan gratuit, là où la concurrence facture 48$/mois.
         </p>
 
         {/* Annual / Monthly Toggle */}
-        <div className="flex items-center gap-3 mt-4 p-1.5 rounded-full bg-[#141416] border border-[#27272a]">
+        <div className="flex items-center gap-3 mt-4 p-1.5 rounded-full bg-neutral-200/80 dark:bg-[#141416] border border-neutral-300 dark:border-[#27272a]">
           <button
             onClick={() => setIsAnnual(false)}
             className={`btn-hover-scale px-4 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
-              !isAnnual ? "bg-[#ff6600] text-white shadow-md shadow-[#ff6600]/25" : "text-neutral-400 hover:text-white"
+              !isAnnual ? "bg-[#ff6600] text-white shadow-md shadow-[#ff6600]/25" : "text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white"
             }`}
           >
             Facturation Mensuelle
@@ -220,11 +220,11 @@ export default function PricingPage() {
           <button
             onClick={() => setIsAnnual(true)}
             className={`btn-hover-scale px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-              isAnnual ? "bg-[#ff6600] text-white shadow-md shadow-[#ff6600]/25" : "text-neutral-400 hover:text-white"
+              isAnnual ? "bg-[#ff6600] text-white shadow-md shadow-[#ff6600]/25" : "text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white"
             }`}
           >
             <span>Facturation Annuelle</span>
-            <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[10px] font-extrabold uppercase">
+            <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-extrabold uppercase">
               2 mois offerts
             </span>
           </button>
@@ -240,10 +240,10 @@ export default function PricingPage() {
           return (
             <div
               key={p.id}
-              className={`relative flex flex-col justify-between p-6 sm:p-7 rounded-[10px] bg-[#141416] border transition-all duration-300 ${
+              className={`relative flex flex-col justify-between p-6 sm:p-7 rounded-[10px] bg-white dark:bg-[#141416] border transition-all duration-300 ${
                 p.popular
-                  ? "border-[#ff6600] shadow-2xl shadow-[#ff6600]/15 ring-1 ring-[#ff6600]"
-                  : "border-[#27272a] hover:border-neutral-500"
+                  ? "border-[#ff6600] shadow-xl shadow-[#ff6600]/10 dark:shadow-2xl dark:shadow-[#ff6600]/15 ring-1 ring-[#ff6600]"
+                  : "border-neutral-200 dark:border-[#27272a] hover:border-neutral-400 dark:hover:border-neutral-500 shadow-sm"
               }`}
             >
               {p.popular && (
@@ -254,40 +254,40 @@ export default function PricingPage() {
 
               <div>
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-bold text-white tracking-wide">{p.name}</h3>
+                  <h3 className="text-lg font-bold text-neutral-900 dark:text-white tracking-wide">{p.name}</h3>
                   {isCurrent && (
-                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold uppercase">
+                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[10px] font-bold uppercase">
                       Forfait Actuel
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-neutral-400 mt-2 min-h-[36px]">{p.tagline}</p>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-2 min-h-[36px]">{p.tagline}</p>
 
                 {/* Price display */}
                 <div className="my-5 flex items-baseline gap-1.5">
-                  <span className="text-4xl font-black text-white">{displayPrice}€</span>
-                  <span className="text-xs text-neutral-400">
+                  <span className="text-4xl font-black text-neutral-900 dark:text-white">{displayPrice}€</span>
+                  <span className="text-xs text-neutral-500 dark:text-neutral-400">
                     {p.priceMonthly === 0 ? "à vie" : isAnnual ? "/ an" : "/ mois"}
                   </span>
                   {isAnnual && p.monthlyEquivalent && (
-                    <span className="text-[11px] text-neutral-400 ml-1">
+                    <span className="text-[11px] text-neutral-500 dark:text-neutral-400 ml-1">
                       (soit {p.monthlyEquivalent}/mois)
                     </span>
                   )}
                 </div>
 
                 {/* Features list */}
-                <div className="flex flex-col gap-2.5 text-xs text-neutral-300 pt-4 border-t border-[#222225]">
+                <div className="flex flex-col gap-2.5 text-xs text-neutral-700 dark:text-neutral-300 pt-4 border-t border-neutral-200 dark:border-[#222225]">
                   {p.features.map((feat, i) => (
                     <div key={i} className="flex items-start gap-2">
-                      <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                      <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
                       <span className="leading-snug">{feat}</span>
                     </div>
                   ))}
 
                   {p.limitations.map((lim, i) => (
-                    <div key={i} className="flex items-start gap-2 text-neutral-500">
-                      <X className="w-4 h-4 text-neutral-500 shrink-0 mt-0.5" />
+                    <div key={i} className="flex items-start gap-2 text-neutral-400 dark:text-neutral-500">
+                      <X className="w-4 h-4 text-neutral-400 dark:text-neutral-500 shrink-0 mt-0.5" />
                       <span className="leading-snug">{lim}</span>
                     </div>
                   ))}
@@ -300,10 +300,10 @@ export default function PricingPage() {
                 disabled={isCurrent}
                 className={`btn-hover-scale mt-7 w-full py-3 rounded-[10px] font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer ${
                   isCurrent
-                    ? "bg-white/5 text-neutral-400 border border-[#27272a] cursor-default"
+                    ? "bg-neutral-100 dark:bg-white/5 text-neutral-500 dark:text-neutral-400 border border-neutral-200 dark:border-[#27272a] cursor-default"
                     : p.popular
                     ? "bg-[#ff6600] hover:bg-[#ff771a] text-white shadow-lg shadow-[#ff6600]/30"
-                    : "bg-white/10 hover:bg-white/20 text-white border border-white/20"
+                    : "bg-neutral-100 hover:bg-neutral-200 dark:bg-white/10 dark:hover:bg-white/20 text-neutral-900 dark:text-white border border-neutral-300 dark:border-white/20"
                 }`}
               >
                 {isCurrent ? (
@@ -323,24 +323,24 @@ export default function PricingPage() {
       {/* Comprehensive Feature Comparison Matrix */}
       <div className="mt-8 flex flex-col gap-4">
         <div>
-          <h2 className="text-xl font-bold text-white tracking-wide">Tableau Comparatif Détaillé</h2>
-          <p className="text-xs text-neutral-400 mt-0.5">
+          <h2 className="text-xl font-bold text-neutral-900 dark:text-white tracking-wide">Tableau Comparatif Détaillé</h2>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
             Toutes les caractéristiques techniques et quotas comparés au millimètre près.
           </p>
         </div>
 
-        <div className="rounded-[10px] bg-[#141416] border border-[#27272a] overflow-hidden shadow-2xl">
+        <div className="rounded-[10px] bg-white dark:bg-[#141416] border border-neutral-200 dark:border-[#27272a] overflow-hidden shadow-sm dark:shadow-2xl">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="border-b border-[#27272a] bg-[#1a1a1e]/80 text-neutral-400 uppercase tracking-wider font-bold text-[10px]">
+                <tr className="border-b border-neutral-200 dark:border-[#27272a] bg-neutral-50 dark:bg-[#1a1a1e]/80 text-neutral-600 dark:text-neutral-400 uppercase tracking-wider font-bold text-[10px]">
                   <th className="p-4 sm:p-5">Fonctionnalité</th>
-                  <th className="p-4 sm:p-5 text-neutral-300">Plan FREEMIUM (0€)</th>
+                  <th className="p-4 sm:p-5 text-neutral-700 dark:text-neutral-300">Plan FREEMIUM (0€)</th>
                   <th className="p-4 sm:p-5 text-[#ff6600]">Plan PRO (12€/m ou 115€/an)</th>
-                  <th className="p-4 sm:p-5 text-white">Plan BUSINESS (39€/m ou 374€/an)</th>
+                  <th className="p-4 sm:p-5 text-neutral-900 dark:text-white">Plan BUSINESS (39€/m ou 374€/an)</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#222225] text-neutral-200">
+              <tbody className="divide-y divide-neutral-200 dark:divide-[#222225] text-neutral-700 dark:text-neutral-200">
                 {comparisonTable.map((row, idx) => (
                   <tr key={idx} className="hover:bg-white/[0.02] transition-colors">
                     <td className="p-4 sm:p-5 font-semibold text-white">{row.feature}</td>

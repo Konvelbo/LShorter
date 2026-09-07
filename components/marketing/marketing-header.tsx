@@ -28,19 +28,19 @@ export function MarketingHeader() {
       {/* =========================================================================
           DESKTOP NAVBAR: Sleek Glass Effect, Minimalist Frame & Hover Animations
           ========================================================================= */}
-      <header className="hidden md:flex max-w-5xl mx-auto bg-[#0a0a0f]/60 hover:bg-[#0a0a0f]/80 backdrop-blur-xl border border-white/[0.08] hover:border-white/[0.18] shadow-[0_8px_32px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] hover:shadow-[0_12px_40px_rgba(255,102,0,0.1),inset_0_1px_0_rgba(255,255,255,0.12)] rounded-full px-5 py-2.5 items-center justify-between pointer-events-auto transition-all duration-300">
+      <header className="hidden md:flex max-w-5xl mx-auto bg-white/85 dark:bg-[#0a0a0f]/60 hover:bg-white/95 dark:hover:bg-[#0a0a0f]/80 backdrop-blur-xl border border-neutral-200 dark:border-white/[0.08] hover:border-neutral-300 dark:hover:border-white/[0.18] shadow-[0_8px_32px_rgba(0,0,0,0.06)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] hover:shadow-[0_12px_40px_rgba(255,102,0,0.1),inset_0_1px_0_rgba(255,255,255,0.12)] rounded-full px-5 py-2.5 items-center justify-between pointer-events-auto transition-all duration-300">
         
         {/* Brand Logo with LS Badge & Smooth Hover Scale/Glow */}
         <Link href="/" className="flex items-center gap-3 group select-none cursor-pointer">
           <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#ff6600] to-[#ffa347] flex items-center justify-center shadow-lg shadow-[#ff6600]/30 font-bebas text-2xl text-white font-bold tracking-wider group-hover:scale-110 group-hover:shadow-[0_0_20px_rgba(255,102,0,0.6)] group-hover:rotate-3 transition-all duration-300">
             LS
           </div>
-          <span className="font-bebas text-3xl text-white tracking-wider flex items-center gap-1 group-hover:tracking-widest transition-all duration-300">
+          <span className="font-bebas text-3xl text-neutral-900 dark:text-white tracking-wider flex items-center gap-1 group-hover:tracking-widest transition-all duration-300">
             L<span className="text-[#ff6600] group-hover:drop-shadow-[0_0_12px_rgba(255,102,0,0.8)] transition-all duration-300">SHORTER</span>
           </span>
         </Link>
 
-        {/* Center Desktop Links with Simple CSS Hover to #ffffff */}
+        {/* Center Desktop Links with Adaptive Light/Dark Colors */}
         <nav className="flex items-center gap-1.5">
           {navLinks.map((item) => {
             const isActive = pathname === item.href;
@@ -48,11 +48,11 @@ export function MarketingHeader() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`nav-link-item ${isActive ? "active" : ""} relative px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide flex items-center gap-1.5 cursor-pointer`}
+                className={`nav-link-item ${isActive ? "active font-bold text-neutral-900 dark:text-white" : "text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white"} relative px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide flex items-center gap-1.5 cursor-pointer transition-colors`}
               >
                 <span>{item.label}</span>
                 {item.badge && (
-                  <span className="px-1.5 py-0.5 rounded-[10px] bg-white/10 text-neutral-400 text-[10px] font-mono transition-colors duration-200">
+                  <span className="px-1.5 py-0.5 rounded-[10px] bg-neutral-200 dark:bg-white/10 text-neutral-600 dark:text-neutral-400 text-[10px] font-mono transition-colors duration-200">
                     {item.badge}
                   </span>
                 )}
@@ -81,7 +81,7 @@ export function MarketingHeader() {
             <>
               <Link
                 href="/login"
-                className="nav-link-item text-xs font-semibold px-4 py-2 cursor-pointer"
+                className="nav-link-item text-xs font-semibold px-4 py-2 cursor-pointer text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white transition-colors"
               >
                 Se connecter
               </Link>
@@ -102,13 +102,13 @@ export function MarketingHeader() {
       {/* =========================================================================
           MOBILE NAVBAR: Preserved exactly for mobile devices
           ========================================================================= */}
-      <header className="flex md:hidden max-w-6xl mx-auto bg-[#0d0d12]/85 backdrop-blur-2xl border border-white/10 shadow-[0_12px_40px_rgba(0,0,0,0.65),0_0_20px_rgba(0,102,255,0.12)] rounded-[10px] px-3.5 py-2 items-center justify-between pointer-events-auto transition-all duration-300">
+      <header className="flex md:hidden max-w-6xl mx-auto bg-white/90 dark:bg-[#0d0d12]/85 backdrop-blur-2xl border border-neutral-200 dark:border-white/10 shadow-[0_10px_25px_rgba(0,0,0,0.06)] dark:shadow-[0_12px_40px_rgba(0,0,0,0.65),0_0_20px_rgba(0,102,255,0.12)] rounded-[10px] px-3.5 py-2 items-center justify-between pointer-events-auto transition-all duration-300">
         {/* Brand Logo with LS Badge */}
         <Link href="/" className="flex items-center gap-2.5 group select-none">
           <div className="w-8 h-8 rounded-[10px] bg-gradient-to-tr from-[#0066FF] to-[#38bdf8] flex items-center justify-center shadow-lg shadow-[#0066FF]/30 font-bebas text-xl text-white font-bold tracking-wider">
             LS
           </div>
-          <span className="font-bebas text-2xl text-white tracking-wider flex items-center gap-0.5">
+          <span className="font-bebas text-2xl text-neutral-900 dark:text-white tracking-wider flex items-center gap-0.5">
             L<span className="text-[#0066FF]">SHORTER</span>
           </span>
         </Link>
@@ -118,7 +118,7 @@ export function MarketingHeader() {
           <button
             type="button"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-neutral-300 hover:text-white active:scale-95 transition-all cursor-pointer shadow-sm"
+            className="w-9 h-9 rounded-full bg-neutral-100 hover:bg-neutral-200 dark:bg-white/5 dark:hover:bg-white/10 border border-neutral-200 dark:border-white/10 flex items-center justify-center text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white active:scale-95 transition-all cursor-pointer shadow-sm"
             aria-label="Ouvrir le menu"
           >
             {isMobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
@@ -128,7 +128,7 @@ export function MarketingHeader() {
 
       {/* Mobile Animated Floating Dropdown Frame */}
       {isMobileMenuOpen && (
-        <div className="md:hidden max-w-6xl mx-auto mt-2 rounded-[10px] bg-[#0d0d12]/95 backdrop-blur-2xl border border-white/10 shadow-2xl p-4 flex flex-col gap-2.5 animate-in slide-in-from-top-2 duration-200 pointer-events-auto">
+        <div className="md:hidden max-w-6xl mx-auto mt-2 rounded-[10px] bg-white/95 dark:bg-[#0d0d12]/95 backdrop-blur-2xl border border-neutral-200 dark:border-white/10 shadow-xl dark:shadow-2xl p-4 flex flex-col gap-2.5 animate-in slide-in-from-top-2 duration-200 pointer-events-auto">
           <Link
             href="/"
             onClick={() => setIsMobileMenuOpen(false)}

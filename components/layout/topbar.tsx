@@ -15,6 +15,8 @@ import {
   Settings,
   CreditCard,
   FileText,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 import { useQuery } from "convex/react";
@@ -31,6 +33,33 @@ export function Topbar() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [imgError, setImgError] = useState(false);
   const [localPlan, setLocalPlan] = useState<string | null>(null);
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
+
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedTheme = localStorage.getItem("lshorter_theme") as "dark" | "light" | null;
+      if (savedTheme) {
+        setTheme(savedTheme);
+        document.documentElement.classList.remove("dark", "light");
+        document.documentElement.classList.add(savedTheme);
+      } else if (document.documentElement.classList.contains("light")) {
+        setTheme("light");
+      } else {
+        setTheme("dark");
+      }
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    const nextTheme = theme === "dark" ? "light" : "dark";
+    setTheme(nextTheme);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("lshorter_theme", nextTheme);
+      document.documentElement.classList.remove("dark", "light");
+      document.documentElement.classList.add(nextTheme);
+      window.dispatchEvent(new CustomEvent("lshorter_theme_changed", { detail: nextTheme }));
+    }
+  };
 
   React.useEffect(() => {
     const update = () => {
@@ -116,8 +145,22 @@ export function Topbar() {
           </span>
         </Link>
 
-        {/* Right: Blue Notification Dot & Blue Avatar Ring */}
+        {/* Right: Theme Switch, Blue Notification Dot & Blue Avatar Ring */}
         <div className="flex items-center gap-2">
+          {/* Theme Switcher Mobile (< 768px - Cyber Blue) */}
+          <button
+            type="button"
+            onClick={toggleTheme}
+            title={theme === "dark" ? "Passer en mode clair" : "Passer en mode sombre"}
+            className="w-8 h-8 rounded-[8px] bg-[#10141f] border border-[#1e2942] text-neutral-400 hover:text-white flex items-center justify-center cursor-pointer transition-colors"
+          >
+            {theme === "dark" ? (
+              <Sun className="w-3.5 h-3.5 text-amber-400" />
+            ) : (
+              <Moon className="w-3.5 h-3.5 text-[#0066FF]" />
+            )}
+          </button>
+
           <button
             type="button"
             onClick={() => {
@@ -202,6 +245,20 @@ export function Topbar() {
               <span>Passer en PRO</span>
             </button>
           )}
+
+          {/* Theme Toggle Button Desktop (>= 768px) */}
+          <button
+            type="button"
+            onClick={toggleTheme}
+            title={theme === "dark" ? "Passer en mode clair" : "Passer en mode sombre"}
+            className="w-10 h-10 rounded-[10px] bg-[#141416] border border-[#27272a] hover:border-neutral-500 text-neutral-400 hover:text-white flex items-center justify-center transition-all cursor-pointer"
+          >
+            {theme === "dark" ? (
+              <Sun className="w-4 h-4 text-amber-400 hover:rotate-45 transition-transform" />
+            ) : (
+              <Moon className="w-4 h-4 text-[#ff6600] hover:-rotate-12 transition-transform" />
+            )}
+          </button>
 
           {/* Notifications Popover */}
           <div className="relative">

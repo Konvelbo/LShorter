@@ -140,7 +140,7 @@ export function Sidebar() {
   const clicksLimit = plan === "BUSINESS" ? -1 : plan === "PRO" ? 1_000_000 : 100_000;
   const percentage =
     clicksLimit === -1
-      ? 10
+      ? (clicksThisMonth > 0 ? Math.min(100, Math.max(1, Math.round((clicksThisMonth / 10_000_000) * 100))) : 0)
       : Math.min(100, Math.max(0, Math.round((clicksThisMonth / clicksLimit) * 100)));
 
   return (
@@ -286,7 +286,7 @@ export function Sidebar() {
                   {clicksThisMonth.toLocaleString()} / {clicksLimit === -1 ? "Illimité" : clicksLimit.toLocaleString()}
                 </span>
               </div>
-              <div className="w-full h-1 rounded-full bg-[#27272a] overflow-hidden">
+              <div className="w-full h-1.5 rounded-full bg-neutral-200 dark:bg-[#27272a] overflow-hidden">
                 <div
                   className="h-full bg-[#ff6600] rounded-full transition-all duration-500"
                   style={{ width: `${percentage}%` }}
@@ -427,9 +427,9 @@ export function Sidebar() {
               {clicksThisMonth.toLocaleString()} / {clicksLimit === -1 ? "Illimité" : clicksLimit.toLocaleString()}
             </span>
           </div>
-          <div className="w-full h-1 rounded-full bg-black/40 overflow-hidden">
+          <div className="w-full h-1.5 rounded-full bg-neutral-200 dark:bg-black/40 overflow-hidden">
             <div
-              className="h-full bg-[#0066FF] rounded-full"
+              className="h-full bg-[#0066FF] rounded-full transition-all duration-500"
               style={{ width: `${percentage}%` }}
             />
           </div>

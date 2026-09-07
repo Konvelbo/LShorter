@@ -106,10 +106,10 @@ export function EmptyState({ onLinkCreated, analytics }: EmptyStateProps) {
         <div className="absolute w-72 h-72 bg-[#ff6600]/5 rounded-full blur-3xl pointer-events-none -top-10" />
 
         {/* Center Icon */}
-        <div className="w-16 h-16 rounded-full bg-[#27272a] border border-[#3f3f46] flex items-center justify-center mb-5 shadow-xl relative">
+        <div className="w-16 h-16 rounded-full bg-neutral-100 dark:bg-[#27272a] border border-neutral-200 dark:border-[#3f3f46] flex items-center justify-center mb-5 shadow-xl relative">
           <div className="flex items-center gap-1">
             <div className="w-4 h-4 rounded-full bg-[#ff6600]" />
-            <div className="w-5 h-3 rounded-full bg-white" />
+            <div className="w-5 h-3 rounded-full bg-neutral-900 dark:bg-white" />
           </div>
         </div>
 
@@ -124,7 +124,7 @@ export function EmptyState({ onLinkCreated, analytics }: EmptyStateProps) {
         {/* Shorten Input Form */}
         <form
           onSubmit={handleShortenClick}
-          className="w-full max-w-xl flex flex-col sm:flex-row items-center gap-2 mb-10"
+          className="w-full max-w-xl flex flex-col sm:flex-row items-center gap-2.5 mb-10"
         >
           <input
             type="url"
@@ -132,7 +132,7 @@ export function EmptyState({ onLinkCreated, analytics }: EmptyStateProps) {
             placeholder="https://votre-site.com/page-de-destination..."
             value={urlInput}
             onChange={(e) => setUrlInput(e.target.value)}
-            className="w-full h-12 rounded-[10px] bg-white text-neutral-900 px-4 text-sm placeholder:text-neutral-500 font-medium focus:outline-none focus:ring-2 focus:ring-[#ff6600]"
+            className="w-full h-12 rounded-[10px] bg-neutral-50 dark:bg-white border-2 border-neutral-300 dark:border-transparent text-neutral-900 px-4 text-sm placeholder:text-neutral-500 font-medium shadow-sm focus:outline-none focus:border-[#ff6600] focus:ring-2 focus:ring-[#ff6600]/20 focus:bg-white transition-all"
           />
           <Button
             type="submit"
@@ -144,30 +144,30 @@ export function EmptyState({ onLinkCreated, analytics }: EmptyStateProps) {
         </form>
 
         {/* 3 Steps Timeline */}
-        <div className="flex flex-wrap items-center justify-center gap-3 md:gap-6 text-xs text-neutral-400">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a]">
-            <span className="w-5 h-5 rounded-full bg-[#ff6600] text-white font-bold text-[11px] flex items-center justify-center">
+        <div className="flex flex-wrap items-center justify-center gap-3 md:gap-6 text-xs text-neutral-600 dark:text-neutral-400">
+          <div className="flex items-center gap-2 px-3.5 py-2 rounded-[10px] bg-neutral-100 dark:bg-[#1a1a1e] border border-neutral-300 dark:border-[#27272a] shadow-sm">
+            <span className="w-5 h-5 rounded-full bg-[#ff6600] text-white font-bold text-[11px] flex items-center justify-center shrink-0">
               1
             </span>
-            <span className="font-medium text-neutral-200">Copiez votre URL</span>
+            <span className="font-semibold text-neutral-900 dark:text-neutral-200">Copiez votre URL</span>
           </div>
 
-          <span className="text-neutral-600">→</span>
+          <span className="text-neutral-400 dark:text-neutral-600 font-bold select-none">→</span>
 
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a]">
-            <span className="w-5 h-5 rounded-full bg-[#ff6600] text-white font-bold text-[11px] flex items-center justify-center">
+          <div className="flex items-center gap-2 px-3.5 py-2 rounded-[10px] bg-neutral-100 dark:bg-[#1a1a1e] border border-neutral-300 dark:border-[#27272a] shadow-sm">
+            <span className="w-5 h-5 rounded-full bg-[#ff6600] text-white font-bold text-[11px] flex items-center justify-center shrink-0">
               2
             </span>
-            <span className="font-medium text-neutral-200">Collez & raccourcissez</span>
+            <span className="font-semibold text-neutral-900 dark:text-neutral-200">Collez & raccourcissez</span>
           </div>
 
-          <span className="text-neutral-600">→</span>
+          <span className="text-neutral-400 dark:text-neutral-600 font-bold select-none">→</span>
 
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a]">
-            <span className="w-5 h-5 rounded-full bg-[#ff6600] text-white font-bold text-[11px] flex items-center justify-center">
+          <div className="flex items-center gap-2 px-3.5 py-2 rounded-[10px] bg-neutral-100 dark:bg-[#1a1a1e] border border-neutral-300 dark:border-[#27272a] shadow-sm">
+            <span className="w-5 h-5 rounded-full bg-[#ff6600] text-white font-bold text-[11px] flex items-center justify-center shrink-0">
               3
             </span>
-            <span className="font-medium text-neutral-200">Partagez & analysez</span>
+            <span className="font-semibold text-neutral-900 dark:text-neutral-200">Partagez & analysez</span>
           </div>
         </div>
       </div>
