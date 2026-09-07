@@ -425,6 +425,7 @@ export function LinkEditModal({
         metaTitle: ogTitle.trim() || null,
         ogDescription: ogDescription.trim() || null,
         ogImage: finalOgImage.trim() || null,
+        previousOgImage: link.ogImage || null,
         routingRules: compiledRules || null,
         geoTargeting: geoTargeting || null,
         deviceTargeting: deviceTargeting || null,

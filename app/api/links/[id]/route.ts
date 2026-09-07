@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { saveProtectedLink, deleteProtectedLink } from "@/lib/protected-links-store";
+import { saveProtectedLink, deleteProtectedLink, getProtectedLink } from "@/lib/protected-links-store";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "@/convex/_generated/api";
+import { deleteFromBunny } from "@/lib/bunny";
 
 const WORKER_URL =
   process.env.NEXT_PUBLIC_BACKEND_API_URL ||
@@ -30,6 +31,12 @@ export async function PATCH(
       (body.ogImage || body.og_image).length > 100000
         ? undefined
         : (body.ogImage || body.og_image);
+
+    // If banner was updated, clean up the previous banner from Bunny CDN
+    const previousImage = body.previousOgImage || body.previous_og_image || getProtectedLink(body.slug || id)?.ogImage;
+    if (previousImage && sanitizedOgImage && previousImage !== sanitizedOgImage) {
+      deleteFromBunny(previousImage).catch((e) => console.warn("[Bunny Delete Previous Banner Error]:", e));
+    }
 
     // 1. Persist in Convex Cloud DB
     if (body.slug) {
@@ -261,16 +268,27 @@ export async function DELETE(
   const { searchParams } = new URL(req.url);
   const userId = searchParams.get("userId");
   const slug = searchParams.get("slug");
+  const imageParam = searchParams.get("image") || searchParams.get("ogImage");
 
   try {
-    // 1. Delete from Convex if ID is a valid Convex ID
+    // 1. Delete associated image from Bunny.net CDN Storage
+    let bannerToDelete = imageParam;
+    if (!bannerToDelete && (slug || id)) {
+      const local = getProtectedLink(slug || id);
+      if (local?.ogImage) bannerToDelete = local.ogImage;
+    }
+    if (bannerToDelete) {
+      deleteFromBunny(bannerToDelete).catch((e) => console.warn("[Bunny Delete Banner Error]:", e));
+    }
+
+    // 2. Delete from Convex if ID is a valid Convex ID
     if (id && userId) {
       try {
         await convex.mutation(api.links.deleteLink, { id: id as any, userId }).catch(() => {});
       } catch {}
     }
 
-    // 2. Delete from local memory store (by ID and slug)
+    // 3. Delete from local memory store (by ID and slug)
     try {
       if (slug) deleteProtectedLink(slug);
       deleteProtectedLink(id);

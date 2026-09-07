@@ -312,8 +312,13 @@ export default function LinksPage() {
     });
 
     try {
-      // 2. Perform API delete calls in parallel
-      await Promise.all(idsToDelete.map((id) => cfDeleteLink(id, userId)));
+      // 2. Perform API delete calls in parallel (including associated Bunny CDN image cleanup)
+      await Promise.all(
+        idsToDelete.map((id) => {
+          const target = links.find((l) => l.id === id);
+          return cfDeleteLink(id, userId, target?.slug, target?.ogImage);
+        })
+      );
       cfInvalidateCache();
       if (typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent("lshorter_data_change"));

@@ -234,15 +234,45 @@ export async function uploadToBunny(
 }
 
 /**
- * Deletes a file from Bunny.net Storage.
+ * Extracts relative storage path (e.g. "Banners/upload_123.jpg") from a full Bunny CDN URL.
  */
-export async function deleteFromBunny(storagePath: string): Promise<boolean> {
+export function extractBunnyStoragePath(pathOrUrl?: string | null): string | null {
+  if (!pathOrUrl) return null;
+  let str = pathOrUrl.trim();
+  if (!str) return null;
+
+  if (str.startsWith("http://") || str.startsWith("https://")) {
+    try {
+      const parsed = new URL(str);
+      // Only process Bunny CDN or storage URLs
+      if (!parsed.hostname.includes("b-cdn.net") && !parsed.hostname.includes("bunnycdn.com")) {
+        return null;
+      }
+      let pathname = parsed.pathname.replace(/^\/+/, "");
+      const config = getBunnyConfig();
+      if (config.storageZoneName && pathname.toLowerCase().startsWith(config.storageZoneName.toLowerCase() + "/")) {
+        pathname = pathname.substring(config.storageZoneName.length + 1);
+      }
+      return pathname.split("?")[0];
+    } catch {
+      return null;
+    }
+  }
+  return str.replace(/^\/+/, "").split("?")[0];
+}
+
+/**
+ * Deletes a file from Bunny.net Storage (accepts either a storage path or full CDN URL).
+ */
+export async function deleteFromBunny(pathOrUrl: string): Promise<boolean> {
   const config = getBunnyConfig();
-  if (!config) return false;
+  if (!config || !pathOrUrl) return false;
+
+  const storagePath = extractBunnyStoragePath(pathOrUrl);
+  if (!storagePath) return false;
 
   const storageEndpoint = getBunnyStorageEndpoint(config.region);
-  const cleanPath = storagePath.replace(/^\/+/, "");
-  const deleteUrl = `${storageEndpoint}/${encodeURIComponent(config.storageZoneName)}/${cleanPath}`;
+  const deleteUrl = `${storageEndpoint}/${encodeURIComponent(config.storageZoneName)}/${storagePath}`;
 
   try {
     const res = await fetch(deleteUrl, {

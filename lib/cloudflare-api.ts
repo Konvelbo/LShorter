@@ -372,11 +372,16 @@ export async function cfUpdateLink(id: string, updates: any) {
   );
 }
 
-export async function cfDeleteLink(id: string, userId?: string) {
-  const query = userId ? `?userId=${userId}` : "";
+export async function cfDeleteLink(id: string, userId?: string, slug?: string, ogImage?: string) {
+  cfInvalidateCache();
+  const query = new URLSearchParams();
+  if (userId) query.set("userId", userId);
+  if (slug) query.set("slug", slug);
+  if (ogImage) query.set("image", ogImage);
+  const qStr = query.toString() ? `?${query.toString()}` : "";
   return cfFetch<{ success: true }>(
-    `/api/links/${id}${query}`,
-    `/api/v1/links/${id}${query}`,
+    `/api/links/${id}${qStr}`,
+    `/api/v1/links/${id}${qStr}`,
     "DELETE"
   );
 }
