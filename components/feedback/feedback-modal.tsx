@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, HelpCircle, Bug, Lightbulb, MessageSquare, Paperclip, User, Send, CheckCircle2 } from "lucide-react";
+import { X, HelpCircle, Bug, Lightbulb, MessageSquare, Paperclip, User, Send, CheckCircle2, Star } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { showToast } from "@/components/ui/toast-provider";
@@ -16,6 +16,8 @@ type CategoryType = "Question" | "Bug" | "Feature" | "Other";
 export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
   const { data: session } = useSession();
   const [category, setCategory] = useState<CategoryType>("Question");
+  const [rating, setRating] = useState<number>(5);
+  const [hoveredRating, setHoveredRating] = useState<number | null>(null);
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -44,6 +46,7 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           category,
+          rating,
           email: email.trim() || session?.user?.email || "visiteur@lshorter.io",
           message: message.trim(),
           pageContext: currentPath,
@@ -57,6 +60,7 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
         setTimeout(() => {
           setIsSent(false);
           setMessage("");
+          setRating(5);
           onClose();
         }, 1500);
       } else {
@@ -129,6 +133,51 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
                   </button>
                 );
               })}
+            </div>
+
+            {/* Rating Section */}
+            <div className="flex flex-col gap-1.5 p-3 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] transition-colors">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-neutral-300">Votre évaluation globale :</span>
+                <span className="text-xs font-bold text-[#ff6600]">
+                  {hoveredRating === 1 || (!hoveredRating && rating === 1)
+                    ? "1/5 - Décevant 😞"
+                    : hoveredRating === 2 || (!hoveredRating && rating === 2)
+                    ? "2/5 - Passable 😐"
+                    : hoveredRating === 3 || (!hoveredRating && rating === 3)
+                    ? "3/5 - Bien 🙂"
+                    : hoveredRating === 4 || (!hoveredRating && rating === 4)
+                    ? "4/5 - Très bien 😊"
+                    : "5/5 - Excellent ! 🤩"}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2 pt-0.5">
+                {[1, 2, 3, 4, 5].map((starValue) => {
+                  const currentScore = hoveredRating !== null ? hoveredRating : rating;
+                  const isFilled = starValue <= currentScore;
+                  return (
+                    <button
+                      key={starValue}
+                      type="button"
+                      onClick={() => setRating(starValue)}
+                      onMouseEnter={() => setHoveredRating(starValue)}
+                      onMouseLeave={() => setHoveredRating(null)}
+                      title={`${starValue} sur 5`}
+                      className="p-1 -m-1 transition-transform active:scale-90 hover:scale-125 cursor-pointer focus:outline-none"
+                    >
+                      <Star
+                        className={cn(
+                          "w-5 h-5 transition-all duration-150",
+                          isFilled
+                            ? "text-amber-400 fill-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.6)]"
+                            : "text-neutral-500 fill-transparent hover:text-amber-300"
+                        )}
+                      />
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Email Field */}

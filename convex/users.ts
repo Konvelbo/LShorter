@@ -502,6 +502,7 @@ export const storeFeedback = mutation({
     category: v.string(),
     message: v.string(),
     pageContext: v.optional(v.string()),
+    rating: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const id = await ctx.db.insert("feedbacks", {
@@ -509,6 +510,7 @@ export const storeFeedback = mutation({
       category: args.category,
       message: args.message,
       pageContext: args.pageContext,
+      rating: args.rating,
       createdAt: new Date().toISOString(),
     });
 

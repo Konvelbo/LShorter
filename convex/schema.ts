@@ -64,6 +64,7 @@ export default defineSchema({
     category: v.string(),
     message: v.string(),
     pageContext: v.optional(v.string()),
+    rating: v.optional(v.number()),
     createdAt: v.string(),
   }).index("by_email", ["email"]),
 

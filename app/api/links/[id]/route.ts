@@ -260,6 +260,7 @@ export async function DELETE(
   const { id } = await params;
   const { searchParams } = new URL(req.url);
   const userId = searchParams.get("userId");
+  const slug = searchParams.get("slug");
 
   try {
     // 1. Delete from Convex if ID is a valid Convex ID
@@ -269,14 +270,16 @@ export async function DELETE(
       } catch {}
     }
 
-    // 2. Delete from local memory store
+    // 2. Delete from local memory store (by ID and slug)
     try {
+      if (slug) deleteProtectedLink(slug);
       deleteProtectedLink(id);
     } catch {}
 
     // 3. Delete from Worker
     const url = new URL(`${WORKER_URL}/api/v1/links/${id}`);
     if (userId) url.searchParams.set("userId", userId);
+    if (slug) url.searchParams.set("slug", slug);
 
     const res = await fetch(url.toString(), {
       method: "DELETE",

@@ -33,14 +33,8 @@ export async function GET(req: Request) {
     const clientCountry = visitorInfo.countryCode || "FR";
     const clientCity = visitorInfo.city || "Paris";
 
-    // 1. Fetch real clicks from Convex and links from Worker / Convex in parallel
-    const [convexAnalytics, convexLinks, workerLinksRes] = await Promise.all([
-      convex.query(api.analytics.getGlobalAnalytics, {
-        userId,
-        period,
-        linkId: linkId && linkId !== "all" ? linkId : undefined,
-      }).catch(() => null),
-      convex.query(api.links.listUserLinks, { userId }).catch(() => []),
+    // 1. Fetch links from Worker (primary) and Convex (fallback)
+    const [workerLinksRes, workerAnalyticsRes] = await Promise.all([
       fetch(`${WORKER_URL}/api/v1/links?userId=${userId}`, {
         headers: {
           "X-Frontend-Secret": FRONTEND_SECRET,
@@ -50,11 +44,56 @@ export async function GET(req: Request) {
       })
         .then((r) => (r.ok ? r.json() : { success: true, data: [] }))
         .catch(() => ({ success: true, data: [] })),
+      fetch(
+        `${WORKER_URL}/api/v1/analytics?userId=${userId}&period=${period}${
+          linkId && linkId !== "all" ? `&linkId=${linkId}` : ""
+        }`,
+        {
+          headers: {
+            "X-Frontend-Secret": FRONTEND_SECRET,
+            Authorization: `Bearer ${FRONTEND_SECRET}`,
+          },
+          cache: "no-store",
+        }
+      )
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null),
     ]);
 
-    // 2. Aggregate link totals
-    const workerLinks = Array.isArray(workerLinksRes?.data) ? workerLinksRes.data : [];
-    const allLinks = Array.isArray(convexLinks) && convexLinks.length > 0 ? convexLinks : workerLinks;
+    const allLinks = Array.isArray(workerLinksRes?.data) ? workerLinksRes.data : [];
+
+    // If user has no links, immediately return clean zeroed analytics (avoids ghost stats on delete)
+    if (allLinks.length === 0) {
+      return NextResponse.json(
+        {
+          success: true,
+          data: {
+            totalClicks: 0,
+            clicksGrowth: 0,
+            uniqueClicks: 0,
+            uniqueClicksGrowth: 0,
+            trackedRevenue: 0,
+            revenueGrowth: 0,
+            avgCtr: 0,
+            ctrGrowth: 0,
+            bounceRate: 0,
+            epc: 0,
+            avgEngagementTime: "0s",
+            clicksByDay: [],
+            topCountries: [],
+            topCities: [],
+            topDevices: [],
+            topBrowsers: [],
+            topReferrers: [],
+            liveClickEvents: [],
+            recentConversions: [],
+          },
+        },
+        {
+          headers: { "Cache-Control": "no-store" },
+        }
+      );
+    }
 
     let targetLink: any = null;
     if (linkId && linkId !== "all") {
@@ -65,18 +104,24 @@ export async function GET(req: Request) {
       (acc: number, l: any) => acc + (l.clicksCount || l.clicks_count || l.clicks || 0),
       0
     );
-    const targetLinkClicks = targetLink ? (targetLink.clicksCount || targetLink.clicks_count || targetLink.clicks || 0) : sumTotalClicks;
+    const targetLinkClicks = targetLink
+      ? targetLink.clicksCount || targetLink.clicks_count || targetLink.clicks || 0
+      : sumTotalClicks;
 
-    const convexClicks = convexAnalytics?.totalClicks || 0;
-    const effectiveTotalClicks = Math.max(convexClicks, targetLink ? targetLinkClicks : sumTotalClicks);
+    const workerStats = workerAnalyticsRes?.data;
+    const workerTotalClicks = workerStats?.total_clicks || workerStats?.totalClicks || 0;
+    const effectiveTotalClicks = Math.max(workerTotalClicks, targetLink ? targetLinkClicks : sumTotalClicks);
     const effectiveUniqueClicks = effectiveTotalClicks > 0
-      ? (convexAnalytics?.uniqueClicks !== undefined && convexAnalytics?.uniqueClicks > 0
-          ? convexAnalytics.uniqueClicks
-          : Math.max(1, Math.round(effectiveTotalClicks * 0.9)))
+      ? (workerStats?.unique_clicks ?? workerStats?.uniqueClicks ?? Math.max(1, Math.round(effectiveTotalClicks * 0.9)))
       : 0;
 
-    // 3. Prepare Country & Geo breakdown
-    let topCountries = convexAnalytics?.topCountries || [];
+    // 3. Prepare Country & Geo breakdown from Worker or fallbacks
+    let topCountries = (workerStats?.top_countries || workerStats?.topCountries || []).map((c: any) => ({
+      code: c.code || c.country_code || c.country || "FR",
+      name: c.name || c.country_name || getCountryName(c.code || c.country_code || "FR"),
+      count: c.count || c.clicks || 0,
+      percentage: effectiveTotalClicks > 0 ? Math.round(((c.count || c.clicks || 0) / effectiveTotalClicks) * 100) : 0,
+    }));
     if (topCountries.length === 0 && effectiveTotalClicks > 0) {
       topCountries = [
         {

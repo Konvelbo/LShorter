@@ -244,6 +244,7 @@ export interface FeedbackSubmission {
   email: string;
   message: string;
   pageContext: string;
+  rating?: number;
 }
 
 export interface WebhookConfig {

@@ -314,7 +314,10 @@ export default function LinksPage() {
     try {
       // 2. Perform API delete calls in parallel
       await Promise.all(idsToDelete.map((id) => cfDeleteLink(id, userId)));
-      cfInvalidateCache("/api/links");
+      cfInvalidateCache();
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("lshorter_data_change"));
+      }
       showToast.success(
         idsToDelete.length > 1
           ? `${idsToDelete.length} liens supprimés avec succès.`

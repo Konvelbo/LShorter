@@ -631,6 +631,107 @@ export default {
       });
     }
 
+    // ─── 5. USERS API ─────────────────────────────────────────────────────
+    // POST /api/v1/users/sync — Upsert user in D1 (called after login/signup)
+    // D1 users table columns: id, email, name, plan, created_at, updated_at
+    if ((path === '/api/v1/users/sync' || path === '/api/users/sync') && method === 'POST') {
+      try {
+        const body = await request.json().catch(() => ({}));
+        const id = (body.id || body.userId || request.headers.get('x-user-id') || '').trim();
+        const email = (body.email || '').toLowerCase().trim();
+        const name = (body.name || 'Utilisateur').trim();
+        const plan = body.plan || 'FREEMIUM';
+
+        if (!email && !id) {
+          return jsonResponse({ success: false, error: 'email ou id requis' }, 400);
+        }
+
+        const key = id || email;
+
+        if (env.DB) {
+          // Upsert: ON CONFLICT(id) → update email/name/updated_at; keep plan intact
+          await env.DB.prepare(`
+            INSERT INTO users (id, email, name, plan, created_at, updated_at)
+            VALUES (?, ?, ?, ?, datetime('now'), datetime('now'))
+            ON CONFLICT(id) DO UPDATE SET
+              email = excluded.email,
+              name = excluded.name,
+              updated_at = datetime('now')
+          `).bind(key, email, name, plan).run().catch(async () => {
+            // Fallback for older SQLite without ON CONFLICT DO UPDATE
+            await env.DB.prepare(`
+              INSERT OR IGNORE INTO users (id, email, name, plan, created_at, updated_at)
+              VALUES (?, ?, ?, ?, datetime('now'), datetime('now'))
+            `).bind(key, email, name, plan).run().catch(() => {});
+          });
+
+          const user = await env.DB.prepare(
+            'SELECT id, email, name, plan, created_at, updated_at FROM users WHERE id = ? OR email = ? LIMIT 1'
+          ).bind(key, email).first().catch(() => null);
+
+          return jsonResponse({ success: true, data: user || { id: key, email, name, plan } });
+        }
+
+        return jsonResponse({ success: true, data: { id: key, email, name, plan }, fallback: true });
+      } catch (err) {
+        console.error('[Users Sync Error]:', err);
+        return jsonResponse({ success: false, error: String(err?.message || err) }, 500);
+      }
+    }
+
+    // GET /api/v1/users/:id — Get user plan from D1
+    if ((path.startsWith('/api/v1/users/') || path.startsWith('/api/users/')) && method === 'GET') {
+      const userId = path.startsWith('/api/v1/users/')
+        ? path.slice('/api/v1/users/'.length)
+        : path.slice('/api/users/'.length);
+      if (userId && userId !== 'sync' && env.DB) {
+        try {
+          const user = await env.DB.prepare(
+            'SELECT id, email, name, plan, created_at, updated_at FROM users WHERE id = ? OR email = ? LIMIT 1'
+          ).bind(userId, userId).first();
+          if (!user) return jsonResponse({ success: false, error: 'Utilisateur non trouvé' }, 404);
+          return jsonResponse({ success: true, data: user });
+        } catch (err) {
+          return jsonResponse({ success: false, error: 'Erreur DB' }, 500);
+        }
+      }
+    }
+
+    // PATCH /api/v1/users/:id — Update user plan in D1 (called after plan upgrade)
+    if ((path.startsWith('/api/v1/users/') || path.startsWith('/api/users/')) && method === 'PATCH') {
+      const userId = path.startsWith('/api/v1/users/')
+        ? path.slice('/api/v1/users/'.length)
+        : path.slice('/api/users/'.length);
+      if (userId && userId !== 'sync') {
+        try {
+          const body = await request.json().catch(() => ({}));
+          const plan = body.plan;
+          const name = body.name;
+
+          if (env.DB) {
+            if (plan) {
+              await env.DB.prepare(
+                "UPDATE users SET plan = ?, updated_at = datetime('now') WHERE id = ? OR email = ?"
+              ).bind(plan, userId, userId).run().catch(() => {});
+            }
+            if (name) {
+              await env.DB.prepare(
+                "UPDATE users SET name = ?, updated_at = datetime('now') WHERE id = ? OR email = ?"
+              ).bind(name, userId, userId).run().catch(() => {});
+            }
+            const user = await env.DB.prepare(
+              'SELECT id, email, name, plan, created_at, updated_at FROM users WHERE id = ? OR email = ? LIMIT 1'
+            ).bind(userId, userId).first().catch(() => null);
+            return jsonResponse({ success: true, data: user || { id: userId, plan } });
+          }
+
+          return jsonResponse({ success: true, data: { id: userId, plan }, fallback: true });
+        } catch (err) {
+          return jsonResponse({ success: false, error: String(err?.message || err) }, 500);
+        }
+      }
+    }
+
     return new Response('Not Found', { status: 404, headers: corsHeaders });
   },
 };

@@ -141,12 +141,14 @@ export async function sendFeedbackNotificationEmail({
   message,
   pageContext,
   recipientEmail,
+  rating,
 }: {
   category: string;
   senderEmail: string;
   message: string;
   pageContext?: string;
   recipientEmail?: string;
+  rating?: number;
 }): Promise<{ success: boolean; isDevFallback?: boolean; error?: string }> {
   const normCategory = category.trim().toLowerCase();
   const isBug =
@@ -186,6 +188,9 @@ export async function sendFeedbackNotificationEmail({
     console.log(`🎯 Destinataire : ${targetEmail} ${isBugOrFeature ? "(Routage automatique fiatechnologiecam@gmail.com)" : ""}`);
     console.log(`👤 Expéditeur : ${senderEmail}`);
     console.log(`🏷️  Catégorie : ${category} (${categoryLabel})`);
+    if (rating) {
+      console.log(`⭐ Note : ${rating}/5 ${"★".repeat(rating)}${"☆".repeat(5 - rating)}`);
+    }
     console.log(`📄 Page : ${pageContext || "Non spécifiée"}`);
     console.log(`✉️  Message :\n${message}`);
     console.log(
@@ -199,7 +204,7 @@ export async function sendFeedbackNotificationEmail({
       from: FROM_EMAIL,
       to: targetEmail,
       replyTo: senderEmail,
-      subject: `${subjectTag} de ${senderEmail}`,
+      subject: `${subjectTag} de ${senderEmail}${rating ? ` [${rating}/5 ★]` : ""}`,
       html: `
         <!DOCTYPE html>
         <html lang="fr">
@@ -225,6 +230,12 @@ export async function sendFeedbackNotificationEmail({
                 <td style="padding: 6px 0; color: #a1a1aa;"><strong>Catégorie :</strong></td>
                 <td style="padding: 6px 0;"><span style="color: #fafafa; font-weight: 600;">${category}</span></td>
               </tr>
+              ${rating ? `
+              <tr>
+                <td style="padding: 6px 0; color: #a1a1aa;"><strong>Note :</strong></td>
+                <td style="padding: 6px 0;"><span style="color: #f59e0b; font-weight: 700; font-size: 14px;">${"★".repeat(rating)}${"☆".repeat(5 - rating)} (${rating}/5)</span></td>
+              </tr>
+              ` : ""}
               <tr>
                 <td style="padding: 6px 0; color: #a1a1aa;"><strong>Page Source :</strong></td>
                 <td style="padding: 6px 0; font-family: monospace; color: #e4e4e7;">${pageContext || "/dashboard"}</td>

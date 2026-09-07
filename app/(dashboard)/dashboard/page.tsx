@@ -87,6 +87,12 @@ export default function DashboardOverviewPage() {
       }));
       setLinks(rawLinks);
 
+      // If user has 0 links, reset analytics to zero immediately (ensures instant update on deletion)
+      if (rawLinks.length === 0) {
+        setAnalytics(ANALYTICS_ZERO);
+        return;
+      }
+
       // Compute aggregated totals from links
       const sumLinksClicks = rawLinks.reduce((acc, l) => acc + (l.clicksCount || 0), 0);
       const sumUniqueClicks = rawLinks.reduce((acc, l) => acc + (l.uniqueClicks || 0), 0);

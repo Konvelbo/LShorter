@@ -18,33 +18,20 @@ function trackClickAsync(req: Request, slug: string, meta?: any) {
   try {
     const details = parseVisitorDetails(req);
     const userId = meta?.userId || meta?.user_id || "usr_default";
-    const linkId = meta?.id || slug;
 
-    // 1. Record detailed visitor analytics event in Convex
-    convex.mutation(api.analytics.recordClick, {
-      linkId,
-      slug,
-      userId,
-      country: details.countryCode,
-      countryCode: details.countryCode,
-      city: details.city,
-      device: details.device,
-      browser: details.browser,
-      os: details.os,
-      referrer: details.referrer,
-      ipHash: details.ipMasked,
-      isUnique: true,
-      isBot: false,
-    }).catch((err) => {
-      console.warn("[Click Track Convex Error]:", err?.message || err);
-    });
-
-    // 2. Increment D1 database clicks_count in Cloudflare Worker
+    // Forward click event exclusively to Cloudflare Edge Worker (0 Convex DB writes to eliminate database costs)
     fetch(`${WORKER_URL}/api/v1/links/${encodeURIComponent(slug)}/click`, {
       method: "POST",
       headers: {
         "X-Frontend-Secret": FRONTEND_SECRET,
         "Content-Type": "application/json",
+        "X-User-Id": userId,
+        "X-Country": details.countryCode || "FR",
+        "X-City": details.city || "Paris",
+        "X-Device": details.device || "desktop",
+        "X-Browser": details.browser || "Chrome",
+        "X-OS": details.os || "Windows",
+        "X-Referrer": details.referrer || "Direct",
       },
     }).catch((err) => {
       console.warn("[Worker Click Increment Error]:", err?.message || err);

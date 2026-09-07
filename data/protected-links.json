@@ -299,7 +299,7 @@
     "ogImage": "https://lsho-cdn.b-cdn.net/Banners/test_banner_1788784442585.png",
     "targetUrl": "https://example.com/shop?source=campaign",
     "passParams": true,
-    "clicksCount": 1,
+    "clicksCount": 3,
     "userId": "usr_click_benchmark_user",
     "updatedAt": "2026-09-07T13:08:04.907Z"
   }

@@ -9,11 +9,12 @@ const convex = new ConvexHttpClient(convexUrl);
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { category, email, message, pageContext } = body;
+    const { category, email, message, pageContext, rating } = body;
 
     const cleanEmail = email ? email.trim().toLowerCase() : "visiteur@lshorter.io";
     const cleanCategory = category || "Question";
     const cleanMessage = message ? message.trim() : "";
+    const cleanRating = typeof rating === "number" && rating >= 1 && rating <= 5 ? Math.round(rating) : undefined;
 
     if (!cleanMessage) {
       return NextResponse.json(
@@ -30,6 +31,7 @@ export async function POST(req: Request) {
           category: cleanCategory,
           message: cleanMessage,
           pageContext: pageContext || "/dashboard",
+          rating: cleanRating,
         });
       }
     } catch (dbErr) {
@@ -42,6 +44,7 @@ export async function POST(req: Request) {
       senderEmail: cleanEmail,
       message: cleanMessage,
       pageContext: pageContext || "/dashboard",
+      rating: cleanRating,
     });
 
     return NextResponse.json({
