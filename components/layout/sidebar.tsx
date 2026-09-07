@@ -106,10 +106,13 @@ export function Sidebar() {
           cfGetAnalytics(userId, "30d").catch(() => null),
           cfGetLinks(userId).catch(() => null),
         ]);
+        const linksList = Array.isArray(linksRes?.data) ? linksRes.data : [];
+        if (linksList.length === 0) {
+          setLiveClicks(0);
+          return;
+        }
         const analyticsTotal = (res?.data?.totalClicks ?? res?.data?.total_clicks ?? 0);
-        const linksTotal = Array.isArray(linksRes?.data)
-          ? linksRes.data.reduce((acc: number, l: any) => acc + (Number(l.clicks_count) || 0), 0)
-          : 0;
+        const linksTotal = linksList.reduce((acc: number, l: any) => acc + (Number(l.clicks_count) || 0), 0);
         setLiveClicks(Math.max(analyticsTotal, linksTotal));
       } catch {}
     };
@@ -136,7 +139,7 @@ export function Sidebar() {
   }, []);
 
   const plan = (localPlan || convexUser?.plan || (session?.user as any)?.plan || "FREEMIUM").toUpperCase();
-  const clicksThisMonth = liveClicks || (session?.user as any)?.clicksThisMonth || 0;
+  const clicksThisMonth = typeof liveClicks === "number" ? liveClicks : 0;
   const clicksLimit = plan === "BUSINESS" ? -1 : plan === "PRO" ? 1_000_000 : 100_000;
   const percentage =
     clicksLimit === -1

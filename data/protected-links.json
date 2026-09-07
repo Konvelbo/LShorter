@@ -231,8 +231,8 @@
     "isCloaked": false,
     "metaTitle": "Premier test",
     "ogTitle": "Premier test",
-    "ogDescription": "Ces un saas de racourcissement de lien",
-    "ogImage": "https://lsho-cdn.b-cdn.net/banners/upload_1788783260352_xbk8p.jpg?width=1200&height=630&crop=1",
+    "ogDescription": "Je teste mon saas",
+    "ogImage": "https://lsho-cdn.b-cdn.net/Banners/upload_1788797386785_4dorr.jpg",
     "targetUrl": "https://talktoome.netlify.app/",
     "routingRules": [],
     "geoTargeting": {},
@@ -240,9 +240,9 @@
     "abVariations": [],
     "mainWeight": 50,
     "passParams": true,
-    "clicksCount": 0,
+    "clicksCount": 1,
     "userId": "35311d6c-ef30-4e9f-8827-f9fa75d563d2",
-    "updatedAt": "2026-09-07T12:32:26.184Z"
+    "updatedAt": "2026-09-07T16:09:53.626Z"
   },
   {
     "slug": "test_modal_mtr970sg",
