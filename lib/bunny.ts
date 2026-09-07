@@ -171,8 +171,10 @@ export async function uploadToBunny(
   else if (detectedMime.includes("gif")) extension = "gif";
   else if (detectedMime.includes("jpeg") || detectedMime.includes("jpg")) extension = "jpg";
 
-  // Sanitize folder and filename
-  const cleanFolder = (options.folder || "banners")
+  // Sanitize folder and filename (defaults to "Banners")
+  const rawFolder = options.folder || "Banners";
+  const normalizedFolder = rawFolder.toLowerCase() === "banners" ? "Banners" : rawFolder;
+  const cleanFolder = normalizedFolder
     .replace(/^\/+|\/+$/g, "")
     .replace(/[^a-zA-Z0-9_\-\/]/g, "");
 

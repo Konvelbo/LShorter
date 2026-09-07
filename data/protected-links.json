@@ -225,5 +225,82 @@
     "clicksCount": 0,
     "userId": "cb705616-10c9-47de-b3e9-750beccb71de",
     "updatedAt": "2026-09-05T00:46:34.935Z"
+  },
+  {
+    "slug": "lshorter",
+    "isCloaked": false,
+    "metaTitle": "Premier test",
+    "ogTitle": "Premier test",
+    "ogDescription": "Ces un saas de racourcissement de lien",
+    "ogImage": "https://lsho-cdn.b-cdn.net/banners/upload_1788783260352_xbk8p.jpg?width=1200&height=630&crop=1",
+    "targetUrl": "https://talktoome.netlify.app/",
+    "routingRules": [],
+    "geoTargeting": {},
+    "deviceTargeting": {},
+    "abVariations": [],
+    "mainWeight": 50,
+    "passParams": true,
+    "clicksCount": 0,
+    "userId": "35311d6c-ef30-4e9f-8827-f9fa75d563d2",
+    "updatedAt": "2026-09-07T12:32:26.184Z"
+  },
+  {
+    "slug": "test_modal_mtr970sg",
+    "password": "securePass2026",
+    "isCloaked": true,
+    "metaTitle": "Bannière de Test Pro",
+    "ogTitle": "Bannière de Test Pro",
+    "ogDescription": "Description détaillée pour le partage sur Twitter et Facebook",
+    "ogImage": "https://lsho-cdn.b-cdn.net/Banners/test_banner_1788784442585.png",
+    "targetUrl": "https://example.com/promo?utm_source=newsletter&utm_medium=email&utm_campaign=lancement2026",
+    "routingRules": [
+      {
+        "id": "r_1",
+        "title": "Visiteurs France",
+        "conditions": [
+          {
+            "id": "c_1",
+            "type": "pays",
+            "operator": "est",
+            "value": "FR"
+          }
+        ],
+        "destinationUrl": "https://fr.example.com"
+      }
+    ],
+    "geoTargeting": {
+      "FR": "https://fr.example.com",
+      "US": "https://us.example.com"
+    },
+    "deviceTargeting": {
+      "mobile": "https://m.example.com",
+      "desktop": "https://desktop.example.com"
+    },
+    "maxClicks": 500,
+    "fallbackUrl": "https://example.com/expired-fallback",
+    "abVariations": [
+      {
+        "url": "https://example.com/variation-b",
+        "weight": 40
+      }
+    ],
+    "mainWeight": 60,
+    "passParams": true,
+    "clicksCount": 1,
+    "userId": "usr_local_test_user",
+    "updatedAt": "2026-09-07T13:05:30.386Z"
+  },
+  {
+    "slug": "direct_clk_mtr9acos",
+    "isCloaked": false,
+    "metaTitle": "Test Click Banner",
+    "ogTitle": "Test Click Banner",
+    "ogDescription": "Test Click Tracking",
+    "ogImage": "https://lsho-cdn.b-cdn.net/Banners/test_banner_1788784442585.png",
+    "targetUrl": "https://example.com/shop?source=campaign",
+    "passParams": true,
+    "clicksCount": 1,
+    "userId": "usr_click_benchmark_user",
+    "updatedAt": "2026-09-07T13:08:04.907Z"
   }
 ]

@@ -165,7 +165,7 @@ export function cfNormalizeImageUrl(url?: string): string {
 
 export async function cfUploadImage(
   base64OrFile: string | File,
-  folder: string = "lshorter/banners"
+  folder: string = "Banners"
 ): Promise<{ success: boolean; url: string; imageId?: string }> {
   try {
     let base64Data = "";

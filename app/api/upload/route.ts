@@ -9,12 +9,14 @@ export async function POST(req: Request) {
     let base64Data = "";
     let fileBuffer: Buffer | null = null;
     let mimeType = "image/jpeg";
-    let uploadFolder = "banners";
+    let uploadFolder = "Banners";
     let originalName = "upload";
 
     if (contentType.includes("application/json")) {
       const body = await req.json();
-      uploadFolder = body.folder ? body.folder.replace(/^lshorter\/?/, "") : uploadFolder;
+      let f = body.folder ? body.folder.replace(/^lshorter\/?/i, "") : uploadFolder;
+      if (f.toLowerCase() === "banners") f = "Banners";
+      uploadFolder = f;
       base64Data = body.data || body.file || "";
 
       if (base64Data) {
@@ -33,8 +35,10 @@ export async function POST(req: Request) {
       }
     } else {
       const formData = await req.formData();
-      uploadFolder = (formData.get("folder") as string) || uploadFolder;
-      uploadFolder = uploadFolder.replace(/^lshorter\/?/, "");
+      let f = (formData.get("folder") as string) || uploadFolder;
+      f = f.replace(/^lshorter\/?/i, "");
+      if (f.toLowerCase() === "banners") f = "Banners";
+      uploadFolder = f;
       const file = formData.get("file") as File | null;
       if (file) {
         mimeType = file.type || "image/jpeg";

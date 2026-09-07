@@ -598,7 +598,7 @@ export function LinkCreateModal({
     try {
       let finalOgImage = ogImage;
       if (ogImage && ogImage.startsWith("data:")) {
-        const uploadRes = await cfUploadImage(ogImage);
+        const uploadRes = await cfUploadImage(ogImage, "Banners");
         if (uploadRes?.url) {
           finalOgImage = uploadRes.url;
         }
