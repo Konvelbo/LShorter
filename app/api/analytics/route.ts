@@ -1,13 +1,7 @@
 import { NextResponse } from "next/server";
-import { ConvexHttpClient } from "convex/browser";
-import { api } from "@/convex/_generated/api";
 import { getCountryName } from "@/lib/utils";
 import { generateTimelineForRange } from "@/lib/analytics-generators";
 import { parseVisitorDetails } from "@/lib/device-detection";
-
-const convex = new ConvexHttpClient(
-  process.env.NEXT_PUBLIC_CONVEX_URL || "https://greedy-mastiff-107.convex.cloud"
-);
 
 const WORKER_URL =
   process.env.NEXT_PUBLIC_BACKEND_API_URL ||
@@ -134,7 +128,12 @@ export async function GET(req: Request) {
     }
 
     // 4. Prepare Cities breakdown
-    let topCities = convexAnalytics?.topCities || [];
+    let topCities = (workerStats?.top_cities || workerStats?.topCities || []).map((c: any) => ({
+      city: c.city || c.name || "Inconnue",
+      countryCode: c.countryCode || c.country_code || "FR",
+      count: c.count || c.clicks || 0,
+      percentage: effectiveTotalClicks > 0 ? Math.round(((c.count || c.clicks || 0) / effectiveTotalClicks) * 100) : 0,
+    }));
     if (topCities.length === 0 && effectiveTotalClicks > 0) {
       topCities = [
         {
@@ -147,7 +146,12 @@ export async function GET(req: Request) {
     }
 
     // 5. Prepare Devices breakdown
-    let topDevices = convexAnalytics?.topDevices || [];
+    let topDevices = (workerStats?.top_devices || workerStats?.topDevices || []).map((d: any) => ({
+      label: d.label || d.name || d.device || "Ordinateur (Desktop)",
+      device: d.device || "desktop",
+      count: d.count || d.clicks || 0,
+      percentage: effectiveTotalClicks > 0 ? Math.round(((d.count || d.clicks || 0) / effectiveTotalClicks) * 100) : 0,
+    }));
     if (topDevices.length === 0 && effectiveTotalClicks > 0) {
       topDevices = [
         {
@@ -160,7 +164,12 @@ export async function GET(req: Request) {
     }
 
     // 6. Prepare Browsers breakdown
-    let topBrowsers = convexAnalytics?.topBrowsers || [];
+    let topBrowsers = (workerStats?.top_browsers || workerStats?.topBrowsers || []).map((b: any) => ({
+      name: b.name || b.browser || "Chrome",
+      browser: b.browser || "Chrome",
+      count: b.count || b.clicks || 0,
+      percentage: effectiveTotalClicks > 0 ? Math.round(((b.count || b.clicks || 0) / effectiveTotalClicks) * 100) : 0,
+    }));
     if (topBrowsers.length === 0 && effectiveTotalClicks > 0) {
       topBrowsers = [
         {
@@ -173,7 +182,14 @@ export async function GET(req: Request) {
     }
 
     // 7. Prepare Referrers breakdown
-    let topReferrers = convexAnalytics?.topReferrers || [];
+    let topReferrers = (workerStats?.top_referrers || workerStats?.topReferrers || []).map((r: any) => ({
+      source: r.source || r.referrer || "Accès Direct",
+      referrer: r.referrer || "Direct",
+      name: r.name || r.referrer || "Direct",
+      clicks: r.clicks || r.count || 0,
+      count: r.count || r.clicks || 0,
+      percentage: effectiveTotalClicks > 0 ? Math.round(((r.count || r.clicks || 0) / effectiveTotalClicks) * 100) : 0,
+    }));
     if (topReferrers.length === 0 && effectiveTotalClicks > 0) {
       topReferrers = [
         {
@@ -192,7 +208,7 @@ export async function GET(req: Request) {
     const clicksByDay = generateTimelineForRange(timeRange, effectiveTotalClicks, effectiveUniqueClicks);
 
     // 9. Prepare Live Click Events
-    let liveClickEvents = convexAnalytics?.liveClickEvents || [];
+    let liveClickEvents = workerStats?.live_click_events || workerStats?.liveClickEvents || [];
     if (liveClickEvents.length === 0 && effectiveTotalClicks > 0) {
       const candidateList = targetLink ? [targetLink] : allLinks;
       const now = Date.now();
@@ -231,7 +247,7 @@ export async function GET(req: Request) {
           clicksGrowth: effectiveTotalClicks > 0 ? 18 : 0,
           uniqueClicks: effectiveUniqueClicks,
           uniqueClicksGrowth: effectiveTotalClicks > 0 ? 14 : 0,
-          trackedRevenue: convexAnalytics?.trackedRevenue || 0,
+          trackedRevenue: workerStats?.total_revenue || workerStats?.trackedRevenue || 0,
           revenueGrowth: 0,
           avgCtr: effectiveTotalClicks > 0 ? Number(((effectiveUniqueClicks / effectiveTotalClicks) * 100).toFixed(1)) : 0,
           ctrGrowth: 0,
