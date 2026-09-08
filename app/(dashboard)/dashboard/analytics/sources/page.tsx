@@ -133,7 +133,7 @@ export default function SourcesAnalyticsPage() {
             count: rf.count || rf.clicks || 0,
             percentage: rf.percentage !== undefined ? rf.percentage : (total > 0 ? Math.round(((rf.count || rf.clicks || 0) / total) * 100) : 0),
           }))
-        : generateEdgeTopReferrers(total);
+        : [];
 
       const rawLiveEvents = d.liveClickEvents ?? d.live_click_events ?? [];
       let liveEvents: any[] = [];
@@ -143,21 +143,21 @@ export default function SourcesAnalyticsPage() {
           liveEvents = liveEvents.filter((ev: any) => ev.slug?.toLowerCase() === targetLink.slug?.toLowerCase());
         }
       } else {
-        liveEvents = generateEdgeLiveClickEvents(fetchedLinks, total, targetLink);
+        liveEvents = [];
       }
 
       setAnalytics({
         totalClicks: total,
-        clicksGrowth: periodStats.clicksGrowth,
+        clicksGrowth: 0,
         uniqueClicks: periodStats.periodUniques,
         uniqueClicksGrowth: 0,
         trackedRevenue: 0,
         revenueGrowth: 0,
         avgCtr: 0,
         ctrGrowth: 0,
-        bounceRate: total > 0 ? 24 : 0,
+        bounceRate: 0,
         epc: 0,
-        avgEngagementTime: total > 0 ? "1m 42s" : "0s",
+        avgEngagementTime: "0s",
         clicksByDay: d.clicksByDay || [],
         topCountries: d.topCountries || [],
         topCities: d.topCities || [],
@@ -195,27 +195,16 @@ export default function SourcesAnalyticsPage() {
     }
   }, [status, userId, selectedRange, selectedLinkId]);
 
-  // Real-time tab focus & polling listener
+  // Listen for explicit data update events
   useEffect(() => {
-    const handleFocus = () => {
+    const handleUpdate = () => {
       loadData(selectedRange, selectedLinkId, true);
     };
 
-    window.addEventListener("focus", handleFocus);
-    document.addEventListener("visibilitychange", handleFocus);
-    window.addEventListener("lshorter_data_change", handleFocus);
-
-    const interval = setInterval(() => {
-      if (document.visibilityState === "visible") {
-        loadData(selectedRange, selectedLinkId, true);
-      }
-    }, 10000);
+    window.addEventListener("lshorter_data_change", handleUpdate);
 
     return () => {
-      window.removeEventListener("focus", handleFocus);
-      document.removeEventListener("visibilitychange", handleFocus);
-      window.removeEventListener("lshorter_data_change", handleFocus);
-      clearInterval(interval);
+      window.removeEventListener("lshorter_data_change", handleUpdate);
     };
   }, [userId, selectedRange, selectedLinkId]);
 

@@ -1,11 +1,6 @@
 import { NextResponse } from "next/server";
-import { getProtectedLink } from "@/lib/protected-links-store";
-import { ConvexHttpClient } from "convex/browser";
-import { api } from "@/convex/_generated/api";
-
-const convex = new ConvexHttpClient(
-  process.env.NEXT_PUBLIC_CONVEX_URL || "https://greedy-mastiff-107.convex.cloud"
-);
+import { getProtectedLink, recordLinkClick } from "@/lib/protected-links-store";
+import { trackClickAsync } from "@/app/r/[slug]/route";
 
 const WORKER_URL =
   process.env.NEXT_PUBLIC_BACKEND_API_URL ||
@@ -66,17 +61,9 @@ function evaluateTargetUrl(baseTargetUrl: string, req: Request, meta?: any) {
 async function resolveLinkData(slug: string, req: Request) {
   const protectedMeta = getProtectedLink(slug);
 
-  // 1. Check Convex Cloud DB
-  let cxLink: any = null;
-  try {
-    cxLink = await convex.query(api.links.getLinkBySlug, { slug });
-  } catch (cxErr) {
-    console.warn("[Convex resolveLinkData error]:", cxErr);
-  }
-
-  // 2. Check if Worker knows this slug via /r/ redirect (302)
+  // 1. Check if Worker knows this slug via /r/ redirect (302)
   let workerTargetUrl: string | null = null;
-  let isActive = cxLink ? (cxLink.isActive !== false) : true;
+  let isActive = protectedMeta?.isActive !== undefined ? protectedMeta.isActive : true;
 
   try {
     const redirectRes = await fetch(`${WORKER_URL}/r/${slug}`, {
@@ -88,13 +75,13 @@ async function resolveLinkData(slug: string, req: Request) {
     if (redirectRes.status === 302 || redirectRes.status === 307) {
       workerTargetUrl = redirectRes.headers.get("location");
     } else if (redirectRes.status === 404 || redirectRes.status === 403) {
-      if (!cxLink) isActive = false;
+      if (!protectedMeta) isActive = false;
     }
   } catch (err) {
     console.warn("[Worker Redirect Resolution error]:", err);
   }
 
-  // 3. Also try /api/v1/links
+  // 2. Also try /api/v1/links
   let linkObj: any = null;
   try {
     const listRes = await fetch(`${WORKER_URL}/api/v1/links`, {
@@ -115,7 +102,6 @@ async function resolveLinkData(slug: string, req: Request) {
   }
 
   const rawTargetUrl =
-    cxLink?.targetUrl ||
     workerTargetUrl ||
     linkObj?.target_url ||
     linkObj?.targetUrl ||
@@ -126,28 +112,23 @@ async function resolveLinkData(slug: string, req: Request) {
     return null;
   }
 
-  const evaluatedTargetUrl = evaluateTargetUrl(rawTargetUrl, req, cxLink || protectedMeta || linkObj);
+  const evaluatedTargetUrl = evaluateTargetUrl(rawTargetUrl, req, protectedMeta || linkObj);
 
-  const password = cxLink?.password || protectedMeta?.password || linkObj?.password;
+  const password = protectedMeta?.password || linkObj?.password;
   const hasPassword = Boolean(
     password ||
-    cxLink?.isPasswordProtected ||
     linkObj?.is_password_protected ||
     linkObj?.isPasswordProtected ||
     linkObj?.has_password
   );
 
   const isCloaked = Boolean(
-    cxLink?.isCloaked !== undefined
-      ? cxLink.isCloaked
-      : protectedMeta?.isCloaked !== undefined
+    protectedMeta?.isCloaked !== undefined
       ? protectedMeta.isCloaked
-      : linkObj?.is_cloaked || linkObj?.isCloaked || cxLink?.cloaking
+      : linkObj?.is_cloaked || linkObj?.isCloaked
   );
 
   const metaTitle =
-    cxLink?.metaTitle ||
-    cxLink?.title ||
     protectedMeta?.metaTitle ||
     linkObj?.meta_title ||
     linkObj?.metaTitle ||
@@ -164,6 +145,11 @@ async function resolveLinkData(slug: string, req: Request) {
     metaTitle,
     targetUrl: evaluatedTargetUrl,
     isActive,
+    expiresAt: protectedMeta?.expiresAt || linkObj?.expires_at || linkObj?.expiresAt,
+    maxClicks: protectedMeta?.maxClicks || linkObj?.max_clicks || linkObj?.maxClicks,
+    fallbackUrl: protectedMeta?.fallbackUrl || linkObj?.fallback_url || linkObj?.fallbackUrl,
+    clicksCount: linkObj?.clicks_count || linkObj?.clicks || protectedMeta?.clicksCount || 0,
+    userId: linkObj?.user_id || protectedMeta?.userId || "usr_default",
   };
 }
 
@@ -222,7 +208,37 @@ export async function POST(
     const providedPassword = (body?.password || "").trim();
     const actualPassword = (link.password || "").trim();
 
+    if (!link.isActive) {
+      return NextResponse.json({
+        success: false,
+        error: "LINK_PAUSED",
+        fallbackUrl: `/r/${slug}/paused`,
+      }, { status: 403 });
+    }
+
+    if (link.expiresAt && new Date(link.expiresAt).getTime() <= Date.now()) {
+      return NextResponse.json({
+        success: false,
+        error: "LINK_EXPIRED",
+        fallbackUrl: `/r/${slug}/expired`,
+      }, { status: 403 });
+    }
+
+    // Check click quota
+    if (link.maxClicks && link.maxClicks > 0 && (link.clicksCount || 0) >= link.maxClicks) {
+      return NextResponse.json({
+        success: false,
+        error: "QUOTA_REACHED",
+        fallbackUrl: link.fallbackUrl || `/r/${slug}/expired`,
+      }, { status: 403 });
+    }
+
     if (!actualPassword || providedPassword === actualPassword) {
+      // 1. Record authentic click event in Cloudflare D1
+      trackClickAsync(req, slug, link).catch(() => {});
+      // 2. Increment local memory counter
+      recordLinkClick(slug);
+
       return NextResponse.json({
         success: true,
         targetUrl: link.targetUrl,

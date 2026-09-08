@@ -66,7 +66,10 @@ export default function DashboardOverviewPage() {
         routingRules: l.routing_rules ? (typeof l.routing_rules === "string" ? JSON.parse(l.routing_rules) : l.routing_rules) : (l.routingRules || []),
         geoTargeting: l.geo_targeting ? (typeof l.geo_targeting === "string" ? JSON.parse(l.geo_targeting) : l.geo_targeting) : (l.geoTargeting || {}),
         deviceTargeting: l.device_targeting ? (typeof l.device_targeting === "string" ? JSON.parse(l.device_targeting) : l.device_targeting) : (l.deviceTargeting || {}),
-        isPasswordProtected: Boolean(l.is_password_protected || l.isPasswordProtected || l.has_password || l.hasPassword || l.password),
+        isPasswordProtected: Boolean(l.is_password_protected || l.isPasswordProtected || l.has_password || l.hasPassword || l.password || l.password_plain),
+        password: l.password || l.password_plain || "",
+        maxClicks: l.max_clicks !== undefined && l.max_clicks !== null ? Number(l.max_clicks) : l.maxClicks !== undefined && l.maxClicks !== null ? Number(l.maxClicks) : undefined,
+        fallbackUrl: l.fallback_url || l.fallbackUrl || "",
         isCloaked: Boolean(l.is_cloaked || l.isCloaked),
         metaTitle: l.meta_title || l.metaTitle || l.og_title || l.ogTitle,
         ogTitle: l.og_title || l.ogTitle || l.meta_title || l.metaTitle,
@@ -75,6 +78,10 @@ export default function DashboardOverviewPage() {
         hideReferrer: Boolean(l.hide_referrer || l.hideReferrer),
         tags: l.tags ? (typeof l.tags === "string" ? JSON.parse(l.tags) : l.tags) : [],
         expiresAt: l.expires_at || l.expiresAt,
+        abVariations: l.ab_variations || l.abVariations,
+        mainWeight: l.main_weight !== undefined ? Number(l.main_weight) : l.mainWeight !== undefined ? Number(l.mainWeight) : undefined,
+        redirectType: l.redirect_type || l.redirectType,
+        passParams: l.pass_params !== undefined ? Boolean(l.pass_params) : l.passParams !== undefined ? Boolean(l.passParams) : undefined,
         isActive: !(
           l.is_active === 0 ||
           l.is_active === false ||
@@ -198,7 +205,7 @@ export default function DashboardOverviewPage() {
     }
   }, [status, userId]);
 
-  // Listen for global link creation/update events (from sidebar, modals, etc.) & browser focus
+  // Listen for global link creation/update events (from sidebar, modals, etc.)
   useEffect(() => {
     const handleUpdate = () => {
       cfInvalidateCache();
@@ -207,22 +214,10 @@ export default function DashboardOverviewPage() {
 
     window.addEventListener("lshorter_links_updated", handleUpdate);
     window.addEventListener("lshorter_data_change", handleUpdate);
-    window.addEventListener("focus", handleUpdate);
-    document.addEventListener("visibilitychange", handleUpdate);
-
-    // Periodic live refresh every 10 seconds
-    const interval = setInterval(() => {
-      if (document.visibilityState === "visible") {
-        loadData(true);
-      }
-    }, 10000);
 
     return () => {
       window.removeEventListener("lshorter_links_updated", handleUpdate);
       window.removeEventListener("lshorter_data_change", handleUpdate);
-      window.removeEventListener("focus", handleUpdate);
-      document.removeEventListener("visibilitychange", handleUpdate);
-      clearInterval(interval);
     };
   }, [userId]);
 

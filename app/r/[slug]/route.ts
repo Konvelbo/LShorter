@@ -1,12 +1,6 @@
 import { NextResponse } from "next/server";
 import { getProtectedLink, saveProtectedLink, recordLinkClick, resolveAbTargetUrl } from "@/lib/protected-links-store";
-import { ConvexHttpClient } from "convex/browser";
-import { api } from "@/convex/_generated/api";
-import { parseVisitorDetails } from "@/lib/device-detection";
-
-const convex = new ConvexHttpClient(
-  process.env.NEXT_PUBLIC_CONVEX_URL || "https://greedy-mastiff-107.convex.cloud"
-);
+import { parseVisitorDetails, detectVisitorGeoAsync } from "@/lib/device-detection";
 
 const WORKER_URL =
   process.env.NEXT_PUBLIC_BACKEND_API_URL ||
@@ -14,9 +8,15 @@ const WORKER_URL =
 const FRONTEND_SECRET =
   process.env.FRONTEND_API_SECRET || "lsh_secret_live_prod_2026";
 
-function trackClickAsync(req: Request, slug: string, meta?: any) {
+export async function trackClickAsync(req: Request, slug: string, meta?: any) {
   try {
-    const details = parseVisitorDetails(req);
+    const [geo, details] = await Promise.all([
+      detectVisitorGeoAsync(req).catch(() => null),
+      Promise.resolve(parseVisitorDetails(req)),
+    ]);
+
+    const countryCode = geo?.countryCode || details.countryCode || "BF";
+    const city = geo?.city || details.city || "Ouagadougou";
     const userId = meta?.userId || meta?.user_id || "usr_default";
 
     // Forward click event exclusively to Cloudflare Edge Worker (0 Convex DB writes to eliminate database costs)
@@ -26,13 +26,21 @@ function trackClickAsync(req: Request, slug: string, meta?: any) {
         "X-Frontend-Secret": FRONTEND_SECRET,
         "Content-Type": "application/json",
         "X-User-Id": userId,
-        "X-Country": details.countryCode || "FR",
-        "X-City": details.city || "Paris",
+        "X-Country": countryCode,
+        "X-City": city,
         "X-Device": details.device || "desktop",
         "X-Browser": details.browser || "Chrome",
         "X-OS": details.os || "Windows",
         "X-Referrer": details.referrer || "Direct",
       },
+      body: JSON.stringify({
+        country: countryCode,
+        city: city,
+        device: details.device || "desktop",
+        browser: details.browser || "Chrome",
+        os: details.os || "Windows",
+        referrer: details.referrer || "Direct",
+      }),
     }).catch((err) => {
       console.warn("[Worker Click Increment Error]:", err?.message || err);
     });
@@ -41,7 +49,13 @@ function trackClickAsync(req: Request, slug: string, meta?: any) {
   }
 }
 
-function safeRedirect(urlStr: string, base: string, reqUrl?: string, passParams: boolean = true) {
+function safeRedirect(
+  urlStr: string,
+  base: string,
+  reqUrl?: string,
+  passParams: boolean = true,
+  statusCode: number = 307
+) {
   try {
     let target = urlStr.startsWith("http://") || urlStr.startsWith("https://")
       ? urlStr
@@ -58,7 +72,7 @@ function safeRedirect(urlStr: string, base: string, reqUrl?: string, passParams:
       }
     }
 
-    return NextResponse.redirect(new URL(target, base), 307);
+    return NextResponse.redirect(new URL(target, base), statusCode);
   } catch {
     return NextResponse.redirect(new URL("/", base), 307);
   }
@@ -74,32 +88,79 @@ function evaluateTargetUrl(baseTargetUrl: string, req: Request, meta?: any) {
     ""
   ).toUpperCase();
 
-  // 1. Device / OS Targeting
-  if (meta.deviceTargeting && typeof meta.deviceTargeting === "object") {
-    const dt = meta.deviceTargeting;
-    if (userAgent.includes("iphone") || userAgent.includes("ipad") || userAgent.includes("ipod")) {
-      if (dt.ios) return dt.ios;
-      if (dt.mobile) return dt.mobile;
-    } else if (userAgent.includes("android")) {
-      if (dt.android) return dt.android;
-      if (dt.mobile) return dt.mobile;
-    } else if (userAgent.includes("windows")) {
-      if (dt.windows) return dt.windows;
-      if (dt.desktop) return dt.desktop;
-    } else if (userAgent.includes("macintosh") || userAgent.includes("mac os")) {
-      if (dt.macos) return dt.macos;
-      if (dt.desktop) return dt.desktop;
-    } else if (userAgent.includes("linux")) {
-      if (dt.linux) return dt.linux;
-      if (dt.desktop) return dt.desktop;
-    } else if (/mobile|touch/i.test(userAgent)) {
-      if (dt.mobile) return dt.mobile;
-    } else {
-      if (dt.desktop) return dt.desktop;
+  // Detect Device Type
+  const isMobile = /mobile|iphone|ipod|android|blackberry|opera mini|iemobile|wpdesktop/i.test(userAgent);
+  const isTablet = /ipad|tablet|playbook|silk/i.test(userAgent);
+  const deviceType = isTablet ? "tablet" : isMobile ? "mobile" : "desktop";
+
+  // Detect OS Type
+  let osType = "other";
+  if (userAgent.includes("iphone") || userAgent.includes("ipad") || userAgent.includes("ipod")) osType = "ios";
+  else if (userAgent.includes("android")) osType = "android";
+  else if (userAgent.includes("windows")) osType = "windows";
+  else if (userAgent.includes("macintosh") || userAgent.includes("mac os")) osType = "macos";
+  else if (userAgent.includes("linux")) osType = "linux";
+
+  // 1. Evaluate Structured Routing Rules (AND logic)
+  let rules = meta.routingRules;
+  if (typeof rules === "string") {
+    try { rules = JSON.parse(rules); } catch {}
+  }
+
+  if (Array.isArray(rules) && rules.length > 0) {
+    for (const rule of rules) {
+      if (!rule || !rule.destinationUrl) continue;
+      const conditions = Array.isArray(rule.conditions) ? rule.conditions : [];
+      if (conditions.length === 0) continue;
+
+      let allConditionsMet = true;
+      for (const cond of conditions) {
+        if (!cond || !cond.type || !cond.value) continue;
+        const val = String(cond.value).trim().toLowerCase();
+        const op = cond.operator || "est";
+        let isMet = false;
+
+        if (cond.type === "pays") {
+          const match = country.toLowerCase() === val;
+          isMet = op === "est" ? match : !match;
+        } else if (cond.type === "appareil") {
+          const match = deviceType === val || (val === "mobile" && (isMobile || isTablet));
+          isMet = op === "est" ? match : !match;
+        } else if (cond.type === "plateforme") {
+          const match = osType === val;
+          isMet = op === "est" ? match : !match;
+        } else if (cond.type === "region") {
+          const match = country.toLowerCase().includes(val);
+          isMet = op === "est" ? match : !match;
+        } else {
+          isMet = true;
+        }
+
+        if (!isMet) {
+          allConditionsMet = false;
+          break;
+        }
+      }
+
+      if (allConditionsMet) {
+        return rule.destinationUrl;
+      }
     }
   }
 
-  // 2. Geo Targeting
+  // 2. Fallback: Legacy Device / OS Targeting
+  if (meta.deviceTargeting && typeof meta.deviceTargeting === "object") {
+    const dt = meta.deviceTargeting;
+    if (osType === "ios" && dt.ios) return dt.ios;
+    if (osType === "android" && dt.android) return dt.android;
+    if (osType === "windows" && dt.windows) return dt.windows;
+    if (osType === "macos" && dt.macos) return dt.macos;
+    if (osType === "linux" && dt.linux) return dt.linux;
+    if (isMobile && dt.mobile) return dt.mobile;
+    if (!isMobile && dt.desktop) return dt.desktop;
+  }
+
+  // 3. Fallback: Legacy Geo Targeting
   if (country && meta.geoTargeting && typeof meta.geoTargeting === "object") {
     if (meta.geoTargeting[country]) {
       return meta.geoTargeting[country];
@@ -277,36 +338,6 @@ export async function GET(
         botResponseCache.set(slug, { body: bodyText, headers, expiresAt: Date.now() + 600000 });
         return new Response(bodyText, { status: 200, headers });
       }
-
-      // Check Convex
-      try {
-        const cxLink: any = await convex.query(api.links.getLinkBySlug, { slug });
-        if (cxLink && (cxLink.ogImage || cxLink.ogTitle || cxLink.ogDescription || cxLink.metaTitle)) {
-          let fullOgImage = cxLink.ogImage || "";
-          if (fullOgImage && !fullOgImage.startsWith("http") && !fullOgImage.startsWith("data:")) {
-            try {
-              const origin = new URL(req.url).origin;
-              fullOgImage = `${origin}${fullOgImage.startsWith("/") ? "" : "/"}${fullOgImage}`;
-            } catch {}
-          }
-          const resp = renderSocialHtml({
-            title: cxLink.ogTitle || cxLink.metaTitle || cxLink.title || slug,
-            description: cxLink.ogDescription || "",
-            image: fullOgImage,
-            destinationUrl: cxLink.targetUrl || "https://lshorter.io",
-            canonicalUrl: req.url,
-          });
-          const bodyText = await resp.text();
-          const headers = {
-            "Content-Type": "text/html; charset=utf-8",
-            "Cache-Control": "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400",
-          };
-          botResponseCache.set(slug, { body: bodyText, headers, expiresAt: Date.now() + 600000 });
-          return new Response(bodyText, { status: 200, headers });
-        }
-      } catch (cxErr) {
-        console.warn("[Convex Bot Fetch Error]:", cxErr);
-      }
     }
 
     // ─── 2. REAL VISITOR / HUMAN PATH (INSTANT HTTP 307 REDIRECT) ───
@@ -323,51 +354,41 @@ export async function GET(
     // Check in-memory store (<1ms lookup)
     let meta = getProtectedLink(slug);
 
-    if (!meta) {
-      try {
-        const cxLink: any = await convex.query(api.links.getLinkBySlug, { slug });
-        if (cxLink) {
-          meta =
-            saveProtectedLink({
-              slug: cxLink.slug,
-              password: cxLink.password,
-              isCloaked: cxLink.isCloaked || cxLink.cloaking,
-              metaTitle: cxLink.metaTitle || cxLink.title,
-              ogTitle: cxLink.ogTitle || cxLink.title,
-              ogDescription: cxLink.ogDescription,
-              ogImage: cxLink.ogImage,
-              targetUrl: cxLink.targetUrl,
-              routingRules: cxLink.routingRules,
-              geoTargeting: cxLink.geoTargeting,
-              deviceTargeting: cxLink.deviceTargeting,
-              maxClicks: cxLink.maxClicks,
-              fallbackUrl: cxLink.fallbackUrl,
-              abVariations: cxLink.abVariations,
-              mainWeight: cxLink.mainWeight,
-              userId: cxLink.userId,
-            }) || null;
-        }
-      } catch (cxErr) {
-        console.warn("[Route Slug Convex Query Error]:", cxErr);
-      }
+    // 1. Check if link is paused / disabled
+    if (meta?.isActive === false) {
+      return NextResponse.redirect(new URL(`/r/${slug}/paused`, req.url), 307);
     }
 
-    // If password protected, show gate
+    // 2. Check if link is expired
+    if (meta?.expiresAt && new Date(meta.expiresAt).getTime() <= Date.now()) {
+      return NextResponse.redirect(new URL(`/r/${slug}/expired`, req.url), 307);
+    }
+
+    // 3. Check Access Limit on meta
+    if (meta?.maxClicks && meta.maxClicks > 0 && (meta.clicksCount || 0) >= meta.maxClicks) {
+      if (meta.fallbackUrl) {
+        return safeRedirect(meta.fallbackUrl, req.url);
+      }
+      return NextResponse.redirect(new URL(`/r/${slug}/expired`, req.url), 307);
+    }
+
+    // 4. If password protected, show gate
     if (meta?.password) {
       return NextResponse.redirect(new URL(`/r/${slug}/gate`, req.url), 307);
     }
 
-    // If cloaked, show view
+    // 5. If cloaked, show view
     if (meta?.isCloaked && meta?.targetUrl) {
       return NextResponse.redirect(new URL(`/r/${slug}/view`, req.url), 307);
     }
 
-    // If targetUrl is available locally/from Convex, redirect INSTANTLY with 307
+    // 6. If targetUrl is available locally/from Convex, redirect INSTANTLY with configured redirect code
     if (meta?.targetUrl) {
       trackClickAsync(req, slug, meta);
       const splitUrl = resolveAbTargetUrl(meta, meta.targetUrl);
       const finalUrl = evaluateTargetUrl(splitUrl, req, meta);
-      return safeRedirect(finalUrl, req.url, req.url, meta.passParams !== false);
+      const redirectCode = meta.redirectType === "301" ? 301 : meta.redirectType === "302" ? 302 : 307;
+      return safeRedirect(finalUrl, req.url, req.url, meta.passParams !== false, redirectCode);
     }
 
     // Fallback: Query Worker
@@ -389,7 +410,8 @@ export async function GET(
         if (location) {
           trackClickAsync(req, slug, meta);
           const finalUrl = evaluateTargetUrl(location, req, meta);
-          return safeRedirect(finalUrl, req.url, req.url, meta?.passParams !== false);
+          const redirectCode = meta?.redirectType === "301" ? 301 : meta?.redirectType === "302" ? 302 : 307;
+          return safeRedirect(finalUrl, req.url, req.url, meta?.passParams !== false, redirectCode);
         }
       }
     } catch (err) {
@@ -411,6 +433,22 @@ export async function GET(
         const list = Array.isArray(listData?.data) ? listData.data : [];
         const found = list.find((l: any) => l.slug?.toLowerCase() === slug.toLowerCase());
         if (found) {
+          if (found.is_active === 0 || found.is_active === false || found.isActive === false) {
+            return NextResponse.redirect(new URL(`/r/${slug}/paused`, req.url), 307);
+          }
+          const expTime = found.expires_at || found.expiresAt;
+          if (expTime && new Date(expTime).getTime() <= Date.now()) {
+            return NextResponse.redirect(new URL(`/r/${slug}/expired`, req.url), 307);
+          }
+
+          const clicks = found.clicks_count || found.clicks || 0;
+          const maxClicks = found.max_clicks !== undefined && found.max_clicks !== null ? Number(found.max_clicks) : found.maxClicks !== undefined && found.maxClicks !== null ? Number(found.maxClicks) : undefined;
+          const fallback = found.fallback_url || found.fallbackUrl;
+          if (maxClicks && maxClicks > 0 && clicks >= maxClicks) {
+            if (fallback) return safeRedirect(fallback, req.url);
+            return NextResponse.redirect(new URL(`/r/${slug}/expired`, req.url), 307);
+          }
+
           if (found.password || found.is_password_protected || found.has_password) {
             return NextResponse.redirect(new URL(`/r/${slug}/gate`, req.url), 307);
           }
@@ -421,7 +459,8 @@ export async function GET(
           if (target) {
             trackClickAsync(req, slug, found);
             const finalUrl = evaluateTargetUrl(target, req, found);
-            return safeRedirect(finalUrl, req.url, req.url, found?.passParams !== false);
+            const redirectCode = found?.redirect_type === "301" || found?.redirectType === "301" ? 301 : found?.redirect_type === "302" || found?.redirectType === "302" ? 302 : 307;
+            return safeRedirect(finalUrl, req.url, req.url, found?.passParams !== false, redirectCode);
           }
         }
       }

@@ -99,6 +99,111 @@ export interface VisitorDetails {
   ipMasked: string;
 }
 
+let devGeoCache: { countryCode: string; city: string; ip: string; expiresAt: number } | null = null;
+
+function isLocalOrPrivateIp(ip: string): boolean {
+  if (!ip) return true;
+  const clean = ip.replace(/^::ffff:/, "");
+  if (clean === "127.0.0.1" || clean === "::1" || clean === "localhost") return true;
+  if (clean.startsWith("192.168.") || clean.startsWith("10.") || clean.startsWith("172.16.") || clean.startsWith("172.17.") || clean.startsWith("172.18.") || clean.startsWith("172.19.") || clean.startsWith("172.20.") || clean.startsWith("172.31.")) return true;
+  return false;
+}
+
+/**
+ * Asynchronously detects authentic visitor geolocation.
+ * On Edge / Production (Vercel & Cloudflare): uses instant HTTP request headers.
+ * On Localhost / Dev: queries ip-api.com to discover the machine's true public IP and country (e.g. BF / Ouagadougou).
+ */
+export async function detectVisitorGeoAsync(req: Request): Promise<{ countryCode: string; city: string; rawIp: string }> {
+  // 1. Direct Edge headers from Cloudflare or Vercel
+  const edgeCountry = (
+    req.headers.get("cf-ipcountry") ||
+    req.headers.get("x-vercel-ip-country") ||
+    req.headers.get("x-country") ||
+    ""
+  ).toUpperCase().trim();
+
+  let edgeCity = (
+    req.headers.get("cf-ipcity") ||
+    req.headers.get("x-vercel-ip-city") ||
+    req.headers.get("x-city") ||
+    ""
+  ).trim();
+
+  if (edgeCity) {
+    try {
+      edgeCity = decodeURIComponent(edgeCity);
+    } catch {}
+  }
+
+  const rawIp =
+    req.headers.get("cf-connecting-ip") ||
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    req.headers.get("x-real-ip") ||
+    "127.0.0.1";
+
+  if (edgeCountry && edgeCountry !== "XX" && edgeCountry !== "UNKNOWN") {
+    return {
+      countryCode: edgeCountry,
+      city: edgeCity || (edgeCountry === "BF" ? "Ouagadougou" : "Direct"),
+      rawIp,
+    };
+  }
+
+  // 2. Dev / Localhost or missing edge headers: resolve authentic IP via ip-api
+  if (isLocalOrPrivateIp(rawIp)) {
+    if (devGeoCache && Date.now() < devGeoCache.expiresAt) {
+      return {
+        countryCode: devGeoCache.countryCode,
+        city: devGeoCache.city,
+        rawIp: devGeoCache.ip,
+      };
+    }
+
+    try {
+      const res = await fetch("http://ip-api.com/json", { signal: AbortSignal.timeout(2500) });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.status === "success" && data.countryCode) {
+          devGeoCache = {
+            countryCode: data.countryCode.toUpperCase(),
+            city: data.city || "Ouagadougou",
+            ip: data.query || rawIp,
+            expiresAt: Date.now() + 10 * 60 * 1000, // 10 min cache
+          };
+          return {
+            countryCode: devGeoCache.countryCode,
+            city: devGeoCache.city,
+            rawIp: devGeoCache.ip,
+          };
+        }
+      }
+    } catch {}
+  } else {
+    // Specific public IP without Edge headers
+    try {
+      const res = await fetch(`http://ip-api.com/json/${encodeURIComponent(rawIp)}`, { signal: AbortSignal.timeout(2500) });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.status === "success" && data.countryCode) {
+          return {
+            countryCode: data.countryCode.toUpperCase(),
+            city: data.city || "",
+            rawIp: data.query || rawIp,
+          };
+        }
+      }
+    } catch {}
+  }
+
+  // 3. Fallback: Default to Burkina Faso (BF) and Ouagadougou
+  return {
+    countryCode: "BF",
+    city: "Ouagadougou",
+    rawIp: rawIp === "127.0.0.1" ? "102.180.220.121" : rawIp,
+  };
+}
+
 export function parseVisitorDetails(req: Request): VisitorDetails {
   const userAgent = req.headers.get("user-agent") || "";
   const ua = userAgent.toLowerCase();
@@ -122,21 +227,34 @@ export function parseVisitorDetails(req: Request): VisitorDetails {
   else if (ua.includes("safari/") && !ua.includes("chrome/")) browser = "Safari";
   else if (ua.includes("chrome/") || ua.includes("crios/")) browser = "Chrome";
 
-  // Country
-  const countryCode = (
+  // Country from Edge headers or dev cache
+  const rawCountry = (
     req.headers.get("cf-ipcountry") ||
     req.headers.get("x-vercel-ip-country") ||
     req.headers.get("x-country") ||
     ""
-  ).toUpperCase() || "FR";
+  ).toUpperCase().trim();
 
-  // City
-  const city = (
+  let rawCity = (
     req.headers.get("cf-ipcity") ||
     req.headers.get("x-vercel-ip-city") ||
     req.headers.get("x-city") ||
     ""
-  ) || "Paris";
+  ).trim();
+
+  if (rawCity) {
+    try {
+      rawCity = decodeURIComponent(rawCity);
+    } catch {}
+  }
+
+  const countryCode = rawCountry && rawCountry !== "XX"
+    ? rawCountry
+    : (devGeoCache?.countryCode || "BF");
+
+  const city = rawCity
+    ? rawCity
+    : (devGeoCache?.city || (countryCode === "BF" ? "Ouagadougou" : "Direct"));
 
   // Referrer
   const rawReferrer = req.headers.get("referer") || "Direct";
@@ -159,7 +277,11 @@ export function parseVisitorDetails(req: Request): VisitorDetails {
     }
   }
 
-  const rawIp = req.headers.get("cf-connecting-ip") || req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "194.254.12.84";
+  const rawIp =
+    req.headers.get("cf-connecting-ip") ||
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    req.headers.get("x-real-ip") ||
+    (devGeoCache?.ip || "102.180.220.121");
   const ipMasked = rawIp.replace(/\.\d+\.\d+$/, ".•••.•••");
 
   return {

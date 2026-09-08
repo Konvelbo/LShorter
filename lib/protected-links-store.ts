@@ -24,7 +24,10 @@ export interface ProtectedLinkMeta {
   abVariations?: AbVariation[];
   mainWeight?: number;
   passParams?: boolean;
+  redirectType?: "301" | "302" | "307";
   userId?: string;
+  isActive?: boolean;
+  expiresAt?: string;
   updatedAt: string;
 }
 
@@ -81,7 +84,10 @@ export function saveProtectedLink(meta: {
   abVariations?: AbVariation[];
   mainWeight?: number;
   passParams?: boolean;
+  redirectType?: "301" | "302" | "307";
   userId?: string;
+  isActive?: boolean;
+  expiresAt?: string;
 }) {
   if (!meta.slug) return;
   const key = meta.slug.toLowerCase();
@@ -96,7 +102,7 @@ export function saveProtectedLink(meta: {
     ogTitle: meta.ogTitle !== undefined ? meta.ogTitle : existing.ogTitle,
     ogDescription: meta.ogDescription !== undefined ? meta.ogDescription : existing.ogDescription,
     ogImage: meta.ogImage !== undefined ? meta.ogImage : existing.ogImage,
-    targetUrl: meta.targetUrl || existing.targetUrl,
+    targetUrl: meta.targetUrl !== undefined ? meta.targetUrl : existing.targetUrl,
     routingRules: meta.routingRules !== undefined ? meta.routingRules : existing.routingRules,
     geoTargeting: meta.geoTargeting !== undefined ? meta.geoTargeting : existing.geoTargeting,
     deviceTargeting: meta.deviceTargeting !== undefined ? meta.deviceTargeting : existing.deviceTargeting,
@@ -105,6 +111,9 @@ export function saveProtectedLink(meta: {
     abVariations: meta.abVariations !== undefined ? meta.abVariations : existing.abVariations,
     mainWeight: meta.mainWeight !== undefined ? meta.mainWeight : existing.mainWeight,
     passParams: meta.passParams !== undefined ? meta.passParams : (existing.passParams !== undefined ? existing.passParams : true),
+    redirectType: meta.redirectType !== undefined ? meta.redirectType : existing.redirectType,
+    isActive: meta.isActive !== undefined ? meta.isActive : (existing.isActive !== undefined ? existing.isActive : true),
+    expiresAt: meta.expiresAt !== undefined ? meta.expiresAt : existing.expiresAt,
     clicksCount: existing.clicksCount || 0,
     userId: meta.userId || existing.userId,
     updatedAt: new Date().toISOString(),
@@ -183,4 +192,8 @@ export function deleteProtectedLink(slug: string) {
   if (!slug) return;
   memoryStore.delete(slug.toLowerCase());
   persistStore();
+}
+
+export function getAllProtectedLinks(): ProtectedLinkMeta[] {
+  return Array.from(memoryStore.values());
 }

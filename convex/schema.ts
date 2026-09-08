@@ -161,6 +161,8 @@ export default defineSchema({
     deviceTargeting: v.optional(v.any()),
     abVariations: v.optional(v.any()),
     mainWeight: v.optional(v.number()),
+    redirectType: v.optional(v.string()),
+    passParams: v.optional(v.boolean()),
     isActive: v.optional(v.boolean()),
     expiresAt: v.optional(v.string()),
     createdAt: v.string(),

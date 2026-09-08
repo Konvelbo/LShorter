@@ -454,5 +454,80 @@ html.light .sidebar-link-btn:hover {
   color: #09090b !important;
 }
 
+/* ==========================================================================
+   Date / Time / Calendar Picker Indicator Visibility (Dark & Light Mode)
+   ========================================================================== */
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"] {
+  color-scheme: dark !important;
+}
 
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  filter: invert(1) brightness(1.2) !important;
+  opacity: 0.85;
+  transition: opacity 0.2s, filter 0.2s;
+  padding: 4px;
+  border-radius: 4px;
+}
 
+input[type="date"]::-webkit-calendar-picker-indicator:hover,
+input[type="time"]::-webkit-calendar-picker-indicator:hover,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+  filter: invert(53%) sepia(90%) saturate(2400%) hue-rotate(360deg) brightness(102%) contrast(105%) !important;
+}
+
+html.light input[type="date"],
+html.light input[type="time"],
+html.light input[type="datetime-local"] {
+  color-scheme: light !important;
+}
+
+html.light input[type="date"]::-webkit-calendar-picker-indicator,
+html.light input[type="time"]::-webkit-calendar-picker-indicator,
+html.light input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  filter: invert(0) !important;
+  opacity: 0.85;
+}
+
+html.light input[type="date"]::-webkit-calendar-picker-indicator:hover,
+html.light input[type="time"]::-webkit-calendar-picker-indicator:hover,
+html.light input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+  filter: invert(53%) sepia(90%) saturate(2400%) hue-rotate(360deg) brightness(102%) contrast(105%) !important;
+}
+
+/* ── DRAWER TAB BAR : Mini scrollbar horizontale (Orange desktop / Bleu mobile) ── */
+.drawer-tabs-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 102, 0, 0.6) transparent;
+}
+.drawer-tabs-scroll::-webkit-scrollbar {
+  height: 3px;
+}
+.drawer-tabs-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.drawer-tabs-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 102, 0, 0.6);
+  border-radius: 99px;
+}
+.drawer-tabs-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 102, 0, 0.9);
+}
+
+@media (max-width: 640px) {
+  .drawer-tabs-scroll {
+    scrollbar-color: rgba(0, 102, 255, 0.6) transparent;
+  }
+  .drawer-tabs-scroll::-webkit-scrollbar-thumb {
+    background: rgba(0, 102, 255, 0.6);
+  }
+  .drawer-tabs-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 102, 255, 0.9);
+  }
+}

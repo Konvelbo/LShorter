@@ -175,7 +175,7 @@ export default function GeoAnalyticsPage() {
               percentage: c.percentage !== undefined ? c.percentage : (total > 0 ? Math.round((cnt / total) * 100) : 0),
             };
           })
-        : generateEdgeTopCountries(total);
+        : [];
 
       const rawCities = d.topCities ?? d.top_cities ?? [];
       const cities = (rawCities.length > 0)
@@ -185,7 +185,7 @@ export default function GeoAnalyticsPage() {
             count: ci.count || ci.clicks || 0,
             percentage: ci.percentage !== undefined ? ci.percentage : (total > 0 ? Math.round(((ci.count || ci.clicks || 0) / total) * 100) : 0),
           }))
-        : generateEdgeTopCities(total);
+        : [];
 
       const rawLiveEvents = d.liveClickEvents ?? d.live_click_events ?? [];
       let finalLiveEvents: any[] = [];
@@ -209,21 +209,21 @@ export default function GeoAnalyticsPage() {
           finalLiveEvents = finalLiveEvents.filter((ev: any) => ev.slug?.toLowerCase() === targetLink.slug?.toLowerCase());
         }
       } else {
-        finalLiveEvents = generateEdgeLiveClickEvents(fetchedLinks, total, targetLink);
+        finalLiveEvents = [];
       }
 
       setAnalytics({
         totalClicks: total,
-        clicksGrowth: periodStats.clicksGrowth,
+        clicksGrowth: 0,
         uniqueClicks: periodStats.periodUniques,
         uniqueClicksGrowth: 0,
         trackedRevenue: 0,
         revenueGrowth: 0,
         avgCtr: 0,
         ctrGrowth: 0,
-        bounceRate: total > 0 ? 24 : 0,
+        bounceRate: 0,
         epc: 0,
-        avgEngagementTime: total > 0 ? "1m 42s" : "0s",
+        avgEngagementTime: "0s",
         clicksByDay: d.clicksByDay || [],
         topCountries: countries,
         topCities: cities,
@@ -261,27 +261,16 @@ export default function GeoAnalyticsPage() {
     }
   }, [status, userId, selectedRange, selectedLinkId]);
 
-  // Real-time tab focus & polling listener
+  // Listen for explicit data update events
   useEffect(() => {
-    const handleFocus = () => {
+    const handleUpdate = () => {
       loadData(selectedRange, selectedLinkId, true);
     };
 
-    window.addEventListener("focus", handleFocus);
-    document.addEventListener("visibilitychange", handleFocus);
-    window.addEventListener("lshorter_data_change", handleFocus);
-
-    const interval = setInterval(() => {
-      if (document.visibilityState === "visible") {
-        loadData(selectedRange, selectedLinkId, true);
-      }
-    }, 10000);
+    window.addEventListener("lshorter_data_change", handleUpdate);
 
     return () => {
-      window.removeEventListener("focus", handleFocus);
-      document.removeEventListener("visibilitychange", handleFocus);
-      window.removeEventListener("lshorter_data_change", handleFocus);
-      clearInterval(interval);
+      window.removeEventListener("lshorter_data_change", handleUpdate);
     };
   }, [userId, selectedRange, selectedLinkId]);
 

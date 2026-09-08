@@ -225,16 +225,13 @@ export function ContinentsVectorMap({
                   const isCountrySelected = !selectedCountry || selectedCountry === "ALL" || selectedCountry === countryData.code;
                   const isHovered = hoveredCountry?.code === countryData.code;
 
-                  // Dynamic color calculation
+                  // Dynamic color calculation: ONLY countries with actual clicks are colored
                   let fillColor = "#1b1b22";
                   let strokeColor = "#272730";
 
                   if (countryClicks > 0) {
                     fillColor = continentMeta.color;
                     strokeColor = "#ffffff";
-                  } else if (continentClicks > 0 && isContinentSelected) {
-                    fillColor = `${continentMeta.color}35`;
-                    strokeColor = `${continentMeta.color}60`;
                   }
 
                   if (isHovered) {
@@ -534,9 +531,6 @@ export function ContinentsVectorMap({
                     if (countryClicks > 0) {
                       fillColor = continentMeta.color;
                       strokeColor = "#ffffff";
-                    } else if (continentClicks > 0 && isContinentSelected) {
-                      fillColor = `${continentMeta.color}35`;
-                      strokeColor = `${continentMeta.color}60`;
                     }
 
                     if (isHovered) {

@@ -24,8 +24,8 @@ export async function GET(req: Request) {
 
   try {
     const visitorInfo = parseVisitorDetails(req);
-    const clientCountry = visitorInfo.countryCode || "FR";
-    const clientCity = visitorInfo.city || "Paris";
+    const clientCountry = visitorInfo.countryCode || "BF";
+    const clientCity = visitorInfo.city || "Ouagadougou";
 
     // 1. Fetch links from Worker (primary) and Convex (fallback)
     const [workerLinksRes, workerAnalyticsRes] = await Promise.all([
@@ -109,80 +109,43 @@ export async function GET(req: Request) {
       ? (workerStats?.unique_clicks ?? workerStats?.uniqueClicks ?? Math.max(1, Math.round(effectiveTotalClicks * 0.9)))
       : 0;
 
-    // 3. Prepare Country & Geo breakdown from Worker or fallbacks
-    let topCountries = (workerStats?.top_countries || workerStats?.topCountries || []).map((c: any) => ({
-      code: c.code || c.country_code || c.country || "FR",
-      name: c.name || c.country_name || getCountryName(c.code || c.country_code || "FR"),
-      count: c.count || c.clicks || 0,
-      percentage: effectiveTotalClicks > 0 ? Math.round(((c.count || c.clicks || 0) / effectiveTotalClicks) * 100) : 0,
-    }));
-    if (topCountries.length === 0 && effectiveTotalClicks > 0) {
-      topCountries = [
-        {
-          code: clientCountry,
-          name: getCountryName(clientCountry),
-          count: effectiveTotalClicks,
-          percentage: 100,
-        },
-      ];
-    }
+    // 3. Country & Geo breakdown strictly from Worker D1
+    const topCountries = (workerStats?.top_countries || workerStats?.topCountries || []).map((c: any) => {
+      const code = (c.code || c.country_code || c.country || "XX").toUpperCase();
+      return {
+        code,
+        name: c.name || c.country_name || getCountryName(code),
+        count: c.count || c.clicks || 0,
+        percentage: effectiveTotalClicks > 0 ? Math.round(((c.count || c.clicks || 0) / effectiveTotalClicks) * 100) : 0,
+      };
+    });
 
-    // 4. Prepare Cities breakdown
-    let topCities = (workerStats?.top_cities || workerStats?.topCities || []).map((c: any) => ({
+    // 4. Cities breakdown strictly from Worker D1
+    const topCities = (workerStats?.top_cities || workerStats?.topCities || []).map((c: any) => ({
       city: c.city || c.name || "Inconnue",
-      countryCode: c.countryCode || c.country_code || "FR",
+      countryCode: (c.countryCode || c.country_code || "XX").toUpperCase(),
       count: c.count || c.clicks || 0,
       percentage: effectiveTotalClicks > 0 ? Math.round(((c.count || c.clicks || 0) / effectiveTotalClicks) * 100) : 0,
     }));
-    if (topCities.length === 0 && effectiveTotalClicks > 0) {
-      topCities = [
-        {
-          city: clientCity,
-          countryCode: clientCountry,
-          count: effectiveTotalClicks,
-          percentage: 100,
-        },
-      ];
-    }
 
-    // 5. Prepare Devices breakdown
-    let topDevices = (workerStats?.top_devices || workerStats?.topDevices || []).map((d: any) => ({
-      label: d.label || d.name || d.device || "Ordinateur (Desktop)",
+    // 5. Devices breakdown strictly from Worker D1
+    const topDevices = (workerStats?.top_devices || workerStats?.topDevices || []).map((d: any) => ({
+      label: d.label || d.name || d.device || "Inconnu",
       device: d.device || "desktop",
       count: d.count || d.clicks || 0,
       percentage: effectiveTotalClicks > 0 ? Math.round(((d.count || d.clicks || 0) / effectiveTotalClicks) * 100) : 0,
     }));
-    if (topDevices.length === 0 && effectiveTotalClicks > 0) {
-      topDevices = [
-        {
-          label: visitorInfo.device === "mobile" ? "Smartphone (Mobile)" : "Ordinateur (Desktop)",
-          device: visitorInfo.device,
-          count: effectiveTotalClicks,
-          percentage: 100,
-        },
-      ];
-    }
 
-    // 6. Prepare Browsers breakdown
-    let topBrowsers = (workerStats?.top_browsers || workerStats?.topBrowsers || []).map((b: any) => ({
-      name: b.name || b.browser || "Chrome",
-      browser: b.browser || "Chrome",
+    // 6. Browsers breakdown strictly from Worker D1
+    const topBrowsers = (workerStats?.top_browsers || workerStats?.topBrowsers || []).map((b: any) => ({
+      name: b.name || b.browser || "Inconnu",
+      browser: b.browser || "Inconnu",
       count: b.count || b.clicks || 0,
       percentage: effectiveTotalClicks > 0 ? Math.round(((b.count || b.clicks || 0) / effectiveTotalClicks) * 100) : 0,
     }));
-    if (topBrowsers.length === 0 && effectiveTotalClicks > 0) {
-      topBrowsers = [
-        {
-          name: visitorInfo.browser,
-          browser: visitorInfo.browser,
-          count: effectiveTotalClicks,
-          percentage: 100,
-        },
-      ];
-    }
 
-    // 7. Prepare Referrers breakdown
-    let topReferrers = (workerStats?.top_referrers || workerStats?.topReferrers || []).map((r: any) => ({
+    // 7. Referrers breakdown strictly from Worker D1
+    const topReferrers = (workerStats?.top_referrers || workerStats?.topReferrers || []).map((r: any) => ({
       source: r.source || r.referrer || "Accès Direct",
       referrer: r.referrer || "Direct",
       name: r.name || r.referrer || "Direct",
@@ -190,70 +153,30 @@ export async function GET(req: Request) {
       count: r.count || r.clicks || 0,
       percentage: effectiveTotalClicks > 0 ? Math.round(((r.count || r.clicks || 0) / effectiveTotalClicks) * 100) : 0,
     }));
-    if (topReferrers.length === 0 && effectiveTotalClicks > 0) {
-      topReferrers = [
-        {
-          source: "Accès Direct",
-          referrer: "Direct",
-          name: "Direct",
-          clicks: effectiveTotalClicks,
-          count: effectiveTotalClicks,
-          percentage: 100,
-        },
-      ];
-    }
 
-    // 8. Prepare Timeline time-series
+    // 8. Timeline time-series mapped from real clicks_by_day
     const timeRange = period === "1d" || period === "day" ? "day" : period === "7d" || period === "week" ? "week" : period === "365d" || period === "year" ? "year" : "month";
-    const clicksByDay = generateTimelineForRange(timeRange, effectiveTotalClicks, effectiveUniqueClicks);
+    const rawClicksByDay = workerStats?.clicks_by_day || workerStats?.clicksByDay || [];
+    const clicksByDay = generateTimelineForRange(timeRange, effectiveTotalClicks, effectiveUniqueClicks, rawClicksByDay);
 
-    // 9. Prepare Live Click Events
-    let liveClickEvents = workerStats?.live_click_events || workerStats?.liveClickEvents || [];
-    if (liveClickEvents.length === 0 && effectiveTotalClicks > 0) {
-      const candidateList = targetLink ? [targetLink] : allLinks;
-      const now = Date.now();
-      let evIdx = 0;
-
-      for (const l of candidateList) {
-        const cnt = l.clicksCount || l.clicks_count || l.clicks || 1;
-        const genCount = Math.min(cnt, 15);
-        for (let i = 0; i < genCount; i++) {
-          const minutesAgo = Math.round(i * 15 + evIdx * 8);
-          liveClickEvents.push({
-            id: `ev-${l.id || l._id || l.slug}-${i}`,
-            timestamp: new Date(now - minutesAgo * 60 * 1000).toISOString(),
-            slug: l.slug || "link",
-            countryCode: clientCountry,
-            countryName: getCountryName(clientCountry),
-            city: clientCity,
-            device: visitorInfo.device,
-            browser: visitorInfo.browser,
-            os: visitorInfo.os,
-            referrer: "Direct",
-            ipMasked: visitorInfo.ipMasked,
-            conversionAmount: undefined,
-          });
-          evIdx++;
-        }
-      }
-      liveClickEvents.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-    }
+    // 9. Live Click Events strictly from Worker D1 (no synthetic events)
+    const liveClickEvents = workerStats?.live_click_events || workerStats?.liveClickEvents || [];
 
     return NextResponse.json(
       {
         success: true,
         data: {
           totalClicks: effectiveTotalClicks,
-          clicksGrowth: effectiveTotalClicks > 0 ? 18 : 0,
+          clicksGrowth: 0,
           uniqueClicks: effectiveUniqueClicks,
-          uniqueClicksGrowth: effectiveTotalClicks > 0 ? 14 : 0,
+          uniqueClicksGrowth: 0,
           trackedRevenue: workerStats?.total_revenue || workerStats?.trackedRevenue || 0,
           revenueGrowth: 0,
           avgCtr: effectiveTotalClicks > 0 ? Number(((effectiveUniqueClicks / effectiveTotalClicks) * 100).toFixed(1)) : 0,
           ctrGrowth: 0,
-          bounceRate: effectiveTotalClicks > 0 ? 24 : 0,
+          bounceRate: 0,
           epc: 0,
-          avgEngagementTime: effectiveTotalClicks > 0 ? "1m 42s" : "0s",
+          avgEngagementTime: "0s",
           clicksByDay,
           topCountries,
           topCities,

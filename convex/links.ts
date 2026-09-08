@@ -187,6 +187,8 @@ export const upsertLink = mutation({
     deviceTargeting: v.optional(v.any()),
     abVariations: v.optional(v.any()),
     mainWeight: v.optional(v.number()),
+    redirectType: v.optional(v.string()),
+    passParams: v.optional(v.boolean()),
     isActive: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
@@ -223,6 +225,8 @@ export const upsertLink = mutation({
         deviceTargeting: args.deviceTargeting !== undefined ? args.deviceTargeting : existing.deviceTargeting,
         abVariations: args.abVariations !== undefined ? args.abVariations : existing.abVariations,
         mainWeight: args.mainWeight !== undefined ? args.mainWeight : existing.mainWeight,
+        redirectType: args.redirectType !== undefined ? args.redirectType : (existing as any).redirectType,
+        passParams: args.passParams !== undefined ? args.passParams : (existing as any).passParams,
         isActive: args.isActive !== undefined ? args.isActive : existing.isActive,
         updatedAt: now,
       });

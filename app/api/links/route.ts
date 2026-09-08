@@ -1,17 +1,11 @@
 import { NextResponse } from "next/server";
-import { saveProtectedLink } from "@/lib/protected-links-store";
-import { ConvexHttpClient } from "convex/browser";
-import { api } from "@/convex/_generated/api";
+import { saveProtectedLink, getProtectedLink, getAllProtectedLinks } from "@/lib/protected-links-store";
 
 const WORKER_URL =
   process.env.NEXT_PUBLIC_BACKEND_API_URL ||
   "https://lshorter-api.fiatechnologiecam.workers.dev";
 const FRONTEND_SECRET =
   process.env.FRONTEND_API_SECRET || "lsh_secret_live_prod_2026";
-
-const convex = new ConvexHttpClient(
-  process.env.NEXT_PUBLIC_CONVEX_URL || "https://greedy-mastiff-107.convex.cloud"
-);
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -21,28 +15,16 @@ export async function GET(req: Request) {
     const url = new URL(`${WORKER_URL}/api/v1/links`);
     if (userId) url.searchParams.set("userId", userId);
 
-    const [workerData, convexLinks] = await Promise.all([
-      fetch(url.toString(), {
-        headers: {
-          "X-Frontend-Secret": FRONTEND_SECRET,
-          Authorization: `Bearer ${FRONTEND_SECRET}`,
-          ...(userId ? { "X-User-Id": userId } : {}),
-        },
-        cache: "no-store",
-      })
-        .then((r) => (r.ok ? r.json() : { success: true, data: [] }))
-        .catch(() => ({ success: true, data: [] })),
-      userId && userId !== "all"
-        ? convex.query(api.links.listUserLinks, { userId }).catch(() => [])
-        : Promise.resolve([]),
-    ]);
-
-    const convexMap = new Map<string, any>();
-    if (Array.isArray(convexLinks)) {
-      convexLinks.forEach((cl: any) => {
-        if (cl.slug) convexMap.set(cl.slug.toLowerCase(), cl);
-      });
-    }
+    const workerData = await fetch(url.toString(), {
+      headers: {
+        "X-Frontend-Secret": FRONTEND_SECRET,
+        Authorization: `Bearer ${FRONTEND_SECRET}`,
+        ...(userId ? { "X-User-Id": userId } : {}),
+      },
+      cache: "no-store",
+    })
+      .then((r) => (r.ok ? r.json() : { success: true, data: [] }))
+      .catch(() => ({ success: true, data: [] }));
 
     const workerList = Array.isArray(workerData?.data)
       ? workerData.data
@@ -53,89 +35,107 @@ export async function GET(req: Request) {
     const seenSlugs = new Set<string>();
     const mergedList: any[] = [];
 
-    // 1. Merge workerList links with Convex data
+    // 1. Merge workerList links with Local Store
     for (const l of workerList) {
       const slugKey = (l.slug || "").toLowerCase();
       seenSlugs.add(slugKey);
-      const cx = convexMap.get(slugKey) || {};
+      const local = getProtectedLink(slugKey);
 
       mergedList.push({
         ...l,
-        meta_title: l.meta_title || l.metaTitle || cx.metaTitle || cx.title,
-        metaTitle: l.metaTitle || l.meta_title || cx.metaTitle || cx.title,
-        og_title: l.og_title || l.ogTitle || cx.ogTitle || cx.title,
-        ogTitle: l.ogTitle || l.og_title || cx.ogTitle || cx.title,
-        og_description: l.og_description || l.ogDescription || cx.ogDescription,
-        ogDescription: l.ogDescription || l.og_description || cx.ogDescription,
-        og_image: l.og_image || l.ogImage || cx.ogImage,
-        ogImage: l.ogImage || l.og_image || cx.ogImage,
-        password: l.password || cx.password,
-        has_password: Boolean(l.password || l.has_password || cx.password),
-        is_cloaked: l.is_cloaked !== undefined ? l.is_cloaked : cx.isCloaked ? 1 : 0,
-        isCloaked: Boolean(l.isCloaked || l.is_cloaked || cx.isCloaked),
-        hide_referrer: l.hide_referrer !== undefined ? l.hide_referrer : cx.hideReferrer ? 1 : 0,
-        hideReferrer: Boolean(l.hideReferrer || l.hide_referrer || cx.hideReferrer),
-        routing_rules: l.routing_rules || cx.routingRules,
-        routingRules: l.routingRules || cx.routingRules,
-        geo_targeting: l.geo_targeting || cx.geoTargeting,
-        geoTargeting: l.geoTargeting || cx.geoTargeting,
-        device_targeting: l.device_targeting || cx.deviceTargeting,
-        deviceTargeting: l.deviceTargeting || cx.deviceTargeting,
-        max_clicks: l.max_clicks !== undefined ? l.max_clicks : cx.maxClicks,
-        maxClicks: l.maxClicks !== undefined ? l.maxClicks : cx.maxClicks,
-        fallback_url: l.fallback_url || cx.fallbackUrl,
-        fallbackUrl: l.fallbackUrl || cx.fallbackUrl,
-        ab_variations: l.ab_variations || cx.abVariations,
-        abVariations: l.abVariations || cx.abVariations,
-        main_weight: l.main_weight !== undefined ? l.main_weight : cx.mainWeight,
-        mainWeight: l.mainWeight !== undefined ? l.mainWeight : cx.mainWeight,
+        meta_title: l.meta_title || l.metaTitle || local?.metaTitle,
+        metaTitle: l.metaTitle || l.meta_title || local?.metaTitle,
+        og_title: l.og_title || l.ogTitle || local?.ogTitle,
+        ogTitle: l.ogTitle || l.og_title || local?.ogTitle,
+        og_description: l.og_description || l.ogDescription || local?.ogDescription,
+        ogDescription: l.ogDescription || l.og_description || local?.ogDescription,
+        og_image: l.og_image || l.ogImage || local?.ogImage,
+        ogImage: l.ogImage || l.og_image || local?.ogImage,
+        password: l.password || local?.password,
+        has_password: Boolean(l.password || l.has_password || local?.password),
+        is_cloaked: l.is_cloaked !== undefined ? l.is_cloaked : local?.isCloaked ? 1 : 0,
+        isCloaked: Boolean(l.isCloaked || l.is_cloaked || local?.isCloaked),
+        hide_referrer: l.hide_referrer !== undefined ? l.hide_referrer : 0,
+        hideReferrer: Boolean(l.hideReferrer || l.hide_referrer),
+        routing_rules: l.routing_rules || local?.routingRules,
+        routingRules: l.routingRules || local?.routingRules,
+        geo_targeting: l.geo_targeting || local?.geoTargeting,
+        geoTargeting: l.geoTargeting || local?.geoTargeting,
+        device_targeting: l.device_targeting || local?.deviceTargeting,
+        deviceTargeting: l.deviceTargeting || local?.deviceTargeting,
+        max_clicks: l.max_clicks !== undefined ? l.max_clicks : local?.maxClicks,
+        maxClicks: l.maxClicks !== undefined ? l.maxClicks : local?.maxClicks,
+        fallback_url: l.fallback_url || local?.fallbackUrl,
+        fallbackUrl: l.fallbackUrl || local?.fallbackUrl,
+        ab_variations: l.ab_variations || local?.abVariations,
+        abVariations: l.abVariations || local?.abVariations,
+        main_weight: l.main_weight !== undefined ? l.main_weight : local?.mainWeight,
+        mainWeight: l.mainWeight !== undefined ? l.mainWeight : local?.mainWeight,
+        redirect_type: l.redirect_type || l.redirectType || local?.redirectType || "302",
+        redirectType: l.redirectType || l.redirect_type || local?.redirectType || "302",
+        pass_params: l.pass_params !== undefined ? l.pass_params : local?.passParams !== undefined ? (local.passParams ? 1 : 0) : 1,
+        passParams: l.passParams !== undefined ? Boolean(l.passParams) : local?.passParams !== undefined ? Boolean(local.passParams) : true,
+        expires_at: local?.expiresAt || l.expires_at || l.expiresAt,
+        expiresAt: local?.expiresAt || l.expiresAt || l.expires_at,
+        is_active: local?.isActive !== undefined ? (local.isActive ? 1 : 0) : l.is_active !== undefined ? l.is_active : 1,
+        isActive: local?.isActive !== undefined ? Boolean(local.isActive) : l.isActive !== undefined ? Boolean(l.isActive) : l.is_active !== undefined ? Boolean(l.is_active) : true,
+        tags: l.tags || [],
       });
     }
 
-    // 2. Also add any links from Convex that are not present in workerList
-    if (Array.isArray(convexLinks)) {
-      for (const cl of convexLinks) {
-        const slugKey = (cl.slug || "").toLowerCase();
-        if (!seenSlugs.has(slugKey)) {
+    // 2. Also add any links from local store not present in workerList (e.g. offline fallback or pending worker sync)
+    const localLinks = getAllProtectedLinks();
+    for (const local of localLinks) {
+      if (!local.slug) continue;
+      const slugKey = local.slug.toLowerCase();
+      if (!seenSlugs.has(slugKey)) {
+        if (!userId || userId === "all" || !local.userId || local.userId === userId) {
           seenSlugs.add(slugKey);
           mergedList.push({
-            id: cl._id || `link_${Date.now()}`,
-            user_id: cl.userId,
-            domain_name: cl.domainName || "lsho.cc",
-            slug: cl.slug,
-            short_url: cl.shortUrl || `https://${cl.domainName || "lsho.cc"}/${cl.slug}`,
-            target_url: cl.targetUrl,
-            clicks_count: cl.clicksCount || 0,
-            is_active: cl.isActive !== false ? 1 : 0,
-            created_at: cl.createdAt || new Date(cl._creationTime || Date.now()).toISOString(),
-            meta_title: cl.metaTitle || cl.title,
-            metaTitle: cl.metaTitle || cl.title,
-            og_title: cl.ogTitle || cl.title,
-            ogTitle: cl.ogTitle || cl.title,
-            og_description: cl.ogDescription,
-            ogDescription: cl.ogDescription,
-            og_image: cl.ogImage,
-            ogImage: cl.ogImage,
-            password: cl.password,
-            has_password: Boolean(cl.password),
-            is_cloaked: cl.isCloaked ? 1 : 0,
-            isCloaked: Boolean(cl.isCloaked),
-            hide_referrer: cl.hideReferrer ? 1 : 0,
-            hideReferrer: Boolean(cl.hideReferrer),
-            routing_rules: cl.routingRules,
-            routingRules: cl.routingRules,
-            geo_targeting: cl.geoTargeting,
-            geoTargeting: cl.geoTargeting,
-            device_targeting: cl.deviceTargeting,
-            deviceTargeting: cl.deviceTargeting,
-            max_clicks: cl.maxClicks,
-            maxClicks: cl.maxClicks,
-            fallback_url: cl.fallbackUrl,
-            fallbackUrl: cl.fallbackUrl,
-            ab_variations: cl.abVariations,
-            abVariations: cl.abVariations,
-            main_weight: cl.mainWeight,
-            mainWeight: cl.mainWeight,
+            id: `link_${local.slug}`,
+            user_id: local.userId || userId || "usr_default",
+            domain_name: "lsho.cc",
+            slug: local.slug,
+            short_url: `https://lsho.cc/${local.slug}`,
+            target_url: local.targetUrl || "",
+            clicks_count: local.clicksCount || 0,
+            is_active: local.isActive !== false ? 1 : 0,
+            isActive: local.isActive !== false,
+            created_at: local.updatedAt || new Date().toISOString(),
+            meta_title: local.metaTitle,
+            metaTitle: local.metaTitle,
+            og_title: local.ogTitle,
+            ogTitle: local.ogTitle,
+            og_description: local.ogDescription,
+            ogDescription: local.ogDescription,
+            og_image: local.ogImage,
+            ogImage: local.ogImage,
+            password: local.password,
+            has_password: Boolean(local.password),
+            is_cloaked: local.isCloaked ? 1 : 0,
+            isCloaked: Boolean(local.isCloaked),
+            hide_referrer: 0,
+            hideReferrer: false,
+            routing_rules: local.routingRules,
+            routingRules: local.routingRules,
+            geo_targeting: local.geoTargeting,
+            geoTargeting: local.geoTargeting,
+            device_targeting: local.deviceTargeting,
+            deviceTargeting: local.deviceTargeting,
+            max_clicks: local.maxClicks,
+            maxClicks: local.maxClicks,
+            fallback_url: local.fallbackUrl,
+            fallbackUrl: local.fallbackUrl,
+            ab_variations: local.abVariations,
+            abVariations: local.abVariations,
+            main_weight: local.mainWeight,
+            redirect_type: local.redirectType || "302",
+            redirectType: local.redirectType || "302",
+            pass_params: local.passParams !== false ? 1 : 0,
+            passParams: local.passParams !== false,
+            expires_at: local.expiresAt,
+            expiresAt: local.expiresAt,
+            tags: [],
           });
         }
       }
@@ -162,41 +162,7 @@ export async function POST(req: Request) {
         ? undefined
         : body.ogImage || body.og_image;
 
-    // 1. Persist in Convex Cloud DB for permanent 100% cloud reliability
-    if (body.slug && body.userId) {
-      try {
-        await convex.mutation(api.links.upsertLink, {
-          userId: body.userId,
-          slug: body.slug,
-          targetUrl: body.targetUrl || body.target_url,
-          domainName: body.domainName || body.domain_name || "lsho.cc",
-          title: body.ogTitle || body.metaTitle || body.slug,
-          metaTitle: body.metaTitle || body.meta_title || body.ogTitle || undefined,
-          ogTitle: body.ogTitle || body.og_title || undefined,
-          ogDescription: body.ogDescription || body.og_description || undefined,
-          ogImage: sanitizedOgImage || undefined,
-          password: body.password || undefined,
-          isPasswordProtected: Boolean(body.password),
-          isCloaked: Boolean(body.isCloaked || body.is_cloaked),
-          cloaking: Boolean(body.isCloaked || body.is_cloaked),
-          hideReferrer: Boolean(body.hideReferrer || body.hide_referrer),
-          expiresAt: body.expiresAt || body.expires_at || undefined,
-          maxClicks: body.maxClicks !== undefined ? Number(body.maxClicks) : undefined,
-          fallbackUrl: body.fallbackUrl || body.fallback_url || undefined,
-          tags: body.tags || undefined,
-          routingRules: body.routingRules || body.routing_rules || undefined,
-          geoTargeting: body.geoTargeting || body.geo_targeting || undefined,
-          deviceTargeting: body.deviceTargeting || body.device_targeting || undefined,
-          abVariations: body.abVariations || body.ab_variations || undefined,
-          mainWeight: body.mainWeight !== undefined ? Number(body.mainWeight) : undefined,
-          isActive: body.isActive !== false && body.is_active !== 0,
-        });
-      } catch (cxErr) {
-        console.warn("[Convex upsertLink error]:", cxErr);
-      }
-    }
-
-    // 2. Persist in local in-memory store
+    // 1. Persist in local store
     if (body.slug) {
       try {
         saveProtectedLink({
@@ -215,14 +181,18 @@ export async function POST(req: Request) {
           fallbackUrl: body.fallbackUrl || body.fallback_url || undefined,
           abVariations: body.abVariations || body.ab_variations || undefined,
           mainWeight: body.mainWeight !== undefined ? Number(body.mainWeight) : undefined,
+          redirectType: body.redirectType || body.redirect_type || undefined,
+          passParams: body.passParams !== undefined ? Boolean(body.passParams) : body.pass_params !== undefined ? Boolean(body.pass_params) : undefined,
           userId: body.userId,
+          isActive: body.isActive !== false && body.is_active !== 0,
+          expiresAt: body.expiresAt || body.expires_at || undefined,
         });
       } catch (storeErr) {
         console.warn("[ProtectedLinkStore] Non-fatal save warning:", storeErr);
       }
     }
 
-    // 3. Forward to Cloudflare Worker D1 & KV
+    // 2. Forward to Cloudflare Worker D1 & KV
     const workerPayload = {
       ...body,
       targetUrl: body.targetUrl || body.target_url,
@@ -235,6 +205,10 @@ export async function POST(req: Request) {
       og_description: body.ogDescription || body.og_description,
       metaTitle: body.metaTitle || body.meta_title || body.ogTitle,
       meta_title: body.meta_title || body.metaTitle || body.ogTitle,
+      redirectType: body.redirectType || body.redirect_type,
+      redirect_type: body.redirectType || body.redirect_type,
+      passParams: body.passParams !== undefined ? Boolean(body.passParams) : body.pass_params !== undefined ? Boolean(body.pass_params) : undefined,
+      pass_params: body.passParams !== undefined ? Boolean(body.passParams) : body.pass_params !== undefined ? Boolean(body.pass_params) : undefined,
       plan: effectivePlan,
       userPlan: effectivePlan,
     };
@@ -323,9 +297,9 @@ export async function POST(req: Request) {
     }
 
     if (!res.ok) {
-      // If Convex succeeded and worker returned a 500 DB constraint, return success with Convex data
+      // If local store succeeded and worker returned 500/quota limit, return success with local data
       if (res.status >= 500 && body.slug) {
-        console.warn("[Links Proxy POST] Worker 500, but Convex saved link successfully:", data);
+        console.warn("[Links Proxy POST] Worker error, falling back to local store:", data);
         return NextResponse.json(
           {
             success: true,

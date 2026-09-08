@@ -18,7 +18,8 @@ type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 const apiCache = new Map<string, { data: any; expiresAt: number }>();
 const inFlightRequests = new Map<string, Promise<any>>();
-const CACHE_TTL_MS = 2000; // 2 seconds cache for identical GET queries (ensures rapid real-time updates)
+// Cache GET responses for 2 minutes to eliminate repeated queries and preserve Cloudflare quota limits
+const CACHE_TTL_MS = 120000;
 
 export function sanitizeClientError(raw: any): string {
   if (!raw) return "Une erreur inattendue est survenue. Veuillez réessayer.";
@@ -50,18 +51,6 @@ export function cfInvalidateCache(pattern?: string) {
       apiCache.delete(key);
     }
   }
-}
-
-// Auto-invalidate cache on browser tab focus / visibility change
-if (typeof window !== "undefined") {
-  window.addEventListener("focus", () => {
-    cfInvalidateCache();
-  });
-  document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible") {
-      cfInvalidateCache();
-    }
-  });
 }
 
 async function cfFetch<T>(
@@ -282,6 +271,10 @@ export async function cfCreateLink(data: {
   fallback_url?: string;
   abVariations?: any[];
   mainWeight?: number;
+  redirectType?: "301" | "302" | "307" | string;
+  redirect_type?: string;
+  passParams?: boolean;
+  pass_params?: boolean;
   isActive?: boolean;
   is_active?: number;
   userPlan?: string;
@@ -291,6 +284,10 @@ export async function cfCreateLink(data: {
     userId: data.userId,
     targetUrl: data.targetUrl || data.target_url,
     target_url: data.targetUrl || data.target_url,
+    redirectType: data.redirectType || data.redirect_type,
+    redirect_type: data.redirectType || data.redirect_type,
+    passParams: data.passParams !== undefined ? data.passParams : data.pass_params,
+    pass_params: data.passParams !== undefined ? data.passParams : data.pass_params,
     domain: data.domainName || undefined,
     domainName: data.domainName || undefined,
     slug: data.slug ? data.slug.trim() : undefined,
@@ -305,6 +302,10 @@ export async function cfCreateLink(data: {
     expiresAt: data.expiresAt || data.expires_at,
     maxClicks: data.maxClicks !== undefined ? data.maxClicks : data.max_clicks,
     fallbackUrl: data.fallbackUrl || data.fallback_url,
+    abVariations: data.abVariations,
+    ab_variations: data.abVariations,
+    mainWeight: data.mainWeight,
+    main_weight: data.mainWeight,
     isActive: data.isActive !== false && data.is_active !== 0,
     tags: data.tags && data.tags.length ? data.tags : undefined,
     userPlan: data.userPlan || data.plan || "PRO",
@@ -345,6 +346,12 @@ export async function cfUpdateLink(id: string, updates: any) {
     expires_at: updates.expires_at || updates.expiresAt,
     max_clicks: updates.max_clicks !== undefined ? updates.max_clicks : updates.maxClicks,
     fallback_url: updates.fallback_url || updates.fallbackUrl,
+    ab_variations: updates.ab_variations !== undefined ? updates.ab_variations : updates.abVariations,
+    abVariations: updates.abVariations !== undefined ? updates.abVariations : updates.ab_variations,
+    main_weight: updates.main_weight !== undefined ? updates.main_weight : updates.mainWeight,
+    mainWeight: updates.mainWeight !== undefined ? updates.mainWeight : updates.main_weight,
+    pass_params: updates.pass_params !== undefined ? updates.pass_params : updates.passParams,
+    passParams: updates.passParams !== undefined ? updates.passParams : updates.pass_params,
     is_active: updates.is_active !== undefined ? updates.is_active : updates.isActive !== undefined ? (updates.isActive ? 1 : 0) : undefined,
     userPlan: updates.userPlan || updates.plan || "PRO",
     plan: updates.userPlan || updates.plan || "PRO",

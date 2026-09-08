@@ -95,22 +95,12 @@ export async function GET(
       console.warn("[Image Proxy] Worker fetch error:", workerErr);
     }
 
-    // 3. Fallback: Fetch from Convex or Local Protected Link Store
+    // 3. Fallback: Fetch from Local Protected Link Store
     try {
       const slugWithoutExt = cleanId.replace(/\.(jpg|jpeg|png|webp|gif|svg)$/i, "");
       const { getProtectedLink } = await import("@/lib/protected-links-store");
       const localLink = getProtectedLink(slugWithoutExt);
-      let rawImg = localLink?.ogImage || "";
-
-      if (!rawImg) {
-        const { ConvexHttpClient } = await import("convex/browser");
-        const { api } = await import("@/convex/_generated/api");
-        const cx = new ConvexHttpClient(
-          process.env.NEXT_PUBLIC_CONVEX_URL || "https://greedy-mastiff-107.convex.cloud"
-        );
-        const cxLink = await cx.query(api.links.getLinkBySlug, { slug: slugWithoutExt }).catch(() => null);
-        rawImg = cxLink?.ogImage || "";
-      }
+      const rawImg = localLink?.ogImage || "";
 
       if (rawImg && rawImg.startsWith("data:")) {
         const commaIdx = rawImg.indexOf(",");

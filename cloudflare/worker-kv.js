@@ -137,8 +137,16 @@ export default {
         return new Response('Lien introuvable ou supprime.', { status: 404, headers: corsHeaders });
       }
 
-      if (link.is_active === 0 || link.isActive === false) {
-        return new Response('Ce lien a ete desactive par son proprieitaire.', { status: 404, headers: corsHeaders });
+      const reqHost = request.headers.get('x-forwarded-host') || request.headers.get('host') || 'www.lsho.cc';
+      const proto = request.headers.get('x-forwarded-proto') || 'https';
+
+      if (link.is_active === 0 || link.isActive === false || link.is_active === '0') {
+        return Response.redirect(`${proto}://${reqHost}/r/${slug}/paused`, 307);
+      }
+
+      const expTime = link.expires_at || link.expiresAt;
+      if (expTime && new Date(expTime).getTime() <= Date.now()) {
+        return Response.redirect(`${proto}://${reqHost}/r/${slug}/expired`, 307);
       }
 
       const userAgent = (request.headers.get('user-agent') || '').toLowerCase();

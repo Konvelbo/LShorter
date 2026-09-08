@@ -179,10 +179,11 @@ export function CobeGlobe({ className = "", topCountries = [] }: CobeGlobeProps)
   }, [topCountries]);
 
   const arcs = React.useMemo(() => {
-    const edgeHub: Marker = { lat: 48.8566, lng: 2.3522, label: "Cloudflare Edge", size: 5.5 };
+    if (markers.length < 2) return [];
+    // Link authentic visitor locations together without artificial hub
     return markers.map((m, idx) => ({
-      from: edgeHub,
-      to: m,
+      from: m,
+      to: markers[(idx + 1) % markers.length],
       progress: (idx * 0.3) % 1,
       speed: 0.006 + (idx * 0.002) % 0.006,
     }));

@@ -310,7 +310,7 @@ function AnalyticsContent() {
                 percentage: pct,
               };
             })
-          : generateEdgeTopCountries(total);
+          : [];
 
         // Top Cities breakdown
         const rawCities = d.topCities ?? d.top_cities ?? [];
@@ -321,7 +321,7 @@ function AnalyticsContent() {
               count: ci.count || ci.clicks || 0,
               percentage: ci.percentage !== undefined ? ci.percentage : (total > 0 ? Math.round(((ci.count || ci.clicks || 0) / total) * 100) : 0),
             }))
-          : generateEdgeTopCities(total);
+          : [];
 
         // Top Devices breakdown
         const rawDevices = d.topDevices ?? d.top_devices ?? [];
@@ -332,7 +332,7 @@ function AnalyticsContent() {
               count: dv.count || dv.clicks || 0,
               percentage: dv.percentage !== undefined ? dv.percentage : (total > 0 ? Math.round(((dv.count || dv.clicks || 0) / total) * 100) : 0),
             }))
-          : generateEdgeTopDevices(total);
+          : [];
 
         // Top Browsers breakdown
         const rawBrowsers = d.topBrowsers ?? d.top_browsers ?? [];
@@ -343,7 +343,7 @@ function AnalyticsContent() {
               count: br.count || br.clicks || 0,
               percentage: br.percentage !== undefined ? br.percentage : (total > 0 ? Math.round(((br.count || br.clicks || 0) / total) * 100) : 0),
             }))
-          : generateEdgeTopBrowsers(total);
+          : [];
 
         // Top Referrers breakdown
         const rawReferrers = d.topReferrers ?? d.top_referrers ?? [];
@@ -354,7 +354,7 @@ function AnalyticsContent() {
               count: rf.count || rf.clicks || 0,
               percentage: rf.percentage !== undefined ? rf.percentage : (total > 0 ? Math.round(((rf.count || rf.clicks || 0) / total) * 100) : 0),
             }))
-          : generateEdgeTopReferrers(total);
+          : [];
 
         // Live Event Stream
         const rawLiveEvents = d.liveClickEvents ?? d.live_click_events ?? [];
@@ -382,21 +382,21 @@ function AnalyticsContent() {
             ? allMappedEvents.filter((ev: any) => ev.slug?.toLowerCase() === targetLink.slug?.toLowerCase())
             : allMappedEvents;
         } else {
-          finalLiveEvents = generateEdgeLiveClickEvents(fetchedLinks, total, targetLink);
+          finalLiveEvents = [];
         }
 
         setAnalytics({
           totalClicks: total,
-          clicksGrowth: periodStats.clicksGrowth,
+          clicksGrowth: 0,
           uniqueClicks: unique,
-          uniqueClicksGrowth: periodStats.uniqueClicksGrowth,
+          uniqueClicksGrowth: 0,
           trackedRevenue: revenue,
-          revenueGrowth: periodStats.clicksGrowth > 0 ? Math.round(periodStats.clicksGrowth * 0.7) : 0,
+          revenueGrowth: 0,
           avgCtr: avgCtr,
-          ctrGrowth: avgCtr > 0 ? 12 : 0,
-          bounceRate: d.bounceRate ?? d.bounce_rate ?? (total > 0 ? 24 : 0),
+          ctrGrowth: 0,
+          bounceRate: d.bounceRate ?? d.bounce_rate ?? 0,
           epc: epc,
-          avgEngagementTime: d.avgEngagementTime || (total > 0 ? "1m 42s" : "0s"),
+          avgEngagementTime: d.avgEngagementTime || "0s",
           clicksByDay,
           topCountries: countries,
           topCities: cities,
@@ -433,22 +433,10 @@ function AnalyticsContent() {
 
     window.addEventListener("lshorter_links_updated", handleUpdate);
     window.addEventListener("lshorter_data_change", handleUpdate);
-    window.addEventListener("focus", handleUpdate);
-    document.addEventListener("visibilitychange", handleUpdate);
-
-    // Periodic live refresh every 10 seconds
-    const interval = setInterval(() => {
-      if (document.visibilityState === "visible") {
-        refreshData(selectedRange, selectedLinkId, true);
-      }
-    }, 10000);
 
     return () => {
       window.removeEventListener("lshorter_links_updated", handleUpdate);
       window.removeEventListener("lshorter_data_change", handleUpdate);
-      window.removeEventListener("focus", handleUpdate);
-      document.removeEventListener("visibilitychange", handleUpdate);
-      clearInterval(interval);
     };
   }, [userId, selectedRange, selectedLinkId]);
 

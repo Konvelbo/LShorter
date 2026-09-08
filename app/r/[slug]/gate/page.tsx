@@ -49,6 +49,14 @@ export default function PasswordGatePage() {
       const data = await res.json();
 
       if (!res.ok || !data.success) {
+        if (data.error === "QUOTA_REACHED" || data.error === "LINK_EXPIRED") {
+          window.location.replace(data.fallbackUrl || `/r/${slug}/expired`);
+          return;
+        }
+        if (data.error === "LINK_PAUSED") {
+          window.location.replace(data.fallbackUrl || `/r/${slug}/paused`);
+          return;
+        }
         setPasswordError(data.error || "Mot de passe incorrect.");
         setIsVerifying(false);
         return;

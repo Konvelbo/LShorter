@@ -9,28 +9,9 @@ const WORKER_URL =
 const FRONTEND_SECRET =
   process.env.FRONTEND_API_SECRET || "lsh_secret_live_prod_2026";
 
-import { ConvexHttpClient } from "convex/browser";
-import { api } from "@/convex/_generated/api";
-
-const convex = new ConvexHttpClient(
-  process.env.NEXT_PUBLIC_CONVEX_URL || "https://greedy-mastiff-107.convex.cloud"
-);
-
 async function getLink(slug: string) {
   const meta = getProtectedLink(slug);
   if (meta?.targetUrl) return meta;
-
-  try {
-    const cxLink: any = await convex.query(api.links.getLinkBySlug, { slug });
-    if (cxLink?.targetUrl) {
-      return {
-        slug: cxLink.slug,
-        targetUrl: cxLink.targetUrl,
-        metaTitle: cxLink.metaTitle || cxLink.title || cxLink.slug,
-        isCloaked: true,
-      };
-    }
-  } catch {}
 
   try {
     const res = await fetch(`${WORKER_URL}/api/v1/links`, {

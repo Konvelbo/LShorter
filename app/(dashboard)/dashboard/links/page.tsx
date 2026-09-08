@@ -25,7 +25,11 @@ import {
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { cfGetLinks, cfDeleteLink, cfInvalidateCache } from "@/lib/cloudflare-api";
+import {
+  cfGetLinks,
+  cfDeleteLink,
+  cfInvalidateCache,
+} from "@/lib/cloudflare-api";
 import { ShortLink } from "@/types";
 import { cn, formatNumber, formatDateRelative } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -51,15 +55,21 @@ export default function LinksPage() {
   const [isTagDropdownOpen, setIsTagDropdownOpen] = useState(false);
   const tagDropdownRef = useRef<HTMLDivElement>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [selectedEditLink, setSelectedEditLink] = useState<ShortLink | null>(null);
-  const [selectedShareLink, setSelectedShareLink] = useState<ShortLink | null>(null);
+  const [selectedEditLink, setSelectedEditLink] = useState<ShortLink | null>(
+    null,
+  );
+  const [selectedShareLink, setSelectedShareLink] = useState<ShortLink | null>(
+    null,
+  );
   const [selectedQRLink, setSelectedQRLink] = useState<ShortLink | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
   // Checkbox Selection & Bulk Actions
-  const [selectedLinkIds, setSelectedLinkIds] = useState<Set<string>>(new Set());
+  const [selectedLinkIds, setSelectedLinkIds] = useState<Set<string>>(
+    new Set(),
+  );
 
   // Custom Delete Modal State
   const [deleteTarget, setDeleteTarget] = useState<{
@@ -80,30 +90,82 @@ export default function LinksPage() {
     if (!isBackground) setIsLoading(true);
     try {
       const res = await cfGetLinks(userId);
-      const listData = Array.isArray(res?.data) ? res.data : Array.isArray((res?.data as any)?.data) ? (res?.data as any).data : [];
+      const listData = Array.isArray(res?.data)
+        ? res.data
+        : Array.isArray((res?.data as any)?.data)
+          ? (res?.data as any).data
+          : [];
       const rawLinks: ShortLink[] = listData.map((l: any) => ({
         id: l.id,
         userId: l.user_id || userId,
         slug: l.slug,
         domainName: l.domain_name || "lsho.cc",
-        shortUrl: typeof window !== "undefined" ? `${window.location.origin}/r/${l.slug}` : `http://localhost:3000/r/${l.slug}`,
+        shortUrl:
+          typeof window !== "undefined"
+            ? `${window.location.origin}/r/${l.slug}`
+            : `http://localhost:3000/r/${l.slug}`,
         targetUrl: l.target_url || l.targetUrl,
         clicksCount: l.clicks_count || l.clicksCount || l.clicks || 0,
         uniqueClicks: l.unique_clicks || l.uniqueClicks || 0,
         conversionsCount: l.conversions_count || l.conversionsCount || 0,
         revenue: l.revenue || 0,
-        routingRules: l.routing_rules ? (typeof l.routing_rules === "string" ? JSON.parse(l.routing_rules) : l.routing_rules) : (l.routingRules || []),
-        geoTargeting: l.geo_targeting ? (typeof l.geo_targeting === "string" ? JSON.parse(l.geo_targeting) : l.geo_targeting) : (l.geoTargeting || {}),
-        deviceTargeting: l.device_targeting ? (typeof l.device_targeting === "string" ? JSON.parse(l.device_targeting) : l.device_targeting) : (l.deviceTargeting || {}),
-        isPasswordProtected: Boolean(l.is_password_protected || l.isPasswordProtected || l.has_password || l.hasPassword || l.password),
+        routingRules: l.routing_rules
+          ? typeof l.routing_rules === "string"
+            ? JSON.parse(l.routing_rules)
+            : l.routing_rules
+          : l.routingRules || [],
+        geoTargeting: l.geo_targeting
+          ? typeof l.geo_targeting === "string"
+            ? JSON.parse(l.geo_targeting)
+            : l.geo_targeting
+          : l.geoTargeting || {},
+        deviceTargeting: l.device_targeting
+          ? typeof l.device_targeting === "string"
+            ? JSON.parse(l.device_targeting)
+            : l.device_targeting
+          : l.deviceTargeting || {},
+        isPasswordProtected: Boolean(
+          l.is_password_protected ||
+          l.isPasswordProtected ||
+          l.has_password ||
+          l.hasPassword ||
+          l.password ||
+          l.password_plain,
+        ),
+        password: l.password || l.password_plain || "",
+        maxClicks:
+          l.max_clicks !== undefined && l.max_clicks !== null
+            ? Number(l.max_clicks)
+            : l.maxClicks !== undefined && l.maxClicks !== null
+              ? Number(l.maxClicks)
+              : undefined,
+        fallbackUrl: l.fallback_url || l.fallbackUrl || "",
         isCloaked: Boolean(l.is_cloaked || l.isCloaked),
         metaTitle: l.meta_title || l.metaTitle || l.og_title || l.ogTitle,
         ogTitle: l.og_title || l.ogTitle || l.meta_title || l.metaTitle,
         ogDescription: l.og_description || l.ogDescription,
         ogImage: l.og_image || l.ogImage,
         hideReferrer: Boolean(l.hide_referrer || l.hideReferrer),
-        tags: l.tags ? (typeof l.tags === "string" ? JSON.parse(l.tags) : l.tags) : [],
+        tags: l.tags
+          ? typeof l.tags === "string"
+            ? JSON.parse(l.tags)
+            : l.tags
+          : [],
         expiresAt: l.expires_at || l.expiresAt,
+        abVariations: l.ab_variations || l.abVariations,
+        mainWeight:
+          l.main_weight !== undefined
+            ? Number(l.main_weight)
+            : l.mainWeight !== undefined
+              ? Number(l.mainWeight)
+              : undefined,
+        redirectType: l.redirect_type || l.redirectType,
+        passParams:
+          l.pass_params !== undefined
+            ? Boolean(l.pass_params)
+            : l.passParams !== undefined
+              ? Boolean(l.passParams)
+              : undefined,
         isActive: !(
           l.is_active === 0 ||
           l.is_active === false ||
@@ -138,41 +200,30 @@ export default function LinksPage() {
     const handleUpdate = (e?: any) => {
       cfInvalidateCache();
       if (e?.detail?.id) {
-        setLinks((prev) => [e.detail, ...prev.filter((l) => l.id !== e.detail.id)]);
+        setLinks((prev) => [
+          e.detail,
+          ...prev.filter((l) => l.id !== e.detail.id),
+        ]);
       }
-      loadLinks(true);
-    };
-
-    const handleFocus = () => {
-      cfInvalidateCache();
       loadLinks(true);
     };
 
     window.addEventListener("lshorter_links_updated", handleUpdate);
     window.addEventListener("lshorter_data_change", handleUpdate);
-    window.addEventListener("focus", handleFocus);
-    document.addEventListener("visibilitychange", handleFocus);
-
-    // Light background polling every 10 seconds for real-time link counters
-    const interval = setInterval(() => {
-      if (document.visibilityState === "visible") {
-        loadLinks(true);
-      }
-    }, 10000);
 
     return () => {
       window.removeEventListener("lshorter_links_updated", handleUpdate);
       window.removeEventListener("lshorter_data_change", handleUpdate);
-      window.removeEventListener("focus", handleFocus);
-      document.removeEventListener("visibilitychange", handleFocus);
-      clearInterval(interval);
     };
   }, [userId]);
 
   // Click outside listener for tag dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (tagDropdownRef.current && !tagDropdownRef.current.contains(event.target as Node)) {
+      if (
+        tagDropdownRef.current &&
+        !tagDropdownRef.current.contains(event.target as Node)
+      ) {
         setIsTagDropdownOpen(false);
       }
     };
@@ -183,12 +234,16 @@ export default function LinksPage() {
   // Click outside listener for action dropdown menus
   useEffect(() => {
     const handleMenuClickOutside = (event: MouseEvent) => {
-      if (openMenuId && !(event.target as HTMLElement).closest(".dropdown-anchor")) {
+      if (
+        openMenuId &&
+        !(event.target as HTMLElement).closest(".dropdown-anchor")
+      ) {
         setOpenMenuId(null);
       }
     };
     document.addEventListener("mousedown", handleMenuClickOutside);
-    return () => document.removeEventListener("mousedown", handleMenuClickOutside);
+    return () =>
+      document.removeEventListener("mousedown", handleMenuClickOutside);
   }, [openMenuId]);
 
   const handleCopy = (link: ShortLink) => {
@@ -210,7 +265,10 @@ export default function LinksPage() {
 
   // Toggle select all filtered links
   const toggleSelectAll = () => {
-    if (selectedLinkIds.size === filteredLinks.length && filteredLinks.length > 0) {
+    if (
+      selectedLinkIds.size === filteredLinks.length &&
+      filteredLinks.length > 0
+    ) {
       setSelectedLinkIds(new Set());
     } else {
       setSelectedLinkIds(new Set(filteredLinks.map((l) => l.id)));
@@ -222,13 +280,23 @@ export default function LinksPage() {
   const isLongPressActiveRef = useRef<boolean>(false);
   const touchStartPosRef = useRef<{ x: number; y: number } | null>(null);
 
-  const startLongPress = (linkId: string, e: React.TouchEvent | React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest("button, a, input, select, .dropdown-anchor")) {
+  const startLongPress = (
+    linkId: string,
+    e: React.TouchEvent | React.MouseEvent,
+  ) => {
+    if (
+      (e.target as HTMLElement).closest(
+        "button, a, input, select, .dropdown-anchor",
+      )
+    ) {
       return;
     }
 
     if ("touches" in e && e.touches.length > 0) {
-      touchStartPosRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      touchStartPosRef.current = {
+        x: e.touches[0].clientX,
+        y: e.touches[0].clientY,
+      };
     } else if ("clientX" in e) {
       touchStartPosRef.current = { x: e.clientX, y: e.clientY };
     }
@@ -239,7 +307,11 @@ export default function LinksPage() {
     longPressTimerRef.current = setTimeout(() => {
       isLongPressActiveRef.current = true;
       toggleSelectLink(linkId);
-      if (typeof window !== "undefined" && window.navigator && window.navigator.vibrate) {
+      if (
+        typeof window !== "undefined" &&
+        window.navigator &&
+        window.navigator.vibrate
+      ) {
         try {
           window.navigator.vibrate(45);
         } catch (_) {}
@@ -268,7 +340,11 @@ export default function LinksPage() {
       isLongPressActiveRef.current = false;
       return;
     }
-    if ((e.target as HTMLElement).closest("button, a, input, select, .dropdown-anchor")) {
+    if (
+      (e.target as HTMLElement).closest(
+        "button, a, input, select, .dropdown-anchor",
+      )
+    ) {
       return;
     }
     // If selection mode is active, tapping anywhere on card toggles selection
@@ -317,7 +393,7 @@ export default function LinksPage() {
         idsToDelete.map((id) => {
           const target = links.find((l) => l.id === id);
           return cfDeleteLink(id, userId, target?.slug, target?.ogImage);
-        })
+        }),
       );
       cfInvalidateCache();
       if (typeof window !== "undefined") {
@@ -326,7 +402,7 @@ export default function LinksPage() {
       showToast.success(
         idsToDelete.length > 1
           ? `${idsToDelete.length} liens supprimés avec succès.`
-          : "Lien supprimé avec succès."
+          : "Lien supprimé avec succès.",
       );
       setDeleteTarget({ isOpen: false, ids: [], labels: [] });
       // 3. Background re-sync
@@ -341,30 +417,35 @@ export default function LinksPage() {
   };
 
   // Collect all unique tags
-  const allTags = Array.from(
-    new Set(links.flatMap((l) => l.tags || []))
-  );
+  const allTags = Array.from(new Set(links.flatMap((l) => l.tags || [])));
 
   // Filter links by search, selected tag, and status
   const filteredLinks = links.filter((l) => {
     const matchesSearch =
       l.slug.toLowerCase().includes(searchQuery.toLowerCase()) ||
       l.targetUrl.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (l.tags && l.tags.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase())));
+      (l.tags &&
+        l.tags.some((t) =>
+          t.toLowerCase().includes(searchQuery.toLowerCase()),
+        ));
 
     const matchesTag =
       selectedTag === "all" || (l.tags && l.tags.includes(selectedTag));
 
-    const isExpired = Boolean(l.expiresAt && new Date(l.expiresAt) < new Date());
+    const isExpired = Boolean(
+      l.expiresAt && new Date(l.expiresAt) < new Date(),
+    );
     let matchesStatus = true;
     if (statusFilter === "active") matchesStatus = l.isActive && !isExpired;
     else if (statusFilter === "expired") matchesStatus = isExpired;
-    else if (statusFilter === "protected") matchesStatus = Boolean(l.isPasswordProtected);
+    else if (statusFilter === "protected")
+      matchesStatus = Boolean(l.isPasswordProtected);
 
     return matchesSearch && matchesTag && matchesStatus;
   });
 
-  const isAllSelected = filteredLinks.length > 0 && selectedLinkIds.size === filteredLinks.length;
+  const isAllSelected =
+    filteredLinks.length > 0 && selectedLinkIds.size === filteredLinks.length;
   const isPartiallySelected = selectedLinkIds.size > 0 && !isAllSelected;
 
   if (status === "loading" || isLoading) {
@@ -376,9 +457,12 @@ export default function LinksPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-wide">Mes Liens Courts</h1>
+          <h1 className="text-2xl font-bold text-white tracking-wide">
+            Mes Liens Courts
+          </h1>
           <p className="text-xs text-neutral-400 mt-1">
-            Gérez, éditez et analysez vos {links.length} redirections actives avec QR Code et UTM.
+            Gérez, éditez et analysez vos {links.length} redirections actives
+            avec QR Code et UTM.
           </p>
         </div>
 
@@ -395,7 +479,9 @@ export default function LinksPage() {
             disabled={isRefreshing}
             className="h-10 px-3.5 text-xs font-semibold gap-2 border-[#27272a] bg-[#141416] hover:bg-white/5 text-neutral-300 hover:text-white cursor-pointer shadow-sm"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-[#ff6600]" : "text-neutral-400"}`} />
+            <RefreshCw
+              className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-[#ff6600]" : "text-neutral-400"}`}
+            />
             <span>Actualiser</span>
           </Button>
 
@@ -456,7 +542,9 @@ export default function LinksPage() {
                   <Tag className="w-3.5 h-3.5 text-[#ff6600] shrink-0" />
                 )}
                 <span className="truncate">
-                  {selectedTag === "all" ? `Tous (${links.length})` : `#${selectedTag}`}
+                  {selectedTag === "all"
+                    ? `Tous (${links.length})`
+                    : `#${selectedTag}`}
                 </span>
               </div>
               <ChevronDown
@@ -468,66 +556,70 @@ export default function LinksPage() {
 
             {isTagDropdownOpen && (
               <div className="absolute right-0 top-full mt-1.5 w-56 rounded-[10px] bg-[#18181c] border border-[#2a2a32] shadow-2xl shadow-black/90 py-1.5 z-40 animate-in fade-in zoom-in-95 duration-150 max-h-72 overflow-y-auto">
-              <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-neutral-500">
-                Filtrer par catégorie / tag
+                <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-neutral-500">
+                  Filtrer par catégorie / tag
+                </div>
+
+                {/* Option: Tous les liens */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedTag("all");
+                    setIsTagDropdownOpen(false);
+                  }}
+                  className={`w-full px-3 py-2 text-xs flex items-center justify-between transition-colors text-left cursor-pointer ${
+                    selectedTag === "all"
+                      ? "bg-[#ff6600]/15 text-[#ff6600] font-bold"
+                      : "text-neutral-300 hover:bg-white/5 hover:text-white"
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <Globe2 className="w-3.5 h-3.5 text-cyan-400 md:text-[#ff6600]" />
+                    <span>Tous les liens</span>
+                  </span>
+                  <span className="text-[11px] font-mono px-1.5 py-0.5 rounded-[10px] bg-white/5 text-neutral-400">
+                    {links.length}
+                  </span>
+                </button>
+
+                {allTags.length > 0 && (
+                  <div className="h-px bg-[#26262e] my-1" />
+                )}
+
+                {/* Individual Tag Options */}
+                {allTags.map((t) => {
+                  const count = links.filter(
+                    (l) => l.tags && l.tags.includes(t),
+                  ).length;
+                  return (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => {
+                        setSelectedTag(t);
+                        setIsTagDropdownOpen(false);
+                      }}
+                      className={`w-full px-3 py-2 text-xs flex items-center justify-between transition-colors text-left cursor-pointer ${
+                        selectedTag === t
+                          ? "bg-[#ff6600]/15 text-[#ff6600] font-bold"
+                          : "text-neutral-300 hover:bg-white/5 hover:text-white"
+                      }`}
+                    >
+                      <span className="flex items-center gap-2 truncate">
+                        <Tag className="w-3 h-3 text-[#ff6600] shrink-0" />
+                        <span className="truncate">#{t}</span>
+                      </span>
+                      <span className="text-[11px] font-mono px-1.5 py-0.5 rounded-[10px] bg-white/5 text-neutral-400">
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
-
-              {/* Option: Tous les liens */}
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedTag("all");
-                  setIsTagDropdownOpen(false);
-                }}
-                className={`w-full px-3 py-2 text-xs flex items-center justify-between transition-colors text-left cursor-pointer ${
-                  selectedTag === "all"
-                    ? "bg-[#ff6600]/15 text-[#ff6600] font-bold"
-                    : "text-neutral-300 hover:bg-white/5 hover:text-white"
-                }`}
-              >
-                <span className="flex items-center gap-2">
-                  <Globe2 className="w-3.5 h-3.5 text-cyan-400 md:text-[#ff6600]" />
-                  <span>Tous les liens</span>
-                </span>
-                <span className="text-[11px] font-mono px-1.5 py-0.5 rounded-[10px] bg-white/5 text-neutral-400">
-                  {links.length}
-                </span>
-              </button>
-
-              {allTags.length > 0 && <div className="h-px bg-[#26262e] my-1" />}
-
-              {/* Individual Tag Options */}
-              {allTags.map((t) => {
-                const count = links.filter((l) => l.tags && l.tags.includes(t)).length;
-                return (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() => {
-                      setSelectedTag(t);
-                      setIsTagDropdownOpen(false);
-                    }}
-                    className={`w-full px-3 py-2 text-xs flex items-center justify-between transition-colors text-left cursor-pointer ${
-                      selectedTag === t
-                        ? "bg-[#ff6600]/15 text-[#ff6600] font-bold"
-                        : "text-neutral-300 hover:bg-white/5 hover:text-white"
-                    }`}
-                  >
-                    <span className="flex items-center gap-2 truncate">
-                      <Tag className="w-3 h-3 text-[#ff6600] shrink-0" />
-                      <span className="truncate">#{t}</span>
-                    </span>
-                    <span className="text-[11px] font-mono px-1.5 py-0.5 rounded-[10px] bg-white/5 text-neutral-400">
-                      {count}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
-    </div>
 
       {/* Floating Bulk Actions Bar */}
       {selectedLinkIds.size > 0 && (
@@ -535,13 +627,18 @@ export default function LinksPage() {
           <div className="flex items-center gap-3">
             <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></span>
             <span className="text-xs font-bold text-white">
-              {selectedLinkIds.size} {selectedLinkIds.size > 1 ? "liens sélectionnés" : "lien sélectionné"}
+              {selectedLinkIds.size}{" "}
+              {selectedLinkIds.size > 1
+                ? "liens sélectionnés"
+                : "lien sélectionné"}
             </span>
             <button
               onClick={toggleSelectAll}
               className="text-[11px] text-neutral-400 hover:text-white underline ml-1 cursor-pointer"
             >
-              {isAllSelected ? "Tout désélectionner" : `Sélectionner tout (${filteredLinks.length})`}
+              {isAllSelected
+                ? "Tout désélectionner"
+                : `Sélectionner tout (${filteredLinks.length})`}
             </button>
           </div>
 
@@ -576,16 +673,24 @@ export default function LinksPage() {
               {selectedLinkIds.size === 0 && filteredLinks.length > 0 && (
                 <div className="text-[11px] text-neutral-500 text-center py-1 flex items-center justify-center gap-1.5 select-none">
                   <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#ff6600]/70 animate-pulse"></span>
-                  <span>Astuce : Maintenez un appui long sur un lien pour le sélectionner</span>
+                  <span>
+                    Astuce : Maintenez un appui long sur un lien pour le
+                    sélectionner
+                  </span>
                 </div>
               )}
 
               {filteredLinks.map((link, index) => {
                 const isCopied = copiedId === link.id;
-                const isExpired = Boolean(link.expiresAt && new Date(link.expiresAt) < new Date());
+                const isExpired = Boolean(
+                  link.expiresAt && new Date(link.expiresAt) < new Date(),
+                );
                 const isSelected = selectedLinkIds.has(link.id);
                 const isMenuOpen = openMenuId === `mobile-${link.id}`;
-                const isDropUp = index >= 2 && (index >= filteredLinks.length - 2 || index >= 3);
+                const isDropUp =
+                  filteredLinks.length <= 3
+                    ? index >= 1
+                    : index >= filteredLinks.length - 3;
 
                 return (
                   <div
@@ -602,7 +707,7 @@ export default function LinksPage() {
                       isSelected
                         ? "border-[#ff6600] bg-[#ff6600]/10 ring-2 ring-[#ff6600]/40 shadow-lg shadow-[#ff6600]/10"
                         : "border-[#27272a] hover:border-[#ff6600]/40 active:bg-white/[0.02]",
-                      isMenuOpen && "z-30"
+                      isMenuOpen && "z-30",
                     )}
                   >
                     {/* Header: Status dot / Checkmark + Slug + Status Badge */}
@@ -616,7 +721,11 @@ export default function LinksPage() {
                           <span
                             className={cn(
                               "w-2.5 h-2.5 rounded-full shrink-0",
-                              isExpired ? "bg-amber-400" : !link.isActive ? "bg-neutral-500" : "bg-emerald-400"
+                              isExpired
+                                ? "bg-amber-400"
+                                : !link.isActive
+                                  ? "bg-neutral-500"
+                                  : "bg-emerald-400",
                             )}
                           />
                         )}
@@ -646,7 +755,9 @@ export default function LinksPage() {
                         {link.domainName || "lsho.cc"}/{link.slug}
                       </div>
                       <div className="flex items-center gap-1.5 text-[11px] text-neutral-400 bg-[#090b10] px-2 py-1 rounded-[10px] border border-[#222225] truncate">
-                        <span className="text-[#ff6600] font-bold shrink-0">↳</span>
+                        <span className="text-[#ff6600] font-bold shrink-0">
+                          ↳
+                        </span>
                         <span className="truncate">{link.targetUrl}</span>
                       </div>
                     </div>
@@ -654,23 +765,37 @@ export default function LinksPage() {
                     {/* Targeting icons + Tags */}
                     <div className="flex items-center justify-between gap-2 flex-wrap">
                       <div className="flex items-center gap-1 text-neutral-400">
-                        {link.geoTargeting && Object.keys(link.geoTargeting).length > 0 && (
-                          <span title="Ciblage par pays actif" className="p-1 rounded-[10px] bg-white/5">
-                            <Globe2 className="w-3 h-3 text-sky-400" />
-                          </span>
-                        )}
-                        {link.deviceTargeting && Object.values(link.deviceTargeting).some(Boolean) && (
-                          <span title="Ciblage par appareil actif" className="p-1 rounded-[10px] bg-white/5">
-                            <Smartphone className="w-3 h-3 text-emerald-400" />
-                          </span>
-                        )}
+                        {link.geoTargeting &&
+                          Object.keys(link.geoTargeting).length > 0 && (
+                            <span
+                              title="Ciblage par pays actif"
+                              className="p-1 rounded-[10px] bg-white/5"
+                            >
+                              <Globe2 className="w-3 h-3 text-sky-400" />
+                            </span>
+                          )}
+                        {link.deviceTargeting &&
+                          Object.values(link.deviceTargeting).some(Boolean) && (
+                            <span
+                              title="Ciblage par appareil actif"
+                              className="p-1 rounded-[10px] bg-white/5"
+                            >
+                              <Smartphone className="w-3 h-3 text-emerald-400" />
+                            </span>
+                          )}
                         {link.isPasswordProtected && (
-                          <span title="Protégé par mot de passe" className="p-1 rounded-[10px] bg-white/5">
+                          <span
+                            title="Protégé par mot de passe"
+                            className="p-1 rounded-[10px] bg-white/5"
+                          >
                             <Lock className="w-3 h-3 text-amber-400" />
                           </span>
                         )}
                         {link.isCloaked && (
-                          <span title="Masquage Cloaking actif" className="p-1 rounded-[10px] bg-white/5">
+                          <span
+                            title="Masquage Cloaking actif"
+                            className="p-1 rounded-[10px] bg-white/5"
+                          >
                             <EyeOff className="w-3 h-3 text-purple-400" />
                           </span>
                         )}
@@ -695,18 +820,28 @@ export default function LinksPage() {
                       <div
                         onClick={(e) => {
                           e.stopPropagation();
-                          router.push(`/dashboard/analytics?linkId=${encodeURIComponent(link.id)}&slug=${encodeURIComponent(link.slug)}`);
+                          router.push(
+                            `/dashboard/analytics?linkId=${encodeURIComponent(link.id)}&slug=${encodeURIComponent(link.slug)}`,
+                          );
                         }}
                         className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
                         title="Voir les statistiques de ce lien"
                       >
                         <div className="flex items-center gap-1 text-white font-bold">
-                          <span className="text-[#ff6600] font-mono text-xs">{formatNumber(link.clicksCount)}</span>
-                          <span className="text-[10px] text-neutral-400 font-normal">clics</span>
+                          <span className="text-[#ff6600] font-mono text-xs">
+                            {formatNumber(link.clicksCount)}
+                          </span>
+                          <span className="text-[10px] text-neutral-400 font-normal">
+                            clics
+                          </span>
                         </div>
                         <div className="flex items-center gap-1 text-neutral-300">
-                          <span className="font-mono text-xs">{formatNumber(link.uniqueClicks || 0)}</span>
-                          <span className="text-[10px] text-neutral-400">uniques</span>
+                          <span className="font-mono text-xs">
+                            {formatNumber(link.uniqueClicks || 0)}
+                          </span>
+                          <span className="text-[10px] text-neutral-400">
+                            uniques
+                          </span>
                         </div>
                       </div>
 
@@ -739,7 +874,9 @@ export default function LinksPage() {
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              setOpenMenuId(isMenuOpen ? null : `mobile-${link.id}`);
+                              setOpenMenuId(
+                                isMenuOpen ? null : `mobile-${link.id}`,
+                              );
                             }}
                             className="w-8 h-8 rounded-[10px] bg-white/[0.04] hover:bg-white/[0.1] text-neutral-300 hover:text-white border border-white/10 flex items-center justify-center transition-all cursor-pointer inline-flex"
                             title="Options"
@@ -750,8 +887,10 @@ export default function LinksPage() {
                           {isMenuOpen && (
                             <div
                               className={cn(
-                                "absolute right-0 w-48 rounded-[10px] bg-[#1c1c24] border border-white/15 shadow-2xl py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150 text-xs text-neutral-200 text-left",
-                                isDropUp ? "bottom-full mb-1.5 origin-bottom-right" : "top-full mt-1.5 origin-top-right"
+                                "absolute right-0 w-52 rounded-[10px] bg-[#1c1c24] border border-white/15 shadow-2xl py-1.5 z-[100] animate-in fade-in zoom-in-95 duration-150 text-xs text-neutral-200 text-left",
+                                isDropUp
+                                  ? "bottom-full mb-1.5 origin-bottom-right"
+                                  : "top-full mt-1.5 origin-top-right",
                               )}
                             >
                               <button
@@ -786,7 +925,7 @@ export default function LinksPage() {
                                   e.stopPropagation();
                                   setOpenMenuId(null);
                                   cfInvalidateCache("links");
-                                  setTimeout(() => loadLinks(true), 1500);
+                                  // setTimeout(() => loadLinks(true), 1500);
                                 }}
                                 className="w-full px-3 py-2 text-left hover:bg-white/5 flex items-center gap-2.5 transition-colors cursor-pointer"
                               >
@@ -822,7 +961,9 @@ export default function LinksPage() {
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setOpenMenuId(null);
-                                  router.push(`/dashboard/analytics?linkId=${encodeURIComponent(link.id)}&slug=${encodeURIComponent(link.slug)}`);
+                                  router.push(
+                                    `/dashboard/analytics?linkId=${encodeURIComponent(link.id)}&slug=${encodeURIComponent(link.slug)}`,
+                                  );
                                 }}
                                 className="w-full px-3 py-2 text-left hover:bg-white/5 flex items-center gap-2.5 transition-colors cursor-pointer"
                               >
@@ -871,27 +1012,37 @@ export default function LinksPage() {
                     </th>
                     <th className="pb-2.5 px-2">Destination</th>
                     <th className="pb-2.5 px-2 w-[170px]">URL Courte</th>
-                    <th className="pb-2.5 px-2 text-center w-[90px]">Options</th>
+                    <th className="pb-2.5 px-2 text-center w-[90px]">
+                      Options
+                    </th>
                     <th className="pb-2.5 px-2 text-right w-[70px]">Clics</th>
                     <th className="pb-2.5 px-2 w-[80px]">Statut</th>
-                    <th className="pb-2.5 pr-4 pl-1 text-right w-[70px]">Actions</th>
+                    <th className="pb-2.5 pr-4 pl-1 text-right w-[70px]">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#202024]">
                   {filteredLinks.map((link, index) => {
                     const isCopied = copiedId === link.id;
-                    const isExpired = Boolean(link.expiresAt && new Date(link.expiresAt) < new Date());
+                    const isExpired = Boolean(
+                      link.expiresAt && new Date(link.expiresAt) < new Date(),
+                    );
                     const isSelected = selectedLinkIds.has(link.id);
                     const isMenuOpen = openMenuId === link.id;
-                    const isDropUp = index >= 2 && (index >= filteredLinks.length - 3 || index >= 3);
+                    const isDropUp =
+                      filteredLinks.length <= 3
+                        ? index >= 1
+                        : index >= filteredLinks.length - 3;
 
                     return (
                       <tr
                         key={link.id}
                         className={cn(
                           "hover:bg-white/[0.02] transition-colors group",
-                          isSelected && "bg-[#ff6600]/10 border-l-2 border-l-[#ff6600]",
-                          isMenuOpen && "relative z-30"
+                          isSelected &&
+                            "bg-[#ff6600]/10 border-l-2 border-l-[#ff6600]",
+                          isMenuOpen && "relative z-30",
                         )}
                       >
                         {/* Checkbox */}
@@ -940,16 +1091,20 @@ export default function LinksPage() {
                         {/* Options icons (Geo, Device, Lock, Cloak) */}
                         <td className="py-2.5 px-2 text-center whitespace-nowrap">
                           <div className="flex items-center justify-center gap-1 text-neutral-400">
-                            {link.geoTargeting && Object.keys(link.geoTargeting).length > 0 && (
-                              <span title="Ciblage par pays actif">
-                                <Globe2 className="w-3.5 h-3.5 text-sky-400" />
-                              </span>
-                            )}
-                            {link.deviceTargeting && Object.values(link.deviceTargeting).some(Boolean) && (
-                              <span title="Ciblage par appareil actif">
-                                <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
-                              </span>
-                            )}
+                            {link.geoTargeting &&
+                              Object.keys(link.geoTargeting).length > 0 && (
+                                <span title="Ciblage par pays actif">
+                                  <Globe2 className="w-3.5 h-3.5 text-sky-400" />
+                                </span>
+                              )}
+                            {link.deviceTargeting &&
+                              Object.values(link.deviceTargeting).some(
+                                Boolean,
+                              ) && (
+                                <span title="Ciblage par appareil actif">
+                                  <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
+                                </span>
+                              )}
                             {link.isPasswordProtected && (
                               <span title="Protégé par mot de passe">
                                 <Lock className="w-3.5 h-3.5 text-amber-400" />
@@ -960,16 +1115,21 @@ export default function LinksPage() {
                                 <EyeOff className="w-3.5 h-3.5 text-purple-400" />
                               </span>
                             )}
-                            {!link.geoTargeting && !link.deviceTargeting && !link.isPasswordProtected && !link.isCloaked && (
-                              <span className="text-neutral-600">—</span>
-                            )}
+                            {!link.geoTargeting &&
+                              !link.deviceTargeting &&
+                              !link.isPasswordProtected &&
+                              !link.isCloaked && (
+                                <span className="text-neutral-600">—</span>
+                              )}
                           </div>
                         </td>
 
                         {/* Clics */}
                         <td
                           onClick={() => {
-                            router.push(`/dashboard/analytics?linkId=${encodeURIComponent(link.id)}&slug=${encodeURIComponent(link.slug)}`);
+                            router.push(
+                              `/dashboard/analytics?linkId=${encodeURIComponent(link.id)}&slug=${encodeURIComponent(link.slug)}`,
+                            );
                           }}
                           className="py-2.5 px-2 text-right font-bold text-white hover:text-[#ff6600] font-mono text-xs whitespace-nowrap cursor-pointer transition-colors"
                           title="Voir les statistiques de ce lien"
@@ -1006,8 +1166,10 @@ export default function LinksPage() {
                             {isMenuOpen && (
                               <div
                                 className={cn(
-                                  "absolute right-0 w-48 rounded-[10px] bg-[#1c1c24] border border-white/15 shadow-2xl py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150 text-xs text-neutral-200 text-left",
-                                  isDropUp ? "bottom-full mb-1.5 origin-bottom-right" : "top-full mt-1.5 origin-top-right"
+                                  "absolute right-0 w-52 rounded-[10px] bg-[#1c1c24] border border-white/15 shadow-2xl py-1.5 z-[100] animate-in fade-in zoom-in-95 duration-150 text-xs text-neutral-200 text-left",
+                                  isDropUp
+                                    ? "bottom-full mb-1.5 origin-bottom-right"
+                                    : "top-full mt-1.5 origin-top-right",
                                 )}
                               >
                                 <button
@@ -1039,7 +1201,7 @@ export default function LinksPage() {
                                   onClick={() => {
                                     setOpenMenuId(null);
                                     cfInvalidateCache("links");
-                                    setTimeout(() => loadLinks(true), 1500);
+                                    // setTimeout(() => loadLinks(true), 1500);
                                   }}
                                   className="w-full px-3 py-2 text-left hover:bg-white/5 flex items-center gap-2.5 transition-colors cursor-pointer"
                                 >
@@ -1072,7 +1234,9 @@ export default function LinksPage() {
                                   type="button"
                                   onClick={() => {
                                     setOpenMenuId(null);
-                                    router.push(`/dashboard/analytics?linkId=${encodeURIComponent(link.id)}&slug=${encodeURIComponent(link.slug)}`);
+                                    router.push(
+                                      `/dashboard/analytics?linkId=${encodeURIComponent(link.id)}&slug=${encodeURIComponent(link.slug)}`,
+                                    );
                                   }}
                                   className="w-full px-3 py-2 text-left hover:bg-white/5 flex items-center gap-2.5 transition-colors cursor-pointer"
                                 >
@@ -1112,7 +1276,10 @@ export default function LinksPage() {
         onSuccess={(created) => {
           cfInvalidateCache();
           if (created?.id) {
-            setLinks((prev) => [created, ...prev.filter((l) => l.id !== created.id)]);
+            setLinks((prev) => [
+              created,
+              ...prev.filter((l) => l.id !== created.id),
+            ]);
           }
           loadLinks(true);
         }}
@@ -1125,7 +1292,9 @@ export default function LinksPage() {
         onSuccess={(updated) => {
           cfInvalidateCache();
           if (updated?.id) {
-            setLinks((prev) => prev.map((l) => (l.id === updated.id ? updated : l)));
+            setLinks((prev) =>
+              prev.map((l) => (l.id === updated.id ? updated : l)),
+            );
           }
           loadLinks(true);
         }}

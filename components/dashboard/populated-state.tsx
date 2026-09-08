@@ -72,6 +72,10 @@ export function PopulatedState({ links, analytics, onRefresh }: PopulatedStatePr
   };
 
   const recentLinks = links.slice(0, 5);
+  const totalConversions = links.reduce((acc, l) => acc + (l.conversionsCount || 0), 0);
+  const conversionRate = analytics.totalClicks > 0
+    ? Number(((totalConversions / analytics.totalClicks) * 100).toFixed(1))
+    : 0;
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-300">
@@ -176,15 +180,15 @@ export function PopulatedState({ links, analytics, onRefresh }: PopulatedStatePr
         <div className="rounded-[10px] bg-[#141416] border border-[#222225] p-5 flex flex-col justify-between h-36 relative group hover:border-[#ff6600]/40 transition-colors">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-neutral-400">Taux conversion</span>
-            <span className="text-xs font-bold text-neutral-400">{analytics.avgCtr}%</span>
+            <span className={`text-xs font-bold ${conversionRate > 0 ? "text-emerald-400" : "text-neutral-400"}`}>{conversionRate}%</span>
           </div>
           <div>
             <span className="font-bebas text-5xl font-bold text-white tracking-wide">
-              {analytics.avgCtr}%
+              {conversionRate}%
             </span>
           </div>
           <div className="flex items-center justify-between text-[11px] text-neutral-500">
-            <span>Moyenne des clics</span>
+            <span>{totalConversions} conversion{totalConversions > 1 ? "s" : ""}</span>
             <span className="text-neutral-400">Optimum &gt; 2%</span>
           </div>
         </div>

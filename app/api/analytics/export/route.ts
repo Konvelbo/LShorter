@@ -1,18 +1,13 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { ConvexHttpClient } from "convex/browser";
-import { api } from "@/convex/_generated/api";
 import { getCountryName } from "@/lib/utils";
+import { getAllProtectedLinks, getProtectedLink } from "@/lib/protected-links-store";
 
 const WORKER_URL =
   process.env.NEXT_PUBLIC_BACKEND_API_URL ||
   "https://lshorter-api.fiatechnologiecam.workers.dev";
 const FRONTEND_SECRET =
   process.env.FRONTEND_API_SECRET || "lsh_secret_live_prod_2026";
-
-const convex = new ConvexHttpClient(
-  process.env.NEXT_PUBLIC_CONVEX_URL || "https://greedy-mastiff-107.convex.cloud"
-);
 
 function escapeXml(str: any): string {
   if (str === null || str === undefined) return "";
@@ -560,7 +555,7 @@ export async function GET(req: Request) {
       analyticsWorkerUrl.searchParams.set("linkId", linkId);
     }
 
-    const [workerLinksRes, convexLinks, workerAnalyticsRes, convexGlobalAnalytics] = await Promise.all([
+    const [workerLinksRes, workerAnalyticsRes] = await Promise.all([
       fetch(linksWorkerUrl.toString(), {
         headers: {
           "X-Frontend-Secret": FRONTEND_SECRET,
@@ -572,8 +567,6 @@ export async function GET(req: Request) {
         .then((r) => (r.ok ? r.json() : { success: true, data: [] }))
         .catch(() => ({ success: true, data: [] })),
 
-      convex.query(api.links.listUserLinks, { userId }).catch(() => []),
-
       fetch(analyticsWorkerUrl.toString(), {
         headers: {
           "X-Frontend-Secret": FRONTEND_SECRET,
@@ -584,19 +577,7 @@ export async function GET(req: Request) {
       })
         .then((r) => (r.ok ? r.json() : { success: true, data: {} }))
         .catch(() => ({ success: true, data: {} })),
-
-      convex.query(api.analytics.getGlobalAnalytics, { userId }).catch(() => null),
     ]);
-
-    // 3. Merge Link records from Cloudflare and Convex
-    const convexLinksMap = new Map<string, any>();
-    if (Array.isArray(convexLinks)) {
-      convexLinks.forEach((cl: any) => {
-        if (cl?.slug) {
-          convexLinksMap.set(String(cl.slug).toLowerCase(), cl);
-        }
-      });
-    }
 
     const workerList = Array.isArray(workerLinksRes?.data)
       ? workerLinksRes.data
@@ -606,35 +587,34 @@ export async function GET(req: Request) {
 
     const mergedLinksMap = new Map<string, any>();
 
-    // Add Convex links first
-    if (Array.isArray(convexLinks)) {
-      convexLinks.forEach((cl: any) => {
-        if (cl?.slug) {
-          mergedLinksMap.set(String(cl.slug).toLowerCase(), {
-            id: cl._id,
-            slug: cl.slug,
-            domainName: cl.domainName || "lsho.cc",
-            targetUrl: cl.targetUrl,
-            shortUrl: cl.shortUrl || `https://${cl.domainName || "lsho.cc"}/${cl.slug}`,
-            title: cl.title || cl.metaTitle || cl.ogTitle || cl.slug,
-            clicksCount: cl.clicksCount || 0,
-            uniqueClicks: cl.uniqueClicks || 0,
-            conversionsCount: cl.conversionsCount || 0,
-            revenue: cl.revenue || 0,
-            isActive: cl.isActive !== false,
-            createdAt: cl.createdAt || new Date().toISOString(),
-            expiresAt: cl.expiresAt || "",
-            tags: cl.tags || [],
-            isPasswordProtected: Boolean(cl.password || cl.isPasswordProtected),
-            isCloaked: Boolean(cl.isCloaked || cl.cloaking),
-            hideReferrer: Boolean(cl.hideReferrer),
-            utmSource: cl.utmSource || "",
-            utmMedium: cl.utmMedium || "",
-            utmCampaign: cl.utmCampaign || "",
-          });
-        }
+    // Add local protected links first
+    const localLinks = getAllProtectedLinks();
+    localLinks.forEach((local) => {
+      if (!local.slug) return;
+      if (userId && userId !== "all" && local.userId && local.userId !== userId) return;
+      mergedLinksMap.set(local.slug.toLowerCase(), {
+        id: `link_${local.slug}`,
+        slug: local.slug,
+        domainName: "lsho.cc",
+        targetUrl: local.targetUrl || "",
+        shortUrl: `https://lsho.cc/${local.slug}`,
+        title: local.ogTitle || local.metaTitle || local.slug,
+        clicksCount: local.clicksCount || 0,
+        uniqueClicks: local.clicksCount || 0,
+        conversionsCount: 0,
+        revenue: 0,
+        isActive: local.isActive !== false,
+        createdAt: local.updatedAt || new Date().toISOString(),
+        expiresAt: local.expiresAt || "",
+        tags: [],
+        isPasswordProtected: Boolean(local.password),
+        isCloaked: Boolean(local.isCloaked),
+        hideReferrer: false,
+        utmSource: "",
+        utmMedium: "",
+        utmCampaign: "",
       });
-    }
+    });
 
     // Merge / overlay Worker links
     workerList.forEach((wl: any) => {
@@ -729,7 +709,6 @@ export async function GET(req: Request) {
       rawAnalytics.live_click_events ||
       rawAnalytics.recentEvents ||
       rawAnalytics.events ||
-      convexGlobalAnalytics?.liveClickEvents ||
       [];
 
     const exportEvents: ExportClickEvent[] = Array.isArray(rawEvents)

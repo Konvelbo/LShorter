@@ -99,7 +99,13 @@ export default function SettingsPage() {
   const [name, setName] = useState(session?.user?.name || "Mon Compte");
   const [email, setEmail] = useState(session?.user?.email || "");
   const [language, setLanguage] = useState("Français (FR)");
-  const [timezone, setTimezone] = useState("Europe/Paris (UTC+1)");
+  const [timezone, setTimezone] = useState(() => {
+    try {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+    } catch {
+      return "UTC";
+    }
+  });
   const [avatarUrl, setAvatarUrl] = useState(session?.user?.image || "");
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [profileSuccess, setProfileSuccess] = useState(false);
@@ -923,12 +929,15 @@ export default function SettingsPage() {
                     onChange={(e) => setTimezone(e.target.value)}
                     className="w-full h-11 rounded-[10px] bg-[#141416] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
                   >
-                    <option value="Europe/Paris (UTC+1)" className="bg-[#141416] text-white">Europe/Paris (UTC+1)</option>
-                    <option value="Africa/Dakar (UTC+0)" className="bg-[#141416] text-white">Africa/Dakar (UTC+0)</option>
+                    <option value={timezone} className="bg-[#141416] text-white font-bold">{timezone} (Actuel)</option>
+                    <option value="Africa/Ouagadougou (UTC+0)" className="bg-[#141416] text-white">Africa/Ouagadougou (UTC+0)</option>
                     <option value="Africa/Abidjan (UTC+0)" className="bg-[#141416] text-white">Africa/Abidjan (UTC+0)</option>
+                    <option value="Africa/Dakar (UTC+0)" className="bg-[#141416] text-white">Africa/Dakar (UTC+0)</option>
+                    <option value="Europe/Paris (UTC+1)" className="bg-[#141416] text-white">Europe/Paris (UTC+1)</option>
                     <option value="America/New_York (UTC-5)" className="bg-[#141416] text-white">America/New_York (UTC-5)</option>
                     <option value="America/Montreal (UTC-5)" className="bg-[#141416] text-white">America/Montreal (UTC-5)</option>
                     <option value="Asia/Tokyo (UTC+9)" className="bg-[#141416] text-white">Asia/Tokyo (UTC+9)</option>
+                    <option value="UTC" className="bg-[#141416] text-white">UTC (Temps Universel)</option>
                   </select>
                 </div>
 

@@ -118,10 +118,14 @@ export function Sidebar() {
     };
 
     fetchLiveClicks();
+
+    // Refresh ONLY on explicit data mutations (link created, edited, deleted, or refreshed)
     window.addEventListener("lshorter_data_change", fetchLiveClicks);
+    window.addEventListener("lshorter_links_updated", fetchLiveClicks);
 
     return () => {
       window.removeEventListener("lshorter_data_change", fetchLiveClicks);
+      window.removeEventListener("lshorter_links_updated", fetchLiveClicks);
     };
   }, [userId]);
 

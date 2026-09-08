@@ -70,6 +70,10 @@ export interface ShortLink {
   expiresAt?: string;
   maxClicks?: number;
   fallbackUrl?: string;
+  abVariations?: Array<{ url: string; weight: number }> | string;
+  mainWeight?: number;
+  redirectType?: "301" | "302" | "307";
+  passParams?: boolean;
   isActive: boolean;
   created_at: string;
 }

@@ -45,7 +45,8 @@ import {
   Download,
   Boxes,
   Code,
-  CheckCircle
+  CheckCircle,
+  Settings2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CodeBlock } from "@/components/ui/code-block";
@@ -157,6 +158,28 @@ const FEATURE_GUIDES: FeatureGuide[] = [
       "Comparaison entre deux offres promotionnelles (-20% vs Livraison Offerte).",
       "Optimisation de pages de paiement (Checkout A vs Checkout B)."
     ]
+  },
+  {
+    id: "advanced-redirects",
+    category: "routing",
+    title: "Configuration Avancée : Codes HTTP & Transfert de Paramètres",
+    subtitle: "Maîtrisez les codes HTTP (301, 302, 307) et le Query Parameter Pass-through",
+    badge: "Technique & SEO",
+    icon: Settings2,
+    whatIsIt: "La configuration avancée vous permet de sélectionner avec précision le type de redirection HTTP (302 temporaire, 301 permanente pour le SEO, 307 stricte) ainsi que le transfert transparent des paramètres de requête (?utm_... ou ?ref=...).",
+    whyUseIt: "Le choix du bon code HTTP est crucial pour la délivrabilité, le comptage exact de chaque clic et la transmission du jus de lien (PageRank). Le transfert de paramètres garantit qu'aucune donnée d'affiliation ou de campagne n'est perdue lors du clic.",
+    howItWorks: [
+      "1. Dans le Drawer ou la création de lien, ouvrez l'onglet 'Avancé'.",
+      "2. Choisissez votre Code HTTP : 302 Found (recommandé pour compter 100% des clics sans cache navigateur), 301 Moved Permanently (pour transférer l'autorité SEO) ou 307 Temporary Redirect (strict, préserve la méthode POST/GET).",
+      "3. Activez ou désactivez 'Transmettre les paramètres d'URL' : lorsqu'il est actif, tout paramètre ajouté au lien court (ex: lsho.cc/lien?ref=partenaire) est reporté à l'identique sur l'URL finale."
+    ],
+    useCases: [
+      "Campagnes d'affiliation : transfert automatique des IDs affiliés et tokens de tracking.",
+      "Campagnes Google Ads, Meta Ads et TikTok Ads avec paramètres UTM dynamiques.",
+      "Migration SEO de sites web et consolidation de domaines avec le code 301.",
+      "Webhooks, APIs et formulaires nécessitant une redirection 307 sans altération de payload."
+    ],
+    proTip: "Laissez toujours le code 302 sélectionné pour vos liens marketing et réseaux sociaux : il garantit que le navigateur du visiteur contacte le serveur à chaque visite, enregistrant ainsi tous les clics et métriques géographiques sans mise en cache locale."
   },
   {
     id: "retargeting-pixels",

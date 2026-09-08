@@ -18,10 +18,10 @@ export async function POST(req: NextRequest) {
       data: {
         clickId: `clk_test_${Date.now().toString(36)}`,
         slug: "demo-link",
-        destination: "https://lshorter.io",
+        destination: "https://lsho.cc",
         geo: {
-          country: "FR",
-          city: "Paris",
+          country: "BF",
+          city: "Ouagadougou",
         },
         device: "Desktop",
         browser: "Chrome",
