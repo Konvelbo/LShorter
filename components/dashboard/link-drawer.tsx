@@ -115,7 +115,9 @@ function LockedProFeature({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-white tracking-wide">{title}</span>
+              <span className="text-xs font-bold text-white tracking-wide">
+                {title}
+              </span>
               <span className="px-1.5 py-0.5 rounded-[10px] bg-amber-500/20 text-amber-400 font-extrabold text-[9px] border border-amber-500/30 tracking-wider">
                 PLAN PRO
               </span>
@@ -157,26 +159,36 @@ export function LinkDrawer({
   const isEditMode = mode === "edit" || Boolean(link);
 
   const { data: session } = useSession();
-  const userId = session?.user?.id || (link?.userId ? link.userId : "usr_anonymous");
+  const userId =
+    session?.user?.id || (link?.userId ? link.userId : "usr_anonymous");
   const convexUser = useQuery(
     api.users.getCurrentUser,
-    userId && userId !== "usr_anonymous" ? { userId } : "skip"
+    userId && userId !== "usr_anonymous" ? { userId } : "skip",
   );
 
   const userPlan = (
     convexUser?.plan ||
     (session?.user as any)?.plan ||
-    (typeof window !== "undefined" ? localStorage.getItem("lshorter_user_plan") : null) ||
+    (typeof window !== "undefined"
+      ? localStorage.getItem("lshorter_user_plan")
+      : null) ||
     "FREEMIUM"
   ).toUpperCase();
 
-  const isProPlan = userPlan === "PRO" || userPlan === "BUSINESS" || userPlan === "ENTERPRISE";
+  const isProPlan =
+    userPlan === "PRO" || userPlan === "BUSINESS" || userPlan === "ENTERPRISE";
 
   const bannerInputRef = useRef<HTMLInputElement>(null);
 
   // Active Tab
   const [activeTab, setActiveTab] = useState<
-    "general" | "social" | "tracking" | "routing" | "protection" | "ab_testing" | "advanced"
+    | "general"
+    | "social"
+    | "tracking"
+    | "routing"
+    | "protection"
+    | "ab_testing"
+    | "advanced"
   >("general");
 
   // 1. Général (Saisie obligatoire : targetUrl, domainName, slug)
@@ -185,7 +197,9 @@ export function LinkDrawer({
   const [slug, setSlug] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [tagsInput, setTagsInput] = useState("");
-  const [customDomains, setCustomDomains] = useState<Array<{ id: string; domain: string; status: string }>>([]);
+  const [customDomains, setCustomDomains] = useState<
+    Array<{ id: string; domain: string; status: string }>
+  >([]);
 
   // 2. Social Preview
   const [ogTitle, setOgTitle] = useState("");
@@ -216,10 +230,14 @@ export function LinkDrawer({
 
   // 6. A/B Testing
   const [mainWeight, setMainWeight] = useState<number>(100);
-  const [abVariations, setAbVariations] = useState<Array<{ url: string; weight: number }>>([]);
+  const [abVariations, setAbVariations] = useState<
+    Array<{ url: string; weight: number }>
+  >([]);
 
   // 7. Avancé
-  const [redirectType, setRedirectType] = useState<"302" | "301" | "307">("302");
+  const [redirectType, setRedirectType] = useState<"302" | "301" | "307">(
+    "302",
+  );
   const [passParams, setPassParams] = useState(true);
 
   // Status & Validation
@@ -264,7 +282,9 @@ export function LinkDrawer({
       let parsedRules: RoutingRule[] = [];
       if (link.routingRules) {
         parsedRules =
-          typeof link.routingRules === "string" ? JSON.parse(link.routingRules) : link.routingRules;
+          typeof link.routingRules === "string"
+            ? JSON.parse(link.routingRules)
+            : link.routingRules;
       } else if (link.geoTargeting || link.deviceTargeting) {
         if (link.geoTargeting) {
           Object.entries(link.geoTargeting).forEach(([country, url], idx) => {
@@ -272,7 +292,14 @@ export function LinkDrawer({
               id: `geo_${idx}`,
               title: `Routage ${country}`,
               isCollapsed: false,
-              conditions: [{ id: `c_geo_${idx}`, type: "pays", operator: "est", value: country }],
+              conditions: [
+                {
+                  id: `c_geo_${idx}`,
+                  type: "pays",
+                  operator: "est",
+                  value: country,
+                },
+              ],
               destinationUrl: url,
             });
           });
@@ -284,7 +311,14 @@ export function LinkDrawer({
                 id: `dev_${idx}`,
                 title: `Routage ${device}`,
                 isCollapsed: false,
-                conditions: [{ id: `c_dev_${idx}`, type: "plateforme", operator: "est", value: device }],
+                conditions: [
+                  {
+                    id: `c_dev_${idx}`,
+                    type: "plateforme",
+                    operator: "est",
+                    value: device,
+                  },
+                ],
                 destinationUrl: url,
               });
             }
@@ -295,31 +329,49 @@ export function LinkDrawer({
 
       setPassword(link.password || (link as any).password_plain || "");
       setIsCloaked(Boolean(link.isCloaked || (link as any).is_cloaked));
-      setHideReferrer(Boolean(link.hideReferrer !== undefined ? link.hideReferrer : (link as any).hide_referrer));
-      setExpiresAt(link.expiresAt || (link as any).expires_at ? String(link.expiresAt || (link as any).expires_at).substring(0, 16) : "");
-      
+      setHideReferrer(
+        Boolean(
+          link.hideReferrer !== undefined
+            ? link.hideReferrer
+            : (link as any).hide_referrer,
+        ),
+      );
+      setExpiresAt(
+        link.expiresAt || (link as any).expires_at
+          ? String(link.expiresAt || (link as any).expires_at).substring(0, 16)
+          : "",
+      );
+
       const hasClicks = Boolean(
         (link.maxClicks && link.maxClicks > 0) ||
-        ((link as any).max_clicks && (link as any).max_clicks > 0)
+        ((link as any).max_clicks && (link as any).max_clicks > 0),
       );
       setHasClickLimit(hasClicks);
       setMaxClicks(
         link.maxClicks !== undefined && link.maxClicks !== null
           ? link.maxClicks
-          : (link as any).max_clicks !== undefined && (link as any).max_clicks !== null
-          ? (link as any).max_clicks
-          : ""
+          : (link as any).max_clicks !== undefined &&
+              (link as any).max_clicks !== null
+            ? (link as any).max_clicks
+            : "",
       );
       setFallbackUrl(link.fallbackUrl || (link as any).fallback_url || "");
 
       // A/B testing
       const rawVars = (link as any).abVariations || (link as any).ab_variations;
       if (rawVars) {
-        const parsedVars = typeof rawVars === "string" ? JSON.parse(rawVars) : rawVars;
+        const parsedVars =
+          typeof rawVars === "string" ? JSON.parse(rawVars) : rawVars;
         const finalVars = Array.isArray(parsedVars) ? parsedVars : [];
         setAbVariations(finalVars);
         const weightVal = (link as any).mainWeight ?? (link as any).main_weight;
-        setMainWeight(weightVal !== undefined ? Number(weightVal) : finalVars.length > 0 ? 50 : 100);
+        setMainWeight(
+          weightVal !== undefined
+            ? Number(weightVal)
+            : finalVars.length > 0
+              ? 50
+              : 100,
+        );
       } else {
         setAbVariations([]);
         setMainWeight(100);
@@ -327,14 +379,14 @@ export function LinkDrawer({
 
       // Advanced
       setRedirectType(
-        (link as any).redirectType || (link as any).redirect_type || "302"
+        (link as any).redirectType || (link as any).redirect_type || "302",
       );
       setPassParams(
         (link as any).passParams !== undefined
           ? Boolean((link as any).passParams)
           : (link as any).pass_params !== undefined
-          ? Boolean((link as any).pass_params)
-          : true
+            ? Boolean((link as any).pass_params)
+            : true,
       );
 
       // Extract existing UTM if present in targetUrl
@@ -391,7 +443,9 @@ export function LinkDrawer({
     if (/\s/.test(trimmed)) {
       return "L'URL ne doit pas contenir d'espaces.";
     }
-    const withProto = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+    const withProto = /^https?:\/\//i.test(trimmed)
+      ? trimmed
+      : `https://${trimmed}`;
     try {
       const urlObj = new URL(withProto);
       if (
@@ -417,7 +471,10 @@ export function LinkDrawer({
       return "Le nom de domaine ne doit pas contenir d'espaces.";
     }
     const cleaned = trimmed.replace(/^https?:\/\//i, "").replace(/\/.*$/, "");
-    if (!/^[a-zA-Z0-9.-]+$/.test(cleaned) || (!cleaned.includes(".") && cleaned !== "localhost")) {
+    if (
+      !/^[a-zA-Z0-9.-]+$/.test(cleaned) ||
+      (!cleaned.includes(".") && cleaned !== "localhost")
+    ) {
       return "Nom de domaine invalide (ex: monsite.com ou lsho.cc).";
     }
     return "";
@@ -464,7 +521,10 @@ export function LinkDrawer({
     return "";
   };
 
-  const checkMaxClicksFormat = (val: string | number, enabled: boolean): string => {
+  const checkMaxClicksFormat = (
+    val: string | number,
+    enabled: boolean,
+  ): string => {
     if (!enabled) return "";
     const n = Number(val);
     if (isNaN(n) || n < 1 || !Number.isInteger(n)) {
@@ -551,17 +611,20 @@ export function LinkDrawer({
     const withProto = /^https?:\/\//i.test(base) ? base : `https://${base}`;
     try {
       const urlObj = new URL(withProto);
-      if (utmSource.trim()) urlObj.searchParams.set("utm_source", utmSource.trim());
-      if (utmMedium.trim()) urlObj.searchParams.set("utm_medium", utmMedium.trim());
-      if (utmCampaign.trim()) urlObj.searchParams.set("utm_campaign", utmCampaign.trim());
+      if (utmSource.trim())
+        urlObj.searchParams.set("utm_source", utmSource.trim());
+      if (utmMedium.trim())
+        urlObj.searchParams.set("utm_medium", utmMedium.trim());
+      if (utmCampaign.trim())
+        urlObj.searchParams.set("utm_campaign", utmCampaign.trim());
       if (utmTerm.trim()) urlObj.searchParams.set("utm_term", utmTerm.trim());
-      if (utmContent.trim()) urlObj.searchParams.set("utm_content", utmContent.trim());
+      if (utmContent.trim())
+        urlObj.searchParams.set("utm_content", utmContent.trim());
       return urlObj.toString();
     } catch {
       return withProto;
     }
   };
-
 
   // Submit Handler
   const handleSubmit = async (e: React.FormEvent) => {
@@ -602,10 +665,14 @@ export function LinkDrawer({
       abVariations.forEach((v, idx) => {
         if (v.url && v.url.trim()) {
           const err = checkUrlFormat(v.url, false);
-          if (err) errors[`abVariation_${idx}`] = `Variante ${String.fromCharCode(66 + idx)} : ${err}`;
+          if (err)
+            errors[`abVariation_${idx}`] =
+              `Variante ${String.fromCharCode(66 + idx)} : ${err}`;
         }
       });
-      const totalWeight = mainWeight + abVariations.reduce((sum, v) => sum + (Number(v.weight) || 0), 0);
+      const totalWeight =
+        mainWeight +
+        abVariations.reduce((sum, v) => sum + (Number(v.weight) || 0), 0);
       if (totalWeight !== 100) {
         errors.abTotal = `La somme des pourcentages doit être égale à 100% (actuellement ${totalWeight}%).`;
       }
@@ -616,12 +683,22 @@ export function LinkDrawer({
     if (Object.keys(errors).length > 0) {
       if (errors.targetUrl || errors.domainName || errors.slug) {
         setActiveTab("general");
-      } else if (errors.password || errors.expiresAt || errors.maxClicks || errors.fallbackUrl) {
+      } else if (
+        errors.password ||
+        errors.expiresAt ||
+        errors.maxClicks ||
+        errors.fallbackUrl
+      ) {
         setActiveTab("protection");
-      } else if (errors.abTotal || Object.keys(errors).some((k) => k.startsWith("abVariation_"))) {
+      } else if (
+        errors.abTotal ||
+        Object.keys(errors).some((k) => k.startsWith("abVariation_"))
+      ) {
         setActiveTab("ab_testing");
       }
-      showToast.error("Certains champs obligatoires sont manquants ou invalides.");
+      showToast.error(
+        "Certains champs obligatoires sont manquants ou invalides.",
+      );
       return;
     }
 
@@ -635,17 +712,24 @@ export function LinkDrawer({
 
     try {
       const urlObj = new URL(finalTargetUrl);
-      if (utmSource.trim()) urlObj.searchParams.set("utm_source", utmSource.trim());
-      if (utmMedium.trim()) urlObj.searchParams.set("utm_medium", utmMedium.trim());
-      if (utmCampaign.trim()) urlObj.searchParams.set("utm_campaign", utmCampaign.trim());
+      if (utmSource.trim())
+        urlObj.searchParams.set("utm_source", utmSource.trim());
+      if (utmMedium.trim())
+        urlObj.searchParams.set("utm_medium", utmMedium.trim());
+      if (utmCampaign.trim())
+        urlObj.searchParams.set("utm_campaign", utmCampaign.trim());
       if (utmTerm.trim()) urlObj.searchParams.set("utm_term", utmTerm.trim());
-      if (utmContent.trim()) urlObj.searchParams.set("utm_content", utmContent.trim());
+      if (utmContent.trim())
+        urlObj.searchParams.set("utm_content", utmContent.trim());
       finalTargetUrl = urlObj.toString();
     } catch {}
 
     // Compile routing rules
-    const { geoTargeting, deviceTargeting, routingRules: compiledRules } =
-      compileRoutingRules(routingRules);
+    const {
+      geoTargeting,
+      deviceTargeting,
+      routingRules: compiledRules,
+    } = compileRoutingRules(routingRules);
 
     const tags = tagsInput
       .split(",")
@@ -672,7 +756,11 @@ export function LinkDrawer({
       }
     }
 
-    const cleanDomain = domainName.trim().toLowerCase().replace(/^https?:\/\//i, "").replace(/\/.*$/, "");
+    const cleanDomain = domainName
+      .trim()
+      .toLowerCase()
+      .replace(/^https?:\/\//i, "")
+      .replace(/\/.*$/, "");
     const cleanSlug = slug.trim();
 
     try {
@@ -704,15 +792,34 @@ export function LinkDrawer({
           deviceTargeting: deviceTargeting || null,
           isCloaked: isProPlan ? isCloaked : false,
           hideReferrer,
-          expiresAt: isProPlan && expiresAt ? new Date(expiresAt).toISOString() : null,
-          maxClicks: isProPlan && hasClickLimit && maxClicks ? Number(maxClicks) : null,
-          max_clicks: isProPlan && hasClickLimit && maxClicks ? Number(maxClicks) : null,
-          fallbackUrl: isProPlan && hasClickLimit && fallbackUrl.trim() ? fallbackUrl.trim() : null,
-          fallback_url: isProPlan && hasClickLimit && fallbackUrl.trim() ? fallbackUrl.trim() : null,
+          expiresAt:
+            isProPlan && expiresAt ? new Date(expiresAt).toISOString() : null,
+          maxClicks:
+            isProPlan && hasClickLimit && maxClicks ? Number(maxClicks) : null,
+          max_clicks:
+            isProPlan && hasClickLimit && maxClicks ? Number(maxClicks) : null,
+          fallbackUrl:
+            isProPlan && hasClickLimit && fallbackUrl.trim()
+              ? fallbackUrl.trim()
+              : null,
+          fallback_url:
+            isProPlan && hasClickLimit && fallbackUrl.trim()
+              ? fallbackUrl.trim()
+              : null,
           abVariations: abVariations.filter((v) => v.url && v.url.trim()),
           ab_variations: abVariations.filter((v) => v.url && v.url.trim()),
-          mainWeight: typeof mainWeight === "number" && !isNaN(mainWeight) ? mainWeight : (abVariations.length > 0 ? 50 : 100),
-          main_weight: typeof mainWeight === "number" && !isNaN(mainWeight) ? mainWeight : (abVariations.length > 0 ? 50 : 100),
+          mainWeight:
+            typeof mainWeight === "number" && !isNaN(mainWeight)
+              ? mainWeight
+              : abVariations.length > 0
+                ? 50
+                : 100,
+          main_weight:
+            typeof mainWeight === "number" && !isNaN(mainWeight)
+              ? mainWeight
+              : abVariations.length > 0
+                ? 50
+                : 100,
           redirectType,
           redirect_type: redirectType,
           passParams: Boolean(passParams),
@@ -755,7 +862,9 @@ export function LinkDrawer({
         cfInvalidateCache();
         if (typeof window !== "undefined") {
           window.dispatchEvent(
-            new CustomEvent("lshorter_links_updated", { detail: updatedShortLink })
+            new CustomEvent("lshorter_links_updated", {
+              detail: updatedShortLink,
+            }),
           );
           window.dispatchEvent(new Event("lshorter_data_change"));
         }
@@ -792,13 +901,21 @@ export function LinkDrawer({
           isPasswordProtected: Boolean(password.trim()),
           password: password.trim() || undefined,
           maxClicks: hasClickLimit && maxClicks ? Number(maxClicks) : undefined,
-          fallbackUrl: hasClickLimit && fallbackUrl.trim() ? fallbackUrl.trim() : undefined,
+          fallbackUrl:
+            hasClickLimit && fallbackUrl.trim()
+              ? fallbackUrl.trim()
+              : undefined,
           tags: tags.length ? tags : undefined,
           expiresAt: expiresAt ? expiresAt : undefined,
           isActive: true,
           created_at: new Date().toISOString(),
           abVariations: abVariations.filter((v) => v.url && v.url.trim()),
-          mainWeight: typeof mainWeight === "number" && !isNaN(mainWeight) ? mainWeight : (abVariations.length > 0 ? 50 : 100),
+          mainWeight:
+            typeof mainWeight === "number" && !isNaN(mainWeight)
+              ? mainWeight
+              : abVariations.length > 0
+                ? 50
+                : 100,
           redirectType,
           passParams: Boolean(passParams),
         };
@@ -825,9 +942,17 @@ export function LinkDrawer({
           tags: tags.length ? tags : undefined,
           expiresAt: expiresAt ? expiresAt : undefined,
           maxClicks: hasClickLimit && maxClicks ? Number(maxClicks) : undefined,
-          fallbackUrl: hasClickLimit && fallbackUrl.trim() ? fallbackUrl.trim() : undefined,
+          fallbackUrl:
+            hasClickLimit && fallbackUrl.trim()
+              ? fallbackUrl.trim()
+              : undefined,
           abVariations: abVariations.filter((v) => v.url && v.url.trim()),
-          mainWeight: typeof mainWeight === "number" && !isNaN(mainWeight) ? mainWeight : (abVariations.length > 0 ? 50 : 100),
+          mainWeight:
+            typeof mainWeight === "number" && !isNaN(mainWeight)
+              ? mainWeight
+              : abVariations.length > 0
+                ? 50
+                : 100,
           redirectType,
           passParams: Boolean(passParams),
         });
@@ -838,18 +963,29 @@ export function LinkDrawer({
             id: res.data.id || createdLink.id,
             shortUrl: res.data.short_url || createdLink.shortUrl,
             slug: res.data.slug || createdLink.slug,
-            domainName: res.data.domain_name || res.data.domainName || cleanDomain,
-            ogImage: res.data.og_image || res.data.ogImage || finalOgImage || undefined,
-            ogTitle: res.data.og_title || res.data.ogTitle || ogTitle || undefined,
-            ogDescription: res.data.og_description || res.data.ogDescription || ogDescription || undefined,
-            metaTitle: res.data.meta_title || res.data.metaTitle || ogTitle || undefined,
+            domainName:
+              res.data.domain_name || res.data.domainName || cleanDomain,
+            ogImage:
+              res.data.og_image ||
+              res.data.ogImage ||
+              finalOgImage ||
+              undefined,
+            ogTitle:
+              res.data.og_title || res.data.ogTitle || ogTitle || undefined,
+            ogDescription:
+              res.data.og_description ||
+              res.data.ogDescription ||
+              ogDescription ||
+              undefined,
+            metaTitle:
+              res.data.meta_title || res.data.metaTitle || ogTitle || undefined,
           };
         }
 
         cfInvalidateCache();
         if (typeof window !== "undefined") {
           window.dispatchEvent(
-            new CustomEvent("lshorter_links_updated", { detail: createdLink })
+            new CustomEvent("lshorter_links_updated", { detail: createdLink }),
           );
           window.dispatchEvent(new Event("lshorter_data_change"));
         }
@@ -860,7 +996,9 @@ export function LinkDrawer({
           origin: { y: 0.6 },
         });
 
-        showToast.success(`Lien https://${cleanDomain}/${cleanSlug} créé avec succès !`);
+        showToast.success(
+          `Lien https://${cleanDomain}/${cleanSlug} créé avec succès !`,
+        );
         setIsSubmitting(false);
         if (onSuccess) onSuccess(createdLink);
         onClose();
@@ -899,7 +1037,7 @@ export function LinkDrawer({
       <div
         className={cn(
           "fixed inset-y-0 right-0 z-50 flex h-full flex-col bg-[#141416] dark:bg-[#141416] text-white border-l border-[#27272a] shadow-2xl transition-transform duration-300 ease-out animate-in slide-in-from-right",
-          "w-full sm:max-w-xl md:max-w-2xl lg:max-w-[700px] max-sm:w-screen max-sm:max-w-[100vw]"
+          "w-full sm:max-w-xl md:max-w-2xl lg:max-w-[700px] max-sm:w-screen max-sm:max-w-[100vw]",
         )}
       >
         {/* ── STICKY HEADER ── */}
@@ -908,7 +1046,11 @@ export function LinkDrawer({
           <div className="flex items-center justify-between gap-3 mb-3">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-[8px] bg-[#ff6600] max-sm:bg-blue-600 flex items-center justify-center text-white font-bold text-xs shadow-md shadow-[#ff6600]/25 max-sm:shadow-blue-500/25 shrink-0">
-                {isEditMode ? <Sliders className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                {isEditMode ? (
+                  <Sliders className="w-4 h-4" />
+                ) : (
+                  <Plus className="w-4 h-4" />
+                )}
               </div>
               <div className="min-w-0">
                 <h2 className="text-sm sm:text-base font-bold text-white tracking-tight leading-tight truncate">
@@ -932,17 +1074,18 @@ export function LinkDrawer({
             </button>
           </div>
 
-
           {/* ── INPUTS PRINCIPAUX : URL, DOMAINE, SLUG (Dans le sticky header, remplace la carte barrée) ── */}
           <div className="bg-[#1a1a1e]/80 border border-[#27272a] rounded-[12px] p-3 sm:p-3.5 mb-3 flex flex-col gap-3">
-
             {/* Champ 1 : URL de destination (pleine largeur) */}
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-neutral-300">
-                  URL de destination <span className="text-[#ff6600] max-sm:text-blue-500">*</span>
+                  URL de destination{" "}
+                  <span className="text-[#ff6600] max-sm:text-blue-500">*</span>
                 </label>
-                <span className="text-[10px] text-neutral-500 italic">Obligatoire</span>
+                <span className="text-[10px] text-neutral-500 italic">
+                  Obligatoire
+                </span>
               </div>
               <Input
                 required
@@ -959,22 +1102,23 @@ export function LinkDrawer({
                 }}
                 className={cn(
                   "bg-[#141416] border-[#27272a] focus:border-[#ff6600] max-sm:focus:border-blue-500 text-white text-xs h-9 sm:h-10 rounded-[8px] font-mono",
-                  fieldErrors.targetUrl && "border-red-500/60 bg-red-500/5"
+                  fieldErrors.targetUrl && "border-red-500/60 bg-red-500/5",
                 )}
               />
               <FieldErrorAlert message={fieldErrors.targetUrl} />
               <p className="text-[10px] text-neutral-400 mt-1">
-                Les visiteurs seront instantanément redirigés vers cette adresse.
+                Les visiteurs seront instantanément redirigés vers cette
+                adresse.
               </p>
             </div>
 
             {/* Champs 2 & 3 : Domaine (select) + Slug, en grille 2 colonnes */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-
               {/* Nom de Domaine — Select Dropdown */}
               <div>
                 <label className="block text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-neutral-300 mb-1">
-                  Nom de Domaine <span className="text-[#ff6600] max-sm:text-blue-500">*</span>
+                  Nom de Domaine{" "}
+                  <span className="text-[#ff6600] max-sm:text-blue-500">*</span>
                 </label>
                 <div className="relative">
                   <select
@@ -993,31 +1137,61 @@ export function LinkDrawer({
                     className={cn(
                       "w-full appearance-none bg-[#141416] border border-[#27272a] focus:border-[#ff6600] max-sm:focus:border-blue-500 text-white text-xs h-9 sm:h-10 pl-3 pr-8 rounded-[8px] font-mono transition-colors cursor-pointer outline-none",
                       isEditMode && "opacity-60 cursor-not-allowed",
-                      fieldErrors.domainName && "border-red-500/60 bg-red-500/5"
+                      fieldErrors.domainName &&
+                        "border-red-500/60 bg-red-500/5",
                     )}
                   >
                     {!isEditMode && !domainName && (
-                      <option value="" disabled>Choisir un domaine...</option>
+                      <option value="" disabled>
+                        Choisir un domaine...
+                      </option>
                     )}
                     {/* Domaines personnalisés de l'utilisateur */}
-                    {customDomains.length > 0 && customDomains.map((cd) => (
-                      <option key={cd.id} value={cd.domain} className="bg-[#141416] text-white">
-                        {cd.domain}
-                      </option>
-                    ))}
+                    {customDomains.length > 0 &&
+                      customDomains.map((cd) => (
+                        <option
+                          key={cd.id}
+                          value={cd.domain}
+                          className="bg-[#141416] text-white"
+                        >
+                          {cd.domain}
+                        </option>
+                      ))}
                     {/* Si aucun domaine custom, afficher le domaine par défaut lsho.cc */}
                     {customDomains.length === 0 && (
-                      <option value="lsho.cc" className="bg-[#141416] text-white">lsho.cc (Officiel)</option>
+                      <option
+                        value="lsho.cc"
+                        className="bg-[#141416] text-white"
+                      >
+                        lsho.cc (Officiel)
+                      </option>
                     )}
                     {/* En mode édition, s'assurer que le domaine actuel est affiché même s'il n'est pas dans customDomains */}
-                    {isEditMode && domainName && !customDomains.find((cd) => cd.domain === domainName) && (
-                      <option value={domainName} className="bg-[#141416] text-white">{domainName}</option>
-                    )}
+                    {isEditMode &&
+                      domainName &&
+                      !customDomains.find((cd) => cd.domain === domainName) && (
+                        <option
+                          value={domainName}
+                          className="bg-[#141416] text-white"
+                        >
+                          {domainName}
+                        </option>
+                      )}
                   </select>
                   {/* Chevron custom */}
                   <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-400">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M19 9l-7 7-7-7"
+                      />
                     </svg>
                   </div>
                 </div>
@@ -1027,7 +1201,8 @@ export function LinkDrawer({
               {/* Slug personnalisé */}
               <div>
                 <label className="block text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-neutral-300 mb-1">
-                  Slug personnalisé <span className="text-[#ff6600] max-sm:text-blue-500">*</span>
+                  Slug personnalisé{" "}
+                  <span className="text-[#ff6600] max-sm:text-blue-500">*</span>
                 </label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-neutral-500 font-mono select-none">
@@ -1048,7 +1223,7 @@ export function LinkDrawer({
                     }}
                     className={cn(
                       "pl-6 bg-[#141416] border-[#27272a] focus:border-[#ff6600] max-sm:focus:border-blue-500 text-white text-xs h-9 sm:h-10 rounded-[8px] font-mono",
-                      fieldErrors.slug && "border-red-500/60 bg-red-500/5"
+                      fieldErrors.slug && "border-red-500/60 bg-red-500/5",
                     )}
                   />
                 </div>
@@ -1061,7 +1236,6 @@ export function LinkDrawer({
                   </p>
                 )}
               </div>
-
             </div>
           </div>
 
@@ -1093,7 +1267,7 @@ export function LinkDrawer({
                     "px-3 py-2 text-xs font-semibold whitespace-nowrap transition-all border-b-2 flex items-center gap-1.5 cursor-pointer shrink-0",
                     isActiveTab
                       ? "text-[#ff6600] max-sm:text-blue-500 border-[#ff6600] max-sm:border-blue-500 font-bold bg-[#ff6600]/5 max-sm:bg-blue-500/5 rounded-t-[6px]"
-                      : "text-neutral-400 hover:text-white border-transparent hover:border-neutral-700"
+                      : "text-neutral-400 hover:text-white border-transparent hover:border-neutral-700",
                   )}
                 >
                   <Icon className="w-3.5 h-3.5" />
@@ -1113,11 +1287,13 @@ export function LinkDrawer({
           {/* ────────── TAB 1: GÉNÉRAL ────────── */}
           {activeTab === "general" && (
             <div className="flex flex-col gap-4 animate-in fade-in duration-200">
-
               {/* Info : champs déplacés en haut */}
               <div className="flex items-center gap-2 px-3 py-2 rounded-[8px] bg-white/5 border border-white/5 text-[11px] text-neutral-400">
                 <span>💡</span>
-                <span>L'URL cible, le domaine et le slug sont épinglés en haut du volet et restent modifiables à tout moment.</span>
+                <span>
+                  L'URL cible, le domaine et le slug sont épinglés en haut du
+                  volet et restent modifiables à tout moment.
+                </span>
               </div>
 
               {/* Link Status Toggle */}
@@ -1126,12 +1302,14 @@ export function LinkDrawer({
                   <div
                     className={cn(
                       "w-3 h-3 rounded-full shrink-0 animate-pulse",
-                      isActive ? "bg-emerald-500" : "bg-amber-500"
+                      isActive ? "bg-emerald-500" : "bg-amber-500",
                     )}
                   />
                   <div>
                     <span className="text-xs font-bold text-white block">
-                      {isActive ? "Lien Actif (Redirige les visiteurs)" : "Lien en Pause"}
+                      {isActive
+                        ? "Lien Actif (Redirige les visiteurs)"
+                        : "Lien en Pause"}
                     </span>
                     <span className="text-[11px] text-neutral-400 block">
                       {isActive
@@ -1148,7 +1326,7 @@ export function LinkDrawer({
                     "px-3 py-1.5 rounded-[8px] text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5",
                     isActive
                       ? "bg-amber-500/10 text-amber-400 border border-amber-500/30 hover:bg-amber-500/20"
-                      : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20"
+                      : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20",
                   )}
                 >
                   <Power className="w-3.5 h-3.5" />
@@ -1258,7 +1436,9 @@ export function LinkDrawer({
                     ) : (
                       <div className="flex flex-col items-center gap-1.5 text-neutral-500">
                         <ImageIcon className="w-8 h-8 stroke-1" />
-                        <span className="text-[11px]">Aucune image sélectionnée (1200x630 recommandé)</span>
+                        <span className="text-[11px]">
+                          Aucune image sélectionnée (1200x630 recommandé)
+                        </span>
                       </div>
                     )}
                   </div>
@@ -1362,7 +1542,8 @@ export function LinkDrawer({
                   </p>
                 ) : (
                   <p className="text-xs text-neutral-500 italic leading-relaxed">
-                    Entrez une URL de destination pour prévisualiser l'URL finale avec les paramètres UTM.
+                    Entrez une URL de destination pour prévisualiser l'URL
+                    finale avec les paramètres UTM.
                   </p>
                 )}
               </div>
@@ -1390,7 +1571,8 @@ export function LinkDrawer({
                     Masquer le référent (no-referrer)
                   </span>
                   <span className="text-[11px] text-neutral-400 block">
-                    Empêche le site de destination d'identifier le domaine source d'où provient le clic.
+                    Empêche le site de destination d'identifier le domaine
+                    source d'où provient le clic.
                   </span>
                 </div>
                 <button
@@ -1398,13 +1580,15 @@ export function LinkDrawer({
                   onClick={() => setHideReferrer((prev) => !prev)}
                   className={cn(
                     "w-11 h-6 rounded-full transition-colors relative cursor-pointer shrink-0",
-                    hideReferrer ? "bg-[#ff6600] max-sm:bg-blue-600" : "bg-neutral-800"
+                    hideReferrer
+                      ? "bg-[#ff6600] max-sm:bg-blue-600"
+                      : "bg-neutral-800",
                   )}
                 >
                   <span
                     className={cn(
-                      "w-4 h-4 rounded-full bg-white absolute top-1 transition-transform",
-                      hideReferrer ? "translate-x-6" : "translate-x-1"
+                      "w-4 h-4 rounded-full bg-white absolute top-1 transition-transform overflow-x-hidden",
+                      hideReferrer ? "translate-x-1" : "-translate-x-5",
                     )}
                   />
                 </button>
@@ -1418,9 +1602,12 @@ export function LinkDrawer({
               >
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <span className="text-xs font-bold text-white block">Masquage d'URL (Cloaking)</span>
+                    <span className="text-xs font-bold text-white block">
+                      Masquage d'URL (Cloaking)
+                    </span>
                     <span className="text-[11px] text-neutral-400 block">
-                      Affiche la page de destination dans une iframe plein écran transparente.
+                      Affiche la page de destination dans une iframe plein écran
+                      transparente.
                     </span>
                   </div>
                   <button
@@ -1428,13 +1615,15 @@ export function LinkDrawer({
                     onClick={() => isProPlan && setIsCloaked((prev) => !prev)}
                     className={cn(
                       "w-11 h-6 rounded-full transition-colors relative cursor-pointer shrink-0",
-                      isCloaked ? "bg-[#ff6600] max-sm:bg-blue-600" : "bg-neutral-800"
+                      isCloaked
+                        ? "bg-[#ff6600] max-sm:bg-blue-600"
+                        : "bg-neutral-800",
                     )}
                   >
                     <span
                       className={cn(
                         "w-4 h-4 rounded-full bg-white absolute top-1 transition-transform",
-                        isCloaked ? "translate-x-6" : "translate-x-1"
+                        isCloaked ? "translate-x-1" : "-translate-x-5",
                       )}
                     />
                   </button>
@@ -1450,9 +1639,12 @@ export function LinkDrawer({
                 <div className="flex flex-col gap-2.5">
                   <div className="flex items-center justify-between">
                     <div>
-                      <span className="text-xs font-bold text-white block">Mot de passe de protection</span>
+                      <span className="text-xs font-bold text-white block">
+                        Mot de passe de protection
+                      </span>
                       <span className="text-[11px] text-neutral-400 block">
-                        Les visiteurs devront valider ce mot de passe sur la page de sécurité.
+                        Les visiteurs devront valider ce mot de passe sur la
+                        page de sécurité.
                       </span>
                     </div>
                   </div>
@@ -1472,7 +1664,8 @@ export function LinkDrawer({
                       }}
                       className={cn(
                         "bg-[#141416] border-[#27272a] focus:border-[#ff6600] max-sm:focus:border-blue-500 text-white text-xs h-10 rounded-[10px] pr-10",
-                        fieldErrors.password && "border-red-500/60 bg-red-500/5"
+                        fieldErrors.password &&
+                          "border-red-500/60 bg-red-500/5",
                       )}
                     />
                     <button
@@ -1480,7 +1673,11 @@ export function LinkDrawer({
                       onClick={() => setShowPassword((prev) => !prev)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white cursor-pointer"
                     >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      {showPassword ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
                     </button>
                   </div>
                   <FieldErrorAlert message={fieldErrors.password} />
@@ -1496,23 +1693,29 @@ export function LinkDrawer({
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <span className="text-xs font-bold text-white block">Limiter le nombre d'accès</span>
+                      <span className="text-xs font-bold text-white block">
+                        Limiter le nombre d'accès
+                      </span>
                       <span className="text-[11px] text-neutral-400 block">
                         Désactive ou déroute le lien après un seuil précis.
                       </span>
                     </div>
                     <button
                       type="button"
-                      onClick={() => isProPlan && setHasClickLimit((prev) => !prev)}
+                      onClick={() =>
+                        isProPlan && setHasClickLimit((prev) => !prev)
+                      }
                       className={cn(
                         "w-11 h-6 rounded-full transition-colors relative cursor-pointer shrink-0",
-                        hasClickLimit ? "bg-[#ff6600] max-sm:bg-blue-600" : "bg-neutral-800"
+                        hasClickLimit
+                          ? "bg-[#ff6600] max-sm:bg-blue-600"
+                          : "bg-neutral-800",
                       )}
                     >
                       <span
                         className={cn(
                           "w-4 h-4 rounded-full bg-white absolute top-1 transition-transform",
-                          hasClickLimit ? "translate-x-6" : "translate-x-1"
+                          hasClickLimit ? "translate-x-1" : "-translate-x-5",
                         )}
                       />
                     </button>
@@ -1530,7 +1733,9 @@ export function LinkDrawer({
                             variant="outline"
                             size="sm"
                             onClick={() =>
-                              setMaxClicks((prev) => Math.max(1, (Number(prev) || 0) - 10))
+                              setMaxClicks((prev) =>
+                                Math.max(1, (Number(prev) || 0) - 10),
+                              )
                             }
                             className="h-9 px-2.5 bg-[#141416] border-[#27272a] text-xs font-bold"
                           >
@@ -1548,7 +1753,9 @@ export function LinkDrawer({
                             type="button"
                             variant="outline"
                             size="sm"
-                            onClick={() => setMaxClicks((prev) => (Number(prev) || 0) + 10)}
+                            onClick={() =>
+                              setMaxClicks((prev) => (Number(prev) || 0) + 10)
+                            }
                             className="h-9 px-2.5 bg-[#141416] border-[#27272a] text-xs font-bold"
                           >
                             +10
@@ -1598,12 +1805,13 @@ export function LinkDrawer({
                     }}
                     className={cn(
                       "bg-[#141416] border-[#27272a] focus:border-[#ff6600] max-sm:focus:border-blue-500 text-white text-xs h-10 rounded-[10px] [color-scheme:dark]",
-                      fieldErrors.expiresAt && "border-red-500/60 bg-red-500/5"
+                      fieldErrors.expiresAt && "border-red-500/60 bg-red-500/5",
                     )}
                   />
                   <FieldErrorAlert message={fieldErrors.expiresAt} />
                   <p className="text-[11px] text-neutral-400">
-                    Après cette date, les clics seront redirigés vers la page d'information "Lien expiré".
+                    Après cette date, les clics seront redirigés vers la page
+                    d'information "Lien expiré".
                   </p>
                 </div>
               </LockedProFeature>
@@ -1619,7 +1827,8 @@ export function LinkDrawer({
                     Répartition du Trafic A/B
                   </h4>
                   <p className="text-[11px] text-neutral-400">
-                    Distribuez les visiteurs entre l'URL principale et vos variantes alternatives.
+                    Distribuez les visiteurs entre l'URL principale et vos
+                    variantes alternatives.
                   </p>
                 </div>
                 <Button
@@ -1647,10 +1856,13 @@ export function LinkDrawer({
                 <div
                   className={cn(
                     "text-xs font-mono truncate bg-[#141416] px-3 py-2 rounded-[8px] border border-[#27272a]",
-                    targetUrl.trim() ? "text-neutral-300" : "text-neutral-500 italic"
+                    targetUrl.trim()
+                      ? "text-neutral-300"
+                      : "text-neutral-500 italic",
                   )}
                 >
-                  {targetUrl.trim() || "URL principale (définie dans l'onglet Général)"}
+                  {targetUrl.trim() ||
+                    "URL principale (définie dans l'onglet Général)"}
                 </div>
                 <div className="flex items-center gap-3">
                   <input
@@ -1675,7 +1887,8 @@ export function LinkDrawer({
                 <div className="p-6 rounded-[10px] border border-dashed border-[#27272a] bg-[#1a1a1e]/50 text-center flex flex-col items-center justify-center gap-2">
                   <Split className="w-6 h-6 text-neutral-500" />
                   <p className="text-xs text-neutral-400">
-                    Aucune variante alternative configurée. 100% du trafic pointe vers l'URL principale.
+                    Aucune variante alternative configurée. 100% du trafic
+                    pointe vers l'URL principale.
                   </p>
                   <Button
                     type="button"
@@ -1698,7 +1911,9 @@ export function LinkDrawer({
                       className="p-3.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] flex flex-col gap-2.5"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-white">{label}</span>
+                        <span className="text-xs font-bold text-white">
+                          {label}
+                        </span>
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-mono font-bold text-white">
                             {variant.weight}%
@@ -1723,7 +1938,7 @@ export function LinkDrawer({
                         }}
                         className={cn(
                           "bg-[#141416] border-[#27272a] text-xs h-9 rounded-[8px]",
-                          err && "border-red-500/60 bg-red-500/5"
+                          err && "border-red-500/60 bg-red-500/5",
                         )}
                       />
                       <FieldErrorAlert message={err} />
@@ -1770,7 +1985,10 @@ export function LinkDrawer({
                   {(() => {
                     const total =
                       mainWeight +
-                      abVariations.reduce((acc, v) => acc + (Number(v.weight) || 0), 0);
+                      abVariations.reduce(
+                        (acc, v) => acc + (Number(v.weight) || 0),
+                        0,
+                      );
                     const isOk = total === 100;
                     return (
                       <span
@@ -1778,7 +1996,7 @@ export function LinkDrawer({
                           "text-xs font-mono font-bold px-2.5 py-1 rounded-[6px] border",
                           isOk
                             ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
-                            : "bg-red-500/10 text-red-400 border-red-500/30 animate-pulse"
+                            : "bg-red-500/10 text-red-400 border-red-500/30 animate-pulse",
                         )}
                       >
                         Total : {total}% {isOk ? "✓" : "≠ 100%"}
@@ -1814,11 +2032,15 @@ export function LinkDrawer({
                           "p-3 rounded-[10px] border flex flex-col items-center justify-center gap-1 transition-all cursor-pointer text-center",
                           isSelected
                             ? "bg-[#ff6600] max-sm:bg-blue-600 text-white border-[#ff6600] max-sm:border-blue-600 shadow-md shadow-[#ff6600]/25 max-sm:shadow-blue-500/25"
-                            : "bg-[#1a1a1e] border-[#27272a] text-neutral-300 hover:border-neutral-600"
+                            : "bg-[#1a1a1e] border-[#27272a] text-neutral-300 hover:border-neutral-600",
                         )}
                       >
-                        <span className="text-base font-extrabold">{item.title}</span>
-                        <span className="text-[10px] opacity-80">{item.desc}</span>
+                        <span className="text-base font-extrabold">
+                          {item.title}
+                        </span>
+                        <span className="text-[10px] opacity-80">
+                          {item.desc}
+                        </span>
                       </button>
                     );
                   })}
@@ -1827,17 +2049,26 @@ export function LinkDrawer({
                 <div className="p-3 rounded-[8px] bg-[#1a1a1e] border border-[#27272a] mt-2 text-[11px] text-neutral-400 leading-relaxed">
                   {redirectType === "302" && (
                     <>
-                      💡 <strong>302 Temporaire (Recommandé)</strong> : Permet de compter avec exactitude chaque clic et chaque visiteur sur votre tableau de bord, sans mise en cache navigateur trop agressive.
+                      💡 <strong>302 Temporaire (Recommandé)</strong> : Permet
+                      de compter avec exactitude chaque clic et chaque visiteur
+                      sur votre tableau de bord, sans mise en cache navigateur
+                      trop agressive.
                     </>
                   )}
                   {redirectType === "301" && (
                     <>
-                      💡 <strong>301 Permanent (SEO)</strong> : Transmet l'autorité SEO à la page cible. Attention : les navigateurs mettent cette redirection en cache local, certains clics répétés peuvent ne pas être comptabilisés.
+                      💡 <strong>301 Permanent (SEO)</strong> : Transmet
+                      l'autorité SEO à la page cible. Attention : les
+                      navigateurs mettent cette redirection en cache local,
+                      certains clics répétés peuvent ne pas être comptabilisés.
                     </>
                   )}
                   {redirectType === "307" && (
                     <>
-                      💡 <strong>307 Temporaire Strict</strong> : Garantit la préservation exacte de la méthode HTTP (ex: POST, PUT) lors de la redirection. Idéal pour les webhooks et appels API.
+                      💡 <strong>307 Temporaire Strict</strong> : Garantit la
+                      préservation exacte de la méthode HTTP (ex: POST, PUT)
+                      lors de la redirection. Idéal pour les webhooks et appels
+                      API.
                     </>
                   )}
                 </div>
@@ -1850,7 +2081,8 @@ export function LinkDrawer({
                     Transmettre les paramètres d'URL (Query Parameters)
                   </span>
                   <span className="text-[11px] text-neutral-400 block">
-                    Transfère automatiquement les paramètres de requête reçus (ex: <code>?ref=...</code>) vers la page de destination.
+                    Transfère automatiquement les paramètres de requête reçus
+                    (ex: <code>?ref=...</code>) vers la page de destination.
                   </span>
                 </div>
                 <button
@@ -1858,13 +2090,15 @@ export function LinkDrawer({
                   onClick={() => setPassParams((prev) => !prev)}
                   className={cn(
                     "w-11 h-6 rounded-full transition-colors relative cursor-pointer shrink-0",
-                    passParams ? "bg-[#ff6600] max-sm:bg-blue-600" : "bg-neutral-800"
+                    passParams
+                      ? "bg-[#ff6600] max-sm:bg-blue-600"
+                      : "bg-neutral-800",
                   )}
                 >
                   <span
                     className={cn(
                       "w-4 h-4 rounded-full bg-white absolute top-1 transition-transform",
-                      passParams ? "translate-x-6" : "translate-x-1"
+                      passParams ? "translate-x-1" : "-translate-x-5",
                     )}
                   />
                 </button>
@@ -1912,7 +2146,9 @@ export function LinkDrawer({
                 <span>Enregistrement...</span>
               </>
             ) : (
-              <span>{isEditMode ? "Enregistrer les modifications" : "Créer le lien"}</span>
+              <span>
+                {isEditMode ? "Enregistrer les modifications" : "Créer le lien"}
+              </span>
             )}
           </Button>
         </div>

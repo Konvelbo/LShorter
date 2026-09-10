@@ -149,6 +149,18 @@ export default {
         return Response.redirect(`${proto}://${reqHost}/r/${slug}/expired`, 307);
       }
 
+      const maxClicks = link.max_clicks !== undefined && link.max_clicks !== null ? Number(link.max_clicks) : link.maxClicks !== undefined && link.maxClicks !== null ? Number(link.maxClicks) : undefined;
+      const fallbackUrl = link.fallback_url || link.fallbackUrl;
+      const currentClicks = Number(link.clicks_count || link.clicksCount || 0);
+
+      if (maxClicks && maxClicks > 0 && currentClicks >= maxClicks) {
+        if (fallbackUrl) {
+          const finalFallback = fallbackUrl.startsWith('http://') || fallbackUrl.startsWith('https://') ? fallbackUrl : `https://${fallbackUrl}`;
+          return Response.redirect(finalFallback, 302);
+        }
+        return Response.redirect(`${proto}://${reqHost}/r/${slug}/expired`, 307);
+      }
+
       const userAgent = (request.headers.get('user-agent') || '').toLowerCase();
       const isBot = /facebookexternalhit|facebot|twitterbot|linkedinbot|telegrambot|discordbot|slackbot|slack-imgbatcher|pinterestbot|googlebot|bingbot|applebot|yandexbot|duckduckbot|baiduspider|ia_archiver/i.test(userAgent);
       const country = (request.headers.get('cf-ipcountry') || 'FR').toUpperCase();
@@ -266,7 +278,18 @@ export default {
         ctx.waitUntil(
           (async () => {
             try {
-              await env.DB.prepare('UPDATE links SET clicks_count = clicks_count + 1 WHERE slug = ?').bind(slug).run();
+              await env.DB.prepare('UPDATE links SET clicks_count = clicks_count + 1 WHERE slug = ? AND (max_clicks IS NULL OR max_clicks = 0 OR clicks_count < max_clicks)').bind(slug).run();
+              const eventId = 'ev_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+              const ipHash = request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || '127.0.0.1';
+              await env.DB.prepare(`
+                INSERT INTO click_events (id, link_id, slug, country, city, referrer, device, browser, os, ip_hash, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+              `).bind(eventId, slug, slug, country, 'Inconnue', 'Direct', isMobile ? 'mobile' : 'desktop', 'Browser', 'OS', ipHash).run().catch(async () => {
+                await env.DB.prepare(`
+                  INSERT INTO analytics_events (id, link_id, slug, country, city, referrer, device, browser, os, ip_hash, created_at)
+                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+                `).bind(eventId, slug, slug, country, 'Inconnue', 'Direct', isMobile ? 'mobile' : 'desktop', 'Browser', 'OS', ipHash).run().catch(() => {});
+              });
             } catch (err) {
               console.warn('[Async Click Error]:', err);
             }
@@ -294,12 +317,48 @@ export default {
       // POST /api/v1/links/:slug/click or /api/links/:slug/click (Increment click counter)
       if (method === 'POST' && (path.endsWith('/click') || linkIdOrSlug?.includes('/click'))) {
         const targetSlugOrId = (linkIdOrSlug || '').replace(/\/click$/, '');
+        let clickBody = {};
+        try {
+          clickBody = await request.json();
+        } catch {}
+
+        const country = clickBody.country || request.headers.get('x-country') || request.headers.get('cf-ipcountry') || 'FR';
+        const city = clickBody.city || request.headers.get('x-city') || 'Inconnue';
+        const device = clickBody.device || request.headers.get('x-device') || 'desktop';
+        const browser = clickBody.browser || request.headers.get('x-browser') || 'Chrome';
+        const os = clickBody.os || request.headers.get('x-os') || 'Windows';
+        const referrer = clickBody.referrer || request.headers.get('x-referrer') || 'Direct';
+        const ipHash = request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || '127.0.0.1';
+
         if (env.DB && targetSlugOrId) {
           ctx.waitUntil(
-            env.DB.prepare('UPDATE links SET clicks_count = clicks_count + 1 WHERE slug = ? OR id = ?')
-              .bind(targetSlugOrId, targetSlugOrId)
-              .run()
-              .catch(() => {})
+            (async () => {
+              try {
+                // 1. Increment clicks_count only if below max_clicks
+                await env.DB.prepare(`
+                  UPDATE links 
+                  SET clicks_count = clicks_count + 1 
+                  WHERE (slug = ? OR id = ?) 
+                    AND (max_clicks IS NULL OR max_clicks = 0 OR clicks_count < max_clicks)
+                `).bind(targetSlugOrId, targetSlugOrId).run().catch(async () => {
+                  await env.DB.prepare('UPDATE links SET clicks_count = clicks_count + 1 WHERE slug = ? OR id = ?').bind(targetSlugOrId, targetSlugOrId).run();
+                });
+
+                // 2. Insert event for analytics & unique clicks calculation
+                const eventId = 'ev_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+                await env.DB.prepare(`
+                  INSERT INTO click_events (id, link_id, slug, country, city, referrer, device, browser, os, ip_hash, created_at)
+                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+                `).bind(eventId, targetSlugOrId, targetSlugOrId, country, city, referrer, device, browser, os, ipHash).run().catch(async () => {
+                  await env.DB.prepare(`
+                    INSERT INTO analytics_events (id, link_id, slug, country, city, referrer, device, browser, os, ip_hash, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+                  `).bind(eventId, targetSlugOrId, targetSlugOrId, country, city, referrer, device, browser, os, ipHash).run().catch(() => {});
+                });
+              } catch (dbErr) {
+                console.warn('[D1 Click Processing Error]:', dbErr);
+              }
+            })()
           );
         }
         if (env.LINKS_KV && targetSlugOrId) {
@@ -309,8 +368,12 @@ export default {
                 const cached = await env.LINKS_KV.get(targetSlugOrId);
                 if (cached && cached !== 'NOT_FOUND') {
                   const obj = JSON.parse(cached);
-                  obj.clicks_count = (obj.clicks_count || 0) + 1;
-                  await env.LINKS_KV.put(targetSlugOrId, JSON.stringify(obj));
+                  const maxC = obj.max_clicks || obj.maxClicks;
+                  const currentC = obj.clicks_count || 0;
+                  if (!maxC || maxC <= 0 || currentC < maxC) {
+                    obj.clicks_count = currentC + 1;
+                    await env.LINKS_KV.put(targetSlugOrId, JSON.stringify(obj));
+                  }
                 }
               } catch {}
             })()

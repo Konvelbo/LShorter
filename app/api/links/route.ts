@@ -41,8 +41,18 @@ export async function GET(req: Request) {
       seenSlugs.add(slugKey);
       const local = getProtectedLink(slugKey);
 
+      const maxClicksVal = l.max_clicks !== undefined ? l.max_clicks : local?.maxClicks;
+      const clicksVal = Math.max(
+        Number(l.clicks_count || l.clicksCount || l.clicks || 0),
+        Number(local?.clicksCount || 0)
+      );
+      // If maxClicks is defined, clamp clicksVal to maxClicks
+      const finalClicks = maxClicksVal && maxClicksVal > 0 ? Math.min(clicksVal, Number(maxClicksVal)) : clicksVal;
+
       mergedList.push({
         ...l,
+        clicks_count: finalClicks,
+        clicksCount: finalClicks,
         meta_title: l.meta_title || l.metaTitle || local?.metaTitle,
         metaTitle: l.metaTitle || l.meta_title || local?.metaTitle,
         og_title: l.og_title || l.ogTitle || local?.ogTitle,

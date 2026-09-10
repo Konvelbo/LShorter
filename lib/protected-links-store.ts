@@ -164,28 +164,40 @@ export function resolveAbTargetUrl(meta?: ProtectedLinkMeta | null, defaultUrl?:
   return base;
 }
 
-export function recordLinkClick(slug: string): { isAllowed: boolean; fallbackUrl?: string } {
+export function checkLinkQuota(slug: string): { isAllowed: boolean; fallbackUrl?: string } {
   if (!slug) return { isAllowed: true };
   const key = slug.toLowerCase();
   const link = memoryStore.get(key);
-
   if (!link) return { isAllowed: true };
 
   const currentClicks = link.clicksCount || 0;
+  if (link.maxClicks && link.maxClicks > 0 && currentClicks >= link.maxClicks) {
+    return { isAllowed: false, fallbackUrl: link.fallbackUrl };
+  }
+  return { isAllowed: true };
+}
 
-  // Check if click limit applies
-  if (link.maxClicks && link.maxClicks > 0) {
-    if (currentClicks >= link.maxClicks) {
-      return { isAllowed: false, fallbackUrl: link.fallbackUrl };
-    }
+export function recordLinkClick(slug: string): { isAllowed: boolean; fallbackUrl?: string; newCount: number } {
+  if (!slug) return { isAllowed: true, newCount: 0 };
+  const key = slug.toLowerCase();
+  const link = memoryStore.get(key);
+
+  if (!link) return { isAllowed: true, newCount: 0 };
+
+  const currentClicks = link.clicksCount || 0;
+
+  // Check if click limit already reached: do NOT increment further!
+  if (link.maxClicks && link.maxClicks > 0 && currentClicks >= link.maxClicks) {
+    return { isAllowed: false, fallbackUrl: link.fallbackUrl, newCount: currentClicks };
   }
 
-  // Increment clicks
-  link.clicksCount = currentClicks + 1;
+  // Increment clicks (strictly stops at maxClicks)
+  const nextClicks = currentClicks + 1;
+  link.clicksCount = nextClicks;
   memoryStore.set(key, link);
   persistStore();
 
-  return { isAllowed: true };
+  return { isAllowed: true, newCount: nextClicks };
 }
 
 export function deleteProtectedLink(slug: string) {

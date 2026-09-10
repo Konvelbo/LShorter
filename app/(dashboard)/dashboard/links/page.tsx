@@ -994,7 +994,7 @@ export default function LinksPage() {
             </div>
 
             {/* 2. Desktop Table (>= 768px) - Tight, compact column spacing */}
-            <div className="hidden md:block overflow-x-auto min-h-[300px]">
+            <div className="hidden md:block overflow-x-auto overflow-y-scroll min-h-[350px]">
               <table className="w-full text-left text-xs text-neutral-400 border-collapse">
                 <thead>
                   <tr className="border-b border-[#222225] text-[11px] uppercase tracking-wider text-neutral-500 font-semibold">
@@ -1166,7 +1166,7 @@ export default function LinksPage() {
                             {isMenuOpen && (
                               <div
                                 className={cn(
-                                  "absolute right-0 w-52 rounded-[10px] bg-[#1c1c24] border border-white/15 shadow-2xl py-1.5 z-[100] animate-in fade-in zoom-in-95 duration-150 text-xs text-neutral-200 text-left",
+                                  "absolute right-0 w-52 rounded-[10px] bg-[#1c1c24] border border-white/15 shadow-2xl py-1.5 z-[1000] animate-in fade-in zoom-in-95 duration-150 text-xs text-neutral-200 text-left",
                                   isDropUp
                                     ? "bottom-full mb-1.5 origin-bottom-right"
                                     : "top-full mt-1.5 origin-top-right",

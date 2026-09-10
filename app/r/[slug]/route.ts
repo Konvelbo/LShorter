@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getProtectedLink, saveProtectedLink, recordLinkClick, resolveAbTargetUrl } from "@/lib/protected-links-store";
+import { getProtectedLink, saveProtectedLink, recordLinkClick, checkLinkQuota, resolveAbTargetUrl } from "@/lib/protected-links-store";
 import { parseVisitorDetails, detectVisitorGeoAsync } from "@/lib/device-detection";
 
 const WORKER_URL =
@@ -19,8 +19,8 @@ export async function trackClickAsync(req: Request, slug: string, meta?: any) {
     const city = geo?.city || details.city || "Ouagadougou";
     const userId = meta?.userId || meta?.user_id || "usr_default";
 
-    // Forward click event exclusively to Cloudflare Edge Worker (0 Convex DB writes to eliminate database costs)
-    fetch(`${WORKER_URL}/api/v1/links/${encodeURIComponent(slug)}/click`, {
+    // Forward click event to Cloudflare Edge Worker D1
+    await fetch(`${WORKER_URL}/api/v1/links/${encodeURIComponent(slug)}/click`, {
       method: "POST",
       headers: {
         "X-Frontend-Secret": FRONTEND_SECRET,
@@ -342,11 +342,11 @@ export async function GET(
 
     // ─── 2. REAL VISITOR / HUMAN PATH (INSTANT HTTP 307 REDIRECT) ───
 
-    // Check Click Quotas / Limits
-    const clickCheck = recordLinkClick(slug);
-    if (!clickCheck.isAllowed) {
-      if (clickCheck.fallbackUrl) {
-        return safeRedirect(clickCheck.fallbackUrl, req.url);
+    // Check Click Quotas / Limits (READ-ONLY check: does not increment before password is provided)
+    const quotaCheck = checkLinkQuota(slug);
+    if (!quotaCheck.isAllowed) {
+      if (quotaCheck.fallbackUrl) {
+        return safeRedirect(quotaCheck.fallbackUrl, req.url);
       }
       return NextResponse.redirect(new URL(`/r/${slug}/expired`, req.url), 307);
     }
@@ -372,19 +372,22 @@ export async function GET(
       return NextResponse.redirect(new URL(`/r/${slug}/expired`, req.url), 307);
     }
 
-    // 4. If password protected, show gate
+    // 4. If password protected, show gate (DO NOT count click until password entered)
     if (meta?.password) {
       return NextResponse.redirect(new URL(`/r/${slug}/gate`, req.url), 307);
     }
 
     // 5. If cloaked, show view
     if (meta?.isCloaked && meta?.targetUrl) {
+      recordLinkClick(slug);
+      await trackClickAsync(req, slug, meta);
       return NextResponse.redirect(new URL(`/r/${slug}/view`, req.url), 307);
     }
 
-    // 6. If targetUrl is available locally/from Convex, redirect INSTANTLY with configured redirect code
+    // 6. If targetUrl is available locally, increment click and redirect
     if (meta?.targetUrl) {
-      trackClickAsync(req, slug, meta);
+      recordLinkClick(slug);
+      await trackClickAsync(req, slug, meta);
       const splitUrl = resolveAbTargetUrl(meta, meta.targetUrl);
       const finalUrl = evaluateTargetUrl(splitUrl, req, meta);
       const redirectCode = meta.redirectType === "301" ? 301 : meta.redirectType === "302" ? 302 : 307;
@@ -408,7 +411,8 @@ export async function GET(
       if (workerRes.status === 302 || workerRes.status === 307) {
         const location = workerRes.headers.get("location");
         if (location) {
-          trackClickAsync(req, slug, meta);
+          recordLinkClick(slug);
+          await trackClickAsync(req, slug, meta);
           const finalUrl = evaluateTargetUrl(location, req, meta);
           const redirectCode = meta?.redirectType === "301" ? 301 : meta?.redirectType === "302" ? 302 : 307;
           return safeRedirect(finalUrl, req.url, req.url, meta?.passParams !== false, redirectCode);
@@ -453,11 +457,14 @@ export async function GET(
             return NextResponse.redirect(new URL(`/r/${slug}/gate`, req.url), 307);
           }
           if (found.is_cloaked) {
+            recordLinkClick(slug);
+            await trackClickAsync(req, slug, found);
             return NextResponse.redirect(new URL(`/r/${slug}/view`, req.url), 307);
           }
           const target = found.target_url || found.targetUrl;
           if (target) {
-            trackClickAsync(req, slug, found);
+            recordLinkClick(slug);
+            await trackClickAsync(req, slug, found);
             const finalUrl = evaluateTargetUrl(target, req, found);
             const redirectCode = found?.redirect_type === "301" || found?.redirectType === "301" ? 301 : found?.redirect_type === "302" || found?.redirectType === "302" ? 302 : 307;
             return safeRedirect(finalUrl, req.url, req.url, found?.passParams !== false, redirectCode);

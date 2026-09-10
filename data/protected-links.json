@@ -284,5 +284,18 @@
     "clicksCount": 3,
     "userId": "usr_click_benchmark_user",
     "updatedAt": "2026-09-07T13:08:04.907Z"
+  },
+  {
+    "slug": "fgfgafgf",
+    "isCloaked": false,
+    "targetUrl": "https://talktoome.netlify.app/",
+    "abVariations": [],
+    "mainWeight": 100,
+    "passParams": true,
+    "redirectType": "302",
+    "isActive": true,
+    "clicksCount": 0,
+    "userId": "4991d47a-0f28-4e78-8c84-bb8f1513a322",
+    "updatedAt": "2026-09-08T18:21:26.567Z"
   }
 ]

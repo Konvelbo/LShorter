@@ -235,8 +235,8 @@ export async function POST(
 
     if (!actualPassword || providedPassword === actualPassword) {
       // 1. Record authentic click event in Cloudflare D1
-      trackClickAsync(req, slug, link).catch(() => {});
-      // 2. Increment local memory counter
+      await trackClickAsync(req, slug, link).catch(() => {});
+      // 2. Increment local memory counter (strictly capped at maxClicks)
       recordLinkClick(slug);
 
       return NextResponse.json({
