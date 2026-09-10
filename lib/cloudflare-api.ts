@@ -308,8 +308,8 @@ export async function cfCreateLink(data: {
     main_weight: data.mainWeight,
     isActive: data.isActive !== false && data.is_active !== 0,
     tags: data.tags && data.tags.length ? data.tags : undefined,
-    userPlan: data.userPlan || data.plan || "PRO",
-    plan: data.userPlan || data.plan || "PRO",
+    userPlan: data.userPlan || data.plan || undefined,
+    plan: data.userPlan || data.plan || undefined,
   };
 
   if (data.isCloaked || data.is_cloaked === 1 || data.is_cloaked === true) {
@@ -353,8 +353,8 @@ export async function cfUpdateLink(id: string, updates: any) {
     pass_params: updates.pass_params !== undefined ? updates.pass_params : updates.passParams,
     passParams: updates.passParams !== undefined ? updates.passParams : updates.pass_params,
     is_active: updates.is_active !== undefined ? updates.is_active : updates.isActive !== undefined ? (updates.isActive ? 1 : 0) : undefined,
-    userPlan: updates.userPlan || updates.plan || "PRO",
-    plan: updates.userPlan || updates.plan || "PRO",
+    userPlan: updates.userPlan || updates.plan || undefined,
+    plan: updates.userPlan || updates.plan || undefined,
   };
 
   if (updates.isCloaked !== undefined || updates.is_cloaked !== undefined) {

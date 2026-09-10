@@ -280,32 +280,44 @@ export function LinkDrawer({
 
       // Parse routing rules
       let parsedRules: RoutingRule[] = [];
-      if (link.routingRules) {
-        parsedRules =
-          typeof link.routingRules === "string"
-            ? JSON.parse(link.routingRules)
-            : link.routingRules;
-      } else if (link.geoTargeting || link.deviceTargeting) {
-        if (link.geoTargeting) {
-          Object.entries(link.geoTargeting).forEach(([country, url], idx) => {
-            parsedRules.push({
-              id: `geo_${idx}`,
-              title: `Routage ${country}`,
-              isCollapsed: false,
-              conditions: [
-                {
-                  id: `c_geo_${idx}`,
-                  type: "pays",
-                  operator: "est",
-                  value: country,
-                },
-              ],
-              destinationUrl: url,
-            });
+      const rawRoutingRules = link.routingRules || (link as any).routing_rules;
+      if (rawRoutingRules) {
+        try {
+          parsedRules =
+            typeof rawRoutingRules === "string"
+              ? JSON.parse(rawRoutingRules)
+              : rawRoutingRules;
+        } catch {
+          parsedRules = [];
+        }
+      } else if (link.geoTargeting || (link as any).geo_targeting || link.deviceTargeting || (link as any).device_targeting) {
+        const rawGeo = link.geoTargeting || (link as any).geo_targeting;
+        const rawDev = link.deviceTargeting || (link as any).device_targeting;
+        const geoObj = typeof rawGeo === "string" ? JSON.parse(rawGeo) : rawGeo;
+        const devObj = typeof rawDev === "string" ? JSON.parse(rawDev) : rawDev;
+
+        if (geoObj && typeof geoObj === "object") {
+          Object.entries(geoObj).forEach(([country, url], idx) => {
+            if (url) {
+              parsedRules.push({
+                id: `geo_${idx}`,
+                title: `Routage ${country}`,
+                isCollapsed: false,
+                conditions: [
+                  {
+                    id: `c_geo_${idx}`,
+                    type: "pays",
+                    operator: "est",
+                    value: country,
+                  },
+                ],
+                destinationUrl: String(url),
+              });
+            }
           });
         }
-        if (link.deviceTargeting) {
-          Object.entries(link.deviceTargeting).forEach(([device, url], idx) => {
+        if (devObj && typeof devObj === "object") {
+          Object.entries(devObj).forEach(([device, url], idx) => {
             if (url) {
               parsedRules.push({
                 id: `dev_${idx}`,
@@ -319,13 +331,13 @@ export function LinkDrawer({
                     value: device,
                   },
                 ],
-                destinationUrl: url,
+                destinationUrl: String(url),
               });
             }
           });
         }
       }
-      setRoutingRules(parsedRules);
+      setRoutingRules(Array.isArray(parsedRules) ? parsedRules : []);
 
       setPassword(link.password || (link as any).password_plain || "");
       setIsCloaked(Boolean(link.isCloaked || (link as any).is_cloaked));
@@ -1059,7 +1071,7 @@ export function LinkDrawer({
                 <p className="text-[11px] text-neutral-400 leading-tight truncate">
                   {isEditMode
                     ? `Modifier la redirection pour /${slug || link?.slug || ""}`
-                    : "Configurez votre redirection courte, UTM et options de routage."}
+                    : "Configurez votre redirection courte"}
                 </p>
               </div>
             </div>

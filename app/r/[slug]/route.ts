@@ -78,7 +78,9 @@ function safeRedirect(
   }
 }
 
-function evaluateTargetUrl(baseTargetUrl: string, req: Request, meta?: any) {
+import { REGION_COUNTRIES } from "@/lib/routing-utils";
+
+export function evaluateTargetUrl(baseTargetUrl: string, req: Request, meta?: any): string {
   if (!meta) return baseTargetUrl;
   const userAgent = (req.headers.get("user-agent") || "").toLowerCase();
   const country = (
@@ -102,14 +104,16 @@ function evaluateTargetUrl(baseTargetUrl: string, req: Request, meta?: any) {
   else if (userAgent.includes("linux")) osType = "linux";
 
   // 1. Evaluate Structured Routing Rules (AND logic)
-  let rules = meta.routingRules;
+  let rules = meta.routingRules || meta.routing_rules;
   if (typeof rules === "string") {
     try { rules = JSON.parse(rules); } catch {}
   }
 
   if (Array.isArray(rules) && rules.length > 0) {
     for (const rule of rules) {
-      if (!rule || !rule.destinationUrl) continue;
+      if (!rule) continue;
+      const destUrl = rule.destinationUrl || rule.url || rule.destination_url;
+      if (!destUrl) continue;
       const conditions = Array.isArray(rule.conditions) ? rule.conditions : [];
       if (conditions.length === 0) continue;
 
@@ -127,10 +131,11 @@ function evaluateTargetUrl(baseTargetUrl: string, req: Request, meta?: any) {
           const match = deviceType === val || (val === "mobile" && (isMobile || isTablet));
           isMet = op === "est" ? match : !match;
         } else if (cond.type === "plateforme") {
-          const match = osType === val;
+          const match = osType === val || (val === "mac" && osType === "macos") || (val === "macos" && osType === "mac");
           isMet = op === "est" ? match : !match;
         } else if (cond.type === "region") {
-          const match = country.toLowerCase().includes(val);
+          const regionList = REGION_COUNTRIES[val] || [];
+          const match = regionList.includes(country);
           isMet = op === "est" ? match : !match;
         } else {
           isMet = true;
@@ -143,7 +148,7 @@ function evaluateTargetUrl(baseTargetUrl: string, req: Request, meta?: any) {
       }
 
       if (allConditionsMet) {
-        return rule.destinationUrl;
+        return destUrl;
       }
     }
   }
@@ -353,6 +358,32 @@ export async function GET(
 
     // Check in-memory store (<1ms lookup)
     let meta = getProtectedLink(slug);
+
+    // If maxClicks is set on meta or in storage, sync live count with Cloudflare D1
+    if (meta?.maxClicks && meta.maxClicks > 0) {
+      try {
+        const syncRes = await fetch(`${WORKER_URL}/api/v1/links`, {
+          headers: {
+            "X-Frontend-Secret": FRONTEND_SECRET,
+            Authorization: `Bearer ${FRONTEND_SECRET}`,
+          },
+          cache: "no-store",
+        });
+        if (syncRes.ok) {
+          const listData = await syncRes.json();
+          const list = Array.isArray(listData?.data) ? listData.data : [];
+          const found = list.find((l: any) => l.slug?.toLowerCase() === slug.toLowerCase());
+          if (found) {
+            const d1Clicks = Number(found.clicks_count || found.clicks || 0);
+            meta.clicksCount = Math.max(meta.clicksCount || 0, d1Clicks);
+            if (found.fallback_url) meta.fallbackUrl = found.fallback_url;
+            if (found.max_clicks) meta.maxClicks = Number(found.max_clicks);
+          }
+        }
+      } catch (syncErr) {
+        console.warn("[Quota Live Sync Warning]:", syncErr);
+      }
+    }
 
     // 1. Check if link is paused / disabled
     if (meta?.isActive === false) {

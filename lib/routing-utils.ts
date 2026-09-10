@@ -13,39 +13,38 @@ export interface RoutingRule {
   destinationUrl: string;
 }
 
+export const REGION_COUNTRIES: Record<string, string[]> = {
+  europe: [
+    "FR", "DE", "GB", "ES", "IT", "BE", "CH", "PT", "NL", "SE",
+    "NO", "DK", "FI", "IE", "AT", "PL", "GR", "RO", "CZ", "HU", "LU"
+  ],
+  west_africa: [
+    "SN", "CI", "BF", "ML", "GN", "TG", "BJ", "NE", "NG", "GH",
+    "CV", "GM", "GW", "LR", "SL"
+  ],
+  central_africa: [
+    "CM", "GA", "CG", "CD", "TD", "CF", "GQ", "ST"
+  ],
+  north_america: [
+    "US", "CA", "MX"
+  ],
+  south_america: [
+    "BR", "AR", "CO", "CL", "PE", "VE", "EC", "BO", "PY", "UY"
+  ],
+  asia: [
+    "CN", "JP", "KR", "IN", "SG", "TH", "VN", "ID", "MY", "PH",
+    "PK", "BD", "AE", "SA", "QA", "KW"
+  ],
+};
+
 /**
  * Compiles visual routing rules into:
- * - geoTargeting: { [countryIso2]: destinationUrl }
- * - deviceTargeting: { [deviceTypeOrOS]: destinationUrl }
- * - routingRules: array of structured rules with multi-conditions
+ * - routingRules: array of structured rules with multi-conditions (primary engine)
+ * - geoTargeting / deviceTargeting: only populated for single-condition rules (legacy fallback)
  */
 export function compileRoutingRules(rules: RoutingRule[]) {
   const geoTargeting: Record<string, string> = {};
   const deviceTargeting: Record<string, string> = {};
-
-  const regionCountries: Record<string, string[]> = {
-    europe: [
-      "FR", "DE", "GB", "ES", "IT", "BE", "CH", "PT", "NL", "SE",
-      "NO", "DK", "FI", "IE", "AT", "PL", "GR", "RO", "CZ", "HU", "LU"
-    ],
-    west_africa: [
-      "SN", "CI", "BF", "ML", "GN", "TG", "BJ", "NE", "NG", "GH",
-      "CV", "GM", "GW", "LR", "SL"
-    ],
-    central_africa: [
-      "CM", "GA", "CG", "CD", "TD", "CF", "GQ", "ST"
-    ],
-    north_america: [
-      "US", "CA", "MX"
-    ],
-    south_america: [
-      "BR", "AR", "CO", "CL", "PE", "VE", "EC", "BO", "PY", "UY"
-    ],
-    asia: [
-      "CN", "JP", "KR", "IN", "SG", "TH", "VN", "ID", "MY", "PH",
-      "PK", "BD", "AE", "SA", "QA", "KW"
-    ],
-  };
 
   const validRules = (rules || []).filter((r) => r.destinationUrl?.trim());
 
@@ -55,59 +54,52 @@ export function compileRoutingRules(rules: RoutingRule[]) {
       dest = `https://${dest}`;
     }
 
-    r.conditions.forEach((c) => {
-      if (!c.value) return;
-
-      // 1. GÉOGRAPHIE : PAYS
-      if (c.type === "pays") {
-        geoTargeting[c.value.toUpperCase()] = dest;
-      }
-
-      // 2. GÉOGRAPHIE : RÉGION / CONTINENT
-      else if (c.type === "region") {
-        const regionKey = c.value.toLowerCase();
-        const countries = regionCountries[regionKey];
-        if (countries) {
-          countries.forEach((code) => {
-            geoTargeting[code] = dest;
-          });
+    // ONLY populate legacy single-condition maps if the rule has EXACTLY 1 condition and operator is "est"
+    // Rules with 2+ conditions MUST NOT be flattened into OR-based legacy maps!
+    if (r.conditions && r.conditions.length === 1) {
+      const c = r.conditions[0];
+      if (c && c.value && c.operator === "est") {
+        if (c.type === "pays") {
+          geoTargeting[c.value.toUpperCase()] = dest;
+        } else if (c.type === "region") {
+          const regionKey = c.value.toLowerCase();
+          const countries = REGION_COUNTRIES[regionKey];
+          if (countries) {
+            countries.forEach((code) => {
+              geoTargeting[code] = dest;
+            });
+          }
+        } else if (c.type === "appareil") {
+          const val = c.value.toLowerCase();
+          if (val === "mobile") {
+            deviceTargeting.android = dest;
+            deviceTargeting.ios = dest;
+            deviceTargeting.mobile = dest;
+          } else if (val === "tablet") {
+            deviceTargeting.tablet = dest;
+            deviceTargeting.ipad = dest;
+          } else if (val === "desktop") {
+            deviceTargeting.windows = dest;
+            deviceTargeting.macos = dest;
+            deviceTargeting.linux = dest;
+            deviceTargeting.desktop = dest;
+          }
+        } else if (c.type === "plateforme") {
+          const val = c.value.toLowerCase();
+          if (val === "ios") {
+            deviceTargeting.ios = dest;
+          } else if (val === "android") {
+            deviceTargeting.android = dest;
+          } else if (val === "windows") {
+            deviceTargeting.windows = dest;
+          } else if (val === "macos" || val === "mac") {
+            deviceTargeting.macos = dest;
+          } else if (val === "linux") {
+            deviceTargeting.linux = dest;
+          }
         }
       }
-
-      // 3. APPAREIL (Device Type) : Mobile, Tablette, Desktop
-      else if (c.type === "appareil") {
-        const val = c.value.toLowerCase();
-        if (val === "mobile") {
-          deviceTargeting.android = dest;
-          deviceTargeting.ios = dest;
-          deviceTargeting.mobile = dest;
-        } else if (val === "tablet") {
-          deviceTargeting.tablet = dest;
-          deviceTargeting.ipad = dest;
-        } else if (val === "desktop") {
-          deviceTargeting.windows = dest;
-          deviceTargeting.macos = dest;
-          deviceTargeting.linux = dest;
-          deviceTargeting.desktop = dest;
-        }
-      }
-
-      // 4. PLATEFORME (OS) : iOS, Android, Windows, macOS, Linux
-      else if (c.type === "plateforme") {
-        const val = c.value.toLowerCase();
-        if (val === "ios") {
-          deviceTargeting.ios = dest;
-        } else if (val === "android") {
-          deviceTargeting.android = dest;
-        } else if (val === "windows") {
-          deviceTargeting.windows = dest;
-        } else if (val === "macos" || val === "mac") {
-          deviceTargeting.macos = dest;
-        } else if (val === "linux") {
-          deviceTargeting.linux = dest;
-        }
-      }
-    });
+    }
   });
 
   return {

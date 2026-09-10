@@ -1,62 +1,12 @@
 import { NextResponse } from "next/server";
 import { getProtectedLink, recordLinkClick } from "@/lib/protected-links-store";
-import { trackClickAsync } from "@/app/r/[slug]/route";
+import { trackClickAsync, evaluateTargetUrl } from "@/app/r/[slug]/route";
 
 const WORKER_URL =
   process.env.NEXT_PUBLIC_BACKEND_API_URL ||
   "https://lshorter-api.fiatechnologiecam.workers.dev";
 const FRONTEND_SECRET =
   process.env.FRONTEND_API_SECRET || "lsh_secret_live_prod_2026";
-
-function evaluateTargetUrl(baseTargetUrl: string, req: Request, meta?: any) {
-  if (!meta) return baseTargetUrl;
-  const userAgent = (req.headers.get("user-agent") || "").toLowerCase();
-  const country = (
-    req.headers.get("cf-ipcountry") ||
-    req.headers.get("x-vercel-ip-country") ||
-    req.headers.get("x-country") ||
-    ""
-  ).toUpperCase();
-
-  // 1. Device / OS Targeting
-  if (meta.deviceTargeting && typeof meta.deviceTargeting === "object") {
-    const dt = meta.deviceTargeting;
-    if (userAgent.includes("iphone") || userAgent.includes("ipad") || userAgent.includes("ipod")) {
-      if (dt.ios) return dt.ios;
-      if (dt.mobile) return dt.mobile;
-    } else if (userAgent.includes("android")) {
-      if (dt.android) return dt.android;
-      if (dt.mobile) return dt.mobile;
-    } else if (userAgent.includes("windows")) {
-      if (dt.windows) return dt.windows;
-      if (dt.desktop) return dt.desktop;
-    } else if (userAgent.includes("macintosh") || userAgent.includes("mac os")) {
-      if (dt.macos) return dt.macos;
-      if (dt.desktop) return dt.desktop;
-    } else if (userAgent.includes("linux")) {
-      if (dt.linux) return dt.linux;
-      if (dt.desktop) return dt.desktop;
-    } else if (/mobile|touch/i.test(userAgent)) {
-      if (dt.mobile) return dt.mobile;
-    } else {
-      if (dt.desktop) return dt.desktop;
-    }
-  }
-
-  // 2. Geo Targeting
-  if (country && meta.geoTargeting && typeof meta.geoTargeting === "object") {
-    if (meta.geoTargeting[country]) {
-      return meta.geoTargeting[country];
-    }
-  }
-
-  // Protocol sanitization: strictly enforce http:// or https:// (prevent javascript:, data:, vbscript: XSS)
-  const trimmed = (baseTargetUrl || "").trim();
-  if (!/^https?:\/\//i.test(trimmed)) {
-    return `https://${trimmed.replace(/^[a-z]+:/i, "")}`;
-  }
-  return trimmed;
-}
 
 async function resolveLinkData(slug: string, req: Request) {
   const protectedMeta = getProtectedLink(slug);

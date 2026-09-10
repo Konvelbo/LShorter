@@ -164,7 +164,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const effectivePlan = (body.userPlan || body.plan || "PRO").toUpperCase();
+    const effectivePlan = (body.userPlan || body.plan || "FREEMIUM").toUpperCase();
     const isPro = effectivePlan === "PRO" || effectivePlan === "BUSINESS" || effectivePlan === "ENTERPRISE";
 
     const sanitizedOgImage =
@@ -240,62 +240,7 @@ export async function POST(req: Request) {
 
     const data = await res.json().catch(() => ({}));
 
-    if (res.status === 403 || res.status === 400) {
-      if (isPro) {
-        const sanitizedBody = { ...workerPayload };
-        delete sanitizedBody.password;
-        delete sanitizedBody.isCloaked;
-        delete sanitizedBody.is_cloaked;
-        delete sanitizedBody.routingRules;
-        delete sanitizedBody.routing_rules;
-        delete sanitizedBody.geoTargeting;
-        delete sanitizedBody.geo_targeting;
-        delete sanitizedBody.deviceTargeting;
-        delete sanitizedBody.device_targeting;
-
-        const retryRes = await fetch(`${WORKER_URL}/api/v1/links`, {
-          method: "POST",
-          headers: {
-            "X-Frontend-Secret": FRONTEND_SECRET,
-            Authorization: `Bearer ${FRONTEND_SECRET}`,
-            ...(body.userId ? { "X-User-Id": body.userId } : {}),
-            ...(body.userEmail ? { "X-User-Email": body.userEmail } : {}),
-            ...(body.userName ? { "X-User-Name": body.userName } : {}),
-            "X-User-Plan": effectivePlan,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(sanitizedBody),
-          cache: "no-store",
-        });
-
-        if (retryRes.ok) {
-          const retryData = await retryRes.json().catch(() => ({}));
-          return NextResponse.json(
-            {
-              ...retryData,
-              data: {
-                ...(retryData.data || {}),
-                ogImage: sanitizedOgImage,
-                og_image: sanitizedOgImage,
-                ogTitle: body.ogTitle || body.og_title,
-                og_title: body.ogTitle || body.og_title,
-                ogDescription: body.ogDescription || body.og_description,
-                og_description: body.ogDescription || body.og_description,
-                metaTitle: body.metaTitle || body.meta_title,
-                password: body.password || undefined,
-                isCloaked: Boolean(body.isCloaked || body.is_cloaked),
-                routingRules: body.routingRules || body.routing_rules || undefined,
-                geoTargeting: body.geoTargeting || body.geo_targeting || undefined,
-                deviceTargeting: body.deviceTargeting || body.device_targeting || undefined,
-                maxClicks: body.maxClicks !== undefined ? Number(body.maxClicks) : undefined,
-                fallbackUrl: body.fallbackUrl || body.fallback_url || undefined,
-              },
-            },
-            { status: 201 }
-          );
-        }
-      }
-
+    if (res.status === 403) {
       return NextResponse.json(
         {
           success: false,
