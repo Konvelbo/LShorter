@@ -549,8 +549,8 @@ export function LinkDrawer({
   const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 8 * 1024 * 1024) {
-      showToast.error("L'image ne doit pas dépasser 8 Mo.");
+    if (file.size > 10 * 1024 * 1024) {
+      showToast.error("L'image ne doit pas dépasser 10 Mo.");
       return;
     }
 
@@ -562,22 +562,36 @@ export function LinkDrawer({
     setIsUploadingImage(true);
     try {
       const compressed = await compressImageFile(file, 1200, 630, 0.82);
+      let dataUrl = "";
       if (typeof compressed === "string") {
-        setOgImage(compressed);
-        setPreviewImage(compressed);
+        dataUrl = compressed;
       } else {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          const dataUrl = (event.target?.result as string) || "";
-          setOgImage(dataUrl);
-          setPreviewImage(dataUrl);
-        };
-        reader.readAsDataURL(compressed as Blob);
+        dataUrl = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (event) => resolve((event.target?.result as string) || "");
+          reader.onerror = () => resolve("");
+          reader.readAsDataURL(compressed as Blob);
+        });
       }
-      showToast.success("Bannière sélectionnée !");
-    } catch (err) {
+
+      if (!dataUrl) {
+        throw new Error("Impossible de lire le fichier image.");
+      }
+
+      // Immediately upload to Bunny CDN!
+      const uploadRes = await cfUploadImage(dataUrl, "Banners");
+      if (uploadRes?.url) {
+        setOgImage(uploadRes.url);
+        setPreviewImage(uploadRes.url);
+        showToast.success("Bannière téléversée avec succès sur le CDN Bunny !");
+      } else {
+        setOgImage(dataUrl);
+        setPreviewImage(dataUrl);
+        showToast.success("Bannière sélectionnée !");
+      }
+    } catch (err: any) {
       console.error("Banner upload error:", err);
-      showToast.error("Erreur lors du traitement de l'image.");
+      showToast.error("Erreur lors du téléversement de la bannière.");
     } finally {
       setIsUploadingImage(false);
       if (bannerInputRef.current) bannerInputRef.current.value = "";
@@ -1428,6 +1442,21 @@ export function LinkDrawer({
                     )}
                     <span>Téléverser</span>
                   </Button>
+                  {(ogImage || previewImage) && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={isUploadingImage}
+                      onClick={() => {
+                        setOgImage("");
+                        setPreviewImage("");
+                      }}
+                      className="bg-rose-500/10 border-rose-500/30 hover:bg-rose-500/20 text-rose-400 text-xs h-10 rounded-[10px] shrink-0 gap-1.5 cursor-pointer px-3"
+                      title="Supprimer la bannière"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  )}
                 </div>
               </div>
 

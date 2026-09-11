@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { saveProtectedLink, deleteProtectedLink, getProtectedLink } from "@/lib/protected-links-store";
-import { deleteFromBunny } from "@/lib/bunny";
+import { deleteFromBunny, uploadToBunny } from "@/lib/bunny";
 
 const WORKER_URL =
   process.env.NEXT_PUBLIC_BACKEND_API_URL ||
@@ -20,16 +20,23 @@ export async function PATCH(
     const effectivePlan = (body.userPlan || body.plan || "PRO").toUpperCase();
     const isPro = effectivePlan === "PRO" || effectivePlan === "BUSINESS" || effectivePlan === "ENTERPRISE";
 
-    const sanitizedOgImage =
-      (body.ogImage || body.og_image) &&
-      (body.ogImage || body.og_image).startsWith("data:") &&
-      (body.ogImage || body.og_image).length > 100000
-        ? undefined
-        : (body.ogImage || body.og_image);
+    const rawOg = body.ogImage || body.og_image || "";
+    let sanitizedOgImage: string | undefined = rawOg || undefined;
+
+    if (rawOg && rawOg.startsWith("data:")) {
+      try {
+        const uploadResult = await uploadToBunny(rawOg, { folder: "Banners" });
+        if (uploadResult?.success && uploadResult.url) {
+          sanitizedOgImage = uploadResult.url;
+        }
+      } catch (uploadErr) {
+        console.warn("[Links API] Failed to upload base64 ogImage to Bunny on update:", uploadErr);
+      }
+    }
 
     // If banner was updated, clean up the previous banner from Bunny CDN
     const previousImage = body.previousOgImage || body.previous_og_image || getProtectedLink(body.slug || id)?.ogImage;
-    if (previousImage && sanitizedOgImage && previousImage !== sanitizedOgImage) {
+    if (previousImage && sanitizedOgImage && previousImage !== sanitizedOgImage && !previousImage.startsWith("data:")) {
       deleteFromBunny(previousImage).catch((e) => console.warn("[Bunny Delete Previous Banner Error]:", e));
     }
 

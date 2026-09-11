@@ -204,13 +204,13 @@ function isSocialCrawler(ua: string): boolean {
     lower.includes("twitterbot") ||
     lower.includes("xbot") ||
     lower.includes("linkedinbot") ||
-    lower.includes("whatsapp/") ||
+    lower.includes("whatsapp") ||
     lower.includes("telegrambot") ||
     lower.includes("discordbot") ||
     lower.includes("slackbot") ||
     lower.includes("slack-imgbatcher") ||
     lower.includes("pinterestbot") ||
-    lower.includes("pinterest/") ||
+    lower.includes("pinterest") ||
     lower.includes("skypeuripreview") ||
     lower.includes("google-structured-data-testing-tool") ||
     lower.includes("googlebot") ||
