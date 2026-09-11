@@ -398,13 +398,26 @@ export const update2FASettings = mutation({
 export const get2FARecoveryCodes = query({
   args: { userId: v.string() },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
-      .first();
+    try {
+      if (!args.userId) return [];
+      let user = await ctx.db
+        .query("users")
+        .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+        .first();
 
-    if (!user || !user.twoFactorEnabled) return [];
-    return user.twoFactorRecoveryCodes || [];
+      if (!user && args.userId.includes("@")) {
+        user = await ctx.db
+          .query("users")
+          .withIndex("by_email", (q) => q.eq("email", args.userId.toLowerCase()))
+          .first();
+      }
+
+      if (!user || !user.twoFactorEnabled) return [];
+      return user.twoFactorRecoveryCodes || [];
+    } catch (err) {
+      console.warn("[get2FARecoveryCodes] Non-fatal query error:", err);
+      return [];
+    }
   },
 });
 

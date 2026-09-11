@@ -332,10 +332,8 @@ export default function SettingsPage() {
   const [is2FAEnabled, setIs2FAEnabled] = useState(false);
   const [show2FASetupModal, setShow2FASetupModal] = useState(false);
   const [showRecoveryCodesModal, setShowRecoveryCodesModal] = useState(false);
-  const storedRecoveryCodes = (useQuery(
-    api.users.get2FARecoveryCodes,
-    userId ? { userId } : "skip"
-  ) as string[]) || [];
+  const storedRecoveryCodes: string[] =
+    (convexUser?.twoFactorRecoveryCodes as string[]) || [];
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
