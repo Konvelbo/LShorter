@@ -75,6 +75,7 @@ export default function DashboardOverviewPage() {
         ogTitle: l.og_title || l.ogTitle || l.meta_title || l.metaTitle,
         ogDescription: l.og_description || l.ogDescription,
         ogImage: l.og_image || l.ogImage,
+        twitterCard: l.twitter_card || l.twitterCard || "summary_large_image",
         hideReferrer: Boolean(l.hide_referrer || l.hideReferrer),
         tags: l.tags ? (typeof l.tags === "string" ? JSON.parse(l.tags) : l.tags) : [],
         expiresAt: l.expires_at || l.expiresAt,

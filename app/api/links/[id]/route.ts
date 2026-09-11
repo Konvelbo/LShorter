@@ -41,18 +41,20 @@ export async function PATCH(
       deleteFromBunny(previousImage).catch((e) => console.warn("[Bunny Delete Previous Banner Error]:", e));
     }
 
+    const effectiveTwitterCard = body.twitterCard || body.twitter_card || undefined;
+
     // 1. Persist in local store
-    if (body.slug) {
+    if (body.slug || id) {
       try {
         saveProtectedLink({
-          slug: body.slug,
+          slug: body.slug || id,
           password: body.password || undefined,
           isCloaked: body.isCloaked !== undefined ? Boolean(body.isCloaked) : undefined,
           metaTitle: body.metaTitle || body.ogTitle || undefined,
           ogTitle: body.ogTitle || body.og_title || body.metaTitle || undefined,
           ogDescription: body.ogDescription || body.og_description || undefined,
           ogImage: sanitizedOgImage || undefined,
-          twitterCard: body.twitterCard || body.twitter_card || undefined,
+          twitterCard: effectiveTwitterCard,
           targetUrl: body.targetUrl || body.target_url || undefined,
           routingRules: body.routingRules || body.routing_rules || undefined,
           geoTargeting: body.geoTargeting || body.geo_targeting || undefined,
@@ -67,7 +69,8 @@ export async function PATCH(
           redirectType: body.redirectType || body.redirect_type || undefined,
           passParams: body.passParams !== undefined ? Boolean(body.passParams) : body.pass_params !== undefined ? Boolean(body.pass_params) : undefined,
         });
-        invalidateBotResponseCache(body.slug || id);
+        if (body.slug) invalidateBotResponseCache(body.slug);
+        invalidateBotResponseCache(id);
       } catch (storeErr) {
         console.warn("[ProtectedLinkStore] Non-fatal save warning:", storeErr);
       }
@@ -158,6 +161,8 @@ export async function PATCH(
                 ogDescription: body.ogDescription || body.og_description,
                 og_description: body.ogDescription || body.og_description,
                 metaTitle: body.metaTitle || body.meta_title,
+                twitterCard: effectiveTwitterCard || "summary_large_image",
+                twitter_card: effectiveTwitterCard || "summary_large_image",
                 password: body.password || undefined,
                 isCloaked: Boolean(body.isCloaked || body.is_cloaked),
                 routingRules: body.routingRules || body.routing_rules || undefined,
@@ -202,7 +207,14 @@ export async function PATCH(
             });
             if (retryPatch.ok) {
               const patchData = await retryPatch.json().catch(() => ({}));
-              return NextResponse.json({ success: true, data: patchData.data || patchData }, { status: 200 });
+              return NextResponse.json({
+                success: true,
+                data: {
+                  ...(patchData.data || patchData),
+                  twitterCard: effectiveTwitterCard || "summary_large_image",
+                  twitter_card: effectiveTwitterCard || "summary_large_image",
+                },
+              }, { status: 200 });
             }
           }
         }
@@ -221,7 +233,14 @@ export async function PATCH(
         });
         if (createRes.ok) {
           const createData = await createRes.json().catch(() => ({}));
-          return NextResponse.json({ success: true, data: createData.data || createData }, { status: 200 });
+          return NextResponse.json({
+            success: true,
+            data: {
+              ...(createData.data || createData),
+              twitterCard: effectiveTwitterCard || "summary_large_image",
+              twitter_card: effectiveTwitterCard || "summary_large_image",
+            },
+          }, { status: 200 });
         }
       } catch (createErr) {
         console.warn("[Links Proxy PATCH] Fallback sync to worker failed:", createErr);
@@ -240,6 +259,8 @@ export async function PATCH(
             ogDescription: body.ogDescription || body.og_description,
             og_description: body.ogDescription || body.og_description,
             metaTitle: body.metaTitle || body.meta_title,
+            twitterCard: effectiveTwitterCard || "summary_large_image",
+            twitter_card: effectiveTwitterCard || "summary_large_image",
           },
         },
         { status: 200 }
@@ -263,6 +284,8 @@ export async function PATCH(
             ogDescription: body.ogDescription || body.og_description,
             og_description: body.ogDescription || body.og_description,
             metaTitle: body.metaTitle || body.meta_title,
+            twitterCard: effectiveTwitterCard || "summary_large_image",
+            twitter_card: effectiveTwitterCard || "summary_large_image",
             password: body.password || undefined,
             isCloaked: Boolean(body.isCloaked || body.is_cloaked),
             routingRules: body.routingRules || body.routing_rules || undefined,
@@ -289,6 +312,8 @@ export async function PATCH(
           ogDescription: body.ogDescription || body.og_description,
           og_description: body.ogDescription || body.og_description,
           metaTitle: body.metaTitle || body.meta_title,
+          twitterCard: effectiveTwitterCard || "summary_large_image",
+          twitter_card: effectiveTwitterCard || "summary_large_image",
           password: body.password || undefined,
           isCloaked: Boolean(body.isCloaked || body.is_cloaked),
           routingRules: body.routingRules || body.routing_rules || undefined,

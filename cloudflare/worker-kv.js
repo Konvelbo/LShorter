@@ -237,7 +237,7 @@ export default {
           headers: {
             ...corsHeaders,
             'Content-Type': 'text/html; charset=utf-8',
-            'Cache-Control': 'public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400',
+            'Cache-Control': 'public, max-age=10, s-maxage=30, stale-while-revalidate=60',
           },
         });
       }
@@ -700,38 +700,76 @@ export default {
 
           if (env.DB) {
             try {
-              const res = await env.DB.prepare(`
-                UPDATE links SET 
-                  target_url = ?, 
-                  slug = ?, 
-                  domain_name = ?, 
-                  short_url = ?, 
-                  is_active = ?, 
-                  routing_rules = ?, 
-                  geo_targeting = ?, 
-                  device_targeting = ?, 
-                  og_image = ?, 
-                  og_title = ?, 
-                  og_description = ?, 
-                  meta_title = ?,
-                  updated_at = datetime('now')
-                WHERE id = ? OR LOWER(slug) = LOWER(?)
-              `).bind(
-                targetUrl,
-                slug,
-                domainName,
-                shortUrl,
-                isActive,
-                routingRules,
-                geoTargeting,
-                deviceTargeting,
-                ogImage,
-                ogTitle,
-                ogDescription,
-                metaTitle,
-                id,
-                slug
-              ).run();
+              let res = null;
+              try {
+                res = await env.DB.prepare(`
+                  UPDATE links SET 
+                    target_url = ?, 
+                    slug = ?, 
+                    domain_name = ?, 
+                    short_url = ?, 
+                    is_active = ?, 
+                    routing_rules = ?, 
+                    geo_targeting = ?, 
+                    device_targeting = ?, 
+                    og_image = ?, 
+                    og_title = ?, 
+                    og_description = ?, 
+                    meta_title = ?,
+                    twitter_card = ?,
+                    updated_at = datetime('now')
+                  WHERE id = ? OR LOWER(slug) = LOWER(?)
+                `).bind(
+                  targetUrl,
+                  slug,
+                  domainName,
+                  shortUrl,
+                  isActive,
+                  routingRules,
+                  geoTargeting,
+                  deviceTargeting,
+                  ogImage,
+                  ogTitle,
+                  ogDescription,
+                  metaTitle,
+                  twitterCard,
+                  id,
+                  slug
+                ).run();
+              } catch (colErr) {
+                res = await env.DB.prepare(`
+                  UPDATE links SET 
+                    target_url = ?, 
+                    slug = ?, 
+                    domain_name = ?, 
+                    short_url = ?, 
+                    is_active = ?, 
+                    routing_rules = ?, 
+                    geo_targeting = ?, 
+                    device_targeting = ?, 
+                    og_image = ?, 
+                    og_title = ?, 
+                    og_description = ?, 
+                    meta_title = ?,
+                    updated_at = datetime('now')
+                  WHERE id = ? OR LOWER(slug) = LOWER(?)
+                `).bind(
+                  targetUrl,
+                  slug,
+                  domainName,
+                  shortUrl,
+                  isActive,
+                  routingRules,
+                  geoTargeting,
+                  deviceTargeting,
+                  ogImage,
+                  ogTitle,
+                  ogDescription,
+                  metaTitle,
+                  id,
+                  slug
+                ).run();
+              }
 
               if (!res?.meta?.changes && !existingLink) {
                 await env.DB.prepare(`

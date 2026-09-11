@@ -127,9 +127,15 @@ export function saveProtectedLink(meta: {
   return updated;
 }
 
-export function getProtectedLink(slug: string): ProtectedLinkMeta | null {
-  if (!slug) return null;
-  return memoryStore.get(slug.toLowerCase()) || null;
+export function getProtectedLink(keyOrSlug: string): ProtectedLinkMeta | null {
+  if (!keyOrSlug) return null;
+  const k = keyOrSlug.toLowerCase();
+  const direct = memoryStore.get(k);
+  if (direct) return direct;
+  for (const item of memoryStore.values()) {
+    if (item.slug?.toLowerCase() === k) return item;
+  }
+  return null;
 }
 
 export function resolveAbTargetUrl(meta?: ProtectedLinkMeta | null, defaultUrl?: string): string {

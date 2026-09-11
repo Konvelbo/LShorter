@@ -40,8 +40,10 @@ export async function GET(req: Request) {
     // 1. Merge workerList links with Local Store
     for (const l of workerList) {
       const slugKey = (l.slug || "").toLowerCase();
+      const idKey = (l.id || "").toLowerCase();
       seenSlugs.add(slugKey);
-      const local = getProtectedLink(slugKey);
+      const local = getProtectedLink(slugKey) || getProtectedLink(idKey);
+      const effectiveTwitterCard = local?.twitterCard || l.twitterCard || l.twitter_card || "summary_large_image";
 
       const maxClicksVal = l.max_clicks !== undefined ? l.max_clicks : local?.maxClicks;
       const clicksVal = Math.max(
@@ -63,8 +65,8 @@ export async function GET(req: Request) {
         ogDescription: l.ogDescription || l.og_description || local?.ogDescription,
         og_image: l.og_image || l.ogImage || local?.ogImage,
         ogImage: l.ogImage || l.og_image || local?.ogImage,
-        twitter_card: l.twitter_card || l.twitterCard || local?.twitterCard || "summary_large_image",
-        twitterCard: l.twitterCard || l.twitter_card || local?.twitterCard || "summary_large_image",
+        twitter_card: effectiveTwitterCard,
+        twitterCard: effectiveTwitterCard,
         password: l.password || local?.password,
         has_password: Boolean(l.password || l.has_password || local?.password),
         is_cloaked: l.is_cloaked !== undefined ? l.is_cloaked : local?.isCloaked ? 1 : 0,
@@ -291,6 +293,8 @@ export async function POST(req: Request) {
               ogTitle: body.ogTitle || body.og_title,
               ogDescription: body.ogDescription || body.og_description,
               metaTitle: body.metaTitle || body.meta_title,
+              twitterCard: body.twitterCard || body.twitter_card || "summary_large_image",
+              twitter_card: body.twitterCard || body.twitter_card || "summary_large_image",
               password: body.password || undefined,
               isCloaked: Boolean(body.isCloaked || body.is_cloaked),
             },
@@ -322,6 +326,8 @@ export async function POST(req: Request) {
           ogDescription: body.ogDescription || body.og_description,
           og_description: body.ogDescription || body.og_description,
           metaTitle: body.metaTitle || body.meta_title,
+          twitterCard: body.twitterCard || body.twitter_card || "summary_large_image",
+          twitter_card: body.twitterCard || body.twitter_card || "summary_large_image",
           password: body.password || undefined,
           isCloaked: Boolean(body.isCloaked || body.is_cloaked),
           routingRules: body.routingRules || body.routing_rules || undefined,

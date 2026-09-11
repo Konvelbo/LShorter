@@ -335,7 +335,7 @@ function renderSocialHtml(meta: {
     status: 200,
     headers: {
       "Content-Type": "text/html; charset=utf-8",
-      "Cache-Control": "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400",
+      "Cache-Control": "public, max-age=10, s-maxage=30, stale-while-revalidate=60",
     },
   });
 }
@@ -403,6 +403,7 @@ export async function GET(
                 ogTitle: found.og_title || found.ogTitle || found.meta_title || found.metaTitle,
                 ogDescription: found.og_description || found.ogDescription,
                 ogImage: found.og_image || found.ogImage,
+                twitterCard: found.twitter_card || found.twitterCard || "summary_large_image",
                 metaTitle: found.meta_title || found.metaTitle,
               } as any;
             }
@@ -430,9 +431,9 @@ export async function GET(
             if (edgeHtml && edgeHtml.includes("<title>")) {
               const headers = {
                 "Content-Type": "text/html; charset=utf-8",
-                "Cache-Control": "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400",
+                "Cache-Control": "public, max-age=10, s-maxage=30, stale-while-revalidate=60",
               };
-              botResponseCache.set(slug, { body: edgeHtml, headers, expiresAt: Date.now() + 30000 });
+              botResponseCache.set(slug, { body: edgeHtml, headers, expiresAt: Date.now() + 10000 });
               return new Response(edgeHtml, { status: 200, headers });
             }
           }
@@ -460,9 +461,9 @@ export async function GET(
       const bodyText = await resp.text();
       const headers = {
         "Content-Type": "text/html; charset=utf-8",
-        "Cache-Control": "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400",
+        "Cache-Control": "public, max-age=10, s-maxage=30, stale-while-revalidate=60",
       };
-      botResponseCache.set(slug, { body: bodyText, headers, expiresAt: Date.now() + 30000 });
+      botResponseCache.set(slug, { body: bodyText, headers, expiresAt: Date.now() + 10000 });
       return new Response(bodyText, { status: 200, headers });
     }
 
@@ -658,6 +659,7 @@ export async function GET(
             ogTitle: found.og_title || found.ogTitle || undefined,
             ogDescription: found.og_description || found.ogDescription || undefined,
             ogImage: found.og_image || found.ogImage || undefined,
+            twitterCard: found.twitter_card || found.twitterCard || undefined,
             targetUrl: found.target_url || found.targetUrl,
             routingRules: found.routing_rules || found.routingRules || undefined,
             geoTargeting: found.geo_targeting || found.geoTargeting || undefined,
