@@ -268,7 +268,7 @@ function renderSocialHtml(meta: {
 }) {
   const safeTitle = escapeHtml(meta.title || "Lien partagé");
   const safeDesc = escapeHtml(meta.description || "Cliquez pour accéder au lien.");
-  const cardType = meta.twitterCard === "summary" ? "summary" : "summary_large_image";
+  const cardType = "summary_large_image";
   
   let imageUrl = meta.image || "";
   if (imageUrl && imageUrl.startsWith("data:")) {
@@ -311,8 +311,8 @@ function renderSocialHtml(meta: {
   ${safeImg ? `<meta property="og:image:url" content="${safeImg}" />` : ""}
   ${safeImg ? `<meta property="og:image:secure_url" content="${safeImg}" />` : ""}
   ${safeImg ? `<meta property="og:image:type" content="image/jpeg" />` : ""}
-  ${safeImg ? `<meta property="og:image:width" content="${cardType === 'summary' ? '300' : '1200'}" />` : ""}
-  ${safeImg ? `<meta property="og:image:height" content="${cardType === 'summary' ? '300' : '630'}" />` : ""}
+  ${safeImg ? `<meta property="og:image:width" content="1200" />` : ""}
+  ${safeImg ? `<meta property="og:image:height" content="630" />` : ""}
   ${safeImg ? `<meta property="og:image:alt" content="${safeTitle}" />` : ""}
 
   <!-- Twitter / X Cards -->
@@ -404,8 +404,7 @@ export async function GET(
                 ogTitle: found.og_title || found.ogTitle || found.meta_title || found.metaTitle,
                 ogDescription: found.og_description || found.ogDescription,
                 ogImage: found.og_image || found.ogImage,
-                twitterCard: (found.card_format === "summary" || found.cardFormat === "summary" || found.twitter_card === "summary" || found.twitterCard === "summary") ? "summary" : "summary_large_image",
-                cardFormat: (found.card_format === "summary" || found.cardFormat === "summary" || found.twitter_card === "summary" || found.twitterCard === "summary") ? "summary" : "summary_large_image",
+                twitterCard: "summary_large_image",
                 metaTitle: found.meta_title || found.metaTitle,
               } as any;
             }
@@ -435,7 +434,6 @@ export async function GET(
             const ogTitleMatch = edgeHtml.match(/<meta property="og:title" content="([^"]*)"/i);
             const ogDescMatch = edgeHtml.match(/<meta property="og:description" content="([^"]*)"/i);
             const ogImgMatch = edgeHtml.match(/<meta property="og:image" content="([^"]*)"/i);
-            const twitterCardMatch = edgeHtml.match(/<meta name="twitter:card" content="([^"]*)"/i);
             const titleMatch = edgeHtml.match(/<title>([^<]*)<\/title>/i);
 
             if (ogTitleMatch || titleMatch || ogImgMatch) {
@@ -445,8 +443,7 @@ export async function GET(
                 ogTitle: ogTitleMatch ? ogTitleMatch[1] : titleMatch ? titleMatch[1] : slug,
                 ogDescription: ogDescMatch ? ogDescMatch[1] : "",
                 ogImage: ogImgMatch ? ogImgMatch[1] : "",
-                twitterCard: (twitterCardMatch && twitterCardMatch[1] === "summary") ? "summary" : "summary_large_image",
-                cardFormat: (twitterCardMatch && twitterCardMatch[1] === "summary") ? "summary" : "summary_large_image",
+                twitterCard: "summary_large_image",
                 metaTitle: ogTitleMatch ? ogTitleMatch[1] : titleMatch ? titleMatch[1] : slug,
               } as any;
             }
@@ -468,7 +465,7 @@ export async function GET(
         title: localMeta?.ogTitle || localMeta?.metaTitle || slug,
         description: localMeta?.ogDescription || "Cliquez pour accéder au lien.",
         image: fullOgImage,
-        twitterCard: (localMeta as any)?.cardFormat || (localMeta as any)?.card_format || (localMeta as any)?.twitterCard || (localMeta as any)?.twitter_card || "summary_large_image",
+        twitterCard: "summary_large_image",
         destinationUrl: localMeta?.targetUrl || "https://lshorter.io",
         canonicalUrl: req.url,
       });

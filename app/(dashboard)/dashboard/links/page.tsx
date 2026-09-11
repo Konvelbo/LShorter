@@ -158,10 +158,7 @@ export default function LinksPage() {
         ogTitle: l.og_title || l.ogTitle || l.meta_title || l.metaTitle,
         ogDescription: l.og_description || l.ogDescription,
         ogImage: l.og_image || l.ogImage,
-        cardFormat: l.card_format || l.cardFormat || l.twitter_card || l.twitterCard || "summary_large_image",
-        card_format: l.card_format || l.cardFormat || l.twitter_card || l.twitterCard || "summary_large_image",
-        twitterCard: l.card_format || l.cardFormat || l.twitter_card || l.twitterCard || "summary_large_image",
-        twitter_card: l.card_format || l.cardFormat || l.twitter_card || l.twitterCard || "summary_large_image",
+        twitterCard: "summary_large_image",
         hideReferrer: Boolean(l.hide_referrer || l.hideReferrer),
         tags: l.tags
           ? typeof l.tags === "string"

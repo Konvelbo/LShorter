@@ -43,7 +43,6 @@ export async function GET(req: Request) {
       const idKey = (l.id || "").toLowerCase();
       seenSlugs.add(slugKey);
       const local = getProtectedLink(slugKey) || getProtectedLink(idKey);
-      const effectiveCardFormat = local?.cardFormat || local?.card_format || local?.twitterCard || l.cardFormat || l.card_format || l.twitterCard || l.twitter_card || "summary_large_image";
 
       const maxClicksVal = l.max_clicks !== undefined ? l.max_clicks : local?.maxClicks;
       const clicksVal = Math.max(
@@ -65,10 +64,8 @@ export async function GET(req: Request) {
         ogDescription: l.ogDescription || l.og_description || local?.ogDescription,
         og_image: l.og_image || l.ogImage || local?.ogImage,
         ogImage: l.ogImage || l.og_image || local?.ogImage,
-        card_format: effectiveCardFormat,
-        cardFormat: effectiveCardFormat,
-        twitter_card: effectiveCardFormat,
-        twitterCard: effectiveCardFormat,
+        twitter_card: "summary_large_image",
+        twitterCard: "summary_large_image",
         password: l.password || local?.password,
         has_password: Boolean(l.password || l.has_password || local?.password),
         is_cloaked: l.is_cloaked !== undefined ? l.is_cloaked : local?.isCloaked ? 1 : 0,
@@ -191,7 +188,6 @@ export async function POST(req: Request) {
       }
     }
 
-    const effectiveCard = body.cardFormat || body.card_format || body.twitterCard || body.twitter_card || "summary_large_image";
     // 1. Forward to Cloudflare Worker D1 & KV
     const workerPayload = {
       ...body,
@@ -203,10 +199,8 @@ export async function POST(req: Request) {
       og_title: body.ogTitle || body.og_title,
       ogDescription: body.ogDescription || body.og_description,
       og_description: body.ogDescription || body.og_description,
-      cardFormat: effectiveCard,
-      card_format: effectiveCard,
-      twitterCard: effectiveCard,
-      twitter_card: effectiveCard,
+      twitterCard: "summary_large_image",
+      twitter_card: "summary_large_image",
       metaTitle: body.metaTitle || body.meta_title || body.ogTitle,
       meta_title: body.meta_title || body.metaTitle || body.ogTitle,
       redirectType: body.redirectType || body.redirect_type,
@@ -258,10 +252,7 @@ export async function POST(req: Request) {
             ogTitle: body.ogTitle || body.og_title || body.metaTitle || body.meta_title || undefined,
             ogDescription: body.ogDescription || body.og_description || undefined,
             ogImage: sanitizedOgImage || undefined,
-            cardFormat: effectiveCard,
-            card_format: effectiveCard,
-            twitterCard: effectiveCard,
-            twitter_card: effectiveCard,
+            twitterCard: "summary_large_image",
             targetUrl: body.targetUrl || body.target_url,
             routingRules: body.routingRules || body.routing_rules || undefined,
             geoTargeting: body.geoTargeting || body.geo_targeting || undefined,
@@ -296,10 +287,8 @@ export async function POST(req: Request) {
               ogTitle: body.ogTitle || body.og_title,
               ogDescription: body.ogDescription || body.og_description,
               metaTitle: body.metaTitle || body.meta_title,
-              cardFormat: effectiveCard,
-              card_format: effectiveCard,
-              twitterCard: effectiveCard,
-              twitter_card: effectiveCard,
+              twitterCard: "summary_large_image",
+              twitter_card: "summary_large_image",
               password: body.password || undefined,
               isCloaked: Boolean(body.isCloaked || body.is_cloaked),
             },
@@ -330,10 +319,7 @@ export async function POST(req: Request) {
           ogTitle: body.ogTitle || body.og_title || body.metaTitle || body.meta_title || undefined,
           ogDescription: body.ogDescription || body.og_description || undefined,
           ogImage: sanitizedOgImage || undefined,
-          cardFormat: effectiveCard,
-          card_format: effectiveCard,
-          twitterCard: effectiveCard,
-          twitter_card: effectiveCard,
+          twitterCard: "summary_large_image",
           targetUrl: body.targetUrl || body.target_url,
           routingRules: body.routingRules || body.routing_rules || undefined,
           geoTargeting: body.geoTargeting || body.geo_targeting || undefined,
@@ -366,10 +352,8 @@ export async function POST(req: Request) {
           ogDescription: body.ogDescription || body.og_description,
           og_description: body.ogDescription || body.og_description,
           metaTitle: body.metaTitle || body.meta_title,
-          cardFormat: effectiveCard,
-          card_format: effectiveCard,
-          twitterCard: effectiveCard,
-          twitter_card: effectiveCard,
+          twitterCard: "summary_large_image",
+          twitter_card: "summary_large_image",
           password: body.password || undefined,
           isCloaked: Boolean(body.isCloaked || body.is_cloaked),
           routingRules: body.routingRules || body.routing_rules || undefined,

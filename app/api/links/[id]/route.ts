@@ -41,7 +41,7 @@ export async function PATCH(
       deleteFromBunny(previousImage).catch((e) => console.warn("[Bunny Delete Previous Banner Error]:", e));
     }
 
-    const effectiveCardFormat = body.cardFormat || body.card_format || body.twitterCard || body.twitter_card || undefined;
+    const twitterCard = body.twitterCard || body.twitter_card || (sanitizedOgImage ? "summary_large_image" : undefined);
 
     // 1. Persist in local store
     if (body.slug || id) {
@@ -54,9 +54,7 @@ export async function PATCH(
           ogTitle: body.ogTitle || body.og_title || body.metaTitle || undefined,
           ogDescription: body.ogDescription || body.og_description || undefined,
           ogImage: sanitizedOgImage || undefined,
-          cardFormat: effectiveCardFormat,
-          card_format: effectiveCardFormat,
-          twitterCard: effectiveCardFormat,
+          twitterCard: "summary_large_image",
           targetUrl: body.targetUrl || body.target_url || undefined,
           routingRules: body.routingRules || body.routing_rules || undefined,
           geoTargeting: body.geoTargeting || body.geo_targeting || undefined,
@@ -89,10 +87,8 @@ export async function PATCH(
       og_title: body.ogTitle || body.og_title,
       ogDescription: body.ogDescription || body.og_description,
       og_description: body.ogDescription || body.og_description,
-      cardFormat: effectiveCardFormat,
-      card_format: effectiveCardFormat,
-      twitterCard: effectiveCardFormat,
-      twitter_card: effectiveCardFormat,
+      twitterCard: "summary_large_image",
+      twitter_card: "summary_large_image",
       metaTitle: body.metaTitle || body.meta_title || body.ogTitle,
       meta_title: body.meta_title || body.metaTitle || body.ogTitle,
       redirectType: body.redirectType || body.redirect_type,
@@ -165,10 +161,8 @@ export async function PATCH(
                 ogDescription: body.ogDescription || body.og_description,
                 og_description: body.ogDescription || body.og_description,
                 metaTitle: body.metaTitle || body.meta_title,
-                cardFormat: effectiveCardFormat || "summary_large_image",
-                card_format: effectiveCardFormat || "summary_large_image",
-                twitterCard: effectiveCardFormat || "summary_large_image",
-                twitter_card: effectiveCardFormat || "summary_large_image",
+                twitterCard: "summary_large_image",
+                twitter_card: "summary_large_image",
                 password: body.password || undefined,
                 isCloaked: Boolean(body.isCloaked || body.is_cloaked),
                 routingRules: body.routingRules || body.routing_rules || undefined,
@@ -217,10 +211,8 @@ export async function PATCH(
                 success: true,
                 data: {
                   ...(patchData.data || patchData),
-                  cardFormat: effectiveCardFormat || "summary_large_image",
-                  card_format: effectiveCardFormat || "summary_large_image",
-                  twitterCard: effectiveCardFormat || "summary_large_image",
-                  twitter_card: effectiveCardFormat || "summary_large_image",
+                  twitterCard: "summary_large_image",
+                  twitter_card: "summary_large_image",
                 },
               }, { status: 200 });
             }
@@ -245,10 +237,8 @@ export async function PATCH(
             success: true,
             data: {
               ...(createData.data || createData),
-              cardFormat: effectiveCardFormat || "summary_large_image",
-              card_format: effectiveCardFormat || "summary_large_image",
-              twitterCard: effectiveCardFormat || "summary_large_image",
-              twitter_card: effectiveCardFormat || "summary_large_image",
+              twitterCard: "summary_large_image",
+              twitter_card: "summary_large_image",
             },
           }, { status: 200 });
         }
@@ -269,10 +259,8 @@ export async function PATCH(
             ogDescription: body.ogDescription || body.og_description,
             og_description: body.ogDescription || body.og_description,
             metaTitle: body.metaTitle || body.meta_title,
-            cardFormat: effectiveCardFormat || "summary_large_image",
-            card_format: effectiveCardFormat || "summary_large_image",
-            twitterCard: effectiveCardFormat || "summary_large_image",
-            twitter_card: effectiveCardFormat || "summary_large_image",
+            twitterCard: "summary_large_image",
+            twitter_card: "summary_large_image",
           },
         },
         { status: 200 }
@@ -296,10 +284,8 @@ export async function PATCH(
             ogDescription: body.ogDescription || body.og_description,
             og_description: body.ogDescription || body.og_description,
             metaTitle: body.metaTitle || body.meta_title,
-            cardFormat: effectiveCardFormat || "summary_large_image",
-            card_format: effectiveCardFormat || "summary_large_image",
-            twitterCard: effectiveCardFormat || "summary_large_image",
-            twitter_card: effectiveCardFormat || "summary_large_image",
+            twitterCard: "summary_large_image",
+            twitter_card: "summary_large_image",
             password: body.password || undefined,
             isCloaked: Boolean(body.isCloaked || body.is_cloaked),
             routingRules: body.routingRules || body.routing_rules || undefined,
@@ -326,10 +312,8 @@ export async function PATCH(
           ogDescription: body.ogDescription || body.og_description,
           og_description: body.ogDescription || body.og_description,
           metaTitle: body.metaTitle || body.meta_title,
-          cardFormat: effectiveCardFormat || "summary_large_image",
-          card_format: effectiveCardFormat || "summary_large_image",
-          twitterCard: effectiveCardFormat || "summary_large_image",
-          twitter_card: effectiveCardFormat || "summary_large_image",
+          twitterCard: "summary_large_image",
+          twitter_card: "summary_large_image",
           password: body.password || undefined,
           isCloaked: Boolean(body.isCloaked || body.is_cloaked),
           routingRules: body.routingRules || body.routing_rules || undefined,

@@ -206,9 +206,7 @@ export function LinkDrawer({
   const [ogDescription, setOgDescription] = useState("");
   const [ogImage, setOgImage] = useState("");
   const [previewImage, setPreviewImage] = useState("");
-  const [cardFormat, setCardFormat] = useState<"summary_large_image" | "summary">("summary_large_image");
-  const twitterCard = cardFormat;
-  const setTwitterCard = setCardFormat;
+  const twitterCard = "summary_large_image";
   const [socialPlatformPreview, setSocialPlatformPreview] = useState<"x" | "facebook" | "whatsapp">("x");
   const [isUploadingImage, setIsUploadingImage] = useState(false);
 
@@ -280,7 +278,6 @@ export function LinkDrawer({
       setOgTitle(link.ogTitle || link.metaTitle || "");
       setOgDescription(link.ogDescription || "");
       setOgImage(link.ogImage || "");
-      setCardFormat((link.cardFormat || (link as any).card_format || link.twitterCard || (link as any).twitter_card || "summary_large_image") as any);
       setPreviewImage("");
 
       // Parse routing rules
@@ -425,7 +422,6 @@ export function LinkDrawer({
       setOgTitle("");
       setOgDescription("");
       setOgImage("");
-      setTwitterCard("summary_large_image");
       setSocialPlatformPreview("x");
       setPreviewImage("");
       setRoutingRules([]); // No hardcoded rules: user adds them as needed
@@ -820,10 +816,8 @@ export function LinkDrawer({
           ogDescription: ogDescription.trim() || null,
           ogImage: finalOgImage.trim() || null,
           previousOgImage: link.ogImage || null,
-          cardFormat,
-          card_format: cardFormat,
-          twitterCard,
-          twitter_card: twitterCard,
+          twitterCard: "summary_large_image",
+          twitter_card: "summary_large_image",
           routingRules: compiledRules || null,
           geoTargeting: geoTargeting || null,
           deviceTargeting: deviceTargeting || null,
@@ -880,10 +874,7 @@ export function LinkDrawer({
           metaTitle: updates.metaTitle || undefined,
           ogDescription: updates.ogDescription || undefined,
           ogImage: updates.ogImage || undefined,
-          cardFormat: updates.cardFormat || "summary_large_image",
-          card_format: updates.card_format || "summary_large_image",
-          twitterCard: updates.twitterCard || "summary_large_image",
-          twitter_card: updates.twitter_card || "summary_large_image",
+          twitterCard: "summary_large_image",
           routingRules: updates.routingRules || undefined,
           geoTargeting: updates.geoTargeting || undefined,
           deviceTargeting: updates.deviceTargeting || undefined,
@@ -941,10 +932,8 @@ export function LinkDrawer({
           ogTitle: ogTitle || undefined,
           ogDescription: ogDescription || undefined,
           ogImage: finalOgImage || undefined,
-          cardFormat,
-          card_format: cardFormat,
-          twitterCard,
-          twitter_card: twitterCard,
+          twitterCard: "summary_large_image",
+          twitter_card: "summary_large_image",
           hideReferrer,
           isPasswordProtected: Boolean(password.trim()),
           password: password.trim() || undefined,
@@ -987,10 +976,8 @@ export function LinkDrawer({
           ogTitle: ogTitle || undefined,
           ogDescription: ogDescription || undefined,
           ogImage: finalOgImage || undefined,
-          cardFormat,
-          card_format: cardFormat,
-          twitterCard,
-          twitter_card: twitterCard,
+          twitterCard: "summary_large_image",
+          twitter_card: "summary_large_image",
           tags: tags.length ? tags : undefined,
           expiresAt: expiresAt ? expiresAt : undefined,
           maxClicks: hasClickLimit && maxClicks ? Number(maxClicks) : undefined,
@@ -1031,30 +1018,8 @@ export function LinkDrawer({
               undefined,
             metaTitle:
               res.data.meta_title || res.data.metaTitle || ogTitle || undefined,
-            cardFormat:
-              res.data.card_format ||
-              res.data.cardFormat ||
-              res.data.twitter_card ||
-              res.data.twitterCard ||
-              cardFormat,
-            card_format:
-              res.data.card_format ||
-              res.data.cardFormat ||
-              res.data.twitter_card ||
-              res.data.twitterCard ||
-              cardFormat,
-            twitterCard:
-              res.data.twitter_card ||
-              res.data.twitterCard ||
-              res.data.card_format ||
-              res.data.cardFormat ||
-              twitterCard,
-            twitter_card:
-              res.data.twitter_card ||
-              res.data.twitterCard ||
-              res.data.card_format ||
-              res.data.cardFormat ||
-              twitterCard,
+            twitterCard: "summary_large_image",
+            twitter_card: "summary_large_image",
           };
         }
 
@@ -1527,86 +1492,52 @@ export function LinkDrawer({
                 </p>
               </div>
 
-              {/* Format & Live Preview Section */}
+              {/* Live Preview Section */}
               <div className="pt-2 flex flex-col gap-3">
-                {/* Controls Bar: Format pills & Platform pills */}
+                {/* Controls Bar: Platform pills */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-1">
-                  {/* Format Selector (Twitter Card style) */}
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[11px] font-bold text-neutral-300 uppercase tracking-wider mr-1">
-                      Format :
-                    </span>
-                    <div className="inline-flex rounded-[8px] bg-[#141416] p-0.5 border border-[#27272a]">
-                      <button
-                        type="button"
-                        onClick={() => setTwitterCard("summary_large_image")}
-                        className={cn(
-                          "px-2.5 py-1 text-[11px] font-semibold rounded-[6px] transition-all cursor-pointer",
-                          twitterCard === "summary_large_image"
-                            ? "bg-[#ff6600] text-white shadow-sm"
-                            : "text-neutral-400 hover:text-white"
-                        )}
-                      >
-                        Grande bannière
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setTwitterCard("summary")}
-                        className={cn(
-                          "px-2.5 py-1 text-[11px] font-semibold rounded-[6px] transition-all cursor-pointer",
-                          twitterCard === "summary"
-                            ? "bg-[#ff6600] text-white shadow-sm"
-                            : "text-neutral-400 hover:text-white"
-                        )}
-                      >
-                        Avec bandeau texte
-                      </button>
-                    </div>
-                  </div>
+                  <span className="text-[11px] font-bold text-neutral-300 uppercase tracking-wider">
+                    Aperçu des réseaux sociaux :
+                  </span>
 
                   {/* Platform Preview Selector */}
-                  <div className="flex items-center gap-1">
-                    <span className="text-[11px] text-neutral-400 mr-1 hidden sm:inline">
-                      Aperçu :
-                    </span>
-                    <div className="inline-flex rounded-[8px] bg-[#141416] p-0.5 border border-[#27272a]">
-                      <button
-                        type="button"
-                        onClick={() => setSocialPlatformPreview("x")}
-                        className={cn(
-                          "px-2 py-0.5 text-[11px] rounded-[6px] font-medium transition-all cursor-pointer",
-                          socialPlatformPreview === "x"
-                            ? "bg-white/15 text-white"
-                            : "text-neutral-400 hover:text-white"
-                        )}
-                      >
-                        𝕏 / Twitter
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setSocialPlatformPreview("facebook")}
-                        className={cn(
-                          "px-2 py-0.5 text-[11px] rounded-[6px] font-medium transition-all cursor-pointer",
-                          socialPlatformPreview === "facebook"
-                            ? "bg-blue-600/30 text-blue-300 border border-blue-500/30"
-                            : "text-neutral-400 hover:text-white"
-                        )}
-                      >
-                        Facebook
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setSocialPlatformPreview("whatsapp")}
-                        className={cn(
-                          "px-2 py-0.5 text-[11px] rounded-[6px] font-medium transition-all cursor-pointer",
-                          socialPlatformPreview === "whatsapp"
-                            ? "bg-emerald-600/30 text-emerald-300 border border-emerald-500/30"
-                            : "text-neutral-400 hover:text-white"
-                        )}
-                      >
-                        WhatsApp
-                      </button>
-                    </div>
+                  <div className="inline-flex rounded-[8px] bg-[#141416] p-0.5 border border-[#27272a] self-start sm:self-auto">
+                    <button
+                      type="button"
+                      onClick={() => setSocialPlatformPreview("x")}
+                      className={cn(
+                        "px-2.5 py-1 text-[11px] rounded-[6px] font-medium transition-all cursor-pointer",
+                        socialPlatformPreview === "x"
+                          ? "bg-white/15 text-white"
+                          : "text-neutral-400 hover:text-white"
+                      )}
+                    >
+                      𝕏 / Twitter
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSocialPlatformPreview("facebook")}
+                      className={cn(
+                        "px-2.5 py-1 text-[11px] rounded-[6px] font-medium transition-all cursor-pointer",
+                        socialPlatformPreview === "facebook"
+                          ? "bg-blue-600/30 text-blue-300 border border-blue-500/30"
+                          : "text-neutral-400 hover:text-white"
+                      )}
+                    >
+                      Facebook
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSocialPlatformPreview("whatsapp")}
+                      className={cn(
+                        "px-2.5 py-1 text-[11px] rounded-[6px] font-medium transition-all cursor-pointer",
+                        socialPlatformPreview === "whatsapp"
+                          ? "bg-emerald-600/30 text-emerald-300 border border-emerald-500/30"
+                          : "text-neutral-400 hover:text-white"
+                      )}
+                    >
+                      WhatsApp
+                    </button>
                   </div>
                 </div>
 
@@ -1623,96 +1554,63 @@ export function LinkDrawer({
                       </span>
                     </div>
                     <span className="font-mono text-[10px] text-neutral-500">
-                      {twitterCard === "summary_large_image" ? "1200 × 630" : "Format bandeau"}
+                      1200 × 630
                     </span>
                   </div>
 
-                  {/* 1. LARGE BANNER MODE (with clean text band below) */}
-                  {twitterCard === "summary_large_image" ? (
-                    <div className="flex flex-col">
-                      {/* Banner Image */}
-                      <div className="h-44 sm:h-52 bg-[#0d0d10] relative flex items-center justify-center overflow-hidden group">
-                        {previewImage || ogImage ? (
-                          <img
-                            src={previewImage || ogImage}
-                            alt="Aperçu Open Graph"
-                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
-                            onError={() => setPreviewImage("")}
-                          />
-                        ) : (
-                          <div className="flex flex-col items-center gap-2 text-neutral-500 p-4 text-center">
-                            <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
-                              <ImageIcon className="w-5 h-5 text-neutral-400" />
-                            </div>
-                            <span className="text-xs font-medium text-neutral-400">
-                              Aucune bannière téléversée
-                            </span>
-                            <span className="text-[10px] text-neutral-500">
-                              L'image Open Graph s'affichera ici en grand format (16:9)
-                            </span>
+                  {/* LARGE BANNER MODE */}
+                  <div className="flex flex-col">
+                    {/* Banner Image */}
+                    <div className="h-44 sm:h-52 bg-[#0d0d10] relative flex items-center justify-center overflow-hidden group">
+                      {previewImage || ogImage ? (
+                        <img
+                          src={previewImage || ogImage}
+                          alt="Aperçu Open Graph"
+                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                          onError={() => setPreviewImage("")}
+                        />
+                      ) : (
+                        <div className="flex flex-col items-center gap-2 text-neutral-500 p-4 text-center">
+                          <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+                            <ImageIcon className="w-5 h-5 text-neutral-400" />
                           </div>
-                        )}
-                      </div>
-
-                      {/* ── BANDEAU EN DESSOUS DE LA BANNIÈRE AVEC LES TEXTES ── */}
-                      <div className="p-3.5 bg-[#18181c] border-t border-[#27272a] flex flex-col gap-1">
-                        {/* Domain row */}
-                        <div className="flex items-center gap-1.5 text-[11px] font-mono text-neutral-400">
-                          <Globe2 className="w-3.5 h-3.5 text-[#ff6600] shrink-0" />
-                          <span className="truncate">{domainName.trim() || "lsho.cc"}</span>
+                          <span className="text-xs font-medium text-neutral-400">
+                            Aucune bannière téléversée
+                          </span>
+                          <span className="text-[10px] text-neutral-500">
+                            L'image Open Graph s'affichera ici en grand format (16:9)
+                          </span>
                         </div>
-
-                        {/* Title */}
-                        <h4 className="text-sm font-bold text-white leading-snug truncate mt-0.5">
-                          {ogTitle.trim() || (
-                            <span className="text-neutral-500 font-normal italic">
-                              Titre du lien partagé (cliquez pour éditer)
-                            </span>
-                          )}
-                        </h4>
-
-                        {/* Description */}
-                        <p className="text-xs text-neutral-400 line-clamp-2 leading-relaxed">
-                          {ogDescription.trim() || (
-                            <span className="text-neutral-500 italic">
-                              La description apparaîtra ici sous la bannière lors du partage sur vos réseaux sociaux...
-                            </span>
-                          )}
-                        </p>
-                      </div>
+                      )}
                     </div>
-                  ) : (
-                    /* 2. COMPACT SUMMARY MODE (horizontal card with side thumbnail + text band) */
-                    <div className="p-3 bg-[#18181c] flex items-center gap-3">
-                      {/* Left Thumbnail */}
-                      <div className="w-24 h-24 sm:w-28 sm:h-24 rounded-[8px] bg-[#0d0d10] border border-[#27272a] overflow-hidden shrink-0 flex items-center justify-center">
-                        {previewImage || ogImage ? (
-                          <img
-                            src={previewImage || ogImage}
-                            alt="Miniature"
-                            className="w-full h-full object-cover"
-                            onError={() => setPreviewImage("")}
-                          />
-                        ) : (
-                          <ImageIcon className="w-6 h-6 text-neutral-500" />
+
+                    {/* ── BANDEAU EN DESSOUS DE LA BANNIÈRE AVEC LES TEXTES ── */}
+                    <div className="p-3.5 bg-[#18181c] border-t border-[#27272a] flex flex-col gap-1">
+                      {/* Domain row */}
+                      <div className="flex items-center gap-1.5 text-[11px] font-mono text-neutral-400">
+                        <Globe2 className="w-3.5 h-3.5 text-[#ff6600] shrink-0" />
+                        <span className="truncate">{domainName.trim() || "lsho.cc"}</span>
+                      </div>
+
+                      {/* Title */}
+                      <h4 className="text-sm font-bold text-white leading-snug truncate mt-0.5">
+                        {ogTitle.trim() || (
+                          <span className="text-neutral-500 font-normal italic">
+                            Titre du lien partagé (cliquez pour éditer)
+                          </span>
                         )}
-                      </div>
+                      </h4>
 
-                      {/* Right Text Band */}
-                      <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-                        <div className="flex items-center gap-1.5 text-[10px] font-mono text-neutral-400 uppercase tracking-wider">
-                          <Globe2 className="w-3 h-3 text-[#ff6600]" />
-                          <span className="truncate">{domainName.trim() || "lsho.cc"}</span>
-                        </div>
-                        <h4 className="text-xs sm:text-sm font-bold text-white truncate leading-tight">
-                          {ogTitle.trim() || "Titre du lien"}
-                        </h4>
-                        <p className="text-[11px] text-neutral-400 line-clamp-2 leading-tight mt-0.5">
-                          {ogDescription.trim() || "Description compacte du contenu partagé..."}
-                        </p>
-                      </div>
+                      {/* Description */}
+                      <p className="text-xs text-neutral-400 line-clamp-2 leading-relaxed">
+                        {ogDescription.trim() || (
+                          <span className="text-neutral-500 italic">
+                            La description apparaîtra ici sous la bannière lors du partage sur vos réseaux sociaux...
+                          </span>
+                        )}
+                      </p>
                     </div>
-                  )}
+                  </div>
                 </div>
               </div>
             </div>

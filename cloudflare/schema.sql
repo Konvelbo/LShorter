@@ -32,7 +32,6 @@ CREATE TABLE IF NOT EXISTS links (
   og_title TEXT,
   og_description TEXT,
   meta_title TEXT,
-  card_format TEXT DEFAULT 'summary_large_image',
   twitter_card TEXT DEFAULT 'summary_large_image',
   password TEXT,
   is_cloaked INTEGER DEFAULT 0,
@@ -53,7 +52,6 @@ CREATE TABLE IF NOT EXISTS links (
 CREATE INDEX IF NOT EXISTS idx_links_user_id ON links(user_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_links_slug ON links(slug);
 CREATE INDEX IF NOT EXISTS idx_links_created_at ON links(created_at);
-CREATE INDEX IF NOT EXISTS idx_links_card_format ON links(card_format);
 
 -- 3. Analytics Events Table
 CREATE TABLE IF NOT EXISTS analytics_events (

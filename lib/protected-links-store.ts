@@ -14,8 +14,6 @@ export interface ProtectedLinkMeta {
   ogTitle?: string;
   ogDescription?: string;
   ogImage?: string;
-  cardFormat?: "summary_large_image" | "summary" | string;
-  card_format?: string;
   twitterCard?: "summary_large_image" | "summary";
   twitter_card?: string;
   targetUrl?: string;
@@ -79,8 +77,6 @@ export function saveProtectedLink(meta: {
   ogTitle?: string;
   ogDescription?: string;
   ogImage?: string;
-  cardFormat?: "summary_large_image" | "summary" | string;
-  card_format?: string;
   twitterCard?: "summary_large_image" | "summary";
   twitter_card?: string;
   targetUrl?: string;
@@ -100,7 +96,6 @@ export function saveProtectedLink(meta: {
   if (!meta.slug) return;
   const key = meta.slug.toLowerCase();
   const existing: Partial<ProtectedLinkMeta> = memoryStore.get(key) || {};
-  const effectiveFormat = (meta.cardFormat || meta.card_format || meta.twitterCard || meta.twitter_card || existing.cardFormat || existing.twitterCard || "summary_large_image") as "summary_large_image" | "summary";
 
   const updated: ProtectedLinkMeta = {
     ...existing,
@@ -111,10 +106,8 @@ export function saveProtectedLink(meta: {
     ogTitle: meta.ogTitle !== undefined ? meta.ogTitle : existing.ogTitle,
     ogDescription: meta.ogDescription !== undefined ? meta.ogDescription : existing.ogDescription,
     ogImage: meta.ogImage !== undefined ? meta.ogImage : existing.ogImage,
-    cardFormat: effectiveFormat,
-    card_format: effectiveFormat,
-    twitterCard: effectiveFormat,
-    twitter_card: effectiveFormat,
+    twitterCard: "summary_large_image",
+    twitter_card: "summary_large_image",
     targetUrl: meta.targetUrl !== undefined ? meta.targetUrl : existing.targetUrl,
     routingRules: meta.routingRules !== undefined ? meta.routingRules : existing.routingRules,
     geoTargeting: meta.geoTargeting !== undefined ? meta.geoTargeting : existing.geoTargeting,
