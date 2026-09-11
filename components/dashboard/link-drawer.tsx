@@ -880,7 +880,10 @@ export function LinkDrawer({
           metaTitle: updates.metaTitle || undefined,
           ogDescription: updates.ogDescription || undefined,
           ogImage: updates.ogImage || undefined,
+          cardFormat: updates.cardFormat || "summary_large_image",
+          card_format: updates.card_format || "summary_large_image",
           twitterCard: updates.twitterCard || "summary_large_image",
+          twitter_card: updates.twitter_card || "summary_large_image",
           routingRules: updates.routingRules || undefined,
           geoTargeting: updates.geoTargeting || undefined,
           deviceTargeting: updates.deviceTargeting || undefined,
@@ -935,7 +938,13 @@ export function LinkDrawer({
           deviceTargeting,
           isCloaked: Boolean(isCloaked),
           metaTitle: ogTitle || undefined,
+          ogTitle: ogTitle || undefined,
+          ogDescription: ogDescription || undefined,
+          ogImage: finalOgImage || undefined,
+          cardFormat,
+          card_format: cardFormat,
           twitterCard,
+          twitter_card: twitterCard,
           hideReferrer,
           isPasswordProtected: Boolean(password.trim()),
           password: password.trim() || undefined,
@@ -1022,6 +1031,30 @@ export function LinkDrawer({
               undefined,
             metaTitle:
               res.data.meta_title || res.data.metaTitle || ogTitle || undefined,
+            cardFormat:
+              res.data.card_format ||
+              res.data.cardFormat ||
+              res.data.twitter_card ||
+              res.data.twitterCard ||
+              cardFormat,
+            card_format:
+              res.data.card_format ||
+              res.data.cardFormat ||
+              res.data.twitter_card ||
+              res.data.twitterCard ||
+              cardFormat,
+            twitterCard:
+              res.data.twitter_card ||
+              res.data.twitterCard ||
+              res.data.card_format ||
+              res.data.cardFormat ||
+              twitterCard,
+            twitter_card:
+              res.data.twitter_card ||
+              res.data.twitterCard ||
+              res.data.card_format ||
+              res.data.cardFormat ||
+              twitterCard,
           };
         }
 

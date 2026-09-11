@@ -18,6 +18,11 @@ async function resolveLinkData(slug: string, req: Request) {
   try {
     const redirectRes = await fetch(`${WORKER_URL}/r/${slug}`, {
       method: "GET",
+      headers: {
+        "X-Internal-Probe": "1",
+        "Purpose": "prefetch",
+        "X-Frontend-Secret": FRONTEND_SECRET,
+      },
       redirect: "manual",
       cache: "no-store",
     });

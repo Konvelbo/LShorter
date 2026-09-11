@@ -80,14 +80,6 @@ export function LinkShareModal({ link, isOpen, onClose }: LinkShareModalProps) {
   const [qrSize, setQrSize] = useState(200);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Pre-warm Edge / Node cache for crawlers (LinkedInBot, Twitterbot)
-  useEffect(() => {
-    if (!isOpen || !link?.slug) return;
-    fetch(`/r/${link.slug}`, {
-      headers: { "x-crawler-prewarm": "1" },
-    }).catch(() => {});
-  }, [isOpen, link?.slug]);
-
   useEffect(() => {
     if (!isOpen || !link || !canvasRef.current) return;
 
@@ -175,8 +167,6 @@ export function LinkShareModal({ link, isOpen, onClose }: LinkShareModalProps) {
   };
 
   const handleLinkedInShare = () => {
-    // Fire prewarm request immediately so LinkedIn crawler finds warm cache
-    fetch(`/r/${link.slug}`, { headers: { "x-crawler-prewarm": "1" } }).catch(() => {});
     window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`, "_blank", "noopener,noreferrer");
   };
 

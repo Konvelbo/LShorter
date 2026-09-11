@@ -367,8 +367,8 @@ export default {
         }
       }
 
-      const isInternalProbe = request.headers.get('x-internal-probe') === '1';
-      const isPrefetch = (request.headers.get('purpose') || request.headers.get('sec-purpose') || request.headers.get('x-purpose') || '').includes('prefetch') || (request.headers.get('purpose') || '').includes('preview');
+      const isInternalProbe = request.headers.get('x-internal-probe') === '1' || request.headers.get('x-crawler-prewarm') === '1' || request.headers.get('x-frontend-secret') === 'lsh_secret_live_prod_2026';
+      const isPrefetch = (request.headers.get('purpose') || request.headers.get('sec-purpose') || request.headers.get('x-purpose') || request.headers.get('x-moz') || '').includes('prefetch') || (request.headers.get('purpose') || '').includes('preview');
 
       if (env.DB && !isInternalProbe && !isPrefetch && !isBot) {
         ctx.waitUntil(

@@ -344,11 +344,12 @@ const recentClicks = new Map<string, number>();
 
 function shouldTrackClick(ip: string, slug: string, isPrefetch: boolean): boolean {
   if (isPrefetch) return false;
-  const key = `${ip}:${slug.toLowerCase()}`;
+  const cleanIp = (ip || "127.0.0.1").split(",")[0].trim();
+  const key = `${cleanIp}:${slug.toLowerCase()}`;
   const now = Date.now();
   const lastTime = recentClicks.get(key);
-  if (lastTime && now - lastTime < 2500) {
-    return false; // Debounce rapid reload or duplicate request within 2.5s
+  if (lastTime && now - lastTime < 3500) {
+    return false; // Debounce rapid reload, browser prefetch or duplicate request within 3.5s
   }
   recentClicks.set(key, now);
   if (recentClicks.size > 5000) {
@@ -423,6 +424,8 @@ export async function GET(
               "User-Agent": "Twitterbot/1.0",
               "CF-IPCountry": "FR",
               "X-Internal-Probe": "1",
+              "X-Frontend-Secret": FRONTEND_SECRET,
+              "Purpose": "prefetch",
             },
             cache: "no-store",
           }).catch(() => null);
@@ -486,7 +489,8 @@ export async function GET(
       req.headers.get("x-moz") ||
       ""
     ).toLowerCase();
-    const isPrefetch = purpose.includes("prefetch") || purpose.includes("preview");
+    const isInternalProbe = req.headers.get("x-internal-probe") === "1" || req.headers.get("x-crawler-prewarm") === "1" || req.headers.get("x-frontend-secret") === FRONTEND_SECRET;
+    const isPrefetch = purpose.includes("prefetch") || purpose.includes("preview") || isInternalProbe;
 
     const visitorDetails = parseVisitorDetails(req);
     const visitorCountry = (
@@ -503,7 +507,7 @@ export async function GET(
       req.headers.get("x-real-ip") ||
       "127.0.0.1";
 
-    const canRecordClick = shouldTrackClick(clientIp, slug, isPrefetch);
+    const canRecordClick = !isCrawler && !isPrefetch && !isInternalProbe && shouldTrackClick(clientIp, slug, isPrefetch);
 
     // Check Click Quotas / Limits (READ-ONLY check: does not increment before password is provided)
     const quotaCheck = checkLinkQuota(slug);
@@ -618,6 +622,9 @@ export async function GET(
               "User-Agent": userAgent,
               "CF-IPCountry": visitorCountry,
               "X-Country": visitorCountry,
+              "X-Internal-Probe": "1",
+              "X-Frontend-Secret": FRONTEND_SECRET,
+              "Purpose": "prefetch",
             },
             redirect: "manual",
             cache: "no-store",
