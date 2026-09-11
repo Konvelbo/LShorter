@@ -14,6 +14,7 @@ export interface ProtectedLinkMeta {
   ogTitle?: string;
   ogDescription?: string;
   ogImage?: string;
+  twitterCard?: "summary_large_image" | "summary";
   targetUrl?: string;
   routingRules?: any[];
   geoTargeting?: Record<string, string>;
@@ -75,6 +76,7 @@ export function saveProtectedLink(meta: {
   ogTitle?: string;
   ogDescription?: string;
   ogImage?: string;
+  twitterCard?: "summary_large_image" | "summary";
   targetUrl?: string;
   routingRules?: any[];
   geoTargeting?: Record<string, string>;
@@ -102,6 +104,7 @@ export function saveProtectedLink(meta: {
     ogTitle: meta.ogTitle !== undefined ? meta.ogTitle : existing.ogTitle,
     ogDescription: meta.ogDescription !== undefined ? meta.ogDescription : existing.ogDescription,
     ogImage: meta.ogImage !== undefined ? meta.ogImage : existing.ogImage,
+    twitterCard: meta.twitterCard !== undefined ? meta.twitterCard : existing.twitterCard,
     targetUrl: meta.targetUrl !== undefined ? meta.targetUrl : existing.targetUrl,
     routingRules: meta.routingRules !== undefined ? meta.routingRules : existing.routingRules,
     geoTargeting: meta.geoTargeting !== undefined ? meta.geoTargeting : existing.geoTargeting,

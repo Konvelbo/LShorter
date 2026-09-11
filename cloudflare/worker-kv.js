@@ -171,6 +171,7 @@ export default {
       const ogImage = link.og_image || link.ogImage || '';
       const ogTitle = link.og_title || link.ogTitle || link.meta_title || link.metaTitle || link.title || slug;
       const ogDescription = link.og_description || link.ogDescription || '';
+      const twitterCard = link.twitter_card || link.twitterCard || 'summary_large_image';
 
       // Serve OpenGraph / Twitter Cards ONLY for social crawler bots without redirecting
       if (isBot && (ogImage || ogTitle || ogDescription)) {
@@ -190,6 +191,7 @@ export default {
         const safeDesc = escapeHtml(ogDescription || 'Cliquez pour ouvrir le lien.');
         const safeImg = escapeHtml(publicImageUrl.replace(/&amp;/g, '&'));
         const safeCanonical = escapeHtml(canonical);
+        const safeCard = escapeHtml(twitterCard);
 
         const html = `<!DOCTYPE html>
 <html lang="fr" prefix="og: http://ogp.me/ns#">
@@ -214,8 +216,8 @@ export default {
   ${safeImg ? `<meta property="og:image:height" content="630" />` : ''}
   ${safeImg ? `<meta property="og:image:alt" content="${safeTitle}" />` : ''}
 
-  <!-- Twitter / X Cards (Large Banner Format) -->
-  <meta name="twitter:card" content="summary_large_image" />
+  <!-- Twitter / X Cards -->
+  <meta name="twitter:card" content="${safeCard}" />
   <meta name="twitter:site" content="@LShorter" />
   <meta name="twitter:creator" content="@LShorter" />
   <meta name="twitter:domain" content="${domain}" />

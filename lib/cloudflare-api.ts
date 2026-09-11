@@ -262,6 +262,8 @@ export async function cfCreateLink(data: {
   og_description?: string;
   ogImage?: string;
   og_image?: string;
+  twitterCard?: "summary_large_image" | "summary" | string;
+  twitter_card?: string;
   tags?: string[];
   expiresAt?: string;
   expires_at?: string;
@@ -299,6 +301,8 @@ export async function cfCreateLink(data: {
     ogTitle: data.ogTitle || data.og_title,
     ogDescription: data.ogDescription || data.og_description,
     ogImage: data.ogImage || data.og_image,
+    twitterCard: data.twitterCard || data.twitter_card || "summary_large_image",
+    twitter_card: data.twitterCard || data.twitter_card || "summary_large_image",
     expiresAt: data.expiresAt || data.expires_at,
     maxClicks: data.maxClicks !== undefined ? data.maxClicks : data.max_clicks,
     fallbackUrl: data.fallbackUrl || data.fallback_url,
@@ -347,6 +351,8 @@ export async function cfUpdateLink(id: string, updates: any) {
     meta_title: updates.meta_title || updates.metaTitle,
     og_description: updates.og_description || updates.ogDescription,
     og_image: updates.og_image || updates.ogImage,
+    twitter_card: updates.twitter_card || updates.twitterCard,
+    twitterCard: updates.twitterCard || updates.twitter_card,
     expires_at: updates.expires_at || updates.expiresAt,
     max_clicks: updates.max_clicks !== undefined ? updates.max_clicks : updates.maxClicks,
     fallback_url: updates.fallback_url || updates.fallbackUrl,

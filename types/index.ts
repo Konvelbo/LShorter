@@ -65,6 +65,7 @@ export interface ShortLink {
   ogTitle?: string;
   ogDescription?: string;
   ogImage?: string;
+  twitterCard?: "summary_large_image" | "summary";
   hideReferrer?: boolean;
   tags?: string[];
   expiresAt?: string;

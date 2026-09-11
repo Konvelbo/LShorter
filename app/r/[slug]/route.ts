@@ -254,11 +254,13 @@ function renderSocialHtml(meta: {
   title: string;
   description: string;
   image: string;
+  twitterCard?: "summary_large_image" | "summary";
   destinationUrl: string;
   canonicalUrl: string;
 }) {
   const safeTitle = escapeHtml(meta.title || "Lien partagé");
   const safeDesc = escapeHtml(meta.description || "Cliquez pour accéder au lien.");
+  const cardType = meta.twitterCard === "summary" ? "summary" : "summary_large_image";
   
   let imageUrl = meta.image || "";
   if (imageUrl && imageUrl.startsWith("data:")) {
@@ -305,8 +307,8 @@ function renderSocialHtml(meta: {
   ${safeImg ? `<meta property="og:image:height" content="630" />` : ""}
   ${safeImg ? `<meta property="og:image:alt" content="${safeTitle}" />` : ""}
 
-  <!-- Twitter / X Cards (Large Banner Format) -->
-  <meta name="twitter:card" content="summary_large_image" />
+  <!-- Twitter / X Cards -->
+  <meta name="twitter:card" content="${cardType}" />
   <meta name="twitter:site" content="@LShorter" />
   <meta name="twitter:creator" content="@LShorter" />
   <meta name="twitter:domain" content="${domainName}" />
@@ -443,6 +445,7 @@ export async function GET(
         title: localMeta?.ogTitle || localMeta?.metaTitle || slug,
         description: localMeta?.ogDescription || "Cliquez pour accéder au lien.",
         image: fullOgImage,
+        twitterCard: (localMeta as any)?.twitterCard || (localMeta as any)?.twitter_card || "summary_large_image",
         destinationUrl: localMeta?.targetUrl || "https://lshorter.io",
         canonicalUrl: req.url,
       });
