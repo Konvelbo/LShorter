@@ -23,6 +23,7 @@ import {
   Tag,
   MoreVertical,
   BarChart2,
+  ImageIcon,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -848,6 +849,14 @@ export default function LinksPage() {
                             <EyeOff className="w-3 h-3 text-purple-400" />
                           </span>
                         )}
+                        {link.ogImage && (
+                          <span
+                            title="Bannière Open Graph active"
+                            className="p-1 rounded-[10px] bg-white/5"
+                          >
+                            <ImageIcon className="w-3 h-3 text-pink-400" />
+                          </span>
+                        )}
                       </div>
 
                       {link.tags && link.tags.length > 0 && (
@@ -1057,10 +1066,16 @@ export default function LinksPage() {
                                 <EyeOff className="w-3.5 h-3.5 text-purple-400" />
                               </span>
                             )}
+                            {link.ogImage && (
+                              <span title="Bannière Open Graph active">
+                                <ImageIcon className="w-3.5 h-3.5 text-pink-400" />
+                              </span>
+                            )}
                             {!link.geoTargeting &&
                               !link.deviceTargeting &&
                               !link.isPasswordProtected &&
-                              !link.isCloaked && (
+                              !link.isCloaked &&
+                              !link.ogImage && (
                                 <span className="text-neutral-600">—</span>
                               )}
                           </div>
