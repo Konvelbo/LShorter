@@ -288,13 +288,25 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
       return;
     }
 
+    const finalUpdates = { ...updates };
+    if (updates.type) {
+      const currentRule = rules.find((r) => r.id === ruleId);
+      const currentCond = currentRule?.conditions.find((c) => c.id === condId);
+      if (currentCond && currentCond.type !== updates.type && !updates.value) {
+        if (updates.type === "pays") finalUpdates.value = "FR";
+        else if (updates.type === "plateforme") finalUpdates.value = "ios";
+        else if (updates.type === "appareil") finalUpdates.value = "mobile";
+        else if (updates.type === "region") finalUpdates.value = "europe";
+      }
+    }
+
     onChange(
       rules.map((r) => {
         if (r.id === ruleId) {
           return {
             ...r,
             conditions: r.conditions.map((c) =>
-              c.id === condId ? { ...c, ...updates } : c
+              c.id === condId ? { ...c, ...finalUpdates } : c
             ),
           };
         }
@@ -471,6 +483,8 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                             <option value="windows" className="bg-[#141416] text-white">Windows</option>
                             <option value="macos" className="bg-[#141416] text-white">macOS</option>
                             <option value="linux" className="bg-[#141416] text-white">Linux</option>
+                            <option value="mobile" className="bg-[#141416] text-white">Mobile</option>
+                            <option value="desktop" className="bg-[#141416] text-white">Desktop</option>
                           </select>
                         )}
 
@@ -487,6 +501,10 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                             <option value="mobile" className="bg-[#141416] text-white">Mobile (Smartphones)</option>
                             <option value="tablet" className="bg-[#141416] text-white">Tablette</option>
                             <option value="desktop" className="bg-[#141416] text-white">Ordinateur (Desktop)</option>
+                            <option value="ios" className="bg-[#141416] text-white">iOS (iPhone &amp; iPad)</option>
+                            <option value="android" className="bg-[#141416] text-white">Android</option>
+                            <option value="windows" className="bg-[#141416] text-white">Windows</option>
+                            <option value="macos" className="bg-[#141416] text-white">macOS</option>
                           </select>
                         )}
 

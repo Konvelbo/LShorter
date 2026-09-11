@@ -237,6 +237,26 @@ export default {
         });
       }
 
+      const REGION_COUNTRIES = {
+        europe: ["FR", "DE", "GB", "ES", "IT", "BE", "CH", "PT", "NL", "SE", "NO", "DK", "FI", "IE", "AT", "PL", "GR", "RO", "CZ", "HU", "LU"],
+        west_africa: ["SN", "CI", "BF", "ML", "GN", "TG", "BJ", "NE", "NG", "GH", "CV", "GM", "GW", "LR", "SL"],
+        central_africa: ["CM", "GA", "CG", "CD", "TD", "CF", "GQ", "ST"],
+        north_america: ["US", "CA", "MX"],
+        south_america: ["BR", "AR", "CO", "CL", "PE", "VE", "EC", "BO", "PY", "UY"],
+        asia: ["CN", "JP", "KR", "IN", "SG", "TH", "VN", "ID", "MY", "PH", "PK", "BD", "AE", "SA", "QA", "KW"],
+      };
+
+      let routingRules = [];
+      if (link.routing_rules) {
+        try {
+          routingRules = typeof link.routing_rules === "string" ? JSON.parse(link.routing_rules) : link.routing_rules;
+        } catch {}
+      } else if (link.routingRules) {
+        try {
+          routingRules = typeof link.routingRules === "string" ? JSON.parse(link.routingRules) : link.routingRules;
+        } catch {}
+      }
+
       let deviceTargeting = {};
       if (link.device_targeting) {
         try {
@@ -257,12 +277,78 @@ export default {
 
       const isAndroid = userAgent.includes('android');
       const isIos = userAgent.includes('iphone') || userAgent.includes('ipad') || userAgent.includes('ipod');
+      const isTablet = /ipad|tablet|playbook|silk/i.test(userAgent);
       const isMobile = isAndroid || isIos || userAgent.includes('mobile');
-      const isDesktop = userAgent.includes('windows') || userAgent.includes('macintosh') || userAgent.includes('linux');
+      const isDesktop = !isMobile && (userAgent.includes('windows') || userAgent.includes('macintosh') || userAgent.includes('linux'));
+      const deviceType = isTablet ? 'tablet' : (isMobile ? 'mobile' : 'desktop');
+
+      let osType = 'other';
+      if (isIos) osType = 'ios';
+      else if (isAndroid) osType = 'android';
+      else if (userAgent.includes('windows')) osType = 'windows';
+      else if (userAgent.includes('macintosh') || userAgent.includes('mac os')) osType = 'macos';
+      else if (userAgent.includes('linux')) osType = 'linux';
 
       let targetUrl = link.target_url || link.targetUrl || 'https://lshorter.com';
 
-      if (isAndroid && deviceTargeting.android) {
+      // ─── 1. Evaluate Multi-Condition Structured Routing Rules (AND Logic) ───
+      let ruleMatchedUrl = null;
+      if (Array.isArray(routingRules) && routingRules.length > 0) {
+        for (const rule of routingRules) {
+          if (!rule) continue;
+          const dest = rule.destinationUrl || rule.destination_url || rule.url;
+          if (!dest) continue;
+          const conditions = Array.isArray(rule.conditions) ? rule.conditions : [];
+          if (conditions.length === 0) continue;
+
+          let allConditionsMet = true;
+          for (const cond of conditions) {
+            if (!cond || !cond.type || !cond.value) continue;
+            const val = String(cond.value).trim().toLowerCase();
+            const op = cond.operator || 'est';
+            let isMet = false;
+
+            if (cond.type === 'pays') {
+              const match = country.toLowerCase() === val;
+              isMet = op === 'est' ? match : !match;
+            } else if (cond.type === 'region') {
+              const list = REGION_COUNTRIES[val] || [];
+              const match = list.includes(country);
+              isMet = op === 'est' ? match : !match;
+            } else if (cond.type === 'appareil') {
+              let match = deviceType === val || (val === 'mobile' && (isMobile || isTablet));
+              // Tolerant: if value is an OS name (e.g. "ios", "android")
+              if (!match && (val === 'ios' || val === 'android' || val === 'windows' || val === 'macos' || val === 'linux')) {
+                match = osType === val || (val === 'macos' && osType === 'mac');
+              }
+              isMet = op === 'est' ? match : !match;
+            } else if (cond.type === 'plateforme') {
+              let match = osType === val || (val === 'mac' && osType === 'macos') || (val === 'macos' && osType === 'mac');
+              // Tolerant: if value is a device format (e.g. "mobile", "desktop")
+              if (!match && (val === 'mobile' || val === 'desktop' || val === 'tablet')) {
+                match = deviceType === val || (val === 'mobile' && (isMobile || isTablet));
+              }
+              isMet = op === 'est' ? match : !match;
+            } else {
+              isMet = true;
+            }
+
+            if (!isMet) {
+              allConditionsMet = false;
+              break;
+            }
+          }
+
+          if (allConditionsMet) {
+            ruleMatchedUrl = dest.startsWith('http://') || dest.startsWith('https://') ? dest : `https://${dest}`;
+            break;
+          }
+        }
+      }
+
+      if (ruleMatchedUrl) {
+        targetUrl = ruleMatchedUrl;
+      } else if (isAndroid && deviceTargeting.android) {
         targetUrl = deviceTargeting.android;
       } else if (isIos && (deviceTargeting.ios || deviceTargeting.iphone || deviceTargeting.ipad)) {
         targetUrl = deviceTargeting.ios || deviceTargeting.iphone || deviceTargeting.ipad;

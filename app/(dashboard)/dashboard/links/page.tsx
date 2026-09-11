@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import {
   Link2,
   Search,
@@ -63,8 +64,19 @@ export default function LinksPage() {
   );
   const [selectedQRLink, setSelectedQRLink] = useState<ShortLink | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  // Portal Floating Action Menu State
+  const [mounted, setMounted] = useState(false);
+  const [activeMenuLink, setActiveMenuLink] = useState<ShortLink | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{
+    top: number;
+    right: number;
+  } | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Checkbox Selection & Bulk Actions
   const [selectedLinkIds, setSelectedLinkIds] = useState<Set<string>>(
@@ -231,20 +243,61 @@ export default function LinksPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Click outside listener for action dropdown menus
+  // Click outside and scroll listener for portal action dropdown menu
   useEffect(() => {
-    const handleMenuClickOutside = (event: MouseEvent) => {
+    if (!activeMenuLink) return;
+    const handleOutsideClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
       if (
-        openMenuId &&
-        !(event.target as HTMLElement).closest(".dropdown-anchor")
+        target.closest(".portal-action-menu") ||
+        target.closest(".dropdown-anchor-btn")
       ) {
-        setOpenMenuId(null);
+        return;
       }
+      setActiveMenuLink(null);
+      setMenuPosition(null);
     };
-    document.addEventListener("mousedown", handleMenuClickOutside);
-    return () =>
-      document.removeEventListener("mousedown", handleMenuClickOutside);
-  }, [openMenuId]);
+    const handleScrollOrResize = () => {
+      setActiveMenuLink(null);
+      setMenuPosition(null);
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    window.addEventListener("scroll", handleScrollOrResize, true);
+    window.addEventListener("resize", handleScrollOrResize);
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+      window.removeEventListener("scroll", handleScrollOrResize, true);
+      window.removeEventListener("resize", handleScrollOrResize);
+    };
+  }, [activeMenuLink]);
+
+  const handleToggleMenu = (
+    e: React.MouseEvent<HTMLButtonElement>,
+    link: ShortLink,
+  ) => {
+    e.stopPropagation();
+    if (activeMenuLink?.id === link.id) {
+      setActiveMenuLink(null);
+      setMenuPosition(null);
+      return;
+    }
+    const rect = e.currentTarget.getBoundingClientRect();
+    const menuWidth = 208; // w-52 = 208px
+    const menuHeight = 265; // ~265px
+
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const isDropUp = spaceBelow < menuHeight && rect.top > menuHeight;
+
+    const top = isDropUp ? rect.top - menuHeight - 6 : rect.bottom + 6;
+    let right = window.innerWidth - rect.right;
+    if (right < 8) right = 8;
+    if (window.innerWidth - right < menuWidth) {
+      right = Math.max(8, window.innerWidth - menuWidth - 8);
+    }
+
+    setActiveMenuLink(link);
+    setMenuPosition({ top, right });
+  };
 
   const handleCopy = (link: ShortLink) => {
     navigator.clipboard.writeText(link.shortUrl);
@@ -555,7 +608,7 @@ export default function LinksPage() {
             </button>
 
             {isTagDropdownOpen && (
-              <div className="absolute right-0 top-full mt-1.5 w-56 rounded-[10px] bg-[#18181c] border border-[#2a2a32] shadow-2xl shadow-black/90 py-1.5 z-40 animate-in fade-in zoom-in-95 duration-150 max-h-72 overflow-y-auto">
+              <div className="absolute right-0 top-full mt-1.5 w-56 rounded-[10px] bg-[#141416] border border-[#27272a] shadow-2xl py-1.5 z-40 animate-in fade-in zoom-in-95 duration-150 max-h-72 overflow-y-auto">
                 <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-neutral-500">
                   Filtrer par catégorie / tag
                 </div>
@@ -583,7 +636,7 @@ export default function LinksPage() {
                 </button>
 
                 {allTags.length > 0 && (
-                  <div className="h-px bg-[#26262e] my-1" />
+                  <div className="h-px bg-[#222225] my-1" />
                 )}
 
                 {/* Individual Tag Options */}
@@ -686,11 +739,7 @@ export default function LinksPage() {
                   link.expiresAt && new Date(link.expiresAt) < new Date(),
                 );
                 const isSelected = selectedLinkIds.has(link.id);
-                const isMenuOpen = openMenuId === `mobile-${link.id}`;
-                const isDropUp =
-                  filteredLinks.length <= 3
-                    ? index >= 1
-                    : index >= filteredLinks.length - 3;
+                const isMenuOpen = activeMenuLink?.id === link.id;
 
                 return (
                   <div
@@ -869,122 +918,19 @@ export default function LinksPage() {
                         </button>
 
                         {/* 3-dots Menu */}
-                        <div className="relative inline-block dropdown-anchor">
+                        <div className="relative inline-block">
                           <button
                             type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setOpenMenuId(
-                                isMenuOpen ? null : `mobile-${link.id}`,
-                              );
-                            }}
-                            className="w-8 h-8 rounded-[10px] bg-white/[0.04] hover:bg-white/[0.1] text-neutral-300 hover:text-white border border-white/10 flex items-center justify-center transition-all cursor-pointer inline-flex"
+                            onClick={(e) => handleToggleMenu(e, link)}
+                            className={cn(
+                              "dropdown-anchor-btn w-8 h-8 rounded-[10px] bg-[#141416] hover:bg-white/10 text-neutral-400 hover:text-white border border-[#27272a] flex items-center justify-center transition-all cursor-pointer inline-flex shadow-sm",
+                              activeMenuLink?.id === link.id &&
+                                "border-[#ff6600] text-[#ff6600] bg-[#ff6600]/10",
+                            )}
                             title="Options"
                           >
                             <MoreVertical className="w-4 h-4" />
                           </button>
-
-                          {isMenuOpen && (
-                            <div
-                              className={cn(
-                                "absolute right-0 w-52 rounded-[10px] bg-[#1c1c24] border border-white/15 shadow-2xl py-1.5 z-[100] animate-in fade-in zoom-in-95 duration-150 text-xs text-neutral-200 text-left",
-                                isDropUp
-                                  ? "bottom-full mb-1.5 origin-bottom-right"
-                                  : "top-full mt-1.5 origin-top-right",
-                              )}
-                            >
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setOpenMenuId(null);
-                                  handleCopy(link);
-                                }}
-                                className="w-full px-3 py-2 text-left hover:bg-white/5 flex items-center gap-2.5 transition-colors cursor-pointer"
-                              >
-                                <Copy className="w-3.5 h-3.5 text-neutral-300" />
-                                <span>Copier le lien</span>
-                              </button>
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setOpenMenuId(null);
-                                  setSelectedQRLink(link);
-                                }}
-                                className="w-full px-3 py-2 text-left hover:bg-white/5 flex items-center gap-2.5 transition-colors cursor-pointer"
-                              >
-                                <QrCode className="w-3.5 h-3.5 text-[#ff6600]" />
-                                <span>Afficher QR Code</span>
-                              </button>
-                              <a
-                                href={link.shortUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setOpenMenuId(null);
-                                  cfInvalidateCache("links");
-                                  // setTimeout(() => loadLinks(true), 1500);
-                                }}
-                                className="w-full px-3 py-2 text-left hover:bg-white/5 flex items-center gap-2.5 transition-colors cursor-pointer"
-                              >
-                                <ExternalLink className="w-3.5 h-3.5 text-neutral-300" />
-                                <span>Tester la redirection</span>
-                              </a>
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setOpenMenuId(null);
-                                  setSelectedEditLink(link);
-                                }}
-                                className="w-full px-3 py-2 text-left hover:bg-white/5 flex items-center gap-2.5 transition-colors cursor-pointer"
-                              >
-                                <Edit3 className="w-3.5 h-3.5 text-[#ff6600]" />
-                                <span>Modifier le lien</span>
-                              </button>
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setOpenMenuId(null);
-                                  setSelectedShareLink(link);
-                                }}
-                                className="w-full px-3 py-2 text-left hover:bg-white/5 flex items-center gap-2.5 transition-colors cursor-pointer"
-                              >
-                                <Share2 className="w-3.5 h-3.5 text-sky-400" />
-                                <span>Partager</span>
-                              </button>
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setOpenMenuId(null);
-                                  router.push(
-                                    `/dashboard/analytics?linkId=${encodeURIComponent(link.id)}&slug=${encodeURIComponent(link.slug)}`,
-                                  );
-                                }}
-                                className="w-full px-3 py-2 text-left hover:bg-white/5 flex items-center gap-2.5 transition-colors cursor-pointer"
-                              >
-                                <BarChart2 className="w-3.5 h-3.5 text-emerald-400" />
-                                <span>Voir les statistiques</span>
-                              </button>
-                              <div className="h-px bg-white/10 my-1" />
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setOpenMenuId(null);
-                                  promptDeleteSingle(link);
-                                }}
-                                className="w-full px-3 py-2 text-left hover:bg-red-500/10 text-red-400 flex items-center gap-2.5 transition-colors cursor-pointer"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                                <span>Supprimer</span>
-                              </button>
-                            </div>
-                          )}
                         </div>
                       </div>
                     </div>
@@ -994,7 +940,7 @@ export default function LinksPage() {
             </div>
 
             {/* 2. Desktop Table (>= 768px) - Tight, compact column spacing */}
-            <div className="hidden md:block overflow-x-auto overflow-y-scroll min-h-[350px]">
+            <div className="hidden md:block overflow-x-auto min-h-[350px]">
               <table className="w-full text-left text-xs text-neutral-400 border-collapse">
                 <thead>
                   <tr className="border-b border-[#222225] text-[11px] uppercase tracking-wider text-neutral-500 font-semibold">
@@ -1029,11 +975,7 @@ export default function LinksPage() {
                       link.expiresAt && new Date(link.expiresAt) < new Date(),
                     );
                     const isSelected = selectedLinkIds.has(link.id);
-                    const isMenuOpen = openMenuId === link.id;
-                    const isDropUp =
-                      filteredLinks.length <= 3
-                        ? index >= 1
-                        : index >= filteredLinks.length - 3;
+                    const isMenuOpen = activeMenuLink?.id === link.id;
 
                     return (
                       <tr
@@ -1150,113 +1092,19 @@ export default function LinksPage() {
 
                         {/* Actions */}
                         <td className="py-2.5 pr-4 pl-1 text-right whitespace-nowrap">
-                          <div className="relative inline-block dropdown-anchor">
+                          <div className="relative inline-block">
                             <button
                               type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setOpenMenuId(isMenuOpen ? null : link.id);
-                              }}
-                              className="w-8 h-8 rounded-[10px] bg-white/[0.04] hover:bg-white/[0.1] text-neutral-300 hover:text-white border border-white/10 flex items-center justify-center transition-all cursor-pointer inline-flex"
+                              onClick={(e) => handleToggleMenu(e, link)}
+                              className={cn(
+                                "dropdown-anchor-btn w-8 h-8 rounded-[10px] bg-[#141416] hover:bg-white/10 text-neutral-400 hover:text-white border border-[#27272a] flex items-center justify-center transition-all cursor-pointer inline-flex shadow-sm",
+                                activeMenuLink?.id === link.id &&
+                                  "border-[#ff6600] text-[#ff6600] bg-[#ff6600]/10",
+                              )}
                               title="Options"
                             >
                               <MoreVertical className="w-4 h-4" />
                             </button>
-
-                            {isMenuOpen && (
-                              <div
-                                className={cn(
-                                  "absolute right-0 w-52 rounded-[10px] bg-[#1c1c24] border border-white/15 shadow-2xl py-1.5 z-[1000] animate-in fade-in zoom-in-95 duration-150 text-xs text-neutral-200 text-left",
-                                  isDropUp
-                                    ? "bottom-full mb-1.5 origin-bottom-right"
-                                    : "top-full mt-1.5 origin-top-right",
-                                )}
-                              >
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setOpenMenuId(null);
-                                    handleCopy(link);
-                                  }}
-                                  className="w-full px-3 py-2 text-left hover:bg-white/5 flex items-center gap-2.5 transition-colors cursor-pointer"
-                                >
-                                  <Copy className="w-3.5 h-3.5 text-neutral-300" />
-                                  <span>Copier le lien</span>
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setOpenMenuId(null);
-                                    setSelectedQRLink(link);
-                                  }}
-                                  className="w-full px-3 py-2 text-left hover:bg-white/5 flex items-center gap-2.5 transition-colors cursor-pointer"
-                                >
-                                  <QrCode className="w-3.5 h-3.5 text-[#ff6600]" />
-                                  <span>Afficher QR Code</span>
-                                </button>
-                                <a
-                                  href={link.shortUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  onClick={() => {
-                                    setOpenMenuId(null);
-                                    cfInvalidateCache("links");
-                                    // setTimeout(() => loadLinks(true), 1500);
-                                  }}
-                                  className="w-full px-3 py-2 text-left hover:bg-white/5 flex items-center gap-2.5 transition-colors cursor-pointer"
-                                >
-                                  <ExternalLink className="w-3.5 h-3.5 text-neutral-300" />
-                                  <span>Tester la redirection</span>
-                                </a>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setOpenMenuId(null);
-                                    setSelectedEditLink(link);
-                                  }}
-                                  className="w-full px-3 py-2 text-left hover:bg-white/5 flex items-center gap-2.5 transition-colors cursor-pointer"
-                                >
-                                  <Edit3 className="w-3.5 h-3.5 text-[#ff6600]" />
-                                  <span>Modifier le lien</span>
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setOpenMenuId(null);
-                                    setSelectedShareLink(link);
-                                  }}
-                                  className="w-full px-3 py-2 text-left hover:bg-white/5 flex items-center gap-2.5 transition-colors cursor-pointer"
-                                >
-                                  <Share2 className="w-3.5 h-3.5 text-sky-400" />
-                                  <span>Partager</span>
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setOpenMenuId(null);
-                                    router.push(
-                                      `/dashboard/analytics?linkId=${encodeURIComponent(link.id)}&slug=${encodeURIComponent(link.slug)}`,
-                                    );
-                                  }}
-                                  className="w-full px-3 py-2 text-left hover:bg-white/5 flex items-center gap-2.5 transition-colors cursor-pointer"
-                                >
-                                  <BarChart2 className="w-3.5 h-3.5 text-emerald-400" />
-                                  <span>Voir les statistiques</span>
-                                </button>
-                                <div className="h-px bg-white/10 my-1" />
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setOpenMenuId(null);
-                                    promptDeleteSingle(link);
-                                  }}
-                                  className="w-full px-3 py-2 text-left hover:bg-red-500/10 text-red-400 flex items-center gap-2.5 transition-colors cursor-pointer"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                  <span>Supprimer</span>
-                                </button>
-                              </div>
-                            )}
                           </div>
                         </td>
                       </tr>
@@ -1268,6 +1116,113 @@ export default function LinksPage() {
           </>
         )}
       </div>
+
+      {/* Floating Portal Action Menu */}
+      {mounted &&
+        activeMenuLink &&
+        menuPosition &&
+        createPortal(
+          <div
+            style={{
+              position: "fixed",
+              top: `${menuPosition.top}px`,
+              right: `${menuPosition.right}px`,
+              zIndex: 99999,
+            }}
+            onClick={(e) => e.stopPropagation()}
+            className="portal-action-menu w-52 rounded-[10px] bg-[#141416] border border-[#27272a] shadow-2xl py-1.5 animate-in fade-in zoom-in-95 duration-150 text-xs text-neutral-200 text-left backdrop-blur-md"
+          >
+            <button
+              type="button"
+              onClick={() => {
+                const link = activeMenuLink;
+                setActiveMenuLink(null);
+                handleCopy(link);
+              }}
+              className="w-full px-3 py-2 text-left hover:bg-white/5 flex items-center gap-2.5 transition-colors cursor-pointer"
+            >
+              <Copy className="w-3.5 h-3.5 text-neutral-400" />
+              <span>Copier le lien</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const link = activeMenuLink;
+                setActiveMenuLink(null);
+                setSelectedQRLink(link);
+              }}
+              className="w-full px-3 py-2 text-left hover:bg-white/5 flex items-center gap-2.5 transition-colors cursor-pointer"
+            >
+              <QrCode className="w-3.5 h-3.5 text-[#ff6600]" />
+              <span>Afficher QR Code</span>
+            </button>
+            <a
+              href={activeMenuLink.shortUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => {
+                setActiveMenuLink(null);
+                cfInvalidateCache("links");
+              }}
+              className="w-full px-3 py-2 text-left hover:bg-white/5 flex items-center gap-2.5 transition-colors cursor-pointer"
+            >
+              <ExternalLink className="w-3.5 h-3.5 text-neutral-400" />
+              <span>Tester la redirection</span>
+            </a>
+            <button
+              type="button"
+              onClick={() => {
+                const link = activeMenuLink;
+                setActiveMenuLink(null);
+                setSelectedEditLink(link);
+              }}
+              className="w-full px-3 py-2 text-left hover:bg-white/5 flex items-center gap-2.5 transition-colors cursor-pointer"
+            >
+              <Edit3 className="w-3.5 h-3.5 text-[#ff6600]" />
+              <span>Modifier le lien</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const link = activeMenuLink;
+                setActiveMenuLink(null);
+                setSelectedShareLink(link);
+              }}
+              className="w-full px-3 py-2 text-left hover:bg-white/5 flex items-center gap-2.5 transition-colors cursor-pointer"
+            >
+              <Share2 className="w-3.5 h-3.5 text-sky-400" />
+              <span>Partager</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const link = activeMenuLink;
+                setActiveMenuLink(null);
+                router.push(
+                  `/dashboard/analytics?linkId=${encodeURIComponent(link.id)}&slug=${encodeURIComponent(link.slug)}`,
+                );
+              }}
+              className="w-full px-3 py-2 text-left hover:bg-white/5 flex items-center gap-2.5 transition-colors cursor-pointer"
+            >
+              <BarChart2 className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Voir les statistiques</span>
+            </button>
+            <div className="h-px bg-[#222225] my-1" />
+            <button
+              type="button"
+              onClick={() => {
+                const link = activeMenuLink;
+                setActiveMenuLink(null);
+                promptDeleteSingle(link);
+              }}
+              className="w-full px-3 py-2 text-left hover:bg-red-500/10 text-red-500 flex items-center gap-2.5 transition-colors cursor-pointer"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Supprimer</span>
+            </button>
+          </div>,
+          document.body,
+        )}
 
       {/* Modals */}
       <LinkCreateModal

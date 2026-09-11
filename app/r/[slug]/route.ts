@@ -80,19 +80,20 @@ function safeRedirect(
 
 import { REGION_COUNTRIES } from "@/lib/routing-utils";
 
-export function evaluateTargetUrl(baseTargetUrl: string, req: Request, meta?: any): string {
+export function evaluateTargetUrl(baseTargetUrl: string, req: Request, meta?: any, detectedCountry?: string): string {
   if (!meta) return baseTargetUrl;
   const userAgent = (req.headers.get("user-agent") || "").toLowerCase();
   const country = (
+    detectedCountry ||
     req.headers.get("cf-ipcountry") ||
     req.headers.get("x-vercel-ip-country") ||
     req.headers.get("x-country") ||
-    ""
+    "BF"
   ).toUpperCase();
 
   // Detect Device Type
-  const isMobile = /mobile|iphone|ipod|android|blackberry|opera mini|iemobile|wpdesktop/i.test(userAgent);
   const isTablet = /ipad|tablet|playbook|silk/i.test(userAgent);
+  const isMobile = !isTablet && /mobile|iphone|ipod|android|blackberry|opera mini|iemobile|wpdesktop/i.test(userAgent);
   const deviceType = isTablet ? "tablet" : isMobile ? "mobile" : "desktop";
 
   // Detect OS Type
@@ -100,7 +101,7 @@ export function evaluateTargetUrl(baseTargetUrl: string, req: Request, meta?: an
   if (userAgent.includes("iphone") || userAgent.includes("ipad") || userAgent.includes("ipod")) osType = "ios";
   else if (userAgent.includes("android")) osType = "android";
   else if (userAgent.includes("windows")) osType = "windows";
-  else if (userAgent.includes("macintosh") || userAgent.includes("mac os")) osType = "macos";
+  else if (userAgent.includes("macintosh") || userAgent.includes("mac os") || userAgent.includes("macos")) osType = "macos";
   else if (userAgent.includes("linux")) osType = "linux";
 
   // 1. Evaluate Structured Routing Rules (AND logic)
@@ -127,15 +128,23 @@ export function evaluateTargetUrl(baseTargetUrl: string, req: Request, meta?: an
         if (cond.type === "pays") {
           const match = country.toLowerCase() === val;
           isMet = op === "est" ? match : !match;
-        } else if (cond.type === "appareil") {
-          const match = deviceType === val || (val === "mobile" && (isMobile || isTablet));
-          isMet = op === "est" ? match : !match;
-        } else if (cond.type === "plateforme") {
-          const match = osType === val || (val === "mac" && osType === "macos") || (val === "macos" && osType === "mac");
-          isMet = op === "est" ? match : !match;
         } else if (cond.type === "region") {
           const regionList = REGION_COUNTRIES[val] || [];
           const match = regionList.includes(country);
+          isMet = op === "est" ? match : !match;
+        } else if (cond.type === "appareil") {
+          let match = deviceType === val || (val === "mobile" && (isMobile || isTablet));
+          // Tolerant fallback: if an OS value like "ios" or "android" is in appareil
+          if (!match && (val === "ios" || val === "android" || val === "windows" || val === "macos" || val === "linux")) {
+            match = osType === val || (val === "macos" && osType === "mac");
+          }
+          isMet = op === "est" ? match : !match;
+        } else if (cond.type === "plateforme") {
+          let match = osType === val || (val === "mac" && osType === "macos") || (val === "macos" && osType === "mac");
+          // Tolerant fallback: if a device format like "mobile" or "desktop" is in plateforme
+          if (!match && (val === "mobile" || val === "desktop" || val === "tablet")) {
+            match = deviceType === val || (val === "mobile" && (isMobile || isTablet));
+          }
           isMet = op === "est" ? match : !match;
         } else {
           isMet = true;
@@ -148,7 +157,7 @@ export function evaluateTargetUrl(baseTargetUrl: string, req: Request, meta?: an
       }
 
       if (allConditionsMet) {
-        return destUrl;
+        return destUrl.startsWith("http://") || destUrl.startsWith("https://") ? destUrl : `https://${destUrl}`;
       }
     }
   }
@@ -346,6 +355,14 @@ export async function GET(
     }
 
     // ─── 2. REAL VISITOR / HUMAN PATH (INSTANT HTTP 307 REDIRECT) ───
+    const visitorDetails = parseVisitorDetails(req);
+    const visitorCountry = (
+      req.headers.get("cf-ipcountry") ||
+      req.headers.get("x-vercel-ip-country") ||
+      req.headers.get("x-country") ||
+      visitorDetails.countryCode ||
+      "BF"
+    ).toUpperCase();
 
     // Check Click Quotas / Limits (READ-ONLY check: does not increment before password is provided)
     const quotaCheck = checkLinkQuota(slug);
@@ -420,42 +437,14 @@ export async function GET(
       recordLinkClick(slug);
       await trackClickAsync(req, slug, meta);
       const splitUrl = resolveAbTargetUrl(meta, meta.targetUrl);
-      const finalUrl = evaluateTargetUrl(splitUrl, req, meta);
+      const finalUrl = evaluateTargetUrl(splitUrl, req, meta, visitorCountry);
       const redirectCode = meta.redirectType === "301" ? 301 : meta.redirectType === "302" ? 302 : 307;
       return safeRedirect(finalUrl, req.url, req.url, meta.passParams !== false, redirectCode);
     }
 
-    // Fallback: Query Worker
+    // Fallback: Fetch complete link metadata from Cloudflare API
     try {
-      const originHost = req.headers.get("host") || "www.lsho.cc";
-      const workerRes = await fetch(`${WORKER_URL}/r/${slug}`, {
-        method: "GET",
-        headers: {
-          "User-Agent": userAgent,
-          "X-Frontend-Secret": FRONTEND_SECRET,
-          "X-Forwarded-Host": originHost,
-        },
-        redirect: "manual",
-        cache: "no-store",
-      });
-
-      if (workerRes.status === 302 || workerRes.status === 307) {
-        const location = workerRes.headers.get("location");
-        if (location) {
-          recordLinkClick(slug);
-          await trackClickAsync(req, slug, meta);
-          const finalUrl = evaluateTargetUrl(location, req, meta);
-          const redirectCode = meta?.redirectType === "301" ? 301 : meta?.redirectType === "302" ? 302 : 307;
-          return safeRedirect(finalUrl, req.url, req.url, meta?.passParams !== false, redirectCode);
-        }
-      }
-    } catch (err) {
-      console.warn("[Worker Redirect Resolution error]:", err);
-    }
-
-    // Fallback: Query Worker /api/v1/links
-    try {
-      const listRes = await fetch(`${WORKER_URL}/api/v1/links`, {
+      const linkRes = await fetch(`${WORKER_URL}/api/v1/links/${encodeURIComponent(slug)}`, {
         headers: {
           "X-Frontend-Secret": FRONTEND_SECRET,
           Authorization: `Bearer ${FRONTEND_SECRET}`,
@@ -463,47 +452,89 @@ export async function GET(
         cache: "no-store",
       });
 
-      if (listRes.ok) {
-        const listData = await listRes.json();
-        const list = Array.isArray(listData?.data) ? listData.data : [];
-        const found = list.find((l: any) => l.slug?.toLowerCase() === slug.toLowerCase());
-        if (found) {
-          if (found.is_active === 0 || found.is_active === false || found.isActive === false) {
-            return NextResponse.redirect(new URL(`/r/${slug}/paused`, req.url), 307);
-          }
-          const expTime = found.expires_at || found.expiresAt;
-          if (expTime && new Date(expTime).getTime() <= Date.now()) {
-            return NextResponse.redirect(new URL(`/r/${slug}/expired`, req.url), 307);
-          }
+      let found = null;
+      if (linkRes.ok) {
+        const json = await linkRes.json();
+        found = json?.data || json;
+      }
 
-          const clicks = found.clicks_count || found.clicks || 0;
-          const maxClicks = found.max_clicks !== undefined && found.max_clicks !== null ? Number(found.max_clicks) : found.maxClicks !== undefined && found.maxClicks !== null ? Number(found.maxClicks) : undefined;
-          const fallback = found.fallback_url || found.fallbackUrl;
-          if (maxClicks && maxClicks > 0 && clicks >= maxClicks) {
-            if (fallback) return safeRedirect(fallback, req.url);
-            return NextResponse.redirect(new URL(`/r/${slug}/expired`, req.url), 307);
-          }
+      if (!found || !found.target_url && !found.targetUrl) {
+        const listRes = await fetch(`${WORKER_URL}/api/v1/links`, {
+          headers: {
+            "X-Frontend-Secret": FRONTEND_SECRET,
+            Authorization: `Bearer ${FRONTEND_SECRET}`,
+          },
+          cache: "no-store",
+        });
+        if (listRes.ok) {
+          const listData = await listRes.json();
+          const list = Array.isArray(listData?.data) ? listData.data : [];
+          found = list.find((l: any) => l.slug?.toLowerCase() === slug.toLowerCase());
+        }
+      }
 
-          if (found.password || found.is_password_protected || found.has_password) {
-            return NextResponse.redirect(new URL(`/r/${slug}/gate`, req.url), 307);
-          }
-          if (found.is_cloaked) {
-            recordLinkClick(slug);
-            await trackClickAsync(req, slug, found);
-            return NextResponse.redirect(new URL(`/r/${slug}/view`, req.url), 307);
-          }
-          const target = found.target_url || found.targetUrl;
-          if (target) {
-            recordLinkClick(slug);
-            await trackClickAsync(req, slug, found);
-            const finalUrl = evaluateTargetUrl(target, req, found);
-            const redirectCode = found?.redirect_type === "301" || found?.redirectType === "301" ? 301 : found?.redirect_type === "302" || found?.redirectType === "302" ? 302 : 307;
-            return safeRedirect(finalUrl, req.url, req.url, found?.passParams !== false, redirectCode);
-          }
+      if (found) {
+        // Cache found link in local memory store so subsequent hits evaluate in <0.5ms
+        try {
+          saveProtectedLink({
+            slug: found.slug || slug,
+            password: found.password || found.has_password || undefined,
+            isCloaked: Boolean(found.is_cloaked || found.isCloaked),
+            metaTitle: found.meta_title || found.metaTitle || found.og_title || found.ogTitle || undefined,
+            ogTitle: found.og_title || found.ogTitle || undefined,
+            ogDescription: found.og_description || found.ogDescription || undefined,
+            ogImage: found.og_image || found.ogImage || undefined,
+            targetUrl: found.target_url || found.targetUrl,
+            routingRules: found.routing_rules || found.routingRules || undefined,
+            geoTargeting: found.geo_targeting || found.geoTargeting || undefined,
+            deviceTargeting: found.device_targeting || found.deviceTargeting || undefined,
+            maxClicks: found.max_clicks !== undefined && found.max_clicks !== null ? Number(found.max_clicks) : undefined,
+            fallbackUrl: found.fallback_url || found.fallbackUrl || undefined,
+            abVariations: found.ab_variations || found.abVariations || undefined,
+            mainWeight: found.main_weight !== undefined ? Number(found.main_weight) : undefined,
+            redirectType: found.redirect_type || found.redirectType || undefined,
+            passParams: found.pass_params !== undefined ? Boolean(found.pass_params) : found.passParams !== undefined ? Boolean(found.passParams) : undefined,
+            userId: found.user_id || found.userId,
+            isActive: found.is_active !== 0 && found.is_active !== false && found.isActive !== false,
+            expiresAt: found.expires_at || found.expiresAt || undefined,
+          });
+        } catch {}
+
+        if (found.is_active === 0 || found.is_active === false || found.isActive === false) {
+          return NextResponse.redirect(new URL(`/r/${slug}/paused`, req.url), 307);
+        }
+        const expTime = found.expires_at || found.expiresAt;
+        if (expTime && new Date(expTime).getTime() <= Date.now()) {
+          return NextResponse.redirect(new URL(`/r/${slug}/expired`, req.url), 307);
+        }
+
+        const clicks = found.clicks_count || found.clicks || 0;
+        const maxClicks = found.max_clicks !== undefined && found.max_clicks !== null ? Number(found.max_clicks) : found.maxClicks !== undefined && found.maxClicks !== null ? Number(found.maxClicks) : undefined;
+        const fallback = found.fallback_url || found.fallbackUrl;
+        if (maxClicks && maxClicks > 0 && clicks >= maxClicks) {
+          if (fallback) return safeRedirect(fallback, req.url);
+          return NextResponse.redirect(new URL(`/r/${slug}/expired`, req.url), 307);
+        }
+
+        if (found.password || found.is_password_protected || found.has_password) {
+          return NextResponse.redirect(new URL(`/r/${slug}/gate`, req.url), 307);
+        }
+        if (found.is_cloaked || found.isCloaked) {
+          recordLinkClick(slug);
+          await trackClickAsync(req, slug, found);
+          return NextResponse.redirect(new URL(`/r/${slug}/view`, req.url), 307);
+        }
+        const target = found.target_url || found.targetUrl;
+        if (target) {
+          recordLinkClick(slug);
+          await trackClickAsync(req, slug, found);
+          const finalUrl = evaluateTargetUrl(target, req, found, visitorCountry);
+          const redirectCode = found?.redirect_type === "301" || found?.redirectType === "301" ? 301 : found?.redirect_type === "302" || found?.redirectType === "302" ? 302 : 307;
+          return safeRedirect(finalUrl, req.url, req.url, found?.passParams !== false, redirectCode);
         }
       }
     } catch (err) {
-      console.warn("[Worker Links List error]:", err);
+      console.warn("[Worker Links Metadata Fetch error]:", err);
     }
 
     return NextResponse.redirect(new URL("/", req.url), 307);

@@ -297,5 +297,18 @@
     "clicksCount": 0,
     "userId": "4991d47a-0f28-4e78-8c84-bb8f1513a322",
     "updatedAt": "2026-09-08T18:21:26.567Z"
+  },
+  {
+    "slug": "fdgsfdgsdf",
+    "isCloaked": false,
+    "targetUrl": "https://vercel.com/",
+    "abVariations": [],
+    "mainWeight": 100,
+    "passParams": true,
+    "redirectType": "302",
+    "isActive": true,
+    "clicksCount": 0,
+    "userId": "7254d43d-caf7-487d-bd22-1666795253a2",
+    "updatedAt": "2026-09-11T00:11:17.676Z"
   }
 ]
