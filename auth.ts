@@ -55,6 +55,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Mot de passe", type: "password" },
+        twoFactorCode: { label: "Code 2FA", type: "text" },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
@@ -74,13 +75,46 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
           if (!isValid) return null;
 
+          // If 2FA is active on the account, enforce TOTP code or recovery code validation
+          if (user.twoFactorEnabled && user.twoFactorSecret) {
+            const code = String(credentials.twoFactorCode || "").trim();
+            if (!code) {
+              throw new Error("2FA_REQUIRED");
+            }
+
+            const { verifyTotp, matchRecoveryCode } = await import("@/lib/totp");
+            const isTotpValid = verifyTotp(code, user.twoFactorSecret);
+
+            let isRecoveryValid = false;
+            if (!isTotpValid && Array.isArray(user.twoFactorRecoveryCodes) && user.twoFactorRecoveryCodes.length > 0) {
+              const res = matchRecoveryCode(code, user.twoFactorRecoveryCodes);
+              if (res.matched) {
+                isRecoveryValid = true;
+                // Update remaining recovery codes in Convex
+                await convex.mutation(api.users.update2FASettings, {
+                  userId: user.userId,
+                  enabled: true,
+                  secret: user.twoFactorSecret,
+                  recoveryCodes: res.remainingCodes,
+                });
+              }
+            }
+
+            if (!isTotpValid && !isRecoveryValid) {
+              throw new Error("2FA_INVALID_CODE");
+            }
+          }
+
           return {
             id: user.userId,
             name: user.name,
             email: user.email,
             image: user.avatarUrl,
           };
-        } catch (err) {
+        } catch (err: any) {
+          if (err?.message === "2FA_REQUIRED" || err?.message === "2FA_INVALID_CODE") {
+            throw err;
+          }
           console.error("Credentials authorize error:", err);
           return null;
         }

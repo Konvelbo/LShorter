@@ -14,6 +14,8 @@ export default defineSchema({
     hasCompletedOnboarding: v.boolean(),
     twoFactorEnabled: v.optional(v.boolean()),
     twoFactorSecret: v.optional(v.string()),
+    twoFactorRecoveryCodes: v.optional(v.array(v.string())),
+    twoFactorVerifiedAt: v.optional(v.string()),
     // ─── Legacy fields (tolerated as optional so existing documents validate) ─
     clicksThisMonth: v.optional(v.number()),
     clicksLimit: v.optional(v.number()),

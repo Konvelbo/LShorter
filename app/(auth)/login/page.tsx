@@ -10,7 +10,12 @@ import {
   Check,
   Zap,
   Eye,
-  EyeOff
+  EyeOff,
+  ShieldCheck,
+  KeyRound,
+  Smartphone,
+  ArrowLeft,
+  Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,6 +35,11 @@ export default function LoginPage({ initialMode = "login" }: { initialMode?: "lo
   const [name, setName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
+
+  // ─── 2FA Login Challenge State ──────────────────────────────────────────────
+  const [show2FAChallenge, setShow2FAChallenge] = useState(false);
+  const [twoFactorCode, setTwoFactorCode] = useState("");
+  const [useBackupCode, setUseBackupCode] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,10 +97,42 @@ export default function LoginPage({ initialMode = "login" }: { initialMode?: "lo
       const result = await signIn("credentials", {
         email: cleanEmail,
         password,
+        twoFactorCode: show2FAChallenge ? twoFactorCode.trim() : undefined,
         redirect: false,
       });
 
       if (result?.error) {
+        // Handle 2FA required or invalid 2FA code
+        if (result.error.includes("2FA_REQUIRED") || result.code === "2FA_REQUIRED") {
+          setShow2FAChallenge(true);
+          setIsLoading(false);
+          showToast.info("Vérification en deux étapes requise pour ce compte.");
+          return;
+        }
+        if (result.error.includes("2FA_INVALID_CODE") || result.code === "2FA_INVALID_CODE") {
+          showToast.error("Code 2FA incorrect ou expiré. Veuillez vérifier votre application ou code de secours.");
+          setIsLoading(false);
+          return;
+        }
+
+        // If not in 2FA mode yet, check if the account requires 2FA before displaying bad password
+        if (!show2FAChallenge) {
+          try {
+            const checkRes = await fetch("/api/auth/2fa/verify", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ action: "check-email", email: cleanEmail }),
+            });
+            const checkData = await checkRes.json();
+            if (checkData?.twoFactorEnabled) {
+              setShow2FAChallenge(true);
+              setIsLoading(false);
+              showToast.info("Veuillez saisir votre code à 6 chiffres pour continuer.");
+              return;
+            }
+          } catch {}
+        }
+
         showToast.error("Email ou mot de passe incorrect.");
         setIsLoading(false);
         return;
@@ -254,117 +296,183 @@ export default function LoginPage({ initialMode = "login" }: { initialMode?: "lo
             </p>
           </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            {authMode === "register" && (
+          {show2FAChallenge ? (
+            /* 2FA Login Challenge Form */
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4 animate-in fade-in">
+              <div className="flex flex-col items-center text-center gap-1.5 p-4 rounded-[12px] bg-[#141418] border border-[#27272a] shadow-inner">
+                <div className="w-12 h-12 rounded-[10px] bg-[#ff6600]/20 border border-[#ff6600]/40 flex items-center justify-center text-[#ff6600] mb-1">
+                  <ShieldCheck className="w-6 h-6" />
+                </div>
+                <h3 className="text-base font-bold text-white">Double Authentification (2FA)</h3>
+                <p className="text-xs text-neutral-400 max-w-xs leading-relaxed">
+                  {useBackupCode
+                    ? "Saisissez un de vos codes de secours d'urgence (8 caractères)."
+                    : `Saisissez le code à 6 chiffres généré par votre application pour ${email}`}
+                </p>
+              </div>
+
               <div>
                 <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
-                  Votre nom
+                  {useBackupCode ? "Code de Secours d'Urgence" : "Code d'Authentification (TOTP)"}
                 </label>
                 <Input
                   required
-                  placeholder="Jean Dupont"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  autoFocus
+                  maxLength={useBackupCode ? 12 : 6}
+                  placeholder={useBackupCode ? "ABCD-EFGH" : "000 000"}
+                  value={twoFactorCode}
+                  onChange={(e) => setTwoFactorCode(e.target.value)}
+                  className="h-14 text-center font-mono text-2xl tracking-[0.25em] text-white font-bold bg-[#0c0c0e] border-[#27272a] focus:border-[#ff6600] rounded-[10px]"
                 />
               </div>
-            )}
 
-            <div>
-              <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
-                Adresse email
-              </label>
-              <Input
-                type="email"
-                required
-                placeholder="nom@exemple.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
+              <Button
+                type="submit"
+                variant="glow"
+                disabled={isLoading || !twoFactorCode.trim()}
+                className="w-full h-11 text-sm font-bold tracking-wide mt-1 cursor-pointer"
+              >
+                {isLoading ? "Vérification..." : "Vérifier & Accéder au Dashboard"}
+              </Button>
 
-            <div>
-              <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
-                Mot de passe
-              </label>
-              <div className="relative">
-                <Input
-                  type={showPassword ? "text" : "password"}
-                  required
-                  placeholder="Votre mot de passe"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pr-10"
-                />
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-xs pt-1">
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white transition-colors cursor-pointer p-1"
-                  title={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                  onClick={() => {
+                    setUseBackupCode(!useBackupCode);
+                    setTwoFactorCode("");
+                  }}
+                  className="text-[#ff6600] hover:underline font-medium cursor-pointer"
                 >
-                  {showPassword ? (
-                    <EyeOff className="w-4 h-4 text-neutral-400 hover:text-white" />
-                  ) : (
-                    <Eye className="w-4 h-4 text-neutral-400 hover:text-white" />
-                  )}
+                  {useBackupCode
+                    ? "Utiliser le code de l'application"
+                    : "Appareil perdu ? Code de secours"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShow2FAChallenge(false);
+                    setTwoFactorCode("");
+                  }}
+                  className="text-neutral-400 hover:text-white cursor-pointer"
+                >
+                  ← Revenir au mot de passe
                 </button>
               </div>
-              {authMode === "login" && (
-                <div className="flex justify-end mt-1.5">
-                  <button
-                    type="button"
-                    onClick={() => setIsForgotPasswordOpen(true)}
-                    className="text-[11px] text-[#ff6600] hover:underline font-medium cursor-pointer"
-                  >
-                    Mot de passe oublié ?
-                  </button>
+            </form>
+          ) : (
+            /* Normal Login & Registration Form */
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+              {authMode === "register" && (
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
+                    Votre nom
+                  </label>
+                  <Input
+                    required
+                    placeholder="Jean Dupont"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                  />
                 </div>
               )}
-            </div>
 
-            {authMode === "register" && (
               <div>
                 <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
-                  Confirmer le mot de passe
+                  Adresse email
+                </label>
+                <Input
+                  type="email"
+                  required
+                  placeholder="nom@exemple.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
+                  Mot de passe
                 </label>
                 <div className="relative">
                   <Input
-                    type={showConfirmPassword ? "text" : "password"}
+                    type={showPassword ? "text" : "password"}
                     required
-                    placeholder="Confirmez votre mot de passe"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Votre mot de passe"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     className="pr-10"
                   />
                   <button
                     type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white transition-colors cursor-pointer p-1"
-                    title={showConfirmPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                    title={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
                   >
-                    {showConfirmPassword ? (
+                    {showPassword ? (
                       <EyeOff className="w-4 h-4 text-neutral-400 hover:text-white" />
                     ) : (
                       <Eye className="w-4 h-4 text-neutral-400 hover:text-white" />
                     )}
                   </button>
                 </div>
+                {authMode === "login" && (
+                  <div className="flex justify-end mt-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setIsForgotPasswordOpen(true)}
+                      className="text-[11px] text-[#ff6600] hover:underline font-medium cursor-pointer"
+                    >
+                      Mot de passe oublié ?
+                    </button>
+                  </div>
+                )}
               </div>
-            )}
 
-            <Button
-              type="submit"
-              variant="glow"
-              disabled={isLoading}
-              className="w-full h-11 text-sm font-semibold tracking-wide mt-2 cursor-pointer"
-            >
-              {isLoading
-                ? "Connexion en cours..."
-                : authMode === "login"
-                ? "Se connecter"
-                : "Créer mon compte"}
-            </Button>
-          </form>
+              {authMode === "register" && (
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
+                    Confirmer le mot de passe
+                  </label>
+                  <div className="relative">
+                    <Input
+                      type={showConfirmPassword ? "text" : "password"}
+                      required
+                      placeholder="Confirmez votre mot de passe"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white transition-colors cursor-pointer p-1"
+                      title={showConfirmPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff className="w-4 h-4 text-neutral-400 hover:text-white" />
+                      ) : (
+                        <Eye className="w-4 h-4 text-neutral-400 hover:text-white" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <Button
+                type="submit"
+                variant="glow"
+                disabled={isLoading}
+                className="w-full h-11 text-sm font-semibold tracking-wide mt-2 cursor-pointer"
+              >
+                {isLoading
+                  ? "Connexion en cours..."
+                  : authMode === "login"
+                  ? "Se connecter"
+                  : "Créer mon compte"}
+              </Button>
+            </form>
+          )}
 
           {/* Divider */}
           <div className="flex items-center gap-3 my-1">

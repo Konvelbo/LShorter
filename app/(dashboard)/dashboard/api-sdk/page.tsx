@@ -14,6 +14,8 @@ import {
   ExternalLink,
   BookOpen,
   RefreshCw,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -24,6 +26,7 @@ import { Input } from "@/components/ui/input";
 import { ApiKeysPageSkeleton } from "@/components/ui/skeleton";
 import { showToast } from "@/components/ui/toast-provider";
 import { DeleteConfirmModal } from "@/components/dashboard/delete-confirm-modal";
+import { ApiKeyCreatedModal } from "@/components/dashboard/api-key-created-modal";
 import { CodeBlock } from "@/components/ui/code-block";
 import confetti from "canvas-confetti";
 
@@ -34,10 +37,19 @@ export default function ApiSdkPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [keyNameInput, setKeyNameInput] = useState("");
+  const [keyScopeInput, setKeyScopeInput] = useState<"read" | "read_write" | "admin">("read_write");
   const [isGenerating, setIsGenerating] = useState(false);
   const [newlyCreatedKey, setNewlyCreatedKey] = useState<ApiKeyItem | null>(null);
+  const [revealedKeys, setRevealedKeys] = useState<Record<string, boolean>>({});
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [activeCodeTab, setActiveCodeTab] = useState<"create" | "track" | "analytics">("create");
+
+  const toggleRevealKey = (id: string) => {
+    setRevealedKeys((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
 
   const userId = session?.user?.id;
 
@@ -92,16 +104,16 @@ export default function ApiSdkPage() {
       const res = await cfCreateApiKey({
         userId,
         name: keyNameInput.trim(),
-        scope: "read_write",
+        scope: keyScopeInput,
       });
 
       if (res?.data) {
         setNewlyCreatedKey({
           id: res.data.id || `key_${Date.now()}`,
           name: keyNameInput.trim(),
-          prefix: res.data.prefix || "lsh_live_...",
-          rawKey: res.data.raw_key || res.data.api_key,
-          scope: "read_write",
+          prefix: res.data.prefix || res.data.key_prefix || "lsh_live_...",
+          rawKey: res.data.raw_key || res.data.rawKey || res.data.api_key,
+          scope: keyScopeInput,
           rateLimit: "600 req / min",
           created_at: new Date().toISOString(),
         });
@@ -246,68 +258,56 @@ console.log("Top Pays :", topAudience.topCountries);`
         </div>
       </div>
 
-      {/* Secret Key Modal Banner if just created */}
-      {newlyCreatedKey && (
-        <div className="p-6 rounded-[10px] bg-[#141416] border-2 border-[#ff6600] shadow-2xl flex flex-col gap-3 animate-in zoom-in-95">
-          <div className="flex items-center justify-between">
-            <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5 text-emerald-400" />
-              <span>Clé API générée avec succès pour &quot;{newlyCreatedKey.name}&quot;</span>
-            </h3>
-            <button
-              onClick={() => setNewlyCreatedKey(null)}
-              className="text-xs text-neutral-400 hover:text-white"
-            >
-              Fermer ✕
-            </button>
-          </div>
-
-          <p className="text-xs text-neutral-300">
-            ⚠️ <strong>Attention :</strong> Cette clé secrète ne sera affichée qu&apos;une seule fois. Copiez-la et stockez-la en lieu sûr dès maintenant.
-          </p>
-
-          <div className="flex items-center justify-between gap-2 p-3 rounded-[10px] bg-black/60 border border-[#27272a]">
-            <span className="font-mono text-xs text-[#ff6600] truncate">
-              {newlyCreatedKey.rawKey}
-            </span>
-            <Button
-              size="sm"
-              variant="primary"
-              onClick={() => handleCopy(newlyCreatedKey.rawKey || "")}
-              className="shrink-0 text-xs"
-            >
-              {copiedKey === newlyCreatedKey.rawKey ? "Copié !" : "Copier la clé"}
-            </Button>
-          </div>
-        </div>
-      )}
-
       {/* Key Generation Drawer */}
       {isGenerating && (
         <form
           onSubmit={handleCreateKey}
           className="p-6 rounded-[10px] bg-[#141416] border border-[#27272a] shadow-xl flex flex-col gap-4 animate-in fade-in"
         >
-          <h3 className="text-base font-bold text-white flex items-center gap-2">
-            <KeyRound className="w-4 h-4 text-[#ff6600]" />
-            <span>Nommer la nouvelle clé API</span>
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <KeyRound className="w-4 h-4 text-[#ff6600]" />
+              <span>Générer une nouvelle clé API</span>
+            </h3>
+            <button
+              type="button"
+              onClick={() => setIsGenerating(false)}
+              className="text-xs text-neutral-400 hover:text-white cursor-pointer"
+            >
+              Fermer ✕
+            </button>
+          </div>
 
-          <div className="flex flex-col sm:flex-row gap-3">
-            <Input
-              required
-              placeholder="ex: Production Backend Worker"
-              value={keyNameInput}
-              onChange={(e) => setKeyNameInput(e.target.value)}
-            />
-            <Button type="submit" variant="glow" className="shrink-0 px-6">
-              Créer la clé
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <div className="flex-1">
+              <Input
+                required
+                placeholder="Nom de l'application (ex: Bot Telegram, Zapier, Backend Worker...)"
+                value={keyNameInput}
+                onChange={(e) => setKeyNameInput(e.target.value)}
+                className="h-10 text-xs bg-[#0c0c0e] border-[#27272a]"
+              />
+            </div>
+            <div className="w-full sm:w-56 shrink-0">
+              <select
+                value={keyScopeInput}
+                onChange={(e) => setKeyScopeInput(e.target.value as "read" | "read_write" | "admin")}
+                className="w-full h-10 rounded-[10px] bg-[#0c0c0e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
+              >
+                <option value="read_write" className="bg-[#141416] text-white">Lecture & Écriture</option>
+                <option value="admin" className="bg-[#141416] text-white">Accès Complet (Admin)</option>
+                <option value="read" className="bg-[#141416] text-white">Lecture Seule</option>
+              </select>
+            </div>
+            <Button type="submit" variant="glow" className="shrink-0 h-10 px-6 text-xs font-bold gap-1.5 cursor-pointer shadow-md">
+              <Plus className="w-4 h-4" />
+              <span>Créer la clé</span>
             </Button>
             <Button
               type="button"
               variant="outline"
               onClick={() => setIsGenerating(false)}
-              className="shrink-0"
+              className="shrink-0 h-10 px-4 text-xs font-semibold border-[#27272a] cursor-pointer"
             >
               Annuler
             </Button>
@@ -316,47 +316,134 @@ console.log("Top Pays :", topAudience.topCountries);`
       )}
 
       {/* Active API Keys List */}
-      <div className="rounded-[10px] bg-[#141416] border border-[#222225] p-5 shadow-xl">
-        <h3 className="text-base font-bold text-white mb-4">Clés API Actives</h3>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-neutral-400">
-            <thead>
-              <tr className="border-b border-[#222225] text-[11px] uppercase tracking-wider font-semibold text-neutral-500">
-                <th className="pb-3 pl-2">Nom de la Clé</th>
-                <th className="pb-3">Préfixe de Clé</th>
-                <th className="pb-3">Date de création</th>
-                <th className="pb-3">Dernière utilisation</th>
-                <th className="pb-3 text-right pr-2">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#222225]">
-              {keys.map((key) => (
-                <tr key={key.id} className="hover:bg-white/[0.02] transition-colors">
-                  <td className="py-3.5 pl-2 font-bold text-white">{key.name}</td>
-                  <td className="py-3.5 font-mono text-neutral-300">{key.prefix}</td>
-                  <td className="py-3.5 text-neutral-400">
-                    {new Date(key.created_at).toLocaleDateString("fr-FR")}
-                  </td>
-                  <td className="py-3.5 text-neutral-400">
-                    {key.lastUsedAt
-                      ? new Date(key.lastUsedAt).toLocaleDateString("fr-FR")
-                      : "Jamais"}
-                  </td>
-                  <td className="py-3.5 text-right pr-2">
-                    <button
-                      onClick={() => promptRevokeKey(key)}
-                      className="p-1.5 rounded-[10px] hover:bg-red-500/20 text-neutral-400 hover:text-red-400 transition-colors cursor-pointer"
-                      title="Révoquer la clé"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <div className="rounded-[10px] bg-[#141416] border border-[#222225] p-5 shadow-xl flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-base font-bold text-white flex items-center gap-2">
+            <KeyRound className="w-4 h-4 text-[#ff6600]" />
+            <span>Clés API Actives ({keys.length})</span>
+          </h3>
         </div>
+
+        {keys.length === 0 ? (
+          <div className="py-12 px-4 text-center flex flex-col items-center justify-center gap-2.5 bg-[#0c0c0e] rounded-[10px] border border-[#27272a]">
+            <div className="w-10 h-10 rounded-[10px] bg-neutral-800/60 border border-neutral-700/40 flex items-center justify-center text-neutral-500">
+              <KeyRound className="w-5 h-5" />
+            </div>
+            <p className="text-xs font-semibold text-neutral-300">Aucune clé API active pour le moment</p>
+            <p className="text-[11px] text-neutral-500 max-w-xs">
+              Cliquez sur &quot;Générer une clé API&quot; ci-dessus pour créer votre premier jeton développeur.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-3">
+            {keys.map((key) => {
+              const isRevealed = Boolean(revealedKeys[key.id]);
+              const actualKey = key.rawKey || key.prefix;
+              const displayKey = isRevealed ? actualKey : "••••••••••••••••••••••••••••••••••••••••";
+              const isCopied = copiedKey === key.id;
+
+              const getScopeBadge = (scope?: string) => {
+                if (scope === "admin") return { label: "Admin", color: "bg-red-500/10 text-red-400 border-red-500/20" };
+                if (scope === "read") return { label: "Lecture Seule", color: "bg-blue-500/10 text-blue-400 border-blue-500/20" };
+                return { label: "Lecture & Écriture", color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" };
+              };
+              const scopeInfo = getScopeBadge(key.scope);
+
+              return (
+                <div
+                  key={key.id}
+                  className="p-4 rounded-[10px] bg-[#0e0e11] border border-[#27272a] hover:border-[#38383e] transition-all flex flex-col gap-3 shadow-sm"
+                >
+                  {/* Key Header */}
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2.5">
+                      <span className="font-bold text-sm text-white">{key.name}</span>
+                      <span className={`px-2 py-0.5 rounded-[6px] border text-[10px] font-semibold ${scopeInfo.color}`}>
+                        {scopeInfo.label}
+                      </span>
+                      <span className="px-2 py-0.5 rounded-[6px] bg-neutral-800/70 border border-neutral-700/40 text-[10px] text-neutral-400 font-mono">
+                        {key.rateLimit || "600 req / min"}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-4 text-[11px] text-neutral-500">
+                      <span>Créée le {new Date(key.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" })}</span>
+                      {key.lastUsedAt && (
+                        <span>Dernier accès : {new Date(key.lastUsedAt).toLocaleDateString("fr-FR")}</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Key Value & Action Buttons */}
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 p-2.5 rounded-[8px] bg-[#070709] border border-[#1f1f23]">
+                    <div className="flex-1 flex items-center gap-2 overflow-hidden">
+                      <div className="font-mono text-xs text-[#ff6600] truncate font-semibold select-all">
+                        {displayKey}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-center">
+                      {/* Toggle Mask / Unmask */}
+                      <button
+                        type="button"
+                        onClick={() => toggleRevealKey(key.id)}
+                        className="h-8 px-2.5 rounded-[6px] bg-[#1a1a1e] hover:bg-[#25252c] border border-[#2a2a30] text-neutral-300 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                        title={isRevealed ? "Masquer la clé" : "Démasquer la clé"}
+                      >
+                        {isRevealed ? (
+                          <>
+                            <EyeOff className="w-3.5 h-3.5 text-neutral-400" />
+                            <span className="hidden sm:inline">Masquer</span>
+                          </>
+                        ) : (
+                          <>
+                            <Eye className="w-3.5 h-3.5 text-neutral-400" />
+                            <span className="hidden sm:inline">Démasquer</span>
+                          </>
+                        )}
+                      </button>
+
+                      {/* Copy Button */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleCopy(actualKey);
+                          setCopiedKey(key.id);
+                          showToast.success("Clé API copiée dans le presse-papier !");
+                          setTimeout(() => setCopiedKey(null), 2000);
+                        }}
+                        className="h-8 px-2.5 rounded-[6px] bg-[#1a1a1e] hover:bg-[#25252c] border border-[#2a2a30] text-neutral-300 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                        title="Copier la clé"
+                      >
+                        {isCopied ? (
+                          <>
+                            <Check className="w-3.5 h-3.5 text-emerald-400" />
+                            <span className="text-emerald-400">Copié</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3.5 h-3.5 text-neutral-400" />
+                            <span>Copier</span>
+                          </>
+                        )}
+                      </button>
+
+                      {/* Revoke Button */}
+                      <button
+                        type="button"
+                        onClick={() => promptRevokeKey(key)}
+                        className="h-8 w-8 rounded-[6px] bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 hover:text-red-300 flex items-center justify-center transition-colors cursor-pointer"
+                        title="Révoquer cette clé"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* TypeScript SDK Code Preview Section */}
@@ -413,6 +500,13 @@ console.log("Top Pays :", topAudience.topCountries);`
           filename={`curl - ${activeCodeTab}`}
         />
       </div>
+
+      {/* Newly Created Key Modal */}
+      <ApiKeyCreatedModal
+        isOpen={Boolean(newlyCreatedKey)}
+        onClose={() => setNewlyCreatedKey(null)}
+        apiKey={newlyCreatedKey}
+      />
 
       {/* Revoke API Key Modal */}
       <DeleteConfirmModal

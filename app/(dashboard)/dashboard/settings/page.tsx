@@ -67,6 +67,10 @@ import {
   ActiveSession,
   ApiKeyItem
 } from "@/types";
+import { ApiKeyCreatedModal } from "@/components/dashboard/api-key-created-modal";
+import { DeleteConfirmModal } from "@/components/dashboard/delete-confirm-modal";
+import { TwoFactorSetupModal } from "@/components/dashboard/two-factor-setup-modal";
+import { TwoFactorRecoveryModal } from "@/components/dashboard/two-factor-recovery-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -257,8 +261,23 @@ export default function SettingsPage() {
   const [apiKeys, setApiKeys] = useState<ApiKeyItem[]>([]);
   const [newKeyName, setNewKeyName] = useState("");
   const [newKeyScope, setNewKeyScope] = useState<"read" | "read_write" | "admin">("read_write");
-  const [createdSecretKey, setCreatedSecretKey] = useState<ApiKeyItem | null>(null);
+  const [createdKeyModal, setCreatedKeyModal] = useState<ApiKeyItem | null>(null);
+  const [revealedKeys, setRevealedKeys] = useState<Record<string, boolean>>({});
+  const [copiedKeyId, setCopiedKeyId] = useState<string | null>(null);
   const [copiedKeyText, setCopiedKeyText] = useState<string | null>(null);
+  const [keyToDelete, setKeyToDelete] = useState<{ isOpen: boolean; id: string; name: string }>({
+    isOpen: false,
+    id: "",
+    name: "",
+  });
+  const [isRevokingKey, setIsRevokingKey] = useState(false);
+
+  const toggleRevealKey = (id: string) => {
+    setRevealedKeys((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
 
   // ─── Webhooks State (Persistent Storage) ────────────────────────────────────
   const [webhooks, setWebhooks] = useState<WebhookConfig[]>([]);
@@ -311,10 +330,13 @@ export default function SettingsPage() {
 
   // ─── Security State ─────────────────────────────────────────────────────────
   const [is2FAEnabled, setIs2FAEnabled] = useState(false);
-  const [show2FAModal, setShow2FAModal] = useState(false);
-  const [twoFACode, setTwoFACode] = useState("");
-  const [twoFactorSecret, setTwoFactorSecret] = useState("");
-  const [twoFactorQrCode, setTwoFactorQrCode] = useState("");
+  const [show2FASetupModal, setShow2FASetupModal] = useState(false);
+  const [showRecoveryCodesModal, setShowRecoveryCodesModal] = useState(false);
+  const storedRecoveryCodes = (useQuery(
+    api.users.get2FARecoveryCodes,
+    userId ? { userId } : "skip"
+  ) as string[]) || [];
+
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [passwordStrength, setPasswordStrength] = useState(0);
@@ -577,34 +599,38 @@ export default function SettingsPage() {
         scope: newKeyScope,
       });
       if (res?.data) {
-        setCreatedSecretKey({
+        const generatedKeyData: ApiKeyItem = {
           id: res.data.id || `key_${Date.now()}`,
           name: newKeyName.trim(),
-          prefix: res.data.prefix || "lsh_live_...",
-          rawKey: res.data.raw_key || res.data.api_key,
+          prefix: res.data.prefix || res.data.key_prefix || "lsh_live_...",
+          rawKey: res.data.raw_key || res.data.rawKey || res.data.api_key,
           scope: newKeyScope,
           rateLimit: "600 req / min",
           created_at: new Date().toISOString(),
-        });
+        };
+        setCreatedKeyModal(generatedKeyData);
       }
       setNewKeyName("");
       confetti({ particleCount: 40, spread: 60 });
-      showToast.success("Clé API créée !");
+      showToast.success("Clé API créée avec succès !");
       loadApiKeys();
     } catch (err: any) {
       showToast.error(err.message || "Erreur création clé.");
     }
   };
 
-  const handleRevokeKey = async (id: string) => {
-    if (confirm("Révoquer définitivement cette clé API ?")) {
-      try {
-        await cfRevokeApiKey(id, userId);
-        showToast.success("Clé API révoquée.");
-        loadApiKeys();
-      } catch (err) {
-        showToast.error("Erreur lors de la révocation.");
-      }
+  const confirmRevokeKey = async () => {
+    if (!keyToDelete.id) return;
+    setIsRevokingKey(true);
+    try {
+      await cfRevokeApiKey(keyToDelete.id, userId);
+      showToast.success("Clé API révoquée avec succès.");
+      setKeyToDelete({ isOpen: false, id: "", name: "" });
+      loadApiKeys();
+    } catch (err) {
+      showToast.error("Erreur lors de la révocation.");
+    } finally {
+      setIsRevokingKey(false);
     }
   };
 
@@ -701,42 +727,20 @@ export default function SettingsPage() {
     setPasswordStrength(score);
   };
 
-  const handleOpen2FAModal = async () => {
-    const secret = "LSH" + Math.random().toString(36).substring(2, 10).toUpperCase() + "2FA";
-    setTwoFactorSecret(secret);
-    setTwoFACode("");
-    try {
-      const otpauthUrl = `otpauth://totp/LShorter:${encodeURIComponent(email || name)}?secret=${secret}&issuer=LShorter`;
-      const qr = await QRCode.toDataURL(otpauthUrl, { width: 180, margin: 1 });
-      setTwoFactorQrCode(qr);
-      setShow2FAModal(true);
-    } catch {
-      showToast.error("Erreur lors de la génération du QR code.");
-    }
-  };
-
-  const handleConfirm2FA = async () => {
-    if (twoFACode.trim().length !== 6) {
-      showToast.error("Veuillez saisir un code à 6 chiffres.");
-      return;
-    }
-    try {
-      await update2FAMutation({
-        userId,
-        enabled: true,
-        secret: twoFactorSecret,
-      });
-      setIs2FAEnabled(true);
-      setShow2FAModal(false);
-      confetti({ particleCount: 40, spread: 60 });
-      showToast.success("Double Authentification (2FA) activée avec succès !");
-    } catch {
-      showToast.error("Erreur lors de l'activation du 2FA.");
-    }
+  const handle2FASuccess = async (secret: string, recoveryCodes: string[]) => {
+    if (!userId) return;
+    await update2FAMutation({
+      userId,
+      enabled: true,
+      secret,
+      recoveryCodes,
+      verifiedAt: new Date().toISOString(),
+    });
+    setIs2FAEnabled(true);
   };
 
   const handleDisable2FA = async () => {
-    if (confirm("Voulez-vous vraiment désactiver la double authentification ?")) {
+    if (confirm("Voulez-vous vraiment désactiver la double authentification (2FA) ? Votre compte sera moins protégé.")) {
       try {
         await update2FAMutation({
           userId,
@@ -1161,98 +1165,189 @@ export default function SettingsPage() {
             <div className="flex flex-col gap-6">
               <div className="flex items-center justify-between pb-4 border-b border-[#222225]">
                 <div>
-                  <h2 className="text-lg font-bold text-white">Clés d&apos;API Développeur</h2>
-                  <p className="text-xs text-neutral-400">
-                    Générez des tokens <code className="text-[#ff6600]">lsh_live_...</code> avec contrôle précis des permissions.
+                  <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                    <KeyRound className="w-5 h-5 text-[#ff6600]" />
+                    <span>Clés d&apos;API Développeur</span>
+                  </h2>
+                  <p className="text-xs text-neutral-400 mt-0.5">
+                    Générez des tokens sécurisés <code className="text-[#ff6600]">lsh_live_...</code> avec contrôle précis des permissions pour intégrer vos applications.
                   </p>
                 </div>
               </div>
 
-              {/* Secret key revealed */}
-              {createdSecretKey && (
-                <div className="p-4 rounded-[10px] bg-[#1a1a1e] border-2 border-[#ff6600] flex flex-col gap-2 animate-in zoom-in-95">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-white">
-                      Clé générée pour &quot;{createdSecretKey.name}&quot; ({createdSecretKey.scope})
-                    </span>
-                    <span className="text-[10px] text-amber-400 font-semibold">Conservez-la en lieu sûr</span>
-                  </div>
-                  <div className="flex items-center justify-between gap-2 p-2 rounded bg-black/60 font-mono text-xs text-[#ff6600]">
-                    <span className="truncate">{createdSecretKey.rawKey}</span>
-                    <Button size="sm" variant="primary" onClick={() => handleCopy(createdSecretKey.rawKey || "")}>
-                      {copiedKeyText === createdSecretKey.rawKey ? "Copié !" : "Copier"}
-                    </Button>
-                  </div>
-                </div>
-              )}
+              {/* Create Key Card */}
+              <div className="p-5 rounded-[10px] bg-[#141416] border border-[#27272a] shadow-xl flex flex-col gap-4">
+                <h3 className="text-xs font-bold text-neutral-300 uppercase tracking-wider flex items-center gap-2">
+                  <Plus className="w-3.5 h-3.5 text-[#ff6600]" />
+                  <span>Générer une nouvelle clé API</span>
+                </h3>
 
-              {/* Create Key Form */}
-              <form onSubmit={handleCreateApiKey} className="grid grid-cols-1 sm:grid-cols-4 gap-2">
-                <div className="sm:col-span-2">
-                  <Input
-                    required
-                    placeholder="Nom de l'application (ex: Bot Telegram, Zapier, Webhook)"
-                    value={newKeyName}
-                    onChange={(e) => setNewKeyName(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <select
-                    value={newKeyScope}
-                    onChange={(e) => setNewKeyScope(e.target.value as "read" | "read_write" | "admin")}
-                    className="w-full h-11 rounded-[10px] bg-[#141416] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
-                  >
-                    <option value="admin" className="bg-[#141416] text-white">Accès Complet (Admin)</option>
-                    <option value="read_write" className="bg-[#141416] text-white">Lecture & Écriture</option>
-                    <option value="read" className="bg-[#141416] text-white">Lecture Seule</option>
-                  </select>
-                </div>
-                <Button type="submit" variant="glow" className="text-xs">
-                  Générer la Clé
-                </Button>
-              </form>
+                <form onSubmit={handleCreateApiKey} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                  <div className="flex-1">
+                    <Input
+                      required
+                      placeholder="Nom de l'application (ex: Bot Telegram, Zapier, Webhook...)"
+                      value={newKeyName}
+                      onChange={(e) => setNewKeyName(e.target.value)}
+                      className="h-10 text-xs bg-[#0c0c0e] border-[#27272a]"
+                    />
+                  </div>
+                  <div className="w-full sm:w-56 shrink-0">
+                    <select
+                      value={newKeyScope}
+                      onChange={(e) => setNewKeyScope(e.target.value as "read" | "read_write" | "admin")}
+                      className="w-full h-10 rounded-[10px] bg-[#0c0c0e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
+                    >
+                      <option value="read_write" className="bg-[#141416] text-white">Lecture & Écriture</option>
+                      <option value="admin" className="bg-[#141416] text-white">Accès Complet (Admin)</option>
+                      <option value="read" className="bg-[#141416] text-white">Lecture Seule</option>
+                    </select>
+                  </div>
+                  <Button type="submit" variant="glow" className="shrink-0 h-10 px-5 text-xs font-bold gap-1.5 shadow-md cursor-pointer">
+                    <KeyRound className="w-4 h-4" />
+                    <span>Générer la Clé</span>
+                  </Button>
+                </form>
+              </div>
 
-              {/* Active Keys List */}
-              <div className="flex flex-col gap-2">
+              {/* Active Keys Section */}
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between px-1">
+                  <h3 className="text-xs font-bold text-neutral-300 uppercase tracking-wider">
+                    Clés API Actives ({apiKeys.length})
+                  </h3>
+                </div>
+
                 {apiKeys.length === 0 ? (
-                  <div className="py-8 text-center text-xs text-neutral-500 bg-[#1a1a1e] rounded-[10px] border border-[#27272a]">
-                    Aucune clé API créée pour le moment.
+                  <div className="py-12 px-4 text-center flex flex-col items-center justify-center gap-2.5 bg-[#141416] rounded-[10px] border border-[#27272a]">
+                    <div className="w-10 h-10 rounded-[10px] bg-neutral-800/60 border border-neutral-700/40 flex items-center justify-center text-neutral-500">
+                      <KeyRound className="w-5 h-5" />
+                    </div>
+                    <p className="text-xs font-semibold text-neutral-300">Aucune clé API active pour le moment</p>
+                    <p className="text-[11px] text-neutral-500 max-w-xs">
+                      Utilisez le formulaire ci-dessus pour générer votre première clé d&apos;authentification.
+                    </p>
                   </div>
                 ) : (
-                  apiKeys.map((k) => (
-                    <div
-                      key={k.id}
-                      className="p-3.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] flex items-center justify-between text-xs"
-                    >
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-white">{k.name}</span>
-                          <span className="px-1.5 py-0.2 rounded bg-neutral-200 dark:bg-black/40 text-[10px] text-neutral-700 dark:text-neutral-400 font-mono">
-                            {k.scope}
-                          </span>
-                        </div>
-                        <p className="font-mono text-neutral-400 text-[11px] mt-0.5">{k.prefix}</p>
-                      </div>
+                  <div className="grid grid-cols-1 gap-3">
+                    {apiKeys.map((k) => {
+                      const isRevealed = Boolean(revealedKeys[k.id]);
+                      const actualKey = k.rawKey || k.prefix;
+                      const displayKey = isRevealed ? actualKey : "••••••••••••••••••••••••••••••••••••••••";
+                      const isCopied = copiedKeyId === k.id;
 
-                      <div className="flex items-center gap-3">
-                        <button
-                          onClick={() => handleCopy(`curl -X POST https://api.lshorter.io/v1/links -H "Authorization: Bearer ${k.prefix}"`)}
-                          className="text-xs text-neutral-400 hover:text-white flex items-center gap-1 cursor-pointer"
-                          title="Copier exemple cURL"
+                      const getScopeBadge = (scope?: string) => {
+                        if (scope === "admin") return { label: "Admin", color: "bg-red-500/10 text-red-400 border-red-500/20" };
+                        if (scope === "read") return { label: "Lecture Seule", color: "bg-blue-500/10 text-blue-400 border-blue-500/20" };
+                        return { label: "Lecture & Écriture", color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" };
+                      };
+                      const scopeInfo = getScopeBadge(k.scope);
+
+                      return (
+                        <div
+                          key={k.id}
+                          className="p-4 rounded-[10px] bg-[#141416] border border-[#27272a] hover:border-[#38383e] transition-all flex flex-col gap-3 shadow-sm"
                         >
-                          <Copy className="w-3.5 h-3.5" />
-                          <span>cURL</span>
-                        </button>
-                        <button
-                          onClick={() => handleRevokeKey(k.id)}
-                          className="text-red-400 hover:text-red-300 p-1 cursor-pointer"
-                          title="Révoquer"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  ))
+                          {/* Key Header */}
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex items-center gap-2.5">
+                              <span className="font-bold text-sm text-white">{k.name}</span>
+                              <span className={`px-2 py-0.5 rounded-[6px] border text-[10px] font-semibold ${scopeInfo.color}`}>
+                                {scopeInfo.label}
+                              </span>
+                              <span className="px-2 py-0.5 rounded-[6px] bg-neutral-800/70 border border-neutral-700/40 text-[10px] text-neutral-400 font-mono">
+                                {k.rateLimit || "600 req / min"}
+                              </span>
+                            </div>
+
+                            <span className="text-[11px] text-neutral-500">
+                              Créée le {new Date(k.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" })}
+                            </span>
+                          </div>
+
+                          {/* Key Value & Actions Area */}
+                          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 p-2.5 rounded-[8px] bg-[#0c0c0e] border border-[#222226]">
+                            <div className="flex-1 flex items-center gap-2 overflow-hidden">
+                              <div className="font-mono text-xs text-[#ff6600] truncate font-semibold select-all">
+                                {displayKey}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-center">
+                              {/* Toggle Mask / Unmask */}
+                              <button
+                                type="button"
+                                onClick={() => toggleRevealKey(k.id)}
+                                className="h-8 px-2.5 rounded-[6px] bg-[#1a1a1e] hover:bg-[#25252c] border border-[#2a2a30] text-neutral-300 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                                title={isRevealed ? "Masquer la clé" : "Démasquer la clé"}
+                              >
+                                {isRevealed ? (
+                                  <>
+                                    <EyeOff className="w-3.5 h-3.5 text-neutral-400" />
+                                    <span className="hidden sm:inline">Masquer</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Eye className="w-3.5 h-3.5 text-neutral-400" />
+                                    <span className="hidden sm:inline">Démasquer</span>
+                                  </>
+                                )}
+                              </button>
+
+                              {/* Copy Button */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  handleCopy(actualKey);
+                                  setCopiedKeyId(k.id);
+                                  showToast.success("Clé API copiée dans le presse-papier !");
+                                  setTimeout(() => setCopiedKeyId(null), 2000);
+                                }}
+                                className="h-8 px-2.5 rounded-[6px] bg-[#1a1a1e] hover:bg-[#25252c] border border-[#2a2a30] text-neutral-300 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                                title="Copier la clé"
+                              >
+                                {isCopied ? (
+                                  <>
+                                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                                    <span className="text-emerald-400">Copié</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy className="w-3.5 h-3.5 text-neutral-400" />
+                                    <span>Copier</span>
+                                  </>
+                                )}
+                              </button>
+
+                              {/* cURL Example Button */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const cmd = `curl -X POST https://api.lshorter.io/v1/links \\\n  -H "Authorization: Bearer ${actualKey}" \\\n  -H "Content-Type: application/json" \\\n  -d '{"targetUrl":"https://example.com"}'`;
+                                  handleCopy(cmd);
+                                  showToast.success("Commande cURL d'exemple copiée !");
+                                }}
+                                className="h-8 px-2.5 rounded-[6px] bg-[#1a1a1e] hover:bg-[#25252c] border border-[#2a2a30] text-neutral-400 hover:text-white text-xs flex items-center gap-1 transition-colors cursor-pointer"
+                                title="Copier exemple cURL"
+                              >
+                                <span>cURL</span>
+                              </button>
+
+                              {/* Revoke Button */}
+                              <button
+                                type="button"
+                                onClick={() => setKeyToDelete({ isOpen: true, id: k.id, name: k.name })}
+                                className="h-8 w-8 rounded-[6px] bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 hover:text-red-300 flex items-center justify-center transition-colors cursor-pointer"
+                                title="Révoquer cette clé"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 )}
               </div>
             </div>
@@ -1617,26 +1712,66 @@ export default function SettingsPage() {
               {/* 2FA Card */}
               <div className="p-4 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-3 min-w-0">
-                  <Smartphone className="w-6 h-6 text-[#ff6600] shrink-0" />
+                  <div className={`w-10 h-10 rounded-[10px] flex items-center justify-center shrink-0 border ${
+                    is2FAEnabled
+                      ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+                      : "bg-[#ff6600]/10 border-[#ff6600]/30 text-[#ff6600]"
+                  }`}>
+                    {is2FAEnabled ? <ShieldCheck className="w-5 h-5" /> : <Smartphone className="w-5 h-5" />}
+                  </div>
                   <div className="min-w-0">
-                    <p className="text-xs font-bold text-white">Double Authentification (2FA / TOTP)</p>
-                    <p className="text-[11px] text-neutral-400">Google Authenticator, Authy, Apple Passwords ou 1Password</p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-xs font-bold text-white">Double Authentification (2FA / TOTP)</p>
+                      {is2FAEnabled ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-[10px] font-bold text-emerald-400">
+                          <Check className="w-3 h-3" />
+                          <span>Activé &amp; Sécurisé (RFC 6238)</span>
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full bg-neutral-800 border border-neutral-700 text-[10px] font-semibold text-neutral-400">
+                          Non configuré
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-neutral-400 mt-0.5">
+                      Compatible Google Authenticator, Apple Passwords, Microsoft Authenticator, Authy et 1Password.
+                    </p>
                   </div>
                 </div>
-                <Button
-                  size="sm"
-                  variant={is2FAEnabled ? "outline" : "glow"}
-                  onClick={() => {
-                    if (is2FAEnabled) {
-                      handleDisable2FA();
-                    } else {
-                      handleOpen2FAModal();
-                    }
-                  }}
-                  className="text-xs shrink-0 self-start sm:self-auto"
-                >
-                  {is2FAEnabled ? "Désactiver 2FA" : "Configurer 2FA"}
-                </Button>
+
+                <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
+                  {is2FAEnabled ? (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setShowRecoveryCodesModal(true)}
+                        className="text-xs h-9 border-[#27272a] gap-1.5 cursor-pointer"
+                      >
+                        <KeyRound className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Codes de secours</span>
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleDisable2FA}
+                        className="text-xs h-9 border-red-500/20 text-red-400 hover:bg-red-500/10 cursor-pointer"
+                      >
+                        Désactiver
+                      </Button>
+                    </>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="glow"
+                      onClick={() => setShow2FASetupModal(true)}
+                      className="text-xs h-9 px-4 font-bold gap-1.5 cursor-pointer shadow-md"
+                    >
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      <span>Activer la 2FA</span>
+                    </Button>
+                  )}
+                </div>
               </div>
 
               {/* Change Password */}
@@ -1876,73 +2011,40 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* 2FA Setup Modal */}
-      {show2FAModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-          <div className="w-full max-w-sm rounded-[10px] bg-[#141416] border border-[#27272a] p-6 text-white shadow-2xl flex flex-col gap-4 text-center">
-            <h3 className="text-base font-bold">Activer la Double Authentification (2FA)</h3>
-            <p className="text-xs text-neutral-400">
-              Scannez ce QR Code avec votre application d&apos;authentification (Google Authenticator, Authy, 1Password) :
-            </p>
+      {/* 2FA Setup Multi-Step Modal */}
+      <TwoFactorSetupModal
+        isOpen={show2FASetupModal}
+        onClose={() => setShow2FASetupModal(false)}
+        userId={userId || ""}
+        email={email || session?.user?.email || ""}
+        name={name || session?.user?.name || ""}
+        onSuccess={handle2FASuccess}
+      />
 
-            <div className="w-40 h-40 bg-white p-2 rounded-[10px] mx-auto flex items-center justify-center shadow-lg">
-              {twoFactorQrCode ? (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img
-                  src={twoFactorQrCode}
-                  alt="2FA TOTP QR Code"
-                  className="w-full h-full object-contain"
-                />
-              ) : (
-                <div className="w-full h-full bg-neutral-900 rounded-[10px] flex items-center justify-center font-mono text-[10px] text-white p-2">
-                  Génération du QR...
-                </div>
-              )}
-            </div>
+      {/* 2FA Recovery Codes Modal */}
+      <TwoFactorRecoveryModal
+        isOpen={showRecoveryCodesModal}
+        onClose={() => setShowRecoveryCodesModal(false)}
+        recoveryCodes={storedRecoveryCodes}
+        email={email || session?.user?.email || ""}
+      />
 
-            <div className="p-2.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] text-[11px] flex items-center justify-between">
-              <span className="text-neutral-400 font-mono">Clé : {twoFactorSecret}</span>
-              <button
-                type="button"
-                onClick={() => {
-                  navigator.clipboard.writeText(twoFactorSecret);
-                  showToast.success("Clé secrète copiée !");
-                }}
-                className="text-[#ff6600] hover:underline font-bold cursor-pointer"
-              >
-                Copier
-              </button>
-            </div>
+      {/* Modal on API Key Creation */}
+      <ApiKeyCreatedModal
+        isOpen={Boolean(createdKeyModal)}
+        onClose={() => setCreatedKeyModal(null)}
+        apiKey={createdKeyModal}
+      />
 
-            <Input
-              placeholder="Code à 6 chiffres (ex: 123456)"
-              maxLength={6}
-              value={twoFACode}
-              onChange={(e) => setTwoFACode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-              className="text-center font-mono tracking-widest text-base"
-              autoFocus
-            />
-
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                className="flex-1 text-xs"
-                onClick={() => setShow2FAModal(false)}
-              >
-                Annuler
-              </Button>
-              <Button
-                variant="glow"
-                className="flex-1 text-xs"
-                disabled={twoFACode.trim().length !== 6}
-                onClick={handleConfirm2FA}
-              >
-                Valider 2FA
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Revoke API Key Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={keyToDelete.isOpen}
+        onClose={() => setKeyToDelete({ isOpen: false, id: "", name: "" })}
+        onConfirm={confirmRevokeKey}
+        isDeleting={isRevokingKey}
+        title={`Révoquer la clé "${keyToDelete.name}" ?`}
+        description="Cette action est irréversible. Toutes les applications, bots ou scripts utilisant cette clé cesseront immédiatement de fonctionner."
+      />
     </div>
   );
 }

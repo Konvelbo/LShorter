@@ -72,7 +72,7 @@ export async function POST(req: Request) {
         });
 
         if (bunnyResult.success && bunnyResult.url) {
-          const isBanner = uploadFolder.includes("banner");
+          const isBanner = uploadFolder.toLowerCase().includes("banner");
           const finalUrl = isBanner
             ? getOptimizedBunnyOgUrl(bunnyResult.url)
             : bunnyResult.url;

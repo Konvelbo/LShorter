@@ -366,12 +366,14 @@ export const resetPasswordWithToken = mutation({
   },
 });
 
-// ─── 2FA Settings (TOTP) ──────────────────────────────────────────────────────
+// ─── 2FA Settings (TOTP & Recovery Codes) ──────────────────────────────────────
 export const update2FASettings = mutation({
   args: {
     userId: v.string(),
     enabled: v.boolean(),
     secret: v.optional(v.string()),
+    recoveryCodes: v.optional(v.array(v.string())),
+    verifiedAt: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const user = await ctx.db
@@ -384,10 +386,41 @@ export const update2FASettings = mutation({
     await ctx.db.patch(user._id, {
       twoFactorEnabled: args.enabled,
       twoFactorSecret: args.enabled ? args.secret : undefined,
+      twoFactorRecoveryCodes: args.enabled ? args.recoveryCodes : undefined,
+      twoFactorVerifiedAt: args.enabled ? (args.verifiedAt || new Date().toISOString()) : undefined,
       updatedAt: new Date().toISOString(),
     });
 
     return { success: true };
+  },
+});
+
+export const get2FARecoveryCodes = query({
+  args: { userId: v.string() },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .first();
+
+    if (!user || !user.twoFactorEnabled) return [];
+    return user.twoFactorRecoveryCodes || [];
+  },
+});
+
+export const checkEmail2FAStatus = query({
+  args: { email: v.string() },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.email.trim().toLowerCase()))
+      .first();
+
+    if (!user) return { exists: false, twoFactorEnabled: false };
+    return {
+      exists: true,
+      twoFactorEnabled: Boolean(user.twoFactorEnabled && user.twoFactorSecret),
+    };
   },
 });
 

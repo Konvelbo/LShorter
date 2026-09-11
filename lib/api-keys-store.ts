@@ -82,6 +82,7 @@ export function createApiKeyForUser(data: {
     prefix,
     keyPrefix: prefix,
     keyHash,
+    rawKey,
     scope: data.scope || "read_write",
     rateLimit: data.rateLimit || 600,
     rate_limit: data.rateLimit || 600,

@@ -165,7 +165,7 @@ export default {
       }
 
       const userAgent = (request.headers.get('user-agent') || '').toLowerCase();
-      const isBot = /facebookexternalhit|facebot|twitterbot|linkedinbot|telegrambot|discordbot|slackbot|slack-imgbatcher|pinterestbot|googlebot|bingbot|applebot|yandexbot|duckduckbot|baiduspider|ia_archiver/i.test(userAgent);
+      const isBot = /facebookexternalhit|facebot|twitterbot|xbot|linkedinbot|whatsapp|telegrambot|discordbot|slackbot|slack-imgbatcher|pinterestbot|skypeuripreview|googlebot|bingbot|applebot|yandexbot|duckduckbot|baiduspider|ia_archiver/i.test(userAgent);
       const country = (request.headers.get('cf-ipcountry') || 'FR').toUpperCase();
 
       const ogImage = link.og_image || link.ogImage || '';

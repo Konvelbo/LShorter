@@ -334,8 +334,37 @@ export async function GET(
         return new Response(cached.body, { status: 200, headers: cached.headers });
       }
 
-      // Check in-memory store
-      const localMeta = getProtectedLink(slug);
+      // Check in-memory store, or fetch directly from backend worker if cache miss
+      let localMeta = getProtectedLink(slug);
+      if (!localMeta) {
+        try {
+          const linkRes = await fetch(`${WORKER_URL}/api/v1/links/${encodeURIComponent(slug)}`, {
+            headers: {
+              "X-Frontend-Secret": FRONTEND_SECRET,
+              Authorization: `Bearer ${FRONTEND_SECRET}`,
+            },
+            cache: "no-store",
+          }).catch(() => null);
+
+          if (linkRes && linkRes.ok) {
+            const json = await linkRes.json().catch(() => null);
+            const found = json?.data || json;
+            if (found && (found.target_url || found.targetUrl || found.og_image || found.ogImage)) {
+              localMeta = {
+                slug: found.slug || slug,
+                targetUrl: found.target_url || found.targetUrl || "https://lshorter.io",
+                ogTitle: found.og_title || found.ogTitle || found.meta_title || found.metaTitle,
+                ogDescription: found.og_description || found.ogDescription,
+                ogImage: found.og_image || found.ogImage,
+                metaTitle: found.meta_title || found.metaTitle,
+              } as any;
+            }
+          }
+        } catch (fetchErr) {
+          console.warn("[Crawler Fetch Warning]:", fetchErr);
+        }
+      }
+
       if (localMeta && (localMeta.ogImage || localMeta.ogTitle || localMeta.ogDescription || localMeta.metaTitle)) {
         let fullOgImage = localMeta.ogImage || "";
         if (fullOgImage && !fullOgImage.startsWith("http") && !fullOgImage.startsWith("data:")) {
