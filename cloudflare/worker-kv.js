@@ -518,9 +518,12 @@ export default {
           const shortUrl = 'https://' + domainName + '/' + slug;
           const targetUrl = body.targetUrl || body.target_url;
           const isActive = body.isActive !== false && body.is_active !== 0 ? 1 : 0;
-          const routingRules = typeof body.routingRules === 'string' ? body.routingRules : JSON.stringify(body.routingRules || []);
-          const geoTargeting = typeof body.geoTargeting === 'string' ? body.geoTargeting : JSON.stringify(body.geoTargeting || {});
-          const deviceTargeting = typeof body.deviceTargeting === 'string' ? body.deviceTargeting : JSON.stringify(body.deviceTargeting || {});
+          const rawRules = body.routingRules !== undefined ? body.routingRules : body.routing_rules;
+          const routingRules = typeof rawRules === 'string' ? rawRules : JSON.stringify(rawRules || []);
+          const rawGeo = body.geoTargeting !== undefined ? body.geoTargeting : body.geo_targeting;
+          const geoTargeting = typeof rawGeo === 'string' ? rawGeo : JSON.stringify(rawGeo || {});
+          const rawDev = body.deviceTargeting !== undefined ? body.deviceTargeting : body.device_targeting;
+          const deviceTargeting = typeof rawDev === 'string' ? rawDev : JSON.stringify(rawDev || {});
           const ogImage = body.ogImage || body.og_image || '';
           const ogTitle = body.ogTitle || body.og_title || body.metaTitle || body.meta_title || '';
           const ogDescription = body.ogDescription || body.og_description || '';
@@ -627,12 +630,14 @@ export default {
           const userId = body.userId || body.user_id || existingLink?.user_id || 'usr_default';
           const domainName = body.domainName || body.domain_name || existingLink?.domain_name || 'lsho.cc';
           const shortUrl = 'https://' + domainName + '/' + slug;
-          const targetUrl = body.targetUrl || body.target_url || existingLink?.target_url || 'https://lshorter.io';
-          const isActive = body.isActive !== undefined ? (body.isActive ? 1 : 0) : body.is_active !== undefined ? Number(body.is_active) : (existingLink?.is_active ?? 1);
+          const rawRules = body.routingRules !== undefined ? body.routingRules : body.routing_rules;
+          const routingRules = rawRules !== undefined ? (typeof rawRules === 'string' ? rawRules : JSON.stringify(rawRules)) : (existingLink?.routing_rules || '[]');
 
-          const routingRules = body.routingRules !== undefined ? (typeof body.routingRules === 'string' ? body.routingRules : JSON.stringify(body.routingRules)) : (existingLink?.routing_rules || '[]');
-          const geoTargeting = body.geoTargeting !== undefined ? (typeof body.geoTargeting === 'string' ? body.geoTargeting : JSON.stringify(body.geoTargeting)) : (existingLink?.geo_targeting || '{}');
-          const deviceTargeting = body.deviceTargeting !== undefined ? (typeof body.deviceTargeting === 'string' ? body.deviceTargeting : JSON.stringify(body.deviceTargeting)) : (existingLink?.device_targeting || '{}');
+          const rawGeo = body.geoTargeting !== undefined ? body.geoTargeting : body.geo_targeting;
+          const geoTargeting = rawGeo !== undefined ? (typeof rawGeo === 'string' ? rawGeo : JSON.stringify(rawGeo)) : (existingLink?.geo_targeting || '{}');
+
+          const rawDev = body.deviceTargeting !== undefined ? body.deviceTargeting : body.device_targeting;
+          const deviceTargeting = rawDev !== undefined ? (typeof rawDev === 'string' ? rawDev : JSON.stringify(rawDev)) : (existingLink?.device_targeting || '{}');
 
           const ogImage = body.ogImage !== undefined ? body.ogImage : (body.og_image !== undefined ? body.og_image : (existingLink?.og_image || ''));
           const ogTitle = body.ogTitle !== undefined ? body.ogTitle : (body.og_title !== undefined ? body.og_title : (body.metaTitle || body.meta_title || existingLink?.og_title || ''));

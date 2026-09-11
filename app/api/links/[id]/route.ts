@@ -80,6 +80,12 @@ export async function PATCH(
       redirect_type: body.redirectType || body.redirect_type,
       passParams: body.passParams !== undefined ? Boolean(body.passParams) : body.pass_params !== undefined ? Boolean(body.pass_params) : undefined,
       pass_params: body.passParams !== undefined ? Boolean(body.passParams) : body.pass_params !== undefined ? Boolean(body.pass_params) : undefined,
+      routingRules: body.routingRules !== undefined ? body.routingRules : body.routing_rules,
+      routing_rules: body.routing_rules !== undefined ? body.routing_rules : body.routingRules,
+      geoTargeting: body.geoTargeting !== undefined ? body.geoTargeting : body.geo_targeting,
+      geo_targeting: body.geo_targeting !== undefined ? body.geo_targeting : body.geoTargeting,
+      deviceTargeting: body.deviceTargeting !== undefined ? body.deviceTargeting : body.device_targeting,
+      device_targeting: body.device_targeting !== undefined ? body.device_targeting : body.deviceTargeting,
       plan: effectivePlan,
       userPlan: effectivePlan,
     };
@@ -155,9 +161,40 @@ export async function PATCH(
       }
     }
 
-    // 4. If worker returns 404, fallback to creating/syncing or returning local/Convex success
+    // 4. If worker returns 404, look up real worker link ID by slug and retry PATCH
     if (res.status === 404) {
       try {
+        const slugToFind = body.slug || id;
+        const listRes = await fetch(`${WORKER_URL}/api/v1/links?userId=${userId || "all"}`, {
+          headers: {
+            "X-Frontend-Secret": FRONTEND_SECRET,
+            Authorization: `Bearer ${FRONTEND_SECRET}`,
+          },
+          cache: "no-store",
+        });
+
+        if (listRes.ok) {
+          const listJson = await listRes.json();
+          const list = Array.isArray(listJson.data) ? listJson.data : [];
+          const found = list.find((l: any) => l.slug?.toLowerCase() === slugToFind.toLowerCase() || l.id === id);
+          if (found && found.id && found.id !== id) {
+            const retryPatch = await fetch(`${WORKER_URL}/api/v1/links/${found.id}`, {
+              method: "PATCH",
+              headers: {
+                "X-Frontend-Secret": FRONTEND_SECRET,
+                Authorization: `Bearer ${FRONTEND_SECRET}`,
+                ...(userId ? { "X-User-Id": userId } : {}),
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(workerPayload),
+            });
+            if (retryPatch.ok) {
+              const patchData = await retryPatch.json().catch(() => ({}));
+              return NextResponse.json({ success: true, data: patchData.data || patchData }, { status: 200 });
+            }
+          }
+        }
+
         const createUrl = new URL(`${WORKER_URL}/api/v1/links`);
         const createRes = await fetch(createUrl.toString(), {
           method: "POST",

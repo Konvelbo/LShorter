@@ -334,9 +334,13 @@ export async function cfCreateLink(data: {
 export async function cfUpdateLink(id: string, updates: any) {
   const payload: any = {
     ...updates,
+    targetUrl: updates.targetUrl || updates.target_url,
     target_url: updates.target_url || updates.targetUrl,
+    geoTargeting: updates.geoTargeting !== undefined ? updates.geoTargeting : updates.geo_targeting,
     geo_targeting: updates.geo_targeting !== undefined ? updates.geo_targeting : updates.geoTargeting,
+    deviceTargeting: updates.deviceTargeting !== undefined ? updates.deviceTargeting : updates.device_targeting,
     device_targeting: updates.device_targeting !== undefined ? updates.device_targeting : updates.deviceTargeting,
+    routingRules: updates.routingRules !== undefined ? updates.routingRules : updates.routing_rules,
     routing_rules: updates.routing_rules !== undefined ? updates.routing_rules : updates.routingRules,
     hide_referrer: updates.hide_referrer !== undefined ? updates.hide_referrer : updates.hideReferrer !== undefined ? (updates.hideReferrer ? 1 : 0) : undefined,
     og_title: updates.og_title || updates.ogTitle,
