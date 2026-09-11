@@ -348,16 +348,18 @@ export default {
 
       if (ruleMatchedUrl) {
         targetUrl = ruleMatchedUrl;
-      } else if (isAndroid && deviceTargeting.android) {
-        targetUrl = deviceTargeting.android;
-      } else if (isIos && (deviceTargeting.ios || deviceTargeting.iphone || deviceTargeting.ipad)) {
-        targetUrl = deviceTargeting.ios || deviceTargeting.iphone || deviceTargeting.ipad;
-      } else if (isMobile && deviceTargeting.mobile) {
-        targetUrl = deviceTargeting.mobile;
-      } else if (isDesktop && (deviceTargeting.desktop || (userAgent.includes('windows') && deviceTargeting.windows) || (userAgent.includes('mac') && deviceTargeting.macos))) {
-        targetUrl = (userAgent.includes('windows') && deviceTargeting.windows) || (userAgent.includes('mac') && deviceTargeting.macos) || deviceTargeting.desktop;
-      } else if (geoTargeting[country]) {
-        targetUrl = geoTargeting[country];
+      } else if (!routingRules || (Array.isArray(routingRules) && routingRules.length === 0)) {
+        if (isAndroid && deviceTargeting.android) {
+          targetUrl = deviceTargeting.android;
+        } else if (isIos && (deviceTargeting.ios || deviceTargeting.iphone || deviceTargeting.ipad)) {
+          targetUrl = deviceTargeting.ios || deviceTargeting.iphone || deviceTargeting.ipad;
+        } else if (isMobile && deviceTargeting.mobile) {
+          targetUrl = deviceTargeting.mobile;
+        } else if (isDesktop && (deviceTargeting.desktop || (userAgent.includes('windows') && deviceTargeting.windows) || (userAgent.includes('mac') && deviceTargeting.macos))) {
+          targetUrl = (userAgent.includes('windows') && deviceTargeting.windows) || (userAgent.includes('mac') && deviceTargeting.macos) || deviceTargeting.desktop;
+        } else if (geoTargeting[country]) {
+          targetUrl = geoTargeting[country];
+        }
       }
 
       if (env.DB) {

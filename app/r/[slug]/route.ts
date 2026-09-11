@@ -162,8 +162,8 @@ export function evaluateTargetUrl(baseTargetUrl: string, req: Request, meta?: an
     }
   }
 
-  // 2. Fallback: Legacy Device / OS Targeting
-  if (meta.deviceTargeting && typeof meta.deviceTargeting === "object") {
+  // 2. Fallback: Legacy Device / OS Targeting (Only when no structured rules)
+  if ((!rules || (Array.isArray(rules) && rules.length === 0)) && meta.deviceTargeting && typeof meta.deviceTargeting === "object") {
     const dt = meta.deviceTargeting;
     if (osType === "ios" && dt.ios) return dt.ios;
     if (osType === "android" && dt.android) return dt.android;
@@ -174,8 +174,8 @@ export function evaluateTargetUrl(baseTargetUrl: string, req: Request, meta?: an
     if (!isMobile && dt.desktop) return dt.desktop;
   }
 
-  // 3. Fallback: Legacy Geo Targeting
-  if (country && meta.geoTargeting && typeof meta.geoTargeting === "object") {
+  // 3. Fallback: Legacy Geo Targeting (Only when no structured rules)
+  if ((!rules || (Array.isArray(rules) && rules.length === 0)) && country && meta.geoTargeting && typeof meta.geoTargeting === "object") {
     if (meta.geoTargeting[country]) {
       return meta.geoTargeting[country];
     }
