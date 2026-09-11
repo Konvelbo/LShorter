@@ -269,6 +269,8 @@ export async function cfCreateLink(data: {
   og_description?: string;
   ogImage?: string;
   og_image?: string;
+  cardFormat?: "summary_large_image" | "summary" | string;
+  card_format?: string;
   twitterCard?: "summary_large_image" | "summary" | string;
   twitter_card?: string;
   tags?: string[];
@@ -289,6 +291,7 @@ export async function cfCreateLink(data: {
   userPlan?: string;
   plan?: string;
 }) {
+  const effectiveCard = data.cardFormat || data.card_format || data.twitterCard || data.twitter_card || "summary_large_image";
   const payload: any = {
     userId: data.userId,
     targetUrl: data.targetUrl || data.target_url,
@@ -308,8 +311,10 @@ export async function cfCreateLink(data: {
     ogTitle: data.ogTitle || data.og_title,
     ogDescription: data.ogDescription || data.og_description,
     ogImage: data.ogImage || data.og_image,
-    twitterCard: data.twitterCard || data.twitter_card || "summary_large_image",
-    twitter_card: data.twitterCard || data.twitter_card || "summary_large_image",
+    cardFormat: effectiveCard,
+    card_format: effectiveCard,
+    twitterCard: effectiveCard,
+    twitter_card: effectiveCard,
     expiresAt: data.expiresAt || data.expires_at,
     maxClicks: data.maxClicks !== undefined ? data.maxClicks : data.max_clicks,
     fallbackUrl: data.fallbackUrl || data.fallback_url,
@@ -343,6 +348,7 @@ export async function cfCreateLink(data: {
 }
 
 export async function cfUpdateLink(id: string, updates: any) {
+  const effectiveCard = updates.cardFormat || updates.card_format || updates.twitterCard || updates.twitter_card || undefined;
   const payload: any = {
     ...updates,
     targetUrl: updates.targetUrl || updates.target_url,
@@ -358,8 +364,10 @@ export async function cfUpdateLink(id: string, updates: any) {
     meta_title: updates.meta_title || updates.metaTitle,
     og_description: updates.og_description || updates.ogDescription,
     og_image: updates.og_image || updates.ogImage,
-    twitter_card: updates.twitter_card || updates.twitterCard,
-    twitterCard: updates.twitterCard || updates.twitter_card,
+    cardFormat: effectiveCard,
+    card_format: effectiveCard,
+    twitter_card: effectiveCard,
+    twitterCard: effectiveCard,
     expires_at: updates.expires_at || updates.expiresAt,
     max_clicks: updates.max_clicks !== undefined ? updates.max_clicks : updates.maxClicks,
     fallback_url: updates.fallback_url || updates.fallbackUrl,

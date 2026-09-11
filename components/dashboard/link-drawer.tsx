@@ -206,7 +206,9 @@ export function LinkDrawer({
   const [ogDescription, setOgDescription] = useState("");
   const [ogImage, setOgImage] = useState("");
   const [previewImage, setPreviewImage] = useState("");
-  const [twitterCard, setTwitterCard] = useState<"summary_large_image" | "summary">("summary_large_image");
+  const [cardFormat, setCardFormat] = useState<"summary_large_image" | "summary">("summary_large_image");
+  const twitterCard = cardFormat;
+  const setTwitterCard = setCardFormat;
   const [socialPlatformPreview, setSocialPlatformPreview] = useState<"x" | "facebook" | "whatsapp">("x");
   const [isUploadingImage, setIsUploadingImage] = useState(false);
 
@@ -278,7 +280,7 @@ export function LinkDrawer({
       setOgTitle(link.ogTitle || link.metaTitle || "");
       setOgDescription(link.ogDescription || "");
       setOgImage(link.ogImage || "");
-      setTwitterCard(link.twitterCard || (link as any).twitter_card || "summary_large_image");
+      setCardFormat((link.cardFormat || (link as any).card_format || link.twitterCard || (link as any).twitter_card || "summary_large_image") as any);
       setPreviewImage("");
 
       // Parse routing rules
@@ -818,6 +820,8 @@ export function LinkDrawer({
           ogDescription: ogDescription.trim() || null,
           ogImage: finalOgImage.trim() || null,
           previousOgImage: link.ogImage || null,
+          cardFormat,
+          card_format: cardFormat,
           twitterCard,
           twitter_card: twitterCard,
           routingRules: compiledRules || null,
@@ -974,6 +978,8 @@ export function LinkDrawer({
           ogTitle: ogTitle || undefined,
           ogDescription: ogDescription || undefined,
           ogImage: finalOgImage || undefined,
+          cardFormat,
+          card_format: cardFormat,
           twitterCard,
           twitter_card: twitterCard,
           tags: tags.length ? tags : undefined,

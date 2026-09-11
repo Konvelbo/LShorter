@@ -171,7 +171,7 @@ export default {
       const ogImage = link.og_image || link.ogImage || '';
       const ogTitle = link.og_title || link.ogTitle || link.meta_title || link.metaTitle || link.title || slug;
       const ogDescription = link.og_description || link.ogDescription || '';
-      const twitterCard = link.twitter_card || link.twitterCard || 'summary_large_image';
+      const cardFormat = link.card_format || link.cardFormat || link.twitter_card || link.twitterCard || 'summary_large_image';
 
       // Serve OpenGraph / Twitter Cards ONLY for social crawler bots without redirecting
       if (isBot && (ogImage || ogTitle || ogDescription)) {
@@ -191,7 +191,7 @@ export default {
         const safeDesc = escapeHtml(ogDescription || 'Cliquez pour ouvrir le lien.');
         const safeImg = escapeHtml(publicImageUrl.replace(/&amp;/g, '&'));
         const safeCanonical = escapeHtml(canonical);
-        const safeCard = escapeHtml(twitterCard === 'summary' ? 'summary' : 'summary_large_image');
+        const safeCard = escapeHtml(cardFormat === 'summary' ? 'summary' : 'summary_large_image');
 
         const html = `<!DOCTYPE html>
 <html lang="fr" prefix="og: http://ogp.me/ns#">
@@ -542,7 +542,7 @@ export default {
           const ogTitle = body.ogTitle || body.og_title || body.metaTitle || body.meta_title || '';
           const ogDescription = body.ogDescription || body.og_description || '';
           const metaTitle = body.metaTitle || body.meta_title || ogTitle || '';
-          const twitterCard = (body.twitterCard === 'summary' || body.twitter_card === 'summary') ? 'summary' : 'summary_large_image';
+          const cardFormat = (body.cardFormat === 'summary' || body.card_format === 'summary' || body.twitterCard === 'summary' || body.twitter_card === 'summary') ? 'summary' : 'summary_large_image';
 
           const linkObj = {
             id,
@@ -564,8 +564,10 @@ export default {
             ogDescription,
             meta_title: metaTitle,
             metaTitle,
-            twitter_card: twitterCard,
-            twitterCard,
+            card_format: cardFormat,
+            cardFormat,
+            twitter_card: cardFormat,
+            twitterCard: cardFormat,
             created_at: new Date().toISOString(),
           };
 
@@ -616,22 +618,29 @@ export default {
                 } catch {}
               }
 
-              // 2. Insert into links table (try with twitter_card column, fallback to standard)
+              // 2. Insert into links table (try with card_format / twitter_card column, fallback to standard)
               try {
                 await env.DB.prepare(`
-                  INSERT INTO links (id, user_id, domain_name, slug, short_url, target_url, clicks_count, is_active, routing_rules, geo_targeting, device_targeting, og_image, og_title, og_description, meta_title, twitter_card, created_at)
-                  VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-                `).bind(id, userId, domainName, slug, shortUrl, targetUrl, isActive, routingRules, geoTargeting, deviceTargeting, ogImage, ogTitle, ogDescription, metaTitle, twitterCard).run();
+                  INSERT INTO links (id, user_id, domain_name, slug, short_url, target_url, clicks_count, is_active, routing_rules, geo_targeting, device_targeting, og_image, og_title, og_description, meta_title, card_format, twitter_card, created_at)
+                  VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+                `).bind(id, userId, domainName, slug, shortUrl, targetUrl, isActive, routingRules, geoTargeting, deviceTargeting, ogImage, ogTitle, ogDescription, metaTitle, cardFormat, cardFormat).run();
               } catch (insColErr) {
-                await env.DB.prepare(`
-                  INSERT INTO links (id, user_id, domain_name, slug, short_url, target_url, clicks_count, is_active, routing_rules, geo_targeting, device_targeting, og_image, og_title, og_description, meta_title, created_at)
-                  VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-                `).bind(id, userId, domainName, slug, shortUrl, targetUrl, isActive, routingRules, geoTargeting, deviceTargeting, ogImage, ogTitle, ogDescription, metaTitle).run().catch(async () => {
+                try {
                   await env.DB.prepare(`
-                    INSERT INTO links (id, user_id, domain_name, slug, short_url, target_url, clicks_count, is_active, routing_rules, geo_targeting, device_targeting, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, datetime('now'))
-                  `).bind(id, userId, domainName, slug, shortUrl, targetUrl, isActive, routingRules, geoTargeting, deviceTargeting).run();
-                });
+                    INSERT INTO links (id, user_id, domain_name, slug, short_url, target_url, clicks_count, is_active, routing_rules, geo_targeting, device_targeting, og_image, og_title, og_description, meta_title, card_format, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+                  `).bind(id, userId, domainName, slug, shortUrl, targetUrl, isActive, routingRules, geoTargeting, deviceTargeting, ogImage, ogTitle, ogDescription, metaTitle, cardFormat).run();
+                } catch (insColErr2) {
+                  await env.DB.prepare(`
+                    INSERT INTO links (id, user_id, domain_name, slug, short_url, target_url, clicks_count, is_active, routing_rules, geo_targeting, device_targeting, og_image, og_title, og_description, meta_title, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+                  `).bind(id, userId, domainName, slug, shortUrl, targetUrl, isActive, routingRules, geoTargeting, deviceTargeting, ogImage, ogTitle, ogDescription, metaTitle).run().catch(async () => {
+                    await env.DB.prepare(`
+                      INSERT INTO links (id, user_id, domain_name, slug, short_url, target_url, clicks_count, is_active, routing_rules, geo_targeting, device_targeting, created_at)
+                      VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, datetime('now'))
+                    `).bind(id, userId, domainName, slug, shortUrl, targetUrl, isActive, routingRules, geoTargeting, deviceTargeting).run();
+                  });
+                }
               }
             } catch (dbErr) {
               console.warn('[D1 Non-Fatal Insert Error]:', dbErr);
@@ -683,8 +692,8 @@ export default {
           const ogTitle = body.ogTitle !== undefined ? body.ogTitle : (body.og_title !== undefined ? body.og_title : (body.metaTitle || body.meta_title || existingLink?.og_title || ''));
           const ogDescription = body.ogDescription !== undefined ? body.ogDescription : (body.og_description !== undefined ? body.og_description : (existingLink?.og_description || ''));
           const metaTitle = body.metaTitle !== undefined ? body.metaTitle : (body.meta_title !== undefined ? body.meta_title : ogTitle);
-          const rawCard = body.twitterCard !== undefined ? body.twitterCard : (body.twitter_card !== undefined ? body.twitter_card : (existingLink?.twitter_card || existingLink?.twitterCard || 'summary_large_image'));
-          const twitterCard = rawCard === 'summary' ? 'summary' : 'summary_large_image';
+          const rawCard = body.cardFormat !== undefined ? body.cardFormat : (body.card_format !== undefined ? body.card_format : (body.twitterCard !== undefined ? body.twitterCard : (body.twitter_card !== undefined ? body.twitter_card : (existingLink?.card_format || existingLink?.cardFormat || existingLink?.twitter_card || existingLink?.twitterCard || 'summary_large_image'))));
+          const cardFormat = rawCard === 'summary' ? 'summary' : 'summary_large_image';
 
           const updatedLinkObj = {
             ...existingLink,
@@ -707,8 +716,10 @@ export default {
             ogDescription,
             meta_title: metaTitle,
             metaTitle,
-            twitter_card: twitterCard,
-            twitterCard,
+            card_format: cardFormat,
+            cardFormat,
+            twitter_card: cardFormat,
+            twitterCard: cardFormat,
             updated_at: new Date().toISOString(),
           };
 
@@ -738,6 +749,7 @@ export default {
                     og_title = ?, 
                     og_description = ?, 
                     meta_title = ?,
+                    card_format = ?,
                     twitter_card = ?,
                     updated_at = datetime('now')
                   WHERE id = ? OR LOWER(slug) = LOWER(?)
@@ -754,43 +766,81 @@ export default {
                   ogTitle,
                   ogDescription,
                   metaTitle,
-                  twitterCard,
+                  cardFormat,
+                  cardFormat,
                   id,
                   slug
                 ).run();
               } catch (colErr) {
-                res = await env.DB.prepare(`
-                  UPDATE links SET 
-                    target_url = ?, 
-                    slug = ?, 
-                    domain_name = ?, 
-                    short_url = ?, 
-                    is_active = ?, 
-                    routing_rules = ?, 
-                    geo_targeting = ?, 
-                    device_targeting = ?, 
-                    og_image = ?, 
-                    og_title = ?, 
-                    og_description = ?, 
-                    meta_title = ?,
-                    updated_at = datetime('now')
-                  WHERE id = ? OR LOWER(slug) = LOWER(?)
-                `).bind(
-                  targetUrl,
-                  slug,
-                  domainName,
-                  shortUrl,
-                  isActive,
-                  routingRules,
-                  geoTargeting,
-                  deviceTargeting,
-                  ogImage,
-                  ogTitle,
-                  ogDescription,
-                  metaTitle,
-                  id,
-                  slug
-                ).run();
+                try {
+                  res = await env.DB.prepare(`
+                    UPDATE links SET 
+                      target_url = ?, 
+                      slug = ?, 
+                      domain_name = ?, 
+                      short_url = ?, 
+                      is_active = ?, 
+                      routing_rules = ?, 
+                      geo_targeting = ?, 
+                      device_targeting = ?, 
+                      og_image = ?, 
+                      og_title = ?, 
+                      og_description = ?, 
+                      meta_title = ?,
+                      card_format = ?,
+                      updated_at = datetime('now')
+                    WHERE id = ? OR LOWER(slug) = LOWER(?)
+                  `).bind(
+                    targetUrl,
+                    slug,
+                    domainName,
+                    shortUrl,
+                    isActive,
+                    routingRules,
+                    geoTargeting,
+                    deviceTargeting,
+                    ogImage,
+                    ogTitle,
+                    ogDescription,
+                    metaTitle,
+                    cardFormat,
+                    id,
+                    slug
+                  ).run();
+                } catch (colErr2) {
+                  res = await env.DB.prepare(`
+                    UPDATE links SET 
+                      target_url = ?, 
+                      slug = ?, 
+                      domain_name = ?, 
+                      short_url = ?, 
+                      is_active = ?, 
+                      routing_rules = ?, 
+                      geo_targeting = ?, 
+                      device_targeting = ?, 
+                      og_image = ?, 
+                      og_title = ?, 
+                      og_description = ?, 
+                      meta_title = ?,
+                      updated_at = datetime('now')
+                    WHERE id = ? OR LOWER(slug) = LOWER(?)
+                  `).bind(
+                    targetUrl,
+                    slug,
+                    domainName,
+                    shortUrl,
+                    isActive,
+                    routingRules,
+                    geoTargeting,
+                    deviceTargeting,
+                    ogImage,
+                    ogTitle,
+                    ogDescription,
+                    metaTitle,
+                    id,
+                    slug
+                  ).run();
+                }
               }
 
               if (!res?.meta?.changes && !existingLink) {
