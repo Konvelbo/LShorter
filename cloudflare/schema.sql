@@ -28,13 +28,31 @@ CREATE TABLE IF NOT EXISTS links (
   routing_rules TEXT,
   geo_targeting TEXT,
   device_targeting TEXT,
-  created_at TEXT DEFAULT (datetime('now'))
+  og_image TEXT,
+  og_title TEXT,
+  og_description TEXT,
+  meta_title TEXT,
+  twitter_card TEXT DEFAULT 'summary_large_image',
+  password TEXT,
+  is_cloaked INTEGER DEFAULT 0,
+  hide_referrer INTEGER DEFAULT 0,
+  expires_at TEXT,
+  max_clicks INTEGER,
+  fallback_url TEXT,
+  ab_variations TEXT,
+  main_weight INTEGER DEFAULT 100,
+  redirect_type TEXT DEFAULT '302',
+  pass_params INTEGER DEFAULT 1,
+  tags TEXT,
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now'))
 );
 
 -- Crucial Indexes for Links (Eliminates full table scans)
 CREATE INDEX IF NOT EXISTS idx_links_user_id ON links(user_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_links_slug ON links(slug);
 CREATE INDEX IF NOT EXISTS idx_links_created_at ON links(created_at);
+CREATE INDEX IF NOT EXISTS idx_links_twitter_card ON links(twitter_card);
 
 -- 3. Analytics Events Table
 CREATE TABLE IF NOT EXISTS analytics_events (

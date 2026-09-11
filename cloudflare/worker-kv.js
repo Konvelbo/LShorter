@@ -191,7 +191,7 @@ export default {
         const safeDesc = escapeHtml(ogDescription || 'Cliquez pour ouvrir le lien.');
         const safeImg = escapeHtml(publicImageUrl.replace(/&amp;/g, '&'));
         const safeCanonical = escapeHtml(canonical);
-        const safeCard = escapeHtml(twitterCard);
+        const safeCard = escapeHtml(twitterCard === 'summary' ? 'summary' : 'summary_large_image');
 
         const html = `<!DOCTYPE html>
 <html lang="fr" prefix="og: http://ogp.me/ns#">
@@ -212,8 +212,8 @@ export default {
   ${safeImg ? `<meta property="og:image:url" content="${safeImg}" />` : ''}
   ${safeImg ? `<meta property="og:image:secure_url" content="${safeImg}" />` : ''}
   ${safeImg ? `<meta property="og:image:type" content="image/jpeg" />` : ''}
-  ${safeImg ? `<meta property="og:image:width" content="1200" />` : ''}
-  ${safeImg ? `<meta property="og:image:height" content="630" />` : ''}
+  ${safeImg ? `<meta property="og:image:width" content="${safeCard === 'summary' ? '300' : '1200'}" />` : ''}
+  ${safeImg ? `<meta property="og:image:height" content="${safeCard === 'summary' ? '300' : '630'}" />` : ''}
   ${safeImg ? `<meta property="og:image:alt" content="${safeTitle}" />` : ''}
 
   <!-- Twitter / X Cards -->
@@ -499,7 +499,8 @@ export default {
         } else {
           if (env.LINKS_KV) {
             try {
-              const cached = await env.LINKS_KV.get(linkIdOrSlug);
+              let cached = await env.LINKS_KV.get(linkIdOrSlug);
+              if (!cached && linkIdOrSlug) cached = await env.LINKS_KV.get(linkIdOrSlug.toLowerCase());
               if (cached && cached !== 'NOT_FOUND') {
                 return jsonResponse({ success: true, data: JSON.parse(cached) });
               }
@@ -541,7 +542,7 @@ export default {
           const ogTitle = body.ogTitle || body.og_title || body.metaTitle || body.meta_title || '';
           const ogDescription = body.ogDescription || body.og_description || '';
           const metaTitle = body.metaTitle || body.meta_title || ogTitle || '';
-          const twitterCard = body.twitterCard || body.twitter_card || 'summary_large_image';
+          const twitterCard = (body.twitterCard === 'summary' || body.twitter_card === 'summary') ? 'summary' : 'summary_large_image';
 
           const linkObj = {
             id,
@@ -682,7 +683,8 @@ export default {
           const ogTitle = body.ogTitle !== undefined ? body.ogTitle : (body.og_title !== undefined ? body.og_title : (body.metaTitle || body.meta_title || existingLink?.og_title || ''));
           const ogDescription = body.ogDescription !== undefined ? body.ogDescription : (body.og_description !== undefined ? body.og_description : (existingLink?.og_description || ''));
           const metaTitle = body.metaTitle !== undefined ? body.metaTitle : (body.meta_title !== undefined ? body.meta_title : ogTitle);
-          const twitterCard = body.twitterCard !== undefined ? body.twitterCard : (body.twitter_card !== undefined ? body.twitter_card : (existingLink?.twitter_card || existingLink?.twitterCard || 'summary_large_image'));
+          const rawCard = body.twitterCard !== undefined ? body.twitterCard : (body.twitter_card !== undefined ? body.twitter_card : (existingLink?.twitter_card || existingLink?.twitterCard || 'summary_large_image'));
+          const twitterCard = rawCard === 'summary' ? 'summary' : 'summary_large_image';
 
           const updatedLinkObj = {
             ...existingLink,
