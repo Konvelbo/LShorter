@@ -435,7 +435,7 @@ export default function LinksPage() {
     const idsToDelete = [...deleteTarget.ids];
 
     // 1. Optimistic removal: remove immediately from UI
-    setLinks((prev) => prev.filter((l) => !idsToDelete.includes(l.id)));
+    setLinks((prev) => prev.filter((l) => !idsToDelete.includes(l.id) && !idsToDelete.includes(l.slug)));
     setSelectedLinkIds((prev) => {
       const next = new Set(prev);
       idsToDelete.forEach((id) => next.delete(id));
@@ -446,7 +446,7 @@ export default function LinksPage() {
       // 2. Perform API delete calls in parallel (including associated Bunny CDN image cleanup)
       await Promise.all(
         idsToDelete.map((id) => {
-          const target = links.find((l) => l.id === id);
+          const target = links.find((l) => l.id === id || l.slug === id);
           return cfDeleteLink(id, userId, target?.slug, target?.ogImage);
         }),
       );

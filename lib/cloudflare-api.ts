@@ -44,11 +44,17 @@ export function sanitizeClientError(raw: any): string {
 export function cfInvalidateCache(pattern?: string) {
   if (!pattern) {
     apiCache.clear();
+    inFlightRequests.clear();
     return;
   }
   for (const key of apiCache.keys()) {
     if (key.includes(pattern)) {
       apiCache.delete(key);
+    }
+  }
+  for (const key of inFlightRequests.keys()) {
+    if (key.includes(pattern)) {
+      inFlightRequests.delete(key);
     }
   }
 }
@@ -74,7 +80,7 @@ async function cfFetch<T>(
     }
   }
 
-  // 2. Invalidate cache on mutations
+  // 2. Invalidate cache on mutations before sending
   if (isBrowser && method !== "GET") {
     cfInvalidateCache();
   }
@@ -109,6 +115,7 @@ async function cfFetch<T>(
       }
 
       if (isBrowser && method !== "GET") {
+        cfInvalidateCache(); // clear again so no in-flight stale GET pollutes cache
         window.dispatchEvent(new CustomEvent("lshorter_data_change"));
       }
 

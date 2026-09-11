@@ -189,39 +189,7 @@ export async function POST(req: Request) {
       }
     }
 
-    // 1. Persist in local store
-    if (body.slug) {
-      try {
-        saveProtectedLink({
-          slug: body.slug,
-          password: body.password || undefined,
-          isCloaked: Boolean(body.isCloaked || body.is_cloaked),
-          metaTitle: body.metaTitle || body.meta_title || body.ogTitle || body.og_title || undefined,
-          ogTitle: body.ogTitle || body.og_title || body.metaTitle || body.meta_title || undefined,
-          ogDescription: body.ogDescription || body.og_description || undefined,
-          ogImage: sanitizedOgImage || undefined,
-          twitterCard: body.twitterCard || body.twitter_card || undefined,
-          targetUrl: body.targetUrl || body.target_url,
-          routingRules: body.routingRules || body.routing_rules || undefined,
-          geoTargeting: body.geoTargeting || body.geo_targeting || undefined,
-          deviceTargeting: body.deviceTargeting || body.device_targeting || undefined,
-          maxClicks: body.maxClicks !== undefined ? Number(body.maxClicks) : undefined,
-          fallbackUrl: body.fallbackUrl || body.fallback_url || undefined,
-          abVariations: body.abVariations || body.ab_variations || undefined,
-          mainWeight: body.mainWeight !== undefined ? Number(body.mainWeight) : undefined,
-          redirectType: body.redirectType || body.redirect_type || undefined,
-          passParams: body.passParams !== undefined ? Boolean(body.passParams) : body.pass_params !== undefined ? Boolean(body.pass_params) : undefined,
-          userId: body.userId,
-          isActive: body.isActive !== false && body.is_active !== 0,
-          expiresAt: body.expiresAt || body.expires_at || undefined,
-        });
-        invalidateBotResponseCache(body.slug);
-      } catch (storeErr) {
-        console.warn("[ProtectedLinkStore] Non-fatal save warning:", storeErr);
-      }
-    }
-
-    // 2. Forward to Cloudflare Worker D1 & KV
+    // 1. Forward to Cloudflare Worker D1 & KV
     const workerPayload = {
       ...body,
       targetUrl: body.targetUrl || body.target_url,
@@ -276,6 +244,33 @@ export async function POST(req: Request) {
       // If local store succeeded and worker returned 500/quota limit, return success with local data
       if (res.status >= 500 && body.slug) {
         console.warn("[Links Proxy POST] Worker error, falling back to local store:", data);
+        try {
+          saveProtectedLink({
+            slug: body.slug,
+            password: body.password || undefined,
+            isCloaked: Boolean(body.isCloaked || body.is_cloaked),
+            metaTitle: body.metaTitle || body.meta_title || body.ogTitle || body.og_title || undefined,
+            ogTitle: body.ogTitle || body.og_title || body.metaTitle || body.meta_title || undefined,
+            ogDescription: body.ogDescription || body.og_description || undefined,
+            ogImage: sanitizedOgImage || undefined,
+            twitterCard: body.twitterCard || body.twitter_card || undefined,
+            targetUrl: body.targetUrl || body.target_url,
+            routingRules: body.routingRules || body.routing_rules || undefined,
+            geoTargeting: body.geoTargeting || body.geo_targeting || undefined,
+            deviceTargeting: body.deviceTargeting || body.device_targeting || undefined,
+            maxClicks: body.maxClicks !== undefined ? Number(body.maxClicks) : undefined,
+            fallbackUrl: body.fallbackUrl || body.fallback_url || undefined,
+            abVariations: body.abVariations || body.ab_variations || undefined,
+            mainWeight: body.mainWeight !== undefined ? Number(body.mainWeight) : undefined,
+            redirectType: body.redirectType || body.redirect_type || undefined,
+            passParams: body.passParams !== undefined ? Boolean(body.passParams) : body.pass_params !== undefined ? Boolean(body.pass_params) : undefined,
+            userId: body.userId,
+            isActive: body.isActive !== false && body.is_active !== 0,
+            expiresAt: body.expiresAt || body.expires_at || undefined,
+          });
+          invalidateBotResponseCache(body.slug);
+        } catch {}
+
         return NextResponse.json(
           {
             success: true,
@@ -312,6 +307,38 @@ export async function POST(req: Request) {
         },
         { status: res.status }
       );
+    }
+
+    // Persist in local store after successful creation
+    if (body.slug) {
+      try {
+        saveProtectedLink({
+          slug: body.slug,
+          password: body.password || undefined,
+          isCloaked: Boolean(body.isCloaked || body.is_cloaked),
+          metaTitle: body.metaTitle || body.meta_title || body.ogTitle || body.og_title || undefined,
+          ogTitle: body.ogTitle || body.og_title || body.metaTitle || body.meta_title || undefined,
+          ogDescription: body.ogDescription || body.og_description || undefined,
+          ogImage: sanitizedOgImage || undefined,
+          twitterCard: body.twitterCard || body.twitter_card || undefined,
+          targetUrl: body.targetUrl || body.target_url,
+          routingRules: body.routingRules || body.routing_rules || undefined,
+          geoTargeting: body.geoTargeting || body.geo_targeting || undefined,
+          deviceTargeting: body.deviceTargeting || body.device_targeting || undefined,
+          maxClicks: body.maxClicks !== undefined ? Number(body.maxClicks) : undefined,
+          fallbackUrl: body.fallbackUrl || body.fallback_url || undefined,
+          abVariations: body.abVariations || body.ab_variations || undefined,
+          mainWeight: body.mainWeight !== undefined ? Number(body.mainWeight) : undefined,
+          redirectType: body.redirectType || body.redirect_type || undefined,
+          passParams: body.passParams !== undefined ? Boolean(body.passParams) : body.pass_params !== undefined ? Boolean(body.pass_params) : undefined,
+          userId: body.userId,
+          isActive: body.isActive !== false && body.is_active !== 0,
+          expiresAt: body.expiresAt || body.expires_at || undefined,
+        });
+        invalidateBotResponseCache(body.slug);
+      } catch (storeErr) {
+        console.warn("[ProtectedLinkStore] Non-fatal save warning:", storeErr);
+      }
     }
 
     return NextResponse.json(

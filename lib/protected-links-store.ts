@@ -209,9 +209,15 @@ export function recordLinkClick(slug: string): { isAllowed: boolean; fallbackUrl
   return { isAllowed: true, newCount: nextClicks };
 }
 
-export function deleteProtectedLink(slug: string) {
-  if (!slug) return;
-  memoryStore.delete(slug.toLowerCase());
+export function deleteProtectedLink(slugOrId: string) {
+  if (!slugOrId) return;
+  const k = slugOrId.toLowerCase();
+  memoryStore.delete(k);
+  for (const [key, item] of Array.from(memoryStore.entries())) {
+    if (key === k || item.slug?.toLowerCase() === k || (item as any).id?.toLowerCase() === k) {
+      memoryStore.delete(key);
+    }
+  }
   persistStore();
 }
 

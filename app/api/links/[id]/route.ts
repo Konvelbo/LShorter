@@ -363,12 +363,16 @@ export async function DELETE(
 
     // 2. Delete from local memory store (by ID and slug)
     try {
-      if (slug) deleteProtectedLink(slug);
+      if (slug) {
+        deleteProtectedLink(slug);
+        invalidateBotResponseCache(slug);
+      }
       deleteProtectedLink(id);
+      invalidateBotResponseCache(id);
     } catch {}
 
     // 3. Delete from Worker
-    const url = new URL(`${WORKER_URL}/api/v1/links/${id}`);
+    const url = new URL(`${WORKER_URL}/api/v1/links/${encodeURIComponent(id)}`);
     if (userId) url.searchParams.set("userId", userId);
     if (slug) url.searchParams.set("slug", slug);
 

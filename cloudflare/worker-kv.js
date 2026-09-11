@@ -524,7 +524,7 @@ export default {
       if (method === 'POST') {
         try {
           const body = await request.json();
-          const id = body.id || ('link_' + Date.now());
+          const id = body.id || ('link_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7));
           const slug = (body.slug || Math.random().toString(36).substring(2, 8)).trim();
           const userId = body.userId || body.user_id || 'usr_default';
           const domainName = body.domainName || body.domain_name || 'lsho.cc';
@@ -571,17 +571,30 @@ export default {
           const sanitizeError = (err) => {
             const msg = String(err?.message || err || '');
             const lower = msg.toLowerCase();
-            if (lower.includes('unique') || lower.includes('idx_links_slug') || lower.includes('sqlite_constraint_unique')) {
+            if (lower.includes('idx_links_slug') || lower.includes('links.slug') || (lower.includes('unique') && lower.includes('slug'))) {
               return 'Ce slug personnalisé est déjà utilisé. Veuillez en choisir un autre.';
             }
-            if (lower.includes('foreign key') || lower.includes('sqlite_constraint')) {
+            if (lower.includes('foreign key') || lower.includes('sqlite_constraint_foreignkey')) {
               return 'Erreur de synchronisation du compte utilisateur. Veuillez réessayer.';
             }
             if (lower.includes('d1_error') || lower.includes('sqlite') || lower.includes('syntax error')) {
-              return 'Une erreur interne est survenue. Veuillez réessayer.';
+              return 'Une erreur interne est survenue lors de la création du lien. Veuillez réessayer.';
             }
             return msg || 'Une erreur est survenue.';
           };
+
+          if (env.DB && slug) {
+            try {
+              const existing = await env.DB.prepare('SELECT id, user_id FROM links WHERE LOWER(slug) = LOWER(?) LIMIT 1').bind(slug).first();
+              if (existing) {
+                if (existing.user_id && existing.user_id !== userId) {
+                  return jsonResponse({ success: false, error: 'Ce slug personnalisé est déjà utilisé. Veuillez en choisir un autre.' }, 400);
+                }
+                // If it belongs to this same user (stale or replacing), clean it up first
+                await env.DB.prepare('DELETE FROM links WHERE id = ? OR LOWER(slug) = LOWER(?)').bind(existing.id, slug).run().catch(() => {});
+              }
+            } catch {}
+          }
 
           if (env.LINKS_KV) {
             await env.LINKS_KV.put(slug, JSON.stringify(linkObj));
@@ -602,16 +615,23 @@ export default {
                 } catch {}
               }
 
-              // 2. Insert into links table
-              await env.DB.prepare(`
-                INSERT INTO links (id, user_id, domain_name, slug, short_url, target_url, clicks_count, is_active, routing_rules, geo_targeting, device_targeting, og_image, og_title, og_description, meta_title, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-              `).bind(id, userId, domainName, slug, shortUrl, targetUrl, isActive, routingRules, geoTargeting, deviceTargeting, ogImage, ogTitle, ogDescription, metaTitle).run().catch(async () => {
+              // 2. Insert into links table (try with twitter_card column, fallback to standard)
+              try {
                 await env.DB.prepare(`
-                  INSERT INTO links (id, user_id, domain_name, slug, short_url, target_url, clicks_count, is_active, routing_rules, geo_targeting, device_targeting, created_at)
-                  VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, datetime('now'))
-                `).bind(id, userId, domainName, slug, shortUrl, targetUrl, isActive, routingRules, geoTargeting, deviceTargeting).run();
-              });
+                  INSERT INTO links (id, user_id, domain_name, slug, short_url, target_url, clicks_count, is_active, routing_rules, geo_targeting, device_targeting, og_image, og_title, og_description, meta_title, twitter_card, created_at)
+                  VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+                `).bind(id, userId, domainName, slug, shortUrl, targetUrl, isActive, routingRules, geoTargeting, deviceTargeting, ogImage, ogTitle, ogDescription, metaTitle, twitterCard).run();
+              } catch (insColErr) {
+                await env.DB.prepare(`
+                  INSERT INTO links (id, user_id, domain_name, slug, short_url, target_url, clicks_count, is_active, routing_rules, geo_targeting, device_targeting, og_image, og_title, og_description, meta_title, created_at)
+                  VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+                `).bind(id, userId, domainName, slug, shortUrl, targetUrl, isActive, routingRules, geoTargeting, deviceTargeting, ogImage, ogTitle, ogDescription, metaTitle).run().catch(async () => {
+                  await env.DB.prepare(`
+                    INSERT INTO links (id, user_id, domain_name, slug, short_url, target_url, clicks_count, is_active, routing_rules, geo_targeting, device_targeting, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, datetime('now'))
+                  `).bind(id, userId, domainName, slug, shortUrl, targetUrl, isActive, routingRules, geoTargeting, deviceTargeting).run();
+                });
+              }
             } catch (dbErr) {
               console.warn('[D1 Non-Fatal Insert Error]:', dbErr);
             }
@@ -800,17 +820,51 @@ export default {
       // DELETE /api/v1/links/:id
       if (method === 'DELETE') {
         try {
-          const idOrSlug = linkIdOrSlug || url.searchParams.get('id') || url.searchParams.get('slug');
-          if (!idOrSlug) return jsonResponse({ success: false, error: 'Identifiant requis' }, 400);
+          const idParam = (linkIdOrSlug || url.searchParams.get('id') || '').trim();
+          const slugParam = (url.searchParams.get('slug') || (idParam && !idParam.startsWith('link_') ? idParam : '')).trim();
 
-          if (env.LINKS_KV) {
-            await env.LINKS_KV.delete(idOrSlug);
+          if (!idParam && !slugParam) {
+            return jsonResponse({ success: false, error: 'Identifiant ou slug requis' }, 400);
           }
 
+          // 1. Delete all possible keys from KV (id, slug, lowercase slug)
+          if (env.LINKS_KV) {
+            if (idParam) {
+              await env.LINKS_KV.delete(idParam);
+              await env.LINKS_KV.delete(idParam.toLowerCase());
+            }
+            if (slugParam) {
+              await env.LINKS_KV.delete(slugParam);
+              await env.LINKS_KV.delete(slugParam.toLowerCase());
+            }
+          }
+
+          // 2. Delete from D1 matching id OR matching slug (case-insensitive)
           if (env.DB) {
             try {
-              await env.DB.prepare('DELETE FROM links WHERE id = ? OR slug = ?').bind(idOrSlug, idOrSlug).run();
-            } catch {}
+              if (idParam && slugParam) {
+                await env.DB.prepare(`
+                  DELETE FROM links 
+                  WHERE id = ? 
+                     OR LOWER(slug) = LOWER(?) 
+                     OR id = ? 
+                     OR LOWER(slug) = LOWER(?)
+                `).bind(idParam, slugParam, slugParam, idParam).run();
+              } else if (idParam) {
+                await env.DB.prepare(`
+                  DELETE FROM links 
+                  WHERE id = ? 
+                     OR LOWER(slug) = LOWER(?)
+                `).bind(idParam, idParam).run();
+              } else if (slugParam) {
+                await env.DB.prepare(`
+                  DELETE FROM links 
+                  WHERE LOWER(slug) = LOWER(?)
+                `).bind(slugParam).run();
+              }
+            } catch (dbErr) {
+              console.warn('[D1 Delete Error]:', dbErr);
+            }
           }
 
           return jsonResponse({ success: true });
