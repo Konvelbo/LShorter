@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { saveProtectedLink, getProtectedLink, getAllProtectedLinks } from "@/lib/protected-links-store";
 import { uploadToBunny } from "@/lib/bunny";
+import { invalidateBotResponseCache } from "@/app/r/[slug]/route";
 
 const WORKER_URL =
   process.env.NEXT_PUBLIC_BACKEND_API_URL ||
@@ -62,6 +63,8 @@ export async function GET(req: Request) {
         ogDescription: l.ogDescription || l.og_description || local?.ogDescription,
         og_image: l.og_image || l.ogImage || local?.ogImage,
         ogImage: l.ogImage || l.og_image || local?.ogImage,
+        twitter_card: l.twitter_card || l.twitterCard || local?.twitterCard || "summary_large_image",
+        twitterCard: l.twitterCard || l.twitter_card || local?.twitterCard || "summary_large_image",
         password: l.password || local?.password,
         has_password: Boolean(l.password || l.has_password || local?.password),
         is_cloaked: l.is_cloaked !== undefined ? l.is_cloaked : local?.isCloaked ? 1 : 0,
@@ -121,6 +124,8 @@ export async function GET(req: Request) {
             ogDescription: local.ogDescription,
             og_image: local.ogImage,
             ogImage: local.ogImage,
+            twitter_card: local.twitterCard || "summary_large_image",
+            twitterCard: local.twitterCard || "summary_large_image",
             password: local.password,
             has_password: Boolean(local.password),
             is_cloaked: local.isCloaked ? 1 : 0,
@@ -208,6 +213,7 @@ export async function POST(req: Request) {
           isActive: body.isActive !== false && body.is_active !== 0,
           expiresAt: body.expiresAt || body.expires_at || undefined,
         });
+        invalidateBotResponseCache(body.slug);
       } catch (storeErr) {
         console.warn("[ProtectedLinkStore] Non-fatal save warning:", storeErr);
       }

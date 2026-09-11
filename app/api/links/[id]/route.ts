@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { saveProtectedLink, deleteProtectedLink, getProtectedLink } from "@/lib/protected-links-store";
 import { deleteFromBunny, uploadToBunny } from "@/lib/bunny";
+import { invalidateBotResponseCache } from "@/app/r/[slug]/route";
 
 const WORKER_URL =
   process.env.NEXT_PUBLIC_BACKEND_API_URL ||
@@ -66,6 +67,7 @@ export async function PATCH(
           redirectType: body.redirectType || body.redirect_type || undefined,
           passParams: body.passParams !== undefined ? Boolean(body.passParams) : body.pass_params !== undefined ? Boolean(body.pass_params) : undefined,
         });
+        invalidateBotResponseCache(body.slug || id);
       } catch (storeErr) {
         console.warn("[ProtectedLinkStore] Non-fatal save warning:", storeErr);
       }

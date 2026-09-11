@@ -250,6 +250,14 @@ function escapeHtml(str: string = "") {
 
 const botResponseCache = new Map<string, { body: string; headers: Record<string, string>; expiresAt: number }>();
 
+export function invalidateBotResponseCache(slug?: string) {
+  if (slug) {
+    botResponseCache.delete(slug.toLowerCase());
+  } else {
+    botResponseCache.clear();
+  }
+}
+
 function renderSocialHtml(meta: {
   title: string;
   description: string;
@@ -424,7 +432,7 @@ export async function GET(
                 "Content-Type": "text/html; charset=utf-8",
                 "Cache-Control": "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400",
               };
-              botResponseCache.set(slug, { body: edgeHtml, headers, expiresAt: Date.now() + 600000 });
+              botResponseCache.set(slug, { body: edgeHtml, headers, expiresAt: Date.now() + 30000 });
               return new Response(edgeHtml, { status: 200, headers });
             }
           }
@@ -454,7 +462,7 @@ export async function GET(
         "Content-Type": "text/html; charset=utf-8",
         "Cache-Control": "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400",
       };
-      botResponseCache.set(slug, { body: bodyText, headers, expiresAt: Date.now() + 600000 });
+      botResponseCache.set(slug, { body: bodyText, headers, expiresAt: Date.now() + 30000 });
       return new Response(bodyText, { status: 200, headers });
     }
 

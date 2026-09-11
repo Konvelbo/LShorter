@@ -541,6 +541,7 @@ export default {
           const ogTitle = body.ogTitle || body.og_title || body.metaTitle || body.meta_title || '';
           const ogDescription = body.ogDescription || body.og_description || '';
           const metaTitle = body.metaTitle || body.meta_title || ogTitle || '';
+          const twitterCard = body.twitterCard || body.twitter_card || 'summary_large_image';
 
           const linkObj = {
             id,
@@ -562,6 +563,8 @@ export default {
             ogDescription,
             meta_title: metaTitle,
             metaTitle,
+            twitter_card: twitterCard,
+            twitterCard,
             created_at: new Date().toISOString(),
           };
 
@@ -659,6 +662,7 @@ export default {
           const ogTitle = body.ogTitle !== undefined ? body.ogTitle : (body.og_title !== undefined ? body.og_title : (body.metaTitle || body.meta_title || existingLink?.og_title || ''));
           const ogDescription = body.ogDescription !== undefined ? body.ogDescription : (body.og_description !== undefined ? body.og_description : (existingLink?.og_description || ''));
           const metaTitle = body.metaTitle !== undefined ? body.metaTitle : (body.meta_title !== undefined ? body.meta_title : ogTitle);
+          const twitterCard = body.twitterCard !== undefined ? body.twitterCard : (body.twitter_card !== undefined ? body.twitter_card : (existingLink?.twitter_card || existingLink?.twitterCard || 'summary_large_image'));
 
           const updatedLinkObj = {
             ...existingLink,
@@ -681,6 +685,8 @@ export default {
             ogDescription,
             meta_title: metaTitle,
             metaTitle,
+            twitter_card: twitterCard,
+            twitterCard,
             updated_at: new Date().toISOString(),
           };
 
