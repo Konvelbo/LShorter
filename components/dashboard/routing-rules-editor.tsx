@@ -231,6 +231,21 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
     onChange(rules.filter((r) => r.id !== ruleId));
   };
 
+  const getDefaultValueForType = (type: string): string => {
+    switch (type) {
+      case "pays":
+        return "BF";
+      case "appareil":
+        return "mobile";
+      case "plateforme":
+        return "windows";
+      case "region":
+        return "west_africa";
+      default:
+        return "mobile";
+    }
+  };
+
   const handleAddCondition = (ruleId: string) => {
     if (!isProPlan) {
       triggerPlanUpgrade({
@@ -249,9 +264,9 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
               ...r.conditions,
               {
                 id: `cond_${Date.now()}`,
-                type: "plateforme",
+                type: "appareil",
                 operator: "est",
-                value: "ios",
+                value: "mobile",
               },
             ],
           };
@@ -292,11 +307,8 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
     if (updates.type) {
       const currentRule = rules.find((r) => r.id === ruleId);
       const currentCond = currentRule?.conditions.find((c) => c.id === condId);
-      if (currentCond && currentCond.type !== updates.type && !updates.value) {
-        if (updates.type === "pays") finalUpdates.value = "FR";
-        else if (updates.type === "plateforme") finalUpdates.value = "ios";
-        else if (updates.type === "appareil") finalUpdates.value = "mobile";
-        else if (updates.type === "region") finalUpdates.value = "europe";
+      if (!updates.value || (currentCond && currentCond.type !== updates.type)) {
+        finalUpdates.value = getDefaultValueForType(updates.type);
       }
     }
 
@@ -415,7 +427,7 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                             onChange={(e) =>
                               handleUpdateCondition(rule.id, cond.id, {
                                 type: e.target.value as any,
-                                value: e.target.value === "pays" ? "FR" : "ios",
+                                value: getDefaultValueForType(e.target.value),
                               })
                             }
                             className="w-full h-10 rounded-[10px] bg-[#1a1a1e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
