@@ -209,7 +209,6 @@ function isSocialCrawler(ua: string): boolean {
     lower.includes("discordbot") ||
     lower.includes("slackbot") ||
     lower.includes("slack-imgbatcher") ||
-    lower.includes("pinterestbot") ||
     lower.includes("pinterest") ||
     lower.includes("skypeuripreview") ||
     lower.includes("google-structured-data-testing-tool") ||
@@ -219,7 +218,24 @@ function isSocialCrawler(ua: string): boolean {
     lower.includes("yandexbot") ||
     lower.includes("duckduckbot") ||
     lower.includes("baiduspider") ||
-    lower.includes("ia_archiver")
+    lower.includes("ia_archiver") ||
+    lower.includes("opengraph") ||
+    lower.includes("meta-tag") ||
+    lower.includes("crawler") ||
+    lower.includes("spider") ||
+    lower.includes("scraper") ||
+    lower.includes("validator") ||
+    lower.includes("preview") ||
+    lower.includes("embedly") ||
+    lower.includes("quora") ||
+    lower.includes("vkshare") ||
+    lower.includes("w3c") ||
+    lower.includes("reddit") ||
+    lower.includes("mastodon") ||
+    lower.includes("curl") ||
+    lower.includes("wget") ||
+    lower.includes("http-client") ||
+    lower.includes("bot")
   );
 }
 
@@ -334,8 +350,10 @@ export async function GET(
         return new Response(cached.body, { status: 200, headers: cached.headers });
       }
 
-      // Check in-memory store, or fetch directly from backend worker if cache miss
+      // Check in-memory store
       let localMeta = getProtectedLink(slug);
+
+      // If not found in memory, query Cloudflare Worker API
       if (!localMeta) {
         try {
           const linkRes = await fetch(`${WORKER_URL}/api/v1/links/${encodeURIComponent(slug)}`, {
@@ -365,29 +383,56 @@ export async function GET(
         }
       }
 
-      if (localMeta && (localMeta.ogImage || localMeta.ogTitle || localMeta.ogDescription || localMeta.metaTitle)) {
-        let fullOgImage = localMeta.ogImage || "";
-        if (fullOgImage && !fullOgImage.startsWith("http") && !fullOgImage.startsWith("data:")) {
-          try {
-            const origin = new URL(req.url).origin;
-            fullOgImage = `${origin}${fullOgImage.startsWith("/") ? "" : "/"}${fullOgImage}`;
-          } catch {}
+      // If still missing metadata, probe Cloudflare Worker edge directly with bot header
+      if (!localMeta || (!localMeta.ogImage && !localMeta.ogTitle && !localMeta.ogDescription)) {
+        try {
+          const edgeRes = await fetch(`${WORKER_URL}/r/${encodeURIComponent(slug)}`, {
+            method: "GET",
+            headers: {
+              "User-Agent": "Twitterbot/1.0",
+              "CF-IPCountry": "FR",
+            },
+            cache: "no-store",
+          }).catch(() => null);
+
+          if (edgeRes && edgeRes.ok && (edgeRes.headers.get("content-type") || "").includes("text/html")) {
+            const edgeHtml = await edgeRes.text();
+            if (edgeHtml && edgeHtml.includes("<title>")) {
+              const headers = {
+                "Content-Type": "text/html; charset=utf-8",
+                "Cache-Control": "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400",
+              };
+              botResponseCache.set(slug, { body: edgeHtml, headers, expiresAt: Date.now() + 600000 });
+              return new Response(edgeHtml, { status: 200, headers });
+            }
+          }
+        } catch (edgeErr) {
+          console.warn("[Crawler Edge Fetch Warning]:", edgeErr);
         }
-        const resp = renderSocialHtml({
-          title: localMeta.ogTitle || localMeta.metaTitle || slug,
-          description: localMeta.ogDescription || "",
-          image: fullOgImage,
-          destinationUrl: localMeta.targetUrl || "https://lshorter.io",
-          canonicalUrl: req.url,
-        });
-        const bodyText = await resp.text();
-        const headers = {
-          "Content-Type": "text/html; charset=utf-8",
-          "Cache-Control": "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400",
-        };
-        botResponseCache.set(slug, { body: bodyText, headers, expiresAt: Date.now() + 600000 });
-        return new Response(bodyText, { status: 200, headers });
       }
+
+      let fullOgImage = localMeta?.ogImage || "";
+      if (fullOgImage && !fullOgImage.startsWith("http") && !fullOgImage.startsWith("data:")) {
+        try {
+          const origin = new URL(req.url).origin;
+          fullOgImage = `${origin}${fullOgImage.startsWith("/") ? "" : "/"}${fullOgImage}`;
+        } catch {}
+      }
+
+      const resp = renderSocialHtml({
+        title: localMeta?.ogTitle || localMeta?.metaTitle || slug,
+        description: localMeta?.ogDescription || "Cliquez pour accéder au lien.",
+        image: fullOgImage,
+        destinationUrl: localMeta?.targetUrl || "https://lshorter.io",
+        canonicalUrl: req.url,
+      });
+      const bodyText = await resp.text();
+      const headers = {
+        "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400",
+      };
+      botResponseCache.set(slug, { body: bodyText, headers, expiresAt: Date.now() + 600000 });
+      return new Response(bodyText, { status: 200, headers });
     }
 
     // ─── 2. REAL VISITOR / HUMAN PATH (INSTANT HTTP 307 REDIRECT) ───
