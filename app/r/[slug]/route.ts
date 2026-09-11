@@ -57,24 +57,31 @@ function safeRedirect(
   statusCode: number = 307
 ) {
   try {
-    let target = urlStr.startsWith("http://") || urlStr.startsWith("https://")
-      ? urlStr
-      : `https://${urlStr}`;
+    if (!urlStr || typeof urlStr !== "string") {
+      return NextResponse.redirect(new URL("/r/not-found", base), 307);
+    }
+    let target = urlStr.trim();
+    if (!target.startsWith("http://") && !target.startsWith("https://")) {
+      target = `https://${target}`;
+    }
 
     if (passParams && reqUrl) {
-      const incomingUrl = new URL(reqUrl, base);
-      if (incomingUrl.search) {
-        const destUrl = new URL(target);
-        incomingUrl.searchParams.forEach((value, key) => {
-          destUrl.searchParams.set(key, value);
-        });
-        target = destUrl.toString();
-      }
+      try {
+        const incomingUrl = new URL(reqUrl, base);
+        if (incomingUrl.search) {
+          const destUrl = new URL(target);
+          incomingUrl.searchParams.forEach((value, key) => {
+            destUrl.searchParams.set(key, value);
+          });
+          target = destUrl.toString();
+        }
+      } catch {}
     }
 
     return NextResponse.redirect(new URL(target, base), statusCode);
-  } catch {
-    return NextResponse.redirect(new URL("/", base), 307);
+  } catch (e) {
+    console.warn("[safeRedirect failed]:", e);
+    return NextResponse.redirect(new URL("/r/not-found", base), 307);
   }
 }
 
@@ -442,34 +449,75 @@ export async function GET(
       return safeRedirect(finalUrl, req.url, req.url, meta.passParams !== false, redirectCode);
     }
 
-    // Fallback: Fetch complete link metadata from Cloudflare API
+    // Fallback: Fetch complete link metadata from Cloudflare Edge Worker
     try {
+      let found: any = null;
+
+      // 1. Direct fetch by slug/id from Worker API
       const linkRes = await fetch(`${WORKER_URL}/api/v1/links/${encodeURIComponent(slug)}`, {
         headers: {
           "X-Frontend-Secret": FRONTEND_SECRET,
           Authorization: `Bearer ${FRONTEND_SECRET}`,
         },
         cache: "no-store",
-      });
+      }).catch(() => null);
 
-      let found = null;
-      if (linkRes.ok) {
-        const json = await linkRes.json();
-        found = json?.data || json;
+      if (linkRes && linkRes.ok) {
+        const json = await linkRes.json().catch(() => null);
+        if (json?.data && (json.data.target_url || json.data.targetUrl)) {
+          found = json.data;
+        } else if (json && (json.target_url || json.targetUrl)) {
+          found = json;
+        }
       }
 
-      if (!found || !found.target_url && !found.targetUrl) {
+      // 2. Direct edge worker redirect probe (fetches pre-evaluated destination directly from Cloudflare KV/D1)
+      if (!found || (!found.target_url && !found.targetUrl)) {
+        try {
+          const edgeProbe = await fetch(`${WORKER_URL}/r/${encodeURIComponent(slug)}`, {
+            method: "GET",
+            headers: {
+              "User-Agent": userAgent,
+              "CF-IPCountry": visitorCountry,
+              "X-Country": visitorCountry,
+            },
+            redirect: "manual",
+            cache: "no-store",
+          });
+
+          const edgeLocation = edgeProbe.headers.get("location");
+          if (edgeLocation && (edgeProbe.status === 301 || edgeProbe.status === 302 || edgeProbe.status === 307)) {
+            // If the worker redirected to a subpath like /r/:slug/paused, /gate, /expired
+            if (edgeLocation.includes(`/r/${slug}/`)) {
+              return safeRedirect(edgeLocation, req.url);
+            }
+            found = {
+              slug,
+              target_url: edgeLocation,
+              targetUrl: edgeLocation,
+              is_active: 1,
+              isActive: true,
+            };
+          }
+        } catch (edgeErr) {
+          console.warn("[Edge Probe Warning]:", edgeErr);
+        }
+      }
+
+      // 3. Fallback: Search in full links list
+      if (!found || (!found.target_url && !found.targetUrl)) {
         const listRes = await fetch(`${WORKER_URL}/api/v1/links`, {
           headers: {
             "X-Frontend-Secret": FRONTEND_SECRET,
             Authorization: `Bearer ${FRONTEND_SECRET}`,
           },
           cache: "no-store",
-        });
-        if (listRes.ok) {
-          const listData = await listRes.json();
+        }).catch(() => null);
+
+        if (listRes && listRes.ok) {
+          const listData = await listRes.json().catch(() => null);
           const list = Array.isArray(listData?.data) ? listData.data : [];
-          found = list.find((l: any) => l.slug?.toLowerCase() === slug.toLowerCase());
+          found = list.find((l: any) => l.slug?.toLowerCase() === slug.toLowerCase() || l.id === slug);
         }
       }
 
@@ -537,10 +585,10 @@ export async function GET(
       console.warn("[Worker Links Metadata Fetch error]:", err);
     }
 
-    return NextResponse.redirect(new URL("/", req.url), 307);
+    return NextResponse.redirect(new URL(`/r/${slug}/not-found`, req.url), 307);
   } catch (error: any) {
     console.error("[Redirect Handler Error]:", error);
-    return NextResponse.redirect(new URL("/", req.url), 307);
+    return NextResponse.redirect(new URL(`/r/not-found`, req.url), 307);
   }
 }
 

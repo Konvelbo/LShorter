@@ -105,10 +105,7 @@ export default {
       if (env.LINKS_KV) {
         try {
           const cached = await env.LINKS_KV.get(slug);
-          if (cached === 'NOT_FOUND') {
-            return new Response('Lien introuvable ou expire.', { status: 404, headers: corsHeaders });
-          }
-          if (cached) {
+          if (cached && cached !== 'NOT_FOUND') {
             link = JSON.parse(cached);
           }
         } catch (err) {
@@ -116,29 +113,27 @@ export default {
         }
       }
 
-      // Fallback to D1 only on first cache miss
+      // Fallback to D1 on cache miss
       if (!link && env.DB) {
         try {
-          const row = await env.DB.prepare('SELECT * FROM links WHERE slug = ? LIMIT 1').bind(slug).first();
+          const row = await env.DB.prepare('SELECT * FROM links WHERE id = ? OR LOWER(slug) = LOWER(?) LIMIT 1').bind(slug, slug).first();
           if (row) {
             link = row;
-            if (env.LINKS_KV) {
-              ctx.waitUntil(env.LINKS_KV.put(slug, JSON.stringify(row)));
+            if (env.LINKS_KV && row.slug) {
+              ctx.waitUntil(env.LINKS_KV.put(row.slug, JSON.stringify(row)));
             }
-          } else if (env.LINKS_KV) {
-            ctx.waitUntil(env.LINKS_KV.put(slug, 'NOT_FOUND', { expirationTtl: 300 }));
           }
         } catch (err) {
           console.error('[D1 Fallback Error]:', err);
         }
       }
 
-      if (!link) {
-        return new Response('Lien introuvable ou supprime.', { status: 404, headers: corsHeaders });
-      }
-
       const reqHost = request.headers.get('x-forwarded-host') || request.headers.get('host') || 'www.lsho.cc';
       const proto = request.headers.get('x-forwarded-proto') || 'https';
+
+      if (!link) {
+        return Response.redirect(`${proto}://${reqHost}/r/${slug}/not-found`, 307);
+      }
 
       if (link.is_active === 0 || link.isActive === false || link.is_active === '0') {
         return Response.redirect(`${proto}://${reqHost}/r/${slug}/paused`, 307);
@@ -159,6 +154,14 @@ export default {
           return Response.redirect(finalFallback, 302);
         }
         return Response.redirect(`${proto}://${reqHost}/r/${slug}/expired`, 307);
+      }
+
+      if (link.password || link.has_password || link.is_password_protected) {
+        return Response.redirect(`${proto}://${reqHost}/r/${slug}/gate`, 307);
+      }
+
+      if (link.is_cloaked || link.isCloaked) {
+        return Response.redirect(`${proto}://${reqHost}/r/${slug}/view`, 307);
       }
 
       const userAgent = (request.headers.get('user-agent') || '').toLowerCase();
@@ -482,7 +485,7 @@ export default {
               query += ' WHERE user_id = ?';
               params.push(userId);
             }
-            query += ' ORDER BY created_at DESC LIMIT 100';
+            query += ' ORDER BY created_at DESC LIMIT 500';
             const { results } = await env.DB.prepare(query).bind(...params).all();
             return jsonResponse({ success: true, data: results || [] });
           } catch (err) {
@@ -499,8 +502,13 @@ export default {
           }
           if (env.DB) {
             try {
-              const row = await env.DB.prepare('SELECT * FROM links WHERE id = ? OR slug = ? LIMIT 1').bind(linkIdOrSlug, linkIdOrSlug).first();
-              if (row) return jsonResponse({ success: true, data: row });
+              const row = await env.DB.prepare('SELECT * FROM links WHERE id = ? OR LOWER(slug) = LOWER(?) LIMIT 1').bind(linkIdOrSlug, linkIdOrSlug).first();
+              if (row) {
+                if (env.LINKS_KV && row.slug) {
+                  ctx.waitUntil(env.LINKS_KV.put(row.slug, JSON.stringify(row)));
+                }
+                return jsonResponse({ success: true, data: row });
+              }
             } catch {}
           }
           return jsonResponse({ success: false, error: 'Link not found' }, 404);
@@ -569,6 +577,7 @@ export default {
 
           if (env.LINKS_KV) {
             await env.LINKS_KV.put(slug, JSON.stringify(linkObj));
+            if (id) await env.LINKS_KV.put(id, JSON.stringify(linkObj));
           }
 
           if (env.DB) {
@@ -615,7 +624,7 @@ export default {
           let existingLink = null;
           if (env.DB && idOrSlug) {
             try {
-              existingLink = await env.DB.prepare('SELECT * FROM links WHERE id = ? OR slug = ? LIMIT 1').bind(idOrSlug, idOrSlug).first();
+              existingLink = await env.DB.prepare('SELECT * FROM links WHERE id = ? OR LOWER(slug) = LOWER(?) LIMIT 1').bind(idOrSlug, idOrSlug).first();
             } catch {}
           }
           if (!existingLink && env.LINKS_KV && (body.slug || idOrSlug)) {
@@ -630,6 +639,8 @@ export default {
           const userId = body.userId || body.user_id || existingLink?.user_id || 'usr_default';
           const domainName = body.domainName || body.domain_name || existingLink?.domain_name || 'lsho.cc';
           const shortUrl = 'https://' + domainName + '/' + slug;
+          const targetUrl = body.targetUrl || body.target_url || existingLink?.target_url || existingLink?.targetUrl;
+          const isActive = body.isActive !== undefined ? (body.isActive ? 1 : 0) : body.is_active !== undefined ? (body.is_active ? 1 : 0) : (existingLink?.is_active !== undefined ? (existingLink.is_active ? 1 : 0) : 1);
           const rawRules = body.routingRules !== undefined ? body.routingRules : body.routing_rules;
           const routingRules = rawRules !== undefined ? (typeof rawRules === 'string' ? rawRules : JSON.stringify(rawRules)) : (existingLink?.routing_rules || '[]');
 
@@ -668,8 +679,9 @@ export default {
             updated_at: new Date().toISOString(),
           };
 
-          if (env.LINKS_KV && slug) {
-            await env.LINKS_KV.put(slug, JSON.stringify(updatedLinkObj));
+          if (env.LINKS_KV) {
+            if (slug) await env.LINKS_KV.put(slug, JSON.stringify(updatedLinkObj));
+            if (id) await env.LINKS_KV.put(id, JSON.stringify(updatedLinkObj));
             if (existingLink?.slug && existingLink.slug !== slug) {
               await env.LINKS_KV.delete(existingLink.slug);
             }
@@ -692,7 +704,7 @@ export default {
                   og_description = ?, 
                   meta_title = ?,
                   updated_at = datetime('now')
-                WHERE id = ? OR slug = ?
+                WHERE id = ? OR LOWER(slug) = LOWER(?)
               `).bind(
                 targetUrl,
                 slug,
@@ -723,7 +735,7 @@ export default {
                     target_url = ?, 
                     slug = ?, 
                     is_active = ?
-                  WHERE id = ? OR slug = ?
+                  WHERE id = ? OR LOWER(slug) = LOWER(?)
                 `).bind(targetUrl, slug, isActive, id, slug).run();
               } catch {}
             }
