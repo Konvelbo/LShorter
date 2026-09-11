@@ -365,7 +365,10 @@ export default {
         }
       }
 
-      if (env.DB) {
+      const isInternalProbe = request.headers.get('x-internal-probe') === '1';
+      const isPrefetch = (request.headers.get('purpose') || request.headers.get('sec-purpose') || request.headers.get('x-purpose') || '').includes('prefetch') || (request.headers.get('purpose') || '').includes('preview');
+
+      if (env.DB && !isInternalProbe && !isPrefetch && !isBot) {
         ctx.waitUntil(
           (async () => {
             try {

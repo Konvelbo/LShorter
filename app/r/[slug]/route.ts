@@ -330,6 +330,25 @@ function renderSocialHtml(meta: {
   });
 }
 
+const recentClicks = new Map<string, number>();
+
+function shouldTrackClick(ip: string, slug: string, isPrefetch: boolean): boolean {
+  if (isPrefetch) return false;
+  const key = `${ip}:${slug.toLowerCase()}`;
+  const now = Date.now();
+  const lastTime = recentClicks.get(key);
+  if (lastTime && now - lastTime < 2500) {
+    return false; // Debounce rapid reload or duplicate request within 2.5s
+  }
+  recentClicks.set(key, now);
+  if (recentClicks.size > 5000) {
+    for (const [k, v] of recentClicks.entries()) {
+      if (now - v > 15000) recentClicks.delete(k);
+    }
+  }
+  return true;
+}
+
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ slug: string }> }
@@ -391,6 +410,7 @@ export async function GET(
             headers: {
               "User-Agent": "Twitterbot/1.0",
               "CF-IPCountry": "FR",
+              "X-Internal-Probe": "1",
             },
             cache: "no-store",
           }).catch(() => null);
@@ -436,6 +456,15 @@ export async function GET(
     }
 
     // ─── 2. REAL VISITOR / HUMAN PATH (INSTANT HTTP 307 REDIRECT) ───
+    const purpose = (
+      req.headers.get("purpose") ||
+      req.headers.get("sec-purpose") ||
+      req.headers.get("x-purpose") ||
+      req.headers.get("x-moz") ||
+      ""
+    ).toLowerCase();
+    const isPrefetch = purpose.includes("prefetch") || purpose.includes("preview");
+
     const visitorDetails = parseVisitorDetails(req);
     const visitorCountry = (
       req.headers.get("cf-ipcountry") ||
@@ -444,6 +473,14 @@ export async function GET(
       visitorDetails.countryCode ||
       "BF"
     ).toUpperCase();
+
+    const clientIp =
+      req.headers.get("cf-connecting-ip") ||
+      req.headers.get("x-forwarded-for") ||
+      req.headers.get("x-real-ip") ||
+      "127.0.0.1";
+
+    const canRecordClick = shouldTrackClick(clientIp, slug, isPrefetch);
 
     // Check Click Quotas / Limits (READ-ONLY check: does not increment before password is provided)
     const quotaCheck = checkLinkQuota(slug);
@@ -508,15 +545,19 @@ export async function GET(
 
     // 5. If cloaked, show view
     if (meta?.isCloaked && meta?.targetUrl) {
-      recordLinkClick(slug);
-      await trackClickAsync(req, slug, meta);
+      if (canRecordClick) {
+        recordLinkClick(slug);
+        await trackClickAsync(req, slug, meta);
+      }
       return NextResponse.redirect(new URL(`/r/${slug}/view`, req.url), 307);
     }
 
     // 6. If targetUrl is available locally, increment click and redirect
     if (meta?.targetUrl) {
-      recordLinkClick(slug);
-      await trackClickAsync(req, slug, meta);
+      if (canRecordClick) {
+        recordLinkClick(slug);
+        await trackClickAsync(req, slug, meta);
+      }
       const splitUrl = resolveAbTargetUrl(meta, meta.targetUrl);
       const finalUrl = evaluateTargetUrl(splitUrl, req, meta, visitorCountry);
       const redirectCode = meta.redirectType === "301" ? 301 : meta.redirectType === "302" ? 302 : 307;
@@ -642,14 +683,18 @@ export async function GET(
           return NextResponse.redirect(new URL(`/r/${slug}/gate`, req.url), 307);
         }
         if (found.is_cloaked || found.isCloaked) {
-          recordLinkClick(slug);
-          await trackClickAsync(req, slug, found);
+          if (canRecordClick) {
+            recordLinkClick(slug);
+            await trackClickAsync(req, slug, found);
+          }
           return NextResponse.redirect(new URL(`/r/${slug}/view`, req.url), 307);
         }
         const target = found.target_url || found.targetUrl;
         if (target) {
-          recordLinkClick(slug);
-          await trackClickAsync(req, slug, found);
+          if (canRecordClick) {
+            recordLinkClick(slug);
+            await trackClickAsync(req, slug, found);
+          }
           const finalUrl = evaluateTargetUrl(target, req, found, visitorCountry);
           const redirectCode = found?.redirect_type === "301" || found?.redirectType === "301" ? 301 : found?.redirect_type === "302" || found?.redirectType === "302" ? 302 : 307;
           return safeRedirect(finalUrl, req.url, req.url, found?.passParams !== false, redirectCode);
