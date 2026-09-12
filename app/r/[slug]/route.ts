@@ -95,7 +95,7 @@ export function evaluateTargetUrl(baseTargetUrl: string, req: Request, meta?: an
     req.headers.get("cf-ipcountry") ||
     req.headers.get("x-vercel-ip-country") ||
     req.headers.get("x-country") ||
-    "BF"
+    ""
   ).toUpperCase();
 
   // Detect Device Type
@@ -610,7 +610,24 @@ export async function GET(
         }
       }
 
-      // 2. Direct edge worker redirect probe (fetches pre-evaluated destination directly from Cloudflare KV/D1)
+      // 2. Fallback: Search in full links list
+      if (!found || (!found.target_url && !found.targetUrl)) {
+        const listRes = await fetch(`${WORKER_URL}/api/v1/links`, {
+          headers: {
+            "X-Frontend-Secret": FRONTEND_SECRET,
+            Authorization: `Bearer ${FRONTEND_SECRET}`,
+          },
+          cache: "no-store",
+        }).catch(() => null);
+
+        if (listRes && listRes.ok) {
+          const listData = await listRes.json().catch(() => null);
+          const list = Array.isArray(listData?.data) ? listData.data : [];
+          found = list.find((l: any) => l.slug?.toLowerCase() === slug.toLowerCase() || l.id === slug);
+        }
+      }
+
+      // 3. Last resort fallback: Edge worker redirect probe
       if (!found || (!found.target_url && !found.targetUrl)) {
         try {
           const edgeProbe = await fetch(`${WORKER_URL}/r/${encodeURIComponent(slug)}`, {
@@ -629,37 +646,10 @@ export async function GET(
 
           const edgeLocation = edgeProbe.headers.get("location");
           if (edgeLocation && (edgeProbe.status === 301 || edgeProbe.status === 302 || edgeProbe.status === 307)) {
-            // If the worker redirected to a subpath like /r/:slug/paused, /gate, /expired
-            if (edgeLocation.includes(`/r/${slug}/`)) {
-              return safeRedirect(edgeLocation, req.url);
-            }
-            found = {
-              slug,
-              target_url: edgeLocation,
-              targetUrl: edgeLocation,
-              is_active: 1,
-              isActive: true,
-            };
+            return safeRedirect(edgeLocation, req.url);
           }
         } catch (edgeErr) {
           console.warn("[Edge Probe Warning]:", edgeErr);
-        }
-      }
-
-      // 3. Fallback: Search in full links list
-      if (!found || (!found.target_url && !found.targetUrl)) {
-        const listRes = await fetch(`${WORKER_URL}/api/v1/links`, {
-          headers: {
-            "X-Frontend-Secret": FRONTEND_SECRET,
-            Authorization: `Bearer ${FRONTEND_SECRET}`,
-          },
-          cache: "no-store",
-        }).catch(() => null);
-
-        if (listRes && listRes.ok) {
-          const listData = await listRes.json().catch(() => null);
-          const list = Array.isArray(listData?.data) ? listData.data : [];
-          found = list.find((l: any) => l.slug?.toLowerCase() === slug.toLowerCase() || l.id === slug);
         }
       }
 

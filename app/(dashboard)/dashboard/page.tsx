@@ -63,9 +63,15 @@ export default function DashboardOverviewPage() {
         uniqueClicks: l.unique_clicks || l.uniqueClicks || 0,
         conversionsCount: l.conversions_count || l.conversionsCount || 0,
         revenue: l.revenue || 0,
-        routingRules: l.routing_rules ? (typeof l.routing_rules === "string" ? JSON.parse(l.routing_rules) : l.routing_rules) : (l.routingRules || []),
-        geoTargeting: l.geo_targeting ? (typeof l.geo_targeting === "string" ? JSON.parse(l.geo_targeting) : l.geo_targeting) : (l.geoTargeting || {}),
-        deviceTargeting: l.device_targeting ? (typeof l.device_targeting === "string" ? JSON.parse(l.device_targeting) : l.device_targeting) : (l.deviceTargeting || {}),
+        routingRules: l.routing_rules
+          ? (typeof l.routing_rules === "string" ? JSON.parse(l.routing_rules) : l.routing_rules)
+          : (typeof l.routingRules === "string" ? JSON.parse(l.routingRules) : l.routingRules || []),
+        geoTargeting: l.geo_targeting
+          ? (typeof l.geo_targeting === "string" ? JSON.parse(l.geo_targeting) : l.geo_targeting)
+          : (typeof l.geoTargeting === "string" ? JSON.parse(l.geoTargeting) : l.geoTargeting || {}),
+        deviceTargeting: l.device_targeting
+          ? (typeof l.device_targeting === "string" ? JSON.parse(l.device_targeting) : l.device_targeting)
+          : (typeof l.deviceTargeting === "string" ? JSON.parse(l.deviceTargeting) : l.deviceTargeting || {}),
         isPasswordProtected: Boolean(l.is_password_protected || l.isPasswordProtected || l.has_password || l.hasPassword || l.password || l.password_plain),
         password: l.password || l.password_plain || "",
         maxClicks: l.max_clicks !== undefined && l.max_clicks !== null ? Number(l.max_clicks) : l.maxClicks !== undefined && l.maxClicks !== null ? Number(l.maxClicks) : undefined,
@@ -79,7 +85,9 @@ export default function DashboardOverviewPage() {
         hideReferrer: Boolean(l.hide_referrer || l.hideReferrer),
         tags: l.tags ? (typeof l.tags === "string" ? JSON.parse(l.tags) : l.tags) : [],
         expiresAt: l.expires_at || l.expiresAt,
-        abVariations: l.ab_variations || l.abVariations,
+        abVariations: l.ab_variations
+          ? (typeof l.ab_variations === "string" ? JSON.parse(l.ab_variations) : l.ab_variations)
+          : (typeof l.abVariations === "string" ? JSON.parse(l.abVariations) : l.abVariations || []),
         mainWeight: l.main_weight !== undefined ? Number(l.main_weight) : l.mainWeight !== undefined ? Number(l.mainWeight) : undefined,
         redirectType: l.redirect_type || l.redirectType,
         passParams: l.pass_params !== undefined ? Boolean(l.pass_params) : l.passParams !== undefined ? Boolean(l.passParams) : undefined,

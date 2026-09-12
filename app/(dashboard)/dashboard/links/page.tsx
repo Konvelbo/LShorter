@@ -24,6 +24,11 @@ import {
   MoreVertical,
   BarChart2,
   ImageIcon,
+  GitFork,
+  Split,
+  Clock,
+  Zap,
+  ShieldCheck,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -126,17 +131,23 @@ export default function LinksPage() {
           ? typeof l.routing_rules === "string"
             ? JSON.parse(l.routing_rules)
             : l.routing_rules
-          : l.routingRules || [],
+          : typeof l.routingRules === "string"
+            ? JSON.parse(l.routingRules)
+            : l.routingRules || [],
         geoTargeting: l.geo_targeting
           ? typeof l.geo_targeting === "string"
             ? JSON.parse(l.geo_targeting)
             : l.geo_targeting
-          : l.geoTargeting || {},
+          : typeof l.geoTargeting === "string"
+            ? JSON.parse(l.geoTargeting)
+            : l.geoTargeting || {},
         deviceTargeting: l.device_targeting
           ? typeof l.device_targeting === "string"
             ? JSON.parse(l.device_targeting)
             : l.device_targeting
-          : l.deviceTargeting || {},
+          : typeof l.deviceTargeting === "string"
+            ? JSON.parse(l.deviceTargeting)
+            : l.deviceTargeting || {},
         isPasswordProtected: Boolean(
           l.is_password_protected ||
           l.isPasswordProtected ||
@@ -166,7 +177,13 @@ export default function LinksPage() {
             : l.tags
           : [],
         expiresAt: l.expires_at || l.expiresAt,
-        abVariations: l.ab_variations || l.abVariations,
+        abVariations: l.ab_variations
+          ? typeof l.ab_variations === "string"
+            ? JSON.parse(l.ab_variations)
+            : l.ab_variations
+          : typeof l.abVariations === "string"
+            ? JSON.parse(l.abVariations)
+            : l.abVariations || [],
         mainWeight:
           l.main_weight !== undefined
             ? Number(l.main_weight)
@@ -816,7 +833,26 @@ export default function LinksPage() {
                     {/* Targeting icons + Tags */}
                     <div className="flex items-center justify-between gap-2 flex-wrap">
                       <div className="flex items-center gap-1 text-neutral-400">
+                        {Array.isArray(link.routingRules) &&
+                          link.routingRules.length > 0 && (
+                            <span
+                              title={`Routage dynamique actif (${link.routingRules.length} règle${link.routingRules.length > 1 ? "s" : ""})`}
+                              className="p-1 rounded-[10px] bg-white/5"
+                            >
+                              <GitFork className="w-3 h-3 text-cyan-400" />
+                            </span>
+                          )}
+                        {Array.isArray(link.abVariations) &&
+                          link.abVariations.length > 0 && (
+                            <span
+                              title={`A/B Testing actif (${link.abVariations.length} variante${link.abVariations.length > 1 ? "s" : ""})`}
+                              className="p-1 rounded-[10px] bg-white/5"
+                            >
+                              <Split className="w-3 h-3 text-indigo-400" />
+                            </span>
+                          )}
                         {link.geoTargeting &&
+                          typeof link.geoTargeting === "object" &&
                           Object.keys(link.geoTargeting).length > 0 && (
                             <span
                               title="Ciblage par pays actif"
@@ -826,6 +862,7 @@ export default function LinksPage() {
                             </span>
                           )}
                         {link.deviceTargeting &&
+                          typeof link.deviceTargeting === "object" &&
                           Object.values(link.deviceTargeting).some(Boolean) && (
                             <span
                               title="Ciblage par appareil actif"
@@ -856,6 +893,32 @@ export default function LinksPage() {
                             className="p-1 rounded-[10px] bg-white/5"
                           >
                             <ImageIcon className="w-3 h-3 text-pink-400" />
+                          </span>
+                        )}
+                        {link.hideReferrer && (
+                          <span
+                            title="Masquage du Referrer actif"
+                            className="p-1 rounded-[10px] bg-white/5"
+                          >
+                            <ShieldCheck className="w-3 h-3 text-teal-400" />
+                          </span>
+                        )}
+                        {link.maxClicks !== undefined &&
+                          link.maxClicks !== null &&
+                          link.maxClicks > 0 && (
+                            <span
+                              title={`Limite de clics : ${link.maxClicks}`}
+                              className="p-1 rounded-[10px] bg-white/5"
+                            >
+                              <Zap className="w-3 h-3 text-orange-400" />
+                            </span>
+                          )}
+                        {link.expiresAt && (
+                          <span
+                            title="Date d'expiration programmée"
+                            className="p-1 rounded-[10px] bg-white/5"
+                          >
+                            <Clock className="w-3 h-3 text-yellow-400" />
                           </span>
                         )}
                       </div>
@@ -1040,16 +1103,36 @@ export default function LinksPage() {
                           {link.domainName || "lsho.cc"}/{link.slug}
                         </td>
 
-                        {/* Options icons (Geo, Device, Lock, Cloak) */}
+                        {/* Options icons */}
                         <td className="py-2.5 px-2 text-center whitespace-nowrap">
                           <div className="flex items-center justify-center gap-1 text-neutral-400">
+                            {Array.isArray(link.routingRules) &&
+                              link.routingRules.length > 0 && (
+                                <span
+                                  title={`Routage dynamique actif (${link.routingRules.length} règle${link.routingRules.length > 1 ? "s" : ""})`}
+                                >
+                                  <GitFork className="w-3.5 h-3.5 text-cyan-400" />
+                                </span>
+                              )}
+                            {Array.isArray(link.abVariations) &&
+                              link.abVariations.length > 0 && (
+                                <span
+                                  title={`A/B Testing actif (${link.abVariations.length} variante${link.abVariations.length > 1 ? "s" : ""})`}
+                                >
+                                  <Split className="w-3.5 h-3.5 text-indigo-400" />
+                                </span>
+                              )}
                             {link.geoTargeting &&
+                              typeof link.geoTargeting === "object" &&
                               Object.keys(link.geoTargeting).length > 0 && (
-                                <span title="Ciblage par pays actif">
+                                <span
+                                  title={`Ciblage par pays actif (${Object.keys(link.geoTargeting).length} pays)`}
+                                >
                                   <Globe2 className="w-3.5 h-3.5 text-sky-400" />
                                 </span>
                               )}
                             {link.deviceTargeting &&
+                              typeof link.deviceTargeting === "object" &&
                               Object.values(link.deviceTargeting).some(
                                 Boolean,
                               ) && (
@@ -1072,13 +1155,47 @@ export default function LinksPage() {
                                 <ImageIcon className="w-3.5 h-3.5 text-pink-400" />
                               </span>
                             )}
-                            {!link.geoTargeting &&
-                              !link.deviceTargeting &&
-                              !link.isPasswordProtected &&
-                              !link.isCloaked &&
-                              !link.ogImage && (
-                                <span className="text-neutral-600">—</span>
+                            {link.hideReferrer && (
+                              <span title="Masquage du Referrer actif">
+                                <ShieldCheck className="w-3.5 h-3.5 text-teal-400" />
+                              </span>
+                            )}
+                            {link.maxClicks !== undefined &&
+                              link.maxClicks !== null &&
+                              link.maxClicks > 0 && (
+                                <span
+                                  title={`Limite de clics : ${link.maxClicks}`}
+                                >
+                                  <Zap className="w-3.5 h-3.5 text-orange-400" />
+                                </span>
                               )}
+                            {link.expiresAt && (
+                              <span title="Date d'expiration programmée">
+                                <Clock className="w-3.5 h-3.5 text-yellow-400" />
+                              </span>
+                            )}
+                            {!(
+                              (Array.isArray(link.routingRules) &&
+                                link.routingRules.length > 0) ||
+                              (Array.isArray(link.abVariations) &&
+                                link.abVariations.length > 0) ||
+                              (link.geoTargeting &&
+                                typeof link.geoTargeting === "object" &&
+                                Object.keys(link.geoTargeting).length > 0) ||
+                              (link.deviceTargeting &&
+                                typeof link.deviceTargeting === "object" &&
+                                Object.values(link.deviceTargeting).some(
+                                  Boolean,
+                                )) ||
+                              link.isPasswordProtected ||
+                              link.isCloaked ||
+                              link.ogImage ||
+                              link.hideReferrer ||
+                              (link.maxClicks !== undefined &&
+                                link.maxClicks !== null &&
+                                link.maxClicks > 0) ||
+                              link.expiresAt
+                            ) && <span className="text-neutral-600">—</span>}
                           </div>
                         </td>
 

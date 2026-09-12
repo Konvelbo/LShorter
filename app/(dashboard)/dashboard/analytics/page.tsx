@@ -210,9 +210,15 @@ function AnalyticsContent() {
         uniqueClicks: l.unique_clicks || 0,
         conversionsCount: l.conversions_count || 0,
         revenue: l.revenue || 0,
-        routingRules: l.routing_rules ? (typeof l.routing_rules === "string" ? JSON.parse(l.routing_rules) : l.routing_rules) : (l.routingRules || []),
-        geoTargeting: l.geo_targeting ? (typeof l.geo_targeting === "string" ? JSON.parse(l.geo_targeting) : l.geo_targeting) : (l.geoTargeting || {}),
-        deviceTargeting: l.device_targeting ? (typeof l.device_targeting === "string" ? JSON.parse(l.device_targeting) : l.device_targeting) : (l.deviceTargeting || {}),
+        routingRules: l.routing_rules
+          ? (typeof l.routing_rules === "string" ? JSON.parse(l.routing_rules) : l.routing_rules)
+          : (typeof l.routingRules === "string" ? JSON.parse(l.routingRules) : l.routingRules || []),
+        geoTargeting: l.geo_targeting
+          ? (typeof l.geo_targeting === "string" ? JSON.parse(l.geo_targeting) : l.geo_targeting)
+          : (typeof l.geoTargeting === "string" ? JSON.parse(l.geoTargeting) : l.geoTargeting || {}),
+        deviceTargeting: l.device_targeting
+          ? (typeof l.device_targeting === "string" ? JSON.parse(l.device_targeting) : l.device_targeting)
+          : (typeof l.deviceTargeting === "string" ? JSON.parse(l.deviceTargeting) : l.deviceTargeting || {}),
         isPasswordProtected: Boolean(l.is_password_protected || l.isPasswordProtected || l.has_password || l.hasPassword || l.password),
         isCloaked: Boolean(l.is_cloaked || l.isCloaked),
         metaTitle: l.meta_title || l.metaTitle || l.og_title || l.ogTitle,
