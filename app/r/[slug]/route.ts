@@ -258,6 +258,10 @@ export function invalidateBotResponseCache(slug?: string) {
   }
 }
 
+// Default fallback OG image used when a link has no custom ogImage set.
+// Must be an absolute HTTPS URL with 1200×630 px dimensions for Twitter large card.
+const DEFAULT_OG_IMAGE = "https://www.lsho.cc/marketing-FCI/cosmos_big_card.jpeg";
+
 function renderSocialHtml(meta: {
   title: string;
   description: string;
@@ -266,19 +270,26 @@ function renderSocialHtml(meta: {
   destinationUrl: string;
   canonicalUrl: string;
 }) {
-  const safeTitle = escapeHtml(meta.title || "Lien partagé");
-  const safeDesc = escapeHtml(meta.description || "Cliquez pour accéder au lien.");
+  const safeTitle = escapeHtml(meta.title || "LShorter — Smart Link Shortened");
+  const safeDesc = escapeHtml(meta.description || "Click to access this link powered by LShorter Edge.");
   const cardType = "summary_large_image";
   
   let imageUrl = meta.image || "";
+
+  // If ogImage is a base64 data URI (can't be used in OG), derive a URL instead
   if (imageUrl && imageUrl.startsWith("data:")) {
     try {
       const u = new URL(meta.canonicalUrl);
       const cleanSlug = u.pathname.split("/").pop() || "banner";
       imageUrl = `${u.origin}/api/images/${cleanSlug}.jpg`;
     } catch {
-      imageUrl = "https://www.lsho.cc/api/images/banner.jpg";
+      imageUrl = DEFAULT_OG_IMAGE;
     }
+  }
+
+  // Fallback: if still no image, use the default LShorter banner
+  if (!imageUrl) {
+    imageUrl = DEFAULT_OG_IMAGE;
   }
 
   let cleanCanonical = meta.canonicalUrl;
@@ -291,9 +302,10 @@ function renderSocialHtml(meta: {
 
   const safeImg = escapeHtml(imageUrl.replace(/&amp;/g, "&"));
   const safeCanonical = escapeHtml(cleanCanonical);
+  const safeDest = escapeHtml(meta.destinationUrl || "https://lsho.cc");
 
   const html = `<!DOCTYPE html>
-<html lang="fr" prefix="og: http://ogp.me/ns#">
+<html lang="en" prefix="og: http://ogp.me/ns#">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -307,13 +319,13 @@ function renderSocialHtml(meta: {
   <meta property="og:url" content="${safeCanonical}" />
   <meta property="og:title" content="${safeTitle}" />
   <meta property="og:description" content="${safeDesc}" />
-  ${safeImg ? `<meta property="og:image" content="${safeImg}" />` : ""}
-  ${safeImg ? `<meta property="og:image:url" content="${safeImg}" />` : ""}
-  ${safeImg ? `<meta property="og:image:secure_url" content="${safeImg}" />` : ""}
-  ${safeImg ? `<meta property="og:image:type" content="image/jpeg" />` : ""}
-  ${safeImg ? `<meta property="og:image:width" content="1200" />` : ""}
-  ${safeImg ? `<meta property="og:image:height" content="630" />` : ""}
-  ${safeImg ? `<meta property="og:image:alt" content="${safeTitle}" />` : ""}
+  <meta property="og:image" content="${safeImg}" />
+  <meta property="og:image:url" content="${safeImg}" />
+  <meta property="og:image:secure_url" content="${safeImg}" />
+  <meta property="og:image:type" content="image/jpeg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="${safeTitle}" />
 
   <!-- Twitter / X Cards -->
   <meta name="twitter:card" content="${cardType}" />
@@ -323,11 +335,15 @@ function renderSocialHtml(meta: {
   <meta name="twitter:url" content="${safeCanonical}" />
   <meta name="twitter:title" content="${safeTitle}" />
   <meta name="twitter:description" content="${safeDesc}" />
-  ${safeImg ? `<meta name="twitter:image" content="${safeImg}" />` : ""}
-  ${safeImg ? `<meta name="twitter:image:src" content="${safeImg}" />` : ""}
-  ${safeImg ? `<meta name="twitter:image:alt" content="${safeTitle}" />` : ""}
+  <meta name="twitter:image" content="${safeImg}" />
+  <meta name="twitter:image:src" content="${safeImg}" />
+  <meta name="twitter:image:alt" content="${safeTitle}" />
+
+  <!-- Redirect real visitors who land here (bots will read meta tags first) -->
+  <noscript><meta http-equiv="refresh" content="0;url=${safeDest}" /></noscript>
 </head>
-<body style="background:#09090b;">
+<body style="background:#09090b;margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;">
+  <script>window.location.replace("${safeDest}");</script>
 </body>
 </html>`;
 
@@ -335,7 +351,9 @@ function renderSocialHtml(meta: {
     status: 200,
     headers: {
       "Content-Type": "text/html; charset=utf-8",
-      "Cache-Control": "public, max-age=10, s-maxage=30, stale-while-revalidate=60",
+      // Short cache: bots get fresh data, but we don't hammer the server
+      "Cache-Control": "no-cache, no-store, must-revalidate",
+      "Pragma": "no-cache",
     },
   });
 }
@@ -463,7 +481,7 @@ export async function GET(
 
       const resp = renderSocialHtml({
         title: localMeta?.ogTitle || localMeta?.metaTitle || slug,
-        description: localMeta?.ogDescription || "Cliquez pour accéder au lien.",
+        description: localMeta?.ogDescription || "Click to access this link powered by LShorter Edge.",
         image: fullOgImage,
         twitterCard: "summary_large_image",
         destinationUrl: localMeta?.targetUrl || "https://lshorter.io",
@@ -472,9 +490,10 @@ export async function GET(
       const bodyText = await resp.text();
       const headers = {
         "Content-Type": "text/html; charset=utf-8",
-        "Cache-Control": "public, max-age=10, s-maxage=30, stale-while-revalidate=60",
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Pragma": "no-cache",
       };
-      botResponseCache.set(slug, { body: bodyText, headers, expiresAt: Date.now() + 10000 });
+      botResponseCache.set(slug, { body: bodyText, headers, expiresAt: Date.now() + 5000 });
       return new Response(bodyText, { status: 200, headers });
     }
 
