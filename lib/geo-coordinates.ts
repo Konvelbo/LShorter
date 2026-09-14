@@ -123,14 +123,14 @@ export const WORLD_COUNTRIES: Record<string, CountryGeoData> = {
   NZ: { code: "NZ", name: "Nouvelle-Zélande", nameEn: "New Zealand", continent: "Oceania", lat: -40.9006, lng: 174.8860, flag: "🇳🇿" },
 };
 
-// ─── Continents Metadata & Couleurs Thématiques ──────────────────────────────
+// ─── Continents Metadata & Theme Colors ─────────────────────────────────────
 export const CONTINENTS_META: Record<Continent, { name: string; color: string; bgGradient: string; icon: string }> = {
-  Africa: { name: "Afrique", color: "#ff6600", bgGradient: "from-[#ff6600]/20 to-transparent", icon: "🌍" },
+  Africa: { name: "Africa", color: "#ff6600", bgGradient: "from-[#ff6600]/20 to-transparent", icon: "🌍" },
   Europe: { name: "Europe", color: "#3b82f6", bgGradient: "from-[#3b82f6]/20 to-transparent", icon: "🌍" },
-  "North America": { name: "Amérique du Nord", color: "#10b981", bgGradient: "from-[#10b981]/20 to-transparent", icon: "🌎" },
-  "South America": { name: "Amérique du Sud", color: "#ec4899", bgGradient: "from-[#ec4899]/20 to-transparent", icon: "🌎" },
-  Asia: { name: "Asie & Moyen-Orient", color: "#8b5cf6", bgGradient: "from-[#8b5cf6]/20 to-transparent", icon: "🌏" },
-  Oceania: { name: "Océanie", color: "#06b6d4", bgGradient: "from-[#06b6d4]/20 to-transparent", icon: "🌏" },
+  "North America": { name: "North America", color: "#10b981", bgGradient: "from-[#10b981]/20 to-transparent", icon: "🌎" },
+  "South America": { name: "South America", color: "#ec4899", bgGradient: "from-[#ec4899]/20 to-transparent", icon: "🌎" },
+  Asia: { name: "Asia & Middle East", color: "#8b5cf6", bgGradient: "from-[#8b5cf6]/20 to-transparent", icon: "🌏" },
+  Oceania: { name: "Oceania", color: "#06b6d4", bgGradient: "from-[#06b6d4]/20 to-transparent", icon: "🌏" },
 };
 
 // ─── ISO Numeric (world-atlas) to ISO Alpha-2 Mapping ────────────────────────
@@ -156,9 +156,13 @@ export const ISO_NUMERIC_TO_ALPHA2: Record<string, string> = {
 
 // ─── Helper Functions ────────────────────────────────────────────────────────
 export function getCountryData(code?: string): CountryGeoData {
-  if (!code) return { code: "XX", name: "Inconnu", nameEn: "Unknown", continent: "Africa", lat: 0, lng: 0, flag: "🌐" };
+  if (!code) return { code: "XX", name: "Unknown", nameEn: "Unknown", continent: "Africa", lat: 0, lng: 0, flag: "🌐" };
   const upper = code.toUpperCase().trim();
-  return WORLD_COUNTRIES[upper] || {
+  const c = WORLD_COUNTRIES[upper];
+  if (c) {
+    return { ...c, name: c.nameEn || c.name };
+  }
+  return {
     code: upper,
     name: upper,
     nameEn: upper,
@@ -174,7 +178,8 @@ export function getContinentForCountry(code?: string): Continent {
 }
 
 export function getCountryName(code?: string): string {
-  return getCountryData(code).name;
+  const d = getCountryData(code);
+  return d.nameEn || d.name;
 }
 
 export function getCountryFlag(code?: string): string {
@@ -185,7 +190,8 @@ export function getCountryFromGeography(geo: any): CountryGeoData {
   const idStr = String(geo.id || "").padStart(3, "0");
   const iso2FromNumeric = ISO_NUMERIC_TO_ALPHA2[idStr] || ISO_NUMERIC_TO_ALPHA2[String(geo.id || "")];
   if (iso2FromNumeric && WORLD_COUNTRIES[iso2FromNumeric]) {
-    return WORLD_COUNTRIES[iso2FromNumeric];
+    const c = WORLD_COUNTRIES[iso2FromNumeric];
+    return { ...c, name: c.nameEn || c.name };
   }
 
   const name = geo.properties?.name || "";
@@ -193,12 +199,12 @@ export function getCountryFromGeography(geo: any): CountryGeoData {
     const found = Object.values(WORLD_COUNTRIES).find(
       (c) => c.name.toLowerCase() === name.toLowerCase() || c.nameEn.toLowerCase() === name.toLowerCase()
     );
-    if (found) return found;
+    if (found) return { ...found, name: found.nameEn || found.name };
   }
 
   return {
     code: geo.id || "XX",
-    name: name || "Territoire",
+    name: name || "Territory",
     nameEn: name || "Territory",
     continent: "Europe",
     lat: 0,

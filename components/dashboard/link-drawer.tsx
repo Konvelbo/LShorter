@@ -96,7 +96,7 @@ function LockedProFeature({
       onClick={() =>
         triggerPlanUpgrade({
           featureName: title,
-          reason: `Débloquez ${title} en passant au plan PRO.`,
+          reason: `Unlock ${title} by upgrading to the PRO plan.`,
           targetPlan: "PRO",
         })
       }
@@ -134,14 +134,14 @@ function LockedProFeature({
             e.stopPropagation();
             triggerPlanUpgrade({
               featureName: title,
-              reason: `Débloquez ${title} en passant au plan PRO.`,
+              reason: `Unlock ${title} by upgrading to the PRO plan.`,
               targetPlan: "PRO",
             });
           }}
           className="px-3.5 py-1.5 rounded-[10px] bg-gradient-to-r from-[#ff6600] to-amber-500 hover:from-[#ff7711] hover:to-amber-400 max-sm:from-blue-600 max-sm:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-[#ff6600]/25 max-sm:shadow-blue-500/25 transition-all flex items-center gap-1.5 shrink-0 cursor-pointer"
         >
           <Sparkles className="w-3.5 h-3.5" />
-          <span>Débloquer avec PRO</span>
+          <span>Unlock with PRO</span>
         </button>
       </div>
     </div>
@@ -191,7 +191,7 @@ export function LinkDrawer({
     | "advanced"
   >("general");
 
-  // 1. Général (Saisie obligatoire : targetUrl, domainName, slug)
+  // 1. General (Mandatory inputs: targetUrl, domainName, slug)
   const [targetUrl, setTargetUrl] = useState("");
   const [domainName, setDomainName] = useState("");
   const [slug, setSlug] = useState("");
@@ -236,7 +236,7 @@ export function LinkDrawer({
     Array<{ url: string; weight: number }>
   >([]);
 
-  // 7. Avancé
+  // 7. Advanced
   const [redirectType, setRedirectType] = useState<"302" | "301" | "307">(
     "302",
   );
@@ -303,7 +303,7 @@ export function LinkDrawer({
             if (url) {
               parsedRules.push({
                 id: `geo_${idx}`,
-                title: `Routage ${country}`,
+                title: `Routing ${country}`,
                 isCollapsed: false,
                 conditions: [
                   {
@@ -323,12 +323,12 @@ export function LinkDrawer({
             if (url) {
               parsedRules.push({
                 id: `dev_${idx}`,
-                title: `Routage ${device}`,
+                title: `Routing ${device}`,
                 isCollapsed: false,
                 conditions: [
                   {
                     id: `c_dev_${idx}`,
-                    type: "plateforme",
+                    type: "appareil",
                     operator: "est",
                     value: device,
                   },
@@ -453,10 +453,10 @@ export function LinkDrawer({
   const checkUrlFormat = (val: string, isRequired = true): string => {
     const trimmed = val.trim();
     if (!trimmed) {
-      return isRequired ? "L'URL de destination est obligatoire." : "";
+      return isRequired ? "Destination URL is required." : "";
     }
     if (/\s/.test(trimmed)) {
-      return "L'URL ne doit pas contenir d'espaces.";
+      return "URL must not contain spaces.";
     }
     const withProto = /^https?:\/\//i.test(trimmed)
       ? trimmed
@@ -469,10 +469,10 @@ export function LinkDrawer({
         urlObj.hostname.startsWith(".") ||
         urlObj.hostname.endsWith(".")
       ) {
-        return "Nom de domaine invalide (ex: https://monsite.com).";
+        return "Invalid domain name (e.g. https://example.com).";
       }
     } catch {
-      return "Format d'URL invalide. Exemple attendu : https://monsite.com/page";
+      return "Invalid URL format. Expected: https://example.com/page";
     }
     return "";
   };
@@ -480,17 +480,17 @@ export function LinkDrawer({
   const checkDomainFormat = (val: string): string => {
     const trimmed = val.trim();
     if (!trimmed) {
-      return "Le nom de domaine est obligatoire.";
+      return "Domain name is required.";
     }
     if (/\s/.test(trimmed)) {
-      return "Le nom de domaine ne doit pas contenir d'espaces.";
+      return "Domain name must not contain spaces.";
     }
     const cleaned = trimmed.replace(/^https?:\/\//i, "").replace(/\/.*$/, "");
     if (
       !/^[a-zA-Z0-9.-]+$/.test(cleaned) ||
       (!cleaned.includes(".") && cleaned !== "localhost")
     ) {
-      return "Nom de domaine invalide (ex: monsite.com ou lsho.cc).";
+      return "Invalid domain name (e.g. example.com or lsho.cc).";
     }
     return "";
   };
@@ -498,22 +498,22 @@ export function LinkDrawer({
   const checkSlugFormat = (val: string): string => {
     const trimmed = val.trim();
     if (!trimmed) {
-      return "Le slug personnalisé est obligatoire.";
+      return "Custom slug is required.";
     }
     if (/\s/.test(trimmed)) {
-      return "Le slug ne doit pas contenir d'espaces.";
+      return "Slug must not contain spaces.";
     }
     if (trimmed.includes("/")) {
-      return "Le slug ne doit pas comporter de slash (/).";
+      return "Slug must not contain a slash (/).";
     }
     if (!/^[a-zA-Z0-9_-]+$/.test(trimmed)) {
-      return "Seuls les lettres, chiffres, tirets (-) et underscores (_) sont autorisés sans accents.";
+      return "Only letters, numbers, hyphens (-), and underscores (_) are allowed without accents.";
     }
     if (trimmed.length < 2) {
-      return "Le slug doit contenir au moins 2 caractères.";
+      return "Slug must be at least 2 characters long.";
     }
     if (trimmed.length > 80) {
-      return "Le slug ne doit pas dépasser 80 caractères.";
+      return "Slug must not exceed 80 characters.";
     }
     return "";
   };
@@ -521,7 +521,7 @@ export function LinkDrawer({
   const checkPasswordFormat = (val: string): string => {
     if (!val) return "";
     if (val.length < 4) {
-      return "Le mot de passe doit comporter au moins 4 caractères.";
+      return "Password must be at least 4 characters long.";
     }
     return "";
   };
@@ -529,9 +529,9 @@ export function LinkDrawer({
   const checkExpiresAtFormat = (val: string): string => {
     if (!val) return "";
     const time = new Date(val).getTime();
-    if (isNaN(time)) return "Format de date invalide.";
+    if (isNaN(time)) return "Invalid date format.";
     if (time <= Date.now()) {
-      return "La date d'expiration doit être strictement ultérieure à maintenant.";
+      return "Expiration date must be strictly in the future.";
     }
     return "";
   };
@@ -543,7 +543,7 @@ export function LinkDrawer({
     if (!enabled) return "";
     const n = Number(val);
     if (isNaN(n) || n < 1 || !Number.isInteger(n)) {
-      return "Le plafond de clics doit être un nombre entier supérieur ou égal à 1.";
+      return "Click limit must be a positive integer greater than or equal to 1.";
     }
     return "";
   };
@@ -553,7 +553,7 @@ export function LinkDrawer({
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 10 * 1024 * 1024) {
-      showToast.error("L'image ne doit pas dépasser 10 Mo.");
+      showToast.error("Image must not exceed 10 MB.");
       return;
     }
 
@@ -578,7 +578,7 @@ export function LinkDrawer({
       }
 
       if (!dataUrl) {
-        throw new Error("Impossible de lire le fichier image.");
+        throw new Error("Unable to read image file.");
       }
 
       // Immediately upload to Bunny CDN!
@@ -586,15 +586,15 @@ export function LinkDrawer({
       if (uploadRes?.url) {
         setOgImage(uploadRes.url);
         setPreviewImage(uploadRes.url);
-        showToast.success("Bannière téléversée avec succès sur le CDN Bunny !");
+        showToast.success("Banner uploaded successfully to Bunny CDN!");
       } else {
         setOgImage(dataUrl);
         setPreviewImage(dataUrl);
-        showToast.success("Bannière sélectionnée !");
+        showToast.success("Banner selected!");
       }
     } catch (err: any) {
       console.error("Banner upload error:", err);
-      showToast.error("Erreur lors du téléversement de la bannière.");
+      showToast.error("Error uploading banner.");
     } finally {
       setIsUploadingImage(false);
       if (bannerInputRef.current) bannerInputRef.current.value = "";
@@ -604,7 +604,7 @@ export function LinkDrawer({
   // A/B Testing helpers
   const handleAddVariation = () => {
     if (abVariations.length >= 5) {
-      showToast.error("Maximum 5 variantes autorisées.");
+      showToast.error("Maximum 5 variations allowed.");
       return;
     }
     const newVariations = [...abVariations, { url: "", weight: 20 }];
@@ -630,7 +630,7 @@ export function LinkDrawer({
     const remainder = 100 - equalWeight * count;
     setMainWeight(equalWeight + remainder);
     setAbVariations(abVariations.map((v) => ({ ...v, weight: equalWeight })));
-    showToast.success("Pourcentages équilibrés automatiquement !");
+    showToast.success("Percentages balanced automatically!");
   };
 
   // Compute final generated URL with UTM without hardcoding dummy targets
@@ -696,14 +696,14 @@ export function LinkDrawer({
           const err = checkUrlFormat(v.url, false);
           if (err)
             errors[`abVariation_${idx}`] =
-              `Variante ${String.fromCharCode(66 + idx)} : ${err}`;
+              `Variation ${String.fromCharCode(66 + idx)}: ${err}`;
         }
       });
       const totalWeight =
         mainWeight +
         abVariations.reduce((sum, v) => sum + (Number(v.weight) || 0), 0);
       if (totalWeight !== 100) {
-        errors.abTotal = `La somme des pourcentages doit être égale à 100% (actuellement ${totalWeight}%).`;
+        errors.abTotal = `The sum of percentages must equal 100% (currently ${totalWeight}%).`;
       }
     }
 
@@ -726,7 +726,7 @@ export function LinkDrawer({
         setActiveTab("ab_testing");
       }
       showToast.error(
-        "Certains champs obligatoires sont manquants ou invalides.",
+        "Some required fields are missing or invalid.",
       );
       return;
     }
@@ -767,18 +767,29 @@ export function LinkDrawer({
 
     // Freemium plan security checks
     if (!isProPlan) {
+      if (routingRules && routingRules.length > 0) {
+        triggerPlanUpgrade({
+          reason: "Smart dynamic routing requires the Pro plan.",
+          featureName: "Dynamic Routing",
+          targetPlan: "PRO",
+        });
+        setIsSubmitting(false);
+        return;
+      }
       if (password) {
         triggerPlanUpgrade({
-          reason: "La protection par mot de passe requiert le forfait Pro.",
-          featureName: "Protection Mot de Passe",
+          reason: "Password protection requires the Pro plan.",
+          featureName: "Password Protection",
+          targetPlan: "PRO",
         });
         setIsSubmitting(false);
         return;
       }
       if (isCloaked) {
         triggerPlanUpgrade({
-          reason: "Le masquage d'URL (Cloaking) requiert le forfait Pro.",
-          featureName: "Cloaking d'URL",
+          reason: "URL cloaking requires the Pro plan.",
+          featureName: "URL Cloaking",
+          targetPlan: "PRO",
         });
         setIsSubmitting(false);
         return;
@@ -907,7 +918,7 @@ export function LinkDrawer({
           origin: { y: 0.6 },
         });
 
-        showToast.success("Lien mis à jour avec succès !");
+        showToast.success("Link updated successfully!");
         setIsSubmitting(false);
         if (onSuccess) onSuccess(updatedShortLink);
         onClose();
@@ -1038,7 +1049,7 @@ export function LinkDrawer({
         });
 
         showToast.success(
-          `Lien https://${cleanDomain}/${cleanSlug} créé avec succès !`,
+          `Link https://${cleanDomain}/${cleanSlug} created successfully!`,
         );
         setIsSubmitting(false);
         if (onSuccess) onSuccess(createdLink);
@@ -1054,8 +1065,8 @@ export function LinkDrawer({
         msg.toLowerCase().includes("pro plan")
       ) {
         triggerPlanUpgrade({
-          reason: "Cette fonctionnalité requiert le forfait PRO ou supérieur.",
-          featureName: "Options Avancées & Sécurité PRO",
+          reason: "This feature requires the PRO plan or higher.",
+          featureName: "Advanced PRO Options & Security",
           targetPlan: "PRO",
         });
         return;
@@ -1095,12 +1106,12 @@ export function LinkDrawer({
               </div>
               <div className="min-w-0">
                 <h2 className="text-sm sm:text-base font-bold text-white tracking-tight leading-tight truncate">
-                  {isEditMode ? "Modifier le Lien" : "Créer un Nouveau Lien"}
+                  {isEditMode ? "Edit Link" : "Create New Link"}
                 </h2>
                 <p className="text-[11px] text-neutral-400 leading-tight truncate">
                   {isEditMode
-                    ? `Modifier la redirection pour /${slug || link?.slug || ""}`
-                    : "Configurez votre redirection courte"}
+                    ? `Edit redirection for /${slug || link?.slug || ""}`
+                    : "Configure your short link redirection"}
                 </p>
               </div>
             </div>
@@ -1115,22 +1126,22 @@ export function LinkDrawer({
             </button>
           </div>
 
-          {/* ── INPUTS PRINCIPAUX : URL, DOMAINE, SLUG (Dans le sticky header, remplace la carte barrée) ── */}
+          {/* ── MAIN INPUTS: URL, DOMAIN, SLUG (Sticky header) ── */}
           <div className="bg-[#1a1a1e]/80 border border-[#27272a] rounded-[12px] p-3 sm:p-3.5 mb-3 flex flex-col gap-3">
-            {/* Champ 1 : URL de destination (pleine largeur) */}
+            {/* Field 1: Destination URL (full width) */}
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-neutral-300">
-                  URL de destination{" "}
+                  Destination URL{" "}
                   <span className="text-[#ff6600] max-sm:text-blue-500">*</span>
                 </label>
                 <span className="text-[10px] text-neutral-500 italic">
-                  Obligatoire
+                  Required
                 </span>
               </div>
               <Input
                 required
-                placeholder="https://mon-site-web.com/page..."
+                placeholder="https://my-website.com/page..."
                 value={targetUrl}
                 onChange={(e) => {
                   setTargetUrl(e.target.value);
@@ -1148,17 +1159,16 @@ export function LinkDrawer({
               />
               <FieldErrorAlert message={fieldErrors.targetUrl} />
               <p className="text-[10px] text-neutral-400 mt-1">
-                Les visiteurs seront instantanément redirigés vers cette
-                adresse.
+                Visitors will be instantly redirected to this address.
               </p>
             </div>
 
-            {/* Champs 2 & 3 : Domaine (select) + Slug, en grille 2 colonnes */}
+            {/* Fields 2 & 3: Domain (select) + Slug, in 2-column grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* Nom de Domaine — Select Dropdown */}
+              {/* Domain Name — Select Dropdown */}
               <div>
                 <label className="block text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-neutral-300 mb-1">
-                  Nom de Domaine{" "}
+                  Domain Name{" "}
                   <span className="text-[#ff6600] max-sm:text-blue-500">*</span>
                 </label>
                 <div className="relative">
@@ -1184,10 +1194,10 @@ export function LinkDrawer({
                   >
                     {!isEditMode && !domainName && (
                       <option value="" disabled>
-                        Choisir un domaine...
+                        Choose a domain...
                       </option>
                     )}
-                    {/* Domaines personnalisés de l'utilisateur */}
+                    {/* User's custom domains */}
                     {customDomains.length > 0 &&
                       customDomains.map((cd) => (
                         <option
@@ -1198,16 +1208,16 @@ export function LinkDrawer({
                           {cd.domain}
                         </option>
                       ))}
-                    {/* Si aucun domaine custom, afficher le domaine par défaut lsho.cc */}
+                    {/* Default fallback domain */}
                     {customDomains.length === 0 && (
                       <option
                         value="lsho.cc"
                         className="bg-[#141416] text-white"
                       >
-                        lsho.cc (Officiel)
+                        lsho.cc (Official)
                       </option>
                     )}
-                    {/* En mode édition, s'assurer que le domaine actuel est affiché même s'il n'est pas dans customDomains */}
+                    {/* In edit mode, ensure current domain is available */}
                     {isEditMode &&
                       domainName &&
                       !customDomains.find((cd) => cd.domain === domainName) && (
@@ -1219,7 +1229,7 @@ export function LinkDrawer({
                         </option>
                       )}
                   </select>
-                  {/* Chevron custom */}
+                  {/* Custom chevron */}
                   <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-400">
                     <svg
                       className="w-4 h-4"
@@ -1239,10 +1249,10 @@ export function LinkDrawer({
                 <FieldErrorAlert message={fieldErrors.domainName} />
               </div>
 
-              {/* Slug personnalisé */}
+              {/* Custom Slug */}
               <div>
                 <label className="block text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-neutral-300 mb-1">
-                  Slug personnalisé{" "}
+                  Custom Slug{" "}
                   <span className="text-[#ff6600] max-sm:text-blue-500">*</span>
                 </label>
                 <div className="relative">
@@ -1251,7 +1261,7 @@ export function LinkDrawer({
                   </span>
                   <Input
                     required
-                    placeholder="ex: mon-lien-court"
+                    placeholder="e.g. my-short-link"
                     value={slug}
                     onChange={(e) => {
                       setSlug(e.target.value);
@@ -1289,13 +1299,13 @@ export function LinkDrawer({
             }}
           >
             {[
-              { id: "general", label: "Général", icon: Settings2 },
+              { id: "general", label: "General", icon: Settings2 },
               { id: "social", label: "Social Preview", icon: ImageIcon },
               { id: "tracking", label: "Tracking & UTM", icon: Tag },
-              { id: "routing", label: "Routing (Règles)", icon: Globe2 },
+              { id: "routing", label: "Routing (Rules)", icon: Globe2 },
               { id: "protection", label: "Protection & Expiry", icon: Shield },
               { id: "ab_testing", label: "A/B Testing", icon: Split },
-              { id: "advanced", label: "Avancé", icon: Sliders },
+              { id: "advanced", label: "Advanced", icon: Sliders },
             ].map((tab) => {
               const Icon = tab.icon;
               const isActiveTab = activeTab === tab.id;
@@ -1325,15 +1335,15 @@ export function LinkDrawer({
           onSubmit={handleSubmit}
           className="flex-1 overflow-y-auto px-4 sm:px-6 py-5 flex flex-col gap-5"
         >
-          {/* ────────── TAB 1: GÉNÉRAL ────────── */}
+          {/* ────────── TAB 1: GENERAL ────────── */}
           {activeTab === "general" && (
             <div className="flex flex-col gap-4 animate-in fade-in duration-200">
-              {/* Info : champs déplacés en haut */}
+              {/* Info : pinned inputs */}
               <div className="flex items-center gap-2 px-3 py-2 rounded-[8px] bg-white/5 border border-white/5 text-[11px] text-neutral-400">
                 <span>💡</span>
                 <span>
-                  L'URL cible, le domaine et le slug sont épinglés en haut du
-                  volet et restent modifiables à tout moment.
+                  Target URL, domain, and slug are pinned at the top of the
+                  drawer and can be edited at any time.
                 </span>
               </div>
 
@@ -1349,13 +1359,13 @@ export function LinkDrawer({
                   <div>
                     <span className="text-xs font-bold text-white block">
                       {isActive
-                        ? "Lien Actif (Redirige les visiteurs)"
-                        : "Lien en Pause"}
+                        ? "Active Link (Redirects visitors)"
+                        : "Paused Link"}
                     </span>
                     <span className="text-[11px] text-neutral-400 block">
                       {isActive
-                        ? "Le lien fonctionne normalement et effectue la redirection."
-                        : "Les visiteurs sont redirigés vers la page d'information 'Lien en pause'."}
+                        ? "The link works normally and executes redirection."
+                        : "Visitors are redirected to the 'Link Paused' info page."}
                     </span>
                   </div>
                 </div>
@@ -1371,14 +1381,14 @@ export function LinkDrawer({
                   )}
                 >
                   <Power className="w-3.5 h-3.5" />
-                  <span>{isActive ? "Mettre en pause" : "Réactiver"}</span>
+                  <span>{isActive ? "Pause Link" : "Reactivate"}</span>
                 </button>
               </div>
 
               {/* Tags */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-1.5">
-                  Tags (séparés par des virgules)
+                  Tags (comma-separated)
                 </label>
                 <Input
                   placeholder="tag1, tag2..."
@@ -1387,7 +1397,7 @@ export function LinkDrawer({
                   className="bg-[#1a1a1e] border-[#27272a] focus:border-[#ff6600] max-sm:focus:border-blue-500 text-white text-xs h-10 rounded-[10px]"
                 />
                 <p className="text-[11px] text-neutral-400 mt-1">
-                  Facilite le tri et la recherche dans votre liste de liens.
+                  Makes sorting and searching links in your list easier.
                 </p>
               </div>
             </div>
@@ -1400,14 +1410,14 @@ export function LinkDrawer({
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300">
-                    Titre Open Graph (OG Title)
+                    Open Graph Title (OG Title)
                   </label>
                   <span className="text-[10px] text-neutral-500 font-mono">
                     {ogTitle.length}/60
                   </span>
                 </div>
                 <Input
-                  placeholder="ex: Découvrez notre nouvelle offre exclusive"
+                  placeholder="e.g. Discover our exclusive new offer"
                   value={ogTitle}
                   maxLength={100}
                   onChange={(e) => setOgTitle(e.target.value)}
@@ -1419,7 +1429,7 @@ export function LinkDrawer({
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300">
-                    Description Open Graph (OG Description)
+                    Open Graph Description (OG Description)
                   </label>
                   <span className="text-[10px] text-neutral-500 font-mono">
                     {ogDescription.length}/155
@@ -1428,7 +1438,7 @@ export function LinkDrawer({
                 <textarea
                   rows={2}
                   maxLength={250}
-                  placeholder="ex: Accédez instantanément au portail avec 20% de réduction..."
+                  placeholder="e.g. Instantly access the portal with a 20% discount..."
                   value={ogDescription}
                   onChange={(e) => setOgDescription(e.target.value)}
                   className="w-full bg-[#1a1a1e] border border-[#27272a] focus:border-[#ff6600] max-sm:focus:border-blue-500 text-white text-xs p-3 rounded-[10px] outline-none resize-none transition-all"
@@ -1438,11 +1448,11 @@ export function LinkDrawer({
               {/* Banner Upload */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-1.5">
-                  Bannière Open Graph (Image)
+                  Open Graph Banner (Image)
                 </label>
                 <div className="flex flex-col sm:flex-row gap-2.5 items-center">
                   <Input
-                    placeholder="https://... ou téléversez un fichier"
+                    placeholder="https://... or upload a file"
                     value={ogImage}
                     onChange={(e) => {
                       setOgImage(e.target.value);
@@ -1469,7 +1479,7 @@ export function LinkDrawer({
                     ) : (
                       <Upload className="w-3.5 h-3.5 text-[#ff6600] max-sm:text-blue-400" />
                     )}
-                    <span>Téléverser</span>
+                    <span>Upload</span>
                   </Button>
                   {(ogImage || previewImage) && (
                     <Button
@@ -1481,14 +1491,14 @@ export function LinkDrawer({
                         setPreviewImage("");
                       }}
                       className="bg-rose-500/10 border-rose-500/30 hover:bg-rose-500/20 text-rose-400 text-xs h-10 rounded-[10px] shrink-0 gap-1.5 cursor-pointer px-3"
-                      title="Supprimer la bannière"
+                      title="Delete banner"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </Button>
                   )}
                 </div>
                 <p className="text-[11px] text-neutral-400 mt-1">
-                  Recommandé : 1200 × 630 px (format 1.91:1 ou 16:9). Téléversement direct et optimisé sur CDN Bunny.
+                  Recommended: 1200 × 630 px (1.91:1 or 16:9 format). Direct, optimized upload to Bunny CDN.
                 </p>
               </div>
 
@@ -1497,7 +1507,7 @@ export function LinkDrawer({
                 {/* Controls Bar: Platform pills */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-1">
                   <span className="text-[11px] font-bold text-neutral-300 uppercase tracking-wider">
-                    Aperçu des réseaux sociaux :
+                    Social Media Preview:
                   </span>
 
                   {/* Platform Preview Selector */}
@@ -1548,9 +1558,9 @@ export function LinkDrawer({
                     <div className="flex items-center gap-1.5 font-medium">
                       <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                       <span>
-                        {socialPlatformPreview === "x" && "Aperçu de la carte 𝕏 (Twitter Card)"}
-                        {socialPlatformPreview === "facebook" && "Aperçu du partage Facebook / LinkedIn"}
-                        {socialPlatformPreview === "whatsapp" && "Aperçu de la bulle WhatsApp"}
+                        {socialPlatformPreview === "x" && "𝕏 Card Preview (Twitter Card)"}
+                        {socialPlatformPreview === "facebook" && "Facebook / LinkedIn Share Preview"}
+                        {socialPlatformPreview === "whatsapp" && "WhatsApp Message Preview"}
                       </span>
                     </div>
                     <span className="font-mono text-[10px] text-neutral-500">
@@ -1565,7 +1575,7 @@ export function LinkDrawer({
                       {previewImage || ogImage ? (
                         <img
                           src={previewImage || ogImage}
-                          alt="Aperçu Open Graph"
+                          alt="Open Graph Preview"
                           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
                           onError={() => setPreviewImage("")}
                         />
@@ -1575,16 +1585,16 @@ export function LinkDrawer({
                             <ImageIcon className="w-5 h-5 text-neutral-400" />
                           </div>
                           <span className="text-xs font-medium text-neutral-400">
-                            Aucune bannière téléversée
+                            No banner uploaded
                           </span>
                           <span className="text-[10px] text-neutral-500">
-                            L'image Open Graph s'affichera ici en grand format (16:9)
+                            The Open Graph image will be displayed here in large format (16:9)
                           </span>
                         </div>
                       )}
                     </div>
 
-                    {/* ── BANDEAU EN DESSOUS DE LA BANNIÈRE AVEC LES TEXTES ── */}
+                    {/* ── BANNER FOOTER TEXT ── */}
                     <div className="p-3.5 bg-[#18181c] border-t border-[#27272a] flex flex-col gap-1">
                       {/* Domain row */}
                       <div className="flex items-center gap-1.5 text-[11px] font-mono text-neutral-400">
@@ -1596,7 +1606,7 @@ export function LinkDrawer({
                       <h4 className="text-sm font-bold text-white leading-snug truncate mt-0.5">
                         {ogTitle.trim() || (
                           <span className="text-neutral-500 font-normal italic">
-                            Titre du lien partagé (cliquez pour éditer)
+                            Shared link title (click to edit)
                           </span>
                         )}
                       </h4>
@@ -1605,7 +1615,7 @@ export function LinkDrawer({
                       <p className="text-xs text-neutral-400 line-clamp-2 leading-relaxed">
                         {ogDescription.trim() || (
                           <span className="text-neutral-500 italic">
-                            La description apparaîtra ici sous la bannière lors du partage sur vos réseaux sociaux...
+                            The description will appear here under the banner when shared on social networks...
                           </span>
                         )}
                       </p>
@@ -1621,10 +1631,10 @@ export function LinkDrawer({
             <div className="flex flex-col gap-4 animate-in fade-in duration-200">
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-1.5">
-                  Source de campagne (utm_source)
+                  Campaign Source (utm_source)
                 </label>
                 <Input
-                  placeholder="ex: newsletter, twitter, google..."
+                  placeholder="e.g. newsletter, twitter, google..."
                   value={utmSource}
                   onChange={(e) => setUtmSource(e.target.value)}
                   className="bg-[#1a1a1e] border-[#27272a] focus:border-[#ff6600] max-sm:focus:border-blue-500 text-white text-xs h-10 rounded-[10px]"
@@ -1634,10 +1644,10 @@ export function LinkDrawer({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-1.5">
-                    Support (utm_medium)
+                    Medium (utm_medium)
                   </label>
                   <Input
-                    placeholder="ex: cpc, email, social..."
+                    placeholder="e.g. cpc, email, social..."
                     value={utmMedium}
                     onChange={(e) => setUtmMedium(e.target.value)}
                     className="bg-[#1a1a1e] border-[#27272a] focus:border-[#ff6600] max-sm:focus:border-blue-500 text-white text-xs h-10 rounded-[10px]"
@@ -1645,10 +1655,10 @@ export function LinkDrawer({
                 </div>
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-1.5">
-                    Nom de campagne (utm_campaign)
+                    Campaign Name (utm_campaign)
                   </label>
                   <Input
-                    placeholder="ex: promo_ete, lancement..."
+                    placeholder="e.g. summer_sale, launch..."
                     value={utmCampaign}
                     onChange={(e) => setUtmCampaign(e.target.value)}
                     className="bg-[#1a1a1e] border-[#27272a] focus:border-[#ff6600] max-sm:focus:border-blue-500 text-white text-xs h-10 rounded-[10px]"
@@ -1659,10 +1669,10 @@ export function LinkDrawer({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-1.5">
-                    Terme / Mot-clé (utm_term)
+                    Term / Keyword (utm_term)
                   </label>
                   <Input
-                    placeholder="ex: mot_cle..."
+                    placeholder="e.g. keyword..."
                     value={utmTerm}
                     onChange={(e) => setUtmTerm(e.target.value)}
                     className="bg-[#1a1a1e] border-[#27272a] focus:border-[#ff6600] max-sm:focus:border-blue-500 text-white text-xs h-10 rounded-[10px]"
@@ -1670,10 +1680,10 @@ export function LinkDrawer({
                 </div>
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-1.5">
-                    Contenu (utm_content)
+                    Content (utm_content)
                   </label>
                   <Input
-                    placeholder="ex: bouton_cta, banniere_top..."
+                    placeholder="e.g. cta_button, top_banner..."
                     value={utmContent}
                     onChange={(e) => setUtmContent(e.target.value)}
                     className="bg-[#1a1a1e] border-[#27272a] focus:border-[#ff6600] max-sm:focus:border-blue-500 text-white text-xs h-10 rounded-[10px]"
@@ -1684,7 +1694,7 @@ export function LinkDrawer({
               {/* Real-time Computed URL */}
               <div className="p-3.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a]">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 block mb-1">
-                  Aperçu de l'URL finale avec paramètres UTM
+                  Final URL Preview with UTM Parameters
                 </span>
                 {computeFinalUrlWithUtm() ? (
                   <p className="text-xs font-mono text-[#ff6600] max-sm:text-blue-400 break-all leading-relaxed">
@@ -1692,37 +1702,41 @@ export function LinkDrawer({
                   </p>
                 ) : (
                   <p className="text-xs text-neutral-500 italic leading-relaxed">
-                    Entrez une URL de destination pour prévisualiser l'URL
-                    finale avec les paramètres UTM.
+                    Enter a destination URL to preview the final URL with UTM parameters.
                   </p>
                 )}
               </div>
             </div>
           )}
 
-          {/* ────────── TAB 4: ROUTING (RÈGLES) ────────── */}
+          {/* ────────── TAB 4: ROUTING (RULES) ────────── */}
           {activeTab === "routing" && (
             <div className="flex flex-col gap-4 animate-in fade-in duration-200">
-              <RoutingRulesEditor
-                rules={routingRules}
-                onChange={setRoutingRules}
-                userPlan={userPlan as any}
-              />
+              <LockedProFeature
+                title="Smart Dynamic Routing"
+                description="Redirect visitors based on country, operating system, or device type."
+                isUnlocked={isProPlan}
+              >
+                <RoutingRulesEditor
+                  rules={routingRules}
+                  onChange={setRoutingRules}
+                  userPlan={userPlan as any}
+                />
+              </LockedProFeature>
             </div>
           )}
 
           {/* ────────── TAB 5: PROTECTION & EXPIRY ────────── */}
           {activeTab === "protection" && (
             <div className="flex flex-col gap-4 animate-in fade-in duration-200">
-              {/* 1. Masquage du Referrer (Accessible à tous) */}
+              {/* 1. Hide Referrer (Accessible to all) */}
               <div className="p-3.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] flex items-center justify-between gap-3">
                 <div>
                   <span className="text-xs font-bold text-white block">
-                    Masquer le référent (no-referrer)
+                    Hide Referrer (no-referrer)
                   </span>
                   <span className="text-[11px] text-neutral-400 block">
-                    Empêche le site de destination d'identifier le domaine
-                    source d'où provient le clic.
+                    Prevents the destination website from identifying the referring origin domain.
                   </span>
                 </div>
                 <button
@@ -1744,20 +1758,19 @@ export function LinkDrawer({
                 </button>
               </div>
 
-              {/* 2. Masquage d'URL / Cloaking (PRO) */}
+              {/* 2. URL Cloaking (PRO) */}
               <LockedProFeature
-                title="Masquage d'URL (Cloaking)"
-                description="Conserve votre nom de domaine court affiché dans la barre d'adresse sans révéler la cible."
+                title="URL Cloaking"
+                description="Keeps your short domain visible in the browser address bar without revealing the destination."
                 isUnlocked={isProPlan}
               >
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <span className="text-xs font-bold text-white block">
-                      Masquage d'URL (Cloaking)
+                      URL Cloaking
                     </span>
                     <span className="text-[11px] text-neutral-400 block">
-                      Affiche la page de destination dans une iframe plein écran
-                      transparente.
+                      Displays the target page in a transparent full-screen iframe.
                     </span>
                   </div>
                   <button
@@ -1780,28 +1793,27 @@ export function LinkDrawer({
                 </div>
               </LockedProFeature>
 
-              {/* 3. Mot de Passe de Protection (PRO) */}
+              {/* 3. Password Protection (PRO) */}
               <LockedProFeature
-                title="Protection par Mot de Passe"
-                description="Exige la saisie d'un mot de passe secret avant d'accéder au lien."
+                title="Password Protection"
+                description="Requires entering a secret password before accessing the link."
                 isUnlocked={isProPlan}
               >
                 <div className="flex flex-col gap-2.5">
                   <div className="flex items-center justify-between">
                     <div>
                       <span className="text-xs font-bold text-white block">
-                        Mot de passe de protection
+                        Protection Password
                       </span>
                       <span className="text-[11px] text-neutral-400 block">
-                        Les visiteurs devront valider ce mot de passe sur la
-                        page de sécurité.
+                        Visitors must validate this password on the security verification gate.
                       </span>
                     </div>
                   </div>
                   <div className="relative">
                     <Input
                       type={showPassword ? "text" : "password"}
-                      placeholder="Mot de passe secret (min. 4 caractères)"
+                      placeholder="Secret password (min. 4 characters)"
                       value={password}
                       onChange={(e) => {
                         setPassword(e.target.value);
@@ -1834,20 +1846,20 @@ export function LinkDrawer({
                 </div>
               </LockedProFeature>
 
-              {/* 4. Limite de Clics / Quota (PRO) */}
+              {/* 4. Click Limit / Quota (PRO) */}
               <LockedProFeature
-                title="Limiter le Nombre d'Accès"
-                description="Redirige vers une URL alternative une fois le quota de clics atteint."
+                title="Limit Access Count"
+                description="Redirects to a fallback URL once the click limit is reached."
                 isUnlocked={isProPlan}
               >
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <span className="text-xs font-bold text-white block">
-                        Limiter le nombre d'accès
+                        Limit Access Count
                       </span>
                       <span className="text-[11px] text-neutral-400 block">
-                        Désactive ou déroute le lien après un seuil précis.
+                        Disables or reroutes the link after a specific threshold.
                       </span>
                     </div>
                     <button
@@ -1875,7 +1887,7 @@ export function LinkDrawer({
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-[#27272a]">
                       <div>
                         <label className="block text-[11px] font-bold text-neutral-300 mb-1">
-                          Plafond de clics
+                          Click limit
                         </label>
                         <div className="flex items-center gap-1.5">
                           <Button
@@ -1916,7 +1928,7 @@ export function LinkDrawer({
 
                       <div>
                         <label className="block text-[11px] font-bold text-neutral-300 mb-1">
-                          URL de repli (optionnel)
+                          Fallback URL (optional)
                         </label>
                         <Input
                           placeholder="https://..."
@@ -1931,15 +1943,15 @@ export function LinkDrawer({
                 </div>
               </LockedProFeature>
 
-              {/* 5. Date d'Expiration Automatique (PRO) */}
+              {/* 5. Automatic Expiration (PRO) */}
               <LockedProFeature
-                title="Expiration Automatique"
-                description="Programmez la fin de validité du lien à une date et heure précises."
+                title="Automatic Expiration"
+                description="Schedule the link expiration date and exact time."
                 isUnlocked={isProPlan}
               >
                 <div className="flex flex-col gap-2">
                   <label className="block text-xs font-bold text-white">
-                    Date &amp; Heure d'expiration
+                    Expiration Date &amp; Time
                   </label>
                   <Input
                     type="datetime-local"
@@ -1960,8 +1972,7 @@ export function LinkDrawer({
                   />
                   <FieldErrorAlert message={fieldErrors.expiresAt} />
                   <p className="text-[11px] text-neutral-400">
-                    Après cette date, les clics seront redirigés vers la page
-                    d'information "Lien expiré".
+                    After this date, clicks will be redirected to the "Link Expired" info page.
                   </p>
                 </div>
               </LockedProFeature>
@@ -1974,11 +1985,10 @@ export function LinkDrawer({
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <h4 className="text-xs font-bold text-white uppercase tracking-wider">
-                    Répartition du Trafic A/B
+                    A/B Traffic Distribution
                   </h4>
                   <p className="text-[11px] text-neutral-400">
-                    Distribuez les visiteurs entre l'URL principale et vos
-                    variantes alternatives.
+                    Distribute visitors between the main URL and your alternative variants.
                   </p>
                 </div>
                 <Button
@@ -1989,7 +1999,7 @@ export function LinkDrawer({
                   className="bg-[#1a1a1e] border-[#27272a] hover:bg-white/5 text-xs h-8 rounded-[8px] gap-1 cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5 text-[#ff6600] max-sm:text-blue-500" />
-                  <span>Ajouter Variante</span>
+                  <span>Add Variant</span>
                 </Button>
               </div>
 
@@ -1997,7 +2007,7 @@ export function LinkDrawer({
               <div className="p-3.5 rounded-[10px] bg-[#1a1a1e] border border-[#ff6600]/40 max-sm:border-blue-500/40 flex flex-col gap-2.5">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-[#ff6600] max-sm:text-blue-400">
-                    Variante A (Principale)
+                    Variant A (Main)
                   </span>
                   <span className="text-xs font-mono font-bold text-[#ff6600] max-sm:text-blue-400">
                     {mainWeight}%
@@ -2012,7 +2022,7 @@ export function LinkDrawer({
                   )}
                 >
                   {targetUrl.trim() ||
-                    "URL principale (définie dans l'onglet Général)"}
+                    "Main URL (defined in the General tab)"}
                 </div>
                 <div className="flex items-center gap-3">
                   <input
@@ -2037,8 +2047,7 @@ export function LinkDrawer({
                 <div className="p-6 rounded-[10px] border border-dashed border-[#27272a] bg-[#1a1a1e]/50 text-center flex flex-col items-center justify-center gap-2">
                   <Split className="w-6 h-6 text-neutral-500" />
                   <p className="text-xs text-neutral-400">
-                    Aucune variante alternative configurée. 100% du trafic
-                    pointe vers l'URL principale.
+                    No alternative variants configured. 100% of traffic routes to the main URL.
                   </p>
                   <Button
                     type="button"
@@ -2048,12 +2057,12 @@ export function LinkDrawer({
                     className="bg-[#1a1a1e] border-[#27272a] hover:bg-white/5 text-xs h-8 rounded-[8px] gap-1 cursor-pointer mt-1"
                   >
                     <Plus className="w-3.5 h-3.5 text-[#ff6600] max-sm:text-blue-500" />
-                    <span>Créer une variante B</span>
+                    <span>Create variant B</span>
                   </Button>
                 </div>
               ) : (
                 abVariations.map((variant, idx) => {
-                  const label = `Variante ${String.fromCharCode(66 + idx)}`;
+                  const label = `Variant ${String.fromCharCode(66 + idx)}`;
                   const err = fieldErrors[`abVariation_${idx}`];
                   return (
                     <div
@@ -2128,7 +2137,7 @@ export function LinkDrawer({
                     className="bg-[#1a1a1e] border-[#27272a] hover:bg-white/5 text-xs h-8 rounded-[8px] gap-1.5 cursor-pointer"
                   >
                     <RotateCcw className="w-3 h-3 text-[#ff6600] max-sm:text-blue-500" />
-                    <span>Équilibrer à 100%</span>
+                    <span>Balance to 100%</span>
                   </Button>
 
                   {/* Total Weight Indicator */}
@@ -2159,16 +2168,16 @@ export function LinkDrawer({
             </div>
           )}
 
-          {/* ────────── TAB 7: AVANCÉ ────────── */}
+          {/* ────────── TAB 7: ADVANCED ────────── */}
           {activeTab === "advanced" && (
             <div className="flex flex-col gap-4 animate-in fade-in duration-200">
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-2">
-                  Code de Redirection HTTP
+                  HTTP Redirection Code
                 </label>
                 <div className="grid grid-cols-3 gap-2.5">
                   {[
-                    { code: "302", title: "302", desc: "Temp (Défaut)" },
+                    { code: "302", title: "302", desc: "Temp (Default)" },
                     { code: "301", title: "301", desc: "Perm (SEO)" },
                     { code: "307", title: "307", desc: "Strict" },
                   ].map((item) => {
@@ -2199,26 +2208,23 @@ export function LinkDrawer({
                 <div className="p-3 rounded-[8px] bg-[#1a1a1e] border border-[#27272a] mt-2 text-[11px] text-neutral-400 leading-relaxed">
                   {redirectType === "302" && (
                     <>
-                      💡 <strong>302 Temporaire (Recommandé)</strong> : Permet
-                      de compter avec exactitude chaque clic et chaque visiteur
-                      sur votre tableau de bord, sans mise en cache navigateur
-                      trop agressive.
+                      💡 <strong>302 Temporary (Recommended)</strong>: Accurately
+                      tracks every click and visitor on your dashboard without
+                      aggressive browser caching.
                     </>
                   )}
                   {redirectType === "301" && (
                     <>
-                      💡 <strong>301 Permanent (SEO)</strong> : Transmet
-                      l'autorité SEO à la page cible. Attention : les
-                      navigateurs mettent cette redirection en cache local,
-                      certains clics répétés peuvent ne pas être comptabilisés.
+                      💡 <strong>301 Permanent (SEO)</strong>: Passes SEO
+                      authority to the destination page. Note: Browsers cache
+                      this redirection locally, which may undercount repeated clicks.
                     </>
                   )}
                   {redirectType === "307" && (
                     <>
-                      💡 <strong>307 Temporaire Strict</strong> : Garantit la
-                      préservation exacte de la méthode HTTP (ex: POST, PUT)
-                      lors de la redirection. Idéal pour les webhooks et appels
-                      API.
+                      💡 <strong>307 Strict Temporary</strong>: Guarantees
+                      preservation of the exact HTTP method (e.g. POST, PUT)
+                      across redirection. Ideal for webhooks and API calls.
                     </>
                   )}
                 </div>
@@ -2228,11 +2234,11 @@ export function LinkDrawer({
               <div className="p-3.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] flex items-center justify-between gap-3">
                 <div>
                   <span className="text-xs font-bold text-white block">
-                    Transmettre les paramètres d'URL (Query Parameters)
+                    Forward Query Parameters
                   </span>
                   <span className="text-[11px] text-neutral-400 block">
-                    Transfère automatiquement les paramètres de requête reçus
-                    (ex: <code>?ref=...</code>) vers la page de destination.
+                    Automatically forwards incoming query parameters
+                    (e.g. <code>?ref=...</code>) to the destination page.
                   </span>
                 </div>
                 <button
@@ -2257,7 +2263,7 @@ export function LinkDrawer({
               {/* Documentation helper link */}
               <div className="p-3 rounded-[8px] bg-[#1a1a1e] border border-[#27272a] flex items-center justify-between">
                 <span className="text-xs text-neutral-400">
-                  Besoin d'aide sur les redirections avancées ?
+                  Need help with advanced redirections?
                 </span>
                 <a
                   href="/docs#advanced-redirects"
@@ -2265,7 +2271,7 @@ export function LinkDrawer({
                   rel="noreferrer"
                   className="text-xs font-bold text-[#ff6600] max-sm:text-blue-400 hover:underline flex items-center gap-1"
                 >
-                  <span>Voir la documentation</span>
+                  <span>View documentation</span>
                   <ExternalLink className="w-3 h-3" />
                 </a>
               </div>
@@ -2282,7 +2288,7 @@ export function LinkDrawer({
             onClick={onClose}
             className="bg-[#1a1a1e] border-[#27272a] hover:bg-white/5 text-xs h-9 rounded-[8px] px-4 cursor-pointer"
           >
-            Annuler
+            Cancel
           </Button>
           <Button
             type="submit"
@@ -2293,11 +2299,11 @@ export function LinkDrawer({
             {isSubmitting ? (
               <>
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                <span>Enregistrement...</span>
+                <span>Saving...</span>
               </>
             ) : (
               <span>
-                {isEditMode ? "Enregistrer les modifications" : "Créer le lien"}
+                {isEditMode ? "Save Changes" : "Create Link"}
               </span>
             )}
           </Button>

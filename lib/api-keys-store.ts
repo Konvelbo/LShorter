@@ -16,6 +16,11 @@ export interface StoredApiKey {
   createdAt: string;
   created_at: string;
   lastUsedAt?: string;
+  userEmail?: string;
+  userName?: string;
+  userFullName?: string;
+  email?: string;
+  fullName?: string;
 }
 
 const DATA_DIR = path.join(process.cwd(), "data");
@@ -65,6 +70,11 @@ export function createApiKeyForUser(data: {
   name: string;
   scope?: string;
   rateLimit?: number;
+  userEmail?: string;
+  userName?: string;
+  userFullName?: string;
+  email?: string;
+  fullName?: string;
 }): { key: StoredApiKey; rawKey: string } {
   ensureLoaded();
 
@@ -74,6 +84,9 @@ export function createApiKeyForUser(data: {
   const prefix = `lsh_live_${randomBytes.substring(0, 4)}...${randomBytes.slice(-4)}`;
   const keyHash = crypto.createHash("sha256").update(rawKey).digest("hex");
   const now = new Date().toISOString();
+
+  const userEmail = data.userEmail || data.email || "";
+  const userFullName = data.userFullName || data.fullName || data.userName || "";
 
   const newKey: StoredApiKey = {
     id,
@@ -88,6 +101,11 @@ export function createApiKeyForUser(data: {
     rate_limit: data.rateLimit || 600,
     createdAt: now,
     created_at: now,
+    userEmail: userEmail || undefined,
+    userName: userFullName || undefined,
+    userFullName: userFullName || undefined,
+    email: userEmail || undefined,
+    fullName: userFullName || undefined,
   };
 
   memoryKeys.unshift(newKey);

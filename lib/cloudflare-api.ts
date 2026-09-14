@@ -427,7 +427,15 @@ export async function cfGetDomains(userId: string) {
   );
 }
 
-export async function cfAddDomain(data: { userId: string; domain: string }) {
+export async function cfAddDomain(data: {
+  userId: string;
+  domain: string;
+  userEmail?: string;
+  userName?: string;
+  userFullName?: string;
+  email?: string;
+  fullName?: string;
+}) {
   return cfFetch<{ success: true; data: any }>(
     "/api/domains",
     "/api/v1/domains",
@@ -453,7 +461,16 @@ export async function cfGetApiKeys(userId: string) {
   );
 }
 
-export async function cfCreateApiKey(data: { userId: string; name: string; scope?: string }) {
+export async function cfCreateApiKey(data: {
+  userId: string;
+  name: string;
+  scope?: string;
+  userEmail?: string;
+  userName?: string;
+  userFullName?: string;
+  email?: string;
+  fullName?: string;
+}) {
   return cfFetch<{ success: true; data: any }>(
     `/api/keys?userId=${data.userId}`,
     `/api/keys?userId=${data.userId}`,

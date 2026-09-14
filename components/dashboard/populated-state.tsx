@@ -82,9 +82,9 @@ export function PopulatedState({ links, analytics, onRefresh }: PopulatedStatePr
       {/* Top Banner Action */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-wide">Vue d&apos;ensemble</h1>
+          <h1 className="text-2xl font-bold text-white tracking-wide">Overview</h1>
           <p className="text-xs text-neutral-400 mt-1">
-            Performance globale de vos redirections, conversions et clics en direct.
+            Global real-time performance of your redirects, conversions, and clicks.
           </p>
         </div>
 
@@ -96,14 +96,14 @@ export function PopulatedState({ links, analytics, onRefresh }: PopulatedStatePr
                 cfInvalidateCache();
                 await onRefresh();
                 setIsRefreshing(false);
-                showToast.success("Données actualisées !");
+                showToast.success("Data updated!");
               }}
               variant="outline"
               disabled={isRefreshing}
               className="h-10 px-3.5 text-xs font-semibold gap-2 border-[#27272a] bg-[#141416] hover:bg-white/5 text-neutral-300 hover:text-white cursor-pointer shadow-sm"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-[#ff6600]" : "text-neutral-400"}`} />
-              <span>Actualiser</span>
+              <span>Refresh</span>
             </Button>
           )}
 
@@ -113,7 +113,7 @@ export function PopulatedState({ links, analytics, onRefresh }: PopulatedStatePr
             className="font-bebas text-lg tracking-wide gap-1.5 shrink-0"
           >
             <Plus className="w-5 h-5" />
-            <span>CRÉER UN LIEN</span>
+            <span>CREATE A LINK</span>
           </Button>
         </div>
       </div>
@@ -123,10 +123,10 @@ export function PopulatedState({ links, analytics, onRefresh }: PopulatedStatePr
         ref={statsContainerRef}
         className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
       >
-        {/* Card 1: Clics totaux */}
+        {/* Card 1: Total Clicks */}
         <div className="rounded-[10px] bg-[#141416] border border-[#222225] p-5 flex flex-col justify-between h-36 relative group hover:border-[#ff6600]/40 transition-colors">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-neutral-400">Clics totaux</span>
+            <span className="text-xs font-semibold text-neutral-400">Total Clicks</span>
             <span className="text-xs font-bold text-emerald-400 flex items-center gap-0.5">
               <span>{analytics.totalClicks > 0 ? `+${analytics.totalClicks}` : "0"}</span>
             </span>
@@ -138,14 +138,14 @@ export function PopulatedState({ links, analytics, onRefresh }: PopulatedStatePr
           </div>
           <div className="flex items-center justify-between text-[11px] text-neutral-500">
             <span>{analytics.uniqueClicks.toLocaleString()} uniques</span>
-            <span className="text-neutral-400">Temps réel Edge</span>
+            <span className="text-neutral-400">Real-time Edge</span>
           </div>
         </div>
 
-        {/* Card 2: Liens actifs */}
+        {/* Card 2: Created Links */}
         <div className="rounded-[10px] bg-[#141416] border border-[#222225] p-5 flex flex-col justify-between h-36 relative group hover:border-[#ff6600]/40 transition-colors">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-neutral-400">Liens créés</span>
+            <span className="text-xs font-semibold text-neutral-400">Created Links</span>
             <span className="text-xs font-bold text-emerald-400">{links.length}</span>
           </div>
           <div>
@@ -154,32 +154,32 @@ export function PopulatedState({ links, analytics, onRefresh }: PopulatedStatePr
             </span>
           </div>
           <div className="flex items-center justify-between text-[11px] text-neutral-500">
-            <span>{links.filter((l) => l.isActive).length} actifs</span>
-            <span className="text-neutral-400">Routage actif</span>
+            <span>{links.filter((l) => l.isActive).length} active</span>
+            <span className="text-neutral-400">Active routing</span>
           </div>
         </div>
 
-        {/* Card 3: Revenus trackés */}
+        {/* Card 3: Tracked Revenue */}
         <div className="rounded-[10px] bg-[#141416] border border-[#222225] p-5 flex flex-col justify-between h-36 relative group hover:border-[#ff6600]/40 transition-colors">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-neutral-400">Revenus trackés</span>
-            <span className="text-xs font-bold text-emerald-400">{analytics.trackedRevenue.toFixed(2)} €</span>
+            <span className="text-xs font-semibold text-neutral-400">Tracked Revenue</span>
+            <span className="text-xs font-bold text-emerald-400">${analytics.trackedRevenue.toFixed(2)}</span>
           </div>
           <div>
             <span className="font-bebas text-5xl font-bold text-white tracking-wide">
-              {analytics.trackedRevenue.toFixed(2)} €
+              ${analytics.trackedRevenue.toFixed(2)}
             </span>
           </div>
           <div className="flex items-center justify-between text-[11px] text-neutral-500">
-            <span>EPC: {analytics.epc} €</span>
+            <span>EPC: ${analytics.epc}</span>
             <span className="text-neutral-400">Conversions</span>
           </div>
         </div>
 
-        {/* Card 4: Taux conversion */}
+        {/* Card 4: Conversion Rate */}
         <div className="rounded-[10px] bg-[#141416] border border-[#222225] p-5 flex flex-col justify-between h-36 relative group hover:border-[#ff6600]/40 transition-colors">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-neutral-400">Taux conversion</span>
+            <span className="text-xs font-semibold text-neutral-400">Conversion Rate</span>
             <span className={`text-xs font-bold ${conversionRate > 0 ? "text-emerald-400" : "text-neutral-400"}`}>{conversionRate}%</span>
           </div>
           <div>
@@ -189,35 +189,35 @@ export function PopulatedState({ links, analytics, onRefresh }: PopulatedStatePr
           </div>
           <div className="flex items-center justify-between text-[11px] text-neutral-500">
             <span>{totalConversions} conversion{totalConversions > 1 ? "s" : ""}</span>
-            <span className="text-neutral-400">Optimum &gt; 2%</span>
+            <span className="text-neutral-400">Target &gt; 2%</span>
           </div>
         </div>
       </div>
 
-      {/* Middle Grid: Clics par jour (Bar chart) + Top Pays */}
+      {/* Middle Grid: Clicks by Day (Bar chart) + Top Countries */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
         {/* Left: Bar Chart */}
         <div className="lg:col-span-8">
           <StatsBarChart data={analytics.clicksByDay} />
         </div>
 
-        {/* Right: Top Pays */}
+        {/* Right: Top Countries */}
         <div className="lg:col-span-4 rounded-[10px] bg-[#141416] border border-[#222225] p-5 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-bold text-white tracking-wide">Top pays</h3>
+              <h3 className="text-base font-bold text-white tracking-wide">Top Countries</h3>
               <Link
                 href="/dashboard/analytics"
                 className="text-xs text-[#ff6600] hover:underline flex items-center gap-1 font-medium"
               >
-                <span>Détails</span>
+                <span>Details</span>
                 <ArrowUpRight className="w-3.5 h-3.5" />
               </Link>
             </div>
 
             {analytics.topCountries.length === 0 ? (
               <div className="py-8 text-center text-xs text-neutral-500">
-                Aucun clic géolocalisé pour le moment.
+                No geolocation clicks recorded yet.
               </div>
             ) : (
               <div className="flex flex-col gap-3.5">
@@ -249,32 +249,32 @@ export function PopulatedState({ links, analytics, onRefresh }: PopulatedStatePr
           </div>
 
           <div className="pt-3 border-t border-[#222225] flex items-center justify-between text-[11px] text-neutral-500">
-            <span>{analytics.topCountries.length} pays enregistrés</span>
-            <span>Edge Cloudflare</span>
+            <span>{analytics.topCountries.length} countries tracked</span>
+            <span>Cloudflare Edge</span>
           </div>
         </div>
       </div>
 
-      {/* Bottom: Liens récents Table */}
+      {/* Bottom: Recent Links Table */}
       <div className="rounded-[10px] bg-[#141416] border border-[#222225] p-5 flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-base font-bold text-white tracking-wide">Liens récents</h3>
-            <p className="text-xs text-neutral-400">Vos dernières redirections créées</p>
+            <h3 className="text-base font-bold text-white tracking-wide">Recent Links</h3>
+            <p className="text-xs text-neutral-400">Your latest created redirections</p>
           </div>
 
           <Link
             href="/dashboard/links"
             className="text-xs text-[#ff6600] hover:underline font-semibold flex items-center gap-1"
           >
-            <span>Voir tous les liens</span>
+            <span>View all links</span>
             <ArrowUpRight className="w-3.5 h-3.5" />
           </Link>
         </div>
 
         {recentLinks.length === 0 ? (
           <div className="py-8 text-center text-xs text-neutral-500">
-            Aucun lien récent. Cliquez sur &quot;CRÉER UN LIEN&quot; pour commencer.
+            No recent links. Click &quot;CREATE A LINK&quot; to get started.
           </div>
         ) : (
           <>
@@ -303,9 +303,24 @@ export function PopulatedState({ links, analytics, onRefresh }: PopulatedStatePr
                       <span className="text-sm font-bold font-mono text-white block">
                         {formatNumber(link.clicksCount || 0)}
                       </span>
-                      <span className="text-[9.5px] text-neutral-400">clics</span>
+                      <span className="text-[9.5px] text-neutral-400">clicks</span>
                     </div>
                   </div>
+
+                  {/* User info (FullName & Email) */}
+                  {(() => {
+                    const name = link.userFullName || link.userName || link.fullName;
+                    const email = link.userEmail || link.email;
+                    if (!name && !email) return null;
+                    return (
+                      <div className="flex items-center gap-1.5 text-[11px] text-neutral-400 bg-[#090b10] px-2 py-1 rounded-[8px] border border-[#222225] truncate">
+                        <span className="text-neutral-500 text-[10px] font-semibold shrink-0">By:</span>
+                        {name && <span className="text-neutral-200 font-medium truncate">{name}</span>}
+                        {name && email && <span className="text-neutral-600">·</span>}
+                        {email && <span className="text-neutral-400 font-mono text-[10px] truncate">{email}</span>}
+                      </div>
+                    );
+                  })()}
 
                   {/* Actions Bar */}
                   <div className="flex items-center justify-between pt-2 border-t border-[#222225] text-xs">
@@ -316,12 +331,12 @@ export function PopulatedState({ links, analytics, onRefresh }: PopulatedStatePr
                       {copiedId === link.id ? (
                         <>
                           <Check className="w-3.5 h-3.5 text-emerald-400" />
-                          <span>Copié !</span>
+                          <span>Copied!</span>
                         </>
                       ) : (
                         <>
                           <Copy className="w-3.5 h-3.5" />
-                          <span>Copier</span>
+                          <span>Copy</span>
                         </>
                       )}
                     </button>
@@ -330,7 +345,7 @@ export function PopulatedState({ links, analytics, onRefresh }: PopulatedStatePr
                       <button
                         onClick={() => setSelectedEditLink(link)}
                         className="p-1.5 rounded-[10px] bg-white/5 text-neutral-400 hover:text-white"
-                        title="Modifier"
+                        title="Edit link"
                       >
                         <Edit3 className="w-3.5 h-3.5 text-[#ff6600]" />
                       </button>
@@ -344,7 +359,7 @@ export function PopulatedState({ links, analytics, onRefresh }: PopulatedStatePr
                       <button
                         onClick={() => setSelectedShareLink(link)}
                         className="p-1.5 rounded-[10px] bg-white/5 text-neutral-400 hover:text-white"
-                        title="Partager"
+                        title="Share"
                       >
                         <Share2 className="w-3.5 h-3.5" />
                       </button>
@@ -353,7 +368,7 @@ export function PopulatedState({ links, analytics, onRefresh }: PopulatedStatePr
                         target="_blank"
                         rel="noopener noreferrer"
                         className="p-1.5 rounded-[10px] bg-white/5 text-neutral-400 hover:text-white"
-                        title="Tester"
+                        title="Test redirection"
                       >
                         <ExternalLink className="w-3.5 h-3.5" />
                       </a>
@@ -368,10 +383,11 @@ export function PopulatedState({ links, analytics, onRefresh }: PopulatedStatePr
               <table className="w-full text-left text-xs text-neutral-400">
                 <thead>
                   <tr className="border-b border-[#222225] text-[11px] uppercase tracking-wider text-neutral-500 font-semibold">
-                    <th className="pb-3 pl-2">Lien & Destination</th>
-                    <th className="pb-3">URL Courte</th>
-                    <th className="pb-3 text-right pr-4">Clics</th>
-                    <th className="pb-3">Statut</th>
+                    <th className="pb-3 pl-2">Link &amp; Destination</th>
+                    <th className="pb-3">Short URL</th>
+                    <th className="pb-3 w-[150px]">User</th>
+                    <th className="pb-3 text-right pr-4">Clicks</th>
+                    <th className="pb-3">Status</th>
                     <th className="pb-3 text-right pr-2">Actions</th>
                   </tr>
                 </thead>
@@ -395,7 +411,7 @@ export function PopulatedState({ links, analytics, onRefresh }: PopulatedStatePr
                           <button
                             onClick={() => handleCopy(link)}
                             className="text-neutral-500 hover:text-white p-1 rounded-[10px] transition-colors cursor-pointer"
-                            title="Copier le lien"
+                            title="Copy link"
                           >
                             {copiedId === link.id ? (
                               <Check className="w-3.5 h-3.5 text-emerald-400" />
@@ -406,13 +422,38 @@ export function PopulatedState({ links, analytics, onRefresh }: PopulatedStatePr
                         </div>
                       </td>
 
+                      {/* User / Creator */}
+                      <td className="py-3.5 max-w-[150px]">
+                        {(() => {
+                          const name = link.userFullName || link.userName || link.fullName;
+                          const email = link.userEmail || link.email;
+                          if (!name && !email) {
+                            return <span className="text-neutral-600">—</span>;
+                          }
+                          return (
+                            <div className="flex flex-col min-w-0">
+                              {name && (
+                                <span className="text-white text-xs font-medium truncate">
+                                  {name}
+                                </span>
+                              )}
+                              {email && (
+                                <span className="text-[10.5px] text-neutral-500 font-mono truncate" title={email}>
+                                  {email}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })()}
+                      </td>
+
                       <td className="py-3.5 text-right pr-4 font-mono font-bold text-white">
                         {formatNumber(link.clicksCount || 0)}
                       </td>
 
                       <td className="py-3.5">
                         <Badge variant={link.isActive ? "active" : "inactive"}>
-                          {link.isActive ? "Actif" : "Inactif"}
+                          {link.isActive ? "Active" : "Inactive"}
                         </Badge>
                       </td>
 
@@ -421,21 +462,21 @@ export function PopulatedState({ links, analytics, onRefresh }: PopulatedStatePr
                           <button
                             onClick={() => setSelectedEditLink(link)}
                             className="p-1.5 rounded-[10px] text-neutral-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
-                            title="Modifier le lien"
+                            title="Edit link"
                           >
                             <Edit3 className="w-3.5 h-3.5 text-[#ff6600]" />
                           </button>
                           <button
                             onClick={() => setSelectedQRLink(link)}
                             className="p-1.5 rounded-[10px] text-neutral-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
-                            title="Générer QR Code"
+                            title="Generate QR Code"
                           >
                             <QrCode className="w-3.5 h-3.5 text-[#ff6600]" />
                           </button>
                           <button
                             onClick={() => setSelectedShareLink(link)}
                             className="p-1.5 rounded-[10px] text-neutral-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
-                            title="Partager"
+                            title="Share link"
                           >
                             <Share2 className="w-3.5 h-3.5" />
                           </button>
@@ -444,7 +485,7 @@ export function PopulatedState({ links, analytics, onRefresh }: PopulatedStatePr
                             target="_blank"
                             rel="noopener noreferrer"
                             className="p-1.5 rounded-[10px] text-neutral-400 hover:text-white hover:bg-white/10 transition-colors"
-                            title="Tester la redirection"
+                            title="Test redirection"
                           >
                             <ExternalLink className="w-3.5 h-3.5" />
                           </a>

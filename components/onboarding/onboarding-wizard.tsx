@@ -16,202 +16,201 @@ import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { showToast } from "@/components/ui/toast-provider";
 
-// Exhaustive list of all countries worldwide
+// Exhaustive list of all countries worldwide in English
 const ALL_COUNTRIES = [
   { code: "AF", name: "Afghanistan", flag: "🇦🇫" },
-  { code: "ZA", name: "Afrique du Sud", flag: "🇿🇦" },
-  { code: "AL", name: "Albanie", flag: "🇦🇱" },
-  { code: "DZ", name: "Algérie", flag: "🇩🇿" },
-  { code: "DE", name: "Allemagne", flag: "🇩🇪" },
-  { code: "AD", name: "Andorre", flag: "🇦🇩" },
+  { code: "AL", name: "Albania", flag: "🇦🇱" },
+  { code: "DZ", name: "Algeria", flag: "🇩🇿" },
+  { code: "AD", name: "Andorra", flag: "🇦🇩" },
   { code: "AO", name: "Angola", flag: "🇦🇴" },
-  { code: "AG", name: "Antigua-et-Barbuda", flag: "🇦🇬" },
-  { code: "SA", name: "Arabie Saoudite", flag: "🇸🇦" },
-  { code: "AR", name: "Argentine", flag: "🇦🇷" },
-  { code: "AM", name: "Arménie", flag: "🇦🇲" },
-  { code: "AU", name: "Australie", flag: "🇦🇺" },
-  { code: "AT", name: "Autriche", flag: "🇦🇹" },
-  { code: "AZ", name: "Azerbaïdjan", flag: "🇦🇿" },
+  { code: "AG", name: "Antigua and Barbuda", flag: "🇦🇬" },
+  { code: "AR", name: "Argentina", flag: "🇦🇷" },
+  { code: "AM", name: "Armenia", flag: "🇦🇲" },
+  { code: "AU", name: "Australia", flag: "🇦🇺" },
+  { code: "AT", name: "Austria", flag: "🇦🇹" },
+  { code: "AZ", name: "Azerbaijan", flag: "🇦🇿" },
   { code: "BS", name: "Bahamas", flag: "🇧🇸" },
-  { code: "BH", name: "Bahreïn", flag: "🇧🇭" },
+  { code: "BH", name: "Bahrain", flag: "🇧🇭" },
   { code: "BD", name: "Bangladesh", flag: "🇧🇩" },
-  { code: "BB", name: "Barbade", flag: "🇧🇧" },
-  { code: "BE", name: "Belgique", flag: "🇧🇪" },
+  { code: "BB", name: "Barbados", flag: "🇧🇧" },
+  { code: "BY", name: "Belarus", flag: "🇧🇾" },
+  { code: "BE", name: "Belgium", flag: "🇧🇪" },
   { code: "BZ", name: "Belize", flag: "🇧🇿" },
-  { code: "BJ", name: "Bénin", flag: "🇧🇯" },
-  { code: "BT", name: "Bhoutan", flag: "🇧🇹" },
-  { code: "BY", name: "Biélorussie", flag: "🇧🇾" },
-  { code: "MM", name: "Birmanie (Myanmar)", flag: "🇲🇲" },
-  { code: "BO", name: "Bolivie", flag: "🇧🇴" },
-  { code: "BA", name: "Bosnie-Herzégovine", flag: "🇧🇦" },
+  { code: "BJ", name: "Benin", flag: "🇧🇯" },
+  { code: "BT", name: "Bhutan", flag: "🇧🇹" },
+  { code: "BO", name: "Bolivia", flag: "🇧🇴" },
+  { code: "BA", name: "Bosnia and Herzegovina", flag: "🇧🇦" },
   { code: "BW", name: "Botswana", flag: "🇧🇼" },
-  { code: "BR", name: "Brésil", flag: "🇧🇷" },
+  { code: "BR", name: "Brazil", flag: "🇧🇷" },
   { code: "BN", name: "Brunei", flag: "🇧🇳" },
-  { code: "BG", name: "Bulgarie", flag: "🇧🇬" },
+  { code: "BG", name: "Bulgaria", flag: "🇧🇬" },
   { code: "BF", name: "Burkina Faso", flag: "🇧🇫" },
   { code: "BI", name: "Burundi", flag: "🇧🇮" },
-  { code: "KH", name: "Cambodge", flag: "🇰🇭" },
-  { code: "CM", name: "Cameroun", flag: "🇨🇲" },
+  { code: "KH", name: "Cambodia", flag: "🇰🇭" },
+  { code: "CM", name: "Cameroon", flag: "🇨🇲" },
   { code: "CA", name: "Canada", flag: "🇨🇦" },
-  { code: "CV", name: "Cap-Vert", flag: "🇨🇻" },
-  { code: "CL", name: "Chili", flag: "🇨🇱" },
-  { code: "CN", name: "Chine", flag: "🇨🇳" },
-  { code: "CY", name: "Chypre", flag: "🇨🇾" },
-  { code: "CO", name: "Colombie", flag: "🇨🇴" },
-  { code: "KM", name: "Comores", flag: "🇰🇲" },
-  { code: "CG", name: "Congo-Brazzaville", flag: "🇨🇬" },
-  { code: "CD", name: "Congo-Kinshasa (RDC)", flag: "🇨🇩" },
-  { code: "KP", name: "Corée du Nord", flag: "🇰🇵" },
-  { code: "KR", name: "Corée du Sud", flag: "🇰🇷" },
+  { code: "CV", name: "Cape Verde", flag: "🇨🇻" },
+  { code: "CL", name: "Chile", flag: "🇨🇱" },
+  { code: "CN", name: "China", flag: "🇨🇳" },
+  { code: "CO", name: "Colombia", flag: "🇨🇴" },
+  { code: "KM", name: "Comoros", flag: "🇰🇲" },
+  { code: "CG", name: "Congo (Brazzaville)", flag: "🇨🇬" },
+  { code: "CD", name: "Congo (DRC)", flag: "🇨🇩" },
   { code: "CR", name: "Costa Rica", flag: "🇨🇷" },
   { code: "CI", name: "Côte d'Ivoire", flag: "🇨🇮" },
-  { code: "HR", name: "Croatie", flag: "🇭🇷" },
+  { code: "HR", name: "Croatia", flag: "🇭🇷" },
   { code: "CU", name: "Cuba", flag: "🇨🇺" },
-  { code: "DK", name: "Danemark", flag: "🇩🇰" },
+  { code: "CY", name: "Cyprus", flag: "🇨🇾" },
+  { code: "CZ", name: "Czech Republic", flag: "🇨🇿" },
+  { code: "DK", name: "Denmark", flag: "🇩🇰" },
   { code: "DJ", name: "Djibouti", flag: "🇩🇯" },
-  { code: "DM", name: "Dominique", flag: "🇩🇲" },
-  { code: "EG", name: "Égypte", flag: "🇪🇬" },
-  { code: "AE", name: "Émirats arabes unis", flag: "🇦🇪" },
-  { code: "EC", name: "Équateur", flag: "🇪🇨" },
-  { code: "ER", name: "Érythrée", flag: "🇪🇷" },
-  { code: "ES", name: "Espagne", flag: "🇪🇸" },
-  { code: "EE", name: "Estonie", flag: "🇪🇪" },
+  { code: "DM", name: "Dominica", flag: "🇩🇲" },
+  { code: "DO", name: "Dominican Republic", flag: "🇩🇴" },
+  { code: "EC", name: "Ecuador", flag: "🇪🇨" },
+  { code: "EG", name: "Egypt", flag: "🇪🇬" },
+  { code: "SV", name: "El Salvador", flag: "🇸🇻" },
+  { code: "GQ", name: "Equatorial Guinea", flag: "🇬🇶" },
+  { code: "ER", name: "Eritrea", flag: "🇪🇷" },
+  { code: "EE", name: "Estonia", flag: "🇪🇪" },
   { code: "SZ", name: "Eswatini", flag: "🇸🇿" },
-  { code: "US", name: "États-Unis", flag: "🇺🇸" },
-  { code: "ET", name: "Éthiopie", flag: "🇪🇹" },
-  { code: "FJ", name: "Fidji", flag: "🇫🇯" },
-  { code: "FI", name: "Finlande", flag: "🇫🇮" },
+  { code: "ET", name: "Ethiopia", flag: "🇪🇹" },
+  { code: "FJ", name: "Fiji", flag: "🇫🇯" },
+  { code: "FI", name: "Finland", flag: "🇫🇮" },
   { code: "FR", name: "France", flag: "🇫🇷" },
   { code: "GA", name: "Gabon", flag: "🇬🇦" },
-  { code: "GM", name: "Gambie", flag: "🇬🇲" },
-  { code: "GE", name: "Géorgie", flag: "🇬🇪" },
+  { code: "GM", name: "Gambia", flag: "🇬🇲" },
+  { code: "GE", name: "Georgia", flag: "🇬🇪" },
+  { code: "DE", name: "Germany", flag: "🇩🇪" },
   { code: "GH", name: "Ghana", flag: "🇬🇭" },
-  { code: "GR", name: "Grèce", flag: "🇬🇷" },
-  { code: "GD", name: "Grenade", flag: "🇬🇩" },
+  { code: "GR", name: "Greece", flag: "🇬🇷" },
+  { code: "GD", name: "Grenada", flag: "🇬🇩" },
   { code: "GT", name: "Guatemala", flag: "🇬🇹" },
-  { code: "GN", name: "Guinée", flag: "🇬🇳" },
-  { code: "GW", name: "Guinée-Bissau", flag: "🇬🇼" },
-  { code: "GQ", name: "Guinée équatoriale", flag: "🇬🇶" },
+  { code: "GN", name: "Guinea", flag: "🇬🇳" },
+  { code: "GW", name: "Guinea-Bissau", flag: "🇬🇼" },
   { code: "GY", name: "Guyana", flag: "🇬🇾" },
-  { code: "HT", name: "Haïti", flag: "🇭🇹" },
+  { code: "HT", name: "Haiti", flag: "🇭🇹" },
   { code: "HN", name: "Honduras", flag: "🇭🇳" },
-  { code: "HU", name: "Hongrie", flag: "🇭🇺" },
-  { code: "IN", name: "Inde", flag: "🇮🇳" },
-  { code: "ID", name: "Indonésie", flag: "🇮🇩" },
-  { code: "IQ", name: "Irak", flag: "🇮🇶" },
+  { code: "HU", name: "Hungary", flag: "🇭🇺" },
+  { code: "IS", name: "Iceland", flag: "🇮🇸" },
+  { code: "IN", name: "India", flag: "🇮🇳" },
+  { code: "ID", name: "Indonesia", flag: "🇮🇩" },
   { code: "IR", name: "Iran", flag: "🇮🇷" },
-  { code: "IE", name: "Irlande", flag: "🇮🇪" },
-  { code: "IS", name: "Islande", flag: "🇮🇸" },
-  { code: "IL", name: "Israël", flag: "🇮🇱" },
-  { code: "IT", name: "Italie", flag: "🇮🇹" },
-  { code: "JM", name: "Jamaïque", flag: "🇯🇲" },
-  { code: "JP", name: "Japon", flag: "🇯🇵" },
-  { code: "JO", name: "Jordanie", flag: "🇯🇴" },
+  { code: "IQ", name: "Iraq", flag: "🇮🇶" },
+  { code: "IE", name: "Ireland", flag: "🇮🇪" },
+  { code: "IL", name: "Israel", flag: "🇮🇱" },
+  { code: "IT", name: "Italy", flag: "🇮🇹" },
+  { code: "JM", name: "Jamaica", flag: "🇯🇲" },
+  { code: "JP", name: "Japan", flag: "🇯🇵" },
+  { code: "JO", name: "Jordan", flag: "🇯🇴" },
   { code: "KZ", name: "Kazakhstan", flag: "🇰🇿" },
   { code: "KE", name: "Kenya", flag: "🇰🇪" },
-  { code: "KG", name: "Kirghizistan", flag: "🇰🇬" },
   { code: "KI", name: "Kiribati", flag: "🇰🇮" },
-  { code: "KW", name: "Koweït", flag: "🇰🇼" },
+  { code: "KP", name: "Korea (North)", flag: "🇰🇵" },
+  { code: "KR", name: "Korea (South)", flag: "🇰🇷" },
+  { code: "KW", name: "Kuwait", flag: "🇰🇼" },
+  { code: "KG", name: "Kyrgyzstan", flag: "🇰🇬" },
   { code: "LA", name: "Laos", flag: "🇱🇦" },
+  { code: "LV", name: "Latvia", flag: "🇱🇻" },
+  { code: "LB", name: "Lebanon", flag: "🇱🇧" },
   { code: "LS", name: "Lesotho", flag: "🇱🇸" },
-  { code: "LV", name: "Lettonie", flag: "🇱🇻" },
-  { code: "LB", name: "Liban", flag: "🇱🇧" },
-  { code: "LR", name: "Libéria", flag: "🇱🇷" },
-  { code: "LY", name: "Libye", flag: "🇱🇾" },
+  { code: "LR", name: "Liberia", flag: "🇱🇷" },
+  { code: "LY", name: "Libya", flag: "🇱🇾" },
   { code: "LI", name: "Liechtenstein", flag: "🇱🇮" },
-  { code: "LT", name: "Lituanie", flag: "🇱🇹" },
+  { code: "LT", name: "Lithuania", flag: "🇱🇹" },
   { code: "LU", name: "Luxembourg", flag: "🇱🇺" },
-  { code: "MK", name: "Macédoine du Nord", flag: "🇲🇰" },
   { code: "MG", name: "Madagascar", flag: "🇲🇬" },
-  { code: "MY", name: "Malaisie", flag: "🇲🇾" },
   { code: "MW", name: "Malawi", flag: "🇲🇼" },
+  { code: "MY", name: "Malaysia", flag: "🇲🇾" },
   { code: "MV", name: "Maldives", flag: "🇲🇻" },
   { code: "ML", name: "Mali", flag: "🇲🇱" },
-  { code: "MT", name: "Malte", flag: "🇲🇹" },
-  { code: "MA", name: "Maroc", flag: "🇲🇦" },
-  { code: "MU", name: "Maurice", flag: "🇲🇺" },
-  { code: "MR", name: "Mauritanie", flag: "🇲🇷" },
-  { code: "MX", name: "Mexique", flag: "🇲🇽" },
-  { code: "MD", name: "Moldavie", flag: "🇲🇩" },
+  { code: "MT", name: "Malta", flag: "🇲🇹" },
+  { code: "MR", name: "Mauritania", flag: "🇲🇷" },
+  { code: "MU", name: "Mauritius", flag: "🇲🇺" },
+  { code: "MX", name: "Mexico", flag: "🇲🇽" },
+  { code: "MD", name: "Moldova", flag: "🇲🇩" },
   { code: "MC", name: "Monaco", flag: "🇲🇨" },
-  { code: "MN", name: "Mongolie", flag: "🇲🇳" },
-  { code: "ME", name: "Monténégro", flag: "🇲🇪" },
+  { code: "MN", name: "Mongolia", flag: "🇲🇳" },
+  { code: "ME", name: "Montenegro", flag: "🇲🇪" },
+  { code: "MA", name: "Morocco", flag: "🇲🇦" },
   { code: "MZ", name: "Mozambique", flag: "🇲🇿" },
-  { code: "NA", name: "Namibie", flag: "🇳🇦" },
+  { code: "MM", name: "Myanmar", flag: "🇲🇲" },
+  { code: "NA", name: "Namibia", flag: "🇳🇦" },
   { code: "NR", name: "Nauru", flag: "🇳🇷" },
-  { code: "NP", name: "Népal", flag: "🇳🇵" },
+  { code: "NP", name: "Nepal", flag: "🇳🇵" },
+  { code: "NL", name: "Netherlands", flag: "🇳🇱" },
+  { code: "NZ", name: "New Zealand", flag: "🇳🇿" },
   { code: "NI", name: "Nicaragua", flag: "🇳🇮" },
   { code: "NE", name: "Niger", flag: "🇳🇪" },
-  { code: "NG", name: "Nigéria", flag: "🇳🇬" },
-  { code: "NO", name: "Norvège", flag: "🇳🇴" },
-  { code: "NZ", name: "Nouvelle-Zélande", flag: "🇳🇿" },
+  { code: "NG", name: "Nigeria", flag: "🇳🇬" },
+  { code: "MK", name: "North Macedonia", flag: "🇲🇰" },
+  { code: "NO", name: "Norway", flag: "🇳🇴" },
   { code: "OM", name: "Oman", flag: "🇴🇲" },
-  { code: "UG", name: "Ouganda", flag: "🇺🇬" },
-  { code: "UZ", name: "Ouzbékistan", flag: "🇺🇿" },
   { code: "PK", name: "Pakistan", flag: "🇵🇰" },
-  { code: "PW", name: "Palaos", flag: "🇵🇼" },
+  { code: "PW", name: "Palau", flag: "🇵🇼" },
   { code: "PS", name: "Palestine", flag: "🇵🇸" },
   { code: "PA", name: "Panama", flag: "🇵🇦" },
-  { code: "PG", name: "Papouasie-Nouvelle-Guinée", flag: "🇵🇬" },
+  { code: "PG", name: "Papua New Guinea", flag: "🇵🇬" },
   { code: "PY", name: "Paraguay", flag: "🇵🇾" },
-  { code: "NL", name: "Pays-Bas", flag: "🇳🇱" },
-  { code: "PE", name: "Pérou", flag: "🇵🇪" },
+  { code: "PE", name: "Peru", flag: "🇵🇪" },
   { code: "PH", name: "Philippines", flag: "🇵🇭" },
-  { code: "PL", name: "Pologne", flag: "🇵🇱" },
+  { code: "PL", name: "Poland", flag: "🇵🇱" },
   { code: "PT", name: "Portugal", flag: "🇵🇹" },
   { code: "QA", name: "Qatar", flag: "🇶🇦" },
-  { code: "CF", name: "République centrafricaine", flag: "🇨🇫" },
-  { code: "DO", name: "République dominicaine", flag: "🇩🇴" },
-  { code: "CZ", name: "République tchèque", flag: "🇨🇿" },
-  { code: "RO", name: "Roumanie", flag: "🇷🇴" },
-  { code: "GB", name: "Royaume-Uni", flag: "🇬🇧" },
-  { code: "RU", name: "Russie", flag: "🇷🇺" },
+  { code: "RO", name: "Romania", flag: "🇷🇴" },
+  { code: "RU", name: "Russia", flag: "🇷🇺" },
   { code: "RW", name: "Rwanda", flag: "🇷🇼" },
-  { code: "KN", name: "Saint-Christophe-et-Niévès", flag: "🇰🇳" },
-  { code: "LC", name: "Sainte-Lucie", flag: "🇱🇨" },
-  { code: "SM", name: "Saint-Marin", flag: "🇸🇲" },
-  { code: "VC", name: "Saint-Vincent-et-les-Grenadines", flag: "🇻🇨" },
-  { code: "SB", name: "Salomon", flag: "🇸🇧" },
-  { code: "SV", name: "Salvador", flag: "🇸🇻" },
+  { code: "KN", name: "Saint Kitts and Nevis", flag: "🇰🇳" },
+  { code: "LC", name: "Saint Lucia", flag: "🇱🇨" },
+  { code: "VC", name: "Saint Vincent and the Grenadines", flag: "🇻🇨" },
   { code: "WS", name: "Samoa", flag: "🇼🇸" },
-  { code: "ST", name: "Sao Tomé-et-Principe", flag: "🇸🇹" },
-  { code: "SN", name: "Sénégal", flag: "🇸🇳" },
-  { code: "RS", name: "Serbie", flag: "🇷🇸" },
+  { code: "SM", name: "San Marino", flag: "🇸🇲" },
+  { code: "ST", name: "Sao Tome and Principe", flag: "🇸🇹" },
+  { code: "SA", name: "Saudi Arabia", flag: "🇸🇦" },
+  { code: "SN", name: "Senegal", flag: "🇸🇳" },
+  { code: "RS", name: "Serbia", flag: "🇷🇸" },
   { code: "SC", name: "Seychelles", flag: "🇸🇨" },
   { code: "SL", name: "Sierra Leone", flag: "🇸🇱" },
-  { code: "SG", name: "Singapour", flag: "🇸🇬" },
-  { code: "SK", name: "Slovaquie", flag: "🇸🇰" },
-  { code: "SI", name: "Slovénie", flag: "🇸🇮" },
-  { code: "SO", name: "Somalie", flag: "🇸🇴" },
-  { code: "SD", name: "Soudan", flag: "🇸🇩" },
-  { code: "SS", name: "Soudan du Sud", flag: "🇸🇸" },
+  { code: "SG", name: "Singapore", flag: "🇸🇬" },
+  { code: "SK", name: "Slovakia", flag: "🇸🇰" },
+  { code: "SI", name: "Slovenia", flag: "🇸🇮" },
+  { code: "SB", name: "Solomon Islands", flag: "🇸🇧" },
+  { code: "SO", name: "Somalia", flag: "🇸🇴" },
+  { code: "ZA", name: "South Africa", flag: "🇿🇦" },
+  { code: "SS", name: "South Sudan", flag: "🇸🇸" },
+  { code: "ES", name: "Spain", flag: "🇪🇸" },
   { code: "LK", name: "Sri Lanka", flag: "🇱🇰" },
-  { code: "SE", name: "Suède", flag: "🇸🇪" },
-  { code: "CH", name: "Suisse", flag: "🇨🇭" },
+  { code: "SD", name: "Sudan", flag: "🇸🇩" },
   { code: "SR", name: "Suriname", flag: "🇸🇷" },
-  { code: "SY", name: "Syrie", flag: "🇸🇾" },
-  { code: "TJ", name: "Tadjikistan", flag: "🇹🇯" },
-  { code: "TZ", name: "Tanzanie", flag: "🇹🇿" },
-  { code: "TD", name: "Tchad", flag: "🇹🇩" },
-  { code: "TH", name: "Thaïlande", flag: "🇹🇭" },
-  { code: "TL", name: "Timor oriental", flag: "🇹🇱" },
+  { code: "SE", name: "Sweden", flag: "🇸🇪" },
+  { code: "CH", name: "Switzerland", flag: "🇨🇭" },
+  { code: "SY", name: "Syria", flag: "🇸🇾" },
+  { code: "TW", name: "Taiwan", flag: "🇹🇼" },
+  { code: "TJ", name: "Tajikistan", flag: "🇹🇯" },
+  { code: "TZ", name: "Tanzania", flag: "🇹🇿" },
+  { code: "TH", name: "Thailand", flag: "🇹🇭" },
+  { code: "TL", name: "Timor-Leste", flag: "🇹🇱" },
   { code: "TG", name: "Togo", flag: "🇹🇬" },
   { code: "TO", name: "Tonga", flag: "🇹🇴" },
-  { code: "TT", name: "Trinité-et-Tobago", flag: "🇹🇹" },
-  { code: "TN", name: "Tunisie", flag: "🇹🇳" },
-  { code: "TM", name: "Turkménistan", flag: "🇹🇲" },
-  { code: "TR", name: "Turquie", flag: "🇹🇷" },
+  { code: "TT", name: "Trinidad and Tobago", flag: "🇹🇹" },
+  { code: "TN", name: "Tunisia", flag: "🇹🇳" },
+  { code: "TR", name: "Turkey", flag: "🇹🇷" },
+  { code: "TM", name: "Turkmenistan", flag: "🇹🇲" },
   { code: "TV", name: "Tuvalu", flag: "🇹🇻" },
+  { code: "UG", name: "Uganda", flag: "🇺🇬" },
   { code: "UA", name: "Ukraine", flag: "🇺🇦" },
+  { code: "AE", name: "United Arab Emirates", flag: "🇦🇪" },
+  { code: "GB", name: "United Kingdom", flag: "🇬🇧" },
+  { code: "US", name: "United States", flag: "🇺🇸" },
   { code: "UY", name: "Uruguay", flag: "🇺🇾" },
+  { code: "UZ", name: "Uzbekistan", flag: "🇺🇿" },
   { code: "VU", name: "Vanuatu", flag: "🇻🇺" },
-  { code: "VA", name: "Vatican", flag: "🇻🇦" },
+  { code: "VA", name: "Vatican City", flag: "🇻🇦" },
   { code: "VE", name: "Venezuela", flag: "🇻🇪" },
   { code: "VN", name: "Vietnam", flag: "🇻🇳" },
-  { code: "YE", name: "Yémen", flag: "🇾🇪" },
-  { code: "ZM", name: "Zambie", flag: "🇿🇲" },
+  { code: "YE", name: "Yemen", flag: "🇾🇪" },
+  { code: "ZM", name: "Zambia", flag: "🇿🇲" },
   { code: "ZW", name: "Zimbabwe", flag: "🇿🇼" },
-  { code: "OTHER", name: "Autre pays...", flag: "🌍" },
+  { code: "OTHER", name: "Other country...", flag: "🌍" },
 ];
 
 export function OnboardingWizard() {
@@ -223,7 +222,7 @@ export function OnboardingWizard() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Form State
-  const [country, setCountry] = useState(ALL_COUNTRIES.find((c) => c.code === "FR") || ALL_COUNTRIES[0]);
+  const [country, setCountry] = useState(ALL_COUNTRIES.find((c) => c.code === "US") || ALL_COUNTRIES[0]);
   const [countrySearch, setCountrySearch] = useState("");
   const [isCountryMenuOpen, setIsCountryMenuOpen] = useState(false);
   const [city, setCity] = useState("");
@@ -271,7 +270,7 @@ export function OnboardingWizard() {
           userId,
           country: country.code,
           city: city.trim() || undefined,
-          language: "fr",
+          language: "en",
           profession,
           professionOther: profession === "other_prof" ? professionOther : undefined,
           source,
@@ -282,7 +281,7 @@ export function OnboardingWizard() {
           role: profession || "other",
           goal: (useCases && useCases.length > 0 ? useCases.join(", ") : "general"),
           monthlyClicksEstimate: "10k-100k",
-          workspaceName: "Mon Workspace",
+          workspaceName: "My Workspace",
         });
       }
 
@@ -292,13 +291,13 @@ export function OnboardingWizard() {
         origin: { y: 0.6 },
       });
 
-      showToast.success("Espace configuré avec succès !");
+      showToast.success("Workspace configured successfully!");
       setTimeout(() => {
         router.push("/dashboard");
       }, 700);
     } catch (err) {
       console.error(err);
-      showToast.error("Erreur lors de l'enregistrement");
+      showToast.error("Error saving onboarding details");
     } finally {
       setIsSubmitting(false);
     }
@@ -318,14 +317,14 @@ export function OnboardingWizard() {
           userId,
           country: "OTHER",
           city: undefined,
-          language: "fr",
+          language: "en",
           profession: "general",
           source: "direct",
           useCases: ["general"],
           role: "general",
           goal: "general",
           monthlyClicksEstimate: "10k-100k",
-          workspaceName: "Mon Workspace",
+          workspaceName: "My Workspace",
         });
       }
       router.push("/dashboard");
@@ -341,7 +340,7 @@ export function OnboardingWizard() {
       <div className="w-full max-w-5xl bg-[#121215] border border-[#27272a] rounded-[10px] overflow-hidden shadow-2xl flex flex-col md:flex-row min-h-[590px]">
         
         {/* =========================================================================
-            DESKTOP LEFT SIDEBAR: Vertical Stepper de Haut en Bas
+            DESKTOP LEFT SIDEBAR: Vertical Stepper
             ========================================================================= */}
         <aside className="hidden md:flex w-72 bg-[#0d0d10] border-r border-[#222226] p-6 sm:p-8 flex-col justify-between shrink-0">
           <div>
@@ -386,10 +385,10 @@ export function OnboardingWizard() {
                       currentStep >= 1 ? "text-white" : "text-neutral-400"
                     }`}
                   >
-                    Origine
+                    Location
                   </div>
                   <div className="text-[11px] text-neutral-500 mt-0.5">
-                    Pays & Localisation
+                    Country &amp; Location
                   </div>
                 </div>
               </div>
@@ -423,10 +422,10 @@ export function OnboardingWizard() {
                       currentStep >= 2 ? "text-white" : "text-neutral-400"
                     }`}
                   >
-                    Profession
+                    Role
                   </div>
                   <div className="text-[11px] text-neutral-500 mt-0.5">
-                    Rôle & Métier
+                    Occupation &amp; Team
                   </div>
                 </div>
               </div>
@@ -460,10 +459,10 @@ export function OnboardingWizard() {
                       currentStep >= 3 ? "text-white" : "text-neutral-400"
                     }`}
                   >
-                    Découverte
+                    Discovery
                   </div>
                   <div className="text-[11px] text-neutral-500 mt-0.5">
-                    Comment connu
+                    How you found us
                   </div>
                 </div>
               </div>
@@ -488,10 +487,10 @@ export function OnboardingWizard() {
                       currentStep === 4 ? "text-white" : "text-neutral-400"
                     }`}
                   >
-                    Objectifs & Usage
+                    Goals &amp; Usage
                   </div>
                   <div className="text-[11px] text-neutral-500 mt-0.5">
-                    Cas d'usage précis
+                    Specific use cases
                   </div>
                 </div>
               </div>
@@ -499,7 +498,7 @@ export function OnboardingWizard() {
           </div>
 
           <div className="pt-6 border-t border-[#222226] text-[11px] text-neutral-500 leading-relaxed">
-            Vos informations permettent d'optimiser le routage et de personnaliser votre interface.
+            Your information helps optimize edge routing and personalize your dashboard interface.
           </div>
         </aside>
 
@@ -508,7 +507,7 @@ export function OnboardingWizard() {
             ========================================================================= */}
         <main className="flex-1 p-5 sm:p-8 flex flex-col justify-between">
           <div>
-            {/* Mobile Header (Cyber Blue + Circular Stepper, No Fake Notch, No Top-Right Badge) */}
+            {/* Mobile Header */}
             <div className="md:hidden mb-4">
               <div className="flex items-center justify-between pb-3 border-b border-[#222226] mb-4">
                 <div className="flex items-center gap-2">
@@ -521,7 +520,7 @@ export function OnboardingWizard() {
                 </div>
               </div>
 
-              {/* Circular Stepper-13 on Mobile */}
+              {/* Stepper on Mobile */}
               <div className="mb-4 px-1 relative">
                 <div className="flex items-center justify-between relative">
                   <div className="absolute top-3.5 left-4 right-4 h-0.5 bg-[#222226] -z-0">
@@ -534,8 +533,8 @@ export function OnboardingWizard() {
                   </div>
 
                   {[
-                    { s: 1, label: "Origine" },
-                    { s: 2, label: "Métier" },
+                    { s: 1, label: "Origin" },
+                    { s: 2, label: "Role" },
                     { s: 3, label: "Source" },
                     { s: 4, label: "Usage" },
                   ].map((st) => (
@@ -575,32 +574,32 @@ export function OnboardingWizard() {
             {/* Desktop Header */}
             <div className="hidden md:flex items-center justify-between mb-6">
               <span className="text-xs font-mono text-[#ff6600] tracking-wider uppercase font-semibold">
-                Étape 0{currentStep} / 04
+                Step 0{currentStep} / 04
               </span>
               <button
                 type="button"
                 onClick={handleSkip}
                 className="text-xs text-neutral-400 hover:text-white transition-colors cursor-pointer"
               >
-                Passer
+                Skip
               </button>
             </div>
 
-            {/* ================= STEP 1: Origine & Localisation ================= */}
+            {/* ================= STEP 1: Location ================= */}
             {currentStep === 1 && (
               <div>
                 <h2 className="text-lg sm:text-2xl font-bold text-white tracking-tight">
-                  D'où venez-vous ?
+                  Where are you based?
                 </h2>
                 <p className="text-xs sm:text-sm text-neutral-400 mt-1 mb-5">
-                  Précisez votre pays pour optimiser les points de présence Cloudflare Edge de vos liens.
+                  Select your country to optimize Cloudflare Edge points of presence for your links.
                 </p>
 
                 <div className="space-y-4 max-w-lg">
                   {/* Compact Custom Country Dropdown with Search & Scrollbar */}
                   <div>
                     <label className="block text-xs font-medium text-neutral-300 mb-1.5">
-                      Pays de résidence
+                      Country of residence
                     </label>
                     <div className="relative">
                       <button
@@ -626,7 +625,7 @@ export function OnboardingWizard() {
                               type="text"
                               value={countrySearch}
                               onChange={(e) => setCountrySearch(e.target.value)}
-                              placeholder="Rechercher un pays..."
+                              placeholder="Search country..."
                               autoFocus
                               className="w-full h-8 pl-8 pr-3 rounded-[10px] bg-[#121215] border border-[#27272a] text-xs text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#ff6600] md:focus:border-[#ff6600] focus:border-[#0066FF]"
                             />
@@ -660,7 +659,7 @@ export function OnboardingWizard() {
                             })}
                             {filteredCountries.length === 0 && (
                               <div className="py-4 text-center text-xs text-neutral-500">
-                                Aucun pays trouvé
+                                No country found
                               </div>
                             )}
                           </div>
@@ -669,16 +668,16 @@ export function OnboardingWizard() {
                     </div>
                   </div>
 
-                  {/* Ville */}
+                  {/* Primary City */}
                   <div>
                     <label className="block text-xs font-medium text-neutral-300 mb-1.5">
-                      Ville principale (Optionnel)
+                      Primary City (Optional)
                     </label>
                     <input
                       type="text"
                       value={city}
                       onChange={(e) => setCity(e.target.value)}
-                      placeholder="Ex: Paris, Montréal, Dakar, Abidjan, Yaoundé, Douala..."
+                      placeholder="e.g. New York, London, Paris, Tokyo, Berlin, Toronto..."
                       className="w-full h-10 px-3.5 rounded-[10px] bg-[#18181c] border border-[#27272a] text-xs sm:text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-[#ff6600] md:focus:border-[#ff6600] focus:border-[#0066FF] transition-colors"
                     />
                   </div>
@@ -686,62 +685,62 @@ export function OnboardingWizard() {
               </div>
             )}
 
-            {/* ================= STEP 2: Profession & Métier ================= */}
+            {/* ================= STEP 2: Role & Occupation ================= */}
             {currentStep === 2 && (
               <div>
                 <h2 className="text-lg sm:text-2xl font-bold text-white tracking-tight">
-                  Quelle est votre profession ?
+                  What is your primary role?
                 </h2>
                 <p className="text-xs sm:text-sm text-neutral-400 mt-1 mb-4">
-                  Sélectionnez votre activité principale pour adapter vos raccourcis.
+                  Select your primary activity to customize your workflow shortcuts.
                 </p>
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-2.5">
                   {[
                     {
                       id: "commercant",
-                      title: "Commerçant",
-                      sub: "Retail, e-commerce, restaurant",
+                      title: "Merchant / E-Commerce",
+                      sub: "Retail, online store, restaurant",
                     },
                     {
                       id: "event",
-                      title: "Créateur d'événement",
-                      sub: "Salons, billetterie, festivals",
+                      title: "Event Organizer",
+                      sub: "Conferences, ticketing, festivals",
                     },
                     {
                       id: "dev",
-                      title: "Développeur / Tech",
-                      sub: "API, SDKs, Webhooks",
+                      title: "Developer / Engineer",
+                      sub: "APIs, SDKs, Webhooks",
                     },
                     {
                       id: "marketer",
-                      title: "Marketeur / Growth",
-                      sub: "Ads, UTM, Attribution",
+                      title: "Marketer / Growth",
+                      sub: "Ads, UTMs, Attribution",
                     },
                     {
                       id: "creator",
-                      title: "Créateur de contenu",
-                      sub: "YouTube, TikTok, Bio",
+                      title: "Content Creator",
+                      sub: "YouTube, TikTok, Bio Links",
                     },
                     {
                       id: "founder",
-                      title: "Fondateur / CEO",
-                      sub: "SaaS, Startup, PME",
+                      title: "Founder / Executive",
+                      sub: "SaaS, Startup, Agency",
                     },
                     {
                       id: "sales",
-                      title: "Vente & Commercial",
-                      sub: "Devis, RDV, vCards",
+                      title: "Sales & Account Exec",
+                      sub: "Quotes, meetings, vCards",
                     },
                     {
                       id: "public_health",
-                      title: "Services Publics",
-                      sub: "Démarches, notices, assos",
+                      title: "Public & Education",
+                      sub: "Documents, notices, non-profits",
                     },
                     {
                       id: "other_prof",
-                      title: "Autre métier...",
-                      sub: "Préciser manuellement",
+                      title: "Other Occupation...",
+                      sub: "Specify manually",
                     },
                   ].map((p) => {
                     const isSelected = profession === p.id;
@@ -762,14 +761,14 @@ export function OnboardingWizard() {
                   })}
                 </div>
 
-                {/* Textarea if Autre */}
+                {/* Textarea if Other */}
                 {profession === "other_prof" && (
                   <div className="mt-3">
                     <input
                       type="text"
                       value={professionOther}
                       onChange={(e) => setProfessionOther(e.target.value)}
-                      placeholder="Précisez votre profession / métier..."
+                      placeholder="Specify your occupation / role..."
                       className="w-full h-10 px-3.5 rounded-[10px] bg-[#18181c] border border-[#27272a] text-xs text-white placeholder:text-neutral-600 focus:outline-none focus:border-[#ff6600] md:focus:border-[#ff6600] focus:border-[#0066FF]"
                     />
                   </div>
@@ -777,14 +776,14 @@ export function OnboardingWizard() {
               </div>
             )}
 
-            {/* ================= STEP 3: Sources d'acquisition ================= */}
+            {/* ================= STEP 3: Acquisition Sources ================= */}
             {currentStep === 3 && (
               <div>
                 <h2 className="text-lg sm:text-2xl font-bold text-white tracking-tight">
-                  Comment avez-vous connu LShorter ?
+                  How did you hear about LShorter?
                 </h2>
                 <p className="text-xs sm:text-sm text-neutral-400 mt-1 mb-4">
-                  Dites-nous par quel canal vous avez découvert notre solution.
+                  Tell us which channel introduced you to our platform.
                 </p>
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5">
@@ -894,7 +893,7 @@ export function OnboardingWizard() {
                     },
                     {
                       id: "referral",
-                      label: "Recommandation",
+                      label: "Word of Mouth",
                       icon: (
                         <svg className="w-4 h-4 stroke-[#f59e0b] shrink-0" viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
@@ -916,7 +915,7 @@ export function OnboardingWizard() {
                     },
                     {
                       id: "other_source",
-                      label: "Autre canal...",
+                      label: "Other channel...",
                       icon: (
                         <svg className="w-4 h-4 stroke-neutral-400 shrink-0" viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
@@ -942,14 +941,14 @@ export function OnboardingWizard() {
                   })}
                 </div>
 
-                {/* Textarea if Autre */}
+                {/* Textarea if Other */}
                 {source === "other_source" && (
                   <div className="mt-3">
                     <input
                       type="text"
                       value={sourceOther}
                       onChange={(e) => setSourceOther(e.target.value)}
-                      placeholder="Précisez comment vous avez connu LShorter..."
+                      placeholder="Specify how you found LShorter..."
                       className="w-full h-10 px-3.5 rounded-[10px] bg-[#18181c] border border-[#27272a] text-xs text-white placeholder:text-neutral-600 focus:outline-none focus:border-[#ff6600] md:focus:border-[#ff6600] focus:border-[#0066FF]"
                     />
                   </div>
@@ -957,25 +956,25 @@ export function OnboardingWizard() {
               </div>
             )}
 
-            {/* ================= STEP 4: Cas d'usage précis (6 Domaines) ================= */}
+            {/* ================= STEP 4: Specific Use Cases ================= */}
             {currentStep === 4 && (
               <div>
                 <h2 className="text-lg sm:text-2xl font-bold text-white tracking-tight">
-                  Comment comptez-vous utiliser LShorter ?
+                  How do you plan to use LShorter?
                 </h2>
                 <p className="text-xs sm:text-sm text-neutral-400 mt-1 mb-3">
-                  Sélectionnez vos cas d'usage parmi les domaines métier ci-dessous :
+                  Select your intended use cases from the categories below:
                 </p>
 
                 {/* Domain Filter Tabs */}
                 <div className="flex items-center gap-1.5 overflow-x-auto pb-2 mb-3 text-xs border-b border-[#222226]">
                   {[
-                    { id: "all", label: "Tous" },
+                    { id: "all", label: "All" },
                     { id: "ecommerce", label: "E-Commerce" },
                     { id: "marketing", label: "Marketing" },
-                    { id: "sales", label: "Vente" },
-                    { id: "events", label: "Événementiel" },
-                    { id: "tech", label: "IT & Dév" },
+                    { id: "sales", label: "Sales" },
+                    { id: "events", label: "Events" },
+                    { id: "tech", label: "IT & Dev" },
                   ].map((tab) => (
                     <button
                       key={tab.id}
@@ -998,38 +997,38 @@ export function OnboardingWizard() {
                     {
                       id: "packaging_qr",
                       cat: "ecommerce",
-                      title: "Packaging, Étiquetage & Menus QR Code",
-                      sub: "E-Commerce, notices produits et restaurants",
+                      title: "Packaging, Labels & Menu QR Codes",
+                      sub: "E-Commerce, product manuals, restaurants",
                     },
                     {
                       id: "utm_attribution",
                       cat: "marketing",
-                      title: "Attribution & Suivi UTM (Ads, Influence, Bio Link)",
-                      sub: "Marketing digital et redirection intelligente",
+                      title: "Attribution & UTM Tracking (Ads, Influencer, Bio)",
+                      sub: "Digital marketing and smart redirection",
                     },
                     {
                       id: "sales_vcard",
                       cat: "sales",
-                      title: "Cartes de visite connectées (vCard) & Prise de RDV",
-                      sub: "Prospection commerciale et partage de devis",
+                      title: "Digital Business Cards (vCard) & Booking",
+                      sub: "Sales prospecting and quote sharing",
                     },
                     {
                       id: "events_access",
                       cat: "events",
-                      title: "Billetterie, Événements & Accès direct",
-                      sub: "Conférences, sondages et contrôle d'accès",
+                      title: "Ticketing, Live Events & Direct Access",
+                      sub: "Conferences, surveys, access control",
                     },
                     {
                       id: "dev_routing",
                       cat: "tech",
-                      title: "Routage dynamique, Deep Linking & Webhooks API",
-                      sub: "Développement technique et intégration SDK",
+                      title: "Dynamic Routing, Deep Linking & API Webhooks",
+                      sub: "Technical development and SDK integration",
                     },
                     {
                       id: "other_use",
                       cat: "all",
-                      title: "Autre cas d'usage sur-mesure...",
-                      sub: "Préciser votre besoin spécifique",
+                      title: "Custom Bespoke Use Case...",
+                      sub: "Specify your custom requirements",
                     },
                   ]
                     .filter(
@@ -1072,14 +1071,14 @@ export function OnboardingWizard() {
                     })}
                 </div>
 
-                {/* Textarea if Autre */}
+                {/* Textarea if Other */}
                 {useCases.includes("other_use") && (
                   <div className="mt-2.5">
                     <input
                       type="text"
                       value={useCasesOther}
                       onChange={(e) => setUseCasesOther(e.target.value)}
-                      placeholder="Précisez votre cas d'usage spécifique..."
+                      placeholder="Specify your custom requirements..."
                       className="w-full h-10 px-3.5 rounded-[10px] bg-[#18181c] border border-[#27272a] text-xs text-white placeholder:text-neutral-600 focus:outline-none focus:border-[#ff6600] md:focus:border-[#ff6600] focus:border-[#0066FF]"
                     />
                   </div>
@@ -1097,7 +1096,7 @@ export function OnboardingWizard() {
               className="h-10 px-4 sm:px-5 rounded-[10px] border border-[#27272a] hover:bg-white/5 text-xs font-semibold text-neutral-400 hover:text-white transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer flex items-center gap-1.5"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Retour</span>
+              <span>Back</span>
             </button>
 
             <button
@@ -1107,15 +1106,15 @@ export function OnboardingWizard() {
               className="h-10 px-5 sm:px-6 rounded-[10px] bg-[#ff6600] md:bg-[#ff6600] bg-[#0066FF] hover:brightness-110 active:scale-95 text-xs font-bold text-white shadow-lg transition-all cursor-pointer flex items-center gap-2"
             >
               {isSubmitting ? (
-                <span>Enregistrement...</span>
+                <span>Saving...</span>
               ) : currentStep === totalSteps ? (
                 <>
-                  <span>Terminer &amp; Enregistrer</span>
+                  <span>Finish &amp; Launch</span>
                   <Check className="w-4 h-4" />
                 </>
               ) : (
                 <>
-                  <span>Continuer</span>
+                  <span>Continue</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </>
               )}

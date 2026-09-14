@@ -25,11 +25,17 @@
   --radius: 10px;
 }
 
+html {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
 body {
   background-color: var(--background);
   color: var(--foreground);
   font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
-  overflow-x: hidden;
+  overflow: visible;
+  min-height: 100vh;
 }
 
 select option {
@@ -170,10 +176,10 @@ html.light .nav-link-item.active {
   background: #3f3f46;
 }
 
-/* Custom scrollbars */
+/* Custom scrollbars (Adaptive for Light & Dark Mode) */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
 }
 
 ::-webkit-scrollbar-track {
@@ -189,79 +195,42 @@ html.light .nav-link-item.active {
   background: #3f3f46;
 }
 
+/* Light mode crisp scrollbar */
+html.light {
+  scrollbar-color: #C8BFB3 #FAF7F2;
+}
+
+html:not(.light) {
+  scrollbar-color: #27272a #09090b;
+}
+
+html.light ::-webkit-scrollbar-track {
+  background: #FAF7F2 !important;
+}
+
+html.light ::-webkit-scrollbar-thumb {
+  background: #C8BFB3 !important;
+  border-radius: 9999px;
+}
+
+html.light ::-webkit-scrollbar-thumb:hover {
+  background: #AFA498 !important;
+}
+
 /* ==========================================================================
-   MOBILE FULL CYBER BLUE THEME (< 768px)
-   Converts orange accents to Electric Cyber Blue on mobile!
-   Guarantees that input fields, textareas, and upload dropzones retain their
-   dark sleek background and clear white readable text.
+   MOBILE INPUT THEME ADJUSTMENTS (< 768px)
+   Guarantees that input fields, textareas, and selects retain their sleek
+   background and readable text on mobile.
    ========================================================================== */
 @media (max-width: 767px) {
   :root {
-    --primary: #0066FF;
-    --ring: #0066FF;
+    --primary: #0080ff;
+    --ring: #0080ff;
   }
-
-  /* 1. Text colors: orange -> cyber blue */
-  [class*="text-[#ff6600]"],
-  [class*="text-[#ff771a]"],
-  [class*="text-[#ff7711]"] {
-    color: #0066FF !important;
-  }
-
-  /* 2. Solid buttons, badges, active tabs, and indicators */
-  button[class*="bg-[#ff6600]"],
-  a[class*="bg-[#ff6600]"],
-  div[class*="bg-[#ff6600]"],
-  span[class*="bg-[#ff6600]"],
-  [class*="hover:bg-[#ff771a]"]:hover,
-  .sidebar-link-active {
-    background-color: #0066FF !important;
-    color: #ffffff !important;
-  }
-
-  /* 3. Translucent backgrounds (tags, badges, subtle highlights) */
-  [class*="bg-[#ff6600]/10"],
-  [class*="bg-[#ff6600]/15"],
-  [class*="bg-[#ff6600]/20"],
-  [class*="bg-[#ff6600]/25"],
-  [class*="bg-[#ff6600]/30"],
-  [class*="bg-[#ff6600]/40"] {
-    background-color: rgba(0, 102, 255, 0.18) !important;
-  }
-
-  /* 4. Borders & focus rings */
-  [class*="border-[#ff6600]"],
-  [class*="border-[#ff771a]"],
-  [class*="focus:border-[#ff6600]"]:focus,
-  [class*="focus-within:border-[#ff6600]"]:focus-within {
-    border-color: #0066FF !important;
-  }
-
-  [class*="border-[#ff6600]/20"],
-  [class*="border-[#ff6600]/30"],
-  [class*="border-[#ff6600]/40"] {
-    border-color: rgba(0, 102, 255, 0.35) !important;
-  }
-
-  [class*="focus:ring-[#ff6600]"]:focus {
-    --tw-ring-color: rgba(0, 102, 255, 0.35) !important;
-  }
-
-  /* 5. Shadows and glows */
-  [class*="shadow-[#ff6600]"] {
-    box-shadow: 0 4px 16px rgba(0, 102, 255, 0.45) !important;
-  }
-
-  .orange-glow {
-    box-shadow: 0 0 20px -2px rgba(0, 102, 255, 0.45) !important;
-  }
-
-  /* 6. SVG Strokes and Fills */
-  [class*="stroke-[#ff6600]"] {
-    stroke: #0066FF !important;
-  }
-  [class*="fill-[#ff6600]"] {
-    fill: #0066FF !important;
+  html.light,
+  html.light :root {
+    --primary: #0080ff;
+    --ring: #0080ff;
   }
 
   /* 7. DARK THEME DEFAULTS FOR INPUTS, SELECTS ON MOBILE (ONLY IN DARK MODE): */
@@ -291,77 +260,81 @@ html.light .nav-link-item.active {
   html:not(.light) label[class*="border-dashed"]:hover,
   html:not(.light) label[class*="border-dashed"]:active {
     background-color: #141416 !important;
-    border-color: #0066FF !important;
+    border-color: #0080ff !important;
   }
 
   /* 8. LIGHT THEME ADJUSTMENTS ON MOBILE (< 768px):
-     Keeps the signature Electric Cyber Blue accents on crisp light surfaces! */
+     Warm cream surfaces with electric blue accents */
   html.light input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]),
   html.light textarea,
   html.light select {
-    background-color: #ffffff !important;
-    color: #09090b !important;
-    border-color: #e4e4e7 !important;
+    background-color: #FFFDF9 !important;
+    color: #2B2520 !important;
+    border-color: #E7DFD5 !important;
   }
 
   html.light select option {
-    background-color: #ffffff !important;
-    color: #09090b !important;
+    background-color: #FFFDF9 !important;
+    color: #2B2520 !important;
   }
 
   html.light input::placeholder,
   html.light textarea::placeholder {
-    color: #a1a1aa !important;
+    color: #9E958C !important;
   }
 
   html.light .fixed.bottom-3 {
-    background-color: rgba(255, 255, 255, 0.95) !important;
-    border-color: #e4e4e7 !important;
-    box-shadow: 0 10px 25px -3px rgba(0, 102, 255, 0.15) !important;
+    background-color: rgba(250, 247, 242, 0.95) !important;
+    border-color: #E7DFD5 !important;
+    box-shadow: 0 10px 25px -3px rgba(0, 128, 255, 0.15) !important;
   }
 
   html.light .fixed.inset-y-0.left-0 {
-    background-color: #ffffff !important;
-    border-color: #e4e4e7 !important;
+    background-color: #FFFDF9 !important;
+    border-color: #E7DFD5 !important;
   }
 }
 
 /* ==========================================================================
    GLOBAL LIGHT MODE SYSTEM (DESKTOP & MOBILE)
-   Modifies ONLY colors: Pure white & slate light backgrounds,
-   high-contrast typography, and untouched accents (Orange on desktop, Blue on mobile).
+   Option 1: Blanc Crème Latte (#FAF7F2) & Chocolat Doux (#2B2520)
+   Smooth, eye-comfort palette replacing harsh pure white.
    ========================================================================== */
 html.light,
 html.light :root {
-  --background: #f4f4f5;
-  --foreground: #09090b;
-  --card: #ffffff;
-  --card-foreground: #09090b;
-  --card-border: #e4e4e7;
-  --popover: #ffffff;
-  --popover-foreground: #09090b;
+  --background: #FAF7F2;
+  --foreground: #2B2520;
+  --card: #FFFDF9;
+  --card-foreground: #2B2520;
+  --card-border: #E7DFD5;
+  --popover: #FFFDF9;
+  --popover-foreground: #2B2520;
   --primary: #ff6600;
   --primary-foreground: #ffffff;
-  --secondary: #f4f4f5;
-  --secondary-foreground: #09090b;
-  --muted: #f4f4f5;
-  --muted-foreground: #71717a;
-  --accent: #f4f4f5;
-  --accent-foreground: #09090b;
+  --secondary: #F2ECE4;
+  --secondary-foreground: #2B2520;
+  --muted: #F2ECE4;
+  --muted-foreground: #7D756C;
+  --accent: #F2ECE4;
+  --accent-foreground: #2B2520;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
-  --border: #e4e4e7;
-  --input: #ffffff;
+  --border: #E7DFD5;
+  --input: #FFFDF9;
   --ring: #ff6600;
 }
 
 html.light body {
-  background-color: #f4f4f5 !important;
-  color: #09090b !important;
+  background-color: #FAF7F2 !important;
+  color: #2B2520 !important;
 }
 
 html.light [class*="bg-[#09090b]"] {
-  background-color: #f4f4f5 !important;
+  background-color: #EFE9DF !important;
+}
+
+html.light [class*="bg-[#121215]"] {
+  background-color: #FAF7F2 !important;
 }
 
 html.light [class*="bg-[#141416]"],
@@ -370,10 +343,9 @@ html.light [class*="bg-[#0d0d12]"],
 html.light [class*="bg-[#0a0a0f]"],
 html.light [class*="bg-[#1c1c24]"],
 html.light [class*="bg-[#18181c]"],
-html.light [class*="bg-[#121215]"],
 html.light [class*="bg-[#121316]"],
 html.light [class*="bg-[#1c1c21]"] {
-  background-color: #ffffff !important;
+  background-color: #FFFDF9 !important;
 }
 
 html.light [class*="bg-[#18181b]"],
@@ -385,7 +357,7 @@ html.light [class*="bg-[#0d121f]"],
 html.light [class*="bg-[#0d0d10]"],
 html.light [class*="bg-[#151c2e]"],
 html.light [class*="bg-[#27272a]"] {
-  background-color: #e4e4e7 !important;
+  background-color: #F2ECE4 !important;
 }
 
 html.light [class*="border-[#222225]"],
@@ -400,20 +372,20 @@ html.light [class*="border-white/10"],
 html.light [class*="border-white/15"],
 html.light [class*="border-white/5"],
 html.light [class*="border-white/20"] {
-  border-color: #e4e4e7 !important;
+  border-color: #E7DFD5 !important;
 }
 
-/* Ensure standard inputs & selects on white cards in light mode have a crisp border and high contrast */
+/* Ensure standard inputs & selects on cream cards in light mode have a crisp biscuit border and high contrast */
 html.light input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not(.bg-transparent):not([class*="bg-transparent"]),
 html.light select {
-  border: 1.5px solid #d4d4d8 !important;
-  background-color: #ffffff !important;
-  color: #09090b !important;
+  border: 1.5px solid #DDD1C4 !important;
+  background-color: #FFFDF9 !important;
+  color: #2B2520 !important;
 }
 
 html.light select option {
-  background-color: #ffffff !important;
-  color: #09090b !important;
+  background-color: #FFFDF9 !important;
+  color: #2B2520 !important;
 }
 
 html.light input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not(.bg-transparent):not([class*="bg-transparent"]):focus,
@@ -425,64 +397,64 @@ html.light select:focus {
 /* Dropdown menus and popover cards in light mode */
 html.light .dropdown-anchor [class*="shadow-2xl"],
 html.light [class*="shadow-2xl"] {
-  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.1), 0 4px 12px -2px rgba(0, 0, 0, 0.05) !important;
+  box-shadow: 0 10px 30px -5px rgba(43, 37, 32, 0.08), 0 4px 12px -2px rgba(43, 37, 32, 0.04) !important;
 }
 
 html.light [class*="hover:bg-white/5"]:hover,
 html.light [class*="hover:bg-white/10"]:hover {
-  background-color: #f4f4f5 !important;
+  background-color: #F2ECE4 !important;
 }
 
 /* Transparent inputs inside pill capsules (hero shortener, table filter) keep zero border */
 html.light input.bg-transparent,
 html.light input[class*="bg-transparent"] {
-  color: #09090b !important;
+  color: #2B2520 !important;
   border: none !important;
   box-shadow: none !important;
 }
 
 html.light aside {
-  background-color: #ffffff !important;
-  border-color: #e4e4e7 !important;
+  background-color: #FFFDF9 !important;
+  border-color: #E7DFD5 !important;
 }
 
 html.light header {
-  background-color: rgba(255, 255, 255, 0.9) !important;
-  border-color: #e4e4e7 !important;
+  background-color: rgba(250, 247, 242, 0.9) !important;
+  border-color: #E7DFD5 !important;
 }
 
 html.light .glass-card,
 html.light .glass-card-hover {
-  background: #ffffff !important;
-  border-color: #e4e4e7 !important;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05) !important;
+  background: #FFFDF9 !important;
+  border-color: #E7DFD5 !important;
+  box-shadow: 0 2px 8px rgba(43, 37, 32, 0.04) !important;
 }
 
 /* Light mode text contrast: Keep white ONLY on colored/primary buttons & badges */
-html.light .text-white:not([class*="bg-[#ff6600]"]):not([class*="bg-[#0066FF]"]):not([class*="bg-emerald"]):not([class*="bg-red"]):not([class*="bg-rose"]):not([class*="bg-gradient"]):not(.sidebar-link-active),
+html.light .text-white:not([class*="bg-[#ff6600]"]):not([class*="bg-[#0066FF]"]):not([class*="bg-[#0080ff]"]):not([class*="bg-[#0070e0]"]):not([class*="bg-emerald"]):not([class*="bg-red"]):not([class*="bg-rose"]):not([class*="bg-gradient"]):not(.sidebar-link-active),
 html.light [class*="text-[#fafafa]"] {
-  color: #09090b !important;
+  color: #2B2520 !important;
 }
 
 html.light .text-neutral-100,
 html.light .text-neutral-200,
 html.light [class*="text-neutral-100"],
 html.light [class*="text-neutral-200"] {
-  color: #09090b !important;
+  color: #2B2520 !important;
 }
 
 html.light .text-neutral-300,
 html.light .text-neutral-400 {
-  color: #71717a !important;
+  color: #7D756C !important;
 }
 
 html.light .text-neutral-500 {
-  color: #a1a1aa !important;
+  color: #9E958C !important;
 }
 
 html.light .sidebar-link-btn:hover {
-  background-color: #f4f4f5 !important;
-  color: #09090b !important;
+  background-color: #F2ECE4 !important;
+  color: #2B2520 !important;
 }
 
 /* ==========================================================================
@@ -553,12 +525,525 @@ html.light input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover
 
 @media (max-width: 640px) {
   .drawer-tabs-scroll {
-    scrollbar-color: rgba(0, 102, 255, 0.6) transparent;
+    scrollbar-color: rgba(255, 102, 0, 0.6) transparent;
   }
   .drawer-tabs-scroll::-webkit-scrollbar-thumb {
-    background: rgba(0, 102, 255, 0.6);
+    background: rgba(255, 102, 0, 0.6);
   }
   .drawer-tabs-scroll::-webkit-scrollbar-thumb:hover {
-    background: rgba(0, 102, 255, 0.9);
+    background: rgba(255, 102, 0, 0.9);
   }
 }
+
+/* ==========================================================================
+   REACT BITS: SHINY TEXT ANIMATION
+   ========================================================================== */
+@keyframes shine {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.animate-shine {
+  animation: shine 4s ease-in-out infinite;
+}
+
+.shiny-text {
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  background-image: linear-gradient(
+    110deg,
+    #ffffff 20%,
+    rgba(255, 255, 255, 0.4) 40%,
+    #ff6600 50%,
+    rgba(255, 255, 255, 0.4) 60%,
+    #ffffff 80%
+  );
+}
+
+@media (max-width: 767px) {
+  .shiny-text {
+    background-image: linear-gradient(
+      110deg,
+      #ffffff 20%,
+      rgba(255, 255, 255, 0.4) 40%,
+      #0080ff 50%,
+      rgba(255, 255, 255, 0.4) 60%,
+      #ffffff 80%
+    );
+  }
+}
+
+html.light .shiny-text {
+  background-image: linear-gradient(
+    110deg,
+    #2B2520 20%,
+    #8B5E3C 40%,
+    #ff6600 50%,
+    #8B5E3C 60%,
+    #2B2520 80%
+  );
+}
+
+@media (max-width: 767px) {
+  html.light .shiny-text {
+    background-image: linear-gradient(
+      110deg,
+      #2B2520 20%,
+      #5C7899 40%,
+      #0080ff 50%,
+      #5C7899 60%,
+      #2B2520 80%
+    );
+  }
+}
+
+/* ==========================================================================
+   INFINITE MARQUEE TICKER ANIMATION
+   ========================================================================== */
+@keyframes marquee {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  display: flex;
+  width: max-content;
+  animation: marquee 22s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+/* ==========================================================================
+   DOCUMENTATION & MARKETING CARDS INTERACTIVE SCALE & HOVER EFFECTS (PURE CSS)
+   ========================================================================== */
+
+/* 1. Universal Interactive Card Base */
+.doc-interactive-card {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.25s ease,
+              background-color 0.25s ease !important;
+  will-change: transform, box-shadow;
+  transform: translateY(0) scale(1);
+  transform-origin: center center;
+  position: relative;
+}
+
+/* 2. Keypoints Cards ("Principes Clés") */
+.doc-keypoint-card {
+  cursor: pointer;
+}
+
+.doc-keypoint-card:hover {
+  transform: translateY(-5px) scale(1.03) !important;
+  border-color: rgba(255, 102, 0, 0.55) !important;
+  box-shadow: 0 16px 32px -6px rgba(0, 0, 0, 0.45),
+              0 0 20px -2px rgba(255, 102, 0, 0.25) !important;
+}
+
+html.light .doc-keypoint-card:hover {
+  border-color: #ff6600 !important;
+  box-shadow: 0 16px 32px -6px rgba(43, 37, 32, 0.12),
+              0 0 20px -2px rgba(255, 102, 0, 0.25) !important;
+}
+
+@media (max-width: 640px) {
+  .doc-keypoint-card:hover {
+    border-color: rgba(0, 128, 255, 0.55) !important;
+    box-shadow: 0 16px 32px -6px rgba(0, 0, 0, 0.45),
+                0 0 20px -2px rgba(0, 128, 255, 0.25) !important;
+  }
+  html.light .doc-keypoint-card:hover {
+    border-color: #0080ff !important;
+    box-shadow: 0 16px 32px -6px rgba(43, 37, 32, 0.12),
+                0 0 20px -2px rgba(0, 128, 255, 0.25) !important;
+  }
+}
+
+.doc-keypoint-card .keypoint-number-badge {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.25s ease;
+}
+
+.doc-keypoint-card:hover .keypoint-number-badge {
+  transform: scale(1.18) rotate(-4deg);
+}
+
+/* 3. Best Practices / Recommendations Cards ("Bonnes Pratiques") */
+.doc-practice-card {
+  cursor: pointer;
+}
+
+.doc-practice-card:hover {
+  transform: translateY(-5px) scale(1.03) !important;
+  border-color: rgba(16, 185, 129, 0.6) !important;
+  box-shadow: 0 16px 32px -6px rgba(0, 0, 0, 0.45),
+              0 0 22px -2px rgba(16, 185, 129, 0.28) !important;
+}
+
+html.light .doc-practice-card:hover {
+  border-color: #10b981 !important;
+  box-shadow: 0 16px 32px -6px rgba(43, 37, 32, 0.12),
+              0 0 22px -2px rgba(16, 185, 129, 0.28) !important;
+}
+
+.doc-practice-card .practice-icon {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.doc-practice-card:hover .practice-icon {
+  transform: scale(1.25);
+}
+
+/* 4. Previous / Next Navigation Cards */
+.doc-nav-card:hover {
+  transform: translateY(-4px) scale(1.025) !important;
+  border-color: rgba(255, 102, 0, 0.65) !important;
+  box-shadow: 0 14px 30px -6px rgba(0, 0, 0, 0.4),
+              0 0 18px -2px rgba(255, 102, 0, 0.22) !important;
+}
+
+html.light .doc-nav-card:hover {
+  border-color: #ff6600 !important;
+  box-shadow: 0 14px 30px -6px rgba(43, 37, 32, 0.12),
+              0 0 18px -2px rgba(255, 102, 0, 0.22) !important;
+}
+
+@media (max-width: 640px) {
+  .doc-nav-card:hover {
+    border-color: rgba(0, 128, 255, 0.65) !important;
+    box-shadow: 0 14px 30px -6px rgba(0, 0, 0, 0.4),
+                0 0 18px -2px rgba(0, 128, 255, 0.22) !important;
+  }
+  html.light .doc-nav-card:hover {
+    border-color: #0080ff !important;
+  }
+}
+
+/* 5. Related Guides Cards with Image Preview ("Guides Connexes") */
+.doc-related-card {
+  cursor: pointer;
+}
+
+.doc-related-card:hover {
+  transform: translateY(-6px) scale(1.03) !important;
+  border-color: rgba(255, 102, 0, 0.6) !important;
+  box-shadow: 0 20px 45px -8px rgba(0, 0, 0, 0.6),
+              0 0 26px -2px rgba(255, 102, 0, 0.28) !important;
+}
+
+html.light .doc-related-card:hover {
+  border-color: #ff6600 !important;
+  box-shadow: 0 20px 45px -8px rgba(43, 37, 32, 0.16),
+              0 0 26px -2px rgba(255, 102, 0, 0.28) !important;
+}
+
+@media (max-width: 640px) {
+  .doc-related-card:hover {
+    border-color: rgba(0, 128, 255, 0.6) !important;
+    box-shadow: 0 20px 45px -8px rgba(0, 0, 0, 0.6),
+                0 0 26px -2px rgba(0, 128, 255, 0.28) !important;
+  }
+  html.light .doc-related-card:hover {
+    border-color: #0080ff !important;
+  }
+}
+
+.doc-related-card .related-img-container {
+  overflow: hidden;
+  position: relative;
+}
+
+.doc-related-card .related-img-container img {
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transform: scale(1);
+}
+
+.doc-related-card:hover .related-img-container img {
+  transform: scale(1.08) !important;
+}
+
+/* 6. Documentation Index Cofounder Resource Cards */
+.cofounder-card-item .cofounder-card-front {
+  transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.32s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.25s ease !important;
+  will-change: transform, box-shadow;
+}
+
+.cofounder-card-item:hover .cofounder-card-front {
+  transform: translateY(-5px) scale(1.02) !important;
+}
+
+/* ==========================================================================
+   TOAST NOTIFICATION SYSTEM (HIGH-CONTRAST LIGHT & DARK MODE)
+   ========================================================================== */
+.lshorter-toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+  width: 100%;
+  justify-content: space-between;
+  will-change: transform, opacity;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+}
+
+@media (min-width: 640px) {
+  .lshorter-toast {
+    align-items: center;
+    padding: 12px 18px;
+    min-width: 420px;
+    max-width: 560px;
+  }
+}
+
+.lshorter-toast:active {
+  transform: scale(0.98);
+}
+
+.lshorter-toast-badge {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+@media (min-width: 768px) {
+  .lshorter-toast-badge {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+  }
+}
+
+.lshorter-toast-title {
+  font-size: 13px;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+@media (min-width: 640px) {
+  .lshorter-toast-title {
+    font-size: 14px;
+  }
+}
+
+.lshorter-toast-msg {
+  font-size: 12px;
+  line-height: 1.45;
+  margin-top: 2px;
+  word-break: break-word;
+}
+@media (min-width: 640px) {
+  .lshorter-toast-msg {
+    font-size: 13px;
+  }
+}
+
+.lshorter-toast-close {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  margin-top: 1px;
+}
+@media (min-width: 640px) {
+  .lshorter-toast-close {
+    margin-top: 0;
+  }
+}
+
+/* ─── Light Mode Styles (High Contrast, Ultra Readable) ─── */
+html.light .lshorter-toast {
+  background-color: #FFFFFF !important;
+  box-shadow: 0 16px 36px -4px rgba(43, 37, 32, 0.18),
+              0 4px 14px rgba(43, 37, 32, 0.08),
+              0 0 0 1px rgba(0, 0, 0, 0.08) !important;
+}
+
+html.light .lshorter-toast-title {
+  color: #0F172A !important;
+  font-weight: 700 !important;
+}
+
+html.light .lshorter-toast-msg {
+  color: #334155 !important;
+  font-weight: 500 !important;
+}
+
+html.light .lshorter-toast-close {
+  color: #64748B !important;
+}
+html.light .lshorter-toast-close:hover {
+  color: #0F172A !important;
+  background-color: #F1F5F9 !important;
+}
+
+/* Light Mode Badges & Borders */
+html.light .lshorter-toast-success {
+  border: 1.5px solid #10B981 !important;
+  border-left: 5px solid #10B981 !important;
+}
+html.light .lshorter-toast-badge-success {
+  background-color: #10B981 !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35) !important;
+}
+
+html.light .lshorter-toast-error {
+  border: 1.5px solid #EF4444 !important;
+  border-left: 5px solid #EF4444 !important;
+}
+html.light .lshorter-toast-badge-error {
+  background-color: #EF4444 !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.35) !important;
+}
+
+html.light .lshorter-toast-info {
+  border: 1.5px solid #0EA5E9 !important;
+  border-left: 5px solid #0EA5E9 !important;
+}
+html.light .lshorter-toast-badge-info {
+  background-color: #0EA5E9 !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.35) !important;
+}
+
+html.light .lshorter-toast-upgrade {
+  border: 1.5px solid #FF6600 !important;
+  border-left: 5px solid #FF6600 !important;
+}
+html.light .lshorter-toast-badge-upgrade {
+  background-color: #FF6600 !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 2px 8px rgba(255, 102, 0, 0.35) !important;
+}
+
+/* ─── Dark Mode Styles (Obsidian HUD Glow) ─── */
+html:not(.light) .lshorter-toast,
+html.dark .lshorter-toast {
+  background-color: rgba(18, 19, 22, 0.96) !important;
+  backdrop-filter: blur(20px);
+}
+
+html:not(.light) .lshorter-toast-title,
+html.dark .lshorter-toast-title {
+  color: #FFFFFF !important;
+  font-weight: 600 !important;
+}
+
+html:not(.light) .lshorter-toast-msg,
+html.dark .lshorter-toast-msg {
+  color: #D4D4D8 !important;
+  font-weight: 400 !important;
+}
+
+html:not(.light) .lshorter-toast-close,
+html.dark .lshorter-toast-close {
+  color: #A1A1AA !important;
+}
+html:not(.light) .lshorter-toast-close:hover,
+html.dark .lshorter-toast-close:hover {
+  color: #FFFFFF !important;
+  background-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+/* Dark Mode Badges & Borders */
+html:not(.light) .lshorter-toast-success,
+html.dark .lshorter-toast-success {
+  border: 1px solid rgba(16, 185, 129, 0.35) !important;
+  border-left: 4px solid #10B981 !important;
+  box-shadow: 0 16px 40px -4px rgba(0, 0, 0, 0.85),
+              0 0 22px -2px rgba(16, 185, 129, 0.22) !important;
+}
+html:not(.light) .lshorter-toast-badge-success,
+html.dark .lshorter-toast-badge-success {
+  background-color: rgba(16, 185, 129, 0.16) !important;
+  border: 1.5px solid rgba(16, 185, 129, 0.8) !important;
+  color: #34D399 !important;
+}
+
+html:not(.light) .lshorter-toast-error,
+html.dark .lshorter-toast-error {
+  border: 1px solid rgba(239, 68, 68, 0.35) !important;
+  border-left: 4px solid #EF4444 !important;
+  box-shadow: 0 16px 40px -4px rgba(0, 0, 0, 0.85),
+              0 0 22px -2px rgba(239, 68, 68, 0.22) !important;
+}
+html:not(.light) .lshorter-toast-badge-error,
+html.dark .lshorter-toast-badge-error {
+  background-color: rgba(239, 68, 68, 0.16) !important;
+  border: 1.5px solid rgba(239, 68, 68, 0.8) !important;
+  color: #F87171 !important;
+}
+
+html:not(.light) .lshorter-toast-info,
+html.dark .lshorter-toast-info {
+  border: 1px solid rgba(14, 165, 233, 0.35) !important;
+  border-left: 4px solid #0EA5E9 !important;
+  box-shadow: 0 16px 40px -4px rgba(0, 0, 0, 0.85),
+              0 0 22px -2px rgba(14, 165, 233, 0.22) !important;
+}
+html:not(.light) .lshorter-toast-badge-info,
+html.dark .lshorter-toast-badge-info {
+  background-color: rgba(14, 165, 233, 0.16) !important;
+  border: 1.5px solid rgba(14, 165, 233, 0.8) !important;
+  color: #38BDF8 !important;
+}
+
+html:not(.light) .lshorter-toast-upgrade,
+html.dark .lshorter-toast-upgrade {
+  border: 1px solid rgba(255, 102, 0, 0.35) !important;
+  border-left: 4px solid #FF6600 !important;
+  box-shadow: 0 16px 40px -4px rgba(0, 0, 0, 0.85),
+              0 0 22px -2px rgba(255, 102, 0, 0.25) !important;
+}
+html:not(.light) .lshorter-toast-badge-upgrade,
+html.dark .lshorter-toast-badge-upgrade {
+  background-color: rgba(255, 102, 0, 0.16) !important;
+  border: 1.5px solid rgba(255, 102, 0, 0.8) !important;
+  color: #FF6600 !important;
+}
+
+/* Custom Scrollbar for framed canvases and lists */
+.custom-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+}
+.custom-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+
+

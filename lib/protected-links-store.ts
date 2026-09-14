@@ -28,6 +28,11 @@ export interface ProtectedLinkMeta {
   passParams?: boolean;
   redirectType?: "301" | "302" | "307";
   userId?: string;
+  userEmail?: string;
+  userName?: string;
+  userFullName?: string;
+  email?: string;
+  fullName?: string;
   isActive?: boolean;
   expiresAt?: string;
   updatedAt: string;

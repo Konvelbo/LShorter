@@ -49,58 +49,58 @@ export function EmptyState({ onLinkCreated, analytics }: EmptyStateProps) {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1 */}
         <div className="p-5 rounded-[10px] bg-[#141416] border border-[#222225] flex flex-col justify-between">
-          <span className="text-xs font-semibold text-neutral-400">Clics totaux</span>
+          <span className="text-xs font-semibold text-neutral-400">Total Clicks</span>
           <div className="my-2">
             <span className="font-bebas text-4xl font-bold tracking-wide text-[#ff6600]">
               {formatNumber(totalClicks)}
             </span>
           </div>
           <span className="text-xs font-semibold text-neutral-500 flex items-center gap-1">
-            {totalClicks > 0 ? `+${totalClicks} clics` : "Temps réel Edge"}
+            {totalClicks > 0 ? `+${totalClicks} clicks` : "Real-time Edge"}
           </span>
         </div>
 
         {/* Card 2 */}
         <div className="p-5 rounded-[10px] bg-[#141416] border border-[#222225] flex flex-col justify-between">
-          <span className="text-xs font-semibold text-neutral-400">Clics uniques</span>
+          <span className="text-xs font-semibold text-neutral-400">Unique Clicks</span>
           <div className="my-2">
             <span className="font-bebas text-4xl font-bold tracking-wide text-white">
               {formatNumber(uniqueClicks)}
             </span>
           </div>
           <span className="text-xs font-semibold text-neutral-500">
-            {uniqueClicks > 0 ? `${uniqueClicks} visiteurs` : "0 visiteur"}
+            {uniqueClicks > 0 ? `${uniqueClicks} visitors` : "0 visitors"}
           </span>
         </div>
 
         {/* Card 3 */}
         <div className="p-5 rounded-[10px] bg-[#141416] border border-[#222225] flex flex-col justify-between">
-          <span className="text-xs font-semibold text-neutral-400">Revenus attribués</span>
+          <span className="text-xs font-semibold text-neutral-400">Tracked Revenue</span>
           <div className="my-2">
             <span className="font-bebas text-4xl font-bold tracking-wide text-white">
-              {trackedRevenue.toFixed(2)} €
+              ${trackedRevenue.toFixed(2)}
             </span>
           </div>
           <span className="text-xs font-semibold text-neutral-500">
-            Conversions trackées
+            Tracked conversions
           </span>
         </div>
 
         {/* Card 4 */}
         <div className="p-5 rounded-[10px] bg-[#141416] border border-[#222225] flex flex-col justify-between">
-          <span className="text-xs font-semibold text-neutral-400">CTR moyen</span>
+          <span className="text-xs font-semibold text-neutral-400">Average CTR</span>
           <div className="my-2">
             <span className="font-bebas text-4xl font-bold tracking-wide text-white">
               {avgCtr}%
             </span>
           </div>
           <span className="text-xs font-semibold text-neutral-500">
-            Moyenne des clics
+            Click average
           </span>
         </div>
       </div>
 
-      {/* Big Center Shorten Box matching Screenshot 1 */}
+      {/* Big Center Shorten Box */}
       <div className="p-8 md:p-12 rounded-[10px] bg-[#141416] border-2 border-dashed border-[#ff6600]/40 flex flex-col items-center justify-center text-center relative overflow-hidden">
         {/* Decorative background glow */}
         <div className="absolute w-72 h-72 bg-[#ff6600]/5 rounded-full blur-3xl pointer-events-none -top-10" />
@@ -114,11 +114,11 @@ export function EmptyState({ onLinkCreated, analytics }: EmptyStateProps) {
         </div>
 
         <h2 className="text-xl md:text-2xl font-bold text-white mb-2">
-          Créez votre premier lien court
+          Create your first short link
         </h2>
         <p className="text-xs md:text-sm text-neutral-400 max-w-lg mb-8">
-          Collez une URL longue dans le champ ci-dessous et cliquez sur{" "}
-          <span className="text-[#ff6600] font-semibold">RACCOURCIR</span> pour générer votre premier lien trackable.
+          Paste a long URL below and click{" "}
+          <span className="text-[#ff6600] font-semibold">SHORTEN</span> to generate your first trackable link.
         </p>
 
         {/* Shorten Input Form */}
@@ -129,7 +129,7 @@ export function EmptyState({ onLinkCreated, analytics }: EmptyStateProps) {
           <input
             type="url"
             required
-            placeholder="https://votre-site.com/page-de-destination..."
+            placeholder="https://your-site.com/destination-page..."
             value={urlInput}
             onChange={(e) => setUrlInput(e.target.value)}
             className="w-full h-12 rounded-[10px] bg-neutral-50 dark:bg-white border-2 border-neutral-300 dark:border-transparent text-neutral-900 px-4 text-sm placeholder:text-neutral-500 font-medium shadow-sm focus:outline-none focus:border-[#ff6600] focus:ring-2 focus:ring-[#ff6600]/20 focus:bg-white transition-all"
@@ -139,7 +139,7 @@ export function EmptyState({ onLinkCreated, analytics }: EmptyStateProps) {
             variant="glow"
             className="w-full sm:w-auto h-12 px-8 font-bebas text-xl tracking-wider shrink-0"
           >
-            RACCOURCIR
+            SHORTEN
           </Button>
         </form>
 
@@ -149,7 +149,7 @@ export function EmptyState({ onLinkCreated, analytics }: EmptyStateProps) {
             <span className="w-5 h-5 rounded-full bg-[#ff6600] text-white font-bold text-[11px] flex items-center justify-center shrink-0">
               1
             </span>
-            <span className="font-semibold text-neutral-900 dark:text-neutral-200">Copiez votre URL</span>
+            <span className="font-semibold text-neutral-900 dark:text-neutral-200">Copy your URL</span>
           </div>
 
           <span className="text-neutral-400 dark:text-neutral-600 font-bold select-none">→</span>
@@ -158,7 +158,7 @@ export function EmptyState({ onLinkCreated, analytics }: EmptyStateProps) {
             <span className="w-5 h-5 rounded-full bg-[#ff6600] text-white font-bold text-[11px] flex items-center justify-center shrink-0">
               2
             </span>
-            <span className="font-semibold text-neutral-900 dark:text-neutral-200">Collez & raccourcissez</span>
+            <span className="font-semibold text-neutral-900 dark:text-neutral-200">Paste &amp; shorten</span>
           </div>
 
           <span className="text-neutral-400 dark:text-neutral-600 font-bold select-none">→</span>
@@ -167,15 +167,15 @@ export function EmptyState({ onLinkCreated, analytics }: EmptyStateProps) {
             <span className="w-5 h-5 rounded-full bg-[#ff6600] text-white font-bold text-[11px] flex items-center justify-center shrink-0">
               3
             </span>
-            <span className="font-semibold text-neutral-900 dark:text-neutral-200">Partagez & analysez</span>
+            <span className="font-semibold text-neutral-900 dark:text-neutral-200">Share &amp; analyze</span>
           </div>
         </div>
       </div>
 
-      {/* Bottom Section: NOS FONCTIONNALITÉS (Matching Screenshot 1) */}
+      {/* Bottom Section: OUR FEATURES */}
       <div className="flex flex-col gap-3 pt-2">
         <span className="text-xs font-bold uppercase tracking-widest text-[#ff6600]">
-          Nos fonctionnalités
+          Our Features
         </span>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -183,29 +183,29 @@ export function EmptyState({ onLinkCreated, analytics }: EmptyStateProps) {
           <div className="p-6 rounded-[10px] bg-[#141416] border border-[#222225] border-l-4 border-l-[#ff6600] flex flex-col gap-3">
             <div className="flex items-center gap-2 font-bold text-white text-sm mb-1">
               <Link2 className="w-4 h-4 text-neutral-400" />
-              <span>Liens & Ciblage</span>
+              <span>Links &amp; Targeting</span>
             </div>
             <ul className="flex flex-col gap-2 text-xs text-neutral-300">
               <li className="flex items-center gap-2">
                 <span className="text-[#ff6600] font-bold">✓</span> Branded Links
               </li>
               <li className="flex items-center gap-2">
-                <span className="text-[#ff6600] font-bold">✓</span> Redirects
+                <span className="text-[#ff6600] font-bold">✓</span> Fast Redirects
               </li>
               <li className="flex items-center gap-2">
-                <span className="text-[#ff6600] font-bold">✓</span> Country targeting
+                <span className="text-[#ff6600] font-bold">✓</span> Country Targeting
               </li>
               <li className="flex items-center gap-2">
-                <span className="text-[#ff6600] font-bold">✓</span> Link cloaking
+                <span className="text-[#ff6600] font-bold">✓</span> Link Cloaking
               </li>
               <li className="flex items-center gap-2">
-                <span className="text-[#ff6600] font-bold">✓</span> Deep links
+                <span className="text-[#ff6600] font-bold">✓</span> Deep Linking
               </li>
               <li className="flex items-center gap-2">
-                <span className="text-[#ff6600] font-bold">✓</span> Tags for Links
+                <span className="text-[#ff6600] font-bold">✓</span> Campaign Tags
               </li>
               <li className="flex items-center gap-2">
-                <span className="text-[#ff6600] font-bold">✓</span> Mobile targeting
+                <span className="text-[#ff6600] font-bold">✓</span> Device Targeting
               </li>
             </ul>
           </div>
@@ -214,26 +214,26 @@ export function EmptyState({ onLinkCreated, analytics }: EmptyStateProps) {
           <div className="p-6 rounded-[10px] bg-[#141416] border border-[#222225] border-l-4 border-l-[#ff6600] flex flex-col gap-3">
             <div className="flex items-center gap-2 font-bold text-white text-sm mb-1">
               <Settings className="w-4 h-4 text-neutral-400" />
-              <span>Gestion & Contrôle</span>
+              <span>Management &amp; Control</span>
             </div>
             <ul className="flex flex-col gap-2 text-xs text-neutral-300">
               <li className="flex items-center gap-2">
                 <span className="text-[#ff6600] font-bold">✓</span> Custom Domains
               </li>
               <li className="flex items-center gap-2">
-                <span className="text-[#ff6600] font-bold">✓</span> Region Targeting
+                <span className="text-[#ff6600] font-bold">✓</span> A/B Split Testing
               </li>
               <li className="flex items-center gap-2">
-                <span className="text-[#ff6600] font-bold">✓</span> Referrer Hiding
+                <span className="text-[#ff6600] font-bold">✓</span> Referrer Masking
               </li>
               <li className="flex items-center gap-2">
-                <span className="text-[#ff6600] font-bold">✓</span> Link permissions
+                <span className="text-[#ff6600] font-bold">✓</span> Link Permissions
               </li>
               <li className="flex items-center gap-2">
-                <span className="text-[#ff6600] font-bold">✓</span> Main page redirect
+                <span className="text-[#ff6600] font-bold">✓</span> Main Domain Redirect
               </li>
               <li className="flex items-center gap-2">
-                <span className="text-[#ff6600] font-bold">✓</span> API
+                <span className="text-[#ff6600] font-bold">✓</span> REST API &amp; SDK
               </li>
             </ul>
           </div>
@@ -242,26 +242,26 @@ export function EmptyState({ onLinkCreated, analytics }: EmptyStateProps) {
           <div className="p-6 rounded-[10px] bg-[#141416] border border-[#222225] border-l-4 border-l-[#ff6600] flex flex-col gap-3">
             <div className="flex items-center gap-2 font-bold text-white text-sm mb-1">
               <BarChart3 className="w-4 h-4 text-neutral-400" />
-              <span>Analytics & Sécurité</span>
+              <span>Analytics &amp; Security</span>
             </div>
             <ul className="flex flex-col gap-2 text-xs text-neutral-300">
               <li className="flex items-center gap-2">
-                <span className="text-[#ff6600] font-bold">✓</span> Tracked clicks
+                <span className="text-[#ff6600] font-bold">✓</span> Real-Time Clicks
               </li>
               <li className="flex items-center gap-2">
-                <span className="text-[#ff6600] font-bold">✓</span> Link expiration
+                <span className="text-[#ff6600] font-bold">✓</span> Link Expiration
               </li>
               <li className="flex items-center gap-2">
-                <span className="text-[#ff6600] font-bold">✓</span> Password Protection
+                <span className="text-[#ff6600] font-bold">✓</span> PIN Protection
               </li>
               <li className="flex items-center gap-2">
-                <span className="text-[#ff6600] font-bold">✓</span> UTM builder
+                <span className="text-[#ff6600] font-bold">✓</span> UTM Builder
               </li>
               <li className="flex items-center gap-2">
-                <span className="text-[#ff6600] font-bold">✓</span> Destination URL changing
+                <span className="text-[#ff6600] font-bold">✓</span> Dynamic Destination URL
               </li>
               <li className="flex items-center gap-2">
-                <span className="text-[#ff6600] font-bold">✓</span> QR Code automatique
+                <span className="text-[#ff6600] font-bold">✓</span> Instant QR Code
               </li>
             </ul>
           </div>

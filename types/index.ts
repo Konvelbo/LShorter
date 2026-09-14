@@ -4,10 +4,12 @@ export type TimeRange = 'day' | 'week' | 'month' | 'year';
 export interface UserProfile {
   id: string;
   name: string;
+  fullName?: string;
   email: string;
-  avatarUrl?: string;
+  avatarUrl?: string | null;
   plan: PlanType;
   created_at: string;
+  createdAt?: string;
   clicksThisMonth: number;
   clicksLimit: number; // 60,000 for Freemium, -1 for Pro/Business (unlimited)
   domainsCount: number;
@@ -25,6 +27,24 @@ export interface UserProfile {
     monthlyClicksEstimate: string;
     completedAt: string;
   };
+}
+
+export interface UserMeData {
+  id: string;
+  email: string;
+  name: string | null;
+  fullName: string | null;
+  avatarUrl?: string | null;
+  plan: PlanType;
+  clicksThisMonth: number;
+  linksCount: number;
+  domainsCount: number;
+  createdAt: string;
+}
+
+export interface UserMeResponse {
+  success: boolean;
+  data: UserMeData;
 }
 
 export interface GeoTargeting {
@@ -45,6 +65,11 @@ export interface DeviceTargeting {
 export interface ShortLink {
   id: string;
   userId: string;
+  userEmail?: string;
+  userName?: string;
+  userFullName?: string;
+  email?: string;
+  fullName?: string;
   slug: string;
   domainName: string;
   shortUrl: string;
@@ -141,8 +166,20 @@ export interface LiveClickEvent {
   os?: string;
   browser: string;
   referrer: string;
-  resolvedUrl: string;
+  resolvedUrl?: string;
   conversionAmount?: number;
+  customerEmail?: string;
+  customerName?: string;
+  customerFullName?: string;
+  customerAvatar?: string;
+  userEmail?: string;
+  userName?: string;
+  userFullName?: string;
+  userAvatar?: string;
+  email?: string;
+  fullName?: string;
+  avatarUrl?: string;
+  avatar?: string;
 }
 
 export interface ConversionStat {
@@ -176,6 +213,17 @@ export interface GlobalAnalytics {
     amount: number;
     currency: string;
     customerEmail?: string;
+    customerName?: string;
+    customerFullName?: string;
+    customerAvatar?: string;
+    userEmail?: string;
+    userName?: string;
+    userFullName?: string;
+    userAvatar?: string;
+    email?: string;
+    fullName?: string;
+    avatarUrl?: string;
+    avatar?: string;
     linkId: string;
     slug: string;
     created_at: string;
@@ -191,6 +239,11 @@ export interface ApiKeyItem {
   created_at: string;
   lastUsedAt?: string;
   rateLimit?: string;
+  userEmail?: string;
+  userName?: string;
+  userFullName?: string;
+  email?: string;
+  fullName?: string;
 }
 
 export interface CustomDomain {
@@ -198,6 +251,11 @@ export interface CustomDomain {
   domain: string;
   status: 'active' | 'pending' | 'failed';
   linksCount: number;
+  userEmail?: string;
+  userName?: string;
+  userFullName?: string;
+  email?: string;
+  fullName?: string;
   dnsRecords: Array<{
     type: 'CNAME' | 'TXT';
     name: string;

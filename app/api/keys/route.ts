@@ -37,6 +37,11 @@ export async function POST(req: Request) {
       name: body.name || "Clé API",
       scope: body.scope || "read_write",
       rateLimit: body.rateLimit || 600,
+      userEmail: body.userEmail || body.email,
+      userName: body.userName || body.fullName || body.userFullName,
+      userFullName: body.userFullName || body.fullName || body.userName,
+      email: body.email || body.userEmail,
+      fullName: body.fullName || body.userFullName || body.userName,
     });
 
     return NextResponse.json(

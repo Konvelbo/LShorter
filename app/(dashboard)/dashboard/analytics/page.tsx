@@ -41,6 +41,7 @@ import { GlobeSkeleton, AnalyticsPageSkeleton } from "@/components/ui/skeleton";
 import { showToast } from "@/components/ui/toast-provider";
 import { triggerPlanUpgrade } from "@/lib/plan-guard";
 import { ColumnMaskToggle, ColumnDefinition } from "@/components/dashboard/analytics/column-mask-toggle";
+import { KpiCardsCarousel } from "@/components/dashboard/analytics/kpi-cards-carousel";
 import {
   computePeriodMetrics,
   generateTimelineForRange,
@@ -53,22 +54,23 @@ import {
 } from "@/lib/analytics-generators";
 
 const PERF_COLUMNS: ColumnDefinition[] = [
-  { key: "slug", label: "Lien & Slug", defaultVisible: true },
-  { key: "clicks", label: "Clics Totaux", defaultVisible: true },
-  { key: "unique", label: "Clics Uniques", defaultVisible: true },
+  { key: "slug", label: "Link & Slug", defaultVisible: true },
+  { key: "clicks", label: "Total Clicks", defaultVisible: true },
+  { key: "unique", label: "Unique Clicks", defaultVisible: true },
   { key: "conversions", label: "Conversions", defaultVisible: true },
-  { key: "revenue", label: "Revenus (€)", defaultVisible: true },
-  { key: "ctr", label: "Taux Conv. / Part", defaultVisible: true },
+  { key: "revenue", label: "Revenue (€)", defaultVisible: true },
+  { key: "ctr", label: "Conv. Rate / Share", defaultVisible: true },
   { key: "action", label: "Action", defaultVisible: true },
 ];
 
 const STREAM_COLUMNS: ColumnDefinition[] = [
-  { key: "timestamp", label: "Horodatage", defaultVisible: true },
-  { key: "slug", label: "Lien", defaultVisible: true },
-  { key: "location", label: "Localisation", defaultVisible: true },
-  { key: "device", label: "Appareil & Navigateur", defaultVisible: true },
+  { key: "timestamp", label: "Timestamp", defaultVisible: true },
+  { key: "slug", label: "Link", defaultVisible: true },
+  { key: "customer", label: "Customer / Buyer", defaultVisible: true },
+  { key: "location", label: "Location", defaultVisible: true },
+  { key: "device", label: "Device & Browser", defaultVisible: true },
   { key: "source", label: "Source", defaultVisible: true },
-  { key: "event", label: "Événement", defaultVisible: true },
+  { key: "event", label: "Event", defaultVisible: true },
 ];
 
 function getCountryFlag(code?: string) {
@@ -92,8 +94,8 @@ const StatsBarChart = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="h-64 rounded-[10px] bg-[#141416] border border-[#222225] animate-pulse flex items-center justify-center text-xs text-neutral-500 font-mono">
-        Chargement des graphiques Edge...
+      <div className="h-64 rounded-[10px] bg-zinc-100 dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] animate-pulse flex items-center justify-center text-xs text-zinc-500 dark:text-neutral-400 font-mono">
+        Loading Edge charts...
       </div>
     ),
   }
@@ -104,8 +106,8 @@ const AnalyticsPieChart = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="h-64 rounded-[10px] bg-[#141416] border border-[#222225] animate-pulse flex items-center justify-center text-xs text-neutral-500 font-mono">
-        Chargement répartition...
+      <div className="h-64 rounded-[10px] bg-zinc-100 dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] animate-pulse flex items-center justify-center text-xs text-zinc-500 dark:text-neutral-400 font-mono">
+        Loading distribution...
       </div>
     ),
   }
@@ -292,15 +294,7 @@ function AnalyticsContent() {
 
         // Dynamic time-series timeline for selected period
         const rawClicksDay = d.clicksByDay ?? d.clicks_by_day ?? [];
-        const clicksByDay = (rawClicksDay.length > 1)
-          ? rawClicksDay.map((c: any, i: number) => ({
-              date: c.date || new Date().toISOString().slice(0, 10),
-              clicks: c.clicks || 0,
-              uniqueClicks: c.uniqueClicks || c.unique_clicks || c.clicks || 0,
-              dayNumber: c.dayNumber || i + 1,
-              label: c.label,
-            }))
-          : generateTimelineForRange(range, total, unique);
+        const clicksByDay = generateTimelineForRange(range, total, unique, rawClicksDay);
 
         // Geographic breakdowns with coordinates that light up the 3D Cobe Globe
         const rawCountries = d.topCountries ?? d.top_countries ?? [];
@@ -322,7 +316,7 @@ function AnalyticsContent() {
         const rawCities = d.topCities ?? d.top_cities ?? [];
         const cities = (rawCities.length > 0)
           ? rawCities.map((ci: any) => ({
-              city: ci.city || ci.name || "Inconnue",
+              city: ci.city || ci.name || "Unknown",
               countryCode: (ci.countryCode || ci.country_code || "XX").toUpperCase(),
               count: ci.count || ci.clicks || 0,
               percentage: ci.percentage !== undefined ? ci.percentage : (total > 0 ? Math.round(((ci.count || ci.clicks || 0) / total) * 100) : 0),
@@ -371,16 +365,23 @@ function AnalyticsContent() {
             const cCode = (ev.country_code || ev.countryCode || "XX").toUpperCase();
             return {
               id: ev.id || `${Date.now()}-${Math.random()}`,
+              linkId: ev.linkId || ev.link_id || ev.slug || "",
               timestamp: ev.timestamp || new Date().toISOString(),
               slug: ev.slug || "link",
               countryCode: cCode,
               countryName: getCountryName(cCode),
               city: ev.city || "—",
               device: ev.device || "desktop",
+              os: ev.os || "Windows",
               browser: ev.browser || "Chrome",
               referrer: ev.referrer || "Direct",
               ipMasked: ev.ipMasked || ev.ip_masked || "•••.•••.•••",
               conversionAmount: ev.conversionAmount || ev.conversion_amount,
+              customerEmail: ev.customerEmail || ev.email || ev.customer_email || null,
+              customerName: ev.customerName || ev.customerFullName || ev.fullName || ev.name || ev.customer_name || null,
+              customerFullName: ev.customerFullName || ev.customerName || ev.fullName || ev.name || null,
+              email: ev.customerEmail || ev.email || ev.customer_email || null,
+              fullName: ev.customerFullName || ev.customerName || ev.fullName || ev.name || null,
             };
           });
 
@@ -477,8 +478,8 @@ function AnalyticsContent() {
   const handleExportCSV = async () => {
     if (!isProPlan) {
       triggerPlanUpgrade({
-        reason: "L'exportation CSV des données brutes est réservée aux abonnés du Plan Pro.",
-        featureName: "Export CSV Analytics",
+        reason: "Raw CSV data export is reserved for Pro Plan subscribers.",
+        featureName: "Analytics CSV Export",
       });
       return;
     }
@@ -492,7 +493,7 @@ function AnalyticsContent() {
 
       if (!response.ok) {
         const errJson = await response.json().catch(() => ({}));
-        throw new Error(errJson.error || `Erreur serveur (${response.status})`);
+        throw new Error(errJson.error || `Server error (${response.status})`);
       }
 
       const blob = await response.blob();
@@ -504,10 +505,10 @@ function AnalyticsContent() {
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
-      showToast.success("Rapport Excel avec vos données réelles téléchargé !");
+      showToast.success("Excel report with live data downloaded!");
     } catch (e: any) {
       console.error("Export error:", e);
-      showToast.error(e?.message || "Erreur lors de l'exportation du fichier");
+      showToast.error(e?.message || "Error exporting file");
     } finally {
       setIsExporting(false);
     }
@@ -518,10 +519,10 @@ function AnalyticsContent() {
     : undefined;
 
   const rangeLabels: Record<TimeRange, string> = {
-    day: "Dernières 24h",
-    week: "7 derniers jours",
-    month: "30 derniers jours",
-    year: "12 derniers mois",
+    day: "Last 24h",
+    week: "Last 7 days",
+    month: "Last 30 days",
+    year: "Last 12 months",
   };
 
   const linkFilterParam = selectedLinkObj
@@ -566,10 +567,16 @@ function AnalyticsContent() {
         return false;
       }
     }
+    const q = streamSearch.toLowerCase();
+    const custName = (e?.customerName || e?.customerFullName || e?.fullName || "").toLowerCase();
+    const custEmail = (e?.customerEmail || e?.email || "").toLowerCase();
     return (
-      (e?.slug || "").toLowerCase().includes(streamSearch.toLowerCase()) ||
-      (e?.countryName || "").toLowerCase().includes(streamSearch.toLowerCase()) ||
-      (e?.referrer || "").toLowerCase().includes(streamSearch.toLowerCase())
+      (e?.slug || "").toLowerCase().includes(q) ||
+      (e?.countryName || "").toLowerCase().includes(q) ||
+      (e?.city || "").toLowerCase().includes(q) ||
+      (e?.referrer || "").toLowerCase().includes(q) ||
+      custName.includes(q) ||
+      custEmail.includes(q)
     );
   });
   const totalStreamPages = Math.max(1, Math.ceil(filteredEvents.length / streamPageSize));
@@ -582,35 +589,35 @@ function AnalyticsContent() {
   return (
     <div className="flex flex-col gap-8 animate-in fade-in pb-16">
       {/* Top Header with Per-Link Selector & Export */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-[#222225]">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-zinc-200 dark:border-[#222225]">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold text-white tracking-wide">
-              Centre d&apos;Analyse & Intelligence Edge
+            <h1 className="text-2xl font-bold text-zinc-900 dark:text-white tracking-wide">
+              Analytics Hub & Edge Intelligence
             </h1>
             <span className="px-2 py-0.5 rounded bg-[#ff6600]/15 text-[#ff6600] text-[10px] font-bold">
-              TEMPS RÉEL
+              REAL TIME
             </span>
           </div>
-          <p className="text-xs text-neutral-400 mt-1">
-            Données de trafic, conversion, attribution et géolocalisation au millimètre près.
+          <p className="text-xs text-zinc-500 dark:text-neutral-400 mt-1">
+            Traffic, conversion, attribution, and pinpoint geolocation data.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          {/* Link Filter Selector with fixed dark background */}
-          <div className="flex items-center gap-2 bg-[#141416] border border-[#27272a] rounded-[10px] px-3 py-1.5 text-xs">
+          {/* Link Filter Selector with theme styling */}
+          <div className="flex items-center gap-2 bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] rounded-[10px] px-3 py-1.5 text-xs shadow-sm">
             <Filter className="w-3.5 h-3.5 text-[#ff6600]" />
-            <span className="text-neutral-400 font-medium">Lien :</span>
+            <span className="text-zinc-500 dark:text-neutral-400 font-medium">Link:</span>
             <select
               value={selectedLinkObj ? selectedLinkObj.id : "all"}
               onChange={(e) => handleLinkSelectChange(e.target.value)}
-              className="bg-[#141416] text-white font-semibold focus:outline-none cursor-pointer border-none"
+              className="bg-transparent text-zinc-900 dark:text-white font-semibold focus:outline-none cursor-pointer border-none"
             >
-              <option value="all" className="bg-[#141416] text-white">Tous les liens ({links.length})</option>
+              <option value="all" className="bg-white dark:bg-[#141416] text-zinc-900 dark:text-white">All links ({links.length})</option>
               {links.map((l) => (
-                <option key={l.id} value={l.id} className="bg-[#141416] text-white">
-                  {l.slug} ({formatNumber(l.clicksCount)} clics)
+                <option key={l.id} value={l.id} className="bg-white dark:bg-[#141416] text-zinc-900 dark:text-white">
+                  {l.slug} ({formatNumber(l.clicksCount)} clicks)
                 </option>
               ))}
             </select>
@@ -623,15 +630,15 @@ function AnalyticsContent() {
               cfInvalidateCache("/api/analytics");
               await refreshData(selectedRange, selectedLinkId);
               setIsRefreshing(false);
-              showToast.success("Statistiques actualisées !");
+              showToast.success("Analytics updated!");
             }}
             disabled={isRefreshing}
             variant="outline"
             size="sm"
-            className="text-xs gap-1.5 border-[#27272a] bg-[#141416] hover:bg-white/5 text-neutral-300 hover:text-white cursor-pointer"
+            className="text-xs gap-1.5 border-zinc-200 dark:border-[#27272a] bg-white dark:bg-[#141416] hover:bg-zinc-50 dark:hover:bg-white/5 text-zinc-800 dark:text-neutral-200 cursor-pointer shadow-sm"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-[#ff6600]" : "text-neutral-400"}`} />
-            <span>Actualiser</span>
+            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-[#ff6600]" : "text-zinc-400 dark:text-neutral-400"}`} />
+            <span>Refresh</span>
           </Button>
 
           {/* Export Button */}
@@ -640,10 +647,10 @@ function AnalyticsContent() {
             disabled={isExporting}
             variant="outline"
             size="sm"
-            className="text-xs gap-1.5"
+            className="text-xs gap-1.5 border-zinc-200 dark:border-[#27272a] bg-white dark:bg-[#141416] hover:bg-zinc-50 dark:hover:bg-white/5 text-zinc-800 dark:text-neutral-200 shadow-sm"
           >
             <Download className="w-3.5 h-3.5 text-[#ff6600]" />
-            <span>{isExporting ? "Exportation..." : "Exporter CSV (Excel)"}</span>
+            <span>{isExporting ? "Exporting..." : "Export CSV (Excel)"}</span>
             {!isProPlan && (
               <span className="px-1.5 py-0.2 rounded bg-[#ff6600]/20 text-[#ff6600] text-[9px] font-bold">
                 PRO
@@ -655,19 +662,19 @@ function AnalyticsContent() {
 
       {/* Selected Link Banner (if specific link selected) */}
       {selectedLinkObj && (
-        <div className="p-4 rounded-[10px] bg-[#141416] border border-[#ff6600]/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-in fade-in">
+        <div className="p-4 rounded-[10px] bg-white dark:bg-[#141416] border border-[#ff6600]/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-in fade-in shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-[10px] bg-[#ff6600] flex items-center justify-center font-bold text-white">
+            <div className="w-9 h-9 rounded-[10px] bg-[#ff6600] flex items-center justify-center font-bold text-white shadow-sm">
               <Zap className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-bold text-white text-sm">{selectedLinkObj.slug}</span>
+                <span className="font-bold text-zinc-900 dark:text-white text-sm">{selectedLinkObj.slug}</span>
                 <Badge variant={selectedLinkObj.isActive ? "active" : "inactive"}>
-                  {selectedLinkObj.isActive ? "Actif" : "Inactif"}
+                  {selectedLinkObj.isActive ? "Active" : "Inactive"}
                 </Badge>
               </div>
-              <p className="text-xs text-neutral-400 font-mono">
+              <p className="text-xs text-zinc-500 dark:text-neutral-400 font-mono">
                 {selectedLinkObj.domainName}/{selectedLinkObj.slug} → {selectedLinkObj.targetUrl}
               </p>
             </div>
@@ -675,34 +682,34 @@ function AnalyticsContent() {
 
           <button
             onClick={() => handleLinkSelectChange("all")}
-            className="text-xs text-neutral-400 hover:text-white underline cursor-pointer"
+            className="text-xs text-zinc-500 dark:text-neutral-400 hover:text-zinc-900 dark:hover:text-white underline cursor-pointer"
           >
-            Réinitialiser au filtre global
+            Reset to global filter
           </button>
         </div>
       )}
 
-      {/* Time Range Filter Bar (Jour, Semaine, Mois, An) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-2 sm:p-2.5 rounded-[10px] bg-[#141416] border border-[#222225]">
+      {/* Time Range Filter Bar (Day, Week, Month, Year) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-2 sm:p-2.5 rounded-[10px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-xs w-full sm:w-auto">
-          <div className="flex items-center justify-between sm:justify-start gap-1.5 px-1 sm:px-2 text-neutral-400 font-medium">
+          <div className="flex items-center justify-between sm:justify-start gap-1.5 px-1 sm:px-2 text-zinc-500 dark:text-neutral-400 font-medium">
             <span className="flex items-center gap-1.5">
               <Calendar className="w-3.5 h-3.5 text-[#ff6600]" />
-              <span className="whitespace-nowrap">Période :</span>
+              <span className="whitespace-nowrap">Period:</span>
             </span>
-            <span className="sm:hidden text-neutral-500 text-[11px] font-medium">
+            <span className="sm:hidden text-zinc-500 dark:text-neutral-400 text-[11px] font-medium">
               {rangeLabels[selectedRange]}
             </span>
           </div>
 
-          <div className="grid grid-cols-4 gap-1 p-1 bg-[#0d0d10] border border-[#1f1f24] rounded-[10px] sm:flex sm:items-center sm:bg-transparent sm:border-0 sm:p-0">
+          <div className="grid grid-cols-4 gap-1 p-1 bg-zinc-100 dark:bg-[#0d0d10] border border-zinc-200 dark:border-[#1f1f24] rounded-[10px] sm:flex sm:items-center sm:bg-transparent sm:border-0 sm:p-0">
             <button
               type="button"
               onClick={() => handleRangeChange("day")}
               className={`text-center py-1.5 px-2 sm:px-3 rounded-[10px] font-semibold transition-all cursor-pointer text-xs ${
                 selectedRange === "day"
                   ? "bg-[#ff6600] text-white shadow-md font-bold"
-                  : "text-neutral-400 hover:text-white hover:bg-white/5"
+                  : "text-zinc-600 dark:text-neutral-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-[#1f1f24]"
               }`}
             >
               24h
@@ -714,10 +721,10 @@ function AnalyticsContent() {
               className={`text-center py-1.5 px-2 sm:px-3 rounded-[10px] font-semibold transition-all cursor-pointer text-xs ${
                 selectedRange === "week"
                   ? "bg-[#ff6600] text-white shadow-md font-bold"
-                  : "text-neutral-400 hover:text-white hover:bg-white/5"
+                  : "text-zinc-600 dark:text-neutral-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-[#1f1f24]"
               }`}
             >
-              7 jours
+              7 days
             </button>
 
             <button
@@ -726,10 +733,10 @@ function AnalyticsContent() {
               className={`text-center py-1.5 px-2 sm:px-3 rounded-[10px] font-semibold transition-all cursor-pointer text-xs ${
                 selectedRange === "month"
                   ? "bg-[#ff6600] text-white shadow-md font-bold"
-                  : "text-neutral-400 hover:text-white hover:bg-white/5"
+                  : "text-zinc-600 dark:text-neutral-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-[#1f1f24]"
               }`}
             >
-              30 jours
+              30 days
             </button>
 
             <button
@@ -738,109 +745,179 @@ function AnalyticsContent() {
               className={`text-center py-1.5 px-2 sm:px-3 rounded-[10px] font-semibold transition-all cursor-pointer text-xs ${
                 selectedRange === "year"
                   ? "bg-[#ff6600] text-white shadow-md font-bold"
-                  : "text-neutral-400 hover:text-white hover:bg-white/5"
+                  : "text-zinc-600 dark:text-neutral-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-[#1f1f24]"
               }`}
             >
-              1 an
+              1 year
             </button>
           </div>
         </div>
 
-        <span className="hidden sm:inline-block text-neutral-400 text-xs px-2 font-medium">
+        <span className="hidden sm:inline-block text-zinc-500 dark:text-neutral-400 text-xs px-2 font-medium">
           {rangeLabels[selectedRange]}
         </span>
       </div>
 
-      {/* 6 Key Precision Metrics Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
-        <div className="p-4 rounded-[10px] bg-[#141416] border border-[#222225] flex flex-col justify-between">
-          <span className="text-[11px] font-semibold text-neutral-400">Clics Totaux</span>
-          <div className="my-1.5">
-            <span className="font-bebas text-3xl font-bold text-[#ff6600]">
+      {/* 6 Key Precision Metrics Cards with Auto-Scrolling Infinite Marquee & Drag */}
+      <KpiCardsCarousel autoScroll={true} speed={0.9} pauseOnHover={false}>
+        {/* Card 1: Total Clicks */}
+        <div className="shrink-0 w-[170px] sm:w-[240px] md:w-[280px] lg:w-[300px] h-[100px] sm:h-[120px] md:h-[135px] lg:h-[145px] p-2.5 sm:p-3.5 md:p-4 rounded-[10px] sm:rounded-[12px] md:rounded-[14px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] shadow-sm flex flex-col justify-between hover:border-[#ff6600]/50 hover:shadow-md transition-all select-none">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] sm:text-xs md:text-sm font-bold text-zinc-600 dark:text-neutral-400 uppercase tracking-wider truncate">Total Clicks</span>
+            <span className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+              <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#ff6600] animate-pulse" />
+              <span className="text-[9px] sm:text-[11px] font-mono text-zinc-500 dark:text-neutral-400 hidden sm:inline">LIVE</span>
+            </span>
+          </div>
+          <div className="my-0 sm:my-0.5">
+            <span className="font-bebas text-2xl sm:text-3xl md:text-4xl font-black text-[#ff6600] leading-none tracking-wide">
               {formatNumber(analytics.totalClicks)}
             </span>
           </div>
-          <span className="text-[10px] font-semibold text-emerald-400">
-            {analytics.totalClicks > 0 ? (analytics.clicksGrowth > 0 ? `↑ +${analytics.clicksGrowth}%` : `+${analytics.totalClicks} clics`) : "0%"}
-          </span>
+          <div className="flex items-center justify-between pt-0.5 sm:pt-1 border-t border-zinc-200/60 dark:border-[#222225]">
+            <span className="text-[9px] sm:text-[11px] md:text-xs font-bold text-emerald-500 dark:text-emerald-400 truncate">
+              {analytics.totalClicks > 0 ? (analytics.clicksGrowth > 0 ? `↑ +${analytics.clicksGrowth}%` : `+${analytics.totalClicks} clicks`) : "0% volume"}
+            </span>
+            <span className="text-[8px] sm:text-[10px] md:text-[11px] text-zinc-500 dark:text-neutral-400 font-mono shrink-0">Global</span>
+          </div>
         </div>
 
-        <div className="p-4 rounded-[10px] bg-[#141416] border border-[#222225] flex flex-col justify-between">
-          <span className="text-[11px] font-semibold text-neutral-400">Clics Uniques</span>
-          <div className="my-1.5">
-            <span className="font-bebas text-3xl font-bold text-white">
+        {/* Card 2: Unique Clicks */}
+        <div className="shrink-0 w-[170px] sm:w-[240px] md:w-[280px] lg:w-[300px] h-[100px] sm:h-[120px] md:h-[135px] lg:h-[145px] p-2.5 sm:p-3.5 md:p-4 rounded-[10px] sm:rounded-[12px] md:rounded-[14px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] shadow-sm flex flex-col justify-between hover:border-blue-500/50 hover:shadow-md transition-all select-none">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] sm:text-xs md:text-sm font-bold text-zinc-600 dark:text-neutral-400 uppercase tracking-wider truncate">Unique Clicks</span>
+            <span className="text-[8px] sm:text-[10px] md:text-xs px-1 sm:px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-500 font-mono font-semibold shrink-0">100%</span>
+          </div>
+          <div className="my-0 sm:my-0.5">
+            <span className="font-bebas text-2xl sm:text-3xl md:text-4xl font-black text-zinc-900 dark:text-white leading-none tracking-wide">
               {formatNumber(analytics.uniqueClicks)}
             </span>
           </div>
-          <span className="text-[10px] font-semibold text-emerald-400">
-            {analytics.uniqueClicks > 0 ? (analytics.uniqueClicksGrowth > 0 ? `↑ +${analytics.uniqueClicksGrowth}%` : `100% uniques`) : "0%"}
-          </span>
+          <div className="flex items-center justify-between pt-0.5 sm:pt-1 border-t border-zinc-200/60 dark:border-[#222225]">
+            <span className="text-[9px] sm:text-[11px] md:text-xs font-bold text-emerald-500 dark:text-emerald-400 truncate">
+              {analytics.uniqueClicks > 0 ? (analytics.uniqueClicksGrowth > 0 ? `↑ +${analytics.uniqueClicksGrowth}%` : `100% unique`) : "0%"}
+            </span>
+            <span className="text-[8px] sm:text-[10px] md:text-[11px] text-zinc-500 dark:text-neutral-400 font-mono shrink-0">IPs</span>
+          </div>
         </div>
 
-        <div className="p-4 rounded-[10px] bg-[#141416] border border-[#222225] flex flex-col justify-between">
-          <span className="text-[11px] font-semibold text-neutral-400">Revenus Attribués</span>
-          <div className="my-1.5">
-            <span className="font-bebas text-3xl font-bold text-white">
+        {/* Card 3: Tracked Revenue (STAR METRIC) */}
+        <Link
+          href={`/dashboard/analytics/revenue${linkFilterParam}`}
+          className="shrink-0 w-[170px] sm:w-[240px] md:w-[280px] lg:w-[300px] h-[100px] sm:h-[120px] md:h-[135px] lg:h-[145px] p-2.5 sm:p-3.5 md:p-4 rounded-[10px] sm:rounded-[12px] md:rounded-[14px] bg-white dark:bg-[#141416] border-2 border-emerald-500/60 dark:border-emerald-500/60 shadow-sm dark:shadow-[0_0_20px_-3px_rgba(16,185,129,0.25)] hover:border-emerald-500 transition-all duration-200 flex flex-col justify-between group relative overflow-hidden cursor-pointer select-none"
+        >
+          <div className="absolute top-0 right-0 w-14 sm:w-16 h-14 sm:h-16 bg-emerald-500/10 rounded-bl-full pointer-events-none transition-transform group-hover:scale-110"></div>
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] sm:text-xs md:text-sm font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider truncate">Revenue</span>
+            <div className="flex items-center gap-0.5 sm:gap-1 text-[8px] sm:text-[10px] md:text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/15 px-1 sm:px-1.5 py-0.5 rounded-full shrink-0">
+              <span>Details</span>
+              <ArrowUpRight className="w-2.5 h-2.5 sm:w-3 sm:h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+            </div>
+          </div>
+          <div className="my-0 sm:my-0.5">
+            <span className="font-bebas text-2xl sm:text-3xl md:text-4xl font-black text-emerald-600 dark:text-emerald-400 leading-none tracking-wide">
               {formatCurrency(analytics.trackedRevenue)}
             </span>
           </div>
-          <span className="text-[10px] font-semibold text-neutral-400">
-            {analytics.trackedRevenue > 0 ? `↑ +${analytics.revenueGrowth}%` : "0 conversion"}
-          </span>
-        </div>
+          <div className="flex items-center justify-between pt-0.5 sm:pt-1 border-t border-emerald-500/20">
+            <span className="text-[9px] sm:text-[11px] md:text-xs font-bold text-emerald-600/90 dark:text-emerald-300 truncate">
+              {analytics.trackedRevenue > 0 ? `↑ +${analytics.revenueGrowth}%` : "0 conversions"}
+            </span>
+            <span className="text-[8px] sm:text-[10px] md:text-[11px] text-emerald-600/80 dark:text-emerald-400/80 font-mono shrink-0">Net</span>
+          </div>
 
-        <div className="p-4 rounded-[10px] bg-[#141416] border border-[#222225] flex flex-col justify-between">
-          <span className="text-[11px] font-semibold text-neutral-400">Taux Conversion</span>
-          <div className="my-1.5">
-            <span className="font-bebas text-3xl font-bold text-white">
+          {/* Tooltip on Hover */}
+          <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 z-30 whitespace-nowrap bg-popover dark:bg-[#1f1f24] text-popover-foreground dark:text-white px-3 py-1.5 rounded-[8px] border border-emerald-500/50 shadow-2xl text-[11px] font-medium flex items-center gap-1.5 hidden md:flex">
+            <Sparkles className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
+            <span>Click to open deep revenue & customer analytics →</span>
+          </div>
+        </Link>
+
+        {/* Card 4: Conversion Rate */}
+        <div className="shrink-0 w-[170px] sm:w-[240px] md:w-[280px] lg:w-[300px] h-[100px] sm:h-[120px] md:h-[135px] lg:h-[145px] p-2.5 sm:p-3.5 md:p-4 rounded-[10px] sm:rounded-[12px] md:rounded-[14px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] shadow-sm flex flex-col justify-between hover:border-purple-500/50 hover:shadow-md transition-all select-none">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] sm:text-xs md:text-sm font-bold text-zinc-600 dark:text-neutral-400 uppercase tracking-wider truncate">Conversion</span>
+            <span className="text-[8px] sm:text-[10px] md:text-xs px-1 sm:px-1.5 py-0.5 rounded-full bg-purple-500/10 text-purple-500 font-mono font-semibold shrink-0">CR</span>
+          </div>
+          <div className="my-0 sm:my-0.5">
+            <span className="font-bebas text-2xl sm:text-3xl md:text-4xl font-black text-zinc-900 dark:text-white leading-none tracking-wide">
               {analytics.avgCtr}%
             </span>
           </div>
-          <span className="text-[10px] font-semibold text-neutral-400">
-            {analytics.avgCtr > 0 ? `${analytics.avgCtr}%` : "Attente conversion"}
-          </span>
+          <div className="flex items-center justify-between pt-0.5 sm:pt-1 border-t border-zinc-200/60 dark:border-[#222225]">
+            <span className="text-[9px] sm:text-[11px] md:text-xs font-bold text-zinc-500 dark:text-neutral-400 truncate">
+              {analytics.avgCtr > 0 ? `${analytics.avgCtr}%` : "Pending"}
+            </span>
+            <span className="text-[8px] sm:text-[10px] md:text-[11px] text-zinc-500 dark:text-neutral-400 font-mono shrink-0">Avg</span>
+          </div>
         </div>
 
-        <div className="p-4 rounded-[10px] bg-[#141416] border border-[#222225] flex flex-col justify-between">
-          <span className="text-[11px] font-semibold text-neutral-400">EPC (Gain / Clic)</span>
-          <div className="my-1.5">
-            <span className="font-bebas text-3xl font-bold text-emerald-400">
+        {/* Card 5: EPC (Earn / Click) */}
+        <Link
+          href={`/dashboard/analytics/revenue${linkFilterParam}`}
+          className="shrink-0 w-[170px] sm:w-[240px] md:w-[280px] lg:w-[300px] h-[100px] sm:h-[120px] md:h-[135px] lg:h-[145px] p-2.5 sm:p-3.5 md:p-4 rounded-[10px] sm:rounded-[12px] md:rounded-[14px] bg-white dark:bg-[#141416] border-2 border-emerald-500/40 dark:border-emerald-500/40 hover:border-emerald-500 transition-all duration-200 shadow-sm hover:shadow-md flex flex-col justify-between group relative cursor-pointer select-none"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] sm:text-xs md:text-sm font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider truncate">EPC (Earn/Click)</span>
+            <div className="flex items-center gap-0.5 sm:gap-1 text-[8px] sm:text-[10px] md:text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/15 px-1 sm:px-1.5 py-0.5 rounded-full shrink-0">
+              <span>Details</span>
+              <ArrowUpRight className="w-2.5 h-2.5 sm:w-3 sm:h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+            </div>
+          </div>
+          <div className="my-0 sm:my-0.5">
+            <span className="font-bebas text-2xl sm:text-3xl md:text-4xl font-black text-emerald-600 dark:text-emerald-400 leading-none tracking-wide">
               {analytics.epc}€
             </span>
           </div>
-          <span className="text-[10px] font-semibold text-neutral-400">
-            Rentabilité / clic
-          </span>
-        </div>
+          <div className="flex items-center justify-between pt-0.5 sm:pt-1 border-t border-emerald-500/20">
+            <span className="text-[9px] sm:text-[11px] md:text-xs font-bold text-zinc-500 dark:text-neutral-400 truncate">
+              Avg. / click
+            </span>
+            <span className="text-[8px] sm:text-[10px] md:text-[11px] text-emerald-600/80 dark:text-emerald-400/80 font-mono shrink-0">EPC</span>
+          </div>
 
-        <div className="p-4 rounded-[10px] bg-[#141416] border border-[#222225] flex flex-col justify-between">
-          <span className="text-[11px] font-semibold text-neutral-400">Taux de Rebond</span>
-          <div className="my-1.5">
-            <span className="font-bebas text-3xl font-bold text-white">
+          {/* Tooltip on Hover */}
+          <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 z-30 whitespace-nowrap bg-popover dark:bg-[#1f1f24] text-popover-foreground dark:text-white px-3 py-1.5 rounded-[8px] border border-emerald-500/50 shadow-2xl text-[11px] font-medium flex items-center gap-1.5 hidden md:flex">
+            <Sparkles className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
+            <span>Click to open deep revenue & customer analytics →</span>
+          </div>
+        </Link>
+
+        {/* Card 6: Bounce Rate */}
+        <div className="shrink-0 w-[170px] sm:w-[240px] md:w-[280px] lg:w-[300px] h-[100px] sm:h-[120px] md:h-[135px] lg:h-[145px] p-2.5 sm:p-3.5 md:p-4 rounded-[10px] sm:rounded-[12px] md:rounded-[14px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] shadow-sm flex flex-col justify-between hover:border-amber-500/50 hover:shadow-md transition-all select-none">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] sm:text-xs md:text-sm font-bold text-zinc-600 dark:text-neutral-400 uppercase tracking-wider truncate">Bounce</span>
+            <span className="text-[8px] sm:text-[10px] md:text-xs px-1 sm:px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-500 font-mono font-semibold shrink-0">Bounce</span>
+          </div>
+          <div className="my-0 sm:my-0.5">
+            <span className="font-bebas text-2xl sm:text-3xl md:text-4xl font-black text-zinc-900 dark:text-white leading-none tracking-wide">
               {analytics.bounceRate}%
             </span>
           </div>
-          <span className="text-[10px] font-semibold text-emerald-400">
-            {analytics.totalClicks > 0 ? "Excellente rétention" : "Optimum < 30%"}
-          </span>
+          <div className="flex items-center justify-between pt-0.5 sm:pt-1 border-t border-zinc-200/60 dark:border-[#222225]">
+            <span className="text-[9px] sm:text-[11px] md:text-xs font-bold text-emerald-500 dark:text-emerald-400 truncate">
+              {analytics.totalClicks > 0 ? "High retention" : "< 30%"}
+            </span>
+            <span className="text-[8px] sm:text-[10px] md:text-[11px] text-zinc-500 dark:text-neutral-400 font-mono shrink-0">Engage</span>
+          </div>
         </div>
-      </div>
+      </KpiCardsCarousel>
 
       {/* 3D GLOBE SHOWCASE & TIME SERIES HISTOGRAM */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
         {/* 3D Cobe Globe (5 cols) */}
-        <div className="lg:col-span-5 rounded-[10px] bg-[#141416] border border-[#222225] p-6 flex flex-col justify-between shadow-2xl relative overflow-hidden">
+        <div className="lg:col-span-5 rounded-[10px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] p-6 flex flex-col justify-between shadow-sm dark:shadow-2xl relative overflow-hidden">
           <div>
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-bold uppercase tracking-wider text-[#ff6600] flex items-center gap-1.5">
                 <Globe2 className="w-4 h-4" />
-                <span>Globe 3D Interactif</span>
+                <span>Interactive 3D Globe</span>
               </span>
-              <span className="text-[10px] text-neutral-500">Faites glisser pour tourner</span>
+              <span className="text-[10px] text-zinc-500 dark:text-neutral-400">Drag to rotate</span>
             </div>
-            <h3 className="text-lg font-bold text-white">Trafic Mondial en Direct</h3>
-            <p className="text-xs text-neutral-400 mt-1">
-              Visualisation en direct des pays d&apos;où proviennent vos clics avec points lumineux.
+            <h3 className="text-lg font-bold text-zinc-900 dark:text-white">Live Global Traffic</h3>
+            <p className="text-xs text-zinc-500 dark:text-neutral-400 mt-1">
+              Live visualization of countries where your clicks originate with glowing markers.
             </p>
           </div>
 
@@ -848,16 +925,16 @@ function AnalyticsContent() {
             <CobeGlobe className="max-h-[290px] max-w-[290px]" topCountries={analytics.topCountries} />
           </div>
 
-          <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-[#222225]">
-            <div className="p-2.5 rounded-[10px] bg-[#1a1a1e]">
-              <span className="text-[10px] text-neutral-400">Top Zone</span>
-              <p className="font-bold text-white text-sm truncate">
-                {analytics.topCountries.length > 0 ? analytics.topCountries[0].name : "En attente"}
+          <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-zinc-200 dark:border-[#222225]">
+            <div className="p-2.5 rounded-[10px] bg-zinc-50 dark:bg-[#1a1a1e]">
+              <span className="text-[10px] text-zinc-500 dark:text-neutral-400">Top Region</span>
+              <p className="font-bold text-zinc-900 dark:text-white text-sm truncate">
+                {analytics.topCountries.length > 0 ? analytics.topCountries[0].name : "Pending"}
               </p>
             </div>
-            <div className="p-2.5 rounded-[10px] bg-[#1a1a1e]">
-              <span className="text-[10px] text-neutral-400">Latence Edge</span>
-              <p className="font-bold text-emerald-400 text-sm">&lt; 0.8 ms</p>
+            <div className="p-2.5 rounded-[10px] bg-zinc-50 dark:bg-[#1a1a1e]">
+              <span className="text-[10px] text-zinc-500 dark:text-neutral-400">Edge Latency</span>
+              <p className="font-bold text-emerald-500 dark:text-emerald-400 text-sm">&lt; 0.8 ms</p>
             </div>
           </div>
         </div>
@@ -866,8 +943,8 @@ function AnalyticsContent() {
         <div className="lg:col-span-7">
           <StatsBarChart
             data={analytics.clicksByDay}
-            title={`Évolution des clics (${rangeLabels[selectedRange]})`}
-            subtitle={selectedLinkObj ? `Lien : ${selectedLinkObj.slug}` : "Tous vos liens combinés"}
+            title={`Click Trend (${rangeLabels[selectedRange]})`}
+            subtitle={selectedLinkObj ? `Link: ${selectedLinkObj.slug}` : "All links combined"}
           />
         </div>
       </div>
@@ -900,29 +977,55 @@ function AnalyticsContent() {
               label: r.referrer || "Direct",
               value: r.clicks || (r as any).count || 0,
               color: ["#ff6600", "#3b82f6", "#10b981", "#eab308", "#ec4899"][i % 5],
-              sublabel: `${r.clicks || (r as any).count || 0} clics`,
+              sublabel: `${r.clicks || (r as any).count || 0} clicks`,
             }))}
           />
         </div>
 
-        {/* 4 Mini Cards (6 cols) with direct links to dedicated detailed pages */}
-        <div className="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* Top Pays (Links to /dashboard/analytics/geo) */}
+        {/* Mini Cards (6 cols) with direct links to dedicated detailed pages */}
+        <div className="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          {/* Revenue & Customer Analysis (Links to /dashboard/analytics/revenue) */}
+          <Link
+            href={`/dashboard/analytics/revenue${linkFilterParam}`}
+            className="sm:col-span-2 p-3.5 rounded-[10px] bg-white dark:bg-[#141416] hover:bg-zinc-50 dark:hover:bg-[#1a1a1e] border-2 border-emerald-500/40 hover:border-emerald-500 dark:hover:border-emerald-400 flex items-center justify-between transition-all group cursor-pointer shadow-sm"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-[10px] bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                <DollarSign className="w-4.5 h-4.5" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <h4 className="text-xs sm:text-sm font-bold text-zinc-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                    Revenue & Customer Analysis
+                  </h4>
+                  <span className="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[9px] font-bold">
+                    DETAILED
+                  </span>
+                </div>
+                <p className="text-[11px] text-zinc-500 dark:text-neutral-400 truncate">
+                  Total: <strong className="text-emerald-600 dark:text-emerald-400 font-mono">{formatCurrency(analytics.trackedRevenue)}</strong> • {analytics.epc}€/click (EPC) • Avatars & buyers
+                </p>
+              </div>
+            </div>
+            <ArrowUpRight className="w-4 h-4 text-emerald-600 dark:text-emerald-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform shrink-0 ml-2" />
+          </Link>
+
+          {/* Top Countries (Links to /dashboard/analytics/geo) */}
           <Link
             href={`/dashboard/analytics/geo${linkFilterParam}`}
-            className="p-5 rounded-[10px] bg-[#141416] hover:bg-[#1a1a1e] border border-[#222225] hover:border-[#ff6600]/60 flex flex-col justify-between transition-all group cursor-pointer shadow-lg"
+            className="p-5 rounded-[10px] bg-white dark:bg-[#141416] hover:bg-zinc-50 dark:hover:bg-[#1a1a1e] border border-zinc-200 dark:border-[#222225] hover:border-[#ff6600]/60 flex flex-col justify-between transition-all group cursor-pointer shadow-sm"
           >
             <div>
               <div className="flex items-center justify-between mb-3">
-                <h4 className="text-sm font-bold text-white group-hover:text-[#ff6600] transition-colors flex items-center gap-1.5">
-                  <span>Top Pays</span>
+                <h4 className="text-sm font-bold text-zinc-900 dark:text-white group-hover:text-[#ff6600] transition-colors flex items-center gap-1.5">
+                  <span>Top Countries</span>
                   <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity text-[#ff6600]" />
                 </h4>
-                <Compass className="w-4 h-4 text-neutral-500 group-hover:text-[#ff6600] transition-colors" />
+                <Compass className="w-4 h-4 text-zinc-400 dark:text-neutral-500 group-hover:text-[#ff6600] transition-colors" />
               </div>
               <div className="flex flex-col gap-2">
                 {analytics.topCountries.length === 0 ? (
-                  <span className="text-xs text-neutral-500 italic">En attente de visites...</span>
+                  <span className="text-xs text-zinc-500 dark:text-neutral-400 italic">Waiting for traffic...</span>
                 ) : (
                   analytics.topCountries.slice(0, 4).map((c) => (
                     <div key={c.code} className="flex items-center justify-between text-xs">
@@ -930,9 +1033,9 @@ function AnalyticsContent() {
                         <span className="font-mono text-[10px] font-bold text-[#ff6600] w-5">
                           {c.code}
                         </span>
-                        <span className="text-neutral-200">{c.name}</span>
+                        <span className="text-zinc-800 dark:text-neutral-200">{c.name}</span>
                       </div>
-                      <span className="font-mono text-neutral-400 text-[11px]">
+                      <span className="font-mono text-zinc-500 dark:text-neutral-400 text-[11px]">
                         {c.percentage}%
                       </span>
                     </div>
@@ -940,33 +1043,33 @@ function AnalyticsContent() {
                 )}
               </div>
             </div>
-            <span className="text-[10px] text-[#ff6600] font-semibold mt-3 pt-2 border-t border-[#222225] flex items-center justify-between">
-              <span>Voir la carte & continents</span>
+            <span className="text-[10px] text-[#ff6600] font-semibold mt-3 pt-2 border-t border-zinc-200 dark:border-[#222225] flex items-center justify-between">
+              <span>View map & continents</span>
               <span>→</span>
             </span>
           </Link>
 
-          {/* Top Villes (Links to /dashboard/analytics/geo) */}
+          {/* Top Cities (Links to /dashboard/analytics/geo) */}
           <Link
             href={`/dashboard/analytics/geo${linkFilterParam}`}
-            className="p-5 rounded-[10px] bg-[#141416] hover:bg-[#1a1a1e] border border-[#222225] hover:border-emerald-500/60 flex flex-col justify-between transition-all group cursor-pointer shadow-lg"
+            className="p-5 rounded-[10px] bg-white dark:bg-[#141416] hover:bg-zinc-50 dark:hover:bg-[#1a1a1e] border border-zinc-200 dark:border-[#222225] hover:border-emerald-500/60 flex flex-col justify-between transition-all group cursor-pointer shadow-sm"
           >
             <div>
               <div className="flex items-center justify-between mb-3">
-                <h4 className="text-sm font-bold text-white group-hover:text-emerald-400 transition-colors flex items-center gap-1.5">
-                  <span>Top Villes</span>
-                  <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity text-emerald-400" />
+                <h4 className="text-sm font-bold text-zinc-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors flex items-center gap-1.5">
+                  <span>Top Cities</span>
+                  <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity text-emerald-500 dark:text-emerald-400" />
                 </h4>
-                <Globe2 className="w-4 h-4 text-neutral-500 group-hover:text-emerald-400 transition-colors" />
+                <Globe2 className="w-4 h-4 text-zinc-400 dark:text-neutral-500 group-hover:text-emerald-500 dark:group-hover:text-emerald-400 transition-colors" />
               </div>
               <div className="flex flex-col gap-2">
                 {analytics.topCities.length === 0 ? (
-                  <span className="text-xs text-neutral-500 italic">Edge Worldwide (Direct)</span>
+                  <span className="text-xs text-zinc-500 dark:text-neutral-400 italic">Edge Worldwide (Direct)</span>
                 ) : (
                   analytics.topCities.slice(0, 4).map((city) => (
                     <div key={city.city} className="flex items-center justify-between text-xs">
-                      <span className="text-neutral-200 truncate">{city.city} ({city.countryCode})</span>
-                      <span className="font-mono text-neutral-400 text-[11px]">
+                      <span className="text-zinc-800 dark:text-neutral-200 truncate">{city.city} ({city.countryCode})</span>
+                      <span className="font-mono text-zinc-500 dark:text-neutral-400 text-[11px]">
                         {city.percentage}%
                       </span>
                     </div>
@@ -974,98 +1077,98 @@ function AnalyticsContent() {
                 )}
               </div>
             </div>
-            <span className="text-[10px] text-emerald-400 font-semibold mt-3 pt-2 border-t border-[#222225] flex items-center justify-between">
-              <span>Explorer métropoles & villes</span>
+            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold mt-3 pt-2 border-t border-zinc-200 dark:border-[#222225] flex items-center justify-between">
+              <span>Explore cities & metros</span>
               <span>→</span>
             </span>
           </Link>
 
-          {/* Appareils (Links to /dashboard/analytics/devices) */}
+          {/* Devices (Links to /dashboard/analytics/devices) */}
           <Link
             href={`/dashboard/analytics/devices${linkFilterParam}`}
-            className="p-5 rounded-[10px] bg-[#141416] hover:bg-[#1a1a1e] border border-[#222225] hover:border-blue-500/60 flex flex-col justify-between transition-all group cursor-pointer shadow-lg"
+            className="p-5 rounded-[10px] bg-white dark:bg-[#141416] hover:bg-zinc-50 dark:hover:bg-[#1a1a1e] border border-zinc-200 dark:border-[#222225] hover:border-blue-500/60 flex flex-col justify-between transition-all group cursor-pointer shadow-sm"
           >
             <div>
               <div className="flex items-center justify-between mb-3">
-                <h4 className="text-sm font-bold text-white group-hover:text-blue-400 transition-colors flex items-center gap-1.5">
-                  <span>Appareils & Formats</span>
-                  <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity text-blue-400" />
+                <h4 className="text-sm font-bold text-zinc-900 dark:text-white group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors flex items-center gap-1.5">
+                  <span>Devices & Formats</span>
+                  <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity text-blue-500 dark:text-blue-400" />
                 </h4>
-                <Smartphone className="w-4 h-4 text-neutral-500 group-hover:text-blue-400 transition-colors" />
+                <Smartphone className="w-4 h-4 text-zinc-400 dark:text-neutral-500 group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors" />
               </div>
               <div className="flex flex-col gap-2">
                 {analytics.topDevices.length === 0 ? (
-                  <span className="text-xs text-neutral-500 italic">En attente de clics...</span>
+                  <span className="text-xs text-zinc-500 dark:text-neutral-400 italic">Waiting for clicks...</span>
                 ) : (
                   analytics.topDevices.map((d) => (
                     <div key={d.label} className="flex items-center justify-between text-xs">
-                      <span className="text-neutral-200 truncate">{d.label}</span>
-                      <span className="font-mono text-neutral-400 text-[11px]">{d.percentage}%</span>
+                      <span className="text-zinc-800 dark:text-neutral-200 truncate">{d.label}</span>
+                      <span className="font-mono text-zinc-500 dark:text-neutral-400 text-[11px]">{d.percentage}%</span>
                     </div>
                   ))
                 )}
               </div>
             </div>
-            <span className="text-[10px] text-blue-400 font-semibold mt-3 pt-2 border-t border-[#222225] flex items-center justify-between">
-              <span>Détails OS & Navigateurs</span>
+            <span className="text-[10px] text-blue-500 dark:text-blue-400 font-semibold mt-3 pt-2 border-t border-zinc-200 dark:border-[#222225] flex items-center justify-between">
+              <span>OS & Browser Details</span>
               <span>→</span>
             </span>
           </Link>
 
-          {/* Sources / Référents (Links to /dashboard/analytics/sources) */}
+          {/* Sources / Referrers (Links to /dashboard/analytics/sources) */}
           <Link
             href={`/dashboard/analytics/sources${linkFilterParam}`}
-            className="p-5 rounded-[10px] bg-[#141416] hover:bg-[#1a1a1e] border border-[#222225] hover:border-purple-500/60 flex flex-col justify-between transition-all group cursor-pointer shadow-lg"
+            className="p-5 rounded-[10px] bg-white dark:bg-[#141416] hover:bg-zinc-50 dark:hover:bg-[#1a1a1e] border border-zinc-200 dark:border-[#222225] hover:border-purple-500/60 flex flex-col justify-between transition-all group cursor-pointer shadow-sm"
           >
             <div>
               <div className="flex items-center justify-between mb-3">
-                <h4 className="text-sm font-bold text-white group-hover:text-purple-400 transition-colors flex items-center gap-1.5">
-                  <span>Sources de Trafic</span>
-                  <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity text-purple-400" />
+                <h4 className="text-sm font-bold text-zinc-900 dark:text-white group-hover:text-purple-500 dark:group-hover:text-purple-400 transition-colors flex items-center gap-1.5">
+                  <span>Traffic Sources</span>
+                  <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity text-purple-500 dark:text-purple-400" />
                 </h4>
-                <Share2 className="w-4 h-4 text-neutral-500 group-hover:text-purple-400 transition-colors" />
+                <Share2 className="w-4 h-4 text-zinc-400 dark:text-neutral-500 group-hover:text-purple-500 dark:group-hover:text-purple-400 transition-colors" />
               </div>
               <div className="flex flex-col gap-2">
                 {analytics.topReferrers.length === 0 ? (
-                  <span className="text-xs text-neutral-500 italic">Accès direct</span>
+                  <span className="text-xs text-zinc-500 dark:text-neutral-400 italic">Direct traffic</span>
                 ) : (
                   analytics.topReferrers.slice(0, 4).map((ref) => (
                     <div key={ref.source} className="flex items-center justify-between text-xs">
-                      <span className="text-neutral-200 truncate">{ref.source}</span>
-                      <span className="font-mono text-neutral-400 text-[11px]">{ref.percentage}%</span>
+                      <span className="text-zinc-800 dark:text-neutral-200 truncate">{ref.source}</span>
+                      <span className="font-mono text-zinc-500 dark:text-neutral-400 text-[11px]">{ref.percentage}%</span>
                     </div>
                   ))
                 )}
               </div>
             </div>
-            <span className="text-[10px] text-purple-400 font-semibold mt-3 pt-2 border-t border-[#222225] flex items-center justify-between">
-              <span>Traçabilité réseaux & UTM</span>
+            <span className="text-[10px] text-purple-500 dark:text-purple-400 font-semibold mt-3 pt-2 border-t border-zinc-200 dark:border-[#222225] flex items-center justify-between">
+              <span>Social & UTM Tracking</span>
               <span>→</span>
             </span>
           </Link>
         </div>
       </div>
 
-      {/* DATAGRID 1: PERFORMANCE COMPARÉE PAR LIEN (With Scrollable Body & Pagination & Column Masking) */}
-      <div className="rounded-[10px] bg-[#141416] border border-[#222225] p-6 shadow-xl flex flex-col gap-4">
+      {/* DATAGRID 1: PERFORMANCE COMPARISON BY LINK (With Scrollable Body & Pagination & Column Masking) */}
+      <div className="rounded-[10px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] p-6 shadow-sm flex flex-col gap-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="text-base font-bold text-white">Performance Comparée par Lien</h3>
+              <h3 className="text-base font-bold text-zinc-900 dark:text-white">Link Performance Comparison</h3>
               {selectedLinkObj && (
                 <button
                   type="button"
                   onClick={() => handleLinkSelectChange("all")}
                   className="text-[11px] px-2.5 py-0.5 rounded-full bg-[#ff6600]/15 text-[#ff6600] border border-[#ff6600]/30 hover:bg-[#ff6600]/25 transition-colors cursor-pointer font-medium flex items-center gap-1.5"
-                  title="Réinitialiser pour voir tous les liens"
+                  title="Reset to view all links"
                 >
-                  <span>Filtre : /{selectedLinkObj.slug}</span>
-                  <span className="font-bold text-xs">✕ Tout afficher</span>
+                  <span>Filter: /{selectedLinkObj.slug}</span>
+                  <span className="font-bold text-xs">✕ Show all</span>
                 </button>
               )}
             </div>
-            <p className="text-xs text-neutral-400">
-              DataGrid interactif avec pagination, tri par métrique et filtrage par masquage de colonnes.
+            <p className="text-xs text-zinc-500 dark:text-neutral-400">
+              Interactive DataGrid with pagination, metric sorting, and column visibility toggle.
             </p>
           </div>
 
@@ -1073,13 +1176,13 @@ function AnalyticsContent() {
             <div className="w-full sm:w-64">
               <input
                 type="text"
-                placeholder="Filtrer les liens..."
+                placeholder="Filter links..."
                 value={searchLinkQuery}
                 onChange={(e) => {
                   setSearchLinkQuery(e.target.value);
                   setPerfPage(1);
                 }}
-                className="w-full h-9 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] px-3 text-xs text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#ff6600]"
+                className="w-full h-9 rounded-[10px] bg-zinc-50 dark:bg-[#0e0e11] border border-zinc-200 dark:border-[#27272a] px-3 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-neutral-500 focus:outline-none focus:border-[#ff6600]"
               />
             </div>
 
@@ -1107,28 +1210,28 @@ function AnalyticsContent() {
             return (
               <div
                 key={l.id}
-                className={`rounded-[10px] bg-[#18181c] border border-[#27272a] p-3.5 flex flex-col gap-2.5 transition-all ${
+                className={`rounded-[10px] bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a] p-3.5 flex flex-col gap-2.5 transition-all shadow-sm ${
                   isSelected ? "border-[#ff6600] bg-[#ff6600]/5" : "hover:border-[#ff6600]/40"
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className={`w-5 h-5 rounded-full text-white text-[10px] font-black flex items-center justify-center shrink-0 ${
-                      rankIndex === 1 ? "bg-[#ff6600]" : "bg-[#27272a] text-neutral-300"
+                      rankIndex === 1 ? "bg-[#ff6600]" : "bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-neutral-400 font-bold"
                     }`}>
                       {rankIndex}
                     </span>
-                    <span className="font-mono font-bold text-white text-sm truncate">
+                    <span className="font-mono font-bold text-zinc-900 dark:text-white text-sm truncate">
                       /{l.slug}
                     </span>
                   </div>
                   <span className="font-mono text-sm font-bold text-[#ff6600] shrink-0">
-                    {formatNumber(l.clicksCount)} clics <span className="text-[10px] text-neutral-400 font-normal">({trafficShare}%)</span>
+                    {formatNumber(l.clicksCount)} clicks <span className="text-[10px] text-zinc-500 dark:text-neutral-400 font-normal">({trafficShare}%)</span>
                   </span>
                 </div>
 
                 {/* Progress bar */}
-                <div className="w-full h-1.5 rounded-full bg-black/40 overflow-hidden">
+                <div className="w-full h-1.5 rounded-full bg-zinc-200 dark:bg-zinc-800 overflow-hidden">
                   <div
                     className="h-full bg-[#ff6600] rounded-full transition-all duration-500"
                     style={{ width: `${progressPercent}%` }}
@@ -1136,20 +1239,20 @@ function AnalyticsContent() {
                 </div>
 
                 {/* 3 Metrics Columns */}
-                <div className="grid grid-cols-3 gap-1 pt-1.5 text-center border-t border-[#222225]">
+                <div className="grid grid-cols-3 gap-1 pt-1.5 text-center border-t border-zinc-200 dark:border-[#222225]">
                   <div>
-                    <span className="text-[9px] text-neutral-500 uppercase block">Uniques</span>
-                    <span className="text-xs font-bold text-white font-mono">
+                    <span className="text-[9px] text-zinc-500 dark:text-neutral-400 uppercase block">Unique</span>
+                    <span className="text-xs font-bold text-zinc-900 dark:text-white font-mono">
                       {formatNumber(l.uniqueClicks || Math.floor(l.clicksCount * 0.8))}
                     </span>
                   </div>
                   <div>
-                    <span className="text-[9px] text-neutral-500 uppercase block">Conv.</span>
-                    <span className="text-xs font-bold text-emerald-400 font-mono">{convRate}%</span>
+                    <span className="text-[9px] text-zinc-500 dark:text-neutral-400 uppercase block">Conv.</span>
+                    <span className="text-xs font-bold text-emerald-500 dark:text-emerald-400 font-mono">{convRate}%</span>
                   </div>
                   <div>
-                    <span className="text-[9px] text-neutral-500 uppercase block">Revenus</span>
-                    <span className="text-xs font-bold text-white font-mono">{formatCurrency(l.revenue || 0)}</span>
+                    <span className="text-[9px] text-zinc-500 dark:text-neutral-400 uppercase block">Revenue</span>
+                    <span className="text-xs font-bold text-zinc-900 dark:text-white font-mono">{formatCurrency(l.revenue || 0)}</span>
                   </div>
                 </div>
 
@@ -1159,10 +1262,10 @@ function AnalyticsContent() {
                   className={`w-full py-1.5 rounded-[10px] text-xs font-semibold transition-colors mt-0.5 cursor-pointer ${
                     isSelected
                       ? "bg-[#ff6600] text-white shadow-md shadow-[#ff6600]/30"
-                      : "bg-white/5 hover:bg-[#ff6600] text-neutral-300 hover:text-white"
+                      : "bg-zinc-200 dark:bg-zinc-800 hover:bg-[#ff6600] text-zinc-700 dark:text-neutral-300 hover:text-white"
                   }`}
                 >
-                  {isSelected ? "Filtre actif (Cliquer pour désactiver ✕)" : "Filtrer les analytics sur ce lien"}
+                  {isSelected ? "Active filter (Click to clear ✕)" : "Filter analytics on this link"}
                 </button>
               </div>
             );
@@ -1170,30 +1273,30 @@ function AnalyticsContent() {
         </div>
 
         {/* 2. Desktop Table (>= 768px) */}
-        <div className="hidden md:block overflow-x-auto max-h-[360px] overflow-y-auto border border-[#222225] rounded-[10px]">
-          <table className="w-full text-left text-xs text-neutral-400">
-            <thead className="sticky top-0 bg-[#17171a] border-b border-[#222225] z-10">
-              <tr className="text-[11px] uppercase tracking-wider text-neutral-400 font-bold">
-                {visiblePerfCols.has("slug") && <th className="py-3 pl-3">Lien & Slug</th>}
+        <div className="hidden md:block overflow-x-auto max-h-[360px] overflow-y-auto border border-zinc-200 dark:border-[#222225] rounded-[10px]">
+          <table className="w-full text-left text-xs text-zinc-500 dark:text-neutral-400">
+            <thead className="sticky top-0 bg-zinc-100/80 dark:bg-[#17171a] border-b border-zinc-200 dark:border-[#222225] z-10">
+              <tr className="text-[11px] uppercase tracking-wider text-zinc-700 dark:text-neutral-400 font-bold">
+                {visiblePerfCols.has("slug") && <th className="py-3 pl-3">Link & Slug</th>}
                 {visiblePerfCols.has("clicks") && (
                   <th
                     onClick={() => {
                       setPerfSortKey("clicks");
                       setPerfSortAsc(!perfSortAsc);
                     }}
-                    className="py-3 text-right cursor-pointer hover:text-white"
+                    className="py-3 text-right cursor-pointer hover:text-zinc-900 dark:hover:text-white"
                   >
-                    Clics Totaux {perfSortKey === "clicks" ? (perfSortAsc ? "↑" : "↓") : ""}
+                    Total Clicks {perfSortKey === "clicks" ? (perfSortAsc ? "↑" : "↓") : ""}
                   </th>
                 )}
-                {visiblePerfCols.has("unique") && <th className="py-3 text-right">Clics Uniques</th>}
+                {visiblePerfCols.has("unique") && <th className="py-3 text-right">Unique Clicks</th>}
                 {visiblePerfCols.has("conversions") && (
                   <th
                     onClick={() => {
                       setPerfSortKey("conversions");
                       setPerfSortAsc(!perfSortAsc);
                     }}
-                    className="py-3 text-right cursor-pointer hover:text-white"
+                    className="py-3 text-right cursor-pointer hover:text-zinc-900 dark:hover:text-white"
                   >
                     Conversions {perfSortKey === "conversions" ? (perfSortAsc ? "↑" : "↓") : ""}
                   </th>
@@ -1204,9 +1307,9 @@ function AnalyticsContent() {
                       setPerfSortKey("revenue");
                       setPerfSortAsc(!perfSortAsc);
                     }}
-                    className="py-3 text-right cursor-pointer hover:text-white"
+                    className="py-3 text-right cursor-pointer hover:text-zinc-900 dark:hover:text-white"
                   >
-                    Revenus (€) {perfSortKey === "revenue" ? (perfSortAsc ? "↑" : "↓") : ""}
+                    Revenue (€) {perfSortKey === "revenue" ? (perfSortAsc ? "↑" : "↓") : ""}
                   </th>
                 )}
                 {visiblePerfCols.has("ctr") && (
@@ -1215,15 +1318,15 @@ function AnalyticsContent() {
                       setPerfSortKey("ctr");
                       setPerfSortAsc(!perfSortAsc);
                     }}
-                    className="py-3 text-right cursor-pointer hover:text-white"
+                    className="py-3 text-right cursor-pointer hover:text-zinc-900 dark:hover:text-white"
                   >
-                    Taux Conv. / Part {perfSortKey === "ctr" ? (perfSortAsc ? "↑" : "↓") : ""}
+                    Conv. Rate / Share {perfSortKey === "ctr" ? (perfSortAsc ? "↑" : "↓") : ""}
                   </th>
                 )}
                 {visiblePerfCols.has("action") && <th className="py-3 text-right pr-3">Action</th>}
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#222225]">
+            <tbody className="divide-y divide-zinc-200 dark:divide-[#222225]">
               {paginatedPerfLinks.map((l) => {
                 const totalClicksAll = analytics.totalClicks || 1;
                 const convRate = l.clicksCount > 0 && (l.conversionsCount || 0) > 0
@@ -1238,15 +1341,15 @@ function AnalyticsContent() {
                 return (
                   <tr
                     key={l.id}
-                    className={`hover:bg-white/[0.02] transition-colors ${
+                    className={`hover:bg-zinc-50 dark:hover:bg-white/[0.02] transition-colors ${
                       isSelected ? "bg-[#ff6600]/10 border-l-2 border-l-[#ff6600]" : ""
                     }`}
                   >
                     {visiblePerfCols.has("slug") && (
                       <td className="py-3.5 pl-3">
                         <div className="flex flex-col">
-                          <span className="font-bold text-white text-sm">{l.slug}</span>
-                          <span className="text-[11px] text-neutral-500 font-mono truncate max-w-[200px]">
+                          <span className="font-bold text-zinc-900 dark:text-white text-sm">{l.slug}</span>
+                          <span className="text-[11px] text-zinc-500 dark:text-neutral-400 font-mono truncate max-w-[200px]">
                             {l.domainName}/{l.slug}
                           </span>
                         </div>
@@ -1254,25 +1357,25 @@ function AnalyticsContent() {
                     )}
 
                     {visiblePerfCols.has("clicks") && (
-                      <td className="py-3.5 text-right font-mono font-bold text-white text-sm">
+                      <td className="py-3.5 text-right font-mono font-bold text-zinc-900 dark:text-white text-sm">
                         {formatNumber(l.clicksCount)}
                       </td>
                     )}
 
                     {visiblePerfCols.has("unique") && (
-                      <td className="py-3.5 text-right font-mono text-neutral-300">
+                      <td className="py-3.5 text-right font-mono text-zinc-500 dark:text-neutral-400">
                         {formatNumber(l.uniqueClicks || Math.floor(l.clicksCount * 0.8))}
                       </td>
                     )}
 
                     {visiblePerfCols.has("conversions") && (
-                      <td className="py-3.5 text-right font-mono font-semibold text-emerald-400">
+                      <td className="py-3.5 text-right font-mono font-semibold text-emerald-500 dark:text-emerald-400">
                         {formatNumber(l.conversionsCount || 0)}
                       </td>
                     )}
 
                     {visiblePerfCols.has("revenue") && (
-                      <td className="py-3.5 text-right font-mono font-bold text-white">
+                      <td className="py-3.5 text-right font-mono font-bold text-zinc-900 dark:text-white">
                         {formatCurrency(l.revenue || 0)}
                       </td>
                     )}
@@ -1283,8 +1386,8 @@ function AnalyticsContent() {
                           <span className="font-mono text-[#ff6600] font-bold text-xs">
                             {convRate}% conv.
                           </span>
-                          <span className="text-[10px] text-neutral-400 font-mono">
-                            {trafficShare}% trafic · {uniqueRatio}% unq.
+                          <span className="text-[10px] text-zinc-500 dark:text-neutral-400 font-mono">
+                            {trafficShare}% traffic · {uniqueRatio}% unq.
                           </span>
                         </div>
                       </td>
@@ -1297,10 +1400,10 @@ function AnalyticsContent() {
                           className={`px-2.5 py-1 rounded-[10px] text-[11px] font-medium transition-colors cursor-pointer ${
                             isSelected
                               ? "bg-[#ff6600] text-white shadow-sm"
-                              : "bg-white/5 hover:bg-[#ff6600] text-neutral-300 hover:text-white"
+                              : "bg-zinc-100 hover:bg-[#ff6600] dark:bg-zinc-800 text-zinc-700 dark:text-neutral-300 hover:text-white"
                           }`}
                         >
-                          {isSelected ? "Actif ✓" : "Analyser"}
+                          {isSelected ? "Active ✓" : "Analyze"}
                         </button>
                       </td>
                     )}
@@ -1312,9 +1415,9 @@ function AnalyticsContent() {
         </div>
 
         {/* DataGrid Pagination Controls */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-neutral-400 pt-3 border-t border-[#222225]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-zinc-500 dark:text-neutral-400 pt-3 border-t border-zinc-200 dark:border-[#222225]">
           <span className="text-center sm:text-left">
-            Affichage de {((perfPage - 1) * perfPageSize) + 1} à {Math.min(perfPage * perfPageSize, filteredLinks.length)} sur {filteredLinks.length} liens
+            Showing {((perfPage - 1) * perfPageSize) + 1} to {Math.min(perfPage * perfPageSize, filteredLinks.length)} of {filteredLinks.length} links
           </span>
           <div className="flex items-center justify-center gap-2">
             <Button
@@ -1322,11 +1425,11 @@ function AnalyticsContent() {
               variant="outline"
               disabled={perfPage <= 1}
               onClick={() => setPerfPage(perfPage - 1)}
-              className="h-8 px-2.5"
+              className="h-8 px-2.5 border-zinc-200 dark:border-[#27272a] bg-white dark:bg-[#141416] text-zinc-800 dark:text-neutral-200"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
             </Button>
-            <span className="font-mono text-white text-xs px-3 py-1 bg-[#1a1a1e] border border-[#27272a] rounded-[10px] whitespace-nowrap">
+            <span className="font-mono text-zinc-900 dark:text-white text-xs px-3 py-1 bg-white dark:bg-[#0e0e11] border border-zinc-200 dark:border-[#27272a] rounded-[10px] whitespace-nowrap">
               Page {perfPage} / {totalPerfPages}
             </span>
             <Button
@@ -1334,7 +1437,7 @@ function AnalyticsContent() {
               variant="outline"
               disabled={perfPage >= totalPerfPages}
               onClick={() => setPerfPage(perfPage + 1)}
-              className="h-8 px-2.5"
+              className="h-8 px-2.5 border-zinc-200 dark:border-[#27272a] bg-white dark:bg-[#141416] text-zinc-800 dark:text-neutral-200"
             >
               <ChevronRight className="w-3.5 h-3.5" />
             </Button>
@@ -1343,11 +1446,11 @@ function AnalyticsContent() {
       </div>
 
       {/* DATAGRID 2: REAL-TIME LIVE CLICK STREAM (With Scrollable Body & Pagination & Column Masking) */}
-      <div className="rounded-[10px] bg-[#141416] border border-[#222225] p-6 shadow-xl flex flex-col gap-4">
+      <div className="rounded-[10px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] p-6 shadow-sm flex flex-col gap-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
             <Activity className="w-5 h-5 text-[#ff6600] animate-pulse" />
-            <h3 className="text-base font-bold text-white">Journal des Clics & Conversions en Direct</h3>
+            <h3 className="text-base font-bold text-zinc-900 dark:text-white">Live Click & Conversion Stream</h3>
             {selectedLinkObj && (
               <span className="text-[11px] px-2 py-0.5 rounded bg-[#ff6600]/15 text-[#ff6600] border border-[#ff6600]/30 font-medium font-mono">
                 /{selectedLinkObj.slug}
@@ -1359,13 +1462,13 @@ function AnalyticsContent() {
             <div className="w-full sm:w-64">
               <input
                 type="text"
-                placeholder="Filtrer événements..."
+                placeholder="Filter events..."
                 value={streamSearch}
                 onChange={(e) => {
                   setStreamSearch(e.target.value);
                   setStreamPage(1);
                 }}
-                className="w-full h-9 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] px-3 text-xs text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#ff6600]"
+                className="w-full h-9 rounded-[10px] bg-zinc-50 dark:bg-[#0e0e11] border border-zinc-200 dark:border-[#27272a] px-3 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-neutral-500 focus:outline-none focus:border-[#ff6600]"
               />
             </div>
 
@@ -1381,103 +1484,134 @@ function AnalyticsContent() {
         {/* 1. Mobile Cards Layout (< 768px) */}
         <div className="flex flex-col gap-2.5 md:hidden">
           {paginatedEvents.length === 0 ? (
-            <div className="py-8 text-center text-xs text-neutral-500">
-              {selectedLinkObj ? `Aucun événement en direct trouvé pour /${selectedLinkObj.slug}.` : "Aucun événement trouvé."}
+            <div className="py-8 text-center text-xs text-zinc-500 dark:text-neutral-400">
+              {selectedLinkObj ? `No live events found for /${selectedLinkObj.slug}.` : "No live events found."}
             </div>
           ) : (
-            paginatedEvents.map((evt) => (
-              <div
-                key={evt.id}
-                className="rounded-[10px] bg-[#18181c] border border-[#27272a] p-3 flex flex-col gap-2 transition-all hover:border-[#ff6600]/40"
-              >
-                <div className="flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="text-base">{getCountryFlag(evt.countryCode)}</span>
-                    <span className="font-bold text-white truncate">
-                      {evt.city}, {evt.countryName || evt.countryCode}
+            paginatedEvents.map((evt) => {
+              const custName = evt.customerName || evt.customerFullName || evt.fullName;
+              const custEmail = evt.customerEmail || evt.email;
+              return (
+                <div
+                  key={evt.id}
+                  className="rounded-[10px] bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a] p-3 flex flex-col gap-2 transition-all hover:border-[#ff6600]/40"
+                >
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="text-base">{getCountryFlag(evt.countryCode)}</span>
+                      <span className="font-bold text-zinc-900 dark:text-white truncate">
+                        {evt.city}, {evt.countryName || evt.countryCode}
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-zinc-500 dark:text-neutral-400 font-mono shrink-0">
+                      {formatDateRelative(evt.timestamp)}
                     </span>
                   </div>
-                  <span className="text-[10px] text-neutral-400 font-mono shrink-0">
-                    {formatDateRelative(evt.timestamp)}
-                  </span>
-                </div>
 
-                <div className="flex items-center justify-between text-[11px] bg-[#090b10] px-2.5 py-1.5 rounded-[10px] border border-[#222225]">
-                  <span className="font-mono font-bold text-[#ff6600]">/{evt.slug}</span>
-                  <div className="flex items-center gap-1 text-neutral-400 text-[10px]">
-                    <span>{evt.device?.toLowerCase().includes("mobile") ? "📱 Mobile" : "💻 Desktop"}</span>
-                    <span>·</span>
-                    <span>{evt.browser || "Chrome"}</span>
+                  <div className="flex items-center justify-between text-[11px] bg-white dark:bg-[#141416] px-2.5 py-1.5 rounded-[10px] border border-zinc-200 dark:border-[#222225]">
+                    <span className="font-mono font-bold text-[#ff6600]">/{evt.slug}</span>
+                    <div className="flex items-center gap-1 text-zinc-500 dark:text-neutral-400 text-[10px]">
+                      <span>{evt.device?.toLowerCase().includes("mobile") ? "📱 Mobile" : "💻 Desktop"}</span>
+                      <span>·</span>
+                      <span>{evt.browser || "Chrome"}</span>
+                    </div>
                   </div>
-                </div>
 
-                {evt.conversionAmount && (
-                  <div className="flex items-center justify-end">
-                    <Badge variant="active">
-                      Achat +{evt.conversionAmount}€
-                    </Badge>
-                  </div>
-                )}
-              </div>
-            ))
+                  {(custName || custEmail) && (
+                    <div className="flex flex-col gap-0.5 bg-white dark:bg-[#141416] px-2.5 py-1.5 rounded-[8px] border border-zinc-200 dark:border-[#222225]">
+                      <span className="text-[10px] uppercase font-bold text-zinc-500 dark:text-neutral-400">Customer / Buyer</span>
+                      {custName && <span className="font-semibold text-zinc-900 dark:text-white text-xs truncate">{custName}</span>}
+                      {custEmail && <span className="text-[11px] text-zinc-500 dark:text-neutral-400 font-mono truncate">{custEmail}</span>}
+                    </div>
+                  )}
+
+                  {evt.conversionAmount ? (
+                    <div className="flex items-center justify-end">
+                      <Badge variant="active">
+                        Purchase +{evt.conversionAmount}€
+                      </Badge>
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })
           )}
         </div>
 
         {/* 2. Desktop Table (>= 768px) */}
-        <div className="hidden md:block overflow-x-auto max-h-[360px] overflow-y-auto border border-[#222225] rounded-[10px]">
-          <table className="w-full text-left text-xs text-neutral-400">
-            <thead className="sticky top-0 bg-[#17171a] border-b border-[#222225] z-10">
-              <tr className="text-[11px] uppercase tracking-wider text-neutral-400 font-bold">
-                {visibleStreamCols.has("timestamp") && <th className="py-3 pl-3">Horodatage</th>}
-                {visibleStreamCols.has("slug") && <th className="py-3">Lien</th>}
-                {visibleStreamCols.has("location") && <th className="py-3">Localisation</th>}
-                {visibleStreamCols.has("device") && <th className="py-3">Appareil & Navigateur</th>}
+        <div className="hidden md:block overflow-x-auto max-h-[360px] overflow-y-auto border border-zinc-200 dark:border-[#222225] rounded-[10px]">
+          <table className="w-full text-left text-xs text-zinc-500 dark:text-neutral-400">
+            <thead className="sticky top-0 bg-zinc-100/80 dark:bg-[#17171a] border-b border-zinc-200 dark:border-[#222225] z-10">
+              <tr className="text-[11px] uppercase tracking-wider text-zinc-700 dark:text-neutral-400 font-bold">
+                {visibleStreamCols.has("timestamp") && <th className="py-3 pl-3">Timestamp</th>}
+                {visibleStreamCols.has("slug") && <th className="py-3">Link</th>}
+                {visibleStreamCols.has("customer") && <th className="py-3">Customer / Buyer</th>}
+                {visibleStreamCols.has("location") && <th className="py-3">Location</th>}
+                {visibleStreamCols.has("device") && <th className="py-3">Device & Browser</th>}
                 {visibleStreamCols.has("source") && <th className="py-3">Source</th>}
-                {visibleStreamCols.has("event") && <th className="py-3 text-right pr-3">Événement</th>}
+                {visibleStreamCols.has("event") && <th className="py-3 text-right pr-3">Event</th>}
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#222225]">
+            <tbody className="divide-y divide-zinc-200 dark:divide-[#222225]">
               {paginatedEvents.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-xs text-neutral-500">
-                    {selectedLinkObj ? `Aucun événement en direct trouvé pour /${selectedLinkObj.slug}.` : "Aucun événement trouvé."}
+                  <td colSpan={7} className="py-8 text-center text-xs text-zinc-500 dark:text-neutral-400">
+                    {selectedLinkObj ? `No live events found for /${selectedLinkObj.slug}.` : "No live events found."}
                   </td>
                 </tr>
               ) : (
                 paginatedEvents.map((evt) => (
-                <tr key={evt.id} className="hover:bg-white/[0.02] transition-colors">
+                <tr key={evt.id} className="hover:bg-zinc-50 dark:hover:bg-white/[0.02] transition-colors">
                   {visibleStreamCols.has("timestamp") && (
-                    <td className="py-3 pl-3 font-mono text-[11px] text-neutral-400 whitespace-nowrap">
+                    <td className="py-3 pl-3 font-mono text-[11px] text-zinc-500 dark:text-neutral-400 whitespace-nowrap">
                       {formatDateRelative(evt.timestamp)}
                     </td>
                   )}
 
                   {visibleStreamCols.has("slug") && (
-                    <td className="py-3 font-mono font-bold text-white text-xs">
+                    <td className="py-3 font-mono font-bold text-zinc-900 dark:text-white text-xs">
                       {evt.slug}
+                    </td>
+                  )}
+
+                  {visibleStreamCols.has("customer") && (
+                    <td className="py-3">
+                      {(() => {
+                        const name = evt.customerName || evt.customerFullName || evt.fullName;
+                        const email = evt.customerEmail || evt.email;
+                        if (!name && !email) {
+                          return <span className="text-zinc-400 dark:text-neutral-500 font-mono text-xs">—</span>;
+                        }
+                        return (
+                          <div className="flex flex-col min-w-0">
+                            {name && <span className="font-medium text-zinc-900 dark:text-white truncate text-xs">{name}</span>}
+                            {email && <span className="text-[10.5px] text-zinc-500 dark:text-neutral-400 font-mono truncate" title={email}>{email}</span>}
+                          </div>
+                        );
+                      })()}
                     </td>
                   )}
 
                   {visibleStreamCols.has("location") && (
                     <td className="py-3">
-                      <span className="font-semibold text-neutral-200">
+                      <span className="font-semibold text-zinc-900 dark:text-white">
                         {evt.city}, {evt.countryName} ({evt.countryCode})
                       </span>
-                      <span className="text-[10px] text-neutral-500 block font-mono">
+                      <span className="text-[10px] text-zinc-500 dark:text-neutral-400 block font-mono">
                         IP: {evt.ipMasked}
                       </span>
                     </td>
                   )}
 
                   {visibleStreamCols.has("device") && (
-                    <td className="py-3 text-neutral-300">
-                      {evt.device} · <span className="text-neutral-500">{evt.browser}</span>
+                    <td className="py-3 text-zinc-800 dark:text-neutral-200">
+                      {evt.device} · <span className="text-zinc-500 dark:text-neutral-400">{evt.browser}</span>
                     </td>
                   )}
 
                   {visibleStreamCols.has("source") && (
-                    <td className="py-3 text-neutral-400">
-                      <span className="px-2 py-0.5 rounded-[10px] bg-white/5 border border-[#27272a] text-[10px] font-mono">
+                    <td className="py-3 text-zinc-500 dark:text-neutral-400">
+                      <span className="px-2 py-0.5 rounded-[10px] bg-zinc-100 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a] text-[10px] font-mono text-zinc-900 dark:text-white">
                         {evt.referrer}
                       </span>
                     </td>
@@ -1487,10 +1621,10 @@ function AnalyticsContent() {
                     <td className="py-3 text-right pr-3">
                       {evt.conversionAmount ? (
                         <Badge variant="active">
-                          Achat +{evt.conversionAmount}€
+                          Purchase +{evt.conversionAmount}€
                         </Badge>
                       ) : (
-                        <span className="text-neutral-500 text-[11px]">Clic 302</span>
+                        <span className="text-zinc-500 dark:text-neutral-400 text-[11px]">Click 302</span>
                       )}
                     </td>
                   )}
@@ -1501,9 +1635,9 @@ function AnalyticsContent() {
         </div>
 
         {/* DataGrid Pagination Controls */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-neutral-400 pt-3 border-t border-[#222225]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-zinc-500 dark:text-neutral-400 pt-3 border-t border-zinc-200 dark:border-[#222225]">
           <span className="text-center sm:text-left">
-            Affichage de {((streamPage - 1) * streamPageSize) + 1} à {Math.min(streamPage * streamPageSize, filteredEvents.length)} sur {filteredEvents.length} événements
+            Showing {((streamPage - 1) * streamPageSize) + 1} to {Math.min(streamPage * streamPageSize, filteredEvents.length)} of {filteredEvents.length} events
           </span>
           <div className="flex items-center justify-center gap-2">
             <Button
@@ -1511,11 +1645,11 @@ function AnalyticsContent() {
               variant="outline"
               disabled={streamPage <= 1}
               onClick={() => setStreamPage(streamPage - 1)}
-              className="h-8 px-2.5"
+              className="h-8 px-2.5 border-zinc-200 dark:border-[#27272a] bg-white dark:bg-[#141416] text-zinc-800 dark:text-neutral-200"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
             </Button>
-            <span className="font-mono text-white text-xs px-3 py-1 bg-[#1a1a1e] border border-[#27272a] rounded-[10px] whitespace-nowrap">
+            <span className="font-mono text-zinc-900 dark:text-white text-xs px-3 py-1 bg-white dark:bg-[#0e0e11] border border-zinc-200 dark:border-[#27272a] rounded-[10px] whitespace-nowrap">
               Page {streamPage} / {totalStreamPages}
             </span>
             <Button
@@ -1523,7 +1657,7 @@ function AnalyticsContent() {
               variant="outline"
               disabled={streamPage >= totalStreamPages}
               onClick={() => setStreamPage(streamPage + 1)}
-              className="h-8 px-2.5"
+              className="h-8 px-2.5 border-zinc-200 dark:border-[#27272a] bg-white dark:bg-[#141416] text-zinc-800 dark:text-neutral-200"
             >
               <ChevronRight className="w-3.5 h-3.5" />
             </Button>

@@ -33,10 +33,10 @@ export function TwoFactorRecoveryModal({
     if (!recoveryCodes.length) return;
     const text = [
       "================================================",
-      "CODES DE SECOURS DOUBLE AUTHENTIFICATION LSHORTER",
-      `Compte : ${email}`,
-      `Généré le : ${new Date().toLocaleDateString("fr-FR")}`,
-      "Chaque code ne peut être utilisé qu'une seule fois.",
+      "LSHORTER TWO-FACTOR AUTHENTICATION BACKUP CODES",
+      `Account: ${email}`,
+      `Generated on: ${new Date().toLocaleDateString("en-US")}`,
+      "Each code can only be used once.",
       "================================================",
       "",
       ...recoveryCodes.map((c, i) => `${i + 1}. ${c}`),
@@ -44,7 +44,7 @@ export function TwoFactorRecoveryModal({
 
     navigator.clipboard.writeText(text);
     setIsCopied(true);
-    showToast.success("Codes de secours copiés !");
+    showToast.success("Backup codes copied!");
     setTimeout(() => setIsCopied(false), 2000);
   };
 
@@ -52,10 +52,10 @@ export function TwoFactorRecoveryModal({
     if (!recoveryCodes.length) return;
     const text = [
       "================================================",
-      "CODES DE SECOURS DOUBLE AUTHENTIFICATION LSHORTER",
-      `Compte : ${email}`,
-      `Date : ${new Date().toISOString()}`,
-      "Chaque code ne peut être utilisé qu'une seule fois.",
+      "LSHORTER TWO-FACTOR AUTHENTICATION BACKUP CODES",
+      `Account: ${email}`,
+      `Date: ${new Date().toISOString()}`,
+      "Each code can only be used once.",
       "================================================",
       "",
       ...recoveryCodes.map((c, i) => `${i + 1}. ${c}`),
@@ -70,7 +70,7 @@ export function TwoFactorRecoveryModal({
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    showToast.success("Fichier des codes de secours téléchargé !");
+    showToast.success("Backup codes file downloaded!");
   };
 
   return (
@@ -82,8 +82,8 @@ export function TwoFactorRecoveryModal({
               <KeyRound className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-white">Vos Codes de Secours 2FA</h3>
-              <p className="text-[11px] text-neutral-400">Usage unique en cas de perte de téléphone</p>
+              <h3 className="text-sm font-bold text-white">Your 2FA Backup Codes</h3>
+              <p className="text-[11px] text-neutral-400">One-time use in case of phone loss</p>
             </div>
           </div>
           <button
@@ -99,7 +99,7 @@ export function TwoFactorRecoveryModal({
           <div className="grid grid-cols-2 gap-2 p-3 rounded-[10px] bg-[#0c0c0e] border border-[#222226]">
             {recoveryCodes.length === 0 ? (
               <div className="col-span-2 py-4 text-center text-xs text-neutral-500">
-                Aucun code de secours enregistré.
+                No backup codes recorded.
               </div>
             ) : (
               recoveryCodes.map((code, idx) => (
@@ -122,7 +122,7 @@ export function TwoFactorRecoveryModal({
               className="text-xs h-9 border-[#27272a] gap-1.5"
             >
               {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{isCopied ? "Copié !" : "Copier"}</span>
+              <span>{isCopied ? "Copied!" : "Copy"}</span>
             </Button>
             <Button
               type="button"
@@ -131,7 +131,7 @@ export function TwoFactorRecoveryModal({
               className="text-xs h-9 border-[#27272a] gap-1.5"
             >
               <Download className="w-3.5 h-3.5 text-[#ff6600]" />
-              <span>Télécharger</span>
+              <span>Download</span>
             </Button>
           </div>
 
@@ -141,7 +141,7 @@ export function TwoFactorRecoveryModal({
             onClick={onClose}
             className="w-full text-xs h-10 font-bold mt-1 cursor-pointer"
           >
-            Fermer
+            Close
           </Button>
         </div>
       </div>

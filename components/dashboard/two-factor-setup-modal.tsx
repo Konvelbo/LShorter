@@ -82,10 +82,10 @@ export function TwoFactorSetupModal({
         setQrCodeUrl(data.qrCode);
         setRecoveryCodes(data.recoveryCodes);
       } else {
-        setErrorMessage(data.error || "Impossible de générer le QR code 2FA.");
+        setErrorMessage(data.error || "Unable to generate 2FA QR code.");
       }
     } catch {
-      setErrorMessage("Erreur de connexion lors de la génération 2FA.");
+      setErrorMessage("Connection error during 2FA generation.");
     } finally {
       setIsLoading(false);
     }
@@ -95,7 +95,7 @@ export function TwoFactorSetupModal({
     if (!secret) return;
     navigator.clipboard.writeText(secret);
     setIsSecretCopied(true);
-    showToast.success("Clé secrète copiée !");
+    showToast.success("Secret key copied!");
     setTimeout(() => setIsSecretCopied(false), 2000);
   };
 
@@ -103,20 +103,20 @@ export function TwoFactorSetupModal({
     if (!recoveryCodes.length) return;
     const text = [
       "================================================",
-      "CODES DE SECOURS DOUBLE AUTHENTIFICATION LSHORTER",
-      `Compte : ${email}`,
-      `Généré le : ${new Date().toLocaleDateString("fr-FR")}`,
-      "Chaque code ne peut être utilisé qu'une seule fois.",
+      "LSHORTER TWO-FACTOR AUTHENTICATION BACKUP CODES",
+      `Account: ${email}`,
+      `Generated on: ${new Date().toLocaleDateString("en-US")}`,
+      "Each code can only be used once.",
       "================================================",
       "",
       ...recoveryCodes.map((c, i) => `${i + 1}. ${c}`),
       "",
-      "Conservez ces codes dans un endroit sûr et chiffré.",
+      "Keep these codes in a safe, encrypted place.",
     ].join("\n");
 
     navigator.clipboard.writeText(text);
     setAreCodesCopied(true);
-    showToast.success("Codes de secours copiés dans le presse-papier !");
+    showToast.success("Backup codes copied to clipboard!");
     setTimeout(() => setAreCodesCopied(false), 2000);
   };
 
@@ -124,10 +124,10 @@ export function TwoFactorSetupModal({
     if (!recoveryCodes.length) return;
     const text = [
       "================================================",
-      "CODES DE SECOURS DOUBLE AUTHENTIFICATION LSHORTER",
-      `Compte : ${email}`,
-      `Date : ${new Date().toISOString()}`,
-      "Chaque code ne peut être utilisé qu'une seule fois.",
+      "LSHORTER TWO-FACTOR AUTHENTICATION BACKUP CODES",
+      `Account: ${email}`,
+      `Date: ${new Date().toISOString()}`,
+      "Each code can only be used once.",
       "================================================",
       "",
       ...recoveryCodes.map((c, i) => `${i + 1}. ${c}`),
@@ -142,7 +142,7 @@ export function TwoFactorSetupModal({
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    showToast.success("Fichier des codes de secours téléchargé !");
+    showToast.success("Backup codes file downloaded!");
   };
 
   const handleVerifyCode = async (e?: React.FormEvent) => {
@@ -150,7 +150,7 @@ export function TwoFactorSetupModal({
     const cleanCode = verificationCode.trim().replace(/\s+/g, "");
 
     if (cleanCode.length !== 6 || !/^\d{6}$/.test(cleanCode)) {
-      setErrorMessage("Veuillez entrer le code complet à 6 chiffres.");
+      setErrorMessage("Please enter the complete 6-digit code.");
       return;
     }
 
@@ -174,12 +174,12 @@ export function TwoFactorSetupModal({
         await onSuccess(secret, recoveryCodes);
         setStep(3);
         confetti({ particleCount: 70, spread: 80, origin: { y: 0.6 } });
-        showToast.success("Code vérifié ! Enregistrez vos codes de secours.");
+        showToast.success("Code verified! Save your backup codes.");
       } else {
-        setErrorMessage("Code invalide ou expiré. Vérifiez l'heure de votre appareil et réessayez.");
+        setErrorMessage("Invalid or expired code. Check your device clock and try again.");
       }
     } catch {
-      setErrorMessage("Erreur de communication lors de la vérification.");
+      setErrorMessage("Communication error during verification.");
     } finally {
       setIsVerifying(false);
     }
@@ -198,12 +198,12 @@ export function TwoFactorSetupModal({
             </div>
             <div>
               <h2 className="text-sm font-bold text-white flex items-center gap-2">
-                <span>Double Authentification (2FA / TOTP)</span>
+                <span>Two-Factor Authentication (2FA / TOTP)</span>
               </h2>
               <p className="text-[11px] text-neutral-400">
-                {step === 1 && "Étape 1 sur 3 : Scanner le QR Code standard"}
-                {step === 2 && "Étape 2 sur 3 : Vérifier le code à 6 chiffres"}
-                {step === 3 && "Étape 3 sur 3 : Codes de secours d'urgence"}
+                {step === 1 && "Step 1 of 3: Scan the standard QR Code"}
+                {step === 2 && "Step 2 of 3: Verify the 6-digit code"}
+                {step === 3 && "Step 3 of 3: Emergency backup codes"}
               </p>
             </div>
           </div>
@@ -230,11 +230,11 @@ export function TwoFactorSetupModal({
             <div className="flex flex-col gap-5">
               <div className="flex flex-col items-center text-center gap-1">
                 <p className="text-xs text-neutral-300">
-                  Scannez ce QR Code avec votre application d&apos;authentification préférée :
+                  Scan this QR Code with your preferred authenticator app:
                 </p>
                 <div className="flex flex-wrap items-center justify-center gap-1.5 mt-1 text-[10px] text-neutral-400">
                   <span className="px-2 py-0.5 rounded bg-[#1c1c22] border border-[#2a2a32]">Google Authenticator</span>
-                  <span className="px-2 py-0.5 rounded bg-[#1c1c22] border border-[#2a2a32]">Apple Mots de passe</span>
+                  <span className="px-2 py-0.5 rounded bg-[#1c1c22] border border-[#2a2a32]">Apple Passwords</span>
                   <span className="px-2 py-0.5 rounded bg-[#1c1c22] border border-[#2a2a32]">Microsoft Authenticator</span>
                   <span className="px-2 py-0.5 rounded bg-[#1c1c22] border border-[#2a2a32]">Authy / 1Password</span>
                 </div>
@@ -246,7 +246,7 @@ export function TwoFactorSetupModal({
                   {isLoading ? (
                     <div className="w-48 h-48 flex flex-col items-center justify-center gap-2 text-neutral-800">
                       <RefreshCw className="w-6 h-6 animate-spin text-[#ff6600]" />
-                      <span className="text-[11px] font-medium font-mono">Génération du QR...</span>
+                      <span className="text-[11px] font-medium font-mono">Generating QR...</span>
                     </div>
                   ) : qrCodeUrl ? (
                     /* eslint-disable-next-line @next/next/no-img-element */
@@ -257,7 +257,7 @@ export function TwoFactorSetupModal({
                     />
                   ) : (
                     <div className="w-48 h-48 flex items-center justify-center text-neutral-500 text-xs">
-                      Erreur de chargement
+                      Failed to load
                     </div>
                   )}
                 </div>
@@ -266,18 +266,18 @@ export function TwoFactorSetupModal({
               {/* Manual Entry Secret Key */}
               <div className="flex flex-col gap-1.5 p-3 rounded-[10px] bg-[#0c0c0e] border border-[#222226]">
                 <div className="flex items-center justify-between text-[11px] text-neutral-400">
-                  <span>Vous ne pouvez pas scanner ? Clé de saisie manuelle :</span>
+                  <span>Can&apos;t scan? Manual entry secret key:</span>
                   <button
                     type="button"
                     onClick={handleCopySecret}
                     className="text-[#ff6600] hover:underline font-bold flex items-center gap-1 cursor-pointer"
                   >
                     {isSecretCopied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                    <span>{isSecretCopied ? "Copié" : "Copier"}</span>
+                    <span>{isSecretCopied ? "Copied" : "Copy"}</span>
                   </button>
                 </div>
                 <div className="font-mono text-xs font-bold text-white tracking-widest text-center py-1 select-all bg-[#141418] rounded-[6px] border border-[#1f1f25]">
-                  {formattedSecret || "CHARGEMENT..."}
+                  {formattedSecret || "LOADING..."}
                 </div>
               </div>
 
@@ -289,7 +289,7 @@ export function TwoFactorSetupModal({
                   onClick={onClose}
                   className="text-xs h-10 px-4 border-[#27272a]"
                 >
-                  Annuler
+                  Cancel
                 </Button>
                 <Button
                   type="button"
@@ -301,7 +301,7 @@ export function TwoFactorSetupModal({
                   }}
                   className="text-xs h-10 px-5 font-bold gap-1.5 cursor-pointer shadow-md"
                 >
-                  <span>Suivant : Vérifier le code</span>
+                  <span>Next: Verify Code</span>
                   <ArrowRight className="w-4 h-4" />
                 </Button>
               </div>
@@ -315,9 +315,9 @@ export function TwoFactorSetupModal({
                 <div className="w-12 h-12 rounded-full bg-[#ff6600]/10 border border-[#ff6600]/30 flex items-center justify-center text-[#ff6600] mb-1">
                   <Smartphone className="w-6 h-6" />
                 </div>
-                <h3 className="text-sm font-bold text-white">Saisissez le code de validation</h3>
+                <h3 className="text-sm font-bold text-white">Enter verification code</h3>
                 <p className="text-xs text-neutral-400 max-w-xs leading-relaxed">
-                  Entrez le code temporaire à 6 chiffres affiché en ce moment dans votre application pour confirmer la liaison.
+                  Enter the temporary 6-digit code currently displayed in your app to confirm setup.
                 </p>
               </div>
 
@@ -335,7 +335,7 @@ export function TwoFactorSetupModal({
                   }}
                   className="h-14 w-56 text-center font-mono text-2xl tracking-[0.4em] bg-[#0c0c0e] border-[#27272a] focus:border-[#ff6600] text-white font-bold rounded-[10px]"
                 />
-                <span className="text-[11px] text-neutral-500">Le code change toutes les 30 secondes</span>
+                <span className="text-[11px] text-neutral-500">The code changes every 30 seconds</span>
               </div>
 
               {/* Navigation buttons */}
@@ -350,7 +350,7 @@ export function TwoFactorSetupModal({
                   className="text-xs h-10 px-4 border-[#27272a] gap-1"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
-                  <span>Retour au QR</span>
+                  <span>Back to QR</span>
                 </Button>
                 <Button
                   type="submit"
@@ -361,12 +361,12 @@ export function TwoFactorSetupModal({
                   {isVerifying ? (
                     <>
                       <RefreshCw className="w-4 h-4 animate-spin" />
-                      <span>Vérification...</span>
+                      <span>Verifying...</span>
                     </>
                   ) : (
                     <>
                       <Check className="w-4 h-4" />
-                      <span>Vérifier &amp; Activer</span>
+                      <span>Verify &amp; Enable</span>
                     </>
                   )}
                 </Button>
@@ -382,9 +382,9 @@ export function TwoFactorSetupModal({
                   <ShieldCheck className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-emerald-400">Double Authentification Activée avec Succès !</h4>
+                  <h4 className="text-xs font-bold text-emerald-400">Two-Factor Authentication Enabled Successfully!</h4>
                   <p className="text-[11px] text-neutral-300">
-                    Votre compte est désormais sécurisé selon les normes RFC 6238.
+                    Your account is now secured following RFC 6238 standards.
                   </p>
                 </div>
               </div>
@@ -392,10 +392,10 @@ export function TwoFactorSetupModal({
               <div className="p-3.5 rounded-[10px] bg-amber-500/10 border border-amber-500/20 flex flex-col gap-1.5">
                 <div className="flex items-center gap-2 text-xs font-bold text-amber-400">
                   <AlertTriangle className="w-4 h-4 shrink-0" />
-                  <span>Sauvegardez vos codes de secours d&apos;urgence</span>
+                  <span>Save your emergency backup codes</span>
                 </div>
                 <p className="text-[11px] text-neutral-300 leading-relaxed">
-                  Si vous perdez votre téléphone ou changez d&apos;appareil, ces codes à usage unique sont le <strong>seul moyen</strong> de récupérer l&apos;accès à votre compte.
+                  If you lose your phone or switch devices, these one-time codes are the <strong>only way</strong> to recover access to your account.
                 </p>
               </div>
 
@@ -421,7 +421,7 @@ export function TwoFactorSetupModal({
                   className="text-xs h-9 border-[#27272a] gap-1.5"
                 >
                   {areCodesCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{areCodesCopied ? "Copié !" : "Copier les 8 codes"}</span>
+                  <span>{areCodesCopied ? "Copied!" : "Copy 8 codes"}</span>
                 </Button>
                 <Button
                   type="button"
@@ -430,7 +430,7 @@ export function TwoFactorSetupModal({
                   className="text-xs h-9 border-[#27272a] gap-1.5"
                 >
                   <Download className="w-3.5 h-3.5 text-[#ff6600]" />
-                  <span>Télécharger (.txt)</span>
+                  <span>Download (.txt)</span>
                 </Button>
               </div>
 
@@ -441,7 +441,7 @@ export function TwoFactorSetupModal({
                   onClick={onClose}
                   className="w-full text-xs h-10 font-bold cursor-pointer"
                 >
-                  J&apos;ai bien sauvegardé mes codes &bull; Terminer
+                  I have saved my codes &bull; Done
                 </Button>
               </div>
             </div>

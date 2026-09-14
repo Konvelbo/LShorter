@@ -53,6 +53,8 @@ interface ExportClickEvent {
   browser: string;
   os: string;
   referrer: string;
+  customerName: string;
+  customerEmail: string;
   isUnique: string;
   revenue: number;
 }
@@ -140,7 +142,7 @@ function generateExcelXml(
   }
 
   // ─── Sheet 2: Journal des Clics & Événements ────────────────────────────────
-  const eventWidths = [120, 130, 150, 140, 120, 110, 120, 110, 180, 85, 100];
+  const eventWidths = [120, 130, 150, 140, 120, 110, 120, 110, 180, 150, 170, 85, 100];
   const eventColsXml = eventWidths
     .map((w) => `   <Column ss:AutoFitWidth="1" ss:Width="${w}"/>`)
     .join("\n");
@@ -155,6 +157,8 @@ function generateExcelXml(
     "Navigateur",
     "Système d'Exploitation (OS)",
     "Source de Trafic / Référent",
+    "Client / Nom Complet",
+    "Client / Email",
     "Visiteur Unique",
     "Valeur / Revenu (€)",
   ];
@@ -168,7 +172,7 @@ function generateExcelXml(
 
   let eventDataRows = "";
   if (events.length === 0) {
-    eventDataRows = `   <Row ss:Height="24">\n    <Cell ss:StyleID="DataCellLeft" ss:MergeAcross="10"><Data ss:Type="String">Aucun clic enregistré sur la période sélectionnée.</Data></Cell>\n   </Row>`;
+    eventDataRows = `   <Row ss:Height="24">\n    <Cell ss:StyleID="DataCellLeft" ss:MergeAcross="12"><Data ss:Type="String">Aucun clic enregistré sur la période sélectionnée.</Data></Cell>\n   </Row>`;
   } else {
     eventDataRows = events
       .map((ev) => {
@@ -182,6 +186,8 @@ function generateExcelXml(
     <Cell ss:StyleID="DataCellLeft"><Data ss:Type="String">${escapeXml(ev.browser)}</Data></Cell>
     <Cell ss:StyleID="DataCellLeft"><Data ss:Type="String">${escapeXml(ev.os)}</Data></Cell>
     <Cell ss:StyleID="DataCellLeft"><Data ss:Type="String">${escapeXml(ev.referrer)}</Data></Cell>
+    <Cell ss:StyleID="DataCellLeft"><Data ss:Type="String">${escapeXml(ev.customerName)}</Data></Cell>
+    <Cell ss:StyleID="DataCellLeft"><Data ss:Type="String">${escapeXml(ev.customerEmail)}</Data></Cell>
     <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">${escapeXml(ev.isUnique)}</Data></Cell>
     <Cell ss:StyleID="MoneyCell"><Data ss:Type="Number">${ev.revenue.toFixed(2)}</Data></Cell>
    </Row>`;
@@ -471,6 +477,8 @@ function generateCsv(
     "Navigateur",
     "OS",
     "Source Referent",
+    "Client Nom",
+    "Client Email",
     "Unique",
     "Revenu (€)",
   ];
@@ -491,6 +499,8 @@ function generateCsv(
           ev.browser,
           ev.os,
           ev.referrer,
+          ev.customerName,
+          ev.customerEmail,
           ev.isUnique,
           ev.revenue.toFixed(2),
         ]
@@ -724,6 +734,9 @@ export async function GET(req: Request) {
             }
           } catch {}
 
+          const rawName = ev.customerName || ev.customerFullName || ev.fullName || ev.customer_name || ev.userName || ev.name;
+          const rawEmail = ev.customerEmail || ev.email || ev.customer_email || ev.userEmail;
+
           return {
             id: ev.id || `clk_${idx + 1}`,
             slug: ev.slug || "lien",
@@ -735,8 +748,10 @@ export async function GET(req: Request) {
             browser: ev.browser || "Chrome",
             os: ev.os || "—",
             referrer: ev.referrer || ev.source || "Direct",
+            customerName: rawName ? String(rawName) : "—",
+            customerEmail: rawEmail ? String(rawEmail) : "—",
             isUnique: ev.isUnique !== false ? "Oui" : "Non",
-            revenue: Number(ev.revenue) || 0,
+            revenue: Number(ev.conversionAmount || ev.conversion_amount || ev.revenue) || 0,
           };
         })
       : [];

@@ -35,16 +35,16 @@ import { LinkCreateModal } from "@/components/dashboard/link-create-modal";
 import { FeedbackModal } from "@/components/feedback/feedback-modal";
 
 const navPrincipal = [
-  { name: "Vue d'ensemble", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Mes liens", href: "/dashboard/links", icon: Link2 },
-  { name: "QR Code", href: "/dashboard/qr-code", icon: QrCode },
+  { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
+  { name: "My Links", href: "/dashboard/links", icon: Link2 },
+  { name: "QR Codes", href: "/dashboard/qr-code", icon: QrCode },
   { name: "Analytics", href: "/dashboard/analytics", icon: BarChart2 },
-  { name: "Domaines", href: "/dashboard/domains", icon: Globe2 },
+  { name: "Domains", href: "/dashboard/domains", icon: Globe2 },
 ];
 
 const navCompte = [
   { name: "API & SDK", href: "/dashboard/api-sdk", icon: KeyRound },
-  { name: "Paramètres", href: "/dashboard/settings", icon: Settings },
+  { name: "Settings", href: "/dashboard/settings", icon: Settings },
   { name: "Documentation", href: "/docs", icon: FileText },
 ];
 
@@ -142,6 +142,9 @@ export function Sidebar() {
     return () => window.removeEventListener("lshorter_plan_updated", update);
   }, []);
 
+  const [imgError, setImgError] = useState(false);
+  const avatarUrl = convexUser?.avatarUrl || (session?.user as any)?.avatarUrl || session?.user?.image || "";
+  const name = convexUser?.name || session?.user?.name || "Workspace";
   const plan = (localPlan || convexUser?.plan || (session?.user as any)?.plan || "FREEMIUM").toUpperCase();
   const clicksThisMonth = typeof liveClicks === "number" ? liveClicks : 0;
   const clicksLimit = plan === "BUSINESS" ? -1 : plan === "PRO" ? 1_000_000 : 100_000;
@@ -155,58 +158,39 @@ export function Sidebar() {
       {/* ─── 1. DESKTOP SIDEBAR (>= 768px - Orange Theme) ─── */}
       <aside
         className={cn(
-          "h-screen border-r border-[#222225] bg-[#09090b] hidden md:flex flex-col justify-between sticky top-0 shrink-0 z-20 select-none transition-all duration-300",
+          "h-full border-r-0 bg-[#09090b] hidden md:flex flex-col justify-between shrink-0 z-20 select-none transition-all duration-300",
           isCollapsed ? "w-[68px] p-2" : "w-60 p-3.5"
         )}
       >
         {/* Top Section */}
-        <div className="flex flex-col gap-4">
-          {/* Brand Header with LS Badge & Collapse Toggle */}
-          {isCollapsed ? (
-            <div className="flex flex-col items-center gap-2 pt-1">
-              <Link href="/dashboard" className="cursor-pointer" title="LShorter Dashboard">
-                <div className="w-8.5 h-8.5 rounded-[10px] bg-[#ff6600] flex items-center justify-center font-bebas text-lg font-black text-white shadow-md shadow-[#ff6600]/30 hover:shadow-[#ff6600]/60 transition-all">
-                  LS
-                </div>
-              </Link>
-              <button
-                onClick={toggleCollapse}
-                title="Déplier la barre latérale"
-                className="w-7 h-7 rounded-[10px] bg-white/5 border border-white/10 text-neutral-400 hover:text-white hover:bg-[#ff6600]/20 hover:border-[#ff6600]/40 flex items-center justify-center transition-all cursor-pointer"
-              >
-                <PanelLeftOpen className="w-3.5 h-3.5 text-neutral-300" />
-              </button>
-            </div>
-          ) : (
-            <div className="flex items-center justify-between px-0.5">
-              <Link href="/dashboard" className="flex items-center gap-2.5 group cursor-pointer">
-                <div className="w-8 h-8 rounded-[10px] bg-[#ff6600] flex items-center justify-center font-bebas text-lg font-black text-white shadow-md shadow-[#ff6600]/30 group-hover:shadow-[#ff6600]/60 transition-all shrink-0">
-                  LS
-                </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="font-bebas text-xl font-bold tracking-wider text-white flex items-center gap-1 group-hover:text-[#ff6600] transition-colors leading-none">
-                    L <span className="text-[#ff6600]">SHORTER</span>
-                  </span>
-                  <span className="text-[9px] uppercase font-bold tracking-widest text-neutral-500 mt-0.5">
-                    Edge Platform
-                  </span>
-                </div>
-              </Link>
-
-              <button
-                onClick={toggleCollapse}
-                title="Rétracter la barre latérale"
-                className="w-7 h-7 rounded-[10px] bg-white/5 border border-white/10 text-neutral-400 hover:text-white hover:bg-white/10 flex items-center justify-center transition-all cursor-pointer"
-              >
+        <div className="flex flex-col gap-3">
+          {/* Collapse / Expand Toggle */}
+          <div className="flex items-center justify-between px-1">
+            {!isCollapsed && (
+              <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-500 font-mono">
+                Main Menu
+              </span>
+            )}
+            <button
+              onClick={toggleCollapse}
+              title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              className={cn(
+                "rounded-[8px] bg-white/5 border border-white/10 text-neutral-400 hover:text-white hover:bg-white/10 flex items-center justify-center transition-all cursor-pointer",
+                isCollapsed ? "w-8.5 h-8.5 mx-auto" : "w-7 h-7"
+              )}
+            >
+              {isCollapsed ? (
+                <PanelLeftOpen className="w-4 h-4 text-neutral-300" />
+              ) : (
                 <PanelLeftClose className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
+              )}
+            </button>
+          </div>
 
           {/* Create Link Button (Compact) */}
           <button
             onClick={() => setIsCreateLinkOpen(true)}
-            title="Créer un nouveau lien"
+            title="Create new short link"
             className={cn(
               "bg-[#ff6600] hover:bg-[#ff771a] text-white font-bold flex items-center justify-center shadow-md shadow-[#ff6600]/20 hover:shadow-[#ff6600]/40 transition-all active:scale-95 cursor-pointer",
               isCollapsed
@@ -215,7 +199,7 @@ export function Sidebar() {
             )}
           >
             <Plus className="w-3.5 h-3.5 stroke-[3]" />
-            {!isCollapsed && <span className="font-bebas text-sm tracking-wide">CRÉER UN LIEN</span>}
+            {!isCollapsed && <span className="font-bebas text-sm tracking-wide">CREATE A LINK</span>}
           </button>
 
           {/* Nav Section: Principal */}
@@ -254,7 +238,7 @@ export function Sidebar() {
           <div className="flex flex-col gap-1">
             {!isCollapsed && (
               <span className="px-2.5 text-[9px] font-bold uppercase tracking-widest text-neutral-500">
-                Compte
+                Account
               </span>
             )}
             {navCompte.map((item) => {
@@ -288,9 +272,9 @@ export function Sidebar() {
           {!isCollapsed ? (
             <div className="rounded-[10px] bg-[#141416] border border-[#27272a] p-2.5 text-xs flex flex-col gap-1.5 hover:border-[#ff6600]/40 transition-colors">
               <div className="flex items-center justify-between text-neutral-400">
-                <span className="font-bold text-[10px] text-[#ff6600]">PLAN {plan}</span>
+                <span className="font-bold text-[10px] text-[#ff6600]">{plan} PLAN</span>
                 <span className="font-mono text-white text-[10px]">
-                  {clicksThisMonth.toLocaleString()} / {clicksLimit === -1 ? "Illimité" : clicksLimit.toLocaleString()}
+                  {clicksThisMonth.toLocaleString()} / {clicksLimit === -1 ? "Unlimited" : clicksLimit.toLocaleString()}
                 </span>
               </div>
               <div className="w-full h-1.5 rounded-full bg-neutral-200 dark:bg-[#27272a] overflow-hidden">
@@ -300,12 +284,12 @@ export function Sidebar() {
                 />
               </div>
               <div className="flex items-center justify-between text-[9px] text-neutral-500">
-                <span>Clics ce mois</span>
-                <span className="text-emerald-400 font-semibold">Edge OK</span>
+                <span>Clicks this month</span>
+                <span className="text-emerald-400 font-semibold">Edge Live</span>
               </div>
             </div>
           ) : (
-            <div title={`Plan ${plan} : ${clicksThisMonth.toLocaleString()} clics`} className="w-8.5 h-8.5 rounded-[10px] bg-[#141416] border border-[#27272a] mx-auto flex items-center justify-center">
+            <div title={`${plan} Plan : ${clicksThisMonth.toLocaleString()} clicks`} className="w-8.5 h-8.5 rounded-[10px] bg-[#141416] border border-[#27272a] mx-auto flex items-center justify-center">
               <Sparkles className="w-3.5 h-3.5 text-[#ff6600]" />
             </div>
           )}
@@ -313,7 +297,7 @@ export function Sidebar() {
           {/* Feedback Button with HelpCircle Icon */}
           <button
             onClick={() => setIsFeedbackOpen(true)}
-            title="Aide & Feedback"
+            title="Help & Feedback"
             className={cn(
               "flex items-center rounded-[10px] text-xs font-medium text-neutral-400 hover:text-white hover:bg-[#222226] transition-all cursor-pointer group",
               isCollapsed
@@ -324,7 +308,7 @@ export function Sidebar() {
             <div className="w-5 h-5 rounded-[10px] bg-white/5 border border-white/10 flex items-center justify-center text-neutral-400 group-hover:text-white group-hover:bg-[#ff6600] transition-colors">
               <HelpCircle className="w-3.5 h-3.5" />
             </div>
-            {!isCollapsed && <span className="text-[11px]">Aide & Feedback</span>}
+            {!isCollapsed && <span className="text-[11px]">Help & Feedback</span>}
           </button>
         </div>
       </aside>
@@ -374,12 +358,12 @@ export function Sidebar() {
             className="w-full h-9 rounded-[10px] bg-[#0066FF] hover:bg-[#0055d4] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-[#0066FF]/35 cursor-pointer active:scale-95 transition-all"
           >
             <Plus className="w-4 h-4 stroke-[3]" />
-            <span className="font-bebas text-sm tracking-wide">CRÉER UN LIEN</span>
+            <span className="font-bebas text-sm tracking-wide">CREATE A LINK</span>
           </button>
 
           {/* Mobile Nav Principal */}
           <div className="space-y-0.5">
-            <span className="text-[9px] font-bold uppercase tracking-widest text-neutral-500 px-2">Menu Principal</span>
+            <span className="text-[9px] font-bold uppercase tracking-widest text-neutral-500 px-2">Main Menu</span>
             {navPrincipal.map((item) => {
               const isActive = pathname === item.href;
               const Icon = item.icon;
@@ -403,7 +387,7 @@ export function Sidebar() {
 
           {/* Mobile Nav Compte */}
           <div className="space-y-0.5 pt-2 border-t border-white/5">
-            <span className="text-[9px] font-bold uppercase tracking-widest text-neutral-500 px-2">Développeur & Compte</span>
+            <span className="text-[9px] font-bold uppercase tracking-widest text-neutral-500 px-2">Developer & Account</span>
             {navCompte.map((item) => {
               const isActive = pathname === item.href;
               const Icon = item.icon;
@@ -429,9 +413,9 @@ export function Sidebar() {
         {/* Mobile Drawer Bottom Quota */}
         <div className="p-2.5 rounded-[10px] bg-[#151c2e] border border-[#27375a] space-y-1.5">
           <div className="flex items-center justify-between text-[10px]">
-            <span className="font-bold text-[#0066FF]">PLAN {plan}</span>
+            <span className="font-bold text-[#0066FF]">{plan} PLAN</span>
             <span className="font-mono text-white">
-              {clicksThisMonth.toLocaleString()} / {clicksLimit === -1 ? "Illimité" : clicksLimit.toLocaleString()}
+              {clicksThisMonth.toLocaleString()} / {clicksLimit === -1 ? "Unlimited" : clicksLimit.toLocaleString()}
             </span>
           </div>
           <div className="w-full h-1.5 rounded-full bg-neutral-200 dark:bg-black/40 overflow-hidden">
@@ -441,8 +425,8 @@ export function Sidebar() {
             />
           </div>
           <div className="flex items-center justify-between text-[8.5px] text-neutral-400">
-            <span>Edge Cloudflare</span>
-            <span className="text-emerald-400 font-bold">● En ligne</span>
+            <span>Cloudflare Edge</span>
+            <span className="text-emerald-400 font-bold">● Online</span>
           </div>
         </div>
       </div>
@@ -457,7 +441,7 @@ export function Sidebar() {
           )}
         >
           <Home className="w-4.5 h-4.5" />
-          <span className="text-[9px] font-bold">Accueil</span>
+          <span className="text-[9px] font-bold">Home</span>
         </Link>
 
         <Link
@@ -468,7 +452,7 @@ export function Sidebar() {
           )}
         >
           <Link2 className="w-4.5 h-4.5" />
-          <span className="text-[9px] font-medium">Liens</span>
+          <span className="text-[9px] font-medium">Links</span>
         </Link>
 
         <button

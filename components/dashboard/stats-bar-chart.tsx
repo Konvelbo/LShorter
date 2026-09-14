@@ -12,8 +12,8 @@ interface StatsBarChartProps {
 
 export function StatsBarChart({
   data = [],
-  title = "Clics par jour",
-  subtitle = "30 derniers jours"
+  title = "Clicks per day",
+  subtitle = "Last 30 days"
 }: StatsBarChartProps) {
   const [hoveredPoint, setHoveredPoint] = useState<ClickDataPoint | null>(null);
 
@@ -21,7 +21,7 @@ export function StatsBarChart({
 
   // Render passed-in timelineData directly when available, or generate a clean 14-day daily timeline fallback
   const timelineData = React.useMemo(() => {
-    // If safeData already has pre-formatted points with labels (e.g. from generateTimelineForRange), use it directly!
+    // If safeData already has pre-formatted points with labels, use it directly
     if (safeData.length > 0 && safeData.every((d) => Boolean(d.label))) {
       return safeData;
     }
@@ -47,7 +47,7 @@ export function StatsBarChart({
       const isoDate = d.toISOString().slice(0, 10);
       const clicks = clicksMap.get(isoDate) || 0;
       const uniqueClicks = uniquesMap.get(isoDate) || (clicks > 0 ? clicks : 0);
-      const dayLabel = d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+      const dayLabel = d.toLocaleDateString("en-US", { day: "numeric", month: "short" });
 
       result.push({
         date: isoDate,
@@ -65,35 +65,35 @@ export function StatsBarChart({
   const yAxisMax = actualMax <= 2 ? 4 : actualMax <= 5 ? 6 : actualMax <= 10 ? 12 : actualMax;
 
   return (
-    <div className="rounded-[10px] bg-[#141416] border border-[#222225] p-5 flex flex-col justify-between h-full relative group">
+    <div className="rounded-[10px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] p-5 flex flex-col justify-between h-full relative group shadow-sm">
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <div>
-          <h3 className="text-base font-bold text-white tracking-wide">{title}</h3>
-          <span className="text-xs text-neutral-400 font-medium">{subtitle}</span>
+          <h3 className="text-base font-bold text-zinc-900 dark:text-white tracking-wide">{title}</h3>
+          <span className="text-xs text-zinc-500 dark:text-neutral-400 font-medium">{subtitle}</span>
         </div>
         {hoveredPoint ? (
-          <div className="flex items-center gap-2 bg-[#1a1a1e] border border-[#27272a] rounded-[8px] px-2.5 py-1 text-xs animate-in fade-in">
+          <div className="flex items-center gap-2 bg-zinc-100 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a] rounded-[8px] px-2.5 py-1 text-xs animate-in fade-in">
             <span className="w-2 h-2 rounded-full bg-[#ff6600] animate-pulse" />
-            <span className="text-white font-bold">{formatNumber(hoveredPoint.clicks)} clic{hoveredPoint.clicks > 1 ? "s" : ""}</span>
-            <span className="text-neutral-400 text-[11px]">({hoveredPoint.label})</span>
+            <span className="text-zinc-900 dark:text-white font-bold">{formatNumber(hoveredPoint.clicks)} click{hoveredPoint.clicks === 1 ? "" : "s"}</span>
+            <span className="text-zinc-500 dark:text-neutral-400 text-[11px]">({hoveredPoint.label})</span>
           </div>
         ) : (
-          <div className="text-xs text-neutral-500 font-mono hidden sm:block">
-            Pic : <span className="text-white font-bold">{actualMax}</span> clics
+          <div className="text-xs text-zinc-500 dark:text-neutral-400 font-mono hidden sm:block">
+            Peak: <span className="text-zinc-900 dark:text-white font-bold">{actualMax}</span> clicks
           </div>
         )}
       </div>
 
-      {/* Floating Hover tooltip for touch / cursor precision */}
+      {/* Floating Hover tooltip */}
       {hoveredPoint && (
-        <div className="absolute top-16 right-5 bg-[#1f1f23]/95 backdrop-blur border border-[#27272a] rounded-[10px] px-3 py-2 text-xs shadow-2xl pointer-events-none z-20 animate-in fade-in">
-          <p className="text-neutral-400 text-[10px]">{hoveredPoint.label} {hoveredPoint.date ? `(${hoveredPoint.date.slice(0, 10)})` : ""}</p>
-          <p className="text-white font-bold text-sm">
-            <span className="text-[#ff6600]">{formatNumber(hoveredPoint.clicks)}</span> clic{hoveredPoint.clicks > 1 ? "s" : ""}
+        <div className="absolute top-16 right-5 bg-white/95 dark:bg-[#1f1f23]/95 backdrop-blur border border-zinc-200 dark:border-[#27272a] rounded-[10px] px-3 py-2 text-xs shadow-2xl pointer-events-none z-20 animate-in fade-in">
+          <p className="text-zinc-500 dark:text-neutral-400 text-[10px]">{hoveredPoint.label} {hoveredPoint.date ? `(${hoveredPoint.date.slice(0, 10)})` : ""}</p>
+          <p className="text-zinc-900 dark:text-white font-bold text-sm">
+            <span className="text-[#ff6600]">{formatNumber(hoveredPoint.clicks)}</span> click{hoveredPoint.clicks === 1 ? "" : "s"}
           </p>
-          <p className="text-neutral-400 text-[11px]">
-            {formatNumber(hoveredPoint.uniqueClicks || hoveredPoint.clicks)} unique{(hoveredPoint.uniqueClicks || hoveredPoint.clicks) > 1 ? "s" : ""}
+          <p className="text-zinc-500 dark:text-neutral-400 text-[11px]">
+            {formatNumber(hoveredPoint.uniqueClicks || hoveredPoint.clicks)} unique{(hoveredPoint.uniqueClicks || hoveredPoint.clicks) === 1 ? "" : "s"}
           </p>
         </div>
       )}
@@ -101,11 +101,11 @@ export function StatsBarChart({
       {/* Bar Chart Area with Horizontal Guide Lines */}
       <div className="relative h-44 w-full pt-4 pb-2">
         {/* Horizontal Guide Lines */}
-        <div className="absolute inset-x-0 top-6 border-b border-[#222226] border-dashed pointer-events-none flex justify-end pr-1 z-0">
-          <span className="text-[9px] text-neutral-600 font-mono -mt-3.5">{yAxisMax}</span>
+        <div className="absolute inset-x-0 top-6 border-b border-zinc-200 dark:border-[#27272a] border-dashed pointer-events-none flex justify-end pr-1 z-0">
+          <span className="text-[9px] text-zinc-400 dark:text-neutral-500 font-mono -mt-3.5">{yAxisMax}</span>
         </div>
-        <div className="absolute inset-x-0 top-1/2 border-b border-[#1c1c20] border-dashed pointer-events-none flex justify-end pr-1 z-0">
-          <span className="text-[9px] text-neutral-600 font-mono -mt-3.5">{Math.max(1, Math.round(yAxisMax / 2))}</span>
+        <div className="absolute inset-x-0 top-1/2 border-b border-zinc-200/70 dark:border-[#27272a]/70 border-dashed pointer-events-none flex justify-end pr-1 z-0">
+          <span className="text-[9px] text-zinc-400 dark:text-neutral-500 font-mono -mt-3.5">{Math.max(1, Math.round(yAxisMax / 2))}</span>
         </div>
 
         {/* Bars Container */}
@@ -131,7 +131,7 @@ export function StatsBarChart({
                       ? (isHovered
                           ? "bg-gradient-to-t from-[#ea580c] to-[#ff771a] shadow-lg shadow-[#ff6600]/50"
                           : "bg-gradient-to-t from-[#d94e00] to-[#ff6600] shadow-sm shadow-[#ff6600]/25")
-                      : (isHovered ? "bg-[#2a2a30]" : "bg-[#1c1c20]")
+                      : (isHovered ? "bg-zinc-300 dark:bg-[#2a2a30]" : "bg-zinc-200 dark:bg-[#1c1c20]")
                   )}
                   style={{
                     height: `${heightPercent}%`,
@@ -144,11 +144,11 @@ export function StatsBarChart({
       </div>
 
       {/* Dynamic X-Axis labels */}
-      <div className="flex items-center justify-between text-[11px] font-medium text-neutral-500 pt-2.5 px-0.5 border-t border-[#222225]">
+      <div className="flex items-center justify-between text-[11px] font-medium text-zinc-500 dark:text-neutral-400 pt-2.5 px-0.5 border-t border-zinc-200 dark:border-[#222225]">
         <span className="truncate max-w-[30%]">{timelineData[0]?.label || ""}</span>
         <span className="truncate max-w-[30%] text-center">{timelineData[Math.floor(timelineData.length / 2)]?.label || ""}</span>
         <span className="text-[#ff6600] font-semibold truncate max-w-[35%] text-right">
-          {timelineData[timelineData.length - 1]?.label || "Aujourd'hui"}
+          {timelineData[timelineData.length - 1]?.label || "Today"}
         </span>
       </div>
     </div>

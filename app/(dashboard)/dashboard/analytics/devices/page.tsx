@@ -23,6 +23,8 @@ import {
 import { ShortLink, GlobalAnalytics } from "@/types";
 import { cfGetAnalytics, cfGetLinks } from "@/lib/cloudflare-api";
 import { ColumnMaskToggle, ColumnDefinition } from "@/components/dashboard/analytics/column-mask-toggle";
+import { KpiCardsCarousel } from "@/components/dashboard/analytics/kpi-cards-carousel";
+import { AnalyticsDevicesSkeleton } from "@/components/ui/skeleton";
 import { formatDateRelative, formatNumber } from "@/lib/utils";
 import { detectOSFromEvent } from "@/lib/device-detection";
 import {
@@ -33,13 +35,14 @@ import {
 } from "@/lib/analytics-generators";
 
 const DEVICE_COLUMNS: ColumnDefinition[] = [
-  { key: "timestamp", label: "Horodatage", defaultVisible: true },
-  { key: "device", label: "Format Appareil", defaultVisible: true },
-  { key: "browser", label: "Navigateur", defaultVisible: true },
-  { key: "os", label: "Système (OS)", defaultVisible: true },
-  { key: "link", label: "Lien Cible", defaultVisible: true },
-  { key: "location", label: "Localisation", defaultVisible: true },
-  { key: "referrer", label: "Source", defaultVisible: true },
+  { key: "timestamp", label: "Timestamp", defaultVisible: true },
+  { key: "device", label: "Device Type", defaultVisible: true },
+  { key: "browser", label: "Browser", defaultVisible: true },
+  { key: "os", label: "Operating System (OS)", defaultVisible: true },
+  { key: "customer", label: "Customer / Buyer", defaultVisible: true },
+  { key: "link", label: "Target Link", defaultVisible: true },
+  { key: "location", label: "Location", defaultVisible: true },
+  { key: "referrer", label: "Referrer", defaultVisible: true },
 ];
 
 export default function DevicesAnalyticsPage() {
@@ -158,13 +161,16 @@ export default function DevicesAnalyticsPage() {
             timestamp: ev.timestamp || new Date().toISOString(),
             slug: ev.slug || "link",
             countryCode: (ev.country_code || ev.countryCode || "XX").toUpperCase(),
-            countryName: ev.country_name || ev.countryName || "Monde",
+            countryName: ev.country_name || ev.countryName || "World",
             city: ev.city || "—",
             device: ev.device || "desktop",
             browser: ev.browser || "Chrome",
             os: detectedOS,
             referrer: ev.referrer || "Direct",
             userAgent: ev.user_agent || ev.userAgent || "",
+            customerName: ev.customerName || ev.customerFullName || ev.fullName || ev.name || ev.customer_name || null,
+            customerEmail: ev.customerEmail || ev.email || ev.customer_email || null,
+            conversionAmount: ev.conversionAmount || ev.conversion_amount || 0,
           };
         });
         if (!isAll && targetLink) {
@@ -186,12 +192,12 @@ export default function DevicesAnalyticsPage() {
         bounceRate: 0,
         epc: 0,
         avgEngagementTime: "0s",
-        clicksByDay: d.clicksByDay || [],
-        topCountries: d.topCountries || [],
-        topCities: d.topCities || [],
+        clicksByDay: d.clicksByDay || d.clicks_by_day || [],
+        topCountries: d.topCountries || d.top_countries || [],
+        topCities: d.topCities || d.top_cities || [],
         topDevices: devices,
         topBrowsers: browsers,
-        topReferrers: d.topReferrers || [],
+        topReferrers: d.topReferrers || d.top_referrers || [],
         liveClickEvents: liveEvents,
         recentConversions: [],
       });
@@ -264,7 +270,9 @@ export default function DevicesAnalyticsPage() {
         const matchDevice = ev.device?.toLowerCase().includes(q);
         const matchOS = ev.os?.toLowerCase().includes(q);
         const matchCity = ev.city?.toLowerCase().includes(q);
-        if (!matchSlug && !matchBrowser && !matchDevice && !matchOS && !matchCity) return false;
+        const matchCustName = (ev.customerName || "").toLowerCase().includes(q);
+        const matchCustEmail = (ev.customerEmail || "").toLowerCase().includes(q);
+        if (!matchSlug && !matchBrowser && !matchDevice && !matchOS && !matchCity && !matchCustName && !matchCustEmail) return false;
       }
       return true;
     });
@@ -276,6 +284,10 @@ export default function DevicesAnalyticsPage() {
   const desktopItem = analytics.topDevices.find((d) => d.device?.toLowerCase() === "desktop");
   const mobileItem = analytics.topDevices.find((d) => d.device?.toLowerCase() === "mobile");
 
+  if (status === "loading" || isLoading) {
+    return <AnalyticsDevicesSkeleton />;
+  }
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12 animate-in fade-in">
       {/* Navigation Breadcrumb & Header */}
@@ -284,26 +296,26 @@ export default function DevicesAnalyticsPage() {
           <div className="flex items-center gap-2 mb-2">
             <Link
               href="/dashboard/analytics"
-              className="flex items-center gap-1.5 text-xs text-neutral-400 hover:text-[#ff6600] transition-colors"
+              className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-[#ff6600] dark:text-neutral-400 dark:hover:text-[#ff6600] transition-colors"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Retour Analytics</span>
+              <span>Back to Analytics</span>
             </Link>
-            <span className="text-neutral-600">/</span>
+            <span className="text-zinc-400 dark:text-neutral-600">/</span>
             <span className="text-xs text-[#ff6600] font-semibold flex items-center gap-1">
               <Laptop className="w-3 h-3" />
-              <span>Appareils & Formats</span>
+              <span>Devices & Formats</span>
             </span>
           </div>
 
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white flex items-center gap-2.5">
-            <span>Technologies, Écrans & Navigateurs</span>
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/30 font-mono">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900 dark:text-white flex items-center gap-2.5">
+            <span>Technologies, Screens & Browsers</span>
+            <span className="text-xs px-2.5 py-0.5 rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30 font-mono">
               Hardware Intelligence
             </span>
           </h1>
-          <p className="text-xs sm:text-sm text-neutral-400 mt-1">
-            Analyse détaillée des supports utilisés : Mobile vs Ordinateur, Navigateurs et Systèmes d&apos;exploitation.
+          <p className="text-xs sm:text-sm text-zinc-500 dark:text-neutral-400 mt-1">
+            Detailed breakdown of visitor hardware: Mobile vs Desktop, Browsers and Operating Systems.
           </p>
         </div>
 
@@ -315,17 +327,17 @@ export default function DevicesAnalyticsPage() {
               setSelectedLinkId(e.target.value);
               loadData(selectedRange, e.target.value);
             }}
-            className="px-3 py-1.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] text-xs font-semibold text-white focus:outline-none focus:border-[#ff6600] cursor-pointer"
+            className="px-3 py-1.5 rounded-[10px] bg-zinc-100 dark:bg-[#1a1a1e] border border-zinc-300 dark:border-[#27272a] text-xs font-semibold text-zinc-800 dark:text-white focus:outline-none focus:border-[#ff6600] cursor-pointer"
           >
-            <option value="all">Tous les liens combinés</option>
+            <option value="all" className="bg-white dark:bg-[#141416] text-zinc-900 dark:text-white">All links combined</option>
             {links.map((l) => (
-              <option key={l.id} value={l.id}>
-                /{l.slug} ({l.clicksCount || 0} clics)
+              <option key={l.id} value={l.id} className="bg-white dark:bg-[#141416] text-zinc-900 dark:text-white">
+                /{l.slug} ({l.clicksCount || 0} clicks)
               </option>
             ))}
           </select>
 
-          <div className="flex items-center gap-1 p-1 rounded-[10px] bg-[#141416] border border-[#222225] text-xs">
+          <div className="flex items-center gap-1 p-1 rounded-[10px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] text-xs shadow-sm">
             {(["day", "week", "month", "year"] as const).map((r) => (
               <button
                 key={r}
@@ -336,86 +348,112 @@ export default function DevicesAnalyticsPage() {
                 className={`px-2.5 py-1 rounded-[10px] font-semibold transition-all cursor-pointer ${
                   selectedRange === r
                     ? "bg-[#ff6600] text-white font-bold"
-                    : "text-neutral-400 hover:text-white"
+                    : "text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 dark:text-neutral-400 dark:hover:text-white dark:hover:bg-white/5"
                 }`}
               >
-                {r === "day" ? "24h" : r === "week" ? "7j" : r === "month" ? "30j" : "12m"}
+                {r === "day" ? "24h" : r === "week" ? "7d" : r === "month" ? "30d" : "12m"}
               </button>
             ))}
           </div>
 
           <button
             onClick={() => loadData(selectedRange, selectedLinkId)}
-            className="p-2 rounded-[10px] bg-[#1a1a1e] hover:bg-white/10 text-neutral-300 hover:text-white border border-[#27272a] transition-all cursor-pointer"
-            title="Rafraîchir"
+            className="p-2 rounded-[10px] bg-zinc-100 hover:bg-zinc-200 dark:bg-[#1a1a1e] dark:hover:bg-white/10 text-zinc-700 hover:text-zinc-900 dark:text-neutral-300 dark:hover:text-white border border-zinc-300 dark:border-[#27272a] transition-all cursor-pointer"
+            title="Refresh"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin text-[#ff6600]" : ""}`} />
           </button>
         </div>
       </div>
 
-      {/* Top Device KPI Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-        <div className="p-4 rounded-[10px] bg-[#141416] border border-[#222225] flex flex-col justify-between">
-          <span className="text-[11px] font-semibold text-neutral-400">Trafic Ordinateur (Desktop)</span>
-          <div className="my-1.5 flex items-baseline gap-2">
-            <span className="font-bebas text-3xl font-bold text-blue-400">
+      {/* Top Device KPI Summary Cards (Infinite Auto-Scroll Carousel) */}
+      <KpiCardsCarousel autoScroll={true} speed={0.9} pauseOnHover={false}>
+        <div className="shrink-0 w-[170px] sm:w-[240px] md:w-[280px] lg:w-[300px] h-[100px] sm:h-[120px] md:h-[135px] lg:h-[145px] p-2.5 sm:p-3.5 md:p-4 rounded-[10px] sm:rounded-[12px] md:rounded-[14px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] shadow-sm flex flex-col justify-between hover:border-blue-500/50 hover:shadow-md transition-all select-none">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] sm:text-xs md:text-sm font-bold text-zinc-600 dark:text-neutral-400 uppercase tracking-wider truncate">Desktop</span>
+            <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-blue-500 shrink-0" />
+          </div>
+          <div className="my-0 sm:my-0.5 flex items-baseline gap-1.5">
+            <span className="font-bebas text-2xl sm:text-3xl md:text-4xl font-black text-blue-600 dark:text-blue-400 leading-none tracking-wide">
               {desktopItem ? `${desktopItem.percentage}%` : "0%"}
             </span>
-            <span className="text-xs text-neutral-400 font-mono">({desktopItem?.count || 0} clics)</span>
+            <span className="text-[9px] sm:text-[11px] text-zinc-500 dark:text-neutral-400 font-mono">({desktopItem?.count || 0} clicks)</span>
           </div>
-          <span className="text-[10px] text-neutral-500 font-mono">Grand format & Écrans larges</span>
+          <div className="flex items-center justify-between pt-0.5 sm:pt-1 border-t border-zinc-200/60 dark:border-[#222225]">
+            <span className="text-[9px] sm:text-[11px] md:text-xs text-zinc-500 dark:text-neutral-400 font-mono truncate">PC & Mac</span>
+            <span className="text-[8px] sm:text-[10px] md:text-[11px] font-bold text-blue-500 shrink-0">PC</span>
+          </div>
         </div>
 
-        <div className="p-4 rounded-[10px] bg-[#141416] border border-[#222225] flex flex-col justify-between">
-          <span className="text-[11px] font-semibold text-neutral-400">Trafic Mobile & Tactile</span>
-          <div className="my-1.5 flex items-baseline gap-2">
-            <span className="font-bebas text-3xl font-bold text-emerald-400">
+        <div className="shrink-0 w-[170px] sm:w-[240px] md:w-[280px] lg:w-[300px] h-[100px] sm:h-[120px] md:h-[135px] lg:h-[145px] p-2.5 sm:p-3.5 md:p-4 rounded-[10px] sm:rounded-[12px] md:rounded-[14px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] shadow-sm flex flex-col justify-between hover:border-emerald-500/50 hover:shadow-md transition-all select-none">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] sm:text-xs md:text-sm font-bold text-zinc-600 dark:text-neutral-400 uppercase tracking-wider truncate">Mobile</span>
+            <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+          </div>
+          <div className="my-0 sm:my-0.5 flex items-baseline gap-1.5">
+            <span className="font-bebas text-2xl sm:text-3xl md:text-4xl font-black text-emerald-600 dark:text-emerald-400 leading-none tracking-wide">
               {mobileItem ? `${mobileItem.percentage}%` : "0%"}
             </span>
-            <span className="text-xs text-neutral-400 font-mono">({mobileItem?.count || 0} clics)</span>
+            <span className="text-[9px] sm:text-[11px] text-zinc-500 dark:text-neutral-400 font-mono">({mobileItem?.count || 0} clicks)</span>
           </div>
-          <span className="text-[10px] text-neutral-500 font-mono">Smartphones & Réseaux Sociaux</span>
+          <div className="flex items-center justify-between pt-0.5 sm:pt-1 border-t border-zinc-200/60 dark:border-[#222225]">
+            <span className="text-[9px] sm:text-[11px] md:text-xs text-zinc-500 dark:text-neutral-400 font-mono truncate">Smartphones</span>
+            <span className="text-[8px] sm:text-[10px] md:text-[11px] font-bold text-emerald-600 dark:text-emerald-400 shrink-0">Mobile</span>
+          </div>
         </div>
 
-        <div className="p-4 rounded-[10px] bg-[#141416] border border-[#222225] flex flex-col justify-between">
-          <span className="text-[11px] font-semibold text-neutral-400">Navigateur Dominant</span>
-          <div className="my-1.5 flex items-center gap-2 truncate">
-            <Cpu className="w-5 h-5 text-[#ff6600] shrink-0" />
-            <span className="font-bold text-white text-base truncate">
-              {analytics.topBrowsers.length > 0 ? analytics.topBrowsers[0].name : "Chrome"}
+        <div className="shrink-0 w-[170px] sm:w-[240px] md:w-[280px] lg:w-[300px] h-[100px] sm:h-[120px] md:h-[135px] lg:h-[145px] p-2.5 sm:p-3.5 md:p-4 rounded-[10px] sm:rounded-[12px] md:rounded-[14px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] shadow-sm flex flex-col justify-between hover:border-[#ff6600]/50 hover:shadow-md transition-all select-none">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] sm:text-xs md:text-sm font-bold text-zinc-600 dark:text-neutral-400 uppercase tracking-wider truncate">Browser</span>
+            <div className="p-1 sm:p-1.5 rounded-full bg-orange-500/10 shrink-0">
+              <Cpu className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-[#ff6600]" />
+            </div>
+          </div>
+          <div className="my-0 sm:my-0.5 flex items-center gap-1.5 truncate">
+            <span className="font-bold text-zinc-900 dark:text-white text-base sm:text-lg md:text-xl truncate">
+              {analytics.totalClicks > 0 && analytics.topBrowsers.length > 0 ? analytics.topBrowsers[0].name : "Pending"}
             </span>
           </div>
-          <span className="text-[10px] text-[#ff6600] font-semibold">
-            {analytics.topBrowsers.length > 0 ? `${analytics.topBrowsers[0].percentage}% de part` : "100%"}
-          </span>
+          <div className="flex items-center justify-between pt-0.5 sm:pt-1 border-t border-zinc-200/60 dark:border-[#222225]">
+            <span className="text-[9px] sm:text-[11px] md:text-xs text-[#ff6600] font-bold truncate">
+              {analytics.totalClicks > 0 && analytics.topBrowsers.length > 0 ? `${analytics.topBrowsers[0].percentage}%` : "0%"}
+            </span>
+            <span className="text-[8px] sm:text-[10px] md:text-[11px] text-zinc-500 dark:text-neutral-400 font-mono shrink-0">#1</span>
+          </div>
         </div>
 
-        <div className="p-4 rounded-[10px] bg-[#141416] border border-[#222225] flex flex-col justify-between">
-          <span className="text-[11px] font-semibold text-neutral-400">Système Majoritaire</span>
-          <div className="my-1.5 flex items-center gap-2 truncate">
-            <Layers className="w-5 h-5 text-purple-400 shrink-0" />
-            <span className="font-bold text-white text-base truncate">
-              {osBreakdown.length > 0 ? osBreakdown[0].name : "Windows"}
+        <div className="shrink-0 w-[170px] sm:w-[240px] md:w-[280px] lg:w-[300px] h-[100px] sm:h-[120px] md:h-[135px] lg:h-[145px] p-2.5 sm:p-3.5 md:p-4 rounded-[10px] sm:rounded-[12px] md:rounded-[14px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] shadow-sm flex flex-col justify-between hover:border-purple-500/50 hover:shadow-md transition-all select-none">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] sm:text-xs md:text-sm font-bold text-zinc-600 dark:text-neutral-400 uppercase tracking-wider truncate">Operating System</span>
+            <div className="p-1 sm:p-1.5 rounded-full bg-purple-500/10 shrink-0">
+              <Layers className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-purple-500" />
+            </div>
+          </div>
+          <div className="my-0 sm:my-0.5 flex items-center gap-1.5 truncate">
+            <span className="font-bold text-zinc-900 dark:text-white text-base sm:text-lg md:text-xl truncate">
+              {analytics.totalClicks > 0 && osBreakdown.length > 0 ? osBreakdown[0].name : "Pending"}
             </span>
           </div>
-          <span className="text-[10px] text-purple-400 font-semibold">
-            {osBreakdown.length > 0 ? `${osBreakdown[0].percentage}% du parc` : "100%"}
-          </span>
+          <div className="flex items-center justify-between pt-0.5 sm:pt-1 border-t border-zinc-200/60 dark:border-[#222225]">
+            <span className="text-[9px] sm:text-[11px] md:text-xs text-purple-600 dark:text-purple-400 font-bold truncate">
+              {analytics.totalClicks > 0 && osBreakdown.length > 0 ? `${osBreakdown[0].percentage}%` : "0%"}
+            </span>
+            <span className="text-[8px] sm:text-[10px] md:text-[11px] text-zinc-500 dark:text-neutral-400 font-mono shrink-0">OS #1</span>
+          </div>
         </div>
-      </div>
+      </KpiCardsCarousel>
 
       {/* 3-COLUMNS: FORMATS, OS & NAVIGATEURS */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Formats d'Appareils */}
-        <div className="rounded-[10px] bg-[#141416] border border-[#222225] p-5 shadow-2xl flex flex-col justify-between">
+        <div className="rounded-[10px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] p-5 shadow-sm dark:shadow-2xl flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between mb-3 pb-2 border-b border-[#222225]">
-              <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                <Monitor className="w-4 h-4 text-blue-400" />
-                <span>Formats d&apos;Écran</span>
+            <div className="flex items-center justify-between mb-3 pb-2 border-b border-zinc-200 dark:border-[#222225]">
+              <span className="text-xs font-bold text-zinc-900 dark:text-white flex items-center gap-1.5">
+                <Monitor className="w-4 h-4 text-blue-500 dark:text-blue-400" />
+                <span>Screen Formats</span>
               </span>
-              <span className="text-[11px] text-neutral-400 font-mono">3 catégories</span>
+              <span className="text-[11px] text-zinc-500 dark:text-neutral-400 font-mono">3 categories</span>
             </div>
 
             <div className="space-y-3">
@@ -426,17 +464,17 @@ export default function DevicesAnalyticsPage() {
                 const IconComponent = isDesktop ? Laptop : isMobile ? Smartphone : Tablet;
 
                 return (
-                  <div key={dv.device} className="p-3 rounded-[10px] bg-[#1a1a1e] border border-[#27272a]">
+                  <div key={dv.device} className="p-3 rounded-[10px] bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a]">
                     <div className="flex items-center justify-between gap-2 mb-1.5">
                       <div className="flex items-center gap-2">
-                        <IconComponent className="w-4 h-4 text-neutral-300" />
-                        <span className="text-xs font-bold text-white capitalize">{dv.device}</span>
+                        <IconComponent className="w-4 h-4 text-zinc-600 dark:text-neutral-300" />
+                        <span className="text-xs font-bold text-zinc-900 dark:text-white capitalize">{dv.device}</span>
                       </div>
                       <span className="text-xs font-bold font-mono" style={{ color }}>
                         {dv.percentage}% ({dv.count})
                       </span>
                     </div>
-                    <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
+                    <div className="w-full h-1.5 rounded-full bg-zinc-200 dark:bg-white/10 overflow-hidden">
                       <div
                         className="h-full rounded-full transition-all duration-500"
                         style={{ width: `${dv.percentage}%`, backgroundColor: color }}
@@ -450,14 +488,14 @@ export default function DevicesAnalyticsPage() {
         </div>
 
         {/* Systèmes d'Exploitation (OS) */}
-        <div className="rounded-[10px] bg-[#141416] border border-[#222225] p-5 shadow-2xl flex flex-col justify-between">
+        <div className="rounded-[10px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] p-5 shadow-sm dark:shadow-2xl flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between mb-3 pb-2 border-b border-[#222225]">
-              <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                <Layers className="w-4 h-4 text-purple-400" />
-                <span>Systèmes d&apos;Exploitation</span>
+            <div className="flex items-center justify-between mb-3 pb-2 border-b border-zinc-200 dark:border-[#222225]">
+              <span className="text-xs font-bold text-zinc-900 dark:text-white flex items-center gap-1.5">
+                <Layers className="w-4 h-4 text-purple-500 dark:text-purple-400" />
+                <span>Operating Systems</span>
               </span>
-              <span className="text-[11px] text-neutral-400 font-mono">{osBreakdown.length} OS</span>
+              <span className="text-[11px] text-zinc-500 dark:text-neutral-400 font-mono">{osBreakdown.length} OS</span>
             </div>
 
             <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
@@ -469,9 +507,9 @@ export default function DevicesAnalyticsPage() {
                 const color = isWin ? "#38bdf8" : isAndroid ? "#22c55e" : isApple ? "#a855f7" : isLinux ? "#f97316" : "#eab308";
 
                 return (
-                  <div key={os.name} className="p-3 rounded-[10px] bg-[#1a1a1e] border border-[#27272a]">
+                  <div key={os.name} className="p-3 rounded-[10px] bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a]">
                     <div className="flex items-center justify-between gap-2 mb-1.5">
-                      <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                      <span className="text-xs font-bold text-zinc-900 dark:text-white flex items-center gap-1.5">
                         <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
                         <span>{os.name}</span>
                       </span>
@@ -479,7 +517,7 @@ export default function DevicesAnalyticsPage() {
                         {os.percentage}% ({os.count})
                       </span>
                     </div>
-                    <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
+                    <div className="w-full h-1.5 rounded-full bg-zinc-200 dark:bg-white/10 overflow-hidden">
                       <div
                         className="h-full rounded-full transition-all duration-500"
                         style={{ width: `${os.percentage}%`, backgroundColor: color }}
@@ -488,31 +526,37 @@ export default function DevicesAnalyticsPage() {
                   </div>
                 );
               })}
+
+              {osBreakdown.length === 0 && (
+                <p className="text-xs text-zinc-500 dark:text-neutral-500 text-center py-8">
+                  Awaiting OS detection...
+                </p>
+              )}
             </div>
           </div>
         </div>
 
         {/* Navigateurs Web */}
-        <div className="rounded-[10px] bg-[#141416] border border-[#222225] p-5 shadow-2xl flex flex-col justify-between">
+        <div className="rounded-[10px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] p-5 shadow-sm dark:shadow-2xl flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between mb-3 pb-2 border-b border-[#222225]">
-              <span className="text-xs font-bold text-white flex items-center gap-1.5">
+            <div className="flex items-center justify-between mb-3 pb-2 border-b border-zinc-200 dark:border-[#222225]">
+              <span className="text-xs font-bold text-zinc-900 dark:text-white flex items-center gap-1.5">
                 <Cpu className="w-4 h-4 text-[#ff6600]" />
-                <span>Navigateurs Web</span>
+                <span>Web Browsers</span>
               </span>
-              <span className="text-[11px] text-neutral-400 font-mono">{analytics.topBrowsers.length} navigateurs</span>
+              <span className="text-[11px] text-zinc-500 dark:text-neutral-400 font-mono">{analytics.topBrowsers.length} browsers</span>
             </div>
 
             <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
               {analytics.topBrowsers.map((br) => (
-                <div key={br.name} className="p-3 rounded-[10px] bg-[#1a1a1e] border border-[#27272a]">
+                <div key={br.name} className="p-3 rounded-[10px] bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a]">
                   <div className="flex items-center justify-between gap-2 mb-1.5">
-                    <span className="text-xs font-bold text-white">{br.name}</span>
+                    <span className="text-xs font-bold text-zinc-900 dark:text-white">{br.name}</span>
                     <span className="text-xs font-bold text-[#ff6600] font-mono">
                       {br.percentage}% ({br.count})
                     </span>
                   </div>
-                  <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
+                  <div className="w-full h-1.5 rounded-full bg-zinc-200 dark:bg-white/10 overflow-hidden">
                     <div
                       className="h-full rounded-full bg-[#ff6600] transition-all duration-500"
                       style={{ width: `${br.percentage}%` }}
@@ -520,27 +564,33 @@ export default function DevicesAnalyticsPage() {
                   </div>
                 </div>
               ))}
+
+              {analytics.topBrowsers.length === 0 && (
+                <p className="text-xs text-zinc-500 dark:text-neutral-500 text-center py-8">
+                  Awaiting browser detection...
+                </p>
+              )}
             </div>
           </div>
         </div>
       </div>
 
       {/* DETAILED TECHNOLOGICAL CLICK STREAM TABLE */}
-      <div className="rounded-[10px] bg-[#141416] border border-[#222225] p-5 sm:p-6 shadow-2xl">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5 pb-4 border-b border-[#222225]">
+      <div className="rounded-[10px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] p-5 sm:p-6 shadow-sm dark:shadow-2xl">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5 pb-4 border-b border-zinc-200 dark:border-[#222225]">
           <div>
-            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-blue-400" />
-              <span>Journal Technologique Détaillé</span>
+            <h3 className="text-lg font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-blue-500 dark:text-blue-400" />
+              <span>Detailed Technology Stream</span>
             </h3>
-            <p className="text-xs text-neutral-400">
-              Historique des visites avec horodatage, formats d&apos;écran, systèmes d&apos;exploitation et navigateurs.
+            <p className="text-xs text-zinc-500 dark:text-neutral-400">
+              Visitor log with timestamps, device formats, operating systems, and browsers.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
             {/* Filter by Device */}
-            <div className="flex items-center gap-1 p-1 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] text-xs">
+            <div className="flex items-center gap-1 p-1 rounded-[10px] bg-zinc-100 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a] text-xs">
               {(["ALL", "desktop", "mobile"] as const).map((d) => (
                 <button
                   key={d}
@@ -551,26 +601,26 @@ export default function DevicesAnalyticsPage() {
                   className={`px-2.5 py-1 rounded-[10px] font-semibold transition-all cursor-pointer ${
                     selectedDeviceFilter === d
                       ? "bg-blue-600 text-white font-bold"
-                      : "text-neutral-400 hover:text-white"
+                      : "text-zinc-600 hover:text-zinc-900 dark:text-neutral-400 dark:hover:text-white"
                   }`}
                 >
-                  {d === "ALL" ? "Tous" : d === "desktop" ? "Desktop" : "Mobile"}
+                  {d === "ALL" ? "All" : d === "desktop" ? "Desktop" : "Mobile"}
                 </button>
               ))}
             </div>
 
             {/* Search Input */}
             <div className="relative min-w-[200px]">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" />
+              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-neutral-500" />
               <input
                 type="text"
-                placeholder="Filtrer navigateur, OS, lien..."
+                placeholder="Filter by browser, OS, link..."
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-full pl-8 pr-3 py-1.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-blue-500"
+                className="w-full pl-8 pr-3 py-1.5 rounded-[10px] bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a] text-xs text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-neutral-500 focus:outline-none focus:border-blue-500"
               />
             </div>
 
@@ -589,39 +639,48 @@ export default function DevicesAnalyticsPage() {
           {paginatedEvents.map((ev) => (
             <div
               key={ev.id}
-              className="rounded-[10px] bg-[#18181c] border border-[#27272a] p-3.5 flex flex-col gap-2.5 hover:border-purple-500/40 transition-colors"
+              className="rounded-[10px] bg-zinc-50 dark:bg-[#18181c] border border-zinc-200 dark:border-[#27272a] p-3.5 flex flex-col gap-2.5 hover:border-purple-500/40 transition-colors"
             >
               {/* Top Row: Device & OS Badges + Relative Time */}
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1.5 font-mono text-[10px] font-bold">
-                  <span className="px-2 py-0.5 rounded-[10px] bg-blue-500/15 text-blue-400 border border-blue-500/30 capitalize">
+                  <span className="px-2 py-0.5 rounded-[10px] bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30 capitalize">
                     {ev.device}
                   </span>
-                  <span className="px-2 py-0.5 rounded-[10px] bg-purple-500/15 text-purple-400 border border-purple-500/30">
+                  <span className="px-2 py-0.5 rounded-[10px] bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30">
                     {ev.os}
                   </span>
                 </div>
-                <span className="text-[10px] font-mono text-neutral-400 shrink-0">
+                <span className="text-[10px] font-mono text-zinc-500 dark:text-neutral-400 shrink-0">
                   {formatDateRelative(ev.timestamp)}
                 </span>
               </div>
 
               {/* Middle Row: Browser & City/Country Location */}
               <div className="flex items-center justify-between text-xs">
-                <span className="text-neutral-300 font-medium truncate">
+                <span className="text-zinc-800 dark:text-neutral-300 font-medium truncate">
                   🌐 {ev.browser || "Chrome"}
                 </span>
-                <span className="text-neutral-400 text-[11px] truncate">
+                <span className="text-zinc-500 dark:text-neutral-400 text-[11px] truncate">
                   📍 {ev.city ? `${ev.city}, ${ev.countryName}` : ev.countryName}
                 </span>
               </div>
 
+              {/* Customer / Acheteur info */}
+              {(ev.customerName || ev.customerEmail) && (
+                <div className="flex flex-col gap-0.5 bg-zinc-100 dark:bg-[#0e0e11] px-2.5 py-1.5 rounded-[8px] border border-zinc-200 dark:border-[#222225] text-xs">
+                  <span className="text-[10px] uppercase font-bold text-zinc-500 dark:text-neutral-500">Customer / Buyer</span>
+                  {ev.customerName && <span className="font-semibold text-zinc-900 dark:text-white text-xs truncate">{ev.customerName}</span>}
+                  {ev.customerEmail && <span className="text-[11px] text-zinc-500 dark:text-neutral-400 font-mono truncate">{ev.customerEmail}</span>}
+                </div>
+              )}
+
               {/* Bottom Row: Target Link & Referrer */}
-              <div className="flex items-center justify-between pt-2 border-t border-[#222228] text-[11px] gap-2">
-                <span className="font-mono font-bold text-cyan-400 md:text-[#ff6600] bg-cyan-500/10 md:bg-[#ff6600]/10 px-2 py-0.5 rounded-[10px] border border-cyan-500/20 md:border-[#ff6600]/20 truncate">
+              <div className="flex items-center justify-between pt-2 border-t border-zinc-200 dark:border-[#222228] text-[11px] gap-2">
+                <span className="font-mono font-bold text-cyan-600 dark:text-cyan-400 md:text-[#ff6600] bg-cyan-500/10 md:bg-[#ff6600]/10 px-2 py-0.5 rounded-[10px] border border-cyan-500/20 md:border-[#ff6600]/20 truncate">
                   /{ev.slug}
                 </span>
-                <span className="px-2 py-0.5 rounded-[10px] bg-white/5 border border-[#27272a] text-[10px] font-mono text-neutral-400 shrink-0">
+                <span className="px-2 py-0.5 rounded-[10px] bg-zinc-100 dark:bg-white/5 border border-zinc-200 dark:border-[#27272a] text-[10px] font-mono text-zinc-500 dark:text-neutral-400 shrink-0">
                   {ev.referrer || "Direct"}
                 </span>
               </div>
@@ -629,54 +688,73 @@ export default function DevicesAnalyticsPage() {
           ))}
 
           {paginatedEvents.length === 0 && (
-            <div className="py-8 text-center text-neutral-500 text-xs">
-              Aucun événement correspondant aux critères.
+            <div className="py-8 text-center text-zinc-500 dark:text-neutral-500 text-xs">
+              No events match the selected criteria.
             </div>
           )}
         </div>
 
         {/* 2. Desktop Data Table (>= 768px) */}
-        <div className="hidden md:block overflow-x-auto">
+        <div className="hidden md:block overflow-x-auto rounded-[8px] border border-zinc-200 dark:border-[#222225]">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-[#222225] text-neutral-400 uppercase tracking-wider text-[10px]">
-                {visibleColumns.has("timestamp") && <th className="py-2.5 px-3">Horodatage</th>}
-                {visibleColumns.has("device") && <th className="py-2.5 px-3">Appareil</th>}
-                {visibleColumns.has("browser") && <th className="py-2.5 px-3">Navigateur</th>}
-                {visibleColumns.has("os") && <th className="py-2.5 px-3">Système (OS)</th>}
-                {visibleColumns.has("link") && <th className="py-2.5 px-3">Lien Cible</th>}
-                {visibleColumns.has("location") && <th className="py-2.5 px-3">Localisation</th>}
-                {visibleColumns.has("referrer") && <th className="py-2.5 px-3">Source</th>}
+              <tr className="border-b border-zinc-200 dark:border-[#222225] bg-zinc-100/70 dark:bg-[#0e0e11]/80 text-zinc-700 dark:text-neutral-400 font-semibold text-[11px]">
+                {visibleColumns.has("timestamp") && <th className="py-2.5 px-3">Timestamp</th>}
+                {visibleColumns.has("device") && <th className="py-2.5 px-3">Device</th>}
+                {visibleColumns.has("browser") && <th className="py-2.5 px-3">Browser</th>}
+                {visibleColumns.has("os") && <th className="py-2.5 px-3">Operating System (OS)</th>}
+                {visibleColumns.has("customer") && <th className="py-2.5 px-3">Customer / Buyer</th>}
+                {visibleColumns.has("link") && <th className="py-2.5 px-3">Target Link</th>}
+                {visibleColumns.has("location") && <th className="py-2.5 px-3">Location</th>}
+                {visibleColumns.has("referrer") && <th className="py-2.5 px-3">Referrer</th>}
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#222225]/60">
+            <tbody className="divide-y divide-zinc-200 dark:divide-[#222225]/60 text-zinc-800 dark:text-neutral-200">
               {paginatedEvents.map((ev) => (
-                <tr key={ev.id} className="hover:bg-white/5 transition-colors">
+                <tr key={ev.id} className="hover:bg-zinc-50 dark:hover:bg-white/5 transition-colors">
                   {visibleColumns.has("timestamp") && (
-                    <td className="py-3 px-3 font-mono text-neutral-400 whitespace-nowrap">
+                    <td className="py-3 px-3 font-mono text-zinc-500 dark:text-neutral-400 whitespace-nowrap">
                       {formatDateRelative(ev.timestamp)}
                     </td>
                   )}
 
                   {visibleColumns.has("device") && (
-                    <td className="py-3 px-3 font-semibold text-white capitalize whitespace-nowrap">
-                      <span className="px-2 py-0.5 rounded-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[10px]">
+                    <td className="py-3 px-3 font-semibold text-zinc-900 dark:text-white capitalize whitespace-nowrap">
+                      <span className="px-2 py-0.5 rounded-[10px] bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-[10px]">
                         {ev.device}
                       </span>
                     </td>
                   )}
 
                   {visibleColumns.has("browser") && (
-                    <td className="py-3 px-3 text-neutral-300 font-medium">
+                    <td className="py-3 px-3 text-zinc-700 dark:text-neutral-300 font-medium">
                       {ev.browser || "Chrome"}
                     </td>
                   )}
 
                   {visibleColumns.has("os") && (
                     <td className="py-3 px-3 font-semibold whitespace-nowrap">
-                      <span className="px-2 py-0.5 rounded-[10px] bg-purple-500/10 text-purple-400 border border-purple-500/20 text-[10px]">
+                      <span className="px-2 py-0.5 rounded-[10px] bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 text-[10px]">
                         {ev.os}
                       </span>
+                    </td>
+                  )}
+
+                  {visibleColumns.has("customer") && (
+                    <td className="py-3 px-3">
+                      {(() => {
+                        const name = ev.customerName;
+                        const email = ev.customerEmail;
+                        if (!name && !email) {
+                          return <span className="text-zinc-400 dark:text-neutral-600 font-mono text-xs">—</span>;
+                        }
+                        return (
+                          <div className="flex flex-col min-w-0">
+                            {name && <span className="font-medium text-zinc-900 dark:text-white truncate text-xs">{name}</span>}
+                            {email && <span className="text-[10.5px] text-zinc-500 dark:text-neutral-400 font-mono truncate" title={email}>{email}</span>}
+                          </div>
+                        );
+                      })()}
                     </td>
                   )}
 
@@ -687,14 +765,14 @@ export default function DevicesAnalyticsPage() {
                   )}
 
                   {visibleColumns.has("location") && (
-                    <td className="py-3 px-3 text-neutral-400">
+                    <td className="py-3 px-3 text-zinc-700 dark:text-neutral-400">
                       {ev.city ? `${ev.city}, ${ev.countryName}` : ev.countryName}
                     </td>
                   )}
 
                   {visibleColumns.has("referrer") && (
-                    <td className="py-3 px-3 text-neutral-400">
-                      <span className="px-2 py-0.5 rounded-[10px] bg-white/5 border border-[#27272a] text-[10px] font-mono">
+                    <td className="py-3 px-3 text-zinc-700 dark:text-neutral-400">
+                      <span className="px-2 py-0.5 rounded-[10px] bg-zinc-100 dark:bg-white/5 border border-zinc-200 dark:border-[#27272a] text-[10px] font-mono">
                         {ev.referrer || "Direct"}
                       </span>
                     </td>
@@ -704,8 +782,8 @@ export default function DevicesAnalyticsPage() {
 
               {paginatedEvents.length === 0 && (
                 <tr>
-                  <td colSpan={visibleColumns.size} className="py-8 text-center text-neutral-500 text-xs">
-                    Aucun événement correspondant aux critères.
+                  <td colSpan={visibleColumns.size} className="py-8 text-center text-zinc-500 dark:text-neutral-500 text-xs">
+                    No events match the selected criteria.
                   </td>
                 </tr>
               )}
@@ -714,27 +792,27 @@ export default function DevicesAnalyticsPage() {
         </div>
 
         {/* Pagination */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 mt-3 border-t border-[#222225] text-xs text-neutral-400">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 mt-3 border-t border-zinc-200 dark:border-[#222225] text-xs text-zinc-500 dark:text-neutral-400">
           <span className="text-center sm:text-left">
-            Affichage de {(currentPage - 1) * pageSize + 1} à{" "}
-            {Math.min(currentPage * pageSize, filteredEvents.length)} sur {filteredEvents.length} événements
+            Showing {(currentPage - 1) * pageSize + 1} to{" "}
+            {Math.min(currentPage * pageSize, filteredEvents.length)} of {filteredEvents.length} events
           </span>
 
           <div className="flex items-center justify-center gap-1.5">
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="p-1.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] disabled:opacity-40 hover:bg-white/10 text-white cursor-pointer"
+              className="p-1.5 rounded-[10px] bg-zinc-100 hover:bg-zinc-200 dark:bg-[#1a1a1e] border border-zinc-300 dark:border-[#27272a] disabled:opacity-40 text-zinc-700 dark:text-white cursor-pointer"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
             </button>
-            <span className="px-3 py-1 font-mono text-white text-xs bg-[#1a1a1e] border border-[#27272a] rounded-[10px] whitespace-nowrap">
+            <span className="px-3 py-1 font-mono text-zinc-900 dark:text-white text-xs bg-zinc-100 dark:bg-[#1a1a1e] border border-zinc-300 dark:border-[#27272a] rounded-[10px] whitespace-nowrap">
               Page {currentPage} / {totalPages}
             </span>
             <button
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
-              className="p-1.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] disabled:opacity-40 hover:bg-white/10 text-white cursor-pointer"
+              className="p-1.5 rounded-[10px] bg-zinc-100 hover:bg-zinc-200 dark:bg-[#1a1a1e] border border-zinc-300 dark:border-[#27272a] disabled:opacity-40 text-zinc-700 dark:text-white cursor-pointer"
             >
               <ChevronRight className="w-3.5 h-3.5" />
             </button>

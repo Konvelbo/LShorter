@@ -23,10 +23,6 @@ export async function GET(req: Request) {
   }
 
   try {
-    const visitorInfo = parseVisitorDetails(req);
-    const clientCountry = visitorInfo.countryCode || "BF";
-    const clientCity = visitorInfo.city || "Ouagadougou";
-
     // 1. Fetch links from Worker (primary) and Convex (fallback)
     const [workerLinksRes, workerAnalyticsRes] = await Promise.all([
       fetch(`${WORKER_URL}/api/v1/links?userId=${userId}`, {

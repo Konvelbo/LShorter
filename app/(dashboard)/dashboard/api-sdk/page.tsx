@@ -42,7 +42,7 @@ export default function ApiSdkPage() {
   const [newlyCreatedKey, setNewlyCreatedKey] = useState<ApiKeyItem | null>(null);
   const [revealedKeys, setRevealedKeys] = useState<Record<string, boolean>>({});
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
-  const [activeCodeTab, setActiveCodeTab] = useState<"create" | "track" | "analytics">("create");
+  const [activeCodeTab, setActiveCodeTab] = useState<"create" | "track" | "analytics" | "profile">("create");
 
   const toggleRevealKey = (id: string) => {
     setRevealedKeys((prev) => ({
@@ -60,15 +60,20 @@ export default function ApiSdkPage() {
       const res = await cfGetApiKeys(userId);
       const userPlan = (session?.user as any)?.plan || "FREEMIUM";
       const isProOrBusiness = userPlan === "PRO" || userPlan === "BUSINESS";
-      const defaultRateLimit = isProOrBusiness ? "Illimité (Débit Max)" : "1 000 req / min";
+      const defaultRateLimit = isProOrBusiness ? "Unlimited (Max Throughput)" : "1,000 req / min";
 
       const rawKeys: ApiKeyItem[] = (res?.data || []).map((k: any) => ({
         id: k.id,
-        name: k.name || "Clé API",
+        name: k.name || "API Key",
         prefix: k.prefix || k.key_prefix || "lsh_live_...",
         rawKey: k.raw_key,
         scope: (k.scope as any) || "read_write",
         rateLimit: k.rate_limit ? `${k.rate_limit} req / min` : defaultRateLimit,
+        userEmail: k.user_email || k.userEmail || k.email,
+        userName: k.user_name || k.userName || k.user_full_name || k.userFullName || k.fullName,
+        userFullName: k.user_full_name || k.userFullName || k.user_name || k.userName || k.fullName,
+        email: k.user_email || k.userEmail || k.email,
+        fullName: k.user_full_name || k.userFullName || k.user_name || k.userName || k.fullName,
         created_at: k.created_at || new Date().toISOString(),
       }));
       setKeys(rawKeys);
@@ -105,6 +110,9 @@ export default function ApiSdkPage() {
         userId,
         name: keyNameInput.trim(),
         scope: keyScopeInput,
+        userEmail: session?.user?.email || undefined,
+        userName: session?.user?.name || undefined,
+        userFullName: session?.user?.name || undefined,
       });
 
       if (res?.data) {
@@ -115,6 +123,11 @@ export default function ApiSdkPage() {
           rawKey: res.data.raw_key || res.data.rawKey || res.data.api_key,
           scope: keyScopeInput,
           rateLimit: "600 req / min",
+          userEmail: session?.user?.email || undefined,
+          userName: session?.user?.name || undefined,
+          userFullName: session?.user?.name || undefined,
+          email: session?.user?.email || undefined,
+          fullName: session?.user?.name || undefined,
           created_at: new Date().toISOString(),
         });
       }
@@ -122,10 +135,10 @@ export default function ApiSdkPage() {
       setKeyNameInput("");
       setIsGenerating(false);
       confetti({ particleCount: 50, spread: 70, origin: { y: 0.6 } });
-      showToast.success("Clé API générée avec succès !");
+      showToast.success("API key generated successfully!");
       loadKeys();
     } catch (err: any) {
-      showToast.error(err.message || "Erreur lors de la création de la clé API.");
+      showToast.error(err.message || "Error creating API key.");
     }
   };
 
@@ -151,30 +164,31 @@ export default function ApiSdkPage() {
     try {
       await cfRevokeApiKey(deleteTarget.id);
       cfInvalidateCache("/api/keys");
-      showToast.success("Clé API révoquée.");
+      showToast.success("API key revoked.");
       setDeleteTarget({ isOpen: false, id: "", name: "" });
       loadKeys();
     } catch (err) {
-      showToast.error("Erreur lors de la révocation de la clé API.");
+      showToast.error("Error revoking API key.");
     } finally {
       setIsRevoking(false);
     }
   };
 
   const codeSnippets = {
-    create: `import { LShorter } from "@lshorter/sdk";
+    create: `// Installation: npm i lshorter-api
+import { LShorter } from "lshorter-api";
 
 const qk = new LShorter({
-  apiKey: "sk_live_votre_cle_api_ici",
+  apiKey: "sk_live_your_api_key_here",
 });
 
-// Création d'un lien avec ciblage intelligent
+// Create a short link with smart targeting
 const link = await qk.links.create({
-  targetUrl: "https://votre-boutique.com/produit",
-  slug: "promo-ete",
+  targetUrl: "https://your-store.com/product",
+  slug: "summer-promo",
   geoTargeting: {
-    FR: "https://votre-boutique.fr/promo",
-    US: "https://votre-boutique.com/us-promo",
+    FR: "https://your-store.fr/promo",
+    US: "https://your-store.com/us-promo",
   },
   deviceTargeting: {
     ios: "https://apps.apple.com/app/...",
@@ -182,37 +196,53 @@ const link = await qk.links.create({
   },
 });
 
-console.log("Lien court :", link.shortUrl);
-console.log("QR Code (DataURL) :", link.qrCode);`,
+console.log("Short link:", link.shortUrl);
+console.log("QR Code (DataURL):", link.qrCode);`,
 
-    track: `import { LShorter } from "@lshorter/sdk";
+    track: `import { LShorter } from "lshorter-api";
 
 const qk = new LShorter({ apiKey: "sk_live_..." });
 
-// Remontez une conversion/vente lors du paiement
+// Record a conversion/sale upon checkout (with avatar, name, and email)
 await qk.track.conversion({
   eventName: "purchase",
   amount: 49.0,
   currency: "EUR",
   linkId: "link_01",
-  clickId: "clk_abc123", // Capturé lors de la visite
+  clickId: "clk_abc123", // Captured during visitor session
   customer: {
-    email: "client@exemple.com",
-    name: "Jean Dupont"
+    email: "customer@example.com",
+    name: "Alex Smith",
+    avatarUrl: "https://example.com/photos/alex.jpg" // Profile photo in revenue analytics
   }
 });`,
 
-    analytics: `import { LShorter } from "@lshorter/sdk";
+    analytics: `import { LShorter } from "lshorter-api";
 
 const qk = new LShorter({ apiKey: "sk_live_..." });
 
-// Récupération des analytics et des top pays
+// Retrieve link analytics and top audience countries
 const stats = await qk.analytics.dashboard({ linkId: "link_01" });
-console.log("Clics totaux :", stats.clicks.total);
-console.log("Revenus trackés :", stats.conversions[0].revenue);
+console.log("Total clicks:", stats.clicks.total);
+console.log("Tracked revenue:", stats.conversions[0].revenue);
 
 const topAudience = await qk.analytics.top();
-console.log("Top Pays :", topAudience.topCountries);`
+console.log("Top Countries:", topAudience.topCountries);`,
+
+    profile: `import { LShorter } from "lshorter-api";
+
+const qk = new LShorter({ apiKey: "sk_live_..." });
+
+// GET /api/v1/users/me — Profile, Email & Full Name
+const me = await qk.users.me();
+
+console.log("User ID:", me.id);
+console.log("Email Address:", me.email);
+console.log("Full Name:", me.fullName);
+console.log("Subscribed Plan:", me.plan);
+console.log("Clicks consumed this month:", me.clicksThisMonth);
+console.log("Active links:", me.linksCount);
+console.log("Custom domains:", me.domainsCount);`
   };
 
   if (status === "loading" || isLoading) {
@@ -224,9 +254,9 @@ console.log("Top Pays :", topAudience.topCountries);`
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-wide">API & SDK Développeur</h1>
+          <h1 className="text-2xl font-bold text-white tracking-wide">Developer API & SDK</h1>
           <p className="text-xs text-neutral-400 mt-1">
-            Générez des clés API sécurisées (sk_live_...) et intégrez la réduction de liens dans vos applications.
+            Generate secure API keys (sk_live_...) and integrate URL shortening directly into your applications.
           </p>
         </div>
 
@@ -237,14 +267,14 @@ console.log("Top Pays :", topAudience.topCountries);`
               cfInvalidateCache("/api/keys");
               await loadKeys();
               setIsRefreshing(false);
-              showToast.success("Liste des clés API actualisée !");
+              showToast.success("API keys list refreshed!");
             }}
             variant="outline"
             disabled={isRefreshing}
             className="h-10 px-3.5 text-xs font-semibold gap-2 border-[#27272a] bg-[#141416] hover:bg-white/5 text-neutral-300 hover:text-white cursor-pointer shadow-sm"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-[#ff6600]" : "text-neutral-400"}`} />
-            <span>Actualiser</span>
+            <span>Refresh</span>
           </Button>
 
           <Button
@@ -253,7 +283,7 @@ console.log("Top Pays :", topAudience.topCountries);`
             className="font-bebas text-lg tracking-wide gap-1.5 shrink-0"
           >
             <Plus className="w-5 h-5" />
-            <span>GÉNÉRER UNE CLÉ API</span>
+            <span>GENERATE API KEY</span>
           </Button>
         </div>
       </div>
@@ -267,14 +297,14 @@ console.log("Top Pays :", topAudience.topCountries);`
           <div className="flex items-center justify-between">
             <h3 className="text-base font-bold text-white flex items-center gap-2">
               <KeyRound className="w-4 h-4 text-[#ff6600]" />
-              <span>Générer une nouvelle clé API</span>
+              <span>Generate a new API key</span>
             </h3>
             <button
               type="button"
               onClick={() => setIsGenerating(false)}
               className="text-xs text-neutral-400 hover:text-white cursor-pointer"
             >
-              Fermer ✕
+              Close ✕
             </button>
           </div>
 
@@ -282,7 +312,7 @@ console.log("Top Pays :", topAudience.topCountries);`
             <div className="flex-1">
               <Input
                 required
-                placeholder="Nom de l'application (ex: Bot Telegram, Zapier, Backend Worker...)"
+                placeholder="Application name (e.g. Telegram Bot, Zapier, Backend Worker...)"
                 value={keyNameInput}
                 onChange={(e) => setKeyNameInput(e.target.value)}
                 className="h-10 text-xs bg-[#0c0c0e] border-[#27272a]"
@@ -294,14 +324,14 @@ console.log("Top Pays :", topAudience.topCountries);`
                 onChange={(e) => setKeyScopeInput(e.target.value as "read" | "read_write" | "admin")}
                 className="w-full h-10 rounded-[10px] bg-[#0c0c0e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
               >
-                <option value="read_write" className="bg-[#141416] text-white">Lecture & Écriture</option>
-                <option value="admin" className="bg-[#141416] text-white">Accès Complet (Admin)</option>
-                <option value="read" className="bg-[#141416] text-white">Lecture Seule</option>
+                <option value="read_write" className="bg-[#141416] text-white">Read & Write</option>
+                <option value="admin" className="bg-[#141416] text-white">Full Access (Admin)</option>
+                <option value="read" className="bg-[#141416] text-white">Read Only</option>
               </select>
             </div>
             <Button type="submit" variant="glow" className="shrink-0 h-10 px-6 text-xs font-bold gap-1.5 cursor-pointer shadow-md">
               <Plus className="w-4 h-4" />
-              <span>Créer la clé</span>
+              <span>Create key</span>
             </Button>
             <Button
               type="button"
@@ -309,7 +339,7 @@ console.log("Top Pays :", topAudience.topCountries);`
               onClick={() => setIsGenerating(false)}
               className="shrink-0 h-10 px-4 text-xs font-semibold border-[#27272a] cursor-pointer"
             >
-              Annuler
+              Cancel
             </Button>
           </div>
         </form>
@@ -320,7 +350,7 @@ console.log("Top Pays :", topAudience.topCountries);`
         <div className="flex items-center justify-between">
           <h3 className="text-base font-bold text-white flex items-center gap-2">
             <KeyRound className="w-4 h-4 text-[#ff6600]" />
-            <span>Clés API Actives ({keys.length})</span>
+            <span>Active API Keys ({keys.length})</span>
           </h3>
         </div>
 
@@ -329,9 +359,9 @@ console.log("Top Pays :", topAudience.topCountries);`
             <div className="w-10 h-10 rounded-[10px] bg-neutral-800/60 border border-neutral-700/40 flex items-center justify-center text-neutral-500">
               <KeyRound className="w-5 h-5" />
             </div>
-            <p className="text-xs font-semibold text-neutral-300">Aucune clé API active pour le moment</p>
+            <p className="text-xs font-semibold text-neutral-300">No active API keys yet</p>
             <p className="text-[11px] text-neutral-500 max-w-xs">
-              Cliquez sur &quot;Générer une clé API&quot; ci-dessus pour créer votre premier jeton développeur.
+              Click &quot;Generate API Key&quot; above to create your first developer token.
             </p>
           </div>
         ) : (
@@ -344,8 +374,8 @@ console.log("Top Pays :", topAudience.topCountries);`
 
               const getScopeBadge = (scope?: string) => {
                 if (scope === "admin") return { label: "Admin", color: "bg-red-500/10 text-red-400 border-red-500/20" };
-                if (scope === "read") return { label: "Lecture Seule", color: "bg-blue-500/10 text-blue-400 border-blue-500/20" };
-                return { label: "Lecture & Écriture", color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" };
+                if (scope === "read") return { label: "Read Only", color: "bg-blue-500/10 text-blue-400 border-blue-500/20" };
+                return { label: "Read & Write", color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" };
               };
               const scopeInfo = getScopeBadge(key.scope);
 
@@ -367,12 +397,27 @@ console.log("Top Pays :", topAudience.topCountries);`
                     </div>
 
                     <div className="flex items-center gap-4 text-[11px] text-neutral-500">
-                      <span>Créée le {new Date(key.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" })}</span>
+                      <span>Created on {new Date(key.created_at).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" })}</span>
                       {key.lastUsedAt && (
-                        <span>Dernier accès : {new Date(key.lastUsedAt).toLocaleDateString("fr-FR")}</span>
+                        <span>Last used: {new Date(key.lastUsedAt).toLocaleDateString("en-US")}</span>
                       )}
                     </div>
                   </div>
+
+                  {/* Creator / User Details (Full Name & Email) - empty if no info */}
+                  {(() => {
+                    const name = key.userFullName || key.userName || key.fullName;
+                    const email = key.userEmail || key.email;
+                    if (!name && !email) return null;
+                    return (
+                      <div className="flex items-center gap-1.5 text-[11px] text-neutral-400 bg-[#070709] px-2.5 py-1 rounded-[6px] border border-[#1f1f23] truncate">
+                        <span className="text-neutral-500 text-[10px] font-semibold shrink-0">Creator:</span>
+                        {name && <span className="text-neutral-200 font-medium truncate">{name}</span>}
+                        {name && email && <span className="text-neutral-600">·</span>}
+                        {email && <span className="text-neutral-400 font-mono text-[10px] truncate">{email}</span>}
+                      </div>
+                    );
+                  })()}
 
                   {/* Key Value & Action Buttons */}
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 p-2.5 rounded-[8px] bg-[#070709] border border-[#1f1f23]">
@@ -388,17 +433,17 @@ console.log("Top Pays :", topAudience.topCountries);`
                         type="button"
                         onClick={() => toggleRevealKey(key.id)}
                         className="h-8 px-2.5 rounded-[6px] bg-[#1a1a1e] hover:bg-[#25252c] border border-[#2a2a30] text-neutral-300 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
-                        title={isRevealed ? "Masquer la clé" : "Démasquer la clé"}
+                        title={isRevealed ? "Hide key" : "Reveal key"}
                       >
                         {isRevealed ? (
                           <>
                             <EyeOff className="w-3.5 h-3.5 text-neutral-400" />
-                            <span className="hidden sm:inline">Masquer</span>
+                            <span className="hidden sm:inline">Hide</span>
                           </>
                         ) : (
                           <>
                             <Eye className="w-3.5 h-3.5 text-neutral-400" />
-                            <span className="hidden sm:inline">Démasquer</span>
+                            <span className="hidden sm:inline">Reveal</span>
                           </>
                         )}
                       </button>
@@ -409,21 +454,21 @@ console.log("Top Pays :", topAudience.topCountries);`
                         onClick={() => {
                           handleCopy(actualKey);
                           setCopiedKey(key.id);
-                          showToast.success("Clé API copiée dans le presse-papier !");
+                          showToast.success("API key copied to clipboard!");
                           setTimeout(() => setCopiedKey(null), 2000);
                         }}
                         className="h-8 px-2.5 rounded-[6px] bg-[#1a1a1e] hover:bg-[#25252c] border border-[#2a2a30] text-neutral-300 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
-                        title="Copier la clé"
+                        title="Copy key"
                       >
                         {isCopied ? (
                           <>
                             <Check className="w-3.5 h-3.5 text-emerald-400" />
-                            <span className="text-emerald-400">Copié</span>
+                            <span className="text-emerald-400">Copied</span>
                           </>
                         ) : (
                           <>
                             <Copy className="w-3.5 h-3.5 text-neutral-400" />
-                            <span>Copier</span>
+                            <span>Copy</span>
                           </>
                         )}
                       </button>
@@ -433,7 +478,7 @@ console.log("Top Pays :", topAudience.topCountries);`
                         type="button"
                         onClick={() => promptRevokeKey(key)}
                         className="h-8 w-8 rounded-[6px] bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 hover:text-red-300 flex items-center justify-center transition-colors cursor-pointer"
-                        title="Révoquer cette clé"
+                        title="Revoke key"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -454,8 +499,8 @@ console.log("Top Pays :", topAudience.topCountries);`
               <Code2 className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-white">SDK TypeScript Officiel (@lshorter/sdk)</h3>
-              <p className="text-xs text-neutral-400">Exemples d&apos;implémentation prêts à l&apos;emploi</p>
+              <h3 className="text-lg font-bold text-white">Official TypeScript SDK (npm i lshorter-api)</h3>
+              <p className="text-xs text-neutral-400">Ready-to-use implementation examples</p>
             </div>
           </div>
 
@@ -468,7 +513,7 @@ console.log("Top Pays :", topAudience.topCountries);`
                   : "text-neutral-400 hover:text-white"
               }`}
             >
-              Créer un Lien
+              Create Link
             </button>
             <button
               onClick={() => setActiveCodeTab("track")}
@@ -490,14 +535,24 @@ console.log("Top Pays :", topAudience.topCountries);`
             >
               Analytics
             </button>
+            <button
+              onClick={() => setActiveCodeTab("profile")}
+              className={`px-3 py-1.5 rounded-[10px] font-medium transition-colors cursor-pointer ${
+                activeCodeTab === "profile"
+                  ? "bg-[#ff6600] text-white"
+                  : "text-neutral-400 hover:text-white"
+              }`}
+            >
+              Profile (FullName)
+            </button>
           </div>
         </div>
 
         {/* Code Box */}
         <CodeBlock
           code={codeSnippets[activeCodeTab]}
-          language="bash"
-          filename={`curl - ${activeCodeTab}`}
+          language="typescript"
+          filename={`sdk - ${activeCodeTab}.ts`}
         />
       </div>
 
@@ -513,11 +568,12 @@ console.log("Top Pays :", topAudience.topCountries);`
         isOpen={deleteTarget.isOpen}
         onClose={() => setDeleteTarget({ isOpen: false, id: "", name: "" })}
         onConfirm={confirmRevokeKey}
-        title="Révoquer cette clé API ?"
-        description={`La clé "${deleteTarget.name}" sera invalidée immédiatement. Toutes les applications utilisant ce token perdront l'accès aux API.`}
+        title="Revoke this API key?"
+        description={`The key "${deleteTarget.name}" will be invalidated immediately. All applications using this token will lose API access.`}
         itemLabels={deleteTarget.name ? [deleteTarget.name] : []}
         isDeleting={isRevoking}
       />
     </div>
   );
 }
+

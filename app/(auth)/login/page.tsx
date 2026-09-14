@@ -44,24 +44,24 @@ export default function LoginPage({ initialMode = "login" }: { initialMode?: "lo
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) {
-      showToast.error("Veuillez saisir votre adresse e-mail.");
+      showToast.error("Please enter your email address.");
       return;
     }
     if (!password.trim()) {
-      showToast.error("Veuillez saisir votre mot de passe.");
+      showToast.error("Please enter your password.");
       return;
     }
     if (authMode === "register") {
       if (!confirmPassword.trim()) {
-        showToast.error("Veuillez confirmer votre mot de passe.");
+        showToast.error("Please confirm your password.");
         return;
       }
       if (password !== confirmPassword) {
-        showToast.error("Les mots de passe ne correspondent pas.");
+        showToast.error("Passwords do not match.");
         return;
       }
       if (password.length < 8) {
-        showToast.error("Le mot de passe doit contenir au moins 8 caractères.");
+        showToast.error("Password must be at least 8 characters long.");
         return;
       }
     }
@@ -71,7 +71,7 @@ export default function LoginPage({ initialMode = "login" }: { initialMode?: "lo
     try {
       const cleanEmail = email.trim().toLowerCase();
       const cleanName = name.trim() || cleanEmail.split("@")[0].replace(/[._-]/g, " ");
-      const userName = cleanName.charAt(0).toUpperCase() + cleanName.slice(1) || "Mon Compte";
+      const userName = cleanName.charAt(0).toUpperCase() + cleanName.slice(1) || "My Account";
 
       if (authMode === "register") {
         // Send registration to server route which securely hashes password and saves user
@@ -84,9 +84,9 @@ export default function LoginPage({ initialMode = "login" }: { initialMode?: "lo
         const json = await res.json();
         if (!res.ok) {
           if (json.error === "EMAIL_ALREADY_EXISTS") {
-            showToast.error("Cette adresse email est déjà utilisée. Connectez-vous à la place.");
+            showToast.error("This email is already in use. Please log in instead.");
           } else {
-            showToast.error(json.error || "Erreur lors de l'inscription.");
+            showToast.error(json.error || "Registration failed.");
           }
           setIsLoading(false);
           return;
@@ -106,11 +106,11 @@ export default function LoginPage({ initialMode = "login" }: { initialMode?: "lo
         if (result.error.includes("2FA_REQUIRED") || result.code === "2FA_REQUIRED") {
           setShow2FAChallenge(true);
           setIsLoading(false);
-          showToast.info("Vérification en deux étapes requise pour ce compte.");
+          showToast.info("Two-factor authentication required for this account.");
           return;
         }
         if (result.error.includes("2FA_INVALID_CODE") || result.code === "2FA_INVALID_CODE") {
-          showToast.error("Code 2FA incorrect ou expiré. Veuillez vérifier votre application ou code de secours.");
+          showToast.error("Invalid or expired 2FA code. Please check your authenticator app or backup code.");
           setIsLoading(false);
           return;
         }
@@ -127,19 +127,19 @@ export default function LoginPage({ initialMode = "login" }: { initialMode?: "lo
             if (checkData?.twoFactorEnabled) {
               setShow2FAChallenge(true);
               setIsLoading(false);
-              showToast.info("Veuillez saisir votre code à 6 chiffres pour continuer.");
+              showToast.info("Please enter your 6-digit code to continue.");
               return;
             }
           } catch {}
         }
 
-        showToast.error("Email ou mot de passe incorrect.");
+        showToast.error("Invalid email or password.");
         setIsLoading(false);
         return;
       }
 
       confetti({ particleCount: 60, spread: 70, origin: { y: 0.6 } });
-      showToast.success(`Bienvenue sur LShorter, ${userName} !`);
+      showToast.success(`Welcome to LShorter, ${userName}!`);
 
       // For new registrations redirect to onboarding, else to dashboard
       if (authMode === "register") {
@@ -149,7 +149,7 @@ export default function LoginPage({ initialMode = "login" }: { initialMode?: "lo
       }
     } catch (error) {
       console.error("Auth error:", error);
-      showToast.error("Une erreur est survenue lors de l'authentification. Veuillez réessayer.");
+      showToast.error("An error occurred during authentication. Please try again.");
       setIsLoading(false);
     }
   };
@@ -163,16 +163,16 @@ export default function LoginPage({ initialMode = "login" }: { initialMode?: "lo
       if (err) {
         if (err === "Configuration") {
           showToast.error(
-            "Configuration OAuth incomplète : GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET manquants dans Vercel."
+            "Incomplete OAuth configuration: GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET missing."
           );
         } else if (err === "OAuthCallbackError" || err === "OAuthCallback") {
           showToast.error(
-            "Erreur de callback OAuth : Vérifiez l'URI de redirection https://lsho.cc/api/auth/callback/google."
+            "OAuth callback error: Please verify the redirect URI."
           );
         } else if (err === "AccessDenied") {
-          showToast.error("Accès refusé par le fournisseur de connexion.");
+          showToast.error("Access denied by authentication provider.");
         } else {
-          showToast.error(`Erreur d'authentification : ${err}`);
+          showToast.error(`Authentication error: ${err}`);
         }
       }
     }
@@ -183,7 +183,7 @@ export default function LoginPage({ initialMode = "login" }: { initialMode?: "lo
       if (hasRedirected) return;
       hasRedirected = true;
       confetti({ particleCount: 60, spread: 70, origin: { y: 0.6 } });
-      showToast.success("Connexion réussie !");
+      showToast.success("Login successful!");
       setTimeout(() => {
         router.push("/dashboard");
       }, 500);
@@ -234,7 +234,7 @@ export default function LoginPage({ initialMode = "login" }: { initialMode?: "lo
     } catch (error) {
       console.error("OAuth Sign-in error:", error);
       showToast.error(
-        `Erreur OAuth ${provider === "google" ? "Google" : "GitHub"}. Vérifiez votre configuration.`
+        `OAuth error with ${provider === "google" ? "Google" : "GitHub"}. Please check your configuration.`
       );
       setIsLoading(false);
     }
@@ -258,290 +258,289 @@ export default function LoginPage({ initialMode = "login" }: { initialMode?: "lo
             </span>
           </Link>
         </div>
-          {/* Mode Switcher */}
-          <div className="grid grid-cols-2 p-1 bg-[#141416] border border-[#27272a] rounded-[10px] text-xs font-semibold">
-            <button
-              type="button"
-              onClick={() => setAuthMode("login")}
-              className={`py-2.5 rounded-[10px] transition-all cursor-pointer ${
-                authMode === "login"
-                  ? "bg-[#ff6600] text-white shadow-md font-bold"
-                  : "text-neutral-400 hover:text-white"
-              }`}
-            >
-              Connexion
-            </button>
-            <button
-              type="button"
-              onClick={() => setAuthMode("register")}
-              className={`py-2.5 rounded-[10px] transition-all cursor-pointer ${
-                authMode === "register"
-                  ? "bg-[#ff6600] text-white shadow-md font-bold"
-                  : "text-neutral-400 hover:text-white"
-              }`}
-            >
-              Inscription
-            </button>
-          </div>
+        {/* Mode Switcher */}
+        <div className="grid grid-cols-2 p-1 bg-[#141416] border border-[#27272a] rounded-[10px] text-xs font-semibold">
+          <button
+            type="button"
+            onClick={() => setAuthMode("login")}
+            className={`py-2.5 rounded-[10px] transition-all cursor-pointer ${
+              authMode === "login"
+                ? "bg-[#ff6600] text-white shadow-md font-bold"
+                : "text-neutral-400 hover:text-white"
+            }`}
+          >
+            Log in
+          </button>
+          <button
+            type="button"
+            onClick={() => setAuthMode("register")}
+            className={`py-2.5 rounded-[10px] transition-all cursor-pointer ${
+              authMode === "register"
+                ? "bg-[#ff6600] text-white shadow-md font-bold"
+                : "text-neutral-400 hover:text-white"
+            }`}
+          >
+            Sign up
+          </button>
+        </div>
 
-          {/* Form Header */}
-          <div>
-            <h2 className="font-bebas text-3xl text-white tracking-wide flex items-center gap-2">
-              {authMode === "login" ? "BON RETOUR 👋" : "CRÉER UN COMPTE 🚀"}
-            </h2>
-            <p className="text-xs text-neutral-400 mt-0.5">
-              {authMode === "login"
-                ? "Connectez-vous à votre espace SaaS LShorter"
-                : "Commencez gratuitement avec 100 000 clics/mois inclus"}
-            </p>
-          </div>
+        {/* Form Header */}
+        <div>
+          <h2 className="font-bebas text-3xl text-white tracking-wide flex items-center gap-2">
+            {authMode === "login" ? "WELCOME BACK 👋" : "CREATE AN ACCOUNT 🚀"}
+          </h2>
+          <p className="text-xs text-neutral-400 mt-0.5">
+            {authMode === "login"
+              ? "Sign in to your LShorter SaaS workspace"
+              : "Get started for free with 100,000 clicks/month included"}
+          </p>
+        </div>
 
-          {show2FAChallenge ? (
-            /* 2FA Login Challenge Form */
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4 animate-in fade-in">
-              <div className="flex flex-col items-center text-center gap-1.5 p-4 rounded-[12px] bg-[#141418] border border-[#27272a] shadow-inner">
-                <div className="w-12 h-12 rounded-[10px] bg-[#ff6600]/20 border border-[#ff6600]/40 flex items-center justify-center text-[#ff6600] mb-1">
-                  <ShieldCheck className="w-6 h-6" />
-                </div>
-                <h3 className="text-base font-bold text-white">Double Authentification (2FA)</h3>
-                <p className="text-xs text-neutral-400 max-w-xs leading-relaxed">
-                  {useBackupCode
-                    ? "Saisissez un de vos codes de secours d'urgence (8 caractères)."
-                    : `Saisissez le code à 6 chiffres généré par votre application pour ${email}`}
-                </p>
+        {show2FAChallenge ? (
+          /* 2FA Login Challenge Form */
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4 animate-in fade-in">
+            <div className="flex flex-col items-center text-center gap-1.5 p-4 rounded-[12px] bg-[#141418] border border-[#27272a] shadow-inner">
+              <div className="w-12 h-12 rounded-[10px] bg-[#ff6600]/20 border border-[#ff6600]/40 flex items-center justify-center text-[#ff6600] mb-1">
+                <ShieldCheck className="w-6 h-6" />
               </div>
+              <h3 className="text-base font-bold text-white">Two-Factor Authentication (2FA)</h3>
+              <p className="text-xs text-neutral-400 max-w-xs leading-relaxed">
+                {useBackupCode
+                  ? "Enter one of your emergency backup codes (8 characters)."
+                  : `Enter the 6-digit code generated by your authenticator app for ${email}`}
+              </p>
+            </div>
 
+            <div>
+              <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
+                {useBackupCode ? "Emergency Backup Code" : "Authentication Code (TOTP)"}
+              </label>
+              <Input
+                required
+                autoFocus
+                maxLength={useBackupCode ? 12 : 6}
+                placeholder={useBackupCode ? "ABCD-EFGH" : "000 000"}
+                value={twoFactorCode}
+                onChange={(e) => setTwoFactorCode(e.target.value)}
+                className="h-14 text-center font-mono text-2xl tracking-[0.25em] text-white font-bold bg-[#0c0c0e] border-[#27272a] focus:border-[#ff6600] rounded-[10px]"
+              />
+            </div>
+
+            <Button
+              type="submit"
+              variant="glow"
+              disabled={isLoading || !twoFactorCode.trim()}
+              className="w-full h-11 text-sm font-bold tracking-wide mt-1 cursor-pointer"
+            >
+              {isLoading ? "Verifying..." : "Verify & Access Dashboard"}
+            </Button>
+
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-xs pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setUseBackupCode(!useBackupCode);
+                  setTwoFactorCode("");
+                }}
+                className="text-[#ff6600] hover:underline font-medium cursor-pointer"
+              >
+                {useBackupCode
+                  ? "Use authenticator app code"
+                  : "Lost device? Use backup code"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShow2FAChallenge(false);
+                  setTwoFactorCode("");
+                }}
+                className="text-neutral-400 hover:text-white cursor-pointer"
+              >
+                ← Back to password login
+              </button>
+            </div>
+          </form>
+        ) : (
+          /* Normal Login & Registration Form */
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            {authMode === "register" && (
               <div>
                 <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
-                  {useBackupCode ? "Code de Secours d'Urgence" : "Code d'Authentification (TOTP)"}
+                  Your Name
                 </label>
                 <Input
                   required
-                  autoFocus
-                  maxLength={useBackupCode ? 12 : 6}
-                  placeholder={useBackupCode ? "ABCD-EFGH" : "000 000"}
-                  value={twoFactorCode}
-                  onChange={(e) => setTwoFactorCode(e.target.value)}
-                  className="h-14 text-center font-mono text-2xl tracking-[0.25em] text-white font-bold bg-[#0c0c0e] border-[#27272a] focus:border-[#ff6600] rounded-[10px]"
+                  placeholder="Alex Johnson"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
                 />
               </div>
+            )}
 
-              <Button
-                type="submit"
-                variant="glow"
-                disabled={isLoading || !twoFactorCode.trim()}
-                className="w-full h-11 text-sm font-bold tracking-wide mt-1 cursor-pointer"
-              >
-                {isLoading ? "Vérification..." : "Vérifier & Accéder au Dashboard"}
-              </Button>
+            <div>
+              <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
+                Email Address
+              </label>
+              <Input
+                type="email"
+                required
+                placeholder="name@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
 
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-xs pt-1">
+            <div>
+              <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
+                Password
+              </label>
+              <div className="relative">
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  placeholder="Your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pr-10"
+                />
                 <button
                   type="button"
-                  onClick={() => {
-                    setUseBackupCode(!useBackupCode);
-                    setTwoFactorCode("");
-                  }}
-                  className="text-[#ff6600] hover:underline font-medium cursor-pointer"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white transition-colors cursor-pointer p-1"
+                  title={showPassword ? "Hide password" : "Show password"}
                 >
-                  {useBackupCode
-                    ? "Utiliser le code de l'application"
-                    : "Appareil perdu ? Code de secours"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShow2FAChallenge(false);
-                    setTwoFactorCode("");
-                  }}
-                  className="text-neutral-400 hover:text-white cursor-pointer"
-                >
-                  ← Revenir au mot de passe
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4 text-neutral-400 hover:text-white" />
+                  ) : (
+                    <Eye className="w-4 h-4 text-neutral-400 hover:text-white" />
+                  )}
                 </button>
               </div>
-            </form>
-          ) : (
-            /* Normal Login & Registration Form */
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-              {authMode === "register" && (
-                <div>
-                  <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
-                    Votre nom
-                  </label>
-                  <Input
-                    required
-                    placeholder="Jean Dupont"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                  />
+              {authMode === "login" && (
+                <div className="flex justify-end mt-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setIsForgotPasswordOpen(true)}
+                    className="text-[11px] text-[#ff6600] hover:underline font-medium cursor-pointer"
+                  >
+                    Forgot password?
+                  </button>
                 </div>
               )}
+            </div>
 
+            {authMode === "register" && (
               <div>
                 <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
-                  Adresse email
-                </label>
-                <Input
-                  type="email"
-                  required
-                  placeholder="nom@exemple.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
-                  Mot de passe
+                  Confirm Password
                 </label>
                 <div className="relative">
                   <Input
-                    type={showPassword ? "text" : "password"}
+                    type={showConfirmPassword ? "text" : "password"}
                     required
-                    placeholder="Votre mot de passe"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Confirm your password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
                     className="pr-10"
                   />
                   <button
                     type="button"
-                    onClick={() => setShowPassword(!showPassword)}
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white transition-colors cursor-pointer p-1"
-                    title={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                    title={showConfirmPassword ? "Hide password" : "Show password"}
                   >
-                    {showPassword ? (
+                    {showConfirmPassword ? (
                       <EyeOff className="w-4 h-4 text-neutral-400 hover:text-white" />
                     ) : (
                       <Eye className="w-4 h-4 text-neutral-400 hover:text-white" />
                     )}
                   </button>
                 </div>
-                {authMode === "login" && (
-                  <div className="flex justify-end mt-1.5">
-                    <button
-                      type="button"
-                      onClick={() => setIsForgotPasswordOpen(true)}
-                      className="text-[11px] text-[#ff6600] hover:underline font-medium cursor-pointer"
-                    >
-                      Mot de passe oublié ?
-                    </button>
-                  </div>
-                )}
               </div>
+            )}
 
-              {authMode === "register" && (
-                <div>
-                  <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
-                    Confirmer le mot de passe
-                  </label>
-                  <div className="relative">
-                    <Input
-                      type={showConfirmPassword ? "text" : "password"}
-                      required
-                      placeholder="Confirmez votre mot de passe"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="pr-10"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white transition-colors cursor-pointer p-1"
-                      title={showConfirmPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
-                    >
-                      {showConfirmPassword ? (
-                        <EyeOff className="w-4 h-4 text-neutral-400 hover:text-white" />
-                      ) : (
-                        <Eye className="w-4 h-4 text-neutral-400 hover:text-white" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              <Button
-                type="submit"
-                variant="glow"
-                disabled={isLoading}
-                className="w-full h-11 text-sm font-semibold tracking-wide mt-2 cursor-pointer"
-              >
-                {isLoading
-                  ? "Connexion en cours..."
-                  : authMode === "login"
-                  ? "Se connecter"
-                  : "Créer mon compte"}
-              </Button>
-            </form>
-          )}
-
-          {/* Divider */}
-          <div className="flex items-center gap-3 my-1">
-            <div className="flex-1 h-px bg-[#27272a]" />
-            <span className="text-[11px] text-neutral-500 font-medium">ou continuer avec</span>
-            <div className="flex-1 h-px bg-[#27272a]" />
-          </div>
-
-          {/* Google & GitHub Buttons */}
-          <div className="flex flex-col gap-2.5">
-            <button
-              onClick={() => handleOAuthLogin("google")}
-              type="button"
-              className="w-full h-11 rounded-[10px] bg-[#141416] hover:bg-[#1f1f23] border border-[#27272a] flex items-center justify-center gap-2.5 text-xs font-semibold text-white transition-all cursor-pointer shadow-sm"
+            <Button
+              type="submit"
+              variant="glow"
+              disabled={isLoading}
+              className="w-full h-11 text-sm font-semibold tracking-wide mt-2 cursor-pointer"
             >
-              <svg className="w-4 h-4" viewBox="0 0 24 24">
-                <path
-                  fill="#EA4335"
-                  d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.3 9 5 12 5z"
-                />
-                <path
-                  fill="#4285F4"
-                  d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.8z"
-                />
-                <path
-                  fill="#FBBC05"
-                  d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3s.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 12 0 14.8s.7 5.1 1.9 7.5l3.7-2.9z"
-                />
-                <path
-                  fill="#34A853"
-                  d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3.3 0-6.1-2.2-7.1-5.3L1.9 16c1.8 3.6 5.5 7 10.1 7z"
-                />
-              </svg>
-              <span>Continuer avec Google</span>
-            </button>
+              {isLoading
+                ? "Signing in..."
+                : authMode === "login"
+                ? "Sign In"
+                : "Create Account"}
+            </Button>
+          </form>
+        )}
 
-            <button
-              onClick={() => handleOAuthLogin("github")}
-              type="button"
-              className="w-full h-11 rounded-[10px] bg-[#141416] hover:bg-[#1f1f23] border border-[#27272a] flex items-center justify-center gap-2.5 text-xs font-semibold text-white transition-all cursor-pointer shadow-sm"
-            >
-              <svg className="w-4 h-4 fill-white" viewBox="0 0 24 24">
-                <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
-              </svg>
-              <span>Continuer avec GitHub</span>
-            </button>
-          </div>
-
-          {/* Disclaimer */}
-          <p className="text-[11px] text-neutral-500 text-center leading-relaxed">
-            En vous connectant, vous acceptez nos{" "}
-            <a href="#" className="text-neutral-400 hover:underline">
-              Conditions d&apos;utilisation
-            </a>{" "}
-            et notre{" "}
-            <a href="#" className="text-neutral-400 hover:underline">
-              Politique de confidentialité
-            </a>
-            .
-          </p>
+        {/* Divider */}
+        <div className="flex items-center gap-3 my-1">
+          <div className="flex-1 h-px bg-[#27272a]" />
+          <span className="text-[11px] text-neutral-500 font-medium">or continue with</span>
+          <div className="flex-1 h-px bg-[#27272a]" />
         </div>
 
-        {/* Forgot Password Modal (Resend PIN) */}
-        <ForgotPasswordModal
-          isOpen={isForgotPasswordOpen}
-          onClose={() => setIsForgotPasswordOpen(false)}
-          initialEmail={email}
-        />
+        {/* Google & GitHub Buttons */}
+        <div className="flex flex-col gap-2.5">
+          <button
+            onClick={() => handleOAuthLogin("google")}
+            type="button"
+            className="w-full h-11 rounded-[10px] bg-[#141416] hover:bg-[#1f1f23] border border-[#27272a] flex items-center justify-center gap-2.5 text-xs font-semibold text-white transition-all cursor-pointer shadow-sm"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24">
+              <path
+                fill="#EA4335"
+                d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.3 9 5 12 5z"
+              />
+              <path
+                fill="#4285F4"
+                d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.8z"
+              />
+              <path
+                fill="#FBBC05"
+                d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3s.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 12 0 14.8s.7 5.1 1.9 7.5l3.7-2.9z"
+              />
+              <path
+                fill="#34A853"
+                d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3.3 0-6.1-2.2-7.1-5.3L1.9 16c1.8 3.6 5.5 7 10.1 7z"
+              />
+            </svg>
+            <span>Continue with Google</span>
+          </button>
+
+          <button
+            onClick={() => handleOAuthLogin("github")}
+            type="button"
+            className="w-full h-11 rounded-[10px] bg-[#141416] hover:bg-[#1f1f23] border border-[#27272a] flex items-center justify-center gap-2.5 text-xs font-semibold text-white transition-all cursor-pointer shadow-sm"
+          >
+            <svg className="w-4 h-4 fill-white" viewBox="0 0 24 24">
+              <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
+            </svg>
+            <span>Continue with GitHub</span>
+          </button>
+        </div>
+
+        {/* Disclaimer */}
+        <p className="text-[11px] text-neutral-500 text-center leading-relaxed">
+          By signing in, you agree to our{" "}
+          <a href="#" className="text-neutral-400 hover:underline">
+            Terms of Service
+          </a>{" "}
+          and{" "}
+          <a href="#" className="text-neutral-400 hover:underline">
+            Privacy Policy
+          </a>
+          .
+        </p>
       </div>
+
+      {/* Forgot Password Modal (Resend PIN) */}
+      <ForgotPasswordModal
+        isOpen={isForgotPasswordOpen}
+        onClose={() => setIsForgotPasswordOpen(false)}
+        initialEmail={email}
+      />
+    </div>
   );
 }
-

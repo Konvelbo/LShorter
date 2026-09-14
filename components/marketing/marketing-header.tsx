@@ -14,8 +14,8 @@ export function MarketingHeader() {
   const isAuthenticated = status === "authenticated" || Boolean((session as any)?.user);
 
   const navLinks = [
-    { label: "Accueil", href: "/" },
-    { label: "Tarifs", href: "/pricing" },
+    { label: "Home", href: "/" },
+    { label: "Pricing", href: "/pricing" },
     {
       label: "API & SDK",
       href: "/docs",
@@ -74,7 +74,7 @@ export function MarketingHeader() {
             >
               <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/25 to-transparent pointer-events-none" />
               <LayoutDashboard className="w-3.5 h-3.5" />
-              <span>Tableau de bord</span>
+              <span>Dashboard</span>
               <ArrowRight className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-1" />
             </Link>
           ) : (
@@ -83,7 +83,7 @@ export function MarketingHeader() {
                 href="/login"
                 className="nav-link-item text-xs font-semibold px-4 py-2 cursor-pointer text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white transition-colors"
               >
-                Se connecter
+                Log in
               </Link>
               <Link
                 href="/login"
@@ -91,7 +91,7 @@ export function MarketingHeader() {
               >
                 {/* Shimmer light sweep */}
                 <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/25 to-transparent pointer-events-none" />
-                <span>Commencer gratuitement</span>
+                <span>Get Started Free</span>
                 <ArrowRight className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-1" />
               </Link>
             </>
@@ -105,11 +105,11 @@ export function MarketingHeader() {
       <header className="flex md:hidden max-w-6xl mx-auto bg-white/90 dark:bg-[#0d0d12]/85 backdrop-blur-2xl border border-neutral-200 dark:border-white/10 shadow-[0_10px_25px_rgba(0,0,0,0.06)] dark:shadow-[0_12px_40px_rgba(0,0,0,0.65),0_0_20px_rgba(0,102,255,0.12)] rounded-[10px] px-3.5 py-2 items-center justify-between pointer-events-auto transition-all duration-300">
         {/* Brand Logo with LS Badge */}
         <Link href="/" className="flex items-center gap-2.5 group select-none">
-          <div className="w-8 h-8 rounded-[10px] bg-gradient-to-tr from-[#0066FF] to-[#38bdf8] flex items-center justify-center shadow-lg shadow-[#0066FF]/30 font-bebas text-xl text-white font-bold tracking-wider">
+          <div className="w-8 h-8 rounded-[10px] bg-gradient-to-tr from-[#0080ff] to-[#38bdf8] flex items-center justify-center shadow-lg shadow-[#0080ff]/30 font-bebas text-xl text-white font-bold tracking-wider">
             LS
           </div>
           <span className="font-bebas text-2xl text-neutral-900 dark:text-white tracking-wider flex items-center gap-0.5">
-            L<span className="text-[#0066FF]">SHORTER</span>
+            L<span className="text-[#0080ff]">SHORTER</span>
           </span>
         </Link>
 
@@ -119,7 +119,7 @@ export function MarketingHeader() {
             type="button"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             className="w-9 h-9 rounded-full bg-neutral-100 hover:bg-neutral-200 dark:bg-white/5 dark:hover:bg-white/10 border border-neutral-200 dark:border-white/10 flex items-center justify-center text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white active:scale-95 transition-all cursor-pointer shadow-sm"
-            aria-label="Ouvrir le menu"
+            aria-label="Open menu"
           >
             {isMobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
           </button>
@@ -134,7 +134,7 @@ export function MarketingHeader() {
             onClick={() => setIsMobileMenuOpen(false)}
             className="nav-link-item flex items-center justify-between p-2.5 rounded-[10px] text-sm font-medium"
           >
-            <span>Accueil</span>
+            <span>Home</span>
             <span className="text-xs text-neutral-500">→</span>
           </Link>
           <Link
@@ -142,7 +142,7 @@ export function MarketingHeader() {
             onClick={() => setIsMobileMenuOpen(false)}
             className="nav-link-item flex items-center justify-between p-2.5 rounded-[10px] text-sm font-medium"
           >
-            <span>Tarifs &amp; Abonnements</span>
+            <span>Pricing &amp; Plans</span>
             <span className="text-xs text-neutral-500">→</span>
           </Link>
           <Link
@@ -151,8 +151,8 @@ export function MarketingHeader() {
             className="nav-link-item flex items-center justify-between p-2.5 rounded-[10px] text-sm font-medium"
           >
             <span className="flex items-center gap-2">
-              <Code2 className="w-4 h-4 text-[#0066FF]" />
-              <span>Documentation API &amp; SDK</span>
+              <Code2 className="w-4 h-4 text-[#0080ff]" />
+              <span>API &amp; SDK Docs</span>
             </span>
             <span className="px-1.5 py-0.5 rounded-[10px] bg-white/10 text-neutral-400 text-[10px] font-mono">
               v1
@@ -162,21 +162,21 @@ export function MarketingHeader() {
           <div className="pt-3 border-t border-white/10 flex flex-col gap-2 mt-1">
             {isAuthenticated ? (
               <Link href="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>
-                <Button variant="glow" className="w-full text-xs h-9 justify-center font-bold cursor-pointer bg-[#0066FF] md:bg-[#ff6600] hover:bg-[#0052cc] md:hover:bg-[#ff771a] text-white border-none rounded-[10px]">
-                  <span>Accéder au Tableau de bord</span>
+                <Button variant="glow" className="w-full text-xs h-9 justify-center font-bold cursor-pointer bg-[#0080ff] hover:bg-[#0070e0] text-white border-none rounded-[10px]">
+                  <span>Go to Dashboard</span>
                   <ArrowRight className="w-3.5 h-3.5 ml-1" />
                 </Button>
               </Link>
             ) : (
               <>
                 <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
-                  <Button variant="outline" className="w-full text-xs h-9 justify-center cursor-pointer border-[#27272a] text-white rounded-[10px] hover:text-[#ff6600] hover:border-[#ff6600]/30 hover:bg-[#ff6600]/10">
-                    Se connecter
+                  <Button variant="outline" className="w-full text-xs h-9 justify-center cursor-pointer border-[#27272a] text-white rounded-[10px] hover:text-[#0080ff] hover:border-[#0080ff]/30 hover:bg-[#0080ff]/10">
+                    Log in
                   </Button>
                 </Link>
                 <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
-                  <Button variant="glow" className="w-full text-xs h-9 justify-center font-bold cursor-pointer bg-[#0066FF] md:bg-[#ff6600] hover:bg-[#0052cc] md:hover:bg-[#ff771a] text-white border-none rounded-[10px]">
-                    <span>Créer un compte gratuit</span>
+                  <Button variant="glow" className="w-full text-xs h-9 justify-center font-bold cursor-pointer bg-[#0080ff] hover:bg-[#0070e0] text-white border-none rounded-[10px]">
+                    <span>Create Free Account</span>
                     <ArrowRight className="w-3.5 h-3.5 ml-1" />
                   </Button>
                 </Link>

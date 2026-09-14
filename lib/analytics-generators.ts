@@ -93,7 +93,7 @@ export function generateTimelineForRange(
       const d = new Date(now);
       d.setDate(now.getDate() - i);
       const isoDate = d.toISOString().slice(0, 10);
-      const clicks = clicksMap.get(isoDate) || 0;
+      const clicks = clicksMap.get(isoDate) ?? (i === 0 && clicksMap.size === 0 && totalClicks > 0 ? totalClicks : 0);
       const label = i === 0
         ? "Aujourd'hui"
         : d.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric" });
@@ -115,7 +115,7 @@ export function generateTimelineForRange(
       const d = new Date(now);
       d.setDate(now.getDate() - i);
       const isoDate = d.toISOString().slice(0, 10);
-      const clicks = clicksMap.get(isoDate) || 0;
+      const clicks = clicksMap.get(isoDate) ?? (i === 0 && clicksMap.size === 0 && totalClicks > 0 ? totalClicks : 0);
       const label = i === 0
         ? "Aujourd'hui"
         : d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });

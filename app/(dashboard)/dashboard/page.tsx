@@ -141,8 +141,8 @@ export default function DashboardOverviewPage() {
               percentage: total > 0 ? Math.round(((c.count || c.clicks || 0) / total) * 100) : 0,
             })) : generateEdgeTopCountries(total),
             topCities: (d.top_cities || d.topCities || []).map((ci: any) => ({
-              city: ci.city || ci.name || "Inconnue",
-              countryCode: ci.countryCode || ci.country_code || "FR",
+              city: ci.city || ci.name || "Unknown",
+              countryCode: ci.countryCode || ci.country_code || "US",
               count: ci.count || ci.clicks || 0,
               percentage: total > 0 ? Math.round(((ci.count || ci.clicks || 0) / total) * 100) : 0,
             })),

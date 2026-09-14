@@ -321,14 +321,12 @@ export default {
               isMet = op === 'est' ? match : !match;
             } else if (cond.type === 'appareil') {
               let match = deviceType === val || (val === 'mobile' && (isMobile || isTablet));
-              // Tolerant: if value is an OS name (e.g. "ios", "android")
               if (!match && (val === 'ios' || val === 'android' || val === 'windows' || val === 'macos' || val === 'linux')) {
                 match = osType === val || (val === 'macos' && osType === 'mac');
               }
               isMet = op === 'est' ? match : !match;
             } else if (cond.type === 'plateforme') {
               let match = osType === val || (val === 'mac' && osType === 'macos') || (val === 'macos' && osType === 'mac');
-              // Tolerant: if value is a device format (e.g. "mobile", "desktop")
               if (!match && (val === 'mobile' || val === 'desktop' || val === 'tablet')) {
                 match = deviceType === val || (val === 'mobile' && (isMobile || isTablet));
               }
@@ -373,17 +371,44 @@ export default {
         ctx.waitUntil(
           (async () => {
             try {
-              await env.DB.prepare('UPDATE links SET clicks_count = clicks_count + 1 WHERE slug = ? AND (max_clicks IS NULL OR max_clicks = 0 OR clicks_count < max_clicks)').bind(slug).run();
+              await env.DB.prepare('UPDATE links SET clicks_count = clicks_count + 1 WHERE (slug = ? OR id = ?) AND (max_clicks IS NULL OR max_clicks = 0 OR clicks_count < max_clicks)').bind(slug, slug).run();
               const eventId = 'ev_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
               const ipHash = request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || '127.0.0.1';
+
+              let detectedCity = request?.cf?.city || request?.headers?.get('cf-ipcity') || 'Inconnue';
+              let rawRef = request.headers.get('referer') || request.headers.get('referrer') || '';
+              let detectedRef = 'Direct';
+              if (rawRef) {
+                try {
+                  const u = new URL(rawRef);
+                  detectedRef = u.hostname.replace(/^www\./, '');
+                } catch {
+                  detectedRef = rawRef.slice(0, 50);
+                }
+              }
+
+              let detectedBrowser = 'Chrome';
+              if (userAgent.includes('edg/')) detectedBrowser = 'Edge';
+              else if (userAgent.includes('opr/') || userAgent.includes('opera')) detectedBrowser = 'Opera';
+              else if (userAgent.includes('chrome') || userAgent.includes('crios')) detectedBrowser = 'Chrome';
+              else if (userAgent.includes('firefox') || userAgent.includes('fxios')) detectedBrowser = 'Firefox';
+              else if (userAgent.includes('safari')) detectedBrowser = 'Safari';
+
+              let detectedOS = 'Windows';
+              if (isIos) detectedOS = 'iOS';
+              else if (isAndroid) detectedOS = 'Android';
+              else if (userAgent.includes('windows')) detectedOS = 'Windows';
+              else if (userAgent.includes('macintosh') || userAgent.includes('mac os')) detectedOS = 'macOS';
+              else if (userAgent.includes('linux')) detectedOS = 'Linux';
+
               await env.DB.prepare(`
-                INSERT INTO click_events (id, link_id, slug, country, city, referrer, device, browser, os, ip_hash, created_at)
+                INSERT INTO analytics_events (id, link_id, slug, country, city, referrer, device, browser, os, ip_hash, created_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-              `).bind(eventId, slug, slug, country, 'Inconnue', 'Direct', isMobile ? 'mobile' : 'desktop', 'Browser', 'OS', ipHash).run().catch(async () => {
+              `).bind(eventId, link.id || slug, slug, country, detectedCity, detectedRef, deviceType, detectedBrowser, detectedOS, ipHash).run().catch(async () => {
                 await env.DB.prepare(`
-                  INSERT INTO analytics_events (id, link_id, slug, country, city, referrer, device, browser, os, ip_hash, created_at)
+                  INSERT INTO click_events (id, link_id, slug, country, city, referrer, device, browser, os, ip_hash, created_at)
                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-                `).bind(eventId, slug, slug, country, 'Inconnue', 'Direct', isMobile ? 'mobile' : 'desktop', 'Browser', 'OS', ipHash).run().catch(() => {});
+                `).bind(eventId, link.id || slug, slug, country, detectedCity, detectedRef, deviceType, detectedBrowser, detectedOS, ipHash).run().catch(() => {});
               });
             } catch (err) {
               console.warn('[Async Click Error]:', err);
@@ -417,13 +442,35 @@ export default {
           clickBody = await request.json();
         } catch {}
 
+        const userAgentHeader = (request.headers.get('user-agent') || '').toLowerCase();
+        let detectedDev = 'desktop';
+        if (/ipad|tablet/i.test(userAgentHeader)) detectedDev = 'tablet';
+        else if (/mobile|android|iphone/i.test(userAgentHeader)) detectedDev = 'mobile';
+
+        let detectedBr = 'Chrome';
+        if (userAgentHeader.includes('edg/')) detectedBr = 'Edge';
+        else if (userAgentHeader.includes('opr/') || userAgentHeader.includes('opera')) detectedBr = 'Opera';
+        else if (userAgentHeader.includes('chrome') || userAgentHeader.includes('crios')) detectedBr = 'Chrome';
+        else if (userAgentHeader.includes('firefox') || userAgentHeader.includes('fxios')) detectedBr = 'Firefox';
+        else if (userAgentHeader.includes('safari')) detectedBr = 'Safari';
+
+        let detectedSys = 'Windows';
+        if (/iphone|ipad|ipod|ios/i.test(userAgentHeader)) detectedSys = 'iOS';
+        else if (/android/i.test(userAgentHeader)) detectedSys = 'Android';
+        else if (/windows/i.test(userAgentHeader)) detectedSys = 'Windows';
+        else if (/macintosh|mac os/i.test(userAgentHeader)) detectedSys = 'macOS';
+        else if (/linux/i.test(userAgentHeader)) detectedSys = 'Linux';
+
         const country = clickBody.country || request.headers.get('x-country') || request.headers.get('cf-ipcountry') || 'FR';
-        const city = clickBody.city || request.headers.get('x-city') || 'Inconnue';
-        const device = clickBody.device || request.headers.get('x-device') || 'desktop';
-        const browser = clickBody.browser || request.headers.get('x-browser') || 'Chrome';
-        const os = clickBody.os || request.headers.get('x-os') || 'Windows';
+        const city = clickBody.city || request.headers.get('x-city') || request?.cf?.city || 'Inconnue';
+        const device = clickBody.device || request.headers.get('x-device') || detectedDev;
+        const browser = clickBody.browser || request.headers.get('x-browser') || detectedBr;
+        const os = clickBody.os || request.headers.get('x-os') || detectedSys;
         const referrer = clickBody.referrer || request.headers.get('x-referrer') || 'Direct';
         const ipHash = request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || '127.0.0.1';
+        const customerEmail = clickBody.customer?.email || clickBody.customerEmail || clickBody.customer_email || clickBody.email || request.headers.get('x-customer-email') || null;
+        const customerName = clickBody.customer?.name || clickBody.customerName || clickBody.customer_name || clickBody.customerFullName || clickBody.fullName || clickBody.name || request.headers.get('x-customer-name') || null;
+        const conversionAmount = Number(clickBody.amount || clickBody.conversionAmount || clickBody.revenue || 0);
 
         if (env.DB && targetSlugOrId) {
           ctx.waitUntil(
@@ -441,15 +488,17 @@ export default {
 
                 // 2. Insert event for analytics & unique clicks calculation
                 const eventId = 'ev_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
-                await env.DB.prepare(`
-                  INSERT INTO click_events (id, link_id, slug, country, city, referrer, device, browser, os, ip_hash, created_at)
-                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-                `).bind(eventId, targetSlugOrId, targetSlugOrId, country, city, referrer, device, browser, os, ipHash).run().catch(async () => {
+                try {
+                  await env.DB.prepare(`
+                    INSERT INTO analytics_events (id, link_id, slug, country, city, referrer, device, browser, os, customer_email, customer_name, conversion_amount, ip_hash, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+                  `).bind(eventId, targetSlugOrId, targetSlugOrId, country, city, referrer, device, browser, os, customerEmail, customerName, conversionAmount, ipHash).run();
+                } catch {
                   await env.DB.prepare(`
                     INSERT INTO analytics_events (id, link_id, slug, country, city, referrer, device, browser, os, ip_hash, created_at)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
                   `).bind(eventId, targetSlugOrId, targetSlugOrId, country, city, referrer, device, browser, os, ipHash).run().catch(() => {});
-                });
+                }
               } catch (dbErr) {
                 console.warn('[D1 Click Processing Error]:', dbErr);
               }
@@ -483,15 +532,33 @@ export default {
           const userId = url.searchParams.get('userId');
           if (!env.DB) return jsonResponse({ success: true, data: [] });
           try {
-            let query = 'SELECT * FROM links';
+            let query = `
+              SELECT links.*, users.email AS user_email, users.name AS user_name 
+              FROM links 
+              LEFT JOIN users ON links.user_id = users.id
+            `;
             const params = [];
             if (userId && userId !== 'all') {
-              query += ' WHERE user_id = ?';
+              query += ' WHERE links.user_id = ?';
               params.push(userId);
             }
-            query += ' ORDER BY created_at DESC LIMIT 500';
-            const { results } = await env.DB.prepare(query).bind(...params).all();
-            return jsonResponse({ success: true, data: results || [] });
+            query += ' ORDER BY links.created_at DESC LIMIT 500';
+            let results = [];
+            try {
+              const r = await env.DB.prepare(query).bind(...params).all();
+              results = r?.results || [];
+            } catch {
+              let fbQuery = 'SELECT * FROM links';
+              const fbParams = [];
+              if (userId && userId !== 'all') {
+                fbQuery += ' WHERE user_id = ?';
+                fbParams.push(userId);
+              }
+              fbQuery += ' ORDER BY created_at DESC LIMIT 500';
+              const fb = await env.DB.prepare(fbQuery).bind(...fbParams).all();
+              results = fb?.results || [];
+            }
+            return jsonResponse({ success: true, data: results });
           } catch (err) {
             return jsonResponse({ success: true, data: [] });
           }
@@ -872,14 +939,99 @@ export default {
       }
     }
 
+    // ─── 2.5 TRACKING & CONVERSION API (For E-Commerce & External SDKs) ────
+    if (
+      (path === '/api/v1/track' ||
+        path === '/api/track' ||
+        path === '/api/v1/track/conversion' ||
+        path === '/api/track/conversion') &&
+      method === 'POST'
+    ) {
+      try {
+        const body = await request.json().catch(() => ({}));
+        const targetSlugOrId = (body.slug || body.linkId || body.link_id || body.id || '').trim();
+        const conversionAmount = Number(body.amount || body.conversionAmount || body.revenue || 0);
+        const customerEmail = body.customer?.email || body.customerEmail || body.customer_email || body.email || request.headers.get('x-customer-email') || null;
+        const customerName = body.customer?.name || body.customerName || body.customer_name || body.customerFullName || body.fullName || body.name || request.headers.get('x-customer-name') || null;
+        const customerAvatar = body.customer?.avatarUrl || body.customer?.avatar || body.customerAvatar || body.customer_avatar || body.avatarUrl || body.avatar || request.headers.get('x-customer-avatar') || null;
+        const country = body.country || request.headers.get('x-country') || request.headers.get('cf-ipcountry') || 'FR';
+        const city = body.city || request.headers.get('x-city') || request?.cf?.city || 'Inconnue';
+        const device = body.device || 'desktop';
+        const browser = body.browser || 'Chrome';
+        const os = body.os || 'Windows';
+        const referrer = body.referrer || request.headers.get('x-referrer') || 'E-Commerce / API';
+        const ipHash = request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || '127.0.0.1';
+
+        const eventId = 'ev_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+
+        if (env.DB && targetSlugOrId) {
+          ctx.waitUntil(
+            (async () => {
+              try {
+                await env.DB.prepare(`
+                  UPDATE links 
+                  SET clicks_count = clicks_count + 1 
+                  WHERE (slug = ? OR id = ?)
+                `).bind(targetSlugOrId, targetSlugOrId).run().catch(() => {});
+
+                await env.DB.prepare(`
+                  INSERT INTO analytics_events (id, link_id, slug, country, city, referrer, device, browser, os, customer_email, customer_name, customer_avatar, conversion_amount, ip_hash, created_at)
+                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+                `).bind(eventId, targetSlugOrId, targetSlugOrId, country, city, referrer, device, browser, os, customerEmail, customerName, customerAvatar, conversionAmount, ipHash).run().catch(async () => {
+                  await env.DB.prepare(`
+                    INSERT INTO analytics_events (id, link_id, slug, country, city, referrer, device, browser, os, customer_email, customer_name, conversion_amount, ip_hash, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+                  `).bind(eventId, targetSlugOrId, targetSlugOrId, country, city, referrer, device, browser, os, customerEmail, customerName, conversionAmount, ipHash).run().catch(async () => {
+                    await env.DB.prepare(`
+                      INSERT INTO analytics_events (id, link_id, slug, country, city, referrer, device, browser, os, ip_hash, created_at)
+                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+                    `).bind(eventId, targetSlugOrId, targetSlugOrId, country, city, referrer, device, browser, os, ipHash).run().catch(() => {});
+                  });
+                });
+              } catch (trackErr) {
+                console.warn('[Track Conversion Error]:', trackErr);
+              }
+            })()
+          );
+        }
+
+        return jsonResponse({ success: true, eventId, tracked: true });
+      } catch (err) {
+        return jsonResponse({ success: false, error: 'Erreur tracking conversion' }, 500);
+      }
+    }
+
     // ─── 3. DOMAINS API ───────────────────────────────────────────────────
     if (path === '/api/v1/domains' || path === '/api/domains' || path.startsWith('/api/v1/domains/')) {
       if (method === 'GET') {
         const userId = url.searchParams.get('userId');
         if (!env.DB) return jsonResponse({ success: true, data: [] });
         try {
-          const { results } = await env.DB.prepare('SELECT * FROM custom_domains WHERE user_id = ?').bind(userId || '').all();
-          return jsonResponse({ success: true, data: results || [] });
+          let query = `
+            SELECT custom_domains.*, users.email AS user_email, users.name AS user_name 
+            FROM custom_domains 
+            LEFT JOIN users ON custom_domains.user_id = users.id
+          `;
+          const params = [];
+          if (userId && userId !== 'all') {
+            query += ' WHERE custom_domains.user_id = ?';
+            params.push(userId);
+          }
+          let results = [];
+          try {
+            const r = await env.DB.prepare(query).bind(...params).all();
+            results = r?.results || [];
+          } catch {
+            let fbQuery = 'SELECT * FROM custom_domains';
+            const fbParams = [];
+            if (userId && userId !== 'all') {
+              fbQuery += ' WHERE user_id = ?';
+              fbParams.push(userId);
+            }
+            const fb = await env.DB.prepare(fbQuery).bind(...fbParams).all();
+            results = fb?.results || [];
+          }
+          return jsonResponse({ success: true, data: results });
         } catch {
           return jsonResponse({ success: true, data: [] });
         }
@@ -893,19 +1045,290 @@ export default {
       }
     }
 
-    // ─── 4. ANALYTICS API ─────────────────────────────────────────────────
+    // ─── 4. ANALYTICS API (REAL 100% DATA FROM CLOUDFLARE D1) ─────────────
     if (path === '/api/v1/analytics' || path === '/api/analytics') {
-      return jsonResponse({
-        success: true,
-        data: {
-          totalClicks: 0,
-          uniqueClicks: 0,
-          clicksByDay: [],
-          topCountries: [],
-          topDevices: [],
-          topBrowsers: [],
-        },
-      });
+      const userId = url.searchParams.get('userId');
+      const linkId = url.searchParams.get('linkId');
+      const period = url.searchParams.get('period') || '30d';
+
+      const emptyAnalytics = {
+        totalClicks: 0,
+        total_clicks: 0,
+        uniqueClicks: 0,
+        unique_clicks: 0,
+        trackedRevenue: 0,
+        total_revenue: 0,
+        clicksByDay: [],
+        clicks_by_day: [],
+        topCountries: [],
+        top_countries: [],
+        topCities: [],
+        top_cities: [],
+        topDevices: [],
+        top_devices: [],
+        topBrowsers: [],
+        top_browsers: [],
+        topReferrers: [],
+        top_referrers: [],
+        liveClickEvents: [],
+        live_click_events: [],
+      };
+
+      if (!userId && !linkId) {
+        return jsonResponse({ success: true, data: emptyAnalytics });
+      }
+
+      if (!env.DB) {
+        return jsonResponse({ success: true, data: emptyAnalytics });
+      }
+
+      try {
+        // 1. Fetch user's links from D1 to get list of identifiers (slugs & IDs)
+        let linkQuery = 'SELECT id, slug, clicks_count, created_at FROM links WHERE 1=1';
+        const linkParams = [];
+        if (userId && userId !== 'all') {
+          linkQuery += ' AND user_id = ?';
+          linkParams.push(userId);
+        }
+        if (linkId && linkId !== 'all') {
+          linkQuery += ' AND (id = ? OR LOWER(slug) = LOWER(?))';
+          linkParams.push(linkId, linkId);
+        }
+
+        const userLinksResult = await env.DB.prepare(linkQuery).bind(...linkParams).all();
+        const userLinks = userLinksResult?.results || [];
+
+        if (userLinks.length === 0) {
+          return jsonResponse({ success: true, data: emptyAnalytics });
+        }
+
+        const slugs = userLinks.map((l) => l.slug).filter(Boolean);
+        const linkIds = userLinks.map((l) => l.id).filter(Boolean);
+        const allIdentifiers = Array.from(new Set([...slugs, ...linkIds]));
+        const sumClicksFromLinks = userLinks.reduce((acc, l) => acc + (Number(l.clicks_count) || 0), 0);
+
+        // Compute period date cutoff
+        let dateCutoff = "datetime('now', '-30 days')";
+        if (period === '1d' || period === 'day') {
+          dateCutoff = "datetime('now', '-1 day')";
+        } else if (period === '7d' || period === 'week') {
+          dateCutoff = "datetime('now', '-7 days')";
+        } else if (period === '365d' || period === 'year') {
+          dateCutoff = "datetime('now', '-365 days')";
+        }
+
+        const inPlaceholders = allIdentifiers.map(() => '?').join(',');
+        const baseWhere = `(slug IN (${inPlaceholders}) OR link_id IN (${inPlaceholders})) AND created_at >= ${dateCutoff}`;
+        const bindValues = [...allIdentifiers, ...allIdentifiers];
+
+        // 2. Query authentic aggregates in parallel from analytics_events
+        const [
+          totalsRes,
+          byDayRes,
+          countriesRes,
+          citiesRes,
+          devicesRes,
+          browsersRes,
+          referrersRes,
+          liveEventsRes
+        ] = await Promise.all([
+          env.DB.prepare(`
+            SELECT COUNT(*) as total_clicks, COUNT(DISTINCT ip_hash) as unique_clicks, COALESCE(SUM(conversion_amount), 0) as total_revenue
+            FROM analytics_events
+            WHERE ${baseWhere}
+          `).bind(...bindValues).first().catch(async () => {
+            return await env.DB.prepare(`
+              SELECT COUNT(*) as total_clicks, COUNT(DISTINCT ip_hash) as unique_clicks
+              FROM analytics_events
+              WHERE ${baseWhere}
+            `).bind(...bindValues).first().catch(() => null);
+          }),
+
+          env.DB.prepare(`
+            SELECT strftime('%Y-%m-%d', created_at) as date, COUNT(*) as clicks, COUNT(DISTINCT ip_hash) as unique_clicks
+            FROM analytics_events
+            WHERE ${baseWhere}
+            GROUP BY strftime('%Y-%m-%d', created_at)
+            ORDER BY date ASC
+          `).bind(...bindValues).all().catch(() => null),
+
+          env.DB.prepare(`
+            SELECT UPPER(country) as code, COUNT(*) as count
+            FROM analytics_events
+            WHERE ${baseWhere} AND country IS NOT NULL AND country != ''
+            GROUP BY UPPER(country)
+            ORDER BY count DESC
+            LIMIT 20
+          `).bind(...bindValues).all().catch(() => null),
+
+          env.DB.prepare(`
+            SELECT city, UPPER(country) as countryCode, COUNT(*) as count
+            FROM analytics_events
+            WHERE ${baseWhere} AND city IS NOT NULL AND city != '' AND city != 'Inconnue'
+            GROUP BY city, UPPER(country)
+            ORDER BY count DESC
+            LIMIT 20
+          `).bind(...bindValues).all().catch(() => null),
+
+          env.DB.prepare(`
+            SELECT LOWER(device) as device, COUNT(*) as count
+            FROM analytics_events
+            WHERE ${baseWhere} AND device IS NOT NULL AND device != ''
+            GROUP BY LOWER(device)
+            ORDER BY count DESC
+            LIMIT 10
+          `).bind(...bindValues).all().catch(() => null),
+
+          env.DB.prepare(`
+            SELECT browser as name, COUNT(*) as count
+            FROM analytics_events
+            WHERE ${baseWhere} AND browser IS NOT NULL AND browser != ''
+            GROUP BY browser
+            ORDER BY count DESC
+            LIMIT 10
+          `).bind(...bindValues).all().catch(() => null),
+
+          env.DB.prepare(`
+            SELECT referrer as source, COUNT(*) as count
+            FROM analytics_events
+            WHERE ${baseWhere} AND referrer IS NOT NULL AND referrer != ''
+            GROUP BY referrer
+            ORDER BY count DESC
+            LIMIT 10
+          `).bind(...bindValues).all().catch(() => null),
+
+          env.DB.prepare(`
+            SELECT id, slug, UPPER(country) as country_code, city, referrer, device, browser, os, customer_email, customer_name, customer_avatar, conversion_amount, ip_hash, created_at as timestamp
+            FROM analytics_events
+            WHERE (slug IN (${inPlaceholders}) OR link_id IN (${inPlaceholders}))
+            ORDER BY created_at DESC
+            LIMIT 50
+          `).bind(...bindValues).all().catch(async () => {
+            return await env.DB.prepare(`
+              SELECT id, slug, UPPER(country) as country_code, city, referrer, device, browser, os, customer_email, customer_name, customer_avatar, conversion_amount, ip_hash, created_at as timestamp
+              FROM analytics_events
+              WHERE (slug IN (${inPlaceholders}) OR link_id IN (${inPlaceholders}))
+              ORDER BY created_at DESC
+              LIMIT 50
+            `).bind(...bindValues).all().catch(async () => {
+              return await env.DB.prepare(`
+                SELECT id, slug, UPPER(country) as country_code, city, referrer, device, browser, os, ip_hash, created_at as timestamp
+                FROM analytics_events
+                WHERE (slug IN (${inPlaceholders}) OR link_id IN (${inPlaceholders}))
+                ORDER BY created_at DESC
+                LIMIT 50
+              `).bind(...bindValues).all().catch(() => null);
+            });
+          }),
+        ]);
+
+        const dbTotalClicks = Number(totalsRes?.total_clicks || 0);
+        const dbUniqueClicks = Number(totalsRes?.unique_clicks || 0);
+        const finalTotalClicks = Math.max(dbTotalClicks, sumClicksFromLinks);
+        const finalUniqueClicks = finalTotalClicks === 0 ? 0 : Math.max(dbUniqueClicks, 1);
+        const finalTotalRevenue = Number(totalsRes?.total_revenue || 0);
+
+        const clicksByDay = (byDayRes?.results || []).map((r) => ({
+          date: r.date,
+          clicks: Number(r.clicks || 0),
+          uniqueClicks: Number(r.unique_clicks || r.clicks || 0),
+        }));
+
+        const topCountries = (countriesRes?.results || []).map((r) => ({
+          code: r.code,
+          count: Number(r.count || 0),
+          percentage: finalTotalClicks > 0 ? Math.round((Number(r.count || 0) / finalTotalClicks) * 100) : 0,
+        }));
+
+        const topCities = (citiesRes?.results || []).map((r) => ({
+          city: r.city,
+          countryCode: r.countryCode || 'XX',
+          count: Number(r.count || 0),
+          percentage: finalTotalClicks > 0 ? Math.round((Number(r.count || 0) / finalTotalClicks) * 100) : 0,
+        }));
+
+        const topDevices = (devicesRes?.results || []).map((r) => ({
+          label: r.device === 'mobile' ? 'Smartphone (Mobile)' : r.device === 'tablet' ? 'Tablette' : 'Ordinateur (Desktop)',
+          device: r.device || 'desktop',
+          count: Number(r.count || 0),
+          percentage: finalTotalClicks > 0 ? Math.round((Number(r.count || 0) / finalTotalClicks) * 100) : 0,
+        }));
+
+        const topBrowsers = (browsersRes?.results || []).map((r) => ({
+          name: r.name || 'Inconnu',
+          browser: r.name || 'Inconnu',
+          count: Number(r.count || 0),
+          percentage: finalTotalClicks > 0 ? Math.round((Number(r.count || 0) / finalTotalClicks) * 100) : 0,
+        }));
+
+        const topReferrers = (referrersRes?.results || []).map((r) => ({
+          source: r.source || 'Direct',
+          referrer: r.source || 'Direct',
+          name: r.source || 'Direct',
+          clicks: Number(r.count || 0),
+          count: Number(r.count || 0),
+          percentage: finalTotalClicks > 0 ? Math.round((Number(r.count || 0) / finalTotalClicks) * 100) : 0,
+        }));
+
+        const liveClickEvents = (liveEventsRes?.results || []).map((ev) => ({
+          id: ev.id,
+          timestamp: ev.timestamp,
+          slug: ev.slug,
+          country_code: ev.country_code || 'XX',
+          countryCode: ev.country_code || 'XX',
+          city: ev.city || '—',
+          device: ev.device || 'desktop',
+          browser: ev.browser || 'Chrome',
+          os: ev.os || 'Windows',
+          referrer: ev.referrer || 'Direct',
+          customerEmail: ev.customer_email || null,
+          customer_email: ev.customer_email || null,
+          email: ev.customer_email || null,
+          customerName: ev.customer_name || null,
+          customer_name: ev.customer_name || null,
+          customerFullName: ev.customer_name || null,
+          fullName: ev.customer_name || null,
+          customerAvatar: ev.customer_avatar || null,
+          customer_avatar: ev.customer_avatar || null,
+          avatarUrl: ev.customer_avatar || null,
+          avatar: ev.customer_avatar || null,
+          conversionAmount: Number(ev.conversion_amount || 0),
+          conversion_amount: Number(ev.conversion_amount || 0),
+          ipMasked: ev.ip_hash ? ev.ip_hash.replace(/(\d+)\.(\d+)\.(\d+)\.(\d+)/, '$1.$2.•••.•••') : '•••.•••.•••',
+        }));
+
+        return jsonResponse({
+          success: true,
+          data: {
+            totalClicks: finalTotalClicks,
+            total_clicks: finalTotalClicks,
+            uniqueClicks: finalUniqueClicks,
+            unique_clicks: finalUniqueClicks,
+            trackedRevenue: finalTotalRevenue,
+            total_revenue: finalTotalRevenue,
+            clicksByDay,
+            clicks_by_day: clicksByDay,
+            topCountries,
+            top_countries: topCountries,
+            topCities,
+            top_cities: topCities,
+            topDevices,
+            top_devices: topDevices,
+            topBrowsers,
+            top_browsers: topBrowsers,
+            topReferrers,
+            top_referrers: topReferrers,
+            liveClickEvents,
+            live_click_events: liveClickEvents,
+          },
+        });
+      } catch (err) {
+        console.error('[Analytics Worker Query Error]:', err);
+        return jsonResponse({
+          success: true,
+          data: emptyAnalytics,
+        });
+      }
     }
 
     // ─── 5. USERS API ─────────────────────────────────────────────────────
@@ -956,12 +1379,141 @@ export default {
       }
     }
 
+    // ─── GET /api/v1/users/me — Profile endpoint: returns email, name/fullName, plan, and real-time usage stats
+    if ((path === '/api/v1/users/me' || path === '/api/users/me') && method === 'GET') {
+      try {
+        const authHeader = request.headers.get('authorization') || '';
+        const frontendSecret = request.headers.get('x-frontend-secret') || '';
+        const headerUserId = request.headers.get('x-user-id') || '';
+        const headerUserEmail = request.headers.get('x-user-email') || '';
+
+        let targetIdentifier = headerUserId || headerUserEmail;
+
+        if (authHeader.startsWith('Bearer ')) {
+          const token = authHeader.slice(7).trim();
+          if (token && token !== 'lsh_secret_live_prod_2026' && !targetIdentifier) {
+            targetIdentifier = token;
+          }
+        }
+
+        let user = null;
+        if (env.DB) {
+          if (targetIdentifier) {
+            user = await env.DB.prepare(
+              'SELECT id, email, name, avatar_url, plan, created_at, updated_at FROM users WHERE id = ? OR email = ? LIMIT 1'
+            ).bind(targetIdentifier, targetIdentifier).first().catch(() => null);
+          }
+
+          // Fallback: If no identifier or user not found, try to get the first user
+          if (!user) {
+            user = await env.DB.prepare(
+              'SELECT id, email, name, avatar_url, plan, created_at, updated_at FROM users ORDER BY created_at ASC LIMIT 1'
+            ).first().catch(() => null);
+          }
+        }
+
+        const resolvedUser = user || {
+          id: targetIdentifier || 'usr_anon',
+          email: headerUserEmail || '',
+          name: '',
+          avatar_url: null,
+          plan: 'FREEMIUM',
+          created_at: new Date().toISOString(),
+        };
+
+        const finalUserId = resolvedUser.id || 'usr_anon';
+        let clicksThisMonth = 0;
+        let linksCount = 0;
+        let domainsCount = 0;
+
+        if (env.DB) {
+          try {
+            const linksStats = await env.DB.prepare(
+              'SELECT COUNT(*) as linksCount, COALESCE(SUM(clicks_count), 0) as totalClicks FROM links WHERE user_id = ?'
+            ).bind(finalUserId).first().catch(() => null);
+
+            if (linksStats) {
+              linksCount = Number(linksStats.linksCount || 0);
+              clicksThisMonth = Number(linksStats.totalClicks || 0);
+            }
+
+            const domStats = await env.DB.prepare(
+              'SELECT COUNT(*) as domainsCount FROM custom_domains WHERE user_id = ?'
+            ).bind(finalUserId).first().catch(() => null);
+
+            if (domStats) {
+              domainsCount = Number(domStats.domainsCount || 0);
+            }
+          } catch (statErr) {
+            console.warn('[D1 Stats Error]:', statErr);
+          }
+        }
+
+        const fullName = resolvedUser.name || null;
+
+        return jsonResponse({
+          success: true,
+          data: {
+            id: resolvedUser.id,
+            email: resolvedUser.email || '',
+            name: fullName,
+            fullName: fullName,
+            avatarUrl: resolvedUser.avatar_url || resolvedUser.avatarUrl || null,
+            plan: resolvedUser.plan || 'FREEMIUM',
+            clicksThisMonth: clicksThisMonth || 0,
+            linksCount: linksCount || 0,
+            domainsCount: domainsCount || 0,
+            createdAt: resolvedUser.created_at || new Date().toISOString(),
+          },
+        });
+      } catch (err) {
+        console.error('[Users /me Error]:', err);
+        return jsonResponse({ success: false, error: 'Erreur lors de la récupération du profil' }, 500);
+      }
+    }
+
+    // ─── PATCH /api/v1/users/me — Update FullName / avatar
+    if ((path === '/api/v1/users/me' || path === '/api/users/me') && method === 'PATCH') {
+      try {
+        const body = await request.json().catch(() => ({}));
+        const newName = body.fullName || body.name;
+        const newAvatar = body.avatarUrl || body.avatar_url;
+        const headerUserId = request.headers.get('x-user-id') || '';
+        const headerUserEmail = request.headers.get('x-user-email') || '';
+        const targetIdentifier = headerUserId || headerUserEmail;
+
+        if (env.DB && targetIdentifier && newName) {
+          await env.DB.prepare(
+            "UPDATE users SET name = ?, updated_at = datetime('now') WHERE id = ? OR email = ?"
+          ).bind(newName, targetIdentifier, targetIdentifier).run().catch(() => {});
+        }
+        if (env.DB && targetIdentifier && newAvatar) {
+          await env.DB.prepare(
+            "UPDATE users SET avatar_url = ?, updated_at = datetime('now') WHERE id = ? OR email = ?"
+          ).bind(newAvatar, targetIdentifier, targetIdentifier).run().catch(() => {});
+        }
+
+        const updatedFullName = newName || null;
+
+        return jsonResponse({
+          success: true,
+          data: {
+            name: updatedFullName,
+            fullName: updatedFullName,
+            avatarUrl: newAvatar || null,
+          },
+        });
+      } catch (err) {
+        return jsonResponse({ success: false, error: 'Erreur mise à jour profil' }, 500);
+      }
+    }
+
     // GET /api/v1/users/:id — Get user plan from D1
     if ((path.startsWith('/api/v1/users/') || path.startsWith('/api/users/')) && method === 'GET') {
       const userId = path.startsWith('/api/v1/users/')
         ? path.slice('/api/v1/users/'.length)
         : path.slice('/api/users/'.length);
-      if (userId && userId !== 'sync' && env.DB) {
+      if (userId && userId !== 'sync' && userId !== 'me' && env.DB) {
         try {
           const user = await env.DB.prepare(
             'SELECT id, email, name, plan, created_at, updated_at FROM users WHERE id = ? OR email = ? LIMIT 1'

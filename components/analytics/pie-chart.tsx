@@ -53,7 +53,7 @@ export function AnalyticsPieChart({
   });
 
   const activeHovered = hoveredSlice || slicesWithAngles[0] || {
-    label: "Aucun clic",
+    label: "No clicks",
     value: 0,
     color: "#ff6600",
     percentage: 0,
@@ -62,23 +62,23 @@ export function AnalyticsPieChart({
   };
 
   return (
-    <div className="rounded-[10px] bg-[#141416] border border-[#222225] p-6 flex flex-col justify-between shadow-2xl relative overflow-hidden h-full">
+    <div className="rounded-[10px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] p-6 flex flex-col justify-between shadow-sm dark:shadow-2xl relative overflow-hidden h-full">
       {/* Top Header with Switcher */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#222225]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-zinc-200 dark:border-[#222225]">
         <div>
           <div className="flex items-center gap-2">
             <PieIcon className="w-4 h-4 text-[#ff6600]" />
-            <h3 className="text-base font-bold text-white tracking-wide">
-              {activeTab === "links" ? "Part de Trafic des Liens Actifs" : "Canaux d'Acquisition de Trafic"}
+            <h3 className="text-base font-bold text-zinc-900 dark:text-white tracking-wide">
+              {activeTab === "links" ? "Active Links Traffic Share" : "Traffic Acquisition Channels"}
             </h3>
           </div>
-          <p className="text-xs text-neutral-400 mt-0.5">
-            Répartition globale du volume de clics sur le mois.
+          <p className="text-xs text-zinc-500 dark:text-neutral-400 mt-0.5">
+            Overall click volume breakdown for the month.
           </p>
         </div>
 
         {/* View Switcher */}
-        <div className="w-full sm:w-auto grid grid-cols-2 sm:flex sm:items-center gap-1 p-1 bg-[#1a1a1e] border border-[#27272a] rounded-[10px] text-xs">
+        <div className="w-full sm:w-auto grid grid-cols-2 sm:flex sm:items-center gap-1 p-1 bg-zinc-100 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a] rounded-[10px] text-xs">
           <button
             type="button"
             onClick={() => {
@@ -88,10 +88,10 @@ export function AnalyticsPieChart({
             className={`text-center px-3 py-1.5 rounded-[10px] font-semibold transition-all cursor-pointer ${
               activeTab === "links"
                 ? "bg-[#ff6600] text-white shadow-md font-bold"
-                : "text-neutral-400 hover:text-white"
+                : "text-zinc-600 dark:text-neutral-400 hover:text-zinc-900 dark:hover:text-white"
             }`}
           >
-            Par Liens
+            By Links
           </button>
           <button
             type="button"
@@ -102,23 +102,23 @@ export function AnalyticsPieChart({
             className={`text-center px-3 py-1.5 rounded-[10px] font-semibold transition-all cursor-pointer ${
               activeTab === "channels"
                 ? "bg-[#ff6600] text-white shadow-md font-bold"
-                : "text-neutral-400 hover:text-white"
+                : "text-zinc-600 dark:text-neutral-400 hover:text-zinc-900 dark:hover:text-white"
             }`}
           >
-            Par Canaux
+            By Channels
           </button>
         </div>
       </div>
 
       {currentData.length === 0 || totalValue === 0 ? (
         <div className="py-12 flex flex-col items-center justify-center text-center gap-3">
-          <div className="w-16 h-16 rounded-full bg-white/5 border border-dashed border-[#27272a] flex items-center justify-center text-neutral-500">
+          <div className="w-16 h-16 rounded-full bg-zinc-100 dark:bg-[#1a1a1e] border border-dashed border-zinc-300 dark:border-[#27272a] flex items-center justify-center text-zinc-400 dark:text-neutral-500">
             <PieIcon className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-xs font-semibold text-neutral-300">Aucune donnée de répartition disponible</p>
-            <p className="text-[11px] text-neutral-500 mt-0.5">
-              Les clics enregistrés sur vos liens apparaîtront automatiquement dans ce graphique.
+            <p className="text-xs font-semibold text-zinc-900 dark:text-white">No distribution data available</p>
+            <p className="text-[11px] text-zinc-500 dark:text-neutral-400 mt-0.5">
+              Clicks recorded on your links will appear automatically in this chart.
             </p>
           </div>
         </div>
@@ -135,7 +135,7 @@ export function AnalyticsPieChart({
                   cy="80"
                   r={radius}
                   fill="transparent"
-                  stroke="#1a1a1e"
+                  className="stroke-zinc-100 dark:stroke-[#1a1a1e]"
                   strokeWidth="20"
                 />
 
@@ -161,14 +161,14 @@ export function AnalyticsPieChart({
 
               {/* Center Metrics Hole */}
               <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-400">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-neutral-400">
                   Total
                 </span>
-                <span className="font-bebas text-2xl font-black text-white leading-none mt-0.5">
+                <span className="font-bebas text-2xl font-black text-zinc-900 dark:text-white leading-none mt-0.5">
                   {formatNumber(totalValue)}
                 </span>
                 <span className="text-[9px] text-[#ff6600] font-semibold mt-0.5">
-                  clics
+                  clicks
                 </span>
               </div>
             </div>
@@ -186,8 +186,8 @@ export function AnalyticsPieChart({
                   onMouseLeave={() => setHoveredSlice(null)}
                   className={`p-2.5 rounded-[10px] border transition-all duration-200 cursor-pointer flex items-center justify-between gap-3 ${
                     isHovered
-                      ? "bg-white/[0.04] border-white/20 shadow-lg scale-[1.02]"
-                      : "bg-[#18181b]/50 border-transparent hover:bg-white/[0.02]"
+                      ? "bg-zinc-100 dark:bg-white/[0.04] border-zinc-300 dark:border-white/20 shadow-sm scale-[1.02]"
+                      : "bg-zinc-50 dark:bg-[#18181b]/50 border-transparent hover:bg-zinc-100 dark:hover:bg-white/[0.02]"
                   }`}
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
@@ -196,11 +196,11 @@ export function AnalyticsPieChart({
                       style={{ backgroundColor: slice.color }}
                     />
                     <div className="flex flex-col min-w-0">
-                      <span className="text-xs font-bold text-white truncate">
+                      <span className="text-xs font-bold text-zinc-900 dark:text-white truncate">
                         {slice.label}
                       </span>
                       {slice.sublabel && (
-                        <span className="text-[10px] text-neutral-400 truncate">
+                        <span className="text-[10px] text-zinc-500 dark:text-neutral-400 truncate">
                           {slice.sublabel}
                         </span>
                       )}
@@ -208,7 +208,7 @@ export function AnalyticsPieChart({
                   </div>
 
                   <div className="flex items-center gap-3 shrink-0">
-                    <span className="font-mono text-xs font-semibold text-neutral-300">
+                    <span className="font-mono text-xs font-semibold text-zinc-800 dark:text-neutral-300">
                       {formatNumber(slice.value)}
                     </span>
                     <span
@@ -229,9 +229,9 @@ export function AnalyticsPieChart({
       )}
 
       {/* Bottom Footer Info */}
-      <div className="pt-3 border-t border-[#222225] flex items-center justify-between text-[11px] text-neutral-500">
-        <span>Routage Edge temps réel</span>
-        <span className="font-mono text-neutral-400">
+      <div className="pt-3 border-t border-zinc-200 dark:border-[#222225] flex items-center justify-between text-[11px] text-zinc-500 dark:text-neutral-400">
+        <span>Real-time Edge Routing</span>
+        <span className="font-mono text-zinc-700 dark:text-neutral-300">
           {activeHovered ? `${activeHovered.label} (${activeHovered.percentage}%)` : ""}
         </span>
       </div>

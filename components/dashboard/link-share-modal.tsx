@@ -104,7 +104,7 @@ export function LinkShareModal({ link, isOpen, onClose }: LinkShareModalProps) {
   if (!isOpen || !link) return null;
 
   const url = link.shortUrl;
-  const title = encodeURIComponent(link.metaTitle || `Découvrez ce lien : ${link.slug}`);
+  const title = encodeURIComponent(link.metaTitle || `Check out this link: ${link.slug}`);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(url);
@@ -226,7 +226,7 @@ export function LinkShareModal({ link, isOpen, onClose }: LinkShareModalProps) {
             <Share2 className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-white">Partager le lien & QR Code</h3>
+            <h3 className="text-lg font-bold text-white">Share Link & QR Code</h3>
             <p className="text-xs text-neutral-400 font-mono">{link.slug}</p>
           </div>
         </div>
@@ -241,12 +241,12 @@ export function LinkShareModal({ link, isOpen, onClose }: LinkShareModalProps) {
             {copied ? (
               <>
                 <Check className="w-3.5 h-3.5" />
-                <span>Copié !</span>
+                <span>Copied!</span>
               </>
             ) : (
               <>
                 <Copy className="w-3.5 h-3.5" />
-                <span>Copier</span>
+                <span>Copy</span>
               </>
             )}
           </button>
@@ -259,9 +259,9 @@ export function LinkShareModal({ link, isOpen, onClose }: LinkShareModalProps) {
             <div className="flex items-center justify-between w-full">
               <span className="text-xs font-bold text-white flex items-center gap-1.5">
                 <QrCode className="w-4 h-4 text-[#ff6600]" />
-                <span>QR Code Personnalisable</span>
+                <span>Customizable QR Code</span>
               </span>
-              <span className="text-[10px] text-neutral-400">Haute Résolution</span>
+              <span className="text-[10px] text-neutral-400">High Resolution</span>
             </div>
 
             {/* QR Canvas */}
@@ -273,7 +273,7 @@ export function LinkShareModal({ link, isOpen, onClose }: LinkShareModalProps) {
             <div className="flex items-center justify-between w-full text-xs">
               <span className="text-neutral-400 text-[11px] font-medium flex items-center gap-1">
                 <Palette className="w-3 h-3 text-[#ff6600]" />
-                <span>Couleur :</span>
+                <span>Color:</span>
               </span>
               <div className="flex items-center gap-1.5">
                 {[
@@ -327,7 +327,7 @@ export function LinkShareModal({ link, isOpen, onClose }: LinkShareModalProps) {
           <div className="md:col-span-6 flex flex-col gap-3">
             <span className="text-xs font-bold text-white flex items-center gap-1.5">
               <Share2 className="w-4 h-4 text-[#ff6600]" />
-              <span>Partager sur les Réseaux Sociaux</span>
+              <span>Share on Social Media</span>
             </span>
 
             <div className="grid grid-cols-2 gap-2.5">
@@ -363,12 +363,12 @@ export function LinkShareModal({ link, isOpen, onClose }: LinkShareModalProps) {
             {/* Full Editor Link */}
             <button
               onClick={() => {
-                window.location.href = `/dashboard/qr-code?url=${encodeURIComponent(link.shortUrl)}`;
+                window.location.href = `/dashboard/qr-code?url=${encodeURIComponent(link.shortUrl)}&slug=${encodeURIComponent(link.slug)}&id=${encodeURIComponent(link.id)}`;
               }}
               className="mt-2 w-full py-2.5 rounded-[10px] bg-white/5 hover:bg-white/10 text-neutral-300 hover:text-white text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer border border-[#27272a]"
             >
               <Sliders className="w-3.5 h-3.5 text-[#ff6600]" />
-              <span>Éditeur QR complet (Logo, Styles)</span>
+              <span>Full QR Editor (Logo, Styles)</span>
               <ExternalLink className="w-3 h-3 text-neutral-500" />
             </button>
           </div>

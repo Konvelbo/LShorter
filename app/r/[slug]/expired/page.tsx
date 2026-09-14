@@ -1,6 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import { Hourglass, ArrowLeft, ShieldAlert } from "lucide-react";
+import { Hourglass, ArrowLeft } from "lucide-react";
 
 export default async function ExpiredPage({
   params,
@@ -25,10 +25,10 @@ export default async function ExpiredPage({
         </div>
 
         <h1 className="text-xl font-bold text-white mb-2 tracking-tight">
-          Lien Expiré ou Quota Atteint
+          Link Expired or Quota Reached
         </h1>
         <p className="text-xs text-neutral-400 mb-6 max-w-xs mx-auto leading-relaxed">
-          Ce lien court a atteint sa limite maximale d&apos;accès ou a été désactivé par son auteur.
+          This short link has reached its maximum click limit or has expired.
         </p>
 
         <Link
@@ -36,11 +36,11 @@ export default async function ExpiredPage({
           className="inline-flex items-center justify-center gap-2 w-full h-11 rounded-[10px] bg-[#1c1c21] hover:bg-[#25252c] text-white font-semibold text-xs border border-[#2a2a30] transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Retour à l&apos;accueil</span>
+          <span>Return to Homepage</span>
         </Link>
 
         <div className="mt-6 pt-6 border-t border-[#1e1e24] flex items-center justify-center text-[11px] text-neutral-500 gap-1.5">
-          <span>Sécurisé par</span>
+          <span>Secured by</span>
           <span className="font-semibold text-neutral-400">LShorter Edge</span>
         </div>
       </div>

@@ -70,17 +70,22 @@ export default function DomainsPage() {
               name: domName,
               value: DEFAULT_DOMAIN,
               ttl: 3600,
-              note: `Pointe votre domaine vers les serveurs Edge LShorter (${DEFAULT_DOMAIN})`
+              note: `Points your domain to LShorter Edge servers (${DEFAULT_DOMAIN})`
             },
             {
               type: "TXT",
               name: `_lshorter-verify.${domName}`,
               value: `lshorter-verify=${d.id}`,
               ttl: 3600,
-              note: "Vérification de la propriété du domaine"
+              note: "Domain ownership verification"
             }
           ]),
           instructions: d.instructions || [],
+          userEmail: d.user_email || d.userEmail || d.email,
+          userName: d.user_name || d.userName || d.user_full_name || d.userFullName || d.fullName,
+          userFullName: d.user_full_name || d.userFullName || d.user_name || d.userName || d.fullName,
+          email: d.user_email || d.userEmail || d.email,
+          fullName: d.user_full_name || d.userFullName || d.user_name || d.userName || d.fullName,
           created_at: d.created_at || new Date().toISOString()
         };
       });
@@ -114,19 +119,25 @@ export default function DomainsPage() {
     if (!newDomainInput.trim() || !userId) return;
 
     if (domainsLimit !== -1 && domains.length >= domainsLimit) {
-      showToast.error(`Votre forfait ${plan} est limité à ${domainsLimit} domaines personnalisés.`);
+      showToast.error(`Your ${plan} plan is limited to ${domainsLimit} custom domains.`);
       return;
     }
 
     try {
-      await cfAddDomain({ userId, domain: newDomainInput.trim() });
+      await cfAddDomain({
+        userId,
+        domain: newDomainInput.trim(),
+        userEmail: session?.user?.email || undefined,
+        userName: session?.user?.name || undefined,
+        userFullName: session?.user?.name || undefined,
+      });
       setNewDomainInput("");
       setIsAdding(false);
       confetti({ particleCount: 40, spread: 60, origin: { y: 0.6 } });
-      showToast.success("Domaine ajouté avec succès !");
+      showToast.success("Domain added successfully!");
       loadDomains();
     } catch (err: any) {
-      showToast.error(err.message || "Erreur lors de l'ajout du domaine.");
+      showToast.error(err.message || "Error adding domain.");
     }
   };
 
@@ -135,7 +146,7 @@ export default function DomainsPage() {
     setTimeout(() => {
       setIsVerifyingId(null);
       confetti({ particleCount: 50, spread: 70, origin: { y: 0.6 } });
-      showToast.success("Domaine actif et certificat SSL vérifié !");
+      showToast.success("Domain active and SSL certificate verified!");
       loadDomains();
     }, 1200);
   };
@@ -162,11 +173,11 @@ export default function DomainsPage() {
     try {
       await cfDeleteDomain(deleteTarget.id, userId);
       cfInvalidateCache("/api/domains");
-      showToast.success("Domaine supprimé.");
+      showToast.success("Domain deleted.");
       setDeleteTarget({ isOpen: false, id: "", domain: "" });
       loadDomains();
     } catch (err) {
-      showToast.error("Erreur lors de la suppression.");
+      showToast.error("Error deleting domain.");
     } finally {
       setIsDeleting(false);
     }
@@ -197,9 +208,9 @@ export default function DomainsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-wide">Domaines Personnalisés</h1>
+          <h1 className="text-2xl font-bold text-white tracking-wide">Custom Domains</h1>
           <p className="text-xs text-neutral-400 mt-1">
-            Utilisez vos propres noms de domaine en marque blanche (ex: link.ma-boutique.com) avec SSL Cloudflare inclus.
+            Use your own white-label domain names (e.g. link.my-brand.com) with Cloudflare SSL included.
           </p>
         </div>
 
@@ -210,14 +221,14 @@ export default function DomainsPage() {
               cfInvalidateCache("/api/domains");
               await loadDomains();
               setIsRefreshing(false);
-              showToast.success("Liste des domaines actualisée !");
+              showToast.success("Domains list refreshed!");
             }}
             variant="outline"
             disabled={isRefreshing}
             className="h-10 px-3.5 text-xs font-semibold gap-2 border-[#27272a] bg-[#141416] hover:bg-white/5 text-neutral-300 hover:text-white cursor-pointer shadow-sm"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-[#ff6600]" : "text-neutral-400"}`} />
-            <span>Actualiser</span>
+            <span>Refresh</span>
           </Button>
 
           <Button
@@ -226,7 +237,7 @@ export default function DomainsPage() {
             className="font-bebas text-lg tracking-wide gap-1.5 shrink-0"
           >
             <Plus className="w-5 h-5" />
-            <span>AJOUTER UN DOMAINE</span>
+            <span>ADD A DOMAIN</span>
           </Button>
         </div>
       </div>
@@ -239,7 +250,7 @@ export default function DomainsPage() {
         >
           <h3 className="text-base font-bold text-white flex items-center gap-2">
             <Globe2 className="w-4 h-4 text-[#ff6600]" />
-            <span>Connecter un nouveau domaine ou sous-domaine</span>
+            <span>Connect a new domain or subdomain</span>
           </h3>
 
           {/* Affiliate CTA — domain purchase */}
@@ -247,36 +258,36 @@ export default function DomainsPage() {
             <div className="flex items-start gap-2.5">
               <Info className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
               <p className="text-xs text-neutral-300 leading-relaxed">
-                <strong className="text-white">Vous devez déjà posséder ce domaine.</strong>{" "}
-                LShorter se connecte à votre domaine existant via Cloudflare for SaaS — il ne vend pas de noms de domaine.
+                <strong className="text-white">You must already own this domain.</strong>{" "}
+                LShorter connects to your existing domain via Cloudflare for SaaS — it does not sell domain names.
               </p>
             </div>
             <a
-              href={process.env.NEXT_PUBLIC_HOSTINGER_AFFILIATE_LINK || "https://hostinger.com/fr"}
+              href={process.env.NEXT_PUBLIC_HOSTINGER_AFFILIATE_LINK || "https://hostinger.com"}
               target="_blank"
               rel="noopener noreferrer"
               className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold transition-colors"
             >
               <ExternalLink className="w-3.5 h-3.5" />
-              Acheter un domaine · Hostinger
+              Buy a domain · Hostinger
             </a>
           </div>
 
           <p className="text-xs text-neutral-400">
-            Entrez votre domaine (ex:{" "}
-            <strong className="text-neutral-200">link.monentreprise.com</strong> ou{" "}
+            Enter your domain (e.g.{" "}
+            <strong className="text-neutral-200">link.mycompany.com</strong> or{" "}
             <strong className="text-neutral-200">go.brand.io</strong>).
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3">
             <Input
               required
-              placeholder="link.monentreprise.com"
+              placeholder="link.mycompany.com"
               value={newDomainInput}
               onChange={(e) => setNewDomainInput(e.target.value)}
             />
             <Button type="submit" variant="glow" className="shrink-0 px-6">
-              Déclarer le domaine
+              Declare domain
             </Button>
             <Button
               type="button"
@@ -284,17 +295,17 @@ export default function DomainsPage() {
               onClick={() => setIsAdding(false)}
               className="shrink-0"
             >
-              Annuler
+              Cancel
             </Button>
           </div>
 
           {/* DNS instructions note */}
           <div className="p-3.5 rounded-[10px] bg-[#0f0f11] border border-[#27272a] text-xs text-neutral-400 leading-relaxed">
-            <p className="font-semibold text-neutral-200 mb-1">📋 Après avoir cliqué "Déclarer le domaine" :</p>
+            <p className="font-semibold text-neutral-200 mb-1">📋 After clicking &quot;Declare domain&quot; :</p>
             <ol className="list-decimal list-inside space-y-1">
-              <li>Copiez les enregistrements DNS affichés sur la carte de votre domaine.</li>
-              <li>Collez-les dans la zone DNS de votre registraire (Hostinger, OVH, Namecheap…).</li>
-              <li>Attendez la propagation DNS (5 à 30 minutes) puis cliquez <strong className="text-white">Vérifier</strong>.</li>
+              <li>Copy the DNS records displayed on your domain card.</li>
+              <li>Paste them into your registrar&apos;s DNS management zone (Hostinger, OVH, Namecheap, etc.).</li>
+              <li>Wait for DNS propagation (5 to 30 minutes), then click <strong className="text-white">Verify Domain</strong>.</li>
             </ol>
           </div>
         </form>
@@ -308,7 +319,7 @@ export default function DomainsPage() {
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" />
           <input
             type="text"
-            placeholder="Rechercher un nom de domaine..."
+            placeholder="Search for a domain name..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full h-10 pl-9 pr-3 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] text-xs text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#ff6600]"
@@ -326,7 +337,7 @@ export default function DomainsPage() {
                 : "text-neutral-400 hover:text-white hover:bg-white/5"
             }`}
           >
-            Tous ({domains.length})
+            All ({domains.length})
           </button>
 
           <button
@@ -338,7 +349,7 @@ export default function DomainsPage() {
                 : "text-neutral-400 hover:text-white hover:bg-white/5"
             }`}
           >
-            Actifs ({activeCount})
+            Active ({activeCount})
           </button>
 
           <button
@@ -350,7 +361,7 @@ export default function DomainsPage() {
                 : "text-neutral-400 hover:text-white hover:bg-white/5"
             }`}
           >
-            En attente ({pendingCount})
+            Pending ({pendingCount})
           </button>
         </div>
 
@@ -362,9 +373,9 @@ export default function DomainsPage() {
             onChange={(e) => setSortBy(e.target.value as any)}
             className="h-9 rounded-[10px] bg-[#1a1a1e] text-white border border-[#27272a] px-2.5 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
           >
-            <option value="date" className="bg-[#141416] text-white">Plus récents</option>
-            <option value="name" className="bg-[#141416] text-white">Nom (A-Z)</option>
-            <option value="links" className="bg-[#141416] text-white">Plus de liens</option>
+            <option value="date" className="bg-[#141416] text-white">Most recent</option>
+            <option value="name" className="bg-[#141416] text-white">Name (A-Z)</option>
+            <option value="links" className="bg-[#141416] text-white">Most links</option>
           </select>
         </div>
       </div>
@@ -373,7 +384,7 @@ export default function DomainsPage() {
       <div className="flex flex-col gap-6">
         {filteredDomains.length === 0 ? (
           <div className="p-8 rounded-[10px] bg-[#141416] border border-[#222225] text-center text-neutral-400 text-xs">
-            Aucun domaine ne correspond à vos critères de recherche.
+            No domains match your search criteria.
           </div>
         ) : (
           filteredDomains.map((dom) => (
@@ -391,14 +402,28 @@ export default function DomainsPage() {
                     <h3 className="text-base font-bold text-white flex items-center gap-2">
                       <span>{dom.domain}</span>
                       {dom.status === "active" ? (
-                        <Badge variant="active">Actif & Sécurisé SSL</Badge>
+                        <Badge variant="active">Active & SSL Secured</Badge>
                       ) : (
-                        <Badge variant="expire">En attente DNS</Badge>
+                        <Badge variant="expire">Pending DNS</Badge>
                       )}
                     </h3>
                     <p className="text-xs text-neutral-500">
-                      ID: {dom.id} · {dom.linksCount} liens associés
+                      ID: {dom.id} · {dom.linksCount} associated links
                     </p>
+                    {/* Owner / User Details (Full Name & Email) - empty if no info */}
+                    {(() => {
+                      const name = dom.userFullName || dom.userName || dom.fullName;
+                      const email = dom.userEmail || dom.email;
+                      if (!name && !email) return null;
+                      return (
+                        <div className="flex items-center gap-1.5 text-[11px] text-neutral-400 bg-[#1a1a1e] px-2 py-0.5 rounded-[6px] border border-[#27272a] mt-1 truncate">
+                          <span className="text-neutral-500 text-[10px] font-semibold shrink-0">Owner:</span>
+                          {name && <span className="text-neutral-200 font-medium truncate">{name}</span>}
+                          {name && email && <span className="text-neutral-600">·</span>}
+                          {email && <span className="text-neutral-400 font-mono text-[10px] truncate">{email}</span>}
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
 
@@ -414,13 +439,13 @@ export default function DomainsPage() {
                       <RefreshCw
                         className={`w-3.5 h-3.5 ${isVerifyingId === dom.id ? "animate-spin" : ""}`}
                       />
-                      <span>{isVerifyingId === dom.id ? "Vérification..." : "Vérifier le domaine"}</span>
+                      <span>{isVerifyingId === dom.id ? "Verifying..." : "Verify Domain"}</span>
                     </Button>
                   )}
                   <button
                     onClick={() => promptDeleteDomain(dom)}
                     className="p-2 rounded-[10px] hover:bg-red-500/20 text-neutral-400 hover:text-red-400 transition-colors cursor-pointer"
-                    title="Supprimer le domaine"
+                    title="Delete domain"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -430,7 +455,7 @@ export default function DomainsPage() {
               {/* DNS Records Table */}
               <div>
                 <span className="text-xs font-semibold text-neutral-300 block mb-2.5">
-                  Configuration DNS requise chez votre registraire (OVH, GoDaddy, Cloudflare, etc.) :
+                  Required DNS configuration at your registrar (OVH, GoDaddy, Cloudflare, Namecheap, etc.):
                 </span>
 
                 <div className="overflow-x-auto">
@@ -438,10 +463,10 @@ export default function DomainsPage() {
                     <thead>
                       <tr className="border-b border-[#27272a] text-[11px] uppercase tracking-wider text-neutral-500">
                         <th className="py-2.5 px-3">Type</th>
-                        <th className="py-2.5 px-3">Nom d&apos;hôte</th>
-                        <th className="py-2.5 px-3">Valeur / Cible</th>
+                        <th className="py-2.5 px-3">Host Name</th>
+                        <th className="py-2.5 px-3">Value / Target</th>
                         <th className="py-2.5 px-3">TTL</th>
-                        <th className="py-2.5 px-3 text-right">Copier</th>
+                        <th className="py-2.5 px-3 text-right">Copy</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#27272a]">
@@ -459,7 +484,7 @@ export default function DomainsPage() {
                             <button
                               onClick={() => handleCopy(rec.value)}
                               className="p-1 rounded-[10px] hover:bg-white/10 text-neutral-400 hover:text-white transition-colors cursor-pointer"
-                              title="Copier la valeur"
+                              title="Copy value"
                             >
                               {copiedValue === rec.value ? (
                                 <Check className="w-3.5 h-3.5 text-emerald-400" />
@@ -479,7 +504,7 @@ export default function DomainsPage() {
               <div className="flex items-start gap-2 p-3 rounded-[10px] bg-neutral-900/60 border border-[#27272a] text-xs text-neutral-400">
                 <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                 <span>
-                  Le certificat SSL Let&apos;s Encrypt sera automatiquement émis et renouvelé par les serveurs Edge Cloudflare dès que la propagation DNS sera terminée (entre 5 min et 48h).
+                  Let&apos;s Encrypt SSL certificates are automatically issued and renewed by Cloudflare Edge servers once DNS propagation completes (5 min to 48 hours).
                 </span>
               </div>
             </div>
@@ -492,11 +517,12 @@ export default function DomainsPage() {
         isOpen={deleteTarget.isOpen}
         onClose={() => setDeleteTarget({ isOpen: false, id: "", domain: "" })}
         onConfirm={confirmDeleteDomain}
-        title="Supprimer ce domaine personnalisé ?"
-        description={`Le domaine ${deleteTarget.domain} sera dissocié. Vos liens courts continueront de fonctionner sous le domaine par défaut lsho.cc.`}
+        title="Delete this custom domain?"
+        description={`The domain ${deleteTarget.domain} will be disconnected. Your short links will continue working under the default domain lsho.cc.`}
         itemLabels={deleteTarget.domain ? [deleteTarget.domain] : []}
         isDeleting={isDeleting}
       />
     </div>
   );
 }
+

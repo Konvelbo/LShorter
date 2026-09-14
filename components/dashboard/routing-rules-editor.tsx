@@ -22,149 +22,149 @@ import { cn } from "@/lib/utils";
 // Comprehensive World Countries List (All 195+ Countries with ISO codes)
 export const ALL_WORLD_COUNTRIES = [
   { code: "FR", name: "France" },
-  { code: "SN", name: "Sénégal" },
+  { code: "SN", name: "Senegal" },
   { code: "CI", name: "Côte d'Ivoire" },
   { code: "BF", name: "Burkina Faso" },
   { code: "ML", name: "Mali" },
-  { code: "GN", name: "Guinée" },
-  { code: "CM", name: "Cameroun" },
+  { code: "GN", name: "Guinea" },
+  { code: "CM", name: "Cameroon" },
   { code: "GA", name: "Gabon" },
   { code: "TG", name: "Togo" },
-  { code: "BJ", name: "Bénin" },
+  { code: "BJ", name: "Benin" },
   { code: "CG", name: "Congo" },
-  { code: "CD", name: "RDC (Congo Kinshasa)" },
+  { code: "CD", name: "DRC (Congo Kinshasa)" },
   { code: "NE", name: "Niger" },
-  { code: "TD", name: "Tchad" },
-  { code: "MA", name: "Maroc" },
-  { code: "DZ", name: "Algérie" },
-  { code: "TN", name: "Tunisie" },
+  { code: "TD", name: "Chad" },
+  { code: "MA", name: "Morocco" },
+  { code: "DZ", name: "Algeria" },
+  { code: "TN", name: "Tunisia" },
   { code: "MG", name: "Madagascar" },
-  { code: "MU", name: "Maurice" },
-  { code: "US", name: "États-Unis" },
+  { code: "MU", name: "Mauritius" },
+  { code: "US", name: "United States" },
   { code: "CA", name: "Canada" },
-  { code: "BE", name: "Belgique" },
-  { code: "CH", name: "Suisse" },
-  { code: "GB", name: "Royaume-Uni" },
-  { code: "DE", name: "Allemagne" },
-  { code: "ES", name: "Espagne" },
-  { code: "IT", name: "Italie" },
+  { code: "BE", name: "Belgium" },
+  { code: "CH", name: "Switzerland" },
+  { code: "GB", name: "United Kingdom" },
+  { code: "DE", name: "Germany" },
+  { code: "ES", name: "Spain" },
+  { code: "IT", name: "Italy" },
   { code: "PT", name: "Portugal" },
-  { code: "NL", name: "Pays-Bas" },
-  { code: "SE", name: "Suède" },
-  { code: "NO", name: "Norvège" },
-  { code: "DK", name: "Danemark" },
-  { code: "FI", name: "Finlande" },
-  { code: "IE", name: "Irlande" },
-  { code: "AT", name: "Autriche" },
-  { code: "PL", name: "Pologne" },
-  { code: "BR", name: "Brésil" },
-  { code: "MX", name: "Mexique" },
-  { code: "AR", name: "Argentine" },
-  { code: "CO", name: "Colombie" },
-  { code: "CL", name: "Chili" },
-  { code: "AE", name: "Émirats Arabes Unis" },
-  { code: "SA", name: "Arabie Saoudite" },
+  { code: "NL", name: "Netherlands" },
+  { code: "SE", name: "Sweden" },
+  { code: "NO", name: "Norway" },
+  { code: "DK", name: "Denmark" },
+  { code: "FI", name: "Finland" },
+  { code: "IE", name: "Ireland" },
+  { code: "AT", name: "Austria" },
+  { code: "PL", name: "Poland" },
+  { code: "BR", name: "Brazil" },
+  { code: "MX", name: "Mexico" },
+  { code: "AR", name: "Argentina" },
+  { code: "CO", name: "Colombia" },
+  { code: "CL", name: "Chile" },
+  { code: "AE", name: "United Arab Emirates" },
+  { code: "SA", name: "Saudi Arabia" },
   { code: "QA", name: "Qatar" },
-  { code: "KW", name: "Koweït" },
-  { code: "JP", name: "Japon" },
-  { code: "CN", name: "Chine" },
-  { code: "KR", name: "Corée du Sud" },
-  { code: "IN", name: "Inde" },
-  { code: "SG", name: "Singapour" },
-  { code: "AU", name: "Australie" },
-  { code: "NZ", name: "Nouvelle-Zélande" },
-  { code: "ZA", name: "Afrique du Sud" },
-  { code: "NG", name: "Nigéria" },
+  { code: "KW", name: "Kuwait" },
+  { code: "JP", name: "Japan" },
+  { code: "CN", name: "China" },
+  { code: "KR", name: "South Korea" },
+  { code: "IN", name: "India" },
+  { code: "SG", name: "Singapore" },
+  { code: "AU", name: "Australia" },
+  { code: "NZ", name: "New Zealand" },
+  { code: "ZA", name: "South Africa" },
+  { code: "NG", name: "Nigeria" },
   { code: "GH", name: "Ghana" },
   { code: "KE", name: "Kenya" },
   { code: "RW", name: "Rwanda" },
-  { code: "ET", name: "Éthiopie" },
+  { code: "ET", name: "Ethiopia" },
   { code: "AO", name: "Angola" },
   { code: "MZ", name: "Mozambique" },
-  { code: "RU", name: "Russie" },
-  { code: "TR", name: "Turquie" },
-  { code: "GR", name: "Grèce" },
-  { code: "RO", name: "Roumanie" },
-  { code: "CZ", name: "République Tchèque" },
-  { code: "HU", name: "Hongrie" },
+  { code: "RU", name: "Russia" },
+  { code: "TR", name: "Turkey" },
+  { code: "GR", name: "Greece" },
+  { code: "RO", name: "Romania" },
+  { code: "CZ", name: "Czech Republic" },
+  { code: "HU", name: "Hungary" },
   { code: "UA", name: "Ukraine" },
-  { code: "EG", name: "Égypte" },
-  { code: "IL", name: "Israël" },
-  { code: "LB", name: "Liban" },
-  { code: "TH", name: "Thaïlande" },
+  { code: "EG", name: "Egypt" },
+  { code: "IL", name: "Israel" },
+  { code: "LB", name: "Lebanon" },
+  { code: "TH", name: "Thailand" },
   { code: "VN", name: "Vietnam" },
-  { code: "ID", name: "Indonésie" },
-  { code: "MY", name: "Malaisie" },
+  { code: "ID", name: "Indonesia" },
+  { code: "MY", name: "Malaysia" },
   { code: "PH", name: "Philippines" },
   { code: "PK", name: "Pakistan" },
   { code: "BD", name: "Bangladesh" },
   { code: "LK", name: "Sri Lanka" },
-  { code: "PE", name: "Pérou" },
+  { code: "PE", name: "Peru" },
   { code: "VE", name: "Venezuela" },
-  { code: "EC", name: "Équateur" },
-  { code: "BO", name: "Bolivie" },
+  { code: "EC", name: "Ecuador" },
+  { code: "BO", name: "Bolivia" },
   { code: "PY", name: "Paraguay" },
   { code: "UY", name: "Uruguay" },
   { code: "CR", name: "Costa Rica" },
   { code: "PA", name: "Panama" },
-  { code: "DO", name: "République Dominicaine" },
+  { code: "DO", name: "Dominican Republic" },
   { code: "CU", name: "Cuba" },
-  { code: "HT", name: "Haïti" },
-  { code: "JM", name: "Jamaïque" },
+  { code: "HT", name: "Haiti" },
+  { code: "JM", name: "Jamaica" },
   { code: "LU", name: "Luxembourg" },
   { code: "MC", name: "Monaco" },
-  { code: "IS", name: "Islande" },
-  { code: "HR", name: "Croatie" },
-  { code: "RS", name: "Serbie" },
-  { code: "BG", name: "Bulgarie" },
-  { code: "SK", name: "Slovaquie" },
-  { code: "SI", name: "Slovénie" },
-  { code: "LT", name: "Lituanie" },
-  { code: "LV", name: "Lettonie" },
-  { code: "EE", name: "Estonie" },
-  { code: "CY", name: "Chypre" },
-  { code: "MT", name: "Malte" },
-  { code: "GE", name: "Géorgie" },
-  { code: "AM", name: "Arménie" },
-  { code: "AZ", name: "Azerbaïdjan" },
+  { code: "IS", name: "Iceland" },
+  { code: "HR", name: "Croatia" },
+  { code: "RS", name: "Serbia" },
+  { code: "BG", name: "Bulgaria" },
+  { code: "SK", name: "Slovakia" },
+  { code: "SI", name: "Slovenia" },
+  { code: "LT", name: "Lithuania" },
+  { code: "LV", name: "Latvia" },
+  { code: "EE", name: "Estonia" },
+  { code: "CY", name: "Cyprus" },
+  { code: "MT", name: "Malta" },
+  { code: "GE", name: "Georgia" },
+  { code: "AM", name: "Armenia" },
+  { code: "AZ", name: "Azerbaijan" },
   { code: "KZ", name: "Kazakhstan" },
-  { code: "UZ", name: "Ouzbékistan" },
-  { code: "TM", name: "Turkménistan" },
-  { code: "KG", name: "Kirghizistan" },
-  { code: "TJ", name: "Tadjikistan" },
+  { code: "UZ", name: "Uzbekistan" },
+  { code: "TM", name: "Turkmenistan" },
+  { code: "KG", name: "Kyrgyzstan" },
+  { code: "TJ", name: "Tajikistan" },
   { code: "AF", name: "Afghanistan" },
-  { code: "IQ", name: "Irak" },
-  { code: "SY", name: "Syrie" },
-  { code: "JO", name: "Jordanie" },
-  { code: "YE", name: "Yémen" },
+  { code: "IQ", name: "Iraq" },
+  { code: "SY", name: "Syria" },
+  { code: "JO", name: "Jordan" },
+  { code: "YE", name: "Yemen" },
   { code: "OM", name: "Oman" },
-  { code: "BH", name: "Bahreïn" },
-  { code: "LY", name: "Libye" },
-  { code: "SD", name: "Soudan" },
-  { code: "SS", name: "Soudan du Sud" },
-  { code: "SO", name: "Somalie" },
+  { code: "BH", name: "Bahrain" },
+  { code: "LY", name: "Libya" },
+  { code: "SD", name: "Sudan" },
+  { code: "SS", name: "South Sudan" },
+  { code: "SO", name: "Somalia" },
   { code: "DJ", name: "Djibouti" },
-  { code: "ER", name: "Érythrée" },
-  { code: "MR", name: "Mauritanie" },
-  { code: "GM", name: "Gambie" },
-  { code: "GW", name: "Guinée-Bissau" },
+  { code: "ER", name: "Eritrea" },
+  { code: "MR", name: "Mauritania" },
+  { code: "GM", name: "Gambia" },
+  { code: "GW", name: "Guinea-Bissau" },
   { code: "SL", name: "Sierra Leone" },
-  { code: "LR", name: "Libéria" },
-  { code: "CV", name: "Cap-Vert" },
-  { code: "ST", name: "Sao Tomé-et-Principe" },
-  { code: "GQ", name: "Guinée Équatoriale" },
-  { code: "CF", name: "République Centrafricaine" },
+  { code: "LR", name: "Liberia" },
+  { code: "CV", name: "Cape Verde" },
+  { code: "ST", name: "Sao Tome and Principe" },
+  { code: "GQ", name: "Equatorial Guinea" },
+  { code: "CF", name: "Central African Republic" },
   { code: "BI", name: "Burundi" },
-  { code: "UG", name: "Ouganda" },
-  { code: "TZ", name: "Tanzanie" },
+  { code: "UG", name: "Uganda" },
+  { code: "TZ", name: "Tanzania" },
   { code: "MW", name: "Malawi" },
-  { code: "ZM", name: "Zambie" },
+  { code: "ZM", name: "Zambia" },
   { code: "ZW", name: "Zimbabwe" },
   { code: "BW", name: "Botswana" },
-  { code: "NA", name: "Namibie" },
+  { code: "NA", name: "Namibia" },
   { code: "LS", name: "Lesotho" },
   { code: "SZ", name: "Eswatini" },
-  { code: "KM", name: "Comores" },
+  { code: "KM", name: "Comoros" },
   { code: "SC", name: "Seychelles" },
 ];
 
@@ -194,9 +194,10 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
   const isProPlan = userPlan === "PRO" || userPlan === "BUSINESS";
 
   const handleAddRule = () => {
-    if (!isProPlan && rules.length >= 1) {
+    if (!isProPlan) {
       triggerPlanUpgrade({
-        reason: "Le forfait Freemium est limité à 1 seule règle de ciblage pays. Passez au forfait Pro pour créer des règles illimitées.",
+        reason: "Smart dynamic routing is an exclusive feature for Pro and Business plans.",
+        featureName: "Dynamic Routing",
         targetPlan: "PRO",
       });
       return;
@@ -204,7 +205,7 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
 
     const newRule: RoutingRule = {
       id: `rule_${Date.now()}`,
-      title: `Règle ${rules.length + 1}`,
+      title: `Rule ${rules.length + 1}`,
       isCollapsed: false,
       conditions: [
         {
@@ -249,7 +250,7 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
   const handleAddCondition = (ruleId: string) => {
     if (!isProPlan) {
       triggerPlanUpgrade({
-        reason: "Le routage multi-conditions combiné (ET) est réservé aux membres Pro.",
+        reason: "Combined multi-condition routing (AND) is reserved for Pro members.",
         targetPlan: "PRO",
       });
       return;
@@ -295,9 +296,10 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
     condId: string,
     updates: Partial<Condition>
   ) => {
-    if (!isProPlan && updates.type && updates.type !== "pays") {
+    if (!isProPlan) {
       triggerPlanUpgrade({
-        reason: "Le ciblage par appareil (Android/iOS) et plateforme est réservé au forfait Pro.",
+        reason: "Smart dynamic routing is an exclusive feature for Pro and Business plans.",
+        featureName: "Dynamic Routing",
         targetPlan: "PRO",
       });
       return;
@@ -338,10 +340,10 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
       <div className="flex items-center justify-between pb-2 border-b border-[#27272a]">
         <h4 className="font-bold text-sm tracking-wider uppercase text-white flex items-center gap-2">
           <Globe2 className="w-4 h-4 text-[#ff6600]" />
-          <span>RÈGLES DE ROUTAGE</span>
+          <span>ROUTING RULES</span>
         </h4>
         <span className="text-[11px] text-neutral-400">
-          Redirection intelligente multi-conditions
+          Smart multi-condition redirection
         </span>
       </div>
 
@@ -352,7 +354,7 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
             key={rule.id}
             className="rounded-[10px] bg-[#141416] border border-[#27272a] p-4 sm:p-5 flex flex-col gap-4 shadow-xl relative animate-in fade-in"
           >
-            {/* Rule Header matching screenshots media_1788192235523.png & media_1788192481738.png */}
+            {/* Rule Header */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <GripVertical className="w-4 h-4 text-neutral-500 cursor-grab" />
@@ -368,12 +370,12 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                   {rule.isCollapsed ? (
                     <>
                       <ChevronDown className="w-3.5 h-3.5" />
-                      <span>Déplier</span>
+                      <span>Expand</span>
                     </>
                   ) : (
                     <>
                       <ChevronUp className="w-3.5 h-3.5" />
-                      <span>Replier</span>
+                      <span>Collapse</span>
                     </>
                   )}
                 </button>
@@ -382,7 +384,7 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                   type="button"
                   onClick={() => handleDeleteRule(rule.id)}
                   className="text-red-400 hover:text-red-300 p-1 hover:bg-red-500/10 rounded-[10px] cursor-pointer"
-                  title="Supprimer la règle"
+                  title="Delete rule"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -402,7 +404,7 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                       <div className="flex items-center justify-between sm:contents">
                         <div className="sm:col-span-1 text-xs font-bold text-neutral-300">
                           <span className="px-2 py-0.5 rounded-[10px] bg-white/5 sm:bg-transparent text-[#ff6600] font-mono">
-                            {condIdx === 0 ? "Si" : "Et"}
+                            {condIdx === 0 ? "If" : "And"}
                           </span>
                         </div>
 
@@ -411,7 +413,7 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                             type="button"
                             onClick={() => handleDeleteCondition(rule.id, cond.id)}
                             className="sm:hidden text-red-400 hover:text-red-300 p-1 rounded-[10px]"
-                            title="Supprimer la condition"
+                            title="Delete condition"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -432,10 +434,10 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                             }
                             className="w-full h-10 rounded-[10px] bg-[#1a1a1e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
                           >
-                            <option value="pays" className="bg-[#141416] text-white">Pays</option>
-                            <option value="plateforme" className="bg-[#141416] text-white">Plateforme</option>
-                            <option value="appareil" className="bg-[#141416] text-white">Appareil</option>
-                            <option value="region" className="bg-[#141416] text-white">Région</option>
+                            <option value="pays" className="bg-[#141416] text-white">Country</option>
+                            <option value="plateforme" className="bg-[#141416] text-white">Platform (OS)</option>
+                            <option value="appareil" className="bg-[#141416] text-white">Device</option>
+                            <option value="region" className="bg-[#141416] text-white">Region</option>
                           </select>
                         </div>
 
@@ -450,8 +452,8 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                             }
                             className="w-full h-10 rounded-[10px] bg-[#1a1a1e] text-white border border-[#27272a] px-2.5 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer text-center"
                           >
-                            <option value="est" className="bg-[#141416] text-white">est</option>
-                            <option value="nest_pas" className="bg-[#141416] text-white">n&apos;est pas</option>
+                            <option value="est" className="bg-[#141416] text-white">is</option>
+                            <option value="nest_pas" className="bg-[#141416] text-white">is not</option>
                           </select>
                         </div>
                       </div>
@@ -490,13 +492,11 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                             }
                             className="w-full h-10 rounded-[10px] bg-[#1a1a1e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
                           >
-                            <option value="ios" className="bg-[#141416] text-white">iOS (iPhone &amp; iPad)</option>
-                            <option value="android" className="bg-[#141416] text-white">Android</option>
                             <option value="windows" className="bg-[#141416] text-white">Windows</option>
                             <option value="macos" className="bg-[#141416] text-white">macOS</option>
                             <option value="linux" className="bg-[#141416] text-white">Linux</option>
-                            <option value="mobile" className="bg-[#141416] text-white">Mobile</option>
-                            <option value="desktop" className="bg-[#141416] text-white">Desktop</option>
+                            <option value="ios" className="bg-[#141416] text-white">iOS (iPhone &amp; iPad)</option>
+                            <option value="android" className="bg-[#141416] text-white">Android</option>
                           </select>
                         )}
 
@@ -511,12 +511,8 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                             className="w-full h-10 rounded-[10px] bg-[#1a1a1e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
                           >
                             <option value="mobile" className="bg-[#141416] text-white">Mobile (Smartphones)</option>
-                            <option value="tablet" className="bg-[#141416] text-white">Tablette</option>
-                            <option value="desktop" className="bg-[#141416] text-white">Ordinateur (Desktop)</option>
-                            <option value="ios" className="bg-[#141416] text-white">iOS (iPhone &amp; iPad)</option>
-                            <option value="android" className="bg-[#141416] text-white">Android</option>
-                            <option value="windows" className="bg-[#141416] text-white">Windows</option>
-                            <option value="macos" className="bg-[#141416] text-white">macOS</option>
+                            <option value="tablet" className="bg-[#141416] text-white">Tablet</option>
+                            <option value="desktop" className="bg-[#141416] text-white">Desktop Computer</option>
                           </select>
                         )}
 
@@ -530,11 +526,11 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                             }
                             className="w-full h-10 rounded-[10px] bg-[#1a1a1e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
                           >
-                            <option value="europe" className="bg-[#141416] text-white">Europe (UE)</option>
-                            <option value="west_africa" className="bg-[#141416] text-white">Afrique de l&apos;Ouest (CEDEAO)</option>
-                            <option value="central_africa" className="bg-[#141416] text-white">Afrique Centrale</option>
-                            <option value="north_america" className="bg-[#141416] text-white">Amérique du Nord</option>
-                            <option value="asia" className="bg-[#141416] text-white">Asie &amp; Pacifique</option>
+                            <option value="europe" className="bg-[#141416] text-white">Europe (EU)</option>
+                            <option value="west_africa" className="bg-[#141416] text-white">West Africa (ECOWAS)</option>
+                            <option value="central_africa" className="bg-[#141416] text-white">Central Africa</option>
+                            <option value="north_america" className="bg-[#141416] text-white">North America</option>
+                            <option value="asia" className="bg-[#141416] text-white">Asia &amp; Pacific</option>
                           </select>
                         )}
                       </div>
@@ -546,7 +542,7 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                             type="button"
                             onClick={() => handleDeleteCondition(rule.id, cond.id)}
                             className="text-neutral-500 hover:text-red-400 p-1.5 hover:bg-red-500/10 rounded-[10px] transition-colors cursor-pointer"
-                            title="Supprimer la condition"
+                            title="Delete condition"
                           >
                             <X className="w-4 h-4" />
                           </button>
@@ -563,15 +559,15 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                       className="text-[#ff6600] hover:text-[#ff771a] font-semibold text-xs flex items-center gap-1 px-3 py-1.5 rounded-[10px] hover:bg-[#ff6600]/10 border border-[#ff6600]/20 transition-all cursor-pointer"
                     >
                       <Plus className="w-3.5 h-3.5" />
-                      <span>Ajouter une condition</span>
+                      <span>Add condition</span>
                     </button>
                   </div>
                 </div>
 
-                {/* Target URL Destination ("Alors aller à") */}
+                {/* Target URL Destination ("Then redirect to") */}
                 <div className="flex flex-col gap-1.5 pt-2 border-t border-[#222225]">
                   <label className="text-xs font-semibold text-neutral-300">
-                    Alors aller à <span className="text-[#ff6600]">*</span>
+                    Then redirect to <span className="text-[#ff6600]">*</span>
                   </label>
                   {(() => {
                     const trimmed = (rule.destinationUrl || "").trim();
@@ -596,7 +592,7 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                       <>
                         <Input
                           required
-                          placeholder="https://shop.example.com/promo-specifique"
+                          placeholder="https://shop.example.com/special-deal"
                           value={rule.destinationUrl}
                           onChange={(e) => handleUpdateDestination(rule.id, e.target.value)}
                           className={cn(
@@ -608,7 +604,7 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                           <div className="flex items-center gap-1.5 text-xs text-red-400 bg-red-500/10 border border-red-500/30 rounded-[10px] px-2.5 py-1.5 mt-1 animate-in fade-in slide-in-from-top-1">
                             <AlertCircle className="w-3.5 h-3.5 shrink-0 text-red-500" />
                             <span className="font-medium">
-                              Format d&apos;URL invalide. Doit être une adresse Web valide (ex: https://shop.example.com/promo).
+                              Invalid URL format. Must be a valid Web address (e.g. https://shop.example.com/promo).
                             </span>
                           </div>
                         )}
@@ -622,14 +618,14 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
         ))}
       </div>
 
-      {/* Add Rule Button matching screenshot */}
+      {/* Add Rule Button */}
       <button
         type="button"
         onClick={handleAddRule}
         className="w-full sm:w-fit px-4 py-2.5 rounded-[10px] bg-white/5 hover:bg-white/10 active:scale-98 text-neutral-200 hover:text-white border border-[#27272a] hover:border-[#ff6600] font-semibold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm"
       >
         <Plus className="w-4 h-4 text-[#ff6600]" />
-        <span>Ajouter une règle</span>
+        <span>Add rule</span>
       </button>
     </div>
   );

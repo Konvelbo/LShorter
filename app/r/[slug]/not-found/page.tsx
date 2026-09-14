@@ -25,10 +25,10 @@ export default async function NotFoundLinkPage({
         </div>
 
         <h1 className="text-xl font-bold text-white mb-2 tracking-tight">
-          Lien Introuvable
+          Link Not Found
         </h1>
         <p className="text-xs text-neutral-400 mb-6 max-w-xs mx-auto leading-relaxed">
-          Le lien court auquel vous essayez d&apos;accéder n&apos;existe pas ou a été supprimé par son propriétaire.
+          The short link you are trying to access does not exist or has been removed by its owner.
         </p>
 
         <Link
@@ -36,11 +36,11 @@ export default async function NotFoundLinkPage({
           className="inline-flex items-center justify-center gap-2 w-full h-11 rounded-[10px] bg-[#1c1c21] hover:bg-[#25252c] text-white font-semibold text-xs border border-[#2a2a30] transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Retour à l&apos;accueil</span>
+          <span>Return to Homepage</span>
         </Link>
 
         <div className="mt-6 pt-6 border-t border-[#1e1e24] flex items-center justify-center text-[11px] text-neutral-500 gap-1.5">
-          <span>Sécurisé par</span>
+          <span>Secured by</span>
           <span className="font-semibold text-neutral-400">LShorter Edge</span>
         </div>
       </div>

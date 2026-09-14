@@ -102,7 +102,7 @@ export function LinkQRModal({ isOpen, onClose, link }: LinkQRModalProps) {
       try {
         await navigator.share({
           title: `QR Code — ${link.slug}`,
-          text: `Scannez ce QR Code pour accéder à ${link.shortUrl}`,
+          text: `Scan this QR Code to access ${link.shortUrl}`,
           url: link.shortUrl,
         });
       } catch {
@@ -130,7 +130,7 @@ export function LinkQRModal({ isOpen, onClose, link }: LinkQRModalProps) {
             <QrCode className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-white">QR Code du Lien</h3>
+            <h3 className="text-base font-bold text-white">Link QR Code</h3>
             <p className="text-xs text-neutral-400 font-mono truncate max-w-[260px]">
               {link.shortUrl}
             </p>
@@ -146,7 +146,7 @@ export function LinkQRModal({ isOpen, onClose, link }: LinkQRModalProps) {
         <div className="flex flex-col gap-3.5 p-3.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] mb-5 text-xs">
           {/* Color Presets */}
           <div className="flex items-center justify-between">
-            <span className="font-semibold text-neutral-300">Couleur du QR Code</span>
+            <span className="font-semibold text-neutral-300">QR Code Color</span>
             <div className="flex items-center gap-1.5">
               {[
                 { name: "Orange", hex: "#ff6600" },
@@ -173,7 +173,7 @@ export function LinkQRModal({ isOpen, onClose, link }: LinkQRModalProps) {
           {/* Size Slider */}
           <div className="flex flex-col gap-1">
             <div className="flex items-center justify-between text-neutral-400">
-              <span>Résolution</span>
+              <span>Resolution</span>
               <span className="font-mono text-white">{size}px</span>
             </div>
             <input
@@ -195,7 +195,7 @@ export function LinkQRModal({ isOpen, onClose, link }: LinkQRModalProps) {
               onChange={(e) => setIncludeQuietZone(e.target.checked)}
               className="w-4 h-4 accent-[#ff6600] rounded-[10px] cursor-pointer"
             />
-            <span>Bordure de marge blanche (Quiet zone)</span>
+            <span>White margin border (Quiet zone)</span>
           </label>
         </div>
 
@@ -228,19 +228,19 @@ export function LinkQRModal({ isOpen, onClose, link }: LinkQRModalProps) {
             className="text-xs gap-1.5"
           >
             <Share2 className="w-3.5 h-3.5" />
-            <span>Partager</span>
+            <span>Share</span>
           </Button>
         </div>
 
         {/* Advanced Editor Link */}
         <button
           onClick={() => {
-            window.location.href = `/dashboard/qr-code?url=${encodeURIComponent(link.shortUrl)}`;
+            window.location.href = `/dashboard/qr-code?url=${encodeURIComponent(link.shortUrl)}&slug=${encodeURIComponent(link.slug)}&id=${encodeURIComponent(link.id)}`;
           }}
           className="w-full py-2 rounded-[10px] bg-white/5 hover:bg-white/10 text-neutral-400 hover:text-white text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
         >
           <Sliders className="w-3.5 h-3.5 text-[#ff6600]" />
-          <span>Personnaliser dans l&apos;éditeur complet (Logo, Styles)</span>
+          <span>Customize in full editor (Logo, Styles)</span>
           <ExternalLink className="w-3 h-3" />
         </button>
       </div>

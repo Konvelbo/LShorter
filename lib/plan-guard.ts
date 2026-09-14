@@ -42,6 +42,7 @@ export function checkPlanFeatureAccess(
 
   // FREEMIUM limitations
   switch (feature) {
+    case "routing_rules":
     case "multi_condition_routing":
     case "device_routing":
     case "cloaking":
@@ -54,9 +55,8 @@ export function checkPlanFeatureAccess(
     case "unlimited_links":
     case "unlimited_domains":
       return false;
-    case "routing_rules":
     case "custom_domain":
-      return true; // Freemium has basic 1-country rule and up to 3 domains
+      return true; // Freemium has up to 3 domains
     default:
       return true;
   }
@@ -72,22 +72,11 @@ export function canAddRoutingRule(
     return { allowed: true };
   }
 
-  // Freemium Plan
-  if (currentRulesCount >= 1) {
-    return {
-      allowed: false,
-      reason: "Le forfait Freemium est limité à 1 seule règle de ciblage. Passez au forfait Pro pour des règles illimitées.",
-    };
-  }
-
-  if (ruleType && ruleType !== "pays" && ruleType !== "country" && ruleType !== "geo") {
-    return {
-      allowed: false,
-      reason: "Le ciblage par appareil (Android/iOS) et multi-conditions est réservé au forfait Pro.",
-    };
-  }
-
-  return { allowed: true };
+  // Freemium Plan is completely forbidden from using routing rules
+  return {
+    allowed: false,
+    reason: "Le système de routage dynamique intelligent est réservé aux forfaits Pro et Business.",
+  };
 }
 
 // Plan Limits Definition
@@ -101,6 +90,7 @@ export function getPlanLimits(plan: PlanType) {
         rateLimitReqPerMin: -1, // Unlimited
         analyticsRetentionDays: -1, // Unlimited
         maxGeoRules: -1,
+        canUseRoutingRules: true,
         canUseDeviceRouting: true,
         canUseCloaking: true,
         canUsePassword: true,
@@ -113,6 +103,7 @@ export function getPlanLimits(plan: PlanType) {
         rateLimitReqPerMin: -1, // Unlimited
         analyticsRetentionDays: -1, // Unlimited
         maxGeoRules: -1,
+        canUseRoutingRules: true,
         canUseDeviceRouting: true,
         canUseCloaking: true,
         canUsePassword: true,
@@ -125,7 +116,8 @@ export function getPlanLimits(plan: PlanType) {
         linksLimit: 1_000,
         rateLimitReqPerMin: 1_000,
         analyticsRetentionDays: 30,
-        maxGeoRules: 1,
+        maxGeoRules: 0,
+        canUseRoutingRules: false,
         canUseDeviceRouting: false,
         canUseCloaking: false,
         canUsePassword: false,

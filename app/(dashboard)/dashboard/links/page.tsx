@@ -205,6 +205,11 @@ export default function LinksPage() {
           l.isActive === false ||
           l.isActive === "0"
         ),
+        userEmail: l.user_email || l.userEmail || l.email,
+        userName: l.user_name || l.userName || l.user_full_name || l.userFullName || l.fullName,
+        userFullName: l.user_full_name || l.userFullName || l.user_name || l.userName || l.fullName,
+        email: l.user_email || l.userEmail || l.email,
+        fullName: l.user_full_name || l.userFullName || l.user_name || l.userName || l.fullName,
         created_at: l.created_at || l.createdAt || new Date().toISOString(),
       }));
       setLinks(rawLinks);
@@ -473,15 +478,15 @@ export default function LinksPage() {
       }
       showToast.success(
         idsToDelete.length > 1
-          ? `${idsToDelete.length} liens supprimés avec succès.`
-          : "Lien supprimé avec succès.",
+          ? `${idsToDelete.length} links deleted successfully.`
+          : "Link deleted successfully.",
       );
       setDeleteTarget({ isOpen: false, ids: [], labels: [] });
       // 3. Background re-sync
       await loadLinks(true);
     } catch (err) {
       console.error("Delete error:", err);
-      showToast.error("Erreur lors de la suppression.");
+      showToast.error("Error during deletion.");
       await loadLinks();
     } finally {
       setIsDeleting(false);
@@ -530,11 +535,11 @@ export default function LinksPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white tracking-wide">
-            Mes Liens Courts
+            My Short Links
           </h1>
           <p className="text-xs text-neutral-400 mt-1">
-            Gérez, éditez et analysez vos {links.length} redirections actives
-            avec QR Code et UTM.
+            Manage, edit, and analyze your {links.length} active redirections
+            with QR codes and UTM tracking.
           </p>
         </div>
 
@@ -545,7 +550,7 @@ export default function LinksPage() {
               cfInvalidateCache("/api/links");
               await loadLinks();
               setIsRefreshing(false);
-              showToast.success("Liste des liens actualisée !");
+              showToast.success("Links list refreshed!");
             }}
             variant="outline"
             disabled={isRefreshing}
@@ -554,7 +559,7 @@ export default function LinksPage() {
             <RefreshCw
               className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-[#ff6600]" : "text-neutral-400"}`}
             />
-            <span>Actualiser</span>
+            <span>Refresh</span>
           </Button>
 
           <Button
@@ -563,7 +568,7 @@ export default function LinksPage() {
             className="font-bebas text-lg tracking-wide gap-1.5 shrink-0"
           >
             <Plus className="w-5 h-5" />
-            <span>CRÉER UN LIEN</span>
+            <span>CREATE A LINK</span>
           </Button>
         </div>
       </div>
@@ -575,27 +580,27 @@ export default function LinksPage() {
           <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-500" />
           <input
             type="text"
-            placeholder="Rechercher par slug, URL, tag..."
+            placeholder="Search by slug, URL, tag..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full h-10 pl-10 pr-4 rounded-[10px] bg-[#141416] border border-[#222225] text-xs text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#ff6600]"
           />
         </div>
 
-        {/* Filter Controls: Side by side on mobile / inline on desktop */}
+        {/* Filter Controls */}
         <div className="flex items-center gap-2">
           {/* Status Filter */}
           <div className="relative flex-1 md:flex-initial">
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              aria-label="Filtrer par statut"
+              aria-label="Filter by status"
               className="w-full md:w-auto h-10 pl-3 pr-8 rounded-[10px] bg-[#141416] border border-[#222225] text-xs font-semibold text-white focus:outline-none focus:border-[#ff6600] cursor-pointer shadow-sm appearance-none truncate"
             >
-              <option value="all">Tous les statuts</option>
-              <option value="active">Actifs</option>
-              <option value="expired">Expirés</option>
-              <option value="protected">Protégés (🔒)</option>
+              <option value="all">All statuses</option>
+              <option value="active">Active</option>
+              <option value="expired">Expired</option>
+              <option value="protected">Protected (🔒)</option>
             </select>
             <ChevronDown className="w-3.5 h-3.5 text-neutral-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
@@ -615,7 +620,7 @@ export default function LinksPage() {
                 )}
                 <span className="truncate">
                   {selectedTag === "all"
-                    ? `Tous (${links.length})`
+                    ? `All (${links.length})`
                     : `#${selectedTag}`}
                 </span>
               </div>
@@ -629,10 +634,10 @@ export default function LinksPage() {
             {isTagDropdownOpen && (
               <div className="absolute right-0 top-full mt-1.5 w-56 rounded-[10px] bg-[#141416] border border-[#27272a] shadow-2xl py-1.5 z-40 animate-in fade-in zoom-in-95 duration-150 max-h-72 overflow-y-auto">
                 <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-neutral-500">
-                  Filtrer par catégorie / tag
+                  Filter by category / tag
                 </div>
 
-                {/* Option: Tous les liens */}
+                {/* Option: All links */}
                 <button
                   type="button"
                   onClick={() => {
@@ -647,7 +652,7 @@ export default function LinksPage() {
                 >
                   <span className="flex items-center gap-2">
                     <Globe2 className="w-3.5 h-3.5 text-cyan-400 md:text-[#ff6600]" />
-                    <span>Tous les liens</span>
+                    <span>All links</span>
                   </span>
                   <span className="text-[11px] font-mono px-1.5 py-0.5 rounded-[10px] bg-white/5 text-neutral-400">
                     {links.length}
@@ -701,16 +706,16 @@ export default function LinksPage() {
             <span className="text-xs font-bold text-white">
               {selectedLinkIds.size}{" "}
               {selectedLinkIds.size > 1
-                ? "liens sélectionnés"
-                : "lien sélectionné"}
+                ? "links selected"
+                : "link selected"}
             </span>
             <button
               onClick={toggleSelectAll}
               className="text-[11px] text-neutral-400 hover:text-white underline ml-1 cursor-pointer"
             >
               {isAllSelected
-                ? "Tout désélectionner"
-                : `Sélectionner tout (${filteredLinks.length})`}
+                ? "Deselect all"
+                : `Select all (${filteredLinks.length})`}
             </button>
           </div>
 
@@ -719,14 +724,14 @@ export default function LinksPage() {
               onClick={() => setSelectedLinkIds(new Set())}
               className="px-3 py-1.5 rounded-[10px] bg-white/5 hover:bg-white/10 text-neutral-300 text-xs font-medium transition-colors cursor-pointer"
             >
-              Annuler
+              Cancel
             </button>
             <button
               onClick={promptDeleteBulk}
               className="px-3.5 py-1.5 rounded-[10px] bg-red-600 hover:bg-red-500 text-white font-bold text-xs shadow-lg shadow-red-600/30 flex items-center gap-1.5 cursor-pointer transition-all"
             >
               <Trash2 className="w-3.5 h-3.5" />
-              <span>Supprimer la sélection ({selectedLinkIds.size})</span>
+              <span>Delete selected ({selectedLinkIds.size})</span>
             </button>
           </div>
         </div>
@@ -736,18 +741,17 @@ export default function LinksPage() {
       <div className="rounded-[10px] bg-[#141416] border border-[#222225] p-3 sm:p-5 shadow-xl">
         {filteredLinks.length === 0 ? (
           <div className="py-12 text-center text-xs text-neutral-500">
-            Aucun lien trouvé pour cette recherche.
+            No links found matching your search.
           </div>
         ) : (
           <>
-            {/* 1. Mobile Cards Layout (< 768px) - Clutter-free with long-press selection */}
+            {/* 1. Mobile Cards Layout (< 768px) */}
             <div className="flex flex-col gap-2.5 md:hidden">
               {selectedLinkIds.size === 0 && filteredLinks.length > 0 && (
                 <div className="text-[11px] text-neutral-500 text-center py-1 flex items-center justify-center gap-1.5 select-none">
                   <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#ff6600]/70 animate-pulse"></span>
                   <span>
-                    Astuce : Maintenez un appui long sur un lien pour le
-                    sélectionner
+                    Tip: Long-press on any link to select
                   </span>
                 </div>
               )}
@@ -804,15 +808,15 @@ export default function LinksPage() {
                       <div className="shrink-0 flex items-center gap-1.5">
                         {isSelected && (
                           <span className="text-[10px] font-bold text-[#ff6600] bg-[#ff6600]/20 px-2 py-0.5 rounded-full border border-[#ff6600]/30">
-                            Sélectionné
+                            Selected
                           </span>
                         )}
                         {isExpired ? (
-                          <Badge variant="expire">Expiré</Badge>
+                          <Badge variant="expire">Expired</Badge>
                         ) : !link.isActive ? (
-                          <Badge variant="inactive">Inactif</Badge>
+                          <Badge variant="inactive">Inactive</Badge>
                         ) : (
-                          <Badge variant="active">Actif</Badge>
+                          <Badge variant="active">Active</Badge>
                         )}
                       </div>
                     </div>
@@ -830,13 +834,28 @@ export default function LinksPage() {
                       </div>
                     </div>
 
+                    {/* Creator / User Details */}
+                    {(() => {
+                      const name = link.userFullName || link.userName || link.fullName;
+                      const email = link.userEmail || link.email;
+                      if (!name && !email) return null;
+                      return (
+                        <div className="flex items-center gap-1.5 text-[11px] text-neutral-400 bg-[#090b10] px-2 py-1 rounded-[8px] border border-[#222225] truncate">
+                          <span className="text-neutral-500 text-[10px] font-semibold shrink-0">By:</span>
+                          {name && <span className="text-neutral-200 font-medium truncate">{name}</span>}
+                          {name && email && <span className="text-neutral-600">·</span>}
+                          {email && <span className="text-neutral-400 font-mono text-[10px] truncate">{email}</span>}
+                        </div>
+                      );
+                    })()}
+
                     {/* Targeting icons + Tags */}
                     <div className="flex items-center justify-between gap-2 flex-wrap">
                       <div className="flex items-center gap-1 text-neutral-400">
                         {Array.isArray(link.routingRules) &&
                           link.routingRules.length > 0 && (
                             <span
-                              title={`Routage dynamique actif (${link.routingRules.length} règle${link.routingRules.length > 1 ? "s" : ""})`}
+                              title={`Dynamic routing active (${link.routingRules.length} rule${link.routingRules.length > 1 ? "s" : ""})`}
                               className="p-1 rounded-[10px] bg-white/5"
                             >
                               <GitFork className="w-3 h-3 text-cyan-400" />
@@ -845,7 +864,7 @@ export default function LinksPage() {
                         {Array.isArray(link.abVariations) &&
                           link.abVariations.length > 0 && (
                             <span
-                              title={`A/B Testing actif (${link.abVariations.length} variante${link.abVariations.length > 1 ? "s" : ""})`}
+                              title={`A/B testing active (${link.abVariations.length} variation${link.abVariations.length > 1 ? "s" : ""})`}
                               className="p-1 rounded-[10px] bg-white/5"
                             >
                               <Split className="w-3 h-3 text-indigo-400" />
@@ -855,7 +874,7 @@ export default function LinksPage() {
                           typeof link.geoTargeting === "object" &&
                           Object.keys(link.geoTargeting).length > 0 && (
                             <span
-                              title="Ciblage par pays actif"
+                              title="Country targeting active"
                               className="p-1 rounded-[10px] bg-white/5"
                             >
                               <Globe2 className="w-3 h-3 text-sky-400" />
@@ -865,7 +884,7 @@ export default function LinksPage() {
                           typeof link.deviceTargeting === "object" &&
                           Object.values(link.deviceTargeting).some(Boolean) && (
                             <span
-                              title="Ciblage par appareil actif"
+                              title="Device targeting active"
                               className="p-1 rounded-[10px] bg-white/5"
                             >
                               <Smartphone className="w-3 h-3 text-emerald-400" />
@@ -873,7 +892,7 @@ export default function LinksPage() {
                           )}
                         {link.isPasswordProtected && (
                           <span
-                            title="Protégé par mot de passe"
+                            title="Password protected"
                             className="p-1 rounded-[10px] bg-white/5"
                           >
                             <Lock className="w-3 h-3 text-amber-400" />
@@ -881,7 +900,7 @@ export default function LinksPage() {
                         )}
                         {link.isCloaked && (
                           <span
-                            title="Masquage Cloaking actif"
+                            title="URL Cloaking active"
                             className="p-1 rounded-[10px] bg-white/5"
                           >
                             <EyeOff className="w-3 h-3 text-purple-400" />
@@ -889,7 +908,7 @@ export default function LinksPage() {
                         )}
                         {link.ogImage && (
                           <span
-                            title="Bannière Open Graph active"
+                            title="Open Graph banner active"
                             className="p-1 rounded-[10px] bg-white/5"
                           >
                             <ImageIcon className="w-3 h-3 text-pink-400" />
@@ -897,7 +916,7 @@ export default function LinksPage() {
                         )}
                         {link.hideReferrer && (
                           <span
-                            title="Masquage du Referrer actif"
+                            title="Referrer masking active"
                             className="p-1 rounded-[10px] bg-white/5"
                           >
                             <ShieldCheck className="w-3 h-3 text-teal-400" />
@@ -907,7 +926,7 @@ export default function LinksPage() {
                           link.maxClicks !== null &&
                           link.maxClicks > 0 && (
                             <span
-                              title={`Limite de clics : ${link.maxClicks}`}
+                              title={`Click limit: ${link.maxClicks}`}
                               className="p-1 rounded-[10px] bg-white/5"
                             >
                               <Zap className="w-3 h-3 text-orange-400" />
@@ -915,7 +934,7 @@ export default function LinksPage() {
                           )}
                         {link.expiresAt && (
                           <span
-                            title="Date d'expiration programmée"
+                            title="Scheduled expiration date"
                             className="p-1 rounded-[10px] bg-white/5"
                           >
                             <Clock className="w-3 h-3 text-yellow-400" />
@@ -947,14 +966,14 @@ export default function LinksPage() {
                           );
                         }}
                         className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
-                        title="Voir les statistiques de ce lien"
+                        title="View analytics for this link"
                       >
                         <div className="flex items-center gap-1 text-white font-bold">
                           <span className="text-[#ff6600] font-mono text-xs">
                             {formatNumber(link.clicksCount)}
                           </span>
                           <span className="text-[10px] text-neutral-400 font-normal">
-                            clics
+                            clicks
                           </span>
                         </div>
                         <div className="flex items-center gap-1 text-neutral-300">
@@ -967,7 +986,7 @@ export default function LinksPage() {
                         </div>
                       </div>
 
-                      {/* Quick Actions: Copier + 3-dots Menu */}
+                      {/* Quick Actions */}
                       <div className="flex items-center gap-1.5">
                         <button
                           type="button"
@@ -980,12 +999,12 @@ export default function LinksPage() {
                           {isCopied ? (
                             <>
                               <Check className="w-3 h-3 text-emerald-400" />
-                              <span>Copié</span>
+                              <span>Copied</span>
                             </>
                           ) : (
                             <>
                               <Copy className="w-3 h-3" />
-                              <span>Copier</span>
+                              <span>Copy</span>
                             </>
                           )}
                         </button>
@@ -1012,7 +1031,7 @@ export default function LinksPage() {
               })}
             </div>
 
-            {/* 2. Desktop Table (>= 768px) - Tight, compact column spacing */}
+            {/* 2. Desktop Table (>= 768px) */}
             <div className="hidden md:block overflow-x-auto min-h-[350px]">
               <table className="w-full text-left text-xs text-neutral-400 border-collapse">
                 <thead>
@@ -1025,17 +1044,18 @@ export default function LinksPage() {
                           if (el) el.indeterminate = isPartiallySelected;
                         }}
                         onChange={toggleSelectAll}
-                        aria-label="Sélectionner tous les liens"
+                        aria-label="Select all links"
                         className="w-4 h-4 rounded border-[#27272a] bg-[#1a1a1e] accent-[#ff6600] cursor-pointer"
                       />
                     </th>
                     <th className="pb-2.5 px-2">Destination</th>
-                    <th className="pb-2.5 px-2 w-[170px]">URL Courte</th>
+                    <th className="pb-2.5 px-2 w-[160px]">Short URL</th>
+                    <th className="pb-2.5 px-2 w-[150px]">User</th>
                     <th className="pb-2.5 px-2 text-center w-[90px]">
                       Options
                     </th>
-                    <th className="pb-2.5 px-2 text-right w-[70px]">Clics</th>
-                    <th className="pb-2.5 px-2 w-[80px]">Statut</th>
+                    <th className="pb-2.5 px-2 text-right w-[70px]">Clicks</th>
+                    <th className="pb-2.5 px-2 w-[80px]">Status</th>
                     <th className="pb-2.5 pr-4 pl-1 text-right w-[70px]">
                       Actions
                     </th>
@@ -1066,7 +1086,7 @@ export default function LinksPage() {
                             type="checkbox"
                             checked={isSelected}
                             onChange={() => toggleSelectLink(link.id)}
-                            aria-label={`Sélectionner ${link.slug}`}
+                            aria-label={`Select ${link.slug}`}
                             className="w-4 h-4 rounded border-[#27272a] bg-[#1a1a1e] accent-[#ff6600] cursor-pointer"
                           />
                         </td>
@@ -1075,7 +1095,7 @@ export default function LinksPage() {
                         <td className="py-2.5 px-2 max-w-[260px]">
                           <div className="flex flex-col min-w-0">
                             <span className="font-bold text-white text-xs group-hover:text-[#ff6600] transition-colors truncate">
-                              {link.slug}
+                              /{link.slug}
                             </span>
                             <span
                               className="text-[11px] text-neutral-500 truncate"
@@ -1103,13 +1123,38 @@ export default function LinksPage() {
                           {link.domainName || "lsho.cc"}/{link.slug}
                         </td>
 
+                        {/* User / Creator */}
+                        <td className="py-2.5 px-2 max-w-[150px]">
+                          {(() => {
+                            const name = link.userFullName || link.userName || link.fullName;
+                            const email = link.userEmail || link.email;
+                            if (!name && !email) {
+                              return <span className="text-neutral-600">—</span>;
+                            }
+                            return (
+                              <div className="flex flex-col min-w-0 text-left">
+                                {name && (
+                                  <span className="text-white text-xs font-medium truncate">
+                                    {name}
+                                  </span>
+                                )}
+                                {email && (
+                                  <span className="text-[10.5px] text-neutral-500 font-mono truncate" title={email}>
+                                    {email}
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })()}
+                        </td>
+
                         {/* Options icons */}
                         <td className="py-2.5 px-2 text-center whitespace-nowrap">
                           <div className="flex items-center justify-center gap-1 text-neutral-400">
                             {Array.isArray(link.routingRules) &&
                               link.routingRules.length > 0 && (
                                 <span
-                                  title={`Routage dynamique actif (${link.routingRules.length} règle${link.routingRules.length > 1 ? "s" : ""})`}
+                                  title={`Dynamic routing active (${link.routingRules.length} rule${link.routingRules.length > 1 ? "s" : ""})`}
                                 >
                                   <GitFork className="w-3.5 h-3.5 text-cyan-400" />
                                 </span>
@@ -1117,7 +1162,7 @@ export default function LinksPage() {
                             {Array.isArray(link.abVariations) &&
                               link.abVariations.length > 0 && (
                                 <span
-                                  title={`A/B Testing actif (${link.abVariations.length} variante${link.abVariations.length > 1 ? "s" : ""})`}
+                                  title={`A/B testing active (${link.abVariations.length} variation${link.abVariations.length > 1 ? "s" : ""})`}
                                 >
                                   <Split className="w-3.5 h-3.5 text-indigo-400" />
                                 </span>
@@ -1126,7 +1171,7 @@ export default function LinksPage() {
                               typeof link.geoTargeting === "object" &&
                               Object.keys(link.geoTargeting).length > 0 && (
                                 <span
-                                  title={`Ciblage par pays actif (${Object.keys(link.geoTargeting).length} pays)`}
+                                  title={`Country targeting active (${Object.keys(link.geoTargeting).length} countries)`}
                                 >
                                   <Globe2 className="w-3.5 h-3.5 text-sky-400" />
                                 </span>
@@ -1136,27 +1181,27 @@ export default function LinksPage() {
                               Object.values(link.deviceTargeting).some(
                                 Boolean,
                               ) && (
-                                <span title="Ciblage par appareil actif">
+                                <span title="Device targeting active">
                                   <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
                                 </span>
                               )}
                             {link.isPasswordProtected && (
-                              <span title="Protégé par mot de passe">
+                              <span title="Password protected">
                                 <Lock className="w-3.5 h-3.5 text-amber-400" />
                               </span>
                             )}
                             {link.isCloaked && (
-                              <span title="Masquage Cloaking actif">
+                              <span title="URL Cloaking active">
                                 <EyeOff className="w-3.5 h-3.5 text-purple-400" />
                               </span>
                             )}
                             {link.ogImage && (
-                              <span title="Bannière Open Graph active">
+                              <span title="Open Graph banner active">
                                 <ImageIcon className="w-3.5 h-3.5 text-pink-400" />
                               </span>
                             )}
                             {link.hideReferrer && (
-                              <span title="Masquage du Referrer actif">
+                              <span title="Referrer masking active">
                                 <ShieldCheck className="w-3.5 h-3.5 text-teal-400" />
                               </span>
                             )}
@@ -1164,13 +1209,13 @@ export default function LinksPage() {
                               link.maxClicks !== null &&
                               link.maxClicks > 0 && (
                                 <span
-                                  title={`Limite de clics : ${link.maxClicks}`}
+                                  title={`Click limit: ${link.maxClicks}`}
                                 >
                                   <Zap className="w-3.5 h-3.5 text-orange-400" />
                                 </span>
                               )}
                             {link.expiresAt && (
-                              <span title="Date d'expiration programmée">
+                              <span title="Scheduled expiration date">
                                 <Clock className="w-3.5 h-3.5 text-yellow-400" />
                               </span>
                             )}
@@ -1199,7 +1244,7 @@ export default function LinksPage() {
                           </div>
                         </td>
 
-                        {/* Clics */}
+                        {/* Clicks */}
                         <td
                           onClick={() => {
                             router.push(
@@ -1207,19 +1252,19 @@ export default function LinksPage() {
                             );
                           }}
                           className="py-2.5 px-2 text-right font-bold text-white hover:text-[#ff6600] font-mono text-xs whitespace-nowrap cursor-pointer transition-colors"
-                          title="Voir les statistiques de ce lien"
+                          title="View analytics for this link"
                         >
                           {formatNumber(link.clicksCount)}
                         </td>
 
-                        {/* Statut */}
+                        {/* Status */}
                         <td className="py-2.5 px-2 whitespace-nowrap">
                           {isExpired ? (
-                            <Badge variant="expire">Expiré</Badge>
+                            <Badge variant="expire">Expired</Badge>
                           ) : !link.isActive ? (
-                            <Badge variant="inactive">Inactif</Badge>
+                            <Badge variant="inactive">Inactive</Badge>
                           ) : (
-                            <Badge variant="active">Actif</Badge>
+                            <Badge variant="active">Active</Badge>
                           )}
                         </td>
 
@@ -1275,7 +1320,7 @@ export default function LinksPage() {
               className="w-full px-3 py-2 text-left hover:bg-white/5 flex items-center gap-2.5 transition-colors cursor-pointer"
             >
               <Copy className="w-3.5 h-3.5 text-neutral-400" />
-              <span>Copier le lien</span>
+              <span>Copy link</span>
             </button>
             <button
               type="button"
@@ -1287,7 +1332,7 @@ export default function LinksPage() {
               className="w-full px-3 py-2 text-left hover:bg-white/5 flex items-center gap-2.5 transition-colors cursor-pointer"
             >
               <QrCode className="w-3.5 h-3.5 text-[#ff6600]" />
-              <span>Afficher QR Code</span>
+              <span>View QR Code</span>
             </button>
             <a
               href={activeMenuLink.shortUrl}
@@ -1300,7 +1345,7 @@ export default function LinksPage() {
               className="w-full px-3 py-2 text-left hover:bg-white/5 flex items-center gap-2.5 transition-colors cursor-pointer"
             >
               <ExternalLink className="w-3.5 h-3.5 text-neutral-400" />
-              <span>Tester la redirection</span>
+              <span>Test redirection</span>
             </a>
             <button
               type="button"
@@ -1312,7 +1357,7 @@ export default function LinksPage() {
               className="w-full px-3 py-2 text-left hover:bg-white/5 flex items-center gap-2.5 transition-colors cursor-pointer"
             >
               <Edit3 className="w-3.5 h-3.5 text-[#ff6600]" />
-              <span>Modifier le lien</span>
+              <span>Edit link</span>
             </button>
             <button
               type="button"
@@ -1324,7 +1369,7 @@ export default function LinksPage() {
               className="w-full px-3 py-2 text-left hover:bg-white/5 flex items-center gap-2.5 transition-colors cursor-pointer"
             >
               <Share2 className="w-3.5 h-3.5 text-sky-400" />
-              <span>Partager</span>
+              <span>Share link</span>
             </button>
             <button
               type="button"
@@ -1338,7 +1383,7 @@ export default function LinksPage() {
               className="w-full px-3 py-2 text-left hover:bg-white/5 flex items-center gap-2.5 transition-colors cursor-pointer"
             >
               <BarChart2 className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Voir les statistiques</span>
+              <span>View analytics</span>
             </button>
             <div className="h-px bg-[#222225] my-1" />
             <button
@@ -1351,7 +1396,7 @@ export default function LinksPage() {
               className="w-full px-3 py-2 text-left hover:bg-red-500/10 text-red-500 flex items-center gap-2.5 transition-colors cursor-pointer"
             >
               <Trash2 className="w-3.5 h-3.5" />
-              <span>Supprimer</span>
+              <span>Delete link</span>
             </button>
           </div>,
           document.body,

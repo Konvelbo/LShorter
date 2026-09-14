@@ -95,6 +95,14 @@ export async function GET(req: Request) {
         is_active: local?.isActive !== undefined ? (local.isActive ? 1 : 0) : l.is_active !== undefined ? l.is_active : 1,
         isActive: local?.isActive !== undefined ? Boolean(local.isActive) : l.isActive !== undefined ? Boolean(l.isActive) : l.is_active !== undefined ? Boolean(l.is_active) : true,
         tags: l.tags || [],
+        user_email: l.user_email || l.userEmail || l.email || local?.userEmail || local?.email,
+        userEmail: l.userEmail || l.user_email || l.email || local?.userEmail || local?.email,
+        email: l.email || l.userEmail || l.user_email || local?.userEmail || local?.email,
+        user_name: l.user_name || l.userName || l.user_full_name || l.userFullName || l.fullName || local?.userFullName || local?.userName,
+        userName: l.userName || l.user_name || l.user_full_name || l.userFullName || l.fullName || local?.userFullName || local?.userName,
+        user_full_name: l.user_full_name || l.userFullName || l.user_name || l.userName || l.fullName || local?.userFullName || local?.userName,
+        userFullName: l.userFullName || l.user_full_name || l.userName || l.user_name || l.fullName || local?.userFullName || local?.userName,
+        fullName: l.fullName || l.userFullName || l.user_full_name || l.userName || l.user_name || local?.userFullName || local?.userName,
       });
     }
 
@@ -109,6 +117,14 @@ export async function GET(req: Request) {
           mergedList.push({
             id: `link_${local.slug}`,
             user_id: local.userId || userId || "usr_default",
+            user_email: local.userEmail || local.email,
+            userEmail: local.userEmail || local.email,
+            email: local.email || local.userEmail,
+            user_name: local.userFullName || local.userName || local.fullName,
+            userName: local.userName || local.userFullName || local.fullName,
+            user_full_name: local.userFullName || local.userName || local.fullName,
+            userFullName: local.userFullName || local.userName || local.fullName,
+            fullName: local.fullName || local.userFullName || local.userName,
             domain_name: "lsho.cc",
             slug: local.slug,
             short_url: `https://lsho.cc/${local.slug}`,

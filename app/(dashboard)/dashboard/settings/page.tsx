@@ -75,6 +75,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { CodeBlock } from "@/components/ui/code-block";
+import { SettingsPageSkeleton } from "@/components/ui/skeleton";
 import { showToast } from "@/components/ui/toast-provider";
 import { syncUserToCloudflare } from "@/app/actions/sync-user";
 import confetti from "canvas-confetti";
@@ -100,9 +101,9 @@ export default function SettingsPage() {
   >("profile");
 
   // ─── Profile State ──────────────────────────────────────────────────────────
-  const [name, setName] = useState(session?.user?.name || "Mon Compte");
+  const [name, setName] = useState(session?.user?.name || "My Account");
   const [email, setEmail] = useState(session?.user?.email || "");
-  const [language, setLanguage] = useState("Français (FR)");
+  const [language, setLanguage] = useState("English (US)");
   const [timezone, setTimezone] = useState(() => {
     try {
       return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
@@ -168,8 +169,8 @@ export default function SettingsPage() {
     if (plan === "PRO" || plan === "BUSINESS") {
       const now = new Date();
       const monthNames = [
-        "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
-        "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
       ];
       const amount = plan === "BUSINESS" ? 79 : 19;
       const invNum = `INV-${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, "0")}-${userId ? userId.substring(0, 4).toUpperCase() : "LIVE"}`;
@@ -195,7 +196,7 @@ export default function SettingsPage() {
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Facture ${inv.number} - LShorter</title>
+  <title>Invoice ${inv.number} - LShorter</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 40px; color: #111; max-width: 800px; margin: 0 auto; }
     .header { display: flex; justify-content: space-between; border-bottom: 2px solid #ff6600; padding-bottom: 20px; }
@@ -212,34 +213,34 @@ export default function SettingsPage() {
 <body>
   <div class="header">
     <div class="brand">LShorter Edge</div>
-    <div><strong>Date :</strong> ${inv.date}<br><strong>Facture N° :</strong> ${inv.number}</div>
+    <div><strong>Date:</strong> ${inv.date}<br><strong>Invoice No.:</strong> ${inv.number}</div>
   </div>
-  <div class="inv-title">Reçu de Paiement</div>
+  <div class="inv-title">Payment Receipt</div>
   <div class="details">
-    <strong>Client :</strong> ${name} (${email})<br>
-    <strong>ID Utilisateur :</strong> ${userId}<br>
-    <strong>Plan Souscrit :</strong> LShorter ${plan}<br>
-    <strong>Statut :</strong> <span class="badge">PAYÉ</span>
+    <strong>Customer:</strong> ${name} (${email})<br>
+    <strong>User ID:</strong> ${userId}<br>
+    <strong>Subscribed Plan:</strong> LShorter ${plan}<br>
+    <strong>Status:</strong> <span class="badge">PAID</span>
   </div>
   <table>
     <thead>
       <tr>
         <th>Description</th>
-        <th>Quantité</th>
-        <th>Prix Unitaire</th>
+        <th>Quantity</th>
+        <th>Unit Price</th>
         <th>Total</th>
       </tr>
     </thead>
     <tbody>
       <tr>
-        <td>Abonnement LShorter ${plan} - Réseau Edge Cloudflare & Bunny CDN</td>
-        <td>1 mois</td>
+        <td>LShorter ${plan} Subscription - Cloudflare & Bunny CDN Edge Network</td>
+        <td>1 month</td>
         <td>${inv.amount} €</td>
         <td>${inv.amount} €</td>
       </tr>
     </tbody>
   </table>
-  <div class="total">Total TTC : ${inv.amount} EUR</div>
+  <div class="total">Total (incl. taxes): ${inv.amount} EUR</div>
 </body>
 </html>`;
 
@@ -254,7 +255,7 @@ export default function SettingsPage() {
       a.download = `${inv.number}.html`;
       a.click();
     }
-    showToast.success(`Facture ${inv.number} générée !`);
+    showToast.success(`Invoice ${inv.number} generated!`);
   };
 
   // ─── API Keys State ─────────────────────────────────────────────────────────
@@ -403,19 +404,19 @@ export default function SettingsPage() {
           const ip = data.ip || data.query;
           const city = data.city || "";
           const country = data.country_name || data.country || data.countryCode || "";
-          const loc = [city, country].filter(Boolean).join(", ") || "Connexion Active";
+          const loc = [city, country].filter(Boolean).join(", ") || "Active Connection";
           setCurrentSessionInfo({
             device: detectedOs,
             browser: detectedBrowser,
-            ip: `IP : ${ip}`,
+            ip: `IP: ${ip}`,
             location: loc,
           });
         } else {
           setCurrentSessionInfo({
             device: detectedOs,
             browser: detectedBrowser,
-            ip: "Session Active Sécurisée",
-            location: "Réseau Edge Cloudflare (SSL/TLS)",
+            ip: "Secure Active Session",
+            location: "Cloudflare Edge Network (SSL/TLS)",
           });
         }
       })
@@ -423,8 +424,8 @@ export default function SettingsPage() {
         setCurrentSessionInfo({
           device: detectedOs,
           browser: detectedBrowser,
-          ip: "Session Active Sécurisée",
-          location: "Réseau Edge Cloudflare (SSL/TLS)",
+          ip: "Secure Active Session",
+          location: "Cloudflare Edge Network (SSL/TLS)",
         });
       });
   }, []);
@@ -464,7 +465,7 @@ export default function SettingsPage() {
 
     if (typeof window !== "undefined" && userId) {
       localStorage.setItem(`lshorter_notif_${userId}`, JSON.stringify(newPrefs));
-      showToast.success("Préférences de notification enregistrées !");
+      showToast.success("Notification preferences saved!");
     }
   };
 
@@ -491,7 +492,7 @@ export default function SettingsPage() {
       const res = await cfGetApiKeys(userId);
       const rawKeys: ApiKeyItem[] = (res?.data || []).map((k: any) => ({
         id: k.id,
-        name: k.name || "Clé API",
+        name: k.name || "API Key",
         prefix: k.prefix || k.key_prefix || "lsh_live_...",
         rawKey: k.raw_key,
         scope: (k.scope as any) || "read_write",
@@ -534,12 +535,12 @@ export default function SettingsPage() {
       const uploadRes = await cfUploadImage(file, "lshorter/avatars");
       if (uploadRes.success && uploadRes.url) {
         setAvatarUrl(uploadRes.url);
-        showToast.success("Photo de profil téléversée sur Bunny CDN !");
+        showToast.success("Profile picture uploaded to Bunny CDN!");
       } else {
-        showToast.error("Échec du téléversement de la photo");
+        showToast.error("Failed to upload profile picture");
       }
     } catch {
-      showToast.error("Erreur lors du téléversement");
+      showToast.error("Error uploading profile picture");
     } finally {
       setIsUploadingAvatar(false);
     }
@@ -579,11 +580,11 @@ export default function SettingsPage() {
       });
 
       setProfileSuccess(true);
-      showToast.success("Profil mis à jour avec succès !");
+      showToast.success("Profile updated successfully!");
       confetti({ particleCount: 30, spread: 50, origin: { y: 0.7 } });
       setTimeout(() => setProfileSuccess(false), 2500);
     } catch (err) {
-      showToast.error("Erreur lors de la mise à jour du profil.");
+      showToast.error("Error updating profile.");
     }
   };
 
@@ -610,10 +611,10 @@ export default function SettingsPage() {
       }
       setNewKeyName("");
       confetti({ particleCount: 40, spread: 60 });
-      showToast.success("Clé API créée avec succès !");
+      showToast.success("API key created successfully!");
       loadApiKeys();
     } catch (err: any) {
-      showToast.error(err.message || "Erreur création clé.");
+      showToast.error(err.message || "Error creating API key.");
     }
   };
 
@@ -622,11 +623,11 @@ export default function SettingsPage() {
     setIsRevokingKey(true);
     try {
       await cfRevokeApiKey(keyToDelete.id, userId);
-      showToast.success("Clé API révoquée avec succès.");
+      showToast.success("API key revoked successfully.");
       setKeyToDelete({ isOpen: false, id: "", name: "" });
       loadApiKeys();
     } catch (err) {
-      showToast.error("Erreur lors de la révocation.");
+      showToast.error("Error revoking key.");
     } finally {
       setIsRevokingKey(false);
     }
@@ -647,12 +648,12 @@ export default function SettingsPage() {
     saveWebhooksList([...webhooks, newWh]);
     setNewWebhookUrl("");
     confetti({ particleCount: 30, spread: 50 });
-    showToast.success("Webhook configuré avec succès !");
+    showToast.success("Webhook configured successfully!");
   };
 
   const handleDeleteWebhook = (id: string) => {
     saveWebhooksList(webhooks.filter((w) => w.id !== id));
-    showToast.success("Webhook supprimé.");
+    showToast.success("Webhook deleted.");
   };
 
   const handleToggleWebhook = (id: string) => {
@@ -672,10 +673,10 @@ export default function SettingsPage() {
       });
       const data = await res.json();
       setWebhookTestResponse(JSON.stringify(data, null, 2));
-      showToast.success(`Ping envoyé ! Statut HTTP ${data.status || 200} en ${data.durationMs || 45}ms`);
+      showToast.success(`Ping sent! HTTP status ${data.status || 200} in ${data.durationMs || 45}ms`);
     } catch (err) {
-      setWebhookTestResponse(JSON.stringify({ error: "Erreur envoi webhook", detail: String(err) }, null, 2));
-      showToast.error("Échec du test de webhook");
+      setWebhookTestResponse(JSON.stringify({ error: "Webhook sending error", detail: String(err) }, null, 2));
+      showToast.error("Webhook test failed");
     } finally {
       setIsTestingWebhook(false);
     }
@@ -701,12 +702,12 @@ export default function SettingsPage() {
     savePixelsList([...pixels, newPx]);
     setNewPixelId("");
     confetti({ particleCount: 30, spread: 50 });
-    showToast.success("Pixel de retargeting connecté !");
+    showToast.success("Retargeting pixel connected!");
   };
 
   const handleDeletePixel = (id: string) => {
     savePixelsList(pixels.filter((p) => p.id !== id));
-    showToast.success("Pixel supprimé.");
+    showToast.success("Pixel deleted.");
   };
 
   const handleTogglePixel = (id: string) => {
@@ -738,23 +739,23 @@ export default function SettingsPage() {
   };
 
   const handleDisable2FA = async () => {
-    if (confirm("Voulez-vous vraiment désactiver la double authentification (2FA) ? Votre compte sera moins protégé.")) {
+    if (confirm("Are you sure you want to disable Two-Factor Authentication (2FA)? Your account will be less protected.")) {
       try {
         await update2FAMutation({
           userId,
           enabled: false,
         });
         setIs2FAEnabled(false);
-        showToast.info("Double Authentification désactivée.");
+        showToast.info("Two-Factor Authentication disabled.");
       } catch {
-        showToast.error("Erreur lors de la désactivation du 2FA.");
+        showToast.error("Error disabling 2FA.");
       }
     }
   };
 
   const handleChangePassword = async () => {
     if (!newPassword.trim() || newPassword.length < 8) {
-      showToast.error("Le nouveau mot de passe doit comporter au moins 8 caractères.");
+      showToast.error("New password must be at least 8 characters long.");
       return;
     }
 
@@ -769,9 +770,9 @@ export default function SettingsPage() {
       setNewPassword("");
       setPasswordStrength(0);
       confetti({ particleCount: 50, spread: 70 });
-      showToast.success("Mot de passe mis à jour avec succès !");
+      showToast.success("Password updated successfully!");
     } catch {
-      showToast.error("Erreur lors de la mise à jour du mot de passe.");
+      showToast.error("Error updating password.");
     } finally {
       setIsUpdatingPassword(false);
     }
@@ -782,17 +783,17 @@ export default function SettingsPage() {
     try {
       if (type === "csv") {
         const res = await fetch(`/api/analytics/export?format=csv&userId=${encodeURIComponent(userId)}`);
-        if (!res.ok) throw new Error("Erreur export CSV");
+        if (!res.ok) throw new Error("Error exporting CSV");
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `lshorter_donnees_${userId}_${new Date().toISOString().split("T")[0]}.csv`;
+        a.download = `lshorter_data_${userId}_${new Date().toISOString().split("T")[0]}.csv`;
         document.body.appendChild(a);
         a.click();
         a.remove();
         URL.revokeObjectURL(url);
-        showToast.success("Données exportées en CSV avec succès !");
+        showToast.success("Data exported to CSV successfully!");
         return;
       }
 
@@ -818,49 +819,53 @@ export default function SettingsPage() {
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-      showToast.success("Archive JSON exportée avec succès !");
+      showToast.success("JSON archive exported successfully!");
     } catch (err) {
-      showToast.error("Erreur lors de l'export des données.");
+      showToast.error("Error exporting data.");
     }
   };
 
   const handleDeleteAccount = async () => {
-    if (deleteConfirmationText !== "SUPPRIMER") {
-      showToast.error("Veuillez taper SUPPRIMER pour confirmer.");
+    if (deleteConfirmationText !== "DELETE") {
+      showToast.error("Please type DELETE to confirm.");
       return;
     }
 
     setIsDeletingAccount(true);
     try {
       await deleteAccountMutation({ userId });
-      showToast.success("Compte et données définitivement supprimés.");
+      showToast.success("Account and data permanently deleted.");
       await signOut({ callbackUrl: "/" });
     } catch (err) {
-      showToast.error("Erreur lors de la suppression du compte.");
+      showToast.error("Error deleting account.");
       setIsDeletingAccount(false);
     }
   };
 
   const tabs = [
     { id: "profile", label: "Profile", icon: User },
-    { id: "billing", label: "Billing & Factures", icon: CreditCard },
-    { id: "api", label: "API & Clés", icon: KeyRound },
-    { id: "domains", label: "Domaines", icon: Globe2 },
+    { id: "billing", label: "Billing & Invoices", icon: CreditCard },
+    { id: "api", label: "API & Keys", icon: KeyRound },
+    { id: "domains", label: "Domains", icon: Globe2 },
     { id: "webhooks", label: "Webhooks", icon: Webhook },
-    { id: "pixels", label: "Pixels Retargeting", icon: Target },
-    { id: "security", label: "Sécurité & 2FA", icon: Shield },
+    { id: "pixels", label: "Retargeting Pixels", icon: Target },
+    { id: "security", label: "Security & 2FA", icon: Shield },
     { id: "notifications", label: "Notifications", icon: Bell },
-    { id: "data", label: "Données & RGPD", icon: Database },
-    { id: "about", label: "À Propos", icon: Info },
+    { id: "data", label: "Data & GDPR", icon: Database },
+    { id: "about", label: "About", icon: Info },
   ] as const;
+
+  if (status === "loading") {
+    return <SettingsPageSkeleton />;
+  }
 
   return (
     <div className="flex flex-col gap-6 lg:gap-8 animate-in fade-in pb-20 md:pb-16">
       {/* Page Header */}
       <div>
-        <h1 className="text-2xl font-bold text-white tracking-wide">Paramètres du Compte</h1>
+        <h1 className="text-2xl font-bold text-white tracking-wide">Account Settings</h1>
         <p className="text-xs text-neutral-400 mt-1">
-          Configurez votre profil, vos clés API, intégrations webhooks, pixels et sécurité.
+          Configure your profile, API keys, webhook integrations, pixels, and security.
         </p>
       </div>
 
@@ -916,9 +921,9 @@ export default function SettingsPage() {
             <form onSubmit={handleSaveProfile} className="flex flex-col gap-6">
               <div className="flex items-center justify-between pb-4 border-b border-[#222225]">
                 <div>
-                  <h2 className="text-lg font-bold text-white">Profil Utilisateur</h2>
+                  <h2 className="text-lg font-bold text-white">User Profile</h2>
                   <p className="text-xs text-neutral-400">
-                    Informations personnelles, fuseau horaire et préférences d&apos;affichage.
+                    Personal information, timezone, and display preferences.
                   </p>
                 </div>
                 <Badge variant="orange">Plan {plan}</Badge>
@@ -965,7 +970,7 @@ export default function SettingsPage() {
                 <div className="flex flex-col gap-2 flex-1 w-full">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-semibold text-neutral-300">
-                      Photo de profil (CDN Haute Performance)
+                      Profile picture (High-Performance CDN)
                     </label>
                     <label className="cursor-pointer text-xs font-medium text-[#ff6600] hover:text-[#ff8533] flex items-center gap-1 transition-colors">
                       <input
@@ -976,7 +981,7 @@ export default function SettingsPage() {
                         disabled={isUploadingAvatar}
                       />
                       <Upload className="w-3.5 h-3.5" />
-                      <span>{isUploadingAvatar ? "Téléversement..." : "Changer de photo"}</span>
+                      <span>{isUploadingAvatar ? "Uploading..." : "Change photo"}</span>
                     </label>
                   </div>
                   <Input
@@ -991,13 +996,13 @@ export default function SettingsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
-                    Nom complet
+                    Full name
                   </label>
                   <Input value={name} onChange={(e) => setName(e.target.value)} required />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
-                    Adresse e-mail de connexion
+                    Login email address
                   </label>
                   <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
                 </div>
@@ -1006,14 +1011,14 @@ export default function SettingsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
-                    Fuseau Horaire (Timezone)
+                    Timezone
                   </label>
                   <select
                     value={timezone}
                     onChange={(e) => setTimezone(e.target.value)}
                     className="w-full h-11 rounded-[10px] bg-[#141416] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
                   >
-                    <option value={timezone} className="bg-[#141416] text-white font-bold">{timezone} (Actuel)</option>
+                    <option value={timezone} className="bg-[#141416] text-white font-bold">{timezone} (Current)</option>
                     <option value="Africa/Ouagadougou (UTC+0)" className="bg-[#141416] text-white">Africa/Ouagadougou (UTC+0)</option>
                     <option value="Africa/Abidjan (UTC+0)" className="bg-[#141416] text-white">Africa/Abidjan (UTC+0)</option>
                     <option value="Africa/Dakar (UTC+0)" className="bg-[#141416] text-white">Africa/Dakar (UTC+0)</option>
@@ -1021,21 +1026,21 @@ export default function SettingsPage() {
                     <option value="America/New_York (UTC-5)" className="bg-[#141416] text-white">America/New_York (UTC-5)</option>
                     <option value="America/Montreal (UTC-5)" className="bg-[#141416] text-white">America/Montreal (UTC-5)</option>
                     <option value="Asia/Tokyo (UTC+9)" className="bg-[#141416] text-white">Asia/Tokyo (UTC+9)</option>
-                    <option value="UTC" className="bg-[#141416] text-white">UTC (Temps Universel)</option>
+                    <option value="UTC" className="bg-[#141416] text-white">UTC (Universal Time)</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
-                    Langue de l&apos;interface
+                    Interface Language
                   </label>
                   <select
                     value={language}
                     onChange={(e) => setLanguage(e.target.value)}
                     className="w-full h-11 rounded-[10px] bg-[#141416] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
                   >
-                    <option value="Français (FR)" className="bg-[#141416] text-white">Français (FR)</option>
                     <option value="English (US)" className="bg-[#141416] text-white">English (US)</option>
+                    <option value="Français (FR)" className="bg-[#141416] text-white">Français (FR)</option>
                     <option value="Español (ES)" className="bg-[#141416] text-white">Español (ES)</option>
                     <option value="Deutsch (DE)" className="bg-[#141416] text-white">Deutsch (DE)</option>
                   </select>
@@ -1044,24 +1049,24 @@ export default function SettingsPage() {
 
               <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#222225]">
                 <Button type="submit" variant="glow" className="text-xs px-6">
-                  {profileSuccess ? "Enregistré avec succès !" : "Sauvegarder les modifications"}
+                  {profileSuccess ? "Saved successfully!" : "Save changes"}
                 </Button>
               </div>
             </form>
           )}
 
-          {/* TAB 2: BILLING & FACTURES */}
+          {/* TAB 2: BILLING & INVOICES */}
           {activeTab === "billing" && (
             <div className="flex flex-col gap-6">
               <div className="flex items-center justify-between pb-4 border-b border-[#222225]">
                 <div>
-                  <h2 className="text-lg font-bold text-white">Plan & Consommation</h2>
+                  <h2 className="text-lg font-bold text-white">Plan & Usage</h2>
                   <p className="text-xs text-neutral-400">
-                    Gérez votre abonnement, vos quotas et téléchargez vos factures certifiées.
+                    Manage your subscription, quotas, and download certified invoices.
                   </p>
                 </div>
                 <Button size="sm" variant="glow" onClick={() => router.push("/pricing")}>
-                  Changer de Plan
+                  Change Plan
                 </Button>
               </div>
 
@@ -1069,11 +1074,11 @@ export default function SettingsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="p-4 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] flex flex-col gap-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-neutral-400 font-semibold">Volume de Clics Mensuel</span>
-                    <span className="text-xs text-[#ff6600] font-bold">{clicksPercent}% utilisé</span>
+                    <span className="text-xs text-neutral-400 font-semibold">Monthly Click Volume</span>
+                    <span className="text-xs text-[#ff6600] font-bold">{clicksPercent}% used</span>
                   </div>
                   <p className="text-2xl font-bold font-bebas text-white">
-                    {accountStats.clicksThisMonth.toLocaleString()} / {clicksLimit === -1 ? "Illimité" : clicksLimit.toLocaleString()}
+                    {accountStats.clicksThisMonth.toLocaleString()} / {clicksLimit === -1 ? "Unlimited" : clicksLimit.toLocaleString()}
                   </p>
                   <div className="w-full h-2 rounded-full bg-[#27272a] overflow-hidden mt-1">
                     <div
@@ -1081,14 +1086,14 @@ export default function SettingsPage() {
                       style={{ width: `${clicksPercent}%` }}
                     />
                   </div>
-                  <span className="text-[11px] text-neutral-500">Synchronisé en temps réel avec le réseau Edge</span>
+                  <span className="text-[11px] text-neutral-500">Synchronized in real-time with Edge network</span>
                 </div>
 
                 <div className="p-4 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] flex flex-col gap-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-neutral-400 font-semibold">Domaines Personnalisés</span>
+                    <span className="text-xs text-neutral-400 font-semibold">Custom Domains</span>
                     <span className="text-xs text-neutral-400 font-bold">
-                      {accountStats.domainsCount} sur {domainsLimit}
+                      {accountStats.domainsCount} out of {domainsLimit}
                     </span>
                   </div>
                   <p className="text-2xl font-bold font-bebas text-white">
@@ -1101,7 +1106,7 @@ export default function SettingsPage() {
                     />
                   </div>
                   <span className="text-[11px] text-neutral-500">
-                    {Math.max(0, domainsLimit - accountStats.domainsCount)} domaines disponibles
+                    {Math.max(0, domainsLimit - accountStats.domainsCount)} domains available
                   </span>
                 </div>
               </div>
@@ -1109,23 +1114,23 @@ export default function SettingsPage() {
               {/* Invoices Table */}
               <div className="flex flex-col gap-3 pt-2">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-white">Historique des Factures</h3>
-                  <span className="text-[11px] text-neutral-500">Paiements traités via Stripe / Edge Billing</span>
+                  <h3 className="text-sm font-bold text-white">Invoice History</h3>
+                  <span className="text-[11px] text-neutral-500">Payments processed via Stripe / Edge Billing</span>
                 </div>
                 {invoices.length === 0 ? (
                   <div className="py-8 text-center text-xs text-neutral-500 bg-[#1a1a1e] rounded-[10px] border border-[#27272a]">
-                    Aucune facture disponible. Vous êtes actuellement sur le forfait gratuit.
+                    No invoices available. You are currently on the free tier.
                   </div>
                 ) : (
                   <div className="overflow-x-auto bg-[#1a1a1e] rounded-[10px] border border-[#27272a]">
                     <table className="w-full text-left text-xs text-neutral-400">
                       <thead>
                         <tr className="border-b border-[#27272a] text-[11px] uppercase tracking-wider text-neutral-500">
-                          <th className="py-3 px-3">Numéro</th>
+                          <th className="py-3 px-3">Number</th>
                           <th className="py-3 px-3">Date</th>
-                          <th className="py-3 px-3">Montant</th>
-                          <th className="py-3 px-3">Statut</th>
-                          <th className="py-3 px-3 text-right">Reçu Facture</th>
+                          <th className="py-3 px-3">Amount</th>
+                          <th className="py-3 px-3">Status</th>
+                          <th className="py-3 px-3 text-right">Receipt</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-[#27272a]">
@@ -1134,10 +1139,10 @@ export default function SettingsPage() {
                             <td className="py-3 px-3 font-mono font-bold text-white">{inv.number}</td>
                             <td className="py-3 px-3">{inv.date}</td>
                             <td className="py-3 px-3 font-bold text-white">
-                              {inv.amount === 0 ? "Gratuit (0 €)" : `${inv.amount} ${inv.currency}`}
+                              {inv.amount === 0 ? "Free (€0)" : `${inv.amount} ${inv.currency}`}
                             </td>
                             <td className="py-3 px-3">
-                              <Badge variant="active">Réglée</Badge>
+                              <Badge variant="active">Paid</Badge>
                             </td>
                             <td className="py-3 px-3 text-right">
                               <button
@@ -1145,7 +1150,7 @@ export default function SettingsPage() {
                                 className="inline-flex items-center gap-1 text-[#ff6600] hover:underline font-medium cursor-pointer"
                               >
                                 <Download className="w-3.5 h-3.5" />
-                                <span>Télécharger</span>
+                                <span>Download</span>
                               </button>
                             </td>
                           </tr>
@@ -1158,17 +1163,17 @@ export default function SettingsPage() {
             </div>
           )}
 
-          {/* TAB 3: API & CLÉS */}
+          {/* TAB 3: API & KEYS */}
           {activeTab === "api" && (
             <div className="flex flex-col gap-6">
               <div className="flex items-center justify-between pb-4 border-b border-[#222225]">
                 <div>
                   <h2 className="text-lg font-bold text-white flex items-center gap-2">
                     <KeyRound className="w-5 h-5 text-[#ff6600]" />
-                    <span>Clés d&apos;API Développeur</span>
+                    <span>Developer API Keys</span>
                   </h2>
                   <p className="text-xs text-neutral-400 mt-0.5">
-                    Générez des tokens sécurisés <code className="text-[#ff6600]">lsh_live_...</code> avec contrôle précis des permissions pour intégrer vos applications.
+                    Generate secure <code className="text-[#ff6600]">lsh_live_...</code> tokens with granular permissions to integrate your applications.
                   </p>
                 </div>
               </div>
@@ -1177,14 +1182,14 @@ export default function SettingsPage() {
               <div className="p-5 rounded-[10px] bg-[#141416] border border-[#27272a] shadow-xl flex flex-col gap-4">
                 <h3 className="text-xs font-bold text-neutral-300 uppercase tracking-wider flex items-center gap-2">
                   <Plus className="w-3.5 h-3.5 text-[#ff6600]" />
-                  <span>Générer une nouvelle clé API</span>
+                  <span>Generate a new API key</span>
                 </h3>
 
                 <form onSubmit={handleCreateApiKey} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                   <div className="flex-1">
                     <Input
                       required
-                      placeholder="Nom de l'application (ex: Bot Telegram, Zapier, Webhook...)"
+                      placeholder="Application name (e.g. Telegram Bot, Zapier, Webhook...)"
                       value={newKeyName}
                       onChange={(e) => setNewKeyName(e.target.value)}
                       className="h-10 text-xs bg-[#0c0c0e] border-[#27272a]"
@@ -1196,14 +1201,14 @@ export default function SettingsPage() {
                       onChange={(e) => setNewKeyScope(e.target.value as "read" | "read_write" | "admin")}
                       className="w-full h-10 rounded-[10px] bg-[#0c0c0e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
                     >
-                      <option value="read_write" className="bg-[#141416] text-white">Lecture & Écriture</option>
-                      <option value="admin" className="bg-[#141416] text-white">Accès Complet (Admin)</option>
-                      <option value="read" className="bg-[#141416] text-white">Lecture Seule</option>
+                      <option value="read_write" className="bg-[#141416] text-white">Read & Write</option>
+                      <option value="admin" className="bg-[#141416] text-white">Full Access (Admin)</option>
+                      <option value="read" className="bg-[#141416] text-white">Read Only</option>
                     </select>
                   </div>
                   <Button type="submit" variant="glow" className="shrink-0 h-10 px-5 text-xs font-bold gap-1.5 shadow-md cursor-pointer">
                     <KeyRound className="w-4 h-4" />
-                    <span>Générer la Clé</span>
+                    <span>Generate Key</span>
                   </Button>
                 </form>
               </div>
@@ -1212,7 +1217,7 @@ export default function SettingsPage() {
               <div className="flex flex-col gap-3">
                 <div className="flex items-center justify-between px-1">
                   <h3 className="text-xs font-bold text-neutral-300 uppercase tracking-wider">
-                    Clés API Actives ({apiKeys.length})
+                    Active API Keys ({apiKeys.length})
                   </h3>
                 </div>
 
@@ -1221,9 +1226,9 @@ export default function SettingsPage() {
                     <div className="w-10 h-10 rounded-[10px] bg-neutral-800/60 border border-neutral-700/40 flex items-center justify-center text-neutral-500">
                       <KeyRound className="w-5 h-5" />
                     </div>
-                    <p className="text-xs font-semibold text-neutral-300">Aucune clé API active pour le moment</p>
+                    <p className="text-xs font-semibold text-neutral-300">No active API keys yet</p>
                     <p className="text-[11px] text-neutral-500 max-w-xs">
-                      Utilisez le formulaire ci-dessus pour générer votre première clé d&apos;authentification.
+                      Use the form above to generate your first authentication key.
                     </p>
                   </div>
                 ) : (
@@ -1236,8 +1241,8 @@ export default function SettingsPage() {
 
                       const getScopeBadge = (scope?: string) => {
                         if (scope === "admin") return { label: "Admin", color: "bg-red-500/10 text-red-400 border-red-500/20" };
-                        if (scope === "read") return { label: "Lecture Seule", color: "bg-blue-500/10 text-blue-400 border-blue-500/20" };
-                        return { label: "Lecture & Écriture", color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" };
+                        if (scope === "read") return { label: "Read Only", color: "bg-blue-500/10 text-blue-400 border-blue-500/20" };
+                        return { label: "Read & Write", color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" };
                       };
                       const scopeInfo = getScopeBadge(k.scope);
 
@@ -1259,7 +1264,7 @@ export default function SettingsPage() {
                             </div>
 
                             <span className="text-[11px] text-neutral-500">
-                              Créée le {new Date(k.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" })}
+                              Created on {new Date(k.created_at).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" })}
                             </span>
                           </div>
 
@@ -1277,17 +1282,17 @@ export default function SettingsPage() {
                                 type="button"
                                 onClick={() => toggleRevealKey(k.id)}
                                 className="h-8 px-2.5 rounded-[6px] bg-[#1a1a1e] hover:bg-[#25252c] border border-[#2a2a30] text-neutral-300 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
-                                title={isRevealed ? "Masquer la clé" : "Démasquer la clé"}
+                                title={isRevealed ? "Hide key" : "Reveal key"}
                               >
                                 {isRevealed ? (
                                   <>
                                     <EyeOff className="w-3.5 h-3.5 text-neutral-400" />
-                                    <span className="hidden sm:inline">Masquer</span>
+                                    <span className="hidden sm:inline">Hide</span>
                                   </>
                                 ) : (
                                   <>
                                     <Eye className="w-3.5 h-3.5 text-neutral-400" />
-                                    <span className="hidden sm:inline">Démasquer</span>
+                                    <span className="hidden sm:inline">Reveal</span>
                                   </>
                                 )}
                               </button>
@@ -1298,21 +1303,21 @@ export default function SettingsPage() {
                                 onClick={() => {
                                   handleCopy(actualKey);
                                   setCopiedKeyId(k.id);
-                                  showToast.success("Clé API copiée dans le presse-papier !");
+                                  showToast.success("API key copied to clipboard!");
                                   setTimeout(() => setCopiedKeyId(null), 2000);
                                 }}
                                 className="h-8 px-2.5 rounded-[6px] bg-[#1a1a1e] hover:bg-[#25252c] border border-[#2a2a30] text-neutral-300 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
-                                title="Copier la clé"
+                                title="Copy key"
                               >
                                 {isCopied ? (
                                   <>
                                     <Check className="w-3.5 h-3.5 text-emerald-400" />
-                                    <span className="text-emerald-400">Copié</span>
+                                    <span className="text-emerald-400">Copied</span>
                                   </>
                                 ) : (
                                   <>
                                     <Copy className="w-3.5 h-3.5 text-neutral-400" />
-                                    <span>Copier</span>
+                                    <span>Copy</span>
                                   </>
                                 )}
                               </button>
@@ -1323,10 +1328,10 @@ export default function SettingsPage() {
                                 onClick={() => {
                                   const cmd = `curl -X POST https://api.lshorter.io/v1/links \\\n  -H "Authorization: Bearer ${actualKey}" \\\n  -H "Content-Type: application/json" \\\n  -d '{"targetUrl":"https://example.com"}'`;
                                   handleCopy(cmd);
-                                  showToast.success("Commande cURL d'exemple copiée !");
+                                  showToast.success("cURL example command copied!");
                                 }}
                                 className="h-8 px-2.5 rounded-[6px] bg-[#1a1a1e] hover:bg-[#25252c] border border-[#2a2a30] text-neutral-400 hover:text-white text-xs flex items-center gap-1 transition-colors cursor-pointer"
-                                title="Copier exemple cURL"
+                                title="Copy cURL example"
                               >
                                 <span>cURL</span>
                               </button>
@@ -1336,7 +1341,7 @@ export default function SettingsPage() {
                                 type="button"
                                 onClick={() => setKeyToDelete({ isOpen: true, id: k.id, name: k.name })}
                                 className="h-8 w-8 rounded-[6px] bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 hover:text-red-300 flex items-center justify-center transition-colors cursor-pointer"
-                                title="Révoquer cette clé"
+                                title="Revoke this key"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
@@ -1356,13 +1361,13 @@ export default function SettingsPage() {
             <div className="flex flex-col gap-6">
               <div className="flex items-center justify-between pb-4 border-b border-[#222225]">
                 <div>
-                  <h2 className="text-lg font-bold text-white">Domaines Personnalisés en Marque Blanche</h2>
+                  <h2 className="text-lg font-bold text-white">White-Label Custom Domains</h2>
                   <p className="text-xs text-neutral-400">
-                    Redirigez vos liens courts via vos propres noms de domaine.
+                    Redirect your short links through your own branded domain names.
                   </p>
                 </div>
                 <Button size="sm" variant="glow" onClick={() => router.push("/dashboard/domains")}>
-                  Gérer les Domaines
+                  Manage Domains
                 </Button>
               </div>
 
@@ -1370,13 +1375,13 @@ export default function SettingsPage() {
                 <div className="p-8 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] flex flex-col items-center justify-center gap-3 text-center">
                   <Globe2 className="w-10 h-10 text-neutral-600" />
                   <div>
-                    <p className="text-sm font-bold text-white">Aucun domaine personnalisé connecté</p>
+                    <p className="text-sm font-bold text-white">No custom domains connected</p>
                     <p className="text-xs text-neutral-400 mt-1">
-                      Vos liens utilisent actuellement le domaine par défaut de la plateforme.
+                      Your links are currently using the default platform domain.
                     </p>
                   </div>
                   <Button size="sm" variant="glow" onClick={() => router.push("/dashboard/domains")} className="mt-2">
-                    Ajouter un Domaine
+                    Add a Domain
                   </Button>
                 </div>
               ) : (
@@ -1391,12 +1396,12 @@ export default function SettingsPage() {
                         <div>
                           <p className="font-bold text-white font-mono text-sm">{d.domain}</p>
                           <p className="text-[11px] text-neutral-400">
-                            Cible DNS : <span className="font-mono text-neutral-300">{d.dns_target || d.dnsTarget || "cname.lshorter.io"}</span>
+                            DNS Target: <span className="font-mono text-neutral-300">{d.dns_target || d.dnsTarget || "cname.lshorter.io"}</span>
                           </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
-                        <Badge variant="active">SSL Actif</Badge>
+                        <Badge variant="active">SSL Active</Badge>
                         <span className="text-neutral-500 text-[11px]">Edge OK</span>
                       </div>
                     </div>
@@ -1411,9 +1416,9 @@ export default function SettingsPage() {
             <div className="flex flex-col gap-6">
               <div className="flex items-center justify-between pb-4 border-b border-[#222225]">
                 <div>
-                  <h2 className="text-lg font-bold text-white">Webhooks & Simulateur d&apos;Événements</h2>
+                  <h2 className="text-lg font-bold text-white">Webhooks & Event Simulator</h2>
                   <p className="text-xs text-neutral-400">
-                    Recevez des notifications HTTP instantanées lors de chaque clic et conversion.
+                    Receive instant real-time HTTP notifications on every link click and conversion.
                   </p>
                 </div>
               </div>
@@ -1427,11 +1432,11 @@ export default function SettingsPage() {
                     </div>
                     <div>
                       <h3 className="text-xs font-bold text-neutral-900 dark:text-white flex items-center gap-1.5 flex-wrap">
-                        <span>À quoi servent les Webhooks dans LShorter ?</span>
-                        <Badge variant="orange" className="text-[9px] py-0 px-1.5">Guide & Automatisation</Badge>
+                        <span>What are Webhooks in LShorter?</span>
+                        <Badge variant="orange" className="text-[9px] py-0 px-1.5">Guide &amp; Automation</Badge>
                       </h3>
                       <p className="text-[11px] text-neutral-500 dark:text-neutral-400">
-                        Connectez vos liens courts en temps réel à Zapier, Make, Slack, Discord ou votre propre serveur.
+                        Connect your short links in real time to Zapier, Make, Slack, Discord, or your custom server.
                       </p>
                     </div>
                   </div>
@@ -1445,10 +1450,10 @@ export default function SettingsPage() {
                     <div className="p-3 rounded-[8px] bg-white dark:bg-black/40 border border-neutral-200/80 dark:border-white/5 space-y-1 shadow-sm dark:shadow-none">
                       <div className="flex items-center gap-1.5 text-neutral-900 dark:text-white font-bold text-[11px]">
                         <Zap className="w-3.5 h-3.5 text-[#ff6600]" />
-                        <span>1. Événements en Direct</span>
+                        <span>1. Real-Time Events</span>
                       </div>
                       <p className="text-[11px] text-neutral-600 dark:text-neutral-400 leading-relaxed">
-                        Dès qu&apos;un internaute clique sur un lien, une requête HTTP <code className="px-1 py-0.5 rounded bg-neutral-100 dark:bg-black/50 text-[#ff6600] font-mono text-[10px]">POST</code> avec les données (pays, appareil, IP, référant) est expédiée en <strong>&lt;50ms</strong>.
+                        As soon as a visitor clicks a link, an HTTP <code className="px-1 py-0.5 rounded bg-neutral-100 dark:bg-black/50 text-[#ff6600] font-mono text-[10px]">POST</code> request with full payload (country, device, IP, referrer) is dispatched in <strong>&lt;50ms</strong>.
                       </p>
                     </div>
 
@@ -1458,17 +1463,17 @@ export default function SettingsPage() {
                         <span>2. Zapier, Make &amp; n8n</span>
                       </div>
                       <p className="text-[11px] text-neutral-600 dark:text-neutral-400 leading-relaxed">
-                        Collez l&apos;URL de votre scénario sans code pour enregistrer automatiquement chaque clic dans <strong>Google Sheets</strong>, <strong>Airtable</strong> ou <strong>Notion</strong>.
+                        Paste your webhook URL to automatically record every click event in <strong>Google Sheets</strong>, <strong>Airtable</strong>, or <strong>Notion</strong>.
                       </p>
                     </div>
 
                     <div className="p-3 rounded-[8px] bg-white dark:bg-black/40 border border-neutral-200/80 dark:border-white/5 space-y-1 shadow-sm dark:shadow-none">
                       <div className="flex items-center gap-1.5 text-neutral-900 dark:text-white font-bold text-[11px]">
                         <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
-                        <span>3. Alertes &amp; Sécurité</span>
+                        <span>3. Alerts &amp; Security</span>
                       </div>
                       <p className="text-[11px] text-neutral-600 dark:text-neutral-400 leading-relaxed">
-                        Envoyez des alertes instantanées sur <strong>Telegram/Slack</strong> ou validez l&apos;en-tête sécurisé <code className="px-1 py-0.5 rounded bg-neutral-100 dark:bg-black/50 text-emerald-600 dark:text-emerald-400 font-mono text-[10px]">X-LShorter-Signature</code> pour authentifier vos requêtes.
+                        Send instant alerts to <strong>Telegram/Slack</strong> or verify the secure <code className="px-1 py-0.5 rounded bg-neutral-100 dark:bg-black/50 text-emerald-600 dark:text-emerald-400 font-mono text-[10px]">X-LShorter-Signature</code> header to authenticate requests.
                       </p>
                     </div>
                   </div>
@@ -1478,19 +1483,19 @@ export default function SettingsPage() {
               <form onSubmit={handleAddWebhook} className="flex gap-2">
                 <Input
                   required
-                  placeholder="https://votre-serveur.com/api/webhooks/lshorter (ou URL de webhook Zapier / Make)"
+                  placeholder="https://your-server.com/api/webhooks/lshorter (or Zapier / Make webhook URL)"
                   value={newWebhookUrl}
                   onChange={(e) => setNewWebhookUrl(e.target.value)}
                 />
                 <Button type="submit" variant="glow" className="shrink-0 text-xs">
-                  Ajouter Webhook
+                  Add Webhook
                 </Button>
               </form>
 
               <div className="flex flex-col gap-3">
                 {webhooks.length === 0 ? (
                   <div className="py-8 text-center text-xs text-neutral-500 bg-[#1a1a1e] rounded-[10px] border border-[#27272a]">
-                    Aucun webhook configuré. Ajoutez votre endpoint ci-dessus pour recevoir des événements en direct.
+                    No webhooks configured. Add your endpoint above to receive live events.
                   </div>
                 ) : (
                   webhooks.map((wh: any) => (
@@ -1509,7 +1514,7 @@ export default function SettingsPage() {
                             className="text-xs gap-1.5 h-8"
                           >
                             <Send className="w-3 h-3 text-[#ff6600]" />
-                            <span>{isTestingWebhook ? "Envoi..." : "Tester l'événement"}</span>
+                            <span>{isTestingWebhook ? "Sending..." : "Test Event"}</span>
                           </Button>
                           <button
                             type="button"
@@ -1518,7 +1523,7 @@ export default function SettingsPage() {
                               wh.isActive ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" : "bg-neutral-800 text-neutral-500"
                             }`}
                           >
-                            {wh.isActive ? "Actif" : "Suspendu"}
+                            {wh.isActive ? "Active" : "Paused"}
                           </button>
                           <button
                             type="button"
@@ -1531,8 +1536,8 @@ export default function SettingsPage() {
                       </div>
 
                       <div className="flex items-center justify-between text-neutral-400 text-[11px] pt-2 border-t border-[#27272a]">
-                        <span className="font-mono">Signature Secrète : {wh.secretKey || "whsec_live_default"}</span>
-                        <span>Événements : clics & conversions</span>
+                        <span className="font-mono">Secret Signature: {wh.secretKey || "whsec_live_default"}</span>
+                        <span>Events: clicks &amp; conversions</span>
                       </div>
                     </div>
                   ))
@@ -1543,9 +1548,9 @@ export default function SettingsPage() {
               {webhookTestResponse && (
                 <div className="flex flex-col gap-2 animate-in fade-in">
                   <div className="flex items-center justify-between text-xs text-emerald-400 font-bold px-1">
-                    <span>✓ Résultat du Test d&apos;Événement Webhook :</span>
+                    <span>✓ Webhook Event Test Result:</span>
                     <button onClick={() => setWebhookTestResponse(null)} className="text-neutral-400 hover:text-white cursor-pointer">
-                      Fermer ✕
+                      Close ✕
                     </button>
                   </div>
                   <CodeBlock
@@ -1563,9 +1568,9 @@ export default function SettingsPage() {
             <div className="flex flex-col gap-6">
               <div className="flex items-center justify-between pb-4 border-b border-[#222225]">
                 <div>
-                  <h2 className="text-lg font-bold text-white">Pixels Publicitaires de Retargeting</h2>
+                  <h2 className="text-lg font-bold text-white">Retargeting Ad Pixels</h2>
                   <p className="text-xs text-neutral-400">
-                    Injectez vos tags Meta Facebook, Google Analytics 4, TikTok Ads et LinkedIn lors de chaque redirection.
+                    Inject your Meta Facebook, Google Analytics 4, TikTok Ads, and LinkedIn tags on every short link redirect.
                   </p>
                 </div>
               </div>
@@ -1579,11 +1584,11 @@ export default function SettingsPage() {
                     </div>
                     <div>
                       <h3 className="text-xs font-bold text-neutral-900 dark:text-white flex items-center gap-1.5 flex-wrap">
-                        <span>À quoi sert le Retargeting par Pixel sur les liens courts ?</span>
-                        <Badge variant="blue" className="text-[9px] py-0 px-1.5">Publicité &amp; ROI</Badge>
+                        <span>What is Pixel Retargeting on short links?</span>
+                        <Badge variant="blue" className="text-[9px] py-0 px-1.5">Advertising &amp; ROI</Badge>
                       </h3>
                       <p className="text-[11px] text-neutral-500 dark:text-neutral-400">
-                        Reciblez automatiquement les internautes sur Facebook, Google, TikTok et LinkedIn.
+                        Automatically retarget engaged audiences on Facebook, Google, TikTok, and LinkedIn.
                       </p>
                     </div>
                   </div>
@@ -1597,30 +1602,30 @@ export default function SettingsPage() {
                     <div className="p-3 rounded-[8px] bg-white dark:bg-black/40 border border-neutral-200/80 dark:border-white/5 space-y-1 shadow-sm dark:shadow-none">
                       <div className="flex items-center gap-1.5 text-neutral-900 dark:text-white font-bold text-[11px]">
                         <Globe2 className="w-3.5 h-3.5 text-[#0066FF] dark:text-[#38bdf8]" />
-                        <span>1. Liens Externes &amp; Tiers</span>
+                        <span>1. External &amp; 3rd-Party Links</span>
                       </div>
                       <p className="text-[11px] text-neutral-600 dark:text-neutral-400 leading-relaxed">
-                        Posez votre pixel même si vous redirigez vers <strong>Amazon</strong>, <strong>YouTube</strong>, un article de presse ou une boutique partenaire que vous ne possédez pas.
+                        Fire your pixel even when redirecting to <strong>Amazon</strong>, <strong>YouTube</strong>, a media article, or a partner affiliate store you do not own.
                       </p>
                     </div>
 
                     <div className="p-3 rounded-[8px] bg-white dark:bg-black/40 border border-neutral-200/80 dark:border-white/5 space-y-1 shadow-sm dark:shadow-none">
                       <div className="flex items-center gap-1.5 text-neutral-900 dark:text-white font-bold text-[11px]">
                         <Target className="w-3.5 h-3.5 text-[#ff6600]" />
-                        <span>2. Audiences Personnalisées</span>
+                        <span>2. Custom Audiences</span>
                       </div>
                       <p className="text-[11px] text-neutral-600 dark:text-neutral-400 leading-relaxed">
-                        Créez sur <strong>Meta Ads</strong> ou <strong>Google Ads</strong> une audience composée à 100% de personnes ayant cliqué sur vos liens d&apos;intérêt.
+                        Build audiences on <strong>Meta Ads</strong> or <strong>Google Ads</strong> composed 100% of high-intent users who clicked your specific links.
                       </p>
                     </div>
 
                     <div className="p-3 rounded-[8px] bg-white dark:bg-black/40 border border-neutral-200/80 dark:border-white/5 space-y-1 shadow-sm dark:shadow-none">
                       <div className="flex items-center gap-1.5 text-neutral-900 dark:text-white font-bold text-[11px]">
                         <TrendingUp className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
-                        <span>3. Coût d&apos;Acquisition Réduit</span>
+                        <span>3. Lower Acquisition Costs</span>
                       </div>
                       <p className="text-[11px] text-neutral-600 dark:text-neutral-400 leading-relaxed">
-                        Le reciblage publicitaire (retargeting) coûte <strong>3 à 5x moins cher</strong> qu&apos;une campagne à froid et génère un taux de conversion bien supérieur.
+                        Ad retargeting costs <strong>3 to 5x less</strong> than cold prospecting campaigns and yields significantly higher conversion rates.
                       </p>
                     </div>
                   </div>
@@ -1633,26 +1638,26 @@ export default function SettingsPage() {
                   onChange={(e) => setNewPixelPlatform(e.target.value as any)}
                   className="h-11 rounded-[10px] bg-[#141416] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
                 >
-                  <option value="facebook" className="bg-[#141416] text-white">Meta Facebook Pixel (ex: 1234567890)</option>
-                  <option value="google_tag" className="bg-[#141416] text-white">Google Analytics 4 / Tag (ex: G-XXXXXX)</option>
-                  <option value="tiktok" className="bg-[#141416] text-white">TikTok Ads Pixel (ex: C123456789)</option>
-                  <option value="linkedin" className="bg-[#141416] text-white">LinkedIn Insight Tag (ex: 123456)</option>
+                  <option value="facebook" className="bg-[#141416] text-white">Meta Facebook Pixel (e.g. 1234567890)</option>
+                  <option value="google_tag" className="bg-[#141416] text-white">Google Analytics 4 / Tag (e.g. G-XXXXXX)</option>
+                  <option value="tiktok" className="bg-[#141416] text-white">TikTok Ads Pixel (e.g. C123456789)</option>
+                  <option value="linkedin" className="bg-[#141416] text-white">LinkedIn Insight Tag (e.g. 123456)</option>
                 </select>
                 <Input
                   required
-                  placeholder="ID du Pixel (ex: 987654321 ou G-ABCDEF)"
+                  placeholder="Pixel ID (e.g. 987654321 or G-ABCDEF)"
                   value={newPixelId}
                   onChange={(e) => setNewPixelId(e.target.value)}
                 />
                 <Button type="submit" variant="glow" className="text-xs">
-                  Connecter Pixel
+                  Connect Pixel
                 </Button>
               </form>
 
               <div className="flex flex-col gap-3">
                 {pixels.length === 0 ? (
                   <div className="py-8 text-center text-xs text-neutral-500 bg-[#1a1a1e] rounded-[10px] border border-[#27272a]">
-                    Aucun pixel configuré. Ajoutez votre premier tag publicitaire ci-dessus pour commencer à tracker vos audiences.
+                    No pixels configured. Add your first tracking tag above to begin building custom audiences.
                   </div>
                 ) : (
                   pixels.map((px: any) => (
@@ -1678,7 +1683,7 @@ export default function SettingsPage() {
                               : "bg-neutral-800 text-neutral-500"
                           }`}
                         >
-                          {px.isActive ? "Actif" : "Désactivé"}
+                          {px.isActive ? "Active" : "Disabled"}
                         </button>
                         <button
                           type="button"
@@ -1700,9 +1705,9 @@ export default function SettingsPage() {
             <div className="flex flex-col gap-6">
               <div className="flex items-center justify-between pb-4 border-b border-[#222225]">
                 <div>
-                  <h2 className="text-lg font-bold text-white">Sécurité & Sessions Actives</h2>
+                  <h2 className="text-lg font-bold text-white">Security & Active Sessions</h2>
                   <p className="text-xs text-neutral-400">
-                    Protégez votre compte avec la double authentification TOTP et gérez vos appareils connectés.
+                    Protect your account with TOTP Two-Factor Authentication and manage connected devices.
                   </p>
                 </div>
               </div>
@@ -1719,20 +1724,20 @@ export default function SettingsPage() {
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-xs font-bold text-white">Double Authentification (2FA / TOTP)</p>
+                      <p className="text-xs font-bold text-white">Two-Factor Authentication (2FA / TOTP)</p>
                       {is2FAEnabled ? (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-[10px] font-bold text-emerald-400">
                           <Check className="w-3 h-3" />
-                          <span>Activé &amp; Sécurisé (RFC 6238)</span>
+                          <span>Enabled &amp; Secured (RFC 6238)</span>
                         </span>
                       ) : (
                         <span className="px-2 py-0.5 rounded-full bg-neutral-800 border border-neutral-700 text-[10px] font-semibold text-neutral-400">
-                          Non configuré
+                          Not configured
                         </span>
                       )}
                     </div>
                     <p className="text-[11px] text-neutral-400 mt-0.5">
-                      Compatible Google Authenticator, Apple Passwords, Microsoft Authenticator, Authy et 1Password.
+                      Compatible with Google Authenticator, Apple Passwords, Microsoft Authenticator, Authy, and 1Password.
                     </p>
                   </div>
                 </div>
@@ -1747,7 +1752,7 @@ export default function SettingsPage() {
                         className="text-xs h-9 border-[#27272a] gap-1.5 cursor-pointer"
                       >
                         <KeyRound className="w-3.5 h-3.5 text-amber-400" />
-                        <span>Codes de secours</span>
+                        <span>Recovery codes</span>
                       </Button>
                       <Button
                         size="sm"
@@ -1755,7 +1760,7 @@ export default function SettingsPage() {
                         onClick={handleDisable2FA}
                         className="text-xs h-9 border-red-500/20 text-red-400 hover:bg-red-500/10 cursor-pointer"
                       >
-                        Désactiver
+                        Disable
                       </Button>
                     </>
                   ) : (
@@ -1766,7 +1771,7 @@ export default function SettingsPage() {
                       className="text-xs h-9 px-4 font-bold gap-1.5 cursor-pointer shadow-md"
                     >
                       <ShieldCheck className="w-3.5 h-3.5" />
-                      <span>Activer la 2FA</span>
+                      <span>Enable 2FA</span>
                     </Button>
                   )}
                 </div>
@@ -1774,17 +1779,17 @@ export default function SettingsPage() {
 
               {/* Change Password */}
               <div className="p-4 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] flex flex-col gap-3">
-                <p className="text-xs font-bold text-white">Changer de mot de passe</p>
+                <p className="text-xs font-bold text-white">Change password</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <Input
                     type="password"
-                    placeholder="Mot de passe actuel"
+                    placeholder="Current password"
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
                   />
                   <Input
                     type="password"
-                    placeholder="Nouveau mot de passe (min 8 car.)"
+                    placeholder="New password (min 8 chars)"
                     value={newPassword}
                     onChange={(e) => handlePasswordInput(e.target.value)}
                   />
@@ -1793,7 +1798,7 @@ export default function SettingsPage() {
                 {newPassword && (
                   <div className="flex flex-col gap-1 text-[11px]">
                     <div className="flex justify-between text-neutral-400">
-                      <span>Force du mot de passe</span>
+                      <span>Password strength</span>
                       <span className="text-white font-bold">{passwordStrength}%</span>
                     </div>
                     <div className="w-full h-1.5 rounded-full bg-[#27272a] overflow-hidden">
@@ -1814,13 +1819,13 @@ export default function SettingsPage() {
                   onClick={handleChangePassword}
                   className="w-fit text-xs"
                 >
-                  {isUpdatingPassword ? "Mise à jour..." : "Mettre à jour le mot de passe"}
+                  {isUpdatingPassword ? "Updating..." : "Update password"}
                 </Button>
               </div>
 
               {/* Real Live Active Session */}
               <div className="flex flex-col gap-3">
-                <p className="text-xs font-bold text-white">Session Active & Détection Matérielle</p>
+                <p className="text-xs font-bold text-white">Active Session &amp; Hardware Detection</p>
                 <div className="p-3.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
                   <div className="flex items-start sm:items-center gap-3 min-w-0">
                     <div className="p-2 rounded-[8px] bg-[#ff6600]/10 text-[#ff6600] shrink-0 mt-0.5 sm:mt-0">
@@ -1829,17 +1834,17 @@ export default function SettingsPage() {
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-bold text-white text-xs truncate">{currentSessionInfo.device} · {currentSessionInfo.browser}</span>
-                        <Badge variant="active" className="shrink-0 text-[10px]">Session Actuelle</Badge>
+                        <Badge variant="active" className="shrink-0 text-[10px]">Current Session</Badge>
                       </div>
                       <p className="text-[11px] text-neutral-500 mt-0.5">
-                        Réseau : {currentSessionInfo.ip} · {currentSessionInfo.location}
+                        Network: {currentSessionInfo.ip} · {currentSessionInfo.location}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 self-start sm:self-center shrink-0 pl-11 sm:pl-0">
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-bold text-[11px]">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      En ligne
+                      Online
                     </span>
                   </div>
                 </div>
@@ -1852,9 +1857,9 @@ export default function SettingsPage() {
             <div className="flex flex-col gap-6">
               <div className="flex items-center justify-between pb-4 border-b border-[#222225]">
                 <div>
-                  <h2 className="text-lg font-bold text-white">Préférences de Notification</h2>
+                  <h2 className="text-lg font-bold text-white">Notification Preferences</h2>
                   <p className="text-xs text-neutral-400">
-                    Ajustez les seuils d&apos;alerte de trafic et les rapports par e-mail.
+                    Adjust traffic spike alert thresholds and automated email reports.
                   </p>
                 </div>
               </div>
@@ -1862,8 +1867,8 @@ export default function SettingsPage() {
               {/* Traffic Spike Threshold */}
               <div className="p-4 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] flex flex-col gap-2 text-xs">
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-white">Seuil d&apos;alerte de pic de trafic (Traffic Spike)</span>
-                  <span className="font-mono text-[#ff6600] font-bold text-sm">{spikeThreshold} clics / heure</span>
+                  <span className="font-bold text-white">Traffic Spike Alert Threshold</span>
+                  <span className="font-mono text-[#ff6600] font-bold text-sm">{spikeThreshold} clicks / hour</span>
                 </div>
                 <input
                   type="range"
@@ -1875,7 +1880,7 @@ export default function SettingsPage() {
                   className="w-full accent-[#ff6600] cursor-pointer mt-1"
                 />
                 <p className="text-[11px] text-neutral-400">
-                  Vous recevrez un e-mail instantané dès qu&apos;un de vos liens dépasse ce rythme de clics.
+                  You will receive an instant email whenever one of your short links exceeds this click rate.
                 </p>
               </div>
 
@@ -1883,8 +1888,8 @@ export default function SettingsPage() {
               <div className="flex flex-col gap-3">
                 <label className="flex items-center justify-between p-3.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] cursor-pointer">
                   <div>
-                    <p className="text-xs font-bold text-white">Alertes d&apos;expiration de liens</p>
-                    <p className="text-[11px] text-neutral-400">Notification 24h avant la fin de validité d&apos;un lien court</p>
+                    <p className="text-xs font-bold text-white">Link expiration alerts</p>
+                    <p className="text-[11px] text-neutral-400">Notification 24 hours before a short link expires</p>
                   </div>
                   <input
                     type="checkbox"
@@ -1896,8 +1901,8 @@ export default function SettingsPage() {
 
                 <label className="flex items-center justify-between p-3.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] cursor-pointer">
                   <div>
-                    <p className="text-xs font-bold text-white">Rapports de performance hebdomadaires</p>
-                    <p className="text-[11px] text-neutral-400">Bilan récapitulatif des clics et conversions chaque lundi matin</p>
+                    <p className="text-xs font-bold text-white">Weekly performance digests</p>
+                    <p className="text-[11px] text-neutral-400">Executive summary of link clicks and conversions every Monday morning</p>
                   </div>
                   <input
                     type="checkbox"
@@ -1915,9 +1920,9 @@ export default function SettingsPage() {
             <div className="flex flex-col gap-6">
               <div className="flex items-center justify-between pb-4 border-b border-[#222225]">
                 <div>
-                  <h2 className="text-lg font-bold text-white">Données, Export & Confidentialité RGPD</h2>
+                  <h2 className="text-lg font-bold text-white">Data, Export &amp; GDPR Privacy</h2>
                   <p className="text-xs text-neutral-400">
-                    Téléchargez vos archives brutes ou supprimez définitivement votre compte.
+                    Download your raw analytics archives or permanently delete your account.
                   </p>
                 </div>
               </div>
@@ -1925,40 +1930,40 @@ export default function SettingsPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="p-4 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] flex flex-col justify-between gap-3">
                   <div>
-                    <h3 className="text-xs font-bold text-white">Archive Complète (JSON)</h3>
+                    <h3 className="text-xs font-bold text-white">Full Archive (JSON)</h3>
                     <p className="text-[11px] text-neutral-400 mt-1">
-                      Contient tous vos liens, tags, règles de ciblage et analytics agrégés.
+                      Contains all your short links, tags, targeting rules, and aggregated analytics.
                     </p>
                   </div>
                   <Button size="sm" variant="outline" onClick={() => handleExportData("json")} className="gap-1.5 text-xs">
                     <Download className="w-3.5 h-3.5" />
-                    <span>Télécharger JSON</span>
+                    <span>Download JSON</span>
                   </Button>
                 </div>
 
                 <div className="p-4 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] flex flex-col justify-between gap-3">
                   <div>
-                    <h3 className="text-xs font-bold text-white">Export Brut Clics (CSV)</h3>
+                    <h3 className="text-xs font-bold text-white">Raw Clicks Export (CSV)</h3>
                     <p className="text-[11px] text-neutral-400 mt-1">
-                      Format tabulaire prêt pour Excel, Google Sheets ou PowerBI.
+                      Tabular format optimized for Excel, Google Sheets, or PowerBI.
                     </p>
                   </div>
                   <Button size="sm" variant="outline" onClick={() => handleExportData("csv")} className="gap-1.5 text-xs">
                     <Download className="w-3.5 h-3.5" />
-                    <span>Télécharger CSV</span>
+                    <span>Download CSV</span>
                   </Button>
                 </div>
               </div>
 
               {/* Danger Zone */}
               <div className="p-5 rounded-[10px] bg-red-500/10 border border-red-500/30 flex flex-col gap-3">
-                <h3 className="text-xs font-bold text-red-400 uppercase tracking-wider">Zone Dangereuse</h3>
+                <h3 className="text-xs font-bold text-red-400 uppercase tracking-wider">Danger Zone</h3>
                 <p className="text-xs text-neutral-300">
-                  La suppression de compte est immédiate et irréversible. Tous vos liens, métadonnées et domaines associés seront supprimés de la base de données.
+                  Account deletion is immediate and permanent. All your shortened links, metadata, and connected domains will be purged from the database.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-2">
                   <Input
-                    placeholder="Tapez SUPPRIMER pour confirmer"
+                    placeholder="Type DELETE to confirm"
                     value={deleteConfirmationText}
                     onChange={(e) => setDeleteConfirmationText(e.target.value)}
                     className="max-w-xs"
@@ -1966,10 +1971,10 @@ export default function SettingsPage() {
                   <Button
                     size="sm"
                     variant="destructive"
-                    disabled={deleteConfirmationText !== "SUPPRIMER" || isDeletingAccount}
+                    disabled={deleteConfirmationText !== "DELETE" || isDeletingAccount}
                     onClick={handleDeleteAccount}
                   >
-                    {isDeletingAccount ? "Suppression en cours..." : "Supprimer Définitivement mon Compte"}
+                    {isDeletingAccount ? "Deleting..." : "Permanently Delete My Account"}
                   </Button>
                 </div>
               </div>
@@ -1979,28 +1984,28 @@ export default function SettingsPage() {
           {/* TAB 10: ABOUT */}
           {activeTab === "about" && (
             <div className="flex flex-col gap-6 text-xs text-neutral-300">
-              <h2 className="text-lg font-bold text-white">À Propos de LShorter</h2>
+              <h2 className="text-lg font-bold text-white">About LShorter</h2>
               <p className="leading-relaxed text-neutral-300">
-                LShorter est une plateforme Edge SaaS haute performance propulsée par le réseau mondial Cloudflare Workers, D1 et Bunny CDN.
+                LShorter is a high-performance Edge SaaS platform powered by the global Cloudflare Workers network, D1, and Bunny CDN.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                 <div className="p-3.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a]">
-                  <span className="text-neutral-500">Version de l&apos;Application</span>
-                  <p className="font-mono text-white font-bold text-sm mt-0.5">v1.2.0 (Production Live)</p>
+                  <span className="text-neutral-500">Application Version</span>
+                  <p className="font-mono text-white font-bold text-sm mt-0.5">v1.2.0 (Live Production)</p>
                 </div>
                 <div className="p-3.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a]">
-                  <span className="text-neutral-500">Réseau Edge Cloudflare & D1</span>
+                  <span className="text-neutral-500">Cloudflare Edge Network &amp; D1</span>
                   <p className="text-emerald-400 font-bold text-sm flex items-center gap-1.5 mt-0.5">
                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    Opérationnel (&lt;0.8ms de latence)
+                    Operational (&lt;0.8ms latency)
                   </p>
                 </div>
                 <div className="p-3.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a]">
-                  <span className="text-neutral-500">Hébergement CDN Bannières</span>
+                  <span className="text-neutral-500">Banner CDN Hosting</span>
                   <p className="text-white font-bold text-sm mt-0.5">Bunny.net Storage Edge (Pull Zone)</p>
                 </div>
                 <div className="p-3.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a]">
-                  <span className="text-neutral-500">Base de données Utilisateurs</span>
+                  <span className="text-neutral-500">User Database</span>
                   <p className="text-white font-bold text-sm mt-0.5">Convex Realtime Database</p>
                 </div>
               </div>
@@ -2040,8 +2045,8 @@ export default function SettingsPage() {
         onClose={() => setKeyToDelete({ isOpen: false, id: "", name: "" })}
         onConfirm={confirmRevokeKey}
         isDeleting={isRevokingKey}
-        title={`Révoquer la clé "${keyToDelete.name}" ?`}
-        description="Cette action est irréversible. Toutes les applications, bots ou scripts utilisant cette clé cesseront immédiatement de fonctionner."
+        title={`Revoke key "${keyToDelete.name}"?`}
+        description="This action is irreversible. All applications, bots, or scripts using this key will immediately stop working."
       />
     </div>
   );

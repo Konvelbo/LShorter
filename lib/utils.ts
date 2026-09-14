@@ -14,14 +14,14 @@ export function formatNumber(num?: number | null): string {
     return (n / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
   }
   if (n >= 1_000) {
-    return n.toLocaleString("fr-FR");
+    return n.toLocaleString("en-US");
   }
   return n.toString();
 }
 
 export function formatCurrency(amount?: number | null, currency: string = "EUR"): string {
   const a = amount === undefined || amount === null || isNaN(Number(amount)) ? 0 : Number(amount);
-  return new Intl.NumberFormat("fr-FR", {
+  return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: currency,
     maximumFractionDigits: 0,
@@ -39,18 +39,18 @@ export function formatDateRelative(dateString: string): string {
     const diffDay = Math.floor(diffHour / 24);
 
     if (diffDay > 30) {
-      return date.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+      return date.toLocaleDateString("en-US", { day: "numeric", month: "short" });
     }
     if (diffDay > 0) {
-      return `il y a ${diffDay} jour${diffDay > 1 ? "s" : ""}`;
+      return `${diffDay} day${diffDay > 1 ? "s" : ""} ago`;
     }
     if (diffHour > 0) {
-      return `il y a ${diffHour} heure${diffHour > 1 ? "s" : ""}`;
+      return `${diffHour} hour${diffHour > 1 ? "s" : ""} ago`;
     }
     if (diffMin > 0) {
-      return `il y a ${diffMin} minute${diffMin > 1 ? "s" : ""}`;
+      return `${diffMin} min${diffMin > 1 ? "s" : ""} ago`;
     }
-    return "à l'instant";
+    return "just now";
   } catch {
     return dateString;
   }
@@ -59,35 +59,35 @@ export function formatDateRelative(dateString: string): string {
 const COUNTRY_NAMES: Record<string, string> = {
   BF: "Burkina Faso",
   FR: "France",
-  US: "États-Unis",
-  CI: "Côte d'Ivoire",
-  SN: "Sénégal",
-  CM: "Cameroun",
+  US: "United States",
+  CI: "Ivory Coast",
+  SN: "Senegal",
+  CM: "Cameroon",
   CA: "Canada",
-  DE: "Allemagne",
-  GB: "Royaume-Uni",
-  BE: "Belgique",
-  CH: "Suisse",
-  MA: "Maroc",
-  TN: "Tunisie",
-  DZ: "Algérie",
-  ES: "Espagne",
-  IT: "Italie",
+  DE: "Germany",
+  GB: "United Kingdom",
+  BE: "Belgium",
+  CH: "Switzerland",
+  MA: "Morocco",
+  TN: "Tunisia",
+  DZ: "Algeria",
+  ES: "Spain",
+  IT: "Italy",
   PT: "Portugal",
-  NG: "Nigéria",
+  NG: "Nigeria",
   GA: "Gabon",
-  CD: "RDC",
+  CD: "DR Congo",
   MG: "Madagascar",
-  JP: "Japon",
-  BR: "Brésil",
-  AE: "Émirats Arabes Unis",
-  IN: "Inde",
-  AU: "Australie",
-  ZA: "Afrique du Sud",
+  JP: "Japan",
+  BR: "Brazil",
+  AE: "United Arab Emirates",
+  IN: "India",
+  AU: "Australia",
+  ZA: "South Africa",
 };
 
 export function getCountryName(code?: string | null): string {
-  if (!code) return "Inconnu";
+  if (!code) return "Unknown";
   const upper = code.trim().toUpperCase();
   return COUNTRY_NAMES[upper] || upper;
 }

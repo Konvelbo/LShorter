@@ -85,15 +85,15 @@ export function Topbar() {
     const labelMap: Record<string, string> = {
       dashboard: "DASHBOARD",
       analytics: "ANALYTICS",
-      geo: "GÉOGRAPHIE",
-      devices: "APPAREILS & FORMATS",
-      sources: "SOURCES DE TRAFIC",
-      links: "MES LIENS",
-      domains: "DOMAINES",
+      geo: "GEOGRAPHY",
+      devices: "DEVICES & TECH",
+      sources: "TRAFFIC SOURCES",
+      links: "MY LINKS",
+      domains: "DOMAINS",
       "qr-code": "QR CODES",
       "api-sdk": "API & SDK",
-      settings: "PARAMÈTRES",
-      pricing: "TARIFS & OFFRES",
+      settings: "SETTINGS",
+      pricing: "PLANS & PRICING",
     };
 
     parts.forEach((p, idx) => {
@@ -109,7 +109,7 @@ export function Topbar() {
   }, [pathname]);
 
   const plan = (localPlan || convexUser?.plan || (session?.user as any)?.plan || "FREEMIUM").toUpperCase();
-  const name = convexUser?.name || session?.user?.name || "Mon Compte";
+  const name = convexUser?.name || session?.user?.name || "My Account";
   const email = convexUser?.email || session?.user?.email || "";
   const avatarUrl = convexUser?.avatarUrl || (session?.user as any)?.avatarUrl || session?.user?.image || "";
   const clicksLimit = plan === "BUSINESS" ? -1 : plan === "PRO" ? 1_000_000 : 100_000;
@@ -117,27 +117,27 @@ export function Topbar() {
   const notifications = [
     {
       id: 1,
-      title: "Bienvenue sur LShorter Edge 🚀",
-      desc: "Votre infrastructure Edge Cloudflare est prête à raccourcir et tracker vos liens.",
-      time: "il y a 5 min",
+      title: "Welcome to LShorter Edge 🚀",
+      desc: "Your Cloudflare Edge infrastructure is ready to shorten and track links.",
+      time: "5 min ago",
       unread: true,
     },
     {
       id: 2,
-      title: "Quota mensuel activé",
-      desc: `Vous disposez de ${clicksLimit === -1 ? "clics illimités" : `${clicksLimit.toLocaleString()} clics`} sur votre forfait ${plan}.`,
-      time: "aujourd'hui",
+      title: "Monthly Quota Active",
+      desc: `You have ${clicksLimit === -1 ? "unlimited clicks" : `${clicksLimit.toLocaleString()} clicks`} on your ${plan} plan.`,
+      time: "Today",
       unread: false,
     },
   ];
 
   return (
-    <header className="border-b border-[#222225] bg-[#09090b]/85 backdrop-blur-md sticky top-0 z-30 select-none transition-all">
+    <header className="border-b border-[#222225] md:border-b-0 bg-[#09090b] z-30 select-none transition-all shrink-0">
       {/* ─── 1. MOBILE DEDICATED TOPBAR (< 768px - Cyber Blue Theme) ─── */}
       <div className="flex md:hidden h-14 px-3.5 items-center justify-between">
-        {/* Left: Blue LS Badge + Title */}
-        <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-[8px] bg-[#0066FF] flex items-center justify-center font-bebas text-lg font-black text-white shadow-md shadow-[#0066FF]/40">
+        {/* Left: Blue LS Badge + Title -> Navigates to Marketing Home */}
+        <Link href="/" className="flex items-center gap-2 group cursor-pointer">
+          <div className="w-8 h-8 rounded-[8px] bg-[#0066FF] flex items-center justify-center font-bebas text-lg font-black text-white shadow-md shadow-[#0066FF]/40 group-hover:scale-105 transition-transform">
             LS
           </div>
           <span className="font-bebas text-xl font-bold tracking-wider text-white leading-none">
@@ -151,7 +151,7 @@ export function Topbar() {
           <button
             type="button"
             onClick={toggleTheme}
-            title={theme === "dark" ? "Passer en mode clair" : "Passer en mode sombre"}
+            title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
             className="w-8 h-8 rounded-[8px] bg-[#10141f] border border-[#1e2942] text-neutral-400 hover:text-white flex items-center justify-center cursor-pointer transition-colors"
           >
             {theme === "dark" ? (
@@ -199,10 +199,21 @@ export function Topbar() {
       </div>
 
       {/* ─── 2. DESKTOP FULL TOPBAR (>= 768px - Orange Theme) ─── */}
-      <div className="hidden md:flex h-20 px-8 items-center justify-between">
-        {/* Left: Dynamic Route Breadcrumb & User Greeting */}
-        <div className="flex flex-col group cursor-default">
-          <nav aria-label="Fil d'ariane" className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-neutral-400">
+      <div className="hidden md:flex h-14 px-6 items-center justify-between">
+        {/* Left: Brand Logo & Dynamic Route Breadcrumb -> Navigates to Marketing Home */}
+        <div className="flex items-center gap-3">
+          <Link href="/" className="flex items-center gap-2.5 group cursor-pointer mr-2" title="Back to homepage">
+            <div className="w-8 h-8 rounded-[10px] bg-[#ff6600] flex items-center justify-center font-bebas text-lg font-black text-white shadow-md shadow-[#ff6600]/30 group-hover:shadow-[#ff6600]/60 transition-all shrink-0">
+              LS
+            </div>
+            <div className="flex flex-col">
+              <span className="font-bebas text-xl font-bold tracking-wider text-white flex items-center gap-1 group-hover:text-[#ff6600] transition-colors leading-none">
+                L <span className="text-[#ff6600]">SHORTER</span>
+              </span>
+            </div>
+          </Link>
+
+          <nav aria-label="Breadcrumbs" className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-neutral-400 pl-3 border-l border-[#222228]">
             {routeSegments.map((crumb, idx) => (
               <React.Fragment key={crumb.href}>
                 {idx > 0 && <span className="text-neutral-600 font-semibold select-none">/</span>}
@@ -219,30 +230,23 @@ export function Topbar() {
               </React.Fragment>
             ))}
           </nav>
-          <h1 className="text-2xl font-bold font-bebas tracking-wide text-white flex items-center gap-2">
-            HELLO,{" "}
-            <span className="text-[#ff6600] drop-shadow-[0_0_20px_rgba(255,102,0,0.35)]">
-              {name.toUpperCase()}
-            </span>{" "}
-            👋
-          </h1>
         </div>
 
         {/* Right Actions: Upgrade, Notifications, User Menu */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           {/* Upgrade Plan Pill Button */}
           {plan === "FREEMIUM" && (
             <button
               onClick={() =>
                 triggerPlanUpgrade({
-                  reason: "Passez au Forfait PRO pour débloquer les analytics illimités et 15 domaines.",
-                  featureName: "Accès PRO Illimité",
+                  reason: "Upgrade to PRO Plan to unlock unlimited analytics and 15 custom domains.",
+                  featureName: "Unlimited PRO Access",
                 })
               }
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#ff6600]/10 border border-[#ff6600]/30 hover:border-[#ff6600] text-[#ff6600] hover:bg-[#ff6600]/20 text-xs font-bold transition-all shadow-sm shadow-[#ff6600]/20 cursor-pointer animate-pulse"
             >
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Passer en PRO</span>
+              <span>Upgrade to PRO</span>
             </button>
           )}
 
@@ -250,8 +254,8 @@ export function Topbar() {
           <button
             type="button"
             onClick={toggleTheme}
-            title={theme === "dark" ? "Passer en mode clair" : "Passer en mode sombre"}
-            className="w-10 h-10 rounded-[10px] bg-[#141416] border border-[#27272a] hover:border-neutral-500 text-neutral-400 hover:text-white flex items-center justify-center transition-all cursor-pointer"
+            title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            className="w-9 h-9 rounded-[10px] bg-[#141416] border border-[#27272a] hover:border-neutral-500 text-neutral-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
           >
             {theme === "dark" ? (
               <Sun className="w-4 h-4 text-amber-400 hover:rotate-45 transition-transform" />
@@ -268,14 +272,14 @@ export function Topbar() {
                 setShowNotifications(!showNotifications);
                 setShowUserMenu(false);
               }}
-              className="w-10 h-10 rounded-[10px] bg-[#141416] border border-[#27272a] hover:border-neutral-500 text-neutral-400 hover:text-white flex items-center justify-center transition-colors relative cursor-pointer"
+              className="w-9 h-9 rounded-[10px] bg-[#141416] border border-[#27272a] hover:border-neutral-500 text-neutral-400 hover:text-white flex items-center justify-center transition-colors relative cursor-pointer"
             >
               <Bell className="w-4 h-4" />
-              <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-[#ff6600] rounded-full ring-2 ring-[#141416]" />
+              <span className="absolute top-2 right-2 w-2 h-2 bg-[#ff6600] rounded-full ring-2 ring-[#141416]" />
             </button>
           </div>
 
-          {/* User Profile Pill */}
+          {/* User Profile Pill - Crisp, sharp, no transform blur */}
           <div className="relative">
             <button
               type="button"
@@ -283,9 +287,9 @@ export function Topbar() {
                 setShowUserMenu(!showUserMenu);
                 setShowNotifications(false);
               }}
-              className="btn-hover-scale flex items-center gap-3 pl-2 pr-3 py-1.5 rounded-[10px] bg-[#141416] border border-[#27272a] hover:border-neutral-500 transition-all cursor-pointer group"
+              className="flex items-center gap-2.5 pl-1.5 pr-3 py-1 rounded-[10px] bg-[#141416] border border-[#27272a] hover:border-neutral-500 hover:bg-[#1a1a1e] transition-colors cursor-pointer group shadow-sm"
             >
-              <div className="w-8 h-8 rounded-[8px] bg-[#ff6600] text-white flex items-center justify-center font-bold text-xs uppercase shadow-md shadow-[#ff6600]/30 overflow-hidden shrink-0">
+              <div className="w-7.5 h-7.5 rounded-[8px] bg-[#ff6600] text-white flex items-center justify-center font-bold text-xs uppercase shadow-sm overflow-hidden shrink-0 border border-white/10">
                 {avatarUrl && !imgError ? (
                   /* eslint-disable-next-line @next/next/no-img-element */
                   <img
@@ -300,17 +304,17 @@ export function Topbar() {
                   name.slice(0, 2).toUpperCase()
                 )}
               </div>
-              <div className="flex flex-col text-left">
-                <span className="text-xs font-bold text-white group-hover:text-[#ff6600] transition-colors truncate max-w-[160px]">
+              <div className="flex flex-col text-left min-w-0">
+                <span className="text-xs font-bold text-white group-hover:text-[#ff6600] transition-colors truncate max-w-[150px] leading-tight">
                   {name}
                 </span>
-                <span className="text-[10px] text-neutral-400 uppercase font-semibold">
-                  Plan {plan}
+                <span className="text-[9.5px] text-neutral-400 uppercase font-semibold leading-none mt-0.5">
+                  {plan} Plan
                 </span>
               </div>
               <ChevronDown
                 className={cn(
-                  "w-3.5 h-3.5 text-neutral-400 transition-transform duration-300",
+                  "w-3.5 h-3.5 text-neutral-400 transition-transform duration-200 shrink-0",
                   showUserMenu ? "rotate-180 text-[#ff6600]" : "rotate-0"
                 )}
               />
@@ -327,7 +331,7 @@ export function Topbar() {
               Notifications
             </h3>
             <span className="text-[10px] text-[#0066FF] md:text-[#ff6600] font-semibold cursor-pointer hover:underline">
-              Tout marquer lu
+              Mark all as read
             </span>
           </div>
 
@@ -382,7 +386,7 @@ export function Topbar() {
               className="flex items-center gap-2.5 p-2 rounded-[8px] hover:bg-white/10 hover:text-white transition-colors"
             >
               <Settings className="w-4 h-4 text-neutral-400" />
-              <span>Paramètres du compte</span>
+              <span>Account Settings</span>
             </Link>
 
             <Link
@@ -391,7 +395,7 @@ export function Topbar() {
               className="flex items-center gap-2.5 p-2 rounded-[8px] hover:bg-white/10 hover:text-white transition-colors"
             >
               <CreditCard className="w-4 h-4 text-[#0066FF] md:text-[#ff6600]" />
-              <span>Tarifs & Forfaits</span>
+              <span>Plans & Pricing</span>
             </Link>
 
             <Link
@@ -400,7 +404,7 @@ export function Topbar() {
               className="flex items-center gap-2.5 p-2 rounded-[8px] hover:bg-white/10 hover:text-white transition-colors"
             >
               <FileText className="w-4 h-4 text-neutral-400" />
-              <span>Documentation API</span>
+              <span>API Documentation</span>
             </Link>
 
             <button
@@ -411,7 +415,7 @@ export function Topbar() {
               className="flex items-center gap-2.5 p-2 rounded-[8px] text-red-400 hover:bg-red-500/10 transition-colors w-full text-left mt-1 border-t border-[#222225] pt-2 cursor-pointer"
             >
               <LogOut className="w-4 h-4" />
-              <span>Se déconnecter</span>
+              <span>Log out</span>
             </button>
           </div>
         </div>

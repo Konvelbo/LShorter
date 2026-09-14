@@ -2,11 +2,12 @@
 -- LShorter High-Performance D1 Database Schema & Index Optimization
 -- ============================================================================
 
--- 1. Users Table (synced from Convex after login — used for plan enforcement)
+-- 1. Users Table (Identity & FullName — Cloudflare D1)
 CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,
-  email TEXT NOT NULL UNIQUE,
-  name TEXT NOT NULL DEFAULT 'Utilisateur',
+  email TEXT UNIQUE NOT NULL,
+  name TEXT,
+  avatar_url TEXT,
   plan TEXT NOT NULL DEFAULT 'FREEMIUM',
   created_at TEXT DEFAULT (datetime('now')),
   updated_at TEXT DEFAULT (datetime('now'))
@@ -64,6 +65,10 @@ CREATE TABLE IF NOT EXISTS analytics_events (
   device TEXT DEFAULT 'desktop',
   browser TEXT DEFAULT 'Chrome',
   os TEXT DEFAULT 'Windows',
+  customer_email TEXT,
+  customer_name TEXT,
+  customer_avatar TEXT,
+  conversion_amount REAL DEFAULT 0,
   ip_hash TEXT,
   created_at TEXT DEFAULT (datetime('now'))
 );

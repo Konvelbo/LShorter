@@ -19,8 +19,8 @@ export function DeleteConfirmModal({
   isOpen,
   onClose,
   onConfirm,
-  title = "Supprimer ce lien court définitivement ?",
-  description = "Cette action est irréversible. La redirection sera immédiatement désactivée et toutes les statistiques associées seront effacées.",
+  title = "Delete this short link permanently?",
+  description = "This action is irreversible. Redirection will be disabled immediately and all associated statistics will be deleted.",
   itemCount = 1,
   itemLabels = [],
   isDeleting = false,
@@ -39,7 +39,7 @@ export function DeleteConfirmModal({
           onClick={onClose}
           disabled={isDeleting}
           className="absolute right-4 top-4 p-1.5 rounded-[10px] text-neutral-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-50"
-          aria-label="Fermer"
+          aria-label="Close"
         >
           <X className="w-4 h-4" />
         </button>
@@ -51,7 +51,7 @@ export function DeleteConfirmModal({
           </div>
           <div className="flex flex-col gap-1 pr-4">
             <h3 className="text-base font-bold text-white leading-snug">
-              {itemCount > 1 ? `Supprimer ${itemCount} liens définitivement ?` : title}
+              {itemCount > 1 ? `Delete ${itemCount} links permanently?` : title}
             </h3>
             <p className="text-xs text-neutral-400 leading-relaxed">
               {description}
@@ -72,7 +72,7 @@ export function DeleteConfirmModal({
             ))}
             {itemLabels.length > 10 && (
               <span className="text-[11px] text-neutral-500 self-center px-1 font-mono">
-                +{itemLabels.length - 10} autres...
+                +{itemLabels.length - 10} more...
               </span>
             )}
           </div>
@@ -87,7 +87,7 @@ export function DeleteConfirmModal({
             disabled={isDeleting}
             className="h-9 px-4 text-xs font-semibold border-[#27272a] bg-[#1a1a1e] hover:bg-white/5 text-neutral-300 hover:text-white cursor-pointer"
           >
-            Annuler
+            Cancel
           </Button>
 
           <Button
@@ -99,12 +99,12 @@ export function DeleteConfirmModal({
             {isDeleting ? (
               <>
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                <span>Suppression...</span>
+                <span>Deleting...</span>
               </>
             ) : (
               <>
                 <Trash2 className="w-3.5 h-3.5" />
-                <span>{itemCount > 1 ? `Supprimer (${itemCount})` : "Supprimer définitivement"}</span>
+                <span>{itemCount > 1 ? `Delete (${itemCount})` : "Delete permanently"}</span>
               </>
             )}
           </Button>

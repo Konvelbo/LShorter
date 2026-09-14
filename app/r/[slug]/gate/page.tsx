@@ -32,7 +32,7 @@ export default function PasswordGatePage() {
   const handleUnlock = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!password.trim()) {
-      setPasswordError("Veuillez saisir le mot de passe.");
+      setPasswordError("Please enter the password.");
       return;
     }
 
@@ -57,7 +57,7 @@ export default function PasswordGatePage() {
           window.location.replace(data.fallbackUrl || `/r/${slug}/paused`);
           return;
         }
-        setPasswordError(data.error || "Mot de passe incorrect.");
+        setPasswordError(data.error || "Incorrect password.");
         setIsVerifying(false);
         return;
       }
@@ -72,7 +72,7 @@ export default function PasswordGatePage() {
         window.location.replace(data.targetUrl);
       }
     } catch (err: any) {
-      setPasswordError("Erreur de communication avec le serveur.");
+      setPasswordError("Server communication error.");
       setIsVerifying(false);
     }
   };
@@ -94,7 +94,7 @@ export default function PasswordGatePage() {
             rel="noopener noreferrer"
             className="flex items-center gap-1.5 text-xs text-[#ff6600] hover:underline"
           >
-            <span>Ouvrir la source</span>
+            <span>Open source</span>
             <ExternalLink className="w-3 h-3" />
           </a>
         </div>
@@ -126,17 +126,17 @@ export default function PasswordGatePage() {
           </div>
 
           <h1 className="text-xl font-bold text-white mb-2 tracking-tight">
-            Lien Protégé par Mot de Passe
+            Password Protected Link
           </h1>
           <p className="text-xs text-neutral-400 mb-6 max-w-xs leading-relaxed">
-            L&apos;auteur a sécurisé ce lien court. Entrez le mot de passe requis pour déverrouiller la destination.
+            The author has secured this short link. Enter the required PIN or password to unlock destination.
           </p>
         </div>
 
         <form onSubmit={handleUnlock} className="flex flex-col gap-4">
           <div>
             <label className="block text-[11px] font-semibold text-neutral-400 uppercase tracking-wider mb-1.5">
-              Mot de passe d&apos;accès
+              Access Password / PIN
             </label>
             <div className="relative">
               <input
@@ -146,7 +146,7 @@ export default function PasswordGatePage() {
                   setPassword(e.target.value);
                   if (passwordError) setPasswordError(null);
                 }}
-                placeholder="Entrez le mot de passe..."
+                placeholder="Enter password..."
                 autoFocus
                 className={`w-full px-4 py-3 rounded-[10px] bg-[#1a1a1e] border text-sm text-white placeholder-neutral-500 transition-all outline-none pr-11 ${
                   passwordError
@@ -158,7 +158,7 @@ export default function PasswordGatePage() {
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white transition-colors cursor-pointer p-1"
-                aria-label={showPassword ? "Masquer" : "Afficher"}
+                aria-label={showPassword ? "Hide" : "Show"}
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
@@ -180,12 +180,12 @@ export default function PasswordGatePage() {
             {isVerifying ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Vérification...</span>
+                <span>Verifying...</span>
               </>
             ) : (
               <>
                 <Unlock className="w-4 h-4" />
-                <span>Accéder au lien</span>
+                <span>Unlock &amp; Continue</span>
                 <ArrowRight className="w-4 h-4 ml-0.5" />
               </>
             )}
@@ -193,7 +193,7 @@ export default function PasswordGatePage() {
         </form>
 
         <div className="mt-6 pt-6 border-t border-[#1e1e24] flex items-center justify-center text-[11px] text-neutral-500 gap-1.5">
-          <span>Sécurisé par</span>
+          <span>Secured by</span>
           <span className="font-semibold text-neutral-400">LShorter Edge Gate</span>
         </div>
       </div>

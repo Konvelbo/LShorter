@@ -1,6 +1,6 @@
 import React from "react";
-import Link from "next/link";
-import { MarketingHeader } from "@/components/marketing/marketing-header";
+import { LandingNavbar } from "@/components/marketing/landing-navbar";
+import { LandingFooter } from "@/components/marketing/landing-footer";
 
 export default function MarketingLayout({
   children,
@@ -8,47 +8,14 @@ export default function MarketingLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-[#f4f4f5] dark:bg-[#09090b] text-neutral-900 dark:text-[#fafafa] flex flex-col justify-between transition-colors">
-      {/* Public Topbar with Dedicated Mobile Frame */}
-      <MarketingHeader />
-
-      {/* Main Content */}
-      <main className="flex-1">{children}</main>
-
-      {/* Public Footer */}
-      <footer className="border-t border-neutral-200 dark:border-[#222225] bg-white dark:bg-[#0c0c0e] py-12 px-6 lg:px-12 text-xs text-neutral-500">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-3">
-            <div className="w-7 h-7 rounded-[10px] bg-[#ff6600] flex items-center justify-center font-bebas text-lg text-white font-bold">
-              LS
-            </div>
-            <span className="font-bebas text-xl text-neutral-900 dark:text-white tracking-wider">
-              L<span className="text-[#ff6600]">SHORTER</span>
-            </span>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-6 text-neutral-600 dark:text-neutral-400">
-            <Link href="/" className="hover:text-neutral-900 dark:hover:text-white transition-colors">
-              Accueil
-            </Link>
-            <Link href="/pricing" className="hover:text-neutral-900 dark:hover:text-white transition-colors">
-              Tarifs
-            </Link>
-            <Link href="/docs" className="hover:text-neutral-900 dark:hover:text-white transition-colors">
-              Documentation
-            </Link>
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-center gap-1.5 sm:gap-2 text-center md:text-right text-neutral-500">
-            <p>© 2026 LShorter Inc.</p>
-            <span className="hidden sm:inline">•</span>
-            <p>
-              Créé par{" "}
-              <span className="text-neutral-800 dark:text-neutral-300 font-semibold">KONVELBO W B Samuel B</span>
-            </p>
-          </div>
-        </div>
-      </footer>
+    <div className="min-h-screen flex flex-col bg-[#FAF7F2] dark:bg-[#09090b] text-neutral-900 dark:text-[#fafafa] selection:bg-[#0080ff]/20 selection:text-[#0080ff] sm:selection:bg-[#ff6600]/20 sm:selection:text-[#ff6600] transition-colors duration-300 font-sans">
+      {/* Universal Floating Navbar across Accueil, Tarifs, API & Docs */}
+      <LandingNavbar />
+      <div className="flex-1 flex flex-col">
+        {children}
+      </div>
+      {/* Universal Marketing Footer */}
+      <LandingFooter />
     </div>
   );
 }

@@ -36,7 +36,7 @@ export function PlanUpgradeModal() {
   useEffect(() => {
     const handleUpgradeRequest = (e: Event) => {
       const customEvent = e as CustomEvent<{ reason?: string }>;
-      setReason(customEvent.detail?.reason || "Passez au forfait Pro pour débloquer cette fonctionnalité.");
+      setReason(customEvent.detail?.reason || "Upgrade to the Pro plan to unlock this feature.");
       setIsOpen(true);
     };
 
@@ -62,7 +62,7 @@ export function PlanUpgradeModal() {
         await syncUserToCloudflare({
           id: userId,
           email: session?.user?.email || `${userId}@lshorter.local`,
-          name: session?.user?.name || "Utilisateur",
+          name: session?.user?.name || "User",
           plan: targetPlan,
         });
       }
@@ -73,10 +73,10 @@ export function PlanUpgradeModal() {
       }
 
       confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
-      showToast.success(`Félicitations ! Vous êtes désormais sur le forfait ${targetPlan}.`);
+      showToast.success(`Congratulations! You are now on the ${targetPlan} plan.`);
       setIsOpen(false);
     } catch (err: any) {
-      showToast.error("Impossible de mettre à niveau le forfait.");
+      showToast.error("Unable to upgrade plan.");
     } finally {
       setLoadingPlan(null);
     }
@@ -100,13 +100,13 @@ export function PlanUpgradeModal() {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-xl font-bold text-white tracking-wide">Débloquez la Puissance LShorter</h3>
+              <h3 className="text-xl font-bold text-white tracking-wide">Unlock the Power of LShorter</h3>
               <span className="px-2 py-0.5 rounded-[10px] bg-[#ff6600]/20 text-[#ff6600] text-[10px] font-bold uppercase tracking-wider border border-[#ff6600]/30">
                 PRO & BUSINESS
               </span>
             </div>
             <p className="text-xs text-neutral-400 mt-0.5">
-              {reason || "Profitez de la suite complète d'optimisation Edge sans aucune restriction."}
+              {reason || "Enjoy the complete Edge optimization suite without restrictions."}
             </p>
           </div>
         </div>
@@ -114,12 +114,12 @@ export function PlanUpgradeModal() {
         {/* Feature Highlights Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 my-6">
           {[
-            { icon: Zap, text: "Clics Edge ILLIMITÉS (Dès Pro)" },
-            { icon: Globe2, text: "Routage Géo & Device (195+ Pays)" },
-            { icon: Lock, text: "Protection Mot de Passe & Cloaking" },
-            { icon: QrCode, text: "QR Code Studio (Dégradés & Logos)" },
-            { icon: Layers, text: "Domaines ILLIMITÉS (Business)" },
-            { icon: ShieldCheck, text: "Analytics & API ILLIMITÉS" },
+            { icon: Zap, text: "UNLIMITED Edge Clicks (From Pro)" },
+            { icon: Globe2, text: "Geo & Device Routing (195+ Countries)" },
+            { icon: Lock, text: "Password Protection & Cloaking" },
+            { icon: QrCode, text: "QR Code Studio (Gradients & Logos)" },
+            { icon: Layers, text: "UNLIMITED Domains (Business)" },
+            { icon: ShieldCheck, text: "UNLIMITED Analytics & API" },
           ].map((f, i) => {
             const Icon = f.icon;
             return (
@@ -139,26 +139,26 @@ export function PlanUpgradeModal() {
           {/* Plan PRO */}
           <div className="relative p-5 rounded-[10px] bg-[#1a1a1e] border-2 border-[#ff6600] flex flex-col justify-between shadow-xl shadow-[#ff6600]/10 group">
             <div className="absolute -top-3 right-4 px-2.5 py-0.5 rounded-full bg-[#ff6600] text-white text-[10px] font-bold tracking-wide uppercase shadow-md">
-              Recommandé
+              Recommended
             </div>
             <div>
-              <span className="text-sm font-bold text-white uppercase tracking-wider">Plan Pro</span>
+              <span className="text-sm font-bold text-white uppercase tracking-wider">Pro Plan</span>
               <div className="flex items-baseline gap-1 my-2">
                 <span className="text-3xl font-black text-white">12€</span>
-                <span className="text-xs text-neutral-400">/ mois</span>
+                <span className="text-xs text-neutral-400">/ month</span>
               </div>
               <ul className="flex flex-col gap-1.5 text-xs text-neutral-300 mt-3">
                 <li className="flex items-center gap-1.5">
                   <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                  <span><strong>Clics Illimités</strong> sans quota</span>
+                  <span><strong>Unlimited Clicks</strong> with no quota</span>
                 </li>
                 <li className="flex items-center gap-1.5">
                   <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                  <span><strong>15</strong> domaines & API illimitée</span>
+                  <span><strong>15</strong> custom domains & unlimited API</span>
                 </li>
                 <li className="flex items-center gap-1.5">
                   <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                  <span>Routage Multi-Conditions & Analytics illimités</span>
+                  <span>Multi-Condition Routing & unlimited analytics</span>
                 </li>
               </ul>
             </div>
@@ -169,10 +169,10 @@ export function PlanUpgradeModal() {
               className="btn-hover-scale mt-5 w-full py-2.5 rounded-[10px] bg-[#ff6600] hover:bg-[#ff771a] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-[#ff6600]/30 cursor-pointer disabled:opacity-50"
             >
               {loadingPlan === "PRO" ? (
-                <span>Mise à niveau...</span>
+                <span>Upgrading...</span>
               ) : (
                 <>
-                  <span>Passer à Pro (12€/m)</span>
+                  <span>Upgrade to Pro (€12/mo)</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </>
               )}
@@ -182,23 +182,23 @@ export function PlanUpgradeModal() {
           {/* Plan BUSINESS */}
           <div className="p-5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] hover:border-neutral-500 flex flex-col justify-between transition-colors">
             <div>
-              <span className="text-sm font-bold text-white uppercase tracking-wider">Plan Business</span>
+              <span className="text-sm font-bold text-white uppercase tracking-wider">Business Plan</span>
               <div className="flex items-baseline gap-1 my-2">
                 <span className="text-3xl font-black text-white">39€</span>
-                <span className="text-xs text-neutral-400">/ mois</span>
+                <span className="text-xs text-neutral-400">/ month</span>
               </div>
               <ul className="flex flex-col gap-1.5 text-xs text-neutral-300 mt-3">
                 <li className="flex items-center gap-1.5">
                   <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                  <span><strong>Domaines Personnalisés ILLIMITÉS</strong></span>
+                  <span><strong>UNLIMITED Custom Domains</strong></span>
                 </li>
                 <li className="flex items-center gap-1.5">
                   <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                  <span><strong>Clics & API Illimités</strong> sans restriction</span>
+                  <span><strong>Unlimited Clicks & API</strong> without restriction</span>
                 </li>
                 <li className="flex items-center gap-1.5">
                   <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                  <span>Rétention Données Brutes, SLA 99.99% & Support 24/7</span>
+                  <span>Raw Data Retention, 99.99% SLA & 24/7 Support</span>
                 </li>
               </ul>
             </div>
@@ -209,10 +209,10 @@ export function PlanUpgradeModal() {
               className="btn-hover-scale mt-5 w-full py-2.5 rounded-[10px] bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center justify-center gap-2 border border-white/20 cursor-pointer disabled:opacity-50"
             >
               {loadingPlan === "BUSINESS" ? (
-                <span>Mise à niveau...</span>
+                <span>Upgrading...</span>
               ) : (
                 <>
-                  <span>Passer à Business (39€/m)</span>
+                  <span>Upgrade to Business (€39/mo)</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </>
               )}
@@ -221,7 +221,7 @@ export function PlanUpgradeModal() {
         </div>
 
         <p className="text-center text-[11px] text-neutral-500 mt-4">
-          Sans engagement. Vous pouvez annuler ou rétrograder votre forfait à tout moment en 1 clic.
+          No commitment. Cancel or downgrade your plan at any time in 1 click.
         </p>
       </div>
     </div>

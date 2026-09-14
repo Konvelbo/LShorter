@@ -33,6 +33,8 @@ import {
 import { detectOSFromEvent } from "@/lib/device-detection";
 import { ContinentsVectorMap, ContinentTraffic } from "@/components/dashboard/analytics/continents-vector-map";
 import { ColumnMaskToggle, ColumnDefinition } from "@/components/dashboard/analytics/column-mask-toggle";
+import { KpiCardsCarousel } from "@/components/dashboard/analytics/kpi-cards-carousel";
+import { AnalyticsGeoSkeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { formatDateRelative, formatNumber } from "@/lib/utils";
 import {
@@ -43,14 +45,15 @@ import {
 } from "@/lib/analytics-generators";
 
 const GEO_COLUMNS: ColumnDefinition[] = [
-  { key: "timestamp", label: "Horodatage", defaultVisible: true },
-  { key: "country", label: "Pays & Drapeau", defaultVisible: true },
-  { key: "city", label: "Ville / Région", defaultVisible: true },
+  { key: "timestamp", label: "Timestamp", defaultVisible: true },
+  { key: "country", label: "Country & Flag", defaultVisible: true },
+  { key: "city", label: "City / Region", defaultVisible: true },
   { key: "continent", label: "Continent", defaultVisible: true },
-  { key: "link", label: "Lien Cible", defaultVisible: true },
-  { key: "device", label: "Appareil & OS", defaultVisible: true },
-  { key: "browser", label: "Navigateur", defaultVisible: true },
-  { key: "referrer", label: "Source", defaultVisible: true },
+  { key: "customer", label: "Customer / Buyer", defaultVisible: true },
+  { key: "link", label: "Target Link", defaultVisible: true },
+  { key: "device", label: "Device & OS", defaultVisible: true },
+  { key: "browser", label: "Browser", defaultVisible: true },
+  { key: "referrer", label: "Referrer", defaultVisible: true },
 ];
 
 export default function GeoAnalyticsPage() {
@@ -180,7 +183,7 @@ export default function GeoAnalyticsPage() {
       const rawCities = d.topCities ?? d.top_cities ?? [];
       const cities = (rawCities.length > 0)
         ? rawCities.map((ci: any) => ({
-            city: ci.city || ci.name || "Inconnue",
+            city: ci.city || ci.name || "Unknown",
             countryCode: (ci.countryCode || ci.country_code || "XX").toUpperCase(),
             count: ci.count || ci.clicks || 0,
             percentage: ci.percentage !== undefined ? ci.percentage : (total > 0 ? Math.round(((ci.count || ci.clicks || 0) / total) * 100) : 0),
@@ -203,6 +206,9 @@ export default function GeoAnalyticsPage() {
             browser: ev.browser || "Chrome",
             os: detectOSFromEvent(ev),
             referrer: ev.referrer || "Direct",
+            customerName: ev.customerName || ev.customerFullName || ev.fullName || ev.name || ev.customer_name || null,
+            customerEmail: ev.customerEmail || ev.email || ev.customer_email || null,
+            conversionAmount: ev.conversionAmount || ev.conversion_amount || 0,
           };
         });
         if (!isAll && targetLink) {
@@ -224,12 +230,12 @@ export default function GeoAnalyticsPage() {
         bounceRate: 0,
         epc: 0,
         avgEngagementTime: "0s",
-        clicksByDay: d.clicksByDay || [],
+        clicksByDay: d.clicksByDay || d.clicks_by_day || [],
         topCountries: countries,
         topCities: cities,
-        topDevices: d.topDevices || [],
-        topBrowsers: d.topBrowsers || [],
-        topReferrers: d.topReferrers || [],
+        topDevices: d.topDevices || d.top_devices || [],
+        topBrowsers: d.topBrowsers || d.top_browsers || [],
+        topReferrers: d.topReferrers || d.top_referrers || [],
         liveClickEvents: finalLiveEvents,
         recentConversions: [],
       });
@@ -330,7 +336,9 @@ export default function GeoAnalyticsPage() {
         const matchBrowser = ev.browser?.toLowerCase().includes(q);
         const matchDevice = ev.device?.toLowerCase().includes(q);
         const matchRef = ev.referrer?.toLowerCase().includes(q);
-        if (!matchSlug && !matchCountry && !matchCity && !matchBrowser && !matchDevice && !matchRef) return false;
+        const matchCustName = (ev.customerName || "").toLowerCase().includes(q);
+        const matchCustEmail = (ev.customerEmail || "").toLowerCase().includes(q);
+        if (!matchSlug && !matchCountry && !matchCity && !matchBrowser && !matchDevice && !matchRef && !matchCustName && !matchCustEmail) return false;
       }
       return true;
     });
@@ -338,6 +346,10 @@ export default function GeoAnalyticsPage() {
 
   const totalPages = Math.ceil(filteredEvents.length / pageSize) || 1;
   const paginatedEvents = filteredEvents.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  if (status === "loading" || isLoading) {
+    return <AnalyticsGeoSkeleton />;
+  }
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12 animate-in fade-in">
@@ -347,26 +359,26 @@ export default function GeoAnalyticsPage() {
           <div className="flex items-center gap-2 mb-2">
             <Link
               href="/dashboard/analytics"
-              className="flex items-center gap-1.5 text-xs text-neutral-400 hover:text-[#ff6600] transition-colors"
+              className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-[#ff6600] dark:text-neutral-400 dark:hover:text-[#ff6600] transition-colors"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Retour Analytics</span>
+              <span>Back to Analytics</span>
             </Link>
-            <span className="text-neutral-600">/</span>
-            <span className="text-xs text-cyan-400 md:text-[#ff6600] font-semibold flex items-center gap-1">
+            <span className="text-zinc-400 dark:text-neutral-600">/</span>
+            <span className="text-xs text-cyan-600 dark:text-cyan-400 md:text-[#ff6600] font-semibold flex items-center gap-1">
               <Globe2 className="w-3 h-3" />
-              <span>Contexte Géographique</span>
+              <span>Geographic Breakdown</span>
             </span>
           </div>
 
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white flex items-center gap-2.5">
-            <span>Analyse Géographique Avancée</span>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900 dark:text-white flex items-center gap-2.5">
+            <span>Advanced Geographic Analytics</span>
             <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#ff6600]/15 text-[#ff6600] border border-[#ff6600]/30 font-mono">
               Live Geo Edge
             </span>
           </h1>
-          <p className="text-xs sm:text-sm text-neutral-400 mt-1">
-            Visualisation continentale, cartographie par pays, villes, quartiers et horodatages précis.
+          <p className="text-xs sm:text-sm text-zinc-500 dark:text-neutral-400 mt-1">
+            Continental visualization, mapping by country, cities, regions, and precise timestamps.
           </p>
         </div>
 
@@ -379,18 +391,18 @@ export default function GeoAnalyticsPage() {
               setSelectedLinkId(e.target.value);
               loadData(selectedRange, e.target.value);
             }}
-            className="px-3 py-1.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] text-xs font-semibold text-white focus:outline-none focus:border-[#ff6600] cursor-pointer"
+            className="px-3 py-1.5 rounded-[10px] bg-zinc-100 dark:bg-[#1a1a1e] border border-zinc-300 dark:border-[#27272a] text-xs font-semibold text-zinc-800 dark:text-white focus:outline-none focus:border-[#ff6600] cursor-pointer"
           >
-            <option value="all">Tous les liens combinés</option>
+            <option value="all" className="bg-white dark:bg-[#141416] text-zinc-900 dark:text-white">All links combined</option>
             {links.map((l) => (
-              <option key={l.id} value={l.id}>
-                /{l.slug} ({l.clicksCount || 0} clics)
+              <option key={l.id} value={l.id} className="bg-white dark:bg-[#141416] text-zinc-900 dark:text-white">
+                /{l.slug} ({l.clicksCount || 0} clicks)
               </option>
             ))}
           </select>
 
           {/* Period Range Buttons */}
-          <div className="flex items-center gap-1 p-1 rounded-[10px] bg-[#141416] border border-[#222225] text-xs">
+          <div className="flex items-center gap-1 p-1 rounded-[10px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] text-xs shadow-sm">
             {(["day", "week", "month", "year"] as const).map((r) => (
               <button
                 key={r}
@@ -401,10 +413,10 @@ export default function GeoAnalyticsPage() {
                 className={`px-2.5 py-1 rounded-[10px] font-semibold transition-all cursor-pointer ${
                   selectedRange === r
                     ? "bg-[#ff6600] text-white font-bold"
-                    : "text-neutral-400 hover:text-white"
+                    : "text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 dark:text-neutral-400 dark:hover:text-white dark:hover:bg-white/5"
                 }`}
               >
-                {r === "day" ? "24h" : r === "week" ? "7j" : r === "month" ? "30j" : "12m"}
+                {r === "day" ? "24h" : r === "week" ? "7d" : r === "month" ? "30d" : "12m"}
               </button>
             ))}
           </div>
@@ -412,79 +424,108 @@ export default function GeoAnalyticsPage() {
           {/* Refresh Button */}
           <button
             onClick={() => loadData(selectedRange, selectedLinkId)}
-            className="p-2 rounded-[10px] bg-[#1a1a1e] hover:bg-white/10 text-neutral-300 hover:text-white border border-[#27272a] transition-all cursor-pointer"
-            title="Rafraîchir les données"
+            className="p-2 rounded-[10px] bg-zinc-100 hover:bg-zinc-200 dark:bg-[#1a1a1e] dark:hover:bg-white/10 text-zinc-700 hover:text-zinc-900 dark:text-neutral-300 dark:hover:text-white border border-zinc-300 dark:border-[#27272a] transition-all cursor-pointer"
+            title="Refresh data"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin text-[#ff6600]" : ""}`} />
           </button>
         </div>
       </div>
 
-      {/* Top Geo KPI Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5">
-        <div className="p-4 rounded-[10px] bg-[#141416] border border-[#222225] flex flex-col justify-between">
-          <span className="text-[11px] font-semibold text-neutral-400">Total Clics Géolocalisés</span>
-          <div className="my-1.5 flex items-baseline gap-2">
-            <span className="font-bebas text-3xl font-bold text-white">
+      {/* Top Geo KPI Summary Cards (Infinite Auto-Scroll Carousel) */}
+      <KpiCardsCarousel autoScroll={true} speed={0.9} pauseOnHover={false}>
+        <div className="shrink-0 w-[170px] sm:w-[240px] md:w-[280px] lg:w-[300px] h-[100px] sm:h-[120px] md:h-[135px] lg:h-[145px] p-2.5 sm:p-3.5 md:p-4 rounded-[10px] sm:rounded-[12px] md:rounded-[14px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] shadow-sm flex flex-col justify-between hover:border-[#ff6600]/50 hover:shadow-md transition-all select-none">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] sm:text-xs md:text-sm font-bold text-zinc-600 dark:text-neutral-400 uppercase tracking-wider truncate">Geo Clicks</span>
+            <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#ff6600] animate-pulse shrink-0" />
+          </div>
+          <div className="my-0 sm:my-0.5 flex items-baseline gap-1.5">
+            <span className="font-bebas text-2xl sm:text-3xl md:text-4xl font-black text-zinc-900 dark:text-white leading-none tracking-wide">
               {formatNumber(analytics.totalClicks)}
             </span>
-            <span className="text-xs text-emerald-400 font-bold">100% certifiés</span>
+            <span className="text-[9px] sm:text-[11px] text-emerald-600 dark:text-emerald-400 font-bold">100%</span>
           </div>
-          <span className="text-[10px] text-neutral-500 font-mono">Précision IP Edge</span>
+          <div className="flex items-center justify-between pt-0.5 sm:pt-1 border-t border-zinc-200/60 dark:border-[#222225]">
+            <span className="text-[9px] sm:text-[11px] md:text-xs text-zinc-500 dark:text-neutral-400 font-mono truncate">IP Edge</span>
+            <span className="text-[8px] sm:text-[10px] md:text-[11px] font-bold text-[#ff6600] shrink-0">Geo</span>
+          </div>
         </div>
 
-        <div className="p-4 rounded-[10px] bg-[#141416] border border-[#222225] flex flex-col justify-between">
-          <span className="text-[11px] font-semibold text-neutral-400">Top Continent</span>
-          <div className="my-1.5 flex items-center gap-2 truncate">
-            <span className="text-xl">{topContinent ? CONTINENTS_META[topContinent.continent]?.icon : "🌍"}</span>
-            <span className="font-bold text-white text-base truncate">
-              {topContinent ? CONTINENTS_META[topContinent.continent]?.name : "En attente"}
+        <div className="shrink-0 w-[170px] sm:w-[240px] md:w-[280px] lg:w-[300px] h-[100px] sm:h-[120px] md:h-[135px] lg:h-[145px] p-2.5 sm:p-3.5 md:p-4 rounded-[10px] sm:rounded-[12px] md:rounded-[14px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] shadow-sm flex flex-col justify-between hover:border-[#ff6600]/50 hover:shadow-md transition-all select-none">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] sm:text-xs md:text-sm font-bold text-zinc-600 dark:text-neutral-400 uppercase tracking-wider truncate">Top Continent</span>
+            <span className="text-base sm:text-lg md:text-xl shrink-0">{topContinent ? CONTINENTS_META[topContinent.continent]?.icon : "🌍"}</span>
+          </div>
+          <div className="my-0 sm:my-0.5 flex items-center gap-1.5 truncate">
+            <span className="font-bold text-zinc-900 dark:text-white text-base sm:text-lg md:text-xl truncate">
+              {topContinent ? CONTINENTS_META[topContinent.continent]?.name : "Pending"}
             </span>
           </div>
-          <span className="text-[10px] text-[#ff6600] font-semibold">
-            {topContinent ? `${topContinent.percentage}% du trafic global` : "0%"}
-          </span>
+          <div className="flex items-center justify-between pt-0.5 sm:pt-1 border-t border-zinc-200/60 dark:border-[#222225]">
+            <span className="text-[9px] sm:text-[11px] md:text-xs text-[#ff6600] font-bold truncate">
+              {topContinent ? `${topContinent.percentage}% traffic` : "0%"}
+            </span>
+            <span className="text-[8px] sm:text-[10px] md:text-[11px] text-zinc-500 dark:text-neutral-400 font-mono shrink-0">#1</span>
+          </div>
         </div>
 
-        <div className="p-4 rounded-[10px] bg-[#141416] border border-[#222225] flex flex-col justify-between">
-          <span className="text-[11px] font-semibold text-neutral-400">Top Pays</span>
-          <div className="my-1.5 flex items-center gap-2 truncate">
-            <span className="text-xl">
-              {analytics.topCountries.length > 0 ? getCountryFlag(analytics.topCountries[0].code) : "🌐"}
-            </span>
-            <span className="font-bold text-white text-base truncate">
-              {analytics.topCountries.length > 0 ? analytics.topCountries[0].name : "En attente"}
+        <div className="shrink-0 w-[170px] sm:w-[240px] md:w-[280px] lg:w-[300px] h-[100px] sm:h-[120px] md:h-[135px] lg:h-[145px] p-2.5 sm:p-3.5 md:p-4 rounded-[10px] sm:rounded-[12px] md:rounded-[14px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] shadow-sm flex flex-col justify-between hover:border-emerald-500/50 hover:shadow-md transition-all select-none">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] sm:text-xs md:text-sm font-bold text-zinc-600 dark:text-neutral-400 uppercase tracking-wider truncate">Top Country</span>
+            <span className="text-base sm:text-lg md:text-xl shrink-0">
+              {analytics.totalClicks > 0 && analytics.topCountries.length > 0 ? getCountryFlag(analytics.topCountries[0].code) : "🌐"}
             </span>
           </div>
-          <span className="text-[10px] text-emerald-400 font-semibold">
-            {analytics.topCountries.length > 0 ? `${analytics.topCountries[0].percentage}% des visites` : "0%"}
-          </span>
-        </div>
-
-        <div className="p-4 rounded-[10px] bg-[#141416] border border-[#222225] flex flex-col justify-between">
-          <span className="text-[11px] font-semibold text-neutral-400">Top Ville</span>
-          <div className="my-1.5 flex items-center gap-1.5 truncate">
-            <MapPin className="w-4 h-4 text-[#ff6600] shrink-0" />
-            <span className="font-bold text-white text-base truncate">
-              {analytics.topCities.length > 0 ? analytics.topCities[0].city : "En attente"}
+          <div className="my-0 sm:my-0.5 flex items-center gap-1.5 truncate">
+            <span className="font-bold text-zinc-900 dark:text-white text-base sm:text-lg md:text-xl truncate">
+              {analytics.totalClicks > 0 && analytics.topCountries.length > 0 ? analytics.topCountries[0].name : "Pending"}
             </span>
           </div>
-          <span className="text-[10px] text-neutral-400 font-semibold truncate">
-            {analytics.topCities.length > 0 ? `${analytics.topCities[0].percentage}% de la zone` : "0%"}
-          </span>
+          <div className="flex items-center justify-between pt-0.5 sm:pt-1 border-t border-zinc-200/60 dark:border-[#222225]">
+            <span className="text-[9px] sm:text-[11px] md:text-xs text-emerald-600 dark:text-emerald-400 font-bold truncate">
+              {analytics.totalClicks > 0 && analytics.topCountries.length > 0 ? `${analytics.topCountries[0].percentage}% visits` : "0%"}
+            </span>
+            <span className="text-[8px] sm:text-[10px] md:text-[11px] text-zinc-500 dark:text-neutral-400 font-mono shrink-0">#1</span>
+          </div>
         </div>
 
-        <div className="p-4 rounded-[10px] bg-[#141416] border border-[#222225] flex flex-col justify-between col-span-2 lg:col-span-1">
-          <span className="text-[11px] font-semibold text-neutral-400">Couverture Mondiale</span>
-          <div className="my-1.5 flex items-baseline gap-1.5">
-            <span className="font-bebas text-3xl font-bold text-emerald-400">
+        <div className="shrink-0 w-[170px] sm:w-[240px] md:w-[280px] lg:w-[300px] h-[100px] sm:h-[120px] md:h-[135px] lg:h-[145px] p-2.5 sm:p-3.5 md:p-4 rounded-[10px] sm:rounded-[12px] md:rounded-[14px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] shadow-sm flex flex-col justify-between hover:border-[#ff6600]/50 hover:shadow-md transition-all select-none">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] sm:text-xs md:text-sm font-bold text-zinc-600 dark:text-neutral-400 uppercase tracking-wider truncate">Top City</span>
+            <div className="p-1 sm:p-1.5 rounded-full bg-orange-500/10 shrink-0">
+              <MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-[#ff6600]" />
+            </div>
+          </div>
+          <div className="my-0 sm:my-0.5 flex items-center gap-1.5 truncate">
+            <span className="font-bold text-zinc-900 dark:text-white text-base sm:text-lg md:text-xl truncate">
+              {analytics.totalClicks > 0 && analytics.topCities.length > 0 ? analytics.topCities[0].city : "Pending"}
+            </span>
+          </div>
+          <div className="flex items-center justify-between pt-0.5 sm:pt-1 border-t border-zinc-200/60 dark:border-[#222225]">
+            <span className="text-[9px] sm:text-[11px] md:text-xs text-zinc-500 dark:text-neutral-400 font-semibold truncate">
+              {analytics.totalClicks > 0 && analytics.topCities.length > 0 ? `${analytics.topCities[0].percentage}% area` : "0%"}
+            </span>
+            <span className="text-[8px] sm:text-[10px] md:text-[11px] font-bold text-[#ff6600] shrink-0">#1</span>
+          </div>
+        </div>
+
+        <div className="shrink-0 w-[170px] sm:w-[240px] md:w-[280px] lg:w-[300px] h-[100px] sm:h-[120px] md:h-[135px] lg:h-[145px] p-2.5 sm:p-3.5 md:p-4 rounded-[10px] sm:rounded-[12px] md:rounded-[14px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] shadow-sm flex flex-col justify-between hover:border-emerald-500/50 hover:shadow-md transition-all select-none">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] sm:text-xs md:text-sm font-bold text-zinc-600 dark:text-neutral-400 uppercase tracking-wider truncate">Coverage</span>
+            <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-500 shrink-0" />
+          </div>
+          <div className="my-0 sm:my-0.5 flex items-baseline gap-1.5">
+            <span className="font-bebas text-2xl sm:text-3xl md:text-4xl font-black text-emerald-600 dark:text-emerald-400 leading-none tracking-wide">
               {analytics.topCountries.length}
             </span>
-            <span className="text-xs text-neutral-400">pays touchés</span>
+            <span className="text-[9px] sm:text-[11px] text-zinc-500 dark:text-neutral-400">countries</span>
           </div>
-          <span className="text-[10px] text-neutral-500 font-mono">Edge Cloudflare Mondial</span>
+          <div className="flex items-center justify-between pt-0.5 sm:pt-1 border-t border-zinc-200/60 dark:border-[#222225]">
+            <span className="text-[9px] sm:text-[11px] md:text-xs text-zinc-500 dark:text-neutral-400 font-mono truncate">Global Edge</span>
+            <span className="text-[8px] sm:text-[10px] md:text-[11px] font-bold text-emerald-600 dark:text-emerald-400 shrink-0">Global</span>
+          </div>
         </div>
-      </div>
+      </KpiCardsCarousel>
 
       {/* CONTINENTS INTERACTIVE VECTOR MAP COMPONENT (react-simple-maps) */}
       <ContinentsVectorMap
@@ -507,15 +548,15 @@ export default function GeoAnalyticsPage() {
       {/* 2-COLUMNS: TOP PAYS & TOP VILLES GRANULAR BREAKDOWN */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Top Pays Box */}
-        <div className="rounded-[10px] bg-[#141416] border border-[#222225] p-5 shadow-2xl flex flex-col justify-between">
+        <div className="rounded-[10px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] p-5 shadow-sm dark:shadow-2xl flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between mb-3 pb-2 border-b border-[#222225]">
-              <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                <Globe2 className="w-4 h-4 text-cyan-400 md:text-[#ff6600]" />
-                <span>Top Pays par Volume</span>
+            <div className="flex items-center justify-between mb-3 pb-2 border-b border-zinc-200 dark:border-[#222225]">
+              <span className="text-xs font-bold text-zinc-900 dark:text-white flex items-center gap-1.5">
+                <Globe2 className="w-4 h-4 text-cyan-600 dark:text-cyan-400 md:text-[#ff6600]" />
+                <span>Top Countries by Volume</span>
               </span>
-              <span className="text-[11px] text-neutral-400 font-mono">
-                {analytics.topCountries.length} pays répertoriés
+              <span className="text-[11px] text-zinc-500 dark:text-neutral-400 font-mono">
+                {analytics.topCountries.length} countries tracked
               </span>
             </div>
 
@@ -535,23 +576,23 @@ export default function GeoAnalyticsPage() {
                     className={`w-full p-2.5 rounded-[10px] border text-left transition-all cursor-pointer flex items-center justify-between gap-3 ${
                       isSelected
                         ? "bg-[#ff6600]/15 border-[#ff6600] shadow-md"
-                        : "bg-[#1a1a1e] border-[#27272a] hover:border-neutral-500"
+                        : "bg-zinc-50 dark:bg-[#1a1a1e] border-zinc-200 dark:border-[#27272a] hover:border-neutral-500"
                     }`}
                   >
                     <div className="flex items-center gap-2.5 truncate">
                       <span className="text-lg shrink-0">{flag}</span>
                       <div className="truncate">
-                        <p className="text-xs font-bold text-white truncate">{c.name}</p>
-                        <p className="text-[10px] text-neutral-400 font-mono">{c.code} • {getContinentForCountry(c.code)}</p>
+                        <p className="text-xs font-bold text-zinc-900 dark:text-white truncate">{c.name}</p>
+                        <p className="text-[10px] text-zinc-500 dark:text-neutral-400 font-mono">{c.code} • {getContinentForCountry(c.code)}</p>
                       </div>
                     </div>
 
                     <div className="text-right shrink-0">
                       <div className="flex items-baseline justify-end gap-1.5">
-                        <span className="text-xs font-bold text-white font-mono">{c.count}</span>
+                        <span className="text-xs font-bold text-zinc-900 dark:text-white font-mono">{c.count}</span>
                         <span className="text-[10px] font-bold text-[#ff6600]">({c.percentage}%)</span>
                       </div>
-                      <div className="w-20 h-1 rounded-full bg-white/10 mt-1 overflow-hidden">
+                      <div className="w-20 h-1 rounded-full bg-zinc-200 dark:bg-white/10 mt-1 overflow-hidden">
                         <div
                           className="h-full rounded-full bg-[#ff6600]"
                           style={{ width: `${c.percentage}%` }}
@@ -563,8 +604,8 @@ export default function GeoAnalyticsPage() {
               })}
 
               {analytics.topCountries.length === 0 && (
-                <p className="text-xs text-neutral-500 text-center py-8">
-                  En attente de visites géolocalisées...
+                <p className="text-xs text-zinc-500 dark:text-neutral-500 text-center py-8">
+                  Awaiting geolocated visits...
                 </p>
               )}
             </div>
@@ -572,15 +613,15 @@ export default function GeoAnalyticsPage() {
         </div>
 
         {/* Top Villes & Métropoles Box */}
-        <div className="rounded-[10px] bg-[#141416] border border-[#222225] p-5 shadow-2xl flex flex-col justify-between">
+        <div className="rounded-[10px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] p-5 shadow-sm dark:shadow-2xl flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between mb-3 pb-2 border-b border-[#222225]">
-              <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                <MapPin className="w-4 h-4 text-emerald-400" />
-                <span>Top Villes & Métropoles</span>
+            <div className="flex items-center justify-between mb-3 pb-2 border-b border-zinc-200 dark:border-[#222225]">
+              <span className="text-xs font-bold text-zinc-900 dark:text-white flex items-center gap-1.5">
+                <MapPin className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
+                <span>Top Cities & Metros</span>
               </span>
-              <span className="text-[11px] text-neutral-400 font-mono">
-                {analytics.topCities.length} villes identifiées
+              <span className="text-[11px] text-zinc-500 dark:text-neutral-400 font-mono">
+                {analytics.topCities.length} cities identified
               </span>
             </div>
 
@@ -590,24 +631,24 @@ export default function GeoAnalyticsPage() {
                 return (
                   <div
                     key={`${ci.city}-${idx}`}
-                    className="p-2.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] flex items-center justify-between gap-3"
+                    className="p-2.5 rounded-[10px] bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a] flex items-center justify-between gap-3"
                   >
                     <div className="flex items-center gap-2.5 truncate">
                       <span className="text-lg shrink-0">{flag}</span>
                       <div className="truncate">
-                        <p className="text-xs font-bold text-white truncate">{ci.city}</p>
-                        <p className="text-[10px] text-neutral-400 font-mono">{getCountryName(ci.countryCode)} ({ci.countryCode})</p>
+                        <p className="text-xs font-bold text-zinc-900 dark:text-white truncate">{ci.city}</p>
+                        <p className="text-[10px] text-zinc-500 dark:text-neutral-400 font-mono">{getCountryName(ci.countryCode)} ({ci.countryCode})</p>
                       </div>
                     </div>
 
                     <div className="text-right shrink-0">
                       <div className="flex items-baseline justify-end gap-1.5">
-                        <span className="text-xs font-bold text-white font-mono">{ci.count}</span>
-                        <span className="text-[10px] font-bold text-emerald-400">({ci.percentage}%)</span>
+                        <span className="text-xs font-bold text-zinc-900 dark:text-white font-mono">{ci.count}</span>
+                        <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">({ci.percentage}%)</span>
                       </div>
-                      <div className="w-20 h-1 rounded-full bg-white/10 mt-1 overflow-hidden">
+                      <div className="w-20 h-1 rounded-full bg-zinc-200 dark:bg-white/10 mt-1 overflow-hidden">
                         <div
-                          className="h-full rounded-full bg-emerald-400"
+                          className="h-full rounded-full bg-emerald-500"
                           style={{ width: `${ci.percentage}%` }}
                         />
                       </div>
@@ -617,8 +658,8 @@ export default function GeoAnalyticsPage() {
               })}
 
               {analytics.topCities.length === 0 && (
-                <p className="text-xs text-neutral-500 text-center py-8">
-                  En attente de détection urbaine...
+                <p className="text-xs text-zinc-500 dark:text-neutral-500 text-center py-8">
+                  Awaiting urban detection...
                 </p>
               )}
             </div>
@@ -627,31 +668,31 @@ export default function GeoAnalyticsPage() {
       </div>
 
       {/* ADVANCED LIVE GEOLOCATION STREAM (JOURNAL GÉOGRAPHIQUE AVANCÉ) */}
-      <div className="rounded-[10px] bg-[#141416] border border-[#222225] p-5 sm:p-6 shadow-2xl">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5 pb-4 border-b border-[#222225]">
+      <div className="rounded-[10px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] p-5 sm:p-6 shadow-sm dark:shadow-2xl">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5 pb-4 border-b border-zinc-200 dark:border-[#222225]">
           <div>
-            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+            <h3 className="text-lg font-bold text-zinc-900 dark:text-white flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-[#ff6600]" />
-              <span>Journal Géographique Détaillé en Direct</span>
+              <span>Live Detailed Geographic Stream</span>
             </h3>
-            <p className="text-xs text-neutral-400">
-              Historique chronologique horodaté des visiteurs avec localisation et métadonnées complètes.
+            <p className="text-xs text-zinc-500 dark:text-neutral-400">
+              Timestamped chronological visitor stream with geolocation and full metadata.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
             {/* Search Input */}
             <div className="relative min-w-[200px]">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" />
+              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-neutral-500" />
               <input
                 type="text"
-                placeholder="Filtrer par ville, pays, lien..."
+                placeholder="Filter by city, country, link..."
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-full pl-8 pr-3 py-1.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-[#ff6600]"
+                className="w-full pl-8 pr-3 py-1.5 rounded-[10px] bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a] text-xs text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-neutral-500 focus:outline-none focus:border-[#ff6600]"
               />
             </div>
 
@@ -675,24 +716,24 @@ export default function GeoAnalyticsPage() {
             return (
               <div
                 key={ev.id}
-                className="rounded-[10px] bg-[#18181c] border border-[#27272a] p-3.5 flex flex-col gap-2.5 hover:border-cyan-500/40 transition-colors"
+                className="rounded-[10px] bg-zinc-50 dark:bg-[#18181c] border border-zinc-200 dark:border-[#27272a] p-3.5 flex flex-col gap-2.5 hover:border-cyan-500/40 transition-colors"
               >
                 {/* Top Row: Flag & Country + Relative Time */}
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 truncate">
                     <span className="text-base shrink-0">{flag}</span>
-                    <span className="font-bold text-white text-xs truncate">{ev.countryName}</span>
-                    <span className="text-[10px] font-mono text-neutral-500">({ev.countryCode})</span>
+                    <span className="font-bold text-zinc-900 dark:text-white text-xs truncate">{ev.countryName}</span>
+                    <span className="text-[10px] font-mono text-zinc-500 dark:text-neutral-500">({ev.countryCode})</span>
                   </div>
-                  <span className="text-[10px] font-mono text-neutral-400 shrink-0">
+                  <span className="text-[10px] font-mono text-zinc-500 dark:text-neutral-400 shrink-0">
                     {formatDateRelative(ev.timestamp)}
                   </span>
                 </div>
 
                 {/* Middle Row: City & Continent Badge */}
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-neutral-300 font-medium truncate">
-                    📍 {ev.city || "Zone non géocodée"}
+                  <span className="text-zinc-800 dark:text-neutral-300 font-medium truncate">
+                    📍 {ev.city || "Non-geocoded area"}
                   </span>
                   <span
                     className="text-[10px] font-semibold px-2 py-0.5 rounded-full border shrink-0"
@@ -706,16 +747,25 @@ export default function GeoAnalyticsPage() {
                   </span>
                 </div>
 
+                {/* Customer / Acheteur info */}
+                {(ev.customerName || ev.customerEmail) && (
+                  <div className="flex flex-col gap-0.5 bg-zinc-100 dark:bg-[#0e0e11] px-2.5 py-1.5 rounded-[8px] border border-zinc-200 dark:border-[#222225] text-xs">
+                    <span className="text-[10px] uppercase font-bold text-zinc-500 dark:text-neutral-500">Customer / Buyer</span>
+                    {ev.customerName && <span className="font-semibold text-zinc-900 dark:text-white text-xs truncate">{ev.customerName}</span>}
+                    {ev.customerEmail && <span className="text-[11px] text-zinc-500 dark:text-neutral-400 font-mono truncate">{ev.customerEmail}</span>}
+                  </div>
+                )}
+
                 {/* Bottom Row: Link & Device Tech Tags */}
-                <div className="flex items-center justify-between pt-2 border-t border-[#222228] text-[11px] gap-2">
-                  <span className="font-mono font-bold text-cyan-400 md:text-[#ff6600] bg-cyan-500/10 md:bg-[#ff6600]/10 px-2 py-0.5 rounded-[10px] border border-cyan-500/20 md:border-[#ff6600]/20 truncate">
+                <div className="flex items-center justify-between pt-2 border-t border-zinc-200 dark:border-[#222228] text-[11px] gap-2">
+                  <span className="font-mono font-bold text-cyan-600 dark:text-cyan-400 md:text-[#ff6600] bg-cyan-500/10 md:bg-[#ff6600]/10 px-2 py-0.5 rounded-[10px] border border-cyan-500/20 md:border-[#ff6600]/20 truncate">
                     /{ev.slug}
                   </span>
                   <div className="flex items-center gap-1.5 text-[10px] shrink-0 font-mono">
-                    <span className="px-1.5 py-0.5 rounded-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 capitalize">
+                    <span className="px-1.5 py-0.5 rounded-[10px] bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 capitalize">
                       {ev.device}
                     </span>
-                    <span className="px-1.5 py-0.5 rounded-[10px] bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                    <span className="px-1.5 py-0.5 rounded-[10px] bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
                       {ev.browser}
                     </span>
                   </div>
@@ -725,51 +775,52 @@ export default function GeoAnalyticsPage() {
           })}
 
           {paginatedEvents.length === 0 && (
-            <div className="py-8 text-center text-neutral-500 text-xs">
-              Aucun événement correspondant aux filtres sélectionnés.
+            <div className="py-8 text-center text-zinc-500 dark:text-neutral-500 text-xs">
+              No events match the selected filters.
             </div>
           )}
         </div>
 
         {/* 2. Desktop Data Table (>= 768px) */}
-        <div className="hidden md:block overflow-x-auto">
+        <div className="hidden md:block overflow-x-auto rounded-[8px] border border-zinc-200 dark:border-[#222225]">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-[#222225] text-neutral-400 uppercase tracking-wider text-[10px]">
-                {visibleColumns.has("timestamp") && <th className="py-2.5 px-3">Horodatage</th>}
-                {visibleColumns.has("country") && <th className="py-2.5 px-3">Pays</th>}
-                {visibleColumns.has("city") && <th className="py-2.5 px-3">Ville / Région</th>}
+              <tr className="border-b border-zinc-200 dark:border-[#222225] bg-zinc-100/70 dark:bg-[#0e0e11]/80 text-zinc-700 dark:text-neutral-400 font-semibold text-[11px]">
+                {visibleColumns.has("timestamp") && <th className="py-2.5 px-3">Timestamp</th>}
+                {visibleColumns.has("country") && <th className="py-2.5 px-3">Country</th>}
+                {visibleColumns.has("city") && <th className="py-2.5 px-3">City / Region</th>}
                 {visibleColumns.has("continent") && <th className="py-2.5 px-3">Continent</th>}
-                {visibleColumns.has("link") && <th className="py-2.5 px-3">Lien</th>}
-                {visibleColumns.has("device") && <th className="py-2.5 px-3">Appareil</th>}
-                {visibleColumns.has("browser") && <th className="py-2.5 px-3">Navigateur</th>}
-                {visibleColumns.has("referrer") && <th className="py-2.5 px-3">Source</th>}
+                {visibleColumns.has("customer") && <th className="py-2.5 px-3">Customer / Buyer</th>}
+                {visibleColumns.has("link") && <th className="py-2.5 px-3">Link</th>}
+                {visibleColumns.has("device") && <th className="py-2.5 px-3">Device</th>}
+                {visibleColumns.has("browser") && <th className="py-2.5 px-3">Browser</th>}
+                {visibleColumns.has("referrer") && <th className="py-2.5 px-3">Referrer</th>}
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#222225]/60">
+            <tbody className="divide-y divide-zinc-200 dark:divide-[#222225]/60 text-zinc-800 dark:text-neutral-200">
               {paginatedEvents.map((ev) => {
                 const flag = getCountryFlag(ev.countryCode);
                 const cont = getContinentForCountry(ev.countryCode);
                 const contMeta = CONTINENTS_META[cont];
 
                 return (
-                  <tr key={ev.id} className="hover:bg-white/5 transition-colors">
+                  <tr key={ev.id} className="hover:bg-zinc-50 dark:hover:bg-white/5 transition-colors">
                     {visibleColumns.has("timestamp") && (
-                      <td className="py-3 px-3 font-mono text-neutral-400 whitespace-nowrap">
+                      <td className="py-3 px-3 font-mono text-zinc-500 dark:text-neutral-400 whitespace-nowrap">
                         {formatDateRelative(ev.timestamp)}
                       </td>
                     )}
 
                     {visibleColumns.has("country") && (
-                      <td className="py-3 px-3 font-semibold text-white whitespace-nowrap">
+                      <td className="py-3 px-3 font-semibold text-zinc-900 dark:text-white whitespace-nowrap">
                         <span className="mr-1.5">{flag}</span>
                         <span>{ev.countryName}</span>
-                        <span className="text-[10px] text-neutral-500 font-mono ml-1">({ev.countryCode})</span>
+                        <span className="text-[10px] text-zinc-500 dark:text-neutral-500 font-mono ml-1">({ev.countryCode})</span>
                       </td>
                     )}
 
                     {visibleColumns.has("city") && (
-                      <td className="py-3 px-3 text-neutral-300 font-medium">
+                      <td className="py-3 px-3 text-zinc-700 dark:text-neutral-300 font-medium">
                         {ev.city || "—"}
                       </td>
                     )}
@@ -789,6 +840,24 @@ export default function GeoAnalyticsPage() {
                       </td>
                     )}
 
+                    {visibleColumns.has("customer") && (
+                      <td className="py-3 px-3">
+                        {(() => {
+                          const name = ev.customerName;
+                          const email = ev.customerEmail;
+                          if (!name && !email) {
+                            return <span className="text-zinc-400 dark:text-neutral-600 font-mono text-xs">—</span>;
+                          }
+                          return (
+                            <div className="flex flex-col min-w-0">
+                              {name && <span className="font-medium text-zinc-900 dark:text-white truncate text-xs">{name}</span>}
+                              {email && <span className="text-[10.5px] text-zinc-500 dark:text-neutral-400 font-mono truncate" title={email}>{email}</span>}
+                            </div>
+                          );
+                        })()}
+                      </td>
+                    )}
+
                     {visibleColumns.has("link") && (
                       <td className="py-3 px-3 font-mono text-[#ff6600] font-semibold">
                         /{ev.slug}
@@ -796,20 +865,20 @@ export default function GeoAnalyticsPage() {
                     )}
 
                     {visibleColumns.has("device") && (
-                      <td className="py-3 px-3 text-neutral-400 capitalize">
+                      <td className="py-3 px-3 text-zinc-700 dark:text-neutral-400 capitalize">
                         {ev.device}
                       </td>
                     )}
 
                     {visibleColumns.has("browser") && (
-                      <td className="py-3 px-3 text-neutral-400">
+                      <td className="py-3 px-3 text-zinc-700 dark:text-neutral-400">
                         {ev.browser}
                       </td>
                     )}
 
                     {visibleColumns.has("referrer") && (
-                      <td className="py-3 px-3 text-neutral-300">
-                        <span className="px-2 py-0.5 rounded-[10px] bg-white/5 border border-[#27272a] text-[10px] font-mono">
+                      <td className="py-3 px-3 text-zinc-700 dark:text-neutral-300">
+                        <span className="px-2 py-0.5 rounded-[10px] bg-zinc-100 dark:bg-white/5 border border-zinc-200 dark:border-[#27272a] text-[10px] font-mono">
                           {ev.referrer || "Direct"}
                         </span>
                       </td>
@@ -820,8 +889,8 @@ export default function GeoAnalyticsPage() {
 
               {paginatedEvents.length === 0 && (
                 <tr>
-                  <td colSpan={visibleColumns.size} className="py-8 text-center text-neutral-500 text-xs">
-                    Aucun événement correspondant aux filtres sélectionnés.
+                  <td colSpan={visibleColumns.size} className="py-8 text-center text-zinc-500 dark:text-neutral-500 text-xs">
+                    No events match the selected filters.
                   </td>
                 </tr>
               )}
@@ -830,27 +899,27 @@ export default function GeoAnalyticsPage() {
         </div>
 
         {/* Pagination Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 mt-3 border-t border-[#222225] text-xs text-neutral-400">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 mt-3 border-t border-zinc-200 dark:border-[#222225] text-xs text-zinc-500 dark:text-neutral-400">
           <span className="text-center sm:text-left">
-            Affichage de {(currentPage - 1) * pageSize + 1} à{" "}
-            {Math.min(currentPage * pageSize, filteredEvents.length)} sur {filteredEvents.length} événements
+            Showing {(currentPage - 1) * pageSize + 1} to{" "}
+            {Math.min(currentPage * pageSize, filteredEvents.length)} of {filteredEvents.length} events
           </span>
 
           <div className="flex items-center justify-center gap-1.5">
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="p-1.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] disabled:opacity-40 hover:bg-white/10 text-white cursor-pointer"
+              className="p-1.5 rounded-[10px] bg-zinc-100 hover:bg-zinc-200 dark:bg-[#1a1a1e] border border-zinc-300 dark:border-[#27272a] disabled:opacity-40 text-zinc-700 dark:text-white cursor-pointer"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
             </button>
-            <span className="px-3 py-1 font-mono text-white text-xs bg-[#1a1a1e] border border-[#27272a] rounded-[10px] whitespace-nowrap">
+            <span className="px-3 py-1 font-mono text-zinc-900 dark:text-white text-xs bg-zinc-100 dark:bg-[#1a1a1e] border border-zinc-300 dark:border-[#27272a] rounded-[10px] whitespace-nowrap">
               Page {currentPage} / {totalPages}
             </span>
             <button
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
-              className="p-1.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] disabled:opacity-40 hover:bg-white/10 text-white cursor-pointer"
+              className="p-1.5 rounded-[10px] bg-zinc-100 hover:bg-zinc-200 dark:bg-[#1a1a1e] border border-zinc-300 dark:border-[#27272a] disabled:opacity-40 text-zinc-700 dark:text-white cursor-pointer"
             >
               <ChevronRight className="w-3.5 h-3.5" />
             </button>

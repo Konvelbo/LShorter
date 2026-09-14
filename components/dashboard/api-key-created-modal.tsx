@@ -32,14 +32,14 @@ export function ApiKeyCreatedModal({
     if (!keyToCopy) return;
     navigator.clipboard.writeText(keyToCopy);
     setHasCopied(true);
-    showToast.success("Clé API copiée dans le presse-papier !");
+    showToast.success("API key copied to clipboard!");
     setTimeout(() => setHasCopied(false), 2500);
   };
 
   const getScopeLabel = (scope?: string) => {
-    if (scope === "admin") return "Accès Complet (Admin)";
-    if (scope === "read") return "Lecture Seule";
-    return "Lecture & Écriture";
+    if (scope === "admin") return "Full Access (Admin)";
+    if (scope === "read") return "Read Only";
+    return "Read & Write";
   };
 
   return (
@@ -53,7 +53,7 @@ export function ApiKeyCreatedModal({
         <button
           onClick={onClose}
           className="absolute right-4 top-4 p-1.5 rounded-[10px] text-neutral-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
-          aria-label="Fermer"
+          aria-label="Close"
         >
           <X className="w-4 h-4" />
         </button>
@@ -65,10 +65,10 @@ export function ApiKeyCreatedModal({
           </div>
           <div className="flex flex-col gap-1 pr-6">
             <h3 className="text-base sm:text-lg font-bold text-white tracking-tight">
-              Nouvelle Clé API Générée
+              New API Key Generated
             </h3>
             <p className="text-xs text-neutral-400">
-              Clé pour &quot;{apiKey.name}&quot; • <span className="text-neutral-300 font-medium">{getScopeLabel(apiKey.scope)}</span>
+              Key for &quot;{apiKey.name}&quot; • <span className="text-neutral-300 font-medium">{getScopeLabel(apiKey.scope)}</span>
             </p>
           </div>
         </div>
@@ -78,10 +78,10 @@ export function ApiKeyCreatedModal({
           <ShieldAlert className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
           <div className="flex flex-col gap-0.5">
             <span className="text-xs font-bold text-amber-300">
-              Conservez cette clé en lieu sûr
+              Store this key safely
             </span>
             <p className="text-[11px] text-amber-400/90 leading-relaxed">
-              Pour des raisons de sécurité, cette clé secrète complète ne sera plus jamais affichée. En cas de perte, vous devrez en générer une nouvelle.
+              For security reasons, this full secret key will never be displayed again. If lost, you will need to generate a new one.
             </p>
           </div>
         </div>
@@ -89,7 +89,7 @@ export function ApiKeyCreatedModal({
         {/* Key Display Container with One-Click Copy */}
         <div className="flex flex-col gap-2">
           <label className="text-[11px] font-semibold text-neutral-300 uppercase tracking-wider">
-            Votre Clé API Secrète :
+            Your Secret API Key:
           </label>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-3 rounded-[10px] bg-[#0c0c0e] border border-[#27272a] shadow-inner">
             <div className="flex-1 overflow-x-auto py-1 px-1.5 scrollbar-none font-mono text-xs sm:text-sm text-[#ff6600] select-all break-all sm:break-normal font-semibold">
@@ -105,12 +105,12 @@ export function ApiKeyCreatedModal({
               {hasCopied ? (
                 <>
                   <Check className="w-4 h-4 text-emerald-400" />
-                  <span className="text-emerald-400">Copié !</span>
+                  <span className="text-emerald-400">Copied!</span>
                 </>
               ) : (
                 <>
                   <Copy className="w-4 h-4" />
-                  <span>Copier la clé</span>
+                  <span>Copy Key</span>
                 </>
               )}
             </Button>
@@ -125,7 +125,7 @@ export function ApiKeyCreatedModal({
             onClick={onClose}
             className="w-full sm:w-auto h-10 px-6 text-xs font-bold bg-[#ff6600] hover:bg-[#ff771a] text-white shadow-lg shadow-[#ff6600]/25 rounded-[10px] cursor-pointer"
           >
-            J&apos;ai bien enregistré ma clé
+            I have stored my key
           </Button>
         </div>
       </div>
