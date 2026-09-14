@@ -258,9 +258,20 @@ export function invalidateBotResponseCache(slug?: string) {
   }
 }
 
-// Default fallback OG image used when a link has no custom ogImage set.
-// Must be an absolute HTTPS URL with 1200×630 px dimensions for Twitter large card.
-const DEFAULT_OG_IMAGE = "https://www.lsho.cc/marketing-FCI/cosmos_big_card.jpeg";
+// Builds the dynamic OG image URL for a given link.
+// /api/og generates an exact 1200×630px image (Twitter large card requirement).
+function buildDefaultOgImage(canonicalUrl: string, title?: string, slug?: string): string {
+  try {
+    const origin = new URL(canonicalUrl).origin;
+    const params = new URLSearchParams();
+    if (title) params.set("title", title.substring(0, 80));
+    if (slug) params.set("slug", slug);
+    params.set("desc", "Powered by LShorter — Edge URL Shortener & Smart Routing");
+    return `${origin}/api/og?${params.toString()}`;
+  } catch {
+    return "https://www.lsho.cc/api/og?title=LShorter&desc=Edge+URL+Shortener";
+  }
+}
 
 function renderSocialHtml(meta: {
   title: string;
@@ -269,6 +280,7 @@ function renderSocialHtml(meta: {
   twitterCard?: "summary_large_image" | "summary";
   destinationUrl: string;
   canonicalUrl: string;
+  slug?: string;
 }) {
   const safeTitle = escapeHtml(meta.title || "LShorter — Smart Link Shortened");
   const safeDesc = escapeHtml(meta.description || "Click to access this link powered by LShorter Edge.");
@@ -278,18 +290,19 @@ function renderSocialHtml(meta: {
 
   // If ogImage is a base64 data URI (can't be used in OG), derive a URL instead
   if (imageUrl && imageUrl.startsWith("data:")) {
+
     try {
       const u = new URL(meta.canonicalUrl);
       const cleanSlug = u.pathname.split("/").pop() || "banner";
       imageUrl = `${u.origin}/api/images/${cleanSlug}.jpg`;
     } catch {
-      imageUrl = DEFAULT_OG_IMAGE;
+      imageUrl = buildDefaultOgImage(meta.canonicalUrl, meta.title, meta.slug);
     }
   }
 
-  // Fallback: if still no image, use the default LShorter banner
+  // Fallback: if still no image, use the dynamic OG image generator
   if (!imageUrl) {
-    imageUrl = DEFAULT_OG_IMAGE;
+    imageUrl = buildDefaultOgImage(meta.canonicalUrl, meta.title, meta.slug);
   }
 
   let cleanCanonical = meta.canonicalUrl;
@@ -486,6 +499,7 @@ export async function GET(
         twitterCard: "summary_large_image",
         destinationUrl: localMeta?.targetUrl || "https://lshorter.io",
         canonicalUrl: req.url,
+        slug,
       });
       const bodyText = await resp.text();
       const headers = {

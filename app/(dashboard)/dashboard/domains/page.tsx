@@ -16,11 +16,16 @@ import {
   Search,
   Filter,
   ArrowUpDown,
-  Info
+  Info,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { cfGetDomains, cfAddDomain, cfDeleteDomain, cfInvalidateCache } from "@/lib/cloudflare-api";
+import {
+  cfGetDomains,
+  cfAddDomain,
+  cfDeleteDomain,
+  cfInvalidateCache,
+} from "@/lib/cloudflare-api";
 import { CustomDomain } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { DomainsPageSkeleton } from "@/components/ui/skeleton";
@@ -43,7 +48,9 @@ export default function DomainsPage() {
 
   // Filters & Search
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "pending">("all");
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "active" | "pending"
+  >("all");
   const [sortBy, setSortBy] = useState<"date" | "name" | "links">("date");
 
   const userId = session?.user?.id;
@@ -62,31 +69,53 @@ export default function DomainsPage() {
           id: d.id,
           domain: domName,
           status: (d.status as any) || "pending",
-          linksCount: d.link_count !== undefined ? d.link_count : d.links_count || 0,
+          linksCount:
+            d.link_count !== undefined ? d.link_count : d.links_count || 0,
           sslExpiresAt: d.ssl_expires_at || "2027-12-31T00:00:00.000Z",
-          dnsRecords: d.dnsRecords || (d.dns_records ? (typeof d.dns_records === "string" ? JSON.parse(d.dns_records) : d.dns_records) : [
-            {
-              type: "CNAME",
-              name: domName,
-              value: DEFAULT_DOMAIN,
-              ttl: 3600,
-              note: `Points your domain to LShorter Edge servers (${DEFAULT_DOMAIN})`
-            },
-            {
-              type: "TXT",
-              name: `_lshorter-verify.${domName}`,
-              value: `lshorter-verify=${d.id}`,
-              ttl: 3600,
-              note: "Domain ownership verification"
-            }
-          ]),
+          dnsRecords:
+            d.dnsRecords ||
+            (d.dns_records
+              ? typeof d.dns_records === "string"
+                ? JSON.parse(d.dns_records)
+                : d.dns_records
+              : [
+                  {
+                    type: "CNAME",
+                    name: domName,
+                    value: DEFAULT_DOMAIN,
+                    ttl: 3600,
+                    note: `Points your domain to LShorter Edge servers (${DEFAULT_DOMAIN})`,
+                  },
+                  {
+                    type: "TXT",
+                    name: `_lshorter-verify.${domName}`,
+                    value: `lshorter-verify=${d.id}`,
+                    ttl: 3600,
+                    note: "Domain ownership verification",
+                  },
+                ]),
           instructions: d.instructions || [],
           userEmail: d.user_email || d.userEmail || d.email,
-          userName: d.user_name || d.userName || d.user_full_name || d.userFullName || d.fullName,
-          userFullName: d.user_full_name || d.userFullName || d.user_name || d.userName || d.fullName,
+          userName:
+            d.user_name ||
+            d.userName ||
+            d.user_full_name ||
+            d.userFullName ||
+            d.fullName,
+          userFullName:
+            d.user_full_name ||
+            d.userFullName ||
+            d.user_name ||
+            d.userName ||
+            d.fullName,
           email: d.user_email || d.userEmail || d.email,
-          fullName: d.user_full_name || d.userFullName || d.user_name || d.userName || d.fullName,
-          created_at: d.created_at || new Date().toISOString()
+          fullName:
+            d.user_full_name ||
+            d.userFullName ||
+            d.user_name ||
+            d.userName ||
+            d.fullName,
+          created_at: d.created_at || new Date().toISOString(),
         };
       });
       setDomains(rawDomains);
@@ -119,7 +148,9 @@ export default function DomainsPage() {
     if (!newDomainInput.trim() || !userId) return;
 
     if (domainsLimit !== -1 && domains.length >= domainsLimit) {
-      showToast.error(`Your ${plan} plan is limited to ${domainsLimit} custom domains.`);
+      showToast.error(
+        `Your ${plan} plan is limited to ${domainsLimit} custom domains.`,
+      );
       return;
     }
 
@@ -152,7 +183,11 @@ export default function DomainsPage() {
   };
 
   // Delete Modal State
-  const [deleteTarget, setDeleteTarget] = useState<{ isOpen: boolean; id: string; domain: string }>({
+  const [deleteTarget, setDeleteTarget] = useState<{
+    isOpen: boolean;
+    id: string;
+    domain: string;
+  }>({
     isOpen: false,
     id: "",
     domain: "",
@@ -186,14 +221,19 @@ export default function DomainsPage() {
   // Filtered & Sorted Domains
   const filteredDomains = domains
     .filter((dom) => {
-      const matchesSearch = dom.domain.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesStatus = statusFilter === "all" || dom.status === statusFilter;
+      const matchesSearch = dom.domain
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
+      const matchesStatus =
+        statusFilter === "all" || dom.status === statusFilter;
       return matchesSearch && matchesStatus;
     })
     .sort((a, b) => {
       if (sortBy === "name") return a.domain.localeCompare(b.domain);
       if (sortBy === "links") return b.linksCount - a.linksCount;
-      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      return (
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
     });
 
   const activeCount = domains.filter((d) => d.status === "active").length;
@@ -208,9 +248,12 @@ export default function DomainsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-wide">Custom Domains</h1>
+          <h1 className="text-2xl font-bold text-white tracking-wide">
+            Custom Domains
+          </h1>
           <p className="text-xs text-neutral-400 mt-1">
-            Use your own white-label domain names (e.g. link.my-brand.com) with Cloudflare SSL included.
+            Use your own white-label domain names (e.g. link.my-brand.com) with
+            Cloudflare SSL included.
           </p>
         </div>
 
@@ -227,7 +270,9 @@ export default function DomainsPage() {
             disabled={isRefreshing}
             className="h-10 px-3.5 text-xs font-semibold gap-2 border-[#27272a] bg-[#141416] hover:bg-white/5 text-neutral-300 hover:text-white cursor-pointer shadow-sm"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-[#ff6600]" : "text-neutral-400"}`} />
+            <RefreshCw
+              className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-[#ff6600]" : "text-neutral-400"}`}
+            />
             <span>Refresh</span>
           </Button>
 
@@ -258,12 +303,15 @@ export default function DomainsPage() {
             <div className="flex items-start gap-2.5">
               <Info className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
               <p className="text-xs text-neutral-300 leading-relaxed">
-                <strong className="text-white">You must already own this domain.</strong>{" "}
-                LShorter connects to your existing domain via Cloudflare for SaaS — it does not sell domain names.
+                <strong className="text-white">
+                  You must already own this domain.
+                </strong>{" "}
+                LShorter connects to your existing domain via Cloudflare for
+                SaaS — it does not sell domain names.
               </p>
             </div>
             <a
-              href={process.env.NEXT_PUBLIC_HOSTINGER_AFFILIATE_LINK || "https://hostinger.com"}
+              href={process.env.NEXT_PUBLIC_HOSTINGER_AFFILIATE_LINK}
               target="_blank"
               rel="noopener noreferrer"
               className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold transition-colors"
@@ -301,16 +349,23 @@ export default function DomainsPage() {
 
           {/* DNS instructions note */}
           <div className="p-3.5 rounded-[10px] bg-[#0f0f11] border border-[#27272a] text-xs text-neutral-400 leading-relaxed">
-            <p className="font-semibold text-neutral-200 mb-1">📋 After clicking &quot;Declare domain&quot; :</p>
+            <p className="font-semibold text-neutral-200 mb-1">
+              📋 After clicking &quot;Declare domain&quot; :
+            </p>
             <ol className="list-decimal list-inside space-y-1">
               <li>Copy the DNS records displayed on your domain card.</li>
-              <li>Paste them into your registrar&apos;s DNS management zone (Hostinger, OVH, Namecheap, etc.).</li>
-              <li>Wait for DNS propagation (5 to 30 minutes), then click <strong className="text-white">Verify Domain</strong>.</li>
+              <li>
+                Paste them into your registrar&apos;s DNS management zone
+                (Hostinger, OVH, Namecheap, etc.).
+              </li>
+              <li>
+                Wait for DNS propagation (5 to 30 minutes), then click{" "}
+                <strong className="text-white">Verify Domain</strong>.
+              </li>
             </ol>
           </div>
         </form>
       )}
-
 
       {/* Search & Filtering Bar */}
       <div className="p-3 rounded-[10px] bg-[#141416] border border-[#222225] flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
@@ -373,9 +428,15 @@ export default function DomainsPage() {
             onChange={(e) => setSortBy(e.target.value as any)}
             className="h-9 rounded-[10px] bg-[#1a1a1e] text-white border border-[#27272a] px-2.5 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
           >
-            <option value="date" className="bg-[#141416] text-white">Most recent</option>
-            <option value="name" className="bg-[#141416] text-white">Name (A-Z)</option>
-            <option value="links" className="bg-[#141416] text-white">Most links</option>
+            <option value="date" className="bg-[#141416] text-white">
+              Most recent
+            </option>
+            <option value="name" className="bg-[#141416] text-white">
+              Name (A-Z)
+            </option>
+            <option value="links" className="bg-[#141416] text-white">
+              Most links
+            </option>
           </select>
         </div>
       </div>
@@ -412,15 +473,28 @@ export default function DomainsPage() {
                     </p>
                     {/* Owner / User Details (Full Name & Email) - empty if no info */}
                     {(() => {
-                      const name = dom.userFullName || dom.userName || dom.fullName;
+                      const name =
+                        dom.userFullName || dom.userName || dom.fullName;
                       const email = dom.userEmail || dom.email;
                       if (!name && !email) return null;
                       return (
                         <div className="flex items-center gap-1.5 text-[11px] text-neutral-400 bg-[#1a1a1e] px-2 py-0.5 rounded-[6px] border border-[#27272a] mt-1 truncate">
-                          <span className="text-neutral-500 text-[10px] font-semibold shrink-0">Owner:</span>
-                          {name && <span className="text-neutral-200 font-medium truncate">{name}</span>}
-                          {name && email && <span className="text-neutral-600">·</span>}
-                          {email && <span className="text-neutral-400 font-mono text-[10px] truncate">{email}</span>}
+                          <span className="text-neutral-500 text-[10px] font-semibold shrink-0">
+                            Owner:
+                          </span>
+                          {name && (
+                            <span className="text-neutral-200 font-medium truncate">
+                              {name}
+                            </span>
+                          )}
+                          {name && email && (
+                            <span className="text-neutral-600">·</span>
+                          )}
+                          {email && (
+                            <span className="text-neutral-400 font-mono text-[10px] truncate">
+                              {email}
+                            </span>
+                          )}
                         </div>
                       );
                     })()}
@@ -439,7 +513,11 @@ export default function DomainsPage() {
                       <RefreshCw
                         className={`w-3.5 h-3.5 ${isVerifyingId === dom.id ? "animate-spin" : ""}`}
                       />
-                      <span>{isVerifyingId === dom.id ? "Verifying..." : "Verify Domain"}</span>
+                      <span>
+                        {isVerifyingId === dom.id
+                          ? "Verifying..."
+                          : "Verify Domain"}
+                      </span>
                     </Button>
                   )}
                   <button
@@ -455,7 +533,8 @@ export default function DomainsPage() {
               {/* DNS Records Table */}
               <div>
                 <span className="text-xs font-semibold text-neutral-300 block mb-2.5">
-                  Required DNS configuration at your registrar (OVH, GoDaddy, Cloudflare, Namecheap, etc.):
+                  Required DNS configuration at your registrar (OVH, GoDaddy,
+                  Cloudflare, Namecheap, etc.):
                 </span>
 
                 <div className="overflow-x-auto">
@@ -477,8 +556,12 @@ export default function DomainsPage() {
                               {rec.type}
                             </span>
                           </td>
-                          <td className="py-2.5 px-3 font-mono text-neutral-200">{rec.name}</td>
-                          <td className="py-2.5 px-3 font-mono text-[#ff6600]">{rec.value}</td>
+                          <td className="py-2.5 px-3 font-mono text-neutral-200">
+                            {rec.name}
+                          </td>
+                          <td className="py-2.5 px-3 font-mono text-[#ff6600]">
+                            {rec.value}
+                          </td>
                           <td className="py-2.5 px-3">{rec.ttl}</td>
                           <td className="py-2.5 px-3 text-right">
                             <button
@@ -504,7 +587,9 @@ export default function DomainsPage() {
               <div className="flex items-start gap-2 p-3 rounded-[10px] bg-neutral-900/60 border border-[#27272a] text-xs text-neutral-400">
                 <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                 <span>
-                  Let&apos;s Encrypt SSL certificates are automatically issued and renewed by Cloudflare Edge servers once DNS propagation completes (5 min to 48 hours).
+                  Let&apos;s Encrypt SSL certificates are automatically issued
+                  and renewed by Cloudflare Edge servers once DNS propagation
+                  completes (5 min to 48 hours).
                 </span>
               </div>
             </div>
@@ -525,4 +610,3 @@ export default function DomainsPage() {
     </div>
   );
 }
-

@@ -2,7 +2,8 @@
  * Client-Side Image Compressor
  * ─────────────────────────────────────────────────────────────────────────────
  * Resizes and compresses images in the browser before sending to CDN / APIs.
- * Prevents HTTP 413 Payload Too Large and reduces upload time by >90%.
+ * Uses center-crop to always produce exactly maxWidth×maxHeight (e.g. 1200×630)
+ * which is required for Twitter summary_large_image OG cards.
  */
 
 export async function compressImageFile(
@@ -21,32 +22,36 @@ export async function compressImageFile(
 
       img.onload = () => {
         try {
-          let width = img.width;
-          let height = img.height;
-
-          // Scale down proportionally
-          if (width > maxWidth) {
-            height = Math.round((height * maxWidth) / width);
-            width = maxWidth;
-          }
-          if (height > maxHeight) {
-            width = Math.round((width * maxHeight) / height);
-            height = maxHeight;
-          }
-
           const canvas = document.createElement("canvas");
-          canvas.width = width;
-          canvas.height = height;
+          canvas.width = maxWidth;
+          canvas.height = maxHeight;
 
           const ctx = canvas.getContext("2d");
           if (!ctx) {
             return resolve(fileOrBase64 as any);
           }
 
+          // Center-crop: scale the source image so it FILLS the target canvas,
+          // then draw only the centered portion (cover behaviour, like CSS object-fit: cover).
+          const srcRatio = img.width / img.height;
+          const dstRatio = maxWidth / maxHeight;
+
+          let srcX = 0, srcY = 0, srcW = img.width, srcH = img.height;
+
+          if (srcRatio > dstRatio) {
+            // Source is wider than target ratio → crop sides
+            srcW = Math.round(img.height * dstRatio);
+            srcX = Math.round((img.width - srcW) / 2);
+          } else {
+            // Source is taller than target ratio → crop top/bottom
+            srcH = Math.round(img.width / dstRatio);
+            srcY = Math.round((img.height - srcH) / 2);
+          }
+
           // Smooth rendering
           ctx.imageSmoothingEnabled = true;
           ctx.imageSmoothingQuality = "high";
-          ctx.drawImage(img, 0, 0, width, height);
+          ctx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, maxWidth, maxHeight);
 
           // If input was a File/Blob, return a compressed File
           if (typeof fileOrBase64 !== "string") {
@@ -92,3 +97,4 @@ export async function compressImageFile(
     }
   });
 }
+
