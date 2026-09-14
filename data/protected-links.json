@@ -1,1 +1,21 @@
-[]
+[
+  {
+    "slug": "lshorter-2",
+    "isCloaked": false,
+    "metaTitle": "dsfdsfsfdsfdsf",
+    "ogTitle": "dsfdsfsfdsfdsf",
+    "ogImage": "https://lsho-cdn.b-cdn.net/Banners/upload_1789357576602_kjy4k.jpg?width=1200&height=630&crop=1",
+    "twitterCard": "summary_large_image",
+    "twitter_card": "summary_large_image",
+    "targetUrl": "https://talktoome.netlify.app/",
+    "maxClicks": 0,
+    "abVariations": [],
+    "mainWeight": 100,
+    "passParams": true,
+    "redirectType": "302",
+    "isActive": true,
+    "clicksCount": 0,
+    "userId": "7254d43d-caf7-487d-bd22-1666795253a2",
+    "updatedAt": "2026-09-14T03:46:17.782Z"
+  }
+]
