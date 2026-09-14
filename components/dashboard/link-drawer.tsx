@@ -447,7 +447,8 @@ export function LinkDrawer({
     setFieldErrors({});
     setHasAttemptedSubmit(false);
     setActiveTab("general");
-  }, [isOpen, isEditMode, link, initialUrl]);
+  }, [isOpen, isEditMode, link?.id, initialUrl]); // NOTE: use link?.id (primitive) not link (object) to avoid resetting form on every parent refetch
+
 
   // Validation functions (Strict: targetUrl, domainName, and slug are mandatory)
   const checkUrlFormat = (val: string, isRequired = true): string => {
