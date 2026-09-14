@@ -52,7 +52,7 @@ export function LandingNavbar() {
   ];
 
   return (
-    <div className="fixed top-0 inset-x-0 z-50 w-full px-3 pt-3 sm:px-6 sm:pt-4 pointer-events-none transition-all">
+    <div className="fixed top-0 inset-x-0 z-[9999] w-full px-3 pt-3 sm:px-6 sm:pt-4 pointer-events-none transition-all">
       {/* DESKTOP NAVBAR: Sleek Glass Effect, Minimalist Frame */}
       <header className="hidden md:flex max-w-5xl mx-auto bg-[#FAF7F2]/80 dark:bg-[#09090b]/80 hover:bg-[#FAF7F2]/95 dark:hover:bg-[#09090b]/95 backdrop-blur-xl border border-[#E7DFD5] dark:border-white/10 shadow-[0_8px_32px_rgba(43,37,32,0.04)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] rounded-full px-5 py-2.5 items-center justify-between pointer-events-auto transition-all duration-300">
         {/* Brand Logo */}

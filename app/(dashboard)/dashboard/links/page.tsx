@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import {
-  Link2,
   Search,
   Plus,
   Copy,
@@ -38,11 +37,10 @@ import {
   cfInvalidateCache,
 } from "@/lib/cloudflare-api";
 import { ShortLink } from "@/types";
-import { cn, formatNumber, formatDateRelative } from "@/lib/utils";
+import { cn, formatNumber } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { LinksPageSkeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { showToast } from "@/components/ui/toast-provider";
 import { LinkCreateModal } from "@/components/dashboard/link-create-modal";
 import { LinkEditModal } from "@/components/dashboard/link-edit-modal";
@@ -206,10 +204,25 @@ export default function LinksPage() {
           l.isActive === "0"
         ),
         userEmail: l.user_email || l.userEmail || l.email,
-        userName: l.user_name || l.userName || l.user_full_name || l.userFullName || l.fullName,
-        userFullName: l.user_full_name || l.userFullName || l.user_name || l.userName || l.fullName,
+        userName:
+          l.user_name ||
+          l.userName ||
+          l.user_full_name ||
+          l.userFullName ||
+          l.fullName,
+        userFullName:
+          l.user_full_name ||
+          l.userFullName ||
+          l.user_name ||
+          l.userName ||
+          l.fullName,
         email: l.user_email || l.userEmail || l.email,
-        fullName: l.user_full_name || l.userFullName || l.user_name || l.userName || l.fullName,
+        fullName:
+          l.user_full_name ||
+          l.userFullName ||
+          l.user_name ||
+          l.userName ||
+          l.fullName,
         created_at: l.created_at || l.createdAt || new Date().toISOString(),
       }));
       setLinks(rawLinks);
@@ -457,7 +470,11 @@ export default function LinksPage() {
     const idsToDelete = [...deleteTarget.ids];
 
     // 1. Optimistic removal: remove immediately from UI
-    setLinks((prev) => prev.filter((l) => !idsToDelete.includes(l.id) && !idsToDelete.includes(l.slug)));
+    setLinks((prev) =>
+      prev.filter(
+        (l) => !idsToDelete.includes(l.id) && !idsToDelete.includes(l.slug),
+      ),
+    );
     setSelectedLinkIds((prev) => {
       const next = new Set(prev);
       idsToDelete.forEach((id) => next.delete(id));
@@ -705,9 +722,7 @@ export default function LinksPage() {
             <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></span>
             <span className="text-xs font-bold text-white">
               {selectedLinkIds.size}{" "}
-              {selectedLinkIds.size > 1
-                ? "links selected"
-                : "link selected"}
+              {selectedLinkIds.size > 1 ? "links selected" : "link selected"}
             </span>
             <button
               onClick={toggleSelectAll}
@@ -750,9 +765,7 @@ export default function LinksPage() {
               {selectedLinkIds.size === 0 && filteredLinks.length > 0 && (
                 <div className="text-[11px] text-neutral-500 text-center py-1 flex items-center justify-center gap-1.5 select-none">
                   <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#ff6600]/70 animate-pulse"></span>
-                  <span>
-                    Tip: Long-press on any link to select
-                  </span>
+                  <span>Tip: Long-press on any link to select</span>
                 </div>
               )}
 
@@ -836,15 +849,28 @@ export default function LinksPage() {
 
                     {/* Creator / User Details */}
                     {(() => {
-                      const name = link.userFullName || link.userName || link.fullName;
+                      const name =
+                        link.userFullName || link.userName || link.fullName;
                       const email = link.userEmail || link.email;
                       if (!name && !email) return null;
                       return (
                         <div className="flex items-center gap-1.5 text-[11px] text-neutral-400 bg-[#090b10] px-2 py-1 rounded-[8px] border border-[#222225] truncate">
-                          <span className="text-neutral-500 text-[10px] font-semibold shrink-0">By:</span>
-                          {name && <span className="text-neutral-200 font-medium truncate">{name}</span>}
-                          {name && email && <span className="text-neutral-600">·</span>}
-                          {email && <span className="text-neutral-400 font-mono text-[10px] truncate">{email}</span>}
+                          <span className="text-neutral-500 text-[10px] font-semibold shrink-0">
+                            By:
+                          </span>
+                          {name && (
+                            <span className="text-neutral-200 font-medium truncate">
+                              {name}
+                            </span>
+                          )}
+                          {name && email && (
+                            <span className="text-neutral-600">·</span>
+                          )}
+                          {email && (
+                            <span className="text-neutral-400 font-mono text-[10px] truncate">
+                              {email}
+                            </span>
+                          )}
                         </div>
                       );
                     })()}
@@ -1126,10 +1152,15 @@ export default function LinksPage() {
                         {/* User / Creator */}
                         <td className="py-2.5 px-2 max-w-[150px]">
                           {(() => {
-                            const name = link.userFullName || link.userName || link.fullName;
+                            const name =
+                              link.userFullName ||
+                              link.userName ||
+                              link.fullName;
                             const email = link.userEmail || link.email;
                             if (!name && !email) {
-                              return <span className="text-neutral-600">—</span>;
+                              return (
+                                <span className="text-neutral-600">—</span>
+                              );
                             }
                             return (
                               <div className="flex flex-col min-w-0 text-left">
@@ -1139,7 +1170,10 @@ export default function LinksPage() {
                                   </span>
                                 )}
                                 {email && (
-                                  <span className="text-[10.5px] text-neutral-500 font-mono truncate" title={email}>
+                                  <span
+                                    className="text-[10.5px] text-neutral-500 font-mono truncate"
+                                    title={email}
+                                  >
                                     {email}
                                   </span>
                                 )}
@@ -1208,9 +1242,7 @@ export default function LinksPage() {
                             {link.maxClicks !== undefined &&
                               link.maxClicks !== null &&
                               link.maxClicks > 0 && (
-                                <span
-                                  title={`Click limit: ${link.maxClicks}`}
-                                >
+                                <span title={`Click limit: ${link.maxClicks}`}>
                                   <Zap className="w-3.5 h-3.5 text-orange-400" />
                                 </span>
                               )}

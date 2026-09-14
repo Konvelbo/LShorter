@@ -123,7 +123,7 @@ export function FeaturesSection() {
             end: "bottom 12%",
             toggleActions: "play reverse play reverse",
           },
-        }
+        },
       );
     }
 
@@ -152,13 +152,19 @@ export function FeaturesSection() {
             end: "bottom 15%",
             toggleActions: "play reverse play reverse",
           },
-        }
+        },
       );
     });
 
     return () => {
       ScrollTrigger.getAll().forEach((st) => {
-        if (st.trigger && ((st.trigger as HTMLElement).classList?.contains("feature-row-item") || (st.trigger as HTMLElement).classList?.contains("features-header"))) {
+        if (
+          st.trigger &&
+          ((st.trigger as HTMLElement).classList?.contains(
+            "feature-row-item",
+          ) ||
+            (st.trigger as HTMLElement).classList?.contains("features-header"))
+        ) {
           st.kill();
         }
       });
@@ -166,7 +172,10 @@ export function FeaturesSection() {
   }, []);
 
   return (
-    <section id="features" className="relative z-0 pt-32 sm:pt-44 pb-20 sm:pb-32 overflow-hidden bg-[#FAF7F2] dark:bg-[#09090b] transition-colors">
+    <section
+      id="features"
+      className="relative z-0 pt-32 sm:pt-44 pb-20 sm:pb-32 overflow-hidden bg-[#FAF7F2] dark:bg-[#09090b] transition-colors"
+    >
       {/* Center dividing guide line for desktop - starts gracefully after a substantial gap */}
       <div className="hidden lg:block absolute left-1/2 top-36 bottom-0 w-px bg-gradient-to-b from-transparent via-[#E7DFD5] to-[#E7DFD5] dark:via-white/[0.08] dark:to-white/[0.08] -translate-x-1/2 pointer-events-none" />
 
@@ -177,7 +186,8 @@ export function FeaturesSection() {
             Comprehensive Features, Zero Compromise
           </h2>
           <p className="mt-2 text-xs sm:text-base text-neutral-600 dark:text-neutral-400 font-normal">
-            Every tool is engineered with precision to empower modern creators, growth marketers, and engineering teams.
+            Every tool is engineered with precision to empower modern creators,
+            growth marketers, and engineering teams.
           </p>
         </div>
 
@@ -195,7 +205,7 @@ export function FeaturesSection() {
                   isLeft ? "lg:items-start" : "lg:items-end"
                 } ${!isLast ? "mb-10 sm:mb-[70px]" : ""}`}
               >
-                {/* 
+                {/*
                   Container bounded by the center line on desktop:
                   - Left items span from left up to the center line (max-w-[48%] on desktop)
                   - Right items span from center line to right edge (max-w-[48%] on desktop)
@@ -225,7 +235,10 @@ export function FeaturesSection() {
                             0{feat.id}. {feat.subtitle}
                           </span>
                           <h3 className="text-base sm:text-lg font-medium text-neutral-900 dark:text-white leading-snug">
-                            <Link href={`/docs/${feat.docSlug}`} className="hover:text-[#ff6600] transition-colors">
+                            <Link
+                              href={`/docs/${feat.docSlug}`}
+                              className="hover:text-[#ff6600] transition-colors"
+                            >
                               {feat.title}
                             </Link>
                           </h3>
@@ -255,7 +268,10 @@ export function FeaturesSection() {
                             0{feat.id}. {feat.subtitle}
                           </span>
                           <h3 className="text-base sm:text-lg font-medium text-neutral-900 dark:text-white leading-snug">
-                            <Link href={`/docs/${feat.docSlug}`} className="hover:text-[#ff6600] transition-colors">
+                            <Link
+                              href={`/docs/${feat.docSlug}`}
+                              className="hover:text-[#ff6600] transition-colors"
+                            >
                               {feat.title}
                             </Link>
                           </h3>

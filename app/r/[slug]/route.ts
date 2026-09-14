@@ -414,39 +414,8 @@ export async function GET(
       // Check in-memory store
       let localMeta = getProtectedLink(slug);
 
-      // If not found in memory, query Cloudflare Worker API
-      if (!localMeta) {
-        try {
-          const linkRes = await fetch(`${WORKER_URL}/api/v1/links/${encodeURIComponent(slug)}`, {
-            headers: {
-              "X-Frontend-Secret": FRONTEND_SECRET,
-              Authorization: `Bearer ${FRONTEND_SECRET}`,
-            },
-            cache: "no-store",
-          }).catch(() => null);
-
-          if (linkRes && linkRes.ok) {
-            const json = await linkRes.json().catch(() => null);
-            const found = json?.data || json;
-            if (found && (found.target_url || found.targetUrl || found.og_image || found.ogImage || found.slug)) {
-              localMeta = {
-                slug: found.slug || slug,
-                targetUrl: found.target_url || found.targetUrl || "https://lshorter.io",
-                ogTitle: found.og_title || found.ogTitle || found.meta_title || found.metaTitle,
-                ogDescription: found.og_description || found.ogDescription,
-                ogImage: found.og_image || found.ogImage,
-                twitterCard: "summary_large_image",
-                metaTitle: found.meta_title || found.metaTitle,
-              } as any;
-            }
-          }
-        } catch (fetchErr) {
-          console.warn("[Crawler Fetch Warning]:", fetchErr);
-        }
-      }
-
-      // If still missing metadata, probe Cloudflare Worker edge directly with bot header
-      if (!localMeta || (!localMeta.ogImage && !localMeta.ogTitle && !localMeta.ogDescription)) {
+      // Always query Cloudflare Worker edge directly if localMeta is missing or has no ogImage
+      if (!localMeta || !localMeta.ogImage) {
         try {
           const edgeRes = await fetch(`${WORKER_URL}/r/${encodeURIComponent(slug)}`, {
             method: "GET",
@@ -467,17 +436,17 @@ export async function GET(
             const ogImgMatch = edgeHtml.match(/<meta property="og:image" content="([^"]*)"/i);
             const titleMatch = edgeHtml.match(/<title>([^<]*)<\/title>/i);
 
-            if (ogTitleMatch || titleMatch || ogImgMatch) {
-              localMeta = {
-                slug,
-                targetUrl: "https://lshorter.io",
-                ogTitle: ogTitleMatch ? ogTitleMatch[1] : titleMatch ? titleMatch[1] : slug,
-                ogDescription: ogDescMatch ? ogDescMatch[1] : "",
-                ogImage: ogImgMatch ? ogImgMatch[1] : "",
-                twitterCard: "summary_large_image",
-                metaTitle: ogTitleMatch ? ogTitleMatch[1] : titleMatch ? titleMatch[1] : slug,
-              } as any;
-            }
+            const fetchedImage = ogImgMatch ? ogImgMatch[1].replace(/&amp;/g, "&") : "";
+
+            localMeta = {
+              slug,
+              targetUrl: localMeta?.targetUrl || "https://lsho.cc",
+              ogTitle: ogTitleMatch ? ogTitleMatch[1] : titleMatch ? titleMatch[1] : (localMeta?.ogTitle || slug),
+              ogDescription: ogDescMatch ? ogDescMatch[1] : (localMeta?.ogDescription || ""),
+              ogImage: fetchedImage || localMeta?.ogImage || "",
+              twitterCard: "summary_large_image",
+              metaTitle: ogTitleMatch ? ogTitleMatch[1] : titleMatch ? titleMatch[1] : (localMeta?.metaTitle || slug),
+            } as any;
           }
         } catch (edgeErr) {
           console.warn("[Crawler Edge Fetch Warning]:", edgeErr);

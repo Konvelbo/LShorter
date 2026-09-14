@@ -2,219 +2,235 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --background: #09090b;
-  --foreground: #fafafa;
-  --card: #141416;
-  --card-foreground: #fafafa;
-  --card-border: #222225;
-  --popover: #141416;
-  --popover-foreground: #fafafa;
-  --primary: #ff6600;
-  --primary-foreground: #ffffff;
-  --secondary: #27272a;
-  --secondary-foreground: #fafafa;
-  --muted: #18181b;
-  --muted-foreground: #a1a1aa;
-  --accent: #27272a;
-  --accent-foreground: #fafafa;
-  --destructive: #ef4444;
-  --destructive-foreground: #ffffff;
-  --border: #27272a;
-  --input: #1f1f23;
-  --ring: #ff6600;
-  --radius: 10px;
+    --background: #09090b;
+    --foreground: #fafafa;
+    --card: #141416;
+    --card-foreground: #fafafa;
+    --card-border: #222225;
+    --popover: #141416;
+    --popover-foreground: #fafafa;
+    --primary: #ff6600;
+    --primary-foreground: #ffffff;
+    --secondary: #27272a;
+    --secondary-foreground: #fafafa;
+    --muted: #18181b;
+    --muted-foreground: #a1a1aa;
+    --accent: #27272a;
+    --accent-foreground: #fafafa;
+    --destructive: #ef4444;
+    --destructive-foreground: #ffffff;
+    --border: #27272a;
+    --input: #1f1f23;
+    --ring: #ff6600;
+    --radius: 10px;
 }
 
 html {
-  overflow-x: hidden;
-  overflow-y: auto;
+    overflow-x: hidden;
+    overflow-y: auto;
 }
 
 body {
-  background-color: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
-  overflow: visible;
-  min-height: 100vh;
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family:
+        var(--font-inter),
+        system-ui,
+        -apple-system,
+        sans-serif;
+    overflow: visible;
+    min-height: 100vh;
 }
 
 select option {
-  background-color: #141416;
-  color: #ffffff;
+    background-color: #141416;
+    color: #ffffff;
 }
 
 .font-bebas {
-  font-family: var(--font-bebas), sans-serif;
-  letter-spacing: 0.04em;
+    font-family: var(--font-bebas), sans-serif;
+    letter-spacing: 0.04em;
 }
 
 .font-sans {
-  font-family: var(--font-inter), sans-serif;
+    font-family: var(--font-inter), sans-serif;
 }
 
 /* Strict 10px radius default for UI */
 .rounded-saas {
-  border-radius: 10px;
+    border-radius: 10px;
 }
 
 /* Custom glowing and glass styling */
 .glass-card {
-  background: #141416;
-  border: 1px solid #222225;
-  border-radius: 10px;
+    background: #141416;
+    border: 1px solid #222225;
+    border-radius: 10px;
 }
 
 .glass-card-hover {
-  background: #141416;
-  border: 1px solid #222225;
-  border-radius: 10px;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    background: #141416;
+    border: 1px solid #222225;
+    border-radius: 10px;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .glass-card-hover:hover {
-  border-color: rgba(255, 102, 0, 0.4);
-  box-shadow: 0 0 25px -5px rgba(255, 102, 0, 0.15);
+    border-color: rgba(255, 102, 0, 0.4);
+    box-shadow: 0 0 25px -5px rgba(255, 102, 0, 0.15);
 }
 
 .orange-glow {
-  box-shadow: 0 0 20px -2px rgba(255, 102, 0, 0.35);
+    box-shadow: 0 0 20px -2px rgba(255, 102, 0, 0.35);
 }
 
 /* Navbar links adaptive hover and active states */
 html:not(.light) .nav-link-item {
-  color: #a1a1aa !important;
-  transition: color 0.2s ease-in-out !important;
-  text-decoration: none !important;
+    color: #a1a1aa !important;
+    transition: color 0.2s ease-in-out !important;
+    text-decoration: none !important;
 }
 
 html:not(.light) .nav-link-item:hover,
 html:not(.light) .nav-link-item.active {
-  color: #ffffff !important;
+    color: #ffffff !important;
 }
 
 html.light .nav-link-item {
-  color: #71717a !important;
-  transition: color 0.2s ease-in-out !important;
-  text-decoration: none !important;
+    color: #71717a !important;
+    transition: color 0.2s ease-in-out !important;
+    text-decoration: none !important;
 }
 
 html.light .nav-link-item:hover,
 html.light .nav-link-item.active {
-  color: #09090b !important;
+    color: #09090b !important;
 }
 
 /* Sidebar Link Button Hover */
 .sidebar-link-btn {
-  transition: background-color 0.16s ease, color 0.16s ease, transform 0.16s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.16s ease !important;
-  will-change: transform;
+    transition:
+        background-color 0.16s ease,
+        color 0.16s ease,
+        transform 0.16s cubic-bezier(0.16, 1, 0.3, 1),
+        box-shadow 0.16s ease !important;
+    will-change: transform;
 }
 .sidebar-link-btn:hover {
-  background-color: #222226 !important;
-  color: #ffffff !important;
-  transform: translateX(3px) scale(1.02) !important;
+    background-color: #222226 !important;
+    color: #ffffff !important;
+    transform: translateX(3px) scale(1.02) !important;
 }
 .sidebar-link-btn:active {
-  transform: scale(0.98) !important;
+    transform: scale(0.98) !important;
 }
 .sidebar-link-active {
-  background-color: #ff6600 !important;
-  color: #ffffff !important;
-  box-shadow: 0 4px 14px rgba(255, 102, 0, 0.35) !important;
+    background-color: #ff6600 !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 14px rgba(255, 102, 0, 0.35) !important;
 }
 .sidebar-link-active:hover {
-  background-color: #ff771a !important;
-  transform: translateX(3px) scale(1.02) !important;
+    background-color: #ff771a !important;
+    transform: translateX(3px) scale(1.02) !important;
 }
 
 /* General interactive button hover scale */
 .btn-hover-scale {
-  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s ease, filter 0.18s ease !important;
-  will-change: transform;
+    transition:
+        transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+        box-shadow 0.18s ease,
+        filter 0.18s ease !important;
+    will-change: transform;
 }
 .btn-hover-scale:hover {
-  transform: scale(1.06) !important;
+    transform: scale(1.06) !important;
 }
 .btn-hover-scale:active {
-  transform: scale(0.95) !important;
+    transform: scale(0.95) !important;
 }
 
 /* Card hover lift */
 .card-hover-lift {
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease, box-shadow 0.2s ease !important;
-  will-change: transform;
+    transition:
+        transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+        border-color 0.2s ease,
+        box-shadow 0.2s ease !important;
+    will-change: transform;
 }
 .card-hover-lift:hover {
-  transform: translateY(-2px) scale(1.01) !important;
-  border-color: rgba(255, 102, 0, 0.4) !important;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
+    transform: translateY(-2px) scale(1.01) !important;
+    border-color: rgba(255, 102, 0, 0.4) !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
 }
 
 /* Icon hover glow */
 .icon-hover-glow {
-  transition: transform 0.18s ease, filter 0.18s ease !important;
-  will-change: transform;
+    transition:
+        transform 0.18s ease,
+        filter 0.18s ease !important;
+    will-change: transform;
 }
 .icon-hover-glow:hover {
-  transform: scale(1.15) !important;
-  filter: drop-shadow(0 0 6px rgba(255, 102, 0, 0.7)) !important;
+    transform: scale(1.15) !important;
+    filter: drop-shadow(0 0 6px rgba(255, 102, 0, 0.7)) !important;
 }
 
 /* Custom Scrollbar */
 .custom-scrollbar::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+    width: 5px;
+    height: 5px;
 }
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: #121215;
-  border-radius: 10px;
+    background: #121215;
+    border-radius: 10px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #27272a;
-  border-radius: 10px;
+    background: #27272a;
+    border-radius: 10px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #3f3f46;
+    background: #3f3f46;
 }
 
 /* Custom scrollbars (Adaptive for Light & Dark Mode) */
 ::-webkit-scrollbar {
-  width: 7px;
-  height: 7px;
+    width: 7px;
+    height: 7px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #09090b;
+    background: #09090b;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #27272a;
-  border-radius: 9999px;
+    background: #27272a;
+    border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #3f3f46;
+    background: #3f3f46;
 }
 
 /* Light mode crisp scrollbar */
 html.light {
-  scrollbar-color: #C8BFB3 #FAF7F2;
+    scrollbar-color: #c8bfb3 #faf7f2;
 }
 
 html:not(.light) {
-  scrollbar-color: #27272a #09090b;
+    scrollbar-color: #27272a #09090b;
 }
 
 html.light ::-webkit-scrollbar-track {
-  background: #FAF7F2 !important;
+    background: #faf7f2 !important;
 }
 
 html.light ::-webkit-scrollbar-thumb {
-  background: #C8BFB3 !important;
-  border-radius: 9999px;
+    background: #c8bfb3 !important;
+    border-radius: 9999px;
 }
 
 html.light ::-webkit-scrollbar-thumb:hover {
-  background: #AFA498 !important;
+    background: #afa498 !important;
 }
 
 /* ==========================================================================
@@ -223,76 +239,82 @@ html.light ::-webkit-scrollbar-thumb:hover {
    background and readable text on mobile.
    ========================================================================== */
 @media (max-width: 767px) {
-  :root {
-    --primary: #0080ff;
-    --ring: #0080ff;
-  }
-  html.light,
-  html.light :root {
-    --primary: #0080ff;
-    --ring: #0080ff;
-  }
+    :root {
+        --primary: #0080ff;
+        --ring: #0080ff;
+    }
+    html.light,
+    html.light :root {
+        --primary: #0080ff;
+        --ring: #0080ff;
+    }
 
-  /* 7. DARK THEME DEFAULTS FOR INPUTS, SELECTS ON MOBILE (ONLY IN DARK MODE): */
-  html:not(.light) input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]),
-  html:not(.light) textarea,
-  html:not(.light) select {
-    background-color: #141416 !important;
-    color: #ffffff !important;
-    border-color: #222225 !important;
-  }
+    /* 7. DARK THEME DEFAULTS FOR INPUTS, SELECTS ON MOBILE (ONLY IN DARK MODE): */
+    html:not(.light)
+        input:not([type="checkbox"]):not([type="radio"]):not(
+            [type="submit"]
+        ):not([type="button"]),
+    html:not(.light) textarea,
+    html:not(.light) select {
+        background-color: #141416 !important;
+        color: #ffffff !important;
+        border-color: #222225 !important;
+    }
 
-  html:not(.light) select option {
-    background-color: #141416 !important;
-    color: #ffffff !important;
-  }
+    html:not(.light) select option {
+        background-color: #141416 !important;
+        color: #ffffff !important;
+    }
 
-  html:not(.light) input::placeholder,
-  html:not(.light) textarea::placeholder {
-    color: #71717a !important;
-  }
+    html:not(.light) input::placeholder,
+    html:not(.light) textarea::placeholder {
+        color: #71717a !important;
+    }
 
-  html:not(.light) label[class*="border-dashed"] {
-    background-color: #0e0e10 !important;
-    color: #ffffff !important;
-    border-color: #333338 !important;
-  }
-  html:not(.light) label[class*="border-dashed"]:hover,
-  html:not(.light) label[class*="border-dashed"]:active {
-    background-color: #141416 !important;
-    border-color: #0080ff !important;
-  }
+    html:not(.light) label[class*="border-dashed"] {
+        background-color: #0e0e10 !important;
+        color: #ffffff !important;
+        border-color: #333338 !important;
+    }
+    html:not(.light) label[class*="border-dashed"]:hover,
+    html:not(.light) label[class*="border-dashed"]:active {
+        background-color: #141416 !important;
+        border-color: #0080ff !important;
+    }
 
-  /* 8. LIGHT THEME ADJUSTMENTS ON MOBILE (< 768px):
+    /* 8. LIGHT THEME ADJUSTMENTS ON MOBILE (< 768px):
      Warm cream surfaces with electric blue accents */
-  html.light input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]),
-  html.light textarea,
-  html.light select {
-    background-color: #FFFDF9 !important;
-    color: #2B2520 !important;
-    border-color: #E7DFD5 !important;
-  }
+    html.light
+        input:not([type="checkbox"]):not([type="radio"]):not(
+            [type="submit"]
+        ):not([type="button"]),
+    html.light textarea,
+    html.light select {
+        background-color: #fffdf9 !important;
+        color: #2b2520 !important;
+        border-color: #e7dfd5 !important;
+    }
 
-  html.light select option {
-    background-color: #FFFDF9 !important;
-    color: #2B2520 !important;
-  }
+    html.light select option {
+        background-color: #fffdf9 !important;
+        color: #2b2520 !important;
+    }
 
-  html.light input::placeholder,
-  html.light textarea::placeholder {
-    color: #9E958C !important;
-  }
+    html.light input::placeholder,
+    html.light textarea::placeholder {
+        color: #9e958c !important;
+    }
 
-  html.light .fixed.bottom-3 {
-    background-color: rgba(250, 247, 242, 0.95) !important;
-    border-color: #E7DFD5 !important;
-    box-shadow: 0 10px 25px -3px rgba(0, 128, 255, 0.15) !important;
-  }
+    html.light .fixed.bottom-3 {
+        background-color: rgba(250, 247, 242, 0.95) !important;
+        border-color: #e7dfd5 !important;
+        box-shadow: 0 10px 25px -3px rgba(0, 128, 255, 0.15) !important;
+    }
 
-  html.light .fixed.inset-y-0.left-0 {
-    background-color: #FFFDF9 !important;
-    border-color: #E7DFD5 !important;
-  }
+    html.light .fixed.inset-y-0.left-0 {
+        background-color: #fffdf9 !important;
+        border-color: #e7dfd5 !important;
+    }
 }
 
 /* ==========================================================================
@@ -302,39 +324,39 @@ html.light ::-webkit-scrollbar-thumb:hover {
    ========================================================================== */
 html.light,
 html.light :root {
-  --background: #FAF7F2;
-  --foreground: #2B2520;
-  --card: #FFFDF9;
-  --card-foreground: #2B2520;
-  --card-border: #E7DFD5;
-  --popover: #FFFDF9;
-  --popover-foreground: #2B2520;
-  --primary: #ff6600;
-  --primary-foreground: #ffffff;
-  --secondary: #F2ECE4;
-  --secondary-foreground: #2B2520;
-  --muted: #F2ECE4;
-  --muted-foreground: #7D756C;
-  --accent: #F2ECE4;
-  --accent-foreground: #2B2520;
-  --destructive: #ef4444;
-  --destructive-foreground: #ffffff;
-  --border: #E7DFD5;
-  --input: #FFFDF9;
-  --ring: #ff6600;
+    --background: #faf7f2;
+    --foreground: #2b2520;
+    --card: #fffdf9;
+    --card-foreground: #2b2520;
+    --card-border: #e7dfd5;
+    --popover: #fffdf9;
+    --popover-foreground: #2b2520;
+    --primary: #ff6600;
+    --primary-foreground: #ffffff;
+    --secondary: #f2ece4;
+    --secondary-foreground: #2b2520;
+    --muted: #f2ece4;
+    --muted-foreground: #7d756c;
+    --accent: #f2ece4;
+    --accent-foreground: #2b2520;
+    --destructive: #ef4444;
+    --destructive-foreground: #ffffff;
+    --border: #e7dfd5;
+    --input: #fffdf9;
+    --ring: #ff6600;
 }
 
 html.light body {
-  background-color: #FAF7F2 !important;
-  color: #2B2520 !important;
+    background-color: #faf7f2 !important;
+    color: #2b2520 !important;
 }
 
 html.light [class*="bg-[#09090b]"] {
-  background-color: #EFE9DF !important;
+    background-color: #efe9df !important;
 }
 
 html.light [class*="bg-[#121215]"] {
-  background-color: #FAF7F2 !important;
+    background-color: #faf7f2 !important;
 }
 
 html.light [class*="bg-[#141416]"],
@@ -345,7 +367,7 @@ html.light [class*="bg-[#1c1c24]"],
 html.light [class*="bg-[#18181c]"],
 html.light [class*="bg-[#121316]"],
 html.light [class*="bg-[#1c1c21]"] {
-  background-color: #FFFDF9 !important;
+    background-color: #fffdf9 !important;
 }
 
 html.light [class*="bg-[#18181b]"],
@@ -357,7 +379,7 @@ html.light [class*="bg-[#0d121f]"],
 html.light [class*="bg-[#0d0d10]"],
 html.light [class*="bg-[#151c2e]"],
 html.light [class*="bg-[#27272a]"] {
-  background-color: #F2ECE4 !important;
+    background-color: #f2ece4 !important;
 }
 
 html.light [class*="border-[#222225]"],
@@ -372,89 +394,104 @@ html.light [class*="border-white/10"],
 html.light [class*="border-white/15"],
 html.light [class*="border-white/5"],
 html.light [class*="border-white/20"] {
-  border-color: #E7DFD5 !important;
+    border-color: #e7dfd5 !important;
 }
 
 /* Ensure standard inputs & selects on cream cards in light mode have a crisp biscuit border and high contrast */
-html.light input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not(.bg-transparent):not([class*="bg-transparent"]),
+html.light
+    input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not(
+        [type="button"]
+    ):not(.bg-transparent):not([class*="bg-transparent"]),
 html.light select {
-  border: 1.5px solid #DDD1C4 !important;
-  background-color: #FFFDF9 !important;
-  color: #2B2520 !important;
+    border: 1.5px solid #ddd1c4 !important;
+    background-color: #fffdf9 !important;
+    color: #2b2520 !important;
 }
 
 html.light select option {
-  background-color: #FFFDF9 !important;
-  color: #2B2520 !important;
+    background-color: #fffdf9 !important;
+    color: #2b2520 !important;
 }
 
-html.light input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not(.bg-transparent):not([class*="bg-transparent"]):focus,
+html.light
+    input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not(
+        [type="button"]
+    ):not(.bg-transparent):not([class*="bg-transparent"]):focus,
 html.light select:focus {
-  border-color: #ff6600 !important;
-  box-shadow: 0 0 0 2px rgba(255, 102, 0, 0.2) !important;
+    border-color: #ff6600 !important;
+    box-shadow: 0 0 0 2px rgba(255, 102, 0, 0.2) !important;
 }
 
 /* Dropdown menus and popover cards in light mode */
 html.light .dropdown-anchor [class*="shadow-2xl"],
 html.light [class*="shadow-2xl"] {
-  box-shadow: 0 10px 30px -5px rgba(43, 37, 32, 0.08), 0 4px 12px -2px rgba(43, 37, 32, 0.04) !important;
+    box-shadow:
+        0 10px 30px -5px rgba(43, 37, 32, 0.08),
+        0 4px 12px -2px rgba(43, 37, 32, 0.04) !important;
 }
 
 html.light [class*="hover:bg-white/5"]:hover,
 html.light [class*="hover:bg-white/10"]:hover {
-  background-color: #F2ECE4 !important;
+    background-color: #f2ece4 !important;
 }
 
 /* Transparent inputs inside pill capsules (hero shortener, table filter) keep zero border */
 html.light input.bg-transparent,
 html.light input[class*="bg-transparent"] {
-  color: #2B2520 !important;
-  border: none !important;
-  box-shadow: none !important;
+    color: #2b2520 !important;
+    border: none !important;
+    box-shadow: none !important;
 }
 
 html.light aside {
-  background-color: #FFFDF9 !important;
-  border-color: #E7DFD5 !important;
+    background-color: #fffdf9 !important;
+    border-color: #e7dfd5 !important;
 }
 
 html.light header {
-  background-color: rgba(250, 247, 242, 0.9) !important;
-  border-color: #E7DFD5 !important;
+    background-color: rgba(250, 247, 242, 0.9) !important;
+    border-color: #e7dfd5 !important;
 }
 
 html.light .glass-card,
 html.light .glass-card-hover {
-  background: #FFFDF9 !important;
-  border-color: #E7DFD5 !important;
-  box-shadow: 0 2px 8px rgba(43, 37, 32, 0.04) !important;
+    background: #fffdf9 !important;
+    border-color: #e7dfd5 !important;
+    box-shadow: 0 2px 8px rgba(43, 37, 32, 0.04) !important;
 }
 
 /* Light mode text contrast: Keep white ONLY on colored/primary buttons & badges */
-html.light .text-white:not([class*="bg-[#ff6600]"]):not([class*="bg-[#0066FF]"]):not([class*="bg-[#0080ff]"]):not([class*="bg-[#0070e0]"]):not([class*="bg-emerald"]):not([class*="bg-red"]):not([class*="bg-rose"]):not([class*="bg-gradient"]):not(.sidebar-link-active),
+html.light
+    .text-white:not([class*="bg-[#ff6600]"]):not([class*="bg-[#0066FF]"]):not(
+        [class*="bg-[#0080ff]"]
+    ):not([class*="bg-[#0070e0]"]):not([class*="bg-emerald"]):not(
+        [class*="bg-red"]
+    ):not([class*="bg-rose"]):not([class*="bg-gradient"]):not(
+        .sidebar-link-active
+    ),
 html.light [class*="text-[#fafafa]"] {
-  color: #2B2520 !important;
+    color: #2b2520 !important;
 }
 
 html.light .text-neutral-100,
 html.light .text-neutral-200,
 html.light [class*="text-neutral-100"],
 html.light [class*="text-neutral-200"] {
-  color: #2B2520 !important;
+    color: #2b2520 !important;
 }
 
 html.light .text-neutral-300,
 html.light .text-neutral-400 {
-  color: #7D756C !important;
+    color: #7d756c !important;
 }
 
 html.light .text-neutral-500 {
-  color: #9E958C !important;
+    color: #9e958c !important;
 }
 
 html.light .sidebar-link-btn:hover {
-  background-color: #F2ECE4 !important;
-  color: #2B2520 !important;
+    background-color: #f2ece4 !important;
+    color: #2b2520 !important;
 }
 
 /* ==========================================================================
@@ -463,166 +500,171 @@ html.light .sidebar-link-btn:hover {
 input[type="date"],
 input[type="time"],
 input[type="datetime-local"] {
-  color-scheme: dark !important;
+    color-scheme: dark !important;
 }
 
 input[type="date"]::-webkit-calendar-picker-indicator,
 input[type="time"]::-webkit-calendar-picker-indicator,
 input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-  cursor: pointer;
-  filter: invert(1) brightness(1.2) !important;
-  opacity: 0.85;
-  transition: opacity 0.2s, filter 0.2s;
-  padding: 4px;
-  border-radius: 4px;
+    cursor: pointer;
+    filter: invert(1) brightness(1.2) !important;
+    opacity: 0.85;
+    transition:
+        opacity 0.2s,
+        filter 0.2s;
+    padding: 4px;
+    border-radius: 4px;
 }
 
 input[type="date"]::-webkit-calendar-picker-indicator:hover,
 input[type="time"]::-webkit-calendar-picker-indicator:hover,
 input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
-  opacity: 1;
-  filter: invert(53%) sepia(90%) saturate(2400%) hue-rotate(360deg) brightness(102%) contrast(105%) !important;
+    opacity: 1;
+    filter: invert(53%) sepia(90%) saturate(2400%) hue-rotate(360deg)
+        brightness(102%) contrast(105%) !important;
 }
 
 html.light input[type="date"],
 html.light input[type="time"],
 html.light input[type="datetime-local"] {
-  color-scheme: light !important;
+    color-scheme: light !important;
 }
 
 html.light input[type="date"]::-webkit-calendar-picker-indicator,
 html.light input[type="time"]::-webkit-calendar-picker-indicator,
 html.light input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-  filter: invert(0) !important;
-  opacity: 0.85;
+    filter: invert(0) !important;
+    opacity: 0.85;
 }
 
 html.light input[type="date"]::-webkit-calendar-picker-indicator:hover,
 html.light input[type="time"]::-webkit-calendar-picker-indicator:hover,
-html.light input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
-  opacity: 1;
-  filter: invert(53%) sepia(90%) saturate(2400%) hue-rotate(360deg) brightness(102%) contrast(105%) !important;
+html.light
+    input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+    filter: invert(53%) sepia(90%) saturate(2400%) hue-rotate(360deg)
+        brightness(102%) contrast(105%) !important;
 }
 
 /* ── DRAWER TAB BAR : Mini scrollbar horizontale (Orange desktop / Bleu mobile) ── */
 .drawer-tabs-scroll {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 102, 0, 0.6) transparent;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 102, 0, 0.6) transparent;
 }
 .drawer-tabs-scroll::-webkit-scrollbar {
-  height: 3px;
+    height: 3px;
 }
 .drawer-tabs-scroll::-webkit-scrollbar-track {
-  background: transparent;
+    background: transparent;
 }
 .drawer-tabs-scroll::-webkit-scrollbar-thumb {
-  background: rgba(255, 102, 0, 0.6);
-  border-radius: 99px;
+    background: rgba(255, 102, 0, 0.6);
+    border-radius: 99px;
 }
 .drawer-tabs-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 102, 0, 0.9);
+    background: rgba(255, 102, 0, 0.9);
 }
 
 @media (max-width: 640px) {
-  .drawer-tabs-scroll {
-    scrollbar-color: rgba(255, 102, 0, 0.6) transparent;
-  }
-  .drawer-tabs-scroll::-webkit-scrollbar-thumb {
-    background: rgba(255, 102, 0, 0.6);
-  }
-  .drawer-tabs-scroll::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 102, 0, 0.9);
-  }
+    .drawer-tabs-scroll {
+        scrollbar-color: rgba(255, 102, 0, 0.6) transparent;
+    }
+    .drawer-tabs-scroll::-webkit-scrollbar-thumb {
+        background: rgba(255, 102, 0, 0.6);
+    }
+    .drawer-tabs-scroll::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 102, 0, 0.9);
+    }
 }
 
 /* ==========================================================================
    REACT BITS: SHINY TEXT ANIMATION
    ========================================================================== */
 @keyframes shine {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
 }
 
 .animate-shine {
-  animation: shine 4s ease-in-out infinite;
+    animation: shine 4s ease-in-out infinite;
 }
 
 .shiny-text {
-  background-size: 200% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  background-image: linear-gradient(
-    110deg,
-    #ffffff 20%,
-    rgba(255, 255, 255, 0.4) 40%,
-    #ff6600 50%,
-    rgba(255, 255, 255, 0.4) 60%,
-    #ffffff 80%
-  );
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    background-image: linear-gradient(
+        110deg,
+        #ffffff 20%,
+        rgba(255, 255, 255, 0.4) 40%,
+        #ff6600 50%,
+        rgba(255, 255, 255, 0.4) 60%,
+        #ffffff 80%
+    );
 }
 
 @media (max-width: 767px) {
-  .shiny-text {
-    background-image: linear-gradient(
-      110deg,
-      #ffffff 20%,
-      rgba(255, 255, 255, 0.4) 40%,
-      #0080ff 50%,
-      rgba(255, 255, 255, 0.4) 60%,
-      #ffffff 80%
-    );
-  }
+    .shiny-text {
+        background-image: linear-gradient(
+            110deg,
+            #ffffff 20%,
+            rgba(255, 255, 255, 0.4) 40%,
+            #0080ff 50%,
+            rgba(255, 255, 255, 0.4) 60%,
+            #ffffff 80%
+        );
+    }
 }
 
 html.light .shiny-text {
-  background-image: linear-gradient(
-    110deg,
-    #2B2520 20%,
-    #8B5E3C 40%,
-    #ff6600 50%,
-    #8B5E3C 60%,
-    #2B2520 80%
-  );
+    background-image: linear-gradient(
+        110deg,
+        #2b2520 20%,
+        #8b5e3c 40%,
+        #ff6600 50%,
+        #8b5e3c 60%,
+        #2b2520 80%
+    );
 }
 
 @media (max-width: 767px) {
-  html.light .shiny-text {
-    background-image: linear-gradient(
-      110deg,
-      #2B2520 20%,
-      #5C7899 40%,
-      #0080ff 50%,
-      #5C7899 60%,
-      #2B2520 80%
-    );
-  }
+    html.light .shiny-text {
+        background-image: linear-gradient(
+            110deg,
+            #2b2520 20%,
+            #5c7899 40%,
+            #0080ff 50%,
+            #5c7899 60%,
+            #2b2520 80%
+        );
+    }
 }
 
 /* ==========================================================================
    INFINITE MARQUEE TICKER ANIMATION
    ========================================================================== */
 @keyframes marquee {
-  0% {
-    transform: translateX(0%);
-  }
-  100% {
-    transform: translateX(-50%);
-  }
+    0% {
+        transform: translateX(0%);
+    }
+    100% {
+        transform: translateX(-50%);
+    }
 }
 
 .animate-marquee {
-  display: flex;
-  width: max-content;
-  animation: marquee 22s linear infinite;
+    display: flex;
+    width: max-content;
+    animation: marquee 22s linear infinite;
 }
 
 .animate-marquee:hover {
-  animation-play-state: paused;
+    animation-play-state: paused;
 }
 
 /* ==========================================================================
@@ -631,419 +673,441 @@ html.light .shiny-text {
 
 /* 1. Universal Interactive Card Base */
 .doc-interactive-card {
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-              box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-              border-color 0.25s ease,
-              background-color 0.25s ease !important;
-  will-change: transform, box-shadow;
-  transform: translateY(0) scale(1);
-  transform-origin: center center;
-  position: relative;
+    transition:
+        transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+        box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+        border-color 0.25s ease,
+        background-color 0.25s ease !important;
+    will-change: transform, box-shadow;
+    transform: translateY(0) scale(1);
+    transform-origin: center center;
+    position: relative;
 }
 
 /* 2. Keypoints Cards ("Principes Clés") */
 .doc-keypoint-card {
-  cursor: pointer;
+    cursor: pointer;
 }
 
 .doc-keypoint-card:hover {
-  transform: translateY(-5px) scale(1.03) !important;
-  border-color: rgba(255, 102, 0, 0.55) !important;
-  box-shadow: 0 16px 32px -6px rgba(0, 0, 0, 0.45),
-              0 0 20px -2px rgba(255, 102, 0, 0.25) !important;
+    transform: translateY(-5px) scale(1.03) !important;
+    border-color: rgba(255, 102, 0, 0.55) !important;
+    box-shadow:
+        0 16px 32px -6px rgba(0, 0, 0, 0.45),
+        0 0 20px -2px rgba(255, 102, 0, 0.25) !important;
 }
 
 html.light .doc-keypoint-card:hover {
-  border-color: #ff6600 !important;
-  box-shadow: 0 16px 32px -6px rgba(43, 37, 32, 0.12),
-              0 0 20px -2px rgba(255, 102, 0, 0.25) !important;
+    border-color: #ff6600 !important;
+    box-shadow:
+        0 16px 32px -6px rgba(43, 37, 32, 0.12),
+        0 0 20px -2px rgba(255, 102, 0, 0.25) !important;
 }
 
 @media (max-width: 640px) {
-  .doc-keypoint-card:hover {
-    border-color: rgba(0, 128, 255, 0.55) !important;
-    box-shadow: 0 16px 32px -6px rgba(0, 0, 0, 0.45),
-                0 0 20px -2px rgba(0, 128, 255, 0.25) !important;
-  }
-  html.light .doc-keypoint-card:hover {
-    border-color: #0080ff !important;
-    box-shadow: 0 16px 32px -6px rgba(43, 37, 32, 0.12),
-                0 0 20px -2px rgba(0, 128, 255, 0.25) !important;
-  }
+    .doc-keypoint-card:hover {
+        border-color: rgba(0, 128, 255, 0.55) !important;
+        box-shadow:
+            0 16px 32px -6px rgba(0, 0, 0, 0.45),
+            0 0 20px -2px rgba(0, 128, 255, 0.25) !important;
+    }
+    html.light .doc-keypoint-card:hover {
+        border-color: #0080ff !important;
+        box-shadow:
+            0 16px 32px -6px rgba(43, 37, 32, 0.12),
+            0 0 20px -2px rgba(0, 128, 255, 0.25) !important;
+    }
 }
 
 .doc-keypoint-card .keypoint-number-badge {
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.25s ease;
+    transition:
+        transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+        background-color 0.25s ease;
 }
 
 .doc-keypoint-card:hover .keypoint-number-badge {
-  transform: scale(1.18) rotate(-4deg);
+    transform: scale(1.18) rotate(-4deg);
 }
 
 /* 3. Best Practices / Recommendations Cards ("Bonnes Pratiques") */
 .doc-practice-card {
-  cursor: pointer;
+    cursor: pointer;
 }
 
 .doc-practice-card:hover {
-  transform: translateY(-5px) scale(1.03) !important;
-  border-color: rgba(16, 185, 129, 0.6) !important;
-  box-shadow: 0 16px 32px -6px rgba(0, 0, 0, 0.45),
-              0 0 22px -2px rgba(16, 185, 129, 0.28) !important;
+    transform: translateY(-5px) scale(1.03) !important;
+    border-color: rgba(16, 185, 129, 0.6) !important;
+    box-shadow:
+        0 16px 32px -6px rgba(0, 0, 0, 0.45),
+        0 0 22px -2px rgba(16, 185, 129, 0.28) !important;
 }
 
 html.light .doc-practice-card:hover {
-  border-color: #10b981 !important;
-  box-shadow: 0 16px 32px -6px rgba(43, 37, 32, 0.12),
-              0 0 22px -2px rgba(16, 185, 129, 0.28) !important;
+    border-color: #10b981 !important;
+    box-shadow:
+        0 16px 32px -6px rgba(43, 37, 32, 0.12),
+        0 0 22px -2px rgba(16, 185, 129, 0.28) !important;
 }
 
 .doc-practice-card .practice-icon {
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .doc-practice-card:hover .practice-icon {
-  transform: scale(1.25);
+    transform: scale(1.25);
 }
 
 /* 4. Previous / Next Navigation Cards */
 .doc-nav-card:hover {
-  transform: translateY(-4px) scale(1.025) !important;
-  border-color: rgba(255, 102, 0, 0.65) !important;
-  box-shadow: 0 14px 30px -6px rgba(0, 0, 0, 0.4),
-              0 0 18px -2px rgba(255, 102, 0, 0.22) !important;
+    transform: translateY(-4px) scale(1.025) !important;
+    border-color: rgba(255, 102, 0, 0.65) !important;
+    box-shadow:
+        0 14px 30px -6px rgba(0, 0, 0, 0.4),
+        0 0 18px -2px rgba(255, 102, 0, 0.22) !important;
 }
 
 html.light .doc-nav-card:hover {
-  border-color: #ff6600 !important;
-  box-shadow: 0 14px 30px -6px rgba(43, 37, 32, 0.12),
-              0 0 18px -2px rgba(255, 102, 0, 0.22) !important;
+    border-color: #ff6600 !important;
+    box-shadow:
+        0 14px 30px -6px rgba(43, 37, 32, 0.12),
+        0 0 18px -2px rgba(255, 102, 0, 0.22) !important;
 }
 
 @media (max-width: 640px) {
-  .doc-nav-card:hover {
-    border-color: rgba(0, 128, 255, 0.65) !important;
-    box-shadow: 0 14px 30px -6px rgba(0, 0, 0, 0.4),
-                0 0 18px -2px rgba(0, 128, 255, 0.22) !important;
-  }
-  html.light .doc-nav-card:hover {
-    border-color: #0080ff !important;
-  }
+    .doc-nav-card:hover {
+        border-color: rgba(0, 128, 255, 0.65) !important;
+        box-shadow:
+            0 14px 30px -6px rgba(0, 0, 0, 0.4),
+            0 0 18px -2px rgba(0, 128, 255, 0.22) !important;
+    }
+    html.light .doc-nav-card:hover {
+        border-color: #0080ff !important;
+    }
 }
 
 /* 5. Related Guides Cards with Image Preview ("Guides Connexes") */
 .doc-related-card {
-  cursor: pointer;
+    cursor: pointer;
 }
 
 .doc-related-card:hover {
-  transform: translateY(-6px) scale(1.03) !important;
-  border-color: rgba(255, 102, 0, 0.6) !important;
-  box-shadow: 0 20px 45px -8px rgba(0, 0, 0, 0.6),
-              0 0 26px -2px rgba(255, 102, 0, 0.28) !important;
+    transform: translateY(-6px) scale(1.03) !important;
+    border-color: rgba(255, 102, 0, 0.6) !important;
+    box-shadow:
+        0 20px 45px -8px rgba(0, 0, 0, 0.6),
+        0 0 26px -2px rgba(255, 102, 0, 0.28) !important;
 }
 
 html.light .doc-related-card:hover {
-  border-color: #ff6600 !important;
-  box-shadow: 0 20px 45px -8px rgba(43, 37, 32, 0.16),
-              0 0 26px -2px rgba(255, 102, 0, 0.28) !important;
+    border-color: #ff6600 !important;
+    box-shadow:
+        0 20px 45px -8px rgba(43, 37, 32, 0.16),
+        0 0 26px -2px rgba(255, 102, 0, 0.28) !important;
 }
 
 @media (max-width: 640px) {
-  .doc-related-card:hover {
-    border-color: rgba(0, 128, 255, 0.6) !important;
-    box-shadow: 0 20px 45px -8px rgba(0, 0, 0, 0.6),
-                0 0 26px -2px rgba(0, 128, 255, 0.28) !important;
-  }
-  html.light .doc-related-card:hover {
-    border-color: #0080ff !important;
-  }
+    .doc-related-card:hover {
+        border-color: rgba(0, 128, 255, 0.6) !important;
+        box-shadow:
+            0 20px 45px -8px rgba(0, 0, 0, 0.6),
+            0 0 26px -2px rgba(0, 128, 255, 0.28) !important;
+    }
+    html.light .doc-related-card:hover {
+        border-color: #0080ff !important;
+    }
 }
 
 .doc-related-card .related-img-container {
-  overflow: hidden;
-  position: relative;
+    overflow: hidden;
+    position: relative;
 }
 
 .doc-related-card .related-img-container img {
-  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1) !important;
-  transform: scale(1);
+    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    transform: scale(1);
 }
 
 .doc-related-card:hover .related-img-container img {
-  transform: scale(1.08) !important;
+    transform: scale(1.08) !important;
 }
 
 /* 6. Documentation Index Cofounder Resource Cards */
 .cofounder-card-item .cofounder-card-front {
-  transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1),
-              box-shadow 0.32s cubic-bezier(0.16, 1, 0.3, 1),
-              border-color 0.25s ease !important;
-  will-change: transform, box-shadow;
+    transition:
+        transform 0.32s cubic-bezier(0.16, 1, 0.3, 1),
+        box-shadow 0.32s cubic-bezier(0.16, 1, 0.3, 1),
+        border-color 0.25s ease !important;
+    will-change: transform, box-shadow;
 }
 
 .cofounder-card-item:hover .cofounder-card-front {
-  transform: translateY(-5px) scale(1.02) !important;
+    transform: translateY(-5px) scale(1.02) !important;
 }
 
 /* ==========================================================================
    TOAST NOTIFICATION SYSTEM (HIGH-CONTRAST LIGHT & DARK MODE)
    ========================================================================== */
 .lshorter-toast {
-  pointer-events: auto;
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 10px 14px;
-  border-radius: 12px;
-  cursor: pointer;
-  width: 100%;
-  justify-content: space-between;
-  will-change: transform, opacity;
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+    pointer-events: auto;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    cursor: pointer;
+    width: 100%;
+    justify-content: space-between;
+    will-change: transform, opacity;
+    transition:
+        transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+        box-shadow 0.2s ease;
 }
 
 @media (min-width: 640px) {
-  .lshorter-toast {
-    align-items: center;
-    padding: 12px 18px;
-    min-width: 420px;
-    max-width: 560px;
-  }
+    .lshorter-toast {
+        align-items: center;
+        padding: 12px 18px;
+        min-width: 420px;
+        max-width: 560px;
+    }
 }
 
 .lshorter-toast:active {
-  transform: scale(0.98);
+    transform: scale(0.98);
 }
 
 .lshorter-toast-badge {
-  width: 30px;
-  height: 30px;
-  border-radius: 9px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: transform 0.2s ease;
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
 }
 
 @media (min-width: 768px) {
-  .lshorter-toast-badge {
-    width: 34px;
-    height: 34px;
-    border-radius: 10px;
-  }
+    .lshorter-toast-badge {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+    }
 }
 
 .lshorter-toast-title {
-  font-size: 13px;
-  line-height: 1.25;
-  letter-spacing: -0.01em;
+    font-size: 13px;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
 }
 @media (min-width: 640px) {
-  .lshorter-toast-title {
-    font-size: 14px;
-  }
+    .lshorter-toast-title {
+        font-size: 14px;
+    }
 }
 
 .lshorter-toast-msg {
-  font-size: 12px;
-  line-height: 1.45;
-  margin-top: 2px;
-  word-break: break-word;
+    font-size: 12px;
+    line-height: 1.45;
+    margin-top: 2px;
+    word-break: break-word;
 }
 @media (min-width: 640px) {
-  .lshorter-toast-msg {
-    font-size: 13px;
-  }
+    .lshorter-toast-msg {
+        font-size: 13px;
+    }
 }
 
 .lshorter-toast-close {
-  width: 24px;
-  height: 24px;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  cursor: pointer;
-  transition: background-color 0.15s ease, color 0.15s ease;
-  margin-top: 1px;
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition:
+        background-color 0.15s ease,
+        color 0.15s ease;
+    margin-top: 1px;
 }
 @media (min-width: 640px) {
-  .lshorter-toast-close {
-    margin-top: 0;
-  }
+    .lshorter-toast-close {
+        margin-top: 0;
+    }
 }
 
 /* ─── Light Mode Styles (High Contrast, Ultra Readable) ─── */
 html.light .lshorter-toast {
-  background-color: #FFFFFF !important;
-  box-shadow: 0 16px 36px -4px rgba(43, 37, 32, 0.18),
-              0 4px 14px rgba(43, 37, 32, 0.08),
-              0 0 0 1px rgba(0, 0, 0, 0.08) !important;
+    background-color: #ffffff !important;
+    box-shadow:
+        0 16px 36px -4px rgba(43, 37, 32, 0.18),
+        0 4px 14px rgba(43, 37, 32, 0.08),
+        0 0 0 1px rgba(0, 0, 0, 0.08) !important;
 }
 
 html.light .lshorter-toast-title {
-  color: #0F172A !important;
-  font-weight: 700 !important;
+    color: #0f172a !important;
+    font-weight: 700 !important;
 }
 
 html.light .lshorter-toast-msg {
-  color: #334155 !important;
-  font-weight: 500 !important;
+    color: #334155 !important;
+    font-weight: 500 !important;
 }
 
 html.light .lshorter-toast-close {
-  color: #64748B !important;
+    color: #64748b !important;
 }
 html.light .lshorter-toast-close:hover {
-  color: #0F172A !important;
-  background-color: #F1F5F9 !important;
+    color: #0f172a !important;
+    background-color: #f1f5f9 !important;
 }
 
 /* Light Mode Badges & Borders */
 html.light .lshorter-toast-success {
-  border: 1.5px solid #10B981 !important;
-  border-left: 5px solid #10B981 !important;
+    border: 1.5px solid #10b981 !important;
+    border-left: 5px solid #10b981 !important;
 }
 html.light .lshorter-toast-badge-success {
-  background-color: #10B981 !important;
-  color: #FFFFFF !important;
-  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35) !important;
+    background-color: #10b981 !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35) !important;
 }
 
 html.light .lshorter-toast-error {
-  border: 1.5px solid #EF4444 !important;
-  border-left: 5px solid #EF4444 !important;
+    border: 1.5px solid #ef4444 !important;
+    border-left: 5px solid #ef4444 !important;
 }
 html.light .lshorter-toast-badge-error {
-  background-color: #EF4444 !important;
-  color: #FFFFFF !important;
-  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.35) !important;
+    background-color: #ef4444 !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.35) !important;
 }
 
 html.light .lshorter-toast-info {
-  border: 1.5px solid #0EA5E9 !important;
-  border-left: 5px solid #0EA5E9 !important;
+    border: 1.5px solid #0ea5e9 !important;
+    border-left: 5px solid #0ea5e9 !important;
 }
 html.light .lshorter-toast-badge-info {
-  background-color: #0EA5E9 !important;
-  color: #FFFFFF !important;
-  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.35) !important;
+    background-color: #0ea5e9 !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.35) !important;
 }
 
 html.light .lshorter-toast-upgrade {
-  border: 1.5px solid #FF6600 !important;
-  border-left: 5px solid #FF6600 !important;
+    border: 1.5px solid #ff6600 !important;
+    border-left: 5px solid #ff6600 !important;
 }
 html.light .lshorter-toast-badge-upgrade {
-  background-color: #FF6600 !important;
-  color: #FFFFFF !important;
-  box-shadow: 0 2px 8px rgba(255, 102, 0, 0.35) !important;
+    background-color: #ff6600 !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(255, 102, 0, 0.35) !important;
 }
 
 /* ─── Dark Mode Styles (Obsidian HUD Glow) ─── */
 html:not(.light) .lshorter-toast,
 html.dark .lshorter-toast {
-  background-color: rgba(18, 19, 22, 0.96) !important;
-  backdrop-filter: blur(20px);
+    background-color: rgba(18, 19, 22, 0.96) !important;
+    backdrop-filter: blur(20px);
 }
 
 html:not(.light) .lshorter-toast-title,
 html.dark .lshorter-toast-title {
-  color: #FFFFFF !important;
-  font-weight: 600 !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
 }
 
 html:not(.light) .lshorter-toast-msg,
 html.dark .lshorter-toast-msg {
-  color: #D4D4D8 !important;
-  font-weight: 400 !important;
+    color: #d4d4d8 !important;
+    font-weight: 400 !important;
 }
 
 html:not(.light) .lshorter-toast-close,
 html.dark .lshorter-toast-close {
-  color: #A1A1AA !important;
+    color: #a1a1aa !important;
 }
 html:not(.light) .lshorter-toast-close:hover,
 html.dark .lshorter-toast-close:hover {
-  color: #FFFFFF !important;
-  background-color: rgba(255, 255, 255, 0.12) !important;
+    color: #ffffff !important;
+    background-color: rgba(255, 255, 255, 0.12) !important;
 }
 
 /* Dark Mode Badges & Borders */
 html:not(.light) .lshorter-toast-success,
 html.dark .lshorter-toast-success {
-  border: 1px solid rgba(16, 185, 129, 0.35) !important;
-  border-left: 4px solid #10B981 !important;
-  box-shadow: 0 16px 40px -4px rgba(0, 0, 0, 0.85),
-              0 0 22px -2px rgba(16, 185, 129, 0.22) !important;
+    border: 1px solid rgba(16, 185, 129, 0.35) !important;
+    border-left: 4px solid #10b981 !important;
+    box-shadow:
+        0 16px 40px -4px rgba(0, 0, 0, 0.85),
+        0 0 22px -2px rgba(16, 185, 129, 0.22) !important;
 }
 html:not(.light) .lshorter-toast-badge-success,
 html.dark .lshorter-toast-badge-success {
-  background-color: rgba(16, 185, 129, 0.16) !important;
-  border: 1.5px solid rgba(16, 185, 129, 0.8) !important;
-  color: #34D399 !important;
+    background-color: rgba(16, 185, 129, 0.16) !important;
+    border: 1.5px solid rgba(16, 185, 129, 0.8) !important;
+    color: #34d399 !important;
 }
 
 html:not(.light) .lshorter-toast-error,
 html.dark .lshorter-toast-error {
-  border: 1px solid rgba(239, 68, 68, 0.35) !important;
-  border-left: 4px solid #EF4444 !important;
-  box-shadow: 0 16px 40px -4px rgba(0, 0, 0, 0.85),
-              0 0 22px -2px rgba(239, 68, 68, 0.22) !important;
+    border: 1px solid rgba(239, 68, 68, 0.35) !important;
+    border-left: 4px solid #ef4444 !important;
+    box-shadow:
+        0 16px 40px -4px rgba(0, 0, 0, 0.85),
+        0 0 22px -2px rgba(239, 68, 68, 0.22) !important;
 }
 html:not(.light) .lshorter-toast-badge-error,
 html.dark .lshorter-toast-badge-error {
-  background-color: rgba(239, 68, 68, 0.16) !important;
-  border: 1.5px solid rgba(239, 68, 68, 0.8) !important;
-  color: #F87171 !important;
+    background-color: rgba(239, 68, 68, 0.16) !important;
+    border: 1.5px solid rgba(239, 68, 68, 0.8) !important;
+    color: #f87171 !important;
 }
 
 html:not(.light) .lshorter-toast-info,
 html.dark .lshorter-toast-info {
-  border: 1px solid rgba(14, 165, 233, 0.35) !important;
-  border-left: 4px solid #0EA5E9 !important;
-  box-shadow: 0 16px 40px -4px rgba(0, 0, 0, 0.85),
-              0 0 22px -2px rgba(14, 165, 233, 0.22) !important;
+    border: 1px solid rgba(14, 165, 233, 0.35) !important;
+    border-left: 4px solid #0ea5e9 !important;
+    box-shadow:
+        0 16px 40px -4px rgba(0, 0, 0, 0.85),
+        0 0 22px -2px rgba(14, 165, 233, 0.22) !important;
 }
 html:not(.light) .lshorter-toast-badge-info,
 html.dark .lshorter-toast-badge-info {
-  background-color: rgba(14, 165, 233, 0.16) !important;
-  border: 1.5px solid rgba(14, 165, 233, 0.8) !important;
-  color: #38BDF8 !important;
+    background-color: rgba(14, 165, 233, 0.16) !important;
+    border: 1.5px solid rgba(14, 165, 233, 0.8) !important;
+    color: #38bdf8 !important;
 }
 
 html:not(.light) .lshorter-toast-upgrade,
 html.dark .lshorter-toast-upgrade {
-  border: 1px solid rgba(255, 102, 0, 0.35) !important;
-  border-left: 4px solid #FF6600 !important;
-  box-shadow: 0 16px 40px -4px rgba(0, 0, 0, 0.85),
-              0 0 22px -2px rgba(255, 102, 0, 0.25) !important;
+    border: 1px solid rgba(255, 102, 0, 0.35) !important;
+    border-left: 4px solid #ff6600 !important;
+    box-shadow:
+        0 16px 40px -4px rgba(0, 0, 0, 0.85),
+        0 0 22px -2px rgba(255, 102, 0, 0.25) !important;
 }
 html:not(.light) .lshorter-toast-badge-upgrade,
 html.dark .lshorter-toast-badge-upgrade {
-  background-color: rgba(255, 102, 0, 0.16) !important;
-  border: 1.5px solid rgba(255, 102, 0, 0.8) !important;
-  color: #FF6600 !important;
+    background-color: rgba(255, 102, 0, 0.16) !important;
+    border: 1.5px solid rgba(255, 102, 0, 0.8) !important;
+    color: #ff6600 !important;
 }
 
 /* Custom Scrollbar for framed canvases and lists */
 .custom-scroll::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+    width: 6px;
+    height: 6px;
 }
 .custom-scroll::-webkit-scrollbar-track {
-  background: transparent;
+    background: transparent;
 }
 .custom-scroll::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.12);
-  border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 9999px;
 }
 .custom-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.25);
 }
-
-
-
