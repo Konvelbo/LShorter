@@ -34,10 +34,7 @@ export default function PricingPage() {
   const currentPlan = convexUser?.plan || (session?.user as any)?.plan || "FREEMIUM";
   const [isAnnual, setIsAnnual] = useState(false);
   const cardsContainerRef = useRef<HTMLDivElement>(null);
-
-  if (status === "loading") {
-    return <PricingPageSkeleton />;
-  }
+  const updatePlanMutation = useMutation(api.users.updatePlan);
 
   useEffect(() => {
     if (cardsContainerRef.current) {
@@ -55,6 +52,10 @@ export default function PricingPage() {
       );
     }
   }, []);
+
+  if (status === "loading") {
+    return <PricingPageSkeleton />;
+  }
 
   const handleCardMouseEnter = (e: React.MouseEvent<HTMLDivElement>, isPopular: boolean) => {
     gsap.to(e.currentTarget, {
@@ -97,8 +98,6 @@ export default function PricingPage() {
       ease: "power1.out",
     });
   };
-
-  const updatePlanMutation = useMutation(api.users.updatePlan);
 
   const handleSelectPlan = async (plan: PlanType) => {
     if (currentPlan === plan) {

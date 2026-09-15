@@ -62,8 +62,12 @@ export function Topbar() {
   };
 
   React.useEffect(() => {
-    const update = () => {
-      if (typeof window !== "undefined") {
+    const update = (e?: Event) => {
+      const detail = (e as CustomEvent)?.detail;
+      const planFromEvent = detail?.plan as string | undefined;
+      if (planFromEvent) {
+        setLocalPlan(planFromEvent.toUpperCase());
+      } else if (typeof window !== "undefined") {
         setLocalPlan(localStorage.getItem("lshorter_user_plan"));
       }
     };
@@ -72,7 +76,19 @@ export function Topbar() {
     return () => window.removeEventListener("lshorter_plan_updated", update);
   }, []);
 
-  // Dynamic Route Breadcrumb calculation
+  // ── Sync localStorage with Convex DB when it loads (DB is source of truth) ──
+  React.useEffect(() => {
+    if (convexUser?.plan) {
+      const dbPlan = convexUser.plan.toUpperCase();
+      setLocalPlan(dbPlan);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("lshorter_user_plan", dbPlan);
+      }
+    }
+  }, [convexUser?.plan]);
+
+  // Convex DB is the source of truth — localPlan is only used before Convex loads
+  const plan = (convexUser?.plan || localPlan || (session?.user as any)?.plan || "FREEMIUM").toUpperCase();
   const routeSegments = useMemo(() => {
     if (!pathname || pathname === "/dashboard") {
       return [{ label: "DASHBOARD", href: "/dashboard", isCurrent: true }];
@@ -108,7 +124,6 @@ export function Topbar() {
     return crumbs;
   }, [pathname]);
 
-  const plan = (localPlan || convexUser?.plan || (session?.user as any)?.plan || "FREEMIUM").toUpperCase();
   const name = convexUser?.name || session?.user?.name || "My Account";
   const email = convexUser?.email || session?.user?.email || "";
   const avatarUrl = convexUser?.avatarUrl || (session?.user as any)?.avatarUrl || session?.user?.image || "";

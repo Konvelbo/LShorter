@@ -1111,3 +1111,8 @@ html.dark .lshorter-toast-badge-upgrade {
 .custom-scroll::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.25);
 }
+
+/* Drawer tabs — completely hide scrollbar (drag-to-scroll only) */
+.drawer-tabs-scroll::-webkit-scrollbar {
+    display: none;
+}

@@ -179,6 +179,8 @@ export function LinkDrawer({
     userPlan === "PRO" || userPlan === "BUSINESS" || userPlan === "ENTERPRISE";
 
   const bannerInputRef = useRef<HTMLInputElement>(null);
+  const tabsScrollRef = useRef<HTMLDivElement>(null);
+  const tabsDragRef = useRef({ isDragging: false, startX: 0, scrollLeft: 0 });
 
   // Active Tab
   const [activeTab, setActiveTab] = useState<
@@ -1154,7 +1156,7 @@ export function LinkDrawer({
                   }
                 }}
                 className={cn(
-                  "bg-[#141416] border-[#27272a] focus:border-[#ff6600] max-sm:focus:border-blue-500 text-white text-xs h-9 sm:h-10 rounded-[8px] font-mono",
+                  "bg-[#141416] border-[#27272a] focus:border-[#ff6600] max-sm:focus:border-blue-500 text-white text-xs h-9 sm:h-10 rounded-[8px]",
                   fieldErrors.targetUrl && "border-red-500/60 bg-red-500/5",
                 )}
               />
@@ -1187,7 +1189,7 @@ export function LinkDrawer({
                       }
                     }}
                     className={cn(
-                      "w-full appearance-none bg-[#141416] border border-[#27272a] focus:border-[#ff6600] max-sm:focus:border-blue-500 text-white text-xs h-9 sm:h-10 pl-3 pr-8 rounded-[8px] font-mono transition-colors cursor-pointer outline-none",
+                      "w-full appearance-none bg-[#141416] border border-[#27272a] focus:border-[#ff6600] max-sm:focus:border-blue-500 text-white text-xs h-9 sm:h-10 pl-3 pr-8 rounded-[8px] transition-colors cursor-pointer outline-none",
                       isEditMode && "opacity-60 cursor-not-allowed",
                       fieldErrors.domainName &&
                         "border-red-500/60 bg-red-500/5",
@@ -1274,14 +1276,14 @@ export function LinkDrawer({
                       }
                     }}
                     className={cn(
-                      "pl-6 bg-[#141416] border-[#27272a] focus:border-[#ff6600] max-sm:focus:border-blue-500 text-white text-xs h-9 sm:h-10 rounded-[8px] font-mono",
+                      "pl-6 bg-[#141416] border-[#27272a] focus:border-[#ff6600] max-sm:focus:border-blue-500 text-white text-xs h-9 sm:h-10 rounded-[8px]",
                       fieldErrors.slug && "border-red-500/60 bg-red-500/5",
                     )}
                   />
                 </div>
                 <FieldErrorAlert message={fieldErrors.slug} />
                 {(domainName || slug) && (
-                  <p className="text-[10px] text-neutral-400 mt-1 font-mono">
+                  <p className="text-[10px] text-neutral-400 mt-1">
                     <span className="text-[#ff6600] max-sm:text-blue-400 font-bold">
                       {domainName || "..."}/{slug || "..."}
                     </span>
@@ -1291,42 +1293,98 @@ export function LinkDrawer({
             </div>
           </div>
 
-          {/* ── 7 HORIZONTAL TABS ── */}
-          <div
-            className="drawer-tabs-scroll flex items-center gap-1 overflow-x-auto pb-1 -mb-[1px]"
-            style={{
-              scrollbarWidth: "thin",
-              scrollbarColor: "rgba(255,102,0,0.6) transparent",
-            }}
-          >
-            {[
-              { id: "general", label: "General", icon: Settings2 },
-              { id: "social", label: "Social Preview", icon: ImageIcon },
-              { id: "tracking", label: "Tracking & UTM", icon: Tag },
-              { id: "routing", label: "Routing (Rules)", icon: Globe2 },
-              { id: "protection", label: "Protection & Expiry", icon: Shield },
-              { id: "ab_testing", label: "A/B Testing", icon: Split },
-              { id: "advanced", label: "Advanced", icon: Sliders },
-            ].map((tab) => {
-              const Icon = tab.icon;
-              const isActiveTab = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setActiveTab(tab.id as any)}
-                  className={cn(
-                    "px-3 py-2 text-xs font-semibold whitespace-nowrap transition-all border-b-2 flex items-center gap-1.5 cursor-pointer shrink-0",
-                    isActiveTab
-                      ? "text-[#ff6600] max-sm:text-blue-500 border-[#ff6600] max-sm:border-blue-500 font-bold bg-[#ff6600]/5 max-sm:bg-blue-500/5 rounded-t-[6px]"
-                      : "text-neutral-400 hover:text-white border-transparent hover:border-neutral-700",
-                  )}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                  <span>{tab.label}</span>
-                </button>
-              );
-            })}
+          {/* ── 7 HORIZONTAL TABS (with left/right arrow scroll buttons) ── */}
+          <div className="relative flex items-center -mb-[1px]">
+            {/* Left arrow */}
+            <button
+              type="button"
+              aria-label="Scroll tabs left"
+              onClick={() => {
+                const el = tabsScrollRef.current;
+                if (el) el.scrollBy({ left: -120, behavior: "smooth" });
+              }}
+              className="shrink-0 w-6 h-8 flex items-center justify-center text-neutral-400 hover:text-white bg-[#141416] hover:bg-white/5 rounded-[6px] transition-colors border border-transparent hover:border-white/10 cursor-pointer z-10"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+
+            {/* Scrollable tabs */}
+            <div
+              ref={tabsScrollRef}
+              className="drawer-tabs-scroll flex items-center gap-1 overflow-x-auto pb-1 cursor-grab active:cursor-grabbing flex-1"
+              style={{ scrollbarWidth: "none", msOverflowStyle: "none" } as React.CSSProperties}
+              onMouseDown={(e) => {
+                const el = tabsScrollRef.current;
+                if (!el) return;
+                tabsDragRef.current = { isDragging: true, startX: e.pageX - el.offsetLeft, scrollLeft: el.scrollLeft };
+                el.style.userSelect = "none";
+              }}
+              onMouseMove={(e) => {
+                const drag = tabsDragRef.current;
+                const el = tabsScrollRef.current;
+                if (!drag.isDragging || !el) return;
+                e.preventDefault();
+                const x = e.pageX - el.offsetLeft;
+                const walk = (x - drag.startX) * 1.2;
+                el.scrollLeft = drag.scrollLeft - walk;
+              }}
+              onMouseUp={() => {
+                const el = tabsScrollRef.current;
+                tabsDragRef.current.isDragging = false;
+                if (el) el.style.userSelect = "";
+              }}
+              onMouseLeave={() => {
+                const el = tabsScrollRef.current;
+                tabsDragRef.current.isDragging = false;
+                if (el) el.style.userSelect = "";
+              }}
+            >
+              {[
+                { id: "general", label: "General", icon: Settings2 },
+                { id: "social", label: "Social Preview", icon: ImageIcon },
+                { id: "tracking", label: "Tracking & UTM", icon: Tag },
+                { id: "routing", label: "Routing (Rules)", icon: Globe2 },
+                { id: "protection", label: "Protection & Expiry", icon: Shield },
+                { id: "ab_testing", label: "A/B Testing", icon: Split },
+                { id: "advanced", label: "Advanced", icon: Sliders },
+              ].map((tab) => {
+                const Icon = tab.icon;
+                const isActiveTab = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setActiveTab(tab.id as any)}
+                    className={cn(
+                      "px-3 py-2 text-xs font-semibold whitespace-nowrap transition-all border-b-2 flex items-center gap-1.5 cursor-pointer shrink-0 hover:scale-105 active:scale-95",
+                      isActiveTab
+                        ? "text-[#ff6600] max-sm:text-blue-500 border-[#ff6600] max-sm:border-blue-500 font-bold bg-[#ff6600]/5 max-sm:bg-blue-500/5 rounded-t-[6px]"
+                        : "text-neutral-400 hover:text-white border-transparent hover:border-neutral-700",
+                    )}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    <span>{tab.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Right arrow */}
+            <button
+              type="button"
+              aria-label="Scroll tabs right"
+              onClick={() => {
+                const el = tabsScrollRef.current;
+                if (el) el.scrollBy({ left: 120, behavior: "smooth" });
+              }}
+              className="shrink-0 w-6 h-8 flex items-center justify-center text-neutral-400 hover:text-white bg-[#141416] hover:bg-white/5 rounded-[6px] transition-all hover:scale-110 active:scale-90 border border-transparent hover:border-white/10 cursor-pointer z-10"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
           </div>
         </div>
 

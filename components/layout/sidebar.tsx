@@ -132,8 +132,12 @@ export function Sidebar() {
   const [localPlan, setLocalPlan] = useState<string | null>(null);
 
   useEffect(() => {
-    const update = () => {
-      if (typeof window !== "undefined") {
+    const update = (e?: Event) => {
+      const detail = (e as CustomEvent)?.detail;
+      const planFromEvent = detail?.plan as string | undefined;
+      if (planFromEvent) {
+        setLocalPlan(planFromEvent.toUpperCase());
+      } else if (typeof window !== "undefined") {
         setLocalPlan(localStorage.getItem("lshorter_user_plan"));
       }
     };
@@ -142,10 +146,22 @@ export function Sidebar() {
     return () => window.removeEventListener("lshorter_plan_updated", update);
   }, []);
 
+  // ── Sync localStorage with Convex DB when it loads (DB is source of truth) ──
+  useEffect(() => {
+    if (convexUser?.plan) {
+      const dbPlan = convexUser.plan.toUpperCase();
+      setLocalPlan(dbPlan);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("lshorter_user_plan", dbPlan);
+      }
+    }
+  }, [convexUser?.plan]);
+
   const [imgError, setImgError] = useState(false);
   const avatarUrl = convexUser?.avatarUrl || (session?.user as any)?.avatarUrl || session?.user?.image || "";
   const name = convexUser?.name || session?.user?.name || "Workspace";
-  const plan = (localPlan || convexUser?.plan || (session?.user as any)?.plan || "FREEMIUM").toUpperCase();
+  // Convex DB is the source of truth — localPlan is only used before Convex loads
+  const plan = (convexUser?.plan || localPlan || (session?.user as any)?.plan || "FREEMIUM").toUpperCase();
   const clicksThisMonth = typeof liveClicks === "number" ? liveClicks : 0;
   const clicksLimit = plan === "BUSINESS" ? -1 : plan === "PRO" ? 1_000_000 : 100_000;
   const percentage =

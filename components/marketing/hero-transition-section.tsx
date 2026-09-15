@@ -34,6 +34,7 @@ import { TextType } from "@/components/ui/text-type";
 import PlasmaWave from "./plasma-wave";
 import { motion, useScroll, useTransform, useSpring } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { Avatar, AvatarImage } from "../ui/avatar";
 
 export function HeroTransitionSection() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -592,13 +593,18 @@ export function HeroTransitionSection() {
                     <Bell className="w-4 h-4 text-neutral-300" />
                     <span className="absolute top-2 right-2 w-2 h-2 bg-[#ff6600] rounded-full ring-2 ring-[#141416]" />
                   </div>
-                  <div className="flex items-center gap-2.5 pl-1.5 pr-3 py-1 rounded-[10px] bg-[#141416] border border-[#27272a] shadow-sm">
+                  <div className="hidden flex items-center gap-2.5 pl-1.5 pr-3 py-1 rounded-[10px] bg-[#141416] border border-[#27272a] shadow-sm">
                     <div className="w-7.5 h-7.5 rounded-[8px] bg-[#ff6600] text-white font-bold text-xs flex items-center justify-center shrink-0 border border-white/10">
-                      LM
+                      <Avatar>
+                        <AvatarImage
+                          src="https://github.com/shadcn.png"
+                          alt="Admin"
+                        />
+                      </Avatar>
                     </div>
                     <div className="flex flex-col text-left min-w-0">
                       <span className="text-xs font-bold text-white tracking-tight leading-tight">
-                        LUCKY-MAN
+                        Admin
                       </span>
                       <span className="text-[9.5px] text-neutral-400 uppercase font-semibold leading-none mt-0.5">
                         PRO Plan
@@ -1000,7 +1006,7 @@ export function HeroTransitionSection() {
                                 targetUrl:
                                   "https://mon-entreprise.com/offre-speciale-q3",
                                 clicks: "84,200",
-                                user: "Lucky Man",
+                                user: "Admin",
                                 email: "lm@lshorter.io",
                               },
                               {
@@ -1010,7 +1016,7 @@ export function HeroTransitionSection() {
                                 targetUrl:
                                   "https://ressources.io/growth-mastery-v2.pdf",
                                 clicks: "31,200",
-                                user: "Lucky Man",
+                                user: "Admin",
                                 email: "lm@lshorter.io",
                               },
                               {
@@ -1020,7 +1026,7 @@ export function HeroTransitionSection() {
                                 targetUrl:
                                   "https://drive.corporate.com/bilan-confidentiel-q3",
                                 clicks: "13,020",
-                                user: "Lucky Man",
+                                user: "Admin",
                                 email: "lm@lshorter.io",
                               },
                             ].map((link) => (

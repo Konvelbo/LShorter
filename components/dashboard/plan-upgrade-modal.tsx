@@ -23,7 +23,7 @@ import { syncUserToCloudflare } from "@/app/actions/sync-user";
 import confetti from "canvas-confetti";
 
 export function PlanUpgradeModal() {
-  const { data: session } = useSession();
+  const { data: session, update: updateSession } = useSession();
   const userId = session?.user?.id || "";
   const currentPlan = (session?.user as any)?.plan || "FREEMIUM";
 
@@ -68,9 +68,14 @@ export function PlanUpgradeModal() {
       }
 
       if (typeof window !== "undefined") {
+        // 3. Persist plan in localStorage
         localStorage.setItem("lshorter_user_plan", targetPlan);
-        window.dispatchEvent(new Event("lshorter_plan_updated"));
+        // 4. Notify all components with the new plan in the event detail
+        window.dispatchEvent(new CustomEvent("lshorter_plan_updated", { detail: { plan: targetPlan } }));
       }
+
+      // 5. Force NextAuth session refresh so session.user.plan is up to date
+      try { await updateSession({ plan: targetPlan }); } catch {}
 
       confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
       showToast.success(`Congratulations! You are now on the ${targetPlan} plan.`);
