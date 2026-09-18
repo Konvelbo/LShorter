@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { WobbleCard } from "@/components/ui/wobble-card";
@@ -10,24 +10,26 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 export function WobbleCardSection() {
+  const headerRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     gsap.registerPlugin(ScrollTrigger);
 
-    const header = document.querySelector(".wobble-section-header");
-    if (header) {
+    if (headerRef.current) {
       gsap.fromTo(
-        header,
-        { opacity: 0, y: 25 },
+        headerRef.current,
+        { opacity: 0, y: 30 },
         {
           opacity: 1,
           y: 0,
           duration: 0.7,
           ease: "power2.out",
           scrollTrigger: {
-            trigger: header,
+            trigger: headerRef.current,
             start: "top 88%",
-            once: true,
+            end: "bottom 12%",
+            toggleActions: "play reverse play reverse",
           },
         }
       );
@@ -35,12 +37,7 @@ export function WobbleCardSection() {
 
     return () => {
       ScrollTrigger.getAll().forEach((st) => {
-        if (
-          st.trigger &&
-          (st.trigger as HTMLElement).classList?.contains(
-            "wobble-section-header"
-          )
-        ) {
+        if (st.trigger && st.trigger === headerRef.current) {
           st.kill();
         }
       });
@@ -54,7 +51,10 @@ export function WobbleCardSection() {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         {/* Section Header */}
-        <div className="wobble-section-header text-center max-w-2xl mx-auto mb-10 sm:mb-14 flex flex-col items-center justify-center">
+        <div
+          ref={headerRef}
+          className="wobble-section-header text-center max-w-2xl mx-auto mb-10 sm:mb-14 flex flex-col items-center justify-center will-change-transform"
+        >
           <span className="text-[11px] font-mono text-brand uppercase tracking-widest font-semibold block mb-2 select-none">
             04. Modern SaaS Architecture
           </span>

@@ -60,7 +60,7 @@ export function FaqSection() {
     if (headerRef.current) {
       gsap.fromTo(
         headerRef.current,
-        { opacity: 0, y: 25 },
+        { opacity: 0, y: 30 },
         {
           opacity: 1,
           y: 0,
@@ -68,8 +68,9 @@ export function FaqSection() {
           ease: "power2.out",
           scrollTrigger: {
             trigger: headerRef.current,
-            start: "top 90%",
-            toggleActions: "play none none reverse",
+            start: "top 88%",
+            end: "bottom 12%",
+            toggleActions: "play reverse play reverse",
           },
         }
       );
@@ -110,7 +111,7 @@ export function FaqSection() {
 
       <div className="max-w-4xl lg:max-w-5xl mx-auto relative z-10">
         {/* Section Header */}
-        <div ref={headerRef} className="text-center mb-10 sm:mb-14 flex flex-col items-center justify-center">
+        <div ref={headerRef} className="text-center mb-10 sm:mb-14 flex flex-col items-center justify-center will-change-transform">
           <span className="text-[11px] font-mono text-brand uppercase tracking-widest font-semibold block mb-2 select-none">
             07. Frequently Asked Questions
           </span>

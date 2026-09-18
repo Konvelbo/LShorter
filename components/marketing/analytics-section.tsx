@@ -64,6 +64,7 @@ const hubConnections: Array<{ from: [number, number]; to: [number, number] }> = 
 export function AnalyticsSection() {
   const sectionRef = useRef<HTMLElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
   const [viewType, setViewType] = useState<"map" | "globe">("map");
   const [selectedCountry, setSelectedCountry] = useState<CountryPoint>(sampleCountries[0]);
   const [hoveredCountry, setHoveredCountry] = useState<CountryPoint | null>(null);
@@ -95,20 +96,20 @@ export function AnalyticsSection() {
     const observer = new MutationObserver(checkResponsive);
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
 
-    const header = document.querySelector(".analytics-header");
-    if (header) {
+    if (headerRef.current) {
       gsap.fromTo(
-        header,
-        { opacity: 0, y: 25 },
+        headerRef.current,
+        { opacity: 0, y: 30 },
         {
           opacity: 1,
           y: 0,
           duration: 0.7,
           ease: "power2.out",
           scrollTrigger: {
-            trigger: header,
+            trigger: headerRef.current,
             start: "top 88%",
-            once: true,
+            end: "bottom 12%",
+            toggleActions: "play reverse play reverse",
           },
         }
       );
@@ -159,7 +160,7 @@ export function AnalyticsSection() {
       ScrollTrigger.getAll().forEach((st) => {
         if (
           st.trigger &&
-          ((st.trigger as HTMLElement).classList?.contains("analytics-header") ||
+          (st.trigger === headerRef.current ||
             (st.trigger as HTMLElement).classList?.contains("analytics-metrics-grid") ||
             st.trigger === cardRef.current)
         ) {
@@ -179,7 +180,10 @@ export function AnalyticsSection() {
     >
       <div className="max-w-6xl mx-auto">
         {/* Section Header */}
-        <div className="analytics-header text-center max-w-2xl mx-auto mb-6 sm:mb-8">
+        <div
+          ref={headerRef}
+          className="analytics-header text-center max-w-2xl mx-auto mb-6 sm:mb-8 will-change-transform"
+        >
           <span className="text-[11px] font-mono text-brand uppercase tracking-widest font-semibold block mb-2 select-none">
             05. Real-Time Analytics
           </span>

@@ -96,13 +96,17 @@ export function HeroTransitionSection() {
   );
   const desktopY = useTransform(smoothProgress, [0.05, 0.45], [0, -80]);
 
-  // 4. Section 2 Header: Fades in between 0.35 and 0.50 once the frame arrives in Section 2
+  // 4. Section 2 Header: Reversible scroll appearance animation (fades in on scroll from hero, reverses back, and fades out when transitioning to section 3)
   const section2HeaderOpacity = useTransform(
     smoothProgress,
-    [0.35, 0.5],
-    [0, 1],
+    [0.28, 0.46, 0.88, 0.98],
+    [0, 1, 1, 0]
   );
-  const section2HeaderY = useTransform(smoothProgress, [0.35, 0.5], [15, 0]);
+  const section2HeaderY = useTransform(
+    smoothProgress,
+    [0.28, 0.46, 0.88, 0.98],
+    [20, 0, 0, -20]
+  );
 
   // Subtitle rotation animation
   const [subtitleIdx, setSubtitleIdx] = useState(0);

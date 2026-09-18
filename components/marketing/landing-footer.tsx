@@ -8,7 +8,7 @@ import { motion, useInView } from "framer-motion";
 export function LandingFooter() {
   const currentYear = new Date().getFullYear();
   const footerRef = useRef<HTMLElement>(null);
-  const isInView = useInView(footerRef, { once: true, margin: "-80px" });
+  const isInView = useInView(footerRef, { once: false, margin: "-80px" });
 
   const scrollToTop = () => {
     if (typeof window !== "undefined") {

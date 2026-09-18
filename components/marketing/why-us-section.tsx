@@ -1,6 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useRef } from "react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import {
   Zap,
   Layers,
@@ -134,6 +136,65 @@ const stackCards: StackCard[] = [
 ];
 
 export function WhyUsSection() {
+  const headerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    gsap.registerPlugin(ScrollTrigger);
+
+    if (headerRef.current) {
+      gsap.fromTo(
+        headerRef.current,
+        { opacity: 0, y: 30 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.7,
+          ease: "power2.out",
+          scrollTrigger: {
+            trigger: headerRef.current,
+            start: "top 88%",
+            end: "bottom 12%",
+            toggleActions: "play reverse play reverse",
+          },
+        }
+      );
+    }
+
+    const cards = document.querySelectorAll(".why-us-stack-card");
+    cards.forEach((card, idx) => {
+      gsap.fromTo(
+        card,
+        { opacity: 0, y: 45, scale: 0.96 },
+        {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          duration: 0.65,
+          delay: idx * 0.08,
+          ease: "power2.out",
+          scrollTrigger: {
+            trigger: card,
+            start: "top 88%",
+            toggleActions: "play none none reverse",
+          },
+        }
+      );
+    });
+
+    return () => {
+      ScrollTrigger.getAll().forEach((st) => {
+        if (
+          st.trigger &&
+          ((st.trigger as HTMLElement).classList?.contains("why-us-stack-card") ||
+            st.trigger === headerRef.current)
+        ) {
+          st.kill();
+        }
+      });
+    };
+  }, []);
+
   return (
     <section className="relative py-20 sm:py-28 lg:py-32 bg-[#F2ECE4]/40 dark:bg-[#09090b] border-y border-[#E7DFD5] dark:border-white/5 overflow-visible">
       {/* Background ambient lighting */}
@@ -141,7 +202,10 @@ export function WhyUsSection() {
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Section Header */}
-        <div className="text-center max-w-2xl mx-auto mb-14 sm:mb-20 flex flex-col items-center justify-center">
+        <div
+          ref={headerRef}
+          className="why-us-header text-center max-w-2xl mx-auto mb-14 sm:mb-20 flex flex-col items-center justify-center will-change-transform"
+        >
           <span className="text-[11px] font-mono text-brand uppercase tracking-widest font-semibold block mb-2 select-none">
             06. Why Choose LShorter
           </span>
@@ -165,7 +229,7 @@ export function WhyUsSection() {
                 total={stackCards.length}
                 topOffset={95}
                 stackGap={32}
-                className="w-full"
+                className="w-full why-us-stack-card will-change-transform"
               >
                 <div
                   className="relative rounded-[22px] sm:rounded-[28px] lg:rounded-[32px] bg-[#FFFDF9] dark:bg-[#141418] border border-[#E7DFD5] dark:border-white/10 p-6 sm:p-8 md:p-10 lg:p-12 min-h-[380px] sm:min-h-[440px] lg:min-h-[480px] shadow-[0_20px_50px_-12px_rgba(43,37,32,0.18)] dark:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.95)] overflow-hidden transition-all duration-300 hover:border-[#DDD1C4] dark:hover:border-white/20 flex flex-col justify-between"

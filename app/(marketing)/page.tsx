@@ -34,7 +34,7 @@ const FaqSection = dynamic(
 
 export default function LandingPage() {
   return (
-    <main className="flex flex-col">
+    <main className="flex flex-col w-full max-w-full overflow-x-clip">
       {/* Section 1 & Section 2: Seamless Hero -> 2nd Section Parallax Scale Transition */}
       <HeroTransitionSection />
 
