@@ -69,8 +69,7 @@ export function FaqSection() {
           scrollTrigger: {
             trigger: headerRef.current,
             start: "top 90%",
-            end: "bottom top",
-            toggleActions: "play reverse play reverse",
+            toggleActions: "play none none reverse",
           },
         }
       );
@@ -89,8 +88,7 @@ export function FaqSection() {
           scrollTrigger: {
             trigger: cardRef.current,
             start: "top 88%",
-            end: "bottom top",
-            toggleActions: "play reverse play reverse",
+            toggleActions: "play none none reverse",
           },
         }
       );
