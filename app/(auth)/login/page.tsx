@@ -49,7 +49,6 @@ export default function LoginPage({
   const [showSignupPIN, setShowSignupPIN] = useState(false);
   const [signupPin, setSignupPin] = useState("");
   const [signupCountdown, setSignupCountdown] = useState(0);
-  const [devPinHint, setDevPinHint] = useState<string | null>(null);
 
   // Sync mode with URL parameter if present
   useEffect(() => {
@@ -155,15 +154,8 @@ export default function LoginPage({
 
         setShowSignupPIN(true);
         setSignupCountdown(60);
-        if (res.isDevFallback && res.message) {
-          setDevPinHint(res.message);
-        } else {
-          setDevPinHint(null);
-        }
         showToast.success(
-          res.isDevFallback
-            ? "Activation PIN generated (test mode)!"
-            : "A 6-digit validation PIN has been sent to your email!"
+          "A 6-digit validation PIN has been sent to your email!"
         );
         setIsLoading(false);
         return;
@@ -321,11 +313,7 @@ export default function LoginPage({
 
       if (res.success) {
         setSignupCountdown(60);
-        showToast.success(
-          res.isDevFallback
-            ? "New PIN code generated (test mode)!"
-            : "New PIN code sent to your email!"
-        );
+        showToast.success("New PIN code sent to your email!");
       } else {
         showToast.error(res.message || "Error resending code.");
       }
@@ -569,11 +557,6 @@ export default function LoginPage({
                 <p className="text-[11px] text-neutral-600 dark:text-neutral-400 max-w-xs leading-relaxed">
                   A 6-digit security PIN has been sent to <strong className="text-neutral-900 dark:text-white font-mono">{email}</strong>.
                 </p>
-                {devPinHint && (
-                  <div className="mt-2 p-2 rounded-[8px] bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-[11px] font-medium leading-relaxed">
-                    💡 {devPinHint}
-                  </div>
-                )}
               </div>
 
               <div>

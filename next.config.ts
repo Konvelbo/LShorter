@@ -4,6 +4,9 @@ const nextConfig: NextConfig = {
   compress: true,
   poweredByHeader: false,
   experimental: {
+    serverActions: {
+      allowedOrigins: ["lsho.cc", "www.lsho.cc", "localhost:3000"],
+    },
     optimizePackageImports: [
       "lucide-react",
       "gsap",

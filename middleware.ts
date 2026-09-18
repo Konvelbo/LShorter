@@ -6,7 +6,8 @@ export default auth((req) => {
   const { pathname } = req.nextUrl;
   const isAuthenticated = Boolean(req.auth);
   const user = req.auth?.user as any;
-  const hasCompletedOnboarding = user?.hasCompletedOnboarding;
+  const hasCompletedOnboarding =
+    user?.hasCompletedOnboarding ?? (req.auth as any)?.hasCompletedOnboarding ?? false;
 
   // Security Headers
   const response = NextResponse.next();

@@ -52,23 +52,10 @@ export async function sendPasswordResetPinAction({
     });
 
     if (!emailResult.success) {
-      console.warn("[PasswordReset] Email sending warning:", emailResult.error);
-      const isSandboxRestriction =
-        emailResult.error?.includes("testing email address") ||
-        emailResult.error?.includes("validation_error") ||
-        emailResult.error?.includes("only send testing emails");
-
-      if (isSandboxRestriction) {
-        return {
-          success: true,
-          message: `PIN code generated! (Resend test sandbox note: email deliverable to fiatechnologiecam@gmail.com only. Your test code is: ${pin})`,
-          isDevFallback: true,
-        };
-      }
-
+      console.error("[PasswordReset] Email sending failed:", emailResult.error);
       return {
         success: false,
-        message: emailResult.error || "Failed to send reset email.",
+        message: "Failed to send reset email. Please verify your email address or try again.",
       };
     }
 

@@ -74,19 +74,16 @@ export async function sendSignupPinAction({
     });
 
     if (!emailResult.success) {
-      console.warn("[SignupVerification] Email delivery warning:", emailResult.error);
+      console.error("[SignupVerification] Email delivery failed:", emailResult.error);
       return {
-        success: true,
-        message: `Activation PIN generated! (Security PIN code: ${pin})`,
-        isDevFallback: true,
-        email: cleanEmail,
+        success: false,
+        message: "Failed to send confirmation email. Please verify your email address or try again.",
       };
     }
 
     return {
       success: true,
       message: "A 6-digit verification PIN has been sent to your email!",
-      isDevFallback: emailResult.isDevFallback,
       email: cleanEmail,
     };
   } catch (err: any) {
