@@ -188,6 +188,7 @@ export async function uploadToBunny(
   const uploadUrl = `${storageEndpoint}/${encodeURIComponent(config.storageZoneName)}/${pathPart}`;
 
   try {
+    // 4-second timeout to prevent stalling link creation if Bunny is expired or slow
     const res = await fetch(uploadUrl, {
       method: "PUT",
       headers: {
@@ -195,15 +196,20 @@ export async function uploadToBunny(
         "Content-Type": detectedMime,
       },
       body: new Uint8Array(buffer),
+      signal: AbortSignal.timeout(4000),
     });
 
     if (!res.ok) {
       const errorText = await res.text().catch(() => res.statusText);
-      console.error(`[Bunny.net Upload Error HTTP ${res.status}]:`, errorText);
+      if (res.status === 401 || res.status === 402 || res.status === 403) {
+        console.warn(`[Bunny.net Storage]: Subscription expired or inactive (HTTP ${res.status}). Skipping external CDN upload.`);
+      } else {
+        console.warn(`[Bunny.net Upload Warning HTTP ${res.status}]:`, errorText);
+      }
       return {
         success: false,
         url: "",
-        error: `Erreur Bunny.net Storage (${res.status}): ${errorText}`,
+        error: `Bunny.net Storage (${res.status}): ${errorText}`,
       };
     }
 
@@ -280,10 +286,11 @@ export async function deleteFromBunny(pathOrUrl: string): Promise<boolean> {
       headers: {
         AccessKey: config.apiKey,
       },
+      signal: AbortSignal.timeout(3000),
     });
     return res.ok;
   } catch (err) {
-    console.error("[Bunny.net Delete Error]:", err);
+    console.warn("[Bunny.net Delete Notice]:", err);
     return false;
   }
 }

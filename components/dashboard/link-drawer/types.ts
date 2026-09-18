@@ -47,7 +47,7 @@ export const DRAWER_TABS: DrawerTabItem[] = [
     id: "tracking",
     label: "Tracking",
     icon: Tag,
-    isPro: true,
+    isPro: false,
     subtitle: "Configure UTM campaign tags and tracking pixels to measure conversions.",
   },
   {

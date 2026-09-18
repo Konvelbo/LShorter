@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { saveProtectedLink, getProtectedLink, getAllProtectedLinks } from "@/lib/protected-links-store";
 import { uploadToBunny } from "@/lib/bunny";
 import { invalidateBotResponseCache } from "@/app/r/[slug]/route";
+import { convex } from "@/lib/convex-server";
+import { api } from "@/convex/_generated/api";
 
 const WORKER_URL =
   process.env.NEXT_PUBLIC_BACKEND_API_URL ||
@@ -198,9 +200,17 @@ export async function POST(req: Request) {
         const uploadResult = await uploadToBunny(rawOg, { folder: "Banners" });
         if (uploadResult?.success && uploadResult.url) {
           sanitizedOgImage = uploadResult.url;
+        } else if (rawOg.length > 25000) {
+          // If Bunny is expired/inactive and image is large (>25KB), fallback to dynamic Edge OG endpoint
+          const bannerTitle = encodeURIComponent(body.ogTitle || body.metaTitle || body.slug || "LShorter");
+          sanitizedOgImage = `/api/og?title=${bannerTitle}`;
         }
       } catch (uploadErr) {
-        console.warn("[Links API] Failed to upload base64 ogImage to Bunny:", uploadErr);
+        console.warn("[Links API] Notice: Bunny upload skipped (plan expired or network error):", uploadErr);
+        if (rawOg.length > 25000) {
+          const bannerTitle = encodeURIComponent(body.ogTitle || body.metaTitle || body.slug || "LShorter");
+          sanitizedOgImage = `/api/og?title=${bannerTitle}`;
+        }
       }
     }
 
@@ -208,6 +218,26 @@ export async function POST(req: Request) {
       body.twitterCard ||
       body.twitter_card ||
       (sanitizedOgImage ? "summary_large_image" : "summary_large_image");
+
+    // Asynchronously sync link to Convex DB for ultra-reliable backup
+    if (body.slug && (body.targetUrl || body.target_url)) {
+      try {
+        convex.mutation(api.links.createLink, {
+          userId: body.userId || "usr_default",
+          slug: body.slug,
+          targetUrl: body.targetUrl || body.target_url,
+          domainName: body.domainName || "lsho.cc",
+          title: body.title || body.ogTitle || body.metaTitle || body.slug,
+          password: body.password || undefined,
+          cloaking: Boolean(body.isCloaked || body.is_cloaked),
+          expiresAt: body.expiresAt || body.expires_at || undefined,
+          maxClicks: body.maxClicks !== undefined ? Number(body.maxClicks) : undefined,
+          utmSource: body.utmSource || body.utm_source || undefined,
+          utmMedium: body.utmMedium || body.utm_medium || undefined,
+          utmCampaign: body.utmCampaign || body.utm_campaign || undefined,
+        }).catch(() => {});
+      } catch {}
+    }
 
     // 1. Forward to Cloudflare Worker D1 & KV
     const workerPayload = {

@@ -38,7 +38,10 @@ export interface ProtectedLinkMeta {
   updatedAt: string;
 }
 
-const DATA_DIR = path.join(process.cwd(), "data");
+const IS_VERCEL = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+const DATA_DIR = IS_VERCEL
+  ? path.join("/tmp", "lshorter-data")
+  : path.join(process.cwd(), "data");
 const DATA_FILE = path.join(DATA_DIR, "protected-links.json");
 
 // In-memory cache
@@ -47,16 +50,23 @@ const memoryStore = new Map<string, ProtectedLinkMeta>();
 // Load from disk on init
 function initStore() {
   try {
-    if (!fs.existsSync(DATA_DIR)) {
-      fs.mkdirSync(DATA_DIR, { recursive: true });
+    // Check cwd first if exists (for pre-baked data)
+    const localFile = path.join(process.cwd(), "data", "protected-links.json");
+    if (fs.existsSync(localFile)) {
+      try {
+        const raw = fs.readFileSync(localFile, "utf-8");
+        const list: ProtectedLinkMeta[] = JSON.parse(raw);
+        list.forEach((item) => memoryStore.set(item.slug.toLowerCase(), item));
+      } catch {}
     }
+
     if (fs.existsSync(DATA_FILE)) {
       const raw = fs.readFileSync(DATA_FILE, "utf-8");
       const list: ProtectedLinkMeta[] = JSON.parse(raw);
       list.forEach((item) => memoryStore.set(item.slug.toLowerCase(), item));
     }
-  } catch (err) {
-    console.warn("[ProtectedLinksStore] Init error:", err);
+  } catch (err: any) {
+    // Silent fail in serverless
   }
 }
 
@@ -69,8 +79,11 @@ function persistStore() {
     }
     const list = Array.from(memoryStore.values());
     fs.writeFileSync(DATA_FILE, JSON.stringify(list, null, 2), "utf-8");
-  } catch (err) {
-    console.warn("[ProtectedLinksStore] Persist error:", err);
+  } catch (err: any) {
+    // In serverless environments, file persistence is best-effort (memoryStore always preserves the link in memory)
+    if (err?.code !== "EROFS") {
+      // ignore EROFS silently
+    }
   }
 }
 

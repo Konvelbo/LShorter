@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -49,6 +49,53 @@ export default function LoginPage({
   const [showSignupPIN, setShowSignupPIN] = useState(false);
   const [signupPin, setSignupPin] = useState("");
   const [signupCountdown, setSignupCountdown] = useState(0);
+  const [pinDigits, setPinDigits] = useState<string[]>(["", "", "", "", "", ""]);
+  const pinInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  const handlePinDigitChange = (index: number, value: string) => {
+    const cleanChar = value.replace(/\D/g, "").slice(-1);
+    const newDigits = [...pinDigits];
+    newDigits[index] = cleanChar;
+    setPinDigits(newDigits);
+    setSignupPin(newDigits.join(""));
+
+    if (cleanChar && index < 5) {
+      pinInputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handlePinDigitKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Backspace") {
+      if (!pinDigits[index] && index > 0) {
+        pinInputRefs.current[index - 1]?.focus();
+      } else {
+        const newDigits = [...pinDigits];
+        newDigits[index] = "";
+        setPinDigits(newDigits);
+        setSignupPin(newDigits.join(""));
+      }
+    } else if (e.key === "ArrowLeft" && index > 0) {
+      e.preventDefault();
+      pinInputRefs.current[index - 1]?.focus();
+    } else if (e.key === "ArrowRight" && index < 5) {
+      e.preventDefault();
+      pinInputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handlePinPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    if (!pasted) return;
+    const newDigits = ["", "", "", "", "", ""];
+    for (let i = 0; i < pasted.length; i++) {
+      newDigits[i] = pasted[i];
+    }
+    setPinDigits(newDigits);
+    setSignupPin(pasted);
+    const targetIdx = Math.min(pasted.length, 5);
+    pinInputRefs.current[targetIdx]?.focus();
+  };
 
   // Sync mode with URL parameter if present
   useEffect(() => {
@@ -588,75 +635,104 @@ export default function LoginPage({
           )}
 
           {showSignupPIN ? (
-            /* Signup PIN Validation Form */
+            /* Signup PIN Validation Form - Style B (Pure Underline, No Card, Modern Typography) */
             <form
               onSubmit={handleVerifySignupPin}
-              className="flex flex-col gap-4 animate-in fade-in"
+              className="flex flex-col animate-in fade-in duration-300 w-full"
             >
-              <div className="flex flex-col items-center text-center gap-1.5 p-4 rounded-[12px] bg-white dark:bg-[#141418] border border-neutral-300 dark:border-[#27272a] shadow-xs">
-                <div className="w-11 h-11 rounded-[10px] bg-brand-light border border-brand-subtle flex items-center justify-center text-brand mb-1 shadow-xs">
-                  <KeyRound className="w-5 h-5" />
+              {/* Modern Typography Header */}
+              <div className="mb-7 text-left max-sm:text-center">
+                <div className="text-[11px] font-semibold text-brand uppercase tracking-widest mb-1.5">
+                  Security
                 </div>
-                <h3 className="text-sm font-bold text-neutral-900 dark:text-white">
-                  Account Verification
-                </h3>
-                <p className="text-[11px] text-neutral-600 dark:text-neutral-400 max-w-xs leading-relaxed">
-                  A 6-digit security PIN has been sent to <strong className="text-neutral-900 dark:text-white font-mono">{email}</strong>.
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-neutral-900 dark:text-white mb-2">
+                  Confirmation code
+                </h1>
+                <p className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed font-normal">
+                  A 6-digit verification code has been sent to{" "}
+                  <span className="font-semibold text-neutral-900 dark:text-white break-all">
+                    {email}
+                  </span>.
                 </p>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1.5 text-center">
-                  6-Digit Confirmation PIN
-                </label>
-                <Input
-                  required
-                  autoFocus
-                  maxLength={6}
-                  placeholder="000 000"
-                  value={signupPin}
-                  onChange={(e) => setSignupPin(e.target.value.replace(/\D/g, ""))}
-                  className="h-12 text-center font-mono text-2xl tracking-[0.35em] text-neutral-900 dark:text-white font-extrabold bg-white dark:bg-[#141416] border-neutral-300 dark:border-[#27272a] focus:border-brand rounded-[10px]"
-                />
-                <p className="text-[10.5px] text-neutral-500 text-center mt-1.5">
-                  ⏱️ PIN valid for 15 minutes
-                </p>
+              {/* 6 Underline OTP Input Slots */}
+              <div className="mb-7">
+                <div className="flex items-center justify-between gap-2 sm:gap-3 max-w-sm mx-auto">
+                  {[0, 1, 2, 3, 4, 5].map((idx) => (
+                    <input
+                      key={idx}
+                      ref={(el) => {
+                        pinInputRefs.current[idx] = el;
+                      }}
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={1}
+                      autoFocus={idx === 0}
+                      value={pinDigits[idx]}
+                      onChange={(e) => handlePinDigitChange(idx, e.target.value)}
+                      onKeyDown={(e) => handlePinDigitKeyDown(idx, e)}
+                      onPaste={handlePinPaste}
+                      className={cn(
+                        "w-10 sm:w-12 h-14 sm:h-16 text-center text-2xl sm:text-3xl font-bold bg-transparent border-b-2 outline-none transition-all duration-150 select-none",
+                        pinDigits[idx]
+                          ? "border-brand text-neutral-900 dark:text-white"
+                          : "border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-white focus:border-brand"
+                      )}
+                    />
+                  ))}
+                </div>
+                <div className="flex items-center justify-center gap-1.5 mt-3.5 text-[11px] text-neutral-500 dark:text-neutral-400">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>Code valid for 15 minutes</span>
+                </div>
               </div>
 
-              <Button
+              {/* Action Button - Style B (High-contrast, sleek modern styling in light & dark) */}
+              <button
                 type="submit"
                 disabled={isLoading || signupPin.trim().length !== 6}
-                className="w-full h-11 bg-brand hover:bg-brand-hover text-white text-xs font-bold rounded-[10px] shadow-md transition-all cursor-pointer"
+                className="w-full h-11 sm:h-12 bg-neutral-900 hover:bg-neutral-800 text-white dark:bg-white dark:hover:bg-neutral-100 dark:text-black font-semibold text-xs sm:text-sm rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 shadow-sm active:scale-[0.99] disabled:opacity-50 mb-5"
               >
-                {isLoading ? "Activating account..." : "Verify & Activate Account"}
-              </Button>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Activating account...</span>
+                  </>
+                ) : (
+                  <span>Validate and continue →</span>
+                )}
+              </button>
 
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-xs pt-1">
+              {/* Clean Footer Links */}
+              <div className="flex items-center justify-between text-xs text-neutral-500 dark:text-neutral-400 px-1">
                 <button
                   type="button"
                   disabled={signupCountdown > 0 || isLoading}
                   onClick={handleResendSignupPin}
                   className={cn(
-                    "text-xs font-medium transition-colors cursor-pointer",
+                    "transition-colors cursor-pointer",
                     signupCountdown > 0
-                      ? "text-neutral-400 cursor-not-allowed"
-                      : "text-brand hover:underline"
+                      ? "text-neutral-400 dark:text-neutral-600 cursor-not-allowed"
+                      : "hover:text-neutral-900 dark:hover:text-white"
                   )}
                 >
                   {signupCountdown > 0
-                    ? `Resend PIN (${signupCountdown}s)`
-                    : "Resend a new PIN"}
+                    ? `Resend code (${signupCountdown}s)`
+                    : "Resend code"}
                 </button>
                 <button
                   type="button"
                   onClick={() => {
                     setShowSignupPIN(false);
                     setSignupPin("");
+                    setPinDigits(["", "", "", "", "", ""]);
                   }}
-                  className="text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white cursor-pointer flex items-center gap-1"
+                  className="hover:text-neutral-900 dark:hover:text-white transition-colors cursor-pointer flex items-center gap-1.5"
                 >
-                  <ArrowLeft className="w-3 h-3" />
-                  <span>Edit details</span>
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>Change email</span>
                 </button>
               </div>
             </form>

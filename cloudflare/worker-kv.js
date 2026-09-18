@@ -660,6 +660,21 @@ export default {
 
       // POST /api/v1/links (Create)
       if (method === 'POST') {
+        const sanitizeError = (err) => {
+          const msg = String(err?.message || err || '');
+          const lower = msg.toLowerCase();
+          if (lower.includes('idx_links_slug') || lower.includes('links.slug') || (lower.includes('unique') && lower.includes('slug'))) {
+            return 'Ce slug personnalisé est déjà utilisé. Veuillez en choisir un autre.';
+          }
+          if (lower.includes('foreign key') || lower.includes('sqlite_constraint_foreignkey')) {
+            return 'Erreur de synchronisation du compte utilisateur. Veuillez réessayer.';
+          }
+          if (lower.includes('d1_error') || lower.includes('sqlite') || lower.includes('syntax error')) {
+            return 'Une erreur interne est survenue lors de la création du lien. Veuillez réessayer.';
+          }
+          return msg || 'Une erreur est survenue.';
+        };
+
         try {
           const body = await request.json();
           const id = body.id || ('link_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7));
@@ -678,6 +693,7 @@ export default {
           const ogImage = body.ogImage || body.og_image || '';
           const ogTitle = body.ogTitle || body.og_title || body.metaTitle || body.meta_title || '';
           const ogDescription = body.ogDescription || body.og_description || '';
+          const metaTitle = body.metaTitle || body.meta_title || ogTitle || slug;
           const linkObj = {
             id,
             user_id: userId,
@@ -701,21 +717,6 @@ export default {
             twitter_card: body.twitter_card || body.twitterCard || (ogImage ? 'summary_large_image' : 'summary_large_image'),
             twitterCard: body.twitterCard || body.twitter_card || (ogImage ? 'summary_large_image' : 'summary_large_image'),
             created_at: new Date().toISOString(),
-          };
-
-          const sanitizeError = (err) => {
-            const msg = String(err?.message || err || '');
-            const lower = msg.toLowerCase();
-            if (lower.includes('idx_links_slug') || lower.includes('links.slug') || (lower.includes('unique') && lower.includes('slug'))) {
-              return 'Ce slug personnalisé est déjà utilisé. Veuillez en choisir un autre.';
-            }
-            if (lower.includes('foreign key') || lower.includes('sqlite_constraint_foreignkey')) {
-              return 'Erreur de synchronisation du compte utilisateur. Veuillez réessayer.';
-            }
-            if (lower.includes('d1_error') || lower.includes('sqlite') || lower.includes('syntax error')) {
-              return 'Une erreur interne est survenue lors de la création du lien. Veuillez réessayer.';
-            }
-            return msg || 'Une erreur est survenue.';
           };
 
           if (env.DB && slug) {
