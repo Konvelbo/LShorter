@@ -3,7 +3,7 @@ import Google from "next-auth/providers/google";
 import GitHub from "next-auth/providers/github";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
-import { ConvexHttpClient } from "convex/browser";
+import { convexHttp as convex } from "@/lib/convex-server";
 import { api } from "@/convex/_generated/api";
 
 // If NEXTAUTH_URL or AUTH_URL is hardcoded to vercel.app, unset it so NextAuth
@@ -14,10 +14,6 @@ if (process.env.NEXTAUTH_URL && process.env.NEXTAUTH_URL.includes("vercel.app"))
 if (process.env.AUTH_URL && process.env.AUTH_URL.includes("vercel.app")) {
   delete process.env.AUTH_URL;
 }
-
-const convex = new ConvexHttpClient(
-  process.env.NEXT_PUBLIC_CONVEX_URL || "https://beloved-avocet-415.convex.cloud"
-);
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
@@ -199,8 +195,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             if (convexUser.name) {
               token.name = convexUser.name;
             }
-          } else if (token.hasCompletedOnboarding === undefined) {
-            token.hasCompletedOnboarding = false;
+          } else {
+            // User does not exist in Convex database (e.g. wiped or deleted)
+            (token as any).userNotFound = true;
           }
         } catch {
           if (token.hasCompletedOnboarding === undefined) {
@@ -214,6 +211,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
     // ─── Expose token data in useSession() client hook ───────────────────────────
     async session({ session, token }) {
+      if ((token as any)?.userNotFound) {
+        return null as any;
+      }
+
       if (session.user) {
         session.user.id = String(token.userId || token.sub || "");
         session.user.image = (token.avatarUrl as string) || (token.picture as string) || session.user.image;

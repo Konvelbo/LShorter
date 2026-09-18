@@ -18,10 +18,36 @@ export default function OnboardingPage() {
   );
 
   useEffect(() => {
+    if (status === "unauthenticated") {
+      router.replace("/register");
+      return;
+    }
+
     if (convexUser && convexUser.hasCompletedOnboarding === true) {
       router.replace("/dashboard");
+      return;
     }
-  }, [convexUser, router]);
+
+    // If query has finished and user is confirmed null (e.g. database was cleared),
+    // immediately clear the orphaned cookie and redirect to register.
+    if (status === "authenticated" && convexUser === null) {
+      import("next-auth/react").then(({ signOut }) => {
+        signOut({ redirect: true, callbackUrl: "/register" });
+      });
+    }
+  }, [convexUser, router, status]);
+
+  if (status === "loading" || (userId && convexUser === undefined)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (convexUser === null) {
+    return null;
+  }
 
   return <OnboardingWizard />;
 }

@@ -1,13 +1,8 @@
 "use server";
 
-import { ConvexHttpClient } from "convex/browser";
+import { convexHttp as convex } from "@/lib/convex-server";
 import { api } from "@/convex/_generated/api";
 import { sendPlanPurchaseEmail } from "@/lib/resend";
-
-const convexUrl =
-  process.env.NEXT_PUBLIC_CONVEX_URL ||
-  "https://beloved-avocet-415.convex.cloud";
-const convex = new ConvexHttpClient(convexUrl);
 
 function formatDateFr(date: Date): string {
   const months = [

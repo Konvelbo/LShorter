@@ -40,14 +40,12 @@ export function OnboardingGuard({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // 3. Fallback to NextAuth session token ONLY when convexUser is confirmed null (not found)
-    if (convexUser === null && session?.user) {
-      const hasCompleted = (session.user as any).hasCompletedOnboarding;
-      if (hasCompleted === false) {
-        if (!pathname.startsWith("/onboarding")) {
-          router.replace("/onboarding");
-        }
-      }
+    // 3. If user is confirmed null in Convex (account was wiped or deleted), clear orphaned session
+    if (convexUser === null && status === "authenticated") {
+      import("next-auth/react").then(({ signOut }) => {
+        signOut({ redirect: true, callbackUrl: "/register" });
+      });
+      return;
     }
   }, [convexUser, session, status, pathname, router, userId]);
 

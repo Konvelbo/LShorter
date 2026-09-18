@@ -2,11 +2,8 @@
 
 import bcrypt from "bcryptjs";
 import { sendPasswordResetPinEmail } from "@/lib/resend";
-import { ConvexHttpClient } from "convex/browser";
+import { convexHttp as convex } from "@/lib/convex-server";
 import { api } from "@/convex/_generated/api";
-
-const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL || "";
-const convex = new ConvexHttpClient(convexUrl);
 
 /**
  * 1. Request a 6-digit PIN code to reset password via Resend

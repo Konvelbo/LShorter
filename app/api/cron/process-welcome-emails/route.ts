@@ -1,12 +1,7 @@
 import { NextResponse } from "next/server";
-import { ConvexHttpClient } from "convex/browser";
+import { convexHttp as convex } from "@/lib/convex-server";
 import { api } from "@/convex/_generated/api";
 import { sendWelcomeEmail } from "@/lib/resend";
-
-const convexUrl =
-  process.env.NEXT_PUBLIC_CONVEX_URL ||
-  "https://beloved-avocet-415.convex.cloud";
-const convex = new ConvexHttpClient(convexUrl);
 
 /**
  * Cron / Webhook endpoint to dispatch scheduled welcome emails (due after 2 hours)

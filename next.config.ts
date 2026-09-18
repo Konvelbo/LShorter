@@ -5,7 +5,14 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   experimental: {
     serverActions: {
-      allowedOrigins: ["lsho.cc", "www.lsho.cc", "localhost:3000"],
+      allowedOrigins: [
+        "lsho.cc",
+        "*.lsho.cc",
+        "*.vercel.app",
+        "**.vercel.app",
+        "localhost:3000",
+        "127.0.0.1:3000",
+      ],
     },
     optimizePackageImports: [
       "lucide-react",

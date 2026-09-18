@@ -12,7 +12,10 @@ export function LandingNavbar() {
   const [isLight, setIsLight] = useState(false);
   const pathname = usePathname();
   const { data: session, status } = useSession();
-  const isAuthenticated = status === "authenticated" || Boolean((session as any)?.user);
+  const isAuthenticated =
+    status === "authenticated" &&
+    Boolean(session?.user) &&
+    !(session?.user as any)?.userNotFound;
   const hasCompletedOnboarding = (session?.user as any)?.hasCompletedOnboarding === true;
 
   useEffect(() => {

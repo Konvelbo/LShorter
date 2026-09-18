@@ -140,14 +140,30 @@ export default function LoginPage({
         const userName =
           cleanName.charAt(0).toUpperCase() + cleanName.slice(1) || "My Account";
 
-        const res = await sendSignupPinAction({
-          name: userName,
-          email: cleanEmail,
-          password,
-        });
+        let res: { success: boolean; message: string; isDevFallback?: boolean; email?: string };
 
-        if (!res.success) {
-          showToast.error(res.message || "Registration failed.");
+        try {
+          const apiRes = await fetch("/api/auth/signup-pin", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              action: "send",
+              name: userName,
+              email: cleanEmail,
+              password,
+            }),
+          });
+          res = await apiRes.json();
+        } catch {
+          res = await sendSignupPinAction({
+            name: userName,
+            email: cleanEmail,
+            password,
+          });
+        }
+
+        if (!res?.success) {
+          showToast.error(res?.message || "Registration failed.");
           setIsLoading(false);
           return;
         }
@@ -257,13 +273,28 @@ export default function LoginPage({
     setIsLoading(true);
     try {
       const cleanEmail = email.trim().toLowerCase();
-      const res = await completeSignupWithPinAction({
-        email: cleanEmail,
-        pin: cleanPin,
-      });
+      let res: { success: boolean; message: string; userId?: string };
 
-      if (!res.success) {
-        showToast.error(res.message || "Invalid or expired PIN code.");
+      try {
+        const apiRes = await fetch("/api/auth/signup-pin", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "complete",
+            email: cleanEmail,
+            pin: cleanPin,
+          }),
+        });
+        res = await apiRes.json();
+      } catch {
+        res = await completeSignupWithPinAction({
+          email: cleanEmail,
+          pin: cleanPin,
+        });
+      }
+
+      if (!res?.success) {
+        showToast.error(res?.message || "Invalid or expired PIN code.");
         setIsLoading(false);
         return;
       }
@@ -305,17 +336,32 @@ export default function LoginPage({
       const userName =
         cleanName.charAt(0).toUpperCase() + cleanName.slice(1) || "My Account";
 
-      const res = await sendSignupPinAction({
-        name: userName,
-        email: cleanEmail,
-        password,
-      });
+      let res: { success: boolean; message?: string };
+      try {
+        const apiRes = await fetch("/api/auth/signup-pin", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "send",
+            name: userName,
+            email: cleanEmail,
+            password,
+          }),
+        });
+        res = await apiRes.json();
+      } catch {
+        res = await sendSignupPinAction({
+          name: userName,
+          email: cleanEmail,
+          password,
+        });
+      }
 
-      if (res.success) {
+      if (res?.success) {
         setSignupCountdown(60);
         showToast.success("New PIN code sent to your email!");
       } else {
-        showToast.error(res.message || "Error resending code.");
+        showToast.error(res?.message || "Error resending code.");
       }
     } catch {
       showToast.error("Error resending code.");
