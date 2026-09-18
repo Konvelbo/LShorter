@@ -8,6 +8,7 @@ import {
   Info as InfoIcon,
   X,
   Check,
+  Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -42,6 +43,15 @@ export function NotificationsBell({
 }: NotificationsBellProps) {
   const [liveNotifs, setLiveNotifs] = useState<NotificationItem[] | null>(null);
   const [localReadIds, setLocalReadIds] = useState<Set<string>>(new Set());
+  const [deletedIds, setDeletedIds] = useState<Set<string>>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("lshorter_deleted_notifications");
+        if (saved) return new Set(JSON.parse(saved));
+      } catch {}
+    }
+    return new Set();
+  });
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Click outside to close notifications popover (uses composedPath to avoid closing when elements unmount)
@@ -75,11 +85,11 @@ export function NotificationsBell({
     };
   }, [showNotifications, setShowNotifications]);
 
-  // Default welcome notification in English
+  // Default welcome notification in English (no third-party infrastructure mentions)
   const defaultNotif: NotificationItem = useMemo(() => ({
     _id: "welcome_default",
-    title: "Welcome to LShorter Edge 🚀",
-    message: `Your Anycast Cloudflare infrastructure is active. Plan ${plan || "STARTER"} (${(clicksLimit ?? 10000).toLocaleString()} clicks/month included).`,
+    title: "Welcome to LShorter 🚀",
+    message: `Your high-performance infrastructure is active. Plan ${plan || "STARTER"} (${(clicksLimit ?? 10000).toLocaleString()} clicks/month included).`,
     type: "SUCCESS",
     isRead: false,
     createdAt: Date.now(),
@@ -125,17 +135,20 @@ export function NotificationsBell({
   }, [userId]);
 
   const notifications: NotificationItem[] = useMemo(() => {
+    let list: NotificationItem[] = [];
     if (liveNotifs && liveNotifs.length > 0) {
-      return liveNotifs.map((n) => ({
+      list = liveNotifs.map((n) => ({
         ...n,
         isRead: n.isRead || localReadIds.has(n._id),
       }));
+    } else {
+      list = [{
+        ...defaultNotif,
+        isRead: localReadIds.has(defaultNotif._id),
+      }];
     }
-    return [{
-      ...defaultNotif,
-      isRead: localReadIds.has(defaultNotif._id),
-    }];
-  }, [liveNotifs, defaultNotif, localReadIds]);
+    return list.filter((n) => !deletedIds.has(n._id));
+  }, [liveNotifs, defaultNotif, localReadIds, deletedIds]);
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
   const hasUnread = unreadCount > 0;
@@ -162,6 +175,71 @@ export function NotificationsBell({
         });
       }
     } catch {}
+  };
+
+  // ─── Silent notification deletion (no toast triggered) ─────────────────────
+  const handleDeleteNotification = async (notifId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // 1. Update local state and localStorage immediately without any toast
+    setDeletedIds((prev) => {
+      const next = new Set([...Array.from(prev), notifId]);
+      try {
+        localStorage.setItem("lshorter_deleted_notifications", JSON.stringify(Array.from(next)));
+      } catch {}
+      return next;
+    });
+
+    // 2. Synchronize with Convex database silently
+    if (notifId !== "welcome_default") {
+      try {
+        const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+        if (convexUrl) {
+          await fetch(`${convexUrl}/api/mutation`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              path: "notifications:deleteNotification",
+              args: { notificationId: notifId },
+              format: "json",
+            }),
+          });
+        }
+      } catch {}
+    }
+  };
+
+  // ─── Silent clear all notifications (no toast triggered) ───────────────────
+  const handleClearAllNotifications = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const currentIds = notifications.map((n) => n._id);
+    setDeletedIds((prev) => {
+      const next = new Set([...Array.from(prev), ...currentIds]);
+      try {
+        localStorage.setItem("lshorter_deleted_notifications", JSON.stringify(Array.from(next)));
+      } catch {}
+      return next;
+    });
+
+    if (userId) {
+      try {
+        const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+        if (convexUrl) {
+          await fetch(`${convexUrl}/api/mutation`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              path: "notifications:clearAllNotifications",
+              args: { orgId: userId },
+              format: "json",
+            }),
+          });
+        }
+      } catch {}
+    }
   };
 
   const handleNotificationClick = async (notif: NotificationItem, e?: React.MouseEvent) => {
@@ -248,6 +326,17 @@ export function NotificationsBell({
                   <span>Tout marquer lu</span>
                 </button>
               )}
+              {notifications.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleClearAllNotifications}
+                  className="text-[10px] text-neutral-400 hover:text-red-500 font-semibold cursor-pointer flex items-center gap-1 transition-colors"
+                  title="Supprimer toutes les notifications"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  <span>Effacer tout</span>
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => setShowNotifications(false)}
@@ -259,56 +348,80 @@ export function NotificationsBell({
             </div>
           </div>
 
-          <div className="flex flex-col gap-2 mt-2.5 max-h-80 overflow-y-auto pr-0.5">
-            {notifications.map((n) => {
-              const Icon =
-                n.type === "ALERT" || n.type === "WARNING"
-                  ? AlertTriangle
-                  : n.type === "SUCCESS"
-                    ? CheckCircle2
-                    : InfoIcon;
-              const iconColor =
-                n.type === "ALERT"
-                  ? "text-red-500 dark:text-red-400"
-                  : n.type === "WARNING"
-                    ? "text-amber-500 dark:text-amber-400"
+          {notifications.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-7 text-center">
+              <div className="w-8 h-8 rounded-full bg-neutral-100 dark:bg-neutral-800/80 flex items-center justify-center mb-1.5 text-neutral-400">
+                <Bell className="w-4 h-4 opacity-50" />
+              </div>
+              <p className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">
+                Aucune notification
+              </p>
+              <p className="text-[11px] text-neutral-500 dark:text-neutral-500 mt-0.5">
+                Vous êtes parfaitement à jour !
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2 mt-2.5 max-h-80 overflow-y-auto pr-0.5">
+              {notifications.map((n) => {
+                const Icon =
+                  n.type === "ALERT" || n.type === "WARNING"
+                    ? AlertTriangle
                     : n.type === "SUCCESS"
-                      ? "text-emerald-500 dark:text-emerald-400"
-                      : "text-brand";
+                      ? CheckCircle2
+                      : InfoIcon;
+                const iconColor =
+                  n.type === "ALERT"
+                    ? "text-red-500 dark:text-red-400"
+                    : n.type === "WARNING"
+                      ? "text-amber-500 dark:text-amber-400"
+                      : n.type === "SUCCESS"
+                        ? "text-emerald-500 dark:text-emerald-400"
+                        : "text-brand";
 
-              return (
-                <div
-                  key={n._id}
-                  onClick={(e) => handleNotificationClick(n, e)}
-                  className={cn(
-                    "p-2.5 rounded-[10px] transition-all cursor-pointer border text-left",
-                    !n.isRead
-                      ? "bg-brand/5 dark:bg-[#1a1a1e] border-brand/30 shadow-xs"
-                      : "bg-neutral-50 dark:bg-[#101012] border-transparent hover:border-neutral-200 dark:hover:border-[#27272a] hover:bg-neutral-100 dark:hover:bg-[#16161a]"
-                  )}
-                >
-                  <div className="flex items-start gap-2.5">
-                    <div className="mt-0.5 shrink-0">
-                      <Icon className={cn("w-4 h-4", iconColor)} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-1">
-                        <h4 className="text-xs font-bold text-neutral-900 dark:text-white truncate">
-                          {n.title}
-                        </h4>
-                        {!n.isRead && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-brand shrink-0" />
-                        )}
+                return (
+                  <div
+                    key={n._id}
+                    onClick={(e) => handleNotificationClick(n, e)}
+                    className={cn(
+                      "group p-2.5 rounded-[10px] transition-all cursor-pointer border text-left",
+                      !n.isRead
+                        ? "bg-brand/5 dark:bg-[#1a1a1e] border-brand/30 shadow-xs"
+                        : "bg-neutral-50 dark:bg-[#101012] border-transparent hover:border-neutral-200 dark:hover:border-[#27272a] hover:bg-neutral-100 dark:hover:bg-[#16161a]"
+                    )}
+                  >
+                    <div className="flex items-start gap-2.5">
+                      <div className="mt-0.5 shrink-0">
+                        <Icon className={cn("w-4 h-4", iconColor)} />
                       </div>
-                      <p className="text-[11px] text-neutral-600 dark:text-neutral-400 mt-0.5 leading-snug">
-                        {n.message}
-                      </p>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-1">
+                          <h4 className="text-xs font-bold text-neutral-900 dark:text-white truncate">
+                            {n.title}
+                          </h4>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {!n.isRead && (
+                              <span className="w-1.5 h-1.5 rounded-full bg-brand shrink-0" />
+                            )}
+                            <button
+                              type="button"
+                              onClick={(e) => handleDeleteNotification(n._id, e)}
+                              className="w-5 h-5 rounded text-neutral-400 hover:text-red-500 hover:bg-red-500/10 flex items-center justify-center cursor-pointer transition-colors opacity-70 group-hover:opacity-100"
+                              title="Supprimer la notification"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+                        <p className="text-[11px] text-neutral-600 dark:text-neutral-400 mt-0.5 leading-snug">
+                          {n.message}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
     </div>

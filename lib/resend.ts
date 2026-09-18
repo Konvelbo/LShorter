@@ -15,10 +15,11 @@ const isLiveKey =
 
 const resend = isLiveKey ? new Resend(resendApiKey) : null;
 const FROM_EMAIL =
-  process.env.RESEND_FROM_EMAIL || "LShorter Security <security@lsho.cc>";
-const BUG_FEATURE_RECEIVER = "fiatechnologiecam@gmail.com";
+  process.env.RESEND_FROM_EMAIL || "LShorter <security@lsho.cc>";
+const BUG_FEATURE_RECEIVER =
+  process.env.BUG_FEATURE_RECEIVER_EMAIL || process.env.FEEDBACK_RECEIVER_EMAIL || "contact@lsho.cc";
 const DEFAULT_FEEDBACK_RECEIVER =
-  process.env.FEEDBACK_RECEIVER_EMAIL || "fiatechnologiecam@gmail.com";
+  process.env.FEEDBACK_RECEIVER_EMAIL || "support@lsho.cc";
 
 /**
  * Send Password Reset PIN Code Email (15-min validity)
@@ -181,10 +182,10 @@ export async function sendSignupVerificationPinEmail({
                   <tr>
                     <td style="padding: 32px 32px 20px 32px; text-align: center; border-bottom: 1px solid #222225;">
                       <div style="display: inline-block; background-color: #ff6600; color: #ffffff; font-weight: bold; font-size: 20px; padding: 8px 16px; border-radius: 8px; letter-spacing: 2px;">
-                        LSHORTER EDGE
+                        LSHORTER
                       </div>
                       <h1 style="color: #ffffff; font-size: 22px; font-weight: 700; margin: 20px 0 6px 0;">Validation de votre compte</h1>
-                      <p style="color: #a1a1aa; font-size: 13px; margin: 0;">Activez votre accès au Cloudflare Link Shortener</p>
+                      <p style="color: #a1a1aa; font-size: 13px; margin: 0;">Activez votre accès à la plateforme LShorter</p>
                     </td>
                   </tr>
 
@@ -218,7 +219,7 @@ export async function sendSignupVerificationPinEmail({
                   <tr>
                     <td style="background-color: #0d0d10; padding: 20px 32px; text-align: center; border-top: 1px solid #222225;">
                       <p style="color: #52525b; font-size: 11px; margin: 0;">
-                        LShorter Cloud Edge Platform &bull; Haute Performance &amp; Sécurité
+                        LShorter &bull; Haute Performance &amp; Sécurité
                       </p>
                     </td>
                   </tr>
@@ -245,7 +246,7 @@ export async function sendSignupVerificationPinEmail({
 
 /**
  * Send User Feedback Notification Email
- * Automatically routes Bug reports and Feature requests to fiatechnologiecam@gmail.com
+ * Automatically routes Bug reports and Feature requests to BUG_FEATURE_RECEIVER
  */
 export async function sendFeedbackNotificationEmail({
   category,
@@ -274,7 +275,7 @@ export async function sendFeedbackNotificationEmail({
     normCategory.includes("idée");
   const isBugOrFeature = isBug || isFeature;
 
-  // Direct bug / feature to fiatechnologiecam@gmail.com
+  // Direct bug / feature to BUG_FEATURE_RECEIVER
   const targetEmail = recipientEmail
     ? recipientEmail
     : isBugOrFeature
@@ -297,7 +298,7 @@ export async function sendFeedbackNotificationEmail({
     console.log(
       `\n💬 ==================== [DEV MODE FEEDBACK] ====================`
     );
-    console.log(`🎯 Destinataire : ${targetEmail} ${isBugOrFeature ? "(Routage automatique fiatechnologiecam@gmail.com)" : ""}`);
+    console.log(`🎯 Destinataire : ${targetEmail}`);
     console.log(`👤 Expéditeur : ${senderEmail}`);
     console.log(`🏷️  Catégorie : ${category} (${categoryLabel})`);
     if (rating) {
@@ -653,4 +654,308 @@ export async function sendInvoiceReadyEmail({
     return { success: false, error: err?.message || "Erreur d'envoi" };
   }
 }
+
+/**
+ * Send Welcome Email (sent 2 hours after account creation)
+ * Expresses sincere gratitude for joining LShorter with getting started tips.
+ */
+export async function sendWelcomeEmail({
+  to,
+  name,
+}: {
+  to: string;
+  name?: string;
+}): Promise<{ success: boolean; isDevFallback?: boolean; error?: string }> {
+  const userName = name || to.split("@")[0];
+
+  if (!resend) {
+    console.log(
+      `\n💌 ==================== [DEV MODE WELCOME EMAIL] ====================`
+    );
+    console.log(`✉️  Destinataire : ${to}`);
+    console.log(`👤 Nom          : ${userName}`);
+    console.log(`🎉 Type         : Email de Bienvenue (2h après inscription)`);
+    console.log(
+      `======================================================================\n`
+    );
+    return { success: true, isDevFallback: true };
+  }
+
+  try {
+    const { error } = await resend.emails.send({
+      from: FROM_EMAIL,
+      to,
+      subject: "Bienvenue chez LShorter ! 🚀 Merci de faire partie de notre aventure",
+      html: `
+        <!DOCTYPE html>
+        <html lang="fr">
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Bienvenue chez LShorter</title>
+        </head>
+        <body style="margin: 0; padding: 0; background-color: #09090b; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #fafafa;">
+          <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #09090b; padding: 40px 20px;">
+            <tr>
+              <td align="center">
+                <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 540px; background-color: #141416; border: 1px solid #27272a; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.6);">
+                  <!-- Header -->
+                  <tr>
+                    <td style="padding: 36px 32px 24px 32px; text-align: center; border-bottom: 1px solid #222225;">
+                      <div style="display: inline-block; background-color: #ff6600; color: #ffffff; font-weight: bold; font-size: 20px; padding: 8px 18px; border-radius: 8px; letter-spacing: 2px;">
+                        LSHORTER
+                      </div>
+                      <h1 style="color: #ffffff; font-size: 24px; font-weight: 700; margin: 22px 0 6px 0;">Bienvenue parmi nous ! 🚀</h1>
+                      <p style="color: #a1a1aa; font-size: 13px; margin: 0;">Merci de faire partie de notre aventure</p>
+                    </td>
+                  </tr>
+
+                  <!-- Body -->
+                  <tr>
+                    <td style="padding: 32px;">
+                      <p style="color: #d4d4d8; font-size: 15px; line-height: 1.6; margin: 0 0 16px 0;">
+                        Bonjour <strong>${userName}</strong>,
+                      </p>
+                      <p style="color: #a1a1aa; font-size: 14px; line-height: 1.7; margin: 0 0 20px 0;">
+                        Toute l'équipe de <strong>LShorter</strong> tenait à vous adresser un immense <strong>merci</strong> pour votre inscription ! Nous sommes particulièrement honorés et ravis de vous accueillir sur notre plateforme.
+                      </p>
+                      <p style="color: #a1a1aa; font-size: 14px; line-height: 1.7; margin: 0 0 24px 0;">
+                        LShorter a été conçu pour vous offrir une expérience d'exception : une rapidité instantanée pour vos redirections, une sécurité optimale et des statistiques claires pour tous vos liens.
+                      </p>
+
+                      <!-- Quick Start Box -->
+                      <div style="background-color: #1a1a1e; border: 1px solid #2e2e34; border-radius: 10px; padding: 20px; margin: 0 0 24px 0;">
+                        <p style="color: #ff6600; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 12px 0;">
+                          💡 Quelques idées pour bien démarrer :
+                        </p>
+                        <ul style="color: #d4d4d8; font-size: 13px; line-height: 1.8; margin: 0; padding-left: 20px;">
+                          <li><strong>Raccourcissez votre premier lien</strong> et donnez-lui un alias mémorable.</li>
+                          <li><strong>Créez des QR Codes personnalisés</strong> prêts à être partagés partout.</li>
+                          <li><strong>Consultez vos statistiques en direct</strong> : découvrez d'où viennent vos visiteurs et sur quels appareils ils cliquent.</li>
+                        </ul>
+                      </div>
+
+                      <p style="color: #a1a1aa; font-size: 13px; line-height: 1.6; margin: 0 0 28px 0;">
+                        Nous mettons tout en œuvre pour vous offrir la solution la plus performante possible. Si vous avez la moindre question ou suggestion, vous pouvez répondre directement à cet e-mail, nous serons ravis de vous aider.
+                      </p>
+
+                      <!-- CTA Button -->
+                      <div style="text-align: center; margin: 28px 0;">
+                        <a href="https://lsho.cc/dashboard" style="display: inline-block; background-color: #ff6600; color: #ffffff; text-decoration: none; font-weight: 700; font-size: 14px; padding: 14px 28px; border-radius: 8px; box-shadow: 0 4px 14px rgba(255, 102, 0, 0.4);">
+                          Accéder à mon tableau de bord &rarr;
+                        </a>
+                      </div>
+                    </td>
+                  </tr>
+
+                  <!-- Footer -->
+                  <tr>
+                    <td style="background-color: #0d0d10; padding: 20px 32px; text-align: center; border-top: 1px solid #222225;">
+                      <p style="color: #71717a; font-size: 11px; margin: 0 0 4px 0;">
+                        L'équipe LShorter &bull; Plateforme Moderne de Gestion de Liens
+                      </p>
+                      <p style="color: #52525b; font-size: 11px; margin: 0;">
+                        <a href="https://lsho.cc" style="color: #71717a; text-decoration: none;">https://lsho.cc</a> &bull; <a href="mailto:support@lsho.cc" style="color: #71717a; text-decoration: none;">support@lsho.cc</a>
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+        </html>
+      `,
+    });
+
+    if (error) {
+      console.error("[Resend] Error sending welcome email:", error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    console.error("[Resend] Unexpected error in welcome email:", err);
+    return { success: false, error: err?.message || "Erreur d'envoi" };
+  }
+}
+
+/**
+ * Send Plan Purchase & Upgrade Confirmation Email (with explicit expiration / renewal date)
+ */
+export async function sendPlanPurchaseEmail({
+  to,
+  name,
+  planName,
+  startDate,
+  endDate,
+  cycle,
+}: {
+  to: string;
+  name?: string;
+  planName: string;
+  startDate: string;
+  endDate: string;
+  cycle: string;
+}): Promise<{ success: boolean; isDevFallback?: boolean; error?: string }> {
+  const userName = name || to.split("@")[0];
+
+  if (!resend) {
+    console.log(
+      `\n💎 ==================== [DEV MODE PLAN PURCHASE EMAIL] ====================`
+    );
+    console.log(`✉️  Destinataire       : ${to}`);
+    console.log(`👤 Nom                : ${userName}`);
+    console.log(`📦 Forfait            : ${planName}`);
+    console.log(`📅 Date d'activation  : ${startDate}`);
+    console.log(`⏳ Date de fin        : ${endDate}`);
+    console.log(`🔄 Cycle              : ${cycle}`);
+    console.log(
+      `=========================================================================\n`
+    );
+    return { success: true, isDevFallback: true };
+  }
+
+  try {
+    const { error } = await resend.emails.send({
+      from: FROM_EMAIL,
+      to,
+      subject: `🎉 Merci pour votre confiance ! Votre abonnement LShorter ${planName} est activé`,
+      html: `
+        <!DOCTYPE html>
+        <html lang="fr">
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Activation de votre abonnement LShorter</title>
+        </head>
+        <body style="margin: 0; padding: 0; background-color: #09090b; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #fafafa;">
+          <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #09090b; padding: 40px 20px;">
+            <tr>
+              <td align="center">
+                <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 540px; background-color: #141416; border: 1px solid #27272a; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.6);">
+                  <!-- Header -->
+                  <tr>
+                    <td style="padding: 36px 32px 24px 32px; text-align: center; border-bottom: 1px solid #222225;">
+                      <div style="display: inline-block; background-color: #ff6600; color: #ffffff; font-weight: bold; font-size: 20px; padding: 8px 18px; border-radius: 8px; letter-spacing: 2px;">
+                        LSHORTER
+                      </div>
+                      <h1 style="color: #ffffff; font-size: 23px; font-weight: 700; margin: 22px 0 6px 0;">Abonnement ${planName} Activé ! 🎉</h1>
+                      <p style="color: #a1a1aa; font-size: 13px; margin: 0;">Confirmation et récapitulatif de votre commande</p>
+                    </td>
+                  </tr>
+
+                  <!-- Body -->
+                  <tr>
+                    <td style="padding: 32px;">
+                      <p style="color: #d4d4d8; font-size: 15px; line-height: 1.6; margin: 0 0 16px 0;">
+                        Bonjour <strong>${userName}</strong>,
+                      </p>
+                      <p style="color: #a1a1aa; font-size: 14px; line-height: 1.7; margin: 0 0 24px 0;">
+                        Nous vous remercions chaleureusement pour votre passage au forfait <strong>LShorter ${planName}</strong> ! Votre confiance nous touche et nous donne les moyens de continuer à perfectionner chaque jour les outils que nous mettons à votre disposition.
+                      </p>
+                      <p style="color: #d4d4d8; font-size: 14px; font-weight: 600; margin: 0 0 16px 0;">
+                        Vos nouveaux avantages sont d'ores et déjà actifs sur votre compte :
+                      </p>
+
+                      <!-- Subscription Details Box -->
+                      <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #1a1a1e; border: 1px solid #ff6600; border-radius: 10px; margin: 0 0 24px 0; overflow: hidden;">
+                        <tr>
+                          <td style="padding: 16px 20px; border-bottom: 1px solid #27272a;">
+                            <span style="color: #a1a1aa; font-size: 12px; text-transform: uppercase;">Forfait activé :</span>
+                            <div style="color: #ffffff; font-size: 16px; font-weight: 700; margin-top: 2px;">LShorter ${planName}</div>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 14px 20px; border-bottom: 1px solid #27272a;">
+                            <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                              <tr>
+                                <td width="50%">
+                                  <span style="color: #a1a1aa; font-size: 11px; text-transform: uppercase;">Date d'activation :</span>
+                                  <div style="color: #ffffff; font-size: 13px; font-weight: 600; margin-top: 2px;">${startDate}</div>
+                                </td>
+                                <td width="50%">
+                                  <span style="color: #ff6600; font-size: 11px; text-transform: uppercase; font-weight: 700;">Date de fin / renouvellement :</span>
+                                  <div style="color: #ff6600; font-size: 13px; font-weight: 700; margin-top: 2px;">${endDate}</div>
+                                </td>
+                              </tr>
+                            </table>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 14px 20px;">
+                            <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                              <tr>
+                                <td width="50%">
+                                  <span style="color: #a1a1aa; font-size: 11px; text-transform: uppercase;">Cycle de facturation :</span>
+                                  <div style="color: #ffffff; font-size: 13px; font-weight: 600; margin-top: 2px;">${cycle}</div>
+                                </td>
+                                <td width="50%">
+                                  <span style="color: #a1a1aa; font-size: 11px; text-transform: uppercase;">Statut du compte :</span>
+                                  <div style="color: #10b981; font-size: 13px; font-weight: 700; margin-top: 2px;">● Actif et opérationnel</div>
+                                </td>
+                              </tr>
+                            </table>
+                          </td>
+                        </tr>
+                      </table>
+
+                      <!-- Features list -->
+                      <div style="background-color: #141418; border: 1px solid #27272a; border-radius: 10px; padding: 20px; margin: 0 0 24px 0;">
+                        <p style="color: #ffffff; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 12px 0;">
+                          ⚡ Ce que vous pouvez faire dès aujourd'hui :
+                        </p>
+                        <ul style="color: #d4d4d8; font-size: 13px; line-height: 1.8; margin: 0; padding-left: 20px;">
+                          <li>Profiter de quotas de clics augmentés et de redirections ultra-rapides.</li>
+                          <li>Utiliser vos propres domaines personnalisés avec SSL automatique.</li>
+                          <li>Sécuriser vos accès avec la protection avancée par code PIN.</li>
+                          <li>Accéder à des rapports d'analyses et de métriques complets.</li>
+                        </ul>
+                      </div>
+
+                      <p style="color: #a1a1aa; font-size: 12px; line-height: 1.6; margin: 0 0 28px 0;">
+                        Votre facture détaillée est disponible à tout moment dans votre espace <a href="https://lsho.cc/dashboard/pricing" style="color: #ff6600; text-decoration: none;">Paramètres &gt; Facturation</a>.
+                      </p>
+
+                      <!-- CTA Button -->
+                      <div style="text-align: center; margin: 28px 0;">
+                        <a href="https://lsho.cc/dashboard" style="display: inline-block; background-color: #ff6600; color: #ffffff; text-decoration: none; font-weight: 700; font-size: 14px; padding: 14px 28px; border-radius: 8px; box-shadow: 0 4px 14px rgba(255, 102, 0, 0.4);">
+                          Découvrir mes nouveaux avantages &rarr;
+                        </a>
+                      </div>
+                    </td>
+                  </tr>
+
+                  <!-- Footer -->
+                  <tr>
+                    <td style="background-color: #0d0d10; padding: 20px 32px; text-align: center; border-top: 1px solid #222225;">
+                      <p style="color: #71717a; font-size: 11px; margin: 0 0 4px 0;">
+                        L'équipe LShorter &bull; Haute Performance &amp; Sécurité
+                      </p>
+                      <p style="color: #52525b; font-size: 11px; margin: 0;">
+                        <a href="https://lsho.cc" style="color: #71717a; text-decoration: none;">https://lsho.cc</a> &bull; <a href="mailto:support@lsho.cc" style="color: #71717a; text-decoration: none;">support@lsho.cc</a>
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+        </html>
+      `,
+    });
+
+    if (error) {
+      console.error("[Resend] Error sending plan purchase email:", error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    console.error("[Resend] Unexpected error in plan purchase email:", err);
+    return { success: false, error: err?.message || "Erreur d'envoi" };
+  }
+}
+
 

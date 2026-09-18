@@ -131,3 +131,25 @@ export const deleteNotification = mutation({
     }
   },
 });
+
+// ─── Delete all notifications for an org/user ──────────────────────────────
+export const clearAllNotifications = mutation({
+  args: { orgId: v.string() },
+  handler: async (ctx, args) => {
+    try {
+      const notifs = await ctx.db
+        .query("notifications")
+        .filter((q) => q.eq(q.field("orgId"), args.orgId))
+        .collect();
+
+      for (const notif of notifs) {
+        await ctx.db.delete(notif._id);
+      }
+      return { success: true, count: notifs.length };
+    } catch (err: any) {
+      console.error("[notifications:clearAllNotifications] Error:", err);
+      return { success: false, error: err?.message };
+    }
+  },
+});
+

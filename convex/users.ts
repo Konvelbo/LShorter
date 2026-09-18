@@ -93,6 +93,21 @@ export const storeUser = mutation({
       updatedAt: now,
     });
 
+    // Schedule welcome email 2 hours later (2 * 60 * 60 * 1000 = 7,200,000 ms)
+    const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+    try {
+      await ctx.db.insert("scheduledWelcomeEmails", {
+        userId: args.userId,
+        email: cleanEmail,
+        name: args.name || cleanEmail.split("@")[0],
+        scheduledAt: Date.now() + TWO_HOURS_MS,
+        status: "PENDING",
+        createdAt: now,
+      });
+    } catch (schedErr) {
+      console.warn("Failed to schedule welcome email (non-fatal):", schedErr);
+    }
+
     return { id, isNew: true };
   },
 });
@@ -128,6 +143,21 @@ export const registerWithEmail = mutation({
       createdAt: now,
       updatedAt: now,
     });
+
+    // Schedule welcome email 2 hours later
+    const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+    try {
+      await ctx.db.insert("scheduledWelcomeEmails", {
+        userId,
+        email: args.email.toLowerCase(),
+        name: args.name || args.email.split("@")[0],
+        scheduledAt: Date.now() + TWO_HOURS_MS,
+        status: "PENDING",
+        createdAt: now,
+      });
+    } catch (schedErr) {
+      console.warn("Failed to schedule welcome email (non-fatal):", schedErr);
+    }
 
     return { id, userId, isNew: true };
   },
@@ -542,6 +572,21 @@ export const completeSignupWithVerificationPin = mutation({
       used: true,
     });
 
+    // Schedule welcome email 2 hours later
+    const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+    try {
+      await ctx.db.insert("scheduledWelcomeEmails", {
+        userId,
+        email: cleanEmail,
+        name: token.name || cleanEmail.split("@")[0],
+        scheduledAt: Date.now() + TWO_HOURS_MS,
+        status: "PENDING",
+        createdAt: now,
+      });
+    } catch (schedErr) {
+      console.warn("Failed to schedule welcome email (non-fatal):", schedErr);
+    }
+
     return { success: true, id, userId, name: token.name, email: cleanEmail };
   },
 });
@@ -752,3 +797,47 @@ export const storeFeedback = mutation({
     return { success: true, id };
   },
 });
+
+// ─── Get pending welcome emails that are due for delivery ─────────────────────
+export const getDueWelcomeEmails = query({
+  args: {},
+  handler: async (ctx) => {
+    const now = Date.now();
+    const pending = await ctx.db
+      .query("scheduledWelcomeEmails")
+      .withIndex("by_status_scheduledAt", (q) =>
+        q.eq("status", "PENDING").lte("scheduledAt", now)
+      )
+      .collect();
+
+    return pending.slice(0, 25);
+  },
+});
+
+// ─── Mark a scheduled welcome email as sent ──────────────────────────────────
+export const markWelcomeEmailSent = mutation({
+  args: {
+    id: v.id("scheduledWelcomeEmails"),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.id, {
+      status: "SENT",
+      sentAt: Date.now(),
+    });
+    return { success: true };
+  },
+});
+
+// ─── Mark a scheduled welcome email as failed ────────────────────────────────
+export const markWelcomeEmailFailed = mutation({
+  args: {
+    id: v.id("scheduledWelcomeEmails"),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.id, {
+      status: "FAILED",
+    });
+    return { success: true };
+  },
+});
+

@@ -28,6 +28,7 @@ import { PlanType } from "@/types";
 import { Button } from "@/components/ui/button";
 import { showToast } from "@/components/ui/toast-provider";
 import { syncUserToCloudflare } from "@/app/actions/sync-user";
+import { sendPlanPurchaseConfirmationAction } from "@/app/actions/plan-purchase";
 import { PricingPageSkeleton } from "@/components/ui/skeleton";
 import { PRICING_PLANS, PRICING_COPY } from "@/src/config/pricing";
 import confetti from "canvas-confetti";
@@ -120,6 +121,17 @@ export default function PricingPage() {
 
       confetti({ particleCount: 75, spread: 80, origin: { y: 0.6 } });
       showToast.success(`Plan successfully updated to ${planKey}!`);
+
+      // 3. Dispatch Plan Purchase thank-you & expiration date confirmation email
+      if (userId && planKey !== "FREE") {
+        sendPlanPurchaseConfirmationAction({
+          userId,
+          userEmail: session?.user?.email || undefined,
+          userName: session?.user?.name || undefined,
+          plan: planKey,
+          cycle: isAnnual ? "YEARLY" : "MONTHLY",
+        }).catch((err) => console.error("Error sending plan purchase confirmation email:", err));
+      }
     } catch (err: any) {
       showToast.error("Error updating subscription plan.");
     } finally {

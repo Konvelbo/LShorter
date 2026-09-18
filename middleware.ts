@@ -4,10 +4,11 @@ import { auth } from "@/auth";
 
 export default auth((req) => {
   const { pathname } = req.nextUrl;
-  const isAuthenticated = Boolean(req.auth);
-  const user = req.auth?.user as any;
-  const hasCompletedOnboarding =
-    user?.hasCompletedOnboarding ?? (req.auth as any)?.hasCompletedOnboarding ?? false;
+  const session = req.auth as any;
+  const isAuthenticated = Boolean(session);
+  const hasCompletedOnboarding = Boolean(
+    session?.user?.hasCompletedOnboarding ?? session?.hasCompletedOnboarding
+  );
 
   // Security Headers
   const response = NextResponse.next();

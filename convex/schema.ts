@@ -73,6 +73,20 @@ export default defineSchema({
     .index("by_email", ["email"])
     .index("by_email_pin", ["email", "pin"]),
 
+  // ─── Scheduled Welcome Emails (Sent 2h after registration) ───────────────────
+  scheduledWelcomeEmails: defineTable({
+    userId: v.string(),
+    email: v.string(),
+    name: v.string(),
+    scheduledAt: v.number(),
+    status: v.union(v.literal("PENDING"), v.literal("SENT"), v.literal("FAILED")),
+    sentAt: v.optional(v.number()),
+    createdAt: v.string(),
+  })
+    .index("by_status_scheduledAt", ["status", "scheduledAt"])
+    .index("by_email", ["email"]),
+
+
   // ─── User Feedbacks ───────────────────────────────────────────────────────────
   feedbacks: defineTable({
     email: v.string(),

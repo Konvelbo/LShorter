@@ -53,6 +53,18 @@ export async function POST(req: Request) {
     }
 
     const data = await res.json();
+
+    if (userId && plan !== "FREE" && plan !== "FREEMIUM") {
+      const { sendPlanPurchaseConfirmationAction } = await import("@/app/actions/plan-purchase");
+      sendPlanPurchaseConfirmationAction({
+        userId,
+        userEmail: session.user.email || undefined,
+        userName: session.user.name || undefined,
+        plan,
+        cycle: body.cycle || "MONTHLY",
+      }).catch((err) => console.error("Error sending plan confirmation email:", err));
+    }
+
     return NextResponse.json(data);
   } catch (error) {
     console.error("User Upgrade proxy error:", error);
