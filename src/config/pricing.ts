@@ -8,29 +8,29 @@ export interface PlanDefinition {
   monthlyPrice: number;
   yearlyPrice: number;
   promoMonthly: {
-    discountPercent: number;       // Ex: 75 pour -75%
-    firstMonthPrice: number;       // Prix facturé le premier mois
+    discountPercent: number;       // e.g. 75 for -75%
+    firstMonthPrice: number;       // Price billed for first month
   };
   promoYearly: {
-    discountPercent: number;       // Ex: 50 pour -50%
-    fullPriceBeforeDiscount: number;// Prix standard (monthlyPrice * 12)
-    yearlyPrice: number;           // Prix total facturé pour 1 an
-    equivalentMonthlyPrice: number;// Prix mensuel équivalent affiché
+    discountPercent: number;       // e.g. 50 for -50%
+    fullPriceBeforeDiscount: number;// Standard price (monthlyPrice * 12)
+    yearlyPrice: number;           // Total billed for 1 year
+    equivalentMonthlyPrice: number;// Equivalent monthly price displayed
   };
   limits: {
     monthlyClicks: number;
     customDomains: number;
-    activeLinks: number;           // -1 = illimité
-    analyticsRetentionDays: number;// -1 = illimité
+    activeLinks: number;           // -1 = unlimited
+    analyticsRetentionDays: number;// -1 = unlimited
     teamSeats: number;
     smartRoutingLevel: 'BASIC' | 'ADVANCED' | 'CUSTOM';
-    retargetingPixels: number;     // -1 = illimité
-    apiRateLimitPerMinute: number; // Requêtes max autorisées par minute
+    retargetingPixels: number;     // -1 = unlimited
+    apiRateLimitPerMinute: number; // Max requests per minute
   };
   overage: {
     allowed: boolean;
-    batchSize: number;             // 10 000 clics
-    costPerBatch: number;          // Montant facturé en euros par tranche
+    batchSize: number;             // 10,000 clicks
+    costPerBatch: number;          // Billed amount per batch in USD/EUR
   };
 }
 
@@ -151,23 +151,23 @@ export const PRICING_PLANS: Record<string, PlanDefinition> = {
 
 export const PRICING_COPY = {
   planExplanations: {
-    free: "10 000 clics pour tester la rapidité de l'infrastructure sans entrer de carte bancaire.",
-    pro: "500 000 clics et 3 domaines personnalisés pour booster votre marque et vos conversions.",
-    business: "2M de clics et 15 domaines pour piloter vos campagnes d'envergure avec des équipes élargies.",
-    enterprise: "10M de clics et 50 domaines. Forfait fixe massif disponible en libre-service immédiat.",
+    free: "10,000 clicks to experience the lightning-fast edge infrastructure without entering a credit card.",
+    pro: "500,000 clicks and 3 custom domains to elevate your brand presence and conversion rates.",
+    business: "2M clicks and 15 custom domains to scale large multi-channel campaigns with your team.",
+    enterprise: "10M clicks and 50 custom domains with dedicated high-throughput edge SLA for enterprises.",
   },
   guarantees: [
     {
-      title: "Garantie Zéro Coupure",
-      description: "Vos campagnes publicitaires ne s'arrêtent jamais. En cas de pic de trafic imprévu, les redirections fonctionnent sans discontinuer et l'ajustement s'effectue automatiquement au volume réel.",
+      title: "Zero-Downtime Guarantee",
+      description: "Your campaigns never stop. During unexpected traffic surges, redirects keep running seamlessly and automatic volume scaling handles the load.",
     },
     {
-      title: "Paiements Sécurisés & Factures Instantanées",
-      description: "Transactions chiffrées selon les standards bancaires. Vos factures officielles sont disponibles immédiatement au téléchargement dans vos paramètres.",
+      title: "Secure Payments & Instant Invoices",
+      description: "Bank-grade encrypted transactions. Certified PDF invoices are available for download immediately in your billing settings.",
     },
     {
-      title: "Sans Engagement",
-      description: "Résiliation ou changement de forfait en un clic depuis votre espace d'administration.",
+      title: "Cancel Anytime",
+      description: "No lock-in contracts. Upgrade, downgrade, or cancel your subscription in one click directly from your dashboard.",
     },
   ],
 };
@@ -200,11 +200,11 @@ export function calculateOverage(
 }
 
 /**
- * Format click limits to user-friendly label (e.g. 10k, 500k, 2M, 10M, Illimité).
+ * Format click limits to user-friendly label (e.g. 10k, 500k, 2M, 10M, Unlimited).
  */
 export function formatClickLimit(limit: number): string {
-  if (limit === -1) return "Illimité";
-  if (limit >= 1_000_000) return `${(limit / 1_000_000).toLocaleString('fr-FR', { maximumFractionDigits: 1 })}M`;
-  if (limit >= 1_000) return `${(limit / 1_000).toLocaleString('fr-FR')}k`;
-  return limit.toLocaleString('fr-FR');
+  if (limit === -1) return "Unlimited";
+  if (limit >= 1_000_000) return `${(limit / 1_000_000).toLocaleString('en-US', { maximumFractionDigits: 1 })}M`;
+  if (limit >= 1_000) return `${(limit / 1_000).toLocaleString('en-US')}k`;
+  return limit.toLocaleString('en-US');
 }

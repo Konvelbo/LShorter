@@ -61,33 +61,33 @@ export function SectionProtection({
         <div className="flex items-center gap-2">
           <span className="w-1 h-3.5 rounded-full bg-brand" />
           <h3 className="text-xs font-bold text-zinc-900 dark:text-white uppercase tracking-wider">
-            PROTECTION &amp; SÉCURITÉ
+            PROTECTION &amp; SECURITY
           </h3>
         </div>
         <span className="text-[10px] font-medium text-zinc-500 dark:text-neutral-400">
-          Mot de passe, Cloaking &amp; Expiration
+          Password, Cloaking &amp; Expiry
         </span>
       </div>
 
       {/* 1. Password Protection (PRO) */}
       <LockedProFeature
-        title="Protection par mot de passe"
-        description="Verrouillez l'accès avec un mot de passe sécurisé."
+        title="Password Protection"
+        description="Gate link access behind a secure PIN or alphanumeric password."
         isUnlocked={isProPlan}
       >
         <div className="flex flex-col gap-2 p-3 rounded-[8px] bg-white dark:bg-[#18181c] border border-zinc-200 dark:border-[#27272a] shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-zinc-900 dark:text-white">
-              Mot de passe d'accès
+              Access Password
             </span>
             <span className="text-[10px] text-zinc-500 dark:text-neutral-400">
-              {password ? "Verrouillé" : "Désactivé"}
+              {password ? "Locked" : "Disabled"}
             </span>
           </div>
           <div className="relative">
             <Input
               type={showPassword ? "text" : "password"}
-              placeholder="Définir un mot de passe d'accès..."
+              placeholder="Set an access password..."
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="bg-zinc-50 dark:bg-[#101012] border-zinc-200 dark:border-[#27272a] focus:border-brand text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-neutral-500 text-xs h-9 rounded-[8px] pr-10"
@@ -106,17 +106,17 @@ export function SectionProtection({
 
       {/* 2. URL Cloaking & Masking (PRO) */}
       <LockedProFeature
-        title="Masquage d'URL (Cloaking)"
-        description="Affiche la page cible dans un cadre sécurisé sans exposer l'URL d'origine."
+        title="URL Cloaking &amp; Masking"
+        description="Display target content in a clean iframe container without exposing the raw destination URL."
         isUnlocked={isProPlan}
       >
         <div className="flex items-center justify-between p-3 rounded-[8px] bg-white dark:bg-[#18181c] border border-zinc-200 dark:border-[#27272a] shadow-xs">
           <div>
             <span className="text-xs font-bold text-zinc-900 dark:text-white block">
-              Masquer l'URL de destination
+              Mask Destination URL
             </span>
             <span className="text-[10.5px] text-zinc-500 dark:text-neutral-400 block">
-              Garde votre domaine court dans la barre d'adresse du navigateur.
+              Keeps your branded domain in the browser address bar.
             </span>
           </div>
           <button
@@ -139,17 +139,17 @@ export function SectionProtection({
 
       {/* 3. Referrer Hiding (PRO) */}
       <LockedProFeature
-        title="Masquage de l'en-tête Referrer"
-        description="Supprime l'en-tête HTTP Referrer pour garantir une redirection totalement anonyme."
+        title="HTTP Referrer Hiding"
+        description="Strip the HTTP Referer header to ensure 100% anonymous redirect traffic."
         isUnlocked={isProPlan}
       >
         <div className="flex items-center justify-between p-3 rounded-[8px] bg-white dark:bg-[#18181c] border border-zinc-200 dark:border-[#27272a] shadow-xs">
           <div>
             <span className="text-xs font-bold text-zinc-900 dark:text-white block">
-              Masquer l'en-tête HTTP Referrer
+              Hide HTTP Referrer Header
             </span>
             <span className="text-[10.5px] text-zinc-500 dark:text-neutral-400 block">
-              Supprime l'en-tête Referrer pour garantir une redirection anonyme.
+              Removes the Referer header to protect traffic sources.
             </span>
           </div>
           <button
@@ -172,14 +172,14 @@ export function SectionProtection({
 
       {/* 4. Click Limits (PRO) */}
       <LockedProFeature
-        title="Limite de clics maximale"
-        description="Désactive automatiquement le lien après avoir atteint un quota défini."
+        title="Maximum Click Limit"
+        description="Automatically deactivate the link or redirect to fallback after reaching a click quota."
         isUnlocked={isProPlan}
       >
         <div className="flex flex-col gap-2.5 p-3 rounded-[8px] bg-white dark:bg-[#18181c] border border-zinc-200 dark:border-[#27272a] shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-zinc-900 dark:text-white">
-              Activer la limite de clics
+              Enable Click Limit
             </span>
             <button
               type="button"
@@ -201,7 +201,7 @@ export function SectionProtection({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1 animate-in fade-in">
               <div>
                 <label className="block text-[10px] font-bold text-zinc-700 dark:text-neutral-300 mb-1">
-                  Clics maximum
+                  Maximum Clicks
                 </label>
                 <Input
                   type="number"
@@ -214,7 +214,7 @@ export function SectionProtection({
               </div>
               <div>
                 <label className="block text-[10px] font-bold text-zinc-700 dark:text-neutral-300 mb-1">
-                  URL de redirection de secours
+                  Fallback Redirect URL
                 </label>
                 <Input
                   placeholder="https://..."
@@ -231,13 +231,13 @@ export function SectionProtection({
 
       {/* 5. Automatic Expiration Date (PRO) */}
       <LockedProFeature
-        title="Expiration automatique programmée"
-        description="Planifiez la date et l'heure exacte de fin de vie du lien."
+        title="Scheduled Expiration Date"
+        description="Set an exact expiration date and time when the link should expire."
         isUnlocked={isProPlan}
       >
         <div className="flex flex-col gap-2 p-3 rounded-[8px] bg-white dark:bg-[#18181c] border border-zinc-200 dark:border-[#27272a] shadow-xs">
           <label className="block text-xs font-bold text-zinc-900 dark:text-white">
-            Date &amp; Heure d'expiration
+            Expiration Date &amp; Time
           </label>
           <Input
             type="datetime-local"
@@ -258,7 +258,7 @@ export function SectionProtection({
           />
           <FieldErrorAlert message={fieldErrors.expiresAt} />
           <p className="text-[10px] text-zinc-500 dark:text-neutral-500">
-            Après cette date, les clics seront automatiquement redirigés vers la page "Lien expiré".
+            After this date, visitor clicks will be automatically redirected to the &quot;Link Expired&quot; landing notice.
           </p>
         </div>
       </LockedProFeature>

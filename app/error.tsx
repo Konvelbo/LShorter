@@ -24,10 +24,10 @@ export default function Error({
         </div>
 
         <h1 className="font-bebas text-2xl tracking-wide text-white mb-2">
-          Une erreur temporaire est survenue
+          A temporary error occurred
         </h1>
         <p className="text-xs text-neutral-400 mb-6 leading-relaxed">
-          Le chargement de cette section a rencontré un problème. Vous pouvez réessayer immédiatement ou revenir au tableau de bord.
+          There was an issue loading this section. You can retry immediately or return to the dashboard.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full">
@@ -37,7 +37,7 @@ export default function Error({
             className="w-full sm:flex-1 h-10 text-xs font-bold gap-2"
           >
             <RefreshCw className="w-3.5 h-3.5" />
-            <span>Réessayer</span>
+            <span>Retry</span>
           </Button>
 
           <Link href="/dashboard" className="w-full sm:flex-1">
@@ -46,7 +46,7 @@ export default function Error({
               className="w-full h-10 text-xs font-semibold gap-2 border-[#27272a] bg-[#1a1a1e] hover:bg-white/10 text-neutral-200"
             >
               <Home className="w-3.5 h-3.5 text-neutral-400" />
-              <span>Tableau de bord</span>
+              <span>Dashboard</span>
             </Button>
           </Link>
         </div>

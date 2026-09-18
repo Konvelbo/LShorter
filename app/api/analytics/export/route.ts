@@ -75,29 +75,29 @@ function generateExcelXml(
     period: string;
   }
 ): string {
-  // ─── Sheet 1: Performance des Liens ─────────────────────────────────────────
+  // ─── Sheet 1: Links Performance ─────────────────────────────────────────
   const linkWidths = [120, 190, 190, 260, 95, 95, 95, 90, 110, 80, 140, 120, 140, 90, 80, 85, 110, 110, 110];
   const linkColsXml = linkWidths
     .map((w) => `   <Column ss:AutoFitWidth="1" ss:Width="${w}"/>`)
     .join("\n");
 
   const linkHeaders = [
-    "Slug / Identifiant",
-    "Titre du Lien",
-    "Domaine & URL Courte",
-    "URL de Destination",
-    "Total Clics",
-    "Clics Uniques",
+    "Slug / Identifier",
+    "Link Title",
+    "Domain & Short URL",
+    "Destination URL",
+    "Total Clicks",
+    "Unique Clicks",
     "Conversions",
     "CTR (%)",
-    "Revenus (€)",
-    "Statut",
-    "Date de Création (UTC)",
-    "Date d'Expiration",
+    "Revenue ($)",
+    "Status",
+    "Created At (UTC)",
+    "Expires At",
     "Tags",
-    "Mot de Passe",
+    "Password Gate",
     "Cloaking",
-    "Masquer Réf.",
+    "Hide Referrer",
     "UTM Source",
     "UTM Medium",
     "UTM Campaign",
@@ -112,7 +112,7 @@ function generateExcelXml(
 
   let linkDataRows = "";
   if (links.length === 0) {
-    linkDataRows = `   <Row ss:Height="24">\n    <Cell ss:StyleID="DataCellLeft" ss:MergeAcross="18"><Data ss:Type="String">Aucun lien enregistré pour ce compte.</Data></Cell>\n   </Row>`;
+    linkDataRows = `   <Row ss:Height="24">\n    <Cell ss:StyleID="DataCellLeft" ss:MergeAcross="18"><Data ss:Type="String">No links recorded for this account.</Data></Cell>\n   </Row>`;
   } else {
     linkDataRows = links
       .map((l) => {
@@ -126,7 +126,7 @@ function generateExcelXml(
     <Cell ss:StyleID="NumberCell"><Data ss:Type="Number">${l.conversionsCount}</Data></Cell>
     <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">${escapeXml(l.ctr)}</Data></Cell>
     <Cell ss:StyleID="MoneyCell"><Data ss:Type="Number">${l.revenue.toFixed(2)}</Data></Cell>
-    <Cell ss:StyleID="${l.status === "Actif" ? "BadgeActive" : "BadgeInactive"}"><Data ss:Type="String">${escapeXml(l.status)}</Data></Cell>
+    <Cell ss:StyleID="${l.status === "Active" || l.status === "Actif" ? "BadgeActive" : "BadgeInactive"}"><Data ss:Type="String">${escapeXml(l.status)}</Data></Cell>
     <Cell ss:StyleID="DateCell"><Data ss:Type="String">${escapeXml(l.createdAt)}</Data></Cell>
     <Cell ss:StyleID="DateCell"><Data ss:Type="String">${escapeXml(l.expiresAt)}</Data></Cell>
     <Cell ss:StyleID="DataCellLeft"><Data ss:Type="String">${escapeXml(l.tags)}</Data></Cell>
@@ -141,26 +141,26 @@ function generateExcelXml(
       .join("\n");
   }
 
-  // ─── Sheet 2: Journal des Clics & Événements ────────────────────────────────
+  // ─── Sheet 2: Clicks & Events Log ────────────────────────────────
   const eventWidths = [120, 130, 150, 140, 120, 110, 120, 110, 180, 150, 170, 85, 100];
   const eventColsXml = eventWidths
     .map((w) => `   <Column ss:AutoFitWidth="1" ss:Width="${w}"/>`)
     .join("\n");
 
   const eventHeaders = [
-    "ID Événement / Clic",
-    "Lien Court (Slug)",
-    "Horodatage (UTC)",
-    "Pays",
-    "Ville",
-    "Type d'Appareil",
-    "Navigateur",
-    "Système d'Exploitation (OS)",
-    "Source de Trafic / Référent",
-    "Client / Nom Complet",
-    "Client / Email",
-    "Visiteur Unique",
-    "Valeur / Revenu (€)",
+    "Event / Click ID",
+    "Short Link (Slug)",
+    "Timestamp (UTC)",
+    "Country",
+    "City",
+    "Device Type",
+    "Browser",
+    "Operating System (OS)",
+    "Traffic Source / Referrer",
+    "Customer / Full Name",
+    "Customer / Email",
+    "Unique Visitor",
+    "Value / Revenue ($)",
   ];
 
   const eventHeaderRow =
@@ -172,7 +172,7 @@ function generateExcelXml(
 
   let eventDataRows = "";
   if (events.length === 0) {
-    eventDataRows = `   <Row ss:Height="24">\n    <Cell ss:StyleID="DataCellLeft" ss:MergeAcross="12"><Data ss:Type="String">Aucun clic enregistré sur la période sélectionnée.</Data></Cell>\n   </Row>`;
+    eventDataRows = `   <Row ss:Height="24">\n    <Cell ss:StyleID="DataCellLeft" ss:MergeAcross="12"><Data ss:Type="String">No clicks recorded for the selected period.</Data></Cell>\n   </Row>`;
   } else {
     eventDataRows = events
       .map((ev) => {
@@ -397,35 +397,35 @@ function generateCsv(
   lines.push("=== SYNTHESE GLOBALE DU COMPTE ===");
   lines.push(`Utilisateur;${escapeCell(summary.userName)}`);
   lines.push(`Email;${escapeCell(summary.userEmail)}`);
-  lines.push(`Date Export;${escapeCell(summary.exportDate)}`);
-  lines.push(`Periode;${escapeCell(summary.period)}`);
-  lines.push(`Total Liens;${summary.totalLinks}`);
-  lines.push(`Total Clics;${summary.totalClicks}`);
-  lines.push(`Clics Uniques;${summary.uniqueClicks}`);
+  lines.push(`Export Date;${escapeCell(summary.exportDate)}`);
+  lines.push(`Period;${escapeCell(summary.period)}`);
+  lines.push(`Total Links;${summary.totalLinks}`);
+  lines.push(`Total Clicks;${summary.totalClicks}`);
+  lines.push(`Unique Clicks;${summary.uniqueClicks}`);
   lines.push(`Conversions;${summary.totalConversions}`);
-  lines.push(`Taux CTR Moyen;${escapeCell(summary.avgCtr)}`);
-  lines.push(`Revenus (€);${summary.totalRevenue.toFixed(2)}`);
+  lines.push(`Average CTR;${escapeCell(summary.avgCtr)}`);
+  lines.push(`Revenue ($);${summary.totalRevenue.toFixed(2)}`);
   lines.push("");
 
-  // Section 2: Performance des Liens
-  lines.push("=== PERFORMANCE DES LIENS ===");
+  // Section 2: Links Performance
+  lines.push("=== LINKS PERFORMANCE ===");
   const linkHeaders = [
     "Slug",
-    "Titre",
-    "URL Courte",
-    "URL Destination",
-    "Total Clics",
-    "Clics Uniques",
+    "Title",
+    "Short URL",
+    "Destination URL",
+    "Total Clicks",
+    "Unique Clicks",
     "Conversions",
     "CTR (%)",
-    "Revenus (€)",
-    "Statut",
-    "Date Creation (UTC)",
-    "Date Expiration",
+    "Revenue ($)",
+    "Status",
+    "Created At (UTC)",
+    "Expires At",
     "Tags",
-    "Mot de Passe",
+    "Password Gate",
     "Cloaking",
-    "Masquer Ref",
+    "Hide Referrer",
     "UTM Source",
     "UTM Medium",
     "UTM Campaign",
@@ -433,7 +433,7 @@ function generateCsv(
   lines.push(linkHeaders.map(escapeCell).join(";"));
 
   if (links.length === 0) {
-    lines.push(escapeCell("Aucun lien enregistré"));
+    lines.push(escapeCell("No links recorded"));
   } else {
     links.forEach((l) => {
       lines.push(
@@ -465,27 +465,27 @@ function generateCsv(
   }
   lines.push("");
 
-  // Section 3: Journal des Clics
-  lines.push("=== JOURNAL DETAILLE DES CLICS ET EVENEMENTS ===");
+  // Section 3: Clicks Log
+  lines.push("=== DETAILED CLICKS AND EVENTS LOG ===");
   const eventHeaders = [
-    "ID Evenement",
-    "Lien (Slug)",
-    "Horodatage (UTC)",
-    "Pays",
-    "Ville",
-    "Appareil",
-    "Navigateur",
+    "Event ID",
+    "Link (Slug)",
+    "Timestamp (UTC)",
+    "Country",
+    "City",
+    "Device",
+    "Browser",
     "OS",
-    "Source Referent",
-    "Client Nom",
-    "Client Email",
+    "Referrer Source",
+    "Customer Name",
+    "Customer Email",
     "Unique",
-    "Revenu (€)",
+    "Revenue ($)",
   ];
   lines.push(eventHeaders.map(escapeCell).join(";"));
 
   if (events.length === 0) {
-    lines.push(escapeCell("Aucun événement de clic enregistré sur cette période"));
+    lines.push(escapeCell("No click events recorded for this period"));
   } else {
     events.forEach((ev) => {
       lines.push(
@@ -532,12 +532,12 @@ export async function GET(req: Request) {
 
   const periodLabel =
     periodParam === "1d"
-      ? "Dernières 24 Heures"
+      ? "Last 24 Hours"
       : periodParam === "7d"
-      ? "7 Derniers Jours"
+      ? "Last 7 Days"
       : periodParam === "365d"
-      ? "12 Derniers Mois (Année)"
-      : "30 Derniers Jours (Mois)";
+      ? "Last 12 Months (Year)"
+      : "Last 30 Days (Month)";
 
   // 1. Authenticate user
   const session = await auth().catch(() => null);
@@ -545,12 +545,12 @@ export async function GET(req: Request) {
 
   if (!userId) {
     return NextResponse.json(
-      { success: false, error: "Authentification requise pour exporter vos données." },
+      { success: false, error: "Authentication required to export your data." },
       { status: 401 }
     );
   }
 
-  const userName = session?.user?.name || "Utilisateur LShorter";
+  const userName = session?.user?.name || "LShorter User";
   const userEmail = session?.user?.email || "—";
 
   try {

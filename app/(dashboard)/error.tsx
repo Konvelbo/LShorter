@@ -24,10 +24,10 @@ export default function DashboardError({
         </div>
 
         <h2 className="text-xl font-bold text-white mb-2">
-          Chargement du Dashboard Interrompu
+          Dashboard Loading Interrupted
         </h2>
         <p className="text-xs text-neutral-400 mb-6 leading-relaxed">
-          Une erreur temporaire est survenue lors de la synchronisation des données. Cliquez sur Réessayer pour recharger les widgets.
+          A temporary error occurred while synchronizing your workspace data. Click retry to reload the widgets.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full">
@@ -37,7 +37,7 @@ export default function DashboardError({
             className="w-full sm:flex-1 h-10 text-xs font-bold gap-2"
           >
             <RefreshCw className="w-3.5 h-3.5" />
-            <span>Réessayer</span>
+            <span>Retry</span>
           </Button>
 
           <Link href="/dashboard" className="w-full sm:flex-1">
@@ -47,7 +47,7 @@ export default function DashboardError({
               className="w-full h-10 text-xs font-semibold gap-2 border-[#27272a] bg-[#1a1a1e] hover:bg-white/10 text-neutral-200"
             >
               <LayoutDashboard className="w-3.5 h-3.5 text-neutral-400" />
-              <span>Recharger la page</span>
+              <span>Reload Page</span>
             </Button>
           </Link>
         </div>

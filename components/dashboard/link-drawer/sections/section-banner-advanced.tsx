@@ -42,12 +42,12 @@ export function SectionBannerAdvanced({
             </div>
             <div>
               <span className="text-xs font-bold text-zinc-900 dark:text-white block">
-                Statut de la redirection
+                Redirect Status
               </span>
               <span className="text-[11px] text-zinc-500 dark:text-neutral-400 block">
                 {isActive
-                  ? "La redirection est active et traite les clics en temps réel."
-                  : "La redirection est en pause. Les visiteurs verront une page 404/Inactive."}
+                  ? "Redirect is active and handling real-time clicks."
+                  : "Redirect is paused. Visitors will see a 404/Inactive page."}
               </span>
             </div>
           </div>
@@ -74,16 +74,16 @@ export function SectionBannerAdvanced({
         <div className="flex flex-col gap-2 p-3.5 rounded-[10px] bg-zinc-50 dark:bg-[#141416] border border-zinc-200 dark:border-[#27272a] shadow-xs">
           <label className="text-xs font-bold text-zinc-700 dark:text-neutral-300 flex items-center gap-1.5">
             <Tag className="w-3.5 h-3.5 text-brand" />
-            <span>Tags &amp; Classification</span>
+            <span>Tags &amp; Organization</span>
           </label>
           <Input
-            placeholder="promo2026, affiliation, twitter (séparés par des virgules)"
+            placeholder="promo2026, affiliate, twitter (comma separated)"
             value={tagsInput}
             onChange={(e) => setTagsInput(e.target.value)}
             className="bg-white dark:bg-[#101012] border-zinc-200 dark:border-[#27272a] focus:border-brand text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-neutral-500 text-xs h-9 rounded-[8px]"
           />
           <p className="text-[10.5px] text-zinc-500 dark:text-neutral-500">
-            Organisez et filtrez facilement vos liens dans le tableau de bord.
+            Easily filter and categorize your links in the dashboard.
           </p>
         </div>
       )}
@@ -91,11 +91,11 @@ export function SectionBannerAdvanced({
       {/* 3. HTTP Redirection Code */}
       <div className="flex flex-col gap-2.5 p-3.5 rounded-[10px] bg-zinc-50 dark:bg-[#141416] border border-zinc-200 dark:border-[#27272a] shadow-xs">
         <label className="block text-xs font-bold uppercase tracking-wider text-zinc-700 dark:text-neutral-300">
-          Code de redirection HTTP
+          HTTP Redirection Code
         </label>
         <div className="grid grid-cols-3 gap-2.5">
           {[
-            { code: "302", title: "302", desc: "Temp (Recommandé)" },
+            { code: "302", title: "302", desc: "Temp (Recommended)" },
             { code: "301", title: "301", desc: "Perm (SEO)" },
             { code: "307", title: "307", desc: "Strict" },
           ].map((item) => {
@@ -122,17 +122,17 @@ export function SectionBannerAdvanced({
         <div className="p-2.5 rounded-[8px] bg-white dark:bg-[#101012] border border-zinc-200 dark:border-[#27272a] text-[10.5px] text-zinc-600 dark:text-neutral-400 leading-relaxed shadow-xs">
           {redirectType === "302" && (
             <>
-              💡 <strong>302 Temporaire (Recommandé)</strong> : Permet de comptabiliser précisément chaque clic et visiteur sans mise en cache excessive par les navigateurs.
+              💡 <strong>302 Temporary (Recommended)</strong>: Ensures accurate real-time click and unique visitor counting without browser over-caching.
             </>
           )}
           {redirectType === "301" && (
             <>
-              💡 <strong>301 Permanent (SEO)</strong> : Transfère l'autorité SEO vers l'URL cible. Les navigateurs mettent la redirection en cache local.
+              💡 <strong>301 Permanent (SEO)</strong>: Transfers SEO link equity to target URL. Browsers cache the destination locally.
             </>
           )}
           {redirectType === "307" && (
             <>
-              💡 <strong>307 Temporaire Strict</strong> : Préserve la méthode HTTP exacte (POST, PUT). Idéal pour les API et webhooks.
+              💡 <strong>307 Temporary Strict</strong>: Preserves exact HTTP request method (POST, PUT). Ideal for APIs and webhooks.
             </>
           )}
         </div>
@@ -142,10 +142,10 @@ export function SectionBannerAdvanced({
       <div className="p-3.5 rounded-[10px] bg-zinc-50 dark:bg-[#141416] border border-zinc-200 dark:border-[#27272a] flex items-center justify-between gap-3 shadow-xs">
         <div>
           <span className="text-xs font-bold text-zinc-900 dark:text-white block">
-            Transférer les paramètres de requête (Query Params)
+            Forward Query Parameters
           </span>
           <span className="text-[11px] text-zinc-500 dark:text-neutral-400 block mt-0.5">
-            Transmet automatiquement les paramètres entrants (e.g. <code className="text-brand font-mono">?ref=...</code>) à l&apos;URL de destination.
+            Automatically passes incoming URL query strings (e.g. <code className="text-brand font-mono">?ref=...</code>) to the target destination.
           </span>
         </div>
         <button
@@ -168,7 +168,7 @@ export function SectionBannerAdvanced({
       {/* Documentation Helper Link */}
       <div className="p-2.5 rounded-[8px] bg-zinc-50 dark:bg-[#141416] border border-zinc-200 dark:border-[#27272a] flex items-center justify-between shadow-xs">
         <span className="text-[11px] text-zinc-500 dark:text-neutral-400">
-          Besoin d&apos;aide sur les redirections avancées ?
+          Need help with advanced redirection rules?
         </span>
         <a
           href="/docs#advanced-redirects"
@@ -176,7 +176,7 @@ export function SectionBannerAdvanced({
           rel="noreferrer"
           className="text-[11px] font-bold text-brand hover:underline flex items-center gap-1"
         >
-          <span>Consulter la doc</span>
+          <span>View Documentation</span>
           <ExternalLink className="w-3 h-3" />
         </a>
       </div>

@@ -172,7 +172,7 @@ export function CobeGlobe({ className = "", topCountries = [] }: CobeGlobeProps)
       return {
         lat: coord.lat,
         lng: coord.lng,
-        label: `${coord.name} (${c.count || 1} clic${(c.count || 1) > 1 ? "s" : ""})`,
+        label: `${coord.name} (${c.count || 1} click${(c.count || 1) > 1 ? "s" : ""})`,
         size: Math.max(6, Math.min(12, 5 + ((c.percentage || 10) / 10))),
       };
     });
@@ -622,7 +622,7 @@ export function CobeGlobe({ className = "", topCountries = [] }: CobeGlobeProps)
           type="button"
           onClick={() => setIsExpanded(true)}
           className="btn-hover-scale absolute top-2 right-2 z-10 p-2 rounded-[10px] bg-black/60 hover:bg-brand text-neutral-300 hover:text-white border border-[#27272a] hover:border-brand shadow-lg backdrop-blur-md cursor-pointer opacity-80 group-hover:opacity-100 transition-all"
-          title="Double-cliquez pour agrandir en plein écran"
+          title="Double-click to expand fullscreen"
         >
           <Maximize2 className="w-4 h-4" />
         </button>
@@ -657,11 +657,11 @@ export function CobeGlobe({ className = "", topCountries = [] }: CobeGlobeProps)
               </div>
               <div>
                 <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-                  <span>Trafic Mondial Edge — Vue Planétaire 3D</span>
+                  <span>Global Edge Traffic — 3D Planetary View</span>
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                 </h2>
                 <p className="text-xs text-neutral-400">
-                  Glissez pour faire tourner la Terre • Double-cliquez ou cliquez en dehors pour quitter
+                  Drag to rotate Earth • Double-click or click outside to exit
                 </p>
               </div>
             </div>
@@ -671,7 +671,7 @@ export function CobeGlobe({ className = "", topCountries = [] }: CobeGlobeProps)
               <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] text-xs">
                 <Radio className="w-3.5 h-3.5 text-brand animate-pulse" />
                 <span className="font-semibold text-white">
-                  {markers.length > 0 ? `${markers.length} Pays Visiteur${markers.length > 1 ? "s" : ""}` : "Cloudflare Edge Actif"}
+                  {markers.length > 0 ? `${markers.length} Visitor Countr${markers.length > 1 ? "ies" : "y"}` : "Cloudflare Edge Active"}
                 </span>
                 <span className="text-emerald-400 font-mono font-bold">&lt; 0.8 ms</span>
               </div>
@@ -680,7 +680,7 @@ export function CobeGlobe({ className = "", topCountries = [] }: CobeGlobeProps)
                 type="button"
                 onClick={() => setIsExpanded(false)}
                 className="btn-hover-scale p-2 rounded-[10px] bg-white/5 hover:bg-red-500/20 text-neutral-400 hover:text-red-400 cursor-pointer"
-                title="Fermer la vue plein écran (Échap)"
+                title="Close fullscreen view (Esc)"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -714,7 +714,7 @@ export function CobeGlobe({ className = "", topCountries = [] }: CobeGlobeProps)
             <div className="flex items-center gap-2 overflow-x-auto py-1">
               {markers.length === 0 ? (
                 <span className="text-neutral-500 italic px-2">
-                  Aucun pays visiteur pour l&apos;instant • Les points lumineux apparaîtront dès vos premières visites.
+                  No visitor countries yet • Glowing indicators will appear with your first visits.
                 </span>
               ) : (
                 markers.map((m) => (

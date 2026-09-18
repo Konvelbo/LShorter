@@ -51,7 +51,7 @@ export async function POST(req: Request) {
 
     if (!fileBuffer && !base64Data) {
       return NextResponse.json(
-        { success: false, error: "Aucun fichier image reçu" },
+        { success: false, error: "No image file received" },
         { status: 400 }
       );
     }
@@ -126,13 +126,13 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json(
-      { success: false, error: "Échec du traitement de l'image" },
+      { success: false, error: "Failed to process image file" },
       { status: 500 }
     );
   } catch (err: any) {
     console.error("[Upload API Proxy Error]:", err);
     return NextResponse.json(
-      { success: false, error: err?.message || "Erreur serveur upload" },
+      { success: false, error: err?.message || "Upload server error" },
       { status: 500 }
     );
   }

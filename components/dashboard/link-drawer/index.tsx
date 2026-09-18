@@ -445,11 +445,11 @@ export function LinkDrawer({
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      showToast.error("Veuillez sélectionner un fichier image valide (JPG, PNG, WebP).");
+      showToast.error("Please select a valid image file (JPG, PNG, WebP).");
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
-      showToast.error("La taille du fichier image doit être inférieure à 10 Mo.");
+      showToast.error("Image file size must be less than 10 MB.");
       return;
     }
 
@@ -473,10 +473,10 @@ export function LinkDrawer({
       setPreviewImage(dataUrl);
       setOgImage(dataUrl);
       setTwitterCard("summary_large_image");
-      showToast.success("Bannière sélectionnée ! Elle sera synchronisée lors de l'enregistrement.");
+      showToast.success("Banner image selected! It will be synced when saving.");
     } catch (err) {
       console.error("Banner selection error:", err);
-      showToast.error("Erreur lors de la sélection de l'image.");
+      showToast.error("Error selecting banner image.");
     } finally {
       setIsUploadingImage(false);
       if (bannerInputRef.current) bannerInputRef.current.value = "";
@@ -991,8 +991,8 @@ export function LinkDrawer({
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={handleDeleteLink}
-        title="Supprimer ce lien court ?"
-        description={`Êtes-vous sûr de vouloir supprimer /${slug || link?.slug} ? Cette action est irréversible.`}
+        title="Delete this short link?"
+        description={`Are you sure you want to delete /${slug || link?.slug}? This action cannot be undone.`}
         isDeleting={isDeleting}
       />
 

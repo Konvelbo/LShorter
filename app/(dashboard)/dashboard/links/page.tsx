@@ -606,7 +606,7 @@ export default function LinksPage() {
         return next;
       });
       setUndoToast(null);
-      showToast.success(`Lien /${link.slug} restauré avec succès.`);
+      showToast.success(`Link /${link.slug} restored successfully.`);
     }
   };
 
@@ -997,7 +997,7 @@ export default function LinksPage() {
                   id={`link-swipe-bg-${link.id}`}
                   className="absolute inset-0 bg-gradient-to-l from-rose-600 to-rose-700 dark:from-rose-700 dark:to-rose-800 text-white rounded-2xl flex items-center justify-end px-6 sm:px-8 gap-2.5 font-bold text-xs sm:text-sm tracking-wide opacity-0 transition-opacity duration-150 pointer-events-none"
                 >
-                  <span>Supprimer</span>
+                  <span>Delete</span>
                   <Trash2 className="w-5 h-5 animate-pulse" />
                 </div>
 
@@ -1027,7 +1027,7 @@ export default function LinksPage() {
                       onDragStart={(e) => handleReorderDragStart(e, link.id)}
                       onDragEnd={handleReorderDragEnd}
                       className="hidden sm:block drag-handle text-neutral-400 dark:text-neutral-500 group-hover:text-neutral-700 dark:group-hover:text-neutral-300 transition-colors p-1 cursor-grab shrink-0"
-                      title="Glisser pour réorganiser"
+                      title="Drag to reorder"
                     >
                       <GripVertical className="w-4 h-4" />
                     </div>
@@ -1084,13 +1084,13 @@ export default function LinksPage() {
                         );
                       }}
                       className="text-right whitespace-nowrap cursor-pointer hover:opacity-80 transition-opacity"
-                      title="Voir les analytics"
+                      title="View analytics"
                     >
                       <span className="text-sm sm:text-xl font-extrabold text-neutral-900 dark:text-white tracking-tight">
                         {formatNumber(link.clicksCount)}
                       </span>
                       <span className="text-[10px] sm:text-xs text-neutral-500 dark:text-neutral-400 font-mono ml-0.5 sm:ml-1">
-                        clics
+                        clicks
                       </span>
                     </div>
 
@@ -1271,10 +1271,10 @@ export default function LinksPage() {
                   </div>
                   <div className="min-w-0">
                     <div className="text-xs sm:text-sm font-bold text-neutral-900 dark:text-white truncate">
-                      Lien /{undoToast.link.slug} supprimé
+                      Link /{undoToast.link.slug} deleted
                     </div>
                     <div className="text-[11px] text-neutral-500 dark:text-neutral-400 truncate">
-                      Glissé vers la gauche • Annulation possible
+                      Swiped to delete • Undo available
                     </div>
                   </div>
                 </div>
@@ -1287,7 +1287,7 @@ export default function LinksPage() {
                     className="px-3 py-1.5 rounded-xl bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover)] text-white md:text-black font-extrabold text-xs font-mono transition-all transform active:scale-95 shadow-md flex items-center gap-1.5 cursor-pointer"
                   >
                     <RotateCcw className="w-3.5 h-3.5 text-white md:text-black" />
-                    <span>Annuler ({undoToast.remaining}s)</span>
+                    <span>Undo ({undoToast.remaining}s)</span>
                   </button>
 
                   {/* Red 'X' Button: ALSO cancels deletion and restores link */}
@@ -1295,7 +1295,7 @@ export default function LinksPage() {
                     type="button"
                     onClick={cancelUndoDelete}
                     className="p-1.5 rounded-lg text-rose-500 hover:text-rose-600 hover:bg-rose-500/15 border border-rose-500/30 transition-all cursor-pointer active:scale-95"
-                    title="Annuler la suppression et fermer"
+                    title="Cancel deletion and close"
                   >
                     <X className="w-4 h-4 stroke-[2.5]" />
                   </button>

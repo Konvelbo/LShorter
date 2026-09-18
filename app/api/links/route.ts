@@ -391,28 +391,28 @@ export async function POST(req: Request) {
   } catch (error: any) {
     console.warn("[Links Proxy POST] Error connecting to Worker:", error);
     return NextResponse.json(
-      { success: false, error: "Impossible de contacter les serveurs Cloudflare. Veuillez vérifier votre connexion." },
+      { success: false, error: "Unable to reach Cloudflare Edge servers. Please check your connection." },
       { status: 502 }
     );
   }
 }
 
 function sanitizeClientErrorMessage(raw: any): string {
-  if (!raw) return "Une erreur inattendue est survenue. Veuillez réessayer.";
+  if (!raw) return "An unexpected error occurred. Please try again.";
   const msg = typeof raw === "string" ? raw : raw.message || raw.error || String(raw);
   const lower = msg.toLowerCase();
 
   if (lower.includes("unique") || lower.includes("idx_links_slug") || lower.includes("already exists")) {
-    return "Ce slug personnalisé est déjà utilisé. Veuillez en choisir un autre.";
+    return "This custom slug is already in use. Please choose another one.";
   }
   if (lower.includes("403") || lower.includes("plan_upgrade") || lower.includes("forbidden") || lower.includes("quota")) {
-    return "Cette fonctionnalité nécessite un forfait supérieur.";
+    return "This feature requires a higher plan tier.";
   }
   if (lower.includes("foreign key") || lower.includes("constraint failed") || lower.includes("sqlite")) {
-    return "Erreur temporaire de synchronisation. Veuillez réessayer.";
+    return "Temporary synchronization error. Please try again.";
   }
   if (lower.includes("d1_error") || lower.includes("prepare(") || lower.includes("bind(") || lower.includes("table ") || lower.includes("column ")) {
-    return "Une erreur technique est survenue. Veuillez réessayer.";
+    return "A technical error occurred. Please try again.";
   }
   return msg;
 }

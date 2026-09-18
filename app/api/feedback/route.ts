@@ -18,7 +18,7 @@ export async function POST(req: Request) {
 
     if (!cleanMessage) {
       return NextResponse.json(
-        { success: false, message: "Le message ne peut pas être vide." },
+        { success: false, message: "Feedback message cannot be empty." },
         { status: 400 }
       );
     }
@@ -49,12 +49,12 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
-      message: "Merci pour votre retour ! Notre équipe l'a bien reçu.",
+      message: "Thank you for your feedback! Our team has received it.",
     });
   } catch (error: any) {
     console.error("Feedback error:", error);
     return NextResponse.json(
-      { success: false, message: "Erreur lors de l'envoi du feedback." },
+      { success: false, message: "Error sending feedback." },
       { status: 500 }
     );
   }

@@ -94,14 +94,14 @@ export function SectionSocial({
         <div className="flex flex-col gap-1.5">
           <div className="flex items-center justify-between">
             <label className="text-xs font-bold text-zinc-800 dark:text-neutral-300">
-              Titre OpenGraph personnalisé
+              Custom OpenGraph Title
             </label>
             <span className="text-[10px] text-zinc-500 dark:text-neutral-500 font-mono">
               {ogTitle.length}/70
             </span>
           </div>
           <Input
-            placeholder="Titre accrocheur pour les réseaux sociaux..."
+            placeholder="Catchy social title..."
             value={ogTitle}
             onChange={(e) => setOgTitle(e.target.value)}
             className="bg-white dark:bg-[#101012] border-zinc-200 dark:border-[#27272a] focus:border-brand text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-neutral-500 text-xs h-9 rounded-[8px]"
@@ -112,7 +112,7 @@ export function SectionSocial({
         <div className="flex flex-col gap-1.5">
           <div className="flex items-center justify-between">
             <label className="text-xs font-bold text-zinc-800 dark:text-neutral-300">
-              Description OpenGraph
+              OpenGraph Description
             </label>
             <span className="text-[10px] text-zinc-500 dark:text-neutral-500 font-mono">
               {ogDescription.length}/160
@@ -120,7 +120,7 @@ export function SectionSocial({
           </div>
           <textarea
             rows={2}
-            placeholder="Description concise affichée lors des partages..."
+            placeholder="Concise description displayed when shared on social networks..."
             value={ogDescription}
             onChange={(e) => setOgDescription(e.target.value)}
             className="w-full bg-white dark:bg-[#101012] border border-zinc-200 dark:border-[#27272a] focus:border-brand rounded-[8px] p-2.5 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-neutral-500 outline-none resize-none"
@@ -133,19 +133,19 @@ export function SectionSocial({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
           <div className="flex flex-col">
             <span className="text-xs font-bold text-zinc-900 dark:text-white">
-              Format de la bannière sur les réseaux
+              Social Banner Format
             </span>
             <span className="text-[11px] text-zinc-500 dark:text-neutral-400">
-              Choisissez le style d&apos;affichage de votre lien partagé.
+              Choose the layout format for your link preview card.
             </span>
           </div>
           {twitterCard === "summary_large_image" ? (
             <span className="text-[9.5px] font-bold text-brand uppercase px-2 py-0.5 rounded bg-brand/10 border border-brand/30 self-start sm:self-auto shrink-0">
-              Grand Format 1200×630
+              Large Card 1200×630
             </span>
           ) : (
             <span className="text-[9.5px] font-bold text-zinc-600 dark:text-neutral-400 uppercase px-2 py-0.5 rounded bg-zinc-200/80 dark:bg-white/5 border border-zinc-300 dark:border-white/10 self-start sm:self-auto shrink-0">
-              Format Standard
+              Standard Format
             </span>
           )}
         </div>
@@ -173,7 +173,7 @@ export function SectionSocial({
                   )}
                 />
                 <span className="text-xs font-bold text-zinc-900 dark:text-white">
-                  Bannière Large
+                  Large Banner
                 </span>
               </div>
               {twitterCard === "summary_large_image" && (
@@ -181,7 +181,7 @@ export function SectionSocial({
               )}
             </div>
             <span className="text-[10.5px] text-zinc-500 dark:text-neutral-400 leading-tight">
-              Pleine largeur 1200×630 (Bannière personnalisée ou générée auto).
+              Full-width 1200×630 (Custom image or auto-generated banner).
             </span>
           </button>
 
@@ -207,7 +207,7 @@ export function SectionSocial({
                   )}
                 />
                 <span className="text-xs font-bold text-zinc-900 dark:text-white">
-                  Bannière par Défaut
+                  Default Banner
                 </span>
               </div>
               {twitterCard === "summary" && (
@@ -215,7 +215,7 @@ export function SectionSocial({
               )}
             </div>
             <span className="text-[10.5px] text-zinc-500 dark:text-neutral-400 leading-tight">
-              Format compact standard. Aucun téléversement d&apos;image requis.
+              Compact side thumbnail format. No image upload required.
             </span>
           </button>
         </div>
@@ -226,7 +226,7 @@ export function SectionSocial({
         {/* Header with platform pills */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <span className="text-xs font-bold text-zinc-900 dark:text-white">
-            Aperçu interactif du partage
+            Interactive Social Preview
           </span>
           <div className="flex items-center gap-1.5 flex-wrap">
             {(["x", "facebook", "whatsapp"] as const).map((p) => (
@@ -281,7 +281,7 @@ export function SectionSocial({
                       className="px-3 py-1.5 rounded-[7px] bg-brand text-white text-xs font-bold flex items-center gap-1.5 shadow-sm hover:brightness-110 transition-all cursor-pointer"
                     >
                       <Upload className="w-3.5 h-3.5" />
-                      <span>Remplacer l&apos;image</span>
+                      <span>Replace image</span>
                     </button>
                     <button
                       type="button"
@@ -293,7 +293,7 @@ export function SectionSocial({
                       className="px-3 py-1.5 rounded-[7px] bg-red-500/80 hover:bg-red-600 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
-                      <span>Supprimer</span>
+                      <span>Remove</span>
                     </button>
                   </div>
                 </>
@@ -310,16 +310,16 @@ export function SectionSocial({
                     </span>
                   </div>
                   <span className="text-sm font-bold text-zinc-900 dark:text-white line-clamp-1 max-w-[85%] z-10">
-                    {ogTitle || "Bannière Large générée automatiquement"}
+                    {ogTitle || "Auto-generated social banner preview"}
                   </span>
                   <span className="text-[10.5px] text-zinc-500 dark:text-neutral-400 mt-0.5 z-10">
-                    Format immersif 1200 × 630 pixels
+                    High-definition 1200 × 630 pixels
                   </span>
 
                   {/* Upload Prompt Action Button */}
                   <div className="mt-3 z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-[7px] bg-white dark:bg-white/10 hover:bg-zinc-50 dark:hover:bg-white/15 border border-zinc-200 dark:border-white/15 text-xs font-semibold text-zinc-700 dark:text-neutral-200 group-hover:border-brand/50 group-hover:text-brand dark:group-hover:text-white transition-all shadow-xs">
                     <Upload className="w-3.5 h-3.5 text-brand" />
-                    <span>Cliquez ou glissez pour téléverser une image</span>
+                    <span>Click or drag image to upload banner</span>
                   </div>
                 </div>
               )}
@@ -331,11 +331,11 @@ export function SectionSocial({
                 {domainName || "lsho.cc"}
               </span>
               <span className="text-xs font-bold text-zinc-900 dark:text-white truncate">
-                {ogTitle || "Titre du lien partagé sur les réseaux"}
+                {ogTitle || "Title of your shared link"}
               </span>
               <span className="text-[11px] text-zinc-500 dark:text-neutral-400 line-clamp-2">
                 {ogDescription ||
-                  "La description Open Graph s'affichera ici lors du partage sur vos réseaux sociaux."}
+                  "Open Graph description will appear here when shared on social networks."}
               </span>
             </div>
           </div>
@@ -347,11 +347,11 @@ export function SectionSocial({
                 {domainName || "lsho.cc"}
               </span>
               <span className="text-xs font-bold text-zinc-900 dark:text-white truncate">
-                {ogTitle || "Titre du lien partagé"}
+                {ogTitle || "Title of your shared link"}
               </span>
               <span className="text-[11px] text-zinc-500 dark:text-neutral-400 line-clamp-2">
                 {ogDescription ||
-                  "Aperçu compact standard avec titre et description."}
+                  "Standard compact social preview with title and description."}
               </span>
             </div>
 
@@ -383,7 +383,7 @@ export function SectionSocial({
                 </div>
               )}
               <span className="text-[9px] font-mono text-zinc-500 dark:text-neutral-500 mt-1.5">
-                {hasCustomImage ? "Vignette" : "Par défaut"}
+                {hasCustomImage ? "Thumbnail" : "Default"}
               </span>
             </div>
           </div>

@@ -115,17 +115,17 @@ const mobileRow1: MobileCard[] = [
   {
     id: "m-1",
     type: "orange",
-    category: "01. REDIRECTION ULTRA-RAPIDE",
+    category: "01. ULTRA-FAST REDIRECTION",
     title: "Sub-15ms Edge Speed",
-    definition: "Exécutez vos redirections en moins de 15ms grâce aux 310+ serveurs Edge Cloudflare mondiaux.",
+    definition: "Execute your redirects in under 15ms powered globally by 310+ Cloudflare Edge locations.",
     docSlug: "sdk-quickstart",
   },
   {
     id: "m-2",
     type: "purple",
     category: "02. URL MASKING",
-    title: "Brand Shield & Discrétion",
-    definition: "Masquez l'URL de destination pour protéger vos commissions d'affiliation et vos paramètres UTM.",
+    title: "Brand Shield & Discretion",
+    definition: "Mask destination URLs to safeguard affiliate commissions and UTM campaign parameters.",
     image: "/marketing-FCI/cosmos_227768569.jpeg",
     badge: "SHIELD / MASK",
     docSlug: "url-masking",
@@ -133,17 +133,17 @@ const mobileRow1: MobileCard[] = [
   {
     id: "m-3",
     type: "white",
-    category: "03. A/B TESTING DYNAMIQUE",
-    title: "Répartition par %",
-    definition: "Répartissez vos visiteurs entre plusieurs pages cibles selon des pourcentages pour optimiser vos ventes.",
+    category: "03. DYNAMIC A/B TESTING",
+    title: "Percentage Split",
+    definition: "Distribute your visitors between multiple target pages by percentage to maximize sales.",
     docSlug: "ab-testing-routing",
   },
   {
     id: "m-4",
     type: "blue",
-    category: "04. QR CODES VECTORIELS",
-    title: "Génération SVG HD",
-    definition: "Générez des QR codes vectoriels haute définition personnalisés, téléchargeables instantanément pour packaging.",
+    category: "04. VECTOR QR CODES",
+    title: "HD SVG Generation",
+    definition: "Generate custom high-definition vector QR codes, instantly downloadable for print and packaging.",
     docSlug: "dynamic-qr-codes",
   },
 ];
@@ -152,17 +152,17 @@ const mobileRow2: MobileCard[] = [
   {
     id: "m-5",
     type: "white",
-    category: "05. SÉCURITÉ & PROTECTION",
-    title: "Code d'Accès & PIN",
-    definition: "Verrouillez l'accès à vos liens confidentiels avec un code PIN avant toute redirection.",
+    category: "05. SECURITY & PROTECTION",
+    title: "Access Code & PIN",
+    definition: "Lock access to confidential links with an access PIN code before any redirection.",
     docSlug: "pin-protection",
   },
   {
     id: "m-6",
     type: "dark",
     category: "06. OPEN GRAPH",
-    title: "Cartes Riches Auto",
-    definition: "Personnalisez les vignettes de partage pour afficher de riches aperçus sur WhatsApp, LinkedIn, X et Discord.",
+    title: "Auto Rich Cards",
+    definition: "Customize social cards to display rich previews across WhatsApp, LinkedIn, X, and Discord.",
     image: "/marketing-FCI/cosmos_549824580.jpeg",
     badge: "RICH / PREVIEW",
     docSlug: "social-sharing-opengraph",
@@ -170,17 +170,17 @@ const mobileRow2: MobileCard[] = [
   {
     id: "m-7",
     type: "orange",
-    category: "07. CONTRÔLE DE FLUX",
-    title: "Plafond & Fallback",
-    definition: "Fixez un seuil maximal de clics et redirigez automatiquement vers une URL de secours dès qu'il est atteint.",
+    category: "07. TRAFFIC CONTROL",
+    title: "Cap & Fallback",
+    definition: "Set a maximum click ceiling and automatically redirect to a fallback URL once reached.",
     docSlug: "click-limits-and-expiration",
   },
   {
     id: "m-8",
     type: "purple",
     category: "08. REST API & SDK",
-    title: "Webhooks Haute Vitesse",
-    definition: "Intégrez toutes les fonctionnalités à vos applications avec notre API REST haute cadence et SDK TypeScript.",
+    title: "High-Speed Webhooks",
+    definition: "Integrate every feature into your apps with our high-throughput REST API and TypeScript SDK.",
     image: "/marketing-FCI/cosmos_938538719.jpeg",
     badge: "API / DEV",
     docSlug: "webhooks-and-events",
@@ -397,8 +397,7 @@ export function FeaturesSection() {
           scrollTrigger: {
             trigger: header,
             start: "top 88%",
-            end: "bottom 12%",
-            toggleActions: "play reverse play reverse",
+            once: true,
           },
         },
       );
@@ -409,7 +408,7 @@ export function FeaturesSection() {
     cards.forEach((card) => {
       const side = card.getAttribute("data-side");
 
-      // Slide-in + subtle float on scroll with full reverse on scroll up
+      // Slide-in + subtle float on scroll
       gsap.fromTo(
         card,
         {
@@ -426,8 +425,7 @@ export function FeaturesSection() {
           scrollTrigger: {
             trigger: card,
             start: "top 85%",
-            end: "bottom 15%",
-            toggleActions: "play reverse play reverse",
+            once: true,
           },
         },
       );
@@ -459,7 +457,7 @@ export function FeaturesSection() {
       <div ref={containerRef} className="max-w-7xl mx-auto px-4 sm:px-6">
         {/* Section Header */}
         <div className="features-header text-center max-w-2xl mx-auto mb-8 sm:mb-12 flex flex-col items-center justify-center">
-          <span className="text-[11px] font-mono text-brand uppercase tracking-widest font-semibold block mb-2">
+          <span className="text-[11px] font-mono text-brand uppercase tracking-widest font-semibold block mb-2 select-none">
             03. Core Capabilities
           </span>
           <h2 className="text-xl sm:text-[24px] font-bold tracking-tight text-neutral-900 dark:text-white leading-snug text-center">
@@ -475,7 +473,7 @@ export function FeaturesSection() {
         <div className="block lg:hidden -mx-4 sm:mx-0 py-2 space-y-4">
           {/* Subtle swipe & auto indicator */}
           <div className="flex items-center justify-center gap-1.5 text-[11px] font-mono text-neutral-500 dark:text-neutral-400 px-4 mb-1 text-center">
-            <span>← Glissez manuellement ou laissez défiler →</span>
+            <span>← Swipe manually or let auto-scroll →</span>
           </div>
 
           {/* Row 1: Right-to-Left Auto + Manual Swipe */}

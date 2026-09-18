@@ -59,8 +59,7 @@ export default function DocsPage() {
           scrollTrigger: {
             trigger: heroEl,
             start: "top 90%",
-            end: "bottom 10%",
-            toggleActions: "play reverse play reverse",
+            once: true,
           },
         }
       );
@@ -80,14 +79,13 @@ export default function DocsPage() {
           scrollTrigger: {
             trigger: tickerEl,
             start: "top 90%",
-            end: "bottom 10%",
-            toggleActions: "play reverse play reverse",
+            once: true,
           },
         }
       );
     }
 
-    // 3. Staggered Entrance and Exit for the 3-Column Resource Cards Grid
+    // 3. Staggered Entrance for the 3-Column Resource Cards Grid
     const cardsGrid = document.querySelector(".docs-cards-grid");
     const cardItems = document.querySelectorAll(".cofounder-card-item");
     if (cardsGrid && cardItems.length > 0) {
@@ -104,8 +102,7 @@ export default function DocsPage() {
           scrollTrigger: {
             trigger: cardsGrid,
             start: "top 85%",
-            end: "bottom 15%",
-            toggleActions: "play reverse play reverse",
+            once: true,
           },
         }
       );

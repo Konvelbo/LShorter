@@ -51,13 +51,13 @@ export default function AuthSuccessPage() {
         {/* Content */}
         <div className="flex flex-col gap-2">
           <div className="inline-block mx-auto px-3 py-1 rounded-full bg-brand-subtle border border-brand-subtle text-brand text-[11px] font-bold uppercase tracking-wider">
-            Authentification Validée
+            Authentication Verified
           </div>
           <h1 className="font-bebas text-3xl sm:text-4xl text-white tracking-wide mt-1">
-            CONNEXION RÉUSSIE ! 🎉
+            LOGIN SUCCESSFUL! 🎉
           </h1>
           <p className="text-xs sm:text-sm text-neutral-300 leading-relaxed max-w-xs mx-auto">
-            Votre compte est connecté avec succès. Vous pouvez fermer cet onglet et revenir sur votre page principale.
+            Your account has been connected successfully. You can close this tab and return to your main dashboard.
           </p>
         </div>
 
@@ -68,12 +68,12 @@ export default function AuthSuccessPage() {
           className="w-full h-12 rounded-[10px] bg-brand hover:bg-brand-hover text-white font-bold text-xs uppercase tracking-wider transition-all shadow-lg shadow-brand flex items-center justify-center gap-2 cursor-pointer"
         >
           <X className="w-4 h-4" />
-          <span>Fermer cet onglet</span>
+          <span>Close this tab</span>
         </button>
 
         <p className="text-[11px] text-neutral-500 flex items-center gap-1.5">
           <ArrowLeft className="w-3.5 h-3.5 text-brand" />
-          <span>Votre session est automatiquement active sur votre premier onglet.</span>
+          <span>Your session is automatically active in your primary tab.</span>
         </p>
       </div>
     </div>

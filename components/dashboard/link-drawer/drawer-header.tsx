@@ -49,7 +49,7 @@ export function DrawerHeader({
           <span className="w-2.5 h-2.5 rounded-full bg-brand animate-pulse shadow-sm shadow-[var(--brand-primary-glow)] shrink-0" />
           <div className="flex items-center gap-2 min-w-0">
             <h2 className="text-sm sm:text-base font-bold text-zinc-900 dark:text-white tracking-tight leading-tight truncate">
-              {isEditMode ? "Modifier la redirection" : "Créer une redirection"}
+              {isEditMode ? "Edit Redirect" : "Create Redirect"}
             </h2>
             {(slug || linkSlug) && (
               <span className="font-mono text-xs px-2 py-0.5 rounded-[6px] bg-zinc-100 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-zinc-700 dark:text-neutral-300 truncate max-w-[120px] sm:max-w-none">
@@ -70,7 +70,7 @@ export function DrawerHeader({
         </button>
       </div>
       <p className="text-[11px] text-zinc-500 dark:text-neutral-400 -mt-1 mb-2.5 sm:mb-3 leading-tight">
-        Gérez la destination, les règles de routage et le comportement HTTP.
+        Configure destination, smart routing rules, and HTTP behavior.
       </p>
 
       {/* ── PINNED MAIN INPUTS: URL, DOMAIN, SLUG ── */}
@@ -80,16 +80,16 @@ export function DrawerHeader({
           <div className="flex items-center justify-between mb-1">
             <label className="text-[11px] font-bold uppercase tracking-wider text-zinc-700 dark:text-neutral-300 flex items-center gap-1.5">
               <Link2 className="w-3.5 h-3.5 text-brand" />
-              <span>URL de destination</span>
+              <span>Destination URL</span>
               <span className="text-brand">*</span>
             </label>
             <span className="text-[9.5px] font-bold uppercase px-1.5 py-0.5 rounded-[4px] bg-zinc-200/80 dark:bg-neutral-800 text-zinc-600 dark:text-neutral-400">
-              Requis
+              Required
             </span>
           </div>
           <Input
             required
-            placeholder="https://talktoome.netlify.app/"
+            placeholder="https://example.com/target-landing-page"
             value={targetUrl}
             onChange={(e) => {
               setTargetUrl(e.target.value);
@@ -107,7 +107,7 @@ export function DrawerHeader({
           />
           <FieldErrorAlert message={fieldErrors.targetUrl} />
           <p className="text-[10px] text-zinc-500 dark:text-neutral-500 mt-1">
-            Les visiteurs seront redirigés immédiatement vers cette adresse principale par défaut.
+            Visitors will be redirected immediately to this primary default destination.
           </p>
         </div>
 
@@ -116,7 +116,7 @@ export function DrawerHeader({
           {/* Domain Name */}
           <div>
             <label className="block text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-zinc-700 dark:text-neutral-300 mb-1">
-              Domaine <span className="text-brand">*</span>
+              Domain <span className="text-brand">*</span>
             </label>
             <div className="relative flex items-center">
               <select
@@ -140,7 +140,7 @@ export function DrawerHeader({
               >
                 {!isEditMode && !domainName && (
                   <option value="" disabled className="bg-white dark:bg-[#141416] text-zinc-500 dark:text-neutral-400">
-                    Choisir un domaine...
+                    Select a domain...
                   </option>
                 )}
                 {customDomains.length > 0 &&
@@ -158,7 +158,7 @@ export function DrawerHeader({
                     value="lsho.cc"
                     className="bg-white dark:bg-[#141416] text-zinc-900 dark:text-white"
                   >
-                    lsho.cc (Officiel)
+                    lsho.cc (Default)
                   </option>
                 )}
                 {isEditMode &&
@@ -182,7 +182,7 @@ export function DrawerHeader({
           {/* Custom Slug */}
           <div>
             <label className="block text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-zinc-700 dark:text-neutral-300 mb-1">
-              Slug personnalisé <span className="text-brand">*</span>
+              Custom Slug <span className="text-brand">*</span>
             </label>
             <div className="relative flex items-center">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-zinc-400 dark:text-neutral-500 font-mono select-none pointer-events-none font-medium">
@@ -190,7 +190,7 @@ export function DrawerHeader({
               </span>
               <Input
                 required
-                placeholder="mon-lien-court"
+                placeholder="my-short-link"
                 value={slug}
                 onChange={(e) => {
                   setSlug(e.target.value);
@@ -213,7 +213,7 @@ export function DrawerHeader({
 
         {/* Direct preview line */}
         <div className="text-[10.5px] text-zinc-500 dark:text-neutral-400 flex items-center gap-1">
-          <span>Aperçu du lien direct :</span>
+          <span>Direct link preview:</span>
           <span className="text-brand font-mono font-bold truncate">
             https://{domainName || "lsho.cc"}/{slug || "..."}
           </span>

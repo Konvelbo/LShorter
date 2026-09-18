@@ -31,7 +31,7 @@ export async function sendPasswordResetPinAction({
       // Return a generic message for security (don't leak user existence)
       return {
         success: false,
-        message: "Aucun compte associé à cette adresse e-mail.",
+        message: "No account found with this email address.",
       };
     }
 
@@ -61,27 +61,27 @@ export async function sendPasswordResetPinAction({
       if (isSandboxRestriction) {
         return {
           success: true,
-          message: `Code PIN généré ! (Note test Resend : e-mail livrable uniquement à fiatechnologiecam@gmail.com. Votre code test est : ${pin})`,
+          message: `PIN code generated! (Resend test sandbox note: email deliverable to fiatechnologiecam@gmail.com only. Your test code is: ${pin})`,
           isDevFallback: true,
         };
       }
 
       return {
         success: false,
-        message: emailResult.error || "Échec de l'envoi de l'e-mail.",
+        message: emailResult.error || "Failed to send reset email.",
       };
     }
 
     return {
       success: true,
-      message: "Code PIN envoyé par e-mail avec succès !",
+      message: "PIN code sent to your email successfully!",
       isDevFallback: emailResult.isDevFallback,
     };
   } catch (err: any) {
     console.error("[sendPasswordResetPinAction] Error:", err);
     return {
       success: false,
-      message: err?.message || "Erreur lors de la génération du code PIN.",
+      message: err?.message || "Error generating PIN reset code.",
     };
   }
 }
@@ -101,7 +101,7 @@ export async function verifyResetPinAction({
     const cleanPin = pin.trim();
 
     if (!cleanEmail || !cleanPin || cleanPin.length !== 6) {
-      return { success: false, valid: false, message: "Code PIN invalide (6 chiffres requis)." };
+      return { success: false, valid: false, message: "Invalid PIN code (6 digits required)." };
     }
 
     const result = await convex.query(api.users.verifyPasswordResetToken, {
@@ -110,11 +110,11 @@ export async function verifyResetPinAction({
     });
 
     if (!result.valid) {
-      let message = "Code PIN invalide.";
+      let message = "Invalid PIN code.";
       if (result.reason === "PIN_EXPIRED") {
-        message = "Ce code PIN a expiré (validité 15 min). Veuillez en demander un nouveau.";
+        message = "This PIN code has expired (15-min validity). Please request a new one.";
       } else if (result.reason === "PIN_ALREADY_USED") {
-        message = "Ce code PIN a déjà été utilisé.";
+        message = "This PIN code has already been used.";
       }
       return { success: true, valid: false, message };
     }
@@ -122,7 +122,7 @@ export async function verifyResetPinAction({
     return { success: true, valid: true };
   } catch (err: any) {
     console.error("[verifyResetPinAction] Error:", err);
-    return { success: false, valid: false, message: "Erreur lors de la vérification du code." };
+    return { success: false, valid: false, message: "Error verifying PIN code." };
   }
 }
 
@@ -145,7 +145,7 @@ export async function resetPasswordWithPinAction({
     if (newPassword.length < 8) {
       return {
         success: false,
-        message: "Le mot de passe doit contenir au moins 8 caractères.",
+        message: "Password must be at least 8 characters long.",
       };
     }
 
@@ -160,13 +160,13 @@ export async function resetPasswordWithPinAction({
 
     return {
       success: true,
-      message: "Votre mot de passe a été mis à jour avec succès !",
+      message: "Your password has been updated successfully!",
     };
   } catch (err: any) {
     console.error("[resetPasswordWithPinAction] Error:", err);
     return {
       success: false,
-      message: err?.message || "Erreur lors de la mise à jour du mot de passe.",
+      message: err?.message || "Error updating your password.",
     };
   }
 }

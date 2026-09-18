@@ -27,11 +27,11 @@ export function SectionGeneral({
         <div className="flex items-center gap-2">
           <span className="w-1 h-3.5 rounded-full bg-brand" />
           <h3 className="text-xs font-bold text-zinc-900 dark:text-white uppercase tracking-wider">
-            1. GÉNÉRAL
+            1. GENERAL
           </h3>
         </div>
         <span className="text-[10px] font-medium text-zinc-500 dark:text-neutral-400">
-          Statut &amp; Classification
+          Status &amp; Organization
         </span>
       </div>
 
@@ -39,7 +39,7 @@ export function SectionGeneral({
       <div className="flex items-center justify-between p-3 rounded-[8px] bg-white dark:bg-[#18181c] border border-zinc-200 dark:border-[#27272a] shadow-xs">
         <div className="flex flex-col">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-zinc-900 dark:text-white">Statut du lien</span>
+            <span className="text-xs font-bold text-zinc-900 dark:text-white">Link Status</span>
             <span
               className={cn(
                 "text-[9.5px] font-bold uppercase px-1.5 py-0.5 rounded-[4px]",
@@ -48,13 +48,13 @@ export function SectionGeneral({
                   : "bg-zinc-200 dark:bg-neutral-800 text-zinc-600 dark:text-neutral-400",
               )}
             >
-              {isActive ? "Actif" : "Inactif"}
+              {isActive ? "Active" : "Inactive"}
             </span>
           </div>
           <p className="text-[10.5px] text-zinc-500 dark:text-neutral-400 mt-0.5">
             {isActive
-              ? "Le lien est actuellement opérationnel et résout les requêtes normalement."
-              : "Le lien est désactivé et redirigera vers une page de suspension."}
+              ? "The link is currently live and resolves requests normally."
+              : "The link is paused and will redirect to a suspension notice."}
           </p>
         </div>
         <button
@@ -78,16 +78,16 @@ export function SectionGeneral({
       {/* Tags */}
       <div className="flex flex-col gap-1.5">
         <label className="text-[11px] font-bold text-zinc-700 dark:text-neutral-300">
-          Tags d'organisation
+          Organization Tags
         </label>
         <Input
-          placeholder="marketing-campagne, q4-launch, promo..."
+          placeholder="marketing-campaign, q4-launch, promo..."
           value={tagsInput}
           onChange={(e) => setTagsInput(e.target.value)}
           className="bg-white dark:bg-[#101012] border-zinc-200 dark:border-[#27272a] focus:border-brand text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-neutral-500 text-xs h-9 rounded-[8px]"
         />
         <p className="text-[10px] text-zinc-500 dark:text-neutral-500">
-          Séparez les tags par des virgules pour filtrer facilement vos liens dans le tableau de bord.
+          Separate tags with commas to filter and organize links easily in your dashboard.
         </p>
       </div>
     </div>

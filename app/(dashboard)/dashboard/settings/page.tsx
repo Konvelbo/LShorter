@@ -188,7 +188,7 @@ export default function SettingsPage() {
       };
       localStorage.setItem(`lshorter_legal_billing_${userId}`, JSON.stringify(data));
       setBillingSaved(true);
-      showToast.success("Coordonnées de facturation enregistrées !");
+      showToast.success("Billing details saved!");
       setTimeout(() => setBillingSaved(false), 2500);
     }
   };
@@ -210,8 +210,8 @@ export default function SettingsPage() {
     if (plan === "PRO" || plan === "BUSINESS" || plan === "ENTERPRISE") {
       const now = new Date();
       const monthNames = [
-        "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
-        "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
       ];
       const baseAmount = plan === "ENTERPRISE" ? 199 : plan === "BUSINESS" ? 49 : 15;
       const totalAmount = baseAmount + overageAmount;
@@ -242,16 +242,16 @@ export default function SettingsPage() {
     const params = new URLSearchParams({
       plan: planNormalized,
       amount: baseAmt.toString(),
-      companyName: legalCompanyName || name || "Compte Client",
+      companyName: legalCompanyName || name || "Customer Account",
       email: email || "client@lshorter.io",
       taxId: legalTaxId || "",
-      address: legalBillingAddress || "10 Rue de la Paix, 75002 Paris",
+      address: legalBillingAddress || "123 Market St, San Francisco, CA 94105",
       overageClicks: overageClicks.toString(),
       overageAmount: overageAmount.toString(),
       batchesOverage: overageBatches.toString(),
     });
     window.open(`/api/billing/invoices/${invNumber}/download?${params.toString()}`, "_blank");
-    showToast.success(`Téléchargement de la facture ${invNumber}...`);
+    showToast.success(`Downloading invoice ${invNumber}...`);
   };
 
   // ─── API Keys State ─────────────────────────────────────────────────────────
@@ -1095,17 +1095,17 @@ export default function SettingsPage() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#222225]">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h2 className="text-lg font-bold text-white">Forfait & Facturation</h2>
+                    <h2 className="text-lg font-bold text-white">Plan &amp; Billing</h2>
                     <span className="px-2.5 py-0.5 rounded-full bg-brand-subtle text-brand border border-brand-subtle text-[10px] font-extrabold uppercase tracking-wider">
                       {plan}
                     </span>
                   </div>
                   <p className="text-xs text-neutral-400 mt-0.5">
-                    Gérez vos quotas d'infrastructure Edge, vos coordonnées légales et téléchargez vos factures conformes.
+                    Manage your Edge infrastructure quotas, legal billing details, and download compliant invoices.
                   </p>
                 </div>
                 <Button size="sm" variant="glow" onClick={() => router.push("/pricing")} className="cursor-pointer font-bold shrink-0">
-                  Changer de forfait
+                  Change Plan
                 </Button>
               </div>
 
@@ -1113,13 +1113,13 @@ export default function SettingsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="p-4 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] flex flex-col gap-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-neutral-400 font-semibold">Volume de Clics Mensuel</span>
+                    <span className="text-xs text-neutral-400 font-semibold">Monthly Click Volume</span>
                     <span className="text-xs text-brand font-bold">
-                      {isOverage ? "100% (Overage actif)" : `${clicksPercent}% utilisé`}
+                      {isOverage ? "100% (Overage active)" : `${clicksPercent}% used`}
                     </span>
                   </div>
                   <p className="text-2xl font-bold font-bebas text-white">
-                    {(accountStats?.clicksThisMonth ?? 0).toLocaleString("fr-FR")} / {(clicksLimit ?? 10000).toLocaleString("fr-FR")}
+                    {(accountStats?.clicksThisMonth ?? 0).toLocaleString("en-US")} / {(clicksLimit ?? 10000).toLocaleString("en-US")}
                   </p>
                   <div className="w-full h-2 rounded-full bg-[#27272a] overflow-hidden mt-1">
                     <div
@@ -1128,10 +1128,10 @@ export default function SettingsPage() {
                     />
                   </div>
                   <div className="flex items-center justify-between text-[11px] text-neutral-500 pt-0.5">
-                    <span>Synchronisé en direct avec le réseau Edge</span>
+                    <span>Live synchronized with Edge network</span>
                     {isOverage && (
                       <span className="text-amber-400 font-semibold">
-                        +{(overageClicks ?? 0).toLocaleString()} clics ({overageAmount.toFixed(2)} € overage)
+                        +{(overageClicks ?? 0).toLocaleString()} clicks (${overageAmount.toFixed(2)} overage)
                       </span>
                     )}
                   </div>
@@ -1139,9 +1139,9 @@ export default function SettingsPage() {
 
                 <div className="p-4 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] flex flex-col gap-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-neutral-400 font-semibold">Domaines Personnalisés</span>
+                    <span className="text-xs text-neutral-400 font-semibold">Custom Domains</span>
                     <span className="text-xs text-neutral-400 font-bold">
-                      {accountStats.domainsCount} sur {domainsLimit}
+                      {accountStats.domainsCount} of {domainsLimit}
                     </span>
                   </div>
                   <p className="text-2xl font-bold font-bebas text-white">
@@ -1154,7 +1154,7 @@ export default function SettingsPage() {
                     />
                   </div>
                   <span className="text-[11px] text-neutral-500">
-                    {domainsLimit === 0 ? "Domaines disponibles à partir du forfait Pro" : `${Math.max(0, domainsLimit - accountStats.domainsCount)} domaine(s) disponible(s)`}
+                    {domainsLimit === 0 ? "Custom domains available from Pro plan" : `${Math.max(0, domainsLimit - accountStats.domainsCount)} domain(s) available`}
                   </span>
                 </div>
               </div>
@@ -1165,10 +1165,10 @@ export default function SettingsPage() {
                   <div>
                     <h3 className="text-sm font-bold text-white flex items-center gap-2">
                       <FileText className="w-4 h-4 text-brand" />
-                      <span>Coordonnées Légales de Facturation</span>
+                      <span>Legal Billing Details</span>
                     </h3>
                     <p className="text-[11px] text-neutral-400 mt-0.5">
-                      Ces informations apparaîtront automatiquement sur toutes vos factures officielles téléchargeables.
+                      This information will automatically appear on all official downloadable invoices.
                     </p>
                   </div>
                 </div>
@@ -1176,40 +1176,40 @@ export default function SettingsPage() {
                 <form onSubmit={handleSaveBillingDetails} className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div>
                     <label className="block text-[11px] font-semibold text-neutral-300 mb-1">
-                      Raison Sociale / Entreprise
+                      Company / Legal Name
                     </label>
                     <Input
                       value={legalCompanyName}
                       onChange={(e) => setLegalCompanyName(e.target.value)}
-                      placeholder={name || "Ex: Acme Corporation SAS"}
+                      placeholder={name || "e.g. Acme Corporation LLC"}
                       className="h-9 text-xs bg-[#0c0c0e] border-[#27272a]"
                     />
                   </div>
                   <div>
                     <label className="block text-[11px] font-semibold text-neutral-300 mb-1">
-                      N° TVA Intracommunautaire
+                      Tax ID / VAT Number
                     </label>
                     <Input
                       value={legalTaxId}
                       onChange={(e) => setLegalTaxId(e.target.value)}
-                      placeholder="Ex: FR 82 912 345 678"
+                      placeholder="e.g. US-123456789 or EU VAT"
                       className="h-9 text-xs bg-[#0c0c0e] border-[#27272a]"
                     />
                   </div>
                   <div>
                     <label className="block text-[11px] font-semibold text-neutral-300 mb-1">
-                      Adresse de Facturation Complète
+                      Full Billing Address
                     </label>
                     <Input
                       value={legalBillingAddress}
                       onChange={(e) => setLegalBillingAddress(e.target.value)}
-                      placeholder="Ex: 10 Rue de la Paix, 75002 Paris"
+                      placeholder="e.g. 123 Market St, Suite 400, San Francisco, CA 94105"
                       className="h-9 text-xs bg-[#0c0c0e] border-[#27272a]"
                     />
                   </div>
                   <div className="md:col-span-3 flex justify-end pt-1">
                     <Button type="submit" variant="glow" size="sm" className="text-xs px-4 cursor-pointer">
-                      {billingSaved ? "Enregistré !" : "Sauvegarder les coordonnées"}
+                      {billingSaved ? "Saved!" : "Save Billing Details"}
                     </Button>
                   </div>
                 </form>
@@ -1220,23 +1220,23 @@ export default function SettingsPage() {
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-bold text-white flex items-center gap-2">
                     <FileCheck className="w-4 h-4 text-emerald-400" />
-                    <span>Historique des Factures Certifiées</span>
+                    <span>Certified Invoice History</span>
                   </h3>
-                  <span className="text-[11px] text-neutral-500">Génération automatique PDF 1.4 conforme</span>
+                  <span className="text-[11px] text-neutral-500">Automated PDF 1.4 compliant generation</span>
                 </div>
                 {invoices.length === 0 ? (
                   <div className="py-8 text-center text-xs text-neutral-500 bg-[#1a1a1e] rounded-[10px] border border-[#27272a]">
-                    Aucune facture disponible. Vous êtes actuellement sur le forfait gratuit.
+                    No invoices available. You are currently on the Free plan.
                   </div>
                 ) : (
                   <div className="overflow-x-auto bg-[#1a1a1e] rounded-[10px] border border-[#27272a]">
                     <table className="w-full text-left text-xs text-neutral-400">
                       <thead>
                         <tr className="border-b border-[#27272a] text-[11px] uppercase tracking-wider text-neutral-500">
-                          <th className="py-3 px-3.5">Référence</th>
+                          <th className="py-3 px-3.5">Reference</th>
                           <th className="py-3 px-3.5">Date</th>
-                          <th className="py-3 px-3.5">Montant Réglé</th>
-                          <th className="py-3 px-3.5">Statut</th>
+                          <th className="py-3 px-3.5">Amount Paid</th>
+                          <th className="py-3 px-3.5">Status</th>
                           <th className="py-3 px-3.5 text-right">Action</th>
                         </tr>
                       </thead>
@@ -1246,10 +1246,10 @@ export default function SettingsPage() {
                             <td className="py-3 px-3.5 font-mono font-bold text-white">{inv.number}</td>
                             <td className="py-3 px-3.5">{inv.date}</td>
                             <td className="py-3 px-3.5 font-bold text-white">
-                              {inv.amount === 0 ? "0 € (Essai)" : `${inv.amount?.toFixed(2)} ${inv.currency || "EUR"}`}
+                              {inv.amount === 0 ? "$0.00 (Trial)" : `${inv.amount?.toFixed(2)} ${inv.currency || "USD"}`}
                             </td>
                             <td className="py-3 px-3.5">
-                              <Badge variant="active">Acquittée</Badge>
+                              <Badge variant="active">Paid</Badge>
                             </td>
                             <td className="py-3 px-3.5 text-right">
                               <button
@@ -1257,7 +1257,7 @@ export default function SettingsPage() {
                                 className="inline-flex items-center gap-1.5 text-brand hover:underline font-bold cursor-pointer transition-colors"
                               >
                                 <Download className="w-3.5 h-3.5" />
-                                <span>Télécharger le PDF</span>
+                                <span>Download PDF</span>
                               </button>
                             </td>
                           </tr>
@@ -1524,7 +1524,7 @@ export default function SettingsPage() {
               <div className="flex items-center justify-between pb-4 border-b border-neutral-200 dark:border-[#222225]">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h2 className="text-lg font-bold text-neutral-900 dark:text-white">Webhooks &amp; Simulateur</h2>
+                    <h2 className="text-lg font-bold text-neutral-900 dark:text-white">Webhooks &amp; Simulator</h2>
                     {plan === "FREEMIUM" && (
                       <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-neutral-200/80 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 border border-neutral-300 dark:border-neutral-700">
                         PLAN PRO
@@ -1532,7 +1532,7 @@ export default function SettingsPage() {
                     )}
                   </div>
                   <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                    Recevez des notifications HTTP (POST) instantanées à chaque clic et conversion de vos liens courts.
+                    Receive instant HTTP (POST) notifications on every click and conversion of your short links.
                   </p>
                 </div>
               </div>
@@ -1546,20 +1546,20 @@ export default function SettingsPage() {
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <h3 className="text-xs font-semibold text-neutral-900 dark:text-white">API Webhooks &amp; Événements Temps Réel</h3>
+                        <h3 className="text-xs font-semibold text-neutral-900 dark:text-white">Webhooks API &amp; Real-Time Events</h3>
                         <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-neutral-200/80 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 border border-neutral-300 dark:border-neutral-700">PRO</span>
                       </div>
                       <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
-                        Les abonnements aux webhooks, signatures HMAC SHA-256 et flux de clics temps réel sont réservés aux forfaits Pro et Business.
+                        Webhook subscriptions, HMAC SHA-256 signatures, and real-time click streams are reserved for Pro and Business plans.
                       </p>
                     </div>
                   </div>
                   <button
                     type="button"
-                    onClick={() => triggerPlanUpgrade({ featureName: "Webhooks", reason: "Passez à PRO pour débloquer les webhooks et le simulateur temps réel.", targetPlan: "PRO" })}
+                    onClick={() => triggerPlanUpgrade({ featureName: "Webhooks", reason: "Upgrade to PRO to unlock webhooks and the real-time simulator.", targetPlan: "PRO" })}
                     className="shrink-0 text-xs h-8 px-3 font-medium bg-brand hover:bg-brand-hover text-white rounded-[8px] cursor-pointer transition-colors"
                   >
-                    Débloquer avec PRO
+                    Unlock with PRO
                   </button>
                 </div>
               )}
@@ -1567,20 +1567,20 @@ export default function SettingsPage() {
               <form onSubmit={handleAddWebhook} className="flex flex-col sm:flex-row gap-2">
                 <Input
                   required
-                  placeholder="https://votre-serveur.com/api/webhooks/lshorter (ou URL Zapier / Make / n8n)"
+                  placeholder="https://your-server.com/api/webhooks/lshorter (or Zapier / Make / n8n URL)"
                   value={newWebhookUrl}
                   onChange={(e) => setNewWebhookUrl(e.target.value)}
                   className="bg-white dark:bg-[#141416] border-neutral-300 dark:border-[#27272a] text-xs text-neutral-900 dark:text-white placeholder:text-neutral-400 dark:placeholder:text-neutral-500 h-9"
                 />
                 <Button type="submit" size="sm" className="shrink-0 text-xs h-9 px-4 font-medium bg-brand hover:bg-brand-hover text-white rounded-[8px] cursor-pointer">
-                  Ajouter le Webhook
+                  Add Webhook
                 </Button>
               </form>
 
               <div className="flex flex-col gap-2.5">
                 {webhooks.length === 0 ? (
                   <div className="py-8 text-center text-xs text-neutral-500 bg-neutral-50 dark:bg-[#141416] rounded-[10px] border border-neutral-200 dark:border-[#27272a]">
-                    Aucun webhook configuré. Ajoutez votre point de terminaison ci-dessus pour recevoir les événements.
+                    No webhooks configured. Add your endpoint above to start receiving events.
                   </div>
                 ) : (
                   webhooks.map((wh: any) => (
@@ -1599,7 +1599,7 @@ export default function SettingsPage() {
                             className="text-xs gap-1.5 h-7 px-2.5 border-neutral-200 dark:border-[#27272a] bg-white dark:bg-transparent"
                           >
                             <Send className="w-3 h-3 text-neutral-400" />
-                            <span>{isTestingWebhook ? "Envoi..." : "Tester"}</span>
+                            <span>{isTestingWebhook ? "Sending..." : "Test"}</span>
                           </Button>
                           <button
                             type="button"
@@ -1608,7 +1608,7 @@ export default function SettingsPage() {
                               wh.isActive ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20" : "bg-neutral-200 dark:bg-neutral-800 text-neutral-500"
                             }`}
                           >
-                            {wh.isActive ? "Actif" : "En pause"}
+                            {wh.isActive ? "Active" : "Paused"}
                           </button>
                           <button
                             type="button"
@@ -1621,8 +1621,8 @@ export default function SettingsPage() {
                       </div>
 
                       <div className="flex items-center justify-between text-neutral-500 dark:text-neutral-400 text-[11px] pt-2 border-t border-neutral-200 dark:border-[#222225]">
-                        <span className="font-mono">Signature Secrète: {wh.secretKey || "whsec_live_default"}</span>
-                        <span>Événements: clics &amp; conversions</span>
+                        <span className="font-mono">Secret Signature: {wh.secretKey || "whsec_live_default"}</span>
+                        <span>Events: clicks &amp; conversions</span>
                       </div>
                     </div>
                   ))
@@ -1633,15 +1633,15 @@ export default function SettingsPage() {
               {webhookTestResponse && (
                 <div className="flex flex-col gap-2 animate-in fade-in">
                   <div className="flex items-center justify-between text-xs text-emerald-600 dark:text-emerald-400 font-semibold px-1">
-                    <span>✓ Résultat du test webhook :</span>
+                    <span>✓ Webhook test response:</span>
                     <button onClick={() => setWebhookTestResponse(null)} className="text-neutral-400 hover:text-neutral-900 dark:hover:text-white cursor-pointer">
-                      Fermer ✕
+                      Close ✕
                     </button>
                   </div>
                   <CodeBlock
                     code={webhookTestResponse}
                     language="json"
-                    filename="Réponse HTTP Webhook"
+                    filename="Webhook HTTP Response"
                   />
                 </div>
               )}
@@ -1654,7 +1654,7 @@ export default function SettingsPage() {
               <div className="flex items-center justify-between pb-4 border-b border-neutral-200 dark:border-[#222225]">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h2 className="text-lg font-bold text-neutral-900 dark:text-white">Pixels de Retargeting</h2>
+                    <h2 className="text-lg font-bold text-neutral-900 dark:text-white">Retargeting Pixels</h2>
                     {plan === "FREEMIUM" && (
                       <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-neutral-200/80 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 border border-neutral-300 dark:border-neutral-700">
                         PLAN PRO
@@ -1662,7 +1662,7 @@ export default function SettingsPage() {
                     )}
                   </div>
                   <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                    Associez vos balises Meta Facebook, Google Analytics 4, TikTok Ads ou LinkedIn Insight à vos liens courts.
+                    Attach your Meta Facebook, Google Analytics 4, TikTok Ads, or LinkedIn Insight tags to your short links.
                   </p>
                 </div>
               </div>
@@ -1676,20 +1676,20 @@ export default function SettingsPage() {
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <h3 className="text-xs font-semibold text-neutral-900 dark:text-white">Pixels de Retargeting Publicitaire</h3>
+                        <h3 className="text-xs font-semibold text-neutral-900 dark:text-white">Advertising Retargeting Pixels</h3>
                         <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-neutral-200/80 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 border border-neutral-300 dark:border-neutral-700">PRO</span>
                       </div>
                       <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
-                        L'intégration automatique des pixels Meta, Google Tag, TikTok et LinkedIn est réservée aux forfaits Pro et Business.
+                        Automatic pixel tracking for Meta, Google Tag, TikTok, and LinkedIn is reserved for Pro and Business plans.
                       </p>
                     </div>
                   </div>
                   <button
                     type="button"
-                    onClick={() => triggerPlanUpgrade({ featureName: "Retargeting Pixels", reason: "Passez à PRO pour débloquer le ciblage de pixels Meta, Google, TikTok et LinkedIn.", targetPlan: "PRO" })}
+                    onClick={() => triggerPlanUpgrade({ featureName: "Retargeting Pixels", reason: "Upgrade to PRO to unlock Meta, Google, TikTok, and LinkedIn pixel retargeting.", targetPlan: "PRO" })}
                     className="shrink-0 text-xs h-8 px-3 font-medium bg-brand hover:bg-brand-hover text-white rounded-[8px] cursor-pointer transition-colors"
                   >
-                    Débloquer avec PRO
+                    Unlock with PRO
                   </button>
                 </div>
               )}
@@ -1707,20 +1707,20 @@ export default function SettingsPage() {
                 </select>
                 <Input
                   required
-                  placeholder="ID du Pixel (ex: 987654321 ou G-XXXXXX)"
+                  placeholder="Pixel ID (e.g. 987654321 or G-XXXXXX)"
                   value={newPixelId}
                   onChange={(e) => setNewPixelId(e.target.value)}
                   className="bg-white dark:bg-[#141416] border-neutral-300 dark:border-[#27272a] text-xs text-neutral-900 dark:text-white placeholder:text-neutral-400 dark:placeholder:text-neutral-500 h-9"
                 />
                 <Button type="submit" size="sm" className="text-xs h-9 px-4 font-medium bg-brand hover:bg-brand-hover text-white rounded-[8px] cursor-pointer">
-                  Connecter le Pixel
+                  Connect Pixel
                 </Button>
               </form>
 
               <div className="flex flex-col gap-2.5">
                 {pixels.length === 0 ? (
                   <div className="py-8 text-center text-xs text-neutral-500 bg-neutral-50 dark:bg-[#141416] rounded-[10px] border border-neutral-200 dark:border-[#27272a]">
-                    Aucun pixel configuré. Ajoutez votre premier identifiant de suivi ci-dessus.
+                    No pixels configured. Add your first tracking ID above.
                   </div>
                 ) : (
                   pixels.map((px: any) => (
@@ -1746,7 +1746,7 @@ export default function SettingsPage() {
                               : "bg-neutral-200 dark:bg-neutral-800 text-neutral-500"
                           }`}
                         >
-                          {px.isActive ? "Actif" : "Désactivé"}
+                          {px.isActive ? "Active" : "Disabled"}
                         </button>
                         <button
                           type="button"
@@ -1907,7 +1907,7 @@ export default function SettingsPage() {
                   <div className="flex items-center gap-2 self-start sm:self-center shrink-0 pl-11 sm:pl-0">
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-medium text-[11px]">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                      En ligne
+                      Online
                     </span>
                   </div>
                 </div>
@@ -1920,9 +1920,9 @@ export default function SettingsPage() {
             <div className="flex flex-col gap-6">
               <div className="flex items-center justify-between pb-4 border-b border-[#222225]">
                 <div>
-                  <h2 className="text-lg font-bold text-white">Préférences de Notification</h2>
+                  <h2 className="text-lg font-bold text-white">Notification Preferences</h2>
                   <p className="text-xs text-neutral-400">
-                    Ajustez les seuils d'alerte de trafic et les rapports périodiques.
+                    Adjust traffic spike alert thresholds and periodic reporting.
                   </p>
                 </div>
               </div>
@@ -1930,8 +1930,8 @@ export default function SettingsPage() {
               {/* Traffic Spike Threshold */}
               <div className="p-4 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] flex flex-col gap-2 text-xs">
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-white">Seuil d'alerte de pic de trafic</span>
-                  <span className="font-mono text-brand font-bold text-sm">{spikeThreshold} clics / heure</span>
+                  <span className="font-bold text-white">Traffic spike alert threshold</span>
+                  <span className="font-mono text-brand font-bold text-sm">{spikeThreshold} clicks / hour</span>
                 </div>
                 <input
                   type="range"
@@ -1943,7 +1943,7 @@ export default function SettingsPage() {
                   className="w-full accent-[var(--brand-primary)] cursor-pointer mt-1"
                 />
                 <p className="text-[11px] text-neutral-400">
-                  Vous recevrez un e-mail dès qu'un lien court dépasse ce taux de clics par heure.
+                  You will receive an email alert whenever a short link exceeds this hourly click rate.
                 </p>
               </div>
 
@@ -1951,8 +1951,8 @@ export default function SettingsPage() {
               <div className="flex flex-col gap-3">
                 <label className="flex items-center justify-between p-3.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] cursor-pointer">
                   <div>
-                    <p className="text-xs font-bold text-white">Alertes d'expiration de lien</p>
-                    <p className="text-[11px] text-neutral-400">Notification 24 heures avant l'expiration d'un lien court</p>
+                    <p className="text-xs font-bold text-white">Link expiration alerts</p>
+                    <p className="text-[11px] text-neutral-400">Notification 24 hours before a short link expires</p>
                   </div>
                   <input
                     type="checkbox"
@@ -1964,8 +1964,8 @@ export default function SettingsPage() {
 
                 <label className="flex items-center justify-between p-3.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] cursor-pointer">
                   <div>
-                    <p className="text-xs font-bold text-white">Rapport de performance hebdomadaire</p>
-                    <p className="text-[11px] text-neutral-400">Synthèse analytique des clics et conversions chaque lundi matin</p>
+                    <p className="text-xs font-bold text-white">Weekly performance summary report</p>
+                    <p className="text-[11px] text-neutral-400">Analytics recap of clicks and conversions delivered every Monday morning</p>
                   </div>
                   <input
                     type="checkbox"
@@ -1983,9 +1983,9 @@ export default function SettingsPage() {
             <div className="flex flex-col gap-6">
               <div className="flex items-center justify-between pb-4 border-b border-[#222225]">
                 <div>
-                  <h2 className="text-lg font-bold text-white">Données, Export &amp; Confidentialité RGPD</h2>
+                  <h2 className="text-lg font-bold text-white">Data, Export &amp; GDPR Privacy</h2>
                   <p className="text-xs text-neutral-400">
-                    Exportez vos archives complètes ou supprimez définitivement votre compte.
+                    Export your complete archives or permanently delete your account.
                   </p>
                 </div>
               </div>
@@ -1993,40 +1993,40 @@ export default function SettingsPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="p-4 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] flex flex-col justify-between gap-3">
                   <div>
-                    <h3 className="text-xs font-semibold text-white">Archive Complète (JSON)</h3>
+                    <h3 className="text-xs font-semibold text-white">Complete Archive (JSON)</h3>
                     <p className="text-[11px] text-neutral-400 mt-1">
-                      Contient tous vos liens courts, tags, règles de ciblage et métriques agrégées.
+                      Contains all your short links, tags, targeting rules, and aggregated metrics.
                     </p>
                   </div>
                   <Button size="sm" variant="outline" onClick={() => handleExportData("json")} className="gap-1.5 text-xs h-9 border-[#27272a]">
                     <Download className="w-3.5 h-3.5" />
-                    <span>Télécharger l'archive JSON</span>
+                    <span>Download JSON Archive</span>
                   </Button>
                 </div>
 
                 <div className="p-4 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] flex flex-col justify-between gap-3">
                   <div>
-                    <h3 className="text-xs font-semibold text-white">Export Événements &amp; Clics (CSV)</h3>
+                    <h3 className="text-xs font-semibold text-white">Export Events &amp; Clicks (CSV)</h3>
                     <p className="text-[11px] text-neutral-400 mt-1">
-                      Format tabulaire UTF-8 avec séparateur point-virgule et colonnes espacées, optimisé pour Excel et Google Sheets.
+                      UTF-8 tabular format with separated columns, optimized for Excel and Google Sheets.
                     </p>
                   </div>
                   <Button size="sm" variant="outline" onClick={() => handleExportData("csv")} className="gap-1.5 text-xs h-9 border-[#27272a]">
                     <Download className="w-3.5 h-3.5" />
-                    <span>Télécharger le CSV</span>
+                    <span>Download CSV</span>
                   </Button>
                 </div>
               </div>
 
               {/* Danger Zone */}
               <div className="p-5 rounded-[10px] bg-red-500/10 border border-red-500/30 flex flex-col gap-3">
-                <h3 className="text-xs font-bold text-red-400 uppercase tracking-wider">Zone Dangereuse</h3>
+                <h3 className="text-xs font-bold text-red-400 uppercase tracking-wider">Danger Zone</h3>
                 <p className="text-xs text-neutral-300">
-                  La suppression de compte est immédiate et irréversible. L'ensemble de vos liens raccourcis, métadonnées et domaines associés seront définitivement purgés.
+                  Account deletion is immediate and irreversible. All your short links, metadata, and connected domains will be permanently erased.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-2">
                   <Input
-                    placeholder="Tapez SUPPRIMER pour confirmer"
+                    placeholder="Type DELETE to confirm"
                     value={deleteConfirmationText}
                     onChange={(e) => setDeleteConfirmationText(e.target.value)}
                     className="max-w-xs"
@@ -2034,10 +2034,10 @@ export default function SettingsPage() {
                   <Button
                     size="sm"
                     variant="destructive"
-                    disabled={deleteConfirmationText !== "SUPPRIMER" && deleteConfirmationText !== "DELETE" || isDeletingAccount}
+                    disabled={deleteConfirmationText !== "DELETE" || isDeletingAccount}
                     onClick={handleDeleteAccount}
                   >
-                    {isDeletingAccount ? "Suppression en cours..." : "Supprimer définitivement mon compte"}
+                    {isDeletingAccount ? "Deleting account..." : "Permanently delete my account"}
                   </Button>
                 </div>
               </div>
@@ -2047,28 +2047,28 @@ export default function SettingsPage() {
           {/* TAB 10: ABOUT */}
           {activeTab === "about" && (
             <div className="flex flex-col gap-6 text-xs text-neutral-300">
-              <h2 className="text-lg font-bold text-white">À propos de LShorter</h2>
+              <h2 className="text-lg font-bold text-white">About LShorter</h2>
               <p className="leading-relaxed text-neutral-300">
-                LShorter est une plateforme Edge SaaS haute performance propulsée par le réseau mondial Cloudflare Workers, D1 et Bunny CDN.
+                LShorter is a high-performance Edge SaaS link infrastructure platform powered globally by Cloudflare Workers, D1, and Bunny CDN.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                 <div className="p-3.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a]">
-                  <span className="text-neutral-500">Version de l'application</span>
+                  <span className="text-neutral-500">Application Version</span>
                   <p className="font-mono text-white font-bold text-sm mt-0.5">v1.2.0 (Production)</p>
                 </div>
                 <div className="p-3.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a]">
-                  <span className="text-neutral-500">Réseau Cloudflare Edge &amp; D1</span>
+                  <span className="text-neutral-500">Cloudflare Edge &amp; D1 Network</span>
                   <p className="text-emerald-400 font-bold text-sm flex items-center gap-1.5 mt-0.5">
                     <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                    Opérationnel (&lt;0.8ms latence)
+                    Operational (&lt;0.8ms latency)
                   </p>
                 </div>
                 <div className="p-3.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a]">
-                  <span className="text-neutral-500">Hébergement CDN</span>
+                  <span className="text-neutral-500">CDN &amp; Storage</span>
                   <p className="text-white font-bold text-sm mt-0.5">Bunny.net Storage Edge</p>
                 </div>
                 <div className="p-3.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a]">
-                  <span className="text-neutral-500">Base de données</span>
+                  <span className="text-neutral-500">Realtime Database</span>
                   <p className="text-white font-bold text-sm mt-0.5">Convex Realtime Database</p>
                 </div>
               </div>

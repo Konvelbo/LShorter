@@ -38,7 +38,7 @@ export function PlanUpgradeModal() {
   useEffect(() => {
     const handleUpgradeRequest = (e: Event) => {
       const customEvent = e as CustomEvent<{ reason?: string }>;
-      setReason(customEvent.detail?.reason || "Passez au forfait Pro ou supérieur pour déverrouiller cette fonctionnalité.");
+      setReason(customEvent.detail?.reason || "Upgrade to the Pro or Business plan to unlock this advanced feature.");
       setIsOpen(true);
     };
 
@@ -80,10 +80,10 @@ export function PlanUpgradeModal() {
       try { await updateSession({ plan: targetPlan }); } catch {}
 
       confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
-      showToast.success(`Félicitations ! Vous êtes maintenant sur le forfait ${targetPlan}.`);
+      showToast.success(`Congratulations! You are now subscribed to the ${targetPlan} plan.`);
       setIsOpen(false);
     } catch (err: any) {
-      showToast.error("Impossible de mettre à niveau le forfait.");
+      showToast.error("Unable to upgrade subscription plan.");
     } finally {
       setLoadingPlan(null);
     }
@@ -113,13 +113,13 @@ export function PlanUpgradeModal() {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-xl font-bold text-zinc-900 dark:text-white tracking-wide">Passez à la Vitesse Supérieure</h3>
+              <h3 className="text-xl font-bold text-zinc-900 dark:text-white tracking-wide">Upgrade Your Performance</h3>
               <span className="px-2.5 py-0.5 rounded-full bg-brand-subtle text-brand text-[10px] font-bold uppercase tracking-wider border border-brand-subtle">
-                PRO & BUSINESS
+                PRO &amp; BUSINESS
               </span>
             </div>
             <p className="text-xs text-zinc-500 dark:text-neutral-400 mt-0.5">
-              {reason || "Profitez de la suite complète d'optimisation Edge sans restriction."}
+              {reason || "Unlock the full suite of edge optimization tools with zero restrictions."}
             </p>
           </div>
         </div>
@@ -127,12 +127,12 @@ export function PlanUpgradeModal() {
         {/* Feature Highlights Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 my-5">
           {[
-            { icon: Zap, text: "500k à 5M de Clics Edge avec Zéro Coupure" },
-            { icon: Globe2, text: "Routage Intelligent (195+ Pays & Appareils)" },
-            { icon: Lock, text: "Protection par Mot de Passe & Cloaking" },
-            { icon: QrCode, text: "Studio QR Code Vectoriel SVG" },
-            { icon: Layers, text: "Jusqu'à 50 Domaines Personnalisés" },
-            { icon: ShieldCheck, text: "Webhooks, Pixels & Facturation PDF" },
+            { icon: Zap, text: "500k to 5M Edge Clicks with Zero-Downtime" },
+            { icon: Globe2, text: "Smart Routing (195+ Countries & Devices)" },
+            { icon: Lock, text: "Password Protection & Link Cloaking" },
+            { icon: QrCode, text: "Vector SVG & PDF QR Code Studio" },
+            { icon: Layers, text: "Up to 50 Branded Custom Domains" },
+            { icon: ShieldCheck, text: "Webhooks, Pixels & PDF Billing" },
           ].map((f, i) => {
             const Icon = f.icon;
             return (
@@ -150,36 +150,43 @@ export function PlanUpgradeModal() {
         {/* Plans Selection Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
           {/* Plan PRO */}
-          <div className="relative p-5 rounded-[12px] bg-brand/[0.03] dark:bg-[#1a1a1e] border-2 border-brand flex flex-col justify-between shadow-xs group">
-            <div className="absolute -top-3 right-4 px-2.5 py-0.5 rounded-full bg-brand text-white text-[10px] font-bold tracking-wide uppercase shadow-xs">
-              Offre : 3,75 € le 1er mois
+          <div className="relative p-5 rounded-[14px] bg-brand/[0.03] dark:bg-[#1a1a1e] border-2 border-brand flex flex-col justify-between shadow-xs group">
+            <div className="absolute -top-3.5 right-4 px-3 py-1 rounded-full bg-brand text-white text-[10.5px] font-black tracking-wide uppercase shadow-md shadow-brand/30 flex items-center gap-1">
+              <span>🔥 Deal: -75%</span>
             </div>
             <div>
               <div className="flex items-center justify-between">
-                <span className="text-sm font-bold text-zinc-900 dark:text-white uppercase tracking-wider">Forfait Pro</span>
-                <span className="text-[11px] text-brand font-bold">500 000 clics</span>
+                <span className="text-sm font-bold text-zinc-900 dark:text-white uppercase tracking-wider">Pro Plan</span>
+                <span className="text-[11px] text-brand font-bold">500,000 clicks</span>
               </div>
-              <div className="flex items-baseline gap-2 my-2">
-                <span className="text-xs text-zinc-400 line-through">15 €</span>
-                <span className="text-3xl font-black text-zinc-900 dark:text-white">3,75 €</span>
-                <span className="text-xs text-zinc-500 dark:text-neutral-400">/ 1er mois (puis 15 €)</span>
+              <div className="flex items-baseline flex-wrap gap-2 my-2.5">
+                <span className="text-xs text-zinc-400 line-through font-mono">$15</span>
+                <span className="text-3xl font-black text-zinc-900 dark:text-white">$3.75</span>
+                <span className="text-xs text-zinc-500 dark:text-neutral-400">/ 1st month</span>
+                <span className="ml-auto px-2 py-0.5 rounded-md text-xs font-black font-mono bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40 shadow-xs flex items-center gap-1">
+                  <Zap className="w-3 h-3 fill-emerald-500 text-emerald-500" />
+                  -75%
+                </span>
               </div>
-              <ul className="flex flex-col gap-1.5 text-xs text-zinc-700 dark:text-neutral-300 mt-3">
+              <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/25 px-2 py-0.5 rounded-md w-fit mb-2">
+                <span>💰 You save $11.25</span>
+              </div>
+              <ul className="flex flex-col gap-1.5 text-xs text-zinc-700 dark:text-neutral-300 mt-2">
                 <li className="flex items-center gap-1.5">
                   <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                  <span><strong>3 domaines</strong> & 1 000 liens actifs</span>
+                  <span><strong>3 domains</strong> &amp; 1,000 active links</span>
                 </li>
                 <li className="flex items-center gap-1.5">
                   <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                  <span>Routage Avancé (Pays + Appareils)</span>
+                  <span>Advanced Routing (Country + OS/Device)</span>
                 </li>
                 <li className="flex items-center gap-1.5">
                   <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                  <span>Protection par mot de passe & Cloaking</span>
+                  <span>Password PIN gates &amp; link cloaking</span>
                 </li>
                 <li className="flex items-center gap-1.5">
                   <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                  <span>5 Webhooks & 5 Pixels de Retargeting</span>
+                  <span>5 Webhooks &amp; 5 Retargeting Pixels</span>
                 </li>
               </ul>
             </div>
@@ -192,11 +199,11 @@ export function PlanUpgradeModal() {
               {loadingPlan === "PRO" ? (
                 <span className="flex items-center gap-2">
                   <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  <span>Activation...</span>
+                  <span>Activating...</span>
                 </span>
               ) : (
                 <>
-                  <span>Passer à Pro (3,75 €)</span>
+                  <span>Upgrade to Pro ($3.75)</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </>
               )}
@@ -204,36 +211,43 @@ export function PlanUpgradeModal() {
           </div>
 
           {/* Plan BUSINESS */}
-          <div className="relative p-5 rounded-[12px] bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a] hover:border-zinc-300 dark:hover:border-neutral-500 flex flex-col justify-between transition-colors shadow-xs">
-            <div className="absolute -top-3 right-4 px-2.5 py-0.5 rounded-full bg-emerald-600 text-white text-[10px] font-bold tracking-wide uppercase shadow-xs">
-              Offre : 19,60 € le 1er mois (-60%)
+          <div className="relative p-5 rounded-[14px] bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a] hover:border-zinc-300 dark:hover:border-neutral-500 flex flex-col justify-between transition-colors shadow-xs">
+            <div className="absolute -top-3.5 right-4 px-3 py-1 rounded-full bg-emerald-600 text-white text-[10.5px] font-black tracking-wide uppercase shadow-md shadow-emerald-500/20 flex items-center gap-1">
+              <span>🔥 Deal: -60%</span>
             </div>
             <div>
               <div className="flex items-center justify-between">
-                <span className="text-sm font-bold text-zinc-900 dark:text-white uppercase tracking-wider">Forfait Business</span>
-                <span className="text-[11px] text-emerald-500 font-bold">2M de clics</span>
+                <span className="text-sm font-bold text-zinc-900 dark:text-white uppercase tracking-wider">Business Plan</span>
+                <span className="text-[11px] text-emerald-500 font-bold">2M clicks</span>
               </div>
-              <div className="flex items-baseline gap-2 my-2">
-                <span className="text-xs text-zinc-400 line-through">49 €</span>
-                <span className="text-3xl font-black text-zinc-900 dark:text-white">19,60 €</span>
-                <span className="text-xs text-zinc-500 dark:text-neutral-400">/ 1er mois (puis 49 €)</span>
+              <div className="flex items-baseline flex-wrap gap-2 my-2.5">
+                <span className="text-xs text-zinc-400 line-through font-mono">$49</span>
+                <span className="text-3xl font-black text-zinc-900 dark:text-white">$19.60</span>
+                <span className="text-xs text-zinc-500 dark:text-neutral-400">/ 1st month</span>
+                <span className="ml-auto px-2 py-0.5 rounded-md text-xs font-black font-mono bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40 shadow-xs flex items-center gap-1">
+                  <Zap className="w-3 h-3 fill-emerald-500 text-emerald-500" />
+                  -60%
+                </span>
               </div>
-              <ul className="flex flex-col gap-1.5 text-xs text-zinc-700 dark:text-neutral-300 mt-3">
+              <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/25 px-2 py-0.5 rounded-md w-fit mb-2">
+                <span>💰 You save $29.40</span>
+              </div>
+              <ul className="flex flex-col gap-1.5 text-xs text-zinc-700 dark:text-neutral-300 mt-2">
                 <li className="flex items-center gap-1.5">
                   <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                  <span><strong>15 domaines</strong> &amp; Liens illimités</span>
+                  <span><strong>15 domains</strong> &amp; Unlimited links</span>
                 </li>
                 <li className="flex items-center gap-1.5">
                   <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                  <span>Routage Custom multi-conditions</span>
+                  <span>Custom multi-condition rule engine</span>
                 </li>
                 <li className="flex items-center gap-1.5">
                   <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                  <span>Webhooks &amp; Pixels de Retargeting illimités</span>
+                  <span>Unlimited Webhooks &amp; Pixels</span>
                 </li>
                 <li className="flex items-center gap-1.5">
                   <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                  <span>5 sièges d'équipe &amp; Facturation PDF certifiée</span>
+                  <span>5 team seats &amp; Certified PDF invoices</span>
                 </li>
               </ul>
             </div>
@@ -246,11 +260,11 @@ export function PlanUpgradeModal() {
               {loadingPlan === "BUSINESS" ? (
                 <span className="flex items-center gap-2">
                   <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  <span>Activation...</span>
+                  <span>Activating...</span>
                 </span>
               ) : (
                 <>
-                  <span>Passer à Business (19,60 €)</span>
+                  <span>Upgrade to Business ($19.60)</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </>
               )}
@@ -259,7 +273,7 @@ export function PlanUpgradeModal() {
         </div>
 
         <p className="text-center text-[11px] text-zinc-500 dark:text-neutral-500 mt-5">
-          Sans engagement. Résiliation ou changement de formule en 1 clic à tout moment depuis vos paramètres.
+          Cancel anytime. Change or cancel your subscription in 1 click at any time from your settings.
         </p>
       </div>
     </div>

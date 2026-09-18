@@ -68,8 +68,8 @@ export function FaqSection() {
           ease: "power2.out",
           scrollTrigger: {
             trigger: headerRef.current,
-            start: "top 88%",
-            end: "bottom 12%",
+            start: "top 90%",
+            end: "bottom top",
             toggleActions: "play reverse play reverse",
           },
         }
@@ -88,8 +88,8 @@ export function FaqSection() {
           ease: "power2.out",
           scrollTrigger: {
             trigger: cardRef.current,
-            start: "top 85%",
-            end: "bottom 15%",
+            start: "top 88%",
+            end: "bottom top",
             toggleActions: "play reverse play reverse",
           },
         }
@@ -106,25 +106,41 @@ export function FaqSection() {
   }, []);
 
   return (
-    <section id="faq" className="relative py-14 sm:py-20 px-4 sm:px-6 overflow-hidden">
-      <div className="max-w-2xl mx-auto">
+    <section id="faq" className="relative py-16 sm:py-24 lg:py-28 px-4 sm:px-6 lg:px-8 overflow-hidden bg-[#FAF7F2] dark:bg-[#09090b] transition-colors">
+      {/* Background subtle radial ambient glow */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[350px] bg-brand/5 dark:bg-brand/10 blur-[140px] rounded-full pointer-events-none" />
+
+      <div className="max-w-4xl lg:max-w-5xl mx-auto relative z-10">
         {/* Section Header */}
-        <div ref={headerRef} className="text-center mb-6 sm:mb-8">
-          <h2 className="text-xl sm:text-[24px] font-medium tracking-tight text-neutral-900 dark:text-white">
+        <div ref={headerRef} className="text-center mb-10 sm:mb-14 flex flex-col items-center justify-center">
+          <span className="text-[11px] font-mono text-brand uppercase tracking-widest font-semibold block mb-2 select-none">
+            07. Frequently Asked Questions
+          </span>
+          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-[40px] font-bold tracking-tight text-neutral-900 dark:text-white leading-tight">
             Frequently Asked Questions
           </h2>
-          <p className="mt-1.5 text-xs sm:text-[13.5px] text-neutral-600 dark:text-neutral-400">
+          <p className="mt-3 text-xs sm:text-sm md:text-base text-neutral-600 dark:text-neutral-400 max-w-lg leading-relaxed">
             Everything you need to know about getting the most out of LShorter.
           </p>
         </div>
 
-        {/* Interactive Accordion */}
-        <div ref={cardRef} className="rounded-2xl bg-[#FFFDF9] dark:bg-[#121216] border border-[#E7DFD5] dark:border-white/10 shadow-xl p-4 sm:p-6">
-          <Accordion type="single" defaultValue="item-1">
+        {/* Interactive Accordion Card */}
+        <div
+          ref={cardRef}
+          className="relative rounded-[22px] sm:rounded-[28px] lg:rounded-[32px] bg-[#FFFDF9] dark:bg-[#141418] border border-[#E7DFD5] dark:border-white/10 shadow-[0_20px_50px_-12px_rgba(43,37,32,0.12)] dark:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.85)] p-6 sm:p-8 md:p-10 lg:p-12 overflow-hidden transition-all duration-300 hover:border-[#DDD1C4] dark:hover:border-white/20"
+        >
+          {/* Top subtle brand accent gradient highlight */}
+          <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-brand/40 to-transparent pointer-events-none" />
+
+          <Accordion type="single" defaultValue="item-1" className="divide-y divide-[#E7DFD5]/80 dark:divide-white/5">
             {faqs.map((faq) => (
-              <AccordionItem key={faq.id} value={faq.id}>
-                <AccordionTrigger className="text-xs sm:text-sm">{faq.question}</AccordionTrigger>
-                <AccordionContent className="text-[11.5px] sm:text-[12.5px] leading-relaxed text-neutral-600 dark:text-neutral-400">{faq.answer}</AccordionContent>
+              <AccordionItem key={faq.id} value={faq.id} className="py-2 sm:py-2.5">
+                <AccordionTrigger className="text-sm sm:text-base md:text-lg font-semibold py-3.5 sm:py-4.5 hover:no-underline text-neutral-900 dark:text-neutral-100">
+                  {faq.question}
+                </AccordionTrigger>
+                <AccordionContent className="text-xs sm:text-sm md:text-[15px] leading-relaxed text-neutral-600 dark:text-neutral-300 pb-3 sm:pb-4">
+                  {faq.answer}
+                </AccordionContent>
               </AccordionItem>
             ))}
           </Accordion>

@@ -63,7 +63,7 @@ export async function POST(req: Request) {
         {
           success: false,
           code: data.code || "PLAN_UPGRADE_REQUIRED",
-          error: data.error || data.message || "Quota de domaines atteint pour votre forfait",
+          error: data.error || data.message || "Domain quota reached for your plan",
         },
         { status: 403 }
       );

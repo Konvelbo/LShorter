@@ -933,16 +933,16 @@ export function HeroScrollSection() {
                     </div>
                   )}
 
-                  {/* TAB 2: MES LIENS */}
+                  {/* TAB 2: MY LINKS */}
                   {activeTab === "links" && (
                     <div className="space-y-4 animate-in fade-in duration-200">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                         <div>
                           <h3 className="text-lg font-bold text-neutral-900 dark:text-white">
-                            Mes Liens &amp; Routages
+                            My Links &amp; Routing
                           </h3>
                           <p className="text-[11px] text-neutral-500">
-                            Gérez vos liens raccourcis, règles A/B testing et protection PIN.
+                            Manage your shortened links, A/B testing rules, and PIN protection.
                           </p>
                         </div>
                         <button
@@ -953,7 +953,7 @@ export function HeroScrollSection() {
                           className="inline-flex items-center gap-1 px-3 py-1 rounded-[8px] bg-brand hover:bg-brand-hover text-white text-xs font-bold shadow-xs transition-colors cursor-pointer"
                         >
                           <Plus className="w-3.5 h-3.5" />
-                          <span>Nouveau Lien</span>
+                          <span>New Link</span>
                         </button>
                       </div>
 
@@ -965,7 +965,7 @@ export function HeroScrollSection() {
                             type="text"
                             value={filterQuery}
                             onChange={(e) => setFilterQuery(e.target.value)}
-                            placeholder="Rechercher par slug, URL, tag..."
+                            placeholder="Search by slug, URL, tag..."
                             className="w-full pl-7 pr-2 py-1 text-xs rounded-lg bg-white dark:bg-[#0c0c10] border border-[#E7DFD5] dark:border-white/10 outline-none text-neutral-900 dark:text-white"
                           />
                         </div>
@@ -974,8 +974,8 @@ export function HeroScrollSection() {
                           onChange={(e) => setStatusFilter(e.target.value)}
                           className="text-xs px-2 py-1 rounded-lg bg-white dark:bg-[#0c0c10] border border-[#E7DFD5] dark:border-white/10 outline-none text-neutral-700 dark:text-neutral-300"
                         >
-                          <option value="all">Tous statuts</option>
-                          <option value="protected">Protégés PIN</option>
+                          <option value="all">All statuses</option>
+                          <option value="protected">PIN Protected</option>
                         </select>
                       </div>
 
@@ -999,7 +999,7 @@ export function HeroScrollSection() {
                                 {link.shortUrl}
                               </span>
                               <span className="text-[9.5px] text-neutral-400 truncate block">
-                                Cible: {link.targetUrl}
+                                Target: {link.targetUrl}
                               </span>
                             </div>
 
@@ -1008,14 +1008,14 @@ export function HeroScrollSection() {
                                 <span className="text-xs font-bold text-neutral-900 dark:text-white block">
                                   {link.clicks.toLocaleString()}
                                 </span>
-                                <span className="text-[9px] text-neutral-400">clics</span>
+                                <span className="text-[9px] text-neutral-400">clicks</span>
                               </div>
                               <button
                                 type="button"
                                 onClick={() => handleCopy(link.shortUrl, link.slug)}
                                 className="px-2.5 py-1 rounded-lg bg-brand hover:bg-brand-hover text-white text-xs font-bold cursor-pointer transition-all"
                               >
-                                {copiedSlug === link.slug ? "Copié !" : "Copier"}
+                                {copiedSlug === link.slug ? "Copied!" : "Copy"}
                               </button>
                             </div>
                           </div>
@@ -1030,10 +1030,10 @@ export function HeroScrollSection() {
                       <div className="flex items-center justify-between">
                         <div>
                           <h3 className="text-lg font-bold text-neutral-900 dark:text-white">
-                            QR Code Studio Haute Définition
+                            High-Definition QR Code Studio
                           </h3>
                           <p className="text-[11px] text-neutral-500">
-                            Générez des QR codes vectoriels personnalisés aux couleurs de votre marque.
+                            Generate custom vector QR codes tailored to your brand identity.
                           </p>
                         </div>
                         <button
@@ -1042,7 +1042,7 @@ export function HeroScrollSection() {
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] bg-brand hover:bg-brand-hover text-white text-xs font-bold shadow-md cursor-pointer transition-all"
                         >
                           <Download className="w-3.5 h-3.5" />
-                          <span>Télécharger PNG</span>
+                          <span>Download PNG</span>
                         </button>
                       </div>
 
@@ -1051,7 +1051,7 @@ export function HeroScrollSection() {
                         <div className="p-3.5 rounded-xl bg-[#FAF7F2] dark:bg-[#18181d] border border-[#E7DFD5] dark:border-white/10 space-y-3">
                           <div>
                             <label className="text-[10px] font-bold uppercase text-neutral-500 block mb-1">
-                              Style des Pixels
+                              Pixel Style
                             </label>
                             <div className="grid grid-cols-3 gap-1.5">
                               {(["rounded", "dots", "diamond", "square"] as const).map((st) => (
@@ -1073,7 +1073,7 @@ export function HeroScrollSection() {
 
                           <div>
                             <label className="text-[10px] font-bold uppercase text-neutral-500 block mb-1">
-                              Couleur Principale
+                              Primary Color
                             </label>
                             <div className="flex items-center gap-2">
                               {["#ff6600", "#0080ff", "#10b981", "#8b5cf6", "#000000"].map((c) => (
@@ -1092,7 +1092,7 @@ export function HeroScrollSection() {
 
                           <div>
                             <label className="text-[10px] font-bold uppercase text-neutral-500 block mb-1">
-                              Cadre &amp; CTA
+                              Frame &amp; CTA
                             </label>
                             <div className="grid grid-cols-2 gap-1.5">
                               {(["bottom_pill", "top_header", "simple", "none"] as const).map((fr) => (
@@ -1119,7 +1119,7 @@ export function HeroScrollSection() {
                             <canvas ref={qrCanvasRef} className="max-w-[200px] h-auto" />
                           </div>
                           <span className="text-[10px] font-mono text-neutral-400 mt-2">
-                            Aperçu HD instantané • 300 DPI
+                            Instant HD preview • 300 DPI
                           </span>
                         </div>
                       </div>
@@ -1132,10 +1132,10 @@ export function HeroScrollSection() {
                       <div className="flex items-center justify-between">
                         <div>
                           <h3 className="text-lg font-bold text-neutral-900 dark:text-white">
-                            Analytics Avancés
+                            Advanced Analytics
                           </h3>
                           <p className="text-[11px] text-neutral-500">
-                            Statistiques en temps réel distribuées sur les 300+ datacenters Edge.
+                            Real-time statistics distributed across 300+ global Edge datacenters.
                           </p>
                         </div>
                       </div>
@@ -1143,17 +1143,17 @@ export function HeroScrollSection() {
                       {/* Live Event Feed */}
                       <div className="p-3 rounded-xl bg-[#FAF7F2] dark:bg-[#18181d] border border-[#E7DFD5] dark:border-white/10">
                         <h4 className="text-xs font-bold text-neutral-900 dark:text-white mb-2">
-                          Flux d&apos;Événements en Direct
+                          Live Event Stream
                         </h4>
                         <div className="overflow-x-auto">
                           <table className="w-full text-left text-[10px] border-collapse font-mono">
                             <thead>
                               <tr className="border-b border-[#E7DFD5] dark:border-white/10 text-neutral-400 uppercase text-[8.5px]">
-                                <th className="pb-1.5">Temps</th>
-                                <th className="pb-1.5">Lien</th>
-                                <th className="pb-1.5">Localisation</th>
-                                <th className="pb-1.5">Navigateur</th>
-                                <th className="pb-1.5 text-right">Événement</th>
+                                <th className="pb-1.5">Time</th>
+                                <th className="pb-1.5">Link</th>
+                                <th className="pb-1.5">Location</th>
+                                <th className="pb-1.5">Browser</th>
+                                <th className="pb-1.5 text-right">Event</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-[#E7DFD5]/60 dark:divide-white/5">

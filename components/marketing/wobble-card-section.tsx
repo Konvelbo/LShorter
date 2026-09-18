@@ -27,8 +27,7 @@ export function WobbleCardSection() {
           scrollTrigger: {
             trigger: header,
             start: "top 88%",
-            end: "bottom 12%",
-            toggleActions: "play reverse play reverse",
+            once: true,
           },
         }
       );
@@ -56,7 +55,7 @@ export function WobbleCardSection() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         {/* Section Header */}
         <div className="wobble-section-header text-center max-w-2xl mx-auto mb-10 sm:mb-14 flex flex-col items-center justify-center">
-          <span className="text-[11px] font-mono text-brand uppercase tracking-widest font-semibold block mb-2">
+          <span className="text-[11px] font-mono text-brand uppercase tracking-widest font-semibold block mb-2 select-none">
             04. Modern SaaS Architecture
           </span>
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-neutral-900 dark:text-white leading-tight text-center">

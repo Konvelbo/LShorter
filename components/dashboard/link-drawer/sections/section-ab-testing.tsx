@@ -52,7 +52,7 @@ export function SectionAbTesting({
           className="bg-white dark:bg-[#18181c] border-zinc-200 dark:border-[#27272a] hover:bg-zinc-100 dark:hover:bg-white/5 text-zinc-800 dark:text-neutral-200 text-xs h-7 rounded-[6px] gap-1 cursor-pointer"
         >
           <Plus className="w-3.5 h-3.5 text-brand" />
-          <span>Ajouter une variante</span>
+          <span>Add Variation</span>
         </Button>
       </div>
 
@@ -60,14 +60,14 @@ export function SectionAbTesting({
       <div className="p-3.5 rounded-[8px] bg-white dark:bg-[#18181c] border border-brand-subtle flex flex-col gap-2 shadow-xs">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold text-brand">
-            Variante A (Principale)
+            Variation A (Primary)
           </span>
           <span className="text-xs font-mono font-bold text-brand">
             {mainWeight}%
           </span>
         </div>
         <div className="text-xs font-mono truncate bg-zinc-100 dark:bg-[#101012] px-3 py-1.5 rounded-[6px] border border-zinc-200 dark:border-[#27272a] text-zinc-800 dark:text-neutral-300">
-          {targetUrl.trim() || "URL principale définie plus haut"}
+          {targetUrl.trim() || "Primary destination URL configured above"}
         </div>
         <div className="flex items-center gap-3">
           <input
@@ -92,12 +92,12 @@ export function SectionAbTesting({
         <div className="p-4 rounded-[8px] border border-dashed border-zinc-300 dark:border-[#27272a] bg-white/60 dark:bg-[#18181c]/50 text-center flex flex-col items-center justify-center gap-1.5">
           <Split className="w-5 h-5 text-zinc-400 dark:text-neutral-500" />
           <p className="text-[11px] text-zinc-500 dark:text-neutral-400">
-            Aucune variante alternative configurée. 100% du trafic est dirigé vers l'URL principale.
+            No alternative variations configured. 100% of visitor traffic routes to the primary URL.
           </p>
         </div>
       ) : (
         abVariations.map((variant, idx) => {
-          const label = `Variante ${String.fromCharCode(66 + idx)}`;
+          const label = `Variation ${String.fromCharCode(66 + idx)}`;
           const err = fieldErrors[`abVariation_${idx}`];
           return (
             <div
@@ -123,7 +123,7 @@ export function SectionAbTesting({
               </div>
 
               <Input
-                placeholder="https://variante-landing.com/..."
+                placeholder="https://variant-landing.com/..."
                 value={variant.url}
                 onChange={(e) => {
                   const next = [...abVariations];
@@ -172,7 +172,7 @@ export function SectionAbTesting({
             className="bg-white dark:bg-[#18181c] border-zinc-200 dark:border-[#27272a] hover:bg-zinc-100 dark:hover:bg-white/5 text-zinc-800 dark:text-neutral-200 text-xs h-8 rounded-[8px] gap-1.5 cursor-pointer"
           >
             <RotateCcw className="w-3 h-3 text-brand" />
-            <span>Équilibrer à 100%</span>
+            <span>Auto-Balance to 100%</span>
           </Button>
 
           {/* Total Weight Indicator */}
@@ -193,7 +193,7 @@ export function SectionAbTesting({
                     : "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/30 animate-pulse",
                 )}
               >
-                Total : {total}% {isOk ? "✓" : "≠ 100%"}
+                Total: {total}% {isOk ? "✓" : "≠ 100%"}
               </span>
             );
           })()}

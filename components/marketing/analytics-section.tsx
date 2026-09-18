@@ -108,8 +108,7 @@ export function AnalyticsSection() {
           scrollTrigger: {
             trigger: header,
             start: "top 88%",
-            end: "bottom 12%",
-            toggleActions: "play reverse play reverse",
+            once: true,
           },
         }
       );
@@ -129,8 +128,7 @@ export function AnalyticsSection() {
           scrollTrigger: {
             trigger: ".analytics-metrics-grid",
             start: "top 88%",
-            end: "bottom 12%",
-            toggleActions: "play reverse play reverse",
+            once: true,
           },
         }
       );
@@ -149,8 +147,7 @@ export function AnalyticsSection() {
           scrollTrigger: {
             trigger: cardRef.current,
             start: "top 85%",
-            end: "bottom 15%",
-            toggleActions: "play reverse play reverse",
+            once: true,
           },
         }
       );
@@ -183,6 +180,9 @@ export function AnalyticsSection() {
       <div className="max-w-6xl mx-auto">
         {/* Section Header */}
         <div className="analytics-header text-center max-w-2xl mx-auto mb-6 sm:mb-8">
+          <span className="text-[11px] font-mono text-brand uppercase tracking-widest font-semibold block mb-2 select-none">
+            05. Real-Time Analytics
+          </span>
           <h2 className="text-xl sm:text-[24px] font-medium tracking-tight text-neutral-900 dark:text-white leading-snug">
             Analytics That Speak for Themselves
           </h2>

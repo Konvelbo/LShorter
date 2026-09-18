@@ -12,7 +12,7 @@ export async function POST(req: Request) {
     const session = await auth();
     if (!session?.user) {
       return NextResponse.json(
-        { success: false, error: "Authentification requise." },
+        { success: false, error: "Authentication required." },
         { status: 401 }
       );
     }
@@ -24,7 +24,7 @@ export async function POST(req: Request) {
     // Strict IDOR protection: a user can only change their own plan
     if (session.user.id && targetUserId !== session.user.id) {
       return NextResponse.json(
-        { success: false, error: "Non autorisé à modifier le forfait d'un autre utilisateur." },
+        { success: false, error: "Unauthorized to modify another user's plan." },
         { status: 403 }
       );
     }
@@ -33,7 +33,7 @@ export async function POST(req: Request) {
 
     if (!userId || !plan) {
       return NextResponse.json(
-        { success: false, error: "userId et plan sont requis" },
+        { success: false, error: "userId and plan are required" },
         { status: 400 }
       );
     }

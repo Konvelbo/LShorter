@@ -11,7 +11,7 @@ export async function DELETE(
 
   try {
     const success = revokeApiKey(keyId, userId);
-    return NextResponse.json({ success, message: "Clé API révoquée avec succès" });
+    return NextResponse.json({ success, message: "API key revoked successfully" });
   } catch (error) {
     console.warn("[API Key DELETE] Error revoking key:", error);
     return NextResponse.json({ success: true });

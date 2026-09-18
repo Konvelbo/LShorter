@@ -31,7 +31,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { ShinyText } from "@/components/ui/shiny-text";
 import { TextType } from "@/components/ui/text-type";
-import PlasmaWave from "./plasma-wave";
 import { motion, AnimatePresence, useScroll, useTransform, useSpring } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarImage } from "../ui/avatar";
@@ -53,7 +52,7 @@ export function HeroTransitionSection() {
     restDelta: 0.001,
   });
 
-  // 0. PlasmaWave Background: ONLY visible in Hero Section! Fades completely to 0 on scroll down into Section 2
+  // 0. Hero Background: ONLY visible in Hero Section! Fades completely to 0 on scroll down into Section 2
   const heroGridOpacity = useTransform(smoothProgress, [0, 0.2], [1, 0]);
 
   // 1. Hero Text & CTAs (Phase 1: Fades out and glides up on initial scroll)
@@ -154,21 +153,22 @@ export function HeroTransitionSection() {
     >
       {/* Sticky Viewport Stage (Extended 110vh stage for Hero and Section 2, scrolls naturally into Section 3) */}
       <div className="sticky top-0 min-h-[110vh] h-[110vh] w-full overflow-hidden flex flex-col justify-between pt-10 sm:pt-8 pb-8 sm:pb-12 select-none z-[1000]">
-        {/* Background PlasmaWave (EXCLUSIVELY for Hero Section - Fades out completely when entering Section 2) */}
+        {/* Background Ambient Glow & Dot Grid (EXCLUSIVELY for Hero Section - Fades out completely when entering Section 2) */}
         <motion.div
           style={{ opacity: heroGridOpacity }}
           className="absolute inset-0 pointer-events-none z-0 will-change-opacity overflow-hidden"
         >
-          <PlasmaWave
-            colors={["#FF5B00", "#0080ff"]}
-            speed1={0.055}
-            speed2={0.055}
-            focalLength={0.8}
-            bend1={1.2}
-            bend2={0.7}
-            dir2={1}
-            rotationDeg={0}
-          />
+          {/* Ambient Glow Aura 1 - Brand Orange Glow */}
+          <div className="absolute top-[8%] left-1/2 -translate-x-1/2 w-[750px] sm:w-[980px] h-[400px] sm:h-[520px] bg-[radial-gradient(ellipse_at_center,rgba(255,91,0,0.12),transparent_68%)] dark:bg-[radial-gradient(ellipse_at_center,rgba(255,91,0,0.22),transparent_68%)] blur-[90px] sm:blur-[130px] rounded-full" />
+
+          {/* Ambient Glow Aura 2 - Cyber Blue Accent Glow */}
+          <div className="absolute top-[14%] right-[8%] w-[450px] sm:w-[620px] h-[340px] sm:h-[450px] bg-[radial-gradient(ellipse_at_center,rgba(0,102,255,0.09),transparent_70%)] dark:bg-[radial-gradient(ellipse_at_center,rgba(0,102,255,0.18),transparent_70%)] blur-[80px] sm:blur-[110px] rounded-full" />
+
+          {/* Ambient Glow Aura 3 - Soft Warmth Glow */}
+          <div className="absolute top-[18%] left-[5%] w-[400px] sm:w-[540px] h-[300px] sm:h-[380px] bg-[radial-gradient(ellipse_at_center,rgba(251,191,36,0.07),transparent_70%)] dark:bg-[radial-gradient(ellipse_at_center,rgba(251,191,36,0.12),transparent_70%)] blur-[90px] rounded-full" />
+
+          {/* High-Definition Dot Matrix Grid (Crisp, High-Visibility, Clean Edge Falloff) */}
+          <div className="absolute inset-0 bg-[radial-gradient(rgba(130,110,90,0.38)_1.5px,transparent_1.5px)] dark:bg-[radial-gradient(rgba(255,255,255,0.22)_1.5px,transparent_1.5px)] [background-size:24px_24px] [mask-image:radial-gradient(ellipse_88%_75%_at_50%_25%,#000_65%,transparent_100%)]" />
         </motion.div>
 
         {/* ─── LAYER 1: HERO TOP TEXTS & CTAS (Scroll 0 -> Fades & floats up) ─── */}

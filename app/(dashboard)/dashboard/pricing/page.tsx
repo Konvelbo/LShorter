@@ -87,7 +87,7 @@ export default function PricingPage() {
 
   const handleSelectPlan = async (planKey: 'FREE' | 'PRO' | 'BUSINESS' | 'ENTERPRISE') => {
     if (currentPlan === planKey) {
-      showToast.info(`Vous êtes déjà sur le forfait ${planKey}.`);
+      showToast.info(`You are already subscribed to the ${planKey} plan.`);
       return;
     }
 
@@ -119,9 +119,9 @@ export default function PricingPage() {
       } catch {}
 
       confetti({ particleCount: 75, spread: 80, origin: { y: 0.6 } });
-      showToast.success(`Forfait mis à jour avec succès : ${planKey} !`);
+      showToast.success(`Plan successfully updated to ${planKey}!`);
     } catch (err: any) {
-      showToast.error("Erreur lors de la mise à jour du forfait.");
+      showToast.error("Error updating subscription plan.");
     } finally {
       setLoadingPlan(null);
     }
@@ -132,49 +132,53 @@ export default function PricingPage() {
       id: "FREE" as const,
       name: PRICING_PLANS.FREE.name,
       tagline: PRICING_COPY.planExplanations.free,
-      displayPrice: "0 €",
+      displayPrice: "$0",
       originalPrice: null,
       subPriceNote: null,
-      unit: "à vie",
-      badge: "Gratuit",
+      discountPercent: 0,
+      savingsAmount: null,
+      unit: "forever",
+      badge: "Free",
       popular: false,
       features: [
-        "10 000 clics / mois inclus",
-        "50 liens courts actifs",
-        "Routage basique (1 règle pays)",
-        "Studio QR Code (Styles basiques)",
-        "Rétention Analytics : 30 jours",
-        "Clés API Développeur (60 req/min)",
-        "Support communautaire",
+        "10,000 clicks / month included",
+        "50 active short links",
+        "Basic routing (1 country rule)",
+        "QR Code Studio (Basic styles)",
+        "Analytics retention: 30 days",
+        "Developer API keys (60 req/min)",
+        "Community support",
       ],
       limitations: [
-        "Domaines personnalisés non inclus",
-        "Routage avancé & par appareil non inclus",
-        "Protection par mot de passe & cloaking non inclus",
-        "Webhooks & Pixels non inclus",
+        "Custom domains not included",
+        "Advanced & device routing not included",
+        "Password protection & cloaking not included",
+        "Webhooks & Pixels not included",
       ],
     },
     {
       id: "PRO" as const,
       name: PRICING_PLANS.PRO.name,
       tagline: PRICING_COPY.planExplanations.pro,
-      displayPrice: isAnnual ? "90 €" : "3,75 €",
-      originalPrice: isAnnual ? "180 €" : "15 €",
-      subPriceNote: isAnnual ? "soit 7,50 €/mois" : "puis 15 €/mois dès le 2ᵉ mois",
-      unit: isAnnual ? "/ an" : "/ mois",
-      badge: isAnnual ? "Économisez 50%" : "Offre de lancement : -75%",
+      displayPrice: isAnnual ? "$90" : "$3.75",
+      originalPrice: isAnnual ? "$180" : "$15",
+      subPriceNote: isAnnual ? "equivalent to $7.50/mo" : "then $15/mo after month 1",
+      discountPercent: isAnnual ? 50 : 75,
+      savingsAmount: isAnnual ? "$90.00 / yr" : "$11.25 (1st month)",
+      unit: isAnnual ? "/ year" : "/ month",
+      badge: isAnnual ? "⚡ -50% Annual" : "🔥 Special Deal: -75%",
       popular: true,
       features: [
-        "500 000 clics / mois inclus",
-        "Garantie Zéro Coupure (+1 € / 10k sup)",
-        "Jusqu'à 3 domaines personnalisés",
-        "1 000 liens courts actifs",
-        "Routage Avancé (Pays + Appareils)",
-        "Protection par mot de passe & Cloaking",
-        "5 Webhooks & 5 Pixels de Retargeting",
-        "Rétention Analytics : 365 jours",
-        "Clés API Développeur (1 000 req/min)",
-        "Support prioritaire par email",
+        "500,000 clicks / month included",
+        "Zero-Downtime Guarantee (+$1 / 10k extra)",
+        "Up to 3 custom branded domains",
+        "1,000 active short links",
+        "Advanced Routing (Country + OS/Device)",
+        "Password PIN gates & link cloaking",
+        "5 Webhooks & 5 Retargeting Pixels",
+        "Analytics retention: 365 days",
+        "Developer API keys (1,000 req/min)",
+        "Priority email support",
       ],
       limitations: [],
     },
@@ -182,25 +186,27 @@ export default function PricingPage() {
       id: "BUSINESS" as const,
       name: PRICING_PLANS.BUSINESS.name,
       tagline: PRICING_COPY.planExplanations.business,
-      displayPrice: isAnnual ? "350 €" : "19,60 €",
-      originalPrice: isAnnual ? "588 €" : "49 €",
-      subPriceNote: isAnnual ? "soit 29,16 €/mois" : "puis 49 €/mois dès le 2ᵉ mois",
-      unit: isAnnual ? "/ an" : "/ mois",
-      badge: isAnnual ? "Économisez 40%" : "Offre de lancement : -60%",
+      displayPrice: isAnnual ? "$350" : "$19.60",
+      originalPrice: isAnnual ? "$588" : "$49",
+      subPriceNote: isAnnual ? "equivalent to $29.16/mo" : "then $49/mo after month 1",
+      discountPercent: isAnnual ? 40 : 60,
+      savingsAmount: isAnnual ? "$238.00 / yr" : "$29.40 (1st month)",
+      unit: isAnnual ? "/ year" : "/ month",
+      badge: isAnnual ? "⚡ -40% Annual" : "🔥 Special Deal: -60%",
       popular: false,
       features: [
-        "2 000 000 clics / mois inclus",
-        "Garantie Zéro Coupure (+0,80 € / 10k sup)",
-        "Jusqu'à 15 domaines personnalisés",
-        "Liens courts illimités",
-        "Routage Custom multi-conditions",
-        "Protection avancée, Cloaking & Expiration",
-        "Studio QR Code débloqué + Export Vectoriel SVG",
-        "Webhooks & Pixels de Retargeting illimités",
-        "Rétention Analytics illimitée",
-        "5 sièges d'équipe inclus",
-        "Clés API Développeur (5 000 req/min)",
-        "Support dédié 24/7",
+        "2,000,000 clicks / month included",
+        "Zero-Downtime Guarantee (+$0.80 / 10k extra)",
+        "Up to 15 custom branded domains",
+        "Unlimited active short links",
+        "Custom multi-condition rule builder",
+        "Advanced protection, cloaking & expiration",
+        "Vector QR Code Studio (SVG / PDF export)",
+        "Unlimited Webhooks & Retargeting Pixels",
+        "Unlimited Analytics retention",
+        "5 team seats included",
+        "Developer API keys (5,000 req/min)",
+        "24/7 dedicated support",
       ],
       limitations: [],
     },
@@ -208,23 +214,25 @@ export default function PricingPage() {
       id: "ENTERPRISE" as const,
       name: PRICING_PLANS.ENTERPRISE.name,
       tagline: PRICING_COPY.planExplanations.enterprise,
-      displayPrice: isAnnual ? "1 670 €" : "99,50 €",
-      originalPrice: isAnnual ? "2 388 €" : "199 €",
-      subPriceNote: isAnnual ? "soit 139,16 €/mois" : "puis 199 €/mois dès le 2ᵉ mois",
-      unit: isAnnual ? "/ an" : "/ mois",
-      badge: isAnnual ? "Économisez 30%" : "Offre de lancement : -50%",
+      displayPrice: isAnnual ? "$1,670" : "$99.50",
+      originalPrice: isAnnual ? "$2,388" : "$199",
+      subPriceNote: isAnnual ? "equivalent to $139.16/mo" : "then $199/mo after month 1",
+      discountPercent: isAnnual ? 30 : 50,
+      savingsAmount: isAnnual ? "$718.00 / yr" : "$99.50 (1st month)",
+      unit: isAnnual ? "/ year" : "/ month",
+      badge: isAnnual ? "⚡ -30% Annual" : "🔥 Special Deal: -50%",
       popular: false,
       features: [
-        "10 000 000 clics / mois inclus",
-        "Garantie Zéro Coupure (+0,50 € / 10k sup)",
-        "Jusqu'à 50 domaines personnalisés",
-        "Liens courts illimités",
-        "Routage Custom ultra-précis (Réseau / FAI / Ville)",
-        "15 sièges d'équipe inclus",
-        "Webhooks & Pixels de Retargeting illimités",
-        "Rétention Analytics illimitée & Export brut",
-        "Clés API Développeur (15 000 req/min)",
-        "SLA 99.99% garanti & Support dédié direct",
+        "10,000,000 clicks / month included",
+        "Zero-Downtime Guarantee (+$0.50 / 10k extra)",
+        "Up to 50 custom branded domains",
+        "Unlimited active short links",
+        "Hyper-targeted Routing (ISP / ASN / City)",
+        "15 team seats included",
+        "Unlimited Webhooks & Retargeting Pixels",
+        "Unlimited Analytics retention & raw CSV export",
+        "Developer API keys (15,000 req/min)",
+        "99.99% Edge SLA & direct VIP support",
       ],
       limitations: [],
     },
@@ -232,81 +240,81 @@ export default function PricingPage() {
 
   const comparisonTable = [
     {
-      feature: "Volume de clics mensuel",
-      free: "10 000",
-      pro: "500 000",
-      business: "2 000 000",
-      enterprise: "10 000 000",
+      feature: "Monthly Click Volume",
+      free: "10,000",
+      pro: "500,000",
+      business: "2,000,000",
+      enterprise: "10,000,000",
     },
     {
-      feature: "Garantie Zéro Coupure (Overage)",
-      free: "Non (Redirection brute maintenue)",
-      pro: "1,00 € / 10 000 clics",
-      business: "0,80 € / 10 000 clics",
-      enterprise: "0,50 € / 10 000 clics",
+      feature: "Zero-Downtime Guarantee (Overage)",
+      free: "No (redirect continues raw)",
+      pro: "$1.00 / 10k clicks",
+      business: "$0.80 / 10k clicks",
+      enterprise: "$0.50 / 10k clicks",
     },
     {
-      feature: "Domaines personnalisés",
-      free: "0 domaine",
-      pro: "3 domaines",
-      business: "15 domaines",
-      enterprise: "50 domaines",
+      feature: "Custom Branded Domains",
+      free: "0 domains",
+      pro: "3 domains",
+      business: "15 domains",
+      enterprise: "50 domains",
     },
     {
-      feature: "Nombre de liens actifs",
-      free: "50 liens",
-      pro: "1 000 liens",
-      business: "Illimité",
-      enterprise: "Illimité",
+      feature: "Active Short Links",
+      free: "50 links",
+      pro: "1,000 links",
+      business: "Unlimited",
+      enterprise: "Unlimited",
     },
     {
-      feature: "Smart Routing & Ciblage",
-      free: "Basique (1 règle pays)",
-      pro: "Avancé (Pays + Appareils)",
-      business: "Custom (Multi-conditions)",
-      enterprise: "Custom (Réseau + FAI + Villes)",
+      feature: "Smart Routing & Targeting",
+      free: "Basic (1 country rule)",
+      pro: "Advanced (Country + OS)",
+      business: "Custom (Multi-condition)",
+      enterprise: "Custom (Network + ISP + City)",
     },
     {
-      feature: "Protection, Mot de passe & Cloaking",
+      feature: "Protection, PIN Password & Cloaking",
       free: false,
       pro: true,
       business: true,
       enterprise: true,
     },
     {
-      feature: "Webhooks & Pixels de Retargeting",
+      feature: "Webhooks & Retargeting Pixels",
       free: false,
       pro: "5 webhooks / 5 pixels",
-      business: "Illimité",
-      enterprise: "Illimité",
+      business: "Unlimited",
+      enterprise: "Unlimited",
     },
     {
-      feature: "Rétention Analytics",
-      free: "30 jours",
-      pro: "365 jours",
-      business: "Illimitée",
-      enterprise: "Illimitée + Export brut",
+      feature: "Analytics Retention",
+      free: "30 days",
+      pro: "365 days",
+      business: "Unlimited",
+      enterprise: "Unlimited + Raw export",
     },
     {
-      feature: "Débit API Développeur",
+      feature: "Developer API Rate Limit",
       free: "60 req / min",
-      pro: "1 000 req / min",
-      business: "5 000 req / min",
-      enterprise: "15 000 req / min",
+      pro: "1,000 req / min",
+      business: "5,000 req / min",
+      enterprise: "15,000 req / min",
     },
     {
-      feature: "Sièges d'équipe inclus",
-      free: "1 siège",
-      pro: "2 sièges",
-      business: "5 sièges",
-      enterprise: "15 sièges",
+      feature: "Team Seats Included",
+      free: "1 seat",
+      pro: "2 seats",
+      business: "5 seats",
+      enterprise: "15 seats",
     },
     {
-      feature: "Facturation & Factures PDF",
-      free: "Reçus standard",
-      pro: "Factures automatisées PDF",
-      business: "Factures automatisées PDF",
-      enterprise: "Factures automatisées PDF",
+      feature: "Billing & Official PDF Invoices",
+      free: "Standard receipts",
+      pro: "Automated PDF invoices",
+      business: "Automated PDF invoices",
+      enterprise: "Automated PDF invoices",
     },
   ];
 
@@ -315,32 +323,54 @@ export default function PricingPage() {
       {/* Header & Subtitle */}
       <div className="text-center max-w-3xl mx-auto flex flex-col items-center gap-3">
         <span className="px-3.5 py-1 rounded-full bg-brand-subtle text-brand border border-brand-subtle text-xs font-bold uppercase tracking-wider">
-          Grille Tarifaire Promotionnelle
+          Promotional Pricing Plans
         </span>
         <h1 className="text-3xl sm:text-4xl font-extrabold text-neutral-900 dark:text-white tracking-tight">
-          Tarification claire, <span className="text-brand">Garantie Zéro Coupure</span>
+          Simple pricing, <span className="text-brand">Zero-Downtime Guarantee</span>
         </h1>
         <p className="text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed max-w-2xl">
-          Déployé sur le réseau mondial Edge de Cloudflare. Vos liens sont toujours actifs, vos redirections instantanées et vos factures générées automatiquement en 1 clic.
+          Deployed across Cloudflare&apos;s global Edge network. Your links always stay fast and reliable, and certified PDF invoices are generated instantly in 1 click.
         </p>
 
-        {/* Annual / Monthly Toggle */}
-        <div className="flex items-center gap-2 mt-4 p-1.5 rounded-full bg-neutral-200/80 dark:bg-[#141416] border border-neutral-300 dark:border-[#27272a]">
+        {/* Annual / Monthly Toggle with Promo Badges */}
+        <div className="flex flex-wrap items-center justify-center gap-2 mt-4 p-1.5 rounded-full bg-neutral-200/80 dark:bg-[#141416] border border-neutral-300 dark:border-[#27272a] shadow-xs">
           <button
             onClick={() => setIsAnnual(false)}
-            className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
-              !isAnnual ? "bg-brand text-white shadow-xs" : "text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white"
+            className={`px-4 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+              !isAnnual
+                ? "bg-brand text-white shadow-xs"
+                : "text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white"
             }`}
           >
-            Facturation Mensuelle
+            <span>Monthly Billing</span>
+            <span
+              className={`px-2 py-0.5 rounded-full text-[10px] font-black font-mono tracking-tight ${
+                !isAnnual
+                  ? "bg-white/20 text-white"
+                  : "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
+              }`}
+            >
+              -75% 1st month
+            </span>
           </button>
           <button
             onClick={() => setIsAnnual(true)}
-            className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
-              isAnnual ? "bg-brand text-white shadow-xs" : "text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white"
+            className={`px-4 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+              isAnnual
+                ? "bg-brand text-white shadow-xs"
+                : "text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white"
             }`}
           >
-            Facturation Annuelle
+            <span>Annual Billing</span>
+            <span
+              className={`px-2 py-0.5 rounded-full text-[10px] font-black font-mono tracking-tight ${
+                isAnnual
+                  ? "bg-white/20 text-white"
+                  : "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
+              }`}
+            >
+              Up to -50%
+            </span>
           </button>
         </div>
       </div>
@@ -358,15 +388,21 @@ export default function PricingPage() {
               key={p.id}
               onMouseEnter={(e) => handleCardMouseEnter(e, p.popular)}
               onMouseLeave={(e) => handleCardMouseLeave(e, p.popular)}
-              className={`relative flex flex-col justify-between p-6 rounded-[12px] bg-white dark:bg-[#141416] border transition-all duration-200 will-change-transform ${
+              className={`relative flex flex-col justify-between p-6 rounded-[14px] bg-white dark:bg-[#141416] border transition-all duration-200 will-change-transform ${
                 p.popular
-                  ? "border-brand ring-1 ring-brand shadow-sm"
+                  ? "border-brand ring-2 ring-brand/50 shadow-md shadow-brand/10"
                   : "border-neutral-200 dark:border-[#27272a] hover:border-neutral-400 dark:hover:border-neutral-500 shadow-xs"
               }`}
             >
               {p.badge && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-brand text-white text-[10px] font-bold uppercase tracking-wider shadow-xs whitespace-nowrap">
-                  {p.badge}
+                <div
+                  className={`absolute -top-3.5 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-[10.5px] font-black uppercase tracking-wider shadow-md whitespace-nowrap flex items-center gap-1 z-10 ${
+                    p.popular
+                      ? "bg-brand text-white shadow-brand/40 ring-2 ring-brand/30"
+                      : "bg-emerald-600 dark:bg-emerald-500 text-white shadow-emerald-500/20"
+                  }`}
+                >
+                  <span>{p.badge}</span>
                 </div>
               )}
 
@@ -375,7 +411,7 @@ export default function PricingPage() {
                   <h3 className="text-lg font-bold text-neutral-900 dark:text-white tracking-wide">{p.name}</h3>
                   {isCurrent && (
                     <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[10px] font-bold uppercase">
-                      Actif
+                      Current
                     </span>
                   )}
                 </div>
@@ -383,23 +419,36 @@ export default function PricingPage() {
                   {p.tagline}
                 </p>
 
-                {/* Price display with Strikethrough for promos */}
-                <div className="my-5 flex flex-col gap-1">
-                  <div className="flex items-baseline gap-2">
+                {/* Price display with High-Visibility Percentage Discount Badge */}
+                <div className="my-5 flex flex-col gap-2">
+                  <div className="flex items-baseline flex-wrap gap-2">
                     {p.originalPrice && (
-                      <span className="text-sm font-semibold line-through text-neutral-400 dark:text-neutral-500">
+                      <span className="text-sm sm:text-base font-semibold line-through text-neutral-400 dark:text-neutral-500 font-mono">
                         {p.originalPrice}
                       </span>
                     )}
-                    <span className="text-3xl sm:text-4xl font-black text-neutral-900 dark:text-white">
+                    <span className="text-3xl sm:text-4xl font-black text-neutral-900 dark:text-white tracking-tight">
                       {p.displayPrice}
                     </span>
                     <span className="text-xs text-neutral-500 dark:text-neutral-400 font-medium">
                       {p.unit}
                     </span>
+                    {p.discountPercent > 0 && (
+                      <span className="ml-auto px-2.5 py-1 rounded-md text-xs font-black font-mono bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40 shadow-xs flex items-center gap-1">
+                        <Zap className="w-3 h-3 fill-emerald-500 text-emerald-500" />
+                        -{p.discountPercent}%
+                      </span>
+                    )}
                   </div>
+
+                  {p.savingsAmount && (
+                    <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/25 px-2 py-0.5 rounded-md w-fit">
+                      <span>💰 Save {p.savingsAmount}</span>
+                    </div>
+                  )}
+
                   {p.subPriceNote && (
-                    <span className="text-[11px] font-medium text-brand dark:text-brand-hover">
+                    <span className="text-[11px] font-medium text-neutral-500 dark:text-neutral-400">
                       {p.subPriceNote}
                     </span>
                   )}
@@ -438,15 +487,15 @@ export default function PricingPage() {
                 {loadingPlan === p.id ? (
                   <span className="flex items-center gap-2">
                     <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    <span>Activation...</span>
+                    <span>Activating...</span>
                   </span>
                 ) : isCurrent ? (
-                  <span>Forfait Actuel</span>
+                  <span>Current Plan</span>
                 ) : p.id === "FREE" ? (
-                  <span>Commencer Gratuitement</span>
+                  <span>Get Started Free</span>
                 ) : (
                   <>
-                    <span>Choisir {p.name}</span>
+                    <span>Choose {p.name}</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </>
                 )}
@@ -482,10 +531,10 @@ export default function PricingPage() {
       <div className="mt-8 flex flex-col gap-4">
         <div>
           <h2 className="text-xl font-bold text-neutral-900 dark:text-white tracking-wide">
-            Matrice Comparative des Fonctionnalités
+            Feature Comparison Matrix
           </h2>
           <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
-            Toutes les spécifications techniques et quotas détaillés côte à côte.
+            All detailed technical specifications, quotas, and capabilities side by side.
           </p>
         </div>
 
@@ -494,11 +543,11 @@ export default function PricingPage() {
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="border-b border-neutral-200 dark:border-[#27272a] bg-neutral-50 dark:bg-[#1a1a1e]/80 text-neutral-600 dark:text-neutral-400 uppercase tracking-wider font-bold text-[10px]">
-                  <th className="p-4 sm:p-5">Fonctionnalité</th>
-                  <th className="p-4 sm:p-5 text-neutral-700 dark:text-neutral-300">STARTER (0 €)</th>
-                  <th className="p-4 sm:p-5 text-brand">PRO (15 €/m)</th>
-                  <th className="p-4 sm:p-5 text-neutral-900 dark:text-white">BUSINESS (49 €/m)</th>
-                  <th className="p-4 sm:p-5 text-neutral-900 dark:text-white">ENTERPRISE (199 €/m)</th>
+                  <th className="p-4 sm:p-5">Feature</th>
+                  <th className="p-4 sm:p-5 text-neutral-700 dark:text-neutral-300">STARTER ($0)</th>
+                  <th className="p-4 sm:p-5 text-brand">PRO ($15/mo)</th>
+                  <th className="p-4 sm:p-5 text-neutral-900 dark:text-white">BUSINESS ($49/mo)</th>
+                  <th className="p-4 sm:p-5 text-neutral-900 dark:text-white">ENTERPRISE ($199/mo)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-200 dark:divide-[#222225] text-neutral-700 dark:text-neutral-200">
@@ -510,7 +559,7 @@ export default function PricingPage() {
                         row.free ? (
                           <Check className="w-4 h-4 text-emerald-500" />
                         ) : (
-                          <span className="text-neutral-400">Non inclus</span>
+                          <span className="text-neutral-400">Not included</span>
                         )
                       ) : (
                         <span className="font-mono text-neutral-600 dark:text-neutral-300">{row.free}</span>
@@ -520,10 +569,10 @@ export default function PricingPage() {
                       {typeof row.pro === "boolean" ? (
                         row.pro ? (
                           <span className="text-emerald-500 font-semibold flex items-center gap-1">
-                            <Check className="w-4 h-4" /> Inclus
+                            <Check className="w-4 h-4" /> Included
                           </span>
                         ) : (
-                          <span className="text-neutral-400">Non inclus</span>
+                          <span className="text-neutral-400">Not included</span>
                         )
                       ) : (
                         <span className="font-mono font-bold text-brand">{row.pro}</span>
@@ -533,10 +582,10 @@ export default function PricingPage() {
                       {typeof row.business === "boolean" ? (
                         row.business ? (
                           <span className="text-emerald-500 font-semibold flex items-center gap-1">
-                            <Check className="w-4 h-4" /> Inclus
+                            <Check className="w-4 h-4" /> Included
                           </span>
                         ) : (
-                          <span className="text-neutral-400">Non inclus</span>
+                          <span className="text-neutral-400">Not included</span>
                         )
                       ) : (
                         <span className="font-mono font-bold text-neutral-900 dark:text-white">{row.business}</span>
@@ -546,10 +595,10 @@ export default function PricingPage() {
                       {typeof row.enterprise === "boolean" ? (
                         row.enterprise ? (
                           <span className="text-emerald-500 font-semibold flex items-center gap-1">
-                            <Check className="w-4 h-4" /> Inclus
+                            <Check className="w-4 h-4" /> Included
                           </span>
                         ) : (
-                          <span className="text-neutral-400">Non inclus</span>
+                          <span className="text-neutral-400">Not included</span>
                         )
                       ) : (
                         <span className="font-mono font-bold text-neutral-900 dark:text-white">{row.enterprise}</span>

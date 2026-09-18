@@ -26,17 +26,17 @@ export function SectionRouting({
         <div className="flex items-center gap-2">
           <span className="w-1 h-3.5 rounded-full bg-brand" />
           <h3 className="text-xs font-bold text-zinc-900 dark:text-white uppercase tracking-wider">
-            ROUTAGE &amp; CIBLAGE
+            ROUTING &amp; TARGETING
           </h3>
         </div>
         <span className="text-[10px] font-medium text-zinc-500 dark:text-neutral-400">
-          Ciblage Géo &amp; Appareils
+          Geo &amp; Device Targeting
         </span>
       </div>
 
       <LockedProFeature
-        title="Routage dynamique intelligent"
-        description="Redirigez les visiteurs selon leur pays géographique ou leur appareil (iOS, Android, Desktop)."
+        title="Dynamic Smart Routing"
+        description="Redirect visitors dynamically based on their country or operating system (iOS, Android, Windows, Mac)."
         isUnlocked={isProPlan}
       >
         <div className="flex flex-col gap-3">

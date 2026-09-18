@@ -1,12 +1,36 @@
 "use client";
 
 import React from "react";
+import dynamic from "next/dynamic";
 import { HeroTransitionSection } from "@/components/marketing/hero-transition-section";
 import { FeaturesSection } from "@/components/marketing/features-section";
-import { WobbleCardSection } from "@/components/marketing/wobble-card-section";
-import { AnalyticsSection } from "@/components/marketing/analytics-section";
-import { WhyUsSection } from "@/components/marketing/why-us-section";
-import { FaqSection } from "@/components/marketing/faq-section";
+
+const WobbleCardSection = dynamic(
+  () => import("@/components/marketing/wobble-card-section").then((mod) => mod.WobbleCardSection),
+  { ssr: true }
+);
+
+const AnalyticsSection = dynamic(
+  () => import("@/components/marketing/analytics-section").then((mod) => mod.AnalyticsSection),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-96 flex items-center justify-center bg-transparent">
+        <div className="w-8 h-8 rounded-full border-2 border-brand border-t-transparent animate-spin" />
+      </div>
+    ),
+  }
+);
+
+const WhyUsSection = dynamic(
+  () => import("@/components/marketing/why-us-section").then((mod) => mod.WhyUsSection),
+  { ssr: true }
+);
+
+const FaqSection = dynamic(
+  () => import("@/components/marketing/faq-section").then((mod) => mod.FaqSection),
+  { ssr: true }
+);
 
 export default function LandingPage() {
   return (
@@ -31,3 +55,4 @@ export default function LandingPage() {
     </main>
   );
 }
+
