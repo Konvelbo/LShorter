@@ -271,7 +271,7 @@ export default function DomainsPage() {
             className="h-10 px-3.5 text-xs font-semibold gap-2 border-[#27272a] bg-[#141416] hover:bg-white/5 text-neutral-300 hover:text-white cursor-pointer shadow-sm"
           >
             <RefreshCw
-              className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-[#ff6600]" : "text-neutral-400"}`}
+              className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-brand" : "text-neutral-400"}`}
             />
             <span>Refresh</span>
           </Button>
@@ -291,10 +291,10 @@ export default function DomainsPage() {
       {isAdding && (
         <form
           onSubmit={handleAddDomain}
-          className="p-6 rounded-[10px] bg-[#141416] border border-[#ff6600]/40 shadow-2xl flex flex-col gap-5 animate-in fade-in zoom-in-98"
+          className="p-6 rounded-[10px] bg-[#141416] border border-brand-subtle shadow-2xl flex flex-col gap-5 animate-in fade-in zoom-in-98"
         >
           <h3 className="text-base font-bold text-white flex items-center gap-2">
-            <Globe2 className="w-4 h-4 text-[#ff6600]" />
+            <Globe2 className="w-4 h-4 text-brand" />
             <span>Connect a new domain or subdomain</span>
           </h3>
 
@@ -377,7 +377,7 @@ export default function DomainsPage() {
             placeholder="Search for a domain name..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full h-10 pl-9 pr-3 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] text-xs text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#ff6600]"
+            className="w-full h-10 pl-9 pr-3 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] text-xs text-white placeholder:text-neutral-500 focus:outline-none focus:border-brand"
           />
         </div>
 
@@ -388,7 +388,7 @@ export default function DomainsPage() {
             onClick={() => setStatusFilter("all")}
             className={`px-3 py-1.5 rounded-[10px] font-semibold transition-all cursor-pointer ${
               statusFilter === "all"
-                ? "bg-[#ff6600] text-white shadow font-bold"
+                ? "bg-brand text-white shadow font-bold"
                 : "text-neutral-400 hover:text-white hover:bg-white/5"
             }`}
           >
@@ -426,7 +426,7 @@ export default function DomainsPage() {
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as any)}
-            className="h-9 rounded-[10px] bg-[#1a1a1e] text-white border border-[#27272a] px-2.5 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
+            className="h-9 rounded-[10px] bg-[#1a1a1e] text-white border border-[#27272a] px-2.5 text-xs focus:outline-none focus:border-brand cursor-pointer"
           >
             <option value="date" className="bg-[#141416] text-white">
               Most recent
@@ -456,7 +456,7 @@ export default function DomainsPage() {
               {/* Domain Header */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#222225]">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] flex items-center justify-center text-[#ff6600]">
+                  <div className="w-10 h-10 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] flex items-center justify-center text-brand">
                     <Globe2 className="w-5 h-5" />
                   </div>
                   <div>
@@ -559,7 +559,7 @@ export default function DomainsPage() {
                           <td className="py-2.5 px-3 font-mono text-neutral-200">
                             {rec.name}
                           </td>
-                          <td className="py-2.5 px-3 font-mono text-[#ff6600]">
+                          <td className="py-2.5 px-3 font-mono text-brand">
                             {rec.value}
                           </td>
                           <td className="py-2.5 px-3">{rec.ttl}</td>

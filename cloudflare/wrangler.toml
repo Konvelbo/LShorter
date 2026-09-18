@@ -2,20 +2,15 @@ name = "lshorter-api"
 main = "worker-kv.js"
 compatibility_date = "2024-09-01"
 
-# Route and Custom Domain on lsho.cc
-routes = [
-  { pattern = "lsho.cc/*", custom_domain = true },
-  { pattern = "api.lsho.cc/*", custom_domain = true }
-]
+workers_dev = true
 
 # 1. Cloudflare KV Namespace for Ultra-Fast Link Lookups
 [[kv_namespaces]]
 binding = "LINKS_KV"
-id = "YOUR_KV_NAMESPACE_ID_HERE"
-preview_id = "YOUR_KV_PREVIEW_ID_HERE"
+id = "26a244d5e6c54e99bd608c4c5ec47f86"
 
 # 2. Cloudflare D1 Database for Relational & Analytics Storage
 [[d1_databases]]
 binding = "DB"
-database_name = "lshorter-db"
-database_id = "YOUR_D1_DATABASE_ID_HERE"
+database_name = "quicklink-db"
+database_id = "08169b58-e8d7-491e-9a4c-cd74771c359a"

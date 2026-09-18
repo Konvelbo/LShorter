@@ -105,13 +105,13 @@ export function AccordionTrigger({
         className
       )}
     >
-      <span className="text-base sm:text-lg font-medium text-neutral-900 dark:text-neutral-100 group-hover:text-[#0080ff] sm:group-hover:text-[#ff6600] dark:group-hover:text-[#0080ff] sm:dark:group-hover:text-[#ff6600] transition-colors">
+      <span className="text-base sm:text-lg font-medium text-neutral-900 dark:text-neutral-100 group-hover:text-[var(--brand-primary-text)] transition-colors">
         {children}
       </span>
       <ChevronDown
         className={cn(
-          "h-4 w-4 shrink-0 text-neutral-500 transition-transform duration-300 dark:text-neutral-400 group-hover:text-[#0080ff] sm:group-hover:text-[#ff6600]",
-          itemCtx.isOpen && "rotate-180 text-[#0080ff] sm:text-[#ff6600]"
+          "h-4 w-4 shrink-0 text-neutral-500 transition-transform duration-300 dark:text-neutral-400 group-hover:text-[var(--brand-primary-text)]",
+          itemCtx.isOpen && "rotate-180 text-[var(--brand-primary-text)]"
         )}
       />
     </button>

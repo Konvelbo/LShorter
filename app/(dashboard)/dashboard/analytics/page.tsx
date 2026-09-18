@@ -297,6 +297,7 @@ function AnalyticsContent() {
         const clicksByDay = generateTimelineForRange(range, total, unique, rawClicksDay);
 
         // Geographic breakdowns with coordinates that light up the 3D Cobe Globe
+        // Geographic breakdowns with coordinates that light up the 3D Cobe Globe
         const rawCountries = d.topCountries ?? d.top_countries ?? [];
         const countries = (rawCountries.length > 0)
           ? rawCountries.map((c: any) => {
@@ -595,7 +596,7 @@ function AnalyticsContent() {
             <h1 className="text-2xl font-bold text-zinc-900 dark:text-white tracking-wide">
               Analytics Hub & Edge Intelligence
             </h1>
-            <span className="px-2 py-0.5 rounded bg-[#ff6600]/15 text-[#ff6600] text-[10px] font-bold">
+            <span className="px-2 py-0.5 rounded bg-brand-light text-brand text-[10px] font-bold">
               REAL TIME
             </span>
           </div>
@@ -607,7 +608,7 @@ function AnalyticsContent() {
         <div className="flex flex-wrap items-center gap-3">
           {/* Link Filter Selector with theme styling */}
           <div className="flex items-center gap-2 bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] rounded-[10px] px-3 py-1.5 text-xs shadow-sm">
-            <Filter className="w-3.5 h-3.5 text-[#ff6600]" />
+            <Filter className="w-3.5 h-3.5 text-brand" />
             <span className="text-zinc-500 dark:text-neutral-400 font-medium">Link:</span>
             <select
               value={selectedLinkObj ? selectedLinkObj.id : "all"}
@@ -637,7 +638,7 @@ function AnalyticsContent() {
             size="sm"
             className="text-xs gap-1.5 border-zinc-200 dark:border-[#27272a] bg-white dark:bg-[#141416] hover:bg-zinc-50 dark:hover:bg-white/5 text-zinc-800 dark:text-neutral-200 cursor-pointer shadow-sm"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-[#ff6600]" : "text-zinc-400 dark:text-neutral-400"}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-brand" : "text-zinc-400 dark:text-neutral-400"}`} />
             <span>Refresh</span>
           </Button>
 
@@ -649,10 +650,10 @@ function AnalyticsContent() {
             size="sm"
             className="text-xs gap-1.5 border-zinc-200 dark:border-[#27272a] bg-white dark:bg-[#141416] hover:bg-zinc-50 dark:hover:bg-white/5 text-zinc-800 dark:text-neutral-200 shadow-sm"
           >
-            <Download className="w-3.5 h-3.5 text-[#ff6600]" />
+            <Download className="w-3.5 h-3.5 text-brand" />
             <span>{isExporting ? "Exporting..." : "Export CSV (Excel)"}</span>
             {!isProPlan && (
-              <span className="px-1.5 py-0.2 rounded bg-[#ff6600]/20 text-[#ff6600] text-[9px] font-bold">
+              <span className="px-1.5 py-0.2 rounded bg-brand-light text-brand text-[9px] font-bold">
                 PRO
               </span>
             )}
@@ -662,9 +663,9 @@ function AnalyticsContent() {
 
       {/* Selected Link Banner (if specific link selected) */}
       {selectedLinkObj && (
-        <div className="p-4 rounded-[10px] bg-white dark:bg-[#141416] border border-[#ff6600]/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-in fade-in shadow-sm">
+        <div className="p-4 rounded-[10px] bg-white dark:bg-[#141416] border border-brand-subtle flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-in fade-in shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-[10px] bg-[#ff6600] flex items-center justify-center font-bold text-white shadow-sm">
+            <div className="w-9 h-9 rounded-[10px] bg-brand flex items-center justify-center font-bold text-white shadow-sm">
               <Zap className="w-5 h-5" />
             </div>
             <div>
@@ -694,7 +695,7 @@ function AnalyticsContent() {
         <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-xs w-full sm:w-auto">
           <div className="flex items-center justify-between sm:justify-start gap-1.5 px-1 sm:px-2 text-zinc-500 dark:text-neutral-400 font-medium">
             <span className="flex items-center gap-1.5">
-              <Calendar className="w-3.5 h-3.5 text-[#ff6600]" />
+              <Calendar className="w-3.5 h-3.5 text-brand" />
               <span className="whitespace-nowrap">Period:</span>
             </span>
             <span className="sm:hidden text-zinc-500 dark:text-neutral-400 text-[11px] font-medium">
@@ -708,7 +709,7 @@ function AnalyticsContent() {
               onClick={() => handleRangeChange("day")}
               className={`text-center py-1.5 px-2 sm:px-3 rounded-[10px] font-semibold transition-all cursor-pointer text-xs ${
                 selectedRange === "day"
-                  ? "bg-[#ff6600] text-white shadow-md font-bold"
+                  ? "bg-brand text-white shadow-md font-bold"
                   : "text-zinc-600 dark:text-neutral-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-[#1f1f24]"
               }`}
             >
@@ -720,7 +721,7 @@ function AnalyticsContent() {
               onClick={() => handleRangeChange("week")}
               className={`text-center py-1.5 px-2 sm:px-3 rounded-[10px] font-semibold transition-all cursor-pointer text-xs ${
                 selectedRange === "week"
-                  ? "bg-[#ff6600] text-white shadow-md font-bold"
+                  ? "bg-brand text-white shadow-md font-bold"
                   : "text-zinc-600 dark:text-neutral-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-[#1f1f24]"
               }`}
             >
@@ -732,7 +733,7 @@ function AnalyticsContent() {
               onClick={() => handleRangeChange("month")}
               className={`text-center py-1.5 px-2 sm:px-3 rounded-[10px] font-semibold transition-all cursor-pointer text-xs ${
                 selectedRange === "month"
-                  ? "bg-[#ff6600] text-white shadow-md font-bold"
+                  ? "bg-brand text-white shadow-md font-bold"
                   : "text-zinc-600 dark:text-neutral-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-[#1f1f24]"
               }`}
             >
@@ -744,7 +745,7 @@ function AnalyticsContent() {
               onClick={() => handleRangeChange("year")}
               className={`text-center py-1.5 px-2 sm:px-3 rounded-[10px] font-semibold transition-all cursor-pointer text-xs ${
                 selectedRange === "year"
-                  ? "bg-[#ff6600] text-white shadow-md font-bold"
+                  ? "bg-brand text-white shadow-md font-bold"
                   : "text-zinc-600 dark:text-neutral-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-[#1f1f24]"
               }`}
             >
@@ -761,16 +762,16 @@ function AnalyticsContent() {
       {/* 6 Key Precision Metrics Cards with Auto-Scrolling Infinite Marquee & Drag */}
       <KpiCardsCarousel autoScroll={true} speed={0.9} pauseOnHover={false}>
         {/* Card 1: Total Clicks */}
-        <div className="shrink-0 w-[170px] sm:w-[240px] md:w-[280px] lg:w-[300px] h-[100px] sm:h-[120px] md:h-[135px] lg:h-[145px] p-2.5 sm:p-3.5 md:p-4 rounded-[10px] sm:rounded-[12px] md:rounded-[14px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] shadow-sm flex flex-col justify-between hover:border-[#ff6600]/50 hover:shadow-md transition-all select-none">
+        <div className="shrink-0 w-[170px] sm:w-[240px] md:w-[280px] lg:w-[300px] h-[100px] sm:h-[120px] md:h-[135px] lg:h-[145px] p-2.5 sm:p-3.5 md:p-4 rounded-[10px] sm:rounded-[12px] md:rounded-[14px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] shadow-sm flex flex-col justify-between hover:border-brand-subtle hover:shadow-md transition-all select-none">
           <div className="flex items-center justify-between">
             <span className="text-[10px] sm:text-xs md:text-sm font-bold text-zinc-600 dark:text-neutral-400 uppercase tracking-wider truncate">Total Clicks</span>
             <span className="flex items-center gap-1 sm:gap-1.5 shrink-0">
-              <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#ff6600] animate-pulse" />
+              <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-brand animate-pulse" />
               <span className="text-[9px] sm:text-[11px] font-mono text-zinc-500 dark:text-neutral-400 hidden sm:inline">LIVE</span>
             </span>
           </div>
           <div className="my-0 sm:my-0.5">
-            <span className="font-bebas text-2xl sm:text-3xl md:text-4xl font-black text-[#ff6600] leading-none tracking-wide">
+            <span className="font-bebas text-2xl sm:text-3xl md:text-4xl font-black text-brand leading-none tracking-wide">
               {formatNumber(analytics.totalClicks)}
             </span>
           </div>
@@ -909,7 +910,7 @@ function AnalyticsContent() {
         <div className="lg:col-span-5 rounded-[10px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] p-6 flex flex-col justify-between shadow-sm dark:shadow-2xl relative overflow-hidden">
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-[#ff6600] flex items-center gap-1.5">
+              <span className="text-xs font-bold uppercase tracking-wider text-brand flex items-center gap-1.5">
                 <Globe2 className="w-4 h-4" />
                 <span>Interactive 3D Globe</span>
               </span>
@@ -960,7 +961,7 @@ function AnalyticsContent() {
                     {
                       label: `/${selectedLinkObj.slug}`,
                       value: selectedLinkObj.clicksCount || 1,
-                      color: "#ff6600",
+                      color: "var(--brand-primary)",
                       sublabel: selectedLinkObj.targetUrl,
                     },
                   ]
@@ -969,14 +970,14 @@ function AnalyticsContent() {
                     .map((l, i) => ({
                       label: `/${l.slug}`,
                       value: l.clicksCount || 0,
-                      color: ["#ff6600", "#ff8833", "#ffa366", "#3b82f6", "#10b981", "#8b5cf6"][i % 6],
+                      color: ["var(--brand-primary)", "#ff8833", "#ffa366", "#3b82f6", "#10b981", "#8b5cf6"][i % 6],
                       sublabel: l.targetUrl,
                     }))
             }
             channelsData={analytics.topReferrers.map((r, i) => ({
               label: r.referrer || "Direct",
               value: r.clicks || (r as any).count || 0,
-              color: ["#ff6600", "#3b82f6", "#10b981", "#eab308", "#ec4899"][i % 5],
+              color: ["var(--brand-primary)", "#3b82f6", "#10b981", "#eab308", "#ec4899"][i % 5],
               sublabel: `${r.clicks || (r as any).count || 0} clicks`,
             }))}
           />
@@ -987,41 +988,43 @@ function AnalyticsContent() {
           {/* Revenue & Customer Analysis (Links to /dashboard/analytics/revenue) */}
           <Link
             href={`/dashboard/analytics/revenue${linkFilterParam}`}
-            className="sm:col-span-2 p-3.5 rounded-[10px] bg-white dark:bg-[#141416] hover:bg-zinc-50 dark:hover:bg-[#1a1a1e] border-2 border-emerald-500/40 hover:border-emerald-500 dark:hover:border-emerald-400 flex items-center justify-between transition-all group cursor-pointer shadow-sm"
+            className="sm:col-span-2 p-4 rounded-xl bg-gradient-to-r from-emerald-500/[0.06] via-white to-white dark:from-emerald-950/25 dark:via-[#141416] dark:to-[#141416] hover:from-emerald-500/[0.12] dark:hover:from-emerald-900/35 border border-emerald-500/30 hover:border-emerald-500 dark:hover:border-emerald-400 flex items-center justify-between transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-lg hover:shadow-emerald-500/10 active:scale-[0.99] group cursor-pointer"
           >
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-[10px] bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
-                <DollarSign className="w-4.5 h-4.5" />
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 group-hover:scale-110 group-hover:bg-emerald-500/30 transition-all duration-300 shrink-0 shadow-sm">
+                <DollarSign className="w-5 h-5" />
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <h4 className="text-xs sm:text-sm font-bold text-zinc-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
                     Revenue & Customer Analysis
                   </h4>
-                  <span className="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[9px] font-bold">
+                  <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[9px] font-bold tracking-wider">
                     DETAILED
                   </span>
                 </div>
-                <p className="text-[11px] text-zinc-500 dark:text-neutral-400 truncate">
+                <p className="text-[11px] text-zinc-500 dark:text-neutral-400 truncate mt-0.5">
                   Total: <strong className="text-emerald-600 dark:text-emerald-400 font-mono">{formatCurrency(analytics.trackedRevenue)}</strong> • {analytics.epc}€/click (EPC) • Avatars & buyers
                 </p>
               </div>
             </div>
-            <ArrowUpRight className="w-4 h-4 text-emerald-600 dark:text-emerald-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform shrink-0 ml-2" />
+            <ArrowUpRight className="w-4 h-4 text-emerald-600 dark:text-emerald-400 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform duration-300 shrink-0 ml-2" />
           </Link>
 
           {/* Top Countries (Links to /dashboard/analytics/geo) */}
           <Link
             href={`/dashboard/analytics/geo${linkFilterParam}`}
-            className="p-5 rounded-[10px] bg-white dark:bg-[#141416] hover:bg-zinc-50 dark:hover:bg-[#1a1a1e] border border-zinc-200 dark:border-[#222225] hover:border-[#ff6600]/60 flex flex-col justify-between transition-all group cursor-pointer shadow-sm"
+            className="p-5 rounded-xl bg-white dark:bg-[#141416] hover:bg-zinc-50/80 dark:hover:bg-[#17171b] border border-zinc-200 dark:border-[#222225] hover:border-brand/70 dark:hover:border-brand/70 flex flex-col justify-between transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-lg hover:shadow-brand/10 active:scale-[0.99] group cursor-pointer"
           >
             <div>
               <div className="flex items-center justify-between mb-3">
-                <h4 className="text-sm font-bold text-zinc-900 dark:text-white group-hover:text-[#ff6600] transition-colors flex items-center gap-1.5">
+                <h4 className="text-sm font-bold text-zinc-900 dark:text-white group-hover:text-brand transition-colors flex items-center gap-1.5">
                   <span>Top Countries</span>
-                  <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity text-[#ff6600]" />
+                  <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-300 text-brand" />
                 </h4>
-                <Compass className="w-4 h-4 text-zinc-400 dark:text-neutral-500 group-hover:text-[#ff6600] transition-colors" />
+                <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-white/[0.04] group-hover:bg-brand/10 flex items-center justify-center transition-colors">
+                  <Compass className="w-4 h-4 text-zinc-400 dark:text-neutral-500 group-hover:text-brand group-hover:scale-110 group-hover:rotate-12 transition-all duration-300" />
+                </div>
               </div>
               <div className="flex flex-col gap-2">
                 {analytics.topCountries.length === 0 ? (
@@ -1030,7 +1033,7 @@ function AnalyticsContent() {
                   analytics.topCountries.slice(0, 4).map((c) => (
                     <div key={c.code} className="flex items-center justify-between text-xs">
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-[10px] font-bold text-[#ff6600] w-5">
+                        <span className="font-mono text-[10px] font-bold text-brand w-5">
                           {c.code}
                         </span>
                         <span className="text-zinc-800 dark:text-neutral-200">{c.name}</span>
@@ -1043,24 +1046,26 @@ function AnalyticsContent() {
                 )}
               </div>
             </div>
-            <span className="text-[10px] text-[#ff6600] font-semibold mt-3 pt-2 border-t border-zinc-200 dark:border-[#222225] flex items-center justify-between">
+            <span className="text-[10px] text-brand font-semibold mt-3 pt-2.5 border-t border-zinc-100 dark:border-[#222225] flex items-center justify-between">
               <span>View map & continents</span>
-              <span>→</span>
+              <span className="group-hover:translate-x-1 transition-transform duration-300">→</span>
             </span>
           </Link>
 
           {/* Top Cities (Links to /dashboard/analytics/geo) */}
           <Link
             href={`/dashboard/analytics/geo${linkFilterParam}`}
-            className="p-5 rounded-[10px] bg-white dark:bg-[#141416] hover:bg-zinc-50 dark:hover:bg-[#1a1a1e] border border-zinc-200 dark:border-[#222225] hover:border-emerald-500/60 flex flex-col justify-between transition-all group cursor-pointer shadow-sm"
+            className="p-5 rounded-xl bg-white dark:bg-[#141416] hover:bg-zinc-50/80 dark:hover:bg-[#17171b] border border-zinc-200 dark:border-[#222225] hover:border-emerald-500/70 dark:hover:border-emerald-500/70 flex flex-col justify-between transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-lg hover:shadow-emerald-500/10 active:scale-[0.99] group cursor-pointer"
           >
             <div>
               <div className="flex items-center justify-between mb-3">
                 <h4 className="text-sm font-bold text-zinc-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors flex items-center gap-1.5">
                   <span>Top Cities</span>
-                  <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity text-emerald-500 dark:text-emerald-400" />
+                  <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-300 text-emerald-500 dark:text-emerald-400" />
                 </h4>
-                <Globe2 className="w-4 h-4 text-zinc-400 dark:text-neutral-500 group-hover:text-emerald-500 dark:group-hover:text-emerald-400 transition-colors" />
+                <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-white/[0.04] group-hover:bg-emerald-500/10 flex items-center justify-center transition-colors">
+                  <Globe2 className="w-4 h-4 text-zinc-400 dark:text-neutral-500 group-hover:text-emerald-500 dark:group-hover:text-emerald-400 group-hover:scale-110 group-hover:rotate-12 transition-all duration-300" />
+                </div>
               </div>
               <div className="flex flex-col gap-2">
                 {analytics.topCities.length === 0 ? (
@@ -1077,24 +1082,26 @@ function AnalyticsContent() {
                 )}
               </div>
             </div>
-            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold mt-3 pt-2 border-t border-zinc-200 dark:border-[#222225] flex items-center justify-between">
+            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold mt-3 pt-2.5 border-t border-zinc-100 dark:border-[#222225] flex items-center justify-between">
               <span>Explore cities & metros</span>
-              <span>→</span>
+              <span className="group-hover:translate-x-1 transition-transform duration-300">→</span>
             </span>
           </Link>
 
           {/* Devices (Links to /dashboard/analytics/devices) */}
           <Link
             href={`/dashboard/analytics/devices${linkFilterParam}`}
-            className="p-5 rounded-[10px] bg-white dark:bg-[#141416] hover:bg-zinc-50 dark:hover:bg-[#1a1a1e] border border-zinc-200 dark:border-[#222225] hover:border-blue-500/60 flex flex-col justify-between transition-all group cursor-pointer shadow-sm"
+            className="p-5 rounded-xl bg-white dark:bg-[#141416] hover:bg-zinc-50/80 dark:hover:bg-[#17171b] border border-zinc-200 dark:border-[#222225] hover:border-blue-500/70 dark:hover:border-blue-500/70 flex flex-col justify-between transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-lg hover:shadow-blue-500/10 active:scale-[0.99] group cursor-pointer"
           >
             <div>
               <div className="flex items-center justify-between mb-3">
                 <h4 className="text-sm font-bold text-zinc-900 dark:text-white group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors flex items-center gap-1.5">
                   <span>Devices & Formats</span>
-                  <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity text-blue-500 dark:text-blue-400" />
+                  <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-300 text-blue-500 dark:text-blue-400" />
                 </h4>
-                <Smartphone className="w-4 h-4 text-zinc-400 dark:text-neutral-500 group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors" />
+                <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-white/[0.04] group-hover:bg-blue-500/10 flex items-center justify-center transition-colors">
+                  <Smartphone className="w-4 h-4 text-zinc-400 dark:text-neutral-500 group-hover:text-blue-500 dark:group-hover:text-blue-400 group-hover:scale-110 group-hover:-rotate-6 transition-all duration-300" />
+                </div>
               </div>
               <div className="flex flex-col gap-2">
                 {analytics.topDevices.length === 0 ? (
@@ -1109,24 +1116,26 @@ function AnalyticsContent() {
                 )}
               </div>
             </div>
-            <span className="text-[10px] text-blue-500 dark:text-blue-400 font-semibold mt-3 pt-2 border-t border-zinc-200 dark:border-[#222225] flex items-center justify-between">
+            <span className="text-[10px] text-blue-500 dark:text-blue-400 font-semibold mt-3 pt-2.5 border-t border-zinc-100 dark:border-[#222225] flex items-center justify-between">
               <span>OS & Browser Details</span>
-              <span>→</span>
+              <span className="group-hover:translate-x-1 transition-transform duration-300">→</span>
             </span>
           </Link>
 
           {/* Sources / Referrers (Links to /dashboard/analytics/sources) */}
           <Link
             href={`/dashboard/analytics/sources${linkFilterParam}`}
-            className="p-5 rounded-[10px] bg-white dark:bg-[#141416] hover:bg-zinc-50 dark:hover:bg-[#1a1a1e] border border-zinc-200 dark:border-[#222225] hover:border-purple-500/60 flex flex-col justify-between transition-all group cursor-pointer shadow-sm"
+            className="p-5 rounded-xl bg-white dark:bg-[#141416] hover:bg-zinc-50/80 dark:hover:bg-[#17171b] border border-zinc-200 dark:border-[#222225] hover:border-purple-500/70 dark:hover:border-purple-500/70 flex flex-col justify-between transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-lg hover:shadow-purple-500/10 active:scale-[0.99] group cursor-pointer"
           >
             <div>
               <div className="flex items-center justify-between mb-3">
                 <h4 className="text-sm font-bold text-zinc-900 dark:text-white group-hover:text-purple-500 dark:group-hover:text-purple-400 transition-colors flex items-center gap-1.5">
                   <span>Traffic Sources</span>
-                  <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity text-purple-500 dark:text-purple-400" />
+                  <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-300 text-purple-500 dark:text-purple-400" />
                 </h4>
-                <Share2 className="w-4 h-4 text-zinc-400 dark:text-neutral-500 group-hover:text-purple-500 dark:group-hover:text-purple-400 transition-colors" />
+                <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-white/[0.04] group-hover:bg-purple-500/10 flex items-center justify-center transition-colors">
+                  <Share2 className="w-4 h-4 text-zinc-400 dark:text-neutral-500 group-hover:text-purple-500 dark:group-hover:text-purple-400 group-hover:scale-110 group-hover:rotate-12 transition-all duration-300" />
+                </div>
               </div>
               <div className="flex flex-col gap-2">
                 {analytics.topReferrers.length === 0 ? (
@@ -1141,9 +1150,9 @@ function AnalyticsContent() {
                 )}
               </div>
             </div>
-            <span className="text-[10px] text-purple-500 dark:text-purple-400 font-semibold mt-3 pt-2 border-t border-zinc-200 dark:border-[#222225] flex items-center justify-between">
+            <span className="text-[10px] text-purple-500 dark:text-purple-400 font-semibold mt-3 pt-2.5 border-t border-zinc-100 dark:border-[#222225] flex items-center justify-between">
               <span>Social & UTM Tracking</span>
-              <span>→</span>
+              <span className="group-hover:translate-x-1 transition-transform duration-300">→</span>
             </span>
           </Link>
         </div>
@@ -1159,7 +1168,7 @@ function AnalyticsContent() {
                 <button
                   type="button"
                   onClick={() => handleLinkSelectChange("all")}
-                  className="text-[11px] px-2.5 py-0.5 rounded-full bg-[#ff6600]/15 text-[#ff6600] border border-[#ff6600]/30 hover:bg-[#ff6600]/25 transition-colors cursor-pointer font-medium flex items-center gap-1.5"
+                  className="text-[11px] px-2.5 py-0.5 rounded-full bg-brand-light text-brand border border-brand-subtle hover:bg-brand-subtle transition-colors cursor-pointer font-medium flex items-center gap-1.5"
                   title="Reset to view all links"
                 >
                   <span>Filter: /{selectedLinkObj.slug}</span>
@@ -1182,7 +1191,7 @@ function AnalyticsContent() {
                   setSearchLinkQuery(e.target.value);
                   setPerfPage(1);
                 }}
-                className="w-full h-9 rounded-[10px] bg-zinc-50 dark:bg-[#0e0e11] border border-zinc-200 dark:border-[#27272a] px-3 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-neutral-500 focus:outline-none focus:border-[#ff6600]"
+                className="w-full h-9 rounded-[10px] bg-zinc-50 dark:bg-[#0e0e11] border border-zinc-200 dark:border-[#27272a] px-3 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-neutral-500 focus:outline-none focus:border-brand"
               />
             </div>
 
@@ -1211,13 +1220,13 @@ function AnalyticsContent() {
               <div
                 key={l.id}
                 className={`rounded-[10px] bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a] p-3.5 flex flex-col gap-2.5 transition-all shadow-sm ${
-                  isSelected ? "border-[#ff6600] bg-[#ff6600]/5" : "hover:border-[#ff6600]/40"
+                  isSelected ? "border-brand bg-brand-light" : "hover:border-brand-subtle"
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className={`w-5 h-5 rounded-full text-white text-[10px] font-black flex items-center justify-center shrink-0 ${
-                      rankIndex === 1 ? "bg-[#ff6600]" : "bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-neutral-400 font-bold"
+                      rankIndex === 1 ? "bg-brand" : "bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-neutral-400 font-bold"
                     }`}>
                       {rankIndex}
                     </span>
@@ -1225,7 +1234,7 @@ function AnalyticsContent() {
                       /{l.slug}
                     </span>
                   </div>
-                  <span className="font-mono text-sm font-bold text-[#ff6600] shrink-0">
+                  <span className="font-mono text-sm font-bold text-brand shrink-0">
                     {formatNumber(l.clicksCount)} clicks <span className="text-[10px] text-zinc-500 dark:text-neutral-400 font-normal">({trafficShare}%)</span>
                   </span>
                 </div>
@@ -1233,7 +1242,7 @@ function AnalyticsContent() {
                 {/* Progress bar */}
                 <div className="w-full h-1.5 rounded-full bg-zinc-200 dark:bg-zinc-800 overflow-hidden">
                   <div
-                    className="h-full bg-[#ff6600] rounded-full transition-all duration-500"
+                    className="h-full bg-brand rounded-full transition-all duration-500"
                     style={{ width: `${progressPercent}%` }}
                   />
                 </div>
@@ -1261,8 +1270,8 @@ function AnalyticsContent() {
                   onClick={() => handleLinkSelectChange(isSelected ? "all" : l.id)}
                   className={`w-full py-1.5 rounded-[10px] text-xs font-semibold transition-colors mt-0.5 cursor-pointer ${
                     isSelected
-                      ? "bg-[#ff6600] text-white shadow-md shadow-[#ff6600]/30"
-                      : "bg-zinc-200 dark:bg-zinc-800 hover:bg-[#ff6600] text-zinc-700 dark:text-neutral-300 hover:text-white"
+                      ? "bg-brand text-white shadow-md"
+                      : "bg-zinc-200 dark:bg-zinc-800 hover:bg-brand-hover text-zinc-700 dark:text-neutral-300 hover:text-white"
                   }`}
                 >
                   {isSelected ? "Active filter (Click to clear ✕)" : "Filter analytics on this link"}
@@ -1342,7 +1351,7 @@ function AnalyticsContent() {
                   <tr
                     key={l.id}
                     className={`hover:bg-zinc-50 dark:hover:bg-white/[0.02] transition-colors ${
-                      isSelected ? "bg-[#ff6600]/10 border-l-2 border-l-[#ff6600]" : ""
+                      isSelected ? "bg-brand-subtle border-l-2 border-l-brand" : ""
                     }`}
                   >
                     {visiblePerfCols.has("slug") && (
@@ -1383,7 +1392,7 @@ function AnalyticsContent() {
                     {visiblePerfCols.has("ctr") && (
                       <td className="py-3.5 text-right">
                         <div className="flex flex-col items-end">
-                          <span className="font-mono text-[#ff6600] font-bold text-xs">
+                          <span className="font-mono text-brand font-bold text-xs">
                             {convRate}% conv.
                           </span>
                           <span className="text-[10px] text-zinc-500 dark:text-neutral-400 font-mono">
@@ -1399,8 +1408,8 @@ function AnalyticsContent() {
                           onClick={() => handleLinkSelectChange(isSelected ? "all" : l.id)}
                           className={`px-2.5 py-1 rounded-[10px] text-[11px] font-medium transition-colors cursor-pointer ${
                             isSelected
-                              ? "bg-[#ff6600] text-white shadow-sm"
-                              : "bg-zinc-100 hover:bg-[#ff6600] dark:bg-zinc-800 text-zinc-700 dark:text-neutral-300 hover:text-white"
+                              ? "bg-brand text-white shadow-sm"
+                              : "bg-zinc-100 hover:bg-brand dark:bg-zinc-800 text-zinc-700 dark:text-neutral-300 hover:text-white"
                           }`}
                         >
                           {isSelected ? "Active ✓" : "Analyze"}
@@ -1449,10 +1458,10 @@ function AnalyticsContent() {
       <div className="rounded-[10px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] p-6 shadow-sm flex flex-col gap-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
-            <Activity className="w-5 h-5 text-[#ff6600] animate-pulse" />
+            <Activity className="w-5 h-5 text-brand animate-pulse" />
             <h3 className="text-base font-bold text-zinc-900 dark:text-white">Live Click & Conversion Stream</h3>
             {selectedLinkObj && (
-              <span className="text-[11px] px-2 py-0.5 rounded bg-[#ff6600]/15 text-[#ff6600] border border-[#ff6600]/30 font-medium font-mono">
+              <span className="text-[11px] px-2 py-0.5 rounded bg-brand-light text-brand border border-brand-subtle font-medium font-mono">
                 /{selectedLinkObj.slug}
               </span>
             )}
@@ -1468,7 +1477,7 @@ function AnalyticsContent() {
                   setStreamSearch(e.target.value);
                   setStreamPage(1);
                 }}
-                className="w-full h-9 rounded-[10px] bg-zinc-50 dark:bg-[#0e0e11] border border-zinc-200 dark:border-[#27272a] px-3 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-neutral-500 focus:outline-none focus:border-[#ff6600]"
+                className="w-full h-9 rounded-[10px] bg-zinc-50 dark:bg-[#0e0e11] border border-zinc-200 dark:border-[#27272a] px-3 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-neutral-500 focus:outline-none focus:border-brand"
               />
             </div>
 
@@ -1494,7 +1503,7 @@ function AnalyticsContent() {
               return (
                 <div
                   key={evt.id}
-                  className="rounded-[10px] bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a] p-3 flex flex-col gap-2 transition-all hover:border-[#ff6600]/40"
+                  className="rounded-[10px] bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a] p-3 flex flex-col gap-2 transition-all hover:border-brand-subtle"
                 >
                   <div className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-1.5 min-w-0">
@@ -1509,7 +1518,7 @@ function AnalyticsContent() {
                   </div>
 
                   <div className="flex items-center justify-between text-[11px] bg-white dark:bg-[#141416] px-2.5 py-1.5 rounded-[10px] border border-zinc-200 dark:border-[#222225]">
-                    <span className="font-mono font-bold text-[#ff6600]">/{evt.slug}</span>
+                    <span className="font-mono font-bold text-brand">/{evt.slug}</span>
                     <div className="flex items-center gap-1 text-zinc-500 dark:text-neutral-400 text-[10px]">
                       <span>{evt.device?.toLowerCase().includes("mobile") ? "📱 Mobile" : "💻 Desktop"}</span>
                       <span>·</span>

@@ -47,6 +47,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { motion, useScroll, useTransform, useSpring } from "framer-motion";
+import { AnimatedBar } from "@/components/ui/animated-bar";
 import confetti from "canvas-confetti";
 
 export function InteractiveDemoSection() {
@@ -440,7 +441,7 @@ export function InteractiveDemoSection() {
         ctx.shadowBlur = 0;
 
         if (qrLogo === "ql") {
-          ctx.fillStyle = "#ff6600";
+          ctx.fillStyle = qrPixelColor;
           ctx.beginPath();
           ctx.roundRect(centerBoxX + 2.5, centerBoxY + 2.5, centerBoxSize - 5, centerBoxSize - 5, 6);
           ctx.fill();
@@ -569,7 +570,7 @@ export function InteractiveDemoSection() {
               <div className="flex items-center gap-2 px-3 py-1 rounded-md bg-white dark:bg-[#0f0f13] border border-[#E7DFD5] dark:border-white/10 text-[11px] font-mono text-neutral-600 dark:text-neutral-300">
                 <span className="text-emerald-500 font-bold">https://</span>
                 <span className="font-semibold text-neutral-900 dark:text-neutral-100">lshorter.com</span>
-                <span className="text-[#ff6600] font-semibold">/dashboard/{activeTab === "qr" ? "qr-code" : activeTab}</span>
+                <span className="text-brand font-semibold">/dashboard/{activeTab === "qr" ? "qr-code" : activeTab}</span>
               </div>
             </div>
 
@@ -589,12 +590,12 @@ export function InteractiveDemoSection() {
               <div className="flex md:flex-col gap-1 w-full">
                 {/* Brand Header */}
                 <div className="hidden md:flex items-center gap-2.5 px-1 py-1 mb-2">
-                  <div className="w-7 h-7 rounded-[8px] bg-[#ff6600] flex items-center justify-center font-bebas text-base font-black text-white shadow-md shadow-[#ff6600]/30 shrink-0">
+                  <div className="w-7 h-7 rounded-[8px] bg-brand flex items-center justify-center font-bebas text-base font-black text-white shadow-md shadow-brand shrink-0">
                     LS
                   </div>
                   <div className="flex flex-col min-w-0">
                     <span className="font-bebas text-lg tracking-wider text-neutral-900 dark:text-white leading-none">
-                      L <span className="text-[#ff6600]">SHORTER</span>
+                      L <span className="text-brand">SHORTER</span>
                     </span>
                     <span className="text-[8.5px] uppercase font-bold tracking-widest text-neutral-500 mt-0.5">
                       Edge Platform
@@ -607,7 +608,7 @@ export function InteractiveDemoSection() {
                   <button
                     type="button"
                     onClick={() => setActiveTab("links")}
-                    className="w-full h-8.5 rounded-[10px] bg-[#ff6600] hover:bg-[#ff771a] text-white font-bold flex items-center justify-center text-xs gap-1.5 shadow-md shadow-[#ff6600]/25 transition-all cursor-pointer"
+                    className="w-full h-8.5 rounded-[10px] bg-brand hover:bg-brand-hover text-white font-bold flex items-center justify-center text-xs gap-1.5 shadow-md shadow-brand transition-all cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5 stroke-[3]" />
                     <span className="font-bebas text-sm tracking-wide">CREATE A LINK</span>
@@ -624,7 +625,7 @@ export function InteractiveDemoSection() {
                   onClick={() => setActiveTab("overview")}
                   className={`flex items-center gap-2 px-3 py-2 rounded-[10px] text-xs font-medium transition-all cursor-pointer whitespace-nowrap ${
                     activeTab === "overview"
-                      ? "bg-[#ff6600] text-white shadow-md font-semibold"
+                      ? "bg-brand text-white shadow-md font-semibold"
                       : "text-neutral-700 dark:text-neutral-300 hover:bg-black/5 dark:hover:bg-white/5"
                   }`}
                 >
@@ -637,7 +638,7 @@ export function InteractiveDemoSection() {
                   onClick={() => setActiveTab("links")}
                   className={`flex items-center gap-2 px-3 py-2 rounded-[10px] text-xs font-medium transition-all cursor-pointer whitespace-nowrap ${
                     activeTab === "links"
-                      ? "bg-[#ff6600] text-white shadow-md font-semibold"
+                      ? "bg-brand text-white shadow-md font-semibold"
                       : "text-neutral-700 dark:text-neutral-300 hover:bg-black/5 dark:hover:bg-white/5"
                   }`}
                 >
@@ -650,7 +651,7 @@ export function InteractiveDemoSection() {
                   onClick={() => setActiveTab("qr")}
                   className={`flex items-center gap-2 px-3 py-2 rounded-[10px] text-xs font-medium transition-all cursor-pointer whitespace-nowrap ${
                     activeTab === "qr"
-                      ? "bg-[#ff6600] text-white shadow-md font-semibold"
+                      ? "bg-brand text-white shadow-md font-semibold"
                       : "text-neutral-700 dark:text-neutral-300 hover:bg-black/5 dark:hover:bg-white/5"
                   }`}
                 >
@@ -663,7 +664,7 @@ export function InteractiveDemoSection() {
                   onClick={() => setActiveTab("analytics")}
                   className={`flex items-center gap-2 px-3 py-2 rounded-[10px] text-xs font-medium transition-all cursor-pointer whitespace-nowrap ${
                     activeTab === "analytics"
-                      ? "bg-[#ff6600] text-white shadow-md font-semibold"
+                      ? "bg-brand text-white shadow-md font-semibold"
                       : "text-neutral-700 dark:text-neutral-300 hover:bg-black/5 dark:hover:bg-white/5"
                   }`}
                 >
@@ -675,11 +676,11 @@ export function InteractiveDemoSection() {
               {/* Sidebar Bottom Quota Box */}
               <div className="hidden md:block p-3 rounded-[10px] bg-white dark:bg-[#141416] border border-[#E7DFD5] dark:border-[#27272a] text-xs mt-4">
                 <div className="flex items-center justify-between text-[10px] text-neutral-500 mb-1">
-                  <span className="font-bold text-[#ff6600]">PRO PLAN</span>
+                  <span className="font-bold text-brand">PRO PLAN</span>
                   <span className="font-mono text-neutral-900 dark:text-white">128.4K / 1M</span>
                 </div>
                 <div className="w-full h-1.5 rounded-full bg-neutral-200 dark:bg-white/10 overflow-hidden">
-                  <div className="w-[32%] h-full bg-[#ff6600] rounded-full" />
+                  <div className="w-[32%] h-full bg-brand rounded-full" />
                 </div>
                 <span className="text-[9px] text-neutral-400 block mt-1.5 font-mono">Cloudflare Edge 11ms</span>
               </div>
@@ -711,13 +712,13 @@ export function InteractiveDemoSection() {
                         onClick={handleRefreshOverview}
                         className="h-8 px-3 text-xs gap-1.5 border-[#E7DFD5] dark:border-[#27272a] bg-white dark:bg-[#141416] text-neutral-700 dark:text-neutral-300"
                       >
-                        <RefreshCw className={`w-3.5 h-3.5 ${isRefreshingOverview ? "animate-spin text-[#ff6600]" : "text-neutral-400"}`} />
+                        <RefreshCw className={`w-3.5 h-3.5 ${isRefreshingOverview ? "animate-spin text-brand" : "text-neutral-400"}`} />
                         <span>Refresh</span>
                       </Button>
                       <Button
                         size="sm"
                         onClick={() => setActiveTab("links")}
-                        className="h-8 px-3 text-xs bg-[#ff6600] hover:bg-[#ff771a] text-white font-bebas text-sm tracking-wide gap-1 shadow-md shadow-[#ff6600]/20"
+                        className="h-8 px-3 text-xs bg-brand hover:bg-brand-hover text-white font-bebas text-sm tracking-wide gap-1 shadow-md shadow-brand"
                       >
                         <Plus className="w-3.5 h-3.5" />
                         <span>CREATE A LINK</span>
@@ -727,12 +728,12 @@ export function InteractiveDemoSection() {
 
                   {/* 4 Staggered KPI Metric Cards */}
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                    <div className="p-4 rounded-[10px] bg-white dark:bg-[#141416] border border-[#E7DFD5] dark:border-[#222225] flex flex-col justify-between h-32 shadow-xs hover:border-[#ff6600]/40 transition-colors">
+                    <div className="p-4 rounded-[10px] bg-white dark:bg-[#141416] border border-[#E7DFD5] dark:border-[#222225] flex flex-col justify-between h-32 shadow-xs hover:border-brand transition-colors">
                       <div className="flex items-center justify-between text-xs text-neutral-500">
                         <span className="font-semibold">Total Clicks</span>
                         <span className="text-emerald-500 font-bold text-[11px]">+14.2%</span>
                       </div>
-                      <div className="font-bebas text-4xl sm:text-5xl font-bold text-[#ff6600] tracking-wide leading-none">
+                      <div className="font-bebas text-4xl sm:text-5xl font-bold text-brand tracking-wide leading-none">
                         128,420
                       </div>
                       <div className="flex items-center justify-between text-[10px] text-neutral-400 font-mono">
@@ -741,7 +742,7 @@ export function InteractiveDemoSection() {
                       </div>
                     </div>
 
-                    <div className="p-4 rounded-[10px] bg-white dark:bg-[#141416] border border-[#E7DFD5] dark:border-[#222225] flex flex-col justify-between h-32 shadow-xs hover:border-[#ff6600]/40 transition-colors">
+                    <div className="p-4 rounded-[10px] bg-white dark:bg-[#141416] border border-[#E7DFD5] dark:border-[#222225] flex flex-col justify-between h-32 shadow-xs hover:border-brand transition-colors">
                       <div className="flex items-center justify-between text-xs text-neutral-500">
                         <span className="font-semibold">Created Links</span>
                         <span className="text-emerald-500 font-bold text-[11px]">42</span>
@@ -755,7 +756,7 @@ export function InteractiveDemoSection() {
                       </div>
                     </div>
 
-                    <div className="p-4 rounded-[10px] bg-white dark:bg-[#141416] border border-[#E7DFD5] dark:border-[#222225] flex flex-col justify-between h-32 shadow-xs hover:border-[#ff6600]/40 transition-colors">
+                    <div className="p-4 rounded-[10px] bg-white dark:bg-[#141416] border border-[#E7DFD5] dark:border-[#222225] flex flex-col justify-between h-32 shadow-xs hover:border-brand transition-colors">
                       <div className="flex items-center justify-between text-xs text-neutral-500">
                         <span className="font-semibold">Tracked Revenue</span>
                         <span className="text-emerald-500 font-bold text-[11px]">$2,450</span>
@@ -769,7 +770,7 @@ export function InteractiveDemoSection() {
                       </div>
                     </div>
 
-                    <div className="p-4 rounded-[10px] bg-white dark:bg-[#141416] border border-[#E7DFD5] dark:border-[#222225] flex flex-col justify-between h-32 shadow-xs hover:border-[#ff6600]/40 transition-colors">
+                    <div className="p-4 rounded-[10px] bg-white dark:bg-[#141416] border border-[#E7DFD5] dark:border-[#222225] flex flex-col justify-between h-32 shadow-xs hover:border-brand transition-colors">
                       <div className="flex items-center justify-between text-xs text-neutral-500">
                         <span className="font-semibold">Conversion Rate</span>
                         <span className="text-emerald-500 font-bold text-[11px]">3.4%</span>
@@ -795,7 +796,7 @@ export function InteractiveDemoSection() {
                           </h4>
                           <span className="text-[11px] text-neutral-400">All links combined</span>
                         </div>
-                        <span className="text-xs font-mono font-bold text-[#ff6600] bg-[#ff6600]/10 px-2 py-0.5 rounded-md">
+                        <span className="text-xs font-mono font-bold text-brand bg-brand-subtle px-2 py-0.5 rounded-md">
                           128.4K clicks
                         </span>
                       </div>
@@ -818,12 +819,14 @@ export function InteractiveDemoSection() {
                                   {d.date}: {d.clicks.toLocaleString()} clicks
                                 </div>
                               )}
-                              <div
-                                style={{ height: `${heightPct}%` }}
-                                className={`w-full rounded-t-sm transition-all duration-200 ${
+                              <AnimatedBar
+                                direction="vertical"
+                                value={heightPct}
+                                delay={idx * 0.02}
+                                className={`w-full rounded-t-sm transition-colors duration-200 ${
                                   isHovered
-                                    ? "bg-[#ff6600] shadow-md shadow-[#ff6600]/40"
-                                    : "bg-[#ff6600]/80 group-hover:bg-[#ff6600]"
+                                    ? "bg-brand shadow-md shadow-brand"
+                                    : "bg-brand/80 group-hover:bg-brand"
                                 }`}
                               />
                               <span className="text-[8.5px] font-mono text-neutral-400 mt-1 truncate">
@@ -848,7 +851,7 @@ export function InteractiveDemoSection() {
                           <button
                             type="button"
                             onClick={() => setActiveTab("analytics")}
-                            className="text-xs text-[#ff6600] hover:underline flex items-center gap-1 font-medium cursor-pointer"
+                            className="text-xs text-brand hover:underline flex items-center gap-1 font-medium cursor-pointer"
                           >
                             <span>Details</span>
                             <ArrowUpRight className="w-3.5 h-3.5" />
@@ -862,11 +865,11 @@ export function InteractiveDemoSection() {
                             { code: "BF", name: "Burkina Faso", pct: 14.7, count: "18,900" },
                             { code: "DE", name: "Germany", pct: 9.4, count: "12,100" },
                             { code: "CA", name: "Canada", pct: 8.6, count: "10,920" },
-                          ].map((item) => (
+                          ].map((item, i) => (
                             <div key={item.code} className="space-y-1 text-xs">
                               <div className="flex items-center justify-between text-neutral-700 dark:text-neutral-300">
                                 <div className="flex items-center gap-1.5">
-                                  <span className="font-mono text-[11px] font-bold text-[#ff6600] w-6">
+                                  <span className="font-mono text-[11px] font-bold text-brand w-6">
                                     {item.code}
                                   </span>
                                   <span>{item.name}</span>
@@ -876,9 +879,10 @@ export function InteractiveDemoSection() {
                                 </span>
                               </div>
                               <div className="w-full h-1.5 rounded-full bg-neutral-200 dark:bg-white/10 overflow-hidden">
-                                <div
-                                  className="h-full bg-[#ff6600] rounded-full"
-                                  style={{ width: `${item.pct}%` }}
+                                <AnimatedBar
+                                  value={item.pct}
+                                  delay={i * 0.08}
+                                  className="h-full bg-brand rounded-full"
                                 />
                               </div>
                             </div>
@@ -903,7 +907,7 @@ export function InteractiveDemoSection() {
                       <button
                         type="button"
                         onClick={() => setActiveTab("links")}
-                        className="text-xs text-[#ff6600] hover:underline font-semibold flex items-center gap-1 cursor-pointer"
+                        className="text-xs text-brand hover:underline font-semibold flex items-center gap-1 cursor-pointer"
                       >
                         <span>View all links</span>
                         <ArrowUpRight className="w-3.5 h-3.5" />
@@ -933,7 +937,7 @@ export function InteractiveDemoSection() {
                                   ↳ {link.targetUrl}
                                 </span>
                               </td>
-                              <td className="py-3 font-mono text-xs text-[#ff6600]">
+                              <td className="py-3 font-mono text-xs text-brand">
                                 {link.shortUrl}
                               </td>
                               <td className="py-3 text-center">
@@ -957,7 +961,7 @@ export function InteractiveDemoSection() {
                                 <button
                                   type="button"
                                   onClick={() => handleCopy(link.shortUrl, link.slug)}
-                                  className="px-2 py-1 rounded-[6px] bg-[#ff6600]/10 text-[#ff6600] hover:bg-[#ff6600] hover:text-white text-[11px] font-mono transition-colors cursor-pointer inline-flex items-center gap-1"
+                                  className="px-2 py-1 rounded-[6px] bg-brand-subtle text-brand hover:bg-brand hover:text-white text-[11px] font-mono transition-colors cursor-pointer inline-flex items-center gap-1"
                                 >
                                   {copiedSlug === link.slug ? (
                                     <>
@@ -999,7 +1003,7 @@ export function InteractiveDemoSection() {
 
                     <Button
                       size="sm"
-                      className="h-8.5 px-3.5 text-xs bg-[#ff6600] hover:bg-[#ff771a] text-white font-bebas text-sm tracking-wide gap-1 shadow-md shadow-[#ff6600]/20"
+                      className="h-8.5 px-3.5 text-xs bg-brand hover:bg-brand-hover text-white font-bebas text-sm tracking-wide gap-1 shadow-md shadow-brand"
                     >
                       <Plus className="w-4 h-4 stroke-[3]" />
                       <span>CREATE A LINK</span>
@@ -1016,7 +1020,7 @@ export function InteractiveDemoSection() {
                         placeholder="Search by slug, target URL or #tag..."
                         value={filterQuery}
                         onChange={(e) => setFilterQuery(e.target.value)}
-                        className="w-full pl-8 pr-3 py-1.5 rounded-[8px] bg-[#FAF7F2] dark:bg-[#1a1a1e] border border-[#E7DFD5] dark:border-[#27272a] text-xs text-neutral-900 dark:text-white outline-none focus:border-[#ff6600]"
+                        className="w-full pl-8 pr-3 py-1.5 rounded-[8px] bg-[#FAF7F2] dark:bg-[#1a1a1e] border border-[#E7DFD5] dark:border-[#27272a] text-xs text-neutral-900 dark:text-white outline-none focus:border-brand"
                       />
                     </div>
 
@@ -1083,7 +1087,7 @@ export function InteractiveDemoSection() {
                               </div>
                             </td>
 
-                            <td className="p-3 font-mono text-xs text-[#ff6600] font-medium whitespace-nowrap">
+                            <td className="p-3 font-mono text-xs text-brand font-medium whitespace-nowrap">
                               {link.shortUrl}
                             </td>
 
@@ -1115,7 +1119,7 @@ export function InteractiveDemoSection() {
                                 <button
                                   type="button"
                                   onClick={() => handleCopy(link.shortUrl, link.slug)}
-                                  className="px-2.5 py-1.5 rounded-[8px] bg-[#ff6600]/10 text-[#ff6600] hover:bg-[#ff6600] hover:text-white text-[11px] font-bold transition-colors cursor-pointer flex items-center gap-1"
+                                  className="px-2.5 py-1.5 rounded-[8px] bg-brand-subtle text-brand hover:bg-brand hover:text-white text-[11px] font-bold transition-colors cursor-pointer flex items-center gap-1"
                                 >
                                   {copiedSlug === link.slug ? (
                                     <>
@@ -1135,7 +1139,7 @@ export function InteractiveDemoSection() {
                                     handlePresetChange(link.slug);
                                     setActiveTab("qr");
                                   }}
-                                  className="p-1.5 rounded-[8px] bg-neutral-100 dark:bg-white/5 text-neutral-500 hover:text-[#ff6600] transition-colors cursor-pointer"
+                                  className="p-1.5 rounded-[8px] bg-neutral-100 dark:bg-white/5 text-neutral-500 hover:text-brand transition-colors cursor-pointer"
                                   title="Open in QR Studio"
                                 >
                                   <QrCode className="w-3.5 h-3.5" />
@@ -1170,7 +1174,7 @@ export function InteractiveDemoSection() {
                       <Button
                         size="sm"
                         onClick={handleSaveQR}
-                        className="h-8.5 px-3.5 text-xs bg-[#ff6600] hover:bg-[#ff771a] text-white font-bold gap-1.5 shadow-lg shadow-[#ff6600]/25 cursor-pointer"
+                        className="h-8.5 px-3.5 text-xs bg-brand hover:bg-brand-hover text-white font-bold gap-1.5 shadow-lg shadow-brand cursor-pointer"
                       >
                         {isQrSaved ? (
                           <>
@@ -1191,7 +1195,7 @@ export function InteractiveDemoSection() {
                         }}
                         className="px-3 py-1.5 rounded-[8px] bg-neutral-100 dark:bg-white/5 hover:bg-neutral-200 dark:hover:bg-white/10 text-xs font-semibold text-neutral-700 dark:text-neutral-300 flex items-center gap-1.5 cursor-pointer border border-[#E7DFD5] dark:border-[#27272a]"
                       >
-                        <Download className="w-3.5 h-3.5 text-[#ff6600]" />
+                        <Download className="w-3.5 h-3.5 text-brand" />
                         <span>Export JSON V3</span>
                       </button>
                     </div>
@@ -1220,7 +1224,7 @@ export function InteractiveDemoSection() {
                               onClick={() => setQrContentType(item.type)}
                               className={`px-3 py-1.5 rounded-[8px] text-xs font-semibold border transition-all cursor-pointer ${
                                 qrContentType === item.type
-                                  ? "bg-[#ff6600] text-white border-[#ff6600] shadow-sm shadow-[#ff6600]/25 font-bold"
+                                  ? "bg-brand text-white border-brand shadow-sm shadow-brand font-bold"
                                   : "bg-white dark:bg-[#141416] border-[#E7DFD5] dark:border-[#27272a] text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white"
                               }`}
                             >
@@ -1239,7 +1243,7 @@ export function InteractiveDemoSection() {
                           <select
                             value={selectedPresetSlug}
                             onChange={(e) => handlePresetChange(e.target.value)}
-                            className="w-full h-9 rounded-[8px] bg-[#FAF7F2] dark:bg-[#1a1a1e] border border-[#E7DFD5] dark:border-[#27272a] px-3 text-xs text-neutral-900 dark:text-neutral-100 focus:outline-none focus:border-[#ff6600] cursor-pointer"
+                            className="w-full h-9 rounded-[8px] bg-[#FAF7F2] dark:bg-[#1a1a1e] border border-[#E7DFD5] dark:border-[#27272a] px-3 text-xs text-neutral-900 dark:text-neutral-100 focus:outline-none focus:border-brand cursor-pointer"
                           >
                             {mockLinks.map((l) => (
                               <option key={l.id} value={l.slug}>
@@ -1254,7 +1258,7 @@ export function InteractiveDemoSection() {
                             type="text"
                             value={qrWebsiteUrl}
                             onChange={(e) => setQrWebsiteUrl(e.target.value)}
-                            className="w-full h-9 rounded-[8px] bg-[#FAF7F2] dark:bg-[#1a1a1e] border border-[#E7DFD5] dark:border-[#27272a] px-3 text-xs font-mono text-neutral-900 dark:text-neutral-100 focus:outline-none focus:border-[#ff6600]"
+                            className="w-full h-9 rounded-[8px] bg-[#FAF7F2] dark:bg-[#1a1a1e] border border-[#E7DFD5] dark:border-[#27272a] px-3 text-xs font-mono text-neutral-900 dark:text-neutral-100 focus:outline-none focus:border-brand"
                           />
                         </div>
 
@@ -1285,7 +1289,7 @@ export function InteractiveDemoSection() {
                               onClick={() => setQrPixelStyle(style.id as any)}
                               className={`py-2 px-1 rounded-[8px] border text-center text-xs font-medium transition-all cursor-pointer ${
                                 qrPixelStyle === style.id
-                                  ? "bg-[#ff6600]/15 border-[#ff6600] text-[#ff6600] font-bold shadow-xs"
+                                  ? "bg-brand-subtle border-brand text-brand font-bold shadow-xs"
                                   : "bg-[#FAF7F2] dark:bg-[#1a1a1e] border-[#E7DFD5] dark:border-[#27272a] text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
                               }`}
                             >
@@ -1312,7 +1316,7 @@ export function InteractiveDemoSection() {
                               onClick={() => setQrEyeStyle(eye.id as any)}
                               className={`py-2 px-1 rounded-[8px] border text-center text-xs font-medium transition-all cursor-pointer ${
                                 qrEyeStyle === eye.id
-                                  ? "bg-[#ff6600]/15 border-[#ff6600] text-[#ff6600] font-bold shadow-xs"
+                                  ? "bg-brand-subtle border-brand text-brand font-bold shadow-xs"
                                   : "bg-[#FAF7F2] dark:bg-[#1a1a1e] border-[#E7DFD5] dark:border-[#27272a] text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
                               }`}
                             >
@@ -1375,7 +1379,7 @@ export function InteractiveDemoSection() {
                                 onClick={() => setQrFrame(f.id as any)}
                                 className={`px-2.5 py-1 rounded-[6px] text-xs font-medium border cursor-pointer ${
                                   qrFrame === f.id
-                                    ? "bg-[#ff6600]/15 border-[#ff6600] text-[#ff6600] font-bold"
+                                    ? "bg-brand-subtle border-brand text-brand font-bold"
                                     : "bg-[#FAF7F2] dark:bg-[#1a1a1e] border-[#E7DFD5] dark:border-[#27272a] text-neutral-600 dark:text-neutral-400"
                                 }`}
                               >
@@ -1414,7 +1418,7 @@ export function InteractiveDemoSection() {
                       <div className="p-3 rounded-[10px] bg-white dark:bg-[#141416] border border-[#E7DFD5] dark:border-[#222225] space-y-1 text-xs">
                         <div className="flex items-center justify-between font-semibold text-neutral-700 dark:text-neutral-300">
                           <span>Resolution</span>
-                          <span className="font-mono text-[#ff6600]">{qrSize}px</span>
+                          <span className="font-mono text-brand">{qrSize}px</span>
                         </div>
                         <input
                           type="range"
@@ -1423,7 +1427,7 @@ export function InteractiveDemoSection() {
                           step="10"
                           value={qrSize}
                           onChange={(e) => setQrSize(Number(e.target.value))}
-                          className="w-full accent-[#ff6600] cursor-pointer"
+                          className="w-full accent-[var(--brand-primary)] cursor-pointer"
                         />
                       </div>
 
@@ -1432,7 +1436,7 @@ export function InteractiveDemoSection() {
                         <Button
                           size="sm"
                           onClick={handleDownloadPNG}
-                          className="h-9 text-xs bg-[#ff6600] hover:bg-[#ff771a] text-white font-bold gap-1.5 shadow-md shadow-[#ff6600]/20 cursor-pointer"
+                          className="h-9 text-xs bg-brand hover:bg-brand-hover text-white font-bold gap-1.5 shadow-md shadow-brand cursor-pointer"
                         >
                           <Download className="w-3.5 h-3.5" />
                           <span>Download PNG</span>
@@ -1443,7 +1447,7 @@ export function InteractiveDemoSection() {
                           onClick={handleSaveQR}
                           className="h-9 text-xs border-[#E7DFD5] dark:border-[#27272a] bg-white dark:bg-[#141416] text-neutral-700 dark:text-neutral-300 gap-1.5 cursor-pointer"
                         >
-                          <Share2 className="w-3.5 h-3.5 text-[#ff6600]" />
+                          <Share2 className="w-3.5 h-3.5 text-brand" />
                           <span>Export SVG</span>
                         </Button>
                       </div>
@@ -1478,7 +1482,7 @@ export function InteractiveDemoSection() {
                             onClick={() => setAnalyticsRange(r)}
                             className={`px-2.5 py-1 rounded-[6px] font-semibold transition-all cursor-pointer ${
                               analyticsRange === r
-                                ? "bg-[#ff6600] text-white shadow-xs font-bold"
+                                ? "bg-brand text-white shadow-xs font-bold"
                                 : "text-neutral-500 hover:text-neutral-900 dark:hover:text-white"
                             }`}
                           >
@@ -1492,7 +1496,7 @@ export function InteractiveDemoSection() {
                         variant="outline"
                         className="h-8 px-2.5 text-xs border-[#E7DFD5] dark:border-[#27272a] bg-white dark:bg-[#141416] text-neutral-700 dark:text-neutral-300 gap-1.5"
                       >
-                        <Download className="w-3.5 h-3.5 text-[#ff6600]" />
+                        <Download className="w-3.5 h-3.5 text-brand" />
                         <span>Export CSV</span>
                       </Button>
                     </div>
@@ -1501,7 +1505,7 @@ export function InteractiveDemoSection() {
                   {/* 6 Precision KPI Cards */}
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                     {[
-                      { label: "Total Clicks", val: "128,420", sub: "+14.2% this month", color: "text-[#ff6600]" },
+                      { label: "Total Clicks", val: "128,420", sub: "+14.2% this month", color: "text-brand" },
                       { label: "Unique Clicks", val: "71,400", sub: "100% verified", color: "text-neutral-900 dark:text-white" },
                       { label: "Tracked Revenue", val: "$2,450", sub: "+18.5% MRR", color: "text-neutral-900 dark:text-white" },
                       { label: "Conversion Rate", val: "3.4%", sub: "Optimum > 2%", color: "text-emerald-500" },
@@ -1527,7 +1531,7 @@ export function InteractiveDemoSection() {
                     <div className="lg:col-span-6 p-4 sm:p-5 rounded-[10px] bg-white dark:bg-[#141416] border border-[#E7DFD5] dark:border-[#222225] flex flex-col justify-between shadow-xs">
                       <div>
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-bold uppercase tracking-wider text-[#ff6600] flex items-center gap-1.5">
+                          <span className="text-xs font-bold uppercase tracking-wider text-brand flex items-center gap-1.5">
                             <Globe2 className="w-4 h-4" />
                             <span>Live Global Traffic</span>
                           </span>
@@ -1540,12 +1544,12 @@ export function InteractiveDemoSection() {
 
                       {/* Stylized Geo Radar Screen */}
                       <div className="my-4 h-40 rounded-[10px] bg-[#FAF7F2] dark:bg-[#0d0d12] border border-[#E7DFD5] dark:border-white/5 relative flex items-center justify-center overflow-hidden">
-                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,102,0,0.12)_0%,transparent_70%)]" />
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,var(--brand-primary-subtle)_0%,transparent_70%)]" />
                         
                         {/* Radar concentric rings */}
-                        <div className="w-32 h-32 rounded-full border border-[#ff6600]/20 absolute animate-ping" />
-                        <div className="w-24 h-24 rounded-full border border-[#ff6600]/30 absolute" />
-                        <div className="w-12 h-12 rounded-full border border-[#ff6600]/40 absolute" />
+                        <div className="w-32 h-32 rounded-full border border-brand-subtle absolute animate-ping" />
+                        <div className="w-24 h-24 rounded-full border border-brand-subtle absolute" />
+                        <div className="w-12 h-12 rounded-full border border-brand absolute" />
 
                         {/* City PoP Markers */}
                         <div className="absolute top-8 left-16 flex items-center gap-1">
@@ -1553,7 +1557,7 @@ export function InteractiveDemoSection() {
                           <span className="text-[9px] font-mono text-neutral-500">Paris (52.4K)</span>
                         </div>
                         <div className="absolute top-12 right-20 flex items-center gap-1">
-                          <span className="w-2 h-2 rounded-full bg-[#ff6600] animate-pulse" />
+                          <span className="w-2 h-2 rounded-full bg-brand animate-pulse" />
                           <span className="text-[9px] font-mono text-neutral-500">New York (34.1K)</span>
                         </div>
                         <div className="absolute bottom-10 left-24 flex items-center gap-1">
@@ -1582,7 +1586,7 @@ export function InteractiveDemoSection() {
                         <div className="grid grid-cols-3 gap-2 text-center mb-4">
                           <div className="p-3 rounded-[8px] bg-[#FAF7F2] dark:bg-[#1a1a1e] border border-[#E7DFD5] dark:border-[#27272a]">
                             <span className="text-[10px] text-neutral-500 block">Desktop</span>
-                            <span className="text-xl font-bold font-mono text-[#ff6600]">58%</span>
+                            <span className="text-xl font-bold font-mono text-brand">58%</span>
                             <span className="text-[9px] text-neutral-400 block mt-0.5">74,480 clicks</span>
                           </div>
                           <div className="p-3 rounded-[8px] bg-[#FAF7F2] dark:bg-[#1a1a1e] border border-[#E7DFD5] dark:border-[#27272a]">
@@ -1612,7 +1616,7 @@ export function InteractiveDemoSection() {
                                 <span className="font-mono">{ch.count} ({ch.pct}%)</span>
                               </div>
                               <div className="w-full h-1.5 rounded-full bg-neutral-200 dark:bg-white/10 overflow-hidden">
-                                <div className="h-full bg-[#ff6600] rounded-full" style={{ width: `${ch.pct}%` }} />
+                                <div className="h-full bg-brand rounded-full" style={{ width: `${ch.pct}%` }} />
                               </div>
                             </div>
                           ))}
@@ -1659,7 +1663,7 @@ export function InteractiveDemoSection() {
                           ].map((ev, i) => (
                             <tr key={i} className="hover:bg-black/[0.02] dark:hover:bg-white/[0.02]">
                               <td className="py-2.5 pl-3 text-neutral-400">{ev.time}</td>
-                              <td className="py-2.5 text-[#ff6600] font-bold">/{ev.slug}</td>
+                              <td className="py-2.5 text-brand font-bold">/{ev.slug}</td>
                               <td className="py-2.5 text-neutral-800 dark:text-neutral-200">{ev.loc}</td>
                               <td className="py-2.5 text-neutral-500">{ev.dev}</td>
                               <td className="py-2.5 text-neutral-500">{ev.src}</td>

@@ -91,7 +91,7 @@ export function CofounderResourceCard({
 
             {/* Title */}
             <CardHeader className="p-0 mt-4 mb-2.5">
-              <CardTitle className="text-lg sm:text-xl font-bold tracking-tight text-[#2B2520] dark:text-white group-hover/item:text-[#0080ff] sm:group-hover/item:text-[#ff6600] transition-colors leading-snug line-clamp-2">
+              <CardTitle className="text-lg sm:text-xl font-bold tracking-tight text-[#2B2520] dark:text-white group-hover/item:text-brand transition-colors leading-snug line-clamp-2">
                 {feature.title}
               </CardTitle>
             </CardHeader>
@@ -105,7 +105,7 @@ export function CofounderResourceCard({
           </div>
 
           {/* Bottom Monospace Action Link */}
-          <div className="mt-6 pt-4 border-t border-[#E7DFD5]/60 dark:border-white/5 flex items-center justify-between font-mono text-xs text-neutral-500 dark:text-neutral-400 group-hover/item:text-[#0080ff] sm:group-hover/item:text-[#ff6600] transition-colors">
+          <div className="mt-6 pt-4 border-t border-[#E7DFD5]/60 dark:border-white/5 flex items-center justify-between font-mono text-xs text-neutral-500 dark:text-neutral-400 group-hover/item:text-brand transition-colors">
             <span>Read guide</span>
             <ArrowRight className="w-3.5 h-3.5 group-hover/item:translate-x-1.5 transition-transform duration-200" />
           </div>

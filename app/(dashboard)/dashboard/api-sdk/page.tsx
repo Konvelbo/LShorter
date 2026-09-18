@@ -273,7 +273,7 @@ console.log("Custom domains:", me.domainsCount);`
             disabled={isRefreshing}
             className="h-10 px-3.5 text-xs font-semibold gap-2 border-[#27272a] bg-[#141416] hover:bg-white/5 text-neutral-300 hover:text-white cursor-pointer shadow-sm"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-[#ff6600]" : "text-neutral-400"}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-brand" : "text-neutral-400"}`} />
             <span>Refresh</span>
           </Button>
 
@@ -296,7 +296,7 @@ console.log("Custom domains:", me.domainsCount);`
         >
           <div className="flex items-center justify-between">
             <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <KeyRound className="w-4 h-4 text-[#ff6600]" />
+              <KeyRound className="w-4 h-4 text-brand" />
               <span>Generate a new API key</span>
             </h3>
             <button
@@ -322,7 +322,7 @@ console.log("Custom domains:", me.domainsCount);`
               <select
                 value={keyScopeInput}
                 onChange={(e) => setKeyScopeInput(e.target.value as "read" | "read_write" | "admin")}
-                className="w-full h-10 rounded-[10px] bg-[#0c0c0e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
+                className="w-full h-10 rounded-[10px] bg-[#0c0c0e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-brand cursor-pointer"
               >
                 <option value="read_write" className="bg-[#141416] text-white">Read & Write</option>
                 <option value="admin" className="bg-[#141416] text-white">Full Access (Admin)</option>
@@ -346,21 +346,21 @@ console.log("Custom domains:", me.domainsCount);`
       )}
 
       {/* Active API Keys List */}
-      <div className="rounded-[10px] bg-[#141416] border border-[#222225] p-5 shadow-xl flex flex-col gap-4">
+      <div className="rounded-[10px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] p-5 shadow-sm flex flex-col gap-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-base font-bold text-white flex items-center gap-2">
-            <KeyRound className="w-4 h-4 text-[#ff6600]" />
+          <h3 className="text-base font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+            <KeyRound className="w-4 h-4 text-brand" />
             <span>Active API Keys ({keys.length})</span>
           </h3>
         </div>
 
         {keys.length === 0 ? (
-          <div className="py-12 px-4 text-center flex flex-col items-center justify-center gap-2.5 bg-[#0c0c0e] rounded-[10px] border border-[#27272a]">
-            <div className="w-10 h-10 rounded-[10px] bg-neutral-800/60 border border-neutral-700/40 flex items-center justify-center text-neutral-500">
+          <div className="py-12 px-4 text-center flex flex-col items-center justify-center gap-2.5 bg-zinc-50 dark:bg-[#0c0c0e] rounded-[10px] border border-zinc-200 dark:border-[#27272a]">
+            <div className="w-10 h-10 rounded-[10px] bg-zinc-200 dark:bg-neutral-800/60 border border-zinc-300 dark:border-neutral-700/40 flex items-center justify-center text-zinc-500 dark:text-neutral-500">
               <KeyRound className="w-5 h-5" />
             </div>
-            <p className="text-xs font-semibold text-neutral-300">No active API keys yet</p>
-            <p className="text-[11px] text-neutral-500 max-w-xs">
+            <p className="text-xs font-semibold text-zinc-800 dark:text-neutral-300">No active API keys yet</p>
+            <p className="text-[11px] text-zinc-500 dark:text-neutral-500 max-w-xs">
               Click &quot;Generate API Key&quot; above to create your first developer token.
             </p>
           </div>
@@ -373,30 +373,30 @@ console.log("Custom domains:", me.domainsCount);`
               const isCopied = copiedKey === key.id;
 
               const getScopeBadge = (scope?: string) => {
-                if (scope === "admin") return { label: "Admin", color: "bg-red-500/10 text-red-400 border-red-500/20" };
-                if (scope === "read") return { label: "Read Only", color: "bg-blue-500/10 text-blue-400 border-blue-500/20" };
-                return { label: "Read & Write", color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" };
+                if (scope === "admin") return { label: "Admin", color: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20" };
+                if (scope === "read") return { label: "Read Only", color: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20" };
+                return { label: "Read & Write", color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" };
               };
               const scopeInfo = getScopeBadge(key.scope);
 
               return (
                 <div
                   key={key.id}
-                  className="p-4 rounded-[10px] bg-[#0e0e11] border border-[#27272a] hover:border-[#38383e] transition-all flex flex-col gap-3 shadow-sm"
+                  className="p-4 rounded-[10px] bg-zinc-50 dark:bg-[#0e0e11] border border-zinc-200 dark:border-[#27272a] hover:border-zinc-300 dark:hover:border-[#38383e] transition-all flex flex-col gap-3 shadow-xs"
                 >
                   {/* Key Header */}
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2.5">
-                      <span className="font-bold text-sm text-white">{key.name}</span>
+                      <span className="font-bold text-sm text-zinc-900 dark:text-white">{key.name}</span>
                       <span className={`px-2 py-0.5 rounded-[6px] border text-[10px] font-semibold ${scopeInfo.color}`}>
                         {scopeInfo.label}
                       </span>
-                      <span className="px-2 py-0.5 rounded-[6px] bg-neutral-800/70 border border-neutral-700/40 text-[10px] text-neutral-400 font-mono">
+                      <span className="px-2 py-0.5 rounded-[6px] bg-zinc-200/80 dark:bg-neutral-800/70 border border-zinc-300 dark:border-neutral-700/40 text-[10px] text-zinc-600 dark:text-neutral-400 font-mono">
                         {key.rateLimit || "600 req / min"}
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-4 text-[11px] text-neutral-500">
+                    <div className="flex items-center gap-4 text-[11px] text-zinc-500 dark:text-neutral-500">
                       <span>Created on {new Date(key.created_at).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" })}</span>
                       {key.lastUsedAt && (
                         <span>Last used: {new Date(key.lastUsedAt).toLocaleDateString("en-US")}</span>
@@ -410,19 +410,19 @@ console.log("Custom domains:", me.domainsCount);`
                     const email = key.userEmail || key.email;
                     if (!name && !email) return null;
                     return (
-                      <div className="flex items-center gap-1.5 text-[11px] text-neutral-400 bg-[#070709] px-2.5 py-1 rounded-[6px] border border-[#1f1f23] truncate">
-                        <span className="text-neutral-500 text-[10px] font-semibold shrink-0">Creator:</span>
-                        {name && <span className="text-neutral-200 font-medium truncate">{name}</span>}
-                        {name && email && <span className="text-neutral-600">·</span>}
-                        {email && <span className="text-neutral-400 font-mono text-[10px] truncate">{email}</span>}
+                      <div className="flex items-center gap-1.5 text-[11px] text-zinc-600 dark:text-neutral-400 bg-zinc-100 dark:bg-[#070709] px-2.5 py-1 rounded-[6px] border border-zinc-200 dark:border-[#1f1f23] truncate">
+                        <span className="text-zinc-500 text-[10px] font-semibold shrink-0">Creator:</span>
+                        {name && <span className="text-zinc-800 dark:text-neutral-200 font-medium truncate">{name}</span>}
+                        {name && email && <span className="text-zinc-400 dark:text-neutral-600">·</span>}
+                        {email && <span className="text-zinc-500 dark:text-neutral-400 font-mono text-[10px] truncate">{email}</span>}
                       </div>
                     );
                   })()}
 
                   {/* Key Value & Action Buttons */}
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 p-2.5 rounded-[8px] bg-[#070709] border border-[#1f1f23]">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 p-2.5 rounded-[8px] bg-zinc-100/90 dark:bg-[#070709] border border-zinc-200 dark:border-[#1f1f23]">
                     <div className="flex-1 flex items-center gap-2 overflow-hidden">
-                      <div className="font-mono text-xs text-[#ff6600] truncate font-semibold select-all">
+                      <div className="font-mono text-xs text-brand truncate font-semibold select-all">
                         {displayKey}
                       </div>
                     </div>
@@ -432,17 +432,17 @@ console.log("Custom domains:", me.domainsCount);`
                       <button
                         type="button"
                         onClick={() => toggleRevealKey(key.id)}
-                        className="h-8 px-2.5 rounded-[6px] bg-[#1a1a1e] hover:bg-[#25252c] border border-[#2a2a30] text-neutral-300 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                        className="h-8 px-2.5 rounded-[6px] bg-white dark:bg-[#1a1a1e] hover:bg-zinc-100 dark:hover:bg-[#25252c] border border-zinc-200 dark:border-[#2a2a30] text-zinc-700 dark:text-neutral-300 hover:text-zinc-900 dark:hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
                         title={isRevealed ? "Hide key" : "Reveal key"}
                       >
                         {isRevealed ? (
                           <>
-                            <EyeOff className="w-3.5 h-3.5 text-neutral-400" />
+                            <EyeOff className="w-3.5 h-3.5 text-zinc-500 dark:text-neutral-400" />
                             <span className="hidden sm:inline">Hide</span>
                           </>
                         ) : (
                           <>
-                            <Eye className="w-3.5 h-3.5 text-neutral-400" />
+                            <Eye className="w-3.5 h-3.5 text-zinc-500 dark:text-neutral-400" />
                             <span className="hidden sm:inline">Reveal</span>
                           </>
                         )}
@@ -457,17 +457,17 @@ console.log("Custom domains:", me.domainsCount);`
                           showToast.success("API key copied to clipboard!");
                           setTimeout(() => setCopiedKey(null), 2000);
                         }}
-                        className="h-8 px-2.5 rounded-[6px] bg-[#1a1a1e] hover:bg-[#25252c] border border-[#2a2a30] text-neutral-300 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                        className="h-8 px-2.5 rounded-[6px] bg-white dark:bg-[#1a1a1e] hover:bg-zinc-100 dark:hover:bg-[#25252c] border border-zinc-200 dark:border-[#2a2a30] text-zinc-700 dark:text-neutral-300 hover:text-zinc-900 dark:hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
                         title="Copy key"
                       >
                         {isCopied ? (
                           <>
-                            <Check className="w-3.5 h-3.5 text-emerald-400" />
-                            <span className="text-emerald-400">Copied</span>
+                            <Check className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
+                            <span className="text-emerald-600 dark:text-emerald-400">Copied</span>
                           </>
                         ) : (
                           <>
-                            <Copy className="w-3.5 h-3.5 text-neutral-400" />
+                            <Copy className="w-3.5 h-3.5 text-zinc-500 dark:text-neutral-400" />
                             <span>Copy</span>
                           </>
                         )}
@@ -477,7 +477,7 @@ console.log("Custom domains:", me.domainsCount);`
                       <button
                         type="button"
                         onClick={() => promptRevokeKey(key)}
-                        className="h-8 w-8 rounded-[6px] bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 hover:text-red-300 flex items-center justify-center transition-colors cursor-pointer"
+                        className="h-8 w-8 rounded-[6px] bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 flex items-center justify-center transition-colors cursor-pointer"
                         title="Revoke key"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -492,25 +492,25 @@ console.log("Custom domains:", me.domainsCount);`
       </div>
 
       {/* TypeScript SDK Code Preview Section */}
-      <div className="rounded-[10px] bg-[#141416] border border-[#222225] p-6 lg:p-8 flex flex-col gap-5 shadow-2xl">
+      <div className="rounded-[10px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] p-6 lg:p-8 flex flex-col gap-5 shadow-sm dark:shadow-2xl">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-[10px] bg-[#3178c6]/20 border border-[#3178c6]/40 flex items-center justify-center text-[#3178c6]">
+            <div className="w-10 h-10 rounded-[10px] bg-[#3178c6]/15 dark:bg-[#3178c6]/20 border border-[#3178c6]/30 dark:border-[#3178c6]/40 flex items-center justify-center text-[#3178c6]">
               <Code2 className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-white">Official TypeScript SDK (npm i lshorter-api)</h3>
-              <p className="text-xs text-neutral-400">Ready-to-use implementation examples</p>
+              <h3 className="text-lg font-bold text-zinc-900 dark:text-white">Official TypeScript SDK (npm i lshorter-api)</h3>
+              <p className="text-xs text-zinc-500 dark:text-neutral-400">Ready-to-use implementation examples</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 p-1 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] text-xs">
+          <div className="flex items-center gap-2 p-1 rounded-[10px] bg-zinc-100 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a] text-xs overflow-x-auto">
             <button
               onClick={() => setActiveCodeTab("create")}
               className={`px-3 py-1.5 rounded-[10px] font-medium transition-colors cursor-pointer ${
                 activeCodeTab === "create"
-                  ? "bg-[#ff6600] text-white"
-                  : "text-neutral-400 hover:text-white"
+                  ? "bg-brand text-white shadow-sm"
+                  : "text-zinc-600 dark:text-neutral-400 hover:text-zinc-900 dark:hover:text-white"
               }`}
             >
               Create Link
@@ -519,8 +519,8 @@ console.log("Custom domains:", me.domainsCount);`
               onClick={() => setActiveCodeTab("track")}
               className={`px-3 py-1.5 rounded-[10px] font-medium transition-colors cursor-pointer ${
                 activeCodeTab === "track"
-                  ? "bg-[#ff6600] text-white"
-                  : "text-neutral-400 hover:text-white"
+                  ? "bg-brand text-white shadow-sm"
+                  : "text-zinc-600 dark:text-neutral-400 hover:text-zinc-900 dark:hover:text-white"
               }`}
             >
               Track Conversion
@@ -529,8 +529,8 @@ console.log("Custom domains:", me.domainsCount);`
               onClick={() => setActiveCodeTab("analytics")}
               className={`px-3 py-1.5 rounded-[10px] font-medium transition-colors cursor-pointer ${
                 activeCodeTab === "analytics"
-                  ? "bg-[#ff6600] text-white"
-                  : "text-neutral-400 hover:text-white"
+                  ? "bg-brand text-white shadow-sm"
+                  : "text-zinc-600 dark:text-neutral-400 hover:text-zinc-900 dark:hover:text-white"
               }`}
             >
               Analytics
@@ -539,8 +539,8 @@ console.log("Custom domains:", me.domainsCount);`
               onClick={() => setActiveCodeTab("profile")}
               className={`px-3 py-1.5 rounded-[10px] font-medium transition-colors cursor-pointer ${
                 activeCodeTab === "profile"
-                  ? "bg-[#ff6600] text-white"
-                  : "text-neutral-400 hover:text-white"
+                  ? "bg-brand text-white shadow-sm"
+                  : "text-zinc-600 dark:text-neutral-400 hover:text-zinc-900 dark:hover:text-white"
               }`}
             >
               Profile (FullName)

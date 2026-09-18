@@ -20,6 +20,7 @@ import {
   Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AnimatedBar } from "@/components/ui/animated-bar";
 import confetti from "canvas-confetti";
 
 interface HeroDashboardViewProps {
@@ -77,12 +78,12 @@ export function HeroDashboardView({ isCompact = false, onNavigateTab }: HeroDash
         <div className="space-y-2">
           {/* Logo */}
           <div className="flex items-center gap-2 px-1 py-1">
-            <span className="w-5 h-5 rounded-md bg-[#ff6600] flex items-center justify-center font-bold text-white text-[10px] shadow-xs">
+            <span className="w-5 h-5 rounded-md bg-brand flex items-center justify-center font-bold text-white text-[10px] shadow-xs">
               LS
             </span>
             <div className="flex flex-col min-w-0">
               <span className="font-bebas text-sm sm:text-base font-bold tracking-wider text-neutral-900 dark:text-white leading-none">
-                L <span className="text-[#ff6600]">SHORTER</span>
+                L <span className="text-brand">SHORTER</span>
               </span>
               <span className="text-[7.5px] sm:text-[8.5px] uppercase font-bold tracking-widest text-neutral-500">
                 Edge Platform
@@ -95,7 +96,7 @@ export function HeroDashboardView({ isCompact = false, onNavigateTab }: HeroDash
             <button
               type="button"
               onClick={() => onNavigateTab?.("links")}
-              className={`w-full rounded-md bg-[#ff6600] hover:bg-[#ff771a] text-white font-bold flex items-center justify-center shadow-xs transition-all cursor-pointer ${
+              className={`w-full rounded-md bg-brand hover:bg-brand-hover text-white font-bold flex items-center justify-center shadow-xs transition-all cursor-pointer ${
                 isCompact ? "h-6.5 text-[10px] gap-1 px-1.5" : "h-8.5 text-xs gap-1.5 px-3"
               }`}
             >
@@ -112,7 +113,7 @@ export function HeroDashboardView({ isCompact = false, onNavigateTab }: HeroDash
             <button
               type="button"
               onClick={() => onNavigateTab?.("overview")}
-              className="w-full flex items-center gap-1.5 px-2 py-1.5 rounded-md bg-[#ff6600] text-white font-semibold shadow-xs text-left"
+              className="w-full flex items-center gap-1.5 px-2 py-1.5 rounded-md bg-brand text-white font-semibold shadow-xs text-left"
             >
               <LayoutDashboard className={isCompact ? "w-3 h-3" : "w-3.5 h-3.5"} />
               <span className="truncate">Overview</span>
@@ -155,11 +156,11 @@ export function HeroDashboardView({ isCompact = false, onNavigateTab }: HeroDash
         {/* Sidebar Bottom Quota Card */}
         <div className="p-1.5 rounded-md bg-neutral-200/60 dark:bg-white/5 border border-[#E7DFD5] dark:border-white/5 text-[9px]">
           <div className="flex items-center justify-between text-neutral-500 font-mono mb-1">
-            <span className="font-bold text-[#ff6600]">PLAN PRO</span>
+            <span className="font-bold text-brand">PLAN PRO</span>
             <span className="font-bold text-neutral-700 dark:text-neutral-300">128.4K / 1M</span>
           </div>
           <div className="w-full h-1 rounded-full bg-neutral-300 dark:bg-white/10 overflow-hidden">
-            <div className="h-full bg-[#ff6600] w-3/4 rounded-full" />
+            <div className="h-full bg-brand w-3/4 rounded-full" />
           </div>
           <span className="text-[7.5px] text-neutral-400 block mt-1 font-mono">
             Cloudflare Edge 11ms
@@ -177,7 +178,7 @@ export function HeroDashboardView({ isCompact = false, onNavigateTab }: HeroDash
               <span className="font-semibold">Total Clicks</span>
               <span className="text-emerald-500 font-bold">+14.2%</span>
             </div>
-            <div className="font-bebas text-lg sm:text-2xl font-bold text-[#ff6600] leading-tight my-0.5">
+            <div className="font-bebas text-lg sm:text-2xl font-bold text-brand leading-tight my-0.5">
               128,420
             </div>
             <div className="flex items-center justify-between text-[7.5px] sm:text-[8.5px] text-neutral-400 font-mono">
@@ -243,7 +244,7 @@ export function HeroDashboardView({ isCompact = false, onNavigateTab }: HeroDash
                 </h4>
                 <span className="text-[8.5px] text-neutral-400">All links combined</span>
               </div>
-              <span className="text-[9px] font-mono font-bold text-[#ff6600] bg-[#ff6600]/10 px-1.5 py-0.5 rounded">
+              <span className="text-[9px] font-mono font-bold text-brand bg-brand-subtle px-1.5 py-0.5 rounded">
                 128.4K clicks
               </span>
             </div>
@@ -265,10 +266,12 @@ export function HeroDashboardView({ isCompact = false, onNavigateTab }: HeroDash
                         {d.clicks.toLocaleString()}
                       </div>
                     )}
-                    <div
-                      style={{ height: `${heightPct}%` }}
-                      className={`w-full rounded-t-xs transition-all duration-150 ${
-                        isHovered ? "bg-[#ff6600]" : "bg-[#ff6600]/85 group-hover:bg-[#ff6600]"
+                    <AnimatedBar
+                      direction="vertical"
+                      value={heightPct}
+                      delay={idx * 0.02}
+                      className={`w-full rounded-t-xs transition-colors duration-150 ${
+                        isHovered ? "bg-brand" : "bg-brand/85 group-hover:bg-brand"
                       }`}
                     />
                     <span className="text-[7px] font-mono text-neutral-400 mt-0.5 truncate">
@@ -292,7 +295,7 @@ export function HeroDashboardView({ isCompact = false, onNavigateTab }: HeroDash
                 <h4 className="text-[11px] sm:text-xs font-bold text-neutral-900 dark:text-white">
                   Top Countries
                 </h4>
-                <span className="text-[9px] text-[#ff6600] font-semibold">Details &gt;</span>
+                <span className="text-[9px] text-brand font-semibold">Details &gt;</span>
               </div>
 
               <div className="space-y-1.5">
@@ -305,7 +308,7 @@ export function HeroDashboardView({ isCompact = false, onNavigateTab }: HeroDash
                 ].map((c) => (
                   <div key={c.code} className="flex items-center justify-between text-[9px] sm:text-[10px]">
                     <div className="flex items-center gap-1.5 truncate">
-                      <span className="font-mono font-bold text-[#ff6600] w-4">{c.code}</span>
+                      <span className="font-mono font-bold text-brand w-4">{c.code}</span>
                       <span className="truncate text-neutral-700 dark:text-neutral-300">{c.name}</span>
                     </div>
                     <span className="font-mono text-neutral-500 shrink-0">
@@ -335,7 +338,7 @@ export function HeroDashboardView({ isCompact = false, onNavigateTab }: HeroDash
             <button
               type="button"
               onClick={() => onNavigateTab?.("links")}
-              className="text-[9px] sm:text-[10px] text-[#ff6600] hover:underline font-semibold flex items-center gap-0.5 cursor-pointer"
+              className="text-[9px] sm:text-[10px] text-brand hover:underline font-semibold flex items-center gap-0.5 cursor-pointer"
             >
               <span>View all links</span>
               <ArrowUpRight className="w-3 h-3" />
@@ -365,12 +368,12 @@ export function HeroDashboardView({ isCompact = false, onNavigateTab }: HeroDash
                       mon-entreprise.com/offre-speciale-q3
                     </span>
                   </td>
-                  <td className="py-1.5 font-mono text-[#ff6600] font-semibold truncate max-w-[120px]">
+                  <td className="py-1.5 font-mono text-brand font-semibold truncate max-w-[120px]">
                     https://lsho.cc/launch-pro-2026
                   </td>
                   <td className="py-1.5 text-center">
                     <div className="flex items-center justify-center gap-1 text-neutral-400">
-                      <span title="A/B Routing"><Split className="w-2.5 h-2.5 text-[#ff6600]" /></span>
+                      <span title="A/B Routing"><Split className="w-2.5 h-2.5 text-brand" /></span>
                       <span title="Geo Routing"><Globe className="w-2.5 h-2.5 text-emerald-500" /></span>
                     </div>
                   </td>
@@ -386,7 +389,7 @@ export function HeroDashboardView({ isCompact = false, onNavigateTab }: HeroDash
                     <button
                       type="button"
                       onClick={() => handleCopy("https://lsho.cc/launch-pro-2026", "link-1")}
-                      className="px-2 py-0.5 rounded bg-neutral-100 dark:bg-white/10 hover:bg-[#ff6600] hover:text-white text-[8px] font-bold transition-colors cursor-pointer"
+                      className="px-2 py-0.5 rounded bg-neutral-100 dark:bg-white/10 hover:bg-brand hover:text-white text-[8px] font-bold transition-colors cursor-pointer"
                     >
                       {copiedSlug === "link-1" ? "Copied" : "Copy"}
                     </button>
@@ -403,7 +406,7 @@ export function HeroDashboardView({ isCompact = false, onNavigateTab }: HeroDash
                       ressources.io/growth-mastery-v2.pdf
                     </span>
                   </td>
-                  <td className="py-1.5 font-mono text-[#ff6600] font-semibold truncate max-w-[120px]">
+                  <td className="py-1.5 font-mono text-brand font-semibold truncate max-w-[120px]">
                     https://lsho.cc/ebook-conversion
                   </td>
                   <td className="py-1.5 text-center">
@@ -424,7 +427,7 @@ export function HeroDashboardView({ isCompact = false, onNavigateTab }: HeroDash
                     <button
                       type="button"
                       onClick={() => handleCopy("https://lsho.cc/ebook-conversion", "link-2")}
-                      className="px-2 py-0.5 rounded bg-neutral-100 dark:bg-white/10 hover:bg-[#ff6600] hover:text-white text-[8px] font-bold transition-colors cursor-pointer"
+                      className="px-2 py-0.5 rounded bg-neutral-100 dark:bg-white/10 hover:bg-brand hover:text-white text-[8px] font-bold transition-colors cursor-pointer"
                     >
                       {copiedSlug === "link-2" ? "Copied" : "Copy"}
                     </button>
@@ -441,7 +444,7 @@ export function HeroDashboardView({ isCompact = false, onNavigateTab }: HeroDash
                       drive.corporate.com/bilan-confidentiel-q3
                     </span>
                   </td>
-                  <td className="py-1.5 font-mono text-[#ff6600] font-semibold truncate max-w-[120px]">
+                  <td className="py-1.5 font-mono text-brand font-semibold truncate max-w-[120px]">
                     https://lsho.cc/direction-finance
                   </td>
                   <td className="py-1.5 text-center">
@@ -461,7 +464,7 @@ export function HeroDashboardView({ isCompact = false, onNavigateTab }: HeroDash
                     <button
                       type="button"
                       onClick={() => handleCopy("https://lsho.cc/direction-finance", "link-3")}
-                      className="px-2 py-0.5 rounded bg-neutral-100 dark:bg-white/10 hover:bg-[#ff6600] hover:text-white text-[8px] font-bold transition-colors cursor-pointer"
+                      className="px-2 py-0.5 rounded bg-neutral-100 dark:bg-white/10 hover:bg-brand hover:text-white text-[8px] font-bold transition-colors cursor-pointer"
                     >
                       {copiedSlug === "link-3" ? "Copied" : "Copy"}
                     </button>

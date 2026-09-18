@@ -52,6 +52,7 @@ import { ShinyText } from "@/components/ui/shiny-text";
 import { TextType } from "@/components/ui/text-type";
 import PlasmaWave from "./plasma-wave";
 import { motion, useScroll, useTransform, useSpring } from "framer-motion";
+import { AnimatedBar } from "@/components/ui/animated-bar";
 import confetti from "canvas-confetti";
 
 export function HeroScrollSection() {
@@ -453,9 +454,9 @@ export function HeroScrollSection() {
 
           {/* Hero CTAs */}
           <div className="mt-4 sm:mt-5 flex flex-col sm:flex-row items-center justify-center gap-2.5 sm:gap-3 w-full max-w-xs sm:max-w-none">
-            <Link href="/login" className="w-full sm:w-auto">
+            <Link href="/register" className="w-full sm:w-auto">
               <Button
-                className="w-full sm:w-auto h-9 sm:h-10 px-6 text-xs sm:text-sm font-medium rounded-full bg-[#0080ff] hover:bg-[#0070e0] sm:bg-[#ff6600] sm:hover:bg-[#ff771a] text-white border-none cursor-pointer shadow-md shadow-[#0080ff]/25 sm:shadow-[#ff6600]/25 transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-1.5"
+                className="w-full sm:w-auto h-9 sm:h-10 px-6 text-xs sm:text-sm font-medium rounded-full bg-brand hover:bg-brand-hover text-white border-none cursor-pointer shadow-md shadow-brand transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-1.5"
               >
                 <span>Get Started Free</span>
                 <ArrowRight className="w-4 h-4 ml-0.5" />
@@ -526,7 +527,7 @@ export function HeroScrollSection() {
                 <div className="flex items-center gap-2 px-3 py-1 rounded-md bg-white dark:bg-[#0f0f13] border border-[#E7DFD5] dark:border-white/10 text-[11px] font-mono text-neutral-600 dark:text-neutral-300 w-3/5 max-w-sm justify-center">
                   <span className="text-emerald-500 font-bold">https://</span>
                   <span className="font-semibold text-neutral-900 dark:text-neutral-100">lshorter.com</span>
-                  <span className="text-[#ff6600] font-semibold">/dashboard/{activeTab === "qr" ? "qr-code" : activeTab}</span>
+                  <span className="text-brand font-semibold">/dashboard/{activeTab === "qr" ? "qr-code" : activeTab}</span>
                 </div>
                 <div className="flex items-center gap-1.5 text-[10px] font-mono text-emerald-500">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -542,12 +543,12 @@ export function HeroScrollSection() {
                   <div className="flex md:flex-col gap-1 w-full">
                     {/* Brand Header */}
                     <div className="hidden md:flex items-center gap-2.5 px-1 py-1 mb-2">
-                      <div className="w-7 h-7 rounded-[8px] bg-[#ff6600] flex items-center justify-center font-bebas text-base font-black text-white shadow-md shadow-[#ff6600]/30 shrink-0">
+                      <div className="w-7 h-7 rounded-[8px] bg-brand flex items-center justify-center font-bebas text-base font-black text-white shadow-md shadow-brand shrink-0">
                         LS
                       </div>
                       <div className="flex flex-col min-w-0">
                         <span className="font-bebas text-lg tracking-wider text-neutral-900 dark:text-white leading-none">
-                          L <span className="text-[#ff6600]">SHORTER</span>
+                          L <span className="text-brand">SHORTER</span>
                         </span>
                         <span className="text-[8.5px] uppercase font-bold tracking-widest text-neutral-500 mt-0.5">
                           Edge Platform
@@ -560,7 +561,7 @@ export function HeroScrollSection() {
                       <button
                         type="button"
                         onClick={() => setActiveTab("links")}
-                        className="w-full h-8.5 rounded-[10px] bg-[#ff6600] hover:bg-[#ff771a] text-white font-bold flex items-center justify-center text-xs gap-1.5 shadow-md shadow-[#ff6600]/25 transition-all cursor-pointer"
+                        className="w-full h-8.5 rounded-[10px] bg-brand hover:bg-brand-hover text-white font-bold flex items-center justify-center text-xs gap-1.5 shadow-md shadow-brand transition-all cursor-pointer"
                       >
                         <Plus className="w-3.5 h-3.5 stroke-[3]" />
                         <span className="font-bebas text-sm tracking-wide">CREATE A LINK</span>
@@ -577,7 +578,7 @@ export function HeroScrollSection() {
                       onClick={() => setActiveTab("overview")}
                       className={`flex items-center gap-2 px-3 py-2 rounded-[10px] text-xs font-medium transition-all cursor-pointer whitespace-nowrap ${
                         activeTab === "overview"
-                          ? "bg-[#ff6600] text-white shadow-md font-semibold"
+                          ? "bg-brand text-white shadow-md font-semibold"
                           : "text-neutral-700 dark:text-neutral-300 hover:bg-black/5 dark:hover:bg-white/5"
                       }`}
                     >
@@ -590,7 +591,7 @@ export function HeroScrollSection() {
                       onClick={() => setActiveTab("links")}
                       className={`flex items-center gap-2 px-3 py-2 rounded-[10px] text-xs font-medium transition-all cursor-pointer whitespace-nowrap ${
                         activeTab === "links"
-                          ? "bg-[#ff6600] text-white shadow-md font-semibold"
+                          ? "bg-brand text-white shadow-md font-semibold"
                           : "text-neutral-700 dark:text-neutral-300 hover:bg-black/5 dark:hover:bg-white/5"
                       }`}
                     >
@@ -606,7 +607,7 @@ export function HeroScrollSection() {
                       onClick={() => setActiveTab("qr")}
                       className={`flex items-center gap-2 px-3 py-2 rounded-[10px] text-xs font-medium transition-all cursor-pointer whitespace-nowrap ${
                         activeTab === "qr"
-                          ? "bg-[#ff6600] text-white shadow-md font-semibold"
+                          ? "bg-brand text-white shadow-md font-semibold"
                           : "text-neutral-700 dark:text-neutral-300 hover:bg-black/5 dark:hover:bg-white/5"
                       }`}
                     >
@@ -622,7 +623,7 @@ export function HeroScrollSection() {
                       onClick={() => setActiveTab("analytics")}
                       className={`flex items-center gap-2 px-3 py-2 rounded-[10px] text-xs font-medium transition-all cursor-pointer whitespace-nowrap ${
                         activeTab === "analytics"
-                          ? "bg-[#ff6600] text-white shadow-md font-semibold"
+                          ? "bg-brand text-white shadow-md font-semibold"
                           : "text-neutral-700 dark:text-neutral-300 hover:bg-black/5 dark:hover:bg-white/5"
                       }`}
                     >
@@ -634,11 +635,11 @@ export function HeroScrollSection() {
                   {/* Sidebar Bottom Quota Box */}
                   <div className="hidden md:block p-2.5 rounded-[10px] bg-white dark:bg-[#141416] border border-[#E7DFD5] dark:border-[#27272a] text-xs mt-3">
                     <div className="flex items-center justify-between text-[10px] text-neutral-500 mb-1">
-                      <span className="font-bold text-[#ff6600]">PRO PLAN</span>
+                      <span className="font-bold text-brand">PRO PLAN</span>
                       <span className="font-mono text-neutral-900 dark:text-white">128.4K / 1M</span>
                     </div>
                     <div className="w-full h-1.5 rounded-full bg-neutral-200 dark:bg-white/10 overflow-hidden">
-                      <div className="w-[32%] h-full bg-[#ff6600] rounded-full" />
+                      <div className="w-[32%] h-full bg-brand rounded-full" />
                     </div>
                     <span className="text-[8.5px] text-neutral-400 block mt-1 font-mono">Cloudflare Edge 11ms</span>
                   </div>
@@ -666,13 +667,13 @@ export function HeroScrollSection() {
                             onClick={handleRefreshOverview}
                             className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[8px] bg-neutral-100 dark:bg-white/10 hover:bg-neutral-200 dark:hover:bg-white/15 text-[11px] font-medium transition-colors cursor-pointer"
                           >
-                            <RefreshCw className={`w-3 h-3 ${isRefreshingOverview ? "animate-spin text-[#ff6600]" : ""}`} />
+                            <RefreshCw className={`w-3 h-3 ${isRefreshingOverview ? "animate-spin text-brand" : ""}`} />
                             <span>Refresh</span>
                           </button>
                           <button
                             type="button"
                             onClick={() => setActiveTab("links")}
-                            className="inline-flex items-center gap-1 px-3 py-1 rounded-[8px] bg-[#ff6600] hover:bg-[#ff771a] text-white text-[11px] font-bold shadow-xs transition-colors cursor-pointer"
+                            className="inline-flex items-center gap-1 px-3 py-1 rounded-[8px] bg-brand hover:bg-brand-hover text-white text-[11px] font-bold shadow-xs transition-colors cursor-pointer"
                           >
                             <Plus className="w-3 h-3 stroke-[3]" />
                             <span>+ CREATE A LINK</span>
@@ -690,7 +691,7 @@ export function HeroScrollSection() {
                             </span>
                           </div>
                           <div className="mt-1 flex items-baseline gap-1">
-                            <span className="font-bebas text-2xl sm:text-3xl font-bold text-[#ff6600]">
+                            <span className="font-bebas text-2xl sm:text-3xl font-bold text-brand">
                               128,420
                             </span>
                           </div>
@@ -762,7 +763,7 @@ export function HeroScrollSection() {
                               </h4>
                               <p className="text-[10px] text-neutral-500">All links combined</p>
                             </div>
-                            <span className="text-[10px] font-mono font-bold text-[#ff6600] bg-[#ff6600]/10 px-2 py-0.5 rounded">
+                            <span className="text-[10px] font-mono font-bold text-brand bg-brand-subtle px-2 py-0.5 rounded">
                               128.4K clicks
                             </span>
                           </div>
@@ -784,12 +785,14 @@ export function HeroScrollSection() {
                                       {d.clicks.toLocaleString()} ({d.date})
                                     </div>
                                   )}
-                                  <div
-                                    style={{ height: `${heightPct}%` }}
-                                    className={`w-full rounded-t-sm transition-all duration-200 ${
+                                  <AnimatedBar
+                                    direction="vertical"
+                                    value={heightPct}
+                                    delay={i * 0.02}
+                                    className={`w-full rounded-t-sm transition-colors duration-200 ${
                                       isHovered
                                         ? "bg-emerald-500 shadow-md shadow-emerald-500/30"
-                                        : "bg-[#ff6600] hover:bg-[#ff771a]"
+                                        : "bg-brand hover:bg-brand-hover"
                                     }`}
                                   />
                                   <span className="text-[8px] font-mono text-neutral-400 mt-1 truncate max-w-[20px]">
@@ -811,7 +814,7 @@ export function HeroScrollSection() {
                               <button
                                 type="button"
                                 onClick={() => setActiveTab("analytics")}
-                                className="text-[10px] text-[#ff6600] font-bold hover:underline cursor-pointer flex items-center gap-0.5"
+                                className="text-[10px] text-brand font-bold hover:underline cursor-pointer flex items-center gap-0.5"
                               >
                                 Details <ArrowUpRight className="w-2.5 h-2.5" />
                               </button>
@@ -824,7 +827,7 @@ export function HeroScrollSection() {
                                 { code: "BF", name: "Burkina Faso", clicks: 18900, pct: 14.7 },
                                 { code: "DE", name: "Germany", clicks: 12100, pct: 9.4 },
                                 { code: "CA", name: "Canada", clicks: 10920, pct: 8.6 },
-                              ].map((c) => (
+                              ].map((c, i) => (
                                 <div key={c.code} className="space-y-0.5">
                                   <div className="flex items-center justify-between text-[10px] font-mono">
                                     <span className="font-semibold text-neutral-800 dark:text-neutral-200">
@@ -835,7 +838,11 @@ export function HeroScrollSection() {
                                     </span>
                                   </div>
                                   <div className="w-full h-1 rounded-full bg-neutral-200 dark:bg-white/10 overflow-hidden">
-                                    <div style={{ width: `${c.pct}%` }} className="h-full bg-[#ff6600] rounded-full" />
+                                    <AnimatedBar
+                                      value={c.pct}
+                                      delay={i * 0.08}
+                                      className="h-full bg-brand rounded-full"
+                                    />
                                   </div>
                                 </div>
                               ))}
@@ -860,7 +867,7 @@ export function HeroScrollSection() {
                           <button
                             type="button"
                             onClick={() => setActiveTab("links")}
-                            className="text-[10px] text-[#ff6600] font-bold hover:underline cursor-pointer flex items-center gap-0.5"
+                            className="text-[10px] text-brand font-bold hover:underline cursor-pointer flex items-center gap-0.5"
                           >
                             View all links <ArrowUpRight className="w-2.5 h-2.5" />
                           </button>
@@ -889,12 +896,12 @@ export function HeroScrollSection() {
                                       {link.targetUrl.replace("https://", "")}
                                     </span>
                                   </td>
-                                  <td className="py-1.5 font-mono text-[#ff6600] font-semibold truncate max-w-[130px]">
+                                  <td className="py-1.5 font-mono text-brand font-semibold truncate max-w-[130px]">
                                     {link.shortUrl}
                                   </td>
                                   <td className="py-1.5 text-center">
                                     <div className="flex items-center justify-center gap-1 text-neutral-400">
-                                      {link.features.ab && <span title="A/B Routing"><Split className="w-2.5 h-2.5 text-[#ff6600]" /></span>}
+                                      {link.features.ab && <span title="A/B Routing"><Split className="w-2.5 h-2.5 text-brand" /></span>}
                                       {link.features.geo && <span title="Geo Routing"><Globe className="w-2.5 h-2.5 text-emerald-500" /></span>}
                                       {link.features.cloak && <span title="Cloaking"><EyeOff className="w-2.5 h-2.5 text-purple-400" /></span>}
                                       {link.features.lock && <span title="PIN Protected"><Lock className="w-2.5 h-2.5 text-amber-500" /></span>}
@@ -912,7 +919,7 @@ export function HeroScrollSection() {
                                     <button
                                       type="button"
                                       onClick={() => handleCopy(link.shortUrl, `link-${link.id}`)}
-                                      className="px-2 py-0.5 rounded bg-neutral-100 dark:bg-white/10 hover:bg-[#ff6600] hover:text-white text-[8.5px] font-bold transition-colors cursor-pointer"
+                                      className="px-2 py-0.5 rounded bg-neutral-100 dark:bg-white/10 hover:bg-brand hover:text-white text-[8.5px] font-bold transition-colors cursor-pointer"
                                     >
                                       {copiedSlug === `link-${link.id}` ? "Copied" : "Copy"}
                                     </button>
@@ -943,7 +950,7 @@ export function HeroScrollSection() {
                           onClick={() => {
                             confetti({ particleCount: 30, spread: 50, origin: { y: 0.6 } });
                           }}
-                          className="inline-flex items-center gap-1 px-3 py-1 rounded-[8px] bg-[#ff6600] hover:bg-[#ff771a] text-white text-xs font-bold shadow-xs transition-colors cursor-pointer"
+                          className="inline-flex items-center gap-1 px-3 py-1 rounded-[8px] bg-brand hover:bg-brand-hover text-white text-xs font-bold shadow-xs transition-colors cursor-pointer"
                         >
                           <Plus className="w-3.5 h-3.5" />
                           <span>Nouveau Lien</span>
@@ -977,7 +984,7 @@ export function HeroScrollSection() {
                         {filteredLinks.map((link) => (
                           <div
                             key={link.id}
-                            className="p-3 rounded-xl bg-[#FAF7F2] dark:bg-[#18181d] border border-[#E7DFD5] dark:border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 hover:border-[#ff6600]/50 transition-all"
+                            className="p-3 rounded-xl bg-[#FAF7F2] dark:bg-[#18181d] border border-[#E7DFD5] dark:border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 hover:border-brand transition-all"
                           >
                             <div className="space-y-1 min-w-0">
                               <div className="flex items-center gap-2">
@@ -988,7 +995,7 @@ export function HeroScrollSection() {
                                   ● Active
                                 </span>
                               </div>
-                              <span className="text-[11px] font-mono text-[#ff6600] font-semibold block truncate">
+                              <span className="text-[11px] font-mono text-brand font-semibold block truncate">
                                 {link.shortUrl}
                               </span>
                               <span className="text-[9.5px] text-neutral-400 truncate block">
@@ -1006,7 +1013,7 @@ export function HeroScrollSection() {
                               <button
                                 type="button"
                                 onClick={() => handleCopy(link.shortUrl, link.slug)}
-                                className="px-2.5 py-1 rounded-lg bg-[#ff6600] hover:bg-[#ff771a] text-white text-xs font-bold cursor-pointer transition-all"
+                                className="px-2.5 py-1 rounded-lg bg-brand hover:bg-brand-hover text-white text-xs font-bold cursor-pointer transition-all"
                               >
                                 {copiedSlug === link.slug ? "Copié !" : "Copier"}
                               </button>
@@ -1032,7 +1039,7 @@ export function HeroScrollSection() {
                         <button
                           type="button"
                           onClick={handleDownloadQR}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] bg-[#ff6600] hover:bg-[#ff771a] text-white text-xs font-bold shadow-md cursor-pointer transition-all"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] bg-brand hover:bg-brand-hover text-white text-xs font-bold shadow-md cursor-pointer transition-all"
                         >
                           <Download className="w-3.5 h-3.5" />
                           <span>Télécharger PNG</span>
@@ -1054,7 +1061,7 @@ export function HeroScrollSection() {
                                   onClick={() => setQrPixelStyle(st)}
                                   className={`py-1 text-[11px] font-medium rounded-md capitalize cursor-pointer border ${
                                     qrPixelStyle === st
-                                      ? "bg-[#ff6600] text-white border-[#ff6600]"
+                                      ? "bg-brand text-white border-brand"
                                       : "bg-white dark:bg-[#141416] border-neutral-300 dark:border-white/10 text-neutral-700 dark:text-neutral-300"
                                   }`}
                                 >
@@ -1076,7 +1083,7 @@ export function HeroScrollSection() {
                                   onClick={() => setQrPixelColor(c)}
                                   style={{ backgroundColor: c }}
                                   className={`w-6 h-6 rounded-full cursor-pointer transition-transform ${
-                                    qrPixelColor === c ? "scale-110 ring-2 ring-offset-2 ring-[#ff6600]" : ""
+                                    qrPixelColor === c ? "scale-110 ring-2 ring-offset-2 ring-brand" : ""
                                   }`}
                                 />
                               ))}
@@ -1095,7 +1102,7 @@ export function HeroScrollSection() {
                                   onClick={() => setQrFrame(fr)}
                                   className={`py-1 text-[11px] font-medium rounded-md capitalize cursor-pointer border ${
                                     qrFrame === fr
-                                      ? "bg-[#ff6600] text-white border-[#ff6600]"
+                                      ? "bg-brand text-white border-brand"
                                       : "bg-white dark:bg-[#141416] border-neutral-300 dark:border-white/10 text-neutral-700 dark:text-neutral-300"
                                   }`}
                                 >
@@ -1158,7 +1165,7 @@ export function HeroScrollSection() {
                               ].map((ev, i) => (
                                 <tr key={i} className="hover:bg-neutral-100/50 dark:hover:bg-white/5">
                                   <td className="py-1.5 text-neutral-400">{ev.time}</td>
-                                  <td className="py-1.5 text-[#ff6600] font-bold">/{ev.slug}</td>
+                                  <td className="py-1.5 text-brand font-bold">/{ev.slug}</td>
                                   <td className="py-1.5 text-neutral-800 dark:text-neutral-200">{ev.loc}</td>
                                   <td className="py-1.5 text-neutral-500">{ev.dev}</td>
                                   <td className="py-1.5 text-right font-semibold text-emerald-500">{ev.ev}</td>
@@ -1191,7 +1198,7 @@ export function HeroScrollSection() {
                 <div className="w-full flex justify-center py-1.5">
                   <div className="w-20 h-4 rounded-full bg-[#2B2520] dark:bg-black border border-[#3E352F] dark:border-neutral-800 flex items-center justify-center">
                     <span className="w-1.5 h-1.5 rounded-full bg-[#1A1613] dark:neutral-900 mr-2.5" />
-                    <span className="w-2 h-2 rounded-full bg-[#0080ff]/50" />
+                    <span className="w-2 h-2 rounded-full bg-brand/50" />
                   </div>
                 </div>
 
@@ -1199,8 +1206,8 @@ export function HeroScrollSection() {
                 <div className="flex-1 rounded-t-[24px] bg-[#FFFDF9] dark:bg-[#16161c] p-2.5 text-[11px] flex flex-col justify-between overflow-hidden select-none border-t border-[#E7DFD5] dark:border-white/10 transition-colors relative space-y-1.5">
                   <div className="flex items-center justify-between pt-0.5 border-b border-[#E7DFD5]/70 dark:border-white/10 pb-1.5">
                     <div className="flex items-center gap-1.5">
-                      <span className="w-4 h-4 rounded bg-[#0080ff] flex items-center justify-center font-bold text-white text-[8px]">LS</span>
-                      <span className="font-bebas text-sm font-bold text-[#0080ff] tracking-wide">LShorter App</span>
+                      <span className="w-4 h-4 rounded bg-brand flex items-center justify-center font-bold text-white text-[8px]">LS</span>
+                      <span className="font-bebas text-sm font-bold text-brand tracking-wide">LShorter App</span>
                     </div>
                     <span className="text-[8.5px] text-emerald-500 font-mono font-bold bg-emerald-500/10 px-1.5 py-0.2 rounded border border-emerald-500/20">● Edge ON</span>
                   </div>
@@ -1220,9 +1227,9 @@ export function HeroScrollSection() {
                     <div className="p-1.5 rounded-lg bg-white dark:bg-[#1e1e26] border border-[#E7DFD5] dark:border-white/10 shadow-xs space-y-0.5">
                       <div className="flex items-center justify-between">
                         <span className="text-[9.5px] font-bold text-neutral-900 dark:text-white truncate">SaaS Launch Campaign</span>
-                        <span className="text-[7.5px] font-mono text-[#0080ff] bg-[#0080ff]/10 px-1 py-0.2 rounded font-semibold">A/B 50/50</span>
+                        <span className="text-[7.5px] font-mono text-brand bg-brand-subtle px-1 py-0.2 rounded font-semibold">A/B 50/50</span>
                       </div>
-                      <span className="text-[9px] font-mono text-[#0080ff] block truncate font-medium">lshorter.com/r/launch-pro</span>
+                      <span className="text-[9px] font-mono text-brand block truncate font-medium">lshorter.com/r/launch-pro</span>
                       <div className="flex items-center justify-between text-[7.5px] text-neutral-500 pt-0.5">
                         <span className="text-emerald-500 font-mono font-medium">1,420 clicks today</span>
                         <span className="font-mono">PIN 8492</span>
@@ -1243,7 +1250,7 @@ export function HeroScrollSection() {
                   </div>
 
                   <div className="h-8 border-t border-[#E7DFD5]/80 dark:border-white/10 flex items-center justify-around px-2 pt-1">
-                    <span className="text-[8px] font-bold text-[#0080ff] flex flex-col items-center">
+                    <span className="text-[8px] font-bold text-brand flex flex-col items-center">
                       <LayoutDashboard className="w-3 h-3" />
                       Dash
                     </span>

@@ -1026,7 +1026,7 @@ export function QRGenerator() {
   // Real Logos List
   const LOGO_LIST: Array<{ id: LogoType | string; label: string; isPro: boolean; iconNode: React.ReactNode }> = [
     { id: "none", label: "None", isPro: false, iconNode: <X className="w-5 h-5 text-neutral-400" /> },
-    { id: "custom", label: "Upload Image", isPro: true, iconNode: <Upload className="w-4 h-4 text-[#ff6600]" /> },
+    { id: "custom", label: "Upload Image", isPro: true, iconNode: <Upload className="w-4 h-4 text-brand" /> },
     { id: "text", label: "Custom Text", isPro: true, iconNode: <Type className="w-4 h-4 text-neutral-200" /> },
     { id: "ql", label: "LShorter", isPro: false, iconNode: BrandIcons.ql },
     { id: "facebook", label: "Facebook", isPro: false, iconNode: BrandIcons.facebook },
@@ -1163,12 +1163,12 @@ export function QRGenerator() {
     // --- Cadres Statiques ---
     { id: "none", label: "None", isPro: false, previewIcon: <X className="w-5 h-5 text-neutral-400" /> },
     { id: "simple", label: "Thin Frame", isPro: false, previewIcon: <div className="w-6 h-6 border-2 border-current rounded-[8px]" /> },
-    { id: "bottom_pill", label: "Bottom Pill", isPro: false, previewIcon: <div className="flex flex-col items-center gap-0.5"><div className="w-5 h-4 border-2 border-current rounded-[6px]" /><span className="bg-[#ff6600] text-white px-1 text-[6px] font-bold rounded">SCAN</span></div> },
-    { id: "top_header", label: "Top Header", isPro: true, previewIcon: <div className="flex flex-col items-center gap-0.5"><span className="bg-[#ff6600] text-white px-1 text-[6px] font-bold rounded">SCAN</span><div className="w-5 h-4 border-2 border-current rounded-[6px]" /></div> },
+    { id: "bottom_pill", label: "Bottom Pill", isPro: false, previewIcon: <div className="flex flex-col items-center gap-0.5"><div className="w-5 h-4 border-2 border-current rounded-[6px]" /><span className="bg-brand text-white px-1 text-[6px] font-bold rounded">SCAN</span></div> },
+    { id: "top_header", label: "Top Header", isPro: true, previewIcon: <div className="flex flex-col items-center gap-0.5"><span className="bg-brand text-white px-1 text-[6px] font-bold rounded">SCAN</span><div className="w-5 h-4 border-2 border-current rounded-[6px]" /></div> },
     { id: "hand_arrow", label: "Handwritten Arrow", isPro: true, previewIcon: <span className="italic text-[10px] font-serif">Scan me ⤹</span> },
-    { id: "modern_badge", label: "Star Badge", isPro: true, previewIcon: <div className="flex flex-col items-center gap-0.5"><div className="w-5 h-4 border border-current rounded-[6px]" /><span className="text-[#ff6600] text-[8px] font-bold">★ SCAN ★</span></div> },
-    { id: "neon", label: "Neon Glow", isPro: true, previewIcon: <div className="w-6 h-6 border-2 border-[#ff6600] rounded-[8px] shadow-[0_0_8px_#ff6600]" /> },
-    { id: "phone", label: "Smartphone Mockup", isPro: true, previewIcon: <Smartphone className="w-5 h-5 text-[#ff6600]" /> },
+    { id: "modern_badge", label: "Star Badge", isPro: true, previewIcon: <div className="flex flex-col items-center gap-0.5"><div className="w-5 h-4 border border-current rounded-[6px]" /><span className="text-brand text-[8px] font-bold">★ SCAN ★</span></div> },
+    { id: "neon", label: "Neon Glow", isPro: true, previewIcon: <div className="w-6 h-6 border-2 border-brand rounded-[8px] shadow-brand" /> },
+    { id: "phone", label: "Smartphone Mockup", isPro: true, previewIcon: <Smartphone className="w-5 h-5 text-brand" /> },
     { id: "tag_ticket", label: "Promo Ticket", isPro: true, previewIcon: <Tag className="w-5 h-5 text-emerald-400" /> },
     { id: "polaroid", label: "Vintage Polaroid", isPro: true, previewIcon: <div className="w-6 h-7 border-2 border-current rounded-sm flex flex-col justify-end p-0.5"><div className="w-full h-1.5 bg-neutral-500 rounded-xs" /></div> },
     { id: "luxury_gold", label: "Prestige Gold", isPro: true, previewIcon: <div className="w-6 h-6 border-2 border-amber-400 p-0.5 rounded-[4px]"><div className="w-full h-full border border-amber-300" /></div> },
@@ -1476,7 +1476,7 @@ export function QRGenerator() {
             disabled={isSavingCustomization}
             variant="glow"
             size="sm"
-            className="text-xs font-bold gap-1.5 shadow-lg shadow-[#ff6600]/20 cursor-pointer"
+            className="text-xs font-bold gap-1.5 shadow-lg shadow-brand cursor-pointer"
           >
             {isSavingCustomization ? (
               <>
@@ -1496,7 +1496,7 @@ export function QRGenerator() {
             className="btn-hover-scale px-3.5 py-2 rounded-[10px] bg-white/5 hover:bg-white/10 border border-[#27272a] text-xs font-semibold text-neutral-300 hover:text-white flex items-center gap-2 cursor-pointer w-fit"
             title="Copy JSON for Backend API"
           >
-            <Save className="w-3.5 h-3.5 text-[#ff6600]" />
+            <Save className="w-3.5 h-3.5 text-brand" />
             <span>Export V3 JSON</span>
           </button>
         </div>
@@ -1523,7 +1523,7 @@ export function QRGenerator() {
                   onClick={() => setContentType(item.type)}
                   className={`btn-hover-scale px-4 py-2 rounded-[10px] text-xs font-semibold border transition-all duration-200 cursor-pointer ${
                     contentType === item.type
-                      ? "bg-[#ff6600] text-white border-[#ff6600] shadow-md shadow-[#ff6600]/25 font-bold"
+                      ? "bg-brand text-white border-brand shadow-md shadow-brand font-bold"
                       : "bg-[#141416] border-[#27272a] text-neutral-300 hover:text-white hover:bg-white/5"
                   }`}
                 >
@@ -1558,7 +1558,7 @@ export function QRGenerator() {
                         }
                       }}
                       value={matchedLink ? (matchedLink.shortUrl || `https://lsho.cc/r/${matchedLink.slug}`) : ""}
-                      className="w-full h-10 rounded-[10px] bg-[#1a1a1e] text-neutral-200 border border-[#27272a] px-3 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
+                      className="w-full h-10 rounded-[10px] bg-[#1a1a1e] text-neutral-200 border border-[#27272a] px-3 text-xs focus:outline-none focus:border-brand cursor-pointer"
                     >
                       <option value="" className="bg-[#141416] text-neutral-400">
                         -- Choose from your existing short links --
@@ -1618,7 +1618,7 @@ export function QRGenerator() {
                   value={textContent}
                   onChange={(e) => setTextContent(e.target.value)}
                   placeholder="Enter your message or note..."
-                  className="w-full rounded-[10px] bg-[#1a1a1e] border border-[#27272a] p-3 text-sm text-neutral-200 focus:outline-none focus:border-[#ff6600]"
+                  className="w-full rounded-[10px] bg-[#1a1a1e] border border-[#27272a] p-3 text-sm text-neutral-200 focus:outline-none focus:border-brand"
                 />
               </div>
             )}
@@ -1654,7 +1654,7 @@ export function QRGenerator() {
                     <select
                       value={wifiEncryption}
                       onChange={(e) => setWifiEncryption(e.target.value as "WPA" | "WEP" | "nopass")}
-                      className="w-full h-11 rounded-[10px] bg-[#141416] text-white border border-[#27272a] px-3 text-sm focus:outline-none focus:border-[#ff6600] cursor-pointer"
+                      className="w-full h-11 rounded-[10px] bg-[#141416] text-white border border-[#27272a] px-3 text-sm focus:outline-none focus:border-brand cursor-pointer"
                     >
                       <option value="WPA" className="bg-[#141416] text-white">WPA / WPA2 (Recommended)</option>
                       <option value="WEP" className="bg-[#141416] text-white">WEP</option>
@@ -1745,7 +1745,7 @@ export function QRGenerator() {
                 <button
                   type="button"
                   onClick={() => setShowMorePixels(!showMorePixels)}
-                  className="btn-hover-scale text-xs font-semibold text-[#ff6600] hover:underline cursor-pointer"
+                  className="btn-hover-scale text-xs font-semibold text-brand hover:underline cursor-pointer"
                 >
                   {showMorePixels ? "Show less ↑" : "View all patterns (" + PIXEL_STYLES.length + ") ↓"}
                 </button>
@@ -1768,7 +1768,7 @@ export function QRGenerator() {
                     }}
                     className={`btn-hover-scale relative flex flex-col items-center justify-center h-14 rounded-[10px] border transition-all duration-200 cursor-pointer ${
                       pixelStyle === item.id
-                        ? "bg-[#ff6600]/15 border-[#ff6600] text-white shadow-md shadow-[#ff6600]/20"
+                        ? "bg-brand-light border-brand text-white shadow-md shadow-brand"
                         : "bg-[#1a1a1e] border-[#27272a] text-neutral-300 hover:border-neutral-500 hover:bg-white/5"
                     }`}
                   >
@@ -1791,7 +1791,7 @@ export function QRGenerator() {
                 <button
                   type="button"
                   onClick={() => setShowMoreEyes(!showMoreEyes)}
-                  className="btn-hover-scale text-xs font-semibold text-[#ff6600] hover:underline cursor-pointer"
+                  className="btn-hover-scale text-xs font-semibold text-brand hover:underline cursor-pointer"
                 >
                   {showMoreEyes ? "Show less ↑" : "View all shapes (" + EYE_STYLES.length + ") ↓"}
                 </button>
@@ -1814,7 +1814,7 @@ export function QRGenerator() {
                     }}
                     className={`btn-hover-scale relative flex flex-col items-center justify-center h-14 rounded-[10px] border transition-all duration-200 cursor-pointer ${
                       eyeStyle === item.id
-                        ? "bg-[#ff6600]/15 border-[#ff6600] text-white shadow-md shadow-[#ff6600]/20"
+                        ? "bg-brand-light border-brand text-white shadow-md shadow-brand"
                         : "bg-[#1a1a1e] border-[#27272a] text-neutral-300 hover:border-neutral-500 hover:bg-white/5"
                     }`}
                   >
@@ -1844,7 +1844,7 @@ export function QRGenerator() {
                 className="btn-hover-scale px-2.5 py-1.5 rounded-[8px] bg-white/5 hover:bg-white/10 border border-[#27272a] text-xs font-semibold text-neutral-300 hover:text-white flex items-center gap-1.5 cursor-pointer transition-all duration-200"
                 title="Reset all colors to defaults"
               >
-                <RotateCcw className="w-3.5 h-3.5 text-[#ff6600]" />
+                <RotateCcw className="w-3.5 h-3.5 text-brand" />
                 <span>Reset</span>
               </button>
             </div>
@@ -1889,7 +1889,7 @@ export function QRGenerator() {
                 <select
                   value={colorMode}
                   onChange={(e) => setColorMode(e.target.value as "monochrome" | "gradient")}
-                  className="w-full h-10 rounded-[10px] bg-[#1a1a1e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
+                  className="w-full h-10 rounded-[10px] bg-[#1a1a1e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-brand cursor-pointer"
                 >
                   <option value="monochrome" className="bg-[#141416] text-white">Monochrome</option>
                   <option value="gradient" className="bg-[#141416] text-white">Gradient</option>
@@ -1931,7 +1931,7 @@ export function QRGenerator() {
                 <select
                   value={bgMode}
                   onChange={(e) => setBgMode(e.target.value as "monochrome" | "transparent" | "gradient")}
-                  className="w-full h-10 rounded-[10px] bg-[#1a1a1e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
+                  className="w-full h-10 rounded-[10px] bg-[#1a1a1e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-brand cursor-pointer"
                 >
                   <option value="monochrome" className="bg-[#141416] text-white">Monochrome</option>
                   <option value="transparent" className="bg-[#141416] text-white">Transparent</option>
@@ -1975,7 +1975,7 @@ export function QRGenerator() {
                   type="checkbox"
                   checked={useSeparateEyeColor}
                   onChange={(e) => setUseSeparateEyeColor(e.target.checked)}
-                  className="w-4 h-4 accent-[#ff6600] cursor-pointer"
+                  className="w-4 h-4 accent-[var(--brand-primary)] cursor-pointer"
                 />
                 {useSeparateEyeColor && (
                   <input
@@ -2001,7 +2001,7 @@ export function QRGenerator() {
               <button
                 type="button"
                 onClick={() => setShowMoreLogos(!showMoreLogos)}
-                className="btn-hover-scale text-xs font-semibold text-[#ff6600] hover:underline cursor-pointer"
+                className="btn-hover-scale text-xs font-semibold text-brand hover:underline cursor-pointer"
               >
                 {showMoreLogos ? "Show less ↑" : "View all logos (" + LOGO_LIST.length + ") ↓"}
               </button>
@@ -2059,7 +2059,7 @@ export function QRGenerator() {
                     title={logoItem.label}
                     className={`btn-hover-scale relative flex flex-col items-center justify-center h-14 rounded-[10px] border transition-all duration-200 cursor-pointer ${
                       isSelected
-                        ? "bg-[#ff6600]/15 border-[#ff6600] text-white shadow-md shadow-[#ff6600]/20"
+                        ? "bg-brand-light border-brand text-white shadow-md shadow-brand"
                         : "bg-[#1a1a1e] border-[#27272a] text-neutral-300 hover:border-neutral-500 hover:bg-white/5"
                     }`}
                   >
@@ -2123,7 +2123,7 @@ export function QRGenerator() {
                     }}
                     className={`btn-hover-scale px-2.5 py-1 rounded-[6px] text-[11px] font-semibold transition-all cursor-pointer ${
                       frameFilter === tab.id
-                        ? "bg-[#ff6600] text-white shadow-sm font-bold"
+                        ? "bg-brand text-white shadow-sm font-bold"
                         : "text-neutral-400 hover:text-white"
                     }`}
                   >
@@ -2164,7 +2164,7 @@ export function QRGenerator() {
                           }}
                           className={`btn-hover-scale relative flex flex-col items-center justify-center h-16 rounded-[10px] border transition-all duration-200 cursor-pointer ${
                             isSelected
-                              ? "bg-[#ff6600]/15 border-[#ff6600] text-white shadow-md shadow-[#ff6600]/20"
+                              ? "bg-brand-light border-brand text-white shadow-md shadow-brand"
                               : "bg-[#1a1a1e] border-[#27272a] text-neutral-300 hover:border-neutral-500 hover:bg-white/5"
                           }`}
                         >
@@ -2187,7 +2187,7 @@ export function QRGenerator() {
                     <button
                       type="button"
                       onClick={() => setShowMoreFrames(!showMoreFrames)}
-                      className="btn-hover-scale text-xs font-semibold text-[#ff6600] hover:underline cursor-pointer self-end"
+                      className="btn-hover-scale text-xs font-semibold text-brand hover:underline cursor-pointer self-end"
                     >
                       {showMoreFrames ? "Show less ↑" : `View all (${filteredList.length}) ↓`}
                     </button>
@@ -2234,7 +2234,7 @@ export function QRGenerator() {
                 <div className="flex flex-col gap-4 p-4 rounded-[12px] bg-[#1a1a1e] border border-[#27272a] shadow-lg">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#27272a] pb-3">
                     <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-[8px] bg-gradient-to-tr from-[#ff6600] to-[#ff3300] flex items-center justify-center text-white shadow-md shadow-[#ff6600]/20">
+                      <div className="w-7 h-7 rounded-[8px] bg-brand flex items-center justify-center text-white shadow-md shadow-brand">
                         <Type className="w-4 h-4" />
                       </div>
                       <div>
@@ -2242,7 +2242,7 @@ export function QRGenerator() {
                           <span className="text-xs font-bold text-white tracking-wide">
                             Google Fonts Typography Studio
                           </span>
-                          <span className="text-[10px] font-bold bg-[#ff6600]/20 text-[#ff6600] px-1.5 py-0.5 rounded border border-[#ff6600]/30">
+                          <span className="text-[10px] font-bold bg-brand-subtle text-brand px-1.5 py-0.5 rounded border border-brand-subtle">
                             {FONT_FAMILIES.length} Fonts
                           </span>
                         </div>
@@ -2257,7 +2257,7 @@ export function QRGenerator() {
                       className="btn-hover-scale text-[11px] font-semibold text-neutral-400 hover:text-white flex items-center gap-1.5 cursor-pointer self-start sm:self-auto bg-white/5 hover:bg-white/10 px-2.5 py-1.5 rounded-[6px] border border-[#27272a]"
                       title="Reset typography to default"
                     >
-                      <RotateCcw className="w-3.5 h-3.5 text-[#ff6600]" />
+                      <RotateCcw className="w-3.5 h-3.5 text-brand" />
                       <span>Reset</span>
                     </button>
                   </div>
@@ -2300,7 +2300,7 @@ export function QRGenerator() {
                           onClick={() => setFontCategoryFilter(cat.id)}
                           className={`btn-hover-scale px-2.5 py-1 rounded-[6px] text-[10px] font-semibold shrink-0 transition-all cursor-pointer border ${
                             fontCategoryFilter === cat.id
-                              ? "bg-[#ff6600] text-white border-[#ff6600] shadow-sm font-bold"
+                              ? "bg-brand text-white border-brand shadow-sm font-bold"
                               : "bg-[#141416] border-[#27272a] text-neutral-400 hover:text-white"
                           }`}
                         >
@@ -2335,7 +2335,7 @@ export function QRGenerator() {
                                 onClick={() => setFontFamily(f.id)}
                                 className={`btn-hover-scale relative flex flex-col p-2.5 rounded-[10px] border text-left transition-all cursor-pointer ${
                                   isSelected
-                                    ? "bg-[#ff6600]/15 border-[#ff6600] text-white shadow-md shadow-[#ff6600]/20 ring-1 ring-[#ff6600]"
+                                    ? "bg-brand-light border-brand text-white shadow-md shadow-brand ring-1 ring-brand"
                                     : "bg-[#141416] border-[#27272a] text-neutral-300 hover:border-neutral-500 hover:bg-white/5"
                                 }`}
                               >
@@ -2362,7 +2362,7 @@ export function QRGenerator() {
                           <button
                             type="button"
                             onClick={() => setShowAllFonts(!showAllFonts)}
-                            className="btn-hover-scale text-xs font-semibold text-[#ff6600] hover:underline cursor-pointer self-end mt-1"
+                            className="btn-hover-scale text-xs font-semibold text-brand hover:underline cursor-pointer self-end mt-1"
                           >
                             {showAllFonts
                               ? "Show less ↑"
@@ -2387,7 +2387,7 @@ export function QRGenerator() {
                         <span className="text-[10px] text-neutral-400">(8px to 24px)</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-mono font-bold text-[#ff6600] bg-[#ff6600]/10 px-2 py-0.5 rounded border border-[#ff6600]/25">
+                        <span className="text-xs font-mono font-bold text-brand bg-brand-subtle px-2 py-0.5 rounded border border-brand-subtle">
                           {fontSize} px
                         </span>
                       </div>
@@ -2400,7 +2400,7 @@ export function QRGenerator() {
                       step={1}
                       value={fontSize}
                       onChange={(e) => setFontSize(Number(e.target.value))}
-                      className="w-full h-2 bg-[#141416] rounded-lg appearance-none cursor-pointer accent-[#ff6600] border border-[#27272a]"
+                      className="w-full h-2 bg-[#141416] rounded-lg appearance-none cursor-pointer accent-[var(--brand-primary)] border border-[#27272a]"
                     />
 
                     {/* Quick Presets for Font Size */}
@@ -2420,7 +2420,7 @@ export function QRGenerator() {
                           onClick={() => setFontSize(preset.sz)}
                           className={`btn-hover-scale px-2.5 py-1 rounded-[6px] text-[10px] font-semibold transition-all cursor-pointer border ${
                             fontSize === preset.sz
-                              ? "bg-[#ff6600] text-white border-[#ff6600] font-bold shadow-sm"
+                              ? "bg-brand text-white border-brand font-bold shadow-sm"
                               : "bg-[#141416] border-[#27272a] text-neutral-300 hover:text-white"
                           }`}
                         >
@@ -2450,7 +2450,7 @@ export function QRGenerator() {
                             onClick={() => setFontWeight(w.id)}
                             className={`btn-hover-scale py-1.5 px-2 rounded-[6px] text-[10px] font-semibold text-center border transition-all cursor-pointer ${
                               fontWeight === w.id
-                                ? "bg-[#ff6600]/20 border-[#ff6600] text-white font-bold"
+                                ? "bg-brand-light border-brand text-white font-bold"
                                 : "bg-[#141416] border-[#27272a] text-neutral-400 hover:text-white"
                             }`}
                           >
@@ -2477,7 +2477,7 @@ export function QRGenerator() {
                             onClick={() => setTextTransform(c.id)}
                             className={`btn-hover-scale py-1.5 px-2 rounded-[6px] text-[10px] font-semibold text-center border transition-all cursor-pointer ${
                               textTransform === c.id
-                                ? "bg-[#ff6600]/20 border-[#ff6600] text-white font-bold"
+                                ? "bg-brand-light border-brand text-white font-bold"
                                 : "bg-[#141416] border-[#27272a] text-neutral-400 hover:text-white"
                             }`}
                           >
@@ -2527,7 +2527,7 @@ export function QRGenerator() {
           <div className="p-4 rounded-[10px] bg-[#141416] border border-[#222225] flex flex-col gap-2 text-xs">
             <div className="flex items-center justify-between font-semibold text-neutral-300">
               <span>Resolution</span>
-              <span className="font-mono text-[#ff6600]">{size}px</span>
+              <span className="font-mono text-brand">{size}px</span>
             </div>
             <input
               type="range"
@@ -2536,7 +2536,7 @@ export function QRGenerator() {
               step="32"
               value={size}
               onChange={(e) => setSize(Number(e.target.value))}
-              className="w-full accent-[#ff6600] cursor-pointer"
+              className="w-full accent-[var(--brand-primary)] cursor-pointer"
             />
           </div>
 
@@ -2545,7 +2545,7 @@ export function QRGenerator() {
             onClick={handleSaveCustomization}
             disabled={isSavingCustomization}
             variant="glow"
-            className="w-full py-3 h-11 text-xs font-bold flex items-center justify-center gap-2 shadow-lg shadow-[#ff6600]/25 cursor-pointer"
+            className="w-full py-3 h-11 text-xs font-bold flex items-center justify-center gap-2 shadow-lg shadow-brand cursor-pointer"
           >
             {isSavingCustomization ? (
               <>
@@ -2569,7 +2569,7 @@ export function QRGenerator() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             <button
               onClick={downloadPNG}
-              className="btn-hover-scale flex items-center justify-center gap-1.5 py-2.5 rounded-[10px] bg-[#ff6600] hover:bg-[#ff771a] text-white text-xs font-bold shadow-lg shadow-[#ff6600]/25 cursor-pointer"
+              className="btn-hover-scale flex items-center justify-center gap-1.5 py-2.5 rounded-[10px] bg-brand hover:bg-brand-hover text-white text-xs font-bold shadow-lg shadow-brand cursor-pointer"
             >
               <Download className="w-3.5 h-3.5" />
               <span>PNG</span>
@@ -2577,9 +2577,9 @@ export function QRGenerator() {
 
             <button
               onClick={downloadSVG}
-              className="btn-hover-scale flex items-center justify-center gap-1.5 py-2.5 rounded-[10px] bg-white/5 hover:bg-white/10 border border-[#27272a] hover:border-[#ff6600] text-neutral-200 hover:text-white text-xs font-semibold cursor-pointer"
+              className="btn-hover-scale flex items-center justify-center gap-1.5 py-2.5 rounded-[10px] bg-white/5 hover:bg-white/10 border border-[#27272a] hover:border-brand text-neutral-200 hover:text-white text-xs font-semibold cursor-pointer"
             >
-              <Download className="w-3.5 h-3.5 text-[#ff6600]" />
+              <Download className="w-3.5 h-3.5 text-brand" />
               <span>SVG</span>
             </button>
 
@@ -2613,7 +2613,7 @@ export function QRGenerator() {
                 confetti({ particleCount: 30, spread: 50, origin: { y: 0.7 } });
                 showToast.success("Raw content copied!");
               }}
-              className="btn-hover-scale flex items-center justify-center gap-1.5 py-2.5 rounded-[10px] bg-white/5 hover:bg-white/10 border border-[#27272a] hover:border-[#ff6600] text-neutral-200 hover:text-white text-xs font-semibold cursor-pointer"
+              className="btn-hover-scale flex items-center justify-center gap-1.5 py-2.5 rounded-[10px] bg-white/5 hover:bg-white/10 border border-[#27272a] hover:border-brand text-neutral-200 hover:text-white text-xs font-semibold cursor-pointer"
             >
               <Share2 className="w-3.5 h-3.5" />
               <span>Share</span>

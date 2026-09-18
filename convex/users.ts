@@ -3,17 +3,27 @@ import { mutation, query } from "./_generated/server";
 
 // ─── Get user by session ID ────────────────────────────────────────────────────
 export const getCurrentUser = query({
-  args: { userId: v.string() },
+  args: {
+    userId: v.string(),
+    email: v.optional(v.string()),
+  },
   handler: async (ctx, args) => {
     let user = await ctx.db
       .query("users")
       .withIndex("by_userId", (q) => q.eq("userId", args.userId))
       .first();
 
+    if (!user && args.email) {
+      user = await ctx.db
+        .query("users")
+        .withIndex("by_email", (q) => q.eq("email", args.email!.toLowerCase().trim()))
+        .first();
+    }
+
     if (!user && args.userId.includes("@")) {
       user = await ctx.db
         .query("users")
-        .withIndex("by_email", (q) => q.eq("email", args.userId.toLowerCase()))
+        .withIndex("by_email", (q) => q.eq("email", args.userId.toLowerCase().trim()))
         .first();
     }
 
@@ -40,7 +50,7 @@ export const storeUser = mutation({
     email: v.string(),
     avatarUrl: v.optional(v.string()),
     provider: v.optional(v.string()),
-    plan: v.optional(v.union(v.literal("FREEMIUM"), v.literal("PRO"), v.literal("BUSINESS"))),
+    plan: v.optional(v.union(v.literal("FREE"), v.literal("FREEMIUM"), v.literal("PRO"), v.literal("BUSINESS"), v.literal("ENTERPRISE"))),
   },
   handler: async (ctx, args) => {
     const cleanEmail = args.email.toLowerCase().trim();
@@ -127,6 +137,7 @@ export const registerWithEmail = mutation({
 export const completeOnboarding = mutation({
   args: {
     userId: v.string(),
+    email: v.optional(v.string()),
     country: v.optional(v.string()),
     city: v.optional(v.string()),
     language: v.optional(v.string()),
@@ -147,10 +158,17 @@ export const completeOnboarding = mutation({
       .withIndex("by_userId", (q) => q.eq("userId", args.userId))
       .first();
 
+    if (!user && args.email) {
+      user = await ctx.db
+        .query("users")
+        .withIndex("by_email", (q) => q.eq("email", args.email!.toLowerCase().trim()))
+        .first();
+    }
+
     if (!user && args.userId.includes("@")) {
       user = await ctx.db
         .query("users")
-        .withIndex("by_email", (q) => q.eq("email", args.userId.toLowerCase()))
+        .withIndex("by_email", (q) => q.eq("email", args.userId.toLowerCase().trim()))
         .first();
     }
 
@@ -171,30 +189,63 @@ export const completeOnboarding = mutation({
           useCasesOther: args.useCasesOther,
           role: args.role || args.profession,
           goal: args.goal || (args.useCases && args.useCases[0]),
-          workspaceName: args.workspaceName,
+          workspaceName: args.workspaceName || "My Workspace",
           monthlyClicksEstimate: args.monthlyClicksEstimate,
           completedAt: now,
         },
         updatedAt: now,
       });
 
-      await ctx.db.insert("onboarding", {
-        userId: args.userId,
-        email: user.email,
-        country: args.country,
-        city: args.city,
-        language: args.language,
-        profession: args.profession || args.role || "other",
-        professionOther: args.professionOther,
-        source: args.source || "other",
-        sourceOther: args.sourceOther,
-        useCases: args.useCases || [],
-        useCasesOther: args.useCasesOther,
-        role: args.role || args.profession || "other",
-        goal: args.goal || (args.useCases && args.useCases[0]) || "general",
-        workspaceName: args.workspaceName || "Mon Workspace",
-        monthlyClicksEstimate: args.monthlyClicksEstimate || "10k-100k",
-        submittedAt: now,
+      try {
+        await ctx.db.insert("onboarding", {
+          userId: user.userId || args.userId,
+          email: user.email || args.email || `${user.userId || args.userId}@lshorter.app`,
+          country: args.country,
+          city: args.city,
+          language: args.language,
+          profession: args.profession || args.role || "other",
+          professionOther: args.professionOther,
+          source: args.source || "other",
+          sourceOther: args.sourceOther,
+          useCases: args.useCases || [],
+          useCasesOther: args.useCasesOther,
+          role: args.role || args.profession || "other",
+          goal: args.goal || (args.useCases && args.useCases[0]) || "general",
+          workspaceName: args.workspaceName || "My Workspace",
+          monthlyClicksEstimate: args.monthlyClicksEstimate || "10k-100k",
+          submittedAt: now,
+        });
+      } catch (insertErr) {
+        console.warn("Non-fatal error inserting to onboarding log table:", insertErr);
+      }
+    } else {
+      const fallbackUserId = args.userId || `usr_${Date.now().toString(36)}`;
+      const cleanEmail = (args.email || (args.userId.includes("@") ? args.userId : "")).toLowerCase().trim();
+      await ctx.db.insert("users", {
+        userId: fallbackUserId,
+        name: cleanEmail ? cleanEmail.split("@")[0] : "User",
+        email: cleanEmail || `${fallbackUserId}@lshorter.app`,
+        provider: "credentials",
+        plan: "FREEMIUM",
+        hasCompletedOnboarding: true,
+        onboarding: {
+          country: args.country,
+          city: args.city,
+          language: args.language,
+          profession: args.profession,
+          professionOther: args.professionOther,
+          source: args.source,
+          sourceOther: args.sourceOther,
+          useCases: args.useCases,
+          useCasesOther: args.useCasesOther,
+          role: args.role || args.profession,
+          goal: args.goal || (args.useCases && args.useCases[0]),
+          workspaceName: args.workspaceName || "My Workspace",
+          monthlyClicksEstimate: args.monthlyClicksEstimate,
+          completedAt: now,
+        },
+        createdAt: now,
+        updatedAt: now,
       });
     }
 
@@ -206,7 +257,7 @@ export const completeOnboarding = mutation({
 export const updatePlan = mutation({
   args: {
     userId: v.string(),
-    plan: v.union(v.literal("FREEMIUM"), v.literal("PRO"), v.literal("BUSINESS")),
+    plan: v.union(v.literal("FREE"), v.literal("FREEMIUM"), v.literal("PRO"), v.literal("BUSINESS"), v.literal("ENTERPRISE")),
   },
   handler: async (ctx, args) => {
     const user = await ctx.db
@@ -363,6 +414,135 @@ export const resetPasswordWithToken = mutation({
     });
 
     return { success: true };
+  },
+});
+
+// ─── Signup PIN Verification Tokens (Resend) ──────────────────────────────────
+export const createSignupVerificationToken = mutation({
+  args: {
+    name: v.string(),
+    email: v.string(),
+    passwordHash: v.string(),
+    pin: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const cleanEmail = args.email.toLowerCase().trim();
+
+    // Check if account already exists
+    const existingUser = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", cleanEmail))
+      .first();
+
+    if (existingUser) {
+      throw new Error("EMAIL_ALREADY_EXISTS");
+    }
+
+    // Invalidate previous unused signup tokens for this email
+    const existingTokens = await ctx.db
+      .query("signupVerificationTokens")
+      .withIndex("by_email", (q) => q.eq("email", cleanEmail))
+      .collect();
+
+    for (const t of existingTokens) {
+      if (!t.used) {
+        await ctx.db.patch(t._id, { used: true });
+      }
+    }
+
+    // Store new token valid for 15 minutes
+    const expiresAt = Date.now() + 15 * 60 * 1000;
+    const now = new Date().toISOString();
+
+    const tokenId = await ctx.db.insert("signupVerificationTokens", {
+      email: cleanEmail,
+      name: args.name.trim(),
+      passwordHash: args.passwordHash,
+      pin: args.pin,
+      expiresAt,
+      used: false,
+      createdAt: now,
+    });
+
+    return { success: true, tokenId, expiresAt };
+  },
+});
+
+export const verifySignupVerificationToken = query({
+  args: {
+    email: v.string(),
+    pin: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const cleanEmail = args.email.toLowerCase().trim();
+    const token = await ctx.db
+      .query("signupVerificationTokens")
+      .withIndex("by_email_pin", (q) => q.eq("email", cleanEmail).eq("pin", args.pin))
+      .first();
+
+    if (!token) {
+      return { valid: false, reason: "INVALID_PIN" };
+    }
+
+    if (token.used) {
+      return { valid: false, reason: "PIN_ALREADY_USED" };
+    }
+
+    if (Date.now() > token.expiresAt) {
+      return { valid: false, reason: "PIN_EXPIRED" };
+    }
+
+    return { valid: true, name: token.name };
+  },
+});
+
+export const completeSignupWithVerificationPin = mutation({
+  args: {
+    email: v.string(),
+    pin: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const cleanEmail = args.email.toLowerCase().trim();
+    const token = await ctx.db
+      .query("signupVerificationTokens")
+      .withIndex("by_email_pin", (q) => q.eq("email", cleanEmail).eq("pin", args.pin))
+      .first();
+
+    if (!token || token.used || Date.now() > token.expiresAt) {
+      throw new Error("INVALID_OR_EXPIRED_PIN");
+    }
+
+    // Double check if account was created concurrently
+    const existing = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", cleanEmail))
+      .first();
+
+    if (existing) {
+      throw new Error("EMAIL_ALREADY_EXISTS");
+    }
+
+    const userId = `usr_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    const now = new Date().toISOString();
+
+    const id = await ctx.db.insert("users", {
+      userId,
+      name: token.name,
+      email: cleanEmail,
+      passwordHash: token.passwordHash,
+      provider: "credentials",
+      plan: "FREEMIUM",
+      hasCompletedOnboarding: false,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    // Mark token as used
+    await ctx.db.patch(token._id, {
+      used: true,
+    });
+
+    return { success: true, id, userId, name: token.name, email: cleanEmail };
   },
 });
 
@@ -535,6 +715,15 @@ export const deleteUserAccount = mutation({
       .collect();
     for (const p of userPixels) {
       await ctx.db.delete(p._id);
+    }
+
+    // Delete user onboarding responses
+    const onboardingDocs = await ctx.db
+      .query("onboarding")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .collect();
+    for (const o of onboardingDocs) {
+      await ctx.db.delete(o._id);
     }
 
     return { success: true };

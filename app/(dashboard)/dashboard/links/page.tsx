@@ -28,6 +28,9 @@ import {
   Clock,
   Zap,
   ShieldCheck,
+  RotateCcw,
+  GripVertical,
+  X,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -78,8 +81,36 @@ export default function LinksPage() {
     right: number;
   } | null>(null);
 
+  // 10-Second Undo Toast State & Timer Refs
+  const [undoToast, setUndoToast] = useState<{
+    link: ShortLink;
+    index: number;
+    remaining: number;
+  } | null>(null);
+  const undoTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const undoIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Drag & Drop Reordering State
+  const [draggedLinkId, setDraggedLinkId] = useState<string | null>(null);
+  const [dragOverLinkId, setDragOverLinkId] = useState<string | null>(null);
+  const [dragPosition, setDragPosition] = useState<"top" | "bottom" | null>(null);
+
+  // Swipe-to-Delete Pointer Refs
+  const activeSwipeIdRef = useRef<string | null>(null);
+  const swipeStartXRef = useRef<number>(0);
+  const swipeCurrentXRef = useRef<number>(0);
+  const isSwipingRef = useRef<boolean>(false);
+
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  // Cleanup undo timer on unmount
+  useEffect(() => {
+    return () => {
+      if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current);
+      if (undoIntervalRef.current) clearInterval(undoIntervalRef.current);
+    };
   }, []);
 
   // Checkbox Selection & Bulk Actions
@@ -510,6 +541,212 @@ export default function LinksPage() {
     }
   };
 
+  // --- 10-Second Undo Delete Flow ---
+  const start10SecondUndoDelete = (link: ShortLink) => {
+    if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current);
+    if (undoIntervalRef.current) clearInterval(undoIntervalRef.current);
+
+    const index = links.findIndex((l) => l.id === link.id);
+    if (index === -1) return;
+
+    // 1. Optimistic removal
+    setLinks((prev) => prev.filter((l) => l.id !== link.id));
+    setSelectedLinkIds((prev) => {
+      const next = new Set(prev);
+      next.delete(link.id);
+      return next;
+    });
+
+    // 2. Open top-center undo toast with 10s counter
+    setUndoToast({ link, index, remaining: 10 });
+
+    // 3. 1-second countdown decrement
+    undoIntervalRef.current = setInterval(() => {
+      setUndoToast((prev) => {
+        if (!prev) return null;
+        if (prev.remaining <= 1) {
+          if (undoIntervalRef.current) clearInterval(undoIntervalRef.current);
+          return null;
+        }
+        return { ...prev, remaining: prev.remaining - 1 };
+      });
+    }, 1000);
+
+    // 4. Background deletion on 10s expiry
+    undoTimeoutRef.current = setTimeout(async () => {
+      setUndoToast(null);
+      if (undoIntervalRef.current) clearInterval(undoIntervalRef.current);
+      try {
+        await cfDeleteLink(link.id, userId, link.slug, link.ogImage);
+        cfInvalidateCache();
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("lshorter_data_change"));
+        }
+      } catch (err) {
+        console.error("Cloudflare delete error:", err);
+      }
+    }, 10000);
+  };
+
+  const cancelUndoDelete = () => {
+    if (undoTimeoutRef.current) {
+      clearTimeout(undoTimeoutRef.current);
+      undoTimeoutRef.current = null;
+    }
+    if (undoIntervalRef.current) {
+      clearInterval(undoIntervalRef.current);
+      undoIntervalRef.current = null;
+    }
+
+    if (undoToast) {
+      const { link, index } = undoToast;
+      setLinks((prev) => {
+        const next = [...prev];
+        next.splice(Math.min(index, next.length), 0, link);
+        return next;
+      });
+      setUndoToast(null);
+      showToast.success(`Lien /${link.slug} restauré avec succès.`);
+    }
+  };
+
+  // --- Drag & Drop Reordering Handlers ---
+  const handleReorderDragStart = (e: React.DragEvent, linkId: string) => {
+    setActiveMenuLink(null);
+    setDraggedLinkId(linkId);
+    e.dataTransfer.setData("text/plain", linkId);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleReorderDragEnd = () => {
+    setDraggedLinkId(null);
+    setDragOverLinkId(null);
+    setDragPosition(null);
+  };
+
+  const handleCardDragOver = (e: React.DragEvent, targetId: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (targetId === draggedLinkId) return;
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const midY = rect.top + rect.height / 2;
+    const pos = e.clientY < midY ? "top" : "bottom";
+
+    setDragOverLinkId(targetId);
+    setDragPosition(pos);
+  };
+
+  const handleCardDragLeave = (e: React.DragEvent, targetId: string) => {
+    if (dragOverLinkId === targetId) {
+      setDragOverLinkId(null);
+      setDragPosition(null);
+    }
+  };
+
+  const handleCardDrop = (e: React.DragEvent, targetId: string) => {
+    e.preventDefault();
+    const sourceId = e.dataTransfer.getData("text/plain") || draggedLinkId;
+    if (!sourceId || sourceId === targetId) {
+      handleReorderDragEnd();
+      return;
+    }
+
+    setLinks((prev) => {
+      const sourceIdx = prev.findIndex((l) => l.id === sourceId);
+      const targetIdx = prev.findIndex((l) => l.id === targetId);
+      if (sourceIdx === -1 || targetIdx === -1) return prev;
+
+      const next = [...prev];
+      const [moved] = next.splice(sourceIdx, 1);
+      let insertIdx = next.findIndex((l) => l.id === targetId);
+      if (dragPosition === "bottom") insertIdx += 1;
+      next.splice(insertIdx, 0, moved);
+      return next;
+    });
+
+    handleReorderDragEnd();
+  };
+
+  // --- Swipe-to-Delete Pointer & Touch Handlers ---
+  const handleCardPointerDown = (linkId: string, e: React.PointerEvent<HTMLDivElement>) => {
+    if ((e.target as HTMLElement).closest("button, a, input, select, .drag-handle, .dropdown-anchor-btn")) {
+      return;
+    }
+    try {
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    } catch {}
+    activeSwipeIdRef.current = linkId;
+    swipeStartXRef.current = e.clientX;
+    swipeCurrentXRef.current = e.clientX;
+    isSwipingRef.current = true;
+
+    const card = document.getElementById(`link-card-${linkId}`);
+    if (card) {
+      card.classList.remove("link-smooth-snap");
+    }
+  };
+
+  const handleCardPointerMove = (linkId: string, e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isSwipingRef.current || activeSwipeIdRef.current !== linkId) return;
+
+    swipeCurrentXRef.current = e.clientX;
+    const deltaX = swipeCurrentXRef.current - swipeStartXRef.current;
+
+    // Only allow swipe left (negative deltaX)
+    if (deltaX < 0) {
+      const card = document.getElementById(`link-card-${linkId}`);
+      const swipeBg = document.getElementById(`link-swipe-bg-${linkId}`);
+      const progress = Math.min(Math.abs(deltaX) / 120, 1);
+      const opacity = Math.max(1 - progress * 0.75, 0.2);
+
+      if (card) {
+        card.style.transform = `translateX(${deltaX}px)`;
+        card.style.opacity = opacity.toFixed(3);
+      }
+      if (swipeBg) {
+        swipeBg.style.opacity = Math.min(0.2 + progress * 0.8, 1).toFixed(3);
+      }
+    }
+  };
+
+  const handleCardPointerUp = (link: ShortLink, e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isSwipingRef.current || activeSwipeIdRef.current !== link.id) return;
+    isSwipingRef.current = false;
+
+    try {
+      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+    } catch {}
+
+    const deltaX = swipeCurrentXRef.current - swipeStartXRef.current;
+    const card = document.getElementById(`link-card-${link.id}`);
+    const wrapper = document.getElementById(`link-wrapper-${link.id}`);
+
+    if (card) {
+      card.classList.add("link-smooth-snap");
+    }
+
+    if (deltaX < -80) {
+      if (card) {
+        card.style.transform = "translateX(-110%)";
+        card.style.opacity = "0";
+      }
+      if (wrapper) wrapper.classList.add("link-card-exit");
+      setTimeout(() => {
+        start10SecondUndoDelete(link);
+      }, 300);
+    } else {
+      if (card) {
+        card.style.transform = "translateX(0px)";
+        card.style.opacity = "1";
+      }
+      const swipeBg = document.getElementById(`link-swipe-bg-${link.id}`);
+      if (swipeBg) swipeBg.style.opacity = "0";
+    }
+
+    activeSwipeIdRef.current = null;
+  };
+
   // Collect all unique tags
   const allTags = Array.from(new Set(links.flatMap((l) => l.tags || [])));
 
@@ -574,7 +811,7 @@ export default function LinksPage() {
             className="h-10 px-3.5 text-xs font-semibold gap-2 border-[#27272a] bg-[#141416] hover:bg-white/5 text-neutral-300 hover:text-white cursor-pointer shadow-sm"
           >
             <RefreshCw
-              className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-[#ff6600]" : "text-neutral-400"}`}
+              className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-[var(--brand-primary-text)]" : "text-neutral-400"}`}
             />
             <span>Refresh</span>
           </Button>
@@ -600,7 +837,7 @@ export default function LinksPage() {
             placeholder="Search by slug, URL, tag..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full h-10 pl-10 pr-4 rounded-[10px] bg-[#141416] border border-[#222225] text-xs text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#ff6600]"
+            className="w-full h-10 pl-10 pr-4 rounded-[10px] bg-[#141416] border border-[#222225] text-xs text-white placeholder:text-neutral-500 focus:outline-none focus:border-[var(--input-focus-border)]"
           />
         </div>
 
@@ -612,7 +849,7 @@ export default function LinksPage() {
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               aria-label="Filter by status"
-              className="w-full md:w-auto h-10 pl-3 pr-8 rounded-[10px] bg-[#141416] border border-[#222225] text-xs font-semibold text-white focus:outline-none focus:border-[#ff6600] cursor-pointer shadow-sm appearance-none truncate"
+              className="w-full md:w-auto h-10 pl-3 pr-8 rounded-[10px] bg-[#141416] border border-[#222225] text-xs font-semibold text-white focus:outline-none focus:border-[var(--input-focus-border)] cursor-pointer shadow-sm appearance-none truncate"
             >
               <option value="all">All statuses</option>
               <option value="active">Active</option>
@@ -633,7 +870,7 @@ export default function LinksPage() {
                 {selectedTag === "all" ? (
                   <Globe2 className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
                 ) : (
-                  <Tag className="w-3.5 h-3.5 text-[#ff6600] shrink-0" />
+                  <Tag className="w-3.5 h-3.5 text-[var(--brand-primary-text)] shrink-0" />
                 )}
                 <span className="truncate">
                   {selectedTag === "all"
@@ -663,12 +900,12 @@ export default function LinksPage() {
                   }}
                   className={`w-full px-3 py-2 text-xs flex items-center justify-between transition-colors text-left cursor-pointer ${
                     selectedTag === "all"
-                      ? "bg-[#ff6600]/15 text-[#ff6600] font-bold"
+                      ? "bg-[var(--badge-brand-bg)] text-[var(--badge-brand-text)] font-bold"
                       : "text-neutral-300 hover:bg-white/5 hover:text-white"
                   }`}
                 >
                   <span className="flex items-center gap-2">
-                    <Globe2 className="w-3.5 h-3.5 text-cyan-400 md:text-[#ff6600]" />
+                    <Globe2 className="w-3.5 h-3.5 text-[var(--brand-primary-text)]" />
                     <span>All links</span>
                   </span>
                   <span className="text-[11px] font-mono px-1.5 py-0.5 rounded-[10px] bg-white/5 text-neutral-400">
@@ -695,12 +932,12 @@ export default function LinksPage() {
                       }}
                       className={`w-full px-3 py-2 text-xs flex items-center justify-between transition-colors text-left cursor-pointer ${
                         selectedTag === t
-                          ? "bg-[#ff6600]/15 text-[#ff6600] font-bold"
+                          ? "bg-[var(--badge-brand-bg)] text-[var(--badge-brand-text)] font-bold"
                           : "text-neutral-300 hover:bg-white/5 hover:text-white"
                       }`}
                     >
                       <span className="flex items-center gap-2 truncate">
-                        <Tag className="w-3 h-3 text-[#ff6600] shrink-0" />
+                        <Tag className="w-3 h-3 text-[var(--brand-primary-text)] shrink-0" />
                         <span className="truncate">#{t}</span>
                       </span>
                       <span className="text-[11px] font-mono px-1.5 py-0.5 rounded-[10px] bg-white/5 text-neutral-400">
@@ -715,619 +952,189 @@ export default function LinksPage() {
         </div>
       </div>
 
-      {/* Floating Bulk Actions Bar */}
-      {selectedLinkIds.size > 0 && (
-        <div className="rounded-[10px] bg-[#1c1414] border border-red-500/40 p-3.5 px-4.5 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-2xl shadow-red-950/40 animate-in slide-in-from-top-2 duration-200">
-          <div className="flex items-center gap-3">
-            <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></span>
-            <span className="text-xs font-bold text-white">
-              {selectedLinkIds.size}{" "}
-              {selectedLinkIds.size > 1 ? "links selected" : "link selected"}
-            </span>
-            <button
-              onClick={toggleSelectAll}
-              className="text-[11px] text-neutral-400 hover:text-white underline ml-1 cursor-pointer"
-            >
-              {isAllSelected
-                ? "Deselect all"
-                : `Select all (${filteredLinks.length})`}
-            </button>
-          </div>
-
-          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-            <button
-              onClick={() => setSelectedLinkIds(new Set())}
-              className="px-3 py-1.5 rounded-[10px] bg-white/5 hover:bg-white/10 text-neutral-300 text-xs font-medium transition-colors cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={promptDeleteBulk}
-              className="px-3.5 py-1.5 rounded-[10px] bg-red-600 hover:bg-red-500 text-white font-bold text-xs shadow-lg shadow-red-600/30 flex items-center gap-1.5 cursor-pointer transition-all"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span>Delete selected ({selectedLinkIds.size})</span>
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Links Container */}
-      <div className="rounded-[10px] bg-[#141416] border border-[#222225] p-3 sm:p-5 shadow-xl">
+      <div className="space-y-3 relative min-h-[220px]">
         {filteredLinks.length === 0 ? (
-          <div className="py-12 text-center text-xs text-neutral-500">
-            No links found matching your search.
+          <div className="py-12 px-4 rounded-2xl bg-white dark:bg-[#131418] border border-neutral-200 dark:border-neutral-800 text-center space-y-3 shadow-sm">
+            <div className="w-12 h-12 mx-auto rounded-full bg-neutral-100 dark:bg-neutral-800/80 flex items-center justify-center text-neutral-400">
+              <Globe2 className="w-6 h-6" />
+            </div>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 font-medium">
+              No links found matching your search.
+            </p>
           </div>
         ) : (
-          <>
-            {/* 1. Mobile Cards Layout (< 768px) */}
-            <div className="flex flex-col gap-2.5 md:hidden">
-              {selectedLinkIds.size === 0 && filteredLinks.length > 0 && (
-                <div className="text-[11px] text-neutral-500 text-center py-1 flex items-center justify-center gap-1.5 select-none">
-                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#ff6600]/70 animate-pulse"></span>
-                  <span>Tip: Long-press on any link to select</span>
+          filteredLinks.map((link) => {
+            const isCopied = copiedId === link.id;
+            const isExpired = Boolean(
+              link.expiresAt && new Date(link.expiresAt) < new Date(),
+            );
+            const isMenuOpen = activeMenuLink?.id === link.id;
+            const isDropTop = dragOverLinkId === link.id && dragPosition === "top";
+            const isDropBottom = dragOverLinkId === link.id && dragPosition === "bottom";
+            const isDraggingThis = draggedLinkId === link.id;
+
+            // Compute protocol badge label
+            const protocolLabel = String(link.redirectType) === "307"
+              ? "HTTP 307 Temporary"
+              : String(link.redirectType) === "302"
+                ? "HTTP 302 Found"
+                : link.routingRules && link.routingRules.length > 0
+                  ? "HTTP 301 Edge Direct"
+                  : "HTTP 301 Permanent";
+
+            // Thumbnail fallback / image
+            const thumbnailImage = link.ogImage || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&auto=format&fit=crop&q=80";
+
+            return (
+              <div
+                key={link.id}
+                id={`link-wrapper-${link.id}`}
+                className="relative overflow-hidden rounded-2xl w-full link-swipe-container"
+              >
+                {/* Swipe-to-Delete Background Reveal (Underneath the card) */}
+                <div
+                  id={`link-swipe-bg-${link.id}`}
+                  className="absolute inset-0 bg-gradient-to-l from-rose-600 to-rose-700 dark:from-rose-700 dark:to-rose-800 text-white rounded-2xl flex items-center justify-end px-6 sm:px-8 gap-2.5 font-bold text-xs sm:text-sm tracking-wide opacity-0 transition-opacity duration-150 pointer-events-none"
+                >
+                  <span>Supprimer</span>
+                  <Trash2 className="w-5 h-5 animate-pulse" />
                 </div>
-              )}
 
-              {filteredLinks.map((link, index) => {
-                const isCopied = copiedId === link.id;
-                const isExpired = Boolean(
-                  link.expiresAt && new Date(link.expiresAt) < new Date(),
-                );
-                const isSelected = selectedLinkIds.has(link.id);
-                const isMenuOpen = activeMenuLink?.id === link.id;
-
-                return (
-                  <div
-                    key={link.id}
-                    onTouchStart={(e) => startLongPress(link.id, e)}
-                    onTouchMove={handleTouchMove}
-                    onTouchEnd={cancelLongPress}
-                    onMouseDown={(e) => startLongPress(link.id, e)}
-                    onMouseUp={cancelLongPress}
-                    onMouseLeave={cancelLongPress}
-                    onClick={(e) => handleMobileCardClick(link.id, e)}
-                    className={cn(
-                      "rounded-[10px] bg-[#18181c] border p-3 flex flex-col gap-2 transition-all select-none relative",
-                      isSelected
-                        ? "border-[#ff6600] bg-[#ff6600]/10 ring-2 ring-[#ff6600]/40 shadow-lg shadow-[#ff6600]/10"
-                        : "border-[#27272a] hover:border-[#ff6600]/40 active:bg-white/[0.02]",
-                      isMenuOpen && "z-30",
-                    )}
-                  >
-                    {/* Header: Status dot / Checkmark + Slug + Status Badge */}
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-2 min-w-0">
-                        {isSelected ? (
-                          <span className="w-5 h-5 rounded-full bg-[#ff6600] text-white flex items-center justify-center text-[11px] font-black shrink-0 animate-in zoom-in-75">
-                            ✓
-                          </span>
-                        ) : (
-                          <span
-                            className={cn(
-                              "w-2.5 h-2.5 rounded-full shrink-0",
-                              isExpired
-                                ? "bg-amber-400"
-                                : !link.isActive
-                                  ? "bg-neutral-500"
-                                  : "bg-emerald-400",
-                            )}
-                          />
-                        )}
-                        <span className="font-mono font-bold text-white text-xs truncate">
-                          /{link.slug}
-                        </span>
-                      </div>
-                      <div className="shrink-0 flex items-center gap-1.5">
-                        {isSelected && (
-                          <span className="text-[10px] font-bold text-[#ff6600] bg-[#ff6600]/20 px-2 py-0.5 rounded-full border border-[#ff6600]/30">
-                            Selected
-                          </span>
-                        )}
-                        {isExpired ? (
-                          <Badge variant="expire">Expired</Badge>
-                        ) : !link.isActive ? (
-                          <Badge variant="inactive">Inactive</Badge>
-                        ) : (
-                          <Badge variant="active">Active</Badge>
-                        )}
-                      </div>
+                {/* Sliding Card */}
+                <div
+                  id={`link-card-${link.id}`}
+                  onPointerDown={(e) => handleCardPointerDown(link.id, e)}
+                  onPointerMove={(e) => handleCardPointerMove(link.id, e)}
+                  onPointerUp={(e) => handleCardPointerUp(link, e)}
+                  onPointerCancel={(e) => handleCardPointerUp(link, e)}
+                  className={cn(
+                    "group flex items-center justify-between gap-2.5 sm:gap-4 p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-[#131418] hover:bg-neutral-50 dark:hover:bg-[#181920] border border-neutral-200 dark:border-[#202228] border-r-4 border-r-rose-500 dark:border-r-rose-500 hover:border-neutral-300 dark:hover:border-[#2f333d] transition-all duration-150 shadow-sm dark:shadow-md relative w-full touch-pan-y cursor-grab active:cursor-grabbing",
+                    isDraggingThis && "opacity-30 scale-[0.98]",
+                    isDropTop && "link-drop-indicator-top",
+                    isDropBottom && "link-drop-indicator-bottom",
+                    isMenuOpen ? "z-40" : "z-10",
+                  )}
+                  onDragOver={(e) => handleCardDragOver(e, link.id)}
+                  onDragLeave={(e) => handleCardDragLeave(e, link.id)}
+                  onDrop={(e) => handleCardDrop(e, link.id)}
+                >
+                  {/* Left side: Grip + Thumbnail + Info */}
+                  <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
+                    {/* Grip Handle for Vertical Reordering (Hidden on Mobile) */}
+                    <div
+                      draggable="true"
+                      onDragStart={(e) => handleReorderDragStart(e, link.id)}
+                      onDragEnd={handleReorderDragEnd}
+                      className="hidden sm:block drag-handle text-neutral-400 dark:text-neutral-500 group-hover:text-neutral-700 dark:group-hover:text-neutral-300 transition-colors p-1 cursor-grab shrink-0"
+                      title="Glisser pour réorganiser"
+                    >
+                      <GripVertical className="w-4 h-4" />
                     </div>
 
-                    {/* Short URL & Target URL */}
-                    <div className="flex flex-col gap-1">
-                      <div className="font-mono text-[#ff6600] text-xs font-semibold truncate">
-                        {link.domainName || "lsho.cc"}/{link.slug}
+                    {/* Thumbnail with Glowing Status Dot */}
+                    <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-xl overflow-visible shrink-0 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-white/5">
+                      <img
+                        src={thumbnailImage}
+                        alt={link.slug}
+                        className="w-full h-full object-cover rounded-xl"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src =
+                            "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&auto=format&fit=crop&q=80";
+                        }}
+                      />
+                      {/* Glowing Status Dot */}
+                      <span
+                        className={cn(
+                          "w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full border-2 border-white dark:border-[#131418] absolute -bottom-1 -right-1",
+                          isExpired
+                            ? "bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.8)]"
+                            : !link.isActive
+                              ? "bg-neutral-400 dark:bg-neutral-600"
+                              : "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]",
+                        )}
+                      />
+                    </div>
+
+                    {/* Text Information (Slug, Protocol, Target URL) */}
+                    <div className="min-w-0 space-y-0.5 text-left">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-bold text-neutral-900 dark:text-white text-xs sm:text-base tracking-tight truncate group-hover:text-[var(--brand-primary-text)] transition-colors">
+                          /{link.slug}
+                        </h3>
                       </div>
-                      <div className="flex items-center gap-1.5 text-[11px] text-neutral-400 bg-[#090b10] px-2 py-1 rounded-[10px] border border-[#222225] truncate">
-                        <span className="text-[#ff6600] font-bold shrink-0">
-                          ↳
-                        </span>
+                      <div className="text-[10px] sm:text-[11px] font-mono text-neutral-500 dark:text-neutral-400 truncate">
+                        {protocolLabel}
+                      </div>
+                      <div className="flex items-center gap-1 text-[10px] sm:text-[11px] text-neutral-500 dark:text-neutral-400 truncate hover:text-neutral-700 dark:hover:text-neutral-200 transition-colors">
+                        <span className="text-[var(--brand-primary-text)] font-bold">↳</span>
                         <span className="truncate">{link.targetUrl}</span>
                       </div>
                     </div>
+                  </div>
 
-                    {/* Creator / User Details */}
-                    {(() => {
-                      const name =
-                        link.userFullName || link.userName || link.fullName;
-                      const email = link.userEmail || link.email;
-                      if (!name && !email) return null;
-                      return (
-                        <div className="flex items-center gap-1.5 text-[11px] text-neutral-400 bg-[#090b10] px-2 py-1 rounded-[8px] border border-[#222225] truncate">
-                          <span className="text-neutral-500 text-[10px] font-semibold shrink-0">
-                            By:
-                          </span>
-                          {name && (
-                            <span className="text-neutral-200 font-medium truncate">
-                              {name}
-                            </span>
-                          )}
-                          {name && email && (
-                            <span className="text-neutral-600">·</span>
-                          )}
-                          {email && (
-                            <span className="text-neutral-400 font-mono text-[10px] truncate">
-                              {email}
-                            </span>
-                          )}
-                        </div>
-                      );
-                    })()}
-
-                    {/* Targeting icons + Tags */}
-                    <div className="flex items-center justify-between gap-2 flex-wrap">
-                      <div className="flex items-center gap-1 text-neutral-400">
-                        {Array.isArray(link.routingRules) &&
-                          link.routingRules.length > 0 && (
-                            <span
-                              title={`Dynamic routing active (${link.routingRules.length} rule${link.routingRules.length > 1 ? "s" : ""})`}
-                              className="p-1 rounded-[10px] bg-white/5"
-                            >
-                              <GitFork className="w-3 h-3 text-cyan-400" />
-                            </span>
-                          )}
-                        {Array.isArray(link.abVariations) &&
-                          link.abVariations.length > 0 && (
-                            <span
-                              title={`A/B testing active (${link.abVariations.length} variation${link.abVariations.length > 1 ? "s" : ""})`}
-                              className="p-1 rounded-[10px] bg-white/5"
-                            >
-                              <Split className="w-3 h-3 text-indigo-400" />
-                            </span>
-                          )}
-                        {link.geoTargeting &&
-                          typeof link.geoTargeting === "object" &&
-                          Object.keys(link.geoTargeting).length > 0 && (
-                            <span
-                              title="Country targeting active"
-                              className="p-1 rounded-[10px] bg-white/5"
-                            >
-                              <Globe2 className="w-3 h-3 text-sky-400" />
-                            </span>
-                          )}
-                        {link.deviceTargeting &&
-                          typeof link.deviceTargeting === "object" &&
-                          Object.values(link.deviceTargeting).some(Boolean) && (
-                            <span
-                              title="Device targeting active"
-                              className="p-1 rounded-[10px] bg-white/5"
-                            >
-                              <Smartphone className="w-3 h-3 text-emerald-400" />
-                            </span>
-                          )}
-                        {link.isPasswordProtected && (
-                          <span
-                            title="Password protected"
-                            className="p-1 rounded-[10px] bg-white/5"
-                          >
-                            <Lock className="w-3 h-3 text-amber-400" />
-                          </span>
-                        )}
-                        {link.isCloaked && (
-                          <span
-                            title="URL Cloaking active"
-                            className="p-1 rounded-[10px] bg-white/5"
-                          >
-                            <EyeOff className="w-3 h-3 text-purple-400" />
-                          </span>
-                        )}
-                        {link.ogImage && (
-                          <span
-                            title="Open Graph banner active"
-                            className="p-1 rounded-[10px] bg-white/5"
-                          >
-                            <ImageIcon className="w-3 h-3 text-pink-400" />
-                          </span>
-                        )}
-                        {link.hideReferrer && (
-                          <span
-                            title="Referrer masking active"
-                            className="p-1 rounded-[10px] bg-white/5"
-                          >
-                            <ShieldCheck className="w-3 h-3 text-teal-400" />
-                          </span>
-                        )}
-                        {link.maxClicks !== undefined &&
-                          link.maxClicks !== null &&
-                          link.maxClicks > 0 && (
-                            <span
-                              title={`Click limit: ${link.maxClicks}`}
-                              className="p-1 rounded-[10px] bg-white/5"
-                            >
-                              <Zap className="w-3 h-3 text-orange-400" />
-                            </span>
-                          )}
-                        {link.expiresAt && (
-                          <span
-                            title="Scheduled expiration date"
-                            className="p-1 rounded-[10px] bg-white/5"
-                          >
-                            <Clock className="w-3 h-3 text-yellow-400" />
-                          </span>
-                        )}
-                      </div>
-
-                      {link.tags && link.tags.length > 0 && (
-                        <div className="flex items-center gap-1 flex-wrap">
-                          {link.tags.map((t) => (
-                            <span
-                              key={t}
-                              className="text-[9.5px] font-mono px-1.5 py-0.5 rounded-[10px] bg-neutral-800 text-neutral-400"
-                            >
-                              #{t}
-                            </span>
-                          ))}
-                        </div>
-                      )}
+                  {/* Right side: Click Counter + Direct Analytics Button + Three Dots Button */}
+                  <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+                    {/* Click Counter */}
+                    <div
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(
+                          `/dashboard/analytics?linkId=${encodeURIComponent(link.id)}&slug=${encodeURIComponent(link.slug)}`,
+                        );
+                      }}
+                      className="text-right whitespace-nowrap cursor-pointer hover:opacity-80 transition-opacity"
+                      title="Voir les analytics"
+                    >
+                      <span className="text-sm sm:text-xl font-extrabold text-neutral-900 dark:text-white tracking-tight">
+                        {formatNumber(link.clicksCount)}
+                      </span>
+                      <span className="text-[10px] sm:text-xs text-neutral-500 dark:text-neutral-400 font-mono ml-0.5 sm:ml-1">
+                        clics
+                      </span>
                     </div>
 
-                    {/* Metrics & Actions Row */}
-                    <div className="flex items-center justify-between pt-1 text-xs border-t border-[#222225]">
-                      <div
+                    {/* Action Buttons Row */}
+                    <div className="flex items-center gap-1 text-neutral-400 relative">
+                      {/* Direct Analytics Button on Card */}
+                      <button
+                        type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           router.push(
                             `/dashboard/analytics?linkId=${encodeURIComponent(link.id)}&slug=${encodeURIComponent(link.slug)}`,
                           );
                         }}
-                        className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
-                        title="View analytics for this link"
+                        className="p-1.5 sm:p-2 rounded-lg hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                        title="View analytics"
                       >
-                        <div className="flex items-center gap-1 text-white font-bold">
-                          <span className="text-[#ff6600] font-mono text-xs">
-                            {formatNumber(link.clicksCount)}
-                          </span>
-                          <span className="text-[10px] text-neutral-400 font-normal">
-                            clicks
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1 text-neutral-300">
-                          <span className="font-mono text-xs">
-                            {formatNumber(link.uniqueClicks || 0)}
-                          </span>
-                          <span className="text-[10px] text-neutral-400">
-                            uniques
-                          </span>
-                        </div>
-                      </div>
+                        <BarChart2 className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
+                      </button>
 
-                      {/* Quick Actions */}
-                      <div className="flex items-center gap-1.5">
+                      {/* Three Dots Button (⋮) with Portal Dropdown */}
+                      <div className="relative">
                         <button
                           type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleCopy(link);
-                          }}
-                          className="px-2.5 py-1.5 rounded-[10px] bg-[#ff6600]/15 text-[#ff771a] border border-[#ff6600]/30 hover:bg-[#ff6600] hover:text-white text-[11px] font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
-                        >
-                          {isCopied ? (
-                            <>
-                              <Check className="w-3 h-3 text-emerald-400" />
-                              <span>Copied</span>
-                            </>
-                          ) : (
-                            <>
-                              <Copy className="w-3 h-3" />
-                              <span>Copy</span>
-                            </>
+                          onClick={(e) => handleToggleMenu(e, link)}
+                          className={cn(
+                            "dropdown-anchor-btn p-1.5 sm:p-2 rounded-lg hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-white/5 transition-colors cursor-pointer",
+                            isMenuOpen && "bg-neutral-200 dark:bg-white/10 text-neutral-900 dark:text-white",
                           )}
+                          title="More options"
+                        >
+                          <MoreVertical className="w-4 h-4" />
                         </button>
-
-                        {/* 3-dots Menu */}
-                        <div className="relative inline-block">
-                          <button
-                            type="button"
-                            onClick={(e) => handleToggleMenu(e, link)}
-                            className={cn(
-                              "dropdown-anchor-btn w-8 h-8 rounded-[10px] bg-[#141416] hover:bg-white/10 text-neutral-400 hover:text-white border border-[#27272a] flex items-center justify-center transition-all cursor-pointer inline-flex shadow-sm",
-                              activeMenuLink?.id === link.id &&
-                                "border-[#ff6600] text-[#ff6600] bg-[#ff6600]/10",
-                            )}
-                            title="Options"
-                          >
-                            <MoreVertical className="w-4 h-4" />
-                          </button>
-                        </div>
                       </div>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-
-            {/* 2. Desktop Table (>= 768px) */}
-            <div className="hidden md:block overflow-x-auto min-h-[350px]">
-              <table className="w-full text-left text-xs text-neutral-400 border-collapse">
-                <thead>
-                  <tr className="border-b border-[#222225] text-[11px] uppercase tracking-wider text-neutral-500 font-semibold">
-                    <th className="pb-2.5 pl-3 pr-1 w-9">
-                      <input
-                        type="checkbox"
-                        checked={isAllSelected}
-                        ref={(el) => {
-                          if (el) el.indeterminate = isPartiallySelected;
-                        }}
-                        onChange={toggleSelectAll}
-                        aria-label="Select all links"
-                        className="w-4 h-4 rounded border-[#27272a] bg-[#1a1a1e] accent-[#ff6600] cursor-pointer"
-                      />
-                    </th>
-                    <th className="pb-2.5 px-2">Destination</th>
-                    <th className="pb-2.5 px-2 w-[160px]">Short URL</th>
-                    <th className="pb-2.5 px-2 w-[150px]">User</th>
-                    <th className="pb-2.5 px-2 text-center w-[90px]">
-                      Options
-                    </th>
-                    <th className="pb-2.5 px-2 text-right w-[70px]">Clicks</th>
-                    <th className="pb-2.5 px-2 w-[80px]">Status</th>
-                    <th className="pb-2.5 pr-4 pl-1 text-right w-[70px]">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#202024]">
-                  {filteredLinks.map((link, index) => {
-                    const isCopied = copiedId === link.id;
-                    const isExpired = Boolean(
-                      link.expiresAt && new Date(link.expiresAt) < new Date(),
-                    );
-                    const isSelected = selectedLinkIds.has(link.id);
-                    const isMenuOpen = activeMenuLink?.id === link.id;
-
-                    return (
-                      <tr
-                        key={link.id}
-                        className={cn(
-                          "hover:bg-white/[0.02] transition-colors group",
-                          isSelected &&
-                            "bg-[#ff6600]/10 border-l-2 border-l-[#ff6600]",
-                          isMenuOpen && "relative z-30",
-                        )}
-                      >
-                        {/* Checkbox */}
-                        <td className="py-2.5 pl-3 pr-1 w-9">
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => toggleSelectLink(link.id)}
-                            aria-label={`Select ${link.slug}`}
-                            className="w-4 h-4 rounded border-[#27272a] bg-[#1a1a1e] accent-[#ff6600] cursor-pointer"
-                          />
-                        </td>
-
-                        {/* Slug & Target URL */}
-                        <td className="py-2.5 px-2 max-w-[260px]">
-                          <div className="flex flex-col min-w-0">
-                            <span className="font-bold text-white text-xs group-hover:text-[#ff6600] transition-colors truncate">
-                              /{link.slug}
-                            </span>
-                            <span
-                              className="text-[11px] text-neutral-500 truncate"
-                              title={link.targetUrl}
-                            >
-                              ↳ {link.targetUrl}
-                            </span>
-                            {link.tags && link.tags.length > 0 && (
-                              <div className="flex items-center gap-1 mt-1 flex-wrap">
-                                {link.tags.map((t) => (
-                                  <span
-                                    key={t}
-                                    className="text-[9.5px] font-mono px-1.5 py-0.5 rounded bg-neutral-800 text-neutral-400"
-                                  >
-                                    #{t}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </td>
-
-                        {/* Short URL */}
-                        <td className="py-2.5 px-2 font-mono text-[#ff6600] text-xs font-medium whitespace-nowrap">
-                          {link.domainName || "lsho.cc"}/{link.slug}
-                        </td>
-
-                        {/* User / Creator */}
-                        <td className="py-2.5 px-2 max-w-[150px]">
-                          {(() => {
-                            const name =
-                              link.userFullName ||
-                              link.userName ||
-                              link.fullName;
-                            const email = link.userEmail || link.email;
-                            if (!name && !email) {
-                              return (
-                                <span className="text-neutral-600">—</span>
-                              );
-                            }
-                            return (
-                              <div className="flex flex-col min-w-0 text-left">
-                                {name && (
-                                  <span className="text-white text-xs font-medium truncate">
-                                    {name}
-                                  </span>
-                                )}
-                                {email && (
-                                  <span
-                                    className="text-[10.5px] text-neutral-500 font-mono truncate"
-                                    title={email}
-                                  >
-                                    {email}
-                                  </span>
-                                )}
-                              </div>
-                            );
-                          })()}
-                        </td>
-
-                        {/* Options icons */}
-                        <td className="py-2.5 px-2 text-center whitespace-nowrap">
-                          <div className="flex items-center justify-center gap-1 text-neutral-400">
-                            {Array.isArray(link.routingRules) &&
-                              link.routingRules.length > 0 && (
-                                <span
-                                  title={`Dynamic routing active (${link.routingRules.length} rule${link.routingRules.length > 1 ? "s" : ""})`}
-                                >
-                                  <GitFork className="w-3.5 h-3.5 text-cyan-400" />
-                                </span>
-                              )}
-                            {Array.isArray(link.abVariations) &&
-                              link.abVariations.length > 0 && (
-                                <span
-                                  title={`A/B testing active (${link.abVariations.length} variation${link.abVariations.length > 1 ? "s" : ""})`}
-                                >
-                                  <Split className="w-3.5 h-3.5 text-indigo-400" />
-                                </span>
-                              )}
-                            {link.geoTargeting &&
-                              typeof link.geoTargeting === "object" &&
-                              Object.keys(link.geoTargeting).length > 0 && (
-                                <span
-                                  title={`Country targeting active (${Object.keys(link.geoTargeting).length} countries)`}
-                                >
-                                  <Globe2 className="w-3.5 h-3.5 text-sky-400" />
-                                </span>
-                              )}
-                            {link.deviceTargeting &&
-                              typeof link.deviceTargeting === "object" &&
-                              Object.values(link.deviceTargeting).some(
-                                Boolean,
-                              ) && (
-                                <span title="Device targeting active">
-                                  <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
-                                </span>
-                              )}
-                            {link.isPasswordProtected && (
-                              <span title="Password protected">
-                                <Lock className="w-3.5 h-3.5 text-amber-400" />
-                              </span>
-                            )}
-                            {link.isCloaked && (
-                              <span title="URL Cloaking active">
-                                <EyeOff className="w-3.5 h-3.5 text-purple-400" />
-                              </span>
-                            )}
-                            {link.ogImage && (
-                              <span title="Open Graph banner active">
-                                <ImageIcon className="w-3.5 h-3.5 text-pink-400" />
-                              </span>
-                            )}
-                            {link.hideReferrer && (
-                              <span title="Referrer masking active">
-                                <ShieldCheck className="w-3.5 h-3.5 text-teal-400" />
-                              </span>
-                            )}
-                            {link.maxClicks !== undefined &&
-                              link.maxClicks !== null &&
-                              link.maxClicks > 0 && (
-                                <span title={`Click limit: ${link.maxClicks}`}>
-                                  <Zap className="w-3.5 h-3.5 text-orange-400" />
-                                </span>
-                              )}
-                            {link.expiresAt && (
-                              <span title="Scheduled expiration date">
-                                <Clock className="w-3.5 h-3.5 text-yellow-400" />
-                              </span>
-                            )}
-                            {!(
-                              (Array.isArray(link.routingRules) &&
-                                link.routingRules.length > 0) ||
-                              (Array.isArray(link.abVariations) &&
-                                link.abVariations.length > 0) ||
-                              (link.geoTargeting &&
-                                typeof link.geoTargeting === "object" &&
-                                Object.keys(link.geoTargeting).length > 0) ||
-                              (link.deviceTargeting &&
-                                typeof link.deviceTargeting === "object" &&
-                                Object.values(link.deviceTargeting).some(
-                                  Boolean,
-                                )) ||
-                              link.isPasswordProtected ||
-                              link.isCloaked ||
-                              link.ogImage ||
-                              link.hideReferrer ||
-                              (link.maxClicks !== undefined &&
-                                link.maxClicks !== null &&
-                                link.maxClicks > 0) ||
-                              link.expiresAt
-                            ) && <span className="text-neutral-600">—</span>}
-                          </div>
-                        </td>
-
-                        {/* Clicks */}
-                        <td
-                          onClick={() => {
-                            router.push(
-                              `/dashboard/analytics?linkId=${encodeURIComponent(link.id)}&slug=${encodeURIComponent(link.slug)}`,
-                            );
-                          }}
-                          className="py-2.5 px-2 text-right font-bold text-white hover:text-[#ff6600] font-mono text-xs whitespace-nowrap cursor-pointer transition-colors"
-                          title="View analytics for this link"
-                        >
-                          {formatNumber(link.clicksCount)}
-                        </td>
-
-                        {/* Status */}
-                        <td className="py-2.5 px-2 whitespace-nowrap">
-                          {isExpired ? (
-                            <Badge variant="expire">Expired</Badge>
-                          ) : !link.isActive ? (
-                            <Badge variant="inactive">Inactive</Badge>
-                          ) : (
-                            <Badge variant="active">Active</Badge>
-                          )}
-                        </td>
-
-                        {/* Actions */}
-                        <td className="py-2.5 pr-4 pl-1 text-right whitespace-nowrap">
-                          <div className="relative inline-block">
-                            <button
-                              type="button"
-                              onClick={(e) => handleToggleMenu(e, link)}
-                              className={cn(
-                                "dropdown-anchor-btn w-8 h-8 rounded-[10px] bg-[#141416] hover:bg-white/10 text-neutral-400 hover:text-white border border-[#27272a] flex items-center justify-center transition-all cursor-pointer inline-flex shadow-sm",
-                                activeMenuLink?.id === link.id &&
-                                  "border-[#ff6600] text-[#ff6600] bg-[#ff6600]/10",
-                              )}
-                              title="Options"
-                            >
-                              <MoreVertical className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </>
+                </div>
+              </div>
+            );
+          })
         )}
       </div>
 
-      {/* Floating Portal Action Menu */}
+      {/* Floating Action Menu rendered in Portal (Guaranteed Top Layer z-[99999] with No Clipping) */}
       {mounted &&
         activeMenuLink &&
         menuPosition &&
@@ -1340,96 +1147,166 @@ export default function LinksPage() {
               zIndex: 99999,
             }}
             onClick={(e) => e.stopPropagation()}
-            className="portal-action-menu w-52 rounded-[10px] bg-[#141416] border border-[#27272a] shadow-2xl py-1.5 animate-in fade-in zoom-in-95 duration-150 text-xs text-neutral-200 text-left backdrop-blur-md"
+            className="portal-action-menu w-52 rounded-2xl bg-white dark:bg-[#141518] border border-neutral-200 dark:border-[#272930] shadow-[0_15px_40px_rgba(0,0,0,0.15)] dark:shadow-[0_15px_40px_rgba(0,0,0,0.9)] py-2 text-left font-sans text-xs text-neutral-800 dark:text-neutral-200 backdrop-blur-2xl animate-in fade-in zoom-in-95 duration-150 divide-y divide-neutral-100 dark:divide-[#22242b]"
           >
-            <button
-              type="button"
-              onClick={() => {
-                const link = activeMenuLink;
-                setActiveMenuLink(null);
-                handleCopy(link);
-              }}
-              className="w-full px-3 py-2 text-left hover:bg-white/5 flex items-center gap-2.5 transition-colors cursor-pointer"
-            >
-              <Copy className="w-3.5 h-3.5 text-neutral-400" />
-              <span>Copy link</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                const link = activeMenuLink;
-                setActiveMenuLink(null);
-                setSelectedQRLink(link);
-              }}
-              className="w-full px-3 py-2 text-left hover:bg-white/5 flex items-center gap-2.5 transition-colors cursor-pointer"
-            >
-              <QrCode className="w-3.5 h-3.5 text-[#ff6600]" />
-              <span>View QR Code</span>
-            </button>
-            <a
-              href={activeMenuLink.shortUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => {
-                setActiveMenuLink(null);
-                cfInvalidateCache("links");
-              }}
-              className="w-full px-3 py-2 text-left hover:bg-white/5 flex items-center gap-2.5 transition-colors cursor-pointer"
-            >
-              <ExternalLink className="w-3.5 h-3.5 text-neutral-400" />
-              <span>Test redirection</span>
-            </a>
-            <button
-              type="button"
-              onClick={() => {
-                const link = activeMenuLink;
-                setActiveMenuLink(null);
-                setSelectedEditLink(link);
-              }}
-              className="w-full px-3 py-2 text-left hover:bg-white/5 flex items-center gap-2.5 transition-colors cursor-pointer"
-            >
-              <Edit3 className="w-3.5 h-3.5 text-[#ff6600]" />
-              <span>Edit link</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                const link = activeMenuLink;
-                setActiveMenuLink(null);
-                setSelectedShareLink(link);
-              }}
-              className="w-full px-3 py-2 text-left hover:bg-white/5 flex items-center gap-2.5 transition-colors cursor-pointer"
-            >
-              <Share2 className="w-3.5 h-3.5 text-sky-400" />
-              <span>Share link</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                const link = activeMenuLink;
-                setActiveMenuLink(null);
-                router.push(
-                  `/dashboard/analytics?linkId=${encodeURIComponent(link.id)}&slug=${encodeURIComponent(link.slug)}`,
-                );
-              }}
-              className="w-full px-3 py-2 text-left hover:bg-white/5 flex items-center gap-2.5 transition-colors cursor-pointer"
-            >
-              <BarChart2 className="w-3.5 h-3.5 text-emerald-400" />
-              <span>View analytics</span>
-            </button>
-            <div className="h-px bg-[#222225] my-1" />
-            <button
-              type="button"
-              onClick={() => {
-                const link = activeMenuLink;
-                setActiveMenuLink(null);
-                promptDeleteSingle(link);
-              }}
-              className="w-full px-3 py-2 text-left hover:bg-red-500/10 text-red-500 flex items-center gap-2.5 transition-colors cursor-pointer"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span>Delete link</span>
-            </button>
+            {/* Top Section */}
+            <div className="py-1">
+              {/* 1. Copy link */}
+              <button
+                type="button"
+                onClick={() => {
+                  const link = activeMenuLink;
+                  setActiveMenuLink(null);
+                  handleCopy(link);
+                }}
+                className="w-full px-4 py-2.5 text-left text-neutral-700 dark:text-neutral-200 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors cursor-pointer"
+              >
+                <Copy className="w-4 h-4 text-neutral-400" />
+                <span>Copy link</span>
+              </button>
+
+              {/* 2. View QR Code */}
+              <button
+                type="button"
+                onClick={() => {
+                  const link = activeMenuLink;
+                  setActiveMenuLink(null);
+                  setSelectedQRLink(link);
+                }}
+                className="w-full px-4 py-2.5 text-left text-neutral-700 dark:text-neutral-200 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors cursor-pointer"
+              >
+                <QrCode className="w-4 h-4 text-[var(--brand-primary-text)]" />
+                <span>View QR Code</span>
+              </button>
+
+              {/* 3. Test redirection */}
+              <a
+                href={activeMenuLink.shortUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => {
+                  setActiveMenuLink(null);
+                  cfInvalidateCache("links");
+                }}
+                className="w-full px-4 py-2.5 text-left text-neutral-700 dark:text-neutral-200 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors cursor-pointer"
+              >
+                <ExternalLink className="w-4 h-4 text-neutral-400" />
+                <span>Test redirection</span>
+              </a>
+
+              {/* 4. Edit link */}
+              <button
+                type="button"
+                onClick={() => {
+                  const link = activeMenuLink;
+                  setActiveMenuLink(null);
+                  setSelectedEditLink(link);
+                }}
+                className="w-full px-4 py-2.5 text-left text-neutral-700 dark:text-neutral-200 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors cursor-pointer"
+              >
+                <Edit3 className="w-4 h-4 text-[var(--brand-primary-text)]" />
+                <span>Edit link</span>
+              </button>
+
+              {/* 5. Share link */}
+              <button
+                type="button"
+                onClick={() => {
+                  const link = activeMenuLink;
+                  setActiveMenuLink(null);
+                  setSelectedShareLink(link);
+                }}
+                className="w-full px-4 py-2.5 text-left text-neutral-700 dark:text-neutral-200 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors cursor-pointer"
+              >
+                <Share2 className="w-4 h-4 text-sky-400" />
+                <span>Share link</span>
+              </button>
+
+              {/* 6. View analytics */}
+              <button
+                type="button"
+                onClick={() => {
+                  const link = activeMenuLink;
+                  setActiveMenuLink(null);
+                  router.push(
+                    `/dashboard/analytics?linkId=${encodeURIComponent(link.id)}&slug=${encodeURIComponent(link.slug)}`,
+                  );
+                }}
+                className="w-full px-4 py-2.5 text-left text-neutral-700 dark:text-neutral-200 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors cursor-pointer"
+              >
+                <BarChart2 className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
+                <span>View analytics</span>
+              </button>
+            </div>
+
+            {/* Bottom Section: Delete link */}
+            <div className="py-1">
+              <button
+                type="button"
+                onClick={() => {
+                  const link = activeMenuLink;
+                  setActiveMenuLink(null);
+                  start10SecondUndoDelete(link);
+                }}
+                className="w-full px-4 py-2.5 text-left text-rose-600 dark:text-rose-500 hover:text-rose-700 dark:hover:text-rose-400 hover:bg-rose-500/10 flex items-center gap-3 transition-colors cursor-pointer"
+              >
+                <Trash2 className="w-4 h-4 text-rose-600 dark:text-rose-500" />
+                <span className="font-semibold">Delete link</span>
+              </button>
+            </div>
+          </div>,
+          document.body,
+        )}
+
+      {/* Floating Undo Toast at Top Center (10-Second Countdown & Progress Bar) */}
+      {mounted &&
+        undoToast &&
+        createPortal(
+          <div className="fixed top-4 md:top-6 left-1/2 -translate-x-1/2 max-w-md w-[calc(100vw-2rem)] sm:w-[460px] z-[99999] shadow-2xl animate-in fade-in slide-in-from-top-4 duration-200">
+            <div className="relative overflow-hidden rounded-2xl bg-white/95 dark:bg-[#14161d]/95 border border-neutral-200 dark:border-[#2e323e] p-3.5 sm:p-4 text-neutral-900 dark:text-white shadow-[0_20px_60px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_60px_rgba(0,0,0,0.9)] backdrop-blur-2xl">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 rounded-xl bg-rose-500/15 dark:bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-rose-500 dark:text-rose-400 shrink-0 shadow-sm">
+                    <Trash2 className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs sm:text-sm font-bold text-neutral-900 dark:text-white truncate">
+                      Lien /{undoToast.link.slug} supprimé
+                    </div>
+                    <div className="text-[11px] text-neutral-500 dark:text-neutral-400 truncate">
+                      Glissé vers la gauche • Annulation possible
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  {/* Undo Button with Dynamic Countdown */}
+                  <button
+                    type="button"
+                    onClick={cancelUndoDelete}
+                    className="px-3 py-1.5 rounded-xl bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover)] text-white md:text-black font-extrabold text-xs font-mono transition-all transform active:scale-95 shadow-md flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5 text-white md:text-black" />
+                    <span>Annuler ({undoToast.remaining}s)</span>
+                  </button>
+
+                  {/* Red 'X' Button: ALSO cancels deletion and restores link */}
+                  <button
+                    type="button"
+                    onClick={cancelUndoDelete}
+                    className="p-1.5 rounded-lg text-rose-500 hover:text-rose-600 hover:bg-rose-500/15 border border-rose-500/30 transition-all cursor-pointer active:scale-95"
+                    title="Annuler la suppression et fermer"
+                  >
+                    <X className="w-4 h-4 stroke-[2.5]" />
+                  </button>
+                </div>
+              </div>
+
+              {/* 10-Second Progress Bar */}
+              <div className="absolute bottom-0 left-0 right-0 h-1 bg-neutral-200 dark:bg-neutral-800/80">
+                <div className="h-full bg-gradient-to-r from-[var(--brand-primary)] via-rose-500 to-rose-600 origin-left link-animate-progress" />
+              </div>
+            </div>
           </div>,
           document.body,
         )}

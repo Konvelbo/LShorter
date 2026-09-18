@@ -187,12 +187,12 @@ export function ForgotPasswordModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
-      <div className="relative w-full max-w-md rounded-[10px] bg-[#141416] border border-[#27272a] p-6 sm:p-8 shadow-2xl text-white">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 dark:bg-black/80 backdrop-blur-md animate-in fade-in">
+      <div className="relative w-full max-w-md rounded-[10px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#27272a] p-6 sm:p-8 shadow-2xl text-zinc-900 dark:text-white">
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute right-5 top-5 text-neutral-400 hover:text-white transition-colors cursor-pointer p-1"
+          className="absolute right-5 top-5 text-zinc-400 dark:text-neutral-400 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer p-1"
         >
           <X className="w-5 h-5" />
         </button>
@@ -201,17 +201,17 @@ export function ForgotPasswordModal({
         <div className="flex items-center gap-2 mb-6">
           <div
             className={`h-1.5 flex-1 rounded-[10px] transition-all ${
-              step === "email" ? "bg-[#ff6600]" : "bg-[#ff6600]/40"
+              step === "email" ? "bg-brand" : "bg-brand-subtle"
             }`}
           />
           <div
             className={`h-1.5 flex-1 rounded-[10px] transition-all ${
-              step === "pin" ? "bg-[#ff6600]" : step === "password" ? "bg-[#ff6600]/40" : "bg-[#27272a]"
+              step === "pin" ? "bg-brand" : step === "password" ? "bg-brand-subtle" : "bg-zinc-200 dark:bg-[#27272a]"
             }`}
           />
           <div
             className={`h-1.5 flex-1 rounded-[10px] transition-all ${
-              step === "password" ? "bg-[#ff6600]" : "bg-[#27272a]"
+              step === "password" ? "bg-brand" : "bg-zinc-200 dark:bg-[#27272a]"
             }`}
           />
         </div>
@@ -220,21 +220,21 @@ export function ForgotPasswordModal({
         {step === "email" && (
           <form onSubmit={handleSendPin} className="flex flex-col gap-4 animate-in fade-in">
             <div className="flex items-center gap-3 mb-1">
-              <div className="w-10 h-10 rounded-[10px] bg-[#ff6600]/15 border border-[#ff6600]/30 flex items-center justify-center text-[#ff6600]">
+              <div className="w-10 h-10 rounded-[10px] bg-brand-subtle border border-brand-subtle flex items-center justify-center text-brand">
                 <Mail className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-bebas text-2xl text-white tracking-wide">
+                <h3 className="font-bebas text-2xl text-zinc-900 dark:text-white tracking-wide">
                   FORGOT PASSWORD?
                 </h3>
-                <p className="text-xs text-neutral-400">
+                <p className="text-xs text-zinc-500 dark:text-neutral-400">
                   Receive a 6-digit security code via email.
                 </p>
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
+              <label className="block text-xs font-semibold text-zinc-700 dark:text-neutral-300 mb-1.5">
                 Account email address
               </label>
               <Input
@@ -263,21 +263,21 @@ export function ForgotPasswordModal({
         {step === "pin" && (
           <form onSubmit={handleVerifyPin} className="flex flex-col gap-4 animate-in fade-in">
             <div className="flex items-center gap-3 mb-1">
-              <div className="w-10 h-10 rounded-[10px] bg-[#ff6600]/15 border border-[#ff6600]/30 flex items-center justify-center text-[#ff6600]">
+              <div className="w-10 h-10 rounded-[10px] bg-brand-subtle border border-brand-subtle flex items-center justify-center text-brand">
                 <KeyRound className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-bebas text-2xl text-white tracking-wide">
+                <h3 className="font-bebas text-2xl text-zinc-900 dark:text-white tracking-wide">
                   VERIFICATION CODE
                 </h3>
-                <p className="text-xs text-neutral-400">
-                  Code sent to <span className="text-white font-medium">{email}</span>
+                <p className="text-xs text-zinc-500 dark:text-neutral-400">
+                  Code sent to <span className="text-zinc-900 dark:text-white font-medium">{email}</span>
                 </p>
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-neutral-300 mb-1.5 text-center">
+              <label className="block text-xs font-semibold text-zinc-700 dark:text-neutral-300 mb-1.5 text-center">
                 Enter the 6-digit PIN code
               </label>
               <input
@@ -290,9 +290,9 @@ export function ForgotPasswordModal({
                 placeholder="123456"
                 value={pin}
                 onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                className="w-full h-14 rounded-[10px] bg-[#1a1a1e] border-2 border-[#27272a] focus:border-[#ff6600] text-center font-mono text-3xl font-bold tracking-[0.6em] text-white focus:outline-none transition-colors"
+                className="w-full h-14 rounded-[10px] bg-zinc-50 dark:bg-[#1a1a1e] border-2 border-zinc-200 dark:border-[#27272a] focus:border-brand text-center font-mono text-3xl font-bold tracking-[0.6em] text-zinc-900 dark:text-white focus:outline-none transition-colors"
               />
-              <p className="text-[11px] text-neutral-500 text-center mt-2">
+              <p className="text-[11px] text-zinc-500 dark:text-neutral-500 text-center mt-2">
                 ⏱️ This code expires in 15 minutes.
               </p>
             </div>
@@ -307,11 +307,11 @@ export function ForgotPasswordModal({
               <CheckCircle2 className="w-4 h-4" />
             </Button>
 
-            <div className="flex items-center justify-between text-xs pt-2 border-t border-[#27272a]">
+            <div className="flex items-center justify-between text-xs pt-2 border-t border-zinc-200 dark:border-[#27272a]">
               <button
                 type="button"
                 onClick={() => setStep("email")}
-                className="text-neutral-400 hover:text-white flex items-center gap-1 cursor-pointer"
+                className="text-zinc-500 dark:text-neutral-400 hover:text-zinc-900 dark:hover:text-white flex items-center gap-1 cursor-pointer"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
                 Change email
@@ -321,7 +321,7 @@ export function ForgotPasswordModal({
                 type="button"
                 disabled={countdown > 0 || isLoading}
                 onClick={handleSendPin}
-                className="text-[#ff6600] hover:underline disabled:opacity-50 disabled:no-underline flex items-center gap-1 cursor-pointer font-medium"
+                className="text-brand hover:underline disabled:opacity-50 disabled:no-underline flex items-center gap-1 cursor-pointer font-medium"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`} />
                 {countdown > 0 ? `Resend (${countdown}s)` : "Resend code"}
@@ -334,21 +334,21 @@ export function ForgotPasswordModal({
         {step === "password" && (
           <form onSubmit={handleResetPassword} className="flex flex-col gap-4 animate-in fade-in">
             <div className="flex items-center gap-3 mb-1">
-              <div className="w-10 h-10 rounded-[10px] bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+              <div className="w-10 h-10 rounded-[10px] bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-500 dark:text-emerald-400">
                 <ShieldCheck className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-bebas text-2xl text-white tracking-wide">
+                <h3 className="font-bebas text-2xl text-zinc-900 dark:text-white tracking-wide">
                   NEW PASSWORD
                 </h3>
-                <p className="text-xs text-neutral-400">
+                <p className="text-xs text-zinc-500 dark:text-neutral-400">
                   Set your new secure account password.
                 </p>
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
+              <label className="block text-xs font-semibold text-zinc-700 dark:text-neutral-300 mb-1.5">
                 New password
               </label>
               <div className="relative">
@@ -364,7 +364,7 @@ export function ForgotPasswordModal({
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white transition-colors cursor-pointer p-1"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-neutral-400 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer p-1"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -373,11 +373,11 @@ export function ForgotPasswordModal({
               {/* Password strength bar */}
               {newPassword && (
                 <div className="flex flex-col gap-1 mt-2 text-[11px]">
-                  <div className="flex justify-between text-neutral-400">
+                  <div className="flex justify-between text-zinc-500 dark:text-neutral-400">
                     <span>Strength</span>
-                    <span className="text-white font-bold">{passwordStrength}%</span>
+                    <span className="text-zinc-900 dark:text-white font-bold">{passwordStrength}%</span>
                   </div>
-                  <div className="w-full h-1.5 rounded-[10px] bg-[#27272a] overflow-hidden">
+                  <div className="w-full h-1.5 rounded-[10px] bg-zinc-200 dark:bg-[#27272a] overflow-hidden">
                     <div
                       className={`h-full transition-all ${
                         passwordStrength < 50
@@ -394,7 +394,7 @@ export function ForgotPasswordModal({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
+              <label className="block text-xs font-semibold text-zinc-700 dark:text-neutral-300 mb-1.5">
                 Confirm new password
               </label>
               <div className="relative">
@@ -409,7 +409,7 @@ export function ForgotPasswordModal({
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white transition-colors cursor-pointer p-1"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-neutral-400 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer p-1"
                 >
                   {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>

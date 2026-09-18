@@ -41,12 +41,18 @@ export async function PATCH(
       deleteFromBunny(previousImage).catch((e) => console.warn("[Bunny Delete Previous Banner Error]:", e));
     }
 
-    const twitterCard = body.twitterCard || body.twitter_card || (sanitizedOgImage ? "summary_large_image" : undefined);
+    const resolvedTwitterCard: "summary_large_image" | "summary" =
+      body.twitterCard ||
+      body.twitter_card ||
+      (sanitizedOgImage ? "summary_large_image" : "summary_large_image");
 
     // 1. Persist in local store
     if (body.slug || id) {
       try {
+        const rawRouting = body.routingRules !== undefined ? body.routingRules : body.routing_rules;
+        const parsedRouting = typeof rawRouting === "string" ? JSON.parse(rawRouting) : rawRouting;
         saveProtectedLink({
+          id,
           slug: body.slug || id,
           password: body.password || undefined,
           isCloaked: body.isCloaked !== undefined ? Boolean(body.isCloaked) : undefined,
@@ -54,9 +60,10 @@ export async function PATCH(
           ogTitle: body.ogTitle || body.og_title || body.metaTitle || undefined,
           ogDescription: body.ogDescription || body.og_description || undefined,
           ogImage: sanitizedOgImage || undefined,
-          twitterCard: "summary_large_image",
+          twitterCard: resolvedTwitterCard,
+          twitter_card: resolvedTwitterCard,
           targetUrl: body.targetUrl || body.target_url || undefined,
-          routingRules: body.routingRules || body.routing_rules || undefined,
+          routingRules: parsedRouting !== undefined ? parsedRouting : undefined,
           geoTargeting: body.geoTargeting || body.geo_targeting || undefined,
           deviceTargeting: body.deviceTargeting || body.device_targeting || undefined,
           maxClicks: body.maxClicks !== undefined ? Number(body.maxClicks) : body.max_clicks !== undefined ? Number(body.max_clicks) : undefined,
@@ -87,8 +94,8 @@ export async function PATCH(
       og_title: body.ogTitle || body.og_title,
       ogDescription: body.ogDescription || body.og_description,
       og_description: body.ogDescription || body.og_description,
-      twitterCard: "summary_large_image",
-      twitter_card: "summary_large_image",
+      twitterCard: resolvedTwitterCard,
+      twitter_card: resolvedTwitterCard,
       metaTitle: body.metaTitle || body.meta_title || body.ogTitle,
       meta_title: body.meta_title || body.metaTitle || body.ogTitle,
       redirectType: body.redirectType || body.redirect_type,
@@ -237,8 +244,8 @@ export async function PATCH(
             success: true,
             data: {
               ...(createData.data || createData),
-              twitterCard: "summary_large_image",
-              twitter_card: "summary_large_image",
+              twitterCard: resolvedTwitterCard,
+              twitter_card: resolvedTwitterCard,
             },
           }, { status: 200 });
         }
@@ -259,8 +266,8 @@ export async function PATCH(
             ogDescription: body.ogDescription || body.og_description,
             og_description: body.ogDescription || body.og_description,
             metaTitle: body.metaTitle || body.meta_title,
-            twitterCard: "summary_large_image",
-            twitter_card: "summary_large_image",
+            twitterCard: resolvedTwitterCard,
+            twitter_card: resolvedTwitterCard,
           },
         },
         { status: 200 }
@@ -284,8 +291,8 @@ export async function PATCH(
             ogDescription: body.ogDescription || body.og_description,
             og_description: body.ogDescription || body.og_description,
             metaTitle: body.metaTitle || body.meta_title,
-            twitterCard: "summary_large_image",
-            twitter_card: "summary_large_image",
+            twitterCard: resolvedTwitterCard,
+            twitter_card: resolvedTwitterCard,
             password: body.password || undefined,
             isCloaked: Boolean(body.isCloaked || body.is_cloaked),
             routingRules: body.routingRules || body.routing_rules || undefined,
@@ -312,8 +319,8 @@ export async function PATCH(
           ogDescription: body.ogDescription || body.og_description,
           og_description: body.ogDescription || body.og_description,
           metaTitle: body.metaTitle || body.meta_title,
-          twitterCard: "summary_large_image",
-          twitter_card: "summary_large_image",
+          twitterCard: resolvedTwitterCard,
+          twitter_card: resolvedTwitterCard,
           password: body.password || undefined,
           isCloaked: Boolean(body.isCloaked || body.is_cloaked),
           routingRules: body.routingRules || body.routing_rules || undefined,

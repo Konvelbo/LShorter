@@ -485,11 +485,11 @@ function RevenueAnalyticsContent() {
         </div>
 
         {/* 3. Clics Associés */}
-        <div className="shrink-0 w-[170px] sm:w-[240px] md:w-[280px] lg:w-[300px] h-[100px] sm:h-[120px] md:h-[135px] lg:h-[145px] p-2.5 sm:p-3.5 md:p-4 rounded-[10px] sm:rounded-[12px] md:rounded-[14px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] shadow-sm flex flex-col justify-between hover:border-[#ff6600]/50 hover:shadow-md transition-all select-none">
+        <div className="shrink-0 w-[170px] sm:w-[240px] md:w-[280px] lg:w-[300px] h-[100px] sm:h-[120px] md:h-[135px] lg:h-[145px] p-2.5 sm:p-3.5 md:p-4 rounded-[10px] sm:rounded-[12px] md:rounded-[14px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] shadow-sm flex flex-col justify-between hover:border-brand hover:shadow-md transition-all select-none">
           <div className="flex items-center justify-between">
             <span className="text-[10px] sm:text-xs md:text-sm font-bold text-zinc-600 dark:text-neutral-400 uppercase tracking-wider truncate">Clicks</span>
             <div className="p-1 sm:p-1.5 rounded-full bg-orange-500/10 shrink-0">
-              <MousePointerClick className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-[#ff6600]" />
+              <MousePointerClick className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-brand" />
             </div>
           </div>
           <div className="my-0 sm:my-0.5">
@@ -501,7 +501,7 @@ function RevenueAnalyticsContent() {
             <span className="text-[9px] sm:text-[11px] md:text-xs font-bold text-zinc-500 dark:text-neutral-400 truncate">
               Traffic volume
             </span>
-            <span className="text-[8px] sm:text-[10px] md:text-[11px] text-[#ff6600] font-mono shrink-0">Global</span>
+            <span className="text-[8px] sm:text-[10px] md:text-[11px] text-brand font-mono shrink-0">Global</span>
           </div>
         </div>
 

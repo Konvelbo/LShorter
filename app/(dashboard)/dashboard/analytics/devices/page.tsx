@@ -296,13 +296,13 @@ export default function DevicesAnalyticsPage() {
           <div className="flex items-center gap-2 mb-2">
             <Link
               href="/dashboard/analytics"
-              className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-[#ff6600] dark:text-neutral-400 dark:hover:text-[#ff6600] transition-colors"
+              className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-brand dark:text-neutral-400 dark:hover:text-brand transition-colors"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Back to Analytics</span>
             </Link>
             <span className="text-zinc-400 dark:text-neutral-600">/</span>
-            <span className="text-xs text-[#ff6600] font-semibold flex items-center gap-1">
+            <span className="text-xs text-brand font-semibold flex items-center gap-1">
               <Laptop className="w-3 h-3" />
               <span>Devices & Formats</span>
             </span>
@@ -327,7 +327,7 @@ export default function DevicesAnalyticsPage() {
               setSelectedLinkId(e.target.value);
               loadData(selectedRange, e.target.value);
             }}
-            className="px-3 py-1.5 rounded-[10px] bg-zinc-100 dark:bg-[#1a1a1e] border border-zinc-300 dark:border-[#27272a] text-xs font-semibold text-zinc-800 dark:text-white focus:outline-none focus:border-[#ff6600] cursor-pointer"
+            className="px-3 py-1.5 rounded-[10px] bg-zinc-100 dark:bg-[#1a1a1e] border border-zinc-300 dark:border-[#27272a] text-xs font-semibold text-zinc-800 dark:text-white focus:outline-none focus:border-brand cursor-pointer"
           >
             <option value="all" className="bg-white dark:bg-[#141416] text-zinc-900 dark:text-white">All links combined</option>
             {links.map((l) => (
@@ -347,7 +347,7 @@ export default function DevicesAnalyticsPage() {
                 }}
                 className={`px-2.5 py-1 rounded-[10px] font-semibold transition-all cursor-pointer ${
                   selectedRange === r
-                    ? "bg-[#ff6600] text-white font-bold"
+                    ? "bg-brand text-white font-bold"
                     : "text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 dark:text-neutral-400 dark:hover:text-white dark:hover:bg-white/5"
                 }`}
               >
@@ -361,7 +361,7 @@ export default function DevicesAnalyticsPage() {
             className="p-2 rounded-[10px] bg-zinc-100 hover:bg-zinc-200 dark:bg-[#1a1a1e] dark:hover:bg-white/10 text-zinc-700 hover:text-zinc-900 dark:text-neutral-300 dark:hover:text-white border border-zinc-300 dark:border-[#27272a] transition-all cursor-pointer"
             title="Refresh"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin text-[#ff6600]" : ""}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin text-brand" : ""}`} />
           </button>
         </div>
       </div>
@@ -402,11 +402,11 @@ export default function DevicesAnalyticsPage() {
           </div>
         </div>
 
-        <div className="shrink-0 w-[170px] sm:w-[240px] md:w-[280px] lg:w-[300px] h-[100px] sm:h-[120px] md:h-[135px] lg:h-[145px] p-2.5 sm:p-3.5 md:p-4 rounded-[10px] sm:rounded-[12px] md:rounded-[14px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] shadow-sm flex flex-col justify-between hover:border-[#ff6600]/50 hover:shadow-md transition-all select-none">
+        <div className="shrink-0 w-[170px] sm:w-[240px] md:w-[280px] lg:w-[300px] h-[100px] sm:h-[120px] md:h-[135px] lg:h-[145px] p-2.5 sm:p-3.5 md:p-4 rounded-[10px] sm:rounded-[12px] md:rounded-[14px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] shadow-sm flex flex-col justify-between hover:border-brand hover:shadow-md transition-all select-none">
           <div className="flex items-center justify-between">
             <span className="text-[10px] sm:text-xs md:text-sm font-bold text-zinc-600 dark:text-neutral-400 uppercase tracking-wider truncate">Browser</span>
             <div className="p-1 sm:p-1.5 rounded-full bg-orange-500/10 shrink-0">
-              <Cpu className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-[#ff6600]" />
+              <Cpu className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-brand" />
             </div>
           </div>
           <div className="my-0 sm:my-0.5 flex items-center gap-1.5 truncate">
@@ -415,7 +415,7 @@ export default function DevicesAnalyticsPage() {
             </span>
           </div>
           <div className="flex items-center justify-between pt-0.5 sm:pt-1 border-t border-zinc-200/60 dark:border-[#222225]">
-            <span className="text-[9px] sm:text-[11px] md:text-xs text-[#ff6600] font-bold truncate">
+            <span className="text-[9px] sm:text-[11px] md:text-xs text-brand font-bold truncate">
               {analytics.totalClicks > 0 && analytics.topBrowsers.length > 0 ? `${analytics.topBrowsers[0].percentage}%` : "0%"}
             </span>
             <span className="text-[8px] sm:text-[10px] md:text-[11px] text-zinc-500 dark:text-neutral-400 font-mono shrink-0">#1</span>
@@ -541,7 +541,7 @@ export default function DevicesAnalyticsPage() {
           <div>
             <div className="flex items-center justify-between mb-3 pb-2 border-b border-zinc-200 dark:border-[#222225]">
               <span className="text-xs font-bold text-zinc-900 dark:text-white flex items-center gap-1.5">
-                <Cpu className="w-4 h-4 text-[#ff6600]" />
+                <Cpu className="w-4 h-4 text-brand" />
                 <span>Web Browsers</span>
               </span>
               <span className="text-[11px] text-zinc-500 dark:text-neutral-400 font-mono">{analytics.topBrowsers.length} browsers</span>
@@ -552,13 +552,13 @@ export default function DevicesAnalyticsPage() {
                 <div key={br.name} className="p-3 rounded-[10px] bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a]">
                   <div className="flex items-center justify-between gap-2 mb-1.5">
                     <span className="text-xs font-bold text-zinc-900 dark:text-white">{br.name}</span>
-                    <span className="text-xs font-bold text-[#ff6600] font-mono">
+                    <span className="text-xs font-bold text-brand font-mono">
                       {br.percentage}% ({br.count})
                     </span>
                   </div>
                   <div className="w-full h-1.5 rounded-full bg-zinc-200 dark:bg-white/10 overflow-hidden">
                     <div
-                      className="h-full rounded-full bg-[#ff6600] transition-all duration-500"
+                      className="h-full rounded-full bg-brand transition-all duration-500"
                       style={{ width: `${br.percentage}%` }}
                     />
                   </div>
@@ -677,7 +677,7 @@ export default function DevicesAnalyticsPage() {
 
               {/* Bottom Row: Target Link & Referrer */}
               <div className="flex items-center justify-between pt-2 border-t border-zinc-200 dark:border-[#222228] text-[11px] gap-2">
-                <span className="font-mono font-bold text-cyan-600 dark:text-cyan-400 md:text-[#ff6600] bg-cyan-500/10 md:bg-[#ff6600]/10 px-2 py-0.5 rounded-[10px] border border-cyan-500/20 md:border-[#ff6600]/20 truncate">
+                <span className="font-mono font-bold text-brand bg-brand-subtle px-2 py-0.5 rounded-[10px] border border-brand-subtle truncate">
                   /{ev.slug}
                 </span>
                 <span className="px-2 py-0.5 rounded-[10px] bg-zinc-100 dark:bg-white/5 border border-zinc-200 dark:border-[#27272a] text-[10px] font-mono text-zinc-500 dark:text-neutral-400 shrink-0">
@@ -759,7 +759,7 @@ export default function DevicesAnalyticsPage() {
                   )}
 
                   {visibleColumns.has("link") && (
-                    <td className="py-3 px-3 font-mono text-[#ff6600] font-semibold">
+                    <td className="py-3 px-3 font-mono text-brand font-semibold">
                       /{ev.slug}
                     </td>
                   )}

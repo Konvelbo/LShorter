@@ -222,7 +222,7 @@ export function LinkShareModal({ link, isOpen, onClose }: LinkShareModalProps) {
 
         {/* Modal Header */}
         <div className="flex items-center gap-3 mb-5">
-          <div className="w-10 h-10 rounded-[10px] bg-[#ff6600]/15 border border-[#ff6600]/30 flex items-center justify-center text-[#ff6600]">
+          <div className="w-10 h-10 rounded-[10px] bg-[var(--badge-brand-bg)] border border-[var(--badge-brand-border)] flex items-center justify-center text-[var(--brand-primary-text)]">
             <Share2 className="w-5 h-5" />
           </div>
           <div>
@@ -233,10 +233,10 @@ export function LinkShareModal({ link, isOpen, onClose }: LinkShareModalProps) {
 
         {/* Short URL Copy Box */}
         <div className="flex items-center justify-between gap-2 p-3 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] mb-6">
-          <span className="text-xs font-mono text-[#ff6600] truncate">{link.shortUrl}</span>
+          <span className="text-xs font-mono text-[var(--brand-primary-text)] truncate">{link.shortUrl}</span>
           <button
             onClick={handleCopy}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-[10px] bg-[#ff6600] hover:bg-[#ff771a] text-white text-xs font-bold shrink-0 transition-all hover:scale-105 active:scale-95 shadow-md shadow-[#ff6600]/25 cursor-pointer"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-[10px] bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover)] text-white text-xs font-bold shrink-0 transition-all hover:scale-105 active:scale-95 shadow-md shadow-[var(--btn-primary-shadow)] cursor-pointer"
           >
             {copied ? (
               <>
@@ -258,7 +258,7 @@ export function LinkShareModal({ link, isOpen, onClose }: LinkShareModalProps) {
           <div className="md:col-span-6 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] p-4 flex flex-col items-center justify-between gap-4">
             <div className="flex items-center justify-between w-full">
               <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                <QrCode className="w-4 h-4 text-[#ff6600]" />
+                <QrCode className="w-4 h-4 text-[var(--brand-primary-text)]" />
                 <span>Customizable QR Code</span>
               </span>
               <span className="text-[10px] text-neutral-400">High Resolution</span>
@@ -272,7 +272,7 @@ export function LinkShareModal({ link, isOpen, onClose }: LinkShareModalProps) {
             {/* Color Presets */}
             <div className="flex items-center justify-between w-full text-xs">
               <span className="text-neutral-400 text-[11px] font-medium flex items-center gap-1">
-                <Palette className="w-3 h-3 text-[#ff6600]" />
+                <Palette className="w-3 h-3 text-[var(--brand-primary-text)]" />
                 <span>Color:</span>
               </span>
               <div className="flex items-center gap-1.5">
@@ -315,9 +315,9 @@ export function LinkShareModal({ link, isOpen, onClose }: LinkShareModalProps) {
                 onClick={handleDownloadSVG}
                 variant="outline"
                 size="sm"
-                className="text-xs gap-1.5 w-full border-[#27272a] hover:border-[#ff6600]"
+                className="text-xs gap-1.5 w-full border-[#27272a] hover:border-[var(--brand-primary)]"
               >
-                <Download className="w-3.5 h-3.5 text-[#ff6600]" />
+                <Download className="w-3.5 h-3.5 text-[var(--brand-primary-text)]" />
                 <span>SVG</span>
               </Button>
             </div>
@@ -326,7 +326,7 @@ export function LinkShareModal({ link, isOpen, onClose }: LinkShareModalProps) {
           {/* Right Column: Social Networks Grid (6 cols) with Real Vector Brand Icons */}
           <div className="md:col-span-6 flex flex-col gap-3">
             <span className="text-xs font-bold text-white flex items-center gap-1.5">
-              <Share2 className="w-4 h-4 text-[#ff6600]" />
+              <Share2 className="w-4 h-4 text-[var(--brand-primary-text)]" />
               <span>Share on Social Media</span>
             </span>
 
@@ -367,7 +367,7 @@ export function LinkShareModal({ link, isOpen, onClose }: LinkShareModalProps) {
               }}
               className="mt-2 w-full py-2.5 rounded-[10px] bg-white/5 hover:bg-white/10 text-neutral-300 hover:text-white text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer border border-[#27272a]"
             >
-              <Sliders className="w-3.5 h-3.5 text-[#ff6600]" />
+              <Sliders className="w-3.5 h-3.5 text-[var(--brand-primary-text)]" />
               <span>Full QR Editor (Logo, Styles)</span>
               <ExternalLink className="w-3 h-3 text-neutral-500" />
             </button>

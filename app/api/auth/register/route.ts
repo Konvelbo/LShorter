@@ -4,7 +4,7 @@ import { api } from "@/convex/_generated/api";
 import bcrypt from "bcryptjs";
 
 const convex = new ConvexHttpClient(
-  process.env.NEXT_PUBLIC_CONVEX_URL || "https://greedy-mastiff-107.convex.cloud"
+  process.env.NEXT_PUBLIC_CONVEX_URL || "https://beloved-avocet-415.convex.cloud"
 );
 
 export async function POST(req: NextRequest) {
@@ -13,20 +13,20 @@ export async function POST(req: NextRequest) {
     const { name, email, password, passwordHash } = body;
 
     if (!email || (!password && !passwordHash) || !name) {
-      return NextResponse.json({ error: "Données manquantes." }, { status: 400 });
+      return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
     }
 
     const cleanEmail = email.trim().toLowerCase();
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(cleanEmail)) {
-      return NextResponse.json({ error: "Format d'adresse e-mail invalide." }, { status: 400 });
+      return NextResponse.json({ error: "Invalid email address format." }, { status: 400 });
     }
 
     let finalHash = passwordHash;
     if (password) {
       if (typeof password !== "string" || password.length < 8) {
         return NextResponse.json(
-          { error: "Le mot de passe doit comporter au moins 8 caractères." },
+          { error: "Password must be at least 8 characters long." },
           { status: 400 }
         );
       }
@@ -67,9 +67,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, userId: result.userId }, { status: 201 });
   } catch (err: any) {
-    const message = err?.message || "Erreur serveur.";
+    const message = err?.message || "Server error.";
     if (message.includes("EMAIL_ALREADY_EXISTS")) {
-      return NextResponse.json({ error: "EMAIL_ALREADY_EXISTS" }, { status: 409 });
+      return NextResponse.json({ error: "An account already exists with this email address. Please sign in." }, { status: 409 });
     }
     return NextResponse.json({ error: message }, { status: 500 });
   }

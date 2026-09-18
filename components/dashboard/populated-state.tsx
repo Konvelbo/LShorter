@@ -102,7 +102,7 @@ export function PopulatedState({ links, analytics, onRefresh }: PopulatedStatePr
               disabled={isRefreshing}
               className="h-10 px-3.5 text-xs font-semibold gap-2 border-[#27272a] bg-[#141416] hover:bg-white/5 text-neutral-300 hover:text-white cursor-pointer shadow-sm"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-[#ff6600]" : "text-neutral-400"}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-brand" : "text-neutral-400"}`} />
               <span>Refresh</span>
             </Button>
           )}
@@ -124,7 +124,7 @@ export function PopulatedState({ links, analytics, onRefresh }: PopulatedStatePr
         className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
       >
         {/* Card 1: Total Clicks */}
-        <div className="rounded-[10px] bg-[#141416] border border-[#222225] p-5 flex flex-col justify-between h-36 relative group hover:border-[#ff6600]/40 transition-colors">
+        <div className="rounded-[10px] bg-[#141416] border border-[#222225] p-5 flex flex-col justify-between h-36 relative group hover:border-brand-subtle transition-colors">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-neutral-400">Total Clicks</span>
             <span className="text-xs font-bold text-emerald-400 flex items-center gap-0.5">
@@ -132,7 +132,7 @@ export function PopulatedState({ links, analytics, onRefresh }: PopulatedStatePr
             </span>
           </div>
           <div>
-            <span className="font-bebas text-5xl font-bold text-[#ff6600] tracking-wide">
+            <span className="font-bebas text-5xl font-bold text-brand tracking-wide">
               {formatNumber(analytics.totalClicks)}
             </span>
           </div>
@@ -143,7 +143,7 @@ export function PopulatedState({ links, analytics, onRefresh }: PopulatedStatePr
         </div>
 
         {/* Card 2: Created Links */}
-        <div className="rounded-[10px] bg-[#141416] border border-[#222225] p-5 flex flex-col justify-between h-36 relative group hover:border-[#ff6600]/40 transition-colors">
+        <div className="rounded-[10px] bg-[#141416] border border-[#222225] p-5 flex flex-col justify-between h-36 relative group hover:border-brand-subtle transition-colors">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-neutral-400">Created Links</span>
             <span className="text-xs font-bold text-emerald-400">{links.length}</span>
@@ -160,7 +160,7 @@ export function PopulatedState({ links, analytics, onRefresh }: PopulatedStatePr
         </div>
 
         {/* Card 3: Tracked Revenue */}
-        <div className="rounded-[10px] bg-[#141416] border border-[#222225] p-5 flex flex-col justify-between h-36 relative group hover:border-[#ff6600]/40 transition-colors">
+        <div className="rounded-[10px] bg-[#141416] border border-[#222225] p-5 flex flex-col justify-between h-36 relative group hover:border-brand-subtle transition-colors">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-neutral-400">Tracked Revenue</span>
             <span className="text-xs font-bold text-emerald-400">${analytics.trackedRevenue.toFixed(2)}</span>
@@ -177,7 +177,7 @@ export function PopulatedState({ links, analytics, onRefresh }: PopulatedStatePr
         </div>
 
         {/* Card 4: Conversion Rate */}
-        <div className="rounded-[10px] bg-[#141416] border border-[#222225] p-5 flex flex-col justify-between h-36 relative group hover:border-[#ff6600]/40 transition-colors">
+        <div className="rounded-[10px] bg-[#141416] border border-[#222225] p-5 flex flex-col justify-between h-36 relative group hover:border-brand-subtle transition-colors">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-neutral-400">Conversion Rate</span>
             <span className={`text-xs font-bold ${conversionRate > 0 ? "text-emerald-400" : "text-neutral-400"}`}>{conversionRate}%</span>
@@ -208,7 +208,7 @@ export function PopulatedState({ links, analytics, onRefresh }: PopulatedStatePr
               <h3 className="text-base font-bold text-white tracking-wide">Top Countries</h3>
               <Link
                 href="/dashboard/analytics"
-                className="text-xs text-[#ff6600] hover:underline flex items-center gap-1 font-medium"
+                className="text-xs text-brand hover:underline flex items-center gap-1 font-medium"
               >
                 <span>Details</span>
                 <ArrowUpRight className="w-3.5 h-3.5" />
@@ -225,7 +225,7 @@ export function PopulatedState({ links, analytics, onRefresh }: PopulatedStatePr
                   <div key={country.code} className="flex flex-col gap-1 text-xs">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-[11px] font-bold text-[#ff6600] w-6">
+                        <span className="font-mono text-[11px] font-bold text-brand w-6">
                           {country.code}
                         </span>
                         <span className="text-neutral-300 font-medium">{country.name}</span>
@@ -238,7 +238,7 @@ export function PopulatedState({ links, analytics, onRefresh }: PopulatedStatePr
                     {/* Progress bar */}
                     <div className="w-full h-1.5 rounded-full bg-neutral-200 dark:bg-[#27272a] overflow-hidden">
                       <div
-                        className="h-full bg-[#ff6600] rounded-full transition-all duration-500"
+                        className="h-full bg-brand rounded-full transition-all duration-500"
                         style={{ width: `${country.percentage}%` }}
                       />
                     </div>
@@ -265,7 +265,7 @@ export function PopulatedState({ links, analytics, onRefresh }: PopulatedStatePr
 
           <Link
             href="/dashboard/links"
-            className="text-xs text-[#ff6600] hover:underline font-semibold flex items-center gap-1"
+            className="text-xs text-brand hover:underline font-semibold flex items-center gap-1"
           >
             <span>View all links</span>
             <ArrowUpRight className="w-3.5 h-3.5" />
@@ -283,7 +283,7 @@ export function PopulatedState({ links, analytics, onRefresh }: PopulatedStatePr
               {recentLinks.map((link) => (
                 <div
                   key={link.id}
-                  className="rounded-[10px] bg-[#18181c] border border-[#27272a] p-3 flex flex-col gap-2 transition-all hover:border-[#ff6600]/40"
+                  className="rounded-[10px] bg-[#18181c] border border-[#27272a] p-3 flex flex-col gap-2 transition-all hover:border-brand-subtle"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
@@ -294,7 +294,7 @@ export function PopulatedState({ links, analytics, onRefresh }: PopulatedStatePr
                         </span>
                       </div>
                       <p className="text-[11px] text-neutral-400 truncate mt-1 flex items-center gap-1" title={link.targetUrl}>
-                        <span className="text-[#ff6600] font-bold shrink-0">↳</span>
+                        <span className="text-brand font-bold shrink-0">↳</span>
                         <span className="truncate">{link.targetUrl}</span>
                       </p>
                     </div>
@@ -326,7 +326,7 @@ export function PopulatedState({ links, analytics, onRefresh }: PopulatedStatePr
                   <div className="flex items-center justify-between pt-2 border-t border-[#222225] text-xs">
                     <button
                       onClick={() => handleCopy(link)}
-                      className="px-2.5 py-1 rounded-[10px] bg-[#ff6600]/15 text-[#ff771a] border border-[#ff6600]/30 hover:bg-[#ff6600] hover:text-white text-[11px] font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
+                      className="px-2.5 py-1 rounded-[10px] bg-brand-light text-brand border border-brand-subtle hover:bg-brand hover:text-white text-[11px] font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
                     >
                       {copiedId === link.id ? (
                         <>
@@ -347,14 +347,14 @@ export function PopulatedState({ links, analytics, onRefresh }: PopulatedStatePr
                         className="p-1.5 rounded-[10px] bg-white/5 text-neutral-400 hover:text-white"
                         title="Edit link"
                       >
-                        <Edit3 className="w-3.5 h-3.5 text-[#ff6600]" />
+                        <Edit3 className="w-3.5 h-3.5 text-brand" />
                       </button>
                       <button
                         onClick={() => setSelectedQRLink(link)}
                         className="p-1.5 rounded-[10px] bg-white/5 text-neutral-400 hover:text-white"
                         title="QR Code"
                       >
-                        <QrCode className="w-3.5 h-3.5 text-[#ff6600]" />
+                        <QrCode className="w-3.5 h-3.5 text-brand" />
                       </button>
                       <button
                         onClick={() => setSelectedShareLink(link)}
@@ -396,7 +396,7 @@ export function PopulatedState({ links, analytics, onRefresh }: PopulatedStatePr
                     <tr key={link.id} className="hover:bg-white/[0.02] transition-colors group">
                       <td className="py-3.5 pl-2 max-w-xs">
                         <div className="flex flex-col gap-0.5">
-                          <span className="font-semibold text-white truncate group-hover:text-[#ff6600] transition-colors">
+                          <span className="font-semibold text-white truncate group-hover:text-brand transition-colors">
                             /{link.slug}
                           </span>
                           <span className="text-[11px] text-neutral-500 truncate" title={link.targetUrl}>
@@ -464,14 +464,14 @@ export function PopulatedState({ links, analytics, onRefresh }: PopulatedStatePr
                             className="p-1.5 rounded-[10px] text-neutral-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
                             title="Edit link"
                           >
-                            <Edit3 className="w-3.5 h-3.5 text-[#ff6600]" />
+                            <Edit3 className="w-3.5 h-3.5 text-brand" />
                           </button>
                           <button
                             onClick={() => setSelectedQRLink(link)}
                             className="p-1.5 rounded-[10px] text-neutral-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
                             title="Generate QR Code"
                           >
-                            <QrCode className="w-3.5 h-3.5 text-[#ff6600]" />
+                            <QrCode className="w-3.5 h-3.5 text-brand" />
                           </button>
                           <button
                             onClick={() => setSelectedShareLink(link)}

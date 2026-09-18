@@ -10,7 +10,7 @@ export default defineSchema({
     avatarUrl: v.optional(v.string()),
     passwordHash: v.optional(v.string()),  // bcrypt hash — only set for email/password accounts
     provider: v.optional(v.string()),      // "google" | "github" | "credentials"
-    plan: v.union(v.literal("FREEMIUM"), v.literal("PRO"), v.literal("BUSINESS")),
+    plan: v.union(v.literal("FREE"), v.literal("FREEMIUM"), v.literal("PRO"), v.literal("BUSINESS"), v.literal("ENTERPRISE")),
     hasCompletedOnboarding: v.boolean(),
     twoFactorEnabled: v.optional(v.boolean()),
     twoFactorSecret: v.optional(v.string()),
@@ -52,6 +52,19 @@ export default defineSchema({
   // ─── Password Reset PIN Tokens (15 min validity via Resend) ───────────────────
   passwordResetTokens: defineTable({
     email: v.string(),
+    pin: v.string(),
+    expiresAt: v.number(),
+    used: v.boolean(),
+    createdAt: v.string(),
+  })
+    .index("by_email", ["email"])
+    .index("by_email_pin", ["email", "pin"]),
+
+  // ─── Signup Email Verification PIN Tokens (15 min validity via Resend) ────────
+  signupVerificationTokens: defineTable({
+    email: v.string(),
+    name: v.string(),
+    passwordHash: v.string(),
     pin: v.string(),
     expiresAt: v.number(),
     used: v.boolean(),
@@ -227,4 +240,79 @@ export default defineSchema({
   })
     .index("by_userId", ["userId"])
     .index("by_slug", ["slug"]),
+
+  // ─── Organizations / Workspaces (Control Plane) ──────────────────────────────
+  organizations: defineTable({
+    name: v.string(),
+    slug: v.string(),
+    plan: v.union(
+      v.literal("FREE"),
+      v.literal("FREEMIUM"),
+      v.literal("PRO"),
+      v.literal("BUSINESS"),
+      v.literal("ENTERPRISE")
+    ),
+    billingCycle: v.union(v.literal("MONTHLY"), v.literal("YEARLY")),
+    trialEndsAt: v.optional(v.number()),
+    taxId: v.optional(v.string()),
+    billingAddress: v.optional(v.string()),
+    companyName: v.optional(v.string()),
+    billingEmail: v.optional(v.string()),
+    createdAt: v.optional(v.string()),
+    updatedAt: v.optional(v.string()),
+  }).index("by_slug", ["slug"]),
+
+  // ─── Subscriptions (Control Plane) ───────────────────────────────────────────
+  subscriptions: defineTable({
+    orgId: v.string(),
+    provider: v.string(), // "mock", "lemonsqueezy", "stripe", "paystack"
+    providerSubscriptionId: v.string(),
+    currentPeriodStart: v.number(),
+    currentPeriodEnd: v.number(),
+    cancelAtPeriodEnd: v.boolean(),
+    plan: v.optional(v.string()),
+    cycle: v.optional(v.string()),
+    createdAt: v.optional(v.string()),
+    updatedAt: v.optional(v.string()),
+  }).index("by_orgId", ["orgId"]),
+
+  // ─── In-App Notifications Center ─────────────────────────────────────────────
+  notifications: defineTable({
+    orgId: v.string(),
+    title: v.string(),
+    message: v.string(),
+    type: v.union(
+      v.literal("INFO"),
+      v.literal("WARNING"),
+      v.literal("ALERT"),
+      v.literal("SUCCESS")
+    ),
+    isRead: v.boolean(),
+    linkUrl: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_orgId", ["orgId"])
+    .index("by_orgId_and_read", ["orgId", "isRead"]),
+
+  // ─── Certified Paid Invoices ────────────────────────────────────────────────
+  invoices: defineTable({
+    orgId: v.string(),
+    invoiceNumber: v.string(), // ex: "INV-2026-001"
+    planId: v.union(
+      v.literal("PRO"),
+      v.literal("BUSINESS"),
+      v.literal("ENTERPRISE")
+    ),
+    amountPaid: v.number(),
+    periodStart: v.number(),
+    periodEnd: v.number(),
+    createdAt: v.number(),
+    currency: v.optional(v.string()),
+    status: v.optional(v.string()),
+    pdfUrl: v.optional(v.string()),
+    overageAmount: v.optional(v.number()),
+    batchesOverage: v.optional(v.number()),
+  })
+    .index("by_orgId", ["orgId"])
+    .index("by_invoiceNumber", ["invoiceNumber"]),
 });

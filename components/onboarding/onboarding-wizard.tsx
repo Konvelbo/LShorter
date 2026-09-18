@@ -215,8 +215,9 @@ const ALL_COUNTRIES = [
 
 export function OnboardingWizard() {
   const router = useRouter();
-  const { data: session } = useSession();
-  const userId = session?.user?.id || "";
+  const { data: session, update: updateSession } = useSession();
+  const userEmail = session?.user?.email || "";
+  const userId = session?.user?.id || (session?.user as any)?.userId || userEmail;
 
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -265,9 +266,11 @@ export function OnboardingWizard() {
     // Step 4 complete -> Submit to Convex DB
     setIsSubmitting(true);
     try {
-      if (userId) {
+      const activeUserId = userId || userEmail;
+      if (activeUserId) {
         await completeOnboardingMutation({
-          userId,
+          userId: activeUserId,
+          email: userEmail || undefined,
           country: country.code,
           city: city.trim() || undefined,
           language: "en",
@@ -285,6 +288,10 @@ export function OnboardingWizard() {
         });
       }
 
+      try {
+        await updateSession?.({ hasCompletedOnboarding: true });
+      } catch {}
+
       confetti({
         particleCount: 80,
         spread: 70,
@@ -293,7 +300,7 @@ export function OnboardingWizard() {
 
       showToast.success("Workspace configured successfully!");
       setTimeout(() => {
-        router.push("/dashboard");
+        router.replace("/dashboard");
       }, 700);
     } catch (err) {
       console.error(err);
@@ -312,9 +319,11 @@ export function OnboardingWizard() {
   const handleSkip = async () => {
     setIsSubmitting(true);
     try {
-      if (userId) {
+      const activeUserId = userId || userEmail;
+      if (activeUserId) {
         await completeOnboardingMutation({
-          userId,
+          userId: activeUserId,
+          email: userEmail || undefined,
           country: "OTHER",
           city: undefined,
           language: "en",
@@ -327,9 +336,16 @@ export function OnboardingWizard() {
           workspaceName: "My Workspace",
         });
       }
-      router.push("/dashboard");
-    } catch {
-      router.push("/dashboard");
+
+      try {
+        await updateSession?.({ hasCompletedOnboarding: true });
+      } catch {}
+
+      showToast.success("Onboarding skipped!");
+      router.replace("/dashboard");
+    } catch (err) {
+      console.error("Skip error:", err);
+      router.replace("/dashboard");
     } finally {
       setIsSubmitting(false);
     }
@@ -346,11 +362,11 @@ export function OnboardingWizard() {
           <div>
             {/* Brand */}
             <div className="flex items-center gap-2.5 mb-8">
-              <div className="w-8 h-8 rounded-[10px] bg-[#ff6600] flex items-center justify-center font-bebas text-xl text-white font-bold">
+              <div className="w-8 h-8 rounded-[10px] bg-brand flex items-center justify-center font-bebas text-xl text-white font-bold">
                 LS
               </div>
               <span className="font-bebas text-2xl text-white tracking-wider">
-                L<span className="text-[#ff6600]">SHORTER</span>
+                L<span className="text-brand">SHORTER</span>
               </span>
             </div>
 
@@ -363,7 +379,7 @@ export function OnboardingWizard() {
               >
                 <div className="absolute left-4 top-8 bottom-0 w-0.5 bg-[#222226]">
                   <div
-                    className={`w-full bg-[#ff6600] transition-all duration-300 ${
+                    className={`w-full bg-brand transition-all duration-300 ${
                       currentStep > 1 ? "h-full" : "h-0"
                     }`}
                   />
@@ -373,7 +389,7 @@ export function OnboardingWizard() {
                     currentStep > 1
                       ? "bg-white text-black shadow-sm"
                       : currentStep === 1
-                      ? "bg-[#ff6600] text-white ring-4 ring-[#ff6600]/15 shadow-sm"
+                      ? "bg-brand text-white ring-4 ring-[var(--brand-primary-light)] shadow-sm"
                       : "bg-[#1c1c20] text-neutral-400 border border-[#27272a]"
                   }`}
                 >
@@ -400,7 +416,7 @@ export function OnboardingWizard() {
               >
                 <div className="absolute left-4 top-8 bottom-0 w-0.5 bg-[#222226]">
                   <div
-                    className={`w-full bg-[#ff6600] transition-all duration-300 ${
+                    className={`w-full bg-brand transition-all duration-300 ${
                       currentStep > 2 ? "h-full" : "h-0"
                     }`}
                   />
@@ -410,7 +426,7 @@ export function OnboardingWizard() {
                     currentStep > 2
                       ? "bg-white text-black shadow-sm"
                       : currentStep === 2
-                      ? "bg-[#ff6600] text-white ring-4 ring-[#ff6600]/15 shadow-sm"
+                      ? "bg-brand text-white ring-4 ring-[var(--brand-primary-light)] shadow-sm"
                       : "bg-[#1c1c20] text-neutral-400 border border-[#27272a]"
                   }`}
                 >
@@ -437,7 +453,7 @@ export function OnboardingWizard() {
               >
                 <div className="absolute left-4 top-8 bottom-0 w-0.5 bg-[#222226]">
                   <div
-                    className={`w-full bg-[#ff6600] transition-all duration-300 ${
+                    className={`w-full bg-brand transition-all duration-300 ${
                       currentStep > 3 ? "h-full" : "h-0"
                     }`}
                   />
@@ -447,7 +463,7 @@ export function OnboardingWizard() {
                     currentStep > 3
                       ? "bg-white text-black shadow-sm"
                       : currentStep === 3
-                      ? "bg-[#ff6600] text-white ring-4 ring-[#ff6600]/15 shadow-sm"
+                      ? "bg-brand text-white ring-4 ring-[var(--brand-primary-light)] shadow-sm"
                       : "bg-[#1c1c20] text-neutral-400 border border-[#27272a]"
                   }`}
                 >
@@ -475,7 +491,7 @@ export function OnboardingWizard() {
                 <div
                   className={`w-8 h-8 rounded-[10px] flex items-center justify-center text-xs font-bold shrink-0 relative z-10 transition-all ${
                     currentStep === 4
-                      ? "bg-[#ff6600] text-white ring-4 ring-[#ff6600]/15 shadow-sm"
+                      ? "bg-brand text-white ring-4 ring-[var(--brand-primary-light)] shadow-sm"
                       : "bg-[#1c1c20] text-neutral-400 border border-[#27272a]"
                   }`}
                 >
@@ -511,13 +527,21 @@ export function OnboardingWizard() {
             <div className="md:hidden mb-4">
               <div className="flex items-center justify-between pb-3 border-b border-[#222226] mb-4">
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-[10px] bg-[#0066FF] flex items-center justify-center font-bebas text-base text-white font-bold shadow-md shadow-[#0066FF]/30">
+                  <div className="w-7 h-7 rounded-[10px] bg-brand flex items-center justify-center font-bebas text-base text-white font-bold shadow-md shadow-[var(--brand-primary-glow)]">
                     LS
                   </div>
                   <span className="font-bebas text-xl text-white tracking-wider">
-                    L<span className="text-[#0066FF]">SHORTER</span>
+                    L<span className="text-brand">SHORTER</span>
                   </span>
                 </div>
+                <button
+                  type="button"
+                  onClick={handleSkip}
+                  disabled={isSubmitting}
+                  className="text-xs text-neutral-400 hover:text-white transition-colors cursor-pointer px-2 py-1 rounded hover:bg-white/5"
+                >
+                  Skip
+                </button>
               </div>
 
               {/* Stepper on Mobile */}
@@ -525,7 +549,7 @@ export function OnboardingWizard() {
                 <div className="flex items-center justify-between relative">
                   <div className="absolute top-3.5 left-4 right-4 h-0.5 bg-[#222226] -z-0">
                     <div
-                      className="h-full bg-[#0066FF] transition-all duration-300"
+                      className="h-full bg-brand transition-all duration-300"
                       style={{
                         width: `${((currentStep - 1) / (totalSteps - 1)) * 100}%`,
                       }}
@@ -548,7 +572,7 @@ export function OnboardingWizard() {
                           currentStep > st.s
                             ? "bg-white text-black shadow-sm"
                             : currentStep === st.s
-                            ? "bg-[#0066FF] text-white ring-4 ring-[#0066FF]/20 shadow-md"
+                            ? "bg-brand text-white ring-4 ring-[var(--brand-primary-light)] shadow-md"
                             : "bg-[#1c1c20] text-neutral-400 border border-[#27272a]"
                         }`}
                       >
@@ -557,7 +581,7 @@ export function OnboardingWizard() {
                       <span
                         className={`text-[10px] font-medium mt-1 ${
                           currentStep === st.s
-                            ? "text-[#38bdf8] font-bold"
+                            ? "text-brand font-bold"
                             : currentStep > st.s
                             ? "text-white"
                             : "text-neutral-400"
@@ -573,7 +597,7 @@ export function OnboardingWizard() {
 
             {/* Desktop Header */}
             <div className="hidden md:flex items-center justify-between mb-6">
-              <span className="text-xs font-mono text-[#ff6600] tracking-wider uppercase font-semibold">
+              <span className="text-xs font-mono text-brand tracking-wider uppercase font-semibold">
                 Step 0{currentStep} / 04
               </span>
               <button
@@ -627,7 +651,7 @@ export function OnboardingWizard() {
                               onChange={(e) => setCountrySearch(e.target.value)}
                               placeholder="Search country..."
                               autoFocus
-                              className="w-full h-8 pl-8 pr-3 rounded-[10px] bg-[#121215] border border-[#27272a] text-xs text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#ff6600] md:focus:border-[#ff6600] focus:border-[#0066FF]"
+                              className="w-full h-8 pl-8 pr-3 rounded-[10px] bg-[#121215] border border-[#27272a] text-xs text-white placeholder:text-neutral-500 focus:outline-none focus:border-brand"
                             />
                           </div>
 
@@ -652,7 +676,7 @@ export function OnboardingWizard() {
                                     <span>{c.name}</span>
                                   </div>
                                   {isSelected && (
-                                    <Check className="w-3.5 h-3.5 text-[#ff6600] md:text-[#ff6600] text-[#0066FF]" />
+                                    <Check className="w-3.5 h-3.5 text-brand" />
                                   )}
                                 </div>
                               );
@@ -678,7 +702,7 @@ export function OnboardingWizard() {
                       value={city}
                       onChange={(e) => setCity(e.target.value)}
                       placeholder="e.g. New York, London, Paris, Tokyo, Berlin, Toronto..."
-                      className="w-full h-10 px-3.5 rounded-[10px] bg-[#18181c] border border-[#27272a] text-xs sm:text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-[#ff6600] md:focus:border-[#ff6600] focus:border-[#0066FF] transition-colors"
+                      className="w-full h-10 px-3.5 rounded-[10px] bg-[#18181c] border border-[#27272a] text-xs sm:text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-brand transition-colors"
                     />
                   </div>
                 </div>
@@ -750,7 +774,7 @@ export function OnboardingWizard() {
                         onClick={() => setProfession(p.id)}
                         className={`p-3 rounded-[10px] cursor-pointer flex flex-col gap-0.5 transition-all ${
                           isSelected
-                            ? "border border-[#ff6600] md:border-[#ff6600] border-[#0066FF] bg-[#ff6600]/10 md:bg-[#ff6600]/10 bg-[#0066FF]/10 text-white"
+                            ? "border border-brand bg-brand-light text-white"
                             : "border border-[#27272a] bg-[#121215] text-neutral-300 hover:border-[#3f3f46]"
                         }`}
                       >
@@ -769,7 +793,7 @@ export function OnboardingWizard() {
                       value={professionOther}
                       onChange={(e) => setProfessionOther(e.target.value)}
                       placeholder="Specify your occupation / role..."
-                      className="w-full h-10 px-3.5 rounded-[10px] bg-[#18181c] border border-[#27272a] text-xs text-white placeholder:text-neutral-600 focus:outline-none focus:border-[#ff6600] md:focus:border-[#ff6600] focus:border-[#0066FF]"
+                      className="w-full h-10 px-3.5 rounded-[10px] bg-[#18181c] border border-[#27272a] text-xs text-white placeholder:text-neutral-600 focus:outline-none focus:border-brand"
                     />
                   </div>
                 )}
@@ -930,7 +954,7 @@ export function OnboardingWizard() {
                         onClick={() => setSource(s.id)}
                         className={`p-3 rounded-[10px] cursor-pointer flex items-center justify-between transition-all ${
                           isSelected
-                            ? "border border-[#ff6600] md:border-[#ff6600] border-[#0066FF] bg-[#ff6600]/10 md:bg-[#ff6600]/10 bg-[#0066FF]/10 text-white"
+                            ? "border border-brand bg-brand-light text-white"
                             : "border border-[#27272a] bg-[#121215] text-neutral-300 hover:border-[#3f3f46]"
                         }`}
                       >
@@ -949,7 +973,7 @@ export function OnboardingWizard() {
                       value={sourceOther}
                       onChange={(e) => setSourceOther(e.target.value)}
                       placeholder="Specify how you found LShorter..."
-                      className="w-full h-10 px-3.5 rounded-[10px] bg-[#18181c] border border-[#27272a] text-xs text-white placeholder:text-neutral-600 focus:outline-none focus:border-[#ff6600] md:focus:border-[#ff6600] focus:border-[#0066FF]"
+                      className="w-full h-10 px-3.5 rounded-[10px] bg-[#18181c] border border-[#27272a] text-xs text-white placeholder:text-neutral-600 focus:outline-none focus:border-brand"
                     />
                   </div>
                 )}
@@ -982,7 +1006,7 @@ export function OnboardingWizard() {
                       onClick={() => setSelectedDomainFilter(tab.id)}
                       className={`px-3 py-1 rounded-[10px] font-medium transition-all cursor-pointer shrink-0 ${
                         selectedDomainFilter === tab.id
-                          ? "bg-[#ff6600] md:bg-[#ff6600] bg-[#0066FF] text-white"
+                          ? "bg-brand text-white"
                           : "bg-[#18181c] text-neutral-400 hover:text-white"
                       }`}
                     >
@@ -1045,7 +1069,7 @@ export function OnboardingWizard() {
                           onClick={() => toggleUseCase(item.id)}
                           className={`p-3 rounded-[10px] cursor-pointer flex items-center justify-between transition-all ${
                             isChecked
-                              ? "border border-[#ff6600] md:border-[#ff6600] border-[#0066FF] bg-[#ff6600]/10 md:bg-[#ff6600]/10 bg-[#0066FF]/10 text-white"
+                              ? "border border-brand bg-brand-light text-white"
                               : "border border-[#27272a] bg-[#121215] text-neutral-300 hover:border-[#3f3f46]"
                           }`}
                         >
@@ -1060,7 +1084,7 @@ export function OnboardingWizard() {
                           <span
                             className={`text-xs font-bold ${
                               isChecked
-                                ? "text-[#ff6600] md:text-[#ff6600] text-[#0066FF]"
+                                ? "text-brand"
                                 : "text-neutral-600"
                             }`}
                           >
@@ -1079,7 +1103,7 @@ export function OnboardingWizard() {
                       value={useCasesOther}
                       onChange={(e) => setUseCasesOther(e.target.value)}
                       placeholder="Specify your custom requirements..."
-                      className="w-full h-10 px-3.5 rounded-[10px] bg-[#18181c] border border-[#27272a] text-xs text-white placeholder:text-neutral-600 focus:outline-none focus:border-[#ff6600] md:focus:border-[#ff6600] focus:border-[#0066FF]"
+                      className="w-full h-10 px-3.5 rounded-[10px] bg-[#18181c] border border-[#27272a] text-xs text-white placeholder:text-neutral-600 focus:outline-none focus:border-brand"
                     />
                   </div>
                 )}
@@ -1103,7 +1127,7 @@ export function OnboardingWizard() {
               type="button"
               onClick={handleNext}
               disabled={isSubmitting}
-              className="h-10 px-5 sm:px-6 rounded-[10px] bg-[#ff6600] md:bg-[#ff6600] bg-[#0066FF] hover:brightness-110 active:scale-95 text-xs font-bold text-white shadow-lg transition-all cursor-pointer flex items-center gap-2"
+              className="h-10 px-5 sm:px-6 rounded-[10px] bg-brand hover:brightness-110 active:scale-95 text-xs font-bold text-white shadow-lg transition-all cursor-pointer flex items-center gap-2"
             >
               {isSubmitting ? (
                 <span>Saving...</span>

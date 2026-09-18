@@ -55,7 +55,7 @@ export function AnalyticsPieChart({
   const activeHovered = hoveredSlice || slicesWithAngles[0] || {
     label: "No clicks",
     value: 0,
-    color: "#ff6600",
+    color: "var(--brand-primary)",
     percentage: 0,
     strokeDasharray: "0 400",
     strokeDashoffset: 0,
@@ -67,7 +67,7 @@ export function AnalyticsPieChart({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-zinc-200 dark:border-[#222225]">
         <div>
           <div className="flex items-center gap-2">
-            <PieIcon className="w-4 h-4 text-[#ff6600]" />
+            <PieIcon className="w-4 h-4 text-brand" />
             <h3 className="text-base font-bold text-zinc-900 dark:text-white tracking-wide">
               {activeTab === "links" ? "Active Links Traffic Share" : "Traffic Acquisition Channels"}
             </h3>
@@ -87,7 +87,7 @@ export function AnalyticsPieChart({
             }}
             className={`text-center px-3 py-1.5 rounded-[10px] font-semibold transition-all cursor-pointer ${
               activeTab === "links"
-                ? "bg-[#ff6600] text-white shadow-md font-bold"
+                ? "bg-brand text-white shadow-md font-bold"
                 : "text-zinc-600 dark:text-neutral-400 hover:text-zinc-900 dark:hover:text-white"
             }`}
           >
@@ -101,7 +101,7 @@ export function AnalyticsPieChart({
             }}
             className={`text-center px-3 py-1.5 rounded-[10px] font-semibold transition-all cursor-pointer ${
               activeTab === "channels"
-                ? "bg-[#ff6600] text-white shadow-md font-bold"
+                ? "bg-brand text-white shadow-md font-bold"
                 : "text-zinc-600 dark:text-neutral-400 hover:text-zinc-900 dark:hover:text-white"
             }`}
           >
@@ -167,7 +167,7 @@ export function AnalyticsPieChart({
                 <span className="font-bebas text-2xl font-black text-zinc-900 dark:text-white leading-none mt-0.5">
                   {formatNumber(totalValue)}
                 </span>
-                <span className="text-[9px] text-[#ff6600] font-semibold mt-0.5">
+                <span className="text-[9px] text-brand font-semibold mt-0.5">
                   clicks
                 </span>
               </div>

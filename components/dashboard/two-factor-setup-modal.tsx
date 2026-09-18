@@ -193,7 +193,7 @@ export function TwoFactorSetupModal({
         {/* Header */}
         <div className="p-5 border-b border-[#222225] flex items-center justify-between bg-gradient-to-r from-[#141418] to-[#1a1a20]">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-[10px] bg-[#ff6600]/20 border border-[#ff6600]/40 flex items-center justify-center text-[#ff6600] shrink-0">
+            <div className="w-9 h-9 rounded-[10px] bg-brand-subtle border border-brand-subtle flex items-center justify-center text-brand shrink-0">
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
@@ -210,8 +210,8 @@ export function TwoFactorSetupModal({
 
           {/* Stepper Dots */}
           <div className="flex items-center gap-1.5 bg-[#09090b] px-2.5 py-1.5 rounded-full border border-[#27272a]">
-            <div className={`w-2 h-2 rounded-full ${step >= 1 ? "bg-[#ff6600]" : "bg-neutral-600"}`} />
-            <div className={`w-2 h-2 rounded-full ${step >= 2 ? "bg-[#ff6600]" : "bg-neutral-600"}`} />
+            <div className={`w-2 h-2 rounded-full ${step >= 1 ? "bg-brand" : "bg-neutral-600"}`} />
+            <div className={`w-2 h-2 rounded-full ${step >= 2 ? "bg-brand" : "bg-neutral-600"}`} />
             <div className={`w-2 h-2 rounded-full ${step === 3 ? "bg-emerald-500" : "bg-neutral-600"}`} />
           </div>
         </div>
@@ -245,7 +245,7 @@ export function TwoFactorSetupModal({
                 <div className="p-3 bg-white rounded-[12px] shadow-xl border-4 border-[#27272a] relative">
                   {isLoading ? (
                     <div className="w-48 h-48 flex flex-col items-center justify-center gap-2 text-neutral-800">
-                      <RefreshCw className="w-6 h-6 animate-spin text-[#ff6600]" />
+                      <RefreshCw className="w-6 h-6 animate-spin text-brand" />
                       <span className="text-[11px] font-medium font-mono">Generating QR...</span>
                     </div>
                   ) : qrCodeUrl ? (
@@ -270,7 +270,7 @@ export function TwoFactorSetupModal({
                   <button
                     type="button"
                     onClick={handleCopySecret}
-                    className="text-[#ff6600] hover:underline font-bold flex items-center gap-1 cursor-pointer"
+                    className="text-brand hover:underline font-bold flex items-center gap-1 cursor-pointer"
                   >
                     {isSecretCopied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
                     <span>{isSecretCopied ? "Copied" : "Copy"}</span>
@@ -312,7 +312,7 @@ export function TwoFactorSetupModal({
           {step === 2 && (
             <form onSubmit={handleVerifyCode} className="flex flex-col gap-5">
               <div className="flex flex-col items-center text-center gap-1.5">
-                <div className="w-12 h-12 rounded-full bg-[#ff6600]/10 border border-[#ff6600]/30 flex items-center justify-center text-[#ff6600] mb-1">
+                <div className="w-12 h-12 rounded-full bg-brand-subtle border border-brand-subtle flex items-center justify-center text-brand mb-1">
                   <Smartphone className="w-6 h-6" />
                 </div>
                 <h3 className="text-sm font-bold text-white">Enter verification code</h3>
@@ -333,7 +333,7 @@ export function TwoFactorSetupModal({
                     setVerificationCode(val);
                     if (errorMessage) setErrorMessage("");
                   }}
-                  className="h-14 w-56 text-center font-mono text-2xl tracking-[0.4em] bg-[#0c0c0e] border-[#27272a] focus:border-[#ff6600] text-white font-bold rounded-[10px]"
+                  className="h-14 w-56 text-center font-mono text-2xl tracking-[0.4em] bg-[#0c0c0e] border-[#27272a] focus:border-brand text-white font-bold rounded-[10px]"
                 />
                 <span className="text-[11px] text-neutral-500">The code changes every 30 seconds</span>
               </div>
@@ -429,7 +429,7 @@ export function TwoFactorSetupModal({
                   onClick={handleDownloadRecoveryCodes}
                   className="text-xs h-9 border-[#27272a] gap-1.5"
                 >
-                  <Download className="w-3.5 h-3.5 text-[#ff6600]" />
+                  <Download className="w-3.5 h-3.5 text-brand" />
                   <span>Download (.txt)</span>
                 </Button>
               </div>

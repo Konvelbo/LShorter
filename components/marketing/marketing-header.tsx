@@ -12,6 +12,7 @@ export function MarketingHeader() {
   const pathname = usePathname();
   const { data: session, status } = useSession();
   const isAuthenticated = status === "authenticated" || Boolean((session as any)?.user);
+  const hasCompletedOnboarding = (session?.user as any)?.hasCompletedOnboarding === true;
 
   const navLinks = [
     { label: "Home", href: "/" },
@@ -28,15 +29,15 @@ export function MarketingHeader() {
       {/* =========================================================================
           DESKTOP NAVBAR: Sleek Glass Effect, Minimalist Frame & Hover Animations
           ========================================================================= */}
-      <header className="hidden md:flex max-w-5xl mx-auto bg-white/85 dark:bg-[#0a0a0f]/60 hover:bg-white/95 dark:hover:bg-[#0a0a0f]/80 backdrop-blur-xl border border-neutral-200 dark:border-white/[0.08] hover:border-neutral-300 dark:hover:border-white/[0.18] shadow-[0_8px_32px_rgba(0,0,0,0.06)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] hover:shadow-[0_12px_40px_rgba(255,102,0,0.1),inset_0_1px_0_rgba(255,255,255,0.12)] rounded-full px-5 py-2.5 items-center justify-between pointer-events-auto transition-all duration-300">
+      <header className="hidden md:flex max-w-5xl mx-auto bg-white/85 dark:bg-[#0a0a0f]/60 hover:bg-white/95 dark:hover:bg-[#0a0a0f]/80 backdrop-blur-xl border border-neutral-200 dark:border-white/[0.08] hover:border-neutral-300 dark:hover:border-white/[0.18] shadow-[0_8px_32px_rgba(0,0,0,0.06)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] hover:shadow-brand-subtle rounded-full px-5 py-2.5 items-center justify-between pointer-events-auto transition-all duration-300">
         
         {/* Brand Logo with LS Badge & Smooth Hover Scale/Glow */}
         <Link href="/" className="flex items-center gap-3 group select-none cursor-pointer">
-          <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#ff6600] to-[#ffa347] flex items-center justify-center shadow-lg shadow-[#ff6600]/30 font-bebas text-2xl text-white font-bold tracking-wider group-hover:scale-110 group-hover:shadow-[0_0_20px_rgba(255,102,0,0.6)] group-hover:rotate-3 transition-all duration-300">
+          <div className="w-9 h-9 rounded-full bg-brand flex items-center justify-center shadow-lg shadow-brand/30 font-bebas text-2xl text-white font-bold tracking-wider group-hover:scale-110 group-hover:shadow-brand-glow group-hover:rotate-3 transition-all duration-300">
             LS
           </div>
           <span className="font-bebas text-3xl text-neutral-900 dark:text-white tracking-wider flex items-center gap-1 group-hover:tracking-widest transition-all duration-300">
-            L<span className="text-[#ff6600] group-hover:drop-shadow-[0_0_12px_rgba(255,102,0,0.8)] transition-all duration-300">SHORTER</span>
+            L<span className="text-brand transition-all duration-300">SHORTER</span>
           </span>
         </Link>
 
@@ -58,7 +59,7 @@ export function MarketingHeader() {
                 )}
                 {/* Active route glowing dot */}
                 {isActive && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#ff6600] shadow-[0_0_8px_#ff6600]" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-brand shadow-[0_0_8px_var(--brand-primary)]" />
                 )}
               </Link>
             );
@@ -67,14 +68,23 @@ export function MarketingHeader() {
 
         {/* Right CTA Actions: Conditional based on Authentication */}
         <div className="flex items-center gap-2.5">
-          {isAuthenticated ? (
+          {isAuthenticated && hasCompletedOnboarding ? (
             <Link
               href="/dashboard"
-              className="group relative overflow-hidden px-5 py-2 rounded-full bg-[#ff6600] hover:bg-[#ff771a] text-white font-bold text-xs shadow-lg shadow-[#ff6600]/30 hover:shadow-[0_0_25px_rgba(255,102,0,0.6)] hover:scale-105 active:scale-95 transition-all duration-300 flex items-center gap-1.5 cursor-pointer"
+              className="group relative overflow-hidden px-5 py-2 rounded-full bg-brand hover:bg-brand-hover text-white font-bold text-xs shadow-lg shadow-brand/30 hover:shadow-brand-glow hover:scale-105 active:scale-95 transition-all duration-300 flex items-center gap-1.5 cursor-pointer"
             >
               <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/25 to-transparent pointer-events-none" />
               <LayoutDashboard className="w-3.5 h-3.5" />
               <span>Dashboard</span>
+              <ArrowRight className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-1" />
+            </Link>
+          ) : isAuthenticated ? (
+            <Link
+              href="/onboarding"
+              className="group relative overflow-hidden px-5 py-2 rounded-full bg-brand hover:bg-brand-hover text-white font-bold text-xs shadow-lg shadow-brand/30 hover:shadow-brand-glow hover:scale-105 active:scale-95 transition-all duration-300 flex items-center gap-1.5 cursor-pointer"
+            >
+              <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/25 to-transparent pointer-events-none" />
+              <span>Get Started</span>
               <ArrowRight className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-1" />
             </Link>
           ) : (
@@ -86,8 +96,8 @@ export function MarketingHeader() {
                 Log in
               </Link>
               <Link
-                href="/login"
-                className="group relative overflow-hidden px-5 py-2 rounded-full bg-[#ff6600] hover:bg-[#ff771a] text-white font-bold text-xs shadow-lg shadow-[#ff6600]/30 hover:shadow-[0_0_25px_rgba(255,102,0,0.6)] hover:scale-105 active:scale-95 transition-all duration-300 flex items-center gap-1.5 cursor-pointer"
+                href="/register"
+                className="group relative overflow-hidden px-5 py-2 rounded-full bg-brand hover:bg-brand-hover text-white font-bold text-xs shadow-lg shadow-brand/30 hover:shadow-brand-glow hover:scale-105 active:scale-95 transition-all duration-300 flex items-center gap-1.5 cursor-pointer"
               >
                 {/* Shimmer light sweep */}
                 <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/25 to-transparent pointer-events-none" />
@@ -102,14 +112,14 @@ export function MarketingHeader() {
       {/* =========================================================================
           MOBILE NAVBAR: Preserved exactly for mobile devices
           ========================================================================= */}
-      <header className="flex md:hidden max-w-6xl mx-auto bg-white/90 dark:bg-[#0d0d12]/85 backdrop-blur-2xl border border-neutral-200 dark:border-white/10 shadow-[0_10px_25px_rgba(0,0,0,0.06)] dark:shadow-[0_12px_40px_rgba(0,0,0,0.65),0_0_20px_rgba(0,102,255,0.12)] rounded-[10px] px-3.5 py-2 items-center justify-between pointer-events-auto transition-all duration-300">
+      <header className="flex md:hidden max-w-6xl mx-auto bg-white/90 dark:bg-[#0d0d12]/85 backdrop-blur-2xl border border-neutral-200 dark:border-white/10 shadow-[0_10px_25px_rgba(0,0,0,0.06)] dark:shadow-[0_12px_40px_rgba(0,0,0,0.65),0_0_20px_var(--brand-primary-subtle)] rounded-[10px] px-3.5 py-2 items-center justify-between pointer-events-auto transition-all duration-300">
         {/* Brand Logo with LS Badge */}
         <Link href="/" className="flex items-center gap-2.5 group select-none">
-          <div className="w-8 h-8 rounded-[10px] bg-gradient-to-tr from-[#0080ff] to-[#38bdf8] flex items-center justify-center shadow-lg shadow-[#0080ff]/30 font-bebas text-xl text-white font-bold tracking-wider">
+          <div className="w-8 h-8 rounded-[10px] bg-brand flex items-center justify-center shadow-lg shadow-brand/30 font-bebas text-xl text-white font-bold tracking-wider">
             LS
           </div>
           <span className="font-bebas text-2xl text-neutral-900 dark:text-white tracking-wider flex items-center gap-0.5">
-            L<span className="text-[#0080ff]">SHORTER</span>
+            L<span className="text-brand">SHORTER</span>
           </span>
         </Link>
 
@@ -151,7 +161,7 @@ export function MarketingHeader() {
             className="nav-link-item flex items-center justify-between p-2.5 rounded-[10px] text-sm font-medium"
           >
             <span className="flex items-center gap-2">
-              <Code2 className="w-4 h-4 text-[#0080ff]" />
+              <Code2 className="w-4 h-4 text-brand" />
               <span>API &amp; SDK Docs</span>
             </span>
             <span className="px-1.5 py-0.5 rounded-[10px] bg-white/10 text-neutral-400 text-[10px] font-mono">
@@ -160,22 +170,29 @@ export function MarketingHeader() {
           </Link>
 
           <div className="pt-3 border-t border-white/10 flex flex-col gap-2 mt-1">
-            {isAuthenticated ? (
+            {isAuthenticated && hasCompletedOnboarding ? (
               <Link href="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>
-                <Button variant="glow" className="w-full text-xs h-9 justify-center font-bold cursor-pointer bg-[#0080ff] hover:bg-[#0070e0] text-white border-none rounded-[10px]">
+                <Button variant="glow" className="w-full text-xs h-9 justify-center font-bold cursor-pointer bg-brand hover:bg-brand-hover text-white border-none rounded-[10px]">
                   <span>Go to Dashboard</span>
+                  <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                </Button>
+              </Link>
+            ) : isAuthenticated ? (
+              <Link href="/onboarding" onClick={() => setIsMobileMenuOpen(false)}>
+                <Button variant="glow" className="w-full text-xs h-9 justify-center font-bold cursor-pointer bg-brand hover:bg-brand-hover text-white border-none rounded-[10px]">
+                  <span>Get Started</span>
                   <ArrowRight className="w-3.5 h-3.5 ml-1" />
                 </Button>
               </Link>
             ) : (
               <>
                 <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
-                  <Button variant="outline" className="w-full text-xs h-9 justify-center cursor-pointer border-[#27272a] text-white rounded-[10px] hover:text-[#0080ff] hover:border-[#0080ff]/30 hover:bg-[#0080ff]/10">
+                  <Button variant="outline" className="w-full text-xs h-9 justify-center cursor-pointer border-[#27272a] text-white rounded-[10px] hover:text-brand hover:border-brand-subtle hover:bg-brand-subtle">
                     Log in
                   </Button>
                 </Link>
-                <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
-                  <Button variant="glow" className="w-full text-xs h-9 justify-center font-bold cursor-pointer bg-[#0080ff] hover:bg-[#0070e0] text-white border-none rounded-[10px]">
+                <Link href="/register" onClick={() => setIsMobileMenuOpen(false)}>
+                  <Button variant="glow" className="w-full text-xs h-9 justify-center font-bold cursor-pointer bg-brand hover:bg-brand-hover text-white border-none rounded-[10px]">
                     <span>Create Free Account</span>
                     <ArrowRight className="w-3.5 h-3.5 ml-1" />
                   </Button>

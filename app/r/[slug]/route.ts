@@ -8,15 +8,18 @@ const WORKER_URL =
 const FRONTEND_SECRET =
   process.env.FRONTEND_API_SECRET || "lsh_secret_live_prod_2026";
 
-export async function trackClickAsync(req: Request, slug: string, meta?: any) {
+export async function trackClickAsync(
+  req: Request,
+  slug: string,
+  meta?: any,
+  geoInfo?: { countryCode: string; city: string; rawIp?: string }
+) {
   try {
-    const [geo, details] = await Promise.all([
-      detectVisitorGeoAsync(req).catch(() => null),
-      Promise.resolve(parseVisitorDetails(req)),
-    ]);
+    const geo = geoInfo || (await detectVisitorGeoAsync(req).catch(() => null));
+    const details = parseVisitorDetails(req, geo || undefined);
 
-    const countryCode = geo?.countryCode || details.countryCode || "BF";
-    const city = geo?.city || details.city || "Ouagadougou";
+    const countryCode = geo?.countryCode || details.countryCode || "FR";
+    const city = geo?.city || details.city || "Paris";
     const userId = meta?.userId || meta?.user_id || "usr_default";
 
     // Forward click event to Cloudflare Edge Worker D1
@@ -284,13 +287,12 @@ function renderSocialHtml(meta: {
 }) {
   const safeTitle = escapeHtml(meta.title || "LShorter — Smart Link Shortened");
   const safeDesc = escapeHtml(meta.description || "Click to access this link powered by LShorter Edge.");
-  const cardType = "summary_large_image";
+  const cardType = meta.twitterCard === "summary" ? "summary" : "summary_large_image";
   
   let imageUrl = meta.image || "";
 
   // If ogImage is a base64 data URI (can't be used in OG), derive a URL instead
   if (imageUrl && imageUrl.startsWith("data:")) {
-
     try {
       const u = new URL(meta.canonicalUrl);
       const cleanSlug = u.pathname.split("/").pop() || "banner";
@@ -300,9 +302,18 @@ function renderSocialHtml(meta: {
     }
   }
 
-  // Fallback: if still no image, use the dynamic OG image generator
+  // Fallback: if still no image, use dynamic OG image generator for large cards or brand icon for compact cards
   if (!imageUrl) {
-    imageUrl = buildDefaultOgImage(meta.canonicalUrl, meta.title, meta.slug);
+    if (cardType === "summary") {
+      try {
+        const origin = new URL(meta.canonicalUrl).origin;
+        imageUrl = `${origin}/icon-512.png`;
+      } catch {
+        imageUrl = "https://www.lsho.cc/icon-512.png";
+      }
+    } else {
+      imageUrl = buildDefaultOgImage(meta.canonicalUrl, meta.title, meta.slug);
+    }
   }
 
   let cleanCanonical = meta.canonicalUrl;
@@ -316,9 +327,11 @@ function renderSocialHtml(meta: {
   const safeImg = escapeHtml(imageUrl.replace(/&amp;/g, "&"));
   const safeCanonical = escapeHtml(cleanCanonical);
   const safeDest = escapeHtml(meta.destinationUrl || "https://lsho.cc");
+  const imgWidth = cardType === "summary" ? "512" : "1200";
+  const imgHeight = cardType === "summary" ? "512" : "630";
 
   const html = `<!DOCTYPE html>
-<html lang="en" prefix="og: http://ogp.me/ns#">
+<html lang="fr" prefix="og: http://ogp.me/ns#">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -336,8 +349,8 @@ function renderSocialHtml(meta: {
   <meta property="og:image:url" content="${safeImg}" />
   <meta property="og:image:secure_url" content="${safeImg}" />
   <meta property="og:image:type" content="image/jpeg" />
-  <meta property="og:image:width" content="1200" />
-  <meta property="og:image:height" content="630" />
+  <meta property="og:image:width" content="${imgWidth}" />
+  <meta property="og:image:height" content="${imgHeight}" />
   <meta property="og:image:alt" content="${safeTitle}" />
 
   <!-- Twitter / X Cards -->
@@ -444,7 +457,7 @@ export async function GET(
               ogTitle: ogTitleMatch ? ogTitleMatch[1] : titleMatch ? titleMatch[1] : (localMeta?.ogTitle || slug),
               ogDescription: ogDescMatch ? ogDescMatch[1] : (localMeta?.ogDescription || ""),
               ogImage: fetchedImage || localMeta?.ogImage || "",
-              twitterCard: "summary_large_image",
+              twitterCard: localMeta?.twitterCard || (localMeta as any)?.twitter_card || (fetchedImage ? "summary_large_image" : "summary_large_image"),
               metaTitle: ogTitleMatch ? ogTitleMatch[1] : titleMatch ? titleMatch[1] : (localMeta?.metaTitle || slug),
             } as any;
           }
@@ -465,7 +478,7 @@ export async function GET(
         title: localMeta?.ogTitle || localMeta?.metaTitle || slug,
         description: localMeta?.ogDescription || "Click to access this link powered by LShorter Edge.",
         image: fullOgImage,
-        twitterCard: "summary_large_image",
+        twitterCard: localMeta?.twitterCard || (localMeta as any)?.twitter_card || "summary_large_image",
         destinationUrl: localMeta?.targetUrl || "https://lshorter.io",
         canonicalUrl: req.url,
         slug,
@@ -491,16 +504,19 @@ export async function GET(
     const isInternalProbe = req.headers.get("x-internal-probe") === "1" || req.headers.get("x-crawler-prewarm") === "1" || req.headers.get("x-frontend-secret") === FRONTEND_SECRET;
     const isPrefetch = purpose.includes("prefetch") || purpose.includes("preview") || isInternalProbe;
 
-    const visitorDetails = parseVisitorDetails(req);
+    const geo = await detectVisitorGeoAsync(req).catch(() => ({ countryCode: "FR", city: "Paris", rawIp: "127.0.0.1" }));
+    const visitorDetails = parseVisitorDetails(req, geo);
     const visitorCountry = (
       req.headers.get("cf-ipcountry") ||
       req.headers.get("x-vercel-ip-country") ||
       req.headers.get("x-country") ||
+      geo.countryCode ||
       visitorDetails.countryCode ||
-      "BF"
+      "FR"
     ).toUpperCase();
 
     const clientIp =
+      geo.rawIp ||
       req.headers.get("cf-connecting-ip") ||
       req.headers.get("x-forwarded-for") ||
       req.headers.get("x-real-ip") ||
@@ -573,7 +589,7 @@ export async function GET(
     if (meta?.isCloaked && meta?.targetUrl) {
       if (canRecordClick) {
         recordLinkClick(slug);
-        await trackClickAsync(req, slug, meta);
+        await trackClickAsync(req, slug, meta, geo);
       }
       return NextResponse.redirect(new URL(`/r/${slug}/view`, req.url), 307);
     }
@@ -582,7 +598,7 @@ export async function GET(
     if (meta?.targetUrl) {
       if (canRecordClick) {
         recordLinkClick(slug);
-        await trackClickAsync(req, slug, meta);
+        await trackClickAsync(req, slug, meta, geo);
       }
       const splitUrl = resolveAbTargetUrl(meta, meta.targetUrl);
       const finalUrl = evaluateTargetUrl(splitUrl, req, meta, visitorCountry);
@@ -705,7 +721,7 @@ export async function GET(
         if (found.is_cloaked || found.isCloaked) {
           if (canRecordClick) {
             recordLinkClick(slug);
-            await trackClickAsync(req, slug, found);
+            await trackClickAsync(req, slug, found, geo);
           }
           return NextResponse.redirect(new URL(`/r/${slug}/view`, req.url), 307);
         }
@@ -713,7 +729,7 @@ export async function GET(
         if (target) {
           if (canRecordClick) {
             recordLinkClick(slug);
-            await trackClickAsync(req, slug, found);
+            await trackClickAsync(req, slug, found, geo);
           }
           const finalUrl = evaluateTargetUrl(target, req, found, visitorCountry);
           const redirectCode = found?.redirect_type === "301" || found?.redirectType === "301" ? 301 : found?.redirect_type === "302" || found?.redirectType === "302" ? 302 : 307;

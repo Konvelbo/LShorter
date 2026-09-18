@@ -16,24 +16,43 @@ export interface RoutingRule {
 export const REGION_COUNTRIES: Record<string, string[]> = {
   europe: [
     "FR", "DE", "GB", "ES", "IT", "BE", "CH", "PT", "NL", "SE",
-    "NO", "DK", "FI", "IE", "AT", "PL", "GR", "RO", "CZ", "HU", "LU"
+    "NO", "DK", "FI", "IE", "AT", "PL", "GR", "RO", "CZ", "HU", "LU",
+    "MC", "IS", "HR", "RS", "BG", "SK", "SI", "LT", "LV", "EE", "CY", "MT", "UA", "RU", "TR", "GE", "AM", "AZ"
   ],
   west_africa: [
     "SN", "CI", "BF", "ML", "GN", "TG", "BJ", "NE", "NG", "GH",
-    "CV", "GM", "GW", "LR", "SL"
+    "CV", "GM", "GW", "LR", "SL", "MR"
   ],
   central_africa: [
-    "CM", "GA", "CG", "CD", "TD", "CF", "GQ", "ST"
+    "CM", "GA", "CG", "CD", "TD", "CF", "GQ", "ST", "BI", "RW"
+  ],
+  north_africa: [
+    "MA", "DZ", "TN", "EG", "LY", "SD", "MR"
+  ],
+  east_africa: [
+    "KE", "UG", "TZ", "RW", "BI", "ET", "SO", "DJ", "ER", "SS", "MG", "MU", "SC", "KM"
+  ],
+  southern_africa: [
+    "ZA", "AO", "MZ", "ZM", "ZW", "BW", "NA", "LS", "SZ", "MW"
+  ],
+  africa: [
+    "BF", "CI", "SN", "CM", "ML", "NE", "TG", "BJ", "GH", "NG", "GN", "GA", "CD", "CG", "TD", "CF", "RW", "BI", "KE", "TZ", "UG", "ET", "MG", "ZA", "MA", "DZ", "TN", "EG", "AO", "MZ", "ZM", "ZW", "MR", "GW", "SL", "LR", "CV", "ST", "GQ", "SO", "DJ", "ER", "SS", "SD", "LY", "MW", "BW", "NA", "LS", "SZ", "KM", "SC", "MU"
   ],
   north_america: [
-    "US", "CA", "MX"
+    "US", "CA", "MX", "HT", "DO", "CU", "PA", "CR", "JM"
   ],
   south_america: [
     "BR", "AR", "CO", "CL", "PE", "VE", "EC", "BO", "PY", "UY"
   ],
   asia: [
     "CN", "JP", "KR", "IN", "SG", "TH", "VN", "ID", "MY", "PH",
-    "PK", "BD", "AE", "SA", "QA", "KW"
+    "PK", "BD", "AE", "SA", "QA", "KW", "OM", "BH", "JO", "LB", "IQ", "IL", "LK", "KZ", "UZ", "TM", "KG", "TJ", "AF", "YE"
+  ],
+  middle_east: [
+    "AE", "SA", "QA", "KW", "OM", "BH", "IL", "JO", "LB", "IQ", "YE", "TR", "IR", "SY"
+  ],
+  oceania: [
+    "AU", "NZ", "FJ", "PG", "NC", "PF"
   ],
 };
 
@@ -46,13 +65,21 @@ export function compileRoutingRules(rules: RoutingRule[]) {
   const geoTargeting: Record<string, string> = {};
   const deviceTargeting: Record<string, string> = {};
 
-  const validRules = (rules || []).filter((r) => r.destinationUrl?.trim());
+  const validRules = (rules || [])
+    .filter((r) => r && r.destinationUrl && r.destinationUrl.trim())
+    .map((r) => {
+      let dest = r.destinationUrl.trim();
+      if (!/^https?:\/\//i.test(dest)) {
+        dest = `https://${dest}`;
+      }
+      return {
+        ...r,
+        destinationUrl: dest,
+      };
+    });
 
   validRules.forEach((r) => {
-    let dest = r.destinationUrl.trim();
-    if (!/^https?:\/\//i.test(dest)) {
-      dest = `https://${dest}`;
-    }
+    const dest = r.destinationUrl;
 
     // ONLY populate legacy single-condition maps if the rule has EXACTLY 1 condition and operator is "est"
     // Rules with 2+ conditions MUST NOT be flattened into OR-based legacy maps!

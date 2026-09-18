@@ -33,6 +33,7 @@ import { api } from "@/convex/_generated/api";
 import { cfGetAnalytics, cfGetLinks } from "@/lib/cloudflare-api";
 import { LinkCreateModal } from "@/components/dashboard/link-create-modal";
 import { FeedbackModal } from "@/components/feedback/feedback-modal";
+import { getPlanDefinition } from "@/src/config/pricing";
 
 const navPrincipal = [
   { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
@@ -107,25 +108,25 @@ export function Sidebar() {
           cfGetLinks(userId).catch(() => null),
         ]);
         const linksList = Array.isArray(linksRes?.data) ? linksRes.data : [];
-        if (linksList.length === 0) {
-          setLiveClicks(0);
-          return;
-        }
-        const analyticsTotal = (res?.data?.totalClicks ?? res?.data?.total_clicks ?? 0);
-        const linksTotal = linksList.reduce((acc: number, l: any) => acc + (Number(l.clicks_count) || 0), 0);
+        const analyticsTotal = Number(res?.data?.totalClicks ?? res?.data?.total_clicks ?? 0);
+        const linksTotal = linksList.reduce((acc: number, l: any) => acc + (Number(l.clicks_count) || Number(l.clicksCount) || Number(l.clicks) || 0), 0);
         setLiveClicks(Math.max(analyticsTotal, linksTotal));
       } catch {}
     };
 
     fetchLiveClicks();
 
-    // Refresh ONLY on explicit data mutations (link created, edited, deleted, or refreshed)
+    // Refresh on explicit data mutations and window focus
     window.addEventListener("lshorter_data_change", fetchLiveClicks);
     window.addEventListener("lshorter_links_updated", fetchLiveClicks);
+    window.addEventListener("lshorter_link_clicked", fetchLiveClicks);
+    window.addEventListener("focus", fetchLiveClicks);
 
     return () => {
       window.removeEventListener("lshorter_data_change", fetchLiveClicks);
       window.removeEventListener("lshorter_links_updated", fetchLiveClicks);
+      window.removeEventListener("lshorter_link_clicked", fetchLiveClicks);
+      window.removeEventListener("focus", fetchLiveClicks);
     };
   }, [userId]);
 
@@ -162,8 +163,9 @@ export function Sidebar() {
   const name = convexUser?.name || session?.user?.name || "Workspace";
   // Convex DB is the source of truth — localPlan is only used before Convex loads
   const plan = (convexUser?.plan || localPlan || (session?.user as any)?.plan || "FREEMIUM").toUpperCase();
+  const planDef = getPlanDefinition(plan);
   const clicksThisMonth = typeof liveClicks === "number" ? liveClicks : 0;
-  const clicksLimit = plan === "BUSINESS" ? -1 : plan === "PRO" ? 1_000_000 : 100_000;
+  const clicksLimit = planDef.limits.monthlyClicks;
   const percentage =
     clicksLimit === -1
       ? (clicksThisMonth > 0 ? Math.min(100, Math.max(1, Math.round((clicksThisMonth / 10_000_000) * 100))) : 0)
@@ -208,14 +210,14 @@ export function Sidebar() {
             onClick={() => setIsCreateLinkOpen(true)}
             title="Create new short link"
             className={cn(
-              "bg-[#ff6600] hover:bg-[#ff771a] text-white font-bold flex items-center justify-center shadow-md shadow-[#ff6600]/20 hover:shadow-[#ff6600]/40 transition-all active:scale-95 cursor-pointer",
+              "bg-brand hover:bg-brand-hover !text-white font-bold flex items-center justify-center shadow-xs hover:shadow-sm transition-all active:scale-95 cursor-pointer",
               isCollapsed
                 ? "w-8.5 h-8.5 rounded-[10px] mx-auto"
                 : "w-full h-8.5 rounded-[10px] text-xs gap-1.5"
             )}
           >
-            <Plus className="w-3.5 h-3.5 stroke-[3]" />
-            {!isCollapsed && <span className="font-bebas text-sm tracking-wide">CREATE A LINK</span>}
+            <Plus className="w-3.5 h-3.5 stroke-[3] !text-white" />
+            {!isCollapsed && <span className="font-bebas text-sm tracking-wider !text-white font-bold select-none">CREATE A LINK</span>}
           </button>
 
           {/* Nav Section: Principal */}
@@ -286,16 +288,16 @@ export function Sidebar() {
         {/* Bottom Section: Quota Card & Feedback */}
         <div className="flex flex-col gap-2.5 pt-3 border-t border-[#222225]/80">
           {!isCollapsed ? (
-            <div className="rounded-[10px] bg-[#141416] border border-[#27272a] p-2.5 text-xs flex flex-col gap-1.5 hover:border-[#ff6600]/40 transition-colors">
+            <div className="rounded-[10px] bg-[#141416] border border-[#27272a] p-2.5 text-xs flex flex-col gap-1.5 hover:border-brand-subtle transition-colors">
               <div className="flex items-center justify-between text-neutral-400">
-                <span className="font-bold text-[10px] text-[#ff6600]">{plan} PLAN</span>
+                <span className="font-bold text-[10px] text-brand">{plan} PLAN</span>
                 <span className="font-mono text-white text-[10px]">
                   {clicksThisMonth.toLocaleString()} / {clicksLimit === -1 ? "Unlimited" : clicksLimit.toLocaleString()}
                 </span>
               </div>
               <div className="w-full h-1.5 rounded-full bg-neutral-200 dark:bg-[#27272a] overflow-hidden">
                 <div
-                  className="h-full bg-[#ff6600] rounded-full transition-all duration-500"
+                  className="h-full bg-brand rounded-full transition-all duration-500"
                   style={{ width: `${percentage}%` }}
                 />
               </div>
@@ -306,7 +308,7 @@ export function Sidebar() {
             </div>
           ) : (
             <div title={`${plan} Plan : ${clicksThisMonth.toLocaleString()} clicks`} className="w-8.5 h-8.5 rounded-[10px] bg-[#141416] border border-[#27272a] mx-auto flex items-center justify-center">
-              <Sparkles className="w-3.5 h-3.5 text-[#ff6600]" />
+              <Sparkles className="w-3.5 h-3.5 text-brand" />
             </div>
           )}
 
@@ -321,7 +323,7 @@ export function Sidebar() {
                 : "w-full gap-2 px-2.5 py-1.5"
             )}
           >
-            <div className="w-5 h-5 rounded-[10px] bg-white/5 border border-white/10 flex items-center justify-center text-neutral-400 group-hover:text-white group-hover:bg-[#ff6600] transition-colors">
+            <div className="w-5 h-5 rounded-[10px] bg-white/5 border border-white/10 flex items-center justify-center text-neutral-400 group-hover:text-white group-hover:bg-brand transition-colors">
               <HelpCircle className="w-3.5 h-3.5" />
             </div>
             {!isCollapsed && <span className="text-[11px]">Help & Feedback</span>}
@@ -347,12 +349,12 @@ export function Sidebar() {
           {/* Mobile Drawer Header */}
           <div className="flex items-center justify-between pb-3 border-b border-white/10">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-[10px] bg-[#0066FF] flex items-center justify-center font-bebas text-lg font-black text-white shadow-md shadow-[#0066FF]/40">
+              <div className="w-8 h-8 rounded-[10px] bg-brand flex items-center justify-center font-bebas text-lg font-black text-white shadow-md shadow-[var(--brand-primary-glow)]">
                 LS
               </div>
               <div className="flex flex-col">
                 <span className="font-bebas text-xl font-bold tracking-wider text-white">
-                  L <span className="text-[#0066FF]">SHORTER</span>
+                  L <span className="text-brand">SHORTER</span>
                 </span>
                 <span className="text-[8px] uppercase font-bold tracking-widest text-neutral-400">Mobile Edge</span>
               </div>
@@ -371,10 +373,10 @@ export function Sidebar() {
               setIsMobileOpen(false);
               setIsCreateLinkOpen(true);
             }}
-            className="w-full h-9 rounded-[10px] bg-[#0066FF] hover:bg-[#0055d4] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-[#0066FF]/35 cursor-pointer active:scale-95 transition-all"
+            className="w-full h-9 rounded-[10px] bg-brand hover:bg-brand-hover !text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs cursor-pointer active:scale-95 transition-all"
           >
-            <Plus className="w-4 h-4 stroke-[3]" />
-            <span className="font-bebas text-sm tracking-wide">CREATE A LINK</span>
+            <Plus className="w-4 h-4 stroke-[3] !text-white" />
+            <span className="font-bebas text-sm tracking-wider !text-white font-bold select-none">CREATE A LINK</span>
           </button>
 
           {/* Mobile Nav Principal */}
@@ -390,11 +392,11 @@ export function Sidebar() {
                   className={cn(
                     "flex items-center gap-2.5 px-3 py-1.5 rounded-[10px] text-xs font-medium transition-colors",
                     isActive
-                      ? "bg-[#0066FF]/15 text-[#38bdf8] font-bold border border-[#0066FF]/30"
+                      ? "bg-brand-light text-brand font-bold border border-brand-subtle"
                       : "text-neutral-300 hover:text-white hover:bg-white/5"
                   )}
                 >
-                  <Icon className={cn("w-3.5 h-3.5", isActive ? "text-[#0066FF]" : "text-neutral-400")} />
+                  <Icon className={cn("w-3.5 h-3.5", isActive ? "text-brand" : "text-neutral-400")} />
                   <span>{item.name}</span>
                 </Link>
               );
@@ -414,11 +416,11 @@ export function Sidebar() {
                   className={cn(
                     "flex items-center gap-2.5 px-3 py-1.5 rounded-[10px] text-xs font-medium transition-colors",
                     isActive
-                      ? "bg-[#0066FF]/15 text-[#38bdf8] font-bold border border-[#0066FF]/30"
+                      ? "bg-brand-light text-brand font-bold border border-brand-subtle"
                       : "text-neutral-300 hover:text-white hover:bg-white/5"
                   )}
                 >
-                  <Icon className={cn("w-3.5 h-3.5", isActive ? "text-[#0066FF]" : "text-neutral-400")} />
+                  <Icon className={cn("w-3.5 h-3.5", isActive ? "text-brand" : "text-neutral-400")} />
                   <span>{item.name}</span>
                 </Link>
               );
@@ -429,14 +431,14 @@ export function Sidebar() {
         {/* Mobile Drawer Bottom Quota */}
         <div className="p-2.5 rounded-[10px] bg-[#151c2e] border border-[#27375a] space-y-1.5">
           <div className="flex items-center justify-between text-[10px]">
-            <span className="font-bold text-[#0066FF]">{plan} PLAN</span>
+            <span className="font-bold text-brand">{plan} PLAN</span>
             <span className="font-mono text-white">
               {clicksThisMonth.toLocaleString()} / {clicksLimit === -1 ? "Unlimited" : clicksLimit.toLocaleString()}
             </span>
           </div>
           <div className="w-full h-1.5 rounded-full bg-neutral-200 dark:bg-black/40 overflow-hidden">
             <div
-              className="h-full bg-[#0066FF] rounded-full transition-all duration-500"
+              className="h-full bg-brand rounded-full transition-all duration-500"
               style={{ width: `${percentage}%` }}
             />
           </div>
@@ -448,12 +450,12 @@ export function Sidebar() {
       </div>
 
       {/* ─── 3. FLOATING MOBILE BOTTOM NAV BAR (< 768px - Cyber Blue Theme) ─── */}
-      <div className="fixed bottom-3 left-3 right-3 h-14 bg-[#0d121f]/95 backdrop-blur-xl border border-[#1e2942] rounded-[10px] px-3 flex items-center justify-around z-30 shadow-2xl shadow-[#0066FF]/25 md:hidden">
+      <div className="fixed bottom-3 left-3 right-3 h-14 bg-[#0d121f]/95 backdrop-blur-xl border border-[#1e2942] rounded-[10px] px-3 flex items-center justify-around z-30 shadow-2xl shadow-[var(--brand-primary-glow)] md:hidden">
         <Link
           href="/dashboard"
           className={cn(
             "flex flex-col items-center gap-0.5 cursor-pointer transition-colors",
-            pathname === "/dashboard" ? "text-[#0066FF]" : "text-neutral-400 hover:text-white"
+            pathname === "/dashboard" ? "text-brand" : "text-neutral-400 hover:text-white"
           )}
         >
           <Home className="w-4.5 h-4.5" />
@@ -464,7 +466,7 @@ export function Sidebar() {
           href="/dashboard/links"
           className={cn(
             "flex flex-col items-center gap-0.5 cursor-pointer transition-colors",
-            pathname === "/dashboard/links" ? "text-[#0066FF]" : "text-neutral-400 hover:text-white"
+            pathname === "/dashboard/links" ? "text-brand" : "text-neutral-400 hover:text-white"
           )}
         >
           <Link2 className="w-4.5 h-4.5" />
@@ -473,7 +475,7 @@ export function Sidebar() {
 
         <button
           onClick={() => setIsCreateLinkOpen(true)}
-          className="w-10 h-10 -mt-5 rounded-[10px] bg-[#0066FF] text-white flex items-center justify-center shadow-lg shadow-[#0066FF]/60 active:scale-90 transition-transform cursor-pointer border-2 border-[#09090b]"
+          className="w-10 h-10 -mt-5 rounded-[10px] bg-brand text-white flex items-center justify-center shadow-lg shadow-[var(--brand-primary-glow)] active:scale-90 transition-transform cursor-pointer border-2 border-[#09090b]"
         >
           <Plus className="w-5 h-5 stroke-[3]" />
         </button>
@@ -482,7 +484,7 @@ export function Sidebar() {
           href="/dashboard/analytics"
           className={cn(
             "flex flex-col items-center gap-0.5 cursor-pointer transition-colors",
-            pathname === "/dashboard/analytics" ? "text-[#0066FF]" : "text-neutral-400 hover:text-white"
+            pathname === "/dashboard/analytics" ? "text-brand" : "text-neutral-400 hover:text-white"
           )}
         >
           <BarChart3 className="w-4.5 h-4.5" />

@@ -10,18 +10,25 @@ export function OnboardingGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { data: session, status } = useSession();
-  const userId = session?.user?.id || "";
+  
+  const userEmail = session?.user?.email || "";
+  const userId = session?.user?.id || (session?.user as any)?.userId || userEmail;
 
   // Real-time query to Convex DB for the current user's onboarding status
   const convexUser = useQuery(
     api.users.getCurrentUser,
-    userId ? { userId } : "skip"
+    userId ? { userId, email: userEmail || undefined } : "skip"
   );
 
   useEffect(() => {
     if (status === "loading" || status === "unauthenticated") return;
 
-    // 1. Check live Convex database first
+    // 1. If Convex query is still resolving (undefined), wait - DO NOT redirect prematurely
+    if (convexUser === undefined && userId) {
+      return;
+    }
+
+    // 2. Check live Convex database first
     if (convexUser !== undefined && convexUser !== null) {
       if (convexUser.hasCompletedOnboarding === false) {
         if (!pathname.startsWith("/onboarding")) {
@@ -29,10 +36,12 @@ export function OnboardingGuard({ children }: { children: React.ReactNode }) {
         }
         return;
       }
+      // If convexUser.hasCompletedOnboarding is true, dashboard is authorized
+      return;
     }
 
-    // 2. Fallback to NextAuth session token
-    if (session?.user) {
+    // 3. Fallback to NextAuth session token ONLY when convexUser is confirmed null (not found)
+    if (convexUser === null && session?.user) {
       const hasCompleted = (session.user as any).hasCompletedOnboarding;
       if (hasCompleted === false) {
         if (!pathname.startsWith("/onboarding")) {
@@ -40,7 +49,7 @@ export function OnboardingGuard({ children }: { children: React.ReactNode }) {
         }
       }
     }
-  }, [convexUser, session, status, pathname, router]);
+  }, [convexUser, session, status, pathname, router, userId]);
 
   return <>{children}</>;
 }

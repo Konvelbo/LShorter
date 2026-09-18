@@ -74,7 +74,7 @@ export function StatsBarChart({
         </div>
         {hoveredPoint ? (
           <div className="flex items-center gap-2 bg-zinc-100 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a] rounded-[8px] px-2.5 py-1 text-xs animate-in fade-in">
-            <span className="w-2 h-2 rounded-full bg-[#ff6600] animate-pulse" />
+            <span className="w-2 h-2 rounded-full bg-brand animate-pulse" />
             <span className="text-zinc-900 dark:text-white font-bold">{formatNumber(hoveredPoint.clicks)} click{hoveredPoint.clicks === 1 ? "" : "s"}</span>
             <span className="text-zinc-500 dark:text-neutral-400 text-[11px]">({hoveredPoint.label})</span>
           </div>
@@ -90,7 +90,7 @@ export function StatsBarChart({
         <div className="absolute top-16 right-5 bg-white/95 dark:bg-[#1f1f23]/95 backdrop-blur border border-zinc-200 dark:border-[#27272a] rounded-[10px] px-3 py-2 text-xs shadow-2xl pointer-events-none z-20 animate-in fade-in">
           <p className="text-zinc-500 dark:text-neutral-400 text-[10px]">{hoveredPoint.label} {hoveredPoint.date ? `(${hoveredPoint.date.slice(0, 10)})` : ""}</p>
           <p className="text-zinc-900 dark:text-white font-bold text-sm">
-            <span className="text-[#ff6600]">{formatNumber(hoveredPoint.clicks)}</span> click{hoveredPoint.clicks === 1 ? "" : "s"}
+            <span className="text-brand">{formatNumber(hoveredPoint.clicks)}</span> click{hoveredPoint.clicks === 1 ? "" : "s"}
           </p>
           <p className="text-zinc-500 dark:text-neutral-400 text-[11px]">
             {formatNumber(hoveredPoint.uniqueClicks || hoveredPoint.clicks)} unique{(hoveredPoint.uniqueClicks || hoveredPoint.clicks) === 1 ? "" : "s"}
@@ -129,12 +129,13 @@ export function StatsBarChart({
                     "w-full rounded-t-[3px] transition-all duration-300 relative",
                     hasClicks
                       ? (isHovered
-                          ? "bg-gradient-to-t from-[#ea580c] to-[#ff771a] shadow-lg shadow-[#ff6600]/50"
-                          : "bg-gradient-to-t from-[#d94e00] to-[#ff6600] shadow-sm shadow-[#ff6600]/25")
+                          ? "bg-brand shadow-lg"
+                          : "bg-brand opacity-90 shadow-sm")
                       : (isHovered ? "bg-zinc-300 dark:bg-[#2a2a30]" : "bg-zinc-200 dark:bg-[#1c1c20]")
                   )}
                   style={{
                     height: `${heightPercent}%`,
+                    ...(hasClicks && isHovered ? { boxShadow: "0 0 12px var(--brand-primary-glow)" } : {}),
                   }}
                 />
               </div>
@@ -147,7 +148,7 @@ export function StatsBarChart({
       <div className="flex items-center justify-between text-[11px] font-medium text-zinc-500 dark:text-neutral-400 pt-2.5 px-0.5 border-t border-zinc-200 dark:border-[#222225]">
         <span className="truncate max-w-[30%]">{timelineData[0]?.label || ""}</span>
         <span className="truncate max-w-[30%] text-center">{timelineData[Math.floor(timelineData.length / 2)]?.label || ""}</span>
-        <span className="text-[#ff6600] font-semibold truncate max-w-[35%] text-right">
+        <span className="text-brand font-semibold truncate max-w-[35%] text-right">
           {timelineData[timelineData.length - 1]?.label || "Today"}
         </span>
       </div>

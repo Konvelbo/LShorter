@@ -339,7 +339,7 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
     <div className="flex flex-col gap-4 text-xs">
       <div className="flex items-center justify-between pb-2 border-b border-[#27272a]">
         <h4 className="font-bold text-sm tracking-wider uppercase text-white flex items-center gap-2">
-          <Globe2 className="w-4 h-4 text-[#ff6600]" />
+          <Globe2 className="w-4 h-4 text-brand" />
           <span>ROUTING RULES</span>
         </h4>
         <span className="text-[11px] text-neutral-400">
@@ -403,7 +403,7 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                       {/* Mobile Header: Prefix + Delete */}
                       <div className="flex items-center justify-between sm:contents">
                         <div className="sm:col-span-1 text-xs font-bold text-neutral-300">
-                          <span className="px-2 py-0.5 rounded-[10px] bg-white/5 sm:bg-transparent text-[#ff6600] font-mono">
+                          <span className="px-2 py-0.5 rounded-[10px] bg-white/5 sm:bg-transparent text-brand font-mono">
                             {condIdx === 0 ? "If" : "And"}
                           </span>
                         </div>
@@ -432,7 +432,7 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                                 value: getDefaultValueForType(e.target.value),
                               })
                             }
-                            className="w-full h-10 rounded-[10px] bg-[#1a1a1e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
+                            className="w-full h-10 rounded-[10px] bg-[#1a1a1e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-brand cursor-pointer"
                           >
                             <option value="pays" className="bg-[#141416] text-white">Country</option>
                             <option value="plateforme" className="bg-[#141416] text-white">Platform (OS)</option>
@@ -450,7 +450,7 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                                 operator: e.target.value as any,
                               })
                             }
-                            className="w-full h-10 rounded-[10px] bg-[#1a1a1e] text-white border border-[#27272a] px-2.5 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer text-center"
+                            className="w-full h-10 rounded-[10px] bg-[#1a1a1e] text-white border border-[#27272a] px-2.5 text-xs focus:outline-none focus:border-brand cursor-pointer text-center"
                           >
                             <option value="est" className="bg-[#141416] text-white">is</option>
                             <option value="nest_pas" className="bg-[#141416] text-white">is not</option>
@@ -468,7 +468,7 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                                 value: e.target.value,
                               })
                             }
-                            className="w-full h-10 rounded-[10px] bg-[#1a1a1e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
+                            className="w-full h-10 rounded-[10px] bg-[#1a1a1e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-brand cursor-pointer"
                           >
                             {ALL_WORLD_COUNTRIES.map((c) => (
                               <option
@@ -490,7 +490,7 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                                 value: e.target.value,
                               })
                             }
-                            className="w-full h-10 rounded-[10px] bg-[#1a1a1e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
+                            className="w-full h-10 rounded-[10px] bg-[#1a1a1e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-brand cursor-pointer"
                           >
                             <option value="windows" className="bg-[#141416] text-white">Windows</option>
                             <option value="macos" className="bg-[#141416] text-white">macOS</option>
@@ -508,7 +508,7 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                                 value: e.target.value,
                               })
                             }
-                            className="w-full h-10 rounded-[10px] bg-[#1a1a1e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
+                            className="w-full h-10 rounded-[10px] bg-[#1a1a1e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-brand cursor-pointer"
                           >
                             <option value="mobile" className="bg-[#141416] text-white">Mobile (Smartphones)</option>
                             <option value="tablet" className="bg-[#141416] text-white">Tablet</option>
@@ -524,7 +524,7 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                                 value: e.target.value,
                               })
                             }
-                            className="w-full h-10 rounded-[10px] bg-[#1a1a1e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-[#ff6600] cursor-pointer"
+                            className="w-full h-10 rounded-[10px] bg-[#1a1a1e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-brand cursor-pointer"
                           >
                             <option value="europe" className="bg-[#141416] text-white">Europe (EU)</option>
                             <option value="west_africa" className="bg-[#141416] text-white">West Africa (ECOWAS)</option>
@@ -556,7 +556,7 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                     <button
                       type="button"
                       onClick={() => handleAddCondition(rule.id)}
-                      className="text-[#ff6600] hover:text-[#ff771a] font-semibold text-xs flex items-center gap-1 px-3 py-1.5 rounded-[10px] hover:bg-[#ff6600]/10 border border-[#ff6600]/20 transition-all cursor-pointer"
+                      className="text-brand hover:text-brand-hover font-semibold text-xs flex items-center gap-1 px-3 py-1.5 rounded-[10px] hover:bg-brand-subtle border border-brand-subtle transition-all cursor-pointer"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       <span>Add condition</span>
@@ -567,7 +567,7 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                 {/* Target URL Destination ("Then redirect to") */}
                 <div className="flex flex-col gap-1.5 pt-2 border-t border-[#222225]">
                   <label className="text-xs font-semibold text-neutral-300">
-                    Then redirect to <span className="text-[#ff6600]">*</span>
+                    Then redirect to <span className="text-brand">*</span>
                   </label>
                   {(() => {
                     const trimmed = (rule.destinationUrl || "").trim();
@@ -622,9 +622,9 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
       <button
         type="button"
         onClick={handleAddRule}
-        className="w-full sm:w-fit px-4 py-2.5 rounded-[10px] bg-white/5 hover:bg-white/10 active:scale-98 text-neutral-200 hover:text-white border border-[#27272a] hover:border-[#ff6600] font-semibold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm"
+        className="w-full sm:w-fit px-4 py-2.5 rounded-[10px] bg-white/5 hover:bg-white/10 active:scale-98 text-neutral-200 hover:text-white border border-[#27272a] hover:border-brand font-semibold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm"
       >
-        <Plus className="w-4 h-4 text-[#ff6600]" />
+        <Plus className="w-4 h-4 text-brand" />
         <span>Add rule</span>
       </button>
     </div>

@@ -10,13 +10,13 @@ const reasons = [
     icon: Zap,
     title: "Fast & Reliable",
     desc: "Sub-millisecond redirects on the global Cloudflare network with a 99.99% guaranteed uptime SLA.",
-    accentClass: "text-[#0080ff] sm:text-[#ff6600]",
+    accentClass: "text-brand",
   },
   {
     icon: Layers,
     title: "All-in-One Suite",
     desc: "Shortening, intelligent traffic routing, PIN protection, custom QR Codes, and real-time analytics in a single unified workspace.",
-    accentClass: "text-[#0080ff] sm:text-[#ff8800]",
+    accentClass: "text-brand",
   },
   {
     icon: Sparkles,
@@ -33,6 +33,8 @@ const reasons = [
 ];
 
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+import { Counter } from "@/components/ui/counter";
 
 export function WhyUsSection() {
   useEffect(() => {
@@ -103,41 +105,49 @@ export function WhyUsSection() {
   };
 
   return (
-    <section className="relative py-20 sm:py-28 bg-[#F2ECE4]/60 dark:bg-[#0c0c10] border-y border-[#E7DFD5] dark:border-white/5 overflow-hidden">
+    <section className="relative py-14 sm:py-20 bg-[#F2ECE4]/60 dark:bg-[#0c0c10] border-y border-[#E7DFD5] dark:border-white/5 overflow-hidden">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         {/* Section Header */}
-        <div className="why-us-header text-center max-w-2xl mx-auto mb-14">
-          <h2 className="text-[26px] sm:text-[30px] font-medium tracking-tight text-neutral-900 dark:text-white">
+        <div className="why-us-header text-center max-w-2xl mx-auto mb-8 sm:mb-10 flex flex-col items-center justify-center">
+          <h2 className="text-xl sm:text-[24px] font-medium tracking-tight text-neutral-900 dark:text-white text-center">
             Why Choose LShorter?
           </h2>
-          <p className="mt-2 text-sm sm:text-base text-neutral-600 dark:text-neutral-400">
+          <p className="mt-1.5 text-xs sm:text-[13.5px] text-neutral-600 dark:text-neutral-400 text-center max-w-lg">
             A modern edge-native architecture built for speed, simplicity, and scale.
           </p>
         </div>
 
         {/* 4 Cards Grid with GSAP Scale & Hover Effects */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-          {reasons.map((item) => {
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4 max-w-md sm:max-w-none mx-auto w-full">
+          {reasons.map((item, idx) => {
             const Icon = item.icon;
             return (
               <div
                 key={item.title}
                 onMouseEnter={handleMouseEnter}
                 onMouseLeave={handleMouseLeave}
-                className="why-us-card group"
+                className="why-us-card group w-full"
               >
-                <Card className="p-6 h-full flex flex-col justify-between rounded-2xl bg-[#FFFDF9] dark:bg-[#141418] border-[#E7DFD5] dark:border-white/10 hover:border-[#DDD1C4] dark:hover:border-white/20 shadow-sm transition-shadow duration-300">
-                  <div className="space-y-4">
+                <Card className="p-5 h-full flex flex-col items-center text-center sm:items-start sm:text-left justify-between rounded-2xl bg-[#FFFDF9] dark:bg-[#141418] border-[#E7DFD5] dark:border-white/10 hover:border-[#DDD1C4] dark:hover:border-white/20 shadow-sm transition-shadow duration-300">
+                  <div className="space-y-3 flex flex-col items-center sm:items-start w-full">
                     <div
-                      className={`w-10 h-10 rounded-xl bg-[#F2ECE4] dark:bg-white/5 flex items-center justify-center transition-transform duration-300 group-hover:scale-110 ${item.accentClass}`}
+                      className={`w-9 h-9 rounded-xl bg-[#F2ECE4] dark:bg-white/5 flex items-center justify-center transition-transform duration-300 group-hover:scale-110 ${item.accentClass}`}
                     >
-                      <Icon className="w-5 h-5" />
+                      <Icon className="w-4.5 h-4.5" />
                     </div>
-                    <h3 className="text-base font-semibold text-neutral-900 dark:text-white">
+                    <h3 className="text-sm sm:text-[14.5px] font-semibold text-neutral-900 dark:text-white text-center sm:text-left">
                       {item.title}
                     </h3>
-                    <p className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed font-normal">
-                      {item.desc}
+                    <p className="text-[11.5px] sm:text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed font-normal text-center sm:text-left">
+                      {idx === 0 ? (
+                        <>
+                          Sub-millisecond redirects on the global Cloudflare network with a{" "}
+                          <Counter value={99.99} decimals={2} suffix="%" className="font-semibold text-neutral-800 dark:text-neutral-200" />{" "}
+                          guaranteed uptime SLA.
+                        </>
+                      ) : (
+                        item.desc
+                      )}
                     </p>
                   </div>
                 </Card>

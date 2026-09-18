@@ -1,0 +1,110 @@
+// ============================================================================
+// Prisma Database Schema Definition — LShorter SaaS
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Plan {
+  FREE
+  PRO
+  BUSINESS
+  ENTERPRISE
+}
+
+enum PlanStatus {
+  ACTIVE
+  TRIALING
+  PAST_DUE
+  CANCELED
+}
+
+enum BillingCycle {
+  MONTHLY
+  YEARLY
+}
+
+enum InvoiceStatus {
+  PAID
+  PENDING
+  FAILED
+}
+
+model Organization {
+  id             String         @id @default(cuid())
+  name           String
+  slug           String         @unique
+  plan           Plan           @default(FREE)
+  planStatus     PlanStatus     @default(ACTIVE)
+  billingCycle   BillingCycle   @default(MONTHLY)
+  trialEndsAt    DateTime?
+  taxId          String?
+  billingAddress String?
+  companyName    String?
+  billingEmail   String?
+  subscriptions  Subscription[]
+  invoices       Invoice[]
+  notifications  Notification[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([slug])
+  @@index([plan])
+}
+
+model Subscription {
+  id                     String       @id @default(cuid())
+  orgId                  String
+  organization           Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  provider               String       @default("mock")
+  providerSubscriptionId String
+  currentPeriodStart     DateTime
+  currentPeriodEnd       DateTime
+  trialEndsAt            DateTime?
+  cancelAtPeriodEnd      Boolean      @default(false)
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
+
+  @@index([orgId])
+}
+
+model Notification {
+  id           String       @id @default(cuid())
+  orgId        String
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  title        String
+  message      String
+  type         String       @default("INFO") // INFO, WARNING, ALERT, SUCCESS
+  isRead       Boolean      @default(false)
+  linkUrl      String?
+  createdAt    DateTime     @default(now())
+
+  @@index([orgId])
+  @@index([orgId, isRead])
+}
+
+model Invoice {
+  id             String        @id @default(cuid())
+  orgId          String
+  organization   Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  invoiceNumber  String        @unique
+  planId         Plan
+  amountPaid     Float
+  currency       String        @default("EUR")
+  status         InvoiceStatus @default(PAID)
+  pdfUrl         String?
+  periodStart    DateTime
+  periodEnd      DateTime
+  overageAmount  Float         @default(0)
+  batchesOverage Int           @default(0)
+  createdAt      DateTime      @default(now())
+
+  @@index([orgId])
+  @@index([invoiceNumber])
+}

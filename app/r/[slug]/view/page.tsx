@@ -64,7 +64,7 @@ export default async function CloakedViewPage({
           href={link.targetUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-1.5 text-xs text-[#ff6600] hover:underline"
+          className="flex items-center gap-1.5 text-xs text-brand hover:underline"
         >
           <span>Open source</span>
           <ExternalLink className="w-3 h-3" />

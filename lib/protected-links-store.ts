@@ -75,6 +75,7 @@ function persistStore() {
 }
 
 export function saveProtectedLink(meta: {
+  id?: string;
   slug: string;
   password?: string;
   isCloaked?: boolean;
@@ -98,21 +99,36 @@ export function saveProtectedLink(meta: {
   isActive?: boolean;
   expiresAt?: string;
 }) {
-  if (!meta.slug) return;
-  const key = meta.slug.toLowerCase();
-  const existing: Partial<ProtectedLinkMeta> = memoryStore.get(key) || {};
+  if (!meta.slug && !meta.id) return;
+  const slugKey = (meta.slug || "").toLowerCase();
+  const idKey = (meta.id || "").toLowerCase();
+
+  const existing: Partial<ProtectedLinkMeta> =
+    (slugKey ? memoryStore.get(slugKey) : null) ||
+    (idKey ? memoryStore.get(idKey) : null) ||
+    {};
+
+  const finalSlug = meta.slug || existing.slug || meta.id || "";
+  const finalId = meta.id || (existing as any).id || finalSlug;
+
+  const resolvedCard: "summary_large_image" | "summary" =
+    meta.twitterCard ||
+    (meta.twitter_card as "summary_large_image" | "summary") ||
+    existing.twitterCard ||
+    (existing.twitter_card as "summary_large_image" | "summary") ||
+    "summary_large_image";
 
   const updated: ProtectedLinkMeta = {
     ...existing,
-    slug: meta.slug,
+    slug: finalSlug,
     password: meta.password !== undefined ? meta.password : existing.password,
     isCloaked: meta.isCloaked !== undefined ? meta.isCloaked : existing.isCloaked,
     metaTitle: meta.metaTitle !== undefined ? meta.metaTitle : existing.metaTitle,
     ogTitle: meta.ogTitle !== undefined ? meta.ogTitle : existing.ogTitle,
     ogDescription: meta.ogDescription !== undefined ? meta.ogDescription : existing.ogDescription,
     ogImage: meta.ogImage !== undefined ? meta.ogImage : existing.ogImage,
-    twitterCard: "summary_large_image",
-    twitter_card: "summary_large_image",
+    twitterCard: resolvedCard,
+    twitter_card: resolvedCard,
     targetUrl: meta.targetUrl !== undefined ? meta.targetUrl : existing.targetUrl,
     routingRules: meta.routingRules !== undefined ? meta.routingRules : existing.routingRules,
     geoTargeting: meta.geoTargeting !== undefined ? meta.geoTargeting : existing.geoTargeting,
@@ -129,8 +145,12 @@ export function saveProtectedLink(meta: {
     userId: meta.userId || existing.userId,
     updatedAt: new Date().toISOString(),
   };
+  (updated as any).id = finalId;
 
-  memoryStore.set(key, updated);
+  if (slugKey) memoryStore.set(slugKey, updated);
+  if (idKey) memoryStore.set(idKey, updated);
+  if (finalSlug) memoryStore.set(finalSlug.toLowerCase(), updated);
+
   persistStore();
   return updated;
 }
@@ -141,7 +161,7 @@ export function getProtectedLink(keyOrSlug: string): ProtectedLinkMeta | null {
   const direct = memoryStore.get(k);
   if (direct) return direct;
   for (const item of memoryStore.values()) {
-    if (item.slug?.toLowerCase() === k) return item;
+    if (item.slug?.toLowerCase() === k || (item as any).id?.toLowerCase() === k) return item;
   }
   return null;
 }

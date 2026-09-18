@@ -23,7 +23,7 @@ export interface SyncUserPayload {
   id: string;
   name: string;
   email: string;
-  plan?: "FREEMIUM" | "PRO" | "BUSINESS";
+  plan?: "FREE" | "FREEMIUM" | "PRO" | "BUSINESS" | "ENTERPRISE";
   avatarUrl?: string;
   provider?: string;
 }

@@ -51,7 +51,7 @@ export function EmptyState({ onLinkCreated, analytics }: EmptyStateProps) {
         <div className="p-5 rounded-[10px] bg-[#141416] border border-[#222225] flex flex-col justify-between">
           <span className="text-xs font-semibold text-neutral-400">Total Clicks</span>
           <div className="my-2">
-            <span className="font-bebas text-4xl font-bold tracking-wide text-[#ff6600]">
+            <span className="font-bebas text-4xl font-bold tracking-wide text-[var(--brand-primary-text)]">
               {formatNumber(totalClicks)}
             </span>
           </div>
@@ -101,14 +101,14 @@ export function EmptyState({ onLinkCreated, analytics }: EmptyStateProps) {
       </div>
 
       {/* Big Center Shorten Box */}
-      <div className="p-8 md:p-12 rounded-[10px] bg-[#141416] border-2 border-dashed border-[#ff6600]/40 flex flex-col items-center justify-center text-center relative overflow-hidden">
+      <div className="p-8 md:p-12 rounded-[10px] bg-[#141416] border-2 border-dashed border-[var(--brand-primary-border)] flex flex-col items-center justify-center text-center relative overflow-hidden">
         {/* Decorative background glow */}
-        <div className="absolute w-72 h-72 bg-[#ff6600]/5 rounded-full blur-3xl pointer-events-none -top-10" />
+        <div className="absolute w-72 h-72 bg-[var(--brand-primary-subtle)] rounded-full blur-3xl pointer-events-none -top-10" />
 
         {/* Center Icon */}
         <div className="w-16 h-16 rounded-full bg-neutral-100 dark:bg-[#27272a] border border-neutral-200 dark:border-[#3f3f46] flex items-center justify-center mb-5 shadow-xl relative">
           <div className="flex items-center gap-1">
-            <div className="w-4 h-4 rounded-full bg-[#ff6600]" />
+            <div className="w-4 h-4 rounded-full bg-[var(--brand-primary)]" />
             <div className="w-5 h-3 rounded-full bg-neutral-900 dark:bg-white" />
           </div>
         </div>
@@ -118,7 +118,7 @@ export function EmptyState({ onLinkCreated, analytics }: EmptyStateProps) {
         </h2>
         <p className="text-xs md:text-sm text-neutral-400 max-w-lg mb-8">
           Paste a long URL below and click{" "}
-          <span className="text-[#ff6600] font-semibold">SHORTEN</span> to generate your first trackable link.
+          <span className="text-[var(--brand-primary-text)] font-semibold">SHORTEN</span> to generate your first trackable link.
         </p>
 
         {/* Shorten Input Form */}
@@ -132,7 +132,7 @@ export function EmptyState({ onLinkCreated, analytics }: EmptyStateProps) {
             placeholder="https://your-site.com/destination-page..."
             value={urlInput}
             onChange={(e) => setUrlInput(e.target.value)}
-            className="w-full h-12 rounded-[10px] bg-neutral-50 dark:bg-white border-2 border-neutral-300 dark:border-transparent text-neutral-900 px-4 text-sm placeholder:text-neutral-500 font-medium shadow-sm focus:outline-none focus:border-[#ff6600] focus:ring-2 focus:ring-[#ff6600]/20 focus:bg-white transition-all"
+            className="w-full h-12 rounded-[10px] bg-neutral-50 dark:bg-white border-2 border-neutral-300 dark:border-transparent text-neutral-900 px-4 text-sm placeholder:text-neutral-500 font-medium shadow-sm focus:outline-none focus:border-[var(--input-focus-border)] focus:ring-2 focus:ring-[var(--input-focus-ring)] focus:bg-white transition-all"
           />
           <Button
             type="submit"
@@ -146,7 +146,7 @@ export function EmptyState({ onLinkCreated, analytics }: EmptyStateProps) {
         {/* 3 Steps Timeline */}
         <div className="flex flex-wrap items-center justify-center gap-3 md:gap-6 text-xs text-neutral-600 dark:text-neutral-400">
           <div className="flex items-center gap-2 px-3.5 py-2 rounded-[10px] bg-neutral-100 dark:bg-[#1a1a1e] border border-neutral-300 dark:border-[#27272a] shadow-sm">
-            <span className="w-5 h-5 rounded-full bg-[#ff6600] text-white font-bold text-[11px] flex items-center justify-center shrink-0">
+            <span className="w-5 h-5 rounded-full bg-[var(--brand-primary)] text-white font-bold text-[11px] flex items-center justify-center shrink-0">
               1
             </span>
             <span className="font-semibold text-neutral-900 dark:text-neutral-200">Copy your URL</span>
@@ -155,7 +155,7 @@ export function EmptyState({ onLinkCreated, analytics }: EmptyStateProps) {
           <span className="text-neutral-400 dark:text-neutral-600 font-bold select-none">→</span>
 
           <div className="flex items-center gap-2 px-3.5 py-2 rounded-[10px] bg-neutral-100 dark:bg-[#1a1a1e] border border-neutral-300 dark:border-[#27272a] shadow-sm">
-            <span className="w-5 h-5 rounded-full bg-[#ff6600] text-white font-bold text-[11px] flex items-center justify-center shrink-0">
+            <span className="w-5 h-5 rounded-full bg-[var(--brand-primary)] text-white font-bold text-[11px] flex items-center justify-center shrink-0">
               2
             </span>
             <span className="font-semibold text-neutral-900 dark:text-neutral-200">Paste &amp; shorten</span>
@@ -164,7 +164,7 @@ export function EmptyState({ onLinkCreated, analytics }: EmptyStateProps) {
           <span className="text-neutral-400 dark:text-neutral-600 font-bold select-none">→</span>
 
           <div className="flex items-center gap-2 px-3.5 py-2 rounded-[10px] bg-neutral-100 dark:bg-[#1a1a1e] border border-neutral-300 dark:border-[#27272a] shadow-sm">
-            <span className="w-5 h-5 rounded-full bg-[#ff6600] text-white font-bold text-[11px] flex items-center justify-center shrink-0">
+            <span className="w-5 h-5 rounded-full bg-[var(--brand-primary)] text-white font-bold text-[11px] flex items-center justify-center shrink-0">
               3
             </span>
             <span className="font-semibold text-neutral-900 dark:text-neutral-200">Share &amp; analyze</span>
@@ -174,94 +174,94 @@ export function EmptyState({ onLinkCreated, analytics }: EmptyStateProps) {
 
       {/* Bottom Section: OUR FEATURES */}
       <div className="flex flex-col gap-3 pt-2">
-        <span className="text-xs font-bold uppercase tracking-widest text-[#ff6600]">
+        <span className="text-xs font-bold uppercase tracking-widest text-[var(--brand-primary-text)]">
           Our Features
         </span>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Feature Card 1 */}
-          <div className="p-6 rounded-[10px] bg-[#141416] border border-[#222225] border-l-4 border-l-[#ff6600] flex flex-col gap-3">
+          <div className="p-6 rounded-[10px] bg-[#141416] border border-[#222225] border-l-4 border-l-[var(--brand-primary)] flex flex-col gap-3">
             <div className="flex items-center gap-2 font-bold text-white text-sm mb-1">
               <Link2 className="w-4 h-4 text-neutral-400" />
               <span>Links &amp; Targeting</span>
             </div>
             <ul className="flex flex-col gap-2 text-xs text-neutral-300">
               <li className="flex items-center gap-2">
-                <span className="text-[#ff6600] font-bold">✓</span> Branded Links
+                <span className="text-[var(--brand-primary-text)] font-bold">✓</span> Branded Links
               </li>
               <li className="flex items-center gap-2">
-                <span className="text-[#ff6600] font-bold">✓</span> Fast Redirects
+                <span className="text-[var(--brand-primary-text)] font-bold">✓</span> Fast Redirects
               </li>
               <li className="flex items-center gap-2">
-                <span className="text-[#ff6600] font-bold">✓</span> Country Targeting
+                <span className="text-[var(--brand-primary-text)] font-bold">✓</span> Country Targeting
               </li>
               <li className="flex items-center gap-2">
-                <span className="text-[#ff6600] font-bold">✓</span> Link Cloaking
+                <span className="text-[var(--brand-primary-text)] font-bold">✓</span> Link Cloaking
               </li>
               <li className="flex items-center gap-2">
-                <span className="text-[#ff6600] font-bold">✓</span> Deep Linking
+                <span className="text-[var(--brand-primary-text)] font-bold">✓</span> Deep Linking
               </li>
               <li className="flex items-center gap-2">
-                <span className="text-[#ff6600] font-bold">✓</span> Campaign Tags
+                <span className="text-[var(--brand-primary-text)] font-bold">✓</span> Campaign Tags
               </li>
               <li className="flex items-center gap-2">
-                <span className="text-[#ff6600] font-bold">✓</span> Device Targeting
+                <span className="text-[var(--brand-primary-text)] font-bold">✓</span> Device Targeting
               </li>
             </ul>
           </div>
 
           {/* Feature Card 2 */}
-          <div className="p-6 rounded-[10px] bg-[#141416] border border-[#222225] border-l-4 border-l-[#ff6600] flex flex-col gap-3">
+          <div className="p-6 rounded-[10px] bg-[#141416] border border-[#222225] border-l-4 border-l-[var(--brand-primary)] flex flex-col gap-3">
             <div className="flex items-center gap-2 font-bold text-white text-sm mb-1">
               <Settings className="w-4 h-4 text-neutral-400" />
               <span>Management &amp; Control</span>
             </div>
             <ul className="flex flex-col gap-2 text-xs text-neutral-300">
               <li className="flex items-center gap-2">
-                <span className="text-[#ff6600] font-bold">✓</span> Custom Domains
+                <span className="text-[var(--brand-primary-text)] font-bold">✓</span> Custom Domains
               </li>
               <li className="flex items-center gap-2">
-                <span className="text-[#ff6600] font-bold">✓</span> A/B Split Testing
+                <span className="text-[var(--brand-primary-text)] font-bold">✓</span> A/B Split Testing
               </li>
               <li className="flex items-center gap-2">
-                <span className="text-[#ff6600] font-bold">✓</span> Referrer Masking
+                <span className="text-[var(--brand-primary-text)] font-bold">✓</span> Referrer Masking
               </li>
               <li className="flex items-center gap-2">
-                <span className="text-[#ff6600] font-bold">✓</span> Link Permissions
+                <span className="text-[var(--brand-primary-text)] font-bold">✓</span> Link Permissions
               </li>
               <li className="flex items-center gap-2">
-                <span className="text-[#ff6600] font-bold">✓</span> Main Domain Redirect
+                <span className="text-[var(--brand-primary-text)] font-bold">✓</span> Main Domain Redirect
               </li>
               <li className="flex items-center gap-2">
-                <span className="text-[#ff6600] font-bold">✓</span> REST API &amp; SDK
+                <span className="text-[var(--brand-primary-text)] font-bold">✓</span> REST API &amp; SDK
               </li>
             </ul>
           </div>
 
           {/* Feature Card 3 */}
-          <div className="p-6 rounded-[10px] bg-[#141416] border border-[#222225] border-l-4 border-l-[#ff6600] flex flex-col gap-3">
+          <div className="p-6 rounded-[10px] bg-[#141416] border border-[#222225] border-l-4 border-l-[var(--brand-primary)] flex flex-col gap-3">
             <div className="flex items-center gap-2 font-bold text-white text-sm mb-1">
               <BarChart3 className="w-4 h-4 text-neutral-400" />
               <span>Analytics &amp; Security</span>
             </div>
             <ul className="flex flex-col gap-2 text-xs text-neutral-300">
               <li className="flex items-center gap-2">
-                <span className="text-[#ff6600] font-bold">✓</span> Real-Time Clicks
+                <span className="text-[var(--brand-primary-text)] font-bold">✓</span> Real-Time Clicks
               </li>
               <li className="flex items-center gap-2">
-                <span className="text-[#ff6600] font-bold">✓</span> Link Expiration
+                <span className="text-[var(--brand-primary-text)] font-bold">✓</span> Link Expiration
               </li>
               <li className="flex items-center gap-2">
-                <span className="text-[#ff6600] font-bold">✓</span> PIN Protection
+                <span className="text-[var(--brand-primary-text)] font-bold">✓</span> PIN Protection
               </li>
               <li className="flex items-center gap-2">
-                <span className="text-[#ff6600] font-bold">✓</span> UTM Builder
+                <span className="text-[var(--brand-primary-text)] font-bold">✓</span> UTM Builder
               </li>
               <li className="flex items-center gap-2">
-                <span className="text-[#ff6600] font-bold">✓</span> Dynamic Destination URL
+                <span className="text-[var(--brand-primary-text)] font-bold">✓</span> Dynamic Destination URL
               </li>
               <li className="flex items-center gap-2">
-                <span className="text-[#ff6600] font-bold">✓</span> Instant QR Code
+                <span className="text-[var(--brand-primary-text)] font-bold">✓</span> Instant QR Code
               </li>
             </ul>
           </div>

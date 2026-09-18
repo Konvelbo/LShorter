@@ -92,7 +92,7 @@ export default function PasswordGatePage() {
             href={unlockedTargetUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1.5 text-xs text-[#ff6600] hover:underline"
+            className="flex items-center gap-1.5 text-xs text-brand hover:underline"
           >
             <span>Open source</span>
             <ExternalLink className="w-3 h-3" />
@@ -111,17 +111,17 @@ export default function PasswordGatePage() {
   return (
     <div className="min-h-screen w-full bg-[#0a0a0c] text-white flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans">
       {/* Glow Effects */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-[#ff6600]/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-brand-subtle rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-purple-600/5 rounded-full blur-3xl pointer-events-none" />
 
       {/* Main Gate Card */}
       <div className="w-full max-w-md rounded-[10px] bg-[#121215] border border-[#222226] p-8 shadow-2xl relative z-10 animate-in fade-in zoom-in-95 duration-200">
         <div className="flex flex-col items-center text-center">
-          <div className="w-16 h-16 rounded-[10px] bg-gradient-to-br from-[#ff6600]/20 to-amber-500/10 border border-[#ff6600]/30 flex items-center justify-center mb-6 shadow-lg shadow-[#ff6600]/10">
-            <Lock className="w-8 h-8 text-[#ff6600]" />
+          <div className="w-16 h-16 rounded-[10px] bg-brand-light border border-brand-subtle flex items-center justify-center mb-6 shadow-lg shadow-brand">
+            <Lock className="w-8 h-8 text-brand" />
           </div>
 
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#1a1a1e] border border-[#27272b] text-[11px] font-mono text-[#ff6600] mb-3">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#1a1a1e] border border-[#27272b] text-[11px] font-mono text-brand mb-3">
             <span>/{slug}</span>
           </div>
 
@@ -151,7 +151,7 @@ export default function PasswordGatePage() {
                 className={`w-full px-4 py-3 rounded-[10px] bg-[#1a1a1e] border text-sm text-white placeholder-neutral-500 transition-all outline-none pr-11 ${
                   passwordError
                     ? "border-red-500/80 focus:border-red-500 ring-2 ring-red-500/20"
-                    : "border-[#2a2a30] focus:border-[#ff6600] focus:ring-2 focus:ring-[#ff6600]/20"
+                    : "border-[#2a2a30] focus:border-brand focus:ring-2 focus:ring-brand-subtle"
                 }`}
               />
               <button
@@ -175,7 +175,7 @@ export default function PasswordGatePage() {
           <Button
             type="submit"
             disabled={isVerifying || !password.trim()}
-            className="w-full h-11 rounded-[10px] bg-gradient-to-r from-[#ff6600] to-[#ff7700] hover:from-[#ff7711] hover:to-[#ff8811] text-white font-semibold text-sm shadow-lg shadow-[#ff6600]/25 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full h-11 rounded-[10px] bg-brand hover:bg-brand-hover text-white font-semibold text-sm shadow-lg shadow-brand transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isVerifying ? (
               <>

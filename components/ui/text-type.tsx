@@ -63,7 +63,7 @@ export function TextType({
       <span>{displayedText}</span>
       {showCursor && (
         <span
-          className={`inline-block animate-pulse font-mono ml-0.5 text-[#0080ff] sm:text-[#ff6600] font-bold ${cursorClassName}`}
+          className={`inline-block animate-pulse font-mono ml-0.5 text-[var(--brand-primary-text)] font-bold ${cursorClassName}`}
         >
           {cursorChar}
         </span>

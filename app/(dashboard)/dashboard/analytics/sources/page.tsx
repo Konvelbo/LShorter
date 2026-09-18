@@ -42,6 +42,8 @@ const SOURCE_COLUMNS: ColumnDefinition[] = [
   { key: "device", label: "Device", defaultVisible: true },
 ];
 
+const SOCIAL_PLATFORMS = ["linkedin", "twitter", "x.com", "whatsapp", "facebook", "instagram", "t.co", "telegram"];
+
 export default function SourcesAnalyticsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -272,13 +274,13 @@ export default function SourcesAnalyticsPage() {
           <div className="flex items-center gap-2 mb-2">
             <Link
               href="/dashboard/analytics"
-              className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-[#ff6600] dark:text-neutral-400 dark:hover:text-[#ff6600] transition-colors"
+              className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-brand dark:text-neutral-400 dark:hover:text-brand transition-colors"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Back to Analytics</span>
             </Link>
             <span className="text-zinc-400 dark:text-neutral-600">/</span>
-            <span className="text-xs text-[#ff6600] font-semibold flex items-center gap-1">
+            <span className="text-xs text-brand font-semibold flex items-center gap-1">
               <Share2 className="w-3 h-3" />
               <span>Traffic Sources</span>
             </span>
@@ -303,7 +305,7 @@ export default function SourcesAnalyticsPage() {
               setSelectedLinkId(e.target.value);
               loadData(selectedRange, e.target.value);
             }}
-            className="px-3 py-1.5 rounded-[10px] bg-zinc-100 dark:bg-[#1a1a1e] border border-zinc-300 dark:border-[#27272a] text-xs font-semibold text-zinc-800 dark:text-white focus:outline-none focus:border-[#ff6600] cursor-pointer"
+            className="px-3 py-1.5 rounded-[10px] bg-zinc-100 dark:bg-[#1a1a1e] border border-zinc-300 dark:border-[#27272a] text-xs font-semibold text-zinc-800 dark:text-white focus:outline-none focus:border-brand cursor-pointer"
           >
             <option value="all" className="bg-white dark:bg-[#141416] text-zinc-900 dark:text-white">All links combined</option>
             {links.map((l) => (
@@ -323,7 +325,7 @@ export default function SourcesAnalyticsPage() {
                 }}
                 className={`px-2.5 py-1 rounded-[10px] font-semibold transition-all cursor-pointer ${
                   selectedRange === r
-                    ? "bg-[#ff6600] text-white font-bold"
+                    ? "bg-brand text-white font-bold"
                     : "text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 dark:text-neutral-400 dark:hover:text-white dark:hover:bg-white/5"
                 }`}
               >
@@ -337,29 +339,29 @@ export default function SourcesAnalyticsPage() {
             className="p-2 rounded-[10px] bg-zinc-100 hover:bg-zinc-200 dark:bg-[#1a1a1e] dark:hover:bg-white/10 text-zinc-700 hover:text-zinc-900 dark:text-neutral-300 dark:hover:text-white border border-zinc-300 dark:border-[#27272a] transition-all cursor-pointer"
             title="Refresh"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin text-[#ff6600]" : ""}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin text-brand" : ""}`} />
           </button>
         </div>
       </div>
 
       {/* Top Source KPI Summary Cards (Infinite Auto-Scroll Carousel) */}
       <KpiCardsCarousel autoScroll={true} speed={0.9} pauseOnHover={false}>
-        <div className="shrink-0 w-[170px] sm:w-[240px] md:w-[280px] lg:w-[300px] h-[100px] sm:h-[120px] md:h-[135px] lg:h-[145px] p-2.5 sm:p-3.5 md:p-4 rounded-[10px] sm:rounded-[12px] md:rounded-[14px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] shadow-sm flex flex-col justify-between hover:border-[#ff6600]/50 hover:shadow-md transition-all select-none">
+        <div className="shrink-0 w-[170px] sm:w-[240px] md:w-[280px] lg:w-[300px] h-[100px] sm:h-[120px] md:h-[135px] lg:h-[145px] p-2.5 sm:p-3.5 md:p-4 rounded-[10px] sm:rounded-[12px] md:rounded-[14px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] shadow-sm flex flex-col justify-between hover:border-brand hover:shadow-md transition-all select-none">
           <div className="flex items-center justify-between">
             <span className="text-[10px] sm:text-xs md:text-sm font-bold text-zinc-600 dark:text-neutral-400 uppercase tracking-wider truncate">Social</span>
             <div className="p-1 sm:p-1.5 rounded-full bg-orange-500/10 shrink-0">
-              <Share2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-[#ff6600]" />
+              <Share2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-brand" />
             </div>
           </div>
           <div className="my-0 sm:my-0.5 flex items-baseline gap-1.5">
-            <span className="font-bebas text-2xl sm:text-3xl md:text-4xl font-black text-[#ff6600] leading-none tracking-wide">
+            <span className="font-bebas text-2xl sm:text-3xl md:text-4xl font-black text-brand leading-none tracking-wide">
               {socialPercentage}%
             </span>
             <span className="text-[9px] sm:text-[11px] text-zinc-500 dark:text-neutral-400 font-mono">({socialClicksTotal} clicks)</span>
           </div>
           <div className="flex items-center justify-between pt-0.5 sm:pt-1 border-t border-zinc-200/60 dark:border-[#222225]">
             <span className="text-[9px] sm:text-[11px] md:text-xs text-zinc-500 dark:text-neutral-400 font-mono truncate">X, LinkedIn, WA</span>
-            <span className="text-[8px] sm:text-[10px] md:text-[11px] font-bold text-[#ff6600] shrink-0">Social</span>
+            <span className="text-[8px] sm:text-[10px] md:text-[11px] font-bold text-brand shrink-0">Social</span>
           </div>
         </div>
 
@@ -425,7 +427,7 @@ export default function SourcesAnalyticsPage() {
           <div>
             <div className="flex items-center justify-between mb-3 pb-2 border-b border-zinc-200 dark:border-[#222225]">
               <span className="text-xs font-bold text-zinc-900 dark:text-white flex items-center gap-1.5">
-                <Share2 className="w-4 h-4 text-[#ff6600]" />
+                <Share2 className="w-4 h-4 text-brand" />
                 <span>Social Media Performance</span>
               </span>
               <span className="text-[11px] text-zinc-500 dark:text-neutral-400 font-mono">
@@ -444,7 +446,7 @@ export default function SourcesAnalyticsPage() {
                   ? "#25d366"
                   : nameLow.includes("facebook")
                   ? "#1877f2"
-                  : "#ff6600";
+                  : "var(--brand-primary)";
 
                 return (
                   <div key={soc.name} className="p-3 rounded-[10px] bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a]">
@@ -473,130 +475,91 @@ export default function SourcesAnalyticsPage() {
           </div>
         </div>
 
-        {/* All Referrers & Channels */}
+        {/* All Referrers Ranking */}
         <div className="rounded-[10px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] p-5 shadow-sm dark:shadow-2xl flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-3 pb-2 border-b border-zinc-200 dark:border-[#222225]">
               <span className="text-xs font-bold text-zinc-900 dark:text-white flex items-center gap-1.5">
-                <Compass className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
-                <span>All Referrer Channels</span>
+                <Globe2 className="w-4 h-4 text-emerald-500" />
+                <span>Top Web Referrers</span>
               </span>
               <span className="text-[11px] text-zinc-500 dark:text-neutral-400 font-mono">
-                {analytics.topReferrers.length} sources
+                {analytics.topReferrers.length} distinct referrers
               </span>
             </div>
 
             <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
-              {analytics.topReferrers.map((rf) => (
-                <div key={rf.name} className="p-3 rounded-[10px] bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a]">
-                  <div className="flex items-center justify-between gap-2 mb-1.5">
-                    <span className="text-xs font-bold text-zinc-900 dark:text-white">{rf.name}</span>
-                    <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 font-mono">
-                      {rf.percentage}% ({rf.count} clicks)
-                    </span>
+              {analytics.topReferrers.length === 0 ? (
+                <div className="p-6 text-center text-xs text-zinc-400">No external referrers logged.</div>
+              ) : (
+                analytics.topReferrers.map((ref: any) => (
+                  <div key={ref.name} className="p-3 rounded-[10px] bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a]">
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <span className="text-xs font-mono text-zinc-900 dark:text-white truncate">{ref.name}</span>
+                      <span className="text-xs font-bold font-mono text-emerald-600 dark:text-emerald-400">
+                        {ref.percentage}% ({ref.count} clicks)
+                      </span>
+                    </div>
+                    <div className="w-full h-1.5 rounded-full bg-zinc-200 dark:bg-white/10 overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-emerald-500 transition-all duration-500"
+                        style={{ width: `${ref.percentage}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="w-full h-1.5 rounded-full bg-zinc-200 dark:bg-white/10 overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-emerald-500 transition-all duration-500"
-                      style={{ width: `${rf.percentage}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-
-              {analytics.topReferrers.length === 0 && (
-                <p className="text-xs text-zinc-500 dark:text-neutral-500 text-center py-8">
-                  Waiting for referrer channel data...
-                </p>
+                ))
               )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* DETAILED SOURCES CLICK STREAM TABLE */}
-      <div className="rounded-[10px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] p-5 sm:p-6 shadow-sm dark:shadow-2xl">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5 pb-4 border-b border-zinc-200 dark:border-[#222225]">
-          <div>
-            <h3 className="text-lg font-bold text-zinc-900 dark:text-white flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
-              <span>Detailed Provenance Log</span>
-            </h3>
-            <p className="text-xs text-zinc-500 dark:text-neutral-400">
-              Click history with origin platform, exact referrers, location, and target links.
-            </p>
+      {/* RAW EVENTS STREAM & DETAILED SOURCE LOGS */}
+      <div className="rounded-[10px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] p-5 shadow-sm dark:shadow-2xl flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-zinc-200 dark:border-[#222225]">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <h3 className="text-sm font-bold text-zinc-900 dark:text-white">Live Inbound Click Stream</h3>
+            <span className="text-[11px] text-zinc-500 dark:text-neutral-400 font-mono">({filteredEvents.length} events)</span>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
-            {/* Filter Channel */}
-            <div className="flex items-center gap-1 p-1 rounded-[10px] bg-zinc-100 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a] text-xs">
-              {(["ALL", "social", "direct"] as const).map((ch) => (
-                <button
-                  key={ch}
-                  onClick={() => {
-                    setSelectedChannelFilter(ch);
-                    setCurrentPage(1);
-                  }}
-                  className={`px-2.5 py-1 rounded-[10px] font-semibold transition-all cursor-pointer ${
-                    selectedChannelFilter === ch
-                      ? "bg-emerald-600 text-white font-bold"
-                      : "text-zinc-600 hover:text-zinc-900 dark:text-neutral-400 dark:hover:text-white"
-                  }`}
-                >
-                  {ch === "ALL" ? "All" : ch === "social" ? "Social Media" : "Direct"}
-                </button>
-              ))}
-            </div>
-
-            {/* Search Input */}
-            <div className="relative min-w-[200px]">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-neutral-500" />
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400" />
               <input
                 type="text"
-                placeholder="Filter source, link, city..."
+                placeholder="Filter referrer, customer, link..."
                 value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="w-full pl-8 pr-3 py-1.5 rounded-[10px] bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a] text-xs text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-neutral-500 focus:outline-none focus:border-emerald-500"
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="h-8 pl-8 pr-3 rounded-[8px] bg-zinc-100 dark:bg-[#1a1a1e] border border-zinc-300 dark:border-[#27272a] text-xs text-zinc-800 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:border-brand"
               />
             </div>
-
-            {/* Column Masking */}
-            <ColumnMaskToggle
-              columns={SOURCE_COLUMNS}
-              visibleColumns={visibleColumns}
-              onToggleColumn={toggleColumn}
-              onResetColumns={resetColumns}
-            />
           </div>
         </div>
 
-        {/* Data Table */}
-        <div className="overflow-x-auto rounded-[8px] border border-zinc-200 dark:border-[#222225]">
-          <table className="w-full text-left text-xs">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="border-b border-zinc-200 dark:border-[#222225] bg-zinc-100/70 dark:bg-[#0e0e11]/80 text-zinc-700 dark:text-neutral-400 font-semibold text-[11px]">
-                {visibleColumns.has("timestamp") && <th className="py-2.5 px-3">Timestamp</th>}
+              <tr className="border-b border-zinc-200 dark:border-[#222225] bg-zinc-50 dark:bg-[#111116] text-[10px] uppercase font-mono text-zinc-500 dark:text-neutral-400">
+                {visibleColumns.has("timestamp") && <th className="py-2.5 px-3">Time</th>}
                 {visibleColumns.has("channel") && <th className="py-2.5 px-3">Channel</th>}
-                {visibleColumns.has("referrer") && <th className="py-2.5 px-3">Source / Referrer</th>}
-                {visibleColumns.has("customer") && <th className="py-2.5 px-3">Customer / Buyer</th>}
-                {visibleColumns.has("link") && <th className="py-2.5 px-3">Target Link</th>}
+                {visibleColumns.has("referrer") && <th className="py-2.5 px-3">Referrer URL</th>}
+                {visibleColumns.has("customer") && <th className="py-2.5 px-3">Customer Profile</th>}
+                {visibleColumns.has("link") && <th className="py-2.5 px-3">Short Link</th>}
                 {visibleColumns.has("location") && <th className="py-2.5 px-3">Location</th>}
                 {visibleColumns.has("device") && <th className="py-2.5 px-3">Device</th>}
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-200 dark:divide-[#222225]/60 text-zinc-800 dark:text-neutral-200">
-              {paginatedEvents.map((ev) => {
+            <tbody className="divide-y divide-zinc-200 dark:divide-[#202024] font-mono text-[11px]">
+              {paginatedEvents.map((ev, i) => {
                 const ref = ev.referrer || "Direct";
-                const isSocial = ["linkedin", "twitter", "x.com", "whatsapp", "facebook", "instagram", "t.co"].some((k) => ref.toLowerCase().includes(k));
+                const isSocial = SOCIAL_PLATFORMS.some((s) => ref.toLowerCase().includes(s));
 
                 return (
-                  <tr key={ev.id} className="hover:bg-zinc-50 dark:hover:bg-white/5 transition-colors">
+                  <tr key={i} className="hover:bg-zinc-50 dark:hover:bg-white/[0.02] transition-colors">
                     {visibleColumns.has("timestamp") && (
-                      <td className="py-3 px-3 font-mono text-zinc-500 dark:text-neutral-400 whitespace-nowrap">
-                        {formatDateRelative(ev.timestamp)}
+                      <td className="py-3 px-3 text-zinc-500 dark:text-neutral-400 whitespace-nowrap">
+                        {new Date(ev.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
                       </td>
                     )}
 
@@ -605,7 +568,7 @@ export default function SourcesAnalyticsPage() {
                         <span
                           className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
                             isSocial
-                              ? "bg-[#ff6600]/10 text-[#ff6600] border-[#ff6600]/30"
+                              ? "bg-brand-subtle text-brand border-brand-subtle"
                               : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
                           }`}
                         >
@@ -641,7 +604,7 @@ export default function SourcesAnalyticsPage() {
                     )}
 
                     {visibleColumns.has("link") && (
-                      <td className="py-3 px-3 font-mono text-[#ff6600] font-semibold">
+                      <td className="py-3 px-3 font-mono text-brand font-semibold">
                         /{ev.slug}
                       </td>
                     )}

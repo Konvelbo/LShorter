@@ -25,6 +25,7 @@ export function checkPlanFeatureAccess(
     | "device_routing"
     | "cloaking"
     | "password_protection"
+    | "protection_expiry"
     | "qr_custom_logo"
     | "qr_gradient"
     | "qr_premium_frames"
@@ -33,20 +34,22 @@ export function checkPlanFeatureAccess(
     | "unlimited_links"
     | "unlimited_domains"
 ): boolean {
-  if (plan === "BUSINESS") return true;
+  if (plan === "ENTERPRISE" || plan === "BUSINESS") return true;
 
   if (plan === "PRO") {
-    if (feature === "unlimited_domains") return false; // Pro has 15 domains
+    if (feature === "unlimited_domains") return false; // Pro has 3 domains
     return true; // Pro has access to all feature types
   }
 
-  // FREEMIUM limitations
+  // Free / Freemium limitations
   switch (feature) {
+    case "custom_domain":
     case "routing_rules":
     case "multi_condition_routing":
     case "device_routing":
     case "cloaking":
     case "password_protection":
+    case "protection_expiry":
     case "qr_custom_logo":
     case "qr_gradient":
     case "qr_premium_frames":
@@ -55,8 +58,6 @@ export function checkPlanFeatureAccess(
     case "unlimited_links":
     case "unlimited_domains":
       return false;
-    case "custom_domain":
-      return true; // Freemium has up to 3 domains
     default:
       return true;
   }
@@ -68,26 +69,39 @@ export function canAddRoutingRule(
   currentRulesCount: number,
   ruleType?: string
 ): { allowed: boolean; reason?: string } {
-  if (plan === "PRO" || plan === "BUSINESS") {
+  if (plan === "PRO" || plan === "BUSINESS" || plan === "ENTERPRISE") {
     return { allowed: true };
   }
 
-  // Freemium Plan is completely forbidden from using routing rules
+  // Free tier is forbidden from using routing rules
   return {
     allowed: false,
-    reason: "Le système de routage dynamique intelligent est réservé aux forfaits Pro et Business.",
+    reason: "Le système de routage dynamique intelligent est réservé aux forfaits Pro, Business et Enterprise.",
   };
 }
 
 // Plan Limits Definition
 export function getPlanLimits(plan: PlanType) {
   switch (plan) {
+    case "ENTERPRISE":
+      return {
+        clicksLimit: 10_000_000,
+        domainsLimit: 50,
+        linksLimit: -1, // Unlimited
+        rateLimitReqPerMin: 15_000,
+        analyticsRetentionDays: -1, // Unlimited
+        maxGeoRules: -1,
+        canUseRoutingRules: true,
+        canUseDeviceRouting: true,
+        canUseCloaking: true,
+        canUsePassword: true,
+      };
     case "BUSINESS":
       return {
-        clicksLimit: -1, // Unlimited
-        domainsLimit: -1, // Unlimited
+        clicksLimit: 2_000_000,
+        domainsLimit: 15,
         linksLimit: -1, // Unlimited
-        rateLimitReqPerMin: -1, // Unlimited
+        rateLimitReqPerMin: 5_000,
         analyticsRetentionDays: -1, // Unlimited
         maxGeoRules: -1,
         canUseRoutingRules: true,
@@ -97,24 +111,25 @@ export function getPlanLimits(plan: PlanType) {
       };
     case "PRO":
       return {
-        clicksLimit: -1, // Unlimited
-        domainsLimit: 15,
-        linksLimit: -1, // Unlimited
-        rateLimitReqPerMin: -1, // Unlimited
-        analyticsRetentionDays: -1, // Unlimited
+        clicksLimit: 500_000,
+        domainsLimit: 3,
+        linksLimit: 1_000,
+        rateLimitReqPerMin: 1_000,
+        analyticsRetentionDays: 365,
         maxGeoRules: -1,
         canUseRoutingRules: true,
         canUseDeviceRouting: true,
         canUseCloaking: true,
         canUsePassword: true,
       };
+    case "FREE":
     case "FREEMIUM":
     default:
       return {
-        clicksLimit: 60_000,
-        domainsLimit: 3,
-        linksLimit: 1_000,
-        rateLimitReqPerMin: 1_000,
+        clicksLimit: 10_000,
+        domainsLimit: 0,
+        linksLimit: 50,
+        rateLimitReqPerMin: 60,
         analyticsRetentionDays: 30,
         maxGeoRules: 0,
         canUseRoutingRules: false,

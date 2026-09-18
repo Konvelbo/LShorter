@@ -1,4 +1,4 @@
-export type PlanType = 'FREEMIUM' | 'PRO' | 'BUSINESS';
+export type PlanType = 'FREE' | 'FREEMIUM' | 'PRO' | 'BUSINESS' | 'ENTERPRISE';
 export type TimeRange = 'day' | 'week' | 'month' | 'year';
 
 export interface UserProfile {
@@ -11,11 +11,11 @@ export interface UserProfile {
   created_at: string;
   createdAt?: string;
   clicksThisMonth: number;
-  clicksLimit: number; // 60,000 for Freemium, -1 for Pro/Business (unlimited)
+  clicksLimit: number; // 2,500 for Free, 500k for Pro, 1.2M for Business, 5M for Enterprise
   domainsCount: number;
-  domainsLimit: number; // 3 for Freemium, 15 for Pro, -1 for Business (unlimited)
+  domainsLimit: number; // 0 for Free, 3 for Pro, 15 for Business, 50 for Enterprise
   linksCount: number;
-  linksLimit: number; // 1,000 for Freemium, -1 for Pro/Business (unlimited)
+  linksLimit: number; // 50 for Free, 1,000 for Pro, -1 for Business/Enterprise
   language?: string;
   timezone?: string;
   hasCompletedOnboarding?: boolean;
@@ -333,13 +333,58 @@ export interface RetargetingPixel {
 
 export interface InvoiceItem {
   id: string;
-  number: string;
-  date: string;
-  amount: number;
-  currency: string;
-  status: 'paid' | 'pending' | 'failed';
-  planName: string;
+  number?: string;
+  invoiceNumber?: string;
+  date?: string;
+  amount?: number;
+  amountPaid?: number;
+  currency?: string;
+  status: 'paid' | 'pending' | 'failed' | 'PAID' | 'PENDING';
+  planName?: string;
+  planId?: 'PRO' | 'BUSINESS' | 'ENTERPRISE';
   pdfUrl?: string;
+  periodStart?: number | string;
+  periodEnd?: number | string;
+  createdAt?: number | string;
+}
+
+export interface LegalBillingInfo {
+  companyName: string;
+  taxId?: string;
+  billingAddress: string;
+  billingEmail?: string;
+}
+
+export interface OrganizationItem {
+  id: string;
+  name: string;
+  slug: string;
+  plan: 'FREE' | 'PRO' | 'BUSINESS' | 'ENTERPRISE';
+  billingCycle: 'MONTHLY' | 'YEARLY';
+  trialEndsAt?: number;
+  taxId?: string;
+  billingAddress?: string;
+}
+
+export interface SubscriptionItem {
+  id: string;
+  orgId: string;
+  provider: string;
+  providerSubscriptionId: string;
+  currentPeriodStart: number;
+  currentPeriodEnd: number;
+  cancelAtPeriodEnd: boolean;
+}
+
+export interface NotificationItem {
+  id: string;
+  orgId: string;
+  title: string;
+  message: string;
+  type: 'INFO' | 'WARNING' | 'ALERT' | 'SUCCESS';
+  isRead: boolean;
+  linkUrl?: string;
+  createdAt: number;
 }
 
 export interface ActiveSession {

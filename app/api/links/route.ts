@@ -204,6 +204,11 @@ export async function POST(req: Request) {
       }
     }
 
+    const resolvedTwitterCard: "summary_large_image" | "summary" =
+      body.twitterCard ||
+      body.twitter_card ||
+      (sanitizedOgImage ? "summary_large_image" : "summary_large_image");
+
     // 1. Forward to Cloudflare Worker D1 & KV
     const workerPayload = {
       ...body,
@@ -215,8 +220,8 @@ export async function POST(req: Request) {
       og_title: body.ogTitle || body.og_title,
       ogDescription: body.ogDescription || body.og_description,
       og_description: body.ogDescription || body.og_description,
-      twitterCard: "summary_large_image",
-      twitter_card: "summary_large_image",
+      twitterCard: resolvedTwitterCard,
+      twitter_card: resolvedTwitterCard,
       metaTitle: body.metaTitle || body.meta_title || body.ogTitle,
       meta_title: body.meta_title || body.metaTitle || body.ogTitle,
       redirectType: body.redirectType || body.redirect_type,
@@ -268,7 +273,8 @@ export async function POST(req: Request) {
             ogTitle: body.ogTitle || body.og_title || body.metaTitle || body.meta_title || undefined,
             ogDescription: body.ogDescription || body.og_description || undefined,
             ogImage: sanitizedOgImage || undefined,
-            twitterCard: "summary_large_image",
+            twitterCard: resolvedTwitterCard,
+            twitter_card: resolvedTwitterCard,
             targetUrl: body.targetUrl || body.target_url,
             routingRules: body.routingRules || body.routing_rules || undefined,
             geoTargeting: body.geoTargeting || body.geo_targeting || undefined,
@@ -303,8 +309,8 @@ export async function POST(req: Request) {
               ogTitle: body.ogTitle || body.og_title,
               ogDescription: body.ogDescription || body.og_description,
               metaTitle: body.metaTitle || body.meta_title,
-              twitterCard: "summary_large_image",
-              twitter_card: "summary_large_image",
+              twitterCard: resolvedTwitterCard,
+              twitter_card: resolvedTwitterCard,
               password: body.password || undefined,
               isCloaked: Boolean(body.isCloaked || body.is_cloaked),
             },
@@ -335,7 +341,8 @@ export async function POST(req: Request) {
           ogTitle: body.ogTitle || body.og_title || body.metaTitle || body.meta_title || undefined,
           ogDescription: body.ogDescription || body.og_description || undefined,
           ogImage: sanitizedOgImage || undefined,
-          twitterCard: "summary_large_image",
+          twitterCard: resolvedTwitterCard,
+          twitter_card: resolvedTwitterCard,
           targetUrl: body.targetUrl || body.target_url,
           routingRules: body.routingRules || body.routing_rules || undefined,
           geoTargeting: body.geoTargeting || body.geo_targeting || undefined,
@@ -368,8 +375,8 @@ export async function POST(req: Request) {
           ogDescription: body.ogDescription || body.og_description,
           og_description: body.ogDescription || body.og_description,
           metaTitle: body.metaTitle || body.meta_title,
-          twitterCard: "summary_large_image",
-          twitter_card: "summary_large_image",
+          twitterCard: resolvedTwitterCard,
+          twitter_card: resolvedTwitterCard,
           password: body.password || undefined,
           isCloaked: Boolean(body.isCloaked || body.is_cloaked),
           routingRules: body.routingRules || body.routing_rules || undefined,

@@ -41,7 +41,7 @@ export default function AuthSuccessPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#09090b] text-[#fafafa] flex items-center justify-center p-6 selection:bg-[#ff6600] selection:text-white">
+    <div className="min-h-screen bg-[#09090b] text-[#fafafa] flex items-center justify-center p-6 selection:bg-brand selection:text-white">
       <div className="w-full max-w-md rounded-[10px] bg-[#141416] border border-[#27272a] p-8 shadow-2xl text-center flex flex-col items-center gap-6 animate-in fade-in zoom-in-95">
         {/* Success Icon */}
         <div className="w-20 h-20 rounded-full bg-emerald-500/15 border-2 border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-lg shadow-emerald-500/10">
@@ -50,7 +50,7 @@ export default function AuthSuccessPage() {
 
         {/* Content */}
         <div className="flex flex-col gap-2">
-          <div className="inline-block mx-auto px-3 py-1 rounded-full bg-[#ff6600]/10 border border-[#ff6600]/30 text-[#ff6600] text-[11px] font-bold uppercase tracking-wider">
+          <div className="inline-block mx-auto px-3 py-1 rounded-full bg-brand-subtle border border-brand-subtle text-brand text-[11px] font-bold uppercase tracking-wider">
             Authentification Validée
           </div>
           <h1 className="font-bebas text-3xl sm:text-4xl text-white tracking-wide mt-1">
@@ -65,14 +65,14 @@ export default function AuthSuccessPage() {
         <button
           type="button"
           onClick={handleCloseTab}
-          className="w-full h-12 rounded-[10px] bg-[#ff6600] hover:bg-[#e65c00] text-white font-bold text-xs uppercase tracking-wider transition-all shadow-lg shadow-[#ff6600]/30 flex items-center justify-center gap-2 cursor-pointer"
+          className="w-full h-12 rounded-[10px] bg-brand hover:bg-brand-hover text-white font-bold text-xs uppercase tracking-wider transition-all shadow-lg shadow-brand flex items-center justify-center gap-2 cursor-pointer"
         >
           <X className="w-4 h-4" />
           <span>Fermer cet onglet</span>
         </button>
 
         <p className="text-[11px] text-neutral-500 flex items-center gap-1.5">
-          <ArrowLeft className="w-3.5 h-3.5 text-[#ff6600]" />
+          <ArrowLeft className="w-3.5 h-3.5 text-brand" />
           <span>Votre session est automatiquement active sur votre premier onglet.</span>
         </p>
       </div>

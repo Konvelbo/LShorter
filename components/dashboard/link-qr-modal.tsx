@@ -126,7 +126,7 @@ export function LinkQRModal({ isOpen, onClose, link }: LinkQRModalProps) {
 
         {/* Modal Header */}
         <div className="flex items-center gap-3 mb-5">
-          <div className="w-9 h-9 rounded-[10px] bg-[#ff6600] flex items-center justify-center text-white shadow-lg shadow-[#ff6600]/30 font-bold">
+          <div className="w-9 h-9 rounded-[10px] bg-[var(--brand-primary)] flex items-center justify-center text-white shadow-lg shadow-[var(--brand-primary-glow)] font-bold">
             <QrCode className="w-5 h-5" />
           </div>
           <div>
@@ -183,7 +183,7 @@ export function LinkQRModal({ isOpen, onClose, link }: LinkQRModalProps) {
               step="32"
               value={size}
               onChange={(e) => setSize(Number(e.target.value))}
-              className="w-full accent-[#ff6600] cursor-pointer"
+              className="w-full accent-[var(--brand-primary)] cursor-pointer"
             />
           </div>
 
@@ -193,7 +193,7 @@ export function LinkQRModal({ isOpen, onClose, link }: LinkQRModalProps) {
               type="checkbox"
               checked={includeQuietZone}
               onChange={(e) => setIncludeQuietZone(e.target.checked)}
-              className="w-4 h-4 accent-[#ff6600] rounded-[10px] cursor-pointer"
+              className="w-4 h-4 accent-[var(--brand-primary)] rounded-[10px] cursor-pointer"
             />
             <span>White margin border (Quiet zone)</span>
           </label>
@@ -217,7 +217,7 @@ export function LinkQRModal({ isOpen, onClose, link }: LinkQRModalProps) {
             size="sm"
             className="text-xs gap-1.5"
           >
-            <Download className="w-3.5 h-3.5 text-[#ff6600]" />
+            <Download className="w-3.5 h-3.5 text-[var(--brand-primary-text)]" />
             <span>SVG</span>
           </Button>
 
@@ -239,7 +239,7 @@ export function LinkQRModal({ isOpen, onClose, link }: LinkQRModalProps) {
           }}
           className="w-full py-2 rounded-[10px] bg-white/5 hover:bg-white/10 text-neutral-400 hover:text-white text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
         >
-          <Sliders className="w-3.5 h-3.5 text-[#ff6600]" />
+          <Sliders className="w-3.5 h-3.5 text-[var(--brand-primary-text)]" />
           <span>Customize in full editor (Logo, Styles)</span>
           <ExternalLink className="w-3 h-3" />
         </button>

@@ -9,13 +9,13 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = "primary", size = "md", children, disabled, ...props }, ref) => {
     const baseStyles =
-      "inline-flex items-center justify-center font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#ff6600]/40 disabled:opacity-50 disabled:pointer-events-none rounded-[10px] select-none cursor-pointer";
+      "inline-flex items-center justify-center font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary-border)] disabled:opacity-50 disabled:pointer-events-none rounded-[10px] select-none cursor-pointer";
 
     const variants = {
       primary:
-        "bg-[#ff6600] text-white hover:bg-[#ff771a] active:scale-[0.98] shadow-md shadow-[#ff6600]/20 font-semibold",
+        "bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover)] shadow-[var(--btn-primary-shadow)] text-[var(--btn-primary-text)] active:scale-[0.98] shadow-md font-semibold",
       glow:
-        "bg-[#ff6600] text-white hover:bg-[#ff771a] active:scale-[0.98] shadow-lg shadow-[#ff6600]/40 hover:shadow-[#ff6600]/60 font-semibold",
+        "bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover)] shadow-[var(--btn-primary-shadow)] text-[var(--btn-primary-text)] active:scale-[0.98] shadow-lg font-semibold",
       secondary:
         "bg-[#27272a] text-white hover:bg-[#3f3f46] active:scale-[0.98]",
       outline:

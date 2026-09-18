@@ -166,14 +166,15 @@ export default {
 
       const userAgent = (request.headers.get('user-agent') || '').toLowerCase();
       const isBot = /facebookexternalhit|facebot|twitterbot|xbot|linkedinbot|whatsapp|telegrambot|discordbot|slackbot|slack-imgbatcher|pinterestbot|skypeuripreview|googlebot|bingbot|applebot|yandexbot|duckduckbot|baiduspider|ia_archiver/i.test(userAgent);
-      const country = (request.headers.get('cf-ipcountry') || 'FR').toUpperCase();
+      const country = (request.cf?.country || request.headers.get('cf-ipcountry') || request.headers.get('x-country') || 'FR').toUpperCase();
 
       const ogImage = link.og_image || link.ogImage || '';
       const ogTitle = link.og_title || link.ogTitle || link.meta_title || link.metaTitle || link.title || slug;
       const ogDescription = link.og_description || link.ogDescription || '';
+      const twitterCard = (link.twitter_card || link.twitterCard || (ogImage ? 'summary_large_image' : 'summary_large_image')) === 'summary' ? 'summary' : 'summary_large_image';
 
       // Serve OpenGraph / Twitter Cards ONLY for social crawler bots without redirecting
-      if (isBot && (ogImage || ogTitle || ogDescription)) {
+      if (isBot) {
         const reqHost = request.headers.get('x-forwarded-host') || request.headers.get('host') || '';
         const domain = (reqHost && !reqHost.includes('workers.dev')) ? reqHost : 'lsho.cc';
         const canonical = `https://${domain}${path}`;
@@ -185,12 +186,25 @@ export default {
           publicImageUrl = `https://${domain}/api/v1/images/${slug}.jpg`;
         }
 
+        // If no image is provided:
+        // For summary_large_image: provide fallback dynamic OG banner so Twitter/X renders the large card properly
+        // For summary: provide the compact brand logo icon (0 upload needed)
+        if (!publicImageUrl) {
+          if (twitterCard === 'summary') {
+            publicImageUrl = `https://${domain}/icon-512.png`;
+          } else {
+            publicImageUrl = `https://${domain}/api/og?title=${encodeURIComponent(ogTitle.substring(0, 80))}&slug=${encodeURIComponent(slug)}`;
+          }
+        }
+
         const escapeHtml = (s = '') => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         const safeTitle = escapeHtml(ogTitle);
         const safeDesc = escapeHtml(ogDescription || 'Cliquez pour ouvrir le lien.');
         const safeImg = escapeHtml(publicImageUrl.replace(/&amp;/g, '&'));
         const safeCanonical = escapeHtml(canonical);
-        const safeCard = 'summary_large_image';
+        const safeCard = twitterCard;
+        const imgWidth = twitterCard === 'summary' ? '512' : '1200';
+        const imgHeight = twitterCard === 'summary' ? '512' : '630';
 
         const html = `<!DOCTYPE html>
 <html lang="fr" prefix="og: http://ogp.me/ns#">
@@ -207,25 +221,25 @@ export default {
   <meta property="og:url" content="${safeCanonical}" />
   <meta property="og:title" content="${safeTitle}" />
   <meta property="og:description" content="${safeDesc}" />
-  ${safeImg ? `<meta property="og:image" content="${safeImg}" />` : ''}
-  ${safeImg ? `<meta property="og:image:url" content="${safeImg}" />` : ''}
-  ${safeImg ? `<meta property="og:image:secure_url" content="${safeImg}" />` : ''}
-  ${safeImg ? `<meta property="og:image:type" content="image/jpeg" />` : ''}
-  ${safeImg ? `<meta property="og:image:width" content="1200" />` : ''}
-  ${safeImg ? `<meta property="og:image:height" content="630" />` : ''}
-  ${safeImg ? `<meta property="og:image:alt" content="${safeTitle}" />` : ''}
+  <meta property="og:image" content="${safeImg}" />
+  <meta property="og:image:url" content="${safeImg}" />
+  <meta property="og:image:secure_url" content="${safeImg}" />
+  <meta property="og:image:type" content="image/jpeg" />
+  <meta property="og:image:width" content="${imgWidth}" />
+  <meta property="og:image:height" content="${imgHeight}" />
+  <meta property="og:image:alt" content="${safeTitle}" />
 
   <!-- Twitter / X Cards -->
-  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:card" content="${safeCard}" />
   <meta name="twitter:site" content="@LShorter" />
   <meta name="twitter:creator" content="@LShorter" />
   <meta name="twitter:domain" content="${domain}" />
   <meta name="twitter:url" content="${safeCanonical}" />
   <meta name="twitter:title" content="${safeTitle}" />
   <meta name="twitter:description" content="${safeDesc}" />
-  ${safeImg ? `<meta name="twitter:image" content="${safeImg}" />` : ''}
-  ${safeImg ? `<meta name="twitter:image:src" content="${safeImg}" />` : ''}
-  ${safeImg ? `<meta name="twitter:image:alt" content="${safeTitle}" />` : ''}
+  <meta name="twitter:image" content="${safeImg}" />
+  <meta name="twitter:image:src" content="${safeImg}" />
+  <meta name="twitter:image:alt" content="${safeTitle}" />
 </head>
 <body style="background:#09090b;">
 </body>
@@ -242,12 +256,46 @@ export default {
       }
 
       const REGION_COUNTRIES = {
-        europe: ["FR", "DE", "GB", "ES", "IT", "BE", "CH", "PT", "NL", "SE", "NO", "DK", "FI", "IE", "AT", "PL", "GR", "RO", "CZ", "HU", "LU"],
-        west_africa: ["SN", "CI", "BF", "ML", "GN", "TG", "BJ", "NE", "NG", "GH", "CV", "GM", "GW", "LR", "SL"],
-        central_africa: ["CM", "GA", "CG", "CD", "TD", "CF", "GQ", "ST"],
-        north_america: ["US", "CA", "MX"],
-        south_america: ["BR", "AR", "CO", "CL", "PE", "VE", "EC", "BO", "PY", "UY"],
-        asia: ["CN", "JP", "KR", "IN", "SG", "TH", "VN", "ID", "MY", "PH", "PK", "BD", "AE", "SA", "QA", "KW"],
+        europe: [
+          "FR", "DE", "GB", "ES", "IT", "BE", "CH", "PT", "NL", "SE",
+          "NO", "DK", "FI", "IE", "AT", "PL", "GR", "RO", "CZ", "HU", "LU",
+          "MC", "IS", "HR", "RS", "BG", "SK", "SI", "LT", "LV", "EE", "CY", "MT", "UA", "RU", "TR", "GE", "AM", "AZ"
+        ],
+        west_africa: [
+          "SN", "CI", "BF", "ML", "GN", "TG", "BJ", "NE", "NG", "GH",
+          "CV", "GM", "GW", "LR", "SL", "MR"
+        ],
+        central_africa: [
+          "CM", "GA", "CG", "CD", "TD", "CF", "GQ", "ST", "BI", "RW"
+        ],
+        north_africa: [
+          "MA", "DZ", "TN", "EG", "LY", "SD", "MR"
+        ],
+        east_africa: [
+          "KE", "UG", "TZ", "RW", "BI", "ET", "SO", "DJ", "ER", "SS", "MG", "MU", "SC", "KM"
+        ],
+        southern_africa: [
+          "ZA", "AO", "MZ", "ZM", "ZW", "BW", "NA", "LS", "SZ", "MW"
+        ],
+        africa: [
+          "BF", "CI", "SN", "CM", "ML", "NE", "TG", "BJ", "GH", "NG", "GN", "GA", "CD", "CG", "TD", "CF", "RW", "BI", "KE", "TZ", "UG", "ET", "MG", "ZA", "MA", "DZ", "TN", "EG", "AO", "MZ", "ZM", "ZW", "MR", "GW", "SL", "LR", "CV", "ST", "GQ", "SO", "DJ", "ER", "SS", "SD", "LY", "MW", "BW", "NA", "LS", "SZ", "KM", "SC", "MU"
+        ],
+        north_america: [
+          "US", "CA", "MX", "HT", "DO", "CU", "PA", "CR", "JM"
+        ],
+        south_america: [
+          "BR", "AR", "CO", "CL", "PE", "VE", "EC", "BO", "PY", "UY"
+        ],
+        asia: [
+          "CN", "JP", "KR", "IN", "SG", "TH", "VN", "ID", "MY", "PH",
+          "PK", "BD", "AE", "SA", "QA", "KW", "OM", "BH", "JO", "LB", "IQ", "IL", "LK", "KZ", "UZ", "TM", "KG", "TJ", "AF", "YE"
+        ],
+        middle_east: [
+          "AE", "SA", "QA", "KW", "OM", "BH", "IL", "JO", "LB", "IQ", "YE", "TR", "IR", "SY"
+        ],
+        oceania: [
+          "AU", "NZ", "FJ", "PG", "NC", "PF"
+        ],
       };
 
       let routingRules = [];
@@ -260,6 +308,7 @@ export default {
           routingRules = typeof link.routingRules === "string" ? JSON.parse(link.routingRules) : link.routingRules;
         } catch {}
       }
+      if (!Array.isArray(routingRules)) routingRules = [];
 
       let deviceTargeting = {};
       if (link.device_targeting) {
@@ -402,13 +451,23 @@ export default {
               else if (userAgent.includes('linux')) detectedOS = 'Linux';
 
               await env.DB.prepare(`
-                INSERT INTO analytics_events (id, link_id, slug, country, city, referrer, device, browser, os, ip_hash, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-              `).bind(eventId, link.id || slug, slug, country, detectedCity, detectedRef, deviceType, detectedBrowser, detectedOS, ipHash).run().catch(async () => {
-                await env.DB.prepare(`
-                  INSERT INTO click_events (id, link_id, slug, country, city, referrer, device, browser, os, ip_hash, created_at)
-                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-                `).bind(eventId, link.id || slug, slug, country, detectedCity, detectedRef, deviceType, detectedBrowser, detectedOS, ipHash).run().catch(() => {});
+                INSERT INTO click_events (id, user_id, link_id, slug, ip_masked, country_code, city, device, browser, os, referrer, resolved_url, is_unique, conversion_amount, timestamp)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0, datetime('now'))
+              `).bind(
+                eventId,
+                link.user_id || link.userId || 'usr_default',
+                link.id || slug,
+                slug,
+                ipHash,
+                country,
+                detectedCity,
+                deviceType,
+                detectedBrowser,
+                detectedOS,
+                detectedRef,
+                targetUrl
+              ).run().catch((err) => {
+                console.warn('[Async Click Insert Warning]:', err);
               });
             } catch (err) {
               console.warn('[Async Click Error]:', err);
@@ -461,8 +520,8 @@ export default {
         else if (/macintosh|mac os/i.test(userAgentHeader)) detectedSys = 'macOS';
         else if (/linux/i.test(userAgentHeader)) detectedSys = 'Linux';
 
-        const country = clickBody.country || request.headers.get('x-country') || request.headers.get('cf-ipcountry') || 'FR';
-        const city = clickBody.city || request.headers.get('x-city') || request?.cf?.city || 'Inconnue';
+        const country = clickBody.country || request.cf?.country || request.headers.get('x-country') || request.headers.get('cf-ipcountry') || 'FR';
+        const city = clickBody.city || request.cf?.city || request.headers.get('x-city') || request.headers.get('cf-ipcity') || 'Inconnue';
         const device = clickBody.device || request.headers.get('x-device') || detectedDev;
         const browser = clickBody.browser || request.headers.get('x-browser') || detectedBr;
         const os = clickBody.os || request.headers.get('x-os') || detectedSys;
@@ -489,15 +548,27 @@ export default {
                 // 2. Insert event for analytics & unique clicks calculation
                 const eventId = 'ev_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
                 try {
+                  const linkRow = await env.DB.prepare('SELECT id, user_id, target_url FROM links WHERE slug = ? OR id = ? LIMIT 1').bind(targetSlugOrId, targetSlugOrId).first().catch(() => null);
                   await env.DB.prepare(`
-                    INSERT INTO analytics_events (id, link_id, slug, country, city, referrer, device, browser, os, customer_email, customer_name, conversion_amount, ip_hash, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-                  `).bind(eventId, targetSlugOrId, targetSlugOrId, country, city, referrer, device, browser, os, customerEmail, customerName, conversionAmount, ipHash).run();
-                } catch {
-                  await env.DB.prepare(`
-                    INSERT INTO analytics_events (id, link_id, slug, country, city, referrer, device, browser, os, ip_hash, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-                  `).bind(eventId, targetSlugOrId, targetSlugOrId, country, city, referrer, device, browser, os, ipHash).run().catch(() => {});
+                    INSERT INTO click_events (id, user_id, link_id, slug, ip_masked, country_code, city, device, browser, os, referrer, resolved_url, is_unique, conversion_amount, timestamp)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, datetime('now'))
+                  `).bind(
+                    eventId,
+                    linkRow?.user_id || request.headers.get('x-user-id') || 'usr_default',
+                    linkRow?.id || targetSlugOrId,
+                    targetSlugOrId,
+                    ipHash,
+                    country,
+                    city,
+                    device,
+                    browser,
+                    os,
+                    referrer,
+                    linkRow?.target_url || 'https://lsho.cc',
+                    conversionAmount
+                  ).run().catch((e) => console.warn('[Click Insert Warning]:', e));
+                } catch (insErr) {
+                  console.warn('[D1 Click Processing Error]:', insErr);
                 }
               } catch (dbErr) {
                 console.warn('[D1 Click Processing Error]:', dbErr);
@@ -627,8 +698,8 @@ export default {
             ogDescription,
             meta_title: metaTitle,
             metaTitle,
-            twitter_card: 'summary_large_image',
-            twitterCard: 'summary_large_image',
+            twitter_card: body.twitter_card || body.twitterCard || (ogImage ? 'summary_large_image' : 'summary_large_image'),
+            twitterCard: body.twitterCard || body.twitter_card || (ogImage ? 'summary_large_image' : 'summary_large_image'),
             created_at: new Date().toISOString(),
           };
 
@@ -736,7 +807,7 @@ export default {
           const targetUrl = body.targetUrl || body.target_url || existingLink?.target_url || existingLink?.targetUrl;
           const isActive = body.isActive !== undefined ? (body.isActive ? 1 : 0) : body.is_active !== undefined ? (body.is_active ? 1 : 0) : (existingLink?.is_active !== undefined ? (existingLink.is_active ? 1 : 0) : 1);
           const rawRules = body.routingRules !== undefined ? body.routingRules : body.routing_rules;
-          const routingRules = rawRules !== undefined ? (typeof rawRules === 'string' ? rawRules : JSON.stringify(rawRules)) : (existingLink?.routing_rules || '[]');
+          const routingRules = rawRules ? (typeof rawRules === 'string' ? rawRules : JSON.stringify(rawRules)) : (existingLink?.routing_rules || '[]');
 
           const rawGeo = body.geoTargeting !== undefined ? body.geoTargeting : body.geo_targeting;
           const geoTargeting = rawGeo !== undefined ? (typeof rawGeo === 'string' ? rawGeo : JSON.stringify(rawGeo)) : (existingLink?.geo_targeting || '{}');
@@ -770,8 +841,8 @@ export default {
             ogDescription,
             meta_title: metaTitle,
             metaTitle,
-            twitter_card: 'summary_large_image',
-            twitterCard: 'summary_large_image',
+            twitter_card: body.twitter_card || body.twitterCard || existingLink?.twitter_card || existingLink?.twitterCard || (ogImage ? 'summary_large_image' : 'summary_large_image'),
+            twitterCard: body.twitterCard || body.twitter_card || existingLink?.twitterCard || existingLink?.twitter_card || (ogImage ? 'summary_large_image' : 'summary_large_image'),
             updated_at: new Date().toISOString(),
           };
 
@@ -974,20 +1045,25 @@ export default {
                   WHERE (slug = ? OR id = ?)
                 `).bind(targetSlugOrId, targetSlugOrId).run().catch(() => {});
 
+                const linkRow = await env.DB.prepare('SELECT id, user_id, target_url FROM links WHERE slug = ? OR id = ? LIMIT 1').bind(targetSlugOrId, targetSlugOrId).first().catch(() => null);
                 await env.DB.prepare(`
-                  INSERT INTO analytics_events (id, link_id, slug, country, city, referrer, device, browser, os, customer_email, customer_name, customer_avatar, conversion_amount, ip_hash, created_at)
-                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-                `).bind(eventId, targetSlugOrId, targetSlugOrId, country, city, referrer, device, browser, os, customerEmail, customerName, customerAvatar, conversionAmount, ipHash).run().catch(async () => {
-                  await env.DB.prepare(`
-                    INSERT INTO analytics_events (id, link_id, slug, country, city, referrer, device, browser, os, customer_email, customer_name, conversion_amount, ip_hash, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-                  `).bind(eventId, targetSlugOrId, targetSlugOrId, country, city, referrer, device, browser, os, customerEmail, customerName, conversionAmount, ipHash).run().catch(async () => {
-                    await env.DB.prepare(`
-                      INSERT INTO analytics_events (id, link_id, slug, country, city, referrer, device, browser, os, ip_hash, created_at)
-                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-                    `).bind(eventId, targetSlugOrId, targetSlugOrId, country, city, referrer, device, browser, os, ipHash).run().catch(() => {});
-                  });
-                });
+                  INSERT INTO click_events (id, user_id, link_id, slug, ip_masked, country_code, city, device, browser, os, referrer, resolved_url, is_unique, conversion_amount, timestamp)
+                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, datetime('now'))
+                `).bind(
+                  eventId,
+                  linkRow?.user_id || request.headers.get('x-user-id') || 'usr_default',
+                  linkRow?.id || targetSlugOrId,
+                  targetSlugOrId,
+                  ipHash,
+                  country,
+                  city,
+                  device,
+                  browser,
+                  os,
+                  referrer,
+                  linkRow?.target_url || 'https://lsho.cc',
+                  conversionAmount
+                ).run().catch((e) => console.warn('[Conversion Insert Warning]:', e));
               } catch (trackErr) {
                 console.warn('[Track Conversion Error]:', trackErr);
               }
@@ -1084,7 +1160,7 @@ export default {
 
       try {
         // 1. Fetch user's links from D1 to get list of identifiers (slugs & IDs)
-        let linkQuery = 'SELECT id, slug, clicks_count, created_at FROM links WHERE 1=1';
+        let linkQuery = 'SELECT id, slug, user_id, clicks_count, created_at FROM links WHERE 1=1';
         const linkParams = [];
         if (userId && userId !== 'all') {
           linkQuery += ' AND user_id = ?';
@@ -1095,12 +1171,11 @@ export default {
           linkParams.push(linkId, linkId);
         }
 
-        const userLinksResult = await env.DB.prepare(linkQuery).bind(...linkParams).all();
-        const userLinks = userLinksResult?.results || [];
-
-        if (userLinks.length === 0) {
-          return jsonResponse({ success: true, data: emptyAnalytics });
-        }
+        let userLinks = [];
+        try {
+          const r = await env.DB.prepare(linkQuery).bind(...linkParams).all();
+          userLinks = r?.results || [];
+        } catch {}
 
         const slugs = userLinks.map((l) => l.slug).filter(Boolean);
         const linkIds = userLinks.map((l) => l.id).filter(Boolean);
@@ -1117,11 +1192,24 @@ export default {
           dateCutoff = "datetime('now', '-365 days')";
         }
 
-        const inPlaceholders = allIdentifiers.map(() => '?').join(',');
-        const baseWhere = `(slug IN (${inPlaceholders}) OR link_id IN (${inPlaceholders})) AND created_at >= ${dateCutoff}`;
-        const bindValues = [...allIdentifiers, ...allIdentifiers];
+        let baseWhere = `timestamp >= ${dateCutoff}`;
+        let bindValues = [];
 
-        // 2. Query authentic aggregates in parallel from analytics_events
+        if (linkId && linkId !== 'all') {
+          baseWhere = `(slug = ? OR link_id = ?) AND timestamp >= ${dateCutoff}`;
+          bindValues = [linkId, linkId];
+        } else if (userId && userId !== 'all') {
+          if (allIdentifiers.length > 0) {
+            const inPlaceholders = allIdentifiers.map(() => '?').join(',');
+            baseWhere = `(slug IN (${inPlaceholders}) OR link_id IN (${inPlaceholders}) OR user_id = ?) AND timestamp >= ${dateCutoff}`;
+            bindValues = [...allIdentifiers, ...allIdentifiers, userId];
+          } else {
+            baseWhere = `user_id = ? AND timestamp >= ${dateCutoff}`;
+            bindValues = [userId];
+          }
+        }
+
+        // 2. Query authentic aggregates in parallel from click_events
         const [
           totalsRes,
           byDayRes,
@@ -1133,46 +1221,40 @@ export default {
           liveEventsRes
         ] = await Promise.all([
           env.DB.prepare(`
-            SELECT COUNT(*) as total_clicks, COUNT(DISTINCT ip_hash) as unique_clicks, COALESCE(SUM(conversion_amount), 0) as total_revenue
-            FROM analytics_events
+            SELECT COUNT(*) as total_clicks, COUNT(DISTINCT ip_masked) as unique_clicks, COALESCE(SUM(conversion_amount), 0) as total_revenue
+            FROM click_events
             WHERE ${baseWhere}
-          `).bind(...bindValues).first().catch(async () => {
-            return await env.DB.prepare(`
-              SELECT COUNT(*) as total_clicks, COUNT(DISTINCT ip_hash) as unique_clicks
-              FROM analytics_events
-              WHERE ${baseWhere}
-            `).bind(...bindValues).first().catch(() => null);
-          }),
+          `).bind(...bindValues).first().catch(() => null),
 
           env.DB.prepare(`
-            SELECT strftime('%Y-%m-%d', created_at) as date, COUNT(*) as clicks, COUNT(DISTINCT ip_hash) as unique_clicks
-            FROM analytics_events
+            SELECT strftime('%Y-%m-%d', timestamp) as date, COUNT(*) as clicks, COUNT(DISTINCT ip_masked) as unique_clicks
+            FROM click_events
             WHERE ${baseWhere}
-            GROUP BY strftime('%Y-%m-%d', created_at)
+            GROUP BY strftime('%Y-%m-%d', timestamp)
             ORDER BY date ASC
           `).bind(...bindValues).all().catch(() => null),
 
           env.DB.prepare(`
-            SELECT UPPER(country) as code, COUNT(*) as count
-            FROM analytics_events
-            WHERE ${baseWhere} AND country IS NOT NULL AND country != ''
-            GROUP BY UPPER(country)
+            SELECT UPPER(country_code) as code, COUNT(*) as count
+            FROM click_events
+            WHERE ${baseWhere} AND country_code IS NOT NULL AND country_code != ''
+            GROUP BY UPPER(country_code)
             ORDER BY count DESC
             LIMIT 20
           `).bind(...bindValues).all().catch(() => null),
 
           env.DB.prepare(`
-            SELECT city, UPPER(country) as countryCode, COUNT(*) as count
-            FROM analytics_events
+            SELECT city, UPPER(country_code) as countryCode, COUNT(*) as count
+            FROM click_events
             WHERE ${baseWhere} AND city IS NOT NULL AND city != '' AND city != 'Inconnue'
-            GROUP BY city, UPPER(country)
+            GROUP BY city, UPPER(country_code)
             ORDER BY count DESC
             LIMIT 20
           `).bind(...bindValues).all().catch(() => null),
 
           env.DB.prepare(`
             SELECT LOWER(device) as device, COUNT(*) as count
-            FROM analytics_events
+            FROM click_events
             WHERE ${baseWhere} AND device IS NOT NULL AND device != ''
             GROUP BY LOWER(device)
             ORDER BY count DESC
@@ -1181,7 +1263,7 @@ export default {
 
           env.DB.prepare(`
             SELECT browser as name, COUNT(*) as count
-            FROM analytics_events
+            FROM click_events
             WHERE ${baseWhere} AND browser IS NOT NULL AND browser != ''
             GROUP BY browser
             ORDER BY count DESC
@@ -1190,7 +1272,7 @@ export default {
 
           env.DB.prepare(`
             SELECT referrer as source, COUNT(*) as count
-            FROM analytics_events
+            FROM click_events
             WHERE ${baseWhere} AND referrer IS NOT NULL AND referrer != ''
             GROUP BY referrer
             ORDER BY count DESC
@@ -1198,28 +1280,12 @@ export default {
           `).bind(...bindValues).all().catch(() => null),
 
           env.DB.prepare(`
-            SELECT id, slug, UPPER(country) as country_code, city, referrer, device, browser, os, customer_email, customer_name, customer_avatar, conversion_amount, ip_hash, created_at as timestamp
-            FROM analytics_events
-            WHERE (slug IN (${inPlaceholders}) OR link_id IN (${inPlaceholders}))
-            ORDER BY created_at DESC
+            SELECT id, slug, UPPER(country_code) as country_code, city, referrer, device, browser, os, conversion_amount, ip_masked as ip_hash, timestamp
+            FROM click_events
+            WHERE ${baseWhere}
+            ORDER BY timestamp DESC
             LIMIT 50
-          `).bind(...bindValues).all().catch(async () => {
-            return await env.DB.prepare(`
-              SELECT id, slug, UPPER(country) as country_code, city, referrer, device, browser, os, customer_email, customer_name, customer_avatar, conversion_amount, ip_hash, created_at as timestamp
-              FROM analytics_events
-              WHERE (slug IN (${inPlaceholders}) OR link_id IN (${inPlaceholders}))
-              ORDER BY created_at DESC
-              LIMIT 50
-            `).bind(...bindValues).all().catch(async () => {
-              return await env.DB.prepare(`
-                SELECT id, slug, UPPER(country) as country_code, city, referrer, device, browser, os, ip_hash, created_at as timestamp
-                FROM analytics_events
-                WHERE (slug IN (${inPlaceholders}) OR link_id IN (${inPlaceholders}))
-                ORDER BY created_at DESC
-                LIMIT 50
-              `).bind(...bindValues).all().catch(() => null);
-            });
-          }),
+          `).bind(...bindValues).all().catch(() => null),
         ]);
 
         const dbTotalClicks = Number(totalsRes?.total_clicks || 0);
@@ -1281,17 +1347,6 @@ export default {
           browser: ev.browser || 'Chrome',
           os: ev.os || 'Windows',
           referrer: ev.referrer || 'Direct',
-          customerEmail: ev.customer_email || null,
-          customer_email: ev.customer_email || null,
-          email: ev.customer_email || null,
-          customerName: ev.customer_name || null,
-          customer_name: ev.customer_name || null,
-          customerFullName: ev.customer_name || null,
-          fullName: ev.customer_name || null,
-          customerAvatar: ev.customer_avatar || null,
-          customer_avatar: ev.customer_avatar || null,
-          avatarUrl: ev.customer_avatar || null,
-          avatar: ev.customer_avatar || null,
           conversionAmount: Number(ev.conversion_amount || 0),
           conversion_amount: Number(ev.conversion_amount || 0),
           ipMasked: ev.ip_hash ? ev.ip_hash.replace(/(\d+)\.(\d+)\.(\d+)\.(\d+)/, '$1.$2.•••.•••') : '•••.•••.•••',

@@ -161,79 +161,46 @@ export function generateTimelineForRange(
   return points;
 }
 
-// Authentic top breakdowns: never generate fake entries if no real data exists
-export function generateEdgeTopCountries(totalClicks: number, defaultCountryCode?: string) {
-  if (totalClicks <= 0 || !defaultCountryCode) return [];
-  const code = defaultCountryCode.toUpperCase();
-  return [
-    {
-      code,
-      name: getCountryName(code),
-      count: totalClicks,
-      percentage: 100,
-    },
-  ];
-}
-
-export function generateEdgeTopCities(totalClicks: number, defaultCity?: string, defaultCountryCode?: string) {
-  if (totalClicks <= 0 || !defaultCity) return [];
-  const code = (defaultCountryCode || "XX").toUpperCase();
-  return [
-    {
-      city: defaultCity,
-      countryCode: code,
-      count: totalClicks,
-      percentage: 100,
-    },
-  ];
-}
-
-export function generateEdgeTopDevices(totalClicks: number, defaultDevice?: string) {
-  if (totalClicks <= 0 || !defaultDevice) return [];
-  const isMobile = defaultDevice === "mobile";
-  return [
-    {
-      label: isMobile ? "Smartphone (Mobile)" : "Ordinateur (Desktop)",
-      device: isMobile ? "mobile" : "desktop",
-      count: totalClicks,
-      percentage: 100,
-    },
-  ];
-}
-
-export function generateEdgeTopBrowsers(totalClicks: number, defaultBrowser?: string) {
-  if (totalClicks <= 0 || !defaultBrowser) return [];
-  return [
-    {
-      name: defaultBrowser,
-      browser: defaultBrowser,
-      count: totalClicks,
-      percentage: 100,
-    },
-  ];
-}
-
-export function generateEdgeTopReferrers(totalClicks: number, defaultReferrer?: string) {
-  if (totalClicks <= 0 || !defaultReferrer) return [];
-  return [
-    {
-      source: defaultReferrer,
-      referrer: defaultReferrer,
-      name: defaultReferrer,
-      clicks: totalClicks,
-      count: totalClicks,
-      percentage: 100,
-    },
-  ];
-}
-
-// Live Click Events: 100% authentic, zero synthetic event generation
-export function generateEdgeLiveClickEvents(
-  links: ShortLink[],
+// Authentic top breakdowns (strictly real data, returns empty array if no real data)
+export function generateEdgeTopCountries(
   totalClicks: number,
+  linksOrCountry?: ShortLink[] | ShortLink | string | any,
+) {
+  if (totalClicks <= 0) return [];
+  
+  // If a single country string is passed
+  if (typeof linksOrCountry === "string" && linksOrCountry.trim()) {
+    const code = linksOrCountry.trim().toUpperCase();
+    return [{ code, name: getCountryName(code), count: totalClicks, percentage: 100 }];
+  }
+
+  return [];
+}
+
+export function generateEdgeTopCities(
+  totalClicks: number,
+  topCountries?: Array<{ code: string; count: number }>,
+) {
+  return [];
+}
+
+export function generateEdgeTopDevices(totalClicks: number) {
+  return [];
+}
+
+export function generateEdgeTopBrowsers(totalClicks: number) {
+  return [];
+}
+
+export function generateEdgeTopReferrers(totalClicks: number) {
+  return [];
+}
+
+// Live Click Events stream (strictly real data, returns empty array if no real data)
+export function generateEdgeLiveClickEvents(
+  links: ShortLink[] = [],
+  totalClicks: number = 0,
   targetLink?: ShortLink | null,
-  defaultCountry?: string,
-  defaultCity?: string
 ): LiveClickEvent[] {
   return [];
 }

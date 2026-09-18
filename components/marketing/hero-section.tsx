@@ -105,33 +105,22 @@ export function HeroSection() {
         ref={heroContentRef}
         className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 text-center flex flex-col items-center pt-7 sm:pt-9"
       >
-        {/* Main Title: React Bits ShinyText */}
-        <h1 className="text-2xl sm:text-[34px] md:text-[38px] font-semibold tracking-tight max-w-3xl leading-snug">
-          <ShinyText
-            text="The next-generation URL shortener for your campaigns & audiences"
-            speed={4.5}
-          />
+        {/* Main Title: Clean typography */}
+        <h1 className="text-2xl sm:text-[34px] md:text-[40px] font-extrabold tracking-[-0.03em] max-w-3xl leading-[1.18] text-neutral-900 dark:text-white font-sans">
+          The next-generation URL shortener for{" "}
+          <span className="text-brand">your campaigns</span> &amp;{" "}
+          <span className="text-brand">audiences</span>
         </h1>
 
-        {/* Subtitle: React Bits TextType with dynamic rotation */}
-        <p className="mt-3 sm:mt-4 text-xs sm:text-base text-neutral-600 dark:text-neutral-400 max-w-2xl font-normal leading-relaxed px-2 min-h-[44px] sm:min-h-[48px]">
-          <TextType
-            text={[
-              "Shorten in milliseconds, split traffic with A/B testing, protect access with PIN codes, and analyze visitors in real time without cookies.",
-              "Maximize conversions with worldwide geo-targeting and smart device-based routing.",
-              "Protect affiliate links and deploy ultra-fast redirects across 300+ Cloudflare edge locations.",
-            ]}
-            typingSpeed={25}
-            deletingSpeed={12}
-            pauseDuration={3200}
-            loop={true}
-          />
+        {/* Subtitle */}
+        <p className="mt-3 sm:mt-4 text-xs sm:text-base text-neutral-600 dark:text-neutral-400 max-w-2xl font-normal leading-relaxed px-2 min-h-[44px]">
+          Shorten in milliseconds, split traffic with A/B testing, protect access with PIN codes, and analyze visitors in real time across 310+ Cloudflare edge locations.
         </p>
 
         {/* CTAs using shadcn Button (stacked on mobile, inline on desktop) */}
         <div className="mt-5 sm:mt-6 flex flex-col sm:flex-row items-center justify-center gap-2.5 sm:gap-3 w-full max-w-xs sm:max-w-none">
-          <Link href="/login" className="w-full sm:w-auto">
-            <Button className="w-full sm:w-auto h-10 px-6 text-xs sm:text-sm font-medium rounded-full bg-[#0080ff] hover:bg-[#0070e0] sm:bg-[#ff6600] sm:hover:bg-[#ff771a] text-white border-none cursor-pointer shadow-md shadow-[#0080ff]/25 sm:shadow-[#ff6600]/25 transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-1.5">
+          <Link href="/register" className="w-full sm:w-auto">
+            <Button className="w-full sm:w-auto h-10 px-6 text-xs sm:text-sm font-medium rounded-full bg-brand hover:bg-brand-hover text-white border-none cursor-pointer shadow-md shadow-brand transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-1.5">
               <span>Get Started Free</span>
               <ArrowRight className="w-4 h-4 ml-0.5" />
             </Button>
@@ -173,7 +162,7 @@ export function HeroSection() {
                   <span className="font-semibold text-neutral-900 dark:text-neutral-100">
                     lshorter.com
                   </span>
-                  <span className="text-[#ff6600] font-semibold">
+                  <span className="text-brand font-semibold">
                     /dashboard/overview
                   </span>
                 </div>
@@ -204,7 +193,7 @@ export function HeroSection() {
               <div className="w-full flex justify-center py-1.5">
                 <div className="w-20 h-4 rounded-full bg-[#2B2520] dark:bg-black border border-[#3E352F] dark:border-neutral-800 flex items-center justify-center">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#1A1613] dark:bg-neutral-900 mr-2.5" />
-                  <span className="w-2 h-2 rounded-full bg-[#0080ff]/50" />
+                  <span className="w-2 h-2 rounded-full bg-brand/50" />
                 </div>
               </div>
 
@@ -213,10 +202,10 @@ export function HeroSection() {
                 {/* Mobile App Header */}
                 <div className="flex items-center justify-between pt-0.5 border-b border-[#E7DFD5]/70 dark:border-white/10 pb-1.5">
                   <div className="flex items-center gap-1.5">
-                    <span className="w-4 h-4 rounded bg-[#0080ff] flex items-center justify-center font-bold text-white text-[8px]">
+                    <span className="w-4 h-4 rounded bg-brand flex items-center justify-center font-bold text-white text-[8px]">
                       LS
                     </span>
-                    <span className="font-bebas text-sm font-bold text-[#0080ff] tracking-wide">
+                    <span className="font-bebas text-sm font-bold text-brand tracking-wide">
                       LShorter App
                     </span>
                   </div>
@@ -252,11 +241,11 @@ export function HeroSection() {
                       <span className="text-[9.5px] font-bold text-neutral-900 dark:text-white truncate">
                         SaaS Launch Campaign
                       </span>
-                      <span className="text-[7.5px] font-mono text-[#0080ff] bg-[#0080ff]/10 px-1 py-0.2 rounded font-semibold">
+                      <span className="text-[7.5px] font-mono text-brand bg-brand-subtle px-1 py-0.2 rounded font-semibold">
                         A/B 50/50
                       </span>
                     </div>
-                    <span className="text-[9px] font-mono text-[#0080ff] block truncate font-medium">
+                    <span className="text-[9px] font-mono text-brand block truncate font-medium">
                       lshorter.com/r/launch-pro
                     </span>
                     <div className="flex items-center justify-between text-[7.5px] text-neutral-500 pt-0.5">
@@ -288,7 +277,7 @@ export function HeroSection() {
 
                 {/* Mobile Bottom Tab Bar */}
                 <div className="pt-1.5 border-t border-[#E7DFD5]/70 dark:border-white/10 flex items-center justify-around text-neutral-400">
-                  <div className="flex flex-col items-center gap-0.5 text-[#0080ff]">
+                  <div className="flex flex-col items-center gap-0.5 text-brand">
                     <LayoutDashboard className="w-3.5 h-3.5" />
                     <span className="text-[7.5px] font-semibold">
                       Dashboard
@@ -336,7 +325,7 @@ export function HeroSection() {
               <div className="flex-1 rounded-t-[26px] bg-[#FFFDF9] dark:bg-[#121218] p-3 flex flex-col justify-between overflow-hidden border-t border-[#E7DFD5] dark:border-white/10 text-xs select-none transition-colors relative space-y-1.5">
                 <div className="flex items-center justify-between pb-1 border-b border-[#E7DFD5] dark:border-white/10">
                   <div className="flex items-center gap-1.5">
-                    <span className="w-4 h-4 rounded bg-[#0080ff] flex items-center justify-center font-bold text-white text-[8px]">
+                    <span className="w-4 h-4 rounded bg-brand flex items-center justify-center font-bold text-white text-[8px]">
                       LS
                     </span>
                     <span className="font-bebas text-sm font-bold text-neutral-900 dark:text-white">
@@ -372,18 +361,18 @@ export function HeroSection() {
                     <span className="text-[9.5px] font-medium text-neutral-800 dark:text-neutral-200">
                       SaaS Launch Campaign
                     </span>
-                    <span className="text-[7.5px] font-mono text-[#0080ff] bg-[#0080ff]/10 px-1 py-0.2 rounded">
+                    <span className="text-[7.5px] font-mono text-brand bg-brand-subtle px-1 py-0.2 rounded">
                       A/B 50/50
                     </span>
                   </div>
-                  <span className="text-[9px] font-mono text-[#0080ff] block truncate font-medium">
+                  <span className="text-[9px] font-mono text-brand block truncate font-medium">
                     lshorter.com/r/launch-pro
                   </span>
                 </div>
 
                 {/* Mobile Bottom Tab Bar */}
                 <div className="pt-1 border-t border-[#E7DFD5]/70 dark:border-white/10 flex items-center justify-around text-neutral-400">
-                  <div className="flex flex-col items-center gap-0.5 text-[#0080ff]">
+                  <div className="flex flex-col items-center gap-0.5 text-brand">
                     <LayoutDashboard className="w-3.5 h-3.5" />
                     <span className="text-[7px] font-semibold">Dashboard</span>
                   </div>

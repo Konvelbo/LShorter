@@ -13,6 +13,7 @@ export function LandingNavbar() {
   const pathname = usePathname();
   const { data: session, status } = useSession();
   const isAuthenticated = status === "authenticated" || Boolean((session as any)?.user);
+  const hasCompletedOnboarding = (session?.user as any)?.hasCompletedOnboarding === true;
 
   useEffect(() => {
     try {
@@ -53,24 +54,24 @@ export function LandingNavbar() {
 
   return (
     <div className="fixed top-0 inset-x-0 z-[9999] w-full px-3 pt-3 sm:px-6 sm:pt-4 pointer-events-none transition-all">
-      {/* DESKTOP NAVBAR: Sleek Glass Effect, Minimalist Frame */}
-      <header className="hidden md:flex max-w-5xl mx-auto bg-[#FAF7F2]/80 dark:bg-[#09090b]/80 hover:bg-[#FAF7F2]/95 dark:hover:bg-[#09090b]/95 backdrop-blur-xl border border-[#E7DFD5] dark:border-white/10 shadow-[0_8px_32px_rgba(43,37,32,0.04)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] rounded-full px-5 py-2.5 items-center justify-between pointer-events-auto transition-all duration-300">
+      {/* DESKTOP NAVBAR: Sleek Glass Effect, Compact Minimalist Frame */}
+      <header className="hidden md:flex max-w-4xl mx-auto bg-[#FAF7F2]/80 dark:bg-[#09090b]/80 hover:bg-[#FAF7F2]/95 dark:hover:bg-[#09090b]/95 backdrop-blur-xl border border-[#E7DFD5] dark:border-white/10 shadow-[0_8px_32px_rgba(43,37,32,0.04)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] rounded-full px-4 py-2 items-center justify-between pointer-events-auto transition-all duration-300">
         {/* Brand Logo */}
         <Link
           href="/"
           onClick={handleHomeClick}
-          className="flex items-center gap-2.5 select-none cursor-pointer group"
+          className="flex items-center gap-2 select-none cursor-pointer group"
         >
-          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#ff6600] to-[#ffa347] flex items-center justify-center font-bebas text-xl text-white font-bold tracking-wider group-hover:scale-105 transition-transform">
+          <div className="w-7 h-7 rounded-full bg-brand flex items-center justify-center font-bebas text-lg text-white font-bold tracking-wider group-hover:scale-105 transition-transform">
             LS
           </div>
-          <span className="font-bebas text-2xl text-neutral-900 dark:text-white tracking-wider flex items-center gap-0.5">
-            L<span className="text-[#ff6600]">SHORTER</span>
+          <span className="font-bebas text-xl text-neutral-900 dark:text-white tracking-wider flex items-center gap-0.5">
+            L<span className="text-brand">SHORTER</span>
           </span>
         </Link>
 
         {/* Center Desktop Links */}
-        <nav className="flex items-center gap-1">
+        <nav className="flex items-center gap-0.5">
           {navLinks.map((item) => {
             const isActive =
               item.href === "/"
@@ -81,7 +82,7 @@ export function LandingNavbar() {
                 key={item.label}
                 href={item.href}
                 onClick={item.isHome ? handleHomeClick : undefined}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-medium tracking-wide transition-colors cursor-pointer ${
+                className={`px-3 py-1 rounded-full text-[11.5px] font-medium tracking-wide transition-colors cursor-pointer ${
                   isActive
                     ? "bg-[#E7DFD5]/70 dark:bg-white/15 text-neutral-900 dark:text-white font-semibold"
                     : "text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white"
@@ -94,37 +95,47 @@ export function LandingNavbar() {
         </nav>
 
         {/* Right Actions */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           {/* Theme Switcher */}
           <button
             type="button"
             onClick={toggleTheme}
-            className="w-8 h-8 rounded-full flex items-center justify-center text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
+            className="w-7 h-7 rounded-full flex items-center justify-center text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
             title={isLight ? "Switch to dark mode" : "Switch to light mode"}
             aria-label="Toggle theme"
           >
-            {isLight ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+            {isLight ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5" />}
           </button>
 
-          {isAuthenticated ? (
+          {isAuthenticated && hasCompletedOnboarding ? (
             <Link href="/dashboard">
               <Button
                 variant="glow"
-                className="h-8 px-4 text-xs font-semibold rounded-full bg-[#ff6600] hover:bg-[#ff771a] text-white border-none cursor-pointer flex items-center gap-1.5 shadow-md shadow-[#ff6600]/20 hover:scale-[1.02] active:scale-95 transition-all"
+                className="h-7.5 px-3.5 text-[11.5px] font-semibold rounded-full bg-brand hover:bg-brand-hover text-white border-none cursor-pointer flex items-center gap-1.5 shadow-md shadow-brand/20 hover:scale-[1.02] active:scale-95 transition-all"
               >
-                <LayoutDashboard className="w-3.5 h-3.5" />
+                <LayoutDashboard className="w-3 h-3" />
                 <span>Dashboard</span>
-                <ArrowRight className="w-3.5 h-3.5" />
+                <ArrowRight className="w-3 h-3" />
+              </Button>
+            </Link>
+          ) : isAuthenticated ? (
+            <Link href="/onboarding">
+              <Button
+                variant="glow"
+                className="h-7.5 px-3.5 text-[11.5px] font-semibold rounded-full bg-brand hover:bg-brand-hover text-white border-none cursor-pointer flex items-center gap-1.5 shadow-md shadow-brand/20 hover:scale-[1.02] active:scale-95 transition-all"
+              >
+                <span>Get Started</span>
+                <ArrowRight className="w-3 h-3" />
               </Button>
             </Link>
           ) : (
-            <Link href="/login">
+            <Link href="/register">
               <Button
                 variant="glow"
-                className="h-8 px-4 text-xs font-semibold rounded-full bg-[#ff6600] hover:bg-[#ff771a] text-white border-none cursor-pointer flex items-center gap-1.5 shadow-md shadow-[#ff6600]/20 hover:scale-[1.02] active:scale-95 transition-all"
+                className="h-7.5 px-3.5 text-[11.5px] font-semibold rounded-full bg-brand hover:bg-brand-hover text-white border-none cursor-pointer flex items-center gap-1.5 shadow-md shadow-brand/20 hover:scale-[1.02] active:scale-95 transition-all"
               >
                 <span>Get Started</span>
-                <ArrowRight className="w-3.5 h-3.5" />
+                <ArrowRight className="w-3 h-3" />
               </Button>
             </Link>
           )}
@@ -132,17 +143,17 @@ export function LandingNavbar() {
       </header>
 
       {/* MOBILE NAVBAR */}
-      <header className="flex md:hidden max-w-6xl mx-auto bg-[#FAF7F2]/90 dark:bg-[#09090b]/90 backdrop-blur-xl border border-[#E7DFD5] dark:border-white/10 shadow-lg rounded-xl px-3.5 py-2 items-center justify-between pointer-events-auto transition-all">
+      <header className="flex md:hidden max-w-6xl mx-auto bg-[#FAF7F2]/90 dark:bg-[#09090b]/90 backdrop-blur-xl border border-[#E7DFD5] dark:border-white/10 shadow-lg rounded-xl px-3 py-1.5 items-center justify-between pointer-events-auto transition-all">
         <Link
           href="/"
           onClick={handleHomeClick}
           className="flex items-center gap-2 select-none"
         >
-          <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-[#0080ff] to-[#38bdf8] flex items-center justify-center font-bebas text-lg text-white font-bold">
+          <div className="w-7 h-7 rounded-full bg-brand flex items-center justify-center font-bebas text-lg text-white font-bold">
             LS
           </div>
           <span className="font-bebas text-xl text-neutral-900 dark:text-white tracking-wider flex items-center gap-0.5">
-            L<span className="text-[#0080ff]">SHORTER</span>
+            L<span className="text-brand">SHORTER</span>
           </span>
         </Link>
 
@@ -195,16 +206,23 @@ export function LandingNavbar() {
           })}
 
           <div className="pt-2 border-t border-neutral-200 dark:border-white/10 mt-1">
-            {isAuthenticated ? (
+            {isAuthenticated && hasCompletedOnboarding ? (
               <Link href="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>
-                <Button className="w-full text-xs h-9 justify-center bg-[#0080ff] hover:bg-[#0070e0] text-white rounded-lg">
+                <Button className="w-full text-xs h-9 justify-center bg-brand hover:bg-brand-hover text-white rounded-lg">
                   <span>Dashboard</span>
                   <ArrowRight className="w-3.5 h-3.5 ml-1" />
                 </Button>
               </Link>
+            ) : isAuthenticated ? (
+              <Link href="/onboarding" onClick={() => setIsMobileMenuOpen(false)}>
+                <Button className="w-full text-xs h-9 justify-center bg-brand hover:bg-brand-hover text-white rounded-lg">
+                  <span>Get Started</span>
+                  <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                </Button>
+              </Link>
             ) : (
-              <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
-                <Button className="w-full text-xs h-9 justify-center bg-[#0080ff] hover:bg-[#0070e0] text-white rounded-lg">
+              <Link href="/register" onClick={() => setIsMobileMenuOpen(false)}>
+                <Button className="w-full text-xs h-9 justify-center bg-brand hover:bg-brand-hover text-white rounded-lg">
                   <span>Get Started</span>
                   <ArrowRight className="w-3.5 h-3.5 ml-1" />
                 </Button>

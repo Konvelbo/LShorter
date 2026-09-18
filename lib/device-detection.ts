@@ -112,7 +112,7 @@ function isLocalOrPrivateIp(ip: string): boolean {
 /**
  * Asynchronously detects authentic visitor geolocation.
  * On Edge / Production (Vercel & Cloudflare): uses instant HTTP request headers.
- * On Localhost / Dev: queries ip-api.com to discover the machine's true public IP and country (e.g. BF / Ouagadougou).
+ * On Localhost / Dev: queries ip-api.com / country.is to discover the machine's true public IP and country.
  */
 export async function detectVisitorGeoAsync(req: Request): Promise<{ countryCode: string; city: string; rawIp: string }> {
   // 1. Direct Edge headers from Cloudflare or Vercel
@@ -145,12 +145,12 @@ export async function detectVisitorGeoAsync(req: Request): Promise<{ countryCode
   if (edgeCountry && edgeCountry !== "XX" && edgeCountry !== "UNKNOWN") {
     return {
       countryCode: edgeCountry,
-      city: edgeCity || (edgeCountry === "BF" ? "Ouagadougou" : "Direct"),
+      city: edgeCity || (edgeCountry === "FR" ? "Paris" : edgeCountry === "BF" ? "Ouagadougou" : "Direct"),
       rawIp,
     };
   }
 
-  // 2. Dev / Localhost or missing edge headers: resolve authentic IP via ip-api
+  // 2. Dev / Localhost or missing edge headers: resolve authentic IP via ip-api or country.is
   if (isLocalOrPrivateIp(rawIp)) {
     if (devGeoCache && Date.now() < devGeoCache.expiresAt) {
       return {
@@ -161,15 +161,35 @@ export async function detectVisitorGeoAsync(req: Request): Promise<{ countryCode
     }
 
     try {
-      const res = await fetch("http://ip-api.com/json", { signal: AbortSignal.timeout(2500) });
+      const res = await fetch("http://ip-api.com/json", { signal: AbortSignal.timeout(2000) });
       if (res.ok) {
         const data = await res.json();
         if (data && data.status === "success" && data.countryCode) {
           devGeoCache = {
             countryCode: data.countryCode.toUpperCase(),
-            city: data.city || "Ouagadougou",
+            city: data.city || "Paris",
             ip: data.query || rawIp,
-            expiresAt: Date.now() + 10 * 60 * 1000, // 10 min cache
+            expiresAt: Date.now() + 15 * 60 * 1000,
+          };
+          return {
+            countryCode: devGeoCache.countryCode,
+            city: devGeoCache.city,
+            rawIp: devGeoCache.ip,
+          };
+        }
+      }
+    } catch {}
+
+    try {
+      const resFallback = await fetch("https://api.country.is/", { signal: AbortSignal.timeout(1500) });
+      if (resFallback.ok) {
+        const fData = await resFallback.json();
+        if (fData?.country) {
+          devGeoCache = {
+            countryCode: fData.country.toUpperCase(),
+            city: fData.city || "Paris",
+            ip: fData.ip || rawIp,
+            expiresAt: Date.now() + 15 * 60 * 1000,
           };
           return {
             countryCode: devGeoCache.countryCode,
@@ -182,7 +202,7 @@ export async function detectVisitorGeoAsync(req: Request): Promise<{ countryCode
   } else {
     // Specific public IP without Edge headers
     try {
-      const res = await fetch(`http://ip-api.com/json/${encodeURIComponent(rawIp)}`, { signal: AbortSignal.timeout(2500) });
+      const res = await fetch(`http://ip-api.com/json/${encodeURIComponent(rawIp)}`, { signal: AbortSignal.timeout(2000) });
       if (res.ok) {
         const data = await res.json();
         if (data && data.status === "success" && data.countryCode) {
@@ -196,21 +216,24 @@ export async function detectVisitorGeoAsync(req: Request): Promise<{ countryCode
     } catch {}
   }
 
-  // 3. Fallback: Default to Burkina Faso (BF) and Ouagadougou
+  // 3. Sensible default if unreachable
   return {
-    countryCode: "BF",
-    city: "Ouagadougou",
+    countryCode: "FR",
+    city: "Paris",
     rawIp: rawIp === "127.0.0.1" ? "102.180.220.121" : rawIp,
   };
 }
 
-export function parseVisitorDetails(req: Request): VisitorDetails {
+export function parseVisitorDetails(
+  req: Request,
+  geoOverride?: { countryCode?: string; city?: string; rawIp?: string }
+): VisitorDetails {
   const userAgent = req.headers.get("user-agent") || "";
   const ua = userAgent.toLowerCase();
 
   // Device
   let device: "desktop" | "mobile" | "tablet" = "desktop";
-  if (/ipad|tablet|(android(?!.*mobile))/i.test(ua)) {
+  if (/ipad|tablet|playbook|silk|(android(?!.*mobile))/i.test(ua)) {
     device = "tablet";
   } else if (/mobile|iphone|ipod|android|blackberry|opera mini|iemobile|wpdesktop/i.test(ua)) {
     device = "mobile";
@@ -224,11 +247,12 @@ export function parseVisitorDetails(req: Request): VisitorDetails {
   if (ua.includes("edg/") || ua.includes("edge/")) browser = "Edge";
   else if (ua.includes("opr/") || ua.includes("opera/")) browser = "Opera";
   else if (ua.includes("firefox/") || ua.includes("fxios/")) browser = "Firefox";
-  else if (ua.includes("safari/") && !ua.includes("chrome/")) browser = "Safari";
+  else if (ua.includes("safari/") && !ua.includes("chrome/") && !ua.includes("crios/")) browser = "Safari";
   else if (ua.includes("chrome/") || ua.includes("crios/")) browser = "Chrome";
 
-  // Country from Edge headers or dev cache
+  // Country from Edge headers, geoOverride or dev cache
   const rawCountry = (
+    geoOverride?.countryCode ||
     req.headers.get("cf-ipcountry") ||
     req.headers.get("x-vercel-ip-country") ||
     req.headers.get("x-country") ||
@@ -236,6 +260,7 @@ export function parseVisitorDetails(req: Request): VisitorDetails {
   ).toUpperCase().trim();
 
   let rawCity = (
+    geoOverride?.city ||
     req.headers.get("cf-ipcity") ||
     req.headers.get("x-vercel-ip-city") ||
     req.headers.get("x-city") ||
@@ -248,13 +273,13 @@ export function parseVisitorDetails(req: Request): VisitorDetails {
     } catch {}
   }
 
-  const countryCode = rawCountry && rawCountry !== "XX"
+  const countryCode = rawCountry && rawCountry !== "XX" && rawCountry !== "UNKNOWN"
     ? rawCountry
-    : (devGeoCache?.countryCode || "BF");
+    : (devGeoCache?.countryCode || "FR");
 
   const city = rawCity
     ? rawCity
-    : (devGeoCache?.city || (countryCode === "BF" ? "Ouagadougou" : "Direct"));
+    : (devGeoCache?.city || (countryCode === "FR" ? "Paris" : countryCode === "BF" ? "Ouagadougou" : "Direct"));
 
   // Referrer
   const rawReferrer = req.headers.get("referer") || "Direct";
@@ -278,6 +303,7 @@ export function parseVisitorDetails(req: Request): VisitorDetails {
   }
 
   const rawIp =
+    geoOverride?.rawIp ||
     req.headers.get("cf-connecting-ip") ||
     req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
     req.headers.get("x-real-ip") ||

@@ -11,6 +11,14 @@ function getCryptoModule() {
   }
 }
 
+function getNodeCrypto() {
+  try {
+    return require("crypto");
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Generates a cryptographically secure RFC 4648 Base32 secret string.
  * Default 20 bytes = 32 Base32 characters (160-bit security).
@@ -111,7 +119,7 @@ export function generateTotpCode(secretBase32: string, timeOffsetWindows = 0): s
   const counterBuf = Buffer.alloc(8);
   counterBuf.writeBigInt64BE(BigInt(counter), 0);
 
-  const nodeCrypto = getCryptoModule();
+  const nodeCrypto = getNodeCrypto() || getCryptoModule();
   if (!nodeCrypto?.createHmac) return "";
 
   const hmac = nodeCrypto.createHmac("sha1", Buffer.from(keyBytes)).update(counterBuf).digest();

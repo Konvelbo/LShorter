@@ -50,7 +50,7 @@ export class LShorterClient {
       email: "",
       plan: "FREEMIUM",
       clicksThisMonth: 0,
-      clicksLimit: 100_000,
+      clicksLimit: 2_500,
       domainsCount: 0,
       domainsLimit: 3,
       linksCount: 0,

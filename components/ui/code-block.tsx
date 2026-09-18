@@ -131,7 +131,7 @@ function highlightSyntax(rawCode: string, lang: string = "bash") {
           );
         } else if (/^(-[a-zA-Z]+|--[a-zA-Z0-9_-]+)$/.test(token)) {
           parts.push(
-            <span key={match.index} className="text-[#ff6600] font-semibold">
+            <span key={match.index} className="text-brand font-semibold">
               {token}
             </span>
           );
@@ -318,10 +318,10 @@ export function CodeBlock({
                     key={idx}
                     type="button"
                     onClick={() => setActiveTabIdx(idx)}
-                    className={`px-2.5 py-1 rounded-[10px] text-[11px] font-medium transition-all cursor-pointer ${
+                    className={`px-2.5 py-1 rounded-[10px] text-[11px] transition-all cursor-pointer ${
                       isActive
-                        ? "bg-[#222226] text-white border border-white/10 shadow-sm"
-                        : "text-neutral-400 hover:text-neutral-200 hover:bg-white/5"
+                        ? "bg-brand/15 text-brand border border-brand/40 font-bold shadow-sm"
+                        : "text-neutral-400 hover:text-neutral-200 hover:bg-white/5 border border-transparent font-medium"
                     }`}
                   >
                     {tab.name}
@@ -331,7 +331,7 @@ export function CodeBlock({
             </div>
           ) : (
             <div className="flex items-center gap-1.5 text-neutral-400">
-              <Terminal className="w-3.5 h-3.5 text-[#ff6600]" />
+              <Terminal className="w-3.5 h-3.5 text-brand" />
               <span className="text-[11px] font-medium text-neutral-300">
                 {activeFilename || activeLang}
               </span>

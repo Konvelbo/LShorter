@@ -106,25 +106,25 @@ export function FaqSection() {
   }, []);
 
   return (
-    <section id="faq" className="relative py-20 sm:py-28 px-4 sm:px-6 overflow-hidden">
-      <div className="max-w-3xl mx-auto">
+    <section id="faq" className="relative py-14 sm:py-20 px-4 sm:px-6 overflow-hidden">
+      <div className="max-w-2xl mx-auto">
         {/* Section Header */}
-        <div ref={headerRef} className="text-center mb-12">
-          <h2 className="text-[26px] sm:text-[30px] font-medium tracking-tight text-neutral-900 dark:text-white">
+        <div ref={headerRef} className="text-center mb-6 sm:mb-8">
+          <h2 className="text-xl sm:text-[24px] font-medium tracking-tight text-neutral-900 dark:text-white">
             Frequently Asked Questions
           </h2>
-          <p className="mt-2 text-sm sm:text-base text-neutral-600 dark:text-neutral-400">
+          <p className="mt-1.5 text-xs sm:text-[13.5px] text-neutral-600 dark:text-neutral-400">
             Everything you need to know about getting the most out of LShorter.
           </p>
         </div>
 
         {/* Interactive Accordion */}
-        <div ref={cardRef} className="rounded-2xl bg-[#FFFDF9] dark:bg-[#121216] border border-[#E7DFD5] dark:border-white/10 shadow-xl p-5 sm:p-8">
+        <div ref={cardRef} className="rounded-2xl bg-[#FFFDF9] dark:bg-[#121216] border border-[#E7DFD5] dark:border-white/10 shadow-xl p-4 sm:p-6">
           <Accordion type="single" defaultValue="item-1">
             {faqs.map((faq) => (
               <AccordionItem key={faq.id} value={faq.id}>
-                <AccordionTrigger>{faq.question}</AccordionTrigger>
-                <AccordionContent>{faq.answer}</AccordionContent>
+                <AccordionTrigger className="text-xs sm:text-sm">{faq.question}</AccordionTrigger>
+                <AccordionContent className="text-[11.5px] sm:text-[12.5px] leading-relaxed text-neutral-600 dark:text-neutral-400">{faq.answer}</AccordionContent>
               </AccordionItem>
             ))}
           </Accordion>

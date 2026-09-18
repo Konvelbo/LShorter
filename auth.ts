@@ -16,7 +16,7 @@ if (process.env.AUTH_URL && process.env.AUTH_URL.includes("vercel.app")) {
 }
 
 const convex = new ConvexHttpClient(
-  process.env.NEXT_PUBLIC_CONVEX_URL || "https://greedy-mastiff-107.convex.cloud"
+  process.env.NEXT_PUBLIC_CONVEX_URL || "https://beloved-avocet-415.convex.cloud"
 );
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
@@ -222,7 +222,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         (session.user as any).plan = token.plan || "FREEMIUM";
         (session.user as any).hasCompletedOnboarding = token.hasCompletedOnboarding ?? false;
         (session.user as any).clicksThisMonth = token.clicksThisMonth ?? 0;
-        (session.user as any).clicksLimit = token.clicksLimit ?? 100_000;
+        (session.user as any).clicksLimit = token.clicksLimit ?? 2_500;
         (session.user as any).provider = token.provider;
       }
       return session;

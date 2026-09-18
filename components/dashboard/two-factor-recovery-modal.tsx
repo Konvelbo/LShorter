@@ -130,7 +130,7 @@ export function TwoFactorRecoveryModal({
               onClick={handleDownload}
               className="text-xs h-9 border-[#27272a] gap-1.5"
             >
-              <Download className="w-3.5 h-3.5 text-[#ff6600]" />
+              <Download className="w-3.5 h-3.5 text-brand" />
               <span>Download</span>
             </Button>
           </div>

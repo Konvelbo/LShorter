@@ -12,7 +12,7 @@ import { CardContainer, CardBody, CardItem } from "@/components/ui/3d-card";
 
 const CARD_META: Record<string, { tag: string; color: string; date: string }> = {
   "sdk-quickstart": { tag: "SDK & API", color: "bg-emerald-500", date: "v1.2" },
-  "geo-routing": { tag: "Edge Routing", color: "bg-[#0080ff] sm:bg-[#ff6600]", date: "09/12" },
+  "geo-routing": { tag: "Edge Routing", color: "bg-brand", date: "09/12" },
   "ab-testing-routing": { tag: "A/B Testing", color: "bg-orange-500", date: "09/10" },
   "pin-protection": { tag: "Security", color: "bg-amber-500", date: "09/08" },
   "realtime-analytics": { tag: "Analytics", color: "bg-purple-500", date: "09/04" },
@@ -146,7 +146,7 @@ export default function DocsPage() {
           {/* Right Column: Editorial Typography & Action */}
           <div className="lg:col-span-5 flex flex-col justify-center space-y-4 text-left">
             <div className="flex items-center gap-2 text-xs font-mono text-neutral-600 dark:text-neutral-400">
-              <span className="w-2 h-2 rounded-full bg-[#0080ff] sm:bg-[#ff6600]" />
+              <span className="w-2 h-2 rounded-full bg-brand" />
               <span>Announcement &amp; Architecture</span>
               <span className="text-neutral-600 dark:text-neutral-400 ml-auto font-mono">09/12</span>
             </div>
@@ -162,7 +162,7 @@ export default function DocsPage() {
             <div className="pt-2">
               <Link
                 href="/docs/sdk-quickstart"
-                className="inline-flex items-center gap-2 text-xs sm:text-sm font-mono font-semibold text-[#0080ff] sm:text-[#ff6600] hover:underline cursor-pointer group/link"
+                className="inline-flex items-center gap-2 text-xs sm:text-sm font-mono font-semibold text-brand hover:underline cursor-pointer group/link"
               >
                 <span>Explore Quickstart Guide</span>
                 <ArrowRight className="w-4 h-4 group-hover/link:translate-x-1.5 transition-transform duration-200" />
@@ -187,7 +187,7 @@ export default function DocsPage() {
               {[...ECOSYSTEM_STACK, ...ECOSYSTEM_STACK].map((item, idx) => (
                 <span
                   key={idx}
-                  className="px-3.5 py-1.5 rounded-xl bg-[#FFFDF9] dark:bg-[#141416] border border-[#E7DFD5] dark:border-white/10 text-xs font-mono text-neutral-700 dark:text-neutral-300 shadow-xs shrink-0 cursor-default transition-all hover:border-[#0080ff] sm:hover:border-[#ff6600] hover:scale-105"
+                  className="px-3.5 py-1.5 rounded-xl bg-[#FFFDF9] dark:bg-[#141416] border border-[#E7DFD5] dark:border-white/10 text-xs font-mono text-neutral-700 dark:text-neutral-300 shadow-xs shrink-0 cursor-default transition-all hover:border-brand hover:scale-105"
                 >
                   {item.name}
                 </span>

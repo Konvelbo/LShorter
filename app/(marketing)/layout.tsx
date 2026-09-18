@@ -8,7 +8,7 @@ export default function MarketingLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen flex flex-col bg-[#FAF7F2] dark:bg-[#09090b] text-neutral-900 dark:text-[#fafafa] selection:bg-[#0080ff]/20 selection:text-[#0080ff] sm:selection:bg-[#ff6600]/20 sm:selection:text-[#ff6600] transition-colors duration-300 font-sans">
+    <div className="min-h-screen flex flex-col bg-[#FAF7F2] dark:bg-[#09090b] text-neutral-900 dark:text-[#fafafa] selection:bg-brand-light selection:text-brand transition-colors duration-300 font-sans">
       {/* Universal Floating Navbar across Accueil, Tarifs, API & Docs */}
       <LandingNavbar />
       <div className="flex-1 flex flex-col">

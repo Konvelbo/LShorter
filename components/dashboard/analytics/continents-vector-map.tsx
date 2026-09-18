@@ -109,7 +109,7 @@ export function ContinentsVectorMap({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-3 z-10">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-cyan-400 md:text-[#ff6600] px-2 py-0.5 rounded-full bg-cyan-500/10 md:bg-[#ff6600]/10 border border-cyan-500/20 md:border-[#ff6600]/20 flex items-center gap-1.5">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--brand-primary-text)] px-2 py-0.5 rounded-full bg-[var(--brand-primary-subtle)] border border-[var(--brand-primary-border)] flex items-center gap-1.5">
               <Globe2 className="w-3 h-3" />
               <span>Interactive Mapping react-simple-maps</span>
             </span>
@@ -129,7 +129,7 @@ export function ContinentsVectorMap({
               </span>
             )}
             {selectedCountry && selectedCountry !== "ALL" && (
-              <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-[#ff6600]/20 text-[#ff6600] border border-[#ff6600]/40">
+              <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-[var(--brand-primary-light)] text-[var(--brand-primary-text)] border border-[var(--brand-primary-border)]">
                 Country: {getCountryData(selectedCountry).flag} {getCountryData(selectedCountry).name}
               </span>
             )}
@@ -185,7 +185,7 @@ export function ContinentsVectorMap({
           <button
             type="button"
             onClick={() => setIsExpanded(true)}
-            className="p-1.5 rounded-[10px] bg-cyan-500/10 md:bg-[#ff6600]/10 hover:bg-cyan-500 md:hover:bg-[#ff6600] text-cyan-400 md:text-[#ff6600] hover:text-white border border-cyan-500/25 md:border-[#ff6600]/25 shadow-sm transition-all cursor-pointer"
+            className="p-1.5 rounded-[10px] bg-brand-subtle hover:bg-brand text-brand hover:text-white border border-brand-subtle shadow-sm transition-all cursor-pointer"
             title="Fullscreen view (Double-click)"
           >
             <Maximize2 className="w-4 h-4" />
@@ -355,7 +355,7 @@ export function ContinentsVectorMap({
                   <span className="text-neutral-600">•</span>
                   <span className="font-mono font-bold">
                     {hoveredCountry.clicks > 0 ? (
-                      <span className="text-[#ff6600]">
+                      <span className="text-brand">
                         {hoveredCountry.clicks} clicks ({hoveredCountry.percentage}%)
                       </span>
                     ) : (
@@ -439,7 +439,7 @@ export function ContinentsVectorMap({
           className="w-full max-w-6xl flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 p-3.5 sm:p-4 rounded-[10px] bg-[#141416]/95 border border-[#27272a] shadow-2xl backdrop-blur-md cursor-default shrink-0"
         >
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-[10px] bg-cyan-500 md:bg-[#ff6600] flex items-center justify-center text-white shadow-lg shadow-cyan-500/30 md:shadow-[#ff6600]/30 font-bold shrink-0">
+            <div className="w-10 h-10 rounded-[10px] bg-brand flex items-center justify-center text-white shadow-lg shadow-brand font-bold shrink-0">
               <Globe2 className="w-5 h-5" />
             </div>
             <div className="min-w-0">

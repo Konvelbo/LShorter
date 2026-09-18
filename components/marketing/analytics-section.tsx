@@ -19,6 +19,8 @@ import {
 } from "react-simple-maps";
 import { CobeGlobe, TopCountryTraffic } from "@/components/globe/cobe-globe";
 import { Card } from "@/components/ui/card";
+import { Counter } from "@/components/ui/counter";
+import { AnimatedBar } from "@/components/ui/animated-bar";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
@@ -170,73 +172,82 @@ export function AnalyticsSection() {
     };
   }, []);
 
-  const accentColor = isMobile ? "#0080ff" : "#ff6600";
+  const accentColor = isMobile ? "var(--brand-primary)" : "var(--brand-primary)";
 
   return (
     <section
       ref={sectionRef}
       id="analytics"
-      className="relative py-16 sm:py-28 px-4 sm:px-6 overflow-hidden bg-[#FAF7F2] dark:bg-[#09090b] transition-colors"
+      className="relative py-14 sm:py-20 px-4 sm:px-6 overflow-hidden bg-[#FAF7F2] dark:bg-[#09090b] transition-colors"
     >
       <div className="max-w-6xl mx-auto">
         {/* Section Header */}
-        <div className="analytics-header text-center max-w-2xl mx-auto mb-10 sm:mb-12">
-          <h2 className="text-2xl sm:text-[30px] font-medium tracking-tight text-neutral-900 dark:text-white leading-snug">
+        <div className="analytics-header text-center max-w-2xl mx-auto mb-6 sm:mb-8">
+          <h2 className="text-xl sm:text-[24px] font-medium tracking-tight text-neutral-900 dark:text-white leading-snug">
             Analytics That Speak for Themselves
           </h2>
-          <p className="mt-2 text-xs sm:text-base text-neutral-600 dark:text-neutral-400 font-normal">
+          <p className="mt-1.5 text-xs sm:text-[13.5px] text-neutral-600 dark:text-neutral-400 font-normal">
             Track every redirect in real time, visualize geographic origins, and uncover audience behaviors without third-party cookies.
           </p>
         </div>
 
         {/* Top 4 KPI Metrics */}
-        <div className="analytics-metrics-grid grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 mb-6 sm:mb-8">
-          <Card className="analytics-metric-card p-3.5 sm:p-5 bg-[#FFFDF9] dark:bg-[#141416] border-[#E7DFD5] dark:border-white/10 shadow-sm">
-            <span className="text-[11px] sm:text-xs text-neutral-500 block font-normal">Total Tracked Clicks</span>
-            <span className="text-lg sm:text-2xl font-semibold text-neutral-900 dark:text-white mt-1 block">
-              1,284,200
-            </span>
-            <span className="text-[10px] sm:text-[11px] text-neutral-400 block mt-0.5">Consolidated global volume</span>
+        <div className="analytics-metrics-grid grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5 mb-5 sm:mb-6">
+          <Card className="analytics-metric-card p-3 sm:p-4 bg-[#FFFDF9] dark:bg-[#141416] border-[#E7DFD5] dark:border-white/10 shadow-sm">
+            <span className="text-[10.5px] sm:text-[11.5px] text-neutral-500 block font-normal">Total Tracked Clicks</span>
+            <Counter
+              value={1284200}
+              className="text-base sm:text-xl font-semibold text-neutral-900 dark:text-white mt-0.5 block"
+            />
+            <span className="text-[9.5px] sm:text-[10px] text-neutral-400 block mt-0.5">Consolidated global volume</span>
           </Card>
 
-          <Card className="analytics-metric-card p-3.5 sm:p-5 bg-[#FFFDF9] dark:bg-[#141416] border-[#E7DFD5] dark:border-white/10 shadow-sm">
-            <span className="text-[11px] sm:text-xs text-neutral-500 block font-normal">Edge Response Time</span>
-            <span className="text-lg sm:text-2xl font-semibold text-[#0080ff] sm:text-[#ff6600] mt-1 block">
-              &lt; 15 ms
-            </span>
-            <span className="text-[10px] sm:text-[11px] text-neutral-400 block mt-0.5">Global Cloudflare CDN</span>
+          <Card className="analytics-metric-card p-3 sm:p-4 bg-[#FFFDF9] dark:bg-[#141416] border-[#E7DFD5] dark:border-white/10 shadow-sm">
+            <span className="text-[10.5px] sm:text-[11.5px] text-neutral-500 block font-normal">Edge Response Time</span>
+            <Counter
+              value={15}
+              prefix="< "
+              suffix=" ms"
+              className="text-base sm:text-xl font-semibold text-brand mt-0.5 block"
+            />
+            <span className="text-[9.5px] sm:text-[10px] text-neutral-400 block mt-0.5">Global Cloudflare CDN</span>
           </Card>
 
-          <Card className="analytics-metric-card p-3.5 sm:p-5 bg-[#FFFDF9] dark:bg-[#141416] border-[#E7DFD5] dark:border-white/10 shadow-sm">
-            <span className="text-[11px] sm:text-xs text-neutral-500 block font-normal">Recorded Countries</span>
-            <span className="text-lg sm:text-2xl font-semibold text-cyan-500 mt-1 block">
-              84 countries
-            </span>
-            <span className="text-[10px] sm:text-[11px] text-neutral-400 block mt-0.5">Anonymized IP detection</span>
+          <Card className="analytics-metric-card p-3 sm:p-4 bg-[#FFFDF9] dark:bg-[#141416] border-[#E7DFD5] dark:border-white/10 shadow-sm">
+            <span className="text-[10.5px] sm:text-[11.5px] text-neutral-500 block font-normal">Recorded Countries</span>
+            <Counter
+              value={84}
+              suffix=" countries"
+              className="text-base sm:text-xl font-semibold text-cyan-500 mt-0.5 block"
+            />
+            <span className="text-[9.5px] sm:text-[10px] text-neutral-400 block mt-0.5">Anonymized IP detection</span>
           </Card>
 
-          <Card className="analytics-metric-card p-3.5 sm:p-5 bg-[#FFFDF9] dark:bg-[#141416] border-[#E7DFD5] dark:border-white/10 shadow-sm">
-            <span className="text-[11px] sm:text-xs text-neutral-500 block font-normal">Uptime SLA</span>
-            <span className="text-lg sm:text-2xl font-semibold text-emerald-500 mt-1 block">
-              99.99%
-            </span>
-            <span className="text-[10px] sm:text-[11px] text-neutral-400 block mt-0.5">Edge fault tolerance</span>
+          <Card className="analytics-metric-card p-3 sm:p-4 bg-[#FFFDF9] dark:bg-[#141416] border-[#E7DFD5] dark:border-white/10 shadow-sm">
+            <span className="text-[10.5px] sm:text-[11.5px] text-neutral-500 block font-normal">Uptime SLA</span>
+            <Counter
+              value={99.99}
+              suffix="%"
+              decimals={2}
+              className="text-base sm:text-xl font-semibold text-emerald-500 mt-0.5 block"
+            />
+            <span className="text-[9.5px] sm:text-[10px] text-neutral-400 block mt-0.5">Edge fault tolerance</span>
           </Card>
         </div>
 
         {/* Main High-Tech Analytics Card */}
         <div
           ref={cardRef}
-          className="rounded-2xl bg-[#FFFDF9] dark:bg-[#111116] border border-[#E7DFD5] dark:border-white/10 shadow-2xl p-4 sm:p-7 overflow-hidden transition-all"
+          className="rounded-2xl bg-[#FFFDF9] dark:bg-[#111116] border border-[#E7DFD5] dark:border-white/10 shadow-2xl p-3.5 sm:p-5 overflow-hidden transition-all"
         >
           {/* Card Top Bar: Title, Live Status & View Switcher */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 sm:mb-6 pb-4 border-b border-[#E7DFD5] dark:border-white/10">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3.5 sm:mb-5 pb-3 border-b border-[#E7DFD5] dark:border-white/10">
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-sm sm:text-lg font-semibold text-neutral-900 dark:text-white">
+                <h3 className="text-xs sm:text-base font-semibold text-neutral-900 dark:text-white">
                   Geographic Traffic Distribution
                 </h3>
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9.5px] font-mono font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                   Live Edge
                 </span>
@@ -253,7 +264,7 @@ export function AnalyticsSection() {
                 onClick={() => setViewType("map")}
                 className={`px-3.5 py-1.5 text-xs font-semibold rounded-full transition-all cursor-pointer flex items-center gap-1.5 ${
                   viewType === "map"
-                    ? "bg-[#0080ff] sm:bg-[#ff6600] text-white shadow-md shadow-[#0080ff]/20 sm:shadow-[#ff6600]/20"
+                    ? "bg-brand text-white shadow-md shadow-brand"
                     : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
                 }`}
               >
@@ -265,7 +276,7 @@ export function AnalyticsSection() {
                 onClick={() => setViewType("globe")}
                 className={`px-3.5 py-1.5 text-xs font-semibold rounded-full transition-all cursor-pointer flex items-center gap-1.5 ${
                   viewType === "globe"
-                    ? "bg-[#0080ff] sm:bg-[#ff6600] text-white shadow-md shadow-[#0080ff]/20 sm:shadow-[#ff6600]/20"
+                    ? "bg-brand text-white shadow-md shadow-brand"
                     : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
                 }`}
               >
@@ -289,7 +300,7 @@ export function AnalyticsSection() {
                   onMouseLeave={() => setHoveredCountry(null)}
                   className={`px-2.5 py-1 rounded-lg text-xs font-medium shrink-0 transition-all cursor-pointer flex items-center gap-1.5 border ${
                     isSelected
-                      ? "bg-[#0080ff]/10 sm:bg-[#ff6600]/10 border-[#0080ff]/40 sm:border-[#ff6600]/40 text-[#0080ff] sm:text-[#ff6600] shadow-sm font-semibold"
+                      ? "bg-brand-subtle border-brand-subtle text-brand shadow-sm font-semibold"
                       : "bg-white dark:bg-white/5 border-neutral-200 dark:border-white/5 text-neutral-700 dark:text-neutral-300 hover:border-neutral-300 dark:hover:border-white/20"
                   }`}
                 >
@@ -302,9 +313,9 @@ export function AnalyticsSection() {
           </div>
 
           {/* Visualization Area */}
-          <div className="relative min-h-[300px] sm:min-h-[440px] flex items-center justify-center">
+          <div className="relative min-h-[260px] sm:min-h-[380px] flex items-center justify-center">
             {viewType === "map" ? (
-              <div className="relative w-full h-[290px] sm:h-[430px] rounded-xl bg-neutral-100 dark:bg-[#08080c] border border-neutral-200 dark:border-white/10 overflow-hidden flex items-center justify-center shadow-inner">
+              <div className="relative w-full h-[260px] sm:h-[380px] rounded-xl bg-neutral-100 dark:bg-[#08080c] border border-neutral-200 dark:border-white/10 overflow-hidden flex items-center justify-center shadow-inner">
                 {isMounted ? (
                   <ComposableMap
                     projection="geoMercator"
@@ -428,7 +439,7 @@ export function AnalyticsSection() {
                       </div>
                       <div className="flex items-center gap-3 pt-1 text-[11px]">
                         <span className="text-neutral-400">Tracked clicks:</span>
-                        <span className="text-[#0080ff] sm:text-[#ff6600] font-bold font-mono">
+                        <span className="text-brand font-bold font-mono">
                           {activeCountry.clicks.toLocaleString()}
                         </span>
                         <span className="text-neutral-500">•</span>
@@ -451,7 +462,7 @@ export function AnalyticsSection() {
             <div>
               <div className="flex items-center justify-between mb-3">
                 <span className="text-xs font-semibold text-neutral-900 dark:text-white flex items-center gap-1.5">
-                  <Activity className="w-3.5 h-3.5 text-[#0080ff] sm:text-[#ff6600]" />
+                  <Activity className="w-3.5 h-3.5 text-brand" />
                   Device Breakdown
                 </span>
                 <span className="text-[11px] text-neutral-500 font-mono">100% anonymized</span>
@@ -461,12 +472,12 @@ export function AnalyticsSection() {
                 <div className="p-2.5 rounded-xl bg-white dark:bg-black/30 border border-neutral-200 dark:border-white/5 space-y-1.5">
                   <div className="flex items-center justify-between text-neutral-800 dark:text-neutral-200">
                     <span className="flex items-center gap-2 font-medium">
-                      <Smartphone className="w-4 h-4 text-[#0080ff] sm:text-[#ff6600]" /> Smartphones
+                      <Smartphone className="w-4 h-4 text-brand" /> Smartphones
                     </span>
-                    <span className="font-mono font-bold text-[#0080ff] sm:text-[#ff6600]">62%</span>
+                    <Counter value={62} suffix="%" className="font-mono font-bold text-brand" />
                   </div>
                   <div className="w-full h-1.5 rounded-full bg-neutral-200 dark:bg-white/10 overflow-hidden">
-                    <div className="w-[62%] h-full bg-[#0080ff] sm:bg-[#ff6600] rounded-full transition-all duration-500" />
+                    <AnimatedBar value={62} className="h-full bg-brand rounded-full" />
                   </div>
                 </div>
 
@@ -476,10 +487,10 @@ export function AnalyticsSection() {
                     <span className="flex items-center gap-2 font-medium">
                       <Laptop className="w-4 h-4 text-cyan-500" /> Desktops
                     </span>
-                    <span className="font-mono font-bold text-cyan-500">34%</span>
+                    <Counter value={34} suffix="%" className="font-mono font-bold text-cyan-500" />
                   </div>
                   <div className="w-full h-1.5 rounded-full bg-neutral-200 dark:bg-white/10 overflow-hidden">
-                    <div className="w-[34%] h-full bg-cyan-500 rounded-full transition-all duration-500" />
+                    <AnimatedBar value={34} className="h-full bg-cyan-500 rounded-full" />
                   </div>
                 </div>
 
@@ -489,10 +500,10 @@ export function AnalyticsSection() {
                     <span className="flex items-center gap-2 font-medium">
                       <Tablet className="w-4 h-4 text-neutral-400" /> Tablets
                     </span>
-                    <span className="font-mono font-bold text-neutral-400">4%</span>
+                    <Counter value={4} suffix="%" className="font-mono font-bold text-neutral-400" />
                   </div>
                   <div className="w-full h-1.5 rounded-full bg-neutral-200 dark:bg-white/10 overflow-hidden">
-                    <div className="w-[4%] h-full bg-neutral-400 rounded-full transition-all duration-500" />
+                    <AnimatedBar value={4} className="h-full bg-neutral-400 rounded-full" />
                   </div>
                 </div>
               </div>
@@ -513,20 +524,20 @@ export function AnalyticsSection() {
                     <span className="text-neutral-600 dark:text-neutral-400 text-[11px] font-medium">Chrome</span>
                     <span className="text-[10px] font-mono text-emerald-500 font-semibold">Webkit</span>
                   </div>
-                  <span className="font-bold text-base text-neutral-900 dark:text-white font-mono mt-1">58%</span>
+                  <Counter value={58} suffix="%" className="font-bold text-base text-neutral-900 dark:text-white font-mono mt-1" />
                   <div className="w-full h-1 rounded-full bg-neutral-200 dark:bg-white/10 mt-2 overflow-hidden">
-                    <div className="w-[58%] h-full bg-emerald-500 rounded-full" />
+                    <AnimatedBar value={58} className="h-full bg-emerald-500 rounded-full" />
                   </div>
                 </div>
 
                 <div className="p-3 rounded-xl bg-white dark:bg-black/30 border border-neutral-200 dark:border-white/5 flex flex-col justify-between">
                   <div className="flex items-center justify-between">
                     <span className="text-neutral-600 dark:text-neutral-400 text-[11px] font-medium">Safari</span>
-                    <span className="text-[10px] font-mono text-[#0080ff] sm:text-[#ff6600] font-semibold">Apple</span>
+                    <span className="text-[10px] font-mono text-brand font-semibold">Apple</span>
                   </div>
-                  <span className="font-bold text-base text-neutral-900 dark:text-white font-mono mt-1">26%</span>
+                  <Counter value={26} suffix="%" className="font-bold text-base text-neutral-900 dark:text-white font-mono mt-1" />
                   <div className="w-full h-1 rounded-full bg-neutral-200 dark:bg-white/10 mt-2 overflow-hidden">
-                    <div className="w-[26%] h-full bg-[#0080ff] sm:bg-[#ff6600] rounded-full" />
+                    <AnimatedBar value={26} className="h-full bg-brand rounded-full" />
                   </div>
                 </div>
 
@@ -535,9 +546,9 @@ export function AnalyticsSection() {
                     <span className="text-neutral-600 dark:text-neutral-400 text-[11px] font-medium">Firefox</span>
                     <span className="text-[10px] font-mono text-amber-500 font-semibold">Gecko</span>
                   </div>
-                  <span className="font-bold text-base text-neutral-900 dark:text-white font-mono mt-1">11%</span>
+                  <Counter value={11} suffix="%" className="font-bold text-base text-neutral-900 dark:text-white font-mono mt-1" />
                   <div className="w-full h-1 rounded-full bg-neutral-200 dark:bg-white/10 mt-2 overflow-hidden">
-                    <div className="w-[11%] h-full bg-amber-500 rounded-full" />
+                    <AnimatedBar value={11} className="h-full bg-amber-500 rounded-full" />
                   </div>
                 </div>
 
@@ -546,9 +557,9 @@ export function AnalyticsSection() {
                     <span className="text-neutral-600 dark:text-neutral-400 text-[11px] font-medium">Edge</span>
                     <span className="text-[10px] font-mono text-cyan-500 font-semibold">Blink</span>
                   </div>
-                  <span className="font-bold text-base text-neutral-900 dark:text-white font-mono mt-1">5%</span>
+                  <Counter value={5} suffix="%" className="font-bold text-base text-neutral-900 dark:text-white font-mono mt-1" />
                   <div className="w-full h-1 rounded-full bg-neutral-200 dark:bg-white/10 mt-2 overflow-hidden">
-                    <div className="w-[5%] h-full bg-cyan-500 rounded-full" />
+                    <AnimatedBar value={5} className="h-full bg-cyan-500 rounded-full" />
                   </div>
                 </div>
               </div>

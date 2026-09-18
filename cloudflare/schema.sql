@@ -79,3 +79,55 @@ CREATE INDEX IF NOT EXISTS idx_analytics_slug ON analytics_events(slug);
 CREATE INDEX IF NOT EXISTS idx_analytics_created_at ON analytics_events(created_at);
 CREATE INDEX IF NOT EXISTS idx_analytics_country ON analytics_events(country);
 CREATE INDEX IF NOT EXISTS idx_analytics_device ON analytics_events(device);
+
+-- 4. Organizations Table (Control Plane Metadata in D1)
+CREATE TABLE IF NOT EXISTS organizations (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  slug TEXT UNIQUE NOT NULL,
+  plan TEXT NOT NULL DEFAULT 'FREE',
+  billing_cycle TEXT NOT NULL DEFAULT 'MONTHLY',
+  tax_id TEXT,
+  billing_address TEXT,
+  company_name TEXT,
+  billing_email TEXT,
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_orgs_slug ON organizations(slug);
+
+-- 5. Subscriptions Table
+CREATE TABLE IF NOT EXISTS subscriptions (
+  id TEXT PRIMARY KEY,
+  org_id TEXT NOT NULL,
+  provider TEXT NOT NULL DEFAULT 'mock',
+  provider_subscription_id TEXT NOT NULL,
+  current_period_start INTEGER,
+  current_period_end INTEGER,
+  cancel_at_period_end INTEGER DEFAULT 0,
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_subscriptions_org_id ON subscriptions(org_id);
+
+-- 6. Invoices Table
+CREATE TABLE IF NOT EXISTS invoices (
+  id TEXT PRIMARY KEY,
+  org_id TEXT NOT NULL,
+  invoice_number TEXT UNIQUE NOT NULL,
+  plan_id TEXT NOT NULL,
+  amount_paid REAL NOT NULL,
+  currency TEXT NOT NULL DEFAULT 'EUR',
+  status TEXT NOT NULL DEFAULT 'PAID',
+  period_start INTEGER,
+  period_end INTEGER,
+  overage_amount REAL DEFAULT 0,
+  batches_overage INTEGER DEFAULT 0,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_invoices_number ON invoices(invoice_number);
+CREATE INDEX IF NOT EXISTS idx_invoices_org_id ON invoices(org_id);
+

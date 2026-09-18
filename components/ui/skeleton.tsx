@@ -54,7 +54,7 @@ export function TableRowSkeleton() {
           <Skeleton className="h-5 w-16 rounded-[8px] bg-white/10 shrink-0" />
         </div>
         <div className="flex items-center gap-1.5">
-          <Skeleton className="h-3 w-3 rounded-full bg-[#ff6600]/40 shrink-0" />
+          <Skeleton className="h-3 w-3 rounded-full bg-brand-subtle shrink-0" />
           <Skeleton className="h-3 w-48 sm:w-64 max-w-[80%] bg-white/10" />
         </div>
         <div className="flex items-center justify-between pt-1.5 border-t border-[#1e1e22]">
@@ -107,7 +107,7 @@ export function DashboardOverviewSkeleton() {
         </div>
         <div className="flex items-center gap-2.5 w-full sm:w-auto">
           <Skeleton className="h-10 w-28 rounded-xl bg-white/10 hidden sm:block" />
-          <Skeleton className="h-10 w-full sm:w-36 rounded-xl bg-[#ff6600]/20 shrink-0" />
+          <Skeleton className="h-10 w-full sm:w-36 rounded-xl bg-brand-subtle shrink-0" />
         </div>
       </div>
 
@@ -185,40 +185,81 @@ export function DashboardOverviewSkeleton() {
 }
 
 /**
+ * Link Card Item Skeleton (Matches My Links modern card design)
+ */
+export function LinkCardSkeleton() {
+  return (
+    <div className="flex items-center justify-between gap-2.5 sm:gap-4 p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-[#131418] border border-neutral-200 dark:border-[#202228] border-r-4 border-r-rose-500/50 shadow-sm relative w-full animate-pulse">
+      {/* Left side: Grip + Thumbnail + Info */}
+      <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0 flex-1">
+        {/* Grip Handle */}
+        <Skeleton className="hidden sm:block w-4 h-6 rounded bg-neutral-200 dark:bg-white/10 shrink-0" />
+
+        {/* Thumbnail with Status Dot */}
+        <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-xl shrink-0 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-white/5">
+          <Skeleton className="w-full h-full rounded-xl bg-neutral-200 dark:bg-white/10" />
+          <div className="w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full border-2 border-white dark:border-[#131418] bg-emerald-500/40 absolute -bottom-1 -right-1" />
+        </div>
+
+        {/* Text Information */}
+        <div className="min-w-0 space-y-1.5 flex-1 max-w-md">
+          <Skeleton className="h-4 sm:h-5 w-28 sm:w-40 rounded-md bg-neutral-200 dark:bg-white/15" />
+          <Skeleton className="h-3 w-24 sm:w-32 rounded bg-neutral-100 dark:bg-white/10" />
+          <div className="flex items-center gap-1.5">
+            <Skeleton className="h-2.5 w-2.5 rounded-full bg-brand/30 shrink-0" />
+            <Skeleton className="h-3 w-40 sm:w-64 max-w-[85%] rounded bg-neutral-100 dark:bg-white/10" />
+          </div>
+        </div>
+      </div>
+
+      {/* Right side: Click Counter + Action Buttons */}
+      <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+        <div className="flex flex-col items-end gap-1">
+          <Skeleton className="h-5 sm:h-6 w-10 sm:w-14 rounded-md bg-neutral-200 dark:bg-white/15" />
+          <Skeleton className="h-2.5 w-8 rounded bg-neutral-100 dark:bg-white/10" />
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <Skeleton className="h-8 w-8 rounded-xl bg-neutral-100 dark:bg-white/10" />
+          <Skeleton className="h-8 w-8 rounded-xl bg-neutral-100 dark:bg-white/10" />
+          <Skeleton className="h-8 w-8 rounded-xl bg-neutral-100 dark:bg-white/10" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
  * 2. Links Page Skeleton
  */
 export function LinksPageSkeleton() {
   return (
-    <div className="flex flex-col gap-6 animate-in fade-in duration-300">
+    <div className="flex flex-col gap-6 animate-in fade-in duration-300 pb-16">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex flex-col gap-1.5">
-          <Skeleton className="h-7 sm:h-8 w-44 sm:w-52 bg-white/15" />
-          <Skeleton className="h-3.5 sm:h-4 w-64 sm:w-80 max-w-full bg-white/10" />
+          <Skeleton className="h-7 sm:h-8 w-44 sm:w-52 rounded-lg bg-neutral-200 dark:bg-white/15" />
+          <Skeleton className="h-3.5 sm:h-4 w-64 sm:w-80 max-w-full rounded bg-neutral-100 dark:bg-white/10" />
         </div>
         <div className="flex items-center gap-2.5 w-full sm:w-auto">
-          <Skeleton className="h-10 w-28 rounded-xl bg-white/10 hidden sm:block" />
-          <Skeleton className="h-10 w-full sm:w-36 rounded-xl bg-[#ff6600]/20 shrink-0" />
+          <Skeleton className="h-10 w-24 rounded-[10px] bg-neutral-100 dark:bg-[#141416] border border-neutral-200 dark:border-[#27272a] hidden sm:block" />
+          <Skeleton className="h-10 w-full sm:w-36 rounded-[10px] bg-brand/20 border border-brand/40 shrink-0" />
         </div>
       </div>
 
       {/* Search & Filter Bar */}
       <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2.5">
-        <Skeleton className="h-10 w-full flex-1 rounded-xl bg-white/10" />
+        <Skeleton className="h-10 w-full flex-1 rounded-[10px] bg-neutral-100 dark:bg-[#141416] border border-neutral-200 dark:border-[#222225]" />
         <div className="flex items-center gap-2 w-full md:w-auto">
-          <Skeleton className="h-10 flex-1 md:w-36 rounded-xl bg-white/10" />
-          <Skeleton className="h-10 flex-1 md:w-40 rounded-xl bg-white/10" />
+          <Skeleton className="h-10 flex-1 md:w-32 rounded-[10px] bg-neutral-100 dark:bg-[#141416] border border-neutral-200 dark:border-[#222225]" />
+          <Skeleton className="h-10 flex-1 md:w-40 rounded-[10px] bg-neutral-100 dark:bg-[#141416] border border-neutral-200 dark:border-[#222225]" />
         </div>
       </div>
 
-      {/* Links Container Skeleton */}
-      <div className="rounded-2xl bg-[#141416] border border-[#222225] overflow-hidden">
-        <div className="p-3.5 sm:p-4 border-b border-[#222225] flex items-center justify-between">
-          <Skeleton className="h-4 w-28 sm:w-32 bg-white/10" />
-          <Skeleton className="h-4 w-16 sm:w-20 bg-white/10" />
-        </div>
+      {/* Links Cards Container Skeleton */}
+      <div className="space-y-3">
         {[1, 2, 3, 4, 5].map((i) => (
-          <TableRowSkeleton key={i} />
+          <LinkCardSkeleton key={i} />
         ))}
       </div>
     </div>
@@ -247,7 +288,7 @@ export function AnalyticsPageSkeleton() {
       <div className="flex items-center gap-2">
         <Skeleton className="h-9 w-16 rounded-xl bg-white/10" />
         <Skeleton className="h-9 w-16 rounded-xl bg-white/10" />
-        <Skeleton className="h-9 w-16 rounded-xl bg-[#ff6600]/20" />
+        <Skeleton className="h-9 w-16 rounded-xl bg-brand-subtle" />
         <Skeleton className="h-9 w-16 rounded-xl bg-white/10" />
       </div>
 
@@ -453,7 +494,7 @@ export function QRCodePageSkeleton() {
           <Skeleton className="w-56 h-56 rounded-2xl bg-white/10" />
           <div className="flex items-center gap-2 w-full max-w-xs">
             <Skeleton className="h-10 flex-1 rounded-xl bg-white/10" />
-            <Skeleton className="h-10 flex-1 rounded-xl bg-[#ff6600]/20" />
+            <Skeleton className="h-10 flex-1 rounded-xl bg-brand-subtle" />
           </div>
         </div>
 
@@ -492,7 +533,7 @@ export function DomainsPageSkeleton() {
           <Skeleton className="h-7 sm:h-8 w-48 sm:w-56 bg-white/15" />
           <Skeleton className="h-3.5 sm:h-4 w-64 sm:w-96 max-w-full bg-white/10" />
         </div>
-        <Skeleton className="h-10 w-full sm:w-44 rounded-xl bg-[#ff6600]/20 shrink-0" />
+        <Skeleton className="h-10 w-full sm:w-44 rounded-xl bg-brand-subtle shrink-0" />
       </div>
 
       {/* 3 Metric Cards */}
@@ -545,7 +586,7 @@ export function ApiKeysPageSkeleton() {
           <Skeleton className="h-7 sm:h-8 w-44 sm:w-48 bg-white/15" />
           <Skeleton className="h-3.5 sm:h-4 w-60 sm:w-80 max-w-full bg-white/10" />
         </div>
-        <Skeleton className="h-10 w-full sm:w-44 rounded-xl bg-[#ff6600]/20 shrink-0" />
+        <Skeleton className="h-10 w-full sm:w-44 rounded-xl bg-brand-subtle shrink-0" />
       </div>
 
       {/* Keys List */}
@@ -607,7 +648,7 @@ export function SettingsPageSkeleton() {
           </div>
         </div>
 
-        <Skeleton className="h-10 w-32 rounded-xl bg-[#ff6600]/20" />
+        <Skeleton className="h-10 w-32 rounded-xl bg-brand-subtle" />
       </div>
     </div>
   );
@@ -620,7 +661,7 @@ export function GlobeSkeleton() {
   return (
     <div className="w-full aspect-square max-w-[440px] mx-auto flex items-center justify-center p-4">
       <div className="relative w-56 h-56 sm:w-72 sm:h-72 rounded-full border border-white/10 bg-[#121215] flex items-center justify-center overflow-hidden animate-pulse shadow-2xl">
-        <div className="w-36 h-36 sm:w-48 sm:h-48 rounded-full border border-dashed border-[#ff6600]/30 animate-spin" />
+        <div className="w-36 h-36 sm:w-48 sm:h-48 rounded-full border border-dashed border-brand-subtle animate-spin" />
         <span className="absolute text-[11px] sm:text-xs text-neutral-400 font-mono">Loading 3D Edge...</span>
       </div>
     </div>
@@ -646,13 +687,13 @@ export function PricingPageSkeleton() {
           <div
             key={i}
             className={`rounded-2xl bg-[#141416] border ${
-              i === 2 ? "border-[#ff6600]/40 shadow-xl" : "border-[#222225]"
+              i === 2 ? "border-brand-subtle shadow-xl" : "border-[#222225]"
             } p-6 sm:p-8 flex flex-col justify-between gap-6 min-h-[500px]`}
           >
             <div className="flex flex-col gap-4">
               <div className="flex items-center justify-between">
                 <Skeleton className="h-6 w-28 bg-white/15" />
-                {i === 2 && <Skeleton className="h-5 w-20 rounded-full bg-[#ff6600]/20" />}
+                {i === 2 && <Skeleton className="h-5 w-20 rounded-full bg-brand-subtle" />}
               </div>
               <Skeleton className="h-3.5 w-48 bg-white/10" />
               <div className="flex items-baseline gap-1 my-2">
@@ -670,7 +711,7 @@ export function PricingPageSkeleton() {
             </div>
             <Skeleton
               className={`h-11 w-full rounded-xl ${
-                i === 2 ? "bg-[#ff6600]/30" : "bg-white/10"
+                i === 2 ? "bg-brand-subtle" : "bg-white/10"
               }`}
             />
           </div>
