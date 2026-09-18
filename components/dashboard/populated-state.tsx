@@ -137,7 +137,7 @@ export function PopulatedState({ links, analytics, onRefresh }: PopulatedStatePr
             </span>
           </div>
           <div className="flex items-center justify-between text-[11px] text-neutral-500">
-            <span>{analytics.uniqueClicks.toLocaleString()} uniques</span>
+            <span>{(analytics?.uniqueClicks ?? 0).toLocaleString()} uniques</span>
             <span className="text-neutral-400">Real-time Edge</span>
           </div>
         </div>

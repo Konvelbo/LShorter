@@ -290,9 +290,9 @@ export function Sidebar() {
           {!isCollapsed ? (
             <div className="rounded-[10px] bg-[#141416] border border-[#27272a] p-2.5 text-xs flex flex-col gap-1.5 hover:border-brand-subtle transition-colors">
               <div className="flex items-center justify-between text-neutral-400">
-                <span className="font-bold text-[10px] text-brand">{plan} PLAN</span>
+                <span className="font-bold text-[10px] text-brand">{plan || "STARTER"} PLAN</span>
                 <span className="font-mono text-white text-[10px]">
-                  {clicksThisMonth.toLocaleString()} / {clicksLimit === -1 ? "Unlimited" : clicksLimit.toLocaleString()}
+                  {(clicksThisMonth ?? 0).toLocaleString()} / {clicksLimit === -1 ? "Unlimited" : (clicksLimit ?? 10000).toLocaleString()}
                 </span>
               </div>
               <div className="w-full h-1.5 rounded-full bg-neutral-200 dark:bg-[#27272a] overflow-hidden">
@@ -307,7 +307,7 @@ export function Sidebar() {
               </div>
             </div>
           ) : (
-            <div title={`${plan} Plan : ${clicksThisMonth.toLocaleString()} clicks`} className="w-8.5 h-8.5 rounded-[10px] bg-[#141416] border border-[#27272a] mx-auto flex items-center justify-center">
+            <div title={`${plan || "STARTER"} Plan : ${(clicksThisMonth ?? 0).toLocaleString()} clicks`} className="w-8.5 h-8.5 rounded-[10px] bg-[#141416] border border-[#27272a] mx-auto flex items-center justify-center">
               <Sparkles className="w-3.5 h-3.5 text-brand" />
             </div>
           )}
@@ -431,9 +431,9 @@ export function Sidebar() {
         {/* Mobile Drawer Bottom Quota */}
         <div className="p-2.5 rounded-[10px] bg-[#151c2e] border border-[#27375a] space-y-1.5">
           <div className="flex items-center justify-between text-[10px]">
-            <span className="font-bold text-brand">{plan} PLAN</span>
+            <span className="font-bold text-brand">{plan || "STARTER"} PLAN</span>
             <span className="font-mono text-white">
-              {clicksThisMonth.toLocaleString()} / {clicksLimit === -1 ? "Unlimited" : clicksLimit.toLocaleString()}
+              {(clicksThisMonth ?? 0).toLocaleString()} / {clicksLimit === -1 ? "Unlimited" : (clicksLimit ?? 10000).toLocaleString()}
             </span>
           </div>
           <div className="w-full h-1.5 rounded-full bg-neutral-200 dark:bg-black/40 overflow-hidden">

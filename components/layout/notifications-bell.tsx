@@ -79,7 +79,7 @@ export function NotificationsBell({
   const defaultNotif: NotificationItem = useMemo(() => ({
     _id: "welcome_default",
     title: "Welcome to LShorter Edge 🚀",
-    message: `Your Anycast Cloudflare infrastructure is active. Plan ${plan} (${clicksLimit.toLocaleString()} clicks/month included).`,
+    message: `Your Anycast Cloudflare infrastructure is active. Plan ${plan || "STARTER"} (${(clicksLimit ?? 10000).toLocaleString()} clicks/month included).`,
     type: "SUCCESS",
     isRead: false,
     createdAt: Date.now(),

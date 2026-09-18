@@ -285,14 +285,14 @@ export function HeroTransitionSection() {
                       </div>
                     </div>
                   </div>
-                  {/* App header (Brand Theme) */}
+                  {/* App header (Cyber Blue Theme) */}
                   <div className="px-3 pt-1 pb-2 flex items-center justify-between shrink-0">
                     <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-[7px] bg-brand flex items-center justify-center font-bebas text-xs text-white font-black shadow-md shadow-brand/40">
+                      <div className="w-6 h-6 rounded-[7px] bg-[#0066FF] flex items-center justify-center font-bebas text-xs text-white font-black shadow-md shadow-blue-500/30">
                         LS
                       </div>
                       <span className="font-bebas text-base font-bold tracking-wide text-neutral-900 dark:text-white leading-none">
-                        L <span className="text-brand">SHORTER</span>
+                        L <span className="text-[#0066FF] dark:text-[#38bdf8]">SHORTER</span>
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -302,7 +302,7 @@ export function HeroTransitionSection() {
                       <div className="w-6 h-6 rounded-[7px] bg-neutral-200/70 dark:bg-white/10 flex items-center justify-center">
                         <Bell className="w-3.5 h-3.5 text-neutral-600 dark:text-neutral-300" />
                       </div>
-                      <div className="w-6 h-6 rounded-full bg-brand border border-white/20 flex items-center justify-center text-white font-bold text-[9px]">
+                      <div className="w-6 h-6 rounded-full bg-[#0066FF] border border-white/20 flex items-center justify-center text-white font-bold text-[9px]">
                         LM
                       </div>
                     </div>
@@ -325,7 +325,7 @@ export function HeroTransitionSection() {
                         <RefreshCw className="w-2.5 h-2.5 text-neutral-500 dark:text-neutral-400" />
                         <span>Refresh</span>
                       </div>
-                      <div className="flex-1 h-7 rounded-[8px] bg-brand text-white text-[9px] font-bebas tracking-wide flex items-center justify-center gap-0.5 shadow-sm shadow-brand/40">
+                      <div className="flex-1 h-7 rounded-[8px] bg-[#0066FF] hover:bg-[#0052cc] text-white text-[9px] font-bebas tracking-wide flex items-center justify-center gap-0.5 shadow-sm shadow-blue-500/40">
                         <Plus className="w-2.5 h-2.5 stroke-[3]" />
                         <span>CREATE A LINK</span>
                       </div>
@@ -338,7 +338,7 @@ export function HeroTransitionSection() {
                           val: 128420,
                           badge: "+14.2%",
                           sub: "71,400 uniques",
-                          color: "text-brand",
+                          color: "text-[#0066FF] dark:text-[#38bdf8]",
                         },
                         {
                           label: "Created Links",
@@ -408,7 +408,7 @@ export function HeroTransitionSection() {
                         <span className="text-[9.5px] font-bold text-neutral-900 dark:text-white">
                           Clicks per day
                         </span>
-                        <span className="text-[8px] font-mono font-bold text-brand bg-brand-subtle border border-brand-subtle px-1.5 py-0.5 rounded-md">
+                        <span className="text-[8px] font-mono font-bold text-[#0066FF] dark:text-[#38bdf8] bg-blue-500/10 border border-blue-500/20 px-1.5 py-0.5 rounded-md">
                           14 days
                         </span>
                       </div>
@@ -422,7 +422,7 @@ export function HeroTransitionSection() {
                               direction="vertical"
                               value={(d.clicks / maxClicksValue) * 100}
                               delay={i * 0.02}
-                              className="w-full rounded-t-[2px] bg-brand"
+                              className="w-full rounded-t-[2px] bg-[#0066FF]"
                             />
                           </div>
                         ))}
@@ -434,7 +434,7 @@ export function HeroTransitionSection() {
                         <span className="text-[9.5px] font-bold text-neutral-900 dark:text-white">
                           Top Countries
                         </span>
-                        <div className="flex items-center gap-0.5 text-brand">
+                        <div className="flex items-center gap-0.5 text-[#0066FF] dark:text-[#38bdf8]">
                           <span className="text-[8px] font-semibold">
                             Details
                           </span>
@@ -448,14 +448,14 @@ export function HeroTransitionSection() {
                           { code: "BF", pct: 14.7 },
                         ].map((c, i) => (
                           <div key={c.code} className="flex items-center gap-2">
-                            <span className="font-mono text-[9px] font-bold text-brand w-4 shrink-0">
+                            <span className="font-mono text-[9px] font-bold text-[#0066FF] dark:text-[#38bdf8] w-4 shrink-0">
                               {c.code}
                             </span>
                             <div className="flex-1 h-1 rounded-full bg-neutral-200 dark:bg-[#27272a] overflow-hidden">
                               <AnimatedBar
                                 value={c.pct}
                                 delay={i * 0.08}
-                                className="h-full bg-brand rounded-full"
+                                className="h-full bg-[#0066FF] rounded-full"
                               />
                             </div>
                             <span className="text-[8px] text-neutral-500 dark:text-neutral-400 font-mono w-8 text-right">
@@ -471,7 +471,7 @@ export function HeroTransitionSection() {
                         <span className="text-[9.5px] font-bold text-neutral-900 dark:text-white">
                           Recent Links
                         </span>
-                        <div className="flex items-center gap-0.5 text-brand">
+                        <div className="flex items-center gap-0.5 text-[#0066FF] dark:text-[#38bdf8]">
                           <span className="text-[8px] font-semibold">
                             View all
                           </span>
@@ -516,10 +516,10 @@ export function HeroTransitionSection() {
                               <Copy className="w-2.5 h-2.5 text-neutral-500 dark:text-neutral-400" />
                             </div>
                             <div className="p-0.5 rounded-[4px] bg-neutral-100 dark:bg-white/5">
-                              <Edit3 className="w-2.5 h-2.5 text-brand" />
+                              <Edit3 className="w-2.5 h-2.5 text-[#0066FF] dark:text-[#38bdf8]" />
                             </div>
                             <div className="p-0.5 rounded-[4px] bg-neutral-100 dark:bg-white/5">
-                              <QrCode className="w-2.5 h-2.5 text-brand" />
+                              <QrCode className="w-2.5 h-2.5 text-[#0066FF] dark:text-[#38bdf8]" />
                             </div>
                             <div className="p-0.5 rounded-[4px] bg-neutral-100 dark:bg-white/5">
                               <Share2 className="w-2.5 h-2.5 text-neutral-500 dark:text-neutral-400" />
@@ -532,7 +532,7 @@ export function HeroTransitionSection() {
                   {/* Bottom tab bar */}
                   <div className="shrink-0 border-t border-[#E7DFD5] dark:border-[#222225] bg-white dark:bg-[#0d0d0d] px-3 pt-2 pb-1 flex flex-col items-center shadow-xs">
                     <div className="w-full flex items-center justify-around">
-                      <span className="flex flex-col items-center gap-0.5 text-brand">
+                      <span className="flex flex-col items-center gap-0.5 text-[#0066FF] dark:text-[#38bdf8]">
                         <Home className="w-3.5 h-3.5" />
                         <span className="text-[7.5px] font-bold">Home</span>
                       </span>
@@ -540,7 +540,7 @@ export function HeroTransitionSection() {
                         <Link2 className="w-3.5 h-3.5" />
                         <span className="text-[7.5px]">Links</span>
                       </span>
-                      <span className="w-7 h-7 -mt-3 rounded-[9px] bg-brand text-white flex items-center justify-center shadow-md shadow-brand/50 border border-white/20 shrink-0">
+                      <span className="w-7 h-7 -mt-3 rounded-[9px] bg-[#0066FF] text-white flex items-center justify-center shadow-md shadow-blue-500/50 border border-white/20 shrink-0">
                         <Plus className="w-4 h-4 stroke-[3]" />
                       </span>
                       <span className="flex flex-col items-center gap-0.5 text-neutral-500 dark:text-neutral-400">
@@ -1204,14 +1204,14 @@ export function HeroTransitionSection() {
                       </div>
                     </div>
 
-                    {/* App header */}
+                    {/* App header (Cyber Blue Theme) */}
                     <div className="px-3 pt-1 pb-2 flex items-center justify-between shrink-0">
                       <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-[7px] bg-brand flex items-center justify-center font-bebas text-xs text-white font-black shadow-md shadow-brand/40">
+                        <div className="w-6 h-6 rounded-[7px] bg-[#0066FF] flex items-center justify-center font-bebas text-xs text-white font-black shadow-md shadow-blue-500/30">
                           LS
                         </div>
                         <span className="font-bebas text-base font-bold tracking-wide text-neutral-900 dark:text-white leading-none">
-                          L <span className="text-brand">SHORTER</span>
+                          L <span className="text-[#0066FF] dark:text-[#38bdf8]">SHORTER</span>
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -1221,7 +1221,7 @@ export function HeroTransitionSection() {
                         <div className="w-6 h-6 rounded-[7px] bg-neutral-200/70 dark:bg-white/10 flex items-center justify-center">
                           <Bell className="w-3.5 h-3.5 text-neutral-600 dark:text-neutral-300" />
                         </div>
-                        <div className="w-6 h-6 rounded-full bg-brand border border-white/20 flex items-center justify-center text-white font-bold text-[9px]">
+                        <div className="w-6 h-6 rounded-full bg-[#0066FF] border border-white/20 flex items-center justify-center text-white font-bold text-[9px]">
                           LM
                         </div>
                       </div>
@@ -1245,7 +1245,7 @@ export function HeroTransitionSection() {
                           <RefreshCw className="w-2.5 h-2.5 text-neutral-500 dark:text-neutral-400" />
                           <span>Refresh</span>
                         </div>
-                        <div className="flex-1 h-7 rounded-[8px] bg-brand text-white text-[9px] font-bebas tracking-wide flex items-center justify-center gap-0.5 shadow-sm shadow-brand/40">
+                        <div className="flex-1 h-7 rounded-[8px] bg-[#0066FF] hover:bg-[#0052cc] text-white text-[9px] font-bebas tracking-wide flex items-center justify-center gap-0.5 shadow-sm shadow-blue-500/40">
                           <Plus className="w-2.5 h-2.5 stroke-[3]" />
                           <span>CREATE A LINK</span>
                         </div>
@@ -1259,7 +1259,7 @@ export function HeroTransitionSection() {
                             val: 128420,
                             badge: "+14.2%",
                             sub: "71,400 uniques",
-                            color: "text-brand",
+                            color: "text-[#0066FF] dark:text-[#38bdf8]",
                           },
                           {
                             label: "Created Links",
@@ -1330,7 +1330,7 @@ export function HeroTransitionSection() {
                           <span className="text-[9.5px] font-bold text-neutral-900 dark:text-white">
                             Clicks per day
                           </span>
-                          <span className="text-[8px] font-mono font-bold text-brand bg-brand-subtle border border-brand-subtle px-1.5 py-0.5 rounded-md">
+                          <span className="text-[8px] font-mono font-bold text-[#0066FF] dark:text-[#38bdf8] bg-blue-500/10 border border-blue-500/20 px-1.5 py-0.5 rounded-md">
                             14 days
                           </span>
                         </div>
@@ -1344,7 +1344,7 @@ export function HeroTransitionSection() {
                                 direction="vertical"
                                 value={(d.clicks / maxClicksValue) * 100}
                                 delay={i * 0.02}
-                                className="w-full rounded-t-[2px] bg-brand"
+                                className="w-full rounded-t-[2px] bg-[#0066FF]"
                               />
                             </div>
                           ))}
@@ -1357,7 +1357,7 @@ export function HeroTransitionSection() {
                           <span className="text-[9.5px] font-bold text-neutral-900 dark:text-white">
                             Top Countries
                           </span>
-                          <div className="flex items-center gap-0.5 text-brand">
+                          <div className="flex items-center gap-0.5 text-[#0066FF] dark:text-[#38bdf8]">
                             <span className="text-[8px] font-semibold">
                               Details
                             </span>
@@ -1371,14 +1371,14 @@ export function HeroTransitionSection() {
                             { code: "BF", pct: 14.7 },
                           ].map((c, i) => (
                             <div key={c.code} className="flex items-center gap-2">
-                              <span className="font-mono text-[9px] font-bold text-brand w-4 shrink-0">
+                              <span className="font-mono text-[9px] font-bold text-[#0066FF] dark:text-[#38bdf8] w-4 shrink-0">
                                 {c.code}
                               </span>
                               <div className="flex-1 h-1 rounded-full bg-neutral-200 dark:bg-[#27272a] overflow-hidden">
                                 <AnimatedBar
                                   value={c.pct}
                                   delay={i * 0.08}
-                                  className="h-full bg-brand rounded-full"
+                                  className="h-full bg-[#0066FF] rounded-full"
                                 />
                               </div>
                               <span className="text-[8px] text-neutral-500 dark:text-neutral-400 font-mono w-8 text-right">
@@ -1395,7 +1395,7 @@ export function HeroTransitionSection() {
                           <span className="text-[9.5px] font-bold text-neutral-900 dark:text-white">
                             Recent Links
                           </span>
-                          <div className="flex items-center gap-0.5 text-brand">
+                          <div className="flex items-center gap-0.5 text-[#0066FF] dark:text-[#38bdf8]">
                             <span className="text-[8px] font-semibold">
                               View all
                             </span>
@@ -1440,10 +1440,10 @@ export function HeroTransitionSection() {
                                 <Copy className="w-2.5 h-2.5 text-neutral-500 dark:text-neutral-400" />
                               </div>
                               <div className="p-0.5 rounded-[4px] bg-neutral-100 dark:bg-white/5">
-                                <Edit3 className="w-2.5 h-2.5 text-brand" />
+                                <Edit3 className="w-2.5 h-2.5 text-[#0066FF] dark:text-[#38bdf8]" />
                               </div>
                               <div className="p-0.5 rounded-[4px] bg-neutral-100 dark:bg-white/5">
-                                <QrCode className="w-2.5 h-2.5 text-brand" />
+                                <QrCode className="w-2.5 h-2.5 text-[#0066FF] dark:text-[#38bdf8]" />
                               </div>
                               <div className="p-0.5 rounded-[4px] bg-neutral-100 dark:bg-white/5">
                                 <Share2 className="w-2.5 h-2.5 text-neutral-500 dark:text-neutral-400" />
@@ -1457,7 +1457,7 @@ export function HeroTransitionSection() {
                     {/* Bottom tab bar */}
                     <div className="shrink-0 border-t border-[#E7DFD5] dark:border-[#222225] bg-white dark:bg-[#0d0d0d] px-3 pt-2 pb-1 flex flex-col items-center shadow-xs">
                       <div className="w-full flex items-center justify-around">
-                        <span className="flex flex-col items-center gap-0.5 text-brand">
+                        <span className="flex flex-col items-center gap-0.5 text-[#0066FF] dark:text-[#38bdf8]">
                           <Home className="w-3.5 h-3.5" />
                           <span className="text-[7.5px] font-bold">Home</span>
                         </span>
@@ -1465,7 +1465,7 @@ export function HeroTransitionSection() {
                           <Link2 className="w-3.5 h-3.5" />
                           <span className="text-[7.5px]">Links</span>
                         </span>
-                        <span className="w-7 h-7 -mt-3 rounded-[9px] bg-brand text-white flex items-center justify-center shadow-md shadow-brand/50 border border-white/20 shrink-0">
+                        <span className="w-7 h-7 -mt-3 rounded-[9px] bg-[#0066FF] text-white flex items-center justify-center shadow-md shadow-blue-500/50 border border-white/20 shrink-0">
                           <Plus className="w-4 h-4 stroke-[3]" />
                         </span>
                         <span className="flex flex-col items-center gap-0.5 text-neutral-500 dark:text-neutral-400">

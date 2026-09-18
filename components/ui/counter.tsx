@@ -52,10 +52,11 @@ export function Counter({
     return () => cancelAnimationFrame(animationFrame);
   }, [isInView, value, duration]);
 
+  const safeVal = isNaN(displayValue) ? 0 : displayValue;
   const formatted =
     decimals > 0
-      ? displayValue.toFixed(decimals)
-      : Math.round(displayValue).toLocaleString();
+      ? safeVal.toFixed(decimals)
+      : Math.round(safeVal).toLocaleString();
 
   return (
     <span ref={ref} className={className}>

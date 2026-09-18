@@ -1198,7 +1198,7 @@ export function HeroScrollSection() {
                 <div className="w-full flex justify-center py-1.5">
                   <div className="w-20 h-4 rounded-full bg-[#2B2520] dark:bg-black border border-[#3E352F] dark:border-neutral-800 flex items-center justify-center">
                     <span className="w-1.5 h-1.5 rounded-full bg-[#1A1613] dark:neutral-900 mr-2.5" />
-                    <span className="w-2 h-2 rounded-full bg-brand/50" />
+                    <span className="w-2 h-2 rounded-full bg-[#0066FF]/50" />
                   </div>
                 </div>
 
@@ -1206,8 +1206,8 @@ export function HeroScrollSection() {
                 <div className="flex-1 rounded-t-[24px] bg-[#FFFDF9] dark:bg-[#16161c] p-2.5 text-[11px] flex flex-col justify-between overflow-hidden select-none border-t border-[#E7DFD5] dark:border-white/10 transition-colors relative space-y-1.5">
                   <div className="flex items-center justify-between pt-0.5 border-b border-[#E7DFD5]/70 dark:border-white/10 pb-1.5">
                     <div className="flex items-center gap-1.5">
-                      <span className="w-4 h-4 rounded bg-brand flex items-center justify-center font-bold text-white text-[8px]">LS</span>
-                      <span className="font-bebas text-sm font-bold text-brand tracking-wide">LShorter App</span>
+                      <span className="w-4 h-4 rounded bg-[#0066FF] flex items-center justify-center font-bold text-white text-[8px]">LS</span>
+                      <span className="font-bebas text-sm font-bold text-[#0066FF] dark:text-[#38bdf8] tracking-wide">LShorter App</span>
                     </div>
                     <span className="text-[8.5px] text-emerald-500 font-mono font-bold bg-emerald-500/10 px-1.5 py-0.2 rounded border border-emerald-500/20">● Edge ON</span>
                   </div>
@@ -1227,9 +1227,9 @@ export function HeroScrollSection() {
                     <div className="p-1.5 rounded-lg bg-white dark:bg-[#1e1e26] border border-[#E7DFD5] dark:border-white/10 shadow-xs space-y-0.5">
                       <div className="flex items-center justify-between">
                         <span className="text-[9.5px] font-bold text-neutral-900 dark:text-white truncate">SaaS Launch Campaign</span>
-                        <span className="text-[7.5px] font-mono text-brand bg-brand-subtle px-1 py-0.2 rounded font-semibold">A/B 50/50</span>
+                        <span className="text-[7.5px] font-mono text-[#0066FF] dark:text-[#38bdf8] bg-blue-500/10 px-1 py-0.2 rounded font-semibold">A/B 50/50</span>
                       </div>
-                      <span className="text-[9px] font-mono text-brand block truncate font-medium">lshorter.com/r/launch-pro</span>
+                      <span className="text-[9px] font-mono text-[#0066FF] dark:text-[#38bdf8] block truncate font-medium">lshorter.com/r/launch-pro</span>
                       <div className="flex items-center justify-between text-[7.5px] text-neutral-500 pt-0.5">
                         <span className="text-emerald-500 font-mono font-medium">1,420 clicks today</span>
                         <span className="font-mono">PIN 8492</span>
@@ -1250,7 +1250,7 @@ export function HeroScrollSection() {
                   </div>
 
                   <div className="h-8 border-t border-[#E7DFD5]/80 dark:border-white/10 flex items-center justify-around px-2 pt-1">
-                    <span className="text-[8px] font-bold text-brand flex flex-col items-center">
+                    <span className="text-[8px] font-bold text-[#0066FF] dark:text-[#38bdf8] flex flex-col items-center">
                       <LayoutDashboard className="w-3 h-3" />
                       Dash
                     </span>

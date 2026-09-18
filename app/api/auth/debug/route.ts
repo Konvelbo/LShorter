@@ -6,7 +6,7 @@ export async function GET() {
   const googleId = process.env.GOOGLE_CLIENT_ID || process.env.AUTH_GOOGLE_ID || "";
   const googleSecret = process.env.GOOGLE_CLIENT_SECRET || process.env.AUTH_GOOGLE_SECRET || "";
   const authSecret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || "";
-  const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL || "https://greedy-mastiff-107.convex.cloud";
+  const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL || "https://beloved-avocet-415.convex.cloud";
 
   let convexStatus = "unknown";
   try {

@@ -50,7 +50,7 @@ export const storeUser = mutation({
     email: v.string(),
     avatarUrl: v.optional(v.string()),
     provider: v.optional(v.string()),
-    plan: v.optional(v.union(v.literal("FREE"), v.literal("FREEMIUM"), v.literal("PRO"), v.literal("BUSINESS"), v.literal("ENTERPRISE"))),
+    plan: v.optional(v.union(v.literal("FREE"), v.literal("FREEMIUM"), v.literal("STARTER"), v.literal("PRO"), v.literal("BUSINESS"), v.literal("ENTERPRISE"))),
   },
   handler: async (ctx, args) => {
     const cleanEmail = args.email.toLowerCase().trim();
@@ -257,7 +257,7 @@ export const completeOnboarding = mutation({
 export const updatePlan = mutation({
   args: {
     userId: v.string(),
-    plan: v.union(v.literal("FREE"), v.literal("FREEMIUM"), v.literal("PRO"), v.literal("BUSINESS"), v.literal("ENTERPRISE")),
+    plan: v.union(v.literal("FREE"), v.literal("FREEMIUM"), v.literal("STARTER"), v.literal("PRO"), v.literal("BUSINESS"), v.literal("ENTERPRISE")),
   },
   handler: async (ctx, args) => {
     const user = await ctx.db

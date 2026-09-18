@@ -1119,7 +1119,7 @@ export default function SettingsPage() {
                     </span>
                   </div>
                   <p className="text-2xl font-bold font-bebas text-white">
-                    {accountStats.clicksThisMonth.toLocaleString("fr-FR")} / {clicksLimit.toLocaleString("fr-FR")}
+                    {(accountStats?.clicksThisMonth ?? 0).toLocaleString("fr-FR")} / {(clicksLimit ?? 10000).toLocaleString("fr-FR")}
                   </p>
                   <div className="w-full h-2 rounded-full bg-[#27272a] overflow-hidden mt-1">
                     <div
@@ -1131,7 +1131,7 @@ export default function SettingsPage() {
                     <span>Synchronisé en direct avec le réseau Edge</span>
                     {isOverage && (
                       <span className="text-amber-400 font-semibold">
-                        +{overageClicks.toLocaleString()} clics ({overageAmount.toFixed(2)} € overage)
+                        +{(overageClicks ?? 0).toLocaleString()} clics ({overageAmount.toFixed(2)} € overage)
                       </span>
                     )}
                   </div>

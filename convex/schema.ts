@@ -10,7 +10,7 @@ export default defineSchema({
     avatarUrl: v.optional(v.string()),
     passwordHash: v.optional(v.string()),  // bcrypt hash — only set for email/password accounts
     provider: v.optional(v.string()),      // "google" | "github" | "credentials"
-    plan: v.union(v.literal("FREE"), v.literal("FREEMIUM"), v.literal("PRO"), v.literal("BUSINESS"), v.literal("ENTERPRISE")),
+    plan: v.union(v.literal("FREE"), v.literal("FREEMIUM"), v.literal("STARTER"), v.literal("PRO"), v.literal("BUSINESS"), v.literal("ENTERPRISE")),
     hasCompletedOnboarding: v.boolean(),
     twoFactorEnabled: v.optional(v.boolean()),
     twoFactorSecret: v.optional(v.string()),
