@@ -47,6 +47,7 @@ export function ForgotPasswordModal({
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [countdown, setCountdown] = useState(0);
+  const [resetToken, setResetToken] = useState("");
 
   const pinInputRef = useRef<HTMLInputElement>(null);
 
@@ -105,6 +106,9 @@ export function ForgotPasswordModal({
     try {
       const res = await sendPasswordResetPinAction({ email: cleanEmail });
       if (res.success) {
+        if (res.token) {
+          setResetToken(res.token);
+        }
         showToast.success(
           res.isDevFallback
             ? "PIN code generated (test mode active)!"
@@ -136,6 +140,7 @@ export function ForgotPasswordModal({
       const res = await verifyResetPinAction({
         email: email.trim().toLowerCase(),
         pin: cleanPin,
+        token: resetToken,
       });
 
       if (res.valid) {
@@ -169,6 +174,7 @@ export function ForgotPasswordModal({
         email: email.trim().toLowerCase(),
         pin: pin.trim(),
         newPassword,
+        token: resetToken,
       });
 
       if (res.success) {

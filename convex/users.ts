@@ -334,215 +334,16 @@ export const cleanLegacyFields = mutation({
   },
 });
 
-// ─── Password Reset with PIN Token (Resend) ──────────────────────────────────
-export const createPasswordResetToken = mutation({
-  args: {
-    email: v.string(),
-    pin: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const cleanEmail = args.email.toLowerCase().trim();
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", cleanEmail))
-      .first();
-
-    if (!user) {
-      throw new Error("USER_NOT_FOUND");
-    }
-
-    // Invalidate existing unused tokens for this email
-    const existingTokens = await ctx.db
-      .query("passwordResetTokens")
-      .withIndex("by_email", (q) => q.eq("email", cleanEmail))
-      .collect();
-
-    for (const t of existingTokens) {
-      if (!t.used) {
-        await ctx.db.patch(t._id, { used: true });
-      }
-    }
-
-    // Create new token valid for 15 minutes
-    const expiresAt = Date.now() + 15 * 60 * 1000;
-    const now = new Date().toISOString();
-
-    const tokenId = await ctx.db.insert("passwordResetTokens", {
-      email: cleanEmail,
-      pin: args.pin,
-      expiresAt,
-      used: false,
-      createdAt: now,
-    });
-
-    return { success: true, tokenId, expiresAt };
-  },
-});
-
-export const verifyPasswordResetToken = query({
-  args: {
-    email: v.string(),
-    pin: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const cleanEmail = args.email.toLowerCase().trim();
-    const token = await ctx.db
-      .query("passwordResetTokens")
-      .withIndex("by_email_pin", (q) => q.eq("email", cleanEmail).eq("pin", args.pin))
-      .first();
-
-    if (!token) {
-      return { valid: false, reason: "INVALID_PIN" };
-    }
-
-    if (token.used) {
-      return { valid: false, reason: "PIN_ALREADY_USED" };
-    }
-
-    if (Date.now() > token.expiresAt) {
-      return { valid: false, reason: "PIN_EXPIRED" };
-    }
-
-    return { valid: true };
-  },
-});
-
-export const resetPasswordWithToken = mutation({
-  args: {
-    email: v.string(),
-    pin: v.string(),
-    newPasswordHash: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const cleanEmail = args.email.toLowerCase().trim();
-    const token = await ctx.db
-      .query("passwordResetTokens")
-      .withIndex("by_email_pin", (q) => q.eq("email", cleanEmail).eq("pin", args.pin))
-      .first();
-
-    if (!token || token.used || Date.now() > token.expiresAt) {
-      throw new Error("INVALID_OR_EXPIRED_PIN");
-    }
-
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", cleanEmail))
-      .first();
-
-    if (!user) {
-      throw new Error("USER_NOT_FOUND");
-    }
-
-    // Update password hash and mark token as used
-    await ctx.db.patch(user._id, {
-      passwordHash: args.newPasswordHash,
-      updatedAt: new Date().toISOString(),
-    });
-
-    await ctx.db.patch(token._id, {
-      used: true,
-    });
-
-    return { success: true };
-  },
-});
-
-// ─── Signup PIN Verification Tokens (Resend) ──────────────────────────────────
-export const createSignupVerificationToken = mutation({
+// ─── Direct Verified User Creation & Password Update (Option A Stateless) ──
+export const createUserWithVerifiedEmail = mutation({
   args: {
     name: v.string(),
     email: v.string(),
     passwordHash: v.string(),
-    pin: v.string(),
   },
   handler: async (ctx, args) => {
     const cleanEmail = args.email.toLowerCase().trim();
 
-    // Check if account already exists
-    const existingUser = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", cleanEmail))
-      .first();
-
-    if (existingUser) {
-      throw new Error("EMAIL_ALREADY_EXISTS");
-    }
-
-    // Invalidate previous unused signup tokens for this email
-    const existingTokens = await ctx.db
-      .query("signupVerificationTokens")
-      .withIndex("by_email", (q) => q.eq("email", cleanEmail))
-      .collect();
-
-    for (const t of existingTokens) {
-      if (!t.used) {
-        await ctx.db.patch(t._id, { used: true });
-      }
-    }
-
-    // Store new token valid for 15 minutes
-    const expiresAt = Date.now() + 15 * 60 * 1000;
-    const now = new Date().toISOString();
-
-    const tokenId = await ctx.db.insert("signupVerificationTokens", {
-      email: cleanEmail,
-      name: args.name.trim(),
-      passwordHash: args.passwordHash,
-      pin: args.pin,
-      expiresAt,
-      used: false,
-      createdAt: now,
-    });
-
-    return { success: true, tokenId, expiresAt };
-  },
-});
-
-export const verifySignupVerificationToken = query({
-  args: {
-    email: v.string(),
-    pin: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const cleanEmail = args.email.toLowerCase().trim();
-    const token = await ctx.db
-      .query("signupVerificationTokens")
-      .withIndex("by_email_pin", (q) => q.eq("email", cleanEmail).eq("pin", args.pin))
-      .first();
-
-    if (!token) {
-      return { valid: false, reason: "INVALID_PIN" };
-    }
-
-    if (token.used) {
-      return { valid: false, reason: "PIN_ALREADY_USED" };
-    }
-
-    if (Date.now() > token.expiresAt) {
-      return { valid: false, reason: "PIN_EXPIRED" };
-    }
-
-    return { valid: true, name: token.name };
-  },
-});
-
-export const completeSignupWithVerificationPin = mutation({
-  args: {
-    email: v.string(),
-    pin: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const cleanEmail = args.email.toLowerCase().trim();
-    const token = await ctx.db
-      .query("signupVerificationTokens")
-      .withIndex("by_email_pin", (q) => q.eq("email", cleanEmail).eq("pin", args.pin))
-      .first();
-
-    if (!token || token.used || Date.now() > token.expiresAt) {
-      throw new Error("INVALID_OR_EXPIRED_PIN");
-    }
-
-    // Double check if account was created concurrently
     const existing = await ctx.db
       .query("users")
       .withIndex("by_email", (q) => q.eq("email", cleanEmail))
@@ -554,22 +355,18 @@ export const completeSignupWithVerificationPin = mutation({
 
     const userId = `usr_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
     const now = new Date().toISOString();
+    const finalName = args.name.trim() || cleanEmail.split("@")[0];
 
     const id = await ctx.db.insert("users", {
       userId,
-      name: token.name,
+      name: finalName,
       email: cleanEmail,
-      passwordHash: token.passwordHash,
+      passwordHash: args.passwordHash,
       provider: "credentials",
       plan: "FREEMIUM",
       hasCompletedOnboarding: false,
       createdAt: now,
       updatedAt: now,
-    });
-
-    // Mark token as used
-    await ctx.db.patch(token._id, {
-      used: true,
     });
 
     // Schedule welcome email 2 hours later
@@ -578,7 +375,7 @@ export const completeSignupWithVerificationPin = mutation({
       await ctx.db.insert("scheduledWelcomeEmails", {
         userId,
         email: cleanEmail,
-        name: token.name || cleanEmail.split("@")[0],
+        name: finalName,
         scheduledAt: Date.now() + TWO_HOURS_MS,
         status: "PENDING",
         createdAt: now,
@@ -587,7 +384,32 @@ export const completeSignupWithVerificationPin = mutation({
       console.warn("Failed to schedule welcome email (non-fatal):", schedErr);
     }
 
-    return { success: true, id, userId, name: token.name, email: cleanEmail };
+    return { success: true, id, userId, name: finalName, email: cleanEmail };
+  },
+});
+
+export const updatePasswordForVerifiedEmail = mutation({
+  args: {
+    email: v.string(),
+    newPasswordHash: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const cleanEmail = args.email.toLowerCase().trim();
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", cleanEmail))
+      .first();
+
+    if (!user) {
+      throw new Error("USER_NOT_FOUND");
+    }
+
+    await ctx.db.patch(user._id, {
+      passwordHash: args.newPasswordHash,
+      updatedAt: new Date().toISOString(),
+    });
+
+    return { success: true };
   },
 });
 
@@ -724,42 +546,6 @@ export const deleteUserAccount = mutation({
 
     if (user) {
       await ctx.db.delete(user._id);
-    }
-
-    // Delete user links
-    const userLinks = await ctx.db
-      .query("links")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
-      .collect();
-    for (const link of userLinks) {
-      await ctx.db.delete(link._id);
-    }
-
-    // Delete user domains
-    const userDomains = await ctx.db
-      .query("domains")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
-      .collect();
-    for (const d of userDomains) {
-      await ctx.db.delete(d._id);
-    }
-
-    // Delete user webhooks
-    const userWebhooks = await ctx.db
-      .query("webhooks")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
-      .collect();
-    for (const w of userWebhooks) {
-      await ctx.db.delete(w._id);
-    }
-
-    // Delete user retargeting pixels
-    const userPixels = await ctx.db
-      .query("retargetingPixels")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
-      .collect();
-    for (const p of userPixels) {
-      await ctx.db.delete(p._id);
     }
 
     // Delete user onboarding responses

@@ -3,13 +3,19 @@ import bcrypt from "bcryptjs";
 import { sendSignupVerificationPinEmail } from "@/lib/resend";
 import { convexHttp } from "@/lib/convex-server";
 import { api } from "@/convex/_generated/api";
+import {
+  createStatelessPinToken,
+  verifyStatelessPinToken,
+} from "@/lib/stateless-pin";
+
+const SIGNUP_COOKIE_NAME = "lsh_signup_token";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { action } = body;
 
-    // ── 1. SEND PIN ─────────────────────────────────────────────────────────────
+    // ── 1. SEND PIN (Stateless Option A) ───────────────────────────────────────
     if (action === "send") {
       const { name, email, password } = body;
       const cleanEmail = String(email || "").trim().toLowerCase();
@@ -62,13 +68,17 @@ export async function POST(req: NextRequest) {
       // Generate 6-digit numeric PIN
       const pin = Math.floor(100000 + Math.random() * 900000).toString();
 
-      // Store in Convex with 15-min expiration
-      await convexHttp.mutation(api.users.createSignupVerificationToken, {
-        name: cleanName || cleanEmail.split("@")[0],
-        email: cleanEmail,
-        passwordHash,
-        pin,
-      });
+      // Create stateless signed HMAC token (15-min validity)
+      const token = createStatelessPinToken(
+        {
+          name: cleanName || cleanEmail.split("@")[0],
+          email: cleanEmail,
+          passwordHash,
+          pin,
+          type: "signup",
+        },
+        15
+      );
 
       // Send PIN email via Resend
       const emailResult = await sendSignupVerificationPinEmail({
@@ -88,16 +98,27 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      return NextResponse.json({
+      const response = NextResponse.json({
         success: true,
         message: "A 6-digit verification PIN has been sent to your email!",
         email: cleanEmail,
+        token,
       });
+
+      response.cookies.set(SIGNUP_COOKIE_NAME, token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 15 * 60,
+        path: "/",
+      });
+
+      return response;
     }
 
-    // ── 2. VERIFY PIN ───────────────────────────────────────────────────────────
+    // ── 2. VERIFY PIN (Stateless Option A) ─────────────────────────────────────
     if (action === "verify") {
-      const { email, pin } = body;
+      const { email, pin, token: clientToken } = body;
       const cleanEmail = String(email || "").trim().toLowerCase();
       const cleanPin = String(pin || "").trim();
 
@@ -108,21 +129,43 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      const result = await convexHttp.query(api.users.verifySignupVerificationToken, {
-        email: cleanEmail,
-        pin: cleanPin,
-      });
+      const token = clientToken || req.cookies.get(SIGNUP_COOKIE_NAME)?.value;
+      if (!token) {
+        return NextResponse.json({
+          success: true,
+          valid: false,
+          message: "Verification session expired (15 min validity). Please request a new PIN.",
+        });
+      }
+
+      const result = verifyStatelessPinToken(token, cleanPin);
+      if (!result.valid || !result.payload) {
+        let message = "Invalid PIN code.";
+        if (result.reason === "TOKEN_EXPIRED") {
+          message = "This PIN code has expired (15 min validity). Please request a new one.";
+        }
+        return NextResponse.json({ success: true, valid: false, message });
+      }
+
+      if (result.payload.email !== cleanEmail || result.payload.type !== "signup") {
+        return NextResponse.json({
+          success: true,
+          valid: false,
+          message: "Email mismatch for this verification session.",
+        });
+      }
 
       return NextResponse.json({
         success: true,
-        valid: result.valid,
-        message: result.valid ? "PIN valid." : "Invalid or expired PIN code.",
+        valid: true,
+        name: result.payload.name,
+        message: "PIN valid.",
       });
     }
 
-    // ── 3. COMPLETE SIGNUP ──────────────────────────────────────────────────────
+    // ── 3. COMPLETE SIGNUP (Stateless Option A) ────────────────────────────────
     if (action === "complete") {
-      const { email, pin } = body;
+      const { email, pin, token: clientToken } = body;
       const cleanEmail = String(email || "").trim().toLowerCase();
       const cleanPin = String(pin || "").trim();
 
@@ -133,12 +176,45 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      const result = await convexHttp.mutation(api.users.completeSignupWithVerificationPin, {
+      const token = clientToken || req.cookies.get(SIGNUP_COOKIE_NAME)?.value;
+      if (!token) {
+        return NextResponse.json(
+          { success: false, message: "Verification session expired. Please request a new PIN code." },
+          { status: 400 }
+        );
+      }
+
+      const result = verifyStatelessPinToken(token, cleanPin);
+      if (!result.valid || !result.payload) {
+        let message = "Invalid or expired PIN code.";
+        if (result.reason === "TOKEN_EXPIRED") {
+          message = "This PIN code has expired. Please request a new one.";
+        }
+        return NextResponse.json({ success: false, message }, { status: 400 });
+      }
+
+      if (result.payload.email !== cleanEmail || result.payload.type !== "signup") {
+        return NextResponse.json(
+          { success: false, message: "Session email mismatch. Please try again." },
+          { status: 400 }
+        );
+      }
+
+      if (!result.payload.passwordHash) {
+        return NextResponse.json(
+          { success: false, message: "Registration session corrupted. Please sign up again." },
+          { status: 400 }
+        );
+      }
+
+      // Directly insert user into Convex users table
+      const createdUser = await convexHttp.mutation(api.users.createUserWithVerifiedEmail, {
+        name: result.payload.name || cleanEmail.split("@")[0],
         email: cleanEmail,
-        pin: cleanPin,
+        passwordHash: result.payload.passwordHash,
       });
 
-      if (!result?.success || !result.userId) {
+      if (!createdUser?.success || !createdUser.userId) {
         return NextResponse.json(
           { success: false, message: "Could not finalize registration. Please try again." },
           { status: 400 }
@@ -159,8 +235,8 @@ export async function POST(req: NextRequest) {
             "X-Frontend-Secret": secret,
           },
           body: JSON.stringify({
-            id: result.userId,
-            name: result.name,
+            id: createdUser.userId,
+            name: createdUser.name,
             email: cleanEmail,
             provider: "credentials",
           }),
@@ -169,11 +245,16 @@ export async function POST(req: NextRequest) {
         console.warn("[signup-pin] Cloudflare sync non-fatal warning:", syncErr);
       }
 
-      return NextResponse.json({
+      const response = NextResponse.json({
         success: true,
         message: "Account created and activated successfully!",
-        userId: result.userId,
+        userId: createdUser.userId,
       });
+
+      // Clear cookie
+      response.cookies.delete(SIGNUP_COOKIE_NAME);
+
+      return response;
     }
 
     return NextResponse.json(
@@ -187,12 +268,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { success: false, message: "This email address is already registered. Please log in." },
         { status: 409 }
-      );
-    }
-    if (msg.includes("INVALID_OR_EXPIRED_PIN")) {
-      return NextResponse.json(
-        { success: false, message: "Invalid or expired PIN code." },
-        { status: 400 }
       );
     }
     return NextResponse.json(

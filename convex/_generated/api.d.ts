@@ -8,15 +8,10 @@
  * @module
  */
 
-import type * as analytics from "../analytics.js";
-import type * as domains from "../domains.js";
 import type * as invoices from "../invoices.js";
-import type * as links from "../links.js";
 import type * as notifications from "../notifications.js";
 import type * as organizations from "../organizations.js";
-import type * as pixels from "../pixels.js";
 import type * as users from "../users.js";
-import type * as webhooks from "../webhooks.js";
 
 import type {
   ApiFromModules,
@@ -25,15 +20,10 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
-  analytics: typeof analytics;
-  domains: typeof domains;
   invoices: typeof invoices;
-  links: typeof links;
   notifications: typeof notifications;
   organizations: typeof organizations;
-  pixels: typeof pixels;
   users: typeof users;
-  webhooks: typeof webhooks;
 }>;
 
 /**

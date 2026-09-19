@@ -48,6 +48,7 @@ export default function LoginPage({
   // ─── Signup PIN Email Verification State ─────────────────────────────────────
   const [showSignupPIN, setShowSignupPIN] = useState(false);
   const [signupPin, setSignupPin] = useState("");
+  const [signupToken, setSignupToken] = useState<string>("");
   const [signupCountdown, setSignupCountdown] = useState(0);
   const [pinDigits, setPinDigits] = useState<string[]>(["", "", "", "", "", ""]);
   const pinInputRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -187,7 +188,7 @@ export default function LoginPage({
         const userName =
           cleanName.charAt(0).toUpperCase() + cleanName.slice(1) || "My Account";
 
-        let res: { success: boolean; message: string; isDevFallback?: boolean; email?: string };
+        let res: { success: boolean; message: string; isDevFallback?: boolean; email?: string; token?: string };
 
         try {
           const apiRes = await fetch("/api/auth/signup-pin", {
@@ -207,6 +208,10 @@ export default function LoginPage({
             email: cleanEmail,
             password,
           });
+        }
+
+        if (res?.token) {
+          setSignupToken(res.token);
         }
 
         if (!res?.success) {
@@ -330,6 +335,7 @@ export default function LoginPage({
             action: "complete",
             email: cleanEmail,
             pin: cleanPin,
+            token: signupToken,
           }),
         });
         res = await apiRes.json();
@@ -337,6 +343,7 @@ export default function LoginPage({
         res = await completeSignupWithPinAction({
           email: cleanEmail,
           pin: cleanPin,
+          token: signupToken,
         });
       }
 
@@ -383,7 +390,7 @@ export default function LoginPage({
       const userName =
         cleanName.charAt(0).toUpperCase() + cleanName.slice(1) || "My Account";
 
-      let res: { success: boolean; message?: string };
+      let res: { success: boolean; message?: string; token?: string };
       try {
         const apiRes = await fetch("/api/auth/signup-pin", {
           method: "POST",
@@ -402,6 +409,10 @@ export default function LoginPage({
           email: cleanEmail,
           password,
         });
+      }
+
+      if (res?.token) {
+        setSignupToken(res.token);
       }
 
       if (res?.success) {

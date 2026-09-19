@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { getProtectedLink, saveProtectedLink, recordLinkClick, checkLinkQuota, resolveAbTargetUrl } from "@/lib/protected-links-store";
 import { parseVisitorDetails, detectVisitorGeoAsync } from "@/lib/device-detection";
-import { convex } from "@/lib/convex-server";
-import { api } from "@/convex/_generated/api";
+
 
 const WORKER_URL =
   process.env.NEXT_PUBLIC_BACKEND_API_URL ||
@@ -647,34 +646,6 @@ export async function GET(
         }
       }
 
-      // 3. Fallback: Check Convex DB if Worker is temporarily unavailable
-      if (!found || (!found.target_url && !found.targetUrl)) {
-        try {
-          const convexLink = await convex.query(api.links.getLinkBySlug, {
-            slug: slug.trim(),
-            domainName: "lsho.cc",
-          });
-          if (convexLink && convexLink.targetUrl) {
-            found = {
-              id: convexLink._id,
-              slug: convexLink.slug,
-              target_url: convexLink.targetUrl,
-              targetUrl: convexLink.targetUrl,
-              domain_name: convexLink.domainName || "lsho.cc",
-              password: convexLink.password,
-              is_cloaked: convexLink.cloaking,
-              expires_at: convexLink.expiresAt,
-              max_clicks: convexLink.maxClicks,
-              clicks_count: convexLink.clicksCount || 0,
-              routing_rules: convexLink.routingRules,
-              is_active: convexLink.isActive !== false,
-              user_id: convexLink.userId,
-            };
-          }
-        } catch (cErr) {
-          // Silent fallback
-        }
-      }
 
       // 4. Last resort fallback: Edge worker redirect probe
       if (!found || (!found.target_url && !found.targetUrl)) {
