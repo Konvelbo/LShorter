@@ -472,7 +472,7 @@ export function LinkDrawer({
       // Immediately set preview & dataUrl with zero lag
       setPreviewImage(dataUrl);
       setOgImage(dataUrl);
-      setTwitterCard("summary_large_image");
+      setTwitterCard((prev) => (prev === "summary" ? "summary" : "summary_large_image"));
       showToast.success("Banner image selected! It will be synced when saving.");
     } catch (err) {
       console.error("Banner selection error:", err);

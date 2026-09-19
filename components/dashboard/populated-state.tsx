@@ -110,9 +110,9 @@ export function PopulatedState({ links, analytics, onRefresh }: PopulatedStatePr
           <Button
             onClick={() => setIsCreateOpen(true)}
             variant="glow"
-            className="font-bebas text-lg tracking-wide gap-1.5 shrink-0"
+            className="h-10 px-4 font-bebas text-base tracking-wide gap-1.5 shrink-0 flex items-center justify-center leading-none"
           >
-            <Plus className="w-5 h-5" />
+            <Plus className="w-4 h-4" />
             <span>CREATE A LINK</span>
           </Button>
         </div>

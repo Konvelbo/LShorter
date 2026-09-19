@@ -215,7 +215,7 @@ export function SectionSocial({
               )}
             </div>
             <span className="text-[10.5px] text-zinc-500 dark:text-neutral-400 leading-tight">
-              Compact side thumbnail format. No image upload required.
+              Compact side thumbnail format (Custom image or default logo).
             </span>
           </button>
         </div>
@@ -340,10 +340,73 @@ export function SectionSocial({
             </div>
           </div>
         ) : (
-          /* Format Standard Compact */
-          <div className="rounded-[10px] bg-white dark:bg-[#18181c] border border-zinc-200 dark:border-[#27272a] overflow-hidden flex items-stretch transition-all shadow-xs">
+          /* Format Standard Compact with Image on LEFT */
+          <div className="rounded-[10px] bg-white dark:bg-[#18181c] border border-zinc-200 dark:border-[#27272a] overflow-hidden flex items-stretch transition-all shadow-xs group">
+            {/* Interactive Thumbnail Dropzone on LEFT */}
+            <div
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onClick={() => bannerInputRef.current?.click()}
+              className={cn(
+                "w-28 sm:w-36 min-h-[110px] bg-zinc-100 dark:bg-[#101012] border-r border-zinc-200 dark:border-[#27272a] flex flex-col items-center justify-center p-2 shrink-0 cursor-pointer relative overflow-hidden transition-colors select-none",
+                isDragging && "ring-2 ring-inset ring-brand bg-brand/5",
+              )}
+            >
+              {hasCustomImage ? (
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={previewImage || ogImage}
+                    alt="Thumbnail preview"
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
+                  {/* Hover Actions Overlay */}
+                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-1.5 transition-opacity backdrop-blur-[1px] p-1">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        bannerInputRef.current?.click();
+                      }}
+                      className="px-2 py-1 rounded-[5px] bg-brand text-white text-[10px] font-bold flex items-center gap-1 shadow-sm hover:brightness-110 cursor-pointer"
+                    >
+                      <Upload className="w-3 h-3" />
+                      <span>Replace</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOgImage("");
+                        setPreviewImage("");
+                      }}
+                      className="px-2 py-1 rounded-[5px] bg-red-500/80 hover:bg-red-600 text-white text-[10px] font-bold flex items-center gap-1 shadow-sm cursor-pointer"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                      <span>Remove</span>
+                    </button>
+                  </div>
+                </>
+              ) : (
+                /* Default Thumbnail with Upload Prompt */
+                <div className="flex flex-col items-center justify-center gap-1 text-center p-2">
+                  <div className="w-10 h-10 rounded-[8px] bg-brand/10 border border-brand/30 flex flex-col items-center justify-center group-hover:border-brand/60 group-hover:scale-105 transition-all">
+                    <ImageIcon className="w-5 h-5 text-brand" />
+                  </div>
+                  <span className="text-[10px] font-bold text-zinc-700 dark:text-neutral-200">
+                    Add image
+                  </span>
+                  <span className="text-[8.5px] text-zinc-400 dark:text-neutral-500 leading-none">
+                    or drag & drop
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Meta text on RIGHT */}
             <div className="p-3.5 flex-1 flex flex-col justify-center gap-1 bg-white dark:bg-[#18181c] min-w-0">
-              <span className="text-[10px] uppercase font-bold text-zinc-400 dark:text-neutral-500 tracking-wider">
+              <span className="text-[10px] uppercase font-bold text-zinc-400 dark:text-neutral-500 tracking-wider truncate">
                 {domainName || "lsho.cc"}
               </span>
               <span className="text-xs font-bold text-zinc-900 dark:text-white truncate">
@@ -352,38 +415,6 @@ export function SectionSocial({
               <span className="text-[11px] text-zinc-500 dark:text-neutral-400 line-clamp-2">
                 {ogDescription ||
                   "Standard compact social preview with title and description."}
-              </span>
-            </div>
-
-            {/* Interactive Thumbnail Area */}
-            <div
-              onClick={() => bannerInputRef.current?.click()}
-              className="w-28 bg-zinc-100 dark:bg-[#101012] border-l border-zinc-200 dark:border-[#27272a] flex flex-col items-center justify-center p-2.5 shrink-0 cursor-pointer group hover:bg-zinc-200/70 dark:hover:bg-[#151518] transition-colors relative"
-            >
-              {hasCustomImage ? (
-                <>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={previewImage || ogImage}
-                    alt="Thumbnail"
-                    className="w-14 h-14 rounded-[8px] object-cover border border-zinc-200 dark:border-[#27272a] group-hover:opacity-75 transition-opacity"
-                  />
-                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-r-[10px]">
-                    <Upload className="w-4 h-4 text-white" />
-                  </div>
-                </>
-              ) : (
-                <div className="w-14 h-14 rounded-[8px] bg-brand/10 border border-brand/30 flex flex-col items-center justify-center group-hover:border-brand/60 transition-colors">
-                  <span className="text-sm font-black text-brand tracking-tighter">
-                    LS
-                  </span>
-                  <span className="text-[8px] font-mono text-zinc-400 dark:text-neutral-400 mt-0.5">
-                    + Image
-                  </span>
-                </div>
-              )}
-              <span className="text-[9px] font-mono text-zinc-500 dark:text-neutral-500 mt-1.5">
-                {hasCustomImage ? "Thumbnail" : "Default"}
               </span>
             </div>
           </div>
