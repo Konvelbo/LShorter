@@ -2,12 +2,25 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { validateApiKey } from "@/lib/api-keys-store";
 import { UserMeResponse } from "@/types";
+import { getPlanDefinition, evaluateClickQuotaAndOverage } from "@/src/config/pricing";
 
-const WORKER_URL =
-  process.env.NEXT_PUBLIC_BACKEND_API_URL ||
-  "https://lshorter-api.fiatechnologiecam.workers.dev";
-const FRONTEND_SECRET =
-  process.env.FRONTEND_API_SECRET || "lsh_secret_live_prod_2026";
+import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
+
+function enrichWithPricingAndOverage(data: UserMeResponse["data"]): UserMeResponse["data"] {
+  const planDef = getPlanDefinition(data.plan);
+  const quotaEval = evaluateClickQuotaAndOverage(data.plan, data.clicksThisMonth || 0);
+  return {
+    ...data,
+    planLimits: {
+      monthlyClicks: planDef.limits.monthlyClicks,
+      activeLinks: planDef.limits.activeLinks,
+      customDomains: planDef.limits.customDomains,
+      retargetingPixels: planDef.limits.retargetingPixels,
+      apiRateLimitPerMinute: planDef.limits.apiRateLimitPerMinute,
+    },
+    overage: quotaEval.overage,
+  };
+}
 
 /**
  * GET /api/v1/users/me
@@ -24,20 +37,24 @@ export async function GET(req: Request) {
     let authenticatedEmail: string | null = null;
     let authenticatedName: string | null = null;
     let authenticatedAvatar: string | null = null;
+    let authenticatedPlan: string = "FREE";
 
-    // 1. Validation via Clé API Bearer (ex: lsh_live_...)
+    // 1. Security: Block public API keys (lsh_*, qlk_*) from reading or mutating user profile via /users/me
     if (authHeader.startsWith("Bearer ")) {
       const rawKey = authHeader.slice(7).trim();
       if (rawKey === FRONTEND_SECRET) {
         authenticatedUserId = xUserId || "usr_admin";
         authenticatedEmail = xUserEmail || null;
       } else {
-        const validKey = validateApiKey(rawKey);
-        if (validKey) {
-          authenticatedUserId = validKey.userId;
-        } else {
-          authenticatedUserId = rawKey;
-        }
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              "Forbidden: User profile endpoints (/api/v1/users/me) are restricted to dashboard sessions only and cannot be accessed with public API keys.",
+            code: "API_KEY_PROFILE_ACCESS_FORBIDDEN",
+          },
+          { status: 403 }
+        );
       }
     } else if (frontendSecret === FRONTEND_SECRET) {
       authenticatedUserId = xUserId || "usr_admin";
@@ -52,6 +69,7 @@ export async function GET(req: Request) {
         authenticatedEmail = session.user.email || null;
         authenticatedName = session.user.name || null;
         authenticatedAvatar = session.user.image || null;
+        authenticatedPlan = (session.user as any).plan || "FREE";
       }
     }
 
@@ -70,6 +88,7 @@ export async function GET(req: Request) {
       };
       if (authenticatedUserId) workerHeaders["X-User-Id"] = authenticatedUserId;
       if (authenticatedEmail) workerHeaders["X-User-Email"] = authenticatedEmail;
+      if (authenticatedPlan) workerHeaders["X-User-Plan"] = authenticatedPlan;
 
       const workerRes = await fetch(`${WORKER_URL}/api/v1/users/me`, {
         headers: workerHeaders,
@@ -79,6 +98,7 @@ export async function GET(req: Request) {
       if (workerRes.ok) {
         const workerData: UserMeResponse = await workerRes.json();
         if (workerData.success && workerData.data) {
+          workerData.data = enrichWithPricingAndOverage(workerData.data);
           return NextResponse.json(workerData);
         }
       }
@@ -86,25 +106,25 @@ export async function GET(req: Request) {
       console.warn("[Users /me] Worker unreachable, using standard payload:", workerErr);
     }
 
-    // 4. Réponse standard conforme à la spécification (sans données codées en dur)
+    // 4. Réponse standard conforme à la spécification (enrichie avec planLimits & overage)
     const fullName = authenticatedName || null;
     const email = authenticatedEmail || "";
     const id = authenticatedUserId;
 
     const responsePayload: UserMeResponse = {
       success: true,
-      data: {
+      data: enrichWithPricingAndOverage({
         id,
         email,
         name: fullName,
         fullName: fullName,
         avatarUrl: authenticatedAvatar || null,
-        plan: "FREEMIUM",
+        plan: (authenticatedPlan as any) || "FREEMIUM",
         clicksThisMonth: 0,
         linksCount: 0,
         domainsCount: 0,
         createdAt: new Date().toISOString(),
-      },
+      }),
     };
 
     return NextResponse.json(responsePayload, { status: 200 });
@@ -123,6 +143,23 @@ export async function GET(req: Request) {
  */
 export async function PATCH(req: Request) {
   try {
+    const authHeader = req.headers.get("authorization") || "";
+    const frontendSecret = req.headers.get("x-frontend-secret") || "";
+    if (
+      authHeader.startsWith("Bearer ") &&
+      authHeader.slice(7).trim() !== FRONTEND_SECRET &&
+      frontendSecret !== FRONTEND_SECRET
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Forbidden: Profile modifications via public API keys are disabled for security.",
+          code: "API_KEY_PROFILE_MUTATION_FORBIDDEN",
+        },
+        { status: 403 }
+      );
+    }
     const body = await req.json().catch(() => ({}));
     const newName = body.fullName || body.name;
     const newAvatar = body.avatarUrl || body.avatar_url;

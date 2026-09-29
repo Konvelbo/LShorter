@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { sendSignupVerificationPinEmail } from "@/lib/resend";
+import { sendSignupVerificationPinEmail, sendWelcomeEmail } from "@/lib/resend";
 import { convexHttp } from "@/lib/convex-server";
 import { api } from "@/convex/_generated/api";
 import {
   createStatelessPinToken,
   verifyStatelessPinToken,
 } from "@/lib/stateless-pin";
+import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
 
 const SIGNUP_COOKIE_NAME = "lsh_signup_token";
 
@@ -223,26 +224,38 @@ export async function POST(req: NextRequest) {
 
       // Sync user with backend D1 database (non-blocking)
       try {
-        const backendUrl =
-          process.env.NEXT_PUBLIC_BACKEND_API_URL ||
-          "https://lshorter-api.fiatechnologiecam.workers.dev";
-        const secret = process.env.FRONTEND_API_SECRET || "lsh_secret_live_prod_2026";
-
-        await fetch(`${backendUrl}/api/v1/users/sync`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Frontend-Secret": secret,
-          },
-          body: JSON.stringify({
-            id: createdUser.userId,
-            name: createdUser.name,
-            email: cleanEmail,
-            provider: "credentials",
-          }),
-        });
+        if (WORKER_URL) {
+          await fetch(`${WORKER_URL}/api/v1/users/sync`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-Frontend-Secret": FRONTEND_SECRET,
+            },
+            body: JSON.stringify({
+              id: createdUser.userId,
+              name: createdUser.name,
+              email: cleanEmail,
+              provider: "credentials",
+            }),
+          });
+        }
       } catch (syncErr) {
         console.warn("[signup-pin] Cloudflare sync non-fatal warning:", syncErr);
+      }
+
+      // Send welcome email immediately upon registration
+      try {
+        const welcomeRes = await sendWelcomeEmail({
+          to: cleanEmail,
+          name: createdUser.name || cleanEmail.split("@")[0],
+        });
+        if (welcomeRes.success && (createdUser as any).welcomeEmailId) {
+          await convexHttp.mutation(api.users.markWelcomeEmailSent, {
+            id: (createdUser as any).welcomeEmailId,
+          });
+        }
+      } catch (welcomeErr) {
+        console.warn("[signup-pin] Instant welcome email warning:", welcomeErr);
       }
 
       const response = NextResponse.json({

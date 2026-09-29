@@ -8,18 +8,18 @@
 import { compressImageFile } from "./image-compress";
 
 const WORKER_URL =
-  process.env.NEXT_PUBLIC_BACKEND_API_URL ||
-  "https://lshorter-api.fiatechnologiecam.workers.dev";
+  process.env.BACKEND_API_URL ||
+  process.env.CLOUDFLARE_WORKER_URL ||
+  "";
 
-const SECRET =
-  process.env.FRONTEND_API_SECRET || "lsh_secret_live_prod_2026";
+const SECRET = process.env.FRONTEND_API_SECRET || "";
 
 type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 const apiCache = new Map<string, { data: any; expiresAt: number }>();
 const inFlightRequests = new Map<string, Promise<any>>();
-// Cache GET responses for 2 minutes to eliminate repeated queries and preserve Cloudflare quota limits
-const CACHE_TTL_MS = 120000;
+// Cache GET responses for 20 seconds to eliminate micro-spam while ensuring snappy UI
+const CACHE_TTL_MS = 20000; // 20 seconds (invalidated immediately on mutations or click events)
 
 export function sanitizeClientError(raw: any): string {
   if (!raw) return "Une erreur inattendue est survenue. Veuillez réessayer.";
@@ -28,6 +28,9 @@ export function sanitizeClientError(raw: any): string {
 
   if (lower.includes("unique") || lower.includes("idx_links_slug") || lower.includes("already exists")) {
     return "Ce slug personnalisé est déjà utilisé. Veuillez en choisir un autre.";
+  }
+  if (lower.includes("self-referencing") || lower.includes("infinite_redirect")) {
+    return "L'URL de destination ne peut pas pointer vers le même domaine (lsho.cc). Veuillez entrer une URL externe.";
   }
   if (lower.includes("403") || lower.includes("plan_upgrade") || lower.includes("forbidden") || lower.includes("quota")) {
     return "Cette fonctionnalité nécessite un forfait supérieur.";
@@ -57,6 +60,65 @@ export function cfInvalidateCache(pattern?: string) {
       inFlightRequests.delete(key);
     }
   }
+}
+
+export function triggerClickSync() {
+  if (typeof window === "undefined") return;
+  cfInvalidateCache("/api/analytics");
+  cfInvalidateCache("/api/links");
+  try {
+    localStorage.setItem("lshorter_last_click", Date.now().toString());
+  } catch {}
+  try {
+    const bc = new BroadcastChannel("lshorter_realtime");
+    bc.postMessage({ type: "click", timestamp: Date.now() });
+    bc.close();
+  } catch {}
+  window.dispatchEvent(new CustomEvent("lshorter_data_change"));
+  window.dispatchEvent(new CustomEvent("lshorter_links_updated"));
+  window.dispatchEvent(new CustomEvent("lshorter_link_clicked"));
+
+  // Secondary fire after 1.2s to capture asynchronous Cloudflare D1 write completion
+  setTimeout(() => {
+    cfInvalidateCache("/api/analytics");
+    cfInvalidateCache("/api/links");
+    window.dispatchEvent(new CustomEvent("lshorter_data_change"));
+    window.dispatchEvent(new CustomEvent("lshorter_links_updated"));
+    window.dispatchEvent(new CustomEvent("lshorter_link_clicked"));
+  }, 1200);
+}
+
+// ─── Smart Real-Time Click Sync (BroadcastChannel + Tab Focus Sync after Link Open/Preview) ───
+if (typeof window !== "undefined") {
+  try {
+    const bc = new BroadcastChannel("lshorter_realtime");
+    bc.onmessage = (ev) => {
+      if (ev?.data?.type === "click") {
+        cfInvalidateCache("/api/analytics");
+        cfInvalidateCache("/api/links");
+        window.dispatchEvent(new CustomEvent("lshorter_data_change"));
+        window.dispatchEvent(new CustomEvent("lshorter_links_updated"));
+        window.dispatchEvent(new CustomEvent("lshorter_link_clicked"));
+      }
+    };
+  } catch {}
+
+  let lastFocusSync = 0;
+  const handleFocusOrVisibility = () => {
+    if (typeof document !== "undefined" && document.visibilityState && document.visibilityState !== "visible") return;
+    const now = Date.now();
+    // Throttle focus sync to at most once every 2 seconds (so returning to tab instantly syncs)
+    if (now - lastFocusSync < 2000) return;
+    lastFocusSync = now;
+    cfInvalidateCache("/api/analytics");
+    cfInvalidateCache("/api/links");
+    window.dispatchEvent(new CustomEvent("lshorter_data_change"));
+    window.dispatchEvent(new CustomEvent("lshorter_links_updated"));
+    window.dispatchEvent(new CustomEvent("lshorter_link_clicked"));
+  };
+
+  window.addEventListener("focus", handleFocusOrVisibility);
+  document.addEventListener("visibilitychange", handleFocusOrVisibility);
 }
 
 async function cfFetch<T>(
@@ -150,13 +212,17 @@ export async function cfGetLinks(userId: string) {
 
 export function cfNormalizeImageUrl(url?: string): string {
   if (!url) return "";
-  if (url.startsWith("data:") || url.startsWith("blob:")) return url;
-  if (url.includes("b-cdn.net")) return url;
-  if (url.includes("workers.dev/api/v1/images/")) {
-    const filename = url.split("workers.dev/api/v1/images/")[1];
-    return `/api/images/${filename}`;
+  const trimmed = url.trim();
+  if (trimmed.startsWith("data:") || trimmed.startsWith("blob:")) return trimmed;
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) return trimmed;
+  if (trimmed.startsWith("/api/images/")) {
+    const filename = trimmed.replace("/api/images/", "");
+    return `https://lshorter-api.fiatechnologiecam.workers.dev/api/v1/images/${filename}`;
   }
-  return url;
+  if (trimmed.startsWith("banner_") && (trimmed.endsWith(".jpg") || trimmed.endsWith(".png") || trimmed.endsWith(".webp") || trimmed.endsWith(".gif"))) {
+    return `https://lshorter-api.fiatechnologiecam.workers.dev/api/v1/images/${trimmed}`;
+  }
+  return trimmed;
 }
 
 export async function cfUploadImage(
@@ -171,7 +237,7 @@ export async function cfUploadImage(
       const compressed = await compressImageFile(base64OrFile, 1200, 630, 0.82);
       base64Data = typeof compressed === "string" ? compressed : base64OrFile;
     } else if (typeof base64OrFile === "string" && (base64OrFile.startsWith("http://") || base64OrFile.startsWith("https://") || base64OrFile.startsWith("/api/images/"))) {
-      return { success: true, url: base64OrFile };
+      return { success: true, url: cfNormalizeImageUrl(base64OrFile) };
     } else if (typeof base64OrFile !== "string") {
       const compressed = await compressImageFile(base64OrFile, 1200, 630, 0.82);
       if (typeof compressed === "string") {
@@ -269,6 +335,8 @@ export async function cfCreateLink(data: {
   og_description?: string;
   ogImage?: string;
   og_image?: string;
+  bannerStyle?: "default_banner" | "large_banner" | string;
+  banner_style?: "default_banner" | "large_banner" | string;
   twitterCard?: "summary_large_image" | "summary" | string;
   twitter_card?: string;
   tags?: string[];
@@ -284,19 +352,66 @@ export async function cfCreateLink(data: {
   redirect_type?: string;
   passParams?: boolean;
   pass_params?: boolean;
+  pathLockMode?: "off" | "strict" | "funnel" | string;
+  path_lock_mode?: "off" | "strict" | "funnel" | string;
+  pathLockPrefix?: string;
+  path_lock_prefix?: string;
+  pathLockMessage?: string;
+  path_lock_message?: string;
+  pathLockPassword?: string;
+  path_lock_password?: string;
   isActive?: boolean;
-  is_active?: number;
+  is_active?: number | boolean;
   userPlan?: string;
   plan?: string;
+  [key: string]: any;
 }) {
+  const rawBanner =
+    data.bannerStyle ||
+    data.banner_style ||
+    data.twitterCard ||
+    data.twitter_card;
+  const isDefault = rawBanner === "default_banner" || rawBanner === "summary";
+  const resolvedBannerStyle = isDefault ? "default_banner" : "large_banner";
+  const resolvedTwitterCard = isDefault ? "summary" : "summary_large_image";
+
+  const rawExpTime = data.expiresAt || data.expires_at;
+  const isLinkExpired = Boolean(
+    rawExpTime && new Date(rawExpTime).getTime() <= Date.now()
+  );
+  const finalIsActive = !isLinkExpired && data.isActive !== false && data.is_active !== 0;
+
+  const targetUrlClean = data.targetUrl || data.target_url;
+  const finalPathLockMode = data.pathLockMode || data.path_lock_mode || "off";
+  let finalPathLockPrefix = data.pathLockPrefix || data.path_lock_prefix || undefined;
+  if (finalPathLockMode === "strict" && (!finalPathLockPrefix || finalPathLockPrefix.trim() === "") && targetUrlClean) {
+    try {
+      const u = new URL(targetUrlClean.startsWith("http") ? targetUrlClean : `https://${targetUrlClean}`);
+      const p = u.pathname.replace(/^\/+/, "").replace(/\/+$/, "");
+      finalPathLockPrefix = p || "/";
+    } catch {
+      finalPathLockPrefix = "/";
+    }
+  } else if (finalPathLockMode === "funnel" && (!finalPathLockPrefix || finalPathLockPrefix.trim() === "")) {
+    finalPathLockPrefix = "/";
+  }
+
   const payload: any = {
     userId: data.userId,
-    targetUrl: data.targetUrl || data.target_url,
-    target_url: data.targetUrl || data.target_url,
+    targetUrl: targetUrlClean,
+    target_url: targetUrlClean,
     redirectType: data.redirectType || data.redirect_type,
     redirect_type: data.redirectType || data.redirect_type,
     passParams: data.passParams !== undefined ? data.passParams : data.pass_params,
     pass_params: data.passParams !== undefined ? data.passParams : data.pass_params,
+    pathLockMode: finalPathLockMode,
+    path_lock_mode: finalPathLockMode,
+    pathLockPrefix: finalPathLockPrefix,
+    path_lock_prefix: finalPathLockPrefix,
+    pathLockMessage: data.pathLockMessage || data.path_lock_message || undefined,
+    path_lock_message: data.pathLockMessage || data.path_lock_message || undefined,
+    pathLockPassword: data.pathLockPassword || data.path_lock_password || undefined,
+    path_lock_password: data.pathLockPassword || data.path_lock_password || undefined,
     domain: data.domainName || undefined,
     domainName: data.domainName || undefined,
     slug: data.slug ? data.slug.trim() : undefined,
@@ -308,8 +423,10 @@ export async function cfCreateLink(data: {
     ogTitle: data.ogTitle || data.og_title,
     ogDescription: data.ogDescription || data.og_description,
     ogImage: data.ogImage || data.og_image,
-    twitterCard: data.twitterCard || data.twitter_card || "summary_large_image",
-    twitter_card: data.twitterCard || data.twitter_card || "summary_large_image",
+    bannerStyle: resolvedBannerStyle,
+    banner_style: resolvedBannerStyle,
+    twitterCard: resolvedTwitterCard,
+    twitter_card: resolvedTwitterCard,
     expiresAt: data.expiresAt || data.expires_at,
     maxClicks: data.maxClicks !== undefined ? data.maxClicks : data.max_clicks,
     fallbackUrl: data.fallbackUrl || data.fallback_url,
@@ -317,7 +434,8 @@ export async function cfCreateLink(data: {
     ab_variations: data.abVariations,
     mainWeight: data.mainWeight,
     main_weight: data.mainWeight,
-    isActive: data.isActive !== false && data.is_active !== 0,
+    isActive: finalIsActive,
+    is_active: finalIsActive ? 1 : 0,
     tags: data.tags && data.tags.length ? data.tags : undefined,
     userPlan: data.userPlan || data.plan || undefined,
     plan: data.userPlan || data.plan || undefined,
@@ -343,6 +461,33 @@ export async function cfCreateLink(data: {
 }
 
 export async function cfUpdateLink(id: string, updates: any) {
+  const targetUrlUpdate = updates.targetUrl || updates.target_url;
+  const finalUpdatePathLockMode = updates.pathLockMode || updates.path_lock_mode;
+  let finalUpdatePathLockPrefix = updates.pathLockPrefix !== undefined ? updates.pathLockPrefix : updates.path_lock_prefix;
+  if (finalUpdatePathLockMode === "strict" && (!finalUpdatePathLockPrefix || finalUpdatePathLockPrefix.trim() === "") && targetUrlUpdate) {
+    try {
+      const u = new URL(targetUrlUpdate.startsWith("http") ? targetUrlUpdate : `https://${targetUrlUpdate}`);
+      const p = u.pathname.replace(/^\/+/, "").replace(/\/+$/, "");
+      finalUpdatePathLockPrefix = p || "/";
+    } catch {
+      finalUpdatePathLockPrefix = "/";
+    }
+  } else if (finalUpdatePathLockMode === "funnel" && (!finalUpdatePathLockPrefix || finalUpdatePathLockPrefix.trim() === "")) {
+    finalUpdatePathLockPrefix = "/";
+  }
+
+  const expTimeUpdate = updates.expires_at || updates.expiresAt;
+  const isUpdateExpired = Boolean(
+    expTimeUpdate && new Date(expTimeUpdate).getTime() <= Date.now()
+  );
+  const effectiveIsActive = isUpdateExpired
+    ? 0
+    : updates.is_active !== undefined
+      ? Number(updates.is_active)
+      : updates.isActive !== undefined
+        ? (updates.isActive ? 1 : 0)
+        : undefined;
+
   const payload: any = {
     ...updates,
     targetUrl: updates.targetUrl || updates.target_url,
@@ -355,11 +500,17 @@ export async function cfUpdateLink(id: string, updates: any) {
     routing_rules: updates.routing_rules !== undefined ? updates.routing_rules : updates.routingRules,
     hide_referrer: updates.hide_referrer !== undefined ? updates.hide_referrer : updates.hideReferrer !== undefined ? (updates.hideReferrer ? 1 : 0) : undefined,
     og_title: updates.og_title || updates.ogTitle,
+    ogTitle: updates.ogTitle || updates.og_title,
     meta_title: updates.meta_title || updates.metaTitle,
+    metaTitle: updates.metaTitle || updates.meta_title,
     og_description: updates.og_description || updates.ogDescription,
+    ogDescription: updates.ogDescription || updates.og_description,
     og_image: updates.og_image || updates.ogImage,
-    twitter_card: updates.twitter_card || updates.twitterCard || (updates.og_image || updates.ogImage ? "summary_large_image" : undefined),
-    twitterCard: updates.twitterCard || updates.twitter_card || (updates.og_image || updates.ogImage ? "summary_large_image" : undefined),
+    ogImage: updates.ogImage || updates.og_image,
+    banner_style: updates.banner_style || updates.bannerStyle || (updates.twitter_card === "summary" || updates.twitterCard === "summary" ? "default_banner" : updates.twitter_card === "summary_large_image" || updates.twitterCard === "summary_large_image" ? "large_banner" : undefined),
+    bannerStyle: updates.bannerStyle || updates.banner_style || (updates.twitter_card === "summary" || updates.twitterCard === "summary" ? "default_banner" : updates.twitter_card === "summary_large_image" || updates.twitterCard === "summary_large_image" ? "large_banner" : undefined),
+    twitter_card: updates.twitter_card || updates.twitterCard || (updates.banner_style === "default_banner" || updates.bannerStyle === "default_banner" ? "summary" : updates.banner_style === "large_banner" || updates.bannerStyle === "large_banner" ? "summary_large_image" : undefined),
+    twitterCard: updates.twitterCard || updates.twitter_card || (updates.banner_style === "default_banner" || updates.bannerStyle === "default_banner" ? "summary" : updates.banner_style === "large_banner" || updates.bannerStyle === "large_banner" ? "summary_large_image" : undefined),
     expires_at: updates.expires_at || updates.expiresAt,
     max_clicks: updates.max_clicks !== undefined ? updates.max_clicks : updates.maxClicks,
     fallback_url: updates.fallback_url || updates.fallbackUrl,
@@ -369,7 +520,16 @@ export async function cfUpdateLink(id: string, updates: any) {
     mainWeight: updates.mainWeight !== undefined ? updates.mainWeight : updates.main_weight,
     pass_params: updates.pass_params !== undefined ? updates.pass_params : updates.passParams,
     passParams: updates.passParams !== undefined ? updates.passParams : updates.pass_params,
-    is_active: updates.is_active !== undefined ? updates.is_active : updates.isActive !== undefined ? (updates.isActive ? 1 : 0) : undefined,
+    path_lock_mode: finalUpdatePathLockMode,
+    pathLockMode: finalUpdatePathLockMode,
+    path_lock_prefix: finalUpdatePathLockPrefix,
+    pathLockPrefix: finalUpdatePathLockPrefix,
+    path_lock_message: updates.path_lock_message !== undefined ? updates.path_lock_message : updates.pathLockMessage,
+    pathLockMessage: updates.pathLockMessage !== undefined ? updates.pathLockMessage : updates.path_lock_message,
+    path_lock_password: updates.path_lock_password !== undefined ? updates.path_lock_password : updates.pathLockPassword,
+    pathLockPassword: updates.pathLockPassword !== undefined ? updates.pathLockPassword : updates.path_lock_password,
+    is_active: effectiveIsActive,
+    isActive: effectiveIsActive !== undefined ? effectiveIsActive !== 0 : undefined,
     userPlan: updates.userPlan || updates.plan || undefined,
     plan: updates.userPlan || updates.plan || undefined,
   };
@@ -407,6 +567,19 @@ export async function cfDeleteLink(id: string, userId?: string, slug?: string, o
     `/api/links/${id}${qStr}`,
     `/api/v1/links/${id}${qStr}`,
     "DELETE"
+  );
+}
+
+export async function cfBulkDeleteLinks(ids: string[], userId?: string) {
+  cfInvalidateCache();
+  const query = new URLSearchParams();
+  if (userId) query.set("userId", userId);
+  const qStr = query.toString() ? `?${query.toString()}` : "";
+  return cfFetch<{ success: boolean; deletedCount: number; deletedIds: string[] }>(
+    `/api/links/bulk-delete${qStr}`,
+    `/api/v1/links/bulk-delete${qStr}`,
+    "POST",
+    { ids }
   );
 }
 

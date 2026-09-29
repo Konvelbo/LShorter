@@ -18,25 +18,19 @@ export function SectionRouting({
   userPlan,
 }: SectionRoutingProps) {
   return (
-    <div
-      id="drawer-section-routing"
-      className="flex flex-col gap-3 rounded-[10px] bg-zinc-50 dark:bg-[#141416] border border-zinc-200 dark:border-[#27272a] p-4 scroll-mt-4 shadow-xs"
-    >
-      <div className="flex items-center justify-between border-b border-zinc-200 dark:border-[#222225] pb-2.5">
-        <div className="flex items-center gap-2">
-          <span className="w-1 h-3.5 rounded-full bg-brand" />
-          <h3 className="text-xs font-bold text-zinc-900 dark:text-white uppercase tracking-wider">
-            ROUTING &amp; TARGETING
-          </h3>
-        </div>
-        <span className="text-[10px] font-medium text-zinc-500 dark:text-neutral-400">
-          Geo &amp; Device Targeting
-        </span>
+    <div className="flex flex-col gap-5 animate-in fade-in duration-200">
+      <div>
+        <h2 className="text-xl font-bold tracking-tight text-[#131417] dark:text-[#f1f2f4]">
+          Routing
+        </h2>
+        <p className="text-sm text-[#6c717c] dark:text-[#8a8f9a] mt-1">
+          Send visitors elsewhere dynamically by country, device, browser or language.
+        </p>
       </div>
 
       <LockedProFeature
         title="Dynamic Smart Routing"
-        description="Redirect visitors dynamically based on their country or operating system (iOS, Android, Windows, Mac)."
+        description="Redirect visitors dynamically based on their country, web browser (Chrome, Safari, Firefox, Edge), or operating system."
         isUnlocked={isProPlan}
       >
         <div className="flex flex-col gap-3">

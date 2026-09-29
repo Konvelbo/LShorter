@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, Suspense } from "react";
+import React, { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -27,14 +27,18 @@ import {
   Laptop,
   ArrowUpRight,
   ShieldCheck,
-  User
+  User,
+  MoreHorizontal,
+  Copy,
 } from "lucide-react";
 import { ShortLink, GlobalAnalytics, TimeRange, LiveClickEvent } from "@/types";
 import { cfGetAnalytics, cfGetLinks, cfInvalidateCache } from "@/lib/cloudflare-api";
 import { ColumnMaskToggle, ColumnDefinition } from "@/components/dashboard/analytics/column-mask-toggle";
 import { KpiCardsCarousel } from "@/components/dashboard/analytics/kpi-cards-carousel";
+import { ReuiBarChart5 } from "@/components/examples/c-chart-5";
 import { AnalyticsRevenueSkeleton } from "@/components/ui/skeleton";
 import { formatDateRelative, formatNumber, formatCurrency, getCountryName } from "@/lib/utils";
+import { generateTimelineForRange } from "@/lib/analytics-generators";
 import { getCountryFlag } from "@/lib/geo-coordinates";
 import { Button } from "@/components/ui/button";
 import { showToast } from "@/components/ui/toast-provider";
@@ -44,7 +48,7 @@ const REVENUE_COLUMNS: ColumnDefinition[] = [
   { key: "revenue", label: "Revenue Generated (€)", defaultVisible: true },
   { key: "clicks", label: "Associated Clicks", defaultVisible: true },
   { key: "link", label: "Target Link", defaultVisible: true },
-  { key: "location", label: "Country / City", defaultVisible: true },
+  { key: "location", label: "Country", defaultVisible: true },
   { key: "device", label: "Device & OS", defaultVisible: true },
   { key: "timestamp", label: "Timestamp", defaultVisible: true },
 ];
@@ -120,9 +124,15 @@ function RevenueAnalyticsContent() {
     }
   }, [searchParams]);
 
+  const hasLoadedOnceRef = useRef(false);
+
   const loadData = async (range = selectedRange, linkId = selectedLinkId, isBg = false) => {
     if (!userId) return;
-    if (!isBg) setIsLoading(true);
+    if (!isBg && !hasLoadedOnceRef.current) {
+      setIsLoading(true);
+    } else {
+      setIsRefreshing(true);
+    }
 
     try {
       const periodParam = range === "day" ? "1d" : range === "week" ? "7d" : range === "year" ? "365d" : "30d";
@@ -173,6 +183,7 @@ function RevenueAnalyticsContent() {
           recentConversions: d.recentConversions || [],
         });
       }
+      hasLoadedOnceRef.current = true;
     } catch (err) {
       console.error("Error loading revenue analytics:", err);
     } finally {
@@ -182,10 +193,14 @@ function RevenueAnalyticsContent() {
   };
 
   useEffect(() => {
-    if (userId) {
-      loadData(selectedRange, selectedLinkId);
+    if (status === "unauthenticated") {
+      setIsLoading(false);
+      return;
     }
-  }, [userId, selectedRange, selectedLinkId]);
+    if (userId) {
+      loadData(selectedRange, selectedLinkId, hasLoadedOnceRef.current);
+    }
+  }, [status, userId, selectedRange, selectedLinkId]);
 
   const handleRangeChange = (newRange: TimeRange) => {
     setSelectedRange(newRange);
@@ -227,11 +242,36 @@ function RevenueAnalyticsContent() {
       return true;
     });
 
+    // Only real buyers & beneficiaries with payments or customer contacts
+    const buyerEvents = linkFiltered.filter(
+      (ev) =>
+        Number(ev.conversionAmount || 0) > 0 ||
+        Boolean(
+          ev.customerName ||
+            ev.customerFullName ||
+            ev.fullName ||
+            ev.userName ||
+            ev.customerEmail ||
+            ev.email ||
+            ev.userEmail,
+        ),
+    );
+
     // Map each event to a structured beneficiary entry
-    const entries = linkFiltered.map((ev, idx) => {
-      const name = ev.customerName || ev.customerFullName || ev.fullName || ev.userName || "";
+    const entries = buyerEvents.map((ev, idx) => {
+      const name =
+        ev.customerName ||
+        ev.customerFullName ||
+        ev.fullName ||
+        ev.userName ||
+        "";
       const email = ev.customerEmail || ev.email || ev.userEmail || "";
-      const avatar = ev.customerAvatar || ev.avatarUrl || ev.avatar || ev.userAvatar || "";
+      const avatar =
+        ev.customerAvatar ||
+        ev.avatarUrl ||
+        ev.avatar ||
+        ev.userAvatar ||
+        "";
       const rev = Number(ev.conversionAmount || 0);
       const clicks = Number((ev as any).clicks || 1);
 
@@ -282,6 +322,22 @@ function RevenueAnalyticsContent() {
   const epcValue = analytics.epc || (totalAssociatedClicks > 0 ? Number((totalRevenue / totalAssociatedClicks).toFixed(2)) : 0);
   const aov = totalBeneficiaries > 0 ? Number((totalRevenue / totalBeneficiaries).toFixed(2)) : 0;
   const conversionRate = totalAssociatedClicks > 0 ? Number(((totalBeneficiaries / totalAssociatedClicks) * 100).toFixed(1)) : 0;
+
+  const timelinePoints = useMemo(() => {
+    return generateTimelineForRange(
+      selectedRange,
+      totalAssociatedClicks,
+      analytics.uniqueClicks,
+      analytics.clicksByDay,
+      analytics.liveClickEvents,
+    );
+  }, [
+    selectedRange,
+    totalAssociatedClicks,
+    analytics.uniqueClicks,
+    analytics.clicksByDay,
+    analytics.liveClickEvents,
+  ]);
 
   // CSV Export Handler
   const handleExportCSV = () => {
@@ -339,16 +395,13 @@ function RevenueAnalyticsContent() {
             <h1 className="text-2xl font-bold text-zinc-900 dark:text-white tracking-wide flex items-center gap-2">
               <span>In-Depth Revenue Analytics</span>
             </h1>
-            <span className="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[10px] font-bold uppercase tracking-wider">
-              FINANCE & ATTRIBUTION
-            </span>
           </div>
           <p className="text-xs text-zinc-500 dark:text-neutral-400">
             Complete traceability of beneficiaries, average order values (AOV), earnings per click (EPC), and real-time conversions.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center justify-end gap-3 lg:ml-auto w-full lg:w-auto">
           {/* Link Filter Selector */}
           <div className="flex items-center gap-2 bg-zinc-50 dark:bg-[#141416] border border-zinc-200 dark:border-[#27272a] rounded-[10px] px-3 py-1.5 text-xs">
             <Filter className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
@@ -378,22 +431,22 @@ function RevenueAnalyticsContent() {
             disabled={isRefreshing}
             variant="outline"
             size="sm"
-            className="text-xs gap-1.5 border-zinc-300 dark:border-[#27272a] bg-zinc-100 hover:bg-zinc-200 dark:bg-[#141416] dark:hover:bg-white/5 text-zinc-700 hover:text-zinc-900 dark:text-neutral-300 dark:hover:text-white cursor-pointer"
+            className="text-xs gap-1.5 border-zinc-300 dark:border-[#27272a] bg-zinc-100 hover:bg-zinc-200 dark:bg-[#141416] dark:hover:bg-white/5 text-zinc-700 hover:text-zinc-900 dark:text-neutral-300 dark:hover:text-white hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-emerald-500 dark:text-emerald-400" : "text-zinc-500 dark:text-neutral-400"}`} />
             <span>Refresh</span>
           </Button>
 
-          {/* Export CSV Button */}
+          {/* Export CSV Button pushed all the way to the right */}
           <Button
             onClick={handleExportCSV}
             disabled={isExporting}
             variant="outline"
             size="sm"
-            className="text-xs gap-1.5 border-emerald-500/30 hover:border-emerald-500/60 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 cursor-pointer"
+            className="ml-auto sm:ml-0 text-xs gap-1.5 border-emerald-500/30 hover:border-emerald-500/60 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200 cursor-pointer"
           >
             <Download className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-            <span>{isExporting ? "Exporting..." : "Export Revenue (CSV)"}</span>
+            <span>{isExporting ? "Exporting..." : "Export CSV"}</span>
           </Button>
         </div>
       </div>
@@ -438,136 +491,101 @@ function RevenueAnalyticsContent() {
         </span>
       </div>
 
-      {/* ─── 6 Key Financial Metrics KPI Cards (Infinite Auto-Scroll Carousel) ───────── */}
-      <KpiCardsCarousel autoScroll={true} speed={0.9} pauseOnHover={false}>
-        {/* 1. Revenus Générés (STAR METRIC) */}
-        <div className="shrink-0 w-[170px] sm:w-[240px] md:w-[280px] lg:w-[300px] h-[100px] sm:h-[120px] md:h-[135px] lg:h-[145px] p-2.5 sm:p-3.5 md:p-4 rounded-[10px] sm:rounded-[12px] md:rounded-[14px] bg-white dark:bg-[#141416] border-2 border-emerald-500/60 shadow-sm dark:shadow-[0_0_20px_-3px_rgba(16,185,129,0.25)] flex flex-col justify-between relative overflow-hidden group hover:border-emerald-500 transition-all select-none">
-          <div className="absolute top-0 right-0 w-14 sm:w-16 h-14 sm:h-16 bg-emerald-500/10 rounded-bl-full pointer-events-none transition-transform group-hover:scale-110"></div>
+      {/* ─── Key Financial Metrics KPI Cards (Wide & Tall Summary Grid) ───────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+        {/* 1. Revenue Generated */}
+        <div className="min-h-[155px] p-6 sm:p-7 rounded-[14px] bg-white dark:bg-[#111113] border border-black/[0.08] dark:border-white/[0.08] text-[#09090B] dark:text-white shadow-sm flex flex-col justify-between gap-4">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] sm:text-xs md:text-sm font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider truncate">Revenue</span>
-            <div className="p-1 sm:p-1.5 rounded-full bg-emerald-500/10 shrink-0">
-              <DollarSign className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-emerald-600 dark:text-emerald-400" />
+            <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider truncate">
+              Total Revenue
+            </span>
+            <div className="w-9 h-9 rounded-[10px] bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+              <DollarSign className="w-4.5 h-4.5 text-emerald-600 dark:text-emerald-400" />
             </div>
           </div>
-          <div className="my-0 sm:my-0.5">
-            <span className="font-bebas text-2xl sm:text-3xl md:text-4xl font-black text-emerald-600 dark:text-emerald-400 leading-none tracking-wide">
-              {formatCurrency(totalRevenue)}
-            </span>
+          <div className="text-3xl sm:text-4xl font-extrabold text-emerald-600 dark:text-emerald-400 leading-none tracking-tight">
+            {formatCurrency(totalRevenue)}
           </div>
-          <div className="flex items-center justify-between pt-0.5 sm:pt-1 border-t border-emerald-500/20">
-            <span className="text-[9px] sm:text-[11px] md:text-xs font-bold text-emerald-600 dark:text-emerald-300 flex items-center gap-1 truncate">
-              <TrendingUp className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0" />
-              <span className="truncate">{totalRevenue > 0 ? "Net revenue" : "0.00€"}</span>
+          <div className="flex items-center justify-between pt-3 border-t border-black/[0.08] dark:border-white/[0.08]">
+            <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 truncate">
+              <TrendingUp className="w-3.5 h-3.5 shrink-0" />
+              <span>Net attributed revenue</span>
             </span>
-            <span className="text-[8px] sm:text-[10px] md:text-[11px] text-emerald-600/80 dark:text-emerald-400/80 font-mono shrink-0">Net</span>
+            <span className="text-xs text-zinc-500 dark:text-neutral-400 font-mono font-semibold">
+              {formatNumber(totalAssociatedClicks)} clicks
+            </span>
           </div>
         </div>
 
-        {/* 2. Bénéficiaires & Acheteurs */}
-        <div className="shrink-0 w-[170px] sm:w-[240px] md:w-[280px] lg:w-[300px] h-[100px] sm:h-[120px] md:h-[135px] lg:h-[145px] p-2.5 sm:p-3.5 md:p-4 rounded-[10px] sm:rounded-[12px] md:rounded-[14px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] shadow-sm flex flex-col justify-between hover:border-emerald-500/50 hover:shadow-md transition-all select-none">
+        {/* 2. Beneficiaries & Buyers */}
+        <div className="min-h-[155px] p-6 sm:p-7 rounded-[14px] bg-white dark:bg-[#111113] border border-black/[0.08] dark:border-white/[0.08] text-[#09090B] dark:text-white shadow-sm flex flex-col justify-between gap-4">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] sm:text-xs md:text-sm font-bold text-zinc-600 dark:text-neutral-400 uppercase tracking-wider truncate">Beneficiaries</span>
-            <div className="p-1 sm:p-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800 shrink-0">
-              <UserCheck className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-zinc-600 dark:text-neutral-300" />
+            <span className="text-xs font-bold text-zinc-600 dark:text-neutral-400 uppercase tracking-wider truncate">
+              Customers &amp; Buyers
+            </span>
+            <div className="w-9 h-9 rounded-[10px] bg-[#465FFF]/10 border border-[#465FFF]/20 flex items-center justify-center shrink-0">
+              <UserCheck className="w-4.5 h-4.5 text-[#465FFF]" />
             </div>
           </div>
-          <div className="my-0 sm:my-0.5">
-            <span className="font-bebas text-2xl sm:text-3xl md:text-4xl font-black text-zinc-900 dark:text-white leading-none tracking-wide">
-              {formatNumber(totalBeneficiaries)}
-            </span>
+          <div className="text-3xl sm:text-4xl font-extrabold text-[#09090B] dark:text-white leading-none tracking-tight">
+            {formatNumber(totalBeneficiaries)}
           </div>
-          <div className="flex items-center justify-between pt-0.5 sm:pt-1 border-t border-zinc-200/60 dark:border-[#222225]">
-            <span className="text-[9px] sm:text-[11px] md:text-xs font-bold text-emerald-600 dark:text-emerald-400 truncate">
-              {totalBeneficiaries > 0 ? `${totalBeneficiaries} buyers` : "Pending"}
+          <div className="flex items-center justify-between pt-3 border-t border-black/[0.08] dark:border-white/[0.08]">
+            <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 truncate">
+              {totalBeneficiaries > 0 ? `${totalBeneficiaries} verified buyers` : "Active tracking"}
             </span>
-            <span className="text-[8px] sm:text-[10px] md:text-[11px] text-zinc-500 dark:text-neutral-400 font-mono shrink-0">Buyers</span>
+            <span className="text-xs text-zinc-500 dark:text-neutral-400 font-mono font-semibold">
+              {conversionRate}% CR
+            </span>
           </div>
         </div>
 
-        {/* 3. Clics Associés */}
-        <div className="shrink-0 w-[170px] sm:w-[240px] md:w-[280px] lg:w-[300px] h-[100px] sm:h-[120px] md:h-[135px] lg:h-[145px] p-2.5 sm:p-3.5 md:p-4 rounded-[10px] sm:rounded-[12px] md:rounded-[14px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] shadow-sm flex flex-col justify-between hover:border-brand hover:shadow-md transition-all select-none">
+        {/* 3. EPC (Earnings Per Click) */}
+        <div className="min-h-[155px] p-6 sm:p-7 rounded-[14px] bg-white dark:bg-[#111113] border border-black/[0.08] dark:border-white/[0.08] text-[#09090B] dark:text-white shadow-sm flex flex-col justify-between gap-4">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] sm:text-xs md:text-sm font-bold text-zinc-600 dark:text-neutral-400 uppercase tracking-wider truncate">Clicks</span>
-            <div className="p-1 sm:p-1.5 rounded-full bg-orange-500/10 shrink-0">
-              <MousePointerClick className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-brand" />
+            <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider truncate">
+              Earnings Per Click (EPC)
+            </span>
+            <div className="w-9 h-9 rounded-[10px] bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+              <Sparkles className="w-4.5 h-4.5 text-emerald-600 dark:text-emerald-400" />
             </div>
           </div>
-          <div className="my-0 sm:my-0.5">
-            <span className="font-bebas text-2xl sm:text-3xl md:text-4xl font-black text-zinc-900 dark:text-white leading-none tracking-wide">
-              {formatNumber(totalAssociatedClicks)}
-            </span>
+          <div className="text-3xl sm:text-4xl font-extrabold text-emerald-600 dark:text-emerald-400 leading-none tracking-tight">
+            {epcValue.toFixed(2)}€
           </div>
-          <div className="flex items-center justify-between pt-0.5 sm:pt-1 border-t border-zinc-200/60 dark:border-[#222225]">
-            <span className="text-[9px] sm:text-[11px] md:text-xs font-bold text-zinc-500 dark:text-neutral-400 truncate">
-              Traffic volume
+          <div className="flex items-center justify-between pt-3 border-t border-black/[0.08] dark:border-white/[0.08]">
+            <span className="text-xs text-zinc-600 dark:text-neutral-400 truncate">
+              Average yield per click
             </span>
-            <span className="text-[8px] sm:text-[10px] md:text-[11px] text-brand font-mono shrink-0">Global</span>
+            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-mono font-bold">
+              EPC
+            </span>
           </div>
         </div>
 
-        {/* 4. EPC (Gains par Clic) */}
-        <div className="shrink-0 w-[170px] sm:w-[240px] md:w-[280px] lg:w-[300px] h-[100px] sm:h-[120px] md:h-[135px] lg:h-[145px] p-2.5 sm:p-3.5 md:p-4 rounded-[10px] sm:rounded-[12px] md:rounded-[14px] bg-emerald-500/10 dark:bg-emerald-500/5 border-2 border-emerald-500/40 hover:border-emerald-500 flex flex-col justify-between shadow-sm hover:shadow-md transition-all select-none">
+        {/* 4. Average Order Value (AOV) */}
+        <div className="min-h-[155px] p-6 sm:p-7 rounded-[14px] bg-white dark:bg-[#111113] border border-black/[0.08] dark:border-white/[0.08] text-[#09090B] dark:text-white shadow-sm flex flex-col justify-between gap-4">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] sm:text-xs md:text-sm font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider truncate">EPC (Earn/Click)</span>
-            <div className="p-1 sm:p-1.5 rounded-full bg-emerald-500/15 shrink-0">
-              <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-emerald-600 dark:text-emerald-400" />
+            <span className="text-xs font-bold text-zinc-600 dark:text-neutral-400 uppercase tracking-wider truncate">
+              Average Order Value
+            </span>
+            <div className="w-9 h-9 rounded-[10px] bg-[#465FFF]/10 border border-[#465FFF]/20 flex items-center justify-center shrink-0">
+              <CreditCard className="w-4.5 h-4.5 text-[#465FFF]" />
             </div>
           </div>
-          <div className="my-0 sm:my-0.5">
-            <span className="font-bebas text-2xl sm:text-3xl md:text-4xl font-black text-emerald-600 dark:text-emerald-400 leading-none tracking-wide">
-              {epcValue.toFixed(2)}€
-            </span>
+          <div className="text-3xl sm:text-4xl font-extrabold text-[#09090B] dark:text-white leading-none tracking-tight">
+            {formatCurrency(aov)}
           </div>
-          <div className="flex items-center justify-between pt-0.5 sm:pt-1 border-t border-emerald-500/20">
-            <span className="text-[9px] sm:text-[11px] md:text-xs font-bold text-zinc-500 dark:text-neutral-400 truncate">
-              Avg. / click
+          <div className="flex items-center justify-between pt-3 border-t border-black/[0.08] dark:border-white/[0.08]">
+            <span className="text-xs text-zinc-600 dark:text-neutral-400 truncate">
+              Average basket per buyer
             </span>
-            <span className="text-[8px] sm:text-[10px] md:text-[11px] text-emerald-600/80 dark:text-emerald-400/80 font-mono shrink-0">EPC</span>
+            <span className="text-xs text-[#465FFF] font-mono font-bold">
+              AOV
+            </span>
           </div>
         </div>
-
-        {/* 5. Taux de Conversion (CR %) */}
-        <div className="shrink-0 w-[170px] sm:w-[240px] md:w-[280px] lg:w-[300px] h-[100px] sm:h-[120px] md:h-[135px] lg:h-[145px] p-2.5 sm:p-3.5 md:p-4 rounded-[10px] sm:rounded-[12px] md:rounded-[14px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] shadow-sm flex flex-col justify-between hover:border-emerald-500/50 hover:shadow-md transition-all select-none">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] sm:text-xs md:text-sm font-bold text-zinc-600 dark:text-neutral-400 uppercase tracking-wider truncate">Conversion</span>
-            <div className="p-1 sm:p-1.5 rounded-full bg-emerald-500/10 shrink-0">
-              <Percent className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-emerald-600 dark:text-emerald-400" />
-            </div>
-          </div>
-          <div className="my-0 sm:my-0.5">
-            <span className="font-bebas text-2xl sm:text-3xl md:text-4xl font-black text-zinc-900 dark:text-white leading-none tracking-wide">
-              {conversionRate}%
-            </span>
-          </div>
-          <div className="flex items-center justify-between pt-0.5 sm:pt-1 border-t border-zinc-200/60 dark:border-[#222225]">
-            <span className="text-[9px] sm:text-[11px] md:text-xs font-bold text-emerald-600 dark:text-emerald-400 truncate">
-              {conversionRate > 0 ? "Qualified traffic" : "0%"}
-            </span>
-            <span className="text-[8px] sm:text-[10px] md:text-[11px] text-zinc-500 dark:text-neutral-400 font-mono shrink-0">CR %</span>
-          </div>
-        </div>
-
-        {/* 6. Panier Moyen (AOV) */}
-        <div className="shrink-0 w-[170px] sm:w-[240px] md:w-[280px] lg:w-[300px] h-[100px] sm:h-[120px] md:h-[135px] lg:h-[145px] p-2.5 sm:p-3.5 md:p-4 rounded-[10px] sm:rounded-[12px] md:rounded-[14px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] shadow-sm flex flex-col justify-between hover:border-emerald-500/50 hover:shadow-md transition-all select-none">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] sm:text-xs md:text-sm font-bold text-zinc-600 dark:text-neutral-400 uppercase tracking-wider truncate">Average Order Value</span>
-            <div className="p-1 sm:p-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800 shrink-0">
-              <CreditCard className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-zinc-600 dark:text-neutral-300" />
-            </div>
-          </div>
-          <div className="my-0 sm:my-0.5">
-            <span className="font-bebas text-2xl sm:text-3xl md:text-4xl font-black text-zinc-900 dark:text-white leading-none tracking-wide">
-              {formatCurrency(aov)}
-            </span>
-          </div>
-          <div className="flex items-center justify-between pt-0.5 sm:pt-1 border-t border-zinc-200/60 dark:border-[#222225]">
-            <span className="text-[9px] sm:text-[11px] md:text-xs font-bold text-zinc-500 dark:text-neutral-400 truncate">
-              Avg. / buyer
-            </span>
-            <span className="text-[8px] sm:text-[10px] md:text-[11px] text-zinc-500 dark:text-neutral-400 font-mono shrink-0">AOV</span>
-          </div>
-        </div>
-      </KpiCardsCarousel>
+      </div>
 
       {/* ─── Visual Timeline Chart & Revenue Attribution Breakdown ────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
@@ -590,49 +608,36 @@ function RevenueAnalyticsContent() {
             </span>
           </div>
 
-          {/* Simple Dynamic SVG Timeline Bar Chart */}
-          <div className="w-full h-56 flex items-end gap-1.5 sm:gap-2 pt-6 pb-2 px-2 border-b border-zinc-200 dark:border-[#222225]">
-            {(analytics.clicksByDay && analytics.clicksByDay.length > 0
-              ? analytics.clicksByDay.slice(-14)
-              : Array.from({ length: 14 }).map((_, i) => ({
-                  label: `D-${14 - i}`,
-                  clicks: 0,
-                  uniqueClicks: 0,
-                  date: "",
-                  dayNumber: i,
-                }))
-            ).map((pt, i, arr) => {
-              const maxClicks = Math.max(...arr.map((p) => p.clicks || 0), 10);
-              const heightPercent = maxClicks > 0 && pt.clicks > 0
-                ? Math.min(100, Math.max(12, Math.round((pt.clicks / maxClicks) * 100)))
-                : 4;
-              const estimatedDayRevenue = totalRevenue > 0 && totalAssociatedClicks > 0 && pt.clicks > 0
-                ? ((pt.clicks / totalAssociatedClicks) * totalRevenue).toFixed(2)
-                : "0.00";
-
-              return (
-                <div key={i} className="flex-1 flex flex-col items-center gap-1.5 group relative h-full justify-end">
-                  {/* Tooltip on Hover */}
-                  <div className="absolute -top-12 z-20 hidden group-hover:flex flex-col items-center bg-zinc-900 dark:bg-[#1f1f24] text-white px-2 py-1 rounded-[6px] border border-emerald-500/40 text-[10px] shadow-xl pointer-events-none whitespace-nowrap">
-                    <span className="font-bold text-emerald-400">+{estimatedDayRevenue}€</span>
-                    <span className="text-[9px] text-zinc-300 dark:text-neutral-300">{pt.clicks} clicks</span>
-                  </div>
-
-                  {/* Histogram Bar with Emerald Gradient */}
-                  <div
-                    style={{ height: `${heightPercent}%` }}
-                    className={`w-full rounded-t-[4px] transition-all duration-300 ${
-                      pt.clicks > 0
-                        ? "bg-gradient-to-t from-emerald-600 to-emerald-400 group-hover:brightness-125"
-                        : "bg-zinc-200 dark:bg-[#222226]"
-                    }`}
-                  ></div>
-                  <span className="text-[9px] text-zinc-500 dark:text-neutral-500 font-mono truncate w-full text-center">
-                    {pt.label ? pt.label.slice(0, 3) : `D${i + 1}`}
-                  </span>
-                </div>
-              );
-            })}
+          {/* @reui/c-chart-5 Revenue & Conversions Bar Chart (Strictly 0 when $0 revenue) */}
+          <div className="w-full pt-3">
+            <ReuiBarChart5
+              data={timelinePoints.map((pt, i) => {
+                const dayRevNum =
+                  totalRevenue > 0 && totalAssociatedClicks > 0 && pt.clicks > 0
+                    ? Number(((pt.clicks / totalAssociatedClicks) * totalRevenue).toFixed(2))
+                    : 0;
+                const estDayConversions =
+                  totalBeneficiaries > 0 && totalAssociatedClicks > 0 && pt.clicks > 0
+                    ? Math.max(1, Math.round((pt.clicks / totalAssociatedClicks) * totalBeneficiaries))
+                    : 0;
+                return {
+                  label: pt.label || (pt.date ? String(pt.date).slice(5, 10) : `D${i + 1}`),
+                  fullDate: pt.date ? `${pt.label || ""} (${String(pt.date).slice(0, 10)})` : pt.label || `Day ${i + 1}`,
+                  extraLabel: `${pt.clicks || 0} associated clicks`,
+                  primary: dayRevNum,
+                  secondary: estDayConversions,
+                };
+              })}
+              primaryLabel="Attributed Revenue ($)"
+              secondaryLabel="Confirmed Sales"
+              primaryColorLight="#10B981"
+              primaryColorDark="#34D399"
+              secondaryColorLight="#465FFF"
+              secondaryColorDark="#6366F1"
+              heightClassName="h-[220px] w-full"
+              showSecondaryBar
+              showYAxis
+            />
           </div>
 
           <div className="flex items-center justify-between text-xs text-zinc-500 dark:text-neutral-400 pt-3">
@@ -767,34 +772,35 @@ function RevenueAnalyticsContent() {
         <div className="overflow-x-auto rounded-[8px] border border-zinc-200 dark:border-[#222225] custom-scrollbar">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="border-b border-zinc-200 dark:border-[#222225] bg-zinc-100/70 dark:bg-[#0e0e11]/80 text-zinc-700 dark:text-neutral-400 font-semibold select-none">
+              <tr className="border-b border-zinc-200 dark:border-[#222225] bg-zinc-100/70 dark:bg-[#0e0e11]/80 text-zinc-700 dark:text-neutral-400 font-semibold select-none text-[10.5px] uppercase tracking-wider">
                 {visibleColumns.has("beneficiary") && (
-                  <th className="py-3 px-4 min-w-[220px]">Beneficiary / Buyer</th>
+                  <th className="py-2 px-3 min-w-[200px]">Beneficiary / Buyer</th>
                 )}
                 {visibleColumns.has("revenue") && (
-                  <th className="py-3 px-4 min-w-[130px]">Generated Revenue</th>
+                  <th className="py-2 px-3 min-w-[120px]">Generated Revenue</th>
                 )}
                 {visibleColumns.has("clicks") && (
-                  <th className="py-3 px-4 min-w-[110px]">Associated Clicks</th>
+                  <th className="py-2 px-3 min-w-[100px]">Associated Clicks</th>
                 )}
                 {visibleColumns.has("link") && (
-                  <th className="py-3 px-4 min-w-[130px]">Target Link</th>
+                  <th className="py-2 px-3 min-w-[120px]">Target Link</th>
                 )}
                 {visibleColumns.has("location") && (
-                  <th className="py-3 px-4 min-w-[140px]">Location</th>
+                  <th className="py-2 px-3 min-w-[130px]">Location</th>
                 )}
                 {visibleColumns.has("device") && (
-                  <th className="py-3 px-4 min-w-[120px]">Device & OS</th>
+                  <th className="py-2 px-3 min-w-[110px]">Device & OS</th>
                 )}
                 {visibleColumns.has("timestamp") && (
-                  <th className="py-3 px-4 min-w-[130px]">Date & Time</th>
+                  <th className="py-2 px-3 min-w-[120px]">Date & Time</th>
                 )}
+                <th className="py-2 px-3 text-right min-w-[70px]">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-200 dark:divide-[#222225] text-zinc-800 dark:text-neutral-200">
               {paginatedBeneficiaries.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-zinc-500 dark:text-neutral-500">
+                  <td colSpan={8} className="py-12 text-center text-zinc-500 dark:text-neutral-500">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <UserCheck className="w-8 h-8 text-zinc-400 dark:text-neutral-600" />
                       <p className="font-semibold text-sm text-zinc-700 dark:text-neutral-400">No beneficiaries found</p>
@@ -807,6 +813,8 @@ function RevenueAnalyticsContent() {
               ) : (
                 paginatedBeneficiaries.map((b) => {
                   const initial = (b.name || b.email || "").trim().charAt(0).toUpperCase();
+                  const cleanSlug = String(b.slug || "").replace(/^\//, "");
+                  const shortLinkUrl = cleanSlug ? `https://lsho.cc/${cleanSlug}` : "https://lsho.cc";
 
                   return (
                     <tr
@@ -815,10 +823,10 @@ function RevenueAnalyticsContent() {
                     >
                       {/* 1. Beneficiary (Avatar & FullName & Email) */}
                       {visibleColumns.has("beneficiary") && (
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-3">
+                        <td className="py-2 px-3">
+                          <div className="flex items-center gap-2.5">
                             {/* Avatar on the far left */}
-                            <div className="relative w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden shrink-0 border border-zinc-200 dark:border-[#333338] bg-zinc-100 dark:bg-[#1a1a1e] flex items-center justify-center shadow-inner">
+                            <div className="relative w-7 h-7 rounded-full overflow-hidden shrink-0 border border-zinc-200 dark:border-[#333338] bg-zinc-100 dark:bg-[#1a1a1e] flex items-center justify-center shadow-inner">
                               {b.avatar ? (
                                 <img
                                   src={b.avatar}
@@ -831,21 +839,21 @@ function RevenueAnalyticsContent() {
                               ) : null}
                               {/* Fallback initial text or user icon */}
                               {initial ? (
-                                <span className="font-bold text-xs text-zinc-700 dark:text-neutral-300 select-none">
+                                <span className="font-bold text-[11px] text-zinc-700 dark:text-neutral-300 select-none">
                                   {initial}
                                 </span>
                               ) : (
-                                <User className="w-3.5 h-3.5 text-zinc-400 dark:text-neutral-500" />
+                                <User className="w-3 h-3 text-zinc-400 dark:text-neutral-500" />
                               )}
                             </div>
 
                             {/* Name & Email */}
                             <div className="min-w-0">
-                              <div className="font-bold text-zinc-900 dark:text-white group-hover:text-emerald-500 dark:group-hover:text-emerald-400 transition-colors truncate text-[13px]">
+                              <div className="font-bold text-zinc-900 dark:text-white group-hover:text-emerald-500 dark:group-hover:text-emerald-400 transition-colors truncate text-xs">
                                 {b.name || <span className="text-zinc-400 dark:text-neutral-500 italic font-normal text-xs">—</span>}
                               </div>
                               {b.email ? (
-                                <div className="text-[11px] text-zinc-500 dark:text-neutral-400 font-mono truncate">
+                                <div className="text-[10px] text-zinc-500 dark:text-neutral-400 font-mono truncate">
                                   {b.email}
                                 </div>
                               ) : null}
@@ -856,8 +864,8 @@ function RevenueAnalyticsContent() {
 
                       {/* 2. Generated Revenue (Attribution Amount) */}
                       {visibleColumns.has("revenue") && (
-                        <td className="py-3 px-4 font-mono">
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[6px] bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/30 text-xs">
+                        <td className="py-2 px-3 font-mono">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/30 text-[11px]">
                             +{formatCurrency(b.revenue)}
                           </span>
                         </td>
@@ -865,9 +873,9 @@ function RevenueAnalyticsContent() {
 
                       {/* 3. Associated Clicks */}
                       {visibleColumns.has("clicks") && (
-                        <td className="py-3 px-4 font-mono font-bold text-zinc-700 dark:text-neutral-300">
-                          <span className="flex items-center gap-1.5">
-                            <MousePointerClick className="w-3.5 h-3.5 text-zinc-400 dark:text-neutral-500" />
+                        <td className="py-2 px-3 font-mono font-bold text-zinc-700 dark:text-neutral-300 text-xs">
+                          <span className="flex items-center gap-1">
+                            <MousePointerClick className="w-3 h-3 text-zinc-400 dark:text-neutral-500" />
                             <span>{b.clicks} click{b.clicks > 1 ? "s" : ""}</span>
                           </span>
                         </td>
@@ -875,9 +883,9 @@ function RevenueAnalyticsContent() {
 
                       {/* 4. Target Link */}
                       {visibleColumns.has("link") && (
-                        <td className="py-3 px-4 font-mono text-zinc-700 dark:text-neutral-300 truncate">
+                        <td className="py-2 px-3 font-mono text-zinc-700 dark:text-neutral-300 truncate text-xs">
                           {b.slug ? (
-                            <span className="px-2 py-0.5 rounded bg-zinc-100 dark:bg-[#222226] text-zinc-800 dark:text-neutral-300 font-bold">
+                            <span className="px-1.5 py-0.2 rounded bg-zinc-100 dark:bg-[#222226] text-zinc-800 dark:text-neutral-300 font-semibold">
                               /{b.slug}
                             </span>
                           ) : (
@@ -886,13 +894,22 @@ function RevenueAnalyticsContent() {
                         </td>
                       )}
 
-                      {/* 5. Location */}
+                      {/* 5. Location (Country) */}
                       {visibleColumns.has("location") && (
-                        <td className="py-3 px-4 text-zinc-700 dark:text-neutral-300">
-                          {b.countryCode || b.city ? (
+                        <td className="py-2 px-3 text-zinc-700 dark:text-neutral-300 text-xs">
+                          {b.countryCode ? (
                             <div className="flex items-center gap-1.5">
-                              <span>{getCountryFlag(b.countryCode)}</span>
-                              <span className="truncate">{b.city ? `${b.city} (${b.countryCode})` : b.countryCode}</span>
+                              <img
+                                src={`https://flagcdn.com/w20/${String(b.countryCode).toLowerCase()}.png`}
+                                alt={b.countryCode}
+                                className="w-4 h-3 rounded-[2px] object-cover shrink-0"
+                                onError={(e) => {
+                                  (e.currentTarget as HTMLImageElement).style.display = "none";
+                                }}
+                              />
+                              <span className="truncate font-medium">
+                                {getCountryName(b.countryCode) || b.countryCode}
+                              </span>
                             </div>
                           ) : (
                             <span className="text-zinc-400 dark:text-neutral-500">—</span>
@@ -902,15 +919,15 @@ function RevenueAnalyticsContent() {
 
                       {/* 6. Device & OS */}
                       {visibleColumns.has("device") && (
-                        <td className="py-3 px-4 text-zinc-700 dark:text-neutral-300">
+                        <td className="py-2 px-3 text-zinc-700 dark:text-neutral-300 text-xs">
                           {b.device || b.os ? (
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-1">
                               {b.device === "mobile" ? (
-                                <Smartphone className="w-3.5 h-3.5 text-blue-500 dark:text-blue-400" />
+                                <Smartphone className="w-3 h-3 text-blue-500 dark:text-blue-400" />
                               ) : (
-                                <Laptop className="w-3.5 h-3.5 text-purple-500 dark:text-purple-400" />
+                                <Laptop className="w-3 h-3 text-purple-500 dark:text-purple-400" />
                               )}
-                              <span className="capitalize">{b.os || b.device}</span>
+                              <span className="capitalize text-[11px]">{b.os || b.device}</span>
                             </div>
                           ) : (
                             <span className="text-zinc-400 dark:text-neutral-500">—</span>
@@ -920,10 +937,49 @@ function RevenueAnalyticsContent() {
 
                       {/* 7. Date & Time */}
                       {visibleColumns.has("timestamp") && (
-                        <td className="py-3 px-4 text-zinc-500 dark:text-neutral-400 whitespace-nowrap">
+                        <td className="py-2 px-3 text-zinc-500 dark:text-neutral-400 whitespace-nowrap text-[11px]">
                           {b.timestamp ? formatDateRelative(b.timestamp) : "—"}
                         </td>
                       )}
+
+                      {/* 8. Three-Dots Action Dropdown */}
+                      <td className="py-2 px-3 text-right relative whitespace-nowrap">
+                        <details className="relative inline-block text-left">
+                          <summary
+                            aria-label="Open link actions"
+                            className="list-none inline-flex h-7 w-7 items-center justify-center rounded-lg text-zinc-500 dark:text-neutral-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
+                          >
+                            <MoreHorizontal className="w-4 h-4" />
+                          </summary>
+                          <div className="absolute right-0 mt-1.5 w-52 rounded-xl border border-zinc-200 dark:border-[#27272a] bg-white dark:bg-[#141418] p-1.5 shadow-xl z-50 text-left">
+                            <a
+                              href={`/r/${encodeURIComponent(cleanSlug)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={() => {
+                                setTimeout(() => {
+                                  window.dispatchEvent(new CustomEvent("lshorter_data_change"));
+                                  window.dispatchEvent(new CustomEvent("lshorter_links_updated"));
+                                }, 900);
+                              }}
+                              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-[#465FFF] dark:text-[#7592FF] hover:bg-[#ECF3FF]/70 dark:hover:bg-[#465FFF]/15 transition-colors cursor-pointer"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5 text-[#465FFF] dark:text-[#7592FF]" />
+                              <span>Open link in new tab</span>
+                            </a>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(shortLinkUrl);
+                              }}
+                              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-zinc-700 dark:text-neutral-200 hover:bg-zinc-100 dark:hover:bg-white/[0.06] transition-colors cursor-pointer"
+                            >
+                              <Copy className="w-3.5 h-3.5 text-zinc-500" />
+                              <span>Copy short link</span>
+                            </button>
+                          </div>
+                        </details>
+                      </td>
                     </tr>
                   );
                 })

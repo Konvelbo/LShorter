@@ -1,58 +1,37 @@
 "use client";
 
 import React from "react";
-import dynamic from "next/dynamic";
-import { HeroTransitionSection } from "@/components/marketing/hero-transition-section";
-import { FeaturesSection } from "@/components/marketing/features-section";
-
-const WobbleCardSection = dynamic(
-  () => import("@/components/marketing/wobble-card-section").then((mod) => mod.WobbleCardSection),
-  { ssr: true }
-);
-
-const AnalyticsSection = dynamic(
-  () => import("@/components/marketing/analytics-section").then((mod) => mod.AnalyticsSection),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="w-full h-96 flex items-center justify-center bg-transparent">
-        <div className="w-8 h-8 rounded-full border-2 border-brand border-t-transparent animate-spin" />
-      </div>
-    ),
-  }
-);
-
-const WhyUsSection = dynamic(
-  () => import("@/components/marketing/why-us-section").then((mod) => mod.WhyUsSection),
-  { ssr: true }
-);
-
-const FaqSection = dynamic(
-  () => import("@/components/marketing/faq-section").then((mod) => mod.FaqSection),
-  { ssr: true }
-);
+import { HeroSection } from "@/components/marketing/hero-section2";
+import { ProductSection } from "@/components/marketing/product-section";
+import { TimelineFeatures } from "@/components/ui/timeline-features";
+import { SecuritySection } from "@/components/marketing/security-section";
+import { WhyUsSection } from "@/components/marketing/why-us-section";
+import { AnalyticsSection } from "@/components/marketing/analytics-section";
+import { FaqSection } from "@/components/marketing/faq-section";
 
 export default function LandingPage() {
   return (
-    <main className="flex flex-col w-full max-w-full overflow-x-clip">
-      {/* Section 1 & Section 2: Seamless Hero -> 2nd Section Parallax Scale Transition */}
-      <HeroTransitionSection />
+    <main className="flex flex-col w-full max-w-full bg-[#FFFFFF] dark:bg-[#09090B] transition-colors duration-300">
+      {/* 1. Hero Section (Ecosystem Overview + Replaceable Dashboard Showcase Image) */}
+      <HeroSection />
 
-      {/* Section 3: Alternating Features bounded by center line & 70px gap */}
-      <FeaturesSection />
+      {/* 2. Product Section (#product — Interactive Desktop SaaS Iframe + GSAP Collapsible Link Drawer) */}
+      <ProductSection />
 
-      {/* Section 4: Modern Bento Wobble Card Grid */}
-      <WobbleCardSection />
+      {/* 3. Features Section (#features — Core Platform Capabilities routing to /docs/[slug]) */}
+      <TimelineFeatures />
 
-      {/* Section 5: Analytics with Interactive Map and 3D Cobe Globe */}
-      <AnalyticsSection />
+      {/* 4. Security & Speed Section (#security — SOC 2, PathLock™ PIN Gate & <4.2ms API Latency) */}
+      <SecuritySection />
 
-      {/* Section 6: Why Choose Us (4 GSAP Hover-Scale Cards) */}
+      {/* 5. Why Us & Integrations (#why-us — Differentiation Matrix + Aceternity CanvasRevealEffect Cards) */}
       <WhyUsSection />
 
-      {/* Section 7: FAQ Accordion with Over-Limit Billing Answer */}
+      {/* 6. Geographic Intelligence Map (#analytics — 2D World Localization & City/ISP Drilldown) */}
+      <AnalyticsSection />
+
+      {/* 7. FAQ Accordion (#faq — GSAP Animated, followed by Footer in layout.tsx) */}
       <FaqSection />
     </main>
   );
 }
-

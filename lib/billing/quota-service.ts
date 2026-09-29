@@ -3,7 +3,7 @@
 // ============================================================================
 
 import { PlanType } from "@/types";
-import { PRICING_PLANS, getPlanDefinition } from "@/src/config/pricing";
+import { PRICING_PLANS, getPlanDefinition, evaluateClickQuotaAndOverage } from "@/src/config/pricing";
 
 export interface QuotaGuardResult {
   allowed: boolean;
@@ -11,6 +11,38 @@ export interface QuotaGuardResult {
   code?: string;
   limit: number;
   current: number;
+}
+
+/**
+ * Guard monthly click redirect against plan quota & overage rules.
+ * - Starter (FREE): Hard limit at 10,000 clicks/month.
+ * - Pro (PRO): 150,000 included clicks/month + $3 per 50,000 extra clicks (never blocked).
+ * - Business (BUSINESS): 500,000 included clicks/month + $8 per 125,000 extra clicks (never blocked).
+ * - Enterprise (ENTERPRISE): 2,000,000+ clicks/month with unlimited free overage (never blocked).
+ */
+export function guardClickRedirect(plan: PlanType | string, clicksThisMonth: number) {
+  const status = evaluateClickQuotaAndOverage(plan, clicksThisMonth);
+  if (status.isBlocked) {
+    return {
+      allowed: false,
+      code: "MONTHLY_CLICK_QUOTA_EXCEEDED",
+      reason: `Limite mensuelle de ${status.monthlyClicksLimit.toLocaleString()} clics atteinte sur le forfait ${status.planName}. Passez au plan Pro (150 000 clics + overage automatique à 3$/50k) pour ne jamais bloquer votre trafic.`,
+      limit: status.monthlyClicksLimit,
+      current: clicksThisMonth,
+      overage: status.overage,
+    };
+  }
+
+  return {
+    allowed: true,
+    limit: status.monthlyClicksLimit,
+    current: clicksThisMonth,
+    overage: status.overage,
+  };
+}
+
+export function getQuotaAndOverageSummary(plan: PlanType | string, clicksThisMonth: number) {
+  return evaluateClickQuotaAndOverage(plan, clicksThisMonth);
 }
 
 /**

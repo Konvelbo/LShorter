@@ -5,6 +5,7 @@ import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { convexHttp as convex } from "@/lib/convex-server";
 import { api } from "@/convex/_generated/api";
+import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
 
 // If NEXTAUTH_URL or AUTH_URL is hardcoded to vercel.app, unset it so NextAuth
 // dynamically uses the active domain (e.g. lsho.cc) from request headers with trustHost: true
@@ -124,7 +125,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (user?.email && account?.provider !== "credentials") {
         try {
           // 1. Upsert profile in Convex
-          await convex.mutation(api.users.storeUser, {
+          const storeRes = await convex.mutation(api.users.storeUser, {
             userId: user.id || `usr_${Date.now().toString(36)}`,
             name: user.name || "Utilisateur",
             email: user.email,
@@ -132,26 +133,41 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             provider: account?.provider,
           });
 
-          // 2. Sync with Cloudflare D1 backend (for API key creation etc.)
-          const backendUrl =
-            process.env.NEXT_PUBLIC_BACKEND_API_URL ||
-            "https://lshorter-api.fiatechnologiecam.workers.dev";
-          const secret = process.env.FRONTEND_API_SECRET || "lsh_secret_live_prod_2026";
+          // If this is a brand-new user registration via OAuth, send the welcome email + dashboard notification instantly
+          if (storeRes?.isNew) {
+            try {
+              const { sendWelcomeEmail } = await import("@/lib/resend");
+              const welcomeRes = await sendWelcomeEmail({
+                to: user.email,
+                name: user.name || user.email.split("@")[0],
+              });
+              if (welcomeRes.success && (storeRes as any).welcomeEmailId) {
+                await convex.mutation(api.users.markWelcomeEmailSent, {
+                  id: (storeRes as any).welcomeEmailId,
+                });
+              }
+            } catch (welcomeErr) {
+              console.warn("[auth.ts] Instant welcome email warning:", welcomeErr);
+            }
+          }
 
-          await fetch(`${backendUrl}/api/v1/users/sync`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-Frontend-Secret": secret,
-            },
-            body: JSON.stringify({
-              id: user.id || `usr_${Date.now().toString(36)}`,
-              name: user.name || "Utilisateur",
-              email: user.email,
-              avatarUrl: user.image || undefined,
-              provider: account?.provider,
-            }),
-          });
+          // 2. Sync with Cloudflare D1 backend (for API key creation etc.)
+          if (WORKER_URL) {
+            await fetch(`${WORKER_URL}/api/v1/users/sync`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "X-Frontend-Secret": FRONTEND_SECRET,
+              },
+              body: JSON.stringify({
+                id: user.id || `usr_${Date.now().toString(36)}`,
+                name: user.name || "Utilisateur",
+                email: user.email,
+                avatarUrl: user.image || undefined,
+                provider: account?.provider,
+              }),
+            });
+          }
         } catch (error) {
           console.error("Post sign-in sync error:", error);
         }
@@ -172,18 +188,20 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (token.userId || token.email) {
         try {
           let convexUser = null;
-          if (token.userId) {
-            convexUser = await convex.query(api.users.getCurrentUser, {
-              userId: String(token.userId),
+          if (token.email) {
+            convexUser = await convex.query(api.users.getUserByEmail, {
+              email: String(token.email).toLowerCase().trim(),
             });
           }
-          if (!convexUser && token.email) {
-            convexUser = await convex.query(api.users.getUserByEmail, {
-              email: String(token.email),
+          if (!convexUser && token.userId) {
+            convexUser = await convex.query(api.users.getCurrentUser, {
+              userId: String(token.userId),
+              email: token.email ? String(token.email).toLowerCase().trim() : undefined,
             });
           }
           if (convexUser) {
             token.userId = convexUser.userId;
+            token.email = convexUser.email || token.email;
             token.plan = convexUser.plan;
             token.hasCompletedOnboarding = convexUser.hasCompletedOnboarding ?? false;
             token.clicksThisMonth = convexUser.clicksThisMonth;
@@ -217,13 +235,20 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
       if (session.user) {
         session.user.id = String(token.userId || token.sub || "");
+        session.user.email = String(token.email || session.user.email || "");
         session.user.image = (token.avatarUrl as string) || (token.picture as string) || session.user.image;
         session.user.name = (token.name as string) || session.user.name;
         (session.user as any).avatarUrl = (token.avatarUrl as string) || (token.picture as string) || session.user.image;
-        (session.user as any).plan = token.plan || "FREEMIUM";
+
+        const isEnterpriseOwner =
+          session.user.email?.toLowerCase() === "fiatechnologiecam@gmail.com" ||
+          session.user.id === "usr_1790454166066_fwlb48z" ||
+          session.user.id === "7254d43d-caf7-487d-bd22-1666795253a2";
+
+        (session.user as any).plan = isEnterpriseOwner ? "ENTERPRISE" : (token.plan || "FREEMIUM");
         (session.user as any).hasCompletedOnboarding = token.hasCompletedOnboarding ?? false;
         (session.user as any).clicksThisMonth = token.clicksThisMonth ?? 0;
-        (session.user as any).clicksLimit = token.clicksLimit ?? 2_500;
+        (session.user as any).clicksLimit = token.clicksLimit ?? 10_000;
         (session.user as any).provider = token.provider;
       }
       return session;

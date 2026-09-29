@@ -38,7 +38,7 @@ export function LockedProFeature({
       {/* Frosted Glass Overlay */}
       <div className="absolute inset-0 bg-white/95 dark:bg-[#101014]/95 backdrop-blur-[4px] flex flex-col sm:flex-row items-center justify-between px-5 py-3 gap-3.5 z-10 border border-amber-500/20 dark:border-amber-500/30">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-[10px] bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/25 dark:border-amber-500/30 flex items-center justify-center shrink-0">
+          <div className="w-8 h-8 rounded-[8px] bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/25 dark:border-amber-500/30 flex items-center justify-center shrink-0">
             <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400" />
           </div>
           <div>
@@ -46,7 +46,7 @@ export function LockedProFeature({
               <span className="text-xs font-bold text-zinc-900 dark:text-white tracking-wide">
                 {title}
               </span>
-              <span className="px-1.5 py-0.5 rounded-[10px] bg-amber-500/15 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 font-extrabold text-[9px] border border-amber-500/30 tracking-wider">
+              <span className="px-1.5 py-0.5 rounded-[4px] bg-amber-500/15 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 font-extrabold text-[9px] border border-amber-500/30 tracking-wider">
                 PLAN PRO
               </span>
             </div>
@@ -66,7 +66,7 @@ export function LockedProFeature({
               targetPlan: "PRO",
             });
           }}
-          className="px-3.5 py-1.5 rounded-[10px] bg-brand hover:bg-brand-hover text-white font-bold text-xs shadow-sm transition-all flex items-center gap-1.5 shrink-0 cursor-pointer"
+          className="px-3.5 py-1.5 rounded-[8px] bg-brand hover:bg-brand-hover text-white font-bold text-xs shadow-xs transition-all flex items-center gap-1.5 shrink-0 cursor-pointer"
         >
           <Sparkles className="w-3.5 h-3.5" />
           <span>Unlock with PRO</span>

@@ -345,53 +345,6 @@ console.log(\`Found \${links.total} links:\`, links.data);`
 }`
           }
         ]
-      },
-      {
-        name: "Get User Profile & Limits",
-        method: "GET",
-        path: "/api/v1/users/me",
-        description: "Returns the authenticated user profile, organization ID, email, full name, active subscription tier, and monthly usage quota limits.",
-        authentication: "Bearer <API_KEY>",
-        rateLimit: "1,000 req / min",
-        codeExamples: [
-          {
-            name: "cURL",
-            language: "bash",
-            code: `curl -X GET "https://lsho.cc/api/v1/users/me" \\
-  -H "Authorization: Bearer $LSHORTER_API_KEY"`
-          },
-          {
-            name: "TypeScript SDK",
-            language: "typescript",
-            code: `const me = await lshorter.users.me();
-console.log("Logged in as:", me.fullName, \`(\${me.email})\`);
-console.log("Monthly click usage:", me.clicksThisMonth, "/", me.planLimits.monthlyClicks);`
-          }
-        ],
-        responses: [
-          {
-            status: 200,
-            statusText: "OK",
-            description: "Authenticated profile and quota telemetry.",
-            json: `{
-  "id": "usr_991823ab",
-  "email": "developer@my-company.com",
-  "fullName": "Sarah Connor",
-  "organization": "Cyberdyne Corp",
-  "plan": "enterprise",
-  "clicksThisMonth": 482910,
-  "linksCount": 384,
-  "domainsCount": 4,
-  "planLimits": {
-    "monthlyClicks": 5000000,
-    "customDomains": 10,
-    "teamMembers": 25,
-    "retentionDays": 365
-  },
-  "createdAt": "2025-01-10T09:00:00.000Z"
-}`
-          }
-        ]
       }
     ],
     codeSnippets: [
@@ -493,26 +446,26 @@ console.log("Earnings Per Click (EPC):", stats.epc, "USD/click");`
   {
     slug: "geo-routing",
     title: "Dynamic Routing & Edge Geolocation",
-    subtitle: "Redirect visitors to contextual URLs based on their origin country with ultra-low latency.",
-    description: "Guide and REST API reference for configuring country-based geographic redirection rules (ISO 3166-1) evaluated directly on Cloudflare Edge nodes.",
+    subtitle: "Redirect visitors to contextual URLs based on their origin country or continent with ultra-low latency.",
+    description: "Guide and REST API reference for configuring country and continent geographic redirection rules (ISO 3166-1) evaluated directly on Cloudflare Edge nodes.",
     image: "/marketing-FCI/cosmos_1746304416.jpeg",
     readTime: "4 min read",
     overview: [
-      "Geographic routing optimizes user experience and conversion rates by serving localized content (language, currency, catalog) from a single shared link.",
+      "Geographic routing optimizes user experience and conversion rates by serving localized content (language, currency, catalog) by country or continent from a single shared link.",
       "Rules evaluation happens directly at Cloudflare Edge nodes during DNS resolution and TLS handshake, ensuring average redirection times under 15 milliseconds without backend server round-trips."
     ],
     keyPoints: [
       {
         title: "Closest-to-User Resolution",
-        description: "The visitor's country is detected from the CF-IPCountry Edge header with zero extra proxy latency."
+        description: "The visitor's country and continent are detected from the CF-IPCountry Edge header with zero extra proxy latency."
       },
       {
         title: "Permanent Fallback URL",
-        description: "If the visitor's country does not match any specific rule, they are automatically routed to the default fallback URL."
+        description: "If the visitor's country or continent does not match any specific rule, they are automatically routed to the default fallback URL."
       },
       {
-        title: "Granular ISO Code Control",
-        description: "Define rules for any 2-letter country code (e.g., US, UK, FR, DE, JP, CA, AU)."
+        title: "Country & Continent Targeting",
+        description: "Define rules for any 2-letter country code (e.g., US, UK, FR, DE, JP, CA, AU) or continent region."
       }
     ],
     apiEndpoints: [
@@ -790,7 +743,7 @@ console.log("Protected link generated:", secureLink.shortUrl);
       },
       {
         title: "Multi-Dimensional Segmentation",
-        description: "Analyze performance by country, city, device type (mobile, desktop, tablet), OS, and browser."
+        description: "Analyze performance by country, continent, device type (mobile, desktop, tablet), OS, and browser."
       },
       {
         title: "Referrer Tracking",
@@ -2335,6 +2288,155 @@ console.log("Social-optimized short link created:", link.shortUrl);
       "Keep Open Graph titles under 60 characters to prevent truncation on mobile screens.",
       "Validate previews with official debugging tools (Twitter Card Validator, LinkedIn Post Inspector) prior to publishing."
     ]
+  },
+  {
+    slug: "path-lock",
+    title: "PathLock™ Restricted Browsing & Funnel Isolation",
+    subtitle: "Lock visitors strictly into a designated landing page or sales funnel, preventing unauthorized directory exploration with instant edge security gating.",
+    description: "Prevent distraction, isolate conversion funnels, and gate unapproved subpath exploration using PathLock™ Strict and Funnel modes.",
+    image: "/marketing-FCI/cosmos_1739739224.jpeg",
+    readTime: "4 min read",
+    overview: [
+      "PathLock™ is an exclusive PRO security and anti-distraction feature designed for marketing teams, affiliate publishers, and funnel architects.",
+      "When enabled, PathLock™ displays the destination within a responsive, isolated viewer container equipped with an edge security gate.",
+      "Strict Single-Page mode prevents visitors from exploring other site directories (e.g. browsing the store catalog when shared a single product validation page).",
+      "Funnel & Subpaths mode permits seamless progression through multi-step funnels (e.g., /checkout, /confirmation, /upsell) while blocking escape routes outside the authorized prefix."
+    ],
+    keyPoints: [
+      {
+        title: "Strict Single-Page Isolation",
+        description: "Locks visitor access strictly to the exact target path. Any attempt to navigate outside immediately triggers the Gate blocking screen."
+      },
+      {
+        title: "Funnel & Subpaths Scope",
+        description: "Permits all nested child routes (e.g. /funnel/step-1, /funnel/checkout) while safeguarding against broader domain exploration."
+      },
+      {
+        title: "Preserved Anchors & Query Parameters",
+        description: "In-page smooth scrolling (#features, #pricing) and tracking query parameters (UTMs, affiliate tokens) remain 100% operational."
+      },
+      {
+        title: "Collapsible Topbar",
+        description: "Offers visitors an unobtrusive experience with smooth collapsible topbar and an instant floating recovery pill."
+      }
+    ],
+    apiEndpoints: [
+      {
+        name: "Create Link with PathLock™",
+        method: "POST",
+        path: "/api/v1/links",
+        description: "Create a short link configured with PathLock™ single-page or funnel isolation.",
+        authentication: "Bearer Token required",
+        rateLimit: "1,000 req/min",
+        bodyParams: [
+          {
+            name: "pathLockMode",
+            type: "string",
+            required: false,
+            description: "PathLock restriction mode: 'off' | 'strict' | 'funnel'. (PRO plan)",
+            example: "strict",
+            default: "off"
+          },
+          {
+            name: "pathLockPrefix",
+            type: "string",
+            required: false,
+            description: "Authorized URL path prefix to whitelist for visitor browsing.",
+            example: "product-page"
+          },
+          {
+            name: "pathLockMessage",
+            type: "string",
+            required: false,
+            description: "Custom notice message presented when visitor triggers security gate.",
+            example: "Navigation restricted to this presentation page."
+          }
+        ],
+        codeExamples: [
+          {
+            name: "cURL",
+            language: "bash",
+            code: `curl -X POST "https://lsho.cc/api/v1/links" \\
+  -H "Authorization: Bearer $LSHORTER_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "targetUrl": "https://brand.com/exclusive-deal",
+    "slug": "deal-2026",
+    "pathLockMode": "strict",
+    "pathLockPrefix": "exclusive-deal",
+    "pathLockMessage": "Access is restricted to this exclusive presentation."
+  }'`
+          },
+          {
+            name: "TypeScript SDK",
+            language: "typescript",
+            code: `import { lshorter } from "@/lib/lshorter";
+
+const link = await lshorter.links.create({
+  targetUrl: "https://brand.com/exclusive-deal",
+  slug: "deal-2026",
+  pathLockMode: "strict",
+  pathLockPrefix: "exclusive-deal",
+  pathLockMessage: "Access is restricted to this exclusive presentation.",
+});`
+          }
+        ],
+        responses: [
+          {
+            status: 201,
+            statusText: "Created",
+            description: "PathLocked short link successfully created.",
+            json: `{
+  "id": "link_pl_98124",
+  "slug": "deal-2026",
+  "shortUrl": "https://lsho.cc/deal-2026",
+  "targetUrl": "https://brand.com/exclusive-deal",
+  "pathLockMode": "strict",
+  "pathLockPrefix": "exclusive-deal",
+  "pathLockMessage": "Access is restricted to this exclusive presentation."
+}`
+          }
+        ]
+      }
+    ],
+    codeSnippets: [
+      {
+        title: "1. Configuring PathLock™ Funnel Mode",
+        description: "Authorize an entire checkout funnel while barring visitors from exploring outside pages:",
+        snippet: {
+          language: "typescript",
+          filename: "pathlock-funnel.ts",
+          code: `import { lshorter } from "@/lib/lshorter";
+
+const link = await lshorter.links.create({
+  targetUrl: "https://shop.com/checkout/step-1",
+  slug: "secure-checkout",
+  pathLockMode: "funnel",
+  pathLockPrefix: "checkout",
+  pathLockMessage: "Please complete your order within this secure funnel.",
+});`
+        }
+      }
+    ],
+    responseSample: {
+      title: "PathLock Link Payload",
+      description: "Link configuration with active PathLock isolation:",
+      json: `{
+  "id": "link_pl_98124",
+  "slug": "secure-checkout",
+  "shortUrl": "https://lsho.cc/secure-checkout",
+  "targetUrl": "https://shop.com/checkout/step-1",
+  "pathLockMode": "funnel",
+  "pathLockPrefix": "checkout",
+  "pathLockMessage": "Please complete your order within this secure funnel.",
+  "isCloaked": true
+}`
+    },
+    bestPractices: [
+      "Use 'Strict Single-Page' when sharing one-off product reviews, NDAs, or partner validations.",
+      "Use 'Funnel & Subpaths' with a common root prefix (e.g., 'checkout' or 'webinar') to permit natural multi-step user flows.",
+      "Provide a friendly, context-specific block message so visitors understand why wider site navigation was gated."
+    ]
   }
 ];
 
@@ -2342,6 +2444,16 @@ export function getAllDocFeatures(): DocFeature[] {
   return DOC_FEATURES;
 }
 
+const SLUG_ALIASES: Record<string, string> = {
+  "edge-routing": "geo-routing",
+  "developer-api": "sdk-quickstart",
+  "analytics-stream": "realtime-analytics",
+  "bio-pages": "social-sharing-opengraph",
+  "growth-marketing": "ab-testing-routing",
+};
+
 export function getDocFeatureBySlug(slug: string): DocFeature | undefined {
-  return DOC_FEATURES.find((feature) => feature.slug === slug);
+  const resolvedSlug = SLUG_ALIASES[slug] || slug;
+  return DOC_FEATURES.find((feature) => feature.slug === resolvedSlug);
 }
+

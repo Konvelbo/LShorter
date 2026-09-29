@@ -1,11 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 
-const WORKER_URL =
-  process.env.NEXT_PUBLIC_BACKEND_API_URL ||
-  "https://lshorter-api.fiatechnologiecam.workers.dev";
-const FRONTEND_SECRET =
-  process.env.FRONTEND_API_SECRET || "lsh_secret_live_prod_2026";
+import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
 
 export async function POST(req: Request) {
   try {

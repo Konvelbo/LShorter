@@ -18,7 +18,8 @@ import {
   TrendingUp,
   MessageSquare,
   Compass,
-  Link2
+  Link2,
+  MapPin,
 } from "lucide-react";
 import { ShortLink, GlobalAnalytics } from "@/types";
 import { cfGetAnalytics, cfGetLinks } from "@/lib/cloudflare-api";
@@ -31,14 +32,16 @@ import {
   generateEdgeTopReferrers,
   generateEdgeLiveClickEvents,
 } from "@/lib/analytics-generators";
+import { ReferrerBadge, ReferrerLogo } from "@/components/dashboard/analytics/referrer-badge";
 
 const SOURCE_COLUMNS: ColumnDefinition[] = [
-  { key: "timestamp", label: "Timestamp", defaultVisible: true },
+  { key: "timestamp", label: "Time", defaultVisible: true },
   { key: "channel", label: "Channel", defaultVisible: true },
-  { key: "referrer", label: "Source / Referrer", defaultVisible: true },
-  { key: "customer", label: "Customer / Buyer", defaultVisible: true },
-  { key: "link", label: "Target Link", defaultVisible: true },
-  { key: "location", label: "Location", defaultVisible: true },
+  { key: "referrer", label: "Referrer Source", defaultVisible: true },
+  { key: "customer", label: "Customer Profile", defaultVisible: true },
+  { key: "link", label: "Short Link", defaultVisible: true },
+  { key: "city", label: "City", defaultVisible: true },
+  { key: "location", label: "Country", defaultVisible: true },
   { key: "device", label: "Device", defaultVisible: true },
 ];
 
@@ -123,9 +126,13 @@ export default function SourcesAnalyticsPage() {
       const isAll = !targetLink || linkId === "all";
 
       const d = analyticsRes?.data || {};
-      const baseTotal = isAll
-        ? ((d.totalClicks ?? d.total_clicks) || sumLinksClicks)
-        : ((d.totalClicks ?? d.total_clicks) || linkClicks);
+      const workerTotal = Number(d.totalClicks ?? d.total_clicks ?? 0);
+      const isShortWindow = range === "day" || range === "week";
+      const baseTotal = isShortWindow
+        ? (isAll ? workerTotal : (workerTotal || linkClicks))
+        : (isAll
+            ? Math.max(workerTotal, sumLinksClicks)
+            : Math.max(workerTotal || linkClicks, linkClicks));
 
       const periodStats = computePeriodMetrics(range, baseTotal, baseTotal, 0, 0);
       const total = periodStats.periodClicks;
@@ -451,8 +458,10 @@ export default function SourcesAnalyticsPage() {
                 return (
                   <div key={soc.name} className="p-3 rounded-[10px] bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a]">
                     <div className="flex items-center justify-between gap-2 mb-1.5">
-                      <span className="text-xs font-bold text-zinc-900 dark:text-white">{soc.name}</span>
-                      <span className="text-xs font-bold font-mono" style={{ color }}>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <ReferrerBadge referrer={soc.name} />
+                      </div>
+                      <span className="text-xs font-bold font-mono shrink-0" style={{ color }}>
                         {soc.percentage}% ({soc.count} clicks)
                       </span>
                     </div>
@@ -495,8 +504,10 @@ export default function SourcesAnalyticsPage() {
                 analytics.topReferrers.map((ref: any) => (
                   <div key={ref.name} className="p-3 rounded-[10px] bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a]">
                     <div className="flex items-center justify-between gap-2 mb-1.5">
-                      <span className="text-xs font-mono text-zinc-900 dark:text-white truncate">{ref.name}</span>
-                      <span className="text-xs font-bold font-mono text-emerald-600 dark:text-emerald-400">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <ReferrerBadge referrer={ref.name} />
+                      </div>
+                      <span className="text-xs font-bold font-mono text-emerald-600 dark:text-emerald-400 shrink-0">
                         {ref.percentage}% ({ref.count} clicks)
                       </span>
                     </div>
@@ -543,10 +554,11 @@ export default function SourcesAnalyticsPage() {
               <tr className="border-b border-zinc-200 dark:border-[#222225] bg-zinc-50 dark:bg-[#111116] text-[10px] uppercase font-mono text-zinc-500 dark:text-neutral-400">
                 {visibleColumns.has("timestamp") && <th className="py-2.5 px-3">Time</th>}
                 {visibleColumns.has("channel") && <th className="py-2.5 px-3">Channel</th>}
-                {visibleColumns.has("referrer") && <th className="py-2.5 px-3">Referrer URL</th>}
+                {visibleColumns.has("referrer") && <th className="py-2.5 px-3 text-center">Referrer Source</th>}
                 {visibleColumns.has("customer") && <th className="py-2.5 px-3">Customer Profile</th>}
                 {visibleColumns.has("link") && <th className="py-2.5 px-3">Short Link</th>}
-                {visibleColumns.has("location") && <th className="py-2.5 px-3">Location</th>}
+                {visibleColumns.has("city") && <th className="py-2.5 px-3">City</th>}
+                {visibleColumns.has("location") && <th className="py-2.5 px-3">Country</th>}
                 {visibleColumns.has("device") && <th className="py-2.5 px-3">Device</th>}
               </tr>
             </thead>
@@ -558,15 +570,15 @@ export default function SourcesAnalyticsPage() {
                 return (
                   <tr key={i} className="hover:bg-zinc-50 dark:hover:bg-white/[0.02] transition-colors">
                     {visibleColumns.has("timestamp") && (
-                      <td className="py-3 px-3 text-zinc-500 dark:text-neutral-400 whitespace-nowrap">
+                      <td className="py-2 px-3 text-zinc-500 dark:text-neutral-400 whitespace-nowrap text-[10.5px]">
                         {new Date(ev.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
                       </td>
                     )}
 
                     {visibleColumns.has("channel") && (
-                      <td className="py-3 px-3">
+                      <td className="py-2 px-3">
                         <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
+                          className={`px-2 py-0.5 rounded-full text-[9.5px] font-semibold border ${
                             isSocial
                               ? "bg-brand-subtle text-brand border-brand-subtle"
                               : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
@@ -578,25 +590,25 @@ export default function SourcesAnalyticsPage() {
                     )}
 
                     {visibleColumns.has("referrer") && (
-                      <td className="py-3 px-3 font-semibold text-zinc-900 dark:text-white">
-                        <span className="px-2 py-0.5 rounded-[10px] bg-zinc-100 dark:bg-white/5 border border-zinc-200 dark:border-[#27272a] text-[10px] font-mono">
-                          {ref}
-                        </span>
+                      <td className="py-2 px-3 whitespace-nowrap text-center">
+                        <div className="flex items-center justify-center">
+                          <ReferrerLogo referrer={ev.referrer} size={18} />
+                        </div>
                       </td>
                     )}
 
                     {visibleColumns.has("customer") && (
-                      <td className="py-3 px-3">
+                      <td className="py-2 px-3">
                         {(() => {
                           const name = ev.customerName || ev.customerFullName || ev.fullName;
                           const email = ev.customerEmail || ev.email;
                           if (!name && !email) {
-                            return <span className="text-zinc-400 dark:text-neutral-600 font-mono text-xs">—</span>;
+                            return <span className="text-zinc-400 dark:text-neutral-600 font-mono text-[11px]">—</span>;
                           }
                           return (
                             <div className="flex flex-col min-w-0">
-                              {name && <span className="font-medium text-zinc-900 dark:text-white truncate text-xs">{name}</span>}
-                              {email && <span className="text-[10.5px] text-zinc-500 dark:text-neutral-400 font-mono truncate" title={email}>{email}</span>}
+                              {name && <span className="font-medium text-zinc-900 dark:text-white truncate text-[11.5px]">{name}</span>}
+                              {email && <span className="text-[10px] text-zinc-500 dark:text-neutral-400 font-mono truncate" title={email}>{email}</span>}
                             </div>
                           );
                         })()}
@@ -604,19 +616,25 @@ export default function SourcesAnalyticsPage() {
                     )}
 
                     {visibleColumns.has("link") && (
-                      <td className="py-3 px-3 font-mono text-brand font-semibold">
+                      <td className="py-2 px-3 font-mono text-brand font-semibold text-[11.5px]">
                         /{ev.slug}
                       </td>
                     )}
 
+                    {visibleColumns.has("city") && (
+                      <td className="py-2 px-3 whitespace-nowrap font-medium text-zinc-900 dark:text-zinc-100 text-[11.5px]">
+                        {ev.city && ev.city !== "—" && ev.city !== "Inconnue" ? ev.city : "Edge Node"}
+                      </td>
+                    )}
+
                     {visibleColumns.has("location") && (
-                      <td className="py-3 px-3 text-zinc-700 dark:text-neutral-400">
-                        {ev.city ? `${ev.city}, ${ev.countryName}` : ev.countryName}
+                      <td className="py-2 px-3 text-zinc-700 dark:text-neutral-400 whitespace-nowrap text-[11.5px]">
+                        {ev.countryName}
                       </td>
                     )}
 
                     {visibleColumns.has("device") && (
-                      <td className="py-3 px-3 text-zinc-700 dark:text-neutral-400 capitalize">
+                      <td className="py-2 px-3 text-zinc-700 dark:text-neutral-400 capitalize text-[11.5px]">
                         {ev.device}
                       </td>
                     )}

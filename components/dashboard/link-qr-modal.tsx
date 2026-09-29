@@ -8,14 +8,10 @@ import {
   Download,
   Share2,
   Sliders,
-  Copy,
   Check,
-  ExternalLink,
-  Sparkles
+  ArrowUpRight,
 } from "lucide-react";
 import { ShortLink } from "@/types";
-import { Button } from "@/components/ui/button";
-import confetti from "canvas-confetti";
 
 interface LinkQRModalProps {
   isOpen: boolean;
@@ -23,12 +19,21 @@ interface LinkQRModalProps {
   link: ShortLink | null;
 }
 
+const FIXED_EXPORT_RESOLUTION = 1024;
+
+const SOBER_SWATCHES = [
+  { name: "Obsidian", hex: "#09090B" },
+  { name: "Slate", hex: "#1E293B" },
+  { name: "Forest", hex: "#0B6E4F" },
+  { name: "Indigo", hex: "#3641F5" },
+  { name: "Ember", hex: "#FF6600" },
+];
+
 export function LinkQRModal({ isOpen, onClose, link }: LinkQRModalProps) {
-  const [selectedColor, setSelectedColor] = useState("#ff6600");
-  const [bgColor, setBgColor] = useState("#ffffff");
-  const [size, setSize] = useState(256);
+  const [selectedColor, setSelectedColor] = useState("#09090B");
+  const [bgColor] = useState("#FFFFFF");
   const [includeQuietZone, setIncludeQuietZone] = useState(true);
-  const [copiedUrl, setCopiedUrl] = useState(false);
+  const [sharedCopied, setSharedCopied] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -38,7 +43,7 @@ export function LinkQRModal({ isOpen, onClose, link }: LinkQRModalProps) {
       canvasRef.current,
       link.shortUrl,
       {
-        width: size,
+        width: FIXED_EXPORT_RESOLUTION,
         margin: includeQuietZone ? 2 : 0,
         color: {
           dark: selectedColor,
@@ -50,31 +55,52 @@ export function LinkQRModal({ isOpen, onClose, link }: LinkQRModalProps) {
         if (error) console.error("QR canvas error:", error);
       }
     );
-  }, [isOpen, link, selectedColor, bgColor, size, includeQuietZone]);
+  }, [isOpen, link, selectedColor, bgColor, includeQuietZone]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen || !link) return null;
 
-  const handleDownloadPNG = () => {
-    if (!canvasRef.current) return;
-    const pngUrl = canvasRef.current.toDataURL("image/png");
-    const downloadLink = document.createElement("a");
-    downloadLink.href = pngUrl;
-    downloadLink.download = `lshorter_qr_${link.slug}.png`;
-    document.body.appendChild(downloadLink);
-    downloadLink.click();
-    document.body.removeChild(downloadLink);
-    confetti({ particleCount: 30, spread: 50 });
+  const handleDownloadPNG = async () => {
+    try {
+      const dataUrl = await QRCode.toDataURL(link.shortUrl, {
+        width: FIXED_EXPORT_RESOLUTION,
+        margin: includeQuietZone ? 2 : 0,
+        color: {
+          dark: selectedColor,
+          light: bgColor,
+        },
+        errorCorrectionLevel: "H",
+      });
+      const downloadLink = document.createElement("a");
+      downloadLink.href = dataUrl;
+      downloadLink.download = `lshorter_qr_${link.slug}_1024px.png`;
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+    } catch (e) {
+      console.error("PNG export error:", e);
+    }
   };
 
   const handleDownloadSVG = async () => {
     try {
       const svgString = await QRCode.toString(link.shortUrl, {
         type: "svg",
+        width: FIXED_EXPORT_RESOLUTION,
         margin: includeQuietZone ? 2 : 0,
         color: {
           dark: selectedColor,
           light: bgColor,
         },
+        errorCorrectionLevel: "H",
       });
       const blob = new Blob([svgString], { type: "image/svg+xml" });
       const url = URL.createObjectURL(blob);
@@ -85,16 +111,9 @@ export function LinkQRModal({ isOpen, onClose, link }: LinkQRModalProps) {
       downloadLink.click();
       document.body.removeChild(downloadLink);
       URL.revokeObjectURL(url);
-      confetti({ particleCount: 30, spread: 50 });
     } catch (e) {
-      console.error(e);
+      console.error("SVG export error:", e);
     }
-  };
-
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(link.shortUrl);
-    setCopiedUrl(true);
-    setTimeout(() => setCopiedUrl(false), 2000);
   };
 
   const handleShare = async () => {
@@ -102,146 +121,169 @@ export function LinkQRModal({ isOpen, onClose, link }: LinkQRModalProps) {
       try {
         await navigator.share({
           title: `QR Code — ${link.slug}`,
-          text: `Scan this QR Code to access ${link.shortUrl}`,
+          text: `Access ${link.shortUrl}`,
           url: link.shortUrl,
         });
+        return;
       } catch {
-        // ignore
+        // fallback to clipboard copy
       }
-    } else {
-      handleCopyLink();
     }
+    try {
+      await navigator.clipboard.writeText(link.shortUrl);
+      setSharedCopied(true);
+      setTimeout(() => setSharedCopied(false), 2000);
+    } catch {}
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in">
-      <div className="relative w-full max-w-md rounded-[10px] bg-[#141416] border border-[#27272a] p-6 shadow-2xl text-white">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 dark:bg-black/75 backdrop-blur-xs animate-in fade-in duration-150"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Link QR Code"
+        className="relative w-full max-w-[400px] rounded-[12px] bg-white dark:bg-[#0F0F11] text-[#09090B] dark:text-[#FAFAFA] border border-black/[0.08] dark:border-white/[0.08] p-5 shadow-2xl"
+      >
         {/* Close Button */}
         <button
+          type="button"
           onClick={onClose}
-          className="absolute right-4 top-4 text-neutral-400 hover:text-white p-1 cursor-pointer"
+          aria-label="Close modal"
+          className="absolute right-4 top-4 flex h-7 w-7 items-center justify-center rounded-[7px] text-[#71717A] hover:text-[#09090B] dark:text-[#A1A1AA] dark:hover:text-[#FAFAFA] hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors cursor-pointer"
         >
-          <X className="w-5 h-5" />
+          <X className="w-4 h-4" />
         </button>
 
         {/* Modal Header */}
-        <div className="flex items-center gap-3 mb-5">
-          <div className="w-9 h-9 rounded-[10px] bg-[var(--brand-primary)] flex items-center justify-center text-white shadow-lg shadow-[var(--brand-primary-glow)] font-bold">
-            <QrCode className="w-5 h-5" />
+        <div className="flex items-center gap-3 mb-5 pr-8">
+          <div className="w-9 h-9 rounded-[9px] bg-black/[0.04] dark:bg-white/[0.06] border border-black/[0.08] dark:border-white/[0.08] flex items-center justify-center text-[#09090B] dark:text-[#FAFAFA] shrink-0">
+            <QrCode className="w-4 h-4" />
           </div>
-          <div>
-            <h3 className="text-base font-bold text-white">Link QR Code</h3>
-            <p className="text-xs text-neutral-400 font-mono truncate max-w-[260px]">
+          <div className="min-w-0">
+            <h3 className="text-[15px] font-semibold tracking-tight text-[#09090B] dark:text-[#FAFAFA]">
+              Link QR Code
+            </h3>
+            <p className="text-xs text-[#71717A] dark:text-[#A1A1AA] font-mono truncate">
               {link.shortUrl}
             </p>
           </div>
         </div>
 
         {/* QR Code Canvas Preview */}
-        <div className="p-4 rounded-[10px] bg-white flex items-center justify-center shadow-lg mb-5 aspect-square max-w-[220px] mx-auto">
-          <canvas ref={canvasRef} className="w-full h-full object-contain" />
+        <div className="p-4 rounded-[10px] bg-white border border-black/[0.08] dark:border-white/[0.08] flex items-center justify-center shadow-xs mb-4 aspect-square max-w-[216px] mx-auto">
+          <canvas
+            ref={canvasRef}
+            className="w-full h-full object-contain rounded-[4px]"
+          />
         </div>
 
-        {/* Customization Controls */}
-        <div className="flex flex-col gap-3.5 p-3.5 rounded-[10px] bg-[#1a1a1e] border border-[#27272a] mb-5 text-xs">
-          {/* Color Presets */}
+        {/* Sober Customization Controls (No Resolution Slider; Fixed 1024px High-Res) */}
+        <div className="flex flex-col gap-3 p-3.5 rounded-[10px] bg-black/[0.02] dark:bg-white/[0.03] border border-black/[0.08] dark:border-white/[0.08] mb-4 text-xs">
+          {/* Color Swatches */}
           <div className="flex items-center justify-between">
-            <span className="font-semibold text-neutral-300">QR Code Color</span>
+            <span className="font-medium text-[#52525B] dark:text-[#A1A1AA]">
+              Foreground
+            </span>
             <div className="flex items-center gap-1.5">
-              {[
-                { name: "Orange", hex: "#ff6600" },
-                { name: "Forest", hex: "#0b6e4f" },
-                { name: "Classic", hex: "#09090b" },
-                { name: "Midnight", hex: "#1e293b" },
-                { name: "Sky", hex: "#0ea5e9" },
-              ].map((c) => (
-                <button
-                  key={c.hex}
-                  onClick={() => setSelectedColor(c.hex)}
-                  title={c.name}
-                  className={`w-6 h-6 rounded-full border transition-all cursor-pointer ${
-                    selectedColor === c.hex
-                      ? "border-white scale-110 shadow-md"
-                      : "border-transparent opacity-80 hover:opacity-100"
-                  }`}
-                  style={{ backgroundColor: c.hex }}
-                />
-              ))}
+              {SOBER_SWATCHES.map((c) => {
+                const isSelected = selectedColor.toLowerCase() === c.hex.toLowerCase();
+                return (
+                  <button
+                    key={c.hex}
+                    type="button"
+                    onClick={() => setSelectedColor(c.hex)}
+                    title={c.name}
+                    aria-label={`Select ${c.name} color`}
+                    className={`w-5 h-5 rounded-full border transition-all cursor-pointer ${
+                      isSelected
+                        ? "ring-2 ring-[#09090B] dark:ring-[#FAFAFA] ring-offset-2 ring-offset-white dark:ring-offset-[#0F0F11] scale-105"
+                        : "border-black/15 dark:border-white/15 opacity-80 hover:opacity-100"
+                    }`}
+                    style={{ backgroundColor: c.hex }}
+                  />
+                );
+              })}
             </div>
           </div>
 
-          {/* Size Slider */}
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center justify-between text-neutral-400">
-              <span>Resolution</span>
-              <span className="font-mono text-white">{size}px</span>
-            </div>
-            <input
-              type="range"
-              min="128"
-              max="512"
-              step="32"
-              value={size}
-              onChange={(e) => setSize(Number(e.target.value))}
-              className="w-full accent-[var(--brand-primary)] cursor-pointer"
-            />
-          </div>
+          <div className="h-px bg-black/[0.06] dark:bg-white/[0.06]" />
 
-          {/* Quiet Zone Checkbox */}
-          <label className="flex items-center gap-2 text-neutral-300 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={includeQuietZone}
-              onChange={(e) => setIncludeQuietZone(e.target.checked)}
-              className="w-4 h-4 accent-[var(--brand-primary)] rounded-[10px] cursor-pointer"
-            />
-            <span>White margin border (Quiet zone)</span>
-          </label>
+          {/* Quiet Zone Checkbox + Fixed 1024px Badge */}
+          <div className="flex items-center justify-between gap-2">
+            <label className="flex items-center gap-2 text-[#52525B] dark:text-[#D4D4D8] cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={includeQuietZone}
+                onChange={(e) => setIncludeQuietZone(e.target.checked)}
+                className="w-3.5 h-3.5 rounded-[4px] accent-[#09090B] dark:accent-[#FAFAFA] cursor-pointer"
+              />
+              <span>Quiet zone margin</span>
+            </label>
+            <span className="text-[11px] font-mono text-[#71717A] dark:text-[#8E8E93]">
+              1024 × 1024px
+            </span>
+          </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="grid grid-cols-3 gap-2 mb-3">
-          <Button
+        {/* Clean Action Buttons: PNG, SVG, Share */}
+        <div className="grid grid-cols-3 gap-2 mb-2.5">
+          <button
+            type="button"
             onClick={handleDownloadPNG}
-            variant="glow"
-            size="sm"
-            className="text-xs gap-1.5"
+            className="h-9 px-3 rounded-[8px] bg-[#09090B] text-white dark:bg-[#FAFAFA] dark:text-[#09090B] hover:opacity-90 text-xs font-medium inline-flex items-center justify-center gap-1.5 transition-opacity cursor-pointer"
           >
             <Download className="w-3.5 h-3.5" />
             <span>PNG</span>
-          </Button>
+          </button>
 
-          <Button
+          <button
+            type="button"
             onClick={handleDownloadSVG}
-            variant="outline"
-            size="sm"
-            className="text-xs gap-1.5"
+            className="h-9 px-3 rounded-[8px] bg-transparent text-[#09090B] dark:text-[#FAFAFA] border border-black/[0.08] dark:border-white/[0.08] hover:bg-black/[0.04] dark:hover:bg-white/[0.05] text-xs font-medium inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
           >
-            <Download className="w-3.5 h-3.5 text-[var(--brand-primary-text)]" />
+            <Download className="w-3.5 h-3.5" />
             <span>SVG</span>
-          </Button>
+          </button>
 
-          <Button
+          <button
+            type="button"
             onClick={handleShare}
-            variant="secondary"
-            size="sm"
-            className="text-xs gap-1.5"
+            className="h-9 px-3 rounded-[8px] bg-transparent text-[#09090B] dark:text-[#FAFAFA] border border-black/[0.08] dark:border-white/[0.08] hover:bg-black/[0.04] dark:hover:bg-white/[0.05] text-xs font-medium inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
           >
-            <Share2 className="w-3.5 h-3.5" />
-            <span>Share</span>
-          </Button>
+            {sharedCopied ? (
+              <>
+                <Check className="w-3.5 h-3.5 text-emerald-500" />
+                <span>Copied</span>
+              </>
+            ) : (
+              <>
+                <Share2 className="w-3.5 h-3.5" />
+                <span>Share</span>
+              </>
+            )}
+          </button>
         </div>
 
-        {/* Advanced Editor Link */}
+        {/* Customize in QR Studio Button */}
         <button
+          type="button"
           onClick={() => {
-            window.location.href = `/dashboard/qr-code?url=${encodeURIComponent(link.shortUrl)}&slug=${encodeURIComponent(link.slug)}&id=${encodeURIComponent(link.id)}`;
+            window.location.href = `/dashboard/qr-code?url=${encodeURIComponent(
+              link.shortUrl
+            )}&slug=${encodeURIComponent(link.slug)}&id=${encodeURIComponent(
+              link.id
+            )}`;
           }}
-          className="w-full py-2 rounded-[10px] bg-white/5 hover:bg-white/10 text-neutral-400 hover:text-white text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+          className="w-full h-9 px-3 rounded-[8px] bg-black/[0.03] dark:bg-white/[0.04] hover:bg-black/[0.06] dark:hover:bg-white/[0.08] border border-black/[0.08] dark:border-white/[0.08] text-[#52525B] dark:text-[#D4D4D8] hover:text-[#09090B] dark:hover:text-[#FAFAFA] text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
         >
-          <Sliders className="w-3.5 h-3.5 text-[var(--brand-primary-text)]" />
-          <span>Customize in full editor (Logo, Styles)</span>
-          <ExternalLink className="w-3 h-3" />
+          <Sliders className="w-3.5 h-3.5" />
+          <span>Customize in QR Studio</span>
+          <ArrowUpRight className="w-3.5 h-3.5 opacity-70" />
         </button>
       </div>
     </div>

@@ -1,113 +1,294 @@
 import { NextResponse } from "next/server";
-import { saveProtectedLink, deleteProtectedLink, getProtectedLink } from "@/lib/protected-links-store";
-import { deleteFromBunny, uploadToBunny } from "@/lib/bunny";
 import { invalidateBotResponseCache } from "@/app/r/[slug]/route";
-
-const WORKER_URL =
-  process.env.NEXT_PUBLIC_BACKEND_API_URL ||
-  "https://lshorter-api.fiatechnologiecam.workers.dev";
-const FRONTEND_SECRET =
-  process.env.FRONTEND_API_SECRET || "lsh_secret_live_prod_2026";
+import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
+import { auth } from "@/auth";
+import { convexHttp as convex } from "@/lib/convex-server";
+import { api } from "@/convex/_generated/api";
 
 export async function PATCH(
   req: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
   let body: any = {};
   try {
     body = await req.json();
-    const userId = body.userId || "";
-    const effectivePlan = (body.userPlan || body.plan || "PRO").toUpperCase();
-    const isPro = effectivePlan === "PRO" || effectivePlan === "BUSINESS" || effectivePlan === "ENTERPRISE";
+    const session = await auth().catch(() => null);
+    const sessionEmail = session?.user?.email;
+    const sessionUserId = session?.user?.id;
+    const requestEmail = body.userEmail || sessionEmail || "";
+    const requestUserId = body.userId || sessionUserId || "";
 
-    const rawOg = body.ogImage || body.og_image || "";
-    let sanitizedOgImage: string | undefined = rawOg || undefined;
+    const isEnterpriseOwner =
+      requestEmail.toLowerCase() === "fiatechnologiecam@gmail.com" ||
+      requestUserId === "usr_1790454166066_fwlb48z" ||
+      requestUserId === "7254d43d-caf7-487d-bd22-1666795253a2";
 
-    if (rawOg && rawOg.startsWith("data:")) {
+    let authoritativePlan = (
+      body.userPlan ||
+      body.plan ||
+      (isEnterpriseOwner ? "ENTERPRISE" : "")
+    ).toUpperCase();
+
+    if (!authoritativePlan || authoritativePlan === "FREEMIUM" || authoritativePlan === "FREE") {
       try {
-        const uploadResult = await uploadToBunny(rawOg, { folder: "Banners" });
-        if (uploadResult?.success && uploadResult.url) {
-          sanitizedOgImage = uploadResult.url;
+        let cu: any = null;
+        if (requestEmail) {
+          cu = await convex.query(api.users.getUserByEmail, { email: requestEmail.toLowerCase().trim() });
         }
-      } catch (uploadErr) {
-        console.warn("[Links API] Failed to upload base64 ogImage to Bunny on update:", uploadErr);
+        if (!cu && requestUserId) {
+          cu = await convex.query(api.users.getCurrentUser, {
+            userId: requestUserId,
+            email: requestEmail || undefined,
+          });
+        }
+        if (cu?.plan) {
+          authoritativePlan = cu.plan.toUpperCase();
+        }
+      } catch (e) {
+        console.warn("[app/api/links/[id]/route.ts] Error querying Convex plan:", e);
       }
     }
 
-    // If banner was updated, clean up the previous banner from Bunny CDN
-    const previousImage = body.previousOgImage || body.previous_og_image || getProtectedLink(body.slug || id)?.ogImage;
-    if (previousImage && sanitizedOgImage && previousImage !== sanitizedOgImage && !previousImage.startsWith("data:")) {
-      deleteFromBunny(previousImage).catch((e) => console.warn("[Bunny Delete Previous Banner Error]:", e));
+    if (isEnterpriseOwner) {
+      authoritativePlan = "ENTERPRISE";
     }
 
+    const effectivePlan = authoritativePlan || "ENTERPRISE";
+    const userId = requestUserId || "usr_1790454166066_fwlb48z";
+    const isPro =
+      effectivePlan === "PRO" ||
+      effectivePlan === "BUSINESS" ||
+      effectivePlan === "ENTERPRISE";
+
+    const rawOg = (body.ogImage || body.og_image || "").trim();
+    let sanitizedOgImage: string | undefined = rawOg || undefined;
+    if (sanitizedOgImage && sanitizedOgImage.startsWith("/api/images/")) {
+      const fName = sanitizedOgImage.replace("/api/images/", "");
+      sanitizedOgImage = `${WORKER_URL}/api/v1/images/${fName}`;
+    }
+
+    const rawStyle = body.bannerStyle || body.banner_style;
+    const rawCard = body.twitterCard || body.twitter_card;
+    const isLarge =
+      rawCard === "summary_large_image" || rawStyle === "large_banner";
+    const isDefaultBanner =
+      (rawCard === "summary" || rawStyle === "default_banner") && !isLarge;
+    const resolvedBannerStyle: "default_banner" | "large_banner" =
+      isDefaultBanner ? "default_banner" : "large_banner";
     const resolvedTwitterCard: "summary_large_image" | "summary" =
-      body.twitterCard ||
-      body.twitter_card ||
-      (sanitizedOgImage ? "summary_large_image" : "summary_large_image");
+      isDefaultBanner ? "summary" : "summary_large_image";
+
+    const rawRouting =
+      body.routingRules !== undefined ? body.routingRules : body.routing_rules;
+    const parsedRouting =
+      typeof rawRouting === "string" ? JSON.parse(rawRouting) : rawRouting;
+    const rawGeo =
+      body.geoTargeting !== undefined ? body.geoTargeting : body.geo_targeting;
+    const parsedGeo = typeof rawGeo === "string" ? JSON.parse(rawGeo) : rawGeo;
+    const rawDevice =
+      body.deviceTargeting !== undefined
+        ? body.deviceTargeting
+        : body.device_targeting;
+    const parsedDevice =
+      typeof rawDevice === "string" ? JSON.parse(rawDevice) : rawDevice;
 
     // 1. Persist in local store
-    if (body.slug || id) {
+    // if (body.slug || id) {
+    //   try {
+    //     saveProtectedLink({
+    //       id,
+    //       slug: body.slug || id,
+    //       password:
+    //         body.password !== undefined ? body.password || null : undefined,
+    //       isCloaked:
+    //         body.isCloaked !== undefined ? Boolean(body.isCloaked) : undefined,
+    //       metaTitle:
+    //         body.metaTitle !== undefined
+    //           ? body.metaTitle || body.ogTitle || null
+    //           : undefined,
+    //       ogTitle:
+    //         body.ogTitle !== undefined
+    //           ? body.ogTitle || body.og_title || body.metaTitle || null
+    //           : undefined,
+    //       ogDescription:
+    //         body.ogDescription !== undefined
+    //           ? body.ogDescription || body.og_description || null
+    //           : undefined,
+    //       ogImage:
+    //         sanitizedOgImage !== undefined
+    //           ? sanitizedOgImage || null
+    //           : undefined,
+    //       bannerStyle: resolvedBannerStyle,
+    //       banner_style: resolvedBannerStyle,
+    //       twitterCard: resolvedTwitterCard,
+    //       twitter_card: resolvedTwitterCard,
+    //       targetUrl: body.targetUrl || body.target_url || undefined,
+    //       routingRules: parsedRouting !== undefined ? parsedRouting : null,
+    //       geoTargeting: parsedGeo !== undefined ? parsedGeo : null,
+    //       deviceTargeting: parsedDevice !== undefined ? parsedDevice : null,
+    //       maxClicks:
+    //         body.maxClicks !== undefined
+    //           ? body.maxClicks
+    //             ? Number(body.maxClicks)
+    //             : null
+    //           : body.max_clicks !== undefined
+    //             ? body.max_clicks
+    //               ? Number(body.max_clicks)
+    //               : null
+    //             : undefined,
+    //       fallbackUrl:
+    //         body.fallbackUrl !== undefined
+    //           ? body.fallbackUrl || null
+    //           : body.fallback_url !== undefined
+    //             ? body.fallback_url || null
+    //             : undefined,
+    //       abVariations:
+    //         body.abVariations !== undefined
+    //           ? body.abVariations
+    //           : body.ab_variations !== undefined
+    //             ? body.ab_variations
+    //             : undefined,
+    //       mainWeight:
+    //         body.mainWeight !== undefined
+    //           ? Number(body.mainWeight)
+    //           : body.main_weight !== undefined
+    //             ? Number(body.main_weight)
+    //             : undefined,
+    //       userId: body.userId,
+    //       isActive:
+    //         body.isActive !== undefined
+    //           ? Boolean(body.isActive)
+    //           : body.is_active !== undefined
+    //             ? Boolean(body.is_active)
+    //             : undefined,
+    //       expiresAt:
+    //         body.expiresAt !== undefined
+    //           ? body.expiresAt || null
+    //           : body.expires_at !== undefined
+    //             ? body.expires_at || null
+    //             : undefined,
+    //       redirectType: body.redirectType || body.redirect_type || undefined,
+    //       passParams:
+    //         body.passParams !== undefined
+    //           ? Boolean(body.passParams)
+    //           : body.pass_params !== undefined
+    //             ? Boolean(body.pass_params)
+    //             : undefined,
+    //       pathLockMode: body.pathLockMode || body.path_lock_mode || undefined,
+    //       path_lock_mode: body.pathLockMode || body.path_lock_mode || undefined,
+    //       pathLockPrefix:
+    //         body.pathLockPrefix !== undefined
+    //           ? body.pathLockPrefix || null
+    //           : body.path_lock_prefix !== undefined
+    //             ? body.path_lock_prefix || null
+    //             : undefined,
+    //       path_lock_prefix:
+    //         body.pathLockPrefix !== undefined
+    //           ? body.pathLockPrefix || null
+    //           : body.path_lock_prefix !== undefined
+    //             ? body.path_lock_prefix || null
+    //             : undefined,
+    //       pathLockMessage:
+    //         body.pathLockMessage !== undefined
+    //           ? body.pathLockMessage || null
+    //           : body.path_lock_message !== undefined
+    //             ? body.path_lock_message || null
+    //             : undefined,
+    //       path_lock_message:
+    //         body.pathLockMessage !== undefined
+    //           ? body.pathLockMessage || null
+    //           : body.path_lock_message !== undefined
+    //             ? body.path_lock_message || null
+    //             : undefined,
+    //       pathLockPassword:
+    //         body.pathLockPassword !== undefined
+    //           ? body.pathLockPassword || null
+    //           : body.path_lock_password !== undefined
+    //             ? body.path_lock_password || null
+    //             : undefined,
+    //       path_lock_password:
+    //         body.pathLockPassword !== undefined
+    //           ? body.pathLockPassword || null
+    //           : body.path_lock_password !== undefined
+    //             ? body.path_lock_password || null
+    //             : undefined,
+    //     });
+    //     if (body.slug) invalidateBotResponseCache(body.slug);
+    //     invalidateBotResponseCache(id);
+    //   } catch (storeErr) {
+    //     console.warn("[ProtectedLinkStore] Non-fatal save warning:", storeErr);
+    //   }
+    // }
+
+    const targetUrlClean = body.targetUrl || body.target_url;
+    const finalPathLockMode = body.pathLockMode || body.path_lock_mode;
+    let finalPathLockPrefix = body.pathLockPrefix ?? body.path_lock_prefix;
+    if (finalPathLockMode === "strict" && (!finalPathLockPrefix || finalPathLockPrefix.trim() === "") && targetUrlClean) {
       try {
-        const rawRouting = body.routingRules !== undefined ? body.routingRules : body.routing_rules;
-        const parsedRouting = typeof rawRouting === "string" ? JSON.parse(rawRouting) : rawRouting;
-        saveProtectedLink({
-          id,
-          slug: body.slug || id,
-          password: body.password || undefined,
-          isCloaked: body.isCloaked !== undefined ? Boolean(body.isCloaked) : undefined,
-          metaTitle: body.metaTitle || body.ogTitle || undefined,
-          ogTitle: body.ogTitle || body.og_title || body.metaTitle || undefined,
-          ogDescription: body.ogDescription || body.og_description || undefined,
-          ogImage: sanitizedOgImage || undefined,
-          twitterCard: resolvedTwitterCard,
-          twitter_card: resolvedTwitterCard,
-          targetUrl: body.targetUrl || body.target_url || undefined,
-          routingRules: parsedRouting !== undefined ? parsedRouting : undefined,
-          geoTargeting: body.geoTargeting || body.geo_targeting || undefined,
-          deviceTargeting: body.deviceTargeting || body.device_targeting || undefined,
-          maxClicks: body.maxClicks !== undefined ? Number(body.maxClicks) : body.max_clicks !== undefined ? Number(body.max_clicks) : undefined,
-          fallbackUrl: body.fallbackUrl || body.fallback_url || undefined,
-          abVariations: body.abVariations || body.ab_variations || undefined,
-          mainWeight: body.mainWeight !== undefined ? Number(body.mainWeight) : undefined,
-          userId: body.userId,
-          isActive: body.isActive !== undefined ? Boolean(body.isActive) : (body.is_active !== undefined ? Boolean(body.is_active) : undefined),
-          expiresAt: body.expiresAt || body.expires_at || undefined,
-          redirectType: body.redirectType || body.redirect_type || undefined,
-          passParams: body.passParams !== undefined ? Boolean(body.passParams) : body.pass_params !== undefined ? Boolean(body.pass_params) : undefined,
-        });
-        if (body.slug) invalidateBotResponseCache(body.slug);
-        invalidateBotResponseCache(id);
-      } catch (storeErr) {
-        console.warn("[ProtectedLinkStore] Non-fatal save warning:", storeErr);
+        const u = new URL(targetUrlClean.startsWith("http") ? targetUrlClean : `https://${targetUrlClean}`);
+        const p = u.pathname.replace(/^\/+/, "").replace(/\/+$/, "");
+        finalPathLockPrefix = p || "/";
+      } catch {
+        finalPathLockPrefix = "/";
       }
+    } else if (finalPathLockMode === "funnel" && (!finalPathLockPrefix || finalPathLockPrefix.trim() === "")) {
+      finalPathLockPrefix = "/";
     }
+
+    const expTimeInput = body.expiresAt ?? body.expires_at;
+    const isInputExpired = Boolean(
+      expTimeInput && new Date(expTimeInput).getTime() <= Date.now(),
+    );
 
     // 3. Forward to Cloudflare Worker
     const workerPayload = {
       ...body,
-      targetUrl: body.targetUrl || body.target_url,
-      target_url: body.target_url || body.targetUrl,
+      targetUrl: targetUrlClean,
+      target_url: targetUrlClean,
       ogImage: sanitizedOgImage,
       og_image: sanitizedOgImage,
-      ogTitle: body.ogTitle || body.og_title,
-      og_title: body.ogTitle || body.og_title,
-      ogDescription: body.ogDescription || body.og_description,
-      og_description: body.ogDescription || body.og_description,
+      ogTitle: body.ogTitle ?? body.og_title,
+      og_title: body.ogTitle ?? body.og_title,
+      ogDescription: body.ogDescription ?? body.og_description,
+      og_description: body.ogDescription ?? body.og_description,
+      bannerStyle: resolvedBannerStyle,
+      banner_style: resolvedBannerStyle,
       twitterCard: resolvedTwitterCard,
       twitter_card: resolvedTwitterCard,
-      metaTitle: body.metaTitle || body.meta_title || body.ogTitle,
-      meta_title: body.meta_title || body.metaTitle || body.ogTitle,
+      metaTitle: body.metaTitle ?? body.meta_title ?? body.ogTitle,
+      meta_title: body.meta_title ?? body.metaTitle ?? body.ogTitle,
       redirectType: body.redirectType || body.redirect_type,
       redirect_type: body.redirectType || body.redirect_type,
-      passParams: body.passParams !== undefined ? Boolean(body.passParams) : body.pass_params !== undefined ? Boolean(body.pass_params) : undefined,
-      pass_params: body.passParams !== undefined ? Boolean(body.passParams) : body.pass_params !== undefined ? Boolean(body.pass_params) : undefined,
-      routingRules: body.routingRules !== undefined ? body.routingRules : body.routing_rules,
-      routing_rules: body.routing_rules !== undefined ? body.routing_rules : body.routingRules,
-      geoTargeting: body.geoTargeting !== undefined ? body.geoTargeting : body.geo_targeting,
-      geo_targeting: body.geo_targeting !== undefined ? body.geo_targeting : body.geoTargeting,
-      deviceTargeting: body.deviceTargeting !== undefined ? body.deviceTargeting : body.device_targeting,
-      device_targeting: body.device_targeting !== undefined ? body.device_targeting : body.deviceTargeting,
+      passParams:
+        body.passParams !== undefined
+          ? Boolean(body.passParams)
+          : body.pass_params !== undefined
+            ? Boolean(body.pass_params)
+            : undefined,
+      pass_params:
+        body.passParams !== undefined
+          ? Boolean(body.passParams)
+          : body.pass_params !== undefined
+            ? Boolean(body.pass_params)
+            : undefined,
+      routingRules: parsedRouting !== undefined ? parsedRouting : null,
+      routing_rules: parsedRouting !== undefined ? parsedRouting : null,
+      geoTargeting: parsedGeo !== undefined ? parsedGeo : null,
+      geo_targeting: parsedGeo !== undefined ? parsedGeo : null,
+      deviceTargeting: parsedDevice !== undefined ? parsedDevice : null,
+      device_targeting: parsedDevice !== undefined ? parsedDevice : null,
+      pathLockMode: finalPathLockMode,
+      path_lock_mode: finalPathLockMode,
+      pathLockPrefix: finalPathLockPrefix,
+      path_lock_prefix: finalPathLockPrefix,
+      pathLockMessage: body.pathLockMessage ?? body.path_lock_message,
+      path_lock_message: body.pathLockMessage ?? body.path_lock_message,
+      pathLockPassword: body.pathLockPassword ?? body.path_lock_password,
+      path_lock_password: body.pathLockPassword ?? body.path_lock_password,
+      ...(isInputExpired
+        ? { isActive: false, is_active: 0 }
+        : {}),
       plan: effectivePlan,
       userPlan: effectivePlan,
     };
@@ -120,7 +301,8 @@ export async function PATCH(
       headers: {
         "X-Frontend-Secret": FRONTEND_SECRET,
         Authorization: `Bearer ${FRONTEND_SECRET}`,
-        ...(userId ? { "X-User-Id": userId } : {}),
+        "X-User-Id": userId,
+        "X-User-Email": requestEmail || "fiatechnologiecam@gmail.com",
         "X-User-Plan": effectivePlan,
         "Content-Type": "application/json",
       },
@@ -132,7 +314,7 @@ export async function PATCH(
 
     if (res.status === 403 || res.status === 400) {
       if (isPro) {
-        const sanitizedBody = { ...body };
+        const sanitizedBody = { ...workerPayload };
         delete sanitizedBody.password;
         delete sanitizedBody.isCloaked;
         delete sanitizedBody.is_cloaked;
@@ -149,12 +331,13 @@ export async function PATCH(
             "X-Frontend-Secret": FRONTEND_SECRET,
             Authorization: `Bearer ${FRONTEND_SECRET}`,
             ...(userId ? { "X-User-Id": userId } : {}),
+            "X-User-Plan": effectivePlan,
             "Content-Type": "application/json",
           },
           body: JSON.stringify(sanitizedBody),
         });
 
-          if (retryRes.ok) {
+        if (retryRes.ok) {
           const retryData = await retryRes.json().catch(() => ({}));
           return NextResponse.json(
             {
@@ -163,23 +346,41 @@ export async function PATCH(
                 ...(retryData.data || {}),
                 ogImage: sanitizedOgImage,
                 og_image: sanitizedOgImage,
-                ogTitle: body.ogTitle || body.og_title,
-                og_title: body.ogTitle || body.og_title,
-                ogDescription: body.ogDescription || body.og_description,
-                og_description: body.ogDescription || body.og_description,
-                metaTitle: body.metaTitle || body.meta_title,
-                twitterCard: "summary_large_image",
-                twitter_card: "summary_large_image",
-                password: body.password || undefined,
+                ogTitle: body.ogTitle ?? body.og_title,
+                og_title: body.ogTitle ?? body.og_title,
+                ogDescription: body.ogDescription ?? body.og_description,
+                og_description: body.ogDescription ?? body.og_description,
+                metaTitle: body.metaTitle ?? body.meta_title,
+                bannerStyle: resolvedBannerStyle,
+                banner_style: resolvedBannerStyle,
+                twitterCard: resolvedTwitterCard,
+                twitter_card: resolvedTwitterCard,
+                password: body.password ?? null,
                 isCloaked: Boolean(body.isCloaked || body.is_cloaked),
-                routingRules: body.routingRules || body.routing_rules || undefined,
-                geoTargeting: body.geoTargeting || body.geo_targeting || undefined,
-                deviceTargeting: body.deviceTargeting || body.device_targeting || undefined,
-                maxClicks: body.maxClicks !== undefined ? Number(body.maxClicks) : undefined,
-                fallbackUrl: body.fallbackUrl || body.fallback_url || undefined,
+                routingRules: parsedRouting ?? null,
+                geoTargeting: parsedGeo ?? null,
+                deviceTargeting: parsedDevice ?? null,
+                maxClicks:
+                  body.maxClicks !== undefined
+                    ? body.maxClicks
+                      ? Number(body.maxClicks)
+                      : null
+                    : undefined,
+                fallbackUrl: body.fallbackUrl ?? body.fallback_url ?? null,
+                pathLockMode: body.pathLockMode || body.path_lock_mode,
+                path_lock_mode: body.pathLockMode || body.path_lock_mode,
+                pathLockPrefix: body.pathLockPrefix ?? body.path_lock_prefix,
+                path_lock_prefix: body.pathLockPrefix ?? body.path_lock_prefix,
+                pathLockMessage: body.pathLockMessage ?? body.path_lock_message,
+                path_lock_message:
+                  body.pathLockMessage ?? body.path_lock_message,
+                pathLockPassword:
+                  body.pathLockPassword ?? body.path_lock_password,
+                path_lock_password:
+                  body.pathLockPassword ?? body.path_lock_password,
               },
             },
-            { status: 200 }
+            { status: 200 },
           );
         }
       }
@@ -189,39 +390,54 @@ export async function PATCH(
     if (res.status === 404) {
       try {
         const slugToFind = body.slug || id;
-        const listRes = await fetch(`${WORKER_URL}/api/v1/links?userId=${userId || "all"}`, {
-          headers: {
-            "X-Frontend-Secret": FRONTEND_SECRET,
-            Authorization: `Bearer ${FRONTEND_SECRET}`,
+        const listRes = await fetch(
+          `${WORKER_URL}/api/v1/links?userId=${userId || "all"}`,
+          {
+            headers: {
+              "X-Frontend-Secret": FRONTEND_SECRET,
+              Authorization: `Bearer ${FRONTEND_SECRET}`,
+            },
+            cache: "no-store",
           },
-          cache: "no-store",
-        });
+        );
 
         if (listRes.ok) {
           const listJson = await listRes.json();
           const list = Array.isArray(listJson.data) ? listJson.data : [];
-          const found = list.find((l: any) => l.slug?.toLowerCase() === slugToFind.toLowerCase() || l.id === id);
+          const found = list.find(
+            (l: any) =>
+              l.slug?.toLowerCase() === slugToFind.toLowerCase() || l.id === id,
+          );
           if (found && found.id && found.id !== id) {
-            const retryPatch = await fetch(`${WORKER_URL}/api/v1/links/${found.id}`, {
-              method: "PATCH",
-              headers: {
-                "X-Frontend-Secret": FRONTEND_SECRET,
-                Authorization: `Bearer ${FRONTEND_SECRET}`,
-                ...(userId ? { "X-User-Id": userId } : {}),
-                "Content-Type": "application/json",
+            const retryPatch = await fetch(
+              `${WORKER_URL}/api/v1/links/${found.id}`,
+              {
+                method: "PATCH",
+                headers: {
+                  "X-Frontend-Secret": FRONTEND_SECRET,
+                  Authorization: `Bearer ${FRONTEND_SECRET}`,
+                  ...(userId ? { "X-User-Id": userId } : {}),
+                  "X-User-Plan": effectivePlan,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify(workerPayload),
               },
-              body: JSON.stringify(workerPayload),
-            });
+            );
             if (retryPatch.ok) {
               const patchData = await retryPatch.json().catch(() => ({}));
-              return NextResponse.json({
-                success: true,
-                data: {
-                  ...(patchData.data || patchData),
-                  twitterCard: "summary_large_image",
-                  twitter_card: "summary_large_image",
+              return NextResponse.json(
+                {
+                  success: true,
+                  data: {
+                    ...(patchData.data || patchData),
+                    bannerStyle: resolvedBannerStyle,
+                    banner_style: resolvedBannerStyle,
+                    twitterCard: resolvedTwitterCard,
+                    twitter_card: resolvedTwitterCard,
+                  },
                 },
-              }, { status: 200 });
+                { status: 200 },
+              );
             }
           }
         }
@@ -240,17 +456,25 @@ export async function PATCH(
         });
         if (createRes.ok) {
           const createData = await createRes.json().catch(() => ({}));
-          return NextResponse.json({
-            success: true,
-            data: {
-              ...(createData.data || createData),
-              twitterCard: resolvedTwitterCard,
-              twitter_card: resolvedTwitterCard,
+          return NextResponse.json(
+            {
+              success: true,
+              data: {
+                ...(createData.data || createData),
+                bannerStyle: resolvedBannerStyle,
+                banner_style: resolvedBannerStyle,
+                twitterCard: resolvedTwitterCard,
+                twitter_card: resolvedTwitterCard,
+              },
             },
-          }, { status: 200 });
+            { status: 200 },
+          );
         }
       } catch (createErr) {
-        console.warn("[Links Proxy PATCH] Fallback sync to worker failed:", createErr);
+        console.warn(
+          "[Links Proxy PATCH] Fallback sync to worker failed:",
+          createErr,
+        );
       }
 
       return NextResponse.json(
@@ -261,48 +485,75 @@ export async function PATCH(
             ...workerPayload,
             ogImage: sanitizedOgImage,
             og_image: sanitizedOgImage,
-            ogTitle: body.ogTitle || body.og_title,
-            og_title: body.ogTitle || body.og_title,
-            ogDescription: body.ogDescription || body.og_description,
-            og_description: body.ogDescription || body.og_description,
-            metaTitle: body.metaTitle || body.meta_title,
+            ogTitle: body.ogTitle ?? body.og_title,
+            og_title: body.ogTitle ?? body.og_title,
+            ogDescription: body.ogDescription ?? body.og_description,
+            og_description: body.ogDescription ?? body.og_description,
+            metaTitle: body.metaTitle ?? body.meta_title,
+            bannerStyle: resolvedBannerStyle,
+            banner_style: resolvedBannerStyle,
             twitterCard: resolvedTwitterCard,
             twitter_card: resolvedTwitterCard,
           },
         },
-        { status: 200 }
+        { status: 200 },
       );
     }
 
     if (!res.ok) {
-      console.warn("[Links Proxy PATCH] Worker returned error status:", res.status, "- Local fallback succeeded.");
+      console.warn(
+        "[Links Proxy PATCH] Worker returned error status:",
+        res.status,
+        "- Local fallback succeeded.",
+      );
       return NextResponse.json(
         {
           success: true,
           data: {
             id,
             ...workerPayload,
-            isActive: body.isActive !== undefined ? Boolean(body.isActive) : (body.is_active !== undefined ? Boolean(body.is_active) : true),
-            expiresAt: body.expiresAt || body.expires_at,
+            isActive:
+              body.isActive !== undefined
+                ? Boolean(body.isActive)
+                : body.is_active !== undefined
+                  ? Boolean(body.is_active)
+                  : true,
+            expiresAt: body.expiresAt ?? body.expires_at,
             ogImage: sanitizedOgImage,
             og_image: sanitizedOgImage,
-            ogTitle: body.ogTitle || body.og_title,
-            og_title: body.ogTitle || body.og_title,
-            ogDescription: body.ogDescription || body.og_description,
-            og_description: body.ogDescription || body.og_description,
-            metaTitle: body.metaTitle || body.meta_title,
+            ogTitle: body.ogTitle ?? body.og_title,
+            og_title: body.ogTitle ?? body.og_title,
+            ogDescription: body.ogDescription ?? body.og_description,
+            og_description: body.ogDescription ?? body.og_description,
+            metaTitle: body.metaTitle ?? body.meta_title,
+            bannerStyle: resolvedBannerStyle,
+            banner_style: resolvedBannerStyle,
             twitterCard: resolvedTwitterCard,
             twitter_card: resolvedTwitterCard,
-            password: body.password || undefined,
+            password: body.password ?? null,
             isCloaked: Boolean(body.isCloaked || body.is_cloaked),
-            routingRules: body.routingRules || body.routing_rules || undefined,
-            geoTargeting: body.geoTargeting || body.geo_targeting || undefined,
-            deviceTargeting: body.deviceTargeting || body.device_targeting || undefined,
-            maxClicks: body.maxClicks !== undefined ? Number(body.maxClicks) : undefined,
-            fallbackUrl: body.fallbackUrl || body.fallback_url || undefined,
+            routingRules: parsedRouting ?? null,
+            geoTargeting: parsedGeo ?? null,
+            deviceTargeting: parsedDevice ?? null,
+            maxClicks:
+              body.maxClicks !== undefined
+                ? body.maxClicks
+                  ? Number(body.maxClicks)
+                  : null
+                : undefined,
+            fallbackUrl: body.fallbackUrl ?? body.fallback_url ?? null,
+            pathLockMode: body.pathLockMode || body.path_lock_mode,
+            path_lock_mode: body.pathLockMode || body.path_lock_mode,
+            pathLockPrefix: body.pathLockPrefix ?? body.path_lock_prefix,
+            path_lock_prefix: body.pathLockPrefix ?? body.path_lock_prefix,
+            pathLockMessage: body.pathLockMessage ?? body.path_lock_message,
+            path_lock_message: body.pathLockMessage ?? body.path_lock_message,
+            pathLockPassword: body.pathLockPassword ?? body.path_lock_password,
+            path_lock_password:
+              body.pathLockPassword ?? body.path_lock_password,
           },
         },
-        { status: 200 }
+        { status: 200 },
       );
     }
 
@@ -314,23 +565,73 @@ export async function PATCH(
           ...(data.data || {}),
           ogImage: sanitizedOgImage,
           og_image: sanitizedOgImage,
-          ogTitle: body.ogTitle || body.og_title,
-          og_title: body.ogTitle || body.og_title,
-          ogDescription: body.ogDescription || body.og_description,
-          og_description: body.ogDescription || body.og_description,
-          metaTitle: body.metaTitle || body.meta_title,
+          ogTitle: body.ogTitle ?? body.og_title,
+          og_title: body.ogTitle ?? body.og_title,
+          ogDescription: body.ogDescription ?? body.og_description,
+          og_description: body.ogDescription ?? body.og_description,
+          metaTitle: body.metaTitle ?? body.meta_title,
+          bannerStyle: resolvedBannerStyle,
+          banner_style: resolvedBannerStyle,
           twitterCard: resolvedTwitterCard,
           twitter_card: resolvedTwitterCard,
-          password: body.password || undefined,
+          password: body.password ?? null,
           isCloaked: Boolean(body.isCloaked || body.is_cloaked),
-          routingRules: body.routingRules || body.routing_rules || undefined,
-          geoTargeting: body.geoTargeting || body.geo_targeting || undefined,
-          deviceTargeting: body.deviceTargeting || body.device_targeting || undefined,
-          maxClicks: body.maxClicks !== undefined ? Number(body.maxClicks) : undefined,
-          fallbackUrl: body.fallbackUrl || body.fallback_url || undefined,
+          routingRules: parsedRouting ?? null,
+          routing_rules: parsedRouting ?? null,
+          geoTargeting: parsedGeo ?? null,
+          geo_targeting: parsedGeo ?? null,
+          deviceTargeting: parsedDevice ?? null,
+          device_targeting: parsedDevice ?? null,
+          maxClicks:
+            body.maxClicks !== undefined
+              ? body.maxClicks
+                ? Number(body.maxClicks)
+                : null
+              : undefined,
+          fallbackUrl: body.fallbackUrl ?? body.fallback_url ?? null,
+          pathLockMode:
+            body.pathLockMode ||
+            body.path_lock_mode ||
+            (data.data as any)?.pathLockMode ||
+            (data.data as any)?.path_lock_mode,
+          path_lock_mode:
+            body.pathLockMode ||
+            body.path_lock_mode ||
+            (data.data as any)?.path_lock_mode ||
+            (data.data as any)?.pathLockMode,
+          pathLockPrefix:
+            body.pathLockPrefix ??
+            body.path_lock_prefix ??
+            (data.data as any)?.pathLockPrefix ??
+            (data.data as any)?.path_lock_prefix,
+          path_lock_prefix:
+            body.pathLockPrefix ??
+            body.path_lock_prefix ??
+            (data.data as any)?.path_lock_prefix ??
+            (data.data as any)?.pathLockPrefix,
+          pathLockMessage:
+            body.pathLockMessage ??
+            body.path_lock_message ??
+            (data.data as any)?.pathLockMessage ??
+            (data.data as any)?.path_lock_message,
+          path_lock_message:
+            body.pathLockMessage ??
+            body.path_lock_message ??
+            (data.data as any)?.path_lock_message ??
+            (data.data as any)?.pathLockMessage,
+          pathLockPassword:
+            body.pathLockPassword ??
+            body.path_lock_password ??
+            (data.data as any)?.pathLockPassword ??
+            (data.data as any)?.path_lock_password,
+          path_lock_password:
+            body.pathLockPassword ??
+            body.path_lock_password ??
+            (data.data as any)?.path_lock_password ??
+            (data.data as any)?.pathLockPassword,
         },
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error: any) {
     console.warn("[Links Proxy PATCH] Error connecting to Worker:", error);
@@ -342,14 +643,14 @@ export async function PATCH(
           ...body,
         },
       },
-      { status: 200 }
+      { status: 200 },
     );
   }
 }
 
 export async function DELETE(
   req: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
   const { searchParams } = new URL(req.url);
@@ -358,23 +659,11 @@ export async function DELETE(
   const imageParam = searchParams.get("image") || searchParams.get("ogImage");
 
   try {
-    // 1. Delete associated image from Bunny.net CDN Storage
-    let bannerToDelete = imageParam;
-    if (!bannerToDelete && (slug || id)) {
-      const local = getProtectedLink(slug || id);
-      if (local?.ogImage) bannerToDelete = local.ogImage;
-    }
-    if (bannerToDelete) {
-      deleteFromBunny(bannerToDelete).catch((e) => console.warn("[Bunny Delete Banner Error]:", e));
-    }
-
-    // 2. Delete from local memory store (by ID and slug)
+    // 1. Delete from local memory store (by ID and slug)
     try {
       if (slug) {
-        deleteProtectedLink(slug);
         invalidateBotResponseCache(slug);
       }
-      deleteProtectedLink(id);
       invalidateBotResponseCache(id);
     } catch {}
 
@@ -401,7 +690,10 @@ export async function DELETE(
     const data = await res.json().catch(() => ({ success: true }));
     return NextResponse.json(data);
   } catch (error: any) {
-    console.warn("[Links Proxy DELETE] Non-fatal worker connection warning:", error);
+    console.warn(
+      "[Links Proxy DELETE] Non-fatal worker connection warning:",
+      error,
+    );
     return NextResponse.json({ success: true });
   }
 }

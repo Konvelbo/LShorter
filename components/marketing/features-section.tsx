@@ -111,13 +111,25 @@ interface MobileCard {
   badge?: string;
 }
 
+interface timelineContentProps {
+  title?: string;
+  content?: React.ReactNode;
+}
+
+const timeLineData: timelineContentProps[] = [
+  {
+    title: "01 ",
+  },
+];
+
 const mobileRow1: MobileCard[] = [
   {
     id: "m-1",
     type: "orange",
     category: "01. ULTRA-FAST REDIRECTION",
     title: "Sub-15ms Edge Speed",
-    definition: "Execute your redirects in under 15ms powered globally by 310+ Cloudflare Edge locations.",
+    definition:
+      "Execute your redirects in under 15ms powered globally by 310+ Cloudflare Edge locations.",
     docSlug: "sdk-quickstart",
   },
   {
@@ -125,7 +137,8 @@ const mobileRow1: MobileCard[] = [
     type: "purple",
     category: "02. URL MASKING",
     title: "Brand Shield & Discretion",
-    definition: "Mask destination URLs to safeguard affiliate commissions and UTM campaign parameters.",
+    definition:
+      "Mask destination URLs to safeguard affiliate commissions and UTM campaign parameters.",
     image: "/marketing-FCI/cosmos_227768569.jpeg",
     badge: "SHIELD / MASK",
     docSlug: "url-masking",
@@ -135,7 +148,8 @@ const mobileRow1: MobileCard[] = [
     type: "white",
     category: "03. DYNAMIC A/B TESTING",
     title: "Percentage Split",
-    definition: "Distribute your visitors between multiple target pages by percentage to maximize sales.",
+    definition:
+      "Distribute your visitors between multiple target pages by percentage to maximize sales.",
     docSlug: "ab-testing-routing",
   },
   {
@@ -143,7 +157,8 @@ const mobileRow1: MobileCard[] = [
     type: "blue",
     category: "04. VECTOR QR CODES",
     title: "HD SVG Generation",
-    definition: "Generate custom high-definition vector QR codes, instantly downloadable for print and packaging.",
+    definition:
+      "Generate custom high-definition vector QR codes, instantly downloadable for print and packaging.",
     docSlug: "dynamic-qr-codes",
   },
 ];
@@ -154,7 +169,8 @@ const mobileRow2: MobileCard[] = [
     type: "white",
     category: "05. SECURITY & PROTECTION",
     title: "Access Code & PIN",
-    definition: "Lock access to confidential links with an access PIN code before any redirection.",
+    definition:
+      "Lock access to confidential links with an access PIN code before any redirection.",
     docSlug: "pin-protection",
   },
   {
@@ -162,7 +178,8 @@ const mobileRow2: MobileCard[] = [
     type: "dark",
     category: "06. OPEN GRAPH",
     title: "Auto Rich Cards",
-    definition: "Customize social cards to display rich previews across WhatsApp, LinkedIn, X, and Discord.",
+    definition:
+      "Customize social cards to display rich previews across WhatsApp, LinkedIn, X, and Discord.",
     image: "/marketing-FCI/cosmos_549824580.jpeg",
     badge: "RICH / PREVIEW",
     docSlug: "social-sharing-opengraph",
@@ -172,7 +189,8 @@ const mobileRow2: MobileCard[] = [
     type: "orange",
     category: "07. TRAFFIC CONTROL",
     title: "Cap & Fallback",
-    definition: "Set a maximum click ceiling and automatically redirect to a fallback URL once reached.",
+    definition:
+      "Set a maximum click ceiling and automatically redirect to a fallback URL once reached.",
     docSlug: "click-limits-and-expiration",
   },
   {
@@ -180,7 +198,8 @@ const mobileRow2: MobileCard[] = [
     type: "purple",
     category: "08. REST API & SDK",
     title: "High-Speed Webhooks",
-    definition: "Integrate every feature into your apps with our high-throughput REST API and TypeScript SDK.",
+    definition:
+      "Integrate every feature into your apps with our high-throughput REST API and TypeScript SDK.",
     image: "/marketing-FCI/cosmos_938538719.jpeg",
     badge: "API / DEV",
     docSlug: "webhooks-and-events",
@@ -192,7 +211,7 @@ function MobileFeatureCard({ card }: { card: MobileCard }) {
     return (
       <Link
         href={`/docs/${card.docSlug}`}
-        className="w-[270px] sm:w-[300px] h-[190px] sm:h-[200px] rounded-[24px] bg-brand text-white p-5 flex flex-col items-center justify-between text-center shadow-lg border border-brand-subtle shrink-0 transition-transform active:scale-95 group/mcard cursor-pointer select-none"
+        className="w-[270px] sm:w-[300px] h-[190px] sm:h-[200px] rounded-[10px] bg-brand text-white p-5 flex flex-col items-center justify-between text-center shadow-lg border border-brand-subtle shrink-0 transition-transform active:scale-95 group/mcard cursor-pointer select-none"
       >
         <span className="text-[9.5px] font-mono font-bold uppercase tracking-wider text-white/90">
           {card.category}
@@ -211,7 +230,7 @@ function MobileFeatureCard({ card }: { card: MobileCard }) {
     return (
       <Link
         href={`/docs/${card.docSlug}`}
-        className="w-[270px] sm:w-[300px] h-[190px] sm:h-[200px] rounded-[24px] bg-[#FFFDF9] dark:bg-[#131317] border border-[#E7DFD5] dark:border-white/10 p-5 flex flex-col items-center justify-between text-center shadow-lg shrink-0 transition-transform active:scale-95 group/mcard cursor-pointer select-none"
+        className="w-[270px] sm:w-[300px] h-[190px] sm:h-[200px] rounded-[10px] bg-[#FFFDF9] dark:bg-[#131317] border border-[#E7DFD5] dark:border-white/10 p-5 flex flex-col items-center justify-between text-center shadow-lg shrink-0 transition-transform active:scale-95 group/mcard cursor-pointer select-none"
       >
         <span className="text-[9.5px] font-mono font-bold uppercase tracking-wider text-brand">
           {card.category}
@@ -230,10 +249,10 @@ function MobileFeatureCard({ card }: { card: MobileCard }) {
     return (
       <Link
         href={`/docs/${card.docSlug}`}
-        className="w-[270px] sm:w-[300px] h-[190px] sm:h-[200px] rounded-[24px] bg-gradient-to-br from-[#6D28D9] via-[#5B21B6] to-[#3B0764] dark:from-[#4C1D95] dark:via-[#3B0764] dark:to-[#1E1B4B] text-white p-5 flex flex-col items-center justify-between text-center shadow-lg border border-white/15 shrink-0 relative overflow-hidden transition-transform active:scale-95 group/mcard cursor-pointer select-none"
+        className="w-[270px] sm:w-[300px] h-[190px] sm:h-[200px] rounded-[10px] bg-gradient-to-br from-[#6D28D9] via-[#5B21B6] to-[#3B0764] dark:from-[#4C1D95] dark:via-[#3B0764] dark:to-[#1E1B4B] text-white p-5 flex flex-col items-center justify-between text-center shadow-lg border border-white/15 shrink-0 relative overflow-hidden transition-transform active:scale-95 group/mcard cursor-pointer select-none"
       >
         <div className="flex items-center justify-center z-10">
-          <span className="inline-block px-2.5 py-0.5 rounded-full bg-white/20 backdrop-blur-md text-[8.5px] font-mono font-bold uppercase tracking-wider text-white">
+          <span className="inline-block px-2.5 py-0.5 rounded-[10px] bg-white/20 backdrop-blur-md text-[8.5px] font-mono font-bold uppercase tracking-wider text-white">
             {card.badge}
           </span>
         </div>
@@ -244,7 +263,7 @@ function MobileFeatureCard({ card }: { card: MobileCard }) {
           {card.definition}
         </p>
         {card.image && (
-          <div className="absolute right-2 bottom-2 w-16 h-16 rounded-xl overflow-hidden opacity-25 border border-white/20 pointer-events-none">
+          <div className="absolute right-2 bottom-2 w-16 h-16 rounded-[10px] overflow-hidden opacity-25 border border-white/20 pointer-events-none">
             <Image
               src={card.image}
               alt={card.title}
@@ -264,10 +283,10 @@ function MobileFeatureCard({ card }: { card: MobileCard }) {
   return (
     <Link
       href={`/docs/${card.docSlug}`}
-      className="w-[270px] sm:w-[300px] h-[190px] sm:h-[200px] rounded-[24px] bg-gradient-to-br from-[#1F1F24] to-[#0A0A0C] text-white p-5 flex flex-col items-center justify-between text-center shadow-lg border border-white/15 shrink-0 relative overflow-hidden transition-transform active:scale-95 group/mcard cursor-pointer select-none"
+      className="w-[270px] sm:w-[300px] h-[190px] sm:h-[200px] rounded-[10px] bg-gradient-to-br from-[#1F1F24] to-[#0A0A0C] text-white p-5 flex flex-col items-center justify-between text-center shadow-lg border border-white/15 shrink-0 relative overflow-hidden transition-transform active:scale-95 group/mcard cursor-pointer select-none"
     >
       <div className="flex items-center justify-center z-10">
-        <span className="inline-block px-2.5 py-0.5 rounded-full bg-white/20 backdrop-blur-md text-[8.5px] font-mono font-bold uppercase tracking-wider text-white">
+        <span className="inline-block px-2.5 py-0.5 rounded-[10px] bg-white/20 backdrop-blur-md text-[8.5px] font-mono font-bold uppercase tracking-wider text-white">
           {card.badge}
         </span>
       </div>
@@ -278,7 +297,7 @@ function MobileFeatureCard({ card }: { card: MobileCard }) {
         {card.definition}
       </p>
       {card.image && (
-        <div className="absolute right-2 bottom-2 w-16 h-16 rounded-xl overflow-hidden opacity-25 border border-white/20 pointer-events-none">
+        <div className="absolute right-2 bottom-2 w-16 h-16 rounded-[10px] overflow-hidden opacity-25 border border-white/20 pointer-events-none">
           <Image
             src={card.image}
             alt={card.title}
@@ -450,7 +469,7 @@ export function FeaturesSection() {
   return (
     <section
       id="features"
-      className="relative z-0 pt-16 sm:pt-24 pb-14 sm:pb-20 overflow-hidden bg-[#FAF7F2] dark:bg-[#09090b] transition-colors"
+      className="relative z-0 pt- sm:pt- pb-14 sm:pb-20 overflow-hidden bg-[#FAF7F2] dark:bg-[#09090b] transition-colors duration-300"
     >
       {/* Center dividing guide line for desktop */}
       <div className="hidden lg:block absolute left-1/2 top-28 bottom-0 w-px bg-gradient-to-b from-transparent via-[#E7DFD5] to-[#E7DFD5] dark:via-white/[0.08] dark:to-white/[0.08] -translate-x-1/2 pointer-events-none" />
@@ -459,15 +478,15 @@ export function FeaturesSection() {
         {/* Section Header */}
         <div
           ref={headerRef}
-          className="features-header text-center max-w-2xl mx-auto mb-8 sm:mb-12 flex flex-col items-center justify-center will-change-transform"
+          className="features-header text-center max-w-2xl mx-auto mb-10 sm:mb-25 flex flex-col items-center justify-center will-change-transform"
         >
-          <span className="text-[11px] font-mono text-brand uppercase tracking-widest font-semibold block mb-2 select-none">
+          <span className="text-text-marketing-title1 font-mono text-brand uppercase tracking-widest font-semibold block mb-3 select-none">
             03. Core Capabilities
           </span>
-          <h2 className="text-xl sm:text-[24px] font-bold tracking-tight text-neutral-900 dark:text-white leading-snug text-center">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-neutral-900 dark:text-white leading-snug text-center">
             Comprehensive Features, Zero Compromise
           </h2>
-          <p className="mt-1.5 text-xs sm:text-[13.5px] text-neutral-600 dark:text-neutral-400 font-normal text-center max-w-xl">
+          <p className="mt-2 text-xs sm:text-sm md:text-base text-neutral-600 dark:text-neutral-400 font-normal text-center max-w-xl">
             Every tool is engineered with precision to empower modern creators,
             growth marketers, and engineering teams.
           </p>
@@ -481,10 +500,18 @@ export function FeaturesSection() {
           </div>
 
           {/* Row 1: Right-to-Left Auto + Manual Swipe */}
-          <AutoManualScrollRow cards={mobileRow1} direction="left" speed={0.45} />
+          <AutoManualScrollRow
+            cards={mobileRow1}
+            direction="left"
+            speed={0.45}
+          />
 
           {/* Row 2: Left-to-Right Auto + Manual Swipe */}
-          <AutoManualScrollRow cards={mobileRow2} direction="right" speed={0.45} />
+          <AutoManualScrollRow
+            cards={mobileRow2}
+            direction="right"
+            speed={0.45}
+          />
         </div>
 
         {/* ══ DESKTOP FORMAT (hidden lg:block): Alternating Detailed Features List ══ */}
@@ -499,18 +526,18 @@ export function FeaturesSection() {
                 data-side={feat.side}
                 className={`feature-row-item w-full flex flex-col ${
                   isLeft ? "lg:items-start" : "lg:items-end"
-                } ${!isLast ? "mb-6 sm:mb-10" : ""}`}
+                } ${!isLast ? "mb-15 sm:mb-20" : ""}`}
               >
                 <Link
                   href={`/docs/${feat.docSlug}`}
-                  className="group w-full lg:max-w-[48%] rounded-2xl bg-[#FFFDF9] dark:bg-[#121216] border border-[#E7DFD5] dark:border-white/10 shadow-xl overflow-hidden p-3.5 sm:p-5 flex flex-col sm:flex-row gap-3.5 sm:gap-5 items-center justify-between transition-all duration-300 ease-out hover:scale-[1.03] active:scale-[0.99] hover:shadow-2xl hover:border-brand-subtle dark:hover:border-white/30 cursor-pointer"
+                  className="group w-full lg:max-w-[48%] h-70 rounded-[10px] bg-[#FFFDF9] dark:bg-[#121216] border border-[#E7DFD5] dark:border-white/10 shadow-xl overflow-hidden p-3.5 sm:p-5 flex flex-col sm:flex-row gap-6.5 sm:gap-8 items-center justify-between transition-all duration-300 ease-out hover:scale-[1.03] active:scale-[0.99] hover:shadow-2xl hover:border-brand-subtle dark:hover:border-white/30 cursor-pointer"
                   title={`View details: ${feat.title}`}
                 >
                   {/* Left-oriented layout */}
                   {isLeft ? (
                     <>
                       {/* Image Preview */}
-                      <div className="w-full sm:w-[48%] h-36 sm:h-44 rounded-xl overflow-hidden bg-[#F2ECE4] dark:bg-black/40 relative shrink-0 border border-[#E7DFD5] dark:border-white/10">
+                      <div className="w-full sm:w-[48%] h-36 sm:h-56 rounded-[10px] overflow-hidden bg-[#F2ECE4] dark:bg-black/40 relative shrink-0 border border-[#E7DFD5] dark:border-white/10">
                         <Image
                           src={feat.image}
                           alt={feat.title}
@@ -526,20 +553,20 @@ export function FeaturesSection() {
                       {/* Text Content + Right Arrow */}
                       <div className="flex-1 flex flex-col justify-between h-full space-y-2 w-full">
                         <div>
-                          <span className="text-[10px] font-mono text-brand font-semibold block mb-0.5">
+                          <span className="text-[12px] font-mono text-brand font-semibold block mb-0.5">
                             0{feat.id}. {feat.subtitle}
                           </span>
-                          <h3 className="text-sm sm:text-base font-medium text-neutral-900 dark:text-white leading-snug group-hover:text-brand transition-colors">
+                          <h3 className="text-[19px] sm:text-[18px] font-medium text-neutral-900 dark:text-white leading-snug group-hover:text-brand transition-colors">
                             {feat.title}
                           </h3>
-                          <p className="text-[11.5px] sm:text-[12.5px] text-neutral-600 dark:text-neutral-400 mt-1 leading-relaxed font-normal">
+                          <p className="text-[15.5px] sm:text-[15.5px] text-neutral-600 dark:text-neutral-400 mt-1 leading-relaxed font-normal">
                             {feat.description}
                           </p>
                         </div>
 
                         <div className="pt-1 flex justify-end">
                           <span
-                            className="w-7 h-7 rounded-full bg-white dark:bg-white/5 border border-neutral-200 dark:border-white/10 group-hover:border-brand group-hover:bg-brand flex items-center justify-center text-neutral-700 dark:text-neutral-300 group-hover:text-white shadow-sm transition-all duration-300 group-hover:scale-110 active:scale-95"
+                            className="w-10 h-10 rounded-[10px] bg-white dark:bg-white/5 border border-neutral-200 dark:border-white/10 group-hover:border-brand group-hover:bg-brand flex items-center justify-center text-neutral-700 dark:text-neutral-300 group-hover:text-white shadow-sm transition-all duration-300 group-hover:scale-110 active:scale-95"
                             aria-hidden="true"
                           >
                             <ArrowRight className="w-3.5 h-3.5 text-brand group-hover:text-white transition-transform group-hover:translate-x-0.5 duration-300" />
@@ -565,7 +592,7 @@ export function FeaturesSection() {
 
                         <div className="pt-1 flex justify-start">
                           <span
-                            className="w-7 h-7 rounded-full bg-white dark:bg-white/5 border border-neutral-200 dark:border-white/10 group-hover:border-brand group-hover:bg-brand flex items-center justify-center text-neutral-700 dark:text-neutral-300 group-hover:text-white shadow-sm transition-all duration-300 group-hover:scale-110 active:scale-95"
+                            className="w-7 h-7 rounded-[10px] bg-white dark:bg-white/5 border border-neutral-200 dark:border-white/10 group-hover:border-brand group-hover:bg-brand flex items-center justify-center text-neutral-700 dark:text-neutral-300 group-hover:text-white shadow-sm transition-all duration-300 group-hover:scale-110 active:scale-95"
                             aria-hidden="true"
                           >
                             <ArrowLeft className="w-3.5 h-3.5 text-brand group-hover:text-white transition-transform group-hover:-translate-x-0.5 duration-300" />
@@ -574,7 +601,7 @@ export function FeaturesSection() {
                       </div>
 
                       {/* Image Preview */}
-                      <div className="order-1 sm:order-2 w-full sm:w-[48%] h-36 sm:h-44 rounded-xl overflow-hidden bg-[#F2ECE4] dark:bg-black/40 relative shrink-0 border border-[#E7DFD5] dark:border-white/10">
+                      <div className="order-1 sm:order-2 w-full sm:w-[48%] h-36 sm:h-44 rounded-[10px] overflow-hidden bg-[#F2ECE4] dark:bg-black/40 relative shrink-0 border border-[#E7DFD5] dark:border-white/10">
                         <Image
                           src={feat.image}
                           alt={feat.title}

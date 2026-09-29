@@ -41,7 +41,7 @@ export function OnboardingGuard({ children }: { children: React.ReactNode }) {
     }
 
     // 3. If user is confirmed null in Convex (account was wiped or deleted), clear orphaned session
-    if (convexUser === null && status === "authenticated") {
+    if (convexUser === null && status === "authenticated" && !(session?.user as any)?.hasCompletedOnboarding) {
       import("next-auth/react").then(({ signOut }) => {
         signOut({ redirect: true, callbackUrl: "/register" });
       });

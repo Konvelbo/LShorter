@@ -11,7 +11,7 @@ export interface UserProfile {
   created_at: string;
   createdAt?: string;
   clicksThisMonth: number;
-  clicksLimit: number; // 2,500 for Free, 500k for Pro, 1.2M for Business, 5M for Enterprise
+  clicksLimit: number; // 10,000 for Starter, 150k for Pro, 500k for Business, 2M (Unlimited overage) for Enterprise
   domainsCount: number;
   domainsLimit: number; // 0 for Free, 3 for Pro, 15 for Business, 50 for Enterprise
   linksCount: number;
@@ -40,6 +40,23 @@ export interface UserMeData {
   linksCount: number;
   domainsCount: number;
   createdAt: string;
+  planLimits?: {
+    monthlyClicks: number;
+    activeLinks: number;
+    customDomains: number;
+    retargetingPixels: number;
+    apiRateLimitPerMinute: number;
+  };
+  overage?: {
+    allowed: boolean;
+    unlimited?: boolean;
+    batchSize: number;
+    costPerBatch: number;
+    label?: string;
+    overageClicks: number;
+    batches: number;
+    estimatedCost: number;
+  };
 }
 
 export interface UserMeResponse {
@@ -86,10 +103,16 @@ export interface ShortLink {
   password?: string;
   isPasswordProtected?: boolean;
   isCloaked?: boolean;
+  is_cloaked?: number | boolean;
   metaTitle?: string;
   ogTitle?: string;
+  og_title?: string;
   ogDescription?: string;
+  og_description?: string;
   ogImage?: string;
+  og_image?: string;
+  bannerStyle?: "default_banner" | "large_banner";
+  banner_style?: "default_banner" | "large_banner" | string;
   twitterCard?: "summary_large_image" | "summary";
   twitter_card?: string;
   hideReferrer?: boolean;
@@ -101,6 +124,14 @@ export interface ShortLink {
   mainWeight?: number;
   redirectType?: "301" | "302" | "307";
   passParams?: boolean;
+  pathLockMode?: "off" | "strict" | "funnel";
+  path_lock_mode?: "off" | "strict" | "funnel";
+  pathLockPrefix?: string;
+  path_lock_prefix?: string;
+  pathLockMessage?: string;
+  path_lock_message?: string;
+  pathLockPassword?: string;
+  path_lock_password?: string;
   isActive: boolean;
   created_at: string;
 }

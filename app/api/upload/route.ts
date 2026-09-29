@@ -1,139 +1,67 @@
-import { NextResponse } from "next/server";
-import fs from "fs";
-import path from "path";
-import { uploadToBunny, isBunnyConfigured, getOptimizedBunnyOgUrl } from "@/lib/bunny";
+import { NextRequest, NextResponse } from "next/server";
+import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     const contentType = req.headers.get("content-type") || "";
     let base64Data = "";
-    let fileBuffer: Buffer | null = null;
-    let mimeType = "image/jpeg";
-    let uploadFolder = "Banners";
-    let originalName = "upload";
 
     if (contentType.includes("application/json")) {
-      const body = await req.json();
-      let f = body.folder ? body.folder.replace(/^lshorter\/?/i, "") : uploadFolder;
-      if (f.toLowerCase() === "banners") f = "Banners";
-      uploadFolder = f;
-      base64Data = body.data || body.file || "";
-
-      if (base64Data) {
-        const commaIdx = base64Data.indexOf(",");
-        if (commaIdx !== -1) {
-          const meta = base64Data.substring(0, commaIdx);
-          const rawBase64 = base64Data.substring(commaIdx + 1);
-          const mimeMatch = meta.match(/data:([^;,]+)/);
-          if (mimeMatch) {
-            mimeType = mimeMatch[1];
-          }
-          fileBuffer = Buffer.from(rawBase64, "base64");
-        } else {
-          fileBuffer = Buffer.from(base64Data, "base64");
-        }
-      }
-    } else {
-      const formData = await req.formData();
-      let f = (formData.get("folder") as string) || uploadFolder;
-      f = f.replace(/^lshorter\/?/i, "");
-      if (f.toLowerCase() === "banners") f = "Banners";
-      uploadFolder = f;
-      const file = formData.get("file") as File | null;
-      if (file) {
-        mimeType = file.type || "image/jpeg";
-        originalName = file.name ? file.name.replace(/[^a-zA-Z0-9._-]/g, "") : "upload";
-        const bytes = await file.arrayBuffer();
-        fileBuffer = Buffer.from(bytes);
-        base64Data = `data:${mimeType};base64,${fileBuffer.toString("base64")}`;
+      const body = await req.json().catch(() => null);
+      base64Data = body?.data || body?.image || "";
+    } else if (contentType.includes("multipart/form-data")) {
+      const formData = await req.formData().catch(() => null);
+      const file = formData?.get("file") as File | null;
+      if (file && typeof file === "object" && "arrayBuffer" in file) {
+        const arrayBuf = await file.arrayBuffer();
+        const buffer = Buffer.from(arrayBuf);
+        const fName = file.name || "image.jpg";
+        const ext = fName.split(".").pop()?.toLowerCase() || "jpg";
+        const mimeType = file.type || `image/${ext === "jpg" ? "jpeg" : ext}`;
+        base64Data = `data:${mimeType};base64,${buffer.toString("base64")}`;
       }
     }
 
-    if (!fileBuffer && !base64Data) {
+    if (!base64Data) {
       return NextResponse.json(
-        { success: false, error: "No image file received" },
-        { status: 400 }
+        { success: false, error: "No image data provided" },
+        { status: 400 },
       );
     }
 
-    // Determine extension and clean filename
-    const ext = (mimeType.split("/")[1] || "jpg").replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
-    const safeExt = ext === "jpeg" ? "jpg" : ext;
-    const randomSlug = Math.random().toString(36).substring(2, 7);
-    const fileName = `upload_${Date.now()}_${randomSlug}.${safeExt}`;
+    // 100% Cloudflare Cloud Storage (D1 & KV) — No local disk storage
+    const workerRes = await fetch(`${WORKER_URL}/api/v1/upload-image`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Frontend-Secret": FRONTEND_SECRET,
+      },
+      body: JSON.stringify({ data: base64Data }),
+    });
 
-    // 1. Primary Tier: Bunny.net Storage & CDN (Ultra-fast, Pay-as-you-go, 120+ Edge PoPs)
-    if (isBunnyConfigured() && (fileBuffer || base64Data)) {
-      try {
-        const bunnyResult = await uploadToBunny(fileBuffer || base64Data, {
-          folder: uploadFolder,
-          filename: fileName,
-          contentType: mimeType,
-        });
-
-        if (bunnyResult.success && bunnyResult.url) {
-          const isBanner = uploadFolder.toLowerCase().includes("banner");
-          const finalUrl = isBanner
-            ? getOptimizedBunnyOgUrl(bunnyResult.url)
-            : bunnyResult.url;
-
-          return NextResponse.json({
-            success: true,
-            provider: "bunny",
-            url: finalUrl,
-            cdnUrl: bunnyResult.cdnUrl || finalUrl,
-            filename: bunnyResult.filename || fileName,
-            storagePath: bunnyResult.storagePath,
-          });
-        } else {
-          console.warn("[Upload API] Bunny.net returned non-success, using local fallback:", bunnyResult.error);
-        }
-      } catch (bunnyErr) {
-        console.warn("[Upload API] Bunny.net upload exception, using local fallback:", bunnyErr);
-      }
-    }
-
-    // 2. Localhost & Server Storage fallback (Save directly to public/uploads directory)
-    if (fileBuffer) {
-      try {
-        const uploadsDir = path.join(process.cwd(), "public", "uploads");
-        if (!fs.existsSync(uploadsDir)) {
-          fs.mkdirSync(uploadsDir, { recursive: true });
-        }
-        const filePath = path.join(uploadsDir, fileName);
-        fs.writeFileSync(filePath, fileBuffer);
-
-        return NextResponse.json({
-          success: true,
-          provider: "local",
-          url: `/api/images/${fileName}`,
-          cdnUrl: `/api/images/${fileName}`,
-          imageId: fileName,
-        });
-      } catch (fsErr: any) {
-        console.error("[Upload API Local FS Error]:", fsErr);
-      }
-    }
-
-    // 3. Last fallback: return the base64 data URL
-    if (base64Data) {
+    if (workerRes.ok) {
+      const data = await workerRes.json();
       return NextResponse.json({
         success: true,
-        provider: "base64",
-        url: base64Data,
-        cdnUrl: base64Data,
+        url:
+          data.url ||
+          (data.imageId
+            ? `https://lshorter-api.fiatechnologiecam.workers.dev/api/v1/images/${data.imageId}`
+            : ""),
+        imageId: data.imageId,
       });
     }
 
+    const errData = await workerRes.text().catch(() => "Worker upload failed");
     return NextResponse.json(
-      { success: false, error: "Failed to process image file" },
-      { status: 500 }
+      { success: false, error: errData },
+      { status: workerRes.status },
     );
-  } catch (err: any) {
-    console.error("[Upload API Proxy Error]:", err);
+  } catch (error: any) {
+    console.error("[Upload Cloud Route Error]:", error);
     return NextResponse.json(
-      { success: false, error: err?.message || "Upload server error" },
-      { status: 500 }
+      { success: false, error: error?.message || "Failed to upload image to Cloudflare cloud" },
+      { status: 500 },
     );
   }
 }

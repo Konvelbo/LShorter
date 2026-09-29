@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useSession } from "next-auth/react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -20,19 +21,19 @@ import { compileRoutingRules } from "@/lib/routing-utils";
 import { triggerPlanUpgrade } from "@/lib/plan-guard";
 import { showToast } from "@/components/ui/toast-provider";
 import { cn } from "@/lib/utils";
+import { Trash2, Loader2, CheckCircle2 } from "lucide-react";
 import { DeleteConfirmModal } from "@/components/dashboard/delete-confirm-modal";
 import confetti from "canvas-confetti";
+import gsap from "gsap";
 
-// Modular sub-components
 import { LinkDrawerProps, DRAWER_TABS, DrawerTabId } from "./types";
-import { DrawerHeader } from "./drawer-header";
-import { DrawerFooter } from "./drawer-footer";
-import { SectionSocial } from "./sections/section-social";
+import { SectionLink } from "./sections/section-link";
+import { SectionSocialTracking } from "./sections/section-social-tracking";
 import { SectionRouting } from "./sections/section-routing";
-import { SectionTracking } from "./sections/section-tracking";
-import { SectionProtection } from "./sections/section-protection";
+import { SectionProtectionExpiry } from "./sections/section-protection-expiry";
 import { SectionAbTesting } from "./sections/section-ab-testing";
-import { SectionBannerAdvanced } from "./sections/section-banner-advanced";
+import { SectionAdvanced } from "./sections/section-advanced";
+import { SectionReview } from "./sections/section-review";
 
 export function LinkDrawer({
   isOpen,
@@ -47,12 +48,31 @@ export function LinkDrawer({
   const { data: session } = useSession();
   const userId =
     session?.user?.id || (link?.userId ? link.userId : "usr_anonymous");
+  const userEmail = session?.user?.email || "";
   const convexUser = useQuery(
     api.users.getCurrentUser,
-    userId && userId !== "usr_anonymous" ? { userId } : "skip",
+    userId && userId !== "usr_anonymous"
+      ? { userId, email: userEmail || undefined }
+      : "skip",
   );
 
+  const isEnterpriseOwner =
+    userEmail.toLowerCase() === "fiatechnologiecam@gmail.com" ||
+    userId === "usr_1790454166066_fwlb48z" ||
+    userId === "7254d43d-caf7-487d-bd22-1666795253a2";
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      if (isEnterpriseOwner) {
+        localStorage.setItem("lshorter_user_plan", "ENTERPRISE");
+      } else if (convexUser?.plan) {
+        localStorage.setItem("lshorter_user_plan", convexUser.plan.toUpperCase());
+      }
+    }
+  }, [convexUser?.plan, isEnterpriseOwner]);
+
   const userPlan = (
+    (isEnterpriseOwner ? "ENTERPRISE" : null) ||
     convexUser?.plan ||
     (session?.user as any)?.plan ||
     (typeof window !== "undefined"
@@ -66,11 +86,100 @@ export function LinkDrawer({
 
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const scrollContainerRef = useRef<HTMLFormElement>(null);
+  const backdropRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const tabsNavRef = useRef<HTMLDivElement>(null);
 
-  // Active Tab state matching Image 2 navigation
-  const [activeTab, setActiveTab] = useState<DrawerTabId>("social");
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
-  // 1. General (Mandatory inputs: targetUrl, domainName, slug)
+  const [shouldRender, setShouldRender] = useState(isOpen);
+
+  // Active Tab state
+  const [activeTab, setActiveTab] = useState<DrawerTabId>("link");
+
+  // GSAP Open / Close animation lifecycle
+  useEffect(() => {
+    if (isOpen) {
+      setShouldRender(true);
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!shouldRender) return;
+    const backdrop = backdropRef.current;
+    const panel = panelRef.current;
+
+    if (isOpen && backdrop && panel) {
+      gsap.fromTo(
+        backdrop,
+        { opacity: 0 },
+        { opacity: 1, duration: 0.28, ease: "power2.out" },
+      );
+      gsap.fromTo(
+        panel,
+        { x: "100%", opacity: 0.8 },
+        { x: "0%", opacity: 1, duration: 0.38, ease: "power3.out" },
+      );
+    } else if (!isOpen && backdrop && panel) {
+      gsap.to(backdrop, {
+        opacity: 0,
+        duration: 0.25,
+        ease: "power2.in",
+      });
+      gsap.to(panel, {
+        x: "100%",
+        opacity: 0.8,
+        duration: 0.3,
+        ease: "power3.in",
+        onComplete: () => setShouldRender(false),
+      });
+    }
+  }, [isOpen, shouldRender]);
+
+  const handleAnimatedClose = React.useCallback(() => {
+    const backdrop = backdropRef.current;
+    const panel = panelRef.current;
+    if (backdrop && panel) {
+      gsap.to(backdrop, { opacity: 0, duration: 0.24, ease: "power2.in" });
+      gsap.to(panel, {
+        x: "100%",
+        duration: 0.28,
+        ease: "power3.in",
+        onComplete: () => {
+          setShouldRender(false);
+          onClose();
+        },
+      });
+    } else {
+      onClose();
+    }
+  }, [onClose]);
+
+  // Smooth scroll container to top when changing tabs
+  useEffect(() => {
+    if (!scrollContainerRef.current) return;
+    scrollContainerRef.current.scrollTop = 0;
+  }, [activeTab]);
+
+  // Ensure active tab button scrolls into view on mobile
+  useEffect(() => {
+    const el = tabsNavRef.current;
+    if (el) {
+      const activeBtn = el.querySelector<HTMLButtonElement>('[data-active="true"]');
+      if (activeBtn) {
+        activeBtn.scrollIntoView({
+          behavior: "smooth",
+          block: "nearest",
+          inline: "nearest",
+        });
+      }
+    }
+  }, [activeTab]);
+
+  // 1. General Link inputs
   const [targetUrl, setTargetUrl] = useState("");
   const [domainName, setDomainName] = useState("");
   const [slug, setSlug] = useState("");
@@ -112,6 +221,12 @@ export function LinkDrawer({
   const [maxClicks, setMaxClicks] = useState<number | string>("");
   const [fallbackUrl, setFallbackUrl] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
+  const [pathLockMode, setPathLockMode] = useState<
+    "off" | "strict" | "funnel"
+  >("off");
+  const [pathLockPrefix, setPathLockPrefix] = useState<string>("");
+  const [pathLockMessage, setPathLockMessage] = useState<string>("");
+  const [pathLockPassword, setPathLockPassword] = useState<string>("");
 
   // 6. A/B Testing
   const [mainWeight, setMainWeight] = useState<number>(100);
@@ -149,26 +264,45 @@ export function LinkDrawer({
     }
   }, [userId, isOpen]);
 
+  const initializedKeyRef = useRef<string | null>(null);
+
   // Initialize or reset form based on mode and link
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      initializedKeyRef.current = null;
+      return;
+    }
+
+    const currentKey =
+      isEditMode && link
+        ? (link.id || link.slug || "edit_link")
+        : `create_${initialUrl || ""}`;
+    if (initializedKeyRef.current === currentKey) {
+      return;
+    }
+    initializedKeyRef.current = currentKey;
 
     if (isEditMode && link) {
       setTargetUrl(link.targetUrl || "");
       setDomainName(link.domainName || "");
       setSlug(link.slug || "");
-      setIsActive(link.isActive !== false);
+      const expTime = (link as any).expires_at || (link as any).expiresAt;
+      const isExp = Boolean(expTime && new Date(expTime).getTime() <= Date.now());
+      setIsActive(!isExp && link.isActive !== false && (link as any).is_active !== 0);
       setTagsInput(Array.isArray(link.tags) ? link.tags.join(", ") : "");
 
-      setOgTitle(link.ogTitle || link.metaTitle || "");
-      setOgDescription(link.ogDescription || "");
-      setOgImage(link.ogImage || "");
+      setOgTitle(link.ogTitle || link.metaTitle || (link as any).og_title || "");
+      setOgDescription(link.ogDescription || (link as any).og_description || "");
+      setOgImage(link.ogImage || (link as any).og_image || "");
       setPreviewImage("");
-      setTwitterCard(
-        (link.twitterCard || (link as any).twitter_card || "summary_large_image") === "summary"
-          ? "summary"
-          : "summary_large_image",
-      );
+      const rawCard = link.twitterCard || (link as any).twitter_card;
+      const rawStyle =
+        (link as any).bannerStyle || (link as any).banner_style;
+      const isLarge =
+        rawCard === "summary_large_image" || rawStyle === "large_banner";
+      const isDefault =
+        (rawCard === "summary" || rawStyle === "default_banner") && !isLarge;
+      setTwitterCard(isDefault ? "summary" : "summary_large_image");
 
       // Parse routing rules
       let parsedRules: RoutingRule[] = [];
@@ -265,6 +399,20 @@ export function LinkDrawer({
             : "",
       );
       setFallbackUrl(link.fallbackUrl || (link as any).fallback_url || "");
+      setPathLockMode(
+        (link.pathLockMode ||
+          (link as any).path_lock_mode ||
+          "off") as "off" | "strict" | "funnel",
+      );
+      setPathLockPrefix(
+        link.pathLockPrefix || (link as any).path_lock_prefix || "",
+      );
+      setPathLockMessage(
+        link.pathLockMessage || (link as any).path_lock_message || "",
+      );
+      setPathLockPassword(
+        link.pathLockPassword || (link as any).path_lock_password || "",
+      );
 
       // A/B testing
       const rawVars =
@@ -310,7 +458,7 @@ export function LinkDrawer({
         setUtmContent(urlObj.searchParams.get("utm_content") || "");
       } catch {}
     } else {
-      // Create mode reset: targetUrl, domainName, slug start strictly empty and are mandatory
+      // Create mode reset
       setTargetUrl(initialUrl || "");
       setDomainName("");
       setSlug("");
@@ -331,6 +479,10 @@ export function LinkDrawer({
       setMaxClicks("");
       setFallbackUrl("");
       setExpiresAt("");
+      setPathLockMode("off");
+      setPathLockPrefix("");
+      setPathLockMessage("");
+      setPathLockPassword("");
       setMainWeight(100);
       setAbVariations([]);
       setRedirectType("302");
@@ -344,10 +496,10 @@ export function LinkDrawer({
 
     setFieldErrors({});
     setHasAttemptedSubmit(false);
-    setActiveTab("social");
-  }, [isOpen, isEditMode, link?.id, initialUrl]);
+    setActiveTab("link");
+  }, [isOpen, isEditMode, link, initialUrl]);
 
-  // Validation functions (Strict: targetUrl, domainName, and slug are mandatory)
+  // Validation functions
   const checkUrlFormat = (val: string, isRequired = true): string => {
     const trimmed = val.trim();
     if (!trimmed) {
@@ -439,7 +591,7 @@ export function LinkDrawer({
     return "";
   };
 
-  // Instant Banner Selection Handler (0ms delay — Uploads to Bunny CDN during global link submit)
+  // Instant Banner Upload Handler
   const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -454,7 +606,7 @@ export function LinkDrawer({
     }
 
     try {
-      // Instant local preview and compression
+      setIsUploadingImage(true);
       const compressed = await compressImageFile(file, 1200, 630, 0.85);
 
       let dataUrl = "";
@@ -469,21 +621,27 @@ export function LinkDrawer({
         });
       }
 
-      // Immediately set preview & dataUrl with zero lag
       setPreviewImage(dataUrl);
-      setOgImage(dataUrl);
-      setTwitterCard((prev) => (prev === "summary" ? "summary" : "summary_large_image"));
-      showToast.success("Banner image selected! It will be synced when saving.");
+
+      const uploadRes = await cfUploadImage(dataUrl, "Banners");
+      if (uploadRes?.url) {
+        setOgImage(uploadRes.url);
+      } else {
+        setOgImage(dataUrl);
+      }
+
+      setTwitterCard("summary_large_image");
+      showToast.success("Banner uploaded successfully!");
     } catch (err) {
-      console.error("Banner selection error:", err);
-      showToast.error("Error selecting banner image.");
+      console.error("Banner upload error:", err);
+      showToast.error("Error uploading banner image.");
     } finally {
       setIsUploadingImage(false);
       if (bannerInputRef.current) bannerInputRef.current.value = "";
     }
   };
 
-  // Compute final generated URL with UTM without hardcoding dummy targets
+  // Compute final URL with UTM
   const computeFinalUrlWithUtm = () => {
     const base = targetUrl.trim();
     if (!base) return "";
@@ -615,7 +773,9 @@ export function LinkDrawer({
     setFieldErrors(errors);
 
     if (Object.keys(errors).length > 0) {
-      if (
+      if (errors.targetUrl || errors.domainName || errors.slug) {
+        setActiveTab("link");
+      } else if (
         errors.password ||
         errors.expiresAt ||
         errors.maxClicks ||
@@ -695,6 +855,24 @@ export function LinkDrawer({
         setIsSubmitting(false);
         return;
       }
+      if (pathLockMode && pathLockMode !== "off") {
+        triggerPlanUpgrade({
+          reason: "PathLock™ restricted browsing requires the Pro plan.",
+          featureName: "PathLock™ Restricted Browsing",
+          targetPlan: "PRO",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+      if (abVariations && abVariations.length > 0) {
+        triggerPlanUpgrade({
+          reason: "A/B testing requires the Pro plan.",
+          featureName: "A/B Split Testing",
+          targetPlan: "PRO",
+        });
+        setIsSubmitting(false);
+        return;
+      }
     }
 
     const cleanDomain = domainName
@@ -702,41 +880,74 @@ export function LinkDrawer({
       .toLowerCase()
       .replace(/^https?:\/\//i, "")
       .replace(/\/.*$/, "");
-    const cleanSlug = slug.trim();
+    const cleanSlug = slug
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9_-]/g, "");
 
     try {
-      let finalOgImage = ogImage;
-      if (ogImage && ogImage.startsWith("data:")) {
-        const uploadRes = await cfUploadImage(ogImage, "Banners");
+      let finalOgImage = (ogImage || previewImage || "").trim();
+      if (finalOgImage && finalOgImage.startsWith("data:")) {
+        const uploadRes = await cfUploadImage(finalOgImage, "Banners");
         if (uploadRes?.url) {
           finalOgImage = uploadRes.url;
         }
       }
 
+      const isDefaultCard = twitterCard === "summary";
+      const finalBannerStyle: "default_banner" | "large_banner" =
+        isDefaultCard ? "default_banner" : "large_banner";
+      const resolvedTwitterCard: "summary" | "summary_large_image" =
+        isDefaultCard ? "summary" : "summary_large_image";
+
+      if (isDefaultCard && finalOgImage.includes("/api/og")) {
+        finalOgImage = "";
+      }
+
       if (isEditMode && link) {
         // UPDATE EXISTING LINK
+        const resolvedExpiresAt =
+          isProPlan && expiresAt ? new Date(expiresAt).toISOString() : null;
+        const isEditExpired = Boolean(
+          resolvedExpiresAt && new Date(resolvedExpiresAt).getTime() <= Date.now(),
+        );
+        const finalEditActive = !isEditExpired && Boolean(isActive);
+
         const updates: any = {
           userId: userId || link.userId,
           targetUrl: finalTargetUrl,
           slug: cleanSlug || link.slug,
           domainName: cleanDomain || link.domainName,
-          isActive: Boolean(isActive),
-          is_active: isActive ? 1 : 0,
+          isActive: finalEditActive,
+          is_active: finalEditActive ? 1 : 0,
           tags: tags.length ? tags : null,
           ogTitle: ogTitle.trim() || null,
           metaTitle: ogTitle.trim() || null,
           ogDescription: ogDescription.trim() || null,
-          ogImage: finalOgImage.trim() || null,
+          ogImage: finalOgImage || null,
+          og_image: finalOgImage || null,
           previousOgImage: link.ogImage || null,
-          twitterCard: twitterCard,
-          twitter_card: twitterCard,
-          routingRules: compiledRules || null,
-          geoTargeting: geoTargeting || null,
-          deviceTargeting: deviceTargeting || null,
-          isCloaked: isProPlan ? isCloaked : false,
+          bannerStyle: finalBannerStyle,
+          banner_style: finalBannerStyle,
+          twitterCard: resolvedTwitterCard,
+          twitter_card: resolvedTwitterCard,
+          routingRules: compiledRules,
+          routing_rules: compiledRules,
+          geoTargeting: geoTargeting,
+          geo_targeting: geoTargeting,
+          deviceTargeting: deviceTargeting,
+          device_targeting: deviceTargeting,
+          isCloaked: isProPlan
+            ? Boolean(isCloaked || (pathLockMode && pathLockMode !== "off"))
+            : false,
+          is_cloaked: isProPlan
+            ? Boolean(isCloaked || (pathLockMode && pathLockMode !== "off"))
+              ? 1
+              : 0
+            : 0,
           hideReferrer,
-          expiresAt:
-            isProPlan && expiresAt ? new Date(expiresAt).toISOString() : null,
+          expiresAt: resolvedExpiresAt,
           maxClicks:
             isProPlan && hasClickLimit && maxClicks ? Number(maxClicks) : null,
           max_clicks:
@@ -767,6 +978,62 @@ export function LinkDrawer({
           redirect_type: redirectType,
           passParams: Boolean(passParams),
           pass_params: Boolean(passParams),
+          pathLockMode: isProPlan ? pathLockMode : "off",
+          path_lock_mode: isProPlan ? pathLockMode : "off",
+          pathLockPrefix:
+            !isProPlan || pathLockMode === "off"
+              ? null
+              : pathLockMode === "strict"
+                ? (() => {
+                    try {
+                      const u = new URL(
+                        finalTargetUrl.startsWith("http")
+                          ? finalTargetUrl
+                          : `https://${finalTargetUrl}`,
+                      );
+                      return (
+                        u.pathname.replace(/^\/+/, "").replace(/\/+$/, "") || "/"
+                      );
+                    } catch {
+                      return "/";
+                    }
+                  })()
+                : pathLockPrefix.trim() || "/",
+          path_lock_prefix:
+            !isProPlan || pathLockMode === "off"
+              ? null
+              : pathLockMode === "strict"
+                ? (() => {
+                    try {
+                      const u = new URL(
+                        finalTargetUrl.startsWith("http")
+                          ? finalTargetUrl
+                          : `https://${finalTargetUrl}`,
+                      );
+                      return (
+                        u.pathname.replace(/^\/+/, "").replace(/\/+$/, "") || "/"
+                      );
+                    } catch {
+                      return "/";
+                    }
+                  })()
+                : pathLockPrefix.trim() || "/",
+          pathLockMessage:
+            isProPlan && pathLockMode !== "off" && pathLockMessage.trim()
+              ? pathLockMessage.trim()
+              : null,
+          path_lock_message:
+            isProPlan && pathLockMode !== "off" && pathLockMessage.trim()
+              ? pathLockMessage.trim()
+              : null,
+          pathLockPassword:
+            isProPlan && pathLockMode !== "off" && pathLockPassword.trim()
+              ? pathLockPassword.trim()
+              : null,
+          path_lock_password:
+            isProPlan && pathLockMode !== "off" && pathLockPassword.trim()
+              ? pathLockPassword.trim()
+              : null,
         };
 
         if (password !== undefined) {
@@ -786,10 +1053,17 @@ export function LinkDrawer({
           metaTitle: updates.metaTitle || undefined,
           ogDescription: updates.ogDescription || undefined,
           ogImage: updates.ogImage || undefined,
-          twitterCard: twitterCard,
-          routingRules: updates.routingRules || undefined,
-          geoTargeting: updates.geoTargeting || undefined,
-          deviceTargeting: updates.deviceTargeting || undefined,
+          og_image: updates.og_image || undefined,
+          bannerStyle: finalBannerStyle,
+          banner_style: finalBannerStyle,
+          twitterCard: resolvedTwitterCard,
+          twitter_card: resolvedTwitterCard,
+          routingRules:
+            Array.isArray(compiledRules) && compiledRules.length > 0
+              ? compiledRules
+              : undefined,
+          geoTargeting: geoTargeting || undefined,
+          deviceTargeting: deviceTargeting || undefined,
           isCloaked: updates.isCloaked,
           hideReferrer: updates.hideReferrer,
           expiresAt: updates.expiresAt || undefined,
@@ -801,6 +1075,14 @@ export function LinkDrawer({
           mainWeight: updates.mainWeight,
           redirectType: updates.redirectType,
           passParams: updates.passParams,
+          pathLockMode: updates.pathLockMode,
+          path_lock_mode: updates.path_lock_mode,
+          pathLockPrefix: updates.pathLockPrefix || undefined,
+          path_lock_prefix: updates.path_lock_prefix || undefined,
+          pathLockMessage: updates.pathLockMessage || undefined,
+          path_lock_message: updates.path_lock_message || undefined,
+          pathLockPassword: updates.pathLockPassword || undefined,
+          path_lock_password: updates.path_lock_password || undefined,
         };
 
         cfInvalidateCache();
@@ -824,7 +1106,27 @@ export function LinkDrawer({
         if (onSuccess) onSuccess(updatedShortLink);
         onClose();
       } else {
-        // CREATE NEW LINK (Strict: cleanSlug and cleanDomain entered by user)
+        // Auto-derive locked path for strict single-page mode if not specified
+        const autoStrictPrefix = (() => {
+          try {
+            const u = new URL(
+              finalTargetUrl.startsWith("http")
+                ? finalTargetUrl
+                : `https://${finalTargetUrl}`,
+            );
+            return u.pathname.replace(/^\/+/, "").replace(/\/+$/, "");
+          } catch {
+            return "";
+          }
+        })();
+        const resolvedPathLockPrefix =
+          !isProPlan || pathLockMode === "off"
+            ? undefined
+            : pathLockMode === "strict"
+              ? autoStrictPrefix || "/"
+              : pathLockPrefix.trim() || "/";
+
+        // CREATE NEW LINK
         let createdLink: ShortLink = {
           id: `link_${Date.now()}`,
           userId,
@@ -836,16 +1138,29 @@ export function LinkDrawer({
           uniqueClicks: 0,
           conversionsCount: 0,
           revenue: 0,
-          routingRules: compiledRules,
-          geoTargeting,
-          deviceTargeting,
-          isCloaked: Boolean(isCloaked),
+          routingRules:
+            Array.isArray(compiledRules) && compiledRules.length > 0
+              ? compiledRules
+              : undefined,
+          geoTargeting: geoTargeting || undefined,
+          deviceTargeting: deviceTargeting || undefined,
+          isCloaked: isProPlan
+            ? Boolean(isCloaked || (pathLockMode && pathLockMode !== "off"))
+            : false,
+          is_cloaked: isProPlan
+            ? Boolean(isCloaked || (pathLockMode && pathLockMode !== "off"))
+              ? 1
+              : 0
+            : 0,
           metaTitle: ogTitle || undefined,
           ogTitle: ogTitle || undefined,
           ogDescription: ogDescription || undefined,
           ogImage: finalOgImage || undefined,
-          twitterCard: twitterCard,
-          twitter_card: twitterCard,
+          og_image: finalOgImage || undefined,
+          bannerStyle: finalBannerStyle,
+          banner_style: finalBannerStyle,
+          twitterCard: resolvedTwitterCard,
+          twitter_card: resolvedTwitterCard,
           hideReferrer,
           isPasswordProtected: Boolean(password.trim()),
           password: password.trim() || undefined,
@@ -856,7 +1171,9 @@ export function LinkDrawer({
               : undefined,
           tags: tags.length ? tags : undefined,
           expiresAt: expiresAt ? expiresAt : undefined,
-          isActive: true,
+          isActive:
+            (!expiresAt || new Date(expiresAt).getTime() > Date.now()) &&
+            Boolean(isActive),
           created_at: new Date().toISOString(),
           abVariations: abVariations.filter((v) => v.url && v.url.trim()),
           mainWeight:
@@ -867,7 +1184,32 @@ export function LinkDrawer({
                 : 100,
           redirectType,
           passParams: Boolean(passParams),
+          pathLockMode: isProPlan ? pathLockMode : "off",
+          path_lock_mode: isProPlan ? pathLockMode : "off",
+          pathLockPrefix: resolvedPathLockPrefix,
+          path_lock_prefix: resolvedPathLockPrefix,
+          pathLockMessage:
+            isProPlan && pathLockMode !== "off" && pathLockMessage.trim()
+              ? pathLockMessage.trim()
+              : undefined,
+          path_lock_message:
+            isProPlan && pathLockMode !== "off" && pathLockMessage.trim()
+              ? pathLockMessage.trim()
+              : undefined,
+          pathLockPassword:
+            isProPlan && pathLockMode !== "off" && pathLockPassword.trim()
+              ? pathLockPassword.trim()
+              : undefined,
+          path_lock_password:
+            isProPlan && pathLockMode !== "off" && pathLockPassword.trim()
+              ? pathLockPassword.trim()
+              : undefined,
         };
+
+        const isNewLinkExpired = Boolean(
+          expiresAt && new Date(expiresAt).getTime() <= Date.now(),
+        );
+        const finalCreateActive = !isNewLinkExpired && Boolean(isActive);
 
         const res = await cfCreateLink({
           userId,
@@ -882,16 +1224,27 @@ export function LinkDrawer({
           deviceTargeting,
           routingRules: compiledRules,
           password: password.trim() || undefined,
-          isCloaked: Boolean(isCloaked),
+          isCloaked: isProPlan
+            ? Boolean(isCloaked || (pathLockMode && pathLockMode !== "off"))
+            : false,
+          is_cloaked: isProPlan
+            ? Boolean(isCloaked || (pathLockMode && pathLockMode !== "off"))
+              ? 1
+              : 0
+            : 0,
           hideReferrer,
           metaTitle: ogTitle || undefined,
           ogTitle: ogTitle || undefined,
           ogDescription: ogDescription || undefined,
           ogImage: finalOgImage || undefined,
-          twitterCard: twitterCard,
-          twitter_card: twitterCard,
+          bannerStyle: finalBannerStyle,
+          banner_style: finalBannerStyle,
+          twitterCard: resolvedTwitterCard,
+          twitter_card: resolvedTwitterCard,
           tags: tags.length ? tags : undefined,
           expiresAt: expiresAt ? expiresAt : undefined,
+          isActive: finalCreateActive,
+          is_active: finalCreateActive ? 1 : 0,
           maxClicks: hasClickLimit && maxClicks ? Number(maxClicks) : undefined,
           fallbackUrl:
             hasClickLimit && fallbackUrl.trim()
@@ -906,6 +1259,26 @@ export function LinkDrawer({
                 : 100,
           redirectType,
           passParams: Boolean(passParams),
+          pathLockMode: isProPlan ? pathLockMode : "off",
+          path_lock_mode: isProPlan ? pathLockMode : "off",
+          pathLockPrefix: resolvedPathLockPrefix,
+          path_lock_prefix: resolvedPathLockPrefix,
+          pathLockMessage:
+            isProPlan && pathLockMode !== "off" && pathLockMessage.trim()
+              ? pathLockMessage.trim()
+              : undefined,
+          path_lock_message:
+            isProPlan && pathLockMode !== "off" && pathLockMessage.trim()
+              ? pathLockMessage.trim()
+              : undefined,
+          pathLockPassword:
+            isProPlan && pathLockMode !== "off" && pathLockPassword.trim()
+              ? pathLockPassword.trim()
+              : undefined,
+          path_lock_password:
+            isProPlan && pathLockMode !== "off" && pathLockPassword.trim()
+              ? pathLockPassword.trim()
+              : undefined,
         });
 
         if (res?.data) {
@@ -932,6 +1305,32 @@ export function LinkDrawer({
               res.data.meta_title || res.data.metaTitle || ogTitle || undefined,
             twitterCard: twitterCard,
             twitter_card: twitterCard,
+            pathLockMode: isProPlan ? pathLockMode : "off",
+            path_lock_mode: isProPlan ? pathLockMode : "off",
+            pathLockPrefix:
+              isProPlan && pathLockMode !== "off" && pathLockPrefix.trim()
+                ? pathLockPrefix.trim()
+                : undefined,
+            path_lock_prefix:
+              isProPlan && pathLockMode !== "off" && pathLockPrefix.trim()
+                ? pathLockPrefix.trim()
+                : undefined,
+            pathLockMessage:
+              isProPlan && pathLockMode !== "off" && pathLockMessage.trim()
+                ? pathLockMessage.trim()
+                : undefined,
+            path_lock_message:
+              isProPlan && pathLockMode !== "off" && pathLockMessage.trim()
+                ? pathLockMessage.trim()
+                : undefined,
+            pathLockPassword:
+              isProPlan && pathLockMode !== "off" && pathLockPassword.trim()
+                ? pathLockPassword.trim()
+                : undefined,
+            path_lock_password:
+              isProPlan && pathLockMode !== "off" && pathLockPassword.trim()
+                ? pathLockPassword.trim()
+                : undefined,
           };
         }
 
@@ -976,14 +1375,49 @@ export function LinkDrawer({
     }
   };
 
-  if (!isOpen) return null;
+  const activeTabIndex = DRAWER_TABS.findIndex((t) => t.id === activeTab);
 
-  return (
-    <div className="fixed inset-0 z-50 overflow-hidden select-none">
-      {/* Backdrop overlay */}
+  const handleNextTab = () => {
+    // If moving past the first tab ("link"), validate destination, domain, and slug
+    if (activeTab === "link") {
+      const targetErr = checkUrlFormat(targetUrl, true);
+      const domainErr = checkDomainFormat(domainName);
+      const slugErr = checkSlugFormat(slug);
+      if (targetErr || domainErr || slugErr) {
+        setFieldErrors((prev) => ({
+          ...prev,
+          ...(targetErr ? { targetUrl: targetErr } : {}),
+          ...(domainErr ? { domainName: domainErr } : {}),
+          ...(slugErr ? { slug: slugErr } : {}),
+        }));
+        showToast.error("Please fill in destination URL, domain and custom slug.");
+        return;
+      }
+    }
+
+    if (activeTabIndex < DRAWER_TABS.length - 1) {
+      setActiveTab(DRAWER_TABS[activeTabIndex + 1].id);
+    }
+  };
+
+  const handlePrevTab = () => {
+    if (activeTabIndex > 0) {
+      setActiveTab(DRAWER_TABS[activeTabIndex - 1].id);
+    } else {
+      handleAnimatedClose();
+    }
+  };
+
+  if (!shouldRender && !isOpen) return null;
+  if (!mounted) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[2000] overflow-hidden select-none">
+      {/* Scrim backdrop overlay */}
       <div
-        onClick={onClose}
-        className="fixed inset-0 bg-black/75 backdrop-blur-[6px] transition-opacity duration-300 animate-in fade-in"
+        ref={backdropRef}
+        onClick={handleAnimatedClose}
+        className="fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-[2px] z-[2000]"
       />
 
       {/* Delete Confirmation Modal */}
@@ -996,86 +1430,136 @@ export function LinkDrawer({
         isDeleting={isDeleting}
       />
 
-      {/* Drawer sliding panel — wide mono-page canvas */}
-      <div
+      {/* Drawer panel matching template layout */}
+      <aside
+        ref={panelRef}
+        role="dialog"
+        aria-label={isEditMode ? "Edit link" : "Create link"}
         className={cn(
-          "fixed inset-y-0 right-0 z-50 flex h-full flex-col bg-white dark:bg-[#0d0d10] text-zinc-900 dark:text-white border-l border-zinc-200 dark:border-[#27272a] shadow-2xl transition-transform duration-300 ease-out animate-in slide-in-from-right",
-          "w-full sm:max-w-2xl md:max-w-3xl lg:max-w-[860px] max-sm:w-screen max-sm:max-w-[100vw]",
+          "fixed top-0 right-0 bottom-0 z-[2001] flex h-full flex-col will-change-transform shadow-2xl",
+          "w-full sm:w-[540px] md:w-[600px] max-w-full",
+          "bg-white dark:bg-[#0e0f12] text-[#131417] dark:text-[#f1f2f4]",
+          "border-l border-[#e6e7ea] dark:border-[#22242a]",
         )}
       >
-        {/* ── 1. STICKY TOP HEADER & PINNED INPUTS ── */}
-        <DrawerHeader
-          isEditMode={isEditMode}
-          slug={slug}
-          linkSlug={link?.slug}
-          onClose={onClose}
-          targetUrl={targetUrl}
-          setTargetUrl={setTargetUrl}
-          domainName={domainName}
-          setDomainName={setDomainName}
-          customDomains={customDomains}
-          setSlug={setSlug}
-          fieldErrors={fieldErrors}
-          setFieldErrors={setFieldErrors}
-          checkUrlFormat={checkUrlFormat}
-          checkDomainFormat={checkDomainFormat}
-          checkSlugFormat={checkSlugFormat}
-        />
+        {/* ── 1. MINIMALIST HEADER ── */}
+        <header className="flex justify-between items-center px-6 pt-5 pb-3 border-b border-[#e6e7ea] dark:border-[#22242a] shrink-0">
+          <b className="font-semibold text-[15px] text-[#131417] dark:text-[#f1f2f4]">
+            {isEditMode ? "Edit link" : "Create link"}
+          </b>
+          <button
+            type="button"
+            onClick={handleAnimatedClose}
+            aria-label="Close"
+            className="text-[#6c717c] dark:text-[#8a8f9a] hover:text-[#131417] dark:hover:text-[#f1f2f4] hover:bg-[#f4f5f7] dark:hover:bg-[#16181d] text-2xl leading-none px-2 py-0.5 rounded-[6px] transition-colors cursor-pointer"
+          >
+            ×
+          </button>
+        </header>
 
-        {/* ── 2. HORIZONTAL TAB NAVIGATION (Image 2 style) ── */}
-        <div className="border-b border-zinc-200 dark:border-[#222225] bg-zinc-50 dark:bg-[#121215] px-4 sm:px-6 shrink-0">
-          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-2 -mb-px">
-            {DRAWER_TABS.map((tab) => {
-              const Icon = tab.icon;
-              const isActiveTab = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setActiveTab(tab.id)}
+        {/* ── 2. RESPONSIVE TAB BAR NAVIGATION ── */}
+        {/* Desktop: wraps automatically (flex-wrap) if not enough width. */}
+        {/* Mobile: horizontal manual scroll (overflow-x-auto whitespace-nowrap). */}
+        <nav
+          ref={tabsNavRef}
+          aria-label="Drawer steps"
+          className={cn(
+            "flex items-center border-b border-[#e6e7ea] dark:border-[#22242a] px-5 sm:px-6 pt-2 pb-0 shrink-0 select-none",
+            "gap-x-4 sm:gap-x-5 gap-y-1 sm:gap-y-1.5",
+            // Mobile: horizontal manual scroll
+            "overflow-x-auto whitespace-nowrap flex-nowrap scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none]",
+            // Desktop: automatic wrap to next line if space is constrained
+            "sm:overflow-x-visible sm:whitespace-normal sm:flex-wrap",
+          )}
+        >
+          {DRAWER_TABS.map((tab, idx) => {
+            const Icon = tab.icon;
+            const isActiveTab = activeTab === tab.id;
+            const isCompleted = idx < activeTabIndex;
+
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                data-active={isActiveTab}
+                onClick={() => {
+                  // If leaving tab 0, validate destination URL
+                  if (activeTab === "link" && tab.id !== "link") {
+                    const targetErr = checkUrlFormat(targetUrl, true);
+                    const domainErr = checkDomainFormat(domainName);
+                    const slugErr = checkSlugFormat(slug);
+                    if (targetErr || domainErr || slugErr) {
+                      setFieldErrors((prev) => ({
+                        ...prev,
+                        ...(targetErr ? { targetUrl: targetErr } : {}),
+                        ...(domainErr ? { domainName: domainErr } : {}),
+                        ...(slugErr ? { slug: slugErr } : {}),
+                      }));
+                      showToast.error("Please fill in destination URL, domain and custom slug.");
+                      return;
+                    }
+                  }
+                  setActiveTab(tab.id);
+                }}
+                className={cn(
+                  "text-[13px] font-medium py-2.5 border-b-2 -mb-px transition-colors cursor-pointer flex items-center gap-1.5 shrink-0 sm:shrink",
+                  isActiveTab
+                    ? "border-[#1d5fe0] dark:border-[#3b82f6] text-[#131417] dark:text-[#f1f2f4] font-semibold"
+                    : isCompleted
+                      ? "border-transparent text-[#131417] dark:text-[#f1f2f4] hover:text-[#1d5fe0] dark:hover:text-[#3b82f6]"
+                      : "border-transparent text-[#6c717c] dark:text-[#8a8f9a] hover:text-[#131417] dark:hover:text-[#f1f2f4]",
+                )}
+              >
+                <Icon
                   className={cn(
-                    "flex items-center gap-2 px-3.5 py-2 rounded-[8px] text-xs font-semibold whitespace-nowrap transition-all cursor-pointer select-none relative",
+                    "w-3.5 h-3.5",
                     isActiveTab
-                      ? "bg-white dark:bg-white/10 text-zinc-900 dark:text-white shadow-xs border border-zinc-200 dark:border-white/10"
-                      : "text-zinc-500 dark:text-neutral-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/60 dark:hover:bg-white/5 border border-transparent",
+                      ? "text-[#1d5fe0] dark:text-[#3b82f6]"
+                      : "opacity-70",
                   )}
-                >
-                  <Icon
-                    className={cn(
-                      "w-3.5 h-3.5",
-                      isActiveTab ? "text-brand" : "text-zinc-400 dark:text-neutral-400",
-                    )}
-                  />
-                  <span>{tab.label}</span>
-                  {tab.isPro && !isProPlan && (
-                    <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-600 dark:text-amber-300 border border-amber-500/30 tracking-wider">
-                      PRO
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+                />
+                <span>{tab.label}</span>
+                {tab.isPro && !isProPlan && (
+                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 tracking-wider">
+                    PRO
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </nav>
 
-        {/* Tab Subtitle Header */}
-        <div className="px-4 sm:px-6 pt-3 pb-1 shrink-0 bg-white dark:bg-[#0d0d10]">
-          <p className="text-[11.5px] text-zinc-500 dark:text-neutral-400">
-            {DRAWER_TABS.find((t) => t.id === activeTab)?.subtitle}
-          </p>
-        </div>
-
-        {/* ── 3. MAIN WORKSPACE: TABBED CONTENT ── */}
-        <div className="flex-1 flex overflow-hidden relative">
+        {/* ── 3. MAIN TABBED WORKSPACE ── */}
+        <main className="flex-1 flex overflow-hidden relative">
           <form
             id="link-drawer-form"
             onSubmit={handleSubmit}
             ref={scrollContainerRef}
-            className="flex-1 overflow-y-auto px-4 sm:px-6 py-3 flex flex-col gap-4 no-scrollbar drawer-scroll-hidden"
+            className="flex-1 overflow-y-auto px-6 py-5 drawer-scroll-hidden"
             style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
           >
-            {activeTab === "social" && (
-              <SectionSocial
+            {activeTab === "link" && (
+              <SectionLink
+                isEditMode={isEditMode}
+                targetUrl={targetUrl}
+                setTargetUrl={setTargetUrl}
+                domainName={domainName}
+                setDomainName={setDomainName}
+                customDomains={customDomains}
+                slug={slug}
+                setSlug={setSlug}
+                tagsInput={tagsInput}
+                setTagsInput={setTagsInput}
+                fieldErrors={fieldErrors}
+                setFieldErrors={setFieldErrors}
+                checkUrlFormat={checkUrlFormat}
+                checkDomainFormat={checkDomainFormat}
+                checkSlugFormat={checkSlugFormat}
+              />
+            )}
+
+            {activeTab === "social_tracking" && (
+              <SectionSocialTracking
                 ogTitle={ogTitle}
                 setOgTitle={setOgTitle}
                 ogDescription={ogDescription}
@@ -1092,11 +1576,6 @@ export function LinkDrawer({
                 bannerInputRef={bannerInputRef}
                 handleBannerUpload={handleBannerUpload}
                 isUploadingImage={isUploadingImage}
-              />
-            )}
-
-            {activeTab === "tracking" && (
-              <SectionTracking
                 utmSource={utmSource}
                 setUtmSource={setUtmSource}
                 utmMedium={utmMedium}
@@ -1122,7 +1601,7 @@ export function LinkDrawer({
             )}
 
             {activeTab === "protection" && (
-              <SectionProtection
+              <SectionProtectionExpiry
                 isProPlan={isProPlan}
                 password={password}
                 setPassword={setPassword}
@@ -1140,6 +1619,15 @@ export function LinkDrawer({
                 setFallbackUrl={setFallbackUrl}
                 expiresAt={expiresAt}
                 setExpiresAt={setExpiresAt}
+                pathLockMode={pathLockMode}
+                setPathLockMode={setPathLockMode}
+                pathLockPrefix={pathLockPrefix}
+                setPathLockPrefix={setPathLockPrefix}
+                pathLockMessage={pathLockMessage}
+                setPathLockMessage={setPathLockMessage}
+                pathLockPassword={pathLockPassword}
+                setPathLockPassword={setPathLockPassword}
+                targetUrl={targetUrl}
                 fieldErrors={fieldErrors}
                 setFieldErrors={setFieldErrors}
                 checkExpiresAtFormat={checkExpiresAtFormat}
@@ -1148,6 +1636,7 @@ export function LinkDrawer({
 
             {activeTab === "ab_testing" && (
               <SectionAbTesting
+                isProPlan={isProPlan}
                 targetUrl={targetUrl}
                 mainWeight={mainWeight}
                 setMainWeight={setMainWeight}
@@ -1161,28 +1650,108 @@ export function LinkDrawer({
             )}
 
             {activeTab === "advanced" && (
-              <SectionBannerAdvanced
+              <SectionAdvanced
                 redirectType={redirectType}
                 setRedirectType={setRedirectType}
                 passParams={passParams}
                 setPassParams={setPassParams}
                 isActive={isActive}
                 setIsActive={setIsActive}
+              />
+            )}
+
+            {activeTab === "review" && (
+              <SectionReview
+                isEditMode={isEditMode}
+                domainName={domainName}
+                slug={slug}
+                targetUrl={targetUrl}
+                computeFinalUrlWithUtm={computeFinalUrlWithUtm}
+                ogTitle={ogTitle}
+                ogDescription={ogDescription}
+                ogImage={ogImage}
+                twitterCard={twitterCard}
+                utmSource={utmSource}
+                utmMedium={utmMedium}
+                utmCampaign={utmCampaign}
+                password={password}
+                expiresAt={expiresAt}
+                hasClickLimit={hasClickLimit}
+                maxClicks={maxClicks}
+                fallbackUrl={fallbackUrl}
+                pathLockMode={pathLockMode}
+                pathLockPrefix={pathLockPrefix}
+                isCloaked={isCloaked}
+                hideReferrer={hideReferrer}
+                routingRulesCount={routingRules.length}
+                abVariationsCount={abVariations.length}
+                mainWeight={mainWeight}
+                redirectType={redirectType}
+                passParams={passParams}
+                isActive={isActive}
                 tagsInput={tagsInput}
-                setTagsInput={setTagsInput}
+                onNavigateTab={(tabId) => setActiveTab(tabId)}
+                isSubmitting={isSubmitting}
               />
             )}
           </form>
-        </div>
+        </main>
 
-        {/* ── 4. STICKY FOOTER ── */}
-        <DrawerFooter
-          isEditMode={isEditMode}
-          isSubmitting={isSubmitting}
-          onDeleteClick={() => setIsDeleteModalOpen(true)}
-          onClose={onClose}
-        />
-      </div>
-    </div>
+        {/* ── 4. FOOTER (Matching template style) ── */}
+        <footer className="flex justify-between items-center gap-3 px-6 py-3.5 border-t border-[#e6e7ea] dark:border-[#22242a] bg-white dark:bg-[#0e0f12] shrink-0">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handlePrevTab}
+              disabled={isSubmitting}
+              className="text-sm font-medium text-[#131417] dark:text-[#f1f2f4] hover:bg-[#f4f5f7] dark:hover:bg-[#16181d] px-4 py-2 rounded-lg transition-colors cursor-pointer"
+            >
+              {activeTabIndex > 0 ? "Back" : "Cancel"}
+            </button>
+
+            {isEditMode && (
+              <button
+                type="button"
+                onClick={() => setIsDeleteModalOpen(true)}
+                disabled={isSubmitting}
+                className="text-xs font-semibold text-red-500 hover:text-red-600 hover:bg-red-500/10 px-3 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Delete</span>
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            {activeTab !== "review" ? (
+              <button
+                type="button"
+                onClick={handleNextTab}
+                className="bg-[#1d5fe0] dark:bg-[#3b82f6] hover:bg-[#154fc0] dark:hover:bg-[#2563eb] text-white font-medium text-sm px-5 py-2 rounded-lg shadow-sm transition-colors cursor-pointer"
+              >
+                Continue
+              </button>
+            ) : (
+              <button
+                type="submit"
+                form="link-drawer-form"
+                disabled={isSubmitting}
+                className="bg-[#1d5fe0] dark:bg-[#3b82f6] hover:bg-[#154fc0] dark:hover:bg-[#2563eb] text-white font-medium text-sm px-5 py-2 rounded-lg shadow-sm transition-colors cursor-pointer flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>{isEditMode ? "Saving..." : "Creating..."}</span>
+                  </>
+                ) : (
+                  <span>{isEditMode ? "Save Changes" : "Create Link"}</span>
+                )}
+              </button>
+            )}
+          </div>
+        </footer>
+      </aside>
+    </div>,
+    document.body,
   );
 }

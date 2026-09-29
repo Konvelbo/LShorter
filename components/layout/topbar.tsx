@@ -1,487 +1,440 @@
-/**
- * LShorter Topbar - Mobile Cyber Blue & Desktop Orange
- */
-
 "use client";
 
-import React, { useState, useMemo, useRef, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import {
+  Search,
   Bell,
-  ChevronDown,
-  LogOut,
-  Sparkles,
-  Settings,
-  CreditCard,
-  FileText,
-  Sun,
   Moon,
+  Sun,
+  Menu,
+  PanelLeft,
+  ChevronDown,
+  Plus,
+  Settings,
+  LogOut,
+  User as UserIcon,
+  CreditCard,
 } from "lucide-react";
+import { useTheme } from "@/components/providers/theme-provider";
 import { useSession, signOut } from "next-auth/react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { cn } from "@/lib/utils";
-import { triggerPlanUpgrade } from "@/lib/plan-guard";
-import { NotificationsBell } from "./notifications-bell";
+import { Avatar, AvatarImage, AvatarFallback, getDiceBearAvatar } from "@/components/ui/avatar";
+import { LinkCreateModal } from "@/components/dashboard/link-create-modal";
+import { ReuiCommandModal } from "@/components/search/reui-command-modal";
 import { getPlanDefinition } from "@/src/config/pricing";
+import { DashboardMobileMenu } from "./dashboard-mobile-menu";
 
 export function Topbar() {
+  const { theme, toggleTheme } = useTheme();
   const { data: session } = useSession();
-  const pathname = usePathname();
   const userId = session?.user?.id || "";
-  const convexUser = useQuery(api.users.getCurrentUser, userId ? { userId } : "skip");
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [showUserMenu, setShowUserMenu] = useState(false);
-  const [imgError, setImgError] = useState(false);
-  const [localPlan, setLocalPlan] = useState<string | null>(null);
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
-  const userMenuRef = useRef<HTMLDivElement>(null);
-  const mobileUserMenuRef = useRef<HTMLDivElement>(null);
+  const convexUser = useQuery(
+    api.users.getCurrentUser,
+    userId ? { userId, email: session?.user?.email || undefined } : "skip"
+  );
 
-  // Click outside to close user menu
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      const target = event.target as Node;
-      if (
-        userMenuRef.current &&
-        !userMenuRef.current.contains(target) &&
-        mobileUserMenuRef.current &&
-        !mobileUserMenuRef.current.contains(target)
-      ) {
-        setShowUserMenu(false);
-      }
-    }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setShowUserMenu(false);
-      }
-    }
-
-    if (showUserMenu) {
-      document.addEventListener("mousedown", handleClickOutside);
-      document.addEventListener("keydown", handleKeyDown);
-    }
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [showUserMenu]);
-
-  React.useEffect(() => {
-    if (typeof window !== "undefined") {
-      const savedTheme = localStorage.getItem("lshorter_theme") as "dark" | "light" | null;
-      if (savedTheme) {
-        setTheme(savedTheme);
-        document.documentElement.classList.remove("dark", "light");
-        document.documentElement.classList.add(savedTheme);
-      } else if (document.documentElement.classList.contains("light")) {
-        setTheme("light");
-      } else {
-        setTheme("dark");
-      }
-    }
-  }, []);
-
-  const toggleTheme = () => {
-    const nextTheme = theme === "dark" ? "light" : "dark";
-    setTheme(nextTheme);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("lshorter_theme", nextTheme);
-      document.documentElement.classList.remove("dark", "light");
-      document.documentElement.classList.add(nextTheme);
-      window.dispatchEvent(new CustomEvent("lshorter_theme_changed", { detail: nextTheme }));
-    }
-  };
-
-  React.useEffect(() => {
-    const update = (e?: Event) => {
-      const detail = (e as CustomEvent)?.detail;
-      const planFromEvent = detail?.plan as string | undefined;
-      if (planFromEvent) {
-        setLocalPlan(planFromEvent.toUpperCase());
-      } else if (typeof window !== "undefined") {
-        setLocalPlan(localStorage.getItem("lshorter_user_plan"));
-      }
-    };
-    update();
-    window.addEventListener("lshorter_plan_updated", update);
-    return () => window.removeEventListener("lshorter_plan_updated", update);
-  }, []);
-
-  // ── Sync localStorage with Convex DB when it loads (DB is source of truth) ──
-  React.useEffect(() => {
-    if (convexUser?.plan) {
-      const dbPlan = convexUser.plan.toUpperCase();
-      setLocalPlan(dbPlan);
-      if (typeof window !== "undefined") {
-        localStorage.setItem("lshorter_user_plan", dbPlan);
-      }
+    if (convexUser?.plan && typeof window !== "undefined") {
+      localStorage.setItem("lshorter_user_plan", convexUser.plan.toUpperCase());
     }
   }, [convexUser?.plan]);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isCommandModalOpen, setIsCommandModalOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [localNotifs, setLocalNotifs] = useState<
+    Array<{
+      id: string;
+      title: string;
+      message: string;
+      createdAt: number;
+      isRead: boolean;
+    }>
+  >([]);
 
-  // Convex DB is the source of truth — localPlan is only used before Convex loads
-  const plan = (convexUser?.plan || localPlan || (session?.user as any)?.plan || "FREEMIUM").toUpperCase();
-  const routeSegments = useMemo(() => {
-    if (!pathname || pathname === "/dashboard") {
-      return [{ label: "DASHBOARD", href: "/dashboard", isCurrent: true }];
-    }
+  const convexNotifs = useQuery(
+    api.notifications.listNotifications,
+    userId ? { orgId: userId } : "skip"
+  );
 
-    const parts = pathname.split("/").filter(Boolean);
-    const crumbs: { label: string; href: string; isCurrent: boolean }[] = [];
-    let currentHref = "";
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("lshorter_saas_notifications");
+      if (saved) {
+        setLocalNotifs(JSON.parse(saved));
+      }
+    } catch {}
 
-    const labelMap: Record<string, string> = {
-      dashboard: "DASHBOARD",
-      analytics: "ANALYTICS",
-      geo: "GEOGRAPHY",
-      devices: "DEVICES & TECH",
-      sources: "TRAFFIC SOURCES",
-      links: "MY LINKS",
-      domains: "DOMAINS",
-      "qr-code": "QR CODES",
-      "api-sdk": "API & SDK",
-      settings: "SETTINGS",
-      pricing: "PLANS & PRICING",
+    const onNewNotif = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail && detail.title) {
+        setLocalNotifs((prev) => {
+          const next = [
+            {
+              id: detail.id || `notif_${Date.now()}`,
+              title: detail.title,
+              message: detail.message,
+              createdAt: detail.createdAt || Date.now(),
+              isRead: false,
+            },
+            ...prev,
+          ].slice(0, 12);
+          try {
+            localStorage.setItem(
+              "lshorter_saas_notifications",
+              JSON.stringify(next)
+            );
+          } catch {}
+          return next;
+        });
+      }
     };
 
-    parts.forEach((p, idx) => {
-      currentHref += `/${p}`;
-      crumbs.push({
-        label: labelMap[p] || p.toUpperCase(),
-        href: currentHref,
-        isCurrent: idx === parts.length - 1,
-      });
-    });
+    const onOpenCmdModal = () => {
+      setIsCommandModalOpen(true);
+      setIsNotifOpen(false);
+      setIsProfileOpen(false);
+    };
 
-    return crumbs;
-  }, [pathname]);
+    window.addEventListener("lshorter:notification", onNewNotif);
+    window.addEventListener("lshorter:open-command-modal", onOpenCmdModal);
+    return () => {
+      window.removeEventListener("lshorter:notification", onNewNotif);
+      window.removeEventListener("lshorter:open-command-modal", onOpenCmdModal);
+    };
+  }, []);
 
-  const name = convexUser?.name || session?.user?.name || "My Account";
-  const email = convexUser?.email || session?.user?.email || "";
-  const avatarUrl = convexUser?.avatarUrl || (session?.user as any)?.avatarUrl || session?.user?.image || "";
-  const planDef = getPlanDefinition(plan);
-  const clicksLimit = planDef.limits.monthlyClicks;
+  const mergedNotifications = React.useMemo(() => {
+    const fromConvex = Array.isArray(convexNotifs)
+      ? convexNotifs.map((n: any) => ({
+          id: String(n._id || n.id),
+          title: n.title,
+          message: n.message,
+          createdAt: n.createdAt || Date.now(),
+          isRead: Boolean(n.isRead),
+        }))
+      : [];
+    const seen = new Set(fromConvex.map((n) => n.title + n.message));
+    const combined = [
+      ...localNotifs.filter((n) => !seen.has(n.title + n.message)),
+      ...fromConvex,
+    ];
+    return combined.sort((a, b) => b.createdAt - a.createdAt).slice(0, 5);
+  }, [convexNotifs, localNotifs]);
+
+  const unreadCount = mergedNotifications.filter((n) => !n.isRead).length;
+
+  const markAllNotificationsRead = () => {
+    const updated = localNotifs.map((n) => ({ ...n, isRead: true }));
+    setLocalNotifs(updated);
+    try {
+      localStorage.setItem(
+        "lshorter_saas_notifications",
+        JSON.stringify(updated)
+      );
+    } catch {}
+  };
+
+  const displayName =
+    convexUser?.name || session?.user?.name || session?.user?.email?.split("@")[0] || "User";
+  const displayEmail = convexUser?.email || session?.user?.email || "";
+  const avatarUrl =
+    convexUser?.avatarUrl ||
+    (convexUser as any)?.image ||
+    session?.user?.image ||
+    getDiceBearAvatar(displayEmail || displayName);
+
+  const userTier =
+    (convexUser?.plan as string) ||
+    ((session?.user as any)?.plan as string) ||
+    "FREE";
+  const planDef = getPlanDefinition(userTier);
 
   return (
-    <header className="border-b border-[#222225] md:border-b-0 bg-[#09090b] z-30 select-none transition-all shrink-0">
-      {/* ─── 1. MOBILE DEDICATED TOPBAR (< 768px - Cyber Blue Theme) ─── */}
-      <div className="flex md:hidden h-14 px-3.5 items-center justify-between">
-        {/* Left: Blue LS Badge + Title -> Navigates to Marketing Home */}
-        <Link href="/" className="flex items-center gap-2 group cursor-pointer">
-          <div className="w-8 h-8 rounded-[8px] bg-brand flex items-center justify-center font-bebas text-lg font-black text-white shadow-md shadow-[var(--brand-primary-glow)] group-hover:scale-105 transition-transform">
-            LS
+    <>
+      <header className="sticky top-0 z-30 flex h-14 sm:h-16 w-full items-center justify-between ds-bg-topbar border-b ds-border px-4 sm:px-6">
+        {/* ─── DESKTOP VIEW (>= lg) ─── */}
+        <div className="hidden lg:flex items-center justify-between w-full">
+          {/* Left: Hamburger Toggle for Desktop Sidebar */}
+          <div className="flex items-center gap-3 sm:gap-4">
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new CustomEvent("lshorter:toggle-sidebar"))}
+              className="flex h-9 w-9 items-center justify-center rounded-lg bg-transparent text-zinc-500 hover:text-zinc-900 dark:text-neutral-400 dark:hover:text-white transition-colors cursor-pointer"
+              aria-label="Toggle Sidebar"
+            >
+              <PanelLeft className="w-4 h-4" />
+            </button>
           </div>
-          <span className="font-bebas text-xl font-bold tracking-wider text-white leading-none">
-            L <span className="text-brand">SHORTER</span>
-          </span>
-        </Link>
 
-        {/* Right: Theme Switch, Blue Notification Dot & Blue Avatar Ring */}
-        <div className="flex items-center gap-2">
-          {/* Theme Switcher Mobile (< 768px - Cyber Blue) */}
-          <button
-            type="button"
-            onClick={toggleTheme}
-            title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-            className="w-8 h-8 rounded-[8px] bg-[#10141f] border border-[#1e2942] text-neutral-400 hover:text-white flex items-center justify-center cursor-pointer transition-colors"
-          >
-            {theme === "dark" ? (
-              <Sun className="w-3.5 h-3.5 text-amber-400" />
-            ) : (
-              <Moon className="w-3.5 h-3.5 text-brand" />
-            )}
-          </button>
-
-          <NotificationsBell
-            userId={userId}
-            plan={plan}
-            clicksLimit={clicksLimit}
-            isMobile
-            showNotifications={showNotifications}
-            setShowNotifications={setShowNotifications}
-            setShowUserMenu={setShowUserMenu}
-          />
-
-          <div ref={mobileUserMenuRef} className="relative">
+          {/* Right: Compact Search Button + Notifications + Framed User Profile */}
+          <div className="flex items-center gap-3">
+            {/* Compact Search Icon Button */}
             <button
               type="button"
               onClick={() => {
-                setShowUserMenu(!showUserMenu);
-                setShowNotifications(false);
+                setIsCommandModalOpen(true);
+                setIsNotifOpen(false);
+                setIsProfileOpen(false);
               }}
-              className="w-8 h-8 rounded-full ring-2 ring-[var(--brand-primary)] overflow-hidden bg-brand text-white font-bold text-xs flex items-center justify-center cursor-pointer active:scale-95 shadow-md shadow-[var(--brand-primary-glow)]"
+              className="flex h-9 w-9 items-center justify-center rounded-lg bg-transparent text-zinc-500 hover:text-zinc-900 dark:text-neutral-400 dark:hover:text-white transition-colors cursor-pointer"
+              aria-label="Search commands, links, analytics, and docs"
+              title="Search (⌘K)"
             >
-              {avatarUrl && !imgError ? (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img
-                  src={avatarUrl}
-                  alt={name}
-                  referrerPolicy="no-referrer"
-                  crossOrigin="anonymous"
-                  onError={() => setImgError(true)}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                name.slice(0, 2).toUpperCase()
-              )}
+              <Search className="w-4 h-4" />
             </button>
 
-            {/* Mobile User Dropdown */}
-            {showUserMenu && (
-              <div className="md:hidden absolute right-0 top-full mt-2 w-64 rounded-[14px] bg-[#141416] border border-[#27272a] shadow-2xl p-2 z-50 text-white animate-in fade-in duration-200">
-                <div className="p-2.5 border-b border-[#222225] mb-1 flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-[8px] bg-brand text-white flex items-center justify-center font-bold text-xs uppercase overflow-hidden shrink-0">
-                    {avatarUrl && !imgError ? (
-                      /* eslint-disable-next-line @next/next/no-img-element */
-                      <img
-                        src={avatarUrl}
-                        alt={name}
-                        referrerPolicy="no-referrer"
-                        crossOrigin="anonymous"
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      name.slice(0, 2).toUpperCase()
+            {/* Notification Bell Button + Dropdown Inbox */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsNotifOpen((prev) => !prev);
+                  setIsProfileOpen(false);
+                }}
+                className="relative flex h-9 w-9 items-center justify-center rounded-lg bg-transparent text-zinc-500 hover:text-zinc-900 dark:text-neutral-400 dark:hover:text-white transition-colors cursor-pointer"
+                aria-label="Notifications"
+              >
+                <Bell className="w-4 h-4" />
+                {unreadCount > 0 && (
+                  <span className="absolute right-1.5 top-1.5 flex h-2 w-2">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#F79009] opacity-75" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-[#F79009]" />
+                  </span>
+                )}
+              </button>
+
+              {isNotifOpen && (
+                <div
+                  onMouseLeave={() => setIsNotifOpen(false)}
+                  className="absolute right-0 mt-2 w-80 sm:w-96 rounded-[12px] ds-card p-3 shadow-xl z-50"
+                >
+                  <div className="flex items-center justify-between pb-2.5 mb-2 border-b ds-border">
+                    <span className="text-sm font-semibold ds-text-primary">
+                      Notifications (5 latest)
+                    </span>
+                    {unreadCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={markAllNotificationsRead}
+                        className="text-xs font-medium text-[#465FFF] dark:text-[#7592FF] hover:underline cursor-pointer"
+                      >
+                        Mark all as read
+                      </button>
                     )}
                   </div>
-                  <div className="flex flex-col min-w-0">
-                    <p className="text-xs font-bold text-white truncate">{name}</p>
-                    <p className="text-[11px] text-neutral-400 truncate">{email}</p>
+
+                  {mergedNotifications.length === 0 ? (
+                    <div className="py-6 text-center text-xs ds-text-muted">
+                      No notifications yet. Set a Monthly Target on your dashboard to receive goal alerts.
+                    </div>
+                  ) : (
+                    <div className="max-h-72 overflow-y-auto flex flex-col gap-1.5">
+                      {mergedNotifications.slice(0, 5).map((notif) => (
+                        <div
+                          key={notif.id}
+                          className={`rounded-[10px] p-3 text-left transition-colors ${
+                            notif.isRead
+                              ? "bg-transparent hover:bg-[#F2F4F7] dark:hover:bg-white/[0.04]"
+                              : "bg-[#ECF3FF]/60 dark:bg-[#465FFF]/10"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-xs font-semibold ds-text-primary">
+                              {notif.title}
+                            </span>
+                            <span className="text-[10.5px] ds-text-muted shrink-0">
+                              {new Date(notif.createdAt).toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </span>
+                          </div>
+                          <p className="mt-1 text-xs ds-text-secondary leading-relaxed">
+                            {notif.message}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Framed User Profile Trigger */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsProfileOpen((prev) => !prev);
+                  setIsNotifOpen(false);
+                }}
+                className="ds-profile-frame cursor-pointer"
+              >
+                <Avatar className="h-8 w-8 rounded-lg border border-[#E4E7EC]/60 dark:border-white/10 overflow-hidden shrink-0">
+                  <AvatarImage
+                    src={avatarUrl}
+                    alt={displayName}
+                    seed={displayEmail}
+                    className="rounded-lg object-cover"
+                  />
+                  <AvatarFallback seed={displayEmail} className="rounded-lg text-xs">
+                    {displayName.slice(0, 2)}
+                  </AvatarFallback>
+                </Avatar>
+
+                <div className="hidden sm:flex flex-col items-start text-left leading-tight pr-0.5">
+                  <span className="text-xs font-semibold ds-text-primary truncate max-w-[110px]">
+                    {displayName.split(" ")[0]}
+                  </span>
+                  <span className="inline-flex items-center gap-1 text-[9.5px] font-medium text-[#465FFF] dark:text-[#7592FF] mt-0.5">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#10B981] shrink-0" />
+                    {planDef.name} Plan
+                  </span>
+                </div>
+
+                <ChevronDown
+                  className={`hidden sm:block h-3.5 w-3.5 ds-text-muted transition-transform duration-200 ${
+                    isProfileOpen ? "rotate-180 text-[#465FFF]" : ""
+                  }`}
+                />
+              </button>
+
+              {isProfileOpen && (
+                <div
+                  onMouseLeave={() => setIsProfileOpen(false)}
+                  className="absolute right-0 mt-2 w-64 rounded-[12px] ds-card p-2 shadow-xl z-50"
+                >
+                  <div className="px-3 py-2.5 border-b ds-border flex items-center gap-3">
+                    <Avatar className="h-9 w-9 rounded-[10px] border ds-border shrink-0">
+                      <AvatarImage src={avatarUrl} alt={displayName} seed={displayEmail} className="rounded-[10px]" />
+                      <AvatarFallback seed={displayEmail} className="rounded-[10px]">
+                        {displayName.slice(0, 2)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-sm font-bold ds-text-primary truncate">
+                          {displayName}
+                        </p>
+                      </div>
+                      <p className="text-xs ds-text-muted truncate mt-0.5">
+                        {displayEmail}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="py-1">
+                    <Link
+                      href="/dashboard/settings?tab=profile"
+                      onClick={() => setIsProfileOpen(false)}
+                      className="flex items-center gap-2.5 rounded-[8px] px-3 py-2 text-sm ds-text-secondary hover:bg-[#F2F4F7] dark:hover:bg-white/[0.05]"
+                    >
+                      <UserIcon className="h-4 w-4 ds-text-muted" />
+                      Edit Profile
+                    </Link>
+                    <Link
+                      href="/dashboard/settings?tab=billing"
+                      onClick={() => setIsProfileOpen(false)}
+                      className="flex items-center gap-2.5 rounded-[8px] px-3 py-2 text-sm ds-text-secondary hover:bg-[#F2F4F7] dark:hover:bg-white/[0.05]"
+                    >
+                      <CreditCard className="h-4 w-4 ds-text-muted" />
+                      Billing & Plan ({planDef.name})
+                    </Link>
+                    <Link
+                      href="/dashboard/settings"
+                      onClick={() => setIsProfileOpen(false)}
+                      className="flex items-center gap-2.5 rounded-[8px] px-3 py-2 text-sm ds-text-secondary hover:bg-[#F2F4F7] dark:hover:bg-white/[0.05]"
+                    >
+                      <Settings className="h-4 w-4 ds-text-muted" />
+                      Account Settings
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={toggleTheme}
+                      className="flex w-full items-center justify-between rounded-[8px] px-3 py-2 text-sm ds-text-secondary hover:bg-[#F2F4F7] dark:hover:bg-white/[0.05] cursor-pointer"
+                    >
+                      <span className="flex items-center gap-2.5">
+                        {theme === "dark" ? (
+                          <Sun className="h-4 w-4 text-amber-400" />
+                        ) : (
+                          <Moon className="h-4 w-4 ds-text-muted" />
+                        )}
+                        <span>Theme</span>
+                      </span>
+                      <span className="text-[11px] font-medium px-1.5 py-0.5 rounded-[5px] bg-black/[0.04] dark:bg-white/[0.06] ds-text-muted capitalize">
+                        {theme === "dark" ? "Dark" : "Light"}
+                      </span>
+                    </button>
+                  </div>
+                  <div className="border-t ds-border pt-1">
+                    <button
+                      type="button"
+                      onClick={() => signOut({ callbackUrl: "/" })}
+                      className="flex w-full items-center gap-2.5 rounded-[8px] px-3 py-2 text-sm text-[#D92D20] hover:bg-[#FEF3F2] dark:hover:bg-[#D92D20]/10 cursor-pointer"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      Sign out
+                    </button>
                   </div>
                 </div>
-
-                <div className="flex flex-col gap-1 text-xs text-neutral-300">
-                  <Link
-                    href="/dashboard/settings"
-                    onClick={() => setShowUserMenu(false)}
-                    className="flex items-center gap-2.5 p-2 rounded-[8px] hover:bg-white/10 hover:text-white transition-colors"
-                  >
-                    <Settings className="w-4 h-4 text-neutral-400" />
-                    <span>Account Settings</span>
-                  </Link>
-
-                  <Link
-                    href="/dashboard/pricing"
-                    onClick={() => setShowUserMenu(false)}
-                    className="flex items-center gap-2.5 p-2 rounded-[8px] hover:bg-white/10 hover:text-white transition-colors"
-                  >
-                    <CreditCard className="w-4 h-4 text-brand" />
-                    <span>Plans & Pricing</span>
-                  </Link>
-
-                  <Link
-                    href="/docs"
-                    onClick={() => setShowUserMenu(false)}
-                    className="flex items-center gap-2.5 p-2 rounded-[8px] hover:bg-white/10 hover:text-white transition-colors"
-                  >
-                    <FileText className="w-4 h-4 text-neutral-400" />
-                    <span>API Documentation</span>
-                  </Link>
-
-                  <button
-                    onClick={() => {
-                      setShowUserMenu(false);
-                      signOut({ callbackUrl: "/login" });
-                    }}
-                    className="flex items-center gap-2.5 p-2 rounded-[8px] text-red-400 hover:bg-red-500/10 transition-colors w-full text-left mt-1 border-t border-[#222225] pt-2 cursor-pointer"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    <span>Log out</span>
-                  </button>
-                </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* ─── 2. DESKTOP FULL TOPBAR (>= 768px - Orange Theme) ─── */}
-      <div className="hidden md:flex h-14 px-6 items-center justify-between">
-        {/* Left: Brand Logo & Dynamic Route Breadcrumb -> Navigates to Marketing Home */}
-        <div className="flex items-center gap-3">
-          <Link href="/" className="flex items-center gap-2.5 group cursor-pointer mr-2" title="Back to homepage">
-            <div className="w-8 h-8 rounded-[10px] bg-brand flex items-center justify-center font-bebas text-lg font-black text-white shadow-md shadow-[var(--brand-primary-glow)] group-hover:shadow-[var(--brand-primary-glow)] transition-all shrink-0">
+        {/* ─── MOBILE VIEW (< lg): Logo at left + Menu button at right ─── */}
+        <div className="flex lg:hidden items-center justify-between w-full">
+          {/* Logo à gauche */}
+          <Link
+            href="/"
+            className="flex items-center gap-2 select-none group"
+            title="Retour à l'accueil"
+          >
+            <div className="flex h-8 w-8 items-center justify-center rounded-[8px] bg-[#465FFF] group-hover:bg-[#3641F5] text-white font-extrabold text-[12.5px] tracking-tight shadow-xs transition-colors">
               LS
             </div>
-            <div className="flex flex-col">
-              <span className="font-bebas text-xl font-bold tracking-wider text-white flex items-center gap-1 group-hover:text-brand transition-colors leading-none">
-                L <span className="text-brand">SHORTER</span>
-              </span>
-            </div>
+            <span className="font-bold ds-text-primary text-[15px] tracking-tight">
+              LShorter
+            </span>
           </Link>
 
-          <nav aria-label="Breadcrumbs" className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-neutral-400 pl-3 border-l border-[#222228]">
-            {routeSegments.map((crumb, idx) => (
-              <React.Fragment key={crumb.href}>
-                {idx > 0 && <span className="text-neutral-600 font-semibold select-none">/</span>}
-                {crumb.isCurrent ? (
-                  <span className="text-brand font-bold tracking-widest">{crumb.label}</span>
-                ) : (
-                  <Link
-                    href={crumb.href}
-                    className="hover:text-white transition-colors tracking-widest hover:underline"
-                  >
-                    {crumb.label}
-                  </Link>
-                )}
-              </React.Fragment>
-            ))}
-          </nav>
-        </div>
-
-        {/* Right Actions: Upgrade, Notifications, User Menu */}
-        <div className="flex items-center gap-3">
-          {/* Upgrade Plan Pill Button */}
-          {plan === "FREEMIUM" && (
-            <button
-              onClick={() =>
-                triggerPlanUpgrade({
-                  reason: "Upgrade to PRO Plan to unlock unlimited analytics and 15 custom domains.",
-                  featureName: "Unlimited PRO Access",
-                })
-              }
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-brand-light border border-brand-subtle hover:border-brand text-brand hover:bg-brand-light/80 text-xs font-bold transition-all shadow-sm shadow-[var(--brand-primary-light)] cursor-pointer animate-pulse"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Upgrade to PRO</span>
-            </button>
-          )}
-
-          {/* Theme Toggle Button Desktop (>= 768px) */}
+          {/* Bouton d'ouverture du menu mobile à droite */}
           <button
             type="button"
-            onClick={toggleTheme}
-            title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-            className="w-9 h-9 rounded-[10px] bg-[#141416] border border-[#27272a] hover:border-neutral-500 text-neutral-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+            onClick={() => setIsMobileMenuOpen(true)}
+            className="flex h-9 w-9 items-center justify-center rounded-lg bg-transparent text-zinc-500 hover:text-zinc-900 dark:text-neutral-400 dark:hover:text-white active:scale-95 transition-all cursor-pointer"
+            aria-label="Ouvrir le menu"
           >
-            {theme === "dark" ? (
-              <Sun className="w-4 h-4 text-amber-400 hover:rotate-45 transition-transform" />
-            ) : (
-              <Moon className="w-4 h-4 text-brand hover:-rotate-12 transition-transform" />
-            )}
+            <PanelLeft className="w-4 h-4" />
           </button>
-
-          {/* Notifications Popover */}
-          <NotificationsBell
-            userId={userId}
-            plan={plan}
-            clicksLimit={clicksLimit}
-            showNotifications={showNotifications}
-            setShowNotifications={setShowNotifications}
-            setShowUserMenu={setShowUserMenu}
-          />
-
-          {/* User Profile Pill - Crisp, sharp, no transform blur */}
-          <div ref={userMenuRef} className="relative">
-            <button
-              type="button"
-              onClick={() => {
-                setShowUserMenu(!showUserMenu);
-                setShowNotifications(false);
-              }}
-              className="flex items-center gap-2.5 pl-1.5 pr-3 py-1 rounded-[10px] bg-[#141416] border border-[#27272a] hover:border-neutral-500 hover:bg-[#1a1a1e] transition-colors cursor-pointer group shadow-sm"
-            >
-              <div className="w-7.5 h-7.5 rounded-[8px] bg-brand text-white flex items-center justify-center font-bold text-xs uppercase shadow-sm overflow-hidden shrink-0 border border-white/10">
-                {avatarUrl && !imgError ? (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img
-                    src={avatarUrl}
-                    alt={name}
-                    referrerPolicy="no-referrer"
-                    crossOrigin="anonymous"
-                    onError={() => setImgError(true)}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  name.slice(0, 2).toUpperCase()
-                )}
-              </div>
-              <div className="flex flex-col text-left min-w-0">
-                <span className="text-xs font-bold text-white group-hover:text-brand transition-colors truncate max-w-[150px] leading-tight">
-                  {name}
-                </span>
-                <span className="text-[9.5px] text-neutral-400 uppercase font-semibold leading-none mt-0.5">
-                  {plan} Plan
-                </span>
-              </div>
-              <ChevronDown
-                className={cn(
-                  "w-3.5 h-3.5 text-neutral-400 transition-transform duration-200 shrink-0",
-                  showUserMenu ? "rotate-180 text-brand" : "rotate-0"
-                )}
-              />
-            </button>
-
-            {/* Desktop User Menu Dropdown */}
-            {showUserMenu && (
-              <div className="hidden md:block absolute right-0 top-full mt-2 w-64 rounded-[14px] bg-[#141416] border border-[#27272a] shadow-2xl p-2 z-50 text-white animate-in fade-in duration-200">
-                <div className="p-2.5 border-b border-[#222225] mb-1 flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-[8px] bg-brand text-white flex items-center justify-center font-bold text-xs uppercase overflow-hidden shrink-0">
-                    {avatarUrl && !imgError ? (
-                      /* eslint-disable-next-line @next/next/no-img-element */
-                      <img
-                        src={avatarUrl}
-                        alt={name}
-                        referrerPolicy="no-referrer"
-                        crossOrigin="anonymous"
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      name.slice(0, 2).toUpperCase()
-                    )}
-                  </div>
-                  <div className="flex flex-col min-w-0">
-                    <p className="text-xs font-bold text-white truncate">{name}</p>
-                    <p className="text-[11px] text-neutral-400 truncate">{email}</p>
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-1 text-xs text-neutral-300">
-                  <Link
-                    href="/dashboard/settings"
-                    onClick={() => setShowUserMenu(false)}
-                    className="flex items-center gap-2.5 p-2 rounded-[8px] hover:bg-white/10 hover:text-white transition-colors"
-                  >
-                    <Settings className="w-4 h-4 text-neutral-400" />
-                    <span>Account Settings</span>
-                  </Link>
-
-                  <Link
-                    href="/dashboard/pricing"
-                    onClick={() => setShowUserMenu(false)}
-                    className="flex items-center gap-2.5 p-2 rounded-[8px] hover:bg-white/10 hover:text-white transition-colors"
-                  >
-                    <CreditCard className="w-4 h-4 text-brand" />
-                    <span>Plans & Pricing</span>
-                  </Link>
-
-                  <Link
-                    href="/docs"
-                    onClick={() => setShowUserMenu(false)}
-                    className="flex items-center gap-2.5 p-2 rounded-[8px] hover:bg-white/10 hover:text-white transition-colors"
-                  >
-                    <FileText className="w-4 h-4 text-neutral-400" />
-                    <span>API Documentation</span>
-                  </Link>
-
-                  <button
-                    onClick={() => {
-                      setShowUserMenu(false);
-                      signOut({ callbackUrl: "/login" });
-                    }}
-                    className="flex items-center gap-2.5 p-2 rounded-[8px] text-red-400 hover:bg-red-500/10 transition-colors w-full text-left mt-1 border-t border-[#222225] pt-2 cursor-pointer"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    <span>Log out</span>
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
         </div>
-      </div>
-    </header>
+      </header>
+
+      {/* ─── MOBILE MENU BACKDROP (Système identique à la landing page) ─── */}
+      <DashboardMobileMenu
+        isOpen={isMobileMenuOpen}
+        onClose={() => setIsMobileMenuOpen(false)}
+        onOpenCreateLink={() => setIsCreateOpen(true)}
+        onOpenSearch={() => setIsCommandModalOpen(true)}
+        mergedNotifications={mergedNotifications}
+        unreadCount={unreadCount}
+        markAllNotificationsRead={markAllNotificationsRead}
+        displayName={displayName}
+        displayEmail={displayEmail}
+        avatarUrl={avatarUrl}
+        planDef={planDef}
+        theme={theme}
+        toggleTheme={toggleTheme}
+      />
+
+      <ReuiCommandModal
+        isOpen={isCommandModalOpen}
+        onClose={() => setIsCommandModalOpen(false)}
+      />
+      <LinkCreateModal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} />
+    </>
   );
 }

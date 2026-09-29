@@ -14,8 +14,9 @@
  */
 
 const BASE_URL =
-  process.env.NEXT_PUBLIC_BACKEND_API_URL ||
-  "https://lshorter-api.fiatechnologiecam.workers.dev";
+  process.env.BACKEND_API_URL ||
+  process.env.CLOUDFLARE_WORKER_URL ||
+  "";
 
 const SECRET = process.env.FRONTEND_API_SECRET || "";
 
@@ -30,7 +31,7 @@ export interface SyncUserPayload {
 
 export async function syncUserToCloudflare(data: SyncUserPayload): Promise<{ success: boolean }> {
   try {
-    const secret = SECRET || "lsh_secret_live_prod_2026";
+    const secret = SECRET;
 
     // 1. Sync User / Upsert in D1
     const res = await fetch(`${BASE_URL}/api/v1/users/sync`, {

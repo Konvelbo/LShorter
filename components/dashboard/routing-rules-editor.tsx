@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { PlanType } from "@/types";
 import { triggerPlanUpgrade } from "@/lib/plan-guard";
 import { cn } from "@/lib/utils";
+import { getCountryFlag } from "@/lib/geo-coordinates";
 
 // Comprehensive World Countries List (All 195+ Countries with ISO codes)
 export const ALL_WORLD_COUNTRIES = [
@@ -170,7 +171,7 @@ export const ALL_WORLD_COUNTRIES = [
 
 export interface Condition {
   id: string;
-  type: "pays" | "region" | "appareil" | "plateforme";
+  type: "pays" | "continent" | "region" | "appareil" | "plateforme" | "navigateur";
   operator: "est" | "nest_pas";
   value: string;
 }
@@ -189,9 +190,132 @@ interface RoutingRulesEditorProps {
   userPlan?: PlanType | string;
 }
 
+function CountryFlagDropdown({
+  value,
+  onSelect,
+}: {
+  value: string;
+  onSelect: (code: string) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const containerRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const onDocClick = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, []);
+
+  const selected =
+    ALL_WORLD_COUNTRIES.find((c) => c.code === value) ||
+    ALL_WORLD_COUNTRIES[0];
+
+  const filtered = React.useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return ALL_WORLD_COUNTRIES;
+    return ALL_WORLD_COUNTRIES.filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        c.code.toLowerCase().includes(q)
+    );
+  }, [search]);
+
+  return (
+    <div ref={containerRef} className="relative w-full">
+      <button
+        type="button"
+        onClick={() => setIsOpen((prev) => !prev)}
+        className="w-full h-10 rounded-[10px] bg-white dark:bg-[#1a1a1e] text-zinc-900 dark:text-white border border-zinc-200 dark:border-[#27272a] hover:border-[#465FFF] px-3 text-xs flex items-center justify-between gap-2 focus:outline-none focus:border-brand transition-all cursor-pointer shadow-2xs"
+      >
+        <span className="flex items-center gap-2.5 min-w-0 truncate">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={`https://flagcdn.com/w40/${selected.code.toLowerCase()}.png`}
+            alt={selected.name}
+            className="w-5 h-3.5 rounded-[2px] object-cover shrink-0 border border-black/10 dark:border-white/10 shadow-2xs"
+          />
+          <span className="font-semibold text-zinc-900 dark:text-white truncate">
+            {selected.name}
+          </span>
+          <span className="text-[11px] font-mono text-zinc-500 dark:text-neutral-400 shrink-0">
+            ({selected.code})
+          </span>
+        </span>
+        <ChevronDown
+          className={cn(
+            "w-3.5 h-3.5 text-zinc-500 dark:text-neutral-400 shrink-0 transition-transform duration-200",
+            isOpen && "rotate-180 text-[#465FFF]"
+          )}
+        />
+      </button>
+
+      {isOpen && (
+        <div className="absolute left-0 right-0 mt-1.5 rounded-xl bg-white dark:bg-[#141418] border border-zinc-200 dark:border-[#27272a] shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+          <div className="p-2 border-b border-zinc-100 dark:border-[#222225]">
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search country or ISO code (e.g. France, FR, US)..."
+              autoFocus
+              className="w-full h-8 rounded-lg bg-zinc-50 dark:bg-[#1a1a1e] text-zinc-900 dark:text-white border border-zinc-200 dark:border-[#27272a] px-2.5 text-xs placeholder:text-zinc-400 dark:placeholder:text-neutral-500 focus:outline-none focus:border-[#465FFF]"
+            />
+          </div>
+          <div className="max-h-56 overflow-y-auto p-1 divide-y divide-zinc-50 dark:divide-white/[0.02]">
+            {filtered.length === 0 ? (
+              <div className="py-4 text-center text-xs text-zinc-500 dark:text-neutral-400">
+                No matching country found
+              </div>
+            ) : (
+              filtered.map((c) => {
+                const isActive = c.code === selected.code;
+                return (
+                  <button
+                    key={c.code}
+                    type="button"
+                    onClick={() => {
+                      onSelect(c.code);
+                      setIsOpen(false);
+                      setSearch("");
+                    }}
+                    className={cn(
+                      "w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg text-xs transition-colors cursor-pointer",
+                      isActive
+                        ? "bg-[#ECF3FF] dark:bg-[#465FFF]/20 text-[#465FFF] dark:text-[#7592FF] font-bold"
+                        : "text-zinc-800 dark:text-neutral-200 hover:bg-zinc-100 dark:hover:bg-white/[0.06]"
+                    )}
+                  >
+                    <span className="flex items-center gap-2.5 min-w-0 truncate">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={`https://flagcdn.com/w40/${c.code.toLowerCase()}.png`}
+                        alt={c.name}
+                        loading="lazy"
+                        className="w-5 h-3.5 rounded-[2px] object-cover shrink-0 border border-black/10 dark:border-white/10"
+                      />
+                      <span className="truncate">{c.name}</span>
+                    </span>
+                    <span className="font-mono text-[11px] text-zinc-500 dark:text-neutral-400 shrink-0">
+                      {c.code}
+                    </span>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: RoutingRulesEditorProps) {
-  const [countrySearch, setCountrySearch] = useState("");
-  const isProPlan = userPlan === "PRO" || userPlan === "BUSINESS";
+  const isProPlan = userPlan === "PRO" || userPlan === "BUSINESS" || userPlan === "ENTERPRISE";
 
   const handleAddRule = () => {
     if (!isProPlan) {
@@ -235,13 +359,16 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
   const getDefaultValueForType = (type: string): string => {
     switch (type) {
       case "pays":
-        return "BF";
+        return "FR";
+      case "navigateur":
+        return "chrome";
       case "appareil":
         return "mobile";
       case "plateforme":
         return "windows";
+      case "continent":
       case "region":
-        return "west_africa";
+        return "africa";
       default:
         return "mobile";
     }
@@ -335,37 +462,41 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
     );
   };
 
+  const selectClassName =
+    "w-full h-10 rounded-[10px] bg-white dark:bg-[#1a1a1e] text-zinc-900 dark:text-white border border-zinc-200 dark:border-[#27272a] hover:border-[#465FFF] px-3 text-xs focus:outline-none focus:border-brand transition-all cursor-pointer shadow-2xs";
+  const optionClassName = "bg-white dark:bg-[#141416] text-zinc-900 dark:text-white";
+
   return (
     <div className="flex flex-col gap-4 text-xs">
-      <div className="flex items-center justify-between pb-2 border-b border-[#27272a]">
-        <h4 className="font-bold text-sm tracking-wider uppercase text-white flex items-center gap-2">
+      <div className="flex items-center justify-between pb-2 border-b border-zinc-200 dark:border-[#27272a]">
+        <h4 className="font-bold text-sm tracking-wider uppercase text-zinc-900 dark:text-white flex items-center gap-2">
           <Globe2 className="w-4 h-4 text-brand" />
           <span>ROUTING RULES</span>
         </h4>
-        <span className="text-[11px] text-neutral-400">
+        <span className="text-[11px] text-zinc-500 dark:text-neutral-400">
           Smart multi-condition redirection
         </span>
       </div>
 
       {/* Rules List */}
       <div className="flex flex-col gap-4">
-        {rules.map((rule, ruleIdx) => (
+        {rules.map((rule) => (
           <div
             key={rule.id}
-            className="rounded-[10px] bg-[#141416] border border-[#27272a] p-4 sm:p-5 flex flex-col gap-4 shadow-xl relative animate-in fade-in"
+            className="rounded-[12px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#27272a] p-4 sm:p-5 flex flex-col gap-4 shadow-xs dark:shadow-xl relative animate-in fade-in"
           >
             {/* Rule Header */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <GripVertical className="w-4 h-4 text-neutral-500 cursor-grab" />
-                <span className="font-bold text-sm text-white">{rule.title}</span>
+                <GripVertical className="w-4 h-4 text-zinc-400 dark:text-neutral-500 cursor-grab" />
+                <span className="font-bold text-sm text-zinc-900 dark:text-white">{rule.title}</span>
               </div>
 
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => handleToggleCollapse(rule.id)}
-                  className="flex items-center gap-1 text-xs text-neutral-400 hover:text-white px-2 py-1 rounded-[10px] hover:bg-white/5 cursor-pointer"
+                  className="flex items-center gap-1 text-xs text-zinc-600 dark:text-neutral-400 hover:text-zinc-900 dark:hover:text-white px-2.5 py-1 rounded-[8px] hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
                 >
                   {rule.isCollapsed ? (
                     <>
@@ -383,7 +514,7 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                 <button
                   type="button"
                   onClick={() => handleDeleteRule(rule.id)}
-                  className="text-red-400 hover:text-red-300 p-1 hover:bg-red-500/10 rounded-[10px] cursor-pointer"
+                  className="text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 p-1.5 hover:bg-red-500/10 rounded-[8px] transition-colors cursor-pointer"
                   title="Delete rule"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -392,18 +523,18 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
             </div>
 
             {!rule.isCollapsed && (
-              <div className="flex flex-col gap-4 pt-1 border-t border-[#222225]">
+              <div className="flex flex-col gap-4 pt-2 border-t border-zinc-100 dark:border-[#222225]">
                 {/* Conditions Block */}
                 <div className="flex flex-col gap-2.5">
                   {rule.conditions.map((cond, condIdx) => (
                     <div
                       key={cond.id}
-                      className="p-3 sm:p-2 rounded-[10px] bg-[#141418] border border-[#27272f] sm:bg-transparent sm:border-0 flex flex-col gap-2 sm:grid sm:grid-cols-12 sm:gap-2 sm:items-center"
+                      className="p-3 sm:p-2 rounded-[10px] bg-zinc-50 dark:bg-[#141418] border border-zinc-200 dark:border-[#27272f] sm:bg-transparent sm:border-0 flex flex-col gap-2 sm:grid sm:grid-cols-12 sm:gap-2 sm:items-center"
                     >
                       {/* Mobile Header: Prefix + Delete */}
                       <div className="flex items-center justify-between sm:contents">
-                        <div className="sm:col-span-1 text-xs font-bold text-neutral-300">
-                          <span className="px-2 py-0.5 rounded-[10px] bg-white/5 sm:bg-transparent text-brand font-mono">
+                        <div className="sm:col-span-1 text-xs font-bold">
+                          <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-[6px] bg-[#ECF3FF] dark:bg-white/5 text-[#465FFF] font-mono font-bold">
                             {condIdx === 0 ? "If" : "And"}
                           </span>
                         </div>
@@ -412,7 +543,7 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                           <button
                             type="button"
                             onClick={() => handleDeleteCondition(rule.id, cond.id)}
-                            className="sm:hidden text-red-400 hover:text-red-300 p-1 rounded-[10px]"
+                            className="sm:hidden text-red-500 dark:text-red-400 hover:text-red-600 p-1 rounded-[8px]"
                             title="Delete condition"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -425,19 +556,20 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                         {/* Type Dropdown */}
                         <div className="sm:col-span-3">
                           <select
-                            value={cond.type}
+                            value={cond.type === "region" ? "continent" : cond.type}
                             onChange={(e) =>
                               handleUpdateCondition(rule.id, cond.id, {
                                 type: e.target.value as any,
                                 value: getDefaultValueForType(e.target.value),
                               })
                             }
-                            className="w-full h-10 rounded-[10px] bg-[#1a1a1e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-brand cursor-pointer"
+                            className={selectClassName}
                           >
-                            <option value="pays" className="bg-[#141416] text-white">Country</option>
-                            <option value="plateforme" className="bg-[#141416] text-white">Platform (OS)</option>
-                            <option value="appareil" className="bg-[#141416] text-white">Device</option>
-                            <option value="region" className="bg-[#141416] text-white">Region</option>
+                            <option value="pays" className={optionClassName}>Country (Pays)</option>
+                            <option value="continent" className={optionClassName}>Continent</option>
+                            <option value="navigateur" className={optionClassName}>Browser (Navigateur)</option>
+                            <option value="plateforme" className={optionClassName}>Platform (OS)</option>
+                            <option value="appareil" className={optionClassName}>Device</option>
                           </select>
                         </div>
 
@@ -450,10 +582,10 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                                 operator: e.target.value as any,
                               })
                             }
-                            className="w-full h-10 rounded-[10px] bg-[#1a1a1e] text-white border border-[#27272a] px-2.5 text-xs focus:outline-none focus:border-brand cursor-pointer text-center"
+                            className={cn(selectClassName, "text-center")}
                           >
-                            <option value="est" className="bg-[#141416] text-white">is</option>
-                            <option value="nest_pas" className="bg-[#141416] text-white">is not</option>
+                            <option value="est" className={optionClassName}>is</option>
+                            <option value="nest_pas" className={optionClassName}>is not</option>
                           </select>
                         </div>
                       </div>
@@ -461,6 +593,17 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                       {/* Row 2 on Mobile: Value Selector */}
                       <div className="sm:col-span-5">
                         {cond.type === "pays" && (
+                          <CountryFlagDropdown
+                            value={cond.value}
+                            onSelect={(newCode) =>
+                              handleUpdateCondition(rule.id, cond.id, {
+                                value: newCode,
+                              })
+                            }
+                          />
+                        )}
+
+                        {cond.type === "navigateur" && (
                           <select
                             value={cond.value}
                             onChange={(e) =>
@@ -468,17 +611,15 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                                 value: e.target.value,
                               })
                             }
-                            className="w-full h-10 rounded-[10px] bg-[#1a1a1e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-brand cursor-pointer"
+                            className={selectClassName}
                           >
-                            {ALL_WORLD_COUNTRIES.map((c) => (
-                              <option
-                                key={c.code}
-                                value={c.code}
-                                className="bg-[#141416] text-white"
-                              >
-                                {c.name} ({c.code})
-                              </option>
-                            ))}
+                            <option value="chrome" className={optionClassName}>Google Chrome</option>
+                            <option value="safari" className={optionClassName}>Apple Safari</option>
+                            <option value="firefox" className={optionClassName}>Mozilla Firefox</option>
+                            <option value="edge" className={optionClassName}>Microsoft Edge</option>
+                            <option value="opera" className={optionClassName}>Opera</option>
+                            <option value="brave" className={optionClassName}>Brave</option>
+                            <option value="samsung" className={optionClassName}>Samsung Internet</option>
                           </select>
                         )}
 
@@ -490,13 +631,13 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                                 value: e.target.value,
                               })
                             }
-                            className="w-full h-10 rounded-[10px] bg-[#1a1a1e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-brand cursor-pointer"
+                            className={selectClassName}
                           >
-                            <option value="windows" className="bg-[#141416] text-white">Windows</option>
-                            <option value="macos" className="bg-[#141416] text-white">macOS</option>
-                            <option value="linux" className="bg-[#141416] text-white">Linux</option>
-                            <option value="ios" className="bg-[#141416] text-white">iOS (iPhone &amp; iPad)</option>
-                            <option value="android" className="bg-[#141416] text-white">Android</option>
+                            <option value="windows" className={optionClassName}>Windows</option>
+                            <option value="macos" className={optionClassName}>macOS</option>
+                            <option value="linux" className={optionClassName}>Linux</option>
+                            <option value="ios" className={optionClassName}>iOS (iPhone &amp; iPad)</option>
+                            <option value="android" className={optionClassName}>Android</option>
                           </select>
                         )}
 
@@ -508,15 +649,15 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                                 value: e.target.value,
                               })
                             }
-                            className="w-full h-10 rounded-[10px] bg-[#1a1a1e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-brand cursor-pointer"
+                            className={selectClassName}
                           >
-                            <option value="mobile" className="bg-[#141416] text-white">Mobile (Smartphones)</option>
-                            <option value="tablet" className="bg-[#141416] text-white">Tablet</option>
-                            <option value="desktop" className="bg-[#141416] text-white">Desktop Computer</option>
+                            <option value="mobile" className={optionClassName}>Mobile (Smartphones)</option>
+                            <option value="tablet" className={optionClassName}>Tablet</option>
+                            <option value="desktop" className={optionClassName}>Desktop Computer</option>
                           </select>
                         )}
 
-                        {cond.type === "region" && (
+                        {(cond.type === "continent" || cond.type === "region") && (
                           <select
                             value={cond.value}
                             onChange={(e) =>
@@ -524,13 +665,15 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                                 value: e.target.value,
                               })
                             }
-                            className="w-full h-10 rounded-[10px] bg-[#1a1a1e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-brand cursor-pointer"
+                            className={selectClassName}
                           >
-                            <option value="europe" className="bg-[#141416] text-white">Europe (EU)</option>
-                            <option value="west_africa" className="bg-[#141416] text-white">West Africa (ECOWAS)</option>
-                            <option value="central_africa" className="bg-[#141416] text-white">Central Africa</option>
-                            <option value="north_america" className="bg-[#141416] text-white">North America</option>
-                            <option value="asia" className="bg-[#141416] text-white">Asia &amp; Pacific</option>
+                            <option value="africa" className={optionClassName}>Africa (Afrique)</option>
+                            <option value="europe" className={optionClassName}>Europe</option>
+                            <option value="north_america" className={optionClassName}>North America (Amérique du Nord)</option>
+                            <option value="south_america" className={optionClassName}>South America (Amérique du Sud)</option>
+                            <option value="asia" className={optionClassName}>Asia (Asie)</option>
+                            <option value="oceania" className={optionClassName}>Oceania (Océanie)</option>
+                            <option value="middle_east" className={optionClassName}>Middle East (Moyen-Orient)</option>
                           </select>
                         )}
                       </div>
@@ -541,7 +684,7 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                           <button
                             type="button"
                             onClick={() => handleDeleteCondition(rule.id, cond.id)}
-                            className="text-neutral-500 hover:text-red-400 p-1.5 hover:bg-red-500/10 rounded-[10px] transition-colors cursor-pointer"
+                            className="text-zinc-400 dark:text-neutral-500 hover:text-red-500 dark:hover:text-red-400 p-1.5 hover:bg-red-500/10 rounded-[10px] transition-colors cursor-pointer"
                             title="Delete condition"
                           >
                             <X className="w-4 h-4" />
@@ -556,7 +699,7 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                     <button
                       type="button"
                       onClick={() => handleAddCondition(rule.id)}
-                      className="text-brand hover:text-brand-hover font-semibold text-xs flex items-center gap-1 px-3 py-1.5 rounded-[10px] hover:bg-brand-subtle border border-brand-subtle transition-all cursor-pointer"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] bg-[#ECF3FF] dark:bg-[#465FFF]/15 text-[#465FFF] dark:text-[#7592FF] hover:bg-[#465FFF] hover:!text-white border border-[#465FFF]/30 font-semibold text-xs shadow-2xs hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 cursor-pointer"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       <span>Add condition</span>
@@ -565,8 +708,8 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                 </div>
 
                 {/* Target URL Destination ("Then redirect to") */}
-                <div className="flex flex-col gap-1.5 pt-2 border-t border-[#222225]">
-                  <label className="text-xs font-semibold text-neutral-300">
+                <div className="flex flex-col gap-1.5 pt-2 border-t border-zinc-100 dark:border-[#222225]">
+                  <label className="text-xs font-semibold text-zinc-700 dark:text-neutral-300">
                     Then redirect to <span className="text-brand">*</span>
                   </label>
                   {(() => {
@@ -597,11 +740,11 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
                           onChange={(e) => handleUpdateDestination(rule.id, e.target.value)}
                           className={cn(
                             isInvalid &&
-                              "border-red-500 focus:border-red-500 focus:ring-red-500/30 bg-red-950/20 text-red-100"
+                              "border-red-500 focus:border-red-500 focus:ring-red-500/30 bg-red-50 dark:bg-red-950/20 text-red-900 dark:text-red-100"
                           )}
                         />
                         {isInvalid && (
-                          <div className="flex items-center gap-1.5 text-xs text-red-400 bg-red-500/10 border border-red-500/30 rounded-[10px] px-2.5 py-1.5 mt-1 animate-in fade-in slide-in-from-top-1">
+                          <div className="flex items-center gap-1.5 text-xs text-red-600 dark:text-red-400 bg-red-500/10 border border-red-500/30 rounded-[10px] px-2.5 py-1.5 mt-1 animate-in fade-in slide-in-from-top-1">
                             <AlertCircle className="w-3.5 h-3.5 shrink-0 text-red-500" />
                             <span className="font-medium">
                               Invalid URL format. Must be a valid Web address (e.g. https://shop.example.com/promo).
@@ -622,7 +765,7 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
       <button
         type="button"
         onClick={handleAddRule}
-        className="w-full sm:w-fit px-4 py-2.5 rounded-[10px] bg-white/5 hover:bg-white/10 active:scale-98 text-neutral-200 hover:text-white border border-[#27272a] hover:border-brand font-semibold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm"
+        className="w-full sm:w-fit px-4 py-2.5 rounded-[10px] bg-white dark:bg-white/5 hover:bg-[#ECF3FF] dark:hover:bg-white/10 hover:-translate-y-0.5 active:translate-y-0 text-zinc-800 dark:text-neutral-200 hover:text-[#465FFF] dark:hover:text-white border border-zinc-200 dark:border-[#27272a] hover:border-[#465FFF] font-semibold text-xs flex items-center justify-center gap-2 transition-all duration-200 cursor-pointer shadow-2xs"
       >
         <Plus className="w-4 h-4 text-brand" />
         <span>Add rule</span>

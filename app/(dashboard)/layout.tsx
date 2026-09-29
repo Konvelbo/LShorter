@@ -10,23 +10,19 @@ export default function DashboardLayout({
 }) {
   return (
     <OnboardingGuard>
-      <div className="h-screen w-screen overflow-hidden bg-[#09090b] text-[#fafafa] flex flex-col">
-        {/* 1. Full-width Topbar across the entire top */}
-        <Topbar />
+      <div className="flex h-screen w-screen overflow-hidden ds-bg-app ds-text-primary">
+        {/* 1. Full-height Left Sidebar (No visible scrollbar) */}
+        <Sidebar />
 
-        {/* 2. Content Row: Sidebar on Left + Framed Canvas on Right */}
-        <div className="flex-1 flex flex-row min-h-0 overflow-hidden bg-[#09090b]">
-          {/* Sidebar (No border) */}
-          <Sidebar />
+        {/* 2. Right Column: Sticky Topbar + Main Scrollable Workspace with Theme-Adapted Scrollbar */}
+        <div className="relative flex flex-1 flex-col overflow-y-auto overflow-x-hidden ds-bg-app ds-main-scroll">
+          <Topbar />
 
-          {/* 3. Central Framed Canvas with Rounded Top-Left (No border, pure contrast + rounded-tl) */}
-          <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#09090b] pr-0 pb-0">
-            <main className="h-full w-full bg-[#121215] md:rounded-tl-[28px] overflow-y-auto custom-scroll shadow-2xl p-4 sm:p-6 md:p-8 pb-24 md:pb-8">
-              <div className="max-w-7xl w-full mx-auto">
-                {children}
-              </div>
-            </main>
-          </div>
+          <main className="flex-1">
+            <div className="mx-auto max-w-[1536px] p-4 md:p-6 2xl:p-8 pb-24 md:pb-10">
+              {children}
+            </div>
+          </main>
         </div>
       </div>
     </OnboardingGuard>

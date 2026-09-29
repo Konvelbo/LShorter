@@ -1,11 +1,12 @@
 import React from "react";
 import {
-  ImageIcon,
+  Link2,
+  Share2,
   Globe2,
-  Tag,
   Shield,
   Split,
   Sliders,
+  CheckCircle2,
   LucideIcon,
 } from "lucide-react";
 import { ShortLink } from "@/types";
@@ -20,12 +21,13 @@ export interface LinkDrawerProps {
 }
 
 export type DrawerTabId =
-  | "social"
-  | "tracking"
+  | "link"
+  | "social_tracking"
   | "routing"
   | "protection"
   | "ab_testing"
-  | "advanced";
+  | "advanced"
+  | "review";
 
 export interface DrawerTabItem {
   id: DrawerTabId;
@@ -37,46 +39,53 @@ export interface DrawerTabItem {
 
 export const DRAWER_TABS: DrawerTabItem[] = [
   {
-    id: "social",
-    label: "Social Preview",
-    icon: ImageIcon,
+    id: "link",
+    label: "Link",
+    icon: Link2,
     isPro: false,
-    subtitle: "Customize how your link looks when shared across social networks.",
+    subtitle: "Paste the destination URL and choose your short link.",
   },
   {
-    id: "tracking",
-    label: "Tracking",
-    icon: Tag,
+    id: "social_tracking",
+    label: "Social media & tracking",
+    icon: Share2,
     isPro: false,
-    subtitle: "Configure UTM campaign tags and tracking pixels to measure conversions.",
+    subtitle: "Customize social cards and add UTM campaign parameters.",
   },
   {
     id: "routing",
     label: "Routing",
     icon: Globe2,
     isPro: true,
-    subtitle: "Intelligently route visitors based on their country, device OS, or language.",
+    subtitle: "Send visitors elsewhere dynamically by country, device, or language.",
   },
   {
     id: "protection",
-    label: "Protection & Expiry",
+    label: "Protection & expiry",
     icon: Shield,
     isPro: true,
-    subtitle: "Protect links with PIN passwords, hide HTTP referrers, or set expiration dates.",
+    subtitle: "Protect links with password, expiry date, click limits, or PathLock™.",
   },
   {
     id: "ab_testing",
     label: "A/B Testing",
     icon: Split,
     isPro: true,
-    subtitle: "Split visitor traffic between multiple landing pages to maximize conversion rates.",
+    subtitle: "Split visitor traffic between multiple landing page variations.",
   },
   {
     id: "advanced",
     label: "Advanced",
     icon: Sliders,
     isPro: false,
-    subtitle: "Advanced technical options, HTTP redirection status codes, and link tags.",
+    subtitle: "Redirect HTTP status codes, query parameters, and link tags.",
+  },
+  {
+    id: "review",
+    label: "Review",
+    icon: CheckCircle2,
+    isPro: false,
+    subtitle: "Check the summary of all options, then finalize your link.",
   },
 ];
 

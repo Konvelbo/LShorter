@@ -21,11 +21,13 @@ export default auth((req) => {
     "camera=(), microphone=(), geolocation=()"
   );
 
-  // 1. Protect Dashboard & Onboarding Routes from unauthenticated users
+  // 1. Protect Dashboard & Onboarding Routes in production (allow direct UI/UX preview on localhost)
+  const isLocalhost =
+    req.nextUrl.hostname === "localhost" || req.nextUrl.hostname === "127.0.0.1";
   const isProtectedPath =
     pathname.startsWith("/dashboard") || pathname.startsWith("/onboarding");
 
-  if (isProtectedPath && !isAuthenticated) {
+  if (isProtectedPath && !isAuthenticated && !isLocalhost) {
     const loginUrl = new URL("/login", req.nextUrl.origin);
     loginUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(loginUrl);

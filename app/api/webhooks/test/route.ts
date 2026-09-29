@@ -20,8 +20,8 @@ export async function POST(req: NextRequest) {
         slug: "demo-link",
         destination: "https://lsho.cc",
         geo: {
-          country: "BF",
-          city: "Ouagadougou",
+          country: req.headers.get("cf-ipcountry") || req.headers.get("x-vercel-ip-country") || "XX",
+          city: req.headers.get("cf-ipcity") || req.headers.get("x-vercel-ip-city") || "Unknown",
         },
         device: "Desktop",
         browser: "Chrome",

@@ -19,7 +19,12 @@ import {
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { cfGetApiKeys, cfCreateApiKey, cfRevokeApiKey, cfInvalidateCache } from "@/lib/cloudflare-api";
+import {
+  cfGetApiKeys,
+  cfCreateApiKey,
+  cfRevokeApiKey,
+  cfInvalidateCache,
+} from "@/lib/cloudflare-api";
 import { ApiKeyItem } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,12 +42,18 @@ export default function ApiSdkPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [keyNameInput, setKeyNameInput] = useState("");
-  const [keyScopeInput, setKeyScopeInput] = useState<"read" | "read_write" | "admin">("read_write");
+  const [keyScopeInput, setKeyScopeInput] = useState<
+    "read" | "read_write" | "admin"
+  >("read_write");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [newlyCreatedKey, setNewlyCreatedKey] = useState<ApiKeyItem | null>(null);
+  const [newlyCreatedKey, setNewlyCreatedKey] = useState<ApiKeyItem | null>(
+    null,
+  );
   const [revealedKeys, setRevealedKeys] = useState<Record<string, boolean>>({});
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
-  const [activeCodeTab, setActiveCodeTab] = useState<"create" | "track" | "analytics" | "profile">("create");
+  const [activeCodeTab, setActiveCodeTab] = useState<
+    "create" | "track" | "analytics"
+  >("create");
 
   const toggleRevealKey = (id: string) => {
     setRevealedKeys((prev) => ({
@@ -60,7 +71,9 @@ export default function ApiSdkPage() {
       const res = await cfGetApiKeys(userId);
       const userPlan = (session?.user as any)?.plan || "FREEMIUM";
       const isProOrBusiness = userPlan === "PRO" || userPlan === "BUSINESS";
-      const defaultRateLimit = isProOrBusiness ? "Unlimited (Max Throughput)" : "1,000 req / min";
+      const defaultRateLimit = isProOrBusiness
+        ? "Unlimited (Max Throughput)"
+        : "1,000 req / min";
 
       const rawKeys: ApiKeyItem[] = (res?.data || []).map((k: any) => ({
         id: k.id,
@@ -68,12 +81,29 @@ export default function ApiSdkPage() {
         prefix: k.prefix || k.key_prefix || "lsh_live_...",
         rawKey: k.raw_key,
         scope: (k.scope as any) || "read_write",
-        rateLimit: k.rate_limit ? `${k.rate_limit} req / min` : defaultRateLimit,
+        rateLimit: k.rate_limit
+          ? `${k.rate_limit} req / min`
+          : defaultRateLimit,
         userEmail: k.user_email || k.userEmail || k.email,
-        userName: k.user_name || k.userName || k.user_full_name || k.userFullName || k.fullName,
-        userFullName: k.user_full_name || k.userFullName || k.user_name || k.userName || k.fullName,
+        userName:
+          k.user_name ||
+          k.userName ||
+          k.user_full_name ||
+          k.userFullName ||
+          k.fullName,
+        userFullName:
+          k.user_full_name ||
+          k.userFullName ||
+          k.user_name ||
+          k.userName ||
+          k.fullName,
         email: k.user_email || k.userEmail || k.email,
-        fullName: k.user_full_name || k.userFullName || k.user_name || k.userName || k.fullName,
+        fullName:
+          k.user_full_name ||
+          k.userFullName ||
+          k.user_name ||
+          k.userName ||
+          k.fullName,
         created_at: k.created_at || new Date().toISOString(),
       }));
       setKeys(rawKeys);
@@ -143,7 +173,11 @@ export default function ApiSdkPage() {
   };
 
   // Revoke modal state
-  const [deleteTarget, setDeleteTarget] = useState<{ isOpen: boolean; id: string; name: string }>({
+  const [deleteTarget, setDeleteTarget] = useState<{
+    isOpen: boolean;
+    id: string;
+    name: string;
+  }>({
     isOpen: false,
     id: "",
     name: "",
@@ -228,21 +262,6 @@ console.log("Tracked revenue:", stats.conversions[0].revenue);
 
 const topAudience = await qk.analytics.top();
 console.log("Top Countries:", topAudience.topCountries);`,
-
-    profile: `import { LShorter } from "lshorter-api";
-
-const qk = new LShorter({ apiKey: "sk_live_..." });
-
-// GET /api/v1/users/me — Profile, Email & Full Name
-const me = await qk.users.me();
-
-console.log("User ID:", me.id);
-console.log("Email Address:", me.email);
-console.log("Full Name:", me.fullName);
-console.log("Subscribed Plan:", me.plan);
-console.log("Clicks consumed this month:", me.clicksThisMonth);
-console.log("Active links:", me.linksCount);
-console.log("Custom domains:", me.domainsCount);`
   };
 
   if (status === "loading" || isLoading) {
@@ -254,9 +273,12 @@ console.log("Custom domains:", me.domainsCount);`
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-wide">Developer API & SDK</h1>
-          <p className="text-xs text-neutral-400 mt-1">
-            Generate secure API keys (sk_live_...) and integrate URL shortening directly into your applications.
+          <h1 className="text-2xl font-bold text-[#09090B] dark:text-white tracking-wide">
+            Developer API & SDK
+          </h1>
+          <p className="text-xs text-zinc-500 dark:text-neutral-400 mt-1">
+            Generate secure API keys (sk_live_...) and integrate URL shortening
+            directly into your applications.
           </p>
         </div>
 
@@ -271,9 +293,11 @@ console.log("Custom domains:", me.domainsCount);`
             }}
             variant="outline"
             disabled={isRefreshing}
-            className="h-10 px-3.5 text-xs font-semibold gap-2 border-[#27272a] bg-[#141416] hover:bg-white/5 text-neutral-300 hover:text-white cursor-pointer shadow-sm"
+            className="h-10 px-3.5 text-xs font-semibold gap-2 border-black/[0.08] dark:border-[#27272a] bg-white dark:bg-[#111113] hover:bg-zinc-50 dark:hover:bg-white/5 text-[#09090B] dark:text-neutral-300 hover:text-[#09090B] dark:hover:text-white cursor-pointer shadow-sm"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-brand" : "text-neutral-400"}`} />
+            <RefreshCw
+              className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-brand" : "text-zinc-500 dark:text-neutral-400"}`}
+            />
             <span>Refresh</span>
           </Button>
 
@@ -292,17 +316,17 @@ console.log("Custom domains:", me.domainsCount);`
       {isGenerating && (
         <form
           onSubmit={handleCreateKey}
-          className="p-6 rounded-[10px] bg-[#141416] border border-[#27272a] shadow-xl flex flex-col gap-4 animate-in fade-in"
+          className="p-6 rounded-[10px] bg-white dark:bg-[#111113] text-[#09090B] dark:text-white border border-black/[0.08] dark:border-[#27272a] shadow-xl flex flex-col gap-4 animate-in fade-in"
         >
           <div className="flex items-center justify-between">
-            <h3 className="text-base font-bold text-white flex items-center gap-2">
+            <h3 className="text-base font-bold text-[#09090B] dark:text-white flex items-center gap-2">
               <KeyRound className="w-4 h-4 text-brand" />
               <span>Generate a new API key</span>
             </h3>
             <button
               type="button"
               onClick={() => setIsGenerating(false)}
-              className="text-xs text-neutral-400 hover:text-white cursor-pointer"
+              className="text-xs text-zinc-500 dark:text-neutral-400 hover:text-[#09090B] dark:hover:text-white cursor-pointer"
             >
               Close ✕
             </button>
@@ -315,21 +339,44 @@ console.log("Custom domains:", me.domainsCount);`
                 placeholder="Application name (e.g. Telegram Bot, Zapier, Backend Worker...)"
                 value={keyNameInput}
                 onChange={(e) => setKeyNameInput(e.target.value)}
-                className="h-10 text-xs bg-[#0c0c0e] border-[#27272a]"
+                className="h-10 text-xs bg-zinc-50 dark:bg-[#0c0c0e] text-[#09090B] dark:text-white border-black/[0.08] dark:border-[#27272a]"
               />
             </div>
             <div className="w-full sm:w-56 shrink-0">
               <select
                 value={keyScopeInput}
-                onChange={(e) => setKeyScopeInput(e.target.value as "read" | "read_write" | "admin")}
-                className="w-full h-10 rounded-[10px] bg-[#0c0c0e] text-white border border-[#27272a] px-3 text-xs focus:outline-none focus:border-brand cursor-pointer"
+                onChange={(e) =>
+                  setKeyScopeInput(
+                    e.target.value as "read" | "read_write" | "admin",
+                  )
+                }
+                className="w-full h-10 rounded-[10px] bg-zinc-50 dark:bg-[#0c0c0e] text-[#09090B] dark:text-white border border-black/[0.08] dark:border-[#27272a] px-3 text-xs focus:outline-none focus:border-brand cursor-pointer"
               >
-                <option value="read_write" className="bg-[#141416] text-white">Read & Write</option>
-                <option value="admin" className="bg-[#141416] text-white">Full Access (Admin)</option>
-                <option value="read" className="bg-[#141416] text-white">Read Only</option>
+                <option
+                  value="read_write"
+                  className="bg-white dark:bg-[#111113] text-[#09090B] dark:text-white"
+                >
+                  Read & Write
+                </option>
+                <option
+                  value="admin"
+                  className="bg-white dark:bg-[#111113] text-[#09090B] dark:text-white"
+                >
+                  Full Access (Admin)
+                </option>
+                <option
+                  value="read"
+                  className="bg-white dark:bg-[#111113] text-[#09090B] dark:text-white"
+                >
+                  Read Only
+                </option>
               </select>
             </div>
-            <Button type="submit" variant="glow" className="shrink-0 h-10 px-6 text-xs font-bold gap-1.5 cursor-pointer shadow-md">
+            <Button
+              type="submit"
+              variant="glow"
+              className="shrink-0 h-10 px-6 text-xs font-bold gap-1.5 cursor-pointer shadow-md"
+            >
               <Plus className="w-4 h-4" />
               <span>Create key</span>
             </Button>
@@ -337,7 +384,7 @@ console.log("Custom domains:", me.domainsCount);`
               type="button"
               variant="outline"
               onClick={() => setIsGenerating(false)}
-              className="shrink-0 h-10 px-4 text-xs font-semibold border-[#27272a] cursor-pointer"
+              className="shrink-0 h-10 px-4 text-xs font-semibold border-black/[0.08] dark:border-[#27272a] text-[#09090B] dark:text-white cursor-pointer"
             >
               Cancel
             </Button>
@@ -346,22 +393,25 @@ console.log("Custom domains:", me.domainsCount);`
       )}
 
       {/* Active API Keys List */}
-      <div className="rounded-[10px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] p-5 shadow-sm flex flex-col gap-4">
+      <div className="rounded-[10px] bg-white dark:bg-[#111113] text-[#09090B] dark:text-white border border-black/[0.08] dark:border-[#222225] p-5 shadow-sm flex flex-col gap-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-base font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+          <h3 className="text-base font-bold text-[#09090B] dark:text-white flex items-center gap-2">
             <KeyRound className="w-4 h-4 text-brand" />
             <span>Active API Keys ({keys.length})</span>
           </h3>
         </div>
 
         {keys.length === 0 ? (
-          <div className="py-12 px-4 text-center flex flex-col items-center justify-center gap-2.5 bg-zinc-50 dark:bg-[#0c0c0e] rounded-[10px] border border-zinc-200 dark:border-[#27272a]">
+          <div className="py-12 px-4 text-center flex flex-col items-center justify-center gap-2.5 bg-zinc-50 dark:bg-[#0c0c0e] rounded-[10px] border border-black/[0.08] dark:border-[#27272a]">
             <div className="w-10 h-10 rounded-[10px] bg-zinc-200 dark:bg-neutral-800/60 border border-zinc-300 dark:border-neutral-700/40 flex items-center justify-center text-zinc-500 dark:text-neutral-500">
               <KeyRound className="w-5 h-5" />
             </div>
-            <p className="text-xs font-semibold text-zinc-800 dark:text-neutral-300">No active API keys yet</p>
+            <p className="text-xs font-semibold text-zinc-800 dark:text-neutral-300">
+              No active API keys yet
+            </p>
             <p className="text-[11px] text-zinc-500 dark:text-neutral-500 max-w-xs">
-              Click &quot;Generate API Key&quot; above to create your first developer token.
+              Click &quot;Generate API Key&quot; above to create your first
+              developer token.
             </p>
           </div>
         ) : (
@@ -369,26 +419,46 @@ console.log("Custom domains:", me.domainsCount);`
             {keys.map((key) => {
               const isRevealed = Boolean(revealedKeys[key.id]);
               const actualKey = key.rawKey || key.prefix;
-              const displayKey = isRevealed ? actualKey : "••••••••••••••••••••••••••••••••••••••••";
+              const displayKey = isRevealed
+                ? actualKey
+                : "••••••••••••••••••••••••••••••••••••••••";
               const isCopied = copiedKey === key.id;
 
               const getScopeBadge = (scope?: string) => {
-                if (scope === "admin") return { label: "Admin", color: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20" };
-                if (scope === "read") return { label: "Read Only", color: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20" };
-                return { label: "Read & Write", color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" };
+                if (scope === "admin")
+                  return {
+                    label: "Admin",
+                    color:
+                      "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
+                  };
+                if (scope === "read")
+                  return {
+                    label: "Read Only",
+                    color:
+                      "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
+                  };
+                return {
+                  label: "Read & Write",
+                  color:
+                    "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+                };
               };
               const scopeInfo = getScopeBadge(key.scope);
 
               return (
                 <div
                   key={key.id}
-                  className="p-4 rounded-[10px] bg-zinc-50 dark:bg-[#0e0e11] border border-zinc-200 dark:border-[#27272a] hover:border-zinc-300 dark:hover:border-[#38383e] transition-all flex flex-col gap-3 shadow-xs"
+                  className="p-4 rounded-[10px] bg-zinc-50 dark:bg-[#0e0e11] border border-black/[0.08] dark:border-[#27272a] hover:border-zinc-300 dark:hover:border-[#38383e] transition-all flex flex-col gap-3 shadow-xs"
                 >
                   {/* Key Header */}
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2.5">
-                      <span className="font-bold text-sm text-zinc-900 dark:text-white">{key.name}</span>
-                      <span className={`px-2 py-0.5 rounded-[6px] border text-[10px] font-semibold ${scopeInfo.color}`}>
+                      <span className="font-bold text-sm text-[#09090B] dark:text-white">
+                        {key.name}
+                      </span>
+                      <span
+                        className={`px-2 py-0.5 rounded-[6px] border text-[10px] font-semibold ${scopeInfo.color}`}
+                      >
                         {scopeInfo.label}
                       </span>
                       <span className="px-2 py-0.5 rounded-[6px] bg-zinc-200/80 dark:bg-neutral-800/70 border border-zinc-300 dark:border-neutral-700/40 text-[10px] text-zinc-600 dark:text-neutral-400 font-mono">
@@ -397,30 +467,55 @@ console.log("Custom domains:", me.domainsCount);`
                     </div>
 
                     <div className="flex items-center gap-4 text-[11px] text-zinc-500 dark:text-neutral-500">
-                      <span>Created on {new Date(key.created_at).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" })}</span>
+                      <span>
+                        Created on{" "}
+                        {new Date(key.created_at).toLocaleDateString("en-US", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </span>
                       {key.lastUsedAt && (
-                        <span>Last used: {new Date(key.lastUsedAt).toLocaleDateString("en-US")}</span>
+                        <span>
+                          Last used:{" "}
+                          {new Date(key.lastUsedAt).toLocaleDateString("en-US")}
+                        </span>
                       )}
                     </div>
                   </div>
 
                   {/* Creator / User Details (Full Name & Email) - empty if no info */}
                   {(() => {
-                    const name = key.userFullName || key.userName || key.fullName;
+                    const name =
+                      key.userFullName || key.userName || key.fullName;
                     const email = key.userEmail || key.email;
                     if (!name && !email) return null;
                     return (
-                      <div className="flex items-center gap-1.5 text-[11px] text-zinc-600 dark:text-neutral-400 bg-zinc-100 dark:bg-[#070709] px-2.5 py-1 rounded-[6px] border border-zinc-200 dark:border-[#1f1f23] truncate">
-                        <span className="text-zinc-500 text-[10px] font-semibold shrink-0">Creator:</span>
-                        {name && <span className="text-zinc-800 dark:text-neutral-200 font-medium truncate">{name}</span>}
-                        {name && email && <span className="text-zinc-400 dark:text-neutral-600">·</span>}
-                        {email && <span className="text-zinc-500 dark:text-neutral-400 font-mono text-[10px] truncate">{email}</span>}
+                      <div className="flex items-center gap-1.5 text-[11px] text-zinc-600 dark:text-neutral-400 bg-zinc-100 dark:bg-[#070709] px-2.5 py-1 rounded-[6px] border border-black/[0.08] dark:border-[#1f1f23] truncate">
+                        <span className="text-zinc-500 text-[10px] font-semibold shrink-0">
+                          Creator:
+                        </span>
+                        {name && (
+                          <span className="text-zinc-800 dark:text-neutral-200 font-medium truncate">
+                            {name}
+                          </span>
+                        )}
+                        {name && email && (
+                          <span className="text-zinc-400 dark:text-neutral-600">
+                            ·
+                          </span>
+                        )}
+                        {email && (
+                          <span className="text-zinc-500 dark:text-neutral-400 font-mono text-[10px] truncate">
+                            {email}
+                          </span>
+                        )}
                       </div>
                     );
                   })()}
 
                   {/* Key Value & Action Buttons */}
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 p-2.5 rounded-[8px] bg-zinc-100/90 dark:bg-[#070709] border border-zinc-200 dark:border-[#1f1f23]">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 p-2.5 rounded-[8px] bg-zinc-100/90 dark:bg-[#070709] border border-black/[0.08] dark:border-[#1f1f23]">
                     <div className="flex-1 flex items-center gap-2 overflow-hidden">
                       <div className="font-mono text-xs text-brand truncate font-semibold select-all">
                         {displayKey}
@@ -432,7 +527,7 @@ console.log("Custom domains:", me.domainsCount);`
                       <button
                         type="button"
                         onClick={() => toggleRevealKey(key.id)}
-                        className="h-8 px-2.5 rounded-[6px] bg-white dark:bg-[#1a1a1e] hover:bg-zinc-100 dark:hover:bg-[#25252c] border border-zinc-200 dark:border-[#2a2a30] text-zinc-700 dark:text-neutral-300 hover:text-zinc-900 dark:hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                        className="h-8 px-2.5 rounded-[6px] bg-white dark:bg-[#1a1a1e] hover:bg-zinc-100 dark:hover:bg-[#25252c] border border-black/[0.08] dark:border-[#2a2a30] text-zinc-700 dark:text-neutral-300 hover:text-[#09090B] dark:hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
                         title={isRevealed ? "Hide key" : "Reveal key"}
                       >
                         {isRevealed ? (
@@ -457,13 +552,15 @@ console.log("Custom domains:", me.domainsCount);`
                           showToast.success("API key copied to clipboard!");
                           setTimeout(() => setCopiedKey(null), 2000);
                         }}
-                        className="h-8 px-2.5 rounded-[6px] bg-white dark:bg-[#1a1a1e] hover:bg-zinc-100 dark:hover:bg-[#25252c] border border-zinc-200 dark:border-[#2a2a30] text-zinc-700 dark:text-neutral-300 hover:text-zinc-900 dark:hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                        className="h-8 px-2.5 rounded-[6px] bg-white dark:bg-[#1a1a1e] hover:bg-zinc-100 dark:hover:bg-[#25252c] border border-black/[0.08] dark:border-[#2a2a30] text-zinc-700 dark:text-neutral-300 hover:text-[#09090B] dark:hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
                         title="Copy key"
                       >
                         {isCopied ? (
                           <>
                             <Check className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
-                            <span className="text-emerald-600 dark:text-emerald-400">Copied</span>
+                            <span className="text-emerald-600 dark:text-emerald-400">
+                              Copied
+                            </span>
                           </>
                         ) : (
                           <>
@@ -492,25 +589,29 @@ console.log("Custom domains:", me.domainsCount);`
       </div>
 
       {/* TypeScript SDK Code Preview Section */}
-      <div className="rounded-[10px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] p-6 lg:p-8 flex flex-col gap-5 shadow-sm dark:shadow-2xl">
+      <div className="rounded-[10px] bg-white dark:bg-[#111113] text-[#09090B] dark:text-white border border-black/[0.08] dark:border-[#222225] p-6 lg:p-8 flex flex-col gap-5 shadow-sm dark:shadow-2xl">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-[10px] bg-[#3178c6]/15 dark:bg-[#3178c6]/20 border border-[#3178c6]/30 dark:border-[#3178c6]/40 flex items-center justify-center text-[#3178c6]">
               <Code2 className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-zinc-900 dark:text-white">Official TypeScript SDK (npm i lshorter-api)</h3>
-              <p className="text-xs text-zinc-500 dark:text-neutral-400">Ready-to-use implementation examples</p>
+              <h3 className="text-lg font-bold text-[#09090B] dark:text-white">
+                Official TypeScript SDK (npm i lshorter-api)
+              </h3>
+              <p className="text-xs text-zinc-500 dark:text-neutral-400">
+                Ready-to-use implementation examples
+              </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 p-1 rounded-[10px] bg-zinc-100 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a] text-xs overflow-x-auto">
+          <div className="flex items-center gap-2 p-1 rounded-[10px] bg-zinc-100 dark:bg-[#1a1a1e] border border-black/[0.08] dark:border-[#27272a] text-xs overflow-x-auto">
             <button
               onClick={() => setActiveCodeTab("create")}
               className={`px-3 py-1.5 rounded-[10px] font-medium transition-colors cursor-pointer ${
                 activeCodeTab === "create"
                   ? "bg-brand text-white shadow-sm"
-                  : "text-zinc-600 dark:text-neutral-400 hover:text-zinc-900 dark:hover:text-white"
+                  : "text-zinc-600 dark:text-neutral-400 hover:text-[#09090B] dark:hover:text-white"
               }`}
             >
               Create Link
@@ -520,7 +621,7 @@ console.log("Custom domains:", me.domainsCount);`
               className={`px-3 py-1.5 rounded-[10px] font-medium transition-colors cursor-pointer ${
                 activeCodeTab === "track"
                   ? "bg-brand text-white shadow-sm"
-                  : "text-zinc-600 dark:text-neutral-400 hover:text-zinc-900 dark:hover:text-white"
+                  : "text-zinc-600 dark:text-neutral-400 hover:text-[#09090B] dark:hover:text-white"
               }`}
             >
               Track Conversion
@@ -530,20 +631,10 @@ console.log("Custom domains:", me.domainsCount);`
               className={`px-3 py-1.5 rounded-[10px] font-medium transition-colors cursor-pointer ${
                 activeCodeTab === "analytics"
                   ? "bg-brand text-white shadow-sm"
-                  : "text-zinc-600 dark:text-neutral-400 hover:text-zinc-900 dark:hover:text-white"
+                  : "text-zinc-600 dark:text-neutral-400 hover:text-[#09090B] dark:hover:text-white"
               }`}
             >
               Analytics
-            </button>
-            <button
-              onClick={() => setActiveCodeTab("profile")}
-              className={`px-3 py-1.5 rounded-[10px] font-medium transition-colors cursor-pointer ${
-                activeCodeTab === "profile"
-                  ? "bg-brand text-white shadow-sm"
-                  : "text-zinc-600 dark:text-neutral-400 hover:text-zinc-900 dark:hover:text-white"
-              }`}
-            >
-              Profile (FullName)
             </button>
           </div>
         </div>
@@ -553,6 +644,7 @@ console.log("Custom domains:", me.domainsCount);`
           code={codeSnippets[activeCodeTab]}
           language="typescript"
           filename={`sdk - ${activeCodeTab}.ts`}
+          className="max-h-120 sm:max-h-120"
         />
       </div>
 
@@ -576,4 +668,3 @@ console.log("Custom domains:", me.domainsCount);`
     </div>
   );
 }
-

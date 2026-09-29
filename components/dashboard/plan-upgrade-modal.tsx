@@ -139,7 +139,7 @@ export function PlanUpgradeModal() {
         {/* Feature Highlights Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 my-5">
           {[
-            { icon: Zap, text: "500k to 5M Edge Clicks with Zero-Downtime" },
+            { icon: Zap, text: "150k to 2M+ Edge Clicks with Zero-Downtime" },
             { icon: Globe2, text: "Smart Routing (195+ Countries & Devices)" },
             { icon: Lock, text: "Password Protection & Link Cloaking" },
             { icon: QrCode, text: "Vector SVG & PDF QR Code Studio" },
@@ -169,7 +169,7 @@ export function PlanUpgradeModal() {
             <div>
               <div className="flex items-center justify-between">
                 <span className="text-sm font-bold text-zinc-900 dark:text-white uppercase tracking-wider">Pro Plan</span>
-                <span className="text-[11px] text-brand font-bold">500,000 clicks</span>
+                <span className="text-[11px] text-brand font-bold">150,000 clicks (+$3/50k)</span>
               </div>
               <div className="flex items-baseline flex-wrap gap-2 my-2.5">
                 <span className="text-xs text-zinc-400 line-through font-mono">$15</span>
@@ -230,7 +230,7 @@ export function PlanUpgradeModal() {
             <div>
               <div className="flex items-center justify-between">
                 <span className="text-sm font-bold text-zinc-900 dark:text-white uppercase tracking-wider">Business Plan</span>
-                <span className="text-[11px] text-emerald-500 font-bold">2M clicks</span>
+                <span className="text-[11px] text-emerald-500 font-bold">500,000 clicks (+$8/125k)</span>
               </div>
               <div className="flex items-baseline flex-wrap gap-2 my-2.5">
                 <span className="text-xs text-zinc-400 line-through font-mono">$49</span>

@@ -1,7 +1,12 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { useInView } from "framer-motion";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+if (typeof window !== "undefined") {
+  gsap.registerPlugin(ScrollTrigger);
+}
 
 interface CounterProps {
   value: number;
@@ -13,7 +18,7 @@ interface CounterProps {
 }
 
 /**
- * Animated number counter with bidirectional scroll incrementation & reverse animation (scroll up and down).
+ * Compteur numérique animé avec GSAP et incrémentation / décrémentation bidirectionnelle au scroll.
  */
 export function Counter({
   value,
@@ -25,32 +30,39 @@ export function Counter({
 }: CounterProps) {
   const [displayValue, setDisplayValue] = useState(0);
   const ref = useRef<HTMLSpanElement>(null);
-  const isInView = useInView(ref, { margin: "100px 0px 100px 0px" });
 
   useEffect(() => {
-    let startTime: number | null = null;
-    let animationFrame: number;
+    const el = ref.current;
+    if (!el) return;
 
-    const startVal = displayValue;
-    const targetVal = isInView ? value : 0;
+    const countObj = { val: 0 };
 
-    const step = (timestamp: number) => {
-      if (!startTime) startTime = timestamp;
-      const progress = Math.min((timestamp - startTime) / (duration * 1000), 1);
-      // Cubic ease out
-      const easeProgress = 1 - Math.pow(1 - progress, 3);
-      const current = startVal + (targetVal - startVal) * easeProgress;
-      setDisplayValue(current);
+    const tween = gsap.to(countObj, {
+      val: value,
+      duration,
+      ease: "power3.out",
+      paused: true,
+      onUpdate: () => {
+        setDisplayValue(countObj.val);
+      },
+    });
 
-      if (progress < 1) {
-        animationFrame = requestAnimationFrame(step);
-      }
+    // Équivalent à la marge 100px de l'ancien useInView
+    const trigger = ScrollTrigger.create({
+      trigger: el,
+      start: "top bottom+=100px",
+      end: "bottom top-=100px",
+      onEnter: () => tween.play(),
+      onEnterBack: () => tween.play(),
+      onLeave: () => tween.reverse(),
+      onLeaveBack: () => tween.reverse(),
+    });
+
+    return () => {
+      trigger.kill();
+      tween.kill();
     };
-
-    animationFrame = requestAnimationFrame(step);
-
-    return () => cancelAnimationFrame(animationFrame);
-  }, [isInView, value, duration]);
+  }, [value, duration]);
 
   const safeVal = isNaN(displayValue) ? 0 : displayValue;
   const formatted =

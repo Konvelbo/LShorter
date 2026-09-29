@@ -86,7 +86,7 @@ export function detectOSFromEvent(ev: {
   if (browser.includes("safari") && !browser.includes("chrome")) {
     return "iOS";
   }
-  return "Windows";
+  return "Other";
 }
 
 export interface VisitorDetails {
@@ -145,7 +145,7 @@ export async function detectVisitorGeoAsync(req: Request): Promise<{ countryCode
   if (edgeCountry && edgeCountry !== "XX" && edgeCountry !== "UNKNOWN") {
     return {
       countryCode: edgeCountry,
-      city: edgeCity || (edgeCountry === "FR" ? "Paris" : edgeCountry === "BF" ? "Ouagadougou" : "Direct"),
+      city: edgeCity || "",
       rawIp,
     };
   }
@@ -167,7 +167,7 @@ export async function detectVisitorGeoAsync(req: Request): Promise<{ countryCode
         if (data && data.status === "success" && data.countryCode) {
           devGeoCache = {
             countryCode: data.countryCode.toUpperCase(),
-            city: data.city || "Paris",
+            city: data.city || data.regionName || "",
             ip: data.query || rawIp,
             expiresAt: Date.now() + 15 * 60 * 1000,
           };
@@ -187,7 +187,7 @@ export async function detectVisitorGeoAsync(req: Request): Promise<{ countryCode
         if (fData?.country) {
           devGeoCache = {
             countryCode: fData.country.toUpperCase(),
-            city: fData.city || "Paris",
+            city: fData.city || "",
             ip: fData.ip || rawIp,
             expiresAt: Date.now() + 15 * 60 * 1000,
           };
@@ -208,7 +208,7 @@ export async function detectVisitorGeoAsync(req: Request): Promise<{ countryCode
         if (data && data.status === "success" && data.countryCode) {
           return {
             countryCode: data.countryCode.toUpperCase(),
-            city: data.city || "",
+            city: data.city || data.regionName || "",
             rawIp: data.query || rawIp,
           };
         }
@@ -216,11 +216,11 @@ export async function detectVisitorGeoAsync(req: Request): Promise<{ countryCode
     } catch {}
   }
 
-  // 3. Sensible default if unreachable
+  // 3. No hardcoded country/city if unreachable
   return {
-    countryCode: "FR",
-    city: "Paris",
-    rawIp: rawIp === "127.0.0.1" ? "102.180.220.121" : rawIp,
+    countryCode: "XX",
+    city: "",
+    rawIp,
   };
 }
 
@@ -243,12 +243,20 @@ export function parseVisitorDetails(
   const os = detectOSFromEvent({ user_agent: userAgent, device });
 
   // Browser
-  let browser = "Chrome";
+  let browser = "Other";
   if (ua.includes("edg/") || ua.includes("edge/")) browser = "Edge";
   else if (ua.includes("opr/") || ua.includes("opera/")) browser = "Opera";
+  else if (ua.includes("samsungbrowser")) browser = "Samsung";
+  else if (ua.includes("brave")) browser = "Brave";
+  else if (ua.includes("vivaldi")) browser = "Vivaldi";
+  else if (ua.includes("arc/")) browser = "Arc";
+  else if (ua.includes("duckduckgo") || ua.includes("ddg/")) browser = "DuckDuckGo";
+  else if (ua.includes("yabrowser")) browser = "Yandex";
   else if (ua.includes("firefox/") || ua.includes("fxios/")) browser = "Firefox";
-  else if (ua.includes("safari/") && !ua.includes("chrome/") && !ua.includes("crios/")) browser = "Safari";
-  else if (ua.includes("chrome/") || ua.includes("crios/")) browser = "Chrome";
+  else if (ua.includes("chrome/") || ua.includes("chromium/") || ua.includes("crios/")) browser = "Chrome";
+  else if (ua.includes("safari/")) browser = "Safari";
+  else if (ua.includes("curl/")) browser = "Curl";
+  else if (ua.includes("postman")) browser = "Postman";
 
   // Country from Edge headers, geoOverride or dev cache
   const rawCountry = (
@@ -275,11 +283,11 @@ export function parseVisitorDetails(
 
   const countryCode = rawCountry && rawCountry !== "XX" && rawCountry !== "UNKNOWN"
     ? rawCountry
-    : (devGeoCache?.countryCode || "FR");
+    : (devGeoCache?.countryCode || "XX");
 
   const city = rawCity
     ? rawCity
-    : (devGeoCache?.city || (countryCode === "FR" ? "Paris" : countryCode === "BF" ? "Ouagadougou" : "Direct"));
+    : (devGeoCache?.city || "");
 
   // Referrer
   const rawReferrer = req.headers.get("referer") || "Direct";
@@ -307,7 +315,7 @@ export function parseVisitorDetails(
     req.headers.get("cf-connecting-ip") ||
     req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
     req.headers.get("x-real-ip") ||
-    (devGeoCache?.ip || "102.180.220.121");
+    (devGeoCache?.ip || "127.0.0.1");
   const ipMasked = rawIp.replace(/\.\d+\.\d+$/, ".•••.•••");
 
   return {

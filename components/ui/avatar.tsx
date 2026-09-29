@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Avatar as AvatarPrimitive } from "@base-ui/react/avatar";
-import { cn } from "cn";
+import { cn } from "@/lib/utils";
 
 function Avatar({
   className,
@@ -16,7 +16,7 @@ function Avatar({
       data-slot="avatar"
       data-size={size}
       className={cn(
-        "group/avatar relative flex size-8 shrink-0 rounded-full select-none after:absolute after:inset-0 after:rounded-full after:border after:border-border after:mix-blend-darken data-[size=lg]:size-10 data-[size=sm]:size-6 dark:after:mix-blend-lighten",
+        "group/avatar relative flex size-8 shrink-0 rounded-[10px] select-none overflow-hidden data-[size=lg]:size-10 data-[size=sm]:size-6",
         className,
       )}
       {...props}
@@ -24,12 +24,29 @@ function Avatar({
   );
 }
 
-function AvatarImage({ className, ...props }: AvatarPrimitive.Image.Props) {
+export function getDiceBearAvatar(seed?: string | null): string {
+  const cleanSeed = (seed || "lshorter-user").toString().trim() || "lshorter-user";
+  return `https://api.dicebear.com/9.x/glass/svg?seed=${encodeURIComponent(cleanSeed)}`;
+}
+
+function AvatarImage({
+  className,
+  src,
+  alt,
+  ...props
+}: AvatarPrimitive.Image.Props & { seed?: string }) {
+  const effectiveSrc =
+    src && typeof src === "string" && src.trim().length > 0
+      ? src
+      : getDiceBearAvatar(props.seed || alt || "lshorter");
+
   return (
     <AvatarPrimitive.Image
       data-slot="avatar-image"
+      src={effectiveSrc}
+      alt={alt || "Avatar"}
       className={cn(
-        "aspect-square size-full rounded-full object-cover",
+        "aspect-square size-full rounded-[10px] object-cover",
         className,
       )}
       {...props}
@@ -39,17 +56,32 @@ function AvatarImage({ className, ...props }: AvatarPrimitive.Image.Props) {
 
 function AvatarFallback({
   className,
+  children,
   ...props
-}: AvatarPrimitive.Fallback.Props) {
+}: AvatarPrimitive.Fallback.Props & { seed?: string }) {
+  const seedFromChildren =
+    typeof children === "string"
+      ? children
+      : Array.isArray(children)
+      ? children.join("-")
+      : "lshorter-user";
+  const dicebearUrl = getDiceBearAvatar(props.seed || seedFromChildren);
+
   return (
     <AvatarPrimitive.Fallback
       data-slot="avatar-fallback"
       className={cn(
-        "flex size-full items-center justify-center rounded-full bg-muted text-sm text-muted-foreground group-data-[size=sm]/avatar:text-xs",
+        "flex size-full items-center justify-center rounded-[10px] bg-muted overflow-hidden text-sm text-muted-foreground group-data-[size=sm]/avatar:text-xs",
         className,
       )}
       {...props}
-    />
+    >
+      <img
+        src={dicebearUrl}
+        alt="Default DiceBear Avatar"
+        className="w-full h-full object-cover"
+      />
+    </AvatarPrimitive.Fallback>
   );
 }
 
@@ -106,3 +138,4 @@ export {
   AvatarGroupCount,
   AvatarBadge,
 };
+

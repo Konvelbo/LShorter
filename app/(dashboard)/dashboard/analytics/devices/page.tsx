@@ -18,7 +18,8 @@ import {
   ChevronRight,
   Monitor,
   Cpu,
-  Layers
+  Layers,
+  MapPin,
 } from "lucide-react";
 import { ShortLink, GlobalAnalytics } from "@/types";
 import { cfGetAnalytics, cfGetLinks } from "@/lib/cloudflare-api";
@@ -33,6 +34,7 @@ import {
   generateEdgeTopBrowsers,
   generateEdgeLiveClickEvents,
 } from "@/lib/analytics-generators";
+import { ReferrerBadge } from "@/components/dashboard/analytics/referrer-badge";
 
 const DEVICE_COLUMNS: ColumnDefinition[] = [
   { key: "timestamp", label: "Timestamp", defaultVisible: true },
@@ -41,8 +43,9 @@ const DEVICE_COLUMNS: ColumnDefinition[] = [
   { key: "os", label: "Operating System (OS)", defaultVisible: true },
   { key: "customer", label: "Customer / Buyer", defaultVisible: true },
   { key: "link", label: "Target Link", defaultVisible: true },
-  { key: "location", label: "Location", defaultVisible: true },
-  { key: "referrer", label: "Referrer", defaultVisible: true },
+  { key: "city", label: "City", defaultVisible: true },
+  { key: "location", label: "Country", defaultVisible: true },
+  { key: "referrer", label: "Referrer Source", defaultVisible: true },
 ];
 
 export default function DevicesAnalyticsPage() {
@@ -124,9 +127,13 @@ export default function DevicesAnalyticsPage() {
       const isAll = !targetLink || linkId === "all";
 
       const d = analyticsRes?.data || {};
-      const baseTotal = isAll
-        ? ((d.totalClicks ?? d.total_clicks) || sumLinksClicks)
-        : ((d.totalClicks ?? d.total_clicks) || linkClicks);
+      const workerTotal = Number(d.totalClicks ?? d.total_clicks ?? 0);
+      const isShortWindow = range === "day" || range === "week";
+      const baseTotal = isShortWindow
+        ? (isAll ? workerTotal : (workerTotal || linkClicks))
+        : (isAll
+            ? Math.max(workerTotal, sumLinksClicks)
+            : Math.max(workerTotal || linkClicks, linkClicks));
 
       const periodStats = computePeriodMetrics(range, baseTotal, baseTotal, 0, 0);
       const total = periodStats.periodClicks;
@@ -163,9 +170,9 @@ export default function DevicesAnalyticsPage() {
             countryCode: (ev.country_code || ev.countryCode || "XX").toUpperCase(),
             countryName: ev.country_name || ev.countryName || "World",
             city: ev.city || "—",
-            device: ev.device || "desktop",
-            browser: ev.browser || "Chrome",
-            os: detectedOS,
+            device: ev.device && ev.device !== "unknown" ? ev.device : "Inconnu",
+            browser: ev.browser && ev.browser !== "unknown" ? ev.browser : "Inconnu",
+            os: detectedOS && detectedOS !== "Other" && detectedOS !== "unknown" ? detectedOS : (ev.os && ev.os !== "unknown" ? ev.os : "Inconnu"),
             referrer: ev.referrer || "Direct",
             userAgent: ev.user_agent || ev.userAgent || "",
             customerName: ev.customerName || ev.customerFullName || ev.fullName || ev.name || ev.customer_name || null,
@@ -270,9 +277,11 @@ export default function DevicesAnalyticsPage() {
         const matchDevice = ev.device?.toLowerCase().includes(q);
         const matchOS = ev.os?.toLowerCase().includes(q);
         const matchCity = ev.city?.toLowerCase().includes(q);
+        const matchCountry = ev.countryName?.toLowerCase().includes(q);
+        const matchRef = ev.referrer?.toLowerCase().includes(q);
         const matchCustName = (ev.customerName || "").toLowerCase().includes(q);
         const matchCustEmail = (ev.customerEmail || "").toLowerCase().includes(q);
-        if (!matchSlug && !matchBrowser && !matchDevice && !matchOS && !matchCity && !matchCustName && !matchCustEmail) return false;
+        if (!matchSlug && !matchBrowser && !matchDevice && !matchOS && !matchCity && !matchCountry && !matchRef && !matchCustName && !matchCustEmail) return false;
       }
       return true;
     });
@@ -680,9 +689,7 @@ export default function DevicesAnalyticsPage() {
                 <span className="font-mono font-bold text-brand bg-brand-subtle px-2 py-0.5 rounded-[10px] border border-brand-subtle truncate">
                   /{ev.slug}
                 </span>
-                <span className="px-2 py-0.5 rounded-[10px] bg-zinc-100 dark:bg-white/5 border border-zinc-200 dark:border-[#27272a] text-[10px] font-mono text-zinc-500 dark:text-neutral-400 shrink-0">
-                  {ev.referrer || "Direct"}
-                </span>
+                <ReferrerBadge referrer={ev.referrer} />
               </div>
             </div>
           ))}
@@ -705,53 +712,54 @@ export default function DevicesAnalyticsPage() {
                 {visibleColumns.has("os") && <th className="py-2.5 px-3">Operating System (OS)</th>}
                 {visibleColumns.has("customer") && <th className="py-2.5 px-3">Customer / Buyer</th>}
                 {visibleColumns.has("link") && <th className="py-2.5 px-3">Target Link</th>}
-                {visibleColumns.has("location") && <th className="py-2.5 px-3">Location</th>}
-                {visibleColumns.has("referrer") && <th className="py-2.5 px-3">Referrer</th>}
+                {visibleColumns.has("city") && <th className="py-2.5 px-3">City</th>}
+                {visibleColumns.has("location") && <th className="py-2.5 px-3">Country</th>}
+                {visibleColumns.has("referrer") && <th className="py-2.5 px-3">Referrer Source</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-200 dark:divide-[#222225]/60 text-zinc-800 dark:text-neutral-200">
               {paginatedEvents.map((ev) => (
                 <tr key={ev.id} className="hover:bg-zinc-50 dark:hover:bg-white/5 transition-colors">
                   {visibleColumns.has("timestamp") && (
-                    <td className="py-3 px-3 font-mono text-zinc-500 dark:text-neutral-400 whitespace-nowrap">
+                    <td className="py-2 px-3 font-mono text-zinc-500 dark:text-neutral-400 whitespace-nowrap text-[10.5px]">
                       {formatDateRelative(ev.timestamp)}
                     </td>
                   )}
 
                   {visibleColumns.has("device") && (
-                    <td className="py-3 px-3 font-semibold text-zinc-900 dark:text-white capitalize whitespace-nowrap">
-                      <span className="px-2 py-0.5 rounded-[10px] bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-[10px]">
+                    <td className="py-2 px-3 font-semibold text-zinc-900 dark:text-white capitalize whitespace-nowrap">
+                      <span className="px-2 py-0.5 rounded-[10px] bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-[9.5px]">
                         {ev.device}
                       </span>
                     </td>
                   )}
 
                   {visibleColumns.has("browser") && (
-                    <td className="py-3 px-3 text-zinc-700 dark:text-neutral-300 font-medium">
+                    <td className="py-2 px-3 text-zinc-700 dark:text-neutral-300 font-medium text-[11.5px]">
                       {ev.browser || "Chrome"}
                     </td>
                   )}
 
                   {visibleColumns.has("os") && (
-                    <td className="py-3 px-3 font-semibold whitespace-nowrap">
-                      <span className="px-2 py-0.5 rounded-[10px] bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 text-[10px]">
+                    <td className="py-2 px-3 font-semibold whitespace-nowrap">
+                      <span className="px-2 py-0.5 rounded-[10px] bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 text-[9.5px]">
                         {ev.os}
                       </span>
                     </td>
                   )}
 
                   {visibleColumns.has("customer") && (
-                    <td className="py-3 px-3">
+                    <td className="py-2 px-3">
                       {(() => {
                         const name = ev.customerName;
                         const email = ev.customerEmail;
                         if (!name && !email) {
-                          return <span className="text-zinc-400 dark:text-neutral-600 font-mono text-xs">—</span>;
+                          return <span className="text-zinc-400 dark:text-neutral-600 font-mono text-[11px]">—</span>;
                         }
                         return (
                           <div className="flex flex-col min-w-0">
-                            {name && <span className="font-medium text-zinc-900 dark:text-white truncate text-xs">{name}</span>}
-                            {email && <span className="text-[10.5px] text-zinc-500 dark:text-neutral-400 font-mono truncate" title={email}>{email}</span>}
+                            {name && <span className="font-medium text-zinc-900 dark:text-white truncate text-[11.5px]">{name}</span>}
+                            {email && <span className="text-[10px] text-zinc-500 dark:text-neutral-400 font-mono truncate" title={email}>{email}</span>}
                           </div>
                         );
                       })()}
@@ -759,22 +767,29 @@ export default function DevicesAnalyticsPage() {
                   )}
 
                   {visibleColumns.has("link") && (
-                    <td className="py-3 px-3 font-mono text-brand font-semibold">
+                    <td className="py-2 px-3 font-mono text-brand font-semibold text-[11.5px]">
                       /{ev.slug}
                     </td>
                   )}
 
+                  {visibleColumns.has("city") && (
+                    <td className="py-2 px-3 whitespace-nowrap">
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[6px] bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-[10px] font-semibold">
+                        <MapPin className="w-2.5 h-2.5 shrink-0" />
+                        <span>{ev.city && ev.city !== "—" && ev.city !== "Inconnue" ? ev.city : "Edge Node"}</span>
+                      </span>
+                    </td>
+                  )}
+
                   {visibleColumns.has("location") && (
-                    <td className="py-3 px-3 text-zinc-700 dark:text-neutral-400">
-                      {ev.city ? `${ev.city}, ${ev.countryName}` : ev.countryName}
+                    <td className="py-2 px-3 text-zinc-700 dark:text-neutral-400 whitespace-nowrap text-[11.5px]">
+                      {ev.countryName}
                     </td>
                   )}
 
                   {visibleColumns.has("referrer") && (
-                    <td className="py-3 px-3 text-zinc-700 dark:text-neutral-400">
-                      <span className="px-2 py-0.5 rounded-[10px] bg-zinc-100 dark:bg-white/5 border border-zinc-200 dark:border-[#27272a] text-[10px] font-mono">
-                        {ev.referrer || "Direct"}
-                      </span>
+                    <td className="py-2 px-3">
+                      <ReferrerBadge referrer={ev.referrer} />
                     </td>
                   )}
                 </tr>

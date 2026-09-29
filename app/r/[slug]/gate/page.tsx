@@ -15,6 +15,7 @@ import {
   AlertCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { CloakedViewer } from "@/components/cloaked-viewer";
 
 export default function PasswordGatePage() {
   const params = useParams();
@@ -27,6 +28,10 @@ export default function PasswordGatePage() {
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [unlockedTargetUrl, setUnlockedTargetUrl] = useState<string | null>(null);
   const [isCloaked, setIsCloaked] = useState(false);
+  const [pathLockMode, setPathLockMode] = useState<string>("off");
+  const [pathLockPrefix, setPathLockPrefix] = useState<string>("");
+  const [pathLockMessage, setPathLockMessage] = useState<string>("");
+  const [pathLockPassword, setPathLockPassword] = useState<string>("");
   const [metaTitle, setMetaTitle] = useState<string | null>(null);
 
   const handleUnlock = async (e: React.FormEvent) => {
@@ -65,6 +70,10 @@ export default function PasswordGatePage() {
       setIsUnlocked(true);
       setUnlockedTargetUrl(data.targetUrl);
       setIsCloaked(Boolean(data.isCloaked));
+      setPathLockMode(data.pathLockMode || "off");
+      setPathLockPrefix(data.pathLockPrefix || "");
+      setPathLockMessage(data.pathLockMessage || "");
+      setPathLockPassword(data.pathLockPassword || "");
       setMetaTitle(data.metaTitle);
       setIsVerifying(false);
 
@@ -77,34 +86,21 @@ export default function PasswordGatePage() {
     }
   };
 
-  // If unlocked and cloaked, display inside full iframe
+  // If unlocked and cloaked/isolated, display inside CloakedViewer
   if (isUnlocked && isCloaked && unlockedTargetUrl) {
     return (
-      <div className="fixed inset-0 w-screen h-screen bg-[#0d0d10] flex flex-col z-[9999]">
-        <div className="h-10 bg-[#16161a] border-b border-[#26262a] px-4 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-2 text-xs text-neutral-400">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="font-mono text-white font-medium">/{slug}</span>
-            <span className="text-neutral-600">•</span>
-            <span className="truncate max-w-xs">{metaTitle || slug}</span>
-          </div>
-          <a
-            href={unlockedTargetUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1.5 text-xs text-brand hover:underline"
-          >
-            <span>Open source</span>
-            <ExternalLink className="w-3 h-3" />
-          </a>
-        </div>
-        <iframe
-          src={unlockedTargetUrl}
-          title={metaTitle || slug}
-          className="w-full flex-1 border-0 bg-white"
-          sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-downloads"
-        />
-      </div>
+      <CloakedViewer
+        link={{
+          slug,
+          targetUrl: unlockedTargetUrl,
+          metaTitle: metaTitle || slug,
+          isCloaked: true,
+          pathLockMode,
+          pathLockPrefix,
+          pathLockMessage,
+          pathLockPassword,
+        }}
+      />
     );
   }
 

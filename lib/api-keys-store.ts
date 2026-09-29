@@ -66,6 +66,8 @@ export function getApiKeysForUser(userId: string): StoredApiKey[] {
 }
 
 export function createApiKeyForUser(data: {
+  id?: string;
+  rawKey?: string;
   userId: string;
   name: string;
   scope?: string;
@@ -78,10 +80,11 @@ export function createApiKeyForUser(data: {
 }): { key: StoredApiKey; rawKey: string } {
   ensureLoaded();
 
-  const id = `key_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  const id = data.id || `key_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   const randomBytes = crypto.randomBytes(24).toString("hex");
-  const rawKey = `lsh_live_${randomBytes}`;
-  const prefix = `lsh_live_${randomBytes.substring(0, 4)}...${randomBytes.slice(-4)}`;
+  const rawKey = data.rawKey || `lsh_live_${randomBytes}`;
+  const cleanBody = rawKey.replace(/^lsh_live_/, "");
+  const prefix = `lsh_live_${cleanBody.substring(0, 4)}...${cleanBody.slice(-4)}`;
   const keyHash = crypto.createHash("sha256").update(rawKey).digest("hex");
   const now = new Date().toISOString();
 
@@ -108,10 +111,56 @@ export function createApiKeyForUser(data: {
     fullName: userFullName || undefined,
   };
 
+  memoryKeys = memoryKeys.filter((k) => k.id !== id);
   memoryKeys.unshift(newKey);
   persist();
 
   return { key: newKey, rawKey };
+}
+
+export function mergeCloudflareKeysForUser(
+  userId: string,
+  cfKeys: any[]
+): StoredApiKey[] {
+  ensureLoaded();
+  if (!Array.isArray(cfKeys)) return getApiKeysForUser(userId);
+
+  let changed = false;
+  for (const ck of cfKeys) {
+    if (!ck || !ck.id) continue;
+    const existing = memoryKeys.find((k) => k.id === ck.id);
+    if (!existing) {
+      const raw = ck.raw_key || ck.rawKey || ck.key || undefined;
+      const prefix =
+        ck.prefix ||
+        ck.key_prefix ||
+        (raw ? `lsh_live_${raw.replace(/^lsh_live_/, "").substring(0, 4)}...${raw.slice(-4)}` : "lsh_live_••••••••");
+      memoryKeys.push({
+        id: ck.id,
+        userId: ck.user_id || userId,
+        name: ck.name || "API Key",
+        prefix,
+        keyPrefix: prefix,
+        keyHash: ck.key_hash || "",
+        rawKey: raw,
+        scope: ck.scope || "read_write",
+        rateLimit: Number(ck.rate_limit || 600),
+        rate_limit: Number(ck.rate_limit || 600),
+        createdAt: ck.created_at || new Date().toISOString(),
+        created_at: ck.created_at || new Date().toISOString(),
+        lastUsedAt: ck.last_used_at || undefined,
+      });
+      changed = true;
+    } else if (ck.last_used_at && existing.lastUsedAt !== ck.last_used_at) {
+      existing.lastUsedAt = ck.last_used_at;
+      changed = true;
+    }
+  }
+
+  if (changed) {
+    persist();
+  }
+  return getApiKeysForUser(userId);
 }
 
 export function revokeApiKey(id: string, userId?: string): boolean {

@@ -46,7 +46,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { motion, useScroll, useTransform, useSpring } from "framer-motion";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { AnimatedBar } from "@/components/ui/animated-bar";
 import confetti from "canvas-confetti";
 
@@ -55,27 +56,55 @@ export function InteractiveDemoSection() {
   const headerRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
 
-  // Framer Motion Parallax & Scale Animation on Scroll
-  const { scrollYProgress } = useScroll({
-    target: sectionRef,
-    offset: ["start end", "center center"],
-  });
+  // ─── GSAP Parallax & Scale Animation on Scroll — équivalent du useScroll + useSpring + useTransform ───
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    gsap.registerPlugin(ScrollTrigger);
 
-  const smoothProgress = useSpring(scrollYProgress, {
-    stiffness: 80,
-    damping: 22,
-    restDelta: 0.001,
-  });
+    const section = sectionRef.current;
+    const header = headerRef.current;
+    const frame = frameRef.current;
 
-  const scale = useTransform(smoothProgress, [0, 0.75], [0.82, 1]);
-  const rotateX = useTransform(smoothProgress, [0, 0.7], [12, 0]);
-  const y = useTransform(smoothProgress, [0, 0.75], [90, 0]);
-  const opacity = useTransform(smoothProgress, [0, 0.35, 0.75], [0.35, 0.85, 1]);
-  const headerY = useTransform(smoothProgress, [0.55, 0.92], [35, 0]);
-  const headerOpacity = useTransform(smoothProgress, [0.55, 0.92], [0, 1]);
+    if (!section || !header || !frame) return;
+
+    // Timeline scrubée sur le scroll de la section
+    const tl = gsap.timeline({
+      scrollTrigger: {
+        trigger: section,
+        start: "top bottom",
+        end: "center center",
+        scrub: 0.8, // équivalent du spring (stiffness 80, damping 22)
+      },
+    });
+
+    // Frame: scale 0.82→1, rotateX 12→0, y 90→0, opacity 0.35→1
+    tl.fromTo(
+      frame,
+      { scale: 0.82, rotateX: 12, y: 90, opacity: 0.35, transformPerspective: 1200 },
+      { scale: 1, rotateX: 0, y: 0, opacity: 1, ease: "none" },
+      0,
+    );
+
+    // Header: fade in dans la seconde moitié du scroll (équivalent du delay 0.55→0.92)
+    tl.fromTo(
+      header,
+      { y: 35, opacity: 0 },
+      { y: 0, opacity: 1, ease: "none", duration: 0.37 },
+      0.55,
+    );
+
+    return () => {
+      tl.kill();
+      ScrollTrigger.getAll()
+        .filter((st) => st.trigger === section)
+        .forEach((st) => st.kill());
+    };
+  }, []);
 
   // Active Navigation Tab inside the Demo Frame
-  const [activeTab, setActiveTab] = useState<"overview" | "links" | "qr" | "analytics">("overview");
+  const [activeTab, setActiveTab] = useState<
+    "overview" | "links" | "qr" | "analytics"
+  >("overview");
 
   // Global Copied state
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
@@ -90,15 +119,28 @@ export function InteractiveDemoSection() {
   const [tagFilter, setTagFilter] = useState("all");
 
   // QR Studio Customization States (Identical to components/qr/qr-generator.tsx)
-  const [qrContentType, setQrContentType] = useState<"link" | "text" | "wifi" | "email" | "call" | "sms">("link");
-  const [selectedPresetSlug, setSelectedPresetSlug] = useState("launch-pro-2026");
-  const [qrWebsiteUrl, setQrWebsiteUrl] = useState("https://lsho.cc/r/launch-pro-2026");
-  const [qrPixelStyle, setQrPixelStyle] = useState<"square" | "rounded" | "dots" | "diamond" | "classy">("rounded");
-  const [qrEyeStyle, setQrEyeStyle] = useState<"square" | "rounded" | "circle" | "cyber" | "star">("rounded");
-  const [qrColorMode, setQrColorMode] = useState<"monochrome" | "gradient">("monochrome");
+  const [qrContentType, setQrContentType] = useState<
+    "link" | "text" | "wifi" | "email" | "call" | "sms"
+  >("link");
+  const [selectedPresetSlug, setSelectedPresetSlug] =
+    useState("launch-pro-2026");
+  const [qrWebsiteUrl, setQrWebsiteUrl] = useState(
+    "https://lsho.cc/r/launch-pro-2026",
+  );
+  const [qrPixelStyle, setQrPixelStyle] = useState<
+    "square" | "rounded" | "dots" | "diamond" | "classy"
+  >("rounded");
+  const [qrEyeStyle, setQrEyeStyle] = useState<
+    "square" | "rounded" | "circle" | "cyber" | "star"
+  >("rounded");
+  const [qrColorMode, setQrColorMode] = useState<"monochrome" | "gradient">(
+    "monochrome",
+  );
   const [qrPixelColor, setQrPixelColor] = useState("#ff6600");
   const [qrPixelColor2, setQrPixelColor2] = useState("#ff3300");
-  const [qrFrame, setQrFrame] = useState<"none" | "simple" | "bottom_pill" | "top_header" | "modern_badge" | "neon">("bottom_pill");
+  const [qrFrame, setQrFrame] = useState<
+    "none" | "simple" | "bottom_pill" | "top_header" | "modern_badge" | "neon"
+  >("bottom_pill");
   const [qrFrameText, setQrFrameText] = useState("SCAN ME");
   const [qrFrameColor, setQrFrameColor] = useState("#ff6600");
   const [qrLogo, setQrLogo] = useState<"ql" | "text" | "none">("ql");
@@ -107,7 +149,9 @@ export function InteractiveDemoSection() {
   const qrCanvasRef = useRef<HTMLCanvasElement>(null);
 
   // Analytics Tab states
-  const [analyticsRange, setAnalyticsRange] = useState<"day" | "week" | "month" | "year">("month");
+  const [analyticsRange, setAnalyticsRange] = useState<
+    "day" | "week" | "month" | "year"
+  >("month");
 
   // Mock Links Dataset matching the live SaaS Cloudflare D1 storage
   const mockLinks = [
@@ -122,7 +166,13 @@ export function InteractiveDemoSection() {
       conversionRate: 3.8,
       status: "active",
       tags: ["marketing", "campagne-q3", "ab-testing"],
-      features: { ab: true, geo: true, mobile: true, lock: false, cloak: false },
+      features: {
+        ab: true,
+        geo: true,
+        mobile: true,
+        lock: false,
+        cloak: false,
+      },
     },
     {
       id: "2",
@@ -135,7 +185,13 @@ export function InteractiveDemoSection() {
       conversionRate: 2.9,
       status: "active",
       tags: ["leadgen", "qr-studio"],
-      features: { ab: false, geo: true, mobile: false, lock: false, cloak: true },
+      features: {
+        ab: false,
+        geo: true,
+        mobile: false,
+        lock: false,
+        cloak: true,
+      },
     },
     {
       id: "3",
@@ -148,7 +204,13 @@ export function InteractiveDemoSection() {
       conversionRate: 4.1,
       status: "active",
       tags: ["vip", "code-pin"],
-      features: { ab: false, geo: false, mobile: false, lock: true, cloak: false },
+      features: {
+        ab: false,
+        geo: false,
+        mobile: false,
+        lock: true,
+        cloak: false,
+      },
     },
   ];
 
@@ -240,14 +302,24 @@ export function InteractiveDemoSection() {
 
         ctx.fillStyle = qrFrameColor;
         ctx.beginPath();
-        ctx.roundRect(totalWidth * 0.16, totalHeight - 38, totalWidth * 0.68, 28, 9);
+        ctx.roundRect(
+          totalWidth * 0.16,
+          totalHeight - 38,
+          totalWidth * 0.68,
+          28,
+          9,
+        );
         ctx.fill();
 
         ctx.fillStyle = "#ffffff";
         ctx.font = "bold 11px Inter, sans-serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText(qrFrameText.toUpperCase(), totalWidth / 2, totalHeight - 24);
+        ctx.fillText(
+          qrFrameText.toUpperCase(),
+          totalWidth / 2,
+          totalHeight - 24,
+        );
       } else if (qrFrame === "top_header") {
         ctx.strokeStyle = qrFrameColor;
         ctx.lineWidth = 3;
@@ -274,7 +346,13 @@ export function InteractiveDemoSection() {
 
         ctx.fillStyle = qrFrameColor;
         ctx.beginPath();
-        ctx.roundRect(totalWidth * 0.2, totalHeight - 38, totalWidth * 0.6, 26, 13);
+        ctx.roundRect(
+          totalWidth * 0.2,
+          totalHeight - 38,
+          totalWidth * 0.6,
+          26,
+          13,
+        );
         ctx.fill();
 
         ctx.fillStyle = "#ffffff";
@@ -296,7 +374,8 @@ export function InteractiveDemoSection() {
         return false;
       };
 
-      const centerCutoutRadius = qrLogo !== "none" ? Math.floor(moduleCount * 0.16) : 0;
+      const centerCutoutRadius =
+        qrLogo !== "none" ? Math.floor(moduleCount * 0.16) : 0;
       const centerMid = Math.floor(moduleCount / 2);
       const isCenterLogoArea = (r: number, c: number) => {
         if (qrLogo === "none") return false;
@@ -308,7 +387,12 @@ export function InteractiveDemoSection() {
 
       let fillStyle: string | CanvasGradient = qrPixelColor;
       if (qrColorMode === "gradient") {
-        const grad = ctx.createLinearGradient(startX, startY, startX + qrDrawSize, startY + qrDrawSize);
+        const grad = ctx.createLinearGradient(
+          startX,
+          startY,
+          startX + qrDrawSize,
+          startY + qrDrawSize,
+        );
         grad.addColorStop(0, qrPixelColor);
         grad.addColorStop(1, qrPixelColor2);
         fillStyle = grad;
@@ -327,11 +411,23 @@ export function InteractiveDemoSection() {
               ctx.fillRect(x, y, cellSize, cellSize);
             } else if (qrPixelStyle === "rounded") {
               ctx.beginPath();
-              ctx.roundRect(x + 0.4, y + 0.4, cellSize - 0.8, cellSize - 0.8, cellSize * 0.35);
+              ctx.roundRect(
+                x + 0.4,
+                y + 0.4,
+                cellSize - 0.8,
+                cellSize - 0.8,
+                cellSize * 0.35,
+              );
               ctx.fill();
             } else if (qrPixelStyle === "dots") {
               ctx.beginPath();
-              ctx.arc(x + cellSize / 2, y + cellSize / 2, cellSize * 0.42, 0, Math.PI * 2);
+              ctx.arc(
+                x + cellSize / 2,
+                y + cellSize / 2,
+                cellSize * 0.42,
+                0,
+                Math.PI * 2,
+              );
               ctx.fill();
             } else if (qrPixelStyle === "diamond") {
               ctx.beginPath();
@@ -343,7 +439,12 @@ export function InteractiveDemoSection() {
               ctx.fill();
             } else if (qrPixelStyle === "classy") {
               ctx.beginPath();
-              ctx.roundRect(x + 0.4, y + 0.4, cellSize - 0.8, cellSize - 0.8, [cellSize * 0.5, 0, cellSize * 0.5, 0]);
+              ctx.roundRect(x + 0.4, y + 0.4, cellSize - 0.8, cellSize - 0.8, [
+                cellSize * 0.5,
+                0,
+                cellSize * 0.5,
+                0,
+              ]);
               ctx.fill();
             }
           }
@@ -364,15 +465,33 @@ export function InteractiveDemoSection() {
         if (qrEyeStyle === "rounded") {
           ctx.lineWidth = cellSize;
           ctx.beginPath();
-          ctx.roundRect(eyeX + cellSize / 2, eyeY + cellSize / 2, eyeSize - cellSize, eyeSize - cellSize, cellSize * 1.6);
+          ctx.roundRect(
+            eyeX + cellSize / 2,
+            eyeY + cellSize / 2,
+            eyeSize - cellSize,
+            eyeSize - cellSize,
+            cellSize * 1.6,
+          );
           ctx.stroke();
           ctx.beginPath();
-          ctx.roundRect(eyeX + 2 * cellSize, eyeY + 2 * cellSize, 3 * cellSize, 3 * cellSize, cellSize * 1.1);
+          ctx.roundRect(
+            eyeX + 2 * cellSize,
+            eyeY + 2 * cellSize,
+            3 * cellSize,
+            3 * cellSize,
+            cellSize * 1.1,
+          );
           ctx.fill();
         } else if (qrEyeStyle === "circle") {
           ctx.lineWidth = cellSize;
           ctx.beginPath();
-          ctx.arc(centerEyeX, centerEyeY, (eyeSize - cellSize) / 2, 0, Math.PI * 2);
+          ctx.arc(
+            centerEyeX,
+            centerEyeY,
+            (eyeSize - cellSize) / 2,
+            0,
+            Math.PI * 2,
+          );
           ctx.stroke();
           ctx.beginPath();
           ctx.arc(centerEyeX, centerEyeY, 1.5 * cellSize, 0, Math.PI * 2);
@@ -380,10 +499,22 @@ export function InteractiveDemoSection() {
         } else if (qrEyeStyle === "cyber") {
           ctx.lineWidth = cellSize;
           ctx.beginPath();
-          ctx.roundRect(eyeX + cellSize / 2, eyeY + cellSize / 2, eyeSize - cellSize, eyeSize - cellSize, [0, cellSize * 2, 0, cellSize * 2]);
+          ctx.roundRect(
+            eyeX + cellSize / 2,
+            eyeY + cellSize / 2,
+            eyeSize - cellSize,
+            eyeSize - cellSize,
+            [0, cellSize * 2, 0, cellSize * 2],
+          );
           ctx.stroke();
           ctx.beginPath();
-          ctx.roundRect(eyeX + 2 * cellSize, eyeY + 2 * cellSize, 3 * cellSize, 3 * cellSize, [0, cellSize, 0, cellSize]);
+          ctx.roundRect(
+            eyeX + 2 * cellSize,
+            eyeY + 2 * cellSize,
+            3 * cellSize,
+            3 * cellSize,
+            [0, cellSize, 0, cellSize],
+          );
           ctx.fill();
         } else if (qrEyeStyle === "star") {
           ctx.lineWidth = cellSize * 0.9;
@@ -417,8 +548,18 @@ export function InteractiveDemoSection() {
         } else {
           // Square
           ctx.lineWidth = cellSize;
-          ctx.strokeRect(eyeX + cellSize / 2, eyeY + cellSize / 2, eyeSize - cellSize, eyeSize - cellSize);
-          ctx.fillRect(eyeX + 2 * cellSize, eyeY + 2 * cellSize, 3 * cellSize, 3 * cellSize);
+          ctx.strokeRect(
+            eyeX + cellSize / 2,
+            eyeY + cellSize / 2,
+            eyeSize - cellSize,
+            eyeSize - cellSize,
+          );
+          ctx.fillRect(
+            eyeX + 2 * cellSize,
+            eyeY + 2 * cellSize,
+            3 * cellSize,
+            3 * cellSize,
+          );
         }
       };
 
@@ -429,8 +570,10 @@ export function InteractiveDemoSection() {
       // 5. Draw Center Cutout & Logo Badge
       if (qrLogo !== "none") {
         const centerBoxSize = (centerCutoutRadius * 2 + 1.4) * cellSize;
-        const centerBoxX = startX + (moduleCount * cellSize - centerBoxSize) / 2;
-        const centerBoxY = startY + (moduleCount * cellSize - centerBoxSize) / 2;
+        const centerBoxX =
+          startX + (moduleCount * cellSize - centerBoxSize) / 2;
+        const centerBoxY =
+          startY + (moduleCount * cellSize - centerBoxSize) / 2;
 
         ctx.fillStyle = "#ffffff";
         ctx.shadowColor = "rgba(0,0,0,0.15)";
@@ -443,20 +586,34 @@ export function InteractiveDemoSection() {
         if (qrLogo === "ql") {
           ctx.fillStyle = qrPixelColor;
           ctx.beginPath();
-          ctx.roundRect(centerBoxX + 2.5, centerBoxY + 2.5, centerBoxSize - 5, centerBoxSize - 5, 6);
+          ctx.roundRect(
+            centerBoxX + 2.5,
+            centerBoxY + 2.5,
+            centerBoxSize - 5,
+            centerBoxSize - 5,
+            6,
+          );
           ctx.fill();
 
           ctx.fillStyle = "#ffffff";
           ctx.font = "900 14px 'Bebas Neue', sans-serif";
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
-          ctx.fillText("LS", centerBoxX + centerBoxSize / 2, centerBoxY + centerBoxSize / 2 + 1);
+          ctx.fillText(
+            "LS",
+            centerBoxX + centerBoxSize / 2,
+            centerBoxY + centerBoxSize / 2 + 1,
+          );
         } else if (qrLogo === "text") {
           ctx.fillStyle = qrPixelColor;
           ctx.font = "bold 11px Inter, sans-serif";
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
-          ctx.fillText("SCAN", centerBoxX + centerBoxSize / 2, centerBoxY + centerBoxSize / 2);
+          ctx.fillText(
+            "SCAN",
+            centerBoxX + centerBoxSize / 2,
+            centerBoxY + centerBoxSize / 2,
+          );
         }
       }
     } catch (e) {
@@ -521,7 +678,9 @@ export function InteractiveDemoSection() {
       l.targetUrl.toLowerCase().includes(filterQuery.toLowerCase()) ||
       l.tags.some((t) => t.toLowerCase().includes(filterQuery.toLowerCase()));
     const matchTag = tagFilter === "all" || l.tags.includes(tagFilter);
-    const matchStatus = statusFilter === "all" || (statusFilter === "protected" && l.features.lock);
+    const matchStatus =
+      statusFilter === "all" ||
+      (statusFilter === "protected" && l.features.lock);
     return matchQuery && matchTag && matchStatus;
   });
 
@@ -533,30 +692,25 @@ export function InteractiveDemoSection() {
     >
       <div className="max-w-6xl mx-auto">
         {/* Section Header */}
-        <motion.div
+        <div
           ref={headerRef}
-          style={{ y: headerY, opacity: headerOpacity }}
+          style={{ opacity: 0 }}
           className="text-center max-w-2xl mx-auto mb-10 sm:mb-12"
         >
           <h2 className="text-2xl sm:text-4xl font-bold tracking-tight text-[#2B2520] dark:text-white leading-tight">
             Experience the Power of LShorter in Action
           </h2>
           <p className="mt-3 text-xs sm:text-base text-neutral-600 dark:text-neutral-400 font-normal leading-relaxed">
-            An intuitive dashboard engineered to manage your Edge redirects, routing rules, and real-time metrics.
+            An intuitive dashboard engineered to manage your Edge redirects,
+            routing rules, and real-time metrics.
           </p>
-        </motion.div>
+        </div>
 
         {/* Dashboard Frame (Grand Height & Authentic SaaS Chrome - 70% visual space) */}
-        <motion.div
+        <div
           ref={frameRef}
-          style={{
-            scale,
-            rotateX,
-            y,
-            opacity,
-            transformPerspective: 1200,
-          }}
-          className="w-full rounded-2xl bg-[#FFFDF9] dark:bg-[#141416] border border-[#E7DFD5] dark:border-white/10 shadow-[0_25px_70px_rgba(43,37,32,0.18)] dark:shadow-[0_30px_90px_rgba(0,0,0,0.9)] overflow-hidden transition-all duration-300 will-change-transform h-[70vh] min-h-[580px] max-h-[850px] flex flex-col"
+          style={{ opacity: 0.35 }}
+          className="w-full rounded-2xl bg-[#FFFDF9] dark:bg-[#141416] border border-[#E7DFD5] dark:border-white/10 shadow-[0_25px_70px_rgba(43,37,32,0.18)] dark:shadow-[0_30px_90px_rgba(0,0,0,0.9)] overflow-hidden transition-all duration-300 will-change-transform h-[100vh] min-h-[580px] max-h-[850px] flex flex-col"
         >
           {/* ─── Window Chrome Top Bar ─── */}
           <div className="h-11 sm:h-12 bg-[#F2ECE4] dark:bg-[#18181d] border-b border-[#E7DFD5] dark:border-white/10 px-4 sm:px-6 flex items-center justify-between select-none shrink-0">
@@ -569,8 +723,12 @@ export function InteractiveDemoSection() {
               </div>
               <div className="flex items-center gap-2 px-3 py-1 rounded-md bg-white dark:bg-[#0f0f13] border border-[#E7DFD5] dark:border-white/10 text-[11px] font-mono text-neutral-600 dark:text-neutral-300">
                 <span className="text-emerald-500 font-bold">https://</span>
-                <span className="font-semibold text-neutral-900 dark:text-neutral-100">lshorter.com</span>
-                <span className="text-brand font-semibold">/dashboard/{activeTab === "qr" ? "qr-code" : activeTab}</span>
+                <span className="font-semibold text-neutral-900 dark:text-neutral-100">
+                  lshorter.com
+                </span>
+                <span className="text-brand font-semibold">
+                  /dashboard/{activeTab === "qr" ? "qr-code" : activeTab}
+                </span>
               </div>
             </div>
 
@@ -611,7 +769,9 @@ export function InteractiveDemoSection() {
                     className="w-full h-8.5 rounded-[10px] bg-brand hover:bg-brand-hover text-white font-bold flex items-center justify-center text-xs gap-1.5 shadow-md shadow-brand transition-all cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5 stroke-[3]" />
-                    <span className="font-bebas text-sm tracking-wide">CREATE A LINK</span>
+                    <span className="font-bebas text-sm tracking-wide">
+                      CREATE A LINK
+                    </span>
                   </button>
                 </div>
 
@@ -677,18 +837,21 @@ export function InteractiveDemoSection() {
               <div className="hidden md:block p-3 rounded-[10px] bg-white dark:bg-[#141416] border border-[#E7DFD5] dark:border-[#27272a] text-xs mt-4">
                 <div className="flex items-center justify-between text-[10px] text-neutral-500 mb-1">
                   <span className="font-bold text-brand">PRO PLAN</span>
-                  <span className="font-mono text-neutral-900 dark:text-white">128.4K / 1M</span>
+                  <span className="font-mono text-neutral-900 dark:text-white">
+                    128.4K / 1M
+                  </span>
                 </div>
                 <div className="w-full h-1.5 rounded-full bg-neutral-200 dark:bg-white/10 overflow-hidden">
                   <div className="w-[32%] h-full bg-brand rounded-full" />
                 </div>
-                <span className="text-[9px] text-neutral-400 block mt-1.5 font-mono">Cloudflare Edge 11ms</span>
+                <span className="text-[9px] text-neutral-400 block mt-1.5 font-mono">
+                  Cloudflare Edge 11ms
+                </span>
               </div>
             </div>
 
             {/* 2. Main Content Pane */}
-            <div className="flex-1 p-4 sm:p-6 lg:p-7 overflow-y-auto max-h-[720px] select-none bg-[#FFFDF9] dark:bg-[#0f0f13]">
-              
+            <div className="flex-1 p-4 sm:p-6 lg:p-7 overflow-y-auto max-h-full select-none bg-[#FFFDF9] dark:bg-[#0f0f13]">
               {/* ────────────────────────────────────────────────────────────────
                   TAB 1: OVERVIEW
                  ──────────────────────────────────────────────────────────────── */}
@@ -701,7 +864,8 @@ export function InteractiveDemoSection() {
                         Overview
                       </h3>
                       <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
-                        Global performance of your redirects, conversions, and live clicks.
+                        Global performance of your redirects, conversions, and
+                        live clicks.
                       </p>
                     </div>
 
@@ -712,7 +876,9 @@ export function InteractiveDemoSection() {
                         onClick={handleRefreshOverview}
                         className="h-8 px-3 text-xs gap-1.5 border-[#E7DFD5] dark:border-[#27272a] bg-white dark:bg-[#141416] text-neutral-700 dark:text-neutral-300"
                       >
-                        <RefreshCw className={`w-3.5 h-3.5 ${isRefreshingOverview ? "animate-spin text-brand" : "text-neutral-400"}`} />
+                        <RefreshCw
+                          className={`w-3.5 h-3.5 ${isRefreshingOverview ? "animate-spin text-brand" : "text-neutral-400"}`}
+                        />
                         <span>Refresh</span>
                       </Button>
                       <Button
@@ -731,7 +897,9 @@ export function InteractiveDemoSection() {
                     <div className="p-4 rounded-[10px] bg-white dark:bg-[#141416] border border-[#E7DFD5] dark:border-[#222225] flex flex-col justify-between h-32 shadow-xs hover:border-brand transition-colors">
                       <div className="flex items-center justify-between text-xs text-neutral-500">
                         <span className="font-semibold">Total Clicks</span>
-                        <span className="text-emerald-500 font-bold text-[11px]">+14.2%</span>
+                        <span className="text-emerald-500 font-bold text-[11px]">
+                          +14.2%
+                        </span>
                       </div>
                       <div className="font-bebas text-4xl sm:text-5xl font-bold text-brand tracking-wide leading-none">
                         128,420
@@ -745,7 +913,9 @@ export function InteractiveDemoSection() {
                     <div className="p-4 rounded-[10px] bg-white dark:bg-[#141416] border border-[#E7DFD5] dark:border-[#222225] flex flex-col justify-between h-32 shadow-xs hover:border-brand transition-colors">
                       <div className="flex items-center justify-between text-xs text-neutral-500">
                         <span className="font-semibold">Created Links</span>
-                        <span className="text-emerald-500 font-bold text-[11px]">42</span>
+                        <span className="text-emerald-500 font-bold text-[11px]">
+                          42
+                        </span>
                       </div>
                       <div className="font-bebas text-4xl sm:text-5xl font-bold text-neutral-900 dark:text-white tracking-wide leading-none">
                         42
@@ -759,7 +929,9 @@ export function InteractiveDemoSection() {
                     <div className="p-4 rounded-[10px] bg-white dark:bg-[#141416] border border-[#E7DFD5] dark:border-[#222225] flex flex-col justify-between h-32 shadow-xs hover:border-brand transition-colors">
                       <div className="flex items-center justify-between text-xs text-neutral-500">
                         <span className="font-semibold">Tracked Revenue</span>
-                        <span className="text-emerald-500 font-bold text-[11px]">$2,450</span>
+                        <span className="text-emerald-500 font-bold text-[11px]">
+                          $2,450
+                        </span>
                       </div>
                       <div className="font-bebas text-4xl sm:text-5xl font-bold text-neutral-900 dark:text-white tracking-wide leading-none">
                         $2,450.00
@@ -773,7 +945,9 @@ export function InteractiveDemoSection() {
                     <div className="p-4 rounded-[10px] bg-white dark:bg-[#141416] border border-[#E7DFD5] dark:border-[#222225] flex flex-col justify-between h-32 shadow-xs hover:border-brand transition-colors">
                       <div className="flex items-center justify-between text-xs text-neutral-500">
                         <span className="font-semibold">Conversion Rate</span>
-                        <span className="text-emerald-500 font-bold text-[11px]">3.4%</span>
+                        <span className="text-emerald-500 font-bold text-[11px]">
+                          3.4%
+                        </span>
                       </div>
                       <div className="font-bebas text-4xl sm:text-5xl font-bold text-emerald-500 tracking-wide leading-none">
                         3.4%
@@ -794,7 +968,9 @@ export function InteractiveDemoSection() {
                           <h4 className="text-sm font-bold text-neutral-900 dark:text-white">
                             Click Analytics (30 Days)
                           </h4>
-                          <span className="text-[11px] text-neutral-400">All links combined</span>
+                          <span className="text-[11px] text-neutral-400">
+                            All links combined
+                          </span>
                         </div>
                         <span className="text-xs font-mono font-bold text-brand bg-brand-subtle px-2 py-0.5 rounded-md">
                           128.4K clicks
@@ -804,7 +980,9 @@ export function InteractiveDemoSection() {
                       {/* Dynamic SVG Bars with Hover Info */}
                       <div className="h-44 w-full flex items-end justify-between gap-1 sm:gap-2 pt-4 pb-1 relative">
                         {dailyClicksData.map((d, idx) => {
-                          const heightPct = Math.round((d.clicks / maxClicksValue) * 100);
+                          const heightPct = Math.round(
+                            (d.clicks / maxClicksValue) * 100,
+                          );
                           const isHovered = hoveredBarIndex === idx;
                           return (
                             <div
@@ -847,7 +1025,9 @@ export function InteractiveDemoSection() {
                     <div className="lg:col-span-4 p-4 sm:p-5 rounded-[10px] bg-white dark:bg-[#141416] border border-[#E7DFD5] dark:border-[#222225] flex flex-col justify-between shadow-xs">
                       <div>
                         <div className="flex items-center justify-between mb-3">
-                          <h4 className="text-sm font-bold text-neutral-900 dark:text-white">Top Countries</h4>
+                          <h4 className="text-sm font-bold text-neutral-900 dark:text-white">
+                            Top Countries
+                          </h4>
                           <button
                             type="button"
                             onClick={() => setActiveTab("analytics")}
@@ -860,11 +1040,36 @@ export function InteractiveDemoSection() {
 
                         <div className="space-y-3">
                           {[
-                            { code: "FR", name: "France", pct: 40.8, count: "52,400" },
-                            { code: "US", name: "United States", pct: 26.5, count: "34,100" },
-                            { code: "BF", name: "Burkina Faso", pct: 14.7, count: "18,900" },
-                            { code: "DE", name: "Germany", pct: 9.4, count: "12,100" },
-                            { code: "CA", name: "Canada", pct: 8.6, count: "10,920" },
+                            {
+                              code: "FR",
+                              name: "France",
+                              pct: 40.8,
+                              count: "52,400",
+                            },
+                            {
+                              code: "US",
+                              name: "United States",
+                              pct: 26.5,
+                              count: "34,100",
+                            },
+                            {
+                              code: "BF",
+                              name: "Burkina Faso",
+                              pct: 14.7,
+                              count: "18,900",
+                            },
+                            {
+                              code: "DE",
+                              name: "Germany",
+                              pct: 9.4,
+                              count: "12,100",
+                            },
+                            {
+                              code: "CA",
+                              name: "Canada",
+                              pct: 8.6,
+                              count: "10,920",
+                            },
                           ].map((item, i) => (
                             <div key={item.code} className="space-y-1 text-xs">
                               <div className="flex items-center justify-between text-neutral-700 dark:text-neutral-300">
@@ -901,8 +1106,12 @@ export function InteractiveDemoSection() {
                   <div className="p-4 sm:p-5 rounded-[10px] bg-white dark:bg-[#141416] border border-[#E7DFD5] dark:border-[#222225] space-y-3 shadow-xs">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h4 className="text-sm font-bold text-neutral-900 dark:text-white">Recent Links</h4>
-                        <p className="text-xs text-neutral-500 dark:text-neutral-400">Your latest created redirects</p>
+                        <h4 className="text-sm font-bold text-neutral-900 dark:text-white">
+                          Recent Links
+                        </h4>
+                        <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                          Your latest created redirects
+                        </p>
                       </div>
                       <button
                         type="button"
@@ -928,7 +1137,10 @@ export function InteractiveDemoSection() {
                         </thead>
                         <tbody className="divide-y divide-[#E7DFD5]/60 dark:divide-[#202024]">
                           {mockLinks.map((link) => (
-                            <tr key={link.id} className="hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors">
+                            <tr
+                              key={link.id}
+                              className="hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors"
+                            >
                               <td className="py-3 pl-2 max-w-[200px]">
                                 <span className="font-bold text-neutral-900 dark:text-white block truncate">
                                   /{link.slug}
@@ -942,11 +1154,31 @@ export function InteractiveDemoSection() {
                               </td>
                               <td className="py-3 text-center">
                                 <div className="flex items-center justify-center gap-1.5 text-neutral-400">
-                                  {link.features.ab && <span title="A/B Testing"><Split className="w-3.5 h-3.5 text-indigo-400" /></span>}
-                                  {link.features.geo && <span title="Geo-targeting"><Globe2 className="w-3.5 h-3.5 text-sky-400" /></span>}
-                                  {link.features.mobile && <span title="Mobile routing"><Smartphone className="w-3.5 h-3.5 text-emerald-400" /></span>}
-                                  {link.features.lock && <span title="PIN Code"><Lock className="w-3.5 h-3.5 text-amber-400" /></span>}
-                                  {link.features.cloak && <span title="URL Masking"><EyeOff className="w-3.5 h-3.5 text-purple-400" /></span>}
+                                  {link.features.ab && (
+                                    <span title="A/B Testing">
+                                      <Split className="w-3.5 h-3.5 text-indigo-400" />
+                                    </span>
+                                  )}
+                                  {link.features.geo && (
+                                    <span title="Geo-targeting">
+                                      <Globe2 className="w-3.5 h-3.5 text-sky-400" />
+                                    </span>
+                                  )}
+                                  {link.features.mobile && (
+                                    <span title="Mobile routing">
+                                      <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
+                                    </span>
+                                  )}
+                                  {link.features.lock && (
+                                    <span title="PIN Code">
+                                      <Lock className="w-3.5 h-3.5 text-amber-400" />
+                                    </span>
+                                  )}
+                                  {link.features.cloak && (
+                                    <span title="URL Masking">
+                                      <EyeOff className="w-3.5 h-3.5 text-purple-400" />
+                                    </span>
+                                  )}
                                 </div>
                               </td>
                               <td className="py-3 text-right pr-3 font-mono font-bold text-neutral-900 dark:text-white">
@@ -960,7 +1192,9 @@ export function InteractiveDemoSection() {
                               <td className="py-3 text-right pr-2">
                                 <button
                                   type="button"
-                                  onClick={() => handleCopy(link.shortUrl, link.slug)}
+                                  onClick={() =>
+                                    handleCopy(link.shortUrl, link.slug)
+                                  }
                                   className="px-2 py-1 rounded-[6px] bg-brand-subtle text-brand hover:bg-brand hover:text-white text-[11px] font-mono transition-colors cursor-pointer inline-flex items-center gap-1"
                                 >
                                   {copiedSlug === link.slug ? (
@@ -997,7 +1231,8 @@ export function InteractiveDemoSection() {
                         My Short Links
                       </h3>
                       <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
-                        Manage, edit, and analyze your 42 active redirects with dynamic QR Codes and UTM parameters.
+                        Manage, edit, and analyze your 42 active redirects with
+                        dynamic QR Codes and UTM parameters.
                       </p>
                     </div>
 
@@ -1065,7 +1300,10 @@ export function InteractiveDemoSection() {
                       </thead>
                       <tbody className="divide-y divide-[#E7DFD5]/60 dark:divide-[#202024]">
                         {filteredLinks.map((link) => (
-                          <tr key={link.id} className="hover:bg-black/[0.02] dark:hover:bg-white/[0.02]">
+                          <tr
+                            key={link.id}
+                            className="hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
+                          >
                             <td className="p-3 pl-4 max-w-[220px]">
                               <div className="flex flex-col">
                                 <span className="font-bold text-neutral-900 dark:text-white text-xs truncate">
@@ -1093,11 +1331,31 @@ export function InteractiveDemoSection() {
 
                             <td className="p-3 text-center">
                               <div className="flex items-center justify-center gap-1 text-neutral-400">
-                                {link.features.ab && <span title="A/B 50/50"><Split className="w-3.5 h-3.5 text-indigo-400" /></span>}
-                                {link.features.geo && <span title="84 countries"><Globe2 className="w-3.5 h-3.5 text-sky-400" /></span>}
-                                {link.features.mobile && <span title="Mobile routing"><Smartphone className="w-3.5 h-3.5 text-emerald-400" /></span>}
-                                {link.features.lock && <span title="PIN Code"><Lock className="w-3.5 h-3.5 text-amber-400" /></span>}
-                                {link.features.cloak && <span title="URL Masking"><EyeOff className="w-3.5 h-3.5 text-purple-400" /></span>}
+                                {link.features.ab && (
+                                  <span title="A/B 50/50">
+                                    <Split className="w-3.5 h-3.5 text-indigo-400" />
+                                  </span>
+                                )}
+                                {link.features.geo && (
+                                  <span title="84 countries">
+                                    <Globe2 className="w-3.5 h-3.5 text-sky-400" />
+                                  </span>
+                                )}
+                                {link.features.mobile && (
+                                  <span title="Mobile routing">
+                                    <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
+                                  </span>
+                                )}
+                                {link.features.lock && (
+                                  <span title="PIN Code">
+                                    <Lock className="w-3.5 h-3.5 text-amber-400" />
+                                  </span>
+                                )}
+                                {link.features.cloak && (
+                                  <span title="URL Masking">
+                                    <EyeOff className="w-3.5 h-3.5 text-purple-400" />
+                                  </span>
+                                )}
                               </div>
                             </td>
 
@@ -1118,7 +1376,9 @@ export function InteractiveDemoSection() {
                               <div className="flex items-center justify-end gap-1.5">
                                 <button
                                   type="button"
-                                  onClick={() => handleCopy(link.shortUrl, link.slug)}
+                                  onClick={() =>
+                                    handleCopy(link.shortUrl, link.slug)
+                                  }
                                   className="px-2.5 py-1.5 rounded-[8px] bg-brand-subtle text-brand hover:bg-brand hover:text-white text-[11px] font-bold transition-colors cursor-pointer flex items-center gap-1"
                                 >
                                   {copiedSlug === link.slug ? (
@@ -1166,7 +1426,8 @@ export function InteractiveDemoSection() {
                         QR Code Customization Studio
                       </h3>
                       <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
-                        Customize pixel patterns, finder eyes, gradient colors, central logos, and CTA frames.
+                        Customize pixel patterns, finder eyes, gradient colors,
+                        central logos, and CTA frames.
                       </p>
                     </div>
 
@@ -1203,12 +1464,13 @@ export function InteractiveDemoSection() {
 
                   {/* 2-Column Studio Grid: Controls on Left (7 cols), Live Preview on Right (5 cols) */}
                   <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                    
                     {/* Left Column: Customization Controls (7 cols) */}
                     <div className="lg:col-span-7 space-y-4">
                       {/* 1. Content Type Tabs */}
                       <div className="space-y-1.5">
-                        <span className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">Content Type</span>
+                        <span className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">
+                          Content Type
+                        </span>
                         <div className="flex flex-wrap items-center gap-2">
                           {[
                             { type: "link" as const, label: "URL Link" },
@@ -1266,15 +1528,22 @@ export function InteractiveDemoSection() {
                         <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 rounded-[8px] px-3 py-1.5">
                           <Check className="w-3.5 h-3.5 shrink-0" />
                           <div className="flex items-center justify-between gap-2 w-full truncate">
-                            <span>Attached link in database: <strong>/{selectedPresetSlug}</strong></span>
-                            <span className="text-[10px] font-mono text-neutral-500">Cloudflare Edge</span>
+                            <span>
+                              Attached link in database:{" "}
+                              <strong>/{selectedPresetSlug}</strong>
+                            </span>
+                            <span className="text-[10px] font-mono text-neutral-500">
+                              Cloudflare Edge
+                            </span>
                           </div>
                         </div>
                       </div>
 
                       {/* 3. Motifs des pixels */}
                       <div className="p-4 rounded-[10px] bg-white dark:bg-[#141416] border border-[#E7DFD5] dark:border-[#222225] space-y-2">
-                        <span className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">Pixel Pattern</span>
+                        <span className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">
+                          Pixel Pattern
+                        </span>
                         <div className="grid grid-cols-5 gap-2">
                           {[
                             { id: "square", label: "Square" },
@@ -1301,7 +1570,9 @@ export function InteractiveDemoSection() {
 
                       {/* 4. Coins d'yeux */}
                       <div className="p-4 rounded-[10px] bg-white dark:bg-[#141416] border border-[#E7DFD5] dark:border-[#222225] space-y-2">
-                        <span className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">Finder Eye Pattern</span>
+                        <span className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">
+                          Finder Eye Pattern
+                        </span>
                         <div className="grid grid-cols-5 gap-2">
                           {[
                             { id: "square", label: "Square" },
@@ -1330,7 +1601,9 @@ export function InteractiveDemoSection() {
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {/* Colors */}
                         <div className="p-4 rounded-[10px] bg-white dark:bg-[#141416] border border-[#E7DFD5] dark:border-[#222225] space-y-2.5">
-                          <span className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">Pixel Color</span>
+                          <span className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">
+                            Pixel Color
+                          </span>
                           <div className="flex items-center gap-2">
                             {[
                               { hex: "#ff6600", name: "Orange SaaS" },
@@ -1345,14 +1618,18 @@ export function InteractiveDemoSection() {
                                 onClick={() => setQrPixelColor(c.hex)}
                                 style={{ backgroundColor: c.hex }}
                                 className={`w-7 h-7 rounded-full border-2 transition-transform cursor-pointer ${
-                                  qrPixelColor === c.hex ? "border-neutral-900 dark:border-white scale-110 shadow-md" : "border-transparent"
+                                  qrPixelColor === c.hex
+                                    ? "border-neutral-900 dark:border-white scale-110 shadow-md"
+                                    : "border-transparent"
                                 }`}
                                 title={c.name}
                               />
                             ))}
                           </div>
                           <div className="flex items-center gap-2 pt-1">
-                            <span className="text-[11px] font-mono text-neutral-500">Hex:</span>
+                            <span className="text-[11px] font-mono text-neutral-500">
+                              Hex:
+                            </span>
                             <input
                               type="text"
                               value={qrPixelColor}
@@ -1364,7 +1641,9 @@ export function InteractiveDemoSection() {
 
                         {/* CTA Frame Selector */}
                         <div className="p-4 rounded-[10px] bg-white dark:bg-[#141416] border border-[#E7DFD5] dark:border-[#222225] space-y-2.5">
-                          <span className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">CTA Frame</span>
+                          <span className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">
+                            CTA Frame
+                          </span>
                           <div className="flex flex-wrap gap-1.5">
                             {[
                               { id: "none", label: "None" },
@@ -1403,14 +1682,21 @@ export function InteractiveDemoSection() {
                     {/* Right Column: Live Interactive Canvas Preview (5 cols) */}
                     <div className="lg:col-span-5 space-y-4 lg:sticky lg:top-4">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">Live Preview</span>
-                        <span className="text-[10px] font-mono text-emerald-500 font-bold">● High-Resolution Render</span>
+                        <span className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">
+                          Live Preview
+                        </span>
+                        <span className="text-[10px] font-mono text-emerald-500 font-bold">
+                          ● High-Resolution Render
+                        </span>
                       </div>
 
                       {/* Main Canvas Card */}
                       <div className="rounded-[12px] bg-white dark:bg-[#141416] border border-[#E7DFD5] dark:border-[#222225] p-6 flex flex-col items-center justify-center shadow-xl">
                         <div className="p-3 rounded-[10px] bg-white shadow-md border border-neutral-100 flex items-center justify-center">
-                          <canvas ref={qrCanvasRef} className="max-w-full h-auto object-contain" />
+                          <canvas
+                            ref={qrCanvasRef}
+                            className="max-w-full h-auto object-contain"
+                          />
                         </div>
                       </div>
 
@@ -1418,7 +1704,9 @@ export function InteractiveDemoSection() {
                       <div className="p-3 rounded-[10px] bg-white dark:bg-[#141416] border border-[#E7DFD5] dark:border-[#222225] space-y-1 text-xs">
                         <div className="flex items-center justify-between font-semibold text-neutral-700 dark:text-neutral-300">
                           <span>Resolution</span>
-                          <span className="font-mono text-brand">{qrSize}px</span>
+                          <span className="font-mono text-brand">
+                            {qrSize}px
+                          </span>
                         </div>
                         <input
                           type="range"
@@ -1468,27 +1756,36 @@ export function InteractiveDemoSection() {
                         Analytics &amp; Advanced Metrics
                       </h3>
                       <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
-                        Analyze redirect performance in real time with Edge latency and geolocation.
+                        Analyze redirect performance in real time with Edge
+                        latency and geolocation.
                       </p>
                     </div>
 
                     <div className="flex items-center gap-2">
                       {/* Range tabs */}
                       <div className="flex items-center p-0.5 rounded-[8px] bg-[#FAF7F2] dark:bg-[#1a1a1e] border border-[#E7DFD5] dark:border-[#27272a] text-xs">
-                        {(["day", "week", "month", "year"] as const).map((r) => (
-                          <button
-                            key={r}
-                            type="button"
-                            onClick={() => setAnalyticsRange(r)}
-                            className={`px-2.5 py-1 rounded-[6px] font-semibold transition-all cursor-pointer ${
-                              analyticsRange === r
-                                ? "bg-brand text-white shadow-xs font-bold"
-                                : "text-neutral-500 hover:text-neutral-900 dark:hover:text-white"
-                            }`}
-                          >
-                            {r === "day" ? "24h" : r === "week" ? "7d" : r === "month" ? "30d" : "1y"}
-                          </button>
-                        ))}
+                        {(["day", "week", "month", "year"] as const).map(
+                          (r) => (
+                            <button
+                              key={r}
+                              type="button"
+                              onClick={() => setAnalyticsRange(r)}
+                              className={`px-2.5 py-1 rounded-[6px] font-semibold transition-all cursor-pointer ${
+                                analyticsRange === r
+                                  ? "bg-brand text-white shadow-xs font-bold"
+                                  : "text-neutral-500 hover:text-neutral-900 dark:hover:text-white"
+                              }`}
+                            >
+                              {r === "day"
+                                ? "24h"
+                                : r === "week"
+                                  ? "7d"
+                                  : r === "month"
+                                    ? "30d"
+                                    : "1y"}
+                            </button>
+                          ),
+                        )}
                       </div>
 
                       <Button
@@ -1505,22 +1802,58 @@ export function InteractiveDemoSection() {
                   {/* 6 Precision KPI Cards */}
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                     {[
-                      { label: "Total Clicks", val: "128,420", sub: "+14.2% this month", color: "text-brand" },
-                      { label: "Unique Clicks", val: "71,400", sub: "100% verified", color: "text-neutral-900 dark:text-white" },
-                      { label: "Tracked Revenue", val: "$2,450", sub: "+18.5% MRR", color: "text-neutral-900 dark:text-white" },
-                      { label: "Conversion Rate", val: "3.4%", sub: "Optimum > 2%", color: "text-emerald-500" },
-                      { label: "EPC (Earn/Click)", val: "$0.19", sub: "Max profitability", color: "text-emerald-500" },
-                      { label: "Bounce Rate", val: "21.4%", sub: "Strong retention", color: "text-neutral-900 dark:text-white" },
+                      {
+                        label: "Total Clicks",
+                        val: "128,420",
+                        sub: "+14.2% this month",
+                        color: "text-brand",
+                      },
+                      {
+                        label: "Unique Clicks",
+                        val: "71,400",
+                        sub: "100% verified",
+                        color: "text-neutral-900 dark:text-white",
+                      },
+                      {
+                        label: "Tracked Revenue",
+                        val: "$2,450",
+                        sub: "+18.5% MRR",
+                        color: "text-neutral-900 dark:text-white",
+                      },
+                      {
+                        label: "Conversion Rate",
+                        val: "3.4%",
+                        sub: "Optimum > 2%",
+                        color: "text-emerald-500",
+                      },
+                      {
+                        label: "EPC (Earn/Click)",
+                        val: "$0.19",
+                        sub: "Max profitability",
+                        color: "text-emerald-500",
+                      },
+                      {
+                        label: "Bounce Rate",
+                        val: "21.4%",
+                        sub: "Strong retention",
+                        color: "text-neutral-900 dark:text-white",
+                      },
                     ].map((kpi, idx) => (
                       <div
                         key={idx}
                         className="p-3.5 rounded-[10px] bg-white dark:bg-[#141416] border border-[#E7DFD5] dark:border-[#222225] flex flex-col justify-between shadow-xs"
                       >
-                        <span className="text-[10px] font-semibold text-neutral-500">{kpi.label}</span>
-                        <div className={`font-bebas text-2xl sm:text-3xl font-bold my-1 ${kpi.color}`}>
+                        <span className="text-[10px] font-semibold text-neutral-500">
+                          {kpi.label}
+                        </span>
+                        <div
+                          className={`font-bebas text-2xl sm:text-3xl font-bold my-1 ${kpi.color}`}
+                        >
                           {kpi.val}
                         </div>
-                        <span className="text-[9.5px] font-mono text-emerald-500">{kpi.sub}</span>
+                        <span className="text-[9.5px] font-mono text-emerald-500">
+                          {kpi.sub}
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -1535,7 +1868,9 @@ export function InteractiveDemoSection() {
                             <Globe2 className="w-4 h-4" />
                             <span>Live Global Traffic</span>
                           </span>
-                          <span className="text-[10px] font-mono text-emerald-500 font-bold">Edge &lt; 0.8ms</span>
+                          <span className="text-[10px] font-mono text-emerald-500 font-bold">
+                            Edge &lt; 0.8ms
+                          </span>
                         </div>
                         <h4 className="text-sm font-bold text-neutral-900 dark:text-white">
                           Real-Time Geographic Distribution
@@ -1545,7 +1880,7 @@ export function InteractiveDemoSection() {
                       {/* Stylized Geo Radar Screen */}
                       <div className="my-4 h-40 rounded-[10px] bg-[#FAF7F2] dark:bg-[#0d0d12] border border-[#E7DFD5] dark:border-white/5 relative flex items-center justify-center overflow-hidden">
                         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,var(--brand-primary-subtle)_0%,transparent_70%)]" />
-                        
+
                         {/* Radar concentric rings */}
                         <div className="w-32 h-32 rounded-full border border-brand-subtle absolute animate-ping" />
                         <div className="w-24 h-24 rounded-full border border-brand-subtle absolute" />
@@ -1554,19 +1889,27 @@ export function InteractiveDemoSection() {
                         {/* City PoP Markers */}
                         <div className="absolute top-8 left-16 flex items-center gap-1">
                           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                          <span className="text-[9px] font-mono text-neutral-500">Paris (52.4K)</span>
+                          <span className="text-[9px] font-mono text-neutral-500">
+                            Paris (52.4K)
+                          </span>
                         </div>
                         <div className="absolute top-12 right-20 flex items-center gap-1">
                           <span className="w-2 h-2 rounded-full bg-brand animate-pulse" />
-                          <span className="text-[9px] font-mono text-neutral-500">New York (34.1K)</span>
+                          <span className="text-[9px] font-mono text-neutral-500">
+                            New York (34.1K)
+                          </span>
                         </div>
                         <div className="absolute bottom-10 left-24 flex items-center gap-1">
                           <span className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse" />
-                          <span className="text-[9px] font-mono text-neutral-500">Ouagadougou (18.9K)</span>
+                          <span className="text-[9px] font-mono text-neutral-500">
+                            Ouagadougou (18.9K)
+                          </span>
                         </div>
                         <div className="absolute bottom-12 right-16 flex items-center gap-1">
                           <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
-                          <span className="text-[9px] font-mono text-neutral-500">Tokyo (8.4K)</span>
+                          <span className="text-[9px] font-mono text-neutral-500">
+                            Tokyo (8.4K)
+                          </span>
                         </div>
                       </div>
 
@@ -1582,41 +1925,74 @@ export function InteractiveDemoSection() {
                         <h4 className="text-sm font-bold text-neutral-900 dark:text-white mb-3">
                           Devices &amp; Platforms
                         </h4>
-                        
+
                         <div className="grid grid-cols-3 gap-2 text-center mb-4">
                           <div className="p-3 rounded-[8px] bg-[#FAF7F2] dark:bg-[#1a1a1e] border border-[#E7DFD5] dark:border-[#27272a]">
-                            <span className="text-[10px] text-neutral-500 block">Desktop</span>
-                            <span className="text-xl font-bold font-mono text-brand">58%</span>
-                            <span className="text-[9px] text-neutral-400 block mt-0.5">74,480 clicks</span>
+                            <span className="text-[10px] text-neutral-500 block">
+                              Desktop
+                            </span>
+                            <span className="text-xl font-bold font-mono text-brand">
+                              58%
+                            </span>
+                            <span className="text-[9px] text-neutral-400 block mt-0.5">
+                              74,480 clicks
+                            </span>
                           </div>
                           <div className="p-3 rounded-[8px] bg-[#FAF7F2] dark:bg-[#1a1a1e] border border-[#E7DFD5] dark:border-[#27272a]">
-                            <span className="text-[10px] text-neutral-500 block">Mobile</span>
-                            <span className="text-xl font-bold font-mono text-neutral-900 dark:text-white">36%</span>
-                            <span className="text-[9px] text-neutral-400 block mt-0.5">46,230 clicks</span>
+                            <span className="text-[10px] text-neutral-500 block">
+                              Mobile
+                            </span>
+                            <span className="text-xl font-bold font-mono text-neutral-900 dark:text-white">
+                              36%
+                            </span>
+                            <span className="text-[9px] text-neutral-400 block mt-0.5">
+                              46,230 clicks
+                            </span>
                           </div>
                           <div className="p-3 rounded-[8px] bg-[#FAF7F2] dark:bg-[#1a1a1e] border border-[#E7DFD5] dark:border-[#27272a]">
-                            <span className="text-[10px] text-neutral-500 block">Tablet</span>
-                            <span className="text-xl font-bold font-mono text-neutral-900 dark:text-white">6%</span>
-                            <span className="text-[9px] text-neutral-400 block mt-0.5">7,710 clicks</span>
+                            <span className="text-[10px] text-neutral-500 block">
+                              Tablet
+                            </span>
+                            <span className="text-xl font-bold font-mono text-neutral-900 dark:text-white">
+                              6%
+                            </span>
+                            <span className="text-[9px] text-neutral-400 block mt-0.5">
+                              7,710 clicks
+                            </span>
                           </div>
                         </div>
 
                         {/* Channels */}
                         <div className="space-y-2 text-xs">
-                          <span className="text-[11px] font-semibold text-neutral-500 block">Sources &amp; Referrers</span>
+                          <span className="text-[11px] font-semibold text-neutral-500 block">
+                            Sources &amp; Referrers
+                          </span>
                           {[
-                            { name: "Direct Traffic", pct: 42, count: "53,920" },
-                            { name: "LinkedIn & B2B", pct: 28, count: "35,950" },
+                            {
+                              name: "Direct Traffic",
+                              pct: 42,
+                              count: "53,920",
+                            },
+                            {
+                              name: "LinkedIn & B2B",
+                              pct: 28,
+                              count: "35,950",
+                            },
                             { name: "Twitter / X", pct: 18, count: "23,110" },
                             { name: "Google Search", pct: 12, count: "15,440" },
                           ].map((ch) => (
                             <div key={ch.name} className="space-y-1">
                               <div className="flex justify-between text-neutral-700 dark:text-neutral-300">
                                 <span>{ch.name}</span>
-                                <span className="font-mono">{ch.count} ({ch.pct}%)</span>
+                                <span className="font-mono">
+                                  {ch.count} ({ch.pct}%)
+                                </span>
                               </div>
                               <div className="w-full h-1.5 rounded-full bg-neutral-200 dark:bg-white/10 overflow-hidden">
-                                <div className="h-full bg-brand rounded-full" style={{ width: `${ch.pct}%` }} />
+                                <div
+                                  className="h-full bg-brand rounded-full"
+                                  style={{ width: `${ch.pct}%` }}
+                                />
                               </div>
                             </div>
                           ))}
@@ -1639,7 +2015,9 @@ export function InteractiveDemoSection() {
                           Live Event Stream
                         </h4>
                       </div>
-                      <span className="text-[10px] font-mono text-neutral-400">Real-time Cloudflare Worker</span>
+                      <span className="text-[10px] font-mono text-neutral-400">
+                        Real-time Cloudflare Worker
+                      </span>
                     </div>
 
                     <div className="overflow-x-auto">
@@ -1656,18 +2034,61 @@ export function InteractiveDemoSection() {
                         </thead>
                         <tbody className="divide-y divide-[#E7DFD5]/60 dark:divide-[#202024] font-mono text-[11px]">
                           {[
-                            { time: "3s ago", slug: "launch-pro-2026", loc: "🇫🇷 Paris", dev: "Desktop Chrome", src: "LinkedIn", ev: "Edge Click 11ms" },
-                            { time: "14s ago", slug: "launch-pro-2026", loc: "🇺🇸 New York", dev: "Mobile Safari", src: "Direct", ev: "Conversion $49.00" },
-                            { time: "32s ago", slug: "ebook-conversion", loc: "🇧🇫 Ouagadougou", dev: "Mobile Chrome", src: "Twitter/X", ev: "QR Code Click" },
-                            { time: "1m ago", slug: "direction-finance", loc: "🇩🇪 Frankfurt", dev: "Desktop Edge", src: "VIP Email", ev: "PIN Code Verified" },
+                            {
+                              time: "3s ago",
+                              slug: "launch-pro-2026",
+                              loc: "🇫🇷 Paris",
+                              dev: "Desktop Chrome",
+                              src: "LinkedIn",
+                              ev: "Edge Click 11ms",
+                            },
+                            {
+                              time: "14s ago",
+                              slug: "launch-pro-2026",
+                              loc: "🇺🇸 New York",
+                              dev: "Mobile Safari",
+                              src: "Direct",
+                              ev: "Conversion $49.00",
+                            },
+                            {
+                              time: "32s ago",
+                              slug: "ebook-conversion",
+                              loc: "🇧🇫 Ouagadougou",
+                              dev: "Mobile Chrome",
+                              src: "Twitter/X",
+                              ev: "QR Code Click",
+                            },
+                            {
+                              time: "1m ago",
+                              slug: "direction-finance",
+                              loc: "🇩🇪 Frankfurt",
+                              dev: "Desktop Edge",
+                              src: "VIP Email",
+                              ev: "PIN Code Verified",
+                            },
                           ].map((ev, i) => (
-                            <tr key={i} className="hover:bg-black/[0.02] dark:hover:bg-white/[0.02]">
-                              <td className="py-2.5 pl-3 text-neutral-400">{ev.time}</td>
-                              <td className="py-2.5 text-brand font-bold">/{ev.slug}</td>
-                              <td className="py-2.5 text-neutral-800 dark:text-neutral-200">{ev.loc}</td>
-                              <td className="py-2.5 text-neutral-500">{ev.dev}</td>
-                              <td className="py-2.5 text-neutral-500">{ev.src}</td>
-                              <td className="py-2.5 text-right pr-3 font-semibold text-emerald-500">{ev.ev}</td>
+                            <tr
+                              key={i}
+                              className="hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
+                            >
+                              <td className="py-2.5 pl-3 text-neutral-400">
+                                {ev.time}
+                              </td>
+                              <td className="py-2.5 text-brand font-bold">
+                                /{ev.slug}
+                              </td>
+                              <td className="py-2.5 text-neutral-800 dark:text-neutral-200">
+                                {ev.loc}
+                              </td>
+                              <td className="py-2.5 text-neutral-500">
+                                {ev.dev}
+                              </td>
+                              <td className="py-2.5 text-neutral-500">
+                                {ev.src}
+                              </td>
+                              <td className="py-2.5 text-right pr-3 font-semibold text-emerald-500">
+                                {ev.ev}
+                              </td>
                             </tr>
                           ))}
                         </tbody>
@@ -1676,10 +2097,9 @@ export function InteractiveDemoSection() {
                   </div>
                 </div>
               )}
-
             </div>
           </div>
-        </motion.div>
+        </div>
       </div>
     </section>
   );

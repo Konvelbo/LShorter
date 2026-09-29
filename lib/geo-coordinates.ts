@@ -183,7 +183,23 @@ export function getCountryName(code?: string): string {
 }
 
 export function getCountryFlag(code?: string): string {
-  return getCountryData(code).flag;
+  if (!code) return "🌐";
+  const upper = code.trim().toUpperCase();
+  const foundFlag = WORLD_COUNTRIES[upper]?.flag;
+  if (foundFlag && foundFlag !== "🌐") {
+    return foundFlag;
+  }
+  if (upper.length === 2 && /^[A-Z]{2}$/.test(upper)) {
+    try {
+      const codePoints = upper
+        .split("")
+        .map((char) => 127397 + char.charCodeAt(0));
+      return String.fromCodePoint(...codePoints);
+    } catch {
+      return "🌐";
+    }
+  }
+  return "🌐";
 }
 
 export function getCountryFromGeography(geo: any): CountryGeoData {

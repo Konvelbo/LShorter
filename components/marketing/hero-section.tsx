@@ -17,7 +17,7 @@ import { HeroDashboardView } from "./hero-dashboard-view";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
-export function HeroSection() {
+export function HeroSection1() {
   const sectionRef = useRef<HTMLElement>(null);
   const chevronRef = useRef<HTMLAnchorElement>(null);
   const heroContentRef = useRef<HTMLDivElement>(null);
@@ -81,7 +81,7 @@ export function HeroSection() {
   return (
     <section
       ref={sectionRef}
-      className="relative min-h-[86vh] sm:min-h-[92vh] flex flex-col items-center justify-between overflow-hidden pt-16 sm:pt-24 pb-0 bg-[#FAF7F2] dark:bg-[#09090b] transition-colors duration-300"
+      className="relative min-h-[100vh] sm:min-h-[92vh] flex flex-col items-center justify-between overflow-hidden pt-16 sm:pt-24 pb-0 bg-[#FAF7F2] dark:bg-[#09090b] transition-colors duration-300"
     >
       {/* Background Interactive PlasmaWave */}
       <div
@@ -103,22 +103,30 @@ export function HeroSection() {
       {/* Top Hero Text & CTAs */}
       <div
         ref={heroContentRef}
-        className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 text-center flex flex-col items-center pt-7 sm:pt-9"
+        className="relative z-10 w-full max-w-[1140px] mx-auto px-4 sm:px-6 flex flex-col items-center text-center justify-center md:items-start md:text-left pt-7 sm:pt-9"
       >
+        {/* Feature Pill / Badge */}
+        <div className="mb-3.5 inline-flex items-center justify-center gap-2 px-3.5 py-1 rounded-full bg-white/80 dark:bg-white/[0.06] border border-[#E7DFD5] dark:border-white/15 text-[11.5px] font-medium text-neutral-700 dark:text-neutral-300 shadow-2xs mx-auto md:mx-0">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          <span>310+ Cloudflare Edge PoPs • Sub-5ms Routing</span>
+        </div>
+
         {/* Main Title: Clean typography */}
-        <h1 className="text-2xl sm:text-[34px] md:text-[40px] font-extrabold tracking-[-0.03em] max-w-3xl leading-[1.18] text-neutral-900 dark:text-white font-sans">
+        <h1 className="text-2xl sm:text-[34px] md:text-[40px] font-extrabold tracking-[-0.03em] max-w-3xl leading-[1.18] text-neutral-900 dark:text-white font-sans text-center md:text-left mx-auto md:mx-0">
           The next-generation URL shortener for{" "}
           <span className="text-brand">your campaigns</span> &amp;{" "}
           <span className="text-brand">audiences</span>
         </h1>
 
         {/* Subtitle */}
-        <p className="mt-3 sm:mt-4 text-xs sm:text-base text-neutral-600 dark:text-neutral-400 max-w-2xl font-normal leading-relaxed px-2 min-h-[44px]">
-          Shorten in milliseconds, split traffic with A/B testing, protect access with PIN codes, and analyze visitors in real time across 310+ Cloudflare edge locations.
+        <p className="mt-3 sm:mt-4 text-xs sm:text-base text-neutral-600 dark:text-neutral-400 max-w-2xl font-normal leading-relaxed px-2 md:px-0 min-h-[44px] text-center md:text-left mx-auto md:mx-0">
+          Shorten in milliseconds, split traffic with A/B testing, protect
+          access with PIN codes, and analyze visitors in real time across 310+
+          Cloudflare edge locations.
         </p>
 
-        {/* CTAs using shadcn Button (stacked on mobile, inline on desktop) */}
-        <div className="mt-5 sm:mt-6 flex flex-col sm:flex-row items-center justify-center gap-2.5 sm:gap-3 w-full max-w-xs sm:max-w-none">
+        {/* CTAs using shadcn Button (centered on mobile, left-aligned on desktop) */}
+        <div className="mt-5 sm:mt-6 flex flex-col sm:flex-row items-center text-center justify-center md:justify-start md:items-start gap-2.5 sm:gap-3 w-full max-w-xs sm:max-w-none mx-auto md:mx-0">
           <Link href="/register" className="w-full sm:w-auto">
             <Button className="w-full sm:w-auto h-10 px-6 text-xs sm:text-sm font-medium rounded-full bg-brand hover:bg-brand-hover text-white border-none cursor-pointer shadow-md shadow-brand transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-1.5">
               <span>Get Started Free</span>

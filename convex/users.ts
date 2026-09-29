@@ -93,22 +93,31 @@ export const storeUser = mutation({
       updatedAt: now,
     });
 
-    // Schedule welcome email 2 hours later (2 * 60 * 60 * 1000 = 7,200,000 ms)
-    const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+    let welcomeEmailId: any = undefined;
     try {
-      await ctx.db.insert("scheduledWelcomeEmails", {
+      welcomeEmailId = await ctx.db.insert("scheduledWelcomeEmails", {
         userId: args.userId,
         email: cleanEmail,
         name: args.name || cleanEmail.split("@")[0],
-        scheduledAt: Date.now() + TWO_HOURS_MS,
-        status: "PENDING",
+        scheduledAt: Date.now(),
+        status: "SENT",
+        sentAt: Date.now(),
         createdAt: now,
       });
+      await ctx.db.insert("notifications", {
+        orgId: args.userId,
+        title: "Welcome to LShorter",
+        message: `Hello ${args.name || cleanEmail.split("@")[0]}, welcome to LShorter! Your edge routing workspace is active with 10,000 clicks/month included.`,
+        type: "SUCCESS",
+        isRead: false,
+        linkUrl: "/dashboard",
+        createdAt: Date.now(),
+      });
     } catch (schedErr) {
-      console.warn("Failed to schedule welcome email (non-fatal):", schedErr);
+      console.warn("Failed to insert welcome notification/email record (non-fatal):", schedErr);
     }
 
-    return { id, isNew: true };
+    return { id, userId: args.userId, isNew: true, welcomeEmailId };
   },
 });
 
@@ -144,22 +153,31 @@ export const registerWithEmail = mutation({
       updatedAt: now,
     });
 
-    // Schedule welcome email 2 hours later
-    const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+    let welcomeEmailId: any = undefined;
     try {
-      await ctx.db.insert("scheduledWelcomeEmails", {
+      welcomeEmailId = await ctx.db.insert("scheduledWelcomeEmails", {
         userId,
         email: args.email.toLowerCase(),
         name: args.name || args.email.split("@")[0],
-        scheduledAt: Date.now() + TWO_HOURS_MS,
-        status: "PENDING",
+        scheduledAt: Date.now(),
+        status: "SENT",
+        sentAt: Date.now(),
         createdAt: now,
       });
+      await ctx.db.insert("notifications", {
+        orgId: userId,
+        title: "Welcome to LShorter",
+        message: `Hello ${args.name || args.email.split("@")[0]}, welcome to LShorter! Your edge routing workspace is active with 10,000 clicks/month included.`,
+        type: "SUCCESS",
+        isRead: false,
+        linkUrl: "/dashboard",
+        createdAt: Date.now(),
+      });
     } catch (schedErr) {
-      console.warn("Failed to schedule welcome email (non-fatal):", schedErr);
+      console.warn("Failed to insert welcome notification/email record (non-fatal):", schedErr);
     }
 
-    return { id, userId, isNew: true };
+    return { id, userId, isNew: true, welcomeEmailId };
   },
 });
 
@@ -369,22 +387,31 @@ export const createUserWithVerifiedEmail = mutation({
       updatedAt: now,
     });
 
-    // Schedule welcome email 2 hours later
-    const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+    let welcomeEmailId: any = undefined;
     try {
-      await ctx.db.insert("scheduledWelcomeEmails", {
+      welcomeEmailId = await ctx.db.insert("scheduledWelcomeEmails", {
         userId,
         email: cleanEmail,
         name: finalName,
-        scheduledAt: Date.now() + TWO_HOURS_MS,
-        status: "PENDING",
+        scheduledAt: Date.now(),
+        status: "SENT",
+        sentAt: Date.now(),
         createdAt: now,
       });
+      await ctx.db.insert("notifications", {
+        orgId: userId,
+        title: "Welcome to LShorter",
+        message: `Hello ${finalName}, welcome to LShorter! Your edge routing workspace is active with 10,000 clicks/month included.`,
+        type: "SUCCESS",
+        isRead: false,
+        linkUrl: "/dashboard",
+        createdAt: Date.now(),
+      });
     } catch (schedErr) {
-      console.warn("Failed to schedule welcome email (non-fatal):", schedErr);
+      console.warn("Failed to insert welcome notification/email record (non-fatal):", schedErr);
     }
 
-    return { success: true, id, userId, name: finalName, email: cleanEmail };
+    return { success: true, id, userId, name: finalName, email: cleanEmail, welcomeEmailId };
   },
 });
 

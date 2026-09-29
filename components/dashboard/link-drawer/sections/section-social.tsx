@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { cfNormalizeImageUrl } from "@/lib/cloudflare-api";
 
 interface SectionSocialProps {
   ogTitle: string;
@@ -50,8 +51,14 @@ export function SectionSocial({
   handleBannerUpload,
   isUploadingImage,
 }: SectionSocialProps) {
-  const hasCustomImage = Boolean(previewImage || ogImage);
+  const [hasImageError, setHasImageError] = useState(false);
+  const activeImage = previewImage || cfNormalizeImageUrl(ogImage);
+  const hasCustomImage = Boolean(activeImage && (!hasImageError || previewImage));
   const [isDragging, setIsDragging] = useState(false);
+
+  React.useEffect(() => {
+    setHasImageError(false);
+  }, [previewImage, ogImage]);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -140,11 +147,11 @@ export function SectionSocial({
             </span>
           </div>
           {twitterCard === "summary_large_image" ? (
-            <span className="text-[9.5px] font-bold text-brand uppercase px-2 py-0.5 rounded bg-brand/10 border border-brand/30 self-start sm:self-auto shrink-0">
+            <span className="text-[9.5px] font-bold text-brand uppercase px-2 py-0.5 rounded-[4px] bg-brand/10 border border-brand/30 self-start sm:self-auto shrink-0">
               Large Card 1200×630
             </span>
           ) : (
-            <span className="text-[9.5px] font-bold text-zinc-600 dark:text-neutral-400 uppercase px-2 py-0.5 rounded bg-zinc-200/80 dark:bg-white/5 border border-zinc-300 dark:border-white/10 self-start sm:self-auto shrink-0">
+            <span className="text-[9.5px] font-bold text-zinc-600 dark:text-neutral-400 uppercase px-2 py-0.5 rounded-[4px] bg-zinc-200/80 dark:bg-white/5 border border-zinc-300 dark:border-white/10 self-start sm:self-auto shrink-0">
               Standard Format
             </span>
           )}
@@ -173,7 +180,7 @@ export function SectionSocial({
                   )}
                 />
                 <span className="text-xs font-bold text-zinc-900 dark:text-white">
-                  Large Banner
+                  Bannière large (1200×630)
                 </span>
               </div>
               {twitterCard === "summary_large_image" && (
@@ -181,14 +188,20 @@ export function SectionSocial({
               )}
             </div>
             <span className="text-[10.5px] text-zinc-500 dark:text-neutral-400 leading-tight">
-              Full-width 1200×630 (Custom image or auto-generated banner).
+              Plein format 1200×630 (Image personnalisée ou bannière haute résolution).
             </span>
           </button>
 
           {/* Option 2: Default Compact Banner */}
           <button
             type="button"
-            onClick={() => setTwitterCard("summary")}
+            onClick={() => {
+              setTwitterCard("summary");
+              if (ogImage && ogImage.includes("/api/og")) {
+                setOgImage("");
+                setPreviewImage("");
+              }
+            }}
             className={cn(
               "p-3 rounded-[8px] border flex flex-col items-start gap-1.5 transition-all cursor-pointer text-left relative",
               twitterCard === "summary"
@@ -207,7 +220,7 @@ export function SectionSocial({
                   )}
                 />
                 <span className="text-xs font-bold text-zinc-900 dark:text-white">
-                  Default Banner
+                  Bannière par défaut (Compacte)
                 </span>
               </div>
               {twitterCard === "summary" && (
@@ -266,8 +279,18 @@ export function SectionSocial({
                 <>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={previewImage || ogImage}
+                    src={activeImage}
                     alt="Social preview banner"
+                    onError={(e) => {
+                      if (previewImage) return;
+                      const target = e.currentTarget;
+                      if (ogImage && ogImage.startsWith("/api/images/")) {
+                        const filename = ogImage.replace("/api/images/", "");
+                        target.src = `https://lshorter-api.fiatechnologiecam.workers.dev/api/v1/images/${filename}`;
+                      } else {
+                        setHasImageError(true);
+                      }
+                    }}
                     className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
                   />
                   {/* Hover Actions Overlay */}
@@ -357,8 +380,18 @@ export function SectionSocial({
                 <>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={previewImage || ogImage}
+                    src={activeImage}
                     alt="Thumbnail preview"
+                    onError={(e) => {
+                      if (previewImage) return;
+                      const target = e.currentTarget;
+                      if (ogImage && ogImage.startsWith("/api/images/")) {
+                        const filename = ogImage.replace("/api/images/", "");
+                        target.src = `https://lshorter-api.fiatechnologiecam.workers.dev/api/v1/images/${filename}`;
+                      } else {
+                        setHasImageError(true);
+                      }
+                    }}
                     className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                   />
                   {/* Hover Actions Overlay */}

@@ -48,33 +48,121 @@ export function computePeriodMetrics(
   };
 }
 
-// Generate dynamic timeline buckets strictly from authentic clicks_by_day
+export function toLocalDateKey(d: Date): string {
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+// Generate dynamic timeline buckets strictly from authentic clicks_by_day and live_click_events
 export function generateTimelineForRange(
   range: TimeRange,
   totalClicks: number,
   uniqueClicks: number,
-  realClicksByDay?: { date: string; clicks: number }[]
+  realClicksByDay?: { date: string; clicks: number }[],
+  liveClickEvents?: { timestamp?: string; created_at?: string }[]
 ): ClickDataPoint[] {
   const now = new Date();
+
+  // 1. Build date map from authentic liveClickEvents timestamps first (most accurate)
+  const eventsDateMap = new Map<string, number>();
+  if (Array.isArray(liveClickEvents) && liveClickEvents.length > 0) {
+    for (const ev of liveClickEvents) {
+      const rawTs = ev?.timestamp || ev?.created_at;
+      if (!rawTs) continue;
+      let tsStr = String(rawTs).trim();
+      if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/.test(tsStr)) {
+        tsStr = tsStr.replace(" ", "T") + "Z";
+      }
+      const dt = new Date(tsStr);
+      if (!isNaN(dt.getTime())) {
+        const key = toLocalDateKey(dt);
+        eventsDateMap.set(key, (eventsDateMap.get(key) || 0) + 1);
+      }
+    }
+  }
+
+  // 2. Build fallback map from realClicksByDay only if liveClickEvents has no dated entries
   const clicksMap = new Map<string, number>();
-  if (realClicksByDay && realClicksByDay.length > 0) {
+  if (eventsDateMap.size > 0) {
+    for (const [k, v] of eventsDateMap.entries()) {
+      clicksMap.set(k, v);
+    }
+  } else if (realClicksByDay && realClicksByDay.length > 0) {
     for (const item of realClicksByDay) {
-      clicksMap.set(item.date, item.clicks);
+      if (item?.date) {
+        let dStr = String(item.date).trim();
+        if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/.test(dStr)) {
+          dStr = dStr.replace(" ", "T") + "Z";
+        }
+        const parsed = new Date(dStr);
+        const key = !isNaN(parsed.getTime())
+          ? toLocalDateKey(parsed)
+          : String(item.date).slice(0, 10);
+        clicksMap.set(key, (clicksMap.get(key) || 0) + Number(item.clicks || 0));
+      }
     }
   }
 
   if (range === "day") {
     const points: ClickDataPoint[] = [];
-    const currentHour = now.getHours();
-    const todayIso = now.toISOString().slice(0, 10);
-    const todayClicks = clicksMap.get(todayIso) ?? (totalClicks > 0 ? totalClicks : 0);
+    const currentHourStart = new Date(now);
+    currentHourStart.setMinutes(0, 0, 0);
+
+    // 1. Bucket real live click events by exact hour if timestamps exist
+    const hourlyEventCounts = new Map<number, number>();
+    let matchedEventsIn24h = 0;
+
+    if (Array.isArray(liveClickEvents) && liveClickEvents.length > 0) {
+      for (const ev of liveClickEvents) {
+        const rawTs = ev?.timestamp || ev?.created_at;
+        if (!rawTs) continue;
+        let tsStr = String(rawTs).trim();
+        if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/.test(tsStr)) {
+          tsStr = tsStr.replace(" ", "T") + "Z";
+        }
+        const ts = new Date(tsStr).getTime();
+        if (isNaN(ts)) continue;
+        const diffHours = Math.floor((currentHourStart.getTime() + 3600000 - 1 - ts) / 3600000);
+        if (diffHours >= 0 && diffHours <= 23) {
+          hourlyEventCounts.set(diffHours, (hourlyEventCounts.get(diffHours) || 0) + 1);
+          matchedEventsIn24h++;
+        }
+      }
+    }
+
+    // 2. Also check realClicksByDay for hourly keys if liveClickEvents didn't provide points
+    if (matchedEventsIn24h === 0 && Array.isArray(realClicksByDay) && realClicksByDay.length > 0) {
+      for (const item of realClicksByDay) {
+        if (!item?.date) continue;
+        let dStr = String(item.date).trim();
+        if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(dStr)) {
+          if (!dStr.includes("T")) dStr = dStr.replace(" ", "T");
+          if (!dStr.endsWith("Z")) dStr += ":00Z";
+        }
+        const ts = new Date(dStr).getTime();
+        if (isNaN(ts)) continue;
+        const diffHours = Math.floor((currentHourStart.getTime() + 3600000 - 1 - ts) / 3600000);
+        if (diffHours >= 0 && diffHours <= 23) {
+          const cnt = Number(item.clicks || 0);
+          hourlyEventCounts.set(diffHours, (hourlyEventCounts.get(diffHours) || 0) + cnt);
+          matchedEventsIn24h += cnt;
+        }
+      }
+    }
+
+    const todayIso = toLocalDateKey(now);
+    const todayClicksFromMap = eventsDateMap.size > 0 ? (eventsDateMap.get(todayIso) ?? 0) : 0;
 
     for (let i = 23; i >= 0; i--) {
-      const hDate = new Date(now);
-      hDate.setHours(currentHour - i, 0, 0, 0);
+      const hDate = new Date(currentHourStart.getTime() - i * 3600000);
       const hourNum = hDate.getHours();
       const hourStr = `${String(hourNum).padStart(2, "0")}h00`;
-      const clicks = (i === 0) ? todayClicks : 0;
+      const clicks =
+        matchedEventsIn24h > 0
+          ? (hourlyEventCounts.get(i) ?? 0)
+          : 0;
 
       points.push({
         date: hDate.toISOString(),
@@ -90,13 +178,11 @@ export function generateTimelineForRange(
   if (range === "week") {
     const points: ClickDataPoint[] = [];
     for (let i = 6; i >= 0; i--) {
-      const d = new Date(now);
-      d.setDate(now.getDate() - i);
-      const isoDate = d.toISOString().slice(0, 10);
-      const clicks = clicksMap.get(isoDate) ?? (i === 0 && clicksMap.size === 0 && totalClicks > 0 ? totalClicks : 0);
-      const label = i === 0
-        ? "Aujourd'hui"
-        : d.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric" });
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+      const isoDate = toLocalDateKey(d);
+      const clicks = clicksMap.get(isoDate) ?? 0;
+      const shortDay = d.toLocaleDateString("fr-FR", { day: "2-digit", month: "short" });
+      const label = i === 0 ? `Auj. (${shortDay})` : shortDay;
 
       points.push({
         date: isoDate,
@@ -112,13 +198,11 @@ export function generateTimelineForRange(
   if (range === "month") {
     const points: ClickDataPoint[] = [];
     for (let i = 29; i >= 0; i--) {
-      const d = new Date(now);
-      d.setDate(now.getDate() - i);
-      const isoDate = d.toISOString().slice(0, 10);
-      const clicks = clicksMap.get(isoDate) ?? (i === 0 && clicksMap.size === 0 && totalClicks > 0 ? totalClicks : 0);
-      const label = i === 0
-        ? "Aujourd'hui"
-        : d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+      const isoDate = toLocalDateKey(d);
+      const clicks = clicksMap.get(isoDate) ?? 0;
+      const shortDay = d.toLocaleDateString("fr-FR", { day: "2-digit", month: "short" });
+      const label = i === 0 ? `Auj. (${shortDay})` : shortDay;
 
       points.push({
         date: isoDate,
@@ -144,8 +228,6 @@ export function generateTimelineForRange(
           monthClicks += count;
         }
       }
-    } else if (i === 0) {
-      monthClicks = totalClicks;
     }
     const label = d.toLocaleDateString("fr-FR", { month: "short", year: "2-digit" });
 

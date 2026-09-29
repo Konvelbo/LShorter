@@ -40,9 +40,10 @@ export async function POST(req: NextRequest) {
     // Also sync user with Cloudflare backend D1 database
     try {
       const backendUrl =
-        process.env.NEXT_PUBLIC_BACKEND_API_URL ||
-        "https://lshorter-api.fiatechnologiecam.workers.dev";
-      const secret = process.env.FRONTEND_API_SECRET || "lsh_secret_live_prod_2026";
+        process.env.BACKEND_API_URL ||
+        process.env.CLOUDFLARE_WORKER_URL ||
+        "";
+      const secret = process.env.FRONTEND_API_SECRET || "";
 
       await fetch(`${backendUrl}/api/v1/users/sync`, {
         method: "POST",
@@ -59,6 +60,22 @@ export async function POST(req: NextRequest) {
       });
     } catch (syncErr) {
       console.error("Cloudflare user sync error (ignoring):", syncErr);
+    }
+
+    // Send welcome email immediately upon registration
+    try {
+      const { sendWelcomeEmail } = await import("@/lib/resend");
+      const welcomeRes = await sendWelcomeEmail({
+        to: cleanEmail,
+        name: name.trim(),
+      });
+      if (welcomeRes.success && (result as any)?.welcomeEmailId) {
+        await convex.mutation(api.users.markWelcomeEmailSent, {
+          id: (result as any).welcomeEmailId,
+        });
+      }
+    } catch (welcomeErr) {
+      console.warn("[register] Instant welcome email warning:", welcomeErr);
     }
 
     return NextResponse.json({ success: true, userId: result.userId }, { status: 201 });

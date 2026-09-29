@@ -32,22 +32,23 @@ export async function checkAndDispatchQuotaAlerts(
   const planDef = getPlanDefinition(plan);
   const limit = planDef.limits.monthlyClicks;
 
-  // Unlimited plans (no alerts needed)
-  if (limit === -1) return { triggered: false };
+  // Unlimited plans or Enterprise unlimited overage (no overage billing alerts needed)
+  if (limit === -1 || planDef.overage.unlimited) return { triggered: false };
 
   const percent = (clicksThisMonth / limit) * 100;
 
-  // 1. Overage Case (Paid plan exceeded limit)
-  if (clicksThisMonth > limit && (plan === "PRO" || plan === "BUSINESS" || plan === "ENTERPRISE")) {
+  // 1. Overage Case (Paid plan PRO or BUSINESS exceeded included monthly limit)
+  if (clicksThisMonth > limit && planDef.overage.allowed) {
     const overageClicks = clicksThisMonth - limit;
-    const costPerBatch = plan === "ENTERPRISE" ? 0.5 : plan === "BUSINESS" ? 0.8 : 1.0;
-    const overage = calculateOverage(overageClicks, 10000, costPerBatch);
+    const batchSize = planDef.overage.batchSize; // 50,000 for PRO, 125,000 for BUSINESS
+    const costPerBatch = planDef.overage.costPerBatch; // $3 for PRO, $8 for BUSINESS
+    const overage = calculateOverage(overageClicks, batchSize, costPerBatch);
 
     if (createInAppNotification) {
       await createInAppNotification({
         orgId,
         title: "⚡ Garantie Zéro Coupure : Overage Actif",
-        message: `Votre trafic dépasse le quota mensuel (${clicksThisMonth.toLocaleString()} / ${limit.toLocaleString()} clics). Redirections 100% opérationnelles sans interruption (+${overageClicks.toLocaleString()} clics d'overage).`,
+        message: `Votre trafic dépasse le quota mensuel inclus (${clicksThisMonth.toLocaleString()} / ${limit.toLocaleString()} clics). Redirections 100% opérationnelles (+${overageClicks.toLocaleString()} clics suppl. • tarif ${costPerBatch}$ / ${(batchSize / 1000).toLocaleString()}k clics = +$${overage.cost.toFixed(2)}).`,
         type: "WARNING",
         linkUrl: "/dashboard/settings?tab=billing",
       });

@@ -254,9 +254,10 @@ export async function completeSignupWithPinAction({
     // Sync user with Cloudflare backend D1 database
     try {
       const backendUrl =
-        process.env.NEXT_PUBLIC_BACKEND_API_URL ||
-        "https://lshorter-api.fiatechnologiecam.workers.dev";
-      const secret = process.env.FRONTEND_API_SECRET || "lsh_secret_live_prod_2026";
+        process.env.BACKEND_API_URL ||
+        process.env.CLOUDFLARE_WORKER_URL ||
+        "";
+      const secret = process.env.FRONTEND_API_SECRET || "";
 
       await fetch(`${backendUrl}/api/v1/users/sync`, {
         method: "POST",

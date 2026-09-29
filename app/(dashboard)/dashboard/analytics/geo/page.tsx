@@ -1,59 +1,287 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   Globe2,
   ArrowLeft,
-  Calendar,
-  Filter,
   Search,
-  MapPin,
-  TrendingUp,
   RefreshCw,
-  ExternalLink,
-  ChevronRight,
   Sparkles,
-  SlidersHorizontal,
-  ChevronLeft
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  ZoomIn,
+  ZoomOut,
+  RotateCcw,
+  Maximize2,
+  X,
+  Copy,
+  MapPin,
 } from "lucide-react";
+import { ReferrerBadge, ReferrerLogo } from "@/components/dashboard/analytics/referrer-badge";
+import {
+  ComposableMap,
+  Geographies,
+  Geography,
+  ZoomableGroup,
+  Marker,
+} from "react-simple-maps";
 import { ShortLink, GlobalAnalytics } from "@/types";
-import { cfGetAnalytics, cfGetLinks } from "@/lib/cloudflare-api";
+import {
+  cfGetAnalytics,
+  cfGetLinks,
+  cfInvalidateCache,
+} from "@/lib/cloudflare-api";
+import {
+  ReuiDonutChart22,
+  type ReuiDonut22Item,
+} from "@/components/examples/c-chart-22";
 import {
   Continent,
   CONTINENTS_META,
   WORLD_COUNTRIES,
-  getCountryData,
   getContinentForCountry,
   getCountryName,
   getCountryFlag,
 } from "@/lib/geo-coordinates";
 import { detectOSFromEvent } from "@/lib/device-detection";
-import { ContinentsVectorMap, ContinentTraffic } from "@/components/dashboard/analytics/continents-vector-map";
-import { ColumnMaskToggle, ColumnDefinition } from "@/components/dashboard/analytics/column-mask-toggle";
-import { KpiCardsCarousel } from "@/components/dashboard/analytics/kpi-cards-carousel";
-import { AnalyticsGeoSkeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
-import { formatDateRelative, formatNumber } from "@/lib/utils";
+import { ContinentTraffic } from "@/components/dashboard/analytics/continents-vector-map";
 import {
-  computePeriodMetrics,
-  generateEdgeTopCountries,
-  generateEdgeTopCities,
-  generateEdgeLiveClickEvents,
-} from "@/lib/analytics-generators";
+  ColumnMaskToggle,
+  ColumnDefinition,
+} from "@/components/dashboard/analytics/column-mask-toggle";
+import { AnalyticsGeoSkeleton } from "@/components/ui/skeleton";
+import { showToast } from "@/components/ui/toast-provider";
+import { formatNumber } from "@/lib/utils";
+
+const GEO_URL =
+  "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
+
+export const COUNTRY_CENTROIDS: Record<
+  string,
+  { lat: number; lng: number; name: string; continent: Continent }
+> = {
+  BF: { lat: 12.2383, lng: -1.5616, name: "Burkina Faso", continent: "Africa" },
+  CI: { lat: 7.54, lng: -5.5471, name: "Côte d'Ivoire", continent: "Africa" },
+  SN: { lat: 14.4974, lng: -14.4524, name: "Senegal", continent: "Africa" },
+  ML: { lat: 17.5707, lng: -3.9962, name: "Mali", continent: "Africa" },
+  NE: { lat: 17.6078, lng: 8.0817, name: "Niger", continent: "Africa" },
+  TG: { lat: 8.6195, lng: 0.8248, name: "Togo", continent: "Africa" },
+  BJ: { lat: 9.3077, lng: 2.3158, name: "Benin", continent: "Africa" },
+  GH: { lat: 7.9465, lng: -1.0232, name: "Ghana", continent: "Africa" },
+  NG: { lat: 9.082, lng: 8.6753, name: "Nigeria", continent: "Africa" },
+  CM: { lat: 5.9631, lng: 12.3547, name: "Cameroon", continent: "Africa" },
+  FR: { lat: 46.6033, lng: 2.2137, name: "France", continent: "Europe" },
+  US: {
+    lat: 39.8283,
+    lng: -98.5795,
+    name: "United States",
+    continent: "North America",
+  },
+};
+
+const WORLD_ATLAS_NUMERIC_TO_ALPHA2: Record<string, string> = {
+  "854": "BF",
+  "384": "CI",
+  "686": "SN",
+  "466": "ML",
+  "562": "NE",
+  "768": "TG",
+  "204": "BJ",
+  "288": "GH",
+  "566": "NG",
+  "120": "CM",
+  "250": "FR",
+  "840": "US",
+  "124": "CA",
+  "826": "GB",
+  "276": "DE",
+  "724": "ES",
+  "380": "IT",
+  "056": "BE",
+  "756": "CH",
+  "620": "PT",
+  "528": "NL",
+  "076": "BR",
+  "392": "JP",
+  "156": "CN",
+  "356": "IN",
+  "036": "AU",
+  "710": "ZA",
+  "784": "AE",
+  "304": "GL",
+  "398": "KZ",
+  "496": "MN",
+  "729": "SD",
+  "516": "NA",
+  "600": "PY",
+};
+
+/** Formateur de temps relatif réactif : s'actualise au fil des minutes */
+function formatLiveRelativeTime(
+  timestamp: string | number | Date,
+  nowMs: number,
+): string {
+  if (!timestamp) return "Just now";
+  let timeMs = 0;
+  if (typeof timestamp === "number") {
+    timeMs = timestamp < 1e11 ? timestamp * 1000 : timestamp;
+  } else if (timestamp instanceof Date) {
+    timeMs = timestamp.getTime();
+  } else {
+    let s = String(timestamp).trim();
+    if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/.test(s)) {
+      s = s.replace(" ", "T") + "Z";
+    }
+    const parsed = Date.parse(s);
+    timeMs = isNaN(parsed) ? new Date(timestamp).getTime() : parsed;
+  }
+
+  if (isNaN(timeMs) || timeMs <= 0) return "Just now";
+  const diffSec = Math.floor((nowMs - timeMs) / 1000);
+  if (diffSec < 60) return "Just now";
+  const mins = Math.floor(diffSec / 60);
+  if (mins === 1) return "1 min ago";
+  if (mins < 60) return `${mins} mins ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours === 1) return "1 hour ago";
+  if (hours < 24) return `${hours} hours ago`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return "Yesterday";
+  return `${days} days ago`;
+}
+
+function resolveCountryFromGeography(geo: any): {
+  code: string;
+  name: string;
+  continent: Continent;
+  lat: number;
+  lng: number;
+} {
+  const rawId = String(geo.id || "");
+  const paddedId = rawId.padStart(3, "0");
+  const propName = String(geo.properties?.name || "")
+    .trim()
+    .toLowerCase();
+
+  if (paddedId === "854" || rawId === "854" || propName.includes("burkina")) {
+    return {
+      code: "BF",
+      name: "Burkina Faso",
+      continent: "Africa",
+      lat: 12.2383,
+      lng: -1.5616,
+    };
+  }
+
+  const code =
+    WORLD_ATLAS_NUMERIC_TO_ALPHA2[paddedId] ||
+    WORLD_ATLAS_NUMERIC_TO_ALPHA2[rawId] ||
+    "XX";
+
+  const centroid = COUNTRY_CENTROIDS[code] || WORLD_COUNTRIES[code];
+  if (centroid) {
+    return {
+      code,
+      name: centroid.name || getCountryName(code),
+      continent: centroid.continent,
+      lat: centroid.lat,
+      lng: centroid.lng,
+    };
+  }
+
+  return {
+    code,
+    name: geo.properties?.name || "Territory",
+    continent: "Africa",
+    lat: 0,
+    lng: 0,
+  };
+}
+
+function getCalibratedCentroid(code?: string) {
+  if (!code || code === "XX") return null;
+  const upper = code.trim().toUpperCase();
+  if (COUNTRY_CENTROIDS[upper])
+    return { code: upper, ...COUNTRY_CENTROIDS[upper] };
+  if (WORLD_COUNTRIES[upper]) {
+    const w = WORLD_COUNTRIES[upper];
+    return {
+      code: upper,
+      name: w.nameEn || w.name,
+      continent: w.continent,
+      lat: w.lat,
+      lng: w.lng,
+    };
+  }
+  return null;
+}
+
+function CountryFlagBadge({
+  code,
+  className = "w-5 h-3.5",
+}: {
+  code?: string;
+  className?: string;
+}) {
+  const [imgError, setImgError] = useState(false);
+  const cleanCode = (code || "BF").trim().toUpperCase();
+  const isValidIso = /^[A-Z]{2}$/.test(cleanCode) && cleanCode !== "XX";
+
+  if (!isValidIso || imgError) {
+    return (
+      <span className="inline-flex items-center justify-center text-sm leading-none shrink-0">
+        {getCountryFlag(cleanCode)}
+      </span>
+    );
+  }
+
+  return (
+    <img
+      src={`https://flagcdn.com/w40/${cleanCode.toLowerCase()}.png`}
+      alt={cleanCode}
+      onError={() => setImgError(true)}
+      className={`${className} object-cover rounded-[3px] border border-black/10 dark:border-white/15 shrink-0 shadow-2xs`}
+    />
+  );
+}
+
+const CONTINENT_CARDS_ORDER: Array<{
+  key: Continent;
+  label: string;
+  color: string;
+  icon: string;
+}> = [
+  { key: "Africa", label: "Africa", color: "#0066FF", icon: "🌍" },
+  { key: "Europe", label: "Europe", color: "#3b82f6", icon: "🌍" },
+  {
+    key: "North America",
+    label: "North America",
+    color: "#10b981",
+    icon: "🌎",
+  },
+  {
+    key: "South America",
+    label: "South America",
+    color: "#ec4899",
+    icon: "🌎",
+  },
+  { key: "Asia", label: "Asia & Middle East", color: "#8b5cf6", icon: "🌏" },
+  { key: "Oceania", label: "Oceania", color: "#06b6d4", icon: "🌏" },
+];
 
 const GEO_COLUMNS: ColumnDefinition[] = [
   { key: "timestamp", label: "Timestamp", defaultVisible: true },
   { key: "country", label: "Country & Flag", defaultVisible: true },
-  { key: "city", label: "City / Region", defaultVisible: true },
+  { key: "city", label: "City", defaultVisible: true },
   { key: "continent", label: "Continent", defaultVisible: true },
-  { key: "customer", label: "Customer / Buyer", defaultVisible: true },
   { key: "link", label: "Target Link", defaultVisible: true },
+  { key: "referrer", label: "Referrer Source", defaultVisible: true },
   { key: "device", label: "Device & OS", defaultVisible: true },
   { key: "browser", label: "Browser", defaultVisible: true },
-  { key: "referrer", label: "Referrer", defaultVisible: true },
 ];
 
 export default function GeoAnalyticsPage() {
@@ -61,7 +289,12 @@ export default function GeoAnalyticsPage() {
   const router = useRouter();
   const userId = session?.user?.id || "";
 
+  // ─── TOUS LES HOOKS AU SOMMET DU COMPOSANT (AUCUN RETOUR CONDITIONNEL AVANT) ───
+  const [currentTimeTick, setCurrentTimeTick] = useState<number>(() =>
+    Date.now(),
+  );
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [links, setLinks] = useState<ShortLink[]>([]);
   const [analytics, setAnalytics] = useState<GlobalAnalytics>({
     totalClicks: 0,
@@ -85,18 +318,53 @@ export default function GeoAnalyticsPage() {
     recentConversions: [],
   });
 
-  const [selectedRange, setSelectedRange] = useState<"day" | "week" | "month" | "year">("month");
+  const [selectedRange, setSelectedRange] = useState<
+    "day" | "week" | "month" | "year"
+  >("month");
   const [selectedLinkId, setSelectedLinkId] = useState<string>("all");
-  const [selectedContinent, setSelectedContinent] = useState<Continent | "ALL">("ALL");
-  const [selectedCountryFilter, setSelectedCountryFilter] = useState<string>("ALL");
+  const [selectedContinent, setSelectedContinent] = useState<Continent | "ALL">(
+    "ALL",
+  );
+  const [selectedCountryFilter, setSelectedCountryFilter] =
+    useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 8;
 
-  // Column Visibility State
+  const [hoveredCountry, setHoveredCountry] = useState<{
+    code: string;
+    name: string;
+    continent: Continent;
+    clicks: number;
+    percentage: number;
+  } | null>(null);
+  const [isMapExpanded, setIsMapExpanded] = useState(false);
+  const [mapPosition, setMapPosition] = useState<{
+    coordinates: [number, number];
+    zoom: number;
+  }>({
+    coordinates: [10, 18],
+    zoom: 1,
+  });
+
   const [visibleColumns, setVisibleColumns] = useState<Set<string>>(
-    new Set(GEO_COLUMNS.map((c) => c.key))
+    new Set(GEO_COLUMNS.map((c) => c.key)),
   );
+
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
+  const [geoDonutDimension, setGeoDonutDimension] = useState<
+    "device" | "browser" | "country" | "continent" | "os"
+  >("device");
+
+  const hasLoadedOnceRef = useRef(false);
+
+  // Horloge de rafraîchissement des minutes (se déclenche toutes les 5s)
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTimeTick(Date.now());
+    }, 5000);
+    return () => clearInterval(timer);
+  }, []);
 
   const toggleColumn = (key: string) => {
     setVisibleColumns((prev) => {
@@ -114,24 +382,58 @@ export default function GeoAnalyticsPage() {
     setVisibleColumns(new Set(GEO_COLUMNS.map((c) => c.key)));
   };
 
-  const loadData = async (range = selectedRange, linkId = selectedLinkId, isBg = false) => {
+  const loadData = async (
+    range = selectedRange,
+    linkId = selectedLinkId,
+    isBg = false,
+  ) => {
     if (!userId) return;
-    if (!isBg) setIsLoading(true);
+    if (!isBg && !hasLoadedOnceRef.current) {
+      setIsLoading(true);
+    } else {
+      setIsRefreshing(true);
+    }
 
     try {
-      const periodParam = range === "day" ? "1d" : range === "week" ? "7d" : range === "year" ? "365d" : "30d";
-      const [analyticsRes, linksRes] = await Promise.all([
-        cfGetAnalytics(userId, periodParam, linkId !== "all" ? linkId : undefined).catch(() => null),
+      const periodParam =
+        range === "day"
+          ? "1d"
+          : range === "week"
+            ? "7d"
+            : range === "year"
+              ? "365d"
+              : "30d";
+
+      let [analyticsRes, linksRes] = await Promise.all([
+        cfGetAnalytics(
+          userId,
+          periodParam,
+          linkId !== "all" ? linkId : undefined,
+        ).catch(() => null),
         cfGetLinks(userId).catch(() => null),
       ]);
 
-      const listData = Array.isArray(linksRes?.data) ? linksRes.data : Array.isArray((linksRes?.data as any)?.data) ? (linksRes?.data as any).data : [];
+      if (!analyticsRes || !analyticsRes.data) {
+        analyticsRes = await fetch(
+          `/api/analytics?userId=${encodeURIComponent(userId)}&period=${periodParam}${linkId !== "all" ? `&linkId=${encodeURIComponent(linkId)}` : ""}`,
+          { cache: "no-store" },
+        )
+          .then((r) => (r.ok ? r.json() : null))
+          .catch(() => null);
+      }
+
+      const listData = Array.isArray(linksRes?.data)
+        ? linksRes.data
+        : Array.isArray((linksRes?.data as any)?.data)
+          ? (linksRes?.data as any).data
+          : [];
+
       const fetchedLinks: ShortLink[] = listData.map((l: any) => ({
         id: l.id,
         userId: l.user_id || userId,
         slug: l.slug,
         domainName: l.domain_name || "lsho.cc",
-        shortUrl: typeof window !== "undefined" ? `${window.location.origin}/r/${l.slug}` : `http://localhost:3000/r/${l.slug}`,
+        shortUrl: `https://${l.domain_name || "lsho.cc"}/${l.slug}`,
         targetUrl: l.target_url,
         clicksCount: l.clicks_count || l.clicksCount || l.clicks || 0,
         uniqueClicks: l.unique_clicks || 0,
@@ -140,8 +442,8 @@ export default function GeoAnalyticsPage() {
         routingRules: [],
         geoTargeting: {},
         deviceTargeting: {},
-        isPasswordProtected: Boolean(l.is_password_protected || l.isPasswordProtected || l.has_password || l.hasPassword || l.password),
-        isCloaked: Boolean(l.is_cloaked || l.isCloaked),
+        isPasswordProtected: Boolean(l.is_password_protected || l.password),
+        isCloaked: Boolean(l.is_cloaked),
         metaTitle: l.meta_title || l.slug,
         hideReferrer: Boolean(l.hide_referrer),
         tags: [],
@@ -151,79 +453,176 @@ export default function GeoAnalyticsPage() {
 
       setLinks(fetchedLinks);
 
-      const targetLink = linkId !== "all"
-        ? fetchedLinks.find((l) => l.id === linkId || l.slug === linkId)
-        : null;
-      const sumLinksClicks = fetchedLinks.reduce((acc, l) => acc + (l.clicksCount || 0), 0);
-      const linkClicks = targetLink ? (targetLink.clicksCount || 0) : 0;
+      const targetLink =
+        linkId !== "all"
+          ? fetchedLinks.find((l) => l.id === linkId || l.slug === linkId)
+          : null;
+      const sumLinksClicks = fetchedLinks.reduce(
+        (acc, l) => acc + (l.clicksCount || 0),
+        0,
+      );
+      const linkClicks = targetLink ? targetLink.clicksCount || 0 : 0;
       const isAll = !targetLink || linkId === "all";
 
-      const d = analyticsRes?.data || {};
-      const baseTotal = isAll
-        ? ((d.totalClicks ?? d.total_clicks) || sumLinksClicks)
-        : ((d.totalClicks ?? d.total_clicks) || linkClicks);
+      const d =
+        analyticsRes?.data?.data || analyticsRes?.data || analyticsRes || {};
+      const workerTotal = Number(d.totalClicks ?? d.total_clicks ?? 0);
+      const baseFromWorker = isAll ? workerTotal : workerTotal || linkClicks;
+      const isShortWindow = range === "day" || range === "week";
+      const total = isShortWindow
+        ? baseFromWorker
+        : isAll
+          ? Math.max(baseFromWorker, sumLinksClicks)
+          : Math.max(baseFromWorker, linkClicks);
 
-      const periodStats = computePeriodMetrics(range, baseTotal, baseTotal, 0, 0);
-      const total = periodStats.periodClicks;
+      // Récupération des clics RÉELS sans génération de faux décalages
+      const rawLiveEvents =
+        d.liveClickEvents ||
+        d.live_click_events ||
+        d.recentClicks ||
+        d.events ||
+        [];
 
-      const rawCountries = d.topCountries ?? d.top_countries ?? [];
-      const countries = (rawCountries.length > 0)
-        ? rawCountries.map((c: any) => {
-            const code = (c.code || c.country_code || c.country || "XX").toUpperCase();
-            const cnt = c.count || c.clicks || 0;
-            return {
-              code,
-              name: getCountryName(code),
-              count: cnt,
-              percentage: c.percentage !== undefined ? c.percentage : (total > 0 ? Math.round((cnt / total) * 100) : 0),
-            };
-          })
-        : [];
-
-      const rawCities = d.topCities ?? d.top_cities ?? [];
-      const cities = (rawCities.length > 0)
-        ? rawCities.map((ci: any) => ({
-            city: ci.city || ci.name || "Unknown",
-            countryCode: (ci.countryCode || ci.country_code || "XX").toUpperCase(),
-            count: ci.count || ci.clicks || 0,
-            percentage: ci.percentage !== undefined ? ci.percentage : (total > 0 ? Math.round(((ci.count || ci.clicks || 0) / total) * 100) : 0),
-          }))
-        : [];
-
-      const rawLiveEvents = d.liveClickEvents ?? d.live_click_events ?? [];
       let finalLiveEvents: any[] = [];
-      if (rawLiveEvents.length > 0) {
-        finalLiveEvents = rawLiveEvents.map((ev: any) => {
-          const cCode = (ev.country_code || ev.countryCode || "XX").toUpperCase();
+      if (Array.isArray(rawLiveEvents) && rawLiveEvents.length > 0) {
+        finalLiveEvents = rawLiveEvents.map((ev: any, idx: number) => {
+          const cCode = (
+            ev.country_code ||
+            ev.countryCode ||
+            ev.country ||
+            "XX"
+          ).toUpperCase();
+          const cleanCode = cCode;
           return {
-            id: ev.id,
-            timestamp: ev.timestamp || new Date().toISOString(),
+            id: ev.id || `evt_${idx}`,
+            timestamp:
+              ev.timestamp || ev.created_at || new Date().toISOString(),
             slug: ev.slug || "link",
-            countryCode: cCode,
-            countryName: getCountryName(cCode),
-            city: ev.city || "—",
-            device: ev.device || "desktop",
-            browser: ev.browser || "Chrome",
-            os: detectOSFromEvent(ev),
+            countryCode: cleanCode,
+            countryName:
+              ev.countryName || ev.country_name || getCountryName(cleanCode) || cleanCode,
+            city: ev.city && ev.city !== "Inconnue" && ev.city !== "—" ? ev.city : (ev.city || "Edge PoP"),
+            device: ev.device && ev.device !== "unknown" ? ev.device : "Inconnu",
+            browser: ev.browser && ev.browser !== "unknown" ? ev.browser : "Inconnu",
+            os: detectOSFromEvent(ev) || (ev.os && ev.os !== "unknown" ? ev.os : "Inconnu"),
             referrer: ev.referrer || "Direct",
-            customerName: ev.customerName || ev.customerFullName || ev.fullName || ev.name || ev.customer_name || null,
-            customerEmail: ev.customerEmail || ev.email || ev.customer_email || null,
-            conversionAmount: ev.conversionAmount || ev.conversion_amount || 0,
           };
         });
-        if (!isAll && targetLink) {
-          finalLiveEvents = finalLiveEvents.filter((ev: any) => ev.slug?.toLowerCase() === targetLink.slug?.toLowerCase());
-        }
-      } else {
-        finalLiveEvents = [];
       }
+
+      const rawTopCountries = d.topCountries || d.top_countries || [];
+      const mappedTopCountries =
+        rawTopCountries.length > 0
+          ? rawTopCountries.map((c: any) => {
+              const code = (c.code || c.country_code || c.country || "XX").toUpperCase();
+              const geo = WORLD_COUNTRIES[code] || COUNTRY_CENTROIDS[code];
+              const count = Number(c.count || c.clicks || 0);
+              return {
+                code,
+                name: c.name || c.country_name || geo?.name || getCountryName(code) || code,
+                count,
+                percentage:
+                  c.percentage !== undefined
+                    ? c.percentage
+                    : total > 0
+                      ? Math.round((count / total) * 100)
+                      : 0,
+                lat: geo?.lat,
+                lng: geo?.lng,
+              };
+            })
+          : finalLiveEvents.length > 0
+            ? (Object.entries(
+                finalLiveEvents.reduce((acc: Record<string, number>, ev: any) => {
+                  const code = (ev.countryCode || "XX").toUpperCase();
+                  acc[code] = (acc[code] || 0) + 1;
+                  return acc;
+                }, {}),
+              ) as [string, number][])
+                .map(([code, count]) => {
+                  const geo = WORLD_COUNTRIES[code] || COUNTRY_CENTROIDS[code];
+                  return {
+                    code,
+                    name: geo?.name || getCountryName(code) || code,
+                    count,
+                    percentage: total > 0 ? Math.round((count / total) * 100) : 0,
+                    lat: geo?.lat,
+                    lng: geo?.lng,
+                  };
+                })
+                .sort((a, b) => b.count - a.count)
+            : [];
+
+      const rawTopCities = d.topCities || d.top_cities || [];
+      const mappedTopCities =
+        rawTopCities.length > 0
+          ? rawTopCities.map((ci: any) => ({
+              city: ci.city || ci.name || "Edge Node",
+              countryCode: (ci.countryCode || ci.country_code || "XX").toUpperCase(),
+              count: Number(ci.count || ci.clicks || 0),
+              percentage:
+                ci.percentage !== undefined
+                  ? ci.percentage
+                  : total > 0
+                    ? Math.round(((ci.count || 0) / total) * 100)
+                    : 0,
+            }))
+          : [];
+
+      const rawTopDevices = d.topDevices || d.top_devices || [];
+      const mappedTopDevices =
+        rawTopDevices.length > 0
+          ? rawTopDevices.map((dv: any) => ({
+              label: dv.label || dv.device || dv.name || "Desktop",
+              device: dv.device || dv.label || dv.name || "desktop",
+              count: Number(dv.count || dv.clicks || 0),
+              percentage:
+                dv.percentage !== undefined
+                  ? dv.percentage
+                  : total > 0
+                    ? Math.round(((dv.count || 0) / total) * 100)
+                    : 0,
+            }))
+          : [];
+
+      const rawTopBrowsers = d.topBrowsers || d.top_browsers || [];
+      const mappedTopBrowsers =
+        rawTopBrowsers.length > 0
+          ? rawTopBrowsers.map((br: any) => ({
+              name: br.name || br.browser || "Chrome",
+              browser: br.browser || br.name || "Chrome",
+              count: Number(br.count || br.clicks || 0),
+              percentage:
+                br.percentage !== undefined
+                  ? br.percentage
+                  : total > 0
+                    ? Math.round(((br.count || 0) / total) * 100)
+                    : 0,
+            }))
+          : [];
+
+      const rawTopReferrers = d.topReferrers || d.top_referrers || [];
+      const mappedTopReferrers =
+        rawTopReferrers.length > 0
+          ? rawTopReferrers.map((rf: any) => ({
+              source: rf.source || rf.referrer || rf.name || "Direct",
+              referrer: rf.referrer || rf.source || rf.name || "Direct",
+              count: Number(rf.count || rf.clicks || 0),
+              percentage:
+                rf.percentage !== undefined
+                  ? rf.percentage
+                  : total > 0
+                    ? Math.round(((rf.count || 0) / total) * 100)
+                    : 0,
+            }))
+          : [];
 
       setAnalytics({
         totalClicks: total,
         clicksGrowth: 0,
-        uniqueClicks: periodStats.periodUniques,
+        uniqueClicks: total,
         uniqueClicksGrowth: 0,
-        trackedRevenue: 0,
+        trackedRevenue: Number(d.trackedRevenue ?? d.tracked_revenue ?? 0),
         revenueGrowth: 0,
         avgCtr: 0,
         ctrGrowth: 0,
@@ -231,56 +630,72 @@ export default function GeoAnalyticsPage() {
         epc: 0,
         avgEngagementTime: "0s",
         clicksByDay: d.clicksByDay || d.clicks_by_day || [],
-        topCountries: countries,
-        topCities: cities,
-        topDevices: d.topDevices || d.top_devices || [],
-        topBrowsers: d.topBrowsers || d.top_browsers || [],
-        topReferrers: d.topReferrers || d.top_referrers || [],
+        topCountries: mappedTopCountries,
+        topCities: mappedTopCities,
+        topDevices: mappedTopDevices,
+        topBrowsers: mappedTopBrowsers,
+        topReferrers: mappedTopReferrers,
         liveClickEvents: finalLiveEvents,
         recentConversions: [],
       });
     } catch (err) {
       console.error("Geo analytics fetch error:", err);
     } finally {
-      if (!isBg) setIsLoading(false);
+      hasLoadedOnceRef.current = true;
+      setIsLoading(false);
+      setIsRefreshing(false);
     }
   };
 
   useEffect(() => {
     if (status === "unauthenticated") {
-      router.replace("/login");
+      setIsLoading(false);
       return;
     }
     if (status === "authenticated" && userId) {
-      if (typeof window !== "undefined") {
-        const params = new URLSearchParams(window.location.search);
-        const qLinkId = params.get("linkId");
-        const qSlug = params.get("slug");
-        const activeLink = qLinkId || qSlug || selectedLinkId;
-        if (activeLink !== selectedLinkId) {
-          setSelectedLinkId(activeLink);
-        }
-        loadData(selectedRange, activeLink);
-      } else {
-        loadData();
-      }
+      loadData(selectedRange, selectedLinkId);
     }
   }, [status, userId, selectedRange, selectedLinkId]);
 
-  // Listen for explicit data update events
   useEffect(() => {
+    if (typeof document === "undefined") return;
+    const checkDark = () =>
+      setIsDarkMode(document.documentElement.classList.contains("dark"));
+    checkDark();
+    const obs = new MutationObserver(checkDark);
+    obs.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class", "data-theme"],
+    });
+    return () => obs.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!userId) return;
     const handleUpdate = () => {
+      cfInvalidateCache();
       loadData(selectedRange, selectedLinkId, true);
     };
 
     window.addEventListener("lshorter_data_change", handleUpdate);
+    window.addEventListener("lshorter_links_updated", handleUpdate);
 
     return () => {
       window.removeEventListener("lshorter_data_change", handleUpdate);
+      window.removeEventListener("lshorter_links_updated", handleUpdate);
     };
   }, [userId, selectedRange, selectedLinkId]);
 
-  // Aggregate Traffic per Continent
+  const countryClicksMap = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const c of analytics.topCountries || []) {
+      if (c.code && c.code !== "XX") {
+        map.set(c.code.toUpperCase(), c.count);
+      }
+    }
+    return map;
+  }, [analytics.topCountries]);
+
   const continentsData = useMemo<Record<Continent, ContinentTraffic>>(() => {
     const base: Record<Continent, ContinentTraffic> = {
       Africa: { continent: "Africa", clicks: 0, uniqueVisitors: 0, percentage: 0, countriesCount: 0 },
@@ -291,7 +706,7 @@ export default function GeoAnalyticsPage() {
       Oceania: { continent: "Oceania", clicks: 0, uniqueVisitors: 0, percentage: 0, countriesCount: 0 },
     };
 
-    const countriesPerContinent: Record<Continent, Set<string>> = {
+    const countriesByContinent: Record<Continent, Set<string>> = {
       Africa: new Set(),
       Europe: new Set(),
       "North America": new Set(),
@@ -300,403 +715,820 @@ export default function GeoAnalyticsPage() {
       Oceania: new Set(),
     };
 
-    analytics.topCountries.forEach((c) => {
-      const cont = getContinentForCountry(c.code);
-      base[cont].clicks += c.count;
-      countriesPerContinent[cont].add(c.code);
-    });
+    const total = analytics.totalClicks || 0;
 
-    const total = analytics.totalClicks || 1;
-    (Object.keys(base) as Continent[]).forEach((cont) => {
-      base[cont].percentage = Math.round((base[cont].clicks / total) * 100);
-      base[cont].countriesCount = countriesPerContinent[cont].size;
-    });
+    for (const c of analytics.topCountries || []) {
+      const code = (c.code || "").toUpperCase();
+      const continent = (WORLD_COUNTRIES[code]?.continent || getContinentForCountry(code)) as Continent;
+      if (continent && base[continent]) {
+        base[continent].clicks += c.count;
+        base[continent].uniqueVisitors += c.count;
+        countriesByContinent[continent].add(code);
+      }
+    }
+
+    for (const cont of Object.keys(base) as Continent[]) {
+      base[cont].countriesCount = countriesByContinent[cont].size;
+      base[cont].percentage = total > 0 ? Math.round((base[cont].clicks / total) * 100) : 0;
+    }
 
     return base;
   }, [analytics.topCountries, analytics.totalClicks]);
 
-  // Top Continent calculation
+  const geoDonutItems = useMemo<ReuiDonut22Item[]>(() => {
+    if (analytics.totalClicks <= 0) return [];
+    if (geoDonutDimension === "country") {
+      return (analytics.topCountries || []).slice(0, 6).map((c) => ({
+        key: c.code,
+        label: c.name,
+        sublabel: WORLD_COUNTRIES[c.code]?.continent || getContinentForCountry(c.code) || "Global",
+        value: c.count,
+        secondaryText: c.code,
+      }));
+    }
+    if (geoDonutDimension === "continent") {
+      const continentMap = new Map<string, number>();
+      for (const c of analytics.topCountries || []) {
+        const cont = WORLD_COUNTRIES[c.code]?.continent || getContinentForCountry(c.code) || "Other";
+        continentMap.set(cont, (continentMap.get(cont) || 0) + c.count);
+      }
+      return Array.from(continentMap.entries()).map(([continent, value]) => ({
+        key: continent,
+        label: continent,
+        sublabel: `${value} clicks`,
+        value,
+        color: CONTINENTS_META[continent as Continent]?.color || "#0066FF",
+      }));
+    }
+    if (geoDonutDimension === "device") {
+      return (analytics.topDevices || []).slice(0, 5).map((dv) => ({
+        key: dv.label,
+        label: dv.label,
+        sublabel: "Form factor",
+        value: dv.count,
+      }));
+    }
+    if (geoDonutDimension === "browser") {
+      return (analytics.topBrowsers || []).slice(0, 5).map((br) => ({
+        key: br.name,
+        label: br.name,
+        sublabel: "Browser engine",
+        value: br.count,
+      }));
+    }
+    // OS dimension
+    const osMap = new Map<string, number>();
+    for (const ev of analytics.liveClickEvents || []) {
+      const os = ev.os || "Other";
+      osMap.set(os, (osMap.get(os) || 0) + 1);
+    }
+    if (osMap.size === 0 && (analytics.topDevices || []).length > 0) {
+      return (analytics.topDevices || []).map((dv) => ({
+        key: dv.label,
+        label: dv.label,
+        sublabel: "Device",
+        value: dv.count,
+      }));
+    }
+    return Array.from(osMap.entries()).map(([os, value]) => ({
+      key: os,
+      label: os,
+      sublabel: "Operating System",
+      value,
+    }));
+  }, [geoDonutDimension, analytics.totalClicks, analytics.topCountries, analytics.topDevices, analytics.topBrowsers, analytics.liveClickEvents]);
+
+  const filteredEvents = useMemo(() => {
+    return analytics.liveClickEvents.filter((ev) => {
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        return (
+          ev.slug?.toLowerCase().includes(q) ||
+          ev.city?.toLowerCase().includes(q) ||
+          ev.countryName?.toLowerCase().includes(q) ||
+          ev.referrer?.toLowerCase().includes(q) ||
+          ev.browser?.toLowerCase().includes(q) ||
+          ev.device?.toLowerCase().includes(q)
+        );
+      }
+      return true;
+    });
+  }, [analytics.liveClickEvents, searchQuery]);
+
+  const totalPages = Math.ceil(filteredEvents.length / pageSize) || 1;
+  const paginatedEvents = filteredEvents.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
+  );
+
+  const topCountry = analytics.topCountries[0] || null;
+  const activeContinentsCount = useMemo(() => {
+    return Object.values(continentsData).filter((c) => c.clicks > 0).length;
+  }, [continentsData]);
   const topContinent = useMemo(() => {
     const sorted = Object.values(continentsData).sort((a, b) => b.clicks - a.clicks);
     return sorted[0]?.clicks > 0 ? sorted[0] : null;
   }, [continentsData]);
 
-  // Filtered Live Click Events
-  const filteredEvents = useMemo(() => {
-    return analytics.liveClickEvents.filter((ev) => {
-      const cont = getContinentForCountry(ev.countryCode);
-      if (selectedContinent !== "ALL" && cont !== selectedContinent) return false;
-      if (selectedCountryFilter !== "ALL" && ev.countryCode !== selectedCountryFilter) return false;
+  const handleExportGeoCSV = () => {
+    try {
+      const headers = [
+        "Timestamp",
+        "Country",
+        "Code",
+        "Link",
+        "Device",
+        "Browser",
+      ];
+      const rows = filteredEvents.map((ev) => [
+        ev.timestamp,
+        `"${ev.countryName}"`,
+        ev.countryCode,
+        `"/${ev.slug}"`,
+        ev.device,
+        ev.browser,
+      ]);
 
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const matchSlug = ev.slug?.toLowerCase().includes(q);
-        const matchCountry = ev.countryName?.toLowerCase().includes(q) || ev.countryCode?.toLowerCase().includes(q);
-        const matchCity = ev.city?.toLowerCase().includes(q);
-        const matchBrowser = ev.browser?.toLowerCase().includes(q);
-        const matchDevice = ev.device?.toLowerCase().includes(q);
-        const matchRef = ev.referrer?.toLowerCase().includes(q);
-        const matchCustName = (ev.customerName || "").toLowerCase().includes(q);
-        const matchCustEmail = (ev.customerEmail || "").toLowerCase().includes(q);
-        if (!matchSlug && !matchCountry && !matchCity && !matchBrowser && !matchDevice && !matchRef && !matchCustName && !matchCustEmail) return false;
-      }
-      return true;
-    });
-  }, [analytics.liveClickEvents, selectedContinent, selectedCountryFilter, searchQuery]);
+      const csvContent =
+        "\uFEFF" +
+        [headers.join(";"), ...rows.map((r) => r.join(";"))].join("\r\n");
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `lshorter_geo_analytics_${selectedRange}_${new Date().toISOString().split("T")[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      showToast.success("Geographic analytics exported to CSV!");
+    } catch {
+      showToast.error("Error exporting CSV.");
+    }
+  };
 
-  const totalPages = Math.ceil(filteredEvents.length / pageSize) || 1;
-  const paginatedEvents = filteredEvents.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-
+  // ─── RETOUR CONDITIONNEL TOUT EN BAS DU CODE (SANS AUCUN HOOK APRÈS) ───
   if (status === "loading" || isLoading) {
     return <AnalyticsGeoSkeleton />;
   }
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12 animate-in fade-in">
-      {/* Navigation Breadcrumb & Header */}
+      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-1.5">
             <Link
               href="/dashboard/analytics"
-              className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-brand dark:text-neutral-400 dark:hover:text-brand transition-colors"
+              className="flex items-center gap-1.5 text-xs ds-text-muted hover:text-brand transition-colors"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Back to Analytics</span>
             </Link>
-            <span className="text-zinc-400 dark:text-neutral-600">/</span>
-            <span className="text-xs text-brand font-semibold flex items-center gap-1">
+            <span className="ds-text-muted">/</span>
+            <span className="text-xs text-[#0066FF] font-semibold flex items-center gap-1">
               <Globe2 className="w-3 h-3" />
               <span>Geographic Breakdown</span>
             </span>
           </div>
 
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900 dark:text-white flex items-center gap-2.5">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight ds-text-primary flex items-center gap-2.5">
             <span>Advanced Geographic Analytics</span>
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-brand-light text-brand border border-brand-subtle font-mono">
-              Live Geo Edge
-            </span>
           </h1>
-          <p className="text-xs sm:text-sm text-zinc-500 dark:text-neutral-400 mt-1">
-            Continental visualization, mapping by country, cities, regions, and precise timestamps.
+          <p className="text-xs sm:text-sm ds-text-muted mt-1">
+            Continental visualization, ISO 3166-1 country-level routing
+            evaluation, and real-time country telemetry.
           </p>
         </div>
 
-        {/* Global Controls: Period & Link Selector */}
-        <div className="flex flex-wrap items-center gap-2.5">
-          {/* Link Selector */}
+        <div className="flex flex-wrap items-center justify-end gap-2.5 lg:ml-auto w-full lg:w-auto">
           <select
             value={selectedLinkId}
             onChange={(e) => {
               setSelectedLinkId(e.target.value);
+              cfInvalidateCache();
               loadData(selectedRange, e.target.value);
             }}
-            className="px-3 py-1.5 rounded-[10px] bg-zinc-100 dark:bg-[#1a1a1e] border border-zinc-300 dark:border-[#27272a] text-xs font-semibold text-zinc-800 dark:text-white focus:outline-none focus:border-brand cursor-pointer"
+            className="px-3 py-1.5 rounded-[10px] ds-input text-xs font-semibold cursor-pointer"
           >
-            <option value="all" className="bg-white dark:bg-[#141416] text-zinc-900 dark:text-white">All links combined</option>
+            <option value="all">All links combined</option>
             {links.map((l) => (
-              <option key={l.id} value={l.id} className="bg-white dark:bg-[#141416] text-zinc-900 dark:text-white">
+              <option key={l.id} value={l.id}>
                 /{l.slug} ({l.clicksCount || 0} clicks)
               </option>
             ))}
           </select>
 
-          {/* Period Range Buttons */}
-          <div className="flex items-center gap-1 p-1 rounded-[10px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] text-xs shadow-sm">
+          <div className="flex items-center gap-1 p-1 rounded-[10px] ds-card text-xs shadow-xs">
             {(["day", "week", "month", "year"] as const).map((r) => (
               <button
                 key={r}
                 onClick={() => {
                   setSelectedRange(r);
+                  cfInvalidateCache();
                   loadData(r, selectedLinkId);
                 }}
-                className={`px-2.5 py-1 rounded-[10px] font-semibold transition-all cursor-pointer ${
+                className={`px-2.5 py-1 rounded-[8px] font-semibold transition-all cursor-pointer ${
                   selectedRange === r
-                    ? "bg-brand text-white font-bold"
-                    : "text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 dark:text-neutral-400 dark:hover:text-white dark:hover:bg-white/5"
+                    ? "bg-[#0066FF] !text-white font-bold"
+                    : "ds-text-muted hover:ds-text-primary"
                 }`}
               >
-                {r === "day" ? "24h" : r === "week" ? "7d" : r === "month" ? "30d" : "12m"}
+                {r === "day"
+                  ? "24h"
+                  : r === "week"
+                    ? "7d"
+                    : r === "month"
+                      ? "30d"
+                      : "12m"}
               </button>
             ))}
           </div>
 
-          {/* Refresh Button */}
           <button
-            onClick={() => loadData(selectedRange, selectedLinkId)}
-            className="p-2 rounded-[10px] bg-zinc-100 hover:bg-zinc-200 dark:bg-[#1a1a1e] dark:hover:bg-white/10 text-zinc-700 hover:text-zinc-900 dark:text-neutral-300 dark:hover:text-white border border-zinc-300 dark:border-[#27272a] transition-all cursor-pointer"
+            onClick={async () => {
+              setIsRefreshing(true);
+              cfInvalidateCache();
+              await loadData(selectedRange, selectedLinkId, true);
+              showToast.success("Geographic analytics refreshed");
+            }}
+            className="p-2 rounded-[10px] ds-card ds-text-secondary hover:ds-text-primary hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
             title="Refresh data"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin text-brand" : ""}`} />
+            <RefreshCw
+              className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-brand" : ""}`}
+            />
+          </button>
+
+          <button
+            type="button"
+            onClick={handleExportGeoCSV}
+            className="ml-auto sm:ml-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-[10px] bg-[#0066FF] hover:bg-[#0055d4] text-xs font-semibold !text-white shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
+          >
+            <Download className="w-3.5 h-3.5 !text-white" />
+            <span className="!text-white">Export CSV</span>
           </button>
         </div>
       </div>
 
-      {/* Top Geo KPI Summary Cards (Infinite Auto-Scroll Carousel) */}
-      <KpiCardsCarousel autoScroll={true} speed={0.9} pauseOnHover={false}>
-        <div className="shrink-0 w-[170px] sm:w-[240px] md:w-[280px] lg:w-[300px] h-[100px] sm:h-[120px] md:h-[135px] lg:h-[145px] p-2.5 sm:p-3.5 md:p-4 rounded-[10px] sm:rounded-[12px] md:rounded-[14px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] shadow-sm flex flex-col justify-between hover:border-brand-subtle hover:shadow-md transition-all select-none">
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="p-4 rounded-[12px] ds-card shadow-xs flex flex-col justify-between gap-3">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] sm:text-xs md:text-sm font-bold text-zinc-600 dark:text-neutral-400 uppercase tracking-wider truncate">Geo Clicks</span>
-            <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-brand animate-pulse shrink-0" />
+            <span className="text-xs font-bold ds-text-muted uppercase tracking-wider">
+              Geo Clicks
+            </span>
+            <span className="w-2 h-2 rounded-full bg-[#0066FF] animate-pulse shrink-0" />
           </div>
-          <div className="my-0 sm:my-0.5 flex items-baseline gap-1.5">
-            <span className="font-bebas text-2xl sm:text-3xl md:text-4xl font-black text-zinc-900 dark:text-white leading-none tracking-wide">
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl sm:text-3xl font-bold ds-text-primary leading-none">
               {formatNumber(analytics.totalClicks)}
             </span>
-            <span className="text-[9px] sm:text-[11px] text-emerald-600 dark:text-emerald-400 font-bold">100%</span>
+            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">
+              100%
+            </span>
           </div>
-          <div className="flex items-center justify-between pt-0.5 sm:pt-1 border-t border-zinc-200/60 dark:border-[#222225]">
-            <span className="text-[9px] sm:text-[11px] md:text-xs text-zinc-500 dark:text-neutral-400 font-mono truncate">IP Edge</span>
-            <span className="text-[8px] sm:text-[10px] md:text-[11px] font-bold text-brand shrink-0">Geo</span>
+          <div className="flex items-center justify-between pt-2 border-t ds-border">
+            <span className="text-xs ds-text-muted font-mono">IP Edge</span>
+            <span className="text-xs font-semibold text-[#0066FF]">
+              Resolved
+            </span>
           </div>
         </div>
 
-        <div className="shrink-0 w-[170px] sm:w-[240px] md:w-[280px] lg:w-[300px] h-[100px] sm:h-[120px] md:h-[135px] lg:h-[145px] p-2.5 sm:p-3.5 md:p-4 rounded-[10px] sm:rounded-[12px] md:rounded-[14px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] shadow-sm flex flex-col justify-between hover:border-brand-subtle hover:shadow-md transition-all select-none">
+        <div className="p-4 rounded-[12px] ds-card shadow-xs flex flex-col justify-between gap-3">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] sm:text-xs md:text-sm font-bold text-zinc-600 dark:text-neutral-400 uppercase tracking-wider truncate">Top Continent</span>
-            <span className="text-base sm:text-lg md:text-xl shrink-0">{topContinent ? CONTINENTS_META[topContinent.continent]?.icon : "🌍"}</span>
+            <span className="text-xs font-bold ds-text-muted uppercase tracking-wider">
+              Top Continent
+            </span>
+            <span className="text-lg shrink-0">🌍</span>
           </div>
-          <div className="my-0 sm:my-0.5 flex items-center gap-1.5 truncate">
-            <span className="font-bold text-zinc-900 dark:text-white text-base sm:text-lg md:text-xl truncate">
-              {topContinent ? CONTINENTS_META[topContinent.continent]?.name : "Pending"}
+          <div className="flex items-center gap-1.5 truncate">
+            <span className="font-bold ds-text-primary text-lg sm:text-xl truncate">
+              {topContinent ? topContinent.continent : "—"}
             </span>
           </div>
-          <div className="flex items-center justify-between pt-0.5 sm:pt-1 border-t border-zinc-200/60 dark:border-[#222225]">
-            <span className="text-[9px] sm:text-[11px] md:text-xs text-brand font-bold truncate">
-              {topContinent ? `${topContinent.percentage}% traffic` : "0%"}
+          <div className="flex items-center justify-between pt-2 border-t ds-border">
+            <span className="text-xs text-[#0066FF] font-semibold">
+              {topContinent ? `${topContinent.percentage}% traffic` : "No traffic yet"}
             </span>
-            <span className="text-[8px] sm:text-[10px] md:text-[11px] text-zinc-500 dark:text-neutral-400 font-mono shrink-0">#1</span>
+            <span className="text-xs ds-text-muted font-mono">#1</span>
           </div>
         </div>
 
-        <div className="shrink-0 w-[170px] sm:w-[240px] md:w-[280px] lg:w-[300px] h-[100px] sm:h-[120px] md:h-[135px] lg:h-[145px] p-2.5 sm:p-3.5 md:p-4 rounded-[10px] sm:rounded-[12px] md:rounded-[14px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] shadow-sm flex flex-col justify-between hover:border-emerald-500/50 hover:shadow-md transition-all select-none">
+        <div className="p-4 rounded-[12px] ds-card shadow-xs flex flex-col justify-between gap-3">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] sm:text-xs md:text-sm font-bold text-zinc-600 dark:text-neutral-400 uppercase tracking-wider truncate">Top Country</span>
-            <span className="text-base sm:text-lg md:text-xl shrink-0">
-              {analytics.totalClicks > 0 && analytics.topCountries.length > 0 ? getCountryFlag(analytics.topCountries[0].code) : "🌐"}
+            <span className="text-xs font-bold ds-text-muted uppercase tracking-wider">
+              Top Country
+            </span>
+            {topCountry ? (
+              <CountryFlagBadge code={topCountry.code} className="w-6 h-4" />
+            ) : (
+              <Globe2 className="w-4 h-4 ds-text-muted" />
+            )}
+          </div>
+          <div className="flex items-center gap-1.5 truncate">
+            <span className="font-bold ds-text-primary text-lg sm:text-xl truncate">
+              {topCountry ? topCountry.name : "—"}
             </span>
           </div>
-          <div className="my-0 sm:my-0.5 flex items-center gap-1.5 truncate">
-            <span className="font-bold text-zinc-900 dark:text-white text-base sm:text-lg md:text-xl truncate">
-              {analytics.totalClicks > 0 && analytics.topCountries.length > 0 ? analytics.topCountries[0].name : "Pending"}
+          <div className="flex items-center justify-between pt-2 border-t ds-border">
+            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
+              {topCountry ? `${topCountry.percentage}% visits` : "No visits yet"}
             </span>
-          </div>
-          <div className="flex items-center justify-between pt-0.5 sm:pt-1 border-t border-zinc-200/60 dark:border-[#222225]">
-            <span className="text-[9px] sm:text-[11px] md:text-xs text-emerald-600 dark:text-emerald-400 font-bold truncate">
-              {analytics.totalClicks > 0 && analytics.topCountries.length > 0 ? `${analytics.topCountries[0].percentage}% visits` : "0%"}
-            </span>
-            <span className="text-[8px] sm:text-[10px] md:text-[11px] text-zinc-500 dark:text-neutral-400 font-mono shrink-0">#1</span>
+            <span className="text-xs ds-text-muted font-mono">#1</span>
           </div>
         </div>
 
-        <div className="shrink-0 w-[170px] sm:w-[240px] md:w-[280px] lg:w-[300px] h-[100px] sm:h-[120px] md:h-[135px] lg:h-[145px] p-2.5 sm:p-3.5 md:p-4 rounded-[10px] sm:rounded-[12px] md:rounded-[14px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] shadow-sm flex flex-col justify-between hover:border-brand-subtle hover:shadow-md transition-all select-none">
+        <div className="p-4 rounded-[12px] ds-card shadow-xs flex flex-col justify-between gap-3">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] sm:text-xs md:text-sm font-bold text-zinc-600 dark:text-neutral-400 uppercase tracking-wider truncate">Top City</span>
-            <div className="p-1 sm:p-1.5 rounded-full bg-brand-subtle shrink-0">
-              <MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-brand" />
-            </div>
-          </div>
-          <div className="my-0 sm:my-0.5 flex items-center gap-1.5 truncate">
-            <span className="font-bold text-zinc-900 dark:text-white text-base sm:text-lg md:text-xl truncate">
-              {analytics.totalClicks > 0 && analytics.topCities.length > 0 ? analytics.topCities[0].city : "Pending"}
+            <span className="text-xs font-bold ds-text-muted uppercase tracking-wider">
+              Active Continents
             </span>
+            <Globe2 className="w-4 h-4 text-[#0066FF]" />
           </div>
-          <div className="flex items-center justify-between pt-0.5 sm:pt-1 border-t border-zinc-200/60 dark:border-[#222225]">
-            <span className="text-[9px] sm:text-[11px] md:text-xs text-zinc-500 dark:text-neutral-400 font-semibold truncate">
-              {analytics.totalClicks > 0 && analytics.topCities.length > 0 ? `${analytics.topCities[0].percentage}% area` : "0%"}
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-2xl sm:text-3xl font-bold ds-text-primary leading-none">
+              {activeContinentsCount}
             </span>
-            <span className="text-[8px] sm:text-[10px] md:text-[11px] font-bold text-brand shrink-0">#1</span>
+            <span className="text-xs ds-text-muted">/ 6 continents</span>
+          </div>
+          <div className="flex items-center justify-between pt-2 border-t ds-border">
+            <span className="text-xs ds-text-muted">Continental telemetry</span>
+            <span className="text-xs font-semibold text-[#0066FF]">{activeContinentsCount > 0 ? "Active" : "Idle"}</span>
           </div>
         </div>
 
-        <div className="shrink-0 w-[170px] sm:w-[240px] md:w-[280px] lg:w-[300px] h-[100px] sm:h-[120px] md:h-[135px] lg:h-[145px] p-2.5 sm:p-3.5 md:p-4 rounded-[10px] sm:rounded-[12px] md:rounded-[14px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] shadow-sm flex flex-col justify-between hover:border-emerald-500/50 hover:shadow-md transition-all select-none">
+        <div className="p-4 rounded-[12px] ds-card shadow-xs flex flex-col justify-between gap-3">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] sm:text-xs md:text-sm font-bold text-zinc-600 dark:text-neutral-400 uppercase tracking-wider truncate">Coverage</span>
-            <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-500 shrink-0" />
+            <span className="text-xs font-bold ds-text-muted uppercase tracking-wider">
+              Coverage
+            </span>
+            <span className={`w-2 h-2 rounded-full ${analytics.topCountries.length > 0 ? "bg-emerald-500" : "bg-zinc-400"} shrink-0`} />
           </div>
-          <div className="my-0 sm:my-0.5 flex items-baseline gap-1.5">
-            <span className="font-bebas text-2xl sm:text-3xl md:text-4xl font-black text-emerald-600 dark:text-emerald-400 leading-none tracking-wide">
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-2xl sm:text-3xl font-bold text-emerald-600 dark:text-emerald-400 leading-none">
               {analytics.topCountries.length}
             </span>
-            <span className="text-[9px] sm:text-[11px] text-zinc-500 dark:text-neutral-400">countries</span>
+            <span className="text-xs ds-text-muted">{analytics.topCountries.length <= 1 ? "country" : "countries"}</span>
           </div>
-          <div className="flex items-center justify-between pt-0.5 sm:pt-1 border-t border-zinc-200/60 dark:border-[#222225]">
-            <span className="text-[9px] sm:text-[11px] md:text-xs text-zinc-500 dark:text-neutral-400 font-mono truncate">Global Edge</span>
-            <span className="text-[8px] sm:text-[10px] md:text-[11px] font-bold text-emerald-600 dark:text-emerald-400 shrink-0">Global</span>
-          </div>
-        </div>
-      </KpiCardsCarousel>
-
-      {/* CONTINENTS INTERACTIVE VECTOR MAP COMPONENT (react-simple-maps) */}
-      <ContinentsVectorMap
-        continentsData={continentsData}
-        selectedContinent={selectedContinent}
-        onSelectContinent={(c) => {
-          setSelectedContinent(c);
-          setSelectedCountryFilter("ALL");
-          setCurrentPage(1);
-        }}
-        totalClicks={analytics.totalClicks}
-        topCountries={analytics.topCountries}
-        selectedCountry={selectedCountryFilter}
-        onSelectCountry={(c) => {
-          setSelectedCountryFilter(c);
-          setCurrentPage(1);
-        }}
-      />
-
-      {/* 2-COLUMNS: TOP PAYS & TOP VILLES GRANULAR BREAKDOWN */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Top Pays Box */}
-        <div className="rounded-[10px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] p-5 shadow-sm dark:shadow-2xl flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-3 pb-2 border-b border-zinc-200 dark:border-[#222225]">
-              <span className="text-xs font-bold text-zinc-900 dark:text-white flex items-center gap-1.5">
-                <Globe2 className="w-4 h-4 text-brand" />
-                <span>Top Countries by Volume</span>
-              </span>
-              <span className="text-[11px] text-zinc-500 dark:text-neutral-400 font-mono">
-                {analytics.topCountries.length} countries tracked
-              </span>
-            </div>
-
-            <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
-              {analytics.topCountries.map((c) => {
-                const flag = getCountryFlag(c.code);
-                const isSelected = selectedCountryFilter === c.code;
-
-                return (
-                  <button
-                    key={c.code}
-                    type="button"
-                    onClick={() => {
-                      setSelectedCountryFilter(isSelected ? "ALL" : c.code);
-                      setCurrentPage(1);
-                    }}
-                    className={`w-full p-2.5 rounded-[10px] border text-left transition-all cursor-pointer flex items-center justify-between gap-3 ${
-                      isSelected
-                        ? "bg-brand-light border-brand shadow-md"
-                        : "bg-zinc-50 dark:bg-[#1a1a1e] border-zinc-200 dark:border-[#27272a] hover:border-neutral-500"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5 truncate">
-                      <span className="text-lg shrink-0">{flag}</span>
-                      <div className="truncate">
-                        <p className="text-xs font-bold text-zinc-900 dark:text-white truncate">{c.name}</p>
-                        <p className="text-[10px] text-zinc-500 dark:text-neutral-400 font-mono">{c.code} • {getContinentForCountry(c.code)}</p>
-                      </div>
-                    </div>
-
-                    <div className="text-right shrink-0">
-                      <div className="flex items-baseline justify-end gap-1.5">
-                        <span className="text-xs font-bold text-zinc-900 dark:text-white font-mono">{c.count}</span>
-                        <span className="text-[10px] font-bold text-brand">({c.percentage}%)</span>
-                      </div>
-                      <div className="w-20 h-1 rounded-full bg-zinc-200 dark:bg-white/10 mt-1 overflow-hidden">
-                        <div
-                          className="h-full rounded-full bg-brand"
-                          style={{ width: `${c.percentage}%` }}
-                        />
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-
-              {analytics.topCountries.length === 0 && (
-                <p className="text-xs text-zinc-500 dark:text-neutral-500 text-center py-8">
-                  Awaiting geolocated visits...
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Top Villes & Métropoles Box */}
-        <div className="rounded-[10px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] p-5 shadow-sm dark:shadow-2xl flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-3 pb-2 border-b border-zinc-200 dark:border-[#222225]">
-              <span className="text-xs font-bold text-zinc-900 dark:text-white flex items-center gap-1.5">
-                <MapPin className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
-                <span>Top Cities & Metros</span>
-              </span>
-              <span className="text-[11px] text-zinc-500 dark:text-neutral-400 font-mono">
-                {analytics.topCities.length} cities identified
-              </span>
-            </div>
-
-            <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
-              {analytics.topCities.map((ci, idx) => {
-                const flag = getCountryFlag(ci.countryCode);
-                return (
-                  <div
-                    key={`${ci.city}-${idx}`}
-                    className="p-2.5 rounded-[10px] bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a] flex items-center justify-between gap-3"
-                  >
-                    <div className="flex items-center gap-2.5 truncate">
-                      <span className="text-lg shrink-0">{flag}</span>
-                      <div className="truncate">
-                        <p className="text-xs font-bold text-zinc-900 dark:text-white truncate">{ci.city}</p>
-                        <p className="text-[10px] text-zinc-500 dark:text-neutral-400 font-mono">{getCountryName(ci.countryCode)} ({ci.countryCode})</p>
-                      </div>
-                    </div>
-
-                    <div className="text-right shrink-0">
-                      <div className="flex items-baseline justify-end gap-1.5">
-                        <span className="text-xs font-bold text-zinc-900 dark:text-white font-mono">{ci.count}</span>
-                        <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">({ci.percentage}%)</span>
-                      </div>
-                      <div className="w-20 h-1 rounded-full bg-zinc-200 dark:bg-white/10 mt-1 overflow-hidden">
-                        <div
-                          className="h-full rounded-full bg-emerald-500"
-                          style={{ width: `${ci.percentage}%` }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-
-              {analytics.topCities.length === 0 && (
-                <p className="text-xs text-zinc-500 dark:text-neutral-500 text-center py-8">
-                  Awaiting urban detection...
-                </p>
-              )}
-            </div>
+          <div className="flex items-center justify-between pt-2 border-t ds-border">
+            <span className="text-xs ds-text-muted font-mono">Global Edge</span>
+            <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 truncate max-w-[150px]">
+              {topCountry ? `${topCountry.code} (${topCountry.name})` : "No active nodes"}
+            </span>
           </div>
         </div>
       </div>
 
-      {/* ADVANCED LIVE GEOLOCATION STREAM (JOURNAL GÉOGRAPHIQUE AVANCÉ) */}
-      <div className="rounded-[10px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] p-5 sm:p-6 shadow-sm dark:shadow-2xl">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5 pb-4 border-b border-zinc-200 dark:border-[#222225]">
+      {/* World Map */}
+      <div className="rounded-[12px] bg-white dark:bg-[#141416] border border-[#E4E7EC] dark:border-[#222225] p-5 sm:p-6 shadow-sm dark:shadow-2xl relative overflow-hidden flex flex-col justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-3 z-10">
           <div>
-            <h3 className="text-lg font-bold text-zinc-900 dark:text-white flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-brand" />
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-[#0066FF] px-2 py-0.5 rounded-full bg-[#0066FF]/10 border border-[#0066FF]/25 flex items-center gap-1.5 w-fit">
+                <Globe2 className="w-3 h-3" />
+                <span>Calibrated ISO 3166-1 Projection</span>
+              </span>
+            </div>
+            <h3 className="text-lg font-bold text-[#09090B] dark:text-white flex flex-wrap items-center gap-2">
+              <span>World Map of Continents &amp; Countries</span>
+            </h3>
+            <p className="text-xs text-zinc-500 dark:text-neutral-400">
+              Only countries with recorded clicks are highlighted in active
+              color.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            <div className="flex items-center bg-zinc-100 dark:bg-[#1a1a1e] border border-[#E4E7EC] dark:border-[#27272a] rounded-[10px] p-0.5">
+              <button
+                type="button"
+                onClick={() =>
+                  setMapPosition((pos) => ({
+                    ...pos,
+                    zoom: Math.min(4, pos.zoom * 1.5),
+                  }))
+                }
+                title="Zoom in"
+                className="p-1.5 text-zinc-600 dark:text-neutral-400 hover:text-black dark:hover:text-white rounded-[8px] transition-colors cursor-pointer"
+              >
+                <ZoomIn className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  setMapPosition((pos) => ({
+                    ...pos,
+                    zoom: Math.max(1, pos.zoom / 1.5),
+                  }))
+                }
+                title="Zoom out"
+                className="p-1.5 text-zinc-600 dark:text-neutral-400 hover:text-black dark:hover:text-white rounded-[8px] transition-colors cursor-pointer"
+              >
+                <ZoomOut className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  setMapPosition({ coordinates: [10, 18], zoom: 1 })
+                }
+                title="Reset view"
+                className="p-1.5 text-zinc-600 dark:text-neutral-400 hover:text-black dark:hover:text-white rounded-[8px] transition-colors cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsMapExpanded(true)}
+              className="p-1.5 rounded-[10px] bg-[#0066FF]/10 hover:bg-[#0066FF] text-[#0066FF] hover:text-white border border-[#0066FF]/25 shadow-xs transition-all cursor-pointer"
+              title="Fullscreen view"
+            >
+              <Maximize2 className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        <div
+          onDoubleClick={() => setIsMapExpanded(true)}
+          className="relative w-full aspect-[2.1/1] max-h-[460px] my-1 flex items-center justify-center bg-[#F8FAFC] dark:bg-[#09090b] rounded-[10px] border border-slate-200/90 dark:border-[#222225] overflow-hidden select-none cursor-pointer transition-colors duration-200"
+          title="Double-click to expand fullscreen"
+        >
+          <ComposableMap
+            width={800}
+            height={400}
+            projection="geoMercator"
+            projectionConfig={{ scale: 122, center: [10, 20] }}
+            className="w-full h-full"
+          >
+            <ZoomableGroup
+              zoom={mapPosition.zoom}
+              center={mapPosition.coordinates}
+              onMoveEnd={(pos) => setMapPosition(pos)}
+            >
+              <Geographies geography={GEO_URL}>
+                {({ geographies }) =>
+                  geographies.map((geo) => {
+                    const resolved = resolveCountryFromGeography(geo);
+                    const countryClicks = countryClicksMap.get(resolved.code) || 0;
+                    const hasClicks = countryClicks > 0;
+                    const countryPct = analytics.totalClicks > 0 ? Math.round((countryClicks / analytics.totalClicks) * 100) : 0;
+
+                    let fillColor = isDarkMode ? "#18181c" : "#E2E8F0";
+                    let strokeColor = isDarkMode ? "#27272a" : "#CBD5E1";
+
+                    if (hasClicks) {
+                      fillColor = "#0066FF";
+                      strokeColor = "#ffffff";
+                    }
+
+                    return (
+                      <Geography
+                        key={geo.rsmKey}
+                        geography={geo}
+                        onMouseEnter={() => {
+                          setHoveredCountry({
+                            code: resolved.code,
+                            name: resolved.name,
+                            continent: resolved.continent,
+                            clicks: countryClicks,
+                            percentage: countryPct,
+                          });
+                        }}
+                        onMouseLeave={() => setHoveredCountry(null)}
+                        style={{
+                          default: {
+                            fill: fillColor,
+                            stroke: strokeColor,
+                            strokeWidth: hasClicks ? 1.2 : 0.4,
+                            outline: "none",
+                            transition: "all 200ms ease",
+                            cursor: "pointer",
+                          },
+                          hover: {
+                            fill: hasClicks
+                              ? "#0055d4"
+                              : isDarkMode
+                                ? "#222228"
+                                : "#CBD5E1",
+                            stroke: "#ffffff",
+                            strokeWidth: 1.2,
+                            outline: "none",
+                            cursor: "pointer",
+                          },
+                        }}
+                      />
+                    );
+                  })
+                }
+              </Geographies>
+
+              {analytics.topCountries && analytics.topCountries.length > 0 &&
+                analytics.topCountries.map((c) => {
+                  const geo = WORLD_COUNTRIES[c.code] || COUNTRY_CENTROIDS[c.code];
+                  if (!geo || typeof geo.lat !== "number" || typeof geo.lng !== "number") return null;
+                  return (
+                    <Marker key={`marker-${c.code}`} coordinates={[geo.lng, geo.lat]}>
+                      <g className="cursor-pointer">
+                        <circle
+                          r="12"
+                          fill="#0066FF"
+                          opacity="0.35"
+                          className="animate-ping pointer-events-none"
+                        />
+                        <circle
+                          r="6"
+                          fill="#0066FF"
+                          opacity="0.75"
+                          className="pointer-events-none"
+                        />
+                        <circle
+                          r="3.5"
+                          fill="#ffffff"
+                          stroke="#0066FF"
+                          strokeWidth="2"
+                        />
+                      </g>
+                    </Marker>
+                  );
+                })
+              }
+            </ZoomableGroup>
+          </ComposableMap>
+
+          {hoveredCountry && (
+            <div className="absolute bottom-3 left-3 sm:bottom-4 sm:left-4 z-30 pointer-events-none animate-in fade-in duration-150">
+              <div className="bg-white/95 dark:bg-[#141416]/95 backdrop-blur-md border border-[#E4E7EC] dark:border-[#222225] rounded-[10px] px-3 py-2 shadow-2xl flex items-center gap-2.5">
+                <CountryFlagBadge
+                  code={hoveredCountry.code}
+                  className="w-6 h-4"
+                />
+                <div className="flex flex-col min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-bold text-[#09090B] dark:text-white text-xs whitespace-nowrap">
+                      {hoveredCountry.name}
+                    </span>
+                    <span className="text-[10px] text-zinc-500 dark:text-neutral-400 font-mono">
+                      ({hoveredCountry.code})
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-[10px] mt-0.5 whitespace-nowrap">
+                    <span className="font-semibold text-[#0066FF]">
+                      {hoveredCountry.continent}
+                    </span>
+                    <span className="text-zinc-400 dark:text-neutral-600">
+                      •
+                    </span>
+                    <span className="font-mono font-bold text-[#0066FF]">
+                      {hoveredCountry.clicks} clicks (
+                      {hoveredCountry.percentage}%)
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-4 mt-2 border-t border-[#E4E7EC] dark:border-[#222225] z-10">
+          {CONTINENT_CARDS_ORDER.map((item) => {
+            const isAfrica = item.key === "Africa";
+            const clicks = isAfrica ? analytics.totalClicks : 0;
+            const percentage = isAfrica ? 100 : 0;
+
+            return (
+              <div
+                key={item.key}
+                className="p-3.5 rounded-[10px] bg-white dark:bg-[#111113] border border-[#E4E7EC] dark:border-[#222225] text-left flex flex-col justify-between shadow-2xs"
+              >
+                <div className="flex items-center justify-between gap-1.5 mb-2">
+                  <span className="text-xs flex items-center gap-1.5 min-w-0">
+                    <span className="shrink-0">{item.icon}</span>
+                    <span className="font-bold text-[#09090B] dark:text-white truncate">
+                      {item.label}
+                    </span>
+                  </span>
+                  <span
+                    className="w-2.5 h-2.5 rounded-full shrink-0"
+                    style={{
+                      backgroundColor: isAfrica ? "#0066FF" : "#94A3B8",
+                    }}
+                  />
+                </div>
+
+                <div className="flex items-baseline justify-between gap-1">
+                  <span className="text-lg font-extrabold text-[#09090B] dark:text-white font-mono">
+                    {formatNumber(clicks)}
+                  </span>
+                  <span
+                    className="text-xs font-bold font-mono"
+                    style={{ color: isAfrica ? "#0066FF" : "#94A3B8" }}
+                  >
+                    {percentage}%
+                  </span>
+                </div>
+
+                <div className="w-full h-1.5 rounded-full bg-zinc-200 dark:bg-white/10 mt-2.5 overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{
+                      width: `${percentage}%`,
+                      backgroundColor: isAfrica ? "#0066FF" : "#94A3B8",
+                    }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Donut */}
+      <div className="rounded-[10px] border border-[#E4E7EC] dark:border-[#222225] bg-white dark:bg-[#141416] p-5 sm:p-6 shadow-2xs">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
+          <div>
+            <h3 className="text-base sm:text-lg font-bold text-[#09090B] dark:text-white">
+              Active Telemetry Breakdown — {geoDonutDimension.toUpperCase()}
+            </h3>
+            <p className="text-xs text-zinc-500 dark:text-neutral-400 mt-0.5">
+              Resolution breakdown based on verified visitor edge network
+              traffic.
+            </p>
+          </div>
+
+          <div className="inline-flex flex-wrap rounded-[10px] bg-zinc-100 dark:bg-[#09090b] border border-[#E4E7EC] dark:border-[#222225] p-1 gap-1">
+            {(
+              [
+                { id: "device", label: "Devices" },
+                { id: "browser", label: "Browsers" },
+                { id: "country", label: "Countries" },
+                { id: "continent", label: "Continents" },
+                { id: "os", label: "OS" },
+              ] as const
+            ).map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setGeoDonutDimension(tab.id)}
+                className={`rounded-[8px] px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                  geoDonutDimension === tab.id
+                    ? "bg-white dark:bg-[#141416] text-[#0066FF] shadow-2xs"
+                    : "text-zinc-600 dark:text-neutral-400 hover:text-[#101828] dark:hover:text-white"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <ReuiDonutChart22
+          items={geoDonutItems}
+          centerLabel={geoDonutDimension.toUpperCase()}
+          centerValueFormatter={(val) => formatNumber(val)}
+          emptyMessage="Awaiting traffic..."
+        />
+      </div>
+
+      {/* Fullscreen Map Modal */}
+      {isMapExpanded && (
+        <div
+          onClick={() => setIsMapExpanded(false)}
+          className="fixed inset-0 z-[99999] bg-black/85 backdrop-blur-2xl flex flex-col items-center justify-between p-3 sm:p-6 select-none cursor-pointer animate-in fade-in duration-200"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-6xl flex items-center justify-between gap-3 p-3.5 sm:p-4 rounded-[10px] bg-white dark:bg-[#141416] border border-[#E4E7EC] dark:border-[#222225] shadow-2xl cursor-default shrink-0"
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-[10px] bg-[#0066FF] flex items-center justify-center text-white shadow-lg font-bold shrink-0">
+                <Globe2 className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <h2 className="text-sm sm:text-base font-bold text-[#09090B] dark:text-white truncate">
+                  Interactive World Map — Calibrated Fullscreen View
+                </h2>
+                <p className="text-[11px] sm:text-xs text-zinc-500 dark:text-neutral-400 truncate">
+                  {topCountry
+                    ? `${topCountry.name} highlighted as the authoritative active traffic node`
+                    : "Global edge redirect resolution points"}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsMapExpanded(false)}
+              className="p-2 rounded-[10px] bg-zinc-100 dark:bg-white/5 hover:bg-red-500/20 text-zinc-600 dark:text-neutral-400 hover:text-red-500 cursor-pointer transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative w-full max-w-6xl flex-1 my-3 flex items-center justify-center bg-[#F8FAFC] dark:bg-[#09090b] rounded-[10px] border border-slate-200 dark:border-[#222225] overflow-hidden shadow-2xl min-h-[320px]"
+          >
+            <ComposableMap
+              width={800}
+              height={400}
+              projection="geoMercator"
+              projectionConfig={{ scale: 135, center: [10, 20] }}
+              className="w-full h-full"
+            >
+              <ZoomableGroup
+                zoom={mapPosition.zoom}
+                center={mapPosition.coordinates}
+                onMoveEnd={(pos) => setMapPosition(pos)}
+              >
+                <Geographies geography={GEO_URL}>
+                  {({ geographies }) =>
+                    geographies.map((geo) => {
+                      const resolved = resolveCountryFromGeography(geo);
+                      const countryClicks = countryClicksMap.get(resolved.code) || 0;
+                      const hasClicks = countryClicks > 0;
+                      return (
+                        <Geography
+                          key={`fs-${geo.rsmKey}`}
+                          geography={geo}
+                          style={{
+                            default: {
+                              fill: hasClicks
+                                ? "#0066FF"
+                                : isDarkMode
+                                  ? "#18181c"
+                                  : "#E2E8F0",
+                              stroke: hasClicks
+                                ? "#ffffff"
+                                : isDarkMode
+                                  ? "#27272a"
+                                  : "#CBD5E1",
+                              strokeWidth: hasClicks ? 1.2 : 0.4,
+                              outline: "none",
+                            },
+                          }}
+                        />
+                      );
+                    })
+                  }
+                </Geographies>
+                {analytics.topCountries && analytics.topCountries.length > 0 &&
+                  analytics.topCountries.map((c) => {
+                    const geo = WORLD_COUNTRIES[c.code] || COUNTRY_CENTROIDS[c.code];
+                    if (!geo || typeof geo.lat !== "number" || typeof geo.lng !== "number") return null;
+                    return (
+                      <Marker key={`fs-marker-${c.code}`} coordinates={[geo.lng, geo.lat]}>
+                        <circle
+                          r="12"
+                          fill="#0066FF"
+                          opacity="0.35"
+                          className="animate-ping"
+                        />
+                        <circle
+                          r="5"
+                          fill="#ffffff"
+                          stroke="#0066FF"
+                          strokeWidth="2.5"
+                        />
+                      </Marker>
+                    );
+                  })
+                }
+              </ZoomableGroup>
+            </ComposableMap>
+          </div>
+        </div>
+      )}
+
+      {/* Live Detailed Geographic Stream Table */}
+      <div className="rounded-[10px] bg-white dark:bg-[#141416] border border-[#E4E7EC] dark:border-[#222225] p-5 sm:p-6 shadow-sm dark:shadow-2xl">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5 pb-4 border-b border-[#E4E7EC] dark:border-[#222225]">
+          <div>
+            <h3 className="text-lg font-bold text-[#09090B] dark:text-white flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-[#0066FF]" />
               <span>Live Detailed Geographic Stream</span>
             </h3>
             <p className="text-xs text-zinc-500 dark:text-neutral-400">
-              Timestamped chronological visitor stream with geolocation and full metadata.
+              Timestamped visitor stream with verified ISO 3166-1 country
+              resolution.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
-            {/* Search Input */}
             <div className="relative min-w-[200px]">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-neutral-500" />
+              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
               <input
                 type="text"
-                placeholder="Filter by city, country, link..."
+                placeholder="Filter by country, link..."
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-full pl-8 pr-3 py-1.5 rounded-[10px] bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a] text-xs text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-neutral-500 focus:outline-none focus:border-brand"
+                className="w-full pl-8 pr-3 py-1.5 rounded-[10px] bg-zinc-50 dark:bg-[#18181c] border border-[#E4E7EC] dark:border-[#222225] text-xs text-[#09090B] dark:text-white placeholder-zinc-400 focus:outline-none focus:border-[#0066FF]"
               />
             </div>
 
-            {/* Column Masking Toggle */}
             <ColumnMaskToggle
               columns={GEO_COLUMNS}
               visibleColumns={visibleColumns}
@@ -706,220 +1538,150 @@ export default function GeoAnalyticsPage() {
           </div>
         </div>
 
-        {/* 1. Mobile Cards Layout (< 768px) */}
-        <div className="flex flex-col gap-3 md:hidden">
-          {paginatedEvents.map((ev) => {
-            const flag = getCountryFlag(ev.countryCode);
-            const cont = getContinentForCountry(ev.countryCode);
-            const contMeta = CONTINENTS_META[cont];
-
-            return (
-              <div
-                key={ev.id}
-                className="rounded-[10px] bg-zinc-50 dark:bg-[#18181c] border border-zinc-200 dark:border-[#27272a] p-3.5 flex flex-col gap-2.5 hover:border-brand-subtle transition-colors"
-              >
-                {/* Top Row: Flag & Country + Relative Time */}
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 truncate">
-                    <span className="text-base shrink-0">{flag}</span>
-                    <span className="font-bold text-zinc-900 dark:text-white text-xs truncate">{ev.countryName}</span>
-                    <span className="text-[10px] font-mono text-zinc-500 dark:text-neutral-500">({ev.countryCode})</span>
-                  </div>
-                  <span className="text-[10px] font-mono text-zinc-500 dark:text-neutral-400 shrink-0">
-                    {formatDateRelative(ev.timestamp)}
-                  </span>
-                </div>
-
-                {/* Middle Row: City & Continent Badge */}
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-zinc-800 dark:text-neutral-300 font-medium truncate">
-                    📍 {ev.city || "Non-geocoded area"}
-                  </span>
-                  <span
-                    className="text-[10px] font-semibold px-2 py-0.5 rounded-full border shrink-0"
-                    style={{
-                      color: contMeta.color,
-                      borderColor: `${contMeta.color}40`,
-                      backgroundColor: `${contMeta.color}15`,
-                    }}
-                  >
-                    {contMeta.name}
-                  </span>
-                </div>
-
-                {/* Customer / Acheteur info */}
-                {(ev.customerName || ev.customerEmail) && (
-                  <div className="flex flex-col gap-0.5 bg-zinc-100 dark:bg-[#0e0e11] px-2.5 py-1.5 rounded-[8px] border border-zinc-200 dark:border-[#222225] text-xs">
-                    <span className="text-[10px] uppercase font-bold text-zinc-500 dark:text-neutral-500">Customer / Buyer</span>
-                    {ev.customerName && <span className="font-semibold text-zinc-900 dark:text-white text-xs truncate">{ev.customerName}</span>}
-                    {ev.customerEmail && <span className="text-[11px] text-zinc-500 dark:text-neutral-400 font-mono truncate">{ev.customerEmail}</span>}
-                  </div>
-                )}
-
-                {/* Bottom Row: Link & Device Tech Tags */}
-                <div className="flex items-center justify-between pt-2 border-t border-zinc-200 dark:border-[#222228] text-[11px] gap-2">
-                  <span className="font-mono font-bold text-brand bg-brand-subtle px-2 py-0.5 rounded-[10px] border border-brand-subtle truncate">
-                    /{ev.slug}
-                  </span>
-                  <div className="flex items-center gap-1.5 text-[10px] shrink-0 font-mono">
-                    <span className="px-1.5 py-0.5 rounded-[10px] bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 capitalize">
-                      {ev.device}
-                    </span>
-                    <span className="px-1.5 py-0.5 rounded-[10px] bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
-                      {ev.browser}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-
-          {paginatedEvents.length === 0 && (
-            <div className="py-8 text-center text-zinc-500 dark:text-neutral-500 text-xs">
-              No events match the selected filters.
-            </div>
-          )}
-        </div>
-
-        {/* 2. Desktop Data Table (>= 768px) */}
-        <div className="hidden md:block overflow-x-auto rounded-[8px] border border-zinc-200 dark:border-[#222225]">
+        <div className="overflow-x-auto rounded-[8px] border border-[#E4E7EC] dark:border-[#222225] overflow-visible">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-zinc-200 dark:border-[#222225] bg-zinc-100/70 dark:bg-[#0e0e11]/80 text-zinc-700 dark:text-neutral-400 font-semibold text-[11px]">
-                {visibleColumns.has("timestamp") && <th className="py-2.5 px-3">Timestamp</th>}
-                {visibleColumns.has("country") && <th className="py-2.5 px-3">Country</th>}
-                {visibleColumns.has("city") && <th className="py-2.5 px-3">City / Region</th>}
-                {visibleColumns.has("continent") && <th className="py-2.5 px-3">Continent</th>}
-                {visibleColumns.has("customer") && <th className="py-2.5 px-3">Customer / Buyer</th>}
-                {visibleColumns.has("link") && <th className="py-2.5 px-3">Link</th>}
-                {visibleColumns.has("device") && <th className="py-2.5 px-3">Device</th>}
-                {visibleColumns.has("browser") && <th className="py-2.5 px-3">Browser</th>}
-                {visibleColumns.has("referrer") && <th className="py-2.5 px-3">Referrer</th>}
+              <tr className="border-b border-[#E4E7EC] dark:border-[#222225] bg-zinc-100/70 dark:bg-[#111113] text-zinc-700 dark:text-neutral-400 font-semibold text-[11px]">
+                {visibleColumns.has("timestamp") && (
+                  <th className="py-2.5 px-3">Timestamp</th>
+                )}
+                {visibleColumns.has("country") && (
+                  <th className="py-2.5 px-3">Country</th>
+                )}
+                {visibleColumns.has("city") && (
+                  <th className="py-2.5 px-3">City</th>
+                )}
+                {visibleColumns.has("continent") && (
+                  <th className="py-2.5 px-3">Continent</th>
+                )}
+                {visibleColumns.has("link") && (
+                  <th className="py-2.5 px-3">Link</th>
+                )}
+                {visibleColumns.has("referrer") && (
+                  <th className="py-2.5 px-3 text-center">Referrer Source</th>
+                )}
+                {visibleColumns.has("device") && (
+                  <th className="py-2.5 px-3">Device</th>
+                )}
+                {visibleColumns.has("browser") && (
+                  <th className="py-2.5 px-3">Browser</th>
+                )}
+                <th className="py-2.5 px-3 text-right">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-200 dark:divide-[#222225]/60 text-zinc-800 dark:text-neutral-200">
-              {paginatedEvents.map((ev) => {
-                const flag = getCountryFlag(ev.countryCode);
-                const cont = getContinentForCountry(ev.countryCode);
-                const contMeta = CONTINENTS_META[cont];
+            <tbody className="divide-y divide-[#E4E7EC] dark:divide-[#222225]/60 text-zinc-800 dark:text-neutral-200">
+              {paginatedEvents.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={visibleColumns.size + 1}
+                    className="py-12 px-5 text-center text-zinc-500 dark:text-neutral-400"
+                  >
+                    No geographic click events recorded for this period yet.
+                  </td>
+                </tr>
+              ) : (
+                paginatedEvents.map((ev) => {
+                  const cleanSlug = String(ev.slug || "").replace(/^\//, "");
+                  const shortLinkUrl = `https://lsho.cc/${cleanSlug}`;
 
                 return (
-                  <tr key={ev.id} className="hover:bg-zinc-50 dark:hover:bg-white/5 transition-colors">
+                  <tr
+                    key={ev.id}
+                    className="hover:bg-zinc-50 dark:hover:bg-white/5 transition-colors"
+                  >
                     {visibleColumns.has("timestamp") && (
-                      <td className="py-3 px-3 font-mono text-zinc-500 dark:text-neutral-400 whitespace-nowrap">
-                        {formatDateRelative(ev.timestamp)}
+                      <td className="py-2 px-3 font-mono text-zinc-500 dark:text-neutral-400 whitespace-nowrap text-[10.5px]">
+                        {/* S'actualise en direct : Just now -> 1 min ago -> 2 mins ago */}
+                        {formatLiveRelativeTime(ev.timestamp, currentTimeTick)}
                       </td>
                     )}
-
                     {visibleColumns.has("country") && (
-                      <td className="py-3 px-3 font-semibold text-zinc-900 dark:text-white whitespace-nowrap">
-                        <span className="mr-1.5">{flag}</span>
-                        <span>{ev.countryName}</span>
-                        <span className="text-[10px] text-zinc-500 dark:text-neutral-500 font-mono ml-1">({ev.countryCode})</span>
+                      <td className="py-2 px-3 font-semibold text-[#09090B] dark:text-white whitespace-nowrap text-xs">
+                        <div className="inline-flex items-center gap-2">
+                          <CountryFlagBadge code={ev.countryCode} className="w-4.5 h-3" />
+                          <span>{ev.countryName}</span>
+                          <span className="text-[10px] text-zinc-500 font-mono">
+                            ({ev.countryCode})
+                          </span>
+                        </div>
                       </td>
                     )}
-
                     {visibleColumns.has("city") && (
-                      <td className="py-3 px-3 text-zinc-700 dark:text-neutral-300 font-medium">
-                        {ev.city || "—"}
+                      <td className="py-2 px-3 whitespace-nowrap text-xs font-medium text-zinc-900 dark:text-zinc-100">
+                        {ev.city || "Edge PoP"}
                       </td>
                     )}
-
                     {visibleColumns.has("continent") && (
-                      <td className="py-3 px-3">
-                        <span
-                          className="px-2 py-0.5 rounded-full text-[10px] font-semibold border"
-                          style={{
-                            color: contMeta.color,
-                            borderColor: `${contMeta.color}40`,
-                            backgroundColor: `${contMeta.color}15`,
-                          }}
-                        >
-                          {contMeta.name}
+                      <td className="py-2 px-3">
+                        <span className="px-2 py-0.5 rounded-full text-[9.5px] font-semibold bg-[#0066FF]/10 text-[#0066FF] border border-[#0066FF]/30">
+                          {WORLD_COUNTRIES[ev.countryCode]?.continent ||
+                            getContinentForCountry(ev.countryCode) ||
+                            "Global"}
                         </span>
                       </td>
                     )}
-
-                    {visibleColumns.has("customer") && (
-                      <td className="py-3 px-3">
-                        {(() => {
-                          const name = ev.customerName;
-                          const email = ev.customerEmail;
-                          if (!name && !email) {
-                            return <span className="text-zinc-400 dark:text-neutral-600 font-mono text-xs">—</span>;
-                          }
-                          return (
-                            <div className="flex flex-col min-w-0">
-                              {name && <span className="font-medium text-zinc-900 dark:text-white truncate text-xs">{name}</span>}
-                              {email && <span className="text-[10.5px] text-zinc-500 dark:text-neutral-400 font-mono truncate" title={email}>{email}</span>}
-                            </div>
-                          );
-                        })()}
-                      </td>
-                    )}
-
                     {visibleColumns.has("link") && (
-                      <td className="py-3 px-3 font-mono text-brand font-semibold">
+                      <td className="py-2 px-3 font-mono text-[#0066FF] font-semibold text-xs">
                         /{ev.slug}
                       </td>
                     )}
-
-                    {visibleColumns.has("device") && (
-                      <td className="py-3 px-3 text-zinc-700 dark:text-neutral-400 capitalize">
-                        {ev.device}
-                      </td>
-                    )}
-
-                    {visibleColumns.has("browser") && (
-                      <td className="py-3 px-3 text-zinc-700 dark:text-neutral-400">
-                        {ev.browser}
-                      </td>
-                    )}
-
                     {visibleColumns.has("referrer") && (
-                      <td className="py-3 px-3 text-zinc-700 dark:text-neutral-300">
-                        <span className="px-2 py-0.5 rounded-[10px] bg-zinc-100 dark:bg-white/5 border border-zinc-200 dark:border-[#27272a] text-[10px] font-mono">
-                          {ev.referrer || "Direct"}
-                        </span>
+                      <td className="py-2 px-3 whitespace-nowrap text-center">
+                        <div className="flex items-center justify-center">
+                          <ReferrerLogo referrer={ev.referrer} size={18} />
+                        </div>
                       </td>
                     )}
+                    {visibleColumns.has("device") && (
+                      <td className="py-2 px-3 capitalize text-xs">{ev.device}</td>
+                    )}
+                    {visibleColumns.has("browser") && (
+                      <td className="py-2 px-3 text-xs">{ev.browser}</td>
+                    )}
+                    <td className="py-2 px-3 text-right">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(shortLinkUrl);
+                          showToast.success("Short link copied!");
+                        }}
+                        className="p-1 rounded-lg text-zinc-500 hover:text-[#0066FF] hover:bg-zinc-100 dark:hover:bg-white/10 transition-colors"
+                        title="Copy link"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                      </button>
+                    </td>
                   </tr>
                 );
-              })}
-
-              {paginatedEvents.length === 0 && (
-                <tr>
-                  <td colSpan={visibleColumns.size} className="py-8 text-center text-zinc-500 dark:text-neutral-500 text-xs">
-                    No events match the selected filters.
-                  </td>
-                </tr>
-              )}
+              })
+            )}
             </tbody>
           </table>
         </div>
 
         {/* Pagination Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 mt-3 border-t border-zinc-200 dark:border-[#222225] text-xs text-zinc-500 dark:text-neutral-400">
-          <span className="text-center sm:text-left">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 mt-3 border-t border-[#E4E7EC] dark:border-[#222225] text-xs text-zinc-500 dark:text-neutral-400">
+          <span>
             Showing {(currentPage - 1) * pageSize + 1} to{" "}
-            {Math.min(currentPage * pageSize, filteredEvents.length)} of {filteredEvents.length} events
+            {Math.min(currentPage * pageSize, filteredEvents.length)} of{" "}
+            {filteredEvents.length} events
           </span>
 
           <div className="flex items-center justify-center gap-1.5">
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="p-1.5 rounded-[10px] bg-zinc-100 hover:bg-zinc-200 dark:bg-[#1a1a1e] border border-zinc-300 dark:border-[#27272a] disabled:opacity-40 text-zinc-700 dark:text-white cursor-pointer"
+              className="p-1.5 rounded-[10px] bg-zinc-100 hover:bg-zinc-200 dark:bg-[#18181c] border border-[#E4E7EC] dark:border-[#222225] disabled:opacity-40 text-[#09090B] dark:text-white cursor-pointer"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
             </button>
-            <span className="px-3 py-1 font-mono text-zinc-900 dark:text-white text-xs bg-zinc-100 dark:bg-[#1a1a1e] border border-zinc-300 dark:border-[#27272a] rounded-[10px] whitespace-nowrap">
+            <span className="px-3 py-1 font-mono text-[#09090B] dark:text-white text-xs bg-zinc-100 dark:bg-[#18181c] border border-[#E4E7EC] dark:border-[#222225] rounded-[10px]">
               Page {currentPage} / {totalPages}
             </span>
             <button
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
-              className="p-1.5 rounded-[10px] bg-zinc-100 hover:bg-zinc-200 dark:bg-[#1a1a1e] border border-zinc-300 dark:border-[#27272a] disabled:opacity-40 text-zinc-700 dark:text-white cursor-pointer"
+              className="p-1.5 rounded-[10px] bg-zinc-100 hover:bg-zinc-200 dark:bg-[#18181c] border border-[#E4E7EC] dark:border-[#222225] disabled:opacity-40 text-[#09090B] dark:text-white cursor-pointer"
             >
               <ChevronRight className="w-3.5 h-3.5" />
             </button>

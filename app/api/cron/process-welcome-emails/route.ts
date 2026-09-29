@@ -40,6 +40,16 @@ async function handleProcess() {
 
         if (emailRes.success) {
           await convex.mutation(usersApi.markWelcomeEmailSent, { id: item._id });
+          if (item.userId) {
+            try {
+              await convex.mutation(api.notifications.createNotification, {
+                orgId: item.userId,
+                title: "Bienvenue chez LShorter 🚀",
+                message: `Bonjour ${item.name || "cher utilisateur"}, merci d'avoir rejoint LShorter ! Votre espace est prêt pour créer vos liens et QR codes.`,
+                type: "INFO",
+              });
+            } catch {}
+          }
           sentCount++;
         } else {
           console.error(`[ProcessWelcomeEmails] Failed to send to ${item.email}:`, emailRes.error);

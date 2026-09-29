@@ -31,7 +31,7 @@ export function WobbleCardSection() {
             end: "bottom 12%",
             toggleActions: "play reverse play reverse",
           },
-        }
+        },
       );
     }
 
@@ -47,23 +47,24 @@ export function WobbleCardSection() {
   return (
     <section
       id="overview"
-      className="relative z-10 py-16 sm:py-24 overflow-hidden bg-[#FAF7F2] dark:bg-[#09090b] transition-colors"
+      className="relative z-10 h-[160vh] py-16 sm:py-24 overflow-hidden bg-background-dark dark:bg-background-white transition-colors duration-300"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         {/* Section Header */}
         <div
           ref={headerRef}
-          className="wobble-section-header text-center max-w-2xl mx-auto mb-10 sm:mb-14 flex flex-col items-center justify-center will-change-transform"
+          className="wobble-section-header text-center max-w-2xl mx-auto mb-20 sm:mb-30 flex flex-col items-center justify-center will-change-transform"
         >
-          <span className="text-[11px] font-mono text-brand uppercase tracking-widest font-semibold block mb-2 select-none">
+          <span className="text-marketing-title1 font-mono text-brand uppercase tracking-widest font-semibold block mb-3 select-none">
             04. Modern SaaS Architecture
           </span>
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-neutral-900 dark:text-white leading-tight text-center">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-[#ffffff] dark:text-neutral-900 leading-tight text-center mb-2">
             Built for Extreme Speed, Engineered for High Conversion
           </h2>
-          <p className="mt-2 text-xs sm:text-sm md:text-base text-neutral-600 dark:text-neutral-400 font-normal max-w-xl mx-auto text-center">
-            Experience the full depth of LShorter: Edge geolocation, multi-variant
-            A/B testing, vector QR codes, and zero-leakage security.
+          <p className="mt-2 text-xs sm:text-sm md:text-base text-neutral-500 dark:text-neutral-700 font-normal max-w-xl mx-auto text-center">
+            Experience the full depth of LShorter: Edge geolocation,
+            multi-variant A/B testing, vector QR codes, and zero-leakage
+            security.
           </p>
         </div>
 
@@ -84,12 +85,15 @@ export function WobbleCardSection() {
                   <span>Cloudflare Global Edge</span>
                 </div>
                 <h2 className="text-balance text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold tracking-[-0.015em] text-white leading-tight">
-                  LShorter Edge powers sub-<Counter value={15} suffix="ms" /> redirects across the entire globe
+                  LShorter Edge powers sub-
+                  <Counter value={15} suffix="ms" /> redirects across the entire
+                  globe
                 </h2>
                 <p className="mt-3 text-xs sm:text-sm md:text-[14px] text-pink-100/90 leading-relaxed font-normal">
-                  With over <Counter value={120000} suffix="+" /> monthly active redirects, smart country-based
-                  failover, and zero-latency memory caching, LShorter is the modern
-                  infrastructure for conversion.
+                  With over <Counter value={120000} suffix="+" /> monthly active
+                  redirects, smart country-based failover, and zero-latency
+                  memory caching, LShorter is the modern infrastructure for
+                  conversion.
                 </p>
                 <div className="mt-5 inline-flex items-center gap-2 text-xs font-semibold text-white group-hover:translate-x-1 transition-transform">
                   <span>Explore Edge Architecture</span>
@@ -131,13 +135,15 @@ export function WobbleCardSection() {
                   No tracking leak. Total PIN &amp; Masking control.
                 </h2>
                 <p className="mt-3 max-w-[26rem] text-xs sm:text-sm text-indigo-100/90 leading-relaxed font-normal">
-                  Conceal affiliate parameters to protect campaigns from scrapers,
-                  and gate high-value links with granular access PIN codes.
+                  Conceal affiliate parameters to protect campaigns from
+                  scrapers, and gate high-value links with granular access PIN
+                  codes.
                 </p>
 
                 <div className="mt-6 flex flex-wrap items-center justify-center sm:justify-start gap-2">
                   <div className="px-2.5 py-1 rounded-md bg-white/10 border border-white/15 text-[11px] font-mono text-emerald-300">
-                    AES-<Counter value={256} /> GCM
+                    AES-
+                    <Counter value={256} /> GCM
                   </div>
                   <div className="px-2.5 py-1 rounded-md bg-white/10 border border-white/15 text-[11px] font-mono text-indigo-200">
                     PIN Verified
@@ -167,12 +173,14 @@ export function WobbleCardSection() {
                   <span>Vector Engine &amp; Automation</span>
                 </div>
                 <h2 className="text-balance text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold tracking-[-0.015em] text-white leading-tight">
-                  Dynamic Vector QR Codes, Multi-Variant A/B Matrix &amp; Instant Webhooks
+                  Dynamic Vector QR Codes, Multi-Variant A/B Matrix &amp;
+                  Instant Webhooks
                 </h2>
                 <p className="mt-3 text-xs sm:text-sm md:text-[14px] text-blue-100/90 leading-relaxed font-normal">
                   Generate print-ready vector QR codes for physical media, split
-                  clicks between multiple landing pages by custom percentage, and
-                  stream webhook payloads straight to Discord, Slack, or your API.
+                  clicks between multiple landing pages by custom percentage,
+                  and stream webhook payloads straight to Discord, Slack, or
+                  your API.
                 </p>
                 <div className="mt-5 inline-flex items-center gap-2 text-xs font-semibold text-white group-hover:translate-x-1 transition-transform">
                   <span>Explore QR &amp; Matrix Tools</span>

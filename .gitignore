@@ -43,3 +43,5 @@ next-env.d.ts
 # uploads
 /public/uploads/
 
+# Playwright CLI output (may contain credentials)
+.playwright-cli/

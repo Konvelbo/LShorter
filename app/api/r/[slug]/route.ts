@@ -1,26 +1,19 @@
 import { NextResponse } from "next/server";
-import { getProtectedLink, recordLinkClick } from "@/lib/protected-links-store";
 import { trackClickAsync, evaluateTargetUrl } from "@/app/r/[slug]/route";
 
-const WORKER_URL =
-  process.env.NEXT_PUBLIC_BACKEND_API_URL ||
-  "https://lshorter-api.fiatechnologiecam.workers.dev";
-const FRONTEND_SECRET =
-  process.env.FRONTEND_API_SECRET || "lsh_secret_live_prod_2026";
+import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
 
 async function resolveLinkData(slug: string, req: Request) {
-  const protectedMeta = getProtectedLink(slug);
-
-  // 1. Check if Worker knows this slug via /r/ redirect (302)
+  // 1. Vérification du slug auprès du Worker via la redirection /r/ (302)
   let workerTargetUrl: string | null = null;
-  let isActive = protectedMeta?.isActive !== undefined ? protectedMeta.isActive : true;
+  let isActive = true;
 
   try {
     const redirectRes = await fetch(`${WORKER_URL}/r/${slug}`, {
       method: "GET",
       headers: {
         "X-Internal-Probe": "1",
-        "Purpose": "prefetch",
+        Purpose: "prefetch",
         "X-Frontend-Secret": FRONTEND_SECRET,
       },
       redirect: "manual",
@@ -30,65 +23,100 @@ async function resolveLinkData(slug: string, req: Request) {
     if (redirectRes.status === 302 || redirectRes.status === 307) {
       workerTargetUrl = redirectRes.headers.get("location");
     } else if (redirectRes.status === 404 || redirectRes.status === 403) {
-      if (!protectedMeta) isActive = false;
+      isActive = false;
     }
   } catch (err) {
     console.warn("[Worker Redirect Resolution error]:", err);
   }
 
-  // 2. Also try /api/v1/links
+  // 2. Recherche directe via /api/v1/links/:slug, avec repli sur /api/v1/links
   let linkObj: any = null;
   try {
-    const listRes = await fetch(`${WORKER_URL}/api/v1/links`, {
-      headers: {
-        "X-Frontend-Secret": FRONTEND_SECRET,
-        Authorization: `Bearer ${FRONTEND_SECRET}`,
+    const singleRes = await fetch(
+      `${WORKER_URL}/api/v1/links/${encodeURIComponent(slug)}`,
+      {
+        headers: {
+          "X-Frontend-Secret": FRONTEND_SECRET,
+          Authorization: `Bearer ${FRONTEND_SECRET}`,
+        },
+        cache: "no-store",
       },
-      cache: "no-store",
-    });
+    ).catch(() => null);
 
-    if (listRes.ok) {
-      const listData = await listRes.json();
-      const list = Array.isArray(listData?.data) ? listData.data : [];
-      linkObj = list.find((l: any) => l.slug?.toLowerCase() === slug.toLowerCase()) || null;
+    if (singleRes && singleRes.ok) {
+      const singleData = await singleRes.json().catch(() => null);
+      const candidate = singleData?.data || singleData;
+      if (candidate && (candidate.target_url || candidate.targetUrl)) {
+        linkObj = candidate;
+      }
+    }
+
+    if (!linkObj) {
+      const listRes = await fetch(`${WORKER_URL}/api/v1/links?limit=100`, {
+        headers: {
+          "X-Frontend-Secret": FRONTEND_SECRET,
+          Authorization: `Bearer ${FRONTEND_SECRET}`,
+        },
+        cache: "no-store",
+      });
+
+      if (listRes.ok) {
+        const listData = await listRes.json();
+        const list = Array.isArray(listData?.data) ? listData.data : [];
+        linkObj =
+          list.find((l: any) => l.slug?.toLowerCase() === slug.toLowerCase()) ||
+          null;
+      }
     }
   } catch (err) {
-    console.warn("[Worker Links List error]:", err);
+    console.warn("[Worker Links Lookup error]:", err);
+  }
+
+  // Si le worker fournit l'état actif, on met à jour le flag
+  if (linkObj) {
+    if (linkObj.is_active !== undefined) {
+      isActive = Boolean(
+        linkObj.is_active !== 0 && linkObj.is_active !== false,
+      );
+    } else if (linkObj.isActive !== undefined) {
+      isActive = Boolean(linkObj.isActive);
+    }
   }
 
   const rawTargetUrl =
-    workerTargetUrl ||
-    linkObj?.target_url ||
-    linkObj?.targetUrl ||
-    protectedMeta?.targetUrl ||
-    null;
+    workerTargetUrl || linkObj?.target_url || linkObj?.targetUrl || null;
 
   if (!rawTargetUrl) {
     return null;
   }
 
-  const evaluatedTargetUrl = evaluateTargetUrl(rawTargetUrl, req, protectedMeta || linkObj);
+  const evaluatedTargetUrl = evaluateTargetUrl(
+    rawTargetUrl,
+    req,
+    linkObj || {},
+  );
 
-  const password = protectedMeta?.password || linkObj?.password;
+  const password = linkObj?.password;
   const hasPassword = Boolean(
     password ||
     linkObj?.is_password_protected ||
     linkObj?.isPasswordProtected ||
-    linkObj?.has_password
+    linkObj?.has_password,
   );
 
-  const isCloaked = Boolean(
-    protectedMeta?.isCloaked !== undefined
-      ? protectedMeta.isCloaked
-      : linkObj?.is_cloaked || linkObj?.isCloaked
-  );
+  const isCloaked = Boolean(linkObj?.is_cloaked || linkObj?.isCloaked);
 
   const metaTitle =
-    protectedMeta?.metaTitle ||
-    linkObj?.meta_title ||
-    linkObj?.metaTitle ||
-    linkObj?.og_title ||
-    slug;
+    linkObj?.meta_title || linkObj?.metaTitle || linkObj?.og_title || slug;
+
+  const pathLockMode =
+    linkObj?.path_lock_mode || linkObj?.pathLockMode || "off";
+  const pathLockPrefix =
+    linkObj?.path_lock_prefix || linkObj?.pathLockPrefix || "";
+  const pathLockMessage =
+    linkObj?.path_lock_message || linkObj?.pathLockMessage || "";
+  const pathLockPassword =
+    linkObj?.path_lock_password || linkObj?.pathLockPassword || "";
 
   return {
     id: linkObj?.id || `link_${slug}`,
@@ -97,35 +125,47 @@ async function resolveLinkData(slug: string, req: Request) {
     isPasswordProtected: hasPassword,
     password: password || undefined,
     isCloaked,
+    pathLockMode,
+    pathLockPrefix,
+    pathLockMessage,
+    pathLockPassword,
     metaTitle,
     targetUrl: evaluatedTargetUrl,
     isActive,
-    expiresAt: protectedMeta?.expiresAt || linkObj?.expires_at || linkObj?.expiresAt,
-    maxClicks: protectedMeta?.maxClicks || linkObj?.max_clicks || linkObj?.maxClicks,
-    fallbackUrl: protectedMeta?.fallbackUrl || linkObj?.fallback_url || linkObj?.fallbackUrl,
-    clicksCount: linkObj?.clicks_count || linkObj?.clicks || protectedMeta?.clicksCount || 0,
-    userId: linkObj?.user_id || protectedMeta?.userId || "usr_default",
+    expiresAt: linkObj?.expires_at || linkObj?.expiresAt || null,
+    maxClicks: linkObj?.max_clicks || linkObj?.maxClicks || null,
+    fallbackUrl: linkObj?.fallback_url || linkObj?.fallbackUrl || null,
+    clicksCount: Number(
+      linkObj?.clicks_count || linkObj?.clicksCount || linkObj?.clicks || 0,
+    ),
+    userId: linkObj?.user_id || "usr_default",
   };
 }
 
 export async function GET(
   req: Request,
-  { params }: { params: Promise<{ slug: string }> }
+  { params }: { params: Promise<{ slug: string }> },
 ) {
   const { slug } = await params;
   if (!slug) {
-    return NextResponse.json({ success: false, error: "Slug manquant" }, { status: 400 });
+    return NextResponse.json(
+      { success: false, error: "Slug manquant" },
+      { status: 400 },
+    );
   }
 
   const link = await resolveLinkData(slug, req);
   if (!link) {
-    return NextResponse.json({ success: false, error: "Lien introuvable ou expiré" }, { status: 404 });
+    return NextResponse.json(
+      { success: false, error: "Lien introuvable ou expiré" },
+      { status: 404 },
+    );
   }
 
   if (!link.isActive) {
     return NextResponse.json(
       { success: false, error: "Ce lien a été désactivé par son propriétaire" },
-      { status: 403 }
+      { status: 403 },
     );
   }
 
@@ -138,7 +178,7 @@ export async function GET(
       isPasswordProtected: link.isPasswordProtected,
       isCloaked: link.isCloaked,
       metaTitle: link.metaTitle,
-      // TargetUrl is HIDDEN in GET if protected by password
+      // L'URL de destination est masquée si le lien est protégé par mot de passe
       targetUrl: link.isPasswordProtected ? undefined : link.targetUrl,
     },
   });
@@ -146,16 +186,22 @@ export async function GET(
 
 export async function POST(
   req: Request,
-  { params }: { params: Promise<{ slug: string }> }
+  { params }: { params: Promise<{ slug: string }> },
 ) {
   const { slug } = await params;
   if (!slug) {
-    return NextResponse.json({ success: false, error: "Slug manquant" }, { status: 400 });
+    return NextResponse.json(
+      { success: false, error: "Slug manquant" },
+      { status: 400 },
+    );
   }
 
   const link = await resolveLinkData(slug, req);
   if (!link) {
-    return NextResponse.json({ success: false, error: "Lien introuvable" }, { status: 404 });
+    return NextResponse.json(
+      { success: false, error: "Lien introuvable" },
+      { status: 404 },
+    );
   }
 
   try {
@@ -164,49 +210,71 @@ export async function POST(
     const actualPassword = (link.password || "").trim();
 
     if (!link.isActive) {
-      return NextResponse.json({
-        success: false,
-        error: "LINK_PAUSED",
-        fallbackUrl: `/r/${slug}/paused`,
-      }, { status: 403 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: "LINK_PAUSED",
+          fallbackUrl: `/r/${slug}/paused`,
+        },
+        { status: 403 },
+      );
     }
 
     if (link.expiresAt && new Date(link.expiresAt).getTime() <= Date.now()) {
-      return NextResponse.json({
-        success: false,
-        error: "LINK_EXPIRED",
-        fallbackUrl: `/r/${slug}/expired`,
-      }, { status: 403 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: "LINK_EXPIRED",
+          fallbackUrl: `/r/${slug}/expired`,
+        },
+        { status: 403 },
+      );
     }
 
-    // Check click quota
-    if (link.maxClicks && link.maxClicks > 0 && (link.clicksCount || 0) >= link.maxClicks) {
-      return NextResponse.json({
-        success: false,
-        error: "QUOTA_REACHED",
-        fallbackUrl: link.fallbackUrl || `/r/${slug}/expired`,
-      }, { status: 403 });
+    // Vérification du quota de clics
+    if (
+      link.maxClicks &&
+      link.maxClicks > 0 &&
+      (link.clicksCount || 0) >= link.maxClicks
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "QUOTA_REACHED",
+          fallbackUrl: link.fallbackUrl || `/r/${slug}/expired`,
+        },
+        { status: 403 },
+      );
     }
 
     if (!actualPassword || providedPassword === actualPassword) {
-      // 1. Record authentic click event in Cloudflare D1
+      // Enregistrement direct du clic dans Cloudflare D1
       await trackClickAsync(req, slug, link).catch(() => {});
-      // 2. Increment local memory counter (strictly capped at maxClicks)
-      recordLinkClick(slug);
+
+      const isIsolated = Boolean(
+        link.isCloaked || (link.pathLockMode && link.pathLockMode !== "off"),
+      );
 
       return NextResponse.json({
         success: true,
         targetUrl: link.targetUrl,
-        isCloaked: link.isCloaked,
+        isCloaked: isIsolated,
+        pathLockMode: link.pathLockMode,
+        pathLockPrefix: link.pathLockPrefix,
+        pathLockMessage: link.pathLockMessage,
+        pathLockPassword: link.pathLockPassword,
         metaTitle: link.metaTitle,
       });
     }
 
     return NextResponse.json(
       { success: false, error: "Mot de passe incorrect. Veuillez réessayer." },
-      { status: 401 }
+      { status: 401 },
     );
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error?.message || "Erreur serveur" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: error?.message || "Erreur serveur" },
+      { status: 500 },
+    );
   }
 }

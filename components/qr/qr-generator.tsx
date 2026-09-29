@@ -1474,9 +1474,9 @@ export function QRGenerator() {
           <Button
             onClick={handleSaveCustomization}
             disabled={isSavingCustomization}
-            variant="glow"
+            variant="primary"
             size="sm"
-            className="text-xs font-bold gap-1.5 shadow-lg shadow-brand cursor-pointer"
+            className="text-xs font-bold gap-1.5 cursor-pointer"
           >
             {isSavingCustomization ? (
               <>
@@ -1523,7 +1523,7 @@ export function QRGenerator() {
                   onClick={() => setContentType(item.type)}
                   className={`btn-hover-scale px-4 py-2 rounded-[10px] text-xs font-semibold border transition-all duration-200 cursor-pointer ${
                     contentType === item.type
-                      ? "bg-brand text-white border-brand shadow-md shadow-brand font-bold"
+                      ? "bg-brand text-white border-brand font-bold"
                       : "bg-[#141416] border-[#27272a] text-neutral-300 hover:text-white hover:bg-white/5"
                   }`}
                 >
@@ -1768,7 +1768,7 @@ export function QRGenerator() {
                     }}
                     className={`btn-hover-scale relative flex flex-col items-center justify-center h-14 rounded-[10px] border transition-all duration-200 cursor-pointer ${
                       pixelStyle === item.id
-                        ? "bg-brand-light border-brand text-white shadow-md shadow-brand"
+                        ? "bg-brand-light border-brand text-white"
                         : "bg-[#1a1a1e] border-[#27272a] text-neutral-300 hover:border-neutral-500 hover:bg-white/5"
                     }`}
                   >
@@ -1814,7 +1814,7 @@ export function QRGenerator() {
                     }}
                     className={`btn-hover-scale relative flex flex-col items-center justify-center h-14 rounded-[10px] border transition-all duration-200 cursor-pointer ${
                       eyeStyle === item.id
-                        ? "bg-brand-light border-brand text-white shadow-md shadow-brand"
+                        ? "bg-brand-light border-brand text-white"
                         : "bg-[#1a1a1e] border-[#27272a] text-neutral-300 hover:border-neutral-500 hover:bg-white/5"
                     }`}
                   >
@@ -2059,7 +2059,7 @@ export function QRGenerator() {
                     title={logoItem.label}
                     className={`btn-hover-scale relative flex flex-col items-center justify-center h-14 rounded-[10px] border transition-all duration-200 cursor-pointer ${
                       isSelected
-                        ? "bg-brand-light border-brand text-white shadow-md shadow-brand"
+                        ? "bg-brand-light border-brand text-white"
                         : "bg-[#1a1a1e] border-[#27272a] text-neutral-300 hover:border-neutral-500 hover:bg-white/5"
                     }`}
                   >
@@ -2164,7 +2164,7 @@ export function QRGenerator() {
                           }}
                           className={`btn-hover-scale relative flex flex-col items-center justify-center h-16 rounded-[10px] border transition-all duration-200 cursor-pointer ${
                             isSelected
-                              ? "bg-brand-light border-brand text-white shadow-md shadow-brand"
+                              ? "bg-brand-light border-brand text-white"
                               : "bg-[#1a1a1e] border-[#27272a] text-neutral-300 hover:border-neutral-500 hover:bg-white/5"
                           }`}
                         >
@@ -2234,7 +2234,7 @@ export function QRGenerator() {
                 <div className="flex flex-col gap-4 p-4 rounded-[12px] bg-[#1a1a1e] border border-[#27272a] shadow-lg">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#27272a] pb-3">
                     <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-[8px] bg-brand flex items-center justify-center text-white shadow-md shadow-brand">
+                      <div className="w-7 h-7 rounded-[8px] bg-brand flex items-center justify-center text-white">
                         <Type className="w-4 h-4" />
                       </div>
                       <div>
@@ -2335,7 +2335,7 @@ export function QRGenerator() {
                                 onClick={() => setFontFamily(f.id)}
                                 className={`btn-hover-scale relative flex flex-col p-2.5 rounded-[10px] border text-left transition-all cursor-pointer ${
                                   isSelected
-                                    ? "bg-brand-light border-brand text-white shadow-md shadow-brand ring-1 ring-brand"
+                                    ? "bg-brand-light border-brand text-white ring-1 ring-brand"
                                     : "bg-[#141416] border-[#27272a] text-neutral-300 hover:border-neutral-500 hover:bg-white/5"
                                 }`}
                               >
@@ -2544,8 +2544,8 @@ export function QRGenerator() {
           <Button
             onClick={handleSaveCustomization}
             disabled={isSavingCustomization}
-            variant="glow"
-            className="w-full py-3 h-11 text-xs font-bold flex items-center justify-center gap-2 shadow-lg shadow-brand cursor-pointer"
+            variant="primary"
+            className="w-full py-3 h-11 text-xs font-bold flex items-center justify-center gap-2 cursor-pointer"
           >
             {isSavingCustomization ? (
               <>
@@ -2569,7 +2569,7 @@ export function QRGenerator() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             <button
               onClick={downloadPNG}
-              className="btn-hover-scale flex items-center justify-center gap-1.5 py-2.5 rounded-[10px] bg-brand hover:bg-brand-hover text-white text-xs font-bold shadow-lg shadow-brand cursor-pointer"
+              className="btn-hover-scale flex items-center justify-center gap-1.5 py-2.5 rounded-[10px] bg-brand hover:bg-brand-hover text-white text-xs font-bold cursor-pointer"
             >
               <Download className="w-3.5 h-3.5" />
               <span>PNG</span>

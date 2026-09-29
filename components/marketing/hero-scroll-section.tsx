@@ -51,54 +51,99 @@ import { Badge } from "@/components/ui/badge";
 import { ShinyText } from "@/components/ui/shiny-text";
 import { TextType } from "@/components/ui/text-type";
 import PlasmaWave from "./plasma-wave";
-import { motion, useScroll, useTransform, useSpring } from "framer-motion";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { AnimatedBar } from "@/components/ui/animated-bar";
 import confetti from "canvas-confetti";
 
 export function HeroScrollSection() {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // ─── FRAMER MOTION SCROLL PHYSICS (Aceternity Style) ───
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start start", "end end"],
-  });
-
-  const smoothProgress = useSpring(scrollYProgress, {
-    stiffness: 90,
-    damping: 24,
-    restDelta: 0.001,
-  });
-
-  // 1. Hero Text & CTAs (Phase 1: Top of scroll -> Fades & floats up)
-  const heroOpacity = useTransform(smoothProgress, [0, 0.22], [1, 0]);
-  const heroY = useTransform(smoothProgress, [0, 0.22], [0, -80]);
-  const heroScale = useTransform(smoothProgress, [0, 0.22], [1, 0.96]);
-
-  // 2. Mobile Phone Frame (Phase 1: Fades out quickly to the right)
-  const mobileOpacity = useTransform(smoothProgress, [0, 0.18], [1, 0]);
-  const mobileScale = useTransform(smoothProgress, [0, 0.18], [1, 0.84]);
-  const mobileX = useTransform(smoothProgress, [0, 0.18], [0, 70]);
-
-  // 3. Desktop Frame Transform (The ONE single frame that starts at exact Hero 440px / 820px and expands to full 70vh / max-w-6xl)
-  const frameHeight = useTransform(smoothProgress, [0, 0.65], ["440px", "70vh"]);
-  const frameMinHeight = useTransform(smoothProgress, [0, 0.65], ["440px", "580px"]);
-  const frameMaxWidth = useTransform(smoothProgress, [0, 0.65], ["820px", "1152px"]);
-  const frameScale = useTransform(smoothProgress, [0, 0.65], [0.98, 1]);
-  const frameRotateX = useTransform(smoothProgress, [0, 0.55], [6, 0]);
-  const frameY = useTransform(smoothProgress, [0, 0.65], [0, 0]);
-
-  // 4. Section 2 Header (Phase 3: Fades in AFTER the frame starts expanding)
-  const section2Opacity = useTransform(smoothProgress, [0.42, 0.72], [0, 1]);
-  const section2Y = useTransform(smoothProgress, [0.42, 0.72], [30, 0]);
+  // GSAP refs pour les 4 layers animés
+  const heroLayerRef = useRef<HTMLDivElement>(null);
+  const section2Ref = useRef<HTMLDivElement>(null);
+  const frameRef = useRef<HTMLDivElement>(null);
+  const mobileRef = useRef<HTMLDivElement>(null);
 
   // Pointer events helpers based on scroll state
   const [isHeroActive, setIsHeroActive] = useState(true);
+
+  // ─── GSAP SCROLL PHYSICS — équivalent du useScroll + useSpring + useTransform ───
   useEffect(() => {
-    return smoothProgress.on("change", (v) => {
-      setIsHeroActive(v < 0.22);
+    if (typeof window === "undefined") return;
+    gsap.registerPlugin(ScrollTrigger);
+
+    const container = containerRef.current;
+    const heroLayer = heroLayerRef.current;
+    const section2 = section2Ref.current;
+    const frame = frameRef.current;
+    const mobile = mobileRef.current;
+
+    if (!container || !heroLayer || !section2 || !frame) return;
+
+    // Timeline principale scrubée sur le scroll du conteneur
+    const tl = gsap.timeline({
+      scrollTrigger: {
+        trigger: container,
+        start: "top top",
+        end: "bottom bottom",
+        scrub: 0.6, // équivalent du spring GSAP (smoothing)
+        onUpdate: (self) => {
+          setIsHeroActive(self.progress < 0.22);
+        },
+      },
     });
-  }, [smoothProgress]);
+
+    // 1. Hero Text & CTAs (phase 0→0.22) — opacity 1→0, y 0→-80, scale 1→0.96
+    tl.fromTo(
+      heroLayer,
+      { opacity: 1, y: 0, scale: 1 },
+      { opacity: 0, y: -80, scale: 0.96, ease: "none", duration: 0.22 },
+      0,
+    );
+
+    // 2. Mobile Phone Frame (phase 0→0.18) — opacity/scale/x out
+    if (mobile) {
+      tl.fromTo(
+        mobile,
+        { opacity: 1, scale: 1, x: 0 },
+        { opacity: 0, scale: 0.84, x: 70, ease: "none", duration: 0.18 },
+        0,
+      );
+    }
+
+    // 3. Desktop Frame (phase 0→0.65) — scale, rotateX, maxWidth, height
+    tl.fromTo(
+      frame,
+      {
+        scale: 0.98,
+        rotateX: 6,
+        transformPerspective: 1200,
+      },
+      {
+        scale: 1,
+        rotateX: 0,
+        ease: "none",
+        duration: 0.65,
+      },
+      0,
+    );
+
+    // 4. Section 2 Header (phase 0.42→0.72) — fade in
+    tl.fromTo(
+      section2,
+      { opacity: 0, y: 30 },
+      { opacity: 1, y: 0, ease: "none", duration: 0.3 },
+      0.42,
+    );
+
+    return () => {
+      tl.kill();
+      ScrollTrigger.getAll()
+        .filter((st) => st.trigger === container)
+        .forEach((st) => st.kill());
+    };
+  }, []);
 
   // ─── DASHBOARD INTERACTIVE STATES ───
   const [activeTab, setActiveTab] = useState<"overview" | "links" | "qr" | "analytics">("overview");
@@ -420,13 +465,9 @@ export function HeroScrollSection() {
         </div>
 
         {/* ─── LAYER 1: HERO TOP TEXTS & CTAS (Fades out when scrolling down) ─── */}
-        <motion.div
-          style={{
-            opacity: heroOpacity,
-            y: heroY,
-            scale: heroScale,
-            pointerEvents: isHeroActive ? "auto" : "none",
-          }}
+        <div
+          ref={heroLayerRef}
+          style={{ pointerEvents: isHeroActive ? "auto" : "none" }}
           className="absolute top-16 sm:top-20 inset-x-0 mx-auto max-w-4xl px-4 text-center z-20 flex flex-col items-center will-change-transform"
         >
           {/* Main Title: ShinyText */}
@@ -479,13 +520,13 @@ export function HeroScrollSection() {
               </Button>
             </button>
           </div>
-        </motion.div>
+        </div>
 
         {/* ─── LAYER 2: SECTION 2 HEADER (Fades in as frame centers and expands) ─── */}
-        <motion.div
+        <div
+          ref={section2Ref}
           style={{
-            opacity: section2Opacity,
-            y: section2Y,
+            opacity: 0,
             pointerEvents: !isHeroActive ? "auto" : "none",
           }}
           className="absolute top-12 sm:top-14 inset-x-0 mx-auto max-w-2xl px-4 text-center z-20 will-change-transform"
@@ -496,7 +537,7 @@ export function HeroScrollSection() {
           <p className="mt-1.5 text-[11px] sm:text-sm text-neutral-600 dark:text-neutral-400 font-normal leading-relaxed">
             An intuitive dashboard engineered to manage your Edge redirects, routing rules, and real-time metrics.
           </p>
-        </motion.div>
+        </div>
 
         {/* ─── LAYER 3: CENTRAL ANIMATED STAGE (Desktop Frame & Disappearing Mobile Frame) ─── */}
         <div className="relative z-10 w-full max-w-6xl mx-auto flex items-end justify-center h-full pt-20 pb-0 sm:pt-24 sm:pb-2">
@@ -505,15 +546,12 @@ export function HeroScrollSection() {
           <div className="w-full flex items-end justify-center gap-4 lg:gap-5">
             
             {/* 1. DESKTOP BROWSER FRAME (The Hero piece that tracks scroll, centers, scales, and expands to 70vh) */}
-            <motion.div
+            <div
+              ref={frameRef}
               style={{
-                scale: frameScale,
-                rotateX: frameRotateX,
-                y: frameY,
-                maxWidth: frameMaxWidth,
-                height: frameHeight,
-                minHeight: frameMinHeight,
-                transformPerspective: 1200,
+                maxWidth: "820px",
+                height: "440px",
+                minHeight: "440px",
               }}
               className="relative flex-1 min-w-0 rounded-2xl bg-[#FFFDF9] dark:bg-[#121216] border border-[#E7DFD5] dark:border-white/15 shadow-[0_25px_70px_rgba(43,37,32,0.22)] dark:shadow-[0_30px_90px_rgba(0,0,0,0.92)] overflow-hidden flex flex-col transition-colors will-change-transform"
             >
@@ -1180,16 +1218,12 @@ export function HeroScrollSection() {
 
                 </div>
               </div>
-            </motion.div>
+            </div>
 
             {/* 2. SMARTPHONE FRAME (Disappears quickly to the right on scroll down) */}
-            <motion.div
-              style={{
-                opacity: mobileOpacity,
-                scale: mobileScale,
-                x: mobileX,
-                pointerEvents: isHeroActive ? "auto" : "none",
-              }}
+            <div
+              ref={mobileRef}
+              style={{ pointerEvents: isHeroActive ? "auto" : "none" }}
               className="hidden sm:flex relative w-[270px] lg:w-[290px] shrink-0 h-[440px] will-change-transform"
             >
               {/* Phone Container */}
@@ -1269,7 +1303,7 @@ export function HeroScrollSection() {
                   </div>
                 </div>
               </div>
-            </motion.div>
+            </div>
 
           </div>
         </div>

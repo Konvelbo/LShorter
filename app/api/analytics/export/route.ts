@@ -1,13 +1,12 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { getCountryName } from "@/lib/utils";
-import { getAllProtectedLinks, getProtectedLink } from "@/lib/protected-links-store";
 
 const WORKER_URL =
-  process.env.NEXT_PUBLIC_BACKEND_API_URL ||
-  "https://lshorter-api.fiatechnologiecam.workers.dev";
-const FRONTEND_SECRET =
-  process.env.FRONTEND_API_SECRET || "lsh_secret_live_prod_2026";
+  process.env.BACKEND_API_URL ||
+  process.env.CLOUDFLARE_WORKER_URL ||
+  "";
+const FRONTEND_SECRET = process.env.FRONTEND_API_SECRET || "";
 
 function escapeXml(str: any): string {
   if (str === null || str === undefined) return "";
@@ -73,12 +72,15 @@ function generateExcelXml(
     avgCtr: string;
     exportDate: string;
     period: string;
-  }
+  },
 ): string {
   // ─── Sheet 1: Links Performance ─────────────────────────────────────────
-  const linkWidths = [120, 190, 190, 260, 95, 95, 95, 90, 110, 80, 140, 120, 140, 90, 80, 85, 110, 110, 110];
+  const linkWidths = [
+    120, 190, 190, 260, 95, 95, 95, 90, 110, 80, 140, 120, 140, 90, 80, 85, 110,
+    110, 110,
+  ];
   const linkColsXml = linkWidths
-    .map((w) => `   <Column ss:AutoFitWidth="1" ss:Width="${w}"/>`)
+    .map((w) => `    <Column ss:AutoFitWidth="1" ss:Width="${w}"/>`)
     .join("\n");
 
   const linkHeaders = [
@@ -104,47 +106,52 @@ function generateExcelXml(
   ];
 
   const linkHeaderRow =
-    `   <Row ss:Height="26">\n` +
+    `    <Row ss:Height="26">\n` +
     linkHeaders
-      .map((col) => `    <Cell ss:StyleID="Header"><Data ss:Type="String">${escapeXml(col)}</Data></Cell>`)
+      .map(
+        (col) =>
+          `     <Cell ss:StyleID="Header"><Data ss:Type="String">${escapeXml(col)}</Data></Cell>`,
+      )
       .join("\n") +
-    `\n   </Row>`;
+    `\n    </Row>`;
 
   let linkDataRows = "";
   if (links.length === 0) {
-    linkDataRows = `   <Row ss:Height="24">\n    <Cell ss:StyleID="DataCellLeft" ss:MergeAcross="18"><Data ss:Type="String">No links recorded for this account.</Data></Cell>\n   </Row>`;
+    linkDataRows = `    <Row ss:Height="24">\n     <Cell ss:StyleID="DataCellLeft" ss:MergeAcross="18"><Data ss:Type="String">No links recorded for this account.</Data></Cell>\n    </Row>`;
   } else {
     linkDataRows = links
       .map((l) => {
-        return `   <Row ss:Height="22">
-    <Cell ss:StyleID="DataCellBold"><Data ss:Type="String">${escapeXml(l.slug)}</Data></Cell>
-    <Cell ss:StyleID="DataCellLeft"><Data ss:Type="String">${escapeXml(l.title)}</Data></Cell>
-    <Cell ss:StyleID="DataCellLeft"><Data ss:Type="String">${escapeXml(l.shortUrl)}</Data></Cell>
-    <Cell ss:StyleID="DataCellLeft"><Data ss:Type="String">${escapeXml(l.targetUrl)}</Data></Cell>
-    <Cell ss:StyleID="NumberCell"><Data ss:Type="Number">${l.clicksCount}</Data></Cell>
-    <Cell ss:StyleID="NumberCell"><Data ss:Type="Number">${l.uniqueClicks}</Data></Cell>
-    <Cell ss:StyleID="NumberCell"><Data ss:Type="Number">${l.conversionsCount}</Data></Cell>
-    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">${escapeXml(l.ctr)}</Data></Cell>
-    <Cell ss:StyleID="MoneyCell"><Data ss:Type="Number">${l.revenue.toFixed(2)}</Data></Cell>
-    <Cell ss:StyleID="${l.status === "Active" || l.status === "Actif" ? "BadgeActive" : "BadgeInactive"}"><Data ss:Type="String">${escapeXml(l.status)}</Data></Cell>
-    <Cell ss:StyleID="DateCell"><Data ss:Type="String">${escapeXml(l.createdAt)}</Data></Cell>
-    <Cell ss:StyleID="DateCell"><Data ss:Type="String">${escapeXml(l.expiresAt)}</Data></Cell>
-    <Cell ss:StyleID="DataCellLeft"><Data ss:Type="String">${escapeXml(l.tags)}</Data></Cell>
-    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">${escapeXml(l.isPasswordProtected)}</Data></Cell>
-    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">${escapeXml(l.isCloaked)}</Data></Cell>
-    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">${escapeXml(l.hideReferrer)}</Data></Cell>
-    <Cell ss:StyleID="DataCellLeft"><Data ss:Type="String">${escapeXml(l.utmSource)}</Data></Cell>
-    <Cell ss:StyleID="DataCellLeft"><Data ss:Type="String">${escapeXml(l.utmMedium)}</Data></Cell>
-    <Cell ss:StyleID="DataCellLeft"><Data ss:Type="String">${escapeXml(l.utmCampaign)}</Data></Cell>
-   </Row>`;
+        return `    <Row ss:Height="22">
+     <Cell ss:StyleID="DataCellBold"><Data ss:Type="String">${escapeXml(l.slug)}</Data></Cell>
+     <Cell ss:StyleID="DataCellLeft"><Data ss:Type="String">${escapeXml(l.title)}</Data></Cell>
+     <Cell ss:StyleID="DataCellLeft"><Data ss:Type="String">${escapeXml(l.shortUrl)}</Data></Cell>
+     <Cell ss:StyleID="DataCellLeft"><Data ss:Type="String">${escapeXml(l.targetUrl)}</Data></Cell>
+     <Cell ss:StyleID="NumberCell"><Data ss:Type="Number">${l.clicksCount}</Data></Cell>
+     <Cell ss:StyleID="NumberCell"><Data ss:Type="Number">${l.uniqueClicks}</Data></Cell>
+     <Cell ss:StyleID="NumberCell"><Data ss:Type="Number">${l.conversionsCount}</Data></Cell>
+     <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">${escapeXml(l.ctr)}</Data></Cell>
+     <Cell ss:StyleID="MoneyCell"><Data ss:Type="Number">${l.revenue.toFixed(2)}</Data></Cell>
+     <Cell ss:StyleID="${l.status === "Active" || l.status === "Actif" ? "BadgeActive" : "BadgeInactive"}"><Data ss:Type="String">${escapeXml(l.status)}</Data></Cell>
+     <Cell ss:StyleID="DateCell"><Data ss:Type="String">${escapeXml(l.createdAt)}</Data></Cell>
+     <Cell ss:StyleID="DateCell"><Data ss:Type="String">${escapeXml(l.expiresAt)}</Data></Cell>
+     <Cell ss:StyleID="DataCellLeft"><Data ss:Type="String">${escapeXml(l.tags)}</Data></Cell>
+     <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">${escapeXml(l.isPasswordProtected)}</Data></Cell>
+     <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">${escapeXml(l.isCloaked)}</Data></Cell>
+     <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">${escapeXml(l.hideReferrer)}</Data></Cell>
+     <Cell ss:StyleID="DataCellLeft"><Data ss:Type="String">${escapeXml(l.utmSource)}</Data></Cell>
+     <Cell ss:StyleID="DataCellLeft"><Data ss:Type="String">${escapeXml(l.utmMedium)}</Data></Cell>
+     <Cell ss:StyleID="DataCellLeft"><Data ss:Type="String">${escapeXml(l.utmCampaign)}</Data></Cell>
+    </Row>`;
       })
       .join("\n");
   }
 
   // ─── Sheet 2: Clicks & Events Log ────────────────────────────────
-  const eventWidths = [120, 130, 150, 140, 120, 110, 120, 110, 180, 150, 170, 85, 100];
+  const eventWidths = [
+    120, 130, 150, 140, 120, 110, 120, 110, 180, 150, 170, 85, 100,
+  ];
   const eventColsXml = eventWidths
-    .map((w) => `   <Column ss:AutoFitWidth="1" ss:Width="${w}"/>`)
+    .map((w) => `    <Column ss:AutoFitWidth="1" ss:Width="${w}"/>`)
     .join("\n");
 
   const eventHeaders = [
@@ -164,81 +171,84 @@ function generateExcelXml(
   ];
 
   const eventHeaderRow =
-    `   <Row ss:Height="26">\n` +
+    `    <Row ss:Height="26">\n` +
     eventHeaders
-      .map((col) => `    <Cell ss:StyleID="Header"><Data ss:Type="String">${escapeXml(col)}</Data></Cell>`)
+      .map(
+        (col) =>
+          `     <Cell ss:StyleID="Header"><Data ss:Type="String">${escapeXml(col)}</Data></Cell>`,
+      )
       .join("\n") +
-    `\n   </Row>`;
+    `\n    </Row>`;
 
   let eventDataRows = "";
   if (events.length === 0) {
-    eventDataRows = `   <Row ss:Height="24">\n    <Cell ss:StyleID="DataCellLeft" ss:MergeAcross="12"><Data ss:Type="String">No clicks recorded for the selected period.</Data></Cell>\n   </Row>`;
+    eventDataRows = `    <Row ss:Height="24">\n     <Cell ss:StyleID="DataCellLeft" ss:MergeAcross="12"><Data ss:Type="String">No clicks recorded for the selected period.</Data></Cell>\n    </Row>`;
   } else {
     eventDataRows = events
       .map((ev) => {
-        return `   <Row ss:Height="22">
-    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">${escapeXml(ev.id)}</Data></Cell>
-    <Cell ss:StyleID="DataCellBold"><Data ss:Type="String">${escapeXml(ev.slug)}</Data></Cell>
-    <Cell ss:StyleID="DateCell"><Data ss:Type="String">${escapeXml(ev.timestamp)}</Data></Cell>
-    <Cell ss:StyleID="DataCellLeft"><Data ss:Type="String">${escapeXml(ev.country)}</Data></Cell>
-    <Cell ss:StyleID="DataCellLeft"><Data ss:Type="String">${escapeXml(ev.city)}</Data></Cell>
-    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">${escapeXml(ev.device)}</Data></Cell>
-    <Cell ss:StyleID="DataCellLeft"><Data ss:Type="String">${escapeXml(ev.browser)}</Data></Cell>
-    <Cell ss:StyleID="DataCellLeft"><Data ss:Type="String">${escapeXml(ev.os)}</Data></Cell>
-    <Cell ss:StyleID="DataCellLeft"><Data ss:Type="String">${escapeXml(ev.referrer)}</Data></Cell>
-    <Cell ss:StyleID="DataCellLeft"><Data ss:Type="String">${escapeXml(ev.customerName)}</Data></Cell>
-    <Cell ss:StyleID="DataCellLeft"><Data ss:Type="String">${escapeXml(ev.customerEmail)}</Data></Cell>
-    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">${escapeXml(ev.isUnique)}</Data></Cell>
-    <Cell ss:StyleID="MoneyCell"><Data ss:Type="Number">${ev.revenue.toFixed(2)}</Data></Cell>
-   </Row>`;
+        return `    <Row ss:Height="22">
+     <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">${escapeXml(ev.id)}</Data></Cell>
+     <Cell ss:StyleID="DataCellBold"><Data ss:Type="String">${escapeXml(ev.slug)}</Data></Cell>
+     <Cell ss:StyleID="DateCell"><Data ss:Type="String">${escapeXml(ev.timestamp)}</Data></Cell>
+     <Cell ss:StyleID="DataCellLeft"><Data ss:Type="String">${escapeXml(ev.country)}</Data></Cell>
+     <Cell ss:StyleID="DataCellLeft"><Data ss:Type="String">${escapeXml(ev.city)}</Data></Cell>
+     <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">${escapeXml(ev.device)}</Data></Cell>
+     <Cell ss:StyleID="DataCellLeft"><Data ss:Type="String">${escapeXml(ev.browser)}</Data></Cell>
+     <Cell ss:StyleID="DataCellLeft"><Data ss:Type="String">${escapeXml(ev.os)}</Data></Cell>
+     <Cell ss:StyleID="DataCellLeft"><Data ss:Type="String">${escapeXml(ev.referrer)}</Data></Cell>
+     <Cell ss:StyleID="DataCellLeft"><Data ss:Type="String">${escapeXml(ev.customerName)}</Data></Cell>
+     <Cell ss:StyleID="DataCellLeft"><Data ss:Type="String">${escapeXml(ev.customerEmail)}</Data></Cell>
+     <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">${escapeXml(ev.isUnique)}</Data></Cell>
+     <Cell ss:StyleID="MoneyCell"><Data ss:Type="Number">${ev.revenue.toFixed(2)}</Data></Cell>
+    </Row>`;
       })
       .join("\n");
   }
 
   // ─── Sheet 3: Synthèse & Métriques ──────────────────────────────────────────
   const summaryRows = `
-   <Row ss:Height="28">
-    <Cell ss:StyleID="TitleHeader" ss:MergeAcross="1"><Data ss:Type="String">Rapport de Synthèse Global - LShorter Analytics</Data></Cell>
-   </Row>
-   <Row ss:Height="22">
-    <Cell ss:StyleID="SummaryLabel"><Data ss:Type="String">Utilisateur &amp; Compte :</Data></Cell>
-    <Cell ss:StyleID="SummaryValue"><Data ss:Type="String">${escapeXml(summary.userName)} (${escapeXml(summary.userEmail)})</Data></Cell>
-   </Row>
-   <Row ss:Height="22">
-    <Cell ss:StyleID="SummaryLabel"><Data ss:Type="String">Période Analysée :</Data></Cell>
-    <Cell ss:StyleID="SummaryValue"><Data ss:Type="String">${escapeXml(summary.period)}</Data></Cell>
-   </Row>
-   <Row ss:Height="22">
-    <Cell ss:StyleID="SummaryLabel"><Data ss:Type="String">Date d'Extraction du Rapport :</Data></Cell>
-    <Cell ss:StyleID="SummaryValue"><Data ss:Type="String">${escapeXml(summary.exportDate)}</Data></Cell>
-   </Row>
-   <Row ss:Height="24">
-    <Cell ss:StyleID="Header" ss:MergeAcross="1"><Data ss:Type="String">Indicateurs Clés de Performance (KPIs)</Data></Cell>
-   </Row>
-   <Row ss:Height="22">
-    <Cell ss:StyleID="SummaryLabel"><Data ss:Type="String">Nombre Total de Liens Actifs</Data></Cell>
-    <Cell ss:StyleID="NumberCell"><Data ss:Type="Number">${summary.totalLinks}</Data></Cell>
-   </Row>
-   <Row ss:Height="22">
-    <Cell ss:StyleID="SummaryLabel"><Data ss:Type="String">Volume Total de Clics</Data></Cell>
-    <Cell ss:StyleID="NumberCell"><Data ss:Type="Number">${summary.totalClicks}</Data></Cell>
-   </Row>
-   <Row ss:Height="22">
-    <Cell ss:StyleID="SummaryLabel"><Data ss:Type="String">Total Clics Uniques</Data></Cell>
-    <Cell ss:StyleID="NumberCell"><Data ss:Type="Number">${summary.uniqueClicks}</Data></Cell>
-   </Row>
-   <Row ss:Height="22">
-    <Cell ss:StyleID="SummaryLabel"><Data ss:Type="String">Total des Conversions</Data></Cell>
-    <Cell ss:StyleID="NumberCell"><Data ss:Type="Number">${summary.totalConversions}</Data></Cell>
-   </Row>
-   <Row ss:Height="22">
-    <Cell ss:StyleID="SummaryLabel"><Data ss:Type="String">Taux Moyen de Conversion / CTR</Data></Cell>
-    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">${escapeXml(summary.avgCtr)}</Data></Cell>
-   </Row>
-   <Row ss:Height="22">
-    <Cell ss:StyleID="SummaryLabel"><Data ss:Type="String">Revenus Totaux Traqués (€)</Data></Cell>
-    <Cell ss:StyleID="MoneyCell"><Data ss:Type="Number">${summary.totalRevenue.toFixed(2)}</Data></Cell>
-   </Row>`;
+    <Row ss:Height="28">
+     <Cell ss:StyleID="TitleHeader" ss:MergeAcross="1"><Data ss:Type="String">Rapport de Synthèse Global - LShorter Analytics</Data></Cell>
+    </Row>
+    <Row ss:Height="22">
+     <Cell ss:StyleID="SummaryLabel"><Data ss:Type="String">Utilisateur &amp; Compte :</Data></Cell>
+     <Cell ss:StyleID="SummaryValue"><Data ss:Type="String">${escapeXml(summary.userName)} (${escapeXml(summary.userEmail)})</Data></Cell>
+    </Row>
+    <Row ss:Height="22">
+     <Cell ss:StyleID="SummaryLabel"><Data ss:Type="String">Période Analysée :</Data></Cell>
+     <Cell ss:StyleID="SummaryValue"><Data ss:Type="String">${escapeXml(summary.period)}</Data></Cell>
+    </Row>
+    <Row ss:Height="22">
+     <Cell ss:StyleID="SummaryLabel"><Data ss:Type="String">Date d'Extraction du Rapport :</Data></Cell>
+     <Cell ss:StyleID="SummaryValue"><Data ss:Type="String">${escapeXml(summary.exportDate)}</Data></Cell>
+    </Row>
+    <Row ss:Height="24">
+     <Cell ss:StyleID="Header" ss:MergeAcross="1"><Data ss:Type="String">Indicateurs Clés de Performance (KPIs)</Data></Cell>
+    </Row>
+    <Row ss:Height="22">
+     <Cell ss:StyleID="SummaryLabel"><Data ss:Type="String">Nombre Total de Liens Actifs</Data></Cell>
+     <Cell ss:StyleID="NumberCell"><Data ss:Type="Number">${summary.totalLinks}</Data></Cell>
+    </Row>
+    <Row ss:Height="22">
+     <Cell ss:StyleID="SummaryLabel"><Data ss:Type="String">Volume Total de Clics</Data></Cell>
+     <Cell ss:StyleID="NumberCell"><Data ss:Type="Number">${summary.totalClicks}</Data></Cell>
+    </Row>
+    <Row ss:Height="22">
+     <Cell ss:StyleID="SummaryLabel"><Data ss:Type="String">Total Clics Uniques</Data></Cell>
+     <Cell ss:StyleID="NumberCell"><Data ss:Type="Number">${summary.uniqueClicks}</Data></Cell>
+    </Row>
+    <Row ss:Height="22">
+     <Cell ss:StyleID="SummaryLabel"><Data ss:Type="String">Total des Conversions</Data></Cell>
+     <Cell ss:StyleID="NumberCell"><Data ss:Type="Number">${summary.totalConversions}</Data></Cell>
+    </Row>
+    <Row ss:Height="22">
+     <Cell ss:StyleID="SummaryLabel"><Data ss:Type="String">Taux Moyen de Conversion / CTR</Data></Cell>
+     <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">${escapeXml(summary.avgCtr)}</Data></Cell>
+    </Row>
+    <Row ss:Height="22">
+     <Cell ss:StyleID="SummaryLabel"><Data ss:Type="String">Revenus Totaux Traqués (€)</Data></Cell>
+     <Cell ss:StyleID="MoneyCell"><Data ss:Type="Number">${summary.totalRevenue.toFixed(2)}</Data></Cell>
+    </Row>`;
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <?mso-application progid="Excel.Sheet"?>
@@ -297,7 +307,7 @@ function generateExcelXml(
   <Style ss:ID="DataCellBold">
    <Alignment ss:Horizontal="Left" ss:Vertical="Center"/>
    <Borders>
-    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E4E4E7"/>
+    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#FF6600"/>
    </Borders>
    <Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1" ss:Color="#FF6600"/>
   </Style>
@@ -342,7 +352,7 @@ function generateExcelXml(
   <Style ss:ID="BadgeInactive">
    <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
    <Borders>
-    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E4E4E7"/>
+    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#991B1B"/>
    </Borders>
    <Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1" ss:Color="#991B1B"/>
    <Interior ss:Color="#FEE2E2" ss:Pattern="Solid"/>
@@ -386,126 +396,159 @@ function generateCsv(
     avgCtr: string;
     exportDate: string;
     period: string;
-  }
+  },
 ): string {
   const BOM = "\uFEFF";
-  const escapeCell = (val: any) => `"${String(val ?? "").replace(/"/g, '""')}"`;
+  const padCell = (val: any, width: number = 28) => {
+    const clean = String(val ?? "—")
+      .replace(/"/g, '""')
+      .replace(/\r?\n/g, " ");
+    return `"  ${clean.padEnd(width, " ")}  "`;
+  };
 
   const lines: string[] = [];
 
   // Section 1: Synthèse
-  lines.push("=== SYNTHESE GLOBALE DU COMPTE ===");
-  lines.push(`Utilisateur;${escapeCell(summary.userName)}`);
-  lines.push(`Email;${escapeCell(summary.userEmail)}`);
-  lines.push(`Export Date;${escapeCell(summary.exportDate)}`);
-  lines.push(`Period;${escapeCell(summary.period)}`);
-  lines.push(`Total Links;${summary.totalLinks}`);
-  lines.push(`Total Clicks;${summary.totalClicks}`);
-  lines.push(`Unique Clicks;${summary.uniqueClicks}`);
-  lines.push(`Conversions;${summary.totalConversions}`);
-  lines.push(`Average CTR;${escapeCell(summary.avgCtr)}`);
-  lines.push(`Revenue ($);${summary.totalRevenue.toFixed(2)}`);
+  lines.push(`"=== ACCOUNT GLOBAL SUMMARY ==="`);
+  lines.push(
+    `${padCell("Account Holder", 28)} ; ${padCell(summary.userName, 42)}`,
+  );
+  lines.push(
+    `${padCell("Email Address", 28)} ; ${padCell(summary.userEmail, 42)}`,
+  );
+  lines.push(
+    `${padCell("Export Timestamp", 28)} ; ${padCell(summary.exportDate, 42)}`,
+  );
+  lines.push(
+    `${padCell("Reporting Period", 28)} ; ${padCell(summary.period, 42)}`,
+  );
+  lines.push(
+    `${padCell("Total Active Links", 28)} ; ${padCell(summary.totalLinks, 42)}`,
+  );
+  lines.push(
+    `${padCell("Total Clicks", 28)} ; ${padCell(summary.totalClicks, 42)}`,
+  );
+  lines.push(
+    `${padCell("Unique Visitors", 28)} ; ${padCell(summary.uniqueClicks, 42)}`,
+  );
+  lines.push(
+    `${padCell("Attributed Conversions", 28)} ; ${padCell(summary.totalConversions, 42)}`,
+  );
+  lines.push(`${padCell("Average CTR", 28)} ; ${padCell(summary.avgCtr, 42)}`);
+  lines.push(
+    `${padCell("Total Revenue ($)", 28)} ; ${padCell("$" + summary.totalRevenue.toFixed(2), 42)}`,
+  );
   lines.push("");
 
   // Section 2: Links Performance
-  lines.push("=== LINKS PERFORMANCE ===");
-  const linkHeaders = [
-    "Slug",
-    "Title",
-    "Short URL",
-    "Destination URL",
-    "Total Clicks",
-    "Unique Clicks",
-    "Conversions",
-    "CTR (%)",
-    "Revenue ($)",
-    "Status",
-    "Created At (UTC)",
-    "Expires At",
-    "Tags",
-    "Password Gate",
-    "Cloaking",
-    "Hide Referrer",
-    "UTM Source",
-    "UTM Medium",
-    "UTM Campaign",
+  lines.push(`"=== SHORT LINKS PERFORMANCE REPORT ==="`);
+  const linkColSpecs = [
+    { label: "SLUG / IDENTIFIER", width: 24 },
+    { label: "LINK TITLE", width: 36 },
+    { label: "SHORT URL", width: 38 },
+    { label: "DESTINATION TARGET URL", width: 64 },
+    { label: "TOTAL CLICKS", width: 16 },
+    { label: "UNIQUE CLICKS", width: 16 },
+    { label: "CONVERSIONS", width: 16 },
+    { label: "CTR (%)", width: 14 },
+    { label: "REVENUE ($)", width: 16 },
+    { label: "STATUS", width: 14 },
+    { label: "CREATED AT (UTC)", width: 24 },
+    { label: "EXPIRES AT", width: 24 },
+    { label: "TAGS", width: 28 },
+    { label: "PASSWORD GATE", width: 16 },
+    { label: "CLOAKING", width: 14 },
+    { label: "HIDE REFERRER", width: 16 },
+    { label: "UTM SOURCE", width: 24 },
+    { label: "UTM MEDIUM", width: 24 },
+    { label: "UTM CAMPAIGN", width: 28 },
   ];
-  lines.push(linkHeaders.map(escapeCell).join(";"));
+
+  lines.push(linkColSpecs.map((c) => padCell(c.label, c.width)).join(" ; "));
+  lines.push(
+    linkColSpecs.map((c) => padCell("-".repeat(c.width), c.width)).join(" ; "),
+  );
 
   if (links.length === 0) {
-    lines.push(escapeCell("No links recorded"));
+    lines.push(padCell("No links recorded", 64));
   } else {
     links.forEach((l) => {
+      const rowVals = [
+        l.slug,
+        l.title,
+        l.shortUrl,
+        l.targetUrl,
+        l.clicksCount,
+        l.uniqueClicks,
+        l.conversionsCount,
+        l.ctr,
+        `$${l.revenue.toFixed(2)}`,
+        l.status,
+        l.createdAt,
+        l.expiresAt,
+        l.tags,
+        l.isPasswordProtected,
+        l.isCloaked,
+        l.hideReferrer,
+        l.utmSource,
+        l.utmMedium,
+        l.utmCampaign,
+      ];
       lines.push(
-        [
-          l.slug,
-          l.title,
-          l.shortUrl,
-          l.targetUrl,
-          l.clicksCount,
-          l.uniqueClicks,
-          l.conversionsCount,
-          l.ctr,
-          l.revenue.toFixed(2),
-          l.status,
-          l.createdAt,
-          l.expiresAt,
-          l.tags,
-          l.isPasswordProtected,
-          l.isCloaked,
-          l.hideReferrer,
-          l.utmSource,
-          l.utmMedium,
-          l.utmCampaign,
-        ]
-          .map(escapeCell)
-          .join(";")
+        rowVals
+          .map((v, idx) => padCell(v, linkColSpecs[idx].width))
+          .join(" ; "),
       );
     });
   }
   lines.push("");
 
   // Section 3: Clicks Log
-  lines.push("=== DETAILED CLICKS AND EVENTS LOG ===");
-  const eventHeaders = [
-    "Event ID",
-    "Link (Slug)",
-    "Timestamp (UTC)",
-    "Country",
-    "City",
-    "Device",
-    "Browser",
-    "OS",
-    "Referrer Source",
-    "Customer Name",
-    "Customer Email",
-    "Unique",
-    "Revenue ($)",
+  lines.push(`"=== DETAILED EDGE CLICKS & TELEMETRY LOG ==="`);
+  const eventColSpecs = [
+    { label: "EVENT ID", width: 22 },
+    { label: "SHORT LINK SLUG", width: 28 },
+    { label: "TIMESTAMP (UTC)", width: 24 },
+    { label: "COUNTRY", width: 30 },
+    { label: "CITY / POP", width: 26 },
+    { label: "DEVICE TYPE", width: 18 },
+    { label: "BROWSER", width: 22 },
+    { label: "OPERATING SYSTEM", width: 22 },
+    { label: "REFERRER SOURCE URL", width: 44 },
+    { label: "CUSTOMER NAME", width: 32 },
+    { label: "CUSTOMER EMAIL", width: 38 },
+    { label: "UNIQUE", width: 12 },
+    { label: "REVENUE ($)", width: 16 },
   ];
-  lines.push(eventHeaders.map(escapeCell).join(";"));
+
+  lines.push(eventColSpecs.map((c) => padCell(c.label, c.width)).join(" ; "));
+  lines.push(
+    eventColSpecs.map((c) => padCell("-".repeat(c.width), c.width)).join(" ; "),
+  );
 
   if (events.length === 0) {
-    lines.push(escapeCell("No click events recorded for this period"));
+    lines.push(padCell("No click events recorded for this period", 64));
   } else {
     events.forEach((ev) => {
+      const evVals = [
+        ev.id,
+        ev.slug,
+        ev.timestamp,
+        ev.country,
+        ev.city,
+        ev.device,
+        ev.browser,
+        ev.os,
+        ev.referrer,
+        ev.customerName,
+        ev.customerEmail,
+        ev.isUnique,
+        `$${ev.revenue.toFixed(2)}`,
+      ];
       lines.push(
-        [
-          ev.id,
-          ev.slug,
-          ev.timestamp,
-          ev.country,
-          ev.city,
-          ev.device,
-          ev.browser,
-          ev.os,
-          ev.referrer,
-          ev.customerName,
-          ev.customerEmail,
-          ev.isUnique,
-          ev.revenue.toFixed(2),
-        ]
-          .map(escapeCell)
-          .join(";")
+        evVals
+          .map((v, idx) => padCell(v, eventColSpecs[idx].width))
+          .join(" ; "),
       );
     });
   }
@@ -517,7 +560,8 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const paramUserId = searchParams.get("userId");
   const linkId = searchParams.get("linkId") || "";
-  const range = searchParams.get("range") || searchParams.get("period") || "30d";
+  const range =
+    searchParams.get("range") || searchParams.get("period") || "30d";
   const format = searchParams.get("format") || "excel";
 
   // Map range to Cloudflare period format
@@ -525,19 +569,19 @@ export async function GET(req: Request) {
     range === "day" || range === "1d"
       ? "1d"
       : range === "week" || range === "7d"
-      ? "7d"
-      : range === "year" || range === "365d"
-      ? "365d"
-      : "30d";
+        ? "7d"
+        : range === "year" || range === "365d"
+          ? "365d"
+          : "30d";
 
   const periodLabel =
     periodParam === "1d"
       ? "Last 24 Hours"
       : periodParam === "7d"
-      ? "Last 7 Days"
-      : periodParam === "365d"
-      ? "Last 12 Months (Year)"
-      : "Last 30 Days (Month)";
+        ? "Last 7 Days"
+        : periodParam === "365d"
+          ? "Last 12 Months (Year)"
+          : "Last 30 Days (Month)";
 
   // 1. Authenticate user
   const session = await auth().catch(() => null);
@@ -546,7 +590,7 @@ export async function GET(req: Request) {
   if (!userId) {
     return NextResponse.json(
       { success: false, error: "Authentication required to export your data." },
-      { status: 401 }
+      { status: 401 },
     );
   }
 
@@ -554,7 +598,7 @@ export async function GET(req: Request) {
   const userEmail = session?.user?.email || "—";
 
   try {
-    // 2. Fetch real links in parallel from Cloudflare D1 and Convex Cloud
+    // 2. Fetch real links and analytics from Cloudflare Worker
     const linksWorkerUrl = new URL(`${WORKER_URL}/api/v1/links`);
     linksWorkerUrl.searchParams.set("userId", userId);
 
@@ -592,74 +636,59 @@ export async function GET(req: Request) {
     const workerList = Array.isArray(workerLinksRes?.data)
       ? workerLinksRes.data
       : Array.isArray((workerLinksRes?.data as any)?.data)
-      ? (workerLinksRes.data as any).data
-      : [];
+        ? (workerLinksRes.data as any).data
+        : [];
 
     const mergedLinksMap = new Map<string, any>();
 
-    // Add local protected links first
-    const localLinks = getAllProtectedLinks();
-    localLinks.forEach((local) => {
-      if (!local.slug) return;
-      if (userId && userId !== "all" && local.userId && local.userId !== userId) return;
-      mergedLinksMap.set(local.slug.toLowerCase(), {
-        id: `link_${local.slug}`,
-        slug: local.slug,
-        domainName: "lsho.cc",
-        targetUrl: local.targetUrl || "",
-        shortUrl: `https://lsho.cc/${local.slug}`,
-        title: local.ogTitle || local.metaTitle || local.slug,
-        clicksCount: local.clicksCount || 0,
-        uniqueClicks: local.clicksCount || 0,
-        conversionsCount: 0,
-        revenue: 0,
-        isActive: local.isActive !== false,
-        createdAt: local.updatedAt || new Date().toISOString(),
-        expiresAt: local.expiresAt || "",
-        tags: [],
-        isPasswordProtected: Boolean(local.password),
-        isCloaked: Boolean(local.isCloaked),
-        hideReferrer: false,
-        utmSource: "",
-        utmMedium: "",
-        utmCampaign: "",
-      });
-    });
-
-    // Merge / overlay Worker links
+    // Traitement direct et exclusif des liens issus du Worker
     workerList.forEach((wl: any) => {
       if (!wl?.slug) return;
       const key = String(wl.slug).toLowerCase();
-      const existing = mergedLinksMap.get(key) || {};
 
-      const clicks = wl.clicks_count ?? wl.clicksCount ?? wl.clicks ?? existing.clicksCount ?? 0;
-      const unique = wl.unique_clicks ?? wl.uniqueClicks ?? existing.uniqueClicks ?? 0;
-      const conversions = wl.conversions_count ?? wl.conversionsCount ?? existing.conversionsCount ?? 0;
-      const revenue = wl.revenue ?? existing.revenue ?? 0;
-      const domain = wl.domain_name || wl.domainName || existing.domainName || "lsho.cc";
-      const target = wl.target_url || wl.targetUrl || existing.targetUrl || "";
+      const clicks = wl.clicks_count ?? wl.clicksCount ?? wl.clicks ?? 0;
+      const unique =
+        wl.unique_clicks ??
+        wl.uniqueClicks ??
+        (Number(clicks) > 0 ? clicks : 0);
+      const conversions = wl.conversions_count ?? wl.conversionsCount ?? 0;
+      const revenue = wl.revenue ?? 0;
+      const domain = wl.domain_name || wl.domainName || "lsho.cc";
+      const target = wl.target_url || wl.targetUrl || "";
 
       mergedLinksMap.set(key, {
-        id: wl.id || existing.id,
+        id: wl.id || `link_${wl.slug}`,
         slug: wl.slug,
         domainName: domain,
         targetUrl: target,
-        shortUrl: wl.short_url || wl.shortUrl || existing.shortUrl || `https://${domain}/${wl.slug}`,
-        title: wl.title || wl.meta_title || wl.og_title || wl.metaTitle || wl.ogTitle || existing.title || wl.slug,
+        shortUrl: wl.short_url || wl.shortUrl || `https://${domain}/${wl.slug}`,
+        title:
+          wl.title ||
+          wl.meta_title ||
+          wl.og_title ||
+          wl.metaTitle ||
+          wl.ogTitle ||
+          wl.slug,
         clicksCount: Number(clicks),
         uniqueClicks: Number(unique),
         conversionsCount: Number(conversions),
         revenue: Number(revenue),
-        isActive: wl.is_active !== undefined ? wl.is_active !== 0 : existing.isActive !== false,
-        createdAt: wl.created_at || wl.createdAt || existing.createdAt || new Date().toISOString(),
-        expiresAt: wl.expires_at || wl.expiresAt || existing.expiresAt || "",
-        tags: wl.tags ? (typeof wl.tags === "string" ? JSON.parse(wl.tags) : wl.tags) : existing.tags || [],
-        isPasswordProtected: Boolean(wl.password || wl.has_password || wl.is_password_protected || existing.isPasswordProtected),
-        isCloaked: Boolean(wl.is_cloaked || wl.isCloaked || existing.isCloaked),
-        hideReferrer: Boolean(wl.hide_referrer || wl.hideReferrer || existing.hideReferrer),
-        utmSource: wl.utm_source || wl.utmSource || existing.utmSource || "",
-        utmMedium: wl.utm_medium || wl.utmMedium || existing.utmMedium || "",
-        utmCampaign: wl.utm_campaign || wl.utmCampaign || existing.utmCampaign || "",
+        isActive: wl.is_active !== undefined ? wl.is_active !== 0 : true,
+        createdAt: wl.created_at || wl.createdAt || new Date().toISOString(),
+        expiresAt: wl.expires_at || wl.expiresAt || "",
+        tags: wl.tags
+          ? typeof wl.tags === "string"
+            ? JSON.parse(wl.tags)
+            : wl.tags
+          : [],
+        isPasswordProtected: Boolean(
+          wl.password || wl.has_password || wl.is_password_protected,
+        ),
+        isCloaked: Boolean(wl.is_cloaked || wl.isCloaked),
+        hideReferrer: Boolean(wl.hide_referrer || wl.hideReferrer),
+        utmSource: wl.utm_source || wl.utmSource || "",
+        utmMedium: wl.utm_medium || wl.utmMedium || "",
+        utmCampaign: wl.utm_campaign || wl.utmCampaign || "",
       });
     });
 
@@ -668,7 +697,8 @@ export async function GET(req: Request) {
     // Filter links if specific link was chosen
     if (linkId && linkId !== "all") {
       allLinks = allLinks.filter(
-        (l) => l.slug === linkId || l.id === linkId || l.shortUrl.includes(linkId)
+        (l) =>
+          l.slug === linkId || l.id === linkId || l.shortUrl.includes(linkId),
       );
     }
 
@@ -677,8 +707,13 @@ export async function GET(req: Request) {
       const clicks = Number(l.clicksCount) || 0;
       const unique = Number(l.uniqueClicks) || (clicks > 0 ? clicks : 0);
       const convs = Number(l.conversionsCount) || 0;
-      const ctr = clicks > 0 ? ((unique / clicks) * 100).toFixed(2) + " %" : "0.00 %";
-      const tagsStr = Array.isArray(l.tags) ? l.tags.join(", ") : l.tags ? String(l.tags) : "—";
+      const ctr =
+        clicks > 0 ? ((unique / clicks) * 100).toFixed(2) + " %" : "0.00 %";
+      const tagsStr = Array.isArray(l.tags)
+        ? l.tags.join(", ")
+        : l.tags
+          ? String(l.tags)
+          : "—";
 
       let formattedCreated = l.createdAt;
       try {
@@ -723,19 +758,37 @@ export async function GET(req: Request) {
 
     const exportEvents: ExportClickEvent[] = Array.isArray(rawEvents)
       ? rawEvents.map((ev: any, idx: number) => {
-          const cCode = (ev.country_code || ev.countryCode || ev.country || "XX").toUpperCase();
-          const countryFull = cCode !== "XX" ? `${getCountryName(cCode)} (${cCode})` : "Inconnu (XX)";
+          const cCode = (
+            ev.country_code ||
+            ev.countryCode ||
+            ev.country ||
+            "XX"
+          ).toUpperCase();
+          const countryFull =
+            cCode !== "XX"
+              ? `${getCountryName(cCode)} (${cCode})`
+              : "Inconnu (XX)";
 
           let formattedTime = ev.timestamp || new Date().toISOString();
           try {
             const d = new Date(ev.timestamp);
             if (!isNaN(d.getTime())) {
-              formattedTime = d.toISOString().replace("T", " ").substring(0, 19);
+              formattedTime = d
+                .toISOString()
+                .replace("T", " ")
+                .substring(0, 19);
             }
           } catch {}
 
-          const rawName = ev.customerName || ev.customerFullName || ev.fullName || ev.customer_name || ev.userName || ev.name;
-          const rawEmail = ev.customerEmail || ev.email || ev.customer_email || ev.userEmail;
+          const rawName =
+            ev.customerName ||
+            ev.customerFullName ||
+            ev.fullName ||
+            ev.customer_name ||
+            ev.userName ||
+            ev.name;
+          const rawEmail =
+            ev.customerEmail || ev.email || ev.customer_email || ev.userEmail;
 
           return {
             id: ev.id || `clk_${idx + 1}`,
@@ -751,7 +804,10 @@ export async function GET(req: Request) {
             customerName: rawName ? String(rawName) : "—",
             customerEmail: rawEmail ? String(rawEmail) : "—",
             isUnique: ev.isUnique !== false ? "Oui" : "Non",
-            revenue: Number(ev.conversionAmount || ev.conversion_amount || ev.revenue) || 0,
+            revenue:
+              Number(
+                ev.conversionAmount || ev.conversion_amount || ev.revenue,
+              ) || 0,
           };
         })
       : [];
@@ -763,15 +819,32 @@ export async function GET(req: Request) {
         : exportEvents;
 
     // 5. Aggregate Summary KPIs
-    const sumTotalClicks = exportLinks.reduce((acc, l) => acc + l.clicksCount, 0);
-    const sumUniqueClicks = exportLinks.reduce((acc, l) => acc + l.uniqueClicks, 0);
-    const sumConversions = exportLinks.reduce((acc, l) => acc + l.conversionsCount, 0);
+    const sumTotalClicks = exportLinks.reduce(
+      (acc, l) => acc + l.clicksCount,
+      0,
+    );
+    const sumUniqueClicks = exportLinks.reduce(
+      (acc, l) => acc + l.uniqueClicks,
+      0,
+    );
+    const sumConversions = exportLinks.reduce(
+      (acc, l) => acc + l.conversionsCount,
+      0,
+    );
     const sumRevenue = exportLinks.reduce((acc, l) => acc + l.revenue, 0);
 
-    const totalClicksFinal = rawAnalytics.totalClicks ?? rawAnalytics.total_clicks ?? sumTotalClicks;
-    const uniqueClicksFinal = rawAnalytics.uniqueClicks ?? rawAnalytics.unique_clicks ?? sumUniqueClicks;
-    const totalConversionsFinal = rawAnalytics.conversions ?? rawAnalytics.total_conversions ?? sumConversions;
-    const totalRevenueFinal = rawAnalytics.totalRevenue ?? rawAnalytics.total_revenue ?? sumRevenue;
+    const totalClicksFinal =
+      rawAnalytics.totalClicks ?? rawAnalytics.total_clicks ?? sumTotalClicks;
+    const uniqueClicksFinal =
+      rawAnalytics.uniqueClicks ??
+      rawAnalytics.unique_clicks ??
+      sumUniqueClicks;
+    const totalConversionsFinal =
+      rawAnalytics.conversions ??
+      rawAnalytics.total_conversions ??
+      sumConversions;
+    const totalRevenueFinal =
+      rawAnalytics.totalRevenue ?? rawAnalytics.total_revenue ?? sumRevenue;
     const avgCtrFinal =
       totalClicksFinal > 0
         ? ((uniqueClicksFinal / totalClicksFinal) * 100).toFixed(2) + " %"
@@ -786,7 +859,8 @@ export async function GET(req: Request) {
       totalConversions: totalConversionsFinal,
       totalRevenue: totalRevenueFinal,
       avgCtr: avgCtrFinal,
-      exportDate: new Date().toISOString().replace("T", " ").substring(0, 19) + " UTC",
+      exportDate:
+        new Date().toISOString().replace("T", " ").substring(0, 19) + " UTC",
       period: periodLabel,
     };
 
@@ -816,8 +890,12 @@ export async function GET(req: Request) {
   } catch (error: any) {
     console.error("[Export API Route Error]:", error);
     return NextResponse.json(
-      { success: false, error: error?.message || "Erreur lors de l'exportation des données réelles." },
-      { status: 500 }
+      {
+        success: false,
+        error:
+          error?.message || "Erreur lors de l'exportation des données réelles.",
+      },
+      { status: 500 },
     );
   }
 }

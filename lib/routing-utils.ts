@@ -1,6 +1,6 @@
 export interface Condition {
   id: string;
-  type: "pays" | "region" | "appareil" | "plateforme";
+  type: "pays" | "continent" | "region" | "appareil" | "plateforme" | "navigateur";
   operator: "est" | "nest_pas";
   value: string;
 }
@@ -88,7 +88,7 @@ export function compileRoutingRules(rules: RoutingRule[]) {
       if (c && c.value && c.operator === "est") {
         if (c.type === "pays") {
           geoTargeting[c.value.toUpperCase()] = dest;
-        } else if (c.type === "region") {
+        } else if (c.type === "continent" || c.type === "region") {
           const regionKey = c.value.toLowerCase();
           const countries = REGION_COUNTRIES[regionKey];
           if (countries) {
@@ -130,8 +130,50 @@ export function compileRoutingRules(rules: RoutingRule[]) {
   });
 
   return {
-    geoTargeting: Object.keys(geoTargeting).length ? geoTargeting : undefined,
-    deviceTargeting: Object.keys(deviceTargeting).length ? deviceTargeting : undefined,
-    routingRules: validRules.length ? validRules : undefined,
+    geoTargeting: Object.keys(geoTargeting).length ? geoTargeting : null,
+    deviceTargeting: Object.keys(deviceTargeting).length ? deviceTargeting : null,
+    routingRules: validRules,
   };
+}
+
+export function resolveAbTargetUrl(
+  meta?: { targetUrl?: string; abVariations?: Array<{ url: string; weight: number }>; mainWeight?: number } | null,
+  defaultUrl?: string,
+): string {
+  if (!meta) return defaultUrl || "";
+  const base = meta.targetUrl || defaultUrl || "";
+  const variations = meta.abVariations;
+  if (!variations || !variations.length) {
+    return base;
+  }
+
+  const validVariations = variations.filter((v) => v.url && v.url.trim());
+  if (!validVariations.length) {
+    return base;
+  }
+
+  const mainWeight = meta.mainWeight !== undefined ? meta.mainWeight : 50;
+  const totalVariationWeight = validVariations.reduce(
+    (sum, v) => sum + (Number(v.weight) || 0),
+    0,
+  );
+  const grandTotal = mainWeight + totalVariationWeight;
+
+  if (grandTotal <= 0) return base;
+
+  const rand = Math.random() * grandTotal;
+
+  if (rand < mainWeight) {
+    return base;
+  }
+
+  let running = mainWeight;
+  for (const v of validVariations) {
+    running += Number(v.weight) || 0;
+    if (rand < running) {
+      return v.url.trim();
+    }
+  }
+
+  return base;
 }

@@ -11,11 +11,13 @@ export function MarketingHeader() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
   const { data: session, status } = useSession();
-  const isAuthenticated = status === "authenticated" || Boolean((session as any)?.user);
-  const hasCompletedOnboarding = (session?.user as any)?.hasCompletedOnboarding === true;
+  const isAuthenticated =
+    status === "authenticated" || Boolean((session as any)?.user);
+  const hasCompletedOnboarding =
+    (session?.user as any)?.hasCompletedOnboarding === true;
 
   const navLinks = [
-    { label: "Home", href: "/" },
+    { label: "Hi", href: "/" },
     { label: "Pricing", href: "/pricing" },
     {
       label: "API & SDK",
@@ -29,15 +31,17 @@ export function MarketingHeader() {
       {/* =========================================================================
           DESKTOP NAVBAR: Sleek Glass Effect, Minimalist Frame & Hover Animations
           ========================================================================= */}
-      <header className="hidden md:flex max-w-5xl mx-auto bg-white/85 dark:bg-[#0a0a0f]/60 hover:bg-white/95 dark:hover:bg-[#0a0a0f]/80 backdrop-blur-xl border border-neutral-200 dark:border-white/[0.08] hover:border-neutral-300 dark:hover:border-white/[0.18] shadow-[0_8px_32px_rgba(0,0,0,0.06)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] hover:shadow-brand-subtle rounded-full px-5 py-2.5 items-center justify-between pointer-events-auto transition-all duration-300">
-        
+      <header className="hidden md:flex max-w-5xl mx-auto bg-white/85 dark:bg-[#0a0a0f]/60 hover:bg-white/95 dark:hover:bg-[#0a0a0f]/80 backdrop-blur-xl border border-neutral-200 dark:border-white/[0.08] hover:border-neutral-300 dark:hover:border-white/[0.18] shadow-[0_8px_32px_rgba(0,0,0,0.06)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] hover:shadow-brand-subtle rounded-[10px] px-5 py-2.5 items-center justify-between pointer-events-auto transition-all duration-300">
         {/* Brand Logo with LS Badge & Smooth Hover Scale/Glow */}
-        <Link href="/" className="flex items-center gap-3 group select-none cursor-pointer">
-          <div className="w-9 h-9 rounded-full bg-brand flex items-center justify-center shadow-lg shadow-brand/30 font-bebas text-2xl text-white font-bold tracking-wider group-hover:scale-110 group-hover:shadow-brand-glow group-hover:rotate-3 transition-all duration-300">
-            LS
-          </div>
+        <Link
+          href="/"
+          className="flex items-center gap-3 group select-none cursor-pointer"
+        >
           <span className="font-bebas text-3xl text-neutral-900 dark:text-white tracking-wider flex items-center gap-1 group-hover:tracking-widest transition-all duration-300">
-            L<span className="text-brand transition-all duration-300">SHORTER</span>
+            L
+            <span className="text-brand transition-all duration-300">
+              SHORTER
+            </span>
           </span>
         </Link>
 
@@ -49,7 +53,7 @@ export function MarketingHeader() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`nav-link-item ${isActive ? "active font-bold text-neutral-900 dark:text-white" : "text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white"} relative px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide flex items-center gap-1.5 cursor-pointer transition-colors`}
+                className={`nav-link-item ${isActive ? "active font-bold text-neutral-900 dark:text-white" : "text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white"} relative px-4 py-1.5 rounded-[10px] text-xs font-semibold tracking-wide flex items-center gap-1.5 cursor-pointer transition-colors`}
               >
                 <span>{item.label}</span>
                 {item.badge && (
@@ -59,7 +63,7 @@ export function MarketingHeader() {
                 )}
                 {/* Active route glowing dot */}
                 {isActive && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-brand shadow-[0_0_8px_var(--brand-primary)]" />
+                  <span className="w-1.5 h-1.5 rounded-[10px] bg-brand shadow-[0_0_8px_var(--brand-primary)]" />
                 )}
               </Link>
             );
@@ -71,7 +75,7 @@ export function MarketingHeader() {
           {isAuthenticated && hasCompletedOnboarding ? (
             <Link
               href="/dashboard"
-              className="group relative overflow-hidden px-5 py-2 rounded-full bg-brand hover:bg-brand-hover text-white font-bold text-xs shadow-lg shadow-brand/30 hover:shadow-brand-glow hover:scale-105 active:scale-95 transition-all duration-300 flex items-center gap-1.5 cursor-pointer"
+              className="group relative overflow-hidden px-5 py-2 rounded-[10px] bg-brand hover:bg-brand-hover text-white font-bold text-xs shadow-lg shadow-brand/30 hover:shadow-brand-glow hover:scale-105 active:scale-95 transition-all duration-300 flex items-center gap-1.5 cursor-pointer"
             >
               <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/25 to-transparent pointer-events-none" />
               <LayoutDashboard className="w-3.5 h-3.5" />
@@ -81,7 +85,7 @@ export function MarketingHeader() {
           ) : isAuthenticated ? (
             <Link
               href="/onboarding"
-              className="group relative overflow-hidden px-5 py-2 rounded-full bg-brand hover:bg-brand-hover text-white font-bold text-xs shadow-lg shadow-brand/30 hover:shadow-brand-glow hover:scale-105 active:scale-95 transition-all duration-300 flex items-center gap-1.5 cursor-pointer"
+              className="group relative overflow-hidden px-5 py-2 rounded-[10px] bg-brand hover:bg-brand-hover text-white font-bold text-xs shadow-lg shadow-brand/30 hover:shadow-brand-glow hover:scale-105 active:scale-95 transition-all duration-300 flex items-center gap-1.5 cursor-pointer"
             >
               <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/25 to-transparent pointer-events-none" />
               <span>Get Started</span>
@@ -97,7 +101,7 @@ export function MarketingHeader() {
               </Link>
               <Link
                 href="/register"
-                className="group relative overflow-hidden px-5 py-2 rounded-full bg-brand hover:bg-brand-hover text-white font-bold text-xs shadow-lg shadow-brand/30 hover:shadow-brand-glow hover:scale-105 active:scale-95 transition-all duration-300 flex items-center gap-1.5 cursor-pointer"
+                className="group relative overflow-hidden px-5 py-2 rounded-[10px] bg-brand hover:bg-brand-hover text-white font-bold text-xs shadow-lg shadow-brand/30 hover:shadow-brand-glow hover:scale-105 active:scale-95 transition-all duration-300 flex items-center gap-1.5 cursor-pointer"
               >
                 {/* Shimmer light sweep */}
                 <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/25 to-transparent pointer-events-none" />
@@ -128,10 +132,14 @@ export function MarketingHeader() {
           <button
             type="button"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="w-9 h-9 rounded-full bg-neutral-100 hover:bg-neutral-200 dark:bg-white/5 dark:hover:bg-white/10 border border-neutral-200 dark:border-white/10 flex items-center justify-center text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white active:scale-95 transition-all cursor-pointer shadow-sm"
+            className="w-9 h-9 rounded-[10px] bg-neutral-100 hover:bg-neutral-200 dark:bg-white/5 dark:hover:bg-white/10 border border-neutral-200 dark:border-white/10 flex items-center justify-center text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white active:scale-95 transition-all cursor-pointer shadow-sm"
             aria-label="Open menu"
           >
-            {isMobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+            {isMobileMenuOpen ? (
+              <X className="w-4 h-4" />
+            ) : (
+              <Menu className="w-4 h-4" />
+            )}
           </button>
         </div>
       </header>
@@ -171,15 +179,27 @@ export function MarketingHeader() {
 
           <div className="pt-3 border-t border-white/10 flex flex-col gap-2 mt-1">
             {isAuthenticated && hasCompletedOnboarding ? (
-              <Link href="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>
-                <Button variant="glow" className="w-full text-xs h-9 justify-center font-bold cursor-pointer bg-brand hover:bg-brand-hover text-white border-none rounded-[10px]">
+              <Link
+                href="/dashboard"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <Button
+                  variant="glow"
+                  className="w-full text-xs h-9 justify-center font-bold cursor-pointer bg-brand hover:bg-brand-hover text-white border-none rounded-[10px]"
+                >
                   <span>Go to Dashboard</span>
                   <ArrowRight className="w-3.5 h-3.5 ml-1" />
                 </Button>
               </Link>
             ) : isAuthenticated ? (
-              <Link href="/onboarding" onClick={() => setIsMobileMenuOpen(false)}>
-                <Button variant="glow" className="w-full text-xs h-9 justify-center font-bold cursor-pointer bg-brand hover:bg-brand-hover text-white border-none rounded-[10px]">
+              <Link
+                href="/onboarding"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <Button
+                  variant="glow"
+                  className="w-full text-xs h-9 justify-center font-bold cursor-pointer bg-brand hover:bg-brand-hover text-white border-none rounded-[10px]"
+                >
                   <span>Get Started</span>
                   <ArrowRight className="w-3.5 h-3.5 ml-1" />
                 </Button>
@@ -187,12 +207,21 @@ export function MarketingHeader() {
             ) : (
               <>
                 <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
-                  <Button variant="outline" className="w-full text-xs h-9 justify-center cursor-pointer border-[#27272a] text-white rounded-[10px] hover:text-brand hover:border-brand-subtle hover:bg-brand-subtle">
+                  <Button
+                    variant="outline"
+                    className="w-full text-xs h-9 justify-center cursor-pointer border-[#27272a] text-white rounded-[10px] hover:text-brand hover:border-brand-subtle hover:bg-brand-subtle"
+                  >
                     Log in
                   </Button>
                 </Link>
-                <Link href="/register" onClick={() => setIsMobileMenuOpen(false)}>
-                  <Button variant="glow" className="w-full text-xs h-9 justify-center font-bold cursor-pointer bg-brand hover:bg-brand-hover text-white border-none rounded-[10px]">
+                <Link
+                  href="/register"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <Button
+                    variant="glow"
+                    className="w-full text-xs h-9 justify-center font-bold cursor-pointer bg-brand hover:bg-brand-hover text-white border-none rounded-[10px]"
+                  >
                     <span>Create Free Account</span>
                     <ArrowRight className="w-3.5 h-3.5 ml-1" />
                   </Button>

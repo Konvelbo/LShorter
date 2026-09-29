@@ -1,14 +1,15 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Search } from "lucide-react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { getAllDocFeatures } from "@/lib/docs-data";
 import { CofounderResourceCard } from "@/components/marketing/cofounder-resource-card";
 import { CardContainer, CardBody, CardItem } from "@/components/ui/3d-card";
+import { ReuiCommandModal } from "@/components/search/reui-command-modal";
 
 const CARD_META: Record<string, { tag: string; color: string; date: string }> = {
   "sdk-quickstart": { tag: "SDK & API", color: "bg-emerald-500", date: "v1.2" },
@@ -40,6 +41,7 @@ const ECOSYSTEM_STACK = [
 export default function DocsPage() {
   const features = getAllDocFeatures();
   const pageContainerRef = useRef<HTMLDivElement>(null);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -156,7 +158,25 @@ export default function DocsPage() {
               Deploy contextual routing rules, protect links with PIN codes, and measure every click with millisecond precision across a global distributed edge network.
             </p>
 
-            <div className="pt-2">
+            {/* Documentation Search Input Trigger */}
+            <div className="pt-1">
+              <button
+                type="button"
+                onClick={() => setIsSearchOpen(true)}
+                className="w-full flex items-center justify-between gap-3 h-11 px-3.5 rounded-[10px] bg-white dark:bg-[#141416] text-[#09090B] dark:text-[#FAFAFA] border border-black/[0.08] dark:border-white/[0.1] hover:border-black/[0.18] dark:hover:border-white/[0.2] shadow-xs transition-all cursor-pointer group/search"
+                aria-label="Search documentation, endpoints, and pages"
+              >
+                <span className="flex items-center gap-2.5 text-xs sm:text-sm text-[#71717A] dark:text-[#A1A1AA] group-hover/search:text-[#09090B] dark:group-hover/search:text-[#FAFAFA] transition-colors">
+                  <Search className="w-4 h-4 shrink-0" />
+                  <span>Search docs, API endpoints, guides...</span>
+                </span>
+                <kbd className="inline-flex items-center gap-0.5 rounded-[5px] bg-black/[0.04] dark:bg-white/[0.06] border border-black/[0.08] dark:border-white/[0.1] px-2 py-0.5 text-[11px] font-mono text-[#71717A] dark:text-[#A1A1AA]">
+                  ⌘K
+                </kbd>
+              </button>
+            </div>
+
+            <div className="pt-1">
               <Link
                 href="/docs/sdk-quickstart"
                 className="inline-flex items-center gap-2 text-xs sm:text-sm font-mono font-semibold text-brand hover:underline cursor-pointer group/link"
@@ -196,6 +216,28 @@ export default function DocsPage() {
 
       {/* 3. THE 3-COLUMN RESOURCES GRID (Exact Cofounder Grid with GSAP Pop-up Card Animation) */}
       <section className="docs-cards-grid max-w-6xl mx-auto pt-12 sm:pt-16">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+          <div>
+            <h2 className="text-lg sm:text-xl font-bold tracking-tight text-[#2B2520] dark:text-white">
+              Guides &amp; API Reference
+            </h2>
+            <p className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400">
+              Browse architecture guides, SDK references, and edge telemetry documentation.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsSearchOpen(true)}
+            className="inline-flex items-center gap-2.5 h-10 px-3.5 rounded-[10px] bg-white dark:bg-[#141416] text-[#09090B] dark:text-[#FAFAFA] border border-black/[0.08] dark:border-white/[0.1] hover:border-black/[0.18] dark:hover:border-white/[0.2] text-xs font-medium shadow-xs transition-all cursor-pointer shrink-0"
+          >
+            <Search className="w-3.5 h-3.5 text-[#71717A] dark:text-[#A1A1AA]" />
+            <span>Search all documentation...</span>
+            <kbd className="ml-2 rounded-[4px] bg-black/[0.04] dark:bg-white/[0.06] border border-black/[0.08] dark:border-white/[0.1] px-1.5 py-0.5 text-[10px] font-mono text-[#71717A] dark:text-[#A1A1AA]">
+              ⌘K
+            </kbd>
+          </button>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 items-stretch">
           {features.map((feature, idx) => {
             const meta = CARD_META[feature.slug] || {
@@ -218,6 +260,10 @@ export default function DocsPage() {
         </div>
       </section>
 
+      <ReuiCommandModal
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+      />
     </div>
   );
 }

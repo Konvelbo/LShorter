@@ -31,12 +31,14 @@ import {
   RotateCcw,
   GripVertical,
   X,
+  Download,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import {
   cfGetLinks,
   cfDeleteLink,
+  cfBulkDeleteLinks,
   cfInvalidateCache,
 } from "@/lib/cloudflare-api";
 import { ShortLink } from "@/types";
@@ -50,6 +52,10 @@ import { LinkEditModal } from "@/components/dashboard/link-edit-modal";
 import { LinkShareModal } from "@/components/dashboard/link-share-modal";
 import { LinkQRModal } from "@/components/dashboard/link-qr-modal";
 import { DeleteConfirmModal } from "@/components/dashboard/delete-confirm-modal";
+import {
+  LinksReuiDataGrid,
+  getDicebearGlassUrl,
+} from "@/components/dashboard/reui-data-grids";
 import confetti from "canvas-confetti";
 
 export default function LinksPage() {
@@ -197,8 +203,27 @@ export default function LinksPage() {
         metaTitle: l.meta_title || l.metaTitle || l.og_title || l.ogTitle,
         ogTitle: l.og_title || l.ogTitle || l.meta_title || l.metaTitle,
         ogDescription: l.og_description || l.ogDescription,
-        ogImage: l.og_image || l.ogImage,
-        twitterCard: "summary_large_image",
+        ogImage: l.og_image || l.ogImage || l.banner_url || l.bannerUrl || "",
+        bannerStyle:
+          (l.banner_style || l.bannerStyle || l.twitter_card || l.twitterCard) === "default_banner" ||
+          (l.banner_style || l.bannerStyle || l.twitter_card || l.twitterCard) === "summary"
+            ? "default_banner"
+            : "large_banner",
+        banner_style:
+          (l.banner_style || l.bannerStyle || l.twitter_card || l.twitterCard) === "default_banner" ||
+          (l.banner_style || l.bannerStyle || l.twitter_card || l.twitterCard) === "summary"
+            ? "default_banner"
+            : "large_banner",
+        twitterCard:
+          (l.banner_style || l.bannerStyle || l.twitter_card || l.twitterCard) === "default_banner" ||
+          (l.banner_style || l.bannerStyle || l.twitter_card || l.twitterCard) === "summary"
+            ? "summary"
+            : "summary_large_image",
+        twitter_card:
+          (l.banner_style || l.bannerStyle || l.twitter_card || l.twitterCard) === "default_banner" ||
+          (l.banner_style || l.bannerStyle || l.twitter_card || l.twitterCard) === "summary"
+            ? "summary"
+            : "summary_large_image",
         hideReferrer: Boolean(l.hide_referrer || l.hideReferrer),
         tags: l.tags
           ? typeof l.tags === "string"
@@ -226,6 +251,14 @@ export default function LinksPage() {
             : l.passParams !== undefined
               ? Boolean(l.passParams)
               : undefined,
+        pathLockMode: (l.path_lock_mode || l.pathLockMode || "off") as "off" | "strict" | "funnel",
+        path_lock_mode: (l.path_lock_mode || l.pathLockMode || "off") as "off" | "strict" | "funnel",
+        pathLockPrefix: l.path_lock_prefix || l.pathLockPrefix || "",
+        path_lock_prefix: l.path_lock_prefix || l.pathLockPrefix || "",
+        pathLockMessage: l.path_lock_message || l.pathLockMessage || "",
+        path_lock_message: l.path_lock_message || l.pathLockMessage || "",
+        pathLockPassword: l.path_lock_password || l.pathLockPassword || "",
+        path_lock_password: l.path_lock_password || l.pathLockPassword || "",
         isActive: !(
           l.is_active === 0 ||
           l.is_active === false ||
@@ -257,6 +290,9 @@ export default function LinksPage() {
         created_at: l.created_at || l.createdAt || new Date().toISOString(),
       }));
       setLinks(rawLinks);
+      setSelectedEditLink((prev) =>
+        prev ? rawLinks.find((item) => item.id === prev.id || item.slug === prev.slug) || prev : null
+      );
     } catch (err) {
       console.error("Error loading links:", err);
       if (!isBackground) setLinks([]);
@@ -267,7 +303,7 @@ export default function LinksPage() {
 
   useEffect(() => {
     if (status === "unauthenticated") {
-      router.replace("/login");
+      setIsLoading(false);
       return;
     }
     if (status === "authenticated" && userId) {
@@ -284,6 +320,9 @@ export default function LinksPage() {
           e.detail,
           ...prev.filter((l) => l.id !== e.detail.id),
         ]);
+        setSelectedEditLink((prev) =>
+          prev && (prev.id === e.detail.id || prev.slug === e.detail.slug) ? e.detail : prev
+        );
       }
       loadLinks(true);
     };
@@ -372,6 +411,13 @@ export default function LinksPage() {
     setCopiedId(link.id);
     confetti({ particleCount: 30, spread: 50, origin: { y: 0.7 } });
     setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const getTestUrl = (link: ShortLink) => {
+    if (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")) {
+      return `/r/${encodeURIComponent(link.slug)}`;
+    }
+    return link.shortUrl;
   };
 
   // Toggle selection for a single link
@@ -484,13 +530,19 @@ export default function LinksPage() {
   };
 
   // Trigger custom delete modal for bulk selection
-  const promptDeleteBulk = () => {
-    if (selectedLinkIds.size === 0) return;
-    const selected = links.filter((l) => selectedLinkIds.has(l.id));
+  const promptDeleteBulk = (customIds?: string[]) => {
+    const targetIds =
+      customIds && customIds.length > 0
+        ? customIds
+        : Array.from(selectedLinkIds);
+    if (targetIds.length === 0) return;
+    const selected = links.filter(
+      (l) => targetIds.includes(l.id) || targetIds.includes(l.slug),
+    );
     setDeleteTarget({
       isOpen: true,
-      ids: Array.from(selectedLinkIds),
-      labels: selected.map((l) => l.slug),
+      ids: targetIds,
+      labels: selected.map((l) => l.slug || l.id),
     });
   };
 
@@ -513,13 +565,22 @@ export default function LinksPage() {
     });
 
     try {
-      // 2. Perform API delete calls in parallel (including associated Bunny CDN image cleanup)
-      await Promise.all(
-        idsToDelete.map((id) => {
-          const target = links.find((l) => l.id === id || l.slug === id);
-          return cfDeleteLink(id, userId, target?.slug, target?.ogImage);
-        }),
-      );
+      // 2. Perform API delete calls in parallel (including associated banner cleanup)
+      if (idsToDelete.length > 1) {
+        await cfBulkDeleteLinks(idsToDelete, userId).catch(async () => {
+          await Promise.all(
+            idsToDelete.map((id) => {
+              const target = links.find((l) => l.id === id || l.slug === id);
+              return cfDeleteLink(id, userId, target?.slug, target?.ogImage);
+            }),
+          );
+        });
+      } else {
+        const target = links.find(
+          (l) => l.id === idsToDelete[0] || l.slug === idsToDelete[0],
+        );
+        await cfDeleteLink(idsToDelete[0], userId, target?.slug, target?.ogImage);
+      }
       cfInvalidateCache();
       if (typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent("lshorter_data_change"));
@@ -779,26 +840,81 @@ export default function LinksPage() {
     filteredLinks.length > 0 && selectedLinkIds.size === filteredLinks.length;
   const isPartiallySelected = selectedLinkIds.size > 0 && !isAllSelected;
 
+  const handleExportLinksCSV = () => {
+    try {
+      const headers = [
+        "ID",
+        "Slug",
+        "Short URL",
+        "Target URL",
+        "Clicks",
+        "Unique Clicks",
+        "Conversions",
+        "Revenue (€)",
+        "Status",
+        "Password Protected",
+        "Created At",
+      ];
+      const rows = filteredLinks.map((l) => [
+        l.id,
+        `"/${l.slug}"`,
+        `"${l.shortUrl || `https://lsho.cc/r/${l.slug}`}"`,
+        `"${(l.targetUrl || "").replace(/"/g, '""')}"`,
+        l.clicksCount || 0,
+        l.uniqueClicks || 0,
+        l.conversionsCount || 0,
+        Number(l.revenue || 0).toFixed(2),
+        l.isActive ? "Active" : "Paused",
+        l.isPasswordProtected ? "Yes" : "No",
+        l.created_at || new Date().toISOString(),
+      ]);
+
+      const csvContent =
+        "\uFEFF" + [headers.join(";"), ...rows.map((r) => r.join(";"))].join("\r\n");
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `lshorter_short_links_${new Date().toISOString().split("T")[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      showToast.success("Short links exported to CSV!");
+    } catch {
+      showToast.error("Error exporting CSV.");
+    }
+  };
+
   if (status === "loading" || isLoading) {
     return <LinksPageSkeleton />;
   }
 
   return (
-    <div className="flex flex-col gap-6 animate-in fade-in pb-16">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="flex flex-col gap-6 pb-16">
+      {/* Page Title + Breadcrumb & Action Buttons */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-wide">
-            My Short Links
+          <h1 className="text-xl font-bold ds-text-primary">
+            Short Links Data Table
           </h1>
-          <p className="text-xs text-neutral-400 mt-1">
-            Manage, edit, and analyze your {links.length} active redirections
-            with QR codes and UTM tracking.
+          <p className="text-sm ds-text-muted mt-0.5">
+            Home &gt; Short Links ({links.length} active links)
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
-          <Button
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={handleExportLinksCSV}
+            className="inline-flex items-center gap-1.5 rounded-lg ds-card px-2.5 py-1.5 text-xs font-medium ds-text-secondary hover:ds-text-primary h-8 cursor-pointer transition-colors"
+          >
+            <Download className="h-3.5 w-3.5 text-[#465FFF]" />
+            <span>Export CSV</span>
+          </button>
+
+          <button
+            type="button"
             onClick={async () => {
               setIsRefreshing(true);
               cfInvalidateCache("/api/links");
@@ -806,165 +922,46 @@ export default function LinksPage() {
               setIsRefreshing(false);
               showToast.success("Links list refreshed!");
             }}
-            variant="outline"
             disabled={isRefreshing}
-            className="h-10 px-3.5 text-xs font-semibold gap-2 border-[#27272a] bg-[#141416] hover:bg-white/5 text-neutral-300 hover:text-white cursor-pointer shadow-sm"
+            className="inline-flex items-center gap-1.5 rounded-lg ds-card px-2.5 py-1.5 text-xs font-medium ds-text-secondary hover:ds-text-primary h-8 cursor-pointer transition-colors"
           >
-            <RefreshCw
-              className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-[var(--brand-primary-text)]" : "text-neutral-400"}`}
-            />
+            <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? "animate-spin text-[#465FFF]" : ""}`} />
             <span>Refresh</span>
-          </Button>
+          </button>
 
-          <Button
+          <button
+            type="button"
             onClick={() => setIsCreateOpen(true)}
-            variant="glow"
-            className="h-10 px-4 font-bebas text-base tracking-wide gap-1.5 shrink-0 flex items-center justify-center leading-none"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-[#465FFF] hover:bg-[#3641F5] px-3 py-1.5 text-xs font-semibold !text-white h-8 shadow-xs transition-colors cursor-pointer"
           >
-            <Plus className="w-4 h-4" />
-            <span>CREATE A LINK</span>
-          </Button>
+            <Plus className="h-3.5 w-3.5 !text-white" />
+            <span className="!text-white">Create Short Link</span>
+          </button>
         </div>
       </div>
 
-      {/* Filter & Search Bar */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2.5">
-        {/* Search */}
-        <div className="relative flex-1 min-w-0">
-          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-500" />
-          <input
-            type="text"
-            placeholder="Search by slug, URL, tag..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full h-10 pl-10 pr-4 rounded-[10px] bg-[#141416] border border-[#222225] text-xs text-white placeholder:text-neutral-500 focus:outline-none focus:border-[var(--input-focus-border)]"
-          />
-        </div>
+      {/* TailAdmin Data Table 1 */}
+      <LinksReuiDataGrid
+        links={filteredLinks}
+        copiedId={copiedId}
+        onCopy={(text, id) => {
+          navigator.clipboard.writeText(text);
+          setCopiedId(id);
+          confetti({ particleCount: 25, spread: 50, origin: { y: 0.7 } });
+          setTimeout(() => setCopiedId(null), 2000);
+        }}
+        onShareLink={(l) => setSelectedShareLink(l)}
+        onSelectQr={(l) => setSelectedShareLink(l)}
+        onEditLink={(l) => setSelectedEditLink(l)}
+        onDeleteLink={(l) => promptDeleteSingle(l)}
+        onDeleteMultiple={(ids) => promptDeleteBulk(ids)}
+        pageSize={10}
+        title="Datatable 1 — Short Links & Edge Routing"
+      />
 
-        {/* Filter Controls */}
-        <div className="flex items-center gap-2">
-          {/* Status Filter */}
-          <div className="relative flex-1 md:flex-initial">
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              aria-label="Filter by status"
-              className="w-full md:w-auto h-10 pl-3 pr-8 rounded-[10px] bg-[#141416] border border-[#222225] text-xs font-semibold text-white focus:outline-none focus:border-[var(--input-focus-border)] cursor-pointer shadow-sm appearance-none truncate"
-            >
-              <option value="all">All statuses</option>
-              <option value="active">Active</option>
-              <option value="expired">Expired</option>
-              <option value="protected">Protected (🔒)</option>
-            </select>
-            <ChevronDown className="w-3.5 h-3.5 text-neutral-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-          </div>
+      <div className="hidden">
 
-          {/* Tag Filter Dropdown */}
-          <div className="relative flex-1 md:flex-initial" ref={tagDropdownRef}>
-            <button
-              type="button"
-              onClick={() => setIsTagDropdownOpen(!isTagDropdownOpen)}
-              className="w-full md:w-auto h-10 px-3 rounded-[10px] bg-[#141416] border border-[#222225] hover:border-[#333338] text-xs font-semibold text-white flex items-center justify-between gap-2 md:min-w-[155px] transition-colors cursor-pointer shadow-sm truncate"
-            >
-              <div className="flex items-center gap-1.5 truncate">
-                {selectedTag === "all" ? (
-                  <Globe2 className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
-                ) : (
-                  <Tag className="w-3.5 h-3.5 text-[var(--brand-primary-text)] shrink-0" />
-                )}
-                <span className="truncate">
-                  {selectedTag === "all"
-                    ? `All (${links.length})`
-                    : `#${selectedTag}`}
-                </span>
-              </div>
-              <ChevronDown
-                className={`w-3.5 h-3.5 text-neutral-400 shrink-0 transition-transform duration-200 ${
-                  isTagDropdownOpen ? "rotate-180" : ""
-                }`}
-              />
-            </button>
-
-            {isTagDropdownOpen && (
-              <div className="absolute right-0 top-full mt-1.5 w-56 rounded-[10px] bg-[#141416] border border-[#27272a] shadow-2xl py-1.5 z-40 animate-in fade-in zoom-in-95 duration-150 max-h-72 overflow-y-auto">
-                <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-neutral-500">
-                  Filter by category / tag
-                </div>
-
-                {/* Option: All links */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedTag("all");
-                    setIsTagDropdownOpen(false);
-                  }}
-                  className={`w-full px-3 py-2 text-xs flex items-center justify-between transition-colors text-left cursor-pointer ${
-                    selectedTag === "all"
-                      ? "bg-[var(--badge-brand-bg)] text-[var(--badge-brand-text)] font-bold"
-                      : "text-neutral-300 hover:bg-white/5 hover:text-white"
-                  }`}
-                >
-                  <span className="flex items-center gap-2">
-                    <Globe2 className="w-3.5 h-3.5 text-[var(--brand-primary-text)]" />
-                    <span>All links</span>
-                  </span>
-                  <span className="text-[11px] font-mono px-1.5 py-0.5 rounded-[10px] bg-white/5 text-neutral-400">
-                    {links.length}
-                  </span>
-                </button>
-
-                {allTags.length > 0 && (
-                  <div className="h-px bg-[#222225] my-1" />
-                )}
-
-                {/* Individual Tag Options */}
-                {allTags.map((t) => {
-                  const count = links.filter(
-                    (l) => l.tags && l.tags.includes(t),
-                  ).length;
-                  return (
-                    <button
-                      key={t}
-                      type="button"
-                      onClick={() => {
-                        setSelectedTag(t);
-                        setIsTagDropdownOpen(false);
-                      }}
-                      className={`w-full px-3 py-2 text-xs flex items-center justify-between transition-colors text-left cursor-pointer ${
-                        selectedTag === t
-                          ? "bg-[var(--badge-brand-bg)] text-[var(--badge-brand-text)] font-bold"
-                          : "text-neutral-300 hover:bg-white/5 hover:text-white"
-                      }`}
-                    >
-                      <span className="flex items-center gap-2 truncate">
-                        <Tag className="w-3 h-3 text-[var(--brand-primary-text)] shrink-0" />
-                        <span className="truncate">#{t}</span>
-                      </span>
-                      <span className="text-[11px] font-mono px-1.5 py-0.5 rounded-[10px] bg-white/5 text-neutral-400">
-                        {count}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Links Container */}
-      <div className="space-y-3 relative min-h-[220px]">
-        {filteredLinks.length === 0 ? (
-          <div className="py-12 px-4 rounded-2xl bg-white dark:bg-[#131418] border border-neutral-200 dark:border-neutral-800 text-center space-y-3 shadow-sm">
-            <div className="w-12 h-12 mx-auto rounded-full bg-neutral-100 dark:bg-neutral-800/80 flex items-center justify-center text-neutral-400">
-              <Globe2 className="w-6 h-6" />
-            </div>
-            <p className="text-xs text-neutral-500 dark:text-neutral-400 font-medium">
-              No links found matching your search.
-            </p>
-          </div>
-        ) : (
-          filteredLinks.map((link) => {
+        {false && filteredLinks.map((link) => {
             const isCopied = copiedId === link.id;
             const isExpired = Boolean(
               link.expiresAt && new Date(link.expiresAt) < new Date(),
@@ -983,8 +980,8 @@ export default function LinksPage() {
                   ? "HTTP 301 Edge Direct"
                   : "HTTP 301 Permanent";
 
-            // Thumbnail fallback / image
-            const thumbnailImage = link.ogImage || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&auto=format&fit=crop&q=80";
+            // Thumbnail fallback / image (DiceBear glass)
+            const thumbnailImage = link.ogImage || getDicebearGlassUrl(link.slug);
 
             return (
               <div
@@ -1130,8 +1127,7 @@ export default function LinksPage() {
                 </div>
               </div>
             );
-          })
-        )}
+          })}
       </div>
 
       {/* Floating Action Menu rendered in Portal (Guaranteed Top Layer z-[99999] with No Clipping) */}
@@ -1181,7 +1177,7 @@ export default function LinksPage() {
 
               {/* 3. Test redirection */}
               <a
-                href={activeMenuLink.shortUrl}
+                href={getTestUrl(activeMenuLink)}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => {

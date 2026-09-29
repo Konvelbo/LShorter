@@ -1,4 +1,8 @@
 @import "tailwindcss";
+@source "../app";
+@source "../components";
+@source "../lib";
+@source "../src";
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ==========================================================================
@@ -67,16 +71,16 @@
     --tab-active-text: #ffffff;
 }
 
-/* ─── Desktop Overrides (>= 768px: Warm Orange #ff6600) ─── */
+/* ─── Unified Blue Brand Theme (#0066FF) across Mobile & Desktop ─── */
 @media (min-width: 768px) {
     :root {
-        --brand-primary: #ff6600;
-        --brand-primary-hover: #ff771a;
-        --brand-primary-light: rgba(255, 102, 0, 0.15);
-        --brand-primary-subtle: rgba(255, 102, 0, 0.08);
-        --brand-primary-border: rgba(255, 102, 0, 0.30);
-        --brand-primary-glow: rgba(255, 102, 0, 0.35);
-        --brand-primary-text: #ff6600;
+        --brand-primary: #0066FF;
+        --brand-primary-hover: #0055d4;
+        --brand-primary-light: rgba(0, 102, 255, 0.14);
+        --brand-primary-subtle: rgba(0, 102, 255, 0.08);
+        --brand-primary-border: rgba(0, 102, 255, 0.30);
+        --brand-primary-glow: rgba(0, 102, 255, 0.35);
+        --brand-primary-text: #0066FF;
     }
 }
 
@@ -427,170 +431,38 @@ html.light ::-webkit-scrollbar-thumb:hover {
 html.light,
 html.light :root {
     --background: #faf7f2;
-    --foreground: #2b2520;
-    --card: #fffdf9;
-    --card-foreground: #2b2520;
-    --card-border: #e7dfd5;
-    --popover: #fffdf9;
-    --popover-foreground: #2b2520;
-    --secondary: #f2ece4;
-    --secondary-foreground: #2b2520;
-    --muted: #f2ece4;
-    --muted-foreground: #7d756c;
-    --accent: #f2ece4;
-    --accent-foreground: #2b2520;
+    --foreground: #09090b;
+    --card: #ffffff;
+    --card-foreground: #09090b;
+    --card-border: #e4e4e7;
+    --popover: #ffffff;
+    --popover-foreground: #09090b;
+    --secondary: #f4f4f5;
+    --secondary-foreground: #09090b;
+    --muted: #f4f4f5;
+    --muted-foreground: #52525b;
+    --accent: #f4f4f5;
+    --accent-foreground: #09090b;
     --destructive: #ef4444;
     --destructive-foreground: #ffffff;
-    --border: #e7dfd5;
-    --input: #fffdf9;
+    --border: #e4e4e7;
+    --input: #ffffff;
 }
 
+/* Keep native Tailwind colors and dark: variants intact across Light & Dark mode */
 html.light body {
-    background-color: #faf7f2 !important;
-    color: #2b2520 !important;
+    background-color: #ffffff !important;
+    color: #101828 !important;
 }
 
-html.light [class*="bg-[#09090b]"] {
-    background-color: #efe9df !important;
-}
-
-html.light [class*="bg-[#121215]"] {
-    background-color: #faf7f2 !important;
-}
-
-html.light [class*="bg-[#141416]"],
-html.light [class*="bg-[#0c0c0e]"],
-html.light [class*="bg-[#0d0d12]"],
-html.light [class*="bg-[#0a0a0f]"],
-html.light [class*="bg-[#1c1c24]"],
-html.light [class*="bg-[#18181c]"],
-html.light [class*="bg-[#121316]"],
-html.light [class*="bg-[#1c1c21]"] {
-    background-color: #fffdf9 !important;
-}
-
-html.light [class*="bg-[#18181b]"],
-html.light [class*="bg-[#1c1c20]"],
-html.light [class*="bg-[#1f1f23]"],
-html.light [class*="bg-[#1a1a1e]"],
-html.light [class*="bg-[#10141f]"],
-html.light [class*="bg-[#0d121f]"],
-html.light [class*="bg-[#0d0d10]"],
-html.light [class*="bg-[#151c2e]"],
-html.light [class*="bg-[#27272a]"] {
-    background-color: #f2ece4 !important;
-}
-
-html.light [class*="border-[#222225]"],
-html.light [class*="border-[#27272a]"],
-html.light [class*="border-[#3f3f46]"],
-html.light [class*="border-[#1e2942]"],
-html.light [class*="border-[#27375a]"],
-html.light [class*="border-[#2a2a32]"],
-html.light [class*="border-[#222226]"],
-html.light [class*="border-[#2a2a30]"],
-html.light [class*="border-white/10"],
-html.light [class*="border-white/15"],
-html.light [class*="border-white/5"],
-html.light [class*="border-white/20"] {
-    border-color: #e7dfd5 !important;
-}
-
-/* Ensure standard inputs & selects on cream cards in light mode have a crisp biscuit border and high contrast */
-html.light
-    input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not(
-        [type="button"]
-    ):not(.bg-transparent):not([class*="bg-transparent"]),
-html.light select {
-    border: 1.5px solid #ddd1c4 !important;
-    background-color: #fffdf9 !important;
-    color: #2b2520 !important;
-}
-
-html.light select option {
-    background-color: #fffdf9 !important;
-    color: #2b2520 !important;
-}
-
-html.light
-    input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not(
-        [type="button"]
-    ):not(.bg-transparent):not([class*="bg-transparent"]):focus,
-html.light select:focus {
-    border-color: #ff6600 !important;
-    box-shadow: 0 0 0 2px rgba(255, 102, 0, 0.2) !important;
-}
-
-/* Dropdown menus and popover cards in light mode */
-html.light .dropdown-anchor [class*="shadow-2xl"],
-html.light [class*="shadow-2xl"] {
-    box-shadow:
-        0 10px 30px -5px rgba(43, 37, 32, 0.08),
-        0 4px 12px -2px rgba(43, 37, 32, 0.04) !important;
-}
-
-html.light [class*="hover:bg-white/5"]:hover,
-html.light [class*="hover:bg-white/10"]:hover {
-    background-color: #f2ece4 !important;
-}
-
-/* Transparent inputs inside pill capsules (hero shortener, table filter) keep zero border */
-html.light input.bg-transparent,
-html.light input[class*="bg-transparent"] {
-    color: #2b2520 !important;
-    border: none !important;
-    box-shadow: none !important;
-}
-
-html.light aside {
-    background-color: #fffdf9 !important;
-    border-color: #e7dfd5 !important;
-}
-
-html.light header {
-    background-color: rgba(250, 247, 242, 0.9) !important;
-    border-color: #e7dfd5 !important;
-}
-
-html.light .glass-card,
-html.light .glass-card-hover {
-    background: #fffdf9 !important;
-    border-color: #e7dfd5 !important;
-    box-shadow: 0 2px 8px rgba(43, 37, 32, 0.04) !important;
-}
-
-/* Light mode text contrast: Keep white ONLY on colored/primary buttons & badges */
-html.light
-    .text-white:not([class*="bg-[#ff6600]"]):not([class*="bg-[#0066FF]"]):not(
-        [class*="bg-[#0080ff]"]
-    ):not([class*="bg-[#0070e0]"]):not([class*="bg-emerald"]):not(
-        [class*="bg-red"]
-    ):not([class*="bg-rose"]):not([class*="bg-gradient"]):not(
-        .sidebar-link-active
-    ),
-html.light [class*="text-[#fafafa]"] {
-    color: #2b2520 !important;
-}
-
-html.light .text-neutral-100,
-html.light .text-neutral-200,
-html.light [class*="text-neutral-100"],
-html.light [class*="text-neutral-200"] {
-    color: #2b2520 !important;
-}
-
-html.light .text-neutral-300,
-html.light .text-neutral-400 {
-    color: #7d756c !important;
-}
-
-html.light .text-neutral-500 {
-    color: #9e958c !important;
+html.dark body {
+    background-color: #09090b !important;
+    color: #fafafa !important;
 }
 
 html.light .sidebar-link-btn:hover {
-    background-color: #f2ece4 !important;
-    color: #2b2520 !important;
+    background-color: #f4f4f5 !important;
+    color: #09090b !important;
 }
 
 /* ==========================================================================
@@ -1303,3 +1175,223 @@ html.dark .lshorter-toast-badge-upgrade {
 .link-animate-progress {
   animation: linkCountdownBar 10s linear forwards;
 }
+
+/* ==========================================================================
+   UNIFIED DESIGN SYSTEM VARIABLES & THEME ENGINE (LIGHT + PURE BLACK DARK)
+   Centralized variables so modifying colors in :root / html.light updates
+   every page, card, sidebar, topbar, scrollbar, and skeleton globally.
+   ========================================================================== */
+:root,
+html.dark {
+  --ds-bg-app: #09090b;
+  --ds-bg-sidebar: #09090b;
+  --ds-bg-topbar: rgba(9, 9, 11, 0.92);
+  --ds-card: #111113;
+  --ds-card-elevated: #16161a;
+  --ds-surface-muted: #18181b;
+  --ds-input-bg: #121215;
+  --ds-border: #222225;
+  --ds-border-strong: #2e2e33;
+  --ds-text-primary: #fafafa;
+  --ds-text-secondary: #d4d4d8;
+  --ds-text-muted: #a1a1aa;
+  --ds-accent: #465fff;
+  --ds-accent-hover: #3641f5;
+  --ds-accent-soft: rgba(70, 95, 255, 0.14);
+  --ds-scroll-track: #09090b;
+  --ds-scroll-thumb: #27272a;
+  --ds-scroll-thumb-hover: #3f3f46;
+  --ds-skeleton-base: #141417;
+  --ds-skeleton-highlight: #232329;
+}
+
+html.light {
+  --ds-bg-app: #f9fafb;
+  --ds-bg-sidebar: #ffffff;
+  --ds-bg-topbar: rgba(255, 255, 255, 0.94);
+  --ds-card: #ffffff;
+  --ds-card-elevated: #ffffff;
+  --ds-surface-muted: #f2f4f7;
+  --ds-input-bg: #ffffff;
+  --ds-border: #e4e7ec;
+  --ds-border-strong: #d0d5dd;
+  --ds-text-primary: #101828;
+  --ds-text-secondary: #344054;
+  --ds-text-muted: #667085;
+  --ds-accent: #465fff;
+  --ds-accent-hover: #3641f5;
+  --ds-accent-soft: #ecf3ff;
+  --ds-scroll-track: #f2f4f7;
+  --ds-scroll-thumb: #cfd5df;
+  --ds-scroll-thumb-hover: #98a2b3;
+  --ds-skeleton-base: #e9edf2;
+  --ds-skeleton-highlight: #f5f7fa;
+}
+
+/* Semantic Global Layout & Surface Classes */
+.ds-bg-app {
+  background-color: var(--ds-bg-app) !important;
+  color: var(--ds-text-primary) !important;
+}
+
+.ds-bg-sidebar {
+  background-color: var(--ds-bg-sidebar) !important;
+  border-color: var(--ds-border) !important;
+}
+
+.ds-bg-topbar {
+  background-color: var(--ds-bg-topbar) !important;
+  border-color: var(--ds-border) !important;
+  backdrop-filter: blur(14px);
+}
+
+.ds-card {
+  background-color: var(--ds-card) !important;
+  border: 1px solid var(--ds-border) !important;
+  color: var(--ds-text-primary) !important;
+}
+
+.ds-card-muted {
+  background-color: var(--ds-surface-muted) !important;
+  border: 1px solid var(--ds-border) !important;
+}
+
+.ds-input {
+  background-color: var(--ds-input-bg) !important;
+  border: 1px solid var(--ds-border) !important;
+  color: var(--ds-text-primary) !important;
+}
+
+.ds-input:focus {
+  border-color: var(--ds-accent) !important;
+}
+
+.ds-text-primary {
+  color: var(--ds-text-primary) !important;
+}
+
+.ds-text-secondary {
+  color: var(--ds-text-secondary) !important;
+}
+
+.ds-text-muted {
+  color: var(--ds-text-muted) !important;
+}
+
+.ds-border {
+  border-color: var(--ds-border) !important;
+}
+
+/* Framed Profile Trigger in Topbar */
+.ds-profile-frame {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 3px 8px 3px 3px;
+  border-radius: 9px;
+  background-color: var(--ds-card);
+  border: 1px solid var(--ds-border-strong);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+  transition: all 0.2s ease;
+}
+
+.ds-profile-frame:hover {
+  border-color: var(--ds-accent);
+  background-color: var(--ds-surface-muted);
+}
+
+/* Right-Side Main Workspace Adaptive Scrollbar */
+.ds-main-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--ds-scroll-thumb) var(--ds-scroll-track);
+}
+
+.ds-main-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.ds-main-scroll::-webkit-scrollbar-track {
+  background: var(--ds-scroll-track) !important;
+}
+
+.ds-main-scroll::-webkit-scrollbar-thumb {
+  background: var(--ds-scroll-thumb) !important;
+  border-radius: 9999px;
+  border: 2px solid var(--ds-scroll-track);
+}
+
+.ds-main-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--ds-scroll-thumb-hover) !important;
+}
+
+/* Shimmer Wave Skeleton System */
+@keyframes dsShimmerWave {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.ds-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--ds-skeleton-base) 25%,
+    var(--ds-skeleton-highlight) 50%,
+    var(--ds-skeleton-base) 75%
+  );
+  background-size: 200% 100%;
+  animation: dsShimmerWave 1.6s ease-in-out infinite;
+  border-radius: 10px;
+}
+
+/* Global Pure Black Override for Bluish TailAdmin Classes in Dark Mode */
+html:not(.light) .dark\:bg-\[\#101828\],
+html.dark .dark\:bg-\[\#101828\] {
+  background-color: var(--ds-bg-app) !important;
+}
+
+html:not(.light) .dark\:bg-\[\#1D2939\],
+html.dark .dark\:bg-\[\#1D2939\],
+html:not(.light) .dark\:bg-\[\#171F2F\],
+html.dark .dark\:bg-\[\#171F2F\],
+html:not(.light) .dark\:bg-gray-800,
+html.dark .dark\:bg-gray-800,
+html:not(.light) .dark\:bg-gray-900,
+html.dark .dark\:bg-gray-900 {
+  background-color: var(--ds-card) !important;
+}
+
+html:not(.light) .dark\:border-\[\#344054\],
+html.dark .dark\:border-\[\#344054\],
+html:not(.light) .dark\:border-gray-800,
+html.dark .dark\:border-gray-800,
+html:not(.light) .dark\:border-gray-700,
+html.dark .dark\:border-gray-700 {
+  border-color: var(--ds-border) !important;
+}
+
+/* Global Light Mode Adaptation for Legacy Hardcoded Dark Surfaces in Dashboard */
+html.light main .bg-\[\#141416\],
+html.light main .bg-\[\#131418\],
+html.light main .bg-\[\#1a1a1e\],
+html.light main .bg-\[\#0d0d10\],
+html.light main .bg-\[\#101828\],
+html.light main .bg-\[\#1D2939\] {
+  background-color: var(--ds-card) !important;
+  color: var(--ds-text-primary) !important;
+}
+
+html.light main .border-\[\#27272a\],
+html.light main .border-\[\#222225\],
+html.light main .border-\[\#344054\] {
+  border-color: var(--ds-border) !important;
+}
+
+html.light main .text-neutral-400,
+html.light main .text-neutral-300 {
+  color: var(--ds-text-muted) !important;
+}
+

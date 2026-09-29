@@ -166,7 +166,7 @@ export default {
 
       const userAgent = (request.headers.get('user-agent') || '').toLowerCase();
       const isBot = /facebookexternalhit|facebot|twitterbot|xbot|linkedinbot|whatsapp|telegrambot|discordbot|slackbot|slack-imgbatcher|pinterestbot|skypeuripreview|googlebot|bingbot|applebot|yandexbot|duckduckbot|baiduspider|ia_archiver/i.test(userAgent);
-      const country = (request.cf?.country || request.headers.get('cf-ipcountry') || request.headers.get('x-country') || 'FR').toUpperCase();
+      const country = (request.cf?.country || request.headers.get('cf-ipcountry') || request.headers.get('x-country') || 'XX').toUpperCase();
 
       const ogImage = link.og_image || link.ogImage || '';
       const ogTitle = link.og_title || link.ogTitle || link.meta_title || link.metaTitle || link.title || slug;
@@ -413,7 +413,8 @@ export default {
         }
       }
 
-      const isInternalProbe = request.headers.get('x-internal-probe') === '1' || request.headers.get('x-crawler-prewarm') === '1' || request.headers.get('x-frontend-secret') === 'lsh_secret_live_prod_2026';
+      const configuredSecret = env.FRONTEND_API_SECRET || env.SECRET || '';
+      const isInternalProbe = request.headers.get('x-internal-probe') === '1' || request.headers.get('x-crawler-prewarm') === '1' || (Boolean(configuredSecret) && request.headers.get('x-frontend-secret') === configuredSecret);
       const isPrefetch = (request.headers.get('purpose') || request.headers.get('sec-purpose') || request.headers.get('x-purpose') || request.headers.get('x-moz') || '').includes('prefetch') || (request.headers.get('purpose') || '').includes('preview');
 
       if (env.DB && !isInternalProbe && !isPrefetch && !isBot) {
@@ -520,7 +521,7 @@ export default {
         else if (/macintosh|mac os/i.test(userAgentHeader)) detectedSys = 'macOS';
         else if (/linux/i.test(userAgentHeader)) detectedSys = 'Linux';
 
-        const country = clickBody.country || request.cf?.country || request.headers.get('x-country') || request.headers.get('cf-ipcountry') || 'FR';
+        const country = clickBody.country || request.cf?.country || request.headers.get('x-country') || request.headers.get('cf-ipcountry') || 'XX';
         const city = clickBody.city || request.cf?.city || request.headers.get('x-city') || request.headers.get('cf-ipcity') || 'Inconnue';
         const device = clickBody.device || request.headers.get('x-device') || detectedDev;
         const browser = clickBody.browser || request.headers.get('x-browser') || detectedBr;
@@ -1026,7 +1027,7 @@ export default {
         const customerEmail = body.customer?.email || body.customerEmail || body.customer_email || body.email || request.headers.get('x-customer-email') || null;
         const customerName = body.customer?.name || body.customerName || body.customer_name || body.customerFullName || body.fullName || body.name || request.headers.get('x-customer-name') || null;
         const customerAvatar = body.customer?.avatarUrl || body.customer?.avatar || body.customerAvatar || body.customer_avatar || body.avatarUrl || body.avatar || request.headers.get('x-customer-avatar') || null;
-        const country = body.country || request.headers.get('x-country') || request.headers.get('cf-ipcountry') || 'FR';
+        const country = body.country || request.headers.get('x-country') || request.headers.get('cf-ipcountry') || 'XX';
         const city = body.city || request.headers.get('x-city') || request?.cf?.city || 'Inconnue';
         const device = body.device || 'desktop';
         const browser = body.browser || 'Chrome';
@@ -1159,6 +1160,24 @@ export default {
         return jsonResponse({ success: true, data: emptyAnalytics });
       }
 
+      // 0. Cloudflare Worker Edge KV Cache (30s TTL) - Réduit drastiquement le nombre de requêtes SQL sur D1
+      const cacheKey = `cache:analytics:${userId || 'all'}:${linkId || 'all'}:${period}`;
+      if (env.LINKS_KV) {
+        try {
+          const cachedJson = await env.LINKS_KV.get(cacheKey);
+          if (cachedJson) {
+            return new Response(cachedJson, {
+              headers: {
+                ...corsHeaders,
+                'Content-Type': 'application/json; charset=utf-8',
+                'X-Edge-Cache': 'HIT',
+                'Cache-Control': 'public, max-age=15, stale-while-revalidate=30',
+              },
+            });
+          }
+        } catch {}
+      }
+
       try {
         // 1. Fetch user's links from D1 to get list of identifiers (slugs & IDs)
         let linkQuery = 'SELECT id, slug, user_id, clicks_count, created_at FROM links WHERE 1=1';
@@ -1185,11 +1204,12 @@ export default {
 
         // Compute period date cutoff
         let dateCutoff = "datetime('now', '-30 days')";
-        if (period === '1d' || period === 'day') {
+        const isDayPeriod = (period === '1d' || period === 'day' || period === '24h');
+        if (isDayPeriod) {
           dateCutoff = "datetime('now', '-1 day')";
         } else if (period === '7d' || period === 'week') {
           dateCutoff = "datetime('now', '-7 days')";
-        } else if (period === '365d' || period === 'year') {
+        } else if (period === '365d' || period === 'year' || period === '12m') {
           dateCutoff = "datetime('now', '-365 days')";
         }
 
@@ -1210,6 +1230,10 @@ export default {
           }
         }
 
+        const groupBySql = isDayPeriod
+          ? "strftime('%Y-%m-%d %H:00', timestamp)"
+          : "strftime('%Y-%m-%d', timestamp)";
+
         // 2. Query authentic aggregates in parallel from click_events
         const [
           totalsRes,
@@ -1228,10 +1252,10 @@ export default {
           `).bind(...bindValues).first().catch(() => null),
 
           env.DB.prepare(`
-            SELECT strftime('%Y-%m-%d', timestamp) as date, COUNT(*) as clicks, COUNT(DISTINCT ip_masked) as unique_clicks
+            SELECT ${groupBySql} as date, COUNT(*) as clicks, COUNT(DISTINCT ip_masked) as unique_clicks
             FROM click_events
             WHERE ${baseWhere}
-            GROUP BY strftime('%Y-%m-%d', timestamp)
+            GROUP BY ${groupBySql}
             ORDER BY date ASC
           `).bind(...bindValues).all().catch(() => null),
 
@@ -1291,8 +1315,9 @@ export default {
 
         const dbTotalClicks = Number(totalsRes?.total_clicks || 0);
         const dbUniqueClicks = Number(totalsRes?.unique_clicks || 0);
-        const finalTotalClicks = Math.max(dbTotalClicks, sumClicksFromLinks);
-        const finalUniqueClicks = finalTotalClicks === 0 ? 0 : Math.max(dbUniqueClicks, 1);
+        const isShortWindow = (period === '1d' || period === 'day' || period === '24h' || period === '7d' || period === 'week');
+        const finalTotalClicks = isShortWindow ? dbTotalClicks : Math.max(dbTotalClicks, sumClicksFromLinks);
+        const finalUniqueClicks = finalTotalClicks === 0 ? 0 : (dbUniqueClicks > 0 ? Math.min(dbUniqueClicks, finalTotalClicks) : finalTotalClicks);
         const finalTotalRevenue = Number(totalsRes?.total_revenue || 0);
 
         const clicksByDay = (byDayRes?.results || []).map((r) => ({
@@ -1353,7 +1378,7 @@ export default {
           ipMasked: ev.ip_hash ? ev.ip_hash.replace(/(\d+)\.(\d+)\.(\d+)\.(\d+)/, '$1.$2.•••.•••') : '•••.•••.•••',
         }));
 
-        return jsonResponse({
+        const finalPayload = {
           success: true,
           data: {
             totalClicks: finalTotalClicks,
@@ -1376,6 +1401,22 @@ export default {
             top_referrers: topReferrers,
             liveClickEvents,
             live_click_events: liveClickEvents,
+          },
+        };
+
+        const payloadStr = JSON.stringify(finalPayload);
+        if (env.LINKS_KV) {
+          ctx.waitUntil(
+            env.LINKS_KV.put(cacheKey, payloadStr, { expirationTtl: 30 }).catch(() => {})
+          );
+        }
+
+        return new Response(payloadStr, {
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json; charset=utf-8',
+            'X-Edge-Cache': 'MISS',
+            'Cache-Control': 'public, max-age=15, stale-while-revalidate=30',
           },
         });
       } catch (err) {
@@ -1447,7 +1488,8 @@ export default {
 
         if (authHeader.startsWith('Bearer ')) {
           const token = authHeader.slice(7).trim();
-          if (token && token !== 'lsh_secret_live_prod_2026' && !targetIdentifier) {
+          const configuredSecret = env.FRONTEND_API_SECRET || env.SECRET || '';
+          if (token && (!configuredSecret || token !== configuredSecret) && !targetIdentifier) {
             targetIdentifier = token;
           }
         }

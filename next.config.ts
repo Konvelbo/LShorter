@@ -17,15 +17,19 @@ const nextConfig: NextConfig = {
     optimizePackageImports: [
       "lucide-react",
       "gsap",
-      "framer-motion",
       "canvas-confetti",
       "date-fns",
       "react-simple-maps",
     ],
   },
   images: {
+    dangerouslyAllowSVG: true,
     formats: ["image/avif", "image/webp"],
     remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "api.dicebear.com",
+      },
       {
         protocol: "https",
         hostname: "lh3.googleusercontent.com",
@@ -46,9 +50,24 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "b-cdn.net",
       },
+      {
+        protocol: "https",
+        hostname: "flagcdn.com",
+      },
+      {
+        protocol: "https",
+        hostname: "cdn.simpleicons.org",
+      },
     ],
+  },
+  async rewrites() {
+    return [
+      {
+        source: "/:slug((?!api|_next|favicon\\.ico|lshorter_favicon\\.svg|icon-512\\.png|login|register|dashboard|onboarding|r|terms|privacy|pricing|blog|reset-password).*)",
+        destination: "/r/:slug",
+      },
+    ];
   },
 };
 
 export default nextConfig;
-

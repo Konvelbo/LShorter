@@ -116,28 +116,63 @@ export function DrawerTrigger({
 export function DrawerContent({
   children,
   className,
-  widthClass = "w-full sm:max-w-[560px]",
+  widthClass = "w-full sm:max-w-[500px]",
 }: {
   children: React.ReactNode;
   className?: string;
   widthClass?: string;
 }) {
-  const { isOpen, closeDrawer, direction } = useDrawer();
+  const { isOpen, closeDrawer } = useDrawer();
+  const [shouldRender, setShouldRender] = useState(isOpen);
+  const backdropRef = React.useRef<HTMLDivElement>(null);
+  const panelRef = React.useRef<HTMLDivElement>(null);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    if (isOpen) setShouldRender(true);
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!shouldRender) return;
+    import("gsap").then(({ default: gsap }) => {
+      if (isOpen && backdropRef.current && panelRef.current) {
+        gsap.fromTo(
+          backdropRef.current,
+          { opacity: 0 },
+          { opacity: 1, duration: 0.3, ease: "power2.out" }
+        );
+        gsap.fromTo(
+          panelRef.current,
+          { x: "100%", opacity: 0.7 },
+          { x: "0%", opacity: 1, duration: 0.4, ease: "power3.out" }
+        );
+      } else if (!isOpen && backdropRef.current && panelRef.current) {
+        gsap.to(backdropRef.current, { opacity: 0, duration: 0.25 });
+        gsap.to(panelRef.current, {
+          x: "100%",
+          duration: 0.28,
+          ease: "power3.in",
+          onComplete: () => setShouldRender(false),
+        });
+      }
+    });
+  }, [isOpen, shouldRender]);
+
+  if (!shouldRender && !isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden">
       {/* Backdrop overlay */}
       <div
+        ref={backdropRef}
         onClick={closeDrawer}
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 animate-in fade-in"
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm"
       />
 
       {/* Drawer sliding panel */}
       <div
+        ref={panelRef}
         className={cn(
-          "fixed inset-y-0 right-0 z-50 flex h-full flex-col bg-[#141416] border-l border-[#27272a] shadow-2xl transition-transform duration-300 ease-out animate-in slide-in-from-right",
+          "fixed inset-y-0 right-0 z-50 flex h-full flex-col bg-white dark:bg-[#141416] border-l border-zinc-200 dark:border-[#27272a] shadow-2xl will-change-transform",
           widthClass,
           className
         )}

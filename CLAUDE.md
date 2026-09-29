@@ -1,1 +1,1 @@
-@AGENTS.md
+@.ai-style-rules.md

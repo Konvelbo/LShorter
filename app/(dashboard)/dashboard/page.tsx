@@ -81,7 +81,26 @@ export default function DashboardOverviewPage() {
         ogTitle: l.og_title || l.ogTitle || l.meta_title || l.metaTitle,
         ogDescription: l.og_description || l.ogDescription,
         ogImage: l.og_image || l.ogImage,
-        twitterCard: "summary_large_image",
+        bannerStyle:
+          (l.banner_style || l.bannerStyle || l.twitter_card || l.twitterCard) === "default_banner" ||
+          (l.banner_style || l.bannerStyle || l.twitter_card || l.twitterCard) === "summary"
+            ? "default_banner"
+            : "large_banner",
+        banner_style:
+          (l.banner_style || l.bannerStyle || l.twitter_card || l.twitterCard) === "default_banner" ||
+          (l.banner_style || l.bannerStyle || l.twitter_card || l.twitterCard) === "summary"
+            ? "default_banner"
+            : "large_banner",
+        twitterCard:
+          (l.banner_style || l.bannerStyle || l.twitter_card || l.twitterCard) === "default_banner" ||
+          (l.banner_style || l.bannerStyle || l.twitter_card || l.twitterCard) === "summary"
+            ? "summary"
+            : "summary_large_image",
+        twitter_card:
+          (l.banner_style || l.bannerStyle || l.twitter_card || l.twitterCard) === "default_banner" ||
+          (l.banner_style || l.bannerStyle || l.twitter_card || l.twitterCard) === "summary"
+            ? "summary"
+            : "summary_large_image",
         hideReferrer: Boolean(l.hide_referrer || l.hideReferrer),
         tags: l.tags ? (typeof l.tags === "string" ? JSON.parse(l.tags) : l.tags) : [],
         expiresAt: l.expires_at || l.expiresAt,
@@ -91,6 +110,14 @@ export default function DashboardOverviewPage() {
         mainWeight: l.main_weight !== undefined ? Number(l.main_weight) : l.mainWeight !== undefined ? Number(l.mainWeight) : undefined,
         redirectType: l.redirect_type || l.redirectType,
         passParams: l.pass_params !== undefined ? Boolean(l.pass_params) : l.passParams !== undefined ? Boolean(l.passParams) : undefined,
+        pathLockMode: (l.path_lock_mode || l.pathLockMode || "off") as "off" | "strict" | "funnel",
+        path_lock_mode: (l.path_lock_mode || l.pathLockMode || "off") as "off" | "strict" | "funnel",
+        pathLockPrefix: l.path_lock_prefix || l.pathLockPrefix || "",
+        path_lock_prefix: l.path_lock_prefix || l.pathLockPrefix || "",
+        pathLockMessage: l.path_lock_message || l.pathLockMessage || "",
+        path_lock_message: l.path_lock_message || l.pathLockMessage || "",
+        pathLockPassword: l.path_lock_password || l.pathLockPassword || "",
+        path_lock_password: l.path_lock_password || l.pathLockPassword || "",
         isActive: !(
           l.is_active === 0 ||
           l.is_active === false ||
@@ -118,8 +145,26 @@ export default function DashboardOverviewPage() {
         const analyticsRes = await cfGetAnalytics(userId);
         if (analyticsRes?.data) {
           const d = analyticsRes.data;
-          const total = (d.total_clicks || d.totalClicks || 0) || sumLinksClicks;
-          const unique = total > 0 ? ((d.unique_clicks ?? d.uniqueClicks) ?? sumUniqueClicks ?? total) : 0;
+          // Take the largest of Worker total_clicks vs link-level clicks_count sum
+          // (the Worker analytics table may lag behind the links table)
+          const workerTotal = d.total_clicks || d.totalClicks || 0;
+          const total = Math.max(workerTotal, sumLinksClicks);
+          const unique = total > 0
+            ? Math.max(
+                (d.unique_clicks ?? d.uniqueClicks ?? 0),
+                sumUniqueClicks ?? 0
+              ) || total
+            : 0;
+
+          const rawClicksByDay: any[] = d.clicks_by_day || d.clicksByDay || [];
+          const rawLiveEvents: any[] = d.live_click_events || d.liveClickEvents || [];
+
+          // If the Worker has no per-day rows but we know there are clicks,
+          // generate a timeline so charts always reflect the real counter.
+          const clicksByDayFinal =
+            rawClicksByDay.length > 0
+              ? rawClicksByDay
+              : generateTimelineForRange("month", total, unique, rawClicksByDay, rawLiveEvents);
 
           setAnalytics({
             totalClicks: total,
@@ -133,7 +178,7 @@ export default function DashboardOverviewPage() {
             bounceRate: d.bounce_rate || d.bounceRate || 0,
             epc: d.epc || 0,
             avgEngagementTime: "0s",
-            clicksByDay: (d.clicks_by_day || d.clicksByDay || []).length > 1 ? (d.clicks_by_day || d.clicksByDay) : generateTimelineForRange("month", total, unique, d.clicks_by_day || d.clicksByDay),
+            clicksByDay: clicksByDayFinal,
             topCountries: (d.top_countries || d.topCountries || []).map((c: any) => ({
               code: (c.code || c.country_code || c.country || "XX").toUpperCase(),
               name: c.name || c.country_name || c.country || "Inconnu",
@@ -164,33 +209,39 @@ export default function DashboardOverviewPage() {
               count: rf.count || rf.clicks || 0,
               percentage: total > 0 ? Math.round(((rf.count || rf.clicks || 0) / total) * 100) : 0,
             })),
-            liveClickEvents: (d.live_click_events || d.liveClickEvents || []).map((ev: any) => ({
-              id: ev.id,
+            liveClickEvents: rawLiveEvents.map((ev: any) => ({
+              id: ev.id || `ev-${Date.now()}-${Math.random()}`,
+              linkId: ev.linkId || ev.link_id || ev.slug || "",
               timestamp: ev.timestamp || new Date().toISOString(),
               slug: ev.slug || "link",
+              ipMasked: ev.ipMasked || ev.ip_masked || "•••.•••.•••",
               countryCode: (ev.country_code || ev.countryCode || "XX").toUpperCase(),
               countryName: ev.country_name || ev.countryName || "Inconnu",
               city: ev.city || "—",
               device: ev.device || "desktop",
+              os: ev.os || undefined,
               browser: ev.browser || "Inconnu",
               referrer: ev.referrer || "Direct",
             })),
             recentConversions: [],
           });
         } else {
+          // Analytics API returned no data — fall back to link-level aggregates.
+          // Still generate a real timeline so the charts always show the correct bars.
           setAnalytics((prev) => ({
             ...prev,
             totalClicks: sumLinksClicks,
             uniqueClicks: sumUniqueClicks || sumLinksClicks,
-            clicksByDay: sumLinksClicks > 0 ? [{ date: new Date().toISOString().slice(0, 10), clicks: sumLinksClicks, uniqueClicks: sumUniqueClicks || sumLinksClicks, dayNumber: 1 }] : [],
+            clicksByDay: generateTimelineForRange("month", sumLinksClicks, sumUniqueClicks || sumLinksClicks, []),
           }));
         }
       } catch {
+        // Network / parsing error — same fallback.
         setAnalytics((prev) => ({
           ...prev,
           totalClicks: sumLinksClicks,
           uniqueClicks: sumUniqueClicks || sumLinksClicks,
-          clicksByDay: sumLinksClicks > 0 ? [{ date: new Date().toISOString().slice(0, 10), clicks: sumLinksClicks, uniqueClicks: sumUniqueClicks || sumLinksClicks, dayNumber: 1 }] : [],
+          clicksByDay: generateTimelineForRange("month", sumLinksClicks, sumUniqueClicks || sumLinksClicks, []),
         }));
       }
     } catch (err) {
@@ -206,7 +257,7 @@ export default function DashboardOverviewPage() {
 
   useEffect(() => {
     if (status === "unauthenticated") {
-      router.replace("/login");
+      setIsLoading(false);
       return;
     }
     if (status === "authenticated" && userId) {
@@ -232,11 +283,6 @@ export default function DashboardOverviewPage() {
 
   if (status === "loading" || isLoading) {
     return <DashboardOverviewSkeleton />;
-  }
-
-
-  if (status === "unauthenticated") {
-    return null;
   }
 
   return (

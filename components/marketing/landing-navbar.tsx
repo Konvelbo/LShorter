@@ -1,43 +1,203 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowRight, Menu, X, LayoutDashboard, Sun, Moon } from "lucide-react";
+import {
+  ArrowRight,
+  Menu,
+  X,
+  LayoutDashboard,
+  Sun,
+  Moon,
+  Sparkles,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSession } from "next-auth/react";
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
+import { useTheme } from "@/components/providers/theme-provider";
+import { useMobileMenu } from "@/components/providers/use-mobile-menu";
 
+// ─── COMPOSANT DE LIEN DESKTOP SANS FOND AU HOVER ───
+function NavLinkItem({
+  item,
+  isActive,
+  isLightSurface,
+  onClick,
+}: {
+  item: { label: string; href: string; isHome?: boolean };
+  isActive: boolean;
+  isLightSurface?: boolean;
+  onClick?: (e: React.MouseEvent) => void;
+}) {
+  const primaryTextRef = useRef<HTMLSpanElement>(null);
+  const cloneTextRef = useRef<HTMLSpanElement>(null);
+  const linkRef = useRef<HTMLAnchorElement>(null);
+  const tlRef = useRef<gsap.core.Timeline | null>(null);
+
+  useGSAP(
+    () => {
+      const primary = primaryTextRef.current;
+      const clone = cloneTextRef.current;
+      if (!primary || !clone) return;
+
+      gsap.set(primary, { yPercent: 0 });
+      gsap.set(clone, { yPercent: -100 });
+
+      tlRef.current = gsap
+        .timeline({ paused: true })
+        .to(primary, { yPercent: 100, duration: 0.28, ease: "power2.inOut" }, 0)
+        .to(clone, { yPercent: 0, duration: 0.28, ease: "power2.inOut" }, 0);
+    },
+    { scope: linkRef },
+  );
+
+  return (
+    <Link
+      ref={linkRef}
+      href={item.href}
+      onClick={onClick}
+      onMouseEnter={() => tlRef.current?.play()}
+      onMouseLeave={() => tlRef.current?.reverse()}
+      onPointerDown={() =>
+        linkRef.current &&
+        gsap.to(linkRef.current, {
+          scale: 0.94,
+          duration: 0.12,
+          ease: "power1.out",
+        })
+      }
+      onPointerUp={() =>
+        linkRef.current &&
+        gsap.to(linkRef.current, {
+          scale: 1,
+          duration: 0.18,
+          ease: "power1.out",
+        })
+      }
+      onPointerLeave={() => {
+        tlRef.current?.reverse();
+        if (linkRef.current) {
+          gsap.to(linkRef.current, {
+            scale: 1,
+            duration: 0.18,
+            ease: "power1.out",
+          });
+        }
+      }}
+      className={`relative px-[clamp(0.45rem,0.75vw,0.85rem)] py-1.5 rounded-[10px] text-[clamp(0.75rem,0.88vw,0.85rem)] font-normal tracking-[-0.01em] transition-colors cursor-pointer overflow-hidden whitespace-nowrap select-none bg-transparent hover:bg-transparent ${
+        isLightSurface
+          ? isActive
+            ? "bg-black/5 text-black font-medium"
+            : "text-[#111111] hover:text-black"
+          : isActive
+            ? "bg-white/15 text-white font-medium"
+            : "text-neutral-300 hover:text-white"
+      }`}
+    >
+      <span className="relative block overflow-hidden leading-tight">
+        {/* Texte initial */}
+        <span
+          ref={primaryTextRef}
+          className="block select-none pointer-events-none will-change-transform"
+        >
+          {item.label}
+        </span>
+
+        {/* Texte clone */}
+        <span
+          ref={cloneTextRef}
+          aria-hidden="true"
+          className={`absolute inset-0 block select-none pointer-events-none font-medium will-change-transform ${
+            isLightSurface ? "text-black" : "text-white"
+          }`}
+        >
+          {item.label}
+        </span>
+      </span>
+    </Link>
+  );
+}
+
+// ─── COMPOSANT PRINCIPAL LANDING NAVBAR ───
 export function LandingNavbar() {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isLight, setIsLight] = useState(false);
+  const { isOpen, toggle } = useMobileMenu();
+  const { theme, toggleTheme } = useTheme();
+  const isLight = theme === "light";
   const pathname = usePathname();
   const { data: session, status } = useSession();
+
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isIframeFullscreen, setIsIframeFullscreen] = useState(false);
+
+  useEffect(() => {
+    const handleFullscreenChange = (e: Event) => {
+      const customEvent = e as CustomEvent<{ isFullscreen: boolean }>;
+      setIsIframeFullscreen(Boolean(customEvent.detail?.isFullscreen));
+    };
+
+    window.addEventListener(
+      "product-fullscreen-change",
+      handleFullscreenChange,
+    );
+    return () => {
+      window.removeEventListener(
+        "product-fullscreen-change",
+        handleFullscreenChange,
+      );
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  if (isIframeFullscreen) {
+    return null;
+  }
+
   const isAuthenticated =
     status === "authenticated" &&
     Boolean(session?.user) &&
     !(session?.user as any)?.userNotFound;
-  const hasCompletedOnboarding = (session?.user as any)?.hasCompletedOnboarding === true;
+  const hasCompletedOnboarding =
+    (session?.user as any)?.hasCompletedOnboarding === true;
 
-  useEffect(() => {
-    try {
-      const isLightClass = document.documentElement.classList.contains("light");
-      setIsLight(isLightClass);
-    } catch {}
-  }, []);
+  const handleToggleTheme = (e: React.MouseEvent<HTMLButtonElement>) => {
+    gsap.fromTo(
+      e.currentTarget,
+      { scale: 0.78, rotate: -30 },
+      { scale: 1, rotate: 0, duration: 0.35, ease: "back.out(2)" },
+    );
+    toggleTheme();
+  };
 
-  const toggleTheme = () => {
-    const root = document.documentElement;
-    if (root.classList.contains("light")) {
-      root.classList.remove("light");
-      root.classList.add("dark");
-      localStorage.setItem("lshorter_theme", "dark");
-      setIsLight(false);
-    } else {
-      root.classList.remove("dark");
-      root.classList.add("light");
-      localStorage.setItem("lshorter_theme", "light");
-      setIsLight(true);
-    }
+  const handleBurgerClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    gsap.fromTo(
+      e.currentTarget,
+      { scale: 0.8 },
+      { scale: 1, duration: 0.28, ease: "back.out(2.5)" },
+    );
+    toggle();
+  };
+
+  const handleButtonPointerDown = (e: React.PointerEvent<HTMLElement>) => {
+    gsap.to(e.currentTarget, {
+      scale: 0.94,
+      duration: 0.12,
+      ease: "power1.out",
+    });
+  };
+
+  const handleButtonPointerUp = (e: React.PointerEvent<HTMLElement>) => {
+    gsap.to(e.currentTarget, { scale: 1, duration: 0.18, ease: "power1.out" });
   };
 
   const handleHomeClick = (e: React.MouseEvent) => {
@@ -48,192 +208,202 @@ export function LandingNavbar() {
   };
 
   const navLinks = [
-    { label: "Home", href: "/", isHome: true },
+    { label: "Hi", href: "/", isHome: true },
+    { label: "Product", href: "/#product" },
     { label: "Features", href: "/#features" },
-    { label: "Pricing", href: "/pricing" },
-    { label: "API & Docs", href: "/docs" },
+    { label: "Security", href: "/#security" },
+    { label: "Difference", href: "/#why-us" },
+    { label: "Limits", href: "/#analytics" },
     { label: "FAQ", href: "/#faq" },
+    { label: "Pricing", href: "/pricing" },
+    { label: "Docs", href: "/docs" },
   ];
 
+  const glassStyle: React.CSSProperties = isScrolled
+    ? {
+        backgroundColor: isLight
+          ? "rgba(255, 255, 255, 0.94)"
+          : "rgba(9, 9, 11, 0.90)",
+        backdropFilter: "blur(16px) saturate(180%)",
+        WebkitBackdropFilter: "blur(16px) saturate(180%)",
+        border: isLight
+          ? "1px solid rgba(228, 231, 236, 0.95)"
+          : "1px solid rgba(255, 255, 255, 0.14)",
+        boxShadow: isLight
+          ? "0 12px 34px rgba(0, 0, 0, 0.08)"
+          : "0 14px 38px rgba(0, 0, 0, 0.58)",
+      }
+    : {
+        backgroundColor: isLight ? "rgba(255, 255, 255, 0.96)" : "#09090b",
+        backdropFilter: "blur(8px)",
+        WebkitBackdropFilter: "blur(8px)",
+        borderBottom: isLight
+          ? "1px solid rgba(228, 231, 236, 0.8)"
+          : "1px solid rgba(255, 255, 255, 0.08)",
+        borderTop: "none",
+        borderLeft: "none",
+        borderRight: "none",
+      };
+
   return (
-    <div className="fixed top-0 inset-x-0 z-[9999] w-full px-3 pt-3 sm:px-6 sm:pt-4 pointer-events-none transition-all">
-      {/* DESKTOP NAVBAR: Sleek Glass Effect, Compact Minimalist Frame */}
-      <header className="hidden md:flex max-w-4xl mx-auto bg-[#FAF7F2]/80 dark:bg-[#09090b]/80 hover:bg-[#FAF7F2]/95 dark:hover:bg-[#09090b]/95 backdrop-blur-xl border border-[#E7DFD5] dark:border-white/10 shadow-[0_8px_32px_rgba(43,37,32,0.04)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] rounded-full px-4 py-2 items-center justify-between pointer-events-auto transition-all duration-300">
-        {/* Brand Logo */}
+    <div
+      className={`w-full flex justify-center pointer-events-none transition-all duration-300 ${
+        isIframeFullscreen ? "hidden -z-50 opacity-0 pointer-events-none" : ""
+      }`}
+    >
+      {/* ─── 1. NAVBAR DESKTOP (>= 768px) ─── */}
+      <header
+        style={glassStyle}
+        className={`hidden md:flex items-center justify-between gap-2 pointer-events-auto transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-[transform,max-width,width,padding,border-radius,background-color] ${
+          isScrolled
+            ? "translate-y-3 sm:translate-y-4 w-[min(1280px,96vw)] max-w-[1280px] rounded-[14px] px-[clamp(0.75rem,1.8vw,2rem)] py-3"
+            : "translate-y-0 w-full max-w-full rounded-none px-[clamp(1rem,2.5vw,3.5rem)] py-4"
+        }`}
+      >
+        {/* LShorter Rectangular "LS" Brand Logo */}
         <Link
           href="/"
           onClick={handleHomeClick}
-          className="flex items-center gap-2 select-none cursor-pointer group"
+          className="flex items-center gap-2 select-none cursor-pointer group shrink-0"
         >
-          <div className="w-7 h-7 rounded-full bg-brand flex items-center justify-center font-bebas text-lg text-white font-bold tracking-wider group-hover:scale-105 transition-transform">
+          <div className="w-8 h-8 rounded-[9px] bg-[#465FFF] group-hover:bg-[#3641F5] text-white flex items-center justify-center font-extrabold text-[12.5px] tracking-tight shadow-xs transition-colors">
             LS
           </div>
-          <span className="font-bebas text-xl text-neutral-900 dark:text-white tracking-wider flex items-center gap-0.5">
-            L<span className="text-brand">SHORTER</span>
+          <span
+            className={`text-[clamp(0.95rem,1.1vw,1.125rem)] font-bold tracking-[-0.025em] ${
+              isLight ? "text-[#101828]" : "text-white"
+            }`}
+          >
+            LShorter
           </span>
         </Link>
 
-        {/* Center Desktop Links */}
-        <nav className="flex items-center gap-0.5">
+        {/* Liens Desktop */}
+        <nav className="flex items-center gap-[clamp(0.1rem,0.35vw,0.5rem)] min-w-0">
           {navLinks.map((item) => {
             const isActive =
               item.href === "/"
                 ? pathname === "/"
                 : pathname.startsWith(item.href) && !item.href.includes("#");
+
             return (
-              <Link
+              <NavLinkItem
                 key={item.label}
-                href={item.href}
-                onClick={item.isHome ? handleHomeClick : undefined}
-                className={`px-3 py-1 rounded-full text-[11.5px] font-medium tracking-wide transition-colors cursor-pointer ${
-                  isActive
-                    ? "bg-[#E7DFD5]/70 dark:bg-white/15 text-neutral-900 dark:text-white font-semibold"
-                    : "text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white"
-                }`}
-              >
-                {item.label}
-              </Link>
+                item={item}
+                isActive={isActive}
+                isLightSurface={isLight}
+              />
             );
           })}
         </nav>
 
-        {/* Right Actions */}
-        <div className="flex items-center gap-1.5">
-          {/* Theme Switcher */}
+        {/* Actions Desktop */}
+        <div className="flex items-center gap-2 lg:gap-3 shrink-0">
           <button
             type="button"
-            onClick={toggleTheme}
-            className="w-7 h-7 rounded-full flex items-center justify-center text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
-            title={isLight ? "Switch to dark mode" : "Switch to light mode"}
+            onClick={handleToggleTheme}
+            className={`w-8 h-8 lg:w-9 lg:h-9 rounded-full flex items-center justify-center border transition-colors cursor-pointer shrink-0 ${
+              isLight
+                ? "border-[#E4E7EC] text-[#344054] hover:text-black hover:bg-[#F9FAFB]"
+                : "border-white/15 text-neutral-200 hover:text-white hover:bg-white/10"
+            }`}
+            title={isLight ? "Activer le mode sombre" : "Activer le mode clair"}
             aria-label="Toggle theme"
           >
-            {isLight ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5" />}
+            {isLight ? (
+              <Moon className="w-4 h-4" />
+            ) : (
+              <Sun className="w-4 h-4 text-amber-300" />
+            )}
           </button>
 
-          {isAuthenticated && hasCompletedOnboarding ? (
-            <Link href="/dashboard">
-              <Button
-                variant="glow"
-                className="h-7.5 px-3.5 text-[11.5px] font-semibold rounded-full bg-brand hover:bg-brand-hover text-white border-none cursor-pointer flex items-center gap-1.5 shadow-md shadow-brand/20 hover:scale-[1.02] active:scale-95 transition-all"
-              >
-                <LayoutDashboard className="w-3 h-3" />
-                <span>Dashboard</span>
-                <ArrowRight className="w-3 h-3" />
-              </Button>
-            </Link>
-          ) : isAuthenticated ? (
-            <Link href="/onboarding">
-              <Button
-                variant="glow"
-                className="h-7.5 px-3.5 text-[11.5px] font-semibold rounded-full bg-brand hover:bg-brand-hover text-white border-none cursor-pointer flex items-center gap-1.5 shadow-md shadow-brand/20 hover:scale-[1.02] active:scale-95 transition-all"
-              >
-                <span>Get Started</span>
-                <ArrowRight className="w-3 h-3" />
-              </Button>
-            </Link>
-          ) : (
-            <Link href="/register">
-              <Button
-                variant="glow"
-                className="h-7.5 px-3.5 text-[11.5px] font-semibold rounded-full bg-brand hover:bg-brand-hover text-white border-none cursor-pointer flex items-center gap-1.5 shadow-md shadow-brand/20 hover:scale-[1.02] active:scale-95 transition-all"
-              >
-                <span>Get Started</span>
-                <ArrowRight className="w-3 h-3" />
-              </Button>
-            </Link>
-          )}
+          <Link
+            href={isAuthenticated ? "/dashboard" : "/register"}
+            onPointerDown={handleButtonPointerDown}
+            onPointerUp={handleButtonPointerUp}
+            onPointerLeave={handleButtonPointerUp}
+            className="inline-block shrink-0"
+          >
+            <span
+              style={{ color: "#FFFFFF" }}
+              className="inline-flex items-center gap-1.5 rounded-full px-[clamp(0.75rem,1.1vw,1.25rem)] py-2 text-[clamp(0.75rem,0.88vw,0.85rem)] font-semibold whitespace-nowrap !text-white bg-[#465FFF] hover:bg-[#3641F5] transition-all cursor-pointer shadow-xs"
+            >
+              {isAuthenticated ? (
+                <>
+                  <LayoutDashboard className="w-3.5 h-3.5 shrink-0 !text-white" />
+                  <span className="!text-white">Dashboard</span>
+                </>
+              ) : (
+                <>
+                  <span className="!text-white">Get started</span>
+                  <ArrowRight className="w-3.5 h-3.5 shrink-0 !text-white" />
+                </>
+              )}
+            </span>
+          </Link>
         </div>
       </header>
 
-      {/* MOBILE NAVBAR */}
-      <header className="flex md:hidden max-w-6xl mx-auto bg-[#FAF7F2]/90 dark:bg-[#09090b]/90 backdrop-blur-xl border border-[#E7DFD5] dark:border-white/10 shadow-lg rounded-xl px-3 py-1.5 items-center justify-between pointer-events-auto transition-all">
+      {/* ─── 2. NAVBAR MOBILE (< 768px) ─── */}
+      <header
+        style={glassStyle}
+        className={`flex md:hidden items-center justify-between pointer-events-auto transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-[transform,max-width,width,padding,border-radius,background-color] ${
+          isScrolled
+            ? "translate-y-2.5 w-[calc(100%-1.5rem)] max-w-lg rounded-xl px-3.5 py-2.5"
+            : "translate-y-0 w-full max-w-full rounded-none px-4 py-3"
+        }`}
+      >
         <Link
           href="/"
           onClick={handleHomeClick}
           className="flex items-center gap-2 select-none"
         >
-          <div className="w-7 h-7 rounded-full bg-brand flex items-center justify-center font-bebas text-lg text-white font-bold">
+          <div className="w-7 h-7 rounded-[8px] bg-[#465FFF] text-white flex items-center justify-center font-extrabold text-xs tracking-tight shadow-2xs">
             LS
           </div>
-          <span className="font-bebas text-xl text-neutral-900 dark:text-white tracking-wider flex items-center gap-0.5">
-            L<span className="text-brand">SHORTER</span>
+          <span
+            className={`text-[16px] font-bold tracking-[-0.025em] ${
+              isLight ? "text-[#09090B]" : "text-white"
+            }`}
+          >
+            LShorter
           </span>
         </Link>
 
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={toggleTheme}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-neutral-600 dark:text-neutral-400"
-            aria-label="Toggle theme"
+            onClick={handleToggleTheme}
+            className={`w-8 h-8 rounded-[10px] flex items-center justify-center border transition-colors ${
+              isLight
+                ? "bg-black/[0.03] border-black/[0.08] text-[#52525B] hover:text-[#09090B]"
+                : "bg-white/[0.06] border-white/10 text-neutral-300 hover:text-white"
+            }`}
+            aria-label="Basculer le thème"
           >
-            {isLight ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+            {isLight ? (
+              <Moon className="w-4 h-4" />
+            ) : (
+              <Sun className="w-4 h-4 text-amber-300" />
+            )}
           </button>
 
           <button
             type="button"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="w-8 h-8 rounded-lg bg-neutral-100 dark:bg-white/5 flex items-center justify-center text-neutral-700 dark:text-neutral-300"
-            aria-label="Menu"
+            onClick={handleBurgerClick}
+            className={`w-8 h-8 rounded-[10px] flex items-center justify-center transition-colors ${
+              isOpen
+                ? "bg-[#3B82F6] text-white shadow-2xs"
+                : isLight
+                  ? "bg-black/[0.03] text-[#09090B] border border-black/[0.08]"
+                  : "bg-white/[0.06] text-white border border-white/10"
+            }`}
+            aria-label={isOpen ? "Fermer le menu" : "Ouvrir le menu"}
           >
-            {isMobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+            {isOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
           </button>
         </div>
       </header>
-
-      {/* Mobile Menu Dropdown */}
-      {isMobileMenuOpen && (
-        <div className="md:hidden max-w-6xl mx-auto mt-2 rounded-xl bg-[#FFFDF9]/95 dark:bg-[#09090b]/95 backdrop-blur-2xl border border-[#E7DFD5] dark:border-white/10 shadow-2xl p-4 flex flex-col gap-2 pointer-events-auto animate-in slide-in-from-top-2 duration-200">
-          {navLinks.map((item) => {
-            const isActive =
-              item.href === "/"
-                ? pathname === "/"
-                : pathname.startsWith(item.href) && !item.href.includes("#");
-            return (
-              <Link
-                key={item.label}
-                href={item.href}
-                onClick={(e) => {
-                  setIsMobileMenuOpen(false);
-                  if (item.isHome) handleHomeClick(e);
-                }}
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-                  isActive
-                    ? "bg-[#E7DFD5]/70 dark:bg-white/15 text-neutral-900 dark:text-white font-semibold"
-                    : "text-neutral-700 dark:text-neutral-300 hover:bg-[#F2ECE4] dark:hover:bg-white/5"
-                }`}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
-
-          <div className="pt-2 border-t border-neutral-200 dark:border-white/10 mt-1">
-            {isAuthenticated && hasCompletedOnboarding ? (
-              <Link href="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>
-                <Button className="w-full text-xs h-9 justify-center bg-brand hover:bg-brand-hover text-white rounded-lg">
-                  <span>Dashboard</span>
-                  <ArrowRight className="w-3.5 h-3.5 ml-1" />
-                </Button>
-              </Link>
-            ) : isAuthenticated ? (
-              <Link href="/onboarding" onClick={() => setIsMobileMenuOpen(false)}>
-                <Button className="w-full text-xs h-9 justify-center bg-brand hover:bg-brand-hover text-white rounded-lg">
-                  <span>Get Started</span>
-                  <ArrowRight className="w-3.5 h-3.5 ml-1" />
-                </Button>
-              </Link>
-            ) : (
-              <Link href="/register" onClick={() => setIsMobileMenuOpen(false)}>
-                <Button className="w-full text-xs h-9 justify-center bg-brand hover:bg-brand-hover text-white rounded-lg">
-                  <span>Get Started</span>
-                  <ArrowRight className="w-3.5 h-3.5 ml-1" />
-                </Button>
-              </Link>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

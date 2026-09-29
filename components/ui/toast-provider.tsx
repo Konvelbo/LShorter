@@ -61,14 +61,12 @@ function AnimatedToastCard({
     isClosingRef.current = true;
 
     if (cardRef.current) {
-      const isDesktop = typeof window !== "undefined" && window.innerWidth >= 768;
       gsap.to(cardRef.current, {
         opacity: 0,
-        x: isDesktop ? 35 : 0,
-        y: isDesktop ? 0 : -22,
-        scale: 0.92,
+        y: -20,
+        scale: 0.95,
         filter: "blur(4px)",
-        duration: 0.28,
+        duration: 0.25,
         ease: "power2.inOut",
         onComplete: () => {
           onRemove(toast.id);
@@ -79,27 +77,24 @@ function AnimatedToastCard({
     }
   }, [onRemove, toast.id]);
 
-  // Entrance Animation with GSAP
+  // Entrance Animation with GSAP (sliding down from top-center)
   useEffect(() => {
     if (cardRef.current) {
-      const isDesktop = typeof window !== "undefined" && window.innerWidth >= 768;
       gsap.fromTo(
         cardRef.current,
         {
           opacity: 0,
-          x: isDesktop ? 40 : 0,
-          y: isDesktop ? 0 : -28,
-          scale: 0.9,
+          y: -24,
+          scale: 0.94,
           filter: "blur(6px)",
         },
         {
           opacity: 1,
-          x: 0,
           y: 0,
           scale: 1,
           filter: "blur(0px)",
-          duration: 0.42,
-          ease: isDesktop ? "power3.out" : "back.out(1.4)",
+          duration: 0.38,
+          ease: "back.out(1.2)",
         }
       );
     }
@@ -236,8 +231,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     <ToastContext.Provider value={value}>
       {children}
 
-      {/* Floating Toasts Container (Top-center on Mobile, Bottom-right on Desktop with z-[99999]) */}
-      <div className="fixed z-[99999] pointer-events-none select-none flex flex-col gap-2.5 top-4 left-1/2 -translate-x-1/2 w-full max-w-[330px] xs:max-w-[350px] items-center px-2.5 md:top-auto md:bottom-6 md:right-6 md:left-auto md:translate-x-0 md:items-end md:w-auto md:max-w-md md:px-0">
+      {/* Floating Toasts Container: Top-Center for all screen sizes */}
+      <div className="fixed z-[99999] pointer-events-none select-none flex flex-col gap-2.5 top-5 left-1/2 -translate-x-1/2 w-full max-w-[380px] sm:max-w-[480px] items-center px-3">
         {toasts.map((t) => (
           <AnimatedToastCard key={t.id} toast={t} onRemove={removeToast} />
         ))}

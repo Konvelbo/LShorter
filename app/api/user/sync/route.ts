@@ -1,24 +1,24 @@
 import { NextResponse } from "next/server";
 
-const WORKER_URL =
-  process.env.NEXT_PUBLIC_BACKEND_API_URL ||
-  "https://lshorter-api.fiatechnologiecam.workers.dev";
-const FRONTEND_SECRET =
-  process.env.FRONTEND_API_SECRET || "lsh_secret_live_prod_2026";
+import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { email, name, avatarUrl, provider } = body;
+    const { id, email, name, avatarUrl, provider, plan } = body;
+
+    const headers: Record<string, string> = {
+      "X-Frontend-Secret": FRONTEND_SECRET,
+      Authorization: `Bearer ${FRONTEND_SECRET}`,
+      "Content-Type": "application/json",
+    };
+    if (id) headers["X-User-Id"] = id;
+    if (plan) headers["X-User-Plan"] = plan;
 
     const res = await fetch(`${WORKER_URL}/api/v1/users/sync`, {
       method: "POST",
-      headers: {
-        "X-Frontend-Secret": FRONTEND_SECRET,
-        Authorization: `Bearer ${FRONTEND_SECRET}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ email, name, avatarUrl, provider }),
+      headers,
+      body: JSON.stringify({ id, email, name, avatarUrl, provider, plan }),
     });
 
     if (!res.ok) {

@@ -1,12 +1,5 @@
 import { NextResponse } from "next/server";
-import fs from "fs";
-import path from "path";
-
-const WORKER_URL =
-  process.env.NEXT_PUBLIC_BACKEND_API_URL ||
-  "https://lshorter-api.fiatechnologiecam.workers.dev";
-const FRONTEND_SECRET =
-  process.env.FRONTEND_API_SECRET || "lsh_secret_live_prod_2026";
+import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
 
 function getMimeType(filename: string): string {
   const ext = filename.split(".").pop()?.toLowerCase();
@@ -29,7 +22,7 @@ function getMimeType(filename: string): string {
 
 export async function GET(
   req: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
@@ -37,48 +30,22 @@ export async function GET(
       return new Response("Image ID missing", { status: 400 });
     }
 
-    // Clean image id if full URL or path was passed
+    // Clean image ID if full URL or path was sent
     const cleanId = id.split("/").pop() || id;
 
-    // 1. Check local public/uploads directory first for fastest response on localhost
-    try {
-      const localFilePath = path.join(process.cwd(), "public", "uploads", cleanId);
-      if (fs.existsSync(localFilePath)) {
-        const fileBuffer = fs.readFileSync(localFilePath);
-        const mimeType = getMimeType(cleanId);
-        return new Response(fileBuffer, {
-          status: 200,
-          headers: {
-            "Content-Type": mimeType,
-            "Cache-Control": "public, max-age=31536000, immutable",
-            "Access-Control-Allow-Origin": "*",
-            "Cross-Origin-Resource-Policy": "cross-origin",
-          },
-        });
-      }
-    } catch {}
-
-    // 2. Fetch from Cloudflare Worker CDN / R2
+    // 1. Stream directly from Cloudflare Worker / Cloud Storage (Zero local filesystem)
     try {
       const workerRes = await fetch(`${WORKER_URL}/api/v1/images/${cleanId}`, {
         headers: {
           "X-Frontend-Secret": FRONTEND_SECRET,
         },
-        cache: "force-cache",
+        cache: "no-store",
       });
 
       if (workerRes.ok) {
-        const contentType = workerRes.headers.get("content-type") || getMimeType(cleanId);
+        const contentType =
+          workerRes.headers.get("content-type") || getMimeType(cleanId);
         const imageBuffer = await workerRes.arrayBuffer();
-
-        // Save local copy to public/uploads for future cache hits
-        try {
-          const uploadsDir = path.join(process.cwd(), "public", "uploads");
-          if (!fs.existsSync(uploadsDir)) {
-            fs.mkdirSync(uploadsDir, { recursive: true });
-          }
-          fs.writeFileSync(path.join(uploadsDir, cleanId), Buffer.from(imageBuffer));
-        } catch {}
 
         return new Response(imageBuffer, {
           status: 200,
@@ -92,15 +59,34 @@ export async function GET(
         });
       }
     } catch (workerErr) {
-      console.warn("[Image Proxy] Worker fetch error:", workerErr);
+      console.warn("[Cloud Image Proxy] Worker fetch error:", workerErr);
     }
 
-    // 3. Fallback: Fetch from Local Protected Link Store
+    // 2. Fallback Worker Link Meta Query: If not in images table, query link metadata in Cloudflare
     try {
-      const slugWithoutExt = cleanId.replace(/\.(jpg|jpeg|png|webp|gif|svg)$/i, "");
-      const { getProtectedLink } = await import("@/lib/protected-links-store");
-      const localLink = getProtectedLink(slugWithoutExt);
-      const rawImg = localLink?.ogImage || "";
+      const slugWithoutExt = cleanId.replace(
+        /\.(jpg|jpeg|png|webp|gif|svg)$/i,
+        "",
+      );
+      const linkRes = await fetch(
+        `${WORKER_URL}/api/v1/links/${slugWithoutExt}`,
+        {
+          headers: {
+            "X-Frontend-Secret": FRONTEND_SECRET,
+            Authorization: `Bearer ${FRONTEND_SECRET}`,
+          },
+          cache: "no-store",
+        },
+      )
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null);
+
+      const rawImg =
+        linkRes?.data?.og_image ||
+        linkRes?.data?.ogImage ||
+        linkRes?.og_image ||
+        linkRes?.ogImage ||
+        "";
 
       if (rawImg && rawImg.startsWith("data:")) {
         const commaIdx = rawImg.indexOf(",");
@@ -119,11 +105,17 @@ export async function GET(
             "Cross-Origin-Resource-Policy": "cross-origin",
           },
         });
-      } else if (rawImg && (rawImg.startsWith("http://") || rawImg.startsWith("https://"))) {
+      } else if (
+        rawImg &&
+        (rawImg.startsWith("http://") || rawImg.startsWith("https://"))
+      ) {
         return NextResponse.redirect(rawImg, 302);
       }
-    } catch (fallbackErr) {
-      console.warn("[Image Proxy Fallback Error]:", fallbackErr);
+    } catch (fallbackWorkerErr) {
+      console.warn(
+        "[Cloud Image Proxy Worker Link Fallback Error]:",
+        fallbackWorkerErr,
+      );
     }
 
     return new Response("Image not found", {
@@ -133,7 +125,7 @@ export async function GET(
       },
     });
   } catch (err: any) {
-    console.error("[Image Proxy Error]:", err);
+    console.error("[Cloud Image Proxy Error]:", err);
     return new Response("Internal Server Error", { status: 500 });
   }
 }
@@ -144,7 +136,8 @@ export async function OPTIONS() {
     headers: {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Frontend-Secret",
+      "Access-Control-Allow-Headers":
+        "Content-Type, Authorization, X-Frontend-Secret",
       "Cross-Origin-Resource-Policy": "cross-origin",
     },
   });
