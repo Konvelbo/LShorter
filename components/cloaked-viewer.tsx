@@ -196,7 +196,7 @@ export function CloakedViewer({ link }: CloakedViewerProps) {
             isDevUnlocked ? (
               <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-[4px] bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[9.5px] font-bold shrink-0">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span>🔓 Accés debloqué</span>
+                <span>🔓 Access Unlocked</span>
               </div>
             ) : (
               <div className="hidden xs:flex items-center gap-1 px-1.5 py-0.5 rounded-[4px] bg-brand/10 border border-brand/30 text-brand text-[9.5px] font-bold shrink-0">
@@ -225,10 +225,10 @@ export function CloakedViewer({ link }: CloakedViewerProps) {
                 setIframeKey((prev) => prev + 1);
               }}
               className="flex items-center gap-1 text-[10.5px] text-amber-500 hover:text-amber-400 transition-colors px-2 py-0.5 rounded-[5px] bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 font-bold cursor-pointer"
-              title="Re-verrouiller le tunnel"
+              title="Re-lock the tunnel"
             >
               <Lock className="w-3 h-3" />
-              <span className="hidden sm:inline">Re-verrouiller</span>
+              <span className="hidden sm:inline">Re-lock</span>
             </button>
           )}
 
@@ -250,9 +250,9 @@ export function CloakedViewer({ link }: CloakedViewerProps) {
             type="button"
             onClick={() => setIsTopbarHidden(true)}
             className="flex items-center gap-1 px-2 py-0.5 rounded-[5px] bg-brand/10 hover:bg-brand/20 text-brand border border-brand/30 text-[10.5px] font-bold transition-all cursor-pointer"
-            title="Masquer la barre"
+            title="Hide bar"
           >
-            <span className="hidden sm:inline">Masquer</span>
+            <span className="hidden sm:inline">Hide</span>
             <ChevronUp className="w-3 h-3" />
           </button>
         </div>
@@ -270,7 +270,7 @@ export function CloakedViewer({ link }: CloakedViewerProps) {
               LS
             </div>
             <span className="text-[10.5px] font-medium text-zinc-300 group-hover:text-white">
-              Afficher la barre
+              Show bar
             </span>
             <ChevronDown className="w-3 h-3 text-brand transition-transform group-hover:translate-y-0.5" />
           </button>
@@ -305,27 +305,27 @@ export function CloakedViewer({ link }: CloakedViewerProps) {
             {/* Badges & Warnings */}
             <div className="flex items-center gap-1.5 px-3 py-1 rounded-[6px] bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-bold uppercase tracking-wider mb-2">
               <Lock className="w-3.5 h-3.5 shrink-0" />
-              <span>Accès Hors Périmètre Bloqué</span>
+              <span>Access Outside Perimeter Blocked</span>
             </div>
 
             <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight max-w-md">
-              Navigation Restreinte par le Créateur du Lien
+              Navigation Restricted by Link Owner
             </h2>
 
             {/* Explanatory message */}
             <p className="text-xs sm:text-sm text-zinc-400 max-w-md mt-2 leading-relaxed">
               {link.pathLockMessage ||
-                `Le propriétaire de ce lien a activé le mode PathLock™ ${
+                `The owner of this link has enabled PathLock™ ${
                   effectiveLockMode === "strict"
                     ? "Strict Single-Page"
                     : "Funnel & Subpaths"
-                }. Vous ne pouvez pas naviguer en dehors de la page autorisée.`}
+                } mode. You cannot navigate outside the authorized page.`}
             </p>
 
             {/* Allowed route reminder box (never leaks raw destination URL) */}
             <div className="mt-4 px-4 py-2.5 rounded-[10px] bg-[#141418] border border-[#27272a] text-xs text-zinc-300 flex items-center gap-2 max-w-md w-full justify-center">
               <span className="w-2 h-2 rounded-[999px] bg-emerald-400 shrink-0" />
-              <span className="text-zinc-400">Périmètre autorisé :</span>
+              <span className="text-zinc-400">Authorized perimeter:</span>
               <span className="font-mono font-bold text-white truncate max-w-[260px]">
                 /{link.slug}
               </span>
@@ -338,7 +338,7 @@ export function CloakedViewer({ link }: CloakedViewerProps) {
               className="mt-6 px-6 py-3 rounded-[8px] bg-brand hover:bg-brand-hover text-white font-bold text-sm tracking-wide shadow-lg shadow-brand/20 flex items-center gap-2 transition-all cursor-pointer"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span>Revenir à la page autorisée</span>
+              <span>Return to authorized page</span>
             </button>
 
             {/* Developer / Team Bypass Unlock */}
@@ -347,15 +347,15 @@ export function CloakedViewer({ link }: CloakedViewerProps) {
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-white flex items-center gap-1.5">
                     <Lock className="w-3.5 h-3.5 text-amber-400" />
-                    Déverrouillage Équipe / Développeur
+                    Developer / Team Unlock
                   </span>
-                  <span className="text-[10px] text-zinc-500">Accès complet</span>
+                  <span className="text-[10px] text-zinc-500">Full access</span>
                 </div>
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
                     if (!unlockPasswordInput.trim()) {
-                      setUnlockError("Veuillez saisir le mot de passe.");
+                      setUnlockError("Please enter the password.");
                       return;
                     }
                     if (unlockPasswordInput.trim() === targetPassword.trim()) {
@@ -367,7 +367,7 @@ export function CloakedViewer({ link }: CloakedViewerProps) {
                       setUnlockError("");
                       setUnlockPasswordInput("");
                     } else {
-                      setUnlockError("Mot de passe incorrect.");
+                      setUnlockError("Incorrect password.");
                     }
                   }}
                   className="flex flex-col gap-2"
@@ -375,7 +375,7 @@ export function CloakedViewer({ link }: CloakedViewerProps) {
                   <div className="relative">
                     <input
                       type={showUnlockPassword ? "text" : "password"}
-                      placeholder="Mot de passe de déblocage..."
+                      placeholder="Bypass password..."
                       value={unlockPasswordInput}
                       onChange={(e) => {
                         setUnlockPasswordInput(e.target.value);
@@ -387,7 +387,7 @@ export function CloakedViewer({ link }: CloakedViewerProps) {
                       type="button"
                       onClick={() => setShowUnlockPassword((prev) => !prev)}
                       className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white transition-colors cursor-pointer"
-                      title={showUnlockPassword ? "Masquer" : "Afficher"}
+                      title={showUnlockPassword ? "Hide" : "Show"}
                     >
                       {showUnlockPassword ? (
                         <EyeOff className="w-4 h-4" />
@@ -405,14 +405,14 @@ export function CloakedViewer({ link }: CloakedViewerProps) {
                     type="submit"
                     className="w-full py-2 rounded-[8px] bg-white/10 hover:bg-white/15 text-white font-bold text-xs border border-white/10 transition-all cursor-pointer flex items-center justify-center gap-1.5"
                   >
-                    <span>Déverrouiller l&apos;accès complet</span>
+                    <span>Unlock full access</span>
                   </button>
                 </form>
               </div>
             )}
 
             <span className="text-[10.5px] text-zinc-600 mt-5">
-              Sécurisé par LShorter Edge Gate • PathLock™ Engine
+              Secured by LShorter Edge Gate • PathLock™ Engine
             </span>
           </div>
         )}

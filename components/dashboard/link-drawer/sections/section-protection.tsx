@@ -396,10 +396,10 @@ export function SectionProtection({
                     <div className="flex items-center justify-between">
                       <span className="text-[10.5px] font-bold uppercase tracking-wider text-brand flex items-center gap-1.5">
                         <Sparkles className="w-3.5 h-3.5" />
-                        Page cible verrouillée (Strict Single-Page)
+                        Locked Target Page (Strict Single-Page)
                       </span>
                       <span className="text-[10px] text-zinc-500 dark:text-neutral-400 font-mono">
-                        Isolation 100% stricte
+                        100% Strict Isolation
                       </span>
                     </div>
                     <span className="text-xs font-mono text-zinc-800 dark:text-zinc-200 truncate">
@@ -417,11 +417,11 @@ export function SectionProtection({
                           }
                         })()
                       ) : (
-                        "URL cible de destination"
+                        "Target destination URL"
                       )}
                     </span>
                     <p className="text-[10px] text-zinc-500 dark:text-neutral-500 mt-0.5">
-                      Les visiteurs sont strictement restreints à cette page unique. Aucun préfixe de chemin n&apos;est requis.
+                      Visitors are strictly limited to this single page. No path prefix is required.
                     </p>
                   </div>
                 )}
@@ -459,7 +459,7 @@ export function SectionProtection({
                         /
                       </span>
                       <Input
-                        placeholder="e.g. checkout (route par défaut: /)"
+                        placeholder="e.g. checkout (default route: /)"
                         value={pathLockPrefix}
                         onChange={(e) =>
                           setPathLockPrefix(e.target.value.replace(/^\/+/, ""))
@@ -468,7 +468,7 @@ export function SectionProtection({
                       />
                     </div>
                     <p className="text-[10px] text-zinc-500 dark:text-neutral-500">
-                      Permet l&apos;accès aux sous-pages sous ce préfixe. Laissez vide pour autoriser tout le tunnel (route par défaut : <code className="text-zinc-600 dark:text-neutral-400 font-mono">/</code>).
+                      Allows access to sub-pages under this prefix. Leave empty to allow the full funnel (default route: <code className="text-zinc-600 dark:text-neutral-400 font-mono">/</code>).
                     </p>
                     <p className="text-[10px] text-zinc-500 dark:text-neutral-500">
                       In-page anchors (<code className="text-zinc-600 dark:text-neutral-400 font-mono">#features</code>, <code className="text-zinc-600 dark:text-neutral-400 font-mono">#reviews</code>) and query parameters are 100% preserved.
@@ -478,7 +478,7 @@ export function SectionProtection({
 
                 <div className="flex flex-col gap-1">
                   <label className="text-[10.5px] font-bold uppercase tracking-wider text-zinc-700 dark:text-neutral-300">
-                    Custom Block Notice Message <span className="text-zinc-400 dark:text-neutral-500 font-normal lowercase">(optionnel)</span>
+                    Custom Block Notice Message <span className="text-zinc-400 dark:text-neutral-500 font-normal lowercase">(optional)</span>
                   </label>
                   <textarea
                     rows={2}
@@ -491,12 +491,12 @@ export function SectionProtection({
 
                 <div className="flex flex-col gap-1">
                   <label className="text-[10.5px] font-bold uppercase tracking-wider text-zinc-700 dark:text-neutral-300">
-                    Developer / Team Bypass Password <span className="text-zinc-400 dark:text-neutral-500 font-normal lowercase">(optionnel)</span>
+                    Developer / Team Bypass Password <span className="text-zinc-400 dark:text-neutral-500 font-normal lowercase">(optional)</span>
                   </label>
                   <div className="relative">
                     <Input
                       type={showPathLockPassword ? "text" : "password"}
-                      placeholder="Définir un mot de passe de déblocage pour les testeurs..."
+                      placeholder="Set a bypass password for testers..."
                       value={pathLockPassword}
                       onChange={(e) => setPathLockPassword(e.target.value)}
                       className="bg-zinc-50 dark:bg-[#101012] border-zinc-200 dark:border-[#27272a] focus:border-brand text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-neutral-500 text-xs h-9 rounded-[8px] pr-10"
@@ -505,13 +505,13 @@ export function SectionProtection({
                       type="button"
                       onClick={() => setShowPathLockPassword((prev) => !prev)}
                       className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-neutral-400 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer"
-                      title={showPathLockPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                      title={showPathLockPassword ? "Hide password" : "Show password"}
                     >
                       {showPathLockPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
                   <p className="text-[10px] text-zinc-500 dark:text-neutral-500">
-                    Permet aux développeurs et testeurs de contourner la restriction de navigation en saisissant ce mot de passe.
+                    Allows developers and testers to bypass the navigation restriction by entering this password.
                   </p>
                 </div>
               </div>
