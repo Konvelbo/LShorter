@@ -553,7 +553,7 @@ export function ProductSection() {
 
       <div
         className={`min-w-[1080px] w-full ${
-          isFullscreen ? "flex-1 min-h-0" : "h-[580px]"
+          isFullscreen ? "flex-1 min-h-0" : "h-[780px]"
         } rounded-b-[14px] bg-[#F9FAFB] dark:bg-[#09090B] border border-[#E4E7EC] dark:border-[#222225] flex overflow-hidden relative shadow-md`}
       >
         {/* SIDEBAR */}
@@ -1525,7 +1525,7 @@ export function ProductSection() {
           {isFullscreen && mounted ? (
             <>
               {/* Espace réservé pour éviter tout saut de scroll de la page */}
-              <div className="relative rounded-[20px] p-6 bg-[#1F2A38]/30 border border-dashed border-white/15 h-[620px] flex flex-col items-center justify-center text-center">
+              <div className="relative rounded-[20px] p-6 bg-[#1F2A38]/30 border border-dashed border-white/15 h-[820px] flex flex-col items-center justify-center text-center">
                 <div className="w-12 h-12 rounded-2xl bg-[#465FFF]/20 border border-[#465FFF]/30 flex items-center justify-center text-[#7592FF] mb-3">
                   <Maximize2 className="w-6 h-6" />
                 </div>
