@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   compress: true,
+  devIndicators: false,
   poweredByHeader: false,
   experimental: {
     serverActions: {
@@ -63,7 +64,8 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [
       {
-        source: "/:slug((?!api|_next|favicon\\.ico|lshorter_favicon\\.svg|icon-512\\.png|login|register|dashboard|onboarding|r|terms|privacy|pricing|blog|reset-password).*)",
+        source:
+          "/:slug((?!api|_next|favicon\\.ico|lshorter_favicon\\.svg|icon-512\\.png|login|register|dashboard|onboarding|r|terms|privacy|pricing|blog|reset-password).*)",
         destination: "/r/:slug",
       },
     ];

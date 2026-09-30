@@ -16,7 +16,8 @@ interface FeatureCardProps {
   title: string;
   lead: string;
   rows: HighlightRow[];
-  screenshot: string;
+  screenshot?: string;
+  screenshotTable?: string[];
   screenshotAlt: string;
   docHref: string;
   docLabel: string;
@@ -46,12 +47,15 @@ function FeatureCard({
   rows,
   screenshot,
   screenshotAlt,
+  screenshotTable,
   docHref,
   docLabel,
 }: FeatureCardProps) {
+  const isMultiScreenshots =
+    Array.isArray(screenshotTable) && screenshotTable.length > 0;
+
   return (
     <div className="flex flex-col gap-6">
-
       {/* ── Title ── */}
       <motion.h3
         variants={fadeUp}
@@ -76,25 +80,55 @@ function FeatureCard({
         {lead}
       </motion.p>
 
-      {/* ── Screenshot ── */}
-      <motion.div
-        variants={scaleIn}
-        initial="hidden"
-        whileInView="visible"
-        viewport={viewport}
-        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
-        className="relative w-full overflow-hidden rounded-[10px] border border-[#c9cbd2] dark:border-[#3a3d45] bg-neutral-100 dark:bg-neutral-900"
-      >
-        <Image
-          src={screenshot}
-          alt={screenshotAlt}
-          width={960}
-          height={540}
-          unoptimized
-          className="w-full h-auto object-cover object-top transition-transform duration-500 ease-out hover:scale-[1.012]"
-          priority={false}
-        />
-      </motion.div>
+      {/* ── Screenshots (Simple ou Double côte à côte) ── */}
+      {isMultiScreenshots ? (
+        <motion.div
+          variants={scaleIn}
+          initial="hidden"
+          whileInView="visible"
+          viewport={viewport}
+          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
+          className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 w-full"
+        >
+          {screenshotTable.map((imgSrc, idx) => (
+            <div
+              key={idx}
+              className="relative w-full overflow-hidden rounded-[10px] border border-[#c9cbd2] dark:border-[#3a3d45] bg-neutral-100 dark:bg-neutral-900 flex items-center justify-center shadow-xs"
+            >
+              <Image
+                src={imgSrc}
+                alt={`${screenshotAlt} - aperçu ${idx + 1}`}
+                width={720}
+                height={450}
+                unoptimized
+                className="w-full h-auto max-h-[340px] sm:max-h-none object-cover object-top transition-transform duration-500 ease-out hover:scale-[1.015]"
+                priority={false}
+              />
+            </div>
+          ))}
+        </motion.div>
+      ) : (
+        screenshot && (
+          <motion.div
+            variants={scaleIn}
+            initial="hidden"
+            whileInView="visible"
+            viewport={viewport}
+            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
+            className="relative w-full overflow-hidden rounded-[10px] border border-[#c9cbd2] dark:border-[#3a3d45] bg-neutral-100 dark:bg-neutral-900 shadow-xs"
+          >
+            <Image
+              src={screenshot}
+              alt={screenshotAlt}
+              width={960}
+              height={540}
+              unoptimized
+              className="w-full h-auto object-cover object-top transition-transform duration-500 ease-out hover:scale-[1.012]"
+              priority={false}
+            />
+          </motion.div>
+        )
+      )}
 
       {/* ── Spec rows ── */}
       <div>
@@ -138,7 +172,6 @@ function FeatureCard({
           {docLabel}
         </Link>
       </motion.div>
-
     </div>
   );
 }
@@ -152,9 +185,19 @@ export function TimelineFeatures() {
           title="One short link, the right destination for everyone"
           lead="Route visitors dynamically by country, operating system, or weighted A/B split across 310+ Cloudflare edge PoPs — the rule changes the moment you save it."
           rows={[
-            { key: "Country", value: "Send visitors to a local page, in any market (ISO 3166-1)." },
-            { key: "Device", value: "iPhone to the App Store, Android to Google Play." },
-            { key: "A/B split", value: "Test several pages and follow the results live." },
+            {
+              key: "Country",
+              value:
+                "Send visitors to a local page, in any market (ISO 3166-1).",
+            },
+            {
+              key: "Device",
+              value: "iPhone to the App Store, Android to Google Play.",
+            },
+            {
+              key: "A/B split",
+              value: "Test several pages and follow the results live.",
+            },
           ]}
           screenshot="/marketing-FCI/real_dashboard_overview.png"
           screenshotAlt="LShorter Smart Edge Routing Dashboard"
@@ -170,9 +213,18 @@ export function TimelineFeatures() {
           title="Pixel-perfect QR codes that stay editable after print"
           lead="Generate production-ready vector QR codes with 15 pixel styles, custom eye shapes, brand gradient fills, and direct SVG, PNG, or animated GIF export."
           rows={[
-            { key: "Pixel styles", value: "15 patterns — Squares, Rounded, Dots, Diamonds, Stars." },
-            { key: "Eye shapes", value: "15 corner designs with customizable brand gradients." },
-            { key: "Export", value: "Direct SVG / PNG / GIF export for any resolution." },
+            {
+              key: "Pixel styles",
+              value: "15 patterns — Squares, Rounded, Dots, Diamonds, Stars.",
+            },
+            {
+              key: "Eye shapes",
+              value: "15 corner designs with customizable brand gradients.",
+            },
+            {
+              key: "Export",
+              value: "Direct SVG / PNG / GIF export for any resolution.",
+            },
           ]}
           screenshot="/marketing-FCI/real_qr_studio.png"
           screenshotAlt="LShorter Dynamic QR Studio"
@@ -188,11 +240,24 @@ export function TimelineFeatures() {
           title="Your brand on every link, verified in minutes"
           lead="Provision custom branded domains with automated DNS & SSL verification, then manage campaign UTM parameters and routing rules from an interactive drawer."
           rows={[
-            { key: "Domains", value: "Custom vanity domains with automated DNS & SSL validation." },
-            { key: "Campaigns", value: "Full UTM tracking, tagging, and status management." },
-            { key: "Cache", value: "Instant edge cache invalidation across all global nodes." },
+            {
+              key: "Domains",
+              value:
+                "Custom vanity domains with automated DNS & SSL validation.",
+            },
+            {
+              key: "Campaigns",
+              value: "Full UTM tracking, tagging, and status management.",
+            },
+            {
+              key: "Cache",
+              value: "Instant edge cache invalidation across all global nodes.",
+            },
           ]}
-          screenshot="/marketing-FCI/real_links_table.png"
+          screenshotTable={[
+            "/marketing-FCI/real_links_table.png",
+            "/marketing-FCI/domaine_item.png",
+          ]}
           screenshotAlt="LShorter Links & Custom Domains"
           docHref="/docs/sdk-quickstart"
           docLabel="Read the links & domains docs"
@@ -206,11 +271,24 @@ export function TimelineFeatures() {
           title="Every click traced back to a customer and a dollar"
           lead="Link short-link click IDs to Stripe checkouts and customer signups. Measure real-time EPC, bounce rate, and city-level conversion heatmaps."
           rows={[
-            { key: "Attribution", value: "Stripe Checkout & signup attribution via qk_cid token." },
-            { key: "Geo", value: "Interactive 2D world map with city-level conversion logs." },
-            { key: "Drilldown", value: "Device, OS, Browser & ISP performance breakdown." },
+            {
+              key: "Attribution",
+              value: "Stripe Checkout & signup attribution via qk_cid token.",
+            },
+            {
+              key: "Geo",
+              value:
+                "Interactive 2D world map with city-level conversion logs.",
+            },
+            {
+              key: "Drilldown",
+              value: "Device, OS, Browser & ISP performance breakdown.",
+            },
           ]}
-          screenshot="/marketing-FCI/real_geo_analytics.png"
+          screenshotTable={[
+            "/marketing-FCI/real_geo_analytics.png",
+            "/marketing-FCI/revenu-item.png",
+          ]}
           screenshotAlt="LShorter Revenue & Geo Analytics"
           docHref="/docs/conversion-tracking-amount-count"
           docLabel="Read the attribution docs"

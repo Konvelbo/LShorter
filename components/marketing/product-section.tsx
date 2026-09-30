@@ -947,10 +947,10 @@ export function ProductSection() {
                 className="flex items-center gap-2 pl-1.5 pr-2.5 py-1 rounded-[12px] border border-[#E4E7EC] dark:border-[#222225] bg-[#F9FAFB] dark:bg-[#141417] cursor-pointer"
               >
                 <div className="w-7 h-7 rounded-full bg-[#465FFF] text-white flex items-center justify-center text-[11px] font-bold">
-                  M
+                  U
                 </div>
                 <span className="text-[12px] font-semibold text-[#101828] dark:text-white">
-                  Musharof
+                  User
                 </span>
               </button>
             </div>

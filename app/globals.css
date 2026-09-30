@@ -1395,3 +1395,7 @@ html.light main .text-neutral-300 {
   color: var(--ds-text-muted) !important;
 }
 
+html.light main .text-neutral-200 {
+  color: var(--ds-text-primary) !important;
+}
+

@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 import confetti from "canvas-confetti";
 
 interface LinkShareModalProps {
-  link: ShortLink | null;
+  link: Partial<ShortLink> | null;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -102,9 +102,14 @@ export function LinkShareModal({ link, isOpen, onClose }: LinkShareModalProps) {
   useEffect(() => {
     if (!isOpen || !link || !canvasRef.current) return;
 
+    const rawDomain = link.domainName || "lsho.cc";
+    const targetQr = link.shortUrl?.startsWith("http")
+      ? link.shortUrl
+      : (link.slug ? `https://${rawDomain}/r/${link.slug}` : (link.targetUrl || link.shortUrl || "https://lsho.cc"));
+
     QRCode.toCanvas(
       canvasRef.current,
-      link.shortUrl,
+      targetQr,
       {
         width: 180,
         margin: 1.5,
@@ -132,8 +137,10 @@ export function LinkShareModal({ link, isOpen, onClose }: LinkShareModalProps) {
   if (!isOpen || !link) return null;
 
   const rawDomain = link.domainName || "lsho.cc";
-  const publicShareUrl = `https://${rawDomain}/r/${link.slug}`;
-  const shareTitle = link.metaTitle || link.ogTitle || `Check out this link: ${link.slug}`;
+  const publicShareUrl = link.shortUrl?.startsWith("http")
+    ? link.shortUrl
+    : (link.slug ? `https://${rawDomain}/r/${link.slug}` : (link.targetUrl || link.shortUrl || ""));
+  const shareTitle = link.metaTitle || link.ogTitle || (link.slug ? `Check out this link: ${link.slug}` : "Check out this link");
   const encodedUrl = encodeURIComponent(publicShareUrl);
   const encodedTitle = encodeURIComponent(shareTitle);
 
@@ -149,7 +156,7 @@ export function LinkShareModal({ link, isOpen, onClose }: LinkShareModalProps) {
     const pngUrl = canvasRef.current.toDataURL("image/png");
     const downloadLink = document.createElement("a");
     downloadLink.href = pngUrl;
-    downloadLink.download = `lshorter_qr_${link.slug}.png`;
+    downloadLink.download = `lshorter_qr_${link.slug || "code"}.png`;
     document.body.appendChild(downloadLink);
     downloadLink.click();
     document.body.removeChild(downloadLink);
@@ -157,7 +164,8 @@ export function LinkShareModal({ link, isOpen, onClose }: LinkShareModalProps) {
 
   const handleDownloadSVG = async () => {
     try {
-      const svgString = await QRCode.toString(link.shortUrl, {
+      const targetForSvg = publicShareUrl || link.shortUrl || "https://lsho.cc";
+      const svgString = await QRCode.toString(targetForSvg, {
         type: "svg",
         margin: 1.5,
         color: {
@@ -169,7 +177,7 @@ export function LinkShareModal({ link, isOpen, onClose }: LinkShareModalProps) {
       const dlUrl = URL.createObjectURL(blob);
       const downloadLink = document.createElement("a");
       downloadLink.href = dlUrl;
-      downloadLink.download = `lshorter_qr_${link.slug}.svg`;
+      downloadLink.download = `lshorter_qr_${link.slug || "code"}.svg`;
       document.body.appendChild(downloadLink);
       downloadLink.click();
       document.body.removeChild(downloadLink);
@@ -182,10 +190,10 @@ export function LinkShareModal({ link, isOpen, onClose }: LinkShareModalProps) {
   const handleEditQrCode = () => {
     onClose();
     const query = new URLSearchParams({
-      url: link.shortUrl,
-      slug: link.slug,
-      id: link.id,
-      target: link.targetUrl,
+      url: link.shortUrl || publicShareUrl || "",
+      slug: link.slug || "",
+      id: link.id || "",
+      target: link.targetUrl || "",
     });
     router.push(`/dashboard/qr-code?${query.toString()}`);
   };

@@ -68,7 +68,7 @@ export const Timeline = ({
     <div
       className={cn(
         "w-full bg-white dark:bg-[#09090B] font-sans md:px-10 transition-colors duration-300",
-        className
+        className,
       )}
       ref={containerRef}
     >

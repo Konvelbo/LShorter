@@ -65,21 +65,35 @@ export default function DomainsPage() {
 
     if (/[A-Z]/.test(raw)) {
       hasNonNormalized = true;
-      issues.push("Caractères majuscules détectés (les noms de domaine DNS doivent être en minuscules).");
+      issues.push(
+        "Caractères majuscules détectés (les noms de domaine DNS doivent être en minuscules).",
+      );
     }
     if (/\s/.test(raw)) {
       hasNonNormalized = true;
       issues.push("Espaces détectés dans le champ de saisie.");
     }
-    if (/^https?:\/\//i.test(raw) || raw.includes("/") || raw.includes("?") || raw.includes("#") || raw.includes(":")) {
+    if (
+      /^https?:\/\//i.test(raw) ||
+      raw.includes("/") ||
+      raw.includes("?") ||
+      raw.includes("#") ||
+      raw.includes(":")
+    ) {
       hasNonNormalized = true;
-      issues.push("Protocole (http/https), barre oblique (/) ou port détecté — saisissez uniquement l'hôte (ex: link.marque.com).");
+      issues.push(
+        "Protocole (http/https), barre oblique (/) ou port détecté — saisissez uniquement l'hôte (ex: link.marque.com).",
+      );
     }
     if (/[^\x00-\x7F]/.test(raw)) {
       hasNonNormalized = true;
-      issues.push("Caractères accentués ou Unicode non normalisés détectés (utilisez l'alphabet ASCII standard a-z, 0-9, -).");
+      issues.push(
+        "Caractères accentués ou Unicode non normalisés détectés (utilisez l'alphabet ASCII standard a-z, 0-9, -).",
+      );
     }
-    const invalidChars = raw.replace(/^https?:\/\//i, "").match(/[^a-zA-Z0-9.-]/g);
+    const invalidChars = raw
+      .replace(/^https?:\/\//i, "")
+      .match(/[^a-zA-Z0-9.-]/g);
     if (invalidChars && invalidChars.length > 0) {
       hasNonNormalized = true;
       const uniqueInvalid = Array.from(new Set(invalidChars)).join(" ");
@@ -98,7 +112,8 @@ export default function DomainsPage() {
       .replace(/[^a-z0-9.-]/g, "");
 
     const labels = cleaned.split(".");
-    const domainRegex = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,24}$/;
+    const domainRegex =
+      /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,24}$/;
     const isSyntaxValid =
       !hasNonNormalized &&
       domainRegex.test(cleaned) &&
@@ -107,7 +122,9 @@ export default function DomainsPage() {
       !labels.some((l) => l.startsWith("-") || l.endsWith("-"));
 
     if (!hasNonNormalized && cleaned.length > 0 && !isSyntaxValid) {
-      issues.push("Format de domaine incomplet ou extension TLD invalide (ex: link.mycompany.com).");
+      issues.push(
+        "Format de domaine incomplet ou extension TLD invalide (ex: link.mycompany.com).",
+      );
     }
 
     return {
@@ -119,24 +136,43 @@ export default function DomainsPage() {
   }, [newDomainInput]);
 
   // Verify via Cloudflare DNS-over-HTTPS that the root/registrable domain actually exists on the internet
-  const verifyDomainExistsOnDns = async (hostname: string): Promise<{ exists: boolean; reason?: string }> => {
+  const verifyDomainExistsOnDns = async (
+    hostname: string,
+  ): Promise<{ exists: boolean; reason?: string }> => {
     const parts = hostname.toLowerCase().split(".");
     const tld = parts[parts.length - 1];
-    const reservedTlds = ["test", "invalid", "localhost", "local", "example", "internal", "lan"];
+    const reservedTlds = [
+      "test",
+      "invalid",
+      "localhost",
+      "local",
+      "example",
+      "internal",
+      "lan",
+    ];
     if (reservedTlds.includes(tld)) {
-      return { exists: false, reason: `L'extension .${tld} est réservée et n'existe pas sur le réseau DNS public.` };
+      return {
+        exists: false,
+        reason: `L'extension .${tld} est réservée et n'existe pas sur le réseau DNS public.`,
+      };
     }
 
     // Check registrable root domain (last 2 labels, or last 3 for co.uk / com.fr etc.)
     const rootDomain = parts.length > 2 ? parts.slice(-2).join(".") : hostname;
     try {
       const [nsRes, aRes] = await Promise.all([
-        fetch(`https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(rootDomain)}&type=NS`, {
-          headers: { Accept: "application/dns-json" },
-        }),
-        fetch(`https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(hostname)}&type=A`, {
-          headers: { Accept: "application/dns-json" },
-        }),
+        fetch(
+          `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(rootDomain)}&type=NS`,
+          {
+            headers: { Accept: "application/dns-json" },
+          },
+        ),
+        fetch(
+          `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(hostname)}&type=A`,
+          {
+            headers: { Accept: "application/dns-json" },
+          },
+        ),
       ]);
 
       if (!nsRes.ok) return { exists: true };
@@ -314,7 +350,9 @@ export default function DomainsPage() {
       setDomainError(null);
       setIsAdding(false);
       confetti({ particleCount: 40, spread: 60, origin: { y: 0.6 } });
-      showToast.success(`Domain "${cleanHost}" declared! Configure your DNS records below.`);
+      showToast.success(
+        `Domain "${cleanHost}" declared! Configure your DNS records below.`,
+      );
       loadDomains();
     } catch (err: any) {
       setDomainError(err.message || "Error adding domain.");
@@ -329,17 +367,19 @@ export default function DomainsPage() {
     try {
       const cnameRes = await fetch(
         `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(dom.domain)}&type=CNAME`,
-        { headers: { Accept: "application/dns-json" } }
+        { headers: { Accept: "application/dns-json" } },
       );
       const cnameJson = cnameRes.ok ? await cnameRes.json() : null;
       const answers = Array.isArray(cnameJson?.Answer) ? cnameJson.Answer : [];
       const pointsToEdge = answers.some((a: any) =>
-        String(a.data || "").toLowerCase().includes(DEFAULT_DOMAIN.toLowerCase())
+        String(a.data || "")
+          .toLowerCase()
+          .includes(DEFAULT_DOMAIN.toLowerCase()),
       );
 
       if (!pointsToEdge) {
         showToast.error(
-          `L'enregistrement CNAME de ${dom.domain} vers ${DEFAULT_DOMAIN} n'est pas encore détecté sur les serveurs DNS. Vérifiez votre zone DNS.`
+          `L'enregistrement CNAME de ${dom.domain} vers ${DEFAULT_DOMAIN} n'est pas encore détecté sur les serveurs DNS. Vérifiez votre zone DNS.`,
         );
       } else {
         confetti({ particleCount: 50, spread: 70, origin: { y: 0.6 } });
@@ -487,13 +527,16 @@ export default function DomainsPage() {
               </p>
             </div>
             <a
-              href={process.env.NEXT_PUBLIC_HOSTINGER_AFFILIATE_LINK || "https://www.hostinger.com"}
+              href={
+                process.env.NEXT_PUBLIC_HOSTINGER_AFFILIATE_LINK ||
+                "https://www.hostinger.com"
+              }
               target="_blank"
               rel="noopener noreferrer"
               className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold transition-colors shadow-xs"
             >
               <ExternalLink className="w-3.5 h-3.5" />
-              Buy a domain · Hostinger
+              Buy a domain
             </a>
           </div>
 
@@ -531,7 +574,9 @@ export default function DomainsPage() {
               <Button
                 type="submit"
                 variant="glow"
-                disabled={isSubmittingDomain || domainValidation.hasNonNormalized}
+                disabled={
+                  isSubmittingDomain || domainValidation.hasNonNormalized
+                }
                 className="shrink-0 px-6 bg-[#465FFF] hover:bg-[#3b51e6] text-white font-semibold disabled:opacity-50"
               >
                 {isSubmittingDomain ? "Checking DNS..." : "Declare domain"}
@@ -574,7 +619,9 @@ export default function DomainsPage() {
                     <button
                       type="button"
                       onClick={() => {
-                        setNewDomainInput(domainValidation.normalizedSuggestion);
+                        setNewDomainInput(
+                          domainValidation.normalizedSuggestion,
+                        );
                         setDomainError(null);
                       }}
                       className="shrink-0 px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-semibold text-[11px] transition-colors cursor-pointer"
@@ -785,7 +832,10 @@ export default function DomainsPage() {
                     </thead>
                     <tbody className="divide-y divide-slate-200/70 dark:divide-slate-800">
                       {dom.dnsRecords.map((rec, i) => (
-                        <tr key={i} className="hover:bg-slate-100/60 dark:hover:bg-white/[0.02]">
+                        <tr
+                          key={i}
+                          className="hover:bg-slate-100/60 dark:hover:bg-white/[0.02]"
+                        >
                           <td className="py-2.5 px-3 font-bold text-slate-900 dark:text-white">
                             <span className="px-2 py-0.5 rounded-md bg-slate-200/80 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-[10px]">
                               {rec.type}
