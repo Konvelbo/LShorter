@@ -12,14 +12,13 @@ import {
   Moon,
   Sparkles,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useSession } from "next-auth/react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { useTheme } from "@/components/providers/theme-provider";
 import { useMobileMenu } from "@/components/providers/use-mobile-menu";
+import { useSession } from "next-auth/react";
 
-// ─── COMPOSANT DE LIEN DESKTOP SANS FOND AU HOVER ───
+// ─── LIEN DESKTOP AVEC EFFET TEXT ROLL ───
 function NavLinkItem({
   item,
   isActive,
@@ -60,32 +59,6 @@ function NavLinkItem({
       onClick={onClick}
       onMouseEnter={() => tlRef.current?.play()}
       onMouseLeave={() => tlRef.current?.reverse()}
-      onPointerDown={() =>
-        linkRef.current &&
-        gsap.to(linkRef.current, {
-          scale: 0.94,
-          duration: 0.12,
-          ease: "power1.out",
-        })
-      }
-      onPointerUp={() =>
-        linkRef.current &&
-        gsap.to(linkRef.current, {
-          scale: 1,
-          duration: 0.18,
-          ease: "power1.out",
-        })
-      }
-      onPointerLeave={() => {
-        tlRef.current?.reverse();
-        if (linkRef.current) {
-          gsap.to(linkRef.current, {
-            scale: 1,
-            duration: 0.18,
-            ease: "power1.out",
-          });
-        }
-      }}
       className={`relative px-[clamp(0.45rem,0.75vw,0.85rem)] py-1.5 rounded-[10px] text-[clamp(0.75rem,0.88vw,0.85rem)] font-normal tracking-[-0.01em] transition-colors cursor-pointer overflow-hidden whitespace-nowrap select-none bg-transparent hover:bg-transparent ${
         isLightSurface
           ? isActive
@@ -97,15 +70,12 @@ function NavLinkItem({
       }`}
     >
       <span className="relative block overflow-hidden leading-tight">
-        {/* Texte initial */}
         <span
           ref={primaryTextRef}
           className="block select-none pointer-events-none will-change-transform"
         >
           {item.label}
         </span>
-
-        {/* Texte clone */}
         <span
           ref={cloneTextRef}
           aria-hidden="true"
@@ -120,32 +90,49 @@ function NavLinkItem({
   );
 }
 
-// ─── COMPOSANT PRINCIPAL LANDING NAVBAR ───
+// ─── COMPOSANT PRINCIPAL NAVBAR ───
 export function LandingNavbar() {
   const { isOpen, toggle } = useMobileMenu();
   const { theme, toggleTheme } = useTheme();
   const isLight = theme === "light";
   const pathname = usePathname();
   const { data: session, status } = useSession();
+  const isAuthenticated =
+    status === "authenticated" &&
+    Boolean(session?.user) &&
+    !(session?.user as any)?.userNotFound;
 
   const [isScrolled, setIsScrolled] = useState(false);
   const [isIframeFullscreen, setIsIframeFullscreen] = useState(false);
 
+  // Synchronisation avec le mode plein écran pour masquer la navbar
   useEffect(() => {
+    const checkFullscreenState = () => {
+      const isFs =
+        document.documentElement.getAttribute("data-iframe-fullscreen") ===
+          "true" ||
+        document.body.getAttribute("data-iframe-fullscreen") === "true";
+      setIsIframeFullscreen(isFs);
+    };
+
     const handleFullscreenChange = (e: Event) => {
       const customEvent = e as CustomEvent<{ isFullscreen: boolean }>;
       setIsIframeFullscreen(Boolean(customEvent.detail?.isFullscreen));
     };
 
+    checkFullscreenState();
     window.addEventListener(
       "product-fullscreen-change",
       handleFullscreenChange,
     );
+    window.addEventListener("resize", checkFullscreenState);
+
     return () => {
       window.removeEventListener(
         "product-fullscreen-change",
         handleFullscreenChange,
       );
+      window.removeEventListener("resize", checkFullscreenState);
     };
   }, []);
 
@@ -163,12 +150,94 @@ export function LandingNavbar() {
     return null;
   }
 
-  const isAuthenticated =
-    status === "authenticated" &&
-    Boolean(session?.user) &&
-    !(session?.user as any)?.userNotFound;
-  const hasCompletedOnboarding =
-    (session?.user as any)?.hasCompletedOnboarding === true;
+  // --- ANIMATIONS HOVER 100% GSAP SUR LE BOUTON DASHBOARD ---
+  const handleCtaEnter = (e: React.MouseEvent<HTMLElement>) => {
+    const button = e.currentTarget;
+    const arrow = button.querySelector(".cta-arrow-icon");
+    const dashIcon = button.querySelector(".cta-dash-icon");
+
+    gsap.to(button, {
+      scale: 1.045,
+      y: -2,
+      backgroundColor: "#3641F5",
+      boxShadow: "0 8px 24px rgba(70, 95, 255, 0.45)",
+      duration: 0.25,
+      ease: "power2.out",
+      overwrite: "auto",
+    });
+
+    if (dashIcon) {
+      gsap.to(dashIcon, {
+        rotate: 12,
+        scale: 1.15,
+        duration: 0.25,
+        ease: "power2.out",
+        overwrite: "auto",
+      });
+    }
+
+    if (arrow) {
+      gsap.to(arrow, {
+        x: 3.5,
+        duration: 0.25,
+        ease: "power2.out",
+        overwrite: "auto",
+      });
+    }
+  };
+
+  const handleCtaLeave = (e: React.MouseEvent<HTMLElement>) => {
+    const button = e.currentTarget;
+    const arrow = button.querySelector(".cta-arrow-icon");
+    const dashIcon = button.querySelector(".cta-dash-icon");
+
+    gsap.to(button, {
+      scale: 1,
+      y: 0,
+      backgroundColor: "#465FFF",
+      boxShadow: "0 2px 8px rgba(70, 95, 255, 0.25)",
+      duration: 0.25,
+      ease: "power2.out",
+      overwrite: "auto",
+    });
+
+    if (dashIcon) {
+      gsap.to(dashIcon, {
+        rotate: 0,
+        scale: 1,
+        duration: 0.25,
+        ease: "power2.out",
+        overwrite: "auto",
+      });
+    }
+
+    if (arrow) {
+      gsap.to(arrow, {
+        x: 0,
+        duration: 0.25,
+        ease: "power2.out",
+        overwrite: "auto",
+      });
+    }
+  };
+
+  const handleCtaPointerDown = (e: React.PointerEvent<HTMLElement>) => {
+    gsap.to(e.currentTarget, {
+      scale: 0.95,
+      duration: 0.12,
+      ease: "power1.out",
+      overwrite: "auto",
+    });
+  };
+
+  const handleCtaPointerUp = (e: React.PointerEvent<HTMLElement>) => {
+    gsap.to(e.currentTarget, {
+      scale: 1.045,
+      duration: 0.16,
+      ease: "power1.out",
+      overwrite: "auto",
+    });
+  };
 
   const handleToggleTheme = (e: React.MouseEvent<HTMLButtonElement>) => {
     gsap.fromTo(
@@ -186,18 +255,6 @@ export function LandingNavbar() {
       { scale: 1, duration: 0.28, ease: "back.out(2.5)" },
     );
     toggle();
-  };
-
-  const handleButtonPointerDown = (e: React.PointerEvent<HTMLElement>) => {
-    gsap.to(e.currentTarget, {
-      scale: 0.94,
-      duration: 0.12,
-      ease: "power1.out",
-    });
-  };
-
-  const handleButtonPointerUp = (e: React.PointerEvent<HTMLElement>) => {
-    gsap.to(e.currentTarget, { scale: 1, duration: 0.18, ease: "power1.out" });
   };
 
   const handleHomeClick = (e: React.MouseEvent) => {
@@ -240,15 +297,15 @@ export function LandingNavbar() {
         borderBottom: isLight
           ? "1px solid rgba(228, 231, 236, 0.8)"
           : "1px solid rgba(255, 255, 255, 0.08)",
-        borderTop: "none",
-        borderLeft: "none",
-        borderRight: "none",
       };
 
   return (
     <div
-      className={`w-full flex justify-center pointer-events-none transition-all duration-300 ${
-        isIframeFullscreen ? "hidden -z-50 opacity-0 pointer-events-none" : ""
+      style={{ display: isIframeFullscreen ? "none" : undefined }}
+      className={`w-full flex justify-center pointer-events-none transition-all duration-200 ${
+        isIframeFullscreen
+          ? "hidden !opacity-0 !pointer-events-none !-z-50"
+          : ""
       }`}
     >
       {/* ─── 1. NAVBAR DESKTOP (>= 768px) ─── */}
@@ -260,7 +317,7 @@ export function LandingNavbar() {
             : "translate-y-0 w-full max-w-full rounded-none px-[clamp(1rem,2.5vw,3.5rem)] py-4"
         }`}
       >
-        {/* LShorter Rectangular "LS" Brand Logo */}
+        {/* Logo LShorter */}
         <Link
           href="/"
           onClick={handleHomeClick}
@@ -280,21 +337,18 @@ export function LandingNavbar() {
 
         {/* Liens Desktop */}
         <nav className="flex items-center gap-[clamp(0.1rem,0.35vw,0.5rem)] min-w-0">
-          {navLinks.map((item) => {
-            const isActive =
-              item.href === "/"
-                ? pathname === "/"
-                : pathname.startsWith(item.href) && !item.href.includes("#");
-
-            return (
-              <NavLinkItem
-                key={item.label}
-                item={item}
-                isActive={isActive}
-                isLightSurface={isLight}
-              />
-            );
-          })}
+          {navLinks.map((item) => (
+            <NavLinkItem
+              key={item.label}
+              item={item}
+              isActive={
+                item.href === "/"
+                  ? pathname === "/"
+                  : pathname.startsWith(item.href) && !item.href.includes("#")
+              }
+              isLightSurface={isLight}
+            />
+          ))}
         </nav>
 
         {/* Actions Desktop */}
@@ -307,7 +361,7 @@ export function LandingNavbar() {
                 ? "border-[#E4E7EC] text-[#344054] hover:text-black hover:bg-[#F9FAFB]"
                 : "border-white/15 text-neutral-200 hover:text-white hover:bg-white/10"
             }`}
-            title={isLight ? "Activer le mode sombre" : "Activer le mode clair"}
+            title="Toggle theme"
             aria-label="Toggle theme"
           >
             {isLight ? (
@@ -317,30 +371,36 @@ export function LandingNavbar() {
             )}
           </button>
 
-          <Link
-            href={isAuthenticated ? "/dashboard" : "/register"}
-            onPointerDown={handleButtonPointerDown}
-            onPointerUp={handleButtonPointerUp}
-            onPointerLeave={handleButtonPointerUp}
-            className="inline-block shrink-0"
-          >
-            <span
-              style={{ color: "#FFFFFF" }}
-              className="inline-flex items-center gap-1.5 rounded-full px-[clamp(0.75rem,1.1vw,1.25rem)] py-2 text-[clamp(0.75rem,0.88vw,0.85rem)] font-semibold whitespace-nowrap !text-white bg-[#465FFF] hover:bg-[#3641F5] transition-all cursor-pointer shadow-xs"
+          {/* Bouton Dashboard : forme pilule sans boîte rectangulaire externe */}
+          {isAuthenticated ? (
+            <Link
+              href="/dashboard"
+              onMouseEnter={handleCtaEnter}
+              onMouseLeave={handleCtaLeave}
+              onPointerDown={handleCtaPointerDown}
+              onPointerUp={handleCtaPointerUp}
+              style={{ backgroundColor: "#465FFF", color: "#FFFFFF" }}
+              className="inline-flex items-center gap-2 rounded-full px-4.5 py-2 text-[13px] font-semibold whitespace-nowrap !text-white !bg-[#465FFF] border-0 outline-none shadow-sm cursor-pointer will-change-transform shrink-0"
             >
-              {isAuthenticated ? (
-                <>
-                  <LayoutDashboard className="w-3.5 h-3.5 shrink-0 !text-white" />
-                  <span className="!text-white">Dashboard</span>
-                </>
-              ) : (
-                <>
-                  <span className="!text-white">Get started</span>
-                  <ArrowRight className="w-3.5 h-3.5 shrink-0 !text-white" />
-                </>
-              )}
-            </span>
-          </Link>
+              <LayoutDashboard className="cta-dash-icon w-3.5 h-3.5 shrink-0 !text-white will-change-transform" />
+              <span className="!text-white font-medium">Dashboard</span>
+              <ArrowRight className="cta-arrow-icon w-3.5 h-3.5 shrink-0 !text-white will-change-transform" />
+            </Link>
+          ) : (
+            <Link
+              href="/register"
+              onMouseEnter={handleCtaEnter}
+              onMouseLeave={handleCtaLeave}
+              onPointerDown={handleCtaPointerDown}
+              onPointerUp={handleCtaPointerUp}
+              style={{ backgroundColor: "#465FFF", color: "#FFFFFF" }}
+              className="inline-flex items-center gap-2 rounded-full px-4.5 py-2 text-[13px] font-semibold whitespace-nowrap !text-white !bg-[#465FFF] border-0 outline-none shadow-sm cursor-pointer will-change-transform shrink-0"
+            >
+              <Sparkles className="cta-dash-icon w-3.5 h-3.5 shrink-0 !text-white will-change-transform" />
+              <span className="!text-white font-medium">Get started</span>
+              <ArrowRight className="cta-arrow-icon w-3.5 h-3.5 shrink-0 !text-white will-change-transform" />
+            </Link>
+          )}
         </div>
       </header>
 
@@ -353,11 +413,7 @@ export function LandingNavbar() {
             : "translate-y-0 w-full max-w-full rounded-none px-4 py-3"
         }`}
       >
-        <Link
-          href="/"
-          onClick={handleHomeClick}
-          className="flex items-center gap-2 select-none"
-        >
+        <Link href="/" className="flex items-center gap-2 select-none">
           <div className="w-7 h-7 rounded-[8px] bg-[#465FFF] text-white flex items-center justify-center font-extrabold text-xs tracking-tight shadow-2xs">
             LS
           </div>
@@ -376,8 +432,8 @@ export function LandingNavbar() {
             onClick={handleToggleTheme}
             className={`w-8 h-8 rounded-[10px] flex items-center justify-center border transition-colors ${
               isLight
-                ? "bg-black/[0.03] border-black/[0.08] text-[#52525B] hover:text-[#09090B]"
-                : "bg-white/[0.06] border-white/10 text-neutral-300 hover:text-white"
+                ? "bg-black/[0.03] border-black/[0.08] text-[#52525B]"
+                : "bg-white/[0.06] border-white/10 text-neutral-300"
             }`}
             aria-label="Basculer le thème"
           >
@@ -390,15 +446,15 @@ export function LandingNavbar() {
 
           <button
             type="button"
-            onClick={handleBurgerClick}
+            onClick={() => toggle()}
             className={`w-8 h-8 rounded-[10px] flex items-center justify-center transition-colors ${
               isOpen
-                ? "bg-[#3B82F6] text-white shadow-2xs"
+                ? "bg-[#3B82F6] text-white"
                 : isLight
                   ? "bg-black/[0.03] text-[#09090B] border border-black/[0.08]"
                   : "bg-white/[0.06] text-white border border-white/10"
             }`}
-            aria-label={isOpen ? "Fermer le menu" : "Ouvrir le menu"}
+            aria-label="Menu"
           >
             {isOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
           </button>
@@ -407,3 +463,5 @@ export function LandingNavbar() {
     </div>
   );
 }
+
+export default LandingNavbar;

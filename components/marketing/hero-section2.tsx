@@ -2,8 +2,8 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { useSession } from "next-auth/react";
 import gsap from "gsap";
+import { useSession } from "next-auth/react";
 import {
   ArrowUpRight,
   Check,
@@ -13,81 +13,123 @@ import {
   QrCode,
   ShieldCheck,
   Split,
+  LayoutDashboard,
 } from "lucide-react";
+
+const TREND_ITEMS = [
+  {
+    href: "/docs/geo-routing",
+    label: "Smart Short Links & Geo Routing",
+    icon: Link2,
+    badgeClass:
+      "bg-[#ECF3FF] dark:bg-[#465FFF]/20 border-[#465FFF]/25 text-[#465FFF] dark:text-[#7592FF]",
+  },
+  {
+    href: "/docs/ab-testing-routing",
+    label: "Weighted A/B Testing",
+    icon: Split,
+    badgeClass:
+      "bg-[#F2F4F7] dark:bg-white/5 border-[#E4E7EC] dark:border-white/10 text-[#344054] dark:text-zinc-300",
+  },
+  {
+    href: "/docs/pin-protection",
+    label: "PathLock™ PIN & Cloaking",
+    icon: ShieldCheck,
+    badgeClass:
+      "bg-[#F2F4F7] dark:bg-white/5 border-[#E4E7EC] dark:border-white/10 text-[#344054] dark:text-zinc-300",
+  },
+  {
+    href: "/docs/dynamic-qr-codes",
+    label: "Bio Links & Dynamic QR",
+    icon: QrCode,
+    badgeClass:
+      "bg-[#F2F4F7] dark:bg-white/5 border-[#E4E7EC] dark:border-white/10 text-[#344054] dark:text-zinc-300",
+  },
+  {
+    href: "/docs/sdk-quickstart",
+    label: "Developer SDK & Webhooks",
+    icon: Terminal,
+    badgeClass:
+      "bg-[#F2F4F7] dark:bg-white/5 border-[#E4E7EC] dark:border-white/10 text-[#344054] dark:text-zinc-300",
+  },
+];
 
 export function HeroSection() {
   return <HeroSection2 />;
 }
 
 export function HeroSection2() {
+  const [copiedPrompt, setCopiedPrompt] = useState(false);
+  const heroRef = useRef<HTMLDivElement>(null);
+  const showcaseRef = useRef<HTMLDivElement>(null);
   const { data: session, status } = useSession();
   const isAuthenticated =
     status === "authenticated" &&
     Boolean(session?.user) &&
     !(session?.user as any)?.userNotFound;
 
-  const [copiedPrompt, setCopiedPrompt] = useState(false);
-  const heroRef = useRef<HTMLDivElement>(null);
-  const showcaseRef = useRef<HTMLDivElement>(null);
-
   const titlePart1 = "Every campaign, bio page, and API link.";
   const titlePart2 = "Engineered around ultra-fast short links.";
 
-  // --- ANIMATION GSAP AU DÉMARRAGE DE LA PAGE (SANS SCROLL) ---
+  // Rendu évitant la coupure des mots sur mobile
+  const renderTypingText = (text: string) => {
+    return text.split(" ").map((word, wordIdx) => (
+      <span
+        key={wordIdx}
+        className="inline-block whitespace-nowrap mr-[0.28em]"
+      >
+        {word.split("").map((char, charIdx) => (
+          <span
+            key={charIdx}
+            className="hero-char inline-block will-change-transform"
+          >
+            {char}
+          </span>
+        ))}
+      </span>
+    ));
+  };
+
+  // --- ANIMATION GSAP AU DÉMARRAGE DE LA PAGE ---
   useEffect(() => {
     if (!heroRef.current) return;
 
     const ctx = gsap.context(() => {
       const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
 
-      // 1. Positionnement initial : Titre masqué, description masquée, image masquée en bas
+      // 1. Masquage initial
       gsap.set(".hero-char", { opacity: 0, y: 10 });
-      gsap.set(".hero-fade-desc", { opacity: 0, y: 24 });
+      gsap.set(".hero-trend-marquee-wrap", { opacity: 0, y: -16, scale: 0.96 });
+      gsap.set(".hero-fade-desc", { opacity: 0, y: 20 });
       gsap.set(".hero-action-pill", { opacity: 0, y: 20, scale: 0.96 });
       if (showcaseRef.current) {
-        gsap.set(showcaseRef.current, { opacity: 0, y: 80, scale: 0.98 });
+        gsap.set(showcaseRef.current, { opacity: 0, y: 70, scale: 0.98 });
       }
 
-      // 2. Positionnement initial des trends en "Stack" (empilés sur le premier à gauche)
-      const pills = gsap.utils.toArray<HTMLElement>(".hero-trend-stack-item");
-      if (pills.length > 0) {
-        const firstLeft = pills[0].offsetLeft;
-        pills.forEach((pill, idx) => {
-          // Décalage en X vers la première pilule avec un léger décalage de pile
-          const stackOffset = firstLeft - pill.offsetLeft + idx * 8;
-          gsap.set(pill, { x: stackOffset, opacity: 0, scale: 0.94 });
-        });
-      }
-
-      // 3. Animation d'écriture du gros titre (lettre par lettre)
-      const charCount = titlePart1.length + titlePart2.length;
-      const charStagger = 0.022;
-      const typingDuration = charCount * charStagger + 0.2;
-
+      // 2. Animation d'écriture du grand titre centré
       tl.to(".hero-char", {
         opacity: 1,
         y: 0,
         duration: 0.2,
-        stagger: charStagger,
+        stagger: 0.018,
         ease: "power1.out",
       });
 
-      // 4. À 70% de la fin de l'écriture du titre : apparition synchronisée des éléments du haut
-      // 70% du temps d'écriture
-      const triggerTime = typingDuration * 0.7;
+      // 3. Déclenchement à ~70% de la frappe
+      tl.addLabel("revealElements", "-=0.55");
 
-      // Déploiement en X des trends depuis leur stack vers leur position finale
+      // Apparition du ruban défilant des trends
       tl.to(
-        pills,
+        ".hero-trend-marquee-wrap",
         {
-          x: 0,
           opacity: 1,
+          y: 0,
           scale: 1,
-          duration: 0.85,
-          stagger: 0.07,
+          duration: 0.75,
           ease: "power3.out",
+          clearProps: "transform",
         },
-        triggerTime,
+        "revealElements",
       );
 
       // Apparition de la description
@@ -96,27 +138,29 @@ export function HeroSection2() {
         {
           opacity: 1,
           y: 0,
-          duration: 0.75,
+          duration: 0.65,
           ease: "power3.out",
+          clearProps: "transform",
         },
-        triggerTime + 0.1,
+        "revealElements+=0.08",
       );
 
-      // Apparition des boutons d'actions et de la commande SDK
+      // Apparition des boutons et SDK
       tl.to(
         ".hero-action-pill",
         {
           opacity: 1,
           y: 0,
           scale: 1,
-          duration: 0.65,
-          stagger: 0.09,
+          duration: 0.6,
+          stagger: 0.08,
           ease: "back.out(1.4)",
+          clearProps: "opacity,transform",
         },
-        triggerTime + 0.15,
+        "revealElements+=0.14",
       );
 
-      // 5. Après tout ça : l'image arrive depuis le bas avec transition en Y et opacité
+      // 4. Ascension du tableau de bord depuis le bas
       if (showcaseRef.current) {
         tl.to(
           showcaseRef.current,
@@ -124,10 +168,11 @@ export function HeroSection2() {
             opacity: 1,
             y: 0,
             scale: 1,
-            duration: 1.1,
+            duration: 1,
             ease: "power3.out",
+            clearProps: "opacity,transform",
           },
-          "+=0.1",
+          "+=0.08",
         );
       }
     }, heroRef);
@@ -135,53 +180,13 @@ export function HeroSection2() {
     return () => ctx.revert();
   }, []);
 
-  // --- ANIMATIONS HOVER FLUIDES VIA GSAP (ISOLÉES DE LA TIMELINE) ---
-  const handleTrendEnter = (e: React.MouseEvent<HTMLElement>) => {
-    const icon = e.currentTarget.querySelector(".trend-icon");
-    gsap.to(e.currentTarget, {
-      y: -3,
-      scale: 1.04,
-      duration: 0.25,
-      ease: "power2.out",
-      overwrite: "auto",
-    });
-    if (icon) {
-      gsap.to(icon, {
-        scale: 1.25,
-        rotation: 8,
-        duration: 0.25,
-        ease: "power2.out",
-        overwrite: "auto",
-      });
-    }
-  };
-
-  const handleTrendLeave = (e: React.MouseEvent<HTMLElement>) => {
-    const icon = e.currentTarget.querySelector(".trend-icon");
-    gsap.to(e.currentTarget, {
-      y: 0,
-      scale: 1,
-      duration: 0.25,
-      ease: "power2.out",
-      overwrite: "auto",
-    });
-    if (icon) {
-      gsap.to(icon, {
-        scale: 1,
-        rotation: 0,
-        duration: 0.25,
-        ease: "power2.out",
-        overwrite: "auto",
-      });
-    }
-  };
-
+  // --- HOVERS GSAP ---
   const handlePrimaryBtnEnter = (e: React.MouseEvent<HTMLElement>) => {
     const arrow = e.currentTarget.querySelector(".hero-cta-arrow");
     gsap.to(e.currentTarget, {
-      y: -3,
-      scale: 1.035,
-      duration: 0.25,
+      y: -2.5,
+      scale: 1.03,
+      duration: 0.22,
       ease: "power2.out",
       overwrite: "auto",
     });
@@ -190,7 +195,7 @@ export function HeroSection2() {
         x: 3,
         y: -3,
         scale: 1.15,
-        duration: 0.25,
+        duration: 0.22,
         ease: "power2.out",
         overwrite: "auto",
       });
@@ -202,7 +207,7 @@ export function HeroSection2() {
     gsap.to(e.currentTarget, {
       y: 0,
       scale: 1,
-      duration: 0.25,
+      duration: 0.22,
       ease: "power2.out",
       overwrite: "auto",
     });
@@ -211,7 +216,7 @@ export function HeroSection2() {
         x: 0,
         y: 0,
         scale: 1,
-        duration: 0.25,
+        duration: 0.22,
         ease: "power2.out",
         overwrite: "auto",
       });
@@ -220,9 +225,9 @@ export function HeroSection2() {
 
   const handleSecondaryBtnEnter = (e: React.MouseEvent<HTMLElement>) => {
     gsap.to(e.currentTarget, {
-      y: -3,
-      scale: 1.03,
-      duration: 0.25,
+      y: -2,
+      scale: 1.025,
+      duration: 0.22,
       ease: "power2.out",
       overwrite: "auto",
     });
@@ -232,7 +237,7 @@ export function HeroSection2() {
     gsap.to(e.currentTarget, {
       y: 0,
       scale: 1,
-      duration: 0.25,
+      duration: 0.22,
       ease: "power2.out",
       overwrite: "auto",
     });
@@ -242,15 +247,15 @@ export function HeroSection2() {
     const icon = e.currentTarget.querySelector(".sdk-icon");
     gsap.to(e.currentTarget, {
       y: -2,
-      scale: 1.025,
-      duration: 0.22,
+      scale: 1.02,
+      duration: 0.2,
       ease: "power2.out",
       overwrite: "auto",
     });
     if (icon) {
       gsap.to(icon, {
-        scale: 1.25,
-        duration: 0.22,
+        scale: 1.2,
+        duration: 0.2,
         ease: "power2.out",
         overwrite: "auto",
       });
@@ -262,14 +267,14 @@ export function HeroSection2() {
     gsap.to(e.currentTarget, {
       y: 0,
       scale: 1,
-      duration: 0.22,
+      duration: 0.2,
       ease: "power2.out",
       overwrite: "auto",
     });
     if (icon) {
       gsap.to(icon, {
         scale: 1,
-        duration: 0.22,
+        duration: 0.2,
         ease: "power2.out",
         overwrite: "auto",
       });
@@ -285,10 +290,10 @@ export function HeroSection2() {
   };
 
   const handleScrollToProduct = (e: React.MouseEvent) => {
+    e.preventDefault();
     const productEl = document.getElementById("product");
     if (productEl) {
-      e.preventDefault();
-      productEl.scrollIntoView({ behavior: "smooth" });
+      productEl.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
 
@@ -296,155 +301,129 @@ export function HeroSection2() {
     <section
       ref={heroRef}
       id="hero"
-      className="relative w-full bg-[#FFFFFF] dark:bg-[#09090B] text-[#101828] dark:text-white pt-24 sm:pt-32 pb-16 md:pb-28 overflow-hidden transition-colors duration-300"
+      className="relative w-full bg-[#FFFFFF] dark:bg-[#09090B] text-[#101828] dark:text-white pt-30 sm:pt-28 md:pt-32 pb-14 sm:pb-20 md:pb-28 overflow-hidden transition-colors duration-300"
     >
-      <div className="max-w-[1360px] mx-auto px-4 sm:px-8">
-        {/* 1. Trends Badges (Départ en Stack -> Déploiement en X) */}
-        <div className="flex flex-wrap items-center gap-2.5 mb-10 sm:mb-14 min-h-[40px]">
-          <div className="hero-trend-stack-item will-change-transform">
-            <Link
-              href="/docs/geo-routing"
-              onMouseEnter={handleTrendEnter}
-              onMouseLeave={handleTrendLeave}
-              className="inline-flex items-center gap-1.5 rounded-full bg-[#ECF3FF] dark:bg-[#465FFF]/20 border border-[#465FFF]/25 px-4 py-1.5 text-[12.5px] font-semibold text-[#465FFF] dark:text-[#7592FF] shadow-xs cursor-pointer will-change-transform"
-            >
-              <Link2 className="trend-icon w-3.5 h-3.5 will-change-transform" />
-              <span>Smart Short Links &amp; Geo Routing</span>
-            </Link>
-          </div>
+      {/* Styles pour le défilement infini fluide du Marquee */}
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+            @keyframes heroMarqueeTrack {
+              0% { transform: translateX(0%); }
+              100% { transform: translateX(-50%); }
+            }
+            .animate-hero-marquee {
+              animation: heroMarqueeTrack 32s linear infinite;
+              will-change: transform;
+            }
+            .animate-hero-marquee:hover {
+              animation-play-state: paused;
+            }
+          `,
+        }}
+      />
 
-          <div className="hero-trend-stack-item will-change-transform">
-            <Link
-              href="/docs/ab-testing-routing"
-              onMouseEnter={handleTrendEnter}
-              onMouseLeave={handleTrendLeave}
-              className="inline-flex items-center gap-1.5 rounded-full bg-[#F2F4F7] dark:bg-white/5 border border-[#E4E7EC] dark:border-white/10 px-3.5 py-1.5 text-[12.5px] font-medium text-[#344054] dark:text-zinc-300 shadow-xs cursor-pointer will-change-transform"
-            >
-              <Split className="trend-icon w-3.5 h-3.5 text-[#465FFF] will-change-transform" />
-              <span>Weighted A/B Testing</span>
-            </Link>
-          </div>
+      <div className="max-w-[1360px] mx-auto px-4 sm:px-8 flex flex-col items-center">
+        {/* 1. Ruban Défilant Automatique des Trends avec Ombres Latérales */}
+        <div className="hero-trend-marquee-wrap relative w-full max-w-[1040px] overflow-hidden mb-8 sm:mb-12">
+          {/* Ombres / Dégradés latéraux */}
+          <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-16 sm:w-28 bg-gradient-to-r from-[#FFFFFF] dark:from-[#09090B] to-transparent z-10" />
+          <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-16 sm:w-28 bg-gradient-to-l from-[#FFFFFF] dark:from-[#09090B] to-transparent z-10" />
 
-          <div className="hero-trend-stack-item will-change-transform">
-            <Link
-              href="/docs/pin-protection"
-              onMouseEnter={handleTrendEnter}
-              onMouseLeave={handleTrendLeave}
-              className="inline-flex items-center gap-1.5 rounded-full bg-[#F2F4F7] dark:bg-white/5 border border-[#E4E7EC] dark:border-white/10 px-3.5 py-1.5 text-[12.5px] font-medium text-[#344054] dark:text-zinc-300 shadow-xs cursor-pointer will-change-transform"
-            >
-              <ShieldCheck className="trend-icon w-3.5 h-3.5 text-[#12B76A] will-change-transform" />
-              <span>PathLock™ PIN &amp; Cloaking</span>
-            </Link>
-          </div>
-
-          <div className="hero-trend-stack-item will-change-transform">
-            <Link
-              href="/docs/dynamic-qr-codes"
-              onMouseEnter={handleTrendEnter}
-              onMouseLeave={handleTrendLeave}
-              className="inline-flex items-center gap-1.5 rounded-full bg-[#F2F4F7] dark:bg-white/5 border border-[#E4E7EC] dark:border-white/10 px-3.5 py-1.5 text-[12.5px] font-medium text-[#344054] dark:text-zinc-300 shadow-xs cursor-pointer will-change-transform"
-            >
-              <QrCode className="trend-icon w-3.5 h-3.5 text-[#12B76A] will-change-transform" />
-              <span>Bio Links &amp; Dynamic QR</span>
-            </Link>
-          </div>
-
-          <div className="hero-trend-stack-item will-change-transform">
-            <Link
-              href="/docs/sdk-quickstart"
-              onMouseEnter={handleTrendEnter}
-              onMouseLeave={handleTrendLeave}
-              className="inline-flex items-center gap-1.5 rounded-full bg-[#F2F4F7] dark:bg-white/5 border border-[#E4E7EC] dark:border-white/10 px-3.5 py-1.5 text-[12.5px] font-medium text-[#344054] dark:text-zinc-300 shadow-xs cursor-pointer will-change-transform"
-            >
-              <Terminal className="trend-icon w-3.5 h-3.5 text-[#F79009] will-change-transform" />
-              <span>Developer SDK &amp; Webhooks</span>
-            </Link>
+          {/* Track animé en continu */}
+          <div className="flex w-max animate-hero-marquee">
+            {[...TREND_ITEMS, ...TREND_ITEMS].map((item, idx) => {
+              const Icon = item.icon;
+              return (
+                <div key={idx} className="shrink-0 px-1.5 py-1">
+                  <Link
+                    href={item.href}
+                    className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[12px] sm:text-[12.5px] font-medium transition-transform duration-200 hover:scale-105 shadow-xs ${item.badgeClass}`}
+                  >
+                    <Icon className="w-3.5 h-3.5 shrink-0" />
+                    <span>{item.label}</span>
+                  </Link>
+                </div>
+              );
+            })}
           </div>
         </div>
 
-        {/* 2. Bloc Contenu (Textes agrandis & Grand espacement avant l'image) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-14 items-end mb-16 sm:mb-24">
-          <div className="lg:col-span-8">
-            {/* Grand titre avec animation d'écriture lettre par lettre */}
-            <h1 className="text-[36px] sm:text-[54px] lg:text-[64px] font-normal tracking-[-0.035em] leading-[1.05] text-[#000000] dark:text-white">
-              {titlePart1.split("").map((char, index) => (
-                <span
-                  key={`p1-${index}`}
-                  className="hero-char inline-block will-change-transform"
-                >
-                  {char === " " ? "\u00A0" : char}
-                </span>
-              ))}{" "}
-              <span className="text-[#667085] dark:text-zinc-400">
-                {titlePart2.split("").map((char, index) => (
-                  <span
-                    key={`p2-${index}`}
-                    className="hero-char inline-block will-change-transform"
+        {/* 2. Bloc Texte Principal Entièrement Centré */}
+        <div className="flex flex-col items-center text-center max-w-[980px] mx-auto mb-12 sm:mb-16 md:mb-20">
+          <h1 className="text-[35px] sm:text-[46px] lg:text-[60px] font-normal tracking-[-0.035em] leading-[1.12] sm:leading-[1.05] text-[#000000] dark:text-white">
+            {renderTypingText(titlePart1)}{" "}
+            <span className="text-[#667085] dark:text-zinc-400">
+              {renderTypingText(titlePart2)}
+            </span>
+          </h1>
+
+          <p className="hero-fade-desc mt-5 sm:mt-7 text-[15px] sm:text-[18px] text-[#475467] dark:text-zinc-400 max-w-[760px] mx-auto leading-[1.6] sm:leading-[1.7]">
+            LShorter unifies branded link shortening, programmable ISO Country
+            &amp; Device edge routing,{" "}
+            <strong className="font-semibold text-[#101828] dark:text-white">
+              weighted A/B testing
+            </strong>
+            ,{" "}
+            <strong className="font-semibold text-[#101828] dark:text-white">
+              PathLock™ PIN &amp; URL cloaking
+            </strong>
+            , high-converting bio micro-sites, and cookie-free revenue
+            attribution inside one workspace.
+          </p>
+
+          {/* Boutons d'actions et Commande SDK Centrés */}
+          <div className="flex flex-col items-center gap-3.5 w-full mt-8 sm:mt-10">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 w-full sm:w-auto">
+              <div className="hero-action-pill will-change-transform w-full sm:w-auto">
+                {isAuthenticated ? (
+                  <Link
+                    href="/dashboard"
+                    style={{ color: "#FFFFFF" }}
+                    onMouseEnter={handlePrimaryBtnEnter}
+                    onMouseLeave={handlePrimaryBtnLeave}
+                    className="w-full sm:w-56 inline-flex items-center justify-center gap-2 rounded-full bg-[#465FFF] hover:bg-[#3641F5] !text-white px-6 py-3.5 sm:py-3 text-[14px] font-semibold shadow-md will-change-transform cursor-pointer transition-colors"
                   >
-                    {char === " " ? "\u00A0" : char}
-                  </span>
-                ))}
-              </span>
-            </h1>
-
-            {/* Description plus grande et aérée */}
-            <p className="hero-fade-desc mt-6 sm:mt-9 text-[17px] sm:text-[19px] text-[#475467] dark:text-zinc-400 max-w-[760px] leading-[1.7]">
-              LShorter unifies branded link shortening, programmable ISO Country
-              &amp; Device edge routing,{" "}
-              <strong className="font-semibold text-[#101828] dark:text-white">
-                weighted A/B testing
-              </strong>
-              ,{" "}
-              <strong className="font-semibold text-[#101828] dark:text-white">
-                PathLock™ PIN &amp; URL cloaking
-              </strong>
-              , high-converting bio micro-sites, and cookie-free revenue
-              attribution inside one workspace.
-            </p>
-          </div>
-
-          {/* Boutons d'actions et pilule SDK */}
-          <div className="lg:col-span-4 flex flex-col lg:items-end justify-end gap-4 w-full">
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5 w-full sm:w-auto">
-              <div className="hero-action-pill will-change-transform">
-                <Link
-                  href={isAuthenticated ? "/dashboard" : "/register"}
-                  style={{ color: "#FFFFFF" }}
-                  onMouseEnter={handlePrimaryBtnEnter}
-                  onMouseLeave={handlePrimaryBtnLeave}
-                  className="inline-flex items-center justify-between sm:justify-center sm:w-56 gap-2.5 rounded-full bg-[#465FFF] !text-white pl-6 pr-2.5 py-3.5 sm:py-3 text-[14.5px] font-semibold shadow-md will-change-transform cursor-pointer"
-                >
-                  <span className="!text-white">
-                    {isAuthenticated
-                      ? "Go in the dashboard"
-                      : "Get started free"}
-                  </span>
-                  <span className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+                    <LayoutDashboard className="w-4 h-4 !text-white shrink-0" />
+                    <span className="!text-white font-medium">Dashboard</span>
                     <ArrowUpRight className="hero-cta-arrow w-4 h-4 !text-white will-change-transform" />
-                  </span>
-                </Link>
+                  </Link>
+                ) : (
+                  <Link
+                    href="/register"
+                    style={{ color: "#FFFFFF" }}
+                    onMouseEnter={handlePrimaryBtnEnter}
+                    onMouseLeave={handlePrimaryBtnLeave}
+                    className="w-full sm:w-56 inline-flex items-center justify-center gap-2 rounded-full bg-[#465FFF] hover:bg-[#3641F5] !text-white px-6 py-3.5 sm:py-3 text-[14px] font-semibold shadow-md will-change-transform cursor-pointer transition-colors"
+                  >
+                    <LayoutDashboard className="w-4 h-4 !text-white shrink-0" />
+                    <span className="!text-white font-medium">
+                      Get started free
+                    </span>
+                    <ArrowUpRight className="hero-cta-arrow w-4 h-4 !text-white will-change-transform" />
+                  </Link>
+                )}
               </div>
 
-              <div className="hero-action-pill will-change-transform">
+              <div className="hero-action-pill will-change-transform w-full sm:w-auto">
                 <Link
                   href="#product"
                   onClick={handleScrollToProduct}
                   onMouseEnter={handleSecondaryBtnEnter}
                   onMouseLeave={handleSecondaryBtnLeave}
-                  className="inline-flex items-center justify-center sm:w-56 gap-2 rounded-full bg-[#F2F4F7] dark:bg-white/10 text-[#101828] dark:text-white border border-[#D0D5DD] dark:border-white/15 px-5 py-3.5 sm:py-3 text-[14.5px] font-medium shadow-xs will-change-transform cursor-pointer"
+                  className="w-full sm:w-56 inline-flex items-center justify-center gap-2 rounded-full bg-[#F2F4F7] dark:bg-white/10 text-[#101828] dark:text-white border border-[#D0D5DD] dark:border-white/15 px-6 py-3.5 sm:py-3 text-[14px] font-medium shadow-xs will-change-transform cursor-pointer hover:bg-white dark:hover:bg-white/15 transition-colors text-center"
                 >
                   <span>Open live dashboard</span>
                 </Link>
               </div>
             </div>
 
-            <div className="hero-action-pill will-change-transform w-full sm:w-auto">
+            <div className="hero-action-pill will-change-transform w-full sm:w-auto flex justify-center">
               <button
                 type="button"
                 onClick={handleCopySdk}
                 onMouseEnter={handleSdkBtnEnter}
                 onMouseLeave={handleSdkBtnLeave}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 rounded-full bg-[#F9FAFB] dark:bg-white/5 border border-[#E4E7EC] dark:border-white/10 px-4.5 py-3 sm:py-2.5 text-[12.5px] font-mono text-[#475467] dark:text-zinc-300 will-change-transform cursor-pointer"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 rounded-full bg-[#F9FAFB] dark:bg-white/5 border border-[#E4E7EC] dark:border-white/10 px-4.5 py-2.5 text-[12px] font-mono text-[#475467] dark:text-zinc-300 will-change-transform cursor-pointer hover:border-[#465FFF] transition-colors"
               >
                 <Terminal className="sdk-icon w-3.5 h-3.5 text-[#465FFF] shrink-0 will-change-transform" />
                 <span className="truncate">
@@ -460,10 +439,10 @@ export function HeroSection2() {
           </div>
         </div>
 
-        {/* 3. Image Frame : Apparaît en dernier en quittant le bas (Y + Opacité) */}
+        {/* 3. Vitrine du Dashboard Centrée : Pleine hauteur sans coupure */}
         <div
           ref={showcaseRef}
-          className="relative rounded-[20px] sm:rounded-[24px] p-2.5 sm:p-6 md:p-7 overflow-hidden border border-[#E4E7EC] dark:border-white/15 shadow-[0_30px_90px_rgba(16,24,40,0.12)] will-change-transform"
+          className="w-full max-w-[1240px] mx-auto relative rounded-[16px] sm:rounded-[22px] p-2 sm:p-5 md:p-6 overflow-hidden border border-[#E4E7EC] dark:border-white/15 shadow-[0_20px_60px_rgba(16,24,40,0.12)] will-change-transform"
           style={{
             background:
               "linear-gradient(135deg, #1F2A38 0%, #344960 35%, #5C768D 68%, #263547 100%)",
@@ -477,25 +456,24 @@ export function HeroSection2() {
             }}
           />
 
-          <div className="relative z-10 rounded-[14px] sm:rounded-[18px] bg-[#FFFFFF] dark:bg-[#101828] border border-[#E4E7EC] dark:border-white/15 overflow-hidden shadow-2xl">
-            <div className="px-3.5 sm:px-4 py-2 sm:py-2.5 border-b border-[#E4E7EC] dark:border-white/10 bg-[#F9FAFB] dark:bg-[#1D2939] flex items-center justify-between gap-2">
+          <div className="relative z-10 rounded-[12px] sm:rounded-[16px] bg-[#FFFFFF] dark:bg-[#101828] border border-[#E4E7EC] dark:border-white/15 overflow-hidden shadow-xl">
+            <div className="px-3 sm:px-4 py-2 sm:py-2.5 border-b border-[#E4E7EC] dark:border-white/10 bg-[#F9FAFB] dark:bg-[#1D2939] flex items-center justify-between gap-2">
               <div className="flex items-center gap-1.5 sm:gap-2">
-                <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#F04438]" />
-                <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#F79009]" />
-                <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#12B76A]" />
-                <div className="ml-2 sm:ml-3 flex items-center gap-2 px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-md bg-white dark:bg-[#101828] border border-[#E4E7EC] dark:border-white/10 text-[11px] sm:text-[11.5px] font-mono text-[#475467] dark:text-zinc-300">
-                  <span className="w-2 h-2 rounded-full bg-[#12B76A]" />
+                <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-[#F04438]" />
+                <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-[#F79009]" />
+                <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-[#12B76A]" />
+                <div className="ml-1.5 sm:ml-3 flex items-center gap-1.5 px-2 sm:px-2.5 py-0.5 rounded-md bg-white dark:bg-[#101828] border border-[#E4E7EC] dark:border-white/10 text-[10.5px] sm:text-[11px] font-mono text-[#475467] dark:text-zinc-300">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#12B76A]" />
                   https://lshorter.cc
                 </div>
               </div>
-              <span className="sm:hidden text-[10px] font-mono text-zinc-400">
+              <span className="sm:hidden text-[9.5px] font-mono text-zinc-400">
                 ↔ Glisser
               </span>
             </div>
 
-            {/* Dashboard affiché sur TOUTE sa hauteur naturelle */}
             <div className="relative w-full overflow-x-auto overscroll-x-contain no-scrollbar bg-[#F9FAFB] dark:bg-[#101828]">
-              <div className="min-w-[650px] lg:min-w-0 w-full h-auto">
+              <div className="min-w-[620px] sm:min-w-0 w-full h-auto">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src="/marketing-FCI/real_dashboard_overview.png"
