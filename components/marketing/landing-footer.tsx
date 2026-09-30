@@ -17,7 +17,10 @@ const FOOTER_COLUMNS = [
     links: [
       { label: "Country & Device Routing", href: "/docs/geo-routing" },
       { label: "Weighted A/B Testing", href: "/docs/ab-testing-routing" },
-      { label: "Revenue Attribution (EPC)", href: "/docs/conversion-tracking-amount-count" },
+      {
+        label: "Revenue Attribution (EPC)",
+        href: "/docs/conversion-tracking-amount-count",
+      },
       { label: "Dynamic QR Studio", href: "/docs/dynamic-qr-codes" },
     ],
   },
@@ -26,8 +29,14 @@ const FOOTER_COLUMNS = [
     links: [
       { label: "PathLock™ PIN Protection", href: "/docs/pin-protection" },
       { label: "Zero-Referrer URL Cloaking", href: "/docs/url-masking" },
-      { label: "Click Limits & Expiration", href: "/docs/click-limits-and-expiration" },
-      { label: "Custom OpenGraph Cards", href: "/docs/social-sharing-opengraph" },
+      {
+        label: "Click Limits & Expiration",
+        href: "/docs/click-limits-and-expiration",
+      },
+      {
+        label: "Custom OpenGraph Cards",
+        href: "/docs/social-sharing-opengraph",
+      },
     ],
   },
   {
@@ -58,9 +67,13 @@ export function LandingFooter() {
     Boolean(session?.user) &&
     !(session?.user as any)?.userNotFound;
 
-  const githubUrl = process.env.NEXT_PUBLIC_GITHUB_URL || "https://github.com/lshorter";
-  const twitterUrl = process.env.NEXT_PUBLIC_TWITTER_URL || "https://x.com/lshorter";
-  const linkedinUrl = process.env.NEXT_PUBLIC_LINKEDIN_URL || "https://linkedin.com/company/lshorter";
+  const githubUrl =
+    process.env.NEXT_PUBLIC_GITHUB_URL || "https://github.com/lshorter";
+  const twitterUrl =
+    process.env.NEXT_PUBLIC_TWITTER_URL || "https://x.com/lshorter";
+  const linkedinUrl =
+    process.env.NEXT_PUBLIC_LINKEDIN_URL ||
+    "https://linkedin.com/company/lshorter";
 
   useEffect(() => {
     if (!footerRef.current) return;
@@ -78,7 +91,7 @@ export function LandingFooter() {
             trigger: footerRef.current,
             start: "top 85%",
           },
-        }
+        },
       );
     }, footerRef);
     return () => ctx.revert();
@@ -105,24 +118,48 @@ export function LandingFooter() {
         <h2 className="text-[36px] sm:text-[54px] md:text-[64px] font-normal tracking-[-0.035em] leading-[1.04] text-[#101828] dark:text-[#FFFFFF] max-w-[760px] mx-auto">
           Stop guessing.
           <br />
-          <span className="text-[#667085] dark:text-[#8E8E8E]">Start improving.</span>
+          <span className="text-[#667085] dark:text-[#8E8E8E]">
+            Start improving.
+          </span>
         </h2>
         <p className="mt-6 text-[15px] sm:text-[15.5px] text-[#475467] dark:text-[#9A9A9A] max-w-[520px] mx-auto leading-[1.6]">
-          Deploy custom domains, ISO country routing, A/B split testing, PathLock™ PIN gates, and deterministic revenue attribution in under two minutes.
+          Deploy custom domains, ISO country routing, A/B split testing,
+          PathLock™ PIN gates, and deterministic revenue attribution in under
+          two minutes.
         </p>
 
         <div className="mt-9 flex flex-col sm:flex-row items-center justify-center gap-3.5">
           <Link
             href={isAuthenticated ? "/dashboard" : "/register"}
             onMouseEnter={(e) => {
-              gsap.to(e.currentTarget, { scale: 1.04, duration: 0.32, ease: "expo.out" });
+              gsap.to(e.currentTarget, {
+                scale: 1.04,
+                duration: 0.32,
+                ease: "expo.out",
+              });
               const arrow = e.currentTarget.querySelector(".footer-cta-arrow");
-              if (arrow) gsap.to(arrow, { x: 2, y: -2, duration: 0.32, ease: "expo.out" });
+              if (arrow)
+                gsap.to(arrow, {
+                  x: 2,
+                  y: -2,
+                  duration: 0.32,
+                  ease: "expo.out",
+                });
             }}
             onMouseLeave={(e) => {
-              gsap.to(e.currentTarget, { scale: 1, duration: 0.32, ease: "expo.out" });
+              gsap.to(e.currentTarget, {
+                scale: 1,
+                duration: 0.32,
+                ease: "expo.out",
+              });
               const arrow = e.currentTarget.querySelector(".footer-cta-arrow");
-              if (arrow) gsap.to(arrow, { x: 0, y: 0, duration: 0.32, ease: "expo.out" });
+              if (arrow)
+                gsap.to(arrow, {
+                  x: 0,
+                  y: 0,
+                  duration: 0.32,
+                  ease: "expo.out",
+                });
             }}
             className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 rounded-full bg-[#465FFF] hover:bg-[#3641F5] text-white pl-6 pr-2.5 py-2.5 text-[13.5px] font-semibold transition-colors shadow-xs"
           >
@@ -137,10 +174,18 @@ export function LandingFooter() {
             href="/#product"
             onClick={handleScrollToProduct}
             onMouseEnter={(e) =>
-              gsap.to(e.currentTarget, { scale: 1.03, duration: 0.32, ease: "expo.out" })
+              gsap.to(e.currentTarget, {
+                scale: 1.03,
+                duration: 0.32,
+                ease: "expo.out",
+              })
             }
             onMouseLeave={(e) =>
-              gsap.to(e.currentTarget, { scale: 1, duration: 0.32, ease: "expo.out" })
+              gsap.to(e.currentTarget, {
+                scale: 1,
+                duration: 0.32,
+                ease: "expo.out",
+              })
             }
             className="w-full sm:w-auto inline-flex items-center justify-center rounded-full bg-white dark:bg-[#1C1C1C] hover:bg-[#F2F4F7] dark:hover:bg-[#262626] text-[#101828] dark:text-[#FFFFFF] border border-[#D0D5DD] dark:border-[#2E2E2E] px-6 py-2.5 text-[13.5px] font-medium transition-colors"
           >
@@ -272,21 +317,6 @@ export function LandingFooter() {
                   <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z" />
                 </svg>
               </a>
-            </div>
-
-            <div className="flex items-center gap-4 border-l border-[#E4E7EC] dark:border-[#222226] pl-4">
-              <Link
-                href="/docs"
-                className="hover:text-[#101828] dark:hover:text-white transition-colors"
-              >
-                Privacy
-              </Link>
-              <Link
-                href="/docs"
-                className="hover:text-[#101828] dark:hover:text-white transition-colors"
-              >
-                Terms
-              </Link>
             </div>
           </div>
         </div>
