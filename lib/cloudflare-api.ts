@@ -6,13 +6,7 @@
  */
 
 import { compressImageFile } from "./image-compress";
-
-const WORKER_URL =
-  process.env.BACKEND_API_URL ||
-  process.env.CLOUDFLARE_WORKER_URL ||
-  "";
-
-const SECRET = process.env.FRONTEND_API_SECRET || "";
+import { WORKER_URL, FRONTEND_SECRET as SECRET } from "./backend-config";
 
 type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
@@ -628,9 +622,10 @@ export async function cfDeleteDomain(id: string, userId?: string) {
 
 // ─── API Keys ─────────────────────────────────────────────────────────────────
 export async function cfGetApiKeys(userId: string) {
+  const encUser = encodeURIComponent(userId);
   return cfFetch<{ success: true; data: any[] }>(
-    `/api/keys?userId=${userId}`,
-    `/api/keys?userId=${userId}`
+    `/api/keys?userId=${encUser}`,
+    `/api/v1/users/${encUser}/keys`
   );
 }
 
@@ -644,19 +639,25 @@ export async function cfCreateApiKey(data: {
   email?: string;
   fullName?: string;
 }) {
+  const encUser = encodeURIComponent(data.userId);
   return cfFetch<{ success: true; data: any }>(
-    `/api/keys?userId=${data.userId}`,
-    `/api/keys?userId=${data.userId}`,
+    `/api/keys?userId=${encUser}`,
+    `/api/v1/users/${encUser}/keys`,
     "POST",
     data
   );
 }
 
 export async function cfRevokeApiKey(id: string, userId?: string) {
-  const query = userId ? `?userId=${userId}` : "";
+  const encId = encodeURIComponent(id);
+  const encUser = userId ? encodeURIComponent(userId) : "";
+  const query = encUser ? `?userId=${encUser}` : "";
+  const workerPath = encUser
+    ? `/api/v1/users/${encUser}/keys/${encId}`
+    : `/api/v1/users/keys/${encId}`;
   return cfFetch<{ success: true }>(
-    `/api/keys/${id}${query}`,
-    `/api/keys/${id}${query}`,
+    `/api/keys/${encId}${query}`,
+    workerPath,
     "DELETE"
   );
 }

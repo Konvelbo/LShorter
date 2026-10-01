@@ -481,7 +481,7 @@ export function FeaturesSection() {
           className="features-header text-center max-w-2xl mx-auto mb-10 sm:mb-25 flex flex-col items-center justify-center will-change-transform"
         >
           <span className="text-text-marketing-title1 font-mono text-brand uppercase tracking-widest font-semibold block mb-3 select-none">
-            03. Core Capabilities
+            Core Capabilities
           </span>
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-neutral-900 dark:text-white leading-snug text-center">
             Comprehensive Features, Zero Compromise

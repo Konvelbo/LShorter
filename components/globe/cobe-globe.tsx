@@ -161,6 +161,33 @@ function generateContinentMatrixDots(): Array<{ lat: number; lng: number }> {
 // Pre-computed dense matrix of 3000+ points
 const GLOBAL_CONTINENT_DOTS = generateContinentMatrixDots();
 
+function projectLatLngTo3D(
+  lat: number,
+  lng: number,
+  radius: number,
+  rX: number,
+  rY: number
+) {
+  const latRad = lat * (Math.PI / 180);
+  const lngRad = lng * (Math.PI / 180);
+
+  const x = radius * Math.cos(latRad) * Math.sin(lngRad);
+  const y = radius * Math.sin(latRad);
+  const z = radius * Math.cos(latRad) * Math.cos(lngRad);
+
+  const cosY = Math.cos(rY);
+  const sinY = Math.sin(rY);
+  const x1 = x * cosY + z * sinY;
+  const z1 = -x * sinY + z * cosY;
+
+  const cosX = Math.cos(rX);
+  const sinX = Math.sin(rX);
+  const y2 = y * cosX - z1 * sinX;
+  const z2 = y * sinX + z1 * cosX;
+
+  return { x: x1, y: -y2, z: z2 };
+}
+
 export function CobeGlobe({ className = "", topCountries = [] }: CobeGlobeProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -211,26 +238,7 @@ export function CobeGlobe({ className = "", topCountries = [] }: CobeGlobeProps)
 
   // True Geographic 3D coordinates calculation (North is UP, Greenwich meridian facing front)
   const latLngTo3D = (lat: number, lng: number, radius: number) => {
-    const latRad = lat * (Math.PI / 180);
-    const lngRad = lng * (Math.PI / 180);
-
-    const x = radius * Math.cos(latRad) * Math.sin(lngRad);
-    const y = radius * Math.sin(latRad);
-    const z = radius * Math.cos(latRad) * Math.cos(lngRad);
-
-    // Rotate around Y axis (longitude rotation)
-    const cosY = Math.cos(rotY.current);
-    const sinY = Math.sin(rotY.current);
-    const x1 = x * cosY + z * sinY;
-    const z1 = -x * sinY + z * cosY;
-
-    // Rotate around X axis (pitch / equator tilt)
-    const cosX = Math.cos(rotX.current);
-    const sinX = Math.sin(rotX.current);
-    const y2 = y * cosX - z1 * sinX;
-    const z2 = y * sinX + z1 * cosX;
-
-    return { x: x1, y: -y2, z: z2 };
+    return projectLatLngTo3D(lat, lng, radius, rotX.current, rotY.current);
   };
 
   // GSAP Animation when opening/closing modal
@@ -745,3 +753,179 @@ export function CobeGlobe({ className = "", topCountries = [] }: CobeGlobeProps)
     </>
   );
 }
+
+// ─── Autonomous Auto-Spinning Globe for Marketing Bento Grid ─────────────────
+export function EdgeRotatingGlobe({ className = "" }: { className?: string }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    let animId = 0;
+    let rotY = 0.8;
+    const rotX = 0.22;
+    let isVisible = true;
+
+    // Cache dimensions to avoid calling getBoundingClientRect() in the 60fps RAF loop
+    let width = canvas.clientWidth || 420;
+    let height = canvas.clientHeight || 260;
+    const dpr = Math.min(typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1, 2);
+
+    const updateSize = () => {
+      if (!canvas) return;
+      const w = canvas.clientWidth || 420;
+      const h = canvas.clientHeight || 260;
+      if (w !== width || h !== height || canvas.width !== w * dpr) {
+        width = w;
+        height = h;
+        canvas.width = width * dpr;
+        canvas.height = height * dpr;
+      }
+    };
+    updateSize();
+
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined") {
+      resizeObserver = new ResizeObserver(() => {
+        updateSize();
+      });
+      resizeObserver.observe(canvas);
+    }
+
+    const render = () => {
+      if (!isVisible) {
+        animId = 0;
+        return;
+      }
+
+      rotY += 0.0035;
+
+      ctx.save();
+      ctx.scale(dpr, dpr);
+      ctx.clearRect(0, 0, width, height);
+
+      const cx = width / 2;
+      // Place sphere center below the canvas so only the upper illuminated arc
+      // and continent dots are visible — mimicking the reference bento image.
+      const radius = width * 0.72;
+      const cy = height + radius * 0.58;
+
+      // 1. Atmosphere Glow on Upper Curvature
+      const auraOuter = radius * 1.35;
+      const glowGrad = ctx.createRadialGradient(cx, cy, radius * 0.92, cx, cy, auraOuter);
+      glowGrad.addColorStop(0, "rgba(255, 255, 255, 0.75)");
+      glowGrad.addColorStop(0.08, "rgba(56, 189, 248, 0.6)");
+      glowGrad.addColorStop(0.22, "rgba(0, 180, 255, 0.28)");
+      glowGrad.addColorStop(0.5, "rgba(0, 100, 255, 0.08)");
+      glowGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
+      ctx.fillStyle = glowGrad;
+      ctx.beginPath();
+      ctx.arc(cx, cy, auraOuter, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 2. Planet Sphere Body
+      const sphereGrad = ctx.createRadialGradient(
+        cx - radius * 0.2,
+        cy - radius * 0.6,
+        radius * 0.05,
+        cx,
+        cy,
+        radius
+      );
+      sphereGrad.addColorStop(0, "#161622");
+      sphereGrad.addColorStop(0.45, "#0d0d14");
+      sphereGrad.addColorStop(0.8, "#07070a");
+      sphereGrad.addColorStop(1, "#030305");
+
+      ctx.fillStyle = sphereGrad;
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Glowing Rim Line (Bright White & Electric Cyan Halo)
+      // Fast two-pass stroke instead of expensive shadowBlur
+      ctx.strokeStyle = "rgba(56, 189, 248, 0.4)";
+      ctx.lineWidth = 5.5;
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, Math.PI * 1.12, Math.PI * 1.88);
+      ctx.stroke();
+
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.95)";
+      ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, Math.PI * 1.12, Math.PI * 1.88);
+      ctx.stroke();
+
+      // 3. Grid Lines
+      ctx.lineWidth = 0.5;
+      for (let lat = -60; lat <= 60; lat += 30) {
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.035)";
+        ctx.beginPath();
+        let first = true;
+        for (let lng = -180; lng <= 180; lng += 8) {
+          const pt = projectLatLngTo3D(lat, lng, radius, rotX, rotY);
+          if (pt.z > 0) {
+            if (first) {
+              ctx.moveTo(cx + pt.x, cy + pt.y);
+              first = false;
+            } else {
+              ctx.lineTo(cx + pt.x, cy + pt.y);
+            }
+          } else {
+            first = true;
+          }
+        }
+        ctx.stroke();
+      }
+
+      // 4. Rotating Continent Matrix Dots (Vibrant Electric Cyan)
+      for (let i = 0; i < GLOBAL_CONTINENT_DOTS.length; i++) {
+        const d = GLOBAL_CONTINENT_DOTS[i];
+        const pt = projectLatLngTo3D(d.lat, d.lng, radius, rotX, rotY);
+        if (pt.z > 0) {
+          const depthRatio = pt.z / radius;
+          const alpha = 0.2 + depthRatio * 0.8;
+          ctx.fillStyle = `rgba(0, 220, 255, ${alpha.toFixed(2)})`;
+          ctx.beginPath();
+          ctx.arc(cx + pt.x, cy + pt.y, 1.25 + depthRatio * 0.75, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      ctx.restore();
+      animId = requestAnimationFrame(render);
+    };
+
+    let intersectionObserver: IntersectionObserver | null = null;
+    if (typeof IntersectionObserver !== "undefined") {
+      intersectionObserver = new IntersectionObserver(([entry]) => {
+        isVisible = entry.isIntersecting;
+        if (isVisible && !animId) {
+          animId = requestAnimationFrame(render);
+        }
+      }, { threshold: 0.05 });
+      intersectionObserver.observe(canvas);
+    } else {
+      animId = requestAnimationFrame(render);
+    }
+
+    return () => {
+      if (animId) cancelAnimationFrame(animId);
+      if (resizeObserver) resizeObserver.disconnect();
+      if (intersectionObserver) intersectionObserver.disconnect();
+    };
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className={`w-full h-full pointer-events-none select-none ${className}`}
+      style={{ display: "block" }}
+    />
+  );
+}
+
+export default CobeGlobe;

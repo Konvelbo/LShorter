@@ -108,7 +108,7 @@ export function HeroSection1() {
         {/* Feature Pill / Badge */}
         <div className="mb-3.5 inline-flex items-center justify-center gap-2 px-3.5 py-1 rounded-full bg-white/80 dark:bg-white/[0.06] border border-[#E7DFD5] dark:border-white/15 text-[11.5px] font-medium text-neutral-700 dark:text-neutral-300 shadow-2xs mx-auto md:mx-0">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-          <span>310+ Cloudflare Edge PoPs • Sub-5ms Routing</span>
+          <span>310+ Cloudflare Edge PoPs • Sub-12ms Routing</span>
         </div>
 
         {/* Main Title: Clean typography */}

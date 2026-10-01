@@ -56,7 +56,7 @@ export function WobbleCardSection() {
           className="wobble-section-header text-center max-w-2xl mx-auto mb-20 sm:mb-30 flex flex-col items-center justify-center will-change-transform"
         >
           <span className="text-marketing-title1 font-mono text-brand uppercase tracking-widest font-semibold block mb-3 select-none">
-            04. Modern SaaS Architecture
+            Modern SaaS Architecture
           </span>
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-[#ffffff] dark:text-neutral-900 leading-tight text-center mb-2">
             Built for Extreme Speed, Engineered for High Conversion

@@ -104,7 +104,7 @@ export function PlanUpgradeModal() {
   return (
     <div
       onClick={() => setIsOpen(false)}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 dark:bg-black/85 backdrop-blur-md animate-in fade-in select-none cursor-pointer"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 dark:bg-black/85 backdrop-blur-md animate-in fade-in select-none cursor-pointer"
     >
       <div
         onClick={(e) => e.stopPropagation()}
@@ -143,7 +143,7 @@ export function PlanUpgradeModal() {
             { icon: Globe2, text: "Smart Routing (195+ Countries & Devices)" },
             { icon: Lock, text: "Password Protection & Link Cloaking" },
             { icon: QrCode, text: "Vector SVG & PDF QR Code Studio" },
-            { icon: Layers, text: "Up to 50 Branded Custom Domains" },
+            { icon: Layers, text: "Up to Unlimited Branded Custom Domains" },
             { icon: ShieldCheck, text: "Webhooks, Pixels & PDF Billing" },
           ].map((f, i) => {
             const Icon = f.icon;
@@ -174,23 +174,23 @@ export function PlanUpgradeModal() {
               <div className="flex items-baseline flex-wrap gap-2 my-2.5">
                 <span className="text-xs text-zinc-400 line-through font-mono">$15</span>
                 <span className="text-3xl font-black text-zinc-900 dark:text-white">$3.75</span>
-                <span className="text-xs text-zinc-500 dark:text-neutral-400">/ 1st month</span>
+                <span className="text-xs text-zinc-500 dark:text-neutral-400">/ 2 mois</span>
                 <span className="ml-auto px-2 py-0.5 rounded-md text-xs font-black font-mono bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40 shadow-xs flex items-center gap-1">
                   <Zap className="w-3 h-3 fill-emerald-500 text-emerald-500" />
                   -75%
                 </span>
               </div>
               <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/25 px-2 py-0.5 rounded-md w-fit mb-2">
-                <span>💰 You save $11.25</span>
+                <span>💰 You save $22.50 (2 mois)</span>
               </div>
               <ul className="flex flex-col gap-1.5 text-xs text-zinc-700 dark:text-neutral-300 mt-2">
                 <li className="flex items-center gap-1.5">
                   <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                  <span><strong>3 domains</strong> &amp; 1,000 active links</span>
+                  <span><strong>6 domains</strong> &amp; 1,000 active links</span>
                 </li>
                 <li className="flex items-center gap-1.5">
                   <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                  <span>Advanced Routing (Country + OS/Device)</span>
+                  <span>Dynamic Smart Routing (Country + OS/Device)</span>
                 </li>
                 <li className="flex items-center gap-1.5">
                   <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
@@ -235,14 +235,14 @@ export function PlanUpgradeModal() {
               <div className="flex items-baseline flex-wrap gap-2 my-2.5">
                 <span className="text-xs text-zinc-400 line-through font-mono">$49</span>
                 <span className="text-3xl font-black text-zinc-900 dark:text-white">$19.60</span>
-                <span className="text-xs text-zinc-500 dark:text-neutral-400">/ 1st month</span>
+                <span className="text-xs text-zinc-500 dark:text-neutral-400">/ 2 mois</span>
                 <span className="ml-auto px-2 py-0.5 rounded-md text-xs font-black font-mono bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40 shadow-xs flex items-center gap-1">
                   <Zap className="w-3 h-3 fill-emerald-500 text-emerald-500" />
                   -60%
                 </span>
               </div>
               <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/25 px-2 py-0.5 rounded-md w-fit mb-2">
-                <span>💰 You save $29.40</span>
+                <span>💰 You save $58.80 (2 mois)</span>
               </div>
               <ul className="flex flex-col gap-1.5 text-xs text-zinc-700 dark:text-neutral-300 mt-2">
                 <li className="flex items-center gap-1.5">

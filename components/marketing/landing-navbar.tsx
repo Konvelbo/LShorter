@@ -2,6 +2,7 @@
 
 import React, { useRef, useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   ArrowRight,
@@ -266,7 +267,7 @@ export function LandingNavbar() {
 
   const navLinks = [
     { label: "Hi", href: "/", isHome: true },
-    { label: "Product", href: "/#product" },
+    { label: "Platform", href: "/#product" },
     { label: "Features", href: "/#features" },
     { label: "Security", href: "/#security" },
     { label: "Difference", href: "/#why-us" },
@@ -317,14 +318,21 @@ export function LandingNavbar() {
             : "translate-y-0 w-full max-w-full rounded-none px-[clamp(1rem,2.5vw,3.5rem)] py-4"
         }`}
       >
-        {/* Logo LShorter */}
+        {/* Logo LShorter (Maillon Duo) */}
         <Link
           href="/"
           onClick={handleHomeClick}
-          className="flex items-center gap-2 select-none cursor-pointer group shrink-0"
+          className="flex items-center gap-2.5 select-none cursor-pointer group shrink-0"
         >
-          <div className="w-8 h-8 rounded-[9px] bg-[#465FFF] group-hover:bg-[#3641F5] text-white flex items-center justify-center font-extrabold text-[12.5px] tracking-tight shadow-xs transition-colors">
-            LS
+          <div className="w-8 h-8 rounded-[9px] overflow-hidden shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+            <Image
+              src="/logo.svg"
+              alt="LShorter Logo"
+              width={32}
+              height={32}
+              className="w-full h-full object-contain"
+              priority
+            />
           </div>
           <span
             className={`text-[clamp(0.95rem,1.1vw,1.125rem)] font-bold tracking-[-0.025em] ${
@@ -414,8 +422,14 @@ export function LandingNavbar() {
         }`}
       >
         <Link href="/" className="flex items-center gap-2 select-none">
-          <div className="w-7 h-7 rounded-[8px] bg-[#465FFF] text-white flex items-center justify-center font-extrabold text-xs tracking-tight shadow-2xs">
-            LS
+          <div className="w-7 h-7 rounded-[8px] overflow-hidden shrink-0 shadow-2xs">
+            <Image
+              src="/logo.svg"
+              alt="LShorter Logo"
+              width={28}
+              height={28}
+              className="w-full h-full object-contain"
+            />
           </div>
           <span
             className={`text-[16px] font-bold tracking-[-0.025em] ${

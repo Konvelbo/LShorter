@@ -80,7 +80,7 @@ import { CodeBlock } from "@/components/ui/code-block";
 import { SettingsPageSkeleton } from "@/components/ui/skeleton";
 import { showToast } from "@/components/ui/toast-provider";
 import { syncUserToCloudflare } from "@/app/actions/sync-user";
-import { triggerPlanUpgrade } from "@/lib/plan-guard";
+import { triggerPlanUpgrade, getPlanLimits } from "@/lib/plan-guard";
 import confetti from "canvas-confetti";
 
 const VALID_SETTINGS_TABS = [
@@ -331,7 +331,7 @@ function SettingsPageContent() {
     "FREE" | "FREEMIUM" | "PRO" | "BUSINESS" | "ENTERPRISE";
   const clicksLimit =
     plan === "ENTERPRISE"
-      ? 2_000_000
+      ? -1
       : plan === "BUSINESS"
         ? 500_000
         : plan === "PRO"
@@ -339,29 +339,34 @@ function SettingsPageContent() {
           : 10_000;
   const domainsLimit =
     plan === "ENTERPRISE"
-      ? 50
+      ? -1
       : plan === "BUSINESS"
         ? 15
         : plan === "PRO"
-          ? 3
-          : 0;
+          ? 6
+          : 3;
   const rawClicksRatio =
     clicksLimit > 0 ? (accountStats.clicksThisMonth / clicksLimit) * 100 : 0;
   const clicksPercent = Math.min(100, Math.round(rawClicksRatio));
   const clicksPercentLabel =
-    accountStats.clicksThisMonth === 0
-      ? "0%"
-      : rawClicksRatio < 1
-        ? `${rawClicksRatio.toFixed(2)}%`
-        : `${clicksPercent}%`;
+    clicksLimit === -1
+      ? "Unlimited"
+      : accountStats.clicksThisMonth === 0
+        ? "0%"
+        : rawClicksRatio < 1
+          ? `${rawClicksRatio.toFixed(2)}%`
+          : `${clicksPercent}%`;
   const clicksBarWidthPercent =
-    accountStats.clicksThisMonth > 0
-      ? Math.min(100, Math.max(2, rawClicksRatio))
-      : 0;
+    clicksLimit === -1
+      ? 0
+      : accountStats.clicksThisMonth > 0
+        ? Math.min(100, Math.max(2, rawClicksRatio))
+        : 0;
 
   const isOverage =
+    clicksLimit !== -1 &&
     accountStats.clicksThisMonth > clicksLimit &&
-    (plan === "PRO" || plan === "BUSINESS" || plan === "ENTERPRISE");
+    (plan === "PRO" || plan === "BUSINESS");
   const overageClicks = isOverage
     ? accountStats.clicksThisMonth - clicksLimit
     : 0;
@@ -757,13 +762,18 @@ console.log("Top Countries:", topAudience.topCountries);`,
     if (!userId) return;
     try {
       const res = await cfGetApiKeys(userId);
+      const rawUserPlan = (session?.user as any)?.plan || "FREE";
+      const userPlan = rawUserPlan === "FREEMIUM" || rawUserPlan === "STARTER" ? "FREE" : rawUserPlan;
+      const planLimits = getPlanLimits(userPlan);
+      const defaultRateLimit = `${planLimits.rateLimitReqPerMin} req / min`;
+
       const rawKeys: ApiKeyItem[] = (res?.data || []).map((k: any) => ({
         id: k.id,
         name: k.name || "API Key",
         prefix: k.prefix || k.key_prefix || "lsh_live_...",
         rawKey: k.raw_key,
         scope: (k.scope as any) || "read_write",
-        rateLimit: k.rate_limit ? `${k.rate_limit} req / min` : "600 req / min",
+        rateLimit: k.rate_limit ? `${k.rate_limit} req / min` : defaultRateLimit,
         created_at: k.created_at || new Date().toISOString(),
       }));
       setApiKeys(rawKeys);
@@ -865,13 +875,18 @@ console.log("Top Countries:", topAudience.topCountries);`,
         scope: newKeyScope,
       });
       if (res?.data) {
+        const rawUserPlan = (session?.user as any)?.plan || "FREE";
+        const userPlan = rawUserPlan === "FREEMIUM" || rawUserPlan === "STARTER" ? "FREE" : rawUserPlan;
+        const planLimits = getPlanLimits(userPlan);
+        const currentRateLimit = `${planLimits.rateLimitReqPerMin} req / min`;
+
         const generatedKeyData: ApiKeyItem = {
           id: res.data.id || `key_${Date.now()}`,
           name: newKeyName.trim(),
           prefix: res.data.prefix || res.data.key_prefix || "lsh_live_...",
           rawKey: res.data.raw_key || res.data.rawKey || res.data.api_key,
           scope: newKeyScope,
-          rateLimit: "600 req / min",
+          rateLimit: currentRateLimit,
           created_at: new Date().toISOString(),
         };
         setCreatedKeyModal(generatedKeyData);
@@ -1336,8 +1351,8 @@ console.log("Top Countries:", topAudience.topCountries);`,
                       className="text-xs text-brand font-bold"
                       data-testid="billing-monthly-clicks-percent"
                     >
-                      {plan === "ENTERPRISE"
-                        ? `${clicksPercentLabel} (Unlimited overage)`
+                      {plan === "ENTERPRISE" || clicksLimit === -1
+                        ? "Unlimited clicks included"
                         : isOverage
                           ? "100% (Overage active)"
                           : `${clicksPercentLabel} used`}
@@ -1350,8 +1365,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                     {(accountStats?.clicksThisMonth ?? 0).toLocaleString(
                       "en-US",
                     )}{" "}
-                    / {(clicksLimit ?? 10000).toLocaleString("en-US")}
-                    {plan === "ENTERPRISE" ? "+" : ""}
+                    / {clicksLimit === -1 ? "Unlimited" : (clicksLimit ?? 10000).toLocaleString("en-US")}
                   </p>
                   <div className="w-full h-2 rounded-full bg-zinc-200 dark:bg-[#27272a] overflow-hidden mt-1">
                     <div
@@ -1362,7 +1376,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                   <div className="flex items-center justify-between text-[11px] text-zinc-500 dark:text-neutral-500 pt-0.5">
                     <span>
                       {plan === "ENTERPRISE"
-                        ? "Unlimited overage included ($0 extra)"
+                        ? "Unlimited clicks included ($0 extra)"
                         : plan === "BUSINESS"
                           ? "Overage rate: $8 / 125,000 extra clicks"
                           : plan === "PRO"
@@ -1400,8 +1414,8 @@ console.log("Top Countries:", topAudience.topCountries);`,
                     />
                   </div>
                   <span className="text-[11px] text-zinc-500 dark:text-neutral-500">
-                    {domainsLimit === 0
-                      ? "Custom domains available from Pro plan"
+                    {domainsLimit === -1
+                      ? "Unlimited custom domains included"
                       : `${Math.max(0, domainsLimit - accountStats.domainsCount)} domain(s) available`}
                   </span>
                 </div>

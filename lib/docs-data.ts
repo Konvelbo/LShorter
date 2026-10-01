@@ -89,8 +89,8 @@ export const DOC_FEATURES: DocFeature[] = [
         description: "Secure every request with the Authorization: Bearer <API_KEY> header. Manage keys and scopes directly from your developer dashboard."
       },
       {
-        title: "High Throughput & Rate Limits",
-        description: "Generous rate limits of 1,000 requests per minute per API key, with real-time rate limit headers included in every HTTP response."
+        title: "Tiered Rate Limits",
+        description: "Adaptive rate limits from 60 to 1,400 requests per minute based on your plan (Starter: 60, Pro: 200, Business: 600, Enterprise: 1,400), with real-time rate limit headers included in every HTTP response."
       },
       {
         title: "Global Edge Execution",
@@ -104,7 +104,7 @@ export const DOC_FEATURES: DocFeature[] = [
         path: "/api/v1/links",
         description: "Creates a new shortened URL with optional custom slug, tags, expiration timestamp, maximum click limits, PIN protection, URL cloaking, and geographic routing rules.",
         authentication: "Bearer <API_KEY>",
-        rateLimit: "1,000 req / min",
+        rateLimit: "60 to 1,400 req/min (by plan)",
         headers: [
           { name: "Authorization", type: "string", required: true, description: "Bearer token containing your secret API key.", example: "Bearer lsho_live_89f023ab912" },
           { name: "Content-Type", type: "string", required: true, description: "Must be set to application/json.", example: "application/json" }
@@ -276,7 +276,7 @@ echo $response;`
           { status: 401, code: "UNAUTHORIZED", description: "Missing or invalid Bearer API key." },
           { status: 409, code: "SLUG_ALREADY_EXISTS", description: "The requested custom slug is already claimed by another link." },
           { status: 422, code: "INVALID_EXPIRATION", description: "expiresAt must be a valid future ISO 8601 timestamp." },
-          { status: 429, code: "RATE_LIMIT_EXCEEDED", description: "You have exceeded your account's rate limit (1,000 req/min)." }
+          { status: 429, code: "RATE_LIMIT_EXCEEDED", description: "You have exceeded your account's rate limit for your current plan." }
         ]
       },
       {
@@ -285,7 +285,7 @@ echo $response;`
         path: "/api/v1/links",
         description: "Retrieves a paginated list of all short links created under your organization, with optional search query, tag filters, and sort orders.",
         authentication: "Bearer <API_KEY>",
-        rateLimit: "1,000 req / min",
+        rateLimit: "60 to 1,400 req/min (by plan)",
         queryParams: [
           { name: "page", type: "number", required: false, description: "Page number to retrieve.", example: "1", default: "1" },
           { name: "limit", type: "number", required: false, description: "Number of links per page (max 100).", example: "20", default: "20" },
@@ -452,7 +452,8 @@ console.log("Earnings Per Click (EPC):", stats.epc, "USD/click");`
     readTime: "4 min read",
     overview: [
       "Geographic routing optimizes user experience and conversion rates by serving localized content (language, currency, catalog) by country or continent from a single shared link.",
-      "Rules evaluation happens directly at Cloudflare Edge nodes during DNS resolution and TLS handshake, ensuring average redirection times under 15 milliseconds without backend server round-trips."
+      "Rules evaluation happens directly at Cloudflare Edge nodes during DNS resolution and TLS handshake, ensuring average redirection times under 15 milliseconds without backend server round-trips.",
+      "Dynamic routing and geo targeting are exclusive to paid plans (Pro, Business, and Enterprise). Free tier links redirect unconditionally to the primary destination URL."
     ],
     keyPoints: [
       {
@@ -475,7 +476,7 @@ console.log("Earnings Per Click (EPC):", stats.epc, "USD/click");`
         path: "/api/v1/links/:id/routing",
         description: "Configures or updates country-specific destination rules and global fallback URL for a given short link.",
         authentication: "Bearer <API_KEY>",
-        rateLimit: "1,000 req / min",
+        rateLimit: "60 to 1,400 req/min (by plan)",
         pathParams: [
           { name: "id", type: "string", required: true, description: "The short link ID or slug alias.", example: "global-promo" }
         ],
@@ -552,6 +553,7 @@ requests.patch(
         ],
         errorCodes: [
           { status: 400, code: "INVALID_COUNTRY_CODE", description: "Country code must be a valid 2-letter uppercase ISO 3166-1 alpha-2 string." },
+          { status: 403, code: "PLAN_UPGRADE_REQUIRED", description: "Dynamic routing and geo targeting require an active paid subscription (Pro, Business, or Enterprise)." },
           { status: 404, code: "LINK_NOT_FOUND", description: "No link found matching the provided slug or ID." }
         ]
       }
@@ -627,7 +629,7 @@ await lshorter.links.updateRouting("global-promo", {
         path: "/api/v1/links/:id/security",
         description: "Enables, updates, or disables PIN code protection on a specific short link.",
         authentication: "Bearer <API_KEY>",
-        rateLimit: "1,000 req / min",
+        rateLimit: "60 to 1,400 req/min (by plan)",
         pathParams: [
           { name: "id", type: "string", required: true, description: "Short link ID or slug alias.", example: "finance-q3" }
         ],
@@ -757,7 +759,7 @@ console.log("Protected link generated:", secureLink.shortUrl);
         path: "/api/v1/analytics/:slug",
         description: "Retrieves aggregated click telemetry, country distribution, device breakdown, browser statistics, and top referring sources for a specific short link.",
         authentication: "Bearer <API_KEY>",
-        rateLimit: "1,000 req / min",
+        rateLimit: "60 to 1,400 req/min (by plan)",
         pathParams: [
           { name: "slug", type: "string", required: true, description: "Short link slug alias.", example: "launch-2026" }
         ],
@@ -902,7 +904,7 @@ console.log("Device Breakdown:", stats.devices);`
         path: "/api/v1/links/:id/limits",
         description: "Updates the maximum click quota, expiration timestamp, or expired fallback URL for an active link.",
         authentication: "Bearer <API_KEY>",
-        rateLimit: "1,000 req / min",
+        rateLimit: "60 to 1,400 req/min (by plan)",
         pathParams: [
           { name: "id", type: "string", required: true, description: "Short link slug or ID.", example: "vip-flash" }
         ],
@@ -1013,7 +1015,7 @@ console.log("Current link status:", linkStatus.isExpired ? "Expired" : "Active")
         path: "/api/v1/links/:id/masking",
         description: "Enables or disables URL cloaking and configures the embedded page title and favicon metadata.",
         authentication: "Bearer <API_KEY>",
-        rateLimit: "1,000 req / min",
+        rateLimit: "60 to 1,400 req/min (by plan)",
         pathParams: [
           { name: "id", type: "string", required: true, description: "Short link slug or ID.", example: "partner-deal" }
         ],
@@ -1124,7 +1126,7 @@ console.log("Masked short link generated:", maskedLink.shortUrl);
         path: "/api/v1/qr/:slug",
         description: "Streams a customized dynamic QR code image in SVG or PNG format.",
         authentication: "Bearer <API_KEY>",
-        rateLimit: "1,000 req / min",
+        rateLimit: "60 to 1,400 req/min (by plan)",
         pathParams: [
           { name: "slug", type: "string", required: true, description: "Short link slug alias.", example: "launch-2026" }
         ],
@@ -1251,7 +1253,7 @@ console.log("Vector SVG QR Code exported successfully!");`
         path: "/api/v1/webhooks",
         description: "Registers a new webhook endpoint URL to receive automated HTTP POST event notifications.",
         authentication: "Bearer <API_KEY>",
-        rateLimit: "1,000 req / min",
+        rateLimit: "60 to 1,400 req/min (by plan)",
         bodyParams: [
           { name: "url", type: "string (https url)", required: true, description: "Your server endpoint URL where notifications will be sent.", example: "https://api.my-domain.com/webhooks/lshorter" },
           { name: "events", type: "string[]", required: true, description: "Array of event types to subscribe to.", example: '["link.clicked", "link.converted", "link.limit_reached"]' },
@@ -1672,7 +1674,7 @@ console.log("ROAS:", roas.toFixed(1) + "%");`
         path: "/api/v1/track/conversion",
         description: "Records a completed purchase, subscription, or conversion event with revenue amount, currency, and customer details attributed to a specific clickId.",
         authentication: "Bearer <API_KEY>",
-        rateLimit: "1,000 req / min",
+        rateLimit: "60 to 1,400 req/min (by plan)",
         headers: [
           { name: "Authorization", type: "string", required: true, description: "Bearer token containing your API key.", example: "Bearer lsho_live_89f023ab912" },
           { name: "Content-Type", type: "string", required: true, description: "Must be set to application/json.", example: "application/json" }
@@ -1829,7 +1831,7 @@ echo $response;`
         path: "/api/v1/track/refund",
         description: "Deducts a full or partial refund amount from the link's cumulative revenue, adjusting EPC and AOV atomically.",
         authentication: "Bearer <API_KEY>",
-        rateLimit: "1,000 req / min",
+        rateLimit: "60 to 1,400 req/min (by plan)",
         bodyParams: [
           { name: "orderId", type: "string", required: true, description: "The original orderId passed during conversion recording.", example: "ch_9921823ab" },
           { name: "amount", type: "number", required: true, description: "Refunded monetary amount.", example: "49.00" },
@@ -1884,7 +1886,7 @@ echo $response;`
         path: "/api/v1/analytics/:slug/revenue",
         description: "Retrieves monetary revenue totals, conversion counts, Average Order Value (AOV), and Earnings Per Click (EPC) for a short link.",
         authentication: "Bearer <API_KEY>",
-        rateLimit: "1,000 req / min",
+        rateLimit: "60 to 1,400 req/min (by plan)",
         pathParams: [
           { name: "slug", type: "string", required: true, description: "Short link slug alias.", example: "summer-sale-2026" }
         ],
@@ -2028,7 +2030,7 @@ console.log("Earnings Per Click (EPC):", roi.epc, "USD / click");`
         path: "/api/v1/links/:id/ab",
         description: "Configures or updates percentage traffic split weights across multiple landing page variants.",
         authentication: "Bearer <API_KEY>",
-        rateLimit: "1,000 req / min",
+        rateLimit: "60 to 1,400 req/min (by plan)",
         pathParams: [
           { name: "id", type: "string", required: true, description: "Short link slug or ID.", example: "promo-split" }
         ],
@@ -2190,7 +2192,7 @@ console.log("A/B Testing short link active:", abLink.shortUrl);
         path: "/api/v1/links/:id/opengraph",
         description: "Updates the Open Graph title, description, and preview banner image for social crawlers.",
         authentication: "Bearer <API_KEY>",
-        rateLimit: "1,000 req / min",
+        rateLimit: "60 to 1,400 req/min (by plan)",
         pathParams: [
           { name: "id", type: "string", required: true, description: "Short link slug or ID.", example: "discover-2026" }
         ],
@@ -2327,7 +2329,7 @@ console.log("Social-optimized short link created:", link.shortUrl);
         path: "/api/v1/links",
         description: "Create a short link configured with PathLock™ single-page or funnel isolation.",
         authentication: "Bearer Token required",
-        rateLimit: "1,000 req/min",
+        rateLimit: "60 to 1,400 req/min (by plan)",
         bodyParams: [
           {
             name: "pathLockMode",

@@ -59,13 +59,13 @@ export function CofounderResourceCard({
     >
       <Link href={`/docs/${feature.slug}`} className="block h-full cursor-pointer">
         {/* Layer 1: Back Tab Envelope Layer */}
-        <div className="absolute inset-x-3 top-3 bottom-0 rounded-2xl bg-[#EFEAE2] dark:bg-[#1a1a1e] border border-[#E7DFD5] dark:border-white/10 z-0 transition-colors" />
+        <div className="absolute inset-x-3 top-3 bottom-0 rounded-2xl bg-[#F4F5F7] dark:bg-[#18181b] border border-[#E4E7EC] dark:border-white/10 z-0 transition-colors" />
 
         {/* Layer 2: The GSAP Pop-up Image coming from inside the top slot */}
         <div
           ref={popupImgRef}
           style={{ transform: "translateY(35px) scale(0.92)", opacity: 0 }}
-          className="absolute left-6 right-6 top-0 aspect-[16/9] rounded-xl overflow-hidden shadow-2xl border border-[#E7DFD5] dark:border-white/20 bg-neutral-900 z-10 pointer-events-none"
+          className="absolute left-6 right-6 top-0 aspect-[16/9] rounded-xl overflow-hidden shadow-2xl border border-[#E4E7EC] dark:border-white/20 bg-neutral-900 z-10 pointer-events-none"
         >
           <Image
             src={feature.image}
@@ -77,7 +77,7 @@ export function CofounderResourceCard({
         </div>
 
         {/* Layer 3: Main Front Card */}
-        <Card className="cofounder-card-front relative z-20 h-full rounded-2xl bg-[#FFFDF9] dark:bg-[#121214] border border-[#E7DFD5] dark:border-white/10 p-6 sm:p-7 shadow-sm transition-all duration-300 group-hover/item:shadow-[0_20px_40px_rgba(43,37,32,0.08)] dark:group-hover/item:shadow-[0_20px_40px_rgba(0,0,0,0.7)] group-hover/item:border-[#D6CCC0] dark:group-hover/item:border-white/20 flex flex-col justify-between">
+        <Card className="cofounder-card-front relative z-20 h-full rounded-2xl bg-white dark:bg-[#111113] border border-[#E4E7EC] dark:border-white/10 p-6 sm:p-7 shadow-xs transition-all duration-300 group-hover/item:shadow-xl group-hover/item:shadow-black/5 dark:group-hover/item:shadow-[0_20px_40px_rgba(0,0,0,0.7)] group-hover/item:border-brand/40 dark:group-hover/item:border-white/20 flex flex-col justify-between">
           
           <div>
             {/* Top Meta: Category Tag on left, Version/Date on right */}
@@ -91,7 +91,7 @@ export function CofounderResourceCard({
 
             {/* Title */}
             <CardHeader className="p-0 mt-4 mb-2.5">
-              <CardTitle className="text-lg sm:text-xl font-bold tracking-tight text-[#2B2520] dark:text-white group-hover/item:text-brand transition-colors leading-snug line-clamp-2">
+              <CardTitle className="text-lg sm:text-xl font-bold tracking-tight text-[#101828] dark:text-white group-hover/item:text-brand transition-colors leading-snug line-clamp-2">
                 {feature.title}
               </CardTitle>
             </CardHeader>
@@ -105,7 +105,7 @@ export function CofounderResourceCard({
           </div>
 
           {/* Bottom Monospace Action Link */}
-          <div className="mt-6 pt-4 border-t border-[#E7DFD5]/60 dark:border-white/5 flex items-center justify-between font-mono text-xs text-neutral-500 dark:text-neutral-400 group-hover/item:text-brand transition-colors">
+          <div className="mt-6 pt-4 border-t border-[#E4E7EC] dark:border-white/5 flex items-center justify-between font-mono text-xs text-neutral-500 dark:text-neutral-400 group-hover/item:text-brand transition-colors">
             <span>Read guide</span>
             <ArrowRight className="w-3.5 h-3.5 group-hover/item:translate-x-1.5 transition-transform duration-200" />
           </div>

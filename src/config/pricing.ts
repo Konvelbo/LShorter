@@ -9,7 +9,8 @@ export interface PlanDefinition {
   yearlyPrice: number;
   promoMonthly: {
     discountPercent: number;       // e.g. 75 for -75%
-    firstMonthPrice: number;       // Price billed for first month
+    firstMonthPrice: number;       // Price billed during promotional period
+    durationMonths?: number;       // Duration of promotional pricing (2 months)
   };
   promoYearly: {
     discountPercent: number;       // e.g. 50 for -50%
@@ -23,7 +24,7 @@ export interface PlanDefinition {
     activeLinks: number;           // -1 = unlimited
     analyticsRetentionDays: number;// -1 = unlimited
     teamSeats: number;
-    smartRoutingLevel: 'BASIC' | 'ADVANCED' | 'CUSTOM';
+    smartRoutingLevel: 'NONE' | 'BASIC' | 'ADVANCED' | 'CUSTOM';
     retargetingPixels: number;     // -1 = unlimited
     apiRateLimitPerMinute: number; // Max requests per minute
   };
@@ -42,15 +43,15 @@ export const PRICING_PLANS: Record<string, PlanDefinition> = {
     name: 'Starter',
     monthlyPrice: 0,
     yearlyPrice: 0,
-    promoMonthly: { discountPercent: 0, firstMonthPrice: 0 },
+    promoMonthly: { discountPercent: 0, firstMonthPrice: 0, durationMonths: 2 },
     promoYearly: { discountPercent: 0, fullPriceBeforeDiscount: 0, yearlyPrice: 0, equivalentMonthlyPrice: 0 },
     limits: {
       monthlyClicks: 10000,
-      customDomains: 0,
+      customDomains: 3,
       activeLinks: 50,
       analyticsRetentionDays: 30,
       teamSeats: 1,
-      smartRoutingLevel: 'BASIC',
+      smartRoutingLevel: 'NONE',
       retargetingPixels: 0,
       apiRateLimitPerMinute: 60,
     },
@@ -69,7 +70,8 @@ export const PRICING_PLANS: Record<string, PlanDefinition> = {
     yearlyPrice: 90,
     promoMonthly: {
       discountPercent: 75,
-      firstMonthPrice: 3.75, // $15 - 75%
+      firstMonthPrice: 3.75, // $15 - 75% for 2 months
+      durationMonths: 2,
     },
     promoYearly: {
       discountPercent: 50,
@@ -79,13 +81,13 @@ export const PRICING_PLANS: Record<string, PlanDefinition> = {
     },
     limits: {
       monthlyClicks: 150000,
-      customDomains: 3,
+      customDomains: 6,
       activeLinks: 1000,
       analyticsRetentionDays: 365,
       teamSeats: 2,
       smartRoutingLevel: 'ADVANCED',
       retargetingPixels: 5,
-      apiRateLimitPerMinute: 1000,
+      apiRateLimitPerMinute: 200,
     },
     overage: {
       allowed: true,
@@ -102,7 +104,8 @@ export const PRICING_PLANS: Record<string, PlanDefinition> = {
     yearlyPrice: 350,
     promoMonthly: {
       discountPercent: 60,
-      firstMonthPrice: 19.60, // $49 - 60%
+      firstMonthPrice: 19.60, // $49 - 60% for 2 months
+      durationMonths: 2,
     },
     promoYearly: {
       discountPercent: 40,
@@ -118,7 +121,7 @@ export const PRICING_PLANS: Record<string, PlanDefinition> = {
       teamSeats: 5,
       smartRoutingLevel: 'CUSTOM',
       retargetingPixels: -1,
-      apiRateLimitPerMinute: 5000,
+      apiRateLimitPerMinute: 600,
     },
     overage: {
       allowed: true,
@@ -135,7 +138,8 @@ export const PRICING_PLANS: Record<string, PlanDefinition> = {
     yearlyPrice: 1670,
     promoMonthly: {
       discountPercent: 50,
-      firstMonthPrice: 99.50, // $199 - 50%
+      firstMonthPrice: 99.50, // $199 - 50% for 2 months
+      durationMonths: 2,
     },
     promoYearly: {
       discountPercent: 30,
@@ -144,36 +148,36 @@ export const PRICING_PLANS: Record<string, PlanDefinition> = {
       equivalentMonthlyPrice: 139.16,
     },
     limits: {
-      monthlyClicks: 2000000,
-      customDomains: 50,
+      monthlyClicks: -1,
+      customDomains: -1,
       activeLinks: -1,
       analyticsRetentionDays: -1,
       teamSeats: 15,
       smartRoutingLevel: 'CUSTOM',
       retargetingPixels: -1,
-      apiRateLimitPerMinute: 15000,
+      apiRateLimitPerMinute: 1400,
     },
     overage: {
       allowed: true,
       unlimited: true,
       batchSize: 0,
       costPerBatch: 0,
-      label: 'Unlimited overage included ($0 extra)',
+      label: 'Unlimited clicks included ($0 extra)',
     },
   },
 };
 
 export const PRICING_COPY = {
   planExplanations: {
-    free: "10,000 clicks/month to experience our lightning-fast edge infrastructure without entering a credit card.",
-    pro: "150,000 clicks/month (+ $3 per 50,000 extra clicks) and 3 custom domains to elevate your brand presence and conversion rates.",
+    free: "10,000 clicks/month and 3 custom domains included to experience our lightning-fast edge infrastructure without entering a credit card.",
+    pro: "150,000 clicks/month (+ $3 per 50,000 extra clicks), 6 custom domains, and dynamic routing to elevate your brand presence and conversion rates.",
     business: "500,000 clicks/month (+ $8 per 125,000 extra clicks) and 15 custom domains to scale multi-channel campaigns with your team.",
-    enterprise: "2,000,000+ clicks/month with unlimited free overage and 50 custom domains backed by a dedicated high-throughput edge SLA.",
+    enterprise: "Unlimited clicks/month and unlimited custom domains backed by a dedicated high-throughput edge SLA.",
   },
   guarantees: [
     {
       title: "Zero-Downtime Guarantee",
-      description: "Your campaigns never stop. On Pro ($3 / 50k extra clicks), Business ($8 / 125k extra clicks), and Enterprise (Unlimited free overage), redirects keep running seamlessly during traffic surges.",
+      description: "Your campaigns never stop. On Pro ($3 / 50k extra clicks), Business ($8 / 125k extra clicks), and Enterprise (Unlimited clicks), redirects keep running seamlessly during traffic surges.",
     },
     {
       title: "Secure Payments & Instant Invoices",
@@ -223,11 +227,12 @@ export function evaluateClickQuotaAndOverage(
   const planDef = getPlanDefinition(planId);
   const limit = planDef.limits.monthlyClicks;
   const isUnlimitedOverage = Boolean(planDef.overage.unlimited);
-  const overageClicks = Math.max(0, clicksThisMonth - limit);
-  const isOverQuota = clicksThisMonth > limit;
-  const isBlocked = clicksThisMonth >= limit && !planDef.overage.allowed;
+  const isUnlimitedClicks = limit === -1;
+  const overageClicks = isUnlimitedClicks ? 0 : Math.max(0, clicksThisMonth - limit);
+  const isOverQuota = isUnlimitedClicks ? false : clicksThisMonth > limit;
+  const isBlocked = isUnlimitedClicks ? false : (clicksThisMonth >= limit && !planDef.overage.allowed);
 
-  const { batches, cost } = isUnlimitedOverage
+  const { batches, cost } = (isUnlimitedOverage || isUnlimitedClicks)
     ? { batches: 0, cost: 0 }
     : calculateOverage(
         overageClicks,
@@ -240,7 +245,7 @@ export function evaluateClickQuotaAndOverage(
     planName: planDef.name,
     monthlyClicksLimit: limit,
     clicksThisMonth,
-    remainingIncludedClicks: Math.max(0, limit - clicksThisMonth),
+    remainingIncludedClicks: isUnlimitedClicks ? -1 : Math.max(0, limit - clicksThisMonth),
     usagePercent: limit > 0 ? Math.min(100, Math.round((clicksThisMonth / limit) * 100)) : 0,
     isOverQuota,
     isBlocked,

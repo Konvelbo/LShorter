@@ -167,7 +167,7 @@ function FeatureCard({
       >
         <Link
           href={docHref}
-          className="inline-flex items-center gap-1 text-[13.5px] text-[#111216] dark:text-[#f2f3f5] underline underline-offset-4 decoration-[#c9cbd2] dark:decoration-[#3a3d45] hover:decoration-blue-600 dark:hover:decoration-blue-400 transition-all duration-200"
+          className="inline-flex items-center gap-1 text-[13.5px] text-[#111216] dark:text-[#f2f3f5] underline underline-offset-4 decoration-[#c9cbd2] dark:decoration-[#3a3d45] hover:text-blue-600 dark:hover:text-blue-400 hover:decoration-blue-600 dark:hover:decoration-blue-400 transition-all duration-200"
         >
           {docLabel}
         </Link>
@@ -179,11 +179,11 @@ function FeatureCard({
 export function TimelineFeatures() {
   const timelineData: TimelineEntry[] = [
     {
-      title: "01. Smart Edge Routing",
+      title: "Smart Edge Routing",
       content: (
         <FeatureCard
-          title="One short link, the right destination for everyone"
-          lead="Route visitors dynamically by country, operating system, or weighted A/B split across 310+ Cloudflare edge PoPs — the rule changes the moment you save it."
+          title="One short link, the right destination for everyone — protected your way"
+          lead="Route visitors dynamically by country, continent, device, OS, browser, or weighted A/B split across 310+ Cloudflare edge PoPs. Protect with PathLock™ PIN, password gate, expiration dates, or click caps — all rules update instantly on save."
           rows={[
             {
               key: "Country",
@@ -191,12 +191,36 @@ export function TimelineFeatures() {
                 "Send visitors to a local page, in any market (ISO 3166-1).",
             },
             {
+              key: "Continent",
+              value: "Broad region targeting — Europe, APAC, Americas, Africa…",
+            },
+            {
               key: "Device",
               value: "iPhone to the App Store, Android to Google Play.",
             },
             {
+              key: "Platform / OS",
+              value: "Windows, macOS, Linux, iOS, Android — per rule.",
+            },
+            {
+              key: "Browser",
+              value: "Chrome, Safari, Firefox, Edge — fine-grain targeting.",
+            },
+            {
               key: "A/B split",
-              value: "Test several pages and follow the results live.",
+              value: "Test several destinations and follow results live.",
+            },
+            {
+              key: "PathLock™ PIN",
+              value: "PIN check required before the destination is exposed.",
+            },
+            {
+              key: "Password gate",
+              value: "Full URL password protection with cloaked viewer.",
+            },
+            {
+              key: "Expiration & caps",
+              value: "Auto-deactivate by date, click count, or both.",
             },
           ]}
           screenshot="/marketing-FCI/real_dashboard_overview.png"
@@ -207,7 +231,7 @@ export function TimelineFeatures() {
       ),
     },
     {
-      title: "02. Dynamic QR Studio",
+      title: "Dynamic QR Studio",
       content: (
         <FeatureCard
           title="Pixel-perfect QR codes that stay editable after print"
@@ -234,7 +258,7 @@ export function TimelineFeatures() {
       ),
     },
     {
-      title: "03. Links & Custom Domains",
+      title: "Links & Custom Domains",
       content: (
         <FeatureCard
           title="Your brand on every link, verified in minutes"
@@ -265,11 +289,11 @@ export function TimelineFeatures() {
       ),
     },
     {
-      title: "04. Revenue Attribution",
+      title: "Revenue Attribution",
       content: (
         <FeatureCard
-          title="Every click traced back to a customer and a dollar"
-          lead="Link short-link click IDs to Stripe checkouts and customer signups. Measure real-time EPC, bounce rate, and city-level conversion heatmaps."
+          title="Every click traced back to a customer and a revenue"
+          lead="Turn every short link into a revenue signal. Attribute clicks to Stripe checkouts and signups, map conversions city-by-city, and drill into device, OS, and browser performance — no third-party tracking required."
           rows={[
             {
               key: "Attribution",

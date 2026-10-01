@@ -116,9 +116,9 @@ export default function DocsPage() {
   }, []);
 
   return (
-    <div ref={pageContainerRef} className="w-full min-h-screen pt-24 pb-16 px-4 sm:px-6 md:px-8 bg-[#FAF7F2] dark:bg-[#09090b] transition-colors duration-300">
+    <div ref={pageContainerRef} className="w-full min-h-screen pt-24 pb-16 px-4 sm:px-6 md:px-8 bg-[#FFFFFF] dark:bg-[#09090B] transition-colors duration-300">
       
-      {/* 1. TOP HERO: Exact Cofounder Layout (Clean image on left + typography on right directly on page) */}
+      {/* 1. TOP HERO: Exact Layout (Clean image on left + typography on right directly on page) */}
       <section className="docs-hero-section max-w-6xl mx-auto pt-6 pb-4">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
           
@@ -127,7 +127,7 @@ export default function DocsPage() {
             <CardContainer containerClassName="w-full py-0" className="w-full">
               <CardBody className="w-full h-auto">
                 <CardItem translateZ="50" className="w-full">
-                  <div className="relative w-full aspect-[16/10] sm:aspect-[16/9] rounded-2xl overflow-hidden border border-[#E7DFD5] dark:border-white/10 shadow-2xl bg-neutral-900 group">
+                  <div className="relative w-full aspect-[16/10] sm:aspect-[16/9] rounded-2xl overflow-hidden border border-[#E4E7EC] dark:border-white/10 shadow-2xl bg-neutral-900 group">
                     <Image
                       src="/marketing-FCI/cosmos_big_card.jpeg"
                       alt="LShorter global edge architecture and infrastructure"
@@ -150,7 +150,7 @@ export default function DocsPage() {
               <span className="text-neutral-600 dark:text-neutral-400 ml-auto font-mono">09/12</span>
             </div>
 
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-[#2B2520] dark:text-white leading-[1.18]">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-[#101828] dark:text-white leading-[1.18]">
               Ultra-fast edge redirection infrastructure for developers
             </h1>
 
@@ -191,10 +191,10 @@ export default function DocsPage() {
       </section>
 
       {/* 2. SOCIAL PROOF / ECOSYSTEM BAR (Infinite Marquee Movement) */}
-      <section className="docs-social-proof max-w-6xl mx-auto py-8 sm:py-10 border-b border-[#E7DFD5] dark:border-white/10">
+      <section className="docs-social-proof max-w-6xl mx-auto py-8 sm:py-10 border-b border-[#E4E7EC] dark:border-white/10">
         <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
           <p className="text-xs sm:text-sm font-medium text-neutral-600 dark:text-neutral-400 shrink-0 text-center lg:text-left">
-            Over <strong className="text-[#2B2520] dark:text-white font-semibold">100,000+ Edge redirections</strong> processed daily with 99.99% uptime.
+            Over <strong className="text-[#101828] dark:text-white font-semibold">100,000+ Edge redirections</strong> processed daily with 99.99% uptime.
           </p>
 
           {/* Infinite Marquee Container with subtle edge fade masks */}
@@ -204,7 +204,7 @@ export default function DocsPage() {
               {[...ECOSYSTEM_STACK, ...ECOSYSTEM_STACK].map((item, idx) => (
                 <span
                   key={idx}
-                  className="px-3.5 py-1.5 rounded-xl bg-[#FFFDF9] dark:bg-[#141416] border border-[#E7DFD5] dark:border-white/10 text-xs font-mono text-neutral-700 dark:text-neutral-300 shadow-xs shrink-0 cursor-default transition-all hover:border-brand hover:scale-105"
+                  className="px-3.5 py-1.5 rounded-xl bg-white dark:bg-[#141416] border border-[#E4E7EC] dark:border-white/10 text-xs font-mono text-neutral-700 dark:text-neutral-300 shadow-2xs shrink-0 cursor-default transition-all hover:border-brand hover:scale-105"
                 >
                   {item.name}
                 </span>
@@ -214,11 +214,11 @@ export default function DocsPage() {
         </div>
       </section>
 
-      {/* 3. THE 3-COLUMN RESOURCES GRID (Exact Cofounder Grid with GSAP Pop-up Card Animation) */}
+      {/* 3. THE 3-COLUMN RESOURCES GRID (Exact Grid with GSAP Pop-up Card Animation) */}
       <section className="docs-cards-grid max-w-6xl mx-auto pt-12 sm:pt-16">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
-            <h2 className="text-lg sm:text-xl font-bold tracking-tight text-[#2B2520] dark:text-white">
+            <h2 className="text-lg sm:text-xl font-bold tracking-tight text-[#101828] dark:text-white">
               Guides &amp; API Reference
             </h2>
             <p className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400">

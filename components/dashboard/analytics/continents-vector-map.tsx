@@ -16,6 +16,7 @@ import {
   CountryGeoData,
   WORLD_COUNTRIES,
   getCountryData,
+  preprocessWorldGeographies,
 } from "@/lib/geo-coordinates";
 import { Globe2, ZoomIn, ZoomOut, RotateCcw, MapPin, MousePointerClick, Activity, Maximize2, Minimize2, X } from "lucide-react";
 
@@ -214,7 +215,7 @@ export function ContinentsVectorMap({
           >
             <Geographies geography={GEO_URL}>
               {({ geographies }) =>
-                geographies.map((geo) => {
+                preprocessWorldGeographies(geographies).map((geo) => {
                   const countryData: CountryGeoData = getCountryFromGeography(geo);
                   const continent = countryData.continent;
                   const continentMeta = CONTINENTS_META[continent];
@@ -514,7 +515,7 @@ export function ContinentsVectorMap({
             >
               <Geographies geography={GEO_URL}>
                 {({ geographies }) =>
-                  geographies.map((geo) => {
+                  preprocessWorldGeographies(geographies).map((geo) => {
                     const countryData: CountryGeoData = getCountryFromGeography(geo);
                     const continent = countryData.continent;
                     const continentMeta = CONTINENTS_META[continent];

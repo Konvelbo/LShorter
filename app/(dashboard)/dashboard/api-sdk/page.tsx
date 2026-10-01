@@ -33,6 +33,7 @@ import { showToast } from "@/components/ui/toast-provider";
 import { DeleteConfirmModal } from "@/components/dashboard/delete-confirm-modal";
 import { ApiKeyCreatedModal } from "@/components/dashboard/api-key-created-modal";
 import { CodeBlock } from "@/components/ui/code-block";
+import { getPlanLimits } from "@/lib/plan-guard";
 import confetti from "canvas-confetti";
 
 export default function ApiSdkPage() {
@@ -69,11 +70,10 @@ export default function ApiSdkPage() {
     if (!isBackground) setIsLoading(true);
     try {
       const res = await cfGetApiKeys(userId);
-      const userPlan = (session?.user as any)?.plan || "FREEMIUM";
-      const isProOrBusiness = userPlan === "PRO" || userPlan === "BUSINESS";
-      const defaultRateLimit = isProOrBusiness
-        ? "Unlimited (Max Throughput)"
-        : "1,000 req / min";
+      const rawUserPlan = (session?.user as any)?.plan || "FREE";
+      const userPlan = rawUserPlan === "FREEMIUM" || rawUserPlan === "STARTER" ? "FREE" : rawUserPlan;
+      const planLimits = getPlanLimits(userPlan);
+      const defaultRateLimit = `${planLimits.rateLimitReqPerMin} req / min`;
 
       const rawKeys: ApiKeyItem[] = (res?.data || []).map((k: any) => ({
         id: k.id,
@@ -146,13 +146,18 @@ export default function ApiSdkPage() {
       });
 
       if (res?.data) {
+        const rawUserPlan = (session?.user as any)?.plan || "FREE";
+        const userPlan = rawUserPlan === "FREEMIUM" || rawUserPlan === "STARTER" ? "FREE" : rawUserPlan;
+        const planLimits = getPlanLimits(userPlan);
+        const currentRateLimit = `${planLimits.rateLimitReqPerMin} req / min`;
+
         setNewlyCreatedKey({
           id: res.data.id || `key_${Date.now()}`,
           name: keyNameInput.trim(),
           prefix: res.data.prefix || res.data.key_prefix || "lsh_live_...",
           rawKey: res.data.raw_key || res.data.rawKey || res.data.api_key,
           scope: keyScopeInput,
-          rateLimit: "600 req / min",
+          rateLimit: currentRateLimit,
           userEmail: session?.user?.email || undefined,
           userName: session?.user?.name || undefined,
           userFullName: session?.user?.name || undefined,
@@ -196,7 +201,7 @@ export default function ApiSdkPage() {
     if (!deleteTarget.id) return;
     setIsRevoking(true);
     try {
-      await cfRevokeApiKey(deleteTarget.id);
+      await cfRevokeApiKey(deleteTarget.id, userId);
       cfInvalidateCache("/api/keys");
       showToast.success("API key revoked.");
       setDeleteTarget({ isOpen: false, id: "", name: "" });

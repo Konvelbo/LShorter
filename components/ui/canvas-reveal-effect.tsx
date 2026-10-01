@@ -59,7 +59,9 @@ export function CanvasRevealEffect({
           if (elapsed < dist) continue;
 
           // Deterministic pseudo-random shimmer per dot
-          const seed = Math.sin(c * 12.9898 + r * 78.233 + Math.floor(elapsed * 2.5)) * 43758.5453;
+          const seed =
+            Math.sin(c * 12.9898 + r * 78.233 + Math.floor(elapsed * 2.5)) *
+            43758.5453;
           const rand = seed - Math.floor(seed);
           const alpha = Math.min(0.9, Math.max(0.12, rand * 0.85));
 
@@ -80,7 +82,12 @@ export function CanvasRevealEffect({
   }, [animationSpeed, colors, dotSize]);
 
   return (
-    <div className={cn("h-full relative w-full overflow-hidden", containerClassName)}>
+    <div
+      className={cn(
+        "h-full relative w-full overflow-hidden",
+        containerClassName,
+      )}
+    >
       <canvas ref={canvasRef} className="w-full h-full block" />
       {showGradient && (
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
@@ -89,7 +96,10 @@ export function CanvasRevealEffect({
   );
 }
 
-export function AceternityCornerIcon({ className, ...rest }: React.SVGProps<SVGSVGElement>) {
+export function AceternityCornerIcon({
+  className,
+  ...rest
+}: React.SVGProps<SVGSVGElement>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -154,7 +164,9 @@ export function CanvasRevealCard({
           {badge && (
             <span
               className={`inline-flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider transition-colors duration-300 ${
-                hovered ? "text-emerald-300" : "text-[#027A48] dark:text-emerald-400"
+                hovered
+                  ? "text-emerald-300"
+                  : "text-[#027A48] dark:text-emerald-400"
               }`}
             >
               <span className="w-2 h-2 rounded-full bg-[#12B76A]" />

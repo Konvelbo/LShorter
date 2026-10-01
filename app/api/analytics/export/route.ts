@@ -1,12 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { getCountryName } from "@/lib/utils";
-
-const WORKER_URL =
-  process.env.BACKEND_API_URL ||
-  process.env.CLOUDFLARE_WORKER_URL ||
-  "";
-const FRONTEND_SECRET = process.env.FRONTEND_API_SECRET || "";
+import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
 
 function escapeXml(str: any): string {
   if (str === null || str === undefined) return "";

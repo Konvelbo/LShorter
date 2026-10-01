@@ -37,13 +37,12 @@ export function checkPlanFeatureAccess(
   if (plan === "ENTERPRISE" || plan === "BUSINESS") return true;
 
   if (plan === "PRO") {
-    if (feature === "unlimited_domains") return false; // Pro has 3 domains
+    if (feature === "unlimited_domains") return false; // Pro has 6 domains
     return true; // Pro has access to all feature types
   }
 
   // Free / Freemium limitations
   switch (feature) {
-    case "custom_domain":
     case "routing_rules":
     case "multi_condition_routing":
     case "device_routing":
@@ -65,30 +64,32 @@ export function checkPlanFeatureAccess(
 
 // Validation for adding routing rules based on plan
 export function canAddRoutingRule(
-  plan: PlanType,
-  currentRulesCount: number,
+  plan: PlanType | string,
+  currentRulesCount?: number,
   ruleType?: string
 ): { allowed: boolean; reason?: string } {
-  if (plan === "PRO" || plan === "BUSINESS" || plan === "ENTERPRISE") {
+  const normalized = (plan || "FREE").toUpperCase();
+  if (normalized === "PRO" || normalized === "BUSINESS" || normalized === "ENTERPRISE") {
     return { allowed: true };
   }
 
-  // Free tier is forbidden from using routing rules
+  // Free tier is strictly forbidden from using routing rules
   return {
     allowed: false,
-    reason: "Le système de routage dynamique intelligent est réservé aux forfaits Pro, Business et Enterprise.",
+    reason: "Le système de routage dynamique intelligent est strictement réservé aux forfaits payants (Pro, Business et Enterprise).",
   };
 }
 
 // Plan Limits Definition
-export function getPlanLimits(plan: PlanType) {
-  switch (plan) {
+export function getPlanLimits(plan: PlanType | string) {
+  const normalized = (plan || "FREE").toUpperCase();
+  switch (normalized) {
     case "ENTERPRISE":
       return {
-        clicksLimit: 10_000_000,
-        domainsLimit: 50,
+        clicksLimit: -1, // Unlimited
+        domainsLimit: -1, // Unlimited
         linksLimit: -1, // Unlimited
-        rateLimitReqPerMin: 15_000,
+        rateLimitReqPerMin: 1400,
         analyticsRetentionDays: -1, // Unlimited
         maxGeoRules: -1,
         canUseRoutingRules: true,
@@ -98,10 +99,10 @@ export function getPlanLimits(plan: PlanType) {
       };
     case "BUSINESS":
       return {
-        clicksLimit: 2_000_000,
+        clicksLimit: 500_000,
         domainsLimit: 15,
         linksLimit: -1, // Unlimited
-        rateLimitReqPerMin: 5_000,
+        rateLimitReqPerMin: 600,
         analyticsRetentionDays: -1, // Unlimited
         maxGeoRules: -1,
         canUseRoutingRules: true,
@@ -111,10 +112,10 @@ export function getPlanLimits(plan: PlanType) {
       };
     case "PRO":
       return {
-        clicksLimit: 500_000,
-        domainsLimit: 3,
+        clicksLimit: 150_000,
+        domainsLimit: 6,
         linksLimit: 1_000,
-        rateLimitReqPerMin: 1_000,
+        rateLimitReqPerMin: 200,
         analyticsRetentionDays: 365,
         maxGeoRules: -1,
         canUseRoutingRules: true,
@@ -124,10 +125,11 @@ export function getPlanLimits(plan: PlanType) {
       };
     case "FREE":
     case "FREEMIUM":
+    case "STARTER":
     default:
       return {
         clicksLimit: 10_000,
-        domainsLimit: 0,
+        domainsLimit: 3,
         linksLimit: 50,
         rateLimitReqPerMin: 60,
         analyticsRetentionDays: 30,

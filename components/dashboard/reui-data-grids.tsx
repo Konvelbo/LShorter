@@ -1196,18 +1196,11 @@ export function GeoLogsReuiDataGrid({
   const fetchLogs = useCallback(async () => {
     if (!userId) return;
     try {
-      const timestamp = Date.now();
       const [aJson, lJson] = await Promise.all([
-        fetch(
-          `/api/analytics?userId=${encodeURIComponent(userId)}&period=30d&_t=${timestamp}`,
-          { cache: "no-store" },
-        )
+        fetch(`/api/analytics?userId=${encodeURIComponent(userId)}&period=30d`)
           .then((r) => (r.ok ? r.json() : null))
           .catch(() => null),
-        fetch(
-          `/api/links?userId=${encodeURIComponent(userId)}&_t=${timestamp}`,
-          { cache: "no-store" },
-        )
+        fetch(`/api/links?userId=${encodeURIComponent(userId)}`)
           .then((r) => (r.ok ? r.json() : null))
           .catch(() => null),
       ]);
@@ -1228,9 +1221,12 @@ export function GeoLogsReuiDataGrid({
   useEffect(() => {
     if (!userId) return;
 
-    if (propLogs === undefined || propLinks === undefined || propLogs.length === 0) {
-      fetchLogs();
+    // When parent component provides props (e.g. AnalyticsPage), do not fetch or poll internally
+    if (propLogs !== undefined) {
+      return;
     }
+
+    fetchLogs();
 
     const handleUpdate = () => {
       fetchLogs();
@@ -1254,11 +1250,11 @@ export function GeoLogsReuiDataGrid({
     document.addEventListener("visibilitychange", handleFocus);
     window.addEventListener("storage", handleStorage);
 
-    // Active polling every 4s for live stream updates
+    // Heartbeat polling (every 30s) only in standalone mode
     const pollTimer = setInterval(() => {
       if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
       fetchLogs();
-    }, 4000);
+    }, 30000);
 
     return () => {
       window.removeEventListener("lshorter_data_change", handleUpdate);
@@ -1531,7 +1527,7 @@ export function GeoLogsReuiDataGrid({
                     {visibleCols.referrer && (
                       <td className="py-2.5 px-3.5 whitespace-nowrap text-center">
                         <div className="flex items-center justify-center">
-                          <ReferrerLogo referrer={item.referrer} size={18} />
+                          <ReferrerLogo referrer={item.referrer} size={22} />
                         </div>
                       </td>
                     )}

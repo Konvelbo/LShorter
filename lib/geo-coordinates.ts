@@ -100,6 +100,11 @@ export const WORLD_COUNTRIES: Record<string, CountryGeoData> = {
   VE: { code: "VE", name: "Venezuela", nameEn: "Venezuela", continent: "South America", lat: 6.4238, lng: -66.5897, flag: "🇻🇪" },
   EC: { code: "EC", name: "Équateur", nameEn: "Ecuador", continent: "South America", lat: -1.8312, lng: -78.1834, flag: "🇪🇨" },
   BO: { code: "BO", name: "Bolivie", nameEn: "Bolivia", continent: "South America", lat: -16.2902, lng: -63.5887, flag: "🇧🇴" },
+  UY: { code: "UY", name: "Uruguay", nameEn: "Uruguay", continent: "South America", lat: -32.5228, lng: -55.7658, flag: "🇺🇾" },
+  PY: { code: "PY", name: "Paraguay", nameEn: "Paraguay", continent: "South America", lat: -23.4425, lng: -58.4438, flag: "🇵🇾" },
+  GF: { code: "GF", name: "Guyane française", nameEn: "French Guiana", continent: "South America", lat: 3.9339, lng: -53.1258, flag: "🇬🇫" },
+  SR: { code: "SR", name: "Suriname", nameEn: "Suriname", continent: "South America", lat: 3.9193, lng: -56.0278, flag: "🇸🇷" },
+  GY: { code: "GY", name: "Guyana", nameEn: "Guyana", continent: "South America", lat: 4.8604, lng: -58.9302, flag: "🇬🇾" },
 
   // ─── ASIE & MOYEN-ORIENT (Asia) ─────────────────────────────────────────────
   CN: { code: "CN", name: "Chine", nameEn: "China", continent: "Asia", lat: 35.8617, lng: 104.1954, flag: "🇨🇳" },
@@ -135,11 +140,11 @@ export const CONTINENTS_META: Record<Continent, { name: string; color: string; b
 
 // ─── ISO Numeric (world-atlas) to ISO Alpha-2 Mapping ────────────────────────
 export const ISO_NUMERIC_TO_ALPHA2: Record<string, string> = {
-  "004": "AF", "008": "AL", "012": "DZ", "024": "AO", "032": "AR", "036": "AU",
+  "004": "AF", "008": "AL", "012": "DZ", "020": "AD", "024": "AO", "032": "AR", "036": "AU",
   "040": "AT", "056": "BE", "204": "BJ", "068": "BO", "076": "BR", "854": "BF",
   "108": "BI", "120": "CM", "124": "CA", "140": "CF", "148": "TD", "152": "CL",
   "156": "CN", "170": "CO", "178": "CG", "180": "CD", "384": "CI", "192": "CU",
-  "208": "DK", "818": "EG", "231": "ET", "246": "FI", "250": "FR", "266": "GA",
+  "208": "DK", "818": "EG", "231": "ET", "246": "FI", "250": "FR", "254": "GF", "266": "GA",
   "276": "DE", "288": "GH", "300": "GR", "324": "GN", "356": "IN", "360": "ID",
   "364": "IR", "368": "IQ", "372": "IE", "376": "IL", "380": "IT", "392": "JP",
   "404": "KE", "410": "KR", "428": "LV", "430": "LR", "434": "LY", "450": "MG",
@@ -148,11 +153,62 @@ export const ISO_NUMERIC_TO_ALPHA2: Record<string, string> = {
   "620": "PT", "642": "RO", "643": "RU", "646": "RW", "682": "SA", "686": "SN",
   "710": "ZA", "724": "ES", "752": "SE", "756": "CH", "768": "TG", "788": "TN",
   "792": "TR", "800": "UG", "804": "UA", "784": "AE", "826": "GB", "840": "US",
-  "858": "UY", "862": "VE", "704": "VN",
-  // Also string versions without leading zeroes:
-  "4": "AF", "8": "AL", "12": "DZ", "24": "AO", "32": "AR", "36": "AU",
-  "40": "AT", "56": "BE", "68": "BO", "76": "BR"
+  "858": "UY", "862": "VE", "704": "VN", "348": "HU", "203": "CZ", "703": "SK",
+  "100": "BG", "191": "HR", "688": "RS", "705": "SI", "070": "BA", "807": "MK",
+  "499": "ME", "233": "EE", "440": "LT", "112": "BY", "498": "MD", "352": "IS",
+  "442": "LU", "492": "MC", "484": "MX", "320": "GT", "340": "HN", "222": "SV",
+  "558": "NI", "188": "CR", "591": "PA", "740": "SR", "328": "GY", "398": "KZ",
+  "860": "UZ", "795": "TM", "417": "KG", "762": "TJ", "496": "MN",
+  // String versions without leading zeroes:
+  "4": "AF", "8": "AL", "12": "DZ", "20": "AD", "24": "AO", "32": "AR", "36": "AU",
+  "40": "AT", "56": "BE", "68": "BO", "76": "BR", "70": "BA"
 };
+
+// ─── TopoJSON MultiPolygon Preprocessor for France & Overseas Territories ──────
+export function preprocessWorldGeographies(rawGeographies: any[]): any[] {
+  if (!Array.isArray(rawGeographies)) return [];
+  const result: any[] = [];
+  for (const geo of rawGeographies) {
+    // Split France feature (250) into Metropolitan France & French Guiana
+    if (
+      (geo.id === "250" || geo.id === 250) &&
+      geo.geometry &&
+      geo.geometry.type === "MultiPolygon" &&
+      Array.isArray(geo.geometry.coordinates) &&
+      geo.geometry.coordinates.length >= 2
+    ) {
+      // Coordinates[0] is French Guiana in South America (sample point [-51.65, 4.15])
+      // Coordinates[1+] are Metropolitan France and Corsica in Europe
+      const guianaCoords = [geo.geometry.coordinates[0]];
+      const metroCoords = geo.geometry.coordinates.slice(1);
+
+      result.push({
+        ...geo,
+        id: "250",
+        rsmKey: "geo-250-france",
+        properties: { ...geo.properties, name: "France", iso2: "FR" },
+        geometry: {
+          type: "MultiPolygon",
+          coordinates: metroCoords,
+        },
+      });
+
+      result.push({
+        ...geo,
+        id: "254",
+        rsmKey: "geo-254-guiana",
+        properties: { ...geo.properties, name: "French Guiana", iso2: "GF" },
+        geometry: {
+          type: "MultiPolygon",
+          coordinates: guianaCoords,
+        },
+      });
+    } else {
+      result.push(geo);
+    }
+  }
+  return result;
+}
 
 // ─── Helper Functions ────────────────────────────────────────────────────────
 export function getCountryData(code?: string): CountryGeoData {
@@ -203,8 +259,20 @@ export function getCountryFlag(code?: string): string {
 }
 
 export function getCountryFromGeography(geo: any): CountryGeoData {
-  const idStr = String(geo.id || "").padStart(3, "0");
-  const iso2FromNumeric = ISO_NUMERIC_TO_ALPHA2[idStr] || ISO_NUMERIC_TO_ALPHA2[String(geo.id || "")];
+  if (geo.properties?.iso2 && WORLD_COUNTRIES[geo.properties.iso2]) {
+    const c = WORLD_COUNTRIES[geo.properties.iso2];
+    return { ...c, name: c.nameEn || c.name };
+  }
+
+  const rawId = String(geo.id || "").trim();
+  const idStr = rawId.padStart(3, "0");
+
+  if (rawId === "254" || idStr === "254") {
+    const c = WORLD_COUNTRIES["GF"];
+    return { ...c, name: c.nameEn || c.name };
+  }
+
+  const iso2FromNumeric = ISO_NUMERIC_TO_ALPHA2[idStr] || ISO_NUMERIC_TO_ALPHA2[rawId];
   if (iso2FromNumeric && WORLD_COUNTRIES[iso2FromNumeric]) {
     const c = WORLD_COUNTRIES[iso2FromNumeric];
     return { ...c, name: c.nameEn || c.name };
@@ -219,7 +287,7 @@ export function getCountryFromGeography(geo: any): CountryGeoData {
   }
 
   return {
-    code: geo.id || "XX",
+    code: iso2FromNumeric || geo.id || "XX",
     name: name || "Territory",
     nameEn: name || "Territory",
     continent: "Europe",

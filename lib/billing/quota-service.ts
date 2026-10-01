@@ -47,20 +47,11 @@ export function getQuotaAndOverageSummary(plan: PlanType | string, clicksThisMon
 
 /**
  * Guard domain creation against plan limits.
+ * Starter: 3, Pro: 6, Business: 15, Enterprise: Unlimited (-1)
  */
-export function guardDomainCreation(plan: PlanType, currentCount: number): QuotaGuardResult {
+export function guardDomainCreation(plan: PlanType | string, currentCount: number): QuotaGuardResult {
   const planDef = getPlanDefinition(plan);
   const limit = planDef.limits.customDomains;
-
-  if (limit === 0) {
-    return {
-      allowed: false,
-      code: "QUOTA_EXCEEDED",
-      reason: "Les domaines personnalisés requièrent un forfait payant (Pro, Business ou Enterprise).",
-      limit: 0,
-      current: currentCount,
-    };
-  }
 
   if (limit !== -1 && currentCount >= limit) {
     return {

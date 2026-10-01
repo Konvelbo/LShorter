@@ -9,6 +9,7 @@ import {
   createStatelessPinToken,
   verifyStatelessPinToken,
 } from "@/lib/stateless-pin";
+import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
 
 const SIGNUP_COOKIE_NAME = "lsh_signup_token";
 
@@ -253,17 +254,11 @@ export async function completeSignupWithPinAction({
 
     // Sync user with Cloudflare backend D1 database
     try {
-      const backendUrl =
-        process.env.BACKEND_API_URL ||
-        process.env.CLOUDFLARE_WORKER_URL ||
-        "";
-      const secret = process.env.FRONTEND_API_SECRET || "";
-
-      await fetch(`${backendUrl}/api/v1/users/sync`, {
+      await fetch(`${WORKER_URL}/api/v1/users/sync`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-Frontend-Secret": secret,
+          "X-Frontend-Secret": FRONTEND_SECRET,
         },
         body: JSON.stringify({
           id: createdUser.userId,

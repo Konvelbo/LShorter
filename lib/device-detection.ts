@@ -298,12 +298,18 @@ export function parseVisitorDetails(
       const host = u.hostname.replace(/^www\./, "");
       if (host.includes("google")) referrer = "Google";
       else if (host.includes("twitter") || host.includes("x.com") || host.includes("t.co")) referrer = "Twitter / X";
-      else if (host.includes("linkedin")) referrer = "LinkedIn";
-      else if (host.includes("facebook") || host.includes("fb.com")) referrer = "Facebook";
+      else if (host.includes("linkedin") || host.includes("lnkd.in")) referrer = "LinkedIn";
+      else if (host.includes("facebook") || host.includes("fb.com") || host.includes("fb.me")) referrer = "Facebook";
+      else if (host.includes("instagram") || host.includes("instagr.am")) referrer = "Instagram";
+      else if (host.includes("youtube") || host.includes("youtu.be")) referrer = "YouTube";
+      else if (host.includes("whatsapp") || host.includes("wa.me")) referrer = "WhatsApp";
+      else if (host.includes("tiktok")) referrer = "TikTok";
+      else if (host.includes("reddit") || host.includes("redd.it")) referrer = "Reddit";
       else if (host.includes("discord")) referrer = "Discord";
       else if (host.includes("telegram") || host.includes("t.me")) referrer = "Telegram";
-      else if (host.includes("instagram")) referrer = "Instagram";
-      else if (host.includes("youtube")) referrer = "YouTube";
+      else if (host.includes("pinterest") || host.includes("pin.it")) referrer = "Pinterest";
+      else if (host.includes("threads.net")) referrer = "Threads";
+      else if (host.includes("github")) referrer = "GitHub";
       else referrer = host;
     } catch {
       referrer = rawReferrer;

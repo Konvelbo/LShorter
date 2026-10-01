@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   Mail,
@@ -515,8 +516,15 @@ export default function LoginPage({
         {/* Brand Header & Theme Switcher */}
         <div className="flex items-center justify-between w-full">
           <Link href="/" className="flex items-center gap-2.5 group select-none cursor-pointer">
-            <div className="w-8 h-8 rounded-[8px] bg-brand flex items-center justify-center shadow-md font-bebas text-lg text-white font-bold tracking-wider group-hover:scale-105 transition-transform shadow-[var(--brand-primary-glow)]">
-              LS
+            <div className="w-8 h-8 rounded-[8px] overflow-hidden shadow-md shrink-0 group-hover:scale-105 transition-transform">
+              <Image
+                src="/logo.svg"
+                alt="LShorter Logo"
+                width={32}
+                height={32}
+                className="w-full h-full object-contain"
+                priority
+              />
             </div>
             <span className="font-bebas text-2xl text-neutral-900 dark:text-white tracking-wider flex items-center gap-0.5 leading-none">
               L<span className="text-brand">SHORTER</span>
@@ -1013,13 +1021,16 @@ export default function LoginPage({
         <div className="absolute w-[450px] h-[450px] bg-brand-light rounded-full blur-[140px] pointer-events-none opacity-60 dark:opacity-80" />
 
         <div className="relative z-10 flex flex-col items-center text-center max-w-md w-full">
-          {/* Animated Bouncing Official LS Logo Squircle */}
-          <div className="w-28 h-28 rounded-3xl bg-brand flex items-center justify-center animate-icon-bounce shadow-2xl relative group cursor-default shadow-brand">
-            {/* Inner gloss effect overlay */}
-            <div className="absolute inset-0 rounded-3xl bg-gradient-to-t from-black/20 via-transparent to-white/25 pointer-events-none" />
-            <span className="font-bebas text-6xl font-black text-white tracking-widest drop-shadow-[0_4px_12px_rgba(0,0,0,0.5)]">
-              LS
-            </span>
+          {/* Animated Bouncing Official Logo Squircle */}
+          <div className="w-28 h-28 rounded-3xl overflow-hidden shadow-2xl relative group cursor-default shadow-brand animate-icon-bounce p-3 bg-white/10 backdrop-blur-md border border-white/20">
+            <Image
+              src="/logo.svg"
+              alt="LShorter Logo"
+              width={112}
+              height={112}
+              className="w-full h-full object-contain"
+              priority
+            />
           </div>
 
           {/* Slogan / Devise in English */}

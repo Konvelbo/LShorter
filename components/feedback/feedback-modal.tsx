@@ -87,7 +87,7 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-lg rounded-2xl bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 p-6 shadow-2xl text-slate-900 dark:text-white"
+        className="relative w-full max-w-lg rounded-2xl ds-card p-6 shadow-2xl"
       >
         {/* Close button */}
         <button

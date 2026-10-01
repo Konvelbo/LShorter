@@ -92,10 +92,10 @@ function ParameterTable({
       <h4 className="text-xs font-mono uppercase tracking-wider font-bold text-neutral-500 dark:text-neutral-400">
         {title}
       </h4>
-      <div className="overflow-x-auto rounded-xl border border-[#E7DFD5] dark:border-white/10 bg-[#FFFDF9] dark:bg-[#121214]">
+      <div className="overflow-x-auto rounded-xl border border-[#E4E7EC] dark:border-white/10 bg-white dark:bg-[#121214]">
         <table className="w-full text-left text-xs sm:text-sm">
           <thead>
-            <tr className="border-b border-[#E7DFD5] dark:border-white/10 bg-neutral-100/60 dark:bg-white/[0.03] text-neutral-600 dark:text-neutral-400 font-mono text-[11px]">
+            <tr className="border-b border-[#E4E7EC] dark:border-white/10 bg-neutral-100/60 dark:bg-white/[0.03] text-neutral-600 dark:text-neutral-400 font-mono text-[11px]">
               <th className="py-2.5 px-4 font-semibold">Parameter</th>
               <th className="py-2.5 px-3 font-semibold">Type</th>
               <th className="py-2.5 px-3 font-semibold">Required</th>
@@ -103,7 +103,7 @@ function ParameterTable({
               <th className="py-2.5 px-4 font-semibold">Example</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#E7DFD5] dark:divide-white/5 font-mono text-xs">
+          <tbody className="divide-y divide-[#E4E7EC] dark:divide-white/5 font-mono text-xs">
             {parameters.map((param, pIdx) => (
               <tr
                 key={pIdx}
@@ -138,7 +138,7 @@ function ParameterTable({
                 </td>
                 <td className="py-2.5 px-4 text-neutral-500 dark:text-neutral-400 font-mono text-[11px] whitespace-nowrap">
                   {param.example ? (
-                    <code className="text-[#2B2520] dark:text-neutral-200">{param.example}</code>
+                    <code className="text-[#101828] dark:text-neutral-200">{param.example}</code>
                   ) : (
                     "—"
                   )}
@@ -166,13 +166,13 @@ function ApiEndpointCard({ endpoint }: { endpoint: DocApiEndpoint }) {
   };
 
   return (
-    <Card className="doc-interactive-card doc-endpoint-card rounded-2xl border border-[#E7DFD5] dark:border-white/10 bg-[#FFFDF9] dark:bg-[#121214] shadow-xs overflow-hidden space-y-5 p-5 sm:p-6">
+    <Card className="doc-interactive-card doc-endpoint-card rounded-2xl border border-[#E4E7EC] dark:border-white/10 bg-white dark:bg-[#121214] shadow-xs overflow-hidden space-y-5 p-5 sm:p-6">
       {/* Endpoint Title & Badges */}
       <div className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2.5 flex-wrap">
             <MethodBadge method={endpoint.method} />
-            <h3 className="text-lg sm:text-xl font-bold tracking-tight text-[#2B2520] dark:text-white">
+            <h3 className="text-lg sm:text-xl font-bold tracking-tight text-[#101828] dark:text-white">
               {endpoint.name}
             </h3>
           </div>
@@ -194,7 +194,7 @@ function ApiEndpointCard({ endpoint }: { endpoint: DocApiEndpoint }) {
         </div>
 
         {/* URL Path Bar */}
-        <div className="flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl bg-neutral-100 dark:bg-black/50 border border-[#E7DFD5] dark:border-white/10 font-mono text-xs sm:text-sm text-[#2B2520] dark:text-neutral-200">
+        <div className="flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl bg-neutral-100 dark:bg-black/50 border border-[#E4E7EC] dark:border-white/10 font-mono text-xs sm:text-sm text-[#101828] dark:text-neutral-200">
           <div className="flex items-center gap-2 overflow-x-auto">
             <Server className="w-4 h-4 text-neutral-400 shrink-0" />
             <span className="font-semibold text-neutral-400 select-none">https://lsho.cc</span>
@@ -278,16 +278,16 @@ function ApiEndpointCard({ endpoint }: { endpoint: DocApiEndpoint }) {
             <AlertCircle className="w-3.5 h-3.5 text-rose-500" />
             <span>Possible Error Responses</span>
           </h4>
-          <div className="overflow-x-auto rounded-xl border border-[#E7DFD5] dark:border-white/10 bg-[#FFFDF9] dark:bg-[#121214]">
+          <div className="overflow-x-auto rounded-xl border border-[#E4E7EC] dark:border-white/10 bg-white dark:bg-[#121214]">
             <table className="w-full text-left text-xs sm:text-sm">
               <thead>
-                <tr className="border-b border-[#E7DFD5] dark:border-white/10 bg-neutral-100/60 dark:bg-white/[0.03] text-neutral-600 dark:text-neutral-400 font-mono text-[11px]">
+                <tr className="border-b border-[#E4E7EC] dark:border-white/10 bg-neutral-100/60 dark:bg-white/[0.03] text-neutral-600 dark:text-neutral-400 font-mono text-[11px]">
                   <th className="py-2 px-4 font-semibold">HTTP Status</th>
                   <th className="py-2 px-4 font-semibold">Error Code</th>
                   <th className="py-2 px-4 font-semibold">Description</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#E7DFD5] dark:divide-white/5 font-mono text-xs">
+              <tbody className="divide-y divide-[#E4E7EC] dark:divide-white/5 font-mono text-xs">
                 {endpoint.errorCodes.map((err, eIdx) => (
                   <tr
                     key={eIdx}
@@ -368,7 +368,7 @@ export function DocArticleView({
   return (
     <div
       ref={containerRef}
-      className="w-full min-h-screen pt-24 pb-20 px-4 sm:px-6 md:px-8 bg-[#FAF7F2] dark:bg-[#09090b] transition-colors duration-300"
+      className="w-full min-h-screen pt-24 pb-20 px-4 sm:px-6 md:px-8 bg-[#FFFFFF] dark:bg-[#09090B] transition-colors duration-300"
     >
       {/* Top Editorial Header (Spacious max-w-5xl) */}
       <header className="doc-article-header max-w-5xl mx-auto pt-4 pb-8 sm:pb-12">
@@ -382,7 +382,7 @@ export function DocArticleView({
         </Link>
 
         {/* Big Authoritative Sans-Serif H1 */}
-        <h1 className="text-3xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-[#2B2520] dark:text-neutral-100 leading-[1.15]">
+        <h1 className="text-3xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-[#101828] dark:text-neutral-100 leading-[1.15]">
           {feature.title}
         </h1>
 
@@ -399,7 +399,7 @@ export function DocArticleView({
         </div>
 
         {/* Wide 16:9 Hero Image */}
-        <div className="mt-8 relative w-full aspect-[16/9] rounded-2xl overflow-hidden border border-[#E7DFD5] dark:border-white/10 shadow-[0_12px_40px_rgba(43,37,32,0.06)] dark:shadow-[0_12px_40px_rgba(0,0,0,0.5)] bg-neutral-100 dark:bg-neutral-900">
+        <div className="mt-8 relative w-full aspect-[16/9] rounded-2xl overflow-hidden border border-[#E4E7EC] dark:border-white/10 shadow-xl shadow-black/5 dark:shadow-[0_12px_40px_rgba(0,0,0,0.5)] bg-neutral-100 dark:bg-neutral-900">
           <Image
             src={feature.image}
             alt={feature.title}
@@ -412,11 +412,11 @@ export function DocArticleView({
       </header>
 
       {/* Main Reading Area */}
-      <main className="max-w-5xl mx-auto text-[#2B2520] dark:text-neutral-200 space-y-12 sm:space-y-16">
+      <main className="max-w-5xl mx-auto text-[#101828] dark:text-neutral-200 space-y-12 sm:space-y-16">
         
         {/* 1. Overview Section */}
         <section className="doc-article-section space-y-4">
-          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#2B2520] dark:text-white">
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#101828] dark:text-white">
             Overview &amp; Architecture
           </h2>
           <div className="space-y-3">
@@ -435,7 +435,7 @@ export function DocArticleView({
         {feature.keyPoints.length > 0 && (
           <section className="doc-article-section space-y-5">
             <div>
-              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#2B2520] dark:text-white">
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#101828] dark:text-white">
                 Key Principles
               </h2>
               <p className="text-xs sm:text-sm text-neutral-500 dark:text-neutral-400 mt-1">
@@ -448,11 +448,11 @@ export function DocArticleView({
               {feature.keyPoints.map((point, idx) => (
                 <Card
                   key={idx}
-                  className="doc-interactive-card doc-keypoint-card p-5 flex flex-col justify-between h-full rounded-xl border border-[#E7DFD5] dark:border-white/10 bg-[#FFFDF9] dark:bg-[#121214] shadow-xs"
+                  className="doc-interactive-card doc-keypoint-card p-5 flex flex-col justify-between h-full rounded-xl border border-[#E4E7EC] dark:border-white/10 bg-white dark:bg-[#121214] shadow-xs"
                 >
                   <div className="space-y-2.5">
                     <CardHeader className="p-0 pb-1">
-                      <CardTitle className="text-base font-bold text-[#2B2520] dark:text-white flex items-center gap-2">
+                      <CardTitle className="text-base font-bold text-[#101828] dark:text-white flex items-center gap-2">
                         <span className="keypoint-number-badge w-6 h-6 rounded-md bg-brand-subtle flex items-center justify-center text-brand shrink-0 font-bold text-xs font-mono">
                           0{idx + 1}
                         </span>
@@ -479,7 +479,7 @@ export function DocArticleView({
                 <Terminal className="w-4 h-4" />
                 <span>SDK Integration</span>
               </div>
-              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#2B2520] dark:text-white">
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#101828] dark:text-white">
                 Implementation &amp; SDK Examples
               </h2>
               <p className="text-xs sm:text-sm text-neutral-500 dark:text-neutral-400 mt-1">
@@ -490,7 +490,7 @@ export function DocArticleView({
             <div className="space-y-6">
               {feature.codeSnippets.map((cs, idx) => (
                 <div key={idx} className="space-y-3">
-                  <h3 className="text-lg font-semibold text-[#2B2520] dark:text-neutral-100">
+                  <h3 className="text-lg font-semibold text-[#101828] dark:text-neutral-100">
                     {cs.title}
                   </h3>
                   <p className="text-sm leading-relaxed text-neutral-600 dark:text-neutral-400">
@@ -516,7 +516,7 @@ export function DocArticleView({
                 <Globe className="w-4 h-4" />
                 <span>REST API Specification</span>
               </div>
-              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#2B2520] dark:text-white">
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#101828] dark:text-white">
                 API Endpoints &amp; Reference
               </h2>
               <p className="text-xs sm:text-sm text-neutral-500 dark:text-neutral-400 mt-1">
@@ -535,7 +535,7 @@ export function DocArticleView({
         {/* 5. Response Sample Section (if available) */}
         {feature.responseSample && (
           <section className="doc-article-section space-y-4">
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#2B2520] dark:text-white">
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#101828] dark:text-white">
               {feature.responseSample.title}
             </h2>
             <p className="text-sm leading-relaxed text-neutral-600 dark:text-neutral-400">
@@ -553,7 +553,7 @@ export function DocArticleView({
         {feature.bestPractices.length > 0 && (
           <section className="doc-article-section space-y-5">
             <div>
-              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#2B2520] dark:text-white">
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#101828] dark:text-white">
                 Recommended Best Practices
               </h2>
               <p className="text-xs sm:text-sm text-neutral-500 dark:text-neutral-400 mt-1">
@@ -566,7 +566,7 @@ export function DocArticleView({
               {feature.bestPractices.map((bp, idx) => (
                 <Card
                   key={idx}
-                  className="doc-interactive-card doc-practice-card p-5 flex flex-col justify-between h-full rounded-xl border border-[#E7DFD5] dark:border-white/10 bg-[#FFFDF9] dark:bg-[#121214] shadow-xs"
+                  className="doc-interactive-card doc-practice-card p-5 flex flex-col justify-between h-full rounded-xl border border-[#E4E7EC] dark:border-white/10 bg-white dark:bg-[#121214] shadow-xs"
                 >
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold text-xs font-mono uppercase tracking-wider">
@@ -590,13 +590,13 @@ export function DocArticleView({
               {prevFeature ? (
                 <Link
                   href={`/docs/${prevFeature.slug}`}
-                  className="doc-interactive-card doc-nav-card group block p-4 rounded-xl border border-[#E7DFD5] dark:border-white/10 bg-[#FFFDF9] dark:bg-[#121214] cursor-pointer shadow-xs"
+                  className="doc-interactive-card doc-nav-card group block p-4 rounded-xl border border-[#E4E7EC] dark:border-white/10 bg-white dark:bg-[#121214] cursor-pointer shadow-xs"
                 >
                   <span className="text-[10px] font-mono uppercase font-bold text-neutral-400 dark:text-neutral-500 flex items-center gap-1 mb-1">
                     <ChevronLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" />
                     <span>Previous guide</span>
                   </span>
-                  <span className="text-sm font-bold text-[#2B2520] dark:text-white group-hover:text-brand transition-colors block truncate">
+                  <span className="text-sm font-bold text-[#101828] dark:text-white group-hover:text-brand transition-colors block truncate">
                     {prevFeature.title}
                   </span>
                 </Link>
@@ -607,13 +607,13 @@ export function DocArticleView({
               {nextFeature && (
                 <Link
                   href={`/docs/${nextFeature.slug}`}
-                  className="doc-interactive-card doc-nav-card group block p-4 rounded-xl border border-[#E7DFD5] dark:border-white/10 bg-[#FFFDF9] dark:bg-[#121214] cursor-pointer shadow-xs sm:text-right"
+                  className="doc-interactive-card doc-nav-card group block p-4 rounded-xl border border-[#E4E7EC] dark:border-white/10 bg-white dark:bg-[#121214] cursor-pointer shadow-xs sm:text-right"
                 >
                   <span className="text-[10px] font-mono uppercase font-bold text-neutral-400 dark:text-neutral-500 flex items-center gap-1 sm:justify-end mb-1">
                     <span>Next guide</span>
                     <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                   </span>
-                  <span className="text-sm font-bold text-[#2B2520] dark:text-white group-hover:text-brand transition-colors block truncate">
+                  <span className="text-sm font-bold text-[#101828] dark:text-white group-hover:text-brand transition-colors block truncate">
                     {nextFeature.title}
                   </span>
                 </Link>
@@ -627,7 +627,7 @@ export function DocArticleView({
         {/* 8. Related Resources / Guides */}
         {relatedFeatures.length > 0 && (
           <section className="doc-article-section pt-2 space-y-6">
-            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-[#2B2520] dark:text-white">
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-[#101828] dark:text-white">
               Related Guides &amp; APIs
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -637,8 +637,8 @@ export function DocArticleView({
                   href={`/docs/${rf.slug}`}
                   className="group block cursor-pointer"
                 >
-                  <Card className="doc-interactive-card doc-related-card overflow-hidden p-4 border-[#E7DFD5] dark:border-white/10 bg-[#FFFDF9] dark:bg-[#121214] shadow-xs">
-                    <div className="related-img-container relative w-full aspect-[16/9] rounded-xl overflow-hidden mb-3 bg-neutral-100 dark:bg-neutral-900 border border-[#E7DFD5] dark:border-white/5">
+                  <Card className="doc-interactive-card doc-related-card overflow-hidden p-4 border-[#E4E7EC] dark:border-white/10 bg-white dark:bg-[#121214] shadow-xs">
+                    <div className="related-img-container relative w-full aspect-[16/9] rounded-xl overflow-hidden mb-3 bg-neutral-100 dark:bg-neutral-900 border border-[#E4E7EC] dark:border-white/5">
                       <Image
                         src={rf.image}
                         alt={rf.title}
@@ -648,7 +648,7 @@ export function DocArticleView({
                       />
                     </div>
                     <CardHeader className="p-0 pb-1.5">
-                      <CardTitle className="text-base font-bold text-[#2B2520] dark:text-white group-hover:text-brand transition-colors">
+                      <CardTitle className="text-base font-bold text-[#101828] dark:text-white group-hover:text-brand transition-colors">
                         {rf.title}
                       </CardTitle>
                     </CardHeader>

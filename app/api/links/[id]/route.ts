@@ -19,18 +19,13 @@ export async function PATCH(
     const requestEmail = body.userEmail || sessionEmail || "";
     const requestUserId = body.userId || sessionUserId || "";
 
-    const isEnterpriseOwner =
-      requestEmail.toLowerCase() === "fiatechnologiecam@gmail.com" ||
-      requestUserId === "usr_1790454166066_fwlb48z" ||
-      requestUserId === "7254d43d-caf7-487d-bd22-1666795253a2";
-
     let authoritativePlan = (
       body.userPlan ||
       body.plan ||
-      (isEnterpriseOwner ? "ENTERPRISE" : "")
+      ""
     ).toUpperCase();
 
-    if (!authoritativePlan || authoritativePlan === "FREEMIUM" || authoritativePlan === "FREE") {
+    if (!authoritativePlan || authoritativePlan === "FREEMIUM" || authoritativePlan === "FREE" || authoritativePlan === "STARTER") {
       try {
         let cu: any = null;
         if (requestEmail) {
@@ -50,12 +45,10 @@ export async function PATCH(
       }
     }
 
-    if (isEnterpriseOwner) {
-      authoritativePlan = "ENTERPRISE";
-    }
-
-    const effectivePlan = authoritativePlan || "ENTERPRISE";
-    const userId = requestUserId || "usr_1790454166066_fwlb48z";
+    const effectivePlan = (authoritativePlan === "FREEMIUM" || authoritativePlan === "STARTER")
+      ? "FREE"
+      : (authoritativePlan || "FREE");
+    const userId = requestUserId || "usr_anonymous";
     const isPro =
       effectivePlan === "PRO" ||
       effectivePlan === "BUSINESS" ||
@@ -92,6 +85,24 @@ export async function PATCH(
         : body.device_targeting;
     const parsedDevice =
       typeof rawDevice === "string" ? JSON.parse(rawDevice) : rawDevice;
+
+    // Strictly enforce: Dynamic smart routing requires a paid plan (PRO, BUSINESS, ENTERPRISE)
+    const hasRouting =
+      (Array.isArray(parsedRouting) && parsedRouting.length > 0) ||
+      (parsedGeo && Object.keys(parsedGeo).length > 0) ||
+      (parsedDevice && Object.keys(parsedDevice).length > 0);
+
+    if (!isPro && hasRouting) {
+      return NextResponse.json(
+        {
+          success: false,
+          code: "PLAN_UPGRADE_REQUIRED",
+          error: "Le système de routage dynamique intelligent est strictement réservé aux forfaits payants (Pro, Business et Enterprise).",
+          message: "Le système de routage dynamique intelligent est strictement réservé aux forfaits payants (Pro, Business et Enterprise).",
+        },
+        { status: 403 }
+      );
+    }
 
     // 1. Persist in local store
     // if (body.slug || id) {

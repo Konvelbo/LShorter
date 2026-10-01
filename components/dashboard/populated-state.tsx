@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import {
@@ -69,6 +69,9 @@ export function PopulatedState({
 }: PopulatedStateProps) {
   const { data: session } = useSession();
   const router = useRouter();
+  const pathname = usePathname();
+  const isPreview = Boolean(pathname?.startsWith("/preview"));
+  const toUrl = (path: string) => (isPreview ? `/preview${path}` : path);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -715,7 +718,7 @@ export function PopulatedState({
         <div className="col-span-12 xl:col-span-7 flex flex-col gap-4 md:gap-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
             <div
-              onClick={() => router.push("/dashboard/analytics")}
+              onClick={() => router.push(toUrl("/dashboard/analytics"))}
               className="group rounded-[10px] border border-[#E4E7EC] dark:border-[#344054] bg-white dark:bg-[#1D2939] p-5 md:p-6 shadow-2xs hover:border-[#465FFF]/50 transition-all cursor-pointer"
             >
               <div className="flex items-center justify-between">
@@ -747,7 +750,7 @@ export function PopulatedState({
             </div>
 
             <div
-              onClick={() => router.push("/dashboard/links")}
+              onClick={() => router.push(toUrl("/dashboard/links"))}
               className="group rounded-[10px] border border-[#E4E7EC] dark:border-[#344054] bg-white dark:bg-[#1D2939] p-5 md:p-6 shadow-2xs hover:border-[#465FFF]/50 transition-all cursor-pointer"
             >
               <div className="flex items-center justify-between">
@@ -833,9 +836,11 @@ export function PopulatedState({
                         onClick={() => {
                           setIsMonthlyMenuOpen(false);
                           router.push(
-                            monthlyMetricMode === "clicks"
-                              ? "/dashboard/analytics"
-                              : "/dashboard/analytics/revenue",
+                            toUrl(
+                              monthlyMetricMode === "clicks"
+                                ? "/dashboard/analytics"
+                                : "/dashboard/analytics/revenue",
+                            ),
                           );
                         }}
                         className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-[#344054] dark:text-gray-200 hover:bg-[#F2F4F7] dark:hover:bg-white/[0.06] transition-colors cursor-pointer"
@@ -1080,7 +1085,11 @@ export function PopulatedState({
 
             <button
               type="button"
-              onClick={() => setIsCreateOpen(true)}
+              onClick={() =>
+                isPreview
+                  ? showToast.info("Preview: Create link modal is active in full dashboard.")
+                  : setIsCreateOpen(true)
+              }
               className="inline-flex items-center gap-2 rounded-[10px] bg-[#465FFF] hover:bg-[#3641F5] px-4 py-2 text-xs font-semibold text-white shadow-2xs transition-colors cursor-pointer"
             >
               <Plus className="h-4 w-4" />
@@ -1091,7 +1100,7 @@ export function PopulatedState({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 rounded-[10px] border border-[#E4E7EC] dark:border-[#344054] divide-y sm:divide-y-0 sm:divide-x divide-[#E4E7EC] dark:divide-[#344054]">
           <div
-            onClick={() => router.push("/dashboard/analytics/revenue")}
+            onClick={() => router.push(toUrl("/dashboard/analytics/revenue"))}
             className="p-5 cursor-pointer"
           >
             <p className="text-xs font-medium text-[#667085]">Total Revenue</p>
@@ -1105,7 +1114,7 @@ export function PopulatedState({
             </div>
           </div>
           <div
-            onClick={() => router.push("/dashboard/analytics")}
+            onClick={() => router.push(toUrl("/dashboard/analytics"))}
             className="p-5 cursor-pointer"
           >
             <p className="text-xs font-medium text-[#667085]">
@@ -1121,7 +1130,7 @@ export function PopulatedState({
             </div>
           </div>
           <div
-            onClick={() => router.push("/dashboard/analytics/revenue")}
+            onClick={() => router.push(toUrl("/dashboard/analytics/revenue"))}
             className="p-5 cursor-pointer"
           >
             <p className="text-xs font-medium text-[#667085]">
@@ -1137,7 +1146,7 @@ export function PopulatedState({
             </div>
           </div>
           <div
-            onClick={() => router.push("/dashboard/links")}
+            onClick={() => router.push(toUrl("/dashboard/links"))}
             className="p-5 cursor-pointer"
           >
             <p className="text-xs font-medium text-[#667085]">

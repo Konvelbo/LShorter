@@ -35,7 +35,7 @@ export function MobileBackdropMenu() {
 
   const navLinks = [
     { label: "Hi", href: "/", isHome: true },
-    { label: "Product", href: "/#product" },
+    { label: "Platform", href: "/#product" },
     { label: "Features", href: "/#features" },
     { label: "Security", href: "/#security" },
     { label: "Difference", href: "/#why-us" },

@@ -47,6 +47,7 @@ import { Badge } from "@/components/ui/badge";
 import { LinksPageSkeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { showToast } from "@/components/ui/toast-provider";
+import { exportToExcelWorkbook } from "@/lib/export-excel";
 import { LinkCreateModal } from "@/components/dashboard/link-create-modal";
 import { LinkEditModal } from "@/components/dashboard/link-edit-modal";
 import { LinkShareModal } from "@/components/dashboard/link-share-modal";
@@ -842,47 +843,40 @@ export default function LinksPage() {
 
   const handleExportLinksCSV = () => {
     try {
-      const headers = [
-        "ID",
-        "Slug",
-        "Short URL",
-        "Target URL",
-        "Clicks",
-        "Unique Clicks",
-        "Conversions",
-        "Revenue (€)",
-        "Status",
-        "Password Protected",
-        "Created At",
-      ];
-      const rows = filteredLinks.map((l) => [
-        l.id,
-        `"/${l.slug}"`,
-        `"${l.shortUrl || `https://lsho.cc/r/${l.slug}`}"`,
-        `"${(l.targetUrl || "").replace(/"/g, '""')}"`,
-        l.clicksCount || 0,
-        l.uniqueClicks || 0,
-        l.conversionsCount || 0,
-        Number(l.revenue || 0).toFixed(2),
-        l.isActive ? "Active" : "Paused",
-        l.isPasswordProtected ? "Yes" : "No",
-        l.created_at || new Date().toISOString(),
-      ]);
-
-      const csvContent =
-        "\uFEFF" + [headers.join(";"), ...rows.map((r) => r.join(";"))].join("\r\n");
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `lshorter_short_links_${new Date().toISOString().split("T")[0]}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-      showToast.success("Short links exported to CSV!");
+      exportToExcelWorkbook({
+        filename: `lshorter_short_links_${new Date().toISOString().split("T")[0]}.xls`,
+        reportTitle: `LShorter — Short Links Workspace Export`,
+        reportSubtitle: `All active and paused links, click counts, conversions, and target URLs`,
+        columns: [
+          { header: "ID", width: 140, align: "left" },
+          { header: "Slug", width: 160, align: "left" },
+          { header: "Short URL", width: 240, align: "left" },
+          { header: "Target Destination URL", width: 340, align: "left" },
+          { header: "Clicks", width: 110, align: "right" },
+          { header: "Unique Clicks", width: 120, align: "right" },
+          { header: "Conversions", width: 110, align: "right" },
+          { header: "Revenue (€)", width: 120, align: "right" },
+          { header: "Status", width: 100, align: "center" },
+          { header: "Password Protected", width: 150, align: "center" },
+          { header: "Created At", width: 190, align: "left" },
+        ],
+        rows: filteredLinks.map((l) => [
+          l.id,
+          `/${l.slug}`,
+          l.shortUrl || `https://lsho.cc/r/${l.slug}`,
+          l.targetUrl || "",
+          l.clicksCount || 0,
+          l.uniqueClicks || 0,
+          l.conversionsCount || 0,
+          Number(l.revenue || 0).toFixed(2),
+          l.isActive ? "Active" : "Paused",
+          l.isPasswordProtected ? "Yes" : "No",
+          l.created_at || new Date().toISOString(),
+        ]),
+      });
+      showToast.success("Short links exported to Excel with formatted columns!");
     } catch {
-      showToast.error("Error exporting CSV.");
+      showToast.error("Error exporting Excel file.");
     }
   };
 
@@ -910,7 +904,7 @@ export default function LinksPage() {
             className="inline-flex items-center gap-1.5 rounded-lg ds-card px-2.5 py-1.5 text-xs font-medium ds-text-secondary hover:ds-text-primary h-8 cursor-pointer transition-colors"
           >
             <Download className="h-3.5 w-3.5 text-[#465FFF]" />
-            <span>Export CSV</span>
+            <span>Export Excel</span>
           </button>
 
           <button

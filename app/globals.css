@@ -1399,3 +1399,84 @@ html.light main .text-neutral-200 {
   color: var(--ds-text-primary) !important;
 }
 
+/* ==========================================================================
+   Bento Grid Layout - Section 2 Marketing
+   12-column grid with zigzag asymmetric layout (7/5 then 5/7)
+   ========================================================================== */
+@media (min-width: 768px) {
+  .grid.md\:grid-cols-12 {
+    grid-template-columns: repeat(12, minmax(0, 1fr)) !important;
+  }
+  .md\:col-span-7 {
+    grid-column: span 7 / span 7 !important;
+  }
+  .md\:col-span-5 {
+    grid-column: span 5 / span 5 !important;
+  }
+}
+
+/* ==========================================================================
+   Bento Card 1 — Mini-card animations
+   ========================================================================== */
+
+/* Train beam traveling through the connector between mini-cards.
+   Connector is w-4 = 16px. Beam is 50px wide.
+   left goes from -50px (fully before connector) to 16px (fully past connector). */
+@keyframes bentoTrainBeam {
+  0%   { left: -50px; }
+  100% { left: 16px; }
+}
+
+/* Continuous glowing train beam traveling around the triangle circuit (perimeter = 512px) */
+@keyframes bentoTrainLoop {
+  from {
+    stroke-dashoffset: 0;
+  }
+  to {
+    stroke-dashoffset: -512;
+  }
+}
+
+/* Cursor arrow clicks down ON the link, then springs back */
+@keyframes bentoCursorClick {
+  0%, 18%       { transform: translate(0, 0) scale(1); }
+  26%           { transform: translate(-1px, 2px) scale(0.85); }
+  36%           { transform: translate(0, -2px) scale(1.05); }
+  46%           { transform: translate(0, 0) scale(1); }
+  100%          { transform: translate(0, 0) scale(1); }
+}
+
+/* Link chip presses down on click and rebounds with an elastic bounce */
+@keyframes bentoLinkPress {
+  0%, 18% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(0, 102, 255, 0);
+  }
+  26% {
+    transform: scale(0.92);
+    background-color: rgba(0, 102, 255, 0.32);
+    border-color: rgba(56, 189, 248, 0.65);
+    box-shadow: 0 0 16px 2px rgba(56, 189, 248, 0.45);
+  }
+  36% {
+    transform: scale(1.07);
+    background-color: rgba(0, 102, 255, 0.22);
+    border-color: rgba(56, 189, 248, 0.4);
+    box-shadow: 0 0 12px 1px rgba(0, 102, 255, 0.3);
+  }
+  48% {
+    transform: scale(0.98);
+  }
+  58%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(0, 102, 255, 0);
+  }
+}
+
+/* Ripple that expands outward from cursor tip on impact */
+@keyframes bentoClickRipple {
+  0%, 20% { transform: translate(-50%, -50%) scale(0.2); opacity: 0; }
+  26%     { transform: translate(-50%, -50%) scale(0.4); opacity: 0.95; }
+  52%     { transform: translate(-50%, -50%) scale(3.5); opacity: 0; }
+  100%    { transform: translate(-50%, -50%) scale(3.5); opacity: 0; }
+}

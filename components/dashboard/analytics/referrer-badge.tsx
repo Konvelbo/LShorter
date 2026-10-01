@@ -27,7 +27,9 @@ export function parseReferrer(rawReferrer?: string | null): {
     lower === "none" ||
     ref === "—" ||
     ref === "-" ||
-    lower === "direct / none"
+    lower === "direct / none" ||
+    lower === "direct / short links" ||
+    lower === "direct / custom domain"
   ) {
     return {
       raw: ref || "Direct",
@@ -55,7 +57,13 @@ export function parseReferrer(rawReferrer?: string | null): {
   }
 
   // QR Code
-  if (lower === "qr" || lower === "qr code" || lower === "qrcode" || lower.includes("qr_code")) {
+  if (
+    lower === "qr" ||
+    lower === "qr code" ||
+    lower === "qrcode" ||
+    lower.includes("qr_code") ||
+    lower === "qr studio"
+  ) {
     return {
       raw: ref,
       info: {
@@ -79,7 +87,7 @@ export function parseReferrer(rawReferrer?: string | null): {
     };
   }
 
-  // Normalize lower case string for pattern matching
+  // Normalize string for brand detection: strip protocols, app schemas, www., queries and paths
   let cleanDomain = lower;
   try {
     if (ref.startsWith("http://") || ref.startsWith("https://")) {
@@ -87,18 +95,44 @@ export function parseReferrer(rawReferrer?: string | null): {
     }
   } catch {}
 
+  cleanDomain = cleanDomain
+    .replace(/^(android-app|ios-app):\/\//, "")
+    .replace(/^https?:\/\//, "")
+    .replace(/^www\./, "");
+
+  const firstSlash = cleanDomain.indexOf("/");
+  if (firstSlash !== -1) {
+    cleanDomain = cleanDomain.substring(0, firstSlash);
+  }
+
   // 2. Twitter / X
-  if (
-    cleanDomain.includes("twitter.com") ||
-    cleanDomain.includes("x.com") ||
-    cleanDomain.includes("t.co") ||
-    lower === "twitter" ||
-    lower === "x"
-  ) {
+  const isTCo =
+    cleanDomain === "t.co" ||
+    cleanDomain.endsWith(".t.co") ||
+    lower.startsWith("https://t.co") ||
+    lower.startsWith("http://t.co") ||
+    lower.startsWith("t.co/") ||
+    lower === "t.co";
+
+  const isTwitter =
+    lower.includes("twitter") ||
+    isTCo ||
+    cleanDomain === "x.com" ||
+    cleanDomain.endsWith(".x.com") ||
+    cleanDomain === "x" ||
+    lower === "x" ||
+    lower === "twitter / x" ||
+    lower === "twitter/x" ||
+    lower === "x / twitter" ||
+    lower === "x/twitter" ||
+    lower.includes("com.twitter") ||
+    lower.includes("tweet");
+
+  if (isTwitter) {
     return {
       raw: ref,
       info: {
-        platform: "X (Twitter)",
+        platform: "X",
         domain: "x.com",
         category: "social",
         color: "#000000",
@@ -108,23 +142,38 @@ export function parseReferrer(rawReferrer?: string | null): {
       },
       icon: (cls = "w-5 h-5") => (
         <svg viewBox="0 0 24 24" className={`shrink-0 ${cls}`} width="100%" height="100%">
-          <rect width="24" height="24" rx="5" fill="#000000" />
-          <path
-            d="M17.472 4.5h2.476l-5.41 6.183 6.364 8.417h-4.982l-3.902-5.102-4.466 5.102H4.476l5.787-6.614L4.12 4.5h5.108l3.527 4.664L17.472 4.5zm-.87 13.118h1.372L8.442 5.918H6.97l9.632 11.7z"
-            fill="#FFFFFF"
+          <circle
+            cx="12"
+            cy="12"
+            r="12"
+            fill="#000000"
+            stroke="rgba(128,128,128,0.35)"
+            strokeWidth="0.8"
           />
+          <g transform="translate(1.44, 1.44) scale(0.88)">
+            <path
+              d="M17.472 4.5h2.476l-5.41 6.183 6.364 8.417h-4.982l-3.902-5.102-4.466 5.102H4.476l5.787-6.614L4.12 4.5h5.108l3.527 4.664L17.472 4.5zm-.87 13.118h1.372L8.442 5.918H6.97l9.632 11.7z"
+              fill="#FFFFFF"
+            />
+          </g>
         </svg>
       ),
     };
   }
 
   // 3. Facebook
-  if (
+  const isFacebook =
+    lower.includes("facebook") ||
     cleanDomain.includes("facebook.com") ||
-    cleanDomain.includes("fb.com") ||
-    cleanDomain.includes("fb.me") ||
-    lower === "facebook"
-  ) {
+    cleanDomain === "fb.com" ||
+    cleanDomain.endsWith(".fb.com") ||
+    cleanDomain === "fb.me" ||
+    cleanDomain.endsWith(".fb.me") ||
+    lower === "facebook" ||
+    lower === "fb" ||
+    lower.includes("com.facebook");
+
+  if (isFacebook) {
     return {
       raw: ref,
       info: {
@@ -149,7 +198,15 @@ export function parseReferrer(rawReferrer?: string | null): {
   }
 
   // 4. Instagram
-  if (cleanDomain.includes("instagram.com") || lower === "instagram" || lower === "ig") {
+  const isInstagram =
+    lower.includes("instagram") ||
+    cleanDomain.includes("instagram.com") ||
+    cleanDomain === "instagr.am" ||
+    lower === "instagram" ||
+    lower === "ig" ||
+    lower.includes("com.instagram");
+
+  if (isInstagram) {
     return {
       raw: ref,
       info: {
@@ -183,11 +240,16 @@ export function parseReferrer(rawReferrer?: string | null): {
   }
 
   // 5. LinkedIn
-  if (
+  const isLinkedIn =
+    lower.includes("linkedin") ||
     cleanDomain.includes("linkedin.com") ||
-    cleanDomain.includes("lnkd.in") ||
-    lower === "linkedin"
-  ) {
+    cleanDomain === "lnkd.in" ||
+    cleanDomain.endsWith(".lnkd.in") ||
+    cleanDomain === "licdn.com" ||
+    lower === "linkedin" ||
+    lower.includes("com.linkedin");
+
+  if (isLinkedIn) {
     return {
       raw: ref,
       info: {
@@ -212,11 +274,15 @@ export function parseReferrer(rawReferrer?: string | null): {
   }
 
   // 6. WhatsApp
-  if (
+  const isWhatsApp =
+    lower.includes("whatsapp") ||
     cleanDomain.includes("whatsapp.com") ||
-    cleanDomain.includes("wa.me") ||
-    lower === "whatsapp"
-  ) {
+    cleanDomain === "wa.me" ||
+    cleanDomain.endsWith(".wa.me") ||
+    lower === "whatsapp" ||
+    lower.includes("com.whatsapp");
+
+  if (isWhatsApp) {
     return {
       raw: ref,
       info: {
@@ -241,11 +307,15 @@ export function parseReferrer(rawReferrer?: string | null): {
   }
 
   // 7. YouTube
-  if (
+  const isYouTube =
+    lower.includes("youtube") ||
     cleanDomain.includes("youtube.com") ||
-    cleanDomain.includes("youtu.be") ||
-    lower === "youtube"
-  ) {
+    cleanDomain === "youtu.be" ||
+    lower === "youtube" ||
+    lower === "yt" ||
+    lower.includes("google.android.youtube");
+
+  if (isYouTube) {
     return {
       raw: ref,
       info: {
@@ -270,7 +340,13 @@ export function parseReferrer(rawReferrer?: string | null): {
   }
 
   // 8. TikTok
-  if (cleanDomain.includes("tiktok.com") || lower === "tiktok") {
+  const isTikTok =
+    lower.includes("tiktok") ||
+    cleanDomain.includes("tiktok.com") ||
+    lower === "tiktok" ||
+    lower.includes("musically");
+
+  if (isTikTok) {
     return {
       raw: ref,
       info: {
@@ -305,11 +381,16 @@ export function parseReferrer(rawReferrer?: string | null): {
   }
 
   // 9. Telegram
-  if (
+  const isTelegram =
+    lower.includes("telegram") ||
     cleanDomain.includes("telegram.org") ||
-    cleanDomain.includes("t.me") ||
-    lower === "telegram"
-  ) {
+    cleanDomain === "t.me" ||
+    cleanDomain.endsWith(".t.me") ||
+    cleanDomain === "telegram.me" ||
+    lower === "telegram" ||
+    lower.includes("org.telegram");
+
+  if (isTelegram) {
     return {
       raw: ref,
       info: {
@@ -334,11 +415,15 @@ export function parseReferrer(rawReferrer?: string | null): {
   }
 
   // 10. Reddit
-  if (
+  const isReddit =
+    lower.includes("reddit") ||
     cleanDomain.includes("reddit.com") ||
-    cleanDomain.includes("redd.it") ||
-    lower === "reddit"
-  ) {
+    cleanDomain === "redd.it" ||
+    cleanDomain.endsWith(".redd.it") ||
+    lower === "reddit" ||
+    lower.includes("com.reddit");
+
+  if (isReddit) {
     return {
       raw: ref,
       info: {
@@ -363,11 +448,14 @@ export function parseReferrer(rawReferrer?: string | null): {
   }
 
   // 11. Google
-  if (
+  const isGoogle =
+    lower.includes("google") ||
     cleanDomain.includes("google.") ||
-    cleanDomain.includes("android-app://com.google") ||
-    lower === "google"
-  ) {
+    cleanDomain.startsWith("goo.gl") ||
+    lower === "google" ||
+    lower.includes("com.google");
+
+  if (isGoogle) {
     return {
       raw: ref,
       info: {
@@ -403,11 +491,14 @@ export function parseReferrer(rawReferrer?: string | null): {
   }
 
   // 12. Discord
-  if (
+  const isDiscord =
+    lower.includes("discord") ||
     cleanDomain.includes("discord.com") ||
-    cleanDomain.includes("discord.gg") ||
-    lower === "discord"
-  ) {
+    cleanDomain === "discord.gg" ||
+    lower === "discord" ||
+    lower.includes("com.discord");
+
+  if (isDiscord) {
     return {
       raw: ref,
       info: {
@@ -432,7 +523,12 @@ export function parseReferrer(rawReferrer?: string | null): {
   }
 
   // 13. Threads
-  if (cleanDomain.includes("threads.net") || lower === "threads") {
+  const isThreads =
+    lower.includes("threads") ||
+    cleanDomain.includes("threads.net") ||
+    lower === "threads";
+
+  if (isThreads) {
     return {
       raw: ref,
       info: {
@@ -457,11 +553,14 @@ export function parseReferrer(rawReferrer?: string | null): {
   }
 
   // 14. Pinterest
-  if (
+  const isPinterest =
+    lower.includes("pinterest") ||
     cleanDomain.includes("pinterest.com") ||
-    cleanDomain.includes("pin.it") ||
-    lower === "pinterest"
-  ) {
+    cleanDomain === "pin.it" ||
+    lower === "pinterest" ||
+    lower.includes("com.pinterest");
+
+  if (isPinterest) {
     return {
       raw: ref,
       info: {
@@ -486,7 +585,13 @@ export function parseReferrer(rawReferrer?: string | null): {
   }
 
   // 15. Snapchat
-  if (cleanDomain.includes("snapchat.com") || lower === "snapchat") {
+  const isSnapchat =
+    lower.includes("snapchat") ||
+    cleanDomain.includes("snapchat.com") ||
+    lower === "snapchat" ||
+    lower.includes("com.snapchat");
+
+  if (isSnapchat) {
     return {
       raw: ref,
       info: {
@@ -514,7 +619,12 @@ export function parseReferrer(rawReferrer?: string | null): {
   }
 
   // 16. GitHub
-  if (cleanDomain.includes("github.com") || lower === "github") {
+  const isGitHub =
+    lower.includes("github") ||
+    cleanDomain.includes("github.com") ||
+    lower === "github";
+
+  if (isGitHub) {
     return {
       raw: ref,
       info: {
@@ -528,7 +638,7 @@ export function parseReferrer(rawReferrer?: string | null): {
       },
       icon: (cls = "w-5 h-5") => (
         <svg viewBox="0 0 24 24" className={`shrink-0 ${cls}`} width="100%" height="100%">
-          <rect width="24" height="24" rx="5" fill="#24292F" />
+          <circle cx="12" cy="12" r="12" fill="#24292F" />
           <path
             d="M12 4a8 8 0 00-2.53 15.59c.4.07.55-.17.55-.38v-1.35c-2.22.48-2.69-1.07-2.69-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.05-.49.05-.49.8.06 1.23.83 1.23.83.71 1.22 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 014 0c1.53-1.03 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48v2.19c0 .21.15.46.55.38A8 8 0 0012 4z"
             fill="#FFFFFF"
@@ -539,11 +649,14 @@ export function parseReferrer(rawReferrer?: string | null): {
   }
 
   // 17. Messenger
-  if (
+  const isMessenger =
+    lower.includes("messenger") ||
     cleanDomain.includes("messenger.com") ||
-    cleanDomain.includes("m.me") ||
-    lower === "messenger"
-  ) {
+    cleanDomain === "m.me" ||
+    cleanDomain.endsWith(".m.me") ||
+    lower === "messenger";
+
+  if (isMessenger) {
     return {
       raw: ref,
       info: {
@@ -575,7 +688,12 @@ export function parseReferrer(rawReferrer?: string | null): {
   }
 
   // 18. Twitch
-  if (cleanDomain.includes("twitch.tv") || lower === "twitch") {
+  const isTwitch =
+    lower.includes("twitch") ||
+    cleanDomain.includes("twitch.tv") ||
+    lower === "twitch";
+
+  if (isTwitch) {
     return {
       raw: ref,
       info: {
@@ -600,7 +718,12 @@ export function parseReferrer(rawReferrer?: string | null): {
   }
 
   // 19. Slack
-  if (cleanDomain.includes("slack.com") || lower === "slack") {
+  const isSlack =
+    lower.includes("slack") ||
+    cleanDomain.includes("slack.com") ||
+    lower === "slack";
+
+  if (isSlack) {
     return {
       raw: ref,
       info: {
@@ -623,8 +746,123 @@ export function parseReferrer(rawReferrer?: string | null): {
     };
   }
 
-  // 20. Email / Mail
-  if (lower.includes("mail") || lower.includes("gmail") || lower.includes("outlook") || lower.includes("yahoo")) {
+  // 20. Hacker News
+  const isHackerNews =
+    cleanDomain.includes("ycombinator") ||
+    lower.includes("hackernews") ||
+    lower.includes("hacker news");
+
+  if (isHackerNews) {
+    return {
+      raw: ref,
+      info: {
+        platform: "Hacker News",
+        domain: "news.ycombinator.com",
+        category: "social",
+        color: "#FF6600",
+        badgeBg: "bg-[#FF6600]/10",
+        badgeBorder: "border-[#FF6600]/30",
+        badgeText: "text-[#FF6600]",
+      },
+      icon: (cls = "w-5 h-5") => (
+        <svg viewBox="0 0 24 24" className={`shrink-0 ${cls}`} width="100%" height="100%">
+          <rect width="24" height="24" rx="4.5" fill="#FF6600" />
+          <path d="M10.8 14.8v4.2h2.4v-4.2l3.8-7.8h-2.6l-2.4 5.3-2.4-5.3H7l3.8 7.8z" fill="#FFFFFF" />
+        </svg>
+      ),
+    };
+  }
+
+  // 21. Medium
+  const isMedium =
+    cleanDomain.includes("medium.com") ||
+    lower === "medium";
+
+  if (isMedium) {
+    return {
+      raw: ref,
+      info: {
+        platform: "Medium",
+        domain: "medium.com",
+        category: "social",
+        color: "#000000",
+        badgeBg: "bg-black/5 dark:bg-white/10",
+        badgeBorder: "border-black/20 dark:border-white/20",
+        badgeText: "text-zinc-900 dark:text-white",
+      },
+      icon: (cls = "w-5 h-5") => (
+        <svg viewBox="0 0 24 24" className={`shrink-0 ${cls}`} width="100%" height="100%">
+          <circle cx="12" cy="12" r="12" fill="#000000" />
+          <ellipse cx="6.5" cy="12" rx="4" ry="5.5" fill="#FFFFFF" />
+          <ellipse cx="14" cy="12" rx="2" ry="5.2" fill="#FFFFFF" />
+          <ellipse cx="18.5" cy="12" rx="0.8" ry="4.8" fill="#FFFFFF" />
+        </svg>
+      ),
+    };
+  }
+
+  // 22. Substack
+  const isSubstack =
+    cleanDomain.includes("substack.com") ||
+    lower === "substack";
+
+  if (isSubstack) {
+    return {
+      raw: ref,
+      info: {
+        platform: "Substack",
+        domain: "substack.com",
+        category: "social",
+        color: "#FF6719",
+        badgeBg: "bg-[#FF6719]/10",
+        badgeBorder: "border-[#FF6719]/30",
+        badgeText: "text-[#FF6719]",
+      },
+      icon: (cls = "w-5 h-5") => (
+        <svg viewBox="0 0 24 24" className={`shrink-0 ${cls}`} width="100%" height="100%">
+          <rect width="24" height="24" rx="4.5" fill="#FF6719" />
+          <path d="M19 6H5V4h14v2zm0 4H5V8h14v2zm0 10l-7-4-7 4v-8h14v8z" fill="#FFFFFF" />
+        </svg>
+      ),
+    };
+  }
+
+  // 23. Bing / Microsoft
+  const isBing =
+    cleanDomain.includes("bing.com") ||
+    cleanDomain.includes("microsoft.com") ||
+    lower === "bing";
+
+  if (isBing) {
+    return {
+      raw: ref,
+      info: {
+        platform: "Bing",
+        domain: "bing.com",
+        category: "search",
+        color: "#008373",
+        badgeBg: "bg-teal-500/10",
+        badgeBorder: "border-teal-500/30",
+        badgeText: "text-teal-700 dark:text-teal-300",
+      },
+      icon: (cls = "w-5 h-5") => (
+        <svg viewBox="0 0 24 24" className={`shrink-0 ${cls}`} width="100%" height="100%">
+          <rect width="24" height="24" rx="4.5" fill="#008373" />
+          <path d="M6 4v16l4.5-2.5 5.5 3 2-2V9.5l-6-2.5L6 4zm4 4l4 1.5v6.5l-4-2V8z" fill="#FFFFFF" opacity="0.9" />
+        </svg>
+      ),
+    };
+  }
+
+  // 24. Email / Mail
+  const isEmail =
+    lower.includes("mail") ||
+    lower.includes("gmail") ||
+    lower.includes("outlook") ||
+    lower.includes("yahoo") ||
+    lower.includes("proton");
+
+  if (isEmail) {
     return {
       raw: ref,
       info: {
@@ -648,7 +886,7 @@ export function parseReferrer(rawReferrer?: string | null): {
     };
   }
 
-  // 21. Generic Web Domain / Website
+  // 25. Generic Web Domain / Website
   const cleanLabel = cleanDomain.replace(/^www\./, "");
   return {
     raw: ref,
@@ -656,19 +894,42 @@ export function parseReferrer(rawReferrer?: string | null): {
       platform: cleanLabel || "Web Link",
       domain: cleanLabel,
       category: "web",
-      color: "#475467",
-      badgeBg: "bg-zinc-100 dark:bg-white/5",
-      badgeBorder: "border-zinc-200 dark:border-[#27272a]",
-      badgeText: "text-zinc-700 dark:text-zinc-300",
+      color: "#0066FF",
+      badgeBg: "bg-blue-500/10 dark:bg-blue-500/15",
+      badgeBorder: "border-blue-500/20 dark:border-blue-500/30",
+      badgeText: "text-blue-700 dark:text-blue-300",
     },
     icon: (cls = "w-5 h-5") => (
-      <svg viewBox="0 0 24 24" className={`shrink-0 ${cls}`} width="100%" height="100%">
-        <circle cx="12" cy="12" r="12" fill="#475467" />
-        <path
-          d="M12 4.5a7.5 7.5 0 100 15 7.5 7.5 0 000-15zm-1.8 1.4c.5-1 1.2-1.4 1.8-1.4s1.3.4 1.8 1.4c.6 1.1.9 2.5 1 4.1h-5.6c.1-1.6.4-3 1-4.1zm-4.3 4.1c.2-1.3.7-2.5 1.5-3.4 1-.2 2-.3 3-.3v3.7H5.9zm0 1.5h4.2v3.7c-1 0-2-.1-3-.3-.8-.9-1.3-2.1-1.5-3.4zm4.3 5.6c-.6-1.1-.9-2.5-1-4.1h5.6c-.1 1.6-.4 3-1 4.1-.5 1-1.2 1.4-1.8 1.4s-1.3-.4-1.8-1.4zm3.9-.5c.8-.9 1.3-2.1 1.5-3.4h-4.2v3.7c1-.2 2-.3 2.7-.3zm1.5-4.9c-.2-1.3-.7-2.5-1.5-3.4-.7 0-1.7-.1-2.7-.3V8.8h4.2z"
-          fill="#FFFFFF"
-        />
-      </svg>
+      <span className={`inline-flex items-center justify-center shrink-0 relative ${cls}`}>
+        {cleanLabel && cleanLabel.includes(".") && (
+          <img
+            src={`https://www.google.com/s2/favicons?domain=${cleanLabel}&sz=64`}
+            alt={cleanLabel}
+            className="w-full h-full rounded-full object-contain"
+            onError={(e) => {
+              (e.currentTarget as HTMLElement).style.display = "none";
+              const next = e.currentTarget.nextElementSibling as HTMLElement;
+              if (next) next.style.display = "block";
+            }}
+          />
+        )}
+        <svg
+          viewBox="0 0 24 24"
+          className="w-full h-full shrink-0"
+          style={{ display: cleanLabel && cleanLabel.includes(".") ? "none" : "block" }}
+        >
+          <defs>
+            <linearGradient id="lshorter_web_grad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#4F46E5" />
+              <stop offset="100%" stopColor="#06B6D4" />
+            </linearGradient>
+          </defs>
+          <circle cx="12" cy="12" r="12" fill="url(#lshorter_web_grad)" />
+          <circle cx="12" cy="12" r="7.5" stroke="#FFFFFF" strokeWidth="1.2" fill="none" opacity="0.9" />
+          <ellipse cx="12" cy="12" rx="3.5" ry="7.5" stroke="#FFFFFF" strokeWidth="1.2" fill="none" opacity="0.9" />
+          <line x1="4.5" y1="12" x2="19.5" y2="12" stroke="#FFFFFF" strokeWidth="1.2" opacity="0.9" />
+        </svg>
+      </span>
     ),
   };
 }
@@ -705,7 +966,7 @@ export function ReferrerLogo({
     );
   }
 
-  // Pour les marques/brands, afficher le vrai logo officiel en SVG
+  // Pour les marques/brands, afficher le vrai logo officiel coloré
   return (
     <div
       title={displayTitle}

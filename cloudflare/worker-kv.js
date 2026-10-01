@@ -44,6 +44,27 @@ export default {
       });
     };
 
+    const invalidateUserCache = (targetUserId) => {
+      if (!env.LINKS_KV) return;
+      ctx.waitUntil(
+        (async () => {
+          try {
+            const keysToDelete = [
+              `cache:links_list:${targetUserId || 'all'}`,
+              'cache:links_list:all',
+              `cache:analytics:${targetUserId || 'all'}:all:30d`,
+              `cache:analytics:${targetUserId || 'all'}:all:24h`,
+              `cache:analytics:${targetUserId || 'all'}:all:7d`,
+              `cache:analytics:${targetUserId || 'all'}:all:12m`,
+              'cache:analytics:all:all:30d',
+              'cache:analytics:all:all:24h',
+            ];
+            await Promise.allSettled(keysToDelete.map((k) => env.LINKS_KV.delete(k)));
+          } catch {}
+        })()
+      );
+    };
+
     // ─── 0. PUBLIC IMAGE STREAMING ENDPOINT (Decodes base64 or redirects) ──
     if (path.startsWith('/api/v1/images/') || path.startsWith('/api/images/')) {
       const filename = path.split('/').pop() || '';
@@ -549,7 +570,7 @@ export default {
                 // 2. Insert event for analytics & unique clicks calculation
                 const eventId = 'ev_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
                 try {
-                  const linkRow = await env.DB.prepare('SELECT id, user_id, target_url FROM links WHERE slug = ? OR id = ? LIMIT 1').bind(targetSlugOrId, targetSlugOrId).first().catch(() => null);
+                  const linkRow = await env.DB.prepare('SELECT id, user_id, target_url, slug FROM links WHERE LOWER(slug) = LOWER(?) OR id = ? LIMIT 1').bind(targetSlugOrId, targetSlugOrId).first().catch(() => null);
                   await env.DB.prepare(`
                     INSERT INTO click_events (id, user_id, link_id, slug, ip_masked, country_code, city, device, browser, os, referrer, resolved_url, is_unique, conversion_amount, timestamp)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, datetime('now'))
@@ -557,7 +578,7 @@ export default {
                     eventId,
                     linkRow?.user_id || request.headers.get('x-user-id') || 'usr_default',
                     linkRow?.id || targetSlugOrId,
-                    targetSlugOrId,
+                    linkRow?.slug || targetSlugOrId,
                     ipHash,
                     country,
                     city,
@@ -568,6 +589,9 @@ export default {
                     linkRow?.target_url || 'https://lsho.cc',
                     conversionAmount
                   ).run().catch((e) => console.warn('[Click Insert Warning]:', e));
+                  if (linkRow?.user_id) {
+                    invalidateUserCache(linkRow.user_id);
+                  }
                 } catch (insErr) {
                   console.warn('[D1 Click Processing Error]:', insErr);
                 }
@@ -603,6 +627,24 @@ export default {
         if (!linkIdOrSlug) {
           const userId = url.searchParams.get('userId');
           if (!env.DB) return jsonResponse({ success: true, data: [] });
+
+          const linksCacheKey = `cache:links_list:${userId || 'all'}`;
+          if (env.LINKS_KV) {
+            try {
+              const cached = await env.LINKS_KV.get(linksCacheKey);
+              if (cached) {
+                return new Response(cached, {
+                  headers: {
+                    ...corsHeaders,
+                    'Content-Type': 'application/json; charset=utf-8',
+                    'X-Edge-Cache': 'HIT',
+                    'Cache-Control': 'public, max-age=15, stale-while-revalidate=30',
+                  },
+                });
+              }
+            } catch {}
+          }
+
           try {
             let query = `
               SELECT links.*, users.email AS user_email, users.name AS user_name 
@@ -611,8 +653,8 @@ export default {
             `;
             const params = [];
             if (userId && userId !== 'all') {
-              query += ' WHERE links.user_id = ?';
-              params.push(userId);
+              query += ' WHERE (links.user_id = ? OR links.user_id IN (SELECT id FROM users WHERE LOWER(email) = LOWER(?)))';
+              params.push(userId, userId);
             }
             query += ' ORDER BY links.created_at DESC LIMIT 500';
             let results = [];
@@ -623,14 +665,27 @@ export default {
               let fbQuery = 'SELECT * FROM links';
               const fbParams = [];
               if (userId && userId !== 'all') {
-                fbQuery += ' WHERE user_id = ?';
-                fbParams.push(userId);
+                fbQuery += ' WHERE (user_id = ? OR user_id IN (SELECT id FROM users WHERE LOWER(email) = LOWER(?)))';
+                fbParams.push(userId, userId);
               }
               fbQuery += ' ORDER BY created_at DESC LIMIT 500';
               const fb = await env.DB.prepare(fbQuery).bind(...fbParams).all();
               results = fb?.results || [];
             }
-            return jsonResponse({ success: true, data: results });
+            const payload = JSON.stringify({ success: true, data: results });
+            if (env.LINKS_KV) {
+              ctx.waitUntil(
+                env.LINKS_KV.put(linksCacheKey, payload, { expirationTtl: 60 }).catch(() => {})
+              );
+            }
+            return new Response(payload, {
+              headers: {
+                ...corsHeaders,
+                'Content-Type': 'application/json; charset=utf-8',
+                'X-Edge-Cache': 'MISS',
+                'Cache-Control': 'public, max-age=15, stale-while-revalidate=30',
+              },
+            });
           } catch (err) {
             return jsonResponse({ success: true, data: [] });
           }
@@ -776,6 +831,7 @@ export default {
             }
           }
 
+          invalidateUserCache(userId);
           return jsonResponse({ success: true, data: linkObj }, 201);
         } catch (err) {
           return jsonResponse({ success: false, error: sanitizeError(err) }, 500);
@@ -948,6 +1004,7 @@ export default {
             }
           }
 
+          invalidateUserCache(existingLink?.user_id || body.userId || updatedLinkObj?.user_id);
           return jsonResponse({ success: true, data: updatedLinkObj });
         } catch (err) {
           const cleanMsg = String(err?.message || '').includes('UNIQUE') ? 'Ce slug personnalisé est déjà utilisé.' : 'Erreur lors de la modification du lien.';
@@ -1005,6 +1062,7 @@ export default {
             }
           }
 
+          invalidateUserCache(url.searchParams.get('userId'));
           return jsonResponse({ success: true });
         } catch (err) {
           return jsonResponse({ success: false, error: 'Erreur lors de la suppression du lien.' }, 500);
@@ -1183,8 +1241,8 @@ export default {
         let linkQuery = 'SELECT id, slug, user_id, clicks_count, created_at FROM links WHERE 1=1';
         const linkParams = [];
         if (userId && userId !== 'all') {
-          linkQuery += ' AND user_id = ?';
-          linkParams.push(userId);
+          linkQuery += ' AND (user_id = ? OR user_id IN (SELECT id FROM users WHERE LOWER(email) = LOWER(?)))';
+          linkParams.push(userId, userId);
         }
         if (linkId && linkId !== 'all') {
           linkQuery += ' AND (id = ? OR LOWER(slug) = LOWER(?))';
@@ -1213,20 +1271,20 @@ export default {
           dateCutoff = "datetime('now', '-365 days')";
         }
 
-        let baseWhere = `timestamp >= ${dateCutoff}`;
+        let baseWhere = `datetime(timestamp) >= ${dateCutoff}`;
         let bindValues = [];
 
         if (linkId && linkId !== 'all') {
-          baseWhere = `(slug = ? OR link_id = ?) AND timestamp >= ${dateCutoff}`;
+          baseWhere = `(slug = ? OR link_id = ?) AND datetime(timestamp) >= ${dateCutoff}`;
           bindValues = [linkId, linkId];
         } else if (userId && userId !== 'all') {
           if (allIdentifiers.length > 0) {
             const inPlaceholders = allIdentifiers.map(() => '?').join(',');
-            baseWhere = `(slug IN (${inPlaceholders}) OR link_id IN (${inPlaceholders}) OR user_id = ?) AND timestamp >= ${dateCutoff}`;
-            bindValues = [...allIdentifiers, ...allIdentifiers, userId];
+            baseWhere = `(slug IN (${inPlaceholders}) OR link_id IN (${inPlaceholders}) OR user_id = ? OR user_id IN (SELECT id FROM users WHERE LOWER(email) = LOWER(?))) AND datetime(timestamp) >= ${dateCutoff}`;
+            bindValues = [...allIdentifiers, ...allIdentifiers, userId, userId];
           } else {
-            baseWhere = `user_id = ? AND timestamp >= ${dateCutoff}`;
-            bindValues = [userId];
+            baseWhere = `(user_id = ? OR user_id IN (SELECT id FROM users WHERE LOWER(email) = LOWER(?))) AND datetime(timestamp) >= ${dateCutoff}`;
+            bindValues = [userId, userId];
           }
         }
 
@@ -1407,7 +1465,7 @@ export default {
         const payloadStr = JSON.stringify(finalPayload);
         if (env.LINKS_KV) {
           ctx.waitUntil(
-            env.LINKS_KV.put(cacheKey, payloadStr, { expirationTtl: 30 }).catch(() => {})
+            env.LINKS_KV.put(cacheKey, payloadStr, { expirationTtl: 60 }).catch(() => {})
           );
         }
 

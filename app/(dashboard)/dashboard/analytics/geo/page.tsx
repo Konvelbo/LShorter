@@ -46,6 +46,8 @@ import {
   getContinentForCountry,
   getCountryName,
   getCountryFlag,
+  getCountryFromGeography,
+  preprocessWorldGeographies,
 } from "@/lib/geo-coordinates";
 import { detectOSFromEvent } from "@/lib/device-detection";
 import { ContinentTraffic } from "@/components/dashboard/analytics/continents-vector-map";
@@ -56,6 +58,7 @@ import {
 import { AnalyticsGeoSkeleton } from "@/components/ui/skeleton";
 import { showToast } from "@/components/ui/toast-provider";
 import { formatNumber } from "@/lib/utils";
+import { exportToExcelWorkbook } from "@/lib/export-excel";
 
 const GEO_URL =
   "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
@@ -74,7 +77,7 @@ export const COUNTRY_CENTROIDS: Record<
   GH: { lat: 7.9465, lng: -1.0232, name: "Ghana", continent: "Africa" },
   NG: { lat: 9.082, lng: 8.6753, name: "Nigeria", continent: "Africa" },
   CM: { lat: 5.9631, lng: 12.3547, name: "Cameroon", continent: "Africa" },
-  FR: { lat: 46.6033, lng: 2.2137, name: "France", continent: "Europe" },
+  FR: { lat: 46.6033, lng: 1.8883, name: "France", continent: "Europe" },
   US: {
     lat: 39.8283,
     lng: -98.5795,
@@ -161,44 +164,14 @@ function resolveCountryFromGeography(geo: any): {
   lat: number;
   lng: number;
 } {
-  const rawId = String(geo.id || "");
-  const paddedId = rawId.padStart(3, "0");
-  const propName = String(geo.properties?.name || "")
-    .trim()
-    .toLowerCase();
-
-  if (paddedId === "854" || rawId === "854" || propName.includes("burkina")) {
-    return {
-      code: "BF",
-      name: "Burkina Faso",
-      continent: "Africa",
-      lat: 12.2383,
-      lng: -1.5616,
-    };
-  }
-
-  const code =
-    WORLD_ATLAS_NUMERIC_TO_ALPHA2[paddedId] ||
-    WORLD_ATLAS_NUMERIC_TO_ALPHA2[rawId] ||
-    "XX";
-
-  const centroid = COUNTRY_CENTROIDS[code] || WORLD_COUNTRIES[code];
-  if (centroid) {
-    return {
-      code,
-      name: centroid.name || getCountryName(code),
-      continent: centroid.continent,
-      lat: centroid.lat,
-      lng: centroid.lng,
-    };
-  }
-
+  const d = getCountryFromGeography(geo);
+  const centroid = COUNTRY_CENTROIDS[d.code] || WORLD_COUNTRIES[d.code];
   return {
-    code,
-    name: geo.properties?.name || "Territory",
-    continent: "Africa",
-    lat: 0,
-    lng: 0,
+    code: d.code,
+    name: centroid?.name || d.name,
+    continent: centroid?.continent || d.continent,
+    lat: centroid?.lat ?? d.lat,
+    lng: centroid?.lng ?? d.lng,
   };
 }
 
@@ -832,38 +805,30 @@ export default function GeoAnalyticsPage() {
 
   const handleExportGeoCSV = () => {
     try {
-      const headers = [
-        "Timestamp",
-        "Country",
-        "Code",
-        "Link",
-        "Device",
-        "Browser",
-      ];
-      const rows = filteredEvents.map((ev) => [
-        ev.timestamp,
-        `"${ev.countryName}"`,
-        ev.countryCode,
-        `"/${ev.slug}"`,
-        ev.device,
-        ev.browser,
-      ]);
-
-      const csvContent =
-        "\uFEFF" +
-        [headers.join(";"), ...rows.map((r) => r.join(";"))].join("\r\n");
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `lshorter_geo_analytics_${selectedRange}_${new Date().toISOString().split("T")[0]}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-      showToast.success("Geographic analytics exported to CSV!");
+      exportToExcelWorkbook({
+        filename: `lshorter_geo_analytics_${selectedRange}_${new Date().toISOString().split("T")[0]}.xls`,
+        reportTitle: `LShorter — Geographic Analytics Report (${selectedRange.toUpperCase()})`,
+        reportSubtitle: `Global visitor distribution, edge PoPs, devices, and browser breakdowns`,
+        columns: [
+          { header: "Timestamp", width: 190, align: "left" },
+          { header: "Country", width: 220, align: "left" },
+          { header: "Code", width: 100, align: "center" },
+          { header: "Link / Slug", width: 240, align: "left" },
+          { header: "Device", width: 140, align: "center" },
+          { header: "Browser", width: 140, align: "center" },
+        ],
+        rows: filteredEvents.map((ev) => [
+          ev.timestamp,
+          ev.countryName,
+          ev.countryCode,
+          `/${ev.slug}`,
+          ev.device,
+          ev.browser,
+        ]),
+      });
+      showToast.success("Geographic analytics exported to Excel with formatted columns!");
     } catch {
-      showToast.error("Error exporting CSV.");
+      showToast.error("Error exporting Excel file.");
     }
   };
 
@@ -966,7 +931,7 @@ export default function GeoAnalyticsPage() {
             className="ml-auto sm:ml-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-[10px] bg-[#0066FF] hover:bg-[#0055d4] text-xs font-semibold !text-white shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
           >
             <Download className="w-3.5 h-3.5 !text-white" />
-            <span className="!text-white">Export CSV</span>
+            <span className="!text-white">Export Excel</span>
           </button>
         </div>
       </div>
@@ -1170,7 +1135,7 @@ export default function GeoAnalyticsPage() {
             >
               <Geographies geography={GEO_URL}>
                 {({ geographies }) =>
-                  geographies.map((geo) => {
+                  preprocessWorldGeographies(geographies).map((geo) => {
                     const resolved = resolveCountryFromGeography(geo);
                     const countryClicks = countryClicksMap.get(resolved.code) || 0;
                     const hasClicks = countryClicks > 0;
@@ -1443,7 +1408,7 @@ export default function GeoAnalyticsPage() {
               >
                 <Geographies geography={GEO_URL}>
                   {({ geographies }) =>
-                    geographies.map((geo) => {
+                    preprocessWorldGeographies(geographies).map((geo) => {
                       const resolved = resolveCountryFromGeography(geo);
                       const countryClicks = countryClicksMap.get(resolved.code) || 0;
                       const hasClicks = countryClicks > 0;
@@ -1628,7 +1593,7 @@ export default function GeoAnalyticsPage() {
                     {visibleColumns.has("referrer") && (
                       <td className="py-2 px-3 whitespace-nowrap text-center">
                         <div className="flex items-center justify-center">
-                          <ReferrerLogo referrer={ev.referrer} size={18} />
+                          <ReferrerLogo referrer={ev.referrer} size={22} />
                         </div>
                       </td>
                     )}

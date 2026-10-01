@@ -33,6 +33,7 @@ import {
 } from "@/lib/cloudflare-api";
 import { formatNumber } from "@/lib/utils";
 import { showToast } from "@/components/ui/toast-provider";
+import { exportToExcelWorkbook } from "@/lib/export-excel";
 
 const MONTH_LABELS = [
   "Jan",
@@ -345,11 +346,11 @@ export default function AnalyticsPage() {
       }
     } catch {}
 
-    // Polling interval (every 4 seconds when tab is active) to keep telemetry live without Chrome F5
+    // Polling interval (every 30 seconds when tab is active) - real-time sync is handled by event listeners
     const pollTimer = setInterval(() => {
       if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
       loadAnalytics(range, true);
-    }, 4000);
+    }, 30000);
 
     return () => {
       window.removeEventListener("lshorter_data_change", handleUpdate);
@@ -581,52 +582,45 @@ export default function AnalyticsPage() {
 
   const handleExportOverviewCSV = () => {
     try {
-      const headers = [
-        "Category",
-        "Item / Metric",
-        "Value",
-        "Share / Delta",
-        "Period",
-      ];
-      const rows = [
-        ...topKpis.map((k) => [
-          "KPI",
-          `"${k.label}"`,
-          `"${k.value}"`,
-          `"${k.delta}"`,
-          range,
-        ]),
-        ...topChannels.map((c) => [
-          "Top Channel",
-          `"${c.source}"`,
-          `"${c.visitors}"`,
-          `${c.share}%`,
-          range,
-        ]),
-        ...topShortLinks.map((l) => [
-          "Top Short Link",
-          `"${l.slug}"`,
-          `"${l.pageviews}"`,
-          `${l.share}%`,
-          range,
-        ]),
-      ];
-      const csvContent =
-        "\uFEFF" +
-        [headers.join(";"), ...rows.map((r) => r.join(";"))].join("\r\n");
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `lshorter_analytics_overview_${range}_${new Date().toISOString().split("T")[0]}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      exportToExcelWorkbook({
+        filename: `lshorter_analytics_overview_${range}_${new Date().toISOString().split("T")[0]}.xls`,
+        reportTitle: `LShorter — Analytics Overview Report (${range.toUpperCase()})`,
+        reportSubtitle: `Real-time edge telemetry, referral channel attribution & top performing links`,
+        columns: [
+          { header: "Category", width: 180, align: "left" },
+          { header: "Item / Metric", width: 340, align: "left" },
+          { header: "Value", width: 140, align: "right" },
+          { header: "Share / Delta", width: 180, align: "center" },
+          { header: "Period", width: 120, align: "center" },
+        ],
+        rows: [
+          ...topKpis.map((k) => [
+            "KPI",
+            k.label,
+            k.value,
+            k.delta,
+            range,
+          ]),
+          ...topChannels.map((c) => [
+            "Top Channel",
+            c.source,
+            c.visitors,
+            `${c.share}%`,
+            range,
+          ]),
+          ...topShortLinks.map((l) => [
+            "Top Short Link",
+            l.slug,
+            l.pageviews,
+            `${l.share}%`,
+            range,
+          ]),
+        ],
+      });
       setOpenCardMenu(null);
-      showToast.success("Analytics overview exported to CSV!");
+      showToast.success("Analytics overview exported to Excel with formatted columns!");
     } catch {
-      showToast.error("Error exporting CSV.");
+      showToast.error("Error exporting Excel file.");
     }
   };
 
@@ -717,7 +711,7 @@ export default function AnalyticsPage() {
             className="inline-flex items-center gap-2 rounded-[10px] bg-[#0066FF] hover:bg-[#0055d4] px-4 py-2 text-[13px] font-semibold !text-white shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
           >
             <Download className="w-4 h-4 !text-white" />
-            <span className="!text-white">Export CSV</span>
+            <span className="!text-white">Export Excel</span>
           </button>
         </div>
       </div>

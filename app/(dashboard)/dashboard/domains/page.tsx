@@ -33,6 +33,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { showToast } from "@/components/ui/toast-provider";
 import { DeleteConfirmModal } from "@/components/dashboard/delete-confirm-modal";
+import { getPlanLimits, triggerPlanUpgrade } from "@/lib/plan-guard";
 import confetti from "canvas-confetti";
 
 export default function DomainsPage() {
@@ -214,8 +215,10 @@ export default function DomainsPage() {
   const [sortBy, setSortBy] = useState<"date" | "name" | "links">("date");
 
   const userId = session?.user?.id;
-  const plan = (session?.user as any)?.plan || "FREEMIUM";
-  const domainsLimit = plan === "BUSINESS" ? -1 : plan === "PRO" ? 15 : 3;
+  const rawPlan = (session?.user as any)?.plan || "FREE";
+  const plan = rawPlan === "FREEMIUM" || rawPlan === "STARTER" ? "FREE" : rawPlan;
+  const planLimits = getPlanLimits(plan);
+  const domainsLimit = planLimits.domainsLimit;
   const DEFAULT_DOMAIN = process.env.NEXT_PUBLIC_DEFAULT_DOMAIN || "lsho.cc";
 
   const loadDomains = async (isBackground = false) => {
@@ -318,8 +321,13 @@ export default function DomainsPage() {
     }
 
     if (domainsLimit !== -1 && domains.length >= domainsLimit) {
+      triggerPlanUpgrade({
+        featureName: "Custom Domains",
+        reason: `Your ${plan} plan is limited to ${domainsLimit} custom domains. Upgrade to add more.`,
+        targetPlan: plan === "FREE" ? "PRO" : "BUSINESS",
+      });
       showToast.error(
-        `Your ${plan} plan is limited to ${domainsLimit} custom domains.`,
+        `Your ${plan} plan is limited to ${domainsLimit} custom domains. Upgrade to add more.`,
       );
       return;
     }

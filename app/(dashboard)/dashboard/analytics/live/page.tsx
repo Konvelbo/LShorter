@@ -38,6 +38,7 @@ import {
 import { formatNumber, getCountryName } from "@/lib/utils";
 import { detectOSFromEvent } from "@/lib/device-detection";
 import { AnalyticsLiveSkeleton } from "@/components/ui/skeleton";
+import { exportToExcelWorkbook } from "@/lib/export-excel";
 import { showToast } from "@/components/ui/toast-provider";
 import { ReferrerBadge, ReferrerLogo } from "@/components/dashboard/analytics/referrer-badge";
 
@@ -333,36 +334,23 @@ function LiveClickStreamContent() {
 
   const handleExportStreamCSV = () => {
     try {
-      const colSpecs = [
-        { header: "EVENT ID", width: 22 },
-        { header: "TIMESTAMP (UTC)", width: 28 },
-        { header: "SHORT LINK URL", width: 36 },
-        { header: "CITY", width: 22 },
-        { header: "COUNTRY CODE", width: 16 },
-        { header: "COUNTRY NAME", width: 28 },
-        { header: "DEVICE TYPE", width: 18 },
-        { header: "OPERATING SYSTEM", width: 22 },
-        { header: "BROWSER AGENT", width: 26 },
-        { header: "REFERRER SOURCE", width: 38 },
-      ];
-
-      const padCell = (val: string, width: number) => {
-        const clean = String(val ?? "")
-          .replace(/"/g, '""')
-          .replace(/\r?\n/g, " ");
-        const padded = `  ${clean.padEnd(width, " ")}  `;
-        return `"${padded}"`;
-      };
-
-      const headerRow = colSpecs
-        .map((c) => padCell(c.header, c.width))
-        .join(" ; ");
-      const separatorRow = colSpecs
-        .map((c) => padCell("-".repeat(c.width), c.width))
-        .join(" ; ");
-
-      const rows = filteredEvents.map((ev) => {
-        const values = [
+      exportToExcelWorkbook({
+        filename: `lshorter_live_click_stream_${selectedRange}_${new Date().toISOString().split("T")[0]}.xls`,
+        reportTitle: `LShorter — Live Edge Click Stream Ledger (${selectedRange.toUpperCase()})`,
+        reportSubtitle: `Real-time resolution events across global Cloudflare edge PoPs`,
+        columns: [
+          { header: "Event ID", width: 160, align: "left" },
+          { header: "Timestamp (UTC)", width: 190, align: "left" },
+          { header: "Short Link URL", width: 260, align: "left" },
+          { header: "City", width: 160, align: "left" },
+          { header: "Country Code", width: 110, align: "center" },
+          { header: "Country Name", width: 190, align: "left" },
+          { header: "Device Type", width: 130, align: "center" },
+          { header: "Operating System", width: 150, align: "left" },
+          { header: "Browser Agent", width: 150, align: "left" },
+          { header: "Referrer Source", width: 220, align: "left" },
+        ],
+        rows: filteredEvents.map((ev) => [
           ev.id || "—",
           ev.timestamp || new Date().toISOString(),
           `https://lsho.cc/${ev.slug}`,
@@ -373,26 +361,11 @@ function LiveClickStreamContent() {
           ev.os || "Windows",
           ev.browser || "Chrome",
           ev.referrer || "Direct",
-        ];
-        return values
-          .map((v, idx) => padCell(v, colSpecs[idx].width))
-          .join(" ; ");
+        ]),
       });
-
-      const csvContent =
-        "\uFEFF" + [headerRow, separatorRow, ...rows].join("\r\n");
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `lshorter_live_click_stream_${selectedRange}_${new Date().toISOString().split("T")[0]}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-      showToast.success("Live click stream exported to CSV!");
+      showToast.success("Live click stream exported to Excel with formatted columns!");
     } catch {
-      showToast.error("Error exporting CSV.");
+      showToast.error("Error exporting Excel file.");
     }
   };
 
@@ -516,7 +489,7 @@ function LiveClickStreamContent() {
             className="inline-flex h-9 items-center justify-center gap-1.5 px-3.5 rounded-[8px] bg-[#0066FF] hover:bg-[#0055d4] text-xs font-semibold !text-white transition-colors cursor-pointer shrink-0 whitespace-nowrap"
           >
             <Download className="w-3.5 h-3.5 !text-white" />
-            <span className="!text-white">Export Stream (CSV)</span>
+            <span className="!text-white">Export Excel</span>
           </button>
         </div>
       </div>
@@ -749,7 +722,7 @@ function LiveClickStreamContent() {
                       {visibleColumns.has("referrer") && (
                         <td className="py-2 px-3 whitespace-nowrap text-center">
                           <div className="flex items-center justify-center">
-                            <ReferrerLogo referrer={ev.referrer} size={18} />
+                            <ReferrerLogo referrer={ev.referrer} size={22} />
                           </div>
                         </td>
                       )}

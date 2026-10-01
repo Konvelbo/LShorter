@@ -2,6 +2,7 @@
 
 import React, { useRef, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useSession } from "next-auth/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -171,7 +172,7 @@ export function LandingFooter() {
             </span>
           </Link>
           <Link
-            href="/#product"
+            href="/pricing"
             onClick={handleScrollToProduct}
             onMouseEnter={(e) =>
               gsap.to(e.currentTarget, {
@@ -189,7 +190,7 @@ export function LandingFooter() {
             }
             className="w-full sm:w-auto inline-flex items-center justify-center rounded-full bg-white dark:bg-[#1C1C1C] hover:bg-[#F2F4F7] dark:hover:bg-[#262626] text-[#101828] dark:text-[#FFFFFF] border border-[#D0D5DD] dark:border-[#2E2E2E] px-6 py-2.5 text-[13.5px] font-medium transition-colors"
           >
-            Open live dashboard
+            Access our plans
           </Link>
         </div>
       </div>
@@ -230,8 +231,14 @@ export function LandingFooter() {
           {/* Left: Brand Copyright + Built on Cloudflare */}
           <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4">
             <div className="flex items-center gap-2.5">
-              <div className="w-6 h-6 rounded-[6px] bg-[#465FFF] text-white font-extrabold text-[10px] flex items-center justify-center">
-                LS
+              <div className="w-6 h-6 rounded-[6px] overflow-hidden shrink-0 shadow-2xs">
+                <Image
+                  src="/logo.svg"
+                  alt="LShorter Logo"
+                  width={24}
+                  height={24}
+                  className="w-full h-full object-contain"
+                />
               </div>
               <span className="font-semibold text-[#101828] dark:text-[#FFFFFF] tracking-tight">
                 LShorter

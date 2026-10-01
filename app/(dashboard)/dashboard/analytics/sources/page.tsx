@@ -592,7 +592,7 @@ export default function SourcesAnalyticsPage() {
                     {visibleColumns.has("referrer") && (
                       <td className="py-2 px-3 whitespace-nowrap text-center">
                         <div className="flex items-center justify-center">
-                          <ReferrerLogo referrer={ev.referrer} size={18} />
+                          <ReferrerLogo referrer={ev.referrer} size={22} />
                         </div>
                       </td>
                     )}

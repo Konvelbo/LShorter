@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
@@ -299,7 +300,7 @@ export function Sidebar() {
   const clicksThisMonth = typeof liveClicks === "number" ? liveClicks : 0;
   const clicksLimit =
     plan === "ENTERPRISE"
-      ? 2_000_000
+      ? -1
       : plan === "BUSINESS"
         ? 500_000
         : plan === "PRO"
@@ -311,19 +312,26 @@ export function Sidebar() {
     clicksLimit > 0 ? (clicksThisMonth / clicksLimit) * 100 : 0;
   const clicksPercent = Math.min(100, Math.round(rawClicksRatio));
   const clicksPercentLabel =
-    clicksThisMonth === 0
-      ? "0%"
-      : rawClicksRatio < 1
-        ? `${rawClicksRatio.toFixed(2)}%`
-        : `${clicksPercent}%`;
+    clicksLimit === -1
+      ? "Unlimited"
+      : clicksThisMonth === 0
+        ? "0%"
+        : rawClicksRatio < 1
+          ? `${rawClicksRatio.toFixed(2)}%`
+          : `${clicksPercent}%`;
 
   const isOverage =
+    clicksLimit !== -1 &&
     clicksThisMonth > clicksLimit &&
-    (plan === "PRO" || plan === "BUSINESS" || plan === "ENTERPRISE");
+    (plan === "PRO" || plan === "BUSINESS");
 
   // Largeur visible de la barre dans le CSS identique à settings (clicksBarWidthPercent)
   const barWidth =
-    clicksThisMonth > 0 ? Math.min(100, Math.max(2, rawClicksRatio)) : 0;
+    clicksLimit === -1
+      ? 0
+      : clicksThisMonth > 0
+        ? Math.min(100, Math.max(2, rawClicksRatio))
+        : 0;
 
   const toggleSubmenu = (name: string) => {
     if (isCollapsed) setIsCollapsed(false);
@@ -489,8 +497,15 @@ export function Sidebar() {
           )}
         >
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="flex h-8 w-8 items-center justify-center rounded-[8px] bg-[#0066FF] text-white font-extrabold text-[12px] tracking-tight shadow-xs shrink-0 transition-colors">
-              LS
+            <div className="flex h-8 w-8 items-center justify-center rounded-[8px] overflow-hidden shadow-xs shrink-0 group-hover:scale-105 transition-transform">
+              <Image
+                src="/logo.svg"
+                alt="LShorter Logo"
+                width={32}
+                height={32}
+                className="w-full h-full object-contain"
+                priority
+              />
             </div>
             {!isCollapsed && (
               <span className="text-[17px] font-bold tracking-tight ds-text-primary">
@@ -537,7 +552,7 @@ export function Sidebar() {
                   <span
                     className={cn(
                       "h-1.5 w-1.5 rounded-full",
-                      isOverage && plan !== "ENTERPRISE"
+                      isOverage
                         ? "bg-amber-500 animate-pulse"
                         : "bg-emerald-500",
                     )}
@@ -558,7 +573,7 @@ export function Sidebar() {
                     {clicksThisMonth.toLocaleString("en-US")}
                   </span>
                   <span className="text-[10.5px] text-[#667085] dark:text-[#98A2B3] font-medium">
-                    / {clicksLimit >= 1_000_000 ? `${(clicksLimit / 1_000_000).toLocaleString("en-US")}M+` : clicksLimit.toLocaleString("en-US")}
+                    / {clicksLimit === -1 ? "Unlimited" : clicksLimit >= 1_000_000 ? `${(clicksLimit / 1_000_000).toLocaleString("en-US")}M+` : clicksLimit.toLocaleString("en-US")}
                   </span>
                 </div>
                 <span className="text-[10px] font-medium text-[#98A2B3] dark:text-[#71717a]">
@@ -570,7 +585,7 @@ export function Sidebar() {
               <div className="w-full h-1.5 rounded-full bg-[#EAECF0] dark:bg-[#27272a] overflow-hidden">
                 <div
                   className={`h-full rounded-full transition-all duration-300 ${
-                    isOverage && plan !== "ENTERPRISE"
+                    isOverage
                       ? "bg-amber-500"
                       : "bg-[#0066FF]"
                   }`}
@@ -582,7 +597,7 @@ export function Sidebar() {
               <div className="flex items-center justify-between text-[10px] text-[#667085] dark:text-[#98A2B3]">
                 <span className="truncate">
                   {plan === "ENTERPRISE"
-                    ? "Unlimited overage"
+                    ? "Unlimited clicks"
                     : isOverage
                       ? "Overage active"
                       : "Monthly quota"}
@@ -612,7 +627,7 @@ export function Sidebar() {
             </div>
           ) : (
             <div
-              title={`${planDef.name} Plan : ${clicksThisMonth.toLocaleString("en-US")} / ${clicksLimit.toLocaleString("en-US")}${plan === "ENTERPRISE" ? "+" : ""} clicks (${clicksPercentLabel})`}
+              title={`${planDef.name} Plan : ${clicksThisMonth.toLocaleString("en-US")} / ${clicksLimit === -1 ? "Unlimited" : clicksLimit.toLocaleString("en-US")} clicks (${clicksPercentLabel})`}
               className="w-9 h-9 rounded-[8px] ds-card mx-auto flex items-center justify-center cursor-pointer hover:border-[#0066FF] transition-colors"
               onClick={() => setIsCreateLinkOpen(true)}
             >

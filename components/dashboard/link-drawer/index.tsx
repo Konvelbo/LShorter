@@ -56,30 +56,22 @@ export function LinkDrawer({
       : "skip",
   );
 
-  const isEnterpriseOwner =
-    userEmail.toLowerCase() === "fiatechnologiecam@gmail.com" ||
-    userId === "usr_1790454166066_fwlb48z" ||
-    userId === "7254d43d-caf7-487d-bd22-1666795253a2";
-
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      if (isEnterpriseOwner) {
-        localStorage.setItem("lshorter_user_plan", "ENTERPRISE");
-      } else if (convexUser?.plan) {
-        localStorage.setItem("lshorter_user_plan", convexUser.plan.toUpperCase());
-      }
+    if (typeof window !== "undefined" && convexUser?.plan) {
+      localStorage.setItem("lshorter_user_plan", convexUser.plan.toUpperCase());
     }
-  }, [convexUser?.plan, isEnterpriseOwner]);
+  }, [convexUser?.plan]);
 
-  const userPlan = (
-    (isEnterpriseOwner ? "ENTERPRISE" : null) ||
+  const rawUserPlan = (
     convexUser?.plan ||
     (session?.user as any)?.plan ||
     (typeof window !== "undefined"
       ? localStorage.getItem("lshorter_user_plan")
       : null) ||
-    "FREEMIUM"
+    "FREE"
   ).toUpperCase();
+
+  const userPlan = rawUserPlan === "FREEMIUM" || rawUserPlan === "STARTER" ? "FREE" : rawUserPlan;
 
   const isProPlan =
     userPlan === "PRO" || userPlan === "BUSINESS" || userPlan === "ENTERPRISE";
@@ -826,14 +818,20 @@ export function LinkDrawer({
       .map((t) => t.trim())
       .filter(Boolean);
 
-    // Freemium plan security checks
+    // Free / Starter plan security checks: Dynamic routing is strictly reserved for paid plans
     if (!isProPlan) {
-      if (routingRules && routingRules.length > 0) {
+      if (
+        (routingRules && routingRules.length > 0) ||
+        (compiledRules && compiledRules.length > 0) ||
+        (geoTargeting && Object.keys(geoTargeting).length > 0) ||
+        (deviceTargeting && Object.keys(deviceTargeting).length > 0)
+      ) {
         triggerPlanUpgrade({
-          reason: "Smart dynamic routing requires the Pro plan.",
+          reason: "Le système de routage dynamique intelligent est strictement réservé aux forfaits payants (Pro, Business et Enterprise).",
           featureName: "Dynamic Routing",
           targetPlan: "PRO",
         });
+        showToast.error("Le routage dynamique requiert un forfait payant (Pro, Business ou Enterprise).");
         setIsSubmitting(false);
         return;
       }
@@ -1358,15 +1356,23 @@ export function LinkDrawer({
     } catch (err: any) {
       const msg: string = err?.message || "";
       setIsSubmitting(false);
+      const lower = msg.toLowerCase();
       if (
         msg.includes("403") ||
-        msg.toLowerCase().includes("plan_upgrade_required") ||
-        msg.toLowerCase().includes("forbidden") ||
-        msg.toLowerCase().includes("pro plan")
+        lower.includes("plan_upgrade_required") ||
+        lower.includes("plan_upgrade") ||
+        lower.includes("forbidden") ||
+        lower.includes("pro plan") ||
+        lower.includes("forfait supérieur") ||
+        lower.includes("forfait payant") ||
+        lower.includes("réservé") ||
+        lower.includes("quota")
       ) {
         triggerPlanUpgrade({
-          reason: "This feature requires the PRO plan or higher.",
-          featureName: "Advanced PRO Options & Security",
+          reason: lower.includes("routage")
+            ? "Le système de routage dynamique est strictement réservé aux forfaits payants."
+            : (msg || "Cette fonctionnalité requiert un forfait payant supérieur."),
+          featureName: "Options Avancées",
           targetPlan: "PRO",
         });
         return;
@@ -1483,6 +1489,16 @@ export function LinkDrawer({
                 type="button"
                 data-active={isActiveTab}
                 onClick={() => {
+                  if (tab.id === "routing" && !isProPlan) {
+                    triggerPlanUpgrade({
+                      featureName: "Dynamic Smart Routing",
+                      reason: "Le système de routage dynamique est strictement réservé aux forfaits payants (Pro, Business et Enterprise).",
+                      targetPlan: "PRO",
+                    });
+                    setActiveTab("routing");
+                    return;
+                  }
+
                   // If leaving tab 0, validate destination URL
                   if (activeTab === "link" && tab.id !== "link") {
                     const targetErr = checkUrlFormat(targetUrl, true);

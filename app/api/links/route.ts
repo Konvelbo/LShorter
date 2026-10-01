@@ -238,18 +238,13 @@ export async function POST(req: Request) {
     const requestEmail = body.userEmail || sessionEmail || "";
     const requestUserId = body.userId || sessionUserId || "";
 
-    const isEnterpriseOwner =
-      requestEmail.toLowerCase() === "fiatechnologiecam@gmail.com" ||
-      requestUserId === "usr_1790454166066_fwlb48z" ||
-      requestUserId === "7254d43d-caf7-487d-bd22-1666795253a2";
-
     let authoritativePlan = (
       body.userPlan ||
       body.plan ||
-      (isEnterpriseOwner ? "ENTERPRISE" : "")
+      ""
     ).toUpperCase();
 
-    if (!authoritativePlan || authoritativePlan === "FREEMIUM" || authoritativePlan === "FREE") {
+    if (!authoritativePlan || authoritativePlan === "FREEMIUM" || authoritativePlan === "FREE" || authoritativePlan === "STARTER") {
       try {
         let cu: any = null;
         if (requestEmail) {
@@ -269,13 +264,37 @@ export async function POST(req: Request) {
       }
     }
 
-    if (isEnterpriseOwner) {
-      authoritativePlan = "ENTERPRISE";
-    }
+    const effectivePlan = (authoritativePlan === "FREEMIUM" || authoritativePlan === "STARTER")
+      ? "FREE"
+      : (authoritativePlan || "FREE");
+    const finalUserId = requestUserId || "usr_anonymous";
+    const finalUserEmail = requestEmail || "";
 
-    const effectivePlan = authoritativePlan || "ENTERPRISE";
-    const finalUserId = requestUserId || "usr_1790454166066_fwlb48z";
-    const finalUserEmail = requestEmail || "fiatechnologiecam@gmail.com";
+    // Strictly enforce: Dynamic smart routing requires a paid plan (PRO, BUSINESS, ENTERPRISE)
+    const isPaidPlan =
+      effectivePlan === "PRO" ||
+      effectivePlan === "BUSINESS" ||
+      effectivePlan === "ENTERPRISE";
+
+    const hasRouting =
+      (Array.isArray(body.routingRules) && body.routingRules.length > 0) ||
+      (Array.isArray(body.routing_rules) && body.routing_rules.length > 0) ||
+      (body.geoTargeting && Object.keys(body.geoTargeting).length > 0) ||
+      (body.geo_targeting && Object.keys(body.geo_targeting).length > 0) ||
+      (body.deviceTargeting && Object.keys(body.deviceTargeting).length > 0) ||
+      (body.device_targeting && Object.keys(body.device_targeting).length > 0);
+
+    if (!isPaidPlan && hasRouting) {
+      return NextResponse.json(
+        {
+          success: false,
+          code: "PLAN_UPGRADE_REQUIRED",
+          error: "Le système de routage dynamique intelligent est strictement réservé aux forfaits payants (Pro, Business et Enterprise).",
+          message: "Le système de routage dynamique intelligent est strictement réservé aux forfaits payants (Pro, Business et Enterprise).",
+        },
+        { status: 403 }
+      );
+    }
 
     const rawOg = (body.ogImage || body.og_image || "").trim();
     let sanitizedOgImage: string | undefined = rawOg || undefined;

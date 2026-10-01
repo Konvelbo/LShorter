@@ -58,7 +58,7 @@ export function generateInvoicePdf(data: InvoicePdfData): Buffer {
   const planUpper = String(data.planId || "PRO").toUpperCase();
   const quotaSummary =
     planUpper === "ENTERPRISE"
-      ? "Forfait SaaS Edge 2,000,000+ clics/mois inclus (Depassement illimite)"
+      ? "Forfait SaaS Edge Clics illimités inclus"
       : planUpper === "BUSINESS"
         ? "Forfait SaaS Edge 500,000 clics/mois inclus + Domaines & Analytics"
         : "Forfait SaaS Edge 150,000 clics/mois inclus + Domaines & API";

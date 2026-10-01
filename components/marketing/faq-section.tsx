@@ -68,9 +68,6 @@ export function FaqSection() {
         <div className="faq-scroll-reveal grid grid-cols-1 lg:grid-cols-12 gap-10">
           {/* Left Header */}
           <div className="lg:col-span-5">
-            <span className="inline-block text-[11.5px] font-mono uppercase tracking-[0.14em] text-[#465FFF] mb-3">
-              07 • TECHNICAL FAQ
-            </span>
             <h2 className="text-[26px] sm:text-[36px] font-normal tracking-[-0.03em] leading-[1.08] text-[#101828] dark:text-white mb-4">
               Questions,
               <br />

@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { validateApiKey } from "@/lib/api-keys-store";
 import { UserMeResponse } from "@/types";
 import { getPlanDefinition, evaluateClickQuotaAndOverage } from "@/src/config/pricing";
 

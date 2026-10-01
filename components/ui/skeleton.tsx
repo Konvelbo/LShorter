@@ -111,7 +111,7 @@ export function DashboardOverviewSkeleton() {
             {[1, 2].map((i) => (
               <div
                 key={i}
-                className="rounded-[20px] bg-white dark:bg-[#111827] border border-slate-200/80 dark:border-slate-800/80 p-6 shadow-xs flex flex-col justify-between min-h-[168px]"
+                className="rounded-2xl ds-card p-6 shadow-xs flex flex-col justify-between min-h-[168px]"
               >
                 <Skeleton className="w-12 h-12 rounded-2xl" />
                 <div className="mt-6 flex items-end justify-between gap-2">
@@ -126,7 +126,7 @@ export function DashboardOverviewSkeleton() {
           </div>
 
           {/* Monthly Clicks Card (@reui/c-chart-5 Paired Striped/Solid Bar Chart) */}
-          <div className="rounded-[20px] bg-white dark:bg-[#111827] border border-slate-200/80 dark:border-slate-800/80 p-6 shadow-xs flex-1 flex flex-col justify-between min-h-[310px]">
+          <div className="rounded-2xl ds-card p-6 shadow-xs flex-1 flex flex-col justify-between min-h-[310px]">
             <div className="flex items-center justify-between mb-4">
               <div className="space-y-1.5">
                 <Skeleton className="h-5 w-36 rounded" />
@@ -139,7 +139,7 @@ export function DashboardOverviewSkeleton() {
             </div>
 
             {/* Paired Bars Skeleton (12 Months) */}
-            <div className="w-full h-[215px] flex items-end justify-between gap-2.5 pt-6 pb-2 px-2 border-b border-slate-100 dark:border-slate-800/70">
+            <div className="w-full h-[215px] flex items-end justify-between gap-2.5 pt-6 pb-2 px-2 border-b ds-border">
               {Array.from({ length: 12 }).map((_, i) => (
                 <div key={i} className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
                   <div className="w-full flex items-end justify-center gap-1 h-full">
@@ -160,7 +160,7 @@ export function DashboardOverviewSkeleton() {
         </div>
 
         {/* RIGHT COLUMN (5 cols): Monthly Target Semi-Circular Gauge Card */}
-        <div className="xl:col-span-5 rounded-[20px] bg-white dark:bg-[#111827] border border-slate-200/80 dark:border-slate-800/80 shadow-xs flex flex-col justify-between overflow-hidden">
+        <div className="xl:col-span-5 rounded-2xl ds-card shadow-xs flex flex-col justify-between overflow-hidden">
           <div className="p-6 sm:p-7 flex-1 flex flex-col justify-between">
             <div className="flex items-start justify-between">
               <div className="space-y-1.5">
@@ -173,7 +173,7 @@ export function DashboardOverviewSkeleton() {
             {/* Semi-Circular Radial Gauge Placeholder */}
             <div className="my-6 flex flex-col items-center justify-center">
               <div className="relative w-[220px] h-[115px] flex items-end justify-center overflow-hidden">
-                <div className="w-[210px] h-[210px] rounded-full border-[14px] border-slate-200/80 dark:border-slate-800 border-b-transparent border-r-transparent rotate-45 animate-pulse" />
+                <div className="w-[210px] h-[210px] rounded-full border-[14px] border-zinc-200 dark:border-zinc-800 border-b-transparent border-r-transparent rotate-45 animate-pulse" />
                 <div className="flex flex-col items-center pb-1">
                   <Skeleton className="h-8 w-24 rounded-lg mb-2" />
                   <Skeleton className="h-5 w-14 rounded-full" />
@@ -187,7 +187,7 @@ export function DashboardOverviewSkeleton() {
           </div>
 
           {/* Bottom 3-Column Summary Bar: Target | Revenue | Today */}
-          <div className="grid grid-cols-3 divide-x divide-slate-200/80 dark:divide-slate-800/80 border-t border-slate-200/80 dark:border-slate-800/80 bg-slate-50/70 dark:bg-slate-900/50 py-4 px-3">
+          <div className="grid grid-cols-3 divide-x divide-zinc-200/80 dark:divide-[#222225] border-t ds-border bg-zinc-50/70 dark:bg-white/[0.02] py-4 px-3">
             {[1, 2, 3].map((k) => (
               <div key={k} className="flex flex-col items-center gap-1.5">
                 <Skeleton className="h-3 w-14 rounded" />
@@ -201,15 +201,15 @@ export function DashboardOverviewSkeleton() {
       {/* ════════════════════════════════════════════════════════════════════════
           ROW 2: Overview 4-Column Connected KPI Strip
          ════════════════════════════════════════════════════════════════════════ */}
-      <div className="rounded-[20px] bg-white dark:bg-[#111827] border border-slate-200/80 dark:border-slate-800/80 shadow-xs overflow-hidden">
-        <div className="p-6 sm:px-7 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/70 dark:border-slate-800/80">
+      <div className="rounded-2xl ds-card shadow-xs overflow-hidden">
+        <div className="p-6 sm:px-7 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b ds-border">
           <div className="space-y-1.5">
             <Skeleton className="h-5 w-28 rounded" />
             <Skeleton className="h-3.5 w-64 rounded" />
           </div>
           <Skeleton className="h-9 w-52 rounded-xl" />
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-slate-200/70 dark:divide-slate-800/80">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-zinc-200/80 dark:divide-[#222225]">
           {[1, 2, 3, 4].map((i) => (
             <div key={i} className="p-6 sm:px-7 flex flex-col justify-between gap-3">
               <Skeleton className="h-3.5 w-28 rounded" />
@@ -225,7 +225,7 @@ export function DashboardOverviewSkeleton() {
       {/* ════════════════════════════════════════════════════════════════════════
           ROW 3: Statistics Layered Area Chart (@reui/c-chart-14)
          ════════════════════════════════════════════════════════════════════════ */}
-      <div className="rounded-[20px] bg-white dark:bg-[#111827] border border-slate-200/80 dark:border-slate-800/80 p-6 sm:p-7 shadow-xs">
+      <div className="rounded-2xl ds-card p-6 sm:p-7 shadow-xs">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
           <div className="space-y-1.5">
             <Skeleton className="h-5 w-32 rounded" />
@@ -255,7 +255,7 @@ export function DashboardOverviewSkeleton() {
       {/* ════════════════════════════════════════════════════════════════════════
           ROW 3.5: Active Segment Donut (@reui/c-chart-22 — Top Clicks | Revenue & Clients)
          ════════════════════════════════════════════════════════════════════════ */}
-      <div className="rounded-[20px] bg-white dark:bg-[#111827] border border-slate-200/80 dark:border-slate-800/80 p-6 sm:p-7 shadow-xs">
+      <div className="rounded-2xl ds-card p-6 sm:p-7 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div className="space-y-1.5">
             <Skeleton className="h-5 w-64 rounded" />
@@ -266,7 +266,7 @@ export function DashboardOverviewSkeleton() {
 
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
           <div className="md:col-span-5 flex items-center justify-center py-4">
-            <div className="relative w-[185px] h-[185px] rounded-full border-[22px] border-slate-200/80 dark:border-slate-800 flex flex-col items-center justify-center animate-pulse">
+            <div className="relative w-[185px] h-[185px] rounded-full border-[22px] border-zinc-200 dark:border-zinc-800 flex flex-col items-center justify-center animate-pulse">
               <Skeleton className="h-6 w-16 rounded mb-1" />
               <Skeleton className="h-2.5 w-20 rounded" />
             </div>
@@ -282,7 +282,7 @@ export function DashboardOverviewSkeleton() {
       {/* ════════════════════════════════════════════════════════════════════════
           ROW 4: LinksReuiDataGrid Table Skeleton
          ════════════════════════════════════════════════════════════════════════ */}
-      <div className="rounded-[20px] bg-white dark:bg-[#111827] border border-slate-200/80 dark:border-slate-800/80 p-6 shadow-xs space-y-4">
+      <div className="rounded-2xl ds-card p-6 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1.5">
             <Skeleton className="h-5 w-48 rounded" />
@@ -384,7 +384,7 @@ export function AnalyticsPageSkeleton() {
   return (
     <div className="space-y-6 pb-10 animate-in fade-in duration-200">
       {/* Top thin progress shimmer */}
-      <div className="h-0.5 w-full rounded-full bg-gradient-to-r from-[#465FFF]/20 via-[#465FFF] to-[#465FFF]/20 animate-pulse" />
+      <div className="h-0.5 w-full rounded-full bg-gradient-to-r from-zinc-500/10 via-zinc-400/25 to-zinc-500/10 dark:from-white/5 dark:via-white/20 dark:to-white/5 animate-pulse" />
 
       {/* Page Breadcrumb / Header + Right Controls (Last 30 Days Dropdown, Refresh, Export CSV) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -564,7 +564,7 @@ export function AnalyticsSourcesSkeleton() {
 export function AnalyticsRevenueSkeleton() {
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-200 pb-16">
-      <div className="h-0.5 w-full rounded-full bg-gradient-to-r from-[#465FFF]/20 via-[#465FFF] to-[#465FFF]/20 animate-pulse" />
+      <div className="h-0.5 w-full rounded-full bg-gradient-to-r from-zinc-500/10 via-zinc-400/25 to-zinc-500/10 dark:from-white/5 dark:via-white/20 dark:to-white/5 animate-pulse" />
 
       {/* Header + Right-Aligned Controls */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -672,7 +672,7 @@ export function AnalyticsRevenueSkeleton() {
 export function AnalyticsGeoSkeleton() {
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-200 pb-16">
-      <div className="h-0.5 w-full rounded-full bg-gradient-to-r from-[#465FFF]/20 via-[#465FFF] to-[#465FFF]/20 animate-pulse" />
+      <div className="h-0.5 w-full rounded-full bg-gradient-to-r from-zinc-500/10 via-zinc-400/25 to-zinc-500/10 dark:from-white/5 dark:via-white/20 dark:to-white/5 animate-pulse" />
 
       {/* Header + Far-Right Controls (Link Selector, Period Buttons, Refresh, Export CSV) */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -738,7 +738,7 @@ export function AnalyticsGeoSkeleton() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
           <div className="md:col-span-5 flex items-center justify-center py-4">
-            <div className="relative w-[185px] h-[185px] rounded-full border-[22px] border-slate-200/80 dark:border-slate-800 flex flex-col items-center justify-center animate-pulse">
+            <div className="relative w-[185px] h-[185px] rounded-full border-[22px] border-zinc-200 dark:border-zinc-800 flex flex-col items-center justify-center animate-pulse">
               <Skeleton className="h-6 w-16 rounded mb-1" />
               <Skeleton className="h-2.5 w-20 rounded" />
             </div>
@@ -771,7 +771,7 @@ export function AnalyticsGeoSkeleton() {
 export function AnalyticsLiveSkeleton() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-14 animate-in fade-in duration-200">
-      <div className="h-0.5 w-full rounded-full bg-gradient-to-r from-[#465FFF]/20 via-[#465FFF] to-[#465FFF]/20 animate-pulse" />
+      <div className="h-0.5 w-full rounded-full bg-gradient-to-r from-zinc-500/10 via-zinc-400/25 to-zinc-500/10 dark:from-white/5 dark:via-white/20 dark:to-white/5 animate-pulse" />
 
       {/* Header + Single-Row Action Toolbar */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-5 border-b ds-border">

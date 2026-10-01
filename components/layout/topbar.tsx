@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   Search,
   Bell,
@@ -393,8 +394,15 @@ export function Topbar() {
             className="flex items-center gap-2 select-none group"
             title="Retour à l'accueil"
           >
-            <div className="flex h-8 w-8 items-center justify-center rounded-[8px] bg-[#465FFF] group-hover:bg-[#3641F5] text-white font-extrabold text-[12.5px] tracking-tight shadow-xs transition-colors">
-              LS
+            <div className="flex h-8 w-8 items-center justify-center rounded-[8px] overflow-hidden shadow-xs shrink-0 group-hover:scale-105 transition-transform">
+              <Image
+                src="/logo.svg"
+                alt="LShorter Logo"
+                width={32}
+                height={32}
+                className="w-full h-full object-contain"
+                priority
+              />
             </div>
             <span className="font-bold ds-text-primary text-[15px] tracking-tight">
               LShorter

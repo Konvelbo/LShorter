@@ -240,12 +240,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         session.user.name = (token.name as string) || session.user.name;
         (session.user as any).avatarUrl = (token.avatarUrl as string) || (token.picture as string) || session.user.image;
 
-        const isEnterpriseOwner =
-          session.user.email?.toLowerCase() === "fiatechnologiecam@gmail.com" ||
-          session.user.id === "usr_1790454166066_fwlb48z" ||
-          session.user.id === "7254d43d-caf7-487d-bd22-1666795253a2";
-
-        (session.user as any).plan = isEnterpriseOwner ? "ENTERPRISE" : (token.plan || "FREEMIUM");
+        (session.user as any).plan = token.plan || "FREEMIUM";
         (session.user as any).hasCompletedOnboarding = token.hasCompletedOnboarding ?? false;
         (session.user as any).clicksThisMonth = token.clicksThisMonth ?? 0;
         (session.user as any).clicksLimit = token.clicksLimit ?? 10_000;

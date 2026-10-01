@@ -21,7 +21,7 @@ export default function LandingPage() {
       {/* 3. Features Section (#features — Core Platform Capabilities routing to /docs/[slug]) */}
       <TimelineFeatures />
 
-      {/* 4. Security & Speed Section (#security — SOC 2, PathLock™ PIN Gate & <4.2ms API Latency) */}
+      {/* 4. Security & Speed Section (#security — SOC 2, PathLock™ PIN Gate & <12ms API Latency) */}
       <SecuritySection />
 
       {/* 5. Why Us & Integrations (#why-us — Differentiation Matrix + Aceternity CanvasRevealEffect Cards) */}

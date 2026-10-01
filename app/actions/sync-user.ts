@@ -13,12 +13,7 @@
  * Never expose FRONTEND_API_SECRET to the client — this runs server-side only.
  */
 
-const BASE_URL =
-  process.env.BACKEND_API_URL ||
-  process.env.CLOUDFLARE_WORKER_URL ||
-  "";
-
-const SECRET = process.env.FRONTEND_API_SECRET || "";
+import { WORKER_URL as BASE_URL, FRONTEND_SECRET as SECRET } from "@/lib/backend-config";
 
 export interface SyncUserPayload {
   id: string;

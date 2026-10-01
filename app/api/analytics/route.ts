@@ -10,12 +10,7 @@ import {
   generateEdgeLiveClickEvents,
 } from "@/lib/analytics-generators";
 import { parseVisitorDetails } from "@/lib/device-detection";
-
-const WORKER_URL =
-  process.env.BACKEND_API_URL ||
-  process.env.CLOUDFLARE_WORKER_URL ||
-  "";
-const FRONTEND_SECRET = process.env.FRONTEND_API_SECRET || "";
+import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
 
 interface CachedAnalytics {
   data: any;

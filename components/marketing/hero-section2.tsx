@@ -3,7 +3,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import gsap from "gsap";
-import { useSession } from "next-auth/react";
 import {
   ArrowUpRight,
   Check,
@@ -62,21 +61,16 @@ export function HeroSection2() {
   const [copiedPrompt, setCopiedPrompt] = useState(false);
   const heroRef = useRef<HTMLDivElement>(null);
   const showcaseRef = useRef<HTMLDivElement>(null);
-  const { data: session, status } = useSession();
-  const isAuthenticated =
-    status === "authenticated" &&
-    Boolean(session?.user) &&
-    !(session?.user as any)?.userNotFound;
 
   const titlePart1 = "Every campaign, bio page, and API link.";
   const titlePart2 = "Engineered around ultra-fast short links.";
 
-  // Rendu évitant la coupure des mots sur mobile
+  // Rendu empêchant la coupure sauvage des mots sur mobile
   const renderTypingText = (text: string) => {
     return text.split(" ").map((word, wordIdx) => (
       <span
         key={wordIdx}
-        className="inline-block whitespace-nowrap mr-[0.28em]"
+        className="inline-block whitespace-nowrap mr-[0.26em]"
       >
         {word.split("").map((char, charIdx) => (
           <span
@@ -99,33 +93,32 @@ export function HeroSection2() {
 
       // 1. Masquage initial
       gsap.set(".hero-char", { opacity: 0, y: 10 });
-      gsap.set(".hero-trend-marquee-wrap", { opacity: 0, y: -16, scale: 0.96 });
-      gsap.set(".hero-fade-desc", { opacity: 0, y: 20 });
-      gsap.set(".hero-action-pill", { opacity: 0, y: 20, scale: 0.96 });
+      gsap.set(".hero-trend-marquee-wrap", { opacity: 0, y: -14, scale: 0.96 });
+      gsap.set(".hero-fade-desc", { opacity: 0, y: 18 });
+      gsap.set(".hero-action-pill", { opacity: 0, y: 18, scale: 0.96 });
       if (showcaseRef.current) {
         gsap.set(showcaseRef.current, { opacity: 0, y: 70, scale: 0.98 });
       }
 
-      // 2. Animation d'écriture du grand titre centré
+      // 2. Frappe du titre lettre par lettre
       tl.to(".hero-char", {
         opacity: 1,
         y: 0,
         duration: 0.2,
-        stagger: 0.018,
+        stagger: 0.016,
         ease: "power1.out",
       });
 
-      // 3. Déclenchement à ~70% de la frappe
       tl.addLabel("revealElements", "-=0.55");
 
-      // Apparition du ruban défilant des trends
+      // Apparition du ruban défilant
       tl.to(
         ".hero-trend-marquee-wrap",
         {
           opacity: 1,
           y: 0,
           scale: 1,
-          duration: 0.75,
+          duration: 0.7,
           ease: "power3.out",
           clearProps: "transform",
         },
@@ -145,7 +138,7 @@ export function HeroSection2() {
         "revealElements+=0.08",
       );
 
-      // Apparition des boutons et SDK
+      // Apparition des boutons
       tl.to(
         ".hero-action-pill",
         {
@@ -160,7 +153,7 @@ export function HeroSection2() {
         "revealElements+=0.14",
       );
 
-      // 4. Ascension du tableau de bord depuis le bas
+      // 3. Montée de la vitrine (sur desktop uniquement)
       if (showcaseRef.current) {
         tl.to(
           showcaseRef.current,
@@ -301,9 +294,8 @@ export function HeroSection2() {
     <section
       ref={heroRef}
       id="hero"
-      className="relative w-full bg-[#FFFFFF] dark:bg-[#09090B] text-[#101828] dark:text-white pt-30 sm:pt-28 md:pt-32 pb-14 sm:pb-20 md:pb-28 overflow-hidden transition-colors duration-300"
+      className="relative w-full min-h-[100dvh] sm:min-h-0 lg:min-h-screen flex flex-col justify-center items-center bg-[#FFFFFF] dark:bg-[#09090B] text-[#101828] dark:text-white pt-24 sm:pt-28 md:pt-32 pb-10 sm:pb-20 md:pb-28 overflow-hidden transition-colors duration-300"
     >
-      {/* Styles pour le défilement infini fluide du Marquee */}
       <style
         dangerouslySetInnerHTML={{
           __html: `
@@ -322,14 +314,12 @@ export function HeroSection2() {
         }}
       />
 
-      <div className="max-w-[1360px] mx-auto px-4 sm:px-8 flex flex-col items-center">
-        {/* 1. Ruban Défilant Automatique des Trends avec Ombres Latérales */}
-        <div className="hero-trend-marquee-wrap relative w-full max-w-[1040px] overflow-hidden mb-8 sm:mb-12">
-          {/* Ombres / Dégradés latéraux */}
-          <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-16 sm:w-28 bg-gradient-to-r from-[#FFFFFF] dark:from-[#09090B] to-transparent z-10" />
-          <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-16 sm:w-28 bg-gradient-to-l from-[#FFFFFF] dark:from-[#09090B] to-transparent z-10" />
+      <div className="max-w-[1360px] w-full mx-auto px-4 sm:px-8 flex-1 flex flex-col justify-center items-center">
+        {/* 1. Ruban Défilant Automatique des Trends */}
+        <div className="hero-trend-marquee-wrap relative w-full max-w-[1040px] overflow-hidden mb-6 sm:mb-12">
+          <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-10 sm:w-28 bg-gradient-to-r from-[#FFFFFF] dark:from-[#09090B] to-transparent z-10" />
+          <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-10 sm:w-28 bg-gradient-to-l from-[#FFFFFF] dark:from-[#09090B] to-transparent z-10" />
 
-          {/* Track animé en continu */}
           <div className="flex w-max animate-hero-marquee">
             {[...TREND_ITEMS, ...TREND_ITEMS].map((item, idx) => {
               const Icon = item.icon;
@@ -337,7 +327,7 @@ export function HeroSection2() {
                 <div key={idx} className="shrink-0 px-1.5 py-1">
                   <Link
                     href={item.href}
-                    className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[12px] sm:text-[12.5px] font-medium transition-transform duration-200 hover:scale-105 shadow-xs ${item.badgeClass}`}
+                    className={`inline-flex items-center gap-1.5 rounded-full border px-3 sm:px-3.5 py-1 sm:py-1.5 text-[11.5px] sm:text-[12.5px] font-medium transition-transform duration-200 hover:scale-105 shadow-xs ${item.badgeClass}`}
                   >
                     <Icon className="w-3.5 h-3.5 shrink-0" />
                     <span>{item.label}</span>
@@ -349,15 +339,15 @@ export function HeroSection2() {
         </div>
 
         {/* 2. Bloc Texte Principal Entièrement Centré */}
-        <div className="flex flex-col items-center text-center max-w-[980px] mx-auto mb-12 sm:mb-16 md:mb-20">
-          <h1 className="text-[35px] sm:text-[46px] lg:text-[60px] font-normal tracking-[-0.035em] leading-[1.12] sm:leading-[1.05] text-[#000000] dark:text-white">
+        <div className="flex flex-col items-center text-center max-w-[980px] mx-auto my-auto sm:my-0 sm:mb-16 md:mb-20">
+          <h1 className="text-[34px] xs:text-[38px] sm:text-[48px] lg:text-[62px] font-normal tracking-[-0.035em] leading-[1.1] sm:leading-[1.04] text-[#000000] dark:text-white">
             {renderTypingText(titlePart1)}{" "}
             <span className="text-[#667085] dark:text-zinc-400">
               {renderTypingText(titlePart2)}
             </span>
           </h1>
 
-          <p className="hero-fade-desc mt-5 sm:mt-7 text-[15px] sm:text-[18px] text-[#475467] dark:text-zinc-400 max-w-[760px] mx-auto leading-[1.6] sm:leading-[1.7]">
+          <p className="hero-fade-desc mt-5 sm:mt-7 text-[16px] sm:text-[18px] text-[#475467] dark:text-zinc-400 max-w-[740px] mx-auto leading-[1.6] sm:leading-[1.65]">
             LShorter unifies branded link shortening, programmable ISO Country
             &amp; Device edge routing,{" "}
             <strong className="font-semibold text-[#101828] dark:text-white">
@@ -371,53 +361,38 @@ export function HeroSection2() {
             attribution inside one workspace.
           </p>
 
-          {/* Boutons d'actions et Commande SDK Centrés */}
+          {/* Boutons d'actions Centrés */}
           <div className="flex flex-col items-center gap-3.5 w-full mt-8 sm:mt-10">
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 w-full sm:w-auto">
-              <div className="hero-action-pill will-change-transform w-full sm:w-auto">
-                {isAuthenticated ? (
-                  <Link
-                    href="/dashboard"
-                    style={{ color: "#FFFFFF" }}
-                    onMouseEnter={handlePrimaryBtnEnter}
-                    onMouseLeave={handlePrimaryBtnLeave}
-                    className="w-full sm:w-56 inline-flex items-center justify-center gap-2 rounded-full bg-[#465FFF] hover:bg-[#3641F5] !text-white px-6 py-3.5 sm:py-3 text-[14px] font-semibold shadow-md will-change-transform cursor-pointer transition-colors"
-                  >
-                    <LayoutDashboard className="w-4 h-4 !text-white shrink-0" />
-                    <span className="!text-white font-medium">Dashboard</span>
-                    <ArrowUpRight className="hero-cta-arrow w-4 h-4 !text-white will-change-transform" />
-                  </Link>
-                ) : (
-                  <Link
-                    href="/register"
-                    style={{ color: "#FFFFFF" }}
-                    onMouseEnter={handlePrimaryBtnEnter}
-                    onMouseLeave={handlePrimaryBtnLeave}
-                    className="w-full sm:w-56 inline-flex items-center justify-center gap-2 rounded-full bg-[#465FFF] hover:bg-[#3641F5] !text-white px-6 py-3.5 sm:py-3 text-[14px] font-semibold shadow-md will-change-transform cursor-pointer transition-colors"
-                  >
-                    <LayoutDashboard className="w-4 h-4 !text-white shrink-0" />
-                    <span className="!text-white font-medium">
-                      Get started free
-                    </span>
-                    <ArrowUpRight className="hero-cta-arrow w-4 h-4 !text-white will-change-transform" />
-                  </Link>
-                )}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-3.5 w-full sm:w-auto">
+              <div className="hero-action-pill will-change-transform w-full sm:w-auto flex justify-center">
+                <Link
+                  href="/dashboard"
+                  style={{ color: "#FFFFFF" }}
+                  onMouseEnter={handlePrimaryBtnEnter}
+                  onMouseLeave={handlePrimaryBtnLeave}
+                  className="w-full max-w-[320px] sm:max-w-none sm:w-56 inline-flex items-center justify-center gap-2 rounded-full bg-[#465FFF] hover:bg-[#3641F5] !text-white px-6 py-3.5 text-[15px] sm:text-[14px] font-semibold shadow-md will-change-transform cursor-pointer transition-colors"
+                >
+                  <LayoutDashboard className="w-4 h-4 !text-white shrink-0" />
+                  <span className="!text-white font-medium">Dashboard</span>
+                  <ArrowUpRight className="hero-cta-arrow w-4 h-4 !text-white will-change-transform" />
+                </Link>
               </div>
 
-              <div className="hero-action-pill will-change-transform w-full sm:w-auto">
+              <div className="hero-action-pill will-change-transform w-full sm:w-auto flex justify-center">
                 <Link
                   href="#product"
                   onClick={handleScrollToProduct}
                   onMouseEnter={handleSecondaryBtnEnter}
                   onMouseLeave={handleSecondaryBtnLeave}
-                  className="w-full sm:w-56 inline-flex items-center justify-center gap-2 rounded-full bg-[#F2F4F7] dark:bg-white/10 text-[#101828] dark:text-white border border-[#D0D5DD] dark:border-white/15 px-6 py-3.5 sm:py-3 text-[14px] font-medium shadow-xs will-change-transform cursor-pointer hover:bg-white dark:hover:bg-white/15 transition-colors text-center"
+                  className="w-full max-w-[320px] sm:max-w-none sm:w-56 inline-flex items-center justify-center gap-2 rounded-full bg-[#F2F4F7] dark:bg-white/10 text-[#101828] dark:text-white border border-[#D0D5DD] dark:border-white/15 px-6 py-3.5 text-[15px] sm:text-[14px] font-medium shadow-xs will-change-transform cursor-pointer hover:bg-white dark:hover:bg-white/15 transition-colors text-center"
                 >
                   <span>Open live dashboard</span>
                 </Link>
               </div>
             </div>
 
-            <div className="hero-action-pill will-change-transform w-full sm:w-auto flex justify-center">
+            {/* Commande SDK masquée sur Mobile */}
+            <div className="hidden sm:flex hero-action-pill will-change-transform w-full sm:w-auto justify-center">
               <button
                 type="button"
                 onClick={handleCopySdk}
@@ -427,7 +402,7 @@ export function HeroSection2() {
               >
                 <Terminal className="sdk-icon w-3.5 h-3.5 text-[#465FFF] shrink-0 will-change-transform" />
                 <span className="truncate">
-                  POST /v1/links • 4.2ms Edge API
+                  POST /v1/links • 11ms Edge API
                 </span>
                 {copiedPrompt ? (
                   <Check className="w-3.5 h-3.5 text-[#12B76A] shrink-0" />
@@ -439,10 +414,10 @@ export function HeroSection2() {
           </div>
         </div>
 
-        {/* 3. Vitrine du Dashboard Centrée : Pleine hauteur sans coupure */}
+        {/* 3. Vitrine du Dashboard : Masquée sur Mobile (< sm) */}
         <div
           ref={showcaseRef}
-          className="w-full max-w-[1240px] mx-auto relative rounded-[16px] sm:rounded-[22px] p-2 sm:p-5 md:p-6 overflow-hidden border border-[#E4E7EC] dark:border-white/15 shadow-[0_20px_60px_rgba(16,24,40,0.12)] will-change-transform"
+          className="hidden sm:block w-full max-w-[1240px] mx-auto relative rounded-[22px] p-5 md:p-6 overflow-hidden border border-[#E4E7EC] dark:border-white/15 shadow-[0_20px_60px_rgba(16,24,40,0.12)] will-change-transform"
           style={{
             background:
               "linear-gradient(135deg, #1F2A38 0%, #344960 35%, #5C768D 68%, #263547 100%)",
@@ -456,31 +431,27 @@ export function HeroSection2() {
             }}
           />
 
-          <div className="relative z-10 rounded-[12px] sm:rounded-[16px] bg-[#FFFFFF] dark:bg-[#101828] border border-[#E4E7EC] dark:border-white/15 overflow-hidden shadow-xl">
-            <div className="px-3 sm:px-4 py-2 sm:py-2.5 border-b border-[#E4E7EC] dark:border-white/10 bg-[#F9FAFB] dark:bg-[#1D2939] flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-[#F04438]" />
-                <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-[#F79009]" />
-                <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-[#12B76A]" />
-                <div className="ml-1.5 sm:ml-3 flex items-center gap-1.5 px-2 sm:px-2.5 py-0.5 rounded-md bg-white dark:bg-[#101828] border border-[#E4E7EC] dark:border-white/10 text-[10.5px] sm:text-[11px] font-mono text-[#475467] dark:text-zinc-300">
+          <div className="relative z-10 rounded-[16px] bg-[#FFFFFF] dark:bg-[#101828] border border-[#E4E7EC] dark:border-white/15 overflow-hidden shadow-xl">
+            <div className="px-4 py-2.5 border-b border-[#E4E7EC] dark:border-white/10 bg-[#F9FAFB] dark:bg-[#1D2939] flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#F04438]" />
+                <span className="w-2.5 h-2.5 rounded-full bg-[#F79009]" />
+                <span className="w-2.5 h-2.5 rounded-full bg-[#12B76A]" />
+                <div className="ml-3 flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-white dark:bg-[#101828] border border-[#E4E7EC] dark:border-white/10 text-[11px] font-mono text-[#475467] dark:text-zinc-300">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#12B76A]" />
                   https://lshorter.cc
                 </div>
               </div>
-              <span className="sm:hidden text-[9.5px] font-mono text-zinc-400">
-                ↔ Glisser
-              </span>
             </div>
 
-            <div className="relative w-full overflow-x-auto overscroll-x-contain no-scrollbar bg-[#F9FAFB] dark:bg-[#101828]">
-              <div className="min-w-[620px] sm:min-w-0 w-full h-auto">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/marketing-FCI/real_dashboard_overview.png"
-                  alt="LShorter SaaS Dashboard Preview"
-                  className="w-full h-auto block object-contain"
-                />
-              </div>
+            <div className="relative w-full bg-[#F9FAFB] dark:bg-[#101828]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/marketing-FCI/real_dashboard_overview.png"
+                alt="LShorter SaaS Dashboard Preview"
+                className="w-full h-auto block"
+                style={{ display: "block", width: "100%", height: "auto" }}
+              />
             </div>
           </div>
         </div>
