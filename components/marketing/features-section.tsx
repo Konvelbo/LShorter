@@ -24,7 +24,7 @@ const features: FeatureItem[] = [
     subtitle: "Instant Edge Speed",
     description:
       "Create clean, ultra-fast, and shareable short links in seconds. Your redirects execute in under 15ms across our global Edge network.",
-    image: "/marketing-FCI/cosmos_1739739224.jpeg",
+    image: "/screenshots/link-page/page1.png",
     side: "left",
     docSlug: "sdk-quickstart",
   },
@@ -34,7 +34,7 @@ const features: FeatureItem[] = [
     subtitle: "Conversion Optimization",
     description:
       "Distribute clicks between multiple destination URLs by custom percentages. Ideal for landing page comparison and marketing experiments.",
-    image: "/marketing-FCI/cosmos_1746304416.jpeg",
+    image: "/screenshots/stream/page1.png",
     side: "right",
     docSlug: "ab-testing-routing",
   },
@@ -44,7 +44,7 @@ const features: FeatureItem[] = [
     subtitle: "Security & Privacy",
     description:
       "Secure your links with an access PIN code before redirecting. Ensure only authorized visitors access sensitive or exclusive content.",
-    image: "/marketing-FCI/cosmos_1796978290.jpeg",
+    image: "/screenshots/drawer/niveau4-1.png",
     side: "left",
     docSlug: "pin-protection",
   },
@@ -54,7 +54,7 @@ const features: FeatureItem[] = [
     subtitle: "Automated Volume Control",
     description:
       "Set a maximum click threshold and automatically redirect visitors to a fallback URL once reached. Never lose a visitor again.",
-    image: "/marketing-FCI/cosmos_2136974997.jpeg",
+    image: "/screenshots/drawer/niveau3.png",
     side: "right",
     docSlug: "click-limits-and-expiration",
   },
@@ -64,7 +64,7 @@ const features: FeatureItem[] = [
     subtitle: "Discretion & Brand Shield",
     description:
       "Conceal the actual destination URL to protect sensitive affiliate parameters and keep campaign integrity against scrapers.",
-    image: "/marketing-FCI/cosmos_227768569.jpeg",
+    image: "/screenshots/domaine/niveau.png",
     side: "left",
     docSlug: "url-masking",
   },
@@ -74,7 +74,7 @@ const features: FeatureItem[] = [
     subtitle: "Vector Generation & Customization",
     description:
       "Instantly generate and customize QR codes for every short link. Download in crisp high resolution ready for print and packaging.",
-    image: "/marketing-FCI/cosmos_302657415.jpeg",
+    image: "/screenshots/qr-code/page1.png",
     side: "right",
     docSlug: "dynamic-qr-codes",
   },
@@ -84,7 +84,7 @@ const features: FeatureItem[] = [
     subtitle: "Automated Rich Previews",
     description:
       "Share links on LinkedIn, WhatsApp, X (Twitter), Discord, and Telegram with customized Open Graph cards that render immediately.",
-    image: "/marketing-FCI/cosmos_549824580.jpeg",
+    image: "/screenshots/drawer/niveau6.png",
     side: "left",
     docSlug: "social-sharing-opengraph",
   },
@@ -94,7 +94,7 @@ const features: FeatureItem[] = [
     subtitle: "Native Automation",
     description:
       "Integrate every capability directly into your workflows and applications using our documented, high-throughput REST API.",
-    image: "/marketing-FCI/cosmos_938538719.jpeg",
+    image: "/screenshots/webhooks/niveau.png",
     side: "right",
     docSlug: "webhooks-and-events",
   },
@@ -139,7 +139,7 @@ const mobileRow1: MobileCard[] = [
     title: "Brand Shield & Discretion",
     definition:
       "Mask destination URLs to safeguard affiliate commissions and UTM campaign parameters.",
-    image: "/marketing-FCI/cosmos_227768569.jpeg",
+    image: "/screenshots/domaine/niveau.png",
     badge: "SHIELD / MASK",
     docSlug: "url-masking",
   },
@@ -180,7 +180,7 @@ const mobileRow2: MobileCard[] = [
     title: "Auto Rich Cards",
     definition:
       "Customize social cards to display rich previews across WhatsApp, LinkedIn, X, and Discord.",
-    image: "/marketing-FCI/cosmos_549824580.jpeg",
+    image: "/screenshots/drawer/niveau6.png",
     badge: "RICH / PREVIEW",
     docSlug: "social-sharing-opengraph",
   },
@@ -200,7 +200,7 @@ const mobileRow2: MobileCard[] = [
     title: "High-Speed Webhooks",
     definition:
       "Integrate every feature into your apps with our high-throughput REST API and TypeScript SDK.",
-    image: "/marketing-FCI/cosmos_938538719.jpeg",
+    image: "/screenshots/webhooks/niveau.png",
     badge: "API / DEV",
     docSlug: "webhooks-and-events",
   },

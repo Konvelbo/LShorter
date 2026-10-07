@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { trackClickAsync, evaluateTargetUrl } from "@/app/r/[slug]/route";
+import { trackClickAsync, evaluateTargetUrl } from "@/lib/redirect-engine";
 
 import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
 

@@ -134,6 +134,7 @@ export interface DashboardMobileMenuProps {
   }>;
   unreadCount: number;
   markAllNotificationsRead: () => void;
+  markNotificationRead?: (id: string, e?: React.MouseEvent) => void;
   displayName: string;
   displayEmail: string;
   avatarUrl: string;
@@ -150,6 +151,7 @@ export function DashboardMobileMenu({
   mergedNotifications,
   unreadCount,
   markAllNotificationsRead,
+  markNotificationRead,
   displayName,
   displayEmail,
   avatarUrl,
@@ -568,18 +570,22 @@ export function DashboardMobileMenu({
                   Aucune notification pour le moment.
                 </div>
               ) : (
-                mergedNotifications.slice(0, 8).map((notif) => (
+                mergedNotifications.slice(0, 10).map((notif) => (
                   <div
                     key={notif.id}
+                    onClick={() => markNotificationRead?.(notif.id)}
                     className={cn(
-                      "rounded-[10px] p-3 text-left transition-colors",
+                      "rounded-[10px] p-3 text-left transition-colors cursor-pointer",
                       notif.isRead
                         ? "bg-transparent hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
                         : "bg-[#ECF3FF]/70 dark:bg-[#465FFF]/15 border border-[#465FFF]/20"
                     )}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs font-semibold ds-text-primary">
+                      <span className="text-xs font-semibold ds-text-primary flex items-center gap-1.5">
+                        {!notif.isRead && (
+                          <span className="h-1.5 w-1.5 rounded-full bg-[#465FFF] shrink-0" />
+                        )}
                         {notif.title}
                       </span>
                       <span className="text-[10px] ds-text-muted shrink-0">

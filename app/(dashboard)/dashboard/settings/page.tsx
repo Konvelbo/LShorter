@@ -45,6 +45,13 @@ import {
   ChevronUp,
   FileCheck,
   Code2,
+  MoreVertical,
+  Play,
+  Pause,
+  Filter,
+  ArrowUpRight,
+  Mail,
+  X,
 } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -58,7 +65,20 @@ import {
   cfGetDomains,
   cfGetAnalytics,
   cfUploadImage,
+  cfGetPixels,
+  cfCreatePixel,
+  cfUpdatePixel,
+  cfDeletePixel,
+  cfGetWebhooks,
+  cfCreateWebhook,
+  cfUpdateWebhook,
+  cfDeleteWebhook,
+  cfGetTargetAlerts,
+  cfCreateTargetAlert,
+  cfUpdateTargetAlert,
+  cfDeleteTargetAlert,
 } from "@/lib/cloudflare-api";
+import { PixelBrandLogo } from "@/components/dashboard/pixel-badges";
 import QRCode from "qrcode";
 import bcrypt from "bcryptjs";
 import {
@@ -68,6 +88,7 @@ import {
   InvoiceItem,
   ActiveSession,
   ApiKeyItem,
+  TargetAlert,
 } from "@/types";
 import { ApiKeyCreatedModal } from "@/components/dashboard/api-key-created-modal";
 import { DeleteConfirmModal } from "@/components/dashboard/delete-confirm-modal";
@@ -243,11 +264,7 @@ function SettingsPageContent() {
           analytics30dRes?.data?.total_clicks ??
           0,
       );
-      const totalLiveClicks = Math.max(
-        analyticsClicksAll,
-        analyticsClicks30d,
-        sumClicks,
-      );
+      const totalLiveClicks = Math.max(analyticsClicks30d, sumClicks);
 
       setAccountStats({
         linksCount: lList.length,
@@ -347,20 +364,28 @@ function SettingsPageContent() {
           : 3;
   const rawClicksRatio =
     clicksLimit > 0 ? (accountStats.clicksThisMonth / clicksLimit) * 100 : 0;
-  const clicksPercent = Math.min(100, Math.round(rawClicksRatio));
-  const clicksPercentLabel =
-    clicksLimit === -1
-      ? "Unlimited"
-      : accountStats.clicksThisMonth === 0
-        ? "0%"
-        : rawClicksRatio < 1
-          ? `${rawClicksRatio.toFixed(2)}%`
-          : `${clicksPercent}%`;
+  
+  // Formatage précis du pourcentage pour la page Billing (ex: 0.12%, 4.56%, 105.20%)
+  const formatPrecisePercentage = (used: number, limit: number): string => {
+    if (limit === -1) return "Unlimited";
+    if (used <= 0) return "0.00%";
+    const ratio = (used / limit) * 100;
+    if (ratio < 0.01) {
+      return `${ratio.toFixed(3)}%`;
+    }
+    return `${ratio.toFixed(2)}%`;
+  };
+
+  const billingClicksPercentLabel = formatPrecisePercentage(
+    accountStats.clicksThisMonth,
+    clicksLimit,
+  );
+
   const clicksBarWidthPercent =
     clicksLimit === -1
       ? 0
       : accountStats.clicksThisMonth > 0
-        ? Math.min(100, Math.max(2, rawClicksRatio))
+        ? Math.min(100, Math.max(0.75, rawClicksRatio))
         : 0;
 
   const isOverage =
@@ -535,7 +560,7 @@ const topAudience = await qk.analytics.top();
 console.log("Top Countries:", topAudience.topCountries);`,
   };
 
-  // ─── Webhooks State (Persistent Storage) ────────────────────────────────────
+  // ─── Webhooks State (Cloudflare D1 & Sync) ──────────────────────────────────
   const [webhooks, setWebhooks] = useState<WebhookConfig[]>([]);
   const [newWebhookUrl, setNewWebhookUrl] = useState("");
   const [webhookTestResponse, setWebhookTestResponse] = useState<string | null>(
@@ -543,50 +568,68 @@ console.log("Top Countries:", topAudience.topCountries);`,
   );
   const [isTestingWebhook, setIsTestingWebhook] = useState(false);
   const [showWebhookGuide, setShowWebhookGuide] = useState(true);
+  const [isLoadingWebhooks, setIsLoadingWebhooks] = useState(false);
 
-  useEffect(() => {
-    if (typeof window !== "undefined" && userId) {
-      const saved = localStorage.getItem(`lshorter_webhooks_${userId}`);
-      if (saved) {
-        try {
-          setWebhooks(JSON.parse(saved));
-        } catch {}
-      }
-    }
-  }, [userId]);
-
-  const saveWebhooksList = (list: WebhookConfig[]) => {
-    setWebhooks(list);
-    if (typeof window !== "undefined" && userId) {
-      localStorage.setItem(`lshorter_webhooks_${userId}`, JSON.stringify(list));
+  const loadWebhooks = async () => {
+    if (!userId) return;
+    setIsLoadingWebhooks(true);
+    try {
+      const res = await cfGetWebhooks(userId);
+      const list = res?.data?.webhooks || [];
+      setWebhooks(list as any);
+      try {
+        localStorage.setItem(`lshorter_webhooks_${userId}`, JSON.stringify(list));
+      } catch {}
+    } catch {
+      try {
+        const saved = localStorage.getItem(`lshorter_webhooks_${userId}`);
+        if (saved) setWebhooks(JSON.parse(saved));
+      } catch {}
+    } finally {
+      setIsLoadingWebhooks(false);
     }
   };
 
-  // ─── Pixels State (Persistent Storage) ──────────────────────────────────────
-  const [pixels, setPixels] = useState<RetargetingPixel[]>([]);
+  useEffect(() => {
+    if (userId) {
+      loadWebhooks();
+    }
+  }, [userId, activeTab]);
+
+  // ─── Pixels State (Cloudflare D1 & Sync) ────────────────────────────────────
+  const [pixels, setPixels] = useState<any[]>([]);
   const [newPixelId, setNewPixelId] = useState("");
+  const [newPixelName, setNewPixelName] = useState("");
   const [newPixelPlatform, setNewPixelPlatform] = useState<
-    "facebook" | "google_tag" | "tiktok" | "linkedin"
-  >("facebook");
-  const [showPixelGuide, setShowPixelGuide] = useState(true);
+    "meta" | "google" | "tiktok" | "linkedin"
+  >("meta");
+  const [isLoadingPixels, setIsLoadingPixels] = useState(false);
 
-  useEffect(() => {
-    if (typeof window !== "undefined" && userId) {
-      const saved = localStorage.getItem(`lshorter_pixels_${userId}`);
-      if (saved) {
-        try {
-          setPixels(JSON.parse(saved));
-        } catch {}
-      }
-    }
-  }, [userId]);
-
-  const savePixelsList = (list: RetargetingPixel[]) => {
-    setPixels(list);
-    if (typeof window !== "undefined" && userId) {
-      localStorage.setItem(`lshorter_pixels_${userId}`, JSON.stringify(list));
+  const loadPixels = async () => {
+    if (!userId) return;
+    setIsLoadingPixels(true);
+    try {
+      const res = await cfGetPixels(userId);
+      const list = res?.data?.pixels || [];
+      setPixels(list);
+      try {
+        localStorage.setItem(`lshorter_pixels_${userId}`, JSON.stringify(list));
+      } catch {}
+    } catch {
+      try {
+        const saved = localStorage.getItem(`lshorter_pixels_${userId}`);
+        if (saved) setPixels(JSON.parse(saved));
+      } catch {}
+    } finally {
+      setIsLoadingPixels(false);
     }
   };
+
+  useEffect(() => {
+    if (userId) {
+      loadPixels();
+    }
+  }, [userId, activeTab]);
 
   // ─── Security State ─────────────────────────────────────────────────────────
   const [is2FAEnabled, setIs2FAEnabled] = useState(false);
@@ -700,45 +743,308 @@ console.log("Top Countries:", topAudience.topCountries);`,
       });
   }, []);
 
-  // ─── Notifications State (Persistent, Confirmed via Global Button) ──────────
-  const [spikeThreshold, setSpikeThreshold] = useState(1000);
-  const [linkAlerts, setLinkAlerts] = useState(true);
-  const [expirationAlerts, setExpirationAlerts] = useState(true);
-  const [notifSaved, setNotifSaved] = useState(false);
+  // ─── Target Alerts & Notifications State (Cloudflare D1 Synced) ─────────────
+  const [targetAlerts, setTargetAlerts] = useState<TargetAlert[]>([]);
+  const [userLinksList, setUserLinksList] = useState<any[]>([]);
+  const [isLoadingTargets, setIsLoadingTargets] = useState(false);
+  const [activeAlertFilter, setActiveAlertFilter] = useState<"all" | "active" | "paused" | "reached">("all");
+  const [openRowMenuId, setOpenRowMenuId] = useState<string | null>(null);
+  const [isAlertModalOpen, setIsAlertModalOpen] = useState(false);
+  const [editingAlert, setEditingAlert] = useState<TargetAlert | null>(null);
+  const [isEditingGlobalAlert, setIsEditingGlobalAlert] = useState(false);
+
+  // Modal form inputs
+  const [alertLinkId, setAlertLinkId] = useState<string>("");
+  const [alertMetricType, setAlertMetricType] = useState<"clicks" | "revenue">("clicks");
+  const [alertPeriod, setAlertPeriod] = useState<"day" | "week" | "month">("month");
+  const [alertTargetValue, setAlertTargetValue] = useState<number>(2500);
+  const [alertNotifyExpired, setAlertNotifyExpired] = useState<boolean>(true);
+  const [alertNotifyEmail, setAlertNotifyEmail] = useState<boolean>(true);
+  const [alertNotifyBell, setAlertNotifyBell] = useState<boolean>(true);
+  const [isSavingAlert, setIsSavingAlert] = useState<boolean>(false);
+
+  const loadTargetAlerts = async () => {
+    if (!userId) return;
+    setIsLoadingTargets(true);
+    try {
+      // 1. Fetch user's links
+      const linksRes = await cfGetLinks(userId).catch(() => null);
+      const rawLinks = Array.isArray(linksRes?.data)
+        ? linksRes.data
+        : Array.isArray((linksRes?.data as any)?.data)
+          ? (linksRes?.data as any).data
+          : [];
+      setUserLinksList(rawLinks);
+
+      // 2. Fetch targets from Cloudflare D1
+      const res = await cfGetTargetAlerts(userId).catch(() => null);
+      let alerts: TargetAlert[] = [];
+      if (res && res.success && Array.isArray(res.data)) {
+        alerts = res.data;
+      }
+
+      // Check global monthly target from storage or list
+      const savedClk = typeof window !== "undefined" ? Number(localStorage.getItem("lshorter_target_clicks")) : 0;
+      const savedRev = typeof window !== "undefined" ? Number(localStorage.getItem("lshorter_target_revenue")) : 0;
+
+      const hasGlobal = alerts.some((a) => !a.linkId);
+      if (!hasGlobal) {
+        alerts.unshift({
+          id: `global_${userId}`,
+          userId,
+          linkId: null,
+          metricType: "clicks",
+          period: "month",
+          targetValue: savedClk > 0 ? savedClk : 2500,
+          currentValue: accountStats.clicksThisMonth || 0,
+          notifyExpired: true,
+          notifyEmail: true,
+          notifyBell: true,
+          status: "active",
+        });
+      }
+
+      // Compute current live values for alerts from links
+      alerts = alerts.map((al) => {
+        if (!al.linkId) {
+          const cur = al.metricType === "revenue"
+            ? (accountStats.clicksThisMonth || 0) * 0.05
+            : (accountStats.clicksThisMonth || 0);
+          return {
+            ...al,
+            currentValue: cur,
+            status: cur >= al.targetValue ? "reached" : al.status,
+          };
+        } else {
+          const matched = rawLinks.find((l: any) => String(l.id) === String(al.linkId) || l.slug === al.slug);
+          const cur = matched
+            ? (Number(matched.clicks_count) || Number(matched.clicksCount) || Number(matched.clicks) || 0)
+            : (al.currentValue || 0);
+          return {
+            ...al,
+            linkTitle: matched ? (matched.title || `lsho.cc/${matched.slug}`) : al.linkTitle,
+            slug: matched ? matched.slug : al.slug,
+            targetUrl: matched ? (matched.target_url || matched.targetUrl) : al.targetUrl,
+            currentValue: cur,
+            status: cur >= al.targetValue ? "reached" : al.status,
+          };
+        }
+      });
+
+      setTargetAlerts(alerts);
+    } catch (err) {
+      console.warn("[Settings] Error loading target alerts:", err);
+    } finally {
+      setIsLoadingTargets(false);
+    }
+  };
 
   useEffect(() => {
-    if (typeof window !== "undefined" && userId) {
-      const saved = localStorage.getItem(`lshorter_notif_${userId}`);
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          if (parsed.spikeThreshold) setSpikeThreshold(parsed.spikeThreshold);
-          if (parsed.linkAlerts !== undefined) setLinkAlerts(parsed.linkAlerts);
-          if (parsed.expirationAlerts !== undefined)
-            setExpirationAlerts(parsed.expirationAlerts);
-        } catch {}
-      }
+    if (activeTab === "notifications" && userId) {
+      loadTargetAlerts();
     }
-  }, [userId]);
+  }, [activeTab, userId, accountStats.clicksThisMonth]);
 
-  const handleConfirmNotificationPrefs = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    const newPrefs = {
-      spikeThreshold,
-      linkAlerts,
-      expirationAlerts,
-    };
-    if (typeof window !== "undefined" && userId) {
-      localStorage.setItem(
-        `lshorter_notif_${userId}`,
-        JSON.stringify(newPrefs),
+  useEffect(() => {
+    const handleTargetUpdate = (e: any) => {
+      const { revenue, clicks } = e.detail || {};
+      setTargetAlerts((prev) =>
+        prev.map((al) => {
+          if (!al.linkId) {
+            const nextVal = al.metricType === "revenue" ? (revenue ?? al.targetValue) : (clicks ?? al.targetValue);
+            return { ...al, targetValue: nextVal };
+          }
+          return al;
+        })
       );
-    }
-    setNotifSaved(true);
-    showToast.success(
-      "Préférences de notifications confirmées et enregistrées !",
+    };
+    window.addEventListener("lshorter_target_updated", handleTargetUpdate);
+    return () => {
+      window.removeEventListener("lshorter_target_updated", handleTargetUpdate);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!openRowMenuId) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest("[data-row-menu]")) {
+        setOpenRowMenuId(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [openRowMenuId]);
+
+  const handleTogglePauseTarget = async (alert: TargetAlert) => {
+    const nextStatus = alert.status === "paused" ? "active" : "paused";
+    setTargetAlerts((prev) =>
+      prev.map((a) => (a.id === alert.id ? { ...a, status: nextStatus } : a))
     );
-    setTimeout(() => setNotifSaved(false), 2500);
+    setOpenRowMenuId(null);
+
+    try {
+      if (!alert.id.startsWith("global_")) {
+        await cfUpdateTargetAlert(alert.id, { status: nextStatus });
+      }
+      showToast.success(nextStatus === "paused" ? "Alert paused" : "Alert resumed");
+    } catch {
+      showToast.error("Failed to update status");
+      loadTargetAlerts();
+    }
+  };
+
+  const handleDeleteTarget = async (alertId: string) => {
+    if (alertId.startsWith("global_")) {
+      showToast.error("Global workspace target cannot be deleted");
+      return;
+    }
+    setOpenRowMenuId(null);
+    setTargetAlerts((prev) => prev.filter((a) => a.id !== alertId));
+    try {
+      await cfDeleteTargetAlert(alertId);
+      showToast.success("Alert deleted successfully");
+    } catch {
+      showToast.error("Failed to delete alert");
+      loadTargetAlerts();
+    }
+  };
+
+  const handleOpenCreateModal = () => {
+    setEditingAlert(null);
+    setIsEditingGlobalAlert(false);
+    const firstLink = userLinksList[0];
+    setAlertLinkId(firstLink ? String(firstLink.id) : "");
+    setAlertMetricType("clicks");
+    setAlertPeriod("month");
+    setAlertTargetValue(2500);
+    setAlertNotifyExpired(true);
+    setAlertNotifyEmail(true);
+    setAlertNotifyBell(true);
+    setIsAlertModalOpen(true);
+  };
+
+  const handleOpenEditModal = (alert: TargetAlert) => {
+    setOpenRowMenuId(null);
+    setEditingAlert(alert);
+    const isGlobal = !alert.linkId;
+    setIsEditingGlobalAlert(isGlobal);
+    setAlertLinkId(alert.linkId ? String(alert.linkId) : "");
+    setAlertMetricType(alert.metricType || "clicks");
+    setAlertPeriod(isGlobal ? "month" : (alert.period || "month"));
+    setAlertTargetValue(alert.targetValue || 2500);
+    setAlertNotifyExpired(alert.notifyExpired !== false);
+    setAlertNotifyEmail(alert.notifyEmail !== false);
+    setAlertNotifyBell(alert.notifyBell !== false);
+    setIsAlertModalOpen(true);
+  };
+
+  const handleSaveTarget = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (alertTargetValue <= 0) {
+      showToast.error("Please enter a valid target value > 0");
+      return;
+    }
+    setIsSavingAlert(true);
+    try {
+      if (isEditingGlobalAlert) {
+        if (alertMetricType === "revenue") {
+          localStorage.setItem("lshorter_target_revenue", String(alertTargetValue));
+        } else {
+          localStorage.setItem("lshorter_target_clicks", String(alertTargetValue));
+        }
+        window.dispatchEvent(
+          new CustomEvent("lshorter_target_updated", {
+            detail: {
+              revenue: alertMetricType === "revenue" ? alertTargetValue : undefined,
+              clicks: alertMetricType === "clicks" ? alertTargetValue : undefined,
+            },
+          })
+        );
+        await cfCreateTargetAlert({
+          userId,
+          linkId: null,
+          metricType: alertMetricType,
+          period: "month",
+          targetValue: alertTargetValue,
+          notifyExpired: alertNotifyExpired,
+          notifyEmail: alertNotifyEmail,
+          notifyBell: alertNotifyBell,
+        }).catch(() => null);
+
+        showToast.success("Global monthly target updated");
+      } else {
+        if (!alertLinkId && !editingAlert) {
+          showToast.error("Please select a short link");
+          setIsSavingAlert(false);
+          return;
+        }
+
+        if (editingAlert && !editingAlert.id.startsWith("global_")) {
+          await cfUpdateTargetAlert(editingAlert.id, {
+            metricType: alertMetricType,
+            period: alertPeriod,
+            targetValue: alertTargetValue,
+            notifyExpired: alertNotifyExpired,
+            notifyEmail: alertNotifyEmail,
+            notifyBell: alertNotifyBell,
+          });
+          showToast.success("Link alert updated");
+        } else {
+          await cfCreateTargetAlert({
+            userId,
+            linkId: alertLinkId,
+            metricType: alertMetricType,
+            period: alertPeriod,
+            targetValue: alertTargetValue,
+            notifyExpired: alertNotifyExpired,
+            notifyEmail: alertNotifyEmail,
+            notifyBell: alertNotifyBell,
+          });
+          showToast.success("Link alert created successfully");
+        }
+      }
+
+      setIsAlertModalOpen(false);
+      await loadTargetAlerts();
+    } catch (err: any) {
+      showToast.error(err?.message || "Failed to save alert");
+    } finally {
+      setIsSavingAlert(false);
+    }
+  };
+
+  const handleTestTarget = async (alert: TargetAlert) => {
+    setOpenRowMenuId(null);
+    showToast.info("Sending test alert...");
+    try {
+      const isGlobal = !alert.linkId;
+      const res = await fetch("/api/targets/notify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId,
+          email: session?.user?.email || "founder@lshorter.com",
+          name: session?.user?.name || "Founder",
+          linkTitle: isGlobal ? "Global Workspace" : (alert.linkTitle || (alert.slug ? `lsho.cc/${alert.slug}` : "Link")),
+          slug: alert.slug || "",
+          metricType: alert.metricType,
+          achievedValue: alert.currentValue || (alert.targetValue * 0.78),
+          targetValue: alert.targetValue,
+          monthLabel: isGlobal ? "This Month" : (alert.period === "day" ? "Today" : alert.period === "week" ? "This Week" : "This Month"),
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast.success("Test alert sent! Notification added to bell & test email dispatched.");
+      } else {
+        showToast.error("Failed to send test alert");
+      }
+    } catch {
+      showToast.error("Error sending test alert");
+    }
   };
 
   // ─── Data & RGPD State ──────────────────────────────────────────────────────
@@ -915,7 +1221,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
     }
   };
 
-  const handleAddWebhook = (e: React.FormEvent) => {
+  const handleAddWebhook = async (e: React.FormEvent) => {
     e.preventDefault();
     if (plan === "FREEMIUM") {
       triggerPlanUpgrade({
@@ -926,31 +1232,48 @@ console.log("Top Countries:", topAudience.topCountries);`,
       });
       return;
     }
-    if (!newWebhookUrl.trim()) return;
-    const newWh: WebhookConfig = {
-      id: `wh_${Date.now()}`,
-      url: newWebhookUrl.trim(),
-      events: ["click.created", "conversion.created"],
-      isActive: true,
-      secretKey: `whsec_${Math.random().toString(36).substring(2, 14)}`,
-      lastStatus: 200,
-      created_at: new Date().toISOString(),
-    };
-    saveWebhooksList([...webhooks, newWh]);
-    setNewWebhookUrl("");
-    confetti({ particleCount: 30, spread: 50 });
-    showToast.success("Webhook configured successfully!");
+    if (!newWebhookUrl.trim() || !userId) return;
+    try {
+      await cfCreateWebhook({
+        userId,
+        url: newWebhookUrl.trim(),
+        events: ["click.created", "conversion.created"],
+        isActive: true,
+      });
+      setNewWebhookUrl("");
+      confetti({ particleCount: 30, spread: 50 });
+      showToast.success("Webhook configuré et enregistré dans Cloudflare D1 !");
+      loadWebhooks();
+    } catch (err: any) {
+      showToast.error(err?.message || "Échec de création du webhook");
+    }
   };
 
-  const handleDeleteWebhook = (id: string) => {
-    saveWebhooksList(webhooks.filter((w) => w.id !== id));
-    showToast.success("Webhook deleted.");
+  const handleDeleteWebhook = async (id: string) => {
+    try {
+      setWebhooks((prev) => prev.filter((w) => w.id !== id));
+      await cfDeleteWebhook(id, userId);
+      showToast.success("Webhook supprimé de Cloudflare D1.");
+    } catch {
+      loadWebhooks();
+      showToast.error("Échec de suppression du webhook");
+    }
   };
 
-  const handleToggleWebhook = (id: string) => {
-    saveWebhooksList(
-      webhooks.map((w) => (w.id === id ? { ...w, isActive: !w.isActive } : w)),
-    );
+  const handleToggleWebhook = async (id: string) => {
+    const target = webhooks.find((w) => w.id === id);
+    if (!target) return;
+    const nextActive = !target.isActive;
+    try {
+      setWebhooks((prev) =>
+        prev.map((w) => (w.id === id ? { ...w, isActive: nextActive } : w)),
+      );
+      await cfUpdateWebhook(id, { userId, isActive: nextActive });
+      showToast.success(nextActive ? "Webhook activé" : "Webhook mis en pause");
+    } catch {
+      loadWebhooks();
+      showToast.error("Échec de mise à jour du webhook");
+    }
   };
 
   const handleTestWebhook = async (url: string, secretKey?: string) => {
@@ -990,7 +1313,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
     }
   };
 
-  const handleAddPixel = (e: React.FormEvent) => {
+  const handleAddPixel = async (e: React.FormEvent) => {
     e.preventDefault();
     if (plan === "FREEMIUM") {
       triggerPlanUpgrade({
@@ -1001,36 +1324,64 @@ console.log("Top Countries:", topAudience.topCountries);`,
       });
       return;
     }
-    if (!newPixelId.trim()) return;
+    if (!newPixelId.trim() || !userId) return;
     const nameMap: Record<string, string> = {
-      facebook: "Meta Facebook Pixel",
-      google_tag: "Google Analytics 4 / Tag",
+      meta: "Meta Facebook Pixel",
+      google: "Google Analytics (GA4)",
       tiktok: "TikTok Ads Tag",
       linkedin: "LinkedIn Insight Tag",
     };
-    const newPx: RetargetingPixel = {
-      id: `px_${Date.now()}`,
-      platform: newPixelPlatform,
-      pixelId: newPixelId.trim(),
-      name: nameMap[newPixelPlatform] || "Pixel Tag",
-      isActive: true,
-      eventsTrackedCount: 0,
-    };
-    savePixelsList([...pixels, newPx]);
-    setNewPixelId("");
-    confetti({ particleCount: 30, spread: 50 });
-    showToast.success("Retargeting pixel connected!");
+    try {
+      const pName =
+        newPixelName.trim() || nameMap[newPixelPlatform] || "Pixel Tag";
+      const platformMap: Record<string, "facebook" | "google_tag" | "tiktok" | "linkedin"> = {
+        meta: "facebook",
+        google: "google_tag",
+        tiktok: "tiktok",
+        linkedin: "linkedin",
+      };
+      const apiPlatform = platformMap[newPixelPlatform] || (newPixelPlatform as any);
+      await cfCreatePixel({
+        userId,
+        platform: apiPlatform,
+        pixelId: newPixelId.trim(),
+        name: pName,
+        isActive: true,
+      });
+      setNewPixelId("");
+      setNewPixelName("");
+      showToast.success("Retargeting pixel connected!");
+      loadPixels();
+    } catch (err: any) {
+      showToast.error(err?.message || "Failed to create pixel");
+    }
   };
 
-  const handleDeletePixel = (id: string) => {
-    savePixelsList(pixels.filter((p) => p.id !== id));
-    showToast.success("Pixel deleted.");
+  const handleDeletePixel = async (id: string) => {
+    try {
+      setPixels((prev) => prev.filter((p) => p.id !== id));
+      await cfDeletePixel(id, userId);
+      showToast.success("Pixel deleted.");
+    } catch {
+      loadPixels();
+      showToast.error("Failed to delete pixel");
+    }
   };
 
-  const handleTogglePixel = (id: string) => {
-    savePixelsList(
-      pixels.map((p) => (p.id === id ? { ...p, isActive: !p.isActive } : p)),
-    );
+  const handleTogglePixel = async (id: string) => {
+    const target = pixels.find((p) => p.id === id);
+    if (!target) return;
+    const nextActive = !target.isActive;
+    try {
+      setPixels((prev) =>
+        prev.map((p) => (p.id === id ? { ...p, isActive: nextActive } : p)),
+      );
+      await cfUpdatePixel(id, { userId, isActive: nextActive });
+      showToast.success(nextActive ? "Pixel activated" : "Pixel paused");
+    } catch {
+      loadPixels();
+      showToast.error("Failed to update pixel");
+    }
   };
 
   const handlePasswordInput = (val: string) => {
@@ -1348,14 +1699,14 @@ console.log("Top Countries:", topAudience.topCountries);`,
                       Monthly Click Volume
                     </span>
                     <span
-                      className="text-xs text-brand font-bold"
+                      className="text-xs text-[#0066FF] dark:text-[#5294FF] font-semibold"
                       data-testid="billing-monthly-clicks-percent"
                     >
                       {plan === "ENTERPRISE" || clicksLimit === -1
                         ? "Unlimited clicks included"
                         : isOverage
-                          ? "100% (Overage active)"
-                          : `${clicksPercentLabel} used`}
+                          ? `${billingClicksPercentLabel} (Overage active)`
+                          : `${billingClicksPercentLabel} used`}
                     </span>
                   </div>
                   <p
@@ -1367,9 +1718,9 @@ console.log("Top Countries:", topAudience.topCountries);`,
                     )}{" "}
                     / {clicksLimit === -1 ? "Unlimited" : (clicksLimit ?? 10000).toLocaleString("en-US")}
                   </p>
-                  <div className="w-full h-2 rounded-full bg-zinc-200 dark:bg-[#27272a] overflow-hidden mt-1">
+                  <div className="w-full h-1.5 rounded-full bg-zinc-200 dark:bg-[#27272a] overflow-hidden mt-1">
                     <div
-                      className={`h-full rounded-full transition-all duration-500 ${isOverage && plan !== "ENTERPRISE" ? "bg-amber-500" : "bg-brand"}`}
+                      className={`h-full rounded-full transition-all duration-300 ${isOverage && plan !== "ENTERPRISE" ? "bg-amber-500" : "bg-[#0066FF]"}`}
                       style={{ width: `${clicksBarWidthPercent}%` }}
                     />
                   </div>
@@ -2201,24 +2552,24 @@ console.log("Top Countries:", topAudience.topCountries);`,
 
               <form
                 onSubmit={handleAddPixel}
-                className="grid grid-cols-1 sm:grid-cols-3 gap-2"
+                className="grid grid-cols-1 sm:grid-cols-4 gap-2"
               >
                 <select
                   value={newPixelPlatform}
                   onChange={(e) => setNewPixelPlatform(e.target.value as any)}
-                  className="h-9 rounded-[8px] bg-white dark:bg-[#141416] text-neutral-900 dark:text-white border border-neutral-300 dark:border-[#27272a] px-3 text-xs focus:outline-none focus:border-brand cursor-pointer"
+                  className="h-9 rounded-[8px] bg-white dark:bg-[#141416] text-neutral-900 dark:text-white border border-neutral-300 dark:border-[#27272a] px-3 text-xs focus:outline-none focus:border-[#0066FF] cursor-pointer"
                 >
                   <option
-                    value="facebook"
+                    value="meta"
                     className="bg-white dark:bg-[#141416] text-neutral-900 dark:text-white"
                   >
                     Meta Facebook Pixel
                   </option>
                   <option
-                    value="google_tag"
+                    value="google"
                     className="bg-white dark:bg-[#141416] text-neutral-900 dark:text-white"
                   >
-                    Google Analytics 4 (GA4)
+                    Google Analytics (GA4)
                   </option>
                   <option
                     value="tiktok"
@@ -2234,6 +2585,12 @@ console.log("Top Countries:", topAudience.topCountries);`,
                   </option>
                 </select>
                 <Input
+                  placeholder="Pixel Name (e.g. My Meta Ads)"
+                  value={newPixelName}
+                  onChange={(e) => setNewPixelName(e.target.value)}
+                  className="bg-white dark:bg-[#141416] border-neutral-300 dark:border-[#27272a] text-xs text-neutral-900 dark:text-white placeholder:text-neutral-400 dark:placeholder:text-neutral-500 h-9"
+                />
+                <Input
                   required
                   placeholder="Pixel ID (e.g. 987654321 or G-XXXXXX)"
                   value={newPixelId}
@@ -2243,16 +2600,20 @@ console.log("Top Countries:", topAudience.topCountries);`,
                 <Button
                   type="submit"
                   size="sm"
-                  className="text-xs h-9 px-4 font-medium bg-brand hover:bg-brand-hover text-white rounded-[8px] cursor-pointer"
+                  className="text-xs h-9 px-4 font-semibold bg-[#0066FF] hover:bg-[#0055d4] text-white rounded-[8px] cursor-pointer"
                 >
                   Connect Pixel
                 </Button>
               </form>
 
               <div className="flex flex-col gap-2.5">
-                {pixels.length === 0 ? (
+                {isLoadingPixels ? (
                   <div className="py-8 text-center text-xs text-neutral-500 bg-neutral-50 dark:bg-[#141416] rounded-[10px] border border-neutral-200 dark:border-[#27272a]">
-                    No pixels configured. Add your first tracking ID above.
+                    Loading connected pixels...
+                  </div>
+                ) : pixels.length === 0 ? (
+                  <div className="py-8 text-center text-xs text-neutral-500 bg-neutral-50 dark:bg-[#141416] rounded-[10px] border border-neutral-200 dark:border-[#27272a]">
+                    No retargeting pixels configured. Connect your first tag above to start syncing audiences.
                   </div>
                 ) : (
                   pixels.map((px: any) => (
@@ -2261,14 +2622,23 @@ console.log("Top Countries:", topAudience.topCountries);`,
                       className="p-3.5 rounded-[10px] bg-neutral-50 dark:bg-[#141416] border border-neutral-200 dark:border-[#27272a] flex items-center justify-between text-xs"
                     >
                       <div className="flex items-center gap-3">
-                        <Target className="w-4 h-4 text-brand" />
+                        <div className="w-8 h-8 rounded-lg bg-white dark:bg-[#18181b] border border-neutral-200 dark:border-[#27272a] flex items-center justify-center shrink-0">
+                          <PixelBrandLogo platform={px.platform || px.name} className="w-4 h-4" />
+                        </div>
                         <div>
-                          <p className="font-semibold text-neutral-900 dark:text-white">
-                            {px.name}
-                          </p>
-                          <p className="text-[11px] text-neutral-500 dark:text-neutral-400 font-mono">
-                            ID: {px.pixelId}
-                          </p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold text-neutral-900 dark:text-white">
+                              {px.name}
+                            </p>
+                            <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-neutral-200/60 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 uppercase">
+                              {px.platform}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5">
+                            <span className="font-mono">ID: {px.pixelId}</span>
+                            <span>•</span>
+                            <span>{px.eventsTrackedCount ?? 0} events tracked</span>
+                          </div>
                         </div>
                       </div>
 
@@ -2278,11 +2648,11 @@ console.log("Top Countries:", topAudience.topCountries);`,
                           onClick={() => handleTogglePixel(px.id)}
                           className={`px-2.5 py-0.5 rounded text-[11px] font-medium transition-colors cursor-pointer ${
                             px.isActive
-                              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                              ? "bg-[#0066FF]/10 text-[#0066FF] dark:text-[#5294FF] border border-[#0066FF]/20"
                               : "bg-neutral-200 dark:bg-neutral-800 text-neutral-500"
                           }`}
                         >
-                          {px.isActive ? "Active" : "Disabled"}
+                          {px.isActive ? "Active" : "Paused"}
                         </button>
                         <button
                           type="button"
@@ -2482,118 +2852,669 @@ console.log("Top Countries:", topAudience.topCountries);`,
             </div>
           )}
 
-          {/* TAB 8: NOTIFICATIONS */}
-          {activeTab === "notifications" && (
-            <form
-              onSubmit={handleConfirmNotificationPrefs}
-              className="flex flex-col gap-6"
-            >
-              <div className="flex items-center justify-between pb-4 border-b border-zinc-200 dark:border-[#222225]">
-                <div>
-                  <h2 className="text-lg font-bold text-zinc-900 dark:text-white">
-                    Notification Preferences
-                  </h2>
-                  <p className="text-xs text-zinc-500 dark:text-neutral-400">
-                    Adjust traffic spike alert thresholds and periodic
-                    reporting, then click Confirm to apply.
-                  </p>
-                </div>
-              </div>
+          {/* TAB 8: NOTIFICATIONS (TARGET & LIMIT ALERTS) */}
+          {activeTab === "notifications" && (() => {
+            const globalAlert = targetAlerts.find((a) => !a.linkId);
+            const individualAlerts = targetAlerts.filter((a) => a.linkId);
 
-              {/* Traffic Spike Threshold */}
-              <div className="p-4 rounded-[10px] bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a] flex flex-col gap-3 text-xs">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="font-bold text-zinc-900 dark:text-white">
-                    Traffic spike alert threshold (clicks / hour)
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      min="10"
-                      max="100000"
-                      step="50"
-                      value={spikeThreshold}
-                      onChange={(e) =>
-                        setSpikeThreshold(
-                          Math.max(10, Number(e.target.value) || 100),
-                        )
-                      }
-                      data-testid="notif-spike-threshold-input"
-                      className="w-28 h-8 rounded-[8px] bg-white dark:bg-[#0c0c0e] border border-zinc-300 dark:border-[#27272a] px-2.5 font-mono font-bold text-xs text-zinc-900 dark:text-white focus:outline-none focus:border-[#465FFF]"
-                    />
-                    <span className="font-mono text-[#465FFF] font-bold text-xs">
-                      clicks / hour
-                    </span>
-                  </div>
-                </div>
-                <input
-                  type="range"
-                  min="100"
-                  max="10000"
-                  step="100"
-                  value={Math.min(10000, Math.max(100, spikeThreshold))}
-                  onChange={(e) => setSpikeThreshold(Number(e.target.value))}
-                  className="w-full accent-[#465FFF] cursor-pointer mt-1"
-                />
-                <p className="text-[11px] text-zinc-500 dark:text-neutral-400">
-                  You will receive an email alert whenever a short link exceeds
-                  this hourly click rate.
-                </p>
-              </div>
+            const filteredAlerts = individualAlerts.filter((a) => {
+              if (activeAlertFilter === "all") return true;
+              return a.status === activeAlertFilter;
+            });
 
-              {/* Checkboxes (No immediate toast on toggle — confirmed via Confirm button below) */}
-              <div className="flex flex-col gap-3">
-                <label className="flex items-center justify-between p-3.5 rounded-[10px] bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a] hover:border-zinc-300 dark:hover:border-[#34343a] transition-colors cursor-pointer">
+            const activeCount = individualAlerts.filter((a) => a.status === "active").length;
+            const pausedCount = individualAlerts.filter((a) => a.status === "paused").length;
+            const reachedCount = individualAlerts.filter((a) => a.status === "reached").length;
+
+            // Global stats
+            const globalCurrent = globalAlert?.currentValue ?? accountStats.clicksThisMonth ?? 0;
+            const globalTarget = globalAlert?.targetValue ?? 2500;
+            const globalProgressPct = Math.min(100, Math.round((globalCurrent / (globalTarget || 1)) * 100));
+
+            const isRevenue = globalAlert?.metricType === "revenue";
+            const globalCurrentFormatted = isRevenue
+              ? `$${globalCurrent.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+              : globalCurrent.toLocaleString();
+            const globalTargetFormatted = isRevenue
+              ? `$${globalTarget.toLocaleString("en-US")}`
+              : globalTarget.toLocaleString();
+
+            return (
+              <div className="flex flex-col gap-6">
+                {/* Main Header */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-zinc-200 dark:border-[#222225]">
                   <div>
-                    <p className="text-xs font-bold text-zinc-900 dark:text-white">
-                      Link expiration alerts
-                    </p>
-                    <p className="text-[11px] text-zinc-500 dark:text-neutral-400">
-                      Notification 24 hours before a short link expires
-                    </p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={expirationAlerts}
-                    onChange={(e) => setExpirationAlerts(e.target.checked)}
-                    data-testid="notif-expiration-checkbox"
-                    className="w-4 h-4 accent-[#465FFF] cursor-pointer"
-                  />
-                </label>
-
-                <label className="flex items-center justify-between p-3.5 rounded-[10px] bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a] hover:border-zinc-300 dark:hover:border-[#34343a] transition-colors cursor-pointer">
-                  <div>
-                    <p className="text-xs font-bold text-zinc-900 dark:text-white">
-                      Weekly performance summary report
-                    </p>
-                    <p className="text-[11px] text-zinc-500 dark:text-neutral-400">
-                      Analytics recap of clicks and conversions delivered every
-                      Monday morning
+                    <h2 className="text-xl font-bold tracking-tight text-zinc-900 dark:text-white">
+                      Target &amp; Limit Alerts
+                    </h2>
+                    <p className="text-xs text-zinc-500 dark:text-neutral-400 mt-1">
+                      Set custom click or revenue limits per link or workspace-wide, with real-time tracking and automated notifications.
                     </p>
                   </div>
-                  <input
-                    type="checkbox"
-                    checked={linkAlerts}
-                    onChange={(e) => setLinkAlerts(e.target.checked)}
-                    data-testid="notif-weekly-checkbox"
-                    className="w-4 h-4 accent-[#465FFF] cursor-pointer"
-                  />
-                </label>
-              </div>
+                  <Button
+                    type="button"
+                    variant="glow"
+                    onClick={handleOpenCreateModal}
+                    className="h-9 px-4 text-xs font-semibold gap-2 self-start sm:self-auto cursor-pointer shadow-sm shrink-0"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>New Link Alert</span>
+                  </Button>
+                </div>
 
-              <div className="flex items-center justify-end pt-3 border-t border-zinc-200 dark:border-[#222225]">
-                <Button
-                  type="submit"
-                  variant="glow"
-                  data-testid="confirm-notifications-btn"
-                  className="text-xs px-6 h-10 font-bold gap-2 cursor-pointer shadow-md"
-                >
-                  <Check className="w-4 h-4" />
-                  <span>{notifSaved ? "Confirmé !" : "Confirmer"}</span>
-                </Button>
+                {/* ─── SECTION 1: GLOBAL WORKSPACE TARGET (MONTHLY) ─────────── */}
+                <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#151518] p-5 shadow-sm">
+                  <div className="flex items-start justify-between gap-3 pb-4 border-b border-zinc-100 dark:border-zinc-800/80">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-200/60 dark:border-blue-900/40 shrink-0">
+                        <Target className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-900 dark:text-white">
+                          Global Workspace Target (Monthly)
+                        </h3>
+                        <p className="text-xs text-zinc-500 dark:text-neutral-400 mt-0.5">
+                          Synchronized with your main dashboard Monthly Target. Locked to monthly tracking.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 relative" data-row-menu>
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border ${
+                        globalAlert?.status === "paused"
+                          ? "bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800"
+                          : "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
+                      }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${
+                          globalAlert?.status === "paused" ? "bg-amber-500" : "bg-emerald-500 animate-pulse"
+                        }`} />
+                        {globalAlert?.status === "paused" ? "Paused" : "Active"}
+                      </span>
+
+                      {/* 3-dots menu button */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenRowMenuId(openRowMenuId === (globalAlert?.id || "global") ? null : (globalAlert?.id || "global"));
+                        }}
+                        className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                        aria-label="Actions menu"
+                      >
+                        <MoreVertical className="w-4 h-4" />
+                      </button>
+
+                      {/* Dropdown Popup */}
+                      {openRowMenuId === (globalAlert?.id || "global") && (
+                        <div className="absolute right-0 top-9 w-44 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#1a1a1e] shadow-xl p-1 z-30 animate-in fade-in zoom-in-95 duration-100">
+                          <button
+                            type="button"
+                            onClick={() => globalAlert && handleTogglePauseTarget(globalAlert)}
+                            className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800/80 rounded-lg transition-colors cursor-pointer text-left"
+                          >
+                            {globalAlert?.status === "paused" ? (
+                              <>
+                                <Play className="w-3.5 h-3.5 text-emerald-600" />
+                                <span>Resume Alert</span>
+                              </>
+                            ) : (
+                              <>
+                                <Pause className="w-3.5 h-3.5 text-amber-600" />
+                                <span>Pause Alert</span>
+                              </>
+                            )}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => globalAlert && handleOpenEditModal(globalAlert)}
+                            className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800/80 rounded-lg transition-colors cursor-pointer text-left"
+                          >
+                            <Sliders className="w-3.5 h-3.5 text-blue-600" />
+                            <span>Edit Target</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => globalAlert && handleTestTarget(globalAlert)}
+                            className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800/80 rounded-lg transition-colors cursor-pointer text-left"
+                          >
+                            <Sparkles className="w-3.5 h-3.5 text-violet-600" />
+                            <span>Send Test Alert</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Progress Display */}
+                  <div className="mt-4 pt-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-zinc-700 dark:text-zinc-300">
+                          Monthly Progress
+                        </span>
+                        <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
+                          {globalAlert?.metricType === "revenue" ? "Revenue ($)" : "Total Clicks"}
+                        </span>
+                      </div>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-sm font-bold text-zinc-900 dark:text-white">
+                          {globalProgressPct}%
+                        </span>
+                        <span className="text-xs text-zinc-500 dark:text-zinc-400 font-mono font-medium">
+                          {globalCurrentFormatted} / {globalTargetFormatted}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="w-full h-2 rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden mt-2">
+                      <div
+                        className="h-full bg-blue-600 rounded-full transition-all duration-500"
+                        style={{ width: `${Math.min(100, Math.max(0, globalProgressPct))}%` }}
+                      />
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-4 mt-3 text-[11px] text-zinc-500 dark:text-zinc-400">
+                      <span className="flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-zinc-400" />
+                        Period: <strong className="text-zinc-700 dark:text-zinc-300 font-semibold">Monthly (Workspace locked)</strong>
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <Mail className="w-3.5 h-3.5 text-zinc-400" />
+                        Channels: <strong className="text-zinc-700 dark:text-zinc-300 font-semibold">Email + Bell Notification</strong>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ─── SECTION 2: INDIVIDUAL LINK ALERTS ──────────────────────── */}
+                <div className="flex flex-col gap-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+                    <div>
+                      <h3 className="text-sm font-bold text-zinc-900 dark:text-white">
+                        Individual Link Alerts
+                      </h3>
+                      <p className="text-xs text-zinc-500 dark:text-neutral-400">
+                        Custom thresholds per short link with automated notifications
+                      </p>
+                    </div>
+
+                    {/* Filter buttons */}
+                    <div className="flex items-center gap-1 p-1 bg-zinc-100 dark:bg-zinc-800/60 rounded-lg text-xs font-medium self-start sm:self-auto">
+                      {(
+                        [
+                          { id: "all", label: `All (${individualAlerts.length})` },
+                          { id: "active", label: `Active (${activeCount})` },
+                          { id: "paused", label: `Paused (${pausedCount})` },
+                          { id: "reached", label: `Reached (${reachedCount})` },
+                        ] as const
+                      ).map((tab) => (
+                        <button
+                          key={tab.id}
+                          type="button"
+                          onClick={() => setActiveAlertFilter(tab.id)}
+                          className={`px-3 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer ${
+                            activeAlertFilter === tab.id
+                              ? "bg-white dark:bg-[#1a1a1e] text-zinc-900 dark:text-white shadow-sm"
+                              : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
+                          }`}
+                        >
+                          {tab.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* List of Link Alerts */}
+                  {isLoadingTargets ? (
+                    <div className="p-8 text-center border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-[#151518]">
+                      <RefreshCw className="w-5 h-5 text-blue-600 animate-spin mx-auto mb-2" />
+                      <p className="text-xs text-zinc-500">Loading alerts...</p>
+                    </div>
+                  ) : filteredAlerts.length === 0 ? (
+                    <div className="p-8 text-center border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-[#151518]">
+                      <Sliders className="w-7 h-7 text-zinc-300 dark:text-zinc-600 mx-auto mb-2" />
+                      <h4 className="text-xs font-bold text-zinc-700 dark:text-zinc-300">
+                        No alerts match the selected filter
+                      </h4>
+                      <p className="text-[11px] text-zinc-500 mt-1 max-w-sm mx-auto">
+                        Create an alert on any of your short links to get notified as soon as a click limit or revenue target is reached.
+                      </p>
+                      <Button
+                        type="button"
+                        variant="glow"
+                        onClick={handleOpenCreateModal}
+                        className="mt-4 h-8 px-4 text-xs font-medium cursor-pointer"
+                      >
+                        <Plus className="w-3 h-3 mr-1.5" />
+                        Create Alert
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-2.5">
+                      {filteredAlerts.map((alert) => {
+                        const current = alert.currentValue || 0;
+                        const target = alert.targetValue || 1;
+                        const pct = Math.min(100, Math.round((current / target) * 100));
+                        const isRev = alert.metricType === "revenue";
+
+                        const periodLabel =
+                          alert.period === "day"
+                            ? "Day"
+                            : alert.period === "week"
+                              ? "Week"
+                              : "Month";
+
+                        return (
+                          <div
+                            key={alert.id}
+                            className="p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#121215] flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all duration-200 hover:scale-[1.008] hover:border-blue-500 hover:bg-[#F0F7FF] dark:hover:bg-blue-950/20 shadow-sm relative cursor-default"
+                          >
+                            {/* Link Info */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="font-bold text-xs text-zinc-900 dark:text-white truncate max-w-xs">
+                                  {alert.linkTitle || (alert.slug ? `lsho.cc/${alert.slug}` : "Custom Alert")}
+                                </span>
+                                {alert.slug && (
+                                  <span className="text-[11px] font-mono text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded border border-blue-200/50 dark:border-blue-900/30">
+                                    lsho.cc/{alert.slug}
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="flex flex-wrap items-center gap-2 mt-1.5 text-[11px] text-zinc-500 dark:text-zinc-400">
+                                <span className="px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800/80 font-medium">
+                                  {periodLabel}
+                                </span>
+                                <span className="px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800/80 font-medium">
+                                  {isRev ? "Revenue ($)" : "Clicks"}
+                                </span>
+                                <span
+                                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded font-semibold text-[10px] border ${
+                                    alert.status === "reached"
+                                      ? "bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-800"
+                                      : alert.status === "paused"
+                                        ? "bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800"
+                                        : "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
+                                  }`}
+                                >
+                                  <span
+                                    className={`w-1.5 h-1.5 rounded-full ${
+                                      alert.status === "reached"
+                                        ? "bg-purple-500"
+                                        : alert.status === "paused"
+                                          ? "bg-amber-500"
+                                          : "bg-emerald-500"
+                                    }`}
+                                  />
+                                  {alert.status === "reached"
+                                    ? "Reached"
+                                    : alert.status === "paused"
+                                      ? "Paused"
+                                      : "Active"}
+                                </span>
+                                {alert.notifyExpired && (
+                                  <span className="text-[10px] text-zinc-400">
+                                    · 24h Expiry Warning
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Clean, Uncluttered Progress Column */}
+                            <div className="w-full md:w-64 shrink-0">
+                              <div className="flex items-baseline justify-between text-xs">
+                                <span className="text-sm font-bold text-zinc-900 dark:text-white">
+                                  {pct}%
+                                </span>
+                                <span className="text-xs text-zinc-500 dark:text-zinc-400 font-mono font-medium">
+                                  {isRev
+                                    ? `$${current.toLocaleString("en-US", { minimumFractionDigits: 0 })} / $${target.toLocaleString("en-US")}`
+                                    : `${current.toLocaleString()} / ${target.toLocaleString()}`}
+                                </span>
+                              </div>
+                              <div className="w-full h-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden mt-1.5">
+                                <div
+                                  className={`h-full rounded-full transition-all duration-300 ${
+                                    pct >= 100
+                                      ? "bg-purple-600"
+                                      : alert.status === "paused"
+                                        ? "bg-zinc-400"
+                                        : "bg-blue-600"
+                                  }`}
+                                  style={{ width: `${Math.min(100, Math.max(0, pct))}%` }}
+                                />
+                              </div>
+                            </div>
+
+                            {/* 3-dots Menu Button */}
+                            <div className="relative self-end md:self-center" data-row-menu>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpenRowMenuId(openRowMenuId === alert.id ? null : alert.id);
+                                }}
+                                className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                                aria-label="Open menu"
+                              >
+                                <MoreVertical className="w-4 h-4" />
+                              </button>
+
+                              {/* Dropdown Popup */}
+                              {openRowMenuId === alert.id && (
+                                <div className="absolute right-0 top-9 w-44 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#1a1a1e] shadow-xl p-1 z-30 animate-in fade-in zoom-in-95 duration-100">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleTogglePauseTarget(alert)}
+                                    className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800/80 rounded-lg transition-colors cursor-pointer text-left"
+                                  >
+                                    {alert.status === "paused" ? (
+                                      <>
+                                        <Play className="w-3.5 h-3.5 text-emerald-600" />
+                                        <span>Resume Alert</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Pause className="w-3.5 h-3.5 text-amber-600" />
+                                        <span>Pause Alert</span>
+                                      </>
+                                    )}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenEditModal(alert)}
+                                    className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800/80 rounded-lg transition-colors cursor-pointer text-left"
+                                  >
+                                    <Sliders className="w-3.5 h-3.5 text-blue-600" />
+                                    <span>Edit Alert</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleTestTarget(alert)}
+                                    className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800/80 rounded-lg transition-colors cursor-pointer text-left"
+                                  >
+                                    <Sparkles className="w-3.5 h-3.5 text-violet-600" />
+                                    <span>Send Test Alert</span>
+                                  </button>
+                                  <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-1" />
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteTarget(alert.id)}
+                                    className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors cursor-pointer text-left"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                    <span>Delete Alert</span>
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* ─── MODAL: CREATE / EDIT ALERT ────────────────────────────── */}
+                {isAlertModalOpen && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-150">
+                    <div className="w-full max-w-lg rounded-2xl bg-white dark:bg-[#151518] border border-zinc-200 dark:border-zinc-800 shadow-2xl p-6 relative animate-in zoom-in-95 duration-150">
+                      {/* Modal Header */}
+                      <div className="flex items-center justify-between pb-4 border-b border-zinc-100 dark:border-zinc-800">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-200/50">
+                            <Target className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <h3 className="text-sm font-bold text-zinc-900 dark:text-white">
+                              {isEditingGlobalAlert
+                                ? "Edit Global Monthly Target"
+                                : editingAlert
+                                  ? "Edit Link Alert"
+                                  : "Create New Link Alert"}
+                            </h3>
+                            <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                              {isEditingGlobalAlert
+                                ? "Configure workspace-wide monthly objective"
+                                : "Choose a link and set alert thresholds"}
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setIsAlertModalOpen(false)}
+                          className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      {/* Modal Form */}
+                      <form onSubmit={handleSaveTarget} className="flex flex-col gap-4 mt-4">
+                        {/* Link Selection (hidden if editing global) */}
+                        {!isEditingGlobalAlert && (
+                          <div className="flex flex-col gap-1.5 text-xs">
+                            <label className="font-bold text-zinc-900 dark:text-white">
+                              Select Short Link
+                            </label>
+                            {userLinksList.length === 0 ? (
+                              <p className="text-xs text-amber-600 bg-amber-50 dark:bg-amber-950/30 p-2.5 rounded-lg border border-amber-200 dark:border-amber-800">
+                                You do not have any short links created yet. Create a link first from the sidebar or dashboard.
+                              </p>
+                            ) : (
+                              <select
+                                value={alertLinkId}
+                                onChange={(e) => setAlertLinkId(e.target.value)}
+                                className="h-10 px-3 rounded-lg bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-zinc-800 text-xs text-zinc-900 dark:text-white focus:outline-none focus:border-blue-500 cursor-pointer"
+                              >
+                                {userLinksList.map((link: any) => (
+                                  <option key={link.id} value={String(link.id)}>
+                                    {link.title || `lsho.cc/${link.slug}`} (lsho.cc/{link.slug})
+                                  </option>
+                                ))}
+                              </select>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Metric Type */}
+                        <div className="flex flex-col gap-1.5 text-xs">
+                          <label className="font-bold text-zinc-900 dark:text-white">
+                            Metric Type
+                          </label>
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setAlertMetricType("clicks")}
+                              className={`h-9 rounded-lg font-semibold text-xs border transition-all cursor-pointer ${
+                                alertMetricType === "clicks"
+                                  ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                                  : "bg-zinc-50 dark:bg-[#1a1a1e] border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:border-zinc-300"
+                              }`}
+                            >
+                              Total Clicks
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setAlertMetricType("revenue")}
+                              className={`h-9 rounded-lg font-semibold text-xs border transition-all cursor-pointer ${
+                                alertMetricType === "revenue"
+                                  ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                                  : "bg-zinc-50 dark:bg-[#1a1a1e] border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:border-zinc-300"
+                              }`}
+                            >
+                              Attributed Revenue ($)
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Period Selection (strictly Day, Week, Month - no Year!) */}
+                        <div className="flex flex-col gap-1.5 text-xs">
+                          <label className="font-bold text-zinc-900 dark:text-white flex items-center justify-between">
+                            <span>Period</span>
+                            {isEditingGlobalAlert && (
+                              <span className="text-[10px] text-zinc-400 font-normal">
+                                Locked to Monthly for workspace
+                              </span>
+                            )}
+                          </label>
+                          {isEditingGlobalAlert ? (
+                            <div className="h-9 px-3 rounded-lg bg-zinc-100 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 text-xs font-semibold text-zinc-600 dark:text-zinc-300 flex items-center">
+                              Monthly (Workspace Target)
+                            </div>
+                          ) : (
+                            <div className="grid grid-cols-3 gap-2">
+                              {(
+                                [
+                                  { id: "day", label: "Day" },
+                                  { id: "week", label: "Week" },
+                                  { id: "month", label: "Month" },
+                                ] as const
+                              ).map((p) => (
+                                <button
+                                  key={p.id}
+                                  type="button"
+                                  onClick={() => setAlertPeriod(p.id)}
+                                  className={`h-9 rounded-lg font-semibold text-xs border transition-all cursor-pointer ${
+                                    alertPeriod === p.id
+                                      ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                                      : "bg-zinc-50 dark:bg-[#1a1a1e] border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:border-zinc-300"
+                                  }`}
+                                >
+                                  {p.label}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Target Value Input */}
+                        <div className="flex flex-col gap-1.5 text-xs">
+                          <label className="font-bold text-zinc-900 dark:text-white">
+                            Target Threshold Value
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="number"
+                              min="1"
+                              step={alertMetricType === "revenue" ? "10" : "50"}
+                              value={alertTargetValue}
+                              onChange={(e) => setAlertTargetValue(Math.max(1, Number(e.target.value) || 0))}
+                              className="flex-1 h-10 px-3 rounded-lg bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-zinc-800 text-xs font-mono font-bold text-zinc-900 dark:text-white focus:outline-none focus:border-blue-500"
+                            />
+                            <span className="font-semibold text-xs text-blue-600 dark:text-blue-400">
+                              {alertMetricType === "revenue" ? "USD ($)" : "clicks"}
+                            </span>
+                          </div>
+                          {/* Quick presets */}
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <span className="text-[10px] text-zinc-400">Quick:</span>
+                            {(alertMetricType === "revenue"
+                              ? [100, 500, 1000, 2500, 5000]
+                              : [500, 1000, 2500, 5000, 10000]
+                            ).map((preset) => (
+                              <button
+                                key={preset}
+                                type="button"
+                                onClick={() => setAlertTargetValue(preset)}
+                                className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer"
+                              >
+                                {preset.toLocaleString()}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Options & Channels */}
+                        <div className="flex flex-col gap-2 pt-2 border-t border-zinc-100 dark:border-zinc-800 text-xs">
+                          <label className="flex items-center justify-between p-2.5 rounded-lg bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 cursor-pointer transition-colors">
+                            <div>
+                              <p className="font-semibold text-zinc-900 dark:text-white">
+                                24h Expiration Warning
+                              </p>
+                              <p className="text-[10px] text-zinc-500">
+                                Send a reminder 24 hours before the link expires
+                              </p>
+                            </div>
+                            <input
+                              type="checkbox"
+                              checked={alertNotifyExpired}
+                              onChange={(e) => setAlertNotifyExpired(e.target.checked)}
+                              className="w-4 h-4 accent-blue-600 cursor-pointer"
+                            />
+                          </label>
+
+                          <label className="flex items-center justify-between p-2.5 rounded-lg bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 cursor-pointer transition-colors">
+                            <div>
+                              <p className="font-semibold text-zinc-900 dark:text-white">
+                                Email Notification
+                              </p>
+                              <p className="text-[10px] text-zinc-500">
+                                Dispatch transactional congratulatory alert to your account email
+                              </p>
+                            </div>
+                            <input
+                              type="checkbox"
+                              checked={alertNotifyEmail}
+                              onChange={(e) => setAlertNotifyEmail(e.target.checked)}
+                              className="w-4 h-4 accent-blue-600 cursor-pointer"
+                            />
+                          </label>
+
+                          <label className="flex items-center justify-between p-2.5 rounded-lg bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 cursor-pointer transition-colors">
+                            <div>
+                              <p className="font-semibold text-zinc-900 dark:text-white">
+                                In-App Bell Notification
+                              </p>
+                              <p className="text-[10px] text-zinc-500">
+                                Show popover alert in the topbar bell icon center
+                              </p>
+                            </div>
+                            <input
+                              type="checkbox"
+                              checked={alertNotifyBell}
+                              onChange={(e) => setAlertNotifyBell(e.target.checked)}
+                              className="w-4 h-4 accent-blue-600 cursor-pointer"
+                            />
+                          </label>
+                        </div>
+
+                        {/* Modal Footer */}
+                        <div className="flex items-center justify-end gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800">
+                          <button
+                            type="button"
+                            onClick={() => setIsAlertModalOpen(false)}
+                            className="px-4 h-9 rounded-lg text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer transition-colors"
+                          >
+                            Cancel
+                          </button>
+                          <Button
+                            type="submit"
+                            variant="glow"
+                            disabled={isSavingAlert}
+                            className="h-9 px-5 text-xs font-semibold gap-1.5 cursor-pointer shadow-sm"
+                          >
+                            {isSavingAlert ? (
+                              <>
+                                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                <span>Saving...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Check className="w-3.5 h-3.5" />
+                                <span>{editingAlert || isEditingGlobalAlert ? "Save Changes" : "Create Alert"}</span>
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                )}
               </div>
-            </form>
-          )}
+            );
+          })()}
 
           {/* TAB 9: DATA & RGPD */}
           {activeTab === "data" && (

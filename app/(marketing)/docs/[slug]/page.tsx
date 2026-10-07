@@ -15,7 +15,8 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: Props) {
-  const { slug } = await params;
+  const resolvedParams = await params;
+  const slug = resolvedParams?.slug;
   const feature = getDocFeatureBySlug(slug);
 
   if (!feature) {
@@ -31,7 +32,8 @@ export async function generateMetadata({ params }: Props) {
 }
 
 export default async function DocFeaturePage({ params }: Props) {
-  const { slug } = await params;
+  const resolvedParams = await params;
+  const slug = resolvedParams?.slug;
   const feature = getDocFeatureBySlug(slug);
 
   if (!feature) {

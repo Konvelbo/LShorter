@@ -379,7 +379,7 @@ export function LandingNavbar() {
             )}
           </button>
 
-          {/* Bouton Dashboard : forme pilule sans boîte rectangulaire externe */}
+          {/* Bouton Dashboard / Get started */}
           {isAuthenticated ? (
             <Link
               href="/dashboard"
@@ -388,7 +388,7 @@ export function LandingNavbar() {
               onPointerDown={handleCtaPointerDown}
               onPointerUp={handleCtaPointerUp}
               style={{ backgroundColor: "#465FFF", color: "#FFFFFF" }}
-              className="inline-flex items-center gap-2 rounded-full px-4.5 py-2 text-[13px] font-semibold whitespace-nowrap !text-white !bg-[#465FFF] border-0 outline-none shadow-sm cursor-pointer will-change-transform shrink-0"
+              className="inline-flex items-center gap-2 rounded-[12px] px-4.5 py-2 text-[13px] font-semibold whitespace-nowrap !text-white !bg-[#465FFF] border-0 outline-none shadow-sm cursor-pointer will-change-transform shrink-0"
             >
               <LayoutDashboard className="cta-dash-icon w-3.5 h-3.5 shrink-0 !text-white will-change-transform" />
               <span className="!text-white font-medium">Dashboard</span>
@@ -402,7 +402,7 @@ export function LandingNavbar() {
               onPointerDown={handleCtaPointerDown}
               onPointerUp={handleCtaPointerUp}
               style={{ backgroundColor: "#465FFF", color: "#FFFFFF" }}
-              className="inline-flex items-center gap-2 rounded-full px-4.5 py-2 text-[13px] font-semibold whitespace-nowrap !text-white !bg-[#465FFF] border-0 outline-none shadow-sm cursor-pointer will-change-transform shrink-0"
+              className="inline-flex items-center gap-2 rounded-[12px] px-4.5 py-2 text-[13px] font-semibold whitespace-nowrap !text-white !bg-[#465FFF] border-0 outline-none shadow-sm cursor-pointer will-change-transform shrink-0"
             >
               <Sparkles className="cta-dash-icon w-3.5 h-3.5 shrink-0 !text-white will-change-transform" />
               <span className="!text-white font-medium">Get started</span>

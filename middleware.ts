@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { auth } from "@/auth";
 
-export default auth((req) => {
+const authMiddleware = auth((req) => {
   const { pathname } = req.nextUrl;
   const session = req.auth as any;
   const isAuthenticated = Boolean(session);
@@ -21,16 +21,17 @@ export default auth((req) => {
     "camera=(), microphone=(), geolocation=()"
   );
 
-  // 1. Protect Dashboard & Onboarding Routes in production (allow direct UI/UX preview on localhost)
-  const isLocalhost =
-    req.nextUrl.hostname === "localhost" || req.nextUrl.hostname === "127.0.0.1";
+  // 1. Protect Dashboard & Onboarding Routes
   const isProtectedPath =
     pathname.startsWith("/dashboard") || pathname.startsWith("/onboarding");
 
-  if (isProtectedPath && !isAuthenticated && !isLocalhost) {
-    const loginUrl = new URL("/login", req.nextUrl.origin);
-    loginUrl.searchParams.set("callbackUrl", pathname);
-    return NextResponse.redirect(loginUrl);
+  if (isProtectedPath && !isAuthenticated) {
+    const targetPath = pathname.startsWith("/onboarding") ? "/register" : "/login";
+    const redirectUrl = new URL(targetPath, req.nextUrl.origin);
+    if (pathname.startsWith("/dashboard")) {
+      redirectUrl.searchParams.set("callbackUrl", pathname);
+    }
+    return NextResponse.redirect(redirectUrl);
   }
 
   // 2. Redirect authenticated users who haven't completed onboarding away from dashboard
@@ -43,17 +44,28 @@ export default auth((req) => {
     return NextResponse.redirect(new URL("/dashboard", req.nextUrl.origin));
   }
 
-  // 4. Redirect already authenticated users away from /login or /register
+  // 4. Redirect already authenticated users away from /login or /register ONLY if onboarding is already completed
   const isAuthPath = pathname === "/login" || pathname === "/register";
-  if (isAuthPath && isAuthenticated) {
-    if (hasCompletedOnboarding === false) {
-      return NextResponse.redirect(new URL("/onboarding", req.nextUrl.origin));
-    }
+  if (isAuthPath && isAuthenticated && hasCompletedOnboarding === true) {
     return NextResponse.redirect(new URL("/dashboard", req.nextUrl.origin));
   }
 
   return response;
 });
+
+export default function middleware(req: NextRequest) {
+  // DEMO-START: Allow temporary demo mode to access dashboard without authentication
+  const isDemoMode = req.cookies.get("lshorter_demo_mode")?.value === "true";
+  if (isDemoMode && req.nextUrl.pathname.startsWith("/dashboard")) {
+    const response = NextResponse.next();
+    response.headers.set("X-Frame-Options", "DENY");
+    response.headers.set("X-Content-Type-Options", "nosniff");
+    return response;
+  }
+  // DEMO-END
+
+  return (authMiddleware as any)(req);
+}
 
 export const config = {
   matcher: [

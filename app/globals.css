@@ -3,7 +3,14 @@
 @source "../components";
 @source "../lib";
 @source "../src";
+@source "../node_modules/emblor";
+
 @custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+    --font-mono: var(--font-poppins), 'Poppins', sans-serif;
+    --font-poppins: var(--font-poppins), 'Poppins', sans-serif;
+}
 
 /* ==========================================================================
    CSS VARIABLES SYSTEM - LShorter
@@ -171,6 +178,19 @@ select option {
     font-family: var(--font-inter), sans-serif;
 }
 
+.font-poppins {
+    font-family: var(--font-poppins), 'Poppins', sans-serif;
+}
+
+.font-mono {
+    font-family: var(--font-poppins), 'Poppins', sans-serif !important;
+}
+
+/* Conserver une vraie police monospace uniquement pour les blocs de code et commandes terminal */
+pre code, code.code-syntax, .monaco-editor {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
+}
+
 /* Strict 10px radius default for UI */
 .rounded-saas {
     border-radius: 10px;
@@ -275,7 +295,7 @@ html.light .nav-link-item.active {
 }
 .card-hover-lift:hover {
     transform: translateY(-2px) scale(1.01) !important;
-    border-color: rgba(255, 102, 0, 0.4) !important;
+    border-color: rgba(0, 102, 255, 0.4) !important;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
 }
 
@@ -288,7 +308,7 @@ html.light .nav-link-item.active {
 }
 .icon-hover-glow:hover {
     transform: scale(1.15) !important;
-    filter: drop-shadow(0 0 6px rgba(255, 102, 0, 0.7)) !important;
+    filter: drop-shadow(0 0 6px rgba(0, 102, 255, 0.7)) !important;
 }
 
 /* Custom Scrollbar */
@@ -517,10 +537,10 @@ html.light
         brightness(102%) contrast(105%) !important;
 }
 
-/* ── DRAWER TAB BAR : Mini scrollbar horizontale (Orange desktop / Bleu mobile) ── */
+/* ── DRAWER TAB BAR : Mini scrollbar horizontale (Bleu) ── */
 .drawer-tabs-scroll {
     scrollbar-width: thin;
-    scrollbar-color: rgba(255, 102, 0, 0.6) transparent;
+    scrollbar-color: rgba(0, 102, 255, 0.6) transparent;
 }
 .drawer-tabs-scroll::-webkit-scrollbar {
     height: 3px;
@@ -529,22 +549,22 @@ html.light
     background: transparent;
 }
 .drawer-tabs-scroll::-webkit-scrollbar-thumb {
-    background: rgba(255, 102, 0, 0.6);
+    background: rgba(0, 102, 255, 0.6);
     border-radius: 99px;
 }
 .drawer-tabs-scroll::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 102, 0, 0.9);
+    background: rgba(0, 102, 255, 0.9);
 }
 
 @media (max-width: 640px) {
     .drawer-tabs-scroll {
-        scrollbar-color: rgba(255, 102, 0, 0.6) transparent;
+        scrollbar-color: rgba(0, 102, 255, 0.6) transparent;
     }
     .drawer-tabs-scroll::-webkit-scrollbar-thumb {
-        background: rgba(255, 102, 0, 0.6);
+        background: rgba(0, 102, 255, 0.6);
     }
     .drawer-tabs-scroll::-webkit-scrollbar-thumb:hover {
-        background: rgba(255, 102, 0, 0.9);
+        background: rgba(0, 102, 255, 0.9);
     }
 }
 
@@ -573,7 +593,7 @@ html.light
         110deg,
         #ffffff 20%,
         rgba(255, 255, 255, 0.4) 40%,
-        #ff6600 50%,
+        #0066FF 50%,
         rgba(255, 255, 255, 0.4) 60%,
         #ffffff 80%
     );
@@ -585,7 +605,7 @@ html.light
             110deg,
             #ffffff 20%,
             rgba(255, 255, 255, 0.4) 40%,
-            #0080ff 50%,
+            #0066FF 50%,
             rgba(255, 255, 255, 0.4) 60%,
             #ffffff 80%
         );
@@ -596,9 +616,9 @@ html.light .shiny-text {
     background-image: linear-gradient(
         110deg,
         #2b2520 20%,
-        #8b5e3c 40%,
-        #ff6600 50%,
-        #8b5e3c 60%,
+        #3b82f6 40%,
+        #0066FF 50%,
+        #3b82f6 60%,
         #2b2520 80%
     );
 }
@@ -609,7 +629,7 @@ html.light .shiny-text {
             110deg,
             #2b2520 20%,
             #5c7899 40%,
-            #0080ff 50%,
+            #0066FF 50%,
             #5c7899 60%,
             #2b2520 80%
         );
@@ -662,31 +682,31 @@ html.light .shiny-text {
 
 .doc-keypoint-card:hover {
     transform: translateY(-5px) scale(1.03) !important;
-    border-color: rgba(255, 102, 0, 0.55) !important;
+    border-color: rgba(0, 102, 255, 0.55) !important;
     box-shadow:
         0 16px 32px -6px rgba(0, 0, 0, 0.45),
-        0 0 20px -2px rgba(255, 102, 0, 0.25) !important;
+        0 0 20px -2px rgba(0, 102, 255, 0.25) !important;
 }
 
 html.light .doc-keypoint-card:hover {
-    border-color: #ff6600 !important;
+    border-color: #0066FF !important;
     box-shadow:
         0 16px 32px -6px rgba(43, 37, 32, 0.12),
-        0 0 20px -2px rgba(255, 102, 0, 0.25) !important;
+        0 0 20px -2px rgba(0, 102, 255, 0.25) !important;
 }
 
 @media (max-width: 640px) {
     .doc-keypoint-card:hover {
-        border-color: rgba(0, 128, 255, 0.55) !important;
+        border-color: rgba(0, 102, 255, 0.55) !important;
         box-shadow:
             0 16px 32px -6px rgba(0, 0, 0, 0.45),
-            0 0 20px -2px rgba(0, 128, 255, 0.25) !important;
+            0 0 20px -2px rgba(0, 102, 255, 0.25) !important;
     }
     html.light .doc-keypoint-card:hover {
-        border-color: #0080ff !important;
+        border-color: #0066FF !important;
         box-shadow:
             0 16px 32px -6px rgba(43, 37, 32, 0.12),
-            0 0 20px -2px rgba(0, 128, 255, 0.25) !important;
+            0 0 20px -2px rgba(0, 102, 255, 0.25) !important;
     }
 }
 
@@ -731,28 +751,28 @@ html.light .doc-practice-card:hover {
 /* 4. Previous / Next Navigation Cards */
 .doc-nav-card:hover {
     transform: translateY(-4px) scale(1.025) !important;
-    border-color: rgba(255, 102, 0, 0.65) !important;
+    border-color: rgba(0, 102, 255, 0.65) !important;
     box-shadow:
         0 14px 30px -6px rgba(0, 0, 0, 0.4),
-        0 0 18px -2px rgba(255, 102, 0, 0.22) !important;
+        0 0 18px -2px rgba(0, 102, 255, 0.22) !important;
 }
 
 html.light .doc-nav-card:hover {
-    border-color: #ff6600 !important;
+    border-color: #0066FF !important;
     box-shadow:
         0 14px 30px -6px rgba(43, 37, 32, 0.12),
-        0 0 18px -2px rgba(255, 102, 0, 0.22) !important;
+        0 0 18px -2px rgba(0, 102, 255, 0.22) !important;
 }
 
 @media (max-width: 640px) {
     .doc-nav-card:hover {
-        border-color: rgba(0, 128, 255, 0.65) !important;
+        border-color: rgba(0, 102, 255, 0.65) !important;
         box-shadow:
             0 14px 30px -6px rgba(0, 0, 0, 0.4),
-            0 0 18px -2px rgba(0, 128, 255, 0.22) !important;
+            0 0 18px -2px rgba(0, 102, 255, 0.22) !important;
     }
     html.light .doc-nav-card:hover {
-        border-color: #0080ff !important;
+        border-color: #0066FF !important;
     }
 }
 
@@ -763,28 +783,28 @@ html.light .doc-nav-card:hover {
 
 .doc-related-card:hover {
     transform: translateY(-6px) scale(1.03) !important;
-    border-color: rgba(255, 102, 0, 0.6) !important;
+    border-color: rgba(0, 102, 255, 0.6) !important;
     box-shadow:
         0 20px 45px -8px rgba(0, 0, 0, 0.6),
-        0 0 26px -2px rgba(255, 102, 0, 0.28) !important;
+        0 0 26px -2px rgba(0, 102, 255, 0.28) !important;
 }
 
 html.light .doc-related-card:hover {
-    border-color: #ff6600 !important;
+    border-color: #0066FF !important;
     box-shadow:
         0 20px 45px -8px rgba(43, 37, 32, 0.16),
-        0 0 26px -2px rgba(255, 102, 0, 0.28) !important;
+        0 0 26px -2px rgba(0, 102, 255, 0.28) !important;
 }
 
 @media (max-width: 640px) {
     .doc-related-card:hover {
-        border-color: rgba(0, 128, 255, 0.6) !important;
+        border-color: rgba(0, 102, 255, 0.6) !important;
         box-shadow:
             0 20px 45px -8px rgba(0, 0, 0, 0.6),
-            0 0 26px -2px rgba(0, 128, 255, 0.28) !important;
+            0 0 26px -2px rgba(0, 102, 255, 0.28) !important;
     }
     html.light .doc-related-card:hover {
-        border-color: #0080ff !important;
+        border-color: #0066FF !important;
     }
 }
 
@@ -1107,16 +1127,16 @@ html.dark .lshorter-toast-badge-upgrade {
 
 /* ==========================================================================
    AUTH PAGE & BRAND ICON BOUNCE ANIMATION
-   Smooth bounding floating animation with rich orange glow
+   Smooth bounding floating animation with rich electric cyber blue glow
    ========================================================================== */
 @keyframes icon-bounce-glow {
     0%, 100% {
         transform: translateY(0px) scale(1);
-        box-shadow: 0 12px 35px -5px rgba(255, 102, 0, 0.45), 0 0 50px rgba(255, 102, 0, 0.2);
+        box-shadow: 0 12px 35px -5px rgba(0, 102, 255, 0.45), 0 0 50px rgba(0, 102, 255, 0.25);
     }
     50% {
         transform: translateY(-14px) scale(1.05);
-        box-shadow: 0 28px 50px -5px rgba(255, 102, 0, 0.65), 0 0 80px rgba(255, 102, 0, 0.4);
+        box-shadow: 0 28px 50px -5px rgba(0, 102, 255, 0.65), 0 0 80px rgba(0, 102, 255, 0.45);
     }
 }
 
@@ -1141,8 +1161,8 @@ html.dark .lshorter-toast-badge-upgrade {
 }
 @media (min-width: 768px) {
   .link-drop-indicator-top {
-    border-top: 3px solid #ff6600 !important;
-    box-shadow: 0 -6px 15px rgba(255, 102, 0, 0.35);
+    border-top: 3px solid #0066FF !important;
+    box-shadow: 0 -6px 15px rgba(0, 102, 255, 0.35);
   }
 }
 
@@ -1152,8 +1172,8 @@ html.dark .lshorter-toast-badge-upgrade {
 }
 @media (min-width: 768px) {
   .link-drop-indicator-bottom {
-    border-bottom: 3px solid #ff6600 !important;
-    box-shadow: 0 6px 15px rgba(255, 102, 0, 0.35);
+    border-bottom: 3px solid #0066FF !important;
+    box-shadow: 0 6px 15px rgba(0, 102, 255, 0.35);
   }
 }
 
@@ -1286,9 +1306,9 @@ html.light {
 .ds-profile-frame {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 3px 8px 3px 3px;
-  border-radius: 9px;
+  gap: 6px;
+  padding: 2px 7px 2px 2px;
+  border-radius: 8px;
   background-color: var(--ds-card);
   border: 1px solid var(--ds-border-strong);
   box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
@@ -1480,3 +1500,50 @@ html.light main .text-neutral-200 {
   52%     { transform: translate(-50%, -50%) scale(3.5); opacity: 0; }
   100%    { transform: translate(-50%, -50%) scale(3.5); opacity: 0; }
 }
+
+/* Emblor TagInput layout: Input on top full-width, tags below */
+.lshorter-tag-container > div {
+  display: flex !important;
+  flex-direction: column-reverse !important;
+  width: 100% !important;
+  align-items: flex-start !important;
+  justify-content: flex-start !important;
+  gap: 0.5rem !important;
+}
+
+.lshorter-tag-container input {
+  width: 100% !important;
+  text-align: left !important;
+}
+
+/* ==========================================================================
+   Section 2 Bento Cards - Interactive Pure CSS Hover Animation
+   ========================================================================== */
+.product-card-hover {
+  transition: transform 1.3s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 1.3s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 1.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  will-change: transform, box-shadow;
+  transform: translateZ(0);
+}
+
+.product-card-hover:hover {
+  transform: scale(1.025) translateY(-4px) !important;
+  border-color: rgba(255, 255, 255, 0.28) !important;
+  box-shadow: 0 22px 45px -12px rgba(0, 0, 0, 0.85),
+              0 0 30px -4px rgba(0, 102, 255, 0.22) !important;
+  z-index: 10 !important;
+  transition: transform 1.3s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 1.3s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 1.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.product-card-hover img {
+  transition: transform 1.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.product-card-hover:hover img {
+  transform: scale(1.035) !important;
+  transition: transform 1.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+

@@ -104,7 +104,7 @@ export function WobbleCardSection() {
               {/* Real SaaS Visual Mockup */}
               <div className="hidden sm:block absolute -right-10 sm:-right-4 lg:-right-[25%] -bottom-10 w-[280px] sm:w-[380px] lg:w-[460px] h-[220px] sm:h-[280px] lg:h-[320px] rounded-2xl overflow-hidden shadow-2xl border border-white/20">
                 <Image
-                  src="/marketing-FCI/cosmos_big_card.jpeg"
+                  src="/screenshots/dashboard/dashboardwithsidbare.png"
                   alt="LShorter Real-Time Dashboard"
                   fill
                   sizes="(max-width: 768px) 100vw, 500px"
@@ -191,7 +191,7 @@ export function WobbleCardSection() {
               {/* Real SaaS Visual Mockup */}
               <div className="hidden sm:block absolute -right-8 sm:-right-4 lg:-right-[10%] -bottom-10 w-[300px] sm:w-[420px] lg:w-[520px] h-[220px] sm:h-[280px] lg:h-[340px] rounded-2xl overflow-hidden shadow-2xl border border-white/20">
                 <Image
-                  src="/marketing-FCI/cosmos_302657415.jpeg"
+                  src="/screenshots/qr-code/page1.png"
                   alt="LShorter Dynamic QR Codes and Matrix"
                   fill
                   sizes="(max-width: 768px) 100vw, 600px"

@@ -689,7 +689,7 @@ export function OnboardingWizard() {
   const progressLineRef = useRef<HTMLDivElement>(null);
   const stepCircleRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
-  const totalSteps = 4;
+  const totalSteps = 3;
 
   // Initial mount entrance animation via GSAP
   useEffect(() => {
@@ -883,7 +883,7 @@ export function OnboardingWizard() {
             />
           </div>
 
-          {[1, 2, 3, 4].map((step) => {
+          {[1, 2, 3].map((step) => {
             const isActive = currentStep === step;
             const isCompleted = currentStep > step;
             return (
@@ -920,7 +920,6 @@ export function OnboardingWizard() {
             {currentStep === 1 && "Onboarding Getting Started!"}
             {currentStep === 2 && "Configure Your Edge Region"}
             {currentStep === 3 && "Routing & Attribution Setup"}
-            {currentStep === 4 && "Select Your Core Modules"}
           </h1>
           <p className="text-xs sm:text-sm text-[#71717a] dark:text-[#a1a1aa] mt-2">
             Allow us to offer you a pleasant experience.
@@ -1291,121 +1290,7 @@ export function OnboardingWizard() {
                 )}
               </div>
 
-              {/* Domain Routing Mode */}
-              <div className="onb-card-item relative">
-                <div
-                  onClick={() => {
-                    setActiveField("step3-domain");
-                    setOpenDropdown(
-                      openDropdown === "domain" ? null : "domain",
-                    );
-                  }}
-                  className={`w-full rounded-[10px] px-4 py-3.5 cursor-pointer transition-all ${
-                    activeField === "step3-domain"
-                      ? "bg-white dark:bg-[#121215] border-[1.5px] border-[#0066FF] shadow-[0_0_0_3px_rgba(0,102,255,0.10)]"
-                      : "bg-[#f1f1f3] dark:bg-[#16161a] border border-transparent"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="text-[11px] font-medium text-[#71717a] dark:text-[#a1a1aa]">
-                        Preferred Link Domain Configuration
-                      </div>
-                      <div className="text-sm font-bold text-[#09090b] dark:text-white mt-0.5">
-                        {primaryDomainMode}
-                      </div>
-                    </div>
-                    <ChevronDown className="w-4 h-4 text-[#71717a]" />
-                  </div>
-                </div>
-
-                {openDropdown === "domain" && (
-                  <div className="mt-1.5 w-full rounded-[10px] bg-white dark:bg-[#141418] border border-[#e4e4e7] dark:border-[#27272a] shadow-xl p-1.5 z-30 space-y-1">
-                    {[
-                      "lsho.cc Edge Shortener + Custom Domain",
-                      "Custom Branded Domain Only (CNAME Edge)",
-                      "lsho.cc Instant Short Links Only",
-                    ].map((mode) => (
-                      <div
-                        key={mode}
-                        onClick={() => {
-                          setPrimaryDomainMode(mode);
-                          setOpenDropdown(null);
-                        }}
-                        className={`px-3 py-2 rounded-[10px] text-xs cursor-pointer flex items-center justify-between ${
-                          primaryDomainMode === mode
-                            ? "bg-[#0066FF]/10 text-[#0066FF] font-semibold"
-                            : "text-[#09090b] dark:text-[#e4e4e7] hover:bg-[#f4f4f5] dark:hover:bg-[#1f1f24]"
-                        }`}
-                      >
-                        <span>{mode}</span>
-                        {primaryDomainMode === mode && (
-                          <Check className="w-3.5 h-3.5 text-[#0066FF]" />
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Attribution Mode Summary Card */}
-              <div
-                onClick={() => setActiveField("step3-sdk")}
-                className={`onb-card-item w-full rounded-[10px] px-4 py-3.5 cursor-pointer transition-all ${
-                  activeField === "step3-sdk"
-                    ? "bg-white dark:bg-[#121215] border-[1.5px] border-[#0066FF] shadow-[0_0_0_3px_rgba(0,102,255,0.10)]"
-                    : "bg-[#f1f1f3] dark:bg-[#16161a] border border-transparent"
-                }`}
-              >
-                <div className="text-[11px] font-medium text-[#71717a] dark:text-[#a1a1aa]">
-                  Revenue & Customer Attribution Engine
-                </div>
-                <div className="text-sm font-bold text-[#09090b] dark:text-white mt-0.5 flex items-center gap-1.5">
-                  <span>Enabled (`lsh.track` + DiceBear Customer Grid)</span>
-                  <Sparkles className="w-3.5 h-3.5 text-[#0066FF]" />
-                </div>
-              </div>
             </>
-          )}
-
-          {/* ---------------- STEP 4 ---------------- */}
-          {currentStep === 4 && (
-            <div className="space-y-2.5">
-              {USE_CASES.map((uc) => {
-                const isSelected = useCases.includes(uc.id);
-                return (
-                  <div
-                    key={uc.id}
-                    onClick={() => toggleUseCase(uc.id)}
-                    className={`onb-card-item w-full rounded-[10px] px-4 py-3 cursor-pointer transition-all flex items-center justify-between ${
-                      isSelected
-                        ? "bg-white dark:bg-[#121215] border-[1.5px] border-[#0066FF] shadow-[0_0_0_3px_rgba(0,102,255,0.10)]"
-                        : "bg-[#f1f1f3] dark:bg-[#16161a] border border-transparent hover:border-[#e4e4e7] dark:hover:border-[#27272a]"
-                    }`}
-                  >
-                    <div className="pr-3">
-                      <div className="text-[11px] font-medium text-[#71717a] dark:text-[#a1a1aa]">
-                        {uc.desc}
-                      </div>
-                      <div className="text-xs sm:text-sm font-bold text-[#09090b] dark:text-white mt-0.5">
-                        {uc.label}
-                      </div>
-                    </div>
-                    <div
-                      className={`w-5 h-5 rounded-[6px] flex items-center justify-center shrink-0 transition-colors ${
-                        isSelected
-                          ? "bg-[#0066FF] text-white"
-                          : "bg-white dark:bg-[#09090b] border border-[#d4d4d8] dark:border-[#27272a]"
-                      }`}
-                    >
-                      {isSelected && (
-                        <Check className="w-3.5 h-3.5 stroke-[2.5]" />
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
           )}
         </div>
 

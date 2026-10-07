@@ -7,14 +7,12 @@ import { convexHttp as convex } from "@/lib/convex-server";
 import { api } from "@/convex/_generated/api";
 import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
 
-// If NEXTAUTH_URL or AUTH_URL is hardcoded to vercel.app, unset it so NextAuth
-// dynamically uses the active domain (e.g. lsho.cc) from request headers with trustHost: true
-if (process.env.NEXTAUTH_URL && process.env.NEXTAUTH_URL.includes("vercel.app")) {
-  delete process.env.NEXTAUTH_URL;
-}
-if (process.env.AUTH_URL && process.env.AUTH_URL.includes("vercel.app")) {
-  delete process.env.AUTH_URL;
-}
+// Auth.js v5 (NextAuth v5 beta) dynamically resolves host from request headers with trustHost: true.
+// Hardcoded NEXTAUTH_URL or AUTH_URL creates IPv4/IPv6 port collision with Windows local services (e.g. EonVPN on port 3000).
+// Delete unconditionally so client-side and server-side Auth.js use dynamic origin resolution.
+delete process.env.NEXTAUTH_URL;
+delete process.env.AUTH_URL;
+
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
@@ -176,12 +174,23 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
 
     // ─── Embed userId + plan + avatar from Convex into JWT token ───────────────
-    async jwt({ token, user, account }) {
+    async jwt({ token, user, account, trigger, session }) {
       if (user) {
         token.userId = user.id;
         token.provider = account?.provider;
         token.picture = user.image;
         token.avatarUrl = user.image;
+      }
+
+      // Handle client-side session update (e.g. useSession().update({ plan: "PRO" }))
+      if (trigger === "update" && session) {
+        if (session.plan) token.plan = session.plan;
+        if (session.user?.plan) token.plan = session.user.plan;
+        if (session.name) token.name = session.name;
+        if (session.image) {
+          token.picture = session.image;
+          token.avatarUrl = session.image;
+        }
       }
 
       // Enrich token with Convex profile (plan, quotas, avatar, onboarding status)
@@ -202,7 +211,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           if (convexUser) {
             token.userId = convexUser.userId;
             token.email = convexUser.email || token.email;
-            token.plan = convexUser.plan;
+            // Only overwrite plan if not explicitly updated in the active session trigger
+            if (!trigger || trigger !== "update" || !token.plan) {
+              token.plan = convexUser.plan;
+            }
             token.hasCompletedOnboarding = convexUser.hasCompletedOnboarding ?? false;
             token.clicksThisMonth = convexUser.clicksThisMonth;
             token.clicksLimit = convexUser.clicksLimit;
@@ -213,9 +225,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             if (convexUser.name) {
               token.name = convexUser.name;
             }
-          } else {
-            // User does not exist in Convex database (e.g. wiped or deleted)
-            (token as any).userNotFound = true;
           }
         } catch {
           if (token.hasCompletedOnboarding === undefined) {
@@ -229,9 +238,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
     // ─── Expose token data in useSession() client hook ───────────────────────────
     async session({ session, token }) {
-      if ((token as any)?.userNotFound) {
-        return null as any;
-      }
+      if (!session) return session;
 
       if (session.user) {
         session.user.id = String(token.userId || token.sub || "");

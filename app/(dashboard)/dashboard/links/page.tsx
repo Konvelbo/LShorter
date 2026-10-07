@@ -32,6 +32,9 @@ import {
   GripVertical,
   X,
   Download,
+  Link2,
+  MousePointerClick,
+  DollarSign,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -288,6 +291,17 @@ export default function LinksPage() {
           l.user_name ||
           l.userName ||
           l.fullName,
+        pixels: Array.isArray(l.pixels)
+          ? l.pixels
+          : typeof l.pixels === "string"
+            ? (() => {
+                try {
+                  return JSON.parse(l.pixels);
+                } catch {
+                  return [l.pixels];
+                }
+              })()
+            : [],
         created_at: l.created_at || l.createdAt || new Date().toISOString(),
       }));
       setLinks(rawLinks);
@@ -833,8 +847,18 @@ export default function LinksPage() {
     else if (statusFilter === "expired") matchesStatus = isExpired;
     else if (statusFilter === "protected")
       matchesStatus = Boolean(l.isPasswordProtected);
+    else if (statusFilter === "pinned")
+      matchesStatus = Boolean(l.pixels && Array.isArray(l.pixels) && l.pixels.length > 0);
 
     return matchesSearch && matchesTag && matchesStatus;
+  });
+
+  filteredLinks.sort((a, b) => {
+    const aPinned = a.pixels && Array.isArray(a.pixels) && a.pixels.length > 0;
+    const bPinned = b.pixels && Array.isArray(b.pixels) && b.pixels.length > 0;
+    if (aPinned && !bPinned) return -1;
+    if (!aPinned && bPinned) return 1;
+    return 0;
   });
 
   const isAllSelected =
@@ -880,6 +904,27 @@ export default function LinksPage() {
     }
   };
 
+  const totalCreatedLinks = links.length;
+  const activeLinksCount = links.filter(
+    (l) => l.isActive && (!l.expiresAt || new Date(l.expiresAt) >= new Date()),
+  ).length;
+  const totalClicks = links.reduce(
+    (acc, l) => acc + (Number(l.clicksCount) || 0),
+    0,
+  );
+  const totalUniqueClicks = links.reduce(
+    (acc, l) => acc + (Number(l.uniqueClicks) || 0),
+    0,
+  );
+  const totalRevenue = links.reduce(
+    (acc, l) => acc + (Number(l.revenue) || 0),
+    0,
+  );
+  const totalConversions = links.reduce(
+    (acc, l) => acc + (Number(l.conversionsCount) || 0),
+    0,
+  );
+
   if (status === "loading" || isLoading) {
     return <LinksPageSkeleton />;
   }
@@ -903,7 +948,7 @@ export default function LinksPage() {
             onClick={handleExportLinksCSV}
             className="inline-flex items-center gap-1.5 rounded-lg ds-card px-2.5 py-1.5 text-xs font-medium ds-text-secondary hover:ds-text-primary h-8 cursor-pointer transition-colors"
           >
-            <Download className="h-3.5 w-3.5 text-[#465FFF]" />
+            <Download className="h-3.5 w-3.5 text-[#0066FF]" />
             <span>Export Excel</span>
           </button>
 
@@ -919,18 +964,103 @@ export default function LinksPage() {
             disabled={isRefreshing}
             className="inline-flex items-center gap-1.5 rounded-lg ds-card px-2.5 py-1.5 text-xs font-medium ds-text-secondary hover:ds-text-primary h-8 cursor-pointer transition-colors"
           >
-            <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? "animate-spin text-[#465FFF]" : ""}`} />
+            <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? "animate-spin text-[#0066FF]" : ""}`} />
             <span>Refresh</span>
           </button>
 
           <button
             type="button"
             onClick={() => setIsCreateOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-[#465FFF] hover:bg-[#3641F5] px-3 py-1.5 text-xs font-semibold !text-white h-8 shadow-xs transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-[#0066FF] hover:bg-[#0055d4] px-3 py-1.5 text-xs font-semibold !text-white h-8 shadow-xs transition-colors cursor-pointer"
           >
             <Plus className="h-3.5 w-3.5 !text-white" />
             <span className="!text-white">Create Short Link</span>
           </button>
+        </div>
+      </div>
+
+      {/* 3 Metric Summary Cards: Total Links, Total Clicks, Revenue */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {/* Card 1: Total Links Created */}
+        <div className="rounded-xl border border-[#E4E7EC] dark:border-[#222225] bg-white dark:bg-[#111113] p-5 shadow-2xs hover:border-[#0066FF]/40 dark:hover:border-[#0066FF]/40 transition-all duration-200">
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <div className="w-10 h-10 rounded-lg bg-[#0066FF]/10 dark:bg-[#0066FF]/15 text-[#0066FF] dark:text-[#5294FF] flex items-center justify-center shrink-0">
+              <Link2 className="w-5 h-5" />
+            </div>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 select-none">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.5)]" />
+              {activeLinksCount} actif{activeLinksCount > 1 ? "s" : ""}
+            </span>
+          </div>
+          <div className="space-y-1">
+            <p className="text-xs font-semibold uppercase tracking-[0.05em] text-[#64748B] dark:text-[#94A3B8]">
+              Nombre total de liens créés
+            </p>
+            <div className="flex items-baseline gap-2">
+              <h3 className="text-2xl sm:text-[28px] font-bold font-mono tabular-nums tracking-[-0.02em] text-[#0F172A] dark:text-[#F8FAFC]">
+                {formatNumber(totalCreatedLinks)}
+              </h3>
+            </div>
+            <p className="text-[11.5px] text-[#94A3B8] dark:text-[#64748B] pt-0.5">
+              {totalCreatedLinks > 0
+                ? `${Math.round((activeLinksCount / totalCreatedLinks) * 100)}% de liens opérationnels`
+                : "Aucun lien créé pour le moment"}
+            </p>
+          </div>
+        </div>
+
+        {/* Card 2: Total Clicks */}
+        <div className="rounded-xl border border-[#E4E7EC] dark:border-[#222225] bg-white dark:bg-[#111113] p-5 shadow-2xs hover:border-[#0066FF]/40 dark:hover:border-[#0066FF]/40 transition-all duration-200">
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <div className="w-10 h-10 rounded-lg bg-indigo-500/10 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+              <MousePointerClick className="w-5 h-5" />
+            </div>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 select-none">
+              {formatNumber(totalUniqueClicks)} uniques
+            </span>
+          </div>
+          <div className="space-y-1">
+            <p className="text-xs font-semibold uppercase tracking-[0.05em] text-[#64748B] dark:text-[#94A3B8]">
+              Nombre total de clics
+            </p>
+            <div className="flex items-baseline gap-2">
+              <h3 className="text-2xl sm:text-[28px] font-bold font-mono tabular-nums tracking-[-0.02em] text-[#0F172A] dark:text-[#F8FAFC]">
+                {formatNumber(totalClicks)}
+              </h3>
+            </div>
+            <p className="text-[11.5px] text-[#94A3B8] dark:text-[#64748B] pt-0.5">
+              {totalCreatedLinks > 0
+                ? `Moyenne de ${(totalClicks / totalCreatedLinks).toFixed(1)} clics par lien`
+                : "En attente des premiers clics"}
+            </p>
+          </div>
+        </div>
+
+        {/* Card 3: Total Revenue */}
+        <div className="rounded-xl border border-[#E4E7EC] dark:border-[#222225] bg-white dark:bg-[#111113] p-5 shadow-2xs hover:border-[#0066FF]/40 dark:hover:border-[#0066FF]/40 transition-all duration-200">
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <div className="w-10 h-10 rounded-lg bg-emerald-500/10 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+              <DollarSign className="w-5 h-5" />
+            </div>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 select-none">
+              {totalConversions} vente{totalConversions > 1 ? "s" : ""}
+            </span>
+          </div>
+          <div className="space-y-1">
+            <p className="text-xs font-semibold uppercase tracking-[0.05em] text-[#64748B] dark:text-[#94A3B8]">
+              Revenus totaux
+            </p>
+            <div className="flex items-baseline gap-2">
+              <h3 className="text-2xl sm:text-[28px] font-bold font-mono tabular-nums tracking-[-0.02em] text-emerald-600 dark:text-emerald-400">
+                ${totalRevenue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </h3>
+            </div>
+            <p className="text-[11.5px] text-[#94A3B8] dark:text-[#64748B] pt-0.5">
+              {totalConversions > 0
+                ? `Taux de conversion ~${((totalConversions / Math.max(1, totalClicks)) * 100).toFixed(1)}%`
+                : "Monétisation et conversions activées"}
+            </p>
+          </div>
         </div>
       </div>
 

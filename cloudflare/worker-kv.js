@@ -1717,6 +1717,206 @@ export default {
       }
     }
 
+    // ─── TARGET ALERTS API (Cloudflare D1) ─────────────────────────────────
+    if (path.startsWith('/api/v1/targets') || path.startsWith('/api/targets')) {
+      const subPath = path.startsWith('/api/v1/targets')
+        ? path.slice('/api/v1/targets'.length)
+        : path.slice('/api/targets'.length);
+      const targetId = subPath.startsWith('/') ? subPath.slice(1) : subPath;
+
+      // Ensure target_alerts table exists in D1
+      if (env.DB) {
+        try {
+          await env.DB.prepare(`
+            CREATE TABLE IF NOT EXISTS target_alerts (
+              id TEXT PRIMARY KEY,
+              user_id TEXT NOT NULL,
+              link_id TEXT,
+              metric_type TEXT NOT NULL DEFAULT 'clicks',
+              period TEXT NOT NULL DEFAULT 'month',
+              target_value REAL NOT NULL,
+              notify_expired INTEGER DEFAULT 0,
+              notify_email INTEGER DEFAULT 1,
+              notify_bell INTEGER DEFAULT 1,
+              status TEXT NOT NULL DEFAULT 'active',
+              last_notified_at TEXT,
+              created_at TEXT DEFAULT (datetime('now')),
+              updated_at TEXT DEFAULT (datetime('now'))
+            )
+          `).run().catch(() => {});
+        } catch {}
+      }
+
+      // GET — List targets for user
+      if (method === 'GET' && !targetId) {
+        const userId = url.searchParams.get('userId') || request.headers.get('x-user-id');
+        if (!userId) {
+          return jsonResponse({ success: true, data: [] });
+        }
+
+        try {
+          let rows = [];
+          if (env.DB) {
+            const result = await env.DB.prepare(`
+              SELECT t.*, l.title as link_title, l.slug as link_slug, l.target_url as link_target_url, l.clicks_count as link_clicks
+              FROM target_alerts t
+              LEFT JOIN links l ON t.link_id = l.id
+              WHERE t.user_id = ?
+              ORDER BY t.created_at DESC
+            `).bind(userId).all().catch(() => ({ results: [] }));
+            rows = result.results || [];
+          }
+
+          // If no global target exists yet, ensure one is returned
+          const hasGlobal = rows.some((r) => !r.link_id);
+          if (!hasGlobal) {
+            const defaultGlobal = {
+              id: `target_global_${userId}`,
+              user_id: userId,
+              link_id: null,
+              link_title: 'All Links Aggregated',
+              link_slug: 'global',
+              metric_type: 'clicks',
+              period: 'month',
+              target_value: 1000,
+              current_value: 0,
+              notify_expired: 0,
+              notify_email: 1,
+              notify_bell: 1,
+              status: 'active',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            };
+            if (env.DB) {
+              await env.DB.prepare(`
+                INSERT OR IGNORE INTO target_alerts (id, user_id, link_id, metric_type, period, target_value, notify_expired, notify_email, notify_bell, status, created_at, updated_at)
+                VALUES (?, ?, NULL, 'clicks', 'month', 1000, 0, 1, 1, 'active', datetime('now'), datetime('now'))
+              `).bind(defaultGlobal.id, userId).run().catch(() => {});
+            }
+            rows.unshift(defaultGlobal);
+          }
+
+          // Format records for frontend
+          const formatted = rows.map((r) => ({
+            id: r.id,
+            userId: r.user_id,
+            linkId: r.link_id || null,
+            linkTitle: r.link_title || (r.link_id ? 'Custom Link' : 'All Links Aggregated'),
+            slug: r.link_slug || (r.link_id ? '' : 'global'),
+            targetUrl: r.link_target_url || '',
+            metricType: r.metric_type || 'clicks',
+            period: r.period || 'month',
+            targetValue: Number(r.target_value || 1000),
+            currentValue: Number(r.link_clicks || 0),
+            notifyExpired: Boolean(r.notify_expired),
+            notifyEmail: Boolean(r.notify_email !== 0),
+            notifyBell: Boolean(r.notify_bell !== 0),
+            status: r.status || 'active',
+            lastNotifiedAt: r.last_notified_at || null,
+            createdAt: r.created_at,
+            updatedAt: r.updated_at,
+          }));
+
+          return jsonResponse({ success: true, data: formatted });
+        } catch (err) {
+          return jsonResponse({ success: false, error: String(err?.message || err) }, 500);
+        }
+      }
+
+      // POST — Create or Upsert Target Alert
+      if (method === 'POST') {
+        try {
+          const body = await request.json();
+          const userId = body.userId || request.headers.get('x-user-id');
+          if (!userId) return jsonResponse({ success: false, error: 'userId is required' }, 400);
+
+          const id = body.id || `target_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+          const linkId = body.linkId === 'global' || !body.linkId ? null : body.linkId;
+          const metricType = body.metricType === 'revenue' ? 'revenue' : 'clicks';
+          const period = ['day', 'week', 'month'].includes(body.period) ? body.period : 'month';
+          const targetValue = Math.max(1, Number(body.targetValue) || 1000);
+          const notifyExpired = body.notifyExpired ? 1 : 0;
+          const notifyEmail = body.notifyEmail !== false ? 1 : 0;
+          const notifyBell = body.notifyBell !== false ? 1 : 0;
+          const status = body.status === 'paused' ? 'paused' : 'active';
+
+          if (env.DB) {
+            if (!linkId) {
+              // Global target upsert
+              const existingGlobal = await env.DB.prepare(
+                'SELECT id FROM target_alerts WHERE user_id = ? AND link_id IS NULL LIMIT 1'
+              ).bind(userId).first().catch(() => null);
+
+              if (existingGlobal) {
+                await env.DB.prepare(`
+                  UPDATE target_alerts
+                  SET metric_type = ?, target_value = ?, notify_email = ?, notify_bell = ?, status = ?, updated_at = datetime('now')
+                  WHERE id = ?
+                `).bind(metricType, targetValue, notifyEmail, notifyBell, status, existingGlobal.id).run();
+                return jsonResponse({
+                  success: true,
+                  data: { id: existingGlobal.id, userId, linkId: null, metricType, period: 'month', targetValue, notifyExpired: false, notifyEmail: Boolean(notifyEmail), notifyBell: Boolean(notifyBell), status },
+                });
+              }
+            }
+
+            await env.DB.prepare(`
+              INSERT INTO target_alerts (id, user_id, link_id, metric_type, period, target_value, notify_expired, notify_email, notify_bell, status, created_at, updated_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+            `).bind(id, userId, linkId, metricType, period, targetValue, notifyExpired, notifyEmail, notifyBell, status).run();
+          }
+
+          return jsonResponse({
+            success: true,
+            data: { id, userId, linkId, metricType, period, targetValue, notifyExpired: Boolean(notifyExpired), notifyEmail: Boolean(notifyEmail), notifyBell: Boolean(notifyBell), status },
+          }, 201);
+        } catch (err) {
+          return jsonResponse({ success: false, error: String(err?.message || err) }, 500);
+        }
+      }
+
+      // PATCH — Update existing target
+      if (method === 'PATCH' && targetId) {
+        try {
+          const body = await request.json();
+          if (env.DB) {
+            const updates = [];
+            const bindings = [];
+
+            if (body.metricType) { updates.push('metric_type = ?'); bindings.push(body.metricType); }
+            if (body.period && ['day', 'week', 'month'].includes(body.period)) { updates.push('period = ?'); bindings.push(body.period); }
+            if (body.targetValue !== undefined) { updates.push('target_value = ?'); bindings.push(Number(body.targetValue)); }
+            if (body.notifyExpired !== undefined) { updates.push('notify_expired = ?'); bindings.push(body.notifyExpired ? 1 : 0); }
+            if (body.notifyEmail !== undefined) { updates.push('notify_email = ?'); bindings.push(body.notifyEmail ? 1 : 0); }
+            if (body.notifyBell !== undefined) { updates.push('notify_bell = ?'); bindings.push(body.notifyBell ? 1 : 0); }
+            if (body.status !== undefined) { updates.push('status = ?'); bindings.push(body.status); }
+            updates.push("updated_at = datetime('now')");
+
+            bindings.push(targetId);
+            await env.DB.prepare(`
+              UPDATE target_alerts SET ${updates.join(', ')} WHERE id = ?
+            `).bind(...bindings).run();
+          }
+
+          return jsonResponse({ success: true, updated: targetId });
+        } catch (err) {
+          return jsonResponse({ success: false, error: String(err?.message || err) }, 500);
+        }
+      }
+
+      // DELETE — Delete target
+      if (method === 'DELETE' && targetId) {
+        try {
+          if (env.DB) {
+            await env.DB.prepare('DELETE FROM target_alerts WHERE id = ?').bind(targetId).run();
+          }
+          return jsonResponse({ success: true, deleted: targetId });
+        } catch (err) {
+          return jsonResponse({ success: false, error: String(err?.message || err) }, 500);
+        }
+      }
+    }
+
     return new Response('Not Found', { status: 404, headers: corsHeaders });
   },
 };

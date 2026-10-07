@@ -162,7 +162,7 @@ export function LandingFooter() {
                   ease: "expo.out",
                 });
             }}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 rounded-full bg-[#465FFF] hover:bg-[#3641F5] text-white pl-6 pr-2.5 py-2.5 text-[13.5px] font-semibold transition-colors shadow-xs"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 rounded-[12px] bg-[#465FFF] hover:bg-[#3641F5] text-white pl-6 pr-2.5 py-2.5 text-[13.5px] font-semibold transition-colors shadow-xs"
           >
             <span className="!text-white">
               {isAuthenticated ? "Dashboard" : "Get started"}
@@ -188,7 +188,7 @@ export function LandingFooter() {
                 ease: "expo.out",
               })
             }
-            className="w-full sm:w-auto inline-flex items-center justify-center rounded-full bg-white dark:bg-[#1C1C1C] hover:bg-[#F2F4F7] dark:hover:bg-[#262626] text-[#101828] dark:text-[#FFFFFF] border border-[#D0D5DD] dark:border-[#2E2E2E] px-6 py-2.5 text-[13.5px] font-medium transition-colors"
+            className="w-full sm:w-auto inline-flex items-center justify-center rounded-[12px] bg-white dark:bg-[#1C1C1C] hover:bg-[#F2F4F7] dark:hover:bg-[#262626] text-[#101828] dark:text-[#FFFFFF] border border-[#D0D5DD] dark:border-[#2E2E2E] px-6 py-2.5 text-[13.5px] font-medium transition-colors"
           >
             Access our plans
           </Link>

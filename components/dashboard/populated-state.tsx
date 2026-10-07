@@ -19,6 +19,12 @@ import {
   Download,
   ExternalLink,
   ChevronDown,
+  Sliders,
+  Bell,
+  Send,
+  X,
+  Check,
+  Target,
 } from "lucide-react";
 import { ShortLink, GlobalAnalytics } from "@/types";
 import { formatNumber } from "@/lib/utils";
@@ -70,8 +76,6 @@ export function PopulatedState({
   const { data: session } = useSession();
   const router = useRouter();
   const pathname = usePathname();
-  const isPreview = Boolean(pathname?.startsWith("/preview"));
-  const toUrl = (path: string) => (isPreview ? `/preview${path}` : path);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -154,6 +158,8 @@ export function PopulatedState({
     "clicks",
   );
   const [isTargetMenuOpen, setIsTargetMenuOpen] = useState(false);
+  const [isTargetEditModalOpen, setIsTargetEditModalOpen] = useState(false);
+  const [isTestingTargetNotif, setIsTestingTargetNotif] = useState(false);
   const [targetRevenueLimit, setTargetRevenueLimit] = useState<number>(5000);
   const [targetClicksLimit, setTargetClicksLimit] = useState<number>(1000);
   const [draftRevenueInput, setDraftRevenueInput] = useState<string>("5000");
@@ -262,6 +268,12 @@ export function PopulatedState({
   const todayRevenueValue = displayRevenue;
 
   const monthlyBars = useMemo(() => {
+    // DEMO-START: Return pre-calculated monthly distribution if provided
+    if (Array.isArray(analytics?.clicksByMonth) && analytics.clicksByMonth.length === 12) {
+      return analytics.clicksByMonth;
+    }
+    // DEMO-END
+
     const currentMonthIdx = new Date().getMonth();
     const buckets = MONTH_LABELS.map((month) => ({ month, value: 0 }));
 
@@ -285,9 +297,15 @@ export function PopulatedState({
     }
 
     return buckets;
-  }, [safeLiveClickEvents, safeClicksByDay, displayTotalClicks]);
+  }, [safeLiveClickEvents, safeClicksByDay, displayTotalClicks, analytics?.clicksByMonth]);
 
   const monthlyIncomeBars = useMemo(() => {
+    // DEMO-START: Return pre-calculated monthly income distribution if provided
+    if (Array.isArray(analytics?.incomeByMonth) && analytics.incomeByMonth.length === 12) {
+      return analytics.incomeByMonth;
+    }
+    // DEMO-END
+
     const currentMonthIdx = new Date().getMonth();
     const buckets = MONTH_LABELS.map((month) => ({ month, value: 0, conversions: 0 }));
 
@@ -311,7 +329,7 @@ export function PopulatedState({
     }
 
     return buckets;
-  }, [safeLiveClickEvents, displayRevenue]);
+  }, [safeLiveClickEvents, displayRevenue, analytics?.incomeByMonth]);
 
   const periodMetrics = useMemo(() => {
     const nowMs = Date.now();
@@ -595,28 +613,28 @@ export function PopulatedState({
     return `${prefix}${val.toLocaleString("en-US")}`;
   };
 
-  const activeProgressPct =
-    targetMetric === "revenue"
-      ? Math.min(
-          100,
-          Number(
-            ((displayRevenue / Math.max(1, targetRevenueLimit)) * 100).toFixed(
-              2,
-            ),
-          ),
-        )
-      : Math.min(
-          100,
-          Number(
-            (
-              (displayTotalClicks / Math.max(1, targetClicksLimit)) *
-              100
-            ).toFixed(2),
-          ),
-        );
+  const currentMetricVal =
+    targetMetric === "revenue" ? displayRevenue : displayTotalClicks;
+  const currentMetricLim =
+    targetMetric === "revenue" ? targetRevenueLimit : targetClicksLimit;
+  const rawProgressRatio =
+    currentMetricLim > 0 ? (currentMetricVal / currentMetricLim) * 100 : 0;
+  const activeProgressPct = Math.min(100, Math.round(rawProgressRatio));
+  const displayProgressPct =
+    currentMetricVal === 0
+      ? 0
+      : rawProgressRatio < 1
+        ? 1
+        : activeProgressPct;
 
   const gaugeDashoffset =
-    345.5 - (345.5 * Math.min(100, activeProgressPct)) / 100;
+    345.5 -
+    (345.5 *
+      Math.min(
+        100,
+        currentMetricVal === 0 ? 0 : Math.max(2, rawProgressRatio),
+      )) /
+      100;
 
   const handleSaveTargets = (e: React.FormEvent) => {
     e.preventDefault();
@@ -627,10 +645,163 @@ export function PopulatedState({
     try {
       localStorage.setItem("lshorter_target_revenue", String(nextRev));
       localStorage.setItem("lshorter_target_clicks", String(nextClk));
+      // Dispatch event so settings page updates immediately
+      window.dispatchEvent(new CustomEvent("lshorter_target_updated", {
+        detail: { revenue: nextRev, clicks: nextClk }
+      }));
     } catch {}
     setIsTargetMenuOpen(false);
-    showToast.success("Monthly targets updated");
+    setIsTargetEditModalOpen(false);
+    showToast.success("Objectif mensuel mis à jour");
   };
+
+  const handleTestTargetNotification = async () => {
+    try {
+      setIsTestingTargetNotif(true);
+      const targetEmail = session?.user?.email || "founder@lshorter.com";
+      const targetName = userName || "Founder";
+      const metricAchieved =
+        targetMetric === "revenue"
+          ? `$${displayRevenue.toLocaleString("en-US")}`
+          : `${displayTotalClicks.toLocaleString("en-US")} clics`;
+      const metricTarget =
+        targetMetric === "revenue"
+          ? `$${targetRevenueLimit.toLocaleString("en-US")}`
+          : `${targetClicksLimit.toLocaleString("en-US")} clics`;
+
+      const res = await fetch("/api/targets/notify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId,
+          email: targetEmail,
+          name: targetName,
+          metricType: targetMetric,
+          achievedValue: metricAchieved,
+          targetValue: metricTarget,
+          monthLabel: new Date().toLocaleDateString("fr-FR", {
+            month: "long",
+            year: "numeric",
+          }),
+        }),
+      });
+
+      const data = await res.json();
+      if (data?.success) {
+        confetti({
+          particleCount: 90,
+          spread: 80,
+          origin: { y: 0.6 },
+        });
+
+        // Trigger in-app topbar notification bell immediately
+        window.dispatchEvent(
+          new CustomEvent("lshorter:notification", {
+            detail: {
+              id: `target_test_${Date.now()}`,
+              title:
+                targetMetric === "revenue"
+                  ? "🎯 Objectif de revenus mensuel atteint !"
+                  : "🎯 Objectif de clics mensuel atteint !",
+              message: `Félicitations ${targetName} ! Vous avez atteint votre objectif (${metricAchieved} sur ${metricTarget}).`,
+              createdAt: Date.now(),
+            },
+          })
+        );
+
+        showToast.success(
+          `Notification test envoyée ! Email expédié à ${targetEmail} et popup cloche mis à jour.`
+        );
+      } else {
+        showToast.error("Échec de l'envoi de la notification test.");
+      }
+    } catch {
+      showToast.error("Erreur réseau lors de l'envoi de la notification.");
+    } finally {
+      setIsTestingTargetNotif(false);
+      setIsTargetMenuOpen(false);
+    }
+  };
+
+  // Détection automatique de l'atteinte de l'objectif mensuel (avec déduplication)
+  useEffect(() => {
+    if (displayProgressPct >= 100 && currentMetricVal > 0) {
+      const currentYearMonth = `${new Date().getFullYear()}_${new Date().getMonth() + 1}`;
+      const alertedKey = `lshorter_target_congrats_${targetMetric}_${currentYearMonth}`;
+      try {
+        const alreadyAlerted = localStorage.getItem(alertedKey);
+        if (!alreadyAlerted) {
+          localStorage.setItem(alertedKey, "sent");
+          confetti({
+            particleCount: 100,
+            spread: 90,
+            origin: { y: 0.6 },
+          });
+
+          const targetEmail = session?.user?.email || "founder@lshorter.com";
+          const targetName = userName || "Founder";
+          const metricAchieved =
+            targetMetric === "revenue"
+              ? `$${displayRevenue.toLocaleString("en-US")}`
+              : `${displayTotalClicks.toLocaleString("en-US")} clics`;
+          const metricTarget =
+            targetMetric === "revenue"
+              ? `$${targetRevenueLimit.toLocaleString("en-US")}`
+              : `${targetClicksLimit.toLocaleString("en-US")} clics`;
+
+          fetch("/api/targets/notify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              userId,
+              email: targetEmail,
+              name: targetName,
+              metricType: targetMetric,
+              achievedValue: metricAchieved,
+              targetValue: metricTarget,
+              monthLabel: new Date().toLocaleDateString("fr-FR", {
+                month: "long",
+                year: "numeric",
+              }),
+            }),
+          })
+            .then((res) => res.json())
+            .then((data) => {
+              if (data?.success) {
+                window.dispatchEvent(
+                  new CustomEvent("lshorter:notification", {
+                    detail: {
+                      id: `target_${Date.now()}`,
+                      title:
+                        targetMetric === "revenue"
+                          ? "🎉 Objectif de revenus mensuel atteint !"
+                          : "🎉 Objectif de clics mensuel atteint !",
+                      message: `Félicitations ${targetName} ! Vous avez atteint 100% de votre objectif (${metricAchieved} / ${metricTarget}).`,
+                      createdAt: Date.now(),
+                    },
+                  })
+                );
+                showToast.success(
+                  "🎉 Félicitations ! Votre objectif mensuel est atteint. Un email et une notification ont été envoyés !"
+                );
+              }
+            })
+            .catch(() => {});
+        }
+      } catch {}
+    }
+  }, [
+    displayProgressPct,
+    currentMetricVal,
+    targetMetric,
+    displayRevenue,
+    displayTotalClicks,
+    targetRevenueLimit,
+    targetClicksLimit,
+    session?.user?.email,
+    userName,
+    userId,
+  ]);
 
   const handleExportMonthlyCsv = () => {
     try {
@@ -718,14 +889,14 @@ export function PopulatedState({
         <div className="col-span-12 xl:col-span-7 flex flex-col gap-4 md:gap-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
             <div
-              onClick={() => router.push(toUrl("/dashboard/analytics"))}
-              className="group rounded-[10px] border border-[#E4E7EC] dark:border-[#344054] bg-white dark:bg-[#1D2939] p-5 md:p-6 shadow-2xs hover:border-[#465FFF]/50 transition-all cursor-pointer"
+              onClick={() => router.push("/dashboard/analytics")}
+              className="group rounded-[10px] border border-[#E4E7EC] dark:border-[#344054] bg-white dark:bg-[#1D2939] p-5 md:p-6 shadow-2xs hover:border-[#0066FF]/50 transition-all cursor-pointer"
             >
               <div className="flex items-center justify-between">
-                <div className="flex h-12 w-12 items-center justify-center rounded-[10px] bg-[#F2F4F7] dark:bg-white/[0.06] text-[#101828] dark:text-white group-hover:bg-[#465FFF]/10 group-hover:text-[#465FFF] transition-colors">
+                <div className="flex h-12 w-12 items-center justify-center rounded-[10px] bg-[#F2F4F7] dark:bg-white/[0.06] text-[#101828] dark:text-white group-hover:bg-[#0066FF]/10 group-hover:text-[#0066FF] transition-colors">
                   <Users className="h-6 w-6" />
                 </div>
-                <span className="text-xs font-medium text-[#667085] dark:text-[#98A2B3] group-hover:text-[#465FFF] inline-flex items-center gap-1 transition-colors">
+                <span className="text-xs font-medium text-[#667085] dark:text-[#98A2B3] group-hover:text-[#0066FF] inline-flex items-center gap-1 transition-colors">
                   Analytics <ExternalLink className="h-3 w-3" />
                 </span>
               </div>
@@ -740,8 +911,8 @@ export function PopulatedState({
                   </h4>
                 </div>
 
-                <span className="inline-flex items-center gap-1 rounded-full bg-[#ECFDF3] dark:bg-[#039855]/15 px-2.5 py-0.5 text-xs font-semibold text-[#039855] dark:text-[#32D583]">
-                  <ArrowUp className="h-3 w-3" />
+                <span className="inline-flex items-center gap-1 rounded-full bg-[#0066FF]/10 px-2.5 py-0.5 text-xs font-semibold text-[#0066FF] dark:text-[#5294FF]">
+                  <ArrowUp className="h-3 w-3 text-[#0066FF]" />
                   {clicksGrowthPct > 0
                     ? `${clicksGrowthPct}%`
                     : `${todayClicksValue} today`}
@@ -750,14 +921,14 @@ export function PopulatedState({
             </div>
 
             <div
-              onClick={() => router.push(toUrl("/dashboard/links"))}
-              className="group rounded-[10px] border border-[#E4E7EC] dark:border-[#344054] bg-white dark:bg-[#1D2939] p-5 md:p-6 shadow-2xs hover:border-[#465FFF]/50 transition-all cursor-pointer"
+              onClick={() => router.push("/dashboard/links")}
+              className="group rounded-[10px] border border-[#E4E7EC] dark:border-[#344054] bg-white dark:bg-[#1D2939] p-5 md:p-6 shadow-2xs hover:border-[#0066FF]/50 transition-all cursor-pointer"
             >
               <div className="flex items-center justify-between">
-                <div className="flex h-12 w-12 items-center justify-center rounded-[10px] bg-[#F2F4F7] dark:bg-white/[0.06] text-[#101828] dark:text-white group-hover:bg-[#465FFF]/10 group-hover:text-[#465FFF] transition-colors">
+                <div className="flex h-12 w-12 items-center justify-center rounded-[10px] bg-[#F2F4F7] dark:bg-white/[0.06] text-[#101828] dark:text-white group-hover:bg-[#0066FF]/10 group-hover:text-[#0066FF] transition-colors">
                   <Package className="h-6 w-6" />
                 </div>
-                <span className="text-xs font-medium text-[#667085] dark:text-[#98A2B3] group-hover:text-[#465FFF] inline-flex items-center gap-1 transition-colors">
+                <span className="text-xs font-medium text-[#667085] dark:text-[#98A2B3] group-hover:text-[#0066FF] inline-flex items-center gap-1 transition-colors">
                   Manage Links <ExternalLink className="h-3 w-3" />
                 </span>
               </div>
@@ -772,8 +943,8 @@ export function PopulatedState({
                   </h4>
                 </div>
 
-                <span className="inline-flex items-center gap-1 rounded-full bg-[#ECFDF3] dark:bg-[#039855]/15 px-2.5 py-0.5 text-xs font-semibold text-[#039855] dark:text-[#32D583]">
-                  <ArrowUp className="h-3 w-3" />
+                <span className="inline-flex items-center gap-1 rounded-full bg-[#0066FF]/10 px-2.5 py-0.5 text-xs font-semibold text-[#0066FF] dark:text-[#5294FF]">
+                  <ArrowUp className="h-3 w-3 text-[#0066FF]" />
                   {activeRatioPct}% active
                 </span>
               </div>
@@ -836,11 +1007,9 @@ export function PopulatedState({
                         onClick={() => {
                           setIsMonthlyMenuOpen(false);
                           router.push(
-                            toUrl(
-                              monthlyMetricMode === "clicks"
-                                ? "/dashboard/analytics"
-                                : "/dashboard/analytics/revenue",
-                            ),
+                            monthlyMetricMode === "clicks"
+                              ? "/dashboard/analytics"
+                              : "/dashboard/analytics/revenue",
                           );
                         }}
                         className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-[#344054] dark:text-gray-200 hover:bg-[#F2F4F7] dark:hover:bg-white/[0.06] transition-colors cursor-pointer"
@@ -908,10 +1077,10 @@ export function PopulatedState({
                 }
                 primaryLabel={monthlyMetricMode === "clicks" ? "Total Clicks" : "Attributed Revenue ($)"}
                 secondaryLabel={monthlyMetricMode === "clicks" ? "Unique Visitors" : "Conversions"}
-                primaryColorLight={monthlyMetricMode === "clicks" ? "#465FFF" : "#10B981"}
-                primaryColorDark={monthlyMetricMode === "clicks" ? "#465FFF" : "#34D399"}
-                secondaryColorLight={monthlyMetricMode === "clicks" ? "#0BA5EC" : "#6366F1"}
-                secondaryColorDark={monthlyMetricMode === "clicks" ? "#38BDF8" : "#818CF8"}
+                primaryColorLight="#0066FF"
+                primaryColorDark="#0066FF"
+                secondaryColorLight="#93C5FD"
+                secondaryColorDark="#60A5FA"
                 heightClassName="h-[225px] w-full"
                 showSecondaryBar
                 showYAxis
@@ -941,7 +1110,7 @@ export function PopulatedState({
                       onClick={() => setTargetMetric("clicks")}
                       className={`rounded-[6px] px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer ${
                         targetMetric === "clicks"
-                          ? "bg-white dark:bg-[#1D2939] text-[#101828] dark:text-white shadow-2xs"
+                          ? "bg-white dark:bg-[#1D2939] text-[#101828] dark:text-white shadow-2xs font-semibold"
                           : "text-[#667085] dark:text-[#98A2B3] hover:text-[#101828]"
                       }`}
                     >
@@ -952,7 +1121,7 @@ export function PopulatedState({
                       onClick={() => setTargetMetric("revenue")}
                       className={`rounded-[6px] px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer ${
                         targetMetric === "revenue"
-                          ? "bg-white dark:bg-[#1D2939] text-[#101828] dark:text-white shadow-2xs"
+                          ? "bg-white dark:bg-[#1D2939] text-[#101828] dark:text-white shadow-2xs font-semibold"
                           : "text-[#667085] dark:text-[#98A2B3] hover:text-[#101828]"
                       }`}
                     >
@@ -960,13 +1129,79 @@ export function PopulatedState({
                     </button>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => setIsTargetMenuOpen((prev) => !prev)}
-                    className="p-1 rounded-lg text-[#98A2B3] hover:text-[#344054] dark:hover:text-white hover:bg-[#F2F4F7] dark:hover:bg-white/[0.06] transition-colors cursor-pointer"
-                  >
-                    <MoreVertical className="h-5 w-5" />
-                  </button>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setIsTargetMenuOpen((prev) => !prev)}
+                      className="p-1 rounded-lg text-[#98A2B3] hover:text-[#344054] dark:hover:text-white hover:bg-[#F2F4F7] dark:hover:bg-white/[0.06] transition-colors cursor-pointer"
+                      aria-label="Options d'objectif"
+                    >
+                      <MoreVertical className="h-5 w-5" />
+                    </button>
+
+                    {isTargetMenuOpen && (
+                      <>
+                        <div
+                          className="fixed inset-0 z-40"
+                          onClick={() => setIsTargetMenuOpen(false)}
+                        />
+                        <div className="absolute right-0 top-full mt-1.5 w-60 rounded-xl bg-white dark:bg-[#1D2939] border border-[#E4E7EC] dark:border-[#344054] shadow-xl py-1.5 z-50 text-xs animate-in fade-in zoom-in-95 duration-150">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsTargetMenuOpen(false);
+                              setIsTargetEditModalOpen(true);
+                            }}
+                            className="w-full flex items-center gap-2.5 px-3 py-2 text-left text-[#344054] dark:text-[#E4E7EC] hover:bg-[#F9FAFB] dark:hover:bg-[#101828] cursor-pointer transition-colors"
+                          >
+                            <Sliders className="h-4 w-4 text-[#0066FF]" />
+                            <div>
+                              <p className="font-semibold">Modifier l'objectif</p>
+                              <p className="text-[10px] text-[#667085] dark:text-[#98A2B3]">
+                                Ajuster les seuils de clics ou revenus
+                              </p>
+                            </div>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsTargetMenuOpen(false);
+                              router.push("/dashboard/settings?tab=notifications");
+                            }}
+                            className="w-full flex items-center gap-2.5 px-3 py-2 text-left text-[#344054] dark:text-[#E4E7EC] hover:bg-[#F9FAFB] dark:hover:bg-[#101828] cursor-pointer transition-colors"
+                          >
+                            <Bell className="h-4 w-4 text-[#0066FF]" />
+                            <div>
+                              <p className="font-semibold">Gérer toutes les alertes</p>
+                              <p className="text-[10px] text-[#667085] dark:text-[#98A2B3]">
+                                Dashboard complet dans Paramètres
+                              </p>
+                            </div>
+                          </button>
+
+                          <div className="my-1 border-t border-[#E4E7EC] dark:border-[#344054]" />
+
+                          <button
+                            type="button"
+                            disabled={isTestingTargetNotif}
+                            onClick={() => handleTestTargetNotification()}
+                            className="w-full flex items-center gap-2.5 px-3 py-2 text-left text-[#0066FF] dark:text-[#5294FF] hover:bg-[#F9FAFB] dark:hover:bg-[#101828] cursor-pointer transition-colors disabled:opacity-50"
+                          >
+                            <Send className="h-4 w-4" />
+                            <div>
+                              <p className="font-semibold">
+                                {isTestingTargetNotif ? "Envoi du test en cours..." : "Tester l'alerte & e-mail"}
+                              </p>
+                              <p className="text-[10px] text-[#667085] dark:text-[#98A2B3]">
+                                Vérifier l'e-mail de félicitations & la cloche
+                              </p>
+                            </div>
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -983,7 +1218,7 @@ export function PopulatedState({
                   <path
                     d="M 20 130 A 110 110 0 0 1 240 130"
                     fill="none"
-                    stroke="#465FFF"
+                    stroke="#0066FF"
                     strokeWidth="12"
                     strokeLinecap="round"
                     strokeDasharray="345.5"
@@ -993,9 +1228,9 @@ export function PopulatedState({
                 </svg>
                 <div className="-mt-16 flex flex-col items-center">
                   <span className="text-[34px] font-bold text-[#101828] dark:text-white leading-none">
-                    {activeProgressPct.toFixed(1)}%
+                    {displayProgressPct}%
                   </span>
-                  <span className="mt-2.5 inline-flex items-center rounded-full bg-[#ECFDF3] dark:bg-[#039855]/15 px-2.5 py-0.5 text-xs font-semibold text-[#039855] dark:text-[#32D583]">
+                  <span className="mt-2.5 inline-flex items-center rounded-full bg-[#0066FF]/10 px-2.5 py-0.5 text-xs font-semibold text-[#0066FF] dark:text-[#5294FF]">
                     {targetMetric === "revenue"
                       ? "Revenue Goal"
                       : "Clicks Goal"}
@@ -1040,7 +1275,7 @@ export function PopulatedState({
                   {targetMetric === "revenue"
                     ? formatCompactMetric(displayRevenue, true)
                     : formatCompactMetric(displayTotalClicks, false)}
-                  <ArrowUp className="h-4 w-4 text-[#039855]" />
+                  <ArrowUp className="h-4 w-4 text-[#0066FF]" />
                 </p>
               </div>
               <div>
@@ -1051,7 +1286,7 @@ export function PopulatedState({
                   {targetMetric === "revenue"
                     ? formatCompactMetric(todayRevenueValue, true)
                     : formatCompactMetric(todayClicksValue, false)}
-                  <ArrowUp className="h-4 w-4 text-[#039855]" />
+                  <ArrowUp className="h-4 w-4 text-[#0066FF]" />
                 </p>
               </div>
             </div>
@@ -1085,11 +1320,7 @@ export function PopulatedState({
 
             <button
               type="button"
-              onClick={() =>
-                isPreview
-                  ? showToast.info("Preview: Create link modal is active in full dashboard.")
-                  : setIsCreateOpen(true)
-              }
+              onClick={() => setIsCreateOpen(true)}
               className="inline-flex items-center gap-2 rounded-[10px] bg-[#465FFF] hover:bg-[#3641F5] px-4 py-2 text-xs font-semibold text-white shadow-2xs transition-colors cursor-pointer"
             >
               <Plus className="h-4 w-4" />
@@ -1100,7 +1331,7 @@ export function PopulatedState({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 rounded-[10px] border border-[#E4E7EC] dark:border-[#344054] divide-y sm:divide-y-0 sm:divide-x divide-[#E4E7EC] dark:divide-[#344054]">
           <div
-            onClick={() => router.push(toUrl("/dashboard/analytics/revenue"))}
+            onClick={() => router.push("/dashboard/analytics/revenue")}
             className="p-5 cursor-pointer"
           >
             <p className="text-xs font-medium text-[#667085]">Total Revenue</p>
@@ -1114,7 +1345,7 @@ export function PopulatedState({
             </div>
           </div>
           <div
-            onClick={() => router.push(toUrl("/dashboard/analytics"))}
+            onClick={() => router.push("/dashboard/analytics")}
             className="p-5 cursor-pointer"
           >
             <p className="text-xs font-medium text-[#667085]">
@@ -1130,7 +1361,7 @@ export function PopulatedState({
             </div>
           </div>
           <div
-            onClick={() => router.push(toUrl("/dashboard/analytics/revenue"))}
+            onClick={() => router.push("/dashboard/analytics/revenue")}
             className="p-5 cursor-pointer"
           >
             <p className="text-xs font-medium text-[#667085]">
@@ -1146,7 +1377,7 @@ export function PopulatedState({
             </div>
           </div>
           <div
-            onClick={() => router.push(toUrl("/dashboard/links"))}
+            onClick={() => router.push("/dashboard/links")}
             className="p-5 cursor-pointer"
           >
             <p className="text-xs font-medium text-[#667085]">
@@ -1365,6 +1596,129 @@ export function PopulatedState({
           isOpen={Boolean(selectedQRLink)}
           onClose={() => setSelectedQRLink(null)}
         />
+      )}
+
+      {/* Target Goals Configuration Modal */}
+      {isTargetEditModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="relative w-full max-w-md rounded-2xl bg-white dark:bg-[#1D2939] border border-[#E4E7EC] dark:border-[#344054] shadow-2xl p-6">
+            <div className="flex items-center justify-between pb-3 border-b border-[#E4E7EC] dark:border-[#344054]">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-lg bg-[#0066FF]/10 text-[#0066FF] dark:text-[#5294FF]">
+                  <Target className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-[#101828] dark:text-white">
+                    Modifier les objectifs mensuels
+                  </h3>
+                  <p className="text-xs text-[#667085] dark:text-[#98A2B3]">
+                    Configurez vos cibles pour le mois en cours
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsTargetEditModalOpen(false)}
+                className="p-1 rounded-lg text-[#98A2B3] hover:text-[#344054] dark:hover:text-white hover:bg-[#F2F4F7] dark:hover:bg-white/[0.06] transition-colors cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveTargets} className="mt-4 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-[#344054] dark:text-[#E4E7EC] mb-1.5">
+                  Objectif de Clics mensuel
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="1"
+                    max="10000000"
+                    value={draftClicksInput}
+                    onChange={(e) => setDraftClicksInput(e.target.value)}
+                    className="w-full rounded-lg border border-[#D0D5DD] dark:border-[#344054] bg-white dark:bg-[#101828] px-3 py-2 text-sm text-[#101828] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0066FF]"
+                    placeholder="1000"
+                    required
+                  />
+                  <span className="absolute right-3 top-2 text-xs text-[#667085] dark:text-[#98A2B3]">
+                    clics
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 mt-2">
+                  {[500, 1000, 5000, 10000].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setDraftClicksInput(String(preset))}
+                      className="px-2 py-0.5 rounded text-[11px] font-medium bg-[#F2F4F7] dark:bg-[#101828] hover:bg-[#E4E7EC] dark:hover:bg-[#344054] text-[#344054] dark:text-[#E4E7EC] transition-colors cursor-pointer"
+                    >
+                      {formatNumber(preset)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[#344054] dark:text-[#E4E7EC] mb-1.5">
+                  Objectif de Revenus mensuel ($)
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-2 text-sm text-[#667085] dark:text-[#98A2B3]">
+                    $
+                  </span>
+                  <input
+                    type="number"
+                    min="1"
+                    max="10000000"
+                    value={draftRevenueInput}
+                    onChange={(e) => setDraftRevenueInput(e.target.value)}
+                    className="w-full rounded-lg border border-[#D0D5DD] dark:border-[#344054] bg-white dark:bg-[#101828] pl-7 pr-3 py-2 text-sm text-[#101828] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0066FF]"
+                    placeholder="5000"
+                    required
+                  />
+                </div>
+                <div className="flex items-center gap-1.5 mt-2">
+                  {[1000, 2500, 5000, 10000].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setDraftRevenueInput(String(preset))}
+                      className="px-2 py-0.5 rounded text-[11px] font-medium bg-[#F2F4F7] dark:bg-[#101828] hover:bg-[#E4E7EC] dark:hover:bg-[#344054] text-[#344054] dark:text-[#E4E7EC] transition-colors cursor-pointer"
+                    >
+                      ${formatNumber(preset)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-[#0066FF]/5 border border-[#0066FF]/15 text-[11px] text-[#344054] dark:text-[#D0D5DD] space-y-1">
+                <p className="font-semibold text-[#0066FF] dark:text-[#5294FF] flex items-center gap-1.5">
+                  <Check className="h-3.5 w-3.5" /> Alerte automatique à 100%
+                </p>
+                <p className="text-[#667085] dark:text-[#98A2B3] leading-relaxed">
+                  Dès que votre seuil est atteint, un e-mail de félicitations vous est envoyé et une notification s'affiche dans l'icône cloche du tableau de bord.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsTargetEditModalOpen(false)}
+                  className="px-3.5 py-2 rounded-lg text-xs font-semibold text-[#344054] dark:text-[#E4E7EC] hover:bg-[#F2F4F7] dark:hover:bg-[#101828] transition-colors cursor-pointer"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-lg text-xs font-semibold bg-[#0066FF] text-white hover:bg-[#0055D6] transition-colors shadow-sm cursor-pointer"
+                >
+                  Enregistrer l'objectif
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );

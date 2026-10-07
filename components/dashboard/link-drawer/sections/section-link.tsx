@@ -1,10 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
-import { Dices, Copy, Check, ChevronDown, Tag } from "lucide-react";
+import React, { useState, useEffect, useRef, useId } from "react";
+import { Dices, Copy, Check, ChevronDown, Tag as TagIcon } from "lucide-react";
+import { type Tag as EmblorTag, TagInput } from "emblor";
+import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { FieldErrorAlert } from "../field-error-alert";
 import { showToast } from "@/components/ui/toast-provider";
+import { Input } from "@/components/ui/input";
 
 interface SectionLinkProps {
   isEditMode: boolean;
@@ -42,6 +45,49 @@ export function SectionLink({
   checkSlugFormat,
 }: SectionLinkProps) {
   const [copied, setCopied] = useState(false);
+  const tagInputId = useId();
+  const [activeTagIndex, setActiveTagIndex] = useState<number | null>(null);
+  const [emblorTags, setEmblorTags] = useState<EmblorTag[]>(() => {
+    if (!tagsInput) return [];
+    return tagsInput
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean)
+      .map((text, idx) => ({ id: `${text}-${idx}`, text }));
+  });
+
+  const lastDispatchedTagsRef = useRef<string>(tagsInput || "");
+
+  useEffect(() => {
+    lastDispatchedTagsRef.current = tagsInput || "";
+    const currentSerialized = emblorTags.map((t) => t.text).join(", ");
+    if (tagsInput !== currentSerialized) {
+      if (!tagsInput) {
+        setEmblorTags([]);
+      } else {
+        const parsed = tagsInput
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean)
+          .map((text, idx) => ({ id: `${text}-${idx}`, text }));
+        setEmblorTags(parsed);
+      }
+    }
+  }, [tagsInput]);
+
+  const handleUpdateTags = (newTags: React.SetStateAction<EmblorTag[]>) => {
+    setEmblorTags((prev) => {
+      const resolved = typeof newTags === "function" ? newTags(prev) : newTags;
+      const joined = resolved.map((t) => t.text.trim()).filter(Boolean).join(", ");
+      if (setTagsInput && joined !== lastDispatchedTagsRef.current) {
+        lastDispatchedTagsRef.current = joined;
+        setTimeout(() => {
+          setTagsInput(joined);
+        }, 0);
+      }
+      return resolved;
+    });
+  };
 
   const generateRandomSlug = () => {
     const chars = "abcdefghjkmnpqrstuvwxyz23456789";
@@ -92,7 +138,7 @@ export function SectionLink({
           Destination URL <span className="text-red-500">*</span>
         </label>
         <div className="relative">
-          <input
+          <Input
             id="dest-url"
             type="url"
             required
@@ -108,7 +154,7 @@ export function SectionLink({
               }
             }}
             className={cn(
-              "w-full bg-white dark:bg-[#16181d] text-zinc-900 dark:text-[#f1f2f4] border border-zinc-300 dark:border-[#27272a] focus:border-[#1d5fe0] dark:focus:border-[#3b82f6] focus:ring-1 focus:ring-[#1d5fe0] dark:focus:ring-[#3b82f6] rounded-lg px-3.5 py-2.5 text-sm outline-none transition-colors placeholder:text-zinc-500 dark:placeholder:text-zinc-400 font-normal",
+              "h-10 text-sm",
               fieldErrors.targetUrl && "border-red-500/70 bg-red-500/5",
             )}
           />
@@ -142,7 +188,7 @@ export function SectionLink({
                 }
               }}
               className={cn(
-                "w-full appearance-none bg-white dark:bg-[#16181d] text-zinc-900 dark:text-[#f1f2f4] border border-zinc-300 dark:border-[#27272a] focus:border-[#1d5fe0] dark:focus:border-[#3b82f6] focus:ring-1 focus:ring-[#1d5fe0] dark:focus:ring-[#3b82f6] rounded-lg pl-3 pr-8 py-2.5 text-sm outline-none transition-colors cursor-pointer",
+                "w-full h-10 appearance-none bg-white dark:bg-[#16181d] text-zinc-900 dark:text-[#f1f2f4] border border-zinc-300 dark:border-[#27272a] focus:border-[#0066FF] dark:focus:border-[#3b82f6] focus:ring-1 focus:ring-[#0066FF] dark:focus:ring-[#3b82f6] rounded-[10px] pl-3 pr-8 py-2 text-sm outline-none transition-colors cursor-pointer",
                 isEditMode && "opacity-60 cursor-not-allowed",
                 fieldErrors.domainName && "border-red-500/70 bg-red-500/5",
               )}
@@ -171,7 +217,7 @@ export function SectionLink({
 
           {/* Custom Slug Input */}
           <div className="relative flex-1">
-            <input
+            <Input
               id="custom-slug"
               required
               placeholder="custom-slug"
@@ -186,7 +232,7 @@ export function SectionLink({
                 }
               }}
               className={cn(
-                "w-full bg-white dark:bg-[#16181d] text-zinc-900 dark:text-[#f1f2f4] border border-zinc-300 dark:border-[#27272a] focus:border-[#1d5fe0] dark:focus:border-[#3b82f6] focus:ring-1 focus:ring-[#1d5fe0] dark:focus:ring-[#3b82f6] rounded-lg px-3.5 py-2.5 text-sm font-mono outline-none transition-colors placeholder:text-zinc-500 dark:placeholder:text-zinc-400 font-normal",
+                "h-10 text-sm font-mono",
                 fieldErrors.slug && "border-red-500/70 bg-red-500/5",
               )}
             />
@@ -198,7 +244,7 @@ export function SectionLink({
               type="button"
               onClick={generateRandomSlug}
               title="Generate random slug"
-              className="p-2.5 bg-zinc-100 dark:bg-[#16181d] hover:bg-zinc-200 dark:hover:bg-[#22242a] text-zinc-600 hover:text-zinc-900 dark:text-[#8a8f9a] dark:hover:text-[#f1f2f4] rounded-lg border border-zinc-200 dark:border-zinc-800 transition-colors cursor-pointer shrink-0"
+              className="p-2.5 bg-zinc-100 dark:bg-[#16181d] hover:bg-zinc-200 dark:hover:bg-[#22242a] text-zinc-600 hover:text-zinc-900 dark:text-[#8a8f9a] dark:hover:text-[#f1f2f4] rounded-[10px] border border-zinc-200 dark:border-zinc-800 transition-colors cursor-pointer shrink-0"
               aria-label="Generate random slug"
             >
               <Dices className="w-4 h-4" />
@@ -208,25 +254,41 @@ export function SectionLink({
         <FieldErrorAlert message={fieldErrors.domainName || fieldErrors.slug} />
       </div>
 
-      {/* Tags Input (Relocated from Advanced, directly above Preview Card) */}
-      <div className="flex flex-col gap-1.5 mt-1">
-        <label
-          htmlFor="link-tags"
+      {/* Tags Input (comp-56 emblor TagInput) */}
+      <div className="flex flex-col gap-1.5 mt-1 w-full">
+        <Label
+          htmlFor={tagInputId}
           className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5"
         >
-          <Tag className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400" />
+          <TagIcon className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400" />
           <span>Tags (Optional)</span>
-        </label>
-        <input
-          id="link-tags"
-          type="text"
-          placeholder="promo2026, affiliate, campaign (separated by commas)"
-          value={tagsInput}
-          onChange={(e) => setTagsInput?.(e.target.value)}
-          className="w-full bg-white dark:bg-[#16181d] text-zinc-900 dark:text-[#f1f2f4] border border-zinc-300 dark:border-[#27272a] focus:border-[#1d5fe0] dark:focus:border-[#3b82f6] focus:ring-1 focus:ring-[#1d5fe0] dark:focus:ring-[#3b82f6] rounded-lg px-3.5 py-2.5 text-sm outline-none transition-colors placeholder:text-zinc-500 dark:placeholder:text-zinc-400 font-normal"
-        />
-        <p className="text-xs text-zinc-600 dark:text-zinc-400">
-          Separate tags with commas to filter and organize links in your dashboard.
+        </Label>
+        <div className="lshorter-tag-container w-full flex flex-col items-start">
+          <TagInput
+            id={tagInputId}
+            tags={emblorTags}
+            setTags={handleUpdateTags}
+            activeTagIndex={activeTagIndex}
+            setActiveTagIndex={setActiveTagIndex}
+            inlineTags={false}
+            inputFieldPosition="top"
+            placeholder="Add tags (press Enter)..."
+            styleClasses={{
+              input:
+                "w-full h-10 rounded-[10px] bg-white dark:bg-[#16181d] border border-zinc-300 dark:border-[#27272a] text-zinc-900 dark:text-[#f1f2f4] placeholder:text-zinc-400 dark:placeholder:text-[#8a8f9a] text-sm px-3 focus:outline-none focus:ring-1 focus:ring-[#0066FF] dark:focus:ring-[#3b82f6] focus:border-[#0066FF] dark:focus:border-[#3b82f6] transition-colors text-left",
+              tag: {
+                body: "relative h-7 bg-zinc-100 dark:bg-[#20222a] border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-200/80 dark:hover:bg-[#282b35] rounded-md font-medium text-xs ps-2 pe-7 text-zinc-800 dark:text-zinc-200 shadow-2xs transition-colors",
+                closeButton:
+                  "absolute -inset-y-px -end-px p-0 rounded-s-none rounded-e-md flex size-7 transition-colors outline-none text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-100 hover:bg-zinc-200/50 dark:hover:bg-zinc-700/50",
+              },
+              tagList: {
+                container: "flex flex-wrap items-center justify-start gap-1.5 pt-1 w-full",
+              },
+            }}
+          />
+        </div>
+        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+          Press enter to add tags to filter and organize links in your dashboard.
         </p>
       </div>
 

@@ -138,6 +138,68 @@ export const CONTINENTS_META: Record<Continent, { name: string; color: string; b
   Oceania: { name: "Oceania", color: "#06b6d4", bgGradient: "from-[#06b6d4]/20 to-transparent", icon: "🌏" },
 };
 
+// ─── ISO 3166-1 Alpha-2 to Continent Mapping (All Countries) ────────────────
+export const ISO2_TO_CONTINENT: Record<string, Continent> = {
+  // Africa
+  DZ: "Africa", AO: "Africa", BJ: "Africa", BW: "Africa", BF: "Africa", BI: "Africa",
+  CV: "Africa", CM: "Africa", CF: "Africa", TD: "Africa", KM: "Africa", CG: "Africa",
+  CD: "Africa", CI: "Africa", DJ: "Africa", EG: "Africa", GQ: "Africa", ER: "Africa",
+  SZ: "Africa", ET: "Africa", GA: "Africa", GM: "Africa", GH: "Africa", GN: "Africa",
+  GW: "Africa", KE: "Africa", LS: "Africa", LR: "Africa", LY: "Africa", MG: "Africa",
+  MW: "Africa", ML: "Africa", MR: "Africa", MU: "Africa", YT: "Africa", MA: "Africa",
+  MZ: "Africa", NA: "Africa", NE: "Africa", NG: "Africa", RE: "Africa", RW: "Africa",
+  SH: "Africa", ST: "Africa", SN: "Africa", SC: "Africa", SL: "Africa", SO: "Africa",
+  ZA: "Africa", SS: "Africa", SD: "Africa", TZ: "Africa", TG: "Africa", TN: "Africa",
+  UG: "Africa", EH: "Africa", ZM: "Africa", ZW: "Africa",
+
+  // Europe
+  AL: "Europe", AD: "Europe", AT: "Europe", BY: "Europe", BE: "Europe", BA: "Europe",
+  BG: "Europe", HR: "Europe", CY: "Europe", CZ: "Europe", DK: "Europe", EE: "Europe",
+  FO: "Europe", FI: "Europe", FR: "Europe", DE: "Europe", GI: "Europe", GR: "Europe",
+  GG: "Europe", VA: "Europe", HU: "Europe", IS: "Europe", IE: "Europe", IM: "Europe",
+  IT: "Europe", JE: "Europe", LV: "Europe", LI: "Europe", LT: "Europe", LU: "Europe",
+  MT: "Europe", MD: "Europe", MC: "Europe", ME: "Europe", NL: "Europe", MK: "Europe",
+  NO: "Europe", PL: "Europe", PT: "Europe", RO: "Europe", RU: "Europe", SM: "Europe",
+  RS: "Europe", SK: "Europe", SI: "Europe", ES: "Europe", SJ: "Europe", SE: "Europe",
+  CH: "Europe", UA: "Europe", GB: "Europe", UK: "Europe", AX: "Europe", XK: "Europe",
+
+  // North America
+  AI: "North America", AG: "North America", AW: "North America", BS: "North America",
+  BB: "North America", BZ: "North America", BM: "North America", BQ: "North America",
+  VG: "North America", CA: "North America", KY: "North America", CR: "North America",
+  CU: "North America", CW: "North America", DM: "North America", DO: "North America",
+  SV: "North America", GL: "North America", GD: "North America", GP: "North America",
+  GT: "North America", HT: "North America", HN: "North America", JM: "North America",
+  MQ: "North America", MX: "North America", MS: "North America", NI: "North America",
+  PA: "North America", PR: "North America", BL: "North America", KN: "North America",
+  LC: "North America", MF: "North America", PM: "North America", VC: "North America",
+  SX: "North America", TT: "North America", TC: "North America", US: "North America",
+  VI: "North America",
+
+  // South America
+  AR: "South America", BO: "South America", BR: "South America", CL: "South America",
+  CO: "South America", EC: "South America", FK: "South America", GF: "South America",
+  GY: "South America", PY: "South America", PE: "South America", SR: "South America",
+  UY: "South America", VE: "South America",
+
+  // Asia
+  AF: "Asia", AM: "Asia", AZ: "Asia", BH: "Asia", BD: "Asia", BT: "Asia", BN: "Asia",
+  KH: "Asia", CN: "Asia", GE: "Asia", HK: "Asia", IN: "Asia", ID: "Asia", IR: "Asia",
+  IQ: "Asia", IL: "Asia", JP: "Asia", JO: "Asia", KZ: "Asia", KW: "Asia", KG: "Asia",
+  LA: "Asia", LB: "Asia", MO: "Asia", MY: "Asia", MV: "Asia", MN: "Asia", MM: "Asia",
+  NP: "Asia", KP: "Asia", OM: "Asia", PK: "Asia", PS: "Asia", PH: "Asia", QA: "Asia",
+  SA: "Asia", SG: "Asia", KR: "Asia", LK: "Asia", SY: "Asia", TW: "Asia", TJ: "Asia",
+  TH: "Asia", TL: "Asia", TR: "Asia", TM: "Asia", AE: "Asia", UZ: "Asia", VN: "Asia",
+  YE: "Asia",
+
+  // Oceania
+  AS: "Oceania", AU: "Oceania", CK: "Oceania", FJ: "Oceania", PF: "Oceania", GU: "Oceania",
+  KI: "Oceania", MH: "Oceania", FM: "Oceania", NR: "Oceania", NC: "Oceania", NZ: "Oceania",
+  NU: "Oceania", NF: "Oceania", MP: "Oceania", PW: "Oceania", PG: "Oceania", PN: "Oceania",
+  WS: "Oceania", SB: "Oceania", TK: "Oceania", TO: "Oceania", TV: "Oceania", VU: "Oceania",
+  WF: "Oceania",
+};
+
 // ─── ISO Numeric (world-atlas) to ISO Alpha-2 Mapping ────────────────────────
 export const ISO_NUMERIC_TO_ALPHA2: Record<string, string> = {
   "004": "AF", "008": "AL", "012": "DZ", "020": "AD", "024": "AO", "032": "AR", "036": "AU",
@@ -215,22 +277,51 @@ export function getCountryData(code?: string): CountryGeoData {
   if (!code) return { code: "XX", name: "Unknown", nameEn: "Unknown", continent: "Africa", lat: 0, lng: 0, flag: "🌐" };
   const upper = code.toUpperCase().trim();
   const c = WORLD_COUNTRIES[upper];
+  const detectedContinent = ISO2_TO_CONTINENT[upper] || c?.continent || "Africa";
   if (c) {
-    return { ...c, name: c.nameEn || c.name };
+    return { ...c, continent: detectedContinent, name: c.nameEn || c.name };
   }
   return {
     code: upper,
     name: upper,
     nameEn: upper,
-    continent: "Africa",
+    continent: detectedContinent,
     lat: 12.2383,
     lng: -1.5616,
-    flag: "🌐",
+    flag: getCountryFlag(upper),
   };
 }
 
+export function isValidCountryContinent(code?: string): boolean {
+  if (!code) return false;
+  const upper = code.toUpperCase().trim();
+  if (upper === "XX" || upper === "UNKNOWN" || upper === "INCONNU" || upper === "LOCAL" || upper === "T1") {
+    return false;
+  }
+  if (ISO2_TO_CONTINENT[upper] || WORLD_COUNTRIES[upper]?.continent) return true;
+  const lower = upper.toLowerCase();
+  return Object.values(WORLD_COUNTRIES).some(
+    (c) => c.name.toLowerCase() === lower || c.nameEn.toLowerCase() === lower
+  );
+}
+
 export function getContinentForCountry(code?: string): Continent {
-  return getCountryData(code).continent;
+  if (!code) return "Europe";
+  const upper = code.toUpperCase().trim();
+  if (ISO2_TO_CONTINENT[upper]) return ISO2_TO_CONTINENT[upper];
+  if (WORLD_COUNTRIES[upper]?.continent) return WORLD_COUNTRIES[upper].continent;
+
+  const lower = upper.toLowerCase();
+  for (const c of Object.values(WORLD_COUNTRIES)) {
+    if (
+      c.name.toLowerCase() === lower ||
+      c.nameEn.toLowerCase() === lower ||
+      c.code.toLowerCase() === lower
+    ) {
+      return c.continent;
+    }
+  }
+  return "Europe";
 }
 
 export function getCountryName(code?: string): string {
@@ -259,9 +350,15 @@ export function getCountryFlag(code?: string): string {
 }
 
 export function getCountryFromGeography(geo: any): CountryGeoData {
-  if (geo.properties?.iso2 && WORLD_COUNTRIES[geo.properties.iso2]) {
-    const c = WORLD_COUNTRIES[geo.properties.iso2];
-    return { ...c, name: c.nameEn || c.name };
+  if (geo.properties?.iso2) {
+    const iso2 = String(geo.properties.iso2).toUpperCase();
+    if (WORLD_COUNTRIES[iso2]) {
+      const c = WORLD_COUNTRIES[iso2];
+      return { ...c, continent: ISO2_TO_CONTINENT[iso2] || c.continent, name: c.nameEn || c.name };
+    }
+    if (ISO2_TO_CONTINENT[iso2]) {
+      return getCountryData(iso2);
+    }
   }
 
   const rawId = String(geo.id || "").trim();
@@ -269,13 +366,19 @@ export function getCountryFromGeography(geo: any): CountryGeoData {
 
   if (rawId === "254" || idStr === "254") {
     const c = WORLD_COUNTRIES["GF"];
-    return { ...c, name: c.nameEn || c.name };
+    return { ...c, continent: "South America", name: c?.nameEn || "French Guiana" };
   }
 
   const iso2FromNumeric = ISO_NUMERIC_TO_ALPHA2[idStr] || ISO_NUMERIC_TO_ALPHA2[rawId];
-  if (iso2FromNumeric && WORLD_COUNTRIES[iso2FromNumeric]) {
-    const c = WORLD_COUNTRIES[iso2FromNumeric];
-    return { ...c, name: c.nameEn || c.name };
+  if (iso2FromNumeric) {
+    const upperIso = iso2FromNumeric.toUpperCase();
+    if (WORLD_COUNTRIES[upperIso]) {
+      const c = WORLD_COUNTRIES[upperIso];
+      return { ...c, continent: ISO2_TO_CONTINENT[upperIso] || c.continent, name: c.nameEn || c.name };
+    }
+    if (ISO2_TO_CONTINENT[upperIso]) {
+      return getCountryData(upperIso);
+    }
   }
 
   const name = geo.properties?.name || "";
@@ -283,16 +386,19 @@ export function getCountryFromGeography(geo: any): CountryGeoData {
     const found = Object.values(WORLD_COUNTRIES).find(
       (c) => c.name.toLowerCase() === name.toLowerCase() || c.nameEn.toLowerCase() === name.toLowerCase()
     );
-    if (found) return { ...found, name: found.nameEn || found.name };
+    if (found) {
+      return { ...found, continent: ISO2_TO_CONTINENT[found.code] || found.continent, name: found.nameEn || found.name };
+    }
   }
 
+  const fallbackContinent = (iso2FromNumeric && ISO2_TO_CONTINENT[iso2FromNumeric.toUpperCase()]) || "Europe";
   return {
     code: iso2FromNumeric || geo.id || "XX",
     name: name || "Territory",
     nameEn: name || "Territory",
-    continent: "Europe",
+    continent: fallbackContinent,
     lat: 0,
     lng: 0,
-    flag: "🌐",
+    flag: iso2FromNumeric ? getCountryFlag(iso2FromNumeric) : "🌐",
   };
 }

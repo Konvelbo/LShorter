@@ -129,8 +129,8 @@ export default function DocsPage() {
                 <CardItem translateZ="50" className="w-full">
                   <div className="relative w-full aspect-[16/10] sm:aspect-[16/9] rounded-2xl overflow-hidden border border-[#E4E7EC] dark:border-white/10 shadow-2xl bg-neutral-900 group">
                     <Image
-                      src="/marketing-FCI/cosmos_big_card.jpeg"
-                      alt="LShorter global edge architecture and infrastructure"
+                      src="/doc/apiimage.jpg"
+                      alt="LShorter global edge architecture and API infrastructure"
                       fill
                       priority
                       className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"

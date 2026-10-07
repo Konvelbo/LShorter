@@ -20,7 +20,11 @@ import { cn } from "@/lib/utils";
 import { useSession } from "next-auth/react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { cfGetAnalytics, cfGetLinks } from "@/lib/cloudflare-api";
+import {
+  cfGetAnalytics,
+  cfGetLinks,
+  cfInvalidateCache,
+} from "@/lib/cloudflare-api";
 import { LinkCreateModal } from "@/components/dashboard/link-create-modal";
 import { FeedbackModal } from "@/components/feedback/feedback-modal";
 import { getPlanDefinition } from "@/src/config/pricing";
@@ -208,12 +212,17 @@ export function Sidebar() {
       }
     } catch {}
 
-    const fetchLiveClicks = async () => {
+    const fetchLiveClicks = async (forceRefresh = false) => {
       try {
-        const [linksRes, analyticsRes, analytics30dRes] = await Promise.all([
-          cfGetLinks(userId).catch(() => null),
-          cfGetAnalytics(userId).catch(() => null),
-          cfGetAnalytics(userId, "30d").catch(() => null),
+        if (forceRefresh) {
+          cfInvalidateCache("/api/links");
+          cfInvalidateCache("/api/analytics");
+        }
+        const [linksRes, analytics30dRes] = await Promise.all([
+          cfGetLinks(userId, forceRefresh).catch(() => null),
+          cfGetAnalytics(userId, "30d", undefined, forceRefresh).catch(
+            () => null,
+          ),
         ]);
 
         const lList = Array.isArray(linksRes?.data)
@@ -222,7 +231,7 @@ export function Sidebar() {
             ? (linksRes?.data as any).data
             : [];
 
-        const sumClicks = lList.reduce(
+        const sumClicksFromLinks = lList.reduce(
           (acc: number, l: any) =>
             acc +
             (Number(l.clicks_count) ||
@@ -232,31 +241,28 @@ export function Sidebar() {
           0,
         );
 
-        const analyticsClicksAll = Number(
-          analyticsRes?.data?.totalClicks ??
-            analyticsRes?.data?.total_clicks ??
-            0,
-        );
-
         const analyticsClicks30d = Number(
           analytics30dRes?.data?.totalClicks ??
             analytics30dRes?.data?.total_clicks ??
             0,
         );
 
-        const totalLiveClicks = Math.max(
-          analyticsClicksAll,
+        // Réactivité immédiate : maximum entre agrégation 30j et cumul direct des liens
+        const serverClicks = Math.max(
           analyticsClicks30d,
-          sumClicks,
+          sumClicksFromLinks,
         );
 
-        setLiveClicks(totalLiveClicks);
-        try {
-          localStorage.setItem(
-            `lshorter_live_clicks_${userId}`,
-            String(totalLiveClicks),
-          );
-        } catch {}
+        setLiveClicks((prev) => {
+          const resolved = Math.max(prev ?? 0, serverClicks);
+          try {
+            localStorage.setItem(
+              `lshorter_live_clicks_${userId}`,
+              String(resolved),
+            );
+          } catch {}
+          return resolved;
+        });
       } catch (err) {
         console.warn("[Sidebar] Error fetching live clicks:", err);
       }
@@ -264,28 +270,65 @@ export function Sidebar() {
 
     fetchLiveClicks();
 
+    // Incrémentation optimiste immédiate lors d'un clic dans l'UI
+    const handleLinkClicked = () => {
+      setLiveClicks((prev) => {
+        const next = (prev ?? 0) + 1;
+        try {
+          localStorage.setItem(`lshorter_live_clicks_${userId}`, String(next));
+        } catch {}
+        return next;
+      });
+      setTimeout(() => fetchLiveClicks(false), 2000);
+    };
+
     const handleSyncedEvent = (e: Event) => {
       const detail = (e as CustomEvent)?.detail;
       if (typeof detail?.clicks === "number") {
-        setLiveClicks(detail.clicks);
+        setLiveClicks((prev) => {
+          const resolved = Math.max(prev ?? 0, detail.clicks);
+          try {
+            localStorage.setItem(`lshorter_live_clicks_${userId}`, String(resolved));
+          } catch {}
+          return resolved;
+        });
       }
     };
 
+    // Polling modéré (toutes les 90s) pour synchroniser en tâche de fond sans saturer Cloudflare D1
+    const pollInterval = setInterval(() => {
+      if (
+        typeof document !== "undefined" &&
+        document.visibilityState === "hidden"
+      )
+        return;
+      fetchLiveClicks(false);
+    }, 90000);
+
     window.addEventListener("lshorter_live_clicks_synced", handleSyncedEvent);
-    window.addEventListener("lshorter_data_change", fetchLiveClicks);
-    window.addEventListener("lshorter_links_updated", fetchLiveClicks);
-    window.addEventListener("lshorter_link_clicked", fetchLiveClicks);
-    window.addEventListener("focus", fetchLiveClicks);
+    window.addEventListener("lshorter_data_change", () =>
+      fetchLiveClicks(true),
+    );
+    window.addEventListener("lshorter_links_updated", () =>
+      fetchLiveClicks(true),
+    );
+    window.addEventListener("lshorter_link_clicked", handleLinkClicked);
+    window.addEventListener("focus", () => fetchLiveClicks(false));
 
     return () => {
+      clearInterval(pollInterval);
       window.removeEventListener(
         "lshorter_live_clicks_synced",
         handleSyncedEvent,
       );
-      window.removeEventListener("lshorter_data_change", fetchLiveClicks);
-      window.removeEventListener("lshorter_links_updated", fetchLiveClicks);
-      window.removeEventListener("lshorter_link_clicked", fetchLiveClicks);
-      window.removeEventListener("focus", fetchLiveClicks);
+      window.removeEventListener("lshorter_data_change", () =>
+        fetchLiveClicks(true),
+      );
+      window.removeEventListener("lshorter_links_updated", () =>
+        fetchLiveClicks(true),
+      );
+      window.removeEventListener("lshorter_link_clicked", handleLinkClicked);
+      window.removeEventListener("focus", () => fetchLiveClicks(true));
     };
   }, [userId]);
 
@@ -307,31 +350,43 @@ export function Sidebar() {
           ? 150_000
           : 10_000;
 
-  // Calcul identique à settings/page.tsx
+  // Calcul sobre et précis du pourcentage (ex: 0.03% pour 49/150,000 au lieu de 1% erroné)
   const rawClicksRatio =
     clicksLimit > 0 ? (clicksThisMonth / clicksLimit) * 100 : 0;
   const clicksPercent = Math.min(100, Math.round(rawClicksRatio));
-  const clicksPercentLabel =
-    clicksLimit === -1
-      ? "Unlimited"
-      : clicksThisMonth === 0
-        ? "0%"
-        : rawClicksRatio < 1
-          ? `${rawClicksRatio.toFixed(2)}%`
-          : `${clicksPercent}%`;
+  const formatSidebarPercentage = (used: number, limit: number): string => {
+    if (limit === -1) return "Unlimited";
+    if (used <= 0) return "0%";
+    const ratio = (used / limit) * 100;
+    if (ratio < 0.01) {
+      return `${ratio.toFixed(3)}%`;
+    }
+    if (ratio < 1) {
+      return `${ratio.toFixed(2)}%`;
+    }
+    if (ratio < 10 && ratio % 1 !== 0) {
+      return `${ratio.toFixed(1)}%`;
+    }
+    return `${Math.min(100, Math.round(ratio))}%`;
+  };
+
+  const clicksPercentLabel = formatSidebarPercentage(
+    clicksThisMonth,
+    clicksLimit,
+  );
 
   const isOverage =
     clicksLimit !== -1 &&
     clicksThisMonth > clicksLimit &&
     (plan === "PRO" || plan === "BUSINESS");
 
-  // Largeur visible de la barre dans le CSS identique à settings (clicksBarWidthPercent)
+  // Largeur visible sobre et fluide de la barre de progression
   const barWidth =
     clicksLimit === -1
       ? 0
-      : clicksThisMonth > 0
-        ? Math.min(100, Math.max(2, rawClicksRatio))
-        : 0;
+      : clicksThisMonth === 0
+        ? 0
+        : Math.min(100, Math.max(2, rawClicksRatio));
 
   const toggleSubmenu = (name: string) => {
     if (isCollapsed) setIsCollapsed(false);
@@ -492,23 +547,23 @@ export function Sidebar() {
         {/* Header / Logo */}
         <div
           className={cn(
-            "flex h-[60px] items-center shrink-0 border-b ds-border",
+            "flex h-[43px] min-h-[43px] max-h-[43px] items-center shrink-0 border-b ds-border",
             isCollapsed ? "justify-center px-2" : "justify-between px-4",
           )}
         >
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="flex h-8 w-8 items-center justify-center rounded-[8px] overflow-hidden shadow-xs shrink-0 group-hover:scale-105 transition-transform">
+            <div className="flex h-6 w-6 items-center justify-center rounded-[8px] overflow-hidden shadow-xs shrink-0 group-hover:scale-105 transition-transform">
               <Image
                 src="/logo.svg"
                 alt="LShorter Logo"
-                width={32}
-                height={32}
+                width={25}
+                height={25}
                 className="w-full h-full object-contain"
                 priority
               />
             </div>
             {!isCollapsed && (
-              <span className="text-[17px] font-bold tracking-tight ds-text-primary">
+              <span className="text-[15px] font-bold tracking-tight ds-text-primary">
                 LShorter
               </span>
             )}
@@ -549,14 +604,7 @@ export function Sidebar() {
               {/* Header: Plan badge & % usage */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
-                  <span
-                    className={cn(
-                      "h-1.5 w-1.5 rounded-full",
-                      isOverage
-                        ? "bg-amber-500 animate-pulse"
-                        : "bg-emerald-500",
-                    )}
-                  />
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#0066FF]" />
                   <span className="text-[10px] font-bold uppercase tracking-wider text-[#0066FF] dark:text-[#5294FF]">
                     {planNormalized}
                   </span>
@@ -573,7 +621,12 @@ export function Sidebar() {
                     {clicksThisMonth.toLocaleString("en-US")}
                   </span>
                   <span className="text-[10.5px] text-[#667085] dark:text-[#98A2B3] font-medium">
-                    / {clicksLimit === -1 ? "Unlimited" : clicksLimit >= 1_000_000 ? `${(clicksLimit / 1_000_000).toLocaleString("en-US")}M+` : clicksLimit.toLocaleString("en-US")}
+                    /{" "}
+                    {clicksLimit === -1
+                      ? "Unlimited"
+                      : clicksLimit >= 1_000_000
+                        ? `${(clicksLimit / 1_000_000).toLocaleString("en-US")}M+`
+                        : clicksLimit.toLocaleString("en-US")}
                   </span>
                 </div>
                 <span className="text-[10px] font-medium text-[#98A2B3] dark:text-[#71717a]">
@@ -584,11 +637,7 @@ export function Sidebar() {
               {/* Progress bar */}
               <div className="w-full h-1.5 rounded-full bg-[#EAECF0] dark:bg-[#27272a] overflow-hidden">
                 <div
-                  className={`h-full rounded-full transition-all duration-300 ${
-                    isOverage
-                      ? "bg-amber-500"
-                      : "bg-[#0066FF]"
-                  }`}
+                  className="h-full rounded-full transition-all duration-300 bg-[#0066FF]"
                   style={{ width: `${barWidth}%` }}
                 />
               </div>
@@ -599,7 +648,7 @@ export function Sidebar() {
                   {plan === "ENTERPRISE"
                     ? "Unlimited clicks"
                     : isOverage
-                      ? "Overage active"
+                      ? "Quota exceeded"
                       : "Monthly quota"}
                 </span>
                 {planNormalized === "FREE" ? (
@@ -610,7 +659,7 @@ export function Sidebar() {
                     Upgrade →
                   </Link>
                 ) : (
-                  <span className="text-emerald-600 dark:text-emerald-400 font-medium shrink-0 ml-1">
+                  <span className="text-[#0066FF] dark:text-[#5294FF] font-medium shrink-0 ml-1">
                     Active
                   </span>
                 )}

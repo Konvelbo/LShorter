@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
-import { invalidateBotResponseCache } from "@/app/r/[slug]/route";
+import { invalidateBotResponseCache } from "@/lib/redirect-engine";
 import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
 import { auth } from "@/auth";
 import { convexHttp as convex } from "@/lib/convex-server";
 import { api } from "@/convex/_generated/api";
-
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const userId = searchParams.get("userId");

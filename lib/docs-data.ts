@@ -72,7 +72,7 @@ export const DOC_FEATURES: DocFeature[] = [
     title: "Quickstart & REST API Reference",
     subtitle: "Integrate intelligent edge link shortening, real-time analytics, and conversion tracking with our high-performance REST API and TypeScript SDK.",
     description: "Complete REST API reference, base URLs, authentication headers, rate limits, SDK quickstart, and endpoint catalog for developers.",
-    image: "/marketing-FCI/cosmos_1739739224.jpeg",
+    image: "/screenshots/dashboard/dashboardwithsidbare.png",
     readTime: "5 min read",
     overview: [
       "The LShorter REST API provides programmatic access to all link management, edge routing, privacy cloaking, conversion attribution, and telemetry features of the LShorter platform.",
@@ -448,7 +448,7 @@ console.log("Earnings Per Click (EPC):", stats.epc, "USD/click");`
     title: "Dynamic Routing & Edge Geolocation",
     subtitle: "Redirect visitors to contextual URLs based on their origin country or continent with ultra-low latency.",
     description: "Guide and REST API reference for configuring country and continent geographic redirection rules (ISO 3166-1) evaluated directly on Cloudflare Edge nodes.",
-    image: "/marketing-FCI/cosmos_1746304416.jpeg",
+    image: "/screenshots/geo/geowithsidbare.png",
     readTime: "4 min read",
     overview: [
       "Geographic routing optimizes user experience and conversion rates by serving localized content (language, currency, catalog) by country or continent from a single shared link.",
@@ -602,7 +602,7 @@ await lshorter.links.updateRouting("global-promo", {
     title: "Advanced Security & PIN Code Protection",
     subtitle: "Protect confidential documents, pitch decks, and private links with a 4-digit PIN code verified on the fly.",
     description: "REST API guide and technical specification for setting up PIN codes on short links, blocking brute-force attacks, and granting ephemeral sessions.",
-    image: "/marketing-FCI/cosmos_1796978290.jpeg",
+    image: "/screenshots/drawer/niveau4-1.png",
     readTime: "3 min read",
     overview: [
       "PIN code protection adds an instant zero-friction access control barrier without requiring visitors to create complex accounts or navigate heavy OAuth flows.",
@@ -728,7 +728,7 @@ console.log("Protected link generated:", secureLink.shortUrl);
     title: "Real-Time Telemetry & Metrics API",
     subtitle: "Extract rich audience analytics, geographic breakdown, device statistics, and click telemetry with millisecond precision.",
     description: "REST API reference for querying real-time telemetry: click volumes, deduplicated unique visitors, geographic distribution, operating systems, browsers, and referrers.",
-    image: "/marketing-FCI/cosmos_549824580.jpeg",
+    image: "/screenshots/geo2/geo1.png",
     readTime: "4 min read",
     overview: [
       "Every interaction with your short links produces instant metrics aggregated at the Edge. No personally identifiable information (PII) is stored, ensuring native GDPR, CCPA, and PECR compliance.",
@@ -873,7 +873,7 @@ console.log("Device Breakdown:", stats.devices);`
     title: "Click Limits & Scheduled Expiration",
     subtitle: "Automate campaign closures with maximum click quotas (flash sales) and precise UTC expiration schedules.",
     description: "REST API guide to setting click caps (maxClicks), remaining click calculations (remainingClicks), and automated expired fallback redirection.",
-    image: "/marketing-FCI/cosmos_2136974997.jpeg",
+    image: "/screenshots/drawer/niveau3.png",
     readTime: "3 min read",
     overview: [
       "Limitation and expiration features automate the conclusion of marketing campaigns, limited promo deals, or restricted beta invites without requiring manual developer intervention.",
@@ -988,7 +988,7 @@ console.log("Current link status:", linkStatus.isExpired ? "Expired" : "Active")
     title: "Source URL Masking & Privacy (Cloaking)",
     subtitle: "Preserve brand consistency and mask complex affiliate or third-party destination URLs in the browser address bar.",
     description: "REST API guide to configuring URL cloaking, custom page titles, and sandbox iframe encapsulation.",
-    image: "/marketing-FCI/cosmos_227768569.jpeg",
+    image: "/screenshots/domaine/niveau.png",
     readTime: "3 min read",
     overview: [
       "URL Cloaking displays destination page content while keeping your branded short domain in the visitor's browser address bar.",
@@ -1099,7 +1099,7 @@ console.log("Masked short link generated:", maskedLink.shortUrl);
     title: "Dynamic QR Code Generation API",
     subtitle: "Create, customize, and stream infinite-resolution vector SVG and PNG QR codes dynamically.",
     description: "REST API documentation for dynamic QR code generation, color styling, error correction levels, and real-time scan telemetry.",
-    image: "/marketing-FCI/cosmos_302657415.jpeg",
+    image: "/screenshots/qr-code/page1.png",
     readTime: "3 min read",
     overview: [
       "A dynamic LShorter QR code encodes the permanent short URL rather than the final destination. You can update the target destination anytime via dashboard or API, even after millions of physical brochures, posters, or packaging materials have been printed.",
@@ -1226,7 +1226,7 @@ console.log("Vector SVG QR Code exported successfully!");`
     title: "Webhooks & Real-Time Events API",
     subtitle: "Subscribe to real-time event streams, receive instant HTTP notifications, and verify HMAC-SHA256 signatures.",
     description: "REST API guide for registering webhook endpoints, validating cryptographic signatures, and handling click, conversion, limit, and expiration events.",
-    image: "/marketing-FCI/cosmos_938538719.jpeg",
+    image: "/screenshots/webhooks/niveau.png",
     readTime: "4 min read",
     overview: [
       "LShorter webhooks notify your backend systems in real time whenever an event occurs on your short links (click registered, conversion recorded, quota reached, link expired).",
@@ -1377,7 +1377,7 @@ export async function POST(req: NextRequest) {
     title: "Conversion Tracking & Financial Metrics (Amount & Count)",
     subtitle: "Complete end-to-end guide to attributing monetary revenue (amount), calculating EPC and ROI, capturing clickId across checkout funnels, and handling multi-currency purchases and refunds.",
     description: "Exhaustive technical reference and implementation guide for revenue attribution (amount), Edge atomic counters (clicksCount, uniqueClicks, maxClicks), average order value (AOV), earnings per click (EPC), and payment gateway integrations (Stripe, Shopify, WooCommerce).",
-    image: "/marketing-FCI/cosmos_1739739224.jpeg",
+    image: "/screenshots/revenue/page1.png",
     readTime: "6 min read",
     overview: [
       "The LShorter Financial Conversion Engine provides exact, end-to-end monetary attribution by linking e-commerce revenue (amount) directly to the originating short link click (clickId). Whether you sell via Stripe, Shopify, LemonSqueezy, WooCommerce, or a custom checkout funnel, every dollar, euro, or pound is mathematically tied to its acquisition channel.",
@@ -2003,7 +2003,7 @@ console.log("Earnings Per Click (EPC):", roi.epc, "USD / click");`
     title: "Percentage Routing & A/B Testing API",
     subtitle: "Intelligently split click traffic across landing page variants to maximize conversion rates.",
     description: "REST API reference for configuring Edge-based A/B tests: percentage split weighting, variation telemetry, and instant switching.",
-    image: "/marketing-FCI/cosmos_1746304416.jpeg",
+    image: "/screenshots/stream/page1.png",
     readTime: "4 min read",
     overview: [
       "Percentage routing (A/B Testing) directs a defined proportion of traffic to different page variations (e.g., 50% to Variant A, 50% to Variant B, or 70% / 15% / 15%).",
@@ -2165,7 +2165,7 @@ console.log("A/B Testing short link active:", abLink.shortUrl);
     title: "Social Sharing & Dynamic Open Graph API",
     subtitle: "Customize how your links appear when shared on WhatsApp, Twitter/X, LinkedIn, Telegram, and Facebook.",
     description: "REST API guide for configuring custom Open Graph tags (og:title, og:description, og:image) and Twitter Cards served dynamically at the Edge.",
-    image: "/marketing-FCI/cosmos_549824580.jpeg",
+    image: "/screenshots/drawer/niveau6.png",
     readTime: "3 min read",
     overview: [
       "When a shortened link is shared across messaging apps or social networks (WhatsApp, LinkedIn, Twitter/X, Discord, Slack), web crawlers scrape Open Graph tags to render a rich link preview card.",
@@ -2296,7 +2296,7 @@ console.log("Social-optimized short link created:", link.shortUrl);
     title: "PathLock™ Restricted Browsing & Funnel Isolation",
     subtitle: "Lock visitors strictly into a designated landing page or sales funnel, preventing unauthorized directory exploration with instant edge security gating.",
     description: "Prevent distraction, isolate conversion funnels, and gate unapproved subpath exploration using PathLock™ Strict and Funnel modes.",
-    image: "/marketing-FCI/cosmos_1739739224.jpeg",
+    image: "/screenshots/drawer/niveau4-2.png",
     readTime: "4 min read",
     overview: [
       "PathLock™ is an exclusive PRO security and anti-distraction feature designed for marketing teams, affiliate publishers, and funnel architects.",

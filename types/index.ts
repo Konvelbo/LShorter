@@ -132,6 +132,7 @@ export interface ShortLink {
   path_lock_message?: string;
   pathLockPassword?: string;
   path_lock_password?: string;
+  pixels?: string[] | any;
   isActive: boolean;
   created_at: string;
 }
@@ -211,6 +212,7 @@ export interface LiveClickEvent {
   fullName?: string;
   avatarUrl?: string;
   avatar?: string;
+  clicks?: number;
 }
 
 export interface ConversionStat {
@@ -257,8 +259,16 @@ export interface GlobalAnalytics {
     avatar?: string;
     linkId: string;
     slug: string;
+    countryCode?: string;
+    countryName?: string;
+    city?: string;
+    device?: string;
+    os?: string;
+    clicks?: number;
     created_at: string;
   }>;
+  clicksByMonth?: Array<{ month: string; value: number }>;
+  incomeByMonth?: Array<{ month: string; value: number; conversions?: number }>;
 }
 
 export interface ApiKeyItem {
@@ -427,3 +437,24 @@ export interface ActiveSession {
   lastActive: string;
   isCurrent: boolean;
 }
+
+export interface TargetAlert {
+  id: string;
+  userId: string;
+  linkId: string | null; // null for Global Target (Dashboard Synced)
+  linkTitle?: string;
+  slug?: string;
+  targetUrl?: string;
+  metricType: 'clicks' | 'revenue';
+  period: 'day' | 'week' | 'month';
+  targetValue: number;
+  currentValue?: number;
+  notifyExpired: boolean;
+  notifyEmail: boolean;
+  notifyBell: boolean;
+  status: 'active' | 'paused' | 'reached';
+  lastNotifiedAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+

@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { FieldErrorAlert } from "../field-error-alert";
 import { LockedProFeature } from "../locked-pro-feature";
 import { triggerPlanUpgrade } from "@/lib/plan-guard";
+import { Input } from "@/components/ui/input";
 
 interface SectionAbTestingProps {
   isProPlan: boolean;
@@ -140,7 +141,7 @@ export function SectionAbTesting({
                   </div>
                 </div>
 
-                <input
+                <Input
                   type="url"
                   placeholder={`https://example.com/landing-${letter.toLowerCase()}`}
                   value={variation.url}
@@ -150,7 +151,7 @@ export function SectionAbTesting({
                     setAbVariations(newVars);
                   }}
                   className={cn(
-                    "w-full bg-white dark:bg-[#0e0f12] text-[#131417] dark:text-[#f1f2f4] border border-[#e6e7ea] dark:border-[#22242a] focus:border-[#1d5fe0] dark:focus:border-[#3b82f6] rounded-lg px-3 py-2 text-xs outline-none transition-colors",
+                    "h-9 text-xs",
                     fieldErrors[errKey] && "border-red-500/70 bg-red-500/5",
                   )}
                 />

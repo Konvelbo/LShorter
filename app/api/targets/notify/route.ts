@@ -14,6 +14,9 @@ export async function POST(req: NextRequest) {
       achievedValue,
       targetValue,
       monthLabel,
+      linkTitle,
+      slug,
+      isExpirationWarning = false,
     } = body;
 
     const targetEmail = email || "founder@lshorter.com";
@@ -22,19 +25,36 @@ export async function POST(req: NextRequest) {
       monthLabel ||
       new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" });
 
-    const title =
-      metricType === "revenue"
-        ? "Monthly Revenue Target Reached"
-        : metricType === "clicks"
-          ? "Monthly Clicks Target Reached"
-          : "Monthly Revenue & Clicks Targets Reached";
+    const isLinkAlert = Boolean(linkTitle || slug);
 
-    const message =
-      metricType === "revenue"
-        ? `Congratulations! Your attributed revenue reached ${achievedValue} (Target: ${targetValue}) for ${period}.`
-        : metricType === "clicks"
-          ? `Congratulations! Your edge links reached ${achievedValue} clicks (Target: ${targetValue}) for ${period}.`
-          : `Congratulations! Both your monthly revenue and click targets (${achievedValue}) have been reached for ${period}.`;
+    let title: string;
+    let message: string;
+    let notifType: "SUCCESS" | "WARNING" | "INFO" = "SUCCESS";
+
+    if (isExpirationWarning) {
+      notifType = "WARNING";
+      title = linkTitle ? `Link Expiration Notice: ${linkTitle}` : "Link Expiration Notice";
+      message = `Your short link "${linkTitle || (slug ? `lsho.cc/${slug}` : "link")}" will expire in 24 hours. Consider renewing it to prevent traffic drop.`;
+    } else if (isLinkAlert) {
+      notifType = "SUCCESS";
+      const metricLabel = metricType === "revenue" ? "revenue" : "clicks";
+      title = `Target Reached: ${linkTitle || (slug ? `lsho.cc/${slug}` : "Link")}`;
+      message = `Congratulations! Your link "${linkTitle || slug}" reached its ${period} target of ${achievedValue} / ${targetValue} ${metricLabel}.`;
+    } else {
+      title =
+        metricType === "revenue"
+          ? "Monthly Revenue Target Reached"
+          : metricType === "clicks"
+            ? "Monthly Clicks Target Reached"
+            : "Monthly Revenue & Clicks Targets Reached";
+
+      message =
+        metricType === "revenue"
+          ? `Congratulations! Your attributed revenue reached ${achievedValue} (Target: ${targetValue}) for ${period}.`
+          : metricType === "clicks"
+            ? `Congratulations! Your edge links reached ${achievedValue} clicks (Target: ${targetValue}) for ${period}.`
+            : `Congratulations! Both your monthly revenue and click targets (${achievedValue}) have been reached for ${period}.`;
+    }
 
     // 1. Store notification in Convex notifications table (if configured)
     if (userId) {
@@ -43,7 +63,7 @@ export async function POST(req: NextRequest) {
           orgId: userId,
           title,
           message,
-          type: "SUCCESS",
+          type: notifType,
           linkUrl: "/dashboard/analytics",
         });
       } catch {

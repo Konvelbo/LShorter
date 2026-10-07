@@ -4,6 +4,7 @@ import React from "react";
 import { Eye, EyeOff, Sparkles, LayoutGrid, Check, Zap } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { DrawerSwitch } from "../drawer-switch";
 import { LockedProFeature } from "../locked-pro-feature";
 import { FieldErrorAlert } from "../field-error-alert";
 
@@ -139,21 +140,11 @@ export function SectionProtection({
               Keeps your branded domain in the browser address bar.
             </span>
           </div>
-          <button
-            type="button"
-            onClick={() => setIsCloaked((prev) => !prev)}
-            className={cn(
-              "w-11 h-6 rounded-full transition-colors relative cursor-pointer shrink-0",
-              isCloaked ? "bg-brand" : "bg-zinc-200 dark:bg-neutral-800",
-            )}
-          >
-            <span
-              className={cn(
-                "w-4 h-4 rounded-full bg-white shadow-xs absolute top-1 transition-transform",
-                isCloaked ? "translate-x-1" : "-translate-x-5",
-              )}
-            />
-          </button>
+          <DrawerSwitch
+            checked={isCloaked}
+            onChange={(checked) => setIsCloaked(checked)}
+            aria-label="Toggle Link Cloaking"
+          />
         </div>
       </LockedProFeature>
 
@@ -172,21 +163,11 @@ export function SectionProtection({
               Removes the Referer header to protect traffic sources.
             </span>
           </div>
-          <button
-            type="button"
-            onClick={() => setHideReferrer((prev) => !prev)}
-            className={cn(
-              "w-11 h-6 rounded-full transition-colors relative cursor-pointer shrink-0",
-              hideReferrer ? "bg-brand" : "bg-zinc-200 dark:bg-neutral-800",
-            )}
-          >
-            <span
-              className={cn(
-                "w-4 h-4 rounded-full bg-white shadow-xs absolute top-1 transition-transform",
-                hideReferrer ? "translate-x-1" : "-translate-x-5",
-              )}
-            />
-          </button>
+          <DrawerSwitch
+            checked={hideReferrer}
+            onChange={(checked) => setHideReferrer(checked)}
+            aria-label="Toggle Hide HTTP Referrer"
+          />
         </div>
       </LockedProFeature>
 
@@ -201,21 +182,11 @@ export function SectionProtection({
             <span className="text-xs font-bold text-zinc-900 dark:text-white">
               Enable Click Limit
             </span>
-            <button
-              type="button"
-              onClick={() => setHasClickLimit((prev) => !prev)}
-              className={cn(
-                "w-11 h-6 rounded-full transition-colors relative cursor-pointer shrink-0",
-                hasClickLimit ? "bg-brand" : "bg-zinc-200 dark:bg-neutral-800",
-              )}
-            >
-              <span
-                className={cn(
-                  "w-4 h-4 rounded-full bg-white shadow-xs absolute top-1 transition-transform",
-                  hasClickLimit ? "translate-x-1" : "-translate-x-5",
-                )}
-              />
-            </button>
+            <DrawerSwitch
+              checked={hasClickLimit}
+              onChange={(checked) => setHasClickLimit(checked)}
+              aria-label="Toggle Click Limit"
+            />
           </div>
           {hasClickLimit && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1 animate-in fade-in">
@@ -265,10 +236,10 @@ export function SectionProtection({
                 Lock visitors strictly to the designated landing page or sales funnel.
               </span>
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                if (pathLockMode === "off") {
+            <DrawerSwitch
+              checked={pathLockMode !== "off"}
+              onChange={(checked) => {
+                if (checked) {
                   setPathLockMode("strict");
                   if (!pathLockPrefix && targetUrl) {
                     try {
@@ -287,18 +258,8 @@ export function SectionProtection({
                   setPathLockMode("off");
                 }
               }}
-              className={cn(
-                "w-11 h-6 rounded-full transition-colors relative cursor-pointer shrink-0",
-                pathLockMode !== "off" ? "bg-brand" : "bg-zinc-200 dark:bg-neutral-800",
-              )}
-            >
-              <span
-                className={cn(
-                  "w-4 h-4 rounded-full bg-white shadow-xs absolute top-1 transition-transform",
-                  pathLockMode !== "off" ? "translate-x-1" : "-translate-x-5",
-                )}
-              />
-            </button>
+              aria-label="Toggle PathLock Restricted Browsing"
+            />
           </div>
 
           {pathLockMode !== "off" && (

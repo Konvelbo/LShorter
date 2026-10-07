@@ -14,7 +14,7 @@ export const listNotifications = query({
 
       return notifs
         .sort((a, b) => ((b.createdAt || b._creationTime || 0) - (a.createdAt || a._creationTime || 0)))
-        .slice(0, 5);
+        .slice(0, 20);
     } catch (err) {
       console.warn("[notifications:listNotifications] Fallback catch:", err);
       return [];

@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { DrawerSwitch } from "../drawer-switch";
 import { FieldErrorAlert } from "../field-error-alert";
 import { triggerPlanUpgrade } from "@/lib/plan-guard";
+import { Input } from "@/components/ui/input";
 
 interface SectionProtectionExpiryProps {
   isProPlan: boolean;
@@ -147,12 +148,12 @@ export function SectionProtectionExpiry({
                 Choose Password (minimum 4 characters)
               </label>
               <div className="relative">
-                <input
+                <Input
                   type={showPassword ? "text" : "password"}
                   placeholder="Enter secret access key"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-white dark:bg-[#16181d] text-zinc-900 dark:text-[#f1f2f4] border border-zinc-300 dark:border-[#27272a] focus:border-[#1d5fe0] dark:focus:border-[#3b82f6] focus:ring-1 focus:ring-[#1d5fe0] dark:focus:ring-[#3b82f6] rounded-lg pl-3.5 pr-10 py-2.5 text-sm outline-none transition-colors placeholder:text-zinc-500 dark:placeholder:text-zinc-400 font-normal"
+                  className="h-9 text-xs pr-10"
                 />
                 <button
                   type="button"
@@ -206,7 +207,7 @@ export function SectionProtectionExpiry({
               <label className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
                 Select Expiration Date &amp; Time
               </label>
-              <input
+              <Input
                 type="datetime-local"
                 value={expiresAt}
                 onChange={(e) => {
@@ -218,7 +219,7 @@ export function SectionProtectionExpiry({
                     }));
                   }
                 }}
-                className="w-full bg-white dark:bg-[#16181d] text-zinc-900 dark:text-[#f1f2f4] border border-zinc-300 dark:border-[#27272a] focus:border-[#1d5fe0] dark:focus:border-[#3b82f6] focus:ring-1 focus:ring-[#1d5fe0] dark:focus:ring-[#3b82f6] rounded-lg px-3.5 py-2.5 text-sm outline-none transition-colors"
+                className="h-9 text-xs"
               />
               <FieldErrorAlert message={fieldErrors.expiresAt} />
             </div>
@@ -264,13 +265,13 @@ export function SectionProtectionExpiry({
                 <label className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
                   Max Clicks
                 </label>
-                <input
+                <Input
                   type="number"
                   min="1"
                   placeholder="e.g. 500"
                   value={maxClicks}
                   onChange={(e) => setMaxClicks(e.target.value)}
-                  className="w-full bg-white dark:bg-[#16181d] text-zinc-900 dark:text-[#f1f2f4] border border-zinc-300 dark:border-[#27272a] focus:border-[#1d5fe0] dark:focus:border-[#3b82f6] focus:ring-1 focus:ring-[#1d5fe0] dark:focus:ring-[#3b82f6] rounded-lg px-3.5 py-2 text-xs outline-none transition-colors placeholder:text-zinc-500 dark:placeholder:text-zinc-400 font-normal"
+                  className="h-9 text-xs"
                 />
               </div>
 
@@ -278,12 +279,12 @@ export function SectionProtectionExpiry({
                 <label className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
                   Fallback URL
                 </label>
-                <input
+                <Input
                   type="url"
                   placeholder="https://example.com/expired"
                   value={fallbackUrl}
                   onChange={(e) => setFallbackUrl(e.target.value)}
-                  className="w-full bg-white dark:bg-[#16181d] text-zinc-900 dark:text-[#f1f2f4] border border-zinc-300 dark:border-[#27272a] focus:border-[#1d5fe0] dark:focus:border-[#3b82f6] focus:ring-1 focus:ring-[#1d5fe0] dark:focus:ring-[#3b82f6] rounded-lg px-3.5 py-2 text-xs outline-none transition-colors placeholder:text-zinc-500 dark:placeholder:text-zinc-400 font-normal"
+                  className="h-9 text-xs"
                 />
               </div>
             </div>
@@ -378,12 +379,12 @@ export function SectionProtectionExpiry({
                   <label className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
                     Allowed Subpath Prefix
                   </label>
-                  <input
+                  <Input
                     type="text"
                     placeholder="/shop/checkout"
                     value={pathLockPrefix}
                     onChange={(e) => setPathLockPrefix(e.target.value)}
-                    className="w-full bg-white dark:bg-[#16181d] text-zinc-900 dark:text-[#f1f2f4] border border-zinc-300 dark:border-[#27272a] focus:border-[#1d5fe0] dark:focus:border-[#3b82f6] focus:ring-1 focus:ring-[#1d5fe0] dark:focus:ring-[#3b82f6] rounded-lg px-3.5 py-2 text-xs outline-none transition-colors font-mono placeholder:text-zinc-500 dark:placeholder:text-zinc-400 font-normal"
+                    className="h-9 text-xs font-mono"
                   />
                 </div>
               )}
@@ -398,7 +399,7 @@ export function SectionProtectionExpiry({
                   placeholder="External navigation is disabled for this secure session."
                   value={pathLockMessage}
                   onChange={(e) => setPathLockMessage(e.target.value)}
-                  className="w-full bg-white dark:bg-[#16181d] text-zinc-900 dark:text-[#f1f2f4] border border-zinc-300 dark:border-[#27272a] focus:border-[#1d5fe0] dark:focus:border-[#3b82f6] focus:ring-1 focus:ring-[#1d5fe0] dark:focus:ring-[#3b82f6] rounded-lg p-2.5 text-xs outline-none transition-colors resize-none placeholder:text-zinc-500 dark:placeholder:text-zinc-400 font-normal"
+                  className="w-full bg-white dark:bg-[#16181d] text-zinc-900 dark:text-[#f1f2f4] border border-zinc-300 dark:border-[#27272a] focus:border-[#0066FF] dark:focus:border-[#3b82f6] focus:ring-1 focus:ring-[#0066FF] dark:focus:ring-[#3b82f6] rounded-lg p-2.5 text-xs outline-none transition-colors resize-none placeholder:text-zinc-500 dark:placeholder:text-zinc-400 font-normal"
                 />
               </div>
 
@@ -408,12 +409,12 @@ export function SectionProtectionExpiry({
                   Unlock Passcode to leave (Optional)
                 </label>
                 <div className="relative">
-                  <input
+                  <Input
                     type={showPathLockPassword ? "text" : "password"}
                     placeholder="Optional passcode to bypass lock"
                     value={pathLockPassword}
                     onChange={(e) => setPathLockPassword(e.target.value)}
-                    className="w-full bg-white dark:bg-[#16181d] text-zinc-900 dark:text-[#f1f2f4] border border-zinc-300 dark:border-[#27272a] focus:border-[#1d5fe0] dark:focus:border-[#3b82f6] focus:ring-1 focus:ring-[#1d5fe0] dark:focus:ring-[#3b82f6] rounded-lg pl-3 pr-10 py-2 text-xs outline-none transition-colors placeholder:text-zinc-500 dark:placeholder:text-zinc-400 font-normal"
+                    className="h-9 text-xs pr-10"
                   />
                   <button
                     type="button"

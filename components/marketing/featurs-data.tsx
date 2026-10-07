@@ -146,7 +146,7 @@ export const featuresTimelineData = [
           </div>
 
           <RollingTimelineImage
-            src="/marketing-FCI/cosmos_1739739224.jpeg"
+            src="/screenshots/dashboard/dashboard1.png"
             alt="Smart Routing"
           />
         </div>
@@ -199,7 +199,7 @@ export const featuresTimelineData = [
           </div>
 
           <RollingTimelineImage
-            src="/marketing-FCI/cosmos_1746304416.jpeg"
+            src="/screenshots/stream/page1.png"
             alt="A/B Testing"
           />
         </div>
@@ -260,7 +260,7 @@ export const featuresTimelineData = [
           </div>
 
           <RollingTimelineImage
-            src="/marketing-FCI/cosmos_1796978290.jpeg"
+            src="/screenshots/drawer/niveau4-1.png"
             alt="Sécurité & Cloaking"
           />
         </div>
@@ -318,7 +318,7 @@ export const featuresTimelineData = [
           </div>
 
           <RollingTimelineImage
-            src="/marketing-FCI/cosmos_2136974997.jpeg"
+            src="/screenshots/geo/geowithsidbare.png"
             alt="Tracking & Analytics"
           />
         </div>
@@ -375,7 +375,7 @@ export const featuresTimelineData = [
           </div>
 
           <RollingTimelineImage
-            src="/marketing-FCI/cosmos_302657415.jpeg"
+            src="/screenshots/qr-code/page1.png"
             alt="QR Codes"
           />
         </div>
@@ -433,7 +433,7 @@ export const featuresTimelineData = [
           </div>
 
           <RollingTimelineImage
-            src="/marketing-FCI/cosmos_227768569.jpeg"
+            src="/screenshots/domaine/niveau.png"
             alt="Paramètres Avancés"
           />
         </div>
@@ -491,7 +491,7 @@ export const featuresTimelineData = [
           </div>
 
           <RollingTimelineImage
-            src="/marketing-FCI/cosmos_549824580.jpeg"
+            src="/screenshots/pixel-targeting/niveau.png"
             alt="Pixels & Webhooks"
           />
         </div>
@@ -548,7 +548,7 @@ export const featuresTimelineData = [
           </div>
 
           <RollingTimelineImage
-            src="/marketing-FCI/cosmos_938538719.jpeg"
+            src="/screenshots/webhooks/niveau.png"
             alt="API & SDK"
           />
         </div>

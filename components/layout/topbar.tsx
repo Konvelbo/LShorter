@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { useTheme } from "@/components/providers/theme-provider";
 import { useSession, signOut } from "next-auth/react";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Avatar, AvatarImage, AvatarFallback, getDiceBearAvatar } from "@/components/ui/avatar";
 import { LinkCreateModal } from "@/components/dashboard/link-create-modal";
@@ -108,14 +108,18 @@ export function Topbar() {
     };
   }, []);
 
+  const markAsReadMutation = useMutation(api.notifications.markAsRead);
+  const markAllAsReadMutation = useMutation(api.notifications.markAllAsRead);
+
   const mergedNotifications = React.useMemo(() => {
     const fromConvex = Array.isArray(convexNotifs)
       ? convexNotifs.map((n: any) => ({
           id: String(n._id || n.id),
           title: n.title,
           message: n.message,
-          createdAt: n.createdAt || Date.now(),
+          createdAt: n.createdAt || n._creationTime || Date.now(),
           isRead: Boolean(n.isRead),
+          linkUrl: n.linkUrl,
         }))
       : [];
     const seen = new Set(fromConvex.map((n) => n.title + n.message));
@@ -123,12 +127,33 @@ export function Topbar() {
       ...localNotifs.filter((n) => !seen.has(n.title + n.message)),
       ...fromConvex,
     ];
-    return combined.sort((a, b) => b.createdAt - a.createdAt).slice(0, 5);
+    return combined.sort((a, b) => b.createdAt - a.createdAt).slice(0, 10);
   }, [convexNotifs, localNotifs]);
 
   const unreadCount = mergedNotifications.filter((n) => !n.isRead).length;
 
-  const markAllNotificationsRead = () => {
+  const markNotificationRead = async (id: string, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    setLocalNotifs((prev) => {
+      const updated = prev.map((n) => (n.id === id ? { ...n, isRead: true } : n));
+      try {
+        localStorage.setItem("lshorter_saas_notifications", JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+
+    if (id && !id.startsWith("notif_") && userId) {
+      try {
+        await markAsReadMutation({ notificationId: id as any });
+      } catch (err) {
+        console.warn("[topbar] Error marking notification as read:", err);
+      }
+    }
+  };
+
+  const markAllNotificationsRead = async () => {
     const updated = localNotifs.map((n) => ({ ...n, isRead: true }));
     setLocalNotifs(updated);
     try {
@@ -137,6 +162,14 @@ export function Topbar() {
         JSON.stringify(updated)
       );
     } catch {}
+
+    if (userId) {
+      try {
+        await markAllAsReadMutation({ orgId: userId });
+      } catch (err) {
+        console.warn("[topbar] Error marking all notifications as read:", err);
+      }
+    }
   };
 
   const displayName =
@@ -156,15 +189,15 @@ export function Topbar() {
 
   return (
     <>
-      <header className="sticky top-0 z-30 flex h-14 sm:h-16 w-full items-center justify-between ds-bg-topbar border-b ds-border px-4 sm:px-6">
+      <header className="sticky top-0 z-30 flex h-[43px] min-h-[43px] max-h-[43px] w-full items-center justify-between ds-bg-topbar border-b ds-border px-3 sm:px-4">
         {/* ─── DESKTOP VIEW (>= lg) ─── */}
-        <div className="hidden lg:flex items-center justify-between w-full">
+        <div className="hidden lg:flex items-center justify-between w-full h-full">
           {/* Left: Hamburger Toggle for Desktop Sidebar */}
-          <div className="flex items-center gap-3 sm:gap-4">
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => window.dispatchEvent(new CustomEvent("lshorter:toggle-sidebar"))}
-              className="flex h-9 w-9 items-center justify-center rounded-lg bg-transparent text-zinc-500 hover:text-zinc-900 dark:text-neutral-400 dark:hover:text-white transition-colors cursor-pointer"
+              className="flex h-7.5 w-7.5 items-center justify-center rounded-lg bg-transparent text-zinc-500 hover:text-zinc-900 dark:text-neutral-400 dark:hover:text-white transition-colors cursor-pointer"
               aria-label="Toggle Sidebar"
             >
               <PanelLeft className="w-4 h-4" />
@@ -172,7 +205,7 @@ export function Topbar() {
           </div>
 
           {/* Right: Compact Search Button + Notifications + Framed User Profile */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {/* Compact Search Icon Button */}
             <button
               type="button"
@@ -181,7 +214,7 @@ export function Topbar() {
                 setIsNotifOpen(false);
                 setIsProfileOpen(false);
               }}
-              className="flex h-9 w-9 items-center justify-center rounded-lg bg-transparent text-zinc-500 hover:text-zinc-900 dark:text-neutral-400 dark:hover:text-white transition-colors cursor-pointer"
+              className="flex h-7.5 w-7.5 items-center justify-center rounded-lg bg-transparent text-zinc-500 hover:text-zinc-900 dark:text-neutral-400 dark:hover:text-white transition-colors cursor-pointer"
               aria-label="Search commands, links, analytics, and docs"
               title="Search (⌘K)"
             >
@@ -196,12 +229,12 @@ export function Topbar() {
                   setIsNotifOpen((prev) => !prev);
                   setIsProfileOpen(false);
                 }}
-                className="relative flex h-9 w-9 items-center justify-center rounded-lg bg-transparent text-zinc-500 hover:text-zinc-900 dark:text-neutral-400 dark:hover:text-white transition-colors cursor-pointer"
+                className="relative flex h-7.5 w-7.5 items-center justify-center rounded-lg bg-transparent text-zinc-500 hover:text-zinc-900 dark:text-neutral-400 dark:hover:text-white transition-colors cursor-pointer"
                 aria-label="Notifications"
               >
                 <Bell className="w-4 h-4" />
                 {unreadCount > 0 && (
-                  <span className="absolute right-1.5 top-1.5 flex h-2 w-2">
+                  <span className="absolute right-1 top-1 flex h-2 w-2">
                     <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#F79009] opacity-75" />
                     <span className="relative inline-flex h-2 w-2 rounded-full bg-[#F79009]" />
                   </span>
@@ -211,11 +244,16 @@ export function Topbar() {
               {isNotifOpen && (
                 <div
                   onMouseLeave={() => setIsNotifOpen(false)}
-                  className="absolute right-0 mt-2 w-80 sm:w-96 rounded-[12px] ds-card p-3 shadow-xl z-50"
+                  className="absolute right-0 mt-2 w-80 sm:w-96 rounded-[12px] ds-card p-3 shadow-xl z-50 animate-in fade-in zoom-in-95 duration-150"
                 >
                   <div className="flex items-center justify-between pb-2.5 mb-2 border-b ds-border">
-                    <span className="text-sm font-semibold ds-text-primary">
-                      Notifications (5 latest)
+                    <span className="text-sm font-semibold ds-text-primary flex items-center gap-1.5">
+                      Notifications
+                      {unreadCount > 0 && (
+                        <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-[#465FFF]/15 text-[#465FFF] dark:text-[#7592FF]">
+                          {unreadCount}
+                        </span>
+                      )}
                     </span>
                     {unreadCount > 0 && (
                       <button
@@ -234,17 +272,21 @@ export function Topbar() {
                     </div>
                   ) : (
                     <div className="max-h-72 overflow-y-auto flex flex-col gap-1.5">
-                      {mergedNotifications.slice(0, 5).map((notif) => (
+                      {mergedNotifications.slice(0, 8).map((notif) => (
                         <div
                           key={notif.id}
-                          className={`rounded-[10px] p-3 text-left transition-colors ${
+                          onClick={() => markNotificationRead(notif.id)}
+                          className={`rounded-[10px] p-3 text-left transition-all cursor-pointer ${
                             notif.isRead
                               ? "bg-transparent hover:bg-[#F2F4F7] dark:hover:bg-white/[0.04]"
-                              : "bg-[#ECF3FF]/60 dark:bg-[#465FFF]/10"
+                              : "bg-[#ECF3FF]/70 dark:bg-[#465FFF]/15 border border-[#465FFF]/20"
                           }`}
                         >
                           <div className="flex items-center justify-between gap-2">
-                            <span className="text-xs font-semibold ds-text-primary">
+                            <span className="text-xs font-semibold ds-text-primary flex items-center gap-1.5">
+                              {!notif.isRead && (
+                                <span className="h-1.5 w-1.5 rounded-full bg-[#465FFF] shrink-0" />
+                              )}
                               {notif.title}
                             </span>
                             <span className="text-[10.5px] ds-text-muted shrink-0">
@@ -275,23 +317,23 @@ export function Topbar() {
                 }}
                 className="ds-profile-frame cursor-pointer"
               >
-                <Avatar className="h-8 w-8 rounded-lg border border-[#E4E7EC]/60 dark:border-white/10 overflow-hidden shrink-0">
+                <Avatar className="h-6.5 w-6.5 sm:h-7 sm:w-7 rounded-lg border border-[#E4E7EC]/60 dark:border-white/10 overflow-hidden shrink-0">
                   <AvatarImage
                     src={avatarUrl}
                     alt={displayName}
                     seed={displayEmail}
                     className="rounded-lg object-cover"
                   />
-                  <AvatarFallback seed={displayEmail} className="rounded-lg text-xs">
+                  <AvatarFallback seed={displayEmail} className="rounded-lg text-[10px]">
                     {displayName.slice(0, 2)}
                   </AvatarFallback>
                 </Avatar>
 
                 <div className="hidden sm:flex flex-col items-start text-left leading-tight pr-0.5">
-                  <span className="text-xs font-semibold ds-text-primary truncate max-w-[110px]">
+                  <span className="text-[11px] font-semibold ds-text-primary truncate max-w-[110px]">
                     {displayName.split(" ")[0]}
                   </span>
-                  <span className="inline-flex items-center gap-1 text-[9.5px] font-medium text-[#465FFF] dark:text-[#7592FF] mt-0.5">
+                  <span className="inline-flex items-center gap-1 text-[9px] font-medium text-[#465FFF] dark:text-[#7592FF] mt-0.5">
                     <span className="h-1.5 w-1.5 rounded-full bg-[#10B981] shrink-0" />
                     {planDef.name} Plan
                   </span>
@@ -387,36 +429,36 @@ export function Topbar() {
         </div>
 
         {/* ─── MOBILE VIEW (< lg): Logo at left + Menu button at right ─── */}
-        <div className="flex lg:hidden items-center justify-between w-full">
+        <div className="flex lg:hidden items-center justify-between w-full h-full">
           {/* Logo à gauche */}
           <Link
             href="/"
             className="flex items-center gap-2 select-none group"
             title="Retour à l'accueil"
           >
-            <div className="flex h-8 w-8 items-center justify-center rounded-[8px] overflow-hidden shadow-xs shrink-0 group-hover:scale-105 transition-transform">
+            <div className="flex h-6 w-6 items-center justify-center rounded-[6px] overflow-hidden shadow-xs shrink-0 group-hover:scale-105 transition-transform">
               <Image
                 src="/logo.svg"
                 alt="LShorter Logo"
-                width={32}
-                height={32}
+                width={24}
+                height={24}
                 className="w-full h-full object-contain"
                 priority
               />
             </div>
-            <span className="font-bold ds-text-primary text-[15px] tracking-tight">
+            <span className="font-bold ds-text-primary text-[14px] tracking-tight">
               LShorter
             </span>
           </Link>
 
-          {/* Bouton d'ouverture du menu mobile à droite */}
+          {/* Bouton d'ouverture du menu mobile à droite (Sandwich / Hamburger) */}
           <button
             type="button"
             onClick={() => setIsMobileMenuOpen(true)}
-            className="flex h-9 w-9 items-center justify-center rounded-lg bg-transparent text-zinc-500 hover:text-zinc-900 dark:text-neutral-400 dark:hover:text-white active:scale-95 transition-all cursor-pointer"
+            className="flex h-8 w-8 items-center justify-center rounded-lg bg-transparent text-zinc-600 hover:text-zinc-900 dark:text-neutral-300 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-neutral-800/60 active:scale-95 transition-all cursor-pointer"
             aria-label="Ouvrir le menu"
           >
-            <PanelLeft className="w-4 h-4" />
+            <Menu className="w-5 h-5" />
           </button>
         </div>
       </header>
@@ -430,6 +472,7 @@ export function Topbar() {
         mergedNotifications={mergedNotifications}
         unreadCount={unreadCount}
         markAllNotificationsRead={markAllNotificationsRead}
+        markNotificationRead={markNotificationRead}
         displayName={displayName}
         displayEmail={displayEmail}
         avatarUrl={avatarUrl}

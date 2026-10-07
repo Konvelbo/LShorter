@@ -544,7 +544,7 @@ export function WhyUsSection() {
             <div className="space-y-3">
               <Link
                 href="/#product"
-                className="inline-flex items-center gap-2 rounded-full bg-[#101828] dark:bg-white text-white dark:text-[#101828] px-5 py-2 text-[13px] font-medium hover:bg-[#465FFF] dark:hover:bg-[#465FFF] dark:hover:text-white transition-colors"
+                className="inline-flex items-center gap-2 rounded-[12px] bg-[#101828] dark:bg-white text-white dark:text-[#101828] px-5 py-2 text-[13px] font-medium hover:bg-[#465FFF] dark:hover:bg-[#465FFF] dark:hover:text-white transition-colors"
               >
                 <span>Explore the product</span>
                 <ArrowUpRight className="w-3.5 h-3.5" />

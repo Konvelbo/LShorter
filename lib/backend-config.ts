@@ -6,9 +6,6 @@
  */
 
 export const WORKER_URL =
-  process.env.BACKEND_API_URL ||
-  process.env.CLOUDFLARE_WORKER_URL ||
-  "https://lshorter-api.fiatechnologiecam.workers.dev";
+  process.env.BACKEND_API_URL || process.env.CLOUDFLARE_WORKER_URL || "";
 
-export const FRONTEND_SECRET =
-  process.env.FRONTEND_API_SECRET || "lsh_secret_live_prod_2026";
+export const FRONTEND_SECRET = process.env.FRONTEND_API_SECRET || "";

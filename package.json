@@ -35,6 +35,7 @@
     "d3-scale": "^4.0.2",
     "date-fns": "^4.4.0",
     "dotted-map": "^3.1.0",
+    "emblor": "^1.4.8",
     "gifenc": "^1.0.3",
     "gsap": "^3.15.0",
     "lucide-react": "^1.37.0",
@@ -43,6 +44,7 @@
     "next-auth": "5.0.0-beta.32",
     "ogl": "^1.0.11",
     "qrcode": "^1.5.4",
+    "radix-ui": "^1.6.7",
     "react": "19.2.8",
     "react-day-picker": "^10.0.1",
     "react-dom": "19.2.8",
@@ -55,6 +57,8 @@
   },
   "devDependencies": {
     "@playwright/cli": "^0.1.21",
+    "@remotion/cli": "^4.0.533",
+    "@remotion/player": "^4.0.533",
     "@tailwindcss/postcss": "^4",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^7.0.1",
@@ -67,6 +71,8 @@
     "eslint-config-next": "16.3.3",
     "jest": "^30.5.1",
     "jest-environment-jsdom": "^30.5.1",
+    "playwright": "^1.63.0",
+    "remotion": "^4.0.533",
     "tailwindcss": "^4",
     "ts-jest": "^29.4.12",
     "typescript": "^5"

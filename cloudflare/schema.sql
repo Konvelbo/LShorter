@@ -131,3 +131,27 @@ CREATE TABLE IF NOT EXISTS invoices (
 CREATE UNIQUE INDEX IF NOT EXISTS idx_invoices_number ON invoices(invoice_number);
 CREATE INDEX IF NOT EXISTS idx_invoices_org_id ON invoices(org_id);
 
+-- 7. Target Alerts Table (Performance Thresholds & Expiration in Cloudflare D1)
+CREATE TABLE IF NOT EXISTS target_alerts (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  link_id TEXT, -- NULL for Global Target (Dashboard Synced)
+  metric_type TEXT NOT NULL DEFAULT 'clicks', -- 'clicks' | 'revenue'
+  period TEXT NOT NULL DEFAULT 'month', -- 'day' | 'week' | 'month'
+  target_value REAL NOT NULL,
+  notify_expired INTEGER DEFAULT 0,
+  notify_email INTEGER DEFAULT 1,
+  notify_bell INTEGER DEFAULT 1,
+  status TEXT NOT NULL DEFAULT 'active', -- 'active' | 'paused' | 'reached'
+  last_notified_at TEXT,
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now')),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (link_id) REFERENCES links(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_target_alerts_user_id ON target_alerts(user_id);
+CREATE INDEX IF NOT EXISTS idx_target_alerts_link_id ON target_alerts(link_id);
+CREATE INDEX IF NOT EXISTS idx_target_alerts_status ON target_alerts(status);
+
+

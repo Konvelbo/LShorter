@@ -21,12 +21,14 @@ import {
   Globe2,
   MapPin,
   Tag,
+  Eye,
 } from "lucide-react";
 import { ShortLink } from "@/types";
 import { BannerLightboxModal } from "@/components/dashboard/banner-lightbox-modal";
 import { triggerClickSync } from "@/lib/cloudflare-api";
-import { getCountryName } from "@/lib/utils";
+import { cn, getCountryName } from "@/lib/utils";
 import { ReferrerBadge, ReferrerLogo } from "@/components/dashboard/analytics/referrer-badge";
+import { PixelBadgesList, PixelLogosOnlyList } from "@/components/dashboard/pixel-badges";
 
 export function getDicebearGlassUrl(seed: string): string {
   return `https://api.dicebear.com/9.x/glass/svg?seed=${encodeURIComponent(seed || "lshorter")}`;
@@ -137,6 +139,7 @@ export function LinksReuiDataGrid({
     bottom?: number;
     right: number;
   } | null>(null);
+  const actionMenuRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
   const [isColMenuOpen, setIsColMenuOpen] = useState<boolean>(false);
   const [optimisticMinClicks, setOptimisticMinClicks] = useState<
@@ -145,6 +148,7 @@ export function LinksReuiDataGrid({
   const [visibleCols, setVisibleCols] = useState<Record<string, boolean>>({
     shortLink: true,
     destination: true,
+    pixels: true,
     clicks: true,
     revenue: true,
     createdAt: true,
@@ -163,15 +167,39 @@ export function LinksReuiDataGrid({
   }, []);
 
   useEffect(() => {
-    const handleClose = () => {
+    const handleCloseOnScrollOrResize = () => {
       setOpenActionRowId(null);
       setMenuCoords(null);
     };
-    window.addEventListener("scroll", handleClose, true);
-    window.addEventListener("resize", handleClose);
+
+    const handleOutsideClick = (e: MouseEvent) => {
+      // If clicking inside the action menu itself, DO NOT close
+      if (
+        actionMenuRef.current &&
+        actionMenuRef.current.contains(e.target as Node)
+      ) {
+        return;
+      }
+      // If clicking the action button itself, the button's toggle handler manages it
+      const target = e.target as HTMLElement | null;
+      if (target?.closest('[data-action-menu-trigger="true"]')) {
+        return;
+      }
+      setOpenActionRowId(null);
+      setMenuCoords(null);
+    };
+
+    window.addEventListener("scroll", handleCloseOnScrollOrResize, true);
+    window.addEventListener("resize", handleCloseOnScrollOrResize);
+    window.addEventListener("mousedown", handleOutsideClick);
+    window.addEventListener("lshorter_close_all_menus", handleCloseOnScrollOrResize);
+    window.addEventListener("lshorter_drawer_opened", handleCloseOnScrollOrResize);
     return () => {
-      window.removeEventListener("scroll", handleClose, true);
-      window.removeEventListener("resize", handleClose);
+      window.removeEventListener("scroll", handleCloseOnScrollOrResize, true);
+      window.removeEventListener("resize", handleCloseOnScrollOrResize);
+      window.removeEventListener("mousedown", handleOutsideClick);
+      window.removeEventListener("lshorter_close_all_menus", handleCloseOnScrollOrResize);
+      window.removeEventListener("lshorter_drawer_opened", handleCloseOnScrollOrResize);
     };
   }, []);
 
@@ -301,8 +329,13 @@ export function LinksReuiDataGrid({
         item.image_url ||
         "";
       const ogImage = normalizeBannerUrl(rawBanner);
-      const hasCustomBanner = Boolean(ogImage && !ogImage.includes("dicebear"));
-      const avatarUrl = ogImage || getDiceBearAvatar(slug);
+      const hasCustomBanner = Boolean(
+        ogImage &&
+        !ogImage.includes("dicebear") &&
+        !ogImage.includes("/api/og") &&
+        !ogImage.includes("default_banner")
+      );
+      const avatarUrl = hasCustomBanner ? ogImage : getDiceBearAvatar(slug);
 
       const rawTags = item.tags ?? item.tagList ?? item.labels;
       let tags: string[] = [];
@@ -320,6 +353,32 @@ export function LinksReuiDataGrid({
           tags = rawTags.split(",").map((t: string) => t.trim()).filter(Boolean);
         }
       }
+
+      const rawPixels = item.pixels ?? item.pixelIds ?? item.pixel_ids;
+      let pixels: string[] = [];
+      if (Array.isArray(rawPixels)) {
+        pixels = rawPixels
+          .map((p: any) =>
+            typeof p === "string" ? p : p.platform || p.id || String(p)
+          )
+          .filter(Boolean);
+      } else if (typeof rawPixels === "string" && rawPixels.trim()) {
+        try {
+          const parsed = JSON.parse(rawPixels);
+          if (Array.isArray(parsed)) {
+            pixels = parsed
+              .map((p: any) =>
+                typeof p === "string" ? p : p.platform || p.id || String(p)
+              )
+              .filter(Boolean);
+          } else {
+            pixels = [rawPixels];
+          }
+        } catch {
+          pixels = [rawPixels];
+        }
+      }
+      const isPinned = pixels.length > 0;
 
       return {
         raw: item,
@@ -340,6 +399,8 @@ export function LinksReuiDataGrid({
         hasCustomBanner,
         avatarUrl,
         tags,
+        pixels,
+        isPinned,
       };
     });
   }, [effectiveLinks, optimisticMinClicks]);
@@ -450,6 +511,7 @@ export function LinksReuiDataGrid({
   const COLUMN_DEFINITIONS = [
     { key: "shortLink", label: "Owner & Short Link" },
     { key: "destination", label: "Destination URL" },
+    { key: "pixels", label: "Pixel Targeting" },
     { key: "clicks", label: "Total Clicks" },
     { key: "revenue", label: "Revenue ($)" },
     { key: "createdAt", label: "Created Date" },
@@ -469,9 +531,9 @@ export function LinksReuiDataGrid({
         }
         if (isColMenuOpen) setIsColMenuOpen(false);
       }}
-      className="rounded-2xl border border-[#E4E7EC] dark:border-[#222225] bg-white dark:bg-[#111113] shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] h-[80vh] min-h-[80vh] flex flex-col relative overflow-hidden"
+      className="rounded-2xl border border-[#E4E7EC] dark:border-[#222225] bg-white dark:bg-[#111113] shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] h-[93vh] min-h-[93vh] flex flex-col relative overflow-hidden"
     >
-      <div className="px-6 pt-5 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
+      <div className="px-6 pt-4 pb-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
         <div>
           <h3 className="text-[17px] font-semibold text-[#101828] dark:text-[#fafafa]">
             {title}
@@ -483,7 +545,7 @@ export function LinksReuiDataGrid({
         </div>
       </div>
 
-      <div className="px-6 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-transparent shrink-0">
+      <div className="px-6 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-transparent shrink-0">
         <div className="flex items-center gap-2 text-xs text-[#667085] dark:text-[#a1a1aa]">
           <span>Show</span>
           <select
@@ -503,7 +565,7 @@ export function LinksReuiDataGrid({
 
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
           <div className="relative flex-1 sm:w-[240px] sm:flex-initial">
-            <Search className="w-3.5 h-3.5 text-[#98A2B3] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <Search className="w-3.5 h-3.5 text-[#98A2B3] absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               value={search}
@@ -512,7 +574,7 @@ export function LinksReuiDataGrid({
                 setPage(1);
               }}
               placeholder="Search short links, URLs or tags..."
-              className="w-full h-8 rounded-lg border border-[#D0D5DD] dark:border-[#2e2e33] bg-white dark:bg-[#141416] pl-8.5 pr-2.5 text-xs text-[#101828] dark:text-[#fafafa] placeholder:text-[#98A2B3] focus:outline-none focus:border-[#0066FF]"
+              className="w-full h-8 rounded-lg border border-[#D0D5DD] dark:border-[#2e2e33] bg-white dark:bg-[#141416] pl-8 pr-2.5 text-xs text-[#101828] dark:text-[#fafafa] placeholder:text-[#98A2B3] focus:outline-none focus:border-[#0066FF]"
             />
           </div>
 
@@ -541,6 +603,7 @@ export function LinksReuiDataGrid({
                       setVisibleCols({
                         shortLink: true,
                         destination: true,
+                        pixels: true,
                         clicks: true,
                         revenue: true,
                         createdAt: true,
@@ -583,7 +646,7 @@ export function LinksReuiDataGrid({
         <table className="w-full border-collapse text-left">
           <thead className="sticky top-0 z-10 bg-white dark:bg-[#111113] shadow-xs">
             <tr className="rounded-xl bg-[#F9FAFB] dark:bg-white/[0.03]">
-              <th className="py-2.5 px-4 w-10 first:rounded-l-xl">
+              <th className="py-2.5 px-3.5 w-10 first:rounded-l-xl">
                 <input
                   ref={headerCheckboxRef}
                   type="checkbox"
@@ -596,62 +659,64 @@ export function LinksReuiDataGrid({
               {visibleCols.shortLink && (
                 <th
                   onClick={() => toggleSort("slug")}
-                  className="py-2.5 px-4 text-[11.5px] font-semibold uppercase tracking-wider text-[#667085] dark:text-[#a1a1aa] cursor-pointer select-none whitespace-nowrap"
+                  className="py-2.5 px-3.5 text-[11px] font-bold uppercase tracking-[0.05em] text-[#64748B] dark:text-[#94A3B8] cursor-pointer select-none whitespace-nowrap"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span>Owner & Short Link</span>
-                    <ArrowUpDown className="w-3 h-3 text-[#98A2B3]" />
+                    <span>Owner &amp; Short Link</span>
+                    <ArrowUpDown className="w-3 h-3 text-[#94A3B8] opacity-70" />
                   </div>
                 </th>
               )}
               {visibleCols.destination && (
-                <th className="py-2.5 px-4 text-[11.5px] font-semibold uppercase tracking-wider text-[#667085] dark:text-[#a1a1aa] whitespace-nowrap">
-                  <div className="flex items-center justify-between gap-2">
-                    <span>Destination URL</span>
-                    <ArrowUpDown className="w-3 h-3 text-[#98A2B3]" />
-                  </div>
+                <th className="py-2.5 px-3.5 text-[11px] font-bold uppercase tracking-[0.05em] text-[#64748B] dark:text-[#94A3B8] whitespace-nowrap">
+                  <span>Destination URL</span>
+                </th>
+              )}
+              {visibleCols.pixels && (
+                <th className="py-2.5 px-3.5 text-[11px] font-bold uppercase tracking-[0.05em] text-[#64748B] dark:text-[#94A3B8] whitespace-nowrap">
+                  <span>Pixels</span>
                 </th>
               )}
               {visibleCols.clicks && (
                 <th
                   onClick={() => toggleSort("clicks")}
-                  className="py-2.5 px-4 text-[11.5px] font-semibold uppercase tracking-wider text-[#667085] dark:text-[#a1a1aa] cursor-pointer select-none whitespace-nowrap"
+                  className="py-2.5 px-3.5 text-[11px] font-bold uppercase tracking-[0.05em] text-[#64748B] dark:text-[#94A3B8] cursor-pointer select-none whitespace-nowrap"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span>Total Clicks</span>
-                    <ArrowUpDown className="w-3 h-3 text-[#98A2B3]" />
+                    <ArrowUpDown className="w-3 h-3 text-[#94A3B8] opacity-70" />
                   </div>
                 </th>
               )}
               {visibleCols.revenue && (
                 <th
                   onClick={() => toggleSort("revenue")}
-                  className="py-2.5 px-4 text-[11.5px] font-semibold uppercase tracking-wider text-[#667085] dark:text-[#a1a1aa] cursor-pointer select-none whitespace-nowrap"
+                  className="py-2.5 px-3.5 text-[11px] font-bold uppercase tracking-[0.05em] text-[#64748B] dark:text-[#94A3B8] cursor-pointer select-none whitespace-nowrap"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span>Revenue</span>
-                    <ArrowUpDown className="w-3 h-3 text-[#98A2B3]" />
+                    <ArrowUpDown className="w-3 h-3 text-[#94A3B8] opacity-70" />
                   </div>
                 </th>
               )}
               {visibleCols.createdAt && (
                 <th
                   onClick={() => toggleSort("createdAt")}
-                  className="py-2.5 px-4 text-[11.5px] font-semibold uppercase tracking-wider text-[#667085] dark:text-[#a1a1aa] cursor-pointer select-none whitespace-nowrap"
+                  className="py-2.5 px-3.5 text-[11px] font-bold uppercase tracking-[0.05em] text-[#64748B] dark:text-[#94A3B8] cursor-pointer select-none whitespace-nowrap"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span>Created Date</span>
-                    <ArrowUpDown className="w-3 h-3 text-[#98A2B3]" />
+                    <ArrowUpDown className="w-3 h-3 text-[#94A3B8] opacity-70" />
                   </div>
                 </th>
               )}
               {visibleCols.status && (
-                <th className="py-2.5 px-4 text-[11.5px] font-semibold uppercase tracking-wider text-[#667085] dark:text-[#a1a1aa] whitespace-nowrap">
+                <th className="py-2.5 px-3.5 text-[11px] font-bold uppercase tracking-[0.05em] text-[#64748B] dark:text-[#94A3B8] whitespace-nowrap">
                   <span>Status</span>
                 </th>
               )}
               {visibleCols.action && (
-                <th className="py-2.5 px-4 text-[11.5px] font-semibold uppercase tracking-wider text-[#667085] dark:text-[#a1a1aa] text-right whitespace-nowrap last:rounded-r-xl">
+                <th className="py-2.5 px-3.5 text-[11px] font-bold uppercase tracking-[0.05em] text-[#64748B] dark:text-[#94A3B8] text-right whitespace-nowrap last:rounded-r-xl">
                   <span>Action</span>
                 </th>
               )}
@@ -681,7 +746,7 @@ export function LinksReuiDataGrid({
                   >
                     <td
                       onClick={(e) => e.stopPropagation()}
-                      className="py-2.5 px-4 first:rounded-l-xl whitespace-nowrap"
+                      className="py-2.5 px-3.5 first:rounded-l-xl whitespace-nowrap"
                     >
                       <input
                         type="checkbox"
@@ -692,12 +757,12 @@ export function LinksReuiDataGrid({
                             [row.id]: e.target.checked,
                           }))
                         }
-                        className="w-3.5 h-3.5 rounded border-[#D0D5DD] dark:border-[#2e2e33] text-[#0066FF] focus:ring-[#0066FF]"
+                        className="w-3.5 h-3.5 rounded border-[#D0D5DD] dark:border-[#2e2e33] text-[#0066FF] focus:ring-[#0066FF] cursor-pointer"
                       />
                     </td>
 
                     {visibleCols.shortLink && (
-                      <td className="py-2.5 px-4 whitespace-nowrap">
+                      <td className="py-2.5 px-3.5 whitespace-nowrap">
                         <div className="flex items-center gap-2.5">
                           <button
                             type="button"
@@ -717,11 +782,7 @@ export function LinksReuiDataGrid({
                               }
                             }}
                             title={row.hasCustomBanner ? "Click to view full banner preview" : "Click to edit link"}
-                            className={
-                              row.hasCustomBanner
-                                ? "group/avatar relative w-9 h-7 rounded-lg border border-[#0066FF]/35 dark:border-[#5294FF]/40 bg-[#F2F4F7] dark:bg-white/[0.04] overflow-hidden shrink-0 cursor-pointer transition-all duration-200 hover:scale-105 shadow-2xs hover:shadow-md ring-1.5 ring-[#0066FF]/15"
-                                : "group/avatar relative w-7.5 h-7.5 rounded-full border border-[#E4E7EC]/80 dark:border-white/15 bg-[#F2F4F7] dark:bg-white/[0.04] overflow-hidden shrink-0 cursor-pointer transition-transform duration-200 hover:scale-105"
-                            }
+                            className="group/avatar relative w-11 h-8 rounded-lg border border-zinc-200/90 dark:border-white/10 bg-[#F8FAFC] dark:bg-white/[0.04] overflow-hidden shrink-0 cursor-pointer transition-all duration-200 hover:scale-105 shadow-2xs hover:shadow-md ring-1 ring-black/5 dark:ring-white/5"
                           >
                             <img
                               src={row.avatarUrl}
@@ -741,46 +802,53 @@ export function LinksReuiDataGrid({
                               <Maximize2 className="w-3 h-3" />
                             </span>
                             {row.hasCustomBanner && (
-                              <span className="absolute bottom-0 right-0 p-0.5 bg-[#0066FF] text-white rounded-tl-[3px] shadow-xs pointer-events-none">
+                              <span className="absolute bottom-0 right-0 p-0.5 bg-[#0066FF] text-white rounded-tl-[4px] shadow-xs pointer-events-none">
                                 <ImageIcon className="w-2 h-2" />
                               </span>
                             )}
                           </button>
                           <div className="min-w-0">
-                            <a
-                              href={`/r/${encodeURIComponent(row.slug)}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleOpenAndTrackClick(row.slug, row.clicks);
-                              }}
-                              className="inline-flex items-center gap-1 text-[13px] font-semibold text-[#101828] dark:text-[#fafafa] hover:text-[#0066FF] dark:hover:text-[#5294FF] transition-colors truncate"
-                            >
-                              <span className="truncate">
-                                {row.domain}/{row.slug}
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <a
+                                href={`/r/${encodeURIComponent(row.slug)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenAndTrackClick(row.slug, row.clicks);
+                                }}
+                                className="inline-flex items-center gap-1 text-[13.5px] font-bold tracking-[-0.015em] text-[#0F172A] dark:text-[#F8FAFC] hover:text-[#0066FF] dark:hover:text-[#5294FF] transition-colors truncate"
+                              >
+                                <span className="truncate">
+                                  {row.domain}/{row.slug}
+                                </span>
+                                <ExternalLink className="w-3 h-3 text-[#0066FF] opacity-75 shrink-0" />
+                              </a>
+                            </div>
+                            <div className="flex items-center gap-1.5 mt-0.5 text-[11.5px] text-[#64748B] dark:text-[#94A3B8] truncate">
+                              <span className="truncate font-medium text-[#334155] dark:text-[#CBD5E1]">
+                                {row.ownerName}
                               </span>
-                              <ExternalLink className="w-3 h-3 text-[#0066FF] opacity-75 shrink-0" />
-                            </a>
-                            <div className="text-[11px] text-[#667085] dark:text-[#a1a1aa] truncate">
-                              {row.ownerName} • {row.role}
+                              <span>•</span>
+                              <span className="font-mono text-[10.5px] bg-[#F1F5F9] dark:bg-white/[0.05] px-1.5 py-0.2 rounded text-[#64748B] dark:text-[#94A3B8] border border-[#E2E8F0] dark:border-white/5">
+                                {row.role}
+                              </span>
                             </div>
                             {/* Tags de lien */}
                             {row.tags && row.tags.length > 0 && (
-                              <div className="flex flex-wrap items-center gap-1 mt-0.5">
+                              <div className="flex flex-wrap items-center gap-1 mt-1">
                                 {row.tags.slice(0, 3).map((tag: string, tIdx: number) => (
                                   <span
                                     key={tIdx}
-                                    className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[9.5px] font-medium bg-[#F2F4F7] dark:bg-white/[0.06] text-[#475467] dark:text-[#a1a1aa] border border-[#E4E7EC] dark:border-white/10"
+                                    className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[9.5px] font-semibold bg-[#F1F5F9] dark:bg-white/[0.06] text-[#475467] dark:text-[#cbd5e1] border border-[#E2E8F0] dark:border-white/10"
                                   >
-                                    <Tag className="w-2 h-2 opacity-60" />
-                                    <span>{tag}</span>
+                                    <span>#{tag}</span>
                                   </span>
                                 ))}
                                 {row.tags.length > 3 && (
                                   <span
                                     title={row.tags.slice(3).join(", ")}
-                                    className="text-[9px] font-medium text-[#98A2B3] dark:text-[#71717a] px-0.5"
+                                    className="text-[9px] font-medium text-[#94A3B8] dark:text-[#71717a] px-0.5"
                                   >
                                     +{row.tags.length - 3}
                                   </span>
@@ -793,35 +861,81 @@ export function LinksReuiDataGrid({
                     )}
 
                     {visibleCols.destination && (
-                      <td className="py-2.5 px-4 max-w-[260px] whitespace-nowrap">
-                        <div className="text-[12px] text-[#475467] dark:text-[#d4d4d8] truncate font-mono">
-                          {row.destinationUrl}
+                      <td className="py-2.5 px-3.5 max-w-[260px] whitespace-nowrap">
+                        <div
+                          className="inline-flex items-center gap-1.5 text-[12px] font-mono bg-[#F8FAFC] dark:bg-[#18181D] border border-[#E2E8F0] dark:border-[#27272F] px-2.5 py-1 rounded-md text-[#334155] dark:text-[#CBD5E1] truncate max-w-full"
+                          title={row.destinationUrl}
+                        >
+                          <span className="font-semibold text-[#0F172A] dark:text-[#F8FAFC]">
+                            {(() => {
+                              try {
+                                const u = new URL(
+                                  row.destinationUrl.startsWith("http")
+                                    ? row.destinationUrl
+                                    : `https://${row.destinationUrl}`
+                                );
+                                return u.hostname;
+                              } catch {
+                                return (
+                                  row.destinationUrl.split("/")[0] ||
+                                  row.destinationUrl
+                                );
+                              }
+                            })()}
+                          </span>
+                          <span className="text-[#94A3B8] dark:text-[#64748B] truncate text-[11.5px]">
+                            {(() => {
+                              try {
+                                const u = new URL(
+                                  row.destinationUrl.startsWith("http")
+                                    ? row.destinationUrl
+                                    : `https://${row.destinationUrl}`
+                                );
+                                const path = u.pathname + u.search;
+                                return path === "/" ? "" : path;
+                              } catch {
+                                return "";
+                              }
+                            })()}
+                          </span>
                         </div>
                       </td>
                     )}
 
+                    {visibleCols.pixels && (
+                      <td className="py-2.5 px-3.5 whitespace-nowrap">
+                        {row.pixels && row.pixels.length > 0 ? (
+                          <PixelLogosOnlyList pixels={row.pixels} />
+                        ) : (
+                          <span className="text-[#94A3B8] dark:text-[#64748B] text-xs select-none">
+                            —
+                          </span>
+                        )}
+                      </td>
+                    )}
+
                     {visibleCols.clicks && (
-                      <td className="py-2.5 px-4 whitespace-nowrap">
-                        <span className="text-[13px] font-semibold text-[#101828] dark:text-[#fafafa] font-mono">
+                      <td className="py-2.5 px-3.5 whitespace-nowrap">
+                        <span className="text-[13.5px] font-bold text-[#0F172A] dark:text-[#F8FAFC] font-mono tabular-nums tracking-[-0.02em]">
                           {row.clicks.toLocaleString()}
                         </span>
                       </td>
                     )}
 
                     {visibleCols.revenue && (
-                      <td className="py-2.5 px-4 whitespace-nowrap">
+                      <td className="py-2.5 px-3.5 whitespace-nowrap">
                         <div className="flex flex-col">
                           <span
-                            className={`text-[13px] font-bold font-mono tabular-nums ${
+                            className={`text-[13.5px] font-mono tabular-nums tracking-[-0.02em] ${
                               row.revenue > 0
-                                ? "text-emerald-600 dark:text-emerald-400"
-                                : "text-[#667085] dark:text-[#a1a1aa]"
+                                ? "text-emerald-600 dark:text-emerald-400 font-bold"
+                                : "text-[#94A3B8] dark:text-[#64748B] font-medium"
                             }`}
                           >
                             ${row.revenue.toFixed(2)}
                           </span>
                           {row.conversions > 0 && (
-                            <span className="text-[10px] font-medium text-[#667085] dark:text-[#a1a1aa]">
+                            <span className="text-[10px] font-medium text-[#64748B] dark:text-[#94A3B8]">
                               {row.conversions} sale
                               {row.conversions > 1 ? "s" : ""}
                             </span>
@@ -831,50 +945,66 @@ export function LinksReuiDataGrid({
                     )}
 
                     {visibleCols.createdAt && (
-                      <td className="py-2.5 px-4 whitespace-nowrap">
-                        <span className="text-[12px] text-[#667085] dark:text-[#a1a1aa]">
-                          {new Date(row.createdAt).toLocaleDateString("en-US", {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                          })}
-                        </span>
+                      <td className="py-2.5 px-3.5 whitespace-nowrap">
+                        <div className="flex flex-col">
+                          <span className="text-[12px] font-semibold text-[#0F172A] dark:text-[#F8FAFC]">
+                            {new Date(row.createdAt).toLocaleDateString("en-US", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                            })}
+                          </span>
+                          <span className="text-[10.5px] text-[#94A3B8] dark:text-[#64748B]">
+                            {formatLiveRelativeTime(row.createdAt, Date.now())}
+                          </span>
+                        </div>
                       </td>
                     )}
 
                     {visibleCols.status && (
-                      <td className="py-2.5 px-4 whitespace-nowrap">
-                        <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${
-                            row.status === "Active"
-                              ? "bg-[#ECFDF3] text-[#027A48] dark:bg-emerald-500/15 dark:text-emerald-400"
-                              : row.status === "Pending"
-                                ? "bg-[#FFFAEB] text-[#B54708] dark:bg-amber-500/15 dark:text-amber-400"
-                                : row.status === "Expired"
-                                  ? "bg-[#FEF3F2] text-[#B42318] dark:bg-rose-500/15 dark:text-rose-400"
-                                  : "bg-[#F2F4F7] text-[#344054] dark:bg-neutral-800 dark:text-neutral-400"
-                          }`}
-                        >
-                          {row.status === "Expired"
-                            ? "Expiré"
-                            : row.status === "Active"
-                              ? "Actif"
-                              : row.status === "Paused"
-                                ? "En pause"
-                                : row.status}
-                        </span>
+                      <td className="py-2.5 px-3.5 whitespace-nowrap">
+                        {(() => {
+                          const isAct = row.status === "Active" || row.status === "Actif";
+                          const isExp = row.status === "Expired" || row.status === "Expiré";
+                          const isPau = row.status === "Paused" || row.status === "En pause";
+                          const label = isExp ? "Expiré" : isAct ? "Actif" : isPau ? "En pause" : row.status;
+
+                          if (isAct) {
+                            return (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 select-none">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.5)]" />
+                                <span>{label}</span>
+                              </span>
+                            );
+                          }
+                          if (isExp) {
+                            return (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/25 select-none">
+                                <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                                <span>{label}</span>
+                              </span>
+                            );
+                          }
+                          return (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/25 select-none">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                              <span>{label}</span>
+                            </span>
+                          );
+                        })()}
                       </td>
                     )}
 
                     {visibleCols.action && (
                       <td
                         onClick={(e) => e.stopPropagation()}
-                        className="py-2.5 px-4 text-right whitespace-nowrap last:rounded-r-xl"
+                        className="py-2.5 px-3.5 text-right whitespace-nowrap last:rounded-r-xl"
                       >
                         <button
                           type="button"
+                          data-action-menu-trigger="true"
                           onClick={(e) => handleToggleActionMenu(e, row.id)}
-                          className={`inline-flex h-7 w-7 items-center justify-center rounded-md transition-colors cursor-pointer ${
+                          className={`inline-flex h-7.5 w-7.5 items-center justify-center rounded-md transition-colors cursor-pointer ${
                             openActionRowId === row.id
                               ? "bg-[#F2F4F7] dark:bg-white/10 text-[#101828] dark:text-[#fafafa]"
                               : "text-[#667085] dark:text-[#a1a1aa] hover:text-[#101828] dark:hover:text-[#fafafa] hover:bg-[#F2F4F7] dark:hover:bg-white/[0.06]"
@@ -892,8 +1022,8 @@ export function LinksReuiDataGrid({
         </table>
       </div>
 
-      <div className="px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-[#E4E7EC] dark:border-[#222225] shrink-0 mt-auto bg-white dark:bg-[#111113]">
-        <div className="flex items-center gap-2.5">
+      <div className="px-4 sm:px-6 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-[#E4E7EC] dark:border-[#222225] shrink-0 mt-auto bg-white dark:bg-[#111113]">
+        <div className="flex items-center gap-3">
           {selectedLinkIdsList.length > 0 && (
             <button
               type="button"
@@ -908,10 +1038,10 @@ export function LinksReuiDataGrid({
               aria-label="Supprimer les liens sélectionnés"
               className="text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 transition-colors cursor-pointer bg-transparent border-0 p-0 flex items-center justify-center shrink-0 focus:outline-hidden"
             >
-              <Trash2 className="w-3.5 h-3.5 text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300" />
+              <Trash2 className="w-4 h-4 text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300" />
             </button>
           )}
-          <p className="text-xs text-[#667085] dark:text-[#a1a1aa]">
+          <p className="text-[13px] text-[#667085] dark:text-[#a1a1aa]">
             Showing{" "}
             {filteredRows.length === 0 ? 0 : (currentPage - 1) * pageSize + 1} to{" "}
             {Math.min(currentPage * pageSize, filteredRows.length)} of{" "}
@@ -919,7 +1049,7 @@ export function LinksReuiDataGrid({
           </p>
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5">
           <button
             type="button"
             disabled={currentPage <= 1}
@@ -964,6 +1094,7 @@ export function LinksReuiDataGrid({
           if (!activeRow) return null;
           return createPortal(
             <div
+              ref={actionMenuRef}
               style={{
                 position: "fixed",
                 top:
@@ -975,8 +1106,9 @@ export function LinksReuiDataGrid({
                     ? `${menuCoords.bottom}px`
                     : undefined,
                 right: `${menuCoords.right}px`,
-                zIndex: 99999,
+                zIndex: 9999,
               }}
+              onMouseDown={(e) => e.stopPropagation()}
               onClick={(e) => e.stopPropagation()}
               className="w-56 rounded-xl border border-[#E4E7EC] dark:border-[#222225] bg-white dark:bg-[#141416] p-1.5 shadow-2xl text-left font-sans animate-in fade-in zoom-in-95 duration-100 divide-y divide-[#F2F4F7] dark:divide-[#222225]"
             >
@@ -984,6 +1116,7 @@ export function LinksReuiDataGrid({
                 <button
                   type="button"
                   onClick={(e) => {
+                    e.stopPropagation();
                     handleCopy(e, activeRow.id, activeRow.shortUrl);
                     setOpenActionRowId(null);
                     setMenuCoords(null);
@@ -1001,7 +1134,8 @@ export function LinksReuiDataGrid({
                 {effectiveShare && (
                   <button
                     type="button"
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       effectiveShare(activeRow.raw);
                       setOpenActionRowId(null);
                       setMenuCoords(null);
@@ -1016,7 +1150,8 @@ export function LinksReuiDataGrid({
                 {effectiveEdit && (
                   <button
                     type="button"
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       effectiveEdit(activeRow.raw);
                       setOpenActionRowId(null);
                       setMenuCoords(null);
@@ -1033,7 +1168,8 @@ export function LinksReuiDataGrid({
                 <div className="pt-1">
                   <button
                     type="button"
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       onDeleteLink(activeRow.raw);
                       setOpenActionRowId(null);
                       setMenuCoords(null);
@@ -1250,11 +1386,11 @@ export function GeoLogsReuiDataGrid({
     document.addEventListener("visibilitychange", handleFocus);
     window.addEventListener("storage", handleStorage);
 
-    // Heartbeat polling (every 30s) only in standalone mode
+    // Heartbeat polling (every 60s) only in standalone mode to avoid Cloudflare D1 spikes
     const pollTimer = setInterval(() => {
       if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
       fetchLogs();
-    }, 30000);
+    }, 60000);
 
     return () => {
       window.removeEventListener("lshorter_data_change", handleUpdate);
@@ -1357,7 +1493,7 @@ export function GeoLogsReuiDataGrid({
         }
         if (isColMenuOpen) setIsColMenuOpen(false);
       }}
-      className="rounded-2xl border border-[#E4E7EC] dark:border-[#222225] bg-white dark:bg-[#111113] shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] h-[80vh] min-h-[80vh] flex flex-col relative overflow-hidden"
+      className="rounded-2xl border border-[#E4E7EC] dark:border-[#222225] bg-white dark:bg-[#111113] shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] h-[88vh] min-h-[88vh] flex flex-col relative overflow-hidden"
     >
       <div className="px-6 py-5 border-b border-[#E4E7EC] dark:border-[#222225] flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
         <div>
@@ -1612,12 +1748,14 @@ export function GeoLogsReuiDataGrid({
                 right: `${geoMenuCoords.right}px`,
                 zIndex: 99999,
               }}
+              onMouseDown={(e) => e.stopPropagation()}
               onClick={(e) => e.stopPropagation()}
               className="w-52 rounded-xl border border-[#E4E7EC] dark:border-[#222225] bg-white dark:bg-[#141416] p-1.5 shadow-2xl text-left font-sans animate-in fade-in zoom-in-95 duration-100"
             >
               <button
                 type="button"
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   navigator.clipboard.writeText(fullShortUrl);
                   setCopiedGeoId(activeItem.id);
                   setTimeout(() => setCopiedGeoId(null), 1800);

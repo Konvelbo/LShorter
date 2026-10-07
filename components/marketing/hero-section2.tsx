@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import gsap from "gsap";
+import { useSession } from "next-auth/react";
 import {
   ArrowUpRight,
   Check,
@@ -13,6 +14,7 @@ import {
   ShieldCheck,
   Split,
   LayoutDashboard,
+  Sparkles,
 } from "lucide-react";
 
 const TREND_ITEMS = [
@@ -58,6 +60,12 @@ export function HeroSection() {
 }
 
 export function HeroSection2() {
+  const { data: session, status } = useSession();
+  const isAuthenticated =
+    status === "authenticated" &&
+    Boolean(session?.user) &&
+    !(session?.user as any)?.userNotFound;
+
   const [copiedPrompt, setCopiedPrompt] = useState(false);
   const heroRef = useRef<HTMLDivElement>(null);
   const showcaseRef = useRef<HTMLDivElement>(null);
@@ -365,17 +373,31 @@ export function HeroSection2() {
           <div className="flex flex-col items-center gap-3.5 w-full mt-8 sm:mt-10">
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-3.5 w-full sm:w-auto">
               <div className="hero-action-pill will-change-transform w-full sm:w-auto flex justify-center">
-                <Link
-                  href="/dashboard"
-                  style={{ color: "#FFFFFF" }}
-                  onMouseEnter={handlePrimaryBtnEnter}
-                  onMouseLeave={handlePrimaryBtnLeave}
-                  className="w-full max-w-[320px] sm:max-w-none sm:w-56 inline-flex items-center justify-center gap-2 rounded-full bg-[#465FFF] hover:bg-[#3641F5] !text-white px-6 py-3.5 text-[15px] sm:text-[14px] font-semibold shadow-md will-change-transform cursor-pointer transition-colors"
-                >
-                  <LayoutDashboard className="w-4 h-4 !text-white shrink-0" />
-                  <span className="!text-white font-medium">Dashboard</span>
-                  <ArrowUpRight className="hero-cta-arrow w-4 h-4 !text-white will-change-transform" />
-                </Link>
+                {isAuthenticated ? (
+                  <Link
+                    href="/dashboard"
+                    style={{ color: "#FFFFFF" }}
+                    onMouseEnter={handlePrimaryBtnEnter}
+                    onMouseLeave={handlePrimaryBtnLeave}
+                    className="w-full max-w-[320px] sm:max-w-none sm:w-56 inline-flex items-center justify-center gap-2 rounded-[12px] bg-[#465FFF] hover:bg-[#3641F5] !text-white px-6 py-3.5 text-[15px] sm:text-[14px] font-semibold shadow-md will-change-transform cursor-pointer transition-colors"
+                  >
+                    <LayoutDashboard className="w-4 h-4 !text-white shrink-0" />
+                    <span className="!text-white font-medium">Dashboard</span>
+                    <ArrowUpRight className="hero-cta-arrow w-4 h-4 !text-white will-change-transform" />
+                  </Link>
+                ) : (
+                  <Link
+                    href="/register"
+                    style={{ color: "#FFFFFF" }}
+                    onMouseEnter={handlePrimaryBtnEnter}
+                    onMouseLeave={handlePrimaryBtnLeave}
+                    className="w-full max-w-[320px] sm:max-w-none sm:w-56 inline-flex items-center justify-center gap-2 rounded-[12px] bg-[#465FFF] hover:bg-[#3641F5] !text-white px-6 py-3.5 text-[15px] sm:text-[14px] font-semibold shadow-md will-change-transform cursor-pointer transition-colors"
+                  >
+                    <Sparkles className="w-4 h-4 !text-white shrink-0" />
+                    <span className="!text-white font-medium">Get started</span>
+                    <ArrowUpRight className="hero-cta-arrow w-4 h-4 !text-white will-change-transform" />
+                  </Link>
+                )}
               </div>
 
               <div className="hero-action-pill will-change-transform w-full sm:w-auto flex justify-center">
@@ -384,7 +406,7 @@ export function HeroSection2() {
                   onClick={handleScrollToProduct}
                   onMouseEnter={handleSecondaryBtnEnter}
                   onMouseLeave={handleSecondaryBtnLeave}
-                  className="w-full max-w-[320px] sm:max-w-none sm:w-56 inline-flex items-center justify-center gap-2 rounded-full bg-[#F2F4F7] dark:bg-white/10 text-[#101828] dark:text-white border border-[#D0D5DD] dark:border-white/15 px-6 py-3.5 text-[15px] sm:text-[14px] font-medium shadow-xs will-change-transform cursor-pointer hover:bg-white dark:hover:bg-white/15 transition-colors text-center"
+                  className="w-full max-w-[320px] sm:max-w-none sm:w-56 inline-flex items-center justify-center gap-2 rounded-[12px] bg-[#F2F4F7] dark:bg-white/10 text-[#101828] dark:text-white border border-[#D0D5DD] dark:border-white/15 px-6 py-3.5 text-[15px] sm:text-[14px] font-medium shadow-xs will-change-transform cursor-pointer hover:bg-white dark:hover:bg-white/15 transition-colors text-center"
                 >
                   <span>Open live dashboard</span>
                 </Link>
@@ -398,7 +420,7 @@ export function HeroSection2() {
                 onClick={handleCopySdk}
                 onMouseEnter={handleSdkBtnEnter}
                 onMouseLeave={handleSdkBtnLeave}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 rounded-full bg-[#F9FAFB] dark:bg-white/5 border border-[#E4E7EC] dark:border-white/10 px-4.5 py-2.5 text-[12px] font-mono text-[#475467] dark:text-zinc-300 will-change-transform cursor-pointer hover:border-[#465FFF] transition-colors"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 rounded-[12px] bg-[#F9FAFB] dark:bg-white/5 border border-[#E4E7EC] dark:border-white/10 px-4.5 py-2.5 text-[12px] font-mono text-[#475467] dark:text-zinc-300 will-change-transform cursor-pointer hover:border-[#465FFF] transition-colors"
               >
                 <Terminal className="sdk-icon w-3.5 h-3.5 text-[#465FFF] shrink-0 will-change-transform" />
                 <span className="truncate">
@@ -447,7 +469,7 @@ export function HeroSection2() {
             <div className="relative w-full bg-[#F9FAFB] dark:bg-[#101828]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/marketing-FCI/real_dashboard_overview.png"
+                src="/screenshots/dashboard/dashboardwithsidbare.png"
                 alt="LShorter SaaS Dashboard Preview"
                 className="w-full h-auto block"
                 style={{ display: "block", width: "100%", height: "auto" }}

@@ -138,12 +138,12 @@ export function DrawerContent({
         gsap.fromTo(
           backdropRef.current,
           { opacity: 0 },
-          { opacity: 1, duration: 0.3, ease: "power2.out" }
+          { opacity: 1, duration: 0.3, ease: "power2.out" },
         );
         gsap.fromTo(
           panelRef.current,
           { x: "100%", opacity: 0.7 },
-          { x: "0%", opacity: 1, duration: 0.4, ease: "power3.out" }
+          { x: "0%", opacity: 1, duration: 0.4, ease: "power3.out" },
         );
       } else if (!isOpen && backdropRef.current && panelRef.current) {
         gsap.to(backdropRef.current, { opacity: 0, duration: 0.25 });
@@ -174,7 +174,7 @@ export function DrawerContent({
         className={cn(
           "fixed inset-y-0 right-0 z-50 flex h-full flex-col bg-white dark:bg-[#141416] border-l border-zinc-200 dark:border-[#27272a] shadow-2xl will-change-transform",
           widthClass,
-          className
+          className,
         )}
       >
         {children}
@@ -194,7 +194,7 @@ export function DrawerHeader({
     <div
       className={cn(
         "flex flex-col border-b border-[#222225] bg-[#141416] px-5 py-4 shrink-0 sticky top-0 z-10",
-        className
+        className,
       )}
     >
       {children}
@@ -210,7 +210,9 @@ export function DrawerTitle({
   children: React.ReactNode;
 }) {
   return (
-    <h2 className={cn("text-base font-bold text-white tracking-tight", className)}>
+    <h2
+      className={cn("text-base font-bold text-white tracking-tight", className)}
+    >
       {children}
     </h2>
   );
@@ -241,7 +243,7 @@ export function DrawerFooter({
     <div
       className={cn(
         "flex items-center justify-end gap-2.5 border-t border-[#222225] bg-[#141416] px-5 py-3.5 shrink-0",
-        className
+        className,
       )}
     >
       {children}
@@ -277,7 +279,7 @@ export function DrawerClose({
       onClick={closeDrawer}
       className={cn(
         "w-8 h-8 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 flex items-center justify-center text-neutral-400 hover:text-white transition-colors cursor-pointer",
-        className
+        className,
       )}
       {...props}
     >

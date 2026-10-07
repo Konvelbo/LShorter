@@ -144,6 +144,7 @@ export function ReuiBarChart5({
               allowDecimals={false}
               domain={[0, Math.ceil(maxDataVal * 1.15)]}
               tick={{ fontSize: 11 }}
+              tickFormatter={(v: number) => (valuePrefix ? `${valuePrefix}${v}` : `${v}`)}
             />
           )}
 
@@ -197,9 +198,9 @@ export function ReuiBarChart5({
                       </span>
                     </div>
                     <span className="text-[#101828] dark:text-[#fafafa] font-semibold tabular-nums text-xs">
-                      {valuePrefix}
+                      {name === "primary" ? valuePrefix : ""}
                       {Number(value).toLocaleString()}
-                      {valueSuffix}
+                      {name === "primary" ? valueSuffix : " sales"}
                     </span>
                   </div>
                 )}

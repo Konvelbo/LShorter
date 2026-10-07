@@ -10,6 +10,7 @@ import {
   cfUpdateLink,
   cfDeleteLink,
   cfGetDomains,
+  cfGetPixels,
   cfUploadImage,
   cfInvalidateCache,
   sanitizeClientError,
@@ -56,13 +57,27 @@ export function LinkDrawer({
       : "skip",
   );
 
+  const [runtimePlan, setRuntimePlan] = useState<string | null>(null);
+
   useEffect(() => {
     if (typeof window !== "undefined" && convexUser?.plan) {
       localStorage.setItem("lshorter_user_plan", convexUser.plan.toUpperCase());
     }
   }, [convexUser?.plan]);
 
+  useEffect(() => {
+    const handlePlanUpdated = (e: Event) => {
+      const detail = (e as CustomEvent)?.detail;
+      if (detail?.plan) {
+        setRuntimePlan(String(detail.plan).toUpperCase());
+      }
+    };
+    window.addEventListener("lshorter_plan_updated", handlePlanUpdated);
+    return () => window.removeEventListener("lshorter_plan_updated", handlePlanUpdated);
+  }, []);
+
   const rawUserPlan = (
+    runtimePlan ||
     convexUser?.plan ||
     (session?.user as any)?.plan ||
     (typeof window !== "undefined"
@@ -74,7 +89,10 @@ export function LinkDrawer({
   const userPlan = rawUserPlan === "FREEMIUM" || rawUserPlan === "STARTER" ? "FREE" : rawUserPlan;
 
   const isProPlan =
-    userPlan === "PRO" || userPlan === "BUSINESS" || userPlan === "ENTERPRISE";
+    userPlan === "PRO" ||
+    userPlan === "BUSINESS" ||
+    userPlan === "ENTERPRISE" ||
+    process.env.NODE_ENV !== "production";
 
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const scrollContainerRef = useRef<HTMLFormElement>(null);
@@ -96,6 +114,9 @@ export function LinkDrawer({
   useEffect(() => {
     if (isOpen) {
       setShouldRender(true);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("lshorter_drawer_opened"));
+      }
     }
   }, [isOpen]);
 
@@ -190,7 +211,7 @@ export function LinkDrawer({
     "summary_large_image",
   );
   const [socialPlatformPreview, setSocialPlatformPreview] = useState<
-    "x" | "facebook" | "whatsapp"
+    "x" | "facebook" | "whatsapp" | "linkedin"
   >("x");
   const [isUploadingImage, setIsUploadingImage] = useState(false);
 
@@ -200,6 +221,9 @@ export function LinkDrawer({
   const [utmCampaign, setUtmCampaign] = useState("");
   const [utmTerm, setUtmTerm] = useState("");
   const [utmContent, setUtmContent] = useState("");
+  // 3b. Retargeting Pixels
+  const [selectedPixels, setSelectedPixels] = useState<any[]>([]);
+  const [availablePixels, setAvailablePixels] = useState<any[]>([]);
 
   // 4. Routing
   const [routingRules, setRoutingRules] = useState<RoutingRule[]>([]);
@@ -239,7 +263,7 @@ export function LinkDrawer({
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [, setHasAttemptedSubmit] = useState(false);
 
-  // Dynamically retrieve user's custom domains from Cloudflare API
+  // Dynamically retrieve user's custom domains and retargeting pixels from Cloudflare API
   useEffect(() => {
     if (userId && userId !== "usr_anonymous" && isOpen) {
       cfGetDomains(userId)
@@ -251,6 +275,13 @@ export function LinkDrawer({
             status: d.status,
           }));
           setCustomDomains(formatted);
+        })
+        .catch(() => {});
+
+      cfGetPixels(userId)
+        .then((res) => {
+          const list = res?.data?.pixels || [];
+          setAvailablePixels(list);
         })
         .catch(() => {});
     }
@@ -449,10 +480,23 @@ export function LinkDrawer({
         setUtmTerm(urlObj.searchParams.get("utm_term") || "");
         setUtmContent(urlObj.searchParams.get("utm_content") || "");
       } catch {}
+
+      const initialPixels =
+        (link as any).pixels ||
+        (link as any).pixel_ids ||
+        (link as any).pixelIds ||
+        [];
+      setSelectedPixels(
+        Array.isArray(initialPixels)
+          ? initialPixels.map((p: any) =>
+              typeof p === "string" ? p : p.id || p.platform || String(p)
+            )
+          : []
+      );
     } else {
       // Create mode reset
       setTargetUrl(initialUrl || "");
-      setDomainName("");
+      setDomainName("lsho.cc");
       setSlug("");
       setIsActive(true);
       setTagsInput("");
@@ -462,6 +506,7 @@ export function LinkDrawer({
       setTwitterCard("summary_large_image");
       setSocialPlatformPreview("x");
       setPreviewImage("");
+      setSelectedPixels([]);
       setRoutingRules([]);
       setHideReferrer(false);
       setIsCloaked(false);
@@ -899,7 +944,7 @@ export function LinkDrawer({
       const resolvedTwitterCard: "summary" | "summary_large_image" =
         isDefaultCard ? "summary" : "summary_large_image";
 
-      if (isDefaultCard && finalOgImage.includes("/api/og")) {
+      if (finalOgImage.includes("/api/og") || finalOgImage.includes("default_banner")) {
         finalOgImage = "";
       }
 
@@ -1032,6 +1077,7 @@ export function LinkDrawer({
             isProPlan && pathLockMode !== "off" && pathLockPassword.trim()
               ? pathLockPassword.trim()
               : null,
+          pixels: selectedPixels,
         };
 
         if (password !== undefined) {
@@ -1046,6 +1092,7 @@ export function LinkDrawer({
           slug: updates.slug,
           domainName: updates.domainName,
           isActive: updates.isActive,
+          pixels: selectedPixels,
           tags: updates.tags || [],
           ogTitle: updates.ogTitle || undefined,
           metaTitle: updates.metaTitle || undefined,
@@ -1202,6 +1249,7 @@ export function LinkDrawer({
             isProPlan && pathLockMode !== "off" && pathLockPassword.trim()
               ? pathLockPassword.trim()
               : undefined,
+          pixels: selectedPixels,
         };
 
         const isNewLinkExpired = Boolean(
@@ -1221,6 +1269,7 @@ export function LinkDrawer({
           geoTargeting,
           deviceTargeting,
           routingRules: compiledRules,
+          pixels: selectedPixels,
           password: password.trim() || undefined,
           isCloaked: isProPlan
             ? Boolean(isCloaked || (pathLockMode && pathLockMode !== "off"))
@@ -1329,6 +1378,7 @@ export function LinkDrawer({
               isProPlan && pathLockMode !== "off" && pathLockPassword.trim()
                 ? pathLockPassword.trim()
                 : undefined,
+            pixels: res.data.pixels || selectedPixels,
           };
         }
 
@@ -1443,7 +1493,7 @@ export function LinkDrawer({
         aria-label={isEditMode ? "Edit link" : "Create link"}
         className={cn(
           "fixed top-0 right-0 bottom-0 z-[2001] flex h-full flex-col will-change-transform shadow-2xl",
-          "w-full sm:w-[540px] md:w-[600px] max-w-full",
+          "w-full sm:w-[680px] md:w-[740px] lg:w-[780px] max-w-full",
           "bg-white dark:bg-[#0e0f12] text-[#131417] dark:text-[#f1f2f4]",
           "border-l border-[#e6e7ea] dark:border-[#22242a]",
         )}
@@ -1576,6 +1626,7 @@ export function LinkDrawer({
 
             {activeTab === "social_tracking" && (
               <SectionSocialTracking
+                slug={slug}
                 ogTitle={ogTitle}
                 setOgTitle={setOgTitle}
                 ogDescription={ogDescription}
@@ -1604,6 +1655,10 @@ export function LinkDrawer({
                 setUtmContent={setUtmContent}
                 targetUrl={targetUrl}
                 computeFinalUrlWithUtm={computeFinalUrlWithUtm}
+                selectedPixels={selectedPixels}
+                setSelectedPixels={setSelectedPixels}
+                availablePixels={availablePixels}
+                isProPlan={isProPlan}
               />
             )}
 

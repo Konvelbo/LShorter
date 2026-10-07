@@ -18,7 +18,6 @@ interface CachedAnalytics {
 }
 const serverAnalyticsCache = new Map<string, CachedAnalytics>();
 const CACHE_TTL_MS = 20_000; // 20s server cache to protect Cloudflare D1 from spam
-
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const userId = searchParams.get("userId");

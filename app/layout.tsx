@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Bebas_Neue } from "next/font/google";
+import { Inter, Bebas_Neue, Poppins } from "next/font/google";
 import "./globals.css";
 import { ToastProvider } from "@/components/ui/toast-provider";
 import { PlanUpgradeModal } from "@/components/dashboard/plan-upgrade-modal";
@@ -15,6 +15,13 @@ const inter = Inter({
 const bebasNeue = Bebas_Neue({
   variable: "--font-bebas",
   weight: "400",
+  subsets: ["latin"],
+  display: "swap",
+});
+
+const poppins = Poppins({
+  variable: "--font-poppins",
+  weight: ["300", "400", "500", "600", "700", "800"],
   subsets: ["latin"],
   display: "swap",
 });
@@ -44,7 +51,7 @@ export default function RootLayout({
     <html
       lang="en"
       translate="no"
-      className={`${inter.variable} ${bebasNeue.variable} notranslate light antialiased overflow-x-clip max-w-[100vw]`}
+      className={`${inter.variable} ${bebasNeue.variable} ${poppins.variable} notranslate light antialiased overflow-x-clip max-w-[100vw]`}
       suppressHydrationWarning
     >
       <head>

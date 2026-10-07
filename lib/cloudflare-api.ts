@@ -12,8 +12,8 @@ type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 const apiCache = new Map<string, { data: any; expiresAt: number }>();
 const inFlightRequests = new Map<string, Promise<any>>();
-// Cache GET responses for 20 seconds to eliminate micro-spam while ensuring snappy UI
-const CACHE_TTL_MS = 20000; // 20 seconds (invalidated immediately on mutations or click events)
+// Cache GET responses for 30 seconds to eliminate micro-spam while ensuring snappy UI
+const CACHE_TTL_MS = 30000; // 30 seconds (invalidated immediately on mutations or click events)
 
 export function sanitizeClientError(raw: any): string {
   if (!raw) return "Une erreur inattendue est survenue. Veuillez réessayer.";
@@ -72,13 +72,12 @@ export function triggerClickSync() {
   window.dispatchEvent(new CustomEvent("lshorter_links_updated"));
   window.dispatchEvent(new CustomEvent("lshorter_link_clicked"));
 
-  // Secondary fire after 1.2s to capture asynchronous Cloudflare D1 write completion
+  // Secondary fire after 1.2s to capture asynchronous Cloudflare D1 write completion without re-incrementing local counter
   setTimeout(() => {
     cfInvalidateCache("/api/analytics");
     cfInvalidateCache("/api/links");
     window.dispatchEvent(new CustomEvent("lshorter_data_change"));
     window.dispatchEvent(new CustomEvent("lshorter_links_updated"));
-    window.dispatchEvent(new CustomEvent("lshorter_link_clicked"));
   }, 1200);
 }
 
@@ -92,7 +91,6 @@ if (typeof window !== "undefined") {
         cfInvalidateCache("/api/links");
         window.dispatchEvent(new CustomEvent("lshorter_data_change"));
         window.dispatchEvent(new CustomEvent("lshorter_links_updated"));
-        window.dispatchEvent(new CustomEvent("lshorter_link_clicked"));
       }
     };
   } catch {}
@@ -101,14 +99,13 @@ if (typeof window !== "undefined") {
   const handleFocusOrVisibility = () => {
     if (typeof document !== "undefined" && document.visibilityState && document.visibilityState !== "visible") return;
     const now = Date.now();
-    // Throttle focus sync to at most once every 2 seconds (so returning to tab instantly syncs)
+    // Throttle focus sync to at most once every 2 seconds (so returning to tab instantly syncs from server)
     if (now - lastFocusSync < 2000) return;
     lastFocusSync = now;
     cfInvalidateCache("/api/analytics");
     cfInvalidateCache("/api/links");
     window.dispatchEvent(new CustomEvent("lshorter_data_change"));
     window.dispatchEvent(new CustomEvent("lshorter_links_updated"));
-    window.dispatchEvent(new CustomEvent("lshorter_link_clicked"));
   };
 
   window.addEventListener("focus", handleFocusOrVisibility);
@@ -119,13 +116,14 @@ async function cfFetch<T>(
   browserPath: string,
   workerPath: string,
   method: Method = "GET",
-  body?: object
+  body?: object,
+  bypassCache = false
 ): Promise<T> {
   const isBrowser = typeof window !== "undefined";
   const url = isBrowser ? browserPath : `${WORKER_URL}${workerPath}`;
 
   // 1. Cache hit for GET requests
-  if (isBrowser && method === "GET") {
+  if (isBrowser && method === "GET" && !bypassCache) {
     const cached = apiCache.get(url);
     if (cached && cached.expiresAt > Date.now()) {
       return cached.data as T;
@@ -147,7 +145,7 @@ async function cfFetch<T>(
 
   // Only attach secret when on server side
   if (!isBrowser) {
-    headers["X-Frontend-Secret"] = SECRET;
+    if (SECRET) headers["X-Frontend-Secret"] = SECRET;
   }
 
   const fetchPromise = (async () => {
@@ -166,7 +164,7 @@ async function cfFetch<T>(
 
       const data = (await res.json()) as T;
 
-      if (isBrowser && method === "GET") {
+      if (isBrowser && method === "GET" && !bypassCache) {
         apiCache.set(url, { data, expiresAt: Date.now() + CACHE_TTL_MS });
       }
 
@@ -189,7 +187,7 @@ async function cfFetch<T>(
     }
   })();
 
-  if (isBrowser && method === "GET") {
+  if (isBrowser && method === "GET" && !bypassCache) {
     inFlightRequests.set(url, fetchPromise);
   }
 
@@ -197,10 +195,14 @@ async function cfFetch<T>(
 }
 
 // ─── Links ────────────────────────────────────────────────────────────────────
-export async function cfGetLinks(userId: string) {
+export async function cfGetLinks(userId: string, forceRefresh = false) {
+  const cacheBuster = forceRefresh ? `&_t=${Date.now()}` : "";
   return cfFetch<{ success: true; data: any[] }>(
-    `/api/links?userId=${userId}`,
-    `/api/v1/links?userId=${userId}`
+    `/api/links?userId=${userId}${cacheBuster}`,
+    `/api/v1/links?userId=${userId}${cacheBuster}`,
+    "GET",
+    undefined,
+    forceRefresh
   );
 }
 
@@ -433,6 +435,7 @@ export async function cfCreateLink(data: {
     tags: data.tags && data.tags.length ? data.tags : undefined,
     userPlan: data.userPlan || data.plan || undefined,
     plan: data.userPlan || data.plan || undefined,
+    pixels: data.pixels || data.pixelIds || data.pixel_ids || undefined,
   };
 
   if (data.isCloaked || data.is_cloaked === 1 || data.is_cloaked === true) {
@@ -526,6 +529,7 @@ export async function cfUpdateLink(id: string, updates: any) {
     isActive: effectiveIsActive !== undefined ? effectiveIsActive !== 0 : undefined,
     userPlan: updates.userPlan || updates.plan || undefined,
     plan: updates.userPlan || updates.plan || undefined,
+    pixels: updates.pixels !== undefined ? updates.pixels : updates.pixelIds !== undefined ? updates.pixelIds : updates.pixel_ids,
   };
 
   if (updates.isCloaked !== undefined || updates.is_cloaked !== undefined) {
@@ -578,11 +582,20 @@ export async function cfBulkDeleteLinks(ids: string[], userId?: string) {
 }
 
 // ─── Analytics ────────────────────────────────────────────────────────────────
-export async function cfGetAnalytics(userId: string, period = "30d", linkId?: string) {
+export async function cfGetAnalytics(
+  userId: string,
+  period = "30d",
+  linkId?: string,
+  forceRefresh = false
+) {
   const linkParam = linkId && linkId !== "all" ? `&linkId=${linkId}` : "";
+  const cacheBuster = forceRefresh ? `&_t=${Date.now()}` : "";
   return cfFetch<{ success: true; data: any }>(
-    `/api/analytics?userId=${userId}&period=${period}${linkParam}`,
-    `/api/v1/analytics?userId=${userId}&period=${period}${linkParam}`
+    `/api/analytics?userId=${userId}&period=${period}${linkParam}${cacheBuster}`,
+    `/api/v1/analytics?userId=${userId}&period=${period}${linkParam}${cacheBuster}`,
+    "GET",
+    undefined,
+    forceRefresh
   );
 }
 
@@ -700,3 +713,200 @@ export const EMPTY_ANALYTICS = {
   liveClickEvents: [],
   recentConversions: [],
 };
+
+// ─── Retargeting Pixels ────────────────────────────────────────────────────────
+export interface RetargetingPixel {
+  id: string;
+  userId: string;
+  platform: "meta" | "google" | "tiktok" | "linkedin";
+  pixelId: string;
+  name: string;
+  isActive: boolean;
+  eventsTrackedCount: number;
+  createdAt: string;
+}
+
+export async function cfGetPixels(userId: string) {
+  const encUser = encodeURIComponent(userId);
+  return cfFetch<{ success: true; data: { pixels: RetargetingPixel[] } }>(
+    `/api/pixels?userId=${encUser}`,
+    `/api/v1/pixels?userId=${encUser}`
+  );
+}
+
+export async function cfCreatePixel(data: {
+  userId: string;
+  platform: "meta" | "google" | "tiktok" | "linkedin" | string;
+  pixelId: string;
+  name: string;
+  isActive?: boolean;
+}) {
+  const encUser = encodeURIComponent(data.userId);
+  return cfFetch<{ success: true; data: { pixel: RetargetingPixel } }>(
+    `/api/pixels?userId=${encUser}`,
+    `/api/v1/pixels?userId=${encUser}`,
+    "POST",
+    data
+  );
+}
+
+export async function cfUpdatePixel(
+  id: string,
+  data: {
+    userId?: string;
+    name?: string;
+    pixelId?: string;
+    isActive?: boolean;
+  }
+) {
+  const encId = encodeURIComponent(id);
+  const query = data.userId ? `?userId=${encodeURIComponent(data.userId)}` : "";
+  return cfFetch<{ success: true; data: { pixel: RetargetingPixel } }>(
+    `/api/pixels/${encId}${query}`,
+    `/api/v1/pixels/${encId}${query}`,
+    "PATCH",
+    data
+  );
+}
+
+export async function cfDeletePixel(id: string, userId?: string) {
+  const encId = encodeURIComponent(id);
+  const query = userId ? `?userId=${encodeURIComponent(userId)}` : "";
+  return cfFetch<{ success: true; data?: { deletedId: string } }>(
+    `/api/pixels/${encId}${query}`,
+    `/api/v1/pixels/${encId}${query}`,
+    "DELETE"
+  );
+}
+
+// ─── Webhooks (Cloudflare D1 & Sync) ──────────────────────────────────────────
+
+export interface WebhookRecord {
+  id: string;
+  userId: string;
+  url: string;
+  events: string[];
+  secretKey: string;
+  isActive: boolean;
+  lastTriggeredAt?: string | null;
+  lastStatus?: number | null;
+  createdAt: string;
+  created_at?: string;
+}
+
+export async function cfGetWebhooks(userId: string) {
+  const encUser = encodeURIComponent(userId);
+  return cfFetch<{ success: true; data: { webhooks: WebhookRecord[] } }>(
+    `/api/webhooks?userId=${encUser}`,
+    `/api/v1/webhooks?userId=${encUser}`
+  );
+}
+
+export async function cfCreateWebhook(data: {
+  userId: string;
+  url: string;
+  events?: string[];
+  secretKey?: string;
+  isActive?: boolean;
+}) {
+  const encUser = encodeURIComponent(data.userId);
+  return cfFetch<{ success: true; data: { webhook: WebhookRecord } }>(
+    `/api/webhooks?userId=${encUser}`,
+    `/api/v1/webhooks?userId=${encUser}`,
+    "POST",
+    data
+  );
+}
+
+export async function cfUpdateWebhook(
+  id: string,
+  data: {
+    userId?: string;
+    url?: string;
+    events?: string[];
+    secretKey?: string;
+    isActive?: boolean;
+    lastStatus?: number;
+    lastTriggeredAt?: string;
+  }
+) {
+  const encId = encodeURIComponent(id);
+  const query = data.userId ? `?userId=${encodeURIComponent(data.userId)}` : "";
+  return cfFetch<{ success: true; data: { webhook: WebhookRecord } }>(
+    `/api/webhooks/${encId}${query}`,
+    `/api/v1/webhooks/${encId}${query}`,
+    "PATCH",
+    data
+  );
+}
+
+export async function cfDeleteWebhook(id: string, userId?: string) {
+  const encId = encodeURIComponent(id);
+  const query = userId ? `?userId=${encodeURIComponent(userId)}` : "";
+  return cfFetch<{ success: true; data?: { deletedId: string } }>(
+    `/api/webhooks/${encId}${query}`,
+    `/api/v1/webhooks/${encId}${query}`,
+    "DELETE"
+  );
+}
+
+// ─── Target Alerts API (Cloudflare D1) ──────────────────────────────────────
+
+export async function cfGetTargetAlerts(userId: string) {
+  const encUser = encodeURIComponent(userId);
+  return cfFetch<{ success: boolean; data: any[] }>(
+    `/api/targets?userId=${encUser}`,
+    `/api/v1/targets?userId=${encUser}`
+  );
+}
+
+export async function cfCreateTargetAlert(data: {
+  userId: string;
+  linkId?: string | null;
+  metricType?: "clicks" | "revenue";
+  period?: "day" | "week" | "month";
+  targetValue: number;
+  notifyExpired?: boolean;
+  notifyEmail?: boolean;
+  notifyBell?: boolean;
+  status?: "active" | "paused";
+}) {
+  return cfFetch<{ success: boolean; data: any }>(
+    `/api/targets`,
+    `/api/v1/targets`,
+    "POST",
+    data
+  );
+}
+
+export async function cfUpdateTargetAlert(
+  id: string,
+  data: {
+    metricType?: "clicks" | "revenue";
+    period?: "day" | "week" | "month";
+    targetValue?: number;
+    notifyExpired?: boolean;
+    notifyEmail?: boolean;
+    notifyBell?: boolean;
+    status?: "active" | "paused" | "reached";
+  }
+) {
+  const encId = encodeURIComponent(id);
+  return cfFetch<{ success: boolean; updated: string }>(
+    `/api/targets/${encId}`,
+    `/api/v1/targets/${encId}`,
+    "PATCH",
+    data
+  );
+}
+
+export async function cfDeleteTargetAlert(id: string) {
+  const encId = encodeURIComponent(id);
+  return cfFetch<{ success: boolean; deleted: string }>(
+    `/api/targets/${encId}`,
+    `/api/v1/targets/${encId}`,
+    "DELETE"
+  );
+}
+
+

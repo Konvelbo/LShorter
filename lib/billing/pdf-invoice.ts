@@ -42,7 +42,16 @@ export function generateInvoicePdf(data: InvoicePdfData): Buffer {
   const symbol = currency === "USD" ? "$" : currency === "EUR" ? "EUR " : `${currency} `;
   const status = (data.status || "PAID").toUpperCase();
   const company = data.companyName || data.customerName || "LShorter Customer";
-  const address = data.billingAddress || "10 Rue de la Republique, 75001 Paris, France";
+  // Configurable Issuer Identity (Supports env variables or clean digital SaaS branding)
+  const issuerName = process.env.BILLING_COMPANY_NAME || "LShorter Global Infrastructure";
+  const issuerAddress = process.env.BILLING_COMPANY_ADDRESS || "Digital Infrastructure & Global Edge Network";
+  const issuerTaxId = process.env.BILLING_TAX_ID || "";
+  const issuerSub = issuerTaxId
+    ? `Identifiant Fiscal / Tax ID : ${issuerTaxId}`
+    : "Plateforme de routage SaaS & Télémétrie Edge";
+  const issuerContact = `Support : billing@lsho.cc  |  https://lsho.cc`;
+
+  const address = data.billingAddress || "Compte Client vérifié / Adresse numérique";
   const vat = data.taxId
     ? `N TVA / Tax ID : ${data.taxId}`
     : "TVA Client : Exoneration / Autoliquidation B2B (Art. 283-2 CGI)";
@@ -109,172 +118,151 @@ export function generateInvoicePdf(data: InvoicePdfData): Buffer {
     streamLines.push(`${x1} ${y1} m ${x2} ${y2} l S`);
   };
 
-  // 1. Brand Royal Blue Top Accent Bar (#465FFF -> R: 0.275, G: 0.373, B: 1.000)
-  addRect(0, 784, 612, 8, 0.275, 0.373, 1.0, false);
+  // 1. Sober Executive Header
+  addText("LShorter", 44, 736, "F2", 18, 0.08, 0.08, 0.09);
+  addText("Global Edge & Cloud Routing Platform", 44, 721, "F1", 8.5, 0.42, 0.44, 0.48);
+  addText("https://lsho.cc  |  billing@lsho.cc", 44, 709, "F1", 8, 0.42, 0.44, 0.48);
 
-  // 2. Legal Commercial Header
-  addRect(44, 722, 30, 30, 0.275, 0.373, 1.0, false);
-  addText("L", 54, 731, "F2", 16, 1.0, 1.0, 1.0);
+  // Right Header: Clean Typography Reference
+  addText("FACTURE / INVOICE", 430, 736, "F2", 13, 0.08, 0.08, 0.09);
+  addText(`Ref : ${data.invoiceNumber}`, 430, 721, "F2", 9, 0.20, 0.22, 0.26);
+  addText(`Date : ${data.date}`, 430, 709, "F1", 8.5, 0.42, 0.44, 0.48);
 
-  addText("LShorter Cloud Infrastructure SAS", 82, 740, "F2", 14, 0.04, 0.04, 0.05);
-  addText("RCS Paris B 912 485 301  |  SIRET : 912 485 301 00018  |  TVA : FR 48 912485301", 82, 726, "F1", 7.5, 0.38, 0.4, 0.45);
+  // Subtle clean divider rule
+  addLine(44, 695, 568, 695, 0.88, 0.89, 0.92, 0.75);
 
-  // Right Header: Official Invoice Badge & Sequential Number
-  addText("FACTURE / INVOICE", 425, 740, "F2", 14, 0.04, 0.04, 0.05);
-  addText(`Ref : ${data.invoiceNumber}`, 425, 725, "F2", 9.5, 0.275, 0.373, 1.0);
+  // 2. Two-Column Identification (EMETTEUR vs DESTINATAIRE) - Pure typography, NO card boxes
+  addText("EMETTEUR", 44, 672, "F2", 7.5, 0.48, 0.50, 0.55);
+  addText(issuerName, 44, 658, "F2", 9.5, 0.08, 0.08, 0.09);
+  addText(issuerAddress, 44, 646, "F1", 8.5, 0.32, 0.34, 0.38);
+  if (issuerTaxId) {
+    addText(`Tax ID / N TVA : ${issuerTaxId}`, 44, 634, "F1", 8, 0.42, 0.44, 0.48);
+  } else {
+    addText("Distribution SaaS Cloud & Edge", 44, 634, "F1", 8, 0.42, 0.44, 0.48);
+  }
+  addText("Services numeriques electroniques B2B", 44, 622, "F1", 8, 0.42, 0.44, 0.48);
 
-  addLine(44, 708, 568, 708, 0.88, 0.9, 0.94, 0.75);
+  addText("FACTURE A", 326, 672, "F2", 7.5, 0.48, 0.50, 0.55);
+  addText(company, 326, 658, "F2", 9.5, 0.08, 0.08, 0.09);
+  addText(`Email : ${email}`, 326, 646, "F1", 8.5, 0.32, 0.34, 0.38);
+  addText(address.substring(0, 48), 326, 634, "F1", 8, 0.42, 0.44, 0.48);
+  addText(vat, 326, 622, "F1", 8, 0.42, 0.44, 0.48);
 
-  // 3. Statutory Metadata Strip (4 Legal Columns)
-  addRect(44, 656, 524, 40, 0.976, 0.98, 0.992, true);
+  // 3. Metadata Strip (Minimal thin borders, NO heavy background fill)
+  addLine(44, 608, 568, 608, 0.88, 0.89, 0.92, 0.5);
+  addText("PERIODE :", 44, 595, "F2", 7.5, 0.48, 0.50, 0.55);
+  addText(`${data.periodStart} au ${data.periodEnd}`, 92, 595, "F1", 8, 0.15, 0.16, 0.20);
 
-  addText("DATE D'EMISSION", 54, 681, "F2", 7, 0.44, 0.44, 0.48);
-  addText(data.date, 54, 666, "F2", 9, 0.04, 0.04, 0.05);
+  addText("ECHEANCE :", 230, 595, "F2", 7.5, 0.48, 0.50, 0.55);
+  addText("Comptant (Carte / Stripe)", 282, 595, "F1", 8, 0.15, 0.16, 0.20);
 
-  addText("PERIODE FACTUREE", 175, 681, "F2", 7, 0.44, 0.44, 0.48);
-  addText(`${data.periodStart} au ${data.periodEnd}`, 175, 666, "F1", 9, 0.04, 0.04, 0.05);
+  addText("STATUT :", 415, 595, "F2", 7.5, 0.48, 0.50, 0.55);
+  addText(status === "PAID" ? "ACQUITTEE (PAID)" : status, 458, 595, "F2", 8, 0.08, 0.52, 0.26);
 
-  addText("ECHEANCE & REGLEMENT", 325, 681, "F2", 7, 0.44, 0.44, 0.48);
-  addText("Comptant (Carte / Stripe)", 325, 666, "F1", 8.5, 0.04, 0.04, 0.05);
+  addText("DEVISE :", 525, 595, "F2", 7.5, 0.48, 0.50, 0.55);
+  addText(currency, 560, 595, "F1", 8, 0.15, 0.16, 0.20);
+  addLine(44, 584, 568, 584, 0.88, 0.89, 0.92, 0.5);
 
-  addText("STATUT COMPTABLE", 468, 681, "F2", 7, 0.44, 0.44, 0.48);
-  addText(status === "PAID" ? "ACQUITTEE (PAID)" : status, 468, 666, "F2", 8.5, 0.06, 0.62, 0.38);
+  // 4. Line Items Table Header (Thin rules, clean typography, NO card background)
+  addLine(44, 556, 568, 556, 0.72, 0.74, 0.78, 0.75);
+  addText("DESIGNATION DES PRESTATIONS", 44, 544, "F2", 7.5, 0.35, 0.37, 0.42);
+  addText("QTE", 295, 544, "F2", 7.5, 0.35, 0.37, 0.42);
+  addText("P.U. HT", 345, 544, "F2", 7.5, 0.35, 0.37, 0.42);
+  addText("TAUX TVA", 420, 544, "F2", 7.5, 0.35, 0.37, 0.42);
+  addText("TOTAL HT", 512, 544, "F2", 7.5, 0.35, 0.37, 0.42);
+  addLine(44, 534, 568, 534, 0.88, 0.89, 0.92, 0.5);
 
-  // 4. Two-Column Legal Party Identification (EMETTEUR vs DESTINATAIRE)
-  addRect(44, 552, 252, 92, 0.985, 0.988, 0.995, true);
-  addText("EMETTEUR (VENDEUR / PRESTATAIRE)", 54, 630, "F2", 7.5, 0.275, 0.373, 1.0);
-  addText("LShorter Cloud Infrastructure SAS", 54, 615, "F2", 9.5, 0.04, 0.04, 0.05);
-  addText("60 Rue Francois 1er, 75008 Paris, France", 54, 602, "F1", 8.5, 0.3, 0.32, 0.36);
-  addText("SIRET : 912 485 301 00018  |  Code NAF : 6201Z", 54, 590, "F1", 8, 0.3, 0.32, 0.36);
-  addText("N TVA Intracom. : FR 48 912485301", 54, 578, "F1", 8, 0.3, 0.32, 0.36);
-  addText("Capital social : 10 000,00 EUR  |  billing@lsho.cc", 54, 565, "F1", 7.5, 0.44, 0.44, 0.48);
+  // 5. Line Item 1: Plan Subscription
+  let currentY = 512;
+  addText(`Abonnement SaaS LShorter ${data.planName || data.planId}`, 44, currentY, "F2", 9, 0.08, 0.08, 0.09);
+  addText(quotaSummary, 44, currentY - 12, "F1", 7.5, 0.42, 0.44, 0.48);
+  addText(`Periode : ${data.periodStart} - ${data.periodEnd}`, 44, currentY - 22, "F1", 7, 0.50, 0.52, 0.56);
+  addText("1", 298, currentY, "F1", 8.5, 0.15, 0.16, 0.20);
+  addText(`${symbol}${baseAmount.toFixed(2)}`, 345, currentY, "F1", 8.5, 0.15, 0.16, 0.20);
+  addText(vatRate, 420, currentY, "F1", 8.5, 0.40, 0.42, 0.46);
+  addText(`${symbol}${baseAmount.toFixed(2)}`, 512, currentY, "F2", 9, 0.08, 0.08, 0.09);
 
-  addRect(316, 552, 252, 92, 0.985, 0.988, 0.995, true);
-  addText("FACTURE A (CLIENT / ACHETEUR)", 326, 630, "F2", 7.5, 0.275, 0.373, 1.0);
-  addText(company, 326, 615, "F2", 9.5, 0.04, 0.04, 0.05);
-  addText(address.substring(0, 48), 326, 602, "F1", 8.5, 0.3, 0.32, 0.36);
-  addText(`Email : ${email}`, 326, 590, "F1", 8, 0.3, 0.32, 0.36);
-  addText(vat, 326, 578, "F1", 8, 0.3, 0.32, 0.36);
-  addText(`Devise de facturation : ${currency}`, 326, 565, "F1", 7.5, 0.44, 0.44, 0.48);
+  addLine(44, currentY - 32, 568, currentY - 32, 0.88, 0.89, 0.92, 0.5);
 
-  // 5. Normalized Accounting Line Items Table Header
-  addRect(44, 514, 524, 24, 0.94, 0.955, 0.985, true);
-  addText("DESIGNATION DES PRESTATIONS", 52, 523, "F2", 7.5, 0.15, 0.18, 0.25);
-  addText("QTE", 295, 523, "F2", 7.5, 0.15, 0.18, 0.25);
-  addText("P.U. HT", 335, 523, "F2", 7.5, 0.15, 0.18, 0.25);
-  addText("TAUX TVA", 405, 523, "F2", 7.5, 0.15, 0.18, 0.25);
-  addText("MONTANT TVA", 455, 523, "F2", 7.5, 0.15, 0.18, 0.25);
-  addText("TOTAL HT", 518, 523, "F2", 7.5, 0.15, 0.18, 0.25);
-
-  // 6. Line Item 1: Plan Subscription
-  let currentY = 490;
-  addText(`Abonnement SaaS LShorter ${data.planName || data.planId}`, 52, currentY, "F2", 9.5, 0.04, 0.04, 0.05);
-  addText(quotaSummary, 52, currentY - 12, "F1", 7.5, 0.42, 0.44, 0.48);
-  addText(`Periode : ${data.periodStart} - ${data.periodEnd}`, 52, currentY - 22, "F1", 7, 0.5, 0.52, 0.56);
-  addText("1", 298, currentY, "F1", 9, 0.04, 0.04, 0.05);
-  addText(`${symbol}${baseAmount.toFixed(2)}`, 335, currentY, "F1", 9, 0.04, 0.04, 0.05);
-  addText(vatRate, 410, currentY, "F1", 8.5, 0.3, 0.32, 0.36);
-  addText(`${symbol}0.00`, 462, currentY, "F1", 8.5, 0.3, 0.32, 0.36);
-  addText(`${symbol}${baseAmount.toFixed(2)}`, 515, currentY, "F2", 9.5, 0.04, 0.04, 0.05);
-
-  addLine(44, currentY - 32, 568, currentY - 32, 0.88, 0.9, 0.94, 0.75);
-
-  // 7. Line Item 2 (Optional): Metered Click Overage
+  // 6. Line Item 2 (Optional): Metered Click Overage
   if (data.overageAmount && data.overageAmount > 0) {
-    currentY -= 52;
+    currentY -= 50;
     const unitOverage = (data.overageAmount / Math.max(1, data.batchesOverage || 1)).toFixed(2);
     addText(
       `Depassement de quota Edge (${(data.overageClicks || 0).toLocaleString("en-US")} clics supp.)`,
-      52,
+      44,
       currentY,
       "F2",
       9,
-      0.04,
-      0.04,
-      0.05
+      0.08,
+      0.08,
+      0.09
     );
-    addText(overageBatchInfo, 52, currentY - 12, "F1", 7.5, 0.42, 0.44, 0.48);
-    addText(String(data.batchesOverage || 1), 298, currentY, "F1", 9, 0.04, 0.04, 0.05);
-    addText(`${symbol}${unitOverage}`, 335, currentY, "F1", 9, 0.04, 0.04, 0.05);
-    addText(vatRate, 410, currentY, "F1", 8.5, 0.3, 0.32, 0.36);
-    addText(`${symbol}0.00`, 462, currentY, "F1", 8.5, 0.3, 0.32, 0.36);
-    addText(`${symbol}${data.overageAmount.toFixed(2)}`, 515, currentY, "F2", 9.5, 0.04, 0.04, 0.05);
-    addLine(44, currentY - 26, 568, currentY - 26, 0.88, 0.9, 0.94, 0.75);
+    addText(overageBatchInfo, 44, currentY - 12, "F1", 7.5, 0.42, 0.44, 0.48);
+    addText(String(data.batchesOverage || 1), 298, currentY, "F1", 8.5, 0.15, 0.16, 0.20);
+    addText(`${symbol}${unitOverage}`, 345, currentY, "F1", 8.5, 0.15, 0.16, 0.20);
+    addText(vatRate, 420, currentY, "F1", 8.5, 0.40, 0.42, 0.46);
+    addText(`${symbol}${data.overageAmount.toFixed(2)}`, 512, currentY, "F2", 9, 0.08, 0.08, 0.09);
+    addLine(44, currentY - 26, 568, currentY - 26, 0.88, 0.89, 0.92, 0.5);
   }
 
-  // 8. Accounting & VAT Breakdown Box (Right) + Payment Certification Box (Left)
-  const boxTopY = currentY - 46;
+  // 7. Accounting Totals (Right) & Payment Terms (Left) - Clean text without boxes
+  const summaryTopY = currentY - 44;
 
-  // Left Box: Payment & Tax Regime Notice
-  addRect(44, boxTopY - 96, 260, 96, 0.985, 0.988, 0.995, true);
-  addText("CONDITIONS DE REGLEMENT & FISCALITE", 54, boxTopY - 16, "F2", 7.5, 0.15, 0.18, 0.25);
-  addText("Mode de paiement : Prelevement automatique CB / Stripe", 54, boxTopY - 30, "F1", 7.5, 0.3, 0.32, 0.36);
-  addText("Escompte : Aucun escompte pour paiement anticipe.", 54, boxTopY - 42, "F1", 7.5, 0.3, 0.32, 0.36);
-  addText("Regime TVA : Prestation de services numeriques SaaS.", 54, boxTopY - 54, "F1", 7.5, 0.3, 0.32, 0.36);
-  addText("Autoliquidation / Exoneration Art. 259B & 283-2 du CGI.", 54, boxTopY - 66, "F1", 7.5, 0.3, 0.32, 0.36);
-  addText("FACTURE ACQUITTEE — SOLDE RESTANT DU : 0.00", 54, boxTopY - 82, "F2", 8, 0.06, 0.62, 0.38);
+  // Left side: Payment terms & Tax notes
+  addText("CONDITIONS DE REGLEMENT & FISCALITE", 44, summaryTopY, "F2", 7.5, 0.45, 0.47, 0.52);
+  addText("Mode de paiement : Prelevement automatique CB / Stripe", 44, summaryTopY - 14, "F1", 7.5, 0.38, 0.40, 0.45);
+  addText("Escompte : Aucun escompte pour paiement anticipe.", 44, summaryTopY - 26, "F1", 7.5, 0.38, 0.40, 0.45);
+  addText("Regime TVA : Prestation de services numeriques SaaS.", 44, summaryTopY - 38, "F1", 7.5, 0.38, 0.40, 0.45);
+  addText("Autoliquidation / Exoneration Art. 259B du CGI.", 44, summaryTopY - 50, "F1", 7.5, 0.38, 0.40, 0.45);
+  addText("FACTURE ACQUITTEE - SOLDE RESTANT DU : 0.00", 44, summaryTopY - 64, "F2", 8, 0.08, 0.52, 0.26);
 
-  // Right Box: Accounting Totals HT / TVA / TTC
-  addRect(324, boxTopY - 96, 244, 96, 0.976, 0.98, 0.992, true);
-  addText("Total Hors Taxes (Net HT)", 336, boxTopY - 18, "F1", 8.5, 0.3, 0.32, 0.36);
-  addText(`${symbol}${subtotalHt}`, 498, boxTopY - 18, "F2", 8.5, 0.04, 0.04, 0.05);
+  // Right side: Totals
+  addText("Total Hors Taxes (Net HT)", 350, summaryTopY, "F1", 8.5, 0.38, 0.40, 0.45);
+  addText(`${symbol}${subtotalHt}`, 512, summaryTopY, "F1", 8.5, 0.08, 0.08, 0.09);
 
-  addText("Total TVA (Taux 0,00%)", 336, boxTopY - 34, "F1", 8.5, 0.3, 0.32, 0.36);
-  addText(`${symbol}${taxAmount}`, 498, boxTopY - 34, "F1", 8.5, 0.04, 0.04, 0.05);
+  addText("Total TVA (Taux 0,00%)", 350, summaryTopY - 15, "F1", 8.5, 0.38, 0.40, 0.45);
+  addText(`${symbol}${taxAmount}`, 512, summaryTopY - 15, "F1", 8.5, 0.08, 0.08, 0.09);
 
-  addLine(336, boxTopY - 44, 556, boxTopY - 44, 0.85, 0.87, 0.91, 0.75);
+  addLine(350, summaryTopY - 24, 568, summaryTopY - 24, 0.85, 0.86, 0.90, 0.5);
 
-  addText("TOTAL TTC (Total Due)", 336, boxTopY - 58, "F2", 9.5, 0.04, 0.04, 0.05);
-  addText(`${symbol}${totalTtc} ${currency}`, 482, boxTopY - 58, "F2", 10, 0.275, 0.373, 1.0);
+  addText("TOTAL TTC", 350, summaryTopY - 38, "F2", 9.5, 0.08, 0.08, 0.09);
+  addText(`${symbol}${totalTtc} ${currency}`, 490, summaryTopY - 38, "F2", 9.5, 0.08, 0.08, 0.09);
 
-  addText("Montant deja regle (Paid)", 336, boxTopY - 74, "F1", 8, 0.06, 0.62, 0.38);
-  addText(`-${symbol}${totalTtc}`, 495, boxTopY - 74, "F2", 8, 0.06, 0.62, 0.38);
+  addText("Montant deja regle (Paid)", 350, summaryTopY - 53, "F1", 8, 0.08, 0.52, 0.26);
+  addText(`-${symbol}${totalTtc}`, 512, summaryTopY - 53, "F1", 8, 0.08, 0.52, 0.26);
 
-  addText("Net a payer (Balance Due)", 336, boxTopY - 88, "F2", 8.5, 0.04, 0.04, 0.05);
-  addText(`${symbol}0.00 ${currency}`, 490, boxTopY - 88, "F2", 8.5, 0.04, 0.04, 0.05);
+  addLine(350, summaryTopY - 61, 568, summaryTopY - 61, 0.85, 0.86, 0.90, 0.5);
 
-  // 9. Mandatory Legal Mentions Footer (Article L441-9 & L441-10 Code de Commerce)
-  const footerY = 78;
-  addLine(44, footerY + 34, 568, footerY + 34, 0.88, 0.9, 0.94, 0.75);
+  addText("Net a payer", 350, summaryTopY - 74, "F2", 8.5, 0.08, 0.08, 0.09);
+  addText(`${symbol}0.00 ${currency}`, 505, summaryTopY - 74, "F2", 8.5, 0.08, 0.08, 0.09);
+
+  // 8. Minimalist Bottom Footer
+  const footerY = 55;
+  addLine(44, footerY + 20, 568, footerY + 20, 0.88, 0.89, 0.92, 0.5);
   addText(
-    "MENTIONS LEGALES OBLIGATOIRES (Article L.441-9 du Code de commerce & Directive UE 2006/112/CE) :",
-    44,
-    footerY + 20,
-    "F2",
-    7.5,
-    0.15,
-    0.18,
-    0.25
-  );
-  addText(
-    "En cas de retard de paiement, application d'une penalite egale a 3 fois le taux d'interet legal (ou taux BCE + 10 pts) ainsi qu'une indemnite",
+    "Document original certifie conforme genere par la plateforme LShorter. Prestation de services electroniques B2B.",
     44,
     footerY + 8,
     "F1",
     7,
-    0.42,
-    0.44,
-    0.48
+    0.48,
+    0.50,
+    0.55
   );
+  const footerLegalText = issuerTaxId
+    ? `${issuerName} — ${issuerTaxId} — https://lsho.cc — Support : billing@lsho.cc`
+    : `${issuerName} — Global Cloud Services — https://lsho.cc — Support : billing@lsho.cc`;
+
   addText(
-    "forfaitaire pour frais de recouvrement de 40,00 EUR (Art. L.441-10 et D.441-5 du Code de commerce). Document original certifie conforme.",
+    footerLegalText,
     44,
     footerY - 3,
     "F1",
     7,
-    0.42,
-    0.44,
-    0.48
-  );
-  addText(
-    "LShorter Cloud Infrastructure SAS — RCS Paris B 912 485 301 — SIRET 912 485 301 00018 — https://lsho.cc — Support : billing@lsho.cc",
-    44,
-    footerY - 15,
-    "F2",
-    7,
-    0.275,
-    0.373,
-    1.0
+    0.48,
+    0.50,
+    0.55
   );
 
   // Build PDF Binary Objects

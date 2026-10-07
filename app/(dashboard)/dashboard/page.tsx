@@ -126,6 +126,17 @@ export default function DashboardOverviewPage() {
           l.isActive === false ||
           l.isActive === "0"
         ),
+        pixels: Array.isArray(l.pixels)
+          ? l.pixels
+          : typeof l.pixels === "string"
+            ? (() => {
+                try {
+                  return JSON.parse(l.pixels);
+                } catch {
+                  return [l.pixels];
+                }
+              })()
+            : [],
         created_at: l.created_at || l.createdAt || new Date().toISOString(),
       }));
       setLinks(rawLinks);
@@ -222,8 +233,19 @@ export default function DashboardOverviewPage() {
               os: ev.os || undefined,
               browser: ev.browser || "Inconnu",
               referrer: ev.referrer || "Direct",
+              // DEMO-START: Forward buyer and conversion details
+              conversionAmount: ev.conversionAmount ?? ev.conversion_amount ?? 0,
+              customerName: ev.customerName || ev.customer_name,
+              customerEmail: ev.customerEmail || ev.customer_email,
+              customerAvatar: ev.customerAvatar || ev.customer_avatar || ev.avatarUrl || ev.avatar,
+              clicks: ev.clicks,
+              // DEMO-END
             })),
-            recentConversions: [],
+            recentConversions: d.recent_conversions || d.recentConversions || [],
+            // DEMO-START: Forward pre-calculated monthly distribution
+            clicksByMonth: d.clicks_by_month || d.clicksByMonth,
+            incomeByMonth: d.income_by_month || d.incomeByMonth,
+            // DEMO-END
           });
         } else {
           // Analytics API returned no data — fall back to link-level aggregates.

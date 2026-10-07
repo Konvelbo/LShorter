@@ -304,7 +304,7 @@ export default function LoginPage({
 
       confetti({ particleCount: 60, spread: 70, origin: { y: 0.6 } });
       showToast.success(`Welcome to LShorter, ${userName}!`);
-      router.push("/dashboard");
+      window.location.href = "/dashboard";
     } catch (error) {
       console.error("Auth error:", error);
       showToast.error(
@@ -1017,12 +1017,12 @@ export default function LoginPage({
 
       {/* ── RIGHT COLUMN: CLEAN MINIMALIST BRAND SHOWCASE WITH BOUNCING LS LOGO & ENGLISH MOTTO ── */}
       <div className="hidden lg:flex flex-col items-center justify-center relative bg-[#faf7f2] dark:bg-[#0d0d12] overflow-hidden border-l border-neutral-300/80 dark:border-[#222225] select-none p-12 transition-colors duration-200">
-        {/* Subtle radial ambient glow behind the logo */}
-        <div className="absolute w-[450px] h-[450px] bg-brand-light rounded-full blur-[140px] pointer-events-none opacity-60 dark:opacity-80" />
+        {/* Subtle radial ambient blue glow behind the logo */}
+        <div className="absolute w-[480px] h-[480px] bg-[#0066FF]/25 dark:bg-[#0066FF]/35 rounded-full blur-[130px] pointer-events-none" />
 
         <div className="relative z-10 flex flex-col items-center text-center max-w-md w-full">
-          {/* Animated Bouncing Official Logo Squircle */}
-          <div className="w-28 h-28 rounded-3xl overflow-hidden shadow-2xl relative group cursor-default shadow-brand animate-icon-bounce p-3 bg-white/10 backdrop-blur-md border border-white/20">
+          {/* Animated Bouncing Official Logo Squircle with Blue Glow */}
+          <div className="w-28 h-28 rounded-3xl overflow-hidden relative group cursor-default shadow-[0_0_45px_rgba(0,102,255,0.45)] animate-icon-bounce p-3 bg-white/15 dark:bg-[#0066FF]/10 backdrop-blur-md border border-white/25 dark:border-[#0066FF]/35">
             <Image
               src="/logo.svg"
               alt="LShorter Logo"
@@ -1036,7 +1036,7 @@ export default function LoginPage({
           {/* Slogan / Devise in English */}
           <h2 className="text-3xl sm:text-4xl font-extrabold text-neutral-900 dark:text-white tracking-tight mt-9 leading-tight">
             Every Click Matters. <br />
-            <span className="text-brand">Every Millisecond Counts.</span>
+            <span className="text-[#0066FF]">Every Millisecond Counts.</span>
           </h2>
 
           {/* Subtitle in English */}

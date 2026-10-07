@@ -487,7 +487,7 @@ export default function DomainsPage() {
             }}
             variant="outline"
             disabled={isRefreshing}
-            className="h-10 px-3.5 text-xs font-semibold gap-2 border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111827] hover:bg-slate-50 dark:hover:bg-slate-800/70 text-slate-700 dark:text-slate-200 cursor-pointer shadow-xs"
+            className="h-8.5 px-3 text-xs font-semibold gap-1.5 border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111827] hover:bg-slate-50 dark:hover:bg-slate-800/70 text-slate-700 dark:text-slate-200 cursor-pointer shadow-xs rounded-lg"
           >
             <RefreshCw
               className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-[#465FFF]" : "text-slate-500 dark:text-slate-400"}`}
@@ -501,9 +501,9 @@ export default function DomainsPage() {
               setDomainError(null);
             }}
             variant="glow"
-            className="font-semibold text-sm tracking-wide gap-1.5 shrink-0 bg-[#465FFF] hover:bg-[#3b51e6] text-white shadow-sm"
+            className="h-8.5 px-3 text-xs font-semibold tracking-wide gap-1.5 shrink-0 bg-[#465FFF] hover:bg-[#3b51e6] text-white shadow-xs rounded-lg"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-3.5 h-3.5" />
             <span>ADD A DOMAIN</span>
           </Button>
         </div>

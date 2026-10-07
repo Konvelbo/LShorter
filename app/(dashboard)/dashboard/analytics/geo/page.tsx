@@ -43,6 +43,7 @@ import {
   Continent,
   CONTINENTS_META,
   WORLD_COUNTRIES,
+  ISO2_TO_CONTINENT,
   getContinentForCountry,
   getCountryName,
   getCountryFlag,
@@ -84,6 +85,19 @@ export const COUNTRY_CENTROIDS: Record<
     name: "United States",
     continent: "North America",
   },
+};
+
+export const CONTINENT_VIEWPORTS: Record<
+  Continent | "ALL",
+  { coordinates: [number, number]; zoom: number }
+> = {
+  ALL: { coordinates: [10, 18], zoom: 1 },
+  Africa: { coordinates: [18, 5], zoom: 2.2 },
+  Europe: { coordinates: [15, 52], zoom: 2.8 },
+  "North America": { coordinates: [-95, 45], zoom: 2.0 },
+  "South America": { coordinates: [-60, -20], zoom: 2.2 },
+  Asia: { coordinates: [90, 35], zoom: 1.8 },
+  Oceania: { coordinates: [135, -25], zoom: 2.4 },
 };
 
 const WORLD_ATLAS_NUMERIC_TO_ALPHA2: Record<string, string> = {
@@ -169,7 +183,7 @@ function resolveCountryFromGeography(geo: any): {
   return {
     code: d.code,
     name: centroid?.name || d.name,
-    continent: centroid?.continent || d.continent,
+    continent: (ISO2_TO_CONTINENT[d.code] || centroid?.continent || d.continent) as Continent,
     lat: centroid?.lat ?? d.lat,
     lng: centroid?.lng ?? d.lng,
   };
@@ -185,7 +199,7 @@ function getCalibratedCentroid(code?: string) {
     return {
       code: upper,
       name: w.nameEn || w.name,
-      continent: w.continent,
+      continent: (ISO2_TO_CONTINENT[upper] || w.continent) as Continent,
       lat: w.lat,
       lng: w.lng,
     };
@@ -689,32 +703,90 @@ export default function GeoAnalyticsPage() {
     };
 
     const total = analytics.totalClicks || 0;
+    const countries = analytics.topCountries || [];
 
-    for (const c of analytics.topCountries || []) {
-      const code = (c.code || "").toUpperCase();
-      const continent = (WORLD_COUNTRIES[code]?.continent || getContinentForCountry(code)) as Continent;
-      if (continent && base[continent]) {
-        base[continent].clicks += c.count;
-        base[continent].uniqueVisitors += c.count;
-        countriesByContinent[continent].add(code);
+    if (countries.length > 0) {
+      for (const c of countries) {
+        const rawCode = (c.code || (c as any).country_code || (c as any).country || "").toUpperCase().trim();
+        if (!rawCode || rawCode === "XX" || rawCode === "UNKNOWN" || rawCode === "INCONNU" || rawCode === "LOCAL") continue;
+        const code = rawCode.length === 2 ? rawCode : (Object.values(WORLD_COUNTRIES).find(wc => wc.name.toLowerCase() === rawCode.toLowerCase() || wc.nameEn.toLowerCase() === rawCode.toLowerCase())?.code || rawCode);
+        const continent = (ISO2_TO_CONTINENT[code] || WORLD_COUNTRIES[code]?.continent || getContinentForCountry(code)) as Continent;
+        if (continent && base[continent]) {
+          base[continent].clicks += c.count || (c as any).clicks || 0;
+          base[continent].uniqueVisitors += c.count || (c as any).clicks || 0;
+          countriesByContinent[continent].add(code);
+        }
+      }
+    } else if ((analytics.liveClickEvents || []).length > 0) {
+      for (const ev of analytics.liveClickEvents) {
+        const rawCode = (ev.countryCode || (ev as any).country_code || (ev as any).country || "").toUpperCase().trim();
+        if (!rawCode || rawCode === "XX" || rawCode === "UNKNOWN" || rawCode === "INCONNU" || rawCode === "LOCAL") continue;
+        const code = rawCode.length === 2 ? rawCode : (Object.values(WORLD_COUNTRIES).find(wc => wc.name.toLowerCase() === rawCode.toLowerCase() || wc.nameEn.toLowerCase() === rawCode.toLowerCase())?.code || rawCode);
+        const continent = (ISO2_TO_CONTINENT[code] || WORLD_COUNTRIES[code]?.continent || getContinentForCountry(code)) as Continent;
+        if (continent && base[continent]) {
+          base[continent].clicks += 1;
+          base[continent].uniqueVisitors += 1;
+          countriesByContinent[continent].add(code);
+        }
       }
     }
 
+    const resolvedClicksSum = Object.values(base).reduce((acc, c) => acc + c.clicks, 0);
+    const denominator = resolvedClicksSum > 0 ? resolvedClicksSum : (total > 0 ? total : 1);
     for (const cont of Object.keys(base) as Continent[]) {
       base[cont].countriesCount = countriesByContinent[cont].size;
-      base[cont].percentage = total > 0 ? Math.round((base[cont].clicks / total) * 100) : 0;
+      base[cont].percentage = resolvedClicksSum > 0 ? Math.round((base[cont].clicks / denominator) * 100) : 0;
     }
 
     return base;
-  }, [analytics.topCountries, analytics.totalClicks]);
+  }, [analytics.topCountries, analytics.liveClickEvents, analytics.totalClicks]);
+
+  const filteredEvents = useMemo(() => {
+    return analytics.liveClickEvents.filter((ev) => {
+      if (selectedContinent !== "ALL") {
+        const evContinent = (ISO2_TO_CONTINENT[ev.countryCode] || WORLD_COUNTRIES[ev.countryCode]?.continent || getContinentForCountry(ev.countryCode)) as Continent;
+        if (evContinent !== selectedContinent) return false;
+      }
+      if (selectedCountryFilter !== "ALL") {
+        if (ev.countryCode?.toUpperCase() !== selectedCountryFilter.toUpperCase()) return false;
+      }
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        return (
+          ev.slug?.toLowerCase().includes(q) ||
+          ev.city?.toLowerCase().includes(q) ||
+          ev.countryName?.toLowerCase().includes(q) ||
+          ev.referrer?.toLowerCase().includes(q) ||
+          ev.browser?.toLowerCase().includes(q) ||
+          ev.device?.toLowerCase().includes(q)
+        );
+      }
+      return true;
+    });
+  }, [analytics.liveClickEvents, searchQuery, selectedContinent, selectedCountryFilter]);
+
+  const totalPages = Math.ceil(filteredEvents.length / pageSize) || 1;
+  const paginatedEvents = filteredEvents.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
+  );
 
   const geoDonutItems = useMemo<ReuiDonut22Item[]>(() => {
     if (analytics.totalClicks <= 0) return [];
     if (geoDonutDimension === "country") {
-      return (analytics.topCountries || []).slice(0, 6).map((c) => ({
+      const allCountries = (analytics.topCountries || []).map((c) => {
+        const code = (c.code || "").toUpperCase();
+        const cont = WORLD_COUNTRIES[code]?.continent || ISO2_TO_CONTINENT[code] || getContinentForCountry(code);
+        return { ...c, code, continent: cont };
+      });
+      const filtered = selectedContinent === "ALL"
+        ? allCountries
+        : allCountries.filter((c) => c.continent === selectedContinent);
+
+      return filtered.slice(0, 6).map((c) => ({
         key: c.code,
         label: c.name,
-        sublabel: WORLD_COUNTRIES[c.code]?.continent || getContinentForCountry(c.code) || "Global",
+        sublabel: c.continent || "Global",
         value: c.count,
         secondaryText: c.code,
       }));
@@ -722,7 +794,9 @@ export default function GeoAnalyticsPage() {
     if (geoDonutDimension === "continent") {
       const continentMap = new Map<string, number>();
       for (const c of analytics.topCountries || []) {
-        const cont = WORLD_COUNTRIES[c.code]?.continent || getContinentForCountry(c.code) || "Other";
+        const code = (c.code || "").toUpperCase();
+        if (!code || code === "XX") continue;
+        const cont = WORLD_COUNTRIES[code]?.continent || ISO2_TO_CONTINENT[code] || getContinentForCountry(code) || "Other";
         continentMap.set(cont, (continentMap.get(cont) || 0) + c.count);
       }
       return Array.from(continentMap.entries()).map(([continent, value]) => ({
@@ -734,6 +808,19 @@ export default function GeoAnalyticsPage() {
       }));
     }
     if (geoDonutDimension === "device") {
+      if (selectedContinent !== "ALL" && filteredEvents.length > 0) {
+        const devMap = new Map<string, number>();
+        for (const ev of filteredEvents) {
+          const dev = ev.device || "desktop";
+          devMap.set(dev, (devMap.get(dev) || 0) + 1);
+        }
+        return Array.from(devMap.entries()).map(([device, value]) => ({
+          key: device,
+          label: device.charAt(0).toUpperCase() + device.slice(1),
+          sublabel: "Form factor",
+          value,
+        }));
+      }
       return (analytics.topDevices || []).slice(0, 5).map((dv) => ({
         key: dv.label,
         label: dv.label,
@@ -742,6 +829,19 @@ export default function GeoAnalyticsPage() {
       }));
     }
     if (geoDonutDimension === "browser") {
+      if (selectedContinent !== "ALL" && filteredEvents.length > 0) {
+        const brMap = new Map<string, number>();
+        for (const ev of filteredEvents) {
+          const br = ev.browser || "Chrome";
+          brMap.set(br, (brMap.get(br) || 0) + 1);
+        }
+        return Array.from(brMap.entries()).map(([browser, value]) => ({
+          key: browser,
+          label: browser,
+          sublabel: "Browser engine",
+          value,
+        }));
+      }
       return (analytics.topBrowsers || []).slice(0, 5).map((br) => ({
         key: br.name,
         label: br.name,
@@ -750,8 +850,11 @@ export default function GeoAnalyticsPage() {
       }));
     }
     // OS dimension
+    const eventsSource = selectedContinent !== "ALL" && filteredEvents.length > 0
+      ? filteredEvents
+      : (analytics.liveClickEvents || []);
     const osMap = new Map<string, number>();
-    for (const ev of analytics.liveClickEvents || []) {
+    for (const ev of eventsSource) {
       const os = ev.os || "Other";
       osMap.set(os, (osMap.get(os) || 0) + 1);
     }
@@ -769,32 +872,43 @@ export default function GeoAnalyticsPage() {
       sublabel: "Operating System",
       value,
     }));
-  }, [geoDonutDimension, analytics.totalClicks, analytics.topCountries, analytics.topDevices, analytics.topBrowsers, analytics.liveClickEvents]);
+  }, [geoDonutDimension, selectedContinent, filteredEvents, analytics.totalClicks, analytics.topCountries, analytics.topDevices, analytics.topBrowsers, analytics.liveClickEvents]);
 
-  const filteredEvents = useMemo(() => {
-    return analytics.liveClickEvents.filter((ev) => {
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        return (
-          ev.slug?.toLowerCase().includes(q) ||
-          ev.city?.toLowerCase().includes(q) ||
-          ev.countryName?.toLowerCase().includes(q) ||
-          ev.referrer?.toLowerCase().includes(q) ||
-          ev.browser?.toLowerCase().includes(q) ||
-          ev.device?.toLowerCase().includes(q)
-        );
-      }
-      return true;
+  const topCountry = useMemo(() => {
+    const candidateCountries = (analytics.topCountries || []).filter((c) => {
+      if (selectedContinent === "ALL") return true;
+      const code = (c.code || "").toUpperCase();
+      const cont = WORLD_COUNTRIES[code]?.continent || ISO2_TO_CONTINENT[code] || getContinentForCountry(code);
+      return cont === selectedContinent;
     });
-  }, [analytics.liveClickEvents, searchQuery]);
 
-  const totalPages = Math.ceil(filteredEvents.length / pageSize) || 1;
-  const paginatedEvents = filteredEvents.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize,
-  );
+    if (candidateCountries.length > 0) {
+      return candidateCountries[0];
+    }
 
-  const topCountry = analytics.topCountries[0] || null;
+    if (filteredEvents && filteredEvents.length > 0) {
+      const counts: Record<string, number> = {};
+      for (const ev of filteredEvents) {
+        const c = (ev.countryCode || "XX").toUpperCase();
+        if (c && c !== "XX") {
+          counts[c] = (counts[c] || 0) + 1;
+        }
+      }
+      const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+      if (sorted.length > 0) {
+        const [code, count] = sorted[0];
+        const name = getCountryName(code) || code;
+        const total = filteredEvents.length;
+        return {
+          code,
+          name,
+          count,
+          percentage: total > 0 ? Math.round((count / total) * 100) : 100,
+        };
+      }
+    }
+    return null;
+  }, [analytics.topCountries, filteredEvents, selectedContinent]);
   const activeContinentsCount = useMemo(() => {
     return Object.values(continentsData).filter((c) => c.clicks > 0).length;
   }, [continentsData]);
@@ -966,7 +1080,7 @@ export default function GeoAnalyticsPage() {
             <span className="text-xs font-bold ds-text-muted uppercase tracking-wider">
               Top Continent
             </span>
-            <span className="text-lg shrink-0">🌍</span>
+            <span className="text-lg shrink-0">{topContinent ? (CONTINENTS_META[topContinent.continent]?.icon || "🌍") : "🌍"}</span>
           </div>
           <div className="flex items-center gap-1.5 truncate">
             <span className="font-bold ds-text-primary text-lg sm:text-xl truncate">
@@ -1058,6 +1172,22 @@ export default function GeoAnalyticsPage() {
             </div>
             <h3 className="text-lg font-bold text-[#09090B] dark:text-white flex flex-wrap items-center gap-2">
               <span>World Map of Continents &amp; Countries</span>
+              {selectedContinent !== "ALL" && (
+                <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-0.5 rounded-full font-semibold bg-[#0066FF]/10 text-[#0066FF] border border-[#0066FF]/30">
+                  <span>Filtered: {CONTINENTS_META[selectedContinent]?.name || selectedContinent}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedContinent("ALL");
+                      setMapPosition(CONTINENT_VIEWPORTS["ALL"]);
+                    }}
+                    className="hover:text-red-500 cursor-pointer ml-0.5 transition-colors"
+                    title="Clear filter"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
             </h3>
             <p className="text-xs text-zinc-500 dark:text-neutral-400">
               Only countries with recorded clicks are highlighted in active
@@ -1096,7 +1226,7 @@ export default function GeoAnalyticsPage() {
               <button
                 type="button"
                 onClick={() =>
-                  setMapPosition({ coordinates: [10, 18], zoom: 1 })
+                  setMapPosition(CONTINENT_VIEWPORTS[selectedContinent] || CONTINENT_VIEWPORTS["ALL"])
                 }
                 title="Reset view"
                 className="p-1.5 text-zinc-600 dark:text-neutral-400 hover:text-black dark:hover:text-white rounded-[8px] transition-colors cursor-pointer"
@@ -1140,13 +1270,22 @@ export default function GeoAnalyticsPage() {
                     const countryClicks = countryClicksMap.get(resolved.code) || 0;
                     const hasClicks = countryClicks > 0;
                     const countryPct = analytics.totalClicks > 0 ? Math.round((countryClicks / analytics.totalClicks) * 100) : 0;
+                    const isContinentMatch = selectedContinent === "ALL" || resolved.continent === selectedContinent;
 
                     let fillColor = isDarkMode ? "#18181c" : "#E2E8F0";
                     let strokeColor = isDarkMode ? "#27272a" : "#CBD5E1";
 
-                    if (hasClicks) {
-                      fillColor = "#0066FF";
-                      strokeColor = "#ffffff";
+                    if (isContinentMatch) {
+                      if (hasClicks) {
+                        fillColor = "#0066FF";
+                        strokeColor = "#ffffff";
+                      } else {
+                        fillColor = isDarkMode ? "#1f1f24" : "#E2E8F0";
+                        strokeColor = isDarkMode ? "#2e2e34" : "#CBD5E1";
+                      }
+                    } else {
+                      fillColor = isDarkMode ? "#101012" : "#F8FAFC";
+                      strokeColor = isDarkMode ? "#18181a" : "#E2E8F0";
                     }
 
                     return (
@@ -1154,6 +1293,7 @@ export default function GeoAnalyticsPage() {
                         key={geo.rsmKey}
                         geography={geo}
                         onMouseEnter={() => {
+                          if (!isContinentMatch) return;
                           setHoveredCountry({
                             code: resolved.code,
                             name: resolved.name,
@@ -1167,21 +1307,25 @@ export default function GeoAnalyticsPage() {
                           default: {
                             fill: fillColor,
                             stroke: strokeColor,
-                            strokeWidth: hasClicks ? 1.2 : 0.4,
+                            strokeWidth: isContinentMatch ? (hasClicks ? 1.2 : 0.4) : 0.2,
+                            opacity: isContinentMatch ? 1 : 0.22,
                             outline: "none",
                             transition: "all 200ms ease",
-                            cursor: "pointer",
+                            cursor: isContinentMatch ? "pointer" : "default",
                           },
                           hover: {
-                            fill: hasClicks
-                              ? "#0055d4"
-                              : isDarkMode
-                                ? "#222228"
-                                : "#CBD5E1",
-                            stroke: "#ffffff",
-                            strokeWidth: 1.2,
+                            fill: isContinentMatch
+                              ? (hasClicks
+                                ? "#0055d4"
+                                : isDarkMode
+                                  ? "#222228"
+                                  : "#CBD5E1")
+                              : fillColor,
+                            stroke: isContinentMatch ? "#ffffff" : strokeColor,
+                            strokeWidth: isContinentMatch ? 1.2 : 0.2,
+                            opacity: isContinentMatch ? 1 : 0.22,
                             outline: "none",
-                            cursor: "pointer",
+                            cursor: isContinentMatch ? "pointer" : "default",
                           },
                         }}
                       />
@@ -1191,34 +1335,41 @@ export default function GeoAnalyticsPage() {
               </Geographies>
 
               {analytics.topCountries && analytics.topCountries.length > 0 &&
-                analytics.topCountries.map((c) => {
-                  const geo = WORLD_COUNTRIES[c.code] || COUNTRY_CENTROIDS[c.code];
-                  if (!geo || typeof geo.lat !== "number" || typeof geo.lng !== "number") return null;
-                  return (
-                    <Marker key={`marker-${c.code}`} coordinates={[geo.lng, geo.lat]}>
-                      <g className="cursor-pointer">
-                        <circle
-                          r="12"
-                          fill="#0066FF"
-                          opacity="0.35"
-                          className="animate-ping pointer-events-none"
-                        />
-                        <circle
-                          r="6"
-                          fill="#0066FF"
-                          opacity="0.75"
-                          className="pointer-events-none"
-                        />
-                        <circle
-                          r="3.5"
-                          fill="#ffffff"
-                          stroke="#0066FF"
-                          strokeWidth="2"
-                        />
-                      </g>
-                    </Marker>
-                  );
-                })
+                analytics.topCountries
+                  .filter((c) => {
+                    if (selectedContinent === "ALL") return true;
+                    const code = (c.code || "").toUpperCase();
+                    const cont = WORLD_COUNTRIES[code]?.continent || ISO2_TO_CONTINENT[code] || getContinentForCountry(code);
+                    return cont === selectedContinent;
+                  })
+                  .map((c) => {
+                    const geo = WORLD_COUNTRIES[c.code] || COUNTRY_CENTROIDS[c.code];
+                    if (!geo || typeof geo.lat !== "number" || typeof geo.lng !== "number") return null;
+                    return (
+                      <Marker key={`marker-${c.code}`} coordinates={[geo.lng, geo.lat]}>
+                        <g className="cursor-pointer">
+                          <circle
+                            r="12"
+                            fill="#0066FF"
+                            opacity="0.35"
+                            className="animate-ping pointer-events-none"
+                          />
+                          <circle
+                            r="6"
+                            fill="#0066FF"
+                            opacity="0.75"
+                            className="pointer-events-none"
+                          />
+                          <circle
+                            r="3.5"
+                            fill="#ffffff"
+                            stroke="#0066FF"
+                            strokeWidth="2"
+                          />
+                        </g>
+                      </Marker>
+                    );
+                  })
               }
             </ZoomableGroup>
           </ComposableMap>
@@ -1259,16 +1410,36 @@ export default function GeoAnalyticsPage() {
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-4 mt-2 border-t border-[#E4E7EC] dark:border-[#222225] z-10">
           {CONTINENT_CARDS_ORDER.map((item) => {
-            const isAfrica = item.key === "Africa";
-            const clicks = isAfrica ? analytics.totalClicks : 0;
-            const percentage = isAfrica ? 100 : 0;
+            const data = continentsData[item.key] || {
+              continent: item.key,
+              clicks: 0,
+              uniqueVisitors: 0,
+              percentage: 0,
+              countriesCount: 0,
+            };
+            const clicks = data.clicks;
+            const percentage = data.percentage;
+            const hasClicks = clicks > 0;
+            const isSelected = selectedContinent === item.key;
 
             return (
-              <div
+              <button
                 key={item.key}
-                className="p-3.5 rounded-[10px] bg-white dark:bg-[#111113] border border-[#E4E7EC] dark:border-[#222225] text-left flex flex-col justify-between shadow-2xs"
+                type="button"
+                onClick={() => {
+                  const nextContinent = isSelected ? "ALL" : item.key;
+                  setSelectedContinent(nextContinent);
+                  setMapPosition(CONTINENT_VIEWPORTS[nextContinent] || CONTINENT_VIEWPORTS["ALL"]);
+                  setCurrentPage(1);
+                }}
+                className={`p-3.5 rounded-[10px] border text-left flex flex-col justify-between shadow-2xs transition-all cursor-pointer ${
+                  isSelected
+                    ? "bg-[#0066FF]/10 dark:bg-[#0066FF]/15 border-[#0066FF] shadow-xs ring-1 ring-[#0066FF]/50 scale-[1.02]"
+                    : "bg-white dark:bg-[#111113] border-[#E4E7EC] dark:border-[#222225] hover:border-[#0066FF]/40 hover:bg-slate-50 dark:hover:bg-white/[0.02]"
+                }`}
+                title={`Filter by ${item.label} (${clicks} clicks, ${percentage}%)`}
               >
-                <div className="flex items-center justify-between gap-1.5 mb-2">
+                <div className="flex items-center justify-between gap-1.5 mb-2 w-full">
                   <span className="text-xs flex items-center gap-1.5 min-w-0">
                     <span className="shrink-0">{item.icon}</span>
                     <span className="font-bold text-[#09090B] dark:text-white truncate">
@@ -1276,20 +1447,20 @@ export default function GeoAnalyticsPage() {
                     </span>
                   </span>
                   <span
-                    className="w-2.5 h-2.5 rounded-full shrink-0"
+                    className="w-2.5 h-2.5 rounded-full shrink-0 transition-colors"
                     style={{
-                      backgroundColor: isAfrica ? "#0066FF" : "#94A3B8",
+                      backgroundColor: hasClicks ? item.color : "#94A3B8",
                     }}
                   />
                 </div>
 
-                <div className="flex items-baseline justify-between gap-1">
+                <div className="flex items-baseline justify-between gap-1 w-full">
                   <span className="text-lg font-extrabold text-[#09090B] dark:text-white font-mono">
                     {formatNumber(clicks)}
                   </span>
                   <span
-                    className="text-xs font-bold font-mono"
-                    style={{ color: isAfrica ? "#0066FF" : "#94A3B8" }}
+                    className="text-xs font-bold font-mono transition-colors"
+                    style={{ color: hasClicks ? item.color : "#94A3B8" }}
                   >
                     {percentage}%
                   </span>
@@ -1299,12 +1470,12 @@ export default function GeoAnalyticsPage() {
                   <div
                     className="h-full rounded-full transition-all duration-500"
                     style={{
-                      width: `${percentage}%`,
-                      backgroundColor: isAfrica ? "#0066FF" : "#94A3B8",
+                      width: `${Math.min(100, percentage)}%`,
+                      backgroundColor: hasClicks ? item.color : "#94A3B8",
                     }}
                   />
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>
@@ -1412,23 +1583,34 @@ export default function GeoAnalyticsPage() {
                       const resolved = resolveCountryFromGeography(geo);
                       const countryClicks = countryClicksMap.get(resolved.code) || 0;
                       const hasClicks = countryClicks > 0;
+                      const isContinentMatch = selectedContinent === "ALL" || resolved.continent === selectedContinent;
+
+                      let fillColor = isDarkMode ? "#18181c" : "#E2E8F0";
+                      let strokeColor = isDarkMode ? "#27272a" : "#CBD5E1";
+
+                      if (isContinentMatch) {
+                        if (hasClicks) {
+                          fillColor = "#0066FF";
+                          strokeColor = "#ffffff";
+                        } else {
+                          fillColor = isDarkMode ? "#1f1f24" : "#E2E8F0";
+                          strokeColor = isDarkMode ? "#2e2e34" : "#CBD5E1";
+                        }
+                      } else {
+                        fillColor = isDarkMode ? "#101012" : "#F8FAFC";
+                        strokeColor = isDarkMode ? "#18181a" : "#E2E8F0";
+                      }
+
                       return (
                         <Geography
                           key={`fs-${geo.rsmKey}`}
                           geography={geo}
                           style={{
                             default: {
-                              fill: hasClicks
-                                ? "#0066FF"
-                                : isDarkMode
-                                  ? "#18181c"
-                                  : "#E2E8F0",
-                              stroke: hasClicks
-                                ? "#ffffff"
-                                : isDarkMode
-                                  ? "#27272a"
-                                  : "#CBD5E1",
-                              strokeWidth: hasClicks ? 1.2 : 0.4,
+                              fill: fillColor,
+                              stroke: strokeColor,
+                              strokeWidth: isContinentMatch ? (hasClicks ? 1.2 : 0.4) : 0.2,
+                              opacity: isContinentMatch ? 1 : 0.22,
                               outline: "none",
                             },
                           }}
@@ -1438,26 +1620,33 @@ export default function GeoAnalyticsPage() {
                   }
                 </Geographies>
                 {analytics.topCountries && analytics.topCountries.length > 0 &&
-                  analytics.topCountries.map((c) => {
-                    const geo = WORLD_COUNTRIES[c.code] || COUNTRY_CENTROIDS[c.code];
-                    if (!geo || typeof geo.lat !== "number" || typeof geo.lng !== "number") return null;
-                    return (
-                      <Marker key={`fs-marker-${c.code}`} coordinates={[geo.lng, geo.lat]}>
-                        <circle
-                          r="12"
-                          fill="#0066FF"
-                          opacity="0.35"
-                          className="animate-ping"
-                        />
-                        <circle
-                          r="5"
-                          fill="#ffffff"
-                          stroke="#0066FF"
-                          strokeWidth="2.5"
-                        />
-                      </Marker>
-                    );
-                  })
+                  analytics.topCountries
+                    .filter((c) => {
+                      if (selectedContinent === "ALL") return true;
+                      const code = (c.code || "").toUpperCase();
+                      const cont = WORLD_COUNTRIES[code]?.continent || ISO2_TO_CONTINENT[code] || getContinentForCountry(code);
+                      return cont === selectedContinent;
+                    })
+                    .map((c) => {
+                      const geo = WORLD_COUNTRIES[c.code] || COUNTRY_CENTROIDS[c.code];
+                      if (!geo || typeof geo.lat !== "number" || typeof geo.lng !== "number") return null;
+                      return (
+                        <Marker key={`fs-marker-${c.code}`} coordinates={[geo.lng, geo.lat]}>
+                          <circle
+                            r="12"
+                            fill="#0066FF"
+                            opacity="0.35"
+                            className="animate-ping"
+                          />
+                          <circle
+                            r="5"
+                            fill="#ffffff"
+                            stroke="#0066FF"
+                            strokeWidth="2.5"
+                          />
+                        </Marker>
+                      );
+                    })
                 }
               </ZoomableGroup>
             </ComposableMap>
@@ -1576,15 +1765,24 @@ export default function GeoAnalyticsPage() {
                         {ev.city || "Edge PoP"}
                       </td>
                     )}
-                    {visibleColumns.has("continent") && (
-                      <td className="py-2 px-3">
-                        <span className="px-2 py-0.5 rounded-full text-[9.5px] font-semibold bg-[#0066FF]/10 text-[#0066FF] border border-[#0066FF]/30">
-                          {WORLD_COUNTRIES[ev.countryCode]?.continent ||
-                            getContinentForCountry(ev.countryCode) ||
-                            "Global"}
-                        </span>
-                      </td>
-                    )}
+                    {visibleColumns.has("continent") && (() => {
+                      const cont = getContinentForCountry(ev.countryCode);
+                      const meta = CONTINENTS_META[cont];
+                      return (
+                        <td className="py-2 px-3">
+                          <span
+                            className="px-2 py-0.5 rounded-full text-[9.5px] font-semibold border"
+                            style={{
+                              color: meta?.color || "#0066FF",
+                              borderColor: `${meta?.color || "#0066FF"}40`,
+                              backgroundColor: `${meta?.color || "#0066FF"}15`,
+                            }}
+                          >
+                            {meta?.name || cont || "Global"}
+                          </span>
+                        </td>
+                      );
+                    })()}
                     {visibleColumns.has("link") && (
                       <td className="py-2 px-3 font-mono text-[#0066FF] font-semibold text-xs">
                         /{ev.slug}

@@ -223,8 +223,11 @@ export function TimelineFeatures() {
               value: "Auto-deactivate by date, click count, or both.",
             },
           ]}
-          screenshot="/marketing-FCI/real_dashboard_overview.png"
-          screenshotAlt="LShorter Smart Edge Routing Dashboard"
+          screenshotTable={[
+            "/screenshots/dashboard/dashboardwithsidbare.png",
+            "/screenshots/geo2/geo1.png",
+          ]}
+          screenshotAlt="LShorter Smart Edge Routing Dashboard & Geo Analytics"
           docHref="/docs/geo-routing"
           docLabel="Read the routing docs"
         />
@@ -250,7 +253,7 @@ export function TimelineFeatures() {
               value: "Direct SVG / PNG / GIF export for any resolution.",
             },
           ]}
-          screenshot="/marketing-FCI/real_qr_studio.png"
+          screenshot="/screenshots/qr-code/page1.png"
           screenshotAlt="LShorter Dynamic QR Studio"
           docHref="/docs/dynamic-qr-codes"
           docLabel="Read the QR Studio docs"
@@ -279,8 +282,8 @@ export function TimelineFeatures() {
             },
           ]}
           screenshotTable={[
-            "/marketing-FCI/real_links_table.png",
-            "/marketing-FCI/domaine_item.png",
+            "/screenshots/link-page/page1.png",
+            "/screenshots/domaine/niveau.png",
           ]}
           screenshotAlt="LShorter Links & Custom Domains"
           docHref="/docs/sdk-quickstart"
@@ -310,8 +313,8 @@ export function TimelineFeatures() {
             },
           ]}
           screenshotTable={[
-            "/marketing-FCI/real_geo_analytics.png",
-            "/marketing-FCI/revenu-item.png",
+            "/screenshots/geo/geowithsidbare.png",
+            "/screenshots/revenue/page1.png",
           ]}
           screenshotAlt="LShorter Revenue & Geo Analytics"
           docHref="/docs/conversion-tracking-amount-count"
