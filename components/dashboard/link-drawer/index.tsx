@@ -47,15 +47,30 @@ export function LinkDrawer({
   const isEditMode = mode === "edit" || Boolean(link);
 
   const { data: session } = useSession();
-  const userId =
-    session?.user?.id || (link?.userId ? link.userId : "usr_anonymous");
-  const userEmail = session?.user?.email || "";
+  const sessionUserId = session?.user?.id;
+  const sessionEmail = session?.user?.email || "";
+
   const convexUser = useQuery(
     api.users.getCurrentUser,
-    userId && userId !== "usr_anonymous"
-      ? { userId, email: userEmail || undefined }
+    (sessionUserId && sessionUserId !== "usr_anonymous") || sessionEmail
+      ? { userId: sessionUserId || sessionEmail, email: sessionEmail || undefined }
       : "skip",
   );
+
+  const effectiveUserId =
+    (sessionUserId && sessionUserId !== "usr_anonymous" ? sessionUserId : null) ||
+    convexUser?.userId ||
+    (link?.userId && link.userId !== "usr_anonymous" ? link.userId : null) ||
+    "usr_anonymous";
+
+  const effectiveUserEmail =
+    sessionEmail ||
+    convexUser?.email ||
+    link?.userEmail ||
+    undefined;
+
+  const userId = effectiveUserId;
+  const userEmail = effectiveUserEmail || "";
 
   const [runtimePlan, setRuntimePlan] = useState<string | null>(null);
 
@@ -1258,9 +1273,9 @@ export function LinkDrawer({
         const finalCreateActive = !isNewLinkExpired && Boolean(isActive);
 
         const res = await cfCreateLink({
-          userId,
-          userEmail: session?.user?.email || undefined,
-          userName: session?.user?.name || undefined,
+          userId: effectiveUserId,
+          userEmail: effectiveUserEmail || session?.user?.email || undefined,
+          userName: session?.user?.name || convexUser?.name || undefined,
           userPlan,
           plan: userPlan,
           domainName: cleanDomain,

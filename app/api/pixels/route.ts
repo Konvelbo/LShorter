@@ -1,9 +1,15 @@
 import { NextResponse } from "next/server";
+import { auth } from "@/auth";
 import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const userId = searchParams.get("userId");
+  let userId = searchParams.get("userId");
+
+  if (!userId || userId === "undefined" || userId === "null" || userId === "usr_anonymous") {
+    const session = await auth().catch(() => null);
+    userId = session?.user?.id || null;
+  }
 
   try {
     const url = new URL(`${WORKER_URL}/api/v1/pixels`);
@@ -32,7 +38,11 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json().catch(() => ({}));
-    const userId = qUserId || body.userId;
+    const session = await auth().catch(() => null);
+    let userId = qUserId || body.userId;
+    if (!userId || userId === "usr_anonymous") {
+      userId = session?.user?.id || body.userId;
+    }
 
     const url = new URL(`${WORKER_URL}/api/v1/pixels`);
     if (userId) url.searchParams.set("userId", userId);

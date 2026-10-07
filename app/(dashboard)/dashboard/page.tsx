@@ -42,15 +42,16 @@ export default function DashboardOverviewPage() {
   const [analytics, setAnalytics] = useState<GlobalAnalytics>(ANALYTICS_ZERO);
   const [isLoading, setIsLoading] = useState(true);
 
-  const userId = session?.user?.id;
+  const rawUserId = session?.user?.id;
+  const userEmail = session?.user?.email || "";
+  const userId = rawUserId && rawUserId !== "usr_anonymous" ? rawUserId : userEmail;
 
   const loadData = async (isBackground = false) => {
-    if (!userId) return;
     if (!isBackground) setIsLoading(true);
 
     try {
-      // Fetch links from Cloudflare D1 API
-      const linksRes = await cfGetLinks(userId);
+      // Fetch links from Cloudflare D1 API (proxy resolves userId from query or active session)
+      const linksRes = await cfGetLinks(userId || "");
       const listData = Array.isArray(linksRes?.data) ? linksRes.data : Array.isArray((linksRes?.data as any)?.data) ? (linksRes?.data as any).data : [];
       const rawLinks: ShortLink[] = listData.map((l: any) => ({
         id: l.id,
@@ -282,10 +283,18 @@ export default function DashboardOverviewPage() {
       setIsLoading(false);
       return;
     }
-    if (status === "authenticated" && userId) {
+    if (status === "authenticated") {
       loadData();
     }
   }, [status, userId]);
+
+  // Safety timeout: guarantee skeleton disappears after maximum 3.5s
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 3500);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Listen for global link creation/update events (from sidebar, modals, etc.)
   useEffect(() => {

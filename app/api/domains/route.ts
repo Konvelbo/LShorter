@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-
+import { auth } from "@/auth";
 import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
 
 const NXDOMAIN_ERROR_MESSAGE =
@@ -138,7 +138,12 @@ async function verifyDomainExistsOnPublicDns(domain: string): Promise<{
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const userId = searchParams.get("userId");
+  let userId = searchParams.get("userId");
+
+  if (!userId || userId === "undefined" || userId === "null" || userId === "usr_anonymous") {
+    const session = await auth().catch(() => null);
+    userId = session?.user?.id || null;
+  }
 
   try {
     const url = new URL(`${WORKER_URL}/api/v1/domains`);

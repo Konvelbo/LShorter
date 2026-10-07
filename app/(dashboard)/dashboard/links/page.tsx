@@ -140,13 +140,14 @@ export default function LinksPage() {
   });
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const userId = session?.user?.id;
+  const rawUserId = session?.user?.id;
+  const userEmail = session?.user?.email || "";
+  const userId = rawUserId && rawUserId !== "usr_anonymous" ? rawUserId : userEmail;
 
   const loadLinks = async (isBackground = false) => {
-    if (!userId) return;
     if (!isBackground) setIsLoading(true);
     try {
-      const res = await cfGetLinks(userId);
+      const res = await cfGetLinks(userId || "");
       const listData = Array.isArray(res?.data)
         ? res.data
         : Array.isArray((res?.data as any)?.data)
@@ -321,10 +322,18 @@ export default function LinksPage() {
       setIsLoading(false);
       return;
     }
-    if (status === "authenticated" && userId) {
+    if (status === "authenticated") {
       loadLinks();
     }
   }, [status, userId]);
+
+  // Safety timeout: guarantee skeleton disappears after maximum 3.5s
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 3500);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Listen for global link creation/update events (from sidebar, overview, etc.) & browser focus
   useEffect(() => {

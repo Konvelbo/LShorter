@@ -122,11 +122,15 @@ function SettingsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const urlTabParam = searchParams.get("tab");
-  const userId = session?.user?.id || "";
+  const rawUserId = session?.user?.id || "";
+  const userEmail = session?.user?.email || "";
   const convexUser = useQuery(
     api.users.getCurrentUser,
-    userId ? { userId } : "skip",
+    rawUserId || userEmail
+      ? { userId: rawUserId || userEmail, email: userEmail || undefined }
+      : "skip",
   );
+  const userId = rawUserId && rawUserId !== "usr_anonymous" ? rawUserId : convexUser?.userId || userEmail || "";
   const plan = (
     convexUser?.plan ||
     (session?.user as any)?.plan ||

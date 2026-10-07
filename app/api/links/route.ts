@@ -6,17 +6,38 @@ import { convexHttp as convex } from "@/lib/convex-server";
 import { api } from "@/convex/_generated/api";
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const userId = searchParams.get("userId");
+  let userId = searchParams.get("userId");
+  const session = await auth().catch(() => null);
+
+  // If userId is missing or placeholder, resolve from active session
+  if (!userId || userId === "undefined" || userId === "null" || userId === "usr_anonymous") {
+    userId = session?.user?.id || null;
+  }
+
+  const userEmail = session?.user?.email || searchParams.get("userEmail");
+  // If userId is missing or is an email format, resolve Convex userId
+  if ((!userId || userId.includes("@")) && userEmail) {
+    try {
+      const cu = await convex.query(api.users.getUserByEmail, { email: userEmail.toLowerCase().trim() });
+      if (cu?.userId) {
+        userId = cu.userId;
+      }
+    } catch (e) {
+      console.warn("[app/api/links/route.ts GET] Convex lookup warning:", e);
+    }
+  }
 
   try {
     const url = new URL(`${WORKER_URL}/api/v1/links`);
     if (userId) url.searchParams.set("userId", userId);
+    if (userEmail) url.searchParams.set("userEmail", userEmail);
 
     const workerData = await fetch(url.toString(), {
       headers: {
         "X-Frontend-Secret": FRONTEND_SECRET || "",
         Authorization: `Bearer ${FRONTEND_SECRET || ""}`,
         ...(userId ? { "X-User-Id": userId } : {}),
+        ...(userEmail ? { "X-User-Email": userEmail } : {}),
       },
       cache: "no-store",
     })
@@ -234,25 +255,48 @@ export async function POST(req: Request) {
     const session = await auth().catch(() => null);
     const sessionEmail = session?.user?.email;
     const sessionUserId = session?.user?.id;
-    const requestEmail = body.userEmail || sessionEmail || "";
-    const requestUserId = body.userId || sessionUserId || "";
+    const finalUserEmail = (body.userEmail || sessionEmail || "").toLowerCase().trim();
+
+    let finalUserId =
+      body.userId && body.userId !== "usr_anonymous"
+        ? body.userId
+        : sessionUserId && sessionUserId !== "usr_anonymous"
+          ? sessionUserId
+          : "";
+
+    // If finalUserId is missing or is an email, resolve from Convex
+    if ((!finalUserId || finalUserId === "usr_anonymous" || finalUserId.includes("@")) && finalUserEmail) {
+      try {
+        const cu = await convex.query(api.users.getUserByEmail, { email: finalUserEmail });
+        if (cu?.userId) {
+          finalUserId = cu.userId;
+        }
+      } catch (e) {
+        console.warn("[app/api/links/route.ts POST] Convex lookup error:", e);
+      }
+    }
+
+    if (!finalUserId) {
+      finalUserId = "usr_anonymous";
+    }
 
     let authoritativePlan = (
       body.userPlan ||
       body.plan ||
+      (session?.user as any)?.plan ||
       ""
     ).toUpperCase();
 
     if (!authoritativePlan || authoritativePlan === "FREEMIUM" || authoritativePlan === "FREE" || authoritativePlan === "STARTER") {
       try {
         let cu: any = null;
-        if (requestEmail) {
-          cu = await convex.query(api.users.getUserByEmail, { email: requestEmail.toLowerCase().trim() });
+        if (finalUserEmail) {
+          cu = await convex.query(api.users.getUserByEmail, { email: finalUserEmail });
         }
-        if (!cu && requestUserId) {
+        if (!cu && finalUserId && finalUserId !== "usr_anonymous") {
           cu = await convex.query(api.users.getCurrentUser, {
-            userId: requestUserId,
-            email: requestEmail || undefined,
+            userId: finalUserId,
+            email: finalUserEmail || undefined,
           });
         }
         if (cu?.plan) {
@@ -266,14 +310,13 @@ export async function POST(req: Request) {
     const effectivePlan = (authoritativePlan === "FREEMIUM" || authoritativePlan === "STARTER")
       ? "FREE"
       : (authoritativePlan || "FREE");
-    const finalUserId = requestUserId || "usr_anonymous";
-    const finalUserEmail = requestEmail || "";
 
-    // Strictly enforce: Dynamic smart routing requires a paid plan (PRO, BUSINESS, ENTERPRISE)
+    // Dynamic routing allowed on paid plans or in non-production development
     const isPaidPlan =
       effectivePlan === "PRO" ||
       effectivePlan === "BUSINESS" ||
-      effectivePlan === "ENTERPRISE";
+      effectivePlan === "ENTERPRISE" ||
+      process.env.NODE_ENV !== "production";
 
     const hasRouting =
       (Array.isArray(body.routingRules) && body.routingRules.length > 0) ||

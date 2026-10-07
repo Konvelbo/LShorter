@@ -12,6 +12,10 @@ import {
 import { parseVisitorDetails } from "@/lib/device-detection";
 import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
 
+import { auth } from "@/auth";
+import { convexHttp as convex } from "@/lib/convex-server";
+import { api } from "@/convex/_generated/api";
+
 interface CachedAnalytics {
   data: any;
   expires: number;
@@ -20,15 +24,52 @@ const serverAnalyticsCache = new Map<string, CachedAnalytics>();
 const CACHE_TTL_MS = 20_000; // 20s server cache to protect Cloudflare D1 from spam
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const userId = searchParams.get("userId");
+  let userId = searchParams.get("userId");
   const linkId = searchParams.get("linkId");
   const period = searchParams.get("period") || "30d";
 
+  const session = await auth().catch(() => null);
+  if (!userId || userId === "undefined" || userId === "null" || userId === "usr_anonymous") {
+    userId = session?.user?.id || null;
+  }
+
+  const userEmail = session?.user?.email || searchParams.get("userEmail");
+  if ((!userId || userId.includes("@")) && userEmail) {
+    try {
+      const cu = await convex.query(api.users.getUserByEmail, { email: userEmail.toLowerCase().trim() });
+      if (cu?.userId) {
+        userId = cu.userId;
+      }
+    } catch (e) {
+      console.warn("[app/api/analytics/route.ts GET] Convex user lookup warning:", e);
+    }
+  }
+
   if (!userId) {
-    return NextResponse.json(
-      { success: false, error: "User ID required" },
-      { status: 400 },
-    );
+    return NextResponse.json({
+      success: true,
+      data: {
+        totalClicks: 0,
+        clicksGrowth: 0,
+        uniqueClicks: 0,
+        uniqueClicksGrowth: 0,
+        trackedRevenue: 0,
+        revenueGrowth: 0,
+        avgCtr: 0,
+        ctrGrowth: 0,
+        bounceRate: 0,
+        epc: 0,
+        avgEngagementTime: "0s",
+        clicksByDay: [],
+        topCountries: [],
+        topCities: [],
+        topDevices: [],
+        topBrowsers: [],
+        topReferrers: [],
+        liveClickEvents: [],
+        recentConversions: [],
+      },
+    });
   }
 
   // 0. Cache hit au niveau serveur Next.js pour éviter les requêtes Cloudflare concurrentes
