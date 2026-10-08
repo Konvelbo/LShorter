@@ -116,8 +116,8 @@ export function renderSocialHtml(options: {
 
   const isSvg = rawImg.includes(".svg") || rawImg.includes("dicebear");
   const imgType = isSvg ? "image/svg+xml" : rawImg.includes(".png") ? "image/png" : "image/jpeg";
-  const imgWidth = cardType === "summary" ? "600" : "1200";
-  const imgHeight = cardType === "summary" ? "600" : "630";
+  const imgWidth = cardType === "summary" ? "400" : "1200";
+  const imgHeight = cardType === "summary" ? "400" : "630";
 
   if (!options.isPreview) {
     return `<!DOCTYPE html>

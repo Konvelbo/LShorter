@@ -81,12 +81,25 @@ export async function GET(
       const title = qTitle || meta?.og_title || meta?.ogTitle || meta?.meta_title || meta?.metaTitle || slug;
       const description = qDesc || meta?.og_description || meta?.ogDescription || "Cliquez pour accéder à ce lien sécurisé par LShorter.";
       
-      // Default to DiceBear glass if no user-uploaded banner
+      const isCompactCard = (
+        qCard === "summary" ||
+        meta?.twitter_card === "summary" ||
+        meta?.twitterCard === "summary" ||
+        meta?.banner_style === "default_banner" ||
+        meta?.bannerStyle === "default_banner"
+      );
+      const resolvedCard = isCompactCard ? "summary" : (qCard || meta?.twitter_card || meta?.twitterCard || "summary_large_image");
+
       const rawImage = qImage || meta?.og_image || meta?.ogImage || meta?.banner_url || meta?.bannerUrl || "";
       const isCustomBanner = Boolean(rawImage && !rawImage.includes("/api/og") && !rawImage.includes("default_banner"));
-      const image = isCustomBanner ? rawImage : getDicebearGlassUrl(slug);
-
-      const resolvedCard = qCard || meta?.twitter_card || meta?.twitterCard || "summary_large_image";
+      let image = isCustomBanner ? rawImage : "";
+      if (!image) {
+        if (isCompactCard) {
+          image = `https://${detectedDomain}/icon-512.png`;
+        } else {
+          image = `https://${detectedDomain}/api/og?title=${encodeURIComponent(title.substring(0, 80))}&slug=${encodeURIComponent(slug)}`;
+        }
+      }
       const targetUrl = qTarget || meta?.target_url || meta?.targetUrl || `https://${detectedDomain}`;
       const canonicalUrl = `https://${detectedDomain}/r/${encodeURIComponent(slug)}`;
 

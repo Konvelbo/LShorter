@@ -65,7 +65,34 @@ export default {
       );
     };
 
-    // ─── 0. PUBLIC IMAGE STREAMING ENDPOINT (Decodes base64 or redirects) ──
+    // ─── 0. PUBLIC STATIC BRAND ASSET & IMAGE STREAMING ENDPOINTS ──
+    if (
+      path === '/icon-512.png' ||
+      path === '/icon-compact.png' ||
+      path === '/icon-192.png' ||
+      path === '/logo.png' ||
+      path === '/logo-512.png' ||
+      path === '/favicon.ico' ||
+      path === '/favicon.png' ||
+      path === '/apple-touch-icon.png' ||
+      path === '/default_banner.jpg' ||
+      path.startsWith('/api/og')
+    ) {
+      try {
+        const upstream = await fetch(`https://lshorter.io${path}${url.search}`);
+        if (upstream.ok) {
+          return new Response(upstream.body, {
+            status: 200,
+            headers: {
+              ...corsHeaders,
+              'Content-Type': upstream.headers.get('content-type') || (path.endsWith('.jpg') ? 'image/jpeg' : 'image/png'),
+              'Cache-Control': 'public, max-age=86400, s-maxage=604800',
+            },
+          });
+        }
+      } catch {}
+    }
+
     if (path.startsWith('/api/v1/images/') || path.startsWith('/api/images/')) {
       const filename = path.split('/').pop() || '';
       const slugWithoutExt = filename.replace(/\.(jpg|jpeg|png|webp|gif|svg)$/i, '');
@@ -192,7 +219,14 @@ export default {
       const ogImage = link.og_image || link.ogImage || '';
       const ogTitle = link.og_title || link.ogTitle || link.meta_title || link.metaTitle || link.title || slug;
       const ogDescription = link.og_description || link.ogDescription || '';
-      const twitterCard = (link.twitter_card || link.twitterCard || (ogImage ? 'summary_large_image' : 'summary_large_image')) === 'summary' ? 'summary' : 'summary_large_image';
+      const isCompact = 
+        link.twitter_card === 'summary' || 
+        link.twitterCard === 'summary' || 
+        link.banner_style === 'default_banner' || 
+        link.bannerStyle === 'default_banner' ||
+        link.banner_style === 'summary' ||
+        link.bannerStyle === 'summary';
+      const twitterCard = isCompact ? 'summary' : 'summary_large_image';
 
       // Serve OpenGraph / Twitter Cards ONLY for social crawler bots without redirecting
       if (isBot) {
@@ -224,8 +258,8 @@ export default {
         const safeImg = escapeHtml(publicImageUrl.replace(/&amp;/g, '&'));
         const safeCanonical = escapeHtml(canonical);
         const safeCard = twitterCard;
-        const imgWidth = twitterCard === 'summary' ? '512' : '1200';
-        const imgHeight = twitterCard === 'summary' ? '512' : '630';
+        const imgWidth = twitterCard === 'summary' ? '400' : '1200';
+        const imgHeight = twitterCard === 'summary' ? '400' : '630';
 
         const html = `<!DOCTYPE html>
 <html lang="fr" prefix="og: http://ogp.me/ns#">

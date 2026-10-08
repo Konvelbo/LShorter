@@ -70,24 +70,17 @@ export function HeroSection2() {
   const heroRef = useRef<HTMLDivElement>(null);
   const showcaseRef = useRef<HTMLDivElement>(null);
 
-  const titlePart1 = "Every campaign, bio page, and API link.";
-  const titlePart2 = "Engineered around ultra-fast short links.";
+  const titlePart1 = "Smart link infrastructure for modern marketers.";
+  const titlePart2 = "Ultra-fast programmable APIs for developers.";
 
-  // Rendu empêchant la coupure sauvage des mots sur mobile
+  // Rendu par mot préservant la compatibilité avec Google Traduction et évitant la coupure mobile
   const renderTypingText = (text: string) => {
     return text.split(" ").map((word, wordIdx) => (
       <span
         key={wordIdx}
-        className="inline-block whitespace-nowrap mr-[0.26em]"
+        className="hero-word inline-block whitespace-nowrap mr-[0.26em] will-change-transform"
       >
-        {word.split("").map((char, charIdx) => (
-          <span
-            key={charIdx}
-            className="hero-char inline-block will-change-transform"
-          >
-            {char}
-          </span>
-        ))}
+        {word}
       </span>
     ));
   };
@@ -100,7 +93,7 @@ export function HeroSection2() {
       const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
 
       // 1. Masquage initial
-      gsap.set(".hero-char", { opacity: 0, y: 10 });
+      gsap.set(".hero-word", { opacity: 0, y: 14 });
       gsap.set(".hero-trend-marquee-wrap", { opacity: 0, y: -14, scale: 0.96 });
       gsap.set(".hero-fade-desc", { opacity: 0, y: 18 });
       gsap.set(".hero-action-pill", { opacity: 0, y: 18, scale: 0.96 });
@@ -108,13 +101,13 @@ export function HeroSection2() {
         gsap.set(showcaseRef.current, { opacity: 0, y: 70, scale: 0.98 });
       }
 
-      // 2. Frappe du titre lettre par lettre
-      tl.to(".hero-char", {
+      // 2. Révélation du titre mot par mot (fluide et compatible avec Chrome Translate)
+      tl.to(".hero-word", {
         opacity: 1,
         y: 0,
-        duration: 0.2,
-        stagger: 0.016,
-        ease: "power1.out",
+        duration: 0.35,
+        stagger: 0.035,
+        ease: "power2.out",
       });
 
       tl.addLabel("revealElements", "-=0.55");
