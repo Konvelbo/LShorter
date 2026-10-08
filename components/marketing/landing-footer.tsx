@@ -50,12 +50,12 @@ const FOOTER_COLUMNS = [
     ],
   },
   {
-    title: "Workspace",
+    title: "Legal & Trust",
     links: [
-      { label: "Interactive Product Demo", href: "/#product" },
+      { label: "Privacy Policy (GDPR)", href: "/privacy" },
+      { label: "Terms of Service", href: "/terms" },
+      { label: "Refund Policy (14 Days)", href: "/refund" },
       { label: "Dashboard Overview", href: "/dashboard" },
-      { label: "Geo Analytics Map", href: "/dashboard/analytics/geo" },
-      { label: "Live Click Stream", href: "/dashboard/analytics/live" },
     ],
   },
 ];
@@ -280,8 +280,33 @@ export function LandingFooter() {
             <span>All 310+ Cloudflare Edge PoPs Operational</span>
           </div>
 
-          {/* Right: Social Icons + Legal */}
-          <div className="flex items-center gap-4">
+          {/* Right: Legal Links + Social Icons */}
+          <div className="flex flex-wrap items-center justify-center lg:justify-end gap-5">
+            <div className="flex items-center gap-3.5 text-[12px]">
+              <Link
+                href="/privacy"
+                className="text-[#667085] dark:text-[#888888] hover:text-[#465FFF] dark:hover:text-white transition-colors"
+              >
+                Privacy
+              </Link>
+              <span className="text-[#D0D5DD] dark:text-[#2E2E2E]">•</span>
+              <Link
+                href="/terms"
+                className="text-[#667085] dark:text-[#888888] hover:text-[#465FFF] dark:hover:text-white transition-colors"
+              >
+                Terms
+              </Link>
+              <span className="text-[#D0D5DD] dark:text-[#2E2E2E]">•</span>
+              <Link
+                href="/refund"
+                className="text-[#667085] dark:text-[#888888] hover:text-[#465FFF] dark:hover:text-white transition-colors"
+              >
+                Refunds
+              </Link>
+            </div>
+
+            <div className="hidden sm:block w-[1px] h-3.5 bg-[#E4E7EC] dark:bg-[#26262B]" />
+
             <div className="flex items-center gap-2.5">
               {/* GitHub */}
               <a
