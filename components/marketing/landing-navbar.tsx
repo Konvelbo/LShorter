@@ -461,7 +461,7 @@ export function LandingNavbar() {
           <button
             type="button"
             onClick={() => toggle()}
-            className={`w-8 h-8 rounded-[10px] flex items-center justify-center transition-colors ${
+            className={`w-8 h-8 rounded-[10px] flex items-center justify-center transition-all active:scale-90 cursor-pointer ${
               isOpen
                 ? "bg-[#3B82F6] text-white"
                 : isLight

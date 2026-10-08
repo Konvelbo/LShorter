@@ -43,7 +43,6 @@ export default function MarketingLayout({
 
   const containerRef = useRef<HTMLDivElement>(null);
   const mainCardRef = useRef<HTMLDivElement>(null);
-  const ghostFrameRef = useRef<HTMLDivElement>(null);
   const menuContainerRef = useRef<HTMLDivElement>(null);
   const navbarWrapperRef = useRef<HTMLDivElement>(null);
   const linksRef = useRef<HTMLDivElement[]>([]);
@@ -56,13 +55,8 @@ export default function MarketingLayout({
   const hasCompletedOnboarding =
     (session?.user as any)?.hasCompletedOnboarding === true;
 
-  const handleCloseMenu = (e: React.MouseEvent<HTMLButtonElement>) => {
-    gsap.to(e.currentTarget, {
-      rotate: "+=90",
-      scale: 0.85,
-      duration: 0.2,
-      onComplete: () => setIsOpen(false),
-    });
+  const handleCloseMenu = () => {
+    setIsOpen(false);
   };
 
   const navLinks = [
@@ -80,31 +74,30 @@ export default function MarketingLayout({
   useGSAP(
     () => {
       const mainCard = mainCardRef.current;
-      const ghostFrame = ghostFrameRef.current;
       const menu = menuContainerRef.current;
       const container = containerRef.current;
       const navbarWrapper = navbarWrapperRef.current;
 
-      if (!mainCard || !ghostFrame || !menu || !container || !navbarWrapper)
+      if (!mainCard || !menu || !container || !navbarWrapper)
         return;
 
       const activeBorder = isLight
-        ? "1px solid rgba(9, 9, 11, 0.1)"
+        ? "1px solid rgba(9, 9, 11, 0.08)"
         : "1px solid rgba(255, 255, 255, 0.12)";
 
       const cardShadow = isLight
-        ? "-24px 0 60px rgba(0, 0, 0, 0.10)"
-        : "-24px 0 60px rgba(0, 0, 0, 0.75)";
+        ? "22px 0 48px -6px rgba(0, 0, 0, 0.16), 10px 0 20px -3px rgba(0, 0, 0, 0.08)"
+        : "24px 0 60px -5px rgba(0, 0, 0, 0.85), 10px 0 25px -3px rgba(0, 0, 0, 0.65)";
 
       mainCard.removeAttribute("style");
       container.removeAttribute("style");
 
       const tl = gsap.timeline({
         paused: true,
-        defaults: { ease: "power3.inOut", duration: 0.42 },
+        defaults: { ease: "power2.out", duration: 0.26 },
         onStart: () => {
-          gsap.set(container, { perspective: 1300, overflow: "hidden" });
-          gsap.set([mainCard, ghostFrame], {
+          gsap.set(container, { perspective: 1200, overflow: "hidden" });
+          gsap.set(mainCard, {
             transformOrigin: "left center",
             transformStyle: "preserve-3d",
             force3D: true,
@@ -113,10 +106,7 @@ export default function MarketingLayout({
           document.body.style.overflow = "hidden";
         },
         onReverseComplete: () => {
-          mainCard.removeAttribute("style");
-          ghostFrame.removeAttribute("style");
-          container.removeAttribute("style");
-          navbarWrapper.removeAttribute("style");
+          gsap.set([mainCard, container, navbarWrapper], { clearProps: "all" });
           document.body.style.overflow = "";
         },
       });
@@ -126,32 +116,20 @@ export default function MarketingLayout({
         {
           scale: 0.81,
           xPercent: -42,
-          rotateY: 30,
+          rotateY: 28,
           borderRadius: 32,
           border: activeBorder,
           boxShadow: cardShadow,
         },
         0
       )
-        .to(
-          ghostFrame,
-          {
-            scale: 0.81,
-            xPercent: -36,
-            rotateY: 30,
-            autoAlpha: 1,
-            borderRadius: 32,
-            border: activeBorder,
-          },
-          0
-        )
-        .to(navbarWrapper, { autoAlpha: 0, duration: 0.2 }, 0)
-        .to(menu, { autoAlpha: 1, duration: 0.2 }, 0)
+        .to(navbarWrapper, { autoAlpha: 0, duration: 0.15 }, 0)
+        .to(menu, { autoAlpha: 1, duration: 0.18 }, 0)
         .fromTo(
           linksRef.current.filter(Boolean),
-          { autoAlpha: 0, y: 10 },
-          { autoAlpha: 1, y: 0, stagger: 0.025, duration: 0.22 },
-          0.08
+          { autoAlpha: 0, y: 8 },
+          { autoAlpha: 1, y: 0, stagger: 0.015, duration: 0.18 },
+          0.04
         );
 
       timelineRef.current = tl;
@@ -162,9 +140,9 @@ export default function MarketingLayout({
   useEffect(() => {
     if (timelineRef.current) {
       if (isOpen) {
-        timelineRef.current.play();
+        timelineRef.current.timeScale(1).play();
       } else {
-        timelineRef.current.reverse();
+        timelineRef.current.timeScale(1.35).reverse();
       }
     }
   }, [isOpen]);
@@ -183,7 +161,7 @@ export default function MarketingLayout({
             <button
               type="button"
               onClick={handleCloseMenu}
-              className="w-9 h-9 rounded-full flex items-center justify-center bg-black/[0.04] dark:bg-white/[0.05] border border-black/[0.08] dark:border-white/[0.08] text-[#52525B] dark:text-[#A1A1AA] hover:text-[#09090B] dark:hover:text-white transition-colors"
+              className="w-9 h-9 rounded-full flex items-center justify-center bg-black/[0.04] dark:bg-white/[0.05] border border-black/[0.08] dark:border-white/[0.08] text-[#52525B] dark:text-[#A1A1AA] hover:text-[#09090B] dark:hover:text-white active:scale-90 transition-all cursor-pointer"
               aria-label="Fermer le menu"
             >
               <X className="w-5 h-5 stroke-[1.75]" />
@@ -249,13 +227,8 @@ export default function MarketingLayout({
       </div>
 
       <div
-        ref={ghostFrameRef}
-        className="fixed inset-0 z-10 pointer-events-none bg-black/[0.03] dark:bg-white/[0.04] shadow-xl opacity-0 invisible"
-      />
-
-      <div
         ref={mainCardRef}
-        className="relative z-20 w-full min-h-screen bg-[#FAFAFA] dark:bg-[#09090b] text-[#09090B] dark:text-[#fafafa]"
+        className="relative z-20 w-full min-h-screen bg-[#FAFAFA] dark:bg-[#09090b] text-[#09090B] dark:text-[#fafafa] will-change-transform"
       >
         {isOpen && (
           <div

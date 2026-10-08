@@ -330,8 +330,8 @@ export function Topbar() {
                 </Avatar>
 
                 <div className="hidden sm:flex flex-col items-start text-left leading-tight pr-0.5">
-                  <span className="text-[11px] font-semibold ds-text-primary truncate max-w-[110px]">
-                    {displayName.split(" ")[0]}
+                  <span className="text-[11px] font-semibold ds-text-primary truncate max-w-[140px]" title={displayName}>
+                    {displayName}
                   </span>
                   <span className="inline-flex items-center gap-1 text-[9px] font-medium text-[#465FFF] dark:text-[#7592FF] mt-0.5">
                     <span className="h-1.5 w-1.5 rounded-full bg-[#10B981] shrink-0" />

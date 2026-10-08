@@ -101,8 +101,8 @@ export function PopulatedState({
   const convexUser = useQuery(api.users.getCurrentUser, userId ? { userId } : "skip");
 
   const userName =
-    convexUser?.name?.trim()?.split(" ")[0] ||
-    session?.user?.name?.trim()?.split(" ")[0] ||
+    convexUser?.name?.trim() ||
+    session?.user?.name?.trim() ||
     session?.user?.email?.split("@")[0] ||
     "User";
 

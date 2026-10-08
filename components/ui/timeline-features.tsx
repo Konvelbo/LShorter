@@ -3,7 +3,7 @@
 import React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Sparkles } from "lucide-react";
+import { Sparkles, ArrowRight } from "lucide-react";
 import { motion } from "motion/react";
 import { Timeline, TimelineEntry } from "@/components/ui/timeline";
 
@@ -167,9 +167,10 @@ function FeatureCard({
       >
         <Link
           href={docHref}
-          className="inline-flex items-center gap-1 text-[13.5px] text-[#111216] dark:text-[#f2f3f5] underline underline-offset-4 decoration-[#c9cbd2] dark:decoration-[#3a3d45] hover:text-blue-600 dark:hover:text-blue-400 hover:decoration-blue-600 dark:hover:decoration-blue-400 transition-all duration-200"
+          className="timeline-doc-link"
         >
-          {docLabel}
+          <span>{docLabel}</span>
+          <ArrowRight className="w-3.5 h-3.5 timeline-doc-link-arrow" />
         </Link>
       </motion.div>
     </div>

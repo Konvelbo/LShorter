@@ -343,43 +343,49 @@ export default function PricingPage() {
         </p>
 
         {/* Annual / Monthly Toggle with Promo Badges */}
-        <div className="flex flex-wrap items-center justify-center gap-2 mt-4 p-1.5 rounded-full bg-neutral-200/80 dark:bg-[#141416] border border-neutral-300 dark:border-[#27272a] shadow-xs">
+        <div className="inline-flex items-center justify-center p-1 sm:p-1.5 rounded-full bg-neutral-200/80 dark:bg-[#141416] border border-neutral-300 dark:border-[#27272a] shadow-xs max-w-full mt-4">
           <button
+            type="button"
             onClick={() => setIsAnnual(false)}
-            className={`px-4 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+            className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs font-bold transition-all flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer select-none whitespace-nowrap ${
               !isAnnual
                 ? "bg-brand text-white shadow-xs"
                 : "text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white"
             }`}
           >
-            <span>Monthly Billing</span>
+            <span>
+              Monthly<span className="hidden sm:inline"> Billing</span>
+            </span>
             <span
-              className={`px-2 py-0.5 rounded-full text-[10px] font-black font-mono tracking-tight ${
+              className={`px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] font-black font-mono tracking-tight shrink-0 ${
                 !isAnnual
                   ? "bg-white/20 text-white"
                   : "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
               }`}
             >
-              -75% First 2 Months
+              -75%<span className="hidden sm:inline"> First 2 Months</span>
             </span>
           </button>
           <button
+            type="button"
             onClick={() => setIsAnnual(true)}
-            className={`px-4 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+            className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs font-bold transition-all flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer select-none whitespace-nowrap ${
               isAnnual
                 ? "bg-brand text-white shadow-xs"
                 : "text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white"
             }`}
           >
-            <span>Annual Billing</span>
+            <span>
+              Annual<span className="hidden sm:inline"> Billing</span>
+            </span>
             <span
-              className={`px-2 py-0.5 rounded-full text-[10px] font-black font-mono tracking-tight ${
+              className={`px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] font-black font-mono tracking-tight shrink-0 ${
                 isAnnual
                   ? "bg-white/20 text-white"
                   : "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
               }`}
             >
-              Up to -50%
+              <span className="hidden sm:inline">Up to </span>-50%
             </span>
           </button>
         </div>

@@ -7,11 +7,14 @@ export function getDicebearGlassUrl(seed: string): string {
 
 const SOCIAL_CRAWLERS = [
   "twitterbot",
+  "xbot",
   "facebookexternalhit",
+  "facebot",
   "whatsapp",
   "telegrambot",
   "linkedinbot",
   "slackbot",
+  "slack-imgbatcher",
   "discordbot",
   "pinterest",
   "applebot",
@@ -24,6 +27,10 @@ const SOCIAL_CRAWLERS = [
   "embedly",
   "skypeuripreview",
   "nuzzel",
+  "bytespider",
+  "tiktok",
+  "mastodon",
+  "bluesky",
 ];
 
 export function isSocialCrawler(userAgentRaw: string): boolean {
@@ -44,7 +51,7 @@ export function getCachedBotResponse(slug: string): { body: string; headers: Hea
   return null;
 }
 
-export function setCachedBotResponse(slug: string, body: string, headers: HeadersInit, ttlMs: number = 5000): void {
+export function setCachedBotResponse(slug: string, body: string, headers: HeadersInit, ttlMs: number = 60000): void {
   const key = (slug || "").toLowerCase();
   botResponseCache.set(key, {
     body,
@@ -72,6 +79,16 @@ function escapeHtml(text?: string | null): string {
     .replace(/'/g, "&#039;");
 }
 
+function sanitizeSafeUrl(url?: string | null): string {
+  if (!url) return "#";
+  const trimmed = String(url).trim();
+  // Prevent javascript:, vbscript:, and malicious data: schemas
+  if (/^(javascript|vbscript|data:(?!image\/)):/i.test(trimmed)) {
+    return "#";
+  }
+  return trimmed;
+}
+
 export function renderSocialHtml(options: {
   title?: string;
   description?: string;
@@ -88,11 +105,11 @@ export function renderSocialHtml(options: {
     options.description || "Cliquez pour accéder à ce lien sécurisé par LShorter.",
   );
   const fallbackGlass = getDicebearGlassUrl(options.slug || "lshorter");
-  const rawImg = options.image || fallbackGlass;
+  const rawImg = sanitizeSafeUrl(options.image || fallbackGlass);
   const safeMetaImg = escapeHtml(rawImg);
   const safeImg = escapeHtml(rawImg);
-  const safeDest = escapeHtml(options.destinationUrl || options.canonicalUrl);
-  const safeCanonical = escapeHtml(options.canonicalUrl);
+  const safeDest = escapeHtml(sanitizeSafeUrl(options.destinationUrl || options.canonicalUrl));
+  const safeCanonical = escapeHtml(sanitizeSafeUrl(options.canonicalUrl));
   const cardType = options.twitterCard === "summary" ? "summary" : "summary_large_image";
   const domainName = escapeHtml(options.domain || "lsho.cc");
   const safeSlug = escapeHtml(options.slug || "");

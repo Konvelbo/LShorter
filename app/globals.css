@@ -1547,3 +1547,67 @@ html.light main .text-neutral-200 {
   transition: transform 1.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
+/* ==========================================================================
+   Timeline Feature Doc Links - Pure Simple CSS Hover & Click Animation
+   ========================================================================== */
+.timeline-doc-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #111216;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-color: #c9cbd2;
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.2s ease, text-decoration-color 0.2s ease, transform 0.2s ease;
+}
+
+.dark .timeline-doc-link,
+:is(.dark, .dark *) .timeline-doc-link {
+  color: #f2f3f5;
+  text-decoration-color: #4a4d55;
+}
+
+/* Hover: passe en couleur bleue avec animation */
+.timeline-doc-link:hover {
+  color: #0066FF !important;
+  text-decoration-color: #0066FF !important;
+  transform: translateX(4px);
+}
+
+.dark .timeline-doc-link:hover,
+:is(.dark, .dark *) .timeline-doc-link:hover {
+  color: #3b82f6 !important;
+  text-decoration-color: #3b82f6 !important;
+}
+
+/* Click / Active: même animation et couleur bleue */
+.timeline-doc-link:active {
+  color: #0052cc !important;
+  text-decoration-color: #0052cc !important;
+  transform: translateX(4px) scale(0.97);
+}
+
+.dark .timeline-doc-link:active,
+:is(.dark, .dark *) .timeline-doc-link:active {
+  color: #60a5fa !important;
+  text-decoration-color: #60a5fa !important;
+}
+
+.timeline-doc-link-arrow {
+  display: inline-block;
+  transition: transform 0.2s ease;
+}
+
+.timeline-doc-link:hover .timeline-doc-link-arrow {
+  transform: translateX(3px);
+}
+
+.timeline-doc-link:active .timeline-doc-link-arrow {
+  transform: translateX(4px);
+}
+
+
