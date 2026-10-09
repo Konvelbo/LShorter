@@ -6,14 +6,10 @@ import {
   ShieldAlert,
   CreditCard,
   RefreshCw,
-  CheckCircle2,
   Clock,
-  AlertCircle,
-  HelpCircle,
   ArrowLeft,
   ChevronRight,
   Mail,
-  ShieldCheck,
   Zap,
   Lock,
 } from "lucide-react";
@@ -61,18 +57,17 @@ export default function NoRefundPolicyPage() {
 
   useEffect(() => {
     const handleScroll = () => {
-      const scrollPosition = window.scrollY + 200;
+      let current = sections[0].id;
       for (const section of sections) {
         const el = document.getElementById(section.id);
         if (el) {
-          const top = el.offsetTop;
-          const height = el.offsetHeight;
-          if (scrollPosition >= top && scrollPosition < top + height) {
-            setActiveSection(section.id);
-            break;
+          const rect = el.getBoundingClientRect();
+          if (rect.top <= 260) {
+            current = section.id;
           }
         }
       }
+      setActiveSection(current);
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
@@ -91,6 +86,66 @@ export default function NoRefundPolicyPage() {
 
   return (
     <div className="w-full min-h-screen pt-28 sm:pt-32 pb-24 px-4 sm:px-6 lg:px-8 select-text">
+      {/* Simple Pure CSS for Card Hover Scale & TOC Interactive Hover/Active states */}
+      <style>{`
+        .legal-interactive-card {
+          transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.25s ease !important;
+          will-change: transform, box-shadow;
+          cursor: default;
+        }
+        .legal-interactive-card:hover {
+          transform: translateY(-4px) scale(1.025) !important;
+          box-shadow: 0 14px 30px -6px rgba(0, 0, 0, 0.12), 0 8px 14px -6px rgba(0, 0, 0, 0.08) !important;
+          border-color: #f59e0b !important;
+        }
+        .dark .legal-interactive-card:hover,
+        :is(.dark, .dark *) .legal-interactive-card:hover {
+          transform: translateY(-4px) scale(1.025) !important;
+          box-shadow: 0 16px 36px -6px rgba(0, 0, 0, 0.75), 0 8px 16px -4px rgba(245, 158, 11, 0.2) !important;
+          border-color: #fbbf24 !important;
+        }
+        .legal-toc-link {
+          display: block;
+          padding: 8px 12px;
+          border-radius: 8px;
+          color: #64748b;
+          text-decoration: none;
+          font-size: 0.875rem;
+          line-height: 1.4;
+          border-left: 2px solid transparent;
+          transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        }
+        .dark .legal-toc-link,
+        :is(.dark, .dark *) .legal-toc-link {
+          color: #94a3b8;
+        }
+        .legal-toc-link:hover {
+          color: #d97706 !important;
+          background-color: rgba(217, 119, 6, 0.08) !important;
+          transform: translateX(6px) !important;
+        }
+        .dark .legal-toc-link:hover,
+        :is(.dark, .dark *) .legal-toc-link:hover {
+          color: #fbbf24 !important;
+          background-color: rgba(251, 191, 36, 0.12) !important;
+          transform: translateX(6px) !important;
+        }
+        .legal-toc-link.active {
+          color: #d97706 !important;
+          font-weight: 600 !important;
+          background-color: rgba(217, 119, 6, 0.12) !important;
+          border-left: 3px solid #d97706 !important;
+          transform: translateX(4px) !important;
+        }
+        .dark .legal-toc-link.active,
+        :is(.dark, .dark *) .legal-toc-link.active {
+          color: #fde68a !important;
+          background-color: rgba(251, 191, 36, 0.18) !important;
+          border-left: 3px solid #fbbf24 !important;
+          transform: translateX(4px) !important;
+        }
+      `}</style>
+
       <div className="max-w-6xl mx-auto">
         {/* Navigation Breadcrumb */}
         <div className="flex items-center gap-2 text-xs sm:text-sm text-neutral-500 dark:text-neutral-400 mb-8">
@@ -144,7 +199,7 @@ export default function NoRefundPolicyPage() {
             return (
               <div
                 key={idx}
-                className="group p-5 rounded-2xl bg-white dark:bg-[#121214] border border-neutral-200 dark:border-[#222225] shadow-sm hover:border-amber-500/50 dark:hover:border-amber-500/50 hover:shadow-md hover:scale-[1.025] hover:-translate-y-0.5 transition-all duration-300 cursor-default"
+                className="legal-interactive-card group p-5 rounded-2xl bg-white dark:bg-[#121214] border border-neutral-200 dark:border-[#222225] shadow-sm"
               >
                 <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
                   <Icon className="w-5 h-5" />
@@ -176,11 +231,7 @@ export default function NoRefundPolicyPage() {
                       key={section.id}
                       href={`#${section.id}`}
                       onClick={(e) => scrollToSection(e, section.id)}
-                      className={`block text-xs sm:text-sm py-1.5 px-2.5 rounded-lg transition-all duration-200 leading-snug ${
-                        isActive
-                          ? "bg-amber-50/80 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400 font-semibold border-l-2 border-amber-600 dark:border-amber-400 translate-x-1"
-                          : "text-neutral-600 dark:text-neutral-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-neutral-100/60 dark:hover:bg-neutral-800/40 hover:translate-x-1 font-normal"
-                      }`}
+                      className={`legal-toc-link ${isActive ? "active" : ""}`}
                     >
                       {section.title}
                     </a>
@@ -197,7 +248,7 @@ export default function NoRefundPolicyPage() {
               <h2 className="text-xl sm:text-2xl font-bold text-neutral-900 dark:text-white mb-4">
                 1. All Sales Are Final (No Refunds)
               </h2>
-              <div className="p-4 rounded-xl border border-amber-200 dark:border-amber-900/50 bg-amber-50/50 dark:bg-amber-950/20 mb-4 text-xs sm:text-sm text-neutral-700 dark:text-neutral-300">
+              <div className="legal-interactive-card p-4 rounded-xl border border-amber-200 dark:border-amber-900/50 bg-amber-50/50 dark:bg-amber-950/20 mb-4 text-xs sm:text-sm text-neutral-700 dark:text-neutral-300">
                 <strong className="text-amber-800 dark:text-amber-300">Important Notice:</strong>{" "}
                 LShorter enforces a strict <strong>No-Refund Policy</strong>. All purchases, including
                 monthly and annual plans (Pro, Business, Enterprise) as well as usage-based overage batches,
@@ -292,7 +343,7 @@ export default function NoRefundPolicyPage() {
                 <ShieldAlert className="w-5 h-5 text-rose-500" />
                 6. Chargeback Protection & Account Freezes
               </h2>
-              <div className="p-4 rounded-xl border border-rose-200 dark:border-rose-900/40 bg-rose-50/50 dark:bg-rose-950/20 mb-4 text-xs sm:text-sm text-neutral-700 dark:text-neutral-300">
+              <div className="legal-interactive-card p-4 rounded-xl border border-rose-200 dark:border-rose-900/40 bg-rose-50/50 dark:bg-rose-950/20 mb-4 text-xs sm:text-sm text-neutral-700 dark:text-neutral-300">
                 <strong>Zero-Fraud Policy:</strong> Because all transactions are confirmed with explicit
                 consent at checkout, issuing an unauthorized chargeback or payment reversal through your bank
                 constitutes a breach of our agreement.
@@ -309,7 +360,7 @@ export default function NoRefundPolicyPage() {
 
             {/* Section 7 */}
             <section id="contact" className="scroll-mt-28 pt-4">
-              <div className="p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-amber-50 to-neutral-50 dark:from-[#1c160a] dark:to-[#121214] border border-amber-200/80 dark:border-amber-900/50 hover:scale-[1.01] transition-transform duration-300">
+              <div className="legal-interactive-card p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-amber-50 to-neutral-50 dark:from-[#1c160a] dark:to-[#121214] border border-amber-200/80 dark:border-amber-900/50">
                 <h3 className="text-lg sm:text-xl font-bold text-neutral-900 dark:text-white mb-2 flex items-center gap-2">
                   <Mail className="w-5 h-5 text-amber-600 dark:text-amber-400" />
                   7. Contact Billing Support

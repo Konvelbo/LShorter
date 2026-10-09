@@ -59,23 +59,22 @@ export default function PrivacyPolicyPage() {
     { id: "security", title: "8. Technical & Organizational Security" },
     { id: "children", title: "9. Children's Privacy" },
     { id: "policy-changes", title: "10. Changes to This Policy" },
-    { id: "contact", title: "11. Data Protection Officer (DPO) Contact" },
+    { id: "contact", title: "11. Contact Privacy Desk" },
   ];
 
   useEffect(() => {
     const handleScroll = () => {
-      const scrollPosition = window.scrollY + 200;
+      let current = tableOfContents[0].id;
       for (const section of tableOfContents) {
         const el = document.getElementById(section.id);
         if (el) {
-          const top = el.offsetTop;
-          const height = el.offsetHeight;
-          if (scrollPosition >= top && scrollPosition < top + height) {
-            setActiveSection(section.id);
-            break;
+          const rect = el.getBoundingClientRect();
+          if (rect.top <= 260) {
+            current = section.id;
           }
         }
       }
+      setActiveSection(current);
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
@@ -94,6 +93,66 @@ export default function PrivacyPolicyPage() {
 
   return (
     <div className="w-full min-h-screen pt-28 sm:pt-32 pb-24 px-4 sm:px-6 lg:px-8 select-text">
+      {/* Simple Pure CSS for Card Hover Scale & TOC Interactive Hover/Active states */}
+      <style>{`
+        .legal-interactive-card {
+          transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.25s ease !important;
+          will-change: transform, box-shadow;
+          cursor: default;
+        }
+        .legal-interactive-card:hover {
+          transform: translateY(-4px) scale(1.025) !important;
+          box-shadow: 0 14px 30px -6px rgba(0, 0, 0, 0.12), 0 8px 14px -6px rgba(0, 0, 0, 0.08) !important;
+          border-color: #3b82f6 !important;
+        }
+        .dark .legal-interactive-card:hover,
+        :is(.dark, .dark *) .legal-interactive-card:hover {
+          transform: translateY(-4px) scale(1.025) !important;
+          box-shadow: 0 16px 36px -6px rgba(0, 0, 0, 0.75), 0 8px 16px -4px rgba(59, 130, 246, 0.25) !important;
+          border-color: #60a5fa !important;
+        }
+        .legal-toc-link {
+          display: block;
+          padding: 8px 12px;
+          border-radius: 8px;
+          color: #64748b;
+          text-decoration: none;
+          font-size: 0.875rem;
+          line-height: 1.4;
+          border-left: 2px solid transparent;
+          transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        }
+        .dark .legal-toc-link,
+        :is(.dark, .dark *) .legal-toc-link {
+          color: #94a3b8;
+        }
+        .legal-toc-link:hover {
+          color: #2563eb !important;
+          background-color: rgba(37, 99, 235, 0.08) !important;
+          transform: translateX(6px) !important;
+        }
+        .dark .legal-toc-link:hover,
+        :is(.dark, .dark *) .legal-toc-link:hover {
+          color: #60a5fa !important;
+          background-color: rgba(96, 165, 250, 0.12) !important;
+          transform: translateX(6px) !important;
+        }
+        .legal-toc-link.active {
+          color: #2563eb !important;
+          font-weight: 600 !important;
+          background-color: rgba(37, 99, 235, 0.12) !important;
+          border-left: 3px solid #2563eb !important;
+          transform: translateX(4px) !important;
+        }
+        .dark .legal-toc-link.active,
+        :is(.dark, .dark *) .legal-toc-link.active {
+          color: #93c5fd !important;
+          background-color: rgba(96, 165, 250, 0.18) !important;
+          border-left: 3px solid #60a5fa !important;
+          transform: translateX(4px) !important;
+        }
+      `}</style>
+
       <div className="max-w-6xl mx-auto">
         {/* Navigation Breadcrumb */}
         <div className="flex items-center gap-2 text-xs sm:text-sm text-neutral-500 dark:text-neutral-400 mb-8">
@@ -147,7 +206,7 @@ export default function PrivacyPolicyPage() {
             return (
               <div
                 key={idx}
-                className="group p-5 rounded-2xl bg-white dark:bg-[#121214] border border-neutral-200 dark:border-[#222225] shadow-sm hover:border-blue-500/50 dark:hover:border-blue-500/50 hover:shadow-md hover:scale-[1.025] hover:-translate-y-0.5 transition-all duration-300 cursor-default"
+                className="legal-interactive-card group p-5 rounded-2xl bg-white dark:bg-[#121214] border border-neutral-200 dark:border-[#222225] shadow-sm"
               >
                 <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
                   <Icon className="w-5 h-5" />
@@ -165,7 +224,7 @@ export default function PrivacyPolicyPage() {
 
         {/* Layout: Sidebar TOC + Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-          {/* Desktop Sticky Table of Contents with Active Section Highlight & Hover Animation */}
+          {/* Desktop Sticky Table of Contents with Simple CSS Hover Animation & Active Class */}
           <aside className="hidden lg:block lg:col-span-4">
             <div className="sticky top-28 p-6 rounded-2xl bg-white dark:bg-[#121214] border border-neutral-200 dark:border-[#222225]">
               <h2 className="text-xs font-bold uppercase tracking-wider text-neutral-400 dark:text-neutral-500 mb-4">
@@ -179,11 +238,7 @@ export default function PrivacyPolicyPage() {
                       key={section.id}
                       href={`#${section.id}`}
                       onClick={(e) => scrollToSection(e, section.id)}
-                      className={`block text-xs sm:text-sm py-1.5 px-2.5 rounded-lg transition-all duration-200 leading-snug ${
-                        isActive
-                          ? "bg-blue-50/80 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 font-semibold border-l-2 border-blue-600 dark:border-blue-400 translate-x-1"
-                          : "text-neutral-600 dark:text-neutral-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-neutral-100/60 dark:hover:bg-neutral-800/40 hover:translate-x-1 font-normal"
-                      }`}
+                      className={`legal-toc-link ${isActive ? "active" : ""}`}
                     >
                       {section.title}
                     </a>
@@ -224,7 +279,7 @@ export default function PrivacyPolicyPage() {
               </p>
 
               <div className="space-y-4 my-6">
-                <div className="p-5 rounded-xl bg-neutral-50 dark:bg-[#151518] border border-neutral-200 dark:border-neutral-800 hover:scale-[1.015] hover:shadow-md transition-all duration-300 cursor-default">
+                <div className="legal-interactive-card p-5 rounded-xl bg-neutral-50 dark:bg-[#151518] border border-neutral-200 dark:border-neutral-800">
                   <h3 className="font-semibold text-neutral-900 dark:text-white mb-2 flex items-center gap-2">
                     <UserCheck className="w-4 h-4 text-blue-500" />
                     A. Registered Account Holders
@@ -253,7 +308,7 @@ export default function PrivacyPolicyPage() {
                   </ul>
                 </div>
 
-                <div className="p-5 rounded-xl bg-neutral-50 dark:bg-[#151518] border border-neutral-200 dark:border-neutral-800 hover:scale-[1.015] hover:shadow-md transition-all duration-300 cursor-default">
+                <div className="legal-interactive-card p-5 rounded-xl bg-neutral-50 dark:bg-[#151518] border border-neutral-200 dark:border-neutral-800">
                   <h3 className="font-semibold text-neutral-900 dark:text-white mb-2 flex items-center gap-2">
                     <EyeOff className="w-4 h-4 text-blue-500" />
                     B. Link Visitors (Anonymous Edge Redirection)
@@ -290,7 +345,7 @@ export default function PrivacyPolicyPage() {
                 We implement strict data minimization principles:
               </p>
               <div className="space-y-4">
-                <div className="p-4 rounded-xl border border-blue-100 dark:border-blue-900/40 bg-blue-50/50 dark:bg-blue-950/20 hover:scale-[1.015] hover:shadow-md transition-all duration-300">
+                <div className="legal-interactive-card p-4 rounded-xl border border-blue-100 dark:border-blue-900/40 bg-blue-50/50 dark:bg-blue-950/20">
                   <h4 className="font-semibold text-neutral-900 dark:text-white text-sm mb-1">
                     IP Address Anonymization at the Edge
                   </h4>
@@ -302,7 +357,7 @@ export default function PrivacyPolicyPage() {
                   </p>
                 </div>
 
-                <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 hover:scale-[1.015] hover:shadow-md transition-all duration-300">
+                <div className="legal-interactive-card p-4 rounded-xl border border-neutral-200 dark:border-neutral-800">
                   <h4 className="font-semibold text-neutral-900 dark:text-white text-sm mb-1">
                     PathLock™ Zero-Knowledge Protection
                   </h4>
@@ -313,7 +368,7 @@ export default function PrivacyPolicyPage() {
                   </p>
                 </div>
 
-                <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 hover:scale-[1.015] hover:shadow-md transition-all duration-300">
+                <div className="legal-interactive-card p-4 rounded-xl border border-neutral-200 dark:border-neutral-800">
                   <h4 className="font-semibold text-neutral-900 dark:text-white text-sm mb-1">
                     Zero-Referrer URL Cloaking
                   </h4>
@@ -428,7 +483,7 @@ export default function PrivacyPolicyPage() {
                 agreements:
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="p-4 rounded-xl bg-neutral-50 dark:bg-[#151518] border border-neutral-200 dark:border-neutral-800 hover:scale-[1.02] hover:shadow-md transition-all duration-300">
+                <div className="legal-interactive-card p-4 rounded-xl bg-neutral-50 dark:bg-[#151518] border border-neutral-200 dark:border-neutral-800">
                   <h4 className="font-semibold text-neutral-900 dark:text-white text-sm mb-1">
                     Cloudflare Inc.
                   </h4>
@@ -438,7 +493,7 @@ export default function PrivacyPolicyPage() {
                   <span className="text-[11px] font-mono text-neutral-400">USA & Global PoPs (SOC 2, ISO 27001)</span>
                 </div>
 
-                <div className="p-4 rounded-xl bg-neutral-50 dark:bg-[#151518] border border-neutral-200 dark:border-neutral-800 hover:scale-[1.02] hover:shadow-md transition-all duration-300">
+                <div className="legal-interactive-card p-4 rounded-xl bg-neutral-50 dark:bg-[#151518] border border-neutral-200 dark:border-neutral-800">
                   <h4 className="font-semibold text-neutral-900 dark:text-white text-sm mb-1">
                     Convex Inc.
                   </h4>
@@ -448,7 +503,7 @@ export default function PrivacyPolicyPage() {
                   <span className="text-[11px] font-mono text-neutral-400">USA (SOC 2 Type II Certified)</span>
                 </div>
 
-                <div className="p-4 rounded-xl bg-neutral-50 dark:bg-[#151518] border border-neutral-200 dark:border-neutral-800 hover:scale-[1.02] hover:shadow-md transition-all duration-300">
+                <div className="legal-interactive-card p-4 rounded-xl bg-neutral-50 dark:bg-[#151518] border border-neutral-200 dark:border-neutral-800">
                   <h4 className="font-semibold text-neutral-900 dark:text-white text-sm mb-1">
                     Paddle.com Market Ltd
                   </h4>
@@ -458,7 +513,7 @@ export default function PrivacyPolicyPage() {
                   <span className="text-[11px] font-mono text-neutral-400">UK / Global (PCI-DSS Level 1 Merchant of Record)</span>
                 </div>
 
-                <div className="p-4 rounded-xl bg-neutral-50 dark:bg-[#151518] border border-neutral-200 dark:border-neutral-800 hover:scale-[1.02] hover:shadow-md transition-all duration-300">
+                <div className="legal-interactive-card p-4 rounded-xl bg-neutral-50 dark:bg-[#151518] border border-neutral-200 dark:border-neutral-800">
                   <h4 className="font-semibold text-neutral-900 dark:text-white text-sm mb-1">
                     Resend Inc.
                   </h4>
@@ -480,7 +535,7 @@ export default function PrivacyPolicyPage() {
                 substantial rights over your personal data:
               </p>
               <div className="space-y-3">
-                <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 hover:scale-[1.015] hover:shadow-md transition-all duration-300">
+                <div className="legal-interactive-card p-4 rounded-xl border border-neutral-200 dark:border-neutral-800">
                   <h4 className="font-semibold text-neutral-900 dark:text-white text-sm mb-1">
                     • Right of Access & Data Portability (GDPR Art. 15, 20)
                   </h4>
@@ -494,7 +549,7 @@ export default function PrivacyPolicyPage() {
                   </p>
                 </div>
 
-                <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 hover:scale-[1.015] hover:shadow-md transition-all duration-300">
+                <div className="legal-interactive-card p-4 rounded-xl border border-neutral-200 dark:border-neutral-800">
                   <h4 className="font-semibold text-neutral-900 dark:text-white text-sm mb-1">
                     • Right to Rectification & Deletion (GDPR Art. 16, 17)
                   </h4>
@@ -505,7 +560,7 @@ export default function PrivacyPolicyPage() {
                   </p>
                 </div>
 
-                <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 hover:scale-[1.015] hover:shadow-md transition-all duration-300">
+                <div className="legal-interactive-card p-4 rounded-xl border border-neutral-200 dark:border-neutral-800">
                   <h4 className="font-semibold text-neutral-900 dark:text-white text-sm mb-1">
                     • CCPA Notice: We Do NOT Sell or Share Personal Information
                   </h4>
@@ -569,10 +624,10 @@ export default function PrivacyPolicyPage() {
 
             {/* Section 11 */}
             <section id="contact" className="scroll-mt-28 pt-4">
-              <div className="p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-[#111827] dark:to-[#0f172a] border border-blue-200/80 dark:border-blue-900/50 hover:scale-[1.01] transition-transform duration-300">
+              <div className="legal-interactive-card p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-[#111827] dark:to-[#0f172a] border border-blue-200/80 dark:border-blue-900/50">
                 <h2 className="text-lg sm:text-xl font-bold text-neutral-900 dark:text-white mb-2 flex items-center gap-2">
                   <Mail className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                  11. Contact Our Data Protection Officer (DPO)
+                  11. Contact Privacy Desk
                 </h2>
                 <p className="text-neutral-600 dark:text-neutral-300 mb-4 text-xs sm:text-sm">
                   If you have inquiries regarding this Privacy Policy or wish to exercise your GDPR/CCPA
@@ -593,7 +648,7 @@ export default function PrivacyPolicyPage() {
                     </a>
                   </p>
                   <p>
-                    <strong>Organization:</strong> LShorter Inc.
+                    <strong>Organization:</strong> LShorter Inc. (Data Protection & Legal Compliance Desk)
                   </p>
                 </div>
               </div>

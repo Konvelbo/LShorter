@@ -1610,4 +1610,69 @@ html.light main .text-neutral-200 {
   transform: translateX(4px);
 }
 
+/* ==========================================================================
+   LEGAL PAGES (Privacy, Terms, Refund) - Simple Smooth CSS Animations
+   ========================================================================== */
+
+.legal-interactive-card {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.25s ease !important;
+  will-change: transform, box-shadow;
+  cursor: default;
+}
+
+.legal-interactive-card:hover {
+  transform: translateY(-4px) scale(1.025) !important;
+  box-shadow: 0 14px 30px -6px rgba(0, 0, 0, 0.12), 0 8px 14px -6px rgba(0, 0, 0, 0.08) !important;
+  border-color: #3b82f6 !important;
+}
+
+:is(.dark, .dark *) .legal-interactive-card:hover {
+  transform: translateY(-4px) scale(1.025) !important;
+  box-shadow: 0 16px 36px -6px rgba(0, 0, 0, 0.75), 0 8px 16px -4px rgba(59, 130, 246, 0.2) !important;
+  border-color: #60a5fa !important;
+}
+
+.legal-toc-link {
+  display: block;
+  padding: 8px 12px;
+  border-radius: 8px;
+  color: #64748b;
+  text-decoration: none;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  border-left: 2px solid transparent;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+:is(.dark, .dark *) .legal-toc-link {
+  color: #94a3b8;
+}
+
+.legal-toc-link:hover {
+  color: #2563eb !important;
+  background-color: rgba(37, 99, 235, 0.08) !important;
+  transform: translateX(6px) !important;
+}
+
+:is(.dark, .dark *) .legal-toc-link:hover {
+  color: #60a5fa !important;
+  background-color: rgba(96, 165, 250, 0.12) !important;
+  transform: translateX(6px) !important;
+}
+
+.legal-toc-link.active {
+  color: #2563eb !important;
+  font-weight: 600 !important;
+  background-color: rgba(37, 99, 235, 0.12) !important;
+  border-left: 3px solid #2563eb !important;
+  transform: translateX(4px) !important;
+}
+
+:is(.dark, .dark *) .legal-toc-link.active {
+  color: #93c5fd !important;
+  background-color: rgba(96, 165, 250, 0.18) !important;
+  border-left: 3px solid #60a5fa !important;
+  transform: translateX(4px) !important;
+}
+
 
