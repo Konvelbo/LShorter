@@ -581,19 +581,19 @@ export default function PrivacyPolicyPage() {
 
                 <div className="space-y-2 text-xs sm:text-sm font-medium text-neutral-800 dark:text-neutral-200">
                   <p>
-                    <strong>Privacy Desk:</strong>{" "}
-                    <a href="mailto:privacy@lshorter.com" className="text-blue-600 dark:text-blue-400 hover:underline">
-                      privacy@lshorter.com
+                    <strong>General & Privacy Inquiries:</strong>{" "}
+                    <a href="mailto:contact@lshorter.com" className="text-blue-600 dark:text-blue-400 hover:underline">
+                      contact@lshorter.com
                     </a>
                   </p>
                   <p>
-                    <strong>DPO Desk:</strong>{" "}
-                    <a href="mailto:dpo@lshorter.com" className="text-blue-600 dark:text-blue-400 hover:underline">
-                      dpo@lshorter.com
+                    <strong>Customer Support:</strong>{" "}
+                    <a href="mailto:support@lshorter.com" className="text-blue-600 dark:text-blue-400 hover:underline">
+                      support@lshorter.com
                     </a>
                   </p>
                   <p>
-                    <strong>Organization:</strong> LShorter Inc. (Data Protection & Legal Compliance Desk)
+                    <strong>Organization:</strong> LShorter Inc.
                   </p>
                 </div>
               </div>

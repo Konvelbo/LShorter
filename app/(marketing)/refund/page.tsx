@@ -321,9 +321,15 @@ export default function NoRefundPolicyPage() {
 
                 <div className="space-y-1.5 text-xs sm:text-sm font-medium text-neutral-800 dark:text-neutral-200">
                   <p>
-                    <strong>Billing Desk:</strong>{" "}
-                    <a href="mailto:billing@lshorter.com" className="text-amber-600 dark:text-amber-400 hover:underline">
-                      billing@lshorter.com
+                    <strong>Customer Support:</strong>{" "}
+                    <a href="mailto:support@lshorter.com" className="text-amber-600 dark:text-amber-400 hover:underline">
+                      support@lshorter.com
+                    </a>
+                  </p>
+                  <p>
+                    <strong>General Inquiries:</strong>{" "}
+                    <a href="mailto:contact@lshorter.com" className="text-amber-600 dark:text-amber-400 hover:underline">
+                      contact@lshorter.com
                     </a>
                   </p>
                   <p>

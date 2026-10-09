@@ -226,8 +226,8 @@ export default function TermsOfServicePage() {
                 <li>
                   You must promptly notify LShorter of any unauthorized use of your account or security
                   breaches at{" "}
-                  <a href="mailto:security@lshorter.com" className="text-blue-600 dark:text-blue-400 hover:underline">
-                    security@lshorter.com
+                  <a href="mailto:contact@lshorter.com" className="text-blue-600 dark:text-blue-400 hover:underline">
+                    contact@lshorter.com
                   </a>
                   .
                 </li>
@@ -418,15 +418,15 @@ export default function TermsOfServicePage() {
 
                 <div className="space-y-1.5 text-xs sm:text-sm font-medium text-neutral-800 dark:text-neutral-200">
                   <p>
-                    <strong>Legal Desk:</strong>{" "}
-                    <a href="mailto:legal@lshorter.com" className="text-purple-600 dark:text-purple-400 hover:underline">
-                      legal@lshorter.com
+                    <strong>Legal & Abuse Inquiries:</strong>{" "}
+                    <a href="mailto:contact@lshorter.com" className="text-purple-600 dark:text-purple-400 hover:underline">
+                      contact@lshorter.com
                     </a>
                   </p>
                   <p>
-                    <strong>Abuse & Phishing Reports:</strong>{" "}
-                    <a href="mailto:abuse@lshorter.com" className="text-rose-600 dark:text-rose-400 hover:underline">
-                      abuse@lshorter.com
+                    <strong>Customer Support:</strong>{" "}
+                    <a href="mailto:support@lshorter.com" className="text-purple-600 dark:text-purple-400 hover:underline">
+                      support@lshorter.com
                     </a>
                   </p>
                   <p>
