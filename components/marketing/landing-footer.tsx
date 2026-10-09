@@ -54,7 +54,7 @@ const FOOTER_COLUMNS = [
     links: [
       { label: "Privacy Policy (GDPR)", href: "/privacy" },
       { label: "Terms of Service", href: "/terms" },
-      { label: "Refund Policy (14 Days)", href: "/refund" },
+      { label: "No-Refund Policy", href: "/refund" },
       { label: "Dashboard Overview", href: "/dashboard" },
     ],
   },

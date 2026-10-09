@@ -1,11 +1,12 @@
-import React from "react";
+"use client";
+
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   ShieldCheck,
   Lock,
   EyeOff,
   Server,
-  FileCheck,
   Globe2,
   UserCheck,
   RefreshCcw,
@@ -15,16 +16,10 @@ import {
   Database,
   ExternalLink,
 } from "lucide-react";
-import type { Metadata } from "next";
-
-export const metadata: Metadata = {
-  title: "Privacy Policy | LShorter - Zero-Visitor-Cookie Link Infrastructure",
-  description:
-    "Learn how LShorter safeguards your data, ensures GDPR & CCPA compliance, and enforces zero-visitor-cookie edge redirection across 310+ Cloudflare PoPs.",
-};
 
 export default function PrivacyPolicyPage() {
   const lastUpdated = "October 8, 2026";
+  const [activeSection, setActiveSection] = useState<string>("introduction");
 
   const trustHighlights = [
     {
@@ -67,9 +62,38 @@ export default function PrivacyPolicyPage() {
     { id: "contact", title: "11. Data Protection Officer (DPO) Contact" },
   ];
 
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollPosition = window.scrollY + 200;
+      for (const section of tableOfContents) {
+        const el = document.getElementById(section.id);
+        if (el) {
+          const top = el.offsetTop;
+          const height = el.offsetHeight;
+          if (scrollPosition >= top && scrollPosition < top + height) {
+            setActiveSection(section.id);
+            break;
+          }
+        }
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const scrollToSection = (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    const target = document.getElementById(id);
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+      setActiveSection(id);
+    }
+  };
+
   return (
     <div className="w-full min-h-screen pt-28 sm:pt-32 pb-24 px-4 sm:px-6 lg:px-8 select-text">
-      {/* Background ambient lighting */}
       <div className="max-w-6xl mx-auto">
         {/* Navigation Breadcrumb */}
         <div className="flex items-center gap-2 text-xs sm:text-sm text-neutral-500 dark:text-neutral-400 mb-8">
@@ -116,16 +140,16 @@ export default function PrivacyPolicyPage() {
           </div>
         </div>
 
-        {/* Key Privacy Guarantees Grid */}
+        {/* Key Privacy Guarantees Grid with Scale on Hover */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-16">
           {trustHighlights.map((item, idx) => {
             const Icon = item.icon;
             return (
               <div
                 key={idx}
-                className="p-5 rounded-2xl bg-white dark:bg-[#121214] border border-neutral-200 dark:border-[#222225] shadow-sm hover:border-blue-500/40 dark:hover:border-blue-500/40 transition-all"
+                className="group p-5 rounded-2xl bg-white dark:bg-[#121214] border border-neutral-200 dark:border-[#222225] shadow-sm hover:border-blue-500/50 dark:hover:border-blue-500/50 hover:shadow-md hover:scale-[1.025] hover:-translate-y-0.5 transition-all duration-300 cursor-default"
               >
-                <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-4">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
                   <Icon className="w-5 h-5" />
                 </div>
                 <h3 className="text-sm font-semibold text-neutral-900 dark:text-white mb-2">
@@ -141,37 +165,31 @@ export default function PrivacyPolicyPage() {
 
         {/* Layout: Sidebar TOC + Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-          {/* Desktop Sticky Table of Contents */}
+          {/* Desktop Sticky Table of Contents with Active Section Highlight & Hover Animation */}
           <aside className="hidden lg:block lg:col-span-4">
             <div className="sticky top-28 p-6 rounded-2xl bg-white dark:bg-[#121214] border border-neutral-200 dark:border-[#222225]">
               <h2 className="text-xs font-bold uppercase tracking-wider text-neutral-400 dark:text-neutral-500 mb-4">
                 Table of Contents
               </h2>
-              <nav className="space-y-2">
-                {tableOfContents.map((section) => (
-                  <a
-                    key={section.id}
-                    href={`#${section.id}`}
-                    className="block text-xs sm:text-sm text-neutral-600 dark:text-neutral-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 leading-snug"
-                  >
-                    {section.title}
-                  </a>
-                ))}
+              <nav className="space-y-1">
+                {tableOfContents.map((section) => {
+                  const isActive = activeSection === section.id;
+                  return (
+                    <a
+                      key={section.id}
+                      href={`#${section.id}`}
+                      onClick={(e) => scrollToSection(e, section.id)}
+                      className={`block text-xs sm:text-sm py-1.5 px-2.5 rounded-lg transition-all duration-200 leading-snug ${
+                        isActive
+                          ? "bg-blue-50/80 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 font-semibold border-l-2 border-blue-600 dark:border-blue-400 translate-x-1"
+                          : "text-neutral-600 dark:text-neutral-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-neutral-100/60 dark:hover:bg-neutral-800/40 hover:translate-x-1 font-normal"
+                      }`}
+                    >
+                      {section.title}
+                    </a>
+                  );
+                })}
               </nav>
-
-              <div className="mt-8 pt-6 border-t border-neutral-200 dark:border-neutral-800 text-xs text-neutral-500 dark:text-neutral-400 space-y-3">
-                <p className="font-semibold text-neutral-800 dark:text-neutral-200">
-                  Need a DPA or custom compliance?
-                </p>
-                <p>Enterprise accounts may request our standard Data Processing Addendum (DPA).</p>
-                <a
-                  href="mailto:privacy@lshorter.com"
-                  className="inline-flex items-center gap-1.5 text-blue-600 dark:text-blue-400 hover:underline font-medium"
-                >
-                  <Mail className="w-3.5 h-3.5" />
-                  Contact DPO
-                </a>
-              </div>
             </div>
           </aside>
 
@@ -206,7 +224,7 @@ export default function PrivacyPolicyPage() {
               </p>
 
               <div className="space-y-4 my-6">
-                <div className="p-5 rounded-xl bg-neutral-50 dark:bg-[#151518] border border-neutral-200 dark:border-neutral-800">
+                <div className="p-5 rounded-xl bg-neutral-50 dark:bg-[#151518] border border-neutral-200 dark:border-neutral-800 hover:scale-[1.015] hover:shadow-md transition-all duration-300 cursor-default">
                   <h3 className="font-semibold text-neutral-900 dark:text-white mb-2 flex items-center gap-2">
                     <UserCheck className="w-4 h-4 text-blue-500" />
                     A. Registered Account Holders
@@ -218,9 +236,11 @@ export default function PrivacyPolicyPage() {
                       (Google, GitHub).
                     </li>
                     <li>
-                      <strong>Billing & Payment Information:</strong> Payment card transactions are
-                      processed directly through our PCI-DSS Level 1 compliant payment provider
-                      (Stripe). LShorter never stores or sees raw credit card numbers or CVV codes.
+                      <strong>Billing & Payment Information:</strong> Payment transactions and subscription
+                      orders are processed directly through our Merchant of Record and payment provider,{" "}
+                      <strong>Paddle</strong> (Paddle.com Market Ltd), which complies with PCI-DSS Level 1 standards.
+                      Paddle securely manages checkout, recurring billing, fraud prevention, and international tax compliance.
+                      LShorter never stores or sees raw credit card numbers or CVV codes.
                     </li>
                     <li>
                       <strong>Customer Support Communications:</strong> Inquiries, bug reports, and
@@ -233,7 +253,7 @@ export default function PrivacyPolicyPage() {
                   </ul>
                 </div>
 
-                <div className="p-5 rounded-xl bg-neutral-50 dark:bg-[#151518] border border-neutral-200 dark:border-neutral-800">
+                <div className="p-5 rounded-xl bg-neutral-50 dark:bg-[#151518] border border-neutral-200 dark:border-neutral-800 hover:scale-[1.015] hover:shadow-md transition-all duration-300 cursor-default">
                   <h3 className="font-semibold text-neutral-900 dark:text-white mb-2 flex items-center gap-2">
                     <EyeOff className="w-4 h-4 text-blue-500" />
                     B. Link Visitors (Anonymous Edge Redirection)
@@ -270,7 +290,7 @@ export default function PrivacyPolicyPage() {
                 We implement strict data minimization principles:
               </p>
               <div className="space-y-4">
-                <div className="p-4 rounded-xl border border-blue-100 dark:border-blue-900/40 bg-blue-50/50 dark:bg-blue-950/20">
+                <div className="p-4 rounded-xl border border-blue-100 dark:border-blue-900/40 bg-blue-50/50 dark:bg-blue-950/20 hover:scale-[1.015] hover:shadow-md transition-all duration-300">
                   <h4 className="font-semibold text-neutral-900 dark:text-white text-sm mb-1">
                     IP Address Anonymization at the Edge
                   </h4>
@@ -282,7 +302,7 @@ export default function PrivacyPolicyPage() {
                   </p>
                 </div>
 
-                <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800">
+                <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 hover:scale-[1.015] hover:shadow-md transition-all duration-300">
                   <h4 className="font-semibold text-neutral-900 dark:text-white text-sm mb-1">
                     PathLock™ Zero-Knowledge Protection
                   </h4>
@@ -293,7 +313,7 @@ export default function PrivacyPolicyPage() {
                   </p>
                 </div>
 
-                <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800">
+                <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 hover:scale-[1.015] hover:shadow-md transition-all duration-300">
                   <h4 className="font-semibold text-neutral-900 dark:text-white text-sm mb-1">
                     Zero-Referrer URL Cloaking
                   </h4>
@@ -319,7 +339,7 @@ export default function PrivacyPolicyPage() {
               <ul className="list-disc pl-5 space-y-2 text-neutral-600 dark:text-neutral-400">
                 <li>
                   <strong>Performance of Contract (Art. 6(1)(b)):</strong> To provide our services,
-                  authenticate accounts, execute redirects, process payments, and fulfill our Terms of
+                  authenticate accounts, execute redirects, process subscription orders, and fulfill our Terms of
                   Service.
                 </li>
                 <li>
@@ -362,14 +382,14 @@ export default function PrivacyPolicyPage() {
                         Click Analytics & Telemetry
                       </td>
                       <td className="p-3">Starter (Free) Plan</td>
-                      <td className="p-3">30 Days (Rolling)</td>
+                      <td className="p-3">30 Days (Rolling window enforced at edge & query level)</td>
                     </tr>
                     <tr>
                       <td className="p-3 font-medium text-neutral-900 dark:text-white">
                         Click Analytics & Telemetry
                       </td>
                       <td className="p-3">Pro Plan</td>
-                      <td className="p-3">365 Days (1 Year)</td>
+                      <td className="p-3">365 Days (1 Year rolling window)</td>
                     </tr>
                     <tr>
                       <td className="p-3 font-medium text-neutral-900 dark:text-white">
@@ -383,14 +403,14 @@ export default function PrivacyPolicyPage() {
                         Account Profile & Auth Data
                       </td>
                       <td className="p-3">All Active Accounts</td>
-                      <td className="p-3">Retained until account deletion</td>
+                      <td className="p-3">Retained until account deletion by user</td>
                     </tr>
                     <tr>
                       <td className="p-3 font-medium text-neutral-900 dark:text-white">
-                        Billing & Tax Invoices
+                        Billing & Tax Records
                       </td>
                       <td className="p-3">Paid Subscriptions</td>
-                      <td className="p-3">7 Years (Mandatory statutory audit period)</td>
+                      <td className="p-3">7 Years (Managed by Merchant of Record Paddle for statutory audits)</td>
                     </tr>
                   </tbody>
                 </table>
@@ -408,7 +428,7 @@ export default function PrivacyPolicyPage() {
                 agreements:
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="p-4 rounded-xl bg-neutral-50 dark:bg-[#151518] border border-neutral-200 dark:border-neutral-800">
+                <div className="p-4 rounded-xl bg-neutral-50 dark:bg-[#151518] border border-neutral-200 dark:border-neutral-800 hover:scale-[1.02] hover:shadow-md transition-all duration-300">
                   <h4 className="font-semibold text-neutral-900 dark:text-white text-sm mb-1">
                     Cloudflare Inc.
                   </h4>
@@ -418,7 +438,7 @@ export default function PrivacyPolicyPage() {
                   <span className="text-[11px] font-mono text-neutral-400">USA & Global PoPs (SOC 2, ISO 27001)</span>
                 </div>
 
-                <div className="p-4 rounded-xl bg-neutral-50 dark:bg-[#151518] border border-neutral-200 dark:border-neutral-800">
+                <div className="p-4 rounded-xl bg-neutral-50 dark:bg-[#151518] border border-neutral-200 dark:border-neutral-800 hover:scale-[1.02] hover:shadow-md transition-all duration-300">
                   <h4 className="font-semibold text-neutral-900 dark:text-white text-sm mb-1">
                     Convex Inc.
                   </h4>
@@ -428,17 +448,17 @@ export default function PrivacyPolicyPage() {
                   <span className="text-[11px] font-mono text-neutral-400">USA (SOC 2 Type II Certified)</span>
                 </div>
 
-                <div className="p-4 rounded-xl bg-neutral-50 dark:bg-[#151518] border border-neutral-200 dark:border-neutral-800">
+                <div className="p-4 rounded-xl bg-neutral-50 dark:bg-[#151518] border border-neutral-200 dark:border-neutral-800 hover:scale-[1.02] hover:shadow-md transition-all duration-300">
                   <h4 className="font-semibold text-neutral-900 dark:text-white text-sm mb-1">
-                    Stripe Inc.
+                    Paddle.com Market Ltd
                   </h4>
                   <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-2">
-                    Payment processing, subscription billing, and tax calculation.
+                    Merchant of Record, checkout, global payment processing, fraud prevention, and international tax/VAT compliance.
                   </p>
-                  <span className="text-[11px] font-mono text-neutral-400">Global (PCI-DSS Level 1)</span>
+                  <span className="text-[11px] font-mono text-neutral-400">UK / Global (PCI-DSS Level 1 Merchant of Record)</span>
                 </div>
 
-                <div className="p-4 rounded-xl bg-neutral-50 dark:bg-[#151518] border border-neutral-200 dark:border-neutral-800">
+                <div className="p-4 rounded-xl bg-neutral-50 dark:bg-[#151518] border border-neutral-200 dark:border-neutral-800 hover:scale-[1.02] hover:shadow-md transition-all duration-300">
                   <h4 className="font-semibold text-neutral-900 dark:text-white text-sm mb-1">
                     Resend Inc.
                   </h4>
@@ -460,7 +480,7 @@ export default function PrivacyPolicyPage() {
                 substantial rights over your personal data:
               </p>
               <div className="space-y-3">
-                <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800">
+                <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 hover:scale-[1.015] hover:shadow-md transition-all duration-300">
                   <h4 className="font-semibold text-neutral-900 dark:text-white text-sm mb-1">
                     • Right of Access & Data Portability (GDPR Art. 15, 20)
                   </h4>
@@ -474,7 +494,7 @@ export default function PrivacyPolicyPage() {
                   </p>
                 </div>
 
-                <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800">
+                <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 hover:scale-[1.015] hover:shadow-md transition-all duration-300">
                   <h4 className="font-semibold text-neutral-900 dark:text-white text-sm mb-1">
                     • Right to Rectification & Deletion (GDPR Art. 16, 17)
                   </h4>
@@ -485,7 +505,7 @@ export default function PrivacyPolicyPage() {
                   </p>
                 </div>
 
-                <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800">
+                <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 hover:scale-[1.015] hover:shadow-md transition-all duration-300">
                   <h4 className="font-semibold text-neutral-900 dark:text-white text-sm mb-1">
                     • CCPA Notice: We Do NOT Sell or Share Personal Information
                   </h4>
@@ -549,19 +569,19 @@ export default function PrivacyPolicyPage() {
 
             {/* Section 11 */}
             <section id="contact" className="scroll-mt-28 pt-4">
-              <div className="p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-[#111827] dark:to-[#0f172a] border border-blue-200/80 dark:border-blue-900/50">
+              <div className="p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-[#111827] dark:to-[#0f172a] border border-blue-200/80 dark:border-blue-900/50 hover:scale-[1.01] transition-transform duration-300">
                 <h2 className="text-lg sm:text-xl font-bold text-neutral-900 dark:text-white mb-2 flex items-center gap-2">
                   <Mail className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                   11. Contact Our Data Protection Officer (DPO)
                 </h2>
                 <p className="text-neutral-600 dark:text-neutral-300 mb-4 text-xs sm:text-sm">
-                  If you have inquiries regarding this Privacy Policy, wish to exercise your GDPR/CCPA
-                  statutory rights, or require an enterprise Data Processing Agreement, reach out to our team:
+                  If you have inquiries regarding this Privacy Policy or wish to exercise your GDPR/CCPA
+                  statutory rights, reach out to our team:
                 </p>
 
                 <div className="space-y-2 text-xs sm:text-sm font-medium text-neutral-800 dark:text-neutral-200">
                   <p>
-                    <strong>Email:</strong>{" "}
+                    <strong>Privacy Desk:</strong>{" "}
                     <a href="mailto:privacy@lshorter.com" className="text-blue-600 dark:text-blue-400 hover:underline">
                       privacy@lshorter.com
                     </a>

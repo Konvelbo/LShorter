@@ -1,4 +1,6 @@
-import React from "react";
+"use client";
+
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   FileText,
@@ -14,16 +16,10 @@ import {
   Mail,
   Zap,
 } from "lucide-react";
-import type { Metadata } from "next";
-
-export const metadata: Metadata = {
-  title: "Terms of Service | LShorter - Edge Link Infrastructure",
-  description:
-    "Read the Terms of Service governing your use of LShorter. Outlines acceptable use, zero-tolerance anti-phishing rules, API rate limits, and SLA commitments.",
-};
 
 export default function TermsOfServicePage() {
   const lastUpdated = "October 8, 2026";
+  const [activeSection, setActiveSection] = useState<string>("acceptance");
 
   const keyTerms = [
     {
@@ -57,14 +53,44 @@ export default function TermsOfServicePage() {
     { id: "accounts", title: "2. Account Registration & Security" },
     { id: "acceptable-use", title: "3. Acceptable Use & Anti-Abuse Policy" },
     { id: "edge-sla", title: "4. Edge Infrastructure & SLA Commitments" },
-    { id: "billing", title: "5. Subscriptions, Renewals & Fees" },
+    { id: "billing", title: "5. Billing, Paddle MoR & No-Refund Policy" },
     { id: "api-terms", title: "6. Developer API & SDK Usage" },
     { id: "ip-rights", title: "7. Intellectual Property & Domain Ownership" },
     { id: "termination", title: "8. Suspension & Account Termination" },
     { id: "liability", title: "9. Limitation of Liability & Warranty Disclaimer" },
     { id: "governing-law", title: "10. Governing Law & Dispute Resolution" },
-    { id: "contact", title: "11. Contact Information" },
+    { id: "contact", title: "11. Contact Legal & Compliance" },
   ];
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollPosition = window.scrollY + 200;
+      for (const section of sections) {
+        const el = document.getElementById(section.id);
+        if (el) {
+          const top = el.offsetTop;
+          const height = el.offsetHeight;
+          if (scrollPosition >= top && scrollPosition < top + height) {
+            setActiveSection(section.id);
+            break;
+          }
+        }
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const scrollToSection = (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    const target = document.getElementById(id);
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+      setActiveSection(id);
+    }
+  };
 
   return (
     <div className="w-full min-h-screen pt-28 sm:pt-32 pb-24 px-4 sm:px-6 lg:px-8 select-text">
@@ -113,16 +139,16 @@ export default function TermsOfServicePage() {
           </div>
         </div>
 
-        {/* Highlights */}
+        {/* Highlights with Hover Scale */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-16">
           {keyTerms.map((item, idx) => {
             const Icon = item.icon;
             return (
               <div
                 key={idx}
-                className="p-5 rounded-2xl bg-white dark:bg-[#121214] border border-neutral-200 dark:border-[#222225] shadow-sm hover:border-purple-500/40 dark:hover:border-purple-500/40 transition-all"
+                className="group p-5 rounded-2xl bg-white dark:bg-[#121214] border border-neutral-200 dark:border-[#222225] shadow-sm hover:border-purple-500/50 dark:hover:border-purple-500/50 hover:shadow-md hover:scale-[1.025] hover:-translate-y-0.5 transition-all duration-300 cursor-default"
               >
-                <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 flex items-center justify-center mb-4">
+                <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
                   <Icon className="w-5 h-5" />
                 </div>
                 <h3 className="text-sm font-semibold text-neutral-900 dark:text-white mb-2">
@@ -138,39 +164,31 @@ export default function TermsOfServicePage() {
 
         {/* Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-          {/* Desktop Sticky Sidebar */}
+          {/* Desktop Sticky Sidebar with Scroll Spy & Hover Animation */}
           <aside className="hidden lg:block lg:col-span-4">
             <div className="sticky top-28 p-6 rounded-2xl bg-white dark:bg-[#121214] border border-neutral-200 dark:border-[#222225]">
               <h2 className="text-xs font-bold uppercase tracking-wider text-neutral-400 dark:text-neutral-500 mb-4">
                 Sections
               </h2>
-              <nav className="space-y-2">
-                {sections.map((section) => (
-                  <a
-                    key={section.id}
-                    href={`#${section.id}`}
-                    className="block text-xs sm:text-sm text-neutral-600 dark:text-neutral-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors py-1 leading-snug"
-                  >
-                    {section.title}
-                  </a>
-                ))}
+              <nav className="space-y-1">
+                {sections.map((section) => {
+                  const isActive = activeSection === section.id;
+                  return (
+                    <a
+                      key={section.id}
+                      href={`#${section.id}`}
+                      onClick={(e) => scrollToSection(e, section.id)}
+                      className={`block text-xs sm:text-sm py-1.5 px-2.5 rounded-lg transition-all duration-200 leading-snug ${
+                        isActive
+                          ? "bg-purple-50/80 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 font-semibold border-l-2 border-purple-600 dark:border-purple-400 translate-x-1"
+                          : "text-neutral-600 dark:text-neutral-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-neutral-100/60 dark:hover:bg-neutral-800/40 hover:translate-x-1 font-normal"
+                      }`}
+                    >
+                      {section.title}
+                    </a>
+                  );
+                })}
               </nav>
-
-              <div className="mt-8 pt-6 border-t border-neutral-200 dark:border-neutral-800 text-xs text-neutral-500 dark:text-neutral-400 space-y-2">
-                <p className="font-semibold text-neutral-800 dark:text-neutral-200">
-                  Related Documents:
-                </p>
-                <p>
-                  <Link href="/privacy" className="text-blue-600 dark:text-blue-400 hover:underline">
-                    → Privacy Policy
-                  </Link>
-                </p>
-                <p>
-                  <Link href="/refund" className="text-emerald-600 dark:text-emerald-400 hover:underline">
-                    → Refund Policy
-                  </Link>
-                </p>
-              </div>
             </div>
           </aside>
 
@@ -272,37 +290,57 @@ export default function TermsOfServicePage() {
               </p>
             </section>
 
-            {/* Section 5 */}
+            {/* Section 5: Billing & Strict No-Refund Policy */}
             <section id="billing" className="scroll-mt-28">
               <h2 className="text-xl sm:text-2xl font-bold text-neutral-900 dark:text-white mb-4">
-                5. Subscriptions, Renewals & Fees
+                5. Billing, Paddle Merchant of Record & Strict No-Refund Policy
               </h2>
-              <ul className="list-disc pl-5 space-y-2 text-neutral-600 dark:text-neutral-400">
-                <li>
-                  <strong>Paid Subscriptions:</strong> Billed in advance on a monthly or annual recurring
-                  schedule according to the pricing published at{" "}
-                  <Link href="/pricing" className="text-blue-600 dark:text-blue-400 hover:underline">
-                    lshorter.com/pricing
-                  </Link>
-                  .
-                </li>
-                <li>
-                  <strong>14-Day Money-Back Guarantee:</strong> Covered under our official{" "}
-                  <Link href="/refund" className="text-emerald-600 dark:text-emerald-400 hover:underline">
-                    Refund Policy
-                  </Link>
-                  .
-                </li>
-                <li>
-                  <strong>Overage Clicks:</strong> Accounts exceeding their monthly click threshold will
-                  either stop redirecting (Free tier hard limit) or trigger auto-batched overage clicks
-                  ($3 per 50k on Pro; $8 per 125k on Business) to prevent service interruption.
-                </li>
-                <li>
-                  <strong>Taxes:</strong> Fees are exclusive of applicable VAT, sales tax, or GST, which
-                  will be assessed and billed by Stripe based on your jurisdiction.
-                </li>
-              </ul>
+              <div className="space-y-4">
+                <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-[#121214] text-xs sm:text-sm text-neutral-700 dark:text-neutral-300">
+                  <h4 className="font-semibold text-neutral-900 dark:text-white mb-1.5">
+                    Merchant of Record (Paddle)
+                  </h4>
+                  <p>
+                    All financial transactions, customer checkouts, invoices, and sales tax/VAT assessments
+                    are conducted through our authorized Merchant of Record,{" "}
+                    <strong>Paddle.com Market Ltd</strong> (or its local subsidiaries). When purchasing an
+                    LShorter subscription or capacity add-on, your order is governed by Paddle&apos;s checkout terms.
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-xl border border-amber-200 dark:border-amber-900/50 bg-amber-50/50 dark:bg-amber-950/20 text-xs sm:text-sm text-neutral-700 dark:text-neutral-300">
+                  <h4 className="font-semibold text-neutral-900 dark:text-white mb-1.5 text-amber-700 dark:text-amber-400">
+                    Strict No-Refund Policy (All Sales Are Final)
+                  </h4>
+                  <p className="mb-2">
+                    Because LShorter is a digital software-as-a-service (SaaS) platform that provisions
+                    immediate compute, edge redirect resources across 310+ Cloudflare PoPs, and programmable
+                    routing capacities upon checkout, <strong>all purchases are final and non-refundable</strong>.
+                  </p>
+                  <p>
+                    In accordance with digital product consumer protections (including EU Directive 2011/83/EU
+                    Article 16(m)), you acknowledge and agree that your statutory right of withdrawal is waived
+                    upon the immediate activation and digital execution of the service.
+                  </p>
+                </div>
+
+                <ul className="list-disc pl-5 space-y-2 text-neutral-600 dark:text-neutral-400 text-xs sm:text-sm">
+                  <li>
+                    <strong>Cancellation of Future Renewals:</strong> You may cancel future automatic
+                    renewals at any time directly through your dashboard billing portal. Cancellation prevents
+                    future recurring billing, and your account will remain accessible until the conclusion of
+                    the current paid period.
+                  </li>
+                  <li>
+                    <strong>No Retroactive Prorations:</strong> No partial or prorated refunds will be issued
+                    for unused time, links, or clicks remaining during a billing cycle.
+                  </li>
+                  <li>
+                    <strong>Overage Batches:</strong> Usage-based click batches ($3 per 50k on Pro, $8 per 125k
+                    on Business) are consumed dynamically by live edge traffic and are strictly non-refundable.
+                  </li>
+                </ul>
+              </div>
             </section>
 
             {/* Section 6 */}
@@ -336,8 +374,8 @@ export default function TermsOfServicePage() {
               </h2>
               <p className="mb-4">
                 We reserve the right to temporarily suspend or permanently terminate access to the Service
-                immediately without prior notice if you violate our Acceptable Use Policy, fail to pay
-                incurred subscription fees, or if required by court order or competent law enforcement authority.
+                immediately without prior notice if you violate our Acceptable Use Policy, engage in fraudulent
+                disputes/chargebacks, or if required by court order or competent law enforcement authority.
               </p>
             </section>
 
@@ -369,7 +407,7 @@ export default function TermsOfServicePage() {
 
             {/* Section 11 */}
             <section id="contact" className="scroll-mt-28 pt-4">
-              <div className="p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-purple-50 to-blue-50 dark:from-[#181126] dark:to-[#0f172a] border border-purple-200/80 dark:border-purple-900/50">
+              <div className="p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-purple-50 to-blue-50 dark:from-[#181126] dark:to-[#0f172a] border border-purple-200/80 dark:border-purple-900/50 hover:scale-[1.01] transition-transform duration-300">
                 <h3 className="text-lg sm:text-xl font-bold text-neutral-900 dark:text-white mb-2 flex items-center gap-2">
                   <Mail className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                   11. Contact Legal & Compliance

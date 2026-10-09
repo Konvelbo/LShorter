@@ -1,6 +1,9 @@
-import React from "react";
+"use client";
+
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
+  ShieldAlert,
   CreditCard,
   RefreshCw,
   CheckCircle2,
@@ -12,62 +15,79 @@ import {
   Mail,
   ShieldCheck,
   Zap,
+  Lock,
 } from "lucide-react";
-import type { Metadata } from "next";
 
-export const metadata: Metadata = {
-  title: "Refund Policy | LShorter - 14-Day Money-Back Guarantee",
-  description:
-    "Review LShorter's transparent refund policy. Enjoy a 14-day money-back guarantee on all subscription plans, hassle-free cancellation, and fast Stripe processing.",
-};
-
-export default function RefundPolicyPage() {
+export default function NoRefundPolicyPage() {
   const lastUpdated = "October 8, 2026";
+  const [activeSection, setActiveSection] = useState<string>("all-sales-final");
 
-  const guaranteeHighlights = [
+  const policyHighlights = [
     {
-      icon: ShieldCheck,
-      title: "14-Day Money-Back Guarantee",
+      icon: Lock,
+      title: "All Sales Are Final",
       description:
-        "Full 100% refund on any initial Pro or Business subscription within 14 days of purchase. No complex questions asked.",
+        "Because LShorter provisions instant access to global Cloudflare edge compute and routing infrastructure, all purchases are final and non-refundable.",
     },
     {
       icon: Zap,
-      title: "Instant 1-Click Cancellation",
+      title: "Immediate Digital Provisioning",
       description:
-        "Cancel anytime directly from your dashboard billing settings without calling support or undergoing retention hurdles.",
-    },
-    {
-      icon: CreditCard,
-      title: "Direct Stripe Reversal",
-      description:
-        "Refunds are credited directly to your original card or payment method via Stripe within 3 to 5 business days.",
+        "Under digital consumer regulations (including EU Directive 2011/83/EU Art. 16(m)), the right of withdrawal is waived upon immediate digital fulfillment.",
     },
     {
       icon: RefreshCw,
-      title: "Transparent Renewals",
+      title: "Cancel Renewals Anytime",
       description:
-        "Pre-renewal reminders for annual plans and clear invoices automatically delivered to your registered email address.",
+        "You can cancel future auto-renewals in 1 click at any time from your dashboard to ensure you are never billed for future periods.",
+    },
+    {
+      icon: CreditCard,
+      title: "Paddle Merchant of Record",
+      description:
+        "All checkouts, recurring billing, and invoices are handled securely by Paddle.com Market Ltd as our authorized Merchant of Record.",
     },
   ];
 
-  const refundSteps = [
-    {
-      step: "01",
-      title: "Initiate Request",
-      desc: "Go to your Dashboard Settings > Billing tab, or simply send an email to billing@lshorter.com with your account email address.",
-    },
-    {
-      step: "02",
-      title: "Verification & Review",
-      desc: "Our billing team checks your invoice against the 14-day policy window within 24 to 48 hours.",
-    },
-    {
-      step: "03",
-      title: "Stripe Reimbursement",
-      desc: "The refund is issued via Stripe. The funds appear on your bank statement within 3 to 5 business days.",
-    },
+  const sections = [
+    { id: "all-sales-final", title: "1. All Sales Are Final (No Refunds)" },
+    { id: "digital-waiver", title: "2. Statutory Digital Waiver (EU & Global)" },
+    { id: "subscription-cancellation", title: "3. Cancelling Future Renewals" },
+    { id: "overages", title: "4. Click Overages & Capacity Add-ons" },
+    { id: "paddle-billing", title: "5. Paddle Billing & Merchant of Record" },
+    { id: "chargebacks", title: "6. Chargeback Protection & Account Freezes" },
+    { id: "contact", title: "7. Contact Billing Support" },
   ];
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollPosition = window.scrollY + 200;
+      for (const section of sections) {
+        const el = document.getElementById(section.id);
+        if (el) {
+          const top = el.offsetTop;
+          const height = el.offsetHeight;
+          if (scrollPosition >= top && scrollPosition < top + height) {
+            setActiveSection(section.id);
+            break;
+          }
+        }
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const scrollToSection = (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    const target = document.getElementById(id);
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+      setActiveSection(id);
+    }
+  };
 
   return (
     <div className="w-full min-h-screen pt-28 sm:pt-32 pb-24 px-4 sm:px-6 lg:px-8 select-text">
@@ -83,15 +103,15 @@ export default function RefundPolicyPage() {
           </Link>
           <ChevronRight className="w-3 h-3 text-neutral-400 dark:text-neutral-600" />
           <span className="text-neutral-900 dark:text-white font-medium">
-            Refund Policy
+            Refund & Cancellation Policy
           </span>
         </div>
 
         {/* Hero Section */}
         <div className="text-center sm:text-left border-b border-neutral-200 dark:border-neutral-800 pb-10 mb-12">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/60 mb-4">
-            <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Fair Billing & Satisfaction</span>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/60 mb-4">
+            <Lock className="w-3.5 h-3.5" />
+            <span>Strict Billing Policy</span>
           </div>
 
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-neutral-900 dark:text-white">
@@ -99,9 +119,9 @@ export default function RefundPolicyPage() {
           </h1>
 
           <p className="mt-4 text-base sm:text-lg text-neutral-600 dark:text-neutral-300 max-w-3xl leading-relaxed">
-            We want you to be completely satisfied with LShorter&apos;s enterprise link infrastructure.
-            If our platform does not suit your workflow, we offer a straightforward, no-friction
-            refund process designed to treat every customer fairly.
+            LShorter provides real-time digital software and immediate global edge redirection
+            infrastructure. To maintain fair pricing and protect our distributed infrastructure,
+            all purchases are final and non-refundable.
           </p>
 
           <div className="mt-6 flex flex-wrap items-center gap-4 text-xs sm:text-sm text-neutral-500 dark:text-neutral-400">
@@ -110,23 +130,23 @@ export default function RefundPolicyPage() {
               Effective Date: {lastUpdated}
             </span>
             <span className="hidden sm:inline text-neutral-300 dark:text-neutral-700">•</span>
-            <span className="inline-flex items-center gap-1.5">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-              14-Day Full Satisfaction Guarantee
+            <span className="inline-flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-medium">
+              <ShieldAlert className="w-3.5 h-3.5" />
+              All Sales Are Final Policy
             </span>
           </div>
         </div>
 
-        {/* Key Guarantees Grid */}
+        {/* Highlights with Hover Scale */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-16">
-          {guaranteeHighlights.map((item, idx) => {
+          {policyHighlights.map((item, idx) => {
             const Icon = item.icon;
             return (
               <div
                 key={idx}
-                className="p-5 rounded-2xl bg-white dark:bg-[#121214] border border-neutral-200 dark:border-[#222225] shadow-sm hover:border-emerald-500/40 dark:hover:border-emerald-500/40 transition-all"
+                className="group p-5 rounded-2xl bg-white dark:bg-[#121214] border border-neutral-200 dark:border-[#222225] shadow-sm hover:border-amber-500/50 dark:hover:border-amber-500/50 hover:shadow-md hover:scale-[1.025] hover:-translate-y-0.5 transition-all duration-300 cursor-default"
               >
-                <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-4">
+                <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
                   <Icon className="w-5 h-5" />
                 </div>
                 <h3 className="text-sm font-semibold text-neutral-900 dark:text-white mb-2">
@@ -140,211 +160,182 @@ export default function RefundPolicyPage() {
           })}
         </div>
 
-        {/* Main Body */}
-        <div className="space-y-12 max-w-4xl text-sm sm:text-base text-neutral-700 dark:text-neutral-300 leading-relaxed">
-          {/* Section 1 */}
-          <section className="scroll-mt-28">
-            <h2 className="text-xl sm:text-2xl font-bold text-neutral-900 dark:text-white mb-4">
-              1. 14-Day Money-Back Guarantee
-            </h2>
-            <p className="mb-4">
-              All first-time subscribers to LShorter paid subscription tiers—including the{" "}
-              <strong>Pro Plan</strong> ($15/mo or $90/year) and the <strong>Business Plan</strong>{" "}
-              ($49/mo or $350/year)—are covered by our unconditional <strong>14-day money-back guarantee</strong>.
-            </p>
-            <p>
-              If within fourteen (14) days from the initial transaction timestamp you decide that
-              LShorter does not meet your technical or marketing requirements, you may request a 100%
-              refund of the initial subscription fee.
-            </p>
-          </section>
-
-          {/* Section 2 */}
-          <section className="scroll-mt-28">
-            <h2 className="text-xl sm:text-2xl font-bold text-neutral-900 dark:text-white mb-4">
-              2. Subscription Terms & Cancellation Rules
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 my-6">
-              {/* Monthly Subscriptions */}
-              <div className="p-5 rounded-xl bg-white dark:bg-[#121214] border border-neutral-200 dark:border-neutral-800">
-                <h3 className="font-semibold text-neutral-900 dark:text-white mb-2 flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-blue-500" />
-                  Monthly Subscriptions
-                </h3>
-                <p className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400 mb-3 leading-relaxed">
-                  Monthly plans are billed in advance on a recurring monthly cycle.
-                </p>
-                <ul className="list-disc pl-5 space-y-1.5 text-xs text-neutral-600 dark:text-neutral-400">
-                  <li>
-                    <strong>Within 14 days of initial signup:</strong> Full 100% refund upon request.
-                  </li>
-                  <li>
-                    <strong>Subsequent months:</strong> You can cancel at any time. When cancelled,
-                    your service remains active until the end of the current paid billing period with
-                    no further charges.
-                  </li>
-                </ul>
-              </div>
-
-              {/* Annual Subscriptions */}
-              <div className="p-5 rounded-xl bg-white dark:bg-[#121214] border border-neutral-200 dark:border-neutral-800">
-                <h3 className="font-semibold text-neutral-900 dark:text-white mb-2 flex items-center gap-2">
-                  <CreditCard className="w-4 h-4 text-emerald-500" />
-                  Annual Subscriptions
-                </h3>
-                <p className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400 mb-3 leading-relaxed">
-                  Annual plans are discounted (up to 50% savings) and billed upfront for 12 months.
-                </p>
-                <ul className="list-disc pl-5 space-y-1.5 text-xs text-neutral-600 dark:text-neutral-400">
-                  <li>
-                    <strong>Within 14 days:</strong> Full 100% refund upon request.
-                  </li>
-                  <li>
-                    <strong>After 14 days:</strong> Cancellation stops auto-renewal for subsequent
-                    years. Prorated credits may be issued under special circumstances (e.g., documented
-                    platform downtime exceeding SLA commitments).
-                  </li>
-                </ul>
-              </div>
+        {/* Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+          {/* Desktop Sticky Sidebar with Scroll Spy & Hover Animation */}
+          <aside className="hidden lg:block lg:col-span-4">
+            <div className="sticky top-28 p-6 rounded-2xl bg-white dark:bg-[#121214] border border-neutral-200 dark:border-[#222225]">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-neutral-400 dark:text-neutral-500 mb-4">
+                Sections
+              </h2>
+              <nav className="space-y-1">
+                {sections.map((section) => {
+                  const isActive = activeSection === section.id;
+                  return (
+                    <a
+                      key={section.id}
+                      href={`#${section.id}`}
+                      onClick={(e) => scrollToSection(e, section.id)}
+                      className={`block text-xs sm:text-sm py-1.5 px-2.5 rounded-lg transition-all duration-200 leading-snug ${
+                        isActive
+                          ? "bg-amber-50/80 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400 font-semibold border-l-2 border-amber-600 dark:border-amber-400 translate-x-1"
+                          : "text-neutral-600 dark:text-neutral-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-neutral-100/60 dark:hover:bg-neutral-800/40 hover:translate-x-1 font-normal"
+                      }`}
+                    >
+                      {section.title}
+                    </a>
+                  );
+                })}
+              </nav>
             </div>
-          </section>
+          </aside>
 
-          {/* Section 3 */}
-          <section className="scroll-mt-28">
-            <h2 className="text-xl sm:text-2xl font-bold text-neutral-900 dark:text-white mb-4">
-              3. Usage Overages & Non-Refundable Items
-            </h2>
-            <p className="mb-4">
-              Certain consumption-based features and third-party infrastructure components are
-              non-refundable once delivered:
-            </p>
-            <div className="space-y-3">
-              <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800">
-                <h4 className="font-semibold text-neutral-900 dark:text-white text-sm mb-1">
-                  • Click Overage Batches
-                </h4>
-                <p className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400">
-                  Additional click capacity batches ($3 per 50,000 clicks on Pro; $8 per 125,000 clicks
-                  on Business) are provisioned live onto Cloudflare Edge KV caches. Once traffic has
-                  consumed these edge allocations, overage fees are non-refundable.
-                </p>
+          {/* Body */}
+          <main className="lg:col-span-8 space-y-12 text-sm sm:text-base text-neutral-700 dark:text-neutral-300 leading-relaxed">
+            {/* Section 1 */}
+            <section id="all-sales-final" className="scroll-mt-28">
+              <h2 className="text-xl sm:text-2xl font-bold text-neutral-900 dark:text-white mb-4">
+                1. All Sales Are Final (No Refunds)
+              </h2>
+              <div className="p-4 rounded-xl border border-amber-200 dark:border-amber-900/50 bg-amber-50/50 dark:bg-amber-950/20 mb-4 text-xs sm:text-sm text-neutral-700 dark:text-neutral-300">
+                <strong className="text-amber-800 dark:text-amber-300">Important Notice:</strong>{" "}
+                LShorter enforces a strict <strong>No-Refund Policy</strong>. All purchases, including
+                monthly and annual plans (Pro, Business, Enterprise) as well as usage-based overage batches,
+                are final and non-refundable once the transaction is processed.
               </div>
-
-              <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800">
-                <h4 className="font-semibold text-neutral-900 dark:text-white text-sm mb-1">
-                  • Custom Domain Third-Party Registrar Fees
-                </h4>
-                <p className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400">
-                  If you purchase a custom top-level domain through an external DNS registrar, those fees
-                  are governed by the respective domain registrar and cannot be reimbursed by LShorter.
-                </p>
-              </div>
-
-              <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800">
-                <h4 className="font-semibold text-neutral-900 dark:text-white text-sm mb-1">
-                  • Custom Enterprise Service Contracts
-                </h4>
-                <p className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400">
-                  Enterprise agreements ($199/mo or $1,670/yr) with custom SLAs, dedicated IP provisioning,
-                  or bespoke engineering contracts are governed by their negotiated Master Services Agreement (MSA).
-                </p>
-              </div>
-            </div>
-          </section>
-
-          {/* Section 4: How to Request a Refund */}
-          <section className="scroll-mt-28">
-            <h2 className="text-xl sm:text-2xl font-bold text-neutral-900 dark:text-white mb-6">
-              4. How to Request a Refund (Step-by-Step)
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {refundSteps.map((s) => (
-                <div
-                  key={s.step}
-                  className="p-5 rounded-xl bg-neutral-50 dark:bg-[#151518] border border-neutral-200 dark:border-neutral-800 flex flex-col justify-between"
-                >
-                  <div>
-                    <span className="text-2xl font-mono font-bold text-blue-600 dark:text-blue-400">
-                      {s.step}
-                    </span>
-                    <h3 className="font-semibold text-neutral-900 dark:text-white text-sm mt-2 mb-2">
-                      {s.title}
-                    </h3>
-                    <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed">
-                      {s.desc}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          {/* Section 5 */}
-          <section className="scroll-mt-28">
-            <h2 className="text-xl sm:text-2xl font-bold text-neutral-900 dark:text-white mb-4">
-              5. Processing Timeline & Banking Delays
-            </h2>
-            <p className="mb-4">
-              Once approved by our billing desk, your refund is processed immediately through{" "}
-              <strong>Stripe</strong>. Depending on your bank or credit card issuer, it typically takes{" "}
-              <strong>3 to 5 business days</strong> for the credit to appear on your account statement.
-            </p>
-            <div className="p-4 rounded-xl border border-blue-100 dark:border-blue-900/40 bg-blue-50/50 dark:bg-blue-950/20 text-xs sm:text-sm text-neutral-600 dark:text-neutral-400">
-              <strong className="text-neutral-900 dark:text-white">Note:</strong> If your original payment method
-              has expired or been cancelled, notify us prior to the refund execution so we can route the
-              credit appropriately with Stripe support.
-            </div>
-          </section>
-
-          {/* Section 6 */}
-          <section className="scroll-mt-28">
-            <h2 className="text-xl sm:text-2xl font-bold text-neutral-900 dark:text-white mb-4">
-              6. Friendly Resolution & Chargebacks
-            </h2>
-            <p className="mb-4">
-              We pride ourselves on responsive, direct customer support. Before initiating an unexpected
-              dispute or chargeback with your credit card provider or PayPal, please reach out to our team at{" "}
-              <a href="mailto:billing@lshorter.com" className="text-blue-600 dark:text-blue-400 hover:underline">
-                billing@lshorter.com
-              </a>
-              .
-            </p>
-            <p>
-              Card issuer disputes can lock your account and freeze all active shortened link redirects
-              during the bank&apos;s 60-day investigation window. Contacting us directly allows us to resolve any
-              discrepancy in minutes.
-            </p>
-          </section>
-
-          {/* Contact Support Box */}
-          <section className="pt-4">
-            <div className="p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-[#062016] dark:to-[#041c14] border border-emerald-200/80 dark:border-emerald-900/50">
-              <h3 className="text-lg sm:text-xl font-bold text-neutral-900 dark:text-white mb-2 flex items-center gap-2">
-                <Mail className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                Have questions about your bill?
-              </h3>
-              <p className="text-neutral-600 dark:text-neutral-300 mb-4 text-xs sm:text-sm leading-relaxed">
-                Our support and billing team is available 7 days a week to review invoices, help with plan
-                adjustments, and issue eligible reimbursements.
+              <p className="mb-4">
+                When you purchase a subscription on LShorter, high-performance edge resources across
+                Cloudflare&apos;s 310+ global points of presence, custom SSL certificate generation,
+                API access credentials, and database routing tables are instantly provisioned for your workspace.
               </p>
+              <p>
+                Because these digital resources and computational capacity are consumed and operational
+                the moment checkout is completed, we do not offer refunds, cash reversals, or credits for
+                any paid fees.
+              </p>
+            </section>
 
-              <div className="flex flex-wrap items-center gap-3">
-                <a
-                  href="mailto:billing@lshorter.com"
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs sm:text-sm transition-colors shadow-xs"
-                >
-                  <Mail className="w-4 h-4" />
-                  Contact billing@lshorter.com
-                </a>
-                <Link
-                  href="/pricing"
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-neutral-900 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-900 dark:text-white font-medium text-xs sm:text-sm border border-neutral-200 dark:border-neutral-700 transition-colors"
-                >
-                  View Plans & Pricing
-                </Link>
+            {/* Section 2 */}
+            <section id="digital-waiver" className="scroll-mt-28">
+              <h2 className="text-xl sm:text-2xl font-bold text-neutral-900 dark:text-white mb-4">
+                2. Statutory Digital Waiver (EU & International Law)
+              </h2>
+              <p className="mb-4">
+                Under European Union Consumer Rights Directive (Directive 2011/83/EU, Article 16(m)) and
+                equivalent international digital commerce regulations, the statutory 14-day right of withdrawal
+                does not apply to digital content or software services that are delivered and executed
+                immediately with the consumer&apos;s express prior consent.
+              </p>
+              <p>
+                By completing your payment through our checkout, you expressly acknowledge and agree that
+                the digital service commences immediately upon confirmation, and you waive any statutory right
+                to cancel or demand a refund for the transaction.
+              </p>
+            </section>
+
+            {/* Section 3 */}
+            <section id="subscription-cancellation" className="scroll-mt-28">
+              <h2 className="text-xl sm:text-2xl font-bold text-neutral-900 dark:text-white mb-4">
+                3. Cancelling Future Renewals
+              </h2>
+              <p className="mb-4">
+                While past and ongoing billing periods are strictly non-refundable, you maintain full
+                control over your recurring subscription at all times:
+              </p>
+              <ul className="list-disc pl-5 space-y-2 text-neutral-600 dark:text-neutral-400 text-xs sm:text-sm">
+                <li>
+                  <strong>1-Click Cancellation:</strong> You can cancel future auto-renewals at any moment
+                  via your <strong>Dashboard Settings &gt; Billing</strong> tab with zero cancellation fees.
+                </li>
+                <li>
+                  <strong>Continued Access:</strong> When you cancel an active subscription, your access
+                  remains active until the end of your current paid billing period.
+                </li>
+                <li>
+                  <strong>No Retroactive Proration:</strong> Cancellation takes effect at the end of the
+                  current cycle; no partial refunds are granted for remaining days, unused links, or unused clicks.
+                </li>
+              </ul>
+            </section>
+
+            {/* Section 4 */}
+            <section id="overages" className="scroll-mt-28">
+              <h2 className="text-xl sm:text-2xl font-bold text-neutral-900 dark:text-white mb-4">
+                4. Click Overages & Capacity Add-ons
+              </h2>
+              <p className="mb-4">
+                Usage-based click batches ($3 per 50,000 clicks on Pro; $8 per 125,000 clicks on Business)
+                are dynamically delivered and consumed on-demand by live internet traffic across edge nodes.
+                Overage charges are billed upon utilization and are non-refundable under all circumstances.
+              </p>
+            </section>
+
+            {/* Section 5 */}
+            <section id="paddle-billing" className="scroll-mt-28">
+              <h2 className="text-xl sm:text-2xl font-bold text-neutral-900 dark:text-white mb-4">
+                5. Paddle Billing & Merchant of Record
+              </h2>
+              <p className="mb-4">
+                Our order process is conducted by our online reseller and Merchant of Record,{" "}
+                <strong>Paddle.com Market Ltd</strong> (Paddle.com), who also handles order-related inquiries,
+                invoicing, currency conversion, and global sales tax / VAT compliance.
+              </p>
+              <p>
+                When you initiate a purchase, you agree to Paddle&apos;s checkout terms in conjunction with
+                these LShorter Terms and No-Refund Policy.
+              </p>
+            </section>
+
+            {/* Section 6 */}
+            <section id="chargebacks" className="scroll-mt-28">
+              <h2 className="text-xl sm:text-2xl font-bold text-neutral-900 dark:text-white mb-4 flex items-center gap-2">
+                <ShieldAlert className="w-5 h-5 text-rose-500" />
+                6. Chargeback Protection & Account Freezes
+              </h2>
+              <div className="p-4 rounded-xl border border-rose-200 dark:border-rose-900/40 bg-rose-50/50 dark:bg-rose-950/20 mb-4 text-xs sm:text-sm text-neutral-700 dark:text-neutral-300">
+                <strong>Zero-Fraud Policy:</strong> Because all transactions are confirmed with explicit
+                consent at checkout, issuing an unauthorized chargeback or payment reversal through your bank
+                constitutes a breach of our agreement.
               </div>
-            </div>
-          </section>
+              <p className="mb-4">
+                In the event of an unjustified chargeback or payment dispute:
+              </p>
+              <ul className="list-disc pl-5 space-y-2 text-neutral-600 dark:text-neutral-400 text-xs sm:text-sm">
+                <li>The associated LShorter account will be immediately suspended.</li>
+                <li>All active shortened links, dynamic QR codes, and custom domains will be frozen at the edge.</li>
+                <li>The account holder will be blacklisted from creating future workspaces on LShorter.</li>
+              </ul>
+            </section>
+
+            {/* Section 7 */}
+            <section id="contact" className="scroll-mt-28 pt-4">
+              <div className="p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-amber-50 to-neutral-50 dark:from-[#1c160a] dark:to-[#121214] border border-amber-200/80 dark:border-amber-900/50 hover:scale-[1.01] transition-transform duration-300">
+                <h3 className="text-lg sm:text-xl font-bold text-neutral-900 dark:text-white mb-2 flex items-center gap-2">
+                  <Mail className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                  7. Contact Billing Support
+                </h3>
+                <p className="text-neutral-600 dark:text-neutral-300 mb-4 text-xs sm:text-sm">
+                  If you have billing inquiries, need clarification regarding invoices, or wish to manage your
+                  subscription renewal status, our team is available to assist you:
+                </p>
+
+                <div className="space-y-1.5 text-xs sm:text-sm font-medium text-neutral-800 dark:text-neutral-200">
+                  <p>
+                    <strong>Billing Desk:</strong>{" "}
+                    <a href="mailto:billing@lshorter.com" className="text-amber-600 dark:text-amber-400 hover:underline">
+                      billing@lshorter.com
+                    </a>
+                  </p>
+                  <p>
+                    <strong>Merchant of Record:</strong> Paddle.com Market Ltd
+                  </p>
+                  <p>
+                    <strong>Platform:</strong> LShorter Inc.
+                  </p>
+                </div>
+              </div>
+            </section>
+          </main>
         </div>
       </div>
     </div>
