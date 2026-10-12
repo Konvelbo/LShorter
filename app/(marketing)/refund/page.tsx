@@ -13,6 +13,8 @@ import {
   Zap,
   Lock,
 } from "lucide-react";
+import { SITE_EMAILS } from "@/lib/constants/emails";
+import { ClickableEmail } from "@/components/ui/clickable-email";
 
 export default function NoRefundPolicyPage() {
   const lastUpdated = "October 8, 2026";
@@ -164,7 +166,7 @@ export default function NoRefundPolicyPage() {
 
         {/* Hero Section */}
         <div className="text-center sm:text-left border-b border-neutral-200 dark:border-neutral-800 pb-10 mb-12">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/60 mb-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-[10px] text-xs font-semibold uppercase tracking-wider bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/60 mb-4">
             <Lock className="w-3.5 h-3.5" />
             <span>Strict Billing Policy</span>
           </div>
@@ -199,9 +201,9 @@ export default function NoRefundPolicyPage() {
             return (
               <div
                 key={idx}
-                className="legal-interactive-card group p-5 rounded-2xl bg-white dark:bg-[#121214] border border-neutral-200 dark:border-[#222225] shadow-sm"
+                className="legal-interactive-card group p-5 rounded-[10px] bg-white dark:bg-[#121214] border border-neutral-200 dark:border-[#222225] shadow-sm"
               >
-                <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+                <div className="w-10 h-10 rounded-[10px] bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
                   <Icon className="w-5 h-5" />
                 </div>
                 <h3 className="text-sm font-semibold text-neutral-900 dark:text-white mb-2">
@@ -219,7 +221,7 @@ export default function NoRefundPolicyPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
           {/* Desktop Sticky Sidebar with Scroll Spy & Hover Animation */}
           <aside className="hidden lg:block lg:col-span-4">
-            <div className="sticky top-28 p-6 rounded-2xl bg-white dark:bg-[#121214] border border-neutral-200 dark:border-[#222225]">
+            <div className="sticky top-28 p-6 rounded-[10px] bg-white dark:bg-[#121214] border border-neutral-200 dark:border-[#222225]">
               <h2 className="text-xs font-bold uppercase tracking-wider text-neutral-400 dark:text-neutral-500 mb-4">
                 Sections
               </h2>
@@ -248,7 +250,7 @@ export default function NoRefundPolicyPage() {
               <h2 className="text-xl sm:text-2xl font-bold text-neutral-900 dark:text-white mb-4">
                 1. All Sales Are Final (No Refunds)
               </h2>
-              <div className="legal-interactive-card p-4 rounded-xl border border-amber-200 dark:border-amber-900/50 bg-amber-50/50 dark:bg-amber-950/20 mb-4 text-xs sm:text-sm text-neutral-700 dark:text-neutral-300">
+              <div className="legal-interactive-card p-4 rounded-[10px] border border-amber-200 dark:border-amber-900/50 bg-amber-50/50 dark:bg-amber-950/20 mb-4 text-xs sm:text-sm text-neutral-700 dark:text-neutral-300">
                 <strong className="text-amber-800 dark:text-amber-300">Important Notice:</strong>{" "}
                 LShorter enforces a strict <strong>No-Refund Policy</strong>. All purchases, including
                 monthly and annual plans (Pro, Business, Enterprise) as well as usage-based overage batches,
@@ -343,7 +345,7 @@ export default function NoRefundPolicyPage() {
                 <ShieldAlert className="w-5 h-5 text-rose-500" />
                 6. Chargeback Protection & Account Freezes
               </h2>
-              <div className="legal-interactive-card p-4 rounded-xl border border-rose-200 dark:border-rose-900/40 bg-rose-50/50 dark:bg-rose-950/20 mb-4 text-xs sm:text-sm text-neutral-700 dark:text-neutral-300">
+              <div className="legal-interactive-card p-4 rounded-[10px] border border-rose-200 dark:border-rose-900/40 bg-rose-50/50 dark:bg-rose-950/20 mb-4 text-xs sm:text-sm text-neutral-700 dark:text-neutral-300">
                 <strong>Zero-Fraud Policy:</strong> Because all transactions are confirmed with explicit
                 consent at checkout, issuing an unauthorized chargeback or payment reversal through your bank
                 constitutes a breach of our agreement.
@@ -360,7 +362,7 @@ export default function NoRefundPolicyPage() {
 
             {/* Section 7 */}
             <section id="contact" className="scroll-mt-28 pt-4">
-              <div className="legal-interactive-card p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-amber-50 to-neutral-50 dark:from-[#1c160a] dark:to-[#121214] border border-amber-200/80 dark:border-amber-900/50">
+              <div className="legal-interactive-card p-6 sm:p-8 rounded-[10px] bg-gradient-to-br from-amber-50 to-neutral-50 dark:from-[#1c160a] dark:to-[#121214] border border-amber-200/80 dark:border-amber-900/50">
                 <h3 className="text-lg sm:text-xl font-bold text-neutral-900 dark:text-white mb-2 flex items-center gap-2">
                   <Mail className="w-5 h-5 text-amber-600 dark:text-amber-400" />
                   7. Contact Billing Support
@@ -370,20 +372,29 @@ export default function NoRefundPolicyPage() {
                   subscription renewal status, our team is available to assist you:
                 </p>
 
-                <div className="space-y-1.5 text-xs sm:text-sm font-medium text-neutral-800 dark:text-neutral-200">
-                  <p>
+                <div className="space-y-2 text-xs sm:text-sm font-medium text-neutral-800 dark:text-neutral-200">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <strong>Billing Support:</strong>{" "}
+                    <ClickableEmail
+                      email={SITE_EMAILS.billing}
+                      className="text-amber-600 dark:text-amber-400"
+                    />
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5">
                     <strong>Customer Support:</strong>{" "}
-                    <a href="mailto:support@lshorter.com" className="text-amber-600 dark:text-amber-400 hover:underline">
-                      support@lshorter.com
-                    </a>
-                  </p>
-                  <p>
+                    <ClickableEmail
+                      email={SITE_EMAILS.support}
+                      className="text-amber-600 dark:text-amber-400"
+                    />
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5">
                     <strong>General Inquiries:</strong>{" "}
-                    <a href="mailto:contact@lshorter.com" className="text-amber-600 dark:text-amber-400 hover:underline">
-                      contact@lshorter.com
-                    </a>
-                  </p>
-                  <p>
+                    <ClickableEmail
+                      email={SITE_EMAILS.contact}
+                      className="text-amber-600 dark:text-amber-400"
+                    />
+                  </div>
+                  <p className="pt-1">
                     <strong>Merchant of Record:</strong> Paddle.com Market Ltd
                   </p>
                   <p>

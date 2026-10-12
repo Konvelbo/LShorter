@@ -21,7 +21,6 @@ import { api } from "@/convex/_generated/api";
 import { PlanType } from "@/types";
 import { showToast } from "@/components/ui/toast-provider";
 import { syncUserToCloudflare } from "@/app/actions/sync-user";
-import { sendPlanPurchaseConfirmationAction } from "@/app/actions/plan-purchase";
 import { PRICING_PLANS } from "@/src/config/pricing";
 import confetti from "canvas-confetti";
 
@@ -84,16 +83,7 @@ export function PlanUpgradeModal() {
       showToast.success(`Congratulations! You are now subscribed to the ${targetPlan} plan.`);
       setIsOpen(false);
 
-      // Dispatch plan purchase confirmation email with expiration date
-      if (userId) {
-        sendPlanPurchaseConfirmationAction({
-          userId,
-          userEmail: session?.user?.email || undefined,
-          userName: session?.user?.name || undefined,
-          plan: targetPlan,
-          cycle: "MONTHLY",
-        }).catch((err) => console.error("Error sending plan confirmation email:", err));
-      }
+      // Note: Paddle natively handles customer confirmation emails and invoices
     } catch (err: any) {
       showToast.error("Unable to upgrade subscription plan.");
     } finally {

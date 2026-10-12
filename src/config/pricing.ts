@@ -271,3 +271,46 @@ export function formatClickLimit(limit: number): string {
   if (limit >= 1_000) return `${(limit / 1_000).toLocaleString('en-US')}k`;
   return limit.toLocaleString('en-US');
 }
+
+/**
+ * Paddle Price IDs mapping per plan and billing cycle.
+ * Can be customized via environment variables for staging/production or Paddle Sandbox.
+ */
+export const PADDLE_PRICE_IDS: Record<'PRO' | 'BUSINESS' | 'ENTERPRISE', { monthly: string; yearly: string }> = {
+  PRO: {
+    monthly: process.env.NEXT_PUBLIC_PADDLE_PRICE_PRO_MONTHLY || "pri_pro_monthly",
+    yearly: process.env.NEXT_PUBLIC_PADDLE_PRICE_PRO_YEARLY || "pri_pro_yearly",
+  },
+  BUSINESS: {
+    monthly: process.env.NEXT_PUBLIC_PADDLE_PRICE_BUSINESS_MONTHLY || "pri_business_monthly",
+    yearly: process.env.NEXT_PUBLIC_PADDLE_PRICE_BUSINESS_YEARLY || "pri_business_yearly",
+  },
+  ENTERPRISE: {
+    monthly: process.env.NEXT_PUBLIC_PADDLE_PRICE_ENTERPRISE_MONTHLY || "pri_enterprise_monthly",
+    yearly: process.env.NEXT_PUBLIC_PADDLE_PRICE_ENTERPRISE_YEARLY || "pri_enterprise_yearly",
+  },
+};
+
+/**
+ * Retrieve Paddle Price ID for a plan and billing cycle.
+ */
+export function getPaddlePriceId(planId: string, cycle: 'MONTHLY' | 'YEARLY'): string | null {
+  const normalized = planId.toUpperCase();
+  if (normalized === 'PRO') {
+    return cycle === 'YEARLY'
+      ? (process.env.NEXT_PUBLIC_PADDLE_PRICE_PRO_YEARLY || "pri_pro_yearly")
+      : (process.env.NEXT_PUBLIC_PADDLE_PRICE_PRO_MONTHLY || "pri_pro_monthly");
+  }
+  if (normalized === 'BUSINESS') {
+    return cycle === 'YEARLY'
+      ? (process.env.NEXT_PUBLIC_PADDLE_PRICE_BUSINESS_YEARLY || "pri_business_yearly")
+      : (process.env.NEXT_PUBLIC_PADDLE_PRICE_BUSINESS_MONTHLY || "pri_business_monthly");
+  }
+  if (normalized === 'ENTERPRISE') {
+    return cycle === 'YEARLY'
+      ? (process.env.NEXT_PUBLIC_PADDLE_PRICE_ENTERPRISE_YEARLY || "pri_enterprise_yearly")
+      : (process.env.NEXT_PUBLIC_PADDLE_PRICE_ENTERPRISE_MONTHLY || "pri_enterprise_monthly");
+  }
+  return null;
+}
+

@@ -2,10 +2,25 @@ import { NextResponse } from "next/server";
 
 import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
 
+import { auth } from "@/auth";
+
 export async function POST(req: Request) {
   try {
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json(
+        { success: false, error: "Authentication required." },
+        { status: 401 }
+      );
+    }
+
     const body = await req.json();
-    const { id, email, name, avatarUrl, provider, plan } = body;
+    const id = session.user.id || body.id;
+    const email = session.user.email || body.email;
+    const name = body.name || session.user.name;
+    const avatarUrl = body.avatarUrl || session.user.image;
+    const provider = body.provider || "credentials";
+    const plan = (session.user as any)?.plan || "FREEMIUM";
 
     const headers: Record<string, string> = {
       "X-Frontend-Secret": FRONTEND_SECRET,

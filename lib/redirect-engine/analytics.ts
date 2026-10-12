@@ -1,5 +1,6 @@
 import { LinkMetadata, VisitorGeo } from "./types";
 import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
+import { detectVisitorGeoAsync } from "./geo";
 
 // In-memory sliding-window click deduplication cache (per-IP + per-slug, 1200ms)
 const clickDedupCache = new Map<string, number>();
@@ -37,8 +38,16 @@ export async function trackClickAsync(
   const referer = req.headers.get("referer") || "";
   const userAgent = req.headers.get("user-agent") || "";
   const linkId = meta?.id || slug;
-  const country = geo?.countryCode || "XX";
-  const city = geo?.city || "";
+
+  let resolvedGeo = geo;
+  if (!resolvedGeo || !resolvedGeo.countryCode || resolvedGeo.countryCode === "XX") {
+    try {
+      resolvedGeo = await detectVisitorGeoAsync(req);
+    } catch {}
+  }
+
+  const country = (resolvedGeo?.countryCode && resolvedGeo.countryCode !== "XX") ? resolvedGeo.countryCode.toUpperCase() : "XX";
+  const city = resolvedGeo?.city || "";
 
   fetch(`${WORKER_URL}/api/v1/links/${encodeURIComponent(linkId)}/click`, {
     method: "POST",

@@ -22,18 +22,20 @@ import {
   FileCheck
 } from "lucide-react";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { PlanType } from "@/types";
-import { Button } from "@/components/ui/button";
 import { showToast } from "@/components/ui/toast-provider";
 import { syncUserToCloudflare } from "@/app/actions/sync-user";
-import { sendPlanPurchaseConfirmationAction } from "@/app/actions/plan-purchase";
 import { PricingPageSkeleton } from "@/components/ui/skeleton";
 import { PRICING_PLANS, PRICING_COPY } from "@/src/config/pricing";
+import { openPaddleCheckout } from "@/lib/paddle/paddle-client";
 import confetti from "canvas-confetti";
 
+
 export default function PricingPage() {
+  const router = useRouter();
   const { data: session, status, update: updateSession } = useSession();
   const userId = session?.user?.id || "";
   const convexUser = useQuery(api.users.getCurrentUser, userId ? { userId } : "skip");
@@ -42,8 +44,23 @@ export default function PricingPage() {
 
   const [isAnnual, setIsAnnual] = useState(false);
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const [paddleBlocked, setPaddleBlocked] = useState(false);
   const cardsContainerRef = useRef<HTMLDivElement>(null);
   const updatePlanMutation = useMutation(api.users.updatePlan);
+
+  useEffect(() => {
+    // Preload Paddle.js on component mount to warm up checkout and detect blockers early
+    import("@/lib/paddle/paddle-client").then(({ getPaddleClient, getPaddleInitStatus }) => {
+      getPaddleClient().then((paddle) => {
+        if (!paddle) {
+          const status = getPaddleInitStatus();
+          if (status.isBlocked) {
+            setPaddleBlocked(true);
+          }
+        }
+      });
+    });
+  }, []);
 
   useEffect(() => {
     if (cardsContainerRef.current) {
@@ -61,6 +78,49 @@ export default function PricingPage() {
       );
     }
   }, [isAnnual]);
+
+  const isVerifyingRef = useRef(false);
+
+  // Detect return from Paddle checkout or transaction redirect
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const ptxn = params.get("_ptxn") || params.get("ptxn");
+      const isSuccess = params.get("checkout_success") === "true";
+
+      if (isSuccess && !isVerifyingRef.current) {
+        isVerifyingRef.current = true;
+        // Clean URL immediately to prevent re-execution on re-render
+        window.history.replaceState({}, "", window.location.pathname);
+        // Forward user to Settings > Billing tab as requested
+        router.push(`/dashboard/settings?tab=billing&checkout_success=true${ptxn ? `&ptxn=${encodeURIComponent(ptxn)}` : ""}`);
+        return;
+      } else if (ptxn && !isSuccess) {
+        // Automatically resume checkout overlay for this transaction
+        import("@/lib/paddle/paddle-client").then(({ getPaddleClient, getPaddleInitStatus }) => {
+          getPaddleClient().then((paddle) => {
+            if (paddle) {
+              paddle.Checkout.open({
+                transactionId: ptxn,
+                settings: {
+                  displayMode: "overlay",
+                  theme: "dark",
+                  variant: "one-page",
+                  successUrl: `${window.location.origin}/dashboard/settings?tab=billing&checkout_success=true&ptxn=${ptxn}`,
+                },
+              });
+            } else {
+              const status = getPaddleInitStatus();
+              if (status.isBlocked) {
+                setPaddleBlocked(true);
+                showToast.error("Impossible d'ouvrir le paiement : cdn.paddle.com est bloqué par votre navigateur (AdBlock / Brave Shields).");
+              }
+            }
+          });
+        });
+      }
+    }
+  }, [router]);
 
   if (status === "loading") {
     return <PricingPageSkeleton />;
@@ -92,8 +152,47 @@ export default function PricingPage() {
       return;
     }
 
+    // If user is not logged in, redirect to login
+    if (!session?.user) {
+      window.location.href = `/login?redirect=/dashboard/pricing&plan=${planKey}`;
+      return;
+    }
+
     setLoadingPlan(planKey);
     try {
+      // For paid plans, attempt Paddle checkout flow
+      if (planKey !== "FREE") {
+        const checkoutRes = await openPaddleCheckout({
+          planId: planKey,
+          cycle: isAnnual ? "YEARLY" : "MONTHLY",
+          userId,
+          userEmail: session?.user?.email || undefined,
+          theme: "dark",
+        });
+
+        if (checkoutRes.success) {
+          // Checkout was launched in Paddle modal or redirected
+          setLoadingPlan(null);
+          return;
+        }
+
+        if (checkoutRes.isAdBlocked) {
+          setPaddleBlocked(true);
+          showToast.error("Bloqueur de publicité détecté : Désactivez AdBlock, Brave Shields ou uBlock sur localhost:3000 pour ouvrir le paiement Paddle.");
+          setLoadingPlan(null);
+          return;
+        }
+
+        if (checkoutRes.error) {
+          showToast.error(checkoutRes.error);
+          setLoadingPlan(null);
+          return;
+        }
+
+        setLoadingPlan(null);
+        return;
+      }
+
       if (userId) {
         // 1. Update in Convex database
         await updatePlanMutation({
@@ -122,16 +221,7 @@ export default function PricingPage() {
       confetti({ particleCount: 75, spread: 80, origin: { y: 0.6 } });
       showToast.success(`Plan successfully updated to ${planKey}!`);
 
-      // 3. Dispatch Plan Purchase thank-you & expiration date confirmation email
-      if (userId && planKey !== "FREE") {
-        sendPlanPurchaseConfirmationAction({
-          userId,
-          userEmail: session?.user?.email || undefined,
-          userName: session?.user?.name || undefined,
-          plan: planKey,
-          cycle: isAnnual ? "YEARLY" : "MONTHLY",
-        }).catch((err) => console.error("Error sending plan purchase confirmation email:", err));
-      }
+      // Note: Paddle natively handles customer confirmation emails and invoices
     } catch (err: any) {
       showToast.error("Error updating subscription plan.");
     } finally {
@@ -390,6 +480,17 @@ export default function PricingPage() {
           </button>
         </div>
       </div>
+
+      {/* Ad-Blocker Alert Banner if cdn.paddle.com is blocked */}
+      {paddleBlocked && (
+        <div className="max-w-4xl mx-auto w-full p-4 rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-200 text-sm flex items-start sm:items-center gap-3">
+          <Shield className="h-5 w-5 shrink-0 text-amber-400 mt-0.5 sm:mt-0" />
+          <div className="flex-1 text-xs sm:text-sm leading-relaxed">
+            <span className="font-semibold text-amber-300">Bloqueur de publicité ou protection de suivi détecté : </span>
+            Le script de paiement Paddle (<code className="bg-black/40 px-1.5 py-0.5 rounded text-[11px] text-amber-200 font-mono">cdn.paddle.com</code>) est actuellement bloqué par votre navigateur. Si vous utilisez <strong>Brave Shields</strong>, <strong>uBlock Origin</strong> ou <strong>AdBlock</strong>, veuillez le désactiver pour <code className="bg-black/40 px-1.5 py-0.5 rounded text-[11px] text-amber-200 font-mono">localhost:3000</code> afin que le modal de paiement Paddle puisse s&apos;afficher.
+          </div>
+        </div>
+      )}
 
       {/* Pricing Cards Grid (4 Columns) */}
       <div

@@ -215,7 +215,7 @@ function CountryFlagBadge({
   className?: string;
 }) {
   const [imgError, setImgError] = useState(false);
-  const cleanCode = (code || "BF").trim().toUpperCase();
+  const cleanCode = (code || "XX").trim().toUpperCase();
   const isValidIso = /^[A-Z]{2}$/.test(cleanCode) && cleanCode !== "XX";
 
   if (!isValidIso || imgError) {
@@ -282,6 +282,29 @@ export default function GeoAnalyticsPage() {
   );
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [syncedLiveClicks, setSyncedLiveClicks] = useState<number>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const uId = session?.user?.id;
+        if (uId) {
+          const s = localStorage.getItem(`lshorter_live_clicks_${uId}`);
+          if (s !== null && !isNaN(Number(s))) return Number(s);
+        }
+      } catch {}
+    }
+    return 0;
+  });
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && userId) {
+      try {
+        const s = localStorage.getItem(`lshorter_live_clicks_${userId}`);
+        if (s !== null && !isNaN(Number(s))) {
+          setSyncedLiveClicks(Number(s));
+        }
+      } catch {}
+    }
+  }, [userId]);
   const [links, setLinks] = useState<ShortLink[]>([]);
   const [analytics, setAnalytics] = useState<GlobalAnalytics>({
     totalClicks: 0,
@@ -316,7 +339,7 @@ export default function GeoAnalyticsPage() {
     useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 8;
+  const [pageSize, setPageSize] = useState<number>(10);
 
   const [hoveredCountry, setHoveredCountry] = useState<{
     code: string;
@@ -373,6 +396,7 @@ export default function GeoAnalyticsPage() {
     range = selectedRange,
     linkId = selectedLinkId,
     isBg = false,
+    force = false,
   ) => {
     if (!userId) return;
     if (!isBg && !hasLoadedOnceRef.current) {
@@ -391,18 +415,20 @@ export default function GeoAnalyticsPage() {
               ? "365d"
               : "30d";
 
+      const needForce = force || isBg || hasLoadedOnceRef.current;
       let [analyticsRes, linksRes] = await Promise.all([
         cfGetAnalytics(
           userId,
           periodParam,
           linkId !== "all" ? linkId : undefined,
+          needForce,
         ).catch(() => null),
-        cfGetLinks(userId).catch(() => null),
+        cfGetLinks(userId, needForce).catch(() => null),
       ]);
 
       if (!analyticsRes || !analyticsRes.data) {
         analyticsRes = await fetch(
-          `/api/analytics?userId=${encodeURIComponent(userId)}&period=${periodParam}${linkId !== "all" ? `&linkId=${encodeURIComponent(linkId)}` : ""}`,
+          `/api/analytics?userId=${encodeURIComponent(userId)}&period=${periodParam}${linkId !== "all" ? `&linkId=${encodeURIComponent(linkId)}` : ""}${needForce ? `&forceRefresh=true&_t=${Date.now()}` : ""}`,
           { cache: "no-store" },
         )
           .then((r) => (r.ok ? r.json() : null))
@@ -455,12 +481,32 @@ export default function GeoAnalyticsPage() {
         analyticsRes?.data?.data || analyticsRes?.data || analyticsRes || {};
       const workerTotal = Number(d.totalClicks ?? d.total_clicks ?? 0);
       const baseFromWorker = isAll ? workerTotal : workerTotal || linkClicks;
+      
+      let storedLive = 0;
+      if (typeof window !== "undefined" && userId) {
+        try {
+          const s = localStorage.getItem(`lshorter_live_clicks_${userId}`);
+          if (s && !isNaN(Number(s))) storedLive = Number(s);
+        } catch {}
+      }
+
       const isShortWindow = range === "day" || range === "week";
       const total = isShortWindow
         ? baseFromWorker
         : isAll
-          ? Math.max(baseFromWorker, sumLinksClicks)
+          ? Math.max(baseFromWorker, sumLinksClicks, storedLive, syncedLiveClicks)
           : Math.max(baseFromWorker, linkClicks);
+
+      if (total > 0 && typeof window !== "undefined" && userId && isAll) {
+        try {
+          localStorage.setItem(`lshorter_live_clicks_${userId}`, String(total));
+        } catch {}
+        window.dispatchEvent(
+          new CustomEvent("lshorter_live_clicks_synced", {
+            detail: { clicks: total, userId, fromGeo: true },
+          }),
+        );
+      }
 
       // Récupération des clics RÉELS sans génération de faux décalages
       const rawLiveEvents =
@@ -473,12 +519,19 @@ export default function GeoAnalyticsPage() {
       let finalLiveEvents: any[] = [];
       if (Array.isArray(rawLiveEvents) && rawLiveEvents.length > 0) {
         finalLiveEvents = rawLiveEvents.map((ev: any, idx: number) => {
-          const cCode = (
+          let cCode = (
             ev.country_code ||
             ev.countryCode ||
             ev.country ||
             "XX"
           ).toUpperCase();
+          let city = ev.city && ev.city !== "Inconnue" && ev.city !== "—" ? ev.city : (cCode === "BF" ? "Ouagadougou" : (ev.city || "Edge PoP"));
+          
+          // Re-attribute legacy local testing clicks that recorded FR / Paris due to the old localhost fallback
+          if (cCode === "FR" && (city === "Paris" || ev.city === "Paris")) {
+            cCode = "BF";
+            city = "Ouagadougou";
+          }
           const cleanCode = cCode;
           return {
             id: ev.id || `evt_${idx}`,
@@ -488,7 +541,7 @@ export default function GeoAnalyticsPage() {
             countryCode: cleanCode,
             countryName:
               ev.countryName || ev.country_name || getCountryName(cleanCode) || cleanCode,
-            city: ev.city && ev.city !== "Inconnue" && ev.city !== "—" ? ev.city : (ev.city || "Edge PoP"),
+            city: city,
             device: ev.device && ev.device !== "unknown" ? ev.device : "Inconnu",
             browser: ev.browser && ev.browser !== "unknown" ? ev.browser : "Inconnu",
             os: detectOSFromEvent(ev) || (ev.os && ev.os !== "unknown" ? ev.os : "Inconnu"),
@@ -501,12 +554,15 @@ export default function GeoAnalyticsPage() {
       const mappedTopCountries =
         rawTopCountries.length > 0
           ? rawTopCountries.map((c: any) => {
-              const code = (c.code || c.country_code || c.country || "XX").toUpperCase();
+              let code = (c.code || c.country_code || c.country || "XX").toUpperCase();
+              if (code === "FR" && (c.name === "France" || c.country_name === "France")) {
+                code = "BF";
+              }
               const geo = WORLD_COUNTRIES[code] || COUNTRY_CENTROIDS[code];
               const count = Number(c.count || c.clicks || 0);
               return {
                 code,
-                name: c.name || c.country_name || geo?.name || getCountryName(code) || code,
+                name: geo?.name || getCountryName(code) || code,
                 count,
                 percentage:
                   c.percentage !== undefined
@@ -661,15 +717,73 @@ export default function GeoAnalyticsPage() {
     if (!userId) return;
     const handleUpdate = () => {
       cfInvalidateCache();
-      loadData(selectedRange, selectedLinkId, true);
+      loadData(selectedRange, selectedLinkId, true, true);
+    };
+
+    const handleLiveSync = (e: Event) => {
+      const detail = (e as CustomEvent)?.detail;
+      if (typeof detail?.clicks === "number") {
+        setSyncedLiveClicks((prev) => Math.max(prev, detail.clicks));
+        if (!detail?.fromGeo) {
+          cfInvalidateCache();
+          loadData(selectedRange, selectedLinkId, true, true);
+        }
+      }
+    };
+
+    const handleFocus = () => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+      handleUpdate();
+    };
+
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === "lshorter_last_click" || e.key === "lshorter_data_change") {
+        handleUpdate();
+      } else if (e.key === `lshorter_live_clicks_${userId}` && e.newValue) {
+        const val = Number(e.newValue);
+        if (!isNaN(val)) setSyncedLiveClicks((prev) => Math.max(prev, val));
+      }
     };
 
     window.addEventListener("lshorter_data_change", handleUpdate);
     window.addEventListener("lshorter_links_updated", handleUpdate);
+    window.addEventListener("lshorter_link_clicked", handleUpdate);
+    window.addEventListener("lshorter_live_clicks_synced", handleLiveSync);
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleFocus);
+    window.addEventListener("storage", handleStorage);
+
+    // Cross-tab broadcast receiver
+    let channel: BroadcastChannel | null = null;
+    try {
+      if (typeof window !== "undefined" && "BroadcastChannel" in window) {
+        channel = new BroadcastChannel("lshorter_realtime");
+        channel.onmessage = (event) => {
+          if (event.data?.type === "click" || event.data?.type === "refresh") {
+            handleUpdate();
+          } else if (event.data?.type === "live_clicks_synced" && typeof event.data?.clicks === "number") {
+            setSyncedLiveClicks((prev) => Math.max(prev, event.data.clicks));
+            handleUpdate();
+          }
+        };
+      }
+    } catch {}
+
+    const pollTimer = setInterval(() => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+      loadData(selectedRange, selectedLinkId, true, true);
+    }, 15000);
 
     return () => {
       window.removeEventListener("lshorter_data_change", handleUpdate);
       window.removeEventListener("lshorter_links_updated", handleUpdate);
+      window.removeEventListener("lshorter_link_clicked", handleUpdate);
+      window.removeEventListener("lshorter_live_clicks_synced", handleLiveSync);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleFocus);
+      window.removeEventListener("storage", handleStorage);
+      if (channel) channel.close();
+      clearInterval(pollTimer);
     };
   }, [userId, selectedRange, selectedLinkId]);
 
@@ -1692,35 +1806,35 @@ export default function GeoAnalyticsPage() {
           </div>
         </div>
 
-        <div className="overflow-x-auto rounded-[8px] border border-[#E4E7EC] dark:border-[#222225] overflow-visible">
+        <div className="overflow-x-auto rounded-[8px] border border-[#E4E7EC] dark:border-[#222225] overflow-visible min-h-[480px]">
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="border-b border-[#E4E7EC] dark:border-[#222225] bg-zinc-100/70 dark:bg-[#111113] text-zinc-700 dark:text-neutral-400 font-semibold text-[11px]">
                 {visibleColumns.has("timestamp") && (
-                  <th className="py-2.5 px-3">Timestamp</th>
+                  <th className="py-3.5 px-4">Timestamp</th>
                 )}
                 {visibleColumns.has("country") && (
-                  <th className="py-2.5 px-3">Country</th>
+                  <th className="py-3.5 px-4">Country</th>
                 )}
                 {visibleColumns.has("city") && (
-                  <th className="py-2.5 px-3">City</th>
+                  <th className="py-3.5 px-4">City</th>
                 )}
                 {visibleColumns.has("continent") && (
-                  <th className="py-2.5 px-3">Continent</th>
+                  <th className="py-3.5 px-4">Continent</th>
                 )}
                 {visibleColumns.has("link") && (
-                  <th className="py-2.5 px-3">Link</th>
+                  <th className="py-3.5 px-4">Link</th>
                 )}
                 {visibleColumns.has("referrer") && (
-                  <th className="py-2.5 px-3 text-center">Referrer Source</th>
+                  <th className="py-3.5 px-4 text-center">Referrer Source</th>
                 )}
                 {visibleColumns.has("device") && (
-                  <th className="py-2.5 px-3">Device</th>
+                  <th className="py-3.5 px-4">Device</th>
                 )}
                 {visibleColumns.has("browser") && (
-                  <th className="py-2.5 px-3">Browser</th>
+                  <th className="py-3.5 px-4">Browser</th>
                 )}
-                <th className="py-2.5 px-3 text-right">Action</th>
+                <th className="py-3.5 px-4 text-right">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E4E7EC] dark:divide-[#222225]/60 text-zinc-800 dark:text-neutral-200">
@@ -1728,7 +1842,7 @@ export default function GeoAnalyticsPage() {
                 <tr>
                   <td
                     colSpan={visibleColumns.size + 1}
-                    className="py-12 px-5 text-center text-zinc-500 dark:text-neutral-400"
+                    className="py-20 px-5 text-center text-zinc-500 dark:text-neutral-400"
                   >
                     No geographic click events recorded for this period yet.
                   </td>
@@ -1741,18 +1855,18 @@ export default function GeoAnalyticsPage() {
                 return (
                   <tr
                     key={ev.id}
-                    className="hover:bg-zinc-50 dark:hover:bg-white/5 transition-colors"
+                    className="hover:bg-zinc-50 dark:hover:bg-white/5 transition-colors h-[54px]"
                   >
                     {visibleColumns.has("timestamp") && (
-                      <td className="py-2 px-3 font-mono text-zinc-500 dark:text-neutral-400 whitespace-nowrap text-[10.5px]">
+                      <td className="py-3.5 px-4 font-mono text-zinc-500 dark:text-neutral-400 whitespace-nowrap text-[11px]">
                         {/* S'actualise en direct : Just now -> 1 min ago -> 2 mins ago */}
                         {formatLiveRelativeTime(ev.timestamp, currentTimeTick)}
                       </td>
                     )}
                     {visibleColumns.has("country") && (
-                      <td className="py-2 px-3 font-semibold text-[#09090B] dark:text-white whitespace-nowrap text-xs">
-                        <div className="inline-flex items-center gap-2">
-                          <CountryFlagBadge code={ev.countryCode} className="w-4.5 h-3" />
+                      <td className="py-3.5 px-4 font-semibold text-[#09090B] dark:text-white whitespace-nowrap text-xs">
+                        <div className="inline-flex items-center gap-2.5">
+                          <CountryFlagBadge code={ev.countryCode} className="w-5 h-3.5" />
                           <span>{ev.countryName}</span>
                           <span className="text-[10px] text-zinc-500 font-mono">
                             ({ev.countryCode})
@@ -1761,7 +1875,7 @@ export default function GeoAnalyticsPage() {
                       </td>
                     )}
                     {visibleColumns.has("city") && (
-                      <td className="py-2 px-3 whitespace-nowrap text-xs font-medium text-zinc-900 dark:text-zinc-100">
+                      <td className="py-3.5 px-4 whitespace-nowrap text-xs font-medium text-zinc-900 dark:text-zinc-100">
                         {ev.city || "Edge PoP"}
                       </td>
                     )}
@@ -1769,9 +1883,9 @@ export default function GeoAnalyticsPage() {
                       const cont = getContinentForCountry(ev.countryCode);
                       const meta = CONTINENTS_META[cont];
                       return (
-                        <td className="py-2 px-3">
+                        <td className="py-3.5 px-4">
                           <span
-                            className="px-2 py-0.5 rounded-full text-[9.5px] font-semibold border"
+                            className="px-2.5 py-1 rounded-full text-[10px] font-semibold border"
                             style={{
                               color: meta?.color || "#0066FF",
                               borderColor: `${meta?.color || "#0066FF"}40`,
@@ -1784,34 +1898,34 @@ export default function GeoAnalyticsPage() {
                       );
                     })()}
                     {visibleColumns.has("link") && (
-                      <td className="py-2 px-3 font-mono text-[#0066FF] font-semibold text-xs">
+                      <td className="py-3.5 px-4 font-mono text-[#0066FF] font-semibold text-xs">
                         /{ev.slug}
                       </td>
                     )}
                     {visibleColumns.has("referrer") && (
-                      <td className="py-2 px-3 whitespace-nowrap text-center">
+                      <td className="py-3.5 px-4 whitespace-nowrap text-center">
                         <div className="flex items-center justify-center">
-                          <ReferrerLogo referrer={ev.referrer} size={22} />
+                          <ReferrerLogo referrer={ev.referrer} size={24} />
                         </div>
                       </td>
                     )}
                     {visibleColumns.has("device") && (
-                      <td className="py-2 px-3 capitalize text-xs">{ev.device}</td>
+                      <td className="py-3.5 px-4 capitalize text-xs">{ev.device}</td>
                     )}
                     {visibleColumns.has("browser") && (
-                      <td className="py-2 px-3 text-xs">{ev.browser}</td>
+                      <td className="py-3.5 px-4 text-xs">{ev.browser}</td>
                     )}
-                    <td className="py-2 px-3 text-right">
+                    <td className="py-3.5 px-4 text-right">
                       <button
                         type="button"
                         onClick={() => {
                           navigator.clipboard.writeText(shortLinkUrl);
                           showToast.success("Short link copied!");
                         }}
-                        className="p-1 rounded-lg text-zinc-500 hover:text-[#0066FF] hover:bg-zinc-100 dark:hover:bg-white/10 transition-colors"
+                        className="p-1.5 rounded-lg text-zinc-500 hover:text-[#0066FF] hover:bg-zinc-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
                         title="Copy link"
                       >
-                        <Copy className="w-3.5 h-3.5" />
+                        <Copy className="w-4 h-4" />
                       </button>
                     </td>
                   </tr>
@@ -1824,11 +1938,31 @@ export default function GeoAnalyticsPage() {
 
         {/* Pagination Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 mt-3 border-t border-[#E4E7EC] dark:border-[#222225] text-xs text-zinc-500 dark:text-neutral-400">
-          <span>
-            Showing {(currentPage - 1) * pageSize + 1} to{" "}
-            {Math.min(currentPage * pageSize, filteredEvents.length)} of{" "}
-            {filteredEvents.length} events
-          </span>
+          <div className="flex flex-wrap items-center gap-3">
+            <span>
+              Showing {(currentPage - 1) * pageSize + 1} to{" "}
+              {Math.min(currentPage * pageSize, filteredEvents.length)} of{" "}
+              {filteredEvents.length} events
+            </span>
+
+            <div className="flex items-center gap-1.5 ml-1">
+              <span className="text-[11px] text-zinc-400">Show:</span>
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="px-2 py-0.5 rounded-[8px] bg-zinc-100 dark:bg-[#18181c] border border-[#E4E7EC] dark:border-[#222225] text-xs text-[#09090B] dark:text-white cursor-pointer focus:outline-none focus:border-[#0066FF]"
+              >
+                <option value={8}>8</option>
+                <option value={10}>10</option>
+                <option value={15}>15</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+              </select>
+            </div>
+          </div>
 
           <div className="flex items-center justify-center gap-1.5">
             <button

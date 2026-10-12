@@ -14,3 +14,7 @@ id = "26a244d5e6c54e99bd608c4c5ec47f86"
 binding = "DB"
 database_name = "quicklink-db"
 database_id = "08169b58-e8d7-491e-9a4c-cd74771c359a"
+
+# 3. Environment Variables
+[vars]
+FRONTEND_API_SECRET = "lsh_secret_live_prod_2026"

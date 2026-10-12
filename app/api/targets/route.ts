@@ -5,12 +5,13 @@ import { auth } from "@/auth";
 export async function GET(req: NextRequest) {
   try {
     const session = await auth();
-    const { searchParams } = new URL(req.url);
-    const userId = searchParams.get("userId") || session?.user?.id;
-
-    if (!userId) {
-      return NextResponse.json({ success: true, data: [] });
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { success: false, error: "Authentication required to view targets." },
+        { status: 401 }
+      );
     }
+    const userId = session.user.id;
 
     const workerUrl = `${WORKER_URL}/api/v1/targets?userId=${encodeURIComponent(userId)}`;
     const res = await fetch(workerUrl, {
@@ -39,15 +40,14 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const session = await auth();
-    const body = await req.json();
-    const userId = body.userId || session?.user?.id;
-
-    if (!userId) {
+    if (!session?.user?.id) {
       return NextResponse.json(
-        { success: false, error: "Authentication required" },
+        { success: false, error: "Authentication required to create targets." },
         { status: 401 }
       );
     }
+    const body = await req.json();
+    const userId = session.user.id;
 
     const workerUrl = `${WORKER_URL}/api/v1/targets`;
     const res = await fetch(workerUrl, {

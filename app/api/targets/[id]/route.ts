@@ -7,8 +7,15 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params;
     const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { success: false, error: "Authentication required." },
+        { status: 401 }
+      );
+    }
+
+    const { id } = await params;
     const body = await req.json();
 
     const workerUrl = `${WORKER_URL}/api/v1/targets/${encodeURIComponent(id)}`;
@@ -18,7 +25,7 @@ export async function PATCH(
         "Content-Type": "application/json",
         "X-Frontend-Secret": FRONTEND_SECRET || "",
         Authorization: `Bearer ${FRONTEND_SECRET || ""}`,
-        ...(session?.user?.id ? { "X-User-Id": session.user.id } : {}),
+        "X-User-Id": session.user.id,
       },
       body: JSON.stringify(body),
     });
@@ -38,8 +45,15 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params;
     const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { success: false, error: "Authentication required." },
+        { status: 401 }
+      );
+    }
+
+    const { id } = await params;
 
     const workerUrl = `${WORKER_URL}/api/v1/targets/${encodeURIComponent(id)}`;
     const res = await fetch(workerUrl, {

@@ -11,6 +11,7 @@
 import type * as invoices from "../invoices.js";
 import type * as notifications from "../notifications.js";
 import type * as organizations from "../organizations.js";
+import type * as subscriptions from "../subscriptions.js";
 import type * as users from "../users.js";
 
 import type {
@@ -23,6 +24,7 @@ declare const fullApi: ApiFromModules<{
   invoices: typeof invoices;
   notifications: typeof notifications;
   organizations: typeof organizations;
+  subscriptions: typeof subscriptions;
   users: typeof users;
 }>;
 

@@ -3,13 +3,17 @@ import { sendMonthlyTargetReachedEmail } from "@/lib/resend";
 import { fetchMutation } from "convex/nextjs";
 import { api } from "@/convex/_generated/api";
 
+import { auth } from "@/auth";
+
 export async function POST(req: NextRequest) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const body = await req.json();
     const {
-      userId,
-      email,
-      name,
       metricType = "revenue",
       achievedValue,
       targetValue,
@@ -19,8 +23,9 @@ export async function POST(req: NextRequest) {
       isExpirationWarning = false,
     } = body;
 
-    const targetEmail = email || "founder@lshorter.com";
-    const targetName = name || "Founder";
+    const userId = session.user.id;
+    const targetEmail = session.user.email || body.email || "founder@lshorter.com";
+    const targetName = session.user.name || body.name || "User";
     const period =
       monthLabel ||
       new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" });

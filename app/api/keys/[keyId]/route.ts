@@ -6,47 +6,26 @@ export async function DELETE(
   req: Request,
   context: { params: Promise<{ keyId: string }> }
 ) {
-  const { keyId } = await context.params;
-  const { searchParams } = new URL(req.url);
-  let userId = searchParams.get("userId") || undefined;
+  const session = await auth();
+  const userId = (session?.user as any)?.id || (session?.user as any)?.sub || "";
 
   if (!userId) {
-    const session = await auth();
-    userId = (session?.user as any)?.id || (session?.user as any)?.sub || undefined;
+    return NextResponse.json(
+      { success: false, error: "Authentication required to revoke API keys." },
+      { status: 401 }
+    );
   }
+
+  const { keyId } = await context.params;
 
   if (!keyId) {
     return NextResponse.json({ success: false, error: "keyId requis" }, { status: 400 });
   }
 
   try {
-    // 1. If userId is available, delete using the user-scoped route: /api/v1/users/:userId/keys/:keyId
-    if (userId) {
-      const userRes = await fetch(
-        `${WORKER_URL}/api/v1/users/${encodeURIComponent(userId)}/keys/${encodeURIComponent(keyId)}`,
-        {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Frontend-Secret": SECRET,
-          },
-        }
-      ).catch((err) => {
-        console.warn("[API Key DELETE] User-scoped Cloudflare delete error:", err);
-        return null;
-      });
-
-      if (userRes && userRes.ok) {
-        return NextResponse.json({
-          success: true,
-          message: "API key revoked on Cloudflare D1",
-        });
-      }
-    }
-
-    // 2. Fallback / direct key deletion by ID on Cloudflare Worker: /api/v1/users/keys/:keyId
-    const directRes = await fetch(
-      `${WORKER_URL}/api/v1/users/keys/${encodeURIComponent(keyId)}`,
+    // Strictly user-scoped deletion: /api/v1/users/:userId/keys/:keyId
+    const userRes = await fetch(
+      `${WORKER_URL}/api/v1/users/${encodeURIComponent(userId)}/keys/${encodeURIComponent(keyId)}`,
       {
         method: "DELETE",
         headers: {
@@ -55,11 +34,11 @@ export async function DELETE(
         },
       }
     ).catch((err) => {
-      console.warn("[API Key DELETE] Direct Cloudflare delete error:", err);
+      console.warn("[API Key DELETE] User-scoped Cloudflare delete error:", err);
       return null;
     });
 
-    if (directRes && directRes.ok) {
+    if (userRes && userRes.ok) {
       return NextResponse.json({
         success: true,
         message: "API key revoked on Cloudflare D1",

@@ -1,5 +1,6 @@
 import { VisitorGeo, VisitorDetails } from "./types";
 import { parseUserAgent } from "./device";
+import { detectVisitorGeoAsync as detectDeviceGeoAsync } from "../device-detection";
 
 export const REGION_COUNTRIES: Record<string, string[]> = {
   // Français
@@ -70,52 +71,18 @@ export function getContinentForCountry(countryCode: string): string {
 }
 
 export async function detectVisitorGeoAsync(req: Request): Promise<VisitorGeo> {
-  const countryHeader =
-    req.headers.get("cf-ipcountry") ||
-    req.headers.get("x-vercel-ip-country") ||
-    req.headers.get("x-country") ||
-    "";
-
-  const cityHeader =
-    req.headers.get("cf-ipcity") ||
-    req.headers.get("x-vercel-ip-city") ||
-    req.headers.get("x-city") ||
-    "";
-
-  const clientIp =
-    req.headers.get("cf-connecting-ip") ||
-    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    req.headers.get("x-real-ip") ||
-    "127.0.0.1";
-
-  if (countryHeader && countryHeader !== "XX") {
-    return {
-      countryCode: countryHeader.toUpperCase(),
-      city: cityHeader ? decodeURIComponent(cityHeader) : "",
-      rawIp: clientIp,
-    };
-  }
-
-  // Localhost fallback
-  if (
-    clientIp === "127.0.0.1" ||
-    clientIp === "::1" ||
-    clientIp.startsWith("192.168.") ||
-    clientIp.startsWith("10.")
-  ) {
-    return {
-      countryCode: "FR",
-      city: "Paris",
-      rawIp: clientIp,
-    };
-  }
-
-  return {
+  const detected = await detectDeviceGeoAsync(req).catch(() => ({
     countryCode: "XX",
     city: "",
-    rawIp: clientIp,
+    rawIp: "127.0.0.1",
+  }));
+  return {
+    countryCode: detected.countryCode || "XX",
+    city: detected.city || "",
+    rawIp: detected.rawIp || "127.0.0.1",
   };
 }
+
 
 export function parseVisitorDetails(req: Request, geo: VisitorGeo): VisitorDetails {
   const userAgent = req.headers.get("user-agent") || "";

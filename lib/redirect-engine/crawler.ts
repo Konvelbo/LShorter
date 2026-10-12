@@ -196,12 +196,23 @@ export function renderSocialHtml(options: {
   <meta property="og:type" content="website" />
   <meta property="og:url" content="${safeCanonical}" />
   <meta property="og:title" content="${safeTitle}" />
-  <meta property="og:description" content="${safeDesc}" />
   <meta property="og:image" content="${safeMetaImg}" />
+  <meta property="og:image:url" content="${safeMetaImg}" />
+  <meta property="og:image:secure_url" content="${safeMetaImg}" />
+  <meta property="og:image:type" content="${imgType}" />
+  <meta property="og:image:width" content="${imgWidth}" />
+  <meta property="og:image:height" content="${imgHeight}" />
   <meta name="twitter:card" content="${cardType}" />
+  <meta property="twitter:card" content="${cardType}" />
+  <meta name="twitter:site" content="@LShorter" />
+  <meta name="twitter:creator" content="@LShorter" />
+  <meta name="twitter:domain" content="${domainName}" />
+  <meta name="twitter:url" content="${safeCanonical}" />
   <meta name="twitter:title" content="${safeTitle}" />
   <meta name="twitter:description" content="${safeDesc}" />
   <meta name="twitter:image" content="${safeMetaImg}" />
+  <meta property="twitter:image" content="${safeMetaImg}" />
+  <meta name="twitter:image:src" content="${safeMetaImg}" />
 
   <style>
     :root {

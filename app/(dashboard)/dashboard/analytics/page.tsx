@@ -225,6 +225,29 @@ export default function AnalyticsPage() {
   const hasLoadedOnceRef = useRef(false);
   const [links, setLinks] = useState<any[]>([]);
   const [analytics, setAnalytics] = useState<any>(null);
+  const [syncedLiveClicks, setSyncedLiveClicks] = useState<number>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const uId = session?.user?.id;
+        if (uId) {
+          const s = localStorage.getItem(`lshorter_live_clicks_${uId}`);
+          if (s !== null && !isNaN(Number(s))) return Number(s);
+        }
+      } catch {}
+    }
+    return 0;
+  });
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && userId) {
+      try {
+        const s = localStorage.getItem(`lshorter_live_clicks_${userId}`);
+        if (s !== null && !isNaN(Number(s))) {
+          setSyncedLiveClicks(Number(s));
+        }
+      } catch {}
+    }
+  }, [userId]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -238,7 +261,7 @@ export default function AnalyticsPage() {
     }
   }, [router]);
 
-  const loadAnalytics = async (selectedPeriod = range, isBg = false) => {
+  const loadAnalytics = async (selectedPeriod = range, isBg = false, force = false) => {
     if (!userId) {
       if (status === "unauthenticated") setIsLoading(false);
       return;
@@ -257,9 +280,11 @@ export default function AnalyticsPage() {
             : selectedPeriod === "12m"
               ? "365d"
               : "30d";
+
+      const needForce = force || isBg || hasLoadedOnceRef.current;
       const [analyticsRes, linksRes] = await Promise.all([
-        cfGetAnalytics(userId, periodParam).catch(() => null),
-        cfGetLinks(userId).catch(() => null),
+        cfGetAnalytics(userId, periodParam, undefined, needForce).catch(() => null),
+        cfGetLinks(userId, needForce).catch(() => null),
       ]);
 
       const rawLinks = Array.isArray(linksRes?.data)
@@ -275,14 +300,23 @@ export default function AnalyticsPage() {
       );
       const sumLinksClicks = rawLinks.reduce(
         (acc: number, l: any) =>
-          acc + (l.clicks_count || l.clicksCount || l.clicks || 0),
+          acc + (Number(l.clicks_count) || Number(l.clicksCount) || Number(l.clicks) || 0),
         0,
       );
+
+      let storedLive = 0;
+      if (typeof window !== "undefined") {
+        try {
+          const s = localStorage.getItem(`lshorter_live_clicks_${userId}`);
+          if (s && !isNaN(Number(s))) storedLive = Number(s);
+        } catch {}
+      }
 
       const isShortWindow = selectedPeriod === "24h" || selectedPeriod === "7d";
       const mergedTotal = isShortWindow
         ? workerTotal
-        : Math.max(workerTotal, sumLinksClicks);
+        : Math.max(workerTotal, sumLinksClicks, storedLive, syncedLiveClicks);
+
       const mergedData = {
         ...workerData,
         total_clicks: mergedTotal,
@@ -291,6 +325,18 @@ export default function AnalyticsPage() {
 
       setAnalytics(mergedData);
       hasLoadedOnceRef.current = true;
+
+      // Synchroniser de manière bidirectionnelle avec la sidebar si les données serveur sont supérieures
+      if (mergedTotal > 0 && typeof window !== "undefined") {
+        try {
+          localStorage.setItem(`lshorter_live_clicks_${userId}`, String(mergedTotal));
+        } catch {}
+        window.dispatchEvent(
+          new CustomEvent("lshorter_live_clicks_synced", {
+            detail: { clicks: mergedTotal, userId, fromPage: true },
+          }),
+        );
+      }
     } catch {
       // fallback
     } finally {
@@ -301,7 +347,7 @@ export default function AnalyticsPage() {
 
   useEffect(() => {
     if (status === "authenticated" && userId) {
-      loadAnalytics(range, hasLoadedOnceRef.current);
+      loadAnalytics(range, hasLoadedOnceRef.current, hasLoadedOnceRef.current);
     } else if (status === "unauthenticated") {
       setIsLoading(false);
     }
@@ -312,7 +358,18 @@ export default function AnalyticsPage() {
 
     const handleUpdate = () => {
       cfInvalidateCache();
-      loadAnalytics(range, true);
+      loadAnalytics(range, true, true);
+    };
+
+    const handleLiveSync = (e: Event) => {
+      const detail = (e as CustomEvent)?.detail;
+      if (typeof detail?.clicks === "number") {
+        setSyncedLiveClicks((prev) => Math.max(prev, detail.clicks));
+        if (!detail?.fromPage) {
+          cfInvalidateCache();
+          loadAnalytics(range, true, true);
+        }
+      }
     };
 
     const handleFocus = () => {
@@ -323,9 +380,15 @@ export default function AnalyticsPage() {
     const handleStorage = (e: StorageEvent) => {
       if (e.key === "lshorter_last_click" || e.key === "lshorter_data_change") {
         handleUpdate();
+      } else if (e.key === `lshorter_live_clicks_${userId}` && e.newValue) {
+        const val = Number(e.newValue);
+        if (!isNaN(val)) {
+          setSyncedLiveClicks((prev) => Math.max(prev, val));
+        }
       }
     };
 
+    window.addEventListener("lshorter_live_clicks_synced", handleLiveSync);
     window.addEventListener("lshorter_data_change", handleUpdate);
     window.addEventListener("lshorter_links_updated", handleUpdate);
     window.addEventListener("lshorter_link_clicked", handleUpdate);
@@ -341,18 +404,22 @@ export default function AnalyticsPage() {
         channel.onmessage = (event) => {
           if (event.data?.type === "click" || event.data?.type === "refresh") {
             handleUpdate();
+          } else if (event.data?.type === "live_clicks_synced" && typeof event.data?.clicks === "number") {
+            setSyncedLiveClicks((prev) => Math.max(prev, event.data.clicks));
+            handleUpdate();
           }
         };
       }
     } catch {}
 
-    // Polling interval (every 30 seconds when tab is active) - real-time sync is handled by event listeners
+    // Polling régulier (toutes les 15 secondes) avec forçage de cache pour garantir un rafraîchissement rapide
     const pollTimer = setInterval(() => {
       if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
-      loadAnalytics(range, true);
-    }, 30000);
+      loadAnalytics(range, true, true);
+    }, 15000);
 
     return () => {
+      window.removeEventListener("lshorter_live_clicks_synced", handleLiveSync);
       window.removeEventListener("lshorter_data_change", handleUpdate);
       window.removeEventListener("lshorter_links_updated", handleUpdate);
       window.removeEventListener("lshorter_link_clicked", handleUpdate);
@@ -365,8 +432,10 @@ export default function AnalyticsPage() {
   }, [userId, range]);
 
   const totalClicks = useMemo(() => {
-    return Number(analytics?.totalClicks ?? analytics?.total_clicks ?? 0);
-  }, [analytics]);
+    const raw = Number(analytics?.totalClicks ?? analytics?.total_clicks ?? 0);
+    const isShortWindow = range === "24h" || range === "7d";
+    return isShortWindow ? raw : Math.max(raw, syncedLiveClicks);
+  }, [analytics, syncedLiveClicks, range]);
 
   const uniqueVisitors = useMemo(() => {
     if (totalClicks <= 0) return 0;
@@ -694,7 +763,7 @@ export default function AnalyticsPage() {
             onClick={async () => {
               setIsRefreshing(true);
               cfInvalidateCache();
-              await loadAnalytics(range, true);
+              await loadAnalytics(range, true, true);
               showToast.success("Analytics refreshed");
             }}
             className="inline-flex items-center gap-2 rounded-[10px] ds-card px-3.5 py-2 text-[13px] font-medium ds-text-secondary hover:bg-[#F2F4F7] dark:hover:bg-white/[0.04] hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"

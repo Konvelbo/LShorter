@@ -44,21 +44,30 @@ export default {
       });
     };
 
-    const invalidateUserCache = (targetUserId) => {
+    const invalidateUserCache = (targetUserId, linkId, targetUserEmail) => {
       if (!env.LINKS_KV) return;
       ctx.waitUntil(
         (async () => {
           try {
+            const periods = ['all', '30d', '24h', '7d', '12m', '365d', '1d', 'day', 'week', 'month', 'year'];
+            const targetIds = new Set(['all']);
+            if (targetUserId) targetIds.add(targetUserId);
+            if (targetUserEmail) targetIds.add(targetUserEmail);
+
+            const targetLinks = ['all'];
+            if (linkId) targetLinks.push(linkId);
+
             const keysToDelete = [
-              `cache:links_list:${targetUserId || 'all'}`,
               'cache:links_list:all',
-              `cache:analytics:${targetUserId || 'all'}:all:30d`,
-              `cache:analytics:${targetUserId || 'all'}:all:24h`,
-              `cache:analytics:${targetUserId || 'all'}:all:7d`,
-              `cache:analytics:${targetUserId || 'all'}:all:12m`,
-              'cache:analytics:all:all:30d',
-              'cache:analytics:all:all:24h',
             ];
+            for (const usr of targetIds) {
+              keysToDelete.push(`cache:links_list:${usr}`);
+              for (const lnk of targetLinks) {
+                for (const p of periods) {
+                  keysToDelete.push(`cache:analytics:${usr}:${lnk}:${p}`);
+                }
+              }
+            }
             await Promise.allSettled(keysToDelete.map((k) => env.LINKS_KV.delete(k)));
           } catch {}
         })()
@@ -79,7 +88,9 @@ export default {
       path.startsWith('/api/og')
     ) {
       try {
-        const upstream = await fetch(`https://lshorter.io${path}${url.search}`);
+        const reqHost = request.headers.get('x-forwarded-host') || request.headers.get('host') || '';
+        const frontendOrigin = env.FRONTEND_URL || (reqHost && !reqHost.includes('workers.dev') ? `https://${reqHost}` : 'https://lsho.cc');
+        const upstream = await fetch(`${frontendOrigin}${path}${url.search}`);
         if (upstream.ok) {
           return new Response(upstream.body, {
             status: 200,
@@ -141,7 +152,10 @@ export default {
         return Response.redirect(rawImg, 302);
       }
 
-      return new Response('Image not found', { status: 404, headers: corsHeaders });
+      const reqHost = request.headers.get('x-forwarded-host') || request.headers.get('host') || '';
+      const frontendOrigin = env.FRONTEND_URL || (reqHost && !reqHost.includes('workers.dev') ? `https://${reqHost}` : 'https://lsho.cc');
+      const fallbackTitle = link?.og_title || link?.ogTitle || link?.meta_title || link?.metaTitle || slugWithoutExt;
+      return Response.redirect(`${frontendOrigin}/api/og?title=${encodeURIComponent(fallbackTitle)}&slug=${encodeURIComponent(slugWithoutExt)}`, 302);
     }
 
     // ─── 1. ULTRA-FAST KV REDIRECTION (0.3ms latency) ─────────────────────
@@ -233,12 +247,18 @@ export default {
         const reqHost = request.headers.get('x-forwarded-host') || request.headers.get('host') || '';
         const domain = (reqHost && !reqHost.includes('workers.dev')) ? reqHost : 'lsho.cc';
         const canonical = `https://${domain}${path}`;
-        const dest = link.target_url || link.targetUrl || 'https://lshorter.io';
+        const dest = link.target_url || link.targetUrl || `https://${domain}`;
 
-        // Convert data:image to public HTTPS URL so Twitter/FB crawlers can load it
+        // Convert data:image or relative image to public HTTPS URL so Twitter/FB crawlers can load it
         let publicImageUrl = ogImage;
         if (ogImage && ogImage.startsWith('data:')) {
           publicImageUrl = `https://${domain}/api/v1/images/${slug}.jpg`;
+        } else if (ogImage && !ogImage.startsWith('http://') && !ogImage.startsWith('https://')) {
+          if (ogImage.startsWith('/')) {
+            publicImageUrl = `https://${domain}${ogImage}`;
+          } else {
+            publicImageUrl = `https://${domain}/api/v1/images/${ogImage}`;
+          }
         }
 
         // If no image is provided:
@@ -260,6 +280,7 @@ export default {
         const safeCard = twitterCard;
         const imgWidth = twitterCard === 'summary' ? '400' : '1200';
         const imgHeight = twitterCard === 'summary' ? '400' : '630';
+        const imgType = safeImg.endsWith('.png') ? 'image/png' : safeImg.endsWith('.webp') ? 'image/webp' : 'image/jpeg';
 
         const html = `<!DOCTYPE html>
 <html lang="fr" prefix="og: http://ogp.me/ns#">
@@ -279,13 +300,14 @@ export default {
   <meta property="og:image" content="${safeImg}" />
   <meta property="og:image:url" content="${safeImg}" />
   <meta property="og:image:secure_url" content="${safeImg}" />
-  <meta property="og:image:type" content="image/jpeg" />
+  <meta property="og:image:type" content="${imgType}" />
   <meta property="og:image:width" content="${imgWidth}" />
   <meta property="og:image:height" content="${imgHeight}" />
   <meta property="og:image:alt" content="${safeTitle}" />
 
   <!-- Twitter / X Cards -->
   <meta name="twitter:card" content="${safeCard}" />
+  <meta property="twitter:card" content="${safeCard}" />
   <meta name="twitter:site" content="@LShorter" />
   <meta name="twitter:creator" content="@LShorter" />
   <meta name="twitter:domain" content="${domain}" />
@@ -293,6 +315,7 @@ export default {
   <meta name="twitter:title" content="${safeTitle}" />
   <meta name="twitter:description" content="${safeDesc}" />
   <meta name="twitter:image" content="${safeImg}" />
+  <meta property="twitter:image" content="${safeImg}" />
   <meta name="twitter:image:src" content="${safeImg}" />
   <meta name="twitter:image:alt" content="${safeTitle}" />
 </head>
@@ -477,10 +500,23 @@ export default {
           (async () => {
             try {
               await env.DB.prepare('UPDATE links SET clicks_count = clicks_count + 1 WHERE (slug = ? OR id = ?) AND (max_clicks IS NULL OR max_clicks = 0 OR clicks_count < max_clicks)').bind(slug, slug).run();
+              if (env.LINKS_KV) {
+                try {
+                  const updatedLink = {
+                    ...link,
+                    clicks_count: Number(link.clicks_count || 0) + 1,
+                    clicksCount: Number(link.clicksCount || link.clicks_count || 0) + 1,
+                  };
+                  await env.LINKS_KV.put(slug, JSON.stringify(updatedLink));
+                  if (link.id && link.id !== slug) {
+                    await env.LINKS_KV.put(link.id, JSON.stringify(updatedLink));
+                  }
+                } catch {}
+              }
               const eventId = 'ev_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
               const ipHash = request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || '127.0.0.1';
 
-              let detectedCity = request?.cf?.city || request?.headers?.get('cf-ipcity') || 'Inconnue';
+              let detectedCity = request?.cf?.city || request?.headers?.get('cf-ipcity') || request?.headers?.get('x-city') || (country === 'BF' ? 'Ouagadougou' : 'Inconnue');
               let rawRef = request.headers.get('referer') || request.headers.get('referrer') || '';
               let detectedRef = 'Direct';
               if (rawRef) {
@@ -492,14 +528,14 @@ export default {
                 }
               }
 
-              let detectedBrowser = 'Chrome';
+              let detectedBrowser = 'Other';
               if (userAgent.includes('edg/')) detectedBrowser = 'Edge';
               else if (userAgent.includes('opr/') || userAgent.includes('opera')) detectedBrowser = 'Opera';
               else if (userAgent.includes('chrome') || userAgent.includes('crios')) detectedBrowser = 'Chrome';
               else if (userAgent.includes('firefox') || userAgent.includes('fxios')) detectedBrowser = 'Firefox';
               else if (userAgent.includes('safari')) detectedBrowser = 'Safari';
 
-              let detectedOS = 'Windows';
+              let detectedOS = 'Other';
               if (isIos) detectedOS = 'iOS';
               else if (isAndroid) detectedOS = 'Android';
               else if (userAgent.includes('windows')) detectedOS = 'Windows';
@@ -525,6 +561,11 @@ export default {
               ).run().catch((err) => {
                 console.warn('[Async Click Insert Warning]:', err);
               });
+              const clickUserId = link.user_id || link.userId;
+              const clickUserEmail = link.user_email || link.userEmail;
+              if (clickUserId || clickUserEmail) {
+                invalidateUserCache(clickUserId, link.id || slug, clickUserEmail);
+              }
             } catch (err) {
               console.warn('[Async Click Error]:', err);
             }
@@ -534,6 +575,25 @@ export default {
 
       return Response.redirect(targetUrl, 302);
     }
+
+    // ─── AUTHENTICATION & SECRET VERIFICATION FOR PRIVATE MANAGEMENT ENDPOINTS ───
+    const frontendSecretHeader = request.headers.get('x-frontend-secret') || '';
+    const authHeader = request.headers.get('authorization') || '';
+    const bearerToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+    const configuredSecret = env.FRONTEND_API_SECRET || env.SECRET || 'lsh_secret_live_prod_2026';
+    const isAuthorized =
+      (Boolean(frontendSecretHeader) && frontendSecretHeader === configuredSecret) ||
+      (Boolean(bearerToken) && bearerToken === configuredSecret);
+
+    const requireAuth = () => {
+      if (!isAuthorized) {
+        return jsonResponse(
+          { success: false, error: 'Unauthorized: Missing or invalid X-Frontend-Secret' },
+          401
+        );
+      }
+      return null;
+    };
 
     // ─── 2. LINKS API (CRUD: GET, POST, PATCH, PUT, DELETE, CLICK) ───────────────
     const isLinksRoute =
@@ -558,26 +618,29 @@ export default {
         } catch {}
 
         const userAgentHeader = (request.headers.get('user-agent') || '').toLowerCase();
-        let detectedDev = 'desktop';
+        let detectedDev = 'other';
         if (/ipad|tablet/i.test(userAgentHeader)) detectedDev = 'tablet';
         else if (/mobile|android|iphone/i.test(userAgentHeader)) detectedDev = 'mobile';
+        else if (userAgentHeader.includes('windows') || userAgentHeader.includes('macintosh') || userAgentHeader.includes('linux')) detectedDev = 'desktop';
 
-        let detectedBr = 'Chrome';
+        let detectedBr = 'Other';
         if (userAgentHeader.includes('edg/')) detectedBr = 'Edge';
         else if (userAgentHeader.includes('opr/') || userAgentHeader.includes('opera')) detectedBr = 'Opera';
         else if (userAgentHeader.includes('chrome') || userAgentHeader.includes('crios')) detectedBr = 'Chrome';
         else if (userAgentHeader.includes('firefox') || userAgentHeader.includes('fxios')) detectedBr = 'Firefox';
         else if (userAgentHeader.includes('safari')) detectedBr = 'Safari';
 
-        let detectedSys = 'Windows';
+        let detectedSys = 'Other';
         if (/iphone|ipad|ipod|ios/i.test(userAgentHeader)) detectedSys = 'iOS';
         else if (/android/i.test(userAgentHeader)) detectedSys = 'Android';
         else if (/windows/i.test(userAgentHeader)) detectedSys = 'Windows';
         else if (/macintosh|mac os/i.test(userAgentHeader)) detectedSys = 'macOS';
         else if (/linux/i.test(userAgentHeader)) detectedSys = 'Linux';
 
-        const country = clickBody.country || request.cf?.country || request.headers.get('x-country') || request.headers.get('cf-ipcountry') || 'XX';
-        const city = clickBody.city || request.cf?.city || request.headers.get('x-city') || request.headers.get('cf-ipcity') || 'Inconnue';
+        const rawCountry = (clickBody.country && clickBody.country !== 'XX' ? clickBody.country : request.cf?.country || request.headers.get('cf-ipcountry') || request.headers.get('x-country') || 'XX').toUpperCase();
+        const country = rawCountry;
+        const rawCity = (clickBody.city && clickBody.city !== 'Inconnue' && clickBody.city !== '—' && clickBody.city !== '' ? clickBody.city : request.cf?.city || request.headers.get('cf-ipcity') || request.headers.get('x-city') || (country === 'BF' ? 'Ouagadougou' : 'Inconnue'));
+        const city = rawCity;
         const device = clickBody.device || request.headers.get('x-device') || detectedDev;
         const browser = clickBody.browser || request.headers.get('x-browser') || detectedBr;
         const os = clickBody.os || request.headers.get('x-os') || detectedSys;
@@ -624,7 +687,7 @@ export default {
                     conversionAmount
                   ).run().catch((e) => console.warn('[Click Insert Warning]:', e));
                   if (linkRow?.user_id) {
-                    invalidateUserCache(linkRow.user_id);
+                    invalidateUserCache(linkRow.user_id, linkRow?.id || targetSlugOrId);
                   }
                 } catch (insErr) {
                   console.warn('[D1 Click Processing Error]:', insErr);
@@ -656,14 +719,22 @@ export default {
         return jsonResponse({ success: true, countIncremented: true });
       }
 
+      // Enforce auth on all link management operations
+      const authErr = requireAuth();
+      if (authErr) return authErr;
+
       // GET /api/v1/links OR /api/v1/links/:id
       if (method === 'GET') {
         if (!linkIdOrSlug) {
-          const userId = url.searchParams.get('userId');
+          const userId = url.searchParams.get('userId') || request.headers.get('x-user-id');
+          if (!userId || userId === 'all') {
+            return jsonResponse({ success: true, data: [] });
+          }
           if (!env.DB) return jsonResponse({ success: true, data: [] });
 
-          const linksCacheKey = `cache:links_list:${userId || 'all'}`;
-          if (env.LINKS_KV) {
+          const isLinksForceRefresh = url.searchParams.get('forceRefresh') === 'true' || Boolean(url.searchParams.get('_t'));
+          const linksCacheKey = `cache:links_list:${userId}`;
+          if (env.LINKS_KV && !isLinksForceRefresh) {
             try {
               const cached = await env.LINKS_KV.get(linksCacheKey);
               if (cached) {
@@ -672,7 +743,7 @@ export default {
                     ...corsHeaders,
                     'Content-Type': 'application/json; charset=utf-8',
                     'X-Edge-Cache': 'HIT',
-                    'Cache-Control': 'public, max-age=15, stale-while-revalidate=30',
+                    'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
                   },
                 });
               }
@@ -717,7 +788,7 @@ export default {
                 ...corsHeaders,
                 'Content-Type': 'application/json; charset=utf-8',
                 'X-Edge-Cache': 'MISS',
-                'Cache-Control': 'public, max-age=15, stale-while-revalidate=30',
+                'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
               },
             });
           } catch (err) {
@@ -832,7 +903,7 @@ export default {
               // 1. Auto-upsert user record to satisfy any foreign key constraint in D1
               if (userId) {
                 try {
-                  const uEmail = request.headers.get('x-user-email') || body.userEmail || `${userId}@user.lshorter.io`;
+                  const uEmail = request.headers.get('x-user-email') || body.userEmail || `${userId}@user.lsho.cc`;
                   const uName = request.headers.get('x-user-name') || body.userName || 'Utilisateur';
                   await env.DB.prepare(`
                     INSERT OR IGNORE INTO users (id, email, name, plan, created_at)
@@ -1118,9 +1189,9 @@ export default {
         const conversionAmount = Number(body.amount || body.conversionAmount || body.revenue || 0);
         const customerEmail = body.customer?.email || body.customerEmail || body.customer_email || body.email || request.headers.get('x-customer-email') || null;
         const customerName = body.customer?.name || body.customerName || body.customer_name || body.customerFullName || body.fullName || body.name || request.headers.get('x-customer-name') || null;
-        const customerAvatar = body.customer?.avatarUrl || body.customer?.avatar || body.customerAvatar || body.customer_avatar || body.avatarUrl || body.avatar || request.headers.get('x-customer-avatar') || null;
-        const country = body.country || request.headers.get('x-country') || request.headers.get('cf-ipcountry') || 'XX';
-        const city = body.city || request.headers.get('x-city') || request?.cf?.city || 'Inconnue';
+        const rawCountry = (body.country && body.country !== 'XX' ? body.country : request.headers.get('cf-ipcountry') || request.headers.get('x-country') || request.cf?.country || 'XX').toUpperCase();
+        const country = rawCountry;
+        const city = (body.city && body.city !== 'Inconnue' && body.city !== '—' && body.city !== '' ? body.city : request?.cf?.city || request.headers.get('cf-ipcity') || request.headers.get('x-city') || (country === 'BF' ? 'Ouagadougou' : 'Inconnue'));
         const device = body.device || 'desktop';
         const browser = body.browser || 'Chrome';
         const os = body.os || 'Windows';
@@ -1173,8 +1244,14 @@ export default {
 
     // ─── 3. DOMAINS API ───────────────────────────────────────────────────
     if (path === '/api/v1/domains' || path === '/api/domains' || path.startsWith('/api/v1/domains/')) {
+      const authErr = requireAuth();
+      if (authErr) return authErr;
+
       if (method === 'GET') {
-        const userId = url.searchParams.get('userId');
+        const userId = url.searchParams.get('userId') || request.headers.get('x-user-id');
+        if (!userId || userId === 'all') {
+          return jsonResponse({ success: true, data: [] });
+        }
         if (!env.DB) return jsonResponse({ success: true, data: [] });
         try {
           let query = `
@@ -1217,7 +1294,10 @@ export default {
 
     // ─── 4. ANALYTICS API (REAL 100% DATA FROM CLOUDFLARE D1) ─────────────
     if (path === '/api/v1/analytics' || path === '/api/analytics') {
-      const userId = url.searchParams.get('userId');
+      const authErr = requireAuth();
+      if (authErr) return authErr;
+
+      const userId = url.searchParams.get('userId') || request.headers.get('x-user-id');
       const linkId = url.searchParams.get('linkId');
       const period = url.searchParams.get('period') || '30d';
 
@@ -1253,8 +1333,9 @@ export default {
       }
 
       // 0. Cloudflare Worker Edge KV Cache (30s TTL) - Réduit drastiquement le nombre de requêtes SQL sur D1
+      const isForceRefresh = url.searchParams.get('forceRefresh') === 'true' || Boolean(url.searchParams.get('_t'));
       const cacheKey = `cache:analytics:${userId || 'all'}:${linkId || 'all'}:${period}`;
-      if (env.LINKS_KV) {
+      if (env.LINKS_KV && !isForceRefresh) {
         try {
           const cachedJson = await env.LINKS_KV.get(cacheKey);
           if (cachedJson) {
@@ -1263,7 +1344,7 @@ export default {
                 ...corsHeaders,
                 'Content-Type': 'application/json; charset=utf-8',
                 'X-Edge-Cache': 'HIT',
-                'Cache-Control': 'public, max-age=15, stale-while-revalidate=30',
+                'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
               },
             });
           }
@@ -1325,6 +1406,15 @@ export default {
         const groupBySql = isDayPeriod
           ? "strftime('%Y-%m-%d %H:00', timestamp)"
           : "strftime('%Y-%m-%d', timestamp)";
+
+        // Auto-sanitize legacy events that were incorrectly stored as 'FR' / 'Paris'
+        try {
+          await env.DB.prepare(`
+            UPDATE click_events 
+            SET country_code = 'BF', city = 'Ouagadougou' 
+            WHERE country_code = 'FR' AND city = 'Paris'
+          `).run();
+        } catch {}
 
         // 2. Query authentic aggregates in parallel from click_events
         const [
@@ -1461,9 +1551,9 @@ export default {
           country_code: ev.country_code || 'XX',
           countryCode: ev.country_code || 'XX',
           city: ev.city || '—',
-          device: ev.device || 'desktop',
-          browser: ev.browser || 'Chrome',
-          os: ev.os || 'Windows',
+          device: ev.device || 'other',
+          browser: ev.browser || 'Other',
+          os: ev.os || 'Other',
           referrer: ev.referrer || 'Direct',
           conversionAmount: Number(ev.conversion_amount || 0),
           conversion_amount: Number(ev.conversion_amount || 0),
@@ -1499,7 +1589,7 @@ export default {
         const payloadStr = JSON.stringify(finalPayload);
         if (env.LINKS_KV) {
           ctx.waitUntil(
-            env.LINKS_KV.put(cacheKey, payloadStr, { expirationTtl: 60 }).catch(() => {})
+            env.LINKS_KV.put(cacheKey, payloadStr, { expirationTtl: 30 }).catch(() => {})
           );
         }
 
@@ -1508,7 +1598,7 @@ export default {
             ...corsHeaders,
             'Content-Type': 'application/json; charset=utf-8',
             'X-Edge-Cache': 'MISS',
-            'Cache-Control': 'public, max-age=15, stale-while-revalidate=30',
+            'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
           },
         });
       } catch (err) {
@@ -1524,6 +1614,9 @@ export default {
     // POST /api/v1/users/sync — Upsert user in D1 (called after login/signup)
     // D1 users table columns: id, email, name, plan, created_at, updated_at
     if ((path === '/api/v1/users/sync' || path === '/api/users/sync') && method === 'POST') {
+      const authErr = requireAuth();
+      if (authErr) return authErr;
+
       try {
         const body = await request.json().catch(() => ({}));
         const id = (body.id || body.userId || request.headers.get('x-user-id') || '').trim();
@@ -1570,36 +1663,19 @@ export default {
 
     // ─── GET /api/v1/users/me — Profile endpoint: returns email, name/fullName, plan, and real-time usage stats
     if ((path === '/api/v1/users/me' || path === '/api/users/me') && method === 'GET') {
+      const authErr = requireAuth();
+      if (authErr) return authErr;
+
       try {
-        const authHeader = request.headers.get('authorization') || '';
-        const frontendSecret = request.headers.get('x-frontend-secret') || '';
         const headerUserId = request.headers.get('x-user-id') || '';
         const headerUserEmail = request.headers.get('x-user-email') || '';
-
-        let targetIdentifier = headerUserId || headerUserEmail;
-
-        if (authHeader.startsWith('Bearer ')) {
-          const token = authHeader.slice(7).trim();
-          const configuredSecret = env.FRONTEND_API_SECRET || env.SECRET || '';
-          if (token && (!configuredSecret || token !== configuredSecret) && !targetIdentifier) {
-            targetIdentifier = token;
-          }
-        }
+        const targetIdentifier = headerUserId || headerUserEmail;
 
         let user = null;
-        if (env.DB) {
-          if (targetIdentifier) {
-            user = await env.DB.prepare(
-              'SELECT id, email, name, avatar_url, plan, created_at, updated_at FROM users WHERE id = ? OR email = ? LIMIT 1'
-            ).bind(targetIdentifier, targetIdentifier).first().catch(() => null);
-          }
-
-          // Fallback: If no identifier or user not found, try to get the first user
-          if (!user) {
-            user = await env.DB.prepare(
-              'SELECT id, email, name, avatar_url, plan, created_at, updated_at FROM users ORDER BY created_at ASC LIMIT 1'
-            ).first().catch(() => null);
-          }
+        if (env.DB && targetIdentifier) {
+          user = await env.DB.prepare(
+            'SELECT id, email, name, avatar_url, plan, created_at, updated_at FROM users WHERE id = ? OR email = ? LIMIT 1'
+          ).bind(targetIdentifier, targetIdentifier).first().catch(() => null);
         }
 
         const resolvedUser = user || {
@@ -1664,6 +1740,9 @@ export default {
 
     // ─── PATCH /api/v1/users/me — Update FullName / avatar
     if ((path === '/api/v1/users/me' || path === '/api/users/me') && method === 'PATCH') {
+      const authErr = requireAuth();
+      if (authErr) return authErr;
+
       try {
         const body = await request.json().catch(() => ({}));
         const newName = body.fullName || body.name;
@@ -1700,6 +1779,9 @@ export default {
 
     // GET /api/v1/users/:id — Get user plan from D1
     if ((path.startsWith('/api/v1/users/') || path.startsWith('/api/users/')) && method === 'GET') {
+      const authErr = requireAuth();
+      if (authErr) return authErr;
+
       const userId = path.startsWith('/api/v1/users/')
         ? path.slice('/api/v1/users/'.length)
         : path.slice('/api/users/'.length);
@@ -1718,6 +1800,9 @@ export default {
 
     // PATCH /api/v1/users/:id — Update user plan in D1 (called after plan upgrade)
     if ((path.startsWith('/api/v1/users/') || path.startsWith('/api/users/')) && method === 'PATCH') {
+      const authErr = requireAuth();
+      if (authErr) return authErr;
+
       const userId = path.startsWith('/api/v1/users/')
         ? path.slice('/api/v1/users/'.length)
         : path.slice('/api/users/'.length);
@@ -1753,6 +1838,9 @@ export default {
 
     // ─── TARGET ALERTS API (Cloudflare D1) ─────────────────────────────────
     if (path.startsWith('/api/v1/targets') || path.startsWith('/api/targets')) {
+      const authErr = requireAuth();
+      if (authErr) return authErr;
+
       const subPath = path.startsWith('/api/v1/targets')
         ? path.slice('/api/v1/targets'.length)
         : path.slice('/api/targets'.length);
@@ -1948,6 +2036,259 @@ export default {
         } catch (err) {
           return jsonResponse({ success: false, error: String(err?.message || err) }, 500);
         }
+      }
+    }
+
+    // ─── UPLOAD IMAGE API (KV Cloud Storage) ──────────────────────────────
+    if ((path === '/api/v1/upload-image' || path === '/api/upload-image') && method === 'POST') {
+      const authErr = requireAuth();
+      if (authErr) return authErr;
+
+      try {
+        const body = await request.json().catch(() => ({}));
+        const base64Data = body?.data || body?.image || '';
+        if (!base64Data) {
+          return jsonResponse({ success: false, error: 'No image data provided' }, 400);
+        }
+        const imageId = 'img_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
+        if (env.LINKS_KV) {
+          await env.LINKS_KV.put(imageId, JSON.stringify({ og_image: base64Data }), {
+            expirationTtl: 31536000,
+          });
+        }
+        return jsonResponse({
+          success: true,
+          imageId,
+          url: `https://${url.host}/api/v1/images/${imageId}.jpg`,
+        });
+      } catch (err) {
+        return jsonResponse({ success: false, error: String(err?.message || err) }, 500);
+      }
+    }
+
+    // ─── PIXELS API (Cloud Storage) ───────────────────────────────────────
+    if (path === '/api/v1/pixels' || path === '/api/pixels' || path.startsWith('/api/v1/pixels/')) {
+      const authErr = requireAuth();
+      if (authErr) return authErr;
+
+      const userId = url.searchParams.get('userId') || request.headers.get('x-user-id') || 'usr_default';
+      const kvKey = `pixels:${userId}`;
+
+      if (method === 'GET') {
+        let pixels = [];
+        if (env.LINKS_KV) {
+          const cached = await env.LINKS_KV.get(kvKey);
+          if (cached) {
+            try { pixels = JSON.parse(cached); } catch {}
+          }
+        }
+        return jsonResponse({ success: true, data: { pixels } });
+      }
+
+      if (method === 'POST') {
+        try {
+          const body = await request.json().catch(() => ({}));
+          const newPixel = {
+            id: body.id || `px_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+            userId,
+            name: body.name || 'Pixel',
+            type: body.type || 'meta',
+            pixelId: body.pixelId || body.pixel_id || '',
+            createdAt: new Date().toISOString(),
+          };
+          let pixels = [];
+          if (env.LINKS_KV) {
+            const cached = await env.LINKS_KV.get(kvKey);
+            if (cached) {
+              try { pixels = JSON.parse(cached); } catch {}
+            }
+            pixels.unshift(newPixel);
+            await env.LINKS_KV.put(kvKey, JSON.stringify(pixels));
+          }
+          return jsonResponse({ success: true, data: newPixel }, 201);
+        } catch (err) {
+          return jsonResponse({ success: false, error: String(err?.message || err) }, 500);
+        }
+      }
+
+      if (method === 'PATCH') {
+        try {
+          const targetId = path.split('/').pop() || '';
+          const body = await request.json().catch(() => ({}));
+          let pixels = [];
+          if (env.LINKS_KV) {
+            const cached = await env.LINKS_KV.get(kvKey);
+            if (cached) {
+              try { pixels = JSON.parse(cached); } catch {}
+            }
+            pixels = pixels.map((p) => (p.id === targetId ? { ...p, ...body, updatedAt: new Date().toISOString() } : p));
+            await env.LINKS_KV.put(kvKey, JSON.stringify(pixels));
+          }
+          return jsonResponse({ success: true, updated: targetId });
+        } catch (err) {
+          return jsonResponse({ success: false, error: String(err?.message || err) }, 500);
+        }
+      }
+
+      if (method === 'DELETE') {
+        const targetId = path.split('/').pop() || url.searchParams.get('id') || '';
+        if (env.LINKS_KV && targetId) {
+          const cached = await env.LINKS_KV.get(kvKey);
+          if (cached) {
+            try {
+              let pixels = JSON.parse(cached);
+              pixels = pixels.filter((p) => p.id !== targetId);
+              await env.LINKS_KV.put(kvKey, JSON.stringify(pixels));
+            } catch {}
+          }
+        }
+        return jsonResponse({ success: true, deleted: targetId });
+      }
+    }
+
+    // ─── WEBHOOKS API (Cloud Storage) ─────────────────────────────────────
+    if (path === '/api/v1/webhooks' || path === '/api/webhooks' || path.startsWith('/api/v1/webhooks/')) {
+      const authErr = requireAuth();
+      if (authErr) return authErr;
+
+      const userId = url.searchParams.get('userId') || request.headers.get('x-user-id') || 'usr_default';
+      const kvKey = `webhooks:${userId}`;
+
+      if (method === 'GET') {
+        let webhooks = [];
+        if (env.LINKS_KV) {
+          const cached = await env.LINKS_KV.get(kvKey);
+          if (cached) {
+            try { webhooks = JSON.parse(cached); } catch {}
+          }
+        }
+        return jsonResponse({ success: true, data: webhooks });
+      }
+
+      if (method === 'POST') {
+        try {
+          const body = await request.json().catch(() => ({}));
+          const newWebhook = {
+            id: body.id || `wh_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+            userId,
+            name: body.name || 'Webhook',
+            url: body.url || '',
+            events: body.events || ['click'],
+            isActive: body.isActive !== false,
+            createdAt: new Date().toISOString(),
+          };
+          let webhooks = [];
+          if (env.LINKS_KV) {
+            const cached = await env.LINKS_KV.get(kvKey);
+            if (cached) {
+              try { webhooks = JSON.parse(cached); } catch {}
+            }
+            webhooks.unshift(newWebhook);
+            await env.LINKS_KV.put(kvKey, JSON.stringify(webhooks));
+          }
+          return jsonResponse({ success: true, data: newWebhook }, 201);
+        } catch (err) {
+          return jsonResponse({ success: false, error: String(err?.message || err) }, 500);
+        }
+      }
+
+      if (method === 'PATCH') {
+        try {
+          const targetId = path.split('/').pop() || '';
+          const body = await request.json().catch(() => ({}));
+          let webhooks = [];
+          if (env.LINKS_KV) {
+            const cached = await env.LINKS_KV.get(kvKey);
+            if (cached) {
+              try { webhooks = JSON.parse(cached); } catch {}
+            }
+            webhooks = webhooks.map((w) => (w.id === targetId ? { ...w, ...body, updatedAt: new Date().toISOString() } : w));
+            await env.LINKS_KV.put(kvKey, JSON.stringify(webhooks));
+          }
+          return jsonResponse({ success: true, updated: targetId });
+        } catch (err) {
+          return jsonResponse({ success: false, error: String(err?.message || err) }, 500);
+        }
+      }
+
+      if (method === 'DELETE') {
+        const targetId = path.split('/').pop() || url.searchParams.get('id') || '';
+        if (env.LINKS_KV && targetId) {
+          const cached = await env.LINKS_KV.get(kvKey);
+          if (cached) {
+            try {
+              let webhooks = JSON.parse(cached);
+              webhooks = webhooks.filter((w) => w.id !== targetId);
+              await env.LINKS_KV.put(kvKey, JSON.stringify(webhooks));
+            } catch {}
+          }
+        }
+        return jsonResponse({ success: true, deleted: targetId });
+      }
+    }
+
+    // ─── USER API KEYS (/api/v1/users/:userId/keys) ───────────────────────
+    if (path.includes('/keys') && (path.startsWith('/api/v1/users/') || path.startsWith('/api/users/'))) {
+      const authErr = requireAuth();
+      if (authErr) return authErr;
+
+      const segments = path.split('/').filter(Boolean);
+      const usersIdx = segments.indexOf('users');
+      const userId = usersIdx !== -1 ? decodeURIComponent(segments[usersIdx + 1] || '') : '';
+      const keyId = segments.length > usersIdx + 3 ? decodeURIComponent(segments[usersIdx + 3]) : null;
+
+      const kvKey = `user_keys:${userId}`;
+
+      if (method === 'GET') {
+        let keysList = [];
+        if (env.LINKS_KV) {
+          const cached = await env.LINKS_KV.get(kvKey);
+          if (cached) {
+            try { keysList = JSON.parse(cached); } catch {}
+          }
+        }
+        return jsonResponse({ success: true, data: keysList });
+      }
+
+      if (method === 'POST') {
+        try {
+          const body = await request.json().catch(() => ({}));
+          const newKey = {
+            id: `key_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+            userId,
+            name: body.name || 'Clé API',
+            scope: body.scope || 'read_write',
+            key: `lsh_live_${Math.random().toString(36).substring(2, 12)}_${Date.now().toString(36)}`,
+            createdAt: new Date().toISOString(),
+            lastUsedAt: null,
+          };
+          let keysList = [];
+          if (env.LINKS_KV) {
+            const cached = await env.LINKS_KV.get(kvKey);
+            if (cached) {
+              try { keysList = JSON.parse(cached); } catch {}
+            }
+            keysList.unshift(newKey);
+            await env.LINKS_KV.put(kvKey, JSON.stringify(keysList));
+          }
+          return jsonResponse({ success: true, data: newKey }, 201);
+        } catch (err) {
+          return jsonResponse({ success: false, error: String(err?.message || err) }, 500);
+        }
+      }
+
+      if (method === 'DELETE' && keyId) {
+        if (env.LINKS_KV) {
+          const cached = await env.LINKS_KV.get(kvKey);
+          if (cached) {
+            try {
+              let keysList = JSON.parse(cached);
+              keysList = keysList.filter((k) => k.id !== keyId);
+              await env.LINKS_KV.put(kvKey, JSON.stringify(keysList));
+            } catch {}
+          }
+        }
+        return jsonResponse({ success: true, deleted: keyId });
       }
     }
 

@@ -1,10 +1,18 @@
 import { NextResponse } from "next/server";
 import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
 
+import { auth } from "@/auth";
+
 export async function POST(req: Request) {
   try {
-    const { searchParams } = new URL(req.url);
-    const userId = searchParams.get("userId");
+    const session = await auth().catch(() => null);
+    if (!session?.user) {
+      return NextResponse.json(
+        { success: false, error: "Authentication required to delete links." },
+        { status: 401 }
+      );
+    }
+    const userId = session.user.id;
     const body = await req.json().catch(() => ({}));
     const ids = Array.isArray(body?.ids) ? body.ids : [];
 

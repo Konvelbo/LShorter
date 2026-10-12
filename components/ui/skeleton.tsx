@@ -777,8 +777,8 @@ export function AnalyticsGeoSkeleton() {
           <Skeleton className="h-5 w-52 rounded" />
           <Skeleton className="h-9 w-48 rounded-lg" />
         </div>
-        {[1, 2, 3, 4].map((r) => (
-          <Skeleton key={r} className="h-11 w-full rounded-lg" />
+        {[1, 2, 3, 4, 5, 6].map((r) => (
+          <Skeleton key={r} className="h-13 w-full rounded-lg" />
         ))}
       </div>
     </div>

@@ -62,6 +62,29 @@ function RevenueAnalyticsContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [syncedLiveClicks, setSyncedLiveClicks] = useState<number>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const uId = session?.user?.id;
+        if (uId) {
+          const s = localStorage.getItem(`lshorter_live_clicks_${uId}`);
+          if (s !== null && !isNaN(Number(s))) return Number(s);
+        }
+      } catch {}
+    }
+    return 0;
+  });
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && userId) {
+      try {
+        const s = localStorage.getItem(`lshorter_live_clicks_${userId}`);
+        if (s !== null && !isNaN(Number(s))) {
+          setSyncedLiveClicks(Number(s));
+        }
+      } catch {}
+    }
+  }, [userId]);
   const [links, setLinks] = useState<ShortLink[]>([]);
   const [analytics, setAnalytics] = useState<GlobalAnalytics>({
     totalClicks: 0,
@@ -126,7 +149,7 @@ function RevenueAnalyticsContent() {
 
   const hasLoadedOnceRef = useRef(false);
 
-  const loadData = async (range = selectedRange, linkId = selectedLinkId, isBg = false) => {
+  const loadData = async (range = selectedRange, linkId = selectedLinkId, isBg = false, force = false) => {
     if (!userId) return;
     if (!isBg && !hasLoadedOnceRef.current) {
       setIsLoading(true);
@@ -136,9 +159,10 @@ function RevenueAnalyticsContent() {
 
     try {
       const periodParam = range === "day" ? "1d" : range === "week" ? "7d" : range === "year" ? "365d" : "30d";
+      const needForce = isBg || force || hasLoadedOnceRef.current;
       const [analyticsRes, linksRes] = await Promise.all([
-        cfGetAnalytics(userId, periodParam, linkId !== "all" ? linkId : undefined).catch(() => null),
-        cfGetLinks(userId).catch(() => null),
+        cfGetAnalytics(userId, periodParam, linkId !== "all" ? linkId : undefined, needForce).catch(() => null),
+        cfGetLinks(userId, needForce).catch(() => null),
       ]);
 
       const listData = Array.isArray(linksRes?.data)
@@ -155,7 +179,36 @@ function RevenueAnalyticsContent() {
           ? fetchedLinks.find((l: any) => l.id === linkId || l.slug === linkId)
           : null;
 
-        const totalClicks = Number(d.totalClicks ?? d.total_clicks ?? 0);
+        let storedLive = 0;
+        if (typeof window !== "undefined" && userId) {
+          try {
+            const s = localStorage.getItem(`lshorter_live_clicks_${userId}`);
+            if (s && !isNaN(Number(s))) storedLive = Number(s);
+          } catch {}
+        }
+
+        const sumLinksClicks = fetchedLinks.reduce((acc: number, l: any) => acc + (l.clicks_count || l.clicksCount || l.clicks || 0), 0);
+        const targetClicks = targetLink ? (targetLink.clicks_count || targetLink.clicksCount || targetLink.clicks || 0) : 0;
+        const isAll = !targetLink || linkId === "all";
+        const isShortWindow = range === "day" || range === "week";
+        const workerTotal = Number(d.totalClicks ?? d.total_clicks ?? 0);
+        const totalClicks = isShortWindow
+          ? workerTotal
+          : isAll
+            ? Math.max(workerTotal, sumLinksClicks, storedLive, syncedLiveClicks)
+            : Math.max(workerTotal || targetClicks, targetClicks);
+
+        if (totalClicks > 0 && typeof window !== "undefined" && userId && isAll) {
+          try {
+            localStorage.setItem(`lshorter_live_clicks_${userId}`, String(totalClicks));
+          } catch {}
+          window.dispatchEvent(
+            new CustomEvent("lshorter_live_clicks_synced", {
+              detail: { clicks: totalClicks, userId, fromRevenue: true },
+            }),
+          );
+        }
+
         const trackedRevenue = Number(d.trackedRevenue ?? d.total_revenue ?? 0);
         const epc = totalClicks > 0 ? Number((trackedRevenue / totalClicks).toFixed(2)) : 0;
 
@@ -201,6 +254,82 @@ function RevenueAnalyticsContent() {
       loadData(selectedRange, selectedLinkId, hasLoadedOnceRef.current);
     }
   }, [status, userId, selectedRange, selectedLinkId]);
+
+  // Real-time listeners & polling
+  useEffect(() => {
+    if (!userId) return;
+
+    const handleUpdate = () => {
+      cfInvalidateCache();
+      loadData(selectedRange, selectedLinkId, true, true);
+    };
+
+    const handleLiveSync = (e: Event) => {
+      const detail = (e as CustomEvent)?.detail;
+      if (typeof detail?.clicks === "number") {
+        setSyncedLiveClicks((prev) => Math.max(prev, detail.clicks));
+        if (!detail?.fromRevenue) {
+          cfInvalidateCache();
+          loadData(selectedRange, selectedLinkId, true, true);
+        }
+      }
+    };
+
+    const handleFocus = () => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+      handleUpdate();
+    };
+
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === "lshorter_last_click" || e.key === "lshorter_data_change") {
+        handleUpdate();
+      } else if (e.key === `lshorter_live_clicks_${userId}` && e.newValue) {
+        const val = Number(e.newValue);
+        if (!isNaN(val)) setSyncedLiveClicks((prev) => Math.max(prev, val));
+      }
+    };
+
+    window.addEventListener("lshorter_data_change", handleUpdate);
+    window.addEventListener("lshorter_links_updated", handleUpdate);
+    window.addEventListener("lshorter_link_clicked", handleUpdate);
+    window.addEventListener("lshorter_live_clicks_synced", handleLiveSync);
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleFocus);
+    window.addEventListener("storage", handleStorage);
+
+    // Cross-tab broadcast receiver
+    let channel: BroadcastChannel | null = null;
+    try {
+      if (typeof window !== "undefined" && "BroadcastChannel" in window) {
+        channel = new BroadcastChannel("lshorter_realtime");
+        channel.onmessage = (event) => {
+          if (event.data?.type === "click" || event.data?.type === "refresh") {
+            handleUpdate();
+          } else if (event.data?.type === "live_clicks_synced" && typeof event.data?.clicks === "number") {
+            setSyncedLiveClicks((prev) => Math.max(prev, event.data.clicks));
+            handleUpdate();
+          }
+        };
+      }
+    } catch {}
+
+    const pollTimer = setInterval(() => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+      loadData(selectedRange, selectedLinkId, true, true);
+    }, 15000);
+
+    return () => {
+      window.removeEventListener("lshorter_data_change", handleUpdate);
+      window.removeEventListener("lshorter_links_updated", handleUpdate);
+      window.removeEventListener("lshorter_link_clicked", handleUpdate);
+      window.removeEventListener("lshorter_live_clicks_synced", handleLiveSync);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleFocus);
+      window.removeEventListener("storage", handleStorage);
+      if (channel) channel.close();
+      clearInterval(pollTimer);
+    };
+  }, [userId, selectedRange, selectedLinkId]);
 
   const handleRangeChange = (newRange: TimeRange) => {
     setSelectedRange(newRange);

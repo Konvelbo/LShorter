@@ -104,8 +104,14 @@ export const Timeline = ({
           >
             {/* Sticky Milestone Node & Title */}
             <div className="sticky flex flex-col md:flex-row z-40 items-center top-28 md:top-32 self-start max-w-xs lg:max-w-sm md:w-full">
-              <div className="h-10 absolute left-3 md:left-3 w-10 rounded-full bg-white dark:bg-[#09090B] border border-neutral-200 dark:border-neutral-800 flex items-center justify-center shadow-sm">
-                <div className="h-4 w-4 rounded-full bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 transition-colors duration-300" />
+              <div
+                style={{ borderRadius: "9999px" }}
+                className="h-10 absolute left-3 md:left-3 w-10 rounded-full bg-white dark:bg-[#09090B] border border-neutral-200 dark:border-neutral-800 flex items-center justify-center shadow-sm"
+              >
+                <div
+                  style={{ borderRadius: "9999px" }}
+                  className="h-4 w-4 rounded-full bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 transition-colors duration-300"
+                />
               </div>
               <h3 className="hidden md:block text-lg md:pl-20 md:text-2xl lg:text-3xl font-bold tracking-tight text-neutral-700 dark:text-neutral-300">
                 {item.title}

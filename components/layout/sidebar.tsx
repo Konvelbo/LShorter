@@ -261,6 +261,15 @@ export function Sidebar() {
               String(resolved),
             );
           } catch {}
+          if (typeof window !== "undefined") {
+            setTimeout(() => {
+              window.dispatchEvent(
+                new CustomEvent("lshorter_live_clicks_synced", {
+                  detail: { clicks: resolved, userId, fromSidebar: true },
+                }),
+              );
+            }, 0);
+          }
           return resolved;
         });
       } catch (err) {
@@ -268,7 +277,7 @@ export function Sidebar() {
       }
     };
 
-    fetchLiveClicks();
+    fetchLiveClicks(true);
 
     // Incrémentation optimiste immédiate lors d'un clic dans l'UI
     const handleLinkClicked = () => {
@@ -277,9 +286,18 @@ export function Sidebar() {
         try {
           localStorage.setItem(`lshorter_live_clicks_${userId}`, String(next));
         } catch {}
+        if (typeof window !== "undefined") {
+          setTimeout(() => {
+            window.dispatchEvent(
+              new CustomEvent("lshorter_live_clicks_synced", {
+                detail: { clicks: next, userId, fromSidebar: true },
+              }),
+            );
+          }, 0);
+        }
         return next;
       });
-      setTimeout(() => fetchLiveClicks(false), 2000);
+      setTimeout(() => fetchLiveClicks(true), 1500);
     };
 
     const handleSyncedEvent = (e: Event) => {
@@ -295,15 +313,15 @@ export function Sidebar() {
       }
     };
 
-    // Polling modéré (toutes les 90s) pour synchroniser en tâche de fond sans saturer Cloudflare D1
+    // Polling régulier en tâche de fond pour synchroniser les clics externes (ex: clics mobiles)
     const pollInterval = setInterval(() => {
       if (
         typeof document !== "undefined" &&
         document.visibilityState === "hidden"
       )
         return;
-      fetchLiveClicks(false);
-    }, 90000);
+      fetchLiveClicks(true);
+    }, 20000);
 
     window.addEventListener("lshorter_live_clicks_synced", handleSyncedEvent);
     window.addEventListener("lshorter_data_change", () =>
@@ -313,7 +331,7 @@ export function Sidebar() {
       fetchLiveClicks(true),
     );
     window.addEventListener("lshorter_link_clicked", handleLinkClicked);
-    window.addEventListener("focus", () => fetchLiveClicks(false));
+    window.addEventListener("focus", () => fetchLiveClicks(true));
 
     return () => {
       clearInterval(pollInterval);
@@ -383,7 +401,7 @@ export function Sidebar() {
   // Largeur visible sobre et fluide de la barre de progression
   const barWidth =
     clicksLimit === -1
-      ? 0
+      ? 100
       : clicksThisMonth === 0
         ? 0
         : Math.min(100, Math.max(2, rawClicksRatio));
@@ -635,11 +653,18 @@ export function Sidebar() {
               </div>
 
               {/* Progress bar */}
-              <div className="w-full h-1.5 rounded-full bg-[#EAECF0] dark:bg-[#27272a] overflow-hidden">
-                <div
-                  className="h-full rounded-full transition-all duration-300 bg-[#0066FF]"
-                  style={{ width: `${barWidth}%` }}
-                />
+              <div className="w-full h-1.5 rounded-full bg-[#EAECF0] dark:bg-[#27272a] overflow-hidden relative">
+                {clicksLimit === -1 ? (
+                  <div
+                    className="h-full w-full rounded-full unlimited-progress-bar transition-all"
+                    title="Capacité de clics illimitée"
+                  />
+                ) : (
+                  <div
+                    className="h-full rounded-full transition-all duration-300 bg-[#0066FF]"
+                    style={{ width: `${barWidth}%` }}
+                  />
+                )}
               </div>
 
               {/* Subtitle / Details */}

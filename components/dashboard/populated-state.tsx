@@ -658,7 +658,7 @@ export function PopulatedState({
   const handleTestTargetNotification = async () => {
     try {
       setIsTestingTargetNotif(true);
-      const targetEmail = session?.user?.email || "founder@lshorter.com";
+      const targetEmail = session?.user?.email || "contact@lsho.cc";
       const targetName = userName || "Founder";
       const metricAchieved =
         targetMetric === "revenue"
@@ -738,7 +738,7 @@ export function PopulatedState({
             origin: { y: 0.6 },
           });
 
-          const targetEmail = session?.user?.email || "founder@lshorter.com";
+          const targetEmail = session?.user?.email || "contact@lsho.cc";
           const targetName = userName || "Founder";
           const metricAchieved =
             targetMetric === "revenue"

@@ -47,7 +47,7 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
         body: JSON.stringify({
           category,
           rating,
-          email: email.trim() || session?.user?.email || "visiteur@lshorter.io",
+          email: email.trim() || session?.user?.email || "visiteur@lsho.cc",
           message: message.trim(),
           pageContext: currentPath,
         }),

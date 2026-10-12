@@ -255,13 +255,49 @@ export function LinksReuiDataGrid({
     return internalLinks;
   }, [propLinks, internalLinks]);
 
-  const handleOpenAndTrackClick = (slug: string, currentClicks: number) => {
-    setOptimisticMinClicks((prev) => ({
-      ...prev,
-      [slug]: Math.max(currentClicks + 1, (prev[slug] || 0) + 1),
-    }));
-    triggerClickSync();
+  const handleOpenAndTrackClick = (
+    slug: string,
+    currentClicks: number,
+    id?: string,
+  ) => {
+    setOptimisticMinClicks((prev) => {
+      const nextVal = Math.max(currentClicks + 1, (prev[slug] || 0) + 1);
+      try {
+        if (typeof window !== "undefined") {
+          sessionStorage.setItem(`lshorter_min_clicks_${slug}`, String(nextVal));
+        }
+      } catch {}
+      return {
+        ...prev,
+        [slug]: nextVal,
+      };
+    });
+    triggerClickSync(slug, id);
   };
+
+  useEffect(() => {
+    const handleExternalClick = (e: any) => {
+      const clickedSlug = e?.detail?.slug;
+      if (clickedSlug) {
+        setOptimisticMinClicks((prev) => {
+          const nextVal = (prev[clickedSlug] || 0) + 1;
+          try {
+            if (typeof window !== "undefined") {
+              sessionStorage.setItem(`lshorter_min_clicks_${clickedSlug}`, String(nextVal));
+            }
+          } catch {}
+          return {
+            ...prev,
+            [clickedSlug]: nextVal,
+          };
+        });
+      }
+    };
+    window.addEventListener("lshorter_link_clicked", handleExternalClick);
+    return () => {
+      window.removeEventListener("lshorter_link_clicked", handleExternalClick);
+    };
+  }, []);
 
   const toggleColumn = (colKey: string) => {
     setVisibleCols((prev) => {
@@ -284,7 +320,14 @@ export function LinksReuiDataGrid({
                   item.clicks_count ?? item.totalClicks ?? item.clicks ?? 0,
                 );
       const slug = item.slug || `link-${idx + 1}`;
-      const clicksVal = Math.max(rawClicksVal, optimisticMinClicks[slug] || 0);
+      let storedMinClicks = 0;
+      if (typeof window !== "undefined") {
+        try {
+          const sm = sessionStorage.getItem(`lshorter_min_clicks_${slug}`);
+          if (sm && !isNaN(Number(sm))) storedMinClicks = Number(sm);
+        } catch {}
+      }
+      const clicksVal = Math.max(rawClicksVal, optimisticMinClicks[slug] || 0, storedMinClicks);
       const revenueVal = Number(
         item.revenue ?? item.tracked_revenue ?? item.trackedRevenue ?? 0,
       );
@@ -815,7 +858,7 @@ export function LinksReuiDataGrid({
                                 rel="noopener noreferrer"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleOpenAndTrackClick(row.slug, row.clicks);
+                                  handleOpenAndTrackClick(row.slug, row.clicks, row.id);
                                 }}
                                 className="inline-flex items-center gap-1 text-[13.5px] font-bold tracking-[-0.015em] text-[#0F172A] dark:text-[#F8FAFC] hover:text-[#0066FF] dark:hover:text-[#5294FF] transition-colors truncate"
                               >

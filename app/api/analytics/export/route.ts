@@ -578,16 +578,15 @@ export async function GET(req: Request) {
           ? "Last 12 Months (Year)"
           : "Last 30 Days (Month)";
 
-  // 1. Authenticate user
-  const session = await auth().catch(() => null);
-  const userId = session?.user?.id || paramUserId;
-
-  if (!userId) {
+  // 1. Authenticate user strictly via session
+  const session = await auth();
+  if (!session?.user?.id) {
     return NextResponse.json(
       { success: false, error: "Authentication required to export your data." },
       { status: 401 },
     );
   }
+  const userId = session.user.id;
 
   const userName = session?.user?.name || "LShorter User";
   const userEmail = session?.user?.email || "—";

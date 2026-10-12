@@ -3,7 +3,7 @@ import crypto from "crypto";
 const SECRET =
   process.env.AUTH_SECRET ||
   process.env.NEXTAUTH_SECRET ||
-  "lshorter_stateless_pin_secret_key_2026";
+  (process.env.NODE_ENV === "production" ? "" : "lshorter_dev_stateless_pin_secret_key_2026");
 
 export interface StatelessPinPayload {
   email: string;

@@ -1,25 +1,31 @@
 import { NextResponse } from "next/server";
+import { auth } from "@/auth";
 import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
 
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+  }
+  const userId = session.user.id;
   const { id } = await params;
-  const { searchParams } = new URL(req.url);
-  const userId = searchParams.get("userId");
 
   try {
     const body = await req.json().catch(() => ({}));
+    body.userId = userId;
+
     const url = new URL(`${WORKER_URL}/api/v1/webhooks/${id}`);
-    if (userId) url.searchParams.set("userId", userId);
+    url.searchParams.set("userId", userId);
 
     const res = await fetch(url.toString(), {
       method: "PATCH",
       headers: {
         "X-Frontend-Secret": FRONTEND_SECRET,
         Authorization: `Bearer ${FRONTEND_SECRET}`,
-        ...(userId ? { "X-User-Id": userId } : {}),
+        "X-User-Id": userId,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(body),
@@ -40,20 +46,23 @@ export async function DELETE(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+  }
+  const userId = session.user.id;
   const { id } = await params;
-  const { searchParams } = new URL(req.url);
-  const userId = searchParams.get("userId");
 
   try {
     const url = new URL(`${WORKER_URL}/api/v1/webhooks/${id}`);
-    if (userId) url.searchParams.set("userId", userId);
+    url.searchParams.set("userId", userId);
 
     const res = await fetch(url.toString(), {
       method: "DELETE",
       headers: {
         "X-Frontend-Secret": FRONTEND_SECRET,
         Authorization: `Bearer ${FRONTEND_SECRET}`,
-        ...(userId ? { "X-User-Id": userId } : {}),
+        "X-User-Id": userId,
       },
     });
 

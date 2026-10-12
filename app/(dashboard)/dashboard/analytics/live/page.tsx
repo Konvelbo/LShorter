@@ -141,6 +141,7 @@ function LiveClickStreamContent() {
     range = selectedRange,
     linkId = selectedLinkId,
     isBg = false,
+    force = false,
   ) => {
     if (!userId) return;
     if (!isBg && !hasLoadedOnceRef.current) {
@@ -159,19 +160,21 @@ function LiveClickStreamContent() {
               ? "365d"
               : "30d";
 
+      const needForce = isBg || force || hasLoadedOnceRef.current;
       let [analyticsRes, linksRes] = await Promise.all([
         cfGetAnalytics(
           userId,
           periodParam,
           linkId !== "all" ? linkId : undefined,
+          needForce,
         ).catch(() => null),
-        cfGetLinks(userId).catch(() => null),
+        cfGetLinks(userId, needForce).catch(() => null),
       ]);
 
       // Repli vers /api/analytics si nécessaire
       if (!analyticsRes || !analyticsRes.data) {
         analyticsRes = await fetch(
-          `/api/analytics?userId=${encodeURIComponent(userId)}&period=${periodParam}${linkId !== "all" ? `&linkId=${encodeURIComponent(linkId)}` : ""}`,
+          `/api/analytics?userId=${encodeURIComponent(userId)}&period=${periodParam}${linkId !== "all" ? `&linkId=${encodeURIComponent(linkId)}` : ""}${needForce ? `&forceRefresh=true&_t=${Date.now()}` : ""}`,
           { cache: "no-store" },
         )
           .then((r) => (r.ok ? r.json() : null))
@@ -193,10 +196,19 @@ function LiveClickStreamContent() {
           acc + Number(l.clicks_count ?? l.clicksCount ?? l.clicks ?? 0),
         0,
       );
+
+      let storedLive = 0;
+      if (typeof window !== "undefined" && userId) {
+        try {
+          const s = localStorage.getItem(`lshorter_live_clicks_${userId}`);
+          if (s && !isNaN(Number(s))) storedLive = Number(s);
+        } catch {}
+      }
+
       const isShortWindow = range === "day" || range === "week";
       const effectiveTotalClicks = isShortWindow
         ? workerTotal
-        : Math.max(workerTotal, sumLinksClicks);
+        : Math.max(workerTotal, sumLinksClicks, storedLive);
       setTotalClicksCount(effectiveTotalClicks);
 
       const rawLive =
@@ -293,15 +305,60 @@ function LiveClickStreamContent() {
         searchParams.get("linkId") ||
         searchParams.get("slug") ||
         selectedLinkId;
-      loadStreamData(selectedRange, qLinkId, true);
+      loadStreamData(selectedRange, qLinkId, true, true);
+    };
+
+    const handleFocus = () => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+      handleUpdate();
+    };
+
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === "lshorter_last_click" || e.key === "lshorter_data_change") {
+        handleUpdate();
+      }
     };
 
     window.addEventListener("lshorter_data_change", handleUpdate);
     window.addEventListener("lshorter_links_updated", handleUpdate);
+    window.addEventListener("lshorter_link_clicked", handleUpdate);
+    window.addEventListener("lshorter_live_clicks_synced", handleUpdate);
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleFocus);
+    window.addEventListener("storage", handleStorage);
+
+    // Cross-tab broadcast receiver
+    let channel: BroadcastChannel | null = null;
+    try {
+      if (typeof window !== "undefined" && "BroadcastChannel" in window) {
+        channel = new BroadcastChannel("lshorter_realtime");
+        channel.onmessage = (event) => {
+          if (event.data?.type === "click" || event.data?.type === "refresh" || event.data?.type === "live_clicks_synced") {
+            handleUpdate();
+          }
+        };
+      }
+    } catch {}
+
+    const pollTimer = setInterval(() => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+      const qLinkId =
+        searchParams.get("linkId") ||
+        searchParams.get("slug") ||
+        selectedLinkId;
+      loadStreamData(selectedRange, qLinkId, true, true);
+    }, 10000);
 
     return () => {
       window.removeEventListener("lshorter_data_change", handleUpdate);
       window.removeEventListener("lshorter_links_updated", handleUpdate);
+      window.removeEventListener("lshorter_link_clicked", handleUpdate);
+      window.removeEventListener("lshorter_live_clicks_synced", handleUpdate);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleFocus);
+      window.removeEventListener("storage", handleStorage);
+      if (channel) channel.close();
+      clearInterval(pollTimer);
     };
   }, [userId, selectedRange, selectedLinkId, searchParams]);
 

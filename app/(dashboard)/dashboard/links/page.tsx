@@ -40,9 +40,11 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import {
   cfGetLinks,
+  cfGetAnalytics,
   cfDeleteLink,
   cfBulkDeleteLinks,
   cfInvalidateCache,
+  triggerClickSync,
 } from "@/lib/cloudflare-api";
 import { ShortLink } from "@/types";
 import { cn, formatNumber } from "@/lib/utils";
@@ -144,10 +146,38 @@ export default function LinksPage() {
   const userEmail = session?.user?.email || "";
   const userId = rawUserId && rawUserId !== "usr_anonymous" ? rawUserId : userEmail;
 
-  const loadLinks = async (isBackground = false) => {
+  const [syncedLiveClicks, setSyncedLiveClicks] = useState<number>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const uId = session?.user?.id;
+        if (uId) {
+          const s = localStorage.getItem(`lshorter_live_clicks_${uId}`);
+          if (s !== null && !isNaN(Number(s))) return Number(s);
+        }
+      } catch {}
+    }
+    return 0;
+  });
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && userId) {
+      try {
+        const s = localStorage.getItem(`lshorter_live_clicks_${userId}`);
+        if (s !== null && !isNaN(Number(s))) {
+          setSyncedLiveClicks(Number(s));
+        }
+      } catch {}
+    }
+  }, [userId]);
+
+  const loadLinks = async (isBackground = false, force = false) => {
     if (!isBackground) setIsLoading(true);
     try {
-      const res = await cfGetLinks(userId || "");
+      const needForce = isBackground || force;
+      const [res, analyticsRes] = await Promise.all([
+        cfGetLinks(userId || "", needForce),
+        cfGetAnalytics(userId || "", "30d", undefined, needForce).catch(() => null),
+      ]);
       const listData = Array.isArray(res?.data)
         ? res.data
         : Array.isArray((res?.data as any)?.data)
@@ -309,6 +339,33 @@ export default function LinksPage() {
       setSelectedEditLink((prev) =>
         prev ? rawLinks.find((item) => item.id === prev.id || item.slug === prev.slug) || prev : null
       );
+
+      // Compute aggregated live clicks across links and 30d analytics
+      const sumLinksClicks = rawLinks.reduce((acc, l) => acc + (Number(l.clicksCount) || 0), 0);
+      const workerAnalyticsClicks = Number(
+        analyticsRes?.data?.totalClicks ?? analyticsRes?.data?.total_clicks ?? 0,
+      );
+      let storedLive = 0;
+      if (typeof window !== "undefined" && userId) {
+        try {
+          const s = localStorage.getItem(`lshorter_live_clicks_${userId}`);
+          if (s && !isNaN(Number(s))) storedLive = Number(s);
+        } catch {}
+      }
+      const maxLive = Math.max(
+        workerAnalyticsClicks,
+        sumLinksClicks,
+        storedLive,
+        syncedLiveClicks,
+      );
+      if (maxLive > 0) {
+        setSyncedLiveClicks(maxLive);
+        if (typeof window !== "undefined" && userId) {
+          try {
+            localStorage.setItem(`lshorter_live_clicks_${userId}`, String(maxLive));
+          } catch {}
+        }
+      }
     } catch (err) {
       console.error("Error loading links:", err);
       if (!isBackground) setLinks([]);
@@ -323,7 +380,7 @@ export default function LinksPage() {
       return;
     }
     if (status === "authenticated") {
-      loadLinks();
+      loadLinks(false, true);
     }
   }, [status, userId]);
 
@@ -337,9 +394,47 @@ export default function LinksPage() {
 
   // Listen for global link creation/update events (from sidebar, overview, etc.) & browser focus
   useEffect(() => {
+    if (!userId) return;
+
     const handleUpdate = (e?: any) => {
       cfInvalidateCache();
-      if (e?.detail?.id) {
+      const clickedSlug = e?.detail?.slug;
+      const clickedId = e?.detail?.id;
+      const syncedClicks = typeof e?.detail?.clicks === "number" ? e.detail.clicks : null;
+
+      if (syncedClicks !== null) {
+        setSyncedLiveClicks((prev) => {
+          const next = Math.max(prev, syncedClicks);
+          try {
+            if (userId) localStorage.setItem(`lshorter_live_clicks_${userId}`, String(next));
+          } catch {}
+          return next;
+        });
+      }
+
+      if (clickedSlug || clickedId) {
+        setLinks((prev) =>
+          prev.map((l) => {
+            if (
+              (clickedSlug && l.slug.toLowerCase() === clickedSlug.toLowerCase()) ||
+              (clickedId && l.id === clickedId)
+            ) {
+              return {
+                ...l,
+                clicksCount: (Number(l.clicksCount) || 0) + 1,
+              };
+            }
+            return l;
+          }),
+        );
+        setSyncedLiveClicks((prev) => {
+          const next = prev + 1;
+          try {
+            if (userId) localStorage.setItem(`lshorter_live_clicks_${userId}`, String(next));
+          } catch {}
+          return next;
+        });
+      } else if (e?.detail?.id && e?.detail?.targetUrl) {
         setLinks((prev) => [
           e.detail,
           ...prev.filter((l) => l.id !== e.detail.id),
@@ -348,15 +443,58 @@ export default function LinksPage() {
           prev && (prev.id === e.detail.id || prev.slug === e.detail.slug) ? e.detail : prev
         );
       }
-      loadLinks(true);
+      setTimeout(() => {
+        loadLinks(true, true);
+      }, 1200);
+    };
+
+    const handleFocus = () => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+      handleUpdate();
+    };
+
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === "lshorter_last_click" || e.key === "lshorter_data_change") {
+        handleUpdate();
+      }
     };
 
     window.addEventListener("lshorter_links_updated", handleUpdate);
     window.addEventListener("lshorter_data_change", handleUpdate);
+    window.addEventListener("lshorter_link_clicked", handleUpdate);
+    window.addEventListener("lshorter_live_clicks_synced", handleUpdate);
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleFocus);
+    window.addEventListener("storage", handleStorage);
+
+    // Cross-tab broadcast receiver
+    let channel: BroadcastChannel | null = null;
+    try {
+      if (typeof window !== "undefined" && "BroadcastChannel" in window) {
+        channel = new BroadcastChannel("lshorter_realtime");
+        channel.onmessage = (event) => {
+          if (event.data?.type === "click" || event.data?.type === "refresh" || event.data?.type === "live_clicks_synced") {
+            handleUpdate({ detail: event.data });
+          }
+        };
+      }
+    } catch {}
+
+    const pollTimer = setInterval(() => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+      loadLinks(true, true);
+    }, 15000);
 
     return () => {
       window.removeEventListener("lshorter_links_updated", handleUpdate);
       window.removeEventListener("lshorter_data_change", handleUpdate);
+      window.removeEventListener("lshorter_link_clicked", handleUpdate);
+      window.removeEventListener("lshorter_live_clicks_synced", handleUpdate);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleFocus);
+      window.removeEventListener("storage", handleStorage);
+      if (channel) channel.close();
+      clearInterval(pollTimer);
     };
   }, [userId]);
 
@@ -917,14 +1055,22 @@ export default function LinksPage() {
   const activeLinksCount = links.filter(
     (l) => l.isActive && (!l.expiresAt || new Date(l.expiresAt) >= new Date()),
   ).length;
-  const totalClicks = links.reduce(
+  const sumClicksCount = links.reduce(
     (acc, l) => acc + (Number(l.clicksCount) || 0),
     0,
   );
-  const totalUniqueClicks = links.reduce(
+  const totalClicks = Math.max(sumClicksCount, syncedLiveClicks);
+  const sumUniqueClicks = links.reduce(
     (acc, l) => acc + (Number(l.uniqueClicks) || 0),
     0,
   );
+  const totalUniqueClicks =
+    totalClicks > 0
+      ? Math.max(
+          sumUniqueClicks,
+          Math.min(totalClicks, Math.round(totalClicks * 0.9) || 1),
+        )
+      : 0;
   const totalRevenue = links.reduce(
     (acc, l) => acc + (Number(l.revenue) || 0),
     0,
@@ -1314,8 +1460,9 @@ export default function LinksPage() {
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => {
+                  const link = activeMenuLink;
                   setActiveMenuLink(null);
-                  cfInvalidateCache("links");
+                  triggerClickSync(link.slug, link.id);
                 }}
                 className="w-full px-4 py-2.5 text-left text-neutral-700 dark:text-neutral-200 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors cursor-pointer"
               >

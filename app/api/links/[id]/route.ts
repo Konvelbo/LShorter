@@ -12,12 +12,27 @@ export async function PATCH(
   const { id } = await params;
   let body: any = {};
   try {
-    body = await req.json();
     const session = await auth().catch(() => null);
-    const sessionEmail = session?.user?.email;
-    const sessionUserId = session?.user?.id;
-    const requestEmail = body.userEmail || sessionEmail || "";
-    const requestUserId = body.userId || sessionUserId || "";
+    if (!session?.user) {
+      return NextResponse.json(
+        { success: false, error: "Authentication required to update links." },
+        { status: 401 }
+      );
+    }
+
+    body = await req.json();
+    const requestEmail = session.user.email || "";
+    const requestUserId = session.user.id || "";
+
+    if (body.targetUrl || body.target_url) {
+      const u = String(body.targetUrl || body.target_url).trim();
+      if (/^(javascript|data|file|vbscript):/i.test(u)) {
+        return NextResponse.json(
+          { success: false, error: "Invalid URL scheme. Only HTTP and HTTPS are permitted." },
+          { status: 400 }
+        );
+      }
+    }
 
     let authoritativePlan = (
       body.userPlan ||
@@ -663,9 +678,17 @@ export async function DELETE(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const session = await auth().catch(() => null);
+  if (!session?.user) {
+    return NextResponse.json(
+      { success: false, error: "Authentication required to delete links." },
+      { status: 401 }
+    );
+  }
+
   const { id } = await params;
   const { searchParams } = new URL(req.url);
-  const userId = searchParams.get("userId");
+  const userId = session.user.id;
   const slug = searchParams.get("slug");
   const imageParam = searchParams.get("image") || searchParams.get("ogImage");
 

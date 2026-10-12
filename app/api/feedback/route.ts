@@ -10,7 +10,7 @@ export async function POST(req: Request) {
 
     const cleanEmail = email
       ? email.trim().toLowerCase()
-      : "visiteur@lshorter.io";
+      : "visiteur@lsho.cc";
     const cleanCategory = category || "Question";
     const cleanMessage = message ? message.trim() : "";
     const cleanRating =

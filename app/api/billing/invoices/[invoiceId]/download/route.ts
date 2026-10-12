@@ -1,13 +1,43 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateInvoicePdf, InvoicePdfData } from "@/lib/billing/pdf-invoice";
 import { PRICING_PLANS } from "@/src/config/pricing";
+import { getPaddleInstance } from "@/lib/paddle/paddle-server";
+
+import { auth } from "@/auth";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ invoiceId: string }> }
 ) {
   try {
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
+
     const { invoiceId } = await params;
+    const paddle = getPaddleInstance();
+
+    // 1. Check if invoice corresponds to a Paddle transaction (e.g. INV-TXN_... or txn_...)
+    let txnId: string | null = null;
+    if (invoiceId.toLowerCase().includes("txn_")) {
+      const match = invoiceId.match(/txn_[a-zA-Z0-9]+/i);
+      if (match) {
+        txnId = match[0].toLowerCase();
+      }
+    }
+
+    if (txnId && paddle) {
+      try {
+        const paddleInvoice = await paddle.transactions.getInvoicePDF(txnId);
+        if (paddleInvoice?.url) {
+          return NextResponse.redirect(paddleInvoice.url);
+        }
+      } catch (paddleErr) {
+        console.warn("[Invoice Download] Paddle official invoice fetch fallback:", paddleErr);
+      }
+    }
+
     const searchParams = request.nextUrl.searchParams;
 
     const planId = (searchParams.get("plan") || "PRO").toUpperCase() as 'PRO' | 'BUSINESS' | 'ENTERPRISE';
@@ -28,7 +58,7 @@ export async function GET(
     const companyName = searchParams.get("companyName") || searchParams.get("name") || "Compte Pro";
     const customerEmail = searchParams.get("email") || "contact@client.com";
     const taxId = searchParams.get("taxId") || undefined;
-    const billingAddress = searchParams.get("address") || "10 Rue de la République, 75001 Paris";
+    const billingAddress = searchParams.get("address") || undefined;
 
     const overageClicks = parseInt(searchParams.get("overageClicks") || "0", 10);
     const overageAmount = parseFloat(searchParams.get("overageAmount") || "0");

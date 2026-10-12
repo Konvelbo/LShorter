@@ -1809,6 +1809,17 @@ export function LinkDrawer({
           </div>
 
           <div className="flex items-center gap-2.5">
+            {activeTab !== "review" && (
+              <button
+                type="submit"
+                form="link-drawer-form"
+                disabled={isSubmitting}
+                className="border border-[#1d5fe0]/30 dark:border-[#3b82f6]/30 bg-transparent hover:bg-[#1d5fe0]/10 text-[#1d5fe0] dark:text-[#3b82f6] font-semibold text-xs sm:text-sm px-3.5 py-2 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5"
+              >
+                <span>{isEditMode ? "Save now" : "Create Link now"}</span>
+              </button>
+            )}
+
             {activeTab !== "review" ? (
               <button
                 type="button"

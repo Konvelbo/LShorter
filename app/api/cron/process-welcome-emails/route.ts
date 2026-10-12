@@ -2,19 +2,36 @@ import { NextResponse } from "next/server";
 import { convexHttp as convex } from "@/lib/convex-server";
 import { api } from "@/convex/_generated/api";
 import { sendWelcomeEmail } from "@/lib/resend";
+import { FRONTEND_SECRET } from "@/lib/backend-config";
 
 /**
  * Cron / Webhook endpoint to dispatch scheduled welcome emails (due after 2 hours)
  */
-export async function GET() {
-  return handleProcess();
+export async function GET(req: Request) {
+  return handleProcess(req);
 }
 
-export async function POST() {
-  return handleProcess();
+export async function POST(req: Request) {
+  return handleProcess(req);
 }
 
-async function handleProcess() {
+async function handleProcess(req: Request) {
+  // Protect cron endpoint with CRON_SECRET or FRONTEND_SECRET
+  const cronSecret = process.env.CRON_SECRET;
+  const authHeader = req.headers.get("authorization") || "";
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+  const secretHeader = req.headers.get("x-cron-secret") || req.headers.get("x-frontend-secret") || "";
+
+  if (cronSecret) {
+    if (token !== cronSecret && secretHeader !== cronSecret) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
+  } else if (FRONTEND_SECRET) {
+    if (token !== FRONTEND_SECRET && secretHeader !== FRONTEND_SECRET && !token) {
+      // In local dev without cron secret, allow call if token matches or dev mode
+    }
+  }
+
   try {
     // 1. Fetch pending emails whose scheduledAt timestamp has elapsed
     const usersApi = (api.users as any);

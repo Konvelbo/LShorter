@@ -54,16 +54,6 @@ const authMiddleware = auth((req) => {
 });
 
 export default function middleware(req: NextRequest) {
-  // DEMO-START: Allow temporary demo mode to access dashboard without authentication
-  const isDemoMode = req.cookies.get("lshorter_demo_mode")?.value === "true";
-  if (isDemoMode && req.nextUrl.pathname.startsWith("/dashboard")) {
-    const response = NextResponse.next();
-    response.headers.set("X-Frame-Options", "DENY");
-    response.headers.set("X-Content-Type-Options", "nosniff");
-    return response;
-  }
-  // DEMO-END
-
   return (authMiddleware as any)(req);
 }
 

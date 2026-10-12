@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import { SITE_EMAILS } from "@/lib/constants/emails";
 
 /**
  * Resend Email Client & Helper (Light Mode Sober Design System)
@@ -17,14 +18,13 @@ const isLiveKey =
 
 const resend = isLiveKey ? new Resend(resendApiKey) : null;
 const FROM_EMAIL = (
-  process.env.RESEND_FROM_EMAIL || "LShorter <security@lsho.cc>"
+  process.env.RESEND_FROM_EMAIL || `LShorter <${SITE_EMAILS.support}>`
 ).replace(/\s+Security\b/gi, "");
 const BUG_FEATURE_RECEIVER =
   process.env.BUG_FEATURE_RECEIVER_EMAIL ||
-  process.env.FEEDBACK_RECEIVER_EMAIL ||
-  "contact@lsho.cc";
+  SITE_EMAILS.contact;
 const DEFAULT_FEEDBACK_RECEIVER =
-  process.env.FEEDBACK_RECEIVER_EMAIL || "support@lsho.cc";
+  process.env.FEEDBACK_RECEIVER_EMAIL || SITE_EMAILS.support;
 
 // Deduplication guard so a welcome email is never sent more than once per recipient
 const sentWelcomeEmailsCache = new Set<string>();
@@ -103,7 +103,7 @@ function renderLightEmailLayout({
                 ${footerNote || "LShorter Edge Infrastructure &bull; https://lsho.cc"}
               </p>
               <p style="color: #94A3B8; font-size: 11px; margin: 0;">
-                <a href="https://lsho.cc" style="color: #2563EB; text-decoration: none;">https://lsho.cc</a> &bull; <a href="mailto:support@lsho.cc" style="color: #64748B; text-decoration: none;">support@lsho.cc</a>
+                <a href="https://lsho.cc" style="color: #2563EB; text-decoration: none;">https://lsho.cc</a> &bull; <a href="mailto:${SITE_EMAILS.support}" style="color: #64748B; text-decoration: none;">${SITE_EMAILS.support}</a>
               </p>
             </td>
           </tr>

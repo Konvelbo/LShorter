@@ -15,7 +15,7 @@ export async function POST(req: Request) {
 
     // 1. Generate 2FA Secret + QR Code + Recovery Codes
     if (action === "generate") {
-      const email = body.email || "user@lshorter.io";
+      const email = body.email || "user@lsho.cc";
       const name = body.name || "LShorter User";
       const secret = generateBase32Secret(20); // 32 characters in Base32 (160 bits)
       const formattedSecret = formatBase32Secret(secret);

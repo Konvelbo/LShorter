@@ -70,7 +70,7 @@ export function TwoFactorSetupModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "generate",
-          email: email || "user@lshorter.io",
+          email: email || "user@lsho.cc",
           name: name || "LShorter User",
         }),
       });

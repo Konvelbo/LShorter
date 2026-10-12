@@ -144,26 +144,30 @@ export async function PATCH(req: Request) {
   try {
     const authHeader = req.headers.get("authorization") || "";
     const frontendSecret = req.headers.get("x-frontend-secret") || "";
-    if (
-      authHeader.startsWith("Bearer ") &&
-      authHeader.slice(7).trim() !== FRONTEND_SECRET &&
-      frontendSecret !== FRONTEND_SECRET
-    ) {
+    const isSystemSecret =
+      (authHeader.startsWith("Bearer ") && authHeader.slice(7).trim() === FRONTEND_SECRET) ||
+      frontendSecret === FRONTEND_SECRET;
+
+    const session = await auth().catch(() => null);
+
+    if (!isSystemSecret && !session?.user?.id) {
       return NextResponse.json(
         {
           success: false,
-          error:
-            "Forbidden: Profile modifications via public API keys are disabled for security.",
-          code: "API_KEY_PROFILE_MUTATION_FORBIDDEN",
+          error: "Unauthorized: Active session required to update profile.",
         },
-        { status: 403 }
+        { status: 401 }
       );
     }
+
+    const userId = session?.user?.id || req.headers.get("x-user-id") || "";
+    const userEmail = session?.user?.email || req.headers.get("x-user-email") || "";
+
     const body = await req.json().catch(() => ({}));
     const newName = body.fullName || body.name;
     const newAvatar = body.avatarUrl || body.avatar_url;
 
-    // Relais vers le Cloudflare Edge Worker
+    // Relais vers le Cloudflare Edge Worker avec identifiant utilisateur
     try {
       await fetch(`${WORKER_URL}/api/v1/users/me`, {
         method: "PATCH",
@@ -171,6 +175,8 @@ export async function PATCH(req: Request) {
           "Content-Type": "application/json",
           "X-Frontend-Secret": FRONTEND_SECRET,
           Authorization: `Bearer ${FRONTEND_SECRET}`,
+          ...(userId ? { "X-User-Id": userId } : {}),
+          ...(userEmail ? { "X-User-Email": userEmail } : {}),
         },
         body: JSON.stringify({ fullName: newName, name: newName, avatarUrl: newAvatar }),
       });

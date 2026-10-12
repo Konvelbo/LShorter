@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { trackClickAsync, evaluateTargetUrl } from "@/lib/redirect-engine";
+import { trackClickAsync, evaluateTargetUrl, detectVisitorGeoAsync } from "@/lib/redirect-engine";
 
 import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
 
@@ -248,8 +248,10 @@ export async function POST(
     }
 
     if (!actualPassword || providedPassword === actualPassword) {
+      // Détection géolocalisation authentique (zéro mock/hardcode)
+      const geo = await detectVisitorGeoAsync(req).catch(() => undefined);
       // Enregistrement direct du clic dans Cloudflare D1
-      await trackClickAsync(req, slug, link).catch(() => {});
+      await trackClickAsync(req, slug, link, geo).catch(() => {});
 
       const isIsolated = Boolean(
         link.isCloaked || (link.pathLockMode && link.pathLockMode !== "off"),

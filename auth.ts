@@ -182,10 +182,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.avatarUrl = user.image;
       }
 
-      // Handle client-side session update (e.g. useSession().update({ plan: "PRO" }))
+      // Handle client-side session update for benign user profile fields only (name, image)
+      // Security: Authoritative plan elevation from client input is strictly disallowed
       if (trigger === "update" && session) {
-        if (session.plan) token.plan = session.plan;
-        if (session.user?.plan) token.plan = session.user.plan;
         if (session.name) token.name = session.name;
         if (session.image) {
           token.picture = session.image;
@@ -194,6 +193,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
 
       // Enrich token with Convex profile (plan, quotas, avatar, onboarding status)
+      // The user plan is strictly and authoritatively loaded from the Convex database
       if (token.userId || token.email) {
         try {
           let convexUser = null;
@@ -211,10 +211,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           if (convexUser) {
             token.userId = convexUser.userId;
             token.email = convexUser.email || token.email;
-            // Only overwrite plan if not explicitly updated in the active session trigger
-            if (!trigger || trigger !== "update" || !token.plan) {
-              token.plan = convexUser.plan;
-            }
+            // Always enforce authoritative plan from Convex DB
+            token.plan = convexUser.plan || "FREEMIUM";
             token.hasCompletedOnboarding = convexUser.hasCompletedOnboarding ?? false;
             token.clicksThisMonth = convexUser.clicksThisMonth;
             token.clicksLimit = convexUser.clicksLimit;
@@ -265,7 +263,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   secret:
     process.env.AUTH_SECRET ||
     process.env.NEXTAUTH_SECRET ||
-    "lshorter_nextauth_super_secret_key_prod_2026",
+    (process.env.NODE_ENV === "production" ? undefined : "lshorter_dev_secret_session_2026"),
 
   trustHost: true,
 

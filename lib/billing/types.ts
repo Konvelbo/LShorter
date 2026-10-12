@@ -10,13 +10,16 @@ export interface CreateCheckoutSessionParams {
   cancelUrl: string;
   customerEmail?: string;
   companyName?: string;
+  userId?: string;
+  discountId?: string;
 }
 
 export interface BillingProvider {
   /**
    * Creates a self-service checkout session for the chosen plan and billing cycle.
    */
-  createCheckoutSession(params: CreateCheckoutSessionParams): Promise<{ checkoutUrl: string; sessionId?: string }>;
+  createCheckoutSession(params: CreateCheckoutSessionParams): Promise<{ checkoutUrl: string; sessionId?: string; transactionId?: string }>;
+
 
   /**
    * Cancels an active subscription at the end of the current billing cycle.

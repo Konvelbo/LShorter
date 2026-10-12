@@ -55,8 +55,8 @@ export class LShorterClient {
       domainsLimit: 3,
       linksCount: 0,
       linksLimit: 1_000,
-      language: "Français (FR)",
-      timezone: "Europe/Paris (UTC+1)",
+      language: "Français",
+      timezone: typeof Intl !== "undefined" ? Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC" : "UTC",
       created_at: new Date().toISOString(),
     };
   }

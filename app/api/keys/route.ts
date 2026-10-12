@@ -3,16 +3,11 @@ import { auth } from "@/auth";
 import { WORKER_URL, FRONTEND_SECRET as SECRET } from "@/lib/backend-config";
 
 export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  let userId = searchParams.get("userId") || "";
+  const session = await auth();
+  const userId = (session?.user as any)?.id || (session?.user as any)?.sub || "";
 
   if (!userId) {
-    const session = await auth();
-    userId = (session?.user as any)?.id || (session?.user as any)?.sub || "";
-  }
-
-  if (!userId) {
-    return NextResponse.json({ success: true, data: [] });
+    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
 
   try {
@@ -49,24 +44,18 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const queryUserId = searchParams.get("userId") || "";
-
   try {
-    const body = await req.json().catch(() => ({}));
-    let userId = body.userId || queryUserId;
-
-    if (!userId) {
-      const session = await auth();
-      userId = (session?.user as any)?.id || (session?.user as any)?.sub || "";
-    }
+    const session = await auth();
+    const userId = (session?.user as any)?.id || (session?.user as any)?.sub || "";
 
     if (!userId) {
       return NextResponse.json(
-        { success: false, error: "Identifiant utilisateur requis (userId)" },
-        { status: 400 }
+        { success: false, error: "Authentication required to generate API keys." },
+        { status: 401 }
       );
     }
+
+    const body = await req.json().catch(() => ({}));
 
     const keyName = (body.name || "Clé API").trim();
     const keyScope = body.scope || "read_write";

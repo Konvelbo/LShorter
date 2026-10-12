@@ -137,13 +137,15 @@ async function verifyDomainExistsOnPublicDns(domain: string): Promise<{
 }
 
 export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  let userId = searchParams.get("userId");
-
-  if (!userId || userId === "undefined" || userId === "null" || userId === "usr_anonymous") {
-    const session = await auth().catch(() => null);
-    userId = session?.user?.id || null;
+  const session = await auth().catch(() => null);
+  if (!session?.user) {
+    return NextResponse.json(
+      { success: false, error: "Authentication required to access custom domains." },
+      { status: 401 }
+    );
   }
+
+  const userId = session.user.id || null;
 
   try {
     const url = new URL(`${WORKER_URL}/api/v1/domains`);
@@ -185,6 +187,14 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
+    const session = await auth().catch(() => null);
+    if (!session?.user) {
+      return NextResponse.json(
+        { success: false, error: "Authentication required to add custom domains." },
+        { status: 401 }
+      );
+    }
+
     const body = await req.json();
     const rawDomain = body.domain || body.domain_name || "";
     const cleanDomain = normalizeDomain(rawDomain);
@@ -220,11 +230,12 @@ export async function POST(req: Request) {
       headers: {
         "X-Frontend-Secret": FRONTEND_SECRET,
         Authorization: `Bearer ${FRONTEND_SECRET}`,
-        ...(body.userId ? { "X-User-Id": body.userId } : {}),
+        ...(session.user.id ? { "X-User-Id": session.user.id } : {}),
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
         ...body,
+        userId: session.user.id,
         domain: cleanDomain,
         status: "pending",
         ownershipToken,
@@ -284,9 +295,17 @@ export async function POST(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
+    const session = await auth().catch(() => null);
+    if (!session?.user) {
+      return NextResponse.json(
+        { success: false, error: "Authentication required to delete custom domains." },
+        { status: 401 }
+      );
+    }
+
     const { searchParams } = new URL(req.url);
     const domainId = searchParams.get("id");
-    const userId = searchParams.get("userId");
+    const userId = session.user.id;
 
     if (!domainId) {
       return NextResponse.json({ success: false, error: "Domain ID is required" }, { status: 400 });

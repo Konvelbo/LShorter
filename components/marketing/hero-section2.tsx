@@ -55,6 +55,99 @@ const TREND_ITEMS = [
   },
 ];
 
+// Emojis 3D Fluent grand format pour l'arrière-plan de la Hero Section :
+// - Light mode : Opacité 100% pleine et solide (zéro transparence, couleurs riches et saturées).
+// - Dark mode : Opacité lumineuse équilibrée (dark:opacity-65 à 75).
+const HERO_BACKGROUND_EMOJIS = [
+  // ==================== CÔTÉ GAUCHE ====================
+  // 1. Haut Gauche (Mobile & Desktop) : Link 🔗 (En haut à gauche hors du texte)
+  {
+    src: "/emojis/link.png",
+    alt: "Smart Short Links",
+    className: "top-[8%] left-[4%] sm:top-[9%] sm:left-[4%] lg:left-[5%] w-7 h-7 xs:w-8 xs:h-8 sm:w-11 sm:h-11 lg:w-14 lg:h-14 opacity-100 dark:opacity-70 lg:dark:opacity-75",
+    animation: "animate-hero-float-1",
+  },
+  // 2. Haut-Milieu Gauche (Desktop uniquement) : Shield 🛡️
+  {
+    src: "/emojis/shield.png",
+    alt: "PathLock™ Security Shield",
+    className: "top-[23%] left-[8%] lg:left-[10%] w-11 h-11 lg:w-13 lg:h-13 hidden sm:flex opacity-100 dark:opacity-70 lg:dark:opacity-75",
+    animation: "animate-hero-float-4",
+  },
+  // 3. Centre-Haut Gauche (Desktop uniquement) : Compass 🧭
+  {
+    src: "/emojis/compass.png",
+    alt: "Smart Geo Routing Compass",
+    className: "top-[38%] left-[3%] lg:left-[4%] w-11 h-11 lg:w-14 lg:h-14 hidden sm:flex opacity-100 dark:opacity-70 lg:dark:opacity-75",
+    animation: "animate-hero-float-2",
+  },
+  // 4. Centre-Bas Gauche (Desktop uniquement) : Globe 🌐
+  {
+    src: "/emojis/globe.png",
+    alt: "Global Edge Anycast Routing",
+    className: "top-[52%] left-[8%] lg:left-[10%] w-11 h-11 lg:w-14 lg:h-14 hidden sm:flex opacity-100 dark:opacity-70 lg:dark:opacity-75",
+    animation: "animate-hero-float-3",
+  },
+  // 5. Bas-Centre Gauche (Desktop uniquement) : Key 🔑
+  {
+    src: "/emojis/key.png",
+    alt: "Secure API Keys & Tokens",
+    className: "top-[67%] left-[3%] lg:left-[4%] w-11 h-11 lg:w-13 lg:h-13 hidden sm:flex opacity-100 dark:opacity-70 lg:dark:opacity-75",
+    animation: "animate-hero-float-1",
+  },
+  // 6. Bas Gauche (Mobile & Desktop) : Check ✅ (En bas à gauche sous les boutons)
+  {
+    src: "/emojis/check.png",
+    alt: "Verified Link Routing",
+    className: "top-[88%] left-[4%] sm:top-[80%] sm:left-[8%] lg:left-[9%] w-7 h-7 xs:w-8 xs:h-8 sm:w-11 sm:h-11 lg:w-13 lg:h-13 opacity-100 dark:opacity-70 lg:dark:opacity-75",
+    animation: "animate-hero-float-4",
+  },
+
+  // ==================== CÔTÉ DROIT ====================
+  // 7. Haut Droit (Mobile & Desktop) : Lock 🔒 (En haut à droite hors du texte)
+  {
+    src: "/emojis/lock.png",
+    alt: "PIN Cloaking & Encryption",
+    className: "top-[8%] right-[4%] sm:top-[9%] sm:right-[4%] lg:right-[5%] w-7 h-7 xs:w-8 xs:h-8 sm:w-11 sm:h-11 lg:w-14 lg:h-14 opacity-100 dark:opacity-70 lg:dark:opacity-75",
+    animation: "animate-hero-float-2",
+  },
+  // 8. Haut-Milieu Droit (Desktop uniquement) : Handshake 🤝
+  {
+    src: "/emojis/handshake.png",
+    alt: "Verified SLAs & Partnership",
+    className: "top-[23%] right-[8%] lg:right-[10%] w-11 h-11 lg:w-13 lg:h-13 hidden sm:flex opacity-100 dark:opacity-70 lg:dark:opacity-75",
+    animation: "animate-hero-float-1",
+  },
+  // 9. Centre-Haut Droit (Desktop uniquement) : Zap ⚡
+  {
+    src: "/emojis/zap.png",
+    alt: "Ultra-fast Edge Redirection",
+    className: "top-[38%] right-[3%] lg:right-[4%] w-11 h-11 lg:w-14 lg:h-14 hidden sm:flex opacity-100 dark:opacity-70 lg:dark:opacity-75",
+    animation: "animate-hero-float-3",
+  },
+  // 10. Centre-Bas Droit (Desktop uniquement) : Satellite 📡
+  {
+    src: "/emojis/satellite.png",
+    alt: "Edge Cloud Satellite Infrastructure",
+    className: "top-[52%] right-[8%] lg:right-[10%] w-11 h-11 lg:w-13 lg:h-13 hidden sm:flex opacity-100 dark:opacity-70 lg:dark:opacity-75",
+    animation: "animate-hero-float-2",
+  },
+  // 11. Bas-Centre Droit (Mobile & Desktop) : Rocket 🚀 (En bas à droite sous les boutons)
+  {
+    src: "/emojis/rocket.png",
+    alt: "High Performance Routing",
+    className: "top-[88%] right-[4%] sm:top-[67%] sm:right-[3%] lg:right-[4%] w-7 h-7 xs:w-8 xs:h-8 sm:w-11 sm:h-11 lg:w-14 lg:h-14 opacity-100 dark:opacity-70 lg:dark:opacity-75",
+    animation: "animate-hero-float-1",
+  },
+  // 12. Bas Droit (Desktop uniquement) : Locked Key 🔐
+  {
+    src: "/emojis/locked_key.png",
+    alt: "Encrypted Destination Lock",
+    className: "top-[80%] right-[8%] lg:right-[9%] w-11 h-11 lg:w-13 lg:h-13 hidden sm:flex opacity-100 dark:opacity-70 lg:dark:opacity-75",
+    animation: "animate-hero-float-4",
+  },
+];
+
 export function HeroSection() {
   return <HeroSection2 />;
 }
@@ -295,7 +388,7 @@ export function HeroSection2() {
     <section
       ref={heroRef}
       id="hero"
-      className="relative w-full min-h-[100dvh] sm:min-h-0 lg:min-h-screen flex flex-col justify-center items-center bg-[#FFFFFF] dark:bg-[#09090B] text-[#101828] dark:text-white pt-24 sm:pt-28 md:pt-32 pb-10 sm:pb-20 md:pb-28 overflow-hidden transition-colors duration-300"
+      className="relative w-full min-h-[100dvh] sm:min-h-0 lg:min-h-screen flex flex-col justify-center items-center bg-[#FFFFFF] dark:bg-[#09090B] text-[#101828] dark:text-white pt-16 sm:pt-20 md:pt-22 pb-10 sm:pb-14 md:pb-18 overflow-hidden transition-colors duration-300"
     >
       <style
         dangerouslySetInnerHTML={{
@@ -311,13 +404,69 @@ export function HeroSection2() {
             .animate-hero-marquee:hover {
               animation-play-state: paused;
             }
+
+            @keyframes heroEmojiFloat1 {
+              0%, 100% { transform: translateY(0px); }
+              50% { transform: translateY(-7px); }
+            }
+            @keyframes heroEmojiFloat2 {
+              0%, 100% { transform: translateY(0px); }
+              50% { transform: translateY(7px); }
+            }
+            @keyframes heroEmojiFloat3 {
+              0%, 100% { transform: translateY(0px); }
+              50% { transform: translateY(-8px); }
+            }
+            @keyframes heroEmojiFloat4 {
+              0%, 100% { transform: translateY(0px); }
+              50% { transform: translateY(8px); }
+            }
+
+            .animate-hero-float-1 {
+              animation: heroEmojiFloat1 7s ease-in-out infinite;
+              will-change: transform;
+            }
+            .animate-hero-float-2 {
+              animation: heroEmojiFloat2 9s ease-in-out infinite;
+              will-change: transform;
+            }
+            .animate-hero-float-3 {
+              animation: heroEmojiFloat3 11s ease-in-out infinite;
+              will-change: transform;
+            }
+            .animate-hero-float-4 {
+              animation: heroEmojiFloat4 8.5s ease-in-out infinite;
+              will-change: transform;
+            }
           `,
         }}
       />
 
-      <div className="max-w-[1360px] w-full mx-auto px-4 sm:px-8 flex-1 flex flex-col justify-center items-center">
+      {/* Arrière-plan Emojis 3D Fluent Haute Définition : Cadré dans le premier écran visible (sans coupure) */}
+      <div
+        className="pointer-events-none select-none absolute inset-0 w-full h-full overflow-hidden z-0"
+        aria-hidden="true"
+      >
+        {HERO_BACKGROUND_EMOJIS.map((item, idx) => (
+          <div
+            key={idx}
+            className={`absolute flex items-center justify-center ${item.className} ${item.animation}`}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={item.src}
+              alt={item.alt}
+              className="w-full h-full object-contain pointer-events-none select-none transition-opacity duration-300 drop-shadow-[0_10px_20px_rgba(0,0,0,0.15)] dark:drop-shadow-[0_12px_24px_rgba(0,0,0,0.50)] saturate-110 contrast-105"
+              loading="eager"
+              draggable={false}
+            />
+          </div>
+        ))}
+      </div>
+
+      <div className="relative z-10 max-w-[1360px] w-full mx-auto px-4 sm:px-8 flex flex-col justify-center items-center text-center my-auto min-h-[calc(100dvh-5.5rem)] sm:min-h-0">
         {/* 1. Ruban Défilant Automatique des Trends */}
-        <div className="hero-trend-marquee-wrap relative w-full max-w-[1040px] overflow-hidden mb-6 sm:mb-12">
+        <div className="hero-trend-marquee-wrap relative w-full max-w-[1040px] overflow-hidden mb-3 sm:mb-5 md:mb-6">
           <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-10 sm:w-28 bg-gradient-to-r from-[#FFFFFF] dark:from-[#09090B] to-transparent z-10" />
           <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-10 sm:w-28 bg-gradient-to-l from-[#FFFFFF] dark:from-[#09090B] to-transparent z-10" />
 
@@ -340,7 +489,7 @@ export function HeroSection2() {
         </div>
 
         {/* 2. Bloc Texte Principal Entièrement Centré */}
-        <div className="flex flex-col items-center text-center max-w-[980px] mx-auto my-auto sm:my-0 sm:mb-16 md:mb-20">
+        <div className="flex flex-col items-center text-center max-w-[980px] mx-auto mt-0 mb-4 sm:mb-6 md:mb-7">
           <h1 className="text-[34px] xs:text-[38px] sm:text-[48px] lg:text-[62px] font-normal tracking-[-0.035em] leading-[1.1] sm:leading-[1.04] text-[#000000] dark:text-white">
             {renderTypingText(titlePart1)}{" "}
             <span className="text-[#667085] dark:text-zinc-400">
@@ -363,7 +512,7 @@ export function HeroSection2() {
           </p>
 
           {/* Boutons d'actions Centrés */}
-          <div className="flex flex-col items-center gap-3.5 w-full mt-8 sm:mt-10">
+          <div className="flex flex-col items-center gap-3.5 w-full mt-6 sm:mt-7">
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-3.5 w-full sm:w-auto">
               <div className="hero-action-pill will-change-transform w-full sm:w-auto flex justify-center">
                 {isAuthenticated ? (
@@ -432,7 +581,7 @@ export function HeroSection2() {
         {/* 3. Vitrine du Dashboard : Masquée sur Mobile (< sm) */}
         <div
           ref={showcaseRef}
-          className="hidden sm:block w-full max-w-[1240px] mx-auto relative rounded-[22px] p-5 md:p-6 overflow-hidden border border-[#E4E7EC] dark:border-white/15 shadow-[0_20px_60px_rgba(16,24,40,0.12)] will-change-transform"
+          className="hidden sm:block w-full max-w-[1240px] mx-auto relative sm:mt-2 md:mt-4 lg:mt-6 rounded-[22px] p-5 md:p-6 overflow-hidden border border-[#E4E7EC] dark:border-white/15 shadow-[0_20px_60px_rgba(16,24,40,0.12)] will-change-transform"
           style={{
             background:
               "linear-gradient(135deg, #1F2A38 0%, #344960 35%, #5C768D 68%, #263547 100%)",

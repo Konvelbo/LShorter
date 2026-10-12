@@ -9,6 +9,7 @@ import {
   Image as ImageIcon,
   Trash2,
   RefreshCw,
+  Globe2,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -346,21 +347,57 @@ export function SectionSocial({
                   </div>
                 </div>
               )}
+
+              {/* Authentic Twitter / X Floating Domain Pill */}
+              {socialPlatformPreview === "x" && (
+                <div className="absolute bottom-2.5 left-2.5 z-20 px-2.5 py-1 rounded-[6px] bg-black/80 backdrop-blur-md border border-white/10 text-[11px] font-medium text-white flex items-center gap-1.5 pointer-events-none shadow-sm">
+                  <Globe2 className="w-3 h-3 text-zinc-400" />
+                  <span>{domainName || "lsho.cc"}</span>
+                </div>
+              )}
             </div>
 
-            {/* Meta text */}
-            <div className="p-3.5 flex flex-col gap-1 bg-white dark:bg-[#18181c]">
-              <span className="text-[10px] uppercase font-bold text-zinc-400 dark:text-neutral-500 tracking-wider">
-                {domainName || "lsho.cc"}
-              </span>
-              <span className="text-xs font-bold text-zinc-900 dark:text-white truncate">
-                {ogTitle || "Title of your shared link"}
-              </span>
-              <span className="text-[11px] text-zinc-500 dark:text-neutral-400 line-clamp-2">
-                {ogDescription ||
-                  "Open Graph description will appear here when shared on social networks."}
-              </span>
-            </div>
+            {/* Platform-Specific Meta Text */}
+            {socialPlatformPreview === "x" ? (
+              <div className="p-3.5 flex flex-col gap-0.5 bg-black text-white border-t border-[#2f3336]">
+                <span className="text-[11px] text-zinc-400 font-normal">
+                  {domainName || "lsho.cc"}
+                </span>
+                <span className="text-xs sm:text-sm font-bold text-white truncate">
+                  {ogTitle || "Title of your shared link"}
+                </span>
+                <span className="text-[11px] text-zinc-400 line-clamp-2">
+                  {ogDescription ||
+                    "Open Graph description will appear here on X / Twitter."}
+                </span>
+              </div>
+            ) : socialPlatformPreview === "facebook" ? (
+              <div className="p-3.5 flex flex-col gap-1 bg-[#f0f2f5] dark:bg-[#242526] border-t border-zinc-200 dark:border-zinc-700">
+                <span className="text-[10px] uppercase font-bold text-zinc-500 dark:text-zinc-400 tracking-wider">
+                  {domainName || "lsho.cc"}
+                </span>
+                <span className="text-xs sm:text-sm font-bold text-zinc-900 dark:text-white truncate">
+                  {ogTitle || "Title of your shared link"}
+                </span>
+                <span className="text-[11px] text-zinc-600 dark:text-zinc-400 line-clamp-2">
+                  {ogDescription ||
+                    "Open Graph description will appear here on Facebook."}
+                </span>
+              </div>
+            ) : (
+              <div className="p-3.5 flex flex-col gap-1 bg-white dark:bg-[#18181c] border-l-4 border-l-[#25D366] border-t border-zinc-200 dark:border-[#27272a]">
+                <span className="text-[10px] font-bold text-[#25D366] uppercase tracking-wider">
+                  {domainName || "lsho.cc"}
+                </span>
+                <span className="text-xs sm:text-sm font-bold text-zinc-900 dark:text-white truncate">
+                  {ogTitle || "Title of your shared link"}
+                </span>
+                <span className="text-[11px] text-zinc-500 dark:text-neutral-400 line-clamp-2">
+                  {ogDescription ||
+                    "Open Graph description will appear here on WhatsApp."}
+                </span>
+              </div>
+            )}
           </div>
         ) : (
           /* Format Standard Compact with Image on LEFT */
@@ -438,18 +475,46 @@ export function SectionSocial({
             </div>
 
             {/* Meta text on RIGHT */}
-            <div className="p-3.5 flex-1 flex flex-col justify-center gap-1 bg-white dark:bg-[#18181c] min-w-0">
-              <span className="text-[10px] uppercase font-bold text-zinc-400 dark:text-neutral-500 tracking-wider truncate">
-                {domainName || "lsho.cc"}
-              </span>
-              <span className="text-xs font-bold text-zinc-900 dark:text-white truncate">
-                {ogTitle || "Title of your shared link"}
-              </span>
-              <span className="text-[11px] text-zinc-500 dark:text-neutral-400 line-clamp-2">
-                {ogDescription ||
-                  "Standard compact social preview with title and description."}
-              </span>
-            </div>
+            {socialPlatformPreview === "x" ? (
+              <div className="p-3.5 flex-1 flex flex-col justify-center gap-0.5 bg-black text-white min-w-0 border-l border-[#2f3336]">
+                <span className="text-[11px] text-zinc-400 font-normal truncate">
+                  {domainName || "lsho.cc"}
+                </span>
+                <span className="text-xs sm:text-sm font-bold text-white truncate">
+                  {ogTitle || "Title of your shared link"}
+                </span>
+                <span className="text-[11px] text-zinc-400 line-clamp-2">
+                  {ogDescription ||
+                    "Standard compact preview on X / Twitter."}
+                </span>
+              </div>
+            ) : socialPlatformPreview === "facebook" ? (
+              <div className="p-3.5 flex-1 flex flex-col justify-center gap-1 bg-[#f0f2f5] dark:bg-[#242526] min-w-0 border-l border-zinc-200 dark:border-zinc-700">
+                <span className="text-[10px] uppercase font-bold text-zinc-500 dark:text-zinc-400 tracking-wider truncate">
+                  {domainName || "lsho.cc"}
+                </span>
+                <span className="text-xs sm:text-sm font-bold text-zinc-900 dark:text-white truncate">
+                  {ogTitle || "Title of your shared link"}
+                </span>
+                <span className="text-[11px] text-zinc-600 dark:text-zinc-400 line-clamp-2">
+                  {ogDescription ||
+                    "Standard compact social preview on Facebook."}
+                </span>
+              </div>
+            ) : (
+              <div className="p-3.5 flex-1 flex flex-col justify-center gap-1 bg-white dark:bg-[#18181c] min-w-0 border-l-4 border-l-[#25D366]">
+                <span className="text-[10px] font-bold text-[#25D366] uppercase tracking-wider truncate">
+                  {domainName || "lsho.cc"}
+                </span>
+                <span className="text-xs sm:text-sm font-bold text-zinc-900 dark:text-white truncate">
+                  {ogTitle || "Title of your shared link"}
+                </span>
+                <span className="text-[11px] text-zinc-500 dark:text-neutral-400 line-clamp-2">
+                  {ogDescription ||
+                    "Standard compact social preview on WhatsApp."}
+                </span>
+              </div>
+            )}
           </div>
         )}
       </div>

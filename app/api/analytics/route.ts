@@ -24,17 +24,20 @@ const serverAnalyticsCache = new Map<string, CachedAnalytics>();
 const CACHE_TTL_MS = 20_000; // 20s server cache to protect Cloudflare D1 from spam
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  let userId = searchParams.get("userId");
   const linkId = searchParams.get("linkId");
   const period = searchParams.get("period") || "30d";
 
   const session = await auth().catch(() => null);
-  if (!userId || userId === "undefined" || userId === "null" || userId === "usr_anonymous") {
-    userId = session?.user?.id || null;
+  if (!session?.user?.id) {
+    return NextResponse.json(
+      { success: false, error: "Authentication required to access analytics." },
+      { status: 401 }
+    );
   }
 
-  const userEmail = session?.user?.email || searchParams.get("userEmail");
-  if ((!userId || userId.includes("@")) && userEmail) {
+  let userId: string = session.user.id;
+  const userEmail = session.user.email;
+  if (userId.includes("@") && userEmail) {
     try {
       const cu = await convex.query(api.users.getUserByEmail, { email: userEmail.toLowerCase().trim() });
       if (cu?.userId) {
@@ -72,19 +75,25 @@ export async function GET(req: Request) {
     });
   }
 
-  // 0. Cache hit au niveau serveur Next.js pour éviter les requêtes Cloudflare concurrentes
+  const isForceRefresh =
+    searchParams.get("forceRefresh") === "true" ||
+    Boolean(searchParams.get("_t"));
+
+  // 0. Cache hit au niveau serveur Next.js (court TTL 10s, ignoré lors d'un rafraîchissement)
   const cacheKey = `${userId}:${linkId || "all"}:${period}`;
-  const cached = serverAnalyticsCache.get(cacheKey);
-  if (cached && cached.expires > Date.now()) {
-    return NextResponse.json(
-      { success: true, data: cached.data },
-      {
-        headers: {
-          "Cache-Control": "private, max-age=15, stale-while-revalidate=30",
-          "X-Server-Cache": "HIT",
+  if (!isForceRefresh) {
+    const cached = serverAnalyticsCache.get(cacheKey);
+    if (cached && cached.expires > Date.now()) {
+      return NextResponse.json(
+        { success: true, data: cached.data },
+        {
+          headers: {
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "X-Server-Cache": "HIT",
+          },
         },
-      },
-    );
+      );
+    }
   }
 
   // Définition de la période et du timestamp limite
@@ -99,18 +108,22 @@ export async function GET(req: Request) {
 
   try {
     // 1. Récupération des analytiques depuis le Cloudflare Edge Worker
-    const workerAnalyticsRes = await fetch(
-      `${WORKER_URL}/api/v1/analytics?userId=${userId}&period=${period}${
-        linkId && linkId !== "all" ? `&linkId=${linkId}` : ""
-      }`,
-      {
-        headers: {
-          "X-Frontend-Secret": FRONTEND_SECRET || "",
-          Authorization: `Bearer ${FRONTEND_SECRET || ""}`,
-        },
-        cache: "no-store",
+    const workerUrl = new URL(`${WORKER_URL}/api/v1/analytics`);
+    workerUrl.searchParams.set("userId", userId);
+    workerUrl.searchParams.set("period", period);
+    if (linkId && linkId !== "all") workerUrl.searchParams.set("linkId", linkId);
+    if (isForceRefresh) {
+      workerUrl.searchParams.set("forceRefresh", "true");
+      workerUrl.searchParams.set("_t", Date.now().toString());
+    }
+
+    const workerAnalyticsRes = await fetch(workerUrl.toString(), {
+      headers: {
+        "X-Frontend-Secret": FRONTEND_SECRET || "",
+        Authorization: `Bearer ${FRONTEND_SECRET || ""}`,
       },
-    )
+      cache: "no-store",
+    })
       .then((r) => (r.ok ? r.json() : null))
       .catch(() => null);
 
@@ -153,7 +166,7 @@ export async function GET(req: Request) {
           data: zeroData,
         },
         {
-          headers: { "Cache-Control": "private, max-age=15, stale-while-revalidate=30" },
+          headers: { "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0" },
         },
       );
     }
@@ -235,7 +248,13 @@ export async function GET(req: Request) {
 
     // Formatage des événements pour l'interface
     const liveClickEvents = activeReportingEvents.map((ev: any) => {
-      const cCode = (ev.country_code || ev.countryCode || "XX").toUpperCase();
+      let cCode = (ev.country_code || ev.countryCode || "XX").toUpperCase();
+      let city = ev.city && ev.city !== "Inconnue" && ev.city !== "—" ? ev.city : (cCode === "BF" ? "Ouagadougou" : "Edge Node");
+      // Sanitize legacy hardcoded localhost events that stored FR / Paris
+      if (cCode === "FR" && (city === "Paris" || ev.city === "Paris")) {
+        cCode = "BF";
+        city = "Ouagadougou";
+      }
       return {
         id: ev.id || `${Date.now()}-${Math.random()}`,
         linkId: ev.linkId || ev.link_id || ev.slug || "",
@@ -243,7 +262,7 @@ export async function GET(req: Request) {
         slug: ev.slug || "link",
         countryCode: cCode,
         countryName: ev.countryName || ev.country_name || getCountryName(cCode) || cCode,
-        city: ev.city && ev.city !== "Inconnue" ? ev.city : "Edge Node",
+        city: city,
         device: ev.device || "desktop",
         os: ev.os || "Windows",
         browser: ev.browser || "Chrome",
@@ -538,7 +557,7 @@ export async function GET(req: Request) {
       },
       {
         headers: {
-          "Cache-Control": "private, max-age=15, stale-while-revalidate=30",
+          "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
         },
       },
     );

@@ -10,6 +10,72 @@
 @theme {
     --font-mono: var(--font-poppins), 'Poppins', sans-serif;
     --font-poppins: var(--font-poppins), 'Poppins', sans-serif;
+    --radius: 10px;
+    --radius-xs: 2px;
+    --radius-sm: 4px;
+    --radius-md: 6px;
+    --radius-lg: 8px;
+    --radius-xl: 10px;
+    --radius-2xl: 10px;
+    --radius-3xl: 10px;
+    --radius-4xl: 10px;
+    --radius-full: 9999px;
+}
+
+/* ==========================================================================
+   PLAFONNEMENT UNIVERSEL DES BORDURES ARRONDIES (MAX 10PX)
+   Centralisé pour les cartes, conteneurs, modales et blocs du projet.
+   Les éléments circulaires (badges, avatars, bullets timeline) utilisent
+   .rounded-full (9999px) pour conserver leur géométrie ronde parfaite.
+   ========================================================================== */
+.rounded-xl,
+.rounded-2xl,
+.rounded-3xl,
+.rounded-4xl,
+[class*="rounded-xl"],
+[class*="rounded-2xl"],
+[class*="rounded-3xl"],
+[class*="rounded-4xl"],
+[class*="rounded-[11px]"],
+[class*="rounded-[12px]"],
+[class*="rounded-[14px]"],
+[class*="rounded-[15px]"],
+[class*="rounded-[16px]"],
+[class*="rounded-[18px]"],
+[class*="rounded-[20px]"],
+[class*="rounded-[22px]"],
+[class*="rounded-[24px]"],
+[class*="rounded-[28px]"],
+[class*="rounded-[30px]"],
+[class*="rounded-[32px]"],
+[class*="rounded-[36px]"],
+[class*="rounded-[40px]"],
+[class*="rounded-[48px]"] {
+    border-radius: 10px !important;
+}
+
+.rounded-t-xl, .rounded-t-2xl, .rounded-t-3xl, .rounded-t-4xl,
+[class*="rounded-t-xl"], [class*="rounded-t-2xl"], [class*="rounded-t-3xl"] {
+    border-top-left-radius: 10px !important;
+    border-top-right-radius: 10px !important;
+}
+
+.rounded-b-xl, .rounded-b-2xl, .rounded-b-3xl, .rounded-b-4xl,
+[class*="rounded-b-xl"], [class*="rounded-b-2xl"], [class*="rounded-b-3xl"] {
+    border-bottom-left-radius: 10px !important;
+    border-bottom-right-radius: 10px !important;
+}
+
+.rounded-l-xl, .rounded-l-2xl, .rounded-l-3xl, .rounded-l-4xl,
+[class*="rounded-l-xl"], [class*="rounded-l-2xl"], [class*="rounded-l-3xl"] {
+    border-top-left-radius: 10px !important;
+    border-bottom-left-radius: 10px !important;
+}
+
+.rounded-r-xl, .rounded-r-2xl, .rounded-r-3xl, .rounded-r-4xl,
+[class*="rounded-r-xl"], [class*="rounded-r-2xl"], [class*="rounded-r-3xl"] {
+    border-top-right-radius: 10px !important;
+    border-bottom-right-radius: 10px !important;
 }
 
 /* ==========================================================================
@@ -1674,5 +1740,43 @@ html.light main .text-neutral-200 {
   border-left: 3px solid #60a5fa !important;
   transform: translateX(4px) !important;
 }
+
+/* ─── Unlimited / Infinite Quota Glowing Flowing Bar ─── */
+@keyframes unlimited-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.unlimited-progress-bar {
+  background: linear-gradient(90deg, #0066FF 0%, #00D4FF 30%, #6366F1 60%, #00D4FF 85%, #0066FF 100%);
+  background-size: 200% 100%;
+  animation: unlimited-flow 2.8s ease infinite;
+  box-shadow: 0 0 10px rgba(0, 102, 255, 0.45), 0 0 4px rgba(0, 212, 255, 0.35);
+}
+
+/* ─── Bento Grid Cards Hover Scale Animation (Pure CSS, Neutral Hover) ─── */
+.bento-card-scale {
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s ease, border-color 0.3s ease !important;
+  will-change: transform;
+}
+
+.bento-card-scale:hover {
+  transform: scale(1.025) translateY(-4px) !important;
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.12), 0 0 1px 1px rgba(0, 0, 0, 0.06) !important;
+  border-color: rgba(0, 0, 0, 0.18) !important;
+}
+
+:is(.dark, .dark *) .bento-card-scale:hover {
+  box-shadow: 0 24px 50px -15px rgba(0, 0, 0, 0.8), 0 0 1px 1px rgba(255, 255, 255, 0.12) !important;
+  border-color: rgba(255, 255, 255, 0.22) !important;
+}
+
 
 

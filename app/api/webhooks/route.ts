@@ -1,19 +1,23 @@
 import { NextResponse } from "next/server";
+import { auth } from "@/auth";
 import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
 
-export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const userId = searchParams.get("userId");
+export async function GET() {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+  }
+  const userId = session.user.id;
 
   try {
     const url = new URL(`${WORKER_URL}/api/v1/webhooks`);
-    if (userId) url.searchParams.set("userId", userId);
+    url.searchParams.set("userId", userId);
 
     const res = await fetch(url.toString(), {
       headers: {
         "X-Frontend-Secret": FRONTEND_SECRET,
         Authorization: `Bearer ${FRONTEND_SECRET}`,
-        ...(userId ? { "X-User-Id": userId } : {}),
+        "X-User-Id": userId,
       },
       cache: "no-store",
     });
@@ -27,22 +31,25 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const qUserId = searchParams.get("userId");
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+  }
+  const userId = session.user.id;
 
   try {
     const body = await req.json().catch(() => ({}));
-    const userId = qUserId || body.userId;
+    body.userId = userId;
 
     const url = new URL(`${WORKER_URL}/api/v1/webhooks`);
-    if (userId) url.searchParams.set("userId", userId);
+    url.searchParams.set("userId", userId);
 
     const res = await fetch(url.toString(), {
       method: "POST",
       headers: {
         "X-Frontend-Secret": FRONTEND_SECRET,
         Authorization: `Bearer ${FRONTEND_SECRET}`,
-        ...(userId ? { "X-User-Id": userId } : {}),
+        "X-User-Id": userId,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(body),
@@ -60,9 +67,14 @@ export async function POST(req: Request) {
 }
 
 export async function DELETE(req: Request) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+  }
+  const userId = session.user.id;
+
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");
-  const userId = searchParams.get("userId");
 
   if (!id) {
     return NextResponse.json({ success: false, error: "Webhook ID is required" }, { status: 400 });
@@ -70,14 +82,14 @@ export async function DELETE(req: Request) {
 
   try {
     const url = new URL(`${WORKER_URL}/api/v1/webhooks/${id}`);
-    if (userId) url.searchParams.set("userId", userId);
+    url.searchParams.set("userId", userId);
 
     const res = await fetch(url.toString(), {
       method: "DELETE",
       headers: {
         "X-Frontend-Secret": FRONTEND_SECRET,
         Authorization: `Bearer ${FRONTEND_SECRET}`,
-        ...(userId ? { "X-User-Id": userId } : {}),
+        "X-User-Id": userId,
       },
     });
 

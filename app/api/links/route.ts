@@ -5,32 +5,31 @@ import { auth } from "@/auth";
 import { convexHttp as convex } from "@/lib/convex-server";
 import { api } from "@/convex/_generated/api";
 export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  let userId = searchParams.get("userId");
   const session = await auth().catch(() => null);
-
-  // If userId is missing or placeholder, resolve from active session
-  if (!userId || userId === "undefined" || userId === "null" || userId === "usr_anonymous") {
-    userId = session?.user?.id || null;
+  if (!session?.user) {
+    return NextResponse.json(
+      { success: false, error: "Authentication required to access links." },
+      { status: 401 }
+    );
   }
 
-  const userEmail = session?.user?.email || searchParams.get("userEmail");
-  // If userId is missing or is an email format, resolve Convex userId
-  if ((!userId || userId.includes("@")) && userEmail) {
-    try {
-      const cu = await convex.query(api.users.getUserByEmail, { email: userEmail.toLowerCase().trim() });
-      if (cu?.userId) {
-        userId = cu.userId;
-      }
-    } catch (e) {
-      console.warn("[app/api/links/route.ts GET] Convex lookup warning:", e);
-    }
-  }
+  // Strictly enforce user identity to prevent IDOR
+  let userId = session.user.id || null;
+  const userEmail = session.user.email || null;
+
+  const reqUrl = new URL(req.url);
+  const isForceRefresh =
+    reqUrl.searchParams.get("forceRefresh") === "true" ||
+    Boolean(reqUrl.searchParams.get("_t"));
 
   try {
     const url = new URL(`${WORKER_URL}/api/v1/links`);
     if (userId) url.searchParams.set("userId", userId);
     if (userEmail) url.searchParams.set("userEmail", userEmail);
+    if (isForceRefresh) {
+      url.searchParams.set("forceRefresh", "true");
+      url.searchParams.set("_t", Date.now().toString());
+    }
 
     const workerData = await fetch(url.toString(), {
       headers: {
@@ -133,7 +132,7 @@ export async function GET(req: Request) {
         bannerStyle: finalBannerStyle,
         twitter_card: finalTwitterCard,
         twitterCard: finalTwitterCard,
-        password: l.password ?? null,
+        password: l.password ? "••••••••" : null,
         has_password: Boolean(l.password || l.has_password),
         is_cloaked: l.is_cloaked !== undefined ? l.is_cloaked : 0,
         isCloaked: Boolean(l.isCloaked || l.is_cloaked),
@@ -236,7 +235,16 @@ export async function GET(req: Request) {
       });
     }
 
-    return NextResponse.json({ success: true, data: mergedList });
+    return NextResponse.json(
+      { success: true, data: mergedList },
+      {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+          Pragma: "no-cache",
+          Expires: "0",
+        },
+      },
+    );
   } catch (error: any) {
     console.warn("[Links Proxy GET] Error connecting to Worker:", error);
     return NextResponse.json(
@@ -253,32 +261,31 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const session = await auth().catch(() => null);
-    const sessionEmail = session?.user?.email;
-    const sessionUserId = session?.user?.id;
-    const finalUserEmail = (body.userEmail || sessionEmail || "").toLowerCase().trim();
-
-    let finalUserId =
-      body.userId && body.userId !== "usr_anonymous"
-        ? body.userId
-        : sessionUserId && sessionUserId !== "usr_anonymous"
-          ? sessionUserId
-          : "";
-
-    // If finalUserId is missing or is an email, resolve from Convex
-    if ((!finalUserId || finalUserId === "usr_anonymous" || finalUserId.includes("@")) && finalUserEmail) {
-      try {
-        const cu = await convex.query(api.users.getUserByEmail, { email: finalUserEmail });
-        if (cu?.userId) {
-          finalUserId = cu.userId;
-        }
-      } catch (e) {
-        console.warn("[app/api/links/route.ts POST] Convex lookup error:", e);
-      }
+    if (!session?.user) {
+      return NextResponse.json(
+        { success: false, error: "Authentication required to create links." },
+        { status: 401 }
+      );
     }
 
-    if (!finalUserId) {
-      finalUserId = "usr_anonymous";
+    const rawTargetUrl = (body.targetUrl || body.target_url || "").trim();
+    if (!rawTargetUrl) {
+      return NextResponse.json(
+        { success: false, error: "Target URL is required." },
+        { status: 400 }
+      );
     }
+
+    // Block dangerous URI schemes (SSRF & XSS: javascript:, data:, file:, vbscript:)
+    if (/^(javascript|data|file|vbscript):/i.test(rawTargetUrl)) {
+      return NextResponse.json(
+        { success: false, error: "Invalid URL scheme. Only HTTP and HTTPS are permitted." },
+        { status: 400 }
+      );
+    }
+
+    const finalUserEmail = (session.user.email || "").toLowerCase().trim();
+    let finalUserId = session.user.id || "";
 
     let authoritativePlan = (
       body.userPlan ||

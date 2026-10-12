@@ -21,11 +21,21 @@ async function queryCloudflareDoH(name: string, type: "TXT" | "CNAME") {
   };
 }
 
+import { auth } from "@/auth";
+
 export async function POST(req: Request) {
   try {
+    const session = await auth().catch(() => null);
+    if (!session?.user) {
+      return NextResponse.json(
+        { success: false, error: "Authentication required to verify custom domains." },
+        { status: 401 }
+      );
+    }
+
     const body = await req.json().catch(() => ({}));
     const domainId = body.id || body.domainId || "";
-    const userId = body.userId || "";
+    const userId = session.user.id;
     const cleanDomain = normalizeDomain(body.domain || body.domain_name || "");
 
     if (!cleanDomain) {

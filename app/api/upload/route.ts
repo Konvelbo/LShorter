@@ -1,7 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
 import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
 
+const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB limit
+const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/svg+xml"];
+
 export async function POST(req: NextRequest) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const contentType = req.headers.get("content-type") || "";
     let base64Data = "";
@@ -13,11 +22,23 @@ export async function POST(req: NextRequest) {
       const formData = await req.formData().catch(() => null);
       const file = formData?.get("file") as File | null;
       if (file && typeof file === "object" && "arrayBuffer" in file) {
+        if (file.size > MAX_FILE_SIZE_BYTES) {
+          return NextResponse.json(
+            { success: false, error: "File exceeds 5MB size limit" },
+            { status: 413 }
+          );
+        }
         const arrayBuf = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuf);
         const fName = file.name || "image.jpg";
         const ext = fName.split(".").pop()?.toLowerCase() || "jpg";
         const mimeType = file.type || `image/${ext === "jpg" ? "jpeg" : ext}`;
+        if (!ALLOWED_MIME_TYPES.includes(mimeType)) {
+          return NextResponse.json(
+            { success: false, error: "Unsupported file type. Only JPEG, PNG, WEBP, GIF, and SVG are allowed." },
+            { status: 400 }
+          );
+        }
         base64Data = `data:${mimeType};base64,${buffer.toString("base64")}`;
       }
     }
@@ -29,12 +50,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Check payload size if base64 provided directly via JSON
+    if (base64Data.length > MAX_FILE_SIZE_BYTES * 1.4) {
+      return NextResponse.json(
+        { success: false, error: "Image data exceeds 5MB size limit" },
+        { status: 413 }
+      );
+    }
+
     // 100% Cloudflare Cloud Storage (D1 & KV) — No local disk storage
     const workerRes = await fetch(`${WORKER_URL}/api/v1/upload-image`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "X-Frontend-Secret": FRONTEND_SECRET,
+        Authorization: `Bearer ${FRONTEND_SECRET}`,
+        "X-User-Id": session.user.id,
       },
       body: JSON.stringify({ data: base64Data }),
     });
@@ -46,7 +77,7 @@ export async function POST(req: NextRequest) {
         url:
           data.url ||
           (data.imageId
-            ? `https://lshorter-api.fiatechnologiecam.workers.dev/api/v1/images/${data.imageId}`
+            ? `${WORKER_URL}/api/v1/images/${data.imageId}`
             : ""),
         imageId: data.imageId,
       });

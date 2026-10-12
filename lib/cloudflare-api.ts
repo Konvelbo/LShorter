@@ -56,7 +56,7 @@ export function cfInvalidateCache(pattern?: string) {
   }
 }
 
-export function triggerClickSync() {
+export function triggerClickSync(slug?: string, id?: string) {
   if (typeof window === "undefined") return;
   cfInvalidateCache("/api/analytics");
   cfInvalidateCache("/api/links");
@@ -65,21 +65,23 @@ export function triggerClickSync() {
   } catch {}
   try {
     const bc = new BroadcastChannel("lshorter_realtime");
-    bc.postMessage({ type: "click", timestamp: Date.now() });
+    bc.postMessage({ type: "click", timestamp: Date.now(), slug, id });
     bc.close();
   } catch {}
-  window.dispatchEvent(new CustomEvent("lshorter_data_change"));
-  window.dispatchEvent(new CustomEvent("lshorter_links_updated"));
-  window.dispatchEvent(new CustomEvent("lshorter_link_clicked"));
+  window.dispatchEvent(new CustomEvent("lshorter_data_change", { detail: { slug, id } }));
+  window.dispatchEvent(new CustomEvent("lshorter_links_updated", { detail: { slug, id } }));
+  window.dispatchEvent(new CustomEvent("lshorter_link_clicked", { detail: { slug, id } }));
 
   // Secondary fire after 1.2s to capture asynchronous Cloudflare D1 write completion without re-incrementing local counter
   setTimeout(() => {
     cfInvalidateCache("/api/analytics");
     cfInvalidateCache("/api/links");
-    window.dispatchEvent(new CustomEvent("lshorter_data_change"));
-    window.dispatchEvent(new CustomEvent("lshorter_links_updated"));
+    window.dispatchEvent(new CustomEvent("lshorter_data_change", { detail: { slug, id } }));
+    window.dispatchEvent(new CustomEvent("lshorter_links_updated", { detail: { slug, id } }));
   }, 1200);
 }
+
+export const broadcastLinkClick = triggerClickSync;
 
 // ─── Smart Real-Time Click Sync (BroadcastChannel + Tab Focus Sync after Link Open/Preview) ───
 if (typeof window !== "undefined") {
@@ -89,8 +91,9 @@ if (typeof window !== "undefined") {
       if (ev?.data?.type === "click") {
         cfInvalidateCache("/api/analytics");
         cfInvalidateCache("/api/links");
-        window.dispatchEvent(new CustomEvent("lshorter_data_change"));
-        window.dispatchEvent(new CustomEvent("lshorter_links_updated"));
+        window.dispatchEvent(new CustomEvent("lshorter_data_change", { detail: { slug: ev.data?.slug, id: ev.data?.id } }));
+        window.dispatchEvent(new CustomEvent("lshorter_links_updated", { detail: { slug: ev.data?.slug, id: ev.data?.id } }));
+        window.dispatchEvent(new CustomEvent("lshorter_link_clicked", { detail: { slug: ev.data?.slug, id: ev.data?.id } }));
       }
     };
   } catch {}
@@ -195,11 +198,29 @@ async function cfFetch<T>(
 }
 
 // ─── Links ────────────────────────────────────────────────────────────────────
+export function broadcastLiveClicksSync(userId: string, clicks: number) {
+  if (typeof window === "undefined" || !userId || typeof clicks !== "number") return;
+  try {
+    localStorage.setItem(`lshorter_live_clicks_${userId}`, String(clicks));
+  } catch {}
+  window.dispatchEvent(
+    new CustomEvent("lshorter_live_clicks_synced", {
+      detail: { clicks, userId },
+    })
+  );
+  try {
+    const bc = new BroadcastChannel("lshorter_realtime");
+    bc.postMessage({ type: "live_clicks_synced", userId, clicks });
+    bc.close();
+  } catch {}
+}
+
 export async function cfGetLinks(userId: string, forceRefresh = false) {
-  const cacheBuster = forceRefresh ? `&_t=${Date.now()}` : "";
+  const encUser = encodeURIComponent(userId);
+  const cacheBuster = forceRefresh ? `&forceRefresh=true&_t=${Date.now()}` : "";
   return cfFetch<{ success: true; data: any[] }>(
-    `/api/links?userId=${userId}${cacheBuster}`,
-    `/api/v1/links?userId=${userId}${cacheBuster}`,
+    `/api/links?userId=${encUser}${cacheBuster}`,
+    `/api/v1/links?userId=${encUser}${cacheBuster}`,
     "GET",
     undefined,
     forceRefresh
@@ -251,7 +272,7 @@ export async function cfUploadImage(
 
     const isBrowser = typeof window !== "undefined";
 
-    // Tier 1: Try Next.js local upload proxy (/api/upload) -> Bunny.net Storage / CDN / Local
+    // Tier 1: Try Next.js local upload proxy (/api/upload) -> Cloudflare Edge Storage
     if (isBrowser) {
       try {
         let localRes: Response;
@@ -588,11 +609,13 @@ export async function cfGetAnalytics(
   linkId?: string,
   forceRefresh = false
 ) {
-  const linkParam = linkId && linkId !== "all" ? `&linkId=${linkId}` : "";
-  const cacheBuster = forceRefresh ? `&_t=${Date.now()}` : "";
+  const encUser = encodeURIComponent(userId);
+  const encPeriod = encodeURIComponent(period);
+  const linkParam = linkId && linkId !== "all" ? `&linkId=${encodeURIComponent(linkId)}` : "";
+  const cacheBuster = forceRefresh ? `&forceRefresh=true&_t=${Date.now()}` : "";
   return cfFetch<{ success: true; data: any }>(
-    `/api/analytics?userId=${userId}&period=${period}${linkParam}${cacheBuster}`,
-    `/api/v1/analytics?userId=${userId}&period=${period}${linkParam}${cacheBuster}`,
+    `/api/analytics?userId=${encUser}&period=${encPeriod}${linkParam}${cacheBuster}`,
+    `/api/v1/analytics?userId=${encUser}&period=${encPeriod}${linkParam}${cacheBuster}`,
     "GET",
     undefined,
     forceRefresh

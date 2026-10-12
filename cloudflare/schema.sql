@@ -54,17 +54,17 @@ CREATE INDEX IF NOT EXISTS idx_links_user_id ON links(user_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_links_slug ON links(slug);
 CREATE INDEX IF NOT EXISTS idx_links_created_at ON links(created_at);
 
--- 3. Analytics Events Table
+-- 3. Analytics Events Table (Zero Hardcoded Defaults — 100% Dynamic Telemetry)
 CREATE TABLE IF NOT EXISTS analytics_events (
   id TEXT PRIMARY KEY,
   link_id TEXT NOT NULL,
   slug TEXT NOT NULL,
-  country TEXT DEFAULT 'FR',
-  city TEXT DEFAULT 'Inconnue',
-  referrer TEXT DEFAULT 'Direct',
-  device TEXT DEFAULT 'desktop',
-  browser TEXT DEFAULT 'Chrome',
-  os TEXT DEFAULT 'Windows',
+  country TEXT,
+  city TEXT,
+  referrer TEXT,
+  device TEXT,
+  browser TEXT,
+  os TEXT,
   customer_email TEXT,
   customer_name TEXT,
   customer_avatar TEXT,
@@ -73,12 +73,38 @@ CREATE TABLE IF NOT EXISTS analytics_events (
   created_at TEXT DEFAULT (datetime('now'))
 );
 
--- Crucial Indexes for Analytics
+-- 3.1 Real-Time Click Events Table (Zero Hardcoded Defaults)
+CREATE TABLE IF NOT EXISTS click_events (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  link_id TEXT NOT NULL,
+  slug TEXT NOT NULL,
+  ip_masked TEXT,
+  country_code TEXT,
+  city TEXT,
+  device TEXT,
+  browser TEXT,
+  os TEXT,
+  referrer TEXT,
+  resolved_url TEXT,
+  is_unique INTEGER DEFAULT 1,
+  conversion_amount REAL DEFAULT 0,
+  timestamp TEXT DEFAULT (datetime('now'))
+);
+
+-- Crucial Indexes for Analytics & Click Events
 CREATE INDEX IF NOT EXISTS idx_analytics_link_id ON analytics_events(link_id);
 CREATE INDEX IF NOT EXISTS idx_analytics_slug ON analytics_events(slug);
 CREATE INDEX IF NOT EXISTS idx_analytics_created_at ON analytics_events(created_at);
 CREATE INDEX IF NOT EXISTS idx_analytics_country ON analytics_events(country);
 CREATE INDEX IF NOT EXISTS idx_analytics_device ON analytics_events(device);
+
+CREATE INDEX IF NOT EXISTS idx_click_events_user_id ON click_events(user_id);
+CREATE INDEX IF NOT EXISTS idx_click_events_link_id ON click_events(link_id);
+CREATE INDEX IF NOT EXISTS idx_click_events_slug ON click_events(slug);
+CREATE INDEX IF NOT EXISTS idx_click_events_timestamp ON click_events(timestamp);
+CREATE INDEX IF NOT EXISTS idx_click_events_country_code ON click_events(country_code);
+CREATE INDEX IF NOT EXISTS idx_click_events_device ON click_events(device);
 
 -- 4. Organizations Table (Control Plane Metadata in D1)
 CREATE TABLE IF NOT EXISTS organizations (
@@ -101,7 +127,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_orgs_slug ON organizations(slug);
 CREATE TABLE IF NOT EXISTS subscriptions (
   id TEXT PRIMARY KEY,
   org_id TEXT NOT NULL,
-  provider TEXT NOT NULL DEFAULT 'mock',
+  provider TEXT NOT NULL DEFAULT 'paddle',
   provider_subscription_id TEXT NOT NULL,
   current_period_start INTEGER,
   current_period_end INTEGER,

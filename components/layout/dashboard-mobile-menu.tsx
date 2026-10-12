@@ -205,6 +205,35 @@ export function DashboardMobileMenu({
     }
   }, [isOpen]);
 
+  const [currentTabParam, setCurrentTabParam] = useState<string>("");
+
+  useEffect(() => {
+    const syncTabFromWindow = () => {
+      if (typeof window !== "undefined") {
+        const sp = new URLSearchParams(window.location.search);
+        setCurrentTabParam(
+          sp.get("tab") ||
+            (pathname === "/dashboard/settings" ? "profile" : ""),
+        );
+      }
+    };
+
+    syncTabFromWindow();
+
+    const handleSettingsTabEvent = (e: Event) => {
+      const detail = (e as CustomEvent)?.detail;
+      if (detail?.tab) setCurrentTabParam(detail.tab);
+    };
+
+    window.addEventListener("popstate", syncTabFromWindow);
+    window.addEventListener("lshorter_settings_tab_change", handleSettingsTabEvent);
+
+    return () => {
+      window.removeEventListener("popstate", syncTabFromWindow);
+      window.removeEventListener("lshorter_settings_tab_change", handleSettingsTabEvent);
+    };
+  }, [pathname]);
+
   const toggleSubmenu = (name: string) => {
     setOpenMenus((prev) => ({ ...prev, [name]: !prev[name] }));
   };
@@ -213,17 +242,17 @@ export function DashboardMobileMenu({
     const [subPath, subQuery] = sub.href.split("?");
     if (subQuery) {
       const targetTab = new URLSearchParams(subQuery).get("tab");
-      return pathname === subPath && typeof window !== "undefined" && new URLSearchParams(window.location.search).get("tab") === targetTab;
+      return pathname === subPath && currentTabParam === targetTab;
     }
+    if (subPath === "/dashboard") return pathname === "/dashboard";
+    if (subPath === "/dashboard/analytics")
+      return pathname === "/dashboard/analytics" && !currentTabParam;
     return pathname === subPath;
   };
 
   const isParentActive = (item: NavItem) => {
-    if (item.href === "/dashboard") return pathname === "/dashboard";
-    if (item.subItems) {
-      return item.subItems.some((s) => isSubItemActive(s));
-    }
-    return pathname === item.href;
+    if (item.name === "Dashboard" || item.href === "/dashboard") return pathname === "/dashboard";
+    return pathname.startsWith(item.href);
   };
 
   return (

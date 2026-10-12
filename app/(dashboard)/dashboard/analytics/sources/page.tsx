@@ -22,7 +22,7 @@ import {
   MapPin,
 } from "lucide-react";
 import { ShortLink, GlobalAnalytics } from "@/types";
-import { cfGetAnalytics, cfGetLinks } from "@/lib/cloudflare-api";
+import { cfGetAnalytics, cfGetLinks, cfInvalidateCache } from "@/lib/cloudflare-api";
 import { ColumnMaskToggle, ColumnDefinition } from "@/components/dashboard/analytics/column-mask-toggle";
 import { KpiCardsCarousel } from "@/components/dashboard/analytics/kpi-cards-carousel";
 import { AnalyticsSourcesSkeleton } from "@/components/ui/skeleton";
@@ -53,6 +53,29 @@ export default function SourcesAnalyticsPage() {
   const userId = session?.user?.id || "";
 
   const [isLoading, setIsLoading] = useState(true);
+  const [syncedLiveClicks, setSyncedLiveClicks] = useState<number>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const uId = session?.user?.id;
+        if (uId) {
+          const s = localStorage.getItem(`lshorter_live_clicks_${uId}`);
+          if (s !== null && !isNaN(Number(s))) return Number(s);
+        }
+      } catch {}
+    }
+    return 0;
+  });
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && userId) {
+      try {
+        const s = localStorage.getItem(`lshorter_live_clicks_${userId}`);
+        if (s !== null && !isNaN(Number(s))) {
+          setSyncedLiveClicks(Number(s));
+        }
+      } catch {}
+    }
+  }, [userId]);
   const [links, setLinks] = useState<ShortLink[]>([]);
   const [analytics, setAnalytics] = useState<GlobalAnalytics>({
     totalClicks: 0,
@@ -103,15 +126,16 @@ export default function SourcesAnalyticsPage() {
     setVisibleColumns(new Set(SOURCE_COLUMNS.map((c) => c.key)));
   };
 
-  const loadData = async (range = selectedRange, linkId = selectedLinkId, isBg = false) => {
+  const loadData = async (range = selectedRange, linkId = selectedLinkId, isBg = false, force = false) => {
     if (!userId) return;
     if (!isBg) setIsLoading(true);
 
     try {
       const periodParam = range === "day" ? "1d" : range === "week" ? "7d" : range === "year" ? "365d" : "30d";
+      const needForce = isBg || force;
       const [analyticsRes, linksRes] = await Promise.all([
-        cfGetAnalytics(userId, periodParam, linkId !== "all" ? linkId : undefined).catch(() => null),
-        cfGetLinks(userId).catch(() => null),
+        cfGetAnalytics(userId, periodParam, linkId !== "all" ? linkId : undefined, needForce).catch(() => null),
+        cfGetLinks(userId, needForce).catch(() => null),
       ]);
 
       const listData = Array.isArray(linksRes?.data) ? linksRes.data : Array.isArray((linksRes?.data as any)?.data) ? (linksRes?.data as any).data : [];
@@ -127,12 +151,32 @@ export default function SourcesAnalyticsPage() {
 
       const d = analyticsRes?.data || {};
       const workerTotal = Number(d.totalClicks ?? d.total_clicks ?? 0);
+
+      let storedLive = 0;
+      if (typeof window !== "undefined" && userId) {
+        try {
+          const s = localStorage.getItem(`lshorter_live_clicks_${userId}`);
+          if (s && !isNaN(Number(s))) storedLive = Number(s);
+        } catch {}
+      }
+
       const isShortWindow = range === "day" || range === "week";
       const baseTotal = isShortWindow
         ? (isAll ? workerTotal : (workerTotal || linkClicks))
         : (isAll
-            ? Math.max(workerTotal, sumLinksClicks)
+            ? Math.max(workerTotal, sumLinksClicks, storedLive, syncedLiveClicks)
             : Math.max(workerTotal || linkClicks, linkClicks));
+
+      if (baseTotal > 0 && typeof window !== "undefined" && userId && isAll) {
+        try {
+          localStorage.setItem(`lshorter_live_clicks_${userId}`, String(baseTotal));
+        } catch {}
+        window.dispatchEvent(
+          new CustomEvent("lshorter_live_clicks_synced", {
+            detail: { clicks: baseTotal, userId, fromSources: true },
+          }),
+        );
+      }
 
       const periodStats = computePeriodMetrics(range, baseTotal, baseTotal, 0, 0);
       const total = periodStats.periodClicks;
@@ -209,14 +253,77 @@ export default function SourcesAnalyticsPage() {
 
   // Listen for explicit data update events
   useEffect(() => {
+    if (!userId) return;
+
     const handleUpdate = () => {
-      loadData(selectedRange, selectedLinkId, true);
+      cfInvalidateCache();
+      loadData(selectedRange, selectedLinkId, true, true);
+    };
+
+    const handleLiveSync = (e: Event) => {
+      const detail = (e as CustomEvent)?.detail;
+      if (typeof detail?.clicks === "number") {
+        setSyncedLiveClicks((prev) => Math.max(prev, detail.clicks));
+        if (!detail?.fromSources) {
+          cfInvalidateCache();
+          loadData(selectedRange, selectedLinkId, true, true);
+        }
+      }
+    };
+
+    const handleFocus = () => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+      handleUpdate();
+    };
+
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === "lshorter_last_click" || e.key === "lshorter_data_change") {
+        handleUpdate();
+      } else if (e.key === `lshorter_live_clicks_${userId}` && e.newValue) {
+        const val = Number(e.newValue);
+        if (!isNaN(val)) setSyncedLiveClicks((prev) => Math.max(prev, val));
+      }
     };
 
     window.addEventListener("lshorter_data_change", handleUpdate);
+    window.addEventListener("lshorter_links_updated", handleUpdate);
+    window.addEventListener("lshorter_link_clicked", handleUpdate);
+    window.addEventListener("lshorter_live_clicks_synced", handleLiveSync);
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleFocus);
+    window.addEventListener("storage", handleStorage);
+
+    // Cross-tab broadcast receiver
+    let channel: BroadcastChannel | null = null;
+    try {
+      if (typeof window !== "undefined" && "BroadcastChannel" in window) {
+        channel = new BroadcastChannel("lshorter_realtime");
+        channel.onmessage = (event) => {
+          if (event.data?.type === "click" || event.data?.type === "refresh") {
+            handleUpdate();
+          } else if (event.data?.type === "live_clicks_synced" && typeof event.data?.clicks === "number") {
+            setSyncedLiveClicks((prev) => Math.max(prev, event.data.clicks));
+            handleUpdate();
+          }
+        };
+      }
+    } catch {}
+
+    const pollTimer = setInterval(() => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+      loadData(selectedRange, selectedLinkId, true, true);
+    }, 15000);
 
     return () => {
       window.removeEventListener("lshorter_data_change", handleUpdate);
+      window.removeEventListener("lshorter_links_updated", handleUpdate);
+      window.removeEventListener("lshorter_link_clicked", handleUpdate);
+      window.removeEventListener("lshorter_live_clicks_synced", handleLiveSync);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleFocus);
+      window.removeEventListener("storage", handleStorage);
+      if (channel) channel.close();
+      clearInterval(pollTimer);
     };
   }, [userId, selectedRange, selectedLinkId]);
 

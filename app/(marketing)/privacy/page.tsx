@@ -16,6 +16,8 @@ import {
   Database,
   ExternalLink,
 } from "lucide-react";
+import { SITE_EMAILS } from "@/lib/constants/emails";
+import { ClickableEmail } from "@/components/ui/clickable-email";
 
 export default function PrivacyPolicyPage() {
   const lastUpdated = "October 8, 2026";
@@ -171,7 +173,7 @@ export default function PrivacyPolicyPage() {
 
         {/* Hero Section */}
         <div className="text-center sm:text-left border-b border-neutral-200 dark:border-neutral-800 pb-10 mb-12">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200/60 dark:border-blue-800/60 mb-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-[10px] text-xs font-semibold uppercase tracking-wider bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200/60 dark:border-blue-800/60 mb-4">
             <ShieldCheck className="w-3.5 h-3.5" />
             <span>Legal & Data Protection</span>
           </div>
@@ -206,9 +208,9 @@ export default function PrivacyPolicyPage() {
             return (
               <div
                 key={idx}
-                className="legal-interactive-card group p-5 rounded-2xl bg-white dark:bg-[#121214] border border-neutral-200 dark:border-[#222225] shadow-sm"
+                className="legal-interactive-card group p-5 rounded-[10px] bg-white dark:bg-[#121214] border border-neutral-200 dark:border-[#222225] shadow-sm"
               >
-                <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+                <div className="w-10 h-10 rounded-[10px] bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
                   <Icon className="w-5 h-5" />
                 </div>
                 <h3 className="text-sm font-semibold text-neutral-900 dark:text-white mb-2">
@@ -226,7 +228,7 @@ export default function PrivacyPolicyPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
           {/* Desktop Sticky Table of Contents with Simple CSS Hover Animation & Active Class */}
           <aside className="hidden lg:block lg:col-span-4">
-            <div className="sticky top-28 p-6 rounded-2xl bg-white dark:bg-[#121214] border border-neutral-200 dark:border-[#222225]">
+            <div className="sticky top-28 p-6 rounded-[10px] bg-white dark:bg-[#121214] border border-neutral-200 dark:border-[#222225]">
               <h2 className="text-xs font-bold uppercase tracking-wider text-neutral-400 dark:text-neutral-500 mb-4">
                 Table of Contents
               </h2>
@@ -262,7 +264,7 @@ export default function PrivacyPolicyPage() {
               </p>
               <p>
                 This Privacy Policy applies to personal data collected via our website (
-                <strong>lshorter.com</strong>), dashboard applications, APIs, SDKs, and link
+                <strong>lsho.cc</strong>), dashboard applications, APIs, SDKs, and link
                 redirection services. By accessing or using LShorter, you acknowledge that you
                 have read and understood this Privacy Policy.
               </p>
@@ -279,7 +281,7 @@ export default function PrivacyPolicyPage() {
               </p>
 
               <div className="space-y-4 my-6">
-                <div className="legal-interactive-card p-5 rounded-xl bg-neutral-50 dark:bg-[#151518] border border-neutral-200 dark:border-neutral-800">
+                <div className="legal-interactive-card p-5 rounded-[10px] bg-neutral-50 dark:bg-[#151518] border border-neutral-200 dark:border-neutral-800">
                   <h3 className="font-semibold text-neutral-900 dark:text-white mb-2 flex items-center gap-2">
                     <UserCheck className="w-4 h-4 text-blue-500" />
                     A. Registered Account Holders
@@ -308,7 +310,7 @@ export default function PrivacyPolicyPage() {
                   </ul>
                 </div>
 
-                <div className="legal-interactive-card p-5 rounded-xl bg-neutral-50 dark:bg-[#151518] border border-neutral-200 dark:border-neutral-800">
+                <div className="legal-interactive-card p-5 rounded-[10px] bg-neutral-50 dark:bg-[#151518] border border-neutral-200 dark:border-neutral-800">
                   <h3 className="font-semibold text-neutral-900 dark:text-white mb-2 flex items-center gap-2">
                     <EyeOff className="w-4 h-4 text-blue-500" />
                     B. Link Visitors (Anonymous Edge Redirection)
@@ -345,7 +347,7 @@ export default function PrivacyPolicyPage() {
                 We implement strict data minimization principles:
               </p>
               <div className="space-y-4">
-                <div className="legal-interactive-card p-4 rounded-xl border border-blue-100 dark:border-blue-900/40 bg-blue-50/50 dark:bg-blue-950/20">
+                <div className="legal-interactive-card p-4 rounded-[10px] border border-blue-100 dark:border-blue-900/40 bg-blue-50/50 dark:bg-blue-950/20">
                   <h4 className="font-semibold text-neutral-900 dark:text-white text-sm mb-1">
                     IP Address Anonymization at the Edge
                   </h4>
@@ -357,7 +359,7 @@ export default function PrivacyPolicyPage() {
                   </p>
                 </div>
 
-                <div className="legal-interactive-card p-4 rounded-xl border border-neutral-200 dark:border-neutral-800">
+                <div className="legal-interactive-card p-4 rounded-[10px] border border-neutral-200 dark:border-neutral-800">
                   <h4 className="font-semibold text-neutral-900 dark:text-white text-sm mb-1">
                     PathLock™ Zero-Knowledge Protection
                   </h4>
@@ -368,7 +370,7 @@ export default function PrivacyPolicyPage() {
                   </p>
                 </div>
 
-                <div className="legal-interactive-card p-4 rounded-xl border border-neutral-200 dark:border-neutral-800">
+                <div className="legal-interactive-card p-4 rounded-[10px] border border-neutral-200 dark:border-neutral-800">
                   <h4 className="font-semibold text-neutral-900 dark:text-white text-sm mb-1">
                     Zero-Referrer URL Cloaking
                   </h4>
@@ -423,7 +425,7 @@ export default function PrivacyPolicyPage() {
                 in this policy:
               </p>
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs sm:text-sm border border-neutral-200 dark:border-neutral-800 rounded-xl overflow-hidden">
+                <table className="w-full text-left text-xs sm:text-sm border border-neutral-200 dark:border-neutral-800 rounded-[10px] overflow-hidden">
                   <thead className="bg-neutral-100 dark:bg-neutral-800/60 text-neutral-900 dark:text-white">
                     <tr>
                       <th className="p-3 font-semibold">Data Category</th>
@@ -483,7 +485,7 @@ export default function PrivacyPolicyPage() {
                 agreements:
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="legal-interactive-card p-4 rounded-xl bg-neutral-50 dark:bg-[#151518] border border-neutral-200 dark:border-neutral-800">
+                <div className="legal-interactive-card p-4 rounded-[10px] bg-neutral-50 dark:bg-[#151518] border border-neutral-200 dark:border-neutral-800">
                   <h4 className="font-semibold text-neutral-900 dark:text-white text-sm mb-1">
                     Cloudflare Inc.
                   </h4>
@@ -493,7 +495,7 @@ export default function PrivacyPolicyPage() {
                   <span className="text-[11px] font-mono text-neutral-400">USA & Global PoPs (SOC 2, ISO 27001)</span>
                 </div>
 
-                <div className="legal-interactive-card p-4 rounded-xl bg-neutral-50 dark:bg-[#151518] border border-neutral-200 dark:border-neutral-800">
+                <div className="legal-interactive-card p-4 rounded-[10px] bg-neutral-50 dark:bg-[#151518] border border-neutral-200 dark:border-neutral-800">
                   <h4 className="font-semibold text-neutral-900 dark:text-white text-sm mb-1">
                     Convex Inc.
                   </h4>
@@ -503,7 +505,7 @@ export default function PrivacyPolicyPage() {
                   <span className="text-[11px] font-mono text-neutral-400">USA (SOC 2 Type II Certified)</span>
                 </div>
 
-                <div className="legal-interactive-card p-4 rounded-xl bg-neutral-50 dark:bg-[#151518] border border-neutral-200 dark:border-neutral-800">
+                <div className="legal-interactive-card p-4 rounded-[10px] bg-neutral-50 dark:bg-[#151518] border border-neutral-200 dark:border-neutral-800">
                   <h4 className="font-semibold text-neutral-900 dark:text-white text-sm mb-1">
                     Paddle.com Market Ltd
                   </h4>
@@ -513,7 +515,7 @@ export default function PrivacyPolicyPage() {
                   <span className="text-[11px] font-mono text-neutral-400">UK / Global (PCI-DSS Level 1 Merchant of Record)</span>
                 </div>
 
-                <div className="legal-interactive-card p-4 rounded-xl bg-neutral-50 dark:bg-[#151518] border border-neutral-200 dark:border-neutral-800">
+                <div className="legal-interactive-card p-4 rounded-[10px] bg-neutral-50 dark:bg-[#151518] border border-neutral-200 dark:border-neutral-800">
                   <h4 className="font-semibold text-neutral-900 dark:text-white text-sm mb-1">
                     Resend Inc.
                   </h4>
@@ -535,7 +537,7 @@ export default function PrivacyPolicyPage() {
                 substantial rights over your personal data:
               </p>
               <div className="space-y-3">
-                <div className="legal-interactive-card p-4 rounded-xl border border-neutral-200 dark:border-neutral-800">
+                <div className="legal-interactive-card p-4 rounded-[10px] border border-neutral-200 dark:border-neutral-800">
                   <h4 className="font-semibold text-neutral-900 dark:text-white text-sm mb-1">
                     • Right of Access & Data Portability (GDPR Art. 15, 20)
                   </h4>
@@ -549,7 +551,7 @@ export default function PrivacyPolicyPage() {
                   </p>
                 </div>
 
-                <div className="legal-interactive-card p-4 rounded-xl border border-neutral-200 dark:border-neutral-800">
+                <div className="legal-interactive-card p-4 rounded-[10px] border border-neutral-200 dark:border-neutral-800">
                   <h4 className="font-semibold text-neutral-900 dark:text-white text-sm mb-1">
                     • Right to Rectification & Deletion (GDPR Art. 16, 17)
                   </h4>
@@ -560,7 +562,7 @@ export default function PrivacyPolicyPage() {
                   </p>
                 </div>
 
-                <div className="legal-interactive-card p-4 rounded-xl border border-neutral-200 dark:border-neutral-800">
+                <div className="legal-interactive-card p-4 rounded-[10px] border border-neutral-200 dark:border-neutral-800">
                   <h4 className="font-semibold text-neutral-900 dark:text-white text-sm mb-1">
                     • CCPA Notice: We Do NOT Sell or Share Personal Information
                   </h4>
@@ -594,6 +596,14 @@ export default function PrivacyPolicyPage() {
                   screened against global real-time malware and malicious intelligence databases to
                   protect internet users.
                 </li>
+                <li>
+                  <strong>Security Incident Reporting:</strong> Vulnerability disclosures, suspected breaches,
+                  or infrastructure audits should be reported directly to our security engineering team at{" "}
+                  <ClickableEmail
+                    email={SITE_EMAILS.security}
+                    className="text-blue-600 dark:text-blue-400"
+                  />.
+                </li>
               </ul>
             </section>
 
@@ -624,7 +634,7 @@ export default function PrivacyPolicyPage() {
 
             {/* Section 11 */}
             <section id="contact" className="scroll-mt-28 pt-4">
-              <div className="legal-interactive-card p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-[#111827] dark:to-[#0f172a] border border-blue-200/80 dark:border-blue-900/50">
+              <div className="legal-interactive-card p-6 sm:p-8 rounded-[10px] bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-[#111827] dark:to-[#0f172a] border border-blue-200/80 dark:border-blue-900/50">
                 <h2 className="text-lg sm:text-xl font-bold text-neutral-900 dark:text-white mb-2 flex items-center gap-2">
                   <Mail className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                   11. Contact Privacy Desk
@@ -635,19 +645,35 @@ export default function PrivacyPolicyPage() {
                 </p>
 
                 <div className="space-y-2 text-xs sm:text-sm font-medium text-neutral-800 dark:text-neutral-200">
-                  <p>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <strong>Security & Vulnerability Desk:</strong>{" "}
+                    <ClickableEmail
+                      email={SITE_EMAILS.security}
+                      className="text-blue-600 dark:text-blue-400"
+                    />
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <strong>Billing & Data Requests:</strong>{" "}
+                    <ClickableEmail
+                      email={SITE_EMAILS.billing}
+                      className="text-blue-600 dark:text-blue-400"
+                    />
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5">
                     <strong>General & Privacy Inquiries:</strong>{" "}
-                    <a href="mailto:contact@lshorter.com" className="text-blue-600 dark:text-blue-400 hover:underline">
-                      contact@lshorter.com
-                    </a>
-                  </p>
-                  <p>
+                    <ClickableEmail
+                      email={SITE_EMAILS.contact}
+                      className="text-blue-600 dark:text-blue-400"
+                    />
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5">
                     <strong>Customer Support:</strong>{" "}
-                    <a href="mailto:support@lshorter.com" className="text-blue-600 dark:text-blue-400 hover:underline">
-                      support@lshorter.com
-                    </a>
-                  </p>
-                  <p>
+                    <ClickableEmail
+                      email={SITE_EMAILS.support}
+                      className="text-blue-600 dark:text-blue-400"
+                    />
+                  </div>
+                  <p className="pt-1">
                     <strong>Organization:</strong> LShorter Inc. (Data Protection & Legal Compliance Desk)
                   </p>
                 </div>

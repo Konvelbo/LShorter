@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Inter, Bebas_Neue, Poppins } from "next/font/google";
 import "./globals.css";
 import { ToastProvider } from "@/components/ui/toast-provider";
@@ -47,6 +48,8 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const gaId = process.env.NEXT_PUBLIC_GA_ID || "G-3WMV9FJFFV";
+
   return (
     <html
       lang="en"
@@ -75,6 +78,28 @@ export default function RootLayout({
         className="min-h-screen flex flex-col ds-bg-app ds-text-primary font-sans overflow-x-clip max-w-[100vw]"
         suppressHydrationWarning
       >
+        {/* Google tag (gtag.js) */}
+        {gaId && (
+          <>
+            <Script
+              async
+              src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
+              strategy="afterInteractive"
+            />
+            <Script
+              id="google-tag-manager"
+              strategy="afterInteractive"
+              dangerouslySetInnerHTML={{
+                __html: `
+                  window.dataLayer = window.dataLayer || [];
+                  function gtag(){dataLayer.push(arguments);}
+                  gtag('js', new Date());
+                  gtag('config', '${gaId}');
+                `,
+              }}
+            />
+          </>
+        )}
         <ThemeProvider>
           <ConvexClientProvider>
             <ToastProvider>

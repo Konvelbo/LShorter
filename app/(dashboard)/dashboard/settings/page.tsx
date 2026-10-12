@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import Image from "next/image";
 import {
   User,
@@ -77,6 +77,7 @@ import {
   cfCreateTargetAlert,
   cfUpdateTargetAlert,
   cfDeleteTargetAlert,
+  cfInvalidateCache,
 } from "@/lib/cloudflare-api";
 import { PixelBrandLogo } from "@/components/dashboard/pixel-badges";
 import QRCode from "qrcode";
@@ -228,15 +229,15 @@ function SettingsPageContent() {
     userDomains: [] as any[],
   });
 
-  const loadAccountStats = async () => {
+  const loadAccountStats = async (force = false) => {
     if (!userId) return;
     try {
       const [linksRes, domainsRes, analyticsRes, analytics30dRes] =
         await Promise.all([
-          cfGetLinks(userId).catch(() => null),
+          cfGetLinks(userId, force).catch(() => null),
           cfGetDomains(userId).catch(() => null),
-          cfGetAnalytics(userId).catch(() => null),
-          cfGetAnalytics(userId, "30d").catch(() => null),
+          cfGetAnalytics(userId, undefined, undefined, force).catch(() => null),
+          cfGetAnalytics(userId, "30d", undefined, force).catch(() => null),
         ]);
 
       const lList = Array.isArray(linksRes?.data)
@@ -258,17 +259,21 @@ function SettingsPageContent() {
             0),
         0,
       );
-      const analyticsClicksAll = Number(
-        analyticsRes?.data?.totalClicks ??
-          analyticsRes?.data?.total_clicks ??
-          0,
-      );
       const analyticsClicks30d = Number(
         analytics30dRes?.data?.totalClicks ??
           analytics30dRes?.data?.total_clicks ??
           0,
       );
-      const totalLiveClicks = Math.max(analyticsClicks30d, sumClicks);
+
+      let storedLive = 0;
+      if (typeof window !== "undefined") {
+        try {
+          const s = localStorage.getItem(`lshorter_live_clicks_${userId}`);
+          if (s && !isNaN(Number(s))) storedLive = Number(s);
+        } catch {}
+      }
+
+      const totalLiveClicks = Math.max(analyticsClicks30d, sumClicks, storedLive);
 
       setAccountStats({
         linksCount: lList.length,
@@ -277,12 +282,12 @@ function SettingsPageContent() {
         userDomains: dList,
       });
 
-      if (typeof window !== "undefined") {
+      if (typeof window !== "undefined" && totalLiveClicks > 0) {
         try {
           localStorage.setItem(`lshorter_live_clicks_${userId}`, String(totalLiveClicks));
           window.dispatchEvent(
             new CustomEvent("lshorter_live_clicks_synced", {
-              detail: { clicks: totalLiveClicks },
+              detail: { clicks: totalLiveClicks, fromSettings: true },
             }),
           );
         } catch {}
@@ -294,59 +299,90 @@ function SettingsPageContent() {
 
   useEffect(() => {
     if (!userId) return;
-    loadAccountStats();
-    window.addEventListener("lshorter_data_change", loadAccountStats);
-    window.addEventListener("lshorter_links_updated", loadAccountStats);
-    window.addEventListener("lshorter_link_clicked", loadAccountStats);
-    window.addEventListener("focus", loadAccountStats);
+    loadAccountStats(true);
+
+    const handleUpdate = () => {
+      cfInvalidateCache();
+      loadAccountStats(true);
+    };
+
+    const handleLiveSync = (e: Event) => {
+      const detail = (e as CustomEvent)?.detail;
+      if (typeof detail?.clicks === "number") {
+        setAccountStats((prev) => ({
+          ...prev,
+          clicksThisMonth: Math.max(prev.clicksThisMonth, detail.clicks),
+        }));
+        if (!detail?.fromSettings) {
+          loadAccountStats(true);
+        }
+      }
+    };
+
+    const handleFocus = () => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+      handleUpdate();
+    };
+
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === "lshorter_last_click" || e.key === "lshorter_data_change") {
+        handleUpdate();
+      } else if (e.key === `lshorter_live_clicks_${userId}` && e.newValue) {
+        const val = Number(e.newValue);
+        if (!isNaN(val)) {
+          setAccountStats((prev) => ({
+            ...prev,
+            clicksThisMonth: Math.max(prev.clicksThisMonth, val),
+          }));
+        }
+      }
+    };
+
+    window.addEventListener("lshorter_data_change", handleUpdate);
+    window.addEventListener("lshorter_links_updated", handleUpdate);
+    window.addEventListener("lshorter_link_clicked", handleUpdate);
+    window.addEventListener("lshorter_live_clicks_synced", handleLiveSync);
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleFocus);
+    window.addEventListener("storage", handleStorage);
+
+    // Cross-tab broadcast receiver
+    let channel: BroadcastChannel | null = null;
+    try {
+      if (typeof window !== "undefined" && "BroadcastChannel" in window) {
+        channel = new BroadcastChannel("lshorter_realtime");
+        channel.onmessage = (event) => {
+          if (event.data?.type === "click" || event.data?.type === "refresh") {
+            handleUpdate();
+          } else if (event.data?.type === "live_clicks_synced" && typeof event.data?.clicks === "number") {
+            setAccountStats((prev) => ({
+              ...prev,
+              clicksThisMonth: Math.max(prev.clicksThisMonth, event.data.clicks),
+            }));
+            handleUpdate();
+          }
+        };
+      }
+    } catch {}
+
+    const pollTimer = setInterval(() => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+      loadAccountStats(true);
+    }, 20000);
+
     return () => {
-      window.removeEventListener("lshorter_data_change", loadAccountStats);
-      window.removeEventListener("lshorter_links_updated", loadAccountStats);
-      window.removeEventListener("lshorter_link_clicked", loadAccountStats);
-      window.removeEventListener("focus", loadAccountStats);
+      window.removeEventListener("lshorter_data_change", handleUpdate);
+      window.removeEventListener("lshorter_links_updated", handleUpdate);
+      window.removeEventListener("lshorter_link_clicked", handleUpdate);
+      window.removeEventListener("lshorter_live_clicks_synced", handleLiveSync);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleFocus);
+      window.removeEventListener("storage", handleStorage);
+      if (channel) channel.close();
+      clearInterval(pollTimer);
     };
   }, [userId]);
 
-  // ─── Legal Billing Details State ───────────────────────────────────────────
-  const [legalCompanyName, setLegalCompanyName] = useState("");
-  const [legalTaxId, setLegalTaxId] = useState("");
-  const [legalBillingAddress, setLegalBillingAddress] = useState("");
-  const [billingSaved, setBillingSaved] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== "undefined" && userId) {
-      const savedBilling = localStorage.getItem(
-        `lshorter_legal_billing_${userId}`,
-      );
-      if (savedBilling) {
-        try {
-          const parsed = JSON.parse(savedBilling);
-          if (parsed.companyName) setLegalCompanyName(parsed.companyName);
-          if (parsed.taxId) setLegalTaxId(parsed.taxId);
-          if (parsed.billingAddress)
-            setLegalBillingAddress(parsed.billingAddress);
-        } catch {}
-      }
-    }
-  }, [userId]);
-
-  const handleSaveBillingDetails = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (typeof window !== "undefined" && userId) {
-      const data = {
-        companyName: legalCompanyName,
-        taxId: legalTaxId,
-        billingAddress: legalBillingAddress,
-      };
-      localStorage.setItem(
-        `lshorter_legal_billing_${userId}`,
-        JSON.stringify(data),
-      );
-      setBillingSaved(true);
-      showToast.success("Billing details saved!");
-      setTimeout(() => setBillingSaved(false), 2500);
-    }
-  };
 
   const planNormalized = (plan === "FREEMIUM" ? "FREE" : plan) as
     "FREE" | "FREEMIUM" | "PRO" | "BUSINESS" | "ENTERPRISE";
@@ -409,70 +445,79 @@ function SettingsPageContent() {
       ? 0
       : Number((overageBatches * costPerBatch).toFixed(2));
 
-  // ─── Real Invoices (Only populated if paid subscription exists) ─────────────
-  const [invoices, setInvoices] = useState<InvoiceItem[]>([]);
-  useEffect(() => {
-    if (plan === "PRO" || plan === "BUSINESS" || plan === "ENTERPRISE") {
-      const now = new Date();
-      const monthNames = [
-        "January",
-        "February",
-        "March",
-        "April",
-        "May",
-        "June",
-        "July",
-        "August",
-        "September",
-        "October",
-        "November",
-        "December",
-      ];
-      const baseAmount =
-        plan === "ENTERPRISE" ? 199 : plan === "BUSINESS" ? 49 : 15;
-      const totalAmount = baseAmount + overageAmount;
-      const invNum = `INV-${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, "0")}-${userId ? userId.substring(0, 4).toUpperCase() : "LIVE"}`;
-      setInvoices([
-        {
-          id: `inv_${now.getFullYear()}_${now.getMonth() + 1}`,
-          number: invNum,
-          invoiceNumber: invNum,
-          date: `01 ${monthNames[now.getMonth()]} ${now.getFullYear()}`,
-          amount: totalAmount,
-          amountPaid: totalAmount,
-          currency: "EUR",
-          status: "paid",
-          planName: `LShorter ${plan}`,
-          planId: plan as any,
-          pdfUrl: `/api/billing/invoices/${invNum}/download`,
-        },
-      ]);
-    } else {
-      setInvoices([]);
-    }
-  }, [plan, userId, overageAmount]);
+  // ─── Real Invoices (Fetched from Paddle & Convex) ───────────────────────────
+  const [invoices, setInvoices] = useState<any[]>([]);
+  const [loadingInvoices, setLoadingInvoices] = useState(false);
 
-  const handleDownloadInvoice = (inv: InvoiceItem) => {
-    const invNumber = inv.number || inv.invoiceNumber || "INV-2026-001";
-    const baseAmt =
-      inv.amount ||
-      (plan === "ENTERPRISE" ? 199 : plan === "BUSINESS" ? 49 : 15);
-    const params = new URLSearchParams({
-      plan: planNormalized,
-      amount: baseAmt.toString(),
-      companyName: legalCompanyName || name || "Customer Account",
-      email: email || "client@lshorter.io",
-      taxId: legalTaxId || "",
-      address: legalBillingAddress || "123 Market St, San Francisco, CA 94105",
-      overageClicks: overageClicks.toString(),
-      overageAmount: overageAmount.toString(),
-      batchesOverage: overageBatches.toString(),
-    });
-    window.open(
-      `/api/billing/invoices/${invNumber}/download?${params.toString()}`,
-      "_blank",
-    );
-    showToast.success(`Downloading invoice ${invNumber}...`);
+  const loadRealInvoices = useCallback(async () => {
+    if (!userId && !userEmail) return;
+    setLoadingInvoices(true);
+    try {
+      const res = await fetch(
+        `/api/billing/invoices?userId=${encodeURIComponent(userId)}&email=${encodeURIComponent(userEmail)}`,
+      );
+      const data = await res.json();
+      if (data.success && Array.isArray(data.invoices)) {
+        setInvoices(data.invoices);
+      }
+    } catch (err) {
+      console.warn("[Settings] Error loading real invoices:", err);
+    } finally {
+      setLoadingInvoices(false);
+    }
+  }, [userId, userEmail]);
+
+  useEffect(() => {
+    if (activeTab === "billing") {
+      loadRealInvoices();
+    }
+  }, [activeTab, loadRealInvoices]);
+
+  // Handle return from Paddle checkout (triggers exactly once without duplicate toasts)
+  const handledCheckoutSuccessRef = useRef(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const isSuccess = params.get("checkout_success") === "true";
+      const ptxn = params.get("_ptxn") || params.get("ptxn");
+
+      if (isSuccess && !handledCheckoutSuccessRef.current) {
+        handledCheckoutSuccessRef.current = true;
+
+        // Clean query parameters from URL immediately to prevent repeated toasts on re-render
+        window.history.replaceState({}, "", "/dashboard/settings?tab=billing");
+
+        if (ptxn) {
+          fetch("/api/billing/verify-transaction", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ transactionId: ptxn, userId }),
+          })
+            .then((r) => r.json())
+            .then((data) => {
+              if (data.success) {
+                confetti({ particleCount: 90, spread: 80, origin: { y: 0.6 } });
+                showToast.success(`Abonnement ${data.plan} confirmé avec succès via Paddle !`);
+                window.dispatchEvent(new Event("lshorter_notifications_sync"));
+                loadRealInvoices();
+              }
+            })
+            .catch((err) => console.error("[Verify Transaction Error]", err));
+        } else {
+          confetti({ particleCount: 90, spread: 80, origin: { y: 0.6 } });
+          showToast.success("Abonnement activé avec succès !");
+          window.dispatchEvent(new Event("lshorter_notifications_sync"));
+          loadRealInvoices();
+        }
+      }
+    }
+  }, [userId, loadRealInvoices]);
+
+  const handleDownloadInvoice = (inv: any) => {
+    const downloadUrl = inv.downloadUrl || `/api/billing/invoices/${inv.id}/download`;
+    window.open(downloadUrl, "_blank");
+    showToast.success(`Téléchargement de la facture officielle Paddle (${inv.number})...`);
   };
 
   // ─── API Keys State ─────────────────────────────────────────────────────────
@@ -1122,7 +1167,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
       const uploadRes = await cfUploadImage(file, "lshorter/avatars");
       if (uploadRes.success && uploadRes.url) {
         setAvatarUrl(uploadRes.url);
-        showToast.success("Profile picture uploaded to Bunny CDN!");
+        showToast.success("Profile picture updated successfully!");
       } else {
         showToast.error("Failed to upload profile picture");
       }
@@ -1754,17 +1799,17 @@ console.log("Top Countries:", topAudience.topCountries);`,
                       Custom Domains
                     </span>
                     <span className="text-xs text-zinc-600 dark:text-neutral-400 font-bold">
-                      {accountStats.domainsCount} of {domainsLimit}
+                      {accountStats.domainsCount} of {domainsLimit === -1 ? "Unlimited" : domainsLimit}
                     </span>
                   </div>
                   <p className="text-2xl font-bold font-bebas text-zinc-900 dark:text-white">
-                    {accountStats.domainsCount} / {domainsLimit}
+                    {accountStats.domainsCount} / {domainsLimit === -1 ? "Unlimited" : domainsLimit}
                   </p>
                   <div className="w-full h-2 rounded-full bg-zinc-200 dark:bg-[#27272a] overflow-hidden mt-1">
                     <div
                       className="h-full bg-emerald-500 rounded-full transition-all duration-500"
                       style={{
-                        width: `${domainsLimit > 0 ? Math.min(100, (accountStats.domainsCount / domainsLimit) * 100) : 0}%`,
+                        width: `${domainsLimit === -1 ? 100 : domainsLimit > 0 ? Math.min(100, (accountStats.domainsCount / domainsLimit) * 100) : 0}%`,
                       }}
                     />
                   </div>
@@ -1776,104 +1821,46 @@ console.log("Top Countries:", topAudience.topCountries);`,
                 </div>
               </div>
 
-              {/* Legal Billing Details Form */}
-              <div className="p-5 rounded-[10px] bg-zinc-50 dark:bg-[#141416] border border-zinc-200 dark:border-[#27272a] flex flex-col gap-4">
-                <div className="flex items-center justify-between">
+              {/* Certified Paddle Invoices Table */}
+              <div className="flex flex-col gap-3 pt-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <h3 className="text-sm font-bold text-zinc-900 dark:text-white flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-brand" />
+                      <FileCheck className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
                       <span>
-                        Legal Billing Details (SIRET / EU VAT / Address)
+                        Factures Officielles Paddle (Merchant of Record)
                       </span>
                     </h3>
                     <p className="text-[11px] text-zinc-500 dark:text-neutral-400 mt-0.5">
-                      This information automatically appears on all official
-                      B2B/EU-compliant downloadable PDF invoices.
+                      Toutes vos transactions, taxes (TVA) et factures certifiées conformes générées par Paddle.
                     </p>
                   </div>
-                </div>
-
-                <form
-                  onSubmit={handleSaveBillingDetails}
-                  className="grid grid-cols-1 md:grid-cols-3 gap-3"
-                >
-                  <div>
-                    <label className="block text-[11px] font-semibold text-zinc-700 dark:text-neutral-300 mb-1">
-                      Company / Legal Name
-                    </label>
-                    <Input
-                      value={legalCompanyName}
-                      onChange={(e) => setLegalCompanyName(e.target.value)}
-                      placeholder={name || "e.g. Acme Corporation SAS"}
-                      className="h-9 text-xs bg-white dark:bg-[#0c0c0e] border-zinc-200 dark:border-[#27272a]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-semibold text-zinc-700 dark:text-neutral-300 mb-1">
-                      Tax ID / EU VAT / SIRET
-                    </label>
-                    <Input
-                      value={legalTaxId}
-                      onChange={(e) => setLegalTaxId(e.target.value)}
-                      placeholder="e.g. FR 48 912485301 or US-EIN"
-                      className="h-9 text-xs bg-white dark:bg-[#0c0c0e] border-zinc-200 dark:border-[#27272a]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-semibold text-zinc-700 dark:text-neutral-300 mb-1">
-                      Full Billing Address
-                    </label>
-                    <Input
-                      value={legalBillingAddress}
-                      onChange={(e) => setLegalBillingAddress(e.target.value)}
-                      placeholder="e.g. 60 Rue François 1er, 75008 Paris, France"
-                      className="h-9 text-xs bg-white dark:bg-[#0c0c0e] border-zinc-200 dark:border-[#27272a]"
-                    />
-                  </div>
-                  <div className="md:col-span-3 flex justify-end pt-1">
-                    <Button
-                      type="submit"
-                      variant="glow"
-                      size="sm"
-                      className="text-xs px-4 cursor-pointer"
-                    >
-                      {billingSaved ? "Saved!" : "Save Billing Details"}
-                    </Button>
-                  </div>
-                </form>
-              </div>
-
-              {/* Invoices Table */}
-              <div className="flex flex-col gap-3 pt-2">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <h3 className="text-sm font-bold text-zinc-900 dark:text-white flex items-center gap-2">
-                    <FileCheck className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
-                    <span>
-                      Certified Commercial Invoices (EU Directive 2006/112/CE
-                      &amp; Art. L441-9)
-                    </span>
-                  </h3>
                   <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-semibold">
-                    Norme Comptable HT / TVA / TTC • SIRET &amp; TVA Intracom.
+                    Norme Fiscale HT / TVA / TTC • Reçus & Factures Certifiés
                   </span>
                 </div>
-                {invoices.length === 0 ? (
+                {loadingInvoices ? (
+                  <div className="py-8 text-center text-xs text-zinc-500 dark:text-neutral-400 bg-zinc-50 dark:bg-[#1a1a1e] rounded-[10px] border border-zinc-200 dark:border-[#27272a] flex items-center justify-center gap-2">
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin text-brand" />
+                    <span>Synchronisation des factures Paddle en cours...</span>
+                  </div>
+                ) : invoices.length === 0 ? (
                   <div className="py-8 text-center text-xs text-zinc-500 dark:text-neutral-500 bg-zinc-50 dark:bg-[#1a1a1e] rounded-[10px] border border-zinc-200 dark:border-[#27272a]">
-                    No invoices available. You are currently on the Free plan.
+                    Aucune facture disponible. Vos factures officielles Paddle apparaîtront ici dès votre premier abonnement payant.
                   </div>
                 ) : (
                   <div className="overflow-x-auto bg-zinc-50 dark:bg-[#1a1a1e] rounded-[10px] border border-zinc-200 dark:border-[#27272a]">
                     <table className="w-full text-left text-xs text-zinc-600 dark:text-neutral-400">
                       <thead>
                         <tr className="border-b border-zinc-200 dark:border-[#27272a] text-[11px] uppercase tracking-wider text-zinc-500 dark:text-neutral-500">
-                          <th className="py-3 px-3.5">Invoice Ref.</th>
-                          <th className="py-3 px-3.5">Issue Date</th>
+                          <th className="py-3 px-3.5">Réf. Facture</th>
+                          <th className="py-3 px-3.5">Date d&apos;émission</th>
                           <th className="py-3 px-3.5">Net HT</th>
-                          <th className="py-3 px-3.5">VAT (0%)</th>
+                          <th className="py-3 px-3.5">TVA / Taxe</th>
                           <th className="py-3 px-3.5">Total TTC</th>
-                          <th className="py-3 px-3.5">Status</th>
+                          <th className="py-3 px-3.5">Statut</th>
                           <th className="py-3 px-3.5 text-right">
-                            Official PDF
+                            Facture Officielle
                           </th>
                         </tr>
                       </thead>
@@ -1888,15 +1875,17 @@ console.log("Top Countries:", topAudience.topCountries);`,
                             </td>
                             <td className="py-3 px-3.5">{inv.date}</td>
                             <td className="py-3 px-3.5 font-mono text-zinc-700 dark:text-neutral-300">
-                              {inv.amount?.toFixed(2)} {inv.currency || "EUR"}
+                              {typeof inv.netAmount === "number" ? inv.netAmount.toFixed(2) : "0.00"} {inv.currency || "USD"}
                             </td>
                             <td className="py-3 px-3.5 font-mono text-zinc-500 dark:text-neutral-400">
-                              0.00 {inv.currency || "EUR"}
+                              {typeof inv.taxAmount === "number" && inv.taxAmount > 0
+                                ? `${inv.taxAmount.toFixed(2)} ${inv.currency || "USD"}`
+                                : `0.00 ${inv.currency || "USD"}`}
                             </td>
                             <td className="py-3 px-3.5 font-bold font-mono text-zinc-900 dark:text-white">
-                              {inv.amount === 0
-                                ? "0.00 EUR"
-                                : `${inv.amount?.toFixed(2)} ${inv.currency || "EUR"}`}
+                              {typeof inv.totalAmount === "number"
+                                ? `${inv.totalAmount.toFixed(2)} ${inv.currency || "USD"}`
+                                : `0.00 ${inv.currency || "USD"}`}
                             </td>
                             <td className="py-3 px-3.5">
                               <Badge variant="active">Paid (Acquittée)</Badge>
@@ -1907,7 +1896,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#465FFF]/10 hover:bg-[#465FFF] text-[#465FFF] hover:text-white border border-[#465FFF]/25 font-bold cursor-pointer transition-all text-xs"
                               >
                                 <Download className="w-3.5 h-3.5" />
-                                <span>Download Compliant PDF</span>
+                                <span>Download Official PDF</span>
                               </button>
                             </td>
                           </tr>
@@ -2150,7 +2139,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                               <button
                                 type="button"
                                 onClick={() => {
-                                  const cmd = `curl -X POST https://api.lshorter.io/v1/links \\\n  -H "Authorization: Bearer ${actualKey}" \\\n  -H "Content-Type: application/json" \\\n  -d '{"targetUrl":"https://example.com"}'`;
+                                  const cmd = `curl -X POST https://api.lsho.cc/v1/links \\\n  -H "Authorization: Bearer ${actualKey}" \\\n  -H "Content-Type: application/json" \\\n  -d '{"targetUrl":"https://example.com"}'`;
                                   handleCopy(cmd);
                                   showToast.success(
                                     "cURL example command copied!",
@@ -2307,7 +2296,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                             <span className="font-mono text-zinc-700 dark:text-neutral-300">
                               {d.dns_target ||
                                 d.dnsTarget ||
-                                "cname.lshorter.io"}
+                                "cname.lsho.cc"}
                             </span>
                           </p>
                         </div>
