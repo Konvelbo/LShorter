@@ -65,9 +65,9 @@ export function buildDomainDnsRecords(domain: string) {
     {
       type: "CNAME",
       name: clean,
-      value: "cname.lshorter.cc",
+      value: "cname.lsho.cc",
       ttl: 3600,
-      note: "Point your domain or subdomain to cname.lshorter.cc",
+      note: "Point your domain or subdomain to cname.lsho.cc",
     },
     {
       type: "TXT",

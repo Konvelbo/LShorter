@@ -422,8 +422,8 @@ function SettingsPageContent() {
   );
 
   const clicksBarWidthPercent =
-    clicksLimit === -1
-      ? 0
+    clicksLimit === -1 || plan === "ENTERPRISE"
+      ? 100
       : accountStats.clicksThisMonth > 0
         ? Math.min(100, Math.max(0.75, rawClicksRatio))
         : 0;
@@ -1767,9 +1767,9 @@ console.log("Top Countries:", topAudience.topCountries);`,
                     )}{" "}
                     / {clicksLimit === -1 ? "Unlimited" : (clicksLimit ?? 10000).toLocaleString("en-US")}
                   </p>
-                  <div className="w-full h-1.5 rounded-full bg-zinc-200 dark:bg-[#27272a] overflow-hidden mt-1">
+                  <div className="w-full h-2 rounded-full bg-zinc-200 dark:bg-[#27272a] overflow-hidden mt-1">
                     <div
-                      className={`h-full rounded-full transition-all duration-300 ${isOverage && plan !== "ENTERPRISE" ? "bg-amber-500" : "bg-[#0066FF]"}`}
+                      className={`h-full rounded-full transition-all duration-500 ${isOverage && plan !== "ENTERPRISE" ? "bg-amber-500" : "bg-[#0066FF]"}`}
                       style={{ width: `${clicksBarWidthPercent}%` }}
                     />
                   </div>

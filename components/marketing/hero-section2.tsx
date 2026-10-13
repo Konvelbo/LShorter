@@ -166,106 +166,20 @@ export function HeroSection2() {
   const titlePart1 = "Smart link infrastructure for modern marketers.";
   const titlePart2 = "Ultra-fast programmable APIs for developers.";
 
-  // Rendu par mot préservant la compatibilité avec Google Traduction et évitant la coupure mobile
-  const renderTypingText = (text: string) => {
+  // Rendu par mot avec déclenchement CSS instantané au chargement (0ms de latence)
+  const renderTypingText = (text: string, startIndex = 0) => {
     return text.split(" ").map((word, wordIdx) => (
       <span
         key={wordIdx}
-        className="hero-word inline-block whitespace-nowrap mr-[0.26em] will-change-transform"
+        style={{
+          animationDelay: `${(startIndex + wordIdx) * 0.035}s`,
+        }}
+        className="hero-word inline-block whitespace-nowrap mr-[0.26em] will-change-transform animate-hero-word-reveal"
       >
         {word}
       </span>
     ));
   };
-
-  // --- ANIMATION GSAP AU DÉMARRAGE DE LA PAGE ---
-  useEffect(() => {
-    if (!heroRef.current) return;
-
-    const ctx = gsap.context(() => {
-      const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
-
-      // 1. Masquage initial
-      gsap.set(".hero-word", { opacity: 0, y: 14 });
-      gsap.set(".hero-trend-marquee-wrap", { opacity: 0, y: -14, scale: 0.96 });
-      gsap.set(".hero-fade-desc", { opacity: 0, y: 18 });
-      gsap.set(".hero-action-pill", { opacity: 0, y: 18, scale: 0.96 });
-      if (showcaseRef.current) {
-        gsap.set(showcaseRef.current, { opacity: 0, y: 70, scale: 0.98 });
-      }
-
-      // 2. Révélation du titre mot par mot (fluide et compatible avec Chrome Translate)
-      tl.to(".hero-word", {
-        opacity: 1,
-        y: 0,
-        duration: 0.35,
-        stagger: 0.035,
-        ease: "power2.out",
-      });
-
-      tl.addLabel("revealElements", "-=0.55");
-
-      // Apparition du ruban défilant
-      tl.to(
-        ".hero-trend-marquee-wrap",
-        {
-          opacity: 1,
-          y: 0,
-          scale: 1,
-          duration: 0.7,
-          ease: "power3.out",
-          clearProps: "transform",
-        },
-        "revealElements",
-      );
-
-      // Apparition de la description
-      tl.to(
-        ".hero-fade-desc",
-        {
-          opacity: 1,
-          y: 0,
-          duration: 0.65,
-          ease: "power3.out",
-          clearProps: "transform",
-        },
-        "revealElements+=0.08",
-      );
-
-      // Apparition des boutons
-      tl.to(
-        ".hero-action-pill",
-        {
-          opacity: 1,
-          y: 0,
-          scale: 1,
-          duration: 0.6,
-          stagger: 0.08,
-          ease: "back.out(1.4)",
-          clearProps: "opacity,transform",
-        },
-        "revealElements+=0.14",
-      );
-
-      // 3. Montée de la vitrine (sur desktop uniquement)
-      if (showcaseRef.current) {
-        tl.to(
-          showcaseRef.current,
-          {
-            opacity: 1,
-            y: 0,
-            scale: 1,
-            duration: 1,
-            ease: "power3.out",
-            clearProps: "opacity,transform",
-          },
-          "+=0.08",
-        );
-      }
-    }, heroRef);
-
-    return () => ctx.revert();
-  }, []);
 
   // --- HOVERS GSAP ---
   const handlePrimaryBtnEnter = (e: React.MouseEvent<HTMLElement>) => {
@@ -393,6 +307,115 @@ export function HeroSection2() {
       <style
         dangerouslySetInnerHTML={{
           __html: `
+            /* --- 1. ENTRÉE INSTANTANÉE (0ms) DÈS LE CHARGEMENT DE LA PAGE --- */
+            @keyframes heroWordReveal {
+              0% {
+                opacity: 0;
+                transform: translateY(14px);
+              }
+              100% {
+                opacity: 1;
+                transform: translateY(0);
+              }
+            }
+            .animate-hero-word-reveal {
+              opacity: 0;
+              animation: heroWordReveal 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+              will-change: opacity, transform;
+            }
+
+            @keyframes heroFadeInDown {
+              0% {
+                opacity: 0;
+                transform: translateY(-14px) scale(0.96);
+              }
+              100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+              }
+            }
+            .animate-hero-marquee-reveal {
+              opacity: 0;
+              animation: heroFadeInDown 0.65s cubic-bezier(0.16, 1, 0.3, 1) 0.05s forwards;
+              will-change: opacity, transform;
+            }
+
+            @keyframes heroFadeInUp {
+              0% {
+                opacity: 0;
+                transform: translateY(18px);
+              }
+              100% {
+                opacity: 1;
+                transform: translateY(0);
+              }
+            }
+            .animate-hero-desc-reveal {
+              opacity: 0;
+              animation: heroFadeInUp 0.65s cubic-bezier(0.16, 1, 0.3, 1) 0.18s forwards;
+              will-change: opacity, transform;
+            }
+
+            @keyframes heroPillReveal {
+              0% {
+                opacity: 0;
+                transform: translateY(18px) scale(0.96);
+              }
+              70% {
+                transform: translateY(-2px) scale(1.02);
+              }
+              100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+              }
+            }
+            .animate-hero-pill-1 {
+              opacity: 0;
+              animation: heroPillReveal 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.28s forwards;
+              will-change: opacity, transform;
+            }
+            .animate-hero-pill-2 {
+              opacity: 0;
+              animation: heroPillReveal 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.36s forwards;
+              will-change: opacity, transform;
+            }
+            .animate-hero-pill-3 {
+              opacity: 0;
+              animation: heroPillReveal 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.44s forwards;
+              will-change: opacity, transform;
+            }
+
+            @keyframes heroShowcaseReveal {
+              0% {
+                opacity: 0;
+                transform: translateY(45px) scale(0.98);
+              }
+              100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+              }
+            }
+            .animate-hero-showcase-reveal {
+              opacity: 0;
+              animation: heroShowcaseReveal 0.85s cubic-bezier(0.16, 1, 0.3, 1) 0.50s forwards;
+              will-change: opacity, transform;
+            }
+
+            @media (prefers-reduced-motion: reduce) {
+              .animate-hero-word-reveal,
+              .animate-hero-marquee-reveal,
+              .animate-hero-desc-reveal,
+              .animate-hero-pill-1,
+              .animate-hero-pill-2,
+              .animate-hero-pill-3,
+              .animate-hero-showcase-reveal {
+                animation: none !important;
+                opacity: 1 !important;
+                transform: none !important;
+              }
+            }
+
+            /* --- 2. MARQUEE & EMOJIS FLOTTANTS --- */
             @keyframes heroMarqueeTrack {
               0% { transform: translateX(0%); }
               100% { transform: translateX(-50%); }
@@ -466,7 +489,7 @@ export function HeroSection2() {
 
       <div className="relative z-10 max-w-[1360px] w-full mx-auto px-4 sm:px-8 flex flex-col justify-center items-center text-center my-auto min-h-[calc(100dvh-5.5rem)] sm:min-h-0">
         {/* 1. Ruban Défilant Automatique des Trends */}
-        <div className="hero-trend-marquee-wrap relative w-full max-w-[1040px] overflow-hidden mb-3 sm:mb-5 md:mb-6">
+        <div className="hero-trend-marquee-wrap animate-hero-marquee-reveal relative w-full max-w-[1040px] overflow-hidden mb-3 sm:mb-5 md:mb-6">
           <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-10 sm:w-28 bg-gradient-to-r from-[#FFFFFF] dark:from-[#09090B] to-transparent z-10" />
           <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-10 sm:w-28 bg-gradient-to-l from-[#FFFFFF] dark:from-[#09090B] to-transparent z-10" />
 
@@ -491,13 +514,13 @@ export function HeroSection2() {
         {/* 2. Bloc Texte Principal Entièrement Centré */}
         <div className="flex flex-col items-center text-center max-w-[980px] mx-auto mt-0 mb-4 sm:mb-6 md:mb-7">
           <h1 className="text-[34px] xs:text-[38px] sm:text-[48px] lg:text-[62px] font-normal tracking-[-0.035em] leading-[1.1] sm:leading-[1.04] text-[#000000] dark:text-white">
-            {renderTypingText(titlePart1)}{" "}
+            {renderTypingText(titlePart1, 0)}{" "}
             <span className="text-[#667085] dark:text-zinc-400">
-              {renderTypingText(titlePart2)}
+              {renderTypingText(titlePart2, titlePart1.split(" ").length)}
             </span>
           </h1>
 
-          <p className="hero-fade-desc mt-5 sm:mt-7 text-[16px] sm:text-[18px] text-[#475467] dark:text-zinc-400 max-w-[740px] mx-auto leading-[1.6] sm:leading-[1.65]">
+          <p className="hero-fade-desc animate-hero-desc-reveal mt-5 sm:mt-7 text-[16px] sm:text-[18px] text-[#475467] dark:text-zinc-400 max-w-[740px] mx-auto leading-[1.6] sm:leading-[1.65]">
             LShorter unifies branded link shortening, programmable ISO Country
             &amp; Device edge routing,{" "}
             <strong className="font-semibold text-[#101828] dark:text-white">
@@ -514,7 +537,7 @@ export function HeroSection2() {
           {/* Boutons d'actions Centrés */}
           <div className="flex flex-col items-center gap-3.5 w-full mt-6 sm:mt-7">
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-3.5 w-full sm:w-auto">
-              <div className="hero-action-pill will-change-transform w-full sm:w-auto flex justify-center">
+              <div className="hero-action-pill animate-hero-pill-1 will-change-transform w-full sm:w-auto flex justify-center">
                 {isAuthenticated ? (
                   <Link
                     href="/dashboard"
@@ -542,7 +565,7 @@ export function HeroSection2() {
                 )}
               </div>
 
-              <div className="hero-action-pill will-change-transform w-full sm:w-auto flex justify-center">
+              <div className="hero-action-pill animate-hero-pill-2 will-change-transform w-full sm:w-auto flex justify-center">
                 <Link
                   href="#product"
                   onClick={handleScrollToProduct}
@@ -556,7 +579,7 @@ export function HeroSection2() {
             </div>
 
             {/* Commande SDK masquée sur Mobile */}
-            <div className="hidden sm:flex hero-action-pill will-change-transform w-full sm:w-auto justify-center">
+            <div className="hidden sm:flex hero-action-pill animate-hero-pill-3 will-change-transform w-full sm:w-auto justify-center">
               <button
                 type="button"
                 onClick={handleCopySdk}
@@ -581,7 +604,7 @@ export function HeroSection2() {
         {/* 3. Vitrine du Dashboard : Masquée sur Mobile (< sm) */}
         <div
           ref={showcaseRef}
-          className="hidden sm:block w-full max-w-[1240px] mx-auto relative sm:mt-2 md:mt-4 lg:mt-6 rounded-[22px] p-5 md:p-6 overflow-hidden border border-[#E4E7EC] dark:border-white/15 shadow-[0_20px_60px_rgba(16,24,40,0.12)] will-change-transform"
+          className="hidden sm:block animate-hero-showcase-reveal w-full max-w-[1240px] mx-auto relative sm:mt-2 md:mt-4 lg:mt-6 rounded-[22px] p-5 md:p-6 overflow-hidden border border-[#E4E7EC] dark:border-white/15 shadow-[0_20px_60px_rgba(16,24,40,0.12)] will-change-transform"
           style={{
             background:
               "linear-gradient(135deg, #1F2A38 0%, #344960 35%, #5C768D 68%, #263547 100%)",
@@ -603,7 +626,7 @@ export function HeroSection2() {
                 <span className="w-2.5 h-2.5 rounded-full bg-[#12B76A]" />
                 <div className="ml-3 flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-white dark:bg-[#101828] border border-[#E4E7EC] dark:border-white/10 text-[11px] font-mono text-[#475467] dark:text-zinc-300">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#12B76A]" />
-                  https://lshorter.cc
+                  https://lsho.cc
                 </div>
               </div>
             </div>

@@ -15,6 +15,7 @@ import {
   Plus,
   ChevronDown,
   Sparkles,
+  ArrowRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSession } from "next-auth/react";
@@ -25,7 +26,6 @@ import {
   cfGetLinks,
   cfInvalidateCache,
 } from "@/lib/cloudflare-api";
-import { LinkCreateModal } from "@/components/dashboard/link-create-modal";
 import { FeedbackModal } from "@/components/feedback/feedback-modal";
 import { getPlanDefinition } from "@/src/config/pricing";
 
@@ -131,7 +131,6 @@ export function Sidebar() {
     api.users.getCurrentUser,
     userId ? { userId } : "skip",
   );
-  const [isCreateLinkOpen, setIsCreateLinkOpen] = useState(false);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [currentTabParam, setCurrentTabParam] = useState<string>("");
@@ -692,18 +691,34 @@ export function Sidebar() {
 
               <button
                 type="button"
-                onClick={() => setIsCreateLinkOpen(true)}
-                className="mt-0.5 w-full flex items-center justify-center gap-1.5 rounded-lg bg-[#0066FF] hover:bg-[#0055d4] py-1.5 px-2 text-[11.5px] font-semibold !text-white transition-colors cursor-pointer shadow-2xs"
+                onClick={() => {
+                  if (typeof window !== "undefined") {
+                    window.dispatchEvent(new CustomEvent("lshorter:open-create-drawer"));
+                  }
+                }}
+                className="mt-0.5 w-full flex items-center justify-between gap-1.5 rounded-lg bg-[#0066FF] hover:bg-[#0055d4] py-1.5 px-2 text-[11.5px] font-semibold !text-white transition-colors cursor-pointer shadow-2xs group"
+                title="Create Short Link (Raccourci: Ctrl + Flèche droite ou Ctrl + Clic droit)"
               >
-                <Plus className="h-3.5 w-3.5 !text-white" />
-                <span className="!text-white">Create Short Link</span>
+                <div className="flex items-center gap-1.5 truncate">
+                  <Plus className="h-3.5 w-3.5 !text-white shrink-0" />
+                  <span className="!text-white truncate">Create Short Link</span>
+                </div>
+                <kbd className="hidden xl:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] font-mono font-medium bg-white/20 text-white rounded border border-white/25 shrink-0 leading-none">
+                  <span>Ctrl</span>
+                  <span>+</span>
+                  <ArrowRight className="w-2.5 h-2.5 shrink-0 stroke-[2.5]" />
+                </kbd>
               </button>
             </div>
           ) : (
             <div
-              title={`${planDef.name} Plan : ${clicksThisMonth.toLocaleString("en-US")} / ${clicksLimit === -1 ? "Unlimited" : clicksLimit.toLocaleString("en-US")} clicks (${clicksPercentLabel})`}
+              title={`${planDef.name} Plan : ${clicksThisMonth.toLocaleString("en-US")} / ${clicksLimit === -1 ? "Unlimited" : clicksLimit.toLocaleString("en-US")} clicks (${clicksPercentLabel}) — Ouvrir le drawer (Ctrl + Flèche droite)`}
               className="w-9 h-9 rounded-[8px] ds-card mx-auto flex items-center justify-center cursor-pointer hover:border-[#0066FF] transition-colors"
-              onClick={() => setIsCreateLinkOpen(true)}
+              onClick={() => {
+                if (typeof window !== "undefined") {
+                  window.dispatchEvent(new CustomEvent("lshorter:open-create-drawer"));
+                }
+              }}
             >
               <Sparkles className="w-3.5 h-3.5 text-[#0066FF]" />
             </div>
@@ -732,10 +747,7 @@ export function Sidebar() {
         </div>
       </aside>
 
-      <LinkCreateModal
-        isOpen={isCreateLinkOpen}
-        onClose={() => setIsCreateLinkOpen(false)}
-      />
+      {/* LinkCreateModal est désormais géré centralement par Topbar dans DashboardLayout */}
       <FeedbackModal
         isOpen={isFeedbackOpen}
         onClose={() => setIsFeedbackOpen(false)}

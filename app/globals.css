@@ -1778,5 +1778,12 @@ html.light main .text-neutral-200 {
   border-color: rgba(255, 255, 255, 0.22) !important;
 }
 
+/* ─── Recharts Tooltip Pointer Safety (Never obstruct mouse hovers on underlying sectors) ─── */
+.recharts-tooltip-wrapper {
+  pointer-events: none !important;
+  z-index: 50 !important;
+}
+
+
 
 

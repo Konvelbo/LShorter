@@ -186,6 +186,20 @@ export function LinkDrawer({
     }
   }, [onClose]);
 
+  // Listen for Escape key to smoothly close drawer
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleEscKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        handleAnimatedClose();
+      }
+    };
+    window.addEventListener("keydown", handleEscKey);
+    return () => window.removeEventListener("keydown", handleEscKey);
+  }, [isOpen, handleAnimatedClose]);
+
   // Smooth scroll container to top when changing tabs
   useEffect(() => {
     if (!scrollContainerRef.current) return;

@@ -105,7 +105,7 @@ export async function POST(req: Request) {
       }
       if (!cnameVerified) {
         missingParts.push(
-          `CNAME record missing: host "${cleanDomain}" must point to "cname.lshorter.cc" (found: ${
+          `CNAME record missing: host "${cleanDomain}" must point to "cname.lsho.cc" (found: ${
             cnameAnswers.length > 0 ? cnameAnswers.join(", ") : "none"
           })`
         );
@@ -128,7 +128,7 @@ export async function POST(req: Request) {
             expectedTxtValue,
             foundTxtValues: txtAnswers,
             txtVerified,
-            expectedCnameTarget: "cname.lshorter.cc",
+            expectedCnameTarget: "cname.lsho.cc",
             foundCnameTargets: cnameAnswers,
             cnameVerified,
           },

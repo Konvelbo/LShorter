@@ -1,13 +1,31 @@
-"use client";
-
 import React from "react";
+import dynamic from "next/dynamic";
 import { HeroSection } from "@/components/marketing/hero-section2";
-import { ProductSection } from "@/components/marketing/product-section";
-import { TimelineFeatures } from "@/components/ui/timeline-features";
-import { SecuritySection } from "@/components/marketing/security-section";
-import { WhyUsSection } from "@/components/marketing/why-us-section";
-import { AnalyticsSection } from "@/components/marketing/analytics-section";
-import { FaqSection } from "@/components/marketing/faq-section";
+
+const ProductSection = dynamic(
+  () => import("@/components/marketing/product-section").then((m) => m.ProductSection),
+  { ssr: true }
+);
+const TimelineFeatures = dynamic(
+  () => import("@/components/ui/timeline-features").then((m) => m.TimelineFeatures),
+  { ssr: true }
+);
+const SecuritySection = dynamic(
+  () => import("@/components/marketing/security-section").then((m) => m.SecuritySection),
+  { ssr: true }
+);
+const WhyUsSection = dynamic(
+  () => import("@/components/marketing/why-us-section").then((m) => m.WhyUsSection),
+  { ssr: true }
+);
+const AnalyticsSection = dynamic(
+  () => import("@/components/marketing/analytics-section").then((m) => m.AnalyticsSection),
+  { ssr: true }
+);
+const FaqSection = dynamic(
+  () => import("@/components/marketing/faq-section").then((m) => m.FaqSection),
+  { ssr: true }
+);
 
 export default function LandingPage() {
   return (

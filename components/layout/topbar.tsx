@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -61,6 +61,11 @@ export function Topbar() {
     userId ? { orgId: userId } : "skip"
   );
 
+  const isCreateOpenRef = useRef(isCreateOpen);
+  useEffect(() => {
+    isCreateOpenRef.current = isCreateOpen;
+  }, [isCreateOpen]);
+
   useEffect(() => {
     try {
       const saved = localStorage.getItem("lshorter_saas_notifications");
@@ -100,11 +105,94 @@ export function Topbar() {
       setIsProfileOpen(false);
     };
 
+    const onOpenDrawer = () => {
+      setIsCreateOpen(true);
+      setIsNotifOpen(false);
+      setIsProfileOpen(false);
+      setIsCommandModalOpen(false);
+    };
+
+    const onCloseDrawer = () => {
+      setIsCreateOpen(false);
+    };
+
+    const onToggleDrawer = () => {
+      setIsCreateOpen((prev) => !prev);
+      setIsNotifOpen(false);
+      setIsProfileOpen(false);
+      setIsCommandModalOpen(false);
+    };
+
+    // Raccourci clavier / souris pour ouvrir le drawer : Ctrl + Right Button (Flèche droite ou Clic droit)
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isCreateOpenRef.current) {
+        setIsCreateOpen(false);
+        return;
+      }
+
+      const hasCtrl = e.ctrlKey || e.metaKey;
+      if (!hasCtrl) return;
+
+      const target = e.target as HTMLElement | null;
+      const isTyping =
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable);
+
+      // Détection de la touche droite : ArrowRight (flèche droite) ou ContextMenu
+      const isRightKey =
+        e.key === "ArrowRight" ||
+        e.code === "ArrowRight" ||
+        e.key === "ContextMenu";
+
+      if (isRightKey) {
+        // En cas de saisie dans un champ de formulaire, préserver la navigation par mot sauf si ContextMenu
+        if (isTyping && e.key !== "ContextMenu") {
+          return;
+        }
+
+        e.preventDefault();
+        e.stopPropagation();
+        onToggleDrawer();
+      }
+    };
+
+    // Détection de la souris : Clic droit (Right Button) avec Ctrl enfoncé
+    const handleContextMenu = (e: MouseEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        e.stopPropagation();
+        onToggleDrawer();
+      }
+    };
+
+    const handleAuxClick = (e: MouseEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.button === 2) {
+        e.preventDefault();
+        e.stopPropagation();
+        onToggleDrawer();
+      }
+    };
+
     window.addEventListener("lshorter:notification", onNewNotif);
     window.addEventListener("lshorter:open-command-modal", onOpenCmdModal);
+    window.addEventListener("lshorter:open-create-drawer", onOpenDrawer);
+    window.addEventListener("lshorter:close-create-drawer", onCloseDrawer);
+    window.addEventListener("lshorter:toggle-create-drawer", onToggleDrawer);
+    window.addEventListener("keydown", handleGlobalKeyDown);
+    window.addEventListener("contextmenu", handleContextMenu);
+    window.addEventListener("auxclick", handleAuxClick);
+
     return () => {
       window.removeEventListener("lshorter:notification", onNewNotif);
       window.removeEventListener("lshorter:open-command-modal", onOpenCmdModal);
+      window.removeEventListener("lshorter:open-create-drawer", onOpenDrawer);
+      window.removeEventListener("lshorter:close-create-drawer", onCloseDrawer);
+      window.removeEventListener("lshorter:toggle-create-drawer", onToggleDrawer);
+      window.removeEventListener("keydown", handleGlobalKeyDown);
+      window.removeEventListener("contextmenu", handleContextMenu);
+      window.removeEventListener("auxclick", handleAuxClick);
     };
   }, []);
 

@@ -21,6 +21,7 @@ import {
   CornerDownLeft,
   ArrowUp,
   ArrowDown,
+  ArrowRight,
 } from "lucide-react";
 import { getAllDocFeatures, DocFeature } from "@/lib/docs-data";
 
@@ -58,6 +59,16 @@ interface ReuiCommandModalProps {
 const RECENT_STORAGE_KEY = "lshorter_reui_recent_searches_v1";
 
 const DASHBOARD_AND_ANALYTICS_ITEMS: CommandItem[] = [
+  {
+    id: "action-create-link",
+    title: "Create Short Link (Drawer)",
+    href: "#create-link",
+    badge: "Link",
+    meta: "Ctrl + →",
+    description: "Open the link creation drawer to create, configure, and protect a short URL",
+    keywords: ["create", "new", "link", "drawer", "shorten", "url", "raccourci", "shortcut"],
+    iconType: "link",
+  },
   {
     id: "page-dashboard",
     title: "Dashboard",
@@ -573,6 +584,12 @@ export function ReuiCommandModal({
     (item: CommandItem) => {
       recordRecentItem(item.id);
       handleClose();
+      if (item.href === "#create-link") {
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("lshorter:open-create-drawer"));
+        }
+        return;
+      }
       router.push(item.href);
     },
     [recordRecentItem, handleClose, router]
@@ -739,11 +756,19 @@ export function ReuiCommandModal({
                         </span>
                       </div>
 
-                      {/* Right: Metadata description / count ONLY (NO Ctrl+... shortcuts) */}
+                      {/* Right: Metadata description / count */}
                       <div className="flex items-center gap-2 shrink-0 max-w-[42%]">
-                        <span className="text-[12px] text-[#71717A] dark:text-[#8E8E93] truncate">
-                          {item.meta}
-                        </span>
+                        {item.id === "action-create-link" ? (
+                          <kbd className="inline-flex h-4.5 items-center justify-center gap-0.5 rounded-[3px] border border-black/[0.08] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.05] px-1.5 text-[10px] font-mono text-[#71717A] dark:text-[#8E8E93]">
+                            <span>Ctrl</span>
+                            <span>+</span>
+                            <ArrowRight className="h-2.5 w-2.5 stroke-[2.5]" />
+                          </kbd>
+                        ) : (
+                          <span className="text-[12px] text-[#71717A] dark:text-[#8E8E93] truncate">
+                            {item.meta}
+                          </span>
+                        )}
                         <ArrowUpRight
                           className={`h-3.5 w-3.5 shrink-0 transition-opacity ${
                             isSelected
@@ -785,6 +810,15 @@ export function ReuiCommandModal({
                 esc
               </kbd>
               <span>Close</span>
+            </span>
+
+            <span className="hidden md:inline-flex items-center gap-1.5">
+              <kbd className="inline-flex h-5 items-center justify-center gap-0.5 rounded-[4px] border border-black/[0.1] dark:border-white/[0.12] bg-white dark:bg-[#18181B] px-1.5 text-[10.5px] font-mono text-[#09090B] dark:text-[#FAFAFA]">
+                <span>Ctrl</span>
+                <span>+</span>
+                <ArrowRight className="h-2.5 w-2.5 stroke-[2.5]" />
+              </kbd>
+              <span>Drawer</span>
             </span>
           </div>
 

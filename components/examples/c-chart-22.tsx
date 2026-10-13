@@ -114,20 +114,38 @@ export function ReuiDonutChart22({
       : activeItem.label
     : centerLabel;
 
+  const isLowerHalf = React.useMemo(() => {
+    if (!hasData || totalValue <= 0) return false;
+    let accumulated = 0;
+    for (let i = 0; i < activeIndex; i++) {
+      accumulated += validItems[i]?.value || 0;
+    }
+    const currentVal = validItems[activeIndex]?.value || 0;
+    const midValue = accumulated + currentVal / 2;
+    const midAngleDeg = (midValue / totalValue) * 360;
+    return midAngleDeg >= 180 && midAngleDeg <= 360;
+  }, [hasData, totalValue, activeIndex, validItems]);
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
       {/* Left 5 Columns: @reui/c-chart-22 Active Segment Donut with Center Label */}
-      <div className="md:col-span-5 flex flex-col items-center justify-center">
+      <div className="md:col-span-5 flex flex-col items-center justify-center relative">
         <ChartContainer
           config={chartConfig}
-          className="mx-auto aspect-square w-full max-w-[235px] max-h-[235px]"
+          className="mx-auto aspect-square w-full max-w-[235px] max-h-[235px] overflow-visible"
         >
           <PieChart accessibilityLayer>
             {hasData && (
               <ChartTooltip
+                wrapperStyle={{ pointerEvents: "none", zIndex: 50 }}
+                allowEscapeViewBox={{ x: true, y: true }}
+                position={{
+                  x: 28,
+                  y: isLowerHalf ? -18 : 196,
+                }}
                 content={
                   <ChartTooltipContent
-                    className="min-w-44 gap-2.5 border-[#E4E7EC] dark:border-gray-800 bg-white/95 dark:bg-[#101828]/95 shadow-xl"
+                    className="min-w-44 gap-2.5 border-[#E4E7EC] dark:border-gray-800 bg-white/95 dark:bg-[#101828]/95 shadow-xl pointer-events-none select-none transition-all duration-200"
                     formatter={(value: any, name: any) => {
                       const cfg = chartConfig[name as keyof typeof chartConfig];
                       const num = Number(value || 0);
