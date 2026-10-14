@@ -93,6 +93,9 @@ export async function GET(
       const rawImage = qImage || meta?.og_image || meta?.ogImage || meta?.banner_url || meta?.bannerUrl || "";
       const isCustomBanner = Boolean(rawImage && !rawImage.includes("/api/og") && !rawImage.includes("default_banner"));
       let image = isCustomBanner ? rawImage : "";
+      if (image && !image.startsWith("http://") && !image.startsWith("https://")) {
+        image = `https://${detectedDomain}${image.startsWith("/") ? "" : "/"}${image}`;
+      }
       if (!image) {
         if (isCompactCard) {
           image = `https://${detectedDomain}/icon-512.png`;
@@ -185,4 +188,11 @@ export async function GET(
     console.error("[Redirect Handler Error]:", error);
     return NextResponse.redirect(new URL(`/r/not-found`, req.url), 307);
   }
+}
+
+export async function HEAD(
+  req: Request,
+  context: { params: Promise<{ slug: string }> },
+) {
+  return GET(req, context);
 }

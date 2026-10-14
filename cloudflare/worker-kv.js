@@ -218,16 +218,8 @@ export default {
         return Response.redirect(`${proto}://${reqHost}/r/${slug}/expired`, 307);
       }
 
-      if (link.password || link.has_password || link.is_password_protected) {
-        return Response.redirect(`${proto}://${reqHost}/r/${slug}/gate`, 307);
-      }
-
-      if (link.is_cloaked || link.isCloaked) {
-        return Response.redirect(`${proto}://${reqHost}/r/${slug}/view`, 307);
-      }
-
       const userAgent = (request.headers.get('user-agent') || '').toLowerCase();
-      const isBot = /facebookexternalhit|facebot|twitterbot|xbot|linkedinbot|whatsapp|telegrambot|discordbot|slackbot|slack-imgbatcher|pinterestbot|skypeuripreview|googlebot|bingbot|applebot|yandexbot|duckduckbot|baiduspider|bytespider|tiktok|ia_archiver|mastodon|bluesky/i.test(userAgent);
+      const isBot = /facebookexternalhit|facebot|twitter|xbot|linkedinbot|whatsapp|telegrambot|discordbot|slackbot|slack-imgbatcher|pinterestbot|skypeuripreview|googlebot|bingbot|applebot|yandexbot|duckduckbot|baiduspider|bytespider|tiktok|ia_archiver|mastodon|bluesky/i.test(userAgent);
       const country = (request.cf?.country || request.headers.get('cf-ipcountry') || request.headers.get('x-country') || 'XX').toUpperCase();
 
       const ogImage = link.og_image || link.ogImage || '';
@@ -272,10 +264,20 @@ export default {
           }
         }
 
+        let twitterImageUrl = publicImageUrl;
+        if (!twitterImageUrl || twitterImageUrl.includes('.svg') || twitterImageUrl.includes('dicebear')) {
+          if (twitterCard === 'summary') {
+            twitterImageUrl = `https://${domain}/icon-512.png`;
+          } else {
+            twitterImageUrl = `https://${domain}/api/og?title=${encodeURIComponent(ogTitle.substring(0, 80))}&slug=${encodeURIComponent(slug)}`;
+          }
+        }
+
         const escapeHtml = (s = '') => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         const safeTitle = escapeHtml(ogTitle);
         const safeDesc = escapeHtml(ogDescription || 'Cliquez pour ouvrir le lien.');
         const safeImg = escapeHtml(publicImageUrl.replace(/&amp;/g, '&'));
+        const safeTwitterImg = escapeHtml(twitterImageUrl.replace(/&amp;/g, '&'));
         const safeCanonical = escapeHtml(canonical);
         const safeCard = twitterCard;
         const imgWidth = twitterCard === 'summary' ? '400' : '1200';
@@ -290,6 +292,7 @@ export default {
   <title>${safeTitle}</title>
   <meta name="description" content="${safeDesc}" />
   <meta name="theme-color" content="#ff6600" />
+  <meta name="robots" content="index, follow, max-image-preview:large" />
 
   <!-- Open Graph / WhatsApp / Facebook / LinkedIn / Telegram / Slack / Discord -->
   <meta property="og:site_name" content="LShorter" />
@@ -314,10 +317,12 @@ export default {
   <meta name="twitter:url" content="${safeCanonical}" />
   <meta name="twitter:title" content="${safeTitle}" />
   <meta name="twitter:description" content="${safeDesc}" />
-  <meta name="twitter:image" content="${safeImg}" />
-  <meta property="twitter:image" content="${safeImg}" />
-  <meta name="twitter:image:src" content="${safeImg}" />
+  <meta name="twitter:image" content="${safeTwitterImg}" />
+  <meta property="twitter:image" content="${safeTwitterImg}" />
+  <meta name="twitter:image:src" content="${safeTwitterImg}" />
   <meta name="twitter:image:alt" content="${safeTitle}" />
+  <meta name="twitter:image:width" content="${imgWidth}" />
+  <meta name="twitter:image:height" content="${imgHeight}" />
 </head>
 <body style="background:#09090b;">
 </body>
@@ -331,6 +336,15 @@ export default {
             'Cache-Control': 'public, max-age=10, s-maxage=30, stale-while-revalidate=60',
           },
         });
+      }
+
+      // Real human visitors: enforce password protection and cloaking
+      if (link.password || link.has_password || link.is_password_protected) {
+        return Response.redirect(`${proto}://${reqHost}/r/${slug}/gate`, 307);
+      }
+
+      if (link.is_cloaked || link.isCloaked) {
+        return Response.redirect(`${proto}://${reqHost}/r/${slug}/view`, 307);
       }
 
       const REGION_COUNTRIES = {

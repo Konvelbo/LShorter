@@ -6,6 +6,25 @@ import { convexHttp as convex } from "@/lib/convex-server";
 import { api } from "@/convex/_generated/api";
 import { isSafeHttpUrl } from "@/lib/security-utils";
 
+function parseTags(raw: any): string[] {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw.map((t) => String(t).trim()).filter(Boolean);
+  if (typeof raw === "string" && raw.trim()) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return parsed.map((t: any) => String(t).trim()).filter(Boolean);
+      }
+      if (typeof parsed === "string") {
+        return parsed.split(",").map((t: string) => t.trim()).filter(Boolean);
+      }
+    } catch {
+      return raw.split(",").map((t) => t.trim()).filter(Boolean);
+    }
+  }
+  return [];
+}
+
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -341,6 +360,7 @@ export async function PATCH(
       ...(isInputExpired
         ? { isActive: false, is_active: 0 }
         : {}),
+      tags: body.tags !== undefined ? parseTags(body.tags) : undefined,
       plan: effectivePlan,
       userPlan: effectivePlan,
     };
@@ -486,6 +506,7 @@ export async function PATCH(
                     banner_style: resolvedBannerStyle,
                     twitterCard: resolvedTwitterCard,
                     twitter_card: resolvedTwitterCard,
+                    tags: body.tags !== undefined ? parseTags(body.tags) : parseTags((patchData.data || patchData)?.tags),
                   },
                 },
                 { status: 200 },
@@ -603,6 +624,7 @@ export async function PATCH(
             pathLockPassword: body.pathLockPassword ?? body.path_lock_password,
             path_lock_password:
               body.pathLockPassword ?? body.path_lock_password,
+            tags: body.tags !== undefined ? parseTags(body.tags) : undefined,
           },
         },
         { status: 200 },
@@ -681,6 +703,7 @@ export async function PATCH(
             body.path_lock_password ??
             (data.data as any)?.path_lock_password ??
             (data.data as any)?.pathLockPassword,
+          tags: body.tags !== undefined ? parseTags(body.tags) : parseTags((data.data as any)?.tags),
         },
       },
       { status: 200 },

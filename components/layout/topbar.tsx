@@ -30,17 +30,85 @@ import { DashboardMobileMenu } from "./dashboard-mobile-menu";
 export function Topbar() {
   const { theme, toggleTheme } = useTheme();
   const { data: session } = useSession();
-  const userId = session?.user?.id || "";
+  const rawUserId = session?.user?.id || (session?.user as any)?.userId || session?.user?.email || "";
+  const rawEmail = session?.user?.email || "";
+  const userId = rawUserId;
   const convexUser = useQuery(
     api.users.getCurrentUser,
-    userId ? { userId, email: session?.user?.email || undefined } : "skip"
+    rawUserId || rawEmail
+      ? { userId: rawUserId || rawEmail, email: rawEmail || undefined }
+      : "skip"
   );
 
-  useEffect(() => {
-    if (convexUser?.plan && typeof window !== "undefined") {
-      localStorage.setItem("lshorter_user_plan", convexUser.plan.toUpperCase());
+  const [cachedUser, setCachedUser] = useState<{
+    name?: string;
+    email?: string;
+    avatarUrl?: string;
+    plan?: string;
+  } | null>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved =
+          localStorage.getItem("lshorter_cached_user") ||
+          localStorage.getItem("lshorter_user_profile");
+        if (saved) return JSON.parse(saved);
+      } catch {}
     }
-  }, [convexUser?.plan]);
+    return null;
+  });
+
+  useEffect(() => {
+    const name = convexUser?.name || session?.user?.name;
+    const email = convexUser?.email || session?.user?.email;
+    const avatarUrl =
+      convexUser?.avatarUrl ||
+      (convexUser as any)?.image ||
+      (session?.user as any)?.avatarUrl ||
+      session?.user?.image;
+    const plan =
+      (convexUser?.plan as string) ||
+      ((session?.user as any)?.plan as string);
+
+    if (name || email || avatarUrl || plan) {
+      setCachedUser((prev) => {
+        const next = {
+          name: name || prev?.name || "",
+          email: email || prev?.email || "",
+          avatarUrl: avatarUrl !== undefined ? avatarUrl : prev?.avatarUrl || "",
+          plan: plan || prev?.plan || "FREE",
+        };
+        try {
+          localStorage.setItem("lshorter_cached_user", JSON.stringify(next));
+          if (next.plan) {
+            localStorage.setItem("lshorter_user_plan", next.plan.toUpperCase());
+          }
+        } catch {}
+        return next;
+      });
+    }
+  }, [convexUser, session]);
+
+  useEffect(() => {
+    const onProfileUpdated = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail && typeof detail === "object") {
+        setCachedUser((prev) => {
+          const next = {
+            name: detail.name || prev?.name || "",
+            email: detail.email || prev?.email || "",
+            avatarUrl: detail.avatarUrl !== undefined ? detail.avatarUrl : prev?.avatarUrl || "",
+            plan: detail.plan || prev?.plan || "FREE",
+          };
+          try {
+            localStorage.setItem("lshorter_cached_user", JSON.stringify(next));
+          } catch {}
+          return next;
+        });
+      }
+    };
+    window.addEventListener("lshorter:profile-updated", onProfileUpdated);
+    return () => window.removeEventListener("lshorter:profile-updated", onProfileUpdated);
+  }, []);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -261,19 +329,42 @@ export function Topbar() {
   };
 
   const displayName =
-    convexUser?.name || session?.user?.name || session?.user?.email?.split("@")[0] || "User";
-  const displayEmail = convexUser?.email || session?.user?.email || "";
+    convexUser?.name?.trim() ||
+    session?.user?.name?.trim() ||
+    cachedUser?.name?.trim() ||
+    session?.user?.email?.split("@")[0] ||
+    cachedUser?.email?.split("@")[0] ||
+    "User";
+
+  const displayEmail =
+    convexUser?.email?.trim() ||
+    session?.user?.email?.trim() ||
+    cachedUser?.email?.trim() ||
+    "";
+
   const avatarUrl =
     convexUser?.avatarUrl ||
     (convexUser as any)?.image ||
+    (session?.user as any)?.avatarUrl ||
     session?.user?.image ||
-    getDiceBearAvatar(displayEmail || displayName);
+    cachedUser?.avatarUrl ||
+    "";
 
   const userTier =
     (convexUser?.plan as string) ||
     ((session?.user as any)?.plan as string) ||
+    cachedUser?.plan ||
     "FREE";
   const planDef = getPlanDefinition(userTier);
+
+  const initials = React.useMemo(() => {
+    const raw = (displayName && displayName !== "User" ? displayName : displayEmail.split("@")[0] || "U").trim();
+    const parts = raw.split(/[\s-_]+/);
+    if (parts.length >= 2 && parts[0] && parts[1]) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return raw.slice(0, 2).toUpperCase();
+  }, [displayName, displayEmail]);
 
   return (
     <>
@@ -286,7 +377,8 @@ export function Topbar() {
               type="button"
               onClick={() => window.dispatchEvent(new CustomEvent("lshorter:toggle-sidebar"))}
               className="flex h-7.5 w-7.5 items-center justify-center rounded-lg bg-transparent text-zinc-500 hover:text-zinc-900 dark:text-neutral-400 dark:hover:text-white transition-colors cursor-pointer"
-              aria-label="Toggle Sidebar"
+              aria-label="Toggle Sidebar (Ctrl+B)"
+              title="Toggle Sidebar (Ctrl+B)"
             >
               <PanelLeft className="w-4 h-4" />
             </button>
@@ -406,22 +498,34 @@ export function Topbar() {
                 className="ds-profile-frame cursor-pointer"
               >
                 <Avatar className="h-6.5 w-6.5 sm:h-7 sm:w-7 rounded-lg border border-[#E4E7EC]/60 dark:border-white/10 overflow-hidden shrink-0">
-                  <AvatarImage
-                    src={avatarUrl}
-                    alt={displayName}
+                  {avatarUrl ? (
+                    <AvatarImage
+                      src={avatarUrl}
+                      alt={displayName}
+                      seed={displayEmail}
+                      className="rounded-lg object-cover"
+                    />
+                  ) : null}
+                  <AvatarFallback
                     seed={displayEmail}
-                    className="rounded-lg object-cover"
-                  />
-                  <AvatarFallback seed={displayEmail} className="rounded-lg text-[10px]">
-                    {displayName.slice(0, 2)}
+                    className="rounded-lg text-[10px] font-bold text-white bg-gradient-to-tr from-[#0066FF] to-[#7592FF]"
+                  >
+                    {initials}
                   </AvatarFallback>
                 </Avatar>
 
                 <div className="hidden sm:flex flex-col items-start text-left leading-tight pr-0.5">
-                  <span className="text-[11px] font-semibold ds-text-primary truncate max-w-[140px]" title={displayName}>
+                  <span
+                    suppressHydrationWarning
+                    className="text-[11px] font-semibold ds-text-primary truncate max-w-[140px]"
+                    title={displayName}
+                  >
                     {displayName}
                   </span>
-                  <span className="inline-flex items-center gap-1 text-[9px] font-medium text-[#465FFF] dark:text-[#7592FF] mt-0.5">
+                  <span
+                    suppressHydrationWarning
+                    className="inline-flex items-center gap-1 text-[9px] font-medium text-[#465FFF] dark:text-[#7592FF] mt-0.5"
+                  >
                     <span className="h-1.5 w-1.5 rounded-full bg-[#10B981] shrink-0" />
                     {planDef.name} Plan
                   </span>
@@ -441,18 +545,34 @@ export function Topbar() {
                 >
                   <div className="px-3 py-2.5 border-b ds-border flex items-center gap-3">
                     <Avatar className="h-9 w-9 rounded-[10px] border ds-border shrink-0">
-                      <AvatarImage src={avatarUrl} alt={displayName} seed={displayEmail} className="rounded-[10px]" />
-                      <AvatarFallback seed={displayEmail} className="rounded-[10px]">
-                        {displayName.slice(0, 2)}
+                      {avatarUrl ? (
+                        <AvatarImage
+                          src={avatarUrl}
+                          alt={displayName}
+                          seed={displayEmail}
+                          className="rounded-[10px] object-cover"
+                        />
+                      ) : null}
+                      <AvatarFallback
+                        seed={displayEmail}
+                        className="rounded-[10px] text-xs font-bold text-white bg-gradient-to-tr from-[#0066FF] to-[#7592FF]"
+                      >
+                        {initials}
                       </AvatarFallback>
                     </Avatar>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
-                        <p className="text-sm font-bold ds-text-primary truncate">
+                        <p
+                          suppressHydrationWarning
+                          className="text-sm font-bold ds-text-primary truncate"
+                        >
                           {displayName}
                         </p>
                       </div>
-                      <p className="text-xs ds-text-muted truncate mt-0.5">
+                      <p
+                        suppressHydrationWarning
+                        className="text-xs ds-text-muted truncate mt-0.5"
+                      >
                         {displayEmail}
                       </p>
                     </div>

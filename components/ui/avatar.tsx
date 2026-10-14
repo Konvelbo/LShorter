@@ -35,15 +35,14 @@ function AvatarImage({
   alt,
   ...props
 }: AvatarPrimitive.Image.Props & { seed?: string }) {
-  const effectiveSrc =
-    src && typeof src === "string" && src.trim().length > 0
-      ? src
-      : getDiceBearAvatar(props.seed || alt || "lshorter");
+  if (!src || (typeof src === "string" && src.trim().length === 0)) {
+    return null;
+  }
 
   return (
     <AvatarPrimitive.Image
       data-slot="avatar-image"
-      src={effectiveSrc}
+      src={src}
       alt={alt || "Avatar"}
       className={cn(
         "aspect-square size-full rounded-[10px] object-cover",
@@ -59,28 +58,38 @@ function AvatarFallback({
   children,
   ...props
 }: AvatarPrimitive.Fallback.Props & { seed?: string }) {
-  const seedFromChildren =
-    typeof children === "string"
-      ? children
-      : Array.isArray(children)
-      ? children.join("-")
-      : "lshorter-user";
-  const dicebearUrl = getDiceBearAvatar(props.seed || seedFromChildren);
+  const seedVal = props.seed;
+  const fallbackText = React.useMemo(() => {
+    if (typeof children === "string" && children.trim().length > 0) {
+      return children.trim();
+    }
+    if (seedVal && typeof seedVal === "string" && seedVal.trim().length > 0) {
+      const clean = seedVal.trim().replace(/^https?:\/\//i, "");
+      const parts = clean.split(/[@\s._-]+/).filter(Boolean);
+      if (parts.length >= 2 && parts[0] && parts[1]) {
+        return (parts[0][0] + parts[1][0]).toUpperCase();
+      }
+      return clean.slice(0, 2).toUpperCase();
+    }
+    return null;
+  }, [children, seedVal]);
 
   return (
     <AvatarPrimitive.Fallback
       data-slot="avatar-fallback"
       className={cn(
-        "flex size-full items-center justify-center rounded-[10px] bg-muted overflow-hidden text-sm text-muted-foreground group-data-[size=sm]/avatar:text-xs",
+        "flex size-full items-center justify-center rounded-[10px] bg-gradient-to-tr from-[#0066FF] to-[#7592FF] text-white font-bold tracking-wider select-none overflow-hidden text-xs uppercase",
         className,
       )}
       {...props}
     >
-      <img
-        src={dicebearUrl}
-        alt="Default DiceBear Avatar"
-        className="w-full h-full object-cover"
-      />
+      {fallbackText ? (
+        <span>{fallbackText}</span>
+      ) : children ? (
+        children
+      ) : (
+        <span className="text-[10px]">LS</span>
+      )}
     </AvatarPrimitive.Fallback>
   );
 }

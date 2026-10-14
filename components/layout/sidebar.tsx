@@ -133,6 +133,21 @@ export function Sidebar() {
   );
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isContentExpanded, setIsContentExpanded] = useState(!isCollapsed);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (!isCollapsed) {
+      // Opening: coordinate delay (~180ms) so sidebar widens first before rendering inner content
+      timer = setTimeout(() => {
+        setIsContentExpanded(true);
+      }, 180);
+    } else {
+      // Closing: immediately conceal expanded widgets to prevent overflow
+      setIsContentExpanded(false);
+    }
+    return () => clearTimeout(timer);
+  }, [isCollapsed]);
   const [currentTabParam, setCurrentTabParam] = useState<string>("");
   const [liveClicks, setLiveClicks] = useState<number>(() => {
     if (typeof window !== "undefined") {
@@ -193,8 +208,24 @@ export function Sidebar() {
   useEffect(() => {
     const onToggleSidebar = () => setIsCollapsed((prev) => !prev);
     window.addEventListener("lshorter:toggle-sidebar", onToggleSidebar);
-    return () =>
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === "b" || e.key === "B")) {
+        const target = e.target as HTMLElement | null;
+        if (target?.isContentEditable) {
+          return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        setIsCollapsed((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
       window.removeEventListener("lshorter:toggle-sidebar", onToggleSidebar);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
   }, []);
 
   // Synchronisation des clics mensuels avec invalidation du cache & events
@@ -459,13 +490,13 @@ export function Sidebar() {
                       : "ds-text-muted group-hover:text-[#344054] dark:group-hover:text-white",
                   )}
                 />
-                {!isCollapsed && (
+                {!isCollapsed && isContentExpanded && (
                   <>
-                    <span className="flex-1 text-left truncate">
+                    <span className="flex-1 text-left truncate animate-in fade-in duration-200">
                       {item.name}
                     </span>
                     {item.badge && (
-                      <span className="rounded-full bg-[#ECFDF3] dark:bg-[#039855]/15 px-1.5 py-0.2 text-[10px] font-semibold text-[#039855] dark:text-[#32D583]">
+                      <span className="rounded-full bg-[#ECFDF3] dark:bg-[#039855]/15 px-1.5 py-0.2 text-[10px] font-semibold text-[#039855] dark:text-[#32D583] animate-in fade-in duration-200">
                         {item.badge}
                       </span>
                     )}
@@ -500,11 +531,11 @@ export function Sidebar() {
                       : "ds-text-muted group-hover:text-[#344054] dark:group-hover:text-white",
                   )}
                 />
-                {!isCollapsed && (
+                {!isCollapsed && isContentExpanded && (
                   <>
-                    <span className="flex-1 truncate">{item.name}</span>
+                    <span className="flex-1 truncate animate-in fade-in duration-200">{item.name}</span>
                     {item.badge && (
-                      <span className="rounded-full bg-[#ECFDF3] dark:bg-[#039855]/15 px-1.5 py-0.2 text-[10px] font-semibold text-[#039855] dark:text-[#32D583]">
+                      <span className="rounded-full bg-[#ECFDF3] dark:bg-[#039855]/15 px-1.5 py-0.2 text-[10px] font-semibold text-[#039855] dark:text-[#32D583] animate-in fade-in duration-200">
                         {item.badge}
                       </span>
                     )}
@@ -513,8 +544,8 @@ export function Sidebar() {
               </Link>
             )}
 
-            {hasSub && isOpen && !isCollapsed && (
-              <ul className="mt-1 flex flex-col gap-0.5 pl-6">
+            {hasSub && isOpen && !isCollapsed && isContentExpanded && (
+              <ul className="mt-1 flex flex-col gap-0.5 pl-6 animate-in fade-in duration-150">
                 {item.subItems!.map((sub) => {
                   const subActive = isSubItemActive(sub);
                   return (
@@ -557,18 +588,18 @@ export function Sidebar() {
     <>
       <aside
         className={cn(
-          "relative hidden lg:flex flex-col h-screen shrink-0 ds-bg-sidebar border-r ds-border transition-all duration-300 select-none z-30",
+          "relative hidden lg:flex flex-col h-screen shrink-0 ds-bg-sidebar border-r ds-border transition-[width] duration-300 ease-in-out will-change-[width] overflow-x-hidden select-none z-30",
           isCollapsed ? "w-[72px]" : "w-[240px]",
         )}
       >
         {/* Header / Logo */}
         <div
           className={cn(
-            "flex h-[43px] min-h-[43px] max-h-[43px] items-center shrink-0 border-b ds-border",
+            "flex h-[43px] min-h-[43px] max-h-[43px] items-center shrink-0 border-b ds-border overflow-hidden",
             isCollapsed ? "justify-center px-2" : "justify-between px-4",
           )}
         >
-          <Link href="/" className="flex items-center gap-2.5 group">
+          <Link href="/" className="flex items-center gap-2.5 group whitespace-nowrap">
             <div className="flex h-6 w-6 items-center justify-center rounded-[8px] overflow-hidden shadow-xs shrink-0 group-hover:scale-105 transition-transform">
               <Image
                 src="/logo.svg"
@@ -579,8 +610,8 @@ export function Sidebar() {
                 priority
               />
             </div>
-            {!isCollapsed && (
-              <span className="text-[15px] font-bold tracking-tight ds-text-primary">
+            {!isCollapsed && isContentExpanded && (
+              <span className="text-[15px] font-bold tracking-tight ds-text-primary animate-in fade-in duration-200">
                 LShorter
               </span>
             )}
@@ -590,8 +621,8 @@ export function Sidebar() {
         {/* Scrollable middle navigation */}
         <div className="flex flex-1 flex-col overflow-y-auto overflow-x-hidden px-2.5 py-2.5 no-scrollbar">
           <div className="mb-4">
-            {!isCollapsed && (
-              <h3 className="mb-1.5 px-2.5 text-[10px] font-semibold uppercase tracking-wider ds-text-muted">
+            {!isCollapsed && isContentExpanded && (
+              <h3 className="mb-1.5 px-2.5 text-[10px] font-semibold uppercase tracking-wider ds-text-muted animate-in fade-in duration-200 whitespace-nowrap">
                 MENU
               </h3>
             )}
@@ -599,8 +630,8 @@ export function Sidebar() {
           </div>
 
           <div className="mb-2">
-            {!isCollapsed && (
-              <h3 className="mb-1.5 px-2.5 text-[10px] font-semibold uppercase tracking-wider ds-text-muted">
+            {!isCollapsed && isContentExpanded && (
+              <h3 className="mb-1.5 px-2.5 text-[10px] font-semibold uppercase tracking-wider ds-text-muted animate-in fade-in duration-200 whitespace-nowrap">
                 OTHERS
               </h3>
             )}
@@ -611,13 +642,13 @@ export function Sidebar() {
         {/* Fixed bottom section with monthly quota widget & feedback button */}
         <div
           className={cn(
-            "shrink-0 border-t ds-border ds-bg-sidebar relative",
+            "shrink-0 border-t ds-border ds-bg-sidebar relative overflow-hidden transition-[padding] duration-200",
             isCollapsed ? "p-2" : "p-2.5",
           )}
         >
           {/* Widget de quota mensuel avec mise à jour en temps réel */}
-          {!isCollapsed ? (
-            <div className="rounded-xl border border-[#E4E7EC] dark:border-[#27272a] bg-[#F9FAFB]/80 dark:bg-[#141416] p-3 text-xs flex flex-col gap-2.5 shadow-2xs">
+          {!isCollapsed && isContentExpanded ? (
+            <div className="rounded-xl border border-[#E4E7EC] dark:border-[#27272a] bg-[#F9FAFB]/80 dark:bg-[#141416] p-3 text-xs flex flex-col gap-2.5 shadow-2xs animate-in fade-in zoom-in-95 duration-200">
               {/* Header: Plan badge & % usage */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
@@ -737,8 +768,8 @@ export function Sidebar() {
               <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-[10px] font-extrabold text-[#0066FF] group-hover:border-[#0066FF] group-hover:bg-[#0066FF] group-hover:text-white transition-colors">
                 ?
               </span>
-              {!isCollapsed && (
-                <span className="flex-1 text-left truncate font-semibold text-[11.5px]">
+              {!isCollapsed && isContentExpanded && (
+                <span className="flex-1 text-left truncate font-semibold text-[11.5px] animate-in fade-in duration-200">
                   Feedback &amp; Help
                 </span>
               )}

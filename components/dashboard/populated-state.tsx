@@ -97,12 +97,30 @@ export function PopulatedState({
   const [isStatsDateOpen, setIsStatsDateOpen] = useState(false);
   const [isMonthlyMenuOpen, setIsMonthlyMenuOpen] = useState(false);
 
-  const userId = session?.user?.id || "";
-  const convexUser = useQuery(api.users.getCurrentUser, userId ? { userId } : "skip");
+  const rawUserId = session?.user?.id || (session?.user as any)?.userId || session?.user?.email || "";
+  const rawEmail = session?.user?.email || "";
+  const userId = rawUserId;
+  const convexUser = useQuery(
+    api.users.getCurrentUser,
+    rawUserId || rawEmail
+      ? { userId: rawUserId || rawEmail, email: rawEmail || undefined }
+      : "skip"
+  );
+
+  const cachedName = React.useMemo(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("lshorter_cached_user");
+        if (saved) return JSON.parse(saved)?.name;
+      } catch {}
+    }
+    return "";
+  }, []);
 
   const userName =
     convexUser?.name?.trim() ||
     session?.user?.name?.trim() ||
+    cachedName?.trim() ||
     session?.user?.email?.split("@")[0] ||
     "User";
 

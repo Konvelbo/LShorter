@@ -36,6 +36,25 @@ import { SectionAbTesting } from "./sections/section-ab-testing";
 import { SectionAdvanced } from "./sections/section-advanced";
 import { SectionReview } from "./sections/section-review";
 
+function parseTags(raw: any): string[] {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw.map((t) => String(t).trim()).filter(Boolean);
+  if (typeof raw === "string" && raw.trim()) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return parsed.map((t: any) => String(t).trim()).filter(Boolean);
+      }
+      if (typeof parsed === "string") {
+        return parsed.split(",").map((t: string) => t.trim()).filter(Boolean);
+      }
+    } catch {
+      return raw.split(",").map((t) => t.trim()).filter(Boolean);
+    }
+  }
+  return [];
+}
+
 export function LinkDrawer({
   isOpen,
   onClose,
@@ -341,7 +360,7 @@ export function LinkDrawer({
       const expTime = (link as any).expires_at || (link as any).expiresAt;
       const isExp = Boolean(expTime && new Date(expTime).getTime() <= Date.now());
       setIsActive(!isExp && link.isActive !== false && (link as any).is_active !== 0);
-      setTagsInput(Array.isArray(link.tags) ? link.tags.join(", ") : "");
+      setTagsInput(parseTags(link.tags ?? (link as any).tags).join(", "));
 
       setOgTitle(link.ogTitle || link.metaTitle || (link as any).og_title || "");
       setOgDescription(link.ogDescription || (link as any).og_description || "");

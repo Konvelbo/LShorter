@@ -1,11 +1,9 @@
-import { LinkMetadata } from "./types";
-import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
-
 export function getDicebearGlassUrl(seed: string): string {
   return `https://api.dicebear.com/9.x/glass/svg?seed=${encodeURIComponent(seed || "lshorter")}`;
 }
 
 const SOCIAL_CRAWLERS = [
+  "twitter",
   "twitterbot",
   "xbot",
   "facebookexternalhit",
@@ -100,22 +98,56 @@ export function renderSocialHtml(options: {
   domain?: string;
   isPreview?: boolean;
 }): string {
+  const domainName = escapeHtml(options.domain || "lsho.cc");
+  const rawDomain = options.domain || "lsho.cc";
   const safeTitle = escapeHtml(options.title || "LShorter");
   const safeDesc = escapeHtml(
     options.description || "Cliquez pour accéder à ce lien sécurisé par LShorter.",
   );
+  const cardType = options.twitterCard === "summary" ? "summary" : "summary_large_image";
+
+  // Normalize image URL to absolute HTTPS format
+  let resolvedImg = (options.image || "").trim();
+  if (resolvedImg && !resolvedImg.startsWith("http://") && !resolvedImg.startsWith("https://")) {
+    if (resolvedImg.startsWith("/")) {
+      resolvedImg = `https://${rawDomain}${resolvedImg}`;
+    } else {
+      resolvedImg = `https://${rawDomain}/${resolvedImg}`;
+    }
+  }
+
+  // Twitter / X STRICTLY requires raster images (PNG, JPG, WEBP, GIF). SVG is dropped by Twitterbot!
+  const isSvg = !resolvedImg || resolvedImg.includes(".svg") || resolvedImg.includes("dicebear");
+  let twitterImg = resolvedImg;
+  if (isSvg) {
+    if (cardType === "summary") {
+      twitterImg = `https://${rawDomain}/icon-512.png`;
+    } else {
+      twitterImg = `https://${rawDomain}/api/og?title=${encodeURIComponent((options.title || options.slug || "LShorter").substring(0, 80))}&slug=${encodeURIComponent(options.slug || "")}`;
+    }
+  }
+
+  // Open Graph raster/vector fallback
+  let ogImg = resolvedImg;
+  if (!ogImg) {
+    ogImg = twitterImg;
+  }
+
   const fallbackGlass = getDicebearGlassUrl(options.slug || "lshorter");
-  const rawImg = sanitizeSafeUrl(options.image || fallbackGlass);
-  const safeMetaImg = escapeHtml(rawImg);
-  const safeImg = escapeHtml(rawImg);
+  const safeOgImg = escapeHtml(sanitizeSafeUrl(ogImg));
+  const safeTwitterImg = escapeHtml(sanitizeSafeUrl(twitterImg));
+  const safeImg = safeTwitterImg;
   const safeDest = escapeHtml(sanitizeSafeUrl(options.destinationUrl || options.canonicalUrl));
   const safeCanonical = escapeHtml(sanitizeSafeUrl(options.canonicalUrl));
-  const cardType = options.twitterCard === "summary" ? "summary" : "summary_large_image";
-  const domainName = escapeHtml(options.domain || "lsho.cc");
   const safeSlug = escapeHtml(options.slug || "");
 
-  const isSvg = rawImg.includes(".svg") || rawImg.includes("dicebear");
-  const imgType = isSvg ? "image/svg+xml" : rawImg.includes(".png") ? "image/png" : "image/jpeg";
+  const ogImgType = ogImg.includes(".png")
+    ? "image/png"
+    : ogImg.includes(".webp")
+      ? "image/webp"
+      : ogImg.includes(".svg")
+        ? "image/svg+xml"
+        : "image/jpeg";
   const imgWidth = cardType === "summary" ? "400" : "1200";
   const imgHeight = cardType === "summary" ? "400" : "630";
 
@@ -128,6 +160,7 @@ export function renderSocialHtml(options: {
   <title>${safeTitle}</title>
   <meta name="description" content="${safeDesc}" />
   <meta name="theme-color" content="#0066FF" />
+  <meta name="robots" content="index, follow, max-image-preview:large" />
 
   <!-- Open Graph / WhatsApp / Facebook / LinkedIn / Telegram / Slack / Discord -->
   <meta property="og:site_name" content="LShorter" />
@@ -135,10 +168,10 @@ export function renderSocialHtml(options: {
   <meta property="og:url" content="${safeCanonical}" />
   <meta property="og:title" content="${safeTitle}" />
   <meta property="og:description" content="${safeDesc}" />
-  <meta property="og:image" content="${safeMetaImg}" />
-  <meta property="og:image:url" content="${safeMetaImg}" />
-  <meta property="og:image:secure_url" content="${safeMetaImg}" />
-  <meta property="og:image:type" content="${imgType}" />
+  <meta property="og:image" content="${safeOgImg}" />
+  <meta property="og:image:url" content="${safeOgImg}" />
+  <meta property="og:image:secure_url" content="${safeOgImg}" />
+  <meta property="og:image:type" content="${ogImgType}" />
   <meta property="og:image:width" content="${imgWidth}" />
   <meta property="og:image:height" content="${imgHeight}" />
   <meta property="og:image:alt" content="${safeTitle}" />
@@ -152,10 +185,12 @@ export function renderSocialHtml(options: {
   <meta name="twitter:url" content="${safeCanonical}" />
   <meta name="twitter:title" content="${safeTitle}" />
   <meta name="twitter:description" content="${safeDesc}" />
-  <meta name="twitter:image" content="${safeMetaImg}" />
-  <meta property="twitter:image" content="${safeMetaImg}" />
-  <meta name="twitter:image:src" content="${safeMetaImg}" />
+  <meta name="twitter:image" content="${safeTwitterImg}" />
+  <meta property="twitter:image" content="${safeTwitterImg}" />
+  <meta name="twitter:image:src" content="${safeTwitterImg}" />
   <meta name="twitter:image:alt" content="${safeTitle}" />
+  <meta name="twitter:image:width" content="${imgWidth}" />
+  <meta name="twitter:image:height" content="${imgHeight}" />
 </head>
 <body style="background:#09090b;color:#fafafa;font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:24px;box-sizing:border-box;">
   ${cardType === "summary" ? `
@@ -191,17 +226,21 @@ export function renderSocialHtml(options: {
   <title>Inspecteur de Bannière — ${safeTitle}</title>
   <meta name="description" content="${safeDesc}" />
   <meta name="theme-color" content="#0066FF" />
+  <meta name="robots" content="index, follow, max-image-preview:large" />
 
   <meta property="og:site_name" content="LShorter" />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="${safeCanonical}" />
   <meta property="og:title" content="${safeTitle}" />
-  <meta property="og:image" content="${safeMetaImg}" />
-  <meta property="og:image:url" content="${safeMetaImg}" />
-  <meta property="og:image:secure_url" content="${safeMetaImg}" />
-  <meta property="og:image:type" content="${imgType}" />
+  <meta property="og:description" content="${safeDesc}" />
+  <meta property="og:image" content="${safeOgImg}" />
+  <meta property="og:image:url" content="${safeOgImg}" />
+  <meta property="og:image:secure_url" content="${safeOgImg}" />
+  <meta property="og:image:type" content="${ogImgType}" />
   <meta property="og:image:width" content="${imgWidth}" />
   <meta property="og:image:height" content="${imgHeight}" />
+  <meta property="og:image:alt" content="${safeTitle}" />
+
   <meta name="twitter:card" content="${cardType}" />
   <meta property="twitter:card" content="${cardType}" />
   <meta name="twitter:site" content="@LShorter" />
@@ -210,9 +249,12 @@ export function renderSocialHtml(options: {
   <meta name="twitter:url" content="${safeCanonical}" />
   <meta name="twitter:title" content="${safeTitle}" />
   <meta name="twitter:description" content="${safeDesc}" />
-  <meta name="twitter:image" content="${safeMetaImg}" />
-  <meta property="twitter:image" content="${safeMetaImg}" />
-  <meta name="twitter:image:src" content="${safeMetaImg}" />
+  <meta name="twitter:image" content="${safeTwitterImg}" />
+  <meta property="twitter:image" content="${safeTwitterImg}" />
+  <meta name="twitter:image:src" content="${safeTwitterImg}" />
+  <meta name="twitter:image:alt" content="${safeTitle}" />
+  <meta name="twitter:image:width" content="${imgWidth}" />
+  <meta name="twitter:image:height" content="${imgHeight}" />
 
   <style>
     :root {

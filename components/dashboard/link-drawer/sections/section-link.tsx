@@ -81,9 +81,7 @@ export function SectionLink({
       const joined = resolved.map((t) => t.text.trim()).filter(Boolean).join(", ");
       if (setTagsInput && joined !== lastDispatchedTagsRef.current) {
         lastDispatchedTagsRef.current = joined;
-        setTimeout(() => {
-          setTagsInput(joined);
-        }, 0);
+        setTagsInput(joined);
       }
       return resolved;
     });

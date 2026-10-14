@@ -1211,6 +1211,21 @@ console.log("Top Countries:", topAudience.topCountries);`,
         plan: plan as any,
       });
 
+      const updatedProfile = {
+        name,
+        email,
+        avatarUrl: avatarUrl || "",
+        plan: plan || "FREE",
+      };
+      try {
+        localStorage.setItem("lshorter_cached_user", JSON.stringify(updatedProfile));
+      } catch {}
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("lshorter:profile-updated", { detail: updatedProfile })
+        );
+      }
+
       setProfileSuccess(true);
       showToast.success("Profile updated successfully!");
       confetti({ particleCount: 30, spread: 50, origin: { y: 0.7 } });
