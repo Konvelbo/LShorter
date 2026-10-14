@@ -107,25 +107,29 @@ export default function DashboardOverviewPage() {
         ogDescription: l.og_description || l.ogDescription,
         ogImage: l.og_image || l.ogImage,
         bannerStyle:
-          (l.banner_style || l.bannerStyle || l.twitter_card || l.twitterCard) === "default_banner" ||
-          (l.banner_style || l.bannerStyle || l.twitter_card || l.twitterCard) === "summary"
-            ? "default_banner"
-            : "large_banner",
+          l.banner_style === "large_banner" || l.bannerStyle === "large_banner" || l.twitter_card === "summary_large_image" || l.twitterCard === "summary_large_image"
+            ? "large_banner"
+            : l.banner_style === "default_banner" || l.bannerStyle === "default_banner" || l.twitter_card === "summary" || l.twitterCard === "summary"
+              ? "default_banner"
+              : "large_banner",
         banner_style:
-          (l.banner_style || l.bannerStyle || l.twitter_card || l.twitterCard) === "default_banner" ||
-          (l.banner_style || l.bannerStyle || l.twitter_card || l.twitterCard) === "summary"
-            ? "default_banner"
-            : "large_banner",
+          l.banner_style === "large_banner" || l.bannerStyle === "large_banner" || l.twitter_card === "summary_large_image" || l.twitterCard === "summary_large_image"
+            ? "large_banner"
+            : l.banner_style === "default_banner" || l.bannerStyle === "default_banner" || l.twitter_card === "summary" || l.twitterCard === "summary"
+              ? "default_banner"
+              : "large_banner",
         twitterCard:
-          (l.banner_style || l.bannerStyle || l.twitter_card || l.twitterCard) === "default_banner" ||
-          (l.banner_style || l.bannerStyle || l.twitter_card || l.twitterCard) === "summary"
-            ? "summary"
-            : "summary_large_image",
+          l.twitter_card === "summary_large_image" || l.twitterCard === "summary_large_image" || l.banner_style === "large_banner" || l.bannerStyle === "large_banner"
+            ? "summary_large_image"
+            : l.twitter_card === "summary" || l.twitterCard === "summary" || l.banner_style === "default_banner" || l.bannerStyle === "default_banner"
+              ? "summary"
+              : "summary_large_image",
         twitter_card:
-          (l.banner_style || l.bannerStyle || l.twitter_card || l.twitterCard) === "default_banner" ||
-          (l.banner_style || l.bannerStyle || l.twitter_card || l.twitterCard) === "summary"
-            ? "summary"
-            : "summary_large_image",
+          l.twitter_card === "summary_large_image" || l.twitterCard === "summary_large_image" || l.banner_style === "large_banner" || l.bannerStyle === "large_banner"
+            ? "summary_large_image"
+            : l.twitter_card === "summary" || l.twitterCard === "summary" || l.banner_style === "default_banner" || l.bannerStyle === "default_banner"
+              ? "summary"
+              : "summary_large_image",
         hideReferrer: Boolean(l.hide_referrer || l.hideReferrer),
         tags: l.tags ? (typeof l.tags === "string" ? JSON.parse(l.tags) : l.tags) : [],
         expiresAt: l.expires_at || l.expiresAt,

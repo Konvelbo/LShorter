@@ -57,8 +57,16 @@ export async function GET(
 
     // ─── 1. SOCIAL CRAWLER & DEV BANNER PREVIEW PATH ───
     if (isCrawler || isPreviewMode) {
-      if (!isPreviewMode) {
-        const cached = getCachedBotResponse(slug);
+      const searchStr = url.search || "";
+      const hasCacheBuster =
+        url.searchParams.has("v") ||
+        url.searchParams.has("_t") ||
+        url.searchParams.has("nocache") ||
+        url.searchParams.has("cb") ||
+        isPreviewMode;
+
+      if (!hasCacheBuster) {
+        const cached = getCachedBotResponse(slug, searchStr);
         if (cached) {
           return new Response(cached.body, { status: 200, headers: cached.headers });
         }
@@ -81,17 +89,27 @@ export async function GET(
       const title = qTitle || meta?.og_title || meta?.ogTitle || meta?.meta_title || meta?.metaTitle || slug;
       const description = qDesc || meta?.og_description || meta?.ogDescription || "Cliquez pour accéder à ce lien sécurisé par LShorter.";
       
-      const isCompactCard = (
-        qCard === "summary" ||
-        meta?.twitter_card === "summary" ||
-        meta?.twitterCard === "summary" ||
-        meta?.banner_style === "default_banner" ||
-        meta?.bannerStyle === "default_banner"
-      );
-      const resolvedCard = isCompactCard ? "summary" : (qCard || meta?.twitter_card || meta?.twitterCard || "summary_large_image");
+      const cardParam = qCard ? (qCard === "summary" ? "summary" : "summary_large_image") : undefined;
+      const isLarge = cardParam
+        ? cardParam === "summary_large_image"
+        : Boolean(
+            meta?.twitter_card === "summary_large_image" ||
+            meta?.twitterCard === "summary_large_image" ||
+            meta?.banner_style === "large_banner" ||
+            meta?.bannerStyle === "large_banner"
+          );
+      const isCompactCard = cardParam
+        ? cardParam === "summary"
+        : Boolean(
+            (meta?.twitter_card === "summary" ||
+            meta?.twitterCard === "summary" ||
+            meta?.banner_style === "default_banner" ||
+            meta?.bannerStyle === "default_banner") && !isLarge
+          );
+      const resolvedCard = isCompactCard ? "summary" : "summary_large_image";
 
       const rawImage = qImage || meta?.og_image || meta?.ogImage || meta?.banner_url || meta?.bannerUrl || "";
-      const isCustomBanner = Boolean(rawImage && !rawImage.includes("/api/og") && !rawImage.includes("default_banner"));
+      const isCustomBanner = Boolean(rawImage && !rawImage.includes("/api/og") && !rawImage.includes("default_banner") && !rawImage.includes(".svg") && !rawImage.includes("dicebear"));
       let image = isCustomBanner ? rawImage : "";
       if (image && !image.startsWith("http://") && !image.startsWith("https://")) {
         image = `https://${detectedDomain}${image.startsWith("/") ? "" : "/"}${image}`;
@@ -104,7 +122,7 @@ export async function GET(
         }
       }
       const targetUrl = qTarget || meta?.target_url || meta?.targetUrl || `https://${detectedDomain}`;
-      const canonicalUrl = `https://${detectedDomain}/r/${encodeURIComponent(slug)}`;
+      const canonicalUrl = `https://${detectedDomain}/r/${encodeURIComponent(slug)}${searchStr}`;
 
       const html = renderSocialHtml({
         title,
@@ -120,11 +138,13 @@ export async function GET(
 
       const headers = {
         "Content-Type": "text/html; charset=utf-8",
-        "Cache-Control": isPreviewMode ? "no-store, no-cache, must-revalidate" : "public, max-age=300, s-maxage=3600",
+        "Cache-Control": hasCacheBuster
+          ? "no-store, no-cache, must-revalidate, max-age=0"
+          : "public, max-age=10, s-maxage=30, stale-while-revalidate=60",
       };
 
-      if (!isPreviewMode) {
-        setCachedBotResponse(slug, html, headers);
+      if (!hasCacheBuster) {
+        setCachedBotResponse(slug, html, headers, 30000, searchStr);
       }
 
       return new Response(html, { status: 200, headers });

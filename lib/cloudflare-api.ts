@@ -383,12 +383,24 @@ export async function cfCreateLink(data: {
   plan?: string;
   [key: string]: any;
 }) {
-  const rawBanner =
-    data.bannerStyle ||
-    data.banner_style ||
-    data.twitterCard ||
-    data.twitter_card;
-  const isDefault = rawBanner === "default_banner" || rawBanner === "summary";
+  const isLarge = Boolean(
+    data.twitterCard === "summary_large_image" ||
+    data.twitter_card === "summary_large_image" ||
+    data.bannerStyle === "large_banner" ||
+    data.banner_style === "large_banner" ||
+    data.bannerStyle === "summary_large_image" ||
+    data.banner_style === "summary_large_image"
+  );
+  const isDefault = Boolean(
+    !isLarge && (
+      data.bannerStyle === "default_banner" ||
+      data.banner_style === "default_banner" ||
+      data.bannerStyle === "summary" ||
+      data.banner_style === "summary" ||
+      data.twitterCard === "summary" ||
+      data.twitter_card === "summary"
+    )
+  );
   const resolvedBannerStyle = isDefault ? "default_banner" : "large_banner";
   const resolvedTwitterCard = isDefault ? "summary" : "summary_large_image";
 
@@ -525,10 +537,30 @@ export async function cfUpdateLink(id: string, updates: any) {
     ogDescription: updates.ogDescription || updates.og_description,
     og_image: updates.og_image || updates.ogImage,
     ogImage: updates.ogImage || updates.og_image,
-    banner_style: updates.banner_style || updates.bannerStyle || (updates.twitter_card === "summary" || updates.twitterCard === "summary" ? "default_banner" : updates.twitter_card === "summary_large_image" || updates.twitterCard === "summary_large_image" ? "large_banner" : undefined),
-    bannerStyle: updates.bannerStyle || updates.banner_style || (updates.twitter_card === "summary" || updates.twitterCard === "summary" ? "default_banner" : updates.twitter_card === "summary_large_image" || updates.twitterCard === "summary_large_image" ? "large_banner" : undefined),
-    twitter_card: updates.twitter_card || updates.twitterCard || (updates.banner_style === "default_banner" || updates.bannerStyle === "default_banner" ? "summary" : updates.banner_style === "large_banner" || updates.bannerStyle === "large_banner" ? "summary_large_image" : undefined),
-    twitterCard: updates.twitterCard || updates.twitter_card || (updates.banner_style === "default_banner" || updates.bannerStyle === "default_banner" ? "summary" : updates.banner_style === "large_banner" || updates.bannerStyle === "large_banner" ? "summary_large_image" : undefined),
+    banner_style:
+      updates.banner_style === "large_banner" || updates.bannerStyle === "large_banner" || updates.twitter_card === "summary_large_image" || updates.twitterCard === "summary_large_image"
+        ? "large_banner"
+        : updates.banner_style === "default_banner" || updates.bannerStyle === "default_banner" || updates.twitter_card === "summary" || updates.twitterCard === "summary"
+          ? "default_banner"
+          : updates.banner_style || updates.bannerStyle,
+    bannerStyle:
+      updates.banner_style === "large_banner" || updates.bannerStyle === "large_banner" || updates.twitter_card === "summary_large_image" || updates.twitterCard === "summary_large_image"
+        ? "large_banner"
+        : updates.banner_style === "default_banner" || updates.bannerStyle === "default_banner" || updates.twitter_card === "summary" || updates.twitterCard === "summary"
+          ? "default_banner"
+          : updates.bannerStyle || updates.banner_style,
+    twitter_card:
+      updates.twitter_card === "summary_large_image" || updates.twitterCard === "summary_large_image" || updates.banner_style === "large_banner" || updates.bannerStyle === "large_banner"
+        ? "summary_large_image"
+        : updates.twitter_card === "summary" || updates.twitterCard === "summary" || updates.banner_style === "default_banner" || updates.bannerStyle === "default_banner"
+          ? "summary"
+          : updates.twitter_card || updates.twitterCard,
+    twitterCard:
+      updates.twitter_card === "summary_large_image" || updates.twitterCard === "summary_large_image" || updates.banner_style === "large_banner" || updates.bannerStyle === "large_banner"
+        ? "summary_large_image"
+        : updates.twitter_card === "summary" || updates.twitterCard === "summary" || updates.banner_style === "default_banner" || updates.bannerStyle === "default_banner"
+          ? "summary"
+          : updates.twitterCard || updates.twitter_card,
     expires_at: updates.expires_at || updates.expiresAt,
     max_clicks: updates.max_clicks !== undefined ? updates.max_clicks : updates.maxClicks,
     fallback_url: updates.fallback_url || updates.fallbackUrl,

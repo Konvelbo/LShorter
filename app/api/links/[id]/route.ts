@@ -365,6 +365,10 @@ export async function PATCH(
       userPlan: effectivePlan,
     };
 
+    const targetSlug = (body.slug || id || "").trim();
+    if (targetSlug) invalidateBotResponseCache(targetSlug);
+    if (id) invalidateBotResponseCache(id);
+
     const url = new URL(`${WORKER_URL}/api/v1/links/${id}`);
     if (userId) url.searchParams.set("userId", userId);
 

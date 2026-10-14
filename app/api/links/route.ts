@@ -531,11 +531,11 @@ export async function POST(req: Request) {
     }
 
     const createdSlug = data?.data?.slug || body.slug;
-    if (createdSlug) {
-      try {
-        invalidateBotResponseCache(createdSlug);
-      } catch {}
-    }
+    const createdId = data?.data?.id || body.id;
+    try {
+      if (createdSlug) invalidateBotResponseCache(createdSlug);
+      if (createdId) invalidateBotResponseCache(createdId);
+    } catch {}
 
     return NextResponse.json(
       {

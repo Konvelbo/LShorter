@@ -142,7 +142,9 @@ export default {
             headers: {
               ...corsHeaders,
               'Content-Type': mime,
-              'Cache-Control': 'public, max-age=31536000, immutable',
+              'Cache-Control': (url.searchParams.has('v') || url.searchParams.has('_t') || url.searchParams.has('cb'))
+                ? 'no-store, no-cache, max-age=0, must-revalidate'
+                : 'public, max-age=60, s-maxage=300, stale-while-revalidate=3600',
             },
           });
         } catch (decodeErr) {
@@ -225,20 +227,32 @@ export default {
       const ogImage = link.og_image || link.ogImage || '';
       const ogTitle = link.og_title || link.ogTitle || link.meta_title || link.metaTitle || link.title || slug;
       const ogDescription = link.og_description || link.ogDescription || '';
-      const isCompact = 
-        link.twitter_card === 'summary' || 
-        link.twitterCard === 'summary' || 
-        link.banner_style === 'default_banner' || 
-        link.bannerStyle === 'default_banner' ||
-        link.banner_style === 'summary' ||
-        link.bannerStyle === 'summary';
+      const isLarge = Boolean(
+        link.twitter_card === 'summary_large_image' ||
+        link.twitterCard === 'summary_large_image' ||
+        link.banner_style === 'large_banner' ||
+        link.bannerStyle === 'large_banner' ||
+        link.banner_style === 'summary_large_image' ||
+        link.bannerStyle === 'summary_large_image'
+      );
+      const isCompact = Boolean(
+        !isLarge && (
+          link.twitter_card === 'summary' || 
+          link.twitterCard === 'summary' || 
+          link.banner_style === 'default_banner' || 
+          link.bannerStyle === 'default_banner' ||
+          link.banner_style === 'summary' ||
+          link.bannerStyle === 'summary'
+        )
+      );
       const twitterCard = isCompact ? 'summary' : 'summary_large_image';
 
       // Serve OpenGraph / Twitter Cards ONLY for social crawler bots without redirecting
       if (isBot) {
         const reqHost = request.headers.get('x-forwarded-host') || request.headers.get('host') || '';
         const domain = (reqHost && !reqHost.includes('workers.dev')) ? reqHost : 'lsho.cc';
-        const canonical = `https://${domain}${path}`;
+        const searchStr = url.search || '';
+        const canonical = `https://${domain}${path}${searchStr}`;
         const dest = link.target_url || link.targetUrl || `https://${domain}`;
 
         // Convert data:image or relative image to public HTTPS URL so Twitter/FB crawlers can load it
@@ -271,6 +285,11 @@ export default {
           } else {
             twitterImageUrl = `https://${domain}/api/og?title=${encodeURIComponent(ogTitle.substring(0, 80))}&slug=${encodeURIComponent(slug)}`;
           }
+        }
+
+        // WhatsApp, Facebook, LinkedIn, Telegram reject SVG / dicebear images; guarantee raster fallback
+        if (publicImageUrl.includes('.svg') || publicImageUrl.includes('dicebear')) {
+          publicImageUrl = twitterImageUrl;
         }
 
         const escapeHtml = (s = '') => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -328,12 +347,21 @@ export default {
 </body>
 </html>`;
 
+        const hasCacheBuster =
+          url.searchParams.has('v') ||
+          url.searchParams.has('_t') ||
+          url.searchParams.has('cb') ||
+          url.searchParams.has('nocache') ||
+          url.searchParams.has('preview');
+
         return new Response(html, {
           status: 200,
           headers: {
             ...corsHeaders,
             'Content-Type': 'text/html; charset=utf-8',
-            'Cache-Control': 'public, max-age=10, s-maxage=30, stale-while-revalidate=60',
+            'Cache-Control': hasCacheBuster
+              ? 'no-store, no-cache, max-age=0, must-revalidate'
+              : 'public, max-age=10, s-maxage=30, stale-while-revalidate=60',
           },
         });
       }
@@ -869,6 +897,23 @@ export default {
           const ogTitle = body.ogTitle || body.og_title || body.metaTitle || body.meta_title || '';
           const ogDescription = body.ogDescription || body.og_description || '';
           const metaTitle = body.metaTitle || body.meta_title || ogTitle || slug;
+          const rawBannerStyle = body.banner_style || body.bannerStyle || '';
+          const rawTwitterCard = body.twitter_card || body.twitterCard || '';
+          const isLarge = Boolean(
+            rawTwitterCard === 'summary_large_image' ||
+            rawBannerStyle === 'large_banner' ||
+            rawBannerStyle === 'summary_large_image'
+          );
+          const isCompact = Boolean(
+            !isLarge && (
+              rawTwitterCard === 'summary' ||
+              rawBannerStyle === 'default_banner' ||
+              rawBannerStyle === 'summary'
+            )
+          );
+          const resolvedTwitterCard = isCompact ? 'summary' : 'summary_large_image';
+          const resolvedBannerStyle = isCompact ? 'default_banner' : 'large_banner';
+
           const linkObj = {
             id,
             user_id: userId,
@@ -889,8 +934,10 @@ export default {
             ogDescription,
             meta_title: metaTitle,
             metaTitle,
-            twitter_card: body.twitter_card || body.twitterCard || (ogImage ? 'summary_large_image' : 'summary_large_image'),
-            twitterCard: body.twitterCard || body.twitter_card || (ogImage ? 'summary_large_image' : 'summary_large_image'),
+            banner_style: resolvedBannerStyle,
+            bannerStyle: resolvedBannerStyle,
+            twitter_card: resolvedTwitterCard,
+            twitterCard: resolvedTwitterCard,
             created_at: new Date().toISOString(),
           };
 
@@ -931,7 +978,7 @@ export default {
                 await env.DB.prepare(`
                   INSERT INTO links (id, user_id, domain_name, slug, short_url, target_url, clicks_count, is_active, routing_rules, geo_targeting, device_targeting, og_image, og_title, og_description, meta_title, twitter_card, created_at)
                   VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-                `).bind(id, userId, domainName, slug, shortUrl, targetUrl, isActive, routingRules, geoTargeting, deviceTargeting, ogImage, ogTitle, ogDescription, metaTitle, 'summary_large_image').run();
+                `).bind(id, userId, domainName, slug, shortUrl, targetUrl, isActive, routingRules, geoTargeting, deviceTargeting, ogImage, ogTitle, ogDescription, metaTitle, resolvedTwitterCard).run();
               } catch (insColErr) {
                 try {
                   await env.DB.prepare(`
@@ -997,6 +1044,29 @@ export default {
           const ogDescription = body.ogDescription !== undefined ? body.ogDescription : (body.og_description !== undefined ? body.og_description : (existingLink?.og_description || ''));
           const metaTitle = body.metaTitle !== undefined ? body.metaTitle : (body.meta_title !== undefined ? body.meta_title : ogTitle);
 
+          const hasExplicitBanner = body.banner_style !== undefined || body.bannerStyle !== undefined || body.twitter_card !== undefined || body.twitterCard !== undefined;
+          const rawBannerStyle = hasExplicitBanner 
+            ? (body.banner_style || body.bannerStyle || '') 
+            : (existingLink?.banner_style || existingLink?.bannerStyle || '');
+          const rawTwitterCard = hasExplicitBanner 
+            ? (body.twitter_card || body.twitterCard || '') 
+            : (existingLink?.twitter_card || existingLink?.twitterCard || '');
+
+          const isLarge = Boolean(
+            rawTwitterCard === 'summary_large_image' ||
+            rawBannerStyle === 'large_banner' ||
+            rawBannerStyle === 'summary_large_image'
+          );
+          const isCompact = Boolean(
+            !isLarge && (
+              rawTwitterCard === 'summary' ||
+              rawBannerStyle === 'default_banner' ||
+              rawBannerStyle === 'summary'
+            )
+          );
+          const resolvedTwitterCard = isCompact ? 'summary' : 'summary_large_image';
+          const resolvedBannerStyle = isCompact ? 'default_banner' : 'large_banner';
+
           const updatedLinkObj = {
             ...existingLink,
             id,
@@ -1018,8 +1088,10 @@ export default {
             ogDescription,
             meta_title: metaTitle,
             metaTitle,
-            twitter_card: body.twitter_card || body.twitterCard || existingLink?.twitter_card || existingLink?.twitterCard || (ogImage ? 'summary_large_image' : 'summary_large_image'),
-            twitterCard: body.twitterCard || body.twitter_card || existingLink?.twitterCard || existingLink?.twitter_card || (ogImage ? 'summary_large_image' : 'summary_large_image'),
+            banner_style: resolvedBannerStyle,
+            bannerStyle: resolvedBannerStyle,
+            twitter_card: resolvedTwitterCard,
+            twitterCard: resolvedTwitterCard,
             updated_at: new Date().toISOString(),
           };
 
@@ -1065,7 +1137,7 @@ export default {
                   ogTitle,
                   ogDescription,
                   metaTitle,
-                  'summary_large_image',
+                  resolvedTwitterCard,
                   id,
                   slug
                 ).run();

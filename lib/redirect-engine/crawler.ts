@@ -40,27 +40,41 @@ export function isSocialCrawler(userAgentRaw: string): boolean {
 // In-memory cache for bot responses
 const botResponseCache = new Map<string, { body: string; headers: HeadersInit; expiresAt: number }>();
 
-export function getCachedBotResponse(slug: string): { body: string; headers: HeadersInit } | null {
-  const key = (slug || "").toLowerCase();
-  const cached = botResponseCache.get(key) || botResponseCache.get(slug);
+export function getCachedBotResponse(slug: string, search: string = ""): { body: string; headers: HeadersInit } | null {
+  // If a cache-busting query parameter is present (like ?v=x, ?_t=123, ?cb=1, ?nocache=1, ?preview=1), completely bypass cache!
+  if (search && (search.includes("v=") || search.includes("_t=") || search.includes("cb=") || search.includes("nocache=") || search.includes("preview="))) {
+    return null;
+  }
+  const key = `${(slug || "").toLowerCase()}${search ? `:${search.toLowerCase()}` : ""}`;
+  const cached = botResponseCache.get(key) || (!search ? botResponseCache.get((slug || "").toLowerCase()) : undefined);
   if (cached && Date.now() < cached.expiresAt) {
     return { body: cached.body, headers: cached.headers };
   }
   return null;
 }
 
-export function setCachedBotResponse(slug: string, body: string, headers: HeadersInit, ttlMs: number = 60000): void {
-  const key = (slug || "").toLowerCase();
-  botResponseCache.set(key, {
+export function setCachedBotResponse(slug: string, body: string, headers: HeadersInit, ttlMs: number = 30000, search: string = ""): void {
+  const baseKey = (slug || "").toLowerCase();
+  const entry = {
     body,
     headers,
     expiresAt: Date.now() + ttlMs,
-  });
+  };
+  if (!search) {
+    botResponseCache.set(baseKey, entry);
+  } else {
+    botResponseCache.set(`${baseKey}:${search.toLowerCase()}`, entry);
+  }
 }
 
 export function invalidateBotResponseCache(slug?: string): void {
   if (slug) {
-    botResponseCache.delete(slug.toLowerCase());
+    const s = slug.toLowerCase();
+    for (const key of Array.from(botResponseCache.keys())) {
+      if (key === s || key.startsWith(`${s}:`)) {
+        botResponseCache.delete(key);
+      }
+    }
     botResponseCache.delete(slug);
   } else {
     botResponseCache.clear();
@@ -127,9 +141,9 @@ export function renderSocialHtml(options: {
     }
   }
 
-  // Open Graph raster/vector fallback
+  // Open Graph raster fallback for Facebook, WhatsApp, Telegram, LinkedIn, Discord
   let ogImg = resolvedImg;
-  if (!ogImg) {
+  if (!ogImg || ogImg.includes(".svg") || ogImg.includes("dicebear")) {
     ogImg = twitterImg;
   }
 
