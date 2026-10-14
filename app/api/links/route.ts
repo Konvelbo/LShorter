@@ -4,6 +4,7 @@ import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
 import { auth } from "@/auth";
 import { convexHttp as convex } from "@/lib/convex-server";
 import { api } from "@/convex/_generated/api";
+import { isSafeHttpUrl } from "@/lib/security-utils";
 export async function GET(req: Request) {
   const session = await auth().catch(() => null);
   if (!session?.user) {
@@ -269,19 +270,34 @@ export async function POST(req: Request) {
     }
 
     const rawTargetUrl = (body.targetUrl || body.target_url || "").trim();
-    if (!rawTargetUrl) {
+    if (!rawTargetUrl || !isSafeHttpUrl(rawTargetUrl)) {
       return NextResponse.json(
-        { success: false, error: "Target URL is required." },
+        { success: false, error: "Invalid target URL scheme. Only HTTP and HTTPS URLs are permitted." },
         { status: 400 }
       );
     }
 
-    // Block dangerous URI schemes (SSRF & XSS: javascript:, data:, file:, vbscript:)
-    if (/^(javascript|data|file|vbscript):/i.test(rawTargetUrl)) {
+    const rawFallbackUrl = (body.fallbackUrl || body.fallback_url || "").trim();
+    if (rawFallbackUrl && !isSafeHttpUrl(rawFallbackUrl)) {
       return NextResponse.json(
-        { success: false, error: "Invalid URL scheme. Only HTTP and HTTPS are permitted." },
+        { success: false, error: "Invalid fallback URL scheme. Only HTTP and HTTPS URLs are permitted." },
         { status: 400 }
       );
+    }
+
+    const rawRules = Array.isArray(body.routingRules)
+      ? body.routingRules
+      : Array.isArray(body.routing_rules)
+        ? body.routing_rules
+        : [];
+    for (const rule of rawRules) {
+      const dest = (rule?.destinationUrl || rule?.destination_url || rule?.targetUrl || rule?.target_url || "").trim();
+      if (dest && !isSafeHttpUrl(dest)) {
+        return NextResponse.json(
+          { success: false, error: "Invalid routing rule destination URL. Only HTTP and HTTPS URLs are permitted." },
+          { status: 400 }
+        );
+      }
     }
 
     const finalUserEmail = (session.user.email || "").toLowerCase().trim();

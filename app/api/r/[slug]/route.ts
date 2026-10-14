@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { trackClickAsync, evaluateTargetUrl, detectVisitorGeoAsync } from "@/lib/redirect-engine";
-
 import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
+import { checkRateLimit } from "@/lib/security-utils";
 
 async function resolveLinkData(slug: string, req: Request) {
   // 1. Vérification du slug auprès du Worker via la redirection /r/ (302)
@@ -207,7 +207,32 @@ export async function POST(
   try {
     const body = await req.json();
     const providedPassword = (body?.password || "").trim();
-    const actualPassword = (link.password || "").trim();
+    const requiredPassword = (link.password || link.pathLockPassword || "").trim();
+
+    if (requiredPassword) {
+      const clientIp =
+        req.headers.get("cf-connecting-ip") ||
+        req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+        "ip_anon";
+      const rateLimitKey = `gate_${slug}_${clientIp}`;
+      const rateCheck = checkRateLimit(rateLimitKey, 10, 60000);
+
+      if (!rateCheck.allowed) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Trop de tentatives infructueuses. Veuillez réessayer dans ${rateCheck.retryAfterSec} secondes.`,
+            code: "RATE_LIMITED",
+          },
+          {
+            status: 429,
+            headers: {
+              "Retry-After": String(rateCheck.retryAfterSec || 60),
+            },
+          },
+        );
+      }
+    }
 
     if (!link.isActive) {
       return NextResponse.json(
@@ -247,7 +272,7 @@ export async function POST(
       );
     }
 
-    if (!actualPassword || providedPassword === actualPassword) {
+    if (!requiredPassword || providedPassword === requiredPassword) {
       // Détection géolocalisation authentique (zéro mock/hardcode)
       const geo = await detectVisitorGeoAsync(req).catch(() => undefined);
       // Enregistrement direct du clic dans Cloudflare D1
@@ -264,7 +289,6 @@ export async function POST(
         pathLockMode: link.pathLockMode,
         pathLockPrefix: link.pathLockPrefix,
         pathLockMessage: link.pathLockMessage,
-        pathLockPassword: link.pathLockPassword,
         metaTitle: link.metaTitle,
       });
     }

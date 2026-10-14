@@ -4,6 +4,7 @@ import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
 import { auth } from "@/auth";
 import { convexHttp as convex } from "@/lib/convex-server";
 import { api } from "@/convex/_generated/api";
+import { isSafeHttpUrl } from "@/lib/security-utils";
 
 export async function PATCH(
   req: Request,
@@ -26,9 +27,34 @@ export async function PATCH(
 
     if (body.targetUrl || body.target_url) {
       const u = String(body.targetUrl || body.target_url).trim();
-      if (/^(javascript|data|file|vbscript):/i.test(u)) {
+      if (!isSafeHttpUrl(u)) {
         return NextResponse.json(
-          { success: false, error: "Invalid URL scheme. Only HTTP and HTTPS are permitted." },
+          { success: false, error: "Invalid target URL scheme. Only HTTP and HTTPS are permitted." },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (body.fallbackUrl || body.fallback_url) {
+      const fb = String(body.fallbackUrl || body.fallback_url).trim();
+      if (!isSafeHttpUrl(fb)) {
+        return NextResponse.json(
+          { success: false, error: "Invalid fallback URL scheme. Only HTTP and HTTPS are permitted." },
+          { status: 400 }
+        );
+      }
+    }
+
+    const patchRules = Array.isArray(body.routingRules)
+      ? body.routingRules
+      : Array.isArray(body.routing_rules)
+        ? body.routing_rules
+        : [];
+    for (const rule of patchRules) {
+      const dest = String(rule?.destinationUrl || rule?.destination_url || rule?.targetUrl || rule?.target_url || "").trim();
+      if (dest && !isSafeHttpUrl(dest)) {
+        return NextResponse.json(
+          { success: false, error: "Invalid routing rule destination URL scheme. Only HTTP and HTTPS are permitted." },
           { status: 400 }
         );
       }

@@ -2,8 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
 
+import {
+  ALLOWED_IMAGE_MIME_TYPES,
+  validateSvgSafety,
+} from "@/lib/security-utils";
+
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB limit
-const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/svg+xml"];
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -14,10 +18,46 @@ export async function POST(req: NextRequest) {
   try {
     const contentType = req.headers.get("content-type") || "";
     let base64Data = "";
+    let extractedMime = "";
 
     if (contentType.includes("application/json")) {
       const body = await req.json().catch(() => null);
-      base64Data = body?.data || body?.image || "";
+      const raw = (body?.data || body?.image || "").trim();
+
+      const dataUriMatch = raw.match(/^data:([^;,]+);base64,([A-Za-z0-9+/=]+)$/);
+      if (!dataUriMatch) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Invalid image format. Expected base64 Data URI with explicit MIME type.",
+          },
+          { status: 400 },
+        );
+      }
+
+      extractedMime = dataUriMatch[1].toLowerCase();
+      if (!ALLOWED_IMAGE_MIME_TYPES.includes(extractedMime as any)) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Unsupported file type. Only JPEG, PNG, WEBP, GIF, and SVG are allowed.",
+          },
+          { status: 400 },
+        );
+      }
+
+      if (extractedMime === "image/svg+xml") {
+        const svgContent = Buffer.from(dataUriMatch[2], "base64").toString("utf-8");
+        const safetyCheck = validateSvgSafety(svgContent);
+        if (!safetyCheck.isSafe) {
+          return NextResponse.json(
+            { success: false, error: safetyCheck.reason || "Unsafe SVG content rejected." },
+            { status: 400 },
+          );
+        }
+      }
+
+      base64Data = raw;
     } else if (contentType.includes("multipart/form-data")) {
       const formData = await req.formData().catch(() => null);
       const file = formData?.get("file") as File | null;
@@ -32,13 +72,25 @@ export async function POST(req: NextRequest) {
         const buffer = Buffer.from(arrayBuf);
         const fName = file.name || "image.jpg";
         const ext = fName.split(".").pop()?.toLowerCase() || "jpg";
-        const mimeType = file.type || `image/${ext === "jpg" ? "jpeg" : ext}`;
-        if (!ALLOWED_MIME_TYPES.includes(mimeType)) {
+        const mimeType = (file.type || `image/${ext === "jpg" ? "jpeg" : ext}`).toLowerCase();
+        if (!ALLOWED_IMAGE_MIME_TYPES.includes(mimeType as any)) {
           return NextResponse.json(
             { success: false, error: "Unsupported file type. Only JPEG, PNG, WEBP, GIF, and SVG are allowed." },
             { status: 400 }
           );
         }
+
+        if (mimeType === "image/svg+xml") {
+          const svgContent = buffer.toString("utf-8");
+          const safetyCheck = validateSvgSafety(svgContent);
+          if (!safetyCheck.isSafe) {
+            return NextResponse.json(
+              { success: false, error: safetyCheck.reason || "Unsafe SVG content rejected." },
+              { status: 400 },
+            );
+          }
+        }
+
         base64Data = `data:${mimeType};base64,${buffer.toString("base64")}`;
       }
     }

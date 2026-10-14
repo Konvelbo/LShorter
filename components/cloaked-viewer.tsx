@@ -21,7 +21,6 @@ export interface CloakedViewerLink {
   pathLockMode?: string;
   pathLockPrefix?: string;
   pathLockMessage?: string;
-  pathLockPassword?: string;
 }
 
 export interface CloakedViewerProps {
@@ -31,11 +30,6 @@ export interface CloakedViewerProps {
 export function CloakedViewer({ link }: CloakedViewerProps) {
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
   const [iframeKey, setIframeKey] = useState(0);
-  const [isUnlocked, setIsUnlocked] = useState(
-    !link.pathLockPassword || link.pathLockMode === "off"
-  );
-  const [enteredPassword, setEnteredPassword] = useState("");
-  const [passwordError, setPasswordError] = useState("");
 
   useEffect(() => {
     if (link.metaTitle) {
@@ -46,59 +40,6 @@ export function CloakedViewer({ link }: CloakedViewerProps) {
   const handleReload = () => {
     setIframeKey((prev) => prev + 1);
   };
-
-  const handlePasswordSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (enteredPassword.trim() === link.pathLockPassword) {
-      setIsUnlocked(true);
-      setPasswordError("");
-    } else {
-      setPasswordError("Incorrect path lock password.");
-    }
-  };
-
-  // If strict path locking is enabled with a password and not yet unlocked
-  if (!isUnlocked && link.pathLockPassword && link.pathLockMode !== "off") {
-    return (
-      <div className="min-h-screen w-full bg-[#0a0a0c] text-white flex flex-col items-center justify-center p-4">
-        <div className="w-full max-w-md rounded-[10px] bg-white dark:bg-[#121215] border border-zinc-200 dark:border-[#27272a] p-6 shadow-2xl text-zinc-900 dark:text-white">
-          <div className="flex flex-col items-center text-center gap-2 mb-6">
-            <div className="w-12 h-12 rounded-[10px] bg-brand-light dark:bg-brand-subtle text-brand flex items-center justify-center border border-brand-subtle">
-              <Lock className="w-6 h-6" />
-            </div>
-            <h2 className="text-lg font-bold">Path Locked Link</h2>
-            <p className="text-xs text-zinc-500 dark:text-neutral-400">
-              {link.pathLockMessage ||
-                "This cloaked URL requires authentication to view destination content."}
-            </p>
-          </div>
-
-          <form onSubmit={handlePasswordSubmit} className="flex flex-col gap-3">
-            <input
-              type="password"
-              placeholder="Enter path password..."
-              value={enteredPassword}
-              onChange={(e) => {
-                setEnteredPassword(e.target.value);
-                setPasswordError("");
-              }}
-              className="w-full h-10 px-3 text-sm rounded-[10px] bg-zinc-50 dark:bg-[#0c0c0e] border border-zinc-200 dark:border-[#27272a] text-zinc-900 dark:text-white focus:outline-none focus:border-brand"
-            />
-            {passwordError && (
-              <p className="text-xs text-red-500 font-medium">{passwordError}</p>
-            )}
-            <Button
-              type="submit"
-              className="w-full h-10 bg-[#0066FF] hover:bg-[#0055d4] text-white font-semibold rounded-[10px] cursor-pointer"
-            >
-              <span>Unlock Viewer</span>
-              <ArrowRight className="w-4 h-4 ml-1.5" />
-            </Button>
-          </form>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="relative w-screen h-screen flex flex-col bg-black overflow-hidden font-sans">

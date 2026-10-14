@@ -31,7 +31,6 @@ export default function PasswordGatePage() {
   const [pathLockMode, setPathLockMode] = useState<string>("off");
   const [pathLockPrefix, setPathLockPrefix] = useState<string>("");
   const [pathLockMessage, setPathLockMessage] = useState<string>("");
-  const [pathLockPassword, setPathLockPassword] = useState<string>("");
   const [metaTitle, setMetaTitle] = useState<string | null>(null);
 
   const handleUnlock = async (e: React.FormEvent) => {
@@ -73,7 +72,6 @@ export default function PasswordGatePage() {
       setPathLockMode(data.pathLockMode || "off");
       setPathLockPrefix(data.pathLockPrefix || "");
       setPathLockMessage(data.pathLockMessage || "");
-      setPathLockPassword(data.pathLockPassword || "");
       setMetaTitle(data.metaTitle);
       setIsVerifying(false);
 
@@ -98,7 +96,6 @@ export default function PasswordGatePage() {
           pathLockMode,
           pathLockPrefix,
           pathLockMessage,
-          pathLockPassword,
         }}
       />
     );

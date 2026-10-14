@@ -22,14 +22,16 @@ async function handleProcess(req: Request) {
   const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
   const secretHeader = req.headers.get("x-cron-secret") || req.headers.get("x-frontend-secret") || "";
 
-  if (cronSecret) {
-    if (token !== cronSecret && secretHeader !== cronSecret) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
-    }
-  } else if (FRONTEND_SECRET) {
-    if (token !== FRONTEND_SECRET && secretHeader !== FRONTEND_SECRET && !token) {
-      // In local dev without cron secret, allow call if token matches or dev mode
-    }
+  const isAuthorized = Boolean(
+    (cronSecret && (token === cronSecret || secretHeader === cronSecret)) ||
+    (FRONTEND_SECRET && (token === FRONTEND_SECRET || secretHeader === FRONTEND_SECRET))
+  );
+
+  if (!isAuthorized) {
+    return NextResponse.json(
+      { success: false, error: "Unauthorized access to cron dispatch endpoint." },
+      { status: 401 }
+    );
   }
 
   try {

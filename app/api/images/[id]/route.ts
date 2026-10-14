@@ -46,6 +46,7 @@ export async function GET(
         const contentType =
           workerRes.headers.get("content-type") || getMimeType(cleanId);
         const imageBuffer = await workerRes.arrayBuffer();
+        const isSvg = contentType.includes("svg");
 
         return new Response(imageBuffer, {
           status: 200,
@@ -55,6 +56,8 @@ export async function GET(
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
             "Cross-Origin-Resource-Policy": "cross-origin",
+            "X-Content-Type-Options": "nosniff",
+            ...(isSvg ? { "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; sandbox" } : {}),
           },
         });
       }
@@ -96,6 +99,7 @@ export async function GET(
         const mime = mimeMatch ? mimeMatch[1] : "image/jpeg";
         const buffer = Buffer.from(base64Data, "base64");
 
+        const isSvg = mime.includes("svg");
         return new Response(buffer, {
           status: 200,
           headers: {
@@ -103,6 +107,8 @@ export async function GET(
             "Cache-Control": "public, max-age=31536000, immutable",
             "Access-Control-Allow-Origin": "*",
             "Cross-Origin-Resource-Policy": "cross-origin",
+            "X-Content-Type-Options": "nosniff",
+            ...(isSvg ? { "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; sandbox" } : {}),
           },
         });
       } else if (
