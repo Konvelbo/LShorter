@@ -23,9 +23,9 @@ import { triggerPlanUpgrade } from "@/lib/plan-guard";
 import { guardLinkCreation } from "@/lib/billing/quota-service";
 import { RESERVED_SLUGS } from "@/lib/security-utils";
 import { showToast } from "@/components/ui/toast-provider";
+import { useUndoDelete } from "@/components/ui/undo-delete-provider";
 import { cn } from "@/lib/utils";
 import { Trash2, Loader2, CheckCircle2 } from "lucide-react";
-import { DeleteConfirmModal } from "@/components/dashboard/delete-confirm-modal";
 import confetti from "canvas-confetti";
 import gsap from "gsap";
 
@@ -136,6 +136,8 @@ export function LinkDrawer({
   const backdropRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const tabsNavRef = useRef<HTMLDivElement>(null);
+
+  const { triggerUndoDelete } = useUndoDelete();
 
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
@@ -309,8 +311,6 @@ export function LinkDrawer({
 
   // Status & Validation
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [, setHasAttemptedSubmit] = useState(false);
 
@@ -792,27 +792,48 @@ export function LinkDrawer({
     showToast.success("Percentages balanced automatically!");
   };
 
-  // Delete Link Handler
-  const handleDeleteLink = async () => {
+  const handleDeleteLinkWithUndo = () => {
     if (!link?.id) return;
-    setIsDeleting(true);
-    try {
-      await cfDeleteLink(link.id, userId, link.slug, link.ogImage);
-      cfInvalidateCache();
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(new Event("lshorter_data_change"));
-        window.dispatchEvent(
-          new CustomEvent("lshorter_link_deleted", { detail: { id: link.id } }),
-        );
-      }
-      showToast.success("Link deleted successfully.");
-      setIsDeleteModalOpen(false);
-      onClose();
-    } catch {
-      showToast.error("Failed to delete link.");
-    } finally {
-      setIsDeleting(false);
+    const deletedLink = { ...link };
+    const effectiveSlug = slug || link.slug;
+
+    // 1. Optimistic removal event for UI
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("lshorter_link_deleted", { detail: { id: link.id } }),
+      );
     }
+
+    // 2. Close drawer immediately
+    onClose();
+
+    // 3. Trigger 10-second undo delete toast
+    triggerUndoDelete({
+      id: link.id,
+      itemType: "link",
+      title: "Lien supprimé",
+      description: `/${effectiveSlug}`,
+      duration: 10,
+      onExecute: async () => {
+        try {
+          await cfDeleteLink(link.id, userId, link.slug, link.ogImage);
+          cfInvalidateCache();
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new Event("lshorter_data_change"));
+          }
+        } catch {
+          showToast.error("Erreur lors de la suppression du lien.");
+        }
+      },
+      onCancel: () => {
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("lshorter_links_updated", { detail: deletedLink }),
+          );
+          window.dispatchEvent(new Event("lshorter_data_change"));
+        }
+      },
+    });
   };
 
   // Submit Handler
@@ -1551,16 +1572,6 @@ export function LinkDrawer({
         className="fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-[2px] z-[2000]"
       />
 
-      {/* Delete Confirmation Modal */}
-      <DeleteConfirmModal
-        isOpen={isDeleteModalOpen}
-        onClose={() => setIsDeleteModalOpen(false)}
-        onConfirm={handleDeleteLink}
-        title="Delete this short link?"
-        description={`Are you sure you want to delete /${slug || link?.slug}? This action cannot be undone.`}
-        isDeleting={isDeleting}
-      />
-
       {/* Drawer panel matching template layout */}
       <aside
         ref={panelRef}
@@ -1858,12 +1869,13 @@ export function LinkDrawer({
             {isEditMode && (
               <button
                 type="button"
-                onClick={() => setIsDeleteModalOpen(true)}
+                onClick={handleDeleteLinkWithUndo}
                 disabled={isSubmitting}
-                className="text-xs font-semibold text-red-500 hover:text-red-600 hover:bg-red-500/10 px-3 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5"
+                className="text-xs font-semibold text-red-500 hover:text-red-600 hover:bg-red-500/10 px-3 py-1.5 rounded-[8px] transition-colors cursor-pointer flex items-center gap-1.5"
+                title="Supprimer ce lien"
               >
                 <Trash2 className="w-3.5 h-3.5" />
-                <span>Delete</span>
+                <span>Supprimer</span>
               </button>
             )}
           </div>

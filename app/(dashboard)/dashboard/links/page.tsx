@@ -56,12 +56,12 @@ import { Badge } from "@/components/ui/badge";
 import { LinksPageSkeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { showToast } from "@/components/ui/toast-provider";
+import { useUndoDelete } from "@/components/ui/undo-delete-provider";
 import { exportToExcelWorkbook } from "@/lib/export-excel";
 import { LinkCreateModal } from "@/components/dashboard/link-create-modal";
 import { LinkEditModal } from "@/components/dashboard/link-edit-modal";
 import { LinkShareModal } from "@/components/dashboard/link-share-modal";
 import { LinkQRModal } from "@/components/dashboard/link-qr-modal";
-import { DeleteConfirmModal } from "@/components/dashboard/delete-confirm-modal";
 import {
   LinksReuiDataGrid,
   getDicebearGlassUrl,
@@ -97,14 +97,7 @@ export default function LinksPage() {
     right: number;
   } | null>(null);
 
-  // 10-Second Undo Toast State & Timer Refs
-  const [undoToast, setUndoToast] = useState<{
-    link: ShortLink;
-    index: number;
-    remaining: number;
-  } | null>(null);
-  const undoTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const undoIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const { triggerUndoDelete } = useUndoDelete();
 
   // Drag & Drop Reordering State
   const [draggedLinkId, setDraggedLinkId] = useState<string | null>(null);
@@ -121,30 +114,10 @@ export default function LinksPage() {
     setMounted(true);
   }, []);
 
-  // Cleanup undo timer on unmount
-  useEffect(() => {
-    return () => {
-      if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current);
-      if (undoIntervalRef.current) clearInterval(undoIntervalRef.current);
-    };
-  }, []);
-
   // Checkbox Selection & Bulk Actions
   const [selectedLinkIds, setSelectedLinkIds] = useState<Set<string>>(
     new Set(),
   );
-
-  // Custom Delete Modal State
-  const [deleteTarget, setDeleteTarget] = useState<{
-    isOpen: boolean;
-    ids: string[];
-    labels: string[];
-  }>({
-    isOpen: false,
-    ids: [],
-    labels: [],
-  });
-  const [isDeleting, setIsDeleting] = useState(false);
 
   const rawUserId = session?.user?.id;
   const userEmail = session?.user?.email || "";
@@ -460,7 +433,20 @@ export default function LinksPage() {
       }
     };
 
+    const handleLinkDeleted = (e: Event) => {
+      const customEvent = e as CustomEvent<{ id: string }>;
+      if (customEvent.detail?.id) {
+        setLinks((prev) => prev.filter((l) => l.id !== customEvent.detail.id));
+        setSelectedLinkIds((prev) => {
+          const next = new Set(prev);
+          next.delete(customEvent.detail.id);
+          return next;
+        });
+      }
+    };
+
     window.addEventListener("lshorter_links_updated", handleUpdate);
+    window.addEventListener("lshorter_link_deleted", handleLinkDeleted);
     window.addEventListener("lshorter_data_change", handleUpdate);
     window.addEventListener("lshorter_link_clicked", handleUpdate);
     window.addEventListener("lshorter_live_clicks_synced", handleUpdate);
@@ -488,6 +474,7 @@ export default function LinksPage() {
 
     return () => {
       window.removeEventListener("lshorter_links_updated", handleUpdate);
+      window.removeEventListener("lshorter_link_deleted", handleLinkDeleted);
       window.removeEventListener("lshorter_data_change", handleUpdate);
       window.removeEventListener("lshorter_link_clicked", handleUpdate);
       window.removeEventListener("lshorter_live_clicks_synced", handleUpdate);
@@ -703,93 +690,8 @@ export default function LinksPage() {
     }
   };
 
-  // Trigger custom delete modal for 1 link
-  const promptDeleteSingle = (link: ShortLink) => {
-    setDeleteTarget({
-      isOpen: true,
-      ids: [link.id],
-      labels: [link.slug],
-    });
-  };
-
-  // Trigger custom delete modal for bulk selection
-  const promptDeleteBulk = (customIds?: string[]) => {
-    const targetIds =
-      customIds && customIds.length > 0
-        ? customIds
-        : Array.from(selectedLinkIds);
-    if (targetIds.length === 0) return;
-    const selected = links.filter(
-      (l) => targetIds.includes(l.id) || targetIds.includes(l.slug),
-    );
-    setDeleteTarget({
-      isOpen: true,
-      ids: targetIds,
-      labels: selected.map((l) => l.slug || l.id),
-    });
-  };
-
-  // Execute deletion with optimistic UI update and background refresh
-  const confirmDelete = async () => {
-    if (!deleteTarget.ids.length || !userId) return;
-    setIsDeleting(true);
-    const idsToDelete = [...deleteTarget.ids];
-
-    // 1. Optimistic removal: remove immediately from UI
-    setLinks((prev) =>
-      prev.filter(
-        (l) => !idsToDelete.includes(l.id) && !idsToDelete.includes(l.slug),
-      ),
-    );
-    setSelectedLinkIds((prev) => {
-      const next = new Set(prev);
-      idsToDelete.forEach((id) => next.delete(id));
-      return next;
-    });
-
-    try {
-      // 2. Perform API delete calls in parallel (including associated banner cleanup)
-      if (idsToDelete.length > 1) {
-        await cfBulkDeleteLinks(idsToDelete, userId).catch(async () => {
-          await Promise.all(
-            idsToDelete.map((id) => {
-              const target = links.find((l) => l.id === id || l.slug === id);
-              return cfDeleteLink(id, userId, target?.slug, target?.ogImage);
-            }),
-          );
-        });
-      } else {
-        const target = links.find(
-          (l) => l.id === idsToDelete[0] || l.slug === idsToDelete[0],
-        );
-        await cfDeleteLink(idsToDelete[0], userId, target?.slug, target?.ogImage);
-      }
-      cfInvalidateCache();
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(new CustomEvent("lshorter_data_change"));
-      }
-      showToast.success(
-        idsToDelete.length > 1
-          ? `${idsToDelete.length} links deleted successfully.`
-          : "Link deleted successfully.",
-      );
-      setDeleteTarget({ isOpen: false, ids: [], labels: [] });
-      // 3. Background re-sync
-      await loadLinks(true);
-    } catch (err) {
-      console.error("Delete error:", err);
-      showToast.error("Error during deletion.");
-      await loadLinks();
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
-  // --- 10-Second Undo Delete Flow ---
+  // --- 10-Second Undo Delete Flow for a Single Link ---
   const start10SecondUndoDelete = (link: ShortLink) => {
-    if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current);
-    if (undoIntervalRef.current) clearInterval(undoIntervalRef.current);
-
     const index = links.findIndex((l) => l.id === link.id);
     if (index === -1) return;
 
@@ -801,58 +703,104 @@ export default function LinksPage() {
       return next;
     });
 
-    // 2. Open top-center undo toast with 10s counter
-    setUndoToast({ link, index, remaining: 10 });
-
-    // 3. 1-second countdown decrement
-    undoIntervalRef.current = setInterval(() => {
-      setUndoToast((prev) => {
-        if (!prev) return null;
-        if (prev.remaining <= 1) {
-          if (undoIntervalRef.current) clearInterval(undoIntervalRef.current);
-          return null;
+    // 2. Trigger global 10-second undo delete
+    triggerUndoDelete({
+      id: link.id,
+      itemType: "link",
+      title: "Lien supprimé",
+      description: `/${link.slug}`,
+      duration: 10,
+      onExecute: async () => {
+        try {
+          await cfDeleteLink(link.id, userId, link.slug, link.ogImage);
+          cfInvalidateCache();
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("lshorter_data_change"));
+          }
+        } catch (err) {
+          console.error("Cloudflare delete error:", err);
+          showToast.error("Erreur lors de la suppression du lien.");
+          await loadLinks(true);
         }
-        return { ...prev, remaining: prev.remaining - 1 };
-      });
-    }, 1000);
-
-    // 4. Background deletion on 10s expiry
-    undoTimeoutRef.current = setTimeout(async () => {
-      setUndoToast(null);
-      if (undoIntervalRef.current) clearInterval(undoIntervalRef.current);
-      try {
-        await cfDeleteLink(link.id, userId, link.slug, link.ogImage);
-        cfInvalidateCache();
-        if (typeof window !== "undefined") {
-          window.dispatchEvent(new CustomEvent("lshorter_data_change"));
-        }
-      } catch (err) {
-        console.error("Cloudflare delete error:", err);
-      }
-    }, 10000);
+      },
+      onCancel: () => {
+        setLinks((prev) => {
+          if (prev.some((l) => l.id === link.id)) return prev;
+          const next = [...prev];
+          next.splice(Math.min(index, next.length), 0, link);
+          return next;
+        });
+      },
+    });
   };
 
-  const cancelUndoDelete = () => {
-    if (undoTimeoutRef.current) {
-      clearTimeout(undoTimeoutRef.current);
-      undoTimeoutRef.current = null;
-    }
-    if (undoIntervalRef.current) {
-      clearInterval(undoIntervalRef.current);
-      undoIntervalRef.current = null;
-    }
-
-    if (undoToast) {
-      const { link, index } = undoToast;
-      setLinks((prev) => {
-        const next = [...prev];
-        next.splice(Math.min(index, next.length), 0, link);
-        return next;
-      });
-      setUndoToast(null);
-      showToast.success(`Link /${link.slug} restored successfully.`);
-    }
+  // Trigger delete for 1 link
+  const promptDeleteSingle = (link: ShortLink) => {
+    start10SecondUndoDelete(link);
   };
+
+  // Trigger 10-second undo delete for bulk selection
+  const promptDeleteBulk = (customIds?: string[]) => {
+    const targetIds =
+      customIds && customIds.length > 0
+        ? customIds
+        : Array.from(selectedLinkIds);
+    if (targetIds.length === 0) return;
+
+    const selectedLinks = links.filter(
+      (l) => targetIds.includes(l.id) || targetIds.includes(l.slug),
+    );
+    const count = selectedLinks.length;
+
+    // 1. Optimistic removal
+    setLinks((prev) =>
+      prev.filter(
+        (l) => !targetIds.includes(l.id) && !targetIds.includes(l.slug),
+      ),
+    );
+    setSelectedLinkIds(new Set());
+
+    // 2. Trigger 10-second undo delete
+    triggerUndoDelete({
+      id: `bulk_${Date.now()}`,
+      itemType: "link",
+      title: count > 1 ? `${count} liens supprimés` : "Lien supprimé",
+      description: count === 1 ? `/${selectedLinks[0]?.slug}` : `${count} liens sélectionnés`,
+      duration: 10,
+      onExecute: async () => {
+        try {
+          if (targetIds.length > 1) {
+            await cfBulkDeleteLinks(targetIds, userId).catch(async () => {
+              await Promise.all(
+                targetIds.map((id) => {
+                  const target = selectedLinks.find((l) => l.id === id || l.slug === id);
+                  return cfDeleteLink(id, userId, target?.slug, target?.ogImage);
+                }),
+              );
+            });
+          } else {
+            const target = selectedLinks[0];
+            await cfDeleteLink(targetIds[0], userId, target?.slug, target?.ogImage);
+          }
+          cfInvalidateCache();
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("lshorter_data_change"));
+          }
+        } catch (err) {
+          console.error("Bulk delete error:", err);
+          showToast.error("Erreur lors de la suppression.");
+          await loadLinks(true);
+        }
+      },
+      onCancel: () => {
+        setLinks((prev) => {
+          const missing = selectedLinks.filter((sl) => !prev.some((p) => p.id === sl.id));
+          return [...missing, ...prev];
+        });
+      },
+    });
+  };
+
 
   // --- Drag & Drop Reordering Handlers ---
   const handleReorderDragStart = (e: React.DragEvent, linkId: string) => {
@@ -1581,58 +1529,7 @@ export default function LinksPage() {
           document.body,
         )}
 
-      {/* Floating Undo Toast at Top Center (10-Second Countdown & Progress Bar) */}
-      {mounted &&
-        undoToast &&
-        createPortal(
-          <div className="fixed top-4 md:top-6 left-1/2 -translate-x-1/2 max-w-md w-[calc(100vw-2rem)] sm:w-[460px] z-[99999] shadow-2xl animate-in fade-in slide-in-from-top-4 duration-200">
-            <div className="relative overflow-hidden rounded-2xl bg-white/95 dark:bg-[#14161d]/95 border border-neutral-200 dark:border-[#2e323e] p-3.5 sm:p-4 text-neutral-900 dark:text-white shadow-[0_20px_60px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_60px_rgba(0,0,0,0.9)] backdrop-blur-2xl">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-9 h-9 rounded-xl bg-rose-500/15 dark:bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-rose-500 dark:text-rose-400 shrink-0 shadow-sm">
-                    <Trash2 className="w-4 h-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-xs sm:text-sm font-bold text-neutral-900 dark:text-white truncate">
-                      Link /{undoToast.link.slug} deleted
-                    </div>
-                    <div className="text-[11px] text-neutral-500 dark:text-neutral-400 truncate">
-                      Swiped to delete • Undo available
-                    </div>
-                  </div>
-                </div>
 
-                <div className="flex items-center gap-2 shrink-0">
-                  {/* Undo Button with Dynamic Countdown */}
-                  <button
-                    type="button"
-                    onClick={cancelUndoDelete}
-                    className="px-3 py-1.5 rounded-xl bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover)] text-white md:text-black font-extrabold text-xs font-mono transition-all transform active:scale-95 shadow-md flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5 text-white md:text-black" />
-                    <span>Undo ({undoToast.remaining}s)</span>
-                  </button>
-
-                  {/* Red 'X' Button: ALSO cancels deletion and restores link */}
-                  <button
-                    type="button"
-                    onClick={cancelUndoDelete}
-                    className="p-1.5 rounded-lg text-rose-500 hover:text-rose-600 hover:bg-rose-500/15 border border-rose-500/30 transition-all cursor-pointer active:scale-95"
-                    title="Cancel deletion and close"
-                  >
-                    <X className="w-4 h-4 stroke-[2.5]" />
-                  </button>
-                </div>
-              </div>
-
-              {/* 10-Second Progress Bar */}
-              <div className="absolute bottom-0 left-0 right-0 h-1 bg-neutral-200 dark:bg-neutral-800/80">
-                <div className="h-full bg-gradient-to-r from-[var(--brand-primary)] via-rose-500 to-rose-600 origin-left link-animate-progress" />
-              </div>
-            </div>
-          </div>,
-          document.body,
-        )}
 
       {/* Modals */}
       <LinkCreateModal
@@ -1678,15 +1575,6 @@ export default function LinksPage() {
         onClose={() => setSelectedQRLink(null)}
       />
 
-      {/* Custom Delete Confirmation Modal */}
-      <DeleteConfirmModal
-        isOpen={deleteTarget.isOpen}
-        onClose={() => setDeleteTarget({ isOpen: false, ids: [], labels: [] })}
-        onConfirm={confirmDelete}
-        itemCount={deleteTarget.ids.length}
-        itemLabels={deleteTarget.labels}
-        isDeleting={isDeleting}
-      />
     </div>
   );
 }

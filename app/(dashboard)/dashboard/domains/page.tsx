@@ -32,11 +32,12 @@ import { DomainsPageSkeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { showToast } from "@/components/ui/toast-provider";
-import { DeleteConfirmModal } from "@/components/dashboard/delete-confirm-modal";
+import { useUndoDelete } from "@/components/ui/undo-delete-provider";
 import { getPlanLimits, triggerPlanUpgrade } from "@/lib/plan-guard";
 import confetti from "canvas-confetti";
 
 export default function DomainsPage() {
+  const { triggerUndoDelete } = useUndoDelete();
   const { data: session, status } = useSession();
   const router = useRouter();
   const [domains, setDomains] = useState<CustomDomain[]>([]);
@@ -412,40 +413,34 @@ export default function DomainsPage() {
     }
   };
 
-  // Delete Modal State
-  const [deleteTarget, setDeleteTarget] = useState<{
-    isOpen: boolean;
-    id: string;
-    domain: string;
-  }>({
-    isOpen: false,
-    id: "",
-    domain: "",
-  });
-  const [isDeleting, setIsDeleting] = useState(false);
+  const promptDeleteDomainWithUndo = (dom: CustomDomain) => {
+    const originalIndex = domains.findIndex((d) => d.id === dom.id);
+    setDomains((prev) => prev.filter((d) => d.id !== dom.id));
 
-  const promptDeleteDomain = (dom: CustomDomain) => {
-    setDeleteTarget({
-      isOpen: true,
+    triggerUndoDelete({
       id: dom.id,
-      domain: dom.domain,
+      itemType: "domain",
+      title: "Domaine supprimé",
+      description: dom.domain,
+      duration: 10,
+      onExecute: async () => {
+        try {
+          await cfDeleteDomain(dom.id, userId);
+          cfInvalidateCache("/api/domains");
+        } catch {
+          loadDomains();
+          showToast.error("Erreur lors de la suppression du domaine.");
+        }
+      },
+      onCancel: () => {
+        setDomains((prev) => {
+          if (prev.some((d) => d.id === dom.id)) return prev;
+          const next = [...prev];
+          next.splice(originalIndex >= 0 ? Math.min(originalIndex, next.length) : next.length, 0, dom);
+          return next;
+        });
+      },
     });
-  };
-
-  const confirmDeleteDomain = async () => {
-    if (!deleteTarget.id) return;
-    setIsDeleting(true);
-    try {
-      await cfDeleteDomain(deleteTarget.id, userId);
-      cfInvalidateCache("/api/domains");
-      showToast.success("Domain deleted.");
-      setDeleteTarget({ isOpen: false, id: "", domain: "" });
-      loadDomains();
-    } catch (err) {
-      showToast.error("Error deleting domain.");
-    } finally {
-      setIsDeleting(false);
-    }
   };
 
   // Filtered & Sorted Domains
@@ -822,9 +817,9 @@ export default function DomainsPage() {
                     </Button>
                   )}
                   <button
-                    onClick={() => promptDeleteDomain(dom)}
-                    className="p-2 rounded-xl hover:bg-rose-500/10 text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"
-                    title="Delete domain"
+                    onClick={() => promptDeleteDomainWithUndo(dom)}
+                    className="p-2 rounded-[8px] hover:bg-rose-500/10 text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"
+                    title="Supprimer ce domaine"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -901,16 +896,6 @@ export default function DomainsPage() {
         )}
       </div>
 
-      {/* Delete Confirmation Modal */}
-      <DeleteConfirmModal
-        isOpen={deleteTarget.isOpen}
-        onClose={() => setDeleteTarget({ isOpen: false, id: "", domain: "" })}
-        onConfirm={confirmDeleteDomain}
-        title="Delete this custom domain?"
-        description={`The domain ${deleteTarget.domain} will be disconnected. Your short links will continue working under the default domain lsho.cc.`}
-        itemLabels={deleteTarget.domain ? [deleteTarget.domain] : []}
-        isDeleting={isDeleting}
-      />
     </div>
   );
 }

@@ -98,7 +98,6 @@ import {
   TargetAlert,
 } from "@/types";
 import { ApiKeyCreatedModal } from "@/components/dashboard/api-key-created-modal";
-import { DeleteConfirmModal } from "@/components/dashboard/delete-confirm-modal";
 import { TwoFactorSetupModal } from "@/components/dashboard/two-factor-setup-modal";
 import { TwoFactorRecoveryModal } from "@/components/dashboard/two-factor-recovery-modal";
 import { Button } from "@/components/ui/button";
@@ -107,6 +106,7 @@ import { Badge } from "@/components/ui/badge";
 import { CodeBlock } from "@/components/ui/code-block";
 import { SettingsPageSkeleton } from "@/components/ui/skeleton";
 import { showToast } from "@/components/ui/toast-provider";
+import { useUndoDelete } from "@/components/ui/undo-delete-provider";
 import { syncUserToCloudflare } from "@/app/actions/sync-user";
 import { triggerPlanUpgrade, getPlanLimits } from "@/lib/plan-guard";
 import confetti from "canvas-confetti";
@@ -125,6 +125,7 @@ const VALID_SETTINGS_TABS = [
 ] as const;
 
 function SettingsPageContent() {
+  const { triggerUndoDelete } = useUndoDelete();
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -687,17 +688,6 @@ function SettingsPageContent() {
   );
   const [revealedKeys, setRevealedKeys] = useState<Record<string, boolean>>({});
   const [copiedKeyId, setCopiedKeyId] = useState<string | null>(null);
-  const [copiedKeyText, setCopiedKeyText] = useState<string | null>(null);
-  const [keyToDelete, setKeyToDelete] = useState<{
-    isOpen: boolean;
-    id: string;
-    name: string;
-  }>({
-    isOpen: false,
-    id: "",
-    name: "",
-  });
-  const [isRevokingKey, setIsRevokingKey] = useState(false);
   const [isCreatingKey, setIsCreatingKey] = useState(false);
   const [isLoadingApiKeys, setIsLoadingApiKeys] = useState(false);
 
@@ -1531,9 +1521,9 @@ console.log("Top Countries:", topAudience.topCountries);`,
   };
 
   const handleCopy = (text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedKeyText(text);
-    setTimeout(() => setCopiedKeyText(null), 2000);
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(text);
+    }
   };
 
   const handleSaveProfile = async (e: React.FormEvent) => {
@@ -1628,19 +1618,34 @@ console.log("Top Countries:", topAudience.topCountries);`,
     }
   };
 
-  const confirmRevokeKey = async () => {
-    if (!keyToDelete.id) return;
-    setIsRevokingKey(true);
-    try {
-      await cfRevokeApiKey(keyToDelete.id, userId);
-      showToast.success("API key revoked successfully.");
-      setKeyToDelete({ isOpen: false, id: "", name: "" });
-      loadApiKeys();
-    } catch (err) {
-      showToast.error("Error revoking key.");
-    } finally {
-      setIsRevokingKey(false);
-    }
+  const promptRevokeKeyWithUndo = (k: ApiKeyItem) => {
+    const originalIndex = apiKeys.findIndex((item) => item.id === k.id);
+    setApiKeys((prev) => prev.filter((item) => item.id !== k.id));
+
+    triggerUndoDelete({
+      id: k.id,
+      itemType: "api_key",
+      title: "Clé API révoquée",
+      description: k.name || k.prefix || "Clé API",
+      duration: 10,
+      onExecute: async () => {
+        try {
+          await cfRevokeApiKey(k.id, userId);
+          cfInvalidateCache("/api/keys");
+        } catch {
+          loadApiKeys();
+          showToast.error("Erreur lors de la révocation de la clé API.");
+        }
+      },
+      onCancel: () => {
+        setApiKeys((prev) => {
+          if (prev.some((item) => item.id === k.id)) return prev;
+          const next = [...prev];
+          next.splice(originalIndex >= 0 ? Math.min(originalIndex, next.length) : next.length, 0, k);
+          return next;
+        });
+      },
+    });
   };
 
   const handleOpenCreateWebhook = () => {
@@ -1703,15 +1708,34 @@ console.log("Top Countries:", topAudience.topCountries);`,
     }
   };
 
-  const handleDeleteWebhook = async (id: string) => {
-    try {
-      setWebhooks((prev) => prev.filter((w) => w.id !== id));
-      await cfDeleteWebhook(id, userId);
-      showToast.success("Webhook supprimé de Cloudflare D1.");
-    } catch {
-      loadWebhooks();
-      showToast.error("Échec de suppression du webhook");
-    }
+  const handleDeleteWebhookWithUndo = (wh: WebhookConfig) => {
+    const originalIndex = webhooks.findIndex((w) => w.id === wh.id);
+    setWebhooks((prev) => prev.filter((w) => w.id !== wh.id));
+
+    triggerUndoDelete({
+      id: wh.id,
+      itemType: "webhook",
+      title: "Webhook supprimé",
+      description: wh.url,
+      duration: 10,
+      onExecute: async () => {
+        try {
+          await cfDeleteWebhook(wh.id, userId);
+          cfInvalidateCache("/api/webhooks");
+        } catch {
+          loadWebhooks();
+          showToast.error("Échec de suppression du webhook");
+        }
+      },
+      onCancel: () => {
+        setWebhooks((prev) => {
+          if (prev.some((w) => w.id === wh.id)) return prev;
+          const next = [...prev];
+          next.splice(originalIndex >= 0 ? Math.min(originalIndex, next.length) : next.length, 0, wh);
+          return next;
+        });
+      },
+    });
   };
 
   const handleToggleWebhook = async (id: string) => {
@@ -1811,15 +1835,34 @@ console.log("Top Countries:", topAudience.topCountries);`,
     }
   };
 
-  const handleDeletePixel = async (id: string) => {
-    try {
-      setPixels((prev) => prev.filter((p) => p.id !== id));
-      await cfDeletePixel(id, userId);
-      showToast.success("Pixel deleted.");
-    } catch {
-      loadPixels();
-      showToast.error("Failed to delete pixel");
-    }
+  const handleDeletePixelWithUndo = (px: RetargetingPixel) => {
+    const originalIndex = pixels.findIndex((p) => p.id === px.id);
+    setPixels((prev) => prev.filter((p) => p.id !== px.id));
+
+    triggerUndoDelete({
+      id: px.id,
+      itemType: "pixel",
+      title: "Pixel supprimé",
+      description: px.name || px.pixelId,
+      duration: 10,
+      onExecute: async () => {
+        try {
+          await cfDeletePixel(px.id, userId);
+          cfInvalidateCache("/api/pixels");
+        } catch {
+          loadPixels();
+          showToast.error("Échec de la suppression du pixel.");
+        }
+      },
+      onCancel: () => {
+        setPixels((prev) => {
+          if (prev.some((p) => p.id === px.id)) return prev;
+          const next = [...prev];
+          next.splice(originalIndex >= 0 ? Math.min(originalIndex, next.length) : next.length, 0, px);
+          return next;
+        });
+      },
+    });
   };
 
   const handleTogglePixel = async (id: string) => {
@@ -2772,18 +2815,12 @@ console.log("Top Countries:", topAudience.topCountries);`,
                                 <span>cURL</span>
                               </button>
 
-                              {/* Revoke Button */}
+                              {/* Revoke Button with 10s Undo Toast */}
                               <button
                                 type="button"
-                                onClick={() =>
-                                  setKeyToDelete({
-                                    isOpen: true,
-                                    id: k.id,
-                                    name: k.name,
-                                  })
-                                }
+                                onClick={() => promptRevokeKeyWithUndo(k)}
                                 className="h-8 w-8 rounded-[6px] bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 flex items-center justify-center transition-colors cursor-pointer"
-                                title="Revoke this key"
+                                title="Révoquer cette clé API"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
@@ -3116,8 +3153,9 @@ console.log("Top Countries:", topAudience.topCountries);`,
                               </button>
                               <button
                                 type="button"
-                                onClick={() => handleDeleteWebhook(wh.id)}
+                                onClick={() => handleDeleteWebhookWithUndo(wh)}
                                 className="text-neutral-400 hover:text-red-400 p-1 rounded-[6px] cursor-pointer transition-colors"
+                                title="Supprimer ce webhook"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
@@ -3353,8 +3391,9 @@ console.log("Top Countries:", topAudience.topCountries);`,
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleDeletePixel(px.id)}
+                          onClick={() => handleDeletePixelWithUndo(px)}
                           className="text-neutral-400 hover:text-red-400 p-1 cursor-pointer transition-colors"
+                          title="Supprimer ce pixel"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -4630,15 +4669,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
         apiKey={createdKeyModal}
       />
 
-      {/* Revoke API Key Confirmation Modal */}
-      <DeleteConfirmModal
-        isOpen={keyToDelete.isOpen}
-        onClose={() => setKeyToDelete({ isOpen: false, id: "", name: "" })}
-        onConfirm={confirmRevokeKey}
-        isDeleting={isRevokingKey}
-        title={`Revoke key "${keyToDelete.name}"?`}
-        description="This action is irreversible. All applications, bots, or scripts using this key will immediately stop working."
-      />
+
 
       {/* Cancel Auto-Renewal Confirmation Modal */}
       {isCancelSubModalOpen && (

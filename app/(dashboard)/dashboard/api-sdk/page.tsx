@@ -30,13 +30,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ApiKeysPageSkeleton } from "@/components/ui/skeleton";
 import { showToast } from "@/components/ui/toast-provider";
-import { DeleteConfirmModal } from "@/components/dashboard/delete-confirm-modal";
+import { useUndoDelete } from "@/components/ui/undo-delete-provider";
 import { ApiKeyCreatedModal } from "@/components/dashboard/api-key-created-modal";
 import { CodeBlock } from "@/components/ui/code-block";
 import { getPlanLimits } from "@/lib/plan-guard";
 import confetti from "canvas-confetti";
 
 export default function ApiSdkPage() {
+  const { triggerUndoDelete } = useUndoDelete();
   const { data: session, status } = useSession();
   const router = useRouter();
   const [keys, setKeys] = useState<ApiKeyItem[]>([]);
@@ -178,40 +179,34 @@ export default function ApiSdkPage() {
     }
   };
 
-  // Revoke modal state
-  const [deleteTarget, setDeleteTarget] = useState<{
-    isOpen: boolean;
-    id: string;
-    name: string;
-  }>({
-    isOpen: false,
-    id: "",
-    name: "",
-  });
-  const [isRevoking, setIsRevoking] = useState(false);
+  const promptRevokeKeyWithUndo = (key: ApiKeyItem) => {
+    const originalIndex = keys.findIndex((k) => k.id === key.id);
+    setKeys((prev) => prev.filter((k) => k.id !== key.id));
 
-  const promptRevokeKey = (key: ApiKeyItem) => {
-    setDeleteTarget({
-      isOpen: true,
+    triggerUndoDelete({
       id: key.id,
-      name: key.name,
+      itemType: "api_key",
+      title: "Clé API révoquée",
+      description: key.name || key.prefix || "Clé API",
+      duration: 10,
+      onExecute: async () => {
+        try {
+          await cfRevokeApiKey(key.id, userId);
+          cfInvalidateCache("/api/keys");
+        } catch {
+          loadKeys();
+          showToast.error("Erreur lors de la révocation de la clé API.");
+        }
+      },
+      onCancel: () => {
+        setKeys((prev) => {
+          if (prev.some((k) => k.id === key.id)) return prev;
+          const next = [...prev];
+          next.splice(originalIndex >= 0 ? Math.min(originalIndex, next.length) : next.length, 0, key);
+          return next;
+        });
+      },
     });
-  };
-
-  const confirmRevokeKey = async () => {
-    if (!deleteTarget.id) return;
-    setIsRevoking(true);
-    try {
-      await cfRevokeApiKey(deleteTarget.id, userId);
-      cfInvalidateCache("/api/keys");
-      showToast.success("API key revoked.");
-      setDeleteTarget({ isOpen: false, id: "", name: "" });
-      loadKeys();
-    } catch (err) {
-      showToast.error("Error revoking API key.");
-    } finally {
-      setIsRevoking(false);
-    }
   };
 
   const codeSnippets = {
@@ -576,12 +571,12 @@ console.log("Top Countries:", topAudience.topCountries);`,
                         )}
                       </button>
 
-                      {/* Revoke Button */}
+                      {/* Revoke Button with 10s Undo Toast */}
                       <button
                         type="button"
-                        onClick={() => promptRevokeKey(key)}
+                        onClick={() => promptRevokeKeyWithUndo(key)}
                         className="h-8 w-8 rounded-[6px] bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 flex items-center justify-center transition-colors cursor-pointer"
-                        title="Revoke key"
+                        title="Révoquer cette clé API"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -662,15 +657,6 @@ console.log("Top Countries:", topAudience.topCountries);`,
       />
 
       {/* Revoke API Key Modal */}
-      <DeleteConfirmModal
-        isOpen={deleteTarget.isOpen}
-        onClose={() => setDeleteTarget({ isOpen: false, id: "", name: "" })}
-        onConfirm={confirmRevokeKey}
-        title="Revoke this API key?"
-        description={`The key "${deleteTarget.name}" will be invalidated immediately. All applications using this token will lose API access.`}
-        itemLabels={deleteTarget.name ? [deleteTarget.name] : []}
-        isDeleting={isRevoking}
-      />
     </div>
   );
 }

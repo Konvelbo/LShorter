@@ -3,6 +3,7 @@ import Script from "next/script";
 import { Inter, Bebas_Neue, Poppins } from "next/font/google";
 import "./globals.css";
 import { ToastProvider } from "@/components/ui/toast-provider";
+import { UndoDeleteProvider } from "@/components/ui/undo-delete-provider";
 import { PlanUpgradeModal } from "@/components/dashboard/plan-upgrade-modal";
 import { ConvexClientProvider } from "@/components/providers/convex-client-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
@@ -104,8 +105,10 @@ export default function RootLayout({
         <ThemeProvider>
           <ConvexClientProvider>
             <ToastProvider>
-              {children}
-              <PlanUpgradeModal />
+              <UndoDeleteProvider>
+                {children}
+                <PlanUpgradeModal />
+              </UndoDeleteProvider>
             </ToastProvider>
           </ConvexClientProvider>
         </ThemeProvider>
