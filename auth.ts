@@ -180,6 +180,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.provider = account?.provider;
         token.picture = user.image;
         token.avatarUrl = user.image;
+        if (user.name) token.name = user.name;
       }
 
       // Handle client-side session update for benign user profile fields only (name, image)

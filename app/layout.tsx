@@ -57,12 +57,6 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        <script
-          suppressHydrationWarning
-          dangerouslySetInnerHTML={{
-            __html: `if(typeof Node==='function'&&Node.prototype){var p=Node.prototype;if(!p.__lshorterPatched){p.__lshorterPatched=true;var r=p.removeChild;p.removeChild=function(c){if(c&&c.parentNode!==this){return c;}return r.apply(this,arguments);};var i=p.insertBefore;p.insertBefore=function(n,ref){if(ref&&ref.parentNode!==this){return this.appendChild(n);}return i.apply(this,arguments);};}}`,
-          }}
-        />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"
@@ -78,6 +72,13 @@ export default function RootLayout({
         className="min-h-screen flex flex-col ds-bg-app ds-text-primary font-sans overflow-x-clip max-w-[100vw]"
         suppressHydrationWarning
       >
+        <Script
+          id="dom-patch"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `if(typeof Node==='function'&&Node.prototype){var p=Node.prototype;if(!p.__lshorterPatched){p.__lshorterPatched=true;var r=p.removeChild;p.removeChild=function(c){if(c&&c.parentNode!==this){return c;}return r.apply(this,arguments);};var i=p.insertBefore;p.insertBefore=function(n,ref){if(ref&&ref.parentNode!==this){return this.appendChild(n);}return i.apply(this,arguments);};}}`,
+          }}
+        />
         {/* Google tag (gtag.js) */}
         {gaId && (
           <>

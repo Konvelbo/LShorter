@@ -58,7 +58,7 @@ import {
 } from "@/components/dashboard/analytics/column-mask-toggle";
 import { AnalyticsGeoSkeleton } from "@/components/ui/skeleton";
 import { showToast } from "@/components/ui/toast-provider";
-import { formatNumber } from "@/lib/utils";
+import { formatNumber, isLinkActive } from "@/lib/utils";
 import { exportToExcelWorkbook } from "@/lib/export-excel";
 
 const GEO_URL =
@@ -460,7 +460,7 @@ export default function GeoAnalyticsPage() {
         metaTitle: l.meta_title || l.slug,
         hideReferrer: Boolean(l.hide_referrer),
         tags: [],
-        isActive: Boolean(l.is_active !== 0),
+        isActive: isLinkActive(l),
         created_at: l.created_at || new Date().toISOString(),
       }));
 
@@ -482,20 +482,12 @@ export default function GeoAnalyticsPage() {
       const workerTotal = Number(d.totalClicks ?? d.total_clicks ?? 0);
       const baseFromWorker = isAll ? workerTotal : workerTotal || linkClicks;
       
-      let storedLive = 0;
-      if (typeof window !== "undefined" && userId) {
-        try {
-          const s = localStorage.getItem(`lshorter_live_clicks_${userId}`);
-          if (s && !isNaN(Number(s))) storedLive = Number(s);
-        } catch {}
-      }
-
       const isShortWindow = range === "day" || range === "week";
       const total = isShortWindow
         ? baseFromWorker
         : isAll
-          ? Math.max(baseFromWorker, sumLinksClicks, storedLive, syncedLiveClicks)
-          : Math.max(baseFromWorker, linkClicks);
+          ? (baseFromWorker > 0 ? baseFromWorker : sumLinksClicks)
+          : (baseFromWorker || linkClicks);
 
       if (total > 0 && typeof window !== "undefined" && userId && isAll) {
         try {

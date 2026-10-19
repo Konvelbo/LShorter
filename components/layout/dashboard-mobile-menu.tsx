@@ -22,7 +22,7 @@ import {
   LogOut,
   Sparkles,
 } from "lucide-react";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarImage, AvatarFallback, getDiceBearAvatar } from "@/components/ui/avatar";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import gsap from "gsap";
@@ -530,21 +530,21 @@ export function DashboardMobileMenu({
             >
               <Avatar className="h-9 w-9 rounded-[10px] border ds-border shrink-0">
                 <AvatarImage
-                  src={avatarUrl}
+                  src={avatarUrl || getDiceBearAvatar(displayEmail || displayName)}
                   alt={displayName}
-                  seed={displayEmail}
+                  seed={displayEmail || displayName}
                   className="rounded-[10px] object-cover"
                 />
-                <AvatarFallback seed={displayEmail} className="rounded-[10px]">
+                <AvatarFallback suppressHydrationWarning seed={displayEmail || displayName} className="rounded-[10px]">
                   {displayName.slice(0, 2)}
                 </AvatarFallback>
               </Avatar>
 
               <div className="flex flex-col min-w-0 flex-1 leading-tight text-left">
-                <span className="text-[13px] font-bold ds-text-primary truncate">
+                <span suppressHydrationWarning className="text-[13px] font-bold ds-text-primary truncate">
                   {displayName}
                 </span>
-                <span className="text-[11px] ds-text-muted truncate mt-0.5">
+                <span suppressHydrationWarning className="text-[11px] ds-text-muted truncate mt-0.5">
                   {displayEmail}
                 </span>
               </div>
@@ -647,20 +647,20 @@ export function DashboardMobileMenu({
               <div className="flex items-center gap-3">
                 <Avatar className="h-10 w-10 rounded-[10px] border ds-border shrink-0">
                   <AvatarImage
-                    src={avatarUrl}
+                    src={avatarUrl || getDiceBearAvatar(displayEmail || displayName)}
                     alt={displayName}
-                    seed={displayEmail}
+                    seed={displayEmail || displayName}
                     className="rounded-[10px] object-cover"
                   />
-                  <AvatarFallback seed={displayEmail} className="rounded-[10px]">
+                  <AvatarFallback suppressHydrationWarning seed={displayEmail || displayName} className="rounded-[10px]">
                     {displayName.slice(0, 2)}
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1 text-left">
-                  <p className="text-sm font-bold ds-text-primary truncate">
+                  <p suppressHydrationWarning className="text-sm font-bold ds-text-primary truncate">
                     {displayName}
                   </p>
-                  <p className="text-xs ds-text-muted truncate mt-0.5">
+                  <p suppressHydrationWarning className="text-xs ds-text-muted truncate mt-0.5">
                     {displayEmail}
                   </p>
                 </div>

@@ -298,6 +298,17 @@ export default function DomainsPage() {
     if (status === "authenticated" && userId) {
       loadDomains();
     }
+
+    const handleRefresh = () => {
+      if (userId) loadDomains(true);
+    };
+
+    window.addEventListener("lshorter_domains_updated", handleRefresh);
+    window.addEventListener("lshorter_data_change", handleRefresh);
+    return () => {
+      window.removeEventListener("lshorter_domains_updated", handleRefresh);
+      window.removeEventListener("lshorter_data_change", handleRefresh);
+    };
   }, [status, userId]);
 
   const handleCopy = (val: string) => {

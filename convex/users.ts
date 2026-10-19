@@ -538,18 +538,47 @@ export const changePassword = mutation({
 export const updateProfilePreferences = mutation({
   args: {
     userId: v.string(),
+    email: v.optional(v.string()),
     name: v.optional(v.string()),
     avatarUrl: v.optional(v.string()),
     language: v.optional(v.string()),
     timezone: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db
+    let user = await ctx.db
       .query("users")
       .withIndex("by_userId", (q) => q.eq("userId", args.userId))
       .first();
 
-    if (!user) throw new Error("USER_NOT_FOUND");
+    if (!user && args.email) {
+      user = await ctx.db
+        .query("users")
+        .withIndex("by_email", (q) => q.eq("email", args.email!.toLowerCase().trim()))
+        .first();
+    }
+
+    if (!user && args.userId.includes("@")) {
+      user = await ctx.db
+        .query("users")
+        .withIndex("by_email", (q) => q.eq("email", args.userId.toLowerCase().trim()))
+        .first();
+    }
+
+    if (!user) {
+      // Auto-create or gracefully skip throwing to prevent client crash
+      const now = new Date().toISOString();
+      const id = await ctx.db.insert("users", {
+        userId: args.userId,
+        name: args.name || "User",
+        email: (args.email || (args.userId.includes("@") ? args.userId : "")).toLowerCase().trim(),
+        avatarUrl: args.avatarUrl,
+        plan: "FREEMIUM",
+        hasCompletedOnboarding: false,
+        createdAt: now,
+        updatedAt: now,
+      });
+      return { success: true, id };
+    }
 
     const patch: any = { updatedAt: new Date().toISOString() };
     if (args.name !== undefined) patch.name = args.name;

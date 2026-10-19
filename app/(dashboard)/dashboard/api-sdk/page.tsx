@@ -69,7 +69,8 @@ export default function ApiSdkPage() {
     if (!userId) return;
     if (!isBackground) setIsLoading(true);
     try {
-      const res = await cfGetApiKeys(userId);
+      const userEmail = session?.user?.email || undefined;
+      const res = await cfGetApiKeys(userId, userEmail);
       const rawUserPlan = (session?.user as any)?.plan || "FREE";
       const userPlan = rawUserPlan === "FREEMIUM" || rawUserPlan === "STARTER" ? "FREE" : rawUserPlan;
       const planLimits = getPlanLimits(userPlan);
@@ -321,7 +322,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
       {isGenerating && (
         <form
           onSubmit={handleCreateKey}
-          className="p-6 rounded-[10px] bg-white dark:bg-[#111113] text-[#09090B] dark:text-white border border-black/[0.08] dark:border-[#27272a] shadow-xl flex flex-col gap-4 animate-in fade-in"
+          className="p-5 rounded-[10px] bg-white dark:bg-[#111113] text-[#09090B] dark:text-white border border-zinc-200 dark:border-[#222225] shadow-xs flex flex-col gap-4 animate-in fade-in"
         >
           <div className="flex items-center justify-between">
             <h3 className="text-base font-bold text-[#09090B] dark:text-white flex items-center gap-2">
@@ -594,14 +595,14 @@ console.log("Top Countries:", topAudience.topCountries);`,
       </div>
 
       {/* TypeScript SDK Code Preview Section */}
-      <div className="rounded-[10px] bg-white dark:bg-[#111113] text-[#09090B] dark:text-white border border-black/[0.08] dark:border-[#222225] p-6 lg:p-8 flex flex-col gap-5 shadow-sm dark:shadow-2xl">
+      <div className="rounded-[10px] bg-white dark:bg-[#111113] text-[#09090B] dark:text-white border border-zinc-200 dark:border-[#222225] p-5 flex flex-col gap-4 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-[10px] bg-[#3178c6]/15 dark:bg-[#3178c6]/20 border border-[#3178c6]/30 dark:border-[#3178c6]/40 flex items-center justify-center text-[#3178c6]">
+            <div className="w-10 h-10 rounded-[8px] bg-[#3178c6]/10 dark:bg-[#3178c6]/15 border border-[#3178c6]/20 dark:border-[#3178c6]/30 flex items-center justify-center text-[#3178c6]">
               <Code2 className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-[#09090B] dark:text-white">
+              <h3 className="text-base font-bold text-[#09090B] dark:text-white">
                 Official TypeScript SDK (npm i lshorter-api)
               </h3>
               <p className="text-xs text-zinc-500 dark:text-neutral-400">
@@ -610,7 +611,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
             </div>
           </div>
 
-          <div className="flex items-center gap-2 p-1 rounded-[10px] bg-zinc-100 dark:bg-[#1a1a1e] border border-black/[0.08] dark:border-[#27272a] text-xs overflow-x-auto">
+          <div className="flex items-center gap-1.5 p-1 rounded-[8px] bg-zinc-100 dark:bg-[#161619] border border-zinc-200 dark:border-[#27272a] text-xs overflow-x-auto">
             <button
               onClick={() => setActiveCodeTab("create")}
               className={`px-3 py-1.5 rounded-[10px] font-medium transition-colors cursor-pointer ${

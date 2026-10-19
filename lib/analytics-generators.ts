@@ -152,7 +152,7 @@ export function generateTimelineForRange(
       0.07, 0.06, 0.05, 0.04, 0.03, 0.02
     ];
     const todayIso = toLocalDateKey(now);
-    const dayBase = clicksMap.get(todayIso) || Math.round(totalClicks / 30) || 4500;
+    const dayBase = clicksMap.get(todayIso) || (totalClicks > 0 ? Math.round(totalClicks / 30) : 0);
 
     for (let i = 23; i >= 0; i--) {
       const hDate = new Date(currentHourStart.getTime() - i * 3600000);

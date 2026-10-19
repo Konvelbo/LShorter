@@ -191,10 +191,10 @@ export function SectionSocialTracking({
 
       <div>
         <h2 className="text-xl font-bold tracking-tight text-[#131417] dark:text-[#f1f2f4]">
-          Social media & tracking
+          Social media, tracking & pixel
         </h2>
         <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-          Configure campaign UTM parameters and customize your social share preview cards.
+          Configure campaign UTM parameters, retargeting pixels and customize your social share preview cards.
         </p>
       </div>
 
@@ -449,51 +449,55 @@ export function SectionSocialTracking({
           </div>
         </div>
 
-        {/* Banner Format (Only shown when Twitter / X is selected) */}
-        {socialPlatformPreview === "x" && (
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
-              Format de la carte Twitter / X
-            </label>
-            <div className="flex gap-1.5 p-1 rounded-lg bg-zinc-100 dark:bg-[#16181d] border border-zinc-200 dark:border-[#22242a]">
-              <button
-                type="button"
-                onClick={() => {
-                  setTwitterCard("summary_large_image");
-                }}
-                className={cn(
-                  "flex-1 py-1.5 px-3 rounded-md text-xs font-medium transition-all text-center cursor-pointer flex items-center justify-center gap-1.5",
-                  twitterCard === "summary_large_image"
-                    ? "bg-white dark:bg-[#0e0f12] text-zinc-900 dark:text-[#f1f2f4] shadow-sm border border-[#0066FF] dark:border-[#3b82f6] font-semibold"
-                    : "text-zinc-600 dark:text-[#8a8f9a] hover:text-zinc-900 dark:hover:text-[#f1f2f4]",
-                )}
-              >
-                <Sparkles className="w-3.5 h-3.5 text-[#0066FF] dark:text-[#3b82f6]" />
-                <span>Bannière large (1200×630)</span>
-              </button>
+        {/* Banner Format */}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
+            Format de la carte Twitter / X & Réseaux
+          </label>
+          <div className="flex gap-1.5 p-1 rounded-lg bg-zinc-100 dark:bg-[#16181d] border border-zinc-200 dark:border-[#22242a]">
+            <button
+              type="button"
+              onClick={() => {
+                setTwitterCard("summary_large_image");
+              }}
+              className={cn(
+                "flex-1 py-1.5 px-3 rounded-md text-xs font-medium transition-all text-center cursor-pointer flex items-center justify-center gap-1.5",
+                twitterCard === "summary_large_image"
+                  ? "bg-white dark:bg-[#0e0f12] text-zinc-900 dark:text-[#f1f2f4] shadow-sm border border-[#0066FF] dark:border-[#3b82f6] font-semibold"
+                  : "text-zinc-600 dark:text-[#8a8f9a] hover:text-zinc-900 dark:hover:text-[#f1f2f4]",
+              )}
+            >
+              <Sparkles className="w-3.5 h-3.5 text-[#0066FF] dark:text-[#3b82f6]" />
+              <span>Bannière large (1200×630)</span>
+            </button>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setTwitterCard("summary");
-                  if (ogImage && ogImage.includes("/api/og")) {
-                    setOgImage("");
-                    setPreviewImage("");
-                  }
-                }}
-                className={cn(
-                  "flex-1 py-1.5 px-3 rounded-md text-xs font-medium transition-all text-center cursor-pointer flex items-center justify-center gap-1.5",
-                  twitterCard === "summary"
-                    ? "bg-white dark:bg-[#0e0f12] text-zinc-900 dark:text-[#f1f2f4] shadow-sm border border-[#0066FF] dark:border-[#3b82f6] font-semibold"
-                    : "text-zinc-600 dark:text-[#8a8f9a] hover:text-zinc-900 dark:hover:text-[#f1f2f4]",
-                )}
-              >
-                <LayoutGrid className="w-3.5 h-3.5" />
-                <span>Bannière compacte</span>
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setTwitterCard("summary");
+                if (ogImage && ogImage.includes("/api/og")) {
+                  setOgImage("");
+                  setPreviewImage("");
+                }
+              }}
+              className={cn(
+                "flex-1 py-1.5 px-3 rounded-md text-xs font-medium transition-all text-center cursor-pointer flex items-center justify-center gap-1.5",
+                twitterCard === "summary"
+                  ? "bg-white dark:bg-[#0e0f12] text-zinc-900 dark:text-[#f1f2f4] shadow-sm border border-[#0066FF] dark:border-[#3b82f6] font-semibold"
+                  : "text-zinc-600 dark:text-[#8a8f9a] hover:text-zinc-900 dark:hover:text-[#f1f2f4]",
+              )}
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span>Bannière compacte</span>
+            </button>
           </div>
-        )}
+          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-relaxed flex items-start gap-1.5 mt-0.5">
+            <Info className="w-3.5 h-3.5 shrink-0 text-zinc-400 dark:text-zinc-500 mt-0.5" />
+            <span>
+              Note : Les réseaux sociaux mettent en cache de manière définitive le format et les dimensions de la bannière dès le premier partage du lien. La modification de forme (large ou compacte) ne pourra plus être répercutée ultérieurement sur les plateformes.
+            </span>
+          </p>
+        </div>
 
         {/* Live Card Mockup with Integrated Direct Banner Upload & Change */}
         <div className="border border-zinc-200 dark:border-[#22242a] rounded-xl overflow-hidden bg-white dark:bg-[#0e0f12] text-left shadow-sm transition-all">

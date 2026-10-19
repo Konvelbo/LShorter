@@ -31,7 +31,7 @@ import {
   cfGetLinks,
   cfInvalidateCache,
 } from "@/lib/cloudflare-api";
-import { formatNumber } from "@/lib/utils";
+import { formatNumber, isLinkActive } from "@/lib/utils";
 import { showToast } from "@/components/ui/toast-provider";
 import { exportToExcelWorkbook } from "@/lib/export-excel";
 
@@ -304,18 +304,10 @@ export default function AnalyticsPage() {
         0,
       );
 
-      let storedLive = 0;
-      if (typeof window !== "undefined") {
-        try {
-          const s = localStorage.getItem(`lshorter_live_clicks_${userId}`);
-          if (s && !isNaN(Number(s))) storedLive = Number(s);
-        } catch {}
-      }
-
       const isShortWindow = selectedPeriod === "24h" || selectedPeriod === "7d";
       const mergedTotal = isShortWindow
         ? workerTotal
-        : Math.max(workerTotal, sumLinksClicks, storedLive, syncedLiveClicks);
+        : (workerTotal > 0 ? workerTotal : sumLinksClicks);
 
       const mergedData = {
         ...workerData,
@@ -326,11 +318,11 @@ export default function AnalyticsPage() {
       setAnalytics(mergedData);
       hasLoadedOnceRef.current = true;
 
-      // Synchroniser de manière bidirectionnelle avec la sidebar si les données serveur sont supérieures
-      if (mergedTotal > 0 && typeof window !== "undefined") {
+      if (typeof window !== "undefined" && userId) {
         try {
           localStorage.setItem(`lshorter_live_clicks_${userId}`, String(mergedTotal));
         } catch {}
+        setSyncedLiveClicks(mergedTotal);
         window.dispatchEvent(
           new CustomEvent("lshorter_live_clicks_synced", {
             detail: { clicks: mergedTotal, userId, fromPage: true },
@@ -444,8 +436,7 @@ export default function AnalyticsPage() {
   }, [analytics, totalClicks]);
 
   const activeLinksCount = useMemo(() => {
-    return links.filter((l) => l.is_active !== false && l.isActive !== false)
-      .length;
+    return links.filter((l) => isLinkActive(l)).length;
   }, [links]);
 
   const avgClicksPerLink = useMemo(() => {
@@ -473,13 +464,13 @@ export default function AnalyticsPage() {
       },
       {
         label: "Active Short Links",
-        value: formatNumber(activeLinksCount),
+        value: `${formatNumber(activeLinksCount)} / ${links.length}`,
         delta:
           links.length > 0
             ? `${Math.round((activeLinksCount / links.length) * 100)}% active`
             : "0% active",
         positive: true,
-        caption: "In workspace",
+        caption: `${links.length - activeLinksCount > 0 ? `${links.length - activeLinksCount} inactive` : "All active"}`,
         href: "/dashboard/links",
       },
       {

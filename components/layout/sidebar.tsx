@@ -277,14 +277,12 @@ export function Sidebar() {
             0,
         );
 
-        // Réactivité immédiate : maximum entre agrégation 30j et cumul direct des liens
-        const serverClicks = Math.max(
-          analyticsClicks30d,
-          sumClicksFromLinks,
-        );
+        // Authoritative clicks: use worker analytics 30d clicks if available (>0), fallback to sum of link clicks
+        const authoritativeClicks =
+          analyticsClicks30d > 0 ? analyticsClicks30d : sumClicksFromLinks;
 
         setLiveClicks((prev) => {
-          const resolved = Math.max(prev ?? 0, serverClicks);
+          const resolved = authoritativeClicks > 0 ? authoritativeClicks : (prev ?? 0);
           try {
             localStorage.setItem(
               `lshorter_live_clicks_${userId}`,
@@ -332,14 +330,11 @@ export function Sidebar() {
 
     const handleSyncedEvent = (e: Event) => {
       const detail = (e as CustomEvent)?.detail;
-      if (typeof detail?.clicks === "number") {
-        setLiveClicks((prev) => {
-          const resolved = Math.max(prev ?? 0, detail.clicks);
-          try {
-            localStorage.setItem(`lshorter_live_clicks_${userId}`, String(resolved));
-          } catch {}
-          return resolved;
-        });
+      if (typeof detail?.clicks === "number" && detail.clicks >= 0) {
+        setLiveClicks(detail.clicks);
+        try {
+          localStorage.setItem(`lshorter_live_clicks_${userId}`, String(detail.clicks));
+        } catch {}
       }
     };
 

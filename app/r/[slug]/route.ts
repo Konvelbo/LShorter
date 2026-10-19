@@ -171,7 +171,7 @@ export async function GET(
     if (protection.type === "redirect") {
       const expTime = link.expires_at || link.expiresAt;
       if (expTime && new Date(expTime).getTime() <= Date.now() && link.is_active !== 0) {
-        markLinkExpiredAsync(link.id || slug);
+        markLinkExpiredAsync(link.id || slug, link);
       }
 
       const isPathLocked = Boolean((link.path_lock_mode && link.path_lock_mode !== "off") || (link.pathLockMode && link.pathLockMode !== "off"));

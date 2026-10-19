@@ -1230,7 +1230,8 @@ console.log("Vector SVG QR Code exported successfully!");`
     readTime: "4 min read",
     overview: [
       "LShorter webhooks notify your backend systems in real time whenever an event occurs on your short links (click registered, conversion recorded, quota reached, link expired).",
-      "All outgoing HTTP POST payloads are cryptographically signed with an HMAC-SHA256 secret key via the x-lshorter-signature header to guarantee authenticity and prevent tampering."
+      "All outgoing HTTP POST payloads are cryptographically signed with an HMAC-SHA256 secret key via the x-lshorter-signature header to guarantee authenticity and prevent tampering.",
+      "Pour des raisons de sécurité et d'intégrité, la création et la configuration des webhooks s'effectuent exclusivement depuis le tableau de bord web LShorter (Paramètres > Webhooks). L'API et le SDK vous permettent de lister vos abonnements actifs et de traiter les événements entrants."
     ],
     keyPoints: [
       {
@@ -1242,61 +1243,55 @@ console.log("Vector SVG QR Code exported successfully!");`
         description: "Validate the x-lshorter-signature header to verify payload integrity before processing."
       },
       {
+        title: "Configuration via Tableau de Bord",
+        description: "Enregistrement sécurisé des endpoints d'écoute directement depuis l'interface Paramètres > Webhooks."
+      },
+      {
         title: "Exponential Backoff Retries",
         description: "Automatic retry schedule with exponential backoff if your webhook receiver returns a 5xx error or times out."
       }
     ],
     apiEndpoints: [
       {
-        name: "Create Webhook Subscription",
-        method: "POST",
+        name: "List Webhook Subscriptions",
+        method: "GET",
         path: "/api/v1/webhooks",
-        description: "Registers a new webhook endpoint URL to receive automated HTTP POST event notifications.",
+        description: "Retrieves all active webhook subscriptions configured for your account. (Note: New webhooks must be registered securely from the LShorter Web Dashboard in Settings > Webhooks).",
         authentication: "Bearer <API_KEY>",
         rateLimit: "60 to 1,400 req/min (by plan)",
-        bodyParams: [
-          { name: "url", type: "string (https url)", required: true, description: "Your server endpoint URL where notifications will be sent.", example: "https://api.my-domain.com/webhooks/lshorter" },
-          { name: "events", type: "string[]", required: true, description: "Array of event types to subscribe to.", example: '["link.clicked", "link.converted", "link.limit_reached"]' },
-          { name: "description", type: "string", required: false, description: "Optional description for internal identification.", example: "Production conversion sync webhook" }
-        ],
         codeExamples: [
           {
             name: "cURL",
             language: "bash",
-            code: `curl -X POST "https://lsho.cc/api/v1/webhooks" \\
-  -H "Authorization: Bearer $LSHORTER_API_KEY" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "url": "https://api.my-domain.com/webhooks/lshorter",
-    "events": ["link.clicked", "link.converted", "link.limit_reached"],
-    "description": "Production conversion sync webhook"
-  }'`
+            code: `curl -X GET "https://lsho.cc/api/v1/webhooks" \\
+  -H "Authorization: Bearer $LSHORTER_API_KEY"`
           },
           {
             name: "TypeScript SDK",
             language: "typescript",
-            code: `import { lshorter } from "@/lib/lshorter";
+            code: `import { LShorter } from "lshorter-api";
 
-const webhook = await lshorter.webhooks.create({
-  url: "https://api.my-domain.com/webhooks/lshorter",
-  events: ["link.clicked", "link.converted", "link.limit_reached"],
-});
+const lshorter = new LShorter({ apiKey: process.env.LSHORTER_API_KEY! });
 
-console.log("Webhook registered with secret:", webhook.secret);`
+const webhooks = await lshorter.webhooks.list();
+console.log("Configured webhooks:", webhooks);`
           }
         ],
         responses: [
           {
-            status: 201,
-            statusText: "Created",
-            description: "Webhook registered. Save the secret key for HMAC verification.",
+            status: 200,
+            statusText: "OK",
+            description: "List of registered webhook endpoints and their subscribed events.",
             json: `{
-  "id": "wh_883019283",
-  "url": "https://api.my-domain.com/webhooks/lshorter",
-  "events": ["link.clicked", "link.converted", "link.limit_reached"],
-  "secret": "whsec_991823abf8923481239",
-  "status": "active",
-  "createdAt": "2026-09-17T12:30:00.000Z"
+  "webhooks": [
+    {
+      "id": "wh_883019283",
+      "url": "https://api.my-domain.com/webhooks/lshorter",
+      "events": ["link.clicked", "link.converted", "link.limit_reached"],
+      "isActive": true,
+      "createdAt": "2026-09-17T12:30:00.000Z"
+    }
+  ]
 }`
           }
         ]
@@ -2449,9 +2444,15 @@ export function getAllDocFeatures(): DocFeature[] {
 const SLUG_ALIASES: Record<string, string> = {
   "edge-routing": "geo-routing",
   "developer-api": "sdk-quickstart",
+  "api": "sdk-quickstart",
+  "quickstart": "sdk-quickstart",
   "analytics-stream": "realtime-analytics",
   "bio-pages": "social-sharing-opengraph",
   "growth-marketing": "ab-testing-routing",
+  "security": "pin-protection",
+  "qr-codes": "dynamic-qr-codes",
+  "cloaking": "url-masking",
+  "conversion-tracking": "conversion-tracking-amount-count",
 };
 
 export function getDocFeatureBySlug(slug: string): DocFeature | undefined {

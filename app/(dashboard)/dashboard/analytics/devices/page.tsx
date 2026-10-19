@@ -153,20 +153,12 @@ export default function DevicesAnalyticsPage() {
       const d = analyticsRes?.data || {};
       const workerTotal = Number(d.totalClicks ?? d.total_clicks ?? 0);
 
-      let storedLive = 0;
-      if (typeof window !== "undefined" && userId) {
-        try {
-          const s = localStorage.getItem(`lshorter_live_clicks_${userId}`);
-          if (s && !isNaN(Number(s))) storedLive = Number(s);
-        } catch {}
-      }
-
       const isShortWindow = range === "day" || range === "week";
       const baseTotal = isShortWindow
         ? (isAll ? workerTotal : (workerTotal || linkClicks))
         : (isAll
-            ? Math.max(workerTotal, sumLinksClicks, storedLive, syncedLiveClicks)
-            : Math.max(workerTotal || linkClicks, linkClicks));
+            ? (workerTotal > 0 ? workerTotal : sumLinksClicks)
+            : (workerTotal || linkClicks));
 
       if (baseTotal > 0 && typeof window !== "undefined" && userId && isAll) {
         try {

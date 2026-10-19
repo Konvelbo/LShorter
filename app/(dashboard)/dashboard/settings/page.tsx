@@ -15,6 +15,8 @@ import {
   Database,
   Check,
   AlertCircle,
+  AlertTriangle,
+  Calendar,
   Download,
   Trash2,
   Sparkles,
@@ -22,6 +24,7 @@ import {
   Smartphone,
   Copy,
   RefreshCw,
+  Loader2,
   Send,
   Eye,
   EyeOff,
@@ -51,8 +54,11 @@ import {
   Filter,
   ArrowUpRight,
   Mail,
+  Pencil,
   X,
 } from "lucide-react";
+import { Drawer, DrawerContent } from "@/components/ui/drawer";
+import { WebhookModal, WebhookModalData } from "@/components/dashboard/webhook-modal";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
@@ -131,8 +137,20 @@ function SettingsPageContent() {
       ? { userId: rawUserId || userEmail, email: userEmail || undefined }
       : "skip",
   );
-  const userId = rawUserId && rawUserId !== "usr_anonymous" ? rawUserId : convexUser?.userId || userEmail || "";
+  const isPlaywrightPreview =
+    process.env.NODE_ENV === "development" &&
+    searchParams.get("playwright_preview") === "1";
+
+  const userId =
+    rawUserId && rawUserId !== "usr_anonymous"
+      ? rawUserId
+      : convexUser?.userId || userEmail || (isPlaywrightPreview ? "mock_playwright_user" : "");
+  const previewPlanParam =
+    process.env.NODE_ENV === "development"
+      ? searchParams.get("plan_preview")?.toUpperCase()
+      : null;
   const plan = (
+    previewPlanParam ||
     convexUser?.plan ||
     (session?.user as any)?.plan ||
     "FREEMIUM"
@@ -386,6 +404,10 @@ function SettingsPageContent() {
 
   const planNormalized = (plan === "FREEMIUM" ? "FREE" : plan) as
     "FREE" | "FREEMIUM" | "PRO" | "BUSINESS" | "ENTERPRISE";
+  const isPremium =
+    planNormalized === "PRO" ||
+    planNormalized === "BUSINESS" ||
+    planNormalized === "ENTERPRISE";
   const clicksLimit =
     plan === "ENTERPRISE"
       ? -1
@@ -520,6 +542,137 @@ function SettingsPageContent() {
     showToast.success(`Téléchargement de la facture officielle Paddle (${inv.number})...`);
   };
 
+  // ─── Real Subscription & Auto-Renewal State ───────────────────────────────
+  const convexSubscription = useQuery(
+    api.subscriptions.getSubscription,
+    userId ? { orgId: userId } : "skip"
+  );
+  const [subDetails, setSubDetails] = useState<{
+    id: string | null;
+    plan: string;
+    cycle: string;
+    status: string;
+    cancelAtPeriodEnd: boolean;
+    currentPeriodEnd: number | null;
+    formattedPeriodEnd: string | null;
+  } | null>(null);
+  const [loadingSub, setLoadingSub] = useState(false);
+  const [cancelingSub, setCancelingSub] = useState(false);
+  const [resumingSub, setResumingSub] = useState(false);
+  const [isCancelSubModalOpen, setIsCancelSubModalOpen] = useState(false);
+
+  const loadSubscriptionDetails = useCallback(async () => {
+    if (!userId && !userEmail) return;
+    setLoadingSub(true);
+    try {
+      const res = await fetch("/api/billing/subscription");
+      const data = await res.json();
+      if (data.success && data.subscription) {
+        setSubDetails(data.subscription);
+      }
+    } catch (err) {
+      console.warn("[Settings] Error loading subscription details:", err);
+    } finally {
+      setLoadingSub(false);
+    }
+  }, [userId, userEmail]);
+
+  useEffect(() => {
+    if (activeTab === "billing") {
+      loadSubscriptionDetails();
+    }
+  }, [activeTab, loadSubscriptionDetails]);
+
+  const isCanceledAtPeriodEnd =
+    convexSubscription?.cancelAtPeriodEnd ??
+    subDetails?.cancelAtPeriodEnd ??
+    false;
+
+  const currentPeriodEndTimestamp =
+    convexSubscription?.currentPeriodEnd ??
+    subDetails?.currentPeriodEnd ??
+    null;
+
+  const displayPeriodEnd = useMemo(() => {
+    if (currentPeriodEndTimestamp) {
+      return new Date(currentPeriodEndTimestamp).toLocaleDateString("fr-FR", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      });
+    }
+    if (subDetails?.formattedPeriodEnd) {
+      return subDetails.formattedPeriodEnd;
+    }
+    return new Date(Date.now() + 30 * 86400000).toLocaleDateString("fr-FR", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  }, [currentPeriodEndTimestamp, subDetails?.formattedPeriodEnd]);
+
+  const subCycle = (
+    convexSubscription?.cycle ||
+    subDetails?.cycle ||
+    "MONTHLY"
+  ).toUpperCase();
+
+  const isPaidPlan =
+    plan === "PRO" || plan === "BUSINESS" || plan === "ENTERPRISE";
+
+  const handleConfirmCancelSubscription = async () => {
+    setCancelingSub(true);
+    try {
+      const res = await fetch("/api/billing/subscription/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast.success(
+          "Renouvellement automatique annulé. Vos services restent actifs jusqu'au terme de la période payée."
+        );
+        setIsCancelSubModalOpen(false);
+        loadSubscriptionDetails();
+        window.dispatchEvent(new Event("lshorter_notifications_sync"));
+      } else {
+        showToast.error(
+          data.error || "Impossible d'annuler le renouvellement automatique pour le moment."
+        );
+      }
+    } catch (err: any) {
+      console.error("[Cancel Subscription Error]", err);
+      showToast.error("Une erreur réseau est survenue. Veuillez réessayer.");
+    } finally {
+      setCancelingSub(false);
+    }
+  };
+
+  const handleResumeSubscription = async () => {
+    setResumingSub(true);
+    try {
+      const res = await fetch("/api/billing/subscription/resume", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast.success("Renouvellement automatique réactivé avec succès !");
+        loadSubscriptionDetails();
+        window.dispatchEvent(new Event("lshorter_notifications_sync"));
+      } else {
+        showToast.error(
+          data.error || "Impossible de réactiver le renouvellement automatique."
+        );
+      }
+    } catch (err: any) {
+      console.error("[Resume Subscription Error]", err);
+      showToast.error("Une erreur réseau est survenue. Veuillez réessayer.");
+    } finally {
+      setResumingSub(false);
+    }
+  };
+
   // ─── API Keys State ─────────────────────────────────────────────────────────
   const [apiKeys, setApiKeys] = useState<ApiKeyItem[]>([]);
   const [newKeyName, setNewKeyName] = useState("");
@@ -545,6 +698,8 @@ function SettingsPageContent() {
     name: "",
   });
   const [isRevokingKey, setIsRevokingKey] = useState(false);
+  const [isCreatingKey, setIsCreatingKey] = useState(false);
+  const [isLoadingApiKeys, setIsLoadingApiKeys] = useState(false);
 
   const toggleRevealKey = (id: string) => {
     setRevealedKeys((prev) => ({
@@ -618,6 +773,10 @@ console.log("Top Countries:", topAudience.topCountries);`,
   const [isTestingWebhook, setIsTestingWebhook] = useState(false);
   const [showWebhookGuide, setShowWebhookGuide] = useState(true);
   const [isLoadingWebhooks, setIsLoadingWebhooks] = useState(false);
+  const [isCreatingWebhook, setIsCreatingWebhook] = useState(false);
+  const [isWebhookModalOpen, setIsWebhookModalOpen] = useState(false);
+  const [webhookToEdit, setWebhookToEdit] = useState<WebhookModalData | null>(null);
+  const [isSavingWebhookModal, setIsSavingWebhookModal] = useState(false);
 
   const loadWebhooks = async () => {
     if (!userId) return;
@@ -802,11 +961,22 @@ console.log("Top Countries:", topAudience.topCountries);`,
   const [editingAlert, setEditingAlert] = useState<TargetAlert | null>(null);
   const [isEditingGlobalAlert, setIsEditingGlobalAlert] = useState(false);
 
-  // Modal form inputs
+  // Responsive Drawer Detection
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  // Modal / Drawer form inputs
   const [alertLinkId, setAlertLinkId] = useState<string>("");
-  const [alertMetricType, setAlertMetricType] = useState<"clicks" | "revenue">("clicks");
+  const [alertMetricType, setAlertMetricType] = useState<"clicks" | "revenue" | "both">("clicks");
   const [alertPeriod, setAlertPeriod] = useState<"day" | "week" | "month">("month");
   const [alertTargetValue, setAlertTargetValue] = useState<number>(2500);
+  const [alertTargetClicks, setAlertTargetClicks] = useState<number>(2500);
+  const [alertTargetRevenue, setAlertTargetRevenue] = useState<number>(5000);
   const [alertNotifyExpired, setAlertNotifyExpired] = useState<boolean>(true);
   const [alertNotifyEmail, setAlertNotifyEmail] = useState<boolean>(true);
   const [alertNotifyBell, setAlertNotifyBell] = useState<boolean>(true);
@@ -846,7 +1016,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
           period: "month",
           targetValue: savedClk > 0 ? savedClk : 2500,
           currentValue: accountStats.clicksThisMonth || 0,
-          notifyExpired: true,
+          notifyExpired: false,
           notifyEmail: true,
           notifyBell: true,
           status: "active",
@@ -964,12 +1134,15 @@ console.log("Top Countries:", topAudience.topCountries);`,
   const handleOpenCreateModal = () => {
     setEditingAlert(null);
     setIsEditingGlobalAlert(false);
-    const firstLink = userLinksList[0];
-    setAlertLinkId(firstLink ? String(firstLink.id) : "");
+    const firstLink = isPremium ? userLinksList[0] : null;
+    const initialLinkId = firstLink ? String(firstLink.id || firstLink.slug) : "global";
+    setAlertLinkId(initialLinkId);
     setAlertMetricType("clicks");
     setAlertPeriod("month");
     setAlertTargetValue(2500);
-    setAlertNotifyExpired(true);
+    setAlertTargetClicks(2500);
+    setAlertTargetRevenue(5000);
+    setAlertNotifyExpired(initialLinkId !== "global");
     setAlertNotifyEmail(true);
     setAlertNotifyBell(true);
     setIsAlertModalOpen(true);
@@ -980,11 +1153,18 @@ console.log("Top Countries:", topAudience.topCountries);`,
     setEditingAlert(alert);
     const isGlobal = !alert.linkId;
     setIsEditingGlobalAlert(isGlobal);
-    setAlertLinkId(alert.linkId ? String(alert.linkId) : "");
+    setAlertLinkId(alert.linkId ? String(alert.linkId) : "global");
     setAlertMetricType(alert.metricType || "clicks");
     setAlertPeriod(isGlobal ? "month" : (alert.period || "month"));
     setAlertTargetValue(alert.targetValue || 2500);
-    setAlertNotifyExpired(alert.notifyExpired !== false);
+    if (alert.metricType === "revenue") {
+      setAlertTargetRevenue(alert.targetValue || 5000);
+      setAlertTargetClicks(2500);
+    } else {
+      setAlertTargetClicks(alert.targetValue || 2500);
+      setAlertTargetRevenue(5000);
+    }
+    setAlertNotifyExpired(isGlobal ? false : (alert.notifyExpired !== false));
     setAlertNotifyEmail(alert.notifyEmail !== false);
     setAlertNotifyBell(alert.notifyBell !== false);
     setIsAlertModalOpen(true);
@@ -992,74 +1172,169 @@ console.log("Top Countries:", topAudience.topCountries);`,
 
   const handleSaveTarget = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (alertTargetValue <= 0) {
-      showToast.error("Please enter a valid target value > 0");
-      return;
+    if (alertMetricType === "both") {
+      if (alertTargetClicks <= 0 || alertTargetRevenue <= 0) {
+        showToast.error("Veuillez saisir un seuil valide (> 0) pour les clics et les revenus");
+        return;
+      }
+    } else {
+      if (alertTargetValue <= 0) {
+        showToast.error("Veuillez saisir un seuil d'objectif valide supérieur à 0");
+        return;
+      }
     }
+
+    const isGlobalTarget = isEditingGlobalAlert || !alertLinkId || alertLinkId === "global" || !isPremium;
+    const effectiveNotifyExpired = isGlobalTarget ? false : alertNotifyExpired;
+
     setIsSavingAlert(true);
     try {
       if (isEditingGlobalAlert) {
-        if (alertMetricType === "revenue") {
+        if (alertMetricType === "both") {
+          localStorage.setItem("lshorter_target_clicks", String(alertTargetClicks));
+          localStorage.setItem("lshorter_target_revenue", String(alertTargetRevenue));
+          window.dispatchEvent(
+            new CustomEvent("lshorter_target_updated", {
+              detail: { clicks: alertTargetClicks, revenue: alertTargetRevenue },
+            })
+          );
+          await Promise.allSettled([
+            cfCreateTargetAlert({
+              userId,
+              linkId: null,
+              metricType: "clicks",
+              period: "month",
+              targetValue: alertTargetClicks,
+              notifyExpired: false,
+              notifyEmail: alertNotifyEmail,
+              notifyBell: alertNotifyBell,
+            }),
+            cfCreateTargetAlert({
+              userId,
+              linkId: null,
+              metricType: "revenue",
+              period: "month",
+              targetValue: alertTargetRevenue,
+              notifyExpired: false,
+              notifyEmail: alertNotifyEmail,
+              notifyBell: alertNotifyBell,
+            }),
+          ]);
+          showToast.success("Objectifs globaux clics et revenus enregistrés dans Cloudflare");
+        } else if (alertMetricType === "revenue") {
           localStorage.setItem("lshorter_target_revenue", String(alertTargetValue));
-        } else {
-          localStorage.setItem("lshorter_target_clicks", String(alertTargetValue));
-        }
-        window.dispatchEvent(
-          new CustomEvent("lshorter_target_updated", {
-            detail: {
-              revenue: alertMetricType === "revenue" ? alertTargetValue : undefined,
-              clicks: alertMetricType === "clicks" ? alertTargetValue : undefined,
-            },
-          })
-        );
-        await cfCreateTargetAlert({
-          userId,
-          linkId: null,
-          metricType: alertMetricType,
-          period: "month",
-          targetValue: alertTargetValue,
-          notifyExpired: alertNotifyExpired,
-          notifyEmail: alertNotifyEmail,
-          notifyBell: alertNotifyBell,
-        }).catch(() => null);
-
-        showToast.success("Global monthly target updated");
-      } else {
-        if (!alertLinkId && !editingAlert) {
-          showToast.error("Please select a short link");
-          setIsSavingAlert(false);
-          return;
-        }
-
-        if (editingAlert && !editingAlert.id.startsWith("global_")) {
-          await cfUpdateTargetAlert(editingAlert.id, {
-            metricType: alertMetricType,
-            period: alertPeriod,
-            targetValue: alertTargetValue,
-            notifyExpired: alertNotifyExpired,
-            notifyEmail: alertNotifyEmail,
-            notifyBell: alertNotifyBell,
-          });
-          showToast.success("Link alert updated");
-        } else {
+          window.dispatchEvent(
+            new CustomEvent("lshorter_target_updated", {
+              detail: { revenue: alertTargetValue },
+            })
+          );
           await cfCreateTargetAlert({
             userId,
-            linkId: alertLinkId,
-            metricType: alertMetricType,
-            period: alertPeriod,
+            linkId: null,
+            metricType: "revenue",
+            period: "month",
             targetValue: alertTargetValue,
-            notifyExpired: alertNotifyExpired,
+            notifyExpired: false,
             notifyEmail: alertNotifyEmail,
             notifyBell: alertNotifyBell,
           });
-          showToast.success("Link alert created successfully");
+          showToast.success("Objectif global de revenus enregistré dans Cloudflare");
+        } else {
+          localStorage.setItem("lshorter_target_clicks", String(alertTargetValue));
+          window.dispatchEvent(
+            new CustomEvent("lshorter_target_updated", {
+              detail: { clicks: alertTargetValue },
+            })
+          );
+          await cfCreateTargetAlert({
+            userId,
+            linkId: null,
+            metricType: "clicks",
+            period: "month",
+            targetValue: alertTargetValue,
+            notifyExpired: false,
+            notifyEmail: alertNotifyEmail,
+            notifyBell: alertNotifyBell,
+          });
+          showToast.success("Objectif global de clics enregistré dans Cloudflare");
+        }
+      } else {
+        const effectiveLinkId = (!alertLinkId || alertLinkId === "global" || !isPremium)
+          ? null
+          : alertLinkId;
+
+        if (editingAlert && !editingAlert.id.startsWith("global_")) {
+          const targetValue = alertMetricType === "both"
+            ? alertTargetClicks
+            : alertTargetValue;
+
+          await cfUpdateTargetAlert(editingAlert.id, {
+            metricType: alertMetricType === "both" ? "clicks" : alertMetricType,
+            period: alertPeriod,
+            targetValue,
+            notifyExpired: effectiveNotifyExpired,
+            notifyEmail: alertNotifyEmail,
+            notifyBell: alertNotifyBell,
+          });
+
+          if (alertMetricType === "both") {
+            await cfCreateTargetAlert({
+              userId,
+              linkId: effectiveLinkId || editingAlert.linkId,
+              metricType: "revenue",
+              period: alertPeriod,
+              targetValue: alertTargetRevenue,
+              notifyExpired: effectiveNotifyExpired,
+              notifyEmail: alertNotifyEmail,
+              notifyBell: alertNotifyBell,
+            });
+          }
+          showToast.success("Alerte mise à jour dans Cloudflare D1");
+        } else {
+          if (alertMetricType === "both") {
+            await Promise.all([
+              cfCreateTargetAlert({
+                userId,
+                linkId: effectiveLinkId,
+                metricType: "clicks",
+                period: alertPeriod,
+                targetValue: alertTargetClicks,
+                notifyExpired: effectiveNotifyExpired,
+                notifyEmail: alertNotifyEmail,
+                notifyBell: alertNotifyBell,
+              }),
+              cfCreateTargetAlert({
+                userId,
+                linkId: effectiveLinkId,
+                metricType: "revenue",
+                period: alertPeriod,
+                targetValue: alertTargetRevenue,
+                notifyExpired: effectiveNotifyExpired,
+                notifyEmail: alertNotifyEmail,
+                notifyBell: alertNotifyBell,
+              }),
+            ]);
+            showToast.success("Alertes clics et revenus créées avec succès dans Cloudflare D1");
+          } else {
+            await cfCreateTargetAlert({
+              userId,
+              linkId: effectiveLinkId,
+              metricType: alertMetricType,
+              period: alertPeriod,
+              targetValue: alertTargetValue,
+              notifyExpired: effectiveNotifyExpired,
+              notifyEmail: alertNotifyEmail,
+              notifyBell: alertNotifyBell,
+            });
+            showToast.success("Alerte créée avec succès dans Cloudflare D1");
+          }
         }
       }
 
       setIsAlertModalOpen(false);
       await loadTargetAlerts();
     } catch (err: any) {
-      showToast.error(err?.message || "Failed to save alert");
+      showToast.error(err?.message || "Erreur lors de l'enregistrement de l'alerte");
     } finally {
       setIsSavingAlert(false);
     }
@@ -1115,30 +1390,58 @@ console.log("Top Countries:", topAudience.topCountries);`,
 
   const loadApiKeys = async () => {
     if (!userId) return;
+    setIsLoadingApiKeys(true);
     try {
-      const res = await cfGetApiKeys(userId);
+      const res = await cfGetApiKeys(userId, userEmail);
       const rawUserPlan = (session?.user as any)?.plan || "FREE";
       const userPlan = rawUserPlan === "FREEMIUM" || rawUserPlan === "STARTER" ? "FREE" : rawUserPlan;
       const planLimits = getPlanLimits(userPlan);
       const defaultRateLimit = `${planLimits.rateLimitReqPerMin} req / min`;
 
-      const rawKeys: ApiKeyItem[] = (res?.data || []).map((k: any) => ({
-        id: k.id,
-        name: k.name || "API Key",
-        prefix: k.prefix || k.key_prefix || "lsh_live_...",
-        rawKey: k.raw_key,
-        scope: (k.scope as any) || "read_write",
-        rateLimit: k.rate_limit ? `${k.rate_limit} req / min` : defaultRateLimit,
-        created_at: k.created_at || new Date().toISOString(),
-      }));
+      const rawKeys: ApiKeyItem[] = (res?.data || []).map((k: any) => {
+        const rawKeyVal = k.raw_key || k.rawKey || k.key || k.api_key;
+        const rawPrefix =
+          k.prefix ||
+          k.key_prefix ||
+          (rawKeyVal ? `${String(rawKeyVal).slice(0, 13)}...${String(rawKeyVal).slice(-4)}` : "lsh_live_...");
+        const rawRateLimit = k.rate_limit ?? k.rateLimit;
+        const formattedRateLimit = rawRateLimit
+          ? String(rawRateLimit).includes("req")
+            ? String(rawRateLimit)
+            : `${rawRateLimit} req / min`
+          : defaultRateLimit;
+
+        return {
+          id: k.id,
+          name: k.name || "API Key",
+          prefix: rawPrefix,
+          rawKey: rawKeyVal,
+          scope: (k.scope as any) || "read_write",
+          rateLimit: formattedRateLimit,
+          created_at: k.created_at || k.createdAt || new Date().toISOString(),
+        };
+      });
       setApiKeys(rawKeys);
     } catch (err) {
       console.warn("[Settings] Error loading API keys:", err);
+    } finally {
+      setIsLoadingApiKeys(false);
     }
   };
 
   useEffect(() => {
-    if (status === "unauthenticated") {
+    if (userId && activeTab === "api") {
+      loadApiKeys();
+    }
+  }, [userId, activeTab]);
+
+  useEffect(() => {
+    const isPlaywrightPreview =
+      process.env.NODE_ENV === "development" &&
+      typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).get("playwright_preview") === "1";
+
+    if (status === "unauthenticated" && !isPlaywrightPreview) {
       router.replace("/login");
       return;
     }
@@ -1166,13 +1469,62 @@ console.log("Top Countries:", topAudience.topCountries);`,
     try {
       const uploadRes = await cfUploadImage(file, "lshorter/avatars");
       if (uploadRes.success && uploadRes.url) {
-        setAvatarUrl(uploadRes.url);
-        showToast.success("Profile picture updated successfully!");
+        const newAvatarUrl = uploadRes.url;
+        setAvatarUrl(newAvatarUrl);
+
+        // Auto-save immediately so the topbar and profile update right away
+        if (userId) {
+          try {
+            await updateProfileMutation({
+              userId,
+              name: name?.trim() || undefined,
+              email: email?.trim() || undefined,
+              avatarUrl: newAvatarUrl,
+              language: language || undefined,
+              timezone: timezone || undefined,
+            });
+
+            await storeUserMutation({
+              userId,
+              name: name?.trim() || convexUser?.name || "User",
+              email: email?.trim() || convexUser?.email || "",
+              avatarUrl: newAvatarUrl,
+              plan: plan as any,
+            });
+
+            await syncUserToCloudflare({
+              id: userId,
+              name,
+              email,
+              avatarUrl: newAvatarUrl,
+              plan: plan as any,
+            });
+          } catch (persistErr) {
+            console.warn("Avatar auto-persist sync warning:", persistErr);
+          }
+        }
+
+        const updatedProfile = {
+          name,
+          email,
+          avatarUrl: newAvatarUrl,
+          plan: plan || "FREE",
+        };
+        try {
+          localStorage.setItem("lshorter_cached_user", JSON.stringify(updatedProfile));
+        } catch {}
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("lshorter:profile-updated", { detail: updatedProfile })
+          );
+        }
+
+        showToast.success("Photo de profil mise à jour avec succès !");
       } else {
-        showToast.error("Failed to upload profile picture");
+        showToast.error("Échec du téléversement de la photo de profil");
       }
     } catch {
-      showToast.error("Error uploading profile picture");
+      showToast.error("Erreur lors de l'envoi de la photo de profil");
     } finally {
       setIsUploadingAvatar(false);
     }
@@ -1190,6 +1542,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
       await updateProfileMutation({
         userId,
         name,
+        email: email || undefined,
         avatarUrl: avatarUrl || undefined,
         language,
         timezone,
@@ -1237,7 +1590,10 @@ console.log("Top Countries:", topAudience.topCountries);`,
 
   const handleCreateApiKey = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isCreatingKey) return;
     if (!newKeyName.trim() || !userId) return;
+
+    setIsCreatingKey(true);
     try {
       const res = await cfCreateApiKey({
         userId,
@@ -1264,9 +1620,11 @@ console.log("Top Countries:", topAudience.topCountries);`,
       setNewKeyName("");
       confetti({ particleCount: 40, spread: 60 });
       showToast.success("API key created successfully!");
-      loadApiKeys();
+      await loadApiKeys();
     } catch (err: any) {
       showToast.error(err.message || "Error creating API key.");
+    } finally {
+      setIsCreatingKey(false);
     }
   };
 
@@ -1285,8 +1643,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
     }
   };
 
-  const handleAddWebhook = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleOpenCreateWebhook = () => {
     if (plan === "FREEMIUM") {
       triggerPlanUpgrade({
         featureName: "Webhooks",
@@ -1296,20 +1653,53 @@ console.log("Top Countries:", topAudience.topCountries);`,
       });
       return;
     }
-    if (!newWebhookUrl.trim() || !userId) return;
+    setWebhookToEdit(null);
+    setIsWebhookModalOpen(true);
+  };
+
+  const handleOpenEditWebhook = (wh: any) => {
+    setWebhookToEdit({
+      id: wh.id,
+      url: wh.url,
+      events: wh.events || [],
+      isActive: wh.isActive,
+      secretKey: wh.secretKey,
+    });
+    setIsWebhookModalOpen(true);
+  };
+
+  const handleSaveWebhookModal = async (data: WebhookModalData) => {
+    if (!userId) return;
+    setIsSavingWebhookModal(true);
+    setIsCreatingWebhook(true);
     try {
-      await cfCreateWebhook({
-        userId,
-        url: newWebhookUrl.trim(),
-        events: ["click.created", "conversion.created"],
-        isActive: true,
-      });
-      setNewWebhookUrl("");
-      confetti({ particleCount: 30, spread: 50 });
-      showToast.success("Webhook configuré et enregistré dans Cloudflare D1 !");
-      loadWebhooks();
+      if (data.id) {
+        await cfUpdateWebhook(data.id, {
+          userId,
+          url: data.url,
+          events: data.events,
+          secretKey: data.secretKey,
+          isActive: data.isActive,
+        });
+        showToast.success("Webhook mis à jour avec succès !");
+      } else {
+        await cfCreateWebhook({
+          userId,
+          url: data.url,
+          events: data.events,
+          secretKey: data.secretKey,
+          isActive: true,
+        });
+        confetti({ particleCount: 30, spread: 50 });
+        showToast.success("Webhook configuré et enregistré dans Cloudflare D1 !");
+      }
+      setIsWebhookModalOpen(false);
+      await loadWebhooks();
     } catch (err: any) {
-      showToast.error(err?.message || "Échec de création du webhook");
+      showToast.error(err?.message || "Échec de l'enregistrement du webhook");
+    } finally {
+      setIsSavingWebhookModal(false);
+      setIsCreatingWebhook(false);
     }
   };
 
@@ -1600,38 +1990,25 @@ console.log("Top Countries:", topAudience.topCountries);`,
   }
 
   return (
-    <div className="flex flex-col gap-6 lg:gap-8 animate-in fade-in pb-20 md:pb-16">
-      {/* Page Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-zinc-900 dark:text-white tracking-wide">
-          Account Settings
-        </h1>
-        <p className="text-xs text-zinc-500 dark:text-neutral-400 mt-1">
-          Configure your profile, API keys, webhook integrations, pixels, and
-          security.
-        </p>
-      </div>
-
+    <div className="flex flex-col gap-6 animate-in fade-in pb-20 md:pb-16">
       <div className="w-full">
-        {/* Full-width Content Area (controlled via Main Sidebar Tree Sub-Menu) */}
-        <div className="w-full rounded-[10px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] p-5 lg:p-8 shadow-xs dark:shadow-2xl">
-          {/* TAB 1: PROFILE */}
-          {activeTab === "profile" && (
-            <form onSubmit={handleSaveProfile} className="flex flex-col gap-6">
-              <div className="flex items-center justify-between pb-4 border-b border-zinc-200 dark:border-[#222225]">
-                <div>
-                  <h2 className="text-lg font-bold text-zinc-900 dark:text-white">
-                    User Profile
-                  </h2>
-                  <p className="text-xs text-zinc-500 dark:text-neutral-400">
-                    Personal information, timezone, and display preferences.
-                  </p>
-                </div>
-                <Badge variant="orange">Plan {plan}</Badge>
+        {/* TAB 1: PROFILE */}
+        {activeTab === "profile" && (
+          <form onSubmit={handleSaveProfile} className="flex flex-col gap-6">
+            <div className="flex items-center justify-between pb-4 border-b border-zinc-200 dark:border-[#222225]">
+              <div>
+                <h1 className="text-2xl font-bold text-zinc-900 dark:text-white tracking-tight">
+                  User Profile
+                </h1>
+                <p className="text-xs text-zinc-500 dark:text-neutral-400 mt-0.5">
+                  Personal information, timezone, and display preferences.
+                </p>
               </div>
+              <Badge variant="orange">Plan {plan}</Badge>
+            </div>
 
-              {/* Avatar Selector */}
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 p-4 rounded-[10px] bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a]">
+            {/* Avatar Selector */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 p-5 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225]">
                 <label className="relative group cursor-pointer shrink-0">
                   <input
                     type="file"
@@ -1695,34 +2072,36 @@ console.log("Top Countries:", topAudience.topCountries);`,
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-700 dark:text-neutral-300 mb-1.5">
-                    Full name
-                  </label>
-                  <Input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                  />
+              <div className="p-5 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225] flex flex-col gap-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-zinc-700 dark:text-neutral-300 mb-1.5">
+                      Full name
+                    </label>
+                    <Input
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-zinc-700 dark:text-neutral-300 mb-1.5">
+                      Login email address
+                    </label>
+                    <Input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-700 dark:text-neutral-300 mb-1.5">
-                    Login email address
-                  </label>
-                  <Input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
 
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-zinc-200 dark:border-[#222225]">
-                <Button type="submit" variant="glow" className="text-xs px-6">
-                  {profileSuccess ? "Saved successfully!" : "Save changes"}
-                </Button>
+                <div className="flex items-center justify-end gap-3 pt-4 border-t border-zinc-200 dark:border-[#222225]">
+                  <Button type="submit" variant="glow" className="text-xs px-6">
+                    {profileSuccess ? "Saved successfully!" : "Save changes"}
+                  </Button>
+                </div>
               </div>
             </form>
           )}
@@ -1733,14 +2112,14 @@ console.log("Top Countries:", topAudience.topCountries);`,
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-zinc-200 dark:border-[#222225]">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h2 className="text-lg font-bold text-zinc-900 dark:text-white">
+                    <h1 className="text-2xl font-bold text-zinc-900 dark:text-white tracking-tight">
                       Plan &amp; Billing
-                    </h2>
+                    </h1>
                     <span className="px-2.5 py-0.5 rounded-full bg-brand-subtle text-brand border border-brand-subtle text-[10px] font-extrabold uppercase tracking-wider">
                       {plan}
                     </span>
                   </div>
-                  <p className="text-xs text-zinc-500 dark:text-neutral-400 mt-0.5">
+                  <p className="text-xs text-zinc-500 dark:text-neutral-400 mt-1">
                     Manage your Edge infrastructure quotas, legal billing
                     details, and download compliant invoices.
                   </p>
@@ -1755,9 +2134,177 @@ console.log("Top Countries:", topAudience.topCountries);`,
                 </Button>
               </div>
 
+              {/* Subscription & Auto-Renewal Management Card */}
+              <div className="p-5 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225] flex flex-col gap-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-zinc-200 dark:border-[#222225]">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-[8px] bg-brand/10 border border-brand/20 flex items-center justify-center text-brand shrink-0">
+                      <CreditCard className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-bold text-zinc-900 dark:text-white">
+                          Abonnement &amp; Renouvellement Automatique
+                        </h3>
+                        {isPaidPlan && (
+                          isCanceledAtPeriodEnd ? (
+                            <span className="px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              Annulation programmée
+                            </span>
+                          ) : (
+                            <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
+                              <CheckCircle2 className="w-3 h-3" />
+                              Renouvellement actif
+                            </span>
+                          )
+                        )}
+                      </div>
+                      <p className="text-xs text-zinc-500 dark:text-neutral-400 mt-0.5">
+                        Gérez la récurrence de vos paiements, votre date d&apos;échéance et vos options de résiliation.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Header Status / Action: Only resume button when canceled; NO duplicate cancel button */}
+                  {isPaidPlan && isCanceledAtPeriodEnd && (
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleResumeSubscription}
+                        disabled={resumingSub}
+                        className="h-8 text-xs font-semibold rounded-[8px] border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 cursor-pointer gap-1.5"
+                      >
+                        {resumingSub ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <RefreshCw className="w-3.5 h-3.5" />
+                        )}
+                        <span>Réactiver le renouvellement</span>
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Info Grid */}
+                {isPaidPlan ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="p-3.5 rounded-[8px] bg-zinc-50 dark:bg-[#161619] border border-zinc-200/80 dark:border-[#27272a] flex flex-col gap-1">
+                      <span className="text-[11px] font-semibold text-zinc-500 dark:text-neutral-400 uppercase tracking-wider">
+                        Formule Actuelle
+                      </span>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-base font-bold text-zinc-900 dark:text-white">
+                          LShorter {plan}
+                        </span>
+                        <span className="text-xs text-zinc-500 dark:text-neutral-400">
+                          ({subCycle === "YEARLY" ? "Annuel" : "Mensuel"})
+                        </span>
+                      </div>
+                      <span className="text-[11px] text-zinc-500 dark:text-neutral-500">
+                        Facturation certifiée Paddle
+                      </span>
+                    </div>
+
+                    <div className="p-3.5 rounded-[8px] bg-zinc-50 dark:bg-[#161619] border border-zinc-200/80 dark:border-[#27272a] flex flex-col gap-1">
+                      <span className="text-[11px] font-semibold text-zinc-500 dark:text-neutral-400 uppercase tracking-wider">
+                        {isCanceledAtPeriodEnd ? "Fin de la période payée" : "Prochaine échéance"}
+                      </span>
+                      <div className="text-base font-bold text-zinc-900 dark:text-white flex items-center gap-1.5">
+                        <Clock className="w-4 h-4 text-brand" />
+                        <span>{displayPeriodEnd}</span>
+                      </div>
+                      <span className="text-[11px] text-zinc-500 dark:text-neutral-500">
+                        {isCanceledAtPeriodEnd
+                          ? "Accès garanti jusqu'à cette date"
+                          : "Prélèvement automatique Paddle"}
+                      </span>
+                    </div>
+
+                    <div className="p-3.5 rounded-[8px] bg-zinc-50 dark:bg-[#161619] border border-zinc-200/80 dark:border-[#27272a] flex flex-col gap-1">
+                      <span className="text-[11px] font-semibold text-zinc-500 dark:text-neutral-400 uppercase tracking-wider">
+                        Statut du renouvellement
+                      </span>
+                      <div className="text-sm font-bold">
+                        {isCanceledAtPeriodEnd ? (
+                          <span className="text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                            Résiliation programmée
+                          </span>
+                        ) : (
+                          <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                            Renouvellement automatique actif
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[11px] text-zinc-500 dark:text-neutral-500">
+                        {isCanceledAtPeriodEnd
+                          ? "Aucun prélèvement ultérieur"
+                          : "Annulable à tout moment en 1 clic"}
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 rounded-[8px] bg-zinc-50 dark:bg-[#161619] border border-zinc-200/80 dark:border-[#27272a] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-xs font-bold text-zinc-900 dark:text-white">
+                        Vous utilisez actuellement la formule Gratuite (Freemium)
+                      </span>
+                      <p className="text-xs text-zinc-500 dark:text-neutral-400">
+                        Aucun abonnement récurrent ni carte bancaire n&apos;est enregistré. Vous n&apos;avez aucun prélèvement automatique.
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="glow"
+                      onClick={() => router.push("/pricing")}
+                      className="rounded-[8px] font-bold text-xs shrink-0 cursor-pointer"
+                    >
+                      Découvrir les forfaits Pro
+                    </Button>
+                  </div>
+                )}
+
+                {/* Informational banner when cancellation is scheduled */}
+                {isPaidPlan && isCanceledAtPeriodEnd && (
+                  <div className="p-3 rounded-[8px] bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-300 text-xs flex items-start gap-2.5">
+                    <Info className="w-4 h-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+                    <div className="flex flex-col gap-0.5">
+                      <span className="font-bold">
+                        Votre renouvellement automatique est suspendu.
+                      </span>
+                      <p className="text-[11px] text-amber-700 dark:text-amber-300/90 leading-relaxed">
+                        Conformément à nos conditions de vente pour les infrastructures numériques, vos services, liens, redirections edge et domaines restent <strong>100% actifs jusqu&apos;au {displayPeriodEnd}</strong>. Aucun autre prélèvement ne sera effectué sur votre moyen de paiement.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Policy reminder note */}
+                {isPaidPlan && !isCanceledAtPeriodEnd && (
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] text-zinc-500 dark:text-neutral-500 pt-1">
+                    <span className="flex items-center gap-1.5">
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                      <span>
+                        L&apos;annulation empêche tout prélèvement automatique ultérieur et votre compte restera accessible jusqu&apos;à la fin de la période payée en cours.
+                      </span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setIsCancelSubModalOpen(true)}
+                      className="text-xs font-semibold text-red-500 hover:text-red-600 underline underline-offset-2 cursor-pointer transition-colors shrink-0 text-left sm:text-right"
+                    >
+                      Annuler le renouvellement automatique
+                    </button>
+                  </div>
+                )}
+              </div>
+
               {/* Quota gauges */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-4 rounded-[10px] bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a] flex flex-col gap-2">
+                <div className="p-5 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225] flex flex-col gap-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-zinc-600 dark:text-neutral-400 font-semibold">
                       Monthly Click Volume
@@ -1808,7 +2355,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                   </div>
                 </div>
 
-                <div className="p-4 rounded-[10px] bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a] flex flex-col gap-2">
+                <div className="p-5 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225] flex flex-col gap-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-zinc-600 dark:text-neutral-400 font-semibold">
                       Custom Domains
@@ -1855,16 +2402,16 @@ console.log("Top Countries:", topAudience.topCountries);`,
                   </span>
                 </div>
                 {loadingInvoices ? (
-                  <div className="py-8 text-center text-xs text-zinc-500 dark:text-neutral-400 bg-zinc-50 dark:bg-[#1a1a1e] rounded-[10px] border border-zinc-200 dark:border-[#27272a] flex items-center justify-center gap-2">
+                  <div className="py-8 text-center text-xs text-zinc-500 dark:text-neutral-400 bg-white dark:bg-[#111113] rounded-[10px] border border-zinc-200 dark:border-[#222225] flex items-center justify-center gap-2">
                     <RefreshCw className="w-3.5 h-3.5 animate-spin text-brand" />
                     <span>Synchronisation des factures Paddle en cours...</span>
                   </div>
                 ) : invoices.length === 0 ? (
-                  <div className="py-8 text-center text-xs text-zinc-500 dark:text-neutral-500 bg-zinc-50 dark:bg-[#1a1a1e] rounded-[10px] border border-zinc-200 dark:border-[#27272a]">
+                  <div className="py-8 text-center text-xs text-zinc-500 dark:text-neutral-500 bg-white dark:bg-[#111113] rounded-[10px] border border-zinc-200 dark:border-[#222225]">
                     Aucune facture disponible. Vos factures officielles Paddle apparaîtront ici dès votre premier abonnement payant.
                   </div>
                 ) : (
-                  <div className="overflow-x-auto bg-zinc-50 dark:bg-[#1a1a1e] rounded-[10px] border border-zinc-200 dark:border-[#27272a]">
+                  <div className="overflow-x-auto bg-white dark:bg-[#111113] rounded-[10px] border border-zinc-200 dark:border-[#222225]">
                     <table className="w-full text-left text-xs text-zinc-600 dark:text-neutral-400">
                       <thead>
                         <tr className="border-b border-zinc-200 dark:border-[#27272a] text-[11px] uppercase tracking-wider text-zinc-500 dark:text-neutral-500">
@@ -1929,20 +2476,18 @@ console.log("Top Countries:", topAudience.topCountries);`,
             <div className="flex flex-col gap-6">
               <div className="flex items-center justify-between pb-4 border-b border-zinc-200 dark:border-[#222225]">
                 <div>
-                  <h2 className="text-lg font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+                  <h1 className="text-2xl font-bold text-zinc-900 dark:text-white tracking-tight flex items-center gap-2">
                     <KeyRound className="w-5 h-5 text-brand" />
                     <span>Developer API Keys</span>
-                  </h2>
-                  <p className="text-xs text-zinc-500 dark:text-neutral-400 mt-0.5">
-                    Generate secure{" "}
-                    <code className="text-brand">lsh_live_...</code> tokens with
-                    granular permissions to integrate your applications.
+                  </h1>
+                  <p className="text-xs text-zinc-500 dark:text-neutral-400 mt-1">
+                    Generate secure <code className="text-brand">lsh_live_...</code> tokens with granular permissions to integrate your applications.
                   </p>
                 </div>
               </div>
 
               {/* Create Key Card */}
-              <div className="p-5 rounded-[10px] bg-zinc-50 dark:bg-[#141416] border border-zinc-200 dark:border-[#27272a] shadow-xs dark:shadow-xl flex flex-col gap-4">
+              <div className="p-5 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225] flex flex-col gap-4">
                 <h3 className="text-xs font-bold text-zinc-700 dark:text-neutral-300 uppercase tracking-wider flex items-center gap-2">
                   <Plus className="w-3.5 h-3.5 text-brand" />
                   <span>Generate a new API key</span>
@@ -1994,10 +2539,20 @@ console.log("Top Countries:", topAudience.topCountries);`,
                   <Button
                     type="submit"
                     variant="glow"
-                    className="shrink-0 h-10 px-5 text-xs font-bold gap-1.5 shadow-md cursor-pointer"
+                    disabled={isCreatingKey || !newKeyName.trim()}
+                    className="shrink-0 h-10 px-5 text-xs font-bold gap-1.5 shadow-md cursor-pointer disabled:opacity-50"
                   >
-                    <KeyRound className="w-4 h-4" />
-                    <span>Generate Key</span>
+                    {isCreatingKey ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Création en cours...</span>
+                      </>
+                    ) : (
+                      <>
+                        <KeyRound className="w-4 h-4" />
+                        <span>Generate Key</span>
+                      </>
+                    )}
                   </Button>
                 </form>
               </div>
@@ -2010,8 +2565,34 @@ console.log("Top Countries:", topAudience.topCountries);`,
                   </h3>
                 </div>
 
-                {apiKeys.length === 0 ? (
-                  <div className="py-12 px-4 text-center flex flex-col items-center justify-center gap-2.5 bg-zinc-50 dark:bg-[#141416] rounded-[10px] border border-zinc-200 dark:border-[#27272a]">
+                {isLoadingApiKeys && !isCreatingKey && apiKeys.length === 0 ? (
+                  <div className="grid grid-cols-1 gap-3">
+                    {[1, 2].map((i) => (
+                      <div
+                        key={i}
+                        className="p-4 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225] animate-pulse flex flex-col gap-3 shadow-xs"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex items-center gap-2.5">
+                            <div className="h-4 w-32 bg-zinc-200 dark:bg-neutral-800 rounded-md" />
+                            <div className="h-5 w-20 bg-zinc-200 dark:bg-neutral-800 rounded-[6px]" />
+                            <div className="h-5 w-24 bg-zinc-200 dark:bg-neutral-800 rounded-[6px]" />
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <div className="h-7 w-20 bg-zinc-200 dark:bg-neutral-800 rounded-md" />
+                            <div className="h-7 w-16 bg-zinc-200 dark:bg-neutral-800 rounded-md" />
+                            <div className="h-7 w-7 bg-zinc-200 dark:bg-neutral-800 rounded-md" />
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between gap-2 pt-2 border-t border-zinc-200/70 dark:border-[#222225]">
+                          <div className="h-4 w-64 bg-zinc-200 dark:bg-neutral-800 rounded font-mono" />
+                          <div className="h-3 w-24 bg-zinc-200 dark:bg-neutral-800 rounded" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : apiKeys.length === 0 && !isCreatingKey ? (
+                  <div className="py-12 px-4 text-center flex flex-col items-center justify-center gap-2.5 bg-white dark:bg-[#111113] rounded-[10px] border border-zinc-200 dark:border-[#222225]">
                     <div className="w-10 h-10 rounded-[10px] bg-zinc-200/70 dark:bg-neutral-800/60 border border-zinc-300 dark:border-neutral-700/40 flex items-center justify-center text-zinc-500 dark:text-neutral-500">
                       <KeyRound className="w-5 h-5" />
                     </div>
@@ -2025,6 +2606,31 @@ console.log("Top Countries:", topAudience.topCountries);`,
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 gap-3">
+                    {/* Animated Skeleton Card when creating key */}
+                    {isCreatingKey && (
+                      <div className="p-4 rounded-[10px] bg-zinc-50/80 dark:bg-[#141416] border border-blue-500/40 dark:border-blue-500/30 animate-pulse flex flex-col gap-3 shadow-xs">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex items-center gap-2.5">
+                            <span className="relative flex h-2 w-2">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                            </span>
+                            <div className="h-4 w-32 bg-blue-200/70 dark:bg-blue-900/50 rounded-md" />
+                            <div className="h-5 w-20 bg-blue-500/20 rounded-[6px]" />
+                            <div className="h-5 w-24 bg-zinc-200 dark:bg-neutral-800 rounded-[6px]" />
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <div className="h-7 w-20 bg-zinc-200 dark:bg-neutral-800 rounded-md" />
+                            <div className="h-7 w-16 bg-zinc-200 dark:bg-neutral-800 rounded-md" />
+                            <div className="h-7 w-7 bg-zinc-200 dark:bg-neutral-800 rounded-md" />
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between gap-2 pt-2 border-t border-zinc-200/70 dark:border-[#222225]">
+                          <div className="h-4 w-64 sm:w-80 bg-zinc-200 dark:bg-neutral-800 rounded font-mono" />
+                          <div className="h-3 w-24 bg-zinc-200 dark:bg-neutral-800 rounded" />
+                        </div>
+                      </div>
+                    )}
                     {apiKeys.map((k) => {
                       const isRevealed = Boolean(revealedKeys[k.id]);
                       const actualKey = k.rawKey || k.prefix;
@@ -2057,7 +2663,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                       return (
                         <div
                           key={k.id}
-                          className="p-4 rounded-[10px] bg-zinc-50 dark:bg-[#141416] border border-zinc-200 dark:border-[#27272a] hover:border-zinc-300 dark:hover:border-[#38383e] transition-all flex flex-col gap-3 shadow-xs"
+                          className="p-5 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225] hover:border-zinc-300 dark:hover:border-[#38383e] transition-all flex flex-col gap-3 shadow-xs"
                         >
                           {/* Key Header */}
                           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -2089,7 +2695,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                           </div>
 
                           {/* Key Value & Actions Area */}
-                          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 p-2.5 rounded-[8px] bg-white dark:bg-[#0c0c0e] border border-zinc-200 dark:border-[#222226]">
+                          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 p-2.5 rounded-[8px] bg-zinc-50 dark:bg-[#161619] border border-zinc-200 dark:border-[#222226]">
                             <div className="flex-1 flex items-center gap-2 overflow-hidden">
                               <div className="font-mono text-xs text-brand truncate font-semibold select-all">
                                 {displayKey}
@@ -2191,14 +2797,14 @@ console.log("Top Countries:", topAudience.topCountries);`,
               </div>
 
               {/* TypeScript SDK Code Preview Section */}
-              <div className="rounded-[10px] bg-white dark:bg-[#111113] text-[#09090B] dark:text-white border border-black/[0.08] dark:border-[#222225] p-6 lg:p-8 flex flex-col gap-5 shadow-sm dark:shadow-2xl">
+              <div className="rounded-[10px] bg-white dark:bg-[#111113] text-[#09090B] dark:text-white border border-zinc-200 dark:border-[#222225] p-5 flex flex-col gap-4 shadow-xs">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-[10px] bg-[#3178c6]/15 dark:bg-[#3178c6]/20 border border-[#3178c6]/30 dark:border-[#3178c6]/40 flex items-center justify-center text-[#3178c6]">
+                    <div className="w-10 h-10 rounded-[8px] bg-[#3178c6]/10 dark:bg-[#3178c6]/15 border border-[#3178c6]/20 dark:border-[#3178c6]/30 flex items-center justify-center text-[#3178c6]">
                       <Code2 className="w-5 h-5" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-bold text-[#09090B] dark:text-white">
+                      <h3 className="text-base font-bold text-[#09090B] dark:text-white">
                         Official TypeScript SDK (npm i lshorter-api)
                       </h3>
                       <p className="text-xs text-zinc-500 dark:text-neutral-400">
@@ -2207,7 +2813,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 p-1 rounded-[10px] bg-zinc-100 dark:bg-[#1a1a1e] border border-black/[0.08] dark:border-[#27272a] text-xs overflow-x-auto">
+                  <div className="flex items-center gap-1.5 p-1 rounded-[8px] bg-zinc-100 dark:bg-[#161619] border border-zinc-200 dark:border-[#27272a] text-xs overflow-x-auto">
                     <button
                       onClick={() => setActiveCodeTab("create")}
                       className={`px-3 py-1.5 rounded-[10px] font-medium transition-colors cursor-pointer ${
@@ -2273,7 +2879,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
               </div>
 
               {accountStats.userDomains.length === 0 ? (
-                <div className="p-8 rounded-[10px] bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a] flex flex-col items-center justify-center gap-3 text-center">
+                <div className="p-8 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225] flex flex-col items-center justify-center gap-3 text-center shadow-xs">
                   <Globe2 className="w-10 h-10 text-zinc-400 dark:text-neutral-600" />
                   <div>
                     <p className="text-sm font-bold text-zinc-900 dark:text-white">
@@ -2298,7 +2904,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                   {accountStats.userDomains.map((d: any, idx: number) => (
                     <div
                       key={d.id || idx}
-                      className="flex items-center justify-between p-4 rounded-[10px] bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a] text-xs"
+                      className="flex items-center justify-between p-4 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225] text-xs shadow-xs"
                     >
                       <div className="flex items-center gap-3">
                         <Globe2 className="w-5 h-5 text-brand" />
@@ -2353,21 +2959,21 @@ console.log("Top Countries:", topAudience.topCountries);`,
 
               {/* Freemium Banner */}
               {plan === "FREEMIUM" && (
-                <div className="p-4 rounded-[10px] bg-neutral-50 dark:bg-[#141416] border border-neutral-200 dark:border-[#27272a] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="p-4 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225] flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
                   <div className="flex items-start sm:items-center gap-3">
-                    <div className="w-8 h-8 rounded-[8px] bg-neutral-200/60 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 flex items-center justify-center text-neutral-600 dark:text-neutral-400 shrink-0">
+                    <div className="w-8 h-8 rounded-[8px] bg-zinc-100 dark:bg-neutral-800 border border-zinc-200 dark:border-neutral-700 flex items-center justify-center text-zinc-600 dark:text-neutral-400 shrink-0">
                       <Lock className="w-4 h-4" />
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <h3 className="text-xs font-semibold text-neutral-900 dark:text-white">
+                        <h3 className="text-xs font-semibold text-zinc-900 dark:text-white">
                           Webhooks API &amp; Real-Time Events
                         </h3>
-                        <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-neutral-200/80 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 border border-neutral-300 dark:border-neutral-700">
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-zinc-100 dark:bg-neutral-800 text-zinc-600 dark:text-neutral-400 border border-zinc-200 dark:border-neutral-700">
                           PRO
                         </span>
                       </div>
-                      <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
+                      <p className="text-xs text-zinc-500 dark:text-neutral-400 mt-0.5">
                         Webhook subscriptions, HMAC SHA-256 signatures, and
                         real-time click streams are reserved for Pro and
                         Business plans.
@@ -2377,103 +2983,184 @@ console.log("Top Countries:", topAudience.topCountries);`,
                   <button
                     type="button"
                     onClick={() =>
-                      triggerPlanUpgrade({
-                        featureName: "Webhooks",
-                        reason:
-                          "Upgrade to PRO to unlock webhooks and the real-time simulator.",
-                        targetPlan: "PRO",
-                      })
-                    }
-                    className="shrink-0 text-xs h-8 px-3 font-medium bg-brand hover:bg-brand-hover text-white rounded-[8px] cursor-pointer transition-colors"
-                  >
-                    Unlock with PRO
-                  </button>
-                </div>
-              )}
-
-              <form
-                onSubmit={handleAddWebhook}
-                className="flex flex-col sm:flex-row gap-2"
-              >
-                <Input
-                  required
-                  placeholder="https://your-server.com/api/webhooks/lshorter (or Zapier / Make / n8n URL)"
-                  value={newWebhookUrl}
-                  onChange={(e) => setNewWebhookUrl(e.target.value)}
-                  className="bg-white dark:bg-[#141416] border-neutral-300 dark:border-[#27272a] text-xs text-neutral-900 dark:text-white placeholder:text-neutral-400 dark:placeholder:text-neutral-500 h-9"
-                />
-                <Button
-                  type="submit"
-                  size="sm"
-                  className="shrink-0 text-xs h-9 px-4 font-medium bg-brand hover:bg-brand-hover text-white rounded-[8px] cursor-pointer"
+                    triggerPlanUpgrade({
+                      featureName: "Webhooks",
+                      reason:
+                        "Upgrade to PRO to unlock webhooks and the real-time simulator.",
+                      targetPlan: "PRO",
+                    })
+                  }
+                  className="shrink-0 text-xs h-8 px-3 font-medium bg-brand hover:bg-brand-hover text-white rounded-[8px] cursor-pointer transition-colors"
                 >
-                  Add Webhook
+                  Unlock with PRO
+                </button>
+              </div>
+            )}
+
+              {/* Webhooks Action Bar */}
+              <div className="flex items-center justify-between gap-3 p-4 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225] shadow-xs">
+                <div className="flex flex-col min-w-0">
+                  <span className="text-xs font-bold text-zinc-900 dark:text-white">
+                    Points de terminaison Webhook ({webhooks.length})
+                  </span>
+                  <span className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate">
+                    Configurez vos endpoints avec choix des événements ou globalité
+                  </span>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="glow"
+                  onClick={handleOpenCreateWebhook}
+                  className="h-8 px-3.5 text-xs font-semibold gap-1.5 shrink-0 rounded-[8px] cursor-pointer shadow-xs"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Nouveau Webhook</span>
                 </Button>
-              </form>
+              </div>
 
               <div className="flex flex-col gap-2.5">
-                {webhooks.length === 0 ? (
-                  <div className="py-8 text-center text-xs text-neutral-500 bg-neutral-50 dark:bg-[#141416] rounded-[10px] border border-neutral-200 dark:border-[#27272a]">
-                    No webhooks configured. Add your endpoint above to start
-                    receiving events.
-                  </div>
-                ) : (
-                  webhooks.map((wh: any) => (
-                    <div
-                      key={wh.id}
-                      className="p-3.5 rounded-[10px] bg-neutral-50 dark:bg-[#141416] border border-neutral-200 dark:border-[#27272a] flex flex-col gap-2.5 text-xs"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-mono text-neutral-900 dark:text-white font-semibold truncate">
-                          {wh.url}
-                        </span>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            disabled={isTestingWebhook}
-                            onClick={() =>
-                              handleTestWebhook(wh.url, wh.secretKey)
-                            }
-                            className="text-xs gap-1.5 h-7 px-2.5 border-neutral-200 dark:border-[#27272a] bg-white dark:bg-transparent"
-                          >
-                            <Send className="w-3 h-3 text-neutral-400" />
-                            <span>
-                              {isTestingWebhook ? "Sending..." : "Test"}
-                            </span>
-                          </Button>
-                          <button
-                            type="button"
-                            onClick={() => handleToggleWebhook(wh.id)}
-                            className={`px-2 py-0.5 rounded text-[11px] font-medium cursor-pointer transition-colors ${
-                              wh.isActive
-                                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                                : "bg-neutral-200 dark:bg-neutral-800 text-neutral-500"
-                            }`}
-                          >
-                            {wh.isActive ? "Active" : "Paused"}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteWebhook(wh.id)}
-                            className="text-neutral-400 hover:text-red-400 p-1 cursor-pointer transition-colors"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                {isLoadingWebhooks && !isCreatingWebhook && webhooks.length === 0 ? (
+                  <div className="flex flex-col gap-2.5">
+                    {[1, 2].map((i) => (
+                      <div
+                        key={i}
+                        className="p-4 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225] animate-pulse flex flex-col gap-2.5 text-xs shadow-xs"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="h-4 w-64 bg-zinc-200 dark:bg-neutral-800 rounded-[6px] font-mono" />
+                          <div className="flex items-center gap-2 shrink-0">
+                            <div className="h-7 w-16 bg-zinc-200 dark:bg-neutral-800 rounded-[6px]" />
+                            <div className="h-6 w-14 bg-zinc-200 dark:bg-neutral-800 rounded-[6px]" />
+                            <div className="h-6 w-6 bg-zinc-200 dark:bg-neutral-800 rounded-[6px]" />
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between pt-2 border-t border-zinc-200 dark:border-[#222225]">
+                          <div className="h-3 w-44 bg-zinc-200 dark:bg-neutral-800 rounded-[4px] font-mono" />
+                          <div className="h-3 w-32 bg-zinc-200 dark:bg-neutral-800 rounded-[4px]" />
                         </div>
                       </div>
-
-                      <div className="flex items-center justify-between text-neutral-500 dark:text-neutral-400 text-[11px] pt-2 border-t border-neutral-200 dark:border-[#222225]">
-                        <span className="font-mono">
-                          Secret Signature:{" "}
-                          {wh.secretKey || "whsec_live_default"}
-                        </span>
-                        <span>Events: clicks &amp; conversions</span>
+                    ))}
+                  </div>
+                ) : webhooks.length === 0 && !isCreatingWebhook ? (
+                  <div className="py-8 text-center text-xs text-zinc-500 dark:text-neutral-400 bg-white dark:bg-[#111113] rounded-[10px] border border-zinc-200 dark:border-[#222225] shadow-xs">
+                    Aucun webhook configuré. Cliquez sur &quot;Nouveau Webhook&quot; pour connecter votre premier endpoint.
+                  </div>
+                ) : (
+                  <>
+                    {/* Animated Skeleton Card when creating webhook */}
+                    {isCreatingWebhook && (
+                      <div className="p-4 rounded-[10px] bg-white dark:bg-[#111113] border border-blue-500/40 dark:border-blue-500/30 animate-pulse flex flex-col gap-2.5 text-xs shadow-xs">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="relative flex h-2 w-2">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                            </span>
+                            <div className="h-4 w-60 sm:w-80 bg-blue-200/70 dark:bg-blue-900/40 rounded-[6px] font-mono" />
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <div className="h-7 w-16 bg-zinc-200 dark:bg-neutral-800 rounded-[6px]" />
+                            <div className="h-6 w-14 bg-emerald-500/20 rounded-[6px]" />
+                            <div className="h-6 w-6 bg-zinc-200 dark:bg-neutral-800 rounded-[6px]" />
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between text-zinc-500 dark:text-neutral-400 text-[11px] pt-2 border-t border-zinc-200 dark:border-[#222225]">
+                          <div className="h-3 w-48 bg-zinc-200 dark:bg-neutral-800 rounded-[4px] font-mono" />
+                          <div className="h-3 w-36 bg-zinc-200 dark:bg-neutral-800 rounded-[4px]" />
+                        </div>
                       </div>
-                    </div>
-                  ))
+                    )}
+                    {webhooks.map((wh: any) => {
+                      const eventsList = Array.isArray(wh.events) && wh.events.length > 0 ? wh.events : ["click.created", "conversion.created"];
+                      const isGlobal = eventsList.length >= 6;
+
+                      return (
+                        <div
+                          key={wh.id}
+                          className="p-4 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225] hover:border-zinc-300 dark:hover:border-[#38383e] transition-all flex flex-col gap-2.5 text-xs shadow-xs"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-mono text-neutral-900 dark:text-white font-semibold truncate">
+                              {wh.url}
+                            </span>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={isTestingWebhook}
+                                onClick={() => handleTestWebhook(wh.url, wh.secretKey)}
+                                className="text-xs gap-1.5 h-7 px-2.5 rounded-[6px] border-neutral-200 dark:border-[#27272a] bg-white dark:bg-transparent cursor-pointer"
+                              >
+                                <Send className="w-3 h-3 text-neutral-400" />
+                                <span>{isTestingWebhook ? "Sending..." : "Test"}</span>
+                              </Button>
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEditWebhook(wh)}
+                                title="Modifier ce webhook"
+                                className="p-1.5 rounded-[6px] text-zinc-500 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/60 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleToggleWebhook(wh.id)}
+                                className={`px-2 py-0.5 rounded-[6px] text-[11px] font-medium cursor-pointer transition-colors ${
+                                  wh.isActive
+                                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                                    : "bg-neutral-200 dark:bg-neutral-800 text-neutral-500"
+                                }`}
+                              >
+                                {wh.isActive ? "Active" : "Paused"}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteWebhook(wh.id)}
+                                className="text-neutral-400 hover:text-red-400 p-1 rounded-[6px] cursor-pointer transition-colors"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-wrap items-center justify-between gap-2 text-neutral-500 dark:text-neutral-400 text-[11px] pt-2 border-t border-neutral-200 dark:border-[#222225]">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <span className="text-[10px] text-zinc-400">Événements:</span>
+                              {isGlobal ? (
+                                <span className="px-1.5 py-0.5 rounded-[4px] text-[10px] font-medium bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                                  Globalité (Tous les événements)
+                                </span>
+                              ) : (
+                                eventsList.map((ev: string) => (
+                                  <span
+                                    key={ev}
+                                    className="px-1.5 py-0.5 rounded-[4px] text-[10px] font-mono bg-zinc-200/70 dark:bg-neutral-800 text-zinc-700 dark:text-neutral-300 border border-zinc-300/50 dark:border-neutral-700/50"
+                                  >
+                                    {ev}
+                                  </span>
+                                ))
+                              )}
+                            </div>
+                            <span className="font-mono text-[10px] text-zinc-400 truncate max-w-xs">
+                              Secret: {wh.secretKey || "whsec_live_default"}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </>
                 )}
               </div>
+
+              {/* Webhook Create / Edit Modal */}
+              <WebhookModal
+                isOpen={isWebhookModalOpen}
+                onClose={() => setIsWebhookModalOpen(false)}
+                webhookToEdit={webhookToEdit}
+                onSave={handleSaveWebhookModal}
+                isSaving={isSavingWebhookModal}
+              />
 
               {/* Webhook Test Response Viewer */}
               {webhookTestResponse && (
@@ -2521,21 +3208,21 @@ console.log("Top Countries:", topAudience.topCountries);`,
 
               {/* Freemium Banner */}
               {plan === "FREEMIUM" && (
-                <div className="p-4 rounded-[10px] bg-neutral-50 dark:bg-[#141416] border border-neutral-200 dark:border-[#27272a] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="p-4 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225] flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
                   <div className="flex items-start sm:items-center gap-3">
-                    <div className="w-8 h-8 rounded-[8px] bg-neutral-200/60 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 flex items-center justify-center text-neutral-600 dark:text-neutral-400 shrink-0">
+                    <div className="w-8 h-8 rounded-[8px] bg-zinc-100 dark:bg-neutral-800 border border-zinc-200 dark:border-neutral-700 flex items-center justify-center text-zinc-600 dark:text-neutral-400 shrink-0">
                       <Lock className="w-4 h-4" />
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <h3 className="text-xs font-semibold text-neutral-900 dark:text-white">
+                        <h3 className="text-xs font-semibold text-zinc-900 dark:text-white">
                           Advertising Retargeting Pixels
                         </h3>
-                        <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-neutral-200/80 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 border border-neutral-300 dark:border-neutral-700">
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-zinc-100 dark:bg-neutral-800 text-zinc-600 dark:text-neutral-400 border border-zinc-200 dark:border-neutral-700">
                           PRO
                         </span>
                       </div>
-                      <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
+                      <p className="text-xs text-zinc-500 dark:text-neutral-400 mt-0.5">
                         Automatic pixel tracking for Meta, Google Tag, TikTok,
                         and LinkedIn is reserved for Pro and Business plans.
                       </p>
@@ -2558,76 +3245,78 @@ console.log("Top Countries:", topAudience.topCountries);`,
                 </div>
               )}
 
-              <form
-                onSubmit={handleAddPixel}
-                className="grid grid-cols-1 sm:grid-cols-4 gap-2"
-              >
-                <select
-                  value={newPixelPlatform}
-                  onChange={(e) => setNewPixelPlatform(e.target.value as any)}
-                  className="h-9 rounded-[8px] bg-white dark:bg-[#141416] text-neutral-900 dark:text-white border border-neutral-300 dark:border-[#27272a] px-3 text-xs focus:outline-none focus:border-[#0066FF] cursor-pointer"
+              <div className="p-4 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225] shadow-xs">
+                <form
+                  onSubmit={handleAddPixel}
+                  className="grid grid-cols-1 sm:grid-cols-4 gap-2"
                 >
-                  <option
-                    value="meta"
-                    className="bg-white dark:bg-[#141416] text-neutral-900 dark:text-white"
+                  <select
+                    value={newPixelPlatform}
+                    onChange={(e) => setNewPixelPlatform(e.target.value as any)}
+                    className="h-9 rounded-[8px] bg-white dark:bg-[#161619] text-zinc-900 dark:text-white border border-zinc-200 dark:border-[#27272a] px-3 text-xs focus:outline-none focus:border-brand cursor-pointer"
                   >
-                    Meta Facebook Pixel
-                  </option>
-                  <option
-                    value="google"
-                    className="bg-white dark:bg-[#141416] text-neutral-900 dark:text-white"
+                    <option
+                      value="meta"
+                      className="bg-white dark:bg-[#161619] text-zinc-900 dark:text-white"
+                    >
+                      Meta Facebook Pixel
+                    </option>
+                    <option
+                      value="google"
+                      className="bg-white dark:bg-[#161619] text-zinc-900 dark:text-white"
+                    >
+                      Google Analytics (GA4)
+                    </option>
+                    <option
+                      value="tiktok"
+                      className="bg-white dark:bg-[#161619] text-zinc-900 dark:text-white"
+                    >
+                      TikTok Ads Pixel
+                    </option>
+                    <option
+                      value="linkedin"
+                      className="bg-white dark:bg-[#161619] text-zinc-900 dark:text-white"
+                    >
+                      LinkedIn Insight Tag
+                    </option>
+                  </select>
+                  <Input
+                    placeholder="Pixel Name (e.g. My Meta Ads)"
+                    value={newPixelName}
+                    onChange={(e) => setNewPixelName(e.target.value)}
+                    className="bg-white dark:bg-[#161619] border-zinc-200 dark:border-[#27272a] text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-neutral-500 h-9"
+                  />
+                  <Input
+                    required
+                    placeholder="Pixel ID (e.g. 987654321 or G-XXXXXX)"
+                    value={newPixelId}
+                    onChange={(e) => setNewPixelId(e.target.value)}
+                    className="bg-white dark:bg-[#161619] border-zinc-200 dark:border-[#27272a] text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-neutral-500 h-9"
+                  />
+                  <Button
+                    type="submit"
+                    size="sm"
+                    className="text-xs h-9 px-4 font-semibold bg-brand hover:bg-brand-hover text-white rounded-[8px] cursor-pointer"
                   >
-                    Google Analytics (GA4)
-                  </option>
-                  <option
-                    value="tiktok"
-                    className="bg-white dark:bg-[#141416] text-neutral-900 dark:text-white"
-                  >
-                    TikTok Ads Pixel
-                  </option>
-                  <option
-                    value="linkedin"
-                    className="bg-white dark:bg-[#141416] text-neutral-900 dark:text-white"
-                  >
-                    LinkedIn Insight Tag
-                  </option>
-                </select>
-                <Input
-                  placeholder="Pixel Name (e.g. My Meta Ads)"
-                  value={newPixelName}
-                  onChange={(e) => setNewPixelName(e.target.value)}
-                  className="bg-white dark:bg-[#141416] border-neutral-300 dark:border-[#27272a] text-xs text-neutral-900 dark:text-white placeholder:text-neutral-400 dark:placeholder:text-neutral-500 h-9"
-                />
-                <Input
-                  required
-                  placeholder="Pixel ID (e.g. 987654321 or G-XXXXXX)"
-                  value={newPixelId}
-                  onChange={(e) => setNewPixelId(e.target.value)}
-                  className="bg-white dark:bg-[#141416] border-neutral-300 dark:border-[#27272a] text-xs text-neutral-900 dark:text-white placeholder:text-neutral-400 dark:placeholder:text-neutral-500 h-9"
-                />
-                <Button
-                  type="submit"
-                  size="sm"
-                  className="text-xs h-9 px-4 font-semibold bg-[#0066FF] hover:bg-[#0055d4] text-white rounded-[8px] cursor-pointer"
-                >
-                  Connect Pixel
-                </Button>
-              </form>
+                    Connect Pixel
+                  </Button>
+                </form>
+              </div>
 
               <div className="flex flex-col gap-2.5">
                 {isLoadingPixels ? (
-                  <div className="py-8 text-center text-xs text-neutral-500 bg-neutral-50 dark:bg-[#141416] rounded-[10px] border border-neutral-200 dark:border-[#27272a]">
+                  <div className="py-8 text-center text-xs text-zinc-500 dark:text-neutral-400 bg-white dark:bg-[#111113] rounded-[10px] border border-zinc-200 dark:border-[#222225] shadow-xs">
                     Loading connected pixels...
                   </div>
                 ) : pixels.length === 0 ? (
-                  <div className="py-8 text-center text-xs text-neutral-500 bg-neutral-50 dark:bg-[#141416] rounded-[10px] border border-neutral-200 dark:border-[#27272a]">
+                  <div className="py-8 text-center text-xs text-zinc-500 dark:text-neutral-400 bg-white dark:bg-[#111113] rounded-[10px] border border-zinc-200 dark:border-[#222225] shadow-xs">
                     No retargeting pixels configured. Connect your first tag above to start syncing audiences.
                   </div>
                 ) : (
                   pixels.map((px: any) => (
                     <div
                       key={px.id}
-                      className="p-3.5 rounded-[10px] bg-neutral-50 dark:bg-[#141416] border border-neutral-200 dark:border-[#27272a] flex items-center justify-between text-xs"
+                      className="p-4 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225] flex items-center justify-between text-xs shadow-xs"
                     >
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-lg bg-white dark:bg-[#18181b] border border-neutral-200 dark:border-[#27272a] flex items-center justify-center shrink-0">
@@ -2693,13 +3382,13 @@ console.log("Top Countries:", topAudience.topCountries);`,
               </div>
 
               {/* 2FA Card */}
-              <div className="p-4 rounded-[10px] bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="p-5 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225] flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
                 <div className="flex items-center gap-3 min-w-0">
                   <div
-                    className={`w-10 h-10 rounded-[10px] flex items-center justify-center shrink-0 border ${
+                    className={`w-10 h-10 rounded-[8px] flex items-center justify-center shrink-0 border ${
                       is2FAEnabled
                         ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400"
-                        : "bg-brand-light border-brand-subtle text-brand"
+                        : "bg-brand/10 border-brand/20 text-brand"
                     }`}
                   >
                     {is2FAEnabled ? (
@@ -2719,7 +3408,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                           <span>Enabled &amp; Secured (RFC 6238)</span>
                         </span>
                       ) : (
-                        <span className="px-2 py-0.5 rounded-full bg-zinc-200 dark:bg-neutral-800 border border-zinc-300 dark:border-neutral-700 text-[10px] font-semibold text-zinc-600 dark:text-neutral-400">
+                        <span className="px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-neutral-800 border border-zinc-200 dark:border-neutral-700 text-[10px] font-semibold text-zinc-600 dark:text-neutral-400">
                           Not configured
                         </span>
                       )}
@@ -2738,7 +3427,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                         size="sm"
                         variant="outline"
                         onClick={() => setShowRecoveryCodesModal(true)}
-                        className="text-xs h-9 border-zinc-200 dark:border-[#27272a] gap-1.5 cursor-pointer"
+                        className="text-xs h-9 border-zinc-200 dark:border-[#222225] gap-1.5 cursor-pointer"
                       >
                         <KeyRound className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
                         <span>Recovery codes</span>
@@ -2757,7 +3446,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                       size="sm"
                       variant="glow"
                       onClick={() => setShow2FASetupModal(true)}
-                      className="text-xs h-9 px-4 font-bold gap-1.5 cursor-pointer shadow-md"
+                      className="text-xs h-9 px-4 font-bold gap-1.5 cursor-pointer shadow-xs rounded-[8px]"
                     >
                       <ShieldCheck className="w-3.5 h-3.5" />
                       <span>Enable 2FA</span>
@@ -2767,7 +3456,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
               </div>
 
               {/* Change Password */}
-              <div className="p-4 rounded-[10px] bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a] flex flex-col gap-3">
+              <div className="p-5 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225] flex flex-col gap-3 shadow-xs">
                 <p className="text-xs font-bold text-zinc-900 dark:text-white">
                   Change password
                 </p>
@@ -2777,12 +3466,14 @@ console.log("Top Countries:", topAudience.topCountries);`,
                     placeholder="Current password"
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
+                    className="bg-white dark:bg-[#161619] border-zinc-200 dark:border-[#27272a]"
                   />
                   <Input
                     type="password"
                     placeholder="New password (min 8 chars)"
                     value={newPassword}
                     onChange={(e) => handlePasswordInput(e.target.value)}
+                    className="bg-white dark:bg-[#161619] border-zinc-200 dark:border-[#27272a]"
                   />
                 </div>
 
@@ -2814,7 +3505,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                     isUpdatingPassword || !newPassword || newPassword.length < 8
                   }
                   onClick={handleChangePassword}
-                  className="w-fit text-xs"
+                  className="w-fit text-xs rounded-[8px]"
                 >
                   {isUpdatingPassword ? "Updating..." : "Update password"}
                 </Button>
@@ -2825,7 +3516,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                 <p className="text-xs font-bold text-zinc-900 dark:text-white">
                   Active Session &amp; Hardware Detection
                 </p>
-                <div className="p-3.5 rounded-[10px] bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                <div className="p-4 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-xs">
                   <div className="flex items-start sm:items-center gap-3 min-w-0">
                     <div className="p-2 rounded-[8px] bg-brand-light text-brand shrink-0 mt-0.5 sm:mt-0">
                       <Laptop className="w-4 h-4" />
@@ -2902,19 +3593,34 @@ console.log("Top Countries:", topAudience.topCountries);`,
                   <Button
                     type="button"
                     variant="glow"
-                    onClick={handleOpenCreateModal}
-                    className="h-9 px-4 text-xs font-semibold gap-2 self-start sm:self-auto cursor-pointer shadow-sm shrink-0"
+                    onClick={() => {
+                      if (!isPremium) {
+                        triggerPlanUpgrade({
+                          featureName: "Alertes par Lien",
+                          reason: "Passez au forfait PRO pour configurer des alertes de clics, de revenus et d'expiration sur vos liens individuels.",
+                          targetPlan: "PRO",
+                        });
+                        return;
+                      }
+                      handleOpenCreateModal();
+                    }}
+                    className="h-9 px-4 text-xs font-semibold gap-2 self-start sm:self-auto cursor-pointer shadow-sm shrink-0 rounded-[8px]"
                   >
-                    <Plus className="w-3.5 h-3.5" />
+                    {!isPremium ? <Lock className="w-3.5 h-3.5 text-amber-500" /> : <Plus className="w-3.5 h-3.5" />}
                     <span>New Link Alert</span>
+                    {!isPremium && (
+                      <span className="ml-1 px-1.5 py-0.5 rounded-[4px] text-[9px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/25">
+                        PRO
+                      </span>
+                    )}
                   </Button>
                 </div>
 
                 {/* ─── SECTION 1: GLOBAL WORKSPACE TARGET (MONTHLY) ─────────── */}
-                <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#151518] p-5 shadow-sm">
-                  <div className="flex items-start justify-between gap-3 pb-4 border-b border-zinc-100 dark:border-zinc-800/80">
+                <div className="rounded-[10px] border border-zinc-200 dark:border-[#222225] bg-white dark:bg-[#111113] p-5 shadow-xs">
+                  <div className="flex items-start justify-between gap-3 pb-4 border-b border-zinc-100 dark:border-[#202024]">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-200/60 dark:border-blue-900/40 shrink-0">
+                      <div className="w-10 h-10 rounded-[8px] bg-brand/10 text-brand flex items-center justify-center border border-brand/20 shrink-0">
                         <Target className="w-5 h-5" />
                       </div>
                       <div>
@@ -2948,13 +3654,15 @@ console.log("Top Countries:", topAudience.topCountries);`,
                         }}
                         className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
                         aria-label="Actions menu"
+                        aria-haspopup="menu"
+                        aria-expanded={openRowMenuId === (globalAlert?.id || "global")}
                       >
                         <MoreVertical className="w-4 h-4" />
                       </button>
 
                       {/* Dropdown Popup */}
                       {openRowMenuId === (globalAlert?.id || "global") && (
-                        <div className="absolute right-0 top-9 w-44 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#1a1a1e] shadow-xl p-1 z-30 animate-in fade-in zoom-in-95 duration-100">
+                        <div className="absolute right-0 top-9 w-44 rounded-[10px] border border-zinc-200 dark:border-[#27272a] bg-white dark:bg-[#161619] shadow-xl p-1 z-30 animate-in fade-in zoom-in-95 duration-100">
                           <button
                             type="button"
                             onClick={() => globalAlert && handleTogglePauseTarget(globalAlert)}
@@ -3038,9 +3746,16 @@ console.log("Top Countries:", topAudience.topCountries);`,
                 <div className="flex flex-col gap-3">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
                     <div>
-                      <h3 className="text-sm font-bold text-zinc-900 dark:text-white">
-                        Individual Link Alerts
-                      </h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-bold text-zinc-900 dark:text-white">
+                          Individual Link Alerts
+                        </h3>
+                        {!isPremium && (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/25">
+                            RÉSERVÉ AUX FORFAITS PRO
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs text-zinc-500 dark:text-neutral-400">
                         Custom thresholds per short link with automated notifications
                       </p>
@@ -3073,13 +3788,72 @@ console.log("Top Countries:", topAudience.topCountries);`,
                   </div>
 
                   {/* List of Link Alerts */}
-                  {isLoadingTargets ? (
-                    <div className="p-8 text-center border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-[#151518]">
-                      <RefreshCw className="w-5 h-5 text-blue-600 animate-spin mx-auto mb-2" />
-                      <p className="text-xs text-zinc-500">Loading alerts...</p>
+                  {!isPremium ? (
+                    <div className="p-5 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225] flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
+                      <div className="flex items-start sm:items-center gap-3.5">
+                        <div className="w-10 h-10 rounded-[8px] bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
+                          <Lock className="w-5 h-5" />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-2">
+                            <h4 className="text-xs font-bold text-zinc-900 dark:text-white">
+                              Alertes Individuelles par Lien
+                            </h4>
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/25">
+                              PLAN PRO
+                            </span>
+                          </div>
+                          <p className="text-xs text-zinc-500 dark:text-neutral-400 leading-relaxed max-w-xl">
+                            La configuration d'alertes personnalisées par lien (seuils de clics, revenus attribués et avertissements d'expiration en temps réel) est réservée aux abonnés Premium. Votre formule Standard bénéficie déjà de l'accès complet à l'<strong>Objectif Global du Workspace</strong> ci-dessus.
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="glow"
+                        onClick={() =>
+                          triggerPlanUpgrade({
+                            featureName: "Alertes par Lien",
+                            reason: "Passez au forfait PRO pour configurer des alertes de clics, de revenus et d'expiration sur vos liens individuels.",
+                            targetPlan: "PRO",
+                          })
+                        }
+                        className="h-8 px-4 text-xs font-semibold shrink-0 self-start sm:self-auto cursor-pointer shadow-sm rounded-[8px]"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 mr-1.5" />
+                        <span>Débloquer avec PRO</span>
+                      </Button>
                     </div>
-                  ) : filteredAlerts.length === 0 ? (
-                    <div className="p-8 text-center border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-[#151518]">
+                  ) : isLoadingTargets && !isSavingAlert ? (
+                    <div className="flex flex-col gap-2.5">
+                      {[1, 2].map((i) => (
+                        <div
+                          key={i}
+                          className="p-4 rounded-[10px] border border-zinc-200 dark:border-[#222225] bg-white dark:bg-[#111113] animate-pulse flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xs"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <div className="h-4 w-40 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                              <div className="h-4 w-24 bg-blue-500/10 rounded" />
+                            </div>
+                            <div className="flex items-center gap-2 mt-2">
+                              <div className="h-4 w-14 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                              <div className="h-4 w-16 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                              <div className="h-4 w-16 bg-emerald-500/10 rounded" />
+                            </div>
+                          </div>
+                          <div className="w-full md:w-64 shrink-0">
+                            <div className="flex justify-between items-baseline mb-2">
+                              <div className="h-4 w-10 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                              <div className="h-3 w-24 bg-zinc-200 dark:bg-zinc-800 rounded font-mono" />
+                            </div>
+                            <div className="w-full h-1.5 bg-zinc-200 dark:bg-zinc-800 rounded-full" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : filteredAlerts.length === 0 && !isSavingAlert ? (
+                    <div className="p-8 text-center border border-dashed border-zinc-200 dark:border-[#222225] rounded-[10px] bg-white dark:bg-[#111113] shadow-xs">
                       <Sliders className="w-7 h-7 text-zinc-300 dark:text-zinc-600 mx-auto mb-2" />
                       <h4 className="text-xs font-bold text-zinc-700 dark:text-zinc-300">
                         No alerts match the selected filter
@@ -3099,6 +3873,35 @@ console.log("Top Countries:", topAudience.topCountries);`,
                     </div>
                   ) : (
                     <div className="flex flex-col gap-2.5">
+                      {/* Animated Skeleton Card when creating alert */}
+                      {isSavingAlert && (
+                        <div className="p-4 rounded-[10px] border border-blue-500/40 dark:border-blue-500/30 bg-blue-50/20 dark:bg-blue-950/20 animate-pulse flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xs">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                              </span>
+                              <div className="h-4 w-44 bg-blue-200/70 dark:bg-blue-900/60 rounded" />
+                              <div className="h-4 w-24 bg-blue-500/20 rounded font-mono" />
+                            </div>
+                            <div className="flex items-center gap-2 mt-2">
+                              <div className="h-4 w-14 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                              <div className="h-4 w-16 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                              <div className="h-4 w-16 bg-emerald-500/20 rounded" />
+                            </div>
+                          </div>
+                          <div className="w-full md:w-64 shrink-0">
+                            <div className="flex justify-between items-baseline mb-2">
+                              <div className="h-4 w-10 bg-blue-200 dark:bg-blue-900/60 rounded" />
+                              <div className="h-3 w-28 bg-zinc-200 dark:bg-zinc-800 rounded font-mono" />
+                            </div>
+                            <div className="w-full h-1.5 bg-blue-500/30 rounded-full overflow-hidden">
+                              <div className="h-full w-1/3 bg-blue-500 rounded-full" />
+                            </div>
+                          </div>
+                        </div>
+                      )}
                       {filteredAlerts.map((alert) => {
                         const current = alert.currentValue || 0;
                         const target = alert.targetValue || 1;
@@ -3115,7 +3918,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                         return (
                           <div
                             key={alert.id}
-                            className="p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#121215] flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all duration-200 hover:scale-[1.008] hover:border-blue-500 hover:bg-[#F0F7FF] dark:hover:bg-blue-950/20 shadow-sm relative cursor-default"
+                            className="p-4 rounded-[10px] border border-zinc-200 dark:border-[#222225] bg-white dark:bg-[#111113] flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all duration-200 hover:border-brand shadow-xs relative cursor-default"
                           >
                             {/* Link Info */}
                             <div className="flex-1 min-w-0">
@@ -3161,9 +3964,9 @@ console.log("Top Countries:", topAudience.topCountries);`,
                                       ? "Paused"
                                       : "Active"}
                                 </span>
-                                {alert.notifyExpired && (
+                                {alert.notifyExpired && Boolean(alert.linkId) && (
                                   <span className="text-[10px] text-zinc-400">
-                                    · 24h Expiry Warning
+                                    · Alerte à l&apos;expiration exacte
                                   </span>
                                 )}
                               </div>
@@ -3205,13 +4008,15 @@ console.log("Top Countries:", topAudience.topCountries);`,
                                 }}
                                 className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
                                 aria-label="Open menu"
+                                aria-haspopup="menu"
+                                aria-expanded={openRowMenuId === alert.id}
                               >
                                 <MoreVertical className="w-4 h-4" />
                               </button>
 
                               {/* Dropdown Popup */}
                               {openRowMenuId === alert.id && (
-                                <div className="absolute right-0 top-9 w-44 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#1a1a1e] shadow-xl p-1 z-30 animate-in fade-in zoom-in-95 duration-100">
+                                <div className="absolute right-0 top-9 w-44 rounded-[10px] border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#1a1a1e] shadow-xl p-1 z-30 animate-in fade-in zoom-in-95 duration-100">
                                   <button
                                     type="button"
                                     onClick={() => handleTogglePauseTarget(alert)}
@@ -3264,160 +4069,222 @@ console.log("Top Countries:", topAudience.topCountries);`,
                   )}
                 </div>
 
-                {/* ─── MODAL: CREATE / EDIT ALERT ────────────────────────────── */}
-                {isAlertModalOpen && (
-                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-150">
-                    <div className="w-full max-w-lg rounded-2xl bg-white dark:bg-[#151518] border border-zinc-200 dark:border-zinc-800 shadow-2xl p-6 relative animate-in zoom-in-95 duration-150">
-                      {/* Modal Header */}
-                      <div className="flex items-center justify-between pb-4 border-b border-zinc-100 dark:border-zinc-800">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-200/50">
-                            <Target className="w-4 h-4" />
-                          </div>
-                          <div>
-                            <h3 className="text-sm font-bold text-zinc-900 dark:text-white">
-                              {isEditingGlobalAlert
-                                ? "Edit Global Monthly Target"
-                                : editingAlert
-                                  ? "Edit Link Alert"
-                                  : "Create New Link Alert"}
-                            </h3>
-                            <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
-                              {isEditingGlobalAlert
-                                ? "Configure workspace-wide monthly objective"
-                                : "Choose a link and set alert thresholds"}
-                            </p>
-                          </div>
+                {/* ─── DRAWER: CREATE / EDIT ALERT (RIGHT ON DESKTOP, BOTTOM ON MOBILE) ─── */}
+                <Drawer
+                  open={isAlertModalOpen}
+                  onOpenChange={setIsAlertModalOpen}
+                  direction={isMobile ? "bottom" : "right"}
+                >
+                  <DrawerContent
+                    direction={isMobile ? "bottom" : "right"}
+                    widthClass="w-full sm:max-w-[480px]"
+                    className="h-auto max-h-[88vh] md:h-full md:max-h-full flex flex-col bg-white dark:bg-[#121215] border-zinc-200 dark:border-[#27272a] rounded-[10px] shadow-2xl overflow-hidden"
+                  >
+                    {/* Drawer Header */}
+                    <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100 dark:border-[#202024] shrink-0">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-[8px] bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-200/60 dark:border-blue-900/40 shrink-0">
+                          <Target className="w-4 h-4" />
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => setIsAlertModalOpen(false)}
-                          className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
+                        <div>
+                          <h3 className="text-sm font-bold text-zinc-900 dark:text-white">
+                            {isEditingGlobalAlert
+                              ? "Modifier l'Objectif Mensuel Global"
+                              : editingAlert
+                                ? "Modifier l'Alerte"
+                                : "Nouvelle Alerte de Performance"}
+                          </h3>
+                          <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                            {isEditingGlobalAlert
+                              ? "Configurez l'objectif de clics ou revenus du workspace"
+                              : "Définissez des seuils de clics, revenus ou les deux combinés"}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsAlertModalOpen(false)}
+                        className="p-1.5 rounded-[8px] text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-[#1f1f23] transition-colors cursor-pointer"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {/* Scrollable Form Body */}
+                    <form onSubmit={handleSaveTarget} noValidate className="flex-1 overflow-y-auto p-5 flex flex-col gap-4 text-xs">
+                      {/* Link Selection (hidden if editing global) */}
+                      {!isEditingGlobalAlert && (
+                        <div className="flex flex-col gap-1.5 text-xs">
+                          <label htmlFor="target-link-select" className="font-semibold text-zinc-700 dark:text-zinc-300">
+                            Cible de l&apos;Alerte (Lien ou Global)
+                          </label>
+                          <select
+                            id="target-link-select"
+                            value={alertLinkId}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (!isPremium && val !== "global") {
+                                triggerPlanUpgrade({
+                                  featureName: "Alertes par Lien",
+                                  reason: "La configuration d'alertes par lien individuel requiert le forfait Pro.",
+                                  targetPlan: "PRO",
+                                });
+                                return;
+                              }
+                              setAlertLinkId(val);
+                              if (val === "global") {
+                                setAlertNotifyExpired(false);
+                              }
+                            }}
+                            className="h-9 px-3 rounded-[8px] bg-zinc-50 dark:bg-[#18181b] border border-zinc-200 dark:border-[#27272a] text-xs text-zinc-900 dark:text-white focus:outline-none focus:border-blue-500 cursor-pointer"
+                          >
+                            <option value="global">
+                              🌐 Global (Tous les liens du workspace)
+                            </option>
+                            {userLinksList.map((link: any) => (
+                              <option key={link.id || link.slug} value={String(link.id || link.slug)}>
+                                🔗 {link.title || `lsho.cc/${link.slug}`} (lsho.cc/{link.slug})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+
+                      {/* Metric Type Selector with 3 Options: Clicks, Revenue, or Both */}
+                      <div className="flex flex-col gap-1.5 text-xs">
+                        <label className="font-semibold text-zinc-700 dark:text-zinc-300">
+                          Métrique à Surveiller
+                        </label>
+                        <div className="grid grid-cols-3 gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setAlertMetricType("clicks")}
+                            className={`h-9 rounded-[8px] font-semibold text-[11px] border transition-all cursor-pointer ${
+                              alertMetricType === "clicks"
+                                ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                                : "bg-zinc-50 dark:bg-[#18181b] border-zinc-200 dark:border-[#27272a] text-zinc-700 dark:text-zinc-300 hover:border-zinc-300"
+                            }`}
+                          >
+                            Total Clics
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setAlertMetricType("revenue")}
+                            className={`h-9 rounded-[8px] font-semibold text-[11px] border transition-all cursor-pointer ${
+                              alertMetricType === "revenue"
+                                ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                                : "bg-zinc-50 dark:bg-[#18181b] border-zinc-200 dark:border-[#27272a] text-zinc-700 dark:text-zinc-300 hover:border-zinc-300"
+                            }`}
+                          >
+                            Revenus ($)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setAlertMetricType("both")}
+                            className={`h-9 rounded-[8px] font-semibold text-[11px] border transition-all cursor-pointer ${
+                              alertMetricType === "both"
+                                ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                                : "bg-zinc-50 dark:bg-[#18181b] border-zinc-200 dark:border-[#27272a] text-zinc-700 dark:text-zinc-300 hover:border-zinc-300"
+                            }`}
+                          >
+                            Les 2 Types
+                          </button>
+                        </div>
                       </div>
 
-                      {/* Modal Form */}
-                      <form onSubmit={handleSaveTarget} className="flex flex-col gap-4 mt-4">
-                        {/* Link Selection (hidden if editing global) */}
-                        {!isEditingGlobalAlert && (
-                          <div className="flex flex-col gap-1.5 text-xs">
-                            <label className="font-bold text-zinc-900 dark:text-white">
-                              Select Short Link
-                            </label>
-                            {userLinksList.length === 0 ? (
-                              <p className="text-xs text-amber-600 bg-amber-50 dark:bg-amber-950/30 p-2.5 rounded-lg border border-amber-200 dark:border-amber-800">
-                                You do not have any short links created yet. Create a link first from the sidebar or dashboard.
-                              </p>
-                            ) : (
-                              <select
-                                value={alertLinkId}
-                                onChange={(e) => setAlertLinkId(e.target.value)}
-                                className="h-10 px-3 rounded-lg bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-zinc-800 text-xs text-zinc-900 dark:text-white focus:outline-none focus:border-blue-500 cursor-pointer"
-                              >
-                                {userLinksList.map((link: any) => (
-                                  <option key={link.id} value={String(link.id)}>
-                                    {link.title || `lsho.cc/${link.slug}`} (lsho.cc/{link.slug})
-                                  </option>
-                                ))}
-                              </select>
-                            )}
-                          </div>
-                        )}
-
-                        {/* Metric Type */}
-                        <div className="flex flex-col gap-1.5 text-xs">
-                          <label className="font-bold text-zinc-900 dark:text-white">
-                            Metric Type
-                          </label>
-                          <div className="grid grid-cols-2 gap-2">
-                            <button
-                              type="button"
-                              onClick={() => setAlertMetricType("clicks")}
-                              className={`h-9 rounded-lg font-semibold text-xs border transition-all cursor-pointer ${
-                                alertMetricType === "clicks"
-                                  ? "bg-blue-600 text-white border-blue-600 shadow-sm"
-                                  : "bg-zinc-50 dark:bg-[#1a1a1e] border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:border-zinc-300"
-                              }`}
-                            >
-                              Total Clicks
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setAlertMetricType("revenue")}
-                              className={`h-9 rounded-lg font-semibold text-xs border transition-all cursor-pointer ${
-                                alertMetricType === "revenue"
-                                  ? "bg-blue-600 text-white border-blue-600 shadow-sm"
-                                  : "bg-zinc-50 dark:bg-[#1a1a1e] border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:border-zinc-300"
-                              }`}
-                            >
-                              Attributed Revenue ($)
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Period Selection (strictly Day, Week, Month - no Year!) */}
-                        <div className="flex flex-col gap-1.5 text-xs">
-                          <label className="font-bold text-zinc-900 dark:text-white flex items-center justify-between">
-                            <span>Period</span>
-                            {isEditingGlobalAlert && (
-                              <span className="text-[10px] text-zinc-400 font-normal">
-                                Locked to Monthly for workspace
+                      {/* Threshold Inputs based on Metric Type */}
+                      {alertMetricType === "both" ? (
+                        <div className="flex flex-col gap-3 p-3 rounded-[8px] bg-zinc-50/70 dark:bg-[#18181b]/70 border border-zinc-200 dark:border-[#27272a]">
+                          {/* Clicks Threshold in Dual Mode */}
+                          <div className="flex flex-col gap-1.5">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[11px] font-semibold text-zinc-800 dark:text-zinc-200">
+                                Seuil Clics Total
                               </span>
-                            )}
-                          </label>
-                          {isEditingGlobalAlert ? (
-                            <div className="h-9 px-3 rounded-lg bg-zinc-100 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 text-xs font-semibold text-zinc-600 dark:text-zinc-300 flex items-center">
-                              Monthly (Workspace Target)
+                              <span className="text-[10px] text-blue-600 dark:text-blue-400 font-mono font-semibold">
+                                {alertTargetClicks.toLocaleString()} clics
+                              </span>
                             </div>
-                          ) : (
-                            <div className="grid grid-cols-3 gap-2">
-                              {(
-                                [
-                                  { id: "day", label: "Day" },
-                                  { id: "week", label: "Week" },
-                                  { id: "month", label: "Month" },
-                                ] as const
-                              ).map((p) => (
+                            <input
+                              type="number"
+                              min="1"
+                              step="any"
+                              value={alertTargetClicks}
+                              onChange={(e) => setAlertTargetClicks(Math.max(1, Number(e.target.value) || 0))}
+                              className="h-8 px-3 rounded-[6px] bg-white dark:bg-[#121215] border border-zinc-200 dark:border-zinc-700 text-xs font-mono font-bold text-zinc-900 dark:text-white focus:outline-none focus:border-blue-500"
+                            />
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-[10px] text-zinc-400">Presets:</span>
+                              {[500, 1000, 2500, 5000, 10000].map((preset) => (
                                 <button
-                                  key={p.id}
+                                  key={preset}
                                   type="button"
-                                  onClick={() => setAlertPeriod(p.id)}
-                                  className={`h-9 rounded-lg font-semibold text-xs border transition-all cursor-pointer ${
-                                    alertPeriod === p.id
-                                      ? "bg-blue-600 text-white border-blue-600 shadow-sm"
-                                      : "bg-zinc-50 dark:bg-[#1a1a1e] border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:border-zinc-300"
-                                  }`}
+                                  onClick={() => setAlertTargetClicks(preset)}
+                                  className="px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-zinc-200/60 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 cursor-pointer"
                                 >
-                                  {p.label}
+                                  {preset.toLocaleString()}
                                 </button>
                               ))}
                             </div>
-                          )}
-                        </div>
+                          </div>
 
-                        {/* Target Value Input */}
+                          <div className="h-px bg-zinc-200 dark:bg-zinc-800" />
+
+                          {/* Revenue Threshold in Dual Mode */}
+                          <div className="flex flex-col gap-1.5">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[11px] font-semibold text-zinc-800 dark:text-zinc-200">
+                                Seuil Revenus Attribués ($)
+                              </span>
+                              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono font-semibold">
+                                ${alertTargetRevenue.toLocaleString()} USD
+                              </span>
+                            </div>
+                            <input
+                              type="number"
+                              min="1"
+                              step="any"
+                              value={alertTargetRevenue}
+                              onChange={(e) => setAlertTargetRevenue(Math.max(1, Number(e.target.value) || 0))}
+                              className="h-8 px-3 rounded-[6px] bg-white dark:bg-[#121215] border border-zinc-200 dark:border-zinc-700 text-xs font-mono font-bold text-zinc-900 dark:text-white focus:outline-none focus:border-blue-500"
+                            />
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-[10px] text-zinc-400">Presets:</span>
+                              {[100, 500, 1000, 2500, 5000].map((preset) => (
+                                <button
+                                  key={preset}
+                                  type="button"
+                                  onClick={() => setAlertTargetRevenue(preset)}
+                                  className="px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-zinc-200/60 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 cursor-pointer"
+                                >
+                                  ${preset.toLocaleString()}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        /* Single Metric Input */
                         <div className="flex flex-col gap-1.5 text-xs">
-                          <label className="font-bold text-zinc-900 dark:text-white">
-                            Target Threshold Value
+                          <label className="font-semibold text-zinc-700 dark:text-zinc-300">
+                            Valeur Seuil d&apos;Alerte
                           </label>
                           <div className="flex items-center gap-2">
                             <input
                               type="number"
                               min="1"
-                              step={alertMetricType === "revenue" ? "10" : "50"}
+                              step="any"
                               value={alertTargetValue}
                               onChange={(e) => setAlertTargetValue(Math.max(1, Number(e.target.value) || 0))}
-                              className="flex-1 h-10 px-3 rounded-lg bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-zinc-800 text-xs font-mono font-bold text-zinc-900 dark:text-white focus:outline-none focus:border-blue-500"
+                              className="flex-1 h-9 px-3 rounded-[8px] bg-zinc-50 dark:bg-[#18181b] border border-zinc-200 dark:border-[#27272a] text-xs font-mono font-bold text-zinc-900 dark:text-white focus:outline-none focus:border-blue-500"
                             />
-                            <span className="font-semibold text-xs text-blue-600 dark:text-blue-400">
-                              {alertMetricType === "revenue" ? "USD ($)" : "clicks"}
+                            <span className="font-semibold text-xs text-blue-600 dark:text-blue-400 shrink-0">
+                              {alertMetricType === "revenue" ? "USD ($)" : "clics"}
                             </span>
                           </div>
                           {/* Quick presets */}
-                          <div className="flex items-center gap-1.5 mt-1">
-                            <span className="text-[10px] text-zinc-400">Quick:</span>
+                          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                            <span className="text-[10px] text-zinc-400">Rapide:</span>
                             {(alertMetricType === "revenue"
                               ? [100, 500, 1000, 2500, 5000]
                               : [500, 1000, 2500, 5000, 10000]
@@ -3428,98 +4295,168 @@ console.log("Top Countries:", topAudience.topCountries);`,
                                 onClick={() => setAlertTargetValue(preset)}
                                 className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer"
                               >
-                                {preset.toLocaleString()}
+                                {alertMetricType === "revenue" ? `$${preset.toLocaleString()}` : preset.toLocaleString()}
                               </button>
                             ))}
                           </div>
                         </div>
+                      )}
 
-                        {/* Options & Channels */}
-                        <div className="flex flex-col gap-2 pt-2 border-t border-zinc-100 dark:border-zinc-800 text-xs">
-                          <label className="flex items-center justify-between p-2.5 rounded-lg bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 cursor-pointer transition-colors">
-                            <div>
-                              <p className="font-semibold text-zinc-900 dark:text-white">
-                                24h Expiration Warning
-                              </p>
-                              <p className="text-[10px] text-zinc-500">
-                                Send a reminder 24 hours before the link expires
-                              </p>
-                            </div>
-                            <input
-                              type="checkbox"
-                              checked={alertNotifyExpired}
-                              onChange={(e) => setAlertNotifyExpired(e.target.checked)}
-                              className="w-4 h-4 accent-blue-600 cursor-pointer"
-                            />
-                          </label>
+                      {/* Period Selection (Day, Week, Month) */}
+                      <div className="flex flex-col gap-1.5 text-xs">
+                        <label className="font-semibold text-zinc-700 dark:text-zinc-300 flex items-center justify-between">
+                          <span>Période de Calcul</span>
+                          {isEditingGlobalAlert && (
+                            <span className="text-[10px] text-zinc-400 font-normal">
+                              Verrouillé sur Mensuel pour le workspace
+                            </span>
+                          )}
+                        </label>
+                        {isEditingGlobalAlert ? (
+                          <div className="h-9 px-3 rounded-[8px] bg-zinc-100 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 text-xs font-semibold text-zinc-600 dark:text-zinc-300 flex items-center">
+                            Mensuel (Objectif du Workspace)
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-3 gap-2">
+                            {(
+                              [
+                                { id: "day", label: "Jour" },
+                                { id: "week", label: "Semaine" },
+                                { id: "month", label: "Mois" },
+                              ] as const
+                            ).map((p) => (
+                              <button
+                                key={p.id}
+                                type="button"
+                                onClick={() => setAlertPeriod(p.id)}
+                                className={`h-8 rounded-[8px] font-semibold text-xs border transition-all cursor-pointer ${
+                                  alertPeriod === p.id
+                                    ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                                    : "bg-zinc-50 dark:bg-[#18181b] border-zinc-200 dark:border-[#27272a] text-zinc-700 dark:text-zinc-300 hover:border-zinc-300"
+                                }`}
+                              >
+                                {p.label}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
 
-                          <label className="flex items-center justify-between p-2.5 rounded-lg bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 cursor-pointer transition-colors">
-                            <div>
-                              <p className="font-semibold text-zinc-900 dark:text-white">
-                                Email Notification
-                              </p>
-                              <p className="text-[10px] text-zinc-500">
-                                Dispatch transactional congratulatory alert to your account email
-                              </p>
-                            </div>
-                            <input
-                              type="checkbox"
-                              checked={alertNotifyEmail}
-                              onChange={(e) => setAlertNotifyEmail(e.target.checked)}
-                              className="w-4 h-4 accent-blue-600 cursor-pointer"
-                            />
-                          </label>
+                      {/* Options & Channels */}
+                      <div className="flex flex-col gap-2 pt-2 border-t border-zinc-100 dark:border-[#202024] text-xs">
+                        {(() => {
+                          const isGlobalTarget = isEditingGlobalAlert || !alertLinkId || alertLinkId === "global";
+                          return (
+                            <label
+                              htmlFor="drawer_alert_notify_expired"
+                              className={`flex items-center justify-between p-2.5 rounded-[8px] border transition-colors ${
+                                isGlobalTarget
+                                  ? "bg-zinc-100/70 dark:bg-[#151518] border-zinc-200/60 dark:border-zinc-800/60 opacity-60 cursor-not-allowed select-none"
+                                  : "bg-zinc-50 dark:bg-[#18181b] border-zinc-200 dark:border-[#27272a] hover:border-zinc-300 dark:hover:border-zinc-700 cursor-pointer"
+                              }`}
+                            >
+                              <div className="pr-3">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <p className={`font-semibold ${isGlobalTarget ? "text-zinc-500 dark:text-zinc-400" : "text-zinc-900 dark:text-white"}`}>
+                                    Alerte à l&apos;expiration du lien
+                                  </p>
+                                  {isGlobalTarget && (
+                                    <span className="px-1.5 py-0.5 rounded-[6px] text-[9px] font-semibold bg-zinc-200/80 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
+                                      Lien individuel requis
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">
+                                  {isGlobalTarget
+                                    ? "Inaccessible pour une cible globale. Sélectionnez un lien court spécifique ci-dessus pour être alerté au moment précis de son expiration."
+                                    : "Recevez une notification instantanée au moment précis où le lien expire."}
+                                </p>
+                              </div>
+                              <input
+                                id="drawer_alert_notify_expired"
+                                type="checkbox"
+                                aria-label="Alerte à l'expiration du lien"
+                                disabled={isGlobalTarget}
+                                checked={isGlobalTarget ? false : alertNotifyExpired}
+                                onChange={(e) => {
+                                  if (!isGlobalTarget) {
+                                    setAlertNotifyExpired(e.target.checked);
+                                  }
+                                }}
+                                className={`w-4 h-4 accent-blue-600 shrink-0 ${
+                                  isGlobalTarget ? "cursor-not-allowed opacity-40" : "cursor-pointer"
+                                }`}
+                              />
+                            </label>
+                          );
+                        })()}
 
-                          <label className="flex items-center justify-between p-2.5 rounded-lg bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 cursor-pointer transition-colors">
-                            <div>
-                              <p className="font-semibold text-zinc-900 dark:text-white">
-                                In-App Bell Notification
-                              </p>
-                              <p className="text-[10px] text-zinc-500">
-                                Show popover alert in the topbar bell icon center
-                              </p>
-                            </div>
-                            <input
-                              type="checkbox"
-                              checked={alertNotifyBell}
-                              onChange={(e) => setAlertNotifyBell(e.target.checked)}
-                              className="w-4 h-4 accent-blue-600 cursor-pointer"
-                            />
-                          </label>
-                        </div>
+                        <label className="flex items-center justify-between p-2.5 rounded-[8px] bg-zinc-50 dark:bg-[#18181b] border border-zinc-200 dark:border-[#27272a] hover:border-zinc-300 cursor-pointer transition-colors">
+                          <div>
+                            <p className="font-semibold text-zinc-900 dark:text-white">
+                              Notification par Email
+                            </p>
+                            <p className="text-[10px] text-zinc-500">
+                              Alerte transactionnelle envoyée sur l&apos;adresse email de votre compte
+                            </p>
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={alertNotifyEmail}
+                            onChange={(e) => setAlertNotifyEmail(e.target.checked)}
+                            className="w-4 h-4 accent-blue-600 cursor-pointer"
+                          />
+                        </label>
 
-                        {/* Modal Footer */}
-                        <div className="flex items-center justify-end gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800">
-                          <button
-                            type="button"
-                            onClick={() => setIsAlertModalOpen(false)}
-                            className="px-4 h-9 rounded-lg text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer transition-colors"
-                          >
-                            Cancel
-                          </button>
-                          <Button
-                            type="submit"
-                            variant="glow"
-                            disabled={isSavingAlert}
-                            className="h-9 px-5 text-xs font-semibold gap-1.5 cursor-pointer shadow-sm"
-                          >
-                            {isSavingAlert ? (
-                              <>
-                                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                                <span>Saving...</span>
-                              </>
-                            ) : (
-                              <>
-                                <Check className="w-3.5 h-3.5" />
-                                <span>{editingAlert || isEditingGlobalAlert ? "Save Changes" : "Create Alert"}</span>
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                      </form>
-                    </div>
-                  </div>
-                )}
+                        <label className="flex items-center justify-between p-2.5 rounded-[8px] bg-zinc-50 dark:bg-[#18181b] border border-zinc-200 dark:border-[#27272a] hover:border-zinc-300 cursor-pointer transition-colors">
+                          <div>
+                            <p className="font-semibold text-zinc-900 dark:text-white">
+                              Notification In-App (Cloche)
+                            </p>
+                            <p className="text-[10px] text-zinc-500">
+                              Afficher un badge et une notification dans la barre supérieure
+                            </p>
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={alertNotifyBell}
+                            onChange={(e) => setAlertNotifyBell(e.target.checked)}
+                            className="w-4 h-4 accent-blue-600 cursor-pointer"
+                          />
+                        </label>
+                      </div>
+
+                      {/* Drawer Actions */}
+                      <div className="flex items-center justify-end gap-2 pt-4 mt-auto border-t border-zinc-100 dark:border-[#202024] shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => setIsAlertModalOpen(false)}
+                          className="px-4 h-8 rounded-[8px] text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer transition-colors"
+                        >
+                          Annuler
+                        </button>
+                        <Button
+                          type="submit"
+                          variant="glow"
+                          disabled={isSavingAlert}
+                          className="h-8 px-4 text-xs font-semibold gap-1.5 cursor-pointer shadow-sm rounded-[8px]"
+                        >
+                          {isSavingAlert ? (
+                            <>
+                              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                              <span>Enregistrement...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Check className="w-3.5 h-3.5" />
+                              <span>{editingAlert || isEditingGlobalAlert ? "Enregistrer" : "Créer l'alerte"}</span>
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </form>
+                  </DrawerContent>
+                </Drawer>
               </div>
             );
           })()}
@@ -3540,7 +4477,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="p-5 rounded-[10px] bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a] flex flex-col justify-between gap-4">
+                <div className="p-5 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225] flex flex-col justify-between gap-4 shadow-xs">
                   <div>
                     <h3 className="text-xs font-bold text-zinc-900 dark:text-white">
                       Complete Archive (JSON)
@@ -3553,14 +4490,14 @@ console.log("Top Countries:", topAudience.topCountries);`,
                   <button
                     type="button"
                     onClick={() => handleExportData("json")}
-                    className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-[8px] bg-white hover:bg-slate-100 dark:bg-[#141416] dark:hover:bg-[#222228] text-slate-900 dark:text-white border border-slate-300 dark:border-[#2f2f37] text-xs font-semibold shadow-2xs transition-all cursor-pointer"
+                    className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-[8px] bg-zinc-50 hover:bg-zinc-100 dark:bg-[#161619] dark:hover:bg-[#202024] text-zinc-900 dark:text-white border border-zinc-200 dark:border-[#27272a] text-xs font-semibold shadow-xs transition-all cursor-pointer"
                   >
-                    <Download className="w-3.5 h-3.5 text-[#465FFF]" />
+                    <Download className="w-3.5 h-3.5 text-brand" />
                     <span>Download JSON Archive</span>
                   </button>
                 </div>
 
-                <div className="p-5 rounded-[10px] bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a] flex flex-col justify-between gap-4">
+                <div className="p-5 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225] flex flex-col justify-between gap-4 shadow-xs">
                   <div>
                     <h3 className="text-xs font-bold text-zinc-900 dark:text-white">
                       Export Events &amp; Clicks (CSV)
@@ -3573,16 +4510,16 @@ console.log("Top Countries:", topAudience.topCountries);`,
                   <button
                     type="button"
                     onClick={() => handleExportData("csv")}
-                    className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-[8px] bg-white hover:bg-slate-100 dark:bg-[#141416] dark:hover:bg-[#222228] text-slate-900 dark:text-white border border-slate-300 dark:border-[#2f2f37] text-xs font-semibold shadow-2xs transition-all cursor-pointer"
+                    className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-[8px] bg-zinc-50 hover:bg-zinc-100 dark:bg-[#161619] dark:hover:bg-[#202024] text-zinc-900 dark:text-white border border-zinc-200 dark:border-[#27272a] text-xs font-semibold shadow-xs transition-all cursor-pointer"
                   >
-                    <Download className="w-3.5 h-3.5 text-[#465FFF]" />
+                    <Download className="w-3.5 h-3.5 text-brand" />
                     <span>Download CSV</span>
                   </button>
                 </div>
               </div>
 
               {/* Danger Zone */}
-              <div className="p-5 rounded-[10px] bg-red-50/90 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 flex flex-col gap-3">
+              <div className="p-5 rounded-[10px] bg-red-50/50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/25 flex flex-col gap-3 shadow-xs">
                 <h3 className="text-xs font-bold text-red-600 dark:text-red-400 uppercase tracking-wider">
                   Danger Zone
                 </h3>
@@ -3596,7 +4533,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                     placeholder="Type DELETE to confirm"
                     value={deleteConfirmationText}
                     onChange={(e) => setDeleteConfirmationText(e.target.value)}
-                    className="max-w-xs bg-white dark:bg-[#0c0c0e] text-slate-900 dark:text-white border-red-300 dark:border-red-500/30"
+                    className="max-w-xs bg-white dark:bg-[#161619] text-slate-900 dark:text-white border-red-300 dark:border-red-500/30"
                   />
                   <button
                     type="button"
@@ -3630,7 +4567,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                 Realtime Database.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                <div className="p-3.5 rounded-[10px] bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a]">
+                <div className="p-4 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225] shadow-xs">
                   <span className="text-zinc-500 dark:text-neutral-500">
                     Application Version
                   </span>
@@ -3638,7 +4575,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                     v1.2.0 (Production)
                   </p>
                 </div>
-                <div className="p-3.5 rounded-[10px] bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a]">
+                <div className="p-4 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225] shadow-xs">
                   <span className="text-zinc-500 dark:text-neutral-500">
                     Cloudflare Edge &amp; D1 Network
                   </span>
@@ -3647,7 +4584,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                     Operational (&lt;0.8ms latency)
                   </p>
                 </div>
-                <div className="p-3.5 rounded-[10px] bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a]">
+                <div className="p-4 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225] shadow-xs">
                   <span className="text-zinc-500 dark:text-neutral-500">
                     OpenGraph &amp; Social Previews
                   </span>
@@ -3655,7 +4592,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                     Direct URL Metadata Injection
                   </p>
                 </div>
-                <div className="p-3.5 rounded-[10px] bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a]">
+                <div className="p-4 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225] shadow-xs">
                   <span className="text-zinc-500 dark:text-neutral-500">
                     Realtime Database
                   </span>
@@ -3666,7 +4603,6 @@ console.log("Top Countries:", topAudience.topCountries);`,
               </div>
             </div>
           )}
-        </div>
       </div>
 
       {/* 2FA Setup Multi-Step Modal */}
@@ -3703,6 +4639,93 @@ console.log("Top Countries:", topAudience.topCountries);`,
         title={`Revoke key "${keyToDelete.name}"?`}
         description="This action is irreversible. All applications, bots, or scripts using this key will immediately stop working."
       />
+
+      {/* Cancel Auto-Renewal Confirmation Modal */}
+      {isCancelSubModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+          <div
+            className="relative w-full max-w-lg bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#27272a] rounded-[10px] shadow-2xl p-6 flex flex-col gap-5 animate-in zoom-in-95 duration-200"
+            role="dialog"
+            aria-modal="true"
+          >
+            {/* Close button */}
+            <button
+              onClick={() => !cancelingSub && setIsCancelSubModalOpen(false)}
+              disabled={cancelingSub}
+              className="absolute right-4 top-4 p-1.5 rounded-[10px] text-zinc-400 hover:text-zinc-600 dark:text-neutral-400 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-50"
+              aria-label="Fermer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            {/* Header */}
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-[10px] bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500 shrink-0 shadow-lg shadow-red-500/10">
+                <AlertTriangle className="w-6 h-6 animate-pulse" />
+              </div>
+              <div className="flex flex-col gap-1 pr-4">
+                <h3 className="text-base font-bold text-zinc-900 dark:text-white leading-snug">
+                  Annuler le renouvellement automatique ?
+                </h3>
+                <p className="text-xs text-zinc-500 dark:text-neutral-400 leading-relaxed">
+                  Vous êtes sur le point de désactiver la reconduction tacite de votre formule <strong>LShorter {plan}</strong>.
+                </p>
+              </div>
+            </div>
+
+            {/* Key points box */}
+            <div className="p-4 rounded-[10px] bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a] flex flex-col gap-3 text-xs">
+              <div className="flex items-start gap-2.5 text-zinc-700 dark:text-neutral-300">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                <span>
+                  <strong>Accès garanti jusqu&apos;au {displayPeriodEnd}</strong> : Vos quotas de clics, domaines personnalisés et liens courts restent 100% opérationnels jusqu&apos;à la fin de la période payée en cours.
+                </span>
+              </div>
+              <div className="flex items-start gap-2.5 text-zinc-700 dark:text-neutral-300">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                <span>
+                  <strong>Zéro prélèvement futur</strong> : Paddle n&apos;effectuera aucun débit automatique ultérieur sur votre moyen de paiement.
+                </span>
+              </div>
+              <div className="flex items-start gap-2.5 text-zinc-600 dark:text-neutral-400 text-[11px] border-t border-zinc-200 dark:border-[#27272a] pt-2">
+                <Info className="w-3.5 h-3.5 text-zinc-400 shrink-0 mt-0.5" />
+                <span>
+                  Politique commerciale : Conformément à nos conditions pour les infrastructures numériques, tout achat est ferme et définitif. Aucun remboursement rétroactif n&apos;est émis pour la période déjà commencée.
+                </span>
+              </div>
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex items-center justify-end gap-3 pt-2 border-t border-zinc-200 dark:border-[#222225]">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsCancelSubModalOpen(false)}
+                disabled={cancelingSub}
+                className="h-9 px-4 text-xs font-semibold rounded-[10px] border-zinc-200 dark:border-[#27272a] bg-white dark:bg-[#1a1a1e] hover:bg-zinc-100 dark:hover:bg-white/5 text-zinc-700 dark:text-neutral-300 cursor-pointer"
+              >
+                Conserver mon abonnement
+              </Button>
+
+              <Button
+                type="button"
+                onClick={handleConfirmCancelSubscription}
+                disabled={cancelingSub}
+                className="h-9 px-4 text-xs font-bold rounded-[10px] bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-600/25 border border-red-500/30 gap-2 cursor-pointer transition-all"
+              >
+                {cancelingSub ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Annulation en cours...</span>
+                  </>
+                ) : (
+                  <span>Confirmer l&apos;annulation</span>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

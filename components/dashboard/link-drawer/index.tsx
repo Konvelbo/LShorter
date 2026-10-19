@@ -20,6 +20,8 @@ import { ShortLink } from "@/types";
 import { RoutingRule } from "../routing-rules-editor";
 import { compileRoutingRules } from "@/lib/routing-utils";
 import { triggerPlanUpgrade } from "@/lib/plan-guard";
+import { guardLinkCreation } from "@/lib/billing/quota-service";
+import { RESERVED_SLUGS } from "@/lib/security-utils";
 import { showToast } from "@/components/ui/toast-provider";
 import { cn } from "@/lib/utils";
 import { Trash2, Loader2, CheckCircle2 } from "lucide-react";
@@ -62,6 +64,7 @@ export function LinkDrawer({
   link = null,
   initialUrl = "",
   onSuccess,
+  linksCount,
 }: LinkDrawerProps) {
   const isEditMode = mode === "edit" || Boolean(link);
 
@@ -593,6 +596,12 @@ export function LinkDrawer({
     if (/\s/.test(trimmed)) {
       return "URL must not contain spaces.";
     }
+    if (/^(javascript|data|vbscript|file|blob|ftp|about):/i.test(trimmed)) {
+      return "Invalid URL scheme. Only HTTP and HTTPS protocols are permitted.";
+    }
+    if (trimmed.includes("169.254.169.254") || trimmed.includes("metadata.google.internal") || trimmed.includes("100.100.100.200")) {
+      return "Internal or cloud metadata addresses are not permitted.";
+    }
     const withProto = /^https?:\/\//i.test(trimmed)
       ? trimmed
       : `https://${trimmed}`;
@@ -640,6 +649,9 @@ export function LinkDrawer({
     }
     if (!/^[a-zA-Z0-9-_]+$/.test(trimmed)) {
       return "Slug can only contain letters, numbers, hyphens, and underscores.";
+    }
+    if (RESERVED_SLUGS.has(trimmed.toLowerCase())) {
+      return `The slug '${trimmed}' is reserved and cannot be used.`;
     }
     return "";
   };
@@ -910,6 +922,21 @@ export function LinkDrawer({
       .split(",")
       .map((t) => t.trim())
       .filter(Boolean);
+
+    // Free / Starter plan link creation quota check
+    if (!isEditMode && linksCount !== undefined) {
+      const quotaCheck = guardLinkCreation(userPlan as any, linksCount);
+      if (!quotaCheck.allowed) {
+        triggerPlanUpgrade({
+          reason: quotaCheck.reason || `Limite de liens atteinte pour le forfait ${userPlan}. Passez au forfait supérieur pour créer des liens illimités.`,
+          featureName: "Active Links Quota",
+          targetPlan: "PRO",
+        });
+        showToast.error(quotaCheck.reason || "Limite de liens atteinte pour votre forfait.");
+        setIsSubmitting(false);
+        return;
+      }
+    }
 
     // Free / Starter plan security checks: Dynamic routing is strictly reserved for paid plans
     if (!isProPlan) {

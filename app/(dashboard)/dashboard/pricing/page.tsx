@@ -96,28 +96,8 @@ export default function PricingPage() {
         router.push(`/dashboard/settings?tab=billing&checkout_success=true${ptxn ? `&ptxn=${encodeURIComponent(ptxn)}` : ""}`);
         return;
       } else if (ptxn && !isSuccess) {
-        // Automatically resume checkout overlay for this transaction
-        import("@/lib/paddle/paddle-client").then(({ getPaddleClient, getPaddleInitStatus }) => {
-          getPaddleClient().then((paddle) => {
-            if (paddle) {
-              paddle.Checkout.open({
-                transactionId: ptxn,
-                settings: {
-                  displayMode: "overlay",
-                  theme: "dark",
-                  variant: "one-page",
-                  successUrl: `${window.location.origin}/dashboard/settings?tab=billing&checkout_success=true&ptxn=${ptxn}`,
-                },
-              });
-            } else {
-              const status = getPaddleInitStatus();
-              if (status.isBlocked) {
-                setPaddleBlocked(true);
-                showToast.error("Impossible d'ouvrir le paiement : cdn.paddle.com est bloqué par votre navigateur (AdBlock / Brave Shields).");
-              }
-            }
-          });
-        });
+        // Redirect to our custom inline checkout page for this transaction
+        router.replace(`/checkout?ptxn=${encodeURIComponent(ptxn)}&from=/dashboard/pricing`);
       }
     }
   }, [router]);
@@ -246,6 +226,7 @@ export default function PricingPage() {
         "10,000 clicks / month included",
         "3 custom domains included",
         "50 active short links",
+        "Global Workspace Target (Monthly clicks & revenue monitoring)",
         "QR Code Studio (Basic styles)",
         "Analytics retention: 30 days",
         "Developer API keys (60 req/min)",
@@ -254,6 +235,7 @@ export default function PricingPage() {
       limitations: [
         "Dynamic smart routing not included (Paid only)",
         "Password protection & cloaking not included",
+        "Individual link alerts & exact expiration alerts (Pro & Business only)",
         "Webhooks & Pixels not included",
       ],
     },
@@ -274,6 +256,8 @@ export default function PricingPage() {
         "Zero-Downtime Overage (+$3 / 50,000 extra clicks)",
         "Up to 6 custom branded domains",
         "1,000 active short links",
+        "Individual Link Alerts (Custom clicks & revenue limits)",
+        "Instant link expiration alerts (Email & in-app bell)",
         "Dynamic Smart Routing (Country + OS/Device)",
         "Password PIN gates & link cloaking",
         "5 Webhooks & 5 Retargeting Pixels",
@@ -300,6 +284,7 @@ export default function PricingPage() {
         "Zero-Downtime Overage (+$8 / 125,000 extra clicks)",
         "Up to 15 custom branded domains",
         "Unlimited active short links",
+        "Unlimited Individual Link Alerts & instant expiration tracking",
         "Custom multi-condition rule builder",
         "Advanced protection, cloaking & expiration",
         "Vector QR Code Studio (SVG / PDF export)",
@@ -327,6 +312,7 @@ export default function PricingPage() {
         "Unlimited clicks / month included",
         "Unlimited custom branded domains",
         "Unlimited active short links",
+        "Unlimited Link & Global Workspace Alerts with VIP routing",
         "Hyper-targeted Routing (ISP / ASN / City)",
         "15 team seats included",
         "Unlimited Webhooks & Retargeting Pixels",
@@ -387,6 +373,13 @@ export default function PricingPage() {
       pro: "5 webhooks / 5 pixels",
       business: "Unlimited",
       enterprise: "Unlimited",
+    },
+    {
+      feature: "Target & Notification Alerts",
+      free: "Global Workspace Target only",
+      pro: "Individual Link Alerts (Clicks, Revenue & Expiration)",
+      business: "Unlimited Link Alerts & Instant Expiration",
+      enterprise: "Unlimited Link & Workspace Alerts (VIP)",
     },
     {
       feature: "Analytics Retention",

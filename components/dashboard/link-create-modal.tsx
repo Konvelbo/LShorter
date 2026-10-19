@@ -9,6 +9,7 @@ export interface LinkCreateModalProps {
   onClose: () => void;
   onSuccess?: (created: ShortLink) => void;
   initialUrl?: string;
+  linksCount?: number;
 }
 
 export function LinkCreateModal({
@@ -16,6 +17,7 @@ export function LinkCreateModal({
   onClose,
   onSuccess,
   initialUrl = "",
+  linksCount,
 }: LinkCreateModalProps) {
   return (
     <LinkDrawer
@@ -24,6 +26,7 @@ export function LinkCreateModal({
       mode="create"
       initialUrl={initialUrl}
       onSuccess={onSuccess}
+      linksCount={linksCount}
     />
   );
 }

@@ -109,3 +109,34 @@ export function isValidUrl(urlString: string): boolean {
     return false;
   }
 }
+
+/**
+ * Robustly checks if a short link is currently active, taking into account
+ * expiration dates, paused status, and integer/boolean flags.
+ */
+export function isLinkActive(link?: any): boolean {
+  if (!link) return false;
+
+  // 1. Expiration check
+  const expTimeStr = link.expires_at || link.expiresAt;
+  if (link.isExpired === true || link.is_expired === 1) return false;
+  if (expTimeStr && new Date(expTimeStr).getTime() <= Date.now()) return false;
+
+  // 2. Explicit status check
+  const rawStatus = String(link.status || link.statusLabel || "").trim().toLowerCase();
+  if (
+    rawStatus === "paused" ||
+    rawStatus === "en pause" ||
+    rawStatus === "expired" ||
+    rawStatus === "expiré"
+  ) {
+    return false;
+  }
+
+  // 3. Boolean and integer flag check
+  if (link.isActive === false || link.isActive === 0 || link.isActive === "0") return false;
+  if (link.is_active === false || link.is_active === 0 || link.is_active === "0") return false;
+
+  return true;
+}
+

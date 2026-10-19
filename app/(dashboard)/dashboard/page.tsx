@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import { EmptyState } from "@/components/dashboard/empty-state";
 import { PopulatedState } from "@/components/dashboard/populated-state";
 import { ShortLink, GlobalAnalytics } from "@/types";
-import { cfGetLinks, cfGetAnalytics, cfInvalidateCache, EMPTY_ANALYTICS } from "@/lib/cloudflare-api";
+import { isLinkActive } from "@/lib/utils";
+import { cfGetLinks, cfGetAnalytics, cfInvalidateCache, parseTags, EMPTY_ANALYTICS } from "@/lib/cloudflare-api";
 import { EMPTY_ANALYTICS as _EA } from "@/lib/api-client";
 import { generateTimelineForRange, generateEdgeTopCountries } from "@/lib/analytics-generators";
 
@@ -77,97 +78,129 @@ export default function DashboardOverviewPage() {
       // Fetch links from Cloudflare D1 API (proxy resolves userId from query or active session)
       const linksRes = await cfGetLinks(userId || "", needForce);
       const listData = Array.isArray(linksRes?.data) ? linksRes.data : Array.isArray((linksRes?.data as any)?.data) ? (linksRes?.data as any).data : [];
-      const rawLinks: ShortLink[] = listData.map((l: any) => ({
-        id: l.id,
-        userId: l.user_id || userId,
-        slug: l.slug,
-        domainName: l.domain_name || "lsho.cc",
-        shortUrl: typeof window !== "undefined" ? `${window.location.origin}/r/${l.slug}` : `http://localhost:3000/r/${l.slug}`,
-        targetUrl: l.target_url || l.targetUrl,
-        clicksCount: l.clicks_count || l.clicksCount || l.clicks || 0,
-        uniqueClicks: l.unique_clicks || l.uniqueClicks || 0,
-        conversionsCount: l.conversions_count || l.conversionsCount || 0,
-        revenue: l.revenue || 0,
-        routingRules: l.routing_rules
-          ? (typeof l.routing_rules === "string" ? JSON.parse(l.routing_rules) : l.routing_rules)
-          : (typeof l.routingRules === "string" ? JSON.parse(l.routingRules) : l.routingRules || []),
-        geoTargeting: l.geo_targeting
-          ? (typeof l.geo_targeting === "string" ? JSON.parse(l.geo_targeting) : l.geo_targeting)
-          : (typeof l.geoTargeting === "string" ? JSON.parse(l.geoTargeting) : l.geoTargeting || {}),
-        deviceTargeting: l.device_targeting
-          ? (typeof l.device_targeting === "string" ? JSON.parse(l.device_targeting) : l.device_targeting)
-          : (typeof l.deviceTargeting === "string" ? JSON.parse(l.deviceTargeting) : l.deviceTargeting || {}),
-        isPasswordProtected: Boolean(l.is_password_protected || l.isPasswordProtected || l.has_password || l.hasPassword || l.password || l.password_plain),
-        password: l.password || l.password_plain || "",
-        maxClicks: l.max_clicks !== undefined && l.max_clicks !== null ? Number(l.max_clicks) : l.maxClicks !== undefined && l.maxClicks !== null ? Number(l.maxClicks) : undefined,
-        fallbackUrl: l.fallback_url || l.fallbackUrl || "",
-        isCloaked: Boolean(l.is_cloaked || l.isCloaked),
-        metaTitle: l.meta_title || l.metaTitle || l.og_title || l.ogTitle,
-        ogTitle: l.og_title || l.ogTitle || l.meta_title || l.metaTitle,
-        ogDescription: l.og_description || l.ogDescription,
-        ogImage: l.og_image || l.ogImage,
-        bannerStyle:
-          l.banner_style === "large_banner" || l.bannerStyle === "large_banner" || l.twitter_card === "summary_large_image" || l.twitterCard === "summary_large_image"
-            ? "large_banner"
-            : l.banner_style === "default_banner" || l.bannerStyle === "default_banner" || l.twitter_card === "summary" || l.twitterCard === "summary"
-              ? "default_banner"
-              : "large_banner",
-        banner_style:
-          l.banner_style === "large_banner" || l.bannerStyle === "large_banner" || l.twitter_card === "summary_large_image" || l.twitterCard === "summary_large_image"
-            ? "large_banner"
-            : l.banner_style === "default_banner" || l.bannerStyle === "default_banner" || l.twitter_card === "summary" || l.twitterCard === "summary"
-              ? "default_banner"
-              : "large_banner",
-        twitterCard:
-          l.twitter_card === "summary_large_image" || l.twitterCard === "summary_large_image" || l.banner_style === "large_banner" || l.bannerStyle === "large_banner"
-            ? "summary_large_image"
-            : l.twitter_card === "summary" || l.twitterCard === "summary" || l.banner_style === "default_banner" || l.bannerStyle === "default_banner"
-              ? "summary"
-              : "summary_large_image",
-        twitter_card:
-          l.twitter_card === "summary_large_image" || l.twitterCard === "summary_large_image" || l.banner_style === "large_banner" || l.bannerStyle === "large_banner"
-            ? "summary_large_image"
-            : l.twitter_card === "summary" || l.twitterCard === "summary" || l.banner_style === "default_banner" || l.bannerStyle === "default_banner"
-              ? "summary"
-              : "summary_large_image",
-        hideReferrer: Boolean(l.hide_referrer || l.hideReferrer),
-        tags: l.tags ? (typeof l.tags === "string" ? JSON.parse(l.tags) : l.tags) : [],
-        expiresAt: l.expires_at || l.expiresAt,
-        abVariations: l.ab_variations
-          ? (typeof l.ab_variations === "string" ? JSON.parse(l.ab_variations) : l.ab_variations)
-          : (typeof l.abVariations === "string" ? JSON.parse(l.abVariations) : l.abVariations || []),
-        mainWeight: l.main_weight !== undefined ? Number(l.main_weight) : l.mainWeight !== undefined ? Number(l.mainWeight) : undefined,
-        redirectType: l.redirect_type || l.redirectType,
-        passParams: l.pass_params !== undefined ? Boolean(l.pass_params) : l.passParams !== undefined ? Boolean(l.passParams) : undefined,
-        pathLockMode: (l.path_lock_mode || l.pathLockMode || "off") as "off" | "strict" | "funnel",
-        path_lock_mode: (l.path_lock_mode || l.pathLockMode || "off") as "off" | "strict" | "funnel",
-        pathLockPrefix: l.path_lock_prefix || l.pathLockPrefix || "",
-        path_lock_prefix: l.path_lock_prefix || l.pathLockPrefix || "",
-        pathLockMessage: l.path_lock_message || l.pathLockMessage || "",
-        path_lock_message: l.path_lock_message || l.pathLockMessage || "",
-        pathLockPassword: l.path_lock_password || l.pathLockPassword || "",
-        path_lock_password: l.path_lock_password || l.pathLockPassword || "",
-        isActive: !(
-          l.is_active === 0 ||
-          l.is_active === false ||
-          l.is_active === "0" ||
-          l.isActive === 0 ||
-          l.isActive === false ||
-          l.isActive === "0"
-        ),
-        pixels: Array.isArray(l.pixels)
-          ? l.pixels
-          : typeof l.pixels === "string"
-            ? (() => {
-                try {
-                  return JSON.parse(l.pixels);
-                } catch {
-                  return [l.pixels];
-                }
-              })()
-            : [],
-        created_at: l.created_at || l.createdAt || new Date().toISOString(),
-      }));
+      const rawLinks: ShortLink[] = listData.map((l: any) => {
+        const active = isLinkActive(l);
+        const expTimeStr = l.expires_at || l.expiresAt || null;
+        const isExp = Boolean(
+          l.isExpired ||
+          l.is_expired === 1 ||
+          (expTimeStr && new Date(expTimeStr).getTime() <= Date.now())
+        );
+        return {
+          id: l.id,
+          userId: l.user_id || userId,
+          slug: l.slug,
+          domainName: l.domain_name || "lsho.cc",
+          shortUrl: typeof window !== "undefined" ? `${window.location.origin}/r/${l.slug}` : `http://localhost:3000/r/${l.slug}`,
+          targetUrl: l.target_url || l.targetUrl,
+          clicksCount: l.clicks_count || l.clicksCount || l.clicks || 0,
+          uniqueClicks: l.unique_clicks || l.uniqueClicks || 0,
+          conversionsCount: l.conversions_count || l.conversionsCount || 0,
+          revenue: l.revenue || 0,
+          routingRules: (() => {
+            const raw = l.routing_rules || l.routingRules;
+            if (!raw) return [];
+            if (Array.isArray(raw)) return raw;
+            if (typeof raw === "string") {
+              try { return JSON.parse(raw); } catch { return []; }
+            }
+            return [];
+          })(),
+          geoTargeting: (() => {
+            const raw = l.geo_targeting || l.geoTargeting;
+            if (!raw) return {};
+            if (typeof raw === "object") return raw;
+            if (typeof raw === "string") {
+              try { return JSON.parse(raw); } catch { return {}; }
+            }
+            return {};
+          })(),
+          deviceTargeting: (() => {
+            const raw = l.device_targeting || l.deviceTargeting;
+            if (!raw) return {};
+            if (typeof raw === "object") return raw;
+            if (typeof raw === "string") {
+              try { return JSON.parse(raw); } catch { return {}; }
+            }
+            return {};
+          })(),
+          isPasswordProtected: Boolean(l.is_password_protected || l.isPasswordProtected || l.has_password || l.hasPassword || l.password || l.password_plain),
+          password: l.password || l.password_plain || "",
+          maxClicks: l.max_clicks !== undefined && l.max_clicks !== null ? Number(l.max_clicks) : l.maxClicks !== undefined && l.maxClicks !== null ? Number(l.maxClicks) : undefined,
+          fallbackUrl: l.fallback_url || l.fallbackUrl || "",
+          isCloaked: Boolean(l.is_cloaked || l.isCloaked),
+          metaTitle: l.meta_title || l.metaTitle || l.og_title || l.ogTitle,
+          ogTitle: l.og_title || l.ogTitle || l.meta_title || l.metaTitle,
+          ogDescription: l.og_description || l.ogDescription,
+          ogImage: l.og_image || l.ogImage,
+          bannerStyle:
+            l.banner_style === "large_banner" || l.bannerStyle === "large_banner" || l.twitter_card === "summary_large_image" || l.twitterCard === "summary_large_image"
+              ? "large_banner"
+              : l.banner_style === "default_banner" || l.bannerStyle === "default_banner" || l.twitter_card === "summary" || l.twitterCard === "summary"
+                ? "default_banner"
+                : "large_banner",
+          banner_style:
+            l.banner_style === "large_banner" || l.bannerStyle === "large_banner" || l.twitter_card === "summary_large_image" || l.twitterCard === "summary_large_image"
+              ? "large_banner"
+              : l.banner_style === "default_banner" || l.bannerStyle === "default_banner" || l.twitter_card === "summary" || l.twitterCard === "summary"
+                ? "default_banner"
+                : "large_banner",
+          twitterCard:
+            l.twitter_card === "summary_large_image" || l.twitterCard === "summary_large_image" || l.banner_style === "large_banner" || l.bannerStyle === "large_banner"
+              ? "summary_large_image"
+              : l.twitter_card === "summary" || l.twitterCard === "summary" || l.banner_style === "default_banner" || l.bannerStyle === "default_banner"
+                ? "summary"
+                : "summary_large_image",
+          twitter_card:
+            l.twitter_card === "summary_large_image" || l.twitterCard === "summary_large_image" || l.banner_style === "large_banner" || l.bannerStyle === "large_banner"
+              ? "summary_large_image"
+              : l.twitter_card === "summary" || l.twitterCard === "summary" || l.banner_style === "default_banner" || l.bannerStyle === "default_banner"
+                ? "summary"
+                : "summary_large_image",
+          hideReferrer: Boolean(l.hide_referrer || l.hideReferrer),
+          tags: parseTags(l.tags),
+          expiresAt: expTimeStr || undefined,
+          expires_at: expTimeStr,
+          isExpired: isExp,
+          is_expired: isExp ? 1 : 0,
+          isActive: active,
+          is_active: active ? 1 : 0,
+          status: isExp ? "Expired" : (active ? "Active" : "Paused"),
+          statusLabel: isExp ? "Expired" : (active ? "Active" : "Paused"),
+          abVariations: (() => {
+            const raw = l.ab_variations || l.abVariations;
+            if (!raw) return [];
+            if (Array.isArray(raw)) return raw;
+            if (typeof raw === "string") {
+              try { return JSON.parse(raw); } catch { return []; }
+            }
+            return [];
+          })(),
+          mainWeight: l.main_weight !== undefined ? Number(l.main_weight) : l.mainWeight !== undefined ? Number(l.mainWeight) : undefined,
+          redirectType: l.redirect_type || l.redirectType,
+          passParams: l.pass_params !== undefined ? Boolean(l.pass_params) : l.passParams !== undefined ? Boolean(l.passParams) : undefined,
+          pathLockMode: (l.path_lock_mode || l.pathLockMode || "off") as "off" | "strict" | "funnel",
+          path_lock_mode: (l.path_lock_mode || l.pathLockMode || "off") as "off" | "strict" | "funnel",
+          pathLockPrefix: l.path_lock_prefix || l.pathLockPrefix || "",
+          path_lock_prefix: l.path_lock_prefix || l.pathLockPrefix || "",
+          pathLockMessage: l.path_lock_message || l.pathLockMessage || "",
+          path_lock_message: l.path_lock_message || l.pathLockMessage || "",
+          pathLockPassword: l.path_lock_password || l.pathLockPassword || "",
+          path_lock_password: l.path_lock_password || l.pathLockPassword || "",
+          pixels: Array.isArray(l.pixels)
+            ? l.pixels
+            : typeof l.pixels === "string"
+              ? (() => {
+                  try {
+                    return JSON.parse(l.pixels);
+                  } catch {
+                    return [l.pixels];
+                  }
+                })()
+              : [],
+          created_at: l.created_at || l.createdAt || new Date().toISOString(),
+        };
+      });
       setLinks(rawLinks);
 
       // If user has 0 links, reset analytics to zero immediately (ensures instant update on deletion)
@@ -185,27 +218,15 @@ export default function DashboardOverviewPage() {
         const analyticsRes = await cfGetAnalytics(userId, "30d", undefined, needForce);
         if (analyticsRes?.data) {
           const d = analyticsRes.data;
-          // Take the largest of Worker total_clicks vs link-level clicks_count sum vs live synced counter
-          let storedLive = 0;
-          if (typeof window !== "undefined" && userId) {
-            try {
-              const s = localStorage.getItem(`lshorter_live_clicks_${userId}`);
-              if (s && !isNaN(Number(s))) storedLive = Number(s);
-            } catch {}
-          }
-          const workerTotal = d.total_clicks || d.totalClicks || 0;
-          const total = Math.max(workerTotal, sumLinksClicks, storedLive, syncedLiveClicks);
-          const unique = total > 0
-            ? Math.max(
-                (d.unique_clicks ?? d.uniqueClicks ?? 0),
-                sumUniqueClicks ?? 0
-              ) || total
-            : 0;
+          const workerTotal = Number(d.total_clicks ?? d.totalClicks ?? 0);
+          const total = workerTotal > 0 ? workerTotal : sumLinksClicks;
+          const unique = Number(d.unique_clicks ?? d.uniqueClicks ?? 0) || (total > 0 ? Math.min(total, sumUniqueClicks || total) : 0);
 
-          if (total > 0 && typeof window !== "undefined" && userId) {
+          if (typeof window !== "undefined" && userId) {
             try {
               localStorage.setItem(`lshorter_live_clicks_${userId}`, String(total));
             } catch {}
+            setSyncedLiveClicks(total);
             window.dispatchEvent(
               new CustomEvent("lshorter_live_clicks_synced", {
                 detail: { clicks: total, userId, fromOverview: true },
@@ -328,8 +349,8 @@ export default function DashboardOverviewPage() {
       setIsLoading(false);
       return;
     }
-    if (status === "authenticated") {
-      loadData();
+    if (status === "authenticated" && userId) {
+      loadData(false, true);
     }
   }, [status, userId]);
 

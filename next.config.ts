@@ -4,6 +4,7 @@ const nextConfig: NextConfig = {
   compress: true,
   devIndicators: false,
   poweredByHeader: false,
+  allowedDevOrigins: ["127.0.0.1", "localhost"],
   experimental: {
     serverActions: {
       allowedOrigins: [
@@ -100,7 +101,7 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "img-src 'self' data: blob: https: https://www.googletagmanager.com https://*.google-analytics.com",
               "font-src 'self' data: https://fonts.gstatic.com",
-              "connect-src 'self' https://*.convex.cloud https://*.paddle.com https://challenges.cloudflare.com https://*.cloudflare.com https://api.dicebear.com wss://*.convex.cloud https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com",
+              "connect-src 'self' https://*.convex.cloud https://*.paddle.com https://challenges.cloudflare.com https://*.cloudflare.com https://api.dicebear.com wss://*.convex.cloud https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://cdn.jsdelivr.net https://ipapi.co https://ip-api.com",
               "frame-src 'self' https://buy.paddle.com https://sandbox-buy.paddle.com https://challenges.cloudflare.com",
               "frame-ancestors 'none'",
               "object-src 'none'",
@@ -114,8 +115,12 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [
       {
+        source: "/api/v1/:path*",
+        destination: "https://lshorter-api.fiatechnologiecam.workers.dev/api/v1/:path*",
+      },
+      {
         source:
-          "/:slug((?!api|_next|favicon\\.ico|lshorter_favicon\\.svg|icon-512\\.png|login|register|dashboard|onboarding|r|terms|privacy|pricing|blog|reset-password).*)",
+          "/:slug((?!api|_next|favicon\\.ico|favicon\\.svg|lshorter_favicon\\.svg|icon-192\\.png|icon-512\\.png|apple-touch-icon\\.png|logo.*|default_banner\\.jpg|Notification\\.mp3|site\\.webmanifest|robots\\.txt|sitemap\\.xml|login|register|dashboard|onboarding|docs|checkout|refund|showcase|video-preview|r|terms|privacy|pricing|blog|reset-password|screenshots|images|doc|audio|emojis|uploads).*)",
         destination: "/r/:slug",
       },
     ];

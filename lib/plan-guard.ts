@@ -31,6 +31,7 @@ export function checkPlanFeatureAccess(
     | "qr_premium_frames"
     | "webhooks"
     | "retargeting_pixels"
+    | "link_alerts"
     | "unlimited_links"
     | "unlimited_domains"
 ): boolean {
@@ -54,6 +55,7 @@ export function checkPlanFeatureAccess(
     case "qr_premium_frames":
     case "webhooks":
     case "retargeting_pixels":
+    case "link_alerts":
     case "unlimited_links":
     case "unlimited_domains":
       return false;

@@ -35,19 +35,23 @@ import {
   Link2,
   MousePointerClick,
   DollarSign,
+  Play,
+  Pause,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import {
   cfGetLinks,
   cfGetAnalytics,
+  cfUpdateLink,
   cfDeleteLink,
   cfBulkDeleteLinks,
   cfInvalidateCache,
   triggerClickSync,
+  parseTags,
 } from "@/lib/cloudflare-api";
 import { ShortLink } from "@/types";
-import { cn, formatNumber } from "@/lib/utils";
+import { cn, formatNumber, isLinkActive } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { LinksPageSkeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -197,27 +201,33 @@ export default function LinksPage() {
         uniqueClicks: l.unique_clicks || l.uniqueClicks || 0,
         conversionsCount: l.conversions_count || l.conversionsCount || 0,
         revenue: l.revenue || 0,
-        routingRules: l.routing_rules
-          ? typeof l.routing_rules === "string"
-            ? JSON.parse(l.routing_rules)
-            : l.routing_rules
-          : typeof l.routingRules === "string"
-            ? JSON.parse(l.routingRules)
-            : l.routingRules || [],
-        geoTargeting: l.geo_targeting
-          ? typeof l.geo_targeting === "string"
-            ? JSON.parse(l.geo_targeting)
-            : l.geo_targeting
-          : typeof l.geoTargeting === "string"
-            ? JSON.parse(l.geoTargeting)
-            : l.geoTargeting || {},
-        deviceTargeting: l.device_targeting
-          ? typeof l.device_targeting === "string"
-            ? JSON.parse(l.device_targeting)
-            : l.device_targeting
-          : typeof l.deviceTargeting === "string"
-            ? JSON.parse(l.deviceTargeting)
-            : l.deviceTargeting || {},
+        routingRules: (() => {
+          const raw = l.routing_rules || l.routingRules;
+          if (!raw) return [];
+          if (Array.isArray(raw)) return raw;
+          if (typeof raw === "string") {
+            try { return JSON.parse(raw); } catch { return []; }
+          }
+          return [];
+        })(),
+        geoTargeting: (() => {
+          const raw = l.geo_targeting || l.geoTargeting;
+          if (!raw) return {};
+          if (typeof raw === "object") return raw;
+          if (typeof raw === "string") {
+            try { return JSON.parse(raw); } catch { return {}; }
+          }
+          return {};
+        })(),
+        deviceTargeting: (() => {
+          const raw = l.device_targeting || l.deviceTargeting;
+          if (!raw) return {};
+          if (typeof raw === "object") return raw;
+          if (typeof raw === "string") {
+            try { return JSON.parse(raw); } catch { return {}; }
+          }
+          return {};
+        })(),
         isPasswordProtected: Boolean(
           l.is_password_protected ||
           l.isPasswordProtected ||
@@ -264,19 +274,17 @@ export default function LinksPage() {
               ? "summary"
               : "summary_large_image",
         hideReferrer: Boolean(l.hide_referrer || l.hideReferrer),
-        tags: l.tags
-          ? typeof l.tags === "string"
-            ? JSON.parse(l.tags)
-            : l.tags
-          : [],
+        tags: parseTags(l.tags),
         expiresAt: l.expires_at || l.expiresAt,
-        abVariations: l.ab_variations
-          ? typeof l.ab_variations === "string"
-            ? JSON.parse(l.ab_variations)
-            : l.ab_variations
-          : typeof l.abVariations === "string"
-            ? JSON.parse(l.abVariations)
-            : l.abVariations || [],
+        abVariations: (() => {
+          const raw = l.ab_variations || l.abVariations;
+          if (!raw) return [];
+          if (Array.isArray(raw)) return raw;
+          if (typeof raw === "string") {
+            try { return JSON.parse(raw); } catch { return []; }
+          }
+          return [];
+        })(),
         mainWeight:
           l.main_weight !== undefined
             ? Number(l.main_weight)
@@ -298,14 +306,13 @@ export default function LinksPage() {
         path_lock_message: l.path_lock_message || l.pathLockMessage || "",
         pathLockPassword: l.path_lock_password || l.pathLockPassword || "",
         path_lock_password: l.path_lock_password || l.pathLockPassword || "",
-        isActive: !(
-          l.is_active === 0 ||
-          l.is_active === false ||
-          l.is_active === "0" ||
-          l.isActive === 0 ||
-          l.isActive === false ||
-          l.isActive === "0"
-        ),
+        isActive: isLinkActive(l),
+        is_active: isLinkActive(l) ? 1 : 0,
+        status: (l.isExpired || l.is_expired === 1 || (l.expiresAt && new Date(l.expiresAt).getTime() <= Date.now()) || (l.expires_at && new Date(l.expires_at).getTime() <= Date.now())) ? "Expired" : isLinkActive(l) ? "Active" : "Paused",
+        statusLabel: (l.isExpired || l.is_expired === 1 || (l.expiresAt && new Date(l.expiresAt).getTime() <= Date.now()) || (l.expires_at && new Date(l.expires_at).getTime() <= Date.now())) ? "Expired" : isLinkActive(l) ? "Active" : "Paused",
+        isExpired: Boolean(l.isExpired || l.is_expired === 1 || (l.expiresAt && new Date(l.expiresAt).getTime() <= Date.now()) || (l.expires_at && new Date(l.expires_at).getTime() <= Date.now())),
+        is_expired: (l.isExpired || l.is_expired === 1 || (l.expiresAt && new Date(l.expiresAt).getTime() <= Date.now()) || (l.expires_at && new Date(l.expires_at).getTime() <= Date.now())) ? 1 : 0,
+        expires_at: l.expires_at || l.expiresAt || null,
         userEmail: l.user_email || l.userEmail || l.email,
         userName:
           l.user_name ||
@@ -349,24 +356,13 @@ export default function LinksPage() {
       const workerAnalyticsClicks = Number(
         analyticsRes?.data?.totalClicks ?? analyticsRes?.data?.total_clicks ?? 0,
       );
-      let storedLive = 0;
-      if (typeof window !== "undefined" && userId) {
-        try {
-          const s = localStorage.getItem(`lshorter_live_clicks_${userId}`);
-          if (s && !isNaN(Number(s))) storedLive = Number(s);
-        } catch {}
-      }
-      const maxLive = Math.max(
-        workerAnalyticsClicks,
-        sumLinksClicks,
-        storedLive,
-        syncedLiveClicks,
-      );
-      if (maxLive > 0) {
-        setSyncedLiveClicks(maxLive);
+      const authoritativeClicks =
+        workerAnalyticsClicks > 0 ? workerAnalyticsClicks : sumLinksClicks;
+      if (authoritativeClicks > 0) {
+        setSyncedLiveClicks(authoritativeClicks);
         if (typeof window !== "undefined" && userId) {
           try {
-            localStorage.setItem(`lshorter_live_clicks_${userId}`, String(maxLive));
+            localStorage.setItem(`lshorter_live_clicks_${userId}`, String(authoritativeClicks));
           } catch {}
         }
       }
@@ -447,6 +443,7 @@ export default function LinksPage() {
           prev && (prev.id === e.detail.id || prev.slug === e.detail.slug) ? e.detail : prev
         );
       }
+      loadLinks(true, true);
       setTimeout(() => {
         loadLinks(true, true);
       }, 1200);
@@ -578,6 +575,26 @@ export default function LinksPage() {
     confetti({ particleCount: 30, spread: 50, origin: { y: 0.7 } });
     setTimeout(() => setCopiedId(null), 2000);
   };
+
+  const handleToggleLinkActive = async (link: ShortLink) => {
+    const currentlyActive = isLinkActive(link);
+    const nextActive = !currentlyActive;
+    try {
+      await cfUpdateLink(link.id, {
+        isActive: nextActive,
+        is_active: nextActive ? 1 : 0,
+        status: nextActive ? "Active" : "Paused",
+      });
+      showToast.success(nextActive ? `/${link.slug} reactivated` : `/${link.slug} paused`);
+      cfInvalidateCache();
+      loadLinks(true, true);
+      window.dispatchEvent(new CustomEvent("lshorter_links_updated"));
+      window.dispatchEvent(new Event("lshorter_data_change"));
+    } catch {
+      showToast.error("Failed to update link status");
+    }
+  };
+
 
   const getTestUrl = (link: ShortLink) => {
     if (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")) {
@@ -991,10 +1008,13 @@ export default function LinksPage() {
       selectedTag === "all" || (l.tags && l.tags.includes(selectedTag));
 
     const isExpired = Boolean(
-      l.expiresAt && new Date(l.expiresAt) < new Date(),
+      l.isExpired ||
+      l.is_expired === 1 ||
+      (l.expiresAt && new Date(l.expiresAt).getTime() <= Date.now()),
     );
     let matchesStatus = true;
-    if (statusFilter === "active") matchesStatus = l.isActive && !isExpired;
+    if (statusFilter === "active") matchesStatus = isLinkActive(l);
+    else if (statusFilter === "paused") matchesStatus = !isLinkActive(l) && !isExpired;
     else if (statusFilter === "expired") matchesStatus = isExpired;
     else if (statusFilter === "protected")
       matchesStatus = Boolean(l.isPasswordProtected);
@@ -1517,6 +1537,29 @@ export default function LinksPage() {
                 <BarChart2 className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
                 <span>View analytics</span>
               </button>
+
+              {/* 7. Pause or Activate link */}
+              <button
+                type="button"
+                onClick={() => {
+                  const link = activeMenuLink;
+                  setActiveMenuLink(null);
+                  handleToggleLinkActive(link);
+                }}
+                className="w-full px-4 py-2.5 text-left text-neutral-700 dark:text-neutral-200 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors cursor-pointer"
+              >
+                {isLinkActive(activeMenuLink) ? (
+                  <>
+                    <Pause className="w-4 h-4 text-amber-500" />
+                    <span>Pause link</span>
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-4 h-4 text-emerald-500" />
+                    <span>Activate link</span>
+                  </>
+                )}
+              </button>
             </div>
 
             {/* Bottom Section: Delete link */}
@@ -1594,6 +1637,7 @@ export default function LinksPage() {
       {/* Modals */}
       <LinkCreateModal
         isOpen={isCreateOpen}
+        linksCount={links.length}
         onClose={() => setIsCreateOpen(false)}
         onSuccess={(created) => {
           cfInvalidateCache();

@@ -38,8 +38,8 @@ export async function POST(req: NextRequest) {
 
     if (isExpirationWarning) {
       notifType = "WARNING";
-      title = linkTitle ? `Link Expiration Notice: ${linkTitle}` : "Link Expiration Notice";
-      message = `Your short link "${linkTitle || (slug ? `lsho.cc/${slug}` : "link")}" will expire in 24 hours. Consider renewing it to prevent traffic drop.`;
+      title = linkTitle ? `Lien expiré : ${linkTitle}` : "Lien court expiré";
+      message = `Votre lien court "${linkTitle || (slug ? `lsho.cc/${slug}` : "lien")}" est arrivé à expiration à cet instant précis. Le trafic est désormais redirigé vers la page d'expiration. Vous pouvez prolonger sa validité depuis votre tableau de bord.`;
     } else if (isLinkAlert) {
       notifType = "SUCCESS";
       const metricLabel = metricType === "revenue" ? "revenue" : "clicks";

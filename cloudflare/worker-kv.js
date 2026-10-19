@@ -74,6 +74,18 @@ export default {
       );
     };
 
+    const getFrontendOrigin = (env, request) => {
+      if (env.FRONTEND_URL) return env.FRONTEND_URL;
+      const reqHost = (request.headers.get('x-forwarded-host') || request.headers.get('host') || '').toLowerCase();
+      if (reqHost.includes('localhost') || reqHost.includes('127.0.0.1')) {
+        return `http://${reqHost}`;
+      }
+      if (reqHost === 'lsho.cc' || reqHost.includes('workers.dev') || !reqHost) {
+        return 'https://www.lsho.cc';
+      }
+      return `https://${reqHost}`;
+    };
+
     // ─── 0. PUBLIC STATIC BRAND ASSET & IMAGE STREAMING ENDPOINTS ──
     if (
       path === '/icon-512.png' ||
@@ -88,8 +100,7 @@ export default {
       path.startsWith('/api/og')
     ) {
       try {
-        const reqHost = request.headers.get('x-forwarded-host') || request.headers.get('host') || '';
-        const frontendOrigin = env.FRONTEND_URL || (reqHost && !reqHost.includes('workers.dev') ? `https://${reqHost}` : 'https://lsho.cc');
+        const frontendOrigin = getFrontendOrigin(env, request);
         const upstream = await fetch(`${frontendOrigin}${path}${url.search}`);
         if (upstream.ok) {
           return new Response(upstream.body, {
@@ -101,7 +112,10 @@ export default {
             },
           });
         }
-      } catch {}
+      } catch (err) {
+        console.warn('[Asset Proxy Error]:', err);
+      }
+      return new Response(null, { status: 404, headers: corsHeaders });
     }
 
     if (path.startsWith('/api/v1/images/') || path.startsWith('/api/images/')) {
@@ -154,8 +168,7 @@ export default {
         return Response.redirect(rawImg, 302);
       }
 
-      const reqHost = request.headers.get('x-forwarded-host') || request.headers.get('host') || '';
-      const frontendOrigin = env.FRONTEND_URL || (reqHost && !reqHost.includes('workers.dev') ? `https://${reqHost}` : 'https://lsho.cc');
+      const frontendOrigin = getFrontendOrigin(env, request);
       const fallbackTitle = link?.og_title || link?.ogTitle || link?.meta_title || link?.metaTitle || slugWithoutExt;
       return Response.redirect(`${frontendOrigin}/api/og?title=${encodeURIComponent(fallbackTitle)}&slug=${encodeURIComponent(slugWithoutExt)}`, 302);
     }
@@ -290,6 +303,17 @@ export default {
         // WhatsApp, Facebook, LinkedIn, Telegram reject SVG / dicebear images; guarantee raster fallback
         if (publicImageUrl.includes('.svg') || publicImageUrl.includes('dicebear')) {
           publicImageUrl = twitterImageUrl;
+        }
+
+        const cacheBusterParam = url.searchParams.get('v') || url.searchParams.get('_t') || url.searchParams.get('cb');
+        if (cacheBusterParam) {
+          const sep = (u) => (u.includes('?') ? '&' : '?');
+          if (!publicImageUrl.includes('v=') && !publicImageUrl.includes('_t=') && !publicImageUrl.startsWith('data:')) {
+            publicImageUrl += `${sep(publicImageUrl)}v=${encodeURIComponent(cacheBusterParam)}`;
+          }
+          if (!twitterImageUrl.includes('v=') && !twitterImageUrl.includes('_t=') && !twitterImageUrl.startsWith('data:')) {
+            twitterImageUrl += `${sep(twitterImageUrl)}v=${encodeURIComponent(cacheBusterParam)}`;
+          }
         }
 
         const escapeHtml = (s = '') => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -774,9 +798,14 @@ export default {
           }
           if (!env.DB) return jsonResponse({ success: true, data: [] });
 
+          const userEmail = url.searchParams.get('userEmail') || request.headers.get('x-user-email') || '';
           const isLinksForceRefresh = url.searchParams.get('forceRefresh') === 'true' || Boolean(url.searchParams.get('_t'));
           const linksCacheKey = `cache:links_list:${userId}`;
-          if (env.LINKS_KV && !isLinksForceRefresh) {
+          if (env.LINKS_KV && isLinksForceRefresh) {
+            try {
+              await env.LINKS_KV.delete(linksCacheKey);
+            } catch {}
+          } else if (env.LINKS_KV && !isLinksForceRefresh) {
             try {
               const cached = await env.LINKS_KV.get(linksCacheKey);
               if (cached) {
@@ -793,6 +822,13 @@ export default {
           }
 
           try {
+            if (userId && userId !== 'all') {
+              try {
+                await env.DB.prepare("UPDATE links SET user_id = ? WHERE user_id = 'usr_default'").bind(userId).run();
+                await env.DB.prepare("UPDATE click_events SET user_id = ? WHERE user_id = 'usr_default'").bind(userId).run();
+              } catch {}
+            }
+
             let query = `
               SELECT links.*, users.email AS user_email, users.name AS user_name 
               FROM links 
@@ -800,8 +836,8 @@ export default {
             `;
             const params = [];
             if (userId && userId !== 'all') {
-              query += ' WHERE (links.user_id = ? OR links.user_id IN (SELECT id FROM users WHERE LOWER(email) = LOWER(?)))';
-              params.push(userId, userId);
+              query += ' WHERE (links.user_id = ? OR (? != "" AND links.user_id = ?) OR (? != "" AND links.user_id IN (SELECT id FROM users WHERE LOWER(email) = LOWER(?))))';
+              params.push(userId, userEmail, userEmail, userEmail, userEmail);
             }
             query += ' ORDER BY links.created_at DESC LIMIT 500';
             let results = [];
@@ -812,8 +848,8 @@ export default {
               let fbQuery = 'SELECT * FROM links';
               const fbParams = [];
               if (userId && userId !== 'all') {
-                fbQuery += ' WHERE (user_id = ? OR user_id IN (SELECT id FROM users WHERE LOWER(email) = LOWER(?)))';
-                fbParams.push(userId, userId);
+                fbQuery += ' WHERE (user_id = ? OR (? != "" AND user_id = ?) OR (? != "" AND user_id IN (SELECT id FROM users WHERE LOWER(email) = LOWER(?))))';
+                fbParams.push(userId, userEmail, userEmail, userEmail, userEmail);
               }
               fbQuery += ' ORDER BY created_at DESC LIMIT 500';
               const fb = await env.DB.prepare(fbQuery).bind(...fbParams).all();
@@ -882,7 +918,9 @@ export default {
           const body = await request.json();
           const id = body.id || ('link_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7));
           const slug = (body.slug || Math.random().toString(36).substring(2, 8)).trim();
-          const userId = body.userId || body.user_id || 'usr_default';
+          const userId = body.userId || body.user_id || request.headers.get('x-user-id') || 'usr_default';
+          const userEmail = body.userEmail || body.user_email || request.headers.get('x-user-email') || '';
+          const userName = body.userName || body.user_name || request.headers.get('x-user-name') || 'Utilisateur';
           const domainName = body.domainName || body.domain_name || 'lsho.cc';
           const shortUrl = 'https://' + domainName + '/' + slug;
           const targetUrl = body.targetUrl || body.target_url;
@@ -914,6 +952,22 @@ export default {
           const resolvedTwitterCard = isCompact ? 'summary' : 'summary_large_image';
           const resolvedBannerStyle = isCompact ? 'default_banner' : 'large_banner';
 
+          const rawTags = body.tags !== undefined ? body.tags : [];
+          let parsedTags = [];
+          if (Array.isArray(rawTags)) {
+            parsedTags = rawTags.map((t) => String(t).trim()).filter(Boolean);
+          } else if (typeof rawTags === 'string') {
+            try {
+              const p = JSON.parse(rawTags);
+              parsedTags = Array.isArray(p) ? p.map((t) => String(t).trim()).filter(Boolean) : [rawTags.trim()].filter(Boolean);
+            } catch {
+              parsedTags = rawTags.split(',').map((t) => t.trim()).filter(Boolean);
+            }
+          }
+          const tagsJson = JSON.stringify(parsedTags);
+          const rawPixels = body.pixels || body.pixel_ids || body.pixelIds || [];
+          const parsedPixels = Array.isArray(rawPixels) ? rawPixels : [];
+
           const linkObj = {
             id,
             user_id: userId,
@@ -938,6 +992,9 @@ export default {
             bannerStyle: resolvedBannerStyle,
             twitter_card: resolvedTwitterCard,
             twitterCard: resolvedTwitterCard,
+            tags: parsedTags,
+            pixels: parsedPixels,
+            pixel_ids: parsedPixels,
             created_at: new Date().toISOString(),
           };
 
@@ -976,15 +1033,15 @@ export default {
               // 2. Insert into links table
               try {
                 await env.DB.prepare(`
-                  INSERT INTO links (id, user_id, domain_name, slug, short_url, target_url, clicks_count, is_active, routing_rules, geo_targeting, device_targeting, og_image, og_title, og_description, meta_title, twitter_card, created_at)
-                  VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-                `).bind(id, userId, domainName, slug, shortUrl, targetUrl, isActive, routingRules, geoTargeting, deviceTargeting, ogImage, ogTitle, ogDescription, metaTitle, resolvedTwitterCard).run();
+                  INSERT INTO links (id, user_id, domain_name, slug, short_url, target_url, clicks_count, is_active, routing_rules, geo_targeting, device_targeting, og_image, og_title, og_description, meta_title, twitter_card, tags, created_at)
+                  VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+                `).bind(id, userId, domainName, slug, shortUrl, targetUrl, isActive, routingRules, geoTargeting, deviceTargeting, ogImage, ogTitle, ogDescription, metaTitle, resolvedTwitterCard, tagsJson).run();
               } catch (insColErr) {
                 try {
                   await env.DB.prepare(`
-                    INSERT INTO links (id, user_id, domain_name, slug, short_url, target_url, clicks_count, is_active, routing_rules, geo_targeting, device_targeting, og_image, og_title, og_description, meta_title, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-                  `).bind(id, userId, domainName, slug, shortUrl, targetUrl, isActive, routingRules, geoTargeting, deviceTargeting, ogImage, ogTitle, ogDescription, metaTitle).run().catch(async () => {
+                    INSERT INTO links (id, user_id, domain_name, slug, short_url, target_url, clicks_count, is_active, routing_rules, geo_targeting, device_targeting, og_image, og_title, og_description, meta_title, tags, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+                  `).bind(id, userId, domainName, slug, shortUrl, targetUrl, isActive, routingRules, geoTargeting, deviceTargeting, ogImage, ogTitle, ogDescription, metaTitle, tagsJson).run().catch(async () => {
                     await env.DB.prepare(`
                       INSERT INTO links (id, user_id, domain_name, slug, short_url, target_url, clicks_count, is_active, routing_rules, geo_targeting, device_targeting, created_at)
                       VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, datetime('now'))
@@ -997,7 +1054,7 @@ export default {
             }
           }
 
-          invalidateUserCache(userId);
+          invalidateUserCache(userId, id, request.headers.get('x-user-email') || body.userEmail);
           return jsonResponse({ success: true, data: linkObj }, 201);
         } catch (err) {
           return jsonResponse({ success: false, error: sanitizeError(err) }, 500);
@@ -1027,8 +1084,13 @@ export default {
           const slug = (body.slug || existingLink?.slug || idOrSlug || '').trim();
           const userId = body.userId || body.user_id || existingLink?.user_id || 'usr_default';
           const domainName = body.domainName || body.domain_name || existingLink?.domain_name || 'lsho.cc';
-          const shortUrl = 'https://' + domainName + '/' + slug;
           const targetUrl = body.targetUrl || body.target_url || existingLink?.target_url || existingLink?.targetUrl;
+          if (targetUrl) {
+            const trimmedTarget = String(targetUrl).trim();
+            if (!/^https?:\/\//i.test(trimmedTarget) || /^(javascript|data|vbscript|file|blob):/i.test(trimmedTarget)) {
+              return jsonResponse({ success: false, error: 'Invalid target URL. Only HTTP and HTTPS schemes are permitted.' }, 400);
+            }
+          }
           const isActive = body.isActive !== undefined ? (body.isActive ? 1 : 0) : body.is_active !== undefined ? (body.is_active ? 1 : 0) : (existingLink?.is_active !== undefined ? (existingLink.is_active ? 1 : 0) : 1);
           const rawRules = body.routingRules !== undefined ? body.routingRules : body.routing_rules;
           const routingRules = rawRules ? (typeof rawRules === 'string' ? rawRules : JSON.stringify(rawRules)) : (existingLink?.routing_rules || '[]');
@@ -1067,6 +1129,27 @@ export default {
           const resolvedTwitterCard = isCompact ? 'summary' : 'summary_large_image';
           const resolvedBannerStyle = isCompact ? 'default_banner' : 'large_banner';
 
+          const rawTags = body.tags !== undefined ? body.tags : existingLink?.tags;
+          let parsedTags = [];
+          if (Array.isArray(rawTags)) {
+            parsedTags = rawTags.map((t) => String(t).trim()).filter(Boolean);
+          } else if (typeof rawTags === 'string') {
+            try {
+              const p = JSON.parse(rawTags);
+              parsedTags = Array.isArray(p) ? p.map((t) => String(t).trim()).filter(Boolean) : [rawTags.trim()].filter(Boolean);
+            } catch {
+              parsedTags = rawTags.split(',').map((t) => t.trim()).filter(Boolean);
+            }
+          }
+          const tagsJson = JSON.stringify(parsedTags);
+          const updatedPixels = body.pixels !== undefined
+            ? (Array.isArray(body.pixels) ? body.pixels : [])
+            : body.pixel_ids !== undefined
+            ? (Array.isArray(body.pixel_ids) ? body.pixel_ids : [])
+            : body.pixelIds !== undefined
+            ? (Array.isArray(body.pixelIds) ? body.pixelIds : [])
+            : (existingLink?.pixels || existingLink?.pixel_ids || []);
+
           const updatedLinkObj = {
             ...existingLink,
             id,
@@ -1092,6 +1175,9 @@ export default {
             bannerStyle: resolvedBannerStyle,
             twitter_card: resolvedTwitterCard,
             twitterCard: resolvedTwitterCard,
+            tags: parsedTags,
+            pixels: updatedPixels,
+            pixel_ids: updatedPixels,
             updated_at: new Date().toISOString(),
           };
 
@@ -1122,6 +1208,7 @@ export default {
                     og_description = ?, 
                     meta_title = ?,
                     twitter_card = ?,
+                    tags = ?,
                     updated_at = datetime('now')
                   WHERE id = ? OR LOWER(slug) = LOWER(?)
                 `).bind(
@@ -1138,6 +1225,7 @@ export default {
                   ogDescription,
                   metaTitle,
                   resolvedTwitterCard,
+                  tagsJson,
                   id,
                   slug
                 ).run();
@@ -1156,6 +1244,7 @@ export default {
                     og_title = ?, 
                     og_description = ?, 
                     meta_title = ?,
+                    tags = ?,
                     updated_at = datetime('now')
                   WHERE id = ? OR LOWER(slug) = LOWER(?)
                 `).bind(
@@ -1171,6 +1260,7 @@ export default {
                   ogTitle,
                   ogDescription,
                   metaTitle,
+                  tagsJson,
                   id,
                   slug
                 ).run();
@@ -1178,9 +1268,9 @@ export default {
 
               if (!res?.meta?.changes && !existingLink) {
                 await env.DB.prepare(`
-                  INSERT INTO links (id, user_id, domain_name, slug, short_url, target_url, clicks_count, is_active, routing_rules, geo_targeting, device_targeting, og_image, og_title, og_description, meta_title, created_at)
-                  VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-                `).bind(id, userId, domainName, slug, shortUrl, targetUrl, isActive, routingRules, geoTargeting, deviceTargeting, ogImage, ogTitle, ogDescription, metaTitle).run().catch(() => {});
+                  INSERT INTO links (id, user_id, domain_name, slug, short_url, target_url, clicks_count, is_active, routing_rules, geo_targeting, device_targeting, og_image, og_title, og_description, meta_title, tags, created_at)
+                  VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+                `).bind(id, userId, domainName, slug, shortUrl, targetUrl, isActive, routingRules, geoTargeting, deviceTargeting, ogImage, ogTitle, ogDescription, metaTitle, tagsJson).run().catch(() => {});
               }
             } catch (dbErr) {
               try {
@@ -1188,14 +1278,19 @@ export default {
                   UPDATE links SET 
                     target_url = ?, 
                     slug = ?, 
-                    is_active = ?
+                    is_active = ?,
+                    tags = ?
                   WHERE id = ? OR LOWER(slug) = LOWER(?)
-                `).bind(targetUrl, slug, isActive, id, slug).run();
+                `).bind(targetUrl, slug, isActive, tagsJson, id, slug).run();
               } catch {}
             }
           }
 
-          invalidateUserCache(existingLink?.user_id || body.userId || updatedLinkObj?.user_id);
+          invalidateUserCache(
+            existingLink?.user_id || body.userId || updatedLinkObj?.user_id,
+            id,
+            body.userEmail || request.headers.get('x-user-email') || existingLink?.user_email
+          );
           return jsonResponse({ success: true, data: updatedLinkObj });
         } catch (err) {
           const cleanMsg = String(err?.message || '').includes('UNIQUE') ? 'Ce slug personnalisé est déjà utilisé.' : 'Erreur lors de la modification du lien.';
@@ -1225,28 +1320,23 @@ export default {
             }
           }
 
-          // 2. Delete from D1 matching id OR matching slug (case-insensitive)
+          const reqUserId = request.headers.get('x-user-id') || url.searchParams.get('userId');
+          const reqUserEmail = request.headers.get('x-user-email') || url.searchParams.get('userEmail');
+
+          // 2. Delete from D1 matching id OR matching slug (case-insensitive), scoped to requesting user
           if (env.DB) {
             try {
-              if (idParam && slugParam) {
+              if (reqUserId || reqUserEmail) {
                 await env.DB.prepare(`
                   DELETE FROM links 
-                  WHERE id = ? 
-                     OR LOWER(slug) = LOWER(?) 
-                     OR id = ? 
-                     OR LOWER(slug) = LOWER(?)
-                `).bind(idParam, slugParam, slugParam, idParam).run();
-              } else if (idParam) {
+                  WHERE (id = ? OR LOWER(slug) = LOWER(?))
+                    AND (user_id = ? OR user_email = ? OR user_id = 'usr_default')
+                `).bind(idParam, slugParam || idParam, reqUserId || '', reqUserEmail || '').run();
+              } else {
                 await env.DB.prepare(`
                   DELETE FROM links 
-                  WHERE id = ? 
-                     OR LOWER(slug) = LOWER(?)
-                `).bind(idParam, idParam).run();
-              } else if (slugParam) {
-                await env.DB.prepare(`
-                  DELETE FROM links 
-                  WHERE LOWER(slug) = LOWER(?)
-                `).bind(slugParam).run();
+                  WHERE id = ? OR LOWER(slug) = LOWER(?)
+                `).bind(idParam, slugParam || idParam).run();
               }
             } catch (dbErr) {
               console.warn('[D1 Delete Error]:', dbErr);
@@ -1437,13 +1527,21 @@ export default {
         } catch {}
       }
 
+      const userEmail = url.searchParams.get('userEmail') || request.headers.get('x-user-email') || '';
       try {
+        if (userId && userId !== 'all') {
+          try {
+            await env.DB.prepare("UPDATE links SET user_id = ? WHERE user_id = 'usr_default'").bind(userId).run();
+            await env.DB.prepare("UPDATE click_events SET user_id = ? WHERE user_id = 'usr_default'").bind(userId).run();
+          } catch {}
+        }
+
         // 1. Fetch user's links from D1 to get list of identifiers (slugs & IDs)
         let linkQuery = 'SELECT id, slug, user_id, clicks_count, created_at FROM links WHERE 1=1';
         const linkParams = [];
         if (userId && userId !== 'all') {
-          linkQuery += ' AND (user_id = ? OR user_id IN (SELECT id FROM users WHERE LOWER(email) = LOWER(?)))';
-          linkParams.push(userId, userId);
+          linkQuery += ' AND (user_id = ? OR (? != "" AND user_id = ?) OR (? != "" AND user_id IN (SELECT id FROM users WHERE LOWER(email) = LOWER(?))))';
+          linkParams.push(userId, userEmail, userEmail, userEmail, userEmail);
         }
         if (linkId && linkId !== 'all') {
           linkQuery += ' AND (id = ? OR LOWER(slug) = LOWER(?))';
@@ -1481,11 +1579,11 @@ export default {
         } else if (userId && userId !== 'all') {
           if (allIdentifiers.length > 0) {
             const inPlaceholders = allIdentifiers.map(() => '?').join(',');
-            baseWhere = `(slug IN (${inPlaceholders}) OR link_id IN (${inPlaceholders}) OR user_id = ? OR user_id IN (SELECT id FROM users WHERE LOWER(email) = LOWER(?))) AND datetime(timestamp) >= ${dateCutoff}`;
-            bindValues = [...allIdentifiers, ...allIdentifiers, userId, userId];
+            baseWhere = `(slug IN (${inPlaceholders}) OR link_id IN (${inPlaceholders}) OR user_id = ? OR (? != "" AND user_id = ?) OR (? != "" AND user_id IN (SELECT id FROM users WHERE LOWER(email) = LOWER(?)))) AND datetime(timestamp) >= ${dateCutoff}`;
+            bindValues = [...allIdentifiers, ...allIdentifiers, userId, userEmail, userEmail, userEmail, userEmail];
           } else {
-            baseWhere = `(user_id = ? OR user_id IN (SELECT id FROM users WHERE LOWER(email) = LOWER(?))) AND datetime(timestamp) >= ${dateCutoff}`;
-            bindValues = [userId, userId];
+            baseWhere = `(user_id = ? OR (? != "" AND user_id = ?) OR (? != "" AND user_id IN (SELECT id FROM users WHERE LOWER(email) = LOWER(?)))) AND datetime(timestamp) >= ${dateCutoff}`;
+            bindValues = [userId, userEmail, userEmail, userEmail, userEmail];
           }
         }
 
@@ -1966,7 +2064,12 @@ export default {
           let rows = [];
           if (env.DB) {
             const result = await env.DB.prepare(`
-              SELECT t.*, l.title as link_title, l.slug as link_slug, l.target_url as link_target_url, l.clicks_count as link_clicks
+              SELECT t.*,
+                     COALESCE(t.target_value, t.limit_value) as target_value,
+                     COALESCE(t.notify_expired, t.notify_expiration) as notify_expired,
+                     COALESCE(t.notify_email, CASE WHEN t.channel IN ('both', 'email') THEN 1 ELSE 0 END) as notify_email,
+                     COALESCE(t.notify_bell, CASE WHEN t.channel IN ('both', 'bell', 'in_app') THEN 1 ELSE 0 END) as notify_bell,
+                     COALESCE(l.meta_title, l.og_title, l.slug) as link_title, l.slug as link_slug, l.target_url as link_target_url, l.clicks_count as link_clicks
               FROM target_alerts t
               LEFT JOIN links l ON t.link_id = l.id
               WHERE t.user_id = ?
@@ -1997,8 +2100,14 @@ export default {
             };
             if (env.DB) {
               await env.DB.prepare(`
-                INSERT OR IGNORE INTO target_alerts (id, user_id, link_id, metric_type, period, target_value, notify_expired, notify_email, notify_bell, status, created_at, updated_at)
-                VALUES (?, ?, NULL, 'clicks', 'month', 1000, 0, 1, 1, 'active', datetime('now'), datetime('now'))
+                INSERT OR IGNORE INTO target_alerts (
+                  id, user_id, link_id, title, metric_type,
+                  limit_value, target_value, period,
+                  notify_expiration, notify_expired,
+                  channel, notify_email, notify_bell, schedule, status,
+                  created_at, updated_at
+                )
+                VALUES (?, ?, NULL, 'All Links Aggregated', 'clicks', 1000, 1000, 'month', 0, 0, 'both', 1, 1, 'instantly', 'active', datetime('now'), datetime('now'))
               `).bind(defaultGlobal.id, userId).run().catch(() => {});
             }
             rows.unshift(defaultGlobal);
@@ -2009,16 +2118,16 @@ export default {
             id: r.id,
             userId: r.user_id,
             linkId: r.link_id || null,
-            linkTitle: r.link_title || (r.link_id ? 'Custom Link' : 'All Links Aggregated'),
+            linkTitle: r.title || r.link_title || (r.link_id ? 'Custom Link' : 'All Links Aggregated'),
             slug: r.link_slug || (r.link_id ? '' : 'global'),
             targetUrl: r.link_target_url || '',
             metricType: r.metric_type || 'clicks',
             period: r.period || 'month',
-            targetValue: Number(r.target_value || 1000),
+            targetValue: Number(r.target_value ?? r.limit_value ?? 1000),
             currentValue: Number(r.link_clicks || 0),
-            notifyExpired: Boolean(r.notify_expired),
-            notifyEmail: Boolean(r.notify_email !== 0),
-            notifyBell: Boolean(r.notify_bell !== 0),
+            notifyExpired: Boolean(r.notify_expired || r.notify_expiration),
+            notifyEmail: Boolean(r.notify_email !== 0 || r.channel === 'both' || r.channel === 'email'),
+            notifyBell: Boolean(r.notify_bell !== 0 || r.channel === 'both' || r.channel === 'bell' || r.channel === 'in_app'),
             status: r.status || 'active',
             lastNotifiedAt: r.last_notified_at || null,
             createdAt: r.created_at,
@@ -2040,10 +2149,37 @@ export default {
 
           const id = body.id || `target_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
           const linkId = body.linkId === 'global' || !body.linkId ? null : body.linkId;
+
+          // Standard plan users have access to global targets, but link alerts require Pro/Business
+          if (linkId) {
+            const configuredSecret = env.FRONTEND_API_SECRET || env.FRONTEND_SECRET || env.SECRET || 'lsh_secret_live_prod_2026';
+            const isInternal = Boolean(request.headers.get('x-frontend-secret') === configuredSecret);
+            const userPlan = (body.userPlan || body.plan || '').toUpperCase();
+            const isProParam = (userPlan === 'PRO' || userPlan === 'BUSINESS' || userPlan === 'ENTERPRISE');
+            let hasProPlan = false;
+
+            if (isInternal && isProParam) {
+              hasProPlan = true;
+            } else if (env.DB) {
+              const dbUser = await env.DB.prepare('SELECT plan FROM users WHERE id = ? OR email = ? LIMIT 1')
+                .bind(userId, userId).first().catch(() => null);
+              const dbPlan = (dbUser?.plan || '').toUpperCase();
+              hasProPlan = (dbPlan === 'PRO' || dbPlan === 'BUSINESS' || dbPlan === 'ENTERPRISE');
+            }
+
+            if (!hasProPlan) {
+              return jsonResponse({
+                success: false,
+                code: 'PLAN_UPGRADE_REQUIRED',
+                error: 'Individual link alerts require a Pro or Business subscription. Standard plans include Global Workspace Targets.'
+              }, 403);
+            }
+          }
+
           const metricType = body.metricType === 'revenue' ? 'revenue' : 'clicks';
           const period = ['day', 'week', 'month'].includes(body.period) ? body.period : 'month';
           const targetValue = Math.max(1, Number(body.targetValue) || 1000);
-          const notifyExpired = body.notifyExpired ? 1 : 0;
+          const notifyExpired = !linkId ? 0 : (body.notifyExpired ? 1 : 0);
           const notifyEmail = body.notifyEmail !== false ? 1 : 0;
           const notifyBell = body.notifyBell !== false ? 1 : 0;
           const status = body.status === 'paused' ? 'paused' : 'active';
@@ -2052,15 +2188,15 @@ export default {
             if (!linkId) {
               // Global target upsert
               const existingGlobal = await env.DB.prepare(
-                'SELECT id FROM target_alerts WHERE user_id = ? AND link_id IS NULL LIMIT 1'
-              ).bind(userId).first().catch(() => null);
+                'SELECT id FROM target_alerts WHERE user_id = ? AND link_id IS NULL AND metric_type = ? LIMIT 1'
+              ).bind(userId, metricType).first().catch(() => null);
 
               if (existingGlobal) {
                 await env.DB.prepare(`
                   UPDATE target_alerts
-                  SET metric_type = ?, target_value = ?, notify_email = ?, notify_bell = ?, status = ?, updated_at = datetime('now')
+                  SET metric_type = ?, target_value = ?, limit_value = ?, notify_email = ?, notify_bell = ?, channel = ?, status = ?, updated_at = datetime('now')
                   WHERE id = ?
-                `).bind(metricType, targetValue, notifyEmail, notifyBell, status, existingGlobal.id).run();
+                `).bind(metricType, targetValue, targetValue, notifyEmail, notifyBell, (notifyEmail && notifyBell) ? 'both' : notifyEmail ? 'email' : 'none', status, existingGlobal.id).run();
                 return jsonResponse({
                   success: true,
                   data: { id: existingGlobal.id, userId, linkId: null, metricType, period: 'month', targetValue, notifyExpired: false, notifyEmail: Boolean(notifyEmail), notifyBell: Boolean(notifyBell), status },
@@ -2069,9 +2205,21 @@ export default {
             }
 
             await env.DB.prepare(`
-              INSERT INTO target_alerts (id, user_id, link_id, metric_type, period, target_value, notify_expired, notify_email, notify_bell, status, created_at, updated_at)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
-            `).bind(id, userId, linkId, metricType, period, targetValue, notifyExpired, notifyEmail, notifyBell, status).run();
+              INSERT INTO target_alerts (
+                id, user_id, link_id, title, metric_type,
+                limit_value, target_value, period,
+                notify_expiration, notify_expired,
+                channel, notify_email, notify_bell, schedule, status,
+                created_at, updated_at
+              )
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'instantly', ?, datetime('now'), datetime('now'))
+            `).bind(
+              id, userId, linkId, body.title || (linkId ? 'Link Target Alert' : 'Global Target Alert'), metricType,
+              targetValue, targetValue, period,
+              notifyExpired, notifyExpired,
+              (notifyEmail && notifyBell) ? 'both' : notifyEmail ? 'email' : notifyBell ? 'in_app' : 'none',
+              notifyEmail, notifyBell, status
+            ).run();
           }
 
           return jsonResponse({
@@ -2093,10 +2241,25 @@ export default {
 
             if (body.metricType) { updates.push('metric_type = ?'); bindings.push(body.metricType); }
             if (body.period && ['day', 'week', 'month'].includes(body.period)) { updates.push('period = ?'); bindings.push(body.period); }
-            if (body.targetValue !== undefined) { updates.push('target_value = ?'); bindings.push(Number(body.targetValue)); }
-            if (body.notifyExpired !== undefined) { updates.push('notify_expired = ?'); bindings.push(body.notifyExpired ? 1 : 0); }
+            if (body.targetValue !== undefined) {
+              updates.push('target_value = ?', 'limit_value = ?');
+              bindings.push(Number(body.targetValue), Number(body.targetValue));
+            }
+            if (body.notifyExpired !== undefined) {
+              updates.push(
+                'notify_expired = CASE WHEN link_id IS NULL THEN 0 ELSE ? END',
+                'notify_expiration = CASE WHEN link_id IS NULL THEN 0 ELSE ? END'
+              );
+              bindings.push(body.notifyExpired ? 1 : 0, body.notifyExpired ? 1 : 0);
+            }
             if (body.notifyEmail !== undefined) { updates.push('notify_email = ?'); bindings.push(body.notifyEmail ? 1 : 0); }
             if (body.notifyBell !== undefined) { updates.push('notify_bell = ?'); bindings.push(body.notifyBell ? 1 : 0); }
+            if (body.notifyEmail !== undefined || body.notifyBell !== undefined) {
+              const hasEmail = body.notifyEmail !== false;
+              const hasBell = body.notifyBell !== false;
+              updates.push('channel = ?');
+              bindings.push((hasEmail && hasBell) ? 'both' : hasEmail ? 'email' : hasBell ? 'in_app' : 'none');
+            }
             if (body.status !== undefined) { updates.push('status = ?'); bindings.push(body.status); }
             updates.push("updated_at = datetime('now')");
 
@@ -2116,7 +2279,11 @@ export default {
       if (method === 'DELETE' && targetId) {
         try {
           if (env.DB) {
-            await env.DB.prepare('DELETE FROM target_alerts WHERE id = ?').bind(targetId).run();
+            const existing = await env.DB.prepare('SELECT link_id FROM target_alerts WHERE id = ?').bind(targetId).first().catch(() => null);
+            if (existing && !existing.link_id) {
+              return jsonResponse({ success: false, error: 'Global workspace target cannot be deleted' }, 400);
+            }
+            await env.DB.prepare('DELETE FROM target_alerts WHERE id = ? AND link_id IS NOT NULL').bind(targetId).run();
           }
           return jsonResponse({ success: true, deleted: targetId });
         } catch (err) {

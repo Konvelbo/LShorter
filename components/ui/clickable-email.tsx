@@ -19,7 +19,7 @@ export function ClickableEmail({
 }: ClickableEmailProps) {
   const [copied, setCopied] = useState(false);
 
-  const gmailComposeUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}`;
+  const mailtoUrl = `mailto:${email}`;
 
   const handleCopy = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -46,12 +46,10 @@ export function ClickableEmail({
 
   return (
     <span className="inline-flex items-center gap-1.5 align-middle">
-      {/* Clicking the email directly opens Gmail compose in a new tab */}
+      {/* Standard native mailto link */}
       <a
-        href={gmailComposeUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        title={`Envoyer un email via Gmail (${email})`}
+        href={mailtoUrl}
+        title={`Envoyer un email à ${email}`}
         className={`inline-flex items-center gap-1 font-medium underline underline-offset-2 transition-colors cursor-pointer hover:opacity-80 group ${className}`}
       >
         {showIcon && (

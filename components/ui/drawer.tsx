@@ -116,67 +116,74 @@ export function DrawerTrigger({
 export function DrawerContent({
   children,
   className,
-  widthClass = "w-full sm:max-w-[500px]",
+  widthClass,
+  direction: propDirection,
 }: {
   children: React.ReactNode;
   className?: string;
   widthClass?: string;
+  direction?: "left" | "right" | "top" | "bottom";
 }) {
-  const { isOpen, closeDrawer } = useDrawer();
-  const [shouldRender, setShouldRender] = useState(isOpen);
-  const backdropRef = React.useRef<HTMLDivElement>(null);
-  const panelRef = React.useRef<HTMLDivElement>(null);
+  const { isOpen, closeDrawer, direction: contextDirection = "right" } = useDrawer();
+  const direction = propDirection || contextDirection;
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    if (isOpen) setShouldRender(true);
-  }, [isOpen]);
+    setMounted(true);
+  }, []);
 
-  useEffect(() => {
-    if (!shouldRender) return;
-    import("gsap").then(({ default: gsap }) => {
-      if (isOpen && backdropRef.current && panelRef.current) {
-        gsap.fromTo(
-          backdropRef.current,
-          { opacity: 0 },
-          { opacity: 1, duration: 0.3, ease: "power2.out" },
-        );
-        gsap.fromTo(
-          panelRef.current,
-          { x: "100%", opacity: 0.7 },
-          { x: "0%", opacity: 1, duration: 0.4, ease: "power3.out" },
-        );
-      } else if (!isOpen && backdropRef.current && panelRef.current) {
-        gsap.to(backdropRef.current, { opacity: 0, duration: 0.25 });
-        gsap.to(panelRef.current, {
-          x: "100%",
-          duration: 0.28,
-          ease: "power3.in",
-          onComplete: () => setShouldRender(false),
-        });
-      }
-    });
-  }, [isOpen, shouldRender]);
+  const isBottom = direction === "bottom";
+  const isTop = direction === "top";
+  const isLeft = direction === "left";
 
-  if (!shouldRender && !isOpen) return null;
+  const defaultWidth = isBottom || isTop
+    ? "w-full"
+    : widthClass || "w-full sm:max-w-[500px]";
+
+  const positionClasses = isBottom
+    ? "fixed inset-x-0 bottom-0 z-50 flex max-h-[88vh] flex-col bg-white dark:bg-[#141416] border-t border-zinc-200 dark:border-[#27272a] rounded-t-[10px] shadow-2xl transition-transform duration-300 ease-out"
+    : isTop
+    ? "fixed inset-x-0 top-0 z-50 flex max-h-[88vh] flex-col bg-white dark:bg-[#141416] border-b border-zinc-200 dark:border-[#27272a] rounded-b-[10px] shadow-2xl transition-transform duration-300 ease-out"
+    : isLeft
+    ? "fixed inset-y-0 left-0 z-50 flex h-full flex-col bg-white dark:bg-[#141416] border-r border-zinc-200 dark:border-[#27272a] shadow-2xl transition-transform duration-300 ease-out"
+    : "fixed inset-y-0 right-0 z-50 flex h-full flex-col bg-white dark:bg-[#141416] border-l border-zinc-200 dark:border-[#27272a] shadow-2xl transition-transform duration-300 ease-out";
+
+  const transformClass = isBottom
+    ? (isOpen ? "translate-y-0" : "translate-y-full")
+    : isTop
+    ? (isOpen ? "translate-y-0" : "-translate-y-full")
+    : isLeft
+    ? (isOpen ? "translate-x-0" : "-translate-x-full")
+    : (isOpen ? "translate-x-0" : "translate-x-full");
+
+  if (!mounted) return null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden">
+    <div
+      inert={!isOpen ? true : undefined}
+      className={cn(
+        "fixed inset-0 z-50 transition-opacity duration-300 overflow-hidden",
+        isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+      )}
+    >
       {/* Backdrop overlay */}
       <div
-        ref={backdropRef}
         onClick={closeDrawer}
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+        className={cn(
+          "fixed inset-0 bg-black/60 backdrop-blur-xs cursor-pointer transition-opacity duration-300",
+          isOpen ? "opacity-100" : "opacity-0"
+        )}
       />
 
       {/* Drawer sliding panel */}
       <div
-        ref={panelRef}
-        className={cn(
-          "fixed inset-y-0 right-0 z-50 flex h-full flex-col bg-white dark:bg-[#141416] border-l border-zinc-200 dark:border-[#27272a] shadow-2xl will-change-transform",
-          widthClass,
-          className,
-        )}
+        className={cn(positionClasses, defaultWidth, transformClass, className)}
       >
+        {isBottom && (
+          <div className="pt-2 pb-1 flex justify-center shrink-0">
+            <div className="w-10 h-1.5 rounded-full bg-neutral-300 dark:bg-neutral-700" />
+          </div>
+        )}
         {children}
       </div>
     </div>
@@ -193,7 +200,7 @@ export function DrawerHeader({
   return (
     <div
       className={cn(
-        "flex flex-col border-b border-[#222225] bg-[#141416] px-5 py-4 shrink-0 sticky top-0 z-10",
+        "flex flex-col border-b border-neutral-200 dark:border-[#222225] bg-white dark:bg-[#141416] px-5 py-4 shrink-0 sticky top-0 z-10",
         className,
       )}
     >
@@ -211,7 +218,7 @@ export function DrawerTitle({
 }) {
   return (
     <h2
-      className={cn("text-base font-bold text-white tracking-tight", className)}
+      className={cn("text-base font-bold text-neutral-900 dark:text-white tracking-tight", className)}
     >
       {children}
     </h2>
@@ -226,7 +233,7 @@ export function DrawerDescription({
   children: React.ReactNode;
 }) {
   return (
-    <p className={cn("text-xs text-neutral-400 mt-0.5", className)}>
+    <p className={cn("text-xs text-neutral-500 dark:text-neutral-400 mt-0.5", className)}>
       {children}
     </p>
   );
@@ -242,7 +249,7 @@ export function DrawerFooter({
   return (
     <div
       className={cn(
-        "flex items-center justify-end gap-2.5 border-t border-[#222225] bg-[#141416] px-5 py-3.5 shrink-0",
+        "flex items-center justify-end gap-2.5 border-t border-neutral-200 dark:border-[#222225] bg-white dark:bg-[#141416] px-5 py-3.5 shrink-0",
         className,
       )}
     >
@@ -278,7 +285,7 @@ export function DrawerClose({
       type="button"
       onClick={closeDrawer}
       className={cn(
-        "w-8 h-8 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 flex items-center justify-center text-neutral-400 hover:text-white transition-colors cursor-pointer",
+        "w-8 h-8 rounded-full bg-neutral-100 hover:bg-neutral-200 dark:bg-white/5 dark:hover:bg-white/10 border border-neutral-200 dark:border-white/10 flex items-center justify-center text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white transition-colors cursor-pointer",
         className,
       )}
       {...props}

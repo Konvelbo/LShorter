@@ -244,7 +244,7 @@ export function PixelSelectorModal({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-[540px] rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#151518] shadow-2xl overflow-hidden flex flex-col max-h-[85vh] transition-all transform scale-100 animate-in zoom-in-95 duration-150"
+        className="w-full max-w-[540px] rounded-[10px] border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#151518] shadow-2xl overflow-hidden flex flex-col max-h-[85vh] transition-all transform scale-100 animate-in zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -376,7 +376,7 @@ export function PixelSelectorModal({
                     key={px.id || px.pixelId}
                     onClick={() => togglePixel(px)}
                     className={cn(
-                      "flex items-center justify-between p-2.5 rounded-xl border text-left transition-all cursor-pointer select-none",
+                      "flex items-center justify-between p-2.5 rounded-[8px] border text-left transition-all cursor-pointer select-none",
                       isSelected
                         ? "bg-[#0066FF]/5 border-[#0066FF] text-zinc-900 dark:text-white ring-1 ring-[#0066FF]/20"
                         : "bg-white dark:bg-[#16181d] border-zinc-200 dark:border-zinc-800/80 text-zinc-700 dark:text-zinc-300 hover:border-zinc-300 dark:hover:border-zinc-700 hover:bg-zinc-50/50 dark:hover:bg-zinc-800/30"

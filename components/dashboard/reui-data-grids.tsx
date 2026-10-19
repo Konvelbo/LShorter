@@ -22,11 +22,14 @@ import {
   MapPin,
   Tag,
   Eye,
+  Play,
+  Pause,
 } from "lucide-react";
 import { ShortLink } from "@/types";
 import { BannerLightboxModal } from "@/components/dashboard/banner-lightbox-modal";
-import { triggerClickSync } from "@/lib/cloudflare-api";
-import { cn, getCountryName } from "@/lib/utils";
+import { triggerClickSync, cfUpdateLink, cfInvalidateCache } from "@/lib/cloudflare-api";
+import { cn, getCountryName, isLinkActive } from "@/lib/utils";
+import { showToast } from "@/components/ui/toast-provider";
 import { ReferrerBadge, ReferrerLogo } from "@/components/dashboard/analytics/referrer-badge";
 import { PixelBadgesList, PixelLogosOnlyList } from "@/components/dashboard/pixel-badges";
 
@@ -233,9 +236,9 @@ export function LinksReuiDataGrid({
   const effectiveShare = onShareLink || onShare || onSelectQr || onQr || onShowQr;
   const effectiveQr = effectiveShare;
 
-  // Auto-hydratation : si la prop links est absente ou vide, charger directement depuis /api/links
+  // Auto-hydratation : si la prop links est absente (undefined), charger directement depuis /api/links
   useEffect(() => {
-    if (!propLinks || propLinks.length === 0) {
+    if (propLinks === undefined) {
       fetch("/api/links", { cache: "no-store" })
         .then((r) => (r.ok ? r.json() : null))
         .then((json) => {
@@ -251,53 +254,56 @@ export function LinksReuiDataGrid({
   }, [propLinks]);
 
   const effectiveLinks = useMemo(() => {
-    if (Array.isArray(propLinks) && propLinks.length > 0) return propLinks;
+    if (propLinks !== undefined) return propLinks;
     return internalLinks;
   }, [propLinks, internalLinks]);
+
+  const handleToggleLinkActive = async (link: any) => {
+    const isAct = isLinkActive(link);
+    const nextActive = !isAct;
+    try {
+      await cfUpdateLink(link.id, {
+        isActive: nextActive,
+        is_active: nextActive ? 1 : 0,
+        status: nextActive ? "Active" : "Paused",
+      });
+      showToast.success(nextActive ? `/${link.slug} reactivated` : `/${link.slug} paused`);
+      cfInvalidateCache();
+      window.dispatchEvent(new CustomEvent("lshorter_links_updated"));
+      window.dispatchEvent(new Event("lshorter_data_change"));
+    } catch {
+      showToast.error("Failed to update status");
+    }
+  };
+
+  // Purge any legacy stale click counters from sessionStorage on mount
+  useEffect(() => {
+    try {
+      if (typeof window !== "undefined") {
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < sessionStorage.length; i++) {
+          const k = sessionStorage.key(i);
+          if (k && k.startsWith("lshorter_min_clicks_")) {
+            keysToRemove.push(k);
+          }
+        }
+        keysToRemove.forEach((k) => sessionStorage.removeItem(k));
+      }
+    } catch {}
+  }, []);
 
   const handleOpenAndTrackClick = (
     slug: string,
     currentClicks: number,
     id?: string,
   ) => {
-    setOptimisticMinClicks((prev) => {
-      const nextVal = Math.max(currentClicks + 1, (prev[slug] || 0) + 1);
-      try {
-        if (typeof window !== "undefined") {
-          sessionStorage.setItem(`lshorter_min_clicks_${slug}`, String(nextVal));
-        }
-      } catch {}
-      return {
-        ...prev,
-        [slug]: nextVal,
-      };
-    });
+    // Single optimistic increment while backend Cloudflare D1 write completes
+    setOptimisticMinClicks((prev) => ({
+      ...prev,
+      [slug]: Math.max(currentClicks + 1, (prev[slug] || currentClicks) + 1),
+    }));
     triggerClickSync(slug, id);
   };
-
-  useEffect(() => {
-    const handleExternalClick = (e: any) => {
-      const clickedSlug = e?.detail?.slug;
-      if (clickedSlug) {
-        setOptimisticMinClicks((prev) => {
-          const nextVal = (prev[clickedSlug] || 0) + 1;
-          try {
-            if (typeof window !== "undefined") {
-              sessionStorage.setItem(`lshorter_min_clicks_${clickedSlug}`, String(nextVal));
-            }
-          } catch {}
-          return {
-            ...prev,
-            [clickedSlug]: nextVal,
-          };
-        });
-      }
-    };
-    window.addEventListener("lshorter_link_clicked", handleExternalClick);
-    return () => {
-      window.removeEventListener("lshorter_link_clicked", handleExternalClick);
-    };
-  }, []);
 
   const toggleColumn = (colKey: string) => {
     setVisibleCols((prev) => {
@@ -320,14 +326,9 @@ export function LinksReuiDataGrid({
                   item.clicks_count ?? item.totalClicks ?? item.clicks ?? 0,
                 );
       const slug = item.slug || `link-${idx + 1}`;
-      let storedMinClicks = 0;
-      if (typeof window !== "undefined") {
-        try {
-          const sm = sessionStorage.getItem(`lshorter_min_clicks_${slug}`);
-          if (sm && !isNaN(Number(sm))) storedMinClicks = Number(sm);
-        } catch {}
-      }
-      const clicksVal = Math.max(rawClicksVal, optimisticMinClicks[slug] || 0, storedMinClicks);
+      const optClicks = optimisticMinClicks[slug] || 0;
+      // Authoritative count from D1 backend. Optimistic increment is used temporarily until backend fetch resolves.
+      const clicksVal = rawClicksVal >= optClicks ? rawClicksVal : optClicks;
       const revenueVal = Number(
         item.revenue ?? item.tracked_revenue ?? item.trackedRevenue ?? 0,
       );
@@ -352,17 +353,15 @@ export function LinksReuiDataGrid({
       const role = item.role || domain;
       const expTimeStr = item.expires_at || item.expiresAt;
       const isExpired = Boolean(
-        expTimeStr && new Date(expTimeStr).getTime() <= Date.now()
+        item.isExpired ||
+        item.is_expired === 1 ||
+        (expTimeStr && new Date(expTimeStr).getTime() <= Date.now())
       );
-      const isItemActive =
-        !isExpired &&
-        item.isActive !== false &&
-        item.is_active !== 0 &&
-        item.is_active !== "0";
+      const isItemActive = isLinkActive(item);
 
       const status = isExpired
         ? "Expired"
-        : item.statusLabel || (isItemActive ? "Active" : "Paused");
+        : item.status || item.statusLabel || (isItemActive ? "Active" : "Paused");
       const rawBanner =
         item.ogImage ||
         item.og_image ||
@@ -1205,6 +1204,29 @@ export function LinksReuiDataGrid({
                     <span>Edit short link</span>
                   </button>
                 )}
+
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleToggleLinkActive(activeRow.raw);
+                    setOpenActionRowId(null);
+                    setMenuCoords(null);
+                  }}
+                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-[#344054] dark:text-[#d4d4d8] hover:bg-[#F2F4F7] dark:hover:bg-white/[0.06] transition-colors cursor-pointer"
+                >
+                  {isLinkActive(activeRow.raw) ? (
+                    <>
+                      <Pause className="w-4 h-4 text-amber-500" />
+                      <span>Pause link</span>
+                    </>
+                  ) : (
+                    <>
+                      <Play className="w-4 h-4 text-emerald-500" />
+                      <span>Activate link</span>
+                    </>
+                  )}
+                </button>
               </div>
 
               {onDeleteLink && (

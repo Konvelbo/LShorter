@@ -62,6 +62,37 @@ export function isSafeHttpUrl(urlStr: unknown): boolean {
       return false;
     }
 
+    const host = parsed.hostname.toLowerCase();
+
+    // Block cloud metadata services (AWS, GCP, Azure, DigitalOcean, Alibaba) & IPv6 loopback
+    if (
+      host === "169.254.169.254" ||
+      host === "metadata.google.internal" ||
+      host === "instance-data" ||
+      host === "100.100.100.200" ||
+      host === "[::1]" ||
+      host === "::1"
+    ) {
+      return false;
+    }
+
+    // In production, block loopback and local private networks
+    if (process.env.NODE_ENV === "production") {
+      if (
+        host === "localhost" ||
+        host.endsWith(".localhost") ||
+        host.endsWith(".local") ||
+        host.endsWith(".internal") ||
+        host === "127.0.0.1" ||
+        host === "0.0.0.0" ||
+        /^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host) ||
+        /^192\.168\.\d{1,3}\.\d{1,3}$/.test(host) ||
+        /^172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}$/.test(host)
+      ) {
+        return false;
+      }
+    }
+
     return true;
   } catch {
     return false;
@@ -151,4 +182,58 @@ export function checkRateLimit(
     allowed: true,
     remaining: maxAttempts - record.timestamps.length,
   };
+}
+
+/**
+ * Reserved slugs that conflict with core Next.js routing, dashboard paths, or static assets.
+ */
+export const RESERVED_SLUGS = new Set([
+  "api",
+  "app",
+  "auth",
+  "dashboard",
+  "r",
+  "login",
+  "signin",
+  "signup",
+  "register",
+  "pricing",
+  "features",
+  "terms",
+  "privacy",
+  "refund",
+  "settings",
+  "admin",
+  "status",
+  "health",
+  "favicon.ico",
+  "robots.txt",
+  "sitemap.xml",
+  "icon-512.png",
+]);
+
+/**
+ * Validates a custom short link slug:
+ * - Alphanumeric, hyphens, and underscores only
+ * - Length between 1 and 80 characters
+ * - Not in the reserved routes blacklist
+ */
+export function isValidSlug(slug: unknown): { valid: boolean; error?: string } {
+  if (typeof slug !== "string") {
+    return { valid: false, error: "Slug must be a string." };
+  }
+  const clean = slug.trim();
+  if (!clean) {
+    return { valid: false, error: "Slug cannot be empty." };
+  }
+  if (!/^[a-zA-Z0-9_-]{1,80}$/.test(clean)) {
+    return {
+      valid: false,
+      error: "Slug must contain only alphanumeric characters, hyphens, and underscores (1 to 80 characters).",
+    };
+  }
+  if (RESERVED_SLUGS.has(clean.toLowerCase())) {
+    return { valid: false, error: `The slug '${clean}' is reserved and cannot be used.` };
+  }
+  return { valid: true };
 }

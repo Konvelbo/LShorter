@@ -274,7 +274,7 @@ export function LandingNavbar() {
     { label: "Limits", href: "/#analytics" },
     { label: "FAQ", href: "/#faq" },
     { label: "Pricing", href: "/pricing" },
-    { label: "Docs", href: "/docs" },
+    { label: "Doc & Api", href: "/docs" },
   ];
 
   const glassStyle: React.CSSProperties = isScrolled

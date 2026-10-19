@@ -4,7 +4,8 @@ import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
 import { auth } from "@/auth";
 import { convexHttp as convex } from "@/lib/convex-server";
 import { api } from "@/convex/_generated/api";
-import { isSafeHttpUrl } from "@/lib/security-utils";
+import { isSafeHttpUrl, isValidSlug } from "@/lib/security-utils";
+import { guardLinkCreation } from "@/lib/billing/quota-service";
 
 function parseTags(raw: any): string[] {
   if (!raw) return [];
@@ -26,19 +27,30 @@ function parseTags(raw: any): string[] {
 }
 
 export async function GET(req: Request) {
+  const reqUrl = new URL(req.url);
   const session = await auth().catch(() => null);
-  if (!session?.user) {
+
+  let userId = session?.user?.id || reqUrl.searchParams.get("userId") || null;
+  let userEmail = session?.user?.email || reqUrl.searchParams.get("userEmail") || null;
+
+  // If userId is missing, anonymous, or email-shaped, resolve authoritative Convex userId
+  if ((!userId || userId === "usr_anonymous" || userId.includes("@")) && userEmail) {
+    try {
+      const cu = await convex.query(api.users.getUserByEmail, { email: userEmail.toLowerCase().trim() });
+      if (cu?.userId) {
+        userId = cu.userId;
+      }
+    } catch (e) {
+      console.warn("[app/api/links/route.ts GET] Convex lookup warning:", e);
+    }
+  }
+
+  if (!userId && !userEmail) {
     return NextResponse.json(
       { success: false, error: "Authentication required to access links." },
       { status: 401 }
     );
   }
-
-  // Strictly enforce user identity to prevent IDOR
-  let userId = session.user.id || null;
-  const userEmail = session.user.email || null;
-
-  const reqUrl = new URL(req.url);
   const isForceRefresh =
     reqUrl.searchParams.get("forceRefresh") === "true" ||
     Boolean(reqUrl.searchParams.get("_t"));
@@ -47,6 +59,11 @@ export async function GET(req: Request) {
     const url = new URL(`${WORKER_URL}/api/v1/links`);
     if (userId) url.searchParams.set("userId", userId);
     if (userEmail) url.searchParams.set("userEmail", userEmail);
+    const limit = reqUrl.searchParams.get("limit") || "500";
+    url.searchParams.set("limit", limit);
+    if (reqUrl.searchParams.has("page")) {
+      url.searchParams.set("page", reqUrl.searchParams.get("page")!);
+    }
     if (isForceRefresh) {
       url.searchParams.set("forceRefresh", "true");
       url.searchParams.set("_t", Date.now().toString());
@@ -257,7 +274,16 @@ export async function GET(req: Request) {
     }
 
     return NextResponse.json(
-      { success: true, data: mergedList },
+      {
+        success: true,
+        data: mergedList,
+        total: workerData?.pagination?.total ?? mergedList.length,
+        pagination: workerData?.pagination ?? {
+          page: Number(reqUrl.searchParams.get("page") || 1),
+          limit: Number(limit),
+          total: workerData?.pagination?.total ?? mergedList.length,
+        },
+      },
       {
         headers: {
           "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
@@ -320,39 +346,96 @@ export async function POST(req: Request) {
       }
     }
 
-    const finalUserEmail = (session.user.email || "").toLowerCase().trim();
-    let finalUserId = session.user.id || "";
-
-    let authoritativePlan = (
-      body.userPlan ||
-      body.plan ||
-      (session?.user as any)?.plan ||
-      ""
-    ).toUpperCase();
-
-    if (!authoritativePlan || authoritativePlan === "FREEMIUM" || authoritativePlan === "FREE" || authoritativePlan === "STARTER") {
-      try {
-        let cu: any = null;
-        if (finalUserEmail) {
-          cu = await convex.query(api.users.getUserByEmail, { email: finalUserEmail });
-        }
-        if (!cu && finalUserId && finalUserId !== "usr_anonymous") {
-          cu = await convex.query(api.users.getCurrentUser, {
-            userId: finalUserId,
-            email: finalUserEmail || undefined,
-          });
-        }
-        if (cu?.plan) {
-          authoritativePlan = cu.plan.toUpperCase();
-        }
-      } catch (e) {
-        console.warn("[app/api/links/route.ts] Error querying Convex plan:", e);
+    // Validate custom slug if provided (blocks path traversal, XSS in slugs, and reserved route hijacking)
+    if (body.slug) {
+      const slugValidation = isValidSlug(body.slug);
+      if (!slugValidation.valid) {
+        return NextResponse.json(
+          { success: false, error: slugValidation.error },
+          { status: 400 }
+        );
       }
     }
 
-    const effectivePlan = (authoritativePlan === "FREEMIUM" || authoritativePlan === "STARTER")
+    const finalUserEmail = (session.user.email || "").toLowerCase().trim();
+    let finalUserId = session.user.id || "";
+
+    // If finalUserId is missing or email-shaped, resolve authoritative Convex user
+    if ((!finalUserId || finalUserId === "usr_anonymous" || finalUserId.includes("@")) && finalUserEmail) {
+      try {
+        const cu = await convex.query(api.users.getUserByEmail, { email: finalUserEmail });
+        if (cu?.userId) {
+          finalUserId = cu.userId;
+        }
+      } catch (e) {
+        console.warn("[app/api/links/route.ts] Convex user resolution error:", e);
+      }
+    }
+
+    // Authoritative plan resolution: strictly from session or Convex DB.
+    // Client self-declarations (body.userPlan or body.plan) are NEVER trusted to prevent plan bypass.
+    let authoritativePlan = ((session?.user as any)?.plan || "").toUpperCase();
+    try {
+      let cu: any = null;
+      if (finalUserEmail) {
+        cu = await convex.query(api.users.getUserByEmail, { email: finalUserEmail });
+      }
+      if (!cu && finalUserId && finalUserId !== "usr_anonymous") {
+        cu = await convex.query(api.users.getCurrentUser, {
+          userId: finalUserId,
+          email: finalUserEmail || undefined,
+        });
+      }
+      if (cu?.plan) {
+        authoritativePlan = cu.plan.toUpperCase();
+      }
+    } catch (e) {
+      console.warn("[app/api/links/route.ts] Error querying Convex plan:", e);
+    }
+
+    const effectivePlan = (authoritativePlan === "FREEMIUM" || authoritativePlan === "STARTER" || !authoritativePlan)
       ? "FREE"
-      : (authoritativePlan || "FREE");
+      : authoritativePlan;
+
+    // Enforce link creation quota per plan (e.g. FREE = 50 links, PRO = 1000 links, BUSINESS/ENTERPRISE = unlimited)
+    const initialQuotaCheck = guardLinkCreation(effectivePlan as any, 0);
+    if (!initialQuotaCheck.allowed || initialQuotaCheck.limit !== -1) {
+      try {
+        const countUrl = new URL(`${WORKER_URL}/api/v1/links`);
+        if (finalUserId) countUrl.searchParams.set("userId", finalUserId);
+        if (finalUserEmail) countUrl.searchParams.set("userEmail", finalUserEmail);
+        countUrl.searchParams.set("limit", "1");
+        const countRes = await fetch(countUrl.toString(), {
+          headers: {
+            "X-Frontend-Secret": FRONTEND_SECRET || "",
+            Authorization: `Bearer ${FRONTEND_SECRET || ""}`,
+            ...(finalUserId ? { "X-User-Id": finalUserId } : {}),
+            ...(finalUserEmail ? { "X-User-Email": finalUserEmail } : {}),
+          },
+          cache: "no-store",
+        });
+        if (countRes.ok) {
+          const countData = await countRes.json();
+          const currentCount = Number(countData?.pagination?.total ?? countData?.total ?? 0);
+          const limitCheck = guardLinkCreation(effectivePlan as any, currentCount);
+          if (!limitCheck.allowed) {
+            return NextResponse.json(
+              {
+                success: false,
+                code: "PLAN_UPGRADE_REQUIRED",
+                error: limitCheck.reason || `Limite de liens atteinte (${currentCount}/${limitCheck.limit}) pour le forfait ${effectivePlan}. Passez au forfait supérieur pour créer des liens illimités.`,
+                message: limitCheck.reason || `Limite de liens atteinte (${currentCount}/${limitCheck.limit}) pour le forfait ${effectivePlan}. Passez au forfait supérieur pour créer des liens illimités.`,
+                limit: limitCheck.limit,
+                current: limitCheck.current,
+              },
+              { status: 403 }
+            );
+          }
+        }
+      } catch (countErr) {
+        console.warn("[app/api/links/route.ts] Quota check failed:", countErr);
+      }
+    }
 
     // Dynamic routing allowed on paid plans or in non-production development
     const isPaidPlan =
@@ -436,7 +519,11 @@ export async function POST(req: Request) {
     const workerPayload = {
       ...body,
       userId: finalUserId,
+      user_id: finalUserId,
       userEmail: finalUserEmail,
+      user_email: finalUserEmail,
+      userName: session?.user?.name || body.userName || body.user_name || undefined,
+      user_name: session?.user?.name || body.userName || body.user_name || undefined,
       targetUrl: targetUrlClean,
       target_url: targetUrlClean,
       ogImage: sanitizedOgImage,

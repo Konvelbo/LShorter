@@ -163,8 +163,8 @@ export function HeroSection2() {
   const heroRef = useRef<HTMLDivElement>(null);
   const showcaseRef = useRef<HTMLDivElement>(null);
 
-  const titlePart1 = "Smart link infrastructure for modern marketers.";
-  const titlePart2 = "Ultra-fast programmable APIs for developers.";
+  const titlePart1 = "Stop wasting ad traffic.";
+  const titlePart2 = "Route, convert, and attribute every click to real sales.";
 
   // Rendu par mot avec déclenchement CSS instantané au chargement (0ms de latence)
   const renderTypingText = (text: string, startIndex = 0) => {
@@ -604,42 +604,28 @@ export function HeroSection2() {
         {/* 3. Vitrine du Dashboard : Masquée sur Mobile (< sm) */}
         <div
           ref={showcaseRef}
-          className="hidden sm:block animate-hero-showcase-reveal w-full max-w-[1240px] mx-auto relative sm:mt-2 md:mt-4 lg:mt-6 rounded-[22px] p-5 md:p-6 overflow-hidden border border-[#E4E7EC] dark:border-white/15 shadow-[0_20px_60px_rgba(16,24,40,0.12)] will-change-transform"
-          style={{
-            background:
-              "linear-gradient(135deg, #1F2A38 0%, #344960 35%, #5C768D 68%, #263547 100%)",
-          }}
+          className="hidden sm:block animate-hero-showcase-reveal w-full max-w-[1240px] mx-auto relative sm:mt-2 md:mt-4 lg:mt-6 rounded-[16px] bg-[#FFFFFF] dark:bg-[#101828] border border-[#E4E7EC] dark:border-white/15 overflow-hidden shadow-[0_25px_60px_-15px_rgba(16,24,40,0.18),0_10px_30px_-10px_rgba(16,24,40,0.1),0_0_0_1px_rgba(16,24,40,0.04)] dark:shadow-[0_30px_70px_-15px_rgba(0,0,0,0.75),0_10px_30px_-10px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.08)] will-change-transform"
         >
-          <div
-            className="pointer-events-none absolute inset-0 opacity-40"
-            style={{
-              backgroundImage:
-                "repeating-linear-gradient(90deg, rgba(255,255,255,0.15) 0px, rgba(255,255,255,0.02) 10px, rgba(0,0,0,0.24) 20px)",
-            }}
-          />
-
-          <div className="relative z-10 rounded-[16px] bg-[#FFFFFF] dark:bg-[#101828] border border-[#E4E7EC] dark:border-white/15 overflow-hidden shadow-xl">
-            <div className="px-4 py-2.5 border-b border-[#E4E7EC] dark:border-white/10 bg-[#F9FAFB] dark:bg-[#1D2939] flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#F04438]" />
-                <span className="w-2.5 h-2.5 rounded-full bg-[#F79009]" />
-                <span className="w-2.5 h-2.5 rounded-full bg-[#12B76A]" />
-                <div className="ml-3 flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-white dark:bg-[#101828] border border-[#E4E7EC] dark:border-white/10 text-[11px] font-mono text-[#475467] dark:text-zinc-300">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#12B76A]" />
-                  https://lsho.cc
-                </div>
+          <div className="px-4 py-2.5 border-b border-[#E4E7EC] dark:border-white/10 bg-[#F9FAFB] dark:bg-[#1D2939] flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#F04438]" />
+              <span className="w-2.5 h-2.5 rounded-full bg-[#F79009]" />
+              <span className="w-2.5 h-2.5 rounded-full bg-[#12B76A]" />
+              <div className="ml-3 flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-white dark:bg-[#101828] border border-[#E4E7EC] dark:border-white/10 text-[11px] font-mono text-[#475467] dark:text-zinc-300">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#12B76A]" />
+                https://lsho.cc
               </div>
             </div>
+          </div>
 
-            <div className="relative w-full bg-[#F9FAFB] dark:bg-[#101828]">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/screenshots/dashboard/dashboardwithsidbare.png"
-                alt="LShorter SaaS Dashboard Preview"
-                className="w-full h-auto block"
-                style={{ display: "block", width: "100%", height: "auto" }}
-              />
-            </div>
+          <div className="relative w-full bg-[#F9FAFB] dark:bg-[#101828]">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/screenshots/dashboard/dashboardwithsidbare.png"
+              alt="LShorter SaaS Dashboard Preview"
+              className="w-full h-auto block"
+              style={{ display: "block", width: "100%", height: "auto" }}
+            />
           </div>
         </div>
       </div>

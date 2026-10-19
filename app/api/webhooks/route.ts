@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
+import { isSafeHttpUrl } from "@/lib/security-utils";
 
 export async function GET() {
   const session = await auth();
@@ -39,6 +40,12 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json().catch(() => ({}));
+    if (!body?.url || !isSafeHttpUrl(body.url)) {
+      return NextResponse.json(
+        { success: false, error: "Invalid webhook URL scheme. Only public HTTP and HTTPS URLs are permitted." },
+        { status: 400 }
+      );
+    }
     body.userId = userId;
 
     const url = new URL(`${WORKER_URL}/api/v1/webhooks`);

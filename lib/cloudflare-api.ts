@@ -12,8 +12,27 @@ type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 const apiCache = new Map<string, { data: any; expiresAt: number }>();
 const inFlightRequests = new Map<string, Promise<any>>();
-// Cache GET responses for 30 seconds to eliminate micro-spam while ensuring snappy UI
-const CACHE_TTL_MS = 30000; // 30 seconds (invalidated immediately on mutations or click events)
+// Cache GET responses for 5 seconds to eliminate micro-spam while ensuring snappy UI
+const CACHE_TTL_MS = 5000; // 5 seconds (invalidated immediately on mutations or click events)
+
+export function parseTags(raw: any): string[] {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw.map((t) => String(t).trim()).filter(Boolean);
+  if (typeof raw === "string" && raw.trim()) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return parsed.map((t: any) => String(t).trim()).filter(Boolean);
+      }
+      if (typeof parsed === "string") {
+        return parsed.split(",").map((t: string) => t.trim()).filter(Boolean);
+      }
+    } catch {
+      return raw.split(",").map((t) => t.trim()).filter(Boolean);
+    }
+  }
+  return [];
+}
 
 export function sanitizeClientError(raw: any): string {
   if (!raw) return "Une erreur inattendue est survenue. Veuillez réessayer.";
@@ -32,8 +51,8 @@ export function sanitizeClientError(raw: any): string {
   if (lower.includes("foreign key") || lower.includes("constraint failed") || lower.includes("sqlite")) {
     return "Erreur temporaire de synchronisation du compte. Veuillez réessayer.";
   }
-  if (lower.includes("d1_error") || lower.includes("prepare(") || lower.includes("bind(") || lower.includes("table ") || lower.includes("column ") || lower.includes("sqlite_")) {
-    return "Une erreur technique est survenue. Veuillez réessayer.";
+  if (lower.includes("rate limit") || lower.includes("too many requests") || lower.includes("rate_limit")) {
+    return "Limite de requêtes temporairement atteinte. Veuillez patienter quelques secondes avant de réessayer.";
   }
   return msg;
 }
@@ -93,7 +112,6 @@ if (typeof window !== "undefined") {
         cfInvalidateCache("/api/links");
         window.dispatchEvent(new CustomEvent("lshorter_data_change", { detail: { slug: ev.data?.slug, id: ev.data?.id } }));
         window.dispatchEvent(new CustomEvent("lshorter_links_updated", { detail: { slug: ev.data?.slug, id: ev.data?.id } }));
-        window.dispatchEvent(new CustomEvent("lshorter_link_clicked", { detail: { slug: ev.data?.slug, id: ev.data?.id } }));
       }
     };
   } catch {}
@@ -215,12 +233,12 @@ export function broadcastLiveClicksSync(userId: string, clicks: number) {
   } catch {}
 }
 
-export async function cfGetLinks(userId: string, forceRefresh = false) {
+export async function cfGetLinks(userId: string, forceRefresh = false, limit = 500) {
   const encUser = encodeURIComponent(userId);
   const cacheBuster = forceRefresh ? `&forceRefresh=true&_t=${Date.now()}` : "";
-  return cfFetch<{ success: true; data: any[] }>(
-    `/api/links?userId=${encUser}${cacheBuster}`,
-    `/api/v1/links?userId=${encUser}${cacheBuster}`,
+  return cfFetch<{ success: true; data: any[]; total?: number; pagination?: any }>(
+    `/api/links?userId=${encUser}&limit=${limit}${cacheBuster}`,
+    `/api/v1/links?userId=${encUser}&limit=${limit}${cacheBuster}`,
     "GET",
     undefined,
     forceRefresh
@@ -465,7 +483,7 @@ export async function cfCreateLink(data: {
     main_weight: data.mainWeight,
     isActive: finalIsActive,
     is_active: finalIsActive ? 1 : 0,
-    tags: data.tags && data.tags.length ? data.tags : undefined,
+    tags: data.tags !== undefined ? parseTags(data.tags) : undefined,
     userPlan: data.userPlan || data.plan || undefined,
     plan: data.userPlan || data.plan || undefined,
     pixels: data.pixels || data.pixelIds || data.pixel_ids || undefined,
@@ -583,6 +601,7 @@ export async function cfUpdateLink(id: string, updates: any) {
     userPlan: updates.userPlan || updates.plan || undefined,
     plan: updates.userPlan || updates.plan || undefined,
     pixels: updates.pixels !== undefined ? updates.pixels : updates.pixelIds !== undefined ? updates.pixelIds : updates.pixel_ids,
+    tags: updates.tags !== undefined ? parseTags(updates.tags) : undefined,
   };
 
   if (updates.isCloaked !== undefined || updates.is_cloaked !== undefined) {
@@ -689,10 +708,11 @@ export async function cfDeleteDomain(id: string, userId?: string) {
 }
 
 // ─── API Keys ─────────────────────────────────────────────────────────────────
-export async function cfGetApiKeys(userId: string) {
+export async function cfGetApiKeys(userId: string, userEmail?: string) {
   const encUser = encodeURIComponent(userId);
+  const emailParam = userEmail ? `&userEmail=${encodeURIComponent(userEmail)}` : "";
   return cfFetch<{ success: true; data: any[] }>(
-    `/api/keys?userId=${encUser}`,
+    `/api/keys?userId=${encUser}${emailParam}`,
     `/api/v1/users/${encUser}/keys`
   );
 }

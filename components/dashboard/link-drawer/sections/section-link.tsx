@@ -143,13 +143,20 @@ export function SectionLink({
             placeholder="https://example.com/page"
             value={targetUrl}
             onChange={(e) => {
-              setTargetUrl(e.target.value);
-              if (fieldErrors.targetUrl) {
-                setFieldErrors((prev) => ({
-                  ...prev,
-                  targetUrl: checkUrlFormat(e.target.value, true),
-                }));
-              }
+              const val = e.target.value;
+              setTargetUrl(val);
+              const err = checkUrlFormat(val, false);
+              setFieldErrors((prev) => ({
+                ...prev,
+                targetUrl: err,
+              }));
+            }}
+            onBlur={(e) => {
+              const err = checkUrlFormat(e.target.value, true);
+              setFieldErrors((prev) => ({
+                ...prev,
+                targetUrl: err,
+              }));
             }}
             className={cn(
               "h-10 text-sm",
@@ -221,13 +228,20 @@ export function SectionLink({
               placeholder="custom-slug"
               value={slug}
               onChange={(e) => {
-                setSlug(e.target.value);
-                if (fieldErrors.slug) {
-                  setFieldErrors((prev) => ({
-                    ...prev,
-                    slug: checkSlugFormat(e.target.value),
-                  }));
-                }
+                const val = e.target.value;
+                setSlug(val);
+                const err = checkSlugFormat(val);
+                setFieldErrors((prev) => ({
+                  ...prev,
+                  slug: err,
+                }));
+              }}
+              onBlur={(e) => {
+                const err = checkSlugFormat(e.target.value);
+                setFieldErrors((prev) => ({
+                  ...prev,
+                  slug: err,
+                }));
               }}
               className={cn(
                 "h-10 text-sm font-mono",
@@ -291,7 +305,7 @@ export function SectionLink({
       </div>
 
       {/* Live Preview Result Box */}
-      <div className="mt-2 p-4 rounded-xl bg-zinc-50 dark:bg-[#16181d] border border-zinc-200 dark:border-[#22242a] text-sm text-zinc-700 dark:text-[#8a8f9a] break-all leading-relaxed flex items-start justify-between gap-3 shadow-xs">
+      <div className="mt-2 p-4 rounded-[10px] bg-zinc-50 dark:bg-[#16181d] border border-zinc-200 dark:border-[#22242a] text-sm text-zinc-700 dark:text-[#8a8f9a] break-all leading-relaxed flex items-start justify-between gap-3 shadow-xs">
         <div>
           Visitors to{" "}
           <b className="text-zinc-900 dark:text-[#f1f2f4] font-semibold">

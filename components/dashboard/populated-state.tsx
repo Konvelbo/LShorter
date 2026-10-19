@@ -27,8 +27,8 @@ import {
   Target,
 } from "lucide-react";
 import { ShortLink, GlobalAnalytics } from "@/types";
-import { formatNumber } from "@/lib/utils";
-import { cfInvalidateCache } from "@/lib/cloudflare-api";
+import { formatNumber, isLinkActive } from "@/lib/utils";
+import { cfInvalidateCache, cfCreateTargetAlert } from "@/lib/cloudflare-api";
 import { showToast } from "@/components/ui/toast-provider";
 import { LinkCreateModal } from "./link-create-modal";
 import { LinkEditModal } from "./link-edit-modal";
@@ -218,15 +218,12 @@ export function PopulatedState({
     [links],
   );
 
-  const displayTotalClicks = Math.max(
-    Number(analytics?.totalClicks ?? (analytics as any)?.total_clicks ?? 0),
-    sumLinkClicks,
+  const workerClicks = Number(analytics?.totalClicks ?? (analytics as any)?.total_clicks ?? 0);
+  const displayTotalClicks = workerClicks > 0 ? workerClicks : sumLinkClicks;
+  const displayActiveLinks = useMemo(
+    () => links.filter((l) => isLinkActive(l)).length,
+    [links],
   );
-  const displayActiveLinks = links.filter((l) => {
-    const expTime = (l as any).expires_at || (l as any).expiresAt;
-    const isExp = Boolean(expTime && new Date(expTime).getTime() <= Date.now());
-    return !isExp && l.isActive !== false && (l as any).is_active !== 0;
-  }).length;
   const displayRevenue = Math.max(
     Number(
       analytics?.trackedRevenue ?? (analytics as any)?.tracked_revenue ?? 0,
@@ -242,10 +239,49 @@ export function PopulatedState({
       : (displayTotalClicks > 0 ? displayTotalClicks : 0);
 
   const clicksGrowthPct = Number(analytics?.clicksGrowth ?? 0);
-  const activeRatioPct =
-    links.length > 0
-      ? Math.round((displayActiveLinks / links.length) * 100)
-      : 100;
+  const activeRatioPct = useMemo(() => {
+    if (links.length === 0) return 0;
+    return Math.round((displayActiveLinks / links.length) * 100);
+  }, [displayActiveLinks, links.length]);
+
+  const expiredLinksCount = useMemo(
+    () =>
+      links.filter((l: any) => {
+        const exp = l.expires_at || l.expiresAt;
+        return (
+          l.isExpired === true ||
+          l.is_expired === 1 ||
+          (exp && new Date(exp).getTime() <= Date.now()) ||
+          String(l.status || "").toLowerCase() === "expired" ||
+          String(l.status || "").toLowerCase() === "expiré"
+        );
+      }).length,
+    [links],
+  );
+
+  const pausedLinksCount = useMemo(
+    () =>
+      links.filter((l: any) => {
+        const exp = l.expires_at || l.expiresAt;
+        const isExp =
+          l.isExpired === true ||
+          l.is_expired === 1 ||
+          (exp && new Date(exp).getTime() <= Date.now()) ||
+          String(l.status || "").toLowerCase() === "expired" ||
+          String(l.status || "").toLowerCase() === "expiré";
+        if (isExp) return false;
+        const s = String(l.status || l.statusLabel || "").toLowerCase();
+        return (
+          s === "paused" ||
+          s === "en pause" ||
+          l.isActive === false ||
+          l.isActive === 0 ||
+          l.is_active === 0 ||
+          l.is_active === false
+        );
+      }).length,
+    [links],
+  );
 
   // Récupération unifiée des tableaux analytiques (camelCase + snake_case)
   const safeClicksByDay = useMemo(() => {
@@ -654,7 +690,7 @@ export function PopulatedState({
       )) /
       100;
 
-  const handleSaveTargets = (e: React.FormEvent) => {
+  const handleSaveTargets = async (e: React.FormEvent) => {
     e.preventDefault();
     const nextRev = Math.max(1, Number(draftRevenueInput) || 5000);
     const nextClk = Math.max(1, Number(draftClicksInput) || 1000);
@@ -671,6 +707,38 @@ export function PopulatedState({
     setIsTargetMenuOpen(false);
     setIsTargetEditModalOpen(false);
     showToast.success("Objectif mensuel mis à jour");
+
+    // Persist targets directly into Cloudflare D1
+    if (userId) {
+      try {
+        await Promise.all([
+          cfCreateTargetAlert({
+            userId,
+            linkId: null,
+            metricType: "clicks",
+            period: "month",
+            targetValue: nextClk,
+            notifyExpired: false,
+            notifyEmail: true,
+            notifyBell: true,
+            status: "active",
+          }),
+          cfCreateTargetAlert({
+            userId,
+            linkId: null,
+            metricType: "revenue",
+            period: "month",
+            targetValue: nextRev,
+            notifyExpired: false,
+            notifyEmail: true,
+            notifyBell: true,
+            status: "active",
+          }),
+        ]);
+      } catch (err) {
+        console.warn("[Dashboard] Target alert D1 persistence warning:", err);
+      }
+    }
   };
 
   const handleTestTargetNotification = async () => {
@@ -936,6 +1004,13 @@ export function PopulatedState({
                     : `${todayClicksValue} today`}
                 </span>
               </div>
+
+              <div className="mt-3 pt-2.5 border-t border-[#E4E7EC]/70 dark:border-[#344054]/70 flex items-center justify-between text-[11px] text-[#667085] dark:text-[#98A2B3]">
+                <span>Total cumulé Edge</span>
+                <span className="font-medium text-[#0066FF] dark:text-[#5294FF]">
+                  {todayClicksValue > 0 ? `+${todayClicksValue} clic${todayClicksValue > 1 ? "s" : ""} aujourd'hui` : "0 clic aujourd'hui"}
+                </span>
+              </div>
             </div>
 
             <div
@@ -956,16 +1031,36 @@ export function PopulatedState({
                   <span className="text-sm font-medium text-[#667085] dark:text-[#98A2B3]">
                     Active Short Links
                   </span>
-                  <h4 className="mt-2 text-[30px] font-bold leading-none text-[#101828] dark:text-white">
-                    {formatNumber(displayActiveLinks)}
+                  <h4 className="mt-2 text-[30px] font-bold leading-none text-[#101828] dark:text-white flex items-baseline gap-1.5">
+                    <span>{formatNumber(displayActiveLinks)}</span>
+                    <span className="text-sm font-semibold text-[#667085] dark:text-[#98A2B3]">
+                      / {links.length}
+                    </span>
                   </h4>
                 </div>
 
-                <span className="inline-flex items-center gap-1 rounded-full bg-[#0066FF]/10 px-2.5 py-0.5 text-xs font-semibold text-[#0066FF] dark:text-[#5294FF]">
-                  <ArrowUp className="h-3 w-3 text-[#0066FF]" />
-                  {activeRatioPct}% active
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#0066FF]/10 px-2.5 py-0.5 text-xs font-semibold text-[#0066FF] dark:text-[#5294FF]">
+                  <span className={`w-1.5 h-1.5 rounded-full ${displayActiveLinks > 0 ? "bg-[#0066FF] animate-pulse" : "bg-neutral-400"}`} />
+                  {links.length > 0 ? `${activeRatioPct}% active` : "0% active"}
                 </span>
               </div>
+
+              {links.length > 0 && (
+                <div className="mt-3 pt-2.5 border-t border-[#E4E7EC]/70 dark:border-[#344054]/70 flex items-center justify-between text-[11px] text-[#667085] dark:text-[#98A2B3]">
+                  <span>
+                    {links.length > displayActiveLinks
+                      ? `${displayActiveLinks} actif${displayActiveLinks > 1 ? "s" : ""} sur ${links.length} total`
+                      : "100% des liens sont actifs"}
+                  </span>
+                  {links.length > displayActiveLinks && (
+                    <span className="font-medium text-[#F04438] dark:text-[#FDA29B]">
+                      {expiredLinksCount > 0 ? `${expiredLinksCount} expiré${expiredLinksCount > 1 ? "s" : ""}` : ""}
+                      {expiredLinksCount > 0 && pausedLinksCount > 0 ? " • " : ""}
+                      {pausedLinksCount > 0 ? `${pausedLinksCount} en pause` : ""}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -1163,7 +1258,7 @@ export function PopulatedState({
                           className="fixed inset-0 z-40"
                           onClick={() => setIsTargetMenuOpen(false)}
                         />
-                        <div className="absolute right-0 top-full mt-1.5 w-60 rounded-xl bg-white dark:bg-[#1D2939] border border-[#E4E7EC] dark:border-[#344054] shadow-xl py-1.5 z-50 text-xs animate-in fade-in zoom-in-95 duration-150">
+                        <div className="absolute right-0 top-full mt-1.5 w-60 rounded-[8px] bg-white dark:bg-[#1D2939] border border-[#E4E7EC] dark:border-[#344054] shadow-xl py-1.5 z-50 text-xs animate-in fade-in zoom-in-95 duration-150">
                           <button
                             type="button"
                             onClick={() => {
@@ -1405,8 +1500,8 @@ export function PopulatedState({
               <span className="text-2xl font-bold text-[#101828] dark:text-white">
                 {periodMetrics.avgClicks}
               </span>
-              <span className="rounded-full bg-[#ECFDF3] px-2 py-0.5 text-xs font-semibold text-[#039855]">
-                {displayActiveLinks} Active
+              <span className="rounded-full bg-[#ECFDF3] dark:bg-[#027A48]/20 px-2 py-0.5 text-xs font-semibold text-[#039855] dark:text-[#12B76A]">
+                {displayActiveLinks} / {links.length} Active
               </span>
             </div>
           </div>
@@ -1470,7 +1565,7 @@ export function PopulatedState({
               </button>
 
               {isStatsDateOpen && (
-                <div className="absolute right-0 mt-1.5 w-44 rounded-xl border border-[#E4E7EC] dark:border-[#344054] bg-white dark:bg-[#141418] p-1.5 shadow-xl z-40">
+                <div className="absolute right-0 mt-1.5 w-44 rounded-[8px] border border-[#E4E7EC] dark:border-[#344054] bg-white dark:bg-[#141418] p-1.5 shadow-xl z-40">
                   {[
                     { id: "24h", label: "Last 24 Hours" },
                     { id: "7d", label: "Last 7 Days" },
@@ -1584,6 +1679,7 @@ export function PopulatedState({
 
       <LinkCreateModal
         isOpen={isCreateOpen}
+        linksCount={links.length}
         onClose={() => setIsCreateOpen(false)}
         onSuccess={() => {
           setIsCreateOpen(false);
@@ -1619,7 +1715,7 @@ export function PopulatedState({
       {/* Target Goals Configuration Modal */}
       {isTargetEditModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="relative w-full max-w-md rounded-2xl bg-white dark:bg-[#1D2939] border border-[#E4E7EC] dark:border-[#344054] shadow-2xl p-6">
+          <div className="relative w-full max-w-md rounded-[10px] bg-white dark:bg-[#1D2939] border border-[#E4E7EC] dark:border-[#344054] shadow-2xl p-6">
             <div className="flex items-center justify-between pb-3 border-b border-[#E4E7EC] dark:border-[#344054]">
               <div className="flex items-center gap-2.5">
                 <div className="p-2 rounded-lg bg-[#0066FF]/10 text-[#0066FF] dark:text-[#5294FF]">
@@ -1643,7 +1739,7 @@ export function PopulatedState({
               </button>
             </div>
 
-            <form onSubmit={handleSaveTargets} className="mt-4 space-y-4">
+            <form onSubmit={handleSaveTargets} noValidate className="mt-4 space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-[#344054] dark:text-[#E4E7EC] mb-1.5">
                   Objectif de Clics mensuel
@@ -1652,6 +1748,7 @@ export function PopulatedState({
                   <input
                     type="number"
                     min="1"
+                    step="any"
                     max="10000000"
                     value={draftClicksInput}
                     onChange={(e) => setDraftClicksInput(e.target.value)}
@@ -1688,6 +1785,7 @@ export function PopulatedState({
                   <input
                     type="number"
                     min="1"
+                    step="any"
                     max="10000000"
                     value={draftRevenueInput}
                     onChange={(e) => setDraftRevenueInput(e.target.value)}
@@ -1710,7 +1808,7 @@ export function PopulatedState({
                 </div>
               </div>
 
-              <div className="p-3 rounded-xl bg-[#0066FF]/5 border border-[#0066FF]/15 text-[11px] text-[#344054] dark:text-[#D0D5DD] space-y-1">
+              <div className="p-3 rounded-[8px] bg-[#0066FF]/5 border border-[#0066FF]/15 text-[11px] text-[#344054] dark:text-[#D0D5DD] space-y-1">
                 <p className="font-semibold text-[#0066FF] dark:text-[#5294FF] flex items-center gap-1.5">
                   <Check className="h-3.5 w-3.5" /> Alerte automatique à 100%
                 </p>

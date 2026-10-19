@@ -12,7 +12,7 @@ let cachedConfig: {
   discountIds?: Record<string, { monthly: string }>;
 } | null = null;
 
-async function fetchBillingConfig() {
+export async function fetchBillingConfig() {
   if (cachedConfig) return cachedConfig;
   try {
     const res = await fetch("/api/billing/config", { cache: "no-store" });
@@ -75,6 +75,11 @@ export async function getPaddleClient(): Promise<Paddle | undefined> {
     const instance = await initializePaddle({
       environment: env,
       token,
+      eventCallback: (event) => {
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("lshorter_paddle_event", { detail: event }));
+        }
+      },
     });
     paddleInstance = instance || null;
     lastInitError = null;
@@ -103,161 +108,28 @@ export interface OpenPaddleCheckoutResult {
 }
 
 /**
- * Opens Paddle Checkout overlay or redirects to transaction checkout URL.
+ * Redirects to the dedicated LShorter inline checkout page (/checkout)
+ * where the user gets a clean Light/Dark theme-aware payment experience.
  */
 export async function openPaddleCheckout(
   options: OpenPaddleCheckoutOptions
 ): Promise<OpenPaddleCheckoutResult> {
-  const { planId, cycle, userId, userEmail, theme = "dark" } = options;
+  const { planId, cycle } = options;
 
-  // 1. Fetch dynamic config to ensure Price IDs and token are up to date
-  const dynamicConfig = await fetchBillingConfig();
-  const paddle = await getPaddleClient();
-  const initStatus = getPaddleInitStatus();
-
-  let priceId = getPaddlePriceId(planId, cycle);
-  if (
-    (!priceId || priceId.startsWith("pri_pro_") || priceId.startsWith("pri_biz_") || priceId.startsWith("pri_ent_")) &&
-    dynamicConfig?.priceIds
-  ) {
-    const planPrices = dynamicConfig.priceIds[planId];
-    if (planPrices) {
-      priceId = cycle === "YEARLY" ? planPrices.yearly : planPrices.monthly;
-    }
-  }
-
-  let discountId: string | undefined = undefined;
-  if (cycle === "MONTHLY") {
-    if (planId === "PRO") discountId = process.env.NEXT_PUBLIC_PADDLE_DISCOUNT_PRO_MONTHLY;
-    else if (planId === "BUSINESS") discountId = process.env.NEXT_PUBLIC_PADDLE_DISCOUNT_BUSINESS_MONTHLY;
-    else if (planId === "ENTERPRISE") discountId = process.env.NEXT_PUBLIC_PADDLE_DISCOUNT_ENTERPRISE_MONTHLY;
-
-    if (!discountId && dynamicConfig?.discountIds) {
-      discountId = dynamicConfig.discountIds[planId]?.monthly;
-    }
-  }
-
-  console.info("[Paddle Checkout] Starting checkout for:", {
-    planId,
-    cycle,
-    priceId,
-    discountId,
-    hasPaddle: !!paddle,
-    initStatus,
-  });
-
-  // If Paddle.js script was explicitly blocked by browser extension / ad-blocker
-  if (!paddle && initStatus.isBlocked) {
-    return {
-      success: false,
-      isAdBlocked: true,
-      error:
-        "Le script de paiement Paddle (cdn.paddle.com) est bloqué par votre navigateur (AdBlock, Brave Shields ou uBlock). Veuillez désactiver le bloqueur pour continuer.",
-    };
-  }
-
-  // 2. Try creating server-side transaction first (Recommended Paddle pattern)
-  try {
-    const res = await fetch("/api/billing/checkout", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        planId,
-        cycle,
-        userId,
-        discountId,
-        customerEmail: userEmail,
-        successUrl: `${window.location.origin}/dashboard/settings?tab=billing&checkout_success=true&plan=${planId}`,
-        cancelUrl: `${window.location.origin}/dashboard/pricing`,
-      }),
+  if (typeof window !== "undefined") {
+    const fromPath = window.location.pathname || "/dashboard/pricing";
+    const params = new URLSearchParams({
+      plan: planId,
+      cycle,
+      from: fromPath,
     });
-
-    const data = await res.json();
-
-    if (data.success) {
-      // If Paddle transaction was created and we have Paddle.js on client, open with transactionId
-      if (paddle && data.transactionId && !data.transactionId.startsWith("txn_paddle_dev_")) {
-        try {
-          paddle.Checkout.open({
-            transactionId: data.transactionId,
-            settings: {
-              displayMode: "overlay",
-              theme: theme === "light" ? "light" : "dark",
-              variant: "one-page",
-              successUrl: `${window.location.origin}/dashboard/settings?tab=billing&checkout_success=true&plan=${planId}&ptxn=${data.transactionId}`,
-            },
-          });
-          return { success: true };
-        } catch (overlayErr: any) {
-          console.warn("[Paddle.js] Failed to open with transactionId, trying direct URL:", overlayErr);
-        }
-      }
-
-      // If Paddle returned a checkout URL
-      if (data.checkoutUrl && data.checkoutUrl.startsWith("http") && !data.checkoutUrl.includes("checkout_success=true")) {
-        let targetUrl = data.checkoutUrl;
-        if (typeof window !== "undefined" && window.location.protocol === "http:" && targetUrl.startsWith("https://localhost")) {
-          targetUrl = targetUrl.replace("https://localhost", "http://localhost");
-        }
-        window.location.href = targetUrl;
-        return { success: true };
-      }
-
-      return { success: true };
-    } else if (data.error && data.error.includes("transaction_default_checkout_url_not_set")) {
-      return {
-        success: false,
-        error:
-          "Configuration Paddle requise : veuillez vous rendre sur https://sandbox-vendors.paddle.com/checkout-settings et définir l'URL par défaut (ex: http://localhost:3000) dans la section 'Default payment link'.",
-      };
-    } else if (data.error) {
-      return {
-        success: false,
-        error: data.error,
-      };
-    }
-  } catch (apiErr: any) {
-    console.error("[Paddle Checkout API Error]:", apiErr);
-    return {
-      success: false,
-      error: `Erreur de communication avec le serveur : ${apiErr?.message || "Échec réseau"}`,
-    };
-  }
-
-  // 3. Fallback: Try client-side direct item opening
-  if (paddle && priceId && !priceId.includes("pri_pro_monthly")) {
-    try {
-      paddle.Checkout.open({
-        items: [{ priceId, quantity: 1 }],
-        discountId,
-        customData: {
-          userId: userId || "",
-          planId,
-          cycle,
-        },
-        customer: userEmail ? { email: userEmail } : undefined,
-        settings: {
-          displayMode: "overlay",
-          theme: theme === "light" ? "light" : "dark",
-          variant: "one-page",
-          successUrl: `${window.location.origin}/dashboard/settings?tab=billing&checkout_success=true&plan=${planId}`,
-        },
-      });
-      return { success: true };
-    } catch (err: any) {
-      console.error("[Paddle.js] Direct open error:", err);
-      return {
-        success: false,
-        error: err?.message || "Impossible d'ouvrir le checkout Paddle.",
-      };
-    }
+    window.location.href = `/checkout?${params.toString()}`;
+    return { success: true };
   }
 
   return {
     success: false,
-    error: initStatus.isBlocked
-      ? "Le script Paddle est bloqué par votre navigateur (bloqueur de publicité détecté)."
-      : "Le service de paiement Paddle n'a pas pu être initialisé. Veuillez rafraîchir la page.",
-    isAdBlocked: initStatus.isBlocked,
+    error: "Navigation impossible côté serveur.",
   };
 }
+

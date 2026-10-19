@@ -271,18 +271,18 @@ export default function NoRefundPolicyPage() {
             {/* Section 2 */}
             <section id="digital-waiver" className="scroll-mt-28">
               <h2 className="text-xl sm:text-2xl font-bold text-neutral-900 dark:text-white mb-4">
-                2. Statutory Digital Waiver (EU & International Law)
+                2. Zero Refund Policy & Statutory Digital Waiver (No 14-Day Withdrawal)
               </h2>
+              <div className="legal-interactive-card p-4 rounded-[10px] border border-amber-200 dark:border-amber-900/50 bg-amber-50/50 dark:bg-amber-950/20 mb-4 text-xs sm:text-sm text-neutral-700 dark:text-neutral-300">
+                <strong>No 14-Day Cooling-off Period:</strong> Due to immediate digital delivery and instantaneous edge routing allocation across 310+ global PoPs, there is <strong>NO 14-day refund window, trial period, or satisfaction guarantee</strong>. All sales are strictly final.
+              </div>
               <p className="mb-4">
                 Under European Union Consumer Rights Directive (Directive 2011/83/EU, Article 16(m)) and
                 equivalent international digital commerce regulations, the statutory 14-day right of withdrawal
-                does not apply to digital content or software services that are delivered and executed
-                immediately with the consumer&apos;s express prior consent.
+                does not apply to digital services and cloud infrastructure that begin immediately upon checkout with the customer&apos;s express prior consent.
               </p>
               <p>
-                By completing your payment through our checkout, you expressly acknowledge and agree that
-                the digital service commences immediately upon confirmation, and you waive any statutory right
-                to cancel or demand a refund for the transaction.
+                By completing your payment, you expressly acknowledge and agree that your access begins immediately and you fully waive any right to cancel, retract, or request a refund. All purchases are final and non-refundable under all circumstances.
               </p>
             </section>
 

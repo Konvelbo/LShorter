@@ -1,151 +1,228 @@
-﻿import { ImageResponse } from "next/og";
+import { ImageResponse } from "next/og";
 import { NextRequest } from "next/server";
 
 export const runtime = "edge";
 
 export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const title = searchParams.get("title") || "LShorter";
-  const desc = searchParams.get("desc") || "Next-gen Edge URL Shortener & Smart Routing";
-  const slug = searchParams.get("slug") || "";
+  try {
+    const { searchParams } = new URL(req.url);
+    const title = searchParams.get("title") || "LShorter";
+    const desc = searchParams.get("desc") || "Next-gen Edge URL Shortener & Smart Routing";
+    const slug = searchParams.get("slug") || "";
 
-  return new ImageResponse(
-    (
-      <div
-        style={{
-          width: 1200,
-          height: 630,
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "flex-end",
-          background: "linear-gradient(135deg, #09090b 0%, #0f0f14 50%, #0a0d1a 100%)",
-          fontFamily: "sans-serif",
-          position: "relative",
-          overflow: "hidden",
-        }}
-      >
+    return new ImageResponse(
+      (
         <div
           style={{
-            position: "absolute",
-            inset: 0,
-            backgroundImage:
-              "linear-gradient(rgba(255,102,0,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,102,0,0.05) 1px, transparent 1px)",
-            backgroundSize: "60px 60px",
-          }}
-        />
-        <div
-          style={{
-            position: "absolute",
-            top: -120,
-            right: -80,
-            width: 480,
-            height: 480,
-            borderRadius: "50%",
-            background: "radial-gradient(circle, rgba(255,102,0,0.18) 0%, transparent 70%)",
-          }}
-        />
-        <div
-          style={{
-            position: "absolute",
-            top: 48,
-            left: 56,
+            width: "100%",
+            height: "100%",
             display: "flex",
-            alignItems: "center",
-            gap: 12,
+            flexDirection: "column",
+            justifyContent: "flex-end",
+            backgroundColor: "#09090b",
+            fontFamily: "sans-serif",
+            position: "relative",
+            overflow: "hidden",
           }}
         >
-          <div
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: 12,
-              background: "#ff6600",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 22,
-              fontWeight: 900,
-              color: "white",
-              letterSpacing: "-1px",
-            }}
-          >
-            LS
-          </div>
-          <span style={{ fontSize: 22, fontWeight: 700, color: "white", letterSpacing: "-0.5px" }}>
-            LShorter
-          </span>
-          <div
-            style={{
-              marginLeft: 8,
-              padding: "3px 10px",
-              borderRadius: 20,
-              border: "1px solid rgba(255,102,0,0.4)",
-              background: "rgba(255,102,0,0.1)",
-              fontSize: 11,
-              fontWeight: 700,
-              color: "#ff6600",
-              letterSpacing: 1,
-            }}
-          >
-            EDGE SAAS
-          </div>
-        </div>
-        {slug && (
+          {/* Subtle Orange Glow Circle */}
           <div
             style={{
               position: "absolute",
-              top: 56,
-              right: 56,
-              padding: "6px 16px",
-              borderRadius: 24,
-              background: "rgba(255,255,255,0.06)",
-              border: "1px solid rgba(255,255,255,0.12)",
-              fontSize: 13,
-              fontWeight: 600,
-              color: "rgba(255,255,255,0.6)",
+              top: -100,
+              right: -50,
+              width: 440,
+              height: 440,
+              borderRadius: "50%",
+              backgroundColor: "rgba(255, 102, 0, 0.16)",
+            }}
+          />
+
+          {/* Top Branding Bar */}
+          <div
+            style={{
+              position: "absolute",
+              top: 48,
+              left: 56,
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
             }}
           >
-            lsho.cc/{slug}
+            <div
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 12,
+                backgroundColor: "#ff6600",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 22,
+                fontWeight: 900,
+                color: "white",
+              }}
+            >
+              LS
+            </div>
+            <span
+              style={{
+                fontSize: 22,
+                fontWeight: 700,
+                color: "white",
+              }}
+            >
+              LShorter
+            </span>
+            <div
+              style={{
+                display: "flex",
+                marginLeft: 8,
+                padding: "4px 10px",
+                borderRadius: 20,
+                backgroundColor: "rgba(255, 102, 0, 0.12)",
+                fontSize: 11,
+                fontWeight: 700,
+                color: "#ff6600",
+              }}
+            >
+              EDGE CLOUD
+            </div>
           </div>
-        )}
-        <div style={{ padding: "0 56px 56px", display: "flex", flexDirection: "column", gap: 16 }}>
-          <div style={{ fontSize: title.length > 40 ? 44 : 56, fontWeight: 900, color: "white", lineHeight: 1.1, letterSpacing: "-1.5px", maxWidth: 900 }}>
-            {title}
-          </div>
-          <div style={{ fontSize: 22, color: "rgba(255,255,255,0.5)", lineHeight: 1.4, maxWidth: 780, fontWeight: 400 }}>
-            {desc.length > 90 ? desc.substring(0, 87) + "..." : desc}
-          </div>
-          <div style={{ display: "flex", gap: 20, marginTop: 8 }}>
-            {["Edge Network", "120+ PoPs", "Smart Routing"].map((stat) => (
+
+          {/* Optional Slug Badge in Top Right */}
+          {slug ? (
+            <div
+              style={{
+                position: "absolute",
+                top: 52,
+                right: 56,
+                display: "flex",
+                padding: "6px 16px",
+                borderRadius: 20,
+                backgroundColor: "rgba(255, 255, 255, 0.08)",
+                fontSize: 13,
+                fontWeight: 600,
+                color: "rgba(255, 255, 255, 0.7)",
+              }}
+            >
+              {`lsho.cc/${slug}`}
+            </div>
+          ) : null}
+
+          {/* Main Card Content */}
+          <div
+            style={{
+              padding: "0 56px 56px",
+              display: "flex",
+              flexDirection: "column",
+              gap: 16,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                fontSize: title.length > 40 ? 44 : 56,
+                fontWeight: 900,
+                color: "white",
+                lineHeight: 1.15,
+                maxWidth: 950,
+              }}
+            >
+              {title}
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                fontSize: 22,
+                color: "rgba(255, 255, 255, 0.6)",
+                lineHeight: 1.4,
+                maxWidth: 820,
+              }}
+            >
+              {desc.length > 100 ? `${desc.substring(0, 97)}...` : desc}
+            </div>
+
+            {/* Badges Footer */}
+            <div
+              style={{
+                display: "flex",
+                gap: 14,
+                marginTop: 8,
+              }}
+            >
               <div
-                key={stat}
                 style={{
-                  padding: "6px 16px",
+                  display: "flex",
+                  padding: "6px 14px",
                   borderRadius: 8,
-                  background: "rgba(255,102,0,0.08)",
-                  border: "1px solid rgba(255,102,0,0.2)",
-                  fontSize: 13,
+                  backgroundColor: "rgba(255, 102, 0, 0.1)",
+                  fontSize: 12,
                   fontWeight: 600,
-                  color: "rgba(255,255,255,0.7)",
+                  color: "#ff8533",
                 }}
               >
-                {stat}
+                Edge Verified Link
               </div>
-            ))}
+              <div
+                style={{
+                  display: "flex",
+                  padding: "6px 14px",
+                  borderRadius: 8,
+                  backgroundColor: "rgba(255, 255, 255, 0.06)",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: "rgba(255, 255, 255, 0.65)",
+                }}
+              >
+                120+ Edge Locations
+              </div>
+            </div>
           </div>
+
+          {/* Bottom Accent Line */}
+          <div
+            style={{
+              position: "absolute",
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: 4,
+              backgroundColor: "#ff6600",
+            }}
+          />
         </div>
+      ),
+      { width: 1200, height: 630 }
+    );
+  } catch (err) {
+    console.error("[app/api/og] Edge banner generation error:", err);
+    // Minimal fallback banner to guarantee 200 OK image for Twitterbot / WhatsApp
+    return new ImageResponse(
+      (
         <div
           style={{
-            position: "absolute",
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: 4,
-            background: "linear-gradient(90deg, #ff6600, #ff9900, #ff6600)",
+            width: "100%",
+            height: "100%",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: "#09090b",
+            color: "white",
+            fontFamily: "sans-serif",
           }}
-        />
-      </div>
-    ),
-    { width: 1200, height: 630 }
-  );
+        >
+          <div style={{ display: "flex", fontSize: 48, fontWeight: 900, color: "#ff6600" }}>
+            LShorter
+          </div>
+          <div style={{ display: "flex", fontSize: 24, marginTop: 16, color: "rgba(255,255,255,0.7)" }}>
+            Next-gen Edge URL Shortener & Smart Routing
+          </div>
+        </div>
+      ),
+      { width: 1200, height: 630 }
+    );
+  }
 }

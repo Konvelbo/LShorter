@@ -147,12 +147,12 @@ export function SectionReview({
       </div>
 
       {/* Structured Summary Rows (.rv style) */}
-      <div className="border border-[#e6e7ea] dark:border-[#22242a] rounded-xl overflow-hidden bg-white dark:bg-[#0e0f12]">
+      <div className="border border-[#e6e7ea] dark:border-[#22242a] rounded-[10px] overflow-hidden bg-white dark:bg-[#0e0f12]">
         {/* Row: Social Media */}
         <div className="flex items-center justify-between gap-4 px-4 py-3 border-b border-[#e6e7ea] dark:border-[#22242a] hover:bg-[#f4f5f7]/50 dark:hover:bg-[#16181d]/50 transition-colors">
           <div className="flex items-center gap-2 text-[#6c717c] dark:text-[#8a8f9a] text-xs font-medium shrink-0">
             <Share2 className="w-3.5 h-3.5" />
-            <span>Social media & tracking</span>
+            <span>Social media, tracking & pixel</span>
           </div>
           <div className="flex items-center gap-2 text-xs">
             <span className="text-[#131417] dark:text-[#f1f2f4] font-medium text-right truncate">

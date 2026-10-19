@@ -1,12 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { isSafeHttpUrl } from "@/lib/security-utils";
 
 export async function POST(req: NextRequest) {
   try {
-    const { url, secretKey } = await req.json();
-
-    if (!url || typeof url !== "string" || !url.startsWith("http")) {
+    const session = await auth().catch(() => null);
+    if (!session?.user) {
       return NextResponse.json(
-        { error: "URL de webhook invalide." },
+        { success: false, error: "Authentication required to test webhooks." },
+        { status: 401 }
+      );
+    }
+
+    const { url, secretKey } = await req.json().catch(() => ({}));
+
+    if (!url || !isSafeHttpUrl(url)) {
+      return NextResponse.json(
+        { success: false, error: "URL de webhook invalide ou non autorisée. Seules les adresses HTTP/HTTPS publiques sont autorisées." },
         { status: 400 }
       );
     }

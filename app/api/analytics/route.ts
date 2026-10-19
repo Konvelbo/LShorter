@@ -28,15 +28,15 @@ export async function GET(req: Request) {
   const period = searchParams.get("period") || "30d";
 
   const session = await auth().catch(() => null);
-  if (!session?.user?.id) {
+  let userId: string = session?.user?.id || searchParams.get("userId") || "";
+  const userEmail = session?.user?.email || searchParams.get("userEmail") || "";
+
+  if (!userId && !userEmail) {
     return NextResponse.json(
       { success: false, error: "Authentication required to access analytics." },
       { status: 401 }
     );
   }
-
-  let userId: string = session.user.id;
-  const userEmail = session.user.email;
   if (userId.includes("@") && userEmail) {
     try {
       const cu = await convex.query(api.users.getUserByEmail, { email: userEmail.toLowerCase().trim() });

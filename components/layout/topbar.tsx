@@ -40,22 +40,33 @@ export function Topbar() {
       : "skip"
   );
 
+  const [isMounted, setIsMounted] = useState(false);
   const [cachedUser, setCachedUser] = useState<{
     name?: string;
     email?: string;
     avatarUrl?: string;
     plan?: string;
-  } | null>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const saved =
-          localStorage.getItem("lshorter_cached_user") ||
-          localStorage.getItem("lshorter_user_profile");
-        if (saved) return JSON.parse(saved);
-      } catch {}
-    }
-    return null;
-  });
+  } | null>(null);
+
+  useEffect(() => {
+    setIsMounted(true);
+    try {
+      const saved =
+        localStorage.getItem("lshorter_cached_user") ||
+        localStorage.getItem("lshorter_user_profile");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === "object") {
+          setCachedUser((prev) => ({
+            name: parsed.name || prev?.name || "",
+            email: parsed.email || prev?.email || "",
+            avatarUrl: parsed.avatarUrl || prev?.avatarUrl || "",
+            plan: parsed.plan || prev?.plan || "FREE",
+          }));
+        }
+      }
+    } catch {}
+  }, []);
 
   useEffect(() => {
     const name = convexUser?.name || session?.user?.name;
@@ -69,16 +80,18 @@ export function Topbar() {
       (convexUser?.plan as string) ||
       ((session?.user as any)?.plan as string);
 
-    if (name || email || avatarUrl || plan) {
+    if (name || email || avatarUrl || (plan && plan !== "FREE")) {
       setCachedUser((prev) => {
         const next = {
-          name: name || prev?.name || "",
-          email: email || prev?.email || "",
-          avatarUrl: avatarUrl !== undefined ? avatarUrl : prev?.avatarUrl || "",
-          plan: plan || prev?.plan || "FREE",
+          name: name?.trim() ? name.trim() : (prev?.name && prev.name !== "User" ? prev.name : ""),
+          email: email?.trim() ? email.trim() : prev?.email || "",
+          avatarUrl: avatarUrl !== undefined && avatarUrl ? avatarUrl : prev?.avatarUrl || "",
+          plan: plan && plan !== "FREE" ? plan : (prev?.plan && prev.plan !== "FREE" ? prev.plan : "FREE"),
         };
         try {
-          localStorage.setItem("lshorter_cached_user", JSON.stringify(next));
+          if (next.name || next.email) {
+            localStorage.setItem("lshorter_cached_user", JSON.stringify(next));
+          }
           if (next.plan) {
             localStorage.setItem("lshorter_user_plan", next.plan.toUpperCase());
           }
@@ -342,13 +355,17 @@ export function Topbar() {
     cachedUser?.email?.trim() ||
     "";
 
+  const rawAvatarUrl =
+    (convexUser?.avatarUrl ||
+      (convexUser as any)?.image ||
+      (session?.user as any)?.avatarUrl ||
+      session?.user?.image ||
+      cachedUser?.avatarUrl ||
+      "").trim();
+
   const avatarUrl =
-    convexUser?.avatarUrl ||
-    (convexUser as any)?.image ||
-    (session?.user as any)?.avatarUrl ||
-    session?.user?.image ||
-    cachedUser?.avatarUrl ||
-    "";
+    rawAvatarUrl ||
+    getDiceBearAvatar(displayEmail || displayName || userId || "lshorter-user");
 
   const userTier =
     (convexUser?.plan as string) ||
@@ -498,16 +515,15 @@ export function Topbar() {
                 className="ds-profile-frame cursor-pointer"
               >
                 <Avatar className="h-6.5 w-6.5 sm:h-7 sm:w-7 rounded-lg border border-[#E4E7EC]/60 dark:border-white/10 overflow-hidden shrink-0">
-                  {avatarUrl ? (
-                    <AvatarImage
-                      src={avatarUrl}
-                      alt={displayName}
-                      seed={displayEmail}
-                      className="rounded-lg object-cover"
-                    />
-                  ) : null}
+                  <AvatarImage
+                    src={avatarUrl}
+                    alt={displayName}
+                    seed={displayEmail || displayName}
+                    className="rounded-lg object-cover"
+                  />
                   <AvatarFallback
-                    seed={displayEmail}
+                    suppressHydrationWarning
+                    seed={displayEmail || displayName}
                     className="rounded-lg text-[10px] font-bold text-white bg-gradient-to-tr from-[#0066FF] to-[#7592FF]"
                   >
                     {initials}
@@ -516,18 +532,16 @@ export function Topbar() {
 
                 <div className="hidden sm:flex flex-col items-start text-left leading-tight pr-0.5">
                   <span
-                    suppressHydrationWarning
                     className="text-[11px] font-semibold ds-text-primary truncate max-w-[140px]"
-                    title={displayName}
+                    title={isMounted ? displayName : undefined}
                   >
-                    {displayName}
+                    {isMounted ? displayName : (cachedUser?.name || "User")}
                   </span>
                   <span
-                    suppressHydrationWarning
                     className="inline-flex items-center gap-1 text-[9px] font-medium text-[#465FFF] dark:text-[#7592FF] mt-0.5"
                   >
                     <span className="h-1.5 w-1.5 rounded-full bg-[#10B981] shrink-0" />
-                    {planDef.name} Plan
+                    {isMounted ? planDef.name : (cachedUser?.plan ? getPlanDefinition(cachedUser.plan).name : "Starter")} Plan
                   </span>
                 </div>
 
@@ -545,16 +559,14 @@ export function Topbar() {
                 >
                   <div className="px-3 py-2.5 border-b ds-border flex items-center gap-3">
                     <Avatar className="h-9 w-9 rounded-[10px] border ds-border shrink-0">
-                      {avatarUrl ? (
-                        <AvatarImage
-                          src={avatarUrl}
-                          alt={displayName}
-                          seed={displayEmail}
-                          className="rounded-[10px] object-cover"
-                        />
-                      ) : null}
+                      <AvatarImage
+                        src={avatarUrl}
+                        alt={displayName}
+                        seed={displayEmail || displayName}
+                        className="rounded-[10px] object-cover"
+                      />
                       <AvatarFallback
-                        seed={displayEmail}
+                        seed={displayEmail || displayName}
                         className="rounded-[10px] text-xs font-bold text-white bg-gradient-to-tr from-[#0066FF] to-[#7592FF]"
                       >
                         {initials}
@@ -563,17 +575,15 @@ export function Topbar() {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
                         <p
-                          suppressHydrationWarning
                           className="text-sm font-bold ds-text-primary truncate"
                         >
-                          {displayName}
+                          {isMounted ? displayName : "User"}
                         </p>
                       </div>
                       <p
-                        suppressHydrationWarning
                         className="text-xs ds-text-muted truncate mt-0.5"
                       >
-                        {displayEmail}
+                        {isMounted ? displayEmail : ""}
                       </p>
                     </div>
                   </div>

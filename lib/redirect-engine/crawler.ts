@@ -147,6 +147,27 @@ export function renderSocialHtml(options: {
     ogImg = twitterImg;
   }
 
+  const urlObj = (() => {
+    try {
+      return new URL(options.canonicalUrl);
+    } catch {
+      return null;
+    }
+  })();
+  const cacheBusterParam =
+    urlObj?.searchParams.get("v") ||
+    urlObj?.searchParams.get("_t") ||
+    urlObj?.searchParams.get("cb");
+  if (cacheBusterParam) {
+    const sep = (u: string) => (u.includes("?") ? "&" : "?");
+    if (!twitterImg.includes("v=") && !twitterImg.includes("_t=") && !twitterImg.startsWith("data:")) {
+      twitterImg += `${sep(twitterImg)}v=${encodeURIComponent(cacheBusterParam)}`;
+    }
+    if (!ogImg.includes("v=") && !ogImg.includes("_t=") && !ogImg.startsWith("data:")) {
+      ogImg += `${sep(ogImg)}v=${encodeURIComponent(cacheBusterParam)}`;
+    }
+  }
+
   const fallbackGlass = getDicebearGlassUrl(options.slug || "lshorter");
   const safeOgImg = escapeHtml(sanitizeSafeUrl(ogImg));
   const safeTwitterImg = escapeHtml(sanitizeSafeUrl(twitterImg));

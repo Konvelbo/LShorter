@@ -118,6 +118,7 @@ export interface ShortLink {
   hideReferrer?: boolean;
   tags?: string[];
   expiresAt?: string;
+  expires_at?: string | null;
   maxClicks?: number;
   fallbackUrl?: string;
   abVariations?: Array<{ url: string; weight: number }> | string;
@@ -134,6 +135,11 @@ export interface ShortLink {
   path_lock_password?: string;
   pixels?: string[] | any;
   isActive: boolean;
+  is_active?: number | boolean;
+  status?: string;
+  statusLabel?: string;
+  isExpired?: boolean;
+  is_expired?: number | boolean;
   created_at: string;
 }
 

@@ -37,7 +37,16 @@ import {
   Pause,
   Film,
   Search,
+  Sliders,
 } from "lucide-react";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+  DrawerClose,
+} from "@/components/ui/drawer";
 import { useSession } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { useQuery } from "convex/react";
@@ -46,6 +55,7 @@ import {
   QRContentType,
   ShortLink,
 } from "@/types";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { LinkShareModal } from "@/components/dashboard/link-share-modal";
@@ -132,7 +142,10 @@ export function QRGenerator() {
   const userId = session?.user?.id || "";
   const convexUser = useQuery(api.users.getCurrentUser, userId ? { userId } : "skip");
   const plan = convexUser?.plan || (session?.user as any)?.plan || "FREEMIUM";
-  const isProPlan = plan === "PRO" || plan === "BUSINESS";
+  const isProDev =
+    process.env.NODE_ENV === "development" &&
+    searchParams.get("playwright_preview") === "1";
+  const isProPlan = plan === "PRO" || plan === "BUSINESS" || plan === "ENTERPRISE" || isProDev;
   const [contentType, setContentType] = useState<QRContentType>("link");
 
   const [userLinks, setUserLinks] = useState<ShortLink[]>([]);
@@ -192,9 +205,22 @@ export function QRGenerator() {
   const [fontSearchQuery, setFontSearchQuery] = useState<string>("");
   const [showAllFonts, setShowAllFonts] = useState<boolean>(false);
 
-  // Advanced Options
-  const [size, setSize] = useState(256);
+  // Advanced Options: Standard resolution locked at 320px (responsive canvas adapts on mobile)
+  const size = 320;
   const [includeQuietZone, setIncludeQuietZone] = useState(true);
+
+  // Mobile Drawer State
+  const [isMobile, setIsMobile] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   // UI Expansion Toggles
   const [showMorePixels, setShowMorePixels] = useState(false);
@@ -1461,53 +1487,9 @@ export function QRGenerator() {
     },
   ];
 
-  return (
-    <div className="flex flex-col gap-6 animate-in fade-in pb-16">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-zinc-900 dark:text-white tracking-wide">QR Code Customization Studio</h1>
-          <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
-            Customize pixel patterns, eye corner shapes, gradient colors, official brand logos, and CTA frames.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Button
-            onClick={handleSaveCustomization}
-            disabled={isSavingCustomization}
-            variant="primary"
-            size="sm"
-            className="text-xs font-bold gap-1.5 cursor-pointer"
-          >
-            {isSavingCustomization ? (
-              <>
-                <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                <span>Saving...</span>
-              </>
-            ) : (
-              <>
-                <Save className="w-3.5 h-3.5" />
-                <span>Save</span>
-              </>
-            )}
-          </Button>
-
-          <button
-            onClick={copyConfigJSON}
-            className="btn-hover-scale px-3.5 py-2 rounded-[10px] bg-white dark:bg-white/5 hover:bg-neutral-100 dark:hover:bg-white/10 border border-neutral-200 dark:border-[#27272a] text-xs font-semibold text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white flex items-center gap-2 cursor-pointer w-fit"
-            title="Copy JSON for Backend API"
-          >
-            <Save className="w-3.5 h-3.5 text-brand" />
-            <span>Export V3 JSON</span>
-          </button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Left Column: Customization Controls (7 cols) */}
-        <div className="lg:col-span-7 flex flex-col gap-6">
-          {/* Content Type Tabs */}
+  const controlsContent = (
+    <div className="flex flex-col gap-6">
+{/* Content Type Tabs */}
           <div className="flex flex-col gap-2">
             <span className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">Content Type</span>
             <div className="flex flex-wrap items-center gap-2">
@@ -2505,10 +2487,74 @@ export function QRGenerator() {
               </div>
             )}
           </div>
+    </div>
+  );
+
+  return (
+    <div className="flex flex-col gap-6 animate-in fade-in pb-16">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-zinc-900 dark:text-white tracking-wide">QR Code Customization Studio</h1>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
+            Customize pixel patterns, eye corner shapes, gradient colors, official brand logos, and CTA frames.
+          </p>
         </div>
 
-        {/* Right Column: Live Interactive Preview (5 cols) */}
-        <div className="lg:col-span-5 flex flex-col gap-4 sticky top-24">
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={handleSaveCustomization}
+            disabled={isSavingCustomization}
+            variant="primary"
+            size="sm"
+            className="text-xs font-bold gap-1.5 cursor-pointer"
+          >
+            {isSavingCustomization ? (
+              <>
+                <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <span>Saving...</span>
+              </>
+            ) : (
+              <>
+                <Save className="w-3.5 h-3.5" />
+                <span>Save</span>
+              </>
+            )}
+          </Button>
+
+          <button
+            onClick={copyConfigJSON}
+            className="btn-hover-scale px-3.5 py-2 rounded-[10px] bg-white dark:bg-white/5 hover:bg-neutral-100 dark:hover:bg-white/10 border border-neutral-200 dark:border-[#27272a] text-xs font-semibold text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white flex items-center gap-2 cursor-pointer w-fit"
+            title="Copy JSON for Backend API"
+          >
+            <Save className="w-3.5 h-3.5 text-brand" />
+            <span>Export V3 JSON</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile Drawer Trigger Bar - visible only on mobile (< lg) */}
+      <div className="lg:hidden flex flex-col gap-3">
+        <Button
+          type="button"
+          onClick={() => setIsDrawerOpen(true)}
+          className="w-full h-12 rounded-[10px] bg-brand hover:bg-brand-hover text-white text-xs font-bold flex items-center justify-center gap-2.5 shadow-md cursor-pointer transition-all"
+        >
+          <Sliders className="w-4 h-4" />
+          <span>Configurer les paramètres du QR Code</span>
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* Left Column: Customization Controls (7 cols) */}
+                {/* Left Column: Customization Controls (7 cols) - desktop only */}
+        {!isMobile && (
+          <div className="hidden lg:flex lg:col-span-7 flex-col gap-6">
+            {controlsContent}
+          </div>
+        )}
+        {/* Right Column: Live Interactive Preview (5 cols on desktop, full width on mobile) */}
+        <div className={cn("flex flex-col gap-4", isMobile ? "w-full" : "lg:col-span-5 sticky top-24")}>
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">Live Preview</span>
             {isAnimatedFrame(selectedFrame) && (
@@ -2535,23 +2581,6 @@ export function QRGenerator() {
             <div className="p-4 rounded-[10px] bg-white flex items-center justify-center shadow-xl">
               <canvas ref={canvasRef} className="max-w-full h-auto object-contain" />
             </div>
-          </div>
-
-          {/* Size / Resolution Slider */}
-          <div className="p-4 rounded-[10px] bg-white dark:bg-[#141416] border border-neutral-200 dark:border-[#222225] flex flex-col gap-2 text-xs">
-            <div className="flex items-center justify-between font-semibold text-neutral-700 dark:text-neutral-300">
-              <span>Resolution</span>
-              <span className="font-mono text-brand">{size}px</span>
-            </div>
-            <input
-              type="range"
-              min="128"
-              max="512"
-              step="32"
-              value={size}
-              onChange={(e) => setSize(Number(e.target.value))}
-              className="w-full accent-[var(--brand-primary)] cursor-pointer"
-            />
           </div>
 
           {/* Save Customization CTA Button */}
@@ -2637,6 +2666,49 @@ export function QRGenerator() {
           </p>
         </div>
       </div>
+
+      {/* Floating Bottom Bar for Mobile (< lg) */}
+      <div className="lg:hidden fixed bottom-4 inset-x-4 z-40">
+        <button
+          type="button"
+          onClick={() => setIsDrawerOpen(true)}
+          className="w-full h-12 rounded-[10px] bg-brand hover:bg-brand-hover text-white text-xs font-bold flex items-center justify-center gap-2 shadow-xl border border-white/20 backdrop-blur-md cursor-pointer transition-transform active:scale-[0.98]"
+        >
+          <Sliders className="w-4 h-4" />
+          <span>Ouvrir les Paramètres du QR Code</span>
+        </button>
+      </div>
+
+      {/* Mobile Bottom Drawer */}
+      {isMobile && (
+        <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen} direction="bottom">
+          <DrawerContent direction="bottom" className="max-h-[85vh] rounded-t-[10px]">
+            <DrawerHeader className="flex flex-row items-center justify-between border-b border-neutral-200 dark:border-[#222225] px-4 py-3 bg-white dark:bg-[#141416]">
+              <div>
+                <DrawerTitle className="text-sm font-bold text-neutral-900 dark:text-white">
+                  Paramètres du QR Code
+                </DrawerTitle>
+                <DrawerDescription className="text-xs text-neutral-500 dark:text-neutral-400">
+                  Styles, couleurs, logo, cadre et typographie
+                </DrawerDescription>
+              </div>
+              <DrawerClose />
+            </DrawerHeader>
+            <div className="overflow-y-auto px-4 py-4 space-y-6 pb-24">
+              {controlsContent}
+            </div>
+            <div className="sticky bottom-0 p-3 bg-white/95 dark:bg-[#141416]/95 backdrop-blur-md border-t border-neutral-200 dark:border-[#222225]">
+              <Button
+                onClick={() => setIsDrawerOpen(false)}
+                variant="primary"
+                className="w-full h-11 text-xs font-bold rounded-[10px] shadow-sm cursor-pointer"
+              >
+                Appliquer et voir le résultat
+              </Button>
+            </div>
+          </DrawerContent>
+        </Drawer>
+      )}
 
       {/* Link Share Modal */}
       <LinkShareModal

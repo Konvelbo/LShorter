@@ -4,7 +4,7 @@ import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
 import { auth } from "@/auth";
 import { convexHttp as convex } from "@/lib/convex-server";
 import { api } from "@/convex/_generated/api";
-import { isSafeHttpUrl } from "@/lib/security-utils";
+import { isSafeHttpUrl, isValidSlug } from "@/lib/security-utils";
 
 function parseTags(raw: any): string[] {
   if (!raw) return [];
@@ -79,35 +79,40 @@ export async function PATCH(
       }
     }
 
-    let authoritativePlan = (
-      body.userPlan ||
-      body.plan ||
-      ""
-    ).toUpperCase();
-
-    if (!authoritativePlan || authoritativePlan === "FREEMIUM" || authoritativePlan === "FREE" || authoritativePlan === "STARTER") {
-      try {
-        let cu: any = null;
-        if (requestEmail) {
-          cu = await convex.query(api.users.getUserByEmail, { email: requestEmail.toLowerCase().trim() });
-        }
-        if (!cu && requestUserId) {
-          cu = await convex.query(api.users.getCurrentUser, {
-            userId: requestUserId,
-            email: requestEmail || undefined,
-          });
-        }
-        if (cu?.plan) {
-          authoritativePlan = cu.plan.toUpperCase();
-        }
-      } catch (e) {
-        console.warn("[app/api/links/[id]/route.ts] Error querying Convex plan:", e);
+    if (body.slug) {
+      const slugValidation = isValidSlug(body.slug);
+      if (!slugValidation.valid) {
+        return NextResponse.json(
+          { success: false, error: slugValidation.error },
+          { status: 400 }
+        );
       }
     }
 
-    const effectivePlan = (authoritativePlan === "FREEMIUM" || authoritativePlan === "STARTER")
+    // Authoritative plan resolution: strictly from session or Convex DB.
+    // Client self-declarations (body.userPlan or body.plan) are NEVER trusted.
+    let authoritativePlan = ((session?.user as any)?.plan || "").toUpperCase();
+    try {
+      let cu: any = null;
+      if (requestEmail) {
+        cu = await convex.query(api.users.getUserByEmail, { email: requestEmail.toLowerCase().trim() });
+      }
+      if (!cu && requestUserId && requestUserId !== "usr_anonymous") {
+        cu = await convex.query(api.users.getCurrentUser, {
+          userId: requestUserId,
+          email: requestEmail || undefined,
+        });
+      }
+      if (cu?.plan) {
+        authoritativePlan = cu.plan.toUpperCase();
+      }
+    } catch (e) {
+      console.warn("[app/api/links/[id]/route.ts] Error querying Convex plan:", e);
+    }
+
+    const effectivePlan = (authoritativePlan === "FREEMIUM" || authoritativePlan === "STARTER" || !authoritativePlan)
       ? "FREE"
-      : (authoritativePlan || "FREE");
+      : authoritativePlan;
     const userId = requestUserId || "usr_anonymous";
     const isPro =
       effectivePlan === "PRO" ||
@@ -315,6 +320,10 @@ export async function PATCH(
     // 3. Forward to Cloudflare Worker
     const workerPayload = {
       ...body,
+      userId: requestUserId,
+      user_id: requestUserId,
+      userEmail: requestEmail,
+      user_email: requestEmail,
       targetUrl: targetUrlClean,
       target_url: targetUrlClean,
       ogImage: sanitizedOgImage,
@@ -371,6 +380,7 @@ export async function PATCH(
 
     const url = new URL(`${WORKER_URL}/api/v1/links/${id}`);
     if (userId) url.searchParams.set("userId", userId);
+    if (requestEmail) url.searchParams.set("userEmail", requestEmail);
 
     const res = await fetch(url.toString(), {
       method: "PATCH",
@@ -526,6 +536,7 @@ export async function PATCH(
             "X-Frontend-Secret": FRONTEND_SECRET,
             Authorization: `Bearer ${FRONTEND_SECRET}`,
             ...(userId ? { "X-User-Id": userId } : {}),
+            ...(requestEmail ? { "X-User-Email": requestEmail } : {}),
             "X-User-Plan": effectivePlan,
             "Content-Type": "application/json",
           },
@@ -757,6 +768,7 @@ export async function DELETE(
     // 3. Delete from Worker
     const url = new URL(`${WORKER_URL}/api/v1/links/${encodeURIComponent(id)}`);
     if (userId) url.searchParams.set("userId", userId);
+    if (session.user.email) url.searchParams.set("userEmail", session.user.email);
     if (slug) url.searchParams.set("slug", slug);
 
     const res = await fetch(url.toString(), {
@@ -765,6 +777,7 @@ export async function DELETE(
         "X-Frontend-Secret": FRONTEND_SECRET,
         Authorization: `Bearer ${FRONTEND_SECRET}`,
         ...(userId ? { "X-User-Id": userId } : {}),
+        ...(session.user.email ? { "X-User-Email": session.user.email } : {}),
       },
       cache: "no-store",
     });

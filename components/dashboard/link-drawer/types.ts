@@ -18,6 +18,7 @@ export interface LinkDrawerProps {
   link?: ShortLink | null;
   initialUrl?: string;
   onSuccess?: (link: ShortLink) => void;
+  linksCount?: number;
 }
 
 export type DrawerTabId =
@@ -47,10 +48,10 @@ export const DRAWER_TABS: DrawerTabItem[] = [
   },
   {
     id: "social_tracking",
-    label: "Social media & tracking",
+    label: "Social media, tracking & pixel",
     icon: Share2,
     isPro: false,
-    subtitle: "Customize social cards and add UTM campaign parameters.",
+    subtitle: "Customize social cards, campaign UTM parameters and retargeting pixels.",
   },
   {
     id: "routing",

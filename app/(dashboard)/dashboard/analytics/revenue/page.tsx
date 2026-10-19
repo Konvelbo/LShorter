@@ -179,14 +179,6 @@ function RevenueAnalyticsContent() {
           ? fetchedLinks.find((l: any) => l.id === linkId || l.slug === linkId)
           : null;
 
-        let storedLive = 0;
-        if (typeof window !== "undefined" && userId) {
-          try {
-            const s = localStorage.getItem(`lshorter_live_clicks_${userId}`);
-            if (s && !isNaN(Number(s))) storedLive = Number(s);
-          } catch {}
-        }
-
         const sumLinksClicks = fetchedLinks.reduce((acc: number, l: any) => acc + (l.clicks_count || l.clicksCount || l.clicks || 0), 0);
         const targetClicks = targetLink ? (targetLink.clicks_count || targetLink.clicksCount || targetLink.clicks || 0) : 0;
         const isAll = !targetLink || linkId === "all";
@@ -195,8 +187,8 @@ function RevenueAnalyticsContent() {
         const totalClicks = isShortWindow
           ? workerTotal
           : isAll
-            ? Math.max(workerTotal, sumLinksClicks, storedLive, syncedLiveClicks)
-            : Math.max(workerTotal || targetClicks, targetClicks);
+            ? (workerTotal > 0 ? workerTotal : sumLinksClicks)
+            : (workerTotal || targetClicks);
 
         if (totalClicks > 0 && typeof window !== "undefined" && userId && isAll) {
           try {
@@ -408,12 +400,12 @@ function RevenueAnalyticsContent() {
           customerName: c.customerName || c.customerFullName || c.fullName,
           customerEmail: c.customerEmail || c.email,
           customerAvatar: c.customerAvatar || (c as any).avatarUrl || (c as any).avatar,
-          countryCode: (c as any).countryCode || "US",
-          countryName: (c as any).countryName || "United States",
-          city: (c as any).city || "San Francisco",
-          device: (c as any).device || "desktop",
-          os: (c as any).os || "macOS",
-          browser: (c as any).browser || "Chrome",
+          countryCode: (c as any).countryCode || (c as any).country_code || "XX",
+          countryName: (c as any).countryName || (c as any).country_name || "Inconnu",
+          city: (c as any).city || "—",
+          device: (c as any).device || "Inconnu",
+          os: (c as any).os || "Inconnu",
+          browser: (c as any).browser || "Inconnu",
           referrer: (c as any).referrer || "Direct",
           ipMasked: "•••.•••.•••",
           timestamp: (c as any).created_at || (c as any).timestamp || new Date().toISOString(),
