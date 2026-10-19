@@ -350,7 +350,7 @@ export default function DashboardOverviewPage() {
       return;
     }
     if (status === "authenticated" && userId) {
-      loadData(false, true);
+      loadData(false, false);
     }
   }, [status, userId]);
 

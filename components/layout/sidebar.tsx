@@ -507,6 +507,7 @@ export function Sidebar() {
             ) : (
               <Link
                 href={item.href}
+                prefetch={true}
                 className={cn(
                   "group relative flex w-full items-center rounded-[8px] text-[13px] font-medium transition-all duration-150",
                   isCollapsed
@@ -547,6 +548,7 @@ export function Sidebar() {
                     <li key={sub.id}>
                       <Link
                         href={sub.href}
+                        prefetch={true}
                         onClick={() => {
                           const [, q] = sub.href.split("?");
                           const nextTab = q
@@ -704,6 +706,7 @@ export function Sidebar() {
                 {planNormalized === "FREE" ? (
                   <Link
                     href="/dashboard/pricing"
+                    prefetch={true}
                     className="text-[#0066FF] dark:text-[#5294FF] font-semibold hover:underline shrink-0 ml-1"
                   >
                     Upgrade →

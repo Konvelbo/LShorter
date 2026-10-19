@@ -590,6 +590,7 @@ export function Topbar() {
                   <div className="py-1">
                     <Link
                       href="/dashboard/settings?tab=profile"
+                      prefetch={true}
                       onClick={() => setIsProfileOpen(false)}
                       className="flex items-center gap-2.5 rounded-[8px] px-3 py-2 text-sm ds-text-secondary hover:bg-[#F2F4F7] dark:hover:bg-white/[0.05]"
                     >
@@ -598,6 +599,7 @@ export function Topbar() {
                     </Link>
                     <Link
                       href="/dashboard/settings?tab=billing"
+                      prefetch={true}
                       onClick={() => setIsProfileOpen(false)}
                       className="flex items-center gap-2.5 rounded-[8px] px-3 py-2 text-sm ds-text-secondary hover:bg-[#F2F4F7] dark:hover:bg-white/[0.05]"
                     >
@@ -606,6 +608,7 @@ export function Topbar() {
                     </Link>
                     <Link
                       href="/dashboard/settings"
+                      prefetch={true}
                       onClick={() => setIsProfileOpen(false)}
                       className="flex items-center gap-2.5 rounded-[8px] px-3 py-2 text-sm ds-text-secondary hover:bg-[#F2F4F7] dark:hover:bg-white/[0.05]"
                     >

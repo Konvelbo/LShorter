@@ -12,8 +12,8 @@ type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 const apiCache = new Map<string, { data: any; expiresAt: number }>();
 const inFlightRequests = new Map<string, Promise<any>>();
-// Cache GET responses for 5 seconds to eliminate micro-spam while ensuring snappy UI
-const CACHE_TTL_MS = 5000; // 5 seconds (invalidated immediately on mutations or click events)
+// Cache GET responses for 60 seconds to make page navigation instant (invalidated immediately on mutations or click events)
+const CACHE_TTL_MS = 60000; // 60 seconds
 
 export function parseTags(raw: any): string[] {
   if (!raw) return [];

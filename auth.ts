@@ -194,8 +194,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
 
       // Enrich token with Convex profile (plan, quotas, avatar, onboarding status)
-      // The user plan is strictly and authoritatively loaded from the Convex database
-      if (token.userId || token.email) {
+      // Sync on initial sign-in (user present), explicit update (trigger === "update"),
+      // or if token lacks crucial fields, or every 5 minutes (300,000ms) to avoid
+      // making blocking network calls across the internet on every internal route navigation.
+      const now = Date.now();
+      const lastSync = (token.lastConvexSync as number) || 0;
+      const shouldSyncWithConvex =
+        Boolean(user) ||
+        trigger === "update" ||
+        !token.plan ||
+        token.hasCompletedOnboarding === undefined ||
+        now - lastSync > 5 * 60 * 1000;
+
+      if ((token.userId || token.email) && shouldSyncWithConvex) {
         try {
           let convexUser = null;
           if (token.email) {
@@ -224,6 +235,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             if (convexUser.name) {
               token.name = convexUser.name;
             }
+            token.lastConvexSync = now;
           }
         } catch {
           if (token.hasCompletedOnboarding === undefined) {

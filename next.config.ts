@@ -22,6 +22,11 @@ const nextConfig: NextConfig = {
       "canvas-confetti",
       "date-fns",
       "react-simple-maps",
+      "recharts",
+      "three",
+      "cobe",
+      "radix-ui",
+      "emblor",
     ],
   },
   images: {

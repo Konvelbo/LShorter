@@ -7,11 +7,13 @@ import { UndoDeleteProvider } from "@/components/ui/undo-delete-provider";
 import { PlanUpgradeModal } from "@/components/dashboard/plan-upgrade-modal";
 import { ConvexClientProvider } from "@/components/providers/convex-client-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
+import { RouteProgressBar } from "@/components/layout/route-progress-bar";
 
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
   display: "swap",
+  fallback: ["system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"],
 });
 
 const bebasNeue = Bebas_Neue({
@@ -19,6 +21,7 @@ const bebasNeue = Bebas_Neue({
   weight: "400",
   subsets: ["latin"],
   display: "swap",
+  fallback: ["Impact", "Arial Narrow", "sans-serif"],
 });
 
 const poppins = Poppins({
@@ -26,6 +29,7 @@ const poppins = Poppins({
   weight: ["300", "400", "500", "600", "700", "800"],
   subsets: ["latin"],
   display: "swap",
+  fallback: ["system-ui", "-apple-system", "sans-serif"],
 });
 
 export const metadata: Metadata = {
@@ -73,6 +77,7 @@ export default function RootLayout({
         className="min-h-screen flex flex-col ds-bg-app ds-text-primary font-sans overflow-x-clip max-w-[100vw]"
         suppressHydrationWarning
       >
+        <RouteProgressBar />
         <Script
           id="dom-patch"
           strategy="beforeInteractive"

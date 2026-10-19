@@ -353,7 +353,7 @@ export default function LinksPage() {
       return;
     }
     if (status === "authenticated") {
-      loadLinks(false, true);
+      loadLinks(false, false);
     }
   }, [status, userId]);
 
