@@ -203,10 +203,14 @@ export async function GET(
           ? 302
           : 307;
 
-    return NextResponse.redirect(finalUrl, redirectCode);
+    const response = NextResponse.redirect(finalUrl, redirectCode);
+    response.headers.set("X-Robots-Tag", "noindex, nofollow");
+    return response;
   } catch (error: any) {
     console.error("[Redirect Handler Error]:", error);
-    return NextResponse.redirect(new URL(`/r/not-found`, req.url), 307);
+    const notFoundRes = NextResponse.redirect(new URL(`/r/not-found`, req.url), 307);
+    notFoundRes.headers.set("X-Robots-Tag", "noindex, nofollow");
+    return notFoundRes;
   }
 }
 

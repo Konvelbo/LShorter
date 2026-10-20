@@ -1,6 +1,24 @@
 import React from "react";
+import type { Metadata } from "next";
 import dynamic from "next/dynamic";
 import { HeroSection } from "@/components/marketing/hero-section2";
+import { FaqStructuredData } from "@/components/seo/json-ld";
+
+export const metadata: Metadata = {
+  title: "Enterprise Edge URL Shortener, Smart Routing & QR Code Studio",
+  description:
+    "Shorten, route, protect, and monetize your links on Cloudflare Edge with <15ms latency. Dynamic country/device routing, PathLock™ protection, and real-time revenue attribution.",
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: "LShorter — Enterprise Edge URL Shortener & Smart Routing",
+    description:
+      "Sub-15ms edge redirects, dynamic geo & device routing, PathLock™ protection, and real-time revenue analytics.",
+    url: "/",
+    images: ["/api/og?title=LShorter&desc=Edge+URL+Shortener+%26+Smart+Routing"],
+  },
+};
 
 const ProductSection = dynamic(
   () => import("@/components/marketing/product-section").then((m) => m.ProductSection),
@@ -30,6 +48,7 @@ const FaqSection = dynamic(
 export default function LandingPage() {
   return (
     <main className="flex flex-col w-full max-w-full bg-[#FFFFFF] dark:bg-[#09090B] transition-colors duration-300">
+      <FaqStructuredData />
       {/* 1. Hero Section (Ecosystem Overview + Replaceable Dashboard Showcase Image) */}
       <HeroSection />
 
