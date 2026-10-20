@@ -2,6 +2,24 @@
 
 import React, { useState } from "react";
 import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
+import { CSS } from "@dnd-kit/utilities";
+import {
   GripVertical,
   ChevronUp,
   ChevronDown,
@@ -353,7 +371,12 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
   };
 
   const handleDeleteRule = (ruleId: string) => {
-    onChange(rules.filter((r) => r.id !== ruleId));
+    const remaining = rules.filter((r) => r.id !== ruleId);
+    const updated = remaining.map((r, idx) => ({
+      ...r,
+      title: /^Rule \d+$/i.test(r.title) ? `Rule ${idx + 1}` : (r.title || `Rule ${idx + 1}`),
+    }));
+    onChange(updated);
   };
 
   const getDefaultValueForType = (type: string): string => {
@@ -462,6 +485,33 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
     );
   };
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = rules.findIndex((r) => r.id === active.id);
+      const newIndex = rules.findIndex((r) => r.id === over.id);
+      if (oldIndex !== -1 && newIndex !== -1) {
+        const reordered = arrayMove(rules, oldIndex, newIndex);
+        const updated = reordered.map((r, idx) => ({
+          ...r,
+          title: /^Rule \d+$/i.test(r.title) ? `Rule ${idx + 1}` : (r.title || `Rule ${idx + 1}`),
+        }));
+        onChange(updated);
+      }
+    }
+  };
+
   const selectClassName =
     "w-full h-10 rounded-[10px] bg-white dark:bg-[#1a1a1e] text-zinc-900 dark:text-white border border-zinc-200 dark:border-[#27272a] hover:border-[#465FFF] px-3 text-xs focus:outline-none focus:border-brand transition-all cursor-pointer shadow-2xs";
   const optionClassName = "bg-white dark:bg-[#141416] text-zinc-900 dark:text-white";
@@ -478,288 +528,40 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
         </span>
       </div>
 
-      {/* Rules List */}
-      <div className="flex flex-col gap-4">
-        {rules.map((rule) => (
-          <div
-            key={rule.id}
-            className="rounded-[12px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#27272a] p-4 sm:p-5 flex flex-col gap-4 shadow-xs dark:shadow-xl relative animate-in fade-in"
-          >
-            {/* Rule Header */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <GripVertical className="w-4 h-4 text-zinc-400 dark:text-neutral-500 cursor-grab" />
-                <span className="font-bold text-sm text-zinc-900 dark:text-white">{rule.title}</span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleToggleCollapse(rule.id)}
-                  className="flex items-center gap-1 text-xs text-zinc-600 dark:text-neutral-400 hover:text-zinc-900 dark:hover:text-white px-2.5 py-1 rounded-[8px] hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
-                >
-                  {rule.isCollapsed ? (
-                    <>
-                      <ChevronDown className="w-3.5 h-3.5" />
-                      <span>Expand</span>
-                    </>
-                  ) : (
-                    <>
-                      <ChevronUp className="w-3.5 h-3.5" />
-                      <span>Collapse</span>
-                    </>
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleDeleteRule(rule.id)}
-                  className="text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 p-1.5 hover:bg-red-500/10 rounded-[8px] transition-colors cursor-pointer"
-                  title="Delete rule"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-
-            {!rule.isCollapsed && (
-              <div className="flex flex-col gap-4 pt-2 border-t border-zinc-100 dark:border-[#222225]">
-                {/* Conditions Block */}
-                <div className="flex flex-col gap-2.5">
-                  {rule.conditions.map((cond, condIdx) => (
-                    <div
-                      key={cond.id}
-                      className="p-3 sm:p-2 rounded-[10px] bg-zinc-50 dark:bg-[#141418] border border-zinc-200 dark:border-[#27272f] sm:bg-transparent sm:border-0 flex flex-col gap-2 sm:grid sm:grid-cols-12 sm:gap-2 sm:items-center"
-                    >
-                      {/* Mobile Header: Prefix + Delete */}
-                      <div className="flex items-center justify-between sm:contents">
-                        <div className="sm:col-span-1 text-xs font-bold">
-                          <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-[6px] bg-[#ECF3FF] dark:bg-white/5 text-[#465FFF] font-mono font-bold">
-                            {condIdx === 0 ? "If" : "And"}
-                          </span>
-                        </div>
-
-                        {rule.conditions.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteCondition(rule.id, cond.id)}
-                            className="sm:hidden text-red-500 dark:text-red-400 hover:text-red-600 p-1 rounded-[8px]"
-                            title="Delete condition"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                      </div>
-
-                      {/* Row 1 on Mobile: Type + Operator */}
-                      <div className="grid grid-cols-2 gap-2 sm:contents">
-                        {/* Type Dropdown */}
-                        <div className="sm:col-span-3">
-                          <select
-                            value={cond.type === "region" ? "continent" : cond.type}
-                            onChange={(e) =>
-                              handleUpdateCondition(rule.id, cond.id, {
-                                type: e.target.value as any,
-                                value: getDefaultValueForType(e.target.value),
-                              })
-                            }
-                            className={selectClassName}
-                          >
-                            <option value="pays" className={optionClassName}>Country (Pays)</option>
-                            <option value="continent" className={optionClassName}>Continent</option>
-                            <option value="navigateur" className={optionClassName}>Browser (Navigateur)</option>
-                            <option value="plateforme" className={optionClassName}>Platform (OS)</option>
-                            <option value="appareil" className={optionClassName}>Device</option>
-                          </select>
-                        </div>
-
-                        {/* Operator Dropdown */}
-                        <div className="sm:col-span-2">
-                          <select
-                            value={cond.operator}
-                            onChange={(e) =>
-                              handleUpdateCondition(rule.id, cond.id, {
-                                operator: e.target.value as any,
-                              })
-                            }
-                            className={cn(selectClassName, "text-center")}
-                          >
-                            <option value="est" className={optionClassName}>is</option>
-                            <option value="nest_pas" className={optionClassName}>is not</option>
-                          </select>
-                        </div>
-                      </div>
-
-                      {/* Row 2 on Mobile: Value Selector */}
-                      <div className="sm:col-span-5">
-                        {cond.type === "pays" && (
-                          <CountryFlagDropdown
-                            value={cond.value}
-                            onSelect={(newCode) =>
-                              handleUpdateCondition(rule.id, cond.id, {
-                                value: newCode,
-                              })
-                            }
-                          />
-                        )}
-
-                        {cond.type === "navigateur" && (
-                          <select
-                            value={cond.value}
-                            onChange={(e) =>
-                              handleUpdateCondition(rule.id, cond.id, {
-                                value: e.target.value,
-                              })
-                            }
-                            className={selectClassName}
-                          >
-                            <option value="chrome" className={optionClassName}>Google Chrome</option>
-                            <option value="safari" className={optionClassName}>Apple Safari</option>
-                            <option value="firefox" className={optionClassName}>Mozilla Firefox</option>
-                            <option value="edge" className={optionClassName}>Microsoft Edge</option>
-                            <option value="opera" className={optionClassName}>Opera</option>
-                            <option value="brave" className={optionClassName}>Brave</option>
-                            <option value="samsung" className={optionClassName}>Samsung Internet</option>
-                          </select>
-                        )}
-
-                        {cond.type === "plateforme" && (
-                          <select
-                            value={cond.value}
-                            onChange={(e) =>
-                              handleUpdateCondition(rule.id, cond.id, {
-                                value: e.target.value,
-                              })
-                            }
-                            className={selectClassName}
-                          >
-                            <option value="windows" className={optionClassName}>Windows</option>
-                            <option value="macos" className={optionClassName}>macOS</option>
-                            <option value="linux" className={optionClassName}>Linux</option>
-                            <option value="ios" className={optionClassName}>iOS (iPhone &amp; iPad)</option>
-                            <option value="android" className={optionClassName}>Android</option>
-                          </select>
-                        )}
-
-                        {cond.type === "appareil" && (
-                          <select
-                            value={cond.value}
-                            onChange={(e) =>
-                              handleUpdateCondition(rule.id, cond.id, {
-                                value: e.target.value,
-                              })
-                            }
-                            className={selectClassName}
-                          >
-                            <option value="mobile" className={optionClassName}>Mobile (Smartphones)</option>
-                            <option value="tablet" className={optionClassName}>Tablet</option>
-                            <option value="desktop" className={optionClassName}>Desktop Computer</option>
-                          </select>
-                        )}
-
-                        {(cond.type === "continent" || cond.type === "region") && (
-                          <select
-                            value={cond.value}
-                            onChange={(e) =>
-                              handleUpdateCondition(rule.id, cond.id, {
-                                value: e.target.value,
-                              })
-                            }
-                            className={selectClassName}
-                          >
-                            <option value="africa" className={optionClassName}>Africa (Afrique)</option>
-                            <option value="europe" className={optionClassName}>Europe</option>
-                            <option value="north_america" className={optionClassName}>North America (Amérique du Nord)</option>
-                            <option value="south_america" className={optionClassName}>South America (Amérique du Sud)</option>
-                            <option value="asia" className={optionClassName}>Asia (Asie)</option>
-                            <option value="oceania" className={optionClassName}>Oceania (Océanie)</option>
-                            <option value="middle_east" className={optionClassName}>Middle East (Moyen-Orient)</option>
-                          </select>
-                        )}
-                      </div>
-
-                      {/* Desktop Remove Condition Button */}
-                      <div className="hidden sm:flex sm:col-span-1 justify-end">
-                        {rule.conditions.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteCondition(rule.id, cond.id)}
-                            className="text-zinc-400 dark:text-neutral-500 hover:text-red-500 dark:hover:text-red-400 p-1.5 hover:bg-red-500/10 rounded-[10px] transition-colors cursor-pointer"
-                            title="Delete condition"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-
-                  {/* Add Condition Button */}
-                  <div className="flex justify-end pt-1">
-                    <button
-                      type="button"
-                      onClick={() => handleAddCondition(rule.id)}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] bg-[#ECF3FF] dark:bg-[#465FFF]/15 text-[#465FFF] dark:text-[#7592FF] hover:bg-[#465FFF] hover:!text-white border border-[#465FFF]/30 font-semibold text-xs shadow-2xs hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 cursor-pointer"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>Add condition</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Target URL Destination ("Then redirect to") */}
-                <div className="flex flex-col gap-1.5 pt-2 border-t border-zinc-100 dark:border-[#222225]">
-                  <label className="text-xs font-semibold text-zinc-700 dark:text-neutral-300">
-                    Then redirect to <span className="text-brand">*</span>
-                  </label>
-                  {(() => {
-                    const trimmed = (rule.destinationUrl || "").trim();
-                    let isInvalid = false;
-                    if (trimmed) {
-                      if (/\s/.test(trimmed)) {
-                        isInvalid = true;
-                      } else {
-                        const withProto = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
-                        try {
-                          const u = new URL(withProto);
-                          if (!u.hostname || (!u.hostname.includes(".") && u.hostname !== "localhost")) {
-                            isInvalid = true;
-                          }
-                        } catch {
-                          isInvalid = true;
-                        }
-                      }
-                    }
-
-                    return (
-                      <>
-                        <Input
-                          required
-                          placeholder="https://shop.example.com/special-deal"
-                          value={rule.destinationUrl}
-                          onChange={(e) => handleUpdateDestination(rule.id, e.target.value)}
-                          className={cn(
-                            isInvalid &&
-                              "border-red-500 focus:border-red-500 focus:ring-red-500/30 bg-red-50 dark:bg-red-950/20 text-red-900 dark:text-red-100"
-                          )}
-                        />
-                        {isInvalid && (
-                          <div className="flex items-center gap-1.5 text-xs text-red-600 dark:text-red-400 bg-red-500/10 border border-red-500/30 rounded-[10px] px-2.5 py-1.5 mt-1 animate-in fade-in slide-in-from-top-1">
-                            <AlertCircle className="w-3.5 h-3.5 shrink-0 text-red-500" />
-                            <span className="font-medium">
-                              Invalid URL format. Must be a valid Web address (e.g. https://shop.example.com/promo).
-                            </span>
-                          </div>
-                        )}
-                      </>
-                    );
-                  })()}
-                </div>
-              </div>
-            )}
+      {/* Rules List with DndContext */}
+      <DndContext
+        id="routing-rules-dnd"
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        modifiers={[restrictToVerticalAxis]}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext
+          items={rules.map((r) => r.id)}
+          strategy={verticalListSortingStrategy}
+        >
+          <div className="flex flex-col gap-4">
+            {rules.map((rule, index) => (
+              <SortableRuleCard
+                key={rule.id}
+                rule={rule}
+                index={index}
+                totalRules={rules.length}
+                isProPlan={isProPlan}
+                onToggleCollapse={handleToggleCollapse}
+                onDeleteRule={handleDeleteRule}
+                onAddCondition={handleAddCondition}
+                onDeleteCondition={handleDeleteCondition}
+                onUpdateCondition={handleUpdateCondition}
+                onUpdateDestination={handleUpdateDestination}
+                getDefaultValueForType={getDefaultValueForType}
+                selectClassName={selectClassName}
+                optionClassName={optionClassName}
+              />
+            ))}
           </div>
-        ))}
-      </div>
+        </SortableContext>
+      </DndContext>
 
       {/* Add Rule Button */}
       <button
@@ -770,6 +572,356 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
         <Plus className="w-4 h-4 text-brand" />
         <span>Add rule</span>
       </button>
+    </div>
+  );
+}
+
+interface SortableRuleCardProps {
+  rule: RoutingRule;
+  index: number;
+  totalRules: number;
+  isProPlan: boolean;
+  onToggleCollapse: (ruleId: string) => void;
+  onDeleteRule: (ruleId: string) => void;
+  onAddCondition: (ruleId: string) => void;
+  onDeleteCondition: (ruleId: string, condId: string) => void;
+  onUpdateCondition: (
+    ruleId: string,
+    condId: string,
+    updates: Partial<Condition>
+  ) => void;
+  onUpdateDestination: (ruleId: string, url: string) => void;
+  getDefaultValueForType: (type: string) => string;
+  selectClassName: string;
+  optionClassName: string;
+}
+
+function SortableRuleCard({
+  rule,
+  index,
+  totalRules,
+  isProPlan,
+  onToggleCollapse,
+  onDeleteRule,
+  onAddCondition,
+  onDeleteCondition,
+  onUpdateCondition,
+  onUpdateDestination,
+  getDefaultValueForType,
+  selectClassName,
+  optionClassName,
+}: SortableRuleCardProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: rule.id });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Translate.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : undefined,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "rounded-[10px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#27272a] p-4 sm:p-5 flex flex-col gap-4 shadow-xs dark:shadow-xl relative transition-all duration-150",
+        isDragging && "ring-2 ring-[#465FFF] shadow-2xl opacity-80 border-[#465FFF]/60 z-50 bg-neutral-50/95 dark:bg-[#1a1a20]/95"
+      )}
+    >
+      {/* Rule Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {/* Accessible Drag Handle Button */}
+          <button
+            type="button"
+            className="p-1.5 -ml-1 text-zinc-400 dark:text-neutral-500 hover:text-zinc-800 dark:hover:text-neutral-200 cursor-grab active:cursor-grabbing touch-none rounded-[6px] hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors focus:outline-none select-none"
+            {...attributes}
+            {...listeners}
+            title="Glisser pour réorganiser (Drag to reorder priority)"
+            aria-label={`Drag to reorder ${rule.title}`}
+          >
+            <GripVertical className="w-4 h-4" />
+          </button>
+          <span className="font-bold text-sm text-zinc-900 dark:text-white">
+            {rule.title || `Rule ${index + 1}`}
+          </span>
+          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-[4px] bg-zinc-100 dark:bg-white/5 text-zinc-500 dark:text-neutral-400 font-medium">
+            Priority #{index + 1}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => onToggleCollapse(rule.id)}
+            className="flex items-center gap-1 text-xs text-zinc-600 dark:text-neutral-400 hover:text-zinc-900 dark:hover:text-white px-2.5 py-1 rounded-[8px] hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
+          >
+            {rule.isCollapsed ? (
+              <>
+                <ChevronDown className="w-3.5 h-3.5" />
+                <span>Expand</span>
+              </>
+            ) : (
+              <>
+                <ChevronUp className="w-3.5 h-3.5" />
+                <span>Collapse</span>
+              </>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onDeleteRule(rule.id)}
+            className="text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 p-1.5 hover:bg-red-500/10 rounded-[8px] transition-colors cursor-pointer"
+            title="Delete rule"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+
+      {!rule.isCollapsed && (
+        <div className="flex flex-col gap-4 pt-2 border-t border-zinc-100 dark:border-[#222225]">
+          {/* Conditions Block */}
+          <div className="flex flex-col gap-2.5">
+            {rule.conditions.map((cond, condIdx) => (
+              <div
+                key={cond.id}
+                className="p-3 sm:p-2 rounded-[10px] bg-zinc-50 dark:bg-[#141418] border border-zinc-200 dark:border-[#27272f] sm:bg-transparent sm:border-0 flex flex-col gap-2 sm:grid sm:grid-cols-12 sm:gap-2 sm:items-center"
+              >
+                {/* Mobile Header: Prefix + Delete */}
+                <div className="flex items-center justify-between sm:contents">
+                  <div className="sm:col-span-1 text-xs font-bold">
+                    <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-[6px] bg-[#ECF3FF] dark:bg-white/5 text-[#465FFF] font-mono font-bold">
+                      {condIdx === 0 ? "If" : "And"}
+                    </span>
+                  </div>
+
+                  {rule.conditions.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => onDeleteCondition(rule.id, cond.id)}
+                      className="sm:hidden text-red-500 dark:text-red-400 hover:text-red-600 p-1 rounded-[8px]"
+                      title="Delete condition"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Row 1 on Mobile: Type + Operator */}
+                <div className="grid grid-cols-2 gap-2 sm:contents">
+                  {/* Type Dropdown */}
+                  <div className="sm:col-span-3">
+                    <select
+                      value={cond.type === "region" ? "continent" : cond.type}
+                      onChange={(e) =>
+                        onUpdateCondition(rule.id, cond.id, {
+                          type: e.target.value as any,
+                          value: getDefaultValueForType(e.target.value),
+                        })
+                      }
+                      className={selectClassName}
+                    >
+                      <option value="pays" className={optionClassName}>Country (Pays)</option>
+                      <option value="continent" className={optionClassName}>Continent</option>
+                      <option value="navigateur" className={optionClassName}>Browser (Navigateur)</option>
+                      <option value="plateforme" className={optionClassName}>Platform (OS)</option>
+                      <option value="appareil" className={optionClassName}>Device</option>
+                    </select>
+                  </div>
+
+                  {/* Operator Dropdown */}
+                  <div className="sm:col-span-2">
+                    <select
+                      value={cond.operator}
+                      onChange={(e) =>
+                        onUpdateCondition(rule.id, cond.id, {
+                          operator: e.target.value as any,
+                        })
+                      }
+                      className={cn(selectClassName, "text-center")}
+                    >
+                      <option value="est" className={optionClassName}>is</option>
+                      <option value="nest_pas" className={optionClassName}>is not</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Row 2 on Mobile: Value Selector */}
+                <div className="sm:col-span-5">
+                  {cond.type === "pays" && (
+                    <CountryFlagDropdown
+                      value={cond.value}
+                      onSelect={(newCode) =>
+                        onUpdateCondition(rule.id, cond.id, {
+                          value: newCode,
+                        })
+                      }
+                    />
+                  )}
+
+                  {cond.type === "navigateur" && (
+                    <select
+                      value={cond.value}
+                      onChange={(e) =>
+                        onUpdateCondition(rule.id, cond.id, {
+                          value: e.target.value,
+                        })
+                      }
+                      className={selectClassName}
+                    >
+                      <option value="chrome" className={optionClassName}>Google Chrome</option>
+                      <option value="safari" className={optionClassName}>Apple Safari</option>
+                      <option value="firefox" className={optionClassName}>Mozilla Firefox</option>
+                      <option value="edge" className={optionClassName}>Microsoft Edge</option>
+                      <option value="opera" className={optionClassName}>Opera</option>
+                      <option value="brave" className={optionClassName}>Brave</option>
+                      <option value="samsung" className={optionClassName}>Samsung Internet</option>
+                    </select>
+                  )}
+
+                  {cond.type === "plateforme" && (
+                    <select
+                      value={cond.value}
+                      onChange={(e) =>
+                        onUpdateCondition(rule.id, cond.id, {
+                          value: e.target.value,
+                        })
+                      }
+                      className={selectClassName}
+                    >
+                      <option value="windows" className={optionClassName}>Windows</option>
+                      <option value="macos" className={optionClassName}>macOS</option>
+                      <option value="linux" className={optionClassName}>Linux</option>
+                      <option value="ios" className={optionClassName}>iOS (iPhone &amp; iPad)</option>
+                      <option value="android" className={optionClassName}>Android</option>
+                    </select>
+                  )}
+
+                  {cond.type === "appareil" && (
+                    <select
+                      value={cond.value}
+                      onChange={(e) =>
+                        onUpdateCondition(rule.id, cond.id, {
+                          value: e.target.value,
+                        })
+                      }
+                      className={selectClassName}
+                    >
+                      <option value="mobile" className={optionClassName}>Mobile (Smartphones)</option>
+                      <option value="tablet" className={optionClassName}>Tablet</option>
+                      <option value="desktop" className={optionClassName}>Desktop Computer</option>
+                    </select>
+                  )}
+
+                  {(cond.type === "continent" || cond.type === "region") && (
+                    <select
+                      value={cond.value}
+                      onChange={(e) =>
+                        onUpdateCondition(rule.id, cond.id, {
+                          value: e.target.value,
+                        })
+                      }
+                      className={selectClassName}
+                    >
+                      <option value="africa" className={optionClassName}>Africa (Afrique)</option>
+                      <option value="europe" className={optionClassName}>Europe</option>
+                      <option value="north_america" className={optionClassName}>North America (Amérique du Nord)</option>
+                      <option value="south_america" className={optionClassName}>South America (Amérique du Sud)</option>
+                      <option value="asia" className={optionClassName}>Asia (Asie)</option>
+                      <option value="oceania" className={optionClassName}>Oceania (Océanie)</option>
+                      <option value="middle_east" className={optionClassName}>Middle East (Moyen-Orient)</option>
+                    </select>
+                  )}
+                </div>
+
+                {/* Desktop Remove Condition Button */}
+                <div className="hidden sm:flex sm:col-span-1 justify-end">
+                  {rule.conditions.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => onDeleteCondition(rule.id, cond.id)}
+                      className="text-zinc-400 dark:text-neutral-500 hover:text-red-500 dark:hover:text-red-400 p-1.5 hover:bg-red-500/10 rounded-[10px] transition-colors cursor-pointer"
+                      title="Delete condition"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+
+            {/* Add Condition Button */}
+            <div className="flex justify-end pt-1">
+              <button
+                type="button"
+                onClick={() => onAddCondition(rule.id)}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] bg-[#ECF3FF] dark:bg-[#465FFF]/15 text-[#465FFF] dark:text-[#7592FF] hover:bg-[#465FFF] hover:!text-white border border-[#465FFF]/30 font-semibold text-xs shadow-2xs hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add condition</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Target URL Destination ("Then redirect to") */}
+          <div className="flex flex-col gap-1.5 pt-2 border-t border-zinc-100 dark:border-[#222225]">
+            <label className="text-xs font-semibold text-zinc-700 dark:text-neutral-300">
+              Then redirect to <span className="text-brand">*</span>
+            </label>
+            {(() => {
+              const trimmed = (rule.destinationUrl || "").trim();
+              let isInvalid = false;
+              if (trimmed) {
+                if (/\s/.test(trimmed)) {
+                  isInvalid = true;
+                } else {
+                  const withProto = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+                  try {
+                    const u = new URL(withProto);
+                    if (!u.hostname || (!u.hostname.includes(".") && u.hostname !== "localhost")) {
+                      isInvalid = true;
+                    }
+                  } catch {
+                    isInvalid = true;
+                  }
+                }
+              }
+
+              return (
+                <>
+                  <Input
+                    required
+                    placeholder="https://shop.example.com/special-deal"
+                    value={rule.destinationUrl}
+                    onChange={(e) => onUpdateDestination(rule.id, e.target.value)}
+                    className={cn(
+                      isInvalid &&
+                        "border-red-500 focus:border-red-500 focus:ring-red-500/30 bg-red-50 dark:bg-red-950/20 text-red-900 dark:text-red-100"
+                    )}
+                  />
+                  {isInvalid && (
+                    <div className="flex items-center gap-1.5 text-xs text-red-600 dark:text-red-400 bg-red-500/10 border border-red-500/30 rounded-[10px] px-2.5 py-1.5 mt-1 animate-in fade-in slide-in-from-top-1">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0 text-red-500" />
+                      <span className="font-medium">
+                        Invalid URL format. Must be a valid Web address (e.g. https://shop.example.com/promo).
+                      </span>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
