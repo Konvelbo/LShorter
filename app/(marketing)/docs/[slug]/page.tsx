@@ -34,6 +34,19 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title,
     description,
+    keywords: [
+      feature.title,
+      "PathLock",
+      "path lock",
+      "pathlock",
+      "verrouillage de chemin",
+      "verrouillage de lien",
+      "raccourccisseur de lien",
+      "raccourcisseur de lien",
+      "link shorter",
+      "link shortener",
+      "URL shortener",
+    ],
     alternates: {
       canonical: `/docs/${slug}`,
     },

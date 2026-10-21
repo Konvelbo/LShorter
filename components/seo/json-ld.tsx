@@ -28,6 +28,8 @@ export function RootStructuredData() {
     "@type": "WebSite",
     name: "LShorter",
     url: baseUrl,
+    keywords:
+      "raccourccisseur de lien, raccourcisseur de lien, link shorter, link shortener, path lock, pathlock, verrouillage de chemin, verrouillage de lien, lien protégé par mot de passe, password protected link, secure URL shortener, edge routing, dynamic QR code",
     potentialAction: {
       "@type": "SearchAction",
       target: {
@@ -45,7 +47,9 @@ export function RootStructuredData() {
     operatingSystem: "Cloud, All Modern Web Browsers",
     applicationCategory: "BusinessApplication",
     description:
-      "Enterprise link management, Cloudflare edge redirection under 15ms, dynamic geo-targeting, A/B split testing, PathLock™ protection, and real-time revenue attribution.",
+      "Enterprise link management, Cloudflare edge redirection under 15ms, dynamic geo-targeting, A/B split testing, PathLock™ (verrouillage de chemin) protection, and real-time revenue attribution.",
+    keywords:
+      "raccourccisseur de lien, raccourcisseur de lien, link shorter, link shortener, path lock, pathlock, verrouillage de chemin, lien protégé par mot de passe, password protected link, enterprise link management",
     offers: [
       {
         "@type": "Offer",
@@ -76,9 +80,9 @@ export function RootStructuredData() {
       },
     ],
     featureList: [
-      "Sub-15ms Edge Redirection",
+      "Sub-15ms Edge Redirection (Raccourcisseur de lien ultra-rapide)",
       "Dynamic Geo & Device Smart Routing",
-      "PathLock™ PIN Link Gate",
+      "PathLock™ PIN Link Gate (Verrouillage de chemin & protection par mot de passe)",
       "Real-time Telemetry & City-level Analytics",
       "Revenue Attribution & EPC Tracking",
       "Dynamic QR Code Studio",

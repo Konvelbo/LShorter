@@ -6,6 +6,18 @@ export const metadata: Metadata = {
   title: "Pricing & Enterprise Plans",
   description:
     "Transparent pricing for high-scale teams. Starts free with 5,000 clicks/mo. Pro at $9/mo and Business at $29/mo with custom branded domains and edge routing.",
+  keywords: [
+    "raccourccisseur de lien",
+    "raccourcisseur de lien",
+    "link shorter",
+    "link shortener",
+    "path lock",
+    "pathlock",
+    "verrouillage de chemin",
+    "pricing url shortener",
+    "tarifs raccourcisseur de lien",
+    "enterprise link management pricing",
+  ],
   alternates: {
     canonical: "/pricing",
   },
