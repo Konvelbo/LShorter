@@ -27,6 +27,13 @@ export function RootStructuredData() {
     "@context": "https://schema.org",
     "@type": "WebSite",
     name: "LShorter",
+    alternateName: [
+      "Lshorter",
+      "LShorter Link Shortener",
+      "lsho.cc",
+      "lsho",
+      "LShorter URL Shortener",
+    ],
     url: baseUrl,
     keywords:
       "raccourccisseur de lien, raccourcisseur de lien, link shorter, link shortener, path lock, pathlock, verrouillage de chemin, verrouillage de lien, lien protégé par mot de passe, password protected link, secure URL shortener, edge routing, dynamic QR code",
@@ -38,6 +45,61 @@ export function RootStructuredData() {
       },
       "query-input": "required name=search_term_string",
     },
+  };
+
+  const siteNavigationSchema = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    itemListElement: [
+      {
+        "@type": "SiteNavigationElement",
+        position: 1,
+        name: "Pricing & Plans",
+        description:
+          "Transparent pricing for individuals, startups, and enterprises. Free starter to Enterprise tier.",
+        url: `${baseUrl}/pricing`,
+      },
+      {
+        "@type": "SiteNavigationElement",
+        position: 2,
+        name: "Documentation & API",
+        description:
+          "Developer guides, REST API reference, webhooks, and SDK quickstart.",
+        url: `${baseUrl}/docs`,
+      },
+      {
+        "@type": "SiteNavigationElement",
+        position: 3,
+        name: "PathLock™ Security",
+        description:
+          "PIN protection, password-gated links, and enterprise link protection against unauthorized access.",
+        url: `${baseUrl}/docs/pathlock`,
+      },
+      {
+        "@type": "SiteNavigationElement",
+        position: 4,
+        name: "Dynamic QR Code Studio",
+        description:
+          "Create and customize high-resolution dynamic QR codes with live click telemetry and analytics.",
+        url: `${baseUrl}/docs/qr-studio`,
+      },
+      {
+        "@type": "SiteNavigationElement",
+        position: 5,
+        name: "Global Edge Redirection",
+        description:
+          "Sub-15ms edge redirects powered by Cloudflare Workers and D1 with geo-targeting and device routing.",
+        url: `${baseUrl}/docs/edge-redirection`,
+      },
+      {
+        "@type": "SiteNavigationElement",
+        position: 6,
+        name: "Terms of Service",
+        description:
+          "Terms of Service, acceptable use policy, and compliance standards for LShorter.",
+        url: `${baseUrl}/terms`,
+      },
+    ],
   };
 
   const softwareAppSchema = {
@@ -103,6 +165,10 @@ export function RootStructuredData() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareAppSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(siteNavigationSchema) }}
       />
     </>
   );

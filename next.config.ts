@@ -117,6 +117,21 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      {
+        source: "/:path*",
+        has: [
+          {
+            type: "host",
+            value: "www.lsho.cc",
+          },
+        ],
+        destination: "https://lsho.cc/:path*",
+        permanent: true,
+      },
+    ];
+  },
   async rewrites() {
     return [
       {
