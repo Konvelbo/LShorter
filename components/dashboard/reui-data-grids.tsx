@@ -1110,7 +1110,7 @@ export function LinksReuiDataGrid({
                   className="w-4 h-4 rounded-[4px] border-red-300 text-red-600 focus:ring-red-500 cursor-pointer shrink-0"
                 />
                 <span className="font-medium text-red-900 dark:text-red-200 truncate">
-                  {selectedLinkIdsList.length} lien{selectedLinkIdsList.length > 1 ? "s" : ""} sélectionné{selectedLinkIdsList.length > 1 ? "s" : ""}
+                  {selectedLinkIdsList.length} link{selectedLinkIdsList.length > 1 ? "s" : ""} selected
                 </span>
               </div>
               <div className="flex items-center gap-2 shrink-0">
@@ -1119,7 +1119,7 @@ export function LinksReuiDataGrid({
                   onClick={() => setSelectedIds({})}
                   className="px-2 py-1 text-[11px] font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 cursor-pointer"
                 >
-                  Annuler
+                  Cancel
                 </button>
                 <button
                   type="button"
@@ -1134,7 +1134,7 @@ export function LinksReuiDataGrid({
                   className="h-7.5 px-3 rounded-[6px] bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-medium flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
-                  <span>Supprimer</span>
+                  <span>Delete</span>
                 </button>
               </div>
             </div>
@@ -1142,7 +1142,7 @@ export function LinksReuiDataGrid({
 
           {paginatedRows.length === 0 ? (
             <div className="py-12 text-center text-xs text-zinc-500 dark:text-zinc-400">
-              Aucun lien ne correspond à vos critères.
+              No links match your search criteria.
             </div>
           ) : (
             paginatedRows.map((row) => {
@@ -1186,7 +1186,7 @@ export function LinksReuiDataGrid({
                             /{row.slug}
                           </span>
                           <span className="font-mono text-[10.5px] text-zinc-500 dark:text-zinc-400 shrink-0">
-                            {row.clicks.toLocaleString()} clics
+                            {row.clicks.toLocaleString()} clicks
                           </span>
                         </div>
                       </div>
@@ -1217,15 +1217,15 @@ export function LinksReuiDataGrid({
                       {/* Metric summary strip */}
                       <div className="grid grid-cols-3 gap-1.5 py-1 text-center bg-zinc-50 dark:bg-[#18181c] rounded-[8px] p-2">
                         <div>
-                          <span className="text-[10px] text-zinc-500 dark:text-zinc-400 block uppercase tracking-wider font-normal">Clics uniques</span>
+                          <span className="text-[10px] text-zinc-500 dark:text-zinc-400 block uppercase tracking-wider font-normal">Unique Clicks</span>
                           <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 font-mono">{row.clicks.toLocaleString()}</span>
                         </div>
                         <div>
-                          <span className="text-[10px] text-zinc-500 dark:text-zinc-400 block uppercase tracking-wider font-normal">Revenus</span>
+                          <span className="text-[10px] text-zinc-500 dark:text-zinc-400 block uppercase tracking-wider font-normal">Revenue</span>
                           <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 font-mono">${row.revenue.toFixed(2)}</span>
                         </div>
                         <div>
-                          <span className="text-[10px] text-zinc-500 dark:text-zinc-400 block uppercase tracking-wider font-normal">Statut</span>
+                          <span className="text-[10px] text-zinc-500 dark:text-zinc-400 block uppercase tracking-wider font-normal">Status</span>
                           <span className={cn("text-xs font-semibold font-mono", isRowActive ? "text-emerald-600 dark:text-emerald-400" : "text-zinc-500")}>
                             {row.status}
                           </span>
@@ -1260,23 +1260,24 @@ export function LinksReuiDataGrid({
                               : "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20"
                           )}
                         >
-                          {isRowActive ? "Mettre en pause" : "Activer"}
+                          {isRowActive ? "Pause" : "Activate"}
                         </button>
 
-                        {/* Actions group: ChevronLeft trigger revealing buttons with slide-in animation */}
-                        <div className="flex items-center gap-1.5 justify-end">
+                        {/* Actions group: ChevronLeft trigger revealing buttons with smooth staggered slide-in animation */}
+                        <div className="flex items-center gap-1.5 justify-end overflow-hidden">
                           {openMobileActionsId !== row.id ? (
                             <button
                               type="button"
                               onClick={() => setOpenMobileActionsId(row.id)}
-                              className="w-7 h-7 flex items-center justify-center rounded-[6px] border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-[#18181c] text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer active:scale-95"
-                              title="Afficher les actions"
-                              aria-label="Afficher les actions"
+                              className="w-7 h-7 flex items-center justify-center rounded-[6px] border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-[#18181c] text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all cursor-pointer active:scale-90"
+                              title="Actions"
+                              aria-label="Show actions"
                             >
-                              <ChevronLeft className="w-4 h-4" />
+                              <ChevronLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
                             </button>
                           ) : (
-                            <div className="flex items-center gap-1.5 animate-in fade-in duration-200">
+                            <div className="flex items-center gap-1.5">
+                              {/* 1. Share button */}
                               <button
                                 type="button"
                                 onClick={() => {
@@ -1286,49 +1287,79 @@ export function LinksReuiDataGrid({
                                     navigator.share({ title: `/${row.slug}`, url: row.shortUrl }).catch(() => {});
                                   } else {
                                     navigator.clipboard.writeText(row.shortUrl);
-                                    showToast.success("Lien copié dans le presse-papier !");
+                                    showToast.success("Link copied to clipboard!");
                                   }
                                 }}
-                                className="px-2.5 py-1 text-[11px] font-medium border border-zinc-200 dark:border-zinc-700 rounded-[6px] text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer flex items-center gap-1 animate-in fade-in slide-in-from-right-3 duration-150"
-                                title="Partager le lien"
+                                style={{
+                                  animation: "slideInSmooth 280ms cubic-bezier(0.16, 1, 0.3, 1) backwards",
+                                  animationDelay: "0ms",
+                                }}
+                                className="px-2.5 py-1 text-[11px] font-medium border border-zinc-200 dark:border-zinc-700 rounded-[6px] text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer flex items-center gap-1 shadow-2xs active:scale-95"
+                                title="Share link"
                               >
                                 <Share2 className="w-3 h-3 text-sky-500 shrink-0" />
                                 <span>Share</span>
                               </button>
+
+                              {/* 2. Edit button */}
                               {effectiveEdit && (
                                 <button
                                   type="button"
                                   onClick={() => effectiveEdit(row.raw)}
-                                  className="px-2.5 py-1 text-[11px] font-medium border border-zinc-200 dark:border-zinc-700 rounded-[6px] text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer animate-in fade-in slide-in-from-right-3 duration-200"
+                                  style={{
+                                    animation: "slideInSmooth 280ms cubic-bezier(0.16, 1, 0.3, 1) backwards",
+                                    animationDelay: "50ms",
+                                  }}
+                                  className="px-2.5 py-1 text-[11px] font-medium border border-zinc-200 dark:border-zinc-700 rounded-[6px] text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer shadow-2xs active:scale-95"
+                                  title="Edit link"
                                 >
-                                  Modifier
+                                  Edit
                                 </button>
                               )}
+
+                              {/* 3. QR button */}
                               {effectiveQr && (
                                 <button
                                   type="button"
                                   onClick={() => effectiveQr(row.raw)}
-                                  className="px-2.5 py-1 text-[11px] font-medium border border-zinc-200 dark:border-zinc-700 rounded-[6px] text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer animate-in fade-in slide-in-from-right-3 duration-250"
+                                  style={{
+                                    animation: "slideInSmooth 280ms cubic-bezier(0.16, 1, 0.3, 1) backwards",
+                                    animationDelay: "100ms",
+                                  }}
+                                  className="px-2.5 py-1 text-[11px] font-medium border border-zinc-200 dark:border-zinc-700 rounded-[6px] text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer shadow-2xs active:scale-95"
+                                  title="Generate QR Code"
                                 >
                                   QR
                                 </button>
                               )}
+
+                              {/* 4. Delete button (no bell button) */}
                               {onDeleteLink && (
                                 <button
                                   type="button"
                                   onClick={() => onDeleteLink(row.raw)}
-                                  className="px-2 py-1 text-[11px] font-medium border border-red-500/20 rounded-[6px] text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors cursor-pointer animate-in fade-in slide-in-from-right-3 duration-300"
-                                  title="Supprimer"
+                                  style={{
+                                    animation: "slideInSmooth 280ms cubic-bezier(0.16, 1, 0.3, 1) backwards",
+                                    animationDelay: "150ms",
+                                  }}
+                                  className="px-2 py-1 text-[11px] font-medium border border-red-500/20 rounded-[6px] text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors cursor-pointer shadow-2xs active:scale-95"
+                                  title="Delete link"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
                                 </button>
                               )}
+
+                              {/* 5. Collapse button */}
                               <button
                                 type="button"
                                 onClick={() => setOpenMobileActionsId(null)}
-                                className="w-7 h-7 flex items-center justify-center rounded-[6px] border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-[#18181c] text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer shrink-0"
-                                title="Fermer les actions"
-                                aria-label="Fermer les actions"
+                                style={{
+                                  animation: "slideInSmooth 280ms cubic-bezier(0.16, 1, 0.3, 1) backwards",
+                                  animationDelay: "200ms",
+                                }}
+                                className="w-7 h-7 flex items-center justify-center rounded-[6px] border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-[#18181c] text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer shrink-0 active:scale-90"
+                                title="Close actions"
+                                aria-label="Close actions"
                               >
                                 <ChevronRight className="w-3.5 h-3.5" />
                               </button>
@@ -1358,12 +1389,12 @@ export function LinksReuiDataGrid({
                 }
                 setSelectedIds({});
               }}
-              title={`Supprimer ${selectedLinkIdsList.length} lien${selectedLinkIdsList.length > 1 ? "s" : ""} sélectionné${selectedLinkIdsList.length > 1 ? "s" : ""}`}
-              aria-label="Supprimer les liens sélectionnés"
+              title={`Delete ${selectedLinkIdsList.length} selected link${selectedLinkIdsList.length > 1 ? "s" : ""}`}
+              aria-label="Delete selected links"
               className="hidden sm:inline-flex h-8 px-2.5 rounded-[6px] bg-red-50 hover:bg-red-100 dark:bg-red-950/50 dark:hover:bg-red-900/50 border border-red-200 dark:border-red-900/60 text-red-600 dark:text-red-400 text-xs font-medium items-center gap-1.5 transition-all cursor-pointer shadow-2xs active:scale-95 shrink-0"
             >
               <Trash2 className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
-              <span className="text-[11.5px] font-medium">Supprimer ({selectedLinkIdsList.length})</span>
+              <span className="text-[11.5px] font-medium">Delete ({selectedLinkIdsList.length})</span>
             </button>
           )}
           <p className="text-[13px] text-[#667085] dark:text-[#a1a1aa]">
@@ -2103,7 +2134,7 @@ export function GeoLogsReuiDataGrid({
         <div className="sm:hidden flex flex-col gap-2 p-1 font-sans">
           {paginatedRows.length === 0 ? (
             <div className="py-12 text-center text-xs text-zinc-500 dark:text-zinc-400">
-              Aucun événement de redirection enregistré pour le moment.
+              No edge redirect events recorded yet.
             </div>
           ) : (
             paginatedRows.map((item) => {
@@ -2174,7 +2205,7 @@ export function GeoLogsReuiDataGrid({
                           <span className="font-medium text-zinc-800 dark:text-zinc-200">{item.device}</span>
                         </div>
                         <div>
-                          <span className="text-[10px] text-zinc-500 dark:text-zinc-400 block uppercase font-normal">Sécurité Edge</span>
+                          <span className="text-[10px] text-zinc-500 dark:text-zinc-400 block uppercase font-normal">Edge Security</span>
                           <span className="font-medium text-emerald-600 dark:text-emerald-400 font-mono">{item.status}</span>
                         </div>
                       </div>

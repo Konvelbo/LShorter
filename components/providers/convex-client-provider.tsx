@@ -7,11 +7,14 @@ import { convexClient } from "@/lib/convex-client";
 
 export function ConvexClientProvider({ children }: { children: ReactNode }) {
   return (
-    <SessionProvider>
+    <SessionProvider
+      basePath="/api/auth"
+      refetchOnWindowFocus={false}
+      refetchWhenOffline={false}
+    >
       <ConvexProvider client={convexClient}>
         {children}
       </ConvexProvider>
     </SessionProvider>
   );
 }
-

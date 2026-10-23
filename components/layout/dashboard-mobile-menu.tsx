@@ -308,8 +308,8 @@ export function DashboardMobileMenu({
                   onOpenSearch();
                 }}
                 className="p-2 text-[#52525B] dark:text-[#A1A1AA] hover:text-[#09090B] dark:hover:text-white transition-colors cursor-pointer bg-transparent border-none active:scale-90"
-                aria-label="Rechercher"
-                title="Rechercher (⌘K)"
+                aria-label="Search"
+                title="Search (⌘K)"
               >
                 <Search className="w-5 h-5 stroke-[1.75]" />
               </button>
@@ -319,8 +319,8 @@ export function DashboardMobileMenu({
                 type="button"
                 onClick={toggleTheme}
                 className="p-2 text-[#52525B] dark:text-[#A1A1AA] hover:text-[#09090B] dark:hover:text-white transition-colors cursor-pointer bg-transparent border-none active:scale-90"
-                aria-label="Basculer le thème"
-                title={theme === "dark" ? "Passer en mode clair" : "Passer en mode sombre"}
+                aria-label="Toggle theme"
+                title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
               >
                 {theme === "dark" ? (
                   <Sun className="w-5 h-5 stroke-[1.75] text-amber-400" />
@@ -335,7 +335,7 @@ export function DashboardMobileMenu({
               type="button"
               onClick={onClose}
               className="w-8 h-8 rounded-full flex items-center justify-center bg-black/[0.04] dark:bg-white/[0.05] border border-black/[0.08] dark:border-white/[0.08] text-[#52525B] dark:text-[#A1A1AA] hover:text-[#09090B] dark:hover:text-white active:scale-90 transition-all cursor-pointer"
-              aria-label="Fermer le menu"
+              aria-label="Close menu"
             >
               <X className="w-4 h-4 stroke-[1.75]" />
             </button>
@@ -751,7 +751,7 @@ export function DashboardMobileMenu({
                   <span>Thème</span>
                 </span>
                 <span className="text-[11px] font-medium px-2 py-0.5 rounded-[5px] bg-black/[0.04] dark:bg-white/[0.06] ds-text-muted capitalize">
-                  {theme === "dark" ? "Sombre" : "Clair"}
+                  {theme === "dark" ? "Dark" : "Light"}
                 </span>
               </button>
             </div>
