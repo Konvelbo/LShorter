@@ -7,13 +7,25 @@ export function RootStructuredData() {
     "@context": "https://schema.org",
     "@type": "Organization",
     name: "LShorter",
+    alternateName: [
+      "lshorter",
+      "Lshorter",
+      "lsho",
+      "Lsho",
+      "lsho.cc",
+      "lsho cc",
+      "LShorter SaaS",
+      "LShorter URL Shortener",
+    ],
     url: baseUrl,
     logo: `${baseUrl}/logo.png`,
     description:
-      "Enterprise URL shortener, edge routing infrastructure, and dynamic QR Code platform.",
+      "LShorter (lsho.cc) - Enterprise URL shortener, edge routing infrastructure, PathLock™ protection, and dynamic QR Code platform.",
     sameAs: [
       "https://twitter.com/lshorter",
       "https://github.com/Konvelbo/LShorter",
+      "https://github.com/Konvelbo/LShorter-api",
+      "https://www.npmjs.com/package/lshorter-api",
     ],
     contactPoint: {
       "@type": "ContactPoint",
@@ -28,15 +40,19 @@ export function RootStructuredData() {
     "@type": "WebSite",
     name: "LShorter",
     alternateName: [
+      "lshorter",
       "Lshorter",
-      "LShorter Link Shortener",
-      "lsho.cc",
       "lsho",
+      "Lsho",
+      "lsho.cc",
+      "lsho cc",
+      "LShorter Link Shortener",
       "LShorter URL Shortener",
+      "LShorter SaaS",
     ],
     url: baseUrl,
     keywords:
-      "raccourccisseur de lien, raccourcisseur de lien, link shorter, link shortener, path lock, pathlock, verrouillage de chemin, verrouillage de lien, lien protégé par mot de passe, password protected link, secure URL shortener, edge routing, dynamic QR code",
+      "lshorter, Lshorter, lsho, Lsho, lsho.cc, lsho cc, lshorter saas, lshorter url shortener, lshorter link shortener, raccourccisseur de lien, raccourcisseur de lien, link shorter, link shortener, path lock, pathlock, verrouillage de chemin, verrouillage de lien, lien protégé par mot de passe, password protected link, secure URL shortener, edge routing, dynamic QR code",
     potentialAction: {
       "@type": "SearchAction",
       target: {
@@ -106,12 +122,21 @@ export function RootStructuredData() {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
     name: "LShorter Edge Link Management",
+    alternateName: [
+      "LShorter",
+      "lshorter",
+      "Lshorter",
+      "lsho",
+      "Lsho",
+      "lsho.cc",
+      "lsho cc",
+    ],
     operatingSystem: "Cloud, All Modern Web Browsers",
     applicationCategory: "BusinessApplication",
     description:
-      "Enterprise link management, Cloudflare edge redirection under 15ms, dynamic geo-targeting, A/B split testing, PathLock™ (verrouillage de chemin) protection, and real-time revenue attribution.",
+      "LShorter (lsho.cc) - Enterprise link management, Cloudflare edge redirection under 15ms, dynamic geo-targeting, A/B split testing, PathLock™ (verrouillage de chemin) protection, and real-time revenue attribution.",
     keywords:
-      "raccourccisseur de lien, raccourcisseur de lien, link shorter, link shortener, path lock, pathlock, verrouillage de chemin, lien protégé par mot de passe, password protected link, enterprise link management",
+      "lshorter, Lshorter, lsho, Lsho, lsho.cc, lsho cc, lshorter saas, lshorter url shortener, raccourccisseur de lien, raccourcisseur de lien, link shorter, link shortener, path lock, pathlock, verrouillage de chemin, lien protégé par mot de passe, password protected link, enterprise link management",
     offers: [
       {
         "@type": "Offer",
