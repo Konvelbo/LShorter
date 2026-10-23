@@ -59,92 +59,112 @@ const TREND_ITEMS = [
 // - Light mode : Opacité 100% pleine et solide (zéro transparence, couleurs riches et saturées).
 // - Dark mode : Opacité lumineuse équilibrée (dark:opacity-65 à 75).
 const HERO_BACKGROUND_EMOJIS = [
-  // ==================== CÔTÉ GAUCHE ====================
+  // ==================== CÔTÉ GAUCHE & HAUT ====================
   // 1. Haut Gauche (Mobile & Desktop) : Link 🔗 (En haut à gauche hors du texte)
   {
     src: "/emojis/link.png",
     alt: "Smart Short Links",
-    className: "top-[8%] left-[4%] sm:top-[9%] sm:left-[4%] lg:left-[5%] w-7 h-7 xs:w-8 xs:h-8 sm:w-11 sm:h-11 lg:w-14 lg:h-14 opacity-100 dark:opacity-70 lg:dark:opacity-75",
+    className:
+      "top-[7%] left-[4%] sm:top-[9%] sm:left-[4%] lg:left-[5%] w-7 h-7 xs:w-8 xs:h-8 sm:w-11 sm:h-11 lg:w-14 lg:h-14 opacity-100 dark:opacity-70 lg:dark:opacity-75",
     animation: "animate-hero-float-1",
   },
-  // 2. Haut-Milieu Gauche (Desktop uniquement) : Shield 🛡️
+  // 2. Zone Rouge 1 (Mobile) : Shield 🛡️ (Sous Link, vers le centre)
   {
     src: "/emojis/shield.png",
     alt: "PathLock™ Security Shield",
-    className: "top-[23%] left-[8%] lg:left-[10%] w-11 h-11 lg:w-13 lg:h-13 hidden sm:flex opacity-100 dark:opacity-70 lg:dark:opacity-75",
+    className:
+      "top-[11%] left-[22%] sm:top-[23%] sm:left-[8%] lg:left-[10%] w-7 h-7 xs:w-8 xs:h-8 sm:w-11 sm:h-11 lg:w-13 lg:h-13 opacity-100 dark:opacity-70 lg:dark:opacity-75",
     animation: "animate-hero-float-4",
   },
-  // 3. Centre-Haut Gauche (Desktop uniquement) : Compass 🧭
+  // 3. Zone Rouge 2 (Mobile) : Compass 🧭 (Au-dessus des badges à gauche)
   {
     src: "/emojis/compass.png",
     alt: "Smart Geo Routing Compass",
-    className: "top-[38%] left-[3%] lg:left-[4%] w-11 h-11 lg:w-14 lg:h-14 hidden sm:flex opacity-100 dark:opacity-70 lg:dark:opacity-75",
+    className:
+      "top-[22%] left-[14%] sm:top-[38%] sm:left-[3%] lg:left-[4%] w-7 h-7 xs:w-8 xs:h-8 sm:w-11 sm:h-11 lg:w-14 lg:h-14 opacity-100 dark:opacity-70 lg:dark:opacity-75",
     animation: "animate-hero-float-2",
   },
-  // 4. Centre-Bas Gauche (Desktop uniquement) : Globe 🌐
+  // 4. Zone Rouge 5 (Mobile) : Globe 🌐 (À gauche du paragraphe de description)
   {
     src: "/emojis/globe.png",
     alt: "Global Edge Anycast Routing",
-    className: "top-[52%] left-[8%] lg:left-[10%] w-11 h-11 lg:w-14 lg:h-14 hidden sm:flex opacity-100 dark:opacity-70 lg:dark:opacity-75",
+    className:
+      "top-[60%] left-[3%] sm:top-[52%] sm:left-[8%] lg:left-[10%] w-7 h-7 xs:w-8 xs:h-8 sm:w-11 sm:h-11 lg:w-14 lg:h-14 opacity-100 dark:opacity-70 lg:dark:opacity-75",
     animation: "animate-hero-float-3",
   },
-  // 5. Bas-Centre Gauche (Desktop uniquement) : Key 🔑
+  // 5. Zone Rouge 7 (Mobile) : Key 🔑 (Sous les boutons à gauche)
   {
     src: "/emojis/key.png",
     alt: "Secure API Keys & Tokens",
-    className: "top-[67%] left-[3%] lg:left-[4%] w-11 h-11 lg:w-13 lg:h-13 hidden sm:flex opacity-100 dark:opacity-70 lg:dark:opacity-75",
+    className:
+      "top-[78%] left-[11%] sm:top-[67%] sm:left-[3%] lg:left-[4%] w-7 h-7 xs:w-8 xs:h-8 sm:w-11 sm:h-11 lg:w-13 lg:h-13 opacity-100 dark:opacity-70 lg:dark:opacity-75",
     animation: "animate-hero-float-1",
   },
   // 6. Bas Gauche (Mobile & Desktop) : Check ✅ (En bas à gauche sous les boutons)
   {
     src: "/emojis/check.png",
     alt: "Verified Link Routing",
-    className: "top-[88%] left-[4%] sm:top-[80%] sm:left-[8%] lg:left-[9%] w-7 h-7 xs:w-8 xs:h-8 sm:w-11 sm:h-11 lg:w-13 lg:h-13 opacity-100 dark:opacity-70 lg:dark:opacity-75",
+    className:
+      "top-[89%] left-[4%] sm:top-[80%] sm:left-[8%] lg:left-[9%] w-7 h-7 xs:w-8 xs:h-8 sm:w-11 sm:h-11 lg:w-13 lg:h-13 opacity-100 dark:opacity-70 lg:dark:opacity-75",
     animation: "animate-hero-float-4",
   },
 
-  // ==================== CÔTÉ DROIT ====================
+  // ==================== CÔTÉ DROIT & CENTRE ====================
   // 7. Haut Droit (Mobile & Desktop) : Lock 🔒 (En haut à droite hors du texte)
   {
     src: "/emojis/lock.png",
     alt: "PIN Cloaking & Encryption",
-    className: "top-[8%] right-[4%] sm:top-[9%] sm:right-[4%] lg:right-[5%] w-7 h-7 xs:w-8 xs:h-8 sm:w-11 sm:h-11 lg:w-14 lg:h-14 opacity-100 dark:opacity-70 lg:dark:opacity-75",
+    className:
+      "top-[7%] right-[4%] sm:top-[9%] sm:right-[4%] lg:right-[5%] w-7 h-7 xs:w-8 xs:h-8 sm:w-11 sm:h-11 lg:w-14 lg:h-14 opacity-100 dark:opacity-70 lg:dark:opacity-75",
     animation: "animate-hero-float-2",
   },
-  // 8. Haut-Milieu Droit (Desktop uniquement) : Handshake 🤝
+  // 8. Zone Rouge 3 (Mobile) : Handshake 🤝 (Sous Lock, vers le centre)
   {
     src: "/emojis/handshake.png",
     alt: "Verified SLAs & Partnership",
-    className: "top-[23%] right-[8%] lg:right-[10%] w-11 h-11 lg:w-13 lg:h-13 hidden sm:flex opacity-100 dark:opacity-70 lg:dark:opacity-75",
+    className:
+      "top-[15%] right-[26%] sm:top-[23%] sm:right-[8%] lg:right-[10%] w-7 h-7 xs:w-8 xs:h-8 sm:w-11 sm:h-11 lg:w-13 lg:h-13 opacity-100 dark:opacity-70 lg:dark:opacity-75",
     animation: "animate-hero-float-1",
   },
-  // 9. Centre-Haut Droit (Desktop uniquement) : Zap ⚡
+  // 9. Zone Rouge 4 (Mobile) : Zap ⚡ (À droite du grand titre)
   {
     src: "/emojis/zap.png",
     alt: "Ultra-fast Edge Redirection",
-    className: "top-[38%] right-[3%] lg:right-[4%] w-11 h-11 lg:w-14 lg:h-14 hidden sm:flex opacity-100 dark:opacity-70 lg:dark:opacity-75",
+    className:
+      "top-[33%] right-[4%] sm:top-[38%] sm:right-[3%] lg:right-[4%] w-7 h-7 xs:w-8 xs:h-8 sm:w-11 sm:h-11 lg:w-14 lg:h-14 opacity-100 dark:opacity-70 lg:dark:opacity-75",
     animation: "animate-hero-float-3",
   },
-  // 10. Centre-Bas Droit (Desktop uniquement) : Satellite 📡
+  // 10. Zone Rouge 6 (Mobile) : Satellite 📡 (À droite du paragraphe de description)
   {
     src: "/emojis/satellite.png",
     alt: "Edge Cloud Satellite Infrastructure",
-    className: "top-[52%] right-[8%] lg:right-[10%] w-11 h-11 lg:w-13 lg:h-13 hidden sm:flex opacity-100 dark:opacity-70 lg:dark:opacity-75",
+    className:
+      "top-[61%] right-[4%] sm:top-[52%] sm:right-[8%] lg:right-[10%] w-7 h-7 xs:w-8 xs:h-8 sm:w-11 sm:h-11 lg:w-13 lg:h-13 opacity-100 dark:opacity-70 lg:dark:opacity-75",
     animation: "animate-hero-float-2",
   },
-  // 11. Bas-Centre Droit (Mobile & Desktop) : Rocket 🚀 (En bas à droite sous les boutons)
-  {
-    src: "/emojis/rocket.png",
-    alt: "High Performance Routing",
-    className: "top-[88%] right-[4%] sm:top-[67%] sm:right-[3%] lg:right-[4%] w-7 h-7 xs:w-8 xs:h-8 sm:w-11 sm:h-11 lg:w-14 lg:h-14 opacity-100 dark:opacity-70 lg:dark:opacity-75",
-    animation: "animate-hero-float-1",
-  },
-  // 12. Bas Droit (Desktop uniquement) : Locked Key 🔐
+  // 11. Zone Rouge 8 (Mobile) : Locked Key 🔐 (Sous les boutons à droite)
   {
     src: "/emojis/locked_key.png",
     alt: "Encrypted Destination Lock",
-    className: "top-[80%] right-[8%] lg:right-[9%] w-11 h-11 lg:w-13 lg:h-13 hidden sm:flex opacity-100 dark:opacity-70 lg:dark:opacity-75",
+    className:
+      "top-[82%] right-[16%] sm:top-[80%] sm:right-[8%] lg:right-[9%] w-7 h-7 xs:w-8 xs:h-8 sm:w-11 sm:h-11 lg:w-13 lg:h-13 opacity-100 dark:opacity-70 lg:dark:opacity-75",
     animation: "animate-hero-float-4",
+  },
+  // 12. Bas-Centre Droit (Mobile & Desktop) : Rocket 🚀 (En bas à droite sous les boutons)
+  {
+    src: "/emojis/rocket.png",
+    alt: "High Performance Routing",
+    className:
+      "top-[89%] right-[4%] sm:top-[67%] sm:right-[3%] lg:right-[4%] w-7 h-7 xs:w-8 xs:h-8 sm:w-11 sm:h-11 lg:w-14 lg:h-14 opacity-100 dark:opacity-70 lg:dark:opacity-75",
+    animation: "animate-hero-float-1",
+  },
+  // 13. Zone Rouge 9 (Mobile) : Star ⭐ (En bas au centre entre Check et Rocket)
+  {
+    src: "/emojis/star.png",
+    alt: "High Quality Star Rating",
+    className:
+      "top-[90%] left-[50%] -translate-x-1/2 sm:top-[88%] sm:left-[50%] w-7 h-7 xs:w-8 xs:h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 opacity-100 dark:opacity-70 lg:dark:opacity-75",
+    animation: "animate-hero-float-3",
   },
 ];
 
