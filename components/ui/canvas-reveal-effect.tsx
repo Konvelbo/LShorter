@@ -117,16 +117,16 @@ export function AceternityCornerIcon({
 
 export function CanvasRevealCard({
   title,
-  subtitle,
-  badge,
+  subtitle = "",
+  badge = "",
   description,
   icon,
   colors,
   containerClassName,
 }: {
   title: string;
-  subtitle: string;
-  badge: string;
+  subtitle?: string;
+  badge?: string;
   description: string;
   icon: React.ReactNode;
   colors: number[][];
@@ -138,7 +138,7 @@ export function CanvasRevealCard({
     <div
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className="border border-[#E4E7EC] dark:border-white/15 group/canvas-card flex items-center justify-center max-w-full w-full mx-auto p-6 relative h-[240px] bg-white dark:bg-[#0E0E12] transition-colors cursor-pointer overflow-hidden"
+      className="border border-[#E4E7EC] dark:border-white/15 group/canvas-card flex items-center justify-center max-w-full w-full mx-auto p-5 sm:p-6 relative min-h-[250px] sm:min-h-[240px] bg-white dark:bg-[#0E0E12] transition-colors cursor-pointer overflow-hidden"
     >
       {/* 4 Aceternity Corner '+' Icons */}
       <AceternityCornerIcon className="absolute h-5 w-5 -top-2.5 -left-2.5 text-[#101828] dark:text-white/70 z-30 pointer-events-none" />
@@ -186,14 +186,14 @@ export function CanvasRevealCard({
             {icon}
           </div>
           <h4
-            className={`text-[19px] font-semibold tracking-[-0.02em] mb-2 transition-colors duration-300 ${
+            className={`text-[17px] sm:text-[18px] lg:text-[19px] font-semibold tracking-[-0.02em] mb-1.5 sm:mb-2 transition-colors duration-300 ${
               hovered ? "text-white" : "text-[#101828] dark:text-white"
             }`}
           >
             {title}
           </h4>
           <p
-            className={`text-[13.5px] leading-[1.55] transition-colors duration-300 ${
+            className={`text-[12.5px] sm:text-[13px] lg:text-[13.5px] leading-[1.5] sm:leading-[1.55] transition-colors duration-300 ${
               hovered ? "text-white/85" : "text-[#667085] dark:text-zinc-400"
             }`}
           >

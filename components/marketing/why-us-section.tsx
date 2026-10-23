@@ -103,6 +103,36 @@ function StripeLogo({ className = "w-4 h-4" }: { className?: string }) {
   );
 }
 
+function NamecheapLogo({ className = "w-5 h-5" }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      role="img"
+      aria-label="Namecheap"
+    >
+      <title>Namecheap</title>
+      {/* Center ribbon */}
+      <path
+        d="M17.295 17.484c.227.403.57.728.985.931-.309.15-.647.229-.99.232h-3.068a2.26 2.26 0 0 1-1.957-1.143L6.705 6.511a2.27 2.27 0 0 0-.974-.922c.309-.153.652-.233.997-.232h3.05c.81.003 1.558.438 1.959 1.143l5.558 10.984z"
+        fill="#FF5C35"
+      />
+      {/* Left wing */}
+      <path
+        d="M7.966 10.092L6.269 6.755c-.209-.392-.582-.657-.984-.829-.204.165-.391.35-.522.581-.184.349-4.391 8.648-4.569 8.987a2.245 2.245 0 0 0 4.016 1.999l3.756-7.401z"
+        fill="#DE3723"
+      />
+      {/* Right wing */}
+      <path
+        d="M23.812 8.499a2.245 2.245 0 0 0-1.162-2.955v-.001a2.243 2.243 0 0 0-.892-.187l-.003-.011c-.816 0-1.569.443-1.965 1.157l-3.749 7.414 1.689 3.323c.213.399.59.664.998.839.252-.2.473-.444.605-.742l4.479-8.837z"
+        fill="#DE3723"
+      />
+    </svg>
+  );
+}
+
 // ─── DIAGRAMMES INTERACTIFS ──────────────────────────────────────────────────
 const GeoRoutingDiagram = memo(function GeoRoutingDiagram() {
   return (
@@ -600,7 +630,7 @@ export function WhyUsSection() {
             </h3>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4.5 sm:gap-5">
             <CanvasRevealCard
               title="Cloudflare Edge Workers"
               subtitle=""
@@ -632,6 +662,14 @@ export function WhyUsSection() {
               badge="WEBHOOKS"
               icon={<Activity className="w-5 h-5 text-[#7A5AF8]" />}
               colors={[[122, 90, 248]]}
+            />
+            <CanvasRevealCard
+              title="Namecheap Partnership"
+              subtitle=""
+              description="Official domain registrar partner. Seamless custom branded domains & automated DNS setup."
+              badge="OFFICIAL PARTNER"
+              icon={<NamecheapLogo className="w-5 h-5" />}
+              colors={[[222, 55, 35], [255, 92, 53]]}
             />
           </div>
         </div>
