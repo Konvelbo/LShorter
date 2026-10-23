@@ -12,10 +12,10 @@ import {
   Sun,
   Moon,
   Sparkles,
-  LifeBuoy,
-  Activity,
-  MessageSquare,
-  HelpCircle,
+  Terminal,
+  Globe,
+  Lock,
+  BarChart3,
 } from "lucide-react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
@@ -155,29 +155,28 @@ function DocsApiDropdown({
 
   const items = [
     {
-      title: "Support",
-      desc: "Obtenez de l'aide de notre équipe",
-      href: "/docs",
-      icon: LifeBuoy,
+      title: "SDK & API Reference",
+      desc: "Endpoints REST, clés Bearer et SDK TypeScript",
+      href: "/docs/sdk-quickstart",
+      icon: Terminal,
     },
     {
-      title: "Page de statut",
-      desc: "Santé et disponibilité du système",
+      title: "Routage intelligent & Géo",
+      desc: "Ciblage pays, OS mobile et redirection Edge",
+      href: "/docs/geo-routing",
+      icon: Globe,
+    },
+    {
+      title: "PathLock™ & Sécurité",
+      desc: "Protection par code PIN, expiration et masquage",
+      href: "/docs/pin-protection",
+      icon: Lock,
+    },
+    {
+      title: "Télémétrie & Analytics",
+      desc: "Flux de clics en direct, attribution et webhooks",
       href: "/docs/realtime-analytics",
-      icon: Activity,
-    },
-    {
-      title: "Communauté",
-      desc: "Rejoignez la discussion",
-      href: "https://github.com/Konvelbo/LShorter",
-      external: true,
-      icon: MessageSquare,
-    },
-    {
-      title: "Base de connaissances",
-      desc: "Guides et tutoriels",
-      href: "/docs",
-      icon: HelpCircle,
+      icon: BarChart3,
     },
   ];
 
@@ -259,7 +258,6 @@ function DocsApiDropdown({
                   <Link
                     key={item.title}
                     href={item.href}
-                    {...(item.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
                     onClick={() => setIsOpen(false)}
                     className="flex items-start gap-3.5 p-4 rounded-[10px] bg-[#F8F9FA] dark:bg-[#151518] hover:bg-[#F2F4F7] dark:hover:bg-white/[0.08] border border-black/[0.03] dark:border-white/[0.04] transition-colors duration-150 group"
                   >
