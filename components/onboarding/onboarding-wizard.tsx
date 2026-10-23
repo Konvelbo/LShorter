@@ -543,6 +543,11 @@ const SOURCES = [
     logo: "https://cdn.simpleicons.org/google",
   },
   {
+    id: "ai",
+    label: "Artificial intelligence (AI)",
+    logo: "https://cdn.simpleicons.org/openai",
+  },
+  {
     id: "github",
     label: "GitHub / Developer Community",
     logo: "https://cdn.simpleicons.org/github",
