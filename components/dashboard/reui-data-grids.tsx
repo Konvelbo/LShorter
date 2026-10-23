@@ -146,7 +146,7 @@ export function LinksReuiDataGrid({
     setTimeout(() => {
       setOpenMobileActionsId(null);
       setClosingMobileActionsId(null);
-    }, 220);
+    }, 300);
   };
   const [mobileDensity, setMobileDensity] = useState<"compact" | "detailed">("compact");
   const [menuCoords, setMenuCoords] = useState<{
@@ -1308,7 +1308,7 @@ export function LinksReuiDataGrid({
                                     animation: isClosing
                                       ? "slideOutSmooth 180ms cubic-bezier(0.16, 1, 0.3, 1) forwards"
                                       : "slideInSmooth 240ms cubic-bezier(0.16, 1, 0.3, 1) backwards",
-                                    animationDelay: isClosing ? "80ms" : "0ms",
+                                    animationDelay: isClosing ? "120ms" : "0ms",
                                   }}
                                   className="px-2.5 py-1 text-[11px] font-medium border border-zinc-200 dark:border-zinc-700 rounded-[6px] text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer flex items-center gap-1 shadow-2xs active:scale-95"
                                   title="Share link"
@@ -1326,7 +1326,7 @@ export function LinksReuiDataGrid({
                                       animation: isClosing
                                         ? "slideOutSmooth 180ms cubic-bezier(0.16, 1, 0.3, 1) forwards"
                                         : "slideInSmooth 240ms cubic-bezier(0.16, 1, 0.3, 1) backwards",
-                                      animationDelay: isClosing ? "40ms" : "40ms",
+                                      animationDelay: isClosing ? "80ms" : "40ms",
                                     }}
                                     className="px-2.5 py-1 text-[11px] font-medium border border-zinc-200 dark:border-zinc-700 rounded-[6px] text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer shadow-2xs active:scale-95"
                                     title="Edit link"
@@ -1344,7 +1344,7 @@ export function LinksReuiDataGrid({
                                       animation: isClosing
                                         ? "slideOutSmooth 180ms cubic-bezier(0.16, 1, 0.3, 1) forwards"
                                         : "slideInSmooth 240ms cubic-bezier(0.16, 1, 0.3, 1) backwards",
-                                      animationDelay: isClosing ? "0ms" : "80ms",
+                                      animationDelay: isClosing ? "40ms" : "80ms",
                                     }}
                                     className="px-2.5 py-1 text-[11px] font-medium border border-zinc-200 dark:border-zinc-700 rounded-[6px] text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer shadow-2xs active:scale-95"
                                     title="Generate QR Code"
@@ -1353,9 +1353,26 @@ export function LinksReuiDataGrid({
                                   </button>
                                 )}
 
-                                {/* Note: Red trash/bell icon is permanently removed from the mobile card */}
+                                {/* 4. Delete / Bell action button (restored per user request) */}
+                                {onDeleteLink && (
+                                  <button
+                                    type="button"
+                                    onClick={() => onDeleteLink(row.raw)}
+                                    style={{
+                                      animation: isClosing
+                                        ? "slideOutSmooth 180ms cubic-bezier(0.16, 1, 0.3, 1) forwards"
+                                        : "slideInSmooth 240ms cubic-bezier(0.16, 1, 0.3, 1) backwards",
+                                      animationDelay: isClosing ? "0ms" : "120ms",
+                                    }}
+                                    className="px-2 py-1 text-[11px] font-medium border border-red-500/20 rounded-[6px] text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors cursor-pointer shadow-2xs active:scale-95"
+                                    title="Delete link"
+                                    aria-label="Delete link"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
 
-                                {/* 4. Collapse button (reverse animation) */}
+                                {/* 5. Collapse button (reverse animation) */}
                                 <button
                                   type="button"
                                   onClick={() => handleCloseMobileActions(row.id)}
@@ -1363,7 +1380,7 @@ export function LinksReuiDataGrid({
                                     animation: isClosing
                                       ? "slideOutSmooth 180ms cubic-bezier(0.16, 1, 0.3, 1) forwards"
                                       : "slideInSmooth 240ms cubic-bezier(0.16, 1, 0.3, 1) backwards",
-                                    animationDelay: isClosing ? "0ms" : "120ms",
+                                    animationDelay: isClosing ? "0ms" : "160ms",
                                   }}
                                   className="w-7 h-7 flex items-center justify-center rounded-[6px] border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-[#18181c] text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer shrink-0 active:scale-90"
                                   title="Close actions"
