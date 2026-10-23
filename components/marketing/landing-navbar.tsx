@@ -12,11 +12,10 @@ import {
   Sun,
   Moon,
   Sparkles,
-  ChevronDown,
-  BookOpen,
-  Code2,
-  Terminal,
-  Webhook,
+  LifeBuoy,
+  Activity,
+  MessageSquare,
+  HelpCircle,
 } from "lucide-react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
@@ -96,7 +95,7 @@ function NavLinkItem({
   );
 }
 
-// ─── DROPDOWN MÉGA-MENU DOCS & API (MAX ROUNDED: 10px STRICT) ───
+// ─── DROPDOWN MÉGA-MENU DOCS & API (STYLE ZENOVAY - MAX ROUNDED 10px STRICT) ───
 function DocsApiDropdown({
   isActive,
   isLightSurface,
@@ -107,18 +106,43 @@ function DocsApiDropdown({
   const [isOpen, setIsOpen] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Animation GSAP Text-Roll sur le bouton déclencheur (exactement comme NavLinkItem)
+  const primaryTextRef = useRef<HTMLSpanElement>(null);
+  const cloneTextRef = useRef<HTMLSpanElement>(null);
+  const linkRef = useRef<HTMLAnchorElement>(null);
+  const tlRef = useRef<gsap.core.Timeline | null>(null);
+
+  useGSAP(
+    () => {
+      const primary = primaryTextRef.current;
+      const clone = cloneTextRef.current;
+      if (!primary || !clone) return;
+
+      gsap.set(primary, { yPercent: 0 });
+      gsap.set(clone, { yPercent: -100 });
+
+      tlRef.current = gsap
+        .timeline({ paused: true })
+        .to(primary, { yPercent: 100, duration: 0.28, ease: "power2.inOut" }, 0)
+        .to(clone, { yPercent: 0, duration: 0.28, ease: "power2.inOut" }, 0);
+    },
+    { scope: linkRef },
+  );
+
   const handleMouseEnter = () => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
     }
+    tlRef.current?.play();
     setIsOpen(true);
   };
 
   const handleMouseLeave = () => {
     timeoutRef.current = setTimeout(() => {
+      tlRef.current?.reverse();
       setIsOpen(false);
-    }, 170);
+    }, 180);
   };
 
   useEffect(() => {
@@ -129,34 +153,31 @@ function DocsApiDropdown({
     };
   }, []);
 
-  const docItems = [
+  const items = [
     {
-      title: "Guides & Architecture",
-      desc: "Edge routing concepts, smart geo & PathLock™",
+      title: "Support",
+      desc: "Obtenez de l'aide de notre équipe",
       href: "/docs",
-      icon: BookOpen,
-      iconColor: "text-[#465FFF]",
+      icon: LifeBuoy,
     },
     {
-      title: "REST API Reference",
-      desc: "Endpoints, bearer tokens, headers & rate limits",
-      href: "/docs/sdk-quickstart",
-      icon: Code2,
-      iconColor: "text-[#12B76A]",
+      title: "Page de statut",
+      desc: "Santé et disponibilité du système",
+      href: "/docs/realtime-analytics",
+      icon: Activity,
     },
     {
-      title: "SDKs & Integration",
-      desc: "Official TypeScript, Node.js & cURL quickstart",
-      href: "/docs/sdk-quickstart#sdk-quickstart",
-      icon: Terminal,
-      iconColor: "text-[#F79009]",
+      title: "Communauté",
+      desc: "Rejoignez la discussion",
+      href: "https://github.com/Konvelbo/LShorter",
+      external: true,
+      icon: MessageSquare,
     },
     {
-      title: "Webhooks & Events",
-      desc: "Real-time delivery with HMAC SHA-256 signatures",
-      href: "/docs/webhooks-and-events",
-      icon: Webhook,
-      iconColor: "text-[#7A5AF8]",
+      title: "Base de connaissances",
+      desc: "Guides et tutoriels",
+      href: "/docs",
+      icon: HelpCircle,
     },
   ];
 
@@ -166,9 +187,11 @@ function DocsApiDropdown({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
+      {/* Bouton déclencheur avec l'animation GSAP Text-Roll originelle */}
       <Link
+        ref={linkRef}
         href="/docs"
-        className={`relative px-[clamp(0.45rem,0.75vw,0.85rem)] py-1.5 rounded-[10px] text-[clamp(0.75rem,0.88vw,0.85rem)] font-normal tracking-[-0.01em] transition-colors cursor-pointer select-none inline-flex items-center gap-1 ${
+        className={`relative px-[clamp(0.45rem,0.75vw,0.85rem)] py-1.5 rounded-[10px] text-[clamp(0.75rem,0.88vw,0.85rem)] font-normal tracking-[-0.01em] transition-colors cursor-pointer select-none inline-flex items-center gap-1.5 overflow-hidden whitespace-nowrap bg-transparent hover:bg-transparent ${
           isLightSurface
             ? isActive || isOpen
               ? "bg-black/5 text-black font-medium"
@@ -178,95 +201,108 @@ function DocsApiDropdown({
               : "text-neutral-300 hover:text-white"
         }`}
       >
-        <span>Doc &amp; Api</span>
-        <ChevronDown
-          className={`w-3.5 h-3.5 transition-transform duration-200 ease-out ${
-            isOpen ? "rotate-180 text-[#465FFF]" : "opacity-60"
+        <span className="relative block overflow-hidden leading-tight">
+          <span
+            ref={primaryTextRef}
+            className="block select-none pointer-events-none will-change-transform"
+          >
+            Doc &amp; Api
+          </span>
+          <span
+            ref={cloneTextRef}
+            aria-hidden="true"
+            className={`absolute inset-0 block select-none pointer-events-none font-medium will-change-transform ${
+              isLightSurface ? "text-black" : "text-white"
+            }`}
+          >
+            Doc &amp; Api
+          </span>
+        </span>
+        <svg
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          className={`w-3.5 h-3.5 transition-transform duration-300 ${
+            isOpen ? "rotate-180" : ""
           }`}
-        />
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2"
+            d="M19 9l-7 7-7-7"
+          />
+        </svg>
       </Link>
 
-      {/* DROPDOWN MEGA MENU CONTAINER (MAX ROUNDED: 10px STRICT) */}
+      {/* MÉGA MENU DÉROULANT LARGE & SOBRE (MAX ROUNDED: 10px STRICT) */}
       <div
-        className={`absolute top-full mt-2.5 right-0 sm:right-[-40px] md:right-[-70px] lg:right-[-90px] w-[min(670px,calc(100vw-32px))] z-50 transform-gpu transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] before:content-[''] before:absolute before:-top-3 before:left-0 before:right-0 before:h-3.5 ${
+        className={`absolute top-full mt-2.5 right-[-20px] sm:right-[-60px] md:right-[-100px] lg:right-[-130px] w-[min(840px,calc(100vw-32px))] z-50 transform-gpu transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] before:content-[''] before:absolute before:-top-3 before:left-0 before:right-0 before:h-3.5 ${
           isOpen
             ? "opacity-100 translate-y-0 scale-100 pointer-events-auto visible"
             : "opacity-0 -translate-y-2 scale-[0.98] pointer-events-none invisible"
         }`}
       >
         <div
-          className={`rounded-[10px] p-5 shadow-[0_20px_50px_rgba(0,0,0,0.14)] dark:shadow-[0_25px_60px_rgba(0,0,0,0.75)] border backdrop-blur-2xl transition-colors ${
+          className={`rounded-[10px] p-6 shadow-[0_16px_45px_rgba(0,0,0,0.08)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.65)] border backdrop-blur-xl transition-colors ${
             isLightSurface
-              ? "bg-white/98 border-[#E4E7EC]"
-              : "bg-[#0E0E12]/98 border-white/10"
+              ? "bg-white border-[#E4E7EC]"
+              : "bg-[#0E0E12] border-white/10"
           }`}
         >
-          <div className="grid grid-cols-1 md:grid-cols-[1.55fr_1.1fr] gap-5 items-stretch">
-            {/* Colonne Gauche : Grille 2x2 des ressources */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              {docItems.map((item) => {
+          <div className="grid grid-cols-1 md:grid-cols-[1.65fr_1fr] gap-6 items-stretch">
+            {/* Grille 2x2 des 4 éléments sobres */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              {items.map((item) => {
                 const Icon = item.icon;
                 return (
                   <Link
                     key={item.title}
                     href={item.href}
+                    {...(item.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
                     onClick={() => setIsOpen(false)}
-                    className="group rounded-[8px] p-3 flex items-start gap-3 transition-colors duration-150 hover:bg-[#F4F5F7] dark:hover:bg-white/[0.06] border border-transparent hover:border-black/[0.04] dark:hover:border-white/[0.05]"
+                    className="flex items-start gap-3.5 p-4 rounded-[10px] bg-[#F8F9FA] dark:bg-[#151518] hover:bg-[#F2F4F7] dark:hover:bg-white/[0.08] border border-black/[0.03] dark:border-white/[0.04] transition-colors duration-150 group"
                   >
-                    <div className="w-8 h-8 rounded-[8px] flex items-center justify-center shrink-0 bg-[#F2F4F7] dark:bg-white/10 text-[#465FFF] group-hover:bg-[#465FFF] group-hover:text-white transition-colors duration-200 mt-0.5">
+                    <span className="mt-0.5 flex-shrink-0 w-8 h-8 rounded-[8px] bg-white dark:bg-white/10 flex items-center justify-center text-gray-500 dark:text-zinc-400 group-hover:text-gray-900 dark:group-hover:text-white transition-colors shadow-2xs">
                       <Icon className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0">
-                      <h4 className="text-[13px] font-semibold text-[#101828] dark:text-white leading-tight group-hover:text-[#465FFF] dark:group-hover:text-[#465FFF] transition-colors">
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[14px] font-medium text-gray-900 dark:text-white">
                         {item.title}
-                      </h4>
-                      <p className="text-[11.5px] text-[#667085] dark:text-zinc-400 leading-snug mt-1 line-clamp-2">
+                      </div>
+                      <div className="text-[12px] text-gray-500 dark:text-zinc-400 mt-0.5 leading-snug">
                         {item.desc}
-                      </p>
+                      </div>
                     </div>
                   </Link>
                 );
               })}
             </div>
 
-            {/* Colonne Droite : Carte Ressource En Vedette (Style Identique à l'Image) */}
+            {/* Partie droite : Carte RESSOURCES avec l'image exacte de la doc */}
             <div className="flex flex-col">
-              <span className="text-[10.5px] font-mono uppercase tracking-[0.12em] text-[#667085] dark:text-zinc-400 font-semibold mb-2">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-zinc-500 mb-2.5">
                 RESSOURCES
               </span>
               <Link
                 href="/docs"
                 onClick={() => setIsOpen(false)}
-                className="group relative flex-1 rounded-[10px] overflow-hidden p-5 flex flex-col justify-between border border-black/10 dark:border-white/10 transition-transform duration-200 hover:scale-[1.01] bg-gradient-to-br from-[#0c0d14] via-[#141522] to-[#1c1d30] text-white shadow-inner"
+                className="group relative flex-1 rounded-[10px] overflow-hidden flex flex-col justify-start p-5 min-h-[190px] border border-black/5 dark:border-white/10"
               >
-                {/* Texture subtile & lueur dorée/bleue en arrière-plan */}
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_30%,rgba(70,95,255,0.22),transparent_70%)] pointer-events-none" />
-                <div className="absolute -top-12 -right-12 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
-
-                {/* Badge supérieur */}
-                <div className="relative z-10 flex items-center justify-between">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] text-[10.5px] font-mono uppercase tracking-wider bg-white/10 text-white/90 border border-white/15 backdrop-blur-md">
-                    <Sparkles className="w-3 h-3 text-amber-400" />
-                    Hub Officiel
-                  </span>
-                  <ArrowRight className="w-4 h-4 text-white/60 group-hover:text-white group-hover:translate-x-1 transition-all" />
-                </div>
-
-                {/* Illustration centrale livre ouvert / code */}
-                <div className="relative z-10 my-3 flex items-center justify-center py-2">
-                  <div className="w-12 h-12 rounded-[10px] bg-gradient-to-br from-amber-400/20 to-[#465FFF]/20 border border-white/15 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-                    <BookOpen className="w-6 h-6 text-amber-300" />
-                  </div>
-                </div>
-
-                {/* Texte bas de carte */}
+                {/* Image de fond : /doc/apiimage.jpg */}
+                <Image
+                  src="/doc/apiimage.jpg"
+                  alt="Documentation"
+                  fill
+                  priority
+                  className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+                  sizes="360px"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/30 pointer-events-none" />
                 <div className="relative z-10">
-                  <h5 className="text-[15px] font-bold tracking-tight text-white group-hover:text-amber-200 transition-colors">
+                  <h4 className="text-[16px] sm:text-[17px] font-bold text-white tracking-tight">
                     Documentation
-                  </h5>
-                  <p className="text-[11.5px] text-white/70 leading-snug mt-1">
-                    Guide complet de l'infrastructure Edge, clés API &amp; SDKs.
-                  </p>
+                  </h4>
                 </div>
               </Link>
             </div>
