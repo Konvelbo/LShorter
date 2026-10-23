@@ -138,6 +138,7 @@ export function LinksReuiDataGrid({
   const [selectedIds, setSelectedIds] = useState<Record<string, boolean>>({});
   const [openActionRowId, setOpenActionRowId] = useState<string | null>(null);
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
+  const [openMobileActionsId, setOpenMobileActionsId] = useState<string | null>(null);
   const [mobileDensity, setMobileDensity] = useState<"compact" | "detailed">("compact");
   const [menuCoords, setMenuCoords] = useState<{
     top?: number;
@@ -1194,23 +1195,10 @@ export function LinksReuiDataGrid({
                     <div className="flex items-center gap-1 shrink-0">
                       <button
                         type="button"
-                        onClick={(e) => handleCopy(e, row.id, row.shortUrl)}
-                        className="h-7 px-2 border border-zinc-200 dark:border-[#27272a] rounded-[6px] bg-zinc-50 dark:bg-[#18181c] hover:bg-zinc-100 dark:hover:bg-white/5 text-zinc-600 dark:text-zinc-300 text-xs flex items-center gap-1 transition-colors cursor-pointer"
-                        title="Copier le lien"
-                      >
-                        {isRowCopied ? (
-                          <Check className="w-3.5 h-3.5 text-emerald-500" />
-                        ) : (
-                          <Copy className="w-3.5 h-3.5 text-zinc-500" />
-                        )}
-                        <span className="text-[11px] font-normal">{isRowCopied ? "Copié" : "Copier"}</span>
-                      </button>
-
-                      <button
-                        type="button"
                         onClick={() => setExpandedRowId(expandedRowId === row.id ? null : row.id)}
                         className="w-7 h-7 flex items-center justify-center rounded-[6px] text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
                         title="Afficher les détails"
+                        aria-label="Afficher les détails"
                       >
                         <ChevronRight className={cn("w-4 h-4 transition-transform duration-200", isExpanded && "rotate-90")} />
                       </button>
@@ -1275,51 +1263,76 @@ export function LinksReuiDataGrid({
                           {isRowActive ? "Mettre en pause" : "Activer"}
                         </button>
 
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (effectiveShare) {
-                                effectiveShare(row.raw);
-                              } else if (typeof navigator !== "undefined" && navigator.share) {
-                                navigator.share({ title: `/${row.slug}`, url: row.shortUrl }).catch(() => {});
-                              } else {
-                                navigator.clipboard.writeText(row.shortUrl);
-                                showToast.success("Lien copié dans le presse-papier !");
-                              }
-                            }}
-                            className="px-2.5 py-1 text-[11px] font-medium border border-zinc-200 dark:border-zinc-700 rounded-[6px] text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer flex items-center gap-1"
-                            title="Partager le lien"
-                          >
-                            <Share2 className="w-3 h-3 text-sky-500 shrink-0" />
-                            <span>Share</span>
-                          </button>
-                          {effectiveEdit && (
+                        {/* Actions group: ChevronLeft trigger revealing buttons with slide-in animation */}
+                        <div className="flex items-center gap-1.5 justify-end">
+                          {openMobileActionsId !== row.id ? (
                             <button
                               type="button"
-                              onClick={() => effectiveEdit(row.raw)}
-                              className="px-2.5 py-1 text-[11px] font-medium border border-zinc-200 dark:border-zinc-700 rounded-[6px] text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                              onClick={() => setOpenMobileActionsId(row.id)}
+                              className="w-7 h-7 flex items-center justify-center rounded-[6px] border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-[#18181c] text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer active:scale-95"
+                              title="Afficher les actions"
+                              aria-label="Afficher les actions"
                             >
-                              Modifier
+                              <ChevronLeft className="w-4 h-4" />
                             </button>
-                          )}
-                          {effectiveQr && (
-                            <button
-                              type="button"
-                              onClick={() => effectiveQr(row.raw)}
-                              className="px-2.5 py-1 text-[11px] font-medium border border-zinc-200 dark:border-zinc-700 rounded-[6px] text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
-                            >
-                              QR
-                            </button>
-                          )}
-                          {onDeleteLink && (
-                            <button
-                              type="button"
-                              onClick={() => onDeleteLink(row.raw)}
-                              className="px-2 py-1 text-[11px] font-medium border border-red-500/20 rounded-[6px] text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors cursor-pointer"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                          ) : (
+                            <div className="flex items-center gap-1.5 animate-in fade-in duration-200">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (effectiveShare) {
+                                    effectiveShare(row.raw);
+                                  } else if (typeof navigator !== "undefined" && navigator.share) {
+                                    navigator.share({ title: `/${row.slug}`, url: row.shortUrl }).catch(() => {});
+                                  } else {
+                                    navigator.clipboard.writeText(row.shortUrl);
+                                    showToast.success("Lien copié dans le presse-papier !");
+                                  }
+                                }}
+                                className="px-2.5 py-1 text-[11px] font-medium border border-zinc-200 dark:border-zinc-700 rounded-[6px] text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer flex items-center gap-1 animate-in fade-in slide-in-from-right-3 duration-150"
+                                title="Partager le lien"
+                              >
+                                <Share2 className="w-3 h-3 text-sky-500 shrink-0" />
+                                <span>Share</span>
+                              </button>
+                              {effectiveEdit && (
+                                <button
+                                  type="button"
+                                  onClick={() => effectiveEdit(row.raw)}
+                                  className="px-2.5 py-1 text-[11px] font-medium border border-zinc-200 dark:border-zinc-700 rounded-[6px] text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer animate-in fade-in slide-in-from-right-3 duration-200"
+                                >
+                                  Modifier
+                                </button>
+                              )}
+                              {effectiveQr && (
+                                <button
+                                  type="button"
+                                  onClick={() => effectiveQr(row.raw)}
+                                  className="px-2.5 py-1 text-[11px] font-medium border border-zinc-200 dark:border-zinc-700 rounded-[6px] text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer animate-in fade-in slide-in-from-right-3 duration-250"
+                                >
+                                  QR
+                                </button>
+                              )}
+                              {onDeleteLink && (
+                                <button
+                                  type="button"
+                                  onClick={() => onDeleteLink(row.raw)}
+                                  className="px-2 py-1 text-[11px] font-medium border border-red-500/20 rounded-[6px] text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors cursor-pointer animate-in fade-in slide-in-from-right-3 duration-300"
+                                  title="Supprimer"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => setOpenMobileActionsId(null)}
+                                className="w-7 h-7 flex items-center justify-center rounded-[6px] border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-[#18181c] text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer shrink-0"
+                                title="Fermer les actions"
+                                aria-label="Fermer les actions"
+                              >
+                                <ChevronRight className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                           )}
                         </div>
                       </div>
@@ -1347,7 +1360,7 @@ export function LinksReuiDataGrid({
               }}
               title={`Supprimer ${selectedLinkIdsList.length} lien${selectedLinkIdsList.length > 1 ? "s" : ""} sélectionné${selectedLinkIdsList.length > 1 ? "s" : ""}`}
               aria-label="Supprimer les liens sélectionnés"
-              className="h-8 px-2.5 rounded-[6px] bg-red-50 hover:bg-red-100 dark:bg-red-950/50 dark:hover:bg-red-900/50 border border-red-200 dark:border-red-900/60 text-red-600 dark:text-red-400 text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs active:scale-95 shrink-0"
+              className="hidden sm:inline-flex h-8 px-2.5 rounded-[6px] bg-red-50 hover:bg-red-100 dark:bg-red-950/50 dark:hover:bg-red-900/50 border border-red-200 dark:border-red-900/60 text-red-600 dark:text-red-400 text-xs font-medium items-center gap-1.5 transition-all cursor-pointer shadow-2xs active:scale-95 shrink-0"
             >
               <Trash2 className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
               <span className="text-[11.5px] font-medium">Supprimer ({selectedLinkIdsList.length})</span>

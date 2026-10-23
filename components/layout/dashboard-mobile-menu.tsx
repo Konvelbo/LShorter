@@ -313,6 +313,21 @@ export function DashboardMobileMenu({
               >
                 <Search className="w-5 h-5 stroke-[1.75]" />
               </button>
+
+              {/* Theme toggle icon button */}
+              <button
+                type="button"
+                onClick={toggleTheme}
+                className="p-2 text-[#52525B] dark:text-[#A1A1AA] hover:text-[#09090B] dark:hover:text-white transition-colors cursor-pointer bg-transparent border-none active:scale-90"
+                aria-label="Basculer le thème"
+                title={theme === "dark" ? "Passer en mode clair" : "Passer en mode sombre"}
+              >
+                {theme === "dark" ? (
+                  <Sun className="w-5 h-5 stroke-[1.75] text-amber-400" />
+                ) : (
+                  <Moon className="w-5 h-5 stroke-[1.75]" />
+                )}
+              </button>
             </div>
 
             {/* À droite : Bouton de fermeture */}
