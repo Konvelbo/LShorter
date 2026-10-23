@@ -267,7 +267,7 @@ export function LandingNavbar() {
 
   const navLinks = [
     { label: "Hi", href: "/", isHome: true },
-    { label: "Platform", href: "/#product" },
+    { label: "Product", href: "/#product" },
     { label: "Features", href: "/#features" },
     { label: "Security", href: "/#security" },
     { label: "Difference", href: "/#why-us" },
