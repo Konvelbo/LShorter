@@ -130,6 +130,62 @@ async function main() {
           topDevices: [],
           topBrowsers: [],
           topReferrers: [],
+          liveClickEvents: [
+            {
+              id: 'ev_1',
+              timestamp: new Date(Date.now() - 1000 * 25).toISOString(),
+              slug: 'black-friday',
+              countryCode: 'FR',
+              countryName: 'France',
+              city: 'Paris',
+              device: 'Mobile',
+              os: 'iOS 18',
+              browser: 'Safari',
+              referrer: 'Instagram',
+              customerName: 'Alexandre Martin',
+              latencyMs: '2.1ms',
+            },
+            {
+              id: 'ev_2',
+              timestamp: new Date(Date.now() - 1000 * 95).toISOString(),
+              slug: 'enterprise-pack',
+              countryCode: 'US',
+              countryName: 'United States',
+              city: 'San Francisco',
+              device: 'Desktop',
+              os: 'macOS 15',
+              browser: 'Chrome',
+              referrer: 'Google Search',
+              customerName: 'Sarah Jenkins',
+              latencyMs: '1.9ms',
+            },
+            {
+              id: 'ev_3',
+              timestamp: new Date(Date.now() - 1000 * 180).toISOString(),
+              slug: 'summer-beta',
+              countryCode: 'DE',
+              countryName: 'Germany',
+              city: 'Berlin',
+              device: 'Desktop',
+              os: 'Windows 11',
+              browser: 'Firefox',
+              referrer: 'Twitter / X',
+              latencyMs: '2.4ms',
+            },
+            {
+              id: 'ev_4',
+              timestamp: new Date(Date.now() - 1000 * 300).toISOString(),
+              slug: 'black-friday',
+              countryCode: 'JP',
+              countryName: 'Japan',
+              city: 'Tokyo',
+              device: 'Mobile',
+              os: 'Android 15',
+              browser: 'Chrome Mobile',
+              referrer: 'Direct',
+              latencyMs: '3.1ms',
+            },
+          ],
           recentConversions: [
             {
               id: 'conv_1',
@@ -233,6 +289,22 @@ async function main() {
   await page.waitForTimeout(1000);
   await page.screenshot({ path: 'public/mobile-revenue-feed.png', fullPage: false });
   console.log('Saved public/mobile-revenue-feed.png');
+
+  console.log('4. Capturing /dashboard/analytics/live (Live stream mobile cards)...');
+  await page.goto('http://localhost:3000/dashboard/analytics/live?playwright_preview=1', { waitUntil: 'domcontentloaded', timeout: 30000 });
+  await page.waitForTimeout(3000);
+  await page.evaluate(() => {
+    const mobileFeed = document.querySelector('.md\\:hidden.flex.flex-col.gap-2\\.5');
+    if (mobileFeed) {
+      mobileFeed.scrollIntoView();
+    } else {
+      const el = document.querySelector('.ds-main-scroll');
+      if (el) el.scrollTop = 900;
+    }
+  });
+  await page.waitForTimeout(1000);
+  await page.screenshot({ path: 'public/mobile-live-feed.png', fullPage: false });
+  console.log('Saved public/mobile-live-feed.png');
 
   await browser.close();
   console.log('Playwright captures completed successfully!');

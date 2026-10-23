@@ -1234,6 +1234,24 @@ export function LinksReuiDataGrid({
                         </button>
 
                         <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (effectiveShare) {
+                                effectiveShare(row.raw);
+                              } else if (typeof navigator !== "undefined" && navigator.share) {
+                                navigator.share({ title: `/${row.slug}`, url: row.shortUrl }).catch(() => {});
+                              } else {
+                                navigator.clipboard.writeText(row.shortUrl);
+                                showToast.success("Lien copié dans le presse-papier !");
+                              }
+                            }}
+                            className="px-2.5 py-1 text-[11px] font-medium border border-zinc-200 dark:border-zinc-700 rounded-[6px] text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer flex items-center gap-1"
+                            title="Partager le lien"
+                          >
+                            <Share2 className="w-3 h-3 text-sky-500 shrink-0" />
+                            <span>Share</span>
+                          </button>
                           {effectiveEdit && (
                             <button
                               type="button"
@@ -1505,6 +1523,8 @@ export function GeoLogsReuiDataGrid({
     Date.now(),
   );
   const [query, setQuery] = useState("");
+  const [pageSize, setPageSize] = useState<number>(10);
+  const [page, setPage] = useState<number>(1);
   const [openGeoRowId, setOpenGeoRowId] = useState<string | null>(null);
   const [expandedGeoId, setExpandedGeoId] = useState<string | null>(null);
   const [geoMenuCoords, setGeoMenuCoords] = useState<{
@@ -1758,6 +1778,12 @@ export function GeoLogsReuiDataGrid({
     );
   }, [normalizedRows, query]);
 
+  const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
+  const paginatedRows = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return rows.slice(start, start + pageSize);
+  }, [rows, page, pageSize]);
+
   return (
     <div
       onClick={() => {
@@ -1780,6 +1806,24 @@ export function GeoLogsReuiDataGrid({
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto justify-end">
+          {/* Display limit selector */}
+          <div className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
+            <span className="text-[11.5px]">Show:</span>
+            <select
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value));
+                setPage(1);
+              }}
+              className="h-10 rounded-lg border border-[#D0D5DD] dark:border-[#2e2e33] bg-white dark:bg-[#141416] px-2 text-xs font-medium text-zinc-800 dark:text-zinc-200 focus:outline-none cursor-pointer"
+            >
+              <option value={5}>5</option>
+              <option value={10}>10</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+            </select>
+          </div>
+
           <div className="relative flex-1 sm:w-[260px] sm:flex-initial">
             <Search className="w-4 h-4 text-[#98A2B3] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
@@ -1890,7 +1934,7 @@ export function GeoLogsReuiDataGrid({
             </tr>
           </thead>
           <tbody>
-            {rows.length === 0 ? (
+            {paginatedRows.length === 0 ? (
               <tr>
                 <td
                   colSpan={activeColCount}
@@ -1900,7 +1944,7 @@ export function GeoLogsReuiDataGrid({
                 </td>
               </tr>
             ) : (
-              rows.map((item) => {
+              paginatedRows.map((item) => {
                 return (
                   <tr
                     key={item.id}
@@ -2000,12 +2044,12 @@ export function GeoLogsReuiDataGrid({
 
         {/* Mobile Adaptive Feed for Live Telemetry (< sm: / < 640px) */}
         <div className="sm:hidden flex flex-col gap-2 p-1 font-sans">
-          {rows.length === 0 ? (
+          {paginatedRows.length === 0 ? (
             <div className="py-12 text-center text-xs text-zinc-500 dark:text-zinc-400">
               Aucun événement de redirection enregistré pour le moment.
             </div>
           ) : (
-            rows.map((item) => {
+            paginatedRows.map((item) => {
               const isExpanded = expandedGeoId === item.id;
               const relTime = formatLiveRelativeTime(item.timestamp, currentTimeTick);
 
@@ -2083,6 +2127,35 @@ export function GeoLogsReuiDataGrid({
               );
             })
           )}
+        </div>
+      </div>
+
+            {/* Pagination & Display Limit Footer */}
+      <div className="px-4 sm:px-6 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-[#E4E7EC] dark:border-[#222225] shrink-0 mt-auto bg-white dark:bg-[#111113] text-xs text-[#667085] dark:text-[#a1a1aa]">
+        <span>
+          Showing {rows.length === 0 ? 0 : (page - 1) * pageSize + 1} to{" "}
+          {Math.min(page * pageSize, rows.length)} of {rows.length} entries
+        </span>
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            disabled={page <= 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            className="w-7.5 h-7.5 rounded-[6px] border border-[#D0D5DD] dark:border-[#2e2e33] flex items-center justify-center text-[#344054] dark:text-[#d4d4d8] disabled:opacity-40 hover:bg-[#F9FAFB] dark:hover:bg-[#1c1c20] cursor-pointer"
+          >
+            <ChevronLeft className="w-3.5 h-3.5" />
+          </button>
+          <span className="px-2.5 py-1 rounded-[6px] font-mono font-medium text-zinc-800 dark:text-zinc-200">
+            Page {page} / {totalPages}
+          </span>
+          <button
+            type="button"
+            disabled={page >= totalPages}
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            className="w-7.5 h-7.5 rounded-[6px] border border-[#D0D5DD] dark:border-[#2e2e33] flex items-center justify-center text-[#344054] dark:text-[#d4d4d8] disabled:opacity-40 hover:bg-[#F9FAFB] dark:hover:bg-[#1c1c20] cursor-pointer"
+          >
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
         </div>
       </div>
 

@@ -104,7 +104,7 @@ export default function SourcesAnalyticsPage() {
   const [selectedChannelFilter, setSelectedChannelFilter] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 8;
+  const [pageSize, setPageSize] = useState<number>(10);
 
   const [visibleColumns, setVisibleColumns] = useState<Set<string>>(
     new Set(SOURCE_COLUMNS.map((c) => c.key))
@@ -633,7 +633,25 @@ export default function SourcesAnalyticsPage() {
             <span className="text-[11px] text-zinc-500 dark:text-neutral-400 font-mono">({filteredEvents.length} events)</span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
+              <span className="text-[11.5px]">Show</span>
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="h-8 rounded-[6px] border border-zinc-200 dark:border-[#27272a] bg-white dark:bg-[#141418] px-2 text-xs font-medium text-zinc-800 dark:text-zinc-200 focus:outline-none cursor-pointer"
+              >
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+              </select>
+              <span className="text-[11.5px]">entries</span>
+            </div>
+
             <div className="relative">
               <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400" />
               <input

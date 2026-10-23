@@ -105,7 +105,7 @@ export default function DevicesAnalyticsPage() {
   const [selectedDeviceFilter, setSelectedDeviceFilter] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 8;
+  const [pageSize, setPageSize] = useState<number>(10);
 
   const [visibleColumns, setVisibleColumns] = useState<Set<string>>(
     new Set(DEVICE_COLUMNS.map((c) => c.key))
@@ -717,8 +717,26 @@ export default function DevicesAnalyticsPage() {
               ))}
             </div>
 
+            {/* Display Limit Selector */}
+            <div className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
+              <span className="text-[11.5px]">Show:</span>
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="h-8 rounded-[6px] border border-zinc-200 dark:border-[#27272a] bg-white dark:bg-[#141418] px-2 text-xs font-medium text-zinc-800 dark:text-zinc-200 focus:outline-none cursor-pointer"
+              >
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+              </select>
+            </div>
+
             {/* Search Input */}
-            <div className="relative min-w-[200px]">
+            <div className="relative min-w-[180px]">
               <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-neutral-500" />
               <input
                 type="text"
@@ -728,7 +746,7 @@ export default function DevicesAnalyticsPage() {
                   setSearchQuery(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-full pl-8 pr-3 py-1.5 rounded-[10px] bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a] text-xs text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-neutral-500 focus:outline-none focus:border-blue-500"
+                className="w-full pl-8 pr-3 py-1.5 rounded-[8px] bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a] text-xs text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-neutral-500 focus:outline-none focus:border-blue-500"
               />
             </div>
 
@@ -752,10 +770,10 @@ export default function DevicesAnalyticsPage() {
               {/* Top Row: Device & OS Badges + Relative Time */}
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1.5 font-mono text-[10px] font-bold">
-                  <span className="px-2 py-0.5 rounded-[10px] bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30 capitalize">
+                  <span className="px-2 py-0.5 rounded-[6px] bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30 capitalize">
                     {ev.device}
                   </span>
-                  <span className="px-2 py-0.5 rounded-[10px] bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30">
+                  <span className="px-2 py-0.5 rounded-[6px] bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30">
                     {ev.os}
                   </span>
                 </div>
@@ -767,10 +785,10 @@ export default function DevicesAnalyticsPage() {
               {/* Middle Row: Browser & City/Country Location */}
               <div className="flex items-center justify-between text-xs">
                 <span className="text-zinc-800 dark:text-neutral-300 font-medium truncate">
-                  🌐 {ev.browser || "Chrome"}
+                  {ev.browser || "Chrome"}
                 </span>
                 <span className="text-zinc-500 dark:text-neutral-400 text-[11px] truncate">
-                  📍 {ev.city ? `${ev.city}, ${ev.countryName}` : ev.countryName}
+                  {ev.city ? `${ev.city}, ${ev.countryName}` : ev.countryName}
                 </span>
               </div>
 

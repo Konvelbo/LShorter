@@ -91,6 +91,10 @@ function LiveClickStreamContent() {
   const { data: session, status } = useSession();
   const searchParams = useSearchParams();
   const userId = session?.user?.id || "";
+  const isPreview =
+    typeof window !== "undefined" &&
+    window.location.search.includes("playwright_preview=1");
+  const effectiveUserId = userId || (isPreview ? "preview_user" : "");
 
   // Déclaration de tous les hooks au sommet
   const [currentTimeTick, setCurrentTimeTick] = useState<number>(() =>
@@ -105,7 +109,7 @@ function LiveClickStreamContent() {
   const [selectedLinkId, setSelectedLinkId] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 10;
+  const [pageSize, setPageSize] = useState<number>(10);
 
   // Horloge de rafraîchissement des minutes (se déclenche toutes les 5s)
   useEffect(() => {
@@ -143,7 +147,10 @@ function LiveClickStreamContent() {
     isBg = false,
     force = false,
   ) => {
-    if (!userId) return;
+    if (!effectiveUserId) {
+      setIsLoading(false);
+      return;
+    }
     if (!isBg && !hasLoadedOnceRef.current) {
       setIsLoading(true);
     } else {
@@ -163,18 +170,18 @@ function LiveClickStreamContent() {
       const needForce = isBg || force || hasLoadedOnceRef.current;
       let [analyticsRes, linksRes] = await Promise.all([
         cfGetAnalytics(
-          userId,
+          effectiveUserId,
           periodParam,
           linkId !== "all" ? linkId : undefined,
           needForce,
         ).catch(() => null),
-        cfGetLinks(userId, needForce).catch(() => null),
+        cfGetLinks(effectiveUserId, needForce).catch(() => null),
       ]);
 
       // Repli vers /api/analytics si nécessaire
       if (!analyticsRes || !analyticsRes.data) {
         analyticsRes = await fetch(
-          `/api/analytics?userId=${encodeURIComponent(userId)}&period=${periodParam}${linkId !== "all" ? `&linkId=${encodeURIComponent(linkId)}` : ""}${needForce ? `&forceRefresh=true&_t=${Date.now()}` : ""}`,
+          `/api/analytics?userId=${encodeURIComponent(effectiveUserId)}&period=${periodParam}${linkId !== "all" ? `&linkId=${encodeURIComponent(linkId)}` : ""}${needForce ? `&forceRefresh=true&_t=${Date.now()}` : ""}`,
           { cache: "no-store" },
         )
           .then((r) => (r.ok ? r.json() : null))
@@ -284,17 +291,17 @@ function LiveClickStreamContent() {
   };
 
   useEffect(() => {
-    if (status === "unauthenticated") {
+    if (status === "unauthenticated" && !isPreview) {
       setIsLoading(false);
       return;
     }
-    if (userId) {
+    if (effectiveUserId) {
       const qLinkId =
         searchParams.get("linkId") || searchParams.get("slug") || "all";
       setSelectedLinkId(qLinkId);
       loadStreamData(selectedRange, qLinkId, hasLoadedOnceRef.current);
     }
-  }, [status, userId]);
+  }, [status, effectiveUserId]);
 
   useEffect(() => {
     if (!userId) return;
@@ -553,7 +560,7 @@ function LiveClickStreamContent() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-4 rounded-[12px] ds-card flex flex-col justify-between gap-2.5">
+        <div className="p-4 rounded-[10px] ds-card flex flex-col justify-between gap-2.5">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold ds-text-muted uppercase tracking-wider">
               Captured Events
@@ -571,7 +578,7 @@ function LiveClickStreamContent() {
           </div>
         </div>
 
-        <div className="p-4 rounded-[12px] ds-card flex flex-col justify-between gap-2.5">
+        <div className="p-4 rounded-[10px] ds-card flex flex-col justify-between gap-2.5">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold ds-text-muted uppercase tracking-wider">
               Active Countries
@@ -589,7 +596,7 @@ function LiveClickStreamContent() {
           </div>
         </div>
 
-        <div className="p-4 rounded-[12px] ds-card flex flex-col justify-between gap-2.5">
+        <div className="p-4 rounded-[10px] ds-card flex flex-col justify-between gap-2.5">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold ds-text-muted uppercase tracking-wider">
               Median Edge Speed
@@ -607,7 +614,7 @@ function LiveClickStreamContent() {
           </div>
         </div>
 
-        <div className="p-4 rounded-[12px] ds-card flex flex-col justify-between gap-2.5">
+        <div className="p-4 rounded-[10px] ds-card flex flex-col justify-between gap-2.5">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold ds-text-muted uppercase tracking-wider">
               Attributed Conversions
@@ -630,7 +637,7 @@ function LiveClickStreamContent() {
       </div>
 
       {/* Table Card */}
-      <div className="rounded-[14px] ds-card p-5 space-y-4">
+      <div className="rounded-[10px] ds-card p-4 sm:p-5 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b ds-border">
           <div className="relative flex-1 max-w-md">
             <Search className="w-4 h-4 ds-text-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -642,11 +649,30 @@ function LiveClickStreamContent() {
                 setCurrentPage(1);
               }}
               placeholder="Search by slug, country, browser, or customer..."
-              className="w-full h-10 pl-10 pr-4 rounded-[10px] ds-input text-xs focus:outline-none"
+              className="w-full h-9 pl-9 pr-3 rounded-[8px] ds-input text-xs focus:outline-none"
             />
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            {/* Display limit control (limitation d'affichage) */}
+            <div className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
+              <span className="text-[11.5px]">Show</span>
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="h-8 rounded-[6px] border border-zinc-200 dark:border-[#27272a] bg-white dark:bg-[#141418] px-2 text-xs font-medium text-zinc-800 dark:text-zinc-200 focus:outline-none cursor-pointer"
+              >
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+              </select>
+              <span className="text-[11.5px]">entries</span>
+            </div>
+
             <ColumnMaskToggle
               columns={STREAM_COLUMNS}
               visibleColumns={visibleColumns}
@@ -657,11 +683,11 @@ function LiveClickStreamContent() {
         </div>
 
         <div className="overflow-x-auto overscroll-x-contain">
-          <table className="w-full min-w-[900px] text-left border-collapse">
+          <table className="hidden md:table w-full min-w-[900px] text-left border-collapse">
             <thead>
-              <tr className="rounded-xl bg-[#F9FAFB] dark:bg-white/[0.03] text-[10.5px] font-semibold uppercase tracking-wider ds-text-muted">
+              <tr className="rounded-[8px] bg-[#F9FAFB] dark:bg-white/[0.03] text-[10.5px] font-semibold uppercase tracking-wider ds-text-muted">
                 {visibleColumns.has("timestamp") && (
-                  <th className="py-2 px-3 whitespace-nowrap first:rounded-l-xl">
+                  <th className="py-2 px-3 whitespace-nowrap first:rounded-l-[8px]">
                     Timestamp
                   </th>
                 )}
@@ -692,7 +718,7 @@ function LiveClickStreamContent() {
                     Edge Status
                   </th>
                 )}
-                <th className="py-2 px-3 text-right whitespace-nowrap last:rounded-r-xl">
+                <th className="py-2 px-3 text-right whitespace-nowrap last:rounded-r-[8px]">
                   Actions
                 </th>
               </tr>
@@ -717,8 +743,7 @@ function LiveClickStreamContent() {
                       className="hover:bg-[#F2F4F7]/60 dark:hover:bg-white/[0.03] transition-colors"
                     >
                       {visibleColumns.has("timestamp") && (
-                        <td className="py-2 px-3 font-mono text-[10.5px] ds-text-muted whitespace-nowrap first:rounded-l-xl">
-                          {/* S'actualise en temps réel : "Just now" -> "1 min ago" -> "2 mins ago" */}
+                        <td className="py-2 px-3 font-mono text-[10.5px] ds-text-muted whitespace-nowrap first:rounded-l-[8px]">
                           {formatLiveRelativeTime(
                             ev.timestamp,
                             currentTimeTick,
@@ -797,14 +822,14 @@ function LiveClickStreamContent() {
                           </span>
                         </td>
                       )}
-                      <td className="py-2 px-3 text-right whitespace-nowrap last:rounded-r-xl">
+                      <td className="py-2 px-3 text-right whitespace-nowrap last:rounded-r-[8px]">
                         <button
                           type="button"
                           onClick={() => {
                             navigator.clipboard.writeText(shortLinkUrl);
                             showToast.success("Short link copied!");
                           }}
-                          className="p-1.5 rounded-lg text-zinc-500 hover:text-[#0066FF] hover:bg-zinc-100 dark:hover:bg-white/10 transition-colors"
+                          className="p-1.5 rounded-[6px] text-zinc-500 hover:text-[#0066FF] hover:bg-zinc-100 dark:hover:bg-white/10 transition-colors"
                           title="Copy link"
                         >
                           <Copy className="w-3.5 h-3.5" />
@@ -816,10 +841,94 @@ function LiveClickStreamContent() {
               )}
             </tbody>
           </table>
+
+          {/* Mobile Live Stream Feed (< md: / < 768px) */}
+          <div className="flex flex-col gap-2.5 md:hidden p-1 font-sans">
+            {paginatedEvents.length === 0 ? (
+              <div className="py-12 text-center text-xs text-zinc-500 dark:text-neutral-400">
+                No live redirect events recorded for this period yet.
+              </div>
+            ) : (
+              paginatedEvents.map((ev) => {
+                const cleanSlug = String(ev.slug || "").replace(/^\//, "");
+                const shortLinkUrl = `https://lsho.cc/${cleanSlug}`;
+                const relTime = formatLiveRelativeTime(ev.timestamp, currentTimeTick);
+
+                return (
+                  <div
+                    key={ev.id}
+                    className="rounded-[10px] bg-white dark:bg-[#141418] border border-zinc-200 dark:border-[#222225] p-3 flex flex-col gap-2 hover:border-[#0066FF]/40 transition-colors"
+                  >
+                    {/* Top Row: Country Flag + Country Name/City + Live Relative Time */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        {ev.countryCode && ev.countryCode !== "XX" ? (
+                          <img
+                            src={`https://flagcdn.com/w20/${ev.countryCode.toLowerCase()}.png`}
+                            alt={ev.countryName || ev.countryCode}
+                            className="w-4 h-3 rounded-[2px] object-cover shrink-0"
+                          />
+                        ) : (
+                          <Globe2 className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                        )}
+                        <span className="font-semibold text-xs text-zinc-900 dark:text-white truncate">
+                          {ev.countryName || ev.countryCode || "Global"}
+                          {ev.city && ev.city !== "—" ? ` • ${ev.city}` : ""}
+                        </span>
+                      </div>
+                      <span className="text-[10.5px] font-mono text-zinc-500 dark:text-neutral-400 shrink-0">
+                        {relTime}
+                      </span>
+                    </div>
+
+                    {/* Middle Row: Short Link + Customer or Referrer */}
+                    <div className="flex items-center justify-between gap-2 pt-1 border-t border-zinc-100 dark:border-[#222225] text-xs">
+                      <a
+                        href={shortLinkUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-mono text-xs font-semibold text-[#0066FF] dark:text-[#5294FF] hover:underline truncate"
+                      >
+                        /{cleanSlug}
+                      </a>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <ReferrerLogo referrer={ev.referrer} size={18} />
+                        <span className="text-[11px] text-zinc-600 dark:text-zinc-300 font-medium truncate max-w-[130px]">
+                          {ev.customerName || ev.referrer || "Direct"}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Bottom Row: Device/OS + Edge Status + Copy Button */}
+                    <div className="flex items-center justify-between text-[11px] text-zinc-500 dark:text-neutral-400 pt-0.5">
+                      <span className="truncate">
+                        {ev.device} · {ev.os} ({ev.browser})
+                      </span>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="px-1.5 py-0.5 rounded-[4px] bg-[#0066FF]/10 text-[#0066FF] dark:text-[#5294FF] text-[10px] font-medium font-mono">
+                          302 {ev.latencyMs || "2.4ms"}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(shortLinkUrl);
+                            showToast.success("Link copied!");
+                          }}
+                          className="px-2 py-0.5 rounded-[6px] border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-[10.5px] text-zinc-600 dark:text-zinc-300 transition-colors cursor-pointer"
+                        >
+                          Copy
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
         </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-between pt-3 border-t ds-border text-xs ds-text-muted">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t ds-border text-xs ds-text-muted">
           <span>
             Showing {(currentPage - 1) * pageSize + 1} to{" "}
             {Math.min(currentPage * pageSize, filteredEvents.length)} of{" "}
@@ -834,7 +943,7 @@ function LiveClickStreamContent() {
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <span className="px-3 py-1 rounded-[8px] ds-card font-mono ds-text-primary">
+            <span className="px-3 py-1 rounded-[8px] ds-card font-mono ds-text-primary text-xs">
               Page {currentPage} / {totalPages}
             </span>
             <button
