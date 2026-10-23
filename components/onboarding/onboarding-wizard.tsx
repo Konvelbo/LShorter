@@ -545,7 +545,7 @@ const SOURCES = [
   {
     id: "ai",
     label: "Artificial intelligence (AI)",
-    logo: "https://cdn.simpleicons.org/openai",
+    logo: "https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/openai.svg",
   },
   {
     id: "github",
