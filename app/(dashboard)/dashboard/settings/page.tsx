@@ -2455,7 +2455,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                   </div>
                 ) : (
                   <div className="overflow-x-auto bg-white dark:bg-[#111113] rounded-[10px] border border-zinc-200 dark:border-[#222225]">
-                    <table className="w-full text-left text-xs text-zinc-600 dark:text-neutral-400">
+                    <table className="hidden sm:table w-full text-left text-xs text-zinc-600 dark:text-neutral-400">
                       <thead>
                         <tr className="border-b border-zinc-200 dark:border-[#27272a] text-[11px] uppercase tracking-wider text-zinc-500 dark:text-neutral-500">
                           <th className="py-3 px-3.5">Réf. Facture</th>
@@ -2508,6 +2508,42 @@ console.log("Top Countries:", topAudience.topCountries);`,
                         ))}
                       </tbody>
                     </table>
+
+                    {/* Mobile Invoices Cards (< sm: / < 640px) */}
+                    <div className="sm:hidden flex flex-col gap-2 p-2 font-sans">
+                      {invoices.map((inv) => (
+                        <div
+                          key={inv.id}
+                          className="rounded-[8px] border border-zinc-200 dark:border-[#27272a] bg-zinc-50/50 dark:bg-[#18181c] p-3 space-y-2"
+                        >
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-mono font-bold text-zinc-900 dark:text-white">
+                              {inv.number}
+                            </span>
+                            <Badge variant="active">Payée</Badge>
+                          </div>
+                          <div className="flex items-center justify-between text-xs text-zinc-500">
+                            <span>{inv.date}</span>
+                            <span className="font-mono font-bold text-zinc-900 dark:text-white text-xs">
+                              {typeof inv.totalAmount === "number"
+                                ? `${inv.totalAmount.toFixed(2)} ${inv.currency || "USD"}`
+                                : `0.00 ${inv.currency || "USD"}`}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between pt-1 border-t border-zinc-200 dark:border-zinc-800 text-[11px] text-zinc-500">
+                            <span>Net HT: {typeof inv.netAmount === "number" ? inv.netAmount.toFixed(2) : "0.00"} {inv.currency || "USD"}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadInvoice(inv)}
+                              className="px-2.5 py-1 rounded-[6px] border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-[#111113] hover:bg-zinc-100 dark:hover:bg-zinc-800 font-medium text-zinc-700 dark:text-zinc-200 text-xs flex items-center gap-1 transition-colors cursor-pointer"
+                            >
+                              <Download className="w-3.5 h-3.5 text-[#0066FF]" />
+                              <span>PDF</span>
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>

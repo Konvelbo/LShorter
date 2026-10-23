@@ -933,7 +933,7 @@ function RevenueAnalyticsContent() {
 
         {/* ─── Table ──────────────────────────────────────────────────────── */}
         <div className="overflow-x-auto rounded-[8px] border border-zinc-200 dark:border-[#222225] custom-scrollbar">
-          <table className="w-full text-left border-collapse text-xs">
+          <table className="hidden md:table w-full text-left border-collapse text-xs">
             <thead>
               <tr className="border-b border-zinc-200 dark:border-[#222225] bg-zinc-100/70 dark:bg-[#0e0e11]/80 text-zinc-700 dark:text-neutral-400 font-semibold select-none text-[10.5px] uppercase tracking-wider">
                 {visibleColumns.has("beneficiary") && (
@@ -1114,7 +1114,7 @@ function RevenueAnalyticsContent() {
                           >
                             <MoreHorizontal className="w-4 h-4" />
                           </summary>
-                          <div className="absolute right-0 mt-1.5 w-52 rounded-xl border border-zinc-200 dark:border-[#27272a] bg-white dark:bg-[#141418] p-1.5 shadow-xl z-50 text-left">
+                          <div className="absolute right-0 mt-1.5 w-52 rounded-[10px] border border-zinc-200 dark:border-[#27272a] bg-white dark:bg-[#141418] p-1.5 shadow-xl z-50 text-left">
                             <a
                               href={`/r/${encodeURIComponent(cleanSlug)}`}
                               target="_blank"
@@ -1149,6 +1149,103 @@ function RevenueAnalyticsContent() {
               )}
             </tbody>
           </table>
+
+          {/* Mobile Cards Feed (< md: / < 768px) */}
+          <div className="flex flex-col gap-2.5 md:hidden p-2 font-sans">
+            {paginatedBeneficiaries.length === 0 ? (
+              <div className="py-8 text-center text-zinc-500 dark:text-neutral-500 text-xs">
+                No beneficiaries found.
+              </div>
+            ) : (
+              paginatedBeneficiaries.map((b) => {
+                const initial = (b.name || b.email || "").trim().charAt(0).toUpperCase();
+                const cleanSlug = String(b.slug || "").replace(/^\//, "");
+                const shortLinkUrl = cleanSlug ? `https://lsho.cc/${cleanSlug}` : "https://lsho.cc";
+
+                return (
+                  <div
+                    key={b.id}
+                    className="rounded-[10px] bg-white dark:bg-[#141418] border border-zinc-200 dark:border-[#222225] p-3 flex flex-col gap-2 hover:border-[#0066FF]/40 transition-colors"
+                  >
+                    {/* Top Row: Buyer Avatar / Name / Revenue */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        {b.avatar ? (
+                          <img
+                            src={b.avatar}
+                            alt={b.name || "Buyer"}
+                            className="w-7 h-7 rounded-full object-cover border border-zinc-200 dark:border-zinc-700 shrink-0"
+                          />
+                        ) : (
+                          <div className="w-7 h-7 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold text-xs flex items-center justify-center shrink-0 border border-emerald-500/20">
+                            {initial || "B"}
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <span className="font-semibold text-xs text-zinc-900 dark:text-white truncate block">
+                            {b.name || b.email || "Anonymous Buyer"}
+                          </span>
+                          {b.email && b.name && (
+                            <span className="text-[10.5px] text-zinc-500 dark:text-neutral-400 truncate block font-mono">
+                              {b.email}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <span className="font-mono font-bold text-xs text-emerald-600 dark:text-emerald-400 block">
+                          ${Number(b.revenue || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                        <span className="text-[10px] font-mono text-zinc-400">
+                          {b.clicks || 1} clic{(b.clicks || 1) > 1 ? "s" : ""}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Middle Row: Short Link + Country Location */}
+                    <div className="flex items-center justify-between gap-2 pt-1 border-t border-zinc-100 dark:border-[#222225] text-xs">
+                      <a
+                        href={shortLinkUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-mono text-xs font-semibold text-[#0066FF] dark:text-[#5294FF] hover:underline truncate"
+                      >
+                        /{cleanSlug}
+                      </a>
+                      {b.countryCode && (
+                        <div className="flex items-center gap-1 shrink-0 text-[11px] text-zinc-600 dark:text-neutral-400">
+                          <img
+                            src={`https://flagcdn.com/w20/${String(b.countryCode).toLowerCase()}.png`}
+                            alt={b.countryCode}
+                            className="w-4 h-3 rounded-[2px] object-cover shrink-0"
+                          />
+                          <span>{getCountryName(b.countryCode) || b.countryCode}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Bottom Row: Timestamp + Copy Link Action */}
+                    <div className="flex items-center justify-between text-[11px] text-zinc-500 dark:text-neutral-400 pt-0.5">
+                      <span className="font-mono text-[10.5px]">
+                        {b.timestamp ? formatDateRelative(b.timestamp) : "Recently"}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(shortLinkUrl);
+                          showToast.success("Link copied!");
+                        }}
+                        className="px-2 py-0.5 rounded-[6px] border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-[10.5px] text-zinc-600 dark:text-zinc-300 transition-colors cursor-pointer"
+                      >
+                        Copy Link
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
         </div>
 
         {/* ─── Pagination Controls ────────────────────────────────────────── */}

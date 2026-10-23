@@ -648,7 +648,7 @@ export default function SourcesAnalyticsPage() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
+          <table className="hidden md:table w-full text-left text-xs border-collapse">
             <thead>
               <tr className="border-b border-zinc-200 dark:border-[#222225] bg-zinc-50 dark:bg-[#111116] text-[10px] uppercase font-mono text-zinc-500 dark:text-neutral-400">
                 {visibleColumns.has("timestamp") && <th className="py-2.5 px-3">Time</th>}
@@ -750,6 +750,67 @@ export default function SourcesAnalyticsPage() {
               )}
             </tbody>
           </table>
+
+          {/* Mobile Cards Feed (< md: / < 768px) */}
+          <div className="flex flex-col gap-2.5 md:hidden p-2 font-sans">
+            {paginatedEvents.length === 0 ? (
+              <div className="py-8 text-center text-zinc-500 dark:text-neutral-500 text-xs">
+                No events matching criteria.
+              </div>
+            ) : (
+              paginatedEvents.map((ev, i) => {
+                const ref = ev.referrer || "Direct";
+                const isSocial = SOCIAL_PLATFORMS.some((s) => ref.toLowerCase().includes(s));
+                const cleanSlug = String(ev.slug || "").replace(/^\//, "");
+
+                return (
+                  <div
+                    key={i}
+                    className="rounded-[10px] bg-white dark:bg-[#141418] border border-zinc-200 dark:border-[#222225] p-3 flex flex-col gap-2 hover:border-[#0066FF]/40 transition-colors"
+                  >
+                    {/* Top row: Referrer + Channel + Time */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <ReferrerLogo referrer={ev.referrer} size={18} />
+                        <span className="font-semibold text-xs text-zinc-900 dark:text-white truncate">
+                          {ev.referrer || "Direct Traffic"}
+                        </span>
+                      </div>
+                      <span className="text-[10.5px] font-mono text-zinc-500 dark:text-neutral-400 shrink-0">
+                        {new Date(ev.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    </div>
+
+                    {/* Middle row: Short link & Channel badge */}
+                    <div className="flex items-center justify-between gap-2 pt-1 border-t border-zinc-100 dark:border-[#222225] text-xs">
+                      <span className="font-mono text-xs font-semibold text-[#0066FF] dark:text-[#5294FF] truncate">
+                        /{cleanSlug}
+                      </span>
+                      <span
+                        className={`px-2 py-0.5 rounded-[4px] text-[10px] font-medium border ${
+                          isSocial
+                            ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20"
+                            : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+                        }`}
+                      >
+                        {isSocial ? "Social" : "Direct / QR"}
+                      </span>
+                    </div>
+
+                    {/* Customer or Device info */}
+                    {(ev.customerName || ev.customerEmail || ev.city || ev.countryName) && (
+                      <div className="flex items-center justify-between text-[11px] text-zinc-500 dark:text-neutral-400 pt-0.5">
+                        <span className="truncate">
+                          {ev.customerName || ev.customerEmail || (ev.city ? `${ev.city}, ${ev.countryName}` : ev.countryName)}
+                        </span>
+                        <span className="capitalize shrink-0">{ev.device || "Desktop"}</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
         </div>
 
         {/* Pagination */}

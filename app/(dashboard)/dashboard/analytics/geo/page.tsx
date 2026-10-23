@@ -1799,7 +1799,7 @@ export default function GeoAnalyticsPage() {
         </div>
 
         <div className="overflow-x-auto rounded-[8px] border border-[#E4E7EC] dark:border-[#222225] overflow-visible min-h-[480px]">
-          <table className="w-full text-left text-xs">
+          <table className="hidden md:table w-full text-left text-xs">
             <thead>
               <tr className="border-b border-[#E4E7EC] dark:border-[#222225] bg-zinc-100/70 dark:bg-[#111113] text-zinc-700 dark:text-neutral-400 font-semibold text-[11px]">
                 {visibleColumns.has("timestamp") && (
@@ -1926,6 +1926,70 @@ export default function GeoAnalyticsPage() {
             )}
             </tbody>
           </table>
+
+          {/* Mobile Cards Feed (< md: / < 768px) */}
+          <div className="flex flex-col gap-2.5 md:hidden p-2 font-sans">
+            {paginatedEvents.length === 0 ? (
+              <div className="py-12 text-center text-xs text-zinc-500 dark:text-neutral-400">
+                No geographic click events recorded for this period yet.
+              </div>
+            ) : (
+              paginatedEvents.map((ev) => {
+                const cleanSlug = String(ev.slug || "").replace(/^\//, "");
+                const shortLinkUrl = `https://lsho.cc/${cleanSlug}`;
+                const relTime = formatLiveRelativeTime(ev.timestamp, currentTimeTick);
+
+                return (
+                  <div
+                    key={ev.id}
+                    className="rounded-[10px] bg-white dark:bg-[#18181c] border border-[#E4E7EC] dark:border-[#27272a] p-3 flex flex-col gap-2 hover:border-[#0066FF]/40 transition-colors"
+                  >
+                    {/* Top Row: Flag + Country/City + Relative Time */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <CountryFlagBadge code={ev.countryCode} className="w-5 h-3.5" />
+                        <span className="font-semibold text-xs text-zinc-900 dark:text-white truncate">
+                          {ev.countryName} {ev.city ? `• ${ev.city}` : ""}
+                        </span>
+                        <span className="text-[10px] font-mono text-zinc-500">({ev.countryCode})</span>
+                      </div>
+                      <span className="text-[10.5px] font-mono text-zinc-500 dark:text-neutral-400 shrink-0">
+                        {relTime}
+                      </span>
+                    </div>
+
+                    {/* Middle Row: Short Link + Referrer Source */}
+                    <div className="flex items-center justify-between gap-2 pt-1 border-t border-zinc-100 dark:border-[#222228] text-xs">
+                      <a
+                        href={shortLinkUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-mono text-xs font-semibold text-[#0066FF] dark:text-[#5294FF] hover:underline truncate"
+                      >
+                        /{cleanSlug}
+                      </a>
+                      <ReferrerBadge referrer={ev.referrer} />
+                    </div>
+
+                    {/* Bottom Row: Device & Browser */}
+                    <div className="flex items-center justify-between text-[11px] text-zinc-500 dark:text-neutral-400">
+                      <span>{ev.device || "Desktop"} • {ev.browser || "Browser"}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(shortLinkUrl);
+                          showToast.success("Link copied!");
+                        }}
+                        className="px-2 py-0.5 rounded-[6px] border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-[10.5px] text-zinc-600 dark:text-zinc-300 transition-colors cursor-pointer"
+                      >
+                        Copy Link
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
         </div>
 
         {/* Pagination Bar */}
