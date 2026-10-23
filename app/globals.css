@@ -1804,3 +1804,19 @@ html.light main .text-neutral-200 {
     transform: translateX(0) scale(1);
   }
 }
+
+
+@keyframes slideOutSmooth {
+  0% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  30% {
+    opacity: 0.8;
+    transform: translateX(-2px) scale(1.02);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(20px) scale(0.92);
+  }
+}

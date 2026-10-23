@@ -139,6 +139,15 @@ export function LinksReuiDataGrid({
   const [openActionRowId, setOpenActionRowId] = useState<string | null>(null);
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
   const [openMobileActionsId, setOpenMobileActionsId] = useState<string | null>(null);
+  const [closingMobileActionsId, setClosingMobileActionsId] = useState<string | null>(null);
+
+  const handleCloseMobileActions = (rowId: string) => {
+    setClosingMobileActionsId(rowId);
+    setTimeout(() => {
+      setOpenMobileActionsId(null);
+      setClosingMobileActionsId(null);
+    }, 220);
+  };
   const [mobileDensity, setMobileDensity] = useState<"compact" | "detailed">("compact");
   const [menuCoords, setMenuCoords] = useState<{
     top?: number;
@@ -1263,108 +1272,108 @@ export function LinksReuiDataGrid({
                           {isRowActive ? "Pause" : "Activate"}
                         </button>
 
-                        {/* Actions group: ChevronLeft trigger revealing buttons with smooth staggered slide-in animation */}
+                        {/* Actions group: ChevronLeft trigger revealing buttons with smooth staggered slide-in and reverse slide-out */}
                         <div className="flex items-center gap-1.5 justify-end overflow-hidden">
                           {openMobileActionsId !== row.id ? (
                             <button
                               type="button"
-                              onClick={() => setOpenMobileActionsId(row.id)}
+                              onClick={() => {
+                                setOpenMobileActionsId(row.id);
+                                setClosingMobileActionsId(null);
+                              }}
                               className="w-7 h-7 flex items-center justify-center rounded-[6px] border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-[#18181c] text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all cursor-pointer active:scale-90"
                               title="Actions"
                               aria-label="Show actions"
                             >
                               <ChevronLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
                             </button>
-                          ) : (
-                            <div className="flex items-center gap-1.5">
-                              {/* 1. Share button */}
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (effectiveShare) {
-                                    effectiveShare(row.raw);
-                                  } else if (typeof navigator !== "undefined" && navigator.share) {
-                                    navigator.share({ title: `/${row.slug}`, url: row.shortUrl }).catch(() => {});
-                                  } else {
-                                    navigator.clipboard.writeText(row.shortUrl);
-                                    showToast.success("Link copied to clipboard!");
-                                  }
-                                }}
-                                style={{
-                                  animation: "slideInSmooth 280ms cubic-bezier(0.16, 1, 0.3, 1) backwards",
-                                  animationDelay: "0ms",
-                                }}
-                                className="px-2.5 py-1 text-[11px] font-medium border border-zinc-200 dark:border-zinc-700 rounded-[6px] text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer flex items-center gap-1 shadow-2xs active:scale-95"
-                                title="Share link"
-                              >
-                                <Share2 className="w-3 h-3 text-sky-500 shrink-0" />
-                                <span>Share</span>
-                              </button>
-
-                              {/* 2. Edit button */}
-                              {effectiveEdit && (
+                          ) : (() => {
+                            const isClosing = closingMobileActionsId === row.id;
+                            return (
+                              <div className="flex items-center gap-1.5">
+                                {/* 1. Share button */}
                                 <button
                                   type="button"
-                                  onClick={() => effectiveEdit(row.raw)}
-                                  style={{
-                                    animation: "slideInSmooth 280ms cubic-bezier(0.16, 1, 0.3, 1) backwards",
-                                    animationDelay: "50ms",
+                                  onClick={() => {
+                                    if (effectiveShare) {
+                                      effectiveShare(row.raw);
+                                    } else if (typeof navigator !== "undefined" && navigator.share) {
+                                      navigator.share({ title: `/${row.slug}`, url: row.shortUrl }).catch(() => {});
+                                    } else {
+                                      navigator.clipboard.writeText(row.shortUrl);
+                                      showToast.success("Link copied to clipboard!");
+                                    }
                                   }}
-                                  className="px-2.5 py-1 text-[11px] font-medium border border-zinc-200 dark:border-zinc-700 rounded-[6px] text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer shadow-2xs active:scale-95"
-                                  title="Edit link"
+                                  style={{
+                                    animation: isClosing
+                                      ? "slideOutSmooth 180ms cubic-bezier(0.16, 1, 0.3, 1) forwards"
+                                      : "slideInSmooth 240ms cubic-bezier(0.16, 1, 0.3, 1) backwards",
+                                    animationDelay: isClosing ? "80ms" : "0ms",
+                                  }}
+                                  className="px-2.5 py-1 text-[11px] font-medium border border-zinc-200 dark:border-zinc-700 rounded-[6px] text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer flex items-center gap-1 shadow-2xs active:scale-95"
+                                  title="Share link"
                                 >
-                                  Edit
+                                  <Share2 className="w-3 h-3 text-sky-500 shrink-0" />
+                                  <span>Share</span>
                                 </button>
-                              )}
 
-                              {/* 3. QR button */}
-                              {effectiveQr && (
+                                {/* 2. Edit button */}
+                                {effectiveEdit && (
+                                  <button
+                                    type="button"
+                                    onClick={() => effectiveEdit(row.raw)}
+                                    style={{
+                                      animation: isClosing
+                                        ? "slideOutSmooth 180ms cubic-bezier(0.16, 1, 0.3, 1) forwards"
+                                        : "slideInSmooth 240ms cubic-bezier(0.16, 1, 0.3, 1) backwards",
+                                      animationDelay: isClosing ? "40ms" : "40ms",
+                                    }}
+                                    className="px-2.5 py-1 text-[11px] font-medium border border-zinc-200 dark:border-zinc-700 rounded-[6px] text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer shadow-2xs active:scale-95"
+                                    title="Edit link"
+                                  >
+                                    Edit
+                                  </button>
+                                )}
+
+                                {/* 3. QR button */}
+                                {effectiveQr && (
+                                  <button
+                                    type="button"
+                                    onClick={() => effectiveQr(row.raw)}
+                                    style={{
+                                      animation: isClosing
+                                        ? "slideOutSmooth 180ms cubic-bezier(0.16, 1, 0.3, 1) forwards"
+                                        : "slideInSmooth 240ms cubic-bezier(0.16, 1, 0.3, 1) backwards",
+                                      animationDelay: isClosing ? "0ms" : "80ms",
+                                    }}
+                                    className="px-2.5 py-1 text-[11px] font-medium border border-zinc-200 dark:border-zinc-700 rounded-[6px] text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer shadow-2xs active:scale-95"
+                                    title="Generate QR Code"
+                                  >
+                                    QR
+                                  </button>
+                                )}
+
+                                {/* Note: Red trash/bell icon is permanently removed from the mobile card */}
+
+                                {/* 4. Collapse button (reverse animation) */}
                                 <button
                                   type="button"
-                                  onClick={() => effectiveQr(row.raw)}
+                                  onClick={() => handleCloseMobileActions(row.id)}
                                   style={{
-                                    animation: "slideInSmooth 280ms cubic-bezier(0.16, 1, 0.3, 1) backwards",
-                                    animationDelay: "100ms",
+                                    animation: isClosing
+                                      ? "slideOutSmooth 180ms cubic-bezier(0.16, 1, 0.3, 1) forwards"
+                                      : "slideInSmooth 240ms cubic-bezier(0.16, 1, 0.3, 1) backwards",
+                                    animationDelay: isClosing ? "0ms" : "120ms",
                                   }}
-                                  className="px-2.5 py-1 text-[11px] font-medium border border-zinc-200 dark:border-zinc-700 rounded-[6px] text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer shadow-2xs active:scale-95"
-                                  title="Generate QR Code"
+                                  className="w-7 h-7 flex items-center justify-center rounded-[6px] border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-[#18181c] text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer shrink-0 active:scale-90"
+                                  title="Close actions"
+                                  aria-label="Close actions"
                                 >
-                                  QR
+                                  <ChevronRight className="w-3.5 h-3.5" />
                                 </button>
-                              )}
-
-                              {/* 4. Delete button (no bell button) */}
-                              {onDeleteLink && (
-                                <button
-                                  type="button"
-                                  onClick={() => onDeleteLink(row.raw)}
-                                  style={{
-                                    animation: "slideInSmooth 280ms cubic-bezier(0.16, 1, 0.3, 1) backwards",
-                                    animationDelay: "150ms",
-                                  }}
-                                  className="px-2 py-1 text-[11px] font-medium border border-red-500/20 rounded-[6px] text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors cursor-pointer shadow-2xs active:scale-95"
-                                  title="Delete link"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              )}
-
-                              {/* 5. Collapse button */}
-                              <button
-                                type="button"
-                                onClick={() => setOpenMobileActionsId(null)}
-                                style={{
-                                  animation: "slideInSmooth 280ms cubic-bezier(0.16, 1, 0.3, 1) backwards",
-                                  animationDelay: "200ms",
-                                }}
-                                className="w-7 h-7 flex items-center justify-center rounded-[6px] border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-[#18181c] text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer shrink-0 active:scale-90"
-                                title="Close actions"
-                                aria-label="Close actions"
-                              >
-                                <ChevronRight className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          )}
+                              </div>
+                            );
+                          })()}
                         </div>
                       </div>
                     </div>
