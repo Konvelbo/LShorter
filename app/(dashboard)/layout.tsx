@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { OnboardingGuard } from "@/components/auth/onboarding-guard";
+import { MobileFabCreateLink } from "@/components/layout/mobile-fab-create-link";
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -40,6 +41,9 @@ export default function DashboardLayout({
             </div>
           </main>
         </div>
+
+        {/* 3. Mobile Draggable Floating Action Button for Link Creation (40px, rounded-full, blue, fluid drag) */}
+        <MobileFabCreateLink />
       </div>
     </OnboardingGuard>
   );
