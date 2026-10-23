@@ -58,6 +58,10 @@ function RevenueAnalyticsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const userId = session?.user?.id || "";
+  const isPreview =
+    typeof window !== "undefined" &&
+    window.location.search.includes("playwright_preview=1");
+  const effectiveUserId = userId || (isPreview ? "preview_user" : "");
 
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -150,7 +154,10 @@ function RevenueAnalyticsContent() {
   const hasLoadedOnceRef = useRef(false);
 
   const loadData = async (range = selectedRange, linkId = selectedLinkId, isBg = false, force = false) => {
-    if (!userId) return;
+    if (!effectiveUserId) {
+      setIsLoading(false);
+      return;
+    }
     if (!isBg && !hasLoadedOnceRef.current) {
       setIsLoading(true);
     } else {
@@ -161,8 +168,8 @@ function RevenueAnalyticsContent() {
       const periodParam = range === "day" ? "1d" : range === "week" ? "7d" : range === "year" ? "365d" : "30d";
       const needForce = isBg || force || hasLoadedOnceRef.current;
       const [analyticsRes, linksRes] = await Promise.all([
-        cfGetAnalytics(userId, periodParam, linkId !== "all" ? linkId : undefined, needForce).catch(() => null),
-        cfGetLinks(userId, needForce).catch(() => null),
+        cfGetAnalytics(effectiveUserId, periodParam, linkId !== "all" ? linkId : undefined, needForce).catch(() => null),
+        cfGetLinks(effectiveUserId, needForce).catch(() => null),
       ]);
 
       const listData = Array.isArray(linksRes?.data)
@@ -238,14 +245,14 @@ function RevenueAnalyticsContent() {
   };
 
   useEffect(() => {
-    if (status === "unauthenticated") {
+    if (status === "unauthenticated" && !isPreview) {
       setIsLoading(false);
       return;
     }
-    if (userId) {
+    if (effectiveUserId) {
       loadData(selectedRange, selectedLinkId, hasLoadedOnceRef.current);
     }
-  }, [status, userId, selectedRange, selectedLinkId]);
+  }, [status, effectiveUserId, selectedRange, selectedLinkId]);
 
   // Real-time listeners & polling
   useEffect(() => {

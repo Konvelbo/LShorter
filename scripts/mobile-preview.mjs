@@ -109,6 +109,82 @@ async function main() {
     });
   });
 
+  // Mock /api/analytics
+  await page.route('**/api/analytics*', async (route) => {
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        data: {
+          totalClicks: 2310,
+          uniqueClicks: 2100,
+          total_revenue: 1485.5,
+          trackedRevenue: 1485.5,
+          clicksByDay: [],
+          topCountries: [
+            { country: 'FR', clicks: 840 },
+            { country: 'US', clicks: 620 },
+          ],
+          topCities: [],
+          topDevices: [],
+          topBrowsers: [],
+          topReferrers: [],
+          recentConversions: [
+            {
+              id: 'conv_1',
+              customerName: 'Alexandre Martin',
+              customerEmail: 'alex.martin@studio.fr',
+              amount: 249.0,
+              slug: 'black-friday',
+              countryCode: 'FR',
+              countryName: 'France',
+              city: 'Paris',
+              clicks: 4,
+              created_at: new Date(Date.now() - 1000 * 60 * 18).toISOString(),
+            },
+            {
+              id: 'conv_2',
+              customerName: 'Sarah Jenkins',
+              customerEmail: 'sarah.j@techflow.io',
+              amount: 690.0,
+              slug: 'enterprise-pack',
+              countryCode: 'US',
+              countryName: 'United States',
+              city: 'San Francisco',
+              clicks: 7,
+              created_at: new Date(Date.now() - 1000 * 60 * 55).toISOString(),
+            },
+            {
+              id: 'conv_3',
+              customerName: 'Liam Chen',
+              customerEmail: 'liam.chen@nexus.ca',
+              amount: 120.0,
+              slug: 'black-friday',
+              countryCode: 'CA',
+              countryName: 'Canada',
+              city: 'Toronto',
+              clicks: 2,
+              created_at: new Date(Date.now() - 1000 * 60 * 180).toISOString(),
+            },
+            {
+              id: 'conv_4',
+              customerName: 'Elena Rostova',
+              customerEmail: 'elena@berlin-design.de',
+              amount: 426.5,
+              slug: 'black-friday',
+              countryCode: 'DE',
+              countryName: 'Germany',
+              city: 'Berlin',
+              clicks: 5,
+              created_at: new Date(Date.now() - 1000 * 60 * 360).toISOString(),
+            },
+          ],
+        },
+      }),
+    });
+  });
+
   console.log('1. Capturing /dashboard/links (Short links card feed)...');
   await page.goto('http://localhost:3000/dashboard/links?playwright_preview=1', { waitUntil: 'domcontentloaded', timeout: 30000 });
   await page.waitForTimeout(3000);
@@ -141,6 +217,22 @@ async function main() {
   await page.waitForTimeout(1000);
   await page.screenshot({ path: 'public/mobile-domains-feed.png', fullPage: false });
   console.log('Saved public/mobile-domains-feed.png');
+
+  console.log('3. Capturing /dashboard/analytics/revenue (Customers & Revenue cards)...');
+  await page.goto('http://localhost:3000/dashboard/analytics/revenue?playwright_preview=1', { waitUntil: 'domcontentloaded', timeout: 30000 });
+  await page.waitForTimeout(3000);
+  await page.evaluate(() => {
+    const mobileFeed = document.querySelector('.md\\:hidden.flex.flex-col.gap-2\\.5');
+    if (mobileFeed) {
+      mobileFeed.scrollIntoView();
+    } else {
+      const el = document.querySelector('.ds-main-scroll');
+      if (el) el.scrollTop = 1500;
+    }
+  });
+  await page.waitForTimeout(1000);
+  await page.screenshot({ path: 'public/mobile-revenue-feed.png', fullPage: false });
+  console.log('Saved public/mobile-revenue-feed.png');
 
   await browser.close();
   console.log('Playwright captures completed successfully!');
