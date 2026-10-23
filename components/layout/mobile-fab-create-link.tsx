@@ -3,6 +3,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link2 } from "lucide-react";
 
+const BUTTON_SIZE = 50; // 50px button requested by user
+const EDGE_SPACING = 16; // 16px lateral padding
+
 export function MobileFabCreateLink() {
   const [mounted, setMounted] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -27,9 +30,9 @@ export function MobileFabCreateLink() {
       const saved = localStorage.getItem("lshorter_mobile_fab_dock");
       if (saved) {
         const { side, offsetY } = JSON.parse(saved);
-        const maxOffsetLeft = -(window.innerWidth - 40 - 32);
+        const maxOffsetLeft = -(window.innerWidth - BUTTON_SIZE - EDGE_SPACING * 2);
         const restoredX = side === "left" ? maxOffsetLeft : 0;
-        const clampedY = Math.max(-(window.innerHeight - 130), Math.min(8, offsetY || 0));
+        const clampedY = Math.max(-(window.innerHeight - 150), Math.min(8, offsetY || 0));
 
         offsetRef.current = { x: restoredX, y: clampedY };
         if (buttonRef.current) {
@@ -40,10 +43,10 @@ export function MobileFabCreateLink() {
 
     const handleResize = () => {
       if (!buttonRef.current) return;
-      const maxOffsetLeft = -(window.innerWidth - 40 - 32);
+      const maxOffsetLeft = -(window.innerWidth - BUTTON_SIZE - EDGE_SPACING * 2);
       const isLeftSide = offsetRef.current.x < maxOffsetLeft / 2;
       const targetX = isLeftSide ? maxOffsetLeft : 0;
-      const clampedY = Math.max(-(window.innerHeight - 130), Math.min(8, offsetRef.current.y));
+      const clampedY = Math.max(-(window.innerHeight - 150), Math.min(8, offsetRef.current.y));
 
       offsetRef.current = { x: targetX, y: clampedY };
       buttonRef.current.style.transform = `translate3d(${targetX}px, ${clampedY}px, 0)`;
@@ -81,8 +84,8 @@ export function MobileFabCreateLink() {
     }
 
     if (drag.hasMoved) {
-      const maxOffsetLeft = -(window.innerWidth - 40 - 24);
-      const minTranslateY = -(window.innerHeight - 130);
+      const maxOffsetLeft = -(window.innerWidth - BUTTON_SIZE - EDGE_SPACING * 2);
+      const minTranslateY = -(window.innerHeight - 150);
       const maxTranslateY = 8;
 
       const rawX = drag.origOffsetX + dx;
@@ -118,10 +121,10 @@ export function MobileFabCreateLink() {
     // Drag release -> snap cleanly to nearest lateral edge (left or right side)
     setIsDragging(false);
 
-    const fullLeftOffset = -(window.innerWidth - 40 - 32);
+    const fullLeftOffset = -(window.innerWidth - BUTTON_SIZE - EDGE_SPACING * 2);
     const isLeftSide = offsetRef.current.x < fullLeftOffset / 2;
     const targetX = isLeftSide ? fullLeftOffset : 0;
-    const clampedY = Math.max(-(window.innerHeight - 130), Math.min(8, offsetRef.current.y));
+    const clampedY = Math.max(-(window.innerHeight - 150), Math.min(8, offsetRef.current.y));
 
     offsetRef.current = { x: targetX, y: clampedY };
 
@@ -198,13 +201,13 @@ export function MobileFabCreateLink() {
         touchAction: "none",
         willChange: "transform",
       }}
-      className={`sm:hidden fixed bottom-6 right-4 z-40 w-[40px] h-[40px] min-w-[40px] min-h-[40px] max-w-[40px] max-h-[40px] rounded-full aspect-square flex items-center justify-center bg-[#0066FF] hover:bg-[#0052cc] text-white cursor-grab active:cursor-grabbing border border-white/20 select-none shadow-[0_4px_16px_rgba(0,102,255,0.45)] dark:shadow-[0_4px_20px_rgba(0,102,255,0.65)] active:scale-95 transition-colors shrink-0 ${
-        isDragging ? "shadow-[0_8px_28px_rgba(0,102,255,0.7)] scale-110" : ""
+      className={`sm:hidden fixed bottom-6 right-4 z-40 w-[50px] h-[50px] min-w-[50px] min-h-[50px] max-w-[50px] max-h-[50px] rounded-full aspect-square flex items-center justify-center bg-[#0066FF] hover:bg-[#0052cc] text-white cursor-grab active:cursor-grabbing border-2 border-white/20 select-none shadow-[0_5px_20px_rgba(0,102,255,0.45)] dark:shadow-[0_5px_24px_rgba(0,102,255,0.65)] active:scale-95 transition-colors shrink-0 ${
+        isDragging ? "shadow-[0_8px_28px_rgba(0,102,255,0.75)] scale-105" : ""
       }`}
       title="Create Link"
       aria-label="Floating create link button"
     >
-      <Link2 className="w-[18px] h-[18px] text-white stroke-[2.4] shrink-0" />
+      <Link2 className="w-[22px] h-[22px] text-white stroke-[2.4] shrink-0" />
     </button>
   );
 }
