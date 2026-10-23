@@ -585,7 +585,7 @@ export function HeroSection2() {
                   onMouseLeave={handleSecondaryBtnLeave}
                   className="w-full max-w-[320px] sm:max-w-none sm:w-56 inline-flex items-center justify-center gap-2 rounded-[12px] bg-[#F2F4F7] dark:bg-white/10 text-[#101828] dark:text-white border border-[#D0D5DD] dark:border-white/15 px-6 py-3.5 text-[15px] sm:text-[14px] font-medium shadow-xs will-change-transform cursor-pointer hover:bg-white dark:hover:bg-white/15 transition-colors text-center"
                 >
-                  <span>Open live dashboard</span>
+                  <span>See how it works</span>
                 </Link>
               </div>
             </div>

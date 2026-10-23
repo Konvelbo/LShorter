@@ -149,7 +149,7 @@ export function ProductSection() {
     <section
       ref={sectionRef}
       id="product"
-      className="relative w-full py-20 sm:py-28 px-4 sm:px-6 lg:px-8 bg-white dark:bg-[#09090B] transition-colors duration-300 overflow-hidden"
+      className="relative w-full pt-24 pb-28 sm:py-28 px-4 sm:px-6 lg:px-8 bg-white dark:bg-[#09090B] transition-colors duration-300 overflow-hidden scroll-mt-14 sm:scroll-mt-20"
     >
       <div className="relative max-w-6xl mx-auto">
 
@@ -176,12 +176,12 @@ export function ProductSection() {
            ══════════════════════════════════════════════════════════════════════ */}
         <div
           ref={cardsRef}
-          className="flex md:grid md:grid-cols-12 gap-4 sm:gap-5 overflow-x-auto md:overflow-visible pb-4 md:pb-0 snap-x snap-mandatory scroll-smooth scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden -mx-4 px-4 sm:mx-0 sm:px-0"
+          className="flex md:grid md:grid-cols-12 gap-4 sm:gap-5 overflow-x-auto md:overflow-visible pt-6 pb-8 md:pt-0 md:pb-0 snap-x snap-mandatory scroll-smooth scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden -mx-4 px-4 sm:mx-0 sm:px-0"
           style={{ WebkitOverflowScrolling: "touch" }}
         >
 
           {/* ── CARD 1 — Wide (7/12) — Retargeting Pixels ── */}
-          <div className="product-bento-card w-[86vw] xs:w-[340px] sm:w-[380px] md:w-auto shrink-0 md:shrink md:col-span-7 h-full snap-center">
+          <div className="product-bento-card w-[86vw] xs:w-[340px] sm:w-[380px] md:w-auto shrink-0 md:shrink md:col-span-7 h-full snap-center py-1 md:py-0">
             <div className="bento-card-scale group relative h-full rounded-2xl bg-neutral-900/5 dark:bg-[#111114] border border-neutral-200/80 dark:border-white/[0.08] dark:[box-shadow:0_-20px_80px_-20px_#ffffff1f_inset] p-5 sm:p-8 md:p-9 flex flex-col justify-between overflow-hidden min-h-[460px] sm:min-h-[490px] cursor-pointer">
               {/* TOP visual: Magic UI Animated Beam connecting visitor to retargeting pixels via Link2 node */}
               <BentoAnimatedBeamCard />
@@ -210,7 +210,7 @@ export function ProductSection() {
           </div>
 
           {/* ── CARD 2 — Compact (5/12) — Intuitive workflow ── */}
-          <div className="product-bento-card w-[86vw] xs:w-[340px] sm:w-[380px] md:w-auto shrink-0 md:shrink md:col-span-5 h-full snap-center">
+          <div className="product-bento-card w-[86vw] xs:w-[340px] sm:w-[380px] md:w-auto shrink-0 md:shrink md:col-span-5 h-full snap-center py-1 md:py-0">
             <div className="bento-card-scale group relative h-full rounded-2xl bg-neutral-900/5 dark:bg-[#111114] border border-neutral-200/80 dark:border-white/[0.08] dark:[box-shadow:0_-20px_80px_-20px_#ffffff1f_inset] p-7 sm:p-8 flex flex-col overflow-hidden min-h-[460px] sm:min-h-[490px] cursor-pointer">
               {/* TOP text */}
               <div className="shrink-0">
@@ -240,7 +240,7 @@ export function ProductSection() {
           </div>
 
           {/* ── CARD 3 — Compact (5/12) — Edge network + Globe ── */}
-          <div className="product-bento-card w-[86vw] xs:w-[340px] sm:w-[380px] md:w-auto shrink-0 md:shrink md:col-span-5 h-full snap-center">
+          <div className="product-bento-card w-[86vw] xs:w-[340px] sm:w-[380px] md:w-auto shrink-0 md:shrink md:col-span-5 h-full snap-center py-1 md:py-0">
             <div className="bento-card-scale group relative h-full rounded-2xl bg-neutral-900/5 dark:bg-[#111114] border border-neutral-200/80 dark:border-white/[0.08] dark:[box-shadow:0_-20px_80px_-20px_#ffffff1f_inset] p-7 sm:p-8 flex flex-col overflow-hidden min-h-[460px] sm:min-h-[490px] relative cursor-pointer">
               {/* TOP text */}
               <div className="relative z-10 shrink-0">
@@ -267,7 +267,7 @@ export function ProductSection() {
           </div>
 
           {/* ── CARD 4 — Wide (7/12) — Real-time analytics ── */}
-          <div className="product-bento-card w-[86vw] xs:w-[340px] sm:w-[380px] md:w-auto shrink-0 md:shrink md:col-span-7 h-full snap-center">
+          <div className="product-bento-card w-[86vw] xs:w-[340px] sm:w-[380px] md:w-auto shrink-0 md:shrink md:col-span-7 h-full snap-center py-1 md:py-0">
             <div className="bento-card-scale group relative h-full rounded-2xl bg-neutral-900/5 dark:bg-[#111114] border border-neutral-200/80 dark:border-white/[0.08] dark:[box-shadow:0_-20px_80px_-20px_#ffffff1f_inset] p-7 sm:p-8 flex flex-col overflow-hidden min-h-[460px] sm:min-h-[490px] cursor-pointer">
               {/* TOP text */}
               <div className="shrink-0">
