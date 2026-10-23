@@ -76,14 +76,6 @@ const HERO_BACKGROUND_EMOJIS = [
       "top-[11%] left-[22%] sm:top-[23%] sm:left-[8%] lg:left-[10%] w-7 h-7 xs:w-8 xs:h-8 sm:w-11 sm:h-11 lg:w-13 lg:h-13 opacity-100 dark:opacity-70 lg:dark:opacity-75",
     animation: "animate-hero-float-4",
   },
-  // 3. Zone Rouge 2 (Mobile) : Compass 🧭 (Au-dessus des badges à gauche)
-  {
-    src: "/emojis/compass.png",
-    alt: "Smart Geo Routing Compass",
-    className:
-      "top-[22%] left-[14%] sm:top-[38%] sm:left-[3%] lg:left-[4%] w-7 h-7 xs:w-8 xs:h-8 sm:w-11 sm:h-11 lg:w-14 lg:h-14 opacity-100 dark:opacity-70 lg:dark:opacity-75",
-    animation: "animate-hero-float-2",
-  },
   // 4. Zone Rouge 5 (Mobile) : Globe 🌐 (À gauche du paragraphe de description)
   {
     src: "/emojis/globe.png",

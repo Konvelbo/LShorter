@@ -1097,6 +1097,48 @@ export function LinksReuiDataGrid({
 
         {/* Mobile Adaptive Feed (< sm: / < 640px) */}
         <div className="sm:hidden flex flex-col gap-2 p-1 font-sans">
+          {/* Mobile Selection Action Bar */}
+          {selectedLinkIdsList.length > 0 && (
+            <div className="flex items-center justify-between p-2.5 rounded-[8px] bg-red-50/90 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 text-xs shadow-xs animate-in fade-in duration-150">
+              <div className="flex items-center gap-2 min-w-0">
+                <input
+                  type="checkbox"
+                  checked={isAllSelected}
+                  ref={headerCheckboxRef}
+                  onChange={toggleSelectAll}
+                  className="w-4 h-4 rounded-[4px] border-red-300 text-red-600 focus:ring-red-500 cursor-pointer shrink-0"
+                />
+                <span className="font-medium text-red-900 dark:text-red-200 truncate">
+                  {selectedLinkIdsList.length} lien{selectedLinkIdsList.length > 1 ? "s" : ""} sélectionné{selectedLinkIdsList.length > 1 ? "s" : ""}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setSelectedIds({})}
+                  className="px-2 py-1 text-[11px] font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 cursor-pointer"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onDeleteMultiple) {
+                      onDeleteMultiple(selectedLinkIdsList);
+                    } else if (onDeleteLink) {
+                      selectedLinkIdsList.forEach((id) => onDeleteLink(id));
+                    }
+                    setSelectedIds({});
+                  }}
+                  className="h-7.5 px-3 rounded-[6px] bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-medium flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Supprimer</span>
+                </button>
+              </div>
+            </div>
+          )}
+
           {paginatedRows.length === 0 ? (
             <div className="py-12 text-center text-xs text-zinc-500 dark:text-zinc-400">
               Aucun lien ne correspond à vos critères.
@@ -1301,12 +1343,14 @@ export function LinksReuiDataGrid({
                 } else if (onDeleteLink) {
                   selectedLinkIdsList.forEach((id) => onDeleteLink(id));
                 }
+                setSelectedIds({});
               }}
               title={`Supprimer ${selectedLinkIdsList.length} lien${selectedLinkIdsList.length > 1 ? "s" : ""} sélectionné${selectedLinkIdsList.length > 1 ? "s" : ""}`}
               aria-label="Supprimer les liens sélectionnés"
-              className="text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 transition-colors cursor-pointer bg-transparent border-0 p-0 flex items-center justify-center shrink-0 focus:outline-hidden"
+              className="h-8 px-2.5 rounded-[6px] bg-red-50 hover:bg-red-100 dark:bg-red-950/50 dark:hover:bg-red-900/50 border border-red-200 dark:border-red-900/60 text-red-600 dark:text-red-400 text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs active:scale-95 shrink-0"
             >
-              <Trash2 className="w-4 h-4 text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300" />
+              <Trash2 className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
+              <span className="text-[11.5px] font-medium">Supprimer ({selectedLinkIdsList.length})</span>
             </button>
           )}
           <p className="text-[13px] text-[#667085] dark:text-[#a1a1aa]">

@@ -752,14 +752,20 @@ export default function LinksPage() {
     if (targetIds.length === 0) return;
 
     const selectedLinks = links.filter(
-      (l) => targetIds.includes(l.id) || targetIds.includes(l.slug),
+      (l: any) =>
+        targetIds.includes(String(l.id)) ||
+        targetIds.includes(l.slug) ||
+        (l._id && targetIds.includes(String(l._id)))
     );
     const count = selectedLinks.length;
 
     // 1. Optimistic removal
     setLinks((prev) =>
       prev.filter(
-        (l) => !targetIds.includes(l.id) && !targetIds.includes(l.slug),
+        (l: any) =>
+          !targetIds.includes(String(l.id)) &&
+          !targetIds.includes(l.slug) &&
+          (!l._id || !targetIds.includes(String(l._id)))
       ),
     );
     setSelectedLinkIds(new Set());
