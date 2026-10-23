@@ -201,8 +201,8 @@ export function MobileFabCreateLink() {
         touchAction: "none",
         willChange: "transform",
       }}
-      className={`sm:hidden fixed bottom-6 right-4 z-40 w-[50px] h-[50px] min-w-[50px] min-h-[50px] max-w-[50px] max-h-[50px] rounded-full aspect-square flex items-center justify-center bg-[#0066FF] hover:bg-[#0052cc] text-white cursor-grab active:cursor-grabbing border-2 border-white/20 select-none shadow-[0_5px_20px_rgba(0,102,255,0.45)] dark:shadow-[0_5px_24px_rgba(0,102,255,0.65)] active:scale-95 transition-colors shrink-0 ${
-        isDragging ? "shadow-[0_8px_28px_rgba(0,102,255,0.75)] scale-105" : ""
+      className={`sm:hidden fixed bottom-6 right-4 z-40 w-[50px] h-[50px] min-w-[50px] min-h-[50px] max-w-[50px] max-h-[50px] rounded-full aspect-square flex items-center justify-center bg-[#0066FF] hover:bg-[#0052cc] text-white cursor-grab active:cursor-grabbing select-none shadow-md active:scale-95 transition-all shrink-0 ${
+        isDragging ? "shadow-lg scale-105" : ""
       }`}
       title="Create Link"
       aria-label="Floating create link button"
