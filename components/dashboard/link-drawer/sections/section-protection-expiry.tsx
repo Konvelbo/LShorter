@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useId, useEffect, useRef } from "react";
 import { Eye, EyeOff, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DrawerSwitch } from "../drawer-switch";
 import { FieldErrorAlert } from "../field-error-alert";
 import { triggerPlanUpgrade } from "@/lib/plan-guard";
 import { Input } from "@/components/ui/input";
+import { type Tag as EmblorTag, TagInput } from "emblor";
 
 interface SectionProtectionExpiryProps {
   isProPlan: boolean;
@@ -75,6 +76,63 @@ export function SectionProtectionExpiry({
   const [hasExpiry, setHasExpiry] = useState(Boolean(expiresAt));
   const [hasPathLock, setHasPathLock] = useState(pathLockMode !== "off");
   const [showPathLockPassword, setShowPathLockPassword] = useState(false);
+
+  // Subpath Prefix Tags Input setup (identical to Tags Input in SectionLink)
+  const prefixTagInputId = useId();
+  const [activePrefixTagIndex, setActivePrefixTagIndex] = useState<number | null>(null);
+
+  const parsePrefixesToTags = (prefixStr: string): EmblorTag[] => {
+    if (!prefixStr || !prefixStr.trim()) return [];
+    return prefixStr
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean)
+      .map((text, idx) => {
+        const normalized = text.startsWith("/") ? text : `/${text}`;
+        return { id: `prefix-${normalized}-${idx}`, text: normalized };
+      });
+  };
+
+  const [emblorPrefixTags, setEmblorPrefixTags] = useState<EmblorTag[]>(() =>
+    parsePrefixesToTags(pathLockPrefix)
+  );
+
+  const lastDispatchedPrefixRef = useRef<string>(pathLockPrefix || "");
+
+  useEffect(() => {
+    lastDispatchedPrefixRef.current = pathLockPrefix || "";
+    const currentSerialized = emblorPrefixTags.map((t) => t.text).join(", ");
+    if (pathLockPrefix !== currentSerialized) {
+      setEmblorPrefixTags(parsePrefixesToTags(pathLockPrefix));
+    }
+  }, [pathLockPrefix]);
+
+  const handleUpdatePrefixTags = (newTags: React.SetStateAction<EmblorTag[]>) => {
+    setEmblorPrefixTags((prev) => {
+      const resolved = typeof newTags === "function" ? newTags(prev) : newTags;
+      const normalizedTags = resolved
+        .map((t, idx) => {
+          const trimmed = t.text.trim();
+          const withSlash = trimmed
+            ? trimmed.startsWith("/")
+              ? trimmed
+              : `/${trimmed}`
+            : "";
+          return {
+            id: t.id || `prefix-${withSlash}-${idx}`,
+            text: withSlash,
+          };
+        })
+        .filter((t) => Boolean(t.text));
+
+      const joined = normalizedTags.map((t) => t.text).join(", ");
+      if (joined !== lastDispatchedPrefixRef.current) {
+        lastDispatchedPrefixRef.current = joined;
+        setPathLockPrefix(joined);
+      }
+      return normalizedTags;
+    });
+  };
 
   // Compute single-page path from targetUrl
   const singlePagePath = (() => {
@@ -375,17 +433,40 @@ export function SectionProtectionExpiry({
 
               {/* Funnel subpath prefix */}
               {pathLockMode === "funnel" && (
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
+                <div className="flex flex-col gap-1.5 w-full">
+                  <label
+                    htmlFor={prefixTagInputId}
+                    className="text-xs font-semibold text-zinc-800 dark:text-zinc-200"
+                  >
                     Allowed Subpath Prefix
                   </label>
-                  <Input
-                    type="text"
-                    placeholder="/shop/checkout"
-                    value={pathLockPrefix}
-                    onChange={(e) => setPathLockPrefix(e.target.value)}
-                    className="h-9 text-xs font-mono"
-                  />
+                  <div className="lshorter-tag-container w-full flex flex-col items-start">
+                    <TagInput
+                      id={prefixTagInputId}
+                      tags={emblorPrefixTags}
+                      setTags={handleUpdatePrefixTags}
+                      activeTagIndex={activePrefixTagIndex}
+                      setActiveTagIndex={setActivePrefixTagIndex}
+                      inlineTags={false}
+                      inputFieldPosition="top"
+                      placeholder="Add allowed subpath (e.g. /shop/checkout)... (press Enter)"
+                      styleClasses={{
+                        input:
+                          "w-full h-10 rounded-[10px] bg-white dark:bg-[#16181d] border border-zinc-300 dark:border-[#27272a] text-zinc-900 dark:text-[#f1f2f4] placeholder:text-zinc-400 dark:placeholder:text-[#8a8f9a] text-sm px-3 focus:outline-none focus:ring-1 focus:ring-[#0066FF] dark:focus:ring-[#3b82f6] focus:border-[#0066FF] dark:focus:border-[#3b82f6] transition-colors text-left font-mono",
+                        tag: {
+                          body: "relative h-7 bg-zinc-100 dark:bg-[#20222a] border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-200/80 dark:hover:bg-[#282b35] rounded-md font-mono text-xs ps-2 pe-7 text-zinc-800 dark:text-zinc-200 shadow-2xs transition-colors",
+                          closeButton:
+                            "absolute -inset-y-px -end-px p-0 rounded-s-none rounded-e-md flex size-7 transition-colors outline-none text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-100 hover:bg-zinc-200/50 dark:hover:bg-zinc-700/50",
+                        },
+                        tagList: {
+                          container: "flex flex-wrap items-center justify-start gap-1.5 pt-1 w-full",
+                        },
+                      }}
+                    />
+                  </div>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                    Press enter to add allowed subpath prefixes (e.g. /shop/checkout, /cart).
+                  </p>
                 </div>
               )}
 

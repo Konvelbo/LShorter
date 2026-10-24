@@ -164,8 +164,14 @@ export async function GET(
 
   var allowedOrigin = CFG.targetOrigin.toLowerCase();
   var baseTargetNorm = normPath(CFG.targetPathname);
-  var rawPrefixNorm = normPath(CFG.prefix);
-  var effectivePrefixNorm = rawPrefixNorm || baseTargetNorm;
+  var rawPrefixes = String(CFG.prefix || "")
+    .split(",")
+    .map(function(p) { return normPath(p); })
+    .filter(Boolean);
+  if (rawPrefixes.length === 0 && baseTargetNorm) {
+    rawPrefixes.push(baseTargetNorm);
+  }
+  var effectivePrefixNorm = rawPrefixes[0] || baseTargetNorm;
 
   function checkUrlAllowed(rawUrl) {
     if (isUnlocked || CFG.mode === "off") return { allowed: true, isHashOnly: false };
@@ -189,7 +195,7 @@ export async function GET(
       }
 
       if (CFG.mode === "strict") {
-        var strictAllowed = (attemptNorm === effectivePrefixNorm);
+        var strictAllowed = (attemptNorm === baseTargetNorm || attemptNorm === effectivePrefixNorm);
         return {
           allowed: strictAllowed,
           isHashOnly: strictAllowed && Boolean(u.hash),
@@ -197,8 +203,10 @@ export async function GET(
           url: u.href
         };
       } else if (CFG.mode === "funnel") {
-        var funnelAllowed = effectivePrefixNorm
-          ? (attemptNorm === effectivePrefixNorm || attemptNorm.indexOf(effectivePrefixNorm + "/") === 0)
+        var funnelAllowed = rawPrefixes.length > 0
+          ? rawPrefixes.some(function(pref) {
+              return attemptNorm === pref || attemptNorm.indexOf(pref + "/") === 0;
+            })
           : (attemptNorm === baseTargetNorm);
         return {
           allowed: funnelAllowed,
