@@ -99,18 +99,28 @@ export function SectionProtectionExpiry({
 
   const lastDispatchedPrefixRef = useRef<string>(pathLockPrefix || "");
 
+  // 1. Sync external pathLockPrefix into local emblorPrefixTags if changed externally
   useEffect(() => {
-    lastDispatchedPrefixRef.current = pathLockPrefix || "";
     const currentSerialized = emblorPrefixTags.map((t) => t.text).join(", ");
-    if (pathLockPrefix !== currentSerialized) {
+    if (pathLockPrefix !== currentSerialized && pathLockPrefix !== lastDispatchedPrefixRef.current) {
+      lastDispatchedPrefixRef.current = pathLockPrefix || "";
       setEmblorPrefixTags(parsePrefixesToTags(pathLockPrefix));
     }
   }, [pathLockPrefix]);
 
+  // 2. Safely sync local emblorPrefixTags up to parent state in an effect (avoids set-state in render)
+  useEffect(() => {
+    const joined = emblorPrefixTags.map((t) => t.text).join(", ");
+    if (joined !== lastDispatchedPrefixRef.current) {
+      lastDispatchedPrefixRef.current = joined;
+      setPathLockPrefix(joined);
+    }
+  }, [emblorPrefixTags, setPathLockPrefix]);
+
   const handleUpdatePrefixTags = (newTags: React.SetStateAction<EmblorTag[]>) => {
     setEmblorPrefixTags((prev) => {
       const resolved = typeof newTags === "function" ? newTags(prev) : newTags;
-      const normalizedTags = resolved
+      return resolved
         .map((t, idx) => {
           const trimmed = t.text.trim();
           const withSlash = trimmed
@@ -124,13 +134,6 @@ export function SectionProtectionExpiry({
           };
         })
         .filter((t) => Boolean(t.text));
-
-      const joined = normalizedTags.map((t) => t.text).join(", ");
-      if (joined !== lastDispatchedPrefixRef.current) {
-        lastDispatchedPrefixRef.current = joined;
-        setPathLockPrefix(joined);
-      }
-      return normalizedTags;
     });
   };
 

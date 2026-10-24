@@ -58,10 +58,11 @@ export function SectionLink({
 
   const lastDispatchedTagsRef = useRef<string>(tagsInput || "");
 
+  // 1. Sync external tagsInput into local emblorTags
   useEffect(() => {
-    lastDispatchedTagsRef.current = tagsInput || "";
     const currentSerialized = emblorTags.map((t) => t.text).join(", ");
-    if (tagsInput !== currentSerialized) {
+    if (tagsInput !== currentSerialized && tagsInput !== lastDispatchedTagsRef.current) {
+      lastDispatchedTagsRef.current = tagsInput || "";
       if (!tagsInput) {
         setEmblorTags([]);
       } else {
@@ -75,14 +76,18 @@ export function SectionLink({
     }
   }, [tagsInput]);
 
+  // 2. Safely sync local emblorTags up to parent state in an effect
+  useEffect(() => {
+    const joined = emblorTags.map((t) => t.text.trim()).filter(Boolean).join(", ");
+    if (setTagsInput && joined !== lastDispatchedTagsRef.current) {
+      lastDispatchedTagsRef.current = joined;
+      setTagsInput(joined);
+    }
+  }, [emblorTags, setTagsInput]);
+
   const handleUpdateTags = (newTags: React.SetStateAction<EmblorTag[]>) => {
     setEmblorTags((prev) => {
       const resolved = typeof newTags === "function" ? newTags(prev) : newTags;
-      const joined = resolved.map((t) => t.text.trim()).filter(Boolean).join(", ");
-      if (setTagsInput && joined !== lastDispatchedTagsRef.current) {
-        lastDispatchedTagsRef.current = joined;
-        setTagsInput(joined);
-      }
       return resolved;
     });
   };
