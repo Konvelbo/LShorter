@@ -210,11 +210,23 @@ export function SectionProtectionExpiry({
               </label>
               <div className="relative">
                 <Input
-                  type={showPassword ? "text" : "password"}
+                  type="text"
+                  style={{
+                    WebkitTextSecurity: showPassword ? "none" : "disc",
+                  } as React.CSSProperties}
                   placeholder="Enter secret access key"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="h-9 text-xs pr-10"
+                  className="h-9 text-xs pr-10 font-mono"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
+                  name="link_secret_password"
+                  data-lpignore="true"
+                  data-1p-ignore="true"
+                  data-bwignore="true"
+                  data-form-type="other"
                 />
                 <button
                   type="button"
@@ -453,6 +465,19 @@ export function SectionProtectionExpiry({
                       inlineTags={false}
                       inputFieldPosition="top"
                       placeholder="Add allowed subpath (e.g. /shop/checkout)... (press Enter)"
+                      inputProps={
+                        {
+                          name: "pathlock_subpath_prefix_input",
+                          autoComplete: "off",
+                          autoCorrect: "off",
+                          autoCapitalize: "off",
+                          spellCheck: false,
+                          "data-lpignore": "true",
+                          "data-1p-ignore": "true",
+                          "data-bwignore": "true",
+                          "data-form-type": "other",
+                        } as React.InputHTMLAttributes<HTMLInputElement>
+                      }
                       styleClasses={{
                         input:
                           "w-full h-10 rounded-[10px] bg-white dark:bg-[#16181d] border border-zinc-300 dark:border-[#27272a] text-zinc-900 dark:text-[#f1f2f4] placeholder:text-zinc-400 dark:placeholder:text-[#8a8f9a] text-sm px-3 focus:outline-none focus:ring-1 focus:ring-[#0066FF] dark:focus:ring-[#3b82f6] focus:border-[#0066FF] dark:focus:border-[#3b82f6] transition-colors text-left font-mono",
@@ -494,11 +519,23 @@ export function SectionProtectionExpiry({
                 </label>
                 <div className="relative">
                   <Input
-                    type={showPathLockPassword ? "text" : "password"}
+                    type="text"
+                    style={{
+                      WebkitTextSecurity: showPathLockPassword ? "none" : "disc",
+                    } as React.CSSProperties}
                     placeholder="Optional passcode to bypass lock"
                     value={pathLockPassword}
                     onChange={(e) => setPathLockPassword(e.target.value)}
-                    className="h-9 text-xs pr-10"
+                    className="h-9 text-xs pr-10 font-mono"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck={false}
+                    name="pathlock_bypass_passcode"
+                    data-lpignore="true"
+                    data-1p-ignore="true"
+                    data-bwignore="true"
+                    data-form-type="other"
                   />
                   <button
                     type="button"

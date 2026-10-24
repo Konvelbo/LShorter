@@ -1685,6 +1685,10 @@ export function LinkDrawer({
         <main className="flex-1 flex overflow-hidden relative">
           <form
             id="link-drawer-form"
+            autoComplete="off"
+            data-lpignore="true"
+            data-1p-ignore="true"
+            data-bwignore="true"
             onSubmit={handleSubmit}
             ref={scrollContainerRef}
             className="flex-1 overflow-y-auto px-6 py-5 drawer-scroll-hidden"
