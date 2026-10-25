@@ -32,7 +32,9 @@ export async function GET(
   try {
     const { slug } = await params;
     if (!slug) {
-      return NextResponse.redirect(new URL("/", req.url), 307);
+      const res = NextResponse.redirect(new URL("/", req.url), 307);
+      res.headers.set("X-Robots-Tag", "noindex, nofollow");
+      return res;
     }
 
     const url = new URL(req.url);
@@ -161,7 +163,9 @@ export async function GET(
     // Fetch link metadata
     const link = await fetchWorkerLink(slug);
     if (!link || (!link.target_url && !link.targetUrl)) {
-      return NextResponse.redirect(new URL(`/r/${slug}/not-found`, req.url), 307);
+      const notFoundRedirect = NextResponse.redirect(new URL(`/r/${slug}/not-found`, req.url), 307);
+      notFoundRedirect.headers.set("X-Robots-Tag", "noindex, nofollow");
+      return notFoundRedirect;
     }
 
     const currentClicks = Number(link.clicks_count || link.clicks || 0);
@@ -179,7 +183,9 @@ export async function GET(
         trackClickAsync(req, slug, link, geo);
       }
 
-      return NextResponse.redirect(new URL(protection.url, req.url), protection.status as any);
+      const protRedirect = NextResponse.redirect(new URL(protection.url, req.url), protection.status as any);
+      protRedirect.headers.set("X-Robots-Tag", "noindex, nofollow");
+      return protRedirect;
     }
 
     // ─── 4. DYNAMIC ROUTING & A/B TESTING RESOLUTION ───

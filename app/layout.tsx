@@ -33,7 +33,10 @@ const poppins = Poppins({
   fallback: ["system-ui", "-apple-system", "sans-serif"],
 });
 
-const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://lsho.cc";
+const siteUrl =
+  process.env.NEXT_PUBLIC_APP_URL && !process.env.NEXT_PUBLIC_APP_URL.includes("localhost")
+    ? process.env.NEXT_PUBLIC_APP_URL
+    : "https://lsho.cc";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -132,7 +135,7 @@ export const metadata: Metadata = {
     telephone: false,
   },
   alternates: {
-    canonical: "./",
+    canonical: "/",
   },
   openGraph: {
     type: "website",
