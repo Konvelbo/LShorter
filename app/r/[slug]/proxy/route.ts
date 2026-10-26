@@ -207,9 +207,11 @@ export async function GET(
           url: u.href
         };
       } else if (CFG.mode === "funnel") {
-        var funnelAllowed = (attemptNorm === baseTargetNorm) || (rawPrefixes.length > 0 && rawPrefixes.some(function(pref) {
+        var isRootOrTarget = (attemptNorm === "" || attemptNorm === "/" || attemptNorm === baseTargetNorm);
+        var isAllowedPrefix = (rawPrefixes.length > 0 && rawPrefixes.some(function(pref) {
           return attemptNorm === pref || attemptNorm.indexOf(pref + "/") === 0;
         }));
+        var funnelAllowed = isRootOrTarget || isAllowedPrefix;
         return {
           allowed: funnelAllowed,
           isHashOnly: (attemptNorm === baseTargetNorm) && Boolean(u.hash),
@@ -252,10 +254,6 @@ export async function GET(
   window.history.pushState = function(state, title, url) {
     if (url !== undefined && url !== null) {
       var check = checkUrlAllowed(url);
-      if (!check.allowed) {
-        notifyBlocked(check.url || String(url));
-        return;
-      }
       if (check.isHashOnly && check.hash) {
         scrollToHash(check.hash);
       }
@@ -271,12 +269,8 @@ export async function GET(
 
   window.history.replaceState = function(state, title, url) {
     if (url !== undefined && url !== null) {
-      var check = checkUrlAllowed(url);
-      if (!check.allowed) {
-        notifyBlocked(check.url || String(url));
-        return;
-      }
       try {
+        var check = checkUrlAllowed(url);
         var safeUrl = window.location.pathname + window.location.search + (check.hash || "");
         return origReplaceState.call(window.history, state, title, safeUrl);
       } catch (e) {
