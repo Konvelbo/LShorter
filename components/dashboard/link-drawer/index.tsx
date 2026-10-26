@@ -27,7 +27,6 @@ import { useUndoDelete } from "@/components/ui/undo-delete-provider";
 import { cn } from "@/lib/utils";
 import { Trash2, Loader2, CheckCircle2 } from "lucide-react";
 import confetti from "canvas-confetti";
-import gsap from "gsap";
 
 import { LinkDrawerProps, DRAWER_TABS, DrawerTabId } from "./types";
 import { SectionLink } from "./sections/section-link";
@@ -133,8 +132,6 @@ export function LinkDrawer({
 
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const scrollContainerRef = useRef<HTMLFormElement>(null);
-  const backdropRef = useRef<HTMLDivElement>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
   const tabsNavRef = useRef<HTMLDivElement>(null);
 
   const { triggerUndoDelete } = useUndoDelete();
@@ -145,69 +142,47 @@ export function LinkDrawer({
   }, []);
 
   const [shouldRender, setShouldRender] = useState(isOpen);
+  const [isVisible, setIsVisible] = useState(false);
 
   // Active Tab state
   const [activeTab, setActiveTab] = useState<DrawerTabId>("link");
 
-  // GSAP Open / Close animation lifecycle
+  // Hardware-accelerated CSS transition lifecycle
   useEffect(() => {
+    let rAF1: number;
+    let rAF2: number;
+    let timer: NodeJS.Timeout;
+
     if (isOpen) {
       setShouldRender(true);
       if (typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent("lshorter_drawer_opened"));
       }
-    }
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (!shouldRender) return;
-    const backdrop = backdropRef.current;
-    const panel = panelRef.current;
-
-    if (isOpen && backdrop && panel) {
-      gsap.fromTo(
-        backdrop,
-        { opacity: 0 },
-        { opacity: 1, duration: 0.28, ease: "power2.out" },
-      );
-      gsap.fromTo(
-        panel,
-        { x: "100%", opacity: 0.8 },
-        { x: "0%", opacity: 1, duration: 0.38, ease: "power3.out" },
-      );
-    } else if (!isOpen && backdrop && panel) {
-      gsap.to(backdrop, {
-        opacity: 0,
-        duration: 0.25,
-        ease: "power2.in",
-      });
-      gsap.to(panel, {
-        x: "100%",
-        opacity: 0.8,
-        duration: 0.3,
-        ease: "power3.in",
-        onComplete: () => setShouldRender(false),
-      });
-    }
-  }, [isOpen, shouldRender]);
-
-  const handleAnimatedClose = React.useCallback(() => {
-    const backdrop = backdropRef.current;
-    const panel = panelRef.current;
-    if (backdrop && panel) {
-      gsap.to(backdrop, { opacity: 0, duration: 0.24, ease: "power2.in" });
-      gsap.to(panel, {
-        x: "100%",
-        duration: 0.28,
-        ease: "power3.in",
-        onComplete: () => {
-          setShouldRender(false);
-          onClose();
-        },
+      rAF1 = requestAnimationFrame(() => {
+        rAF2 = requestAnimationFrame(() => {
+          setIsVisible(true);
+        });
       });
     } else {
-      onClose();
+      setIsVisible(false);
+      timer = setTimeout(() => {
+        setShouldRender(false);
+      }, 280);
     }
+
+    return () => {
+      cancelAnimationFrame(rAF1);
+      cancelAnimationFrame(rAF2);
+      clearTimeout(timer);
+    };
+  }, [isOpen]);
+
+  const handleAnimatedClose = React.useCallback(() => {
+    setIsVisible(false);
+    setTimeout(() => {
+      setShouldRender(false);
+      onClose();
+    }, 260);
   }, [onClose]);
 
   // Listen for Escape key to smoothly close drawer
@@ -315,26 +290,31 @@ export function LinkDrawer({
   const [, setHasAttemptedSubmit] = useState(false);
 
   // Dynamically retrieve user's custom domains and retargeting pixels from Cloudflare API
+  // Defer slightly past the 280ms slide-in transition to eliminate mid-animation re-render jank
   useEffect(() => {
     if (userId && userId !== "usr_anonymous" && isOpen) {
-      cfGetDomains(userId)
-        .then((res) => {
-          const list = res?.data || [];
-          const formatted = list.map((d: any) => ({
-            id: d.id,
-            domain: d.domain_name || d.domain,
-            status: d.status,
-          }));
-          setCustomDomains(formatted);
-        })
-        .catch(() => {});
+      const timer = setTimeout(() => {
+        cfGetDomains(userId)
+          .then((res) => {
+            const list = res?.data || [];
+            const formatted = list.map((d: any) => ({
+              id: d.id,
+              domain: d.domain_name || d.domain,
+              status: d.status,
+            }));
+            setCustomDomains(formatted);
+          })
+          .catch(() => {});
 
-      cfGetPixels(userId)
-        .then((res) => {
-          const list = res?.data?.pixels || [];
-          setAvailablePixels(list);
-        })
-        .catch(() => {});
+        cfGetPixels(userId)
+          .then((res) => {
+            const list = res?.data?.pixels || [];
+            setAvailablePixels(list);
+          })
+          .catch(() => {});
+      }, 300);
+
+      return () => clearTimeout(timer);
     }
   }, [userId, isOpen]);
 
@@ -1565,24 +1545,31 @@ export function LinkDrawer({
 
   return createPortal(
     <div className="fixed inset-0 z-[2000] overflow-hidden select-none">
-      {/* Scrim backdrop overlay */}
+      {/* Scrim backdrop overlay with hardware-accelerated opacity fade */}
       <div
-        ref={backdropRef}
         onClick={handleAnimatedClose}
-        className="fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-[2px] z-[2000]"
+        className={cn(
+          "fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-[2px] z-[2000] cursor-pointer",
+          "transition-opacity duration-260 ease-out",
+          isVisible ? "opacity-100" : "opacity-0 pointer-events-none"
+        )}
       />
 
-      {/* Drawer panel matching template layout */}
+      {/* Drawer panel with buttery-smooth GPU accelerated slide transition */}
       <aside
-        ref={panelRef}
         role="dialog"
         aria-label={isEditMode ? "Edit link" : "Create link"}
         className={cn(
-          "fixed top-0 right-0 bottom-0 z-[2001] flex h-full flex-col will-change-transform shadow-2xl",
+          "fixed top-0 right-0 bottom-0 z-[2001] flex h-full flex-col shadow-2xl",
           "w-full sm:w-[680px] md:w-[740px] lg:w-[780px] max-w-full",
           "bg-white dark:bg-[#0e0f12] text-[#131417] dark:text-[#f1f2f4]",
           "border-l border-[#e6e7ea] dark:border-[#22242a]",
+          "transform-gpu will-change-transform transition-transform duration-280",
+          isVisible ? "translate-x-0" : "translate-x-full"
         )}
+        style={{
+          transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)",
+        }}
       >
         {/* ── 1. MINIMALIST HEADER ── */}
         <header className="flex justify-between items-center px-6 pt-5 pb-3 border-b border-[#e6e7ea] dark:border-[#22242a] shrink-0">
