@@ -217,7 +217,7 @@ export function TimelineFeatures() {
             },
             {
               key: "Password gate",
-              value: "Full URL password protection with cloaked viewer.",
+              value: "Full URL password protection with masked viewer.",
             },
             {
               key: "Expiration & caps",

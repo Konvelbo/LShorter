@@ -34,7 +34,7 @@ const TREND_ITEMS = [
   },
   {
     href: "/docs/pin-protection",
-    label: "PathLock™ PIN & Cloaking",
+    label: "PathLock™ PIN & Masking",
     icon: ShieldCheck,
     badgeClass:
       "bg-[#F2F4F7] dark:bg-white/5 border-[#E4E7EC] dark:border-white/10 text-[#344054] dark:text-zinc-300",
@@ -105,7 +105,7 @@ const HERO_BACKGROUND_EMOJIS = [
   // 7. Haut Droit (Mobile & Desktop) : Lock 🔒 (En haut à droite hors du texte)
   {
     src: "/emojis/lock.png",
-    alt: "PIN Cloaking & Encryption",
+    alt: "PIN Gate & Encryption",
     className:
       "top-[7%] right-[4%] sm:top-[9%] sm:right-[4%] lg:right-[5%] w-7 h-7 xs:w-8 xs:h-8 sm:w-11 sm:h-11 lg:w-14 lg:h-14 opacity-100 dark:opacity-70 lg:dark:opacity-75",
     animation: "animate-hero-float-2",
@@ -540,7 +540,7 @@ export function HeroSection2() {
             </strong>
             ,{" "}
             <strong className="font-semibold text-[#101828] dark:text-white">
-              PathLock™ PIN &amp; URL cloaking
+              PathLock™ PIN &amp; destination masking
             </strong>
             , high-converting bio micro-sites, and cookie-free revenue
             attribution inside one workspace.

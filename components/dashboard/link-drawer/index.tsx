@@ -987,8 +987,8 @@ export function LinkDrawer({
       }
       if (isCloaked) {
         triggerPlanUpgrade({
-          reason: "URL cloaking requires the Pro plan.",
-          featureName: "URL Cloaking",
+          reason: "Branded URL masking requires the Pro plan.",
+          featureName: "Branded URL Masking",
           targetPlan: "PRO",
         });
         setIsSubmitting(false);

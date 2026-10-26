@@ -29,7 +29,7 @@ const FOOTER_COLUMNS = [
     title: "Security & Access",
     links: [
       { label: "PathLock™ PIN Protection", href: "/docs/pin-protection" },
-      { label: "Zero-Referrer URL Cloaking", href: "/docs/url-masking" },
+      { label: "Branded URL Masking", href: "/docs/url-masking" },
       {
         label: "Click Limits & Expiration",
         href: "/docs/click-limits-and-expiration",

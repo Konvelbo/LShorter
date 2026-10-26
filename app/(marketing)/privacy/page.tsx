@@ -372,7 +372,7 @@ export default function PrivacyPolicyPage() {
 
                 <div className="legal-interactive-card p-4 rounded-[10px] border border-neutral-200 dark:border-neutral-800">
                   <h4 className="font-semibold text-neutral-900 dark:text-white text-sm mb-1">
-                    Zero-Referrer URL Cloaking
+                    Zero-Referrer Destination Masking
                   </h4>
                   <p className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400">
                     When Zero-Referrer masking is enabled, LShorter terminates the HTTP Referrer chain

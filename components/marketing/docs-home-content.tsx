@@ -19,7 +19,7 @@ const CARD_META: Record<string, { tag: string; color: string; date: string }> = 
   "realtime-analytics": { tag: "Analytics", color: "bg-purple-500", date: "09/04" },
   "conversion-tracking-amount-count": { tag: "Conversions & EPC", color: "bg-emerald-600", date: "09/01" },
   "click-limits-and-expiration": { tag: "Limits", color: "bg-rose-500", date: "08/28" },
-  "url-masking": { tag: "Privacy & Cloaking", color: "bg-sky-500", date: "08/20" },
+  "url-masking": { tag: "Brand Masking", color: "bg-sky-500", date: "08/20" },
   "dynamic-qr-codes": { tag: "QR Codes", color: "bg-indigo-500", date: "08/14" },
   "social-sharing-opengraph": { tag: "Open Graph", color: "bg-pink-500", date: "08/08" },
   "webhooks-and-events": { tag: "Webhooks", color: "bg-emerald-400", date: "08/02" },

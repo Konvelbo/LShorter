@@ -42,7 +42,7 @@ const PLAN_FEATURES: Record<PaidPlanId, string[]> = {
     "6 domaines personnalisés avec SSL Cloudflare automatique",
     "1 000 liens courts actifs & QR Code Studio complet",
     "Smart Routing dynamique (Pays, Appareil, OS, Langue)",
-    "Protection par code PIN (PathLock™) & Link Cloaking",
+    "Protection par code PIN (PathLock™) & Branded Masking",
     "5 Pixels de retargeting & 5 Webhooks temps réel",
   ],
   BUSINESS: [

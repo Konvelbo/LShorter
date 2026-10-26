@@ -23,8 +23,8 @@ const FAQS = [
     a: "When a visitor clicks an LShorter link, a first-party click identifier (qk_cid) is generated. Your checkout or backend calls POST /api/v1/conversions (or lshorter.track.conversion) with the clickId, amount, customerEmail, and customerAvatar—attributing exact revenue and EPC back to the originating slug.",
   },
   {
-    q: "How do PathLock™ PIN protection, click limits, and URL cloaking work?",
-    a: "Every link supports an optional PIN/password challenge (/p/:slug), an expiration timestamp (expiresAt) or maximum click cap (maxClicks), and zero-referrer iframe URL masking (cloaking) with custom page title and favicon.",
+    q: "How do PathLock™ PIN protection, click limits, and destination masking work?",
+    a: "Every link supports an optional PIN/password challenge, an expiration timestamp (expiresAt) or maximum click cap (maxClicks), and zero-referrer iframe destination masking with custom page title and favicon.",
   },
   {
     q: "Can we export all click telemetry, geographic data, and revenue logs?",

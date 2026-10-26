@@ -131,7 +131,7 @@ export function PlanUpgradeModal() {
           {[
             { icon: Zap, text: "150k to 2M+ Edge Clicks with Zero-Downtime" },
             { icon: Globe2, text: "Smart Routing (195+ Countries & Devices)" },
-            { icon: Lock, text: "Password Protection & Link Cloaking" },
+            { icon: Lock, text: "Password Protection & Destination Masking" },
             { icon: QrCode, text: "Vector SVG & PDF QR Code Studio" },
             { icon: Layers, text: "Up to Unlimited Branded Custom Domains" },
             { icon: ShieldCheck, text: "Webhooks, Pixels & PDF Billing" },
@@ -184,7 +184,7 @@ export function PlanUpgradeModal() {
                 </li>
                 <li className="flex items-center gap-1.5">
                   <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                  <span>Password PIN gates &amp; link cloaking</span>
+                  <span>Password PIN gates &amp; destination masking</span>
                 </li>
                 <li className="flex items-center gap-1.5">
                   <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />

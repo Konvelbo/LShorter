@@ -7,7 +7,7 @@ import { FaqStructuredData } from "@/components/seo/json-ld";
 export const metadata: Metadata = {
   title: "Enterprise Edge URL Shortener, Smart Routing & QR Code Studio",
   description:
-    "Raccourcisseur de lien et infrastructure edge haute performance (<15ms). Routage géographique dynamique, protection PathLock™ (verrouillage de chemin par code PIN), masquage d'URL et attribution de revenus en temps réel.",
+    "Infrastructure de gestion de liens et routage edge haute performance (<15ms). Routage géographique dynamique, protection PathLock™ (verrouillage de chemin par code PIN), domaines personnalisés et attribution de conversion en temps réel.",
   keywords: [
     "raccourccisseur de lien",
     "raccourcisseur de lien",

@@ -11,8 +11,8 @@ const ROWS = [
     desc: "PIN check before the destination is exposed.",
   },
   {
-    label: "Zero-referrer cloaking",
-    desc: "Your own title and favicon, not the destination.",
+    label: "White-label destination masking",
+    desc: "Display your own brand title and favicon on masked links.",
   },
   {
     label: "Expiration & click caps",

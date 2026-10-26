@@ -92,7 +92,7 @@ export const Scene07Security: React.FC = () => {
           />
 
           <CalloutBadge
-            text="Masquage d'URL (Cloaking)"
+            text="Masquage d'URL de marque"
             subtext="Conserve votre domaine court propre dans la barre d'adresse"
             x={100}
             y={500}

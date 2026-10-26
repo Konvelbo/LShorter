@@ -573,13 +573,13 @@ export function SectionProtectionExpiry({
           </div>
         </div>
 
-        {/* 6. HIDE DESTINATION URL (CLOAKING) */}
+        {/* 6. HIDE DESTINATION URL (BRANDED MASKING) */}
         <div className="py-4">
           <div className="flex items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-sm font-semibold text-zinc-900 dark:text-[#f1f2f4]">
-                  Hide destination URL (Cloaking)
+                  Hide destination URL (Branded Masking)
                 </span>
                 {!isProPlan && (
                   <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
@@ -588,7 +588,7 @@ export function SectionProtectionExpiry({
                 )}
               </div>
               <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-0.5">
-                Keep your short domain in the address bar via secure iframe masking.
+                Keep your branded custom domain in the address bar via secure iframe masking.
               </p>
             </div>
             <DrawerSwitch
@@ -596,9 +596,9 @@ export function SectionProtectionExpiry({
               onChange={(val) => {
                 handleProGuard(() => {
                   setIsCloaked(val);
-                }, "URL Cloaking");
+                }, "Branded URL Masking");
               }}
-              aria-label="Toggle URL cloaking"
+              aria-label="Toggle branded URL masking"
             />
           </div>
         </div>

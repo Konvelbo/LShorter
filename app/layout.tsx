@@ -41,11 +41,11 @@ const siteUrl =
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "LShorter — Enterprise Edge URL Shortener, Smart Routing & QR Code Studio",
+    default: "LShorter — Enterprise Link Management, Smart Edge Routing & Analytics",
     template: "%s | LShorter",
   },
   description:
-    "LShorter (lsho.cc) is an enterprise-grade next-gen edge URL shortener, raccourcisseur de lien et plateforme de routage intelligent. Sub-15ms global redirects, dynamic geo & device routing, PathLock™ (verrouillage de chemin & PIN protection), real-time analytics, and revenue attribution.",
+    "LShorter (lsho.cc) is an enterprise link management, dynamic edge routing and analytics infrastructure for marketing teams and developers. Sub-15ms global redirects, dynamic geo & device routing, PathLock™ funnel protection, real-time analytics, and revenue attribution.",
   applicationName: "LShorter",
   authors: [{ name: "LShorter", url: siteUrl }],
   creator: "LShorter",
@@ -101,8 +101,8 @@ export const metadata: Metadata = {
     "safe link shortener",
     "anti-phishing link protection",
     "anti-leak link protection",
-    "URL cloaking",
-    "masquage d'URL",
+    "custom domain masking",
+    "white-label link routing",
     "lien éphémère",
     "expiring link",
     // Variantes françaises & alternatives populaires

@@ -345,7 +345,7 @@ const PathlockDiagram = memo(function PathlockDiagram() {
       </div>
       <div className="absolute bottom-[36px] left-[20px] px-2.5 py-1 rounded-full bg-white dark:bg-[#1E1E24] border border-black/5 dark:border-white/10 shadow-2xs text-[11px] font-medium text-[#101828] dark:text-zinc-200 flex items-center gap-1.5">
         <Globe className="w-3.5 h-3.5 text-[#465FFF]" />
-        <span>URL Cloak</span>
+        <span>Domain Mask</span>
       </div>
       <div className="absolute bottom-[28px] right-[20px] px-2.5 py-1 rounded-full bg-white dark:bg-[#1E1E24] border border-black/5 dark:border-white/10 shadow-2xs text-[11px] font-medium text-[#101828] dark:text-zinc-200 flex items-center gap-1.5">
         <Zap className="w-3.5 h-3.5 text-[#F79009]" />
@@ -495,7 +495,7 @@ export function WhyUsSection() {
     {
       id: "pathlock-rings",
       title: "Protect sensitive links with PathLock™",
-      desc: "Enforce 4-digit SHA-256 PIN gates, zero-referrer iframe cloaking, click caps, and automatic UTC expiration within the controls you set.",
+      desc: "Enforce 4-digit SHA-256 PIN gates, zero-referrer iframe masking, click caps, and automatic UTC expiration within the controls you set.",
       diagram: <PathlockDiagram />,
     },
   ];

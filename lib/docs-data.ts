@@ -75,7 +75,7 @@ export const DOC_FEATURES: DocFeature[] = [
     image: "/screenshots/dashboard/dashboardwithsidbare.png",
     readTime: "5 min read",
     overview: [
-      "The LShorter REST API provides programmatic access to all link management, edge routing, privacy cloaking, conversion attribution, and telemetry features of the LShorter platform.",
+      "The LShorter REST API provides programmatic access to all link management, edge routing, privacy masking, conversion attribution, and telemetry features of the LShorter platform.",
       "All requests are routed to Cloudflare's global edge network (over 300+ data centers worldwide) to guarantee sub-15ms response times, 99.99% availability, and automatic TLS 1.3 encryption.",
       "Developers can interact directly via standard HTTP requests or use the official typed Node.js / TypeScript SDK (lshorter-api)."
     ],
@@ -102,7 +102,7 @@ export const DOC_FEATURES: DocFeature[] = [
         name: "Create Short Link",
         method: "POST",
         path: "/api/v1/links",
-        description: "Creates a new shortened URL with optional custom slug, tags, expiration timestamp, maximum click limits, PIN protection, URL cloaking, and geographic routing rules.",
+        description: "Creates a new shortened URL with optional custom slug, tags, expiration timestamp, maximum click limits, PIN protection, branded URL masking, and geographic routing rules.",
         authentication: "Bearer <API_KEY>",
         rateLimit: "60 to 1,400 req/min (by plan)",
         headers: [
@@ -985,14 +985,14 @@ console.log("Current link status:", linkStatus.isExpired ? "Expired" : "Active")
   },
   {
     slug: "url-masking",
-    title: "Source URL Masking & Privacy (Cloaking)",
+    title: "Branded URL Masking & White-Label Embedding",
     subtitle: "Preserve brand consistency and mask complex affiliate or third-party destination URLs in the browser address bar.",
-    description: "REST API guide to configuring URL cloaking, custom page titles, and sandbox iframe encapsulation.",
+    description: "REST API guide to configuring branded URL masking, custom page titles, and sandbox iframe encapsulation.",
     image: "/screenshots/domaine/niveau.png",
     readTime: "3 min read",
     overview: [
-      "URL Cloaking displays destination page content while keeping your branded short domain in the visitor's browser address bar.",
-      "This technique is widely used for lengthy affiliate referral links, forms hosted on third-party SaaS platforms (Typeform, Notion, Airtable), and white-label enterprise client portals."
+      "Branded URL Masking displays destination page content while keeping your branded domain in the visitor's browser address bar.",
+      "This technique is widely used for forms hosted on third-party SaaS platforms (Typeform, Notion, Airtable), and white-label enterprise client portals."
     ],
     keyPoints: [
       {
@@ -1013,14 +1013,14 @@ console.log("Current link status:", linkStatus.isExpired ? "Expired" : "Active")
         name: "Enable URL Masking",
         method: "PATCH",
         path: "/api/v1/links/:id/masking",
-        description: "Enables or disables URL cloaking and configures the embedded page title and favicon metadata.",
+        description: "Enables or disables branded URL masking and configures the embedded page title and favicon metadata.",
         authentication: "Bearer <API_KEY>",
         rateLimit: "60 to 1,400 req/min (by plan)",
         pathParams: [
           { name: "id", type: "string", required: true, description: "Short link slug or ID.", example: "partner-deal" }
         ],
         bodyParams: [
-          { name: "maskUrl", type: "boolean", required: true, description: "Set to true to enable cloaking.", example: "true" },
+          { name: "maskUrl", type: "boolean", required: true, description: "Set to true to enable branded masking.", example: "true" },
           { name: "pageTitle", type: "string", required: false, description: "Custom HTML title displayed in the browser tab.", example: "Exclusive Partner Offer | LShorter" },
           { name: "faviconUrl", type: "string (url)", required: false, description: "Custom favicon image URL.", example: "https://my-brand.com/favicon.ico" }
         ],
@@ -2451,7 +2451,8 @@ const SLUG_ALIASES: Record<string, string> = {
   "growth-marketing": "ab-testing-routing",
   "security": "pin-protection",
   "qr-codes": "dynamic-qr-codes",
-  "cloaking": "url-masking",
+  "destination-masking": "url-masking",
+  "masking": "url-masking",
   "conversion-tracking": "conversion-tracking-amount-count",
 };
 

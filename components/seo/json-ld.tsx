@@ -230,10 +230,10 @@ export function FaqStructuredData() {
       },
       {
         "@type": "Question",
-        name: "How do PathLock™ PIN protection, click limits, and URL cloaking work?",
+        name: "How do PathLock™ PIN protection, click limits, and destination masking work?",
         acceptedAnswer: {
           "@type": "Answer",
-          text: "Every link supports an optional PIN/password challenge (/p/:slug), an expiration timestamp (expiresAt) or maximum click cap (maxClicks), and zero-referrer iframe URL masking (cloaking) with custom page title and favicon.",
+          text: "Every link supports an optional PIN/password challenge, an expiration timestamp (expiresAt) or maximum click cap (maxClicks), and zero-referrer iframe URL destination masking with custom page title and favicon.",
         },
       },
       {

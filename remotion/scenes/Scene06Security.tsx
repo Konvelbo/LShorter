@@ -168,7 +168,7 @@ export const Scene06Security: React.FC = () => {
             />
             <SwitchRow
               icon="👁️"
-              title="Cloaking & Masquage de domaine"
+              title="Masquage de domaine personnalisé"
               description="Conserve votre nom de domaine court dans la barre d'adresse sans révéler l'URL cible."
               isActive={toggle4}
               activeColor="#EC4899"

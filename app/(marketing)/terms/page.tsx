@@ -325,8 +325,8 @@ export default function TermsOfServicePage() {
                   sexual abuse material (CSAM), or copyright infringement.
                 </li>
                 <li>
-                  <strong>Evasion of Security Filters:</strong> Using PathLock™ PIN or URL Cloaking to
-                  hide malware payloads from security scanners.
+                  <strong>Evasion of Security Filters:</strong> Using PathLock™ PIN or Destination Masking to
+                  hide malicious payloads or evade automated security scanners.
                 </li>
               </ul>
             </section>

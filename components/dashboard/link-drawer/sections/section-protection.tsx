@@ -86,7 +86,7 @@ export function SectionProtection({
           </h3>
         </div>
         <span className="text-[10px] font-medium text-zinc-500 dark:text-neutral-400">
-          Password, Cloaking &amp; Expiry
+          Password, Masking &amp; Expiry
         </span>
       </div>
 
@@ -125,9 +125,9 @@ export function SectionProtection({
         </div>
       </LockedProFeature>
 
-      {/* 2. URL Cloaking & Masking (PRO) */}
+      {/* 2. Destination URL Masking (PRO) */}
       <LockedProFeature
-        title="URL Cloaking &amp; Masking"
+        title="Destination URL Masking"
         description="Display target content in a clean iframe container without exposing the raw destination URL."
         isUnlocked={isProPlan}
       >
@@ -143,7 +143,7 @@ export function SectionProtection({
           <DrawerSwitch
             checked={isCloaked}
             onChange={(checked) => setIsCloaked(checked)}
-            aria-label="Toggle Link Cloaking"
+            aria-label="Toggle Link Masking"
           />
         </div>
       </LockedProFeature>
