@@ -240,23 +240,16 @@ export default {
       const ogImage = link.og_image || link.ogImage || '';
       const ogTitle = link.og_title || link.ogTitle || link.meta_title || link.metaTitle || link.title || slug;
       const ogDescription = link.og_description || link.ogDescription || '';
-      const isLarge = Boolean(
-        link.twitter_card === 'summary_large_image' ||
-        link.twitterCard === 'summary_large_image' ||
-        link.banner_style === 'large_banner' ||
-        link.bannerStyle === 'large_banner' ||
-        link.banner_style === 'summary_large_image' ||
-        link.bannerStyle === 'summary_large_image'
-      );
       const isCompact = Boolean(
-        !isLarge && (
-          link.twitter_card === 'summary' || 
-          link.twitterCard === 'summary' || 
-          link.banner_style === 'default_banner' || 
-          link.bannerStyle === 'default_banner' ||
-          link.banner_style === 'summary' ||
-          link.bannerStyle === 'summary'
-        )
+        link.twitter_card === 'summary' || 
+        link.twitterCard === 'summary' || 
+        link.banner_style === 'default_banner' || 
+        link.bannerStyle === 'default_banner' ||
+        link.banner_style === 'summary' ||
+        link.bannerStyle === 'summary'
+      ) && !(
+        link.twitter_card === 'summary_large_image' ||
+        link.twitterCard === 'summary_large_image'
       );
       const twitterCard = isCompact ? 'summary' : 'summary_large_image';
 
@@ -265,13 +258,16 @@ export default {
         const reqHost = request.headers.get('x-forwarded-host') || request.headers.get('host') || '';
         const domain = (reqHost && !reqHost.includes('workers.dev')) ? reqHost : 'lsho.cc';
         const searchStr = url.search || '';
-        const canonical = `https://${domain}${path}${searchStr}`;
+        const canonical = `https://${domain}/${slug}${searchStr}`;
         const dest = link.target_url || link.targetUrl || `https://${domain}`;
 
         // Convert data:image or relative image to public HTTPS URL so Twitter/FB crawlers can load it
         let publicImageUrl = ogImage;
         if (ogImage && ogImage.startsWith('data:')) {
           publicImageUrl = `https://${domain}/api/v1/images/${slug}.jpg`;
+        } else if (ogImage && ogImage.includes('.workers.dev/api/v1/images/')) {
+          const filename = ogImage.split('/').pop();
+          publicImageUrl = `https://${domain}/api/v1/images/${filename}`;
         } else if (ogImage && !ogImage.startsWith('http://') && !ogImage.startsWith('https://')) {
           if (ogImage.startsWith('/')) {
             publicImageUrl = `https://${domain}${ogImage}`;
@@ -280,51 +276,45 @@ export default {
           }
         }
 
-        // If no image is provided:
-        // For summary_large_image: provide fallback dynamic OG banner so Twitter/X renders the large card properly
-        // For summary: provide the compact brand logo icon (0 upload needed)
-        if (!publicImageUrl) {
-          if (twitterCard === 'summary') {
-            publicImageUrl = `https://${domain}/icon-512.png`;
-          } else {
-            publicImageUrl = `https://${domain}/api/og?title=${encodeURIComponent(ogTitle.substring(0, 80))}&slug=${encodeURIComponent(slug)}`;
-          }
-        }
+        const isCustomBanner = Boolean(
+          publicImageUrl &&
+          !publicImageUrl.includes('/api/og') &&
+          !publicImageUrl.includes('default_banner') &&
+          !publicImageUrl.includes('.svg') &&
+          !publicImageUrl.includes('dicebear')
+        );
 
-        let twitterImageUrl = publicImageUrl;
-        if (!twitterImageUrl || twitterImageUrl.includes('.svg') || twitterImageUrl.includes('dicebear')) {
-          if (twitterCard === 'summary') {
-            twitterImageUrl = `https://${domain}/icon-512.png`;
+        let finalImg = '';
+        if (isCompact) {
+          if (isCustomBanner) {
+            finalImg = `https://${domain}/api/og?card=summary&img=${encodeURIComponent(publicImageUrl)}&title=${encodeURIComponent(ogTitle.substring(0, 60))}&slug=${encodeURIComponent(slug)}`;
           } else {
-            twitterImageUrl = `https://${domain}/api/og?title=${encodeURIComponent(ogTitle.substring(0, 80))}&slug=${encodeURIComponent(slug)}`;
+            finalImg = `https://${domain}/icon-512.png`;
           }
-        }
-
-        // WhatsApp, Facebook, LinkedIn, Telegram reject SVG / dicebear images; guarantee raster fallback
-        if (publicImageUrl.includes('.svg') || publicImageUrl.includes('dicebear')) {
-          publicImageUrl = twitterImageUrl;
+        } else {
+          if (isCustomBanner) {
+            finalImg = publicImageUrl;
+          } else {
+            finalImg = `https://${domain}/api/og?title=${encodeURIComponent(ogTitle.substring(0, 80))}&slug=${encodeURIComponent(slug)}`;
+          }
         }
 
         const cacheBusterParam = url.searchParams.get('v') || url.searchParams.get('_t') || url.searchParams.get('cb');
         if (cacheBusterParam) {
           const sep = (u) => (u.includes('?') ? '&' : '?');
-          if (!publicImageUrl.includes('v=') && !publicImageUrl.includes('_t=') && !publicImageUrl.startsWith('data:')) {
-            publicImageUrl += `${sep(publicImageUrl)}v=${encodeURIComponent(cacheBusterParam)}`;
-          }
-          if (!twitterImageUrl.includes('v=') && !twitterImageUrl.includes('_t=') && !twitterImageUrl.startsWith('data:')) {
-            twitterImageUrl += `${sep(twitterImageUrl)}v=${encodeURIComponent(cacheBusterParam)}`;
+          if (!finalImg.includes('v=') && !finalImg.includes('_t=') && !finalImg.startsWith('data:')) {
+            finalImg += `${sep(finalImg)}v=${encodeURIComponent(cacheBusterParam)}`;
           }
         }
 
         const escapeHtml = (s = '') => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         const safeTitle = escapeHtml(ogTitle);
         const safeDesc = escapeHtml(ogDescription || 'Cliquez pour ouvrir le lien.');
-        const safeImg = escapeHtml(publicImageUrl.replace(/&amp;/g, '&'));
-        const safeTwitterImg = escapeHtml(twitterImageUrl.replace(/&amp;/g, '&'));
+        const safeImg = escapeHtml(finalImg.replace(/&amp;/g, '&'));
         const safeCanonical = escapeHtml(canonical);
         const safeCard = twitterCard;
-        const imgWidth = twitterCard === 'summary' ? '400' : '1200';
-        const imgHeight = twitterCard === 'summary' ? '400' : '630';
+        const imgWidth = isCompact ? '400' : '1200';
+        const imgHeight = isCompact ? '400' : '630';
         const imgType = safeImg.endsWith('.png') ? 'image/png' : safeImg.endsWith('.webp') ? 'image/webp' : 'image/jpeg';
 
         const html = `<!DOCTYPE html>
@@ -336,6 +326,9 @@ export default {
   <meta name="description" content="${safeDesc}" />
   <meta name="theme-color" content="#ff6600" />
   <meta name="robots" content="index, follow, max-image-preview:large" />
+
+  <!-- Canonical URL -->
+  <link rel="canonical" href="${safeCanonical}" />
 
   <!-- Open Graph / WhatsApp / Facebook / LinkedIn / Telegram / Slack / Discord -->
   <meta property="og:site_name" content="LShorter" />
@@ -353,16 +346,13 @@ export default {
 
   <!-- Twitter / X Cards -->
   <meta name="twitter:card" content="${safeCard}" />
-  <meta property="twitter:card" content="${safeCard}" />
   <meta name="twitter:site" content="@LShorter" />
   <meta name="twitter:creator" content="@LShorter" />
   <meta name="twitter:domain" content="${domain}" />
   <meta name="twitter:url" content="${safeCanonical}" />
   <meta name="twitter:title" content="${safeTitle}" />
   <meta name="twitter:description" content="${safeDesc}" />
-  <meta name="twitter:image" content="${safeTwitterImg}" />
-  <meta property="twitter:image" content="${safeTwitterImg}" />
-  <meta name="twitter:image:src" content="${safeTwitterImg}" />
+  <meta name="twitter:image" content="${safeImg}" />
   <meta name="twitter:image:alt" content="${safeTitle}" />
   <meta name="twitter:image:width" content="${imgWidth}" />
   <meta name="twitter:image:height" content="${imgHeight}" />

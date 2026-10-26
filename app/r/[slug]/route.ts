@@ -92,39 +92,57 @@ export async function GET(
       const description = qDesc || meta?.og_description || meta?.ogDescription || "Cliquez pour accéder à ce lien sécurisé par LShorter.";
       
       const cardParam = qCard ? (qCard === "summary" ? "summary" : "summary_large_image") : undefined;
-      const isLarge = cardParam
-        ? cardParam === "summary_large_image"
-        : Boolean(
-            meta?.twitter_card === "summary_large_image" ||
-            meta?.twitterCard === "summary_large_image" ||
-            meta?.banner_style === "large_banner" ||
-            meta?.bannerStyle === "large_banner"
-          );
       const isCompactCard = cardParam
         ? cardParam === "summary"
         : Boolean(
-            (meta?.twitter_card === "summary" ||
+            meta?.twitter_card === "summary" ||
             meta?.twitterCard === "summary" ||
             meta?.banner_style === "default_banner" ||
-            meta?.bannerStyle === "default_banner") && !isLarge
+            meta?.bannerStyle === "default_banner"
+          ) && !(
+            meta?.twitter_card === "summary_large_image" ||
+            meta?.twitterCard === "summary_large_image"
           );
       const resolvedCard = isCompactCard ? "summary" : "summary_large_image";
 
-      const rawImage = qImage || meta?.og_image || meta?.ogImage || meta?.banner_url || meta?.bannerUrl || "";
-      const isCustomBanner = Boolean(rawImage && !rawImage.includes("/api/og") && !rawImage.includes("default_banner") && !rawImage.includes(".svg") && !rawImage.includes("dicebear"));
-      let image = isCustomBanner ? rawImage : "";
-      if (image && !image.startsWith("http://") && !image.startsWith("https://")) {
-        image = `https://${detectedDomain}${image.startsWith("/") ? "" : "/"}${image}`;
+      let rawImage = qImage || meta?.og_image || meta?.ogImage || meta?.banner_url || meta?.bannerUrl || "";
+      if (rawImage && rawImage.includes(".workers.dev/api/v1/images/")) {
+        const filename = rawImage.split("/").pop();
+        rawImage = `https://${detectedDomain}/api/v1/images/${filename}`;
+      } else if (rawImage && !rawImage.startsWith("http://") && !rawImage.startsWith("https://")) {
+        rawImage = `https://${detectedDomain}${rawImage.startsWith("/") ? "" : "/"}${rawImage}`;
       }
-      if (!image) {
-        if (isCompactCard) {
+
+      const isCustomBanner = Boolean(
+        rawImage &&
+        !rawImage.includes("/api/og") &&
+        !rawImage.includes("default_banner") &&
+        !rawImage.includes(".svg") &&
+        !rawImage.includes("dicebear")
+      );
+
+      let image = "";
+      if (isCompactCard) {
+        // Compact mode:
+        // Social networks (Twitter, Facebook, WhatsApp, Telegram, LinkedIn, Discord)
+        // strictly require a square 1:1 image (400x400) to render a compact thumbnail card.
+        if (isCustomBanner) {
+          image = `https://${detectedDomain}/api/og?card=summary&img=${encodeURIComponent(rawImage)}&title=${encodeURIComponent(title.substring(0, 60))}&slug=${encodeURIComponent(slug)}`;
+        } else {
           image = `https://${detectedDomain}/icon-512.png`;
+        }
+      } else {
+        // Large banner mode (1200x630):
+        if (isCustomBanner) {
+          image = rawImage;
         } else {
           image = `https://${detectedDomain}/api/og?title=${encodeURIComponent(title.substring(0, 80))}&slug=${encodeURIComponent(slug)}`;
         }
       }
+
       const targetUrl = qTarget || meta?.target_url || meta?.targetUrl || `https://${detectedDomain}`;
-      const canonicalUrl = `https://${detectedDomain}/r/${encodeURIComponent(slug)}${searchStr}`;
+      // Clean public short URL as shared by users: https://lsho.cc/slug
+      const canonicalUrl = `https://${detectedDomain}/${encodeURIComponent(slug)}${searchStr}`;
 
       const html = renderSocialHtml({
         title,

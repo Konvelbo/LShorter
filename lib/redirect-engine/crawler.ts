@@ -197,6 +197,9 @@ export function renderSocialHtml(options: {
   <meta name="theme-color" content="#0066FF" />
   <meta name="robots" content="index, follow, max-image-preview:large" />
 
+  <!-- Canonical URL -->
+  <link rel="canonical" href="${safeCanonical}" />
+
   <!-- Open Graph / WhatsApp / Facebook / LinkedIn / Telegram / Slack / Discord -->
   <meta property="og:site_name" content="LShorter" />
   <meta property="og:type" content="website" />
@@ -213,7 +216,6 @@ export function renderSocialHtml(options: {
 
   <!-- Twitter / X Cards -->
   <meta name="twitter:card" content="${cardType}" />
-  <meta property="twitter:card" content="${cardType}" />
   <meta name="twitter:site" content="@LShorter" />
   <meta name="twitter:creator" content="@LShorter" />
   <meta name="twitter:domain" content="${domainName}" />
@@ -221,8 +223,6 @@ export function renderSocialHtml(options: {
   <meta name="twitter:title" content="${safeTitle}" />
   <meta name="twitter:description" content="${safeDesc}" />
   <meta name="twitter:image" content="${safeTwitterImg}" />
-  <meta property="twitter:image" content="${safeTwitterImg}" />
-  <meta name="twitter:image:src" content="${safeTwitterImg}" />
   <meta name="twitter:image:alt" content="${safeTitle}" />
   <meta name="twitter:image:width" content="${imgWidth}" />
   <meta name="twitter:image:height" content="${imgHeight}" />
@@ -263,6 +263,9 @@ export function renderSocialHtml(options: {
   <meta name="theme-color" content="#0066FF" />
   <meta name="robots" content="index, follow, max-image-preview:large" />
 
+  <!-- Canonical URL -->
+  <link rel="canonical" href="${safeCanonical}" />
+
   <meta property="og:site_name" content="LShorter" />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="${safeCanonical}" />
@@ -277,7 +280,6 @@ export function renderSocialHtml(options: {
   <meta property="og:image:alt" content="${safeTitle}" />
 
   <meta name="twitter:card" content="${cardType}" />
-  <meta property="twitter:card" content="${cardType}" />
   <meta name="twitter:site" content="@LShorter" />
   <meta name="twitter:creator" content="@LShorter" />
   <meta name="twitter:domain" content="${domainName}" />
@@ -285,8 +287,6 @@ export function renderSocialHtml(options: {
   <meta name="twitter:title" content="${safeTitle}" />
   <meta name="twitter:description" content="${safeDesc}" />
   <meta name="twitter:image" content="${safeTwitterImg}" />
-  <meta property="twitter:image" content="${safeTwitterImg}" />
-  <meta name="twitter:image:src" content="${safeTwitterImg}" />
   <meta name="twitter:image:alt" content="${safeTitle}" />
   <meta name="twitter:image:width" content="${imgWidth}" />
   <meta name="twitter:image:height" content="${imgHeight}" />

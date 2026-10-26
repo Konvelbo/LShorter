@@ -511,7 +511,10 @@ export function SectionSocialTracking({
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
                   onClick={() => bannerInputRef.current?.click()}
-                  className="relative w-full h-32 rounded overflow-hidden cursor-pointer bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center"
+                  className={cn(
+                    "relative w-full rounded overflow-hidden cursor-pointer bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center transition-all",
+                    twitterCard === "summary" ? "h-24 sm:h-28" : "h-32 sm:h-36"
+                  )}
                 >
                   {hasCustomImage ? (
                     <>
@@ -550,95 +553,182 @@ export function SectionSocialTracking({
             </div>
           ) : socialPlatformPreview === "facebook" ? (
             /* Facebook Feed Post Card Style */
-            <div>
-              <div
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                onClick={() => bannerInputRef.current?.click()}
-                className="relative w-full h-40 sm:h-44 overflow-hidden cursor-pointer group flex items-center justify-center border-b border-zinc-200 dark:border-[#22242a] bg-zinc-100 dark:bg-[#16181d]"
-              >
-                {hasCustomImage ? (
-                  <>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={activeImage}
-                      alt="Facebook preview"
-                      className="w-full h-full object-cover"
-                      onError={() => setHasImageError(true)}
-                    />
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/95 text-zinc-900 text-xs font-semibold shadow-md">
-                        <Upload className="w-3.5 h-3.5 text-[#0066FF]" />
-                        <span>Changer l&apos;image</span>
+            twitterCard === "summary" ? (
+              /* Compact Facebook Card (Horizontal split) */
+              <div className="flex bg-[#F0F2F5] dark:bg-[#18191a] border border-zinc-200 dark:border-[#22242a] overflow-hidden">
+                <div
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  onClick={() => bannerInputRef.current?.click()}
+                  className="relative w-28 sm:w-32 h-28 sm:h-32 shrink-0 bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center cursor-pointer group border-r border-zinc-200 dark:border-[#22242a]"
+                >
+                  {hasCustomImage ? (
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={activeImage}
+                        alt="Facebook compact preview"
+                        className="w-full h-full object-cover"
+                        onError={() => setHasImageError(true)}
+                      />
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <Upload className="w-3.5 h-3.5 text-white" />
+                      </div>
+                    </>
+                  ) : (
+                    <div className="p-2 text-center text-xs text-zinc-400">
+                      <Upload className="w-4 h-4 mx-auto mb-1 text-zinc-400" />
+                      <span className="text-[10px]">Image</span>
+                    </div>
+                  )}
+                </div>
+                <div className="p-3 flex flex-col justify-center min-w-0 flex-1">
+                  <span className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider block">
+                    {(domainName || "lsho.cc").toUpperCase()}
+                  </span>
+                  <span className="text-xs sm:text-sm font-bold text-zinc-900 dark:text-white block truncate mt-0.5">
+                    {ogTitle || "Titre du lien sur Facebook"}
+                  </span>
+                  <span className="text-xs text-zinc-600 dark:text-zinc-400 line-clamp-2 mt-0.5">
+                    {ogDescription || "Description du contenu affichée dans le flux d'actualité Facebook."}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              /* Large Facebook Banner */
+              <div>
+                <div
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  onClick={() => bannerInputRef.current?.click()}
+                  className="relative w-full h-40 sm:h-44 overflow-hidden cursor-pointer group flex items-center justify-center border-b border-zinc-200 dark:border-[#22242a] bg-zinc-100 dark:bg-[#16181d]"
+                >
+                  {hasCustomImage ? (
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={activeImage}
+                        alt="Facebook preview"
+                        className="w-full h-full object-cover"
+                        onError={() => setHasImageError(true)}
+                      />
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/95 text-zinc-900 text-xs font-semibold shadow-md">
+                          <Upload className="w-3.5 h-3.5 text-[#0066FF]" />
+                          <span>Changer l&apos;image</span>
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="py-5 px-4 flex flex-col items-center justify-center text-center gap-1.5">
+                      <Upload className="w-5 h-5 text-zinc-400" />
+                      <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                        Aperçu Facebook
                       </span>
                     </div>
-                  </>
-                ) : (
-                  <div className="py-5 px-4 flex flex-col items-center justify-center text-center gap-1.5">
-                    <Upload className="w-5 h-5 text-zinc-400" />
-                    <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-                      Aperçu Facebook
-                    </span>
-                  </div>
-                )}
+                  )}
+                </div>
+                <div className="p-3 bg-[#F0F2F5] dark:bg-[#18191a]">
+                  <span className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider block">
+                    {(domainName || "lsho.cc").toUpperCase()}
+                  </span>
+                  <span className="text-sm font-bold text-zinc-900 dark:text-white block truncate mt-0.5">
+                    {ogTitle || "Titre du lien sur Facebook"}
+                  </span>
+                  <span className="text-xs text-zinc-600 dark:text-zinc-400 line-clamp-2 mt-0.5">
+                    {ogDescription || "Description du contenu affichée dans le flux d'actualité Facebook."}
+                  </span>
+                </div>
               </div>
-              <div className="p-3 bg-[#F0F2F5] dark:bg-[#18191a]">
-                <span className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider block">
-                  {(domainName || "lsho.cc").toUpperCase()}
-                </span>
-                <span className="text-sm font-bold text-zinc-900 dark:text-white block truncate mt-0.5">
-                  {ogTitle || "Titre du lien sur Facebook"}
-                </span>
-                <span className="text-xs text-zinc-600 dark:text-zinc-400 line-clamp-2 mt-0.5">
-                  {ogDescription || "Description du contenu affichée dans le flux d'actualité Facebook."}
-                </span>
-              </div>
-            </div>
+            )
           ) : socialPlatformPreview === "linkedin" ? (
             /* LinkedIn Post Card Style */
-            <div>
-              <div
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                onClick={() => bannerInputRef.current?.click()}
-                className="relative w-full h-40 sm:h-44 overflow-hidden cursor-pointer group flex items-center justify-center border-b border-zinc-200 dark:border-[#22242a] bg-zinc-100 dark:bg-[#16181d]"
-              >
-                {hasCustomImage ? (
-                  <>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={activeImage}
-                      alt="LinkedIn preview"
-                      className="w-full h-full object-cover"
-                      onError={() => setHasImageError(true)}
-                    />
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/95 text-zinc-900 text-xs font-semibold shadow-md">
-                        <Upload className="w-3.5 h-3.5 text-[#0066FF]" />
-                        <span>Changer l&apos;image</span>
+            twitterCard === "summary" ? (
+              /* Compact LinkedIn Card */
+              <div className="flex bg-zinc-50 dark:bg-[#1b1f23] border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+                <div
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  onClick={() => bannerInputRef.current?.click()}
+                  className="relative w-24 sm:w-28 h-24 sm:h-28 shrink-0 bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center cursor-pointer group border-r border-zinc-200 dark:border-zinc-800"
+                >
+                  {hasCustomImage ? (
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={activeImage}
+                        alt="LinkedIn compact preview"
+                        className="w-full h-full object-cover"
+                        onError={() => setHasImageError(true)}
+                      />
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <Upload className="w-3.5 h-3.5 text-white" />
+                      </div>
+                    </>
+                  ) : (
+                    <div className="p-2 text-center text-xs text-zinc-400">
+                      <Upload className="w-4 h-4 mx-auto mb-1 text-zinc-400" />
+                      <span className="text-[10px]">Image</span>
+                    </div>
+                  )}
+                </div>
+                <div className="p-3 flex flex-col justify-center min-w-0 flex-1">
+                  <span className="text-xs font-semibold text-zinc-900 dark:text-white block truncate">
+                    {ogTitle || "Titre professionnel LinkedIn"}
+                  </span>
+                  <span className="text-[11px] text-zinc-500 font-mono block mt-0.5">
+                    {domainName || "lsho.cc"}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              /* Large LinkedIn Banner */
+              <div>
+                <div
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  onClick={() => bannerInputRef.current?.click()}
+                  className="relative w-full h-40 sm:h-44 overflow-hidden cursor-pointer group flex items-center justify-center border-b border-zinc-200 dark:border-[#22242a] bg-zinc-100 dark:bg-[#16181d]"
+                >
+                  {hasCustomImage ? (
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={activeImage}
+                        alt="LinkedIn preview"
+                        className="w-full h-full object-cover"
+                        onError={() => setHasImageError(true)}
+                      />
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/95 text-zinc-900 text-xs font-semibold shadow-md">
+                          <Upload className="w-3.5 h-3.5 text-[#0066FF]" />
+                          <span>Changer l&apos;image</span>
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="py-5 px-4 flex flex-col items-center justify-center text-center gap-1.5">
+                      <Upload className="w-5 h-5 text-zinc-400" />
+                      <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                        Aperçu LinkedIn
                       </span>
                     </div>
-                  </>
-                ) : (
-                  <div className="py-5 px-4 flex flex-col items-center justify-center text-center gap-1.5">
-                    <Upload className="w-5 h-5 text-zinc-400" />
-                    <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-                      Aperçu LinkedIn
-                    </span>
-                  </div>
-                )}
+                  )}
+                </div>
+                <div className="p-3 bg-zinc-50 dark:bg-[#1b1f23] border-t border-zinc-200 dark:border-zinc-800">
+                  <span className="text-xs font-semibold text-zinc-900 dark:text-white block truncate">
+                    {ogTitle || "Titre professionnel LinkedIn"}
+                  </span>
+                  <span className="text-[11px] text-zinc-500 font-mono block mt-0.5">
+                    {domainName || "lsho.cc"}
+                  </span>
+                </div>
               </div>
-              <div className="p-3 bg-zinc-50 dark:bg-[#1b1f23] border-t border-zinc-200 dark:border-zinc-800">
-                <span className="text-xs font-semibold text-zinc-900 dark:text-white block truncate">
-                  {ogTitle || "Titre professionnel LinkedIn"}
-                </span>
-                <span className="text-[11px] text-zinc-500 font-mono block mt-0.5">
-                  {domainName || "lsho.cc"}
-                </span>
-              </div>
-            </div>
+            )
           ) : twitterCard === "summary_large_image" ? (
             /* Twitter / X Large Banner Style (Authentic X Card Layout) */
             <div className="rounded-xl overflow-hidden bg-black text-white border border-[#2f3336] shadow-sm">
