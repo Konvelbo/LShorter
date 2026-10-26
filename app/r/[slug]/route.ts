@@ -98,7 +98,9 @@ export async function GET(
             meta?.twitter_card === "summary" ||
             meta?.twitterCard === "summary" ||
             meta?.banner_style === "default_banner" ||
-            meta?.bannerStyle === "default_banner"
+            meta?.bannerStyle === "default_banner" ||
+            meta?.banner_style === "summary" ||
+            meta?.bannerStyle === "summary"
           ) && !(
             meta?.twitter_card === "summary_large_image" ||
             meta?.twitterCard === "summary_large_image"
@@ -129,7 +131,7 @@ export async function GET(
         if (isCustomBanner) {
           image = `https://${detectedDomain}/api/og?card=summary&img=${encodeURIComponent(rawImage)}&title=${encodeURIComponent(title.substring(0, 60))}&slug=${encodeURIComponent(slug)}`;
         } else {
-          image = `https://${detectedDomain}/icon-512.png`;
+          image = `https://${detectedDomain}/api/og?card=summary&title=${encodeURIComponent(title.substring(0, 60))}&desc=${encodeURIComponent(description.substring(0, 80))}&slug=${encodeURIComponent(slug)}`;
         }
       } else {
         // Large banner mode (1200x630):

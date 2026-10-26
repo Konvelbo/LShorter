@@ -289,7 +289,7 @@ export default {
           if (isCustomBanner) {
             finalImg = `https://${domain}/api/og?card=summary&img=${encodeURIComponent(publicImageUrl)}&title=${encodeURIComponent(ogTitle.substring(0, 60))}&slug=${encodeURIComponent(slug)}`;
           } else {
-            finalImg = `https://${domain}/icon-512.png`;
+            finalImg = `https://${domain}/api/og?card=summary&title=${encodeURIComponent(ogTitle.substring(0, 60))}&desc=${encodeURIComponent((ogDescription || '').substring(0, 80))}&slug=${encodeURIComponent(slug)}`;
           }
         } else {
           if (isCustomBanner) {
@@ -308,14 +308,15 @@ export default {
         }
 
         const escapeHtml = (s = '') => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        const escapeMetaUrl = (s = '') => s.replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         const safeTitle = escapeHtml(ogTitle);
         const safeDesc = escapeHtml(ogDescription || 'Cliquez pour ouvrir le lien.');
-        const safeImg = escapeHtml(finalImg.replace(/&amp;/g, '&'));
+        const safeImg = escapeMetaUrl(finalImg);
         const safeCanonical = escapeHtml(canonical);
         const safeCard = twitterCard;
         const imgWidth = isCompact ? '400' : '1200';
         const imgHeight = isCompact ? '400' : '630';
-        const imgType = safeImg.endsWith('.png') ? 'image/png' : safeImg.endsWith('.webp') ? 'image/webp' : 'image/jpeg';
+        const imgType = (safeImg.includes('.png') || safeImg.includes('/api/og')) ? 'image/png' : safeImg.includes('.webp') ? 'image/webp' : 'image/jpeg';
 
         const html = `<!DOCTYPE html>
 <html lang="fr" prefix="og: http://ogp.me/ns#">

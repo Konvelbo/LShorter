@@ -131,7 +131,7 @@ export async function PATCH(
     const isLarge =
       rawCard === "summary_large_image" || rawStyle === "large_banner";
     const isDefaultBanner =
-      (rawCard === "summary" || rawStyle === "default_banner") && !isLarge;
+      (rawCard === "summary" || rawStyle === "default_banner" || rawStyle === "summary") && !isLarge;
     const resolvedBannerStyle: "default_banner" | "large_banner" =
       isDefaultBanner ? "default_banner" : "large_banner";
     const resolvedTwitterCard: "summary_large_image" | "summary" =

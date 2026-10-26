@@ -6,17 +6,25 @@ export const runtime = "edge";
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const title = searchParams.get("title") || "LShorter";
-    const desc = searchParams.get("desc") || "Next-gen Edge URL Shortener & Smart Routing";
-    const slug = searchParams.get("slug") || "";
-    const card = searchParams.get("card") || "";
-    const mode = searchParams.get("mode") || "";
+    const title = searchParams.get("title") || searchParams.get("amp;title") || "LShorter";
+    const desc = searchParams.get("desc") || searchParams.get("amp;desc") || "Next-gen Edge URL Shortener & Smart Routing";
+    const slug = searchParams.get("slug") || searchParams.get("amp;slug") || "";
+    const card = searchParams.get("card") || searchParams.get("amp;card") || "";
+    const mode = searchParams.get("mode") || searchParams.get("amp;mode") || "";
     const isCompact = card === "summary" || mode === "compact";
-    const img = (searchParams.get("img") || searchParams.get("image") || "").trim();
+    const img = (
+      searchParams.get("img") ||
+      searchParams.get("amp;img") ||
+      searchParams.get("image") ||
+      searchParams.get("amp;image") ||
+      ""
+    ).trim();
 
     const responseHeaders = {
+      "Content-Type": "image/png",
       "Cache-Control": "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400",
       "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, OPTIONS",
     };
 
     if (img && (img.startsWith("http://") || img.startsWith("https://"))) {

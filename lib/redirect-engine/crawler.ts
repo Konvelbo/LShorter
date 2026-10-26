@@ -91,6 +91,14 @@ function escapeHtml(text?: string | null): string {
     .replace(/'/g, "&#039;");
 }
 
+function escapeMetaUrl(url?: string | null): string {
+  if (!url) return "#";
+  return String(url)
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
 function sanitizeSafeUrl(url?: string | null): string {
   if (!url) return "#";
   const trimmed = String(url).trim();
@@ -135,7 +143,7 @@ export function renderSocialHtml(options: {
   let twitterImg = resolvedImg;
   if (isSvg) {
     if (cardType === "summary") {
-      twitterImg = `https://${rawDomain}/icon-512.png`;
+      twitterImg = `https://${rawDomain}/api/og?card=summary&title=${encodeURIComponent((options.title || options.slug || "LShorter").substring(0, 60))}&desc=${encodeURIComponent((options.description || "").substring(0, 80))}&slug=${encodeURIComponent(options.slug || "")}`;
     } else {
       twitterImg = `https://${rawDomain}/api/og?title=${encodeURIComponent((options.title || options.slug || "LShorter").substring(0, 80))}&slug=${encodeURIComponent(options.slug || "")}`;
     }
@@ -169,14 +177,14 @@ export function renderSocialHtml(options: {
   }
 
   const fallbackGlass = getDicebearGlassUrl(options.slug || "lshorter");
-  const safeOgImg = escapeHtml(sanitizeSafeUrl(ogImg));
-  const safeTwitterImg = escapeHtml(sanitizeSafeUrl(twitterImg));
+  const safeOgImg = escapeMetaUrl(sanitizeSafeUrl(ogImg));
+  const safeTwitterImg = escapeMetaUrl(sanitizeSafeUrl(twitterImg));
   const safeImg = safeTwitterImg;
   const safeDest = escapeHtml(sanitizeSafeUrl(options.destinationUrl || options.canonicalUrl));
   const safeCanonical = escapeHtml(sanitizeSafeUrl(options.canonicalUrl));
   const safeSlug = escapeHtml(options.slug || "");
 
-  const ogImgType = ogImg.includes(".png")
+  const ogImgType = (ogImg.includes(".png") || ogImg.includes("/api/og"))
     ? "image/png"
     : ogImg.includes(".webp")
       ? "image/webp"

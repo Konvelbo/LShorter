@@ -72,7 +72,7 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        source: "/((?!r/[^/]+/proxy).*)",
+        source: "/((?!r/[^/]+/proxy|api/og|api/v1/images|icon-.*|default_banner|favicon|apple-touch-icon|site\\.webmanifest|.*\\.(?:png|jpg|jpeg|gif|webp|svg|ico)).*)",
         headers: [
           {
             key: "X-Frame-Options",
@@ -136,6 +136,23 @@ const nextConfig: NextConfig = {
             value: "*",
           },
           {
+            key: "Access-Control-Allow-Methods",
+            value: "GET, OPTIONS",
+          },
+          {
+            key: "Cache-Control",
+            value: "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400",
+          },
+        ],
+      },
+      {
+        source: "/:file(icon-.*\\.png|default_banner\\.jpg|favicon\\.ico|favicon\\.svg|apple-touch-icon\\.png)",
+        headers: [
+          {
+            key: "Access-Control-Allow-Origin",
+            value: "*",
+          },
+          {
             key: "Cache-Control",
             value: "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400",
           },
@@ -160,6 +177,10 @@ const nextConfig: NextConfig = {
   },
   async rewrites() {
     return [
+      {
+        source: "/api/og.png",
+        destination: "/api/og",
+      },
       {
         source: "/api/v1/:path*",
         destination: "https://lshorter-api.fiatechnologiecam.workers.dev/api/v1/:path*",
