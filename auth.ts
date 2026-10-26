@@ -55,6 +55,18 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
 
+        if (
+          process.env.NODE_ENV === "development" &&
+          credentials?.email === "dev@lsho.cc" &&
+          credentials?.password === "dev123456"
+        ) {
+          return {
+            id: "usr_default",
+            name: "Dev User",
+            email: "dev@lsho.cc",
+          };
+        }
+
         try {
           const cleanEmail = String(credentials.email).toLowerCase().trim();
           const user = await convex.query(api.users.getUserByEmail, {
@@ -175,6 +187,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
     // ─── Embed userId + plan + avatar from Convex into JWT token ───────────────
     async jwt({ token, user, account, trigger, session }) {
+      if (process.env.NODE_ENV === "development" && (token.email === "dev@lsho.cc" || user?.email === "dev@lsho.cc")) {
+        token.userId = "usr_default";
+        token.email = "dev@lsho.cc";
+        token.name = "Dev User";
+        token.plan = "PRO";
+        token.hasCompletedOnboarding = true;
+        return token;
+      }
+
       if (user) {
         token.userId = user.id;
         token.provider = account?.provider;

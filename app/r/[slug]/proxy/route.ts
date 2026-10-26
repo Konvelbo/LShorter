@@ -25,6 +25,8 @@ async function resolveLinkConfig(slug: string) {
           targetUrl: found.target_url || found.targetUrl,
           pathLockMode: found.path_lock_mode || found.pathLockMode || "off",
           pathLockPrefix: found.path_lock_prefix || found.pathLockPrefix || "",
+          pathLockMessage: found.path_lock_message || found.pathLockMessage || "",
+          pathLockPassword: found.path_lock_password || found.pathLockPassword || "",
         };
       }
     }
@@ -49,6 +51,8 @@ async function resolveLinkConfig(slug: string) {
           targetUrl: found.target_url || found.targetUrl,
           pathLockMode: found.path_lock_mode || found.pathLockMode || "off",
           pathLockPrefix: found.path_lock_prefix || found.pathLockPrefix || "",
+          pathLockMessage: found.path_lock_message || found.pathLockMessage || "",
+          pathLockPassword: found.path_lock_password || found.pathLockPassword || "",
         };
       }
     }
@@ -195,7 +199,7 @@ export async function GET(
       }
 
       if (CFG.mode === "strict") {
-        var strictAllowed = (attemptNorm === baseTargetNorm || attemptNorm === effectivePrefixNorm);
+        var strictAllowed = (attemptNorm === baseTargetNorm || rawPrefixes.indexOf(attemptNorm) !== -1);
         return {
           allowed: strictAllowed,
           isHashOnly: strictAllowed && Boolean(u.hash),
@@ -203,11 +207,9 @@ export async function GET(
           url: u.href
         };
       } else if (CFG.mode === "funnel") {
-        var funnelAllowed = rawPrefixes.length > 0
-          ? rawPrefixes.some(function(pref) {
-              return attemptNorm === pref || attemptNorm.indexOf(pref + "/") === 0;
-            })
-          : (attemptNorm === baseTargetNorm);
+        var funnelAllowed = (attemptNorm === baseTargetNorm) || (rawPrefixes.length > 0 && rawPrefixes.some(function(pref) {
+          return attemptNorm === pref || attemptNorm.indexOf(pref + "/") === 0;
+        }));
         return {
           allowed: funnelAllowed,
           isHashOnly: (attemptNorm === baseTargetNorm) && Boolean(u.hash),
@@ -369,6 +371,7 @@ export async function GET(
         "Content-Type": "text/html; charset=utf-8",
         "Cache-Control": "no-store, no-cache, must-revalidate",
         "X-Frame-Options": "SAMEORIGIN",
+        "Content-Security-Policy": "frame-ancestors 'self'",
       },
     });
   } catch (err) {

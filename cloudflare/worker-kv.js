@@ -968,6 +968,16 @@ export default {
           const rawPixels = body.pixels || body.pixel_ids || body.pixelIds || [];
           const parsedPixels = Array.isArray(rawPixels) ? rawPixels : [];
 
+          const isCloaked = Boolean(body.isCloaked || body.is_cloaked);
+          const rawPassword = body.password ? String(body.password).trim() : null;
+          const pathLockMode = body.pathLockMode || body.path_lock_mode || 'off';
+          const pathLockPrefix = body.pathLockPrefix !== undefined ? body.pathLockPrefix : (body.path_lock_prefix !== undefined ? body.path_lock_prefix : null);
+          const pathLockMessage = body.pathLockMessage !== undefined ? body.pathLockMessage : (body.path_lock_message !== undefined ? body.path_lock_message : null);
+          const pathLockPassword = body.pathLockPassword !== undefined ? body.pathLockPassword : (body.path_lock_password !== undefined ? body.path_lock_password : null);
+          const expiresAt = body.expiresAt || body.expires_at || null;
+          const maxClicks = body.maxClicks !== undefined ? body.maxClicks : (body.max_clicks !== undefined ? body.max_clicks : null);
+          const fallbackUrl = body.fallbackUrl || body.fallback_url || null;
+
           const linkObj = {
             id,
             user_id: userId,
@@ -995,6 +1005,25 @@ export default {
             tags: parsedTags,
             pixels: parsedPixels,
             pixel_ids: parsedPixels,
+            is_cloaked: isCloaked ? 1 : 0,
+            isCloaked,
+            password: rawPassword,
+            is_password_protected: rawPassword ? 1 : 0,
+            has_password: Boolean(rawPassword),
+            path_lock_mode: pathLockMode,
+            pathLockMode,
+            path_lock_prefix: pathLockPrefix,
+            pathLockPrefix,
+            path_lock_message: pathLockMessage,
+            pathLockMessage,
+            path_lock_password: pathLockPassword,
+            pathLockPassword,
+            expires_at: expiresAt,
+            expiresAt,
+            max_clicks: maxClicks,
+            maxClicks,
+            fallback_url: fallbackUrl,
+            fallbackUrl,
             created_at: new Date().toISOString(),
           };
 
@@ -1084,6 +1113,7 @@ export default {
           const slug = (body.slug || existingLink?.slug || idOrSlug || '').trim();
           const userId = body.userId || body.user_id || existingLink?.user_id || 'usr_default';
           const domainName = body.domainName || body.domain_name || existingLink?.domain_name || 'lsho.cc';
+          const shortUrl = body.shortUrl || body.short_url || existingLink?.short_url || ('https://' + domainName + '/' + slug);
           const targetUrl = body.targetUrl || body.target_url || existingLink?.target_url || existingLink?.targetUrl;
           if (targetUrl) {
             const trimmedTarget = String(targetUrl).trim();
@@ -1150,6 +1180,16 @@ export default {
             ? (Array.isArray(body.pixelIds) ? body.pixelIds : [])
             : (existingLink?.pixels || existingLink?.pixel_ids || []);
 
+          const isCloakedUpdate = body.isCloaked !== undefined ? Boolean(body.isCloaked) : (body.is_cloaked !== undefined ? Boolean(body.is_cloaked) : Boolean(existingLink?.is_cloaked || existingLink?.isCloaked));
+          const rawPasswordUpdate = body.password !== undefined ? (body.password ? String(body.password).trim() : null) : (existingLink?.password || null);
+          const pathLockModeUpdate = body.pathLockMode || body.path_lock_mode || existingLink?.pathLockMode || existingLink?.path_lock_mode || 'off';
+          const pathLockPrefixUpdate = body.pathLockPrefix !== undefined ? body.pathLockPrefix : (body.path_lock_prefix !== undefined ? body.path_lock_prefix : (existingLink?.pathLockPrefix || existingLink?.path_lock_prefix || null));
+          const pathLockMessageUpdate = body.pathLockMessage !== undefined ? body.pathLockMessage : (body.path_lock_message !== undefined ? body.path_lock_message : (existingLink?.pathLockMessage || existingLink?.path_lock_message || null));
+          const pathLockPasswordUpdate = body.pathLockPassword !== undefined ? body.pathLockPassword : (body.path_lock_password !== undefined ? body.path_lock_password : (existingLink?.pathLockPassword || existingLink?.path_lock_password || null));
+          const expiresAtUpdate = body.expiresAt !== undefined ? body.expiresAt : (body.expires_at !== undefined ? body.expires_at : (existingLink?.expiresAt || existingLink?.expires_at || null));
+          const maxClicksUpdate = body.maxClicks !== undefined ? body.maxClicks : (body.max_clicks !== undefined ? body.max_clicks : (existingLink?.maxClicks || existingLink?.max_clicks || null));
+          const fallbackUrlUpdate = body.fallbackUrl !== undefined ? body.fallbackUrl : (body.fallback_url !== undefined ? body.fallback_url : (existingLink?.fallbackUrl || existingLink?.fallback_url || null));
+
           const updatedLinkObj = {
             ...existingLink,
             id,
@@ -1178,6 +1218,25 @@ export default {
             tags: parsedTags,
             pixels: updatedPixels,
             pixel_ids: updatedPixels,
+            is_cloaked: isCloakedUpdate ? 1 : 0,
+            isCloaked: isCloakedUpdate,
+            password: rawPasswordUpdate,
+            is_password_protected: rawPasswordUpdate ? 1 : 0,
+            has_password: Boolean(rawPasswordUpdate),
+            path_lock_mode: pathLockModeUpdate,
+            pathLockMode: pathLockModeUpdate,
+            path_lock_prefix: pathLockPrefixUpdate,
+            pathLockPrefix: pathLockPrefixUpdate,
+            path_lock_message: pathLockMessageUpdate,
+            pathLockMessage: pathLockMessageUpdate,
+            path_lock_password: pathLockPasswordUpdate,
+            pathLockPassword: pathLockPasswordUpdate,
+            expires_at: expiresAtUpdate,
+            expiresAt: expiresAtUpdate,
+            max_clicks: maxClicksUpdate,
+            maxClicks: maxClicksUpdate,
+            fallback_url: fallbackUrlUpdate,
+            fallbackUrl: fallbackUrlUpdate,
             updated_at: new Date().toISOString(),
           };
 

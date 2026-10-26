@@ -29,8 +29,6 @@ async function getLink(slug: string): Promise<ResolvedLinkResult> {
       if (found && (found.target_url || found.targetUrl)) {
         const hasPassword = Boolean(
           found.password ||
-          found.path_lock_password ||
-          found.pathLockPassword ||
           found.is_password_protected ||
           found.isPasswordProtected
         );
@@ -47,6 +45,8 @@ async function getLink(slug: string): Promise<ResolvedLinkResult> {
             pathLockPrefix: found.path_lock_prefix || found.pathLockPrefix || "",
             pathLockMessage:
               found.path_lock_message || found.pathLockMessage || "",
+            pathLockPassword:
+              found.path_lock_password || found.pathLockPassword || "",
           },
           requiresGate: false,
         };
@@ -70,8 +70,6 @@ async function getLink(slug: string): Promise<ResolvedLinkResult> {
     if (found) {
       const hasPassword = Boolean(
         found.password ||
-        found.path_lock_password ||
-        found.pathLockPassword ||
         found.is_password_protected ||
         found.isPasswordProtected
       );
@@ -87,6 +85,8 @@ async function getLink(slug: string): Promise<ResolvedLinkResult> {
           pathLockMode: found.path_lock_mode || found.pathLockMode || "off",
           pathLockPrefix: found.path_lock_prefix || found.pathLockPrefix || "",
           pathLockMessage: found.path_lock_message || found.pathLockMessage || "",
+          pathLockPassword:
+            found.path_lock_password || found.pathLockPassword || "",
         },
         requiresGate: false,
       };

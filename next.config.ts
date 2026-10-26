@@ -76,7 +76,7 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: "X-Frame-Options",
-            value: "DENY",
+            value: "SAMEORIGIN",
           },
           {
             key: "X-Content-Type-Options",
@@ -108,7 +108,7 @@ const nextConfig: NextConfig = {
               "font-src 'self' data: https://fonts.gstatic.com",
               "connect-src 'self' https://*.convex.cloud https://*.paddle.com https://challenges.cloudflare.com https://*.cloudflare.com https://api.dicebear.com wss://*.convex.cloud https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://cdn.jsdelivr.net https://ipapi.co https://ip-api.com",
               "frame-src 'self' https://buy.paddle.com https://sandbox-buy.paddle.com https://challenges.cloudflare.com",
-              "frame-ancestors 'none'",
+              "frame-ancestors 'self'",
               "object-src 'none'",
               "base-uri 'self'",
             ].join("; "),
