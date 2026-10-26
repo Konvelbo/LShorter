@@ -36,7 +36,6 @@ export function CloakedViewer({ link }: CloakedViewerProps) {
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
   const [isDevUnlocked, setIsDevUnlocked] = useState(false);
-  const [useProxyFallback, setUseProxyFallback] = useState(false);
   const [unlockPasswordInput, setUnlockPasswordInput] = useState("");
   const [showUnlockPassword, setShowUnlockPassword] = useState(false);
   const [unlockError, setUnlockError] = useState("");
@@ -159,7 +158,11 @@ export function CloakedViewer({ link }: CloakedViewerProps) {
           (p: string) =>
             cleanAttempt === p || cleanAttempt.startsWith(`${p}/`),
         );
-        const allowed = isRootOrTarget || isAllowedPrefix;
+        const isHexPalette = /^[0-9a-f]{6}(-[0-9a-f]{6})+$/i.test(cleanAttempt);
+        const isCoolorsGenerator =
+          isHexPalette &&
+          prefixes.some((p: string) => p === "generate" || p.startsWith("generate"));
+        const allowed = isRootOrTarget || isAllowedPrefix || isCoolorsGenerator;
         if (!allowed) {
           setIsBlocked(true);
         }
@@ -190,7 +193,7 @@ export function CloakedViewer({ link }: CloakedViewerProps) {
     setIframeKey((prev) => prev + 1);
   };
 
-  const iframeSrc = useProxyFallback
+  const iframeSrc = isPathLocked
     ? `/r/${encodeURIComponent(link.slug)}/proxy${isDevUnlocked ? "?unlocked=1" : ""}`
     : link.targetUrl;
 
@@ -308,7 +311,6 @@ export function CloakedViewer({ link }: CloakedViewerProps) {
           src={iframeSrc}
           title={title}
           onLoad={handleIframeLoad}
-          onError={() => setUseProxyFallback(true)}
           className="w-full h-full border-none flex-1 bg-white"
           sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-downloads"
         />

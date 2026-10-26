@@ -126,6 +126,10 @@ export async function GET(
     }
 
     let html = await upstreamRes.text();
+    // De-rocket-loader Cloudflare script modifications so scripts execute natively
+    html = html.replace(/type="[a-f0-9]+-text\/javascript"/gi, 'type="text/javascript"');
+    html = html.replace(/<script[^>]*rocket-loader\.min\.js[^>]*><\/script>/gi, '');
+
     const effectiveTarget = new URL(upstreamRes.url || fetchTargetUrl);
     const targetOrigin = effectiveTarget.origin;
 
@@ -141,6 +145,9 @@ export async function GET(
 
     const injectedHeadContent = `
 <base href="${targetOrigin}/" />
+<style>
+  #page-loader, .page-loader, #initial-loader { display: none !important; }
+</style>
 <script>
 (function() {
   var CFG = ${JSON.stringify(pathLockConfig)};
@@ -211,7 +218,12 @@ export async function GET(
         var isAllowedPrefix = (rawPrefixes.length > 0 && rawPrefixes.some(function(pref) {
           return attemptNorm === pref || attemptNorm.indexOf(pref + "/") === 0;
         }));
-        var funnelAllowed = isRootOrTarget || isAllowedPrefix;
+        // Special case for color palette generators like Coolors.co: /generate generates /[hex]-[hex]-[hex]...
+        var isHexPalette = /^[0-9a-f]{6}(-[0-9a-f]{6})+$/i.test(attemptNorm);
+        var isCoolorsGenerator = isHexPalette && rawPrefixes.some(function(pref) {
+          return pref === "generate" || pref.indexOf("generate") === 0;
+        });
+        var funnelAllowed = isRootOrTarget || isAllowedPrefix || isCoolorsGenerator;
         return {
           allowed: funnelAllowed,
           isHashOnly: (attemptNorm === baseTargetNorm) && Boolean(u.hash),
@@ -254,6 +266,10 @@ export async function GET(
   window.history.pushState = function(state, title, url) {
     if (url !== undefined && url !== null) {
       var check = checkUrlAllowed(url);
+      if (!check.allowed) {
+        notifyBlocked(check.url || String(url));
+        return;
+      }
       if (check.isHashOnly && check.hash) {
         scrollToHash(check.hash);
       }
@@ -311,7 +327,7 @@ export async function GET(
       if (normPath(targetU.pathname) !== baseTargetNorm || targetU.search !== effectiveTargetSearch()) {
         e.preventDefault();
         e.stopPropagation();
-        var proxyNext = "/r/" + encodeURIComponent(CFG.slug) + "/proxy?url=" + encodeURIComponent(check.url) + (isUnlocked ? "&unlocked=1" : "");
+        var proxyNext = window.location.origin + "/r/" + encodeURIComponent(CFG.slug) + "/proxy?url=" + encodeURIComponent(check.url) + (isUnlocked ? "&unlocked=1" : "");
         window.location.href = proxyNext;
         return false;
       }
