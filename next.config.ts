@@ -232,7 +232,7 @@ const nextConfig: NextConfig = {
         destination: "/api/og",
       },
       {
-        source: "/api/v1/:path*",
+        source: "/api/v1/:path((?!images/).*)",
         destination: "https://lshorter-api.fiatechnologiecam.workers.dev/api/v1/:path*",
       },
       {
