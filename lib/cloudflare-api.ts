@@ -249,13 +249,19 @@ export function cfNormalizeImageUrl(url?: string): string {
   if (!url) return "";
   const trimmed = url.trim();
   if (trimmed.startsWith("data:") || trimmed.startsWith("blob:")) return trimmed;
-  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) return trimmed;
-  if (trimmed.startsWith("/api/images/")) {
-    const filename = trimmed.replace("/api/images/", "");
-    return `https://lshorter-api.fiatechnologiecam.workers.dev/api/v1/images/${filename}`;
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    if (trimmed.includes(".workers.dev/api/v1/images/")) {
+      const filename = trimmed.split("/").pop();
+      return `https://lsho.cc/api/v1/images/${filename}`;
+    }
+    return trimmed;
+  }
+  if (trimmed.startsWith("/api/images/") || trimmed.startsWith("/api/v1/images/")) {
+    const filename = trimmed.replace(/^\/api(\/v1)?\/images\//, "");
+    return `https://lsho.cc/api/v1/images/${filename}`;
   }
   if (trimmed.startsWith("banner_") && (trimmed.endsWith(".jpg") || trimmed.endsWith(".png") || trimmed.endsWith(".webp") || trimmed.endsWith(".gif"))) {
-    return `https://lshorter-api.fiatechnologiecam.workers.dev/api/v1/images/${trimmed}`;
+    return `https://lsho.cc/api/v1/images/${trimmed}`;
   }
   return trimmed;
 }

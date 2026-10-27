@@ -1,1 +1,1 @@
-export { GET } from "@/app/api/images/[id]/route";
+export { GET, HEAD, OPTIONS } from "@/app/api/images/[id]/route";

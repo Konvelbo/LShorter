@@ -52,6 +52,7 @@ export async function GET(
           status: 200,
           headers: {
             "Content-Type": contentType,
+            "Content-Length": imageBuffer.byteLength.toString(),
             "Cache-Control": "public, max-age=31536000, immutable",
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
@@ -104,6 +105,7 @@ export async function GET(
           status: 200,
           headers: {
             "Content-Type": mime,
+            "Content-Length": buffer.length.toString(),
             "Cache-Control": "public, max-age=31536000, immutable",
             "Access-Control-Allow-Origin": "*",
             "Cross-Origin-Resource-Policy": "cross-origin",
@@ -134,6 +136,17 @@ export async function GET(
     console.error("[Cloud Image Proxy Error]:", err);
     return new Response("Internal Server Error", { status: 500 });
   }
+}
+
+export async function HEAD(
+  req: Request,
+  context: { params: Promise<{ id: string }> },
+) {
+  const res = await GET(req, context);
+  return new Response(null, {
+    status: res.status,
+    headers: res.headers,
+  });
 }
 
 export async function OPTIONS() {

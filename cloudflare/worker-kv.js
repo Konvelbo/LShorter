@@ -156,6 +156,8 @@ export default {
             headers: {
               ...corsHeaders,
               'Content-Type': mime,
+              'Content-Length': bytes.byteLength.toString(),
+              'Cross-Origin-Resource-Policy': 'cross-origin',
               'Cache-Control': (url.searchParams.has('v') || url.searchParams.has('_t') || url.searchParams.has('cb'))
                 ? 'no-store, no-cache, max-age=0, must-revalidate'
                 : 'public, max-age=60, s-maxage=300, stale-while-revalidate=3600',
@@ -234,7 +236,7 @@ export default {
       }
 
       const userAgent = (request.headers.get('user-agent') || '').toLowerCase();
-      const isBot = /facebookexternalhit|facebot|twitter|xbot|linkedinbot|whatsapp|telegrambot|discordbot|slackbot|slack-imgbatcher|pinterestbot|skypeuripreview|googlebot|bingbot|applebot|yandexbot|duckduckbot|baiduspider|bytespider|tiktok|ia_archiver|mastodon|bluesky/i.test(userAgent);
+      const isBot = /facebookexternalhit|facebot|twitter|xbot|linkedinbot|whatsapp|telegrambot|discordbot|slackbot|slack-imgbatcher|pinterestbot|skypeuripreview|googlebot|bingbot|applebot|yandexbot|duckduckbot|baiduspider|bytespider|tiktok|ia_archiver|mastodon|bluesky|opengraph|iframely|metatags|socialsharepreview|threads|snapchat/i.test(userAgent);
       const country = (request.cf?.country || request.headers.get('cf-ipcountry') || request.headers.get('x-country') || 'XX').toUpperCase();
 
       const ogImage = link.og_image || link.ogImage || '';
@@ -319,6 +321,8 @@ export default {
         const imgHeight = isCompact ? '400' : '630';
         const imgType = (safeImg.includes('.png') || safeImg.includes('/api/og')) ? 'image/png' : safeImg.includes('.webp') ? 'image/webp' : 'image/jpeg';
 
+        const isGenerated = safeImg.includes('/api/og');
+
         const html = `<!DOCTYPE html>
 <html lang="fr" prefix="og: http://ogp.me/ns#">
 <head>
@@ -342,8 +346,7 @@ export default {
   <meta property="og:image:url" content="${safeImg}" />
   <meta property="og:image:secure_url" content="${safeImg}" />
   <meta property="og:image:type" content="${imgType}" />
-  <meta property="og:image:width" content="${imgWidth}" />
-  <meta property="og:image:height" content="${imgHeight}" />
+  ${isGenerated ? `<meta property="og:image:width" content="${imgWidth}" />\n  <meta property="og:image:height" content="${imgHeight}" />` : ''}
   <meta property="og:image:alt" content="${safeTitle}" />
 
   <!-- Twitter / X Cards -->
@@ -356,8 +359,7 @@ export default {
   <meta name="twitter:description" content="${safeDesc}" />
   <meta name="twitter:image" content="${safeImg}" />
   <meta name="twitter:image:alt" content="${safeTitle}" />
-  <meta name="twitter:image:width" content="${imgWidth}" />
-  <meta name="twitter:image:height" content="${imgHeight}" />
+  ${isGenerated ? `<meta name="twitter:image:width" content="${imgWidth}" />\n  <meta name="twitter:image:height" content="${imgHeight}" />` : ''}
 </head>
 <body style="background:#09090b;">
 </body>

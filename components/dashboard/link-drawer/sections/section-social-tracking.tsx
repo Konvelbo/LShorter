@@ -757,7 +757,7 @@ export function SectionSocialTracking({
                         const target = e.currentTarget;
                         if (ogImage && ogImage.startsWith("/api/images/")) {
                           const filename = ogImage.replace("/api/images/", "");
-                          target.src = `https://lshorter-api.fiatechnologiecam.workers.dev/api/v1/images/${filename}`;
+                          target.src = `/api/v1/images/${filename}`;
                         } else {
                           setHasImageError(true);
                         }

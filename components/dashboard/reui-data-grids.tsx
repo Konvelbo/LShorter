@@ -47,10 +47,10 @@ export function normalizeBannerUrl(rawUrl?: string | null): string {
   }
   if (trimmed.startsWith("/api/images/")) {
     const filename = trimmed.replace("/api/images/", "");
-    return `https://lshorter-api.fiatechnologiecam.workers.dev/api/v1/images/${filename}`;
+    return `/api/v1/images/${filename}`;
   }
   if (trimmed.startsWith("banner_") && (trimmed.endsWith(".jpg") || trimmed.endsWith(".png") || trimmed.endsWith(".webp") || trimmed.endsWith(".gif"))) {
-    return `https://lshorter-api.fiatechnologiecam.workers.dev/api/v1/images/${trimmed}`;
+    return `/api/v1/images/${trimmed}`;
   }
   return trimmed;
 }
@@ -876,7 +876,7 @@ export function LinksReuiDataGrid({
                                 const target = e.currentTarget as HTMLImageElement;
                                 if (row.hasCustomBanner && row.ogImage.startsWith("/api/images/")) {
                                   const fName = row.ogImage.replace("/api/images/", "");
-                                  target.src = `https://lshorter-api.fiatechnologiecam.workers.dev/api/v1/images/${fName}`;
+                                  target.src = `/api/v1/images/${fName}`;
                                 } else {
                                   target.src = getDiceBearAvatar(row.slug);
                                 }

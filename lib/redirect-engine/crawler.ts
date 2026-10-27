@@ -29,6 +29,12 @@ const SOCIAL_CRAWLERS = [
   "tiktok",
   "mastodon",
   "bluesky",
+  "opengraph",
+  "iframely",
+  "metatags",
+  "socialsharepreview",
+  "threads",
+  "snapchat",
 ];
 
 export function isSocialCrawler(userAgentRaw: string): boolean {
@@ -194,6 +200,9 @@ export function renderSocialHtml(options: {
   const imgWidth = cardType === "summary" ? "400" : "1200";
   const imgHeight = cardType === "summary" ? "400" : "630";
 
+  const isGeneratedOg = safeOgImg.includes("/api/og");
+  const isGeneratedTwitter = safeTwitterImg.includes("/api/og");
+
   if (!options.isPreview) {
     return `<!DOCTYPE html>
 <html lang="fr" prefix="og: https://ogp.me/ns#">
@@ -218,8 +227,7 @@ export function renderSocialHtml(options: {
   <meta property="og:image:url" content="${safeOgImg}" />
   <meta property="og:image:secure_url" content="${safeOgImg}" />
   <meta property="og:image:type" content="${ogImgType}" />
-  <meta property="og:image:width" content="${imgWidth}" />
-  <meta property="og:image:height" content="${imgHeight}" />
+  ${isGeneratedOg ? `<meta property="og:image:width" content="${imgWidth}" />\n  <meta property="og:image:height" content="${imgHeight}" />` : ""}
   <meta property="og:image:alt" content="${safeTitle}" />
 
   <!-- Twitter / X Cards -->
@@ -232,8 +240,7 @@ export function renderSocialHtml(options: {
   <meta name="twitter:description" content="${safeDesc}" />
   <meta name="twitter:image" content="${safeTwitterImg}" />
   <meta name="twitter:image:alt" content="${safeTitle}" />
-  <meta name="twitter:image:width" content="${imgWidth}" />
-  <meta name="twitter:image:height" content="${imgHeight}" />
+  ${isGeneratedTwitter ? `<meta name="twitter:image:width" content="${imgWidth}" />\n  <meta name="twitter:image:height" content="${imgHeight}" />` : ""}
 </head>
 <body style="background:#09090b;color:#fafafa;font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:24px;box-sizing:border-box;">
   ${cardType === "summary" ? `
