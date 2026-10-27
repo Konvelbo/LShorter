@@ -129,7 +129,7 @@ export async function GET(
         // Social networks (Twitter, Facebook, WhatsApp, Telegram, LinkedIn, Discord)
         // strictly require a square 1:1 image (400x400) to render a compact thumbnail card.
         if (isCustomBanner) {
-          image = `https://${detectedDomain}/api/og?card=summary&img=${encodeURIComponent(rawImage)}&title=${encodeURIComponent(title.substring(0, 60))}&slug=${encodeURIComponent(slug)}`;
+          image = rawImage;
         } else {
           image = `https://${detectedDomain}/api/og?card=summary&title=${encodeURIComponent(title.substring(0, 60))}&desc=${encodeURIComponent(description.substring(0, 80))}&slug=${encodeURIComponent(slug)}`;
         }
@@ -143,8 +143,8 @@ export async function GET(
       }
 
       const targetUrl = qTarget || meta?.target_url || meta?.targetUrl || `https://${detectedDomain}`;
-      // Clean public short URL as shared by users: https://lsho.cc/slug
-      const canonicalUrl = `https://${detectedDomain}/${encodeURIComponent(slug)}${searchStr}`;
+      const isRRoute = url.pathname.startsWith("/r/");
+      const canonicalUrl = `https://${detectedDomain}${isRRoute ? "/r/" : "/"}${encodeURIComponent(slug)}${searchStr}`;
 
       const html = renderSocialHtml({
         title,

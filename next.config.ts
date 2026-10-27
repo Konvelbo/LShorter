@@ -70,14 +70,23 @@ const nextConfig: NextConfig = {
     ],
   },
   async headers() {
+    const cspDirectives = [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.paddle.com https://challenges.cloudflare.com https://www.googletagmanager.com",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "img-src 'self' data: blob: https: https://www.googletagmanager.com https://*.google-analytics.com",
+      "font-src 'self' data: https://fonts.gstatic.com",
+      "connect-src 'self' https://*.convex.cloud https://*.paddle.com https://challenges.cloudflare.com https://*.cloudflare.com https://api.dicebear.com wss://*.convex.cloud https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://cdn.jsdelivr.net https://ipapi.co https://ip-api.com",
+      "frame-src * 'self' https: http: data: blob: https://buy.paddle.com https://sandbox-buy.paddle.com https://challenges.cloudflare.com",
+      "frame-ancestors 'self'",
+      "object-src 'none'",
+      "base-uri 'self'",
+    ].join("; ");
+
     return [
       {
-        source: "/((?!r/[^/]+/proxy|api/og|api/v1/images|icon-.*|default_banner|favicon|apple-touch-icon|site\\.webmanifest|.*\\.(?:png|jpg|jpeg|gif|webp|svg|ico)).*)",
+        source: "/:path*",
         headers: [
-          {
-            key: "X-Frame-Options",
-            value: "SAMEORIGIN",
-          },
           {
             key: "X-Content-Type-Options",
             value: "nosniff",
@@ -98,20 +107,44 @@ const nextConfig: NextConfig = {
             key: "Strict-Transport-Security",
             value: "max-age=63072000; includeSubDomains; preload",
           },
+        ],
+      },
+      {
+        source: "/:path(dashboard|login|register|checkout|onboarding|settings|reset-password|pricing|terms|privacy|refund|docs|showcase)(/.*)?",
+        headers: [
+          {
+            key: "X-Frame-Options",
+            value: "SAMEORIGIN",
+          },
           {
             key: "Content-Security-Policy",
-            value: [
-              "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.paddle.com https://challenges.cloudflare.com https://www.googletagmanager.com",
-              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-              "img-src 'self' data: blob: https: https://www.googletagmanager.com https://*.google-analytics.com",
-              "font-src 'self' data: https://fonts.gstatic.com",
-              "connect-src 'self' https://*.convex.cloud https://*.paddle.com https://challenges.cloudflare.com https://*.cloudflare.com https://api.dicebear.com wss://*.convex.cloud https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://cdn.jsdelivr.net https://ipapi.co https://ip-api.com",
-              "frame-src * 'self' https: http: data: blob: https://buy.paddle.com https://sandbox-buy.paddle.com https://challenges.cloudflare.com",
-              "frame-ancestors 'self'",
-              "object-src 'none'",
-              "base-uri 'self'",
-            ].join("; "),
+            value: cspDirectives,
+          },
+        ],
+      },
+      {
+        source: "/",
+        headers: [
+          {
+            key: "X-Frame-Options",
+            value: "SAMEORIGIN",
+          },
+          {
+            key: "Content-Security-Policy",
+            value: cspDirectives,
+          },
+        ],
+      },
+      {
+        source: "/r/:path*",
+        headers: [
+          {
+            key: "Access-Control-Allow-Origin",
+            value: "*",
+          },
+          {
+            key: "Access-Control-Allow-Methods",
+            value: "GET, HEAD, OPTIONS",
           },
         ],
       },
@@ -142,6 +175,23 @@ const nextConfig: NextConfig = {
           {
             key: "Cache-Control",
             value: "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400",
+          },
+        ],
+      },
+      {
+        source: "/api/v1/images/:path*",
+        headers: [
+          {
+            key: "Access-Control-Allow-Origin",
+            value: "*",
+          },
+          {
+            key: "Access-Control-Allow-Methods",
+            value: "GET, HEAD, OPTIONS",
+          },
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
           },
         ],
       },

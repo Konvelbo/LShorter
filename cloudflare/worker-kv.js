@@ -257,8 +257,9 @@ export default {
       if (isBot) {
         const reqHost = request.headers.get('x-forwarded-host') || request.headers.get('host') || '';
         const domain = (reqHost && !reqHost.includes('workers.dev')) ? reqHost : 'lsho.cc';
+        const isRRoute = path.startsWith('/r/');
         const searchStr = url.search || '';
-        const canonical = `https://${domain}/${slug}${searchStr}`;
+        const canonical = `https://${domain}${isRRoute ? '/r/' : '/'}${slug}${searchStr}`;
         const dest = link.target_url || link.targetUrl || `https://${domain}`;
 
         // Convert data:image or relative image to public HTTPS URL so Twitter/FB crawlers can load it
@@ -287,7 +288,7 @@ export default {
         let finalImg = '';
         if (isCompact) {
           if (isCustomBanner) {
-            finalImg = `https://${domain}/api/og?card=summary&img=${encodeURIComponent(publicImageUrl)}&title=${encodeURIComponent(ogTitle.substring(0, 60))}&slug=${encodeURIComponent(slug)}`;
+            finalImg = publicImageUrl;
           } else {
             finalImg = `https://${domain}/api/og?card=summary&title=${encodeURIComponent(ogTitle.substring(0, 60))}&desc=${encodeURIComponent((ogDescription || '').substring(0, 80))}&slug=${encodeURIComponent(slug)}`;
           }
