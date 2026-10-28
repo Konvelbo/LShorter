@@ -140,32 +140,36 @@ export default function PricingPage() {
 
     setLoadingPlan(planKey);
     try {
-      // For paid plans, attempt Paddle checkout flow
+      // For paid plans, initiate checkout session
       if (planKey !== "FREE") {
-        const checkoutRes = await openPaddleCheckout({
-          planId: planKey,
-          cycle: isAnnual ? "YEARLY" : "MONTHLY",
-          userId,
-          userEmail: session?.user?.email || undefined,
-          theme: "dark",
-        });
+        try {
+          const res = await fetch("/api/billing/checkout", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              planId: planKey,
+              cycle: isAnnual ? "YEARLY" : "MONTHLY",
+              userId,
+              customerEmail: session?.user?.email || undefined,
+              successUrl: `${window.location.origin}/dashboard/settings?tab=billing&checkout_success=true&plan=${planKey}`,
+              cancelUrl: `${window.location.origin}/dashboard/pricing`,
+            }),
+          });
 
-        if (checkoutRes.success) {
-          // Checkout was launched in Paddle modal or redirected
-          setLoadingPlan(null);
-          return;
-        }
+          const data = await res.json();
+          if (data.success && data.checkoutUrl) {
+            window.location.href = data.checkoutUrl;
+            return;
+          }
 
-        if (checkoutRes.isAdBlocked) {
-          setPaddleBlocked(true);
-          showToast.error("Bloqueur de publicité détecté : Désactivez AdBlock, Brave Shields ou uBlock sur localhost:3000 pour ouvrir le paiement Paddle.");
-          setLoadingPlan(null);
-          return;
-        }
-
-        if (checkoutRes.error) {
-          showToast.error(checkoutRes.error);
-          setLoadingPlan(null);
+          if (data.error) {
+            showToast.error(data.error);
+            setLoadingPlan(null);
+            return;
+          }
+        } catch (apiErr) {
+          console.warn("[Pricing] Direct checkout error, redirecting to /checkout:", apiErr);
+          window.location.href = `/checkout?plan=${planKey}&cycle=${isAnnual ? "YEARLY" : "MONTHLY"}`;
           return;
         }
 

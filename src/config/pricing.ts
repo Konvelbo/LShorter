@@ -314,3 +314,59 @@ export function getPaddlePriceId(planId: string, cycle: 'MONTHLY' | 'YEARLY'): s
   return null;
 }
 
+
+const isDodoLive =
+  process.env.DODO_PAYMENTS_ENVIRONMENT === "live_mode" ||
+  process.env.DODO_PAYMENTS_ENVIRONMENT === "live" ||
+  process.env.NEXT_PUBLIC_DODO_PAYMENTS_ENVIRONMENT === "live_mode" ||
+  process.env.NEXT_PUBLIC_DODO_PAYMENTS_ENVIRONMENT === "live";
+
+/**
+ * Dodo Payments Product IDs mapping per plan and billing cycle.
+ * Can be customized via environment variables from https://app.dodopayments.com/
+ */
+export const DODO_PRODUCT_IDS: Record<'PRO' | 'BUSINESS' | 'ENTERPRISE', { monthly: string; yearly: string }> = {
+  PRO: {
+    monthly:
+      process.env.DODO_PAYMENTS_PRODUCT_PRO_MONTHLY ||
+      process.env.NEXT_PUBLIC_DODO_PAYMENTS_PRODUCT_PRO_MONTHLY ||
+      (isDodoLive ? "pdt_0NqfmCjzyD28wD9Oj5eaf" : "pdt_0NqfitAmKzhMFS6QkfyWL"),
+    yearly:
+      process.env.DODO_PAYMENTS_PRODUCT_PRO_YEARLY ||
+      process.env.NEXT_PUBLIC_DODO_PAYMENTS_PRODUCT_PRO_YEARLY ||
+      (isDodoLive ? "pdt_0NqfmJePZG75rUPawewm1" : "pdt_0Nqfj1k4O60QR891LZgii"),
+  },
+  BUSINESS: {
+    monthly:
+      process.env.DODO_PAYMENTS_PRODUCT_BUSINESS_MONTHLY ||
+      process.env.NEXT_PUBLIC_DODO_PAYMENTS_PRODUCT_BUSINESS_MONTHLY ||
+      (isDodoLive ? "pdt_0NqfmJjtWLZnV5FHSKDl9" : "pdt_0Nqfj1q5a89CtXSulP7VT"),
+    yearly:
+      process.env.DODO_PAYMENTS_PRODUCT_BUSINESS_YEARLY ||
+      process.env.NEXT_PUBLIC_DODO_PAYMENTS_PRODUCT_BUSINESS_YEARLY ||
+      (isDodoLive ? "pdt_0NqfmJpY34JxiqjYz6d0E" : "pdt_0Nqfj1wKP6BntQZD4Ozk0"),
+  },
+  ENTERPRISE: {
+    monthly:
+      process.env.DODO_PAYMENTS_PRODUCT_ENTERPRISE_MONTHLY ||
+      process.env.NEXT_PUBLIC_DODO_PAYMENTS_PRODUCT_ENTERPRISE_MONTHLY ||
+      (isDodoLive ? "pdt_0NqfmJvm6OAncY3xUcdfI" : "pdt_0Nqfj21sseKu9CgmzJI83"),
+    yearly:
+      process.env.DODO_PAYMENTS_PRODUCT_ENTERPRISE_YEARLY ||
+      process.env.NEXT_PUBLIC_DODO_PAYMENTS_PRODUCT_ENTERPRISE_YEARLY ||
+      (isDodoLive ? "pdt_0NqfmK1dUUonckx0okrPO" : "pdt_0Nqfj260DZr9a9VSTEsHO"),
+  },
+};
+
+/**
+ * Retrieve Dodo Payments Product ID for a plan and billing cycle.
+ */
+export function getDodoProductId(planId: string, cycle: 'MONTHLY' | 'YEARLY'): string | null {
+  const normalized = planId.toUpperCase() as 'PRO' | 'BUSINESS' | 'ENTERPRISE';
+  if (['PRO', 'BUSINESS', 'ENTERPRISE'].includes(normalized)) {
+    return cycle === 'YEARLY'
+      ? DODO_PRODUCT_IDS[normalized].yearly
+      : DODO_PRODUCT_IDS[normalized].monthly;
+  }
+  return null;
+}

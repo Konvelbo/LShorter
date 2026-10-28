@@ -5,15 +5,11 @@ import { getBillingProvider } from "@/lib/billing";
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { success: false, error: "Authentication required to initiate checkout." },
-        { status: 401 }
-      );
-    }
-
     const body = await request.json();
     const { orgId, planId, cycle, successUrl, cancelUrl, companyName, discountId } = body;
+
+    const userId = session?.user?.id || body.userId || `guest_${Date.now()}`;
+    const customerEmail = session?.user?.email || body.customerEmail || undefined;
 
     if (!planId || (planId !== "PRO" && planId !== "BUSINESS" && planId !== "ENTERPRISE")) {
       return NextResponse.json(
@@ -22,16 +18,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const userId = session.user.id;
-    const customerEmail = session.user.email || body.customerEmail;
+    const host = request.headers.get("host") || "localhost:3000";
+    const protocol = request.headers.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
+    const origin = `${protocol}://${host}`;
+
+    const resolvedSuccessUrl = successUrl
+      ? (successUrl.startsWith("http") ? successUrl : `${origin}${successUrl.startsWith("/") ? "" : "/"}${successUrl}`)
+      : `${origin}/dashboard/settings?tab=billing`;
+
+    const resolvedCancelUrl = cancelUrl
+      ? (cancelUrl.startsWith("http") ? cancelUrl : `${origin}${cancelUrl.startsWith("/") ? "" : "/"}${cancelUrl}`)
+      : `${origin}/dashboard/pricing`;
 
     const provider = getBillingProvider();
     const result = await provider.createCheckoutSession({
       orgId: orgId || "default",
       planId,
       cycle: cycle === "YEARLY" ? "YEARLY" : "MONTHLY",
-      successUrl: successUrl || "/dashboard/settings?tab=billing",
-      cancelUrl: cancelUrl || "/dashboard/pricing",
+      successUrl: resolvedSuccessUrl,
+      cancelUrl: resolvedCancelUrl,
       customerEmail,
       companyName,
       userId,
