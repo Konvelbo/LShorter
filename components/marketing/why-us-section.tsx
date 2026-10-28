@@ -663,14 +663,25 @@ export function WhyUsSection() {
               icon={<Activity className="w-5 h-5 text-[#7A5AF8]" />}
               colors={[[122, 90, 248]]}
             />
-            <CanvasRevealCard
-              title="Namecheap Partnership"
-              subtitle=""
-              description="Official domain registrar partner. Seamless custom branded domains & automated DNS setup."
-              badge="OFFICIAL PARTNER"
-              icon={<NamecheapLogo className="w-5 h-5" />}
-              colors={[[222, 55, 35], [255, 92, 53]]}
-            />
+            <a
+              href={
+                process.env.NEXT_PUBLIC_NAMECHEAP_AFFILIATE_LINK ||
+                "https://namecheap.pxf.io/c/7999167/386170/5618"
+              }
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block focus:outline-hidden"
+              title="Obtenir un domaine personnalisé sur Namecheap"
+            >
+              <CanvasRevealCard
+                title="Partenariat Namecheap"
+                subtitle=""
+                description="Enregistreur de domaine partenaire officiel. Domaines personnalisés à votre marque & configuration DNS fluide."
+                badge="PARTENAIRE OFFICIEL"
+                icon={<NamecheapLogo className="w-5 h-5" />}
+                colors={[[222, 55, 35], [255, 92, 53]]}
+              />
+            </a>
           </div>
         </div>
       </div>

@@ -551,15 +551,15 @@ export default function DomainsPage() {
             </div>
             <a
               href={
-                process.env.NEXT_PUBLIC_HOSTINGER_AFFILIATE_LINK ||
-                "https://www.hostinger.com"
+                process.env.NEXT_PUBLIC_NAMECHEAP_AFFILIATE_LINK ||
+                "https://namecheap.pxf.io/c/7999167/386170/5618"
               }
               target="_blank"
               rel="noopener noreferrer"
-              className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold transition-colors shadow-xs"
+              className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] bg-[#FF5C35] hover:bg-[#DE3723] text-white text-xs font-bold transition-colors shadow-xs"
             >
               <ExternalLink className="w-3.5 h-3.5" />
-              Buy a domain
+              Acheter sur Namecheap
             </a>
           </div>
 
