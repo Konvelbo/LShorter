@@ -3,6 +3,7 @@ import { verifyDodoWebhook } from "@/lib/dodo/dodo-server";
 import { convexHttp as convex } from "@/lib/convex-server";
 import { api } from "@/convex/_generated/api";
 import { syncUserToCloudflare } from "@/app/actions/sync-user";
+import { sendPlanPurchaseEmail } from "@/lib/resend";
 
 export async function POST(request: NextRequest) {
   try {
@@ -93,6 +94,9 @@ export async function POST(request: NextRequest) {
           console.error("[Dodo Webhook] Error updating org plan:", orgErr);
         }
 
+        const now = Date.now();
+        const periodEnd = cycle === "YEARLY" ? now + 365 * 86400000 : now + 30 * 86400000;
+
         // 4. Create certified invoice in Convex
         try {
           const totalAmount = typeof eventData.total_amount === "number"
@@ -102,8 +106,6 @@ export async function POST(request: NextRequest) {
               : 0;
 
           const invoiceNumber = `INV-DODO-${paymentId.replace(/^pay_/, "").toUpperCase()}`;
-          const now = Date.now();
-          const periodEnd = cycle === "YEARLY" ? now + 365 * 86400000 : now + 30 * 86400000;
 
           await convex.mutation(api.invoices.createInvoice, {
             orgId,
@@ -130,6 +132,34 @@ export async function POST(request: NextRequest) {
           });
         } catch (notifErr) {
           console.warn("[Dodo Webhook] Error sending notification:", notifErr);
+        }
+
+        // 6. Send branded activation email via Resend
+        if (customerEmail && !customerEmail.endsWith("@lshorter.local")) {
+          try {
+            const startDateStr = new Date(now).toLocaleDateString("fr-FR", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            });
+            const endDateStr = new Date(periodEnd).toLocaleDateString("fr-FR", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            });
+
+            await sendPlanPurchaseEmail({
+              to: customerEmail,
+              name: customerName,
+              planName: planId,
+              startDate: startDateStr,
+              endDate: endDateStr,
+              cycle: cycle === "YEARLY" ? "Annuel" : "Mensuel",
+            });
+            console.info(`[Dodo Webhook] Plan purchase email sent successfully to ${customerEmail}`);
+          } catch (emailErr) {
+            console.warn("[Dodo Webhook] Error sending purchase email:", emailErr);
+          }
         }
 
         break;
