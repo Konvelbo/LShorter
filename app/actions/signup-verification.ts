@@ -32,6 +32,13 @@ export async function sendSignupPinAction({
   token?: string;
 }> {
   try {
+    if (process.env.NEXT_PUBLIC_ALLOW_REGISTRATION === "false") {
+      return {
+        success: false,
+        message: "Les inscriptions publiques sont temporairement suspendues pendant la phase de bêta privée.",
+      };
+    }
+
     const cleanEmail = email.trim().toLowerCase();
     const cleanName = name.trim();
 
@@ -142,6 +149,14 @@ export async function verifySignupPinAction({
   token?: string;
 }): Promise<{ success: boolean; valid: boolean; message?: string; name?: string }> {
   try {
+    if (process.env.NEXT_PUBLIC_ALLOW_REGISTRATION === "false") {
+      return {
+        success: false,
+        valid: false,
+        message: "Les inscriptions publiques sont temporairement suspendues pendant la phase de bêta privée.",
+      };
+    }
+
     const cleanEmail = email.trim().toLowerCase();
     const cleanPin = pin.trim();
 
@@ -199,6 +214,13 @@ export async function completeSignupWithPinAction({
   token?: string;
 }): Promise<{ success: boolean; message: string; userId?: string }> {
   try {
+    if (process.env.NEXT_PUBLIC_ALLOW_REGISTRATION === "false") {
+      return {
+        success: false,
+        message: "Les inscriptions publiques sont temporairement suspendues pendant la phase de bêta privée.",
+      };
+    }
+
     const cleanEmail = email.trim().toLowerCase();
     const cleanPin = pin.trim();
 

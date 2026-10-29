@@ -6,6 +6,16 @@ import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
 
 export async function POST(req: NextRequest) {
   try {
+    if (process.env.NEXT_PUBLIC_ALLOW_REGISTRATION === "false") {
+      return NextResponse.json(
+        {
+          error: "Les inscriptions publiques sont temporairement fermées (Phase de bêta privée).",
+          code: "REGISTRATION_DISABLED",
+        },
+        { status: 403 }
+      );
+    }
+
     const body = await req.json();
     const { name, email, password, passwordHash } = body;
 

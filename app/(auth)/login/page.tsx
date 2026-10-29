@@ -16,6 +16,7 @@ import {
   ArrowLeft,
   Sun,
   Moon,
+  ShieldAlert,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -108,6 +109,10 @@ export default function LoginPage({
         setAuthMode("register");
       } else if (modeParam === "login" || modeParam === "signin") {
         setAuthMode("login");
+      }
+
+      if (params.get("error") === "RegistrationDisabled") {
+        showToast.error("Les inscriptions publiques sont temporairement fermées (Phase de bêta privée).");
       }
     }
   }, []);
@@ -509,6 +514,8 @@ export default function LoginPage({
     }
   };
 
+  const isRegistrationAllowed = process.env.NEXT_PUBLIC_ALLOW_REGISTRATION !== "false";
+
   return (
     <div className="min-h-screen w-full grid grid-cols-1 lg:grid-cols-2 bg-[#faf7f2] dark:bg-[#09090b] text-[#2b2520] dark:text-[#fafafa] transition-colors duration-200">
       {/* ── LEFT COLUMN: AUTHENTICATION FORM ── */}
@@ -594,62 +601,95 @@ export default function LoginPage({
                 <p className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400 mt-1.5 leading-relaxed">
                   {authMode === "login"
                     ? "Sign in to your account to continue"
-                    : "Get started for free with 2,500 clicks/month included"}
+                    : isRegistrationAllowed
+                      ? "Get started for free with 2,500 clicks/month included"
+                      : "Phase de lancement restreint"}
                 </p>
               </div>
 
-              {/* Social OAuth Buttons (Google & GitHub) */}
-              <div className="flex flex-col gap-2.5">
-                {/* Google OAuth Button */}
-                <button
-                  onClick={() => handleOAuthLogin("google")}
-                  type="button"
-                  disabled={isLoading}
-                  className="w-full h-11 rounded-[10px] bg-white hover:bg-neutral-50 dark:bg-[#141416] dark:hover:bg-[#1c1c20] border border-neutral-300 dark:border-[#27272a] hover:border-neutral-400 dark:hover:border-neutral-600 flex items-center justify-center gap-3 text-xs font-semibold text-neutral-800 dark:text-white transition-all cursor-pointer shadow-xs disabled:opacity-50"
-                >
-                  <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
-                    <path
-                      fill="#EA4335"
-                      d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.3 9 5 12 5z"
-                    />
-                    <path
-                      fill="#4285F4"
-                      d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.8z"
-                    />
-                    <path
-                      fill="#FBBC05"
-                      d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3s.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 12 0 14.8s.7 5.1 1.9 7.5l3.7-2.9z"
-                    />
-                    <path
-                      fill="#34A853"
-                      d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3.3 0-6.1-2.2-7.1-5.3L1.9 16c1.8 3.6 5.5 7 10.1 7z"
-                    />
-                  </svg>
-                  <span>Continue with Google</span>
-                </button>
+              {!isRegistrationAllowed && authMode === "register" ? (
+                <div className="p-6 rounded-2xl border border-amber-500/30 bg-amber-500/5 dark:bg-amber-500/10 text-left my-4 animate-in fade-in duration-300">
+                  <div className="flex items-start gap-3.5">
+                    <div className="w-10 h-10 rounded-xl bg-amber-500/15 flex items-center justify-center shrink-0 text-amber-500">
+                      <ShieldAlert className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-neutral-900 dark:text-white mb-1.5">
+                        Bêta Privée — Inscriptions temporairement fermées
+                      </h3>
+                      <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed mb-4">
+                        LShorter est actuellement en phase de lancement restreint pendant la finalisation de nos passerelles bancaires. Les nouvelles créations de compte rouvriront très prochainement.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAuthMode("login");
+                          setShowSignupPIN(false);
+                          setShow2FAChallenge(false);
+                        }}
+                        className="w-full py-2.5 px-4 rounded-xl bg-brand hover:bg-brand/90 text-white text-xs font-bold transition-all cursor-pointer shadow-sm text-center"
+                      >
+                        Se connecter à mon compte existant
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* Social OAuth Buttons (Google & GitHub) */}
+                  <div className="flex flex-col gap-2.5">
+                    {/* Google OAuth Button */}
+                    <button
+                      onClick={() => handleOAuthLogin("google")}
+                      type="button"
+                      disabled={isLoading}
+                      className="w-full h-11 rounded-[10px] bg-white hover:bg-neutral-50 dark:bg-[#141416] dark:hover:bg-[#1c1c20] border border-neutral-300 dark:border-[#27272a] hover:border-neutral-400 dark:hover:border-neutral-600 flex items-center justify-center gap-3 text-xs font-semibold text-neutral-800 dark:text-white transition-all cursor-pointer shadow-xs disabled:opacity-50"
+                    >
+                      <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                        <path
+                          fill="#EA4335"
+                          d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.3 9 5 12 5z"
+                        />
+                        <path
+                          fill="#4285F4"
+                          d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.8z"
+                        />
+                        <path
+                          fill="#FBBC05"
+                          d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3s.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 12 0 14.8s.7 5.1 1.9 7.5l3.7-2.9z"
+                        />
+                        <path
+                          fill="#34A853"
+                          d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3.3 0-6.1-2.2-7.1-5.3L1.9 16c1.8 3.6 5.5 7 10.1 7z"
+                        />
+                      </svg>
+                      <span>Continue with Google</span>
+                    </button>
 
-                {/* GitHub OAuth Button */}
-                <button
-                  onClick={() => handleOAuthLogin("github")}
-                  type="button"
-                  disabled={isLoading}
-                  className="w-full h-11 rounded-[10px] bg-white hover:bg-neutral-50 dark:bg-[#141416] dark:hover:bg-[#1c1c20] border border-neutral-300 dark:border-[#27272a] hover:border-neutral-400 dark:hover:border-neutral-600 flex items-center justify-center gap-3 text-xs font-semibold text-neutral-800 dark:text-white transition-all cursor-pointer shadow-xs disabled:opacity-50"
-                >
-                  <svg className="w-4 h-4 fill-neutral-800 dark:fill-white shrink-0" viewBox="0 0 24 24">
-                    <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
-                  </svg>
-                  <span>Continue with GitHub</span>
-                </button>
-              </div>
+                    {/* GitHub OAuth Button */}
+                    <button
+                      onClick={() => handleOAuthLogin("github")}
+                      type="button"
+                      disabled={isLoading}
+                      className="w-full h-11 rounded-[10px] bg-white hover:bg-neutral-50 dark:bg-[#141416] dark:hover:bg-[#1c1c20] border border-neutral-300 dark:border-[#27272a] hover:border-neutral-400 dark:hover:border-neutral-600 flex items-center justify-center gap-3 text-xs font-semibold text-neutral-800 dark:text-white transition-all cursor-pointer shadow-xs disabled:opacity-50"
+                    >
+                      <svg className="w-4 h-4 fill-neutral-800 dark:fill-white shrink-0" viewBox="0 0 24 24">
+                        <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
+                      </svg>
+                      <span>Continue with GitHub</span>
+                    </button>
+                  </div>
 
-              {/* Divider */}
-              <div className="flex items-center gap-3 my-5">
-                <div className="flex-1 h-px bg-neutral-300 dark:bg-[#27272a]" />
-                <span className="text-[10.5px] text-neutral-500 font-bold uppercase tracking-wider">
-                  OR
-                </span>
-                <div className="flex-1 h-px bg-neutral-300 dark:bg-[#27272a]" />
-              </div>
+                  {/* Divider */}
+                  <div className="flex items-center gap-3 my-5">
+                    <div className="flex-1 h-px bg-neutral-300 dark:bg-[#27272a]" />
+                    <span className="text-[10.5px] text-neutral-500 font-bold uppercase tracking-wider">
+                      OR
+                    </span>
+                    <div className="flex-1 h-px bg-neutral-300 dark:bg-[#27272a]" />
+                  </div>
+                </>
+              )}
             </>
           )}
 
@@ -825,7 +865,7 @@ export default function LoginPage({
                 </button>
               </div>
             </form>
-          ) : (
+          ) : !isRegistrationAllowed && authMode === "register" ? null : (
             /* Normal Credentials Form */
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               {/* Name (in Register mode) */}
@@ -979,6 +1019,11 @@ export default function LoginPage({
                     className="text-brand font-semibold hover:underline cursor-pointer"
                   >
                     Sign up
+                    {!isRegistrationAllowed && (
+                      <span className="ml-1 text-[10px] text-amber-500 font-semibold">
+                        (Bêta)
+                      </span>
+                    )}
                   </button>
                 </span>
               ) : (
