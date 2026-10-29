@@ -512,7 +512,7 @@ export function WhyUsSection() {
       id="why-us"
       className="w-full max-w-full overflow-hidden bg-[#FFFFFF] dark:bg-[#09090B] py-14 md:py-24 border-t border-[#E4E7EC] dark:border-white/10 transition-colors duration-300"
     >
-      <div className="max-w-[1120px] mx-auto px-4 sm:px-8 space-y-20">
+      <div className="max-w-[1240px] mx-auto px-4 sm:px-8 space-y-20">
         {/* ─── PARTIE 1 : STYLE EXACT DE VOTRE CAPTURE (TABLEAU ÉPURÉ 3 COLONNES) ─── */}
         <div className="why-us-scroll-reveal w-full max-w-[940px] mx-auto">
           <div className="flex flex-col items-start gap-3 mb-10">
@@ -630,39 +630,51 @@ export function WhyUsSection() {
             </h3>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4.5 sm:gap-5">
-            <CanvasRevealCard
-              title="Cloudflare Edge Workers"
-              subtitle=""
-              description="Sub-12ms global redirect execution across 310+ PoPs."
-              badge="EDGE RUNTIME"
-              icon={<Cloud className="w-5 h-5 text-[#465FFF]" />}
-              colors={[[70, 95, 255]]}
-            />
-            <CanvasRevealCard
-              title="Convex Real-Time DB"
-              subtitle=""
-              description="Instant reactive synchronization for live click streams."
-              badge="REACTIVE STATE"
-              icon={<Database className="w-5 h-5 text-[#12B76A]" />}
-              colors={[[18, 183, 106]]}
-            />
-            <CanvasRevealCard
-              title="Revenue Engine"
-              subtitle=""
-              description="Deterministic checkout attribution via qk_cid click tokens."
-              badge="ATTRIBUTION"
-              icon={<CreditCard className="w-5 h-5 text-[#F79009]" />}
-              colors={[[247, 144, 9]]}
-            />
-            <CanvasRevealCard
-              title="Signed Webhook Stream"
-              subtitle=""
-              description="Real-time JSON event delivery on every link & conversion."
-              badge="WEBHOOKS"
-              icon={<Activity className="w-5 h-5 text-[#7A5AF8]" />}
-              colors={[[122, 90, 248]]}
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-5 sm:gap-6">
+            <div className="lg:col-span-2 col-span-1">
+              <CanvasRevealCard
+                title="Cloudflare Edge Workers"
+                subtitle=""
+                description="Sub-12ms global redirect execution across 310+ Cloudflare edge PoPs."
+                badge="EDGE RUNTIME"
+                icon={<Cloud className="w-5 h-5 text-[#465FFF]" />}
+                colors={[[70, 95, 255]]}
+                className="h-full"
+              />
+            </div>
+            <div className="lg:col-span-2 col-span-1">
+              <CanvasRevealCard
+                title="Convex Real-Time DB"
+                subtitle=""
+                description="Instant reactive synchronization for live telemetry and click streams."
+                badge="REACTIVE STATE"
+                icon={<Database className="w-5 h-5 text-[#12B76A]" />}
+                colors={[[18, 183, 106]]}
+                className="h-full"
+              />
+            </div>
+            <div className="lg:col-span-2 sm:col-span-2 col-span-1">
+              <CanvasRevealCard
+                title="Revenue Engine"
+                subtitle=""
+                description="Deterministic checkout attribution via qk_cid click tokens and conversion tracking."
+                badge="ATTRIBUTION"
+                icon={<CreditCard className="w-5 h-5 text-[#F79009]" />}
+                colors={[[247, 144, 9]]}
+                className="h-full"
+              />
+            </div>
+            <div className="lg:col-span-3 col-span-1">
+              <CanvasRevealCard
+                title="Signed Webhook Stream"
+                subtitle=""
+                description="Real-time HMAC SHA-256 signed JSON event delivery on every link click, redirection, and conversion event."
+                badge="WEBHOOKS"
+                icon={<Activity className="w-5 h-5 text-[#7A5AF8]" />}
+                colors={[[122, 90, 248]]}
+                className="h-full"
+              />
+            </div>
             <a
               href={
                 process.env.NEXT_PUBLIC_NAMECHEAP_AFFILIATE_LINK ||
@@ -670,16 +682,17 @@ export function WhyUsSection() {
               }
               target="_blank"
               rel="noopener noreferrer"
-              className="block focus:outline-hidden"
+              className="block h-full focus:outline-hidden lg:col-span-3 sm:col-span-2 col-span-1 group"
               title="Obtenir un domaine personnalisé sur Namecheap"
             >
               <CanvasRevealCard
-                title="Partenariat Namecheap"
+                title="Partenariat Officiel Namecheap"
                 subtitle=""
-                description="Enregistreur de domaine partenaire officiel. Domaines personnalisés à votre marque & configuration DNS fluide."
+                description="Enregistreur de domaine partenaire certifié. Achetez et reliez vos domaines personnalisés en quelques clics avec configuration DNS automatisée et certificats SSL edge instantanés."
                 badge="PARTENAIRE OFFICIEL"
-                icon={<NamecheapLogo className="w-5 h-5" />}
+                icon={<NamecheapLogo className="w-6 h-6" />}
                 colors={[[222, 55, 35], [255, 92, 53]]}
+                className="h-full border-amber-500/20 hover:border-[#FF5C35]/60 transition-colors"
               />
             </a>
           </div>

@@ -123,6 +123,7 @@ export function CanvasRevealCard({
   icon,
   colors,
   containerClassName,
+  className = "",
 }: {
   title: string;
   subtitle?: string;
@@ -131,6 +132,7 @@ export function CanvasRevealCard({
   icon: React.ReactNode;
   colors: number[][];
   containerClassName?: string;
+  className?: string;
 }) {
   const [hovered, setHovered] = useState(false);
 
@@ -138,7 +140,7 @@ export function CanvasRevealCard({
     <div
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className="border border-[#E4E7EC] dark:border-white/15 group/canvas-card flex items-center justify-center max-w-full w-full mx-auto p-5 sm:p-6 relative min-h-[250px] sm:min-h-[240px] bg-white dark:bg-[#0E0E12] transition-colors cursor-pointer overflow-hidden"
+      className={`border border-[#E4E7EC] dark:border-white/15 group/canvas-card flex items-center justify-center max-w-full w-full mx-auto p-6 sm:p-7 md:p-8 relative min-h-[290px] sm:min-h-[300px] md:min-h-[310px] bg-white dark:bg-[#0E0E12] transition-colors cursor-pointer overflow-hidden ${className}`}
     >
       {/* 4 Aceternity Corner '+' Icons */}
       <AceternityCornerIcon className="absolute h-5 w-5 -top-2.5 -left-2.5 text-[#101828] dark:text-white/70 z-30 pointer-events-none" />
