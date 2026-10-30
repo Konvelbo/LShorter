@@ -134,16 +134,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async signIn({ user, account }) {
       if (user?.email && account?.provider !== "credentials") {
         try {
-          // If public registrations are suspended, only existing users can log in via OAuth
-          if (process.env.NEXT_PUBLIC_ALLOW_REGISTRATION === "false") {
-            const existing = await convex.query(api.users.getUserByEmail, {
-              email: user.email.toLowerCase().trim(),
-            });
-            if (!existing) {
-              return "/login?error=RegistrationDisabled";
-            }
-          }
-
           // 1. Upsert profile in Convex
           const storeRes = await convex.mutation(api.users.storeUser, {
             userId: user.id || `usr_${Date.now().toString(36)}`,
