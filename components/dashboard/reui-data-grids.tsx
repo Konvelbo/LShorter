@@ -42,6 +42,9 @@ export const getDiceBearAvatar = getDicebearGlassUrl;
 export function normalizeBannerUrl(rawUrl?: string | null): string {
   if (!rawUrl) return "";
   const trimmed = String(rawUrl).trim();
+  if (trimmed.includes("default_banner")) {
+    return "/default_banner.jpg";
+  }
   if (trimmed.startsWith("data:") || trimmed.startsWith("blob:") || trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
     return trimmed;
   }
@@ -871,6 +874,10 @@ export function LinksReuiDataGrid({
                             <img
                               src={row.avatarUrl}
                               alt={row.ownerName}
+                              width={44}
+                              height={32}
+                              loading="lazy"
+                              decoding="async"
                               className="w-full h-full object-cover transition-transform group-hover/avatar:scale-105"
                               onError={(e) => {
                                 const target = e.currentTarget as HTMLImageElement;

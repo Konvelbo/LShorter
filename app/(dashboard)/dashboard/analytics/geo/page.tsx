@@ -1761,8 +1761,8 @@ export default function GeoAnalyticsPage() {
       )}
 
       {/* Live Detailed Geographic Stream Table */}
-      <div className="rounded-[10px] bg-white dark:bg-[#141416] border border-[#E4E7EC] dark:border-[#222225] p-5 sm:p-6 shadow-sm dark:shadow-2xl">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5 pb-4 border-b border-[#E4E7EC] dark:border-[#222225]">
+      <div className="rounded-[10px] bg-white dark:bg-[#141416] border border-[#E4E7EC] dark:border-[#222225] shadow-sm dark:shadow-2xl flex flex-col">
+        <div className="px-5 sm:px-6 py-4 sm:py-5 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#E4E7EC] dark:border-[#222225]">
           <div>
             <h3 className="text-lg font-bold text-[#09090B] dark:text-white flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-[#0066FF]" />
@@ -1798,12 +1798,12 @@ export default function GeoAnalyticsPage() {
           </div>
         </div>
 
-        <div className="overflow-x-auto rounded-[8px] border border-[#E4E7EC] dark:border-[#222225] overflow-visible min-h-[480px]">
-          <table className="hidden md:table w-full text-left text-xs">
+        <div className="overflow-x-auto overscroll-x-contain">
+          <table className="hidden md:table w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="border-b border-[#E4E7EC] dark:border-[#222225] bg-zinc-100/70 dark:bg-[#111113] text-zinc-700 dark:text-neutral-400 font-semibold text-[11px]">
+              <tr className="border-b border-[#E4E7EC] dark:border-[#222225] bg-[#F9FAFB] dark:bg-white/[0.03] text-zinc-700 dark:text-neutral-400 font-semibold text-[11px]">
                 {visibleColumns.has("timestamp") && (
-                  <th className="py-3.5 px-4">Timestamp</th>
+                  <th className="py-3.5 pl-5 sm:pl-6 pr-4">Timestamp</th>
                 )}
                 {visibleColumns.has("country") && (
                   <th className="py-3.5 px-4">Country</th>
@@ -1826,7 +1826,7 @@ export default function GeoAnalyticsPage() {
                 {visibleColumns.has("browser") && (
                   <th className="py-3.5 px-4">Browser</th>
                 )}
-                <th className="py-3.5 px-4 text-right">Action</th>
+                <th className="py-3.5 pl-4 pr-5 sm:pr-6 text-right">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E4E7EC] dark:divide-[#222225]/60 text-zinc-800 dark:text-neutral-200">
@@ -1850,7 +1850,7 @@ export default function GeoAnalyticsPage() {
                     className="hover:bg-zinc-50 dark:hover:bg-white/5 transition-colors h-[54px]"
                   >
                     {visibleColumns.has("timestamp") && (
-                      <td className="py-3.5 px-4 font-mono text-zinc-500 dark:text-neutral-400 whitespace-nowrap text-[11px]">
+                      <td className="py-3.5 pl-5 sm:pl-6 pr-4 font-mono text-zinc-500 dark:text-neutral-400 whitespace-nowrap text-[11px]">
                         {/* S'actualise en direct : Just now -> 1 min ago -> 2 mins ago */}
                         {formatLiveRelativeTime(ev.timestamp, currentTimeTick)}
                       </td>
@@ -1907,7 +1907,7 @@ export default function GeoAnalyticsPage() {
                     {visibleColumns.has("browser") && (
                       <td className="py-3.5 px-4 text-xs">{ev.browser}</td>
                     )}
-                    <td className="py-3.5 px-4 text-right">
+                    <td className="py-3.5 pl-4 pr-5 sm:pr-6 text-right">
                       <button
                         type="button"
                         onClick={() => {
@@ -1928,7 +1928,7 @@ export default function GeoAnalyticsPage() {
           </table>
 
           {/* Mobile Cards Feed (< md: / < 768px) */}
-          <div className="flex flex-col gap-2.5 md:hidden p-2 font-sans">
+          <div className="flex flex-col gap-2.5 md:hidden p-4 font-sans">
             {paginatedEvents.length === 0 ? (
               <div className="py-12 text-center text-xs text-zinc-500 dark:text-neutral-400">
                 No geographic click events recorded for this period yet.
@@ -1993,7 +1993,7 @@ export default function GeoAnalyticsPage() {
         </div>
 
         {/* Pagination Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 mt-3 border-t border-[#E4E7EC] dark:border-[#222225] text-xs text-zinc-500 dark:text-neutral-400">
+        <div className="px-5 sm:px-6 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-[#E4E7EC] dark:border-[#222225] text-xs text-zinc-500 dark:text-neutral-400 bg-white dark:bg-[#141416] mt-auto">
           <div className="flex flex-wrap items-center gap-3">
             <span>
               Showing {(currentPage - 1) * pageSize + 1} to{" "}

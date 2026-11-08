@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 import { NextRequest } from "next/server";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 604800;
 
 function isSafePublicHttpsImageUrl(rawUrl: string): boolean {
   try {

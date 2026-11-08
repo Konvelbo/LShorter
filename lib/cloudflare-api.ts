@@ -250,6 +250,11 @@ export function cfNormalizeImageUrl(url?: string): string {
   const trimmed = url.trim();
   if (trimmed.startsWith("data:") || trimmed.startsWith("blob:")) return trimmed;
 
+  // Immediate fast path: Static default banner asset bypass
+  if (trimmed.includes("default_banner")) {
+    return "/default_banner.jpg";
+  }
+
   const isLocalBrowser =
     typeof window !== "undefined" &&
     (window.location.hostname === "localhost" ||

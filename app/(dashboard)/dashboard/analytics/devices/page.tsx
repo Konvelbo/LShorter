@@ -684,8 +684,8 @@ export default function DevicesAnalyticsPage() {
       </div>
 
       {/* DETAILED TECHNOLOGICAL CLICK STREAM TABLE */}
-      <div className="rounded-[10px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] p-5 sm:p-6 shadow-sm dark:shadow-2xl">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5 pb-4 border-b border-zinc-200 dark:border-[#222225]">
+      <div className="rounded-[10px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] shadow-sm dark:shadow-2xl flex flex-col">
+        <div className="px-5 sm:px-6 py-4 sm:py-5 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-200 dark:border-[#222225]">
           <div>
             <h3 className="text-lg font-bold text-zinc-900 dark:text-white flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-blue-500 dark:text-blue-400" />
@@ -761,7 +761,7 @@ export default function DevicesAnalyticsPage() {
         </div>
 
         {/* 1. Mobile Cards Layout (< 768px) */}
-        <div className="flex flex-col gap-3 md:hidden">
+        <div className="flex flex-col gap-3 md:hidden p-4">
           {paginatedEvents.map((ev) => (
             <div
               key={ev.id}
@@ -819,32 +819,32 @@ export default function DevicesAnalyticsPage() {
         </div>
 
         {/* 2. Desktop Data Table (>= 768px) */}
-        <div className="hidden md:block overflow-x-auto rounded-[8px] border border-zinc-200 dark:border-[#222225]">
-          <table className="w-full text-left text-xs">
+        <div className="hidden md:block overflow-x-auto overscroll-x-contain">
+          <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="border-b border-zinc-200 dark:border-[#222225] bg-zinc-100/70 dark:bg-[#0e0e11]/80 text-zinc-700 dark:text-neutral-400 font-semibold text-[11px]">
-                {visibleColumns.has("timestamp") && <th className="py-2.5 px-3">Timestamp</th>}
-                {visibleColumns.has("device") && <th className="py-2.5 px-3">Device</th>}
-                {visibleColumns.has("browser") && <th className="py-2.5 px-3">Browser</th>}
-                {visibleColumns.has("os") && <th className="py-2.5 px-3">Operating System (OS)</th>}
-                {visibleColumns.has("customer") && <th className="py-2.5 px-3">Customer / Buyer</th>}
-                {visibleColumns.has("link") && <th className="py-2.5 px-3">Target Link</th>}
-                {visibleColumns.has("city") && <th className="py-2.5 px-3">City</th>}
-                {visibleColumns.has("location") && <th className="py-2.5 px-3">Country</th>}
-                {visibleColumns.has("referrer") && <th className="py-2.5 px-3">Referrer Source</th>}
+              <tr className="border-b border-zinc-200 dark:border-[#222225] bg-[#F9FAFB] dark:bg-white/[0.03] text-zinc-700 dark:text-neutral-400 font-semibold text-[11px]">
+                {visibleColumns.has("timestamp") && <th className="py-3.5 pl-5 sm:pl-6 pr-3">Timestamp</th>}
+                {visibleColumns.has("device") && <th className="py-3.5 px-3">Device</th>}
+                {visibleColumns.has("browser") && <th className="py-3.5 px-3">Browser</th>}
+                {visibleColumns.has("os") && <th className="py-3.5 px-3">Operating System (OS)</th>}
+                {visibleColumns.has("customer") && <th className="py-3.5 px-3">Customer / Buyer</th>}
+                {visibleColumns.has("link") && <th className="py-3.5 px-3">Target Link</th>}
+                {visibleColumns.has("city") && <th className="py-3.5 px-3">City</th>}
+                {visibleColumns.has("location") && <th className="py-3.5 px-3">Country</th>}
+                {visibleColumns.has("referrer") && <th className="py-3.5 pl-3 pr-5 sm:pr-6">Referrer Source</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-200 dark:divide-[#222225]/60 text-zinc-800 dark:text-neutral-200">
               {paginatedEvents.map((ev) => (
                 <tr key={ev.id} className="hover:bg-zinc-50 dark:hover:bg-white/5 transition-colors">
                   {visibleColumns.has("timestamp") && (
-                    <td className="py-2 px-3 font-mono text-zinc-500 dark:text-neutral-400 whitespace-nowrap text-[10.5px]">
+                    <td className="py-3 pl-5 sm:pl-6 pr-3 font-mono text-zinc-500 dark:text-neutral-400 whitespace-nowrap text-[10.5px]">
                       {formatDateRelative(ev.timestamp)}
                     </td>
                   )}
 
                   {visibleColumns.has("device") && (
-                    <td className="py-2 px-3 font-semibold text-zinc-900 dark:text-white capitalize whitespace-nowrap">
+                    <td className="py-3 px-3 font-semibold text-zinc-900 dark:text-white capitalize whitespace-nowrap">
                       <span className="px-2 py-0.5 rounded-[10px] bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-[9.5px]">
                         {ev.device}
                       </span>
@@ -852,13 +852,13 @@ export default function DevicesAnalyticsPage() {
                   )}
 
                   {visibleColumns.has("browser") && (
-                    <td className="py-2 px-3 text-zinc-700 dark:text-neutral-300 font-medium text-[11.5px]">
+                    <td className="py-3 px-3 text-zinc-700 dark:text-neutral-300 font-medium text-[11.5px]">
                       {ev.browser || "Chrome"}
                     </td>
                   )}
 
                   {visibleColumns.has("os") && (
-                    <td className="py-2 px-3 font-semibold whitespace-nowrap">
+                    <td className="py-3 px-3 font-semibold whitespace-nowrap">
                       <span className="px-2 py-0.5 rounded-[10px] bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 text-[9.5px]">
                         {ev.os}
                       </span>
@@ -866,7 +866,7 @@ export default function DevicesAnalyticsPage() {
                   )}
 
                   {visibleColumns.has("customer") && (
-                    <td className="py-2 px-3">
+                    <td className="py-3 px-3">
                       {(() => {
                         const name = ev.customerName;
                         const email = ev.customerEmail;
@@ -884,13 +884,13 @@ export default function DevicesAnalyticsPage() {
                   )}
 
                   {visibleColumns.has("link") && (
-                    <td className="py-2 px-3 font-mono text-brand font-semibold text-[11.5px]">
+                    <td className="py-3 px-3 font-mono text-brand font-semibold text-[11.5px]">
                       /{ev.slug}
                     </td>
                   )}
 
                   {visibleColumns.has("city") && (
-                    <td className="py-2 px-3 whitespace-nowrap">
+                    <td className="py-3 px-3 whitespace-nowrap">
                       <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[6px] bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-[10px] font-semibold">
                         <MapPin className="w-2.5 h-2.5 shrink-0" />
                         <span>{ev.city && ev.city !== "—" && ev.city !== "Inconnue" ? ev.city : "Edge Node"}</span>
@@ -899,13 +899,13 @@ export default function DevicesAnalyticsPage() {
                   )}
 
                   {visibleColumns.has("location") && (
-                    <td className="py-2 px-3 text-zinc-700 dark:text-neutral-400 whitespace-nowrap text-[11.5px]">
+                    <td className="py-3 px-3 text-zinc-700 dark:text-neutral-400 whitespace-nowrap text-[11.5px]">
                       {ev.countryName}
                     </td>
                   )}
 
                   {visibleColumns.has("referrer") && (
-                    <td className="py-2 px-3">
+                    <td className="py-3 pl-3 pr-5 sm:pr-6">
                       <ReferrerBadge referrer={ev.referrer} />
                     </td>
                   )}
@@ -924,7 +924,7 @@ export default function DevicesAnalyticsPage() {
         </div>
 
         {/* Pagination */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 mt-3 border-t border-zinc-200 dark:border-[#222225] text-xs text-zinc-500 dark:text-neutral-400">
+        <div className="px-5 sm:px-6 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-zinc-200 dark:border-[#222225] text-xs text-zinc-500 dark:text-neutral-400 bg-white dark:bg-[#141416] mt-auto">
           <span className="text-center sm:text-left">
             Showing {(currentPage - 1) * pageSize + 1} to{" "}
             {Math.min(currentPage * pageSize, filteredEvents.length)} of {filteredEvents.length} events

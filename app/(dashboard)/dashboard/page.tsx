@@ -202,6 +202,7 @@ export default function DashboardOverviewPage() {
         };
       });
       setLinks(rawLinks);
+      if (!isBackground) setIsLoading(false);
 
       // If user has 0 links, reset analytics to zero immediately (ensures instant update on deletion)
       if (rawLinks.length === 0) {

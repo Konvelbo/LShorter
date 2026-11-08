@@ -877,8 +877,8 @@ function RevenueAnalyticsContent() {
       </div>
 
       {/* ─── Detailed Beneficiaries List & Pagination DataGrid ─────────────── */}
-      <div className="flex flex-col gap-4 rounded-[10px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] p-5 shadow-sm dark:shadow-2xl">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="rounded-[10px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] shadow-sm dark:shadow-2xl overflow-hidden flex flex-col">
+        <div className="px-5 sm:px-6 py-4 sm:py-5 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-200 dark:border-[#222225]">
           <div>
             <div className="flex items-center gap-2">
               <h3 className="text-base font-bold text-zinc-900 dark:text-white flex items-center gap-2">
@@ -939,32 +939,32 @@ function RevenueAnalyticsContent() {
         </div>
 
         {/* ─── Table ──────────────────────────────────────────────────────── */}
-        <div className="overflow-x-auto rounded-[8px] border border-zinc-200 dark:border-[#222225] custom-scrollbar">
+        <div className="overflow-x-auto overscroll-x-contain custom-scrollbar">
           <table className="hidden md:table w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="border-b border-zinc-200 dark:border-[#222225] bg-zinc-100/70 dark:bg-[#0e0e11]/80 text-zinc-700 dark:text-neutral-400 font-semibold select-none text-[10.5px] uppercase tracking-wider">
+              <tr className="border-b border-zinc-200 dark:border-[#222225] bg-[#F9FAFB] dark:bg-white/[0.03] text-zinc-700 dark:text-neutral-400 font-semibold select-none text-[10.5px] uppercase tracking-wider">
                 {visibleColumns.has("beneficiary") && (
-                  <th className="py-2 px-3 min-w-[200px]">Beneficiary / Buyer</th>
+                  <th className="py-3 pl-5 sm:pl-6 pr-3 min-w-[200px]">Beneficiary / Buyer</th>
                 )}
                 {visibleColumns.has("revenue") && (
-                  <th className="py-2 px-3 min-w-[120px]">Generated Revenue</th>
+                  <th className="py-3 px-3 min-w-[120px]">Generated Revenue</th>
                 )}
                 {visibleColumns.has("clicks") && (
-                  <th className="py-2 px-3 min-w-[100px]">Associated Clicks</th>
+                  <th className="py-3 px-3 min-w-[100px]">Associated Clicks</th>
                 )}
                 {visibleColumns.has("link") && (
-                  <th className="py-2 px-3 min-w-[120px]">Target Link</th>
+                  <th className="py-3 px-3 min-w-[120px]">Target Link</th>
                 )}
                 {visibleColumns.has("location") && (
-                  <th className="py-2 px-3 min-w-[130px]">Location</th>
+                  <th className="py-3 px-3 min-w-[130px]">Location</th>
                 )}
                 {visibleColumns.has("device") && (
-                  <th className="py-2 px-3 min-w-[110px]">Device & OS</th>
+                  <th className="py-3 px-3 min-w-[110px]">Device & OS</th>
                 )}
                 {visibleColumns.has("timestamp") && (
-                  <th className="py-2 px-3 min-w-[120px]">Date & Time</th>
+                  <th className="py-3 px-3 min-w-[120px]">Date & Time</th>
                 )}
-                <th className="py-2 px-3 text-right min-w-[70px]">Actions</th>
+                <th className="py-3 pl-3 pr-5 sm:pr-6 text-right min-w-[70px]">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-200 dark:divide-[#222225] text-zinc-800 dark:text-neutral-200">
@@ -1158,7 +1158,7 @@ function RevenueAnalyticsContent() {
           </table>
 
           {/* Mobile Cards Feed (< md: / < 768px) */}
-          <div className="flex flex-col gap-2.5 md:hidden p-2 font-sans">
+          <div className="flex flex-col gap-2.5 md:hidden p-4 font-sans">
             {paginatedBeneficiaries.length === 0 ? (
               <div className="py-8 text-center text-zinc-500 dark:text-neutral-500 text-xs">
                 No beneficiaries found.
@@ -1256,7 +1256,7 @@ function RevenueAnalyticsContent() {
         </div>
 
         {/* ─── Pagination Controls ────────────────────────────────────────── */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 text-xs text-zinc-500 dark:text-neutral-400">
+        <div className="px-5 sm:px-6 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-zinc-500 dark:text-neutral-400 border-t border-zinc-200 dark:border-[#222225] mt-auto">
           <span>
             Showing{" "}
             <strong className="text-zinc-900 dark:text-white">

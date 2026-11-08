@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
+import fs from "fs";
+import path from "path";
 import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
+
+export const revalidate = 31536000;
 
 function getMimeType(filename: string): string {
   const ext = filename.split(".").pop()?.toLowerCase();
@@ -36,6 +40,32 @@ export async function GET(
       return new Response("Image ID missing", { status: 400 });
     }
 
+    // Fast path: Default banner static asset bypass (< 5ms response, zero worker cold start)
+    if (cleanId === "default_banner.jpg" || cleanId.startsWith("default_banner")) {
+      try {
+        const defaultBannerPath = path.join(process.cwd(), "public", "default_banner.jpg");
+        if (fs.existsSync(defaultBannerPath)) {
+          const buffer = fs.readFileSync(defaultBannerPath);
+          return new Response(buffer, {
+            status: 200,
+            headers: {
+              "Content-Type": "image/jpeg",
+              "Content-Length": buffer.length.toString(),
+              "Cache-Control": "public, max-age=31536000, s-maxage=31536000, stale-while-revalidate=86400, immutable",
+              "CDN-Cache-Control": "public, max-age=31536000, immutable",
+              "Vercel-CDN-Cache-Control": "public, max-age=31536000, immutable",
+              "Access-Control-Allow-Origin": "*",
+              "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
+              "Cross-Origin-Resource-Policy": "cross-origin",
+              "X-Content-Type-Options": "nosniff",
+            },
+          });
+        }
+      } catch (e) {
+        console.warn("[Cloud Image Proxy] Static default banner read fallback:", e);
+      }
+    }
+
     const buildImageResponse = (
       buffer: ArrayBuffer | Buffer,
       contentType: string,
@@ -48,7 +78,9 @@ export async function GET(
         headers: {
           "Content-Type": contentType,
           "Content-Length": byteLength.toString(),
-          "Cache-Control": "public, max-age=31536000, immutable",
+          "Cache-Control": "public, max-age=31536000, s-maxage=31536000, stale-while-revalidate=86400, immutable",
+          "CDN-Cache-Control": "public, max-age=31536000, immutable",
+          "Vercel-CDN-Cache-Control": "public, max-age=31536000, immutable",
           "Access-Control-Allow-Origin": "*",
           "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
           "Cross-Origin-Resource-Policy": "cross-origin",
@@ -63,7 +95,7 @@ export async function GET(
       });
     };
 
-    // 1. Stream directly from Cloudflare Worker / Cloud Storage (Zero local filesystem)
+    // 1. Stream directly from Cloudflare Worker / Cloud Storage with Edge caching
     try {
       const workerRes = await fetch(
         `${WORKER_URL}/api/v1/images/${encodeURIComponent(cleanId)}`,
@@ -71,7 +103,7 @@ export async function GET(
           headers: {
             "X-Frontend-Secret": FRONTEND_SECRET,
           },
-          cache: "no-store",
+          next: { revalidate: 31536000 },
         },
       );
 
@@ -98,7 +130,7 @@ export async function GET(
             "X-Frontend-Secret": FRONTEND_SECRET,
             Authorization: `Bearer ${FRONTEND_SECRET}`,
           },
-          cache: "no-store",
+          next: { revalidate: 300 },
         },
       )
         .then((r) => (r.ok ? r.json() : null))
@@ -132,7 +164,7 @@ export async function GET(
                 headers: {
                   "X-Frontend-Secret": FRONTEND_SECRET,
                 },
-                cache: "no-store",
+                next: { revalidate: 31536000 },
               },
             );
             if (linkedWorkerRes.ok) {

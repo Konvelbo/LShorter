@@ -150,10 +150,7 @@ export default function LinksPage() {
     if (!isBackground) setIsLoading(true);
     try {
       const needForce = isBackground || force;
-      const [res, analyticsRes] = await Promise.all([
-        cfGetLinks(userId || "", needForce),
-        cfGetAnalytics(userId || "", "30d", undefined, needForce).catch(() => null),
-      ]);
+      const res = await cfGetLinks(userId || "", needForce);
       const listData = Array.isArray(res?.data)
         ? res.data
         : Array.isArray((res?.data as any)?.data)
@@ -320,22 +317,27 @@ export default function LinksPage() {
       }));
       setLinks(rawLinks);
       linkDrawersRef.current?.syncLinksList(rawLinks);
+      if (!isBackground) setIsLoading(false);
 
-      // Compute aggregated live clicks across links and 30d analytics
+      // Compute aggregated live clicks across links and 30d analytics asynchronously
       const sumLinksClicks = rawLinks.reduce((acc, l) => acc + (Number(l.clicksCount) || 0), 0);
-      const workerAnalyticsClicks = Number(
-        analyticsRes?.data?.totalClicks ?? analyticsRes?.data?.total_clicks ?? 0,
-      );
-      const authoritativeClicks =
-        workerAnalyticsClicks > 0 ? workerAnalyticsClicks : sumLinksClicks;
-      if (authoritativeClicks > 0) {
-        setSyncedLiveClicks(authoritativeClicks);
-        if (typeof window !== "undefined" && userId) {
-          try {
-            localStorage.setItem(`lshorter_live_clicks_${userId}`, String(authoritativeClicks));
-          } catch {}
-        }
-      }
+      cfGetAnalytics(userId || "", "30d", undefined, needForce)
+        .then((analyticsRes) => {
+          const workerAnalyticsClicks = Number(
+            analyticsRes?.data?.totalClicks ?? analyticsRes?.data?.total_clicks ?? 0,
+          );
+          const authoritativeClicks =
+            workerAnalyticsClicks > 0 ? workerAnalyticsClicks : sumLinksClicks;
+          if (authoritativeClicks > 0) {
+            setSyncedLiveClicks(authoritativeClicks);
+            if (typeof window !== "undefined" && userId) {
+              try {
+                localStorage.setItem(`lshorter_live_clicks_${userId}`, String(authoritativeClicks));
+              } catch {}
+            }
+          }
+        })
+        .catch(() => {});
     } catch (err) {
       console.error("Error loading links:", err);
       if (!isBackground) setLinks([]);
