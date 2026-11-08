@@ -55,6 +55,7 @@ interface SectionReviewProps {
   tagsInput: string;
   onNavigateTab: (tabId: DrawerTabId) => void;
   isSubmitting: boolean;
+  formId?: string;
 }
 
 export function SectionReview({
@@ -88,6 +89,7 @@ export function SectionReview({
   tagsInput,
   onNavigateTab,
   isSubmitting,
+  formId = "link-drawer-form",
 }: SectionReviewProps) {
   const shortUrl = `https://${domainName || "lsho.cc"}/${slug || "..."}`;
   const finalDest = computeFinalUrlWithUtm() || targetUrl || "https://...";
@@ -297,7 +299,7 @@ export function SectionReview({
         </div>
         <Button
           type="submit"
-          form="link-drawer-form"
+          form={formId}
           disabled={isSubmitting}
           className="bg-[#1d5fe0] dark:bg-[#3b82f6] hover:bg-[#154fc0] dark:hover:bg-[#2563eb] text-white font-semibold text-xs h-9 px-5 rounded-lg shadow-sm cursor-pointer shrink-0"
         >

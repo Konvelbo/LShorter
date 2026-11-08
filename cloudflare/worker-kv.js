@@ -80,8 +80,8 @@ export default {
       if (reqHost.includes('localhost') || reqHost.includes('127.0.0.1')) {
         return `http://${reqHost}`;
       }
-      if (reqHost === 'lsho.cc' || reqHost.includes('workers.dev') || !reqHost) {
-        return 'https://www.lsho.cc';
+      if (reqHost === 'lsho.cc' || reqHost === 'www.lsho.cc' || reqHost.includes('workers.dev') || !reqHost) {
+        return 'https://lsho.cc';
       }
       return `https://${reqHost}`;
     };
@@ -97,17 +97,23 @@ export default {
       path === '/favicon.png' ||
       path === '/apple-touch-icon.png' ||
       path === '/default_banner.jpg' ||
-      path.startsWith('/api/og')
+      path === '/api/og' ||
+      path === '/api/og.png' ||
+      path === '/banners/og' ||
+      path === '/banners/og.png'
     ) {
       try {
         const frontendOrigin = getFrontendOrigin(env, request);
         const upstream = await fetch(`${frontendOrigin}${path}${url.search}`);
         if (upstream.ok) {
-          return new Response(upstream.body, {
+          const buf = await upstream.arrayBuffer();
+          return new Response(buf, {
             status: 200,
             headers: {
               ...corsHeaders,
               'Content-Type': upstream.headers.get('content-type') || (path.endsWith('.jpg') ? 'image/jpeg' : 'image/png'),
+              'Content-Length': buf.byteLength.toString(),
+              'Cross-Origin-Resource-Policy': 'cross-origin',
               'Cache-Control': 'public, max-age=86400, s-maxage=604800',
             },
           });
@@ -118,12 +124,26 @@ export default {
       return new Response(null, { status: 404, headers: corsHeaders });
     }
 
-    if (path.startsWith('/api/v1/images/') || path.startsWith('/api/images/')) {
+    if (path.startsWith('/api/v1/images/') || path.startsWith('/api/images/') || path.startsWith('/banners/')) {
       const filename = path.split('/').pop() || '';
       const slugWithoutExt = filename.replace(/\.(jpg|jpeg|png|webp|gif|svg)$/i, '');
 
+      let rawImg = '';
+      if (env.DB && filename) {
+        try {
+          const imgRow = await env.DB.prepare('SELECT mime_type, data FROM uploaded_images WHERE id = ? OR id = ? LIMIT 1')
+            .bind(filename, slugWithoutExt)
+            .first();
+          if (imgRow?.data) {
+            rawImg = imgRow.data.startsWith('data:')
+              ? imgRow.data
+              : `data:${imgRow.mime_type || 'image/jpeg'};base64,${imgRow.data}`;
+          }
+        } catch {}
+      }
+
       let link = null;
-      if (env.LINKS_KV) {
+      if (!rawImg && env.LINKS_KV) {
         try {
           const cached = await env.LINKS_KV.get(slugWithoutExt);
           if (cached && cached !== 'NOT_FOUND') {
@@ -131,13 +151,15 @@ export default {
           }
         } catch {}
       }
-      if (!link && env.DB) {
+      if (!rawImg && !link && env.DB) {
         try {
           link = await env.DB.prepare('SELECT * FROM links WHERE slug = ? OR id = ? LIMIT 1').bind(slugWithoutExt, slugWithoutExt).first();
         } catch {}
       }
 
-      const rawImg = link?.og_image || link?.ogImage || '';
+      if (!rawImg) {
+        rawImg = link?.og_image || link?.ogImage || '';
+      }
       if (rawImg.startsWith('data:')) {
         const commaIdx = rawImg.indexOf(',');
         const meta = rawImg.substring(0, commaIdx);
@@ -151,6 +173,7 @@ export default {
           for (let i = 0; i < binaryStr.length; i++) {
             bytes[i] = binaryStr.charCodeAt(i);
           }
+          const isSvg = mime.includes('svg');
           return new Response(bytes, {
             status: 200,
             headers: {
@@ -158,6 +181,8 @@ export default {
               'Content-Type': mime,
               'Content-Length': bytes.byteLength.toString(),
               'Cross-Origin-Resource-Policy': 'cross-origin',
+              'X-Content-Type-Options': 'nosniff',
+              ...(isSvg ? { 'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; sandbox" } : {}),
               'Cache-Control': (url.searchParams.has('v') || url.searchParams.has('_t') || url.searchParams.has('cb'))
                 ? 'no-store, no-cache, max-age=0, must-revalidate'
                 : 'public, max-age=60, s-maxage=300, stale-while-revalidate=3600',
@@ -167,12 +192,16 @@ export default {
           console.warn('[Image Decode Error]:', decodeErr);
         }
       } else if (rawImg.startsWith('http://') || rawImg.startsWith('https://')) {
-        return Response.redirect(rawImg, 302);
+        const internalMatch = rawImg.match(/\/(?:api\/(?:v1\/)?images|banners)\/([^/?#]+)/i);
+        const targetFile = internalMatch ? internalMatch[1] : '';
+        if (!targetFile || targetFile !== filename) {
+          return Response.redirect(rawImg, 302);
+        }
       }
 
       const frontendOrigin = getFrontendOrigin(env, request);
       const fallbackTitle = link?.og_title || link?.ogTitle || link?.meta_title || link?.metaTitle || slugWithoutExt;
-      return Response.redirect(`${frontendOrigin}/api/og?title=${encodeURIComponent(fallbackTitle)}&slug=${encodeURIComponent(slugWithoutExt)}`, 302);
+      return Response.redirect(`${frontendOrigin}/banners/og.png?title=${encodeURIComponent(fallbackTitle)}&slug=${encodeURIComponent(slugWithoutExt)}`, 302);
     }
 
     // ─── 1. ULTRA-FAST KV REDIRECTION (0.3ms latency) ─────────────────────
@@ -264,24 +293,28 @@ export default {
         const canonical = `https://${domain}${isRRoute ? '/r/' : '/'}${slug}${searchStr}`;
         const dest = link.target_url || link.targetUrl || `https://${domain}`;
 
-        // Convert data:image or relative image to public HTTPS URL so Twitter/FB crawlers can load it
+        // Convert data:image or relative image to public HTTPS URL outside /api/ so Twitter/FB crawlers never hit robots.txt API disallows
         let publicImageUrl = ogImage;
         if (ogImage && ogImage.startsWith('data:')) {
-          publicImageUrl = `https://${domain}/api/v1/images/${slug}.jpg`;
-        } else if (ogImage && ogImage.includes('.workers.dev/api/v1/images/')) {
-          const filename = ogImage.split('/').pop();
-          publicImageUrl = `https://${domain}/api/v1/images/${filename}`;
+          publicImageUrl = `https://${domain}/banners/${slug}.jpg`;
+        } else if (ogImage && (ogImage.includes('/api/v1/images/') || ogImage.includes('/api/images/') || ogImage.includes('/banners/'))) {
+          const [pathPart, queryPart] = ogImage.split('?');
+          const filename = pathPart.split('/').pop();
+          if (filename && filename !== 'og.png' && filename !== 'og') {
+            publicImageUrl = `https://${domain}/banners/${filename}${queryPart ? `?${queryPart}` : ''}`;
+          }
         } else if (ogImage && !ogImage.startsWith('http://') && !ogImage.startsWith('https://')) {
           if (ogImage.startsWith('/')) {
             publicImageUrl = `https://${domain}${ogImage}`;
           } else {
-            publicImageUrl = `https://${domain}/api/v1/images/${ogImage}`;
+            publicImageUrl = `https://${domain}/banners/${ogImage}`;
           }
         }
 
         const isCustomBanner = Boolean(
           publicImageUrl &&
           !publicImageUrl.includes('/api/og') &&
+          !publicImageUrl.includes('/banners/og') &&
           !publicImageUrl.includes('default_banner') &&
           !publicImageUrl.includes('.svg') &&
           !publicImageUrl.includes('dicebear')
@@ -292,13 +325,13 @@ export default {
           if (isCustomBanner) {
             finalImg = publicImageUrl;
           } else {
-            finalImg = `https://${domain}/api/og?card=summary&title=${encodeURIComponent(ogTitle.substring(0, 60))}&desc=${encodeURIComponent((ogDescription || '').substring(0, 80))}&slug=${encodeURIComponent(slug)}`;
+            finalImg = `https://${domain}/banners/og.png?card=summary&title=${encodeURIComponent(ogTitle.substring(0, 60))}&desc=${encodeURIComponent((ogDescription || '').substring(0, 80))}&slug=${encodeURIComponent(slug)}`;
           }
         } else {
           if (isCustomBanner) {
             finalImg = publicImageUrl;
           } else {
-            finalImg = `https://${domain}/api/og?title=${encodeURIComponent(ogTitle.substring(0, 80))}&slug=${encodeURIComponent(slug)}`;
+            finalImg = `https://${domain}/banners/og.png?title=${encodeURIComponent(ogTitle.substring(0, 80))}&slug=${encodeURIComponent(slug)}`;
           }
         }
 
@@ -311,7 +344,7 @@ export default {
         }
 
         const escapeHtml = (s = '') => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-        const escapeMetaUrl = (s = '') => s.replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const escapeMetaUrl = (s = '') => s.replace(/&amp;/g, '&').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         const safeTitle = escapeHtml(ogTitle);
         const safeDesc = escapeHtml(ogDescription || 'Cliquez pour ouvrir le lien.');
         const safeImg = escapeMetaUrl(finalImg);
@@ -319,9 +352,9 @@ export default {
         const safeCard = twitterCard;
         const imgWidth = isCompact ? '400' : '1200';
         const imgHeight = isCompact ? '400' : '630';
-        const imgType = (safeImg.includes('.png') || safeImg.includes('/api/og')) ? 'image/png' : safeImg.includes('.webp') ? 'image/webp' : 'image/jpeg';
+        const imgType = (safeImg.includes('.png') || safeImg.includes('/api/og') || safeImg.includes('/banners/og')) ? 'image/png' : safeImg.includes('.webp') ? 'image/webp' : 'image/jpeg';
 
-        const isGenerated = safeImg.includes('/api/og');
+        const isGenerated = safeImg.includes('/api/og') || safeImg.includes('/banners/og');
 
         const html = `<!DOCTYPE html>
 <html lang="fr" prefix="og: http://ogp.me/ns#">

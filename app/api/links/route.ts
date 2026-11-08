@@ -154,6 +154,23 @@ export async function GET(req: Request) {
       const finalIsActiveInt = isExpired ? 0 : (rawIsActive === 0 ? 0 : 1);
       const finalIsActiveBool = isExpired ? false : (rawIsActive !== 0 && l.isActive !== false);
 
+      const rawLinkOgImg = String(l.og_image ?? l.ogImage ?? "").trim();
+      const normalizedLinkOgImg = (() => {
+        if (!rawLinkOgImg) return null;
+        if (
+          rawLinkOgImg.includes("/api/v1/images/") ||
+          rawLinkOgImg.includes("/api/images/") ||
+          rawLinkOgImg.includes("/banners/")
+        ) {
+          const [pathPart, queryPart] = rawLinkOgImg.split("?");
+          const fname = pathPart.split("/").pop();
+          if (fname && fname !== "og.png" && fname !== "og") {
+            return `https://lsho.cc/banners/${fname}${queryPart ? `?${queryPart}` : ""}`;
+          }
+        }
+        return rawLinkOgImg;
+      })();
+
       mergedList.push({
         ...l,
         clicks_count: finalClicks,
@@ -164,8 +181,8 @@ export async function GET(req: Request) {
         ogTitle: l.ogTitle ?? l.og_title ?? null,
         og_description: l.og_description ?? l.ogDescription ?? null,
         ogDescription: l.ogDescription ?? l.og_description ?? null,
-        og_image: l.og_image ?? l.ogImage ?? null,
-        ogImage: l.ogImage ?? l.og_image ?? null,
+        og_image: normalizedLinkOgImg,
+        ogImage: normalizedLinkOgImg,
         banner_style: finalBannerStyle,
         bannerStyle: finalBannerStyle,
         twitter_card: finalTwitterCard,
@@ -467,14 +484,22 @@ export async function POST(req: Request) {
     const rawOg = (body.ogImage || body.og_image || "").trim();
     let sanitizedOgImage: string | undefined = rawOg || undefined;
 
-    if (sanitizedOgImage && sanitizedOgImage.startsWith("/api/images/")) {
-      const fName = sanitizedOgImage.replace("/api/images/", "");
-      sanitizedOgImage = `${WORKER_URL}/api/v1/images/${fName}`;
+    if (
+      sanitizedOgImage &&
+      (sanitizedOgImage.includes("/api/images/") ||
+        sanitizedOgImage.includes("/api/v1/images/") ||
+        sanitizedOgImage.includes("/banners/"))
+    ) {
+      const [pathPart, queryPart] = sanitizedOgImage.split("?");
+      const fName = pathPart.split("/").pop();
+      if (fName && fName !== "og.png" && fName !== "og") {
+        sanitizedOgImage = `https://lsho.cc/banners/${fName}${queryPart ? `?${queryPart}` : ""}`;
+      }
     } else if (rawOg && rawOg.startsWith("data:") && rawOg.length > 250000) {
       const bannerTitle = encodeURIComponent(
         body.ogTitle || body.metaTitle || body.slug || "LShorter",
       );
-      sanitizedOgImage = `/api/og?title=${bannerTitle}`;
+      sanitizedOgImage = `/banners/og.png?title=${bannerTitle}`;
     }
 
     const rawStyle = body.bannerStyle || body.banner_style;

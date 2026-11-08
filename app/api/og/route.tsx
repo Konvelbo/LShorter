@@ -1,7 +1,63 @@
 import { ImageResponse } from "next/og";
 import { NextRequest } from "next/server";
 
-export const runtime = "edge";
+export const dynamic = "force-dynamic";
+
+function isSafePublicHttpsImageUrl(rawUrl: string): boolean {
+  try {
+    const parsed = new URL(rawUrl);
+    if (parsed.protocol !== "https:") return false;
+    if (parsed.username || parsed.password) return false;
+    const host = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, "");
+    if (!host || !host.includes(".")) return false;
+    if (
+      host === "localhost" ||
+      host.endsWith(".localhost") ||
+      host.endsWith(".local") ||
+      host.endsWith(".internal") ||
+      host === "metadata.google.internal"
+    ) {
+      return false;
+    }
+    // Block IPv6 literals and private/loopback/link-local IPv4 ranges
+    if (host.includes(":")) return false;
+    const ipv4Match = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+    if (ipv4Match) {
+      const [, a, b] = ipv4Match.map(Number);
+      if (
+        a === 0 ||
+        a === 10 ||
+        a === 127 ||
+        (a === 100 && b >= 64 && b <= 127) ||
+        (a === 169 && b === 254) ||
+        (a === 172 && b >= 16 && b <= 31) ||
+        (a === 192 && b === 168) ||
+        a >= 224
+      ) {
+        return false;
+      }
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function toBufferedPngResponse(
+  imgRes: ImageResponse,
+  extraHeaders: Record<string, string>
+): Promise<Response> {
+  const buf = await imgRes.arrayBuffer();
+  return new Response(buf, {
+    status: 200,
+    headers: {
+      ...extraHeaders,
+      "Content-Type": "image/png",
+      "Content-Length": buf.byteLength.toString(),
+      "Cross-Origin-Resource-Policy": "cross-origin",
+    },
+  });
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -27,41 +83,45 @@ export async function GET(req: NextRequest) {
       "Access-Control-Allow-Methods": "GET, OPTIONS",
     };
 
-    if (img && (img.startsWith("http://") || img.startsWith("https://"))) {
-      return new ImageResponse(
-        (
-          <div
-            style={{
-              width: "100%",
-              height: "100%",
-              display: "flex",
-              backgroundColor: "#09090b",
-              position: "relative",
-              overflow: "hidden",
-            }}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={img}
-              alt={title}
+    if (img && isSafePublicHttpsImageUrl(img)) {
+      return toBufferedPngResponse(
+        new ImageResponse(
+          (
+            <div
               style={{
                 width: "100%",
                 height: "100%",
-                objectFit: "cover",
+                display: "flex",
+                backgroundColor: "#09090b",
+                position: "relative",
+                overflow: "hidden",
               }}
-            />
-          </div>
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={img}
+                alt={title}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                }}
+              />
+            </div>
+          ),
+          {
+            width: isCompact ? 400 : 1200,
+            height: isCompact ? 400 : 630,
+            headers: responseHeaders,
+          }
         ),
-        {
-          width: isCompact ? 400 : 1200,
-          height: isCompact ? 400 : 630,
-          headers: responseHeaders,
-        }
+        responseHeaders
       );
     }
 
     if (isCompact) {
-      return new ImageResponse(
+      return toBufferedPngResponse(
+        new ImageResponse(
         (
           <div
             style={{
@@ -146,7 +206,7 @@ export async function GET(req: NextRequest) {
                   fontWeight: 800,
                   color: "white",
                   lineHeight: 1.25,
-                  display: "-webkit-box",
+                  display: "flex",
                   overflow: "hidden",
                 }}
               >
@@ -154,6 +214,7 @@ export async function GET(req: NextRequest) {
               </div>
               <div
                 style={{
+                  display: "flex",
                   fontSize: 14,
                   color: "rgba(255, 255, 255, 0.6)",
                   lineHeight: 1.35,
@@ -198,10 +259,13 @@ export async function GET(req: NextRequest) {
           height: 400,
           headers: responseHeaders,
         }
+        ),
+        responseHeaders
       );
     }
 
-    return new ImageResponse(
+    return toBufferedPngResponse(
+      new ImageResponse(
       (
         <div
           style={{
@@ -390,41 +454,66 @@ export async function GET(req: NextRequest) {
         height: 630,
         headers: responseHeaders,
       }
+      ),
+      responseHeaders
     );
   } catch (err) {
     console.error("[app/api/og] Edge banner generation error:", err);
     // Minimal fallback banner to guarantee 200 OK image for Twitterbot / WhatsApp
-    return new ImageResponse(
-      (
-        <div
-          style={{
-            width: "100%",
-            height: "100%",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: "#09090b",
-            color: "white",
-            fontFamily: "sans-serif",
-          }}
-        >
-          <div style={{ display: "flex", fontSize: 48, fontWeight: 900, color: "#ff6600" }}>
-            LShorter
+    const fallbackHeaders = {
+      "Cache-Control": "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400",
+      "Access-Control-Allow-Origin": "*",
+    };
+    return toBufferedPngResponse(
+      new ImageResponse(
+        (
+          <div
+            style={{
+              width: "100%",
+              height: "100%",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: "#09090b",
+              color: "white",
+              fontFamily: "sans-serif",
+            }}
+          >
+            <div style={{ display: "flex", fontSize: 48, fontWeight: 900, color: "#ff6600" }}>
+              LShorter
+            </div>
+            <div style={{ display: "flex", fontSize: 24, marginTop: 16, color: "rgba(255,255,255,0.7)" }}>
+              Next-gen Edge URL Shortener & Smart Routing
+            </div>
           </div>
-          <div style={{ display: "flex", fontSize: 24, marginTop: 16, color: "rgba(255,255,255,0.7)" }}>
-            Next-gen Edge URL Shortener & Smart Routing
-          </div>
-        </div>
+        ),
+        {
+          width: 1200,
+          height: 630,
+          headers: fallbackHeaders,
+        }
       ),
-      {
-        width: 1200,
-        height: 630,
-        headers: {
-          "Cache-Control": "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400",
-          "Access-Control-Allow-Origin": "*",
-        },
-      }
+      fallbackHeaders
     );
   }
+}
+
+export async function HEAD(req: NextRequest) {
+  const res = await GET(req);
+  return new Response(null, {
+    status: res.status,
+    headers: res.headers,
+  });
+}
+
+export async function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
+      "Cross-Origin-Resource-Policy": "cross-origin",
+    },
+  });
 }

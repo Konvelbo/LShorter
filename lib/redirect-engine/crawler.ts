@@ -43,7 +43,8 @@ export function isSocialCrawler(userAgentRaw: string): boolean {
   return SOCIAL_CRAWLERS.some((bot) => ua.includes(bot));
 }
 
-// In-memory cache for bot responses
+// In-memory cache for bot responses (bounded to prevent memory leaks)
+const MAX_BOT_CACHE_ENTRIES = 1000;
 const botResponseCache = new Map<string, { body: string; headers: HeadersInit; expiresAt: number }>();
 
 export function getCachedBotResponse(slug: string, search: string = ""): { body: string; headers: HeadersInit } | null {
@@ -56,15 +57,32 @@ export function getCachedBotResponse(slug: string, search: string = ""): { body:
   if (cached && Date.now() < cached.expiresAt) {
     return { body: cached.body, headers: cached.headers };
   }
+  if (cached) {
+    botResponseCache.delete(key);
+  }
   return null;
 }
 
 export function setCachedBotResponse(slug: string, body: string, headers: HeadersInit, ttlMs: number = 30000, search: string = ""): void {
+  const now = Date.now();
+  if (botResponseCache.size >= MAX_BOT_CACHE_ENTRIES) {
+    for (const [k, v] of botResponseCache.entries()) {
+      if (now >= v.expiresAt) {
+        botResponseCache.delete(k);
+      }
+    }
+    if (botResponseCache.size >= MAX_BOT_CACHE_ENTRIES) {
+      const oldestKey = botResponseCache.keys().next().value;
+      if (oldestKey !== undefined) {
+        botResponseCache.delete(oldestKey);
+      }
+    }
+  }
   const baseKey = (slug || "").toLowerCase();
   const entry = {
     body,
     headers,
-    expiresAt: Date.now() + ttlMs,
+    expiresAt: now + ttlMs,
   };
   if (!search) {
     botResponseCache.set(baseKey, entry);
@@ -100,6 +118,8 @@ function escapeHtml(text?: string | null): string {
 function escapeMetaUrl(url?: string | null): string {
   if (!url) return "#";
   return String(url)
+    .replace(/&amp;/g, "&")
+    .replace(/&/g, "&amp;")
     .replace(/"/g, "&quot;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
@@ -134,9 +154,24 @@ export function renderSocialHtml(options: {
   );
   const cardType = options.twitterCard === "summary" ? "summary" : "summary_large_image";
 
-  // Normalize image URL to absolute HTTPS format
+  // Normalize image URL to absolute HTTPS format outside /api/ so no crawler robots.txt rule blocks it
   let resolvedImg = (options.image || "").trim();
-  if (resolvedImg && !resolvedImg.startsWith("http://") && !resolvedImg.startsWith("https://")) {
+  if (resolvedImg && resolvedImg.startsWith("data:")) {
+    resolvedImg = `https://${rawDomain}/banners/${encodeURIComponent(options.slug || "banner")}.jpg`;
+  } else if (
+    resolvedImg &&
+    (resolvedImg.includes("/api/v1/images/") ||
+      resolvedImg.includes("/api/images/") ||
+      resolvedImg.includes("/banners/"))
+  ) {
+    const [pathPart, queryPart] = resolvedImg.split("?");
+    const filename = pathPart.split("/").pop();
+    if (filename && filename !== "og.png" && filename !== "og") {
+      resolvedImg = `https://${rawDomain}/banners/${filename}${queryPart ? `?${queryPart}` : ""}`;
+    } else if (!resolvedImg.startsWith("http://") && !resolvedImg.startsWith("https://")) {
+      resolvedImg = `https://${rawDomain}${resolvedImg.startsWith("/") ? "" : "/"}${resolvedImg}`;
+    }
+  } else if (resolvedImg && !resolvedImg.startsWith("http://") && !resolvedImg.startsWith("https://")) {
     if (resolvedImg.startsWith("/")) {
       resolvedImg = `https://${rawDomain}${resolvedImg}`;
     } else {
@@ -149,9 +184,9 @@ export function renderSocialHtml(options: {
   let twitterImg = resolvedImg;
   if (isSvg) {
     if (cardType === "summary") {
-      twitterImg = `https://${rawDomain}/api/og?card=summary&title=${encodeURIComponent((options.title || options.slug || "LShorter").substring(0, 60))}&desc=${encodeURIComponent((options.description || "").substring(0, 80))}&slug=${encodeURIComponent(options.slug || "")}`;
+      twitterImg = `https://${rawDomain}/banners/og.png?card=summary&title=${encodeURIComponent((options.title || options.slug || "LShorter").substring(0, 60))}&desc=${encodeURIComponent((options.description || "").substring(0, 80))}&slug=${encodeURIComponent(options.slug || "")}`;
     } else {
-      twitterImg = `https://${rawDomain}/api/og?title=${encodeURIComponent((options.title || options.slug || "LShorter").substring(0, 80))}&slug=${encodeURIComponent(options.slug || "")}`;
+      twitterImg = `https://${rawDomain}/banners/og.png?title=${encodeURIComponent((options.title || options.slug || "LShorter").substring(0, 80))}&slug=${encodeURIComponent(options.slug || "")}`;
     }
   }
 
@@ -190,18 +225,22 @@ export function renderSocialHtml(options: {
   const safeCanonical = escapeHtml(sanitizeSafeUrl(options.canonicalUrl));
   const safeSlug = escapeHtml(options.slug || "");
 
-  const ogImgType = (ogImg.includes(".png") || ogImg.includes("/api/og"))
+  const ogImgType = (ogImg.includes(".png") || ogImg.includes("/api/og") || ogImg.includes("/banners/og"))
     ? "image/png"
     : ogImg.includes(".webp")
       ? "image/webp"
-      : ogImg.includes(".svg")
-        ? "image/svg+xml"
-        : "image/jpeg";
+      : ogImg.includes(".gif")
+        ? "image/gif"
+        : ogImg.includes(".svg")
+          ? "image/svg+xml"
+          : "image/jpeg";
   const imgWidth = cardType === "summary" ? "400" : "1200";
   const imgHeight = cardType === "summary" ? "400" : "630";
 
-  const isGeneratedOg = safeOgImg.includes("/api/og");
-  const isGeneratedTwitter = safeTwitterImg.includes("/api/og");
+  const isGeneratedOg = safeOgImg.includes("/api/og") || safeOgImg.includes("/banners/og");
+  const isGeneratedTwitter = safeTwitterImg.includes("/api/og") || safeTwitterImg.includes("/banners/og");
+  const hasKnownOgDims = isGeneratedOg || cardType === "summary_large_image";
+  const hasKnownTwitterDims = isGeneratedTwitter || cardType === "summary_large_image";
 
   if (!options.isPreview) {
     return `<!DOCTYPE html>
@@ -227,7 +266,7 @@ export function renderSocialHtml(options: {
   <meta property="og:image:url" content="${safeOgImg}" />
   <meta property="og:image:secure_url" content="${safeOgImg}" />
   <meta property="og:image:type" content="${ogImgType}" />
-  ${isGeneratedOg ? `<meta property="og:image:width" content="${imgWidth}" />\n  <meta property="og:image:height" content="${imgHeight}" />` : ""}
+  ${hasKnownOgDims ? `<meta property="og:image:width" content="${imgWidth}" />\n  <meta property="og:image:height" content="${imgHeight}" />` : ""}
   <meta property="og:image:alt" content="${safeTitle}" />
 
   <!-- Twitter / X Cards -->
@@ -240,7 +279,7 @@ export function renderSocialHtml(options: {
   <meta name="twitter:description" content="${safeDesc}" />
   <meta name="twitter:image" content="${safeTwitterImg}" />
   <meta name="twitter:image:alt" content="${safeTitle}" />
-  ${isGeneratedTwitter ? `<meta name="twitter:image:width" content="${imgWidth}" />\n  <meta name="twitter:image:height" content="${imgHeight}" />` : ""}
+  ${hasKnownTwitterDims ? `<meta name="twitter:image:width" content="${imgWidth}" />\n  <meta name="twitter:image:height" content="${imgHeight}" />` : ""}
 </head>
 <body style="background:#09090b;color:#fafafa;font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:24px;box-sizing:border-box;">
   ${cardType === "summary" ? `

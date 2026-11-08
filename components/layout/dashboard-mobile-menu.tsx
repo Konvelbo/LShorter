@@ -259,25 +259,32 @@ export function DashboardMobileMenu({
     <>
       {/* ─── 1. OVERLAY & DRAWER CONTAINER ─── */}
       <div
+        inert={!isOpen ? true : undefined}
+        aria-hidden={!isOpen}
         className={cn(
-          "fixed inset-0 z-50 lg:hidden transition-all duration-300",
-          isOpen
-            ? "opacity-100 pointer-events-auto"
-            : "opacity-0 pointer-events-none"
+          "fixed inset-0 z-50 lg:hidden",
+          isOpen ? "pointer-events-auto" : "pointer-events-none"
         )}
       >
         {/* Backdrop (clic pour fermer) */}
         <div
           onClick={onClose}
-          className="absolute inset-0 bg-black/40 backdrop-blur-xs transition-opacity"
+          className={cn(
+            "absolute inset-0 bg-black/50 will-change-[opacity] transition-opacity duration-200 ease-out",
+            isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+          )}
         />
 
         {/* Panneau latéral droit */}
         <div
           className={cn(
-            "absolute inset-y-0 right-0 w-[84%] max-w-[320px] h-full flex flex-col justify-between ds-bg-sidebar border-l ds-border shadow-2xl transition-transform duration-300 ease-out py-5 px-4 select-none",
+            "absolute inset-y-0 right-0 w-[84%] max-w-[320px] h-full flex flex-col justify-between ds-bg-sidebar border-l ds-border transform-gpu will-change-transform [contain:layout_paint_style] transition-transform duration-220 py-5 px-4 select-none",
+            isOpen && "shadow-2xl",
             isOpen ? "translate-x-0" : "translate-x-full"
           )}
+          style={{
+            transitionTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)",
+          }}
         >
           {/* ─── EN HAUT (TOP) : Notifications & Recherche à gauche, Fermeture à droite ─── */}
           <div className="flex items-center justify-between pb-3 border-b ds-border shrink-0">

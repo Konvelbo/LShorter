@@ -27,7 +27,7 @@ interface SectionLinkProps {
   checkSlugFormat: (val: string) => string;
 }
 
-export function SectionLink({
+export const SectionLink = React.memo(function SectionLink({
   isEditMode,
   targetUrl,
   setTargetUrl,
@@ -122,7 +122,7 @@ export function SectionLink({
   const currentTarget = targetUrl || "…";
 
   return (
-    <div className="flex flex-col gap-5 animate-in fade-in duration-200">
+    <div className="flex flex-col gap-5">
       <div>
         <h2 className="text-xl font-bold tracking-tight text-[#131417] dark:text-[#f1f2f4]">
           Where should your link go?
@@ -135,14 +135,14 @@ export function SectionLink({
       {/* Destination URL */}
       <div className="flex flex-col gap-1.5">
         <label
-          htmlFor="dest-url"
+          htmlFor={`${tagInputId}-dest-url`}
           className="text-sm font-semibold text-zinc-800 dark:text-zinc-200"
         >
           Destination URL <span className="text-red-500">*</span>
         </label>
         <div className="relative">
           <Input
-            id="dest-url"
+            id={`${tagInputId}-dest-url`}
             type="url"
             required
             placeholder="https://example.com/page"
@@ -175,7 +175,7 @@ export function SectionLink({
       {/* Domain & Custom Slug */}
       <div className="flex flex-col gap-1.5 mt-1">
         <label
-          htmlFor="custom-slug"
+          htmlFor={`${tagInputId}-custom-slug`}
           className="text-sm font-semibold text-zinc-800 dark:text-zinc-200"
         >
           Short link <span className="text-red-500">*</span>
@@ -184,7 +184,7 @@ export function SectionLink({
           {/* Domain Selector */}
           <div className="relative w-[40%] min-w-[120px]">
             <select
-              id="domain-select"
+              id={`${tagInputId}-domain-select`}
               required
               disabled={isEditMode}
               value={domainName}
@@ -228,7 +228,7 @@ export function SectionLink({
           {/* Custom Slug Input */}
           <div className="relative flex-1">
             <Input
-              id="custom-slug"
+              id={`${tagInputId}-custom-slug`}
               required
               placeholder="custom-slug"
               value={slug}
@@ -351,4 +351,4 @@ export function SectionLink({
       </div>
     </div>
   );
-}
+});

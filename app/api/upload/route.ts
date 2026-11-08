@@ -124,14 +124,14 @@ export async function POST(req: NextRequest) {
 
     if (workerRes.ok) {
       const data = await workerRes.json();
+      const rawUrl = String(data.url || "");
+      const extractedFile =
+        rawUrl.split("?")[0].split("/").pop() ||
+        (data.imageId ? String(data.imageId) : "");
       return NextResponse.json({
         success: true,
-        url:
-          data.url ||
-          (data.imageId
-            ? `${WORKER_URL}/api/v1/images/${data.imageId}`
-            : ""),
-        imageId: data.imageId,
+        url: extractedFile ? `/banners/${extractedFile}` : rawUrl,
+        imageId: data.imageId || extractedFile,
       });
     }
 

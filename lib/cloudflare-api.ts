@@ -249,38 +249,84 @@ export function cfNormalizeImageUrl(url?: string): string {
   if (!url) return "";
   const trimmed = url.trim();
   if (trimmed.startsWith("data:") || trimmed.startsWith("blob:")) return trimmed;
+
+  const isLocalBrowser =
+    typeof window !== "undefined" &&
+    (window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1");
+  const baseOrigin = isLocalBrowser ? "" : "https://lsho.cc";
+
   if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
-    if (trimmed.includes(".workers.dev/api/v1/images/")) {
-      const filename = trimmed.split("/").pop();
-      return `https://lsho.cc/api/v1/images/${filename}`;
+    if (
+      trimmed.includes("/api/v1/images/") ||
+      trimmed.includes("/api/images/") ||
+      trimmed.includes("/banners/")
+    ) {
+      const [pathPart, queryPart] = trimmed.split("?");
+      const filename = pathPart.split("/").pop();
+      if (filename && filename !== "og.png" && filename !== "og") {
+        return `${baseOrigin}/banners/${filename}${queryPart ? `?${queryPart}` : ""}`;
+      }
     }
     return trimmed;
   }
-  if (trimmed.startsWith("/api/images/") || trimmed.startsWith("/api/v1/images/")) {
-    const filename = trimmed.replace(/^\/api(\/v1)?\/images\//, "");
-    return `https://lsho.cc/api/v1/images/${filename}`;
+  if (
+    trimmed.startsWith("/banners/") ||
+    trimmed.startsWith("/api/images/") ||
+    trimmed.startsWith("/api/v1/images/")
+  ) {
+    const [pathPart, queryPart] = trimmed.split("?");
+    const filename = pathPart.replace(/^\/(banners|api(\/v1)?\/images)\//, "");
+    if (filename && filename !== "og.png" && filename !== "og") {
+      return `${baseOrigin}/banners/${filename}${queryPart ? `?${queryPart}` : ""}`;
+    }
+    return trimmed;
   }
-  if (trimmed.startsWith("banner_") && (trimmed.endsWith(".jpg") || trimmed.endsWith(".png") || trimmed.endsWith(".webp") || trimmed.endsWith(".gif"))) {
-    return `https://lsho.cc/api/v1/images/${trimmed}`;
+  if (
+    (trimmed.startsWith("banner_") || trimmed.startsWith("img_")) &&
+    (trimmed.endsWith(".jpg") ||
+      trimmed.endsWith(".jpeg") ||
+      trimmed.endsWith(".png") ||
+      trimmed.endsWith(".webp") ||
+      trimmed.endsWith(".gif"))
+  ) {
+    return `${baseOrigin}/banners/${trimmed}`;
   }
   return trimmed;
 }
 
 export async function cfUploadImage(
   base64OrFile: string | File,
-  folder: string = "Banners"
+  folder: string = "Banners",
+  options?: { maxWidth?: number; maxHeight?: number; quality?: number; skipCompress?: boolean }
 ): Promise<{ success: boolean; url: string; imageId?: string }> {
   try {
     let base64Data = "";
     let compressedFile: File | Blob | null = null;
+    const targetW = options?.maxWidth ?? 1200;
+    const targetH = options?.maxHeight ?? 630;
+    const targetQ = options?.quality ?? 0.85;
 
     if (typeof base64OrFile === "string" && base64OrFile.startsWith("data:")) {
-      const compressed = await compressImageFile(base64OrFile, 1200, 630, 0.82);
-      base64Data = typeof compressed === "string" ? compressed : base64OrFile;
-    } else if (typeof base64OrFile === "string" && (base64OrFile.startsWith("http://") || base64OrFile.startsWith("https://") || base64OrFile.startsWith("/api/images/"))) {
+      if (options?.skipCompress) {
+        base64Data = base64OrFile;
+      } else {
+        const compressed = await compressImageFile(base64OrFile, targetW, targetH, targetQ);
+        base64Data = typeof compressed === "string" ? compressed : base64OrFile;
+      }
+    } else if (
+      typeof base64OrFile === "string" &&
+      (base64OrFile.startsWith("http://") ||
+        base64OrFile.startsWith("https://") ||
+        base64OrFile.startsWith("/banners/") ||
+        base64OrFile.startsWith("/api/images/") ||
+        base64OrFile.startsWith("/api/v1/images/"))
+    ) {
       return { success: true, url: cfNormalizeImageUrl(base64OrFile) };
     } else if (typeof base64OrFile !== "string") {
-      const compressed = await compressImageFile(base64OrFile, 1200, 630, 0.82);
+      const compressed = options?.skipCompress
+        ? base64OrFile
+        : await compressImageFile(base64OrFile, targetW, targetH, targetQ);
       if (typeof compressed === "string") {
         base64Data = compressed;
       } else {
@@ -323,7 +369,7 @@ export async function cfUploadImage(
           if (data?.url || data?.imageId) {
             return {
               success: true,
-              url: cfNormalizeImageUrl(data.url || `/api/images/${data.imageId}`),
+              url: cfNormalizeImageUrl(data.url || `/banners/${data.imageId}`),
               imageId: data.imageId,
             };
           }

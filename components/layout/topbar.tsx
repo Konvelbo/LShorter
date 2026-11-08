@@ -22,7 +22,7 @@ import { useSession, signOut } from "next-auth/react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Avatar, AvatarImage, AvatarFallback, getDiceBearAvatar } from "@/components/ui/avatar";
-import { LinkCreateModal } from "@/components/dashboard/link-create-modal";
+import { GlobalLinkDrawerHost } from "@/components/dashboard/page-link-drawers";
 import { ReuiCommandModal } from "@/components/search/reui-command-modal";
 import { getPlanDefinition } from "@/src/config/pricing";
 import { DashboardMobileMenu } from "./dashboard-mobile-menu";
@@ -124,7 +124,6 @@ export function Topbar() {
   }, []);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isCommandModalOpen, setIsCommandModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [localNotifs, setLocalNotifs] = useState<
@@ -141,11 +140,6 @@ export function Topbar() {
     api.notifications.listNotifications,
     userId ? { orgId: userId } : "skip"
   );
-
-  const isCreateOpenRef = useRef(isCreateOpen);
-  useEffect(() => {
-    isCreateOpenRef.current = isCreateOpen;
-  }, [isCreateOpen]);
 
   useEffect(() => {
     try {
@@ -182,98 +176,26 @@ export function Topbar() {
 
     const onOpenCmdModal = () => {
       setIsCommandModalOpen(true);
-      setIsNotifOpen(false);
-      setIsProfileOpen(false);
+      setIsNotifOpen((prev) => (prev ? false : prev));
+      setIsProfileOpen((prev) => (prev ? false : prev));
     };
 
-    const onOpenDrawer = () => {
-      setIsCreateOpen(true);
-      setIsNotifOpen(false);
-      setIsProfileOpen(false);
-      setIsCommandModalOpen(false);
-    };
-
-    const onCloseDrawer = () => {
-      setIsCreateOpen(false);
-    };
-
-    const onToggleDrawer = () => {
-      setIsCreateOpen((prev) => !prev);
-      setIsNotifOpen(false);
-      setIsProfileOpen(false);
-      setIsCommandModalOpen(false);
-    };
-
-    // Raccourci clavier / souris pour ouvrir le drawer : Ctrl + Right Button (Flèche droite ou Clic droit)
-    const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isCreateOpenRef.current) {
-        setIsCreateOpen(false);
-        return;
-      }
-
-      const hasCtrl = e.ctrlKey || e.metaKey;
-      if (!hasCtrl) return;
-
-      const target = e.target as HTMLElement | null;
-      const isTyping =
-        target &&
-        (target.tagName === "INPUT" ||
-          target.tagName === "TEXTAREA" ||
-          target.isContentEditable);
-
-      // Détection de la touche droite : ArrowRight (flèche droite) ou ContextMenu
-      const isRightKey =
-        e.key === "ArrowRight" ||
-        e.code === "ArrowRight" ||
-        e.key === "ContextMenu";
-
-      if (isRightKey) {
-        // En cas de saisie dans un champ de formulaire, préserver la navigation par mot sauf si ContextMenu
-        if (isTyping && e.key !== "ContextMenu") {
-          return;
-        }
-
-        e.preventDefault();
-        e.stopPropagation();
-        onToggleDrawer();
-      }
-    };
-
-    // Détection de la souris : Clic droit (Right Button) avec Ctrl enfoncé
-    const handleContextMenu = (e: MouseEvent) => {
-      if (e.ctrlKey || e.metaKey) {
-        e.preventDefault();
-        e.stopPropagation();
-        onToggleDrawer();
-      }
-    };
-
-    const handleAuxClick = (e: MouseEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.button === 2) {
-        e.preventDefault();
-        e.stopPropagation();
-        onToggleDrawer();
-      }
+    const closeTopbarDropdowns = () => {
+      setIsNotifOpen((prev) => (prev ? false : prev));
+      setIsProfileOpen((prev) => (prev ? false : prev));
+      setIsCommandModalOpen((prev) => (prev ? false : prev));
     };
 
     window.addEventListener("lshorter:notification", onNewNotif);
     window.addEventListener("lshorter:open-command-modal", onOpenCmdModal);
-    window.addEventListener("lshorter:open-create-drawer", onOpenDrawer);
-    window.addEventListener("lshorter:close-create-drawer", onCloseDrawer);
-    window.addEventListener("lshorter:toggle-create-drawer", onToggleDrawer);
-    window.addEventListener("keydown", handleGlobalKeyDown);
-    window.addEventListener("contextmenu", handleContextMenu);
-    window.addEventListener("auxclick", handleAuxClick);
+    window.addEventListener("lshorter:open-create-drawer", closeTopbarDropdowns);
+    window.addEventListener("lshorter:toggle-create-drawer", closeTopbarDropdowns);
 
     return () => {
       window.removeEventListener("lshorter:notification", onNewNotif);
       window.removeEventListener("lshorter:open-command-modal", onOpenCmdModal);
-      window.removeEventListener("lshorter:open-create-drawer", onOpenDrawer);
-      window.removeEventListener("lshorter:close-create-drawer", onCloseDrawer);
-      window.removeEventListener("lshorter:toggle-create-drawer", onToggleDrawer);
-      window.removeEventListener("keydown", handleGlobalKeyDown);
-      window.removeEventListener("contextmenu", handleContextMenu);
-      window.removeEventListener("auxclick", handleAuxClick);
+      window.removeEventListener("lshorter:open-create-drawer", closeTopbarDropdowns);
+      window.removeEventListener("lshorter:toggle-create-drawer", closeTopbarDropdowns);
     };
   }, []);
 
@@ -688,7 +610,9 @@ export function Topbar() {
       <DashboardMobileMenu
         isOpen={isMobileMenuOpen}
         onClose={() => setIsMobileMenuOpen(false)}
-        onOpenCreateLink={() => setIsCreateOpen(true)}
+        onOpenCreateLink={() =>
+          window.dispatchEvent(new CustomEvent("lshorter:open-create-drawer"))
+        }
         onOpenSearch={() => setIsCommandModalOpen(true)}
         mergedNotifications={mergedNotifications}
         unreadCount={unreadCount}
@@ -706,7 +630,7 @@ export function Topbar() {
         isOpen={isCommandModalOpen}
         onClose={() => setIsCommandModalOpen(false)}
       />
-      <LinkCreateModal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} />
+      <GlobalLinkDrawerHost />
     </>
   );
 }

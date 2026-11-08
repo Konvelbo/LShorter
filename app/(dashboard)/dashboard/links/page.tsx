@@ -58,8 +58,10 @@ import { Button } from "@/components/ui/button";
 import { showToast } from "@/components/ui/toast-provider";
 import { useUndoDelete } from "@/components/ui/undo-delete-provider";
 import { exportToExcelWorkbook } from "@/lib/export-excel";
-import { LinkCreateModal } from "@/components/dashboard/link-create-modal";
-import { LinkEditModal } from "@/components/dashboard/link-edit-modal";
+import {
+  PageLinkDrawers,
+  type PageLinkDrawersHandle,
+} from "@/components/dashboard/page-link-drawers";
 import { LinkShareModal } from "@/components/dashboard/link-share-modal";
 import { LinkQRModal } from "@/components/dashboard/link-qr-modal";
 import {
@@ -78,10 +80,7 @@ export default function LinksPage() {
   const [selectedTag, setSelectedTag] = useState<string>("all");
   const [isTagDropdownOpen, setIsTagDropdownOpen] = useState(false);
   const tagDropdownRef = useRef<HTMLDivElement>(null);
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [selectedEditLink, setSelectedEditLink] = useState<ShortLink | null>(
-    null,
-  );
+  const linkDrawersRef = useRef<PageLinkDrawersHandle>(null);
   const [selectedShareLink, setSelectedShareLink] = useState<ShortLink | null>(
     null,
   );
@@ -320,9 +319,7 @@ export default function LinksPage() {
         created_at: l.created_at || l.createdAt || new Date().toISOString(),
       }));
       setLinks(rawLinks);
-      setSelectedEditLink((prev) =>
-        prev ? rawLinks.find((item) => item.id === prev.id || item.slug === prev.slug) || prev : null
-      );
+      linkDrawersRef.current?.syncLinksList(rawLinks);
 
       // Compute aggregated live clicks across links and 30d analytics
       const sumLinksClicks = rawLinks.reduce((acc, l) => acc + (Number(l.clicksCount) || 0), 0);
@@ -416,9 +413,7 @@ export default function LinksPage() {
           e.detail,
           ...prev.filter((l) => l.id !== e.detail.id),
         ]);
-        setSelectedEditLink((prev) =>
-          prev && (prev.id === e.detail.id || prev.slug === e.detail.slug) ? e.detail : prev
-        );
+        linkDrawersRef.current?.syncLinkIfEditing(e.detail);
       }
       loadLinks(true, true);
       setTimeout(() => {
@@ -1107,7 +1102,7 @@ export default function LinksPage() {
 
           <button
             type="button"
-            onClick={() => setIsCreateOpen(true)}
+            onClick={() => linkDrawersRef.current?.openCreate()}
             className="inline-flex items-center gap-1.5 rounded-lg bg-[#0066FF] hover:bg-[#0055d4] px-3 py-1.5 text-xs font-semibold !text-white h-8 shadow-xs transition-colors cursor-pointer"
           >
             <Plus className="h-3.5 w-3.5 !text-white" />
@@ -1213,7 +1208,7 @@ export default function LinksPage() {
         }}
         onShareLink={(l) => setSelectedShareLink(l)}
         onSelectQr={(l) => setSelectedShareLink(l)}
-        onEditLink={(l) => setSelectedEditLink(l)}
+        onEditLink={(l) => linkDrawersRef.current?.openEdit(l)}
         onDeleteLink={(l) => promptDeleteSingle(l)}
         onDeleteMultiple={(ids) => promptDeleteBulk(ids)}
         pageSize={10}
@@ -1458,7 +1453,7 @@ export default function LinksPage() {
                 onClick={() => {
                   const link = activeMenuLink;
                   setActiveMenuLink(null);
-                  setSelectedEditLink(link);
+                  linkDrawersRef.current?.openEdit(link);
                 }}
                 className="w-full px-4 py-2.5 text-left text-neutral-700 dark:text-neutral-200 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors cursor-pointer"
               >
@@ -1542,11 +1537,10 @@ export default function LinksPage() {
 
 
       {/* Modals */}
-      <LinkCreateModal
-        isOpen={isCreateOpen}
+      <PageLinkDrawers
+        ref={linkDrawersRef}
         linksCount={links.length}
-        onClose={() => setIsCreateOpen(false)}
-        onSuccess={(created) => {
+        onCreated={(created) => {
           cfInvalidateCache();
           if (created?.id) {
             setLinks((prev) => [
@@ -1556,13 +1550,7 @@ export default function LinksPage() {
           }
           loadLinks(true);
         }}
-      />
-
-      <LinkEditModal
-        isOpen={Boolean(selectedEditLink)}
-        link={selectedEditLink}
-        onClose={() => setSelectedEditLink(null)}
-        onSuccess={(updated) => {
+        onUpdated={(updated) => {
           cfInvalidateCache();
           if (updated?.id) {
             setLinks((prev) =>

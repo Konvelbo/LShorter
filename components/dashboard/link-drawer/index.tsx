@@ -1,6 +1,13 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, {
+  Suspense,
+  useState,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useId,
+} from "react";
 import { createPortal } from "react-dom";
 import { useSession } from "next-auth/react";
 import { useQuery } from "convex/react";
@@ -12,12 +19,13 @@ import {
   cfGetDomains,
   cfGetPixels,
   cfUploadImage,
+  cfNormalizeImageUrl,
   cfInvalidateCache,
   sanitizeClientError,
 } from "@/lib/cloudflare-api";
 import { compressImageFile } from "@/lib/image-compress";
 import { ShortLink } from "@/types";
-import { RoutingRule } from "../routing-rules-editor";
+import type { RoutingRule } from "../routing-rules-editor";
 import { compileRoutingRules } from "@/lib/routing-utils";
 import { triggerPlanUpgrade } from "@/lib/plan-guard";
 import { guardLinkCreation } from "@/lib/billing/quota-service";
@@ -25,17 +33,168 @@ import { RESERVED_SLUGS } from "@/lib/security-utils";
 import { showToast } from "@/components/ui/toast-provider";
 import { useUndoDelete } from "@/components/ui/undo-delete-provider";
 import { cn } from "@/lib/utils";
-import { Trash2, Loader2, CheckCircle2 } from "lucide-react";
-import confetti from "canvas-confetti";
+import { Trash2, Loader2 } from "lucide-react";
 
 import { LinkDrawerProps, DRAWER_TABS, DrawerTabId } from "./types";
 import { SectionLink } from "./sections/section-link";
-import { SectionSocialTracking } from "./sections/section-social-tracking";
-import { SectionRouting } from "./sections/section-routing";
-import { SectionProtectionExpiry } from "./sections/section-protection-expiry";
-import { SectionAbTesting } from "./sections/section-ab-testing";
-import { SectionAdvanced } from "./sections/section-advanced";
-import { SectionReview } from "./sections/section-review";
+
+const loadSectionSocialTracking = () =>
+  import("./sections/section-social-tracking").then((m) => ({
+    default: m.SectionSocialTracking,
+  }));
+const loadSectionRouting = () =>
+  import("./sections/section-routing").then((m) => ({
+    default: m.SectionRouting,
+  }));
+const loadSectionProtectionExpiry = () =>
+  import("./sections/section-protection-expiry").then((m) => ({
+    default: m.SectionProtectionExpiry,
+  }));
+const loadSectionAbTesting = () =>
+  import("./sections/section-ab-testing").then((m) => ({
+    default: m.SectionAbTesting,
+  }));
+const loadSectionAdvanced = () =>
+  import("./sections/section-advanced").then((m) => ({
+    default: m.SectionAdvanced,
+  }));
+const loadSectionReview = () =>
+  import("./sections/section-review").then((m) => ({
+    default: m.SectionReview,
+  }));
+
+const SectionSocialTracking = React.lazy(loadSectionSocialTracking);
+const SectionRouting = React.lazy(loadSectionRouting);
+const SectionProtectionExpiry = React.lazy(loadSectionProtectionExpiry);
+const SectionAbTesting = React.lazy(loadSectionAbTesting);
+const SectionAdvanced = React.lazy(loadSectionAdvanced);
+const SectionReview = React.lazy(loadSectionReview);
+
+let hasPreloadedSecondaryTabs = false;
+function preloadSecondaryDrawerTabs() {
+  if (hasPreloadedSecondaryTabs) return;
+  hasPreloadedSecondaryTabs = true;
+  void Promise.allSettled([
+    loadSectionSocialTracking(),
+    loadSectionRouting(),
+    loadSectionProtectionExpiry(),
+    loadSectionAbTesting(),
+    loadSectionAdvanced(),
+    loadSectionReview(),
+  ]);
+}
+
+function fireSuccessConfetti(options: {
+  particleCount: number;
+  spread: number;
+  origin: { y: number };
+}) {
+  void import("canvas-confetti")
+    .then((m) => m.default(options))
+    .catch(() => {});
+}
+
+// Pure validation helpers (module-scoped so references remain stable across renders)
+function checkUrlFormat(val: string, isRequired = true): string {
+  const trimmed = val.trim();
+  if (!trimmed) {
+    return isRequired ? "Destination URL is required." : "";
+  }
+  if (/\s/.test(trimmed)) {
+    return "URL must not contain spaces.";
+  }
+  if (/^(javascript|data|vbscript|file|blob|ftp|about):/i.test(trimmed)) {
+    return "Invalid URL scheme. Only HTTP and HTTPS protocols are permitted.";
+  }
+  if (
+    trimmed.includes("169.254.169.254") ||
+    trimmed.includes("metadata.google.internal") ||
+    trimmed.includes("100.100.100.200")
+  ) {
+    return "Internal or cloud metadata addresses are not permitted.";
+  }
+  const withProto = /^https?:\/\//i.test(trimmed)
+    ? trimmed
+    : `https://${trimmed}`;
+  try {
+    const urlObj = new URL(withProto);
+    if (
+      !urlObj.hostname ||
+      (!urlObj.hostname.includes(".") && urlObj.hostname !== "localhost") ||
+      urlObj.hostname.startsWith(".") ||
+      urlObj.hostname.endsWith(".")
+    ) {
+      return "Invalid domain name (e.g. https://example.com).";
+    }
+  } catch {
+    return "Invalid URL format. Expected: https://example.com/page";
+  }
+  return "";
+}
+
+function checkDomainFormat(val: string): string {
+  const trimmed = val.trim();
+  if (!trimmed) {
+    return "Domain name is required.";
+  }
+  if (/\s/.test(trimmed)) {
+    return "Domain name must not contain spaces.";
+  }
+  const cleaned = trimmed.replace(/^https?:\/\//i, "").replace(/\/.*$/, "");
+  if (
+    !/^[a-zA-Z0-9.-]+$/.test(cleaned) ||
+    (!cleaned.includes(".") && cleaned !== "localhost")
+  ) {
+    return "Invalid domain name (e.g. example.com or lsho.cc).";
+  }
+  return "";
+}
+
+function checkSlugFormat(val: string): string {
+  const trimmed = val.trim();
+  if (!trimmed) {
+    return "Custom slug is required.";
+  }
+  if (trimmed.length < 2) {
+    return "Slug must be at least 2 characters.";
+  }
+  if (!/^[a-zA-Z0-9-_]+$/.test(trimmed)) {
+    return "Slug can only contain letters, numbers, hyphens, and underscores.";
+  }
+  if (RESERVED_SLUGS.has(trimmed.toLowerCase())) {
+    return `The slug '${trimmed}' is reserved and cannot be used.`;
+  }
+  return "";
+}
+
+function checkPasswordFormat(val: string): string {
+  if (!val) return "";
+  if (val.length < 4) {
+    return "Password must be at least 4 characters.";
+  }
+  return "";
+}
+
+function checkMaxClicksFormat(val: number | string, enabled: boolean): string {
+  if (!enabled) return "";
+  const num = Number(val);
+  if (!val || isNaN(num) || num <= 0) {
+    return "Maximum clicks limit must be greater than 0.";
+  }
+  return "";
+}
+
+function checkExpiresAtFormat(val: string): string {
+  if (!val) return "";
+  const expDate = new Date(val);
+  if (isNaN(expDate.getTime())) {
+    return "Invalid expiration date.";
+  }
+  if (expDate.getTime() <= Date.now()) {
+    return "Expiration date must be in the future.";
+  }
+  return "";
+}
 
 function parseTags(raw: any): string[] {
   if (!raw) return [];
@@ -56,6 +215,9 @@ function parseTags(raw: any): string[] {
   return [];
 }
 
+const useIsomorphicLayoutEffect =
+  typeof window !== "undefined" ? useLayoutEffect : useEffect;
+
 export function LinkDrawer({
   isOpen,
   onClose,
@@ -65,15 +227,29 @@ export function LinkDrawer({
   onSuccess,
   linksCount,
 }: LinkDrawerProps) {
+  const drawerFormId = useId();
   const isEditMode = mode === "edit" || Boolean(link);
 
   const { data: session } = useSession();
   const sessionUserId = session?.user?.id;
   const sessionEmail = session?.user?.email || "";
 
+  // Defer Convex subscription until after the 220ms open slide settles (and skip when closed)
+  // so idle drawers consume zero subscriptions and open animations never suffer mid-slide re-renders.
+  const [isConvexQueryActive, setIsConvexQueryActive] = useState(false);
+  useEffect(() => {
+    if (!isOpen) {
+      setIsConvexQueryActive(false);
+      return;
+    }
+    const t = setTimeout(() => setIsConvexQueryActive(true), 260);
+    return () => clearTimeout(t);
+  }, [isOpen]);
+
   const convexUser = useQuery(
     api.users.getCurrentUser,
-    (sessionUserId && sessionUserId !== "usr_anonymous") || sessionEmail
+    isConvexQueryActive &&
+      ((sessionUserId && sessionUserId !== "usr_anonymous") || sessionEmail)
       ? { userId: sessionUserId || sessionEmail, email: sessionEmail || undefined }
       : "skip",
   );
@@ -91,13 +267,24 @@ export function LinkDrawer({
     undefined;
 
   const userId = effectiveUserId;
-  const userEmail = effectiveUserEmail || "";
 
   const [runtimePlan, setRuntimePlan] = useState<string | null>(null);
+  const [cachedStoragePlan, setCachedStoragePlan] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const savedPlan = localStorage.getItem("lshorter_user_plan");
+      if (savedPlan) setCachedStoragePlan(savedPlan.toUpperCase());
+    } catch {}
+  }, []);
 
   useEffect(() => {
     if (typeof window !== "undefined" && convexUser?.plan) {
-      localStorage.setItem("lshorter_user_plan", convexUser.plan.toUpperCase());
+      const upper = convexUser.plan.toUpperCase();
+      setCachedStoragePlan(upper);
+      try {
+        localStorage.setItem("lshorter_user_plan", upper);
+      } catch {}
     }
   }, [convexUser?.plan]);
 
@@ -105,7 +292,9 @@ export function LinkDrawer({
     const handlePlanUpdated = (e: Event) => {
       const detail = (e as CustomEvent)?.detail;
       if (detail?.plan) {
-        setRuntimePlan(String(detail.plan).toUpperCase());
+        const upper = String(detail.plan).toUpperCase();
+        setRuntimePlan(upper);
+        setCachedStoragePlan(upper);
       }
     };
     window.addEventListener("lshorter_plan_updated", handlePlanUpdated);
@@ -116,9 +305,7 @@ export function LinkDrawer({
     runtimePlan ||
     convexUser?.plan ||
     (session?.user as any)?.plan ||
-    (typeof window !== "undefined"
-      ? localStorage.getItem("lshorter_user_plan")
-      : null) ||
+    cachedStoragePlan ||
     "FREE"
   ).toUpperCase();
 
@@ -133,96 +320,123 @@ export function LinkDrawer({
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const scrollContainerRef = useRef<HTMLFormElement>(null);
   const tabsNavRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLElement>(null);
 
   const { triggerUndoDelete } = useUndoDelete();
 
   const [mounted, setMounted] = useState(false);
+  const [portalReady, setPortalReady] = useState(false);
+  const [isBodyWarm, setIsBodyWarm] = useState(isOpen);
+  const [isShadowActive, setIsShadowActive] = useState(isOpen);
+
+  // Pre-mount portal shell on client and warm up initial tab DOM in idle time
+  // so clicking to open transitions immediately on Frame 1 (<16ms) with zero cold-mount cost.
   useEffect(() => {
     setMounted(true);
-  }, []);
+    const rAF = requestAnimationFrame(() => {
+      setPortalReady(true);
+    });
+    const ric =
+      typeof window !== "undefined" && "requestIdleCallback" in window
+        ? (window as any).requestIdleCallback(() => setIsBodyWarm(true), {
+            timeout: 400,
+          })
+        : setTimeout(() => setIsBodyWarm(true), 220);
 
-  const [shouldRender, setShouldRender] = useState(isOpen);
-  const [isVisible, setIsVisible] = useState(false);
+    return () => {
+      cancelAnimationFrame(rAF);
+      if (typeof window !== "undefined" && "cancelIdleCallback" in window) {
+        (window as any).cancelIdleCallback(ric);
+      } else {
+        clearTimeout(ric);
+      }
+    };
+  }, []);
 
   // Active Tab state
   const [activeTab, setActiveTab] = useState<DrawerTabId>("link");
 
-  // Hardware-accelerated CSS transition lifecycle
+  // Hardware-accelerated CSS transition lifecycle (pure state, zero close delay timers)
   useEffect(() => {
-    let rAF1: number;
-    let rAF2: number;
-    let timer: NodeJS.Timeout;
-
-    if (isOpen) {
-      setShouldRender(true);
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(new CustomEvent("lshorter_drawer_opened"));
-      }
-      rAF1 = requestAnimationFrame(() => {
-        rAF2 = requestAnimationFrame(() => {
-          setIsVisible(true);
-        });
-      });
-    } else {
-      setIsVisible(false);
-      timer = setTimeout(() => {
-        setShouldRender(false);
-      }, 280);
+    if (!isOpen) return;
+    setIsBodyWarm(true);
+    setIsShadowActive(true);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("lshorter_drawer_opened"));
     }
+    // Preload secondary tab chunks right after the 220ms slide-in completes
+    const preloadTimer = setTimeout(() => {
+      preloadSecondaryDrawerTabs();
+    }, 260);
 
     return () => {
-      cancelAnimationFrame(rAF1);
-      cancelAnimationFrame(rAF2);
-      clearTimeout(timer);
+      clearTimeout(preloadTimer);
     };
   }, [isOpen]);
 
-  const handleAnimatedClose = React.useCallback(() => {
-    setIsVisible(false);
-    setTimeout(() => {
-      setShouldRender(false);
-      onClose();
-    }, 260);
-  }, [onClose]);
+  const isShown = isOpen && portalReady;
+  const shouldRenderBody = isBodyWarm || isOpen;
 
-  // Listen for Escape key to smoothly close drawer
+  // Listen for Escape key and trap Tab focus inside the open dialog panel
   useEffect(() => {
     if (!isOpen) return;
-    const handleEscKey = (e: KeyboardEvent) => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
         e.stopPropagation();
-        handleAnimatedClose();
+        onClose();
+        return;
+      }
+      if (e.key === "Tab" && panelRef.current) {
+        const focusables = panelRef.current.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        );
+        if (focusables.length === 0) return;
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        const active = document.activeElement as HTMLElement | null;
+        if (e.shiftKey) {
+          if (!panelRef.current.contains(active) || active === first) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else if (!panelRef.current.contains(active) || active === last) {
+          e.preventDefault();
+          first.focus();
+        }
       }
     };
-    window.addEventListener("keydown", handleEscKey);
-    return () => window.removeEventListener("keydown", handleEscKey);
-  }, [isOpen, handleAnimatedClose]);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
 
-  // Smooth scroll container to top when changing tabs
+  // Reset scroll position when switching tabs without triggering layout thrashing on initial open
   useEffect(() => {
-    if (!scrollContainerRef.current) return;
-    scrollContainerRef.current.scrollTop = 0;
-  }, [activeTab]);
-
-  // Ensure active tab button scrolls into view on mobile
-  useEffect(() => {
-    const el = tabsNavRef.current;
-    if (el) {
-      const activeBtn = el.querySelector<HTMLButtonElement>('[data-active="true"]');
-      if (activeBtn) {
-        activeBtn.scrollIntoView({
-          behavior: "smooth",
-          block: "nearest",
-          inline: "nearest",
-        });
-      }
+    if (!isOpen) return;
+    const scroller = scrollContainerRef.current;
+    if (scroller && scroller.scrollTop !== 0) {
+      scroller.scrollTop = 0;
     }
-  }, [activeTab]);
+    const nav = tabsNavRef.current;
+    if (!nav) return;
+    if (activeTab === "link") {
+      if (nav.scrollLeft !== 0) nav.scrollLeft = 0;
+      return;
+    }
+    const activeBtn = nav.querySelector<HTMLButtonElement>('[data-active="true"]');
+    if (activeBtn && nav.scrollWidth > nav.clientWidth) {
+      const targetLeft =
+        activeBtn.offsetLeft - nav.clientWidth / 2 + activeBtn.offsetWidth / 2;
+      nav.scrollTo({
+        left: Math.max(0, targetLeft),
+        behavior: "smooth",
+      });
+    }
+  }, [activeTab, isOpen]);
 
   // 1. General Link inputs
   const [targetUrl, setTargetUrl] = useState("");
-  const [domainName, setDomainName] = useState("");
+  const [domainName, setDomainName] = useState("lsho.cc");
   const [slug, setSlug] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [tagsInput, setTagsInput] = useState("");
@@ -242,6 +456,10 @@ export function LinkDrawer({
     "x" | "facebook" | "whatsapp" | "linkedin"
   >("x");
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const rawUploadedBannerFileRef = useRef<File | null>(null);
+  const originalEditOgImageRef = useRef<string>("");
+  const originalEditCardRef = useRef<"summary_large_image" | "summary">("summary_large_image");
+  const bannerCropReqIdRef = useRef(0);
 
   // 3. Tracking & UTM
   const [utmSource, setUtmSource] = useState("");
@@ -290,7 +508,7 @@ export function LinkDrawer({
   const [, setHasAttemptedSubmit] = useState(false);
 
   // Dynamically retrieve user's custom domains and retargeting pixels from Cloudflare API
-  // Defer slightly past the 280ms slide-in transition to eliminate mid-animation re-render jank
+  // Deferred past the 220ms slide-in transition to eliminate mid-animation re-render jank
   useEffect(() => {
     if (userId && userId !== "usr_anonymous" && isOpen) {
       const timer = setTimeout(() => {
@@ -312,363 +530,332 @@ export function LinkDrawer({
             setAvailablePixels(list);
           })
           .catch(() => {});
-      }, 300);
+      }, 260);
 
       return () => clearTimeout(timer);
     }
   }, [userId, isOpen]);
 
+  // Synchronously batch form initialization before browser paint (React 19 batches all updates in useLayoutEffect into 1 commit)
   const initializedKeyRef = useRef<string | null>(null);
-
-  // Initialize or reset form based on mode and link
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     if (!isOpen) {
       initializedKeyRef.current = null;
       return;
     }
 
-    const currentKey =
+    const currentInitKey =
       isEditMode && link
-        ? (link.id || link.slug || "edit_link")
+        ? `edit_${link.id || link.slug || "edit_link"}`
         : `create_${initialUrl || ""}`;
-    if (initializedKeyRef.current === currentKey) {
+
+    if (initializedKeyRef.current === currentInitKey) {
       return;
     }
-    initializedKeyRef.current = currentKey;
+    initializedKeyRef.current = currentInitKey;
+      if (isEditMode && link) {
+        setTargetUrl(link.targetUrl || "");
+        setDomainName(link.domainName || "");
+        setSlug(link.slug || "");
+        const expTime = (link as any).expires_at || (link as any).expiresAt;
+        const isExp = Boolean(
+          expTime && new Date(expTime).getTime() <= Date.now(),
+        );
+        setIsActive(
+          !isExp && link.isActive !== false && (link as any).is_active !== 0,
+        );
+        setTagsInput(parseTags(link.tags ?? (link as any).tags).join(", "));
 
-    if (isEditMode && link) {
-      setTargetUrl(link.targetUrl || "");
-      setDomainName(link.domainName || "");
-      setSlug(link.slug || "");
-      const expTime = (link as any).expires_at || (link as any).expiresAt;
-      const isExp = Boolean(expTime && new Date(expTime).getTime() <= Date.now());
-      setIsActive(!isExp && link.isActive !== false && (link as any).is_active !== 0);
-      setTagsInput(parseTags(link.tags ?? (link as any).tags).join(", "));
+        setOgTitle(
+          link.ogTitle || link.metaTitle || (link as any).og_title || "",
+        );
+        setOgDescription(
+          link.ogDescription || (link as any).og_description || "",
+        );
+        const initialLinkOgImg = link.ogImage || (link as any).og_image || "";
+        setOgImage(initialLinkOgImg);
+        setPreviewImage("");
+        rawUploadedBannerFileRef.current = null;
+        bannerCropReqIdRef.current += 1;
+        const rawCard = link.twitterCard || (link as any).twitter_card;
+        const rawStyle =
+          (link as any).bannerStyle || (link as any).banner_style;
+        const isLarge =
+          rawCard === "summary_large_image" || rawStyle === "large_banner";
+        const isDefault =
+          (rawCard === "summary" || rawStyle === "default_banner") && !isLarge;
+        const initialCard = isDefault ? "summary" : "summary_large_image";
+        setTwitterCard(initialCard);
+        originalEditOgImageRef.current = initialLinkOgImg;
+        originalEditCardRef.current = initialCard;
 
-      setOgTitle(link.ogTitle || link.metaTitle || (link as any).og_title || "");
-      setOgDescription(link.ogDescription || (link as any).og_description || "");
-      setOgImage(link.ogImage || (link as any).og_image || "");
-      setPreviewImage("");
-      const rawCard = link.twitterCard || (link as any).twitter_card;
-      const rawStyle =
-        (link as any).bannerStyle || (link as any).banner_style;
-      const isLarge =
-        rawCard === "summary_large_image" || rawStyle === "large_banner";
-      const isDefault =
-        (rawCard === "summary" || rawStyle === "default_banner") && !isLarge;
-      setTwitterCard(isDefault ? "summary" : "summary_large_image");
+        let parsedRules: RoutingRule[] = [];
+        const rawRoutingRules =
+          link.routingRules || (link as any).routing_rules;
+        if (rawRoutingRules) {
+          try {
+            parsedRules =
+              typeof rawRoutingRules === "string"
+                ? JSON.parse(rawRoutingRules)
+                : rawRoutingRules;
+          } catch {
+            parsedRules = [];
+          }
+        } else if (
+          link.geoTargeting ||
+          (link as any).geo_targeting ||
+          link.deviceTargeting ||
+          (link as any).device_targeting
+        ) {
+          try {
+            const rawGeo = link.geoTargeting || (link as any).geo_targeting;
+            const rawDev =
+              link.deviceTargeting || (link as any).device_targeting;
+            const geoObj =
+              typeof rawGeo === "string" ? JSON.parse(rawGeo) : rawGeo;
+            const devObj =
+              typeof rawDev === "string" ? JSON.parse(rawDev) : rawDev;
 
-      // Parse routing rules
-      let parsedRules: RoutingRule[] = [];
-      const rawRoutingRules = link.routingRules || (link as any).routing_rules;
-      if (rawRoutingRules) {
-        try {
-          parsedRules =
-            typeof rawRoutingRules === "string"
-              ? JSON.parse(rawRoutingRules)
-              : rawRoutingRules;
-        } catch {
-          parsedRules = [];
-        }
-      } else if (
-        link.geoTargeting ||
-        (link as any).geo_targeting ||
-        link.deviceTargeting ||
-        (link as any).device_targeting
-      ) {
-        const rawGeo = link.geoTargeting || (link as any).geo_targeting;
-        const rawDev = link.deviceTargeting || (link as any).device_targeting;
-        const geoObj = typeof rawGeo === "string" ? JSON.parse(rawGeo) : rawGeo;
-        const devObj = typeof rawDev === "string" ? JSON.parse(rawDev) : rawDev;
-
-        if (geoObj && typeof geoObj === "object") {
-          Object.entries(geoObj).forEach(([country, url], idx) => {
-            if (url) {
-              parsedRules.push({
-                id: `geo_${idx}`,
-                title: `Routing ${country}`,
-                isCollapsed: false,
-                conditions: [
-                  {
-                    id: `c_geo_${idx}`,
-                    type: "pays",
-                    operator: "est",
-                    value: country,
-                  },
-                ],
-                destinationUrl: String(url),
+            if (geoObj && typeof geoObj === "object") {
+              Object.entries(geoObj).forEach(([country, url], idx) => {
+                if (url) {
+                  parsedRules.push({
+                    id: `geo_${idx}`,
+                    title: `Routing ${country}`,
+                    isCollapsed: false,
+                    conditions: [
+                      {
+                        id: `c_geo_${idx}`,
+                        type: "pays",
+                        operator: "est",
+                        value: country,
+                      },
+                    ],
+                    destinationUrl: String(url),
+                  });
+                }
               });
             }
-          });
-        }
-        if (devObj && typeof devObj === "object") {
-          Object.entries(devObj).forEach(([device, url], idx) => {
-            if (url) {
-              parsedRules.push({
-                id: `dev_${idx}`,
-                title: `Routing ${device}`,
-                isCollapsed: false,
-                conditions: [
-                  {
-                    id: `c_dev_${idx}`,
-                    type: "appareil",
-                    operator: "est",
-                    value: device,
-                  },
-                ],
-                destinationUrl: String(url),
+            if (devObj && typeof devObj === "object") {
+              Object.entries(devObj).forEach(([device, url], idx) => {
+                if (url) {
+                  parsedRules.push({
+                    id: `dev_${idx}`,
+                    title: `Routing ${device}`,
+                    isCollapsed: false,
+                    conditions: [
+                      {
+                        id: `c_dev_${idx}`,
+                        type: "appareil",
+                        operator: "est",
+                        value: device,
+                      },
+                    ],
+                    destinationUrl: String(url),
+                  });
+                }
               });
             }
-          });
+          } catch {}
         }
-      }
-      setRoutingRules(Array.isArray(parsedRules) ? parsedRules : []);
+        setRoutingRules(Array.isArray(parsedRules) ? parsedRules : []);
 
-      setPassword(link.password || (link as any).password_plain || "");
-      setIsCloaked(Boolean(link.isCloaked || (link as any).is_cloaked));
-      setHideReferrer(
-        Boolean(
-          link.hideReferrer !== undefined
-            ? link.hideReferrer
-            : (link as any).hide_referrer,
-        ),
-      );
-      setExpiresAt(
-        link.expiresAt || (link as any).expires_at
-          ? String(link.expiresAt || (link as any).expires_at).substring(0, 16)
-          : "",
-      );
-
-      const hasClicks = Boolean(
-        (link.maxClicks && link.maxClicks > 0) ||
-          ((link as any).max_clicks && (link as any).max_clicks > 0),
-      );
-      setHasClickLimit(hasClicks);
-      setMaxClicks(
-        link.maxClicks !== undefined && link.maxClicks !== null
-          ? link.maxClicks
-          : (link as any).max_clicks !== undefined &&
-              (link as any).max_clicks !== null
-            ? (link as any).max_clicks
+        setPassword(link.password || (link as any).password_plain || "");
+        setIsCloaked(Boolean(link.isCloaked || (link as any).is_cloaked));
+        setHideReferrer(
+          Boolean(
+            link.hideReferrer !== undefined
+              ? link.hideReferrer
+              : (link as any).hide_referrer,
+          ),
+        );
+        setExpiresAt(
+          link.expiresAt || (link as any).expires_at
+            ? String(link.expiresAt || (link as any).expires_at).substring(
+                0,
+                16,
+              )
             : "",
-      );
-      setFallbackUrl(link.fallbackUrl || (link as any).fallback_url || "");
-      setPathLockMode(
-        (link.pathLockMode ||
-          (link as any).path_lock_mode ||
-          "off") as "off" | "strict" | "funnel",
-      );
-      setPathLockPrefix(
-        link.pathLockPrefix || (link as any).path_lock_prefix || "",
-      );
-      setPathLockMessage(
-        link.pathLockMessage || (link as any).path_lock_message || "",
-      );
-      setPathLockPassword(
-        link.pathLockPassword || (link as any).path_lock_password || "",
-      );
+        );
 
-      // A/B testing
-      const rawVars =
-        (link as any).abVariations || (link as any).ab_variations;
-      if (rawVars) {
-        const parsedVars =
-          typeof rawVars === "string" ? JSON.parse(rawVars) : rawVars;
-        const finalVars = Array.isArray(parsedVars) ? parsedVars : [];
-        setAbVariations(finalVars);
-        const weightVal =
-          (link as any).mainWeight ?? (link as any).main_weight;
-        setMainWeight(
-          weightVal !== undefined
-            ? Number(weightVal)
-            : finalVars.length > 0
-              ? 50
-              : 100,
+        const hasClicks = Boolean(
+          (link.maxClicks && link.maxClicks > 0) ||
+            ((link as any).max_clicks && (link as any).max_clicks > 0),
+        );
+        setHasClickLimit(hasClicks);
+        setMaxClicks(
+          link.maxClicks !== undefined && link.maxClicks !== null
+            ? link.maxClicks
+            : (link as any).max_clicks !== undefined &&
+                (link as any).max_clicks !== null
+              ? (link as any).max_clicks
+              : "",
+        );
+        setFallbackUrl(link.fallbackUrl || (link as any).fallback_url || "");
+        setPathLockMode(
+          (link.pathLockMode ||
+            (link as any).path_lock_mode ||
+            "off") as "off" | "strict" | "funnel",
+        );
+        setPathLockPrefix(
+          link.pathLockPrefix || (link as any).path_lock_prefix || "",
+        );
+        setPathLockMessage(
+          link.pathLockMessage || (link as any).path_lock_message || "",
+        );
+        setPathLockPassword(
+          link.pathLockPassword || (link as any).path_lock_password || "",
+        );
+
+        const rawVars =
+          (link as any).abVariations || (link as any).ab_variations;
+        if (rawVars) {
+          let parsedVars: any = [];
+          try {
+            parsedVars =
+              typeof rawVars === "string" ? JSON.parse(rawVars) : rawVars;
+          } catch {
+            parsedVars = [];
+          }
+          const finalVars = Array.isArray(parsedVars) ? parsedVars : [];
+          setAbVariations(finalVars);
+          const weightVal =
+            (link as any).mainWeight ?? (link as any).main_weight;
+          setMainWeight(
+            weightVal !== undefined
+              ? Number(weightVal)
+              : finalVars.length > 0
+                ? 50
+                : 100,
+          );
+        } else {
+          setAbVariations([]);
+          setMainWeight(100);
+        }
+
+        setRedirectType(
+          (link as any).redirectType || (link as any).redirect_type || "302",
+        );
+        setPassParams(
+          (link as any).passParams !== undefined
+            ? Boolean((link as any).passParams)
+            : (link as any).pass_params !== undefined
+              ? Boolean((link as any).pass_params)
+              : true,
+        );
+
+        try {
+          const urlObj = new URL(link.targetUrl);
+          setUtmSource(urlObj.searchParams.get("utm_source") || "");
+          setUtmMedium(urlObj.searchParams.get("utm_medium") || "");
+          setUtmCampaign(urlObj.searchParams.get("utm_campaign") || "");
+          setUtmTerm(urlObj.searchParams.get("utm_term") || "");
+          setUtmContent(urlObj.searchParams.get("utm_content") || "");
+        } catch {
+          setUtmSource("");
+          setUtmMedium("");
+          setUtmCampaign("");
+          setUtmTerm("");
+          setUtmContent("");
+        }
+
+        const initialPixels =
+          (link as any).pixels ||
+          (link as any).pixel_ids ||
+          (link as any).pixelIds ||
+          [];
+        setSelectedPixels(
+          Array.isArray(initialPixels)
+            ? initialPixels.map((p: any) =>
+                typeof p === "string" ? p : p.id || p.platform || String(p),
+              )
+            : [],
         );
       } else {
-        setAbVariations([]);
+        setTargetUrl(initialUrl || "");
+        setDomainName("lsho.cc");
+        setSlug("");
+        setIsActive(true);
+        setTagsInput("");
+        setOgTitle("");
+        setOgDescription("");
+        setOgImage("");
+        setTwitterCard("summary_large_image");
+        setSocialPlatformPreview("x");
+        setPreviewImage("");
+        rawUploadedBannerFileRef.current = null;
+        originalEditOgImageRef.current = "";
+        originalEditCardRef.current = "summary_large_image";
+        bannerCropReqIdRef.current += 1;
+        setSelectedPixels([]);
+        setRoutingRules([]);
+        setHideReferrer(false);
+        setIsCloaked(false);
+        setPassword("");
+        setShowPassword(false);
+        setHasClickLimit(false);
+        setMaxClicks("");
+        setFallbackUrl("");
+        setExpiresAt("");
+        setPathLockMode("off");
+        setPathLockPrefix("");
+        setPathLockMessage("");
+        setPathLockPassword("");
         setMainWeight(100);
+        setAbVariations([]);
+        setRedirectType("302");
+        setPassParams(true);
+        setUtmSource("");
+        setUtmMedium("");
+        setUtmCampaign("");
+        setUtmTerm("");
+        setUtmContent("");
       }
 
-      // Advanced
-      setRedirectType(
-        (link as any).redirectType || (link as any).redirect_type || "302",
-      );
-      setPassParams(
-        (link as any).passParams !== undefined
-          ? Boolean((link as any).passParams)
-          : (link as any).pass_params !== undefined
-            ? Boolean((link as any).pass_params)
-            : true,
-      );
-
-      // Extract existing UTM if present in targetUrl
-      try {
-        const urlObj = new URL(link.targetUrl);
-        setUtmSource(urlObj.searchParams.get("utm_source") || "");
-        setUtmMedium(urlObj.searchParams.get("utm_medium") || "");
-        setUtmCampaign(urlObj.searchParams.get("utm_campaign") || "");
-        setUtmTerm(urlObj.searchParams.get("utm_term") || "");
-        setUtmContent(urlObj.searchParams.get("utm_content") || "");
-      } catch {}
-
-      const initialPixels =
-        (link as any).pixels ||
-        (link as any).pixel_ids ||
-        (link as any).pixelIds ||
-        [];
-      setSelectedPixels(
-        Array.isArray(initialPixels)
-          ? initialPixels.map((p: any) =>
-              typeof p === "string" ? p : p.id || p.platform || String(p)
-            )
-          : []
-      );
-    } else {
-      // Create mode reset
-      setTargetUrl(initialUrl || "");
-      setDomainName("lsho.cc");
-      setSlug("");
-      setIsActive(true);
-      setTagsInput("");
-      setOgTitle("");
-      setOgDescription("");
-      setOgImage("");
-      setTwitterCard("summary_large_image");
-      setSocialPlatformPreview("x");
-      setPreviewImage("");
-      setSelectedPixels([]);
-      setRoutingRules([]);
-      setHideReferrer(false);
-      setIsCloaked(false);
-      setPassword("");
-      setShowPassword(false);
-      setHasClickLimit(false);
-      setMaxClicks("");
-      setFallbackUrl("");
-      setExpiresAt("");
-      setPathLockMode("off");
-      setPathLockPrefix("");
-      setPathLockMessage("");
-      setPathLockPassword("");
-      setMainWeight(100);
-      setAbVariations([]);
-      setRedirectType("302");
-      setPassParams(true);
-      setUtmSource("");
-      setUtmMedium("");
-      setUtmCampaign("");
-      setUtmTerm("");
-      setUtmContent("");
-    }
-
-    setFieldErrors({});
-    setHasAttemptedSubmit(false);
-    setActiveTab("link");
+      setFieldErrors({});
+      setHasAttemptedSubmit(false);
+      setActiveTab("link");
   }, [isOpen, isEditMode, link, initialUrl]);
 
-  // Validation functions
-  const checkUrlFormat = (val: string, isRequired = true): string => {
-    const trimmed = val.trim();
-    if (!trimmed) {
-      return isRequired ? "Destination URL is required." : "";
+  const uploadCompressedBannerFromSource = async (
+    source: File | Blob | string,
+    targetCard: "summary_large_image" | "summary",
+    reqId: number
+  ) => {
+    const targetW = targetCard === "summary" ? 600 : 1200;
+    const targetH = targetCard === "summary" ? 600 : 630;
+    const compressed = await compressImageFile(source, targetW, targetH, 0.86);
+    if (bannerCropReqIdRef.current !== reqId) return;
+
+    let dataUrl = "";
+    if (typeof compressed === "string") {
+      dataUrl = compressed;
+    } else {
+      const reader = new FileReader();
+      dataUrl = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(compressed);
+      });
     }
-    if (/\s/.test(trimmed)) {
-      return "URL must not contain spaces.";
+    if (bannerCropReqIdRef.current !== reqId) return;
+
+    setPreviewImage(dataUrl);
+    const uploadRes = await cfUploadImage(dataUrl, "Banners", {
+      maxWidth: targetW,
+      maxHeight: targetH,
+      skipCompress: true,
+    });
+    if (bannerCropReqIdRef.current !== reqId) return;
+
+    if (uploadRes?.url) {
+      setOgImage(uploadRes.url);
+    } else {
+      setOgImage(dataUrl);
     }
-    if (/^(javascript|data|vbscript|file|blob|ftp|about):/i.test(trimmed)) {
-      return "Invalid URL scheme. Only HTTP and HTTPS protocols are permitted.";
-    }
-    if (trimmed.includes("169.254.169.254") || trimmed.includes("metadata.google.internal") || trimmed.includes("100.100.100.200")) {
-      return "Internal or cloud metadata addresses are not permitted.";
-    }
-    const withProto = /^https?:\/\//i.test(trimmed)
-      ? trimmed
-      : `https://${trimmed}`;
-    try {
-      const urlObj = new URL(withProto);
-      if (
-        !urlObj.hostname ||
-        (!urlObj.hostname.includes(".") && urlObj.hostname !== "localhost") ||
-        urlObj.hostname.startsWith(".") ||
-        urlObj.hostname.endsWith(".")
-      ) {
-        return "Invalid domain name (e.g. https://example.com).";
-      }
-    } catch {
-      return "Invalid URL format. Expected: https://example.com/page";
-    }
-    return "";
   };
 
-  const checkDomainFormat = (val: string): string => {
-    const trimmed = val.trim();
-    if (!trimmed) {
-      return "Domain name is required.";
-    }
-    if (/\s/.test(trimmed)) {
-      return "Domain name must not contain spaces.";
-    }
-    const cleaned = trimmed.replace(/^https?:\/\//i, "").replace(/\/.*$/, "");
-    if (
-      !/^[a-zA-Z0-9.-]+$/.test(cleaned) ||
-      (!cleaned.includes(".") && cleaned !== "localhost")
-    ) {
-      return "Invalid domain name (e.g. example.com or lsho.cc).";
-    }
-    return "";
-  };
-
-  const checkSlugFormat = (val: string): string => {
-    const trimmed = val.trim();
-    if (!trimmed) {
-      return "Custom slug is required.";
-    }
-    if (trimmed.length < 2) {
-      return "Slug must be at least 2 characters.";
-    }
-    if (!/^[a-zA-Z0-9-_]+$/.test(trimmed)) {
-      return "Slug can only contain letters, numbers, hyphens, and underscores.";
-    }
-    if (RESERVED_SLUGS.has(trimmed.toLowerCase())) {
-      return `The slug '${trimmed}' is reserved and cannot be used.`;
-    }
-    return "";
-  };
-
-  const checkPasswordFormat = (val: string): string => {
-    if (!val) return "";
-    if (val.length < 4) {
-      return "Password must be at least 4 characters.";
-    }
-    return "";
-  };
-
-  const checkMaxClicksFormat = (
-    val: number | string,
-    enabled: boolean,
-  ): string => {
-    if (!enabled) return "";
-    const num = Number(val);
-    if (!val || isNaN(num) || num <= 0) {
-      return "Maximum clicks limit must be greater than 0.";
-    }
-    return "";
-  };
-
-  const checkExpiresAtFormat = (val: string): string => {
-    if (!val) return "";
-    const expDate = new Date(val);
-    if (isNaN(expDate.getTime())) {
-      return "Invalid expiration date.";
-    }
-    if (expDate.getTime() <= Date.now()) {
-      return "Expiration date must be in the future.";
-    }
-    return "";
-  };
-
-  // Instant Banner Upload Handler
+  // Instant Banner Upload Handler (preserves user's Large vs Compact selection)
   const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -682,39 +869,97 @@ export function LinkDrawer({
       return;
     }
 
+    const reqId = ++bannerCropReqIdRef.current;
+    rawUploadedBannerFileRef.current = file;
+
     try {
       setIsUploadingImage(true);
-      const compressed = await compressImageFile(file, 1200, 630, 0.85);
-
-      let dataUrl = "";
-      if (typeof compressed === "string") {
-        dataUrl = compressed;
-      } else {
-        const reader = new FileReader();
-        dataUrl = await new Promise<string>((resolve, reject) => {
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(compressed);
-        });
+      await uploadCompressedBannerFromSource(file, twitterCard, reqId);
+      if (bannerCropReqIdRef.current === reqId) {
+        showToast.success("Banner uploaded successfully!");
       }
-
-      setPreviewImage(dataUrl);
-
-      const uploadRes = await cfUploadImage(dataUrl, "Banners");
-      if (uploadRes?.url) {
-        setOgImage(uploadRes.url);
-      } else {
-        setOgImage(dataUrl);
-      }
-
-      setTwitterCard("summary_large_image");
-      showToast.success("Banner uploaded successfully!");
     } catch (err) {
       console.error("Banner upload error:", err);
       showToast.error("Error uploading banner image.");
     } finally {
-      setIsUploadingImage(false);
+      if (bannerCropReqIdRef.current === reqId) {
+        setIsUploadingImage(false);
+      }
       if (bannerInputRef.current) bannerInputRef.current.value = "";
+    }
+  };
+
+  // Switch between Large (1200x630) and Compact (600x600) banner formats cleanly
+  const handleTwitterCardChange = async (
+    nextCard: "summary_large_image" | "summary"
+  ) => {
+    if (nextCard === twitterCard) return;
+    setTwitterCard(nextCard);
+
+    if (
+      nextCard === "summary" &&
+      ogImage &&
+      (ogImage.includes("/api/og") || ogImage.includes("/banners/og"))
+    ) {
+      setOgImage("");
+      setPreviewImage("");
+      return;
+    }
+
+    const reqId = ++bannerCropReqIdRef.current;
+
+    // Case 1: User uploaded a fresh file during this drawer session -> re-crop from original File
+    if (rawUploadedBannerFileRef.current) {
+      try {
+        setIsUploadingImage(true);
+        await uploadCompressedBannerFromSource(
+          rawUploadedBannerFileRef.current,
+          nextCard,
+          reqId
+        );
+      } catch (err) {
+        console.warn("Banner format re-crop warning:", err);
+      } finally {
+        if (bannerCropReqIdRef.current === reqId) {
+          setIsUploadingImage(false);
+        }
+      }
+      return;
+    }
+
+    // Case 2: Editing an existing link with a saved custom banner
+    const origImg = originalEditOgImageRef.current;
+    if (
+      origImg &&
+      !origImg.includes("/api/og") &&
+      !origImg.includes("/banners/og") &&
+      !origImg.includes("default_banner")
+    ) {
+      if (nextCard === originalEditCardRef.current) {
+        setOgImage(origImg);
+        setPreviewImage("");
+        setIsUploadingImage(false);
+        return;
+      }
+      if (nextCard === "summary") {
+        try {
+          setIsUploadingImage(true);
+          const normalizedSrc = cfNormalizeImageUrl(origImg);
+          const res = await fetch(normalizedSrc);
+          if (res.ok && bannerCropReqIdRef.current === reqId) {
+            const blob = await res.blob();
+            if (bannerCropReqIdRef.current === reqId) {
+              await uploadCompressedBannerFromSource(blob, "summary", reqId);
+            }
+          }
+        } catch (err) {
+          console.warn("Existing banner compact crop fallback:", err);
+        } finally {
+          if (bannerCropReqIdRef.current === reqId) {
+            setIsUploadingImage(false);
+          }
+        }
+      }
     }
   };
 
@@ -1006,21 +1251,29 @@ export function LinkDrawer({
       .replace(/[^a-z0-9_-]/g, "");
 
     try {
-      let finalOgImage = (ogImage || previewImage || "").trim();
-      if (finalOgImage && finalOgImage.startsWith("data:")) {
-        const uploadRes = await cfUploadImage(finalOgImage, "Banners");
-        if (uploadRes?.url) {
-          finalOgImage = uploadRes.url;
-        }
-      }
-
       const isDefaultCard = twitterCard === "summary";
       const finalBannerStyle: "default_banner" | "large_banner" =
         isDefaultCard ? "default_banner" : "large_banner";
       const resolvedTwitterCard: "summary" | "summary_large_image" =
         isDefaultCard ? "summary" : "summary_large_image";
 
-      if (finalOgImage.includes("/api/og") || finalOgImage.includes("default_banner")) {
+      let finalOgImage = (ogImage || previewImage || "").trim();
+      if (finalOgImage && finalOgImage.startsWith("data:")) {
+        const uploadRes = await cfUploadImage(finalOgImage, "Banners", {
+          maxWidth: isDefaultCard ? 600 : 1200,
+          maxHeight: isDefaultCard ? 600 : 630,
+          skipCompress: true,
+        });
+        if (uploadRes?.url) {
+          finalOgImage = uploadRes.url;
+        }
+      }
+
+      if (
+        finalOgImage.includes("/api/og") ||
+        finalOgImage.includes("/banners/og") ||
+        finalOgImage.includes("default_banner")
+      ) {
         finalOgImage = "";
       }
 
@@ -1216,7 +1469,7 @@ export function LinkDrawer({
           window.dispatchEvent(new Event("lshorter_data_change"));
         }
 
-        confetti({
+        fireSuccessConfetti({
           particleCount: 50,
           spread: 60,
           origin: { y: 0.6 },
@@ -1466,7 +1719,7 @@ export function LinkDrawer({
           window.dispatchEvent(new Event("lshorter_data_change"));
         }
 
-        confetti({
+        fireSuccessConfetti({
           particleCount: 70,
           spread: 80,
           origin: { y: 0.6 },
@@ -1536,39 +1789,53 @@ export function LinkDrawer({
     if (activeTabIndex > 0) {
       setActiveTab(DRAWER_TABS[activeTabIndex - 1].id);
     } else {
-      handleAnimatedClose();
+      onClose();
     }
   };
 
-  if (!shouldRender && !isOpen) return null;
   if (!mounted) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[2000] overflow-hidden select-none">
-      {/* Scrim backdrop overlay with hardware-accelerated opacity fade */}
+    <div
+      inert={!isShown ? true : undefined}
+      aria-hidden={!isShown}
+      className={cn(
+        "fixed inset-0 z-[2000] overflow-hidden select-none",
+        isShown ? "pointer-events-auto" : "pointer-events-none",
+      )}
+    >
+      {/* Scrim backdrop overlay with pure GPU opacity fade (no full-viewport backdrop-blur shader) */}
       <div
-        onClick={handleAnimatedClose}
+        onClick={onClose}
         className={cn(
-          "fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-[2px] z-[2000] cursor-pointer",
-          "transition-opacity duration-260 ease-out",
-          isVisible ? "opacity-100" : "opacity-0 pointer-events-none"
+          "fixed inset-0 bg-black/45 dark:bg-black/70 z-[2000] cursor-pointer",
+          "will-change-[opacity] transition-opacity duration-200 ease-out",
+          isShown ? "opacity-100" : "opacity-0 pointer-events-none",
         )}
       />
 
-      {/* Drawer panel with buttery-smooth GPU accelerated slide transition */}
+      {/* Drawer panel with pre-mounted GPU layer and containment for instant <16ms slide */}
       <aside
+        ref={panelRef}
         role="dialog"
+        aria-modal={isShown || undefined}
         aria-label={isEditMode ? "Edit link" : "Create link"}
+        onTransitionEnd={(e) => {
+          if (e.target === e.currentTarget && !isShown) {
+            setIsShadowActive(false);
+          }
+        }}
         className={cn(
-          "fixed top-0 right-0 bottom-0 z-[2001] flex h-full flex-col shadow-2xl",
+          "fixed top-0 right-0 bottom-0 z-[2001] flex h-full flex-col [contain:layout_paint_style]",
           "w-full sm:w-[680px] md:w-[740px] lg:w-[780px] max-w-full",
           "bg-white dark:bg-[#0e0f12] text-[#131417] dark:text-[#f1f2f4]",
           "border-l border-[#e6e7ea] dark:border-[#22242a]",
-          "transform-gpu will-change-transform transition-transform duration-280",
-          isVisible ? "translate-x-0" : "translate-x-full"
+          "transform-gpu will-change-transform transition-transform duration-220",
+          (isShown || isShadowActive) && "shadow-2xl",
+          isShown ? "translate-x-0" : "translate-x-full",
         )}
         style={{
-          transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)",
+          transitionTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)",
         }}
       >
         {/* ── 1. MINIMALIST HEADER ── */}
@@ -1578,7 +1845,7 @@ export function LinkDrawer({
           </b>
           <button
             type="button"
-            onClick={handleAnimatedClose}
+            onClick={onClose}
             aria-label="Close"
             className="text-[#6c717c] dark:text-[#8a8f9a] hover:text-[#131417] dark:hover:text-[#f1f2f4] hover:bg-[#f4f5f7] dark:hover:bg-[#16181d] text-2xl leading-none px-2 py-0.5 rounded-[6px] transition-colors cursor-pointer"
           >
@@ -1671,7 +1938,7 @@ export function LinkDrawer({
         {/* ── 3. MAIN TABBED WORKSPACE ── */}
         <main className="flex-1 flex overflow-hidden relative">
           <form
-            id="link-drawer-form"
+            id={drawerFormId}
             autoComplete="off"
             data-lpignore="true"
             data-1p-ignore="true"
@@ -1681,7 +1948,7 @@ export function LinkDrawer({
             className="flex-1 overflow-y-auto px-6 py-5 drawer-scroll-hidden"
             style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
           >
-            {activeTab === "link" && (
+            {shouldRenderBody && activeTab === "link" && (
               <SectionLink
                 isEditMode={isEditMode}
                 targetUrl={targetUrl}
@@ -1701,146 +1968,165 @@ export function LinkDrawer({
               />
             )}
 
-            {activeTab === "social_tracking" && (
-              <SectionSocialTracking
-                slug={slug}
-                ogTitle={ogTitle}
-                setOgTitle={setOgTitle}
-                ogDescription={ogDescription}
-                setOgDescription={setOgDescription}
-                ogImage={ogImage}
-                setOgImage={setOgImage}
-                previewImage={previewImage}
-                setPreviewImage={setPreviewImage}
-                domainName={domainName}
-                socialPlatformPreview={socialPlatformPreview}
-                setSocialPlatformPreview={setSocialPlatformPreview}
-                twitterCard={twitterCard}
-                setTwitterCard={setTwitterCard}
-                bannerInputRef={bannerInputRef}
-                handleBannerUpload={handleBannerUpload}
-                isUploadingImage={isUploadingImage}
-                utmSource={utmSource}
-                setUtmSource={setUtmSource}
-                utmMedium={utmMedium}
-                setUtmMedium={setUtmMedium}
-                utmCampaign={utmCampaign}
-                setUtmCampaign={setUtmCampaign}
-                utmTerm={utmTerm}
-                setUtmTerm={setUtmTerm}
-                utmContent={utmContent}
-                setUtmContent={setUtmContent}
-                targetUrl={targetUrl}
-                computeFinalUrlWithUtm={computeFinalUrlWithUtm}
-                selectedPixels={selectedPixels}
-                setSelectedPixels={setSelectedPixels}
-                availablePixels={availablePixels}
-                isProPlan={isProPlan}
-              />
-            )}
+            {activeTab !== "link" && (
+              <Suspense
+                fallback={
+                  <div className="flex items-center justify-center py-14 text-zinc-400">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  </div>
+                }
+              >
+                {activeTab === "social_tracking" && (
+                  <SectionSocialTracking
+                    slug={slug}
+                    ogTitle={ogTitle}
+                    setOgTitle={setOgTitle}
+                    ogDescription={ogDescription}
+                    setOgDescription={setOgDescription}
+                    ogImage={ogImage}
+                    setOgImage={setOgImage}
+                    previewImage={previewImage}
+                    setPreviewImage={setPreviewImage}
+                    domainName={domainName}
+                    socialPlatformPreview={socialPlatformPreview}
+                    setSocialPlatformPreview={setSocialPlatformPreview}
+                    twitterCard={twitterCard}
+                    setTwitterCard={handleTwitterCardChange}
+                    onClearBanner={() => {
+                      rawUploadedBannerFileRef.current = null;
+                      originalEditOgImageRef.current = "";
+                      bannerCropReqIdRef.current += 1;
+                      setIsUploadingImage(false);
+                      setOgImage("");
+                      setPreviewImage("");
+                    }}
+                    bannerInputRef={bannerInputRef}
+                    handleBannerUpload={handleBannerUpload}
+                    isUploadingImage={isUploadingImage}
+                    utmSource={utmSource}
+                    setUtmSource={setUtmSource}
+                    utmMedium={utmMedium}
+                    setUtmMedium={setUtmMedium}
+                    utmCampaign={utmCampaign}
+                    setUtmCampaign={setUtmCampaign}
+                    utmTerm={utmTerm}
+                    setUtmTerm={setUtmTerm}
+                    utmContent={utmContent}
+                    setUtmContent={setUtmContent}
+                    targetUrl={targetUrl}
+                    computeFinalUrlWithUtm={computeFinalUrlWithUtm}
+                    selectedPixels={selectedPixels}
+                    setSelectedPixels={setSelectedPixels}
+                    availablePixels={availablePixels}
+                    isProPlan={isProPlan}
+                  />
+                )}
 
-            {activeTab === "routing" && (
-              <SectionRouting
-                routingRules={routingRules}
-                setRoutingRules={setRoutingRules}
-                isProPlan={isProPlan}
-                userPlan={userPlan}
-              />
-            )}
+                {activeTab === "routing" && (
+                  <SectionRouting
+                    routingRules={routingRules}
+                    setRoutingRules={setRoutingRules}
+                    isProPlan={isProPlan}
+                    userPlan={userPlan}
+                  />
+                )}
 
-            {activeTab === "protection" && (
-              <SectionProtectionExpiry
-                isProPlan={isProPlan}
-                password={password}
-                setPassword={setPassword}
-                showPassword={showPassword}
-                setShowPassword={setShowPassword}
-                isCloaked={isCloaked}
-                setIsCloaked={setIsCloaked}
-                hideReferrer={hideReferrer}
-                setHideReferrer={setHideReferrer}
-                hasClickLimit={hasClickLimit}
-                setHasClickLimit={setHasClickLimit}
-                maxClicks={maxClicks}
-                setMaxClicks={setMaxClicks}
-                fallbackUrl={fallbackUrl}
-                setFallbackUrl={setFallbackUrl}
-                expiresAt={expiresAt}
-                setExpiresAt={setExpiresAt}
-                pathLockMode={pathLockMode}
-                setPathLockMode={setPathLockMode}
-                pathLockPrefix={pathLockPrefix}
-                setPathLockPrefix={setPathLockPrefix}
-                pathLockMessage={pathLockMessage}
-                setPathLockMessage={setPathLockMessage}
-                pathLockPassword={pathLockPassword}
-                setPathLockPassword={setPathLockPassword}
-                targetUrl={targetUrl}
-                fieldErrors={fieldErrors}
-                setFieldErrors={setFieldErrors}
-                checkExpiresAtFormat={checkExpiresAtFormat}
-              />
-            )}
+                {activeTab === "protection" && (
+                  <SectionProtectionExpiry
+                    isProPlan={isProPlan}
+                    password={password}
+                    setPassword={setPassword}
+                    showPassword={showPassword}
+                    setShowPassword={setShowPassword}
+                    isCloaked={isCloaked}
+                    setIsCloaked={setIsCloaked}
+                    hideReferrer={hideReferrer}
+                    setHideReferrer={setHideReferrer}
+                    hasClickLimit={hasClickLimit}
+                    setHasClickLimit={setHasClickLimit}
+                    maxClicks={maxClicks}
+                    setMaxClicks={setMaxClicks}
+                    fallbackUrl={fallbackUrl}
+                    setFallbackUrl={setFallbackUrl}
+                    expiresAt={expiresAt}
+                    setExpiresAt={setExpiresAt}
+                    pathLockMode={pathLockMode}
+                    setPathLockMode={setPathLockMode}
+                    pathLockPrefix={pathLockPrefix}
+                    setPathLockPrefix={setPathLockPrefix}
+                    pathLockMessage={pathLockMessage}
+                    setPathLockMessage={setPathLockMessage}
+                    pathLockPassword={pathLockPassword}
+                    setPathLockPassword={setPathLockPassword}
+                    targetUrl={targetUrl}
+                    fieldErrors={fieldErrors}
+                    setFieldErrors={setFieldErrors}
+                    checkExpiresAtFormat={checkExpiresAtFormat}
+                  />
+                )}
 
-            {activeTab === "ab_testing" && (
-              <SectionAbTesting
-                isProPlan={isProPlan}
-                targetUrl={targetUrl}
-                mainWeight={mainWeight}
-                setMainWeight={setMainWeight}
-                abVariations={abVariations}
-                setAbVariations={setAbVariations}
-                handleAddVariation={handleAddVariation}
-                handleRemoveVariation={handleRemoveVariation}
-                handleAutoBalance={handleAutoBalance}
-                fieldErrors={fieldErrors}
-              />
-            )}
+                {activeTab === "ab_testing" && (
+                  <SectionAbTesting
+                    isProPlan={isProPlan}
+                    targetUrl={targetUrl}
+                    mainWeight={mainWeight}
+                    setMainWeight={setMainWeight}
+                    abVariations={abVariations}
+                    setAbVariations={setAbVariations}
+                    handleAddVariation={handleAddVariation}
+                    handleRemoveVariation={handleRemoveVariation}
+                    handleAutoBalance={handleAutoBalance}
+                    fieldErrors={fieldErrors}
+                  />
+                )}
 
-            {activeTab === "advanced" && (
-              <SectionAdvanced
-                redirectType={redirectType}
-                setRedirectType={setRedirectType}
-                passParams={passParams}
-                setPassParams={setPassParams}
-                isActive={isActive}
-                setIsActive={setIsActive}
-              />
-            )}
+                {activeTab === "advanced" && (
+                  <SectionAdvanced
+                    redirectType={redirectType}
+                    setRedirectType={setRedirectType}
+                    passParams={passParams}
+                    setPassParams={setPassParams}
+                    isActive={isActive}
+                    setIsActive={setIsActive}
+                  />
+                )}
 
-            {activeTab === "review" && (
-              <SectionReview
-                isEditMode={isEditMode}
-                domainName={domainName}
-                slug={slug}
-                targetUrl={targetUrl}
-                computeFinalUrlWithUtm={computeFinalUrlWithUtm}
-                ogTitle={ogTitle}
-                ogDescription={ogDescription}
-                ogImage={ogImage}
-                twitterCard={twitterCard}
-                utmSource={utmSource}
-                utmMedium={utmMedium}
-                utmCampaign={utmCampaign}
-                password={password}
-                expiresAt={expiresAt}
-                hasClickLimit={hasClickLimit}
-                maxClicks={maxClicks}
-                fallbackUrl={fallbackUrl}
-                pathLockMode={pathLockMode}
-                pathLockPrefix={pathLockPrefix}
-                isCloaked={isCloaked}
-                hideReferrer={hideReferrer}
-                routingRulesCount={routingRules.length}
-                abVariationsCount={abVariations.length}
-                mainWeight={mainWeight}
-                redirectType={redirectType}
-                passParams={passParams}
-                isActive={isActive}
-                tagsInput={tagsInput}
-                onNavigateTab={(tabId) => setActiveTab(tabId)}
-                isSubmitting={isSubmitting}
-              />
+                {activeTab === "review" && (
+                  <SectionReview
+                    isEditMode={isEditMode}
+                    domainName={domainName}
+                    slug={slug}
+                    targetUrl={targetUrl}
+                    computeFinalUrlWithUtm={computeFinalUrlWithUtm}
+                    ogTitle={ogTitle}
+                    ogDescription={ogDescription}
+                    ogImage={ogImage}
+                    twitterCard={twitterCard}
+                    utmSource={utmSource}
+                    utmMedium={utmMedium}
+                    utmCampaign={utmCampaign}
+                    password={password}
+                    expiresAt={expiresAt}
+                    hasClickLimit={hasClickLimit}
+                    maxClicks={maxClicks}
+                    fallbackUrl={fallbackUrl}
+                    pathLockMode={pathLockMode}
+                    pathLockPrefix={pathLockPrefix}
+                    isCloaked={isCloaked}
+                    hideReferrer={hideReferrer}
+                    routingRulesCount={routingRules.length}
+                    abVariationsCount={abVariations.length}
+                    mainWeight={mainWeight}
+                    redirectType={redirectType}
+                    passParams={passParams}
+                    isActive={isActive}
+                    tagsInput={tagsInput}
+                    onNavigateTab={(tabId) => setActiveTab(tabId)}
+                    isSubmitting={isSubmitting}
+                    formId={drawerFormId}
+                  />
+                )}
+              </Suspense>
             )}
           </form>
         </main>
@@ -1875,7 +2161,7 @@ export function LinkDrawer({
             {activeTab !== "review" && (
               <button
                 type="submit"
-                form="link-drawer-form"
+                form={drawerFormId}
                 disabled={isSubmitting}
                 className="border border-[#1d5fe0]/30 dark:border-[#3b82f6]/30 bg-transparent hover:bg-[#1d5fe0]/10 text-[#1d5fe0] dark:text-[#3b82f6] font-semibold text-xs sm:text-sm px-3.5 py-2 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5"
               >
@@ -1894,7 +2180,7 @@ export function LinkDrawer({
             ) : (
               <button
                 type="submit"
-                form="link-drawer-form"
+                form={drawerFormId}
                 disabled={isSubmitting}
                 className="bg-[#1d5fe0] dark:bg-[#3b82f6] hover:bg-[#154fc0] dark:hover:bg-[#2563eb] text-white font-medium text-sm px-5 py-2 rounded-lg shadow-sm transition-colors cursor-pointer flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
               >

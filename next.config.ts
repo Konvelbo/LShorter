@@ -179,6 +179,40 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        source: "/banners/:path*",
+        headers: [
+          {
+            key: "Access-Control-Allow-Origin",
+            value: "*",
+          },
+          {
+            key: "Access-Control-Allow-Methods",
+            value: "GET, HEAD, OPTIONS",
+          },
+          {
+            key: "Cross-Origin-Resource-Policy",
+            value: "cross-origin",
+          },
+        ],
+      },
+      {
+        source: "/api/images/:path*",
+        headers: [
+          {
+            key: "Access-Control-Allow-Origin",
+            value: "*",
+          },
+          {
+            key: "Access-Control-Allow-Methods",
+            value: "GET, HEAD, OPTIONS",
+          },
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+      {
         source: "/api/v1/images/:path*",
         headers: [
           {
@@ -236,8 +270,12 @@ const nextConfig: NextConfig = {
         destination: "https://lshorter-api.fiatechnologiecam.workers.dev/api/v1/:path*",
       },
       {
+        source: "/banners/og",
+        destination: "/api/og",
+      },
+      {
         source:
-          "/:slug((?!api|_next|favicon\\.ico|favicon\\.svg|lshorter_favicon\\.svg|icon-192\\.png|icon-512\\.png|apple-touch-icon\\.png|logo.*|default_banner\\.jpg|Notification\\.mp3|site\\.webmanifest|robots\\.txt|sitemap\\.xml|login|register|dashboard|onboarding|docs|checkout|refund|showcase|video-preview|r|terms|privacy|pricing|blog|reset-password|screenshots|images|doc|audio|emojis|uploads).*)",
+          "/:slug((?!api|_next|favicon\\.ico|favicon\\.svg|lshorter_favicon\\.svg|icon-192\\.png|icon-512\\.png|apple-touch-icon\\.png|logo.*|default_banner\\.jpg|Notification\\.mp3|site\\.webmanifest|robots\\.txt|sitemap\\.xml|login|register|dashboard|onboarding|docs|checkout|refund|showcase|video-preview|r|terms|privacy|pricing|blog|reset-password|screenshots|images|doc|audio|emojis|uploads|banners).*)",
         destination: "/r/:slug",
       },
     ];

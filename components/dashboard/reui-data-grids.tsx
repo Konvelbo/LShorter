@@ -183,8 +183,8 @@ export function LinksReuiDataGrid({
 
   useEffect(() => {
     const handleCloseOnScrollOrResize = () => {
-      setOpenActionRowId(null);
-      setMenuCoords(null);
+      setOpenActionRowId((prev) => (prev === null ? prev : null));
+      setMenuCoords((prev) => (prev === null ? prev : null));
     };
 
     const handleOutsideClick = (e: MouseEvent) => {
@@ -200,8 +200,8 @@ export function LinksReuiDataGrid({
       if (target?.closest('[data-action-menu-trigger="true"]')) {
         return;
       }
-      setOpenActionRowId(null);
-      setMenuCoords(null);
+      setOpenActionRowId((prev) => (prev === null ? prev : null));
+      setMenuCoords((prev) => (prev === null ? prev : null));
     };
 
     window.addEventListener("scroll", handleCloseOnScrollOrResize, true);

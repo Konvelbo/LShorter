@@ -121,9 +121,17 @@ export async function PATCH(
 
     const rawOg = (body.ogImage || body.og_image || "").trim();
     let sanitizedOgImage: string | undefined = rawOg || undefined;
-    if (sanitizedOgImage && sanitizedOgImage.startsWith("/api/images/")) {
-      const fName = sanitizedOgImage.replace("/api/images/", "");
-      sanitizedOgImage = `${WORKER_URL}/api/v1/images/${fName}`;
+    if (
+      sanitizedOgImage &&
+      (sanitizedOgImage.includes("/api/images/") ||
+        sanitizedOgImage.includes("/api/v1/images/") ||
+        sanitizedOgImage.includes("/banners/"))
+    ) {
+      const [pathPart, queryPart] = sanitizedOgImage.split("?");
+      const fName = pathPart.split("/").pop();
+      if (fName && fName !== "og.png" && fName !== "og") {
+        sanitizedOgImage = `https://lsho.cc/banners/${fName}${queryPart ? `?${queryPart}` : ""}`;
+      }
     }
 
     const rawStyle = body.bannerStyle || body.banner_style;

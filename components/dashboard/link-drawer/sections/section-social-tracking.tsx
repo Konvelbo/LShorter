@@ -39,6 +39,7 @@ interface SectionSocialTrackingProps {
   setSocialPlatformPreview: (p: "x" | "facebook" | "whatsapp" | "linkedin") => void;
   twitterCard: "summary_large_image" | "summary";
   setTwitterCard: (card: "summary_large_image" | "summary") => void;
+  onClearBanner?: () => void;
   bannerInputRef: React.RefObject<HTMLInputElement | null>;
   handleBannerUpload: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
   isUploadingImage?: boolean;
@@ -76,6 +77,7 @@ export function SectionSocialTracking({
   setSocialPlatformPreview,
   twitterCard,
   setTwitterCard,
+  onClearBanner,
   bannerInputRef,
   handleBannerUpload,
   isUploadingImage,
@@ -475,10 +477,6 @@ export function SectionSocialTracking({
               type="button"
               onClick={() => {
                 setTwitterCard("summary");
-                if (ogImage && ogImage.includes("/api/og")) {
-                  setOgImage("");
-                  setPreviewImage("");
-                }
               }}
               className={cn(
                 "flex-1 py-1.5 px-3 rounded-md text-xs font-medium transition-all text-center cursor-pointer flex items-center justify-center gap-1.5",
@@ -488,7 +486,7 @@ export function SectionSocialTracking({
               )}
             >
               <LayoutGrid className="w-3.5 h-3.5" />
-              <span>Bannière compacte</span>
+              <span>Bannière compacte (1:1)</span>
             </button>
           </div>
           <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-relaxed flex items-start gap-1.5 mt-0.5">
@@ -755,9 +753,14 @@ export function SectionSocialTracking({
                       onError={(e) => {
                         if (previewImage) return;
                         const target = e.currentTarget;
-                        if (ogImage && ogImage.startsWith("/api/images/")) {
-                          const filename = ogImage.replace("/api/images/", "");
-                          target.src = `/api/v1/images/${filename}`;
+                        if (
+                          ogImage &&
+                          (ogImage.includes("/banners/") || ogImage.startsWith("/api/images/")) &&
+                          !target.dataset.retried
+                        ) {
+                          target.dataset.retried = "1";
+                          const filename = ogImage.split("?")[0].split("/").pop();
+                          target.src = `/api/images/${filename}`;
                         } else {
                           setHasImageError(true);
                         }
@@ -773,8 +776,12 @@ export function SectionSocialTracking({
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          setOgImage("");
-                          setPreviewImage("");
+                          if (onClearBanner) {
+                            onClearBanner();
+                          } else {
+                            setOgImage("");
+                            setPreviewImage("");
+                          }
                         }}
                         className="p-1.5 rounded-lg bg-red-600/90 hover:bg-red-600 text-white shadow-md hover:scale-105 transition-transform cursor-pointer"
                         title="Supprimer la bannière"
@@ -864,8 +871,12 @@ export function SectionSocialTracking({
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          setOgImage("");
-                          setPreviewImage("");
+                          if (onClearBanner) {
+                            onClearBanner();
+                          } else {
+                            setOgImage("");
+                            setPreviewImage("");
+                          }
                         }}
                         className="p-1 rounded bg-red-600 text-white cursor-pointer"
                         title="Supprimer"

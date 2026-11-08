@@ -76,7 +76,10 @@ export async function GET(
 
       const meta = await fetchWorkerLink(slug);
 
-      const qDomain = url.searchParams.get("domain") || url.searchParams.get("domain_name");
+      const rawQDomain = (url.searchParams.get("domain") || url.searchParams.get("domain_name") || "").trim().toLowerCase();
+      const qDomain = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/.test(rawQDomain)
+        ? rawQDomain
+        : undefined;
       const qTitle = url.searchParams.get("title") || url.searchParams.get("og_title");
       const qDesc = url.searchParams.get("desc") || url.searchParams.get("og_description");
       const qImage = url.searchParams.get("image") || url.searchParams.get("og_image");
@@ -108,16 +111,32 @@ export async function GET(
       const resolvedCard = isCompactCard ? "summary" : "summary_large_image";
 
       let rawImage = qImage || meta?.og_image || meta?.ogImage || meta?.banner_url || meta?.bannerUrl || "";
-      if (rawImage && rawImage.includes(".workers.dev/api/v1/images/")) {
-        const filename = rawImage.split("/").pop();
-        rawImage = `https://${detectedDomain}/api/v1/images/${filename}`;
+      if (rawImage && rawImage.startsWith("data:")) {
+        rawImage = `https://${detectedDomain}/banners/${encodeURIComponent(slug)}.jpg`;
+      } else if (
+        rawImage &&
+        (rawImage.includes("/api/v1/images/") ||
+          rawImage.includes("/api/images/") ||
+          rawImage.includes("/banners/"))
+      ) {
+        const [pathPart, queryPart] = rawImage.split("?");
+        const filename = pathPart.split("/").pop();
+        if (filename && filename !== "og.png" && filename !== "og") {
+          rawImage = `https://${detectedDomain}/banners/${filename}${queryPart ? `?${queryPart}` : ""}`;
+        }
       } else if (rawImage && !rawImage.startsWith("http://") && !rawImage.startsWith("https://")) {
-        rawImage = `https://${detectedDomain}${rawImage.startsWith("/") ? "" : "/"}${rawImage}`;
+        const cleaned = rawImage.replace(/^\/+/, "");
+        if (cleaned.startsWith("banner_") || cleaned.startsWith("img_")) {
+          rawImage = `https://${detectedDomain}/banners/${cleaned}`;
+        } else {
+          rawImage = `https://${detectedDomain}/${cleaned}`;
+        }
       }
 
       const isCustomBanner = Boolean(
         rawImage &&
         !rawImage.includes("/api/og") &&
+        !rawImage.includes("/banners/og") &&
         !rawImage.includes("default_banner") &&
         !rawImage.includes(".svg") &&
         !rawImage.includes("dicebear")
@@ -125,20 +144,30 @@ export async function GET(
 
       let image = "";
       if (isCompactCard) {
-        // Compact mode:
-        // Social networks (Twitter, Facebook, WhatsApp, Telegram, LinkedIn, Discord)
-        // strictly require a square 1:1 image (400x400) to render a compact thumbnail card.
         if (isCustomBanner) {
           image = rawImage;
         } else {
-          image = `https://${detectedDomain}/api/og?card=summary&title=${encodeURIComponent(title.substring(0, 60))}&desc=${encodeURIComponent(description.substring(0, 80))}&slug=${encodeURIComponent(slug)}`;
+          image = `https://${detectedDomain}/banners/og.png?card=summary&title=${encodeURIComponent(title.substring(0, 60))}&desc=${encodeURIComponent(description.substring(0, 80))}&slug=${encodeURIComponent(slug)}`;
         }
       } else {
-        // Large banner mode (1200x630):
         if (isCustomBanner) {
           image = rawImage;
         } else {
-          image = `https://${detectedDomain}/api/og?title=${encodeURIComponent(title.substring(0, 80))}&slug=${encodeURIComponent(slug)}`;
+          image = `https://${detectedDomain}/banners/og.png?title=${encodeURIComponent(title.substring(0, 80))}&slug=${encodeURIComponent(slug)}`;
+        }
+      }
+
+      // Append deterministic version stamp from link update timestamp so social image caches refresh after edits
+      const updatedStampRaw =
+        (meta as any)?.updated_at ||
+        (meta as any)?.updatedAt ||
+        (meta as any)?.created_at ||
+        (meta as any)?.createdAt;
+      if (updatedStampRaw && image && !image.includes("v=") && !image.includes("_t=")) {
+        const parsedMs = Date.parse(String(updatedStampRaw));
+        if (!Number.isNaN(parsedMs) && parsedMs > 0) {
+          const vSec = Math.floor(parsedMs / 1000);
+          image += `${image.includes("?") ? "&" : "?"}v=${vSec}`;
         }
       }
 

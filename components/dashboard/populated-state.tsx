@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, usePathname } from "next/navigation";
 import { useQuery } from "convex/react";
@@ -30,8 +30,10 @@ import { ShortLink, GlobalAnalytics } from "@/types";
 import { formatNumber, isLinkActive } from "@/lib/utils";
 import { cfInvalidateCache, cfCreateTargetAlert } from "@/lib/cloudflare-api";
 import { showToast } from "@/components/ui/toast-provider";
-import { LinkCreateModal } from "./link-create-modal";
-import { LinkEditModal } from "./link-edit-modal";
+import {
+  PageLinkDrawers,
+  type PageLinkDrawersHandle,
+} from "./page-link-drawers";
 import { LinkShareModal } from "./link-share-modal";
 import { LinkQRModal } from "./link-qr-modal";
 import { LinksReuiDataGrid } from "./reui-data-grids";
@@ -78,10 +80,10 @@ export function PopulatedState({
   const pathname = usePathname();
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [selectedEditLink, setSelectedEditLink] = useState<ShortLink | null>(
-    null,
-  );
+  const linkDrawersRef = useRef<PageLinkDrawersHandle>(null);
+  const handleOpenEditDrawer = useCallback((link: ShortLink) => {
+    linkDrawersRef.current?.openEdit(link);
+  }, []);
   const [selectedShareLink, setSelectedShareLink] = useState<ShortLink | null>(
     null,
   );
@@ -1433,7 +1435,7 @@ export function PopulatedState({
 
             <button
               type="button"
-              onClick={() => setIsCreateOpen(true)}
+              onClick={() => linkDrawersRef.current?.openCreate()}
               className="inline-flex items-center gap-2 rounded-[10px] bg-[#465FFF] hover:bg-[#3641F5] px-4 py-2 text-xs font-semibold text-white shadow-2xs transition-colors cursor-pointer"
             >
               <Plus className="h-4 w-4" />
@@ -1668,8 +1670,8 @@ export function PopulatedState({
         links={links}
         copiedId={copiedId}
         onCopy={handleCopyText}
-        onSelectLink={(link) => setSelectedEditLink(link)}
-        onEdit={(link) => setSelectedEditLink(link)}
+        onSelectLink={handleOpenEditDrawer}
+        onEdit={handleOpenEditDrawer}
         onShareLink={(link) => setSelectedShareLink(link)}
         onSelectQr={(link) => setSelectedShareLink(link)}
         onQr={(link) => setSelectedShareLink(link)}
@@ -1677,26 +1679,12 @@ export function PopulatedState({
         title="Short Links Directory"
       />
 
-      <LinkCreateModal
-        isOpen={isCreateOpen}
+      <PageLinkDrawers
+        ref={linkDrawersRef}
         linksCount={links.length}
-        onClose={() => setIsCreateOpen(false)}
-        onSuccess={() => {
-          setIsCreateOpen(false);
-          onRefresh?.();
-        }}
+        onCreated={() => onRefresh?.()}
+        onUpdated={() => onRefresh?.()}
       />
-      {selectedEditLink && (
-        <LinkEditModal
-          link={selectedEditLink}
-          isOpen={Boolean(selectedEditLink)}
-          onClose={() => setSelectedEditLink(null)}
-          onSuccess={() => {
-            setSelectedEditLink(null);
-            onRefresh?.();
-          }}
-        />
-      )}
       {selectedShareLink && (
         <LinkShareModal
           link={selectedShareLink}
