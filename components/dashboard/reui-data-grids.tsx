@@ -2008,53 +2008,53 @@ export function GeoLogsReuiDataGrid({
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-auto overscroll-x-contain px-2 sm:px-3 pb-3">
-        <table className="hidden sm:table w-full border-collapse text-left">
+      <div className="flex-1 min-h-0 overflow-auto overscroll-x-contain">
+        <table className="hidden sm:table w-full border-collapse text-left text-xs">
           <thead className="sticky top-0 z-10 bg-white dark:bg-[#111113] shadow-xs">
-            <tr className="rounded-[8px] bg-[#F9FAFB] dark:bg-white/[0.03]">
+            <tr className="border-b border-[#E4E7EC] dark:border-[#222225] bg-[#F9FAFB] dark:bg-white/[0.03] text-zinc-700 dark:text-neutral-400 font-semibold text-[11px]">
               {visibleCols.country && (
-                <th className="py-2.5 px-3.5 text-[11.5px] font-semibold uppercase tracking-wider text-[#667085] dark:text-[#a1a1aa] whitespace-nowrap first:rounded-l-[8px]">
+                <th className="py-3.5 pl-5 sm:pl-6 pr-4 whitespace-nowrap">
                   Country
                 </th>
               )}
               {visibleCols.city && (
-                <th className="py-2.5 px-3.5 text-[11.5px] font-semibold uppercase tracking-wider text-[#667085] dark:text-[#a1a1aa] whitespace-nowrap">
+                <th className="py-3.5 px-4 whitespace-nowrap">
                   City / PoP
                 </th>
               )}
               {visibleCols.referrer && (
-                <th className="py-2.5 px-3.5 text-[11.5px] font-semibold uppercase tracking-wider text-[#667085] dark:text-[#a1a1aa] whitespace-nowrap text-center">
+                <th className="py-3.5 px-4 whitespace-nowrap text-center">
                   Referrer Source
                 </th>
               )}
               {visibleCols.shortLink && (
-                <th className="py-2.5 px-3.5 text-[11.5px] font-semibold uppercase tracking-wider text-[#667085] dark:text-[#a1a1aa] whitespace-nowrap">
+                <th className="py-3.5 px-4 whitespace-nowrap">
                   Short Link
                 </th>
               )}
               {visibleCols.device && (
-                <th className="py-2.5 px-3.5 text-[11.5px] font-semibold uppercase tracking-wider text-[#667085] dark:text-[#a1a1aa] whitespace-nowrap">
+                <th className="py-3.5 px-4 whitespace-nowrap">
                   Client OS / Browser
                 </th>
               )}
               {visibleCols.time && (
-                <th className="py-2.5 px-3.5 text-[11.5px] font-semibold uppercase tracking-wider text-[#667085] dark:text-[#a1a1aa] whitespace-nowrap">
+                <th className="py-3.5 px-4 whitespace-nowrap">
                   Time
                 </th>
               )}
               {visibleCols.status && (
-                <th className="py-2.5 px-3.5 text-[11.5px] font-semibold uppercase tracking-wider text-[#667085] dark:text-[#a1a1aa] whitespace-nowrap">
+                <th className="py-3.5 px-4 whitespace-nowrap">
                   Security Check
                 </th>
               )}
               {visibleCols.action && (
-                <th className="py-2.5 px-3.5 text-[11.5px] font-semibold uppercase tracking-wider text-[#667085] dark:text-[#a1a1aa] text-right whitespace-nowrap last:rounded-r-[8px]">
+                <th className="py-3.5 pl-4 pr-5 sm:pr-6 text-right whitespace-nowrap">
                   Action
                 </th>
               )}
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-[#E4E7EC] dark:divide-[#222225]/60 text-zinc-800 dark:text-neutral-200">
             {paginatedRows.length === 0 ? (
               <tr>
                 <td
@@ -2069,10 +2069,10 @@ export function GeoLogsReuiDataGrid({
                 return (
                   <tr
                     key={item.id}
-                    className="hover:bg-[#F9FAFB] dark:hover:bg-white/[0.03] transition-colors"
+                    className="hover:bg-zinc-50 dark:hover:bg-white/5 transition-colors h-[54px]"
                   >
                     {visibleCols.country && (
-                      <td className="py-2.5 px-3.5 whitespace-nowrap first:rounded-l-[8px]">
+                      <td className="py-3.5 pl-5 sm:pl-6 pr-4 whitespace-nowrap">
                         <div className="flex items-center gap-2.5">
                           {item.countryCode && item.countryCode !== "XX" ? (
                             <img
@@ -2095,19 +2095,19 @@ export function GeoLogsReuiDataGrid({
                       </td>
                     )}
                     {visibleCols.city && (
-                      <td className="py-2.5 px-3.5 whitespace-nowrap text-[12px] font-medium text-[#101828] dark:text-[#f4f4f5]">
+                      <td className="py-3.5 px-4 whitespace-nowrap text-[12px] font-medium text-[#101828] dark:text-[#f4f4f5]">
                         {item.city}
                       </td>
                     )}
                     {visibleCols.referrer && (
-                      <td className="py-2.5 px-3.5 whitespace-nowrap text-center">
+                      <td className="py-3.5 px-4 whitespace-nowrap text-center">
                         <div className="flex items-center justify-center">
                           <ReferrerLogo referrer={item.referrer} size={22} />
                         </div>
                       </td>
                     )}
                     {visibleCols.shortLink && (
-                      <td className="py-2.5 px-3.5 font-mono text-[12px] font-medium whitespace-nowrap">
+                      <td className="py-3.5 px-4 font-mono text-[12px] font-medium whitespace-nowrap">
                         <a
                           href={`/r/${encodeURIComponent(item.rawSlug)}`}
                           target="_blank"
@@ -2121,18 +2121,18 @@ export function GeoLogsReuiDataGrid({
                       </td>
                     )}
                     {visibleCols.device && (
-                      <td className="py-2.5 px-3.5 text-[12px] text-[#475467] dark:text-[#d4d4d8] whitespace-nowrap">
+                      <td className="py-3.5 px-4 text-[12px] text-[#475467] dark:text-[#d4d4d8] whitespace-nowrap">
                         {item.device}
                       </td>
                     )}
                     {visibleCols.time && (
-                      <td className="py-2.5 px-3.5 font-mono text-[11px] text-[#667085] dark:text-[#a1a1aa] whitespace-nowrap">
+                      <td className="py-3.5 px-4 font-mono text-[11px] text-[#667085] dark:text-[#a1a1aa] whitespace-nowrap">
                         {/* S'actualise en temps réel au fil des minutes */}
                         {formatLiveRelativeTime(item.timestamp, currentTimeTick)}
                       </td>
                     )}
                     {visibleCols.status && (
-                      <td className="py-2.5 px-3.5 whitespace-nowrap">
+                      <td className="py-3.5 px-4 whitespace-nowrap">
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10.5px] font-medium bg-[#ECFDF3] text-[#027A48] dark:bg-emerald-500/15 dark:text-emerald-400">
                           {item.status}
                         </span>
@@ -2141,7 +2141,7 @@ export function GeoLogsReuiDataGrid({
                     {visibleCols.action && (
                       <td
                         onClick={(e) => e.stopPropagation()}
-                        className="py-2.5 px-3.5 text-right whitespace-nowrap last:rounded-r-[8px]"
+                        className="py-3.5 pl-4 pr-5 sm:pr-6 text-right whitespace-nowrap"
                       >
                         <button
                           type="button"

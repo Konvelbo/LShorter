@@ -625,8 +625,8 @@ export default function SourcesAnalyticsPage() {
       </div>
 
       {/* RAW EVENTS STREAM & DETAILED SOURCE LOGS */}
-      <div className="rounded-[10px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] p-5 shadow-sm dark:shadow-2xl flex flex-col gap-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-zinc-200 dark:border-[#222225]">
+      <div className="rounded-[10px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] shadow-sm dark:shadow-2xl flex flex-col">
+        <div className="px-5 sm:px-6 py-4 sm:py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-200 dark:border-[#222225]">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             <h3 className="text-sm font-bold text-zinc-900 dark:text-white">Live Inbound Click Stream</h3>
@@ -665,35 +665,35 @@ export default function SourcesAnalyticsPage() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto overscroll-x-contain">
           <table className="hidden md:table w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="border-b border-zinc-200 dark:border-[#222225] bg-zinc-50 dark:bg-[#111116] text-[10px] uppercase font-mono text-zinc-500 dark:text-neutral-400">
-                {visibleColumns.has("timestamp") && <th className="py-2.5 px-3">Time</th>}
-                {visibleColumns.has("channel") && <th className="py-2.5 px-3">Channel</th>}
-                {visibleColumns.has("referrer") && <th className="py-2.5 px-3 text-center">Referrer Source</th>}
-                {visibleColumns.has("customer") && <th className="py-2.5 px-3">Customer Profile</th>}
-                {visibleColumns.has("link") && <th className="py-2.5 px-3">Short Link</th>}
-                {visibleColumns.has("city") && <th className="py-2.5 px-3">City</th>}
-                {visibleColumns.has("location") && <th className="py-2.5 px-3">Country</th>}
-                {visibleColumns.has("device") && <th className="py-2.5 px-3">Device</th>}
+              <tr className="border-b border-zinc-200 dark:border-[#222225] bg-[#F9FAFB] dark:bg-white/[0.03] text-zinc-700 dark:text-neutral-400 font-semibold text-[11px]">
+                {visibleColumns.has("timestamp") && <th className="py-3.5 pl-5 sm:pl-6 pr-3">Time</th>}
+                {visibleColumns.has("channel") && <th className="py-3.5 px-3">Channel</th>}
+                {visibleColumns.has("referrer") && <th className="py-3.5 px-3 text-center">Referrer Source</th>}
+                {visibleColumns.has("customer") && <th className="py-3.5 px-3">Customer Profile</th>}
+                {visibleColumns.has("link") && <th className="py-3.5 px-3">Short Link</th>}
+                {visibleColumns.has("city") && <th className="py-3.5 px-3">City</th>}
+                {visibleColumns.has("location") && <th className="py-3.5 px-3">Country</th>}
+                {visibleColumns.has("device") && <th className="py-3.5 pl-3 pr-5 sm:pr-6">Device</th>}
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-200 dark:divide-[#202024] font-mono text-[11px]">
+            <tbody className="divide-y divide-zinc-200 dark:divide-[#202024]/60 text-[11px]">
               {paginatedEvents.map((ev, i) => {
                 const ref = ev.referrer || "Direct";
                 const isSocial = SOCIAL_PLATFORMS.some((s) => ref.toLowerCase().includes(s));
 
                 return (
-                  <tr key={i} className="hover:bg-zinc-50 dark:hover:bg-white/[0.02] transition-colors">
+                  <tr key={i} className="hover:bg-zinc-50 dark:hover:bg-white/5 transition-colors h-[54px]">
                     {visibleColumns.has("timestamp") && (
-                      <td className="py-2 px-3 text-zinc-500 dark:text-neutral-400 whitespace-nowrap text-[10.5px]">
+                      <td className="py-3.5 pl-5 sm:pl-6 pr-3 text-zinc-500 dark:text-neutral-400 whitespace-nowrap text-[10.5px]">
                         {new Date(ev.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
                       </td>
                     )}
 
                     {visibleColumns.has("channel") && (
-                      <td className="py-2 px-3">
+                      <td className="py-3.5 px-3">
                         <span
                           className={`px-2 py-0.5 rounded-full text-[9.5px] font-semibold border ${
                             isSocial
@@ -707,7 +707,7 @@ export default function SourcesAnalyticsPage() {
                     )}
 
                     {visibleColumns.has("referrer") && (
-                      <td className="py-2 px-3 whitespace-nowrap text-center">
+                      <td className="py-3.5 px-3 whitespace-nowrap text-center">
                         <div className="flex items-center justify-center">
                           <ReferrerLogo referrer={ev.referrer} size={22} />
                         </div>
@@ -715,7 +715,7 @@ export default function SourcesAnalyticsPage() {
                     )}
 
                     {visibleColumns.has("customer") && (
-                      <td className="py-2 px-3">
+                      <td className="py-3.5 px-3">
                         {(() => {
                           const name = ev.customerName || ev.customerFullName || ev.fullName;
                           const email = ev.customerEmail || ev.email;
@@ -733,25 +733,25 @@ export default function SourcesAnalyticsPage() {
                     )}
 
                     {visibleColumns.has("link") && (
-                      <td className="py-2 px-3 font-mono text-brand font-semibold text-[11.5px]">
+                      <td className="py-3.5 px-3 font-mono text-brand font-semibold text-[11.5px]">
                         /{ev.slug}
                       </td>
                     )}
 
                     {visibleColumns.has("city") && (
-                      <td className="py-2 px-3 whitespace-nowrap font-medium text-zinc-900 dark:text-zinc-100 text-[11.5px]">
+                      <td className="py-3.5 px-3 whitespace-nowrap font-medium text-zinc-900 dark:text-zinc-100 text-[11.5px]">
                         {ev.city && ev.city !== "—" && ev.city !== "Inconnue" ? ev.city : "Edge Node"}
                       </td>
                     )}
 
                     {visibleColumns.has("location") && (
-                      <td className="py-2 px-3 text-zinc-700 dark:text-neutral-400 whitespace-nowrap text-[11.5px]">
+                      <td className="py-3.5 px-3 text-zinc-700 dark:text-neutral-400 whitespace-nowrap text-[11.5px]">
                         {ev.countryName}
                       </td>
                     )}
 
                     {visibleColumns.has("device") && (
-                      <td className="py-2 px-3 text-zinc-700 dark:text-neutral-400 capitalize text-[11.5px]">
+                      <td className="py-3.5 pl-3 pr-5 sm:pr-6 text-zinc-700 dark:text-neutral-400 capitalize text-[11.5px]">
                         {ev.device}
                       </td>
                     )}
@@ -770,7 +770,7 @@ export default function SourcesAnalyticsPage() {
           </table>
 
           {/* Mobile Cards Feed (< md: / < 768px) */}
-          <div className="flex flex-col gap-2.5 md:hidden p-2 font-sans">
+          <div className="flex flex-col gap-2.5 md:hidden p-4 font-sans">
             {paginatedEvents.length === 0 ? (
               <div className="py-8 text-center text-zinc-500 dark:text-neutral-500 text-xs">
                 No events matching criteria.
@@ -832,7 +832,7 @@ export default function SourcesAnalyticsPage() {
         </div>
 
         {/* Pagination */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 mt-3 border-t border-zinc-200 dark:border-[#222225] text-xs text-zinc-500 dark:text-neutral-400">
+        <div className="px-5 sm:px-6 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-zinc-200 dark:border-[#222225] text-xs text-zinc-500 dark:text-neutral-400 mt-auto">
           <span className="text-center sm:text-left">
             Showing {(currentPage - 1) * pageSize + 1} to{" "}
             {Math.min(currentPage * pageSize, filteredEvents.length)} of {filteredEvents.length} events

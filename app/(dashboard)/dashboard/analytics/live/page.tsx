@@ -637,8 +637,8 @@ function LiveClickStreamContent() {
       </div>
 
       {/* Table Card */}
-      <div className="rounded-[10px] ds-card p-4 sm:p-5 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b ds-border">
+      <div className="rounded-[10px] bg-white dark:bg-[#141416] border border-[#E4E7EC] dark:border-[#222225] shadow-sm dark:shadow-2xl flex flex-col">
+        <div className="px-5 sm:px-6 py-4 sm:py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E4E7EC] dark:border-[#222225]">
           <div className="relative flex-1 max-w-md">
             <Search className="w-4 h-4 ds-text-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
@@ -685,45 +685,45 @@ function LiveClickStreamContent() {
         <div className="overflow-x-auto overscroll-x-contain">
           <table className="hidden md:table w-full min-w-[900px] text-left border-collapse">
             <thead>
-              <tr className="rounded-[8px] bg-[#F9FAFB] dark:bg-white/[0.03] text-[10.5px] font-semibold uppercase tracking-wider ds-text-muted">
+              <tr className="border-b border-[#E4E7EC] dark:border-[#222225] bg-[#F9FAFB] dark:bg-white/[0.03] text-zinc-700 dark:text-neutral-400 font-semibold text-[11px]">
                 {visibleColumns.has("timestamp") && (
-                  <th className="py-2 px-3 whitespace-nowrap first:rounded-l-[8px]">
+                  <th className="py-3.5 pl-5 sm:pl-6 pr-3 whitespace-nowrap">
                     Timestamp
                   </th>
                 )}
                 {visibleColumns.has("slug") && (
-                  <th className="py-2 px-3 whitespace-nowrap">Short Link</th>
+                  <th className="py-3.5 px-3 whitespace-nowrap">Short Link</th>
                 )}
                 {visibleColumns.has("customer") && (
-                  <th className="py-2 px-3 whitespace-nowrap">
+                  <th className="py-3.5 px-3 whitespace-nowrap">
                     Customer / Buyer
                   </th>
                 )}
                 {visibleColumns.has("city") && (
-                  <th className="py-2 px-3 whitespace-nowrap">City</th>
+                  <th className="py-3.5 px-3 whitespace-nowrap">City</th>
                 )}
                 {visibleColumns.has("location") && (
-                  <th className="py-2 px-3 whitespace-nowrap">Country</th>
+                  <th className="py-3.5 px-3 whitespace-nowrap">Country</th>
                 )}
                 {visibleColumns.has("referrer") && (
-                  <th className="py-2 px-3 whitespace-nowrap text-center">Referrer Source</th>
+                  <th className="py-3.5 px-3 whitespace-nowrap text-center">Referrer Source</th>
                 )}
                 {visibleColumns.has("device") && (
-                  <th className="py-2 px-3 whitespace-nowrap">
+                  <th className="py-3.5 px-3 whitespace-nowrap">
                     Device & Browser
                   </th>
                 )}
                 {visibleColumns.has("status") && (
-                  <th className="py-2 px-3 text-right whitespace-nowrap">
+                  <th className="py-3.5 px-3 text-right whitespace-nowrap">
                     Edge Status
                   </th>
                 )}
-                <th className="py-2 px-3 text-right whitespace-nowrap last:rounded-r-[8px]">
+                <th className="py-3.5 pl-3 pr-5 sm:pr-6 text-right whitespace-nowrap">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="text-xs">
+            <tbody className="divide-y divide-[#E4E7EC] dark:divide-[#222225]/60 text-xs">
               {paginatedEvents.length === 0 ? (
                 <tr>
                   <td
@@ -740,10 +740,10 @@ function LiveClickStreamContent() {
                   return (
                     <tr
                       key={ev.id}
-                      className="hover:bg-[#F2F4F7]/60 dark:hover:bg-white/[0.03] transition-colors"
+                      className="hover:bg-zinc-50 dark:hover:bg-white/5 transition-colors h-[54px]"
                     >
                       {visibleColumns.has("timestamp") && (
-                        <td className="py-2 px-3 font-mono text-[10.5px] ds-text-muted whitespace-nowrap first:rounded-l-[8px]">
+                        <td className="py-3.5 pl-5 sm:pl-6 pr-3 font-mono text-[10.5px] ds-text-muted whitespace-nowrap">
                           {formatLiveRelativeTime(
                             ev.timestamp,
                             currentTimeTick,
@@ -751,12 +751,12 @@ function LiveClickStreamContent() {
                         </td>
                       )}
                       {visibleColumns.has("slug") && (
-                        <td className="py-2 px-3 font-mono font-bold text-[#0066FF] dark:text-[#5294FF] whitespace-nowrap text-xs">
+                        <td className="py-3.5 px-3 font-mono font-bold text-[#0066FF] dark:text-[#5294FF] whitespace-nowrap text-xs">
                           /{ev.slug}
                         </td>
                       )}
                       {visibleColumns.has("customer") && (
-                        <td className="py-2 px-3 whitespace-nowrap">
+                        <td className="py-3.5 px-3 whitespace-nowrap">
                           {ev.customerName || ev.customerEmail ? (
                             <div className="flex flex-col">
                               <span className="font-semibold ds-text-primary text-xs">
@@ -774,12 +774,12 @@ function LiveClickStreamContent() {
                         </td>
                       )}
                       {visibleColumns.has("city") && (
-                        <td className="py-2 px-3 whitespace-nowrap text-xs font-medium text-[#101828] dark:text-[#f4f4f5]">
+                        <td className="py-3.5 px-3 whitespace-nowrap text-xs font-medium text-[#101828] dark:text-[#f4f4f5]">
                           {ev.city && ev.city !== "—" ? ev.city : "Edge PoP"}
                         </td>
                       )}
                       {visibleColumns.has("location") && (
-                        <td className="py-2 px-3 whitespace-nowrap">
+                        <td className="py-3.5 px-3 whitespace-nowrap">
                           <div className="flex items-center gap-2">
                             {ev.countryCode && ev.countryCode !== "XX" ? (
                               <img
@@ -802,34 +802,34 @@ function LiveClickStreamContent() {
                         </td>
                       )}
                       {visibleColumns.has("referrer") && (
-                        <td className="py-2 px-3 whitespace-nowrap text-center">
+                        <td className="py-3.5 px-3 whitespace-nowrap text-center">
                           <div className="flex items-center justify-center">
                             <ReferrerLogo referrer={ev.referrer} size={22} />
                           </div>
                         </td>
                       )}
                       {visibleColumns.has("device") && (
-                        <td className="py-2 px-3 ds-text-secondary whitespace-nowrap text-[11px]">
+                        <td className="py-3.5 px-3 ds-text-secondary whitespace-nowrap text-[11px]">
                           <span className="font-medium">{ev.device}</span> (
                           {ev.os}) ·{" "}
                           <span className="ds-text-muted">{ev.browser}</span>
                         </td>
                       )}
                       {visibleColumns.has("status") && (
-                        <td className="py-2 px-3 text-right whitespace-nowrap">
+                        <td className="py-3.5 px-3 text-right whitespace-nowrap">
                           <span className="inline-flex items-center gap-1 rounded-full bg-[#0066FF]/10 text-[#0066FF] dark:text-[#5294FF] px-2 py-0.5 text-[10px] font-semibold">
                             302 Edge ({ev.latencyMs || "2.4ms"})
                           </span>
                         </td>
                       )}
-                      <td className="py-2 px-3 text-right whitespace-nowrap last:rounded-r-[8px]">
+                      <td className="py-3.5 pl-3 pr-5 sm:pr-6 text-right whitespace-nowrap">
                         <button
                           type="button"
                           onClick={() => {
                             navigator.clipboard.writeText(shortLinkUrl);
                             showToast.success("Short link copied!");
                           }}
-                          className="p-1.5 rounded-[6px] text-zinc-500 hover:text-[#0066FF] hover:bg-zinc-100 dark:hover:bg-white/10 transition-colors"
+                          className="p-1.5 rounded-[6px] text-zinc-500 hover:text-[#0066FF] hover:bg-zinc-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
                           title="Copy link"
                         >
                           <Copy className="w-3.5 h-3.5" />
@@ -843,7 +843,7 @@ function LiveClickStreamContent() {
           </table>
 
           {/* Mobile Live Stream Feed (< md: / < 768px) */}
-          <div className="flex flex-col gap-2.5 md:hidden p-1 font-sans">
+          <div className="flex flex-col gap-2.5 md:hidden p-4 font-sans">
             {paginatedEvents.length === 0 ? (
               <div className="py-12 text-center text-xs text-zinc-500 dark:text-neutral-400">
                 No live redirect events recorded for this period yet.
@@ -928,7 +928,7 @@ function LiveClickStreamContent() {
         </div>
 
         {/* Pagination */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t ds-border text-xs ds-text-muted">
+        <div className="px-5 sm:px-6 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-[#E4E7EC] dark:border-[#222225] text-xs text-zinc-500 dark:text-neutral-400 mt-auto">
           <span>
             Showing {(currentPage - 1) * pageSize + 1} to{" "}
             {Math.min(currentPage * pageSize, filteredEvents.length)} of{" "}
@@ -939,18 +939,18 @@ function LiveClickStreamContent() {
               type="button"
               disabled={currentPage <= 1}
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              className="p-1.5 rounded-[8px] ds-card disabled:opacity-40 cursor-pointer"
+              className="p-1.5 rounded-[8px] border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#141416] hover:bg-zinc-50 dark:hover:bg-white/5 disabled:opacity-40 cursor-pointer transition-colors"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <span className="px-3 py-1 rounded-[8px] ds-card font-mono ds-text-primary text-xs">
+            <span className="px-3 py-1 rounded-[8px] border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#141416] font-mono text-zinc-900 dark:text-white text-xs">
               Page {currentPage} / {totalPages}
             </span>
             <button
               type="button"
               disabled={currentPage >= totalPages}
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              className="p-1.5 rounded-[8px] ds-card disabled:opacity-40 cursor-pointer"
+              className="p-1.5 rounded-[8px] border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#141416] hover:bg-zinc-50 dark:hover:bg-white/5 disabled:opacity-40 cursor-pointer transition-colors"
             >
               <ChevronRight className="w-4 h-4" />
             </button>

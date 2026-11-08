@@ -942,32 +942,32 @@ function RevenueAnalyticsContent() {
         <div className="overflow-x-auto overscroll-x-contain custom-scrollbar">
           <table className="hidden md:table w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="border-b border-zinc-200 dark:border-[#222225] bg-[#F9FAFB] dark:bg-white/[0.03] text-zinc-700 dark:text-neutral-400 font-semibold select-none text-[10.5px] uppercase tracking-wider">
+              <tr className="border-b border-[#E4E7EC] dark:border-[#222225] bg-[#F9FAFB] dark:bg-white/[0.03] text-zinc-700 dark:text-neutral-400 font-semibold text-[11px]">
                 {visibleColumns.has("beneficiary") && (
-                  <th className="py-3 pl-5 sm:pl-6 pr-3 min-w-[200px]">Beneficiary / Buyer</th>
+                  <th className="py-3.5 pl-5 sm:pl-6 pr-3 min-w-[200px]">Beneficiary / Buyer</th>
                 )}
                 {visibleColumns.has("revenue") && (
-                  <th className="py-3 px-3 min-w-[120px]">Generated Revenue</th>
+                  <th className="py-3.5 px-3 min-w-[120px]">Generated Revenue</th>
                 )}
                 {visibleColumns.has("clicks") && (
-                  <th className="py-3 px-3 min-w-[100px]">Associated Clicks</th>
+                  <th className="py-3.5 px-3 min-w-[100px]">Associated Clicks</th>
                 )}
                 {visibleColumns.has("link") && (
-                  <th className="py-3 px-3 min-w-[120px]">Target Link</th>
+                  <th className="py-3.5 px-3 min-w-[120px]">Target Link</th>
                 )}
                 {visibleColumns.has("location") && (
-                  <th className="py-3 px-3 min-w-[130px]">Location</th>
+                  <th className="py-3.5 px-3 min-w-[130px]">Location</th>
                 )}
                 {visibleColumns.has("device") && (
-                  <th className="py-3 px-3 min-w-[110px]">Device & OS</th>
+                  <th className="py-3.5 px-3 min-w-[110px]">Device & OS</th>
                 )}
                 {visibleColumns.has("timestamp") && (
-                  <th className="py-3 px-3 min-w-[120px]">Date & Time</th>
+                  <th className="py-3.5 px-3 min-w-[120px]">Date & Time</th>
                 )}
-                <th className="py-3 pl-3 pr-5 sm:pr-6 text-right min-w-[70px]">Actions</th>
+                <th className="py-3.5 pl-3 pr-5 sm:pr-6 text-right min-w-[70px]">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-200 dark:divide-[#222225] text-zinc-800 dark:text-neutral-200">
+            <tbody className="divide-y divide-[#E4E7EC] dark:divide-[#222225]/60 text-zinc-800 dark:text-neutral-200">
               {paginatedBeneficiaries.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="py-12 text-center text-zinc-500 dark:text-neutral-500">
@@ -989,11 +989,11 @@ function RevenueAnalyticsContent() {
                   return (
                     <tr
                       key={b.id}
-                      className="hover:bg-zinc-50 dark:hover:bg-[#1a1a1e] transition-colors group"
+                      className="hover:bg-zinc-50 dark:hover:bg-white/5 transition-colors group h-[54px]"
                     >
                       {/* 1. Beneficiary (Avatar & FullName & Email) */}
                       {visibleColumns.has("beneficiary") && (
-                        <td className="py-2 px-3">
+                        <td className="py-3.5 pl-5 sm:pl-6 pr-3">
                           <div className="flex items-center gap-2.5">
                             {/* Avatar on the far left */}
                             <div className="relative w-7 h-7 rounded-full overflow-hidden shrink-0 border border-zinc-200 dark:border-[#333338] bg-zinc-100 dark:bg-[#1a1a1e] flex items-center justify-center shadow-inner">
@@ -1034,7 +1034,7 @@ function RevenueAnalyticsContent() {
 
                       {/* 2. Generated Revenue (Attribution Amount) */}
                       {visibleColumns.has("revenue") && (
-                        <td className="py-2 px-3 font-mono">
+                        <td className="py-3.5 px-3 font-mono">
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/30 text-[11px]">
                             +{formatCurrency(b.revenue)}
                           </span>
@@ -1043,7 +1043,7 @@ function RevenueAnalyticsContent() {
 
                       {/* 3. Associated Clicks */}
                       {visibleColumns.has("clicks") && (
-                        <td className="py-2 px-3 font-mono font-bold text-zinc-700 dark:text-neutral-300 text-xs">
+                        <td className="py-3.5 px-3 font-mono font-bold text-zinc-700 dark:text-neutral-300 text-xs">
                           <span className="flex items-center gap-1">
                             <MousePointerClick className="w-3 h-3 text-zinc-400 dark:text-neutral-500" />
                             <span>{b.clicks} click{b.clicks > 1 ? "s" : ""}</span>
@@ -1053,7 +1053,7 @@ function RevenueAnalyticsContent() {
 
                       {/* 4. Target Link */}
                       {visibleColumns.has("link") && (
-                        <td className="py-2 px-3 font-mono text-zinc-700 dark:text-neutral-300 truncate text-xs">
+                        <td className="py-3.5 px-3 font-mono text-zinc-700 dark:text-neutral-300 truncate text-xs">
                           {b.slug ? (
                             <span className="px-1.5 py-0.2 rounded bg-zinc-100 dark:bg-[#222226] text-zinc-800 dark:text-neutral-300 font-semibold">
                               /{b.slug}
@@ -1066,7 +1066,7 @@ function RevenueAnalyticsContent() {
 
                       {/* 5. Location (Country) */}
                       {visibleColumns.has("location") && (
-                        <td className="py-2 px-3 text-zinc-700 dark:text-neutral-300 text-xs">
+                        <td className="py-3.5 px-3 text-zinc-700 dark:text-neutral-300 text-xs">
                           {b.countryCode ? (
                             <div className="flex items-center gap-1.5">
                               <img
@@ -1089,7 +1089,7 @@ function RevenueAnalyticsContent() {
 
                       {/* 6. Device & OS */}
                       {visibleColumns.has("device") && (
-                        <td className="py-2 px-3 text-zinc-700 dark:text-neutral-300 text-xs">
+                        <td className="py-3.5 px-3 text-zinc-700 dark:text-neutral-300 text-xs">
                           {b.device || b.os ? (
                             <div className="flex items-center gap-1">
                               {b.device === "mobile" ? (
@@ -1107,13 +1107,13 @@ function RevenueAnalyticsContent() {
 
                       {/* 7. Date & Time */}
                       {visibleColumns.has("timestamp") && (
-                        <td className="py-2 px-3 text-zinc-500 dark:text-neutral-400 whitespace-nowrap text-[11px]">
+                        <td className="py-3.5 px-3 text-zinc-500 dark:text-neutral-400 whitespace-nowrap text-[11px]">
                           {b.timestamp ? formatDateRelative(b.timestamp) : "—"}
                         </td>
                       )}
 
                       {/* 8. Three-Dots Action Dropdown */}
-                      <td className="py-2 px-3 text-right relative whitespace-nowrap">
+                      <td className="py-3.5 pl-3 pr-5 sm:pr-6 text-right relative whitespace-nowrap">
                         <details className="relative inline-block text-left">
                           <summary
                             aria-label="Open link actions"
