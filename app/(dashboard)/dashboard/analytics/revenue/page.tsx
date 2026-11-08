@@ -488,6 +488,24 @@ function RevenueAnalyticsContent() {
   const aov = totalBeneficiaries > 0 ? Number((totalRevenue / totalBeneficiaries).toFixed(2)) : 0;
   const conversionRate = totalAssociatedClicks > 0 ? Number(((totalBeneficiaries / totalAssociatedClicks) * 100).toFixed(1)) : 0;
 
+  // Authentic sales and conversions grouped by date (YYYY-MM-DD)
+  const realSalesByDate = useMemo(() => {
+    const map = new Map<string, { revenue: number; count: number }>();
+    for (const b of filteredBeneficiaries) {
+      if ((b.revenue && b.revenue > 0) || b.hasPayment) {
+        const dKey = b.timestamp ? String(b.timestamp).slice(0, 10) : "";
+        if (dKey) {
+          const cur = map.get(dKey) || { revenue: 0, count: 0 };
+          map.set(dKey, {
+            revenue: Number((cur.revenue + (b.revenue || 0)).toFixed(2)),
+            count: cur.count + 1,
+          });
+        }
+      }
+    }
+    return map;
+  }, [filteredBeneficiaries]);
+
   const timelinePoints = useMemo(() => {
     return generateTimelineForRange(
       selectedRange,
@@ -775,39 +793,53 @@ function RevenueAnalyticsContent() {
             </span>
           </div>
 
-          {/* @reui/c-chart-5 Revenue & Conversions Bar Chart (Strictly 0 when $0 revenue) */}
+          {/* @reui/c-chart-5 Revenue & Conversions Bar Chart (Strictly 0 when $0 revenue / 0 sales) */}
           <div className="w-full pt-3">
-            <ReuiBarChart5
-              data={timelinePoints.map((pt, i) => {
-                const totalClicksSum = timelinePoints.reduce((acc, p) => acc + (p.clicks || 0), 0);
-                const effectiveTotalClicks = totalClicksSum > 0 ? totalClicksSum : (totalAssociatedClicks || 1);
-                const dayRevNum =
-                  totalRevenue > 0 && pt.clicks > 0
-                    ? Number(((pt.clicks / effectiveTotalClicks) * totalRevenue).toFixed(2))
-                    : 0;
-                const estDayConversions =
-                  pt.clicks > 0
-                    ? Math.max(1, Math.round(dayRevNum > 0 ? dayRevNum * 0.42 : pt.clicks * 0.025))
-                    : 0;
-                return {
-                  label: pt.label || (pt.date ? String(pt.date).slice(5, 10) : `D${i + 1}`),
-                  fullDate: pt.date ? `${pt.label || ""} (${String(pt.date).slice(0, 10)})` : pt.label || `Day ${i + 1}`,
-                  extraLabel: `${pt.clicks || 0} associated clicks`,
-                  primary: dayRevNum,
-                  secondary: estDayConversions,
-                };
-              })}
-              primaryLabel="Attributed Revenue (€)"
-              secondaryLabel="Confirmed Sales"
-              valuePrefix="€"
-              primaryColorLight="#10B981"
-              primaryColorDark="#34D399"
-              secondaryColorLight="#465FFF"
-              secondaryColorDark="#6366F1"
-              heightClassName="h-[220px] w-full"
-              showSecondaryBar
-              showYAxis
-            />
+            {(() => {
+              const totalClicksSum = timelinePoints.reduce((acc, p) => acc + (p.clicks || 0), 0);
+              const effectiveTotalClicks = totalClicksSum > 0 ? totalClicksSum : (totalAssociatedClicks || 1);
+
+              return (
+                <ReuiBarChart5
+                  data={timelinePoints.map((pt, i) => {
+                    const dKey = pt.date ? String(pt.date).slice(0, 10) : "";
+                    const realDayData = dKey ? realSalesByDate.get(dKey) : undefined;
+
+                    let dayRevNum = 0;
+                    let daySalesCount = 0;
+
+                    if (realDayData) {
+                      dayRevNum = realDayData.revenue;
+                      daySalesCount = realDayData.count;
+                    } else if (totalRevenue > 0 && totalBeneficiaries > 0 && effectiveTotalClicks > 0 && pt.clicks > 0) {
+                      dayRevNum = Number(((pt.clicks / effectiveTotalClicks) * totalRevenue).toFixed(2));
+                      daySalesCount = Math.round((pt.clicks / effectiveTotalClicks) * totalBeneficiaries);
+                    } else {
+                      dayRevNum = 0;
+                      daySalesCount = 0;
+                    }
+
+                    return {
+                      label: pt.label || (pt.date ? String(pt.date).slice(5, 10) : `D${i + 1}`),
+                      fullDate: pt.date ? `${pt.label || ""} (${String(pt.date).slice(0, 10)})` : pt.label || `Day ${i + 1}`,
+                      extraLabel: `${pt.clicks || 0} associated clicks`,
+                      primary: dayRevNum,
+                      secondary: daySalesCount,
+                    };
+                  })}
+                  primaryLabel="Attributed Revenue (€)"
+                  secondaryLabel="Confirmed Sales"
+                  valuePrefix="€"
+                  primaryColorLight="#10B981"
+                  primaryColorDark="#34D399"
+                  secondaryColorLight="#465FFF"
+                  secondaryColorDark="#6366F1"
+                  heightClassName="h-[220px] w-full"
+                  showSecondaryBar
+                  showYAxis
+                />
+              );
+            })()}
           </div>
 
           <div className="flex items-center justify-between text-xs text-zinc-500 dark:text-neutral-400 pt-3">
