@@ -357,6 +357,27 @@ export default function GeoAnalyticsPage() {
     zoom: 1,
   });
 
+  // Handle ESC key to exit fullscreen mode & lock body scrolling
+  useEffect(() => {
+    if (!isMapExpanded) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" || e.key === "Esc") {
+        e.preventDefault();
+        setIsMapExpanded(false);
+      }
+    };
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isMapExpanded]);
+
   const [visibleColumns, setVisibleColumns] = useState<Set<string>>(
     new Set(GEO_COLUMNS.map((c) => c.key)),
   );
@@ -1634,49 +1655,82 @@ export default function GeoAnalyticsPage() {
         />
       </div>
 
-      {/* Fullscreen Map Modal */}
+      {/* Fullscreen Map View: 100% full width and 100% full height of screen */}
       {isMapExpanded && (
         <div
-          onClick={() => setIsMapExpanded(false)}
-          className="fixed inset-0 z-[99999] bg-black/85 backdrop-blur-2xl flex flex-col items-center justify-between p-3 sm:p-6 select-none cursor-pointer animate-in fade-in duration-200"
+          className="fixed inset-0 z-[99999] w-screen h-screen bg-[#F8FAFC] dark:bg-[#09090b] overflow-hidden flex flex-col select-none animate-in fade-in duration-200"
         >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-6xl flex items-center justify-between gap-3 p-3.5 sm:p-4 rounded-[10px] bg-white dark:bg-[#141416] border border-[#E4E7EC] dark:border-[#222225] shadow-2xl cursor-default shrink-0"
+          {/* Top-Right Exit Button */}
+          <button
+            type="button"
+            onClick={() => setIsMapExpanded(false)}
+            className="absolute top-4 right-4 sm:top-6 sm:right-6 z-50 p-2.5 sm:p-3 rounded-xl bg-white/90 dark:bg-[#141416]/90 backdrop-blur-md border border-zinc-200/80 dark:border-white/10 text-zinc-700 dark:text-zinc-200 hover:text-red-500 hover:bg-white dark:hover:bg-[#1a1a1e] hover:border-red-300 dark:hover:border-red-500/30 shadow-xl transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer flex items-center gap-2 group"
+            title="Quitter le plein écran (Échap)"
+            aria-label="Quitter le plein écran"
           >
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 rounded-[10px] bg-[#0066FF] flex items-center justify-center text-white shadow-lg font-bold shrink-0">
-                <Globe2 className="w-5 h-5" />
-              </div>
-              <div className="min-w-0">
-                <h2 className="text-sm sm:text-base font-bold text-[#09090B] dark:text-white truncate">
-                  Interactive World Map — Calibrated Fullscreen View
-                </h2>
-                <p className="text-[11px] sm:text-xs text-zinc-500 dark:text-neutral-400 truncate">
-                  {topCountry
-                    ? `${topCountry.name} highlighted as the authoritative active traffic node`
-                    : "Global edge redirect resolution points"}
-                </p>
-              </div>
-            </div>
+            <X className="w-5 h-5 transition-transform group-hover:rotate-90" />
+            <span className="hidden sm:inline text-xs font-semibold pr-1">Quitter (Échap)</span>
+          </button>
+
+          {/* Floating Zoom Controls at Bottom Right */}
+          <div className="absolute bottom-6 right-6 z-40 flex items-center gap-1.5 p-1.5 rounded-xl bg-white/90 dark:bg-[#141416]/90 backdrop-blur-md border border-zinc-200/80 dark:border-white/10 shadow-xl">
             <button
               type="button"
-              onClick={() => setIsMapExpanded(false)}
-              className="p-2 rounded-[10px] bg-zinc-100 dark:bg-white/5 hover:bg-red-500/20 text-zinc-600 dark:text-neutral-400 hover:text-red-500 cursor-pointer transition-colors"
+              onClick={() =>
+                setMapPosition((pos) => ({
+                  ...pos,
+                  zoom: Math.min(8, pos.zoom * 1.5),
+                }))
+              }
+              title="Zoomer (+)"
+              className="p-2 text-zinc-700 dark:text-zinc-300 hover:text-[#0066FF] dark:hover:text-[#5294FF] hover:bg-zinc-100 dark:hover:bg-white/5 rounded-lg transition-colors cursor-pointer"
             >
-              <X className="w-5 h-5" />
+              <ZoomIn className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                setMapPosition((pos) => ({
+                  ...pos,
+                  zoom: Math.max(1, pos.zoom / 1.5),
+                }))
+              }
+              title="Dézoomer (-)"
+              className="p-2 text-zinc-700 dark:text-zinc-300 hover:text-[#0066FF] dark:hover:text-[#5294FF] hover:bg-zinc-100 dark:hover:bg-white/5 rounded-lg transition-colors cursor-pointer"
+            >
+              <ZoomOut className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                setMapPosition(CONTINENT_VIEWPORTS[selectedContinent] || CONTINENT_VIEWPORTS["ALL"])
+              }
+              title="Réinitialiser la vue"
+              className="p-2 text-zinc-700 dark:text-zinc-300 hover:text-[#0066FF] dark:hover:text-[#5294FF] hover:bg-zinc-100 dark:hover:bg-white/5 rounded-lg transition-colors cursor-pointer"
+            >
+              <RotateCcw className="w-4 h-4" />
             </button>
           </div>
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-6xl flex-1 my-3 flex items-center justify-center bg-[#F8FAFC] dark:bg-[#09090b] rounded-[10px] border border-slate-200 dark:border-[#222225] overflow-hidden shadow-2xl min-h-[320px]"
-          >
+
+          {/* Active Node Floating Info Badge (Bottom Left) */}
+          {topCountry && (
+            <div className="absolute bottom-6 left-6 z-40 hidden sm:flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-white/90 dark:bg-[#141416]/90 backdrop-blur-md border border-zinc-200/80 dark:border-white/10 shadow-xl pointer-events-none">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#0066FF] animate-pulse" />
+              <span className="text-xs font-semibold text-zinc-900 dark:text-white">
+                Nœud actif : <strong>{topCountry.name}</strong> ({topCountry.percentage}% du trafic)
+              </span>
+            </div>
+          )}
+
+          {/* 100% Full-bleed World Map */}
+          <div className="relative w-full h-full flex-1 flex items-center justify-center overflow-hidden">
             <ComposableMap
-              width={800}
-              height={400}
+              width={1200}
+              height={650}
               projection="geoMercator"
-              projectionConfig={{ scale: 135, center: [10, 20] }}
-              className="w-full h-full"
+              projectionConfig={{ scale: 145, center: [10, 20] }}
+              className="w-full h-full object-contain"
+              style={{ width: "100%", height: "100%" }}
             >
               <ZoomableGroup
                 zoom={mapPosition.zoom}
