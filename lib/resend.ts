@@ -671,3 +671,218 @@ export async function sendMonthlyTargetReachedEmail({
     return { success: false, error: err?.message || "Erreur d'envoi" };
   }
 }
+
+
+/**
+ * 9. Email d'alerte expiration imminente (J-5 et J-3)
+ */
+export async function sendSubscriptionExpiringAlertEmail({
+  to,
+  name,
+  plan,
+  daysRemaining,
+  renewUrl = "https://lsho.cc/dashboard/pricing",
+}: {
+  to: string;
+  name?: string;
+  plan: string;
+  daysRemaining: number;
+  renewUrl?: string;
+}): Promise<{ success: boolean; isDevFallback?: boolean; error?: string }> {
+  const userName = name || to.split("@")[0];
+  const subject =
+    daysRemaining === 5
+      ? `[LShorter] Plus que 5 jours pour votre abonnement ${plan}`
+      : `[LShorter] Rappel urgent : Plus que 3 jours pour votre abonnement ${plan}`;
+
+  const title = `Votre abonnement expire dans ${daysRemaining} jours`;
+
+  if (!resend) {
+    console.log(`\n[DEV EMAIL] Subscription Expiring Alert (${daysRemaining} days left) to ${to}\n`);
+    return { success: true, isDevFallback: true };
+  }
+
+  try {
+    const html = renderLightEmailLayout({
+      title,
+      subtitle: `Forfait ${plan} • Échéance de renouvellement`,
+      bodyHtml: `
+        <p style="margin: 0 0 16px 0; color: #09090B;">Bonjour <strong>${userName}</strong>,</p>
+        <p style="margin: 0 0 16px 0; color: #334155;">
+          Votre abonnement <strong>${plan}</strong> arrive à expiration dans <strong>${daysRemaining} jours</strong>.
+        </p>
+        <p style="margin: 0 0 20px 0; color: #334155;">
+          Pour continuer à profiter sans interruption de vos redirections edge ultra-rapides, de vos domaines personnalisés et de vos quotas élevés, pensez à renouveler votre forfait dès aujourd'hui.
+        </p>
+        <div style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 18px;">
+          <table width="100%" style="font-size: 13.5px; color: #09090B; border-collapse: collapse;">
+            <tr>
+              <td style="padding: 6px 0; color: #64748B;">Forfait actuel :</td>
+              <td style="padding: 6px 0; text-align: right; font-weight: 700; color: #2563EB;">${plan}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; color: #64748B;">Temps restant :</td>
+              <td style="padding: 6px 0; text-align: right; font-weight: 700; color: ${daysRemaining <= 3 ? "#DC2626" : "#D97706"};">${daysRemaining} jours</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; color: #64748B;">Statut :</td>
+              <td style="padding: 6px 0; text-align: right; font-weight: 600; color: #16A34A;">Actif</td>
+            </tr>
+          </table>
+        </div>
+      `,
+      ctaLabel: "Renouveler mon abonnement",
+      ctaHref: renewUrl,
+      footerNote: "Vous recevez cet email car vous avez un forfait actif sur LShorter.",
+    });
+
+    const { error } = await resend.emails.send({
+      from: FROM_EMAIL,
+      to,
+      subject,
+      html,
+    });
+
+    if (error) return { success: false, error: error.message };
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || "Erreur d'envoi" };
+  }
+}
+
+/**
+ * 10. Email d'activation de la période de grâce de 24h (1 jour)
+ * Message exact demandé : "On vous a accordé 1 jour pour vous remettre à jour"
+ */
+export async function sendGracePeriodAlertEmail({
+  to,
+  name,
+  plan,
+  renewUrl = "https://lsho.cc/dashboard/pricing",
+}: {
+  to: string;
+  name?: string;
+  plan: string;
+  renewUrl?: string;
+}): Promise<{ success: boolean; isDevFallback?: boolean; error?: string }> {
+  const userName = name || to.split("@")[0];
+  const subject = `[LShorter] On vous a accordé 1 jour pour vous remettre à jour`;
+  const title = `On vous a accordé 1 jour pour vous remettre à jour`;
+
+  if (!resend) {
+    console.log(`\n[DEV EMAIL] Grace Period Alert (1 day granted) to ${to}\n`);
+    return { success: true, isDevFallback: true };
+  }
+
+  try {
+    const html = renderLightEmailLayout({
+      title,
+      subtitle: `Forfait ${plan} • Période de grâce active`,
+      bodyHtml: `
+        <p style="margin: 0 0 16px 0; color: #09090B;">Bonjour <strong>${userName}</strong>,</p>
+        <p style="margin: 0 0 16px 0; color: #334155;">
+          Votre abonnement <strong>${plan}</strong> est arrivé à son terme.
+        </p>
+        <div style="background-color: #FEF3C7; border: 1px solid #F59E0B; border-radius: 10px; padding: 16px; margin-bottom: 20px;">
+          <p style="margin: 0; color: #92400E; font-size: 14px; font-weight: 600; line-height: 1.5;">
+            ⏳ On vous a accordé 1 jour pour vous remettre à jour avant le passage automatique au forfait gratuit.
+          </p>
+        </div>
+        <p style="margin: 0 0 16px 0; color: #334155;">
+          Pendant ces 24 heures de grâce, l'ensemble de vos redirections, domaines et accès premium restent 100 % opérationnels.
+        </p>
+        <div style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 18px;">
+          <table width="100%" style="font-size: 13.5px; color: #09090B; border-collapse: collapse;">
+            <tr>
+              <td style="padding: 6px 0; color: #64748B;">Forfait concerné :</td>
+              <td style="padding: 6px 0; text-align: right; font-weight: 700; color: #2563EB;">${plan}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; color: #64748B;">Délai de grâce accordé :</td>
+              <td style="padding: 6px 0; text-align: right; font-weight: 700; color: #D97706;">24 heures (1 jour)</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; color: #64748B;">Action requise :</td>
+              <td style="padding: 6px 0; text-align: right; font-weight: 600; color: #DC2626;">Régularisation / Renouvellement</td>
+            </tr>
+          </table>
+        </div>
+      `,
+      ctaLabel: "Régulariser mon compte maintenant",
+      ctaHref: renewUrl,
+      footerNote: "Vos liens courts restent actifs durant toute la durée de la période de grâce.",
+    });
+
+    const { error } = await resend.emails.send({
+      from: FROM_EMAIL,
+      to,
+      subject,
+      html,
+    });
+
+    if (error) return { success: false, error: error.message };
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || "Erreur d'envoi" };
+  }
+}
+
+/**
+ * 11. Email de confirmation du passage en plan Gratuit (après expiration de la grâce)
+ */
+export async function sendSubscriptionDowngradedEmail({
+  to,
+  name,
+  previousPlan,
+  upgradeUrl = "https://lsho.cc/dashboard/pricing",
+}: {
+  to: string;
+  name?: string;
+  previousPlan: string;
+  upgradeUrl?: string;
+}): Promise<{ success: boolean; isDevFallback?: boolean; error?: string }> {
+  const userName = name || to.split("@")[0];
+  const subject = `[LShorter] Votre compte est repassé en plan Gratuit`;
+  const title = `Compte repassé en plan Gratuit`;
+
+  if (!resend) {
+    console.log(`\n[DEV EMAIL] Subscription Downgraded to FREE for ${to}\n`);
+    return { success: true, isDevFallback: true };
+  }
+
+  try {
+    const html = renderLightEmailLayout({
+      title,
+      subtitle: `Fin de la période de grâce • Statut de votre compte`,
+      bodyHtml: `
+        <p style="margin: 0 0 16px 0; color: #09090B;">Bonjour <strong>${userName}</strong>,</p>
+        <p style="margin: 0 0 16px 0; color: #334155;">
+          La période de grâce de 1 jour accordée pour votre abonnement <strong>${previousPlan}</strong> est désormais terminée. Votre compte est maintenant configuré sur le forfait <strong>Gratuit</strong>.
+        </p>
+        <div style="background-color: #ECFDF5; border: 1px solid #10B981; border-radius: 10px; padding: 16px; margin-bottom: 20px;">
+          <p style="margin: 0; color: #065F46; font-size: 13.5px; font-weight: 600; line-height: 1.5;">
+            ✅ Vos liens courts existants continuent de fonctionner et de rediriger vos visiteurs sans interruption.
+          </p>
+        </div>
+        <p style="margin: 0 0 20px 0; color: #334155;">
+          Les fonctionnalités avancées (domaines supplémentaires, analytics détaillées, quotas élevés) sont temporairement verrouillées. Vous pouvez réactiver votre forfait à tout moment en un clic.
+        </p>
+      `,
+      ctaLabel: `Réactiver mon forfait ${previousPlan}`,
+      ctaHref: upgradeUrl,
+      footerNote: "Vous pouvez continuer à utiliser gratuitement LShorter avec les quotas standards.",
+    });
+
+    const { error } = await resend.emails.send({
+      from: FROM_EMAIL,
+      to,
+      subject,
+      html,
+    });
+
+    if (error) return { success: false, error: error.message };
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || "Erreur d'envoi" };
+  }
+}

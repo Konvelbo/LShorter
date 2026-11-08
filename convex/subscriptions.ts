@@ -179,3 +179,86 @@ export const markSubscriptionCanceled = mutation({
     return { success: false, notFound: true };
   },
 });
+
+// ─── Query: Get active/expiring/grace subscriptions for lifecycle processing ──
+export const getAllSubscriptionsForLifecycle = query({
+  args: {},
+  handler: async (ctx) => {
+    const all = await ctx.db.query("subscriptions").collect();
+    // Exclude subscriptions that are already fully downgraded
+    return all.filter((s) => s.lifecycleStatus !== "DOWNGRADED" && s.plan !== "FREE" && s.plan !== "FREEMIUM");
+  },
+});
+
+// ─── Mutation: Record lifecycle alert stage (5_DAYS, 3_DAYS, GRACE_PERIOD) ────
+export const recordLifecycleAlert = mutation({
+  args: {
+    subscriptionId: v.id("subscriptions"),
+    stage: v.string(), // "5_DAYS" | "3_DAYS" | "GRACE_PERIOD" | "DOWNGRADED"
+    lifecycleStatus: v.string(), // "EXPIRING" | "GRACE_PERIOD" | "DOWNGRADED"
+    gracePeriodEndsAt: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const sub = await ctx.db.get(args.subscriptionId);
+    if (!sub) return { success: false, error: "NOT_FOUND" };
+
+    const patchData: any = {
+      lastLifecycleAlert: args.stage,
+      lifecycleStatus: args.lifecycleStatus,
+      updatedAt: new Date().toISOString(),
+    };
+    if (typeof args.gracePeriodEndsAt === "number") {
+      patchData.gracePeriodEndsAt = args.gracePeriodEndsAt;
+    }
+
+    await ctx.db.patch(sub._id, patchData);
+    return { success: true };
+  },
+});
+
+// ─── Mutation: Downgrade subscription and user to FREE plan ───────────────────
+export const downgradeSubscriptionToFree = mutation({
+  args: {
+    subscriptionId: v.id("subscriptions"),
+  },
+  handler: async (ctx, args) => {
+    const sub = await ctx.db.get(args.subscriptionId);
+    if (!sub) return { success: false, error: "NOT_FOUND" };
+
+    const now = new Date().toISOString();
+
+    // 1. Mark subscription as DOWNGRADED
+    await ctx.db.patch(sub._id, {
+      lifecycleStatus: "DOWNGRADED",
+      lastLifecycleAlert: "DOWNGRADED",
+      plan: "FREE",
+      updatedAt: now,
+    });
+
+    // 2. Locate and downgrade user in "users" table
+    const cleanUserId = sub.orgId.replace(/^org_/, "");
+    const user =
+      (await ctx.db
+        .query("users")
+        .withIndex("by_userId", (q) => q.eq("userId", cleanUserId))
+        .first()) ||
+      (await ctx.db
+        .query("users")
+        .withIndex("by_userId", (q) => q.eq("userId", sub.orgId))
+        .first());
+
+    if (user) {
+      await ctx.db.patch(user._id, {
+        plan: "FREE",
+        updatedAt: now,
+      });
+    }
+
+    return {
+      success: true,
+      userId: user?.userId || cleanUserId,
+      email: user?.email,
+      name: user?.name,
+    };
+  },
+});

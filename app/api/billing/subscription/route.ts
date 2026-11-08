@@ -140,6 +140,9 @@ export async function GET(request: NextRequest) {
         currentPeriodStart,
         currentPeriodEnd,
         formattedPeriodEnd,
+        lifecycleStatus: convexSub?.lifecycleStatus || null,
+        gracePeriodEndsAt: convexSub?.gracePeriodEndsAt || null,
+        lastLifecycleAlert: convexSub?.lastLifecycleAlert || null,
       },
     });
   } catch (error: any) {

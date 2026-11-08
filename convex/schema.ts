@@ -116,13 +116,16 @@ export default defineSchema({
   // ─── 6. Subscriptions (Control Plane) ────────────────────────────────────────
   subscriptions: defineTable({
     orgId: v.string(),
-    provider: v.string(), // "mock", "lemonsqueezy", "stripe", "paystack"
+    provider: v.string(), // "mock", "lemonsqueezy", "stripe", "paystack", "paddle"
     providerSubscriptionId: v.string(),
     currentPeriodStart: v.number(),
     currentPeriodEnd: v.number(),
     cancelAtPeriodEnd: v.boolean(),
     plan: v.optional(v.string()),
     cycle: v.optional(v.string()),
+    lastLifecycleAlert: v.optional(v.string()), // "5_DAYS" | "3_DAYS" | "GRACE_PERIOD" | "DOWNGRADED"
+    gracePeriodEndsAt: v.optional(v.number()), // timestamp (ms) when 1-day grace ends
+    lifecycleStatus: v.optional(v.string()), // "ACTIVE" | "EXPIRING" | "GRACE_PERIOD" | "DOWNGRADED"
     createdAt: v.optional(v.string()),
     updatedAt: v.optional(v.string()),
   }).index("by_orgId", ["orgId"]),
