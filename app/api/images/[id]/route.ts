@@ -5,6 +5,37 @@ import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
 
 export const revalidate = 31536000;
 
+// High-Performance In-Memory Cache for Banner Images (< 1ms Response)
+interface CachedImage {
+  buffer: Buffer;
+  contentType: string;
+  expiresAt: number;
+}
+const IMAGE_CACHE_LIMIT = 150;
+const imageMemoryCache = new Map<string, CachedImage>();
+
+function getFromMemoryCache(key: string): CachedImage | null {
+  const item = imageMemoryCache.get(key);
+  if (!item) return null;
+  if (Date.now() > item.expiresAt) {
+    imageMemoryCache.delete(key);
+    return null;
+  }
+  return item;
+}
+
+function setInMemoryCache(key: string, buffer: Buffer, contentType: string) {
+  if (imageMemoryCache.size >= IMAGE_CACHE_LIMIT) {
+    const firstKey = imageMemoryCache.keys().next().value;
+    if (firstKey) imageMemoryCache.delete(firstKey);
+  }
+  imageMemoryCache.set(key, {
+    buffer,
+    contentType,
+    expiresAt: Date.now() + 1000 * 60 * 60 * 24, // 24 hours
+  });
+}
+
 function getMimeType(filename: string): string {
   const ext = filename.split(".").pop()?.toLowerCase();
   switch (ext) {
@@ -40,6 +71,26 @@ export async function GET(
       return new Response("Image ID missing", { status: 400 });
     }
 
+    // Ultra-Fast Path: Memory Cache Hit (< 1ms response, 0 network requests)
+    const memCached = getFromMemoryCache(cleanId);
+    if (memCached) {
+      return new Response(memCached.buffer as BodyInit, {
+        status: 200,
+        headers: {
+          "Content-Type": memCached.contentType,
+          "Content-Length": memCached.buffer.length.toString(),
+          "Cache-Control": "public, max-age=31536000, s-maxage=31536000, stale-while-revalidate=86400, immutable",
+          "CDN-Cache-Control": "public, max-age=31536000, immutable",
+          "Vercel-CDN-Cache-Control": "public, max-age=31536000, immutable",
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
+          "Cross-Origin-Resource-Policy": "cross-origin",
+          "X-Content-Type-Options": "nosniff",
+          "X-Image-Cache": "MEM-HIT",
+        },
+      });
+    }
+
     // Fast path: Default banner static asset bypass (< 5ms response, zero worker cold start)
     if (cleanId === "default_banner.jpg" || cleanId.startsWith("default_banner")) {
       try {
@@ -70,14 +121,14 @@ export async function GET(
       buffer: ArrayBuffer | Buffer,
       contentType: string,
     ) => {
-      const byteLength =
-        buffer instanceof ArrayBuffer ? buffer.byteLength : buffer.length;
+      const nodeBuffer = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer as ArrayBuffer);
+      setInMemoryCache(cleanId, nodeBuffer, contentType);
       const isSvg = contentType.includes("svg");
-      return new Response(buffer as BodyInit, {
+      return new Response(nodeBuffer as BodyInit, {
         status: 200,
         headers: {
           "Content-Type": contentType,
-          "Content-Length": byteLength.toString(),
+          "Content-Length": nodeBuffer.length.toString(),
           "Cache-Control": "public, max-age=31536000, s-maxage=31536000, stale-while-revalidate=86400, immutable",
           "CDN-Cache-Control": "public, max-age=31536000, immutable",
           "Vercel-CDN-Cache-Control": "public, max-age=31536000, immutable",
@@ -85,6 +136,7 @@ export async function GET(
           "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
           "Cross-Origin-Resource-Policy": "cross-origin",
           "X-Content-Type-Options": "nosniff",
+          "X-Image-Cache": "FETCH-AND-CACHED",
           ...(isSvg
             ? {
                 "Content-Security-Policy":

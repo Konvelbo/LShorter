@@ -185,7 +185,7 @@ export default {
               ...(isSvg ? { 'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; sandbox" } : {}),
               'Cache-Control': (url.searchParams.has('v') || url.searchParams.has('_t') || url.searchParams.has('cb'))
                 ? 'no-store, no-cache, max-age=0, must-revalidate'
-                : 'public, max-age=60, s-maxage=300, stale-while-revalidate=3600',
+                : 'public, max-age=31536000, s-maxage=31536000, stale-while-revalidate=86400, immutable',
             },
           });
         } catch (decodeErr) {

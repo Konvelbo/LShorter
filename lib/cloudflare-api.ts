@@ -255,12 +255,6 @@ export function cfNormalizeImageUrl(url?: string): string {
     return "/default_banner.jpg";
   }
 
-  const isLocalBrowser =
-    typeof window !== "undefined" &&
-    (window.location.hostname === "localhost" ||
-      window.location.hostname === "127.0.0.1");
-  const baseOrigin = isLocalBrowser ? "" : "https://lsho.cc";
-
   if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
     if (
       trimmed.includes("/api/v1/images/") ||
@@ -270,7 +264,7 @@ export function cfNormalizeImageUrl(url?: string): string {
       const [pathPart, queryPart] = trimmed.split("?");
       const filename = pathPart.split("/").pop();
       if (filename && filename !== "og.png" && filename !== "og") {
-        return `${baseOrigin}/banners/${filename}${queryPart ? `?${queryPart}` : ""}`;
+        return `/banners/${filename}${queryPart ? `?${queryPart}` : ""}`;
       }
     }
     return trimmed;
@@ -283,7 +277,7 @@ export function cfNormalizeImageUrl(url?: string): string {
     const [pathPart, queryPart] = trimmed.split("?");
     const filename = pathPart.replace(/^\/(banners|api(\/v1)?\/images)\//, "");
     if (filename && filename !== "og.png" && filename !== "og") {
-      return `${baseOrigin}/banners/${filename}${queryPart ? `?${queryPart}` : ""}`;
+      return `/banners/${filename}${queryPart ? `?${queryPart}` : ""}`;
     }
     return trimmed;
   }
@@ -295,7 +289,7 @@ export function cfNormalizeImageUrl(url?: string): string {
       trimmed.endsWith(".webp") ||
       trimmed.endsWith(".gif"))
   ) {
-    return `${baseOrigin}/banners/${trimmed}`;
+    return `/banners/${trimmed}`;
   }
   return trimmed;
 }

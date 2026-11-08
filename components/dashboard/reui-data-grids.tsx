@@ -33,11 +33,35 @@ import { showToast } from "@/components/ui/toast-provider";
 import { ReferrerBadge, ReferrerLogo } from "@/components/dashboard/analytics/referrer-badge";
 import { PixelBadgesList, PixelLogosOnlyList } from "@/components/dashboard/pixel-badges";
 
-export function getDicebearGlassUrl(seed: string): string {
-  return `https://api.dicebear.com/9.x/glass/svg?seed=${encodeURIComponent(seed || "lshorter")}`;
+export function getLocalGlassAvatar(seed: string): string {
+  const cleanSeed = (seed || "link").toLowerCase();
+  let hash = 0;
+  for (let i = 0; i < cleanSeed.length; i++) {
+    hash = (hash << 5) - hash + cleanSeed.charCodeAt(i);
+    hash |= 0;
+  }
+  const gradients = [
+    ["#0066FF", "#5294FF"],
+    ["#6366F1", "#818CF8"],
+    ["#0D9488", "#2DD4BF"],
+    ["#D97706", "#FBBF24"],
+    ["#DB2777", "#F472B6"],
+    ["#2563EB", "#38BDF8"],
+    ["#7C3AED", "#C084FC"],
+  ];
+  const pair = gradients[Math.abs(hash) % gradients.length];
+  const initial = cleanSeed.replace(/[^a-z0-9]/gi, "").substring(0, 2).toUpperCase() || "LS";
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="88" height="64" viewBox="0 0 88 64"><defs><linearGradient id="g_${Math.abs(hash)}" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="${pair[0]}"/><stop offset="100%" stop-color="${pair[1]}"/></linearGradient></defs><rect width="88" height="64" rx="8" fill="url(#g_${Math.abs(hash)})"/><circle cx="44" cy="32" r="16" fill="rgba(255,255,255,0.18)"/><text x="44" y="37" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle" letter-spacing="0.5">${initial}</text></svg>`;
+
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
 
-export const getDiceBearAvatar = getDicebearGlassUrl;
+export function getDicebearGlassUrl(seed: string): string {
+  return getLocalGlassAvatar(seed);
+}
+
+export const getDiceBearAvatar = getLocalGlassAvatar;
 
 export function normalizeBannerUrl(rawUrl?: string | null): string {
   if (!rawUrl) return "";
@@ -45,15 +69,33 @@ export function normalizeBannerUrl(rawUrl?: string | null): string {
   if (trimmed.includes("default_banner")) {
     return "/default_banner.jpg";
   }
-  if (trimmed.startsWith("data:") || trimmed.startsWith("blob:") || trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+  if (trimmed.startsWith("data:") || trimmed.startsWith("blob:")) {
     return trimmed;
   }
-  if (trimmed.startsWith("/api/images/")) {
-    const filename = trimmed.replace("/api/images/", "");
-    return `/api/v1/images/${filename}`;
+  // Convert any absolute or nested URLs pointing to banners or images into local relative paths
+  if (trimmed.includes("/banners/")) {
+    const filename = trimmed.split("/banners/")[1]?.split("?")[0];
+    if (filename && filename !== "og.png" && filename !== "og") {
+      return `/banners/${filename}`;
+    }
   }
-  if (trimmed.startsWith("banner_") && (trimmed.endsWith(".jpg") || trimmed.endsWith(".png") || trimmed.endsWith(".webp") || trimmed.endsWith(".gif"))) {
-    return `/api/v1/images/${trimmed}`;
+  if (trimmed.includes("/api/v1/images/")) {
+    const filename = trimmed.split("/api/v1/images/")[1]?.split("?")[0];
+    if (filename && filename !== "og.png" && filename !== "og") {
+      return `/banners/${filename}`;
+    }
+  }
+  if (trimmed.includes("/api/images/")) {
+    const filename = trimmed.split("/api/images/")[1]?.split("?")[0];
+    if (filename && filename !== "og.png" && filename !== "og") {
+      return `/banners/${filename}`;
+    }
+  }
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    return trimmed;
+  }
+  if (trimmed.startsWith("banner_") || trimmed.startsWith("img_")) {
+    return `/banners/${trimmed}`;
   }
   return trimmed;
 }
@@ -857,7 +899,7 @@ export function LinksReuiDataGrid({
                               e.stopPropagation();
                               if (row.hasCustomBanner) {
                                 setPreviewBanner({
-                                  imageUrl: row.avatarUrl,
+                                  imageUrl: row.ogImage || row.avatarUrl,
                                   title: row.ownerName,
                                   shortUrl: row.shortUrl,
                                   slug: row.slug,
@@ -881,9 +923,9 @@ export function LinksReuiDataGrid({
                               className="w-full h-full object-cover transition-transform group-hover/avatar:scale-105"
                               onError={(e) => {
                                 const target = e.currentTarget as HTMLImageElement;
-                                if (row.hasCustomBanner && row.ogImage.startsWith("/api/images/")) {
-                                  const fName = row.ogImage.replace("/api/images/", "");
-                                  target.src = `/api/v1/images/${fName}`;
+                                if (row.hasCustomBanner && (row.ogImage.includes("/api/images/") || row.ogImage.includes("/banners/"))) {
+                                  const fName = row.ogImage.split("/").pop()?.split("?")[0];
+                                  if (fName) target.src = `/banners/${fName}`;
                                 } else {
                                   target.src = getDiceBearAvatar(row.slug);
                                 }

@@ -165,7 +165,7 @@ export async function GET(req: Request) {
           const [pathPart, queryPart] = rawLinkOgImg.split("?");
           const fname = pathPart.split("/").pop();
           if (fname && fname !== "og.png" && fname !== "og") {
-            return `https://lsho.cc/banners/${fname}${queryPart ? `?${queryPart}` : ""}`;
+            return `/banners/${fname}${queryPart ? `?${queryPart}` : ""}`;
           }
         }
         return rawLinkOgImg;
@@ -493,7 +493,7 @@ export async function POST(req: Request) {
       const [pathPart, queryPart] = sanitizedOgImage.split("?");
       const fName = pathPart.split("/").pop();
       if (fName && fName !== "og.png" && fName !== "og") {
-        sanitizedOgImage = `https://lsho.cc/banners/${fName}${queryPart ? `?${queryPart}` : ""}`;
+        sanitizedOgImage = `/banners/${fName}${queryPart ? `?${queryPart}` : ""}`;
       }
     } else if (rawOg && rawOg.startsWith("data:") && rawOg.length > 250000) {
       const bannerTitle = encodeURIComponent(
