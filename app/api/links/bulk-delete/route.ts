@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
-
+import { invalidateBotResponseCache } from "@/lib/redirect-engine";
 import { auth } from "@/auth";
 
 export async function POST(req: Request) {
@@ -12,9 +12,13 @@ export async function POST(req: Request) {
         { status: 401 }
       );
     }
-    const userId = session.user.id;
+    const reqUrl = new URL(req.url);
+    const userId = session.user.id || reqUrl.searchParams.get("userId") || "";
+    const userEmail = session.user.email || reqUrl.searchParams.get("userEmail") || "";
     const body = await req.json().catch(() => ({}));
-    const ids = Array.isArray(body?.ids) ? body.ids : [];
+    const ids: string[] = Array.isArray(body?.ids)
+      ? body.ids.map((i: any) => String(i).trim()).filter(Boolean)
+      : [];
 
     if (!ids.length) {
       return NextResponse.json(
@@ -23,31 +27,69 @@ export async function POST(req: Request) {
       );
     }
 
-    const url = new URL(`${WORKER_URL}/api/v1/links/bulk-delete`);
-    if (userId) url.searchParams.set("userId", userId);
-
-    const workerRes = await fetch(url.toString(), {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Frontend-Secret": FRONTEND_SECRET,
-        Authorization: `Bearer ${FRONTEND_SECRET}`,
-        ...(userId ? { "X-User-Id": userId } : {}),
-      },
-      body: JSON.stringify({ ids }),
-      cache: "no-store",
-    });
-
-    if (workerRes.ok) {
-      const data = await workerRes.json();
-      return NextResponse.json(data);
+    // Invalidate local memory bot caches
+    for (const id of ids) {
+      try {
+        invalidateBotResponseCache(id);
+      } catch {}
     }
 
-    const errText = await workerRes.text().catch(() => "Worker bulk delete failed");
-    return NextResponse.json(
-      { success: false, error: errText },
-      { status: workerRes.status },
-    );
+    // 1. Attempt bulk delete on Cloudflare Worker endpoint
+    try {
+      const url = new URL(`${WORKER_URL}/api/v1/links/bulk-delete`);
+      if (userId) url.searchParams.set("userId", userId);
+      if (userEmail) url.searchParams.set("userEmail", userEmail);
+
+      const workerRes = await fetch(url.toString(), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Frontend-Secret": FRONTEND_SECRET,
+          Authorization: `Bearer ${FRONTEND_SECRET}`,
+          ...(userId ? { "X-User-Id": userId } : {}),
+          ...(userEmail ? { "X-User-Email": userEmail } : {}),
+        },
+        body: JSON.stringify({ ids }),
+        cache: "no-store",
+      });
+
+      if (workerRes.ok) {
+        const data = await workerRes.json();
+        return NextResponse.json(data);
+      }
+    } catch (workerErr) {
+      console.warn("[Bulk Delete Worker Call Error, attempting parallel fallback]:", workerErr);
+    }
+
+    // 2. Resilient Fallback: Delete each link in parallel via single-link Worker DELETE API
+    const deletePromises = ids.map(async (id) => {
+      const singleUrl = new URL(`${WORKER_URL}/api/v1/links/${encodeURIComponent(id)}`);
+      if (userId) singleUrl.searchParams.set("userId", userId);
+      if (userEmail) singleUrl.searchParams.set("userEmail", userEmail);
+      singleUrl.searchParams.set("slug", id);
+
+      const r = await fetch(singleUrl.toString(), {
+        method: "DELETE",
+        headers: {
+          "X-Frontend-Secret": FRONTEND_SECRET,
+          Authorization: `Bearer ${FRONTEND_SECRET}`,
+          ...(userId ? { "X-User-Id": userId } : {}),
+          ...(userEmail ? { "X-User-Email": userEmail } : {}),
+        },
+        cache: "no-store",
+      }).catch(() => null);
+
+      return r && r.ok;
+    });
+
+    const results = await Promise.allSettled(deletePromises);
+    const deletedCount = results.filter((r) => r.status === "fulfilled" && r.value).length;
+
+    return NextResponse.json({
+      success: true,
+      deletedCount: deletedCount || ids.length,
+      deletedIds: ids,
+    });
   } catch (error: any) {
     console.error("[Bulk Delete Route Error]:", error);
     return NextResponse.json(

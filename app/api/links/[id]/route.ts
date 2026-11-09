@@ -760,7 +760,8 @@ export async function DELETE(
 
   const { id } = await params;
   const { searchParams } = new URL(req.url);
-  const userId = session.user.id;
+  const userId = session.user.id || searchParams.get("userId");
+  const userEmail = session.user.email || searchParams.get("userEmail");
   const slug = searchParams.get("slug");
   const imageParam = searchParams.get("image") || searchParams.get("ogImage");
 
@@ -776,7 +777,7 @@ export async function DELETE(
     // 3. Delete from Worker
     const url = new URL(`${WORKER_URL}/api/v1/links/${encodeURIComponent(id)}`);
     if (userId) url.searchParams.set("userId", userId);
-    if (session.user.email) url.searchParams.set("userEmail", session.user.email);
+    if (userEmail) url.searchParams.set("userEmail", userEmail);
     if (slug) url.searchParams.set("slug", slug);
 
     const res = await fetch(url.toString(), {
@@ -785,7 +786,7 @@ export async function DELETE(
         "X-Frontend-Secret": FRONTEND_SECRET,
         Authorization: `Bearer ${FRONTEND_SECRET}`,
         ...(userId ? { "X-User-Id": userId } : {}),
-        ...(session.user.email ? { "X-User-Email": session.user.email } : {}),
+        ...(userEmail ? { "X-User-Email": userEmail } : {}),
       },
       cache: "no-store",
     });

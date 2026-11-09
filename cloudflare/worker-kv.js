@@ -924,6 +924,62 @@ export default {
         }
       }
 
+      // POST /api/v1/links/bulk-delete or /api/links/bulk-delete
+      if (method === 'POST' && (path.endsWith('/bulk-delete') || linkIdOrSlug === 'bulk-delete')) {
+        try {
+          const body = await request.json().catch(() => ({}));
+          const ids = Array.isArray(body?.ids) ? body.ids : [];
+          if (!ids.length) {
+            return jsonResponse({ success: false, error: 'Aucun identifiant fourni' }, 400);
+          }
+
+          const reqUserId = request.headers.get('x-user-id') || url.searchParams.get('userId');
+          const reqUserEmail = request.headers.get('x-user-email') || url.searchParams.get('userEmail');
+
+          // 1. Delete all keys from KV in parallel
+          if (env.LINKS_KV) {
+            const kvDeletions = [];
+            for (const id of ids) {
+              const strId = String(id).trim();
+              if (strId) {
+                kvDeletions.push(env.LINKS_KV.delete(strId).catch(() => {}));
+                kvDeletions.push(env.LINKS_KV.delete(strId.toLowerCase()).catch(() => {}));
+              }
+            }
+            await Promise.allSettled(kvDeletions);
+          }
+
+          // 2. Delete from D1 database
+          if (env.DB) {
+            for (const id of ids) {
+              const strId = String(id).trim();
+              if (!strId) continue;
+              try {
+                if (reqUserId || reqUserEmail) {
+                  await env.DB.prepare(`
+                    DELETE FROM links 
+                    WHERE (id = ? OR LOWER(slug) = LOWER(?))
+                      AND (user_id = ? OR user_email = ? OR user_id = 'usr_default')
+                  `).bind(strId, strId, reqUserId || '', reqUserEmail || '').run();
+                } else {
+                  await env.DB.prepare(`
+                    DELETE FROM links 
+                    WHERE id = ? OR LOWER(slug) = LOWER(?)
+                  `).bind(strId, strId).run();
+                }
+              } catch (dbErr) {
+                console.warn('[D1 Bulk Delete Error]:', dbErr);
+              }
+            }
+          }
+
+          invalidateUserCache(reqUserId);
+          return jsonResponse({ success: true, deletedCount: ids.length, deletedIds: ids });
+        } catch (err) {
+          return jsonResponse({ success: false, error: 'Erreur lors de la suppression groupée.' }, 500);
+        }
+      }
+
       // POST /api/v1/links (Create)
       if (method === 'POST') {
         const sanitizeError = (err) => {

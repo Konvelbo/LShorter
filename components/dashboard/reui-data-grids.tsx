@@ -133,6 +133,77 @@ function formatLiveRelativeTime(
   return `${days} days ago`;
 }
 
+function LinkAvatarThumbnail({
+  avatarUrl,
+  ownerName,
+  hasCustomBanner,
+  ogImage,
+  slug,
+  onClick,
+}: {
+  avatarUrl: string;
+  ownerName: string;
+  hasCustomBanner: boolean;
+  ogImage: string;
+  slug: string;
+  onClick: (e: React.MouseEvent) => void;
+}) {
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [hasError, setHasError] = useState(false);
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={hasCustomBanner ? "Click to view full banner preview" : "Click to edit link"}
+      className="group/avatar relative w-11 h-8 rounded-lg border border-zinc-200/90 dark:border-white/10 bg-[#F1F5F9] dark:bg-[#1a1a1e] overflow-hidden shrink-0 cursor-pointer transition-all duration-200 hover:scale-105 shadow-2xs hover:shadow-md ring-1 ring-black/5 dark:ring-white/5"
+    >
+      {/* Animated Micro-Skeleton Shimmer while image is loading */}
+      {!isLoaded && !hasError && (
+        <div className="absolute inset-0 z-0 overflow-hidden rounded-lg bg-zinc-200 dark:bg-white/5">
+          <div className="w-full h-full animate-pulse bg-gradient-to-r from-transparent via-white/30 dark:via-white/10 to-transparent" />
+        </div>
+      )}
+
+      {/* Actual image with smooth fade-in */}
+      <img
+        src={hasError ? getDiceBearAvatar(slug) : avatarUrl}
+        alt={ownerName}
+        width={44}
+        height={32}
+        loading="lazy"
+        decoding="async"
+        onLoad={() => setIsLoaded(true)}
+        onError={(e) => {
+          setHasError(true);
+          const target = e.currentTarget as HTMLImageElement;
+          if (hasCustomBanner && (ogImage.includes("/api/images/") || ogImage.includes("/banners/"))) {
+            const fName = ogImage.split("/").pop()?.split("?")[0];
+            if (fName) target.src = `/banners/${fName}`;
+            else target.src = getDiceBearAvatar(slug);
+          } else {
+            target.src = getDiceBearAvatar(slug);
+          }
+        }}
+        className={cn(
+          "w-full h-full object-cover transition-all duration-300 group-hover/avatar:scale-105 relative z-1",
+          isLoaded ? "opacity-100 scale-100" : "opacity-0 scale-95"
+        )}
+      />
+
+      <span className="absolute inset-0 bg-black/40 opacity-0 group-hover/avatar:opacity-100 transition-opacity flex items-center justify-center text-white z-2">
+        <Maximize2 className="w-3 h-3" />
+      </span>
+
+      {hasCustomBanner && (
+        <span className="absolute bottom-0 right-0 p-0.5 bg-[#0066FF] text-white rounded-tl-[4px] shadow-xs pointer-events-none z-3">
+          <ImageIcon className="w-2 h-2" />
+        </span>
+      )}
+    </button>
+  );
+}
+
 /* ============================================================================
  * 1. LINKS DATA TABLE (Auto-hydraté et infaillible)
  * ========================================================================== */
@@ -893,8 +964,12 @@ export function LinksReuiDataGrid({
                     {visibleCols.shortLink && (
                       <td className="py-2.5 px-3.5 whitespace-nowrap">
                         <div className="flex items-center gap-2.5">
-                          <button
-                            type="button"
+                          <LinkAvatarThumbnail
+                            avatarUrl={row.avatarUrl}
+                            ownerName={row.ownerName}
+                            hasCustomBanner={row.hasCustomBanner}
+                            ogImage={row.ogImage}
+                            slug={row.slug}
                             onClick={(e) => {
                               e.stopPropagation();
                               if (row.hasCustomBanner) {
@@ -910,36 +985,7 @@ export function LinksReuiDataGrid({
                                 onSelectLink(row.raw);
                               }
                             }}
-                            title={row.hasCustomBanner ? "Click to view full banner preview" : "Click to edit link"}
-                            className="group/avatar relative w-11 h-8 rounded-lg border border-zinc-200/90 dark:border-white/10 bg-[#F8FAFC] dark:bg-white/[0.04] overflow-hidden shrink-0 cursor-pointer transition-all duration-200 hover:scale-105 shadow-2xs hover:shadow-md ring-1 ring-black/5 dark:ring-white/5"
-                          >
-                            <img
-                              src={row.avatarUrl}
-                              alt={row.ownerName}
-                              width={44}
-                              height={32}
-                              loading="lazy"
-                              decoding="async"
-                              className="w-full h-full object-cover transition-transform group-hover/avatar:scale-105"
-                              onError={(e) => {
-                                const target = e.currentTarget as HTMLImageElement;
-                                if (row.hasCustomBanner && (row.ogImage.includes("/api/images/") || row.ogImage.includes("/banners/"))) {
-                                  const fName = row.ogImage.split("/").pop()?.split("?")[0];
-                                  if (fName) target.src = `/banners/${fName}`;
-                                } else {
-                                  target.src = getDiceBearAvatar(row.slug);
-                                }
-                              }}
-                            />
-                            <span className="absolute inset-0 bg-black/40 opacity-0 group-hover/avatar:opacity-100 transition-opacity flex items-center justify-center text-white">
-                              <Maximize2 className="w-3 h-3" />
-                            </span>
-                            {row.hasCustomBanner && (
-                              <span className="absolute bottom-0 right-0 p-0.5 bg-[#0066FF] text-white rounded-tl-[4px] shadow-xs pointer-events-none">
-                                <ImageIcon className="w-2 h-2" />
-                              </span>
-                            )}
-                          </button>
+                          />
                           <div className="min-w-0">
                             <div className="flex items-center gap-1.5 flex-wrap">
                               <a

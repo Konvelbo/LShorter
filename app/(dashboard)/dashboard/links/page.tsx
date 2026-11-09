@@ -693,27 +693,42 @@ export default function LinksPage() {
 
   // --- 10-Second Undo Delete Flow for a Single Link ---
   const start10SecondUndoDelete = (link: ShortLink) => {
-    const index = links.findIndex((l) => l.id === link.id);
-    if (index === -1) return;
+    const targetId = String(link.id || (link as any)._id || link.slug);
+    const targetSlug = link.slug || targetId;
+    const index = links.findIndex(
+      (l: any) =>
+        String(l.id) === targetId ||
+        l.slug === targetId ||
+        (l._id && String(l._id) === targetId) ||
+        (link.slug && l.slug === link.slug)
+    );
 
-    // 1. Optimistic removal
-    setLinks((prev) => prev.filter((l) => l.id !== link.id));
+    // 1. Optimistic removal from state immediately
+    setLinks((prev) =>
+      prev.filter(
+        (l: any) =>
+          String(l.id) !== targetId &&
+          l.slug !== targetSlug &&
+          (l._id ? String(l._id) !== targetId : true)
+      )
+    );
     setSelectedLinkIds((prev) => {
       const next = new Set(prev);
+      next.delete(targetId);
       next.delete(link.id);
       return next;
     });
 
     // 2. Trigger global 10-second undo delete
     triggerUndoDelete({
-      id: link.id,
+      id: targetId,
       itemType: "link",
       title: "Lien supprimé",
-      description: `/${link.slug}`,
+      description: `/${targetSlug}`,
       duration: 10,
       onExecute: async () => {
         try {
-          await cfDeleteLink(link.id, userId, link.slug, link.ogImage);
+          await cfDeleteLink(targetId, userId, targetSlug, link.ogImage);
           cfInvalidateCache();
           if (typeof window !== "undefined") {
             window.dispatchEvent(new CustomEvent("lshorter_data_change"));
@@ -721,49 +736,84 @@ export default function LinksPage() {
         } catch (err) {
           console.error("Cloudflare delete error:", err);
           showToast.error("Erreur lors de la suppression du lien.");
-          await loadLinks(true);
+          await loadLinks(true, true);
         }
       },
       onCancel: () => {
         setLinks((prev) => {
-          if (prev.some((l) => l.id === link.id)) return prev;
+          if (prev.some((l: any) => String(l.id) === targetId || l.slug === targetSlug)) return prev;
           const next = [...prev];
-          next.splice(Math.min(index, next.length), 0, link);
+          next.splice(Math.max(0, Math.min(index === -1 ? 0 : index, next.length)), 0, link);
           return next;
         });
       },
     });
   };
 
-  // Trigger delete for 1 link
-  const promptDeleteSingle = (link: ShortLink) => {
-    start10SecondUndoDelete(link);
+  // Trigger delete for 1 link (supports both ShortLink object or string ID/slug)
+  const promptDeleteSingle = (linkOrId: any) => {
+    if (!linkOrId) return;
+    let targetLink: ShortLink | undefined;
+    if (typeof linkOrId === "object" && linkOrId !== null) {
+      const searchId = String(linkOrId.id || linkOrId._id || linkOrId.slug);
+      targetLink =
+        links.find(
+          (l: any) =>
+            String(l.id) === searchId ||
+            l.slug === searchId ||
+            (l._id && String(l._id) === searchId) ||
+            (linkOrId.slug && l.slug === linkOrId.slug)
+        ) || linkOrId;
+    } else {
+      const searchId = String(linkOrId);
+      targetLink = links.find(
+        (l: any) =>
+          String(l.id) === searchId ||
+          l.slug === searchId ||
+          (l._id && String(l._id) === searchId)
+      );
+    }
+
+    if (!targetLink) {
+      targetLink = {
+        id: String(linkOrId?.id || linkOrId),
+        slug: String(linkOrId?.slug || linkOrId),
+      } as any;
+    }
+
+    start10SecondUndoDelete(targetLink as ShortLink);
   };
 
   // Trigger 10-second undo delete for bulk selection
   const promptDeleteBulk = (customIds?: string[]) => {
-    const targetIds =
+    const targetIds = (
       customIds && customIds.length > 0
         ? customIds
-        : Array.from(selectedLinkIds);
+        : Array.from(selectedLinkIds)
+    ).map((id) => String(id).trim()).filter(Boolean);
     if (targetIds.length === 0) return;
 
-    const selectedLinks = links.filter(
-      (l: any) =>
-        targetIds.includes(String(l.id)) ||
-        targetIds.includes(l.slug) ||
-        (l._id && targetIds.includes(String(l._id)))
+    const selectedLinks = links.filter((l: any) =>
+      targetIds.some(
+        (tid) =>
+          String(l.id) === String(tid) ||
+          l.slug === String(tid) ||
+          (l._id && String(l._id) === String(tid))
+      )
     );
-    const count = selectedLinks.length;
+    const count = Math.max(selectedLinks.length, targetIds.length);
 
-    // 1. Optimistic removal
+    // 1. Optimistic removal from state immediately
     setLinks((prev) =>
       prev.filter(
         (l: any) =>
-          !targetIds.includes(String(l.id)) &&
-          !targetIds.includes(l.slug) &&
-          (!l._id || !targetIds.includes(String(l._id)))
-      ),
+          !targetIds.some(
+            (tid) =>
+              String(l.id) === String(tid) ||
+              l.slug === String(tid) ||
+              (l._id && String(l._id) === String(tid))
+          )
+      )
     );
     setSelectedLinkIds(new Set());
 
@@ -772,23 +822,20 @@ export default function LinksPage() {
       id: `bulk_${Date.now()}`,
       itemType: "link",
       title: count > 1 ? `${count} liens supprimés` : "Lien supprimé",
-      description: count === 1 ? `/${selectedLinks[0]?.slug}` : `${count} liens sélectionnés`,
+      description: count === 1 ? `/${selectedLinks[0]?.slug || targetIds[0]}` : `${count} liens sélectionnés`,
       duration: 10,
       onExecute: async () => {
         try {
-          if (targetIds.length > 1) {
-            await cfBulkDeleteLinks(targetIds, userId).catch(async () => {
-              await Promise.all(
-                targetIds.map((id) => {
-                  const target = selectedLinks.find((l) => l.id === id || l.slug === id);
-                  return cfDeleteLink(id, userId, target?.slug, target?.ogImage);
-                }),
-              );
-            });
-          } else {
-            const target = selectedLinks[0];
-            await cfDeleteLink(targetIds[0], userId, target?.slug, target?.ogImage);
-          }
+          await cfBulkDeleteLinks(targetIds, userId).catch(async () => {
+            return Promise.allSettled(
+              targetIds.map((id) => {
+                const target = selectedLinks.find(
+                  (l: any) => String(l.id) === String(id) || l.slug === String(id)
+                );
+                return cfDeleteLink(id, userId, target?.slug, target?.ogImage);
+              })
+            );
+          });
           cfInvalidateCache();
           if (typeof window !== "undefined") {
             window.dispatchEvent(new CustomEvent("lshorter_data_change"));
@@ -796,12 +843,14 @@ export default function LinksPage() {
         } catch (err) {
           console.error("Bulk delete error:", err);
           showToast.error("Erreur lors de la suppression.");
-          await loadLinks(true);
+          await loadLinks(true, true);
         }
       },
       onCancel: () => {
         setLinks((prev) => {
-          const missing = selectedLinks.filter((sl) => !prev.some((p) => p.id === sl.id));
+          const missing = selectedLinks.filter(
+            (sl: any) => !prev.some((p: any) => String(p.id) === String(sl.id) || p.slug === sl.slug)
+          );
           return [...missing, ...prev];
         });
       },
