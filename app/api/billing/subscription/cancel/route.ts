@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { getPaddleInstance } from "@/lib/paddle/paddle-server";
+import { getBillingProvider } from "@/lib/billing";
 import { convexHttp as convex } from "@/lib/convex-server";
 import { api } from "@/convex/_generated/api";
+import { sendFeedbackNotificationEmail } from "@/lib/resend";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +13,7 @@ export const dynamic = "force-dynamic";
  * Cancels auto-renewal of the user's subscription at the end of the current billing cycle.
  * - Stops all future recurring charges.
  * - Retains full access until currentPeriodEnd (No Refund / All Sales Are Final policy).
+ * - Collects churn feedback & reasons for product improvement.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -24,6 +27,20 @@ export async function POST(request: NextRequest) {
 
     const userId = session.user.id || "";
     const email = session.user.email || "";
+
+    // Parse optional churn feedback and reasons from body
+    let body: any = {};
+    try {
+      body = await request.json();
+    } catch {
+      body = {};
+    }
+    const reason = typeof body?.reason === "string" ? body.reason.trim() : "";
+    const feedback = typeof body?.feedback === "string" ? body.feedback.trim() : "";
+    const rating =
+      typeof body?.rating === "number" && body.rating >= 1 && body.rating <= 5
+        ? Math.round(body.rating)
+        : undefined;
 
     // 1. Fetch current subscription in Convex
     let convexSub: any = null;
@@ -69,7 +86,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 3. Perform cancellation on Paddle at period end
+    // 3. Perform cancellation on Provider (Dodo Payments / Paddle) at period end
+    if (subId) {
+      try {
+        const billingProvider = getBillingProvider();
+        await billingProvider.cancelSubscription(subId);
+      } catch (providerErr: any) {
+        console.warn("[Cancel Subscription] Billing provider cancel warning:", providerErr?.message);
+      }
+    }
+
     if (paddle && subId && subId.startsWith("sub_")) {
       try {
         console.info(`[Cancel Subscription] Canceling subscription ${subId} at period end...`);
@@ -86,7 +112,7 @@ export async function POST(request: NextRequest) {
           return NextResponse.json(
             {
               success: false,
-              error: `Erreur Paddle lors de l'annulation: ${paddleErr?.message || "Échec de l'opération"}`,
+              error: `Erreur lors de l'annulation: ${paddleErr?.message || "Échec de l'opération"}`,
             },
             { status: 500 }
           );
@@ -114,7 +140,41 @@ export async function POST(request: NextRequest) {
         console.error("[Cancel Subscription] Error updating Convex subscription:", convexErr);
       }
 
-      // 5. Create in-app notification
+      // 5. Store Churn Feedback into Convex feedbacks table
+      if (email && (reason || feedback)) {
+        try {
+          await convex.mutation(api.users.storeFeedback, {
+            email: email.toLowerCase().trim(),
+            category: "Cancellation",
+            message: `[Annulation ${plan}] Motif : ${reason || "Non spécifié"}\n\nCommentaires de l'utilisateur :\n${
+              feedback || "(Aucun commentaire supplémentaire)"
+            }\n\nCycle : ${cycle}`,
+            pageContext: "/dashboard/settings?tab=billing",
+            rating,
+          });
+        } catch (fbErr) {
+          console.warn("[Cancel Subscription] Warning saving feedback to Convex:", fbErr);
+        }
+
+        // 6. Send instant notification email to SaaS founder / support
+        try {
+          await sendFeedbackNotificationEmail({
+            category: `Désabonnement - ${plan}`,
+            senderEmail: email,
+            message: `Un utilisateur a annulé le renouvellement automatique de son abonnement ${plan} (${cycle}).\n\nMotif sélectionné :\n👉 ${
+              reason || "Non spécifié"
+            }\n\nCommentaires & besoins exprimés :\n${
+              feedback || "(Aucun commentaire rédigé)"
+            }\n\nNote d'expérience : ${rating ? `${rating}/5` : "Non notée"}`,
+            pageContext: "/dashboard/settings?tab=billing",
+            rating,
+          });
+        } catch (emailErr) {
+          console.warn("[Cancel Subscription] Warning sending feedback email:", emailErr);
+        }
+      }
+
+      // 7. Create in-app notification
       try {
         const endDateStr = new Date(currentPeriodEnd).toLocaleDateString("fr-FR", {
           day: "numeric",

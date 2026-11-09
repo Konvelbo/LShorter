@@ -100,6 +100,7 @@ import {
 import { ApiKeyCreatedModal } from "@/components/dashboard/api-key-created-modal";
 import { TwoFactorSetupModal } from "@/components/dashboard/two-factor-setup-modal";
 import { TwoFactorRecoveryModal } from "@/components/dashboard/two-factor-recovery-modal";
+import { CancellationFeedbackModal } from "@/components/feedback/cancellation-feedback-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -4707,92 +4708,18 @@ console.log("Top Countries:", topAudience.topCountries);`,
 
 
 
-      {/* Cancel Auto-Renewal Confirmation Modal */}
-      {isCancelSubModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-          <div
-            className="relative w-full max-w-lg bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#27272a] rounded-[10px] shadow-2xl p-6 flex flex-col gap-5 animate-in zoom-in-95 duration-200"
-            role="dialog"
-            aria-modal="true"
-          >
-            {/* Close button */}
-            <button
-              onClick={() => !cancelingSub && setIsCancelSubModalOpen(false)}
-              disabled={cancelingSub}
-              className="absolute right-4 top-4 p-1.5 rounded-[10px] text-zinc-400 hover:text-zinc-600 dark:text-neutral-400 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-50"
-              aria-label="Fermer"
-            >
-              <X className="w-4 h-4" />
-            </button>
-
-            {/* Header */}
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-[10px] bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500 shrink-0 shadow-lg shadow-red-500/10">
-                <AlertTriangle className="w-6 h-6 animate-pulse" />
-              </div>
-              <div className="flex flex-col gap-1 pr-4">
-                <h3 className="text-base font-bold text-zinc-900 dark:text-white leading-snug">
-                  Annuler le renouvellement automatique ?
-                </h3>
-                <p className="text-xs text-zinc-500 dark:text-neutral-400 leading-relaxed">
-                  Vous êtes sur le point de désactiver la reconduction tacite de votre formule <strong>LShorter {plan}</strong>.
-                </p>
-              </div>
-            </div>
-
-            {/* Key points box */}
-            <div className="p-4 rounded-[10px] bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a] flex flex-col gap-3 text-xs">
-              <div className="flex items-start gap-2.5 text-zinc-700 dark:text-neutral-300">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                <span>
-                  <strong>Accès garanti jusqu&apos;au {displayPeriodEnd}</strong> : Vos quotas de clics, domaines personnalisés et liens courts restent 100% opérationnels jusqu&apos;à la fin de la période payée en cours.
-                </span>
-              </div>
-              <div className="flex items-start gap-2.5 text-zinc-700 dark:text-neutral-300">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                <span>
-                  <strong>Zéro prélèvement futur</strong> : Paddle n&apos;effectuera aucun débit automatique ultérieur sur votre moyen de paiement.
-                </span>
-              </div>
-              <div className="flex items-start gap-2.5 text-zinc-600 dark:text-neutral-400 text-[11px] border-t border-zinc-200 dark:border-[#27272a] pt-2">
-                <Info className="w-3.5 h-3.5 text-zinc-400 shrink-0 mt-0.5" />
-                <span>
-                  Politique commerciale : Conformément à nos conditions pour les infrastructures numériques, tout achat est ferme et définitif. Aucun remboursement rétroactif n&apos;est émis pour la période déjà commencée.
-                </span>
-              </div>
-            </div>
-
-            {/* Action buttons */}
-            <div className="flex items-center justify-end gap-3 pt-2 border-t border-zinc-200 dark:border-[#222225]">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsCancelSubModalOpen(false)}
-                disabled={cancelingSub}
-                className="h-9 px-4 text-xs font-semibold rounded-[10px] border-zinc-200 dark:border-[#27272a] bg-white dark:bg-[#1a1a1e] hover:bg-zinc-100 dark:hover:bg-white/5 text-zinc-700 dark:text-neutral-300 cursor-pointer"
-              >
-                Conserver mon abonnement
-              </Button>
-
-              <Button
-                type="button"
-                onClick={handleConfirmCancelSubscription}
-                disabled={cancelingSub}
-                className="h-9 px-4 text-xs font-bold rounded-[10px] bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-600/25 border border-red-500/30 gap-2 cursor-pointer transition-all"
-              >
-                {cancelingSub ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>Annulation en cours...</span>
-                  </>
-                ) : (
-                  <span>Confirmer l&apos;annulation</span>
-                )}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Cancel Auto-Renewal & Churn Feedback Modal */}
+      <CancellationFeedbackModal
+        isOpen={isCancelSubModalOpen}
+        onClose={() => setIsCancelSubModalOpen(false)}
+        plan={plan}
+        displayPeriodEnd={displayPeriodEnd}
+        onSuccess={() => {
+          setIsCancelSubModalOpen(false);
+          loadSubscriptionDetails();
+          window.dispatchEvent(new Event("lshorter_notifications_sync"));
+        }}
+      />
     </div>
   );
 }
