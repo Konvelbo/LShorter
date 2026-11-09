@@ -196,6 +196,12 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
+        <script
+          id="theme-initializer"
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var k='lshorter_theme_v2',s=localStorage.getItem(k)||localStorage.getItem('lshorter_theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';var t=s==='light'||s==='dark'?s:d;var cl=document.documentElement.classList;cl.remove('light','dark');cl.add(t);document.documentElement.style.colorScheme=t;}catch(e){}})()`,
+          }}
+        />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"

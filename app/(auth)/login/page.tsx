@@ -23,6 +23,7 @@ import { showToast } from "@/components/ui/toast-provider";
 import confetti from "canvas-confetti";
 import { signIn } from "next-auth/react";
 import { ForgotPasswordModal } from "@/components/auth/forgot-password-modal";
+import { useTheme } from "@/components/providers/theme-provider";
 import { cn } from "@/lib/utils";
 import {
   sendSignupPinAction,
@@ -44,7 +45,7 @@ export default function LoginPage({
   const [name, setName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const { theme, toggleTheme } = useTheme();
 
   // ─── Signup PIN Email Verification State ─────────────────────────────────────
   const [showSignupPIN, setShowSignupPIN] = useState(false);
@@ -120,31 +121,7 @@ export default function LoginPage({
     }
   }, [signupCountdown]);
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const savedTheme = localStorage.getItem("lshorter_theme") as "dark" | "light" | null;
-      if (savedTheme) {
-        setTheme(savedTheme);
-        document.documentElement.classList.remove("dark", "light");
-        document.documentElement.classList.add(savedTheme);
-      } else if (document.documentElement.classList.contains("light")) {
-        setTheme("light");
-      } else {
-        setTheme("dark");
-      }
-    }
-  }, []);
 
-  const toggleTheme = () => {
-    const nextTheme = theme === "dark" ? "light" : "dark";
-    setTheme(nextTheme);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("lshorter_theme", nextTheme);
-      document.documentElement.classList.remove("dark", "light");
-      document.documentElement.classList.add(nextTheme);
-      window.dispatchEvent(new CustomEvent("lshorter_theme_changed", { detail: nextTheme }));
-    }
-  };
 
   // ─── 2FA Login Challenge State (for existing accounts with 2FA) ─────────────
   const [show2FAChallenge, setShow2FAChallenge] = useState(false);

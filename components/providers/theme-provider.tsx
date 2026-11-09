@@ -5,7 +5,7 @@ import React, {
   useContext,
   useEffect,
   useState,
-  startTransition,
+  useCallback,
   type ReactNode,
 } from "react";
 
@@ -20,19 +20,33 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 const STORAGE_KEY = "lshorter_theme_v2";
+const LEGACY_STORAGE_KEY = "lshorter_theme";
 
+/**
+ * Lit le thème actuellement sauvegardé dans le stockage local ou la préférence système.
+ */
 function readSavedTheme(): Theme {
   if (typeof window === "undefined") {
     return "light";
   }
 
   try {
-    const savedTheme = localStorage.getItem(STORAGE_KEY);
-    if (savedTheme === "light" || savedTheme === "dark") {
-      return savedTheme;
+    const saved =
+      localStorage.getItem(STORAGE_KEY) ||
+      localStorage.getItem(LEGACY_STORAGE_KEY);
+    if (saved === "light" || saved === "dark") {
+      return saved;
     }
   } catch {
     // ignore storage access issues
+  }
+
+  try {
+    if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+      return "dark";
+    }
+  } catch {
+    // ignore media query issues
   }
 
   return document.documentElement.classList.contains("dark")
@@ -40,23 +54,72 @@ function readSavedTheme(): Theme {
     : "light";
 }
 
-/** Applique immédiatement le thème sur le DOM et persiste en localStorage.
- *  Ne déclenche PAS de re-render React — cela reste à la charge de l'appelant. */
-function applyThemeToDom(theme: Theme) {
+/**
+ * Applique immédiatement le thème sur le DOM sans latence ni à-coups visuels.
+ * Désactive temporairement les transitions CSS sur tous les éléments afin d'éviter
+ * le freeze ou le recalcul lourd de styles sur des centaines de nœuds DOM simultanément.
+ */
+function applyThemeToDom(targetTheme: Theme, disableTransitions = true) {
   if (typeof document === "undefined") return;
-  document.documentElement.classList.remove("dark", "light");
-  document.documentElement.classList.add(theme);
+
+  let styleEl: HTMLStyleElement | null = null;
+
+  if (disableTransitions) {
+    styleEl = document.createElement("style");
+    styleEl.appendChild(
+      document.createTextNode(
+        `*, *::before, *::after {
+          -webkit-transition: none !important;
+          -moz-transition: none !important;
+          -o-transition: none !important;
+          -ms-transition: none !important;
+          transition: none !important;
+        }`
+      )
+    );
+    document.head.appendChild(styleEl);
+  }
+
+  const root = document.documentElement;
+  root.classList.remove("dark", "light");
+  root.classList.add(targetTheme);
+  root.style.colorScheme = targetTheme;
+
+  if (disableTransitions) {
+    // Force un reflow synchrone pour que le changement s'applique dans le frame courant
+    (() => window.getComputedStyle(root).opacity)();
+
+    // Rétablit les transitions CSS normales au frame suivant
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (styleEl && styleEl.parentNode) {
+          styleEl.parentNode.removeChild(styleEl);
+        }
+      });
+    });
+  }
+
+  // Sauvegarde dans les deux clés pour synchronisation totale de l'app
   try {
-    localStorage.setItem(STORAGE_KEY, theme);
+    localStorage.setItem(STORAGE_KEY, targetTheme);
+    localStorage.setItem(LEGACY_STORAGE_KEY, targetTheme);
   } catch {
-    // ignore storage write issues
+    // ignore
+  }
+
+  try {
+    window.dispatchEvent(
+      new CustomEvent("lshorter_theme_changed", { detail: targetTheme })
+    );
+  } catch {
+    // ignore
   }
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  // Always start with "light" on SSR & initial client hydration to avoid React hydration mismatches
   const [theme, setThemeState] = useState<Theme>("light");
 
+  // Synchronisation initiale côté client
   useEffect(() => {
     try {
       if (typeof Node === "function" && Node.prototype) {
@@ -87,24 +150,59 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     }
 
     const initial = readSavedTheme();
-    applyThemeToDom(initial);
-    if (initial !== "light") {
-      setThemeState(initial);
-    }
+    applyThemeToDom(initial, false);
+    setThemeState(initial);
+
+    // Écoute les modifications externes de thème (ex: autre onglet ou composant)
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === STORAGE_KEY || e.key === LEGACY_STORAGE_KEY) {
+        const val = e.newValue;
+        if (val === "dark" || val === "light") {
+          applyThemeToDom(val, true);
+          setThemeState(val);
+        }
+      }
+    };
+
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
   }, []);
 
-  const setTheme = (newTheme: Theme) => {
-    // 1. DOM & localStorage immédiats → la couleur change dans le même frame
-    applyThemeToDom(newTheme);
-    // 2. État React différé → les re-renders ne bloquent pas le changement visuel
-    startTransition(() => setThemeState(newTheme));
-  };
+  const setTheme = useCallback((newTheme: Theme) => {
+    applyThemeToDom(newTheme, true);
+    setThemeState(newTheme);
+  }, []);
 
-  const toggleTheme = () => {
-    const next = theme === "dark" ? "light" : "dark";
-    applyThemeToDom(next);
-    startTransition(() => setThemeState(next));
-  };
+  const toggleTheme = useCallback(() => {
+    // Détermine le thème actif directement depuis l'état réel du DOM
+    // pour éviter tout décalage d'état React ou double-clic rapide
+    const isCurrentlyDark =
+      typeof document !== "undefined"
+        ? document.documentElement.classList.contains("dark")
+        : theme === "dark";
+    const nextTheme: Theme = isCurrentlyDark ? "light" : "dark";
+
+    // Si le navigateur prend en charge l'API View Transitions, offre une transition fluide
+    if (
+      typeof document !== "undefined" &&
+      "startViewTransition" in document &&
+      !window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      try {
+        (document as any).startViewTransition(() => {
+          applyThemeToDom(nextTheme, false);
+          setThemeState(nextTheme);
+        });
+        return;
+      } catch {
+        // Fallback standard si l'API échoue
+      }
+    }
+
+    // Bascule instantanée à zéro latence avec verrouillage des transitions de transition
+    applyThemeToDom(nextTheme, true);
+    setThemeState(nextTheme);
+  }, [theme]);
 
   return (
     <ThemeContext.Provider

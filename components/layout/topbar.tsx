@@ -340,6 +340,21 @@ export function Topbar() {
               <Search className="w-4 h-4" />
             </button>
 
+            {/* Quick Theme Toggle Button */}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="flex h-7.5 w-7.5 items-center justify-center rounded-lg bg-transparent text-zinc-500 hover:text-zinc-900 dark:text-neutral-400 dark:hover:text-white transition-colors cursor-pointer"
+              aria-label="Basculer le thème"
+              title={theme === "dark" ? "Passer en mode clair" : "Passer en mode sombre"}
+            >
+              {theme === "dark" ? (
+                <Sun className="w-4 h-4 text-amber-400 transition-transform active:rotate-45" />
+              ) : (
+                <Moon className="w-4 h-4 text-zinc-600 dark:text-neutral-400 transition-transform active:-rotate-45" />
+              )}
+            </button>
+
             {/* Notification Bell Button + Dropdown Inbox */}
             <div className="relative">
               <button

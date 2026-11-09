@@ -1820,3 +1820,10 @@ html.light main .text-neutral-200 {
     transform: translateX(20px) scale(0.92);
   }
 }
+
+/* Smooth View Transition for Theme Switching */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.2s;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
