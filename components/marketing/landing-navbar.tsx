@@ -507,17 +507,28 @@ export function LandingNavbar() {
         border: isLight
           ? "1px solid rgba(228, 231, 236, 0.95)"
           : "1px solid rgba(255, 255, 255, 0.14)",
+        borderBottom: isLight
+          ? "1px solid rgba(228, 231, 236, 0.95)"
+          : "1px solid rgba(255, 255, 255, 0.14)",
         boxShadow: isLight
           ? "0 12px 34px rgba(0, 0, 0, 0.08)"
           : "0 14px 38px rgba(0, 0, 0, 0.58)",
+        outline: "none",
       }
     : {
-        backgroundColor: isLight ? "rgba(255, 255, 255, 0.96)" : "#09090b",
-        backdropFilter: "blur(8px)",
-        WebkitBackdropFilter: "blur(8px)",
+        backgroundColor: isLight
+          ? "rgba(255, 255, 255, 0.96)"
+          : "rgba(9, 9, 11, 0.98)",
+        backdropFilter: "blur(16px) saturate(180%)",
+        WebkitBackdropFilter: "blur(16px) saturate(180%)",
+        border: isLight
+          ? "1px solid rgba(228, 231, 236, 0)"
+          : "1px solid rgba(255, 255, 255, 0)",
         borderBottom: isLight
           ? "1px solid rgba(228, 231, 236, 0.8)"
           : "1px solid rgba(255, 255, 255, 0.08)",
+        boxShadow: "0 0 0 0 rgba(0, 0, 0, 0)",
+        outline: "none",
       };
 
   return (
@@ -532,7 +543,7 @@ export function LandingNavbar() {
       {/* ─── 1. NAVBAR DESKTOP (>= 768px) ─── */}
       <header
         style={glassStyle}
-        className={`hidden md:flex items-center justify-between gap-2 pointer-events-auto transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-[transform,max-width,width,padding,border-radius,background-color] ${
+        className={`hidden md:flex items-center justify-between gap-2 pointer-events-auto transition-[transform,max-width,width,padding,border-radius,background-color,border-color,box-shadow] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-[transform,max-width,width,padding,border-radius,background-color] ${
           isScrolled
             ? "translate-y-3 sm:translate-y-4 w-[min(1280px,96vw)] max-w-[1280px] rounded-[14px] px-[clamp(0.75rem,1.8vw,2rem)] py-3"
             : "translate-y-0 w-full max-w-full rounded-none px-[clamp(1rem,2.5vw,3.5rem)] py-4"
@@ -646,7 +657,7 @@ export function LandingNavbar() {
       {/* ─── 2. NAVBAR MOBILE (< 768px) ─── */}
       <header
         style={glassStyle}
-        className={`flex md:hidden items-center justify-between pointer-events-auto transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-[transform,max-width,width,padding,border-radius,background-color] ${
+        className={`flex md:hidden items-center justify-between pointer-events-auto transition-[transform,max-width,width,padding,border-radius,background-color,border-color,box-shadow] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-[transform,max-width,width,padding,border-radius,background-color] ${
           isScrolled
             ? "translate-y-2.5 w-[calc(100%-1.5rem)] max-w-lg rounded-xl px-3.5 py-2.5"
             : "translate-y-0 w-full max-w-full rounded-none px-4 py-3"
