@@ -33,16 +33,17 @@ export async function PATCH(
   let body: any = {};
   try {
     const session = await auth().catch(() => null);
-    if (!session?.user) {
+    const { searchParams } = new URL(req.url);
+    body = await req.json().catch(() => ({}));
+    const requestEmail = session?.user?.email || searchParams.get("userEmail") || body?.userEmail || "";
+    const requestUserId = session?.user?.id || searchParams.get("userId") || body?.userId || "";
+
+    if (!session?.user && !requestUserId && !requestEmail) {
       return NextResponse.json(
         { success: false, error: "Authentication required to update links." },
         { status: 401 }
       );
     }
-
-    body = await req.json();
-    const requestEmail = session.user.email || "";
-    const requestUserId = session.user.id || "";
 
     if (body.targetUrl || body.target_url) {
       const u = String(body.targetUrl || body.target_url).trim();
@@ -750,18 +751,19 @@ export async function DELETE(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params;
+  const { searchParams } = new URL(req.url);
   const session = await auth().catch(() => null);
-  if (!session?.user) {
+  const userId = session?.user?.id || searchParams.get("userId") || "";
+  const userEmail = session?.user?.email || searchParams.get("userEmail") || "";
+
+  if (!session?.user && !userId && !userEmail) {
     return NextResponse.json(
       { success: false, error: "Authentication required to delete links." },
       { status: 401 }
     );
   }
 
-  const { id } = await params;
-  const { searchParams } = new URL(req.url);
-  const userId = session.user.id || searchParams.get("userId");
-  const userEmail = session.user.email || searchParams.get("userEmail");
   const slug = searchParams.get("slug");
   const imageParam = searchParams.get("image") || searchParams.get("ogImage");
 

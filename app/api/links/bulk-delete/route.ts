@@ -5,17 +5,18 @@ import { auth } from "@/auth";
 
 export async function POST(req: Request) {
   try {
+    const reqUrl = new URL(req.url);
     const session = await auth().catch(() => null);
-    if (!session?.user) {
+    const body = await req.json().catch(() => ({}));
+    const userId = session?.user?.id || reqUrl.searchParams.get("userId") || body?.userId || "";
+    const userEmail = session?.user?.email || reqUrl.searchParams.get("userEmail") || body?.userEmail || "";
+
+    if (!session?.user && !userId && !userEmail) {
       return NextResponse.json(
         { success: false, error: "Authentication required to delete links." },
         { status: 401 }
       );
     }
-    const reqUrl = new URL(req.url);
-    const userId = session.user.id || reqUrl.searchParams.get("userId") || "";
-    const userEmail = session.user.email || reqUrl.searchParams.get("userEmail") || "";
-    const body = await req.json().catch(() => ({}));
     const ids: string[] = Array.isArray(body?.ids)
       ? body.ids.map((i: any) => String(i).trim()).filter(Boolean)
       : [];

@@ -334,16 +334,12 @@ export function LinksReuiDataGrid({
   }, []);
 
   const checkAndHandleShortcut = useCallback(
-    (e: React.MouseEvent | React.PointerEvent, rowId: string) => {
+    (e: React.MouseEvent, rowId: string) => {
       const isModifierActive = Boolean(e.ctrlKey || e.metaKey || isCtrlPressed);
       if (isModifierActive) {
         e.preventDefault();
         e.stopPropagation();
-        const now = Date.now();
-        if (now - lastShortcutToggleTimeRef.current > 180) {
-          lastShortcutToggleTimeRef.current = now;
-          handleToggleRowSelection(rowId);
-        }
+        handleToggleRowSelection(rowId);
         return true;
       }
       return false;
@@ -995,9 +991,6 @@ export function LinksReuiDataGrid({
                 return (
                   <tr
                     key={row.id}
-                    onPointerDown={(e) => {
-                      checkAndHandleShortcut(e, row.id);
-                    }}
                     onClick={(e) => {
                       if (checkAndHandleShortcut(e, row.id)) return;
                       if (onSelectLink) onSelectLink(row.raw);
@@ -1005,17 +998,12 @@ export function LinksReuiDataGrid({
                     onContextMenu={(e) => {
                       checkAndHandleShortcut(e, row.id);
                     }}
-                    onAuxClick={(e) => {
-                      checkAndHandleShortcut(e, row.id);
-                    }}
-                    title={`${isMac ? "⌘" : "Ctrl"} + Clic (ou clic droit / trackpad) pour sélectionner`}
+                    title={`${isMac ? "⌘" : "Ctrl"} + Clic pour sélectionner`}
                     className={cn(
                       "transition-colors cursor-pointer select-none",
                       isChecked
                         ? "bg-blue-50/70 dark:bg-blue-950/25 hover:bg-blue-100/60 dark:hover:bg-blue-900/35 border-l-2 border-l-[#0066FF]"
-                        : isCtrlPressed
-                          ? "hover:bg-blue-50/40 dark:hover:bg-blue-950/15"
-                          : "hover:bg-[#F9FAFB] dark:hover:bg-white/[0.03]"
+                        : "hover:bg-[#F9FAFB] dark:hover:bg-white/[0.03]"
                     )}
                   >
                     <td
@@ -1040,11 +1028,6 @@ export function LinksReuiDataGrid({
                         <div className="flex items-center gap-2.5">
                           <div
                             className="shrink-0"
-                            onPointerDown={(e) => {
-                              if (e.ctrlKey || e.metaKey || isCtrlPressed) {
-                                checkAndHandleShortcut(e, row.id);
-                              }
-                            }}
                             onContextMenu={(e) => {
                               if (e.ctrlKey || e.metaKey || isCtrlPressed) {
                                 checkAndHandleShortcut(e, row.id);
@@ -1078,35 +1061,13 @@ export function LinksReuiDataGrid({
                             />
                           </div>
                           <div className="min-w-0">
-                            <div className="relative group/shortcut inline-flex items-center gap-1.5 flex-wrap">
-                              {/* Hover micro-tooltip for Ctrl/Cmd + Click shortcut */}
-                              <div
-                                role="tooltip"
-                                className={cn(
-                                  "pointer-events-none absolute -top-8.5 left-0 z-30 flex items-center gap-1 px-2 py-0.5 rounded-[6px] bg-[#0F172A] dark:bg-[#1E293B] text-white text-[11px] font-medium shadow-md border border-white/10 transition-all duration-150 transform -translate-y-0.5 whitespace-nowrap",
-                                  isCtrlPressed
-                                    ? "opacity-100 visible translate-y-0 ring-1 ring-blue-500/50"
-                                    : "opacity-0 invisible group-hover/shortcut:opacity-100 group-hover/shortcut:visible group-hover/shortcut:translate-y-0"
-                                )}
-                              >
-                                <kbd className="px-1 py-0.2 rounded bg-white/20 text-[10px] font-mono font-semibold">
-                                  {isMac ? "⌘" : "Ctrl"}
-                                </kbd>
-                                <span>+ Clic (ou clic droit / trackpad) pour sélectionner</span>
-                                <div className="absolute -bottom-1 left-4 w-2 h-2 rotate-45 bg-[#0F172A] dark:bg-[#1E293B] border-r border-b border-white/10" />
-                              </div>
-
+                            <div className="relative inline-flex items-center gap-1.5 flex-wrap">
                               <a
                                 href={`/r/${encodeURIComponent(row.slug)}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                onPointerDown={(e) => {
-                                  checkAndHandleShortcut(e, row.id);
-                                }}
+                                title={`${isMac ? "⌘" : "Ctrl"} + Clic pour sélectionner`}
                                 onContextMenu={(e) => {
-                                  checkAndHandleShortcut(e, row.id);
-                                }}
-                                onAuxClick={(e) => {
                                   checkAndHandleShortcut(e, row.id);
                                 }}
                                 onClick={(e) => {
