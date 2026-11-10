@@ -117,6 +117,8 @@ export default function LinksPage() {
   const [selectedLinkIds, setSelectedLinkIds] = useState<Set<string>>(
     new Set(),
   );
+  const pendingDeletedIdsRef = useRef<Set<string>>(new Set());
+  const permanentlyDeletedIdsRef = useRef<Set<string>>(new Set());
 
   const rawUserId = session?.user?.id;
   const userEmail = session?.user?.email || "";
@@ -315,8 +317,17 @@ export default function LinksPage() {
             : [],
         created_at: l.created_at || l.createdAt || new Date().toISOString(),
       }));
-      setLinks(rawLinks);
-      linkDrawersRef.current?.syncLinksList(rawLinks);
+      const activeRawLinks = rawLinks.filter(
+        (l: any) =>
+          !pendingDeletedIdsRef.current.has(String(l.id)) &&
+          !pendingDeletedIdsRef.current.has(String(l.slug)) &&
+          !(l._id && pendingDeletedIdsRef.current.has(String(l._id))) &&
+          !permanentlyDeletedIdsRef.current.has(String(l.id)) &&
+          !permanentlyDeletedIdsRef.current.has(String(l.slug)) &&
+          !(l._id && permanentlyDeletedIdsRef.current.has(String(l._id)))
+      );
+      setLinks(activeRawLinks);
+      linkDrawersRef.current?.syncLinksList(activeRawLinks);
       if (!isBackground) setIsLoading(false);
 
       // Compute aggregated live clicks across links and 30d analytics asynchronously
@@ -703,7 +714,11 @@ export default function LinksPage() {
         (link.slug && l.slug === link.slug)
     );
 
-    // 1. Optimistic removal from state immediately
+    // 1. Optimistic removal from state immediately and register pending delete
+    pendingDeletedIdsRef.current.add(targetId);
+    if (targetSlug) pendingDeletedIdsRef.current.add(targetSlug);
+    if ((link as any)._id) pendingDeletedIdsRef.current.add(String((link as any)._id));
+
     setLinks((prev) =>
       prev.filter(
         (l: any) =>
@@ -737,9 +752,19 @@ export default function LinksPage() {
           console.error("Cloudflare delete error:", err);
           showToast.error("Erreur lors de la suppression du lien.");
           await loadLinks(true, true);
+        } finally {
+          pendingDeletedIdsRef.current.delete(targetId);
+          if (targetSlug) pendingDeletedIdsRef.current.delete(targetSlug);
+          if ((link as any)._id) pendingDeletedIdsRef.current.delete(String((link as any)._id));
+          permanentlyDeletedIdsRef.current.add(targetId);
+          if (targetSlug) permanentlyDeletedIdsRef.current.add(targetSlug);
+          if ((link as any)._id) permanentlyDeletedIdsRef.current.add(String((link as any)._id));
         }
       },
       onCancel: () => {
+        pendingDeletedIdsRef.current.delete(targetId);
+        if (targetSlug) pendingDeletedIdsRef.current.delete(targetSlug);
+        if ((link as any)._id) pendingDeletedIdsRef.current.delete(String((link as any)._id));
         setLinks((prev) => {
           if (prev.some((l: any) => String(l.id) === targetId || l.slug === targetSlug)) return prev;
           const next = [...prev];
@@ -803,6 +828,14 @@ export default function LinksPage() {
     );
     const count = Math.max(selectedLinks.length, targetIds.length);
 
+    // Register pending deleted IDs
+    targetIds.forEach((id) => pendingDeletedIdsRef.current.add(id));
+    selectedLinks.forEach((l: any) => {
+      if (l.slug) pendingDeletedIdsRef.current.add(String(l.slug));
+      if (l.id) pendingDeletedIdsRef.current.add(String(l.id));
+      if (l._id) pendingDeletedIdsRef.current.add(String(l._id));
+    });
+
     // 1. Optimistic removal from state immediately
     setLinks((prev) =>
       prev.filter(
@@ -844,9 +877,28 @@ export default function LinksPage() {
           console.error("Bulk delete error:", err);
           showToast.error("Erreur lors de la suppression.");
           await loadLinks(true, true);
+        } finally {
+          targetIds.forEach((id) => pendingDeletedIdsRef.current.delete(id));
+          selectedLinks.forEach((l: any) => {
+            if (l.slug) pendingDeletedIdsRef.current.delete(String(l.slug));
+            if (l.id) pendingDeletedIdsRef.current.delete(String(l.id));
+            if (l._id) pendingDeletedIdsRef.current.delete(String(l._id));
+          });
+          targetIds.forEach((id) => permanentlyDeletedIdsRef.current.add(id));
+          selectedLinks.forEach((l: any) => {
+            if (l.slug) permanentlyDeletedIdsRef.current.add(String(l.slug));
+            if (l.id) permanentlyDeletedIdsRef.current.add(String(l.id));
+            if (l._id) permanentlyDeletedIdsRef.current.add(String(l._id));
+          });
         }
       },
       onCancel: () => {
+        targetIds.forEach((id) => pendingDeletedIdsRef.current.delete(id));
+        selectedLinks.forEach((l: any) => {
+          if (l.slug) pendingDeletedIdsRef.current.delete(String(l.slug));
+          if (l.id) pendingDeletedIdsRef.current.delete(String(l.id));
+          if (l._id) pendingDeletedIdsRef.current.delete(String(l._id));
+        });
         setLinks((prev) => {
           const missing = selectedLinks.filter(
             (sl: any) => !prev.some((p: any) => String(p.id) === String(sl.id) || p.slug === sl.slug)

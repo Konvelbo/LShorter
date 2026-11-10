@@ -292,9 +292,13 @@ export function LinksReuiDataGrid({
     shortUrl: string;
     slug: string;
   } | null>(null);
+  const [isMac, setIsMac] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+    if (typeof navigator !== "undefined") {
+      setIsMac(/Mac|iPod|iPhone|iPad/i.test(navigator.platform || navigator.userAgent));
+    }
   }, []);
 
   useEffect(() => {
@@ -941,8 +945,25 @@ export function LinksReuiDataGrid({
                 return (
                   <tr
                     key={row.id}
-                    onClick={() => onSelectLink && onSelectLink(row.raw)}
-                    className="hover:bg-[#F9FAFB] dark:hover:bg-white/[0.03] transition-colors cursor-pointer"
+                    onClick={(e) => {
+                      if (e.ctrlKey || e.metaKey) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSelectedIds((prev) => ({
+                          ...prev,
+                          [row.id]: !prev[row.id],
+                        }));
+                        return;
+                      }
+                      if (onSelectLink) onSelectLink(row.raw);
+                    }}
+                    title={`${isMac ? "⌘" : "Ctrl"} + Clic pour sélectionner`}
+                    className={cn(
+                      "transition-colors cursor-pointer select-none",
+                      isChecked
+                        ? "bg-blue-50/70 dark:bg-blue-950/25 hover:bg-blue-100/60 dark:hover:bg-blue-900/35"
+                        : "hover:bg-[#F9FAFB] dark:hover:bg-white/[0.03]"
+                    )}
                   >
                     <td
                       onClick={(e) => e.stopPropagation()}
@@ -987,12 +1008,33 @@ export function LinksReuiDataGrid({
                             }}
                           />
                           <div className="min-w-0">
-                            <div className="flex items-center gap-1.5 flex-wrap">
+                            <div className="relative group/shortcut inline-flex items-center gap-1.5 flex-wrap">
+                              {/* Hover micro-tooltip for Ctrl/Cmd + Click shortcut */}
+                              <div
+                                role="tooltip"
+                                className="pointer-events-none absolute -top-8.5 left-0 z-30 flex items-center gap-1 px-2 py-0.5 rounded-[6px] bg-[#0F172A] dark:bg-[#1E293B] text-white text-[11px] font-medium shadow-md border border-white/10 opacity-0 invisible group-hover/shortcut:opacity-100 group-hover/shortcut:visible transition-all duration-150 transform -translate-y-0.5 group-hover/shortcut:translate-y-0 whitespace-nowrap"
+                              >
+                                <kbd className="px-1 py-0.2 rounded bg-white/20 text-[10px] font-mono font-semibold">
+                                  {isMac ? "⌘" : "Ctrl"}
+                                </kbd>
+                                <span>+ Clic pour sélectionner</span>
+                                <div className="absolute -bottom-1 left-4 w-2 h-2 rotate-45 bg-[#0F172A] dark:bg-[#1E293B] border-r border-b border-white/10" />
+                              </div>
+
                               <a
                                 href={`/r/${encodeURIComponent(row.slug)}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 onClick={(e) => {
+                                  if (e.ctrlKey || e.metaKey) {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setSelectedIds((prev) => ({
+                                      ...prev,
+                                      [row.id]: !prev[row.id],
+                                    }));
+                                    return;
+                                  }
                                   e.stopPropagation();
                                   handleOpenAndTrackClick(row.slug, row.clicks, row.id);
                                 }}
@@ -1258,9 +1300,20 @@ export function LinksReuiDataGrid({
               return (
                 <div
                   key={row.id}
+                  onClick={(e) => {
+                    if (e.ctrlKey || e.metaKey) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setSelectedIds((prev) => ({
+                        ...prev,
+                        [row.id]: !prev[row.id],
+                      }));
+                    }
+                  }}
+                  title={`${isMac ? "⌘" : "Ctrl"} + Clic pour sélectionner`}
                   className={cn(
-                    "rounded-[10px] border border-zinc-200 dark:border-[#222225] bg-white dark:bg-[#141416] p-3 transition-colors",
-                    isSelected && "border-[#0066FF] bg-blue-50/20 dark:bg-blue-950/10"
+                    "rounded-[10px] border border-zinc-200 dark:border-[#222225] bg-white dark:bg-[#141416] p-3 transition-colors cursor-pointer select-none",
+                    isSelected && "border-[#0066FF] bg-blue-50/40 dark:bg-blue-950/20"
                   )}
                 >
                   {/* Top line: Checkbox + Status dot + Slug + Copy + Chevron */}
@@ -1512,7 +1565,7 @@ export function LinksReuiDataGrid({
               }}
               title={`Delete ${selectedLinkIdsList.length} selected link${selectedLinkIdsList.length > 1 ? "s" : ""}`}
               aria-label="Delete selected links"
-              className="hidden sm:inline-flex h-8 px-2.5 rounded-[6px] bg-red-50 hover:bg-red-100 dark:bg-red-950/50 dark:hover:bg-red-900/50 border border-red-200 dark:border-red-900/60 text-red-600 dark:text-red-400 text-xs font-medium items-center gap-1.5 transition-all cursor-pointer shadow-2xs active:scale-95 shrink-0"
+              className="inline-flex h-8 px-2.5 rounded-[6px] bg-red-50 hover:bg-red-100 dark:bg-red-950/50 dark:hover:bg-red-900/50 border border-red-200 dark:border-red-900/60 text-red-600 dark:text-red-400 text-xs font-medium items-center gap-1.5 transition-all cursor-pointer shadow-2xs active:scale-95 shrink-0"
             >
               <Trash2 className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
               <span className="text-[11.5px] font-medium">Delete ({selectedLinkIdsList.length})</span>

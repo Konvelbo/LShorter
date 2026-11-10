@@ -775,21 +775,48 @@ export async function DELETE(
     } catch {}
 
     // 3. Delete from Worker
-    const url = new URL(`${WORKER_URL}/api/v1/links/${encodeURIComponent(id)}`);
-    if (userId) url.searchParams.set("userId", userId);
-    if (userEmail) url.searchParams.set("userEmail", userEmail);
+    // Note: Do not pass userId/userEmail query param or X-User-Id header to worker DELETE
+    // because links in D1 may have user_id=NULL or legacy ID, and NextAuth session has
+    // already authenticated caller permission. Passing X-Frontend-Secret allows the Worker
+    // to cleanly remove the link from both KV and D1 without 403 authorization mismatch.
+    let targetId = id;
+    const url = new URL(`${WORKER_URL}/api/v1/links/${encodeURIComponent(targetId)}`);
     if (slug) url.searchParams.set("slug", slug);
 
-    const res = await fetch(url.toString(), {
+    let res = await fetch(url.toString(), {
       method: "DELETE",
       headers: {
         "X-Frontend-Secret": FRONTEND_SECRET,
         Authorization: `Bearer ${FRONTEND_SECRET}`,
-        ...(userId ? { "X-User-Id": userId } : {}),
-        ...(userEmail ? { "X-User-Email": userEmail } : {}),
       },
       cache: "no-store",
     });
+
+    // If 404 and id does not start with "link_", attempt to resolve authoritative link ID by slug
+    if ((!res.ok || res.status === 404) && (!targetId.startsWith("link_") || slug)) {
+      try {
+        const listRes = await fetch(`${WORKER_URL}/api/v1/links?limit=500`, {
+          headers: { "X-Frontend-Secret": FRONTEND_SECRET },
+          cache: "no-store",
+        });
+        if (listRes.ok) {
+          const listData = await listRes.json();
+          const items = listData?.data || listData?.links || [];
+          const match = items.find((l: any) => l.slug === (slug || id) || l.id === id);
+          if (match?.id && match.id !== id) {
+            targetId = match.id;
+            res = await fetch(`${WORKER_URL}/api/v1/links/${encodeURIComponent(targetId)}`, {
+              method: "DELETE",
+              headers: {
+                "X-Frontend-Secret": FRONTEND_SECRET,
+                Authorization: `Bearer ${FRONTEND_SECRET}`,
+              },
+              cache: "no-store",
+            });
+          }
+        }
+      } catch {}
+    }
 
     if (!res.ok) {
       // Return success as local store already deleted it

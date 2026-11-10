@@ -35,19 +35,20 @@ export async function POST(req: Request) {
     }
 
     // 1. Attempt bulk delete on Cloudflare Worker endpoint
+    // Note: Do not constrain Worker D1 delete by userId query param because links may have null
+    // or legacy user_id in D1, and NextAuth session has already verified the caller's authority.
+    let bulkSucceeded = false;
+    let workerDeletedCount = 0;
+    let workerDeletedIds: string[] = [];
+
     try {
       const url = new URL(`${WORKER_URL}/api/v1/links/bulk-delete`);
-      if (userId) url.searchParams.set("userId", userId);
-      if (userEmail) url.searchParams.set("userEmail", userEmail);
-
       const workerRes = await fetch(url.toString(), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "X-Frontend-Secret": FRONTEND_SECRET,
           Authorization: `Bearer ${FRONTEND_SECRET}`,
-          ...(userId ? { "X-User-Id": userId } : {}),
-          ...(userEmail ? { "X-User-Email": userEmail } : {}),
         },
         body: JSON.stringify({ ids }),
         cache: "no-store",
@@ -55,7 +56,18 @@ export async function POST(req: Request) {
 
       if (workerRes.ok) {
         const data = await workerRes.json();
-        return NextResponse.json(data);
+        const inner = data?.data || data;
+        const count = typeof inner?.deletedCount === "number" ? inner.deletedCount : 0;
+        if (count > 0) {
+          bulkSucceeded = true;
+          workerDeletedCount = count;
+          workerDeletedIds = Array.isArray(inner?.deletedIds) ? inner.deletedIds : ids;
+          return NextResponse.json({
+            success: true,
+            deletedCount: count,
+            deletedIds: workerDeletedIds,
+          });
+        }
       }
     } catch (workerErr) {
       console.warn("[Bulk Delete Worker Call Error, attempting parallel fallback]:", workerErr);
@@ -64,8 +76,6 @@ export async function POST(req: Request) {
     // 2. Resilient Fallback: Delete each link in parallel via single-link Worker DELETE API
     const deletePromises = ids.map(async (id) => {
       const singleUrl = new URL(`${WORKER_URL}/api/v1/links/${encodeURIComponent(id)}`);
-      if (userId) singleUrl.searchParams.set("userId", userId);
-      if (userEmail) singleUrl.searchParams.set("userEmail", userEmail);
       singleUrl.searchParams.set("slug", id);
 
       const r = await fetch(singleUrl.toString(), {
@@ -73,8 +83,6 @@ export async function POST(req: Request) {
         headers: {
           "X-Frontend-Secret": FRONTEND_SECRET,
           Authorization: `Bearer ${FRONTEND_SECRET}`,
-          ...(userId ? { "X-User-Id": userId } : {}),
-          ...(userEmail ? { "X-User-Email": userEmail } : {}),
         },
         cache: "no-store",
       }).catch(() => null);

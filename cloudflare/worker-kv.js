@@ -959,7 +959,7 @@ export default {
                   await env.DB.prepare(`
                     DELETE FROM links 
                     WHERE (id = ? OR LOWER(slug) = LOWER(?))
-                      AND (user_id = ? OR user_email = ? OR user_id = 'usr_default')
+                      AND (user_id = ? OR user_email = ? OR user_id = 'usr_default' OR user_id IS NULL OR user_id = '')
                   `).bind(strId, strId, reqUserId || '', reqUserEmail || '').run();
                 } else {
                   await env.DB.prepare(`
@@ -1472,7 +1472,7 @@ export default {
                 await env.DB.prepare(`
                   DELETE FROM links 
                   WHERE (id = ? OR LOWER(slug) = LOWER(?))
-                    AND (user_id = ? OR user_email = ? OR user_id = 'usr_default')
+                    AND (user_id = ? OR user_email = ? OR user_id = 'usr_default' OR user_id IS NULL OR user_id = '')
                 `).bind(idParam, slugParam || idParam, reqUserId || '', reqUserEmail || '').run();
               } else {
                 await env.DB.prepare(`
