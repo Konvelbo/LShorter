@@ -30,6 +30,7 @@ import { ShortLink, GlobalAnalytics } from "@/types";
 import { formatNumber, isLinkActive } from "@/lib/utils";
 import { cfInvalidateCache, cfCreateTargetAlert, cfBulkDeleteLinks, cfDeleteLink } from "@/lib/cloudflare-api";
 import { showToast } from "@/components/ui/toast-provider";
+import { useUndoDelete } from "@/components/ui/undo-delete-provider";
 import {
   PageLinkDrawers,
   type PageLinkDrawersHandle,
@@ -80,6 +81,19 @@ export function PopulatedState({
   const pathname = usePathname();
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const { triggerUndoDelete } = useUndoDelete();
+  const [pendingDeletedIds, setPendingDeletedIds] = useState<Set<string>>(new Set());
+
+  const displayLinks = useMemo(() => {
+    if (pendingDeletedIds.size === 0) return links;
+    return links.filter(
+      (l) =>
+        !pendingDeletedIds.has(String(l.id)) &&
+        !pendingDeletedIds.has(String(l.slug)) &&
+        !((l as any)._id && pendingDeletedIds.has(String((l as any)._id)))
+    );
+  }, [links, pendingDeletedIds]);
+
   const linkDrawersRef = useRef<PageLinkDrawersHandle>(null);
   const handleOpenEditDrawer = useCallback((link: ShortLink) => {
     linkDrawersRef.current?.openEdit(link);
@@ -935,46 +949,126 @@ export function PopulatedState({
     }
   };
 
-  const handleDeleteLink = async (linkOrId: any) => {
+  const handleDeleteLink = (linkOrId: any) => {
     let linkId = "";
     let linkSlug = "";
+    let linkObj: ShortLink | undefined;
     if (typeof linkOrId === "object" && linkOrId !== null) {
       linkId = String(linkOrId.id || linkOrId._id || linkOrId.slug || "");
       linkSlug = String(linkOrId.slug || linkId);
+      linkObj = linkOrId;
     } else {
       linkId = String(linkOrId || "");
       linkSlug = linkId;
+      linkObj = links.find((l) => String(l.id) === linkId || l.slug === linkId);
     }
     if (!linkId) return;
 
-    try {
-      await cfDeleteLink(linkId, userId, linkSlug);
-      cfInvalidateCache();
-      showToast.success(linkSlug ? `Lien /${linkSlug} supprimé avec succès` : "Lien supprimé avec succès");
-      onRefresh?.();
-      window.dispatchEvent(new CustomEvent("lshorter_data_change"));
-      window.dispatchEvent(new CustomEvent("lshorter_links_updated"));
-    } catch {
-      showToast.error("Erreur lors de la suppression du lien");
+    // 1. Optimistic removal from UI immediately
+    setPendingDeletedIds((prev) => {
+      const next = new Set(prev);
+      next.add(linkId);
+      if (linkSlug) next.add(linkSlug);
+      return next;
+    });
+
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("lshorter_link_deleted", { detail: { id: linkId, slug: linkSlug } })
+      );
     }
+
+    // 2. Trigger the undo toast with 5s countdown timer
+    triggerUndoDelete({
+      id: linkId,
+      itemType: "link",
+      title: "Lien supprimé",
+      description: `/${linkSlug}`,
+      duration: 5,
+      onExecute: async () => {
+        try {
+          await cfDeleteLink(linkId, userId, linkSlug, linkObj?.ogImage);
+          cfInvalidateCache();
+          onRefresh?.();
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("lshorter_data_change"));
+            window.dispatchEvent(new CustomEvent("lshorter_links_updated"));
+          }
+        } catch (err) {
+          console.error("Delete link error:", err);
+          showToast.error("Erreur lors de la suppression définitive du lien");
+          setPendingDeletedIds((prev) => {
+            const next = new Set(prev);
+            next.delete(linkId);
+            if (linkSlug) next.delete(linkSlug);
+            return next;
+          });
+          onRefresh?.();
+        }
+      },
+      onCancel: () => {
+        setPendingDeletedIds((prev) => {
+          const next = new Set(prev);
+          next.delete(linkId);
+          if (linkSlug) next.delete(linkSlug);
+          return next;
+        });
+        if (typeof window !== "undefined" && linkObj) {
+          window.dispatchEvent(
+            new CustomEvent("lshorter_links_updated", { detail: linkObj })
+          );
+        }
+      },
+    });
   };
 
-  const handleDeleteMultiple = async (ids: string[]) => {
+  const handleDeleteMultiple = (ids: string[]) => {
     if (!ids || ids.length === 0) return;
-    try {
-      const res = await cfBulkDeleteLinks(ids, userId);
-      if (res?.success) {
-        cfInvalidateCache();
-        showToast.success(ids.length > 1 ? `${ids.length} liens supprimés avec succès` : "Lien supprimé avec succès");
-        onRefresh?.();
-        window.dispatchEvent(new CustomEvent("lshorter_data_change"));
-        window.dispatchEvent(new CustomEvent("lshorter_links_updated"));
-      } else {
-        showToast.error("Erreur lors de la suppression des liens");
-      }
-    } catch {
-      showToast.error("Erreur lors de la suppression des liens");
-    }
+    const targetIds = ids.map((id) => String(id).trim()).filter(Boolean);
+    const count = targetIds.length;
+
+    // 1. Optimistic removal immediately
+    setPendingDeletedIds((prev) => {
+      const next = new Set(prev);
+      targetIds.forEach((id) => next.add(id));
+      return next;
+    });
+
+    // 2. Trigger undo delete with 5-second countdown timer
+    triggerUndoDelete({
+      id: `bulk_${Date.now()}`,
+      itemType: "link",
+      title: count > 1 ? `${count} liens supprimés` : "Lien supprimé",
+      description: count > 1 ? `${count} liens sélectionnés` : undefined,
+      duration: 5,
+      onExecute: async () => {
+        try {
+          await cfBulkDeleteLinks(targetIds, userId);
+          cfInvalidateCache();
+          onRefresh?.();
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("lshorter_data_change"));
+            window.dispatchEvent(new CustomEvent("lshorter_links_updated"));
+          }
+        } catch (err) {
+          console.error("Bulk delete error:", err);
+          showToast.error("Erreur lors de la suppression des liens");
+          setPendingDeletedIds((prev) => {
+            const next = new Set(prev);
+            targetIds.forEach((id) => next.delete(id));
+            return next;
+          });
+          onRefresh?.();
+        }
+      },
+      onCancel: () => {
+        setPendingDeletedIds((prev) => {
+          const next = new Set(prev);
+          targetIds.forEach((id) => next.delete(id));
+          return next;
+        });
+      },
+    });
   };
 
   const handleCopyText = (text: string, id: string) => {
@@ -1693,7 +1787,7 @@ export function PopulatedState({
 
       {/* Row 4: Short Links Directory Table */}
       <LinksReuiDataGrid
-        links={links}
+        links={displayLinks}
         copiedId={copiedId}
         onCopy={handleCopyText}
         onSelectLink={handleOpenEditDrawer}

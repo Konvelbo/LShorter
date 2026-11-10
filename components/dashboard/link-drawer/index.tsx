@@ -1038,7 +1038,7 @@ export function LinkDrawer({
       itemType: "link",
       title: "Lien supprimé",
       description: `/${effectiveSlug}`,
-      duration: 10,
+      duration: 5,
       onExecute: async () => {
         try {
           await cfDeleteLink(link.id, userId, link.slug, link.ogImage);

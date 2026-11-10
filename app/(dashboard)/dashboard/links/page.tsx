@@ -703,52 +703,7 @@ export default function LinksPage() {
     }
   };
 
-  // --- Immediate Delete Flow for a Single Link ---
-  const startImmediateDelete = async (link: ShortLink) => {
-    const targetId = String(link.id || (link as any)._id || link.slug);
-    const targetSlug = link.slug || targetId;
-
-    // 1. Optimistic removal from state immediately and register permanently deleted
-    permanentlyDeletedIdsRef.current.add(targetId);
-    if (targetSlug) permanentlyDeletedIdsRef.current.add(targetSlug);
-    if ((link as any)._id) permanentlyDeletedIdsRef.current.add(String((link as any)._id));
-
-    setLinks((prev) =>
-      prev.filter(
-        (l: any) =>
-          String(l.id) !== targetId &&
-          l.slug !== targetSlug &&
-          (l._id ? String(l._id) !== targetId : true)
-      )
-    );
-    setSelectedLinkIds((prev) => {
-      const next = new Set(prev);
-      next.delete(targetId);
-      next.delete(link.id);
-      return next;
-    });
-
-    showToast.success(`/${targetSlug} supprimé avec succès`);
-
-    try {
-      await cfDeleteLink(targetId, userId, targetSlug, link.ogImage);
-      cfInvalidateCache();
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(new CustomEvent("lshorter_data_change"));
-        window.dispatchEvent(new CustomEvent("lshorter_links_updated"));
-      }
-    } catch (err) {
-      console.error("Cloudflare delete error:", err);
-      showToast.error("Erreur lors de la suppression du lien.");
-      permanentlyDeletedIdsRef.current.delete(targetId);
-      if (targetSlug) permanentlyDeletedIdsRef.current.delete(targetSlug);
-      if ((link as any)._id) permanentlyDeletedIdsRef.current.delete(String((link as any)._id));
-      await loadLinks(true, true);
-    }
-  };
-  const start10SecondUndoDelete = startImmediateDelete;
-
-  // Trigger delete for 1 link (supports both ShortLink object or string ID/slug)
+  // --- Undoable Delete Flow for a Single Link ---
   const promptDeleteSingle = (linkOrId: any) => {
     if (!linkOrId) return;
     let targetLink: ShortLink | undefined;
@@ -779,11 +734,79 @@ export default function LinksPage() {
       } as any;
     }
 
-    startImmediateDelete(targetLink as ShortLink);
-  };
+    const savedLink = { ...(targetLink as ShortLink) };
+    const targetId = String(savedLink.id || (savedLink as any)._id || savedLink.slug);
+    const targetSlug = savedLink.slug || targetId;
 
-  // Trigger immediate delete for bulk selection
-  const promptDeleteBulk = async (customIds?: string[]) => {
+    // 1. Optimistic removal from state immediately
+    pendingDeletedIdsRef.current.add(targetId);
+    if (targetSlug) pendingDeletedIdsRef.current.add(targetSlug);
+    if ((savedLink as any)._id) pendingDeletedIdsRef.current.add(String((savedLink as any)._id));
+
+    setLinks((prev) =>
+      prev.filter(
+        (l: any) =>
+          String(l.id) !== targetId &&
+          l.slug !== targetSlug &&
+          (l._id ? String(l._id) !== targetId : true)
+      )
+    );
+    setSelectedLinkIds((prev) => {
+      const next = new Set(prev);
+      next.delete(targetId);
+      next.delete(savedLink.id);
+      return next;
+    });
+
+    // 2. Trigger the undo toast with 5-second countdown timer
+    triggerUndoDelete({
+      id: targetId,
+      itemType: "link",
+      title: "Lien supprimé",
+      description: `/${targetSlug}`,
+      duration: 5,
+      onExecute: async () => {
+        permanentlyDeletedIdsRef.current.add(targetId);
+        if (targetSlug) permanentlyDeletedIdsRef.current.add(targetSlug);
+        if ((savedLink as any)._id) permanentlyDeletedIdsRef.current.add(String((savedLink as any)._id));
+        pendingDeletedIdsRef.current.delete(targetId);
+        if (targetSlug) pendingDeletedIdsRef.current.delete(targetSlug);
+        if ((savedLink as any)._id) pendingDeletedIdsRef.current.delete(String((savedLink as any)._id));
+
+        try {
+          await cfDeleteLink(targetId, userId, targetSlug, savedLink.ogImage);
+          cfInvalidateCache();
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("lshorter_data_change"));
+            window.dispatchEvent(new CustomEvent("lshorter_links_updated"));
+          }
+        } catch (err) {
+          console.error("Cloudflare delete error:", err);
+          showToast.error("Erreur lors de la suppression définitive du lien.");
+          permanentlyDeletedIdsRef.current.delete(targetId);
+          if (targetSlug) permanentlyDeletedIdsRef.current.delete(targetSlug);
+          if ((savedLink as any)._id) permanentlyDeletedIdsRef.current.delete(String((savedLink as any)._id));
+          await loadLinks(true, true);
+        }
+      },
+      onCancel: () => {
+        pendingDeletedIdsRef.current.delete(targetId);
+        if (targetSlug) pendingDeletedIdsRef.current.delete(targetSlug);
+        if ((savedLink as any)._id) pendingDeletedIdsRef.current.delete(String((savedLink as any)._id));
+
+        setLinks((prev) => {
+          if (prev.some((l: any) => String(l.id) === targetId || l.slug === targetSlug)) {
+            return prev;
+          }
+          return [savedLink, ...prev];
+        });
+      },
+    });
+  };
+  const start10SecondUndoDelete = promptDeleteSingle;
+
+  // Trigger undoable delete for bulk selection
+  const promptDeleteBulk = (customIds?: string[]) => {
     const targetIds = (
       customIds && customIds.length > 0
         ? customIds
@@ -800,13 +823,14 @@ export default function LinksPage() {
       )
     );
     const count = Math.max(selectedLinks.length, targetIds.length);
+    const savedLinks = [...selectedLinks];
 
-    // 1. Optimistic removal from state immediately and register permanently deleted
-    targetIds.forEach((id) => permanentlyDeletedIdsRef.current.add(id));
+    // 1. Optimistic removal immediately
+    targetIds.forEach((id) => pendingDeletedIdsRef.current.add(id));
     selectedLinks.forEach((l: any) => {
-      if (l.slug) permanentlyDeletedIdsRef.current.add(String(l.slug));
-      if (l.id) permanentlyDeletedIdsRef.current.add(String(l.id));
-      if (l._id) permanentlyDeletedIdsRef.current.add(String(l._id));
+      if (l.slug) pendingDeletedIdsRef.current.add(String(l.slug));
+      if (l.id) pendingDeletedIdsRef.current.add(String(l.id));
+      if (l._id) pendingDeletedIdsRef.current.add(String(l._id));
     });
 
     setLinks((prev) =>
@@ -822,35 +846,74 @@ export default function LinksPage() {
     );
     setSelectedLinkIds(new Set());
 
-    showToast.success(count > 1 ? `${count} liens supprimés avec succès` : "Lien supprimé avec succès");
+    // 2. Trigger the undo toast with 5-second countdown timer
+    triggerUndoDelete({
+      id: `bulk_${Date.now()}`,
+      itemType: "link",
+      title: count > 1 ? `${count} liens supprimés` : "Lien supprimé",
+      description: count > 1 ? `${count} liens sélectionnés` : (savedLinks[0]?.slug ? `/${savedLinks[0].slug}` : undefined),
+      duration: 5,
+      onExecute: async () => {
+        targetIds.forEach((id) => {
+          permanentlyDeletedIdsRef.current.add(id);
+          pendingDeletedIdsRef.current.delete(id);
+        });
+        savedLinks.forEach((l: any) => {
+          if (l.slug) {
+            permanentlyDeletedIdsRef.current.add(String(l.slug));
+            pendingDeletedIdsRef.current.delete(String(l.slug));
+          }
+          if (l.id) {
+            permanentlyDeletedIdsRef.current.add(String(l.id));
+            pendingDeletedIdsRef.current.delete(String(l.id));
+          }
+          if (l._id) {
+            permanentlyDeletedIdsRef.current.add(String(l._id));
+            pendingDeletedIdsRef.current.delete(String(l._id));
+          }
+        });
 
-    try {
-      await cfBulkDeleteLinks(targetIds, userId).catch(async () => {
-        return Promise.allSettled(
-          targetIds.map((id) => {
-            const target = selectedLinks.find(
-              (l: any) => String(l.id) === String(id) || l.slug === String(id)
+        try {
+          await cfBulkDeleteLinks(targetIds, userId).catch(async () => {
+            return Promise.allSettled(
+              targetIds.map((id) => {
+                const target = savedLinks.find(
+                  (l: any) => String(l.id) === String(id) || l.slug === String(id)
+                );
+                return cfDeleteLink(id, userId, target?.slug, target?.ogImage);
+              })
             );
-            return cfDeleteLink(id, userId, target?.slug, target?.ogImage);
-          })
-        );
-      });
-      cfInvalidateCache();
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(new CustomEvent("lshorter_data_change"));
-        window.dispatchEvent(new CustomEvent("lshorter_links_updated"));
-      }
-    } catch (err) {
-      console.error("Bulk delete error:", err);
-      showToast.error("Erreur lors de la suppression.");
-      targetIds.forEach((id) => permanentlyDeletedIdsRef.current.delete(id));
-      selectedLinks.forEach((l: any) => {
-        if (l.slug) permanentlyDeletedIdsRef.current.delete(String(l.slug));
-        if (l.id) permanentlyDeletedIdsRef.current.delete(String(l.id));
-        if (l._id) permanentlyDeletedIdsRef.current.delete(String(l._id));
-      });
-      await loadLinks(true, true);
-    }
+          });
+          cfInvalidateCache();
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("lshorter_data_change"));
+            window.dispatchEvent(new CustomEvent("lshorter_links_updated"));
+          }
+        } catch (err) {
+          console.error("Bulk delete error:", err);
+          showToast.error("Erreur lors de la suppression des liens.");
+          targetIds.forEach((id) => permanentlyDeletedIdsRef.current.delete(id));
+          savedLinks.forEach((l: any) => {
+            if (l.slug) permanentlyDeletedIdsRef.current.delete(String(l.slug));
+            if (l.id) permanentlyDeletedIdsRef.current.delete(String(l.id));
+            if (l._id) permanentlyDeletedIdsRef.current.delete(String(l._id));
+          });
+          await loadLinks(true, true);
+        }
+      },
+      onCancel: () => {
+        targetIds.forEach((id) => pendingDeletedIdsRef.current.delete(id));
+        savedLinks.forEach((l: any) => {
+          if (l.slug) pendingDeletedIdsRef.current.delete(String(l.slug));
+          if (l.id) pendingDeletedIdsRef.current.delete(String(l.id));
+          if (l._id) pendingDeletedIdsRef.current.delete(String(l._id));
+        });
+        setLinks((prev) => {
+          const missing = savedLinks.filter((s) => !prev.some((p) => String(p.id) === String(s.id) || p.slug === s.slug));
+          return [...missing, ...prev];
+        });
+      },
+    });
   };
 
 

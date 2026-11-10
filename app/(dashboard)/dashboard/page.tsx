@@ -398,6 +398,23 @@ export default function DashboardOverviewPage() {
       }
     };
 
+    const handleLinkDeleted = (e: Event) => {
+      const detail = (e as CustomEvent)?.detail;
+      const targetId = detail?.id ? String(detail.id) : null;
+      const targetSlug = detail?.slug ? String(detail.slug) : null;
+      if (targetId || targetSlug) {
+        setLinks((prev) =>
+          prev.filter(
+            (l) =>
+              String(l.id) !== targetId &&
+              l.slug !== targetSlug &&
+              ((l as any)._id ? String((l as any)._id) !== targetId : true)
+          )
+        );
+      }
+    };
+
+    window.addEventListener("lshorter_link_deleted", handleLinkDeleted);
     window.addEventListener("lshorter_links_updated", handleUpdate);
     window.addEventListener("lshorter_data_change", handleUpdate);
     window.addEventListener("lshorter_link_clicked", handleUpdate);
@@ -428,6 +445,7 @@ export default function DashboardOverviewPage() {
     }, 15000);
 
     return () => {
+      window.removeEventListener("lshorter_link_deleted", handleLinkDeleted);
       window.removeEventListener("lshorter_links_updated", handleUpdate);
       window.removeEventListener("lshorter_data_change", handleUpdate);
       window.removeEventListener("lshorter_link_clicked", handleUpdate);

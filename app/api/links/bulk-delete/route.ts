@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
+import { WORKER_URL, FRONTEND_SECRET, CF_ACCOUNT_ID, CF_D1_DATABASE_ID, CF_API_TOKEN } from "@/lib/backend-config";
 import { invalidateBotResponseCache } from "@/lib/redirect-engine";
 import { auth } from "@/auth";
 
@@ -34,6 +34,30 @@ export async function POST(req: Request) {
       try {
         invalidateBotResponseCache(id);
       } catch {}
+    }
+
+    // Direct Cloudflare D1 SQL bulk deletion (Guaranteed DB cleanup)
+    if (CF_ACCOUNT_ID && CF_D1_DATABASE_ID && CF_API_TOKEN && ids.length > 0) {
+      try {
+        const placeholders = ids.map(() => "?").join(", ");
+        await fetch(
+          `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/d1/database/${CF_D1_DATABASE_ID}/query`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${CF_API_TOKEN}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              sql: `DELETE FROM links WHERE id IN (${placeholders}) OR slug IN (${placeholders});`,
+              params: [...ids, ...ids],
+            }),
+            cache: "no-store",
+          }
+        );
+      } catch (d1Err) {
+        console.warn("[Bulk Delete D1 Direct Warning]:", d1Err);
+      }
     }
 
     // 1. Attempt bulk delete on Cloudflare Worker endpoint

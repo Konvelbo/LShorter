@@ -30,6 +30,7 @@ import { BannerLightboxModal } from "@/components/dashboard/banner-lightbox-moda
 import { triggerClickSync, cfUpdateLink, cfInvalidateCache, cfBulkDeleteLinks } from "@/lib/cloudflare-api";
 import { cn, getCountryName, isLinkActive } from "@/lib/utils";
 import { showToast } from "@/components/ui/toast-provider";
+import { triggerGlobalUndoDelete } from "@/components/ui/undo-delete-provider";
 import { ReferrerBadge, ReferrerLogo } from "@/components/dashboard/analytics/referrer-badge";
 import { PixelBadgesList, PixelLogosOnlyList } from "@/components/dashboard/pixel-badges";
 
@@ -1330,15 +1331,23 @@ export function LinksReuiDataGrid({
                         onDeleteLink(rowObj?.raw || id);
                       });
                     } else {
-                      try {
-                        await cfBulkDeleteLinks(idsToDelete, effectiveUserId);
-                        showToast.success(idsToDelete.length > 1 ? `${idsToDelete.length} liens supprimés avec succès` : "Lien supprimé avec succès");
-                        cfInvalidateCache();
-                        window.dispatchEvent(new CustomEvent("lshorter_data_change"));
-                        window.dispatchEvent(new CustomEvent("lshorter_links_updated"));
-                      } catch {
-                        showToast.error("Erreur lors de la suppression des liens");
-                      }
+                      const count = idsToDelete.length;
+                      triggerGlobalUndoDelete({
+                        id: `bulk_${Date.now()}`,
+                        itemType: "link",
+                        title: count > 1 ? `${count} liens supprimés` : "Lien supprimé",
+                        duration: 5,
+                        onExecute: async () => {
+                          try {
+                            await cfBulkDeleteLinks(idsToDelete, effectiveUserId);
+                            cfInvalidateCache();
+                            window.dispatchEvent(new CustomEvent("lshorter_data_change"));
+                            window.dispatchEvent(new CustomEvent("lshorter_links_updated"));
+                          } catch {
+                            showToast.error("Erreur lors de la suppression des liens");
+                          }
+                        },
+                      });
                     }
                   }}
                   className="h-7.5 px-3 rounded-[6px] bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-medium flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
@@ -1626,15 +1635,23 @@ export function LinksReuiDataGrid({
                     onDeleteLink(rowObj?.raw || id);
                   });
                 } else {
-                  try {
-                    await cfBulkDeleteLinks(idsToDelete, effectiveUserId);
-                    showToast.success(idsToDelete.length > 1 ? `${idsToDelete.length} liens supprimés avec succès` : "Lien supprimé avec succès");
-                    cfInvalidateCache();
-                    window.dispatchEvent(new CustomEvent("lshorter_data_change"));
-                    window.dispatchEvent(new CustomEvent("lshorter_links_updated"));
-                  } catch {
-                    showToast.error("Erreur lors de la suppression des liens");
-                  }
+                  const count = idsToDelete.length;
+                  triggerGlobalUndoDelete({
+                    id: `bulk_${Date.now()}`,
+                    itemType: "link",
+                    title: count > 1 ? `${count} liens supprimés` : "Lien supprimé",
+                    duration: 5,
+                    onExecute: async () => {
+                      try {
+                        await cfBulkDeleteLinks(idsToDelete, effectiveUserId);
+                        cfInvalidateCache();
+                        window.dispatchEvent(new CustomEvent("lshorter_data_change"));
+                        window.dispatchEvent(new CustomEvent("lshorter_links_updated"));
+                      } catch {
+                        showToast.error("Erreur lors de la suppression des liens");
+                      }
+                    },
+                  });
                 }
               }}
               title={`Delete ${selectedLinkIdsList.length} selected link${selectedLinkIdsList.length > 1 ? "s" : ""}`}

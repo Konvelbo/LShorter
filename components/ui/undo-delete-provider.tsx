@@ -118,7 +118,7 @@ export function UndoDeleteProvider({ children }: { children: React.ReactNode }) 
         });
       }
 
-      const totalDuration = options.duration && options.duration > 0 ? options.duration : 10;
+      const totalDuration = options.duration && options.duration > 0 ? options.duration : 5;
       const newItem: PendingDeleteItem = {
         ...options,
         remaining: totalDuration,
@@ -209,21 +209,21 @@ export function UndoDeleteProvider({ children }: { children: React.ReactNode }) 
 
       {/* Floating Undo Toast at Top Center */}
       {pendingItem && (
-        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[99999] pointer-events-auto w-full max-w-[420px] px-3 animate-in fade-in slide-in-from-top-3 duration-200">
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[99999] pointer-events-auto w-full max-w-[390px] px-3 animate-in fade-in slide-in-from-top-3 duration-200">
           <div
             role="status"
             aria-live="polite"
-            className="relative overflow-hidden w-full rounded-[10px] bg-white/95 dark:bg-[#121316]/95 border border-neutral-200 dark:border-[#272a37] p-3 text-neutral-900 dark:text-neutral-100 shadow-[0_10px_30px_rgba(0,0,0,0.12)] dark:shadow-[0_16px_40px_rgba(0,0,0,0.85)] backdrop-blur-xl"
+            className="relative overflow-hidden w-full rounded-[10px] bg-white dark:bg-[#121214] border border-neutral-200/90 dark:border-white/10 p-2.5 sm:p-3 text-neutral-900 dark:text-neutral-100 shadow-[0_10px_30px_rgba(0,0,0,0.10)] dark:shadow-[0_14px_36px_rgba(0,0,0,0.65)] backdrop-blur-xl"
           >
             <div className="flex items-center justify-between gap-3">
               {/* Left: Icon & Text */}
               <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                <div className="w-7 h-7 rounded-[8px] bg-rose-500/10 dark:bg-rose-500/15 border border-rose-500/20 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
-                  <Trash2 className="w-3.5 h-3.5 stroke-[2.25]" />
+                <div className="w-7 h-7 rounded-[7px] bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20 flex items-center justify-center shrink-0">
+                  <Trash2 className="w-3.5 h-3.5 stroke-[2]" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="text-xs font-semibold text-neutral-900 dark:text-white truncate leading-tight">
-                    {pendingItem.title || "Élément supprimé"}
+                  <div className="text-[13px] font-semibold text-neutral-900 dark:text-white truncate leading-tight">
+                    {pendingItem.title || "Lien supprimé"}
                   </div>
                   {pendingItem.description && (
                     <div className="text-[11px] text-neutral-500 dark:text-neutral-400 font-mono truncate leading-normal mt-0.5">
@@ -238,12 +238,12 @@ export function UndoDeleteProvider({ children }: { children: React.ReactNode }) 
                 <button
                   type="button"
                   onClick={cancelUndoDelete}
-                  className="h-7 px-2.5 rounded-[6px] bg-neutral-900 text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-950 dark:hover:bg-neutral-200 font-semibold text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+                  className="h-7 px-2.5 rounded-[7px] bg-neutral-900 text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-950 dark:hover:bg-neutral-200 font-medium text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
                   title="Annuler la suppression"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
                   <span>Annuler</span>
-                  <span className="font-mono text-[10px] font-bold tabular-nums opacity-80 border-l border-white/20 dark:border-black/20 pl-1">
+                  <span className="font-mono text-[11px] font-semibold tabular-nums opacity-85 border-l border-white/20 dark:border-black/20 pl-1">
                     {pendingItem.remaining}s
                   </span>
                 </button>
@@ -252,18 +252,18 @@ export function UndoDeleteProvider({ children }: { children: React.ReactNode }) 
                   type="button"
                   onClick={commitUndoDelete}
                   className="p-1 rounded-[6px] text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
-                  aria-label="Supprimer immédiatement"
-                  title="Supprimer immédiatement"
+                  aria-label="Fermer"
+                  title="Fermer"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
 
-            {/* Subtle Progress Bar (10s countdown) */}
-            <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-neutral-100 dark:bg-[#1f222c]">
+            {/* Subtle Progress Bar */}
+            <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-neutral-100 dark:bg-white/5">
               <div
-                className="h-full bg-rose-500 dark:bg-rose-500 transition-all duration-1000 ease-linear"
+                className="h-full bg-red-500 dark:bg-red-400 transition-all duration-1000 ease-linear"
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
