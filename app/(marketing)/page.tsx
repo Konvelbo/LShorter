@@ -51,6 +51,10 @@ const TimelineFeatures = dynamic(
   () => import("@/components/ui/timeline-features").then((m) => m.TimelineFeatures),
   { ssr: true }
 );
+const ParallaxComponent = dynamic(
+  () => import("@/components/ui/parallax-scrolling").then((m) => m.ParallaxComponent),
+  { ssr: true }
+);
 const SecuritySection = dynamic(
   () => import("@/components/marketing/security-section").then((m) => m.SecuritySection),
   { ssr: true }
@@ -80,6 +84,39 @@ export default function LandingPage() {
 
       {/* 3. Features Section (#features — Core Platform Capabilities routing to /docs/[slug]) */}
       <TimelineFeatures />
+
+      {/* 3.5 Cinematic Multi-Layer Parallax Scroll Section */}
+      <ParallaxComponent
+        title="LShorter"
+        subtitle="Global Multi-Layer Edge Architecture"
+      >
+        <div className="flex flex-col items-center text-center max-w-3xl mx-auto space-y-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-purple-500/20 bg-purple-500/10 text-purple-400 text-xs font-mono uppercase tracking-widest">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            Anycast Edge Network Active
+          </div>
+          <h3 className="text-3xl md:text-5xl font-extrabold tracking-tight text-neutral-900 dark:text-neutral-100">
+            Speed That Defies Distance.
+          </h3>
+          <p className="text-base md:text-lg text-neutral-600 dark:text-neutral-400 leading-relaxed max-w-2xl">
+            Chaque clic est acheminé instantanément via des nœuds edge intelligents en moins de 15ms. Propulsé par Cloudflare, routage dynamique et attribution géographique en temps réel.
+          </p>
+          <div className="grid grid-cols-3 gap-6 pt-4 w-full max-w-lg border-t border-neutral-200 dark:border-neutral-800">
+            <div>
+              <div className="text-2xl md:text-3xl font-bold font-mono text-neutral-900 dark:text-white">&lt;15ms</div>
+              <div className="text-xs text-neutral-500 font-medium mt-1">Routage Edge</div>
+            </div>
+            <div>
+              <div className="text-2xl md:text-3xl font-bold font-mono text-neutral-900 dark:text-white">300+</div>
+              <div className="text-xs text-neutral-500 font-medium mt-1">Villes &amp; PoPs</div>
+            </div>
+            <div>
+              <div className="text-2xl md:text-3xl font-bold font-mono text-neutral-900 dark:text-white">99.99%</div>
+              <div className="text-xs text-neutral-500 font-medium mt-1">Disponibilité SLA</div>
+            </div>
+          </div>
+        </div>
+      </ParallaxComponent>
 
       {/* 4. Security & Speed Section (#security — SOC 2, PathLock™ PIN Gate & <12ms API Latency) */}
       <SecuritySection />
