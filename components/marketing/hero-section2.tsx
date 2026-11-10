@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import gsap from "gsap";
 import { useSession } from "next-auth/react";
@@ -62,7 +63,7 @@ const HERO_BACKGROUND_EMOJIS = [
   // ==================== CÔTÉ GAUCHE & HAUT ====================
   // 1. Haut Gauche (Mobile & Desktop) : Link 🔗 (En haut à gauche hors du texte)
   {
-    src: "/emojis/link.png",
+    src: "/emojis/link.webp",
     alt: "Smart Short Links",
     className:
       "top-[7%] left-[4%] sm:top-[9%] sm:left-[4%] lg:left-[5%] w-7 h-7 xs:w-8 xs:h-8 sm:w-11 sm:h-11 lg:w-14 lg:h-14 opacity-100 dark:opacity-70 lg:dark:opacity-75",
@@ -70,7 +71,7 @@ const HERO_BACKGROUND_EMOJIS = [
   },
   // 2. Zone Rouge 1 (Mobile) : Shield 🛡️ (Sous Link, vers le centre)
   {
-    src: "/emojis/shield.png",
+    src: "/emojis/shield.webp",
     alt: "PathLock™ Security Shield",
     className:
       "top-[11%] left-[22%] sm:top-[23%] sm:left-[8%] lg:left-[10%] w-7 h-7 xs:w-8 xs:h-8 sm:w-11 sm:h-11 lg:w-13 lg:h-13 opacity-100 dark:opacity-70 lg:dark:opacity-75",
@@ -78,7 +79,7 @@ const HERO_BACKGROUND_EMOJIS = [
   },
   // 4. Zone Rouge 5 (Mobile) : Globe 🌐 (À gauche du paragraphe de description)
   {
-    src: "/emojis/globe.png",
+    src: "/emojis/globe.webp",
     alt: "Global Edge Anycast Routing",
     className:
       "top-[60%] left-[3%] sm:top-[52%] sm:left-[8%] lg:left-[10%] w-7 h-7 xs:w-8 xs:h-8 sm:w-11 sm:h-11 lg:w-14 lg:h-14 opacity-100 dark:opacity-70 lg:dark:opacity-75",
@@ -86,7 +87,7 @@ const HERO_BACKGROUND_EMOJIS = [
   },
   // 5. Zone Rouge 7 (Mobile) : Key 🔑 (Sous les boutons à gauche)
   {
-    src: "/emojis/key.png",
+    src: "/emojis/key.webp",
     alt: "Secure API Keys & Tokens",
     className:
       "top-[78%] left-[11%] sm:top-[67%] sm:left-[3%] lg:left-[4%] w-7 h-7 xs:w-8 xs:h-8 sm:w-11 sm:h-11 lg:w-13 lg:h-13 opacity-100 dark:opacity-70 lg:dark:opacity-75",
@@ -94,7 +95,7 @@ const HERO_BACKGROUND_EMOJIS = [
   },
   // 6. Bas Gauche (Mobile & Desktop) : Check ✅ (En bas à gauche sous les boutons)
   {
-    src: "/emojis/check.png",
+    src: "/emojis/check.webp",
     alt: "Verified Link Routing",
     className:
       "top-[89%] left-[4%] sm:top-[80%] sm:left-[8%] lg:left-[9%] w-7 h-7 xs:w-8 xs:h-8 sm:w-11 sm:h-11 lg:w-13 lg:h-13 opacity-100 dark:opacity-70 lg:dark:opacity-75",
@@ -104,7 +105,7 @@ const HERO_BACKGROUND_EMOJIS = [
   // ==================== CÔTÉ DROIT & CENTRE ====================
   // 7. Haut Droit (Mobile & Desktop) : Lock 🔒 (En haut à droite hors du texte)
   {
-    src: "/emojis/lock.png",
+    src: "/emojis/lock.webp",
     alt: "PIN Gate & Encryption",
     className:
       "top-[7%] right-[4%] sm:top-[9%] sm:right-[4%] lg:right-[5%] w-7 h-7 xs:w-8 xs:h-8 sm:w-11 sm:h-11 lg:w-14 lg:h-14 opacity-100 dark:opacity-70 lg:dark:opacity-75",
@@ -112,7 +113,7 @@ const HERO_BACKGROUND_EMOJIS = [
   },
   // 8. Zone Rouge 3 (Mobile) : Handshake 🤝 (Sous Lock, vers le centre)
   {
-    src: "/emojis/handshake.png",
+    src: "/emojis/handshake.webp",
     alt: "Verified SLAs & Partnership",
     className:
       "top-[15%] right-[26%] sm:top-[23%] sm:right-[8%] lg:right-[10%] w-7 h-7 xs:w-8 xs:h-8 sm:w-11 sm:h-11 lg:w-13 lg:h-13 opacity-100 dark:opacity-70 lg:dark:opacity-75",
@@ -120,7 +121,7 @@ const HERO_BACKGROUND_EMOJIS = [
   },
   // 9. Zone Rouge 4 (Mobile) : Zap ⚡ (À droite du grand titre)
   {
-    src: "/emojis/zap.png",
+    src: "/emojis/zap.webp",
     alt: "Ultra-fast Edge Redirection",
     className:
       "top-[33%] right-[4%] sm:top-[38%] sm:right-[3%] lg:right-[4%] w-7 h-7 xs:w-8 xs:h-8 sm:w-11 sm:h-11 lg:w-14 lg:h-14 opacity-100 dark:opacity-70 lg:dark:opacity-75",
@@ -128,7 +129,7 @@ const HERO_BACKGROUND_EMOJIS = [
   },
   // 10. Zone Rouge 6 (Mobile) : Satellite 📡 (À droite du paragraphe de description)
   {
-    src: "/emojis/satellite.png",
+    src: "/emojis/satellite.webp",
     alt: "Edge Cloud Satellite Infrastructure",
     className:
       "top-[61%] right-[4%] sm:top-[52%] sm:right-[8%] lg:right-[10%] w-7 h-7 xs:w-8 xs:h-8 sm:w-11 sm:h-11 lg:w-13 lg:h-13 opacity-100 dark:opacity-70 lg:dark:opacity-75",
@@ -136,7 +137,7 @@ const HERO_BACKGROUND_EMOJIS = [
   },
   // 11. Zone Rouge 8 (Mobile) : Locked Key 🔐 (Sous les boutons à droite)
   {
-    src: "/emojis/locked_key.png",
+    src: "/emojis/locked_key.webp",
     alt: "Encrypted Destination Lock",
     className:
       "top-[82%] right-[16%] sm:top-[80%] sm:right-[8%] lg:right-[9%] w-7 h-7 xs:w-8 xs:h-8 sm:w-11 sm:h-11 lg:w-13 lg:h-13 opacity-100 dark:opacity-70 lg:dark:opacity-75",
@@ -144,7 +145,7 @@ const HERO_BACKGROUND_EMOJIS = [
   },
   // 12. Bas-Centre Droit (Mobile & Desktop) : Rocket 🚀 (En bas à droite sous les boutons)
   {
-    src: "/emojis/rocket.png",
+    src: "/emojis/rocket.webp",
     alt: "High Performance Routing",
     className:
       "top-[89%] right-[4%] sm:top-[67%] sm:right-[3%] lg:right-[4%] w-7 h-7 xs:w-8 xs:h-8 sm:w-11 sm:h-11 lg:w-14 lg:h-14 opacity-100 dark:opacity-70 lg:dark:opacity-75",
@@ -152,7 +153,7 @@ const HERO_BACKGROUND_EMOJIS = [
   },
   // 13. Zone Rouge 9 (Mobile) : Star ⭐ (En bas au centre entre Check et Rocket)
   {
-    src: "/emojis/star.png",
+    src: "/emojis/star.webp",
     alt: "High Quality Star Rating",
     className:
       "top-[90%] left-[50%] -translate-x-1/2 sm:top-[88%] sm:left-[50%] w-7 h-7 xs:w-8 xs:h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 opacity-100 dark:opacity-70 lg:dark:opacity-75",
@@ -441,20 +442,20 @@ export function HeroSection2() {
             }
 
             @keyframes heroEmojiFloat1 {
-              0%, 100% { transform: translateY(0px); }
-              50% { transform: translateY(-7px); }
+              0%, 100% { transform: translate3d(0, 0, 0); }
+              50% { transform: translate3d(0, -6px, 0); }
             }
             @keyframes heroEmojiFloat2 {
-              0%, 100% { transform: translateY(0px); }
-              50% { transform: translateY(7px); }
+              0%, 100% { transform: translate3d(0, 0, 0); }
+              50% { transform: translate3d(0, 6px, 0); }
             }
             @keyframes heroEmojiFloat3 {
-              0%, 100% { transform: translateY(0px); }
-              50% { transform: translateY(-8px); }
+              0%, 100% { transform: translate3d(0, 0, 0); }
+              50% { transform: translate3d(0, -7px, 0); }
             }
             @keyframes heroEmojiFloat4 {
-              0%, 100% { transform: translateY(0px); }
-              50% { transform: translateY(8px); }
+              0%, 100% { transform: translate3d(0, 0, 0); }
+              50% { transform: translate3d(0, 7px, 0); }
             }
 
             .animate-hero-float-1 {
@@ -485,14 +486,14 @@ export function HeroSection2() {
         {HERO_BACKGROUND_EMOJIS.map((item, idx) => (
           <div
             key={idx}
-            className={`absolute flex items-center justify-center ${item.className} ${item.animation}`}
+            className={`absolute flex items-center justify-center transform-gpu ${item.className} ${item.animation}`}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={item.src}
               alt={item.alt}
-              className="w-full h-full object-contain pointer-events-none select-none transition-opacity duration-300 drop-shadow-[0_10px_20px_rgba(0,0,0,0.15)] dark:drop-shadow-[0_12px_24px_rgba(0,0,0,0.50)] saturate-110 contrast-105"
-              loading="eager"
+              className="w-full h-full object-contain pointer-events-none select-none transform-gpu will-change-transform drop-shadow-sm opacity-90 transition-opacity"
+              loading="lazy"
               draggable={false}
             />
           </div>
@@ -631,12 +632,14 @@ export function HeroSection2() {
           </div>
 
           <div className="relative w-full bg-[#F9FAFB] dark:bg-[#101828]">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/screenshots/dashboard/dashboardwithsidbare.png"
+            <Image
+              src="/screenshots/dashboard/dashboardwithsidbare.webp"
               alt="LShorter SaaS Dashboard Preview"
-              className="w-full h-auto block"
-              style={{ display: "block", width: "100%", height: "auto" }}
+              width={1847}
+              height={1013}
+              priority
+              sizes="(max-width: 1280px) 100vw, 1240px"
+              className="w-full h-auto block transform-gpu"
             />
           </div>
         </div>

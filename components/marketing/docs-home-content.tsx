@@ -129,7 +129,7 @@ export function DocsHomeContent() {
                 <CardItem translateZ="50" className="w-full">
                   <div className="relative w-full aspect-[16/10] sm:aspect-[16/9] rounded-2xl overflow-hidden border border-[#E4E7EC] dark:border-white/10 shadow-2xl bg-neutral-900 group">
                     <Image
-                      src="/doc/apiimage.jpg"
+                      src="/doc/apiimage.webp"
                       alt="LShorter global edge architecture and API infrastructure"
                       fill
                       priority

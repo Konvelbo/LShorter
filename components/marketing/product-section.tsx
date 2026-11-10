@@ -37,42 +37,38 @@ export function ProductSection() {
     const cardsEl = cardsRef.current;
 
     const ctx = gsap.context(() => {
-      // ── 1. Header scroll animation WITH REVERSE ──
+      // ── 1. Header scroll animation (Smooth single entrance) ──
       gsap.fromTo(
         ".product-header-elem",
-        { opacity: 0, y: 28 },
+        { opacity: 0, y: 22 },
         {
           opacity: 1,
           y: 0,
-          duration: 0.65,
-          stagger: 0.08,
+          duration: 0.55,
+          stagger: 0.06,
           ease: "power2.out",
           scrollTrigger: {
             trigger: sectionRef.current,
             start: "top 85%",
-            end: "bottom 15%",
-            toggleActions: "play reverse play reverse",
-            fastScrollEnd: true,
+            once: true,
           },
         }
       );
 
-      // ── 2. Bento cards scroll animation WITH REVERSE ──
+      // ── 2. Bento cards scroll animation (Smooth single entrance) ──
       gsap.fromTo(
         ".product-bento-card",
-        { opacity: 0, y: 35 },
+        { opacity: 0, y: 24 },
         {
           opacity: 1,
           y: 0,
-          duration: 0.65,
-          stagger: 0.08,
+          duration: 0.55,
+          stagger: 0.06,
           ease: "power2.out",
           scrollTrigger: {
             trigger: cardsRef.current || sectionRef.current,
-            start: "top 82%",
-            end: "bottom 15%",
-            toggleActions: "play reverse play reverse",
-            fastScrollEnd: true,
+            start: "top 85%",
+            once: true,
           },
         }
       );
@@ -228,11 +224,12 @@ export function ProductSection() {
               {/* BOTTOM screenshot — bleeds right & bottom */}
               <div className="flex-1 mt-6 relative -mr-8 -mb-8 sm:-mr-9 sm:-mb-9 min-h-[200px] rounded-tl-xl overflow-hidden border-t border-l border-white/[0.07]">
                 <Image
-                  src="/screenshots/dashboard/dashboard1.png"
+                  src="/screenshots/dashboard/dashboard1.webp"
                   alt="LShorter Dashboard"
                   fill
-                  className="object-cover object-left-top transition-transform duration-700 ease-out group-hover:scale-[1.03]"
-                  priority
+                  loading="lazy"
+                  sizes="(max-width: 768px) 100vw, 420px"
+                  className="object-cover object-left-top transition-transform duration-500 ease-out group-hover:scale-[1.02]"
                 />
               </div>
               <div className="pointer-events-none absolute inset-0 transform-gpu transition-all duration-300 group-hover:bg-neutral-500/[.02] group-hover:dark:bg-white/[.02]" />
@@ -285,10 +282,12 @@ export function ProductSection() {
               {/* BOTTOM screenshot — bleeds right & bottom */}
               <div className="flex-1 mt-6 relative -mr-8 -mb-8 sm:-mr-9 sm:-mb-9 min-h-[220px] rounded-tl-xl overflow-hidden border-t border-l border-white/[0.07]">
                 <Image
-                  src="/screenshots/geo/geowithsidbare.png"
+                  src="/screenshots/geo/geowithsidbare.webp"
                   alt="LShorter Analytics"
                   fill
-                  className="object-cover object-left-top transition-transform duration-700 ease-out group-hover:scale-[1.03]"
+                  loading="lazy"
+                  sizes="(max-width: 768px) 100vw, 560px"
+                  className="object-cover object-left-top transition-transform duration-500 ease-out group-hover:scale-[1.02]"
                 />
               </div>
               <div className="pointer-events-none absolute inset-0 transform-gpu transition-all duration-300 group-hover:bg-neutral-500/[.02] group-hover:dark:bg-white/[.02]" />

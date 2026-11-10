@@ -28,7 +28,7 @@ export function WorldMap({
   const isDark = mounted ? theme === "dark" : false;
 
   const map = useMemo(() => {
-    return new DottedMap({ height: 100, grid: "diagonal" });
+    return new DottedMap({ height: 70, grid: "diagonal" });
   }, []);
 
   const svgMap = useMemo(() => {

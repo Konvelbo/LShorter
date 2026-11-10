@@ -287,12 +287,12 @@ function DocsApiDropdown({
                 onClick={() => setIsOpen(false)}
                 className="group relative flex-1 rounded-[10px] overflow-hidden flex flex-col justify-start p-5 min-h-[190px] border border-black/5 dark:border-white/10"
               >
-                {/* Image de fond : /doc/apiimage.jpg */}
+                {/* Image de fond optimisée WebP : /doc/apiimage.webp */}
                 <Image
-                  src="/doc/apiimage.jpg"
+                  src="/doc/apiimage.webp"
                   alt="Documentation"
                   fill
-                  priority
+                  loading="lazy"
                   className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
                   sizes="360px"
                 />

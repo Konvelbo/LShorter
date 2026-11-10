@@ -39,7 +39,7 @@ const scaleIn = {
   visible: { opacity: 1, scale: 1 },
 };
 
-const viewport = { once: false, margin: "-60px" };
+const viewport = { once: true, margin: "-40px" };
 
 function FeatureCard({
   title,
@@ -100,8 +100,9 @@ function FeatureCard({
                 alt={`${screenshotAlt} - aperçu ${idx + 1}`}
                 width={720}
                 height={450}
+                loading="lazy"
                 unoptimized
-                className="w-full h-auto max-h-[340px] sm:max-h-none object-cover object-top transition-transform duration-500 ease-out hover:scale-[1.015]"
+                className="w-full h-auto max-h-[340px] sm:max-h-none object-cover object-top transition-transform duration-500 ease-out hover:scale-[1.015] transform-gpu will-change-transform"
                 priority={false}
               />
             </div>
@@ -122,8 +123,9 @@ function FeatureCard({
               alt={screenshotAlt}
               width={960}
               height={540}
+              loading="lazy"
               unoptimized
-              className="w-full h-auto object-cover object-top transition-transform duration-500 ease-out hover:scale-[1.012]"
+              className="w-full h-auto object-cover object-top transition-transform duration-500 ease-out hover:scale-[1.012] transform-gpu will-change-transform"
               priority={false}
             />
           </motion.div>
@@ -225,8 +227,8 @@ export function TimelineFeatures() {
             },
           ]}
           screenshotTable={[
-            "/screenshots/dashboard/dashboardwithsidbare.png",
-            "/screenshots/geo2/geo1.png",
+            "/screenshots/dashboard/dashboardwithsidbare.webp",
+            "/screenshots/geo2/geo1.webp",
           ]}
           screenshotAlt="LShorter Smart Edge Routing Dashboard & Geo Analytics"
           docHref="/docs/geo-routing"
@@ -254,7 +256,7 @@ export function TimelineFeatures() {
               value: "Direct SVG / PNG / GIF export for any resolution.",
             },
           ]}
-          screenshot="/screenshots/qr-code/page1.png"
+          screenshot="/screenshots/qr-code/page1.webp"
           screenshotAlt="LShorter Dynamic QR Studio"
           docHref="/docs/dynamic-qr-codes"
           docLabel="Read the QR Studio docs"
@@ -283,8 +285,8 @@ export function TimelineFeatures() {
             },
           ]}
           screenshotTable={[
-            "/screenshots/link-page/page1.png",
-            "/screenshots/domaine/niveau.png",
+            "/screenshots/link-page/page1.webp",
+            "/screenshots/domaine/niveau.webp",
           ]}
           screenshotAlt="LShorter Links & Custom Domains"
           docHref="/docs/sdk-quickstart"
@@ -314,8 +316,8 @@ export function TimelineFeatures() {
             },
           ]}
           screenshotTable={[
-            "/screenshots/geo/geowithsidbare.png",
-            "/screenshots/revenue/page1.png",
+            "/screenshots/geo/geowithsidbare.webp",
+            "/screenshots/revenue/page1.webp",
           ]}
           screenshotAlt="LShorter Revenue & Geo Analytics"
           docHref="/docs/conversion-tracking-amount-count"

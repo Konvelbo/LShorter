@@ -113,8 +113,8 @@ function Bar({
 /* ── Composant principal SecuritySection ── */
 export function SecuritySection() {
   const sectionRef = useRef<HTMLElement>(null);
-  const inView = useInView(sectionRef, { once: false, margin: "-80px" });
-  const counter = useAnimatedCounter(11.2, 1.3, inView);
+  const inView = useInView(sectionRef, { once: true, margin: "-50px" });
+  const counter = useAnimatedCounter(11.2, 1.2, inView);
 
   return (
     <section
