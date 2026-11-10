@@ -37,16 +37,16 @@ export function ProductSection() {
     const cardsEl = cardsRef.current;
 
     const ctx = gsap.context(() => {
-      // ── 1. Header scroll animation (Smooth single entrance) ──
+      // ── 1. Header scroll animation (Fast & fluid single entrance) ──
       gsap.fromTo(
         ".product-header-elem",
-        { opacity: 0, y: 22 },
+        { opacity: 0, y: 16 },
         {
           opacity: 1,
           y: 0,
-          duration: 0.55,
-          stagger: 0.06,
-          ease: "power2.out",
+          duration: 0.35,
+          stagger: 0.04,
+          ease: "power3.out",
           scrollTrigger: {
             trigger: sectionRef.current,
             start: "top 85%",
@@ -55,16 +55,16 @@ export function ProductSection() {
         }
       );
 
-      // ── 2. Bento cards scroll animation (Smooth single entrance) ──
+      // ── 2. Bento cards scroll animation (Fast & fluid single entrance) ──
       gsap.fromTo(
         ".product-bento-card",
-        { opacity: 0, y: 24 },
+        { opacity: 0, y: 18 },
         {
           opacity: 1,
           y: 0,
-          duration: 0.55,
-          stagger: 0.06,
-          ease: "power2.out",
+          duration: 0.35,
+          stagger: 0.04,
+          ease: "power3.out",
           scrollTrigger: {
             trigger: cardsRef.current || sectionRef.current,
             start: "top 85%",

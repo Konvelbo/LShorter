@@ -56,7 +56,7 @@ function TypewriterText({
   text,
   inView,
   startDelay,
-  charDelay = 0.022,
+  charDelay = 0.012,
 }: {
   text: string;
   inView: boolean;
@@ -99,7 +99,7 @@ function Bar({
       <motion.div
         initial={{ width: "0%" }}
         animate={inView ? { width: `${pct}%` } : { width: "0%" }}
-        transition={{ duration: 0.9, delay, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: 0.45, delay: 0.1 + delay * 0.5, ease: [0.16, 1, 0.3, 1] }}
         className={`h-full rounded-full transition-colors duration-300 ${
           accent
             ? "bg-[#465FFF] dark:bg-[#5b6cff]"
@@ -114,7 +114,7 @@ function Bar({
 export function SecuritySection() {
   const sectionRef = useRef<HTMLElement>(null);
   const inView = useInView(sectionRef, { once: true, margin: "-50px" });
-  const counter = useAnimatedCounter(11.2, 1.2, inView);
+  const counter = useAnimatedCounter(11.2, 0.45, inView);
 
   return (
     <section
@@ -124,9 +124,9 @@ export function SecuritySection() {
       className="w-full bg-[#FFFFFF] dark:bg-[#09090B] border-t border-[#E4E7EC] dark:border-[#1e1e22] overflow-hidden flex items-center transition-colors duration-300"
     >
       <motion.div
-        initial={{ opacity: 0, y: 28 }}
-        animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 28 }}
-        transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+        initial={{ opacity: 0, y: 18 }}
+        animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 18 }}
+        transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
         className="w-full max-w-[1360px] mx-auto px-6 sm:px-12 py-20 md:py-28 flex flex-col lg:flex-row items-start gap-14 lg:gap-[90px] xl:gap-[120px]"
       >
         {/* ═══════════════ COLONNE GAUCHE ═══════════════ */}
@@ -137,13 +137,15 @@ export function SecuritySection() {
             <TypewriterText
               text={HEADING_PRIMARY}
               inView={inView}
-              startDelay={0.18}
+              startDelay={0.06}
+              charDelay={0.012}
             />
             <span className="text-[#667085] dark:text-[#7a7a83] transition-colors duration-300">
               <TypewriterText
                 text={HEADING_MUTED}
                 inView={inView}
-                startDelay={0.18 + HEADING_PRIMARY.length * 0.022}
+                startDelay={0.06 + HEADING_PRIMARY.length * 0.012}
+                charDelay={0.012}
               />
             </span>
           </h2>
@@ -152,7 +154,7 @@ export function SecuritySection() {
           <motion.p
             initial={{ opacity: 0, y: 10 }}
             animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
-            transition={{ duration: 0.45, delay: 0.55 }}
+            transition={{ duration: 0.32, delay: 0.2 }}
             className="mt-5 text-[16px] sm:text-[18px] lg:text-[19px] leading-[1.6] text-[#475467] dark:text-[#9a9aa3] transition-colors duration-300 max-w-xl"
           >
             Every short link sits in the critical path of your customer journey.
@@ -163,12 +165,12 @@ export function SecuritySection() {
             {ROWS.map((row, i) => (
               <motion.div
                 key={row.label}
-                initial={{ opacity: 0, x: -18 }}
-                animate={inView ? { opacity: 1, x: 0 } : { opacity: 0, x: -18 }}
+                initial={{ opacity: 0, x: -14 }}
+                animate={inView ? { opacity: 1, x: 0 } : { opacity: 0, x: -14 }}
                 transition={{
-                  duration: 0.4,
-                  delay: 0.55 + i * 0.09,
-                  ease: [0.22, 1, 0.36, 1],
+                  duration: 0.28,
+                  delay: 0.24 + i * 0.05,
+                  ease: [0.16, 1, 0.3, 1],
                 }}
                 className={`flex flex-col sm:flex-row sm:items-baseline gap-2 sm:gap-6 py-5 sm:py-[22px] border-t border-[#E4E7EC] dark:border-[#1e1e22] transition-colors duration-300 ${
                   i === ROWS.length - 1 ? "border-b" : ""
@@ -188,7 +190,7 @@ export function SecuritySection() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={inView ? { opacity: 1 } : { opacity: 0 }}
-            transition={{ duration: 0.4, delay: 0.95 }}
+            transition={{ duration: 0.3, delay: 0.45 }}
             className="mt-9"
           >
             <Link

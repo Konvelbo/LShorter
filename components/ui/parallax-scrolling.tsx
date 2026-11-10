@@ -79,17 +79,17 @@ export function ParallaxComponent({
       });
     }, containerRef);
 
-    // Optional Lenis smooth inertial scrolling
+    // Optional Lenis smooth inertial scrolling (tuned for instantaneous responsiveness)
     if (enableSmoothScroll) {
       try {
         lenisInstance = new Lenis({
-          duration: 1.2,
+          duration: 0.65,
           easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
           orientation: 'vertical',
           gestureOrientation: 'vertical',
           smoothWheel: true,
-          wheelMultiplier: 1,
-          touchMultiplier: 1.5,
+          wheelMultiplier: 1.25,
+          touchMultiplier: 1.8,
         });
 
         lenisInstance.on('scroll', ScrollTrigger.update);
@@ -124,8 +124,8 @@ export function ParallaxComponent({
       ref={containerRef}
       className={`parallax relative w-full overflow-hidden bg-[#FFFFFF] dark:bg-[#09090B] transition-colors duration-300 ${className}`}
     >
-      {/* ── Scroll Track (180vh of scroll room for fluid scrubbing) ── */}
-      <section ref={headerRef} className="parallax__header relative w-full h-[180dvh]">
+      {/* ── Scroll Track (135vh of scroll room for crisp, fluid scrubbing) ── */}
+      <section ref={headerRef} className="parallax__header relative w-full h-[135dvh]">
         {/* ── Sticky Viewport (Pinned at top: 0, 100vh height) ── */}
         <div className="parallax__visuals sticky top-0 left-0 w-full h-[100dvh] overflow-hidden bg-neutral-950">
           <div className="parallax__black-line-overflow absolute -top-[1px] left-0 right-0 h-[2px] bg-transparent z-10" />

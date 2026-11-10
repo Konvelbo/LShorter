@@ -25,17 +25,17 @@ interface FeatureCardProps {
 
 /* ── Shared animation variants ── */
 const fadeUp = {
-  hidden: { opacity: 0, y: 18 },
+  hidden: { opacity: 0, y: 14 },
   visible: { opacity: 1, y: 0 },
 };
 
 const fadeLeft = {
-  hidden: { opacity: 0, x: -14 },
+  hidden: { opacity: 0, x: -10 },
   visible: { opacity: 1, x: 0 },
 };
 
 const scaleIn = {
-  hidden: { opacity: 0, scale: 0.97 },
+  hidden: { opacity: 0, scale: 0.98 },
   visible: { opacity: 1, scale: 1 },
 };
 
@@ -62,7 +62,7 @@ function FeatureCard({
         initial="hidden"
         whileInView="visible"
         viewport={viewport}
-        transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
         className="text-[20px] sm:text-[23px] font-medium leading-[1.22] tracking-[-0.025em] text-[#111216] dark:text-[#f2f3f5] max-w-[30ch]"
       >
         {title}
@@ -74,7 +74,7 @@ function FeatureCard({
         initial="hidden"
         whileInView="visible"
         viewport={viewport}
-        transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1], delay: 0.06 }}
+        transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1], delay: 0.03 }}
         className="text-[14px] text-[#6b6f7a] dark:text-[#9a9ea8] leading-[1.65] max-w-[52ch]"
       >
         {lead}
@@ -87,7 +87,7 @@ function FeatureCard({
           initial="hidden"
           whileInView="visible"
           viewport={viewport}
-          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
+          transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
           className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 w-full"
         >
           {screenshotTable.map((imgSrc, idx) => (
@@ -101,8 +101,9 @@ function FeatureCard({
                 width={720}
                 height={450}
                 loading="lazy"
-                unoptimized
-                className="w-full h-auto max-h-[340px] sm:max-h-none object-cover object-top transition-transform duration-500 ease-out hover:scale-[1.015] transform-gpu will-change-transform"
+                quality={80}
+                sizes="(max-width: 768px) 100vw, 720px"
+                className="w-full h-auto max-h-[340px] sm:max-h-none object-cover object-top transition-transform duration-200 ease-out hover:scale-[1.015] transform-gpu will-change-transform"
                 priority={false}
               />
             </div>
@@ -115,7 +116,7 @@ function FeatureCard({
             initial="hidden"
             whileInView="visible"
             viewport={viewport}
-            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
+            transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
             className="relative w-full overflow-hidden rounded-[10px] border border-[#c9cbd2] dark:border-[#3a3d45] bg-neutral-100 dark:bg-neutral-900 shadow-xs"
           >
             <Image
@@ -124,8 +125,9 @@ function FeatureCard({
               width={960}
               height={540}
               loading="lazy"
-              unoptimized
-              className="w-full h-auto object-cover object-top transition-transform duration-500 ease-out hover:scale-[1.012] transform-gpu will-change-transform"
+              quality={80}
+              sizes="(max-width: 768px) 100vw, 960px"
+              className="w-full h-auto object-cover object-top transition-transform duration-200 ease-out hover:scale-[1.012] transform-gpu will-change-transform"
               priority={false}
             />
           </motion.div>
@@ -143,9 +145,9 @@ function FeatureCard({
             whileInView="visible"
             viewport={viewport}
             transition={{
-              duration: 0.38,
-              ease: [0.22, 1, 0.36, 1],
-              delay: 0.08 + idx * 0.07,
+              duration: 0.24,
+              ease: [0.16, 1, 0.3, 1],
+              delay: 0.04 + idx * 0.03,
             }}
             className="grid grid-cols-[120px_minmax(0,1fr)] gap-3 py-3 border-b border-[#e4e5e9] dark:border-[#26282e]"
           >

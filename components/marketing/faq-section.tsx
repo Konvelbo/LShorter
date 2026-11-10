@@ -41,16 +41,17 @@ export function FaqSection() {
     const ctx = gsap.context(() => {
       gsap.fromTo(
         ".faq-scroll-reveal",
-        { opacity: 0, y: 32 },
+        { opacity: 0, y: 16 },
         {
           opacity: 1,
           y: 0,
-          duration: 0.75,
-          stagger: 0.1,
+          duration: 0.35,
+          stagger: 0.04,
           ease: "power3.out",
           scrollTrigger: {
             trigger: sectionRef.current,
             start: "top 85%",
+            once: true,
           },
         }
       );

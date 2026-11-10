@@ -66,14 +66,14 @@ export default function PricingPage() {
     if (cardsContainerRef.current) {
       gsap.fromTo(
         cardsContainerRef.current.children,
-        { opacity: 0, y: 25, scale: 0.96 },
+        { opacity: 0, y: 15, scale: 0.98 },
         {
           opacity: 1,
           y: 0,
           scale: 1,
-          duration: 0.5,
-          stagger: 0.08,
-          ease: "power2.out",
+          duration: 0.22,
+          stagger: 0.03,
+          ease: "power3.out",
         }
       );
     }
@@ -110,7 +110,7 @@ export default function PricingPage() {
     gsap.to(e.currentTarget, {
       scale: 1.025,
       y: -6,
-      duration: 0.3,
+      duration: 0.18,
       ease: "power2.out",
       zIndex: 10,
     });
@@ -120,7 +120,7 @@ export default function PricingPage() {
     gsap.to(e.currentTarget, {
       scale: 1,
       y: 0,
-      duration: 0.3,
+      duration: 0.18,
       ease: "power2.out",
       zIndex: 1,
     });

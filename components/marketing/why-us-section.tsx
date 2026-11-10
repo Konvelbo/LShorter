@@ -456,16 +456,17 @@ export function WhyUsSection() {
     const ctx = gsap.context(() => {
       gsap.fromTo(
         ".why-us-scroll-reveal",
-        { opacity: 0, y: 32 },
+        { opacity: 0, y: 18 },
         {
           opacity: 1,
           y: 0,
-          duration: 0.8,
-          stagger: 0.1,
-          ease: "expo.out",
+          duration: 0.38,
+          stagger: 0.05,
+          ease: "power3.out",
           scrollTrigger: {
             trigger: sectionRef.current,
-            start: "top 82%",
+            start: "top 85%",
+            once: true,
           },
         },
       );

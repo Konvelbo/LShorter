@@ -14,16 +14,16 @@ export function AnalyticsSection() {
         className="inline-block whitespace-nowrap mr-[0.28em]"
       >
         {word.split("").map((char, charIdx) => {
-          const delay = globalCharIndex * 0.025;
+          const delay = globalCharIndex * 0.012;
           globalCharIndex++;
           return (
             <motion.span
               key={charIdx}
               className="inline-block will-change-transform"
-              initial={{ x: -8, opacity: 0 }}
+              initial={{ x: -4, opacity: 0 }}
               whileInView={{ x: 0, opacity: 1 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.4, delay }}
+              transition={{ duration: 0.22, delay, ease: [0.16, 1, 0.3, 1] }}
             >
               {char}
             </motion.span>

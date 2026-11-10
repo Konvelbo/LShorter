@@ -51,8 +51,8 @@ function NavLinkItem({
 
       tlRef.current = gsap
         .timeline({ paused: true })
-        .to(primary, { yPercent: 100, duration: 0.28, ease: "power2.inOut" }, 0)
-        .to(clone, { yPercent: 0, duration: 0.28, ease: "power2.inOut" }, 0);
+        .to(primary, { yPercent: 100, duration: 0.18, ease: "power2.out" }, 0)
+        .to(clone, { yPercent: 0, duration: 0.18, ease: "power2.out" }, 0);
     },
     { scope: linkRef },
   );
@@ -123,8 +123,8 @@ function DocsApiDropdown({
 
       tlRef.current = gsap
         .timeline({ paused: true })
-        .to(primary, { yPercent: 100, duration: 0.28, ease: "power2.inOut" }, 0)
-        .to(clone, { yPercent: 0, duration: 0.28, ease: "power2.inOut" }, 0);
+        .to(primary, { yPercent: 100, duration: 0.18, ease: "power2.out" }, 0)
+        .to(clone, { yPercent: 0, duration: 0.18, ease: "power2.out" }, 0);
     },
     { scope: linkRef },
   );

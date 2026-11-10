@@ -324,7 +324,7 @@ export function HeroSection2() {
             @keyframes heroWordReveal {
               0% {
                 opacity: 0;
-                transform: translateY(14px);
+                transform: translateY(10px);
               }
               100% {
                 opacity: 1;
@@ -333,14 +333,14 @@ export function HeroSection2() {
             }
             .animate-hero-word-reveal {
               opacity: 0;
-              animation: heroWordReveal 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+              animation: heroWordReveal 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
               will-change: opacity, transform;
             }
 
             @keyframes heroFadeInDown {
               0% {
                 opacity: 0;
-                transform: translateY(-14px) scale(0.96);
+                transform: translateY(-10px) scale(0.97);
               }
               100% {
                 opacity: 1;
@@ -349,14 +349,14 @@ export function HeroSection2() {
             }
             .animate-hero-marquee-reveal {
               opacity: 0;
-              animation: heroFadeInDown 0.65s cubic-bezier(0.16, 1, 0.3, 1) 0.05s forwards;
+              animation: heroFadeInDown 0.35s cubic-bezier(0.16, 1, 0.3, 1) 0.02s forwards;
               will-change: opacity, transform;
             }
 
             @keyframes heroFadeInUp {
               0% {
                 opacity: 0;
-                transform: translateY(18px);
+                transform: translateY(12px);
               }
               100% {
                 opacity: 1;
@@ -365,17 +365,17 @@ export function HeroSection2() {
             }
             .animate-hero-desc-reveal {
               opacity: 0;
-              animation: heroFadeInUp 0.65s cubic-bezier(0.16, 1, 0.3, 1) 0.18s forwards;
+              animation: heroFadeInUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) 0.08s forwards;
               will-change: opacity, transform;
             }
 
             @keyframes heroPillReveal {
               0% {
                 opacity: 0;
-                transform: translateY(18px) scale(0.96);
+                transform: translateY(14px) scale(0.97);
               }
               70% {
-                transform: translateY(-2px) scale(1.02);
+                transform: translateY(-1px) scale(1.01);
               }
               100% {
                 opacity: 1;
@@ -384,24 +384,24 @@ export function HeroSection2() {
             }
             .animate-hero-pill-1 {
               opacity: 0;
-              animation: heroPillReveal 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.28s forwards;
+              animation: heroPillReveal 0.35s cubic-bezier(0.16, 1, 0.3, 1) 0.12s forwards;
               will-change: opacity, transform;
             }
             .animate-hero-pill-2 {
               opacity: 0;
-              animation: heroPillReveal 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.36s forwards;
+              animation: heroPillReveal 0.35s cubic-bezier(0.16, 1, 0.3, 1) 0.18s forwards;
               will-change: opacity, transform;
             }
             .animate-hero-pill-3 {
               opacity: 0;
-              animation: heroPillReveal 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.44s forwards;
+              animation: heroPillReveal 0.35s cubic-bezier(0.16, 1, 0.3, 1) 0.24s forwards;
               will-change: opacity, transform;
             }
 
             @keyframes heroShowcaseReveal {
               0% {
                 opacity: 0;
-                transform: translateY(45px) scale(0.98);
+                transform: translateY(30px) scale(0.99);
               }
               100% {
                 opacity: 1;
@@ -410,7 +410,7 @@ export function HeroSection2() {
             }
             .animate-hero-showcase-reveal {
               opacity: 0;
-              animation: heroShowcaseReveal 0.85s cubic-bezier(0.16, 1, 0.3, 1) 0.50s forwards;
+              animation: heroShowcaseReveal 0.45s cubic-bezier(0.16, 1, 0.3, 1) 0.15s forwards;
               will-change: opacity, transform;
             }
 

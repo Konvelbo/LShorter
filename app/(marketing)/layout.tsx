@@ -94,7 +94,7 @@ export default function MarketingLayout({
 
       const tl = gsap.timeline({
         paused: true,
-        defaults: { ease: "power2.out", duration: 0.26 },
+        defaults: { ease: "power3.out", duration: 0.2 },
         onStart: () => {
           gsap.set(container, { perspective: 1200, overflow: "hidden" });
           gsap.set(mainCard, {
