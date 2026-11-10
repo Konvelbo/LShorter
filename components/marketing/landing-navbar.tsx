@@ -27,7 +27,6 @@ import { useSession } from "next-auth/react";
 function NavLinkItem({
   item,
   isActive,
-  isLightSurface,
   onClick,
 }: {
   item: { label: string; href: string; isHome?: boolean };
@@ -65,13 +64,9 @@ function NavLinkItem({
       onMouseEnter={() => tlRef.current?.play()}
       onMouseLeave={() => tlRef.current?.reverse()}
       className={`relative px-[clamp(0.45rem,0.75vw,0.85rem)] py-1.5 rounded-[10px] text-[clamp(0.75rem,0.88vw,0.85rem)] font-normal tracking-[-0.01em] transition-colors cursor-pointer overflow-hidden whitespace-nowrap select-none bg-transparent hover:bg-transparent ${
-        isLightSurface
-          ? isActive
-            ? "bg-black/5 text-black font-medium"
-            : "text-[#111111] hover:text-black"
-          : isActive
-            ? "bg-white/15 text-white font-medium"
-            : "text-neutral-300 hover:text-white"
+        isActive
+          ? "bg-black/5 dark:bg-white/15 text-black dark:text-white font-medium"
+          : "text-[#111111] dark:text-neutral-300 hover:text-black dark:hover:text-white"
       }`}
     >
       <span className="relative block overflow-hidden leading-tight">
@@ -84,9 +79,7 @@ function NavLinkItem({
         <span
           ref={cloneTextRef}
           aria-hidden="true"
-          className={`absolute inset-0 block select-none pointer-events-none font-medium will-change-transform ${
-            isLightSurface ? "text-black" : "text-white"
-          }`}
+          className="absolute inset-0 block select-none pointer-events-none font-medium will-change-transform text-black dark:text-white"
         >
           {item.label}
         </span>
@@ -98,10 +91,8 @@ function NavLinkItem({
 // ─── DROPDOWN MÉGA-MENU DOCS & API (STYLE ZENOVAY - MAX ROUNDED 10px STRICT) ───
 function DocsApiDropdown({
   isActive,
-  isLightSurface,
 }: {
   isActive: boolean;
-  isLightSurface?: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -191,13 +182,9 @@ function DocsApiDropdown({
         ref={linkRef}
         href="/docs"
         className={`relative px-[clamp(0.45rem,0.75vw,0.85rem)] py-1.5 rounded-[10px] text-[clamp(0.75rem,0.88vw,0.85rem)] font-normal tracking-[-0.01em] transition-colors cursor-pointer select-none inline-flex items-center gap-1.5 overflow-hidden whitespace-nowrap bg-transparent hover:bg-transparent ${
-          isLightSurface
-            ? isActive || isOpen
-              ? "bg-black/5 text-black font-medium"
-              : "text-[#111111] hover:text-black"
-            : isActive || isOpen
-              ? "bg-white/15 text-white font-medium"
-              : "text-neutral-300 hover:text-white"
+          isActive || isOpen
+            ? "bg-black/5 dark:bg-white/15 text-black dark:text-white font-medium"
+            : "text-[#111111] dark:text-neutral-300 hover:text-black dark:hover:text-white"
         }`}
       >
         <span className="relative block overflow-hidden leading-tight">
@@ -210,9 +197,7 @@ function DocsApiDropdown({
           <span
             ref={cloneTextRef}
             aria-hidden="true"
-            className={`absolute inset-0 block select-none pointer-events-none font-medium will-change-transform ${
-              isLightSurface ? "text-black" : "text-white"
-            }`}
+            className="absolute inset-0 block select-none pointer-events-none font-medium will-change-transform text-black dark:text-white"
           >
             Doc &amp; Api
           </span>
@@ -242,13 +227,7 @@ function DocsApiDropdown({
             : "opacity-0 -translate-y-2 scale-[0.98] pointer-events-none invisible"
         }`}
       >
-        <div
-          className={`rounded-[10px] p-6 shadow-[0_16px_45px_rgba(0,0,0,0.08)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.65)] border backdrop-blur-xl transition-colors ${
-            isLightSurface
-              ? "bg-white border-[#E4E7EC]"
-              : "bg-[#0E0E12] border-white/10"
-          }`}
-        >
+        <div className="rounded-[10px] p-6 shadow-[0_16px_45px_rgba(0,0,0,0.08)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.65)] border backdrop-blur-xl transition-colors bg-white dark:bg-[#0E0E12] border-[#E4E7EC] dark:border-white/10">
           <div className="grid grid-cols-1 md:grid-cols-[1.65fr_1fr] gap-6 items-stretch">
             {/* Grille 2x2 des 4 éléments sobres */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
@@ -314,8 +293,7 @@ function DocsApiDropdown({
 // ─── COMPOSANT PRINCIPAL NAVBAR ───
 export function LandingNavbar() {
   const { isOpen, toggle } = useMobileMenu();
-  const { theme, toggleTheme } = useTheme();
-  const isLight = theme === "light";
+  const { toggleTheme } = useTheme();
   const pathname = usePathname();
   const { data: session, status } = useSession();
   const isAuthenticated =
@@ -497,40 +475,6 @@ export function LandingNavbar() {
     { label: "Doc & Api", href: "/docs" },
   ];
 
-  const glassStyle: React.CSSProperties = isScrolled
-    ? {
-        backgroundColor: isLight
-          ? "rgba(255, 255, 255, 0.94)"
-          : "rgba(9, 9, 11, 0.90)",
-        backdropFilter: "blur(16px) saturate(180%)",
-        WebkitBackdropFilter: "blur(16px) saturate(180%)",
-        border: isLight
-          ? "1px solid rgba(228, 231, 236, 0.95)"
-          : "1px solid rgba(255, 255, 255, 0.14)",
-        borderBottom: isLight
-          ? "1px solid rgba(228, 231, 236, 0.95)"
-          : "1px solid rgba(255, 255, 255, 0.14)",
-        boxShadow: isLight
-          ? "0 12px 34px rgba(0, 0, 0, 0.08)"
-          : "0 14px 38px rgba(0, 0, 0, 0.58)",
-        outline: "none",
-      }
-    : {
-        backgroundColor: isLight
-          ? "rgba(255, 255, 255, 0.96)"
-          : "rgba(9, 9, 11, 0.98)",
-        backdropFilter: "blur(16px) saturate(180%)",
-        WebkitBackdropFilter: "blur(16px) saturate(180%)",
-        border: isLight
-          ? "1px solid rgba(228, 231, 236, 0)"
-          : "1px solid rgba(255, 255, 255, 0)",
-        borderBottom: isLight
-          ? "1px solid rgba(228, 231, 236, 0.8)"
-          : "1px solid rgba(255, 255, 255, 0.08)",
-        boxShadow: "0 0 0 0 rgba(0, 0, 0, 0)",
-        outline: "none",
-      };
-
   return (
     <div
       style={{ display: isIframeFullscreen ? "none" : undefined }}
@@ -542,11 +486,10 @@ export function LandingNavbar() {
     >
       {/* ─── 1. NAVBAR DESKTOP (>= 768px) ─── */}
       <header
-        style={glassStyle}
-        className={`hidden md:flex items-center justify-between gap-2 pointer-events-auto transition-[transform,max-width,width,padding,border-radius,background-color,border-color,box-shadow] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-[transform,max-width,width,padding,border-radius,background-color] ${
+        className={`hidden md:flex items-center justify-between gap-2 pointer-events-auto backdrop-blur-xl transition-[transform,max-width,width,padding,border-radius] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-[transform,max-width,width,padding,border-radius] ${
           isScrolled
-            ? "translate-y-3 sm:translate-y-4 w-[min(1280px,96vw)] max-w-[1280px] rounded-[14px] px-[clamp(0.75rem,1.8vw,2rem)] py-3"
-            : "translate-y-0 w-full max-w-full rounded-none px-[clamp(1rem,2.5vw,3.5rem)] py-4"
+            ? "translate-y-3 sm:translate-y-4 w-[min(1280px,96vw)] max-w-[1280px] rounded-[14px] px-[clamp(0.75rem,1.8vw,2rem)] py-3 bg-white/94 dark:bg-[#09090B]/90 border border-[#E4E7EC]/95 dark:border-white/15 shadow-[0_12px_34px_rgba(0,0,0,0.08)] dark:shadow-[0_14px_38px_rgba(0,0,0,0.58)]"
+            : "translate-y-0 w-full max-w-full rounded-none px-[clamp(1rem,2.5vw,3.5rem)] py-4 bg-white/96 dark:bg-[#09090B]/98 border-b border-[#E4E7EC]/80 dark:border-white/10 shadow-none"
         }`}
       >
         {/* Logo LShorter (Maillon Duo) */}
@@ -565,11 +508,7 @@ export function LandingNavbar() {
               priority
             />
           </div>
-          <span
-            className={`text-[clamp(0.95rem,1.1vw,1.125rem)] font-bold tracking-[-0.025em] ${
-              isLight ? "text-[#101828]" : "text-white"
-            }`}
-          >
+          <span className="text-[clamp(0.95rem,1.1vw,1.125rem)] font-bold tracking-[-0.025em] text-[#101828] dark:text-white">
             LShorter
           </span>
         </Link>
@@ -582,7 +521,6 @@ export function LandingNavbar() {
                 <DocsApiDropdown
                   key={item.label}
                   isActive={pathname.startsWith("/docs")}
-                  isLightSurface={isLight}
                 />
               );
             }
@@ -595,7 +533,6 @@ export function LandingNavbar() {
                     ? pathname === "/"
                     : pathname.startsWith(item.href) && !item.href.includes("#")
                 }
-                isLightSurface={isLight}
               />
             );
           })}
@@ -606,19 +543,12 @@ export function LandingNavbar() {
           <button
             type="button"
             onClick={handleToggleTheme}
-            className={`w-8 h-8 lg:w-9 lg:h-9 rounded-full flex items-center justify-center border transition-colors cursor-pointer shrink-0 ${
-              isLight
-                ? "border-[#E4E7EC] text-[#344054] hover:text-black hover:bg-[#F9FAFB]"
-                : "border-white/15 text-neutral-200 hover:text-white hover:bg-white/10"
-            }`}
+            className="w-8 h-8 lg:w-9 lg:h-9 rounded-full flex items-center justify-center border transition-colors cursor-pointer shrink-0 border-[#E4E7EC] dark:border-white/15 text-[#344054] dark:text-neutral-200 hover:text-black dark:hover:text-white hover:bg-[#F9FAFB] dark:hover:bg-white/10"
             title="Toggle theme"
             aria-label="Toggle theme"
           >
-            {isLight ? (
-              <Moon className="w-4 h-4" />
-            ) : (
-              <Sun className="w-4 h-4 text-amber-300" />
-            )}
+            <Moon className="w-4 h-4 dark:hidden" />
+            <Sun className="w-4 h-4 hidden dark:block text-amber-300" />
           </button>
 
           {/* Bouton Dashboard / Get started */}
@@ -656,11 +586,10 @@ export function LandingNavbar() {
 
       {/* ─── 2. NAVBAR MOBILE (< 768px) ─── */}
       <header
-        style={glassStyle}
-        className={`flex md:hidden items-center justify-between pointer-events-auto transition-[transform,max-width,width,padding,border-radius,background-color,border-color,box-shadow] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-[transform,max-width,width,padding,border-radius,background-color] ${
+        className={`flex md:hidden items-center justify-between pointer-events-auto backdrop-blur-xl transition-[transform,max-width,width,padding,border-radius] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-[transform,max-width,width,padding,border-radius] ${
           isScrolled
-            ? "translate-y-2.5 w-[calc(100%-1.5rem)] max-w-lg rounded-xl px-3.5 py-2.5"
-            : "translate-y-0 w-full max-w-full rounded-none px-4 py-3"
+            ? "translate-y-2.5 w-[calc(100%-1.5rem)] max-w-lg rounded-xl px-3.5 py-2.5 bg-white/94 dark:bg-[#09090B]/90 border border-[#E4E7EC]/95 dark:border-white/15 shadow-[0_12px_34px_rgba(0,0,0,0.08)] dark:shadow-[0_14px_38px_rgba(0,0,0,0.58)]"
+            : "translate-y-0 w-full max-w-full rounded-none px-4 py-3 bg-white/96 dark:bg-[#09090B]/98 border-b border-[#E4E7EC]/80 dark:border-white/10 shadow-none"
         }`}
       >
         <Link href="/" className="flex items-center gap-2 select-none">
@@ -673,11 +602,7 @@ export function LandingNavbar() {
               className="w-full h-full object-contain"
             />
           </div>
-          <span
-            className={`text-[16px] font-bold tracking-[-0.025em] ${
-              isLight ? "text-[#09090B]" : "text-white"
-            }`}
-          >
+          <span className="text-[16px] font-bold tracking-[-0.025em] text-[#09090B] dark:text-white">
             LShorter
           </span>
         </Link>
@@ -686,18 +611,11 @@ export function LandingNavbar() {
           <button
             type="button"
             onClick={handleToggleTheme}
-            className={`w-8 h-8 rounded-[10px] flex items-center justify-center border transition-colors ${
-              isLight
-                ? "bg-black/[0.03] border-black/[0.08] text-[#52525B]"
-                : "bg-white/[0.06] border-white/10 text-neutral-300"
-            }`}
+            className="w-8 h-8 rounded-[10px] flex items-center justify-center border transition-colors bg-black/[0.03] dark:bg-white/[0.06] border-black/[0.08] dark:border-white/10 text-[#52525B] dark:text-neutral-300"
             aria-label="Basculer le thème"
           >
-            {isLight ? (
-              <Moon className="w-4 h-4" />
-            ) : (
-              <Sun className="w-4 h-4 text-amber-300" />
-            )}
+            <Moon className="w-4 h-4 dark:hidden" />
+            <Sun className="w-4 h-4 hidden dark:block text-amber-300" />
           </button>
 
           <button
@@ -706,9 +624,7 @@ export function LandingNavbar() {
             className={`w-8 h-8 rounded-[10px] flex items-center justify-center transition-all active:scale-90 cursor-pointer ${
               isOpen
                 ? "bg-[#3B82F6] text-white"
-                : isLight
-                  ? "bg-black/[0.03] text-[#09090B] border border-black/[0.08]"
-                  : "bg-white/[0.06] text-white border border-white/10"
+                : "bg-black/[0.03] dark:bg-white/[0.06] text-[#09090B] dark:text-white border border-black/[0.08] dark:border-white/10"
             }`}
             aria-label="Menu"
           >
