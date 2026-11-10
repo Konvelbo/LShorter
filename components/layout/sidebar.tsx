@@ -726,7 +726,7 @@ export function Sidebar() {
                   }
                 }}
                 className="mt-0.5 w-full flex items-center justify-between gap-1.5 rounded-lg bg-[#0066FF] hover:bg-[#0055d4] py-1.5 px-2 text-[11.5px] font-semibold !text-white transition-colors cursor-pointer shadow-2xs group"
-                title="Create Short Link (Raccourci: Ctrl + Flèche droite ou Ctrl + Clic droit)"
+                title="Create Short Link (Raccourci: Ctrl + Flèche droite)"
               >
                 <div className="flex items-center gap-1.5 truncate">
                   <Plus className="h-3.5 w-3.5 !text-white shrink-0" />

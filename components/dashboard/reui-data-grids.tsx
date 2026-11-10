@@ -1339,19 +1339,13 @@ export function LinksReuiDataGrid({
               return (
                 <div
                   key={row.id}
-                  onPointerDown={(e) => {
-                    checkAndHandleShortcut(e, row.id);
-                  }}
                   onClick={(e) => {
                     checkAndHandleShortcut(e, row.id);
                   }}
                   onContextMenu={(e) => {
                     checkAndHandleShortcut(e, row.id);
                   }}
-                  onAuxClick={(e) => {
-                    checkAndHandleShortcut(e, row.id);
-                  }}
-                  title={`${isMac ? "⌘" : "Ctrl"} + Clic (ou clic droit / trackpad) pour sélectionner`}
+                  title={`${isMac ? "⌘" : "Ctrl"} + Clic pour sélectionner`}
                   className={cn(
                     "rounded-[10px] border border-zinc-200 dark:border-[#222225] bg-white dark:bg-[#141416] p-3 transition-colors cursor-pointer select-none",
                     isSelected && "border-[#0066FF] bg-blue-50/40 dark:bg-blue-950/20"

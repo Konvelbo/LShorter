@@ -147,29 +147,12 @@ export const GlobalLinkDrawerHost = React.memo(function GlobalLinkDrawerHost() {
 
       const isRightKey =
         e.key === "ArrowRight" ||
-        e.code === "ArrowRight" ||
-        e.key === "ContextMenu";
+        e.code === "ArrowRight";
 
       if (isRightKey) {
-        if (isTyping && e.key !== "ContextMenu") {
+        if (isTyping) {
           return;
         }
-        e.preventDefault();
-        e.stopPropagation();
-        window.dispatchEvent(new CustomEvent("lshorter:toggle-create-drawer"));
-      }
-    };
-
-    const handleContextMenu = (e: MouseEvent) => {
-      if (e.ctrlKey || e.metaKey) {
-        e.preventDefault();
-        e.stopPropagation();
-        window.dispatchEvent(new CustomEvent("lshorter:toggle-create-drawer"));
-      }
-    };
-
-    const handleAuxClick = (e: MouseEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.button === 2) {
         e.preventDefault();
         e.stopPropagation();
         window.dispatchEvent(new CustomEvent("lshorter:toggle-create-drawer"));
@@ -180,8 +163,6 @@ export const GlobalLinkDrawerHost = React.memo(function GlobalLinkDrawerHost() {
     window.addEventListener("lshorter:close-create-drawer", onCloseDrawer);
     window.addEventListener("lshorter:toggle-create-drawer", onToggleDrawer);
     window.addEventListener("keydown", handleGlobalKeyDown);
-    window.addEventListener("contextmenu", handleContextMenu);
-    window.addEventListener("auxclick", handleAuxClick);
 
     return () => {
       commandListeners.delete(handleCommand);
@@ -192,8 +173,6 @@ export const GlobalLinkDrawerHost = React.memo(function GlobalLinkDrawerHost() {
         onToggleDrawer,
       );
       window.removeEventListener("keydown", handleGlobalKeyDown);
-      window.removeEventListener("contextmenu", handleContextMenu);
-      window.removeEventListener("auxclick", handleAuxClick);
     };
   }, []);
 
