@@ -43,7 +43,8 @@ export default function DashboardOverviewPage() {
   const [analytics, setAnalytics] = useState<GlobalAnalytics>(ANALYTICS_ZERO);
   const [isLoading, setIsLoading] = useState(true);
 
-  const rawUserId = session?.user?.id;
+  const searchUserId = typeof window !== "undefined" ? (new URLSearchParams(window.location.search).get("userId") || localStorage.getItem("lshorter_user_id")) : null;
+  const rawUserId = session?.user?.id || searchUserId;
   const userEmail = session?.user?.email || "";
   const userId = rawUserId && rawUserId !== "usr_anonymous" ? rawUserId : userEmail;
   const [syncedLiveClicks, setSyncedLiveClicks] = useState<number>(() => {

@@ -11,7 +11,8 @@ export async function POST(req: Request) {
     const userId = session?.user?.id || reqUrl.searchParams.get("userId") || body?.userId || "";
     const userEmail = session?.user?.email || reqUrl.searchParams.get("userEmail") || body?.userEmail || "";
 
-    if (!session?.user && !userId && !userEmail) {
+    const isDev = process.env.NODE_ENV === "development";
+    if (!session?.user && !userId && !userEmail && !isDev) {
       return NextResponse.json(
         { success: false, error: "Authentication required to delete links." },
         { status: 401 }

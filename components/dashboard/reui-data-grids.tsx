@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import { ShortLink } from "@/types";
 import { BannerLightboxModal } from "@/components/dashboard/banner-lightbox-modal";
-import { triggerClickSync, cfUpdateLink, cfInvalidateCache } from "@/lib/cloudflare-api";
+import { triggerClickSync, cfUpdateLink, cfInvalidateCache, cfBulkDeleteLinks } from "@/lib/cloudflare-api";
 import { cn, getCountryName, isLinkActive } from "@/lib/utils";
 import { showToast } from "@/components/ui/toast-provider";
 import { ReferrerBadge, ReferrerLogo } from "@/components/dashboard/analytics/referrer-badge";
@@ -435,6 +435,17 @@ export function LinksReuiDataGrid({
     if (propLinks !== undefined) return propLinks;
     return internalLinks;
   }, [propLinks, internalLinks]);
+
+  const effectiveUserId = useMemo(() => {
+    if (typeof window !== "undefined") {
+      const urlU = new URLSearchParams(window.location.search).get("userId");
+      if (urlU) return urlU;
+      const localU = localStorage.getItem("lshorter_user_id");
+      if (localU) return localU;
+    }
+    const first = effectiveLinks?.[0];
+    return first?.userId || first?.user_id || first?.userEmail || "";
+  }, [effectiveLinks]);
 
   const handleToggleLinkActive = async (link: any) => {
     const isAct = isLinkActive(link);
@@ -1308,13 +1319,27 @@ export function LinksReuiDataGrid({
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    if (onDeleteMultiple) {
-                      onDeleteMultiple(selectedLinkIdsList);
-                    } else if (onDeleteLink) {
-                      selectedLinkIdsList.forEach((id) => onDeleteLink(id));
-                    }
+                  onClick={async () => {
+                    const idsToDelete = [...selectedLinkIdsList];
                     setSelectedIds({});
+                    if (onDeleteMultiple) {
+                      onDeleteMultiple(idsToDelete);
+                    } else if (onDeleteLink) {
+                      idsToDelete.forEach((id) => {
+                        const rowObj = rowsData.find((r) => r.id === id);
+                        onDeleteLink(rowObj?.raw || id);
+                      });
+                    } else {
+                      try {
+                        await cfBulkDeleteLinks(idsToDelete, effectiveUserId);
+                        showToast.success(idsToDelete.length > 1 ? `${idsToDelete.length} liens supprimés avec succès` : "Lien supprimé avec succès");
+                        cfInvalidateCache();
+                        window.dispatchEvent(new CustomEvent("lshorter_data_change"));
+                        window.dispatchEvent(new CustomEvent("lshorter_links_updated"));
+                      } catch {
+                        showToast.error("Erreur lors de la suppression des liens");
+                      }
+                    }
                   }}
                   className="h-7.5 px-3 rounded-[6px] bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-medium flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
                 >
@@ -1590,13 +1615,27 @@ export function LinksReuiDataGrid({
           {selectedLinkIdsList.length > 0 && (
             <button
               type="button"
-              onClick={() => {
-                if (onDeleteMultiple) {
-                  onDeleteMultiple(selectedLinkIdsList);
-                } else if (onDeleteLink) {
-                  selectedLinkIdsList.forEach((id) => onDeleteLink(id));
-                }
+              onClick={async () => {
+                const idsToDelete = [...selectedLinkIdsList];
                 setSelectedIds({});
+                if (onDeleteMultiple) {
+                  onDeleteMultiple(idsToDelete);
+                } else if (onDeleteLink) {
+                  idsToDelete.forEach((id) => {
+                    const rowObj = rowsData.find((r) => r.id === id);
+                    onDeleteLink(rowObj?.raw || id);
+                  });
+                } else {
+                  try {
+                    await cfBulkDeleteLinks(idsToDelete, effectiveUserId);
+                    showToast.success(idsToDelete.length > 1 ? `${idsToDelete.length} liens supprimés avec succès` : "Lien supprimé avec succès");
+                    cfInvalidateCache();
+                    window.dispatchEvent(new CustomEvent("lshorter_data_change"));
+                    window.dispatchEvent(new CustomEvent("lshorter_links_updated"));
+                  } catch {
+                    showToast.error("Erreur lors de la suppression des liens");
+                  }
+                }
               }}
               title={`Delete ${selectedLinkIdsList.length} selected link${selectedLinkIdsList.length > 1 ? "s" : ""}`}
               aria-label="Delete selected links"

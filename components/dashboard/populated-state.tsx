@@ -28,7 +28,7 @@ import {
 } from "lucide-react";
 import { ShortLink, GlobalAnalytics } from "@/types";
 import { formatNumber, isLinkActive } from "@/lib/utils";
-import { cfInvalidateCache, cfCreateTargetAlert } from "@/lib/cloudflare-api";
+import { cfInvalidateCache, cfCreateTargetAlert, cfBulkDeleteLinks, cfDeleteLink } from "@/lib/cloudflare-api";
 import { showToast } from "@/components/ui/toast-provider";
 import {
   PageLinkDrawers,
@@ -99,7 +99,9 @@ export function PopulatedState({
   const [isStatsDateOpen, setIsStatsDateOpen] = useState(false);
   const [isMonthlyMenuOpen, setIsMonthlyMenuOpen] = useState(false);
 
-  const rawUserId = session?.user?.id || (session?.user as any)?.userId || session?.user?.email || "";
+  const searchUserId = typeof window !== "undefined" ? (new URLSearchParams(window.location.search).get("userId") || localStorage.getItem("lshorter_user_id")) : null;
+  const linkUserId = links?.[0]?.userId || (links?.[0] as any)?.user_id || "";
+  const rawUserId = session?.user?.id || (session?.user as any)?.userId || searchUserId || linkUserId || session?.user?.email || "";
   const rawEmail = session?.user?.email || "";
   const userId = rawUserId;
   const convexUser = useQuery(
@@ -933,21 +935,45 @@ export function PopulatedState({
     }
   };
 
-  const handleDeleteLink = async (linkObj: ShortLink) => {
-    if (!linkObj?.id) return;
+  const handleDeleteLink = async (linkOrId: any) => {
+    let linkId = "";
+    let linkSlug = "";
+    if (typeof linkOrId === "object" && linkOrId !== null) {
+      linkId = String(linkOrId.id || linkOrId._id || linkOrId.slug || "");
+      linkSlug = String(linkOrId.slug || linkId);
+    } else {
+      linkId = String(linkOrId || "");
+      linkSlug = linkId;
+    }
+    if (!linkId) return;
+
     try {
-      const res = await fetch(`/api/links/${encodeURIComponent(linkObj.id)}`, {
-        method: "DELETE",
-      });
-      if (res.ok) {
+      await cfDeleteLink(linkId, userId, linkSlug);
+      cfInvalidateCache();
+      showToast.success(linkSlug ? `Lien /${linkSlug} supprimé avec succès` : "Lien supprimé avec succès");
+      onRefresh?.();
+      window.dispatchEvent(new CustomEvent("lshorter_data_change"));
+      window.dispatchEvent(new CustomEvent("lshorter_links_updated"));
+    } catch {
+      showToast.error("Erreur lors de la suppression du lien");
+    }
+  };
+
+  const handleDeleteMultiple = async (ids: string[]) => {
+    if (!ids || ids.length === 0) return;
+    try {
+      const res = await cfBulkDeleteLinks(ids, userId);
+      if (res?.success) {
         cfInvalidateCache();
-        showToast.success(`Deleted /${linkObj.slug}`);
+        showToast.success(ids.length > 1 ? `${ids.length} liens supprimés avec succès` : "Lien supprimé avec succès");
         onRefresh?.();
+        window.dispatchEvent(new CustomEvent("lshorter_data_change"));
+        window.dispatchEvent(new CustomEvent("lshorter_links_updated"));
       } else {
-        showToast.error("Failed to delete link");
+        showToast.error("Erreur lors de la suppression des liens");
       }
     } catch {
-      showToast.error("Error deleting link");
+      showToast.error("Erreur lors de la suppression des liens");
     }
   };
 
@@ -1676,6 +1702,7 @@ export function PopulatedState({
         onSelectQr={(link) => setSelectedShareLink(link)}
         onQr={(link) => setSelectedShareLink(link)}
         onDeleteLink={handleDeleteLink}
+        onDeleteMultiple={handleDeleteMultiple}
         title="Short Links Directory"
       />
 

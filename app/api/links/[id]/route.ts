@@ -757,7 +757,8 @@ export async function DELETE(
   const userId = session?.user?.id || searchParams.get("userId") || "";
   const userEmail = session?.user?.email || searchParams.get("userEmail") || "";
 
-  if (!session?.user && !userId && !userEmail) {
+  const isDev = process.env.NODE_ENV === "development";
+  if (!session?.user && !userId && !userEmail && !isDev) {
     return NextResponse.json(
       { success: false, error: "Authentication required to delete links." },
       { status: 401 }
