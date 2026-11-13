@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { getPaddleInstance } from "@/lib/paddle/paddle-server";
 import { getBillingProvider } from "@/lib/billing";
+import { dodoBillingProvider } from "@/lib/billing/dodo-provider";
 import { convexHttp as convex } from "@/lib/convex-server";
 import { api } from "@/convex/_generated/api";
 import { sendFeedbackNotificationEmail } from "@/lib/resend";
@@ -58,11 +59,12 @@ export async function POST(request: NextRequest) {
     let currentPeriodEnd = convexSub?.currentPeriodEnd || null;
     let plan = convexSub?.plan || ((session.user as any)?.plan || "PRO").toUpperCase();
     let cycle = convexSub?.cycle || "MONTHLY";
+    const isDodoProvider = convexSub?.provider === "dodo";
 
-    const paddle = getPaddleInstance();
+    const paddle = isDodoProvider ? null : getPaddleInstance();
 
-    // 2. If no subId recorded in Convex, attempt to find active subscription on Paddle
-    if (!subId && paddle && email) {
+    // 2. If no subId recorded in Convex and using Paddle, attempt to find active subscription
+    if (!isDodoProvider && !subId && paddle && email) {
       try {
         const cleanEmail = email.toLowerCase().trim();
         for await (const customer of paddle.customers.list({ email: [cleanEmail] })) {
@@ -87,16 +89,12 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Perform cancellation on Provider (Dodo Payments / Paddle) at period end
-    if (subId) {
-      try {
-        const billingProvider = getBillingProvider();
-        await billingProvider.cancelSubscription(subId);
-      } catch (providerErr: any) {
-        console.warn("[Cancel Subscription] Billing provider cancel warning:", providerErr?.message);
+    if (isDodoProvider && subId) {
+      const canceledOnDodo = await dodoBillingProvider.cancelSubscription(subId);
+      if (!canceledOnDodo) {
+        console.warn(`[Cancel Subscription] Dodo SDK did not confirm cancellation for ${subId}; updating Convex state.`);
       }
-    }
-
-    if (paddle && subId && subId.startsWith("sub_")) {
+    } else if (!isDodoProvider && paddle && subId && subId.startsWith("sub_")) {
       try {
         console.info(`[Cancel Subscription] Canceling subscription ${subId} at period end...`);
         const updatedPaddleSub = await paddle.subscriptions.cancel(subId, {
@@ -117,6 +115,12 @@ export async function POST(request: NextRequest) {
             { status: 500 }
           );
         }
+      }
+    } else if (!convexSub?.provider && subId) {
+      try {
+        await getBillingProvider().cancelSubscription(subId);
+      } catch (providerErr: any) {
+        console.warn("[Cancel Subscription] Fallback provider cancel warning:", providerErr?.message);
       }
     }
 

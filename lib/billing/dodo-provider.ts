@@ -95,7 +95,7 @@ export class DodoBillingProvider implements BillingProvider {
   }
 
   /**
-   * Cancels a subscription at the end of the billing cycle or immediately.
+   * Schedules subscription cancellation at the end of the current billing period.
    */
   async cancelSubscription(subscriptionId: string): Promise<boolean> {
     const client = getDodoPaymentsClient();
@@ -106,11 +106,32 @@ export class DodoBillingProvider implements BillingProvider {
 
     try {
       await client.subscriptions.update(subscriptionId, {
-        status: "cancelled",
+        cancel_at_next_billing_date: true,
       });
       return true;
     } catch (error: any) {
       console.error(`[DodoBillingProvider] Failed to cancel subscription ${subscriptionId}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Re-enables auto-renewal on a Dodo subscription scheduled to cancel at period end.
+   */
+  async resumeSubscription(subscriptionId: string): Promise<boolean> {
+    const client = getDodoPaymentsClient();
+    if (!client) {
+      console.warn("[DodoBillingProvider] Dodo Payments client unavailable for subscription resumption.");
+      return false;
+    }
+
+    try {
+      await client.subscriptions.update(subscriptionId, {
+        cancel_at_next_billing_date: false,
+      });
+      return true;
+    } catch (error: any) {
+      console.error(`[DodoBillingProvider] Failed to resume subscription ${subscriptionId}:`, error);
       return false;
     }
   }

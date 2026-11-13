@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Sparkles, ArrowRight } from "lucide-react";
 import { motion } from "motion/react";
 import { Timeline, TimelineEntry } from "@/components/ui/timeline";
+import { getThemedScreenshotPair } from "@/lib/themed-screenshots";
 
 interface HighlightRow {
   key: string;
@@ -80,7 +81,7 @@ function FeatureCard({
         {lead}
       </motion.p>
 
-      {/* ── Screenshots (Simple ou Double côte à côte) ── */}
+      {/* ── Screenshots (Simple ou Double côte à côte) adaptées au thème actif ── */}
       {isMultiScreenshots ? (
         <motion.div
           variants={scaleIn}
@@ -90,24 +91,40 @@ function FeatureCard({
           transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
           className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 w-full"
         >
-          {screenshotTable.map((imgSrc, idx) => (
-            <div
-              key={idx}
-              className="relative w-full overflow-hidden rounded-[10px] border border-[#c9cbd2] dark:border-[#3a3d45] bg-neutral-100 dark:bg-neutral-900 flex items-center justify-center shadow-xs"
-            >
-              <Image
-                src={imgSrc}
-                alt={`${screenshotAlt} - aperçu ${idx + 1}`}
-                width={720}
-                height={450}
-                loading="lazy"
-                quality={80}
-                sizes="(max-width: 768px) 100vw, 720px"
-                className="w-full h-auto max-h-[340px] sm:max-h-none object-cover object-top transition-transform duration-200 ease-out hover:scale-[1.015] transform-gpu will-change-transform"
-                priority={false}
-              />
-            </div>
-          ))}
+          {screenshotTable.map((imgSrc, idx) => {
+            const pair = getThemedScreenshotPair(imgSrc);
+            return (
+              <div
+                key={idx}
+                className="relative w-full overflow-hidden rounded-[10px] border border-[#c9cbd2] dark:border-[#3a3d45] bg-neutral-100 dark:bg-neutral-900 flex items-center justify-center shadow-xs"
+              >
+                {/* Mode Clair */}
+                <Image
+                  src={pair.light}
+                  alt={`${screenshotAlt} - aperçu ${idx + 1} (mode clair)`}
+                  width={720}
+                  height={450}
+                  loading="lazy"
+                  quality={80}
+                  sizes="(max-width: 768px) 100vw, 720px"
+                  className="w-full h-auto max-h-[340px] sm:max-h-none object-cover object-top block dark:hidden transition-transform duration-200 ease-out hover:scale-[1.015] transform-gpu will-change-transform"
+                  priority={false}
+                />
+                {/* Mode Sombre */}
+                <Image
+                  src={pair.dark}
+                  alt={`${screenshotAlt} - aperçu ${idx + 1} (mode sombre)`}
+                  width={720}
+                  height={450}
+                  loading="lazy"
+                  quality={80}
+                  sizes="(max-width: 768px) 100vw, 720px"
+                  className="w-full h-auto max-h-[340px] sm:max-h-none object-cover object-top hidden dark:block transition-transform duration-200 ease-out hover:scale-[1.015] transform-gpu will-change-transform"
+                  priority={false}
+                />
+              </div>
+            );
+          })}
         </motion.div>
       ) : (
         screenshot && (
@@ -116,20 +133,44 @@ function FeatureCard({
             initial="hidden"
             whileInView="visible"
             viewport={viewport}
-            transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
+            transition={{
+              duration: 0.32,
+              ease: [0.16, 1, 0.3, 1],
+              delay: 0.05,
+            }}
             className="relative w-full overflow-hidden rounded-[10px] border border-[#c9cbd2] dark:border-[#3a3d45] bg-neutral-100 dark:bg-neutral-900 shadow-xs"
           >
-            <Image
-              src={screenshot}
-              alt={screenshotAlt}
-              width={960}
-              height={540}
-              loading="lazy"
-              quality={80}
-              sizes="(max-width: 768px) 100vw, 960px"
-              className="w-full h-auto object-cover object-top transition-transform duration-200 ease-out hover:scale-[1.012] transform-gpu will-change-transform"
-              priority={false}
-            />
+            {(() => {
+              const pair = getThemedScreenshotPair(screenshot);
+              return (
+                <>
+                  {/* Mode Clair */}
+                  <Image
+                    src={pair.light}
+                    alt={`${screenshotAlt} (mode clair)`}
+                    width={960}
+                    height={540}
+                    loading="lazy"
+                    quality={80}
+                    sizes="(max-width: 768px) 100vw, 960px"
+                    className="w-full h-auto object-cover object-top block dark:hidden transition-transform duration-200 ease-out hover:scale-[1.012] transform-gpu will-change-transform"
+                    priority={false}
+                  />
+                  {/* Mode Sombre */}
+                  <Image
+                    src={pair.dark}
+                    alt={`${screenshotAlt} (mode sombre)`}
+                    width={960}
+                    height={540}
+                    loading="lazy"
+                    quality={80}
+                    sizes="(max-width: 768px) 100vw, 960px"
+                    className="w-full h-auto object-cover object-top hidden dark:block transition-transform duration-200 ease-out hover:scale-[1.012] transform-gpu will-change-transform"
+                    priority={false}
+                  />
+                </>
+              );
+            })()}
           </motion.div>
         )
       )}
@@ -169,10 +210,7 @@ function FeatureCard({
         viewport={viewport}
         transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1], delay: 0.28 }}
       >
-        <Link
-          href={docHref}
-          className="timeline-doc-link"
-        >
+        <Link href={docHref} className="timeline-doc-link">
           <span>{docLabel}</span>
           <ArrowRight className="w-3.5 h-3.5 timeline-doc-link-arrow" />
         </Link>
@@ -229,7 +267,7 @@ export function TimelineFeatures() {
             },
           ]}
           screenshotTable={[
-            "/screenshots/dashboard/dashboardwithsidbare.webp",
+            "/screenshots/dashboard/dashboardwithsidbare_dark1.webp",
             "/screenshots/geo2/geo1.webp",
           ]}
           screenshotAlt="LShorter Smart Edge Routing Dashboard & Geo Analytics"

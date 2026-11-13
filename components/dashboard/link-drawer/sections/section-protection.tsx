@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { DrawerSwitch } from "../drawer-switch";
 import { LockedProFeature } from "../locked-pro-feature";
 import { FieldErrorAlert } from "../field-error-alert";
+import { parsePathLockRoutes } from "@/lib/pathlock-routes";
 
 interface SectionProtectionProps {
   isProPlan: boolean;
@@ -387,55 +388,86 @@ export function SectionProtection({
                   </div>
                 )}
 
-                {pathLockMode === "funnel" && (
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center justify-between">
-                      <label className="text-[10.5px] font-bold uppercase tracking-wider text-zinc-700 dark:text-neutral-300">
-                        Allowed Path Prefix
-                      </label>
-                      {targetUrl && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            try {
-                              const parsed = new URL(
-                                targetUrl.startsWith("http")
-                                  ? targetUrl
-                                  : `https://${targetUrl}`,
-                              );
-                              const cleanP = parsed.pathname
-                                .replace(/^\/+/, "")
-                                .replace(/\/+$/, "");
-                              if (cleanP) setPathLockPrefix(cleanP);
-                            } catch {}
-                          }}
-                          className="text-[10px] text-brand hover:underline cursor-pointer font-semibold flex items-center gap-1"
-                        >
-                          <Zap className="w-3 h-3" /> Auto-detect from URL
-                        </button>
-                      )}
-                    </div>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-neutral-500 font-mono text-xs">
-                        /
-                      </span>
+                {pathLockMode === "funnel" && (() => {
+                  const parsedFunnelRoutes = parsePathLockRoutes(pathLockPrefix);
+                  return (
+                    <div className="flex flex-col gap-1.5">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[10.5px] font-bold uppercase tracking-wider text-zinc-700 dark:text-neutral-300">
+                          Allowed Funnel Routes
+                        </label>
+                        {targetUrl && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              try {
+                                const parsed = new URL(
+                                  targetUrl.startsWith("http")
+                                    ? targetUrl
+                                    : `https://${targetUrl}`,
+                                );
+                                const cleanP = parsed.pathname
+                                  .replace(/^\/+/, "")
+                                  .replace(/\/+$/, "");
+                                if (cleanP) {
+                                  const nextRoute = `/${cleanP}`;
+                                  const cur = (pathLockPrefix || "").trim();
+                                  if (!cur) {
+                                    setPathLockPrefix(nextRoute);
+                                  } else if (
+                                    !parsedFunnelRoutes.routes.includes(
+                                      cleanP.toLowerCase(),
+                                    )
+                                  ) {
+                                    setPathLockPrefix(`${cur}, ${nextRoute}`);
+                                  }
+                                }
+                              } catch {}
+                            }}
+                            className="text-[10px] text-brand hover:underline cursor-pointer font-semibold flex items-center gap-1"
+                          >
+                            <Zap className="w-3 h-3" /> Auto-detect from URL
+                          </button>
+                        )}
+                      </div>
                       <Input
-                        placeholder="e.g. checkout (default route: /)"
+                        placeholder="e.g. /checkout, /pricing, /thank-you (empty = /)"
                         value={pathLockPrefix}
-                        onChange={(e) =>
-                          setPathLockPrefix(e.target.value.replace(/^\/+/, ""))
-                        }
-                        className="pl-6 bg-zinc-50 dark:bg-[#101012] border-zinc-200 dark:border-[#27272a] focus:border-brand text-zinc-900 dark:text-white text-xs h-8.5 rounded-[8px] font-mono placeholder:text-zinc-400 dark:placeholder:text-neutral-500"
+                        onChange={(e) => setPathLockPrefix(e.target.value)}
+                        className="bg-zinc-50 dark:bg-[#101012] border-zinc-200 dark:border-[#27272a] focus:border-brand text-zinc-900 dark:text-white text-xs h-8.5 rounded-[8px] font-mono placeholder:text-zinc-400 dark:placeholder:text-neutral-500"
                       />
+                      <div className="flex flex-wrap items-center gap-1">
+                        {parsedFunnelRoutes.allowAllSubpaths && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-brand/10 border border-brand/20 text-brand font-mono text-[10px]">
+                            / (all routes)
+                          </span>
+                        )}
+                        {parsedFunnelRoutes.routes.map((route) => (
+                          <span
+                            key={route}
+                            className="inline-flex items-center px-1.5 py-0.5 rounded bg-zinc-200/70 dark:bg-zinc-800/80 border border-zinc-300/80 dark:border-zinc-700/80 text-zinc-700 dark:text-neutral-300 font-mono text-[10px]"
+                          >
+                            {`/${route}/*`}
+                          </span>
+                        ))}
+                      </div>
+                      <p className="text-[10px] text-zinc-500 dark:text-neutral-500">
+                        Add one or more routes separated by commas or spaces (e.g.{" "}
+                        <code className="text-zinc-600 dark:text-neutral-400 font-mono">
+                          /pricing, /checkout/*
+                        </code>
+                        ). Leave empty to allow the full funnel (
+                        <code className="text-zinc-600 dark:text-neutral-400 font-mono">
+                          /
+                        </code>
+                        ).
+                      </p>
+                      <p className="text-[10px] text-zinc-500 dark:text-neutral-500">
+                        In-page anchors (<code className="text-zinc-600 dark:text-neutral-400 font-mono">#features</code>, <code className="text-zinc-600 dark:text-neutral-400 font-mono">#reviews</code>) and query parameters are 100% preserved.
+                      </p>
                     </div>
-                    <p className="text-[10px] text-zinc-500 dark:text-neutral-500">
-                      Allows access to sub-pages under this prefix. Leave empty to allow the full funnel (default route: <code className="text-zinc-600 dark:text-neutral-400 font-mono">/</code>).
-                    </p>
-                    <p className="text-[10px] text-zinc-500 dark:text-neutral-500">
-                      In-page anchors (<code className="text-zinc-600 dark:text-neutral-400 font-mono">#features</code>, <code className="text-zinc-600 dark:text-neutral-400 font-mono">#reviews</code>) and query parameters are 100% preserved.
-                    </p>
-                  </div>
-                )}
+                  );
+                })()}
 
                 <div className="flex flex-col gap-1">
                   <label className="text-[10.5px] font-bold uppercase tracking-wider text-zinc-700 dark:text-neutral-300">

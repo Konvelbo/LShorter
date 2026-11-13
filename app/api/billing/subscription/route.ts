@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { getPaddleInstance } from "@/lib/paddle/paddle-server";
+import { getDodoPaymentsClient } from "@/lib/dodo/dodo-server";
 import { convexHttp as convex } from "@/lib/convex-server";
 import { api } from "@/convex/_generated/api";
 
@@ -38,15 +39,54 @@ export async function GET(request: NextRequest) {
     }
 
     let providerSubscriptionId = convexSub?.providerSubscriptionId || null;
+    let provider: string = convexSub?.provider || (providerSubscriptionId ? "dodo" : "paddle");
     let cancelAtPeriodEnd = Boolean(convexSub?.cancelAtPeriodEnd);
     let currentPeriodStart = convexSub?.currentPeriodStart || null;
     let currentPeriodEnd = convexSub?.currentPeriodEnd || null;
     let plan = convexSub?.plan || userPlan;
     let cycle = convexSub?.cycle || "MONTHLY";
-    let status = "active";
+    let status = convexSub?.lifecycleStatus === "DOWNGRADED"
+      ? "canceled"
+      : convexSub?.lifecycleStatus === "GRACE_PERIOD"
+        ? "past_due"
+        : "active";
 
-    // 2. If Paddle is available and we have an email or subscription ID, sync with Paddle
-    const paddle = getPaddleInstance();
+    // 2A. Sync live state from Dodo Payments when provider is Dodo
+    const dodoClient = provider === "dodo" && providerSubscriptionId ? getDodoPaymentsClient() : null;
+    if (dodoClient && providerSubscriptionId) {
+      try {
+        const dodoSub = await dodoClient.subscriptions.retrieve(providerSubscriptionId);
+        if (dodoSub) {
+          status = dodoSub.status || status;
+          cancelAtPeriodEnd = Boolean(dodoSub.cancel_at_next_billing_date);
+          const nextMs = dodoSub.next_billing_date ? new Date(dodoSub.next_billing_date).getTime() : NaN;
+          const prevMs = dodoSub.previous_billing_date ? new Date(dodoSub.previous_billing_date).getTime() : NaN;
+          if (!Number.isNaN(nextMs)) {
+            currentPeriodEnd = nextMs;
+          }
+          if (!Number.isNaN(prevMs)) {
+            currentPeriodStart = prevMs;
+          }
+          if (dodoSub.status === "active" && currentPeriodEnd && currentPeriodEnd > (convexSub?.currentPeriodEnd || 0) && userId) {
+            await convex.mutation(api.subscriptions.upsertSubscription, {
+              orgId: userId,
+              provider: "dodo",
+              providerSubscriptionId,
+              currentPeriodStart: currentPeriodStart || Date.now(),
+              currentPeriodEnd,
+              cancelAtPeriodEnd,
+              plan,
+              cycle,
+            }).catch((e) => console.warn("[Subscription API] Dodo sync to Convex failed:", e));
+          }
+        }
+      } catch (dodoErr) {
+        console.warn("[Subscription API] Dodo lookup warning:", dodoErr);
+      }
+    }
+
+    // 2B. If provider is not Dodo and Paddle is available, sync with Paddle
+    const paddle = provider !== "dodo" ? getPaddleInstance() : null;
     if (paddle) {
       try {
         if (providerSubscriptionId && providerSubscriptionId.startsWith("sub_")) {
@@ -54,11 +94,18 @@ export async function GET(request: NextRequest) {
           if (paddleSub) {
             status = paddleSub.status;
             cancelAtPeriodEnd = paddleSub.scheduledChange?.action === "cancel";
-            if (paddleSub.currentBillingPeriod?.endsAt) {
-              currentPeriodEnd = new Date(paddleSub.currentBillingPeriod.endsAt).getTime();
-            }
-            if (paddleSub.currentBillingPeriod?.startsAt) {
-              currentPeriodStart = new Date(paddleSub.currentBillingPeriod.startsAt).getTime();
+            if (paddleSub.status === "active" || paddleSub.status === "trialing") {
+              if (paddleSub.currentBillingPeriod?.endsAt) {
+                currentPeriodEnd = new Date(paddleSub.currentBillingPeriod.endsAt).getTime();
+              }
+              if (paddleSub.currentBillingPeriod?.startsAt) {
+                currentPeriodStart = new Date(paddleSub.currentBillingPeriod.startsAt).getTime();
+              }
+            } else if (paddleSub.status === "past_due") {
+              // In Paddle, when status is past_due, currentBillingPeriod.startsAt is the end of the paid cycle
+              if (paddleSub.currentBillingPeriod?.startsAt) {
+                currentPeriodEnd = new Date(paddleSub.currentBillingPeriod.startsAt).getTime();
+              }
             }
           }
         } else if (email) {
@@ -131,7 +178,7 @@ export async function GET(request: NextRequest) {
       success: true,
       subscription: {
         id: providerSubscriptionId,
-        provider: "paddle",
+        provider,
         providerSubscriptionId,
         plan,
         cycle,

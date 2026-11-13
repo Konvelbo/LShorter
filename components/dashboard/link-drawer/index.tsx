@@ -594,10 +594,36 @@ export function LinkDrawer({
           link.routingRules || (link as any).routing_rules;
         if (rawRoutingRules) {
           try {
-            parsedRules =
+            const rawParsed =
               typeof rawRoutingRules === "string"
                 ? JSON.parse(rawRoutingRules)
                 : rawRoutingRules;
+            if (Array.isArray(rawParsed)) {
+              parsedRules = rawParsed.map((r: any, idx: number) => {
+                if (r && Array.isArray(r.conditions)) return r;
+                const typeMap: Record<string, string> = {
+                  country: "pays",
+                  device: "appareil",
+                  browser: "navigateur",
+                  os: "plateforme",
+                };
+                const ruleType = typeMap[r?.type] || r?.type || "pays";
+                return {
+                  id: r?.id || `r_${idx}`,
+                  title: r?.title || `Rule ${idx + 1}`,
+                  isCollapsed: false,
+                  conditions: [
+                    {
+                      id: `c_${idx}`,
+                      type: ruleType,
+                      operator: r?.operator || "est",
+                      value: r?.match || r?.value || "FR",
+                    },
+                  ],
+                  destinationUrl: r?.target || r?.destinationUrl || "",
+                };
+              });
+            }
           } catch {
             parsedRules = [];
           }

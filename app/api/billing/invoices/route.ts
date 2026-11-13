@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getPaddleInstance } from "@/lib/paddle/paddle-server";
+import { getDodoPaymentsClient } from "@/lib/dodo/dodo-server";
 import { convexHttp as convex } from "@/lib/convex-server";
 import { api } from "@/convex/_generated/api";
 
@@ -7,7 +8,7 @@ import { auth } from "@/auth";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await auth();
     if (!session?.user) {
@@ -32,23 +33,130 @@ export async function GET(request: NextRequest) {
       billedAtTimestamp: number;
     }> = [];
 
-    const seenTxnIds = new Set<string>();
+    const seenIds = new Set<string>();
+    const cleanEmail = email.toLowerCase().trim();
 
-    const paddle = getPaddleInstance();
-    if (paddle && email) {
+    // 1. Fetch official Dodo Payments invoices/payments
+    const dodo = getDodoPaymentsClient();
+    if (dodo && (cleanEmail || userId)) {
       try {
-        // 1. Search customer by email
-        for await (const customer of paddle.customers.list({ search: email })) {
-          if (!customer.id) continue;
+        const pushDodoPayment = (
+          p: {
+            payment_id?: string;
+            status?: string | null;
+            invoice_id?: string | null;
+            created_at?: string;
+            total_amount?: number;
+            currency?: string;
+            metadata?: Record<string, unknown>;
+          },
+          fallbackPlan?: string
+        ) => {
+          if (!p?.payment_id || p.status !== "succeeded") return;
+          const dodoKey = `dodo_${p.payment_id}`;
+          if (seenIds.has(dodoKey) || seenIds.has(p.payment_id)) return;
+          if (p.invoice_id && seenIds.has(String(p.invoice_id))) return;
 
-          // 2. Fetch completed transactions for this customer
+          seenIds.add(dodoKey);
+          seenIds.add(p.payment_id);
+          if (p.invoice_id) seenIds.add(String(p.invoice_id));
+
+          const billedDate = p.created_at ? new Date(p.created_at) : new Date();
+          const total =
+            typeof p.total_amount === "number" ? p.total_amount / 100 : 0;
+          const planKey = String(
+            p.metadata?.planId || fallbackPlan || "PRO"
+          ).toUpperCase();
+          const invNumber = p.invoice_id
+            ? String(p.invoice_id)
+            : `INV-DODO-${String(p.payment_id).replace(/^pay_/, "").toUpperCase()}`;
+
+          invoices.push({
+            id: dodoKey,
+            number: invNumber,
+            date: billedDate.toLocaleDateString("fr-FR", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            }),
+            netAmount: total,
+            taxAmount: 0,
+            totalAmount: total,
+            currency: String(p.currency || "USD").toUpperCase(),
+            status: "paid",
+            planName: `LShorter ${planKey}`,
+            downloadUrl: `/api/billing/invoices/${encodeURIComponent(dodoKey)}/download`,
+            billedAtTimestamp: billedDate.getTime(),
+          });
+        };
+
+        if (cleanEmail) {
+          for await (const customer of dodo.customers.list({ email: cleanEmail })) {
+            if (
+              !customer.customer_id ||
+              customer.email?.toLowerCase().trim() !== cleanEmail
+            ) {
+              continue;
+            }
+            for await (const p of dodo.payments.list({
+              customer_id: customer.customer_id,
+              status: "succeeded",
+              page_size: 25,
+            })) {
+              pushDodoPayment(p);
+            }
+          }
+        }
+
+        if (userId) {
+          const convexSub = await convex
+            .query(api.subscriptions.getSubscription, { orgId: userId })
+            .catch(() => null);
+          if (
+            convexSub?.provider === "dodo" &&
+            convexSub?.providerSubscriptionId
+          ) {
+            for await (const p of dodo.payments.list({
+              subscription_id: convexSub.providerSubscriptionId,
+              status: "succeeded",
+              page_size: 25,
+            })) {
+              const metaUserId = String(p.metadata?.userId || "");
+              const payEmail = p.customer?.email?.toLowerCase().trim() || "";
+              const belongsToUser =
+                (userId && metaUserId === userId) ||
+                (cleanEmail && payEmail === cleanEmail) ||
+                (!metaUserId && !payEmail);
+              if (belongsToUser) {
+                pushDodoPayment(p, convexSub.plan);
+              }
+            }
+          }
+        }
+      } catch (dodoErr) {
+        console.warn("[Invoices API] Error fetching from Dodo:", dodoErr);
+      }
+    }
+
+    // 2. Fetch official Paddle transactions/invoices
+    const paddle = getPaddleInstance();
+    if (paddle && cleanEmail) {
+      try {
+        for await (const customer of paddle.customers.list({ email: [cleanEmail] })) {
+          if (
+            !customer.id ||
+            customer.email?.toLowerCase().trim() !== cleanEmail
+          ) {
+            continue;
+          }
+
           for await (const t of paddle.transactions.list({
             customerId: [customer.id],
             status: ["completed", "paid"],
             perPage: 20,
           })) {
-            if (seenTxnIds.has(t.id)) continue;
-            seenTxnIds.add(t.id);
+            if (seenIds.has(t.id)) continue;
+            seenIds.add(t.id);
 
             const totals = t.details?.totals;
             const total = totals?.total ? parseFloat(totals.total) / 100 : 0;
@@ -87,7 +195,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // 3. Complement with Convex invoices if available
+    // 3. Complement with Convex invoices (supports both orgId & org_ prefix)
     if (userId) {
       try {
         const convexInvoices = await convex.query(api.invoices.listInvoices, {
@@ -98,14 +206,19 @@ export async function GET(request: NextRequest) {
           for (const ci of convexInvoices) {
             const txnMatch = ci.invoiceNumber?.match(/txn_[a-zA-Z0-9]+/i);
             const txnId = txnMatch ? txnMatch[0] : null;
+            const dodoUrlMatch = ci.pdfUrl?.match(/dodo_(pay_[a-zA-Z0-9_]+)/i);
+            const dodoPayId = dodoUrlMatch ? dodoUrlMatch[1] : null;
 
-            if (txnId && seenTxnIds.has(txnId)) continue;
-            if (seenTxnIds.has(ci.invoiceNumber)) continue;
-            seenTxnIds.add(ci.invoiceNumber);
+            if (txnId && seenIds.has(txnId)) continue;
+            if (dodoPayId && (seenIds.has(dodoPayId) || seenIds.has(`dodo_${dodoPayId}`))) {
+              continue;
+            }
+            if (seenIds.has(ci.invoiceNumber)) continue;
+            seenIds.add(ci.invoiceNumber);
 
             const dateObj = new Date(ci.createdAt || ci.periodStart);
             invoices.push({
-              id: txnId || ci.invoiceNumber,
+              id: txnId || (dodoPayId ? `dodo_${dodoPayId}` : ci.invoiceNumber),
               number: ci.invoiceNumber,
               date: dateObj.toLocaleDateString("fr-FR", {
                 day: "2-digit",
@@ -118,7 +231,9 @@ export async function GET(request: NextRequest) {
               currency: ci.currency || "USD",
               status: ci.status?.toLowerCase() || "paid",
               planName: `LShorter ${ci.planId}`,
-              downloadUrl: ci.pdfUrl || `/api/billing/invoices/${ci.invoiceNumber}/download`,
+              downloadUrl:
+                ci.pdfUrl ||
+                `/api/billing/invoices/${encodeURIComponent(ci.invoiceNumber)}/download`,
               billedAtTimestamp: dateObj.getTime(),
             });
           }

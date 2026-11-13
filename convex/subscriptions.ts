@@ -71,6 +71,9 @@ export const upsertSubscription = mutation({
         cancelAtPeriodEnd: args.cancelAtPeriodEnd,
         plan: args.plan,
         cycle: args.cycle,
+        lifecycleStatus: "ACTIVE",
+        lastLifecycleAlert: undefined,
+        gracePeriodEndsAt: undefined,
         updatedAt: now,
       });
       return { id: existing._id, updated: true };
@@ -85,6 +88,7 @@ export const upsertSubscription = mutation({
       cancelAtPeriodEnd: args.cancelAtPeriodEnd,
       plan: args.plan,
       cycle: args.cycle,
+      lifecycleStatus: "ACTIVE",
       createdAt: now,
       updatedAt: now,
     });
@@ -124,6 +128,9 @@ export const setCancelAtPeriodEnd = mutation({
         cancelAtPeriodEnd: args.cancelAtPeriodEnd,
         updatedAt: now,
       };
+      if (!args.cancelAtPeriodEnd) {
+        patchData.lifecycleStatus = "ACTIVE";
+      }
       if (typeof args.currentPeriodEnd === "number") {
         patchData.currentPeriodEnd = args.currentPeriodEnd;
       }
@@ -259,6 +266,82 @@ export const downgradeSubscriptionToFree = mutation({
       userId: user?.userId || cleanUserId,
       email: user?.email,
       name: user?.name,
+    };
+  },
+});
+
+// ─── Mutation: Activate 24h Grace Period when renewal/payment fails ──────────
+export const markSubscriptionGracePeriod = mutation({
+  args: {
+    providerSubscriptionId: v.optional(v.string()),
+    orgId: v.optional(v.string()),
+    gracePeriodEndsAt: v.number(),
+  },
+  handler: async (ctx, args) => {
+    let sub = null;
+    if (args.orgId) {
+      const altOrgId = args.orgId.startsWith("org_")
+        ? args.orgId.replace(/^org_/, "")
+        : `org_${args.orgId}`;
+      sub =
+        (await ctx.db
+          .query("subscriptions")
+          .withIndex("by_orgId", (q) => q.eq("orgId", args.orgId!))
+          .first()) ||
+        (await ctx.db
+          .query("subscriptions")
+          .withIndex("by_orgId", (q) => q.eq("orgId", altOrgId))
+          .first());
+    }
+
+    if (!sub && args.providerSubscriptionId) {
+      const all = await ctx.db.query("subscriptions").collect();
+      sub =
+        all.find((s) => s.providerSubscriptionId === args.providerSubscriptionId) ||
+        null;
+    }
+
+    if (!sub || sub.plan === "FREE" || sub.plan === "FREEMIUM") {
+      return { success: false, notFound: true };
+    }
+
+    // Preserve original 24h deadline if already in grace so retries do not reset the clock
+    const alreadyInGrace = sub.lifecycleStatus === "GRACE_PERIOD";
+    const resolvedGraceEnd =
+      alreadyInGrace && typeof sub.gracePeriodEndsAt === "number"
+        ? sub.gracePeriodEndsAt
+        : args.gracePeriodEndsAt;
+
+    if (!alreadyInGrace) {
+      await ctx.db.patch(sub._id, {
+        lifecycleStatus: "GRACE_PERIOD",
+        lastLifecycleAlert: "GRACE_PERIOD",
+        gracePeriodEndsAt: resolvedGraceEnd,
+        updatedAt: new Date().toISOString(),
+      });
+    }
+
+    const cleanUserId = sub.orgId.replace(/^org_/, "");
+    const user =
+      (await ctx.db
+        .query("users")
+        .withIndex("by_userId", (q) => q.eq("userId", cleanUserId))
+        .first()) ||
+      (await ctx.db
+        .query("users")
+        .withIndex("by_userId", (q) => q.eq("userId", sub.orgId))
+        .first());
+
+    return {
+      success: true,
+      alreadyInGrace,
+      subscriptionId: sub._id,
+      orgId: sub.orgId,
+      cleanUserId,
+      plan: sub.plan || "PRO",
+      gracePeriodEndsAt: resolvedGraceEnd,
+      userEmail: user?.email,
+      userName: user?.name || cleanUserId,
     };
   },
 });

@@ -60,14 +60,19 @@ export function generateTimelineForRange(
   range: TimeRange,
   totalClicks: number,
   uniqueClicks: number,
-  realClicksByDay?: { date: string; clicks: number }[],
+  realClicksByDay?: { date: string; clicks: number; uniqueClicks?: number; unique_clicks?: number }[],
   liveClickEvents?: { timestamp?: string; created_at?: string }[],
   realClicksByMonth?: { month: string; value: number }[]
 ): ClickDataPoint[] {
   const now = new Date();
+  const uniqueRatio =
+    totalClicks > 0 && uniqueClicks > 0
+      ? Math.min(1, uniqueClicks / totalClicks)
+      : 1;
 
-  // 1. Build map from realClicksByDay first (aggregate time series across the 30 days)
+  // 1. Build maps from realClicksByDay first (aggregate time series across the 30 days)
   const clicksMap = new Map<string, number>();
+  const uniquesMap = new Map<string, number>();
   if (Array.isArray(realClicksByDay) && realClicksByDay.length > 0) {
     for (const item of realClicksByDay) {
       if (item?.date) {
@@ -80,6 +85,10 @@ export function generateTimelineForRange(
           ? toLocalDateKey(parsed)
           : String(item.date).slice(0, 10);
         clicksMap.set(key, (clicksMap.get(key) || 0) + Number(item.clicks || 0));
+        const itemUniq = item.uniqueClicks ?? item.unique_clicks;
+        if (itemUniq !== undefined && itemUniq !== null && !isNaN(Number(itemUniq))) {
+          uniquesMap.set(key, (uniquesMap.get(key) || 0) + Number(itemUniq));
+        }
       }
     }
   } else if (Array.isArray(liveClickEvents) && liveClickEvents.length > 0) {
@@ -174,6 +183,13 @@ export function generateTimelineForRange(
     return points;
   }
 
+  const resolveDailyUnique = (isoDate: string, clicks: number) => {
+    if (clicks <= 0) return 0;
+    const exact = uniquesMap.get(isoDate);
+    if (exact !== undefined) return Math.min(clicks, exact);
+    return Math.min(clicks, Math.round(clicks * uniqueRatio));
+  };
+
   if (range === "week") {
     const points: ClickDataPoint[] = [];
     for (let i = 6; i >= 0; i--) {
@@ -188,7 +204,7 @@ export function generateTimelineForRange(
         dayNumber: d.getDate(),
         label,
         clicks,
-        uniqueClicks: clicks > 0 ? Math.min(clicks, uniqueClicks || clicks) : 0,
+        uniqueClicks: resolveDailyUnique(isoDate, clicks),
       });
     }
     return points;
@@ -208,7 +224,7 @@ export function generateTimelineForRange(
         dayNumber: d.getDate(),
         label,
         clicks,
-        uniqueClicks: clicks > 0 ? Math.min(clicks, uniqueClicks || clicks) : 0,
+        uniqueClicks: resolveDailyUnique(isoDate, clicks),
       });
     }
     return points;
@@ -222,10 +238,17 @@ export function generateTimelineForRange(
     const monthPrefix = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
     const isoDate = `${monthPrefix}-01`;
     let monthClicks = 0;
+    let monthUniques = 0;
+    let hasExactMonthUniques = false;
     if (clicksMap.size > 0) {
       for (const [dt, count] of clicksMap.entries()) {
         if (dt.startsWith(monthPrefix)) {
           monthClicks += count;
+          const u = uniquesMap.get(dt);
+          if (u !== undefined) {
+            monthUniques += u;
+            hasExactMonthUniques = true;
+          }
         }
       }
     }
@@ -245,7 +268,12 @@ export function generateTimelineForRange(
       dayNumber: i + 1,
       label,
       clicks: monthClicks,
-      uniqueClicks: monthClicks > 0 ? Math.min(monthClicks, uniqueClicks || monthClicks) : 0,
+      uniqueClicks:
+        monthClicks > 0
+          ? hasExactMonthUniques
+            ? Math.min(monthClicks, monthUniques)
+            : Math.min(monthClicks, Math.round(monthClicks * uniqueRatio))
+          : 0,
     });
   }
 

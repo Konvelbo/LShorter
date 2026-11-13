@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
         id: `target_${Date.now()}`,
         title,
         message,
-        type: "SUCCESS",
+        type: notifType,
         createdAt: Date.now(),
         isRead: false,
       },

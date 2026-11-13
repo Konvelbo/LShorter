@@ -758,13 +758,13 @@ export default function LinksPage() {
       return next;
     });
 
-    // 2. Trigger the undo toast with 5-second countdown timer
+    // 2. Trigger the undo toast with 7-second countdown timer
     triggerUndoDelete({
       id: targetId,
       itemType: "link",
       title: "Lien supprimé",
       description: `/${targetSlug}`,
-      duration: 5,
+      duration: 7,
       onExecute: async () => {
         permanentlyDeletedIdsRef.current.add(targetId);
         if (targetSlug) permanentlyDeletedIdsRef.current.add(targetSlug);
@@ -846,13 +846,13 @@ export default function LinksPage() {
     );
     setSelectedLinkIds(new Set());
 
-    // 2. Trigger the undo toast with 5-second countdown timer
+    // 2. Trigger the undo toast with 7-second countdown timer
     triggerUndoDelete({
       id: `bulk_${Date.now()}`,
       itemType: "link",
       title: count > 1 ? `${count} liens supprimés` : "Lien supprimé",
       description: count > 1 ? `${count} liens sélectionnés` : (savedLinks[0]?.slug ? `/${savedLinks[0].slug}` : undefined),
-      duration: 5,
+      duration: 7,
       onExecute: async () => {
         targetIds.forEach((id) => {
           permanentlyDeletedIdsRef.current.add(id);

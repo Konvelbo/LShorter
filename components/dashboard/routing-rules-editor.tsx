@@ -611,6 +611,7 @@ function SortableRuleCard({
   selectClassName,
   optionClassName,
 }: SortableRuleCardProps) {
+  const conditions = Array.isArray(rule?.conditions) ? rule.conditions : [];
   const {
     attributes,
     listeners,
@@ -691,7 +692,7 @@ function SortableRuleCard({
         <div className="flex flex-col gap-4 pt-2 border-t border-zinc-100 dark:border-[#222225]">
           {/* Conditions Block */}
           <div className="flex flex-col gap-2.5">
-            {rule.conditions.map((cond, condIdx) => (
+            {conditions.map((cond, condIdx) => (
               <div
                 key={cond.id}
                 className="p-3 sm:p-2 rounded-[10px] bg-zinc-50 dark:bg-[#141418] border border-zinc-200 dark:border-[#27272f] sm:bg-transparent sm:border-0 flex flex-col gap-2 sm:grid sm:grid-cols-12 sm:gap-2 sm:items-center"
@@ -704,7 +705,7 @@ function SortableRuleCard({
                     </span>
                   </div>
 
-                  {rule.conditions.length > 1 && (
+                  {conditions.length > 1 && (
                     <button
                       type="button"
                       onClick={() => onDeleteCondition(rule.id, cond.id)}
@@ -845,7 +846,7 @@ function SortableRuleCard({
 
                 {/* Desktop Remove Condition Button */}
                 <div className="hidden sm:flex sm:col-span-1 justify-end">
-                  {rule.conditions.length > 1 && (
+                  {conditions.length > 1 && (
                     <button
                       type="button"
                       onClick={() => onDeleteCondition(rule.id, cond.id)}

@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
-import { trackClickAsync, evaluateTargetUrl, detectVisitorGeoAsync } from "@/lib/redirect-engine";
+import {
+  trackClickAsync,
+  evaluateTargetUrl,
+  detectVisitorGeoAsync,
+  mergeLinkWithExtras,
+} from "@/lib/redirect-engine";
 import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
 import { checkRateLimit } from "@/lib/security-utils";
 
@@ -74,6 +79,7 @@ async function resolveLinkData(slug: string, req: Request) {
 
   // Si le worker fournit l'état actif, on met à jour le flag
   if (linkObj) {
+    linkObj = mergeLinkWithExtras(linkObj);
     if (linkObj.is_active !== undefined) {
       isActive = Boolean(
         linkObj.is_active !== 0 && linkObj.is_active !== false,
@@ -84,7 +90,7 @@ async function resolveLinkData(slug: string, req: Request) {
   }
 
   const rawTargetUrl =
-    workerTargetUrl || linkObj?.target_url || linkObj?.targetUrl || null;
+    linkObj?.target_url || linkObj?.targetUrl || workerTargetUrl || null;
 
   if (!rawTargetUrl) {
     return null;
@@ -234,17 +240,6 @@ export async function POST(
       }
     }
 
-    if (!link.isActive) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "LINK_PAUSED",
-          fallbackUrl: `/r/${slug}/paused`,
-        },
-        { status: 403 },
-      );
-    }
-
     if (link.expiresAt && new Date(link.expiresAt).getTime() <= Date.now()) {
       return NextResponse.json(
         {
@@ -272,11 +267,22 @@ export async function POST(
       );
     }
 
+    if (!link.isActive) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "LINK_PAUSED",
+          fallbackUrl: `/r/${slug}/paused`,
+        },
+        { status: 403 },
+      );
+    }
+
     if (!requiredPassword || providedPassword === requiredPassword) {
       // Détection géolocalisation authentique (zéro mock/hardcode)
       const geo = await detectVisitorGeoAsync(req).catch(() => undefined);
       // Enregistrement direct du clic dans Cloudflare D1
-      await trackClickAsync(req, slug, link, geo).catch(() => {});
+      await trackClickAsync(req, slug, link as any, geo, link.targetUrl).catch(() => {});
 
       const isIsolated = Boolean(
         link.isCloaked || (link.pathLockMode && link.pathLockMode !== "off"),

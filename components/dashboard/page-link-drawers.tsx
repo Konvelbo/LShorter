@@ -122,6 +122,15 @@ export const GlobalLinkDrawerHost = React.memo(function GlobalLinkDrawerHost() {
       setInitialUrl(url);
       setIsOpen(true);
     };
+    const onOpenEditDrawer = (e: Event) => {
+      const link = (e as CustomEvent)?.detail?.link;
+      if (link) {
+        setMode("edit");
+        setEditLink(link);
+        setInitialUrl("");
+        setIsOpen(true);
+      }
+    };
     const onCloseDrawer = () => setIsOpen(false);
     const onToggleDrawer = () => {
       setIsOpen((prev) => {
@@ -160,6 +169,7 @@ export const GlobalLinkDrawerHost = React.memo(function GlobalLinkDrawerHost() {
     };
 
     window.addEventListener("lshorter:open-create-drawer", onOpenDrawer);
+    window.addEventListener("lshorter:open-edit-drawer", onOpenEditDrawer);
     window.addEventListener("lshorter:close-create-drawer", onCloseDrawer);
     window.addEventListener("lshorter:toggle-create-drawer", onToggleDrawer);
     window.addEventListener("keydown", handleGlobalKeyDown);
@@ -167,6 +177,7 @@ export const GlobalLinkDrawerHost = React.memo(function GlobalLinkDrawerHost() {
     return () => {
       commandListeners.delete(handleCommand);
       window.removeEventListener("lshorter:open-create-drawer", onOpenDrawer);
+      window.removeEventListener("lshorter:open-edit-drawer", onOpenEditDrawer);
       window.removeEventListener("lshorter:close-create-drawer", onCloseDrawer);
       window.removeEventListener(
         "lshorter:toggle-create-drawer",

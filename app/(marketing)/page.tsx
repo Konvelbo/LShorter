@@ -39,33 +39,46 @@ export const metadata: Metadata = {
     description:
       "Raccourcisseur de lien edge sous 15ms, routage dynamique par pays/appareil, protection PathLock™ (verrouillage de chemin) et analytics de conversion.",
     url: "/",
-    images: ["/api/og?title=LShorter&desc=Edge+URL+Shortener+%26+Smart+Routing"],
+    images: [
+      "/api/og?title=LShorter&desc=Edge+URL+Shortener+%26+Smart+Routing",
+    ],
   },
 };
 
 const ProductSection = dynamic(
-  () => import("@/components/marketing/product-section").then((m) => m.ProductSection),
-  { ssr: true }
+  () =>
+    import("@/components/marketing/product-section").then(
+      (m) => m.ProductSection,
+    ),
+  { ssr: true },
 );
 const TimelineFeatures = dynamic(
-  () => import("@/components/ui/timeline-features").then((m) => m.TimelineFeatures),
-  { ssr: true }
+  () =>
+    import("@/components/ui/timeline-features").then((m) => m.TimelineFeatures),
+  { ssr: true },
 );
 const SecuritySection = dynamic(
-  () => import("@/components/marketing/security-section").then((m) => m.SecuritySection),
-  { ssr: true }
+  () =>
+    import("@/components/marketing/security-section").then(
+      (m) => m.SecuritySection,
+    ),
+  { ssr: true },
 );
 const WhyUsSection = dynamic(
-  () => import("@/components/marketing/why-us-section").then((m) => m.WhyUsSection),
-  { ssr: true }
+  () =>
+    import("@/components/marketing/why-us-section").then((m) => m.WhyUsSection),
+  { ssr: true },
 );
 const AnalyticsSection = dynamic(
-  () => import("@/components/marketing/analytics-section").then((m) => m.AnalyticsSection),
-  { ssr: true }
+  () =>
+    import("@/components/marketing/analytics-section").then(
+      (m) => m.AnalyticsSection,
+    ),
+  { ssr: true },
 );
 const FaqSection = dynamic(
   () => import("@/components/marketing/faq-section").then((m) => m.FaqSection),
-  { ssr: true }
+  { ssr: true },
 );
 
 export default function LandingPage() {

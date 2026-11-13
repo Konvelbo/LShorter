@@ -8,6 +8,219 @@
  * - Full CRUD REST API support (GET, POST, PATCH, PUT, DELETE)
  */
 
+let linksProtectionColumnsEnsured = false;
+
+async function ensureLinksProtectionColumns(db) {
+  if (!db || linksProtectionColumnsEnsured) return;
+  const statements = [
+    "ALTER TABLE links ADD COLUMN is_cloaked INTEGER DEFAULT 0",
+    "ALTER TABLE links ADD COLUMN password TEXT",
+    "ALTER TABLE links ADD COLUMN path_lock_mode TEXT",
+    "ALTER TABLE links ADD COLUMN path_lock_prefix TEXT",
+    "ALTER TABLE links ADD COLUMN path_lock_message TEXT",
+    "ALTER TABLE links ADD COLUMN path_lock_password TEXT",
+    "ALTER TABLE links ADD COLUMN pixels TEXT",
+    "ALTER TABLE links ADD COLUMN expires_at TEXT",
+    "ALTER TABLE links ADD COLUMN max_clicks INTEGER",
+    "ALTER TABLE links ADD COLUMN fallback_url TEXT",
+    "ALTER TABLE links ADD COLUMN ab_variations TEXT",
+    "ALTER TABLE links ADD COLUMN main_weight INTEGER DEFAULT 100",
+    "ALTER TABLE links ADD COLUMN redirect_type TEXT DEFAULT '302'",
+    "ALTER TABLE links ADD COLUMN pass_params INTEGER DEFAULT 1",
+  ];
+  await Promise.allSettled(statements.map((sql) => db.prepare(sql).run().catch(() => {})));
+  linksProtectionColumnsEnsured = true;
+}
+
+function normalizeWorkerUrl(rawUrl) {
+  const trimmed = String(rawUrl || '').trim();
+  if (!trimmed) return '/';
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('/')) {
+    return trimmed;
+  }
+  return `https://${trimmed}`;
+}
+
+function preserveWorkerUtmParams(destUrl, baseTargetUrl) {
+  try {
+    const dest = new URL(normalizeWorkerUrl(destUrl));
+    const base = new URL(normalizeWorkerUrl(baseTargetUrl));
+    base.searchParams.forEach((val, key) => {
+      if (key.toLowerCase().startsWith('utm_') && !dest.searchParams.has(key)) {
+        dest.searchParams.set(key, val);
+      }
+    });
+    return dest.toString();
+  } catch {
+    return normalizeWorkerUrl(destUrl);
+  }
+}
+
+function resolveWorkerAbTargetUrl(link, defaultTarget) {
+  const safeDefault = normalizeWorkerUrl(defaultTarget);
+  let variations = link.abVariations || link.ab_variations;
+  if (typeof variations === 'string') {
+    try { variations = JSON.parse(variations); } catch { variations = []; }
+  }
+  if (!Array.isArray(variations) || variations.length === 0) return safeDefault;
+  const validVars = variations.filter((v) => v && v.url && typeof v.url === 'string' && v.url.trim() && Number(v.weight) > 0);
+  if (validVars.length === 0) return safeDefault;
+  const mainWeight = Number(link.mainWeight ?? link.main_weight ?? 100);
+  const totalWeight = mainWeight + validVars.reduce((sum, v) => sum + Number(v.weight), 0);
+  if (totalWeight <= 0) return safeDefault;
+  const rand = Math.random() * totalWeight;
+  let cumulative = mainWeight;
+  if (rand < cumulative) return safeDefault;
+  for (const v of validVars) {
+    cumulative += Number(v.weight);
+    if (rand < cumulative) return normalizeWorkerUrl(v.url.trim());
+  }
+  return safeDefault;
+}
+
+function escapeWorkerHtml(val) {
+  return String(val || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function normalizeWorkerPixelPlatform(raw) {
+  const v = String(raw || '').trim().toLowerCase();
+  if (v === 'meta' || v === 'facebook' || v === 'fb') return 'meta';
+  if (v === 'google' || v === 'google_tag' || v === 'ga4' || v === 'gtag') return 'google';
+  if (v === 'tiktok' || v === 'tt') return 'tiktok';
+  if (v === 'linkedin' || v === 'li') return 'linkedin';
+  return null;
+}
+
+async function resolveWorkerActivePixels(env, link) {
+  let rawEntries = link.pixels || link.pixel_ids || link.pixelIds || [];
+  if (typeof rawEntries === 'string') {
+    try { rawEntries = JSON.parse(rawEntries); } catch { rawEntries = []; }
+  }
+  if (!Array.isArray(rawEntries) || rawEntries.length === 0) return [];
+
+  const ownerId = String(link.user_id || link.userId || '');
+  const needsLookup = rawEntries.some((e) => typeof e === 'string' || (!e?.pixelId && !e?.pixel_id));
+  const ownerMap = new Map();
+  if (needsLookup && ownerId && env?.LINKS_KV) {
+    try {
+      const cached = await env.LINKS_KV.get(`pixels:${ownerId}`);
+      if (cached) {
+        const list = JSON.parse(cached);
+        if (Array.isArray(list)) {
+          for (const px of list) {
+            if (!px || typeof px !== 'object') continue;
+            if (px.id) ownerMap.set(String(px.id), px);
+            if (px.pixelId || px.pixel_id) ownerMap.set(String(px.pixelId || px.pixel_id), px);
+          }
+        }
+      }
+    } catch {}
+  }
+
+  const out = [];
+  const seen = new Set();
+  for (const entry of rawEntries) {
+    if (!entry) continue;
+    let cand = null;
+    if (typeof entry === 'string') cand = ownerMap.get(entry.trim()) || null;
+    else if (typeof entry === 'object') {
+      const key = String(entry.id || entry.pixelId || entry.pixel_id || '').trim();
+      const matched = key ? ownerMap.get(key) : null;
+      cand = matched ? { ...matched, ...entry } : entry;
+    }
+    if (!cand || cand.isActive === false || cand.is_active === false || cand.is_active === 0) continue;
+    const platform = normalizeWorkerPixelPlatform(cand.platform || cand.type);
+    const pixelId = String(cand.pixelId || cand.pixel_id || '').trim();
+    if (!platform || !/^[A-Za-z0-9_-]{2,64}$/.test(pixelId)) continue;
+    const k = `${platform}:${pixelId}`;
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push({ platform, pixelId });
+  }
+  return out;
+}
+
+function buildWorkerPixelInterstitialHtml(finalUrl, pixels, title) {
+  const safeHref = escapeWorkerHtml(finalUrl);
+  const inlineDest = JSON.stringify(finalUrl).replace(/</g, '\\u003c').replace(/>/g, '\\u003e');
+  const safeTitle = escapeWorkerHtml(title || 'Redirecting...');
+  const snippets = pixels.map((px) => {
+    const idJson = JSON.stringify(px.pixelId).replace(/</g, '\\u003c');
+    const idAttr = encodeURIComponent(px.pixelId);
+    if (px.platform === 'meta') {
+      return `<script>!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init',${idJson});fbq('track','PageView');</script>`;
+    }
+    if (px.platform === 'google') {
+      return `<script async src="https://www.googletagmanager.com/gtag/js?id=${idAttr}"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config',${idJson});</script>`;
+    }
+    if (px.platform === 'tiktok') {
+      return `<script>!function(w,d,t){w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=['page','track','identify','instances','debug','on','off','once','ready','alias','group','enableCookie','disableCookie'];ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.load=function(e){var s=d.createElement('script');s.async=!0;s.src='https://analytics.tiktok.com/i18n/pixel/events.js?sdkid='+encodeURIComponent(e)+'&lib='+t;var a=d.getElementsByTagName('script')[0];a.parentNode.insertBefore(s,a);};ttq.load(${idJson});ttq.page();}(window,document,'ttq');</script>`;
+    }
+    return `<script>window._linkedin_data_partner_ids=window._linkedin_data_partner_ids||[];window._linkedin_data_partner_ids.push(${idJson});(function(l){if(!l){window.lintrk=function(a,b){window.lintrk.q.push([a,b])};window.lintrk.q=[]}var s=document.getElementsByTagName('script')[0];var b=document.createElement('script');b.type='text/javascript';b.async=!0;b.src='https://snap.licdn.com/li.lms-analytics/insight.min.js';s.parentNode.insertBefore(b,s);})(window.lintrk);</script>`;
+  }).join('\n');
+
+  return `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1.0" /><meta name="robots" content="noindex,nofollow" /><title>${safeTitle}</title><meta http-equiv="refresh" content="1;url=${safeHref}" />${snippets}</head><body style="margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#09090b;color:#f4f4f5;font-family:sans-serif;"><div style="text-align:center;"><p>Redirection en cours...</p><a href="${safeHref}" style="color:#60a5fa;">Continuer &rarr;</a></div><script>setTimeout(function(){window.location.replace(${inlineDest});},450);</script></body></html>`;
+}
+
+async function signWorkerWebhookPayload(secretKey, rawBody) {
+  try {
+    const enc = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+      'raw',
+      enc.encode(secretKey || 'whsec_lshorter_default'),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    );
+    const sig = await crypto.subtle.sign('HMAC', key, enc.encode(rawBody));
+    return 'sha256=' + Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, '0')).join('');
+  } catch {
+    return 'sha256=unsigned';
+  }
+}
+
+async function dispatchWorkerWebhooks(env, userId, eventName, data) {
+  if (!env?.LINKS_KV || !userId) return;
+  try {
+    const cached = await env.LINKS_KV.get(`webhooks:${userId}`);
+    if (!cached) return;
+    let webhooks = [];
+    try { webhooks = JSON.parse(cached); } catch { return; }
+    if (!Array.isArray(webhooks) || webhooks.length === 0) return;
+    const rawBody = JSON.stringify({
+      event: eventName,
+      timestamp: new Date().toISOString(),
+      platform: 'LShorter Edge Platform',
+      data,
+    });
+    const matching = webhooks.filter((wh) => {
+      if (!wh || wh.isActive === false || !wh.url) return false;
+      const evs = Array.isArray(wh.events) && wh.events.length > 0 ? wh.events : ['click.created'];
+      return evs.includes('*') || evs.includes(eventName) || (eventName === 'click.created' && evs.includes('click'));
+    });
+    await Promise.allSettled(
+      matching.map(async (wh) => {
+        const sig = await signWorkerWebhookPayload(wh.secretKey || wh.secret_key, rawBody);
+        await fetch(wh.url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-LShorter-Signature': sig,
+            'X-LShorter-Event': eventName,
+            'User-Agent': 'LShorter-Webhook-Delivery/1.0',
+          },
+          body: rawBody,
+        });
+      })
+    );
+  } catch {}
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -42,6 +255,19 @@ export default {
         status,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
+    };
+
+    const putLinkKv = async (slugKey, idKey, obj) => {
+      if (!env.LINKS_KV || !obj) return;
+      const serialized = JSON.stringify(obj);
+      const writes = [];
+      if (slugKey) {
+        writes.push(env.LINKS_KV.put(slugKey, serialized));
+        const lower = slugKey.toLowerCase();
+        if (lower !== slugKey) writes.push(env.LINKS_KV.put(lower, serialized));
+      }
+      if (idKey) writes.push(env.LINKS_KV.put(idKey, serialized));
+      await Promise.allSettled(writes);
     };
 
     const invalidateUserCache = (targetUserId, linkId, targetUserEmail) => {
@@ -243,12 +469,12 @@ export default {
         return Response.redirect(`${proto}://${reqHost}/r/${slug}/not-found`, 307);
       }
 
-      if (link.is_active === 0 || link.isActive === false || link.is_active === '0') {
-        return Response.redirect(`${proto}://${reqHost}/r/${slug}/paused`, 307);
-      }
-
       const expTime = link.expires_at || link.expiresAt;
       if (expTime && new Date(expTime).getTime() <= Date.now()) {
+        const expUserId = link.user_id || link.userId;
+        if (expUserId) {
+          ctx.waitUntil(dispatchWorkerWebhooks(env, expUserId, 'link.expired', { linkId: link.id || slug, slug, expiresAt: expTime }));
+        }
         return Response.redirect(`${proto}://${reqHost}/r/${slug}/expired`, 307);
       }
 
@@ -262,6 +488,10 @@ export default {
           return Response.redirect(finalFallback, 302);
         }
         return Response.redirect(`${proto}://${reqHost}/r/${slug}/expired`, 307);
+      }
+
+      if (link.is_active === 0 || link.isActive === false || link.is_active === '0') {
+        return Response.redirect(`${proto}://${reqHost}/r/${slug}/paused`, 307);
       }
 
       const userAgent = (request.headers.get('user-agent') || '').toLowerCase();
@@ -422,7 +652,8 @@ export default {
         return Response.redirect(`${proto}://${reqHost}/r/${slug}/gate`, 307);
       }
 
-      if (link.is_cloaked || link.isCloaked) {
+      const isPathLocked = Boolean((link.path_lock_mode && link.path_lock_mode !== 'off') || (link.pathLockMode && link.pathLockMode !== 'off'));
+      if (link.is_cloaked || link.isCloaked || isPathLocked) {
         return Response.redirect(`${proto}://${reqHost}/r/${slug}/view`, 307);
       }
 
@@ -568,6 +799,9 @@ export default {
         }
       }
 
+      const baseTargetUrl = link.target_url || link.targetUrl || 'https://lshorter.com';
+      targetUrl = resolveWorkerAbTargetUrl(link, baseTargetUrl);
+
       if (ruleMatchedUrl) {
         targetUrl = ruleMatchedUrl;
       } else if (!routingRules || (Array.isArray(routingRules) && routingRules.length === 0)) {
@@ -584,15 +818,32 @@ export default {
         }
       }
 
+      targetUrl = preserveWorkerUtmParams(targetUrl, baseTargetUrl);
+
+      const passParamsEnabled = link.pass_params !== 0 && link.passParams !== false;
+      if (passParamsEnabled) {
+        try {
+          const destObj = new URL(targetUrl);
+          url.searchParams.forEach((val, key) => {
+            if (!['preview', 'banner', 'inspect', 'debug', 'domain', 'v', '_t', 'cb'].includes(key) && !destObj.searchParams.has(key)) {
+              destObj.searchParams.set(key, val);
+            }
+          });
+          targetUrl = destObj.toString();
+        } catch {}
+      }
+
       const configuredSecret = env.FRONTEND_API_SECRET || env.SECRET || '';
       const isInternalProbe = request.headers.get('x-internal-probe') === '1' || request.headers.get('x-crawler-prewarm') === '1' || (Boolean(configuredSecret) && request.headers.get('x-frontend-secret') === configuredSecret);
       const isPrefetch = (request.headers.get('purpose') || request.headers.get('sec-purpose') || request.headers.get('x-purpose') || request.headers.get('x-moz') || '').includes('prefetch') || (request.headers.get('purpose') || '').includes('preview');
 
-      if (env.DB && !isInternalProbe && !isPrefetch && !isBot) {
+      if (!isInternalProbe && !isPrefetch && !isBot) {
         ctx.waitUntil(
           (async () => {
             try {
-              await env.DB.prepare('UPDATE links SET clicks_count = clicks_count + 1 WHERE (slug = ? OR id = ?) AND (max_clicks IS NULL OR max_clicks = 0 OR clicks_count < max_clicks)').bind(slug, slug).run();
+              if (env.DB) {
+                await env.DB.prepare('UPDATE links SET clicks_count = clicks_count + 1 WHERE (slug = ? OR id = ?) AND (max_clicks IS NULL OR max_clicks = 0 OR clicks_count < max_clicks)').bind(slug, slug).run();
+              }
               if (env.LINKS_KV) {
                 try {
                   const updatedLink = {
@@ -635,29 +886,52 @@ export default {
               else if (userAgent.includes('macintosh') || userAgent.includes('mac os')) detectedOS = 'macOS';
               else if (userAgent.includes('linux')) detectedOS = 'Linux';
 
-              await env.DB.prepare(`
-                INSERT INTO click_events (id, user_id, link_id, slug, ip_masked, country_code, city, device, browser, os, referrer, resolved_url, is_unique, conversion_amount, timestamp)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0, datetime('now'))
-              `).bind(
-                eventId,
-                link.user_id || link.userId || 'usr_default',
-                link.id || slug,
-                slug,
-                ipHash,
-                country,
-                detectedCity,
-                deviceType,
-                detectedBrowser,
-                detectedOS,
-                detectedRef,
-                targetUrl
-              ).run().catch((err) => {
-                console.warn('[Async Click Insert Warning]:', err);
-              });
+              if (env.DB) {
+                await env.DB.prepare(`
+                  INSERT INTO click_events (id, user_id, link_id, slug, ip_masked, country_code, city, device, browser, os, referrer, resolved_url, is_unique, conversion_amount, timestamp)
+                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0, datetime('now'))
+                `).bind(
+                  eventId,
+                  link.user_id || link.userId || 'usr_default',
+                  link.id || slug,
+                  slug,
+                  ipHash,
+                  country,
+                  detectedCity,
+                  deviceType,
+                  detectedBrowser,
+                  detectedOS,
+                  detectedRef,
+                  targetUrl
+                ).run().catch((err) => {
+                  console.warn('[Async Click Insert Warning]:', err);
+                });
+              }
               const clickUserId = link.user_id || link.userId;
               const clickUserEmail = link.user_email || link.userEmail;
               if (clickUserId || clickUserEmail) {
                 invalidateUserCache(clickUserId, link.id || slug, clickUserEmail);
+              }
+              if (clickUserId) {
+                const webhookPayload = {
+                  clickId: eventId,
+                  linkId: link.id || slug,
+                  slug,
+                  destination: targetUrl,
+                  geo: { country, city: detectedCity || 'Unknown' },
+                  device: deviceType,
+                  browser: detectedBrowser,
+                };
+                await dispatchWorkerWebhooks(env, clickUserId, 'click.created', webhookPayload);
+                const maxClicksVal = Number(link.max_clicks ?? link.maxClicks ?? 0);
+                const nextClicksVal = Number(link.clicks_count ?? link.clicks ?? 0) + 1;
+                if (maxClicksVal > 0 && nextClicksVal >= maxClicksVal) {
+                  await dispatchWorkerWebhooks(env, clickUserId, 'link.limit_reached', {
+                    ...webhookPayload,
+                    clicksCount: nextClicksVal,
+                    maxClicks: maxClicksVal,
+                  });
+                }
               }
             } catch (err) {
               console.warn('[Async Click Error]:', err);
@@ -666,7 +940,33 @@ export default {
         );
       }
 
-      return Response.redirect(targetUrl, 302);
+      if (!isBot && !isPrefetch && !isInternalProbe) {
+        const activePixels = await resolveWorkerActivePixels(env, link);
+        if (activePixels.length > 0) {
+          const pxHtml = buildWorkerPixelInterstitialHtml(
+            targetUrl,
+            activePixels,
+            link.og_title || link.ogTitle || link.meta_title || slug
+          );
+          return new Response(pxHtml, {
+            status: 200,
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'text/html; charset=utf-8',
+              'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+              'X-Robots-Tag': 'noindex, nofollow',
+            },
+          });
+        }
+      }
+
+      const redirectCode =
+        link.redirect_type === '301' || link.redirectType === '301'
+          ? 301
+          : link.redirect_type === '307' || link.redirectType === '307'
+            ? 307
+            : 302;
+      return Response.redirect(targetUrl, redirectCode);
     }
 
     // ─── AUTHENTICATION & SECRET VERIFICATION FOR PRIVATE MANAGEMENT ENDPOINTS ───
@@ -882,6 +1182,34 @@ export default {
               const fb = await env.DB.prepare(fbQuery).bind(...fbParams).all();
               results = fb?.results || [];
             }
+            if (env.LINKS_KV && Array.isArray(results) && results.length > 0) {
+              results = await Promise.all(
+                results.map(async (row) => {
+                  if (!row || (row.path_lock_mode !== undefined && row.path_lock_mode !== null)) {
+                    return row;
+                  }
+                  try {
+                    const kvKey = row.slug || row.id;
+                    if (!kvKey) return row;
+                    let cached = await env.LINKS_KV.get(kvKey);
+                    if (!cached && row.slug) cached = await env.LINKS_KV.get(row.slug.toLowerCase());
+                    if (cached && cached !== 'NOT_FOUND') {
+                      const kvObj = JSON.parse(cached);
+                      return {
+                        ...row,
+                        is_cloaked: row.is_cloaked ?? kvObj.is_cloaked,
+                        password: row.password ?? kvObj.password,
+                        path_lock_mode: kvObj.path_lock_mode || kvObj.pathLockMode || 'off',
+                        path_lock_prefix: kvObj.path_lock_prefix ?? kvObj.pathLockPrefix ?? null,
+                        path_lock_message: kvObj.path_lock_message ?? kvObj.pathLockMessage ?? null,
+                        path_lock_password: kvObj.path_lock_password ?? kvObj.pathLockPassword ?? null,
+                      };
+                    }
+                  } catch {}
+                  return row;
+                })
+              );
+            }
             const payload = JSON.stringify({ success: true, data: results });
             if (env.LINKS_KV) {
               ctx.waitUntil(
@@ -914,7 +1242,7 @@ export default {
               const row = await env.DB.prepare('SELECT * FROM links WHERE id = ? OR LOWER(slug) = LOWER(?) LIMIT 1').bind(linkIdOrSlug, linkIdOrSlug).first();
               if (row) {
                 if (env.LINKS_KV && row.slug) {
-                  ctx.waitUntil(env.LINKS_KV.put(row.slug, JSON.stringify(row)));
+                  ctx.waitUntil(putLinkKv(row.slug, row.id, row));
                 }
                 return jsonResponse({ success: true, data: row });
               }
@@ -1050,6 +1378,17 @@ export default {
           const tagsJson = JSON.stringify(parsedTags);
           const rawPixels = body.pixels || body.pixel_ids || body.pixelIds || [];
           const parsedPixels = Array.isArray(rawPixels) ? rawPixels : [];
+          const rawAbVars = body.abVariations !== undefined ? body.abVariations : body.ab_variations;
+          let parsedAbVars = [];
+          if (Array.isArray(rawAbVars)) {
+            parsedAbVars = rawAbVars;
+          } else if (typeof rawAbVars === 'string') {
+            try { parsedAbVars = JSON.parse(rawAbVars); } catch { parsedAbVars = []; }
+          }
+          const abVariationsJson = JSON.stringify(parsedAbVars);
+          const mainWeight = body.mainWeight !== undefined ? Number(body.mainWeight) : (body.main_weight !== undefined ? Number(body.main_weight) : 100);
+          const redirectType = body.redirectType || body.redirect_type || '302';
+          const passParams = body.passParams !== undefined ? Boolean(body.passParams) : (body.pass_params !== undefined ? Boolean(body.pass_params) : true);
 
           const isCloaked = Boolean(body.isCloaked || body.is_cloaked);
           const rawPassword = body.password ? String(body.password).trim() : null;
@@ -1073,6 +1412,14 @@ export default {
             routing_rules: routingRules,
             geo_targeting: geoTargeting,
             device_targeting: deviceTargeting,
+            ab_variations: parsedAbVars,
+            abVariations: parsedAbVars,
+            main_weight: mainWeight,
+            mainWeight,
+            redirect_type: redirectType,
+            redirectType,
+            pass_params: passParams ? 1 : 0,
+            passParams,
             og_image: ogImage,
             ogImage,
             og_title: ogTitle,
@@ -1123,13 +1470,11 @@ export default {
             } catch {}
           }
 
-          if (env.LINKS_KV) {
-            await env.LINKS_KV.put(slug, JSON.stringify(linkObj));
-            if (id) await env.LINKS_KV.put(id, JSON.stringify(linkObj));
-          }
+          await putLinkKv(slug, id, linkObj);
 
           if (env.DB) {
             try {
+              await ensureLinksProtectionColumns(env.DB);
               // 1. Auto-upsert user record to satisfy any foreign key constraint in D1
               if (userId) {
                 try {
@@ -1142,18 +1487,18 @@ export default {
                 } catch {}
               }
 
-              // 2. Insert into links table
+              // 2. Insert into links table (with PathLock, protection & A/B columns)
               try {
                 await env.DB.prepare(`
-                  INSERT INTO links (id, user_id, domain_name, slug, short_url, target_url, clicks_count, is_active, routing_rules, geo_targeting, device_targeting, og_image, og_title, og_description, meta_title, twitter_card, tags, created_at)
-                  VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-                `).bind(id, userId, domainName, slug, shortUrl, targetUrl, isActive, routingRules, geoTargeting, deviceTargeting, ogImage, ogTitle, ogDescription, metaTitle, resolvedTwitterCard, tagsJson).run();
+                  INSERT INTO links (id, user_id, domain_name, slug, short_url, target_url, clicks_count, is_active, routing_rules, geo_targeting, device_targeting, og_image, og_title, og_description, meta_title, twitter_card, tags, is_cloaked, password, path_lock_mode, path_lock_prefix, path_lock_message, path_lock_password, pixels, expires_at, max_clicks, fallback_url, ab_variations, main_weight, redirect_type, pass_params, created_at)
+                  VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+                `).bind(id, userId, domainName, slug, shortUrl, targetUrl, isActive, routingRules, geoTargeting, deviceTargeting, ogImage, ogTitle, ogDescription, metaTitle, resolvedTwitterCard, tagsJson, isCloaked ? 1 : 0, rawPassword, pathLockMode, pathLockPrefix, pathLockMessage, pathLockPassword, JSON.stringify(parsedPixels), expiresAt, maxClicks, fallbackUrl, abVariationsJson, mainWeight, redirectType, passParams ? 1 : 0).run();
               } catch (insColErr) {
                 try {
                   await env.DB.prepare(`
-                    INSERT INTO links (id, user_id, domain_name, slug, short_url, target_url, clicks_count, is_active, routing_rules, geo_targeting, device_targeting, og_image, og_title, og_description, meta_title, tags, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-                  `).bind(id, userId, domainName, slug, shortUrl, targetUrl, isActive, routingRules, geoTargeting, deviceTargeting, ogImage, ogTitle, ogDescription, metaTitle, tagsJson).run().catch(async () => {
+                    INSERT INTO links (id, user_id, domain_name, slug, short_url, target_url, clicks_count, is_active, routing_rules, geo_targeting, device_targeting, og_image, og_title, og_description, meta_title, twitter_card, tags, is_cloaked, password, path_lock_mode, path_lock_prefix, path_lock_message, path_lock_password, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+                  `).bind(id, userId, domainName, slug, shortUrl, targetUrl, isActive, routingRules, geoTargeting, deviceTargeting, ogImage, ogTitle, ogDescription, metaTitle, resolvedTwitterCard, tagsJson, isCloaked ? 1 : 0, rawPassword, pathLockMode, pathLockPrefix, pathLockMessage, pathLockPassword).run().catch(async () => {
                     await env.DB.prepare(`
                       INSERT INTO links (id, user_id, domain_name, slug, short_url, target_url, clicks_count, is_active, routing_rules, geo_targeting, device_targeting, created_at)
                       VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, datetime('now'))
@@ -1179,18 +1524,47 @@ export default {
           const body = await request.json();
           const idOrSlug = linkIdOrSlug || body.id || body.slug;
 
-          let existingLink = null;
+          let d1Row = null;
           if (env.DB && idOrSlug) {
             try {
-              existingLink = await env.DB.prepare('SELECT * FROM links WHERE id = ? OR LOWER(slug) = LOWER(?) LIMIT 1').bind(idOrSlug, idOrSlug).first();
+              d1Row = await env.DB.prepare('SELECT * FROM links WHERE id = ? OR LOWER(slug) = LOWER(?) LIMIT 1').bind(idOrSlug, idOrSlug).first();
             } catch {}
           }
-          if (!existingLink && env.LINKS_KV && (body.slug || idOrSlug)) {
-            try {
-              const cached = await env.LINKS_KV.get(body.slug || idOrSlug);
-              if (cached && cached !== 'NOT_FOUND') existingLink = JSON.parse(cached);
-            } catch {}
+          let kvObj = null;
+          if (env.LINKS_KV) {
+            const kvLookupKeys = [d1Row?.slug, body.slug, idOrSlug]
+              .filter(Boolean)
+              .flatMap((k) => {
+                const s = String(k).trim();
+                const lower = s.toLowerCase();
+                return lower !== s ? [s, lower] : [s];
+              });
+            for (const key of kvLookupKeys) {
+              try {
+                const cached = await env.LINKS_KV.get(key);
+                if (cached && cached !== 'NOT_FOUND') {
+                  kvObj = JSON.parse(cached);
+                  break;
+                }
+              } catch {}
+            }
           }
+          let existingLink = d1Row && kvObj
+            ? {
+                ...kvObj,
+                ...d1Row,
+                is_cloaked: d1Row.is_cloaked !== undefined && d1Row.is_cloaked !== null ? d1Row.is_cloaked : kvObj.is_cloaked,
+                password: d1Row.password !== undefined && d1Row.password !== null ? d1Row.password : kvObj.password,
+                path_lock_mode: d1Row.path_lock_mode ?? kvObj.path_lock_mode,
+                pathLockMode: d1Row.path_lock_mode ?? kvObj.pathLockMode ?? kvObj.path_lock_mode,
+                path_lock_prefix: d1Row.path_lock_prefix ?? kvObj.path_lock_prefix,
+                pathLockPrefix: d1Row.path_lock_prefix ?? kvObj.pathLockPrefix ?? kvObj.path_lock_prefix,
+                path_lock_message: d1Row.path_lock_message ?? kvObj.path_lock_message,
+                pathLockMessage: d1Row.path_lock_message ?? kvObj.pathLockMessage ?? kvObj.path_lock_message,
+                path_lock_password: d1Row.path_lock_password ?? kvObj.path_lock_password,
+                pathLockPassword: d1Row.path_lock_password ?? kvObj.pathLockPassword ?? kvObj.path_lock_password,
+              }
+            : (d1Row || kvObj);
 
           const id = existingLink?.id || body.id || idOrSlug || ('link_' + Date.now());
           const slug = (body.slug || existingLink?.slug || idOrSlug || '').trim();
@@ -1263,6 +1637,27 @@ export default {
             ? (Array.isArray(body.pixelIds) ? body.pixelIds : [])
             : (existingLink?.pixels || existingLink?.pixel_ids || []);
 
+          const rawAbUpdate = body.abVariations !== undefined ? body.abVariations : body.ab_variations;
+          let updatedAbVariations = existingLink?.abVariations ?? existingLink?.ab_variations ?? [];
+          if (rawAbUpdate !== undefined) {
+            if (Array.isArray(rawAbUpdate)) updatedAbVariations = rawAbUpdate;
+            else if (typeof rawAbUpdate === 'string') {
+              try { updatedAbVariations = JSON.parse(rawAbUpdate); } catch { updatedAbVariations = []; }
+            }
+          }
+          const abVariationsJsonUpdate = JSON.stringify(Array.isArray(updatedAbVariations) ? updatedAbVariations : []);
+          const mainWeightUpdate = body.mainWeight !== undefined
+            ? Number(body.mainWeight)
+            : body.main_weight !== undefined
+              ? Number(body.main_weight)
+              : Number(existingLink?.mainWeight ?? existingLink?.main_weight ?? 100);
+          const redirectTypeUpdate = body.redirectType || body.redirect_type || existingLink?.redirectType || existingLink?.redirect_type || '302';
+          const passParamsUpdate = body.passParams !== undefined
+            ? Boolean(body.passParams)
+            : body.pass_params !== undefined
+              ? Boolean(body.pass_params)
+              : (existingLink?.passParams !== false && existingLink?.pass_params !== 0);
+
           const isCloakedUpdate = body.isCloaked !== undefined ? Boolean(body.isCloaked) : (body.is_cloaked !== undefined ? Boolean(body.is_cloaked) : Boolean(existingLink?.is_cloaked || existingLink?.isCloaked));
           const rawPasswordUpdate = body.password !== undefined ? (body.password ? String(body.password).trim() : null) : (existingLink?.password || null);
           const pathLockModeUpdate = body.pathLockMode || body.path_lock_mode || existingLink?.pathLockMode || existingLink?.path_lock_mode || 'off';
@@ -1286,6 +1681,14 @@ export default {
             routing_rules: routingRules,
             geo_targeting: geoTargeting,
             device_targeting: deviceTargeting,
+            ab_variations: updatedAbVariations,
+            abVariations: updatedAbVariations,
+            main_weight: mainWeightUpdate,
+            mainWeight: mainWeightUpdate,
+            redirect_type: redirectTypeUpdate,
+            redirectType: redirectTypeUpdate,
+            pass_params: passParamsUpdate ? 1 : 0,
+            passParams: passParamsUpdate,
             og_image: ogImage,
             ogImage,
             og_title: ogTitle,
@@ -1323,16 +1726,18 @@ export default {
             updated_at: new Date().toISOString(),
           };
 
-          if (env.LINKS_KV) {
-            if (slug) await env.LINKS_KV.put(slug, JSON.stringify(updatedLinkObj));
-            if (id) await env.LINKS_KV.put(id, JSON.stringify(updatedLinkObj));
-            if (existingLink?.slug && existingLink.slug !== slug) {
-              await env.LINKS_KV.delete(existingLink.slug);
+          if (env.LINKS_KV && existingLink?.slug && existingLink.slug !== slug) {
+            await env.LINKS_KV.delete(existingLink.slug);
+            const oldLower = existingLink.slug.toLowerCase();
+            if (oldLower !== existingLink.slug && oldLower !== slug.toLowerCase()) {
+              await env.LINKS_KV.delete(oldLower);
             }
           }
+          await putLinkKv(slug, id, updatedLinkObj);
 
           if (env.DB) {
             try {
+              await ensureLinksProtectionColumns(env.DB);
               let res = null;
               try {
                 res = await env.DB.prepare(`
@@ -1351,6 +1756,20 @@ export default {
                     meta_title = ?,
                     twitter_card = ?,
                     tags = ?,
+                    is_cloaked = ?,
+                    password = ?,
+                    path_lock_mode = ?,
+                    path_lock_prefix = ?,
+                    path_lock_message = ?,
+                    path_lock_password = ?,
+                    pixels = ?,
+                    expires_at = ?,
+                    max_clicks = ?,
+                    fallback_url = ?,
+                    ab_variations = ?,
+                    main_weight = ?,
+                    redirect_type = ?,
+                    pass_params = ?,
                     updated_at = datetime('now')
                   WHERE id = ? OR LOWER(slug) = LOWER(?)
                 `).bind(
@@ -1368,6 +1787,20 @@ export default {
                   metaTitle,
                   resolvedTwitterCard,
                   tagsJson,
+                  isCloakedUpdate ? 1 : 0,
+                  rawPasswordUpdate,
+                  pathLockModeUpdate,
+                  pathLockPrefixUpdate,
+                  pathLockMessageUpdate,
+                  pathLockPasswordUpdate,
+                  JSON.stringify(updatedPixels),
+                  expiresAtUpdate,
+                  maxClicksUpdate,
+                  fallbackUrlUpdate,
+                  abVariationsJsonUpdate,
+                  mainWeightUpdate,
+                  redirectTypeUpdate,
+                  passParamsUpdate ? 1 : 0,
                   id,
                   slug
                 ).run();
@@ -1410,9 +1843,9 @@ export default {
 
               if (!res?.meta?.changes && !existingLink) {
                 await env.DB.prepare(`
-                  INSERT INTO links (id, user_id, domain_name, slug, short_url, target_url, clicks_count, is_active, routing_rules, geo_targeting, device_targeting, og_image, og_title, og_description, meta_title, tags, created_at)
-                  VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-                `).bind(id, userId, domainName, slug, shortUrl, targetUrl, isActive, routingRules, geoTargeting, deviceTargeting, ogImage, ogTitle, ogDescription, metaTitle, tagsJson).run().catch(() => {});
+                  INSERT INTO links (id, user_id, domain_name, slug, short_url, target_url, clicks_count, is_active, routing_rules, geo_targeting, device_targeting, og_image, og_title, og_description, meta_title, tags, is_cloaked, password, path_lock_mode, path_lock_prefix, path_lock_message, path_lock_password, created_at)
+                  VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+                `).bind(id, userId, domainName, slug, shortUrl, targetUrl, isActive, routingRules, geoTargeting, deviceTargeting, ogImage, ogTitle, ogDescription, metaTitle, tagsJson, isCloakedUpdate ? 1 : 0, rawPasswordUpdate, pathLockModeUpdate, pathLockPrefixUpdate, pathLockMessageUpdate, pathLockPasswordUpdate).run().catch(() => {});
               }
             } catch (dbErr) {
               try {
@@ -2483,12 +2916,16 @@ export default {
       if (method === 'POST') {
         try {
           const body = await request.json().catch(() => ({}));
+          const platform = body.platform || body.type || 'meta';
           const newPixel = {
             id: body.id || `px_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
             userId,
             name: body.name || 'Pixel',
-            type: body.type || 'meta',
+            platform,
+            type: body.type || platform,
             pixelId: body.pixelId || body.pixel_id || '',
+            isActive: body.isActive !== false && body.is_active !== false,
+            eventsTrackedCount: 0,
             createdAt: new Date().toISOString(),
           };
           let pixels = [];
@@ -2557,7 +2994,7 @@ export default {
             try { webhooks = JSON.parse(cached); } catch {}
           }
         }
-        return jsonResponse({ success: true, data: webhooks });
+        return jsonResponse({ success: true, data: { webhooks } });
       }
 
       if (method === 'POST') {
@@ -2568,7 +3005,8 @@ export default {
             userId,
             name: body.name || 'Webhook',
             url: body.url || '',
-            events: body.events || ['click'],
+            events: Array.isArray(body.events) && body.events.length > 0 ? body.events : ['click.created'],
+            secretKey: body.secretKey || body.secret_key || '',
             isActive: body.isActive !== false,
             createdAt: new Date().toISOString(),
           };
@@ -2581,7 +3019,7 @@ export default {
             webhooks.unshift(newWebhook);
             await env.LINKS_KV.put(kvKey, JSON.stringify(webhooks));
           }
-          return jsonResponse({ success: true, data: newWebhook }, 201);
+          return jsonResponse({ success: true, data: { webhook: newWebhook } }, 201);
         } catch (err) {
           return jsonResponse({ success: false, error: String(err?.message || err) }, 500);
         }

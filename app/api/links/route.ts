@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
-import { invalidateBotResponseCache } from "@/lib/redirect-engine";
+import {
+  invalidateBotResponseCache,
+  saveLinkExtras,
+  mergeLinkWithExtras,
+} from "@/lib/redirect-engine";
 import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
 import { auth } from "@/auth";
 import { convexHttp as convex } from "@/lib/convex-server";
@@ -91,7 +95,8 @@ export async function GET(req: Request) {
     const mergedList: any[] = [];
 
     // 1. Traitement exclusif des données issues du Worker Cloudflare D1
-    for (const l of workerList) {
+    for (const rawLink of workerList) {
+      const l = mergeLinkWithExtras(rawLink);
       const slugKey = (l.slug || "").toLowerCase();
       seenSlugs.add(slugKey);
 
@@ -358,6 +363,31 @@ export async function POST(req: Request) {
       if (dest && !isSafeHttpUrl(dest)) {
         return NextResponse.json(
           { success: false, error: "Invalid routing rule destination URL. Only HTTP and HTTPS URLs are permitted." },
+          { status: 400 }
+        );
+      }
+    }
+
+    let rawAbVariations: unknown[] = [];
+    const rawAbInput = body.abVariations ?? body.ab_variations;
+    if (Array.isArray(rawAbInput)) {
+      rawAbVariations = rawAbInput;
+    } else if (typeof rawAbInput === "string" && rawAbInput.trim()) {
+      try {
+        const parsedAb = JSON.parse(rawAbInput);
+        if (Array.isArray(parsedAb)) rawAbVariations = parsedAb;
+      } catch {
+        return NextResponse.json(
+          { success: false, error: "Invalid A/B variations payload format." },
+          { status: 400 }
+        );
+      }
+    }
+    for (const variation of rawAbVariations) {
+      const vUrl = String((variation as Record<string, unknown>)?.url || "").trim();
+      if (vUrl && !isSafeHttpUrl(vUrl)) {
+        return NextResponse.json(
+          { success: false, error: "Invalid A/B variation destination URL. Only HTTP and HTTPS URLs are permitted." },
           { status: 400 }
         );
       }
@@ -644,6 +674,7 @@ export async function POST(req: Request) {
 
     const createdSlug = data?.data?.slug || body.slug;
     const createdId = data?.data?.id || body.id;
+    saveLinkExtras({ id: createdId, slug: createdSlug }, workerPayload);
     try {
       if (createdSlug) invalidateBotResponseCache(createdSlug);
       if (createdId) invalidateBotResponseCache(createdId);
@@ -719,6 +750,33 @@ export async function POST(req: Request) {
           geoTargeting: body.geoTargeting ?? body.geo_targeting ?? null,
           deviceTargeting:
             body.deviceTargeting ?? body.device_targeting ?? null,
+          abVariations: body.abVariations ?? body.ab_variations ?? [],
+          ab_variations: body.ab_variations ?? body.abVariations ?? [],
+          mainWeight:
+            body.mainWeight !== undefined
+              ? Number(body.mainWeight)
+              : body.main_weight !== undefined
+                ? Number(body.main_weight)
+                : 100,
+          main_weight:
+            body.main_weight !== undefined
+              ? Number(body.main_weight)
+              : body.mainWeight !== undefined
+                ? Number(body.mainWeight)
+                : 100,
+          redirectType: body.redirectType || body.redirect_type || "302",
+          redirect_type: body.redirect_type || body.redirectType || "302",
+          passParams:
+            body.passParams !== undefined
+              ? Boolean(body.passParams)
+              : body.pass_params !== undefined
+                ? Boolean(body.pass_params)
+                : true,
+          pixels: Array.isArray(body.pixels)
+            ? body.pixels
+            : Array.isArray(body.pixel_ids)
+              ? body.pixel_ids
+              : (data.data as any)?.pixels || [],
           maxClicks:
             body.maxClicks !== undefined ? Number(body.maxClicks) : undefined,
           fallbackUrl: body.fallbackUrl || body.fallback_url || undefined,

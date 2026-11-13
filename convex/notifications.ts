@@ -6,10 +6,18 @@ export const listNotifications = query({
   args: { orgId: v.optional(v.string()) },
   handler: async (ctx, args) => {
     if (!args.orgId) return [];
+    const altOrgId = args.orgId.startsWith("org_")
+      ? args.orgId.replace(/^org_/, "")
+      : `org_${args.orgId}`;
     try {
       const notifs = await ctx.db
         .query("notifications")
-        .filter((q) => q.eq(q.field("orgId"), args.orgId))
+        .filter((q) =>
+          q.or(
+            q.eq(q.field("orgId"), args.orgId),
+            q.eq(q.field("orgId"), altOrgId)
+          )
+        )
         .collect();
 
       return notifs
@@ -27,12 +35,18 @@ export const getUnreadCount = query({
   args: { orgId: v.optional(v.string()) },
   handler: async (ctx, args) => {
     if (!args.orgId) return 0;
+    const altOrgId = args.orgId.startsWith("org_")
+      ? args.orgId.replace(/^org_/, "")
+      : `org_${args.orgId}`;
     try {
       const unread = await ctx.db
         .query("notifications")
         .filter((q) =>
           q.and(
-            q.eq(q.field("orgId"), args.orgId),
+            q.or(
+              q.eq(q.field("orgId"), args.orgId),
+              q.eq(q.field("orgId"), altOrgId)
+            ),
             q.eq(q.field("isRead"), false)
           )
         )
@@ -96,12 +110,18 @@ export const markAsRead = mutation({
 export const markAllAsRead = mutation({
   args: { orgId: v.string() },
   handler: async (ctx, args) => {
+    const altOrgId = args.orgId.startsWith("org_")
+      ? args.orgId.replace(/^org_/, "")
+      : `org_${args.orgId}`;
     try {
       const unread = await ctx.db
         .query("notifications")
         .filter((q) =>
           q.and(
-            q.eq(q.field("orgId"), args.orgId),
+            q.or(
+              q.eq(q.field("orgId"), args.orgId),
+              q.eq(q.field("orgId"), altOrgId)
+            ),
             q.eq(q.field("isRead"), false)
           )
         )
@@ -136,10 +156,18 @@ export const deleteNotification = mutation({
 export const clearAllNotifications = mutation({
   args: { orgId: v.string() },
   handler: async (ctx, args) => {
+    const altOrgId = args.orgId.startsWith("org_")
+      ? args.orgId.replace(/^org_/, "")
+      : `org_${args.orgId}`;
     try {
       const notifs = await ctx.db
         .query("notifications")
-        .filter((q) => q.eq(q.field("orgId"), args.orgId))
+        .filter((q) =>
+          q.or(
+            q.eq(q.field("orgId"), args.orgId),
+            q.eq(q.field("orgId"), altOrgId)
+          )
+        )
         .collect();
 
       for (const notif of notifs) {

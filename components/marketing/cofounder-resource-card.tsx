@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import gsap from "gsap";
 import { DocFeature } from "@/lib/docs-data";
+import { getThemedScreenshotPair } from "@/lib/themed-screenshots";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
 interface CofounderResourceCardProps {
@@ -67,13 +68,27 @@ export function CofounderResourceCard({
           style={{ transform: "translateY(35px) scale(0.92)", opacity: 0 }}
           className="absolute left-6 right-6 top-0 aspect-[16/9] rounded-xl overflow-hidden shadow-2xl border border-[#E4E7EC] dark:border-white/20 bg-neutral-900 z-10 pointer-events-none"
         >
-          <Image
-            src={feature.image}
-            alt={feature.title}
-            fill
-            sizes="(max-width: 768px) 100vw, 360px"
-            className="object-cover"
-          />
+          {(() => {
+            const pair = getThemedScreenshotPair(feature.image);
+            return (
+              <>
+                <Image
+                  src={pair.light}
+                  alt={`${feature.title} (mode clair)`}
+                  fill
+                  sizes="(max-width: 768px) 100vw, 360px"
+                  className="object-cover block dark:hidden"
+                />
+                <Image
+                  src={pair.dark}
+                  alt={`${feature.title} (mode sombre)`}
+                  fill
+                  sizes="(max-width: 768px) 100vw, 360px"
+                  className="object-cover hidden dark:block"
+                />
+              </>
+            );
+          })()}
         </div>
 
         {/* Layer 3: Main Front Card */}

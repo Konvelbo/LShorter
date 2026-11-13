@@ -330,36 +330,45 @@ export function PopulatedState({
     return !isNaN(ts) && ts >= Date.now() - 24 * 3600 * 1000;
   }).length;
 
-  const todayClicksValue =
-    safeLiveClickEvents.length > 0
-      ? todayEventsCount
-      : todayDayEntry && typeof todayDayEntry.clicks === "number"
-        ? todayDayEntry.clicks
-        : 0;
+  const todayClicksValue = Math.max(
+    todayDayEntry && typeof todayDayEntry.clicks === "number"
+      ? todayDayEntry.clicks
+      : 0,
+    safeLiveClickEvents.length > 0 ? todayEventsCount : 0,
+  );
 
   const todayRevenueValue = displayRevenue;
 
+  const rawClicksByMonth = analytics?.clicksByMonth;
+  const rawIncomeByMonth = analytics?.incomeByMonth;
+
   const monthlyBars = useMemo(() => {
-    // DEMO-START: Return pre-calculated monthly distribution if provided
-    if (Array.isArray(analytics?.clicksByMonth) && analytics.clicksByMonth.length === 12) {
-      return analytics.clicksByMonth;
+    if (Array.isArray(rawClicksByMonth) && rawClicksByMonth.length === 12) {
+      return rawClicksByMonth.map(
+        (item: number | { month?: string; value?: number }, idx: number) =>
+          typeof item === "number"
+            ? { month: MONTH_LABELS[idx] ?? `M${idx + 1}`, value: item }
+            : {
+                month: item?.month ?? MONTH_LABELS[idx] ?? `M${idx + 1}`,
+                value: Number(item?.value ?? 0),
+              },
+      );
     }
-    // DEMO-END
 
     const currentMonthIdx = new Date().getMonth();
     const buckets = MONTH_LABELS.map((month) => ({ month, value: 0 }));
 
-    if (safeLiveClickEvents.length > 0) {
-      for (const ev of safeLiveClickEvents) {
-        const d = ev.timestamp ? new Date(ev.timestamp) : new Date();
-        const mIdx = !isNaN(d.getTime()) ? d.getMonth() : currentMonthIdx;
-        buckets[mIdx].value += 1;
-      }
-    } else if (safeClicksByDay.length > 0) {
+    if (safeClicksByDay.length > 0) {
       for (const day of safeClicksByDay) {
         const d = day.date ? new Date(day.date) : new Date();
         const mIdx = !isNaN(d.getTime()) ? d.getMonth() : currentMonthIdx;
         buckets[mIdx].value += Number(day.clicks || 0);
+      }
+    } else if (safeLiveClickEvents.length > 0) {
+      for (const ev of safeLiveClickEvents) {
+        const d = ev.timestamp ? new Date(ev.timestamp) : new Date();
+        const mIdx = !isNaN(d.getTime()) ? d.getMonth() : currentMonthIdx;
+        buckets[mIdx].value += 1;
       }
     }
 
@@ -369,14 +378,28 @@ export function PopulatedState({
     }
 
     return buckets;
-  }, [safeLiveClickEvents, safeClicksByDay, displayTotalClicks, analytics?.clicksByMonth]);
+  }, [safeLiveClickEvents, safeClicksByDay, displayTotalClicks, rawClicksByMonth]);
 
   const monthlyIncomeBars = useMemo(() => {
-    // DEMO-START: Return pre-calculated monthly income distribution if provided
-    if (Array.isArray(analytics?.incomeByMonth) && analytics.incomeByMonth.length === 12) {
-      return analytics.incomeByMonth;
+    if (Array.isArray(rawIncomeByMonth) && rawIncomeByMonth.length === 12) {
+      return rawIncomeByMonth.map(
+        (
+          item: number | { month?: string; value?: number; conversions?: number },
+          idx: number,
+        ) =>
+          typeof item === "number"
+            ? {
+                month: MONTH_LABELS[idx] ?? `M${idx + 1}`,
+                value: item,
+                conversions: item > 0 ? Math.max(1, Math.round(item / 100)) : 0,
+              }
+            : {
+                month: item?.month ?? MONTH_LABELS[idx] ?? `M${idx + 1}`,
+                value: Number(item?.value ?? 0),
+                conversions: Number(item?.conversions ?? 0),
+              },
+      );
     }
-    // DEMO-END
 
     const currentMonthIdx = new Date().getMonth();
     const buckets = MONTH_LABELS.map((month) => ({ month, value: 0, conversions: 0 }));
@@ -401,35 +424,43 @@ export function PopulatedState({
     }
 
     return buckets;
-  }, [safeLiveClickEvents, displayRevenue, analytics?.incomeByMonth]);
+  }, [safeLiveClickEvents, displayRevenue, rawIncomeByMonth]);
 
   const periodMetrics = useMemo(() => {
     const nowMs = Date.now();
-    const cutoffMs =
+    const rawCutoffMs =
       saasPeriod === "Weekly"
         ? nowMs - 7 * 86400 * 1000
         : saasPeriod === "Monthly"
           ? nowMs - 30 * 86400 * 1000
           : nowMs - 365 * 86400 * 1000;
+    // Align day-level comparisons to UTC midnight so YYYY-MM-DD entries aren't excluded mid-day
+    const dayCutoffMs = rawCutoffMs - (rawCutoffMs % 86400000);
 
-    let windowClicks = 0;
+    let clicksFromDays = 0;
+    if (safeClicksByDay.length > 0) {
+      for (const d of safeClicksByDay) {
+        const dtMs = d.date ? new Date(d.date).getTime() : NaN;
+        if (!isNaN(dtMs) && dtMs >= dayCutoffMs) {
+          clicksFromDays += Number(d.clicks || 0);
+        }
+      }
+    }
+
+    let clicksFromEvents = 0;
     if (safeLiveClickEvents.length > 0) {
       for (const ev of safeLiveClickEvents) {
         const dtMs = ev.timestamp ? new Date(ev.timestamp).getTime() : NaN;
-        if (!isNaN(dtMs) && dtMs >= cutoffMs) {
-          windowClicks += 1;
+        if (!isNaN(dtMs) && dtMs >= rawCutoffMs) {
+          clicksFromEvents += 1;
         }
       }
-    } else if (safeClicksByDay.length > 0) {
-      for (const d of safeClicksByDay) {
-        const dtMs = d.date ? new Date(d.date).getTime() : NaN;
-        if (!isNaN(dtMs) && dtMs >= cutoffMs) {
-          windowClicks += Number(d.clicks || 0);
-        }
-      }
-    } else {
-      windowClicks = 0;
     }
+
+    const windowClicks =
+      clicksFromDays > 0
+        ? Math.max(clicksFromDays, clicksFromEvents)
+        : clicksFromEvents;
 
     const effectivePeriodClicks = windowClicks;
     const rev =
@@ -978,13 +1009,13 @@ export function PopulatedState({
       );
     }
 
-    // 2. Trigger the undo toast with 5s countdown timer
+    // 2. Trigger the undo toast with 7s countdown timer
     triggerUndoDelete({
       id: linkId,
       itemType: "link",
       title: "Lien supprimé",
       description: `/${linkSlug}`,
-      duration: 5,
+      duration: 7,
       onExecute: async () => {
         try {
           await cfDeleteLink(linkId, userId, linkSlug, linkObj?.ogImage);
@@ -1034,13 +1065,13 @@ export function PopulatedState({
       return next;
     });
 
-    // 2. Trigger undo delete with 5-second countdown timer
+    // 2. Trigger undo delete with 7-second countdown timer
     triggerUndoDelete({
       id: `bulk_${Date.now()}`,
       itemType: "link",
       title: count > 1 ? `${count} liens supprimés` : "Lien supprimé",
       description: count > 1 ? `${count} liens sélectionnés` : undefined,
-      duration: 5,
+      duration: 7,
       onExecute: async () => {
         try {
           await cfBulkDeleteLinks(targetIds, userId);

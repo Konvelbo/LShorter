@@ -17,7 +17,7 @@ export interface UndoDeleteOptions {
   itemType?: "link" | "api_key" | "domain" | "pixel" | "webhook" | "other";
   title?: string;
   description?: string;
-  duration?: number; // In seconds, default 10
+  duration?: number; // In seconds, default 7
   onExecute: () => Promise<void> | void;
   onCancel?: () => void;
 }
@@ -118,7 +118,7 @@ export function UndoDeleteProvider({ children }: { children: React.ReactNode }) 
         });
       }
 
-      const totalDuration = options.duration && options.duration > 0 ? options.duration : 5;
+      const totalDuration = options.duration && options.duration > 0 ? options.duration : 7;
       const newItem: PendingDeleteItem = {
         ...options,
         remaining: totalDuration,

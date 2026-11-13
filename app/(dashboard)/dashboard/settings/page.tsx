@@ -541,7 +541,7 @@ function SettingsPageContent() {
   const handleDownloadInvoice = (inv: any) => {
     const downloadUrl = inv.downloadUrl || `/api/billing/invoices/${inv.id}/download`;
     window.open(downloadUrl, "_blank");
-    showToast.success(`Téléchargement de la facture officielle Paddle (${inv.number})...`);
+    showToast.success(`Téléchargement de la facture officielle (${inv.number})...`);
   };
 
   // ─── Real Subscription & Auto-Renewal State ───────────────────────────────
@@ -774,7 +774,12 @@ console.log("Top Countries:", topAudience.topCountries);`,
     setIsLoadingWebhooks(true);
     try {
       const res = await cfGetWebhooks(userId);
-      const list = res?.data?.webhooks || [];
+      const rawData = (res as any)?.data;
+      const list = Array.isArray(rawData)
+        ? rawData
+        : Array.isArray(rawData?.webhooks)
+          ? rawData.webhooks
+          : [];
       setWebhooks(list as any);
       try {
         localStorage.setItem(`lshorter_webhooks_${userId}`, JSON.stringify(list));
@@ -809,7 +814,17 @@ console.log("Top Countries:", topAudience.topCountries);`,
     setIsLoadingPixels(true);
     try {
       const res = await cfGetPixels(userId);
-      const list = res?.data?.pixels || [];
+      const rawData = (res as any)?.data;
+      const rawList = Array.isArray(rawData)
+        ? rawData
+        : Array.isArray(rawData?.pixels)
+          ? rawData.pixels
+          : [];
+      const list = rawList.map((px: any) => ({
+        ...px,
+        platform: px?.platform || px?.type || "meta",
+        isActive: px?.isActive !== false && px?.is_active !== false,
+      }));
       setPixels(list);
       try {
         localStorage.setItem(`lshorter_pixels_${userId}`, JSON.stringify(list));
@@ -2427,32 +2442,32 @@ console.log("Top Countries:", topAudience.topCountries);`,
                 </div>
               </div>
 
-              {/* Certified Paddle Invoices Table */}
+              {/* Certified Dodo Payments & Paddle Invoices Table */}
               <div className="flex flex-col gap-3 pt-2">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <h3 className="text-sm font-bold text-zinc-900 dark:text-white flex items-center gap-2">
                       <FileCheck className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
                       <span>
-                        Factures Officielles Paddle (Merchant of Record)
+                        Factures Officielles (Dodo Payments &amp; Paddle)
                       </span>
                     </h3>
                     <p className="text-[11px] text-zinc-500 dark:text-neutral-400 mt-0.5">
-                      Toutes vos transactions, taxes (TVA) et factures certifiées conformes générées par Paddle.
+                      Toutes vos transactions, reçus et factures certifiées conformes générées automatiquement.
                     </p>
                   </div>
                   <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-semibold">
-                    Norme Fiscale HT / TVA / TTC • Reçus & Factures Certifiés
+                    Norme Fiscale HT / TVA / TTC • Reçus &amp; Factures Certifiés
                   </span>
                 </div>
                 {loadingInvoices ? (
                   <div className="py-8 text-center text-xs text-zinc-500 dark:text-neutral-400 bg-white dark:bg-[#111113] rounded-[10px] border border-zinc-200 dark:border-[#222225] flex items-center justify-center gap-2">
                     <RefreshCw className="w-3.5 h-3.5 animate-spin text-brand" />
-                    <span>Synchronisation des factures Paddle en cours...</span>
+                    <span>Synchronisation des factures en cours...</span>
                   </div>
                 ) : invoices.length === 0 ? (
                   <div className="py-8 text-center text-xs text-zinc-500 dark:text-neutral-500 bg-white dark:bg-[#111113] rounded-[10px] border border-zinc-200 dark:border-[#222225]">
-                    Aucune facture disponible. Vos factures officielles Paddle apparaîtront ici dès votre premier abonnement payant.
+                    Aucune facture disponible. Vos factures officielles apparaîtront ici dès votre premier paiement ou renouvellement.
                   </div>
                 ) : (
                   <div className="overflow-x-auto bg-white dark:bg-[#111113] rounded-[10px] border border-zinc-200 dark:border-[#222225]">

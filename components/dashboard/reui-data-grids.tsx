@@ -1336,7 +1336,7 @@ export function LinksReuiDataGrid({
                         id: `bulk_${Date.now()}`,
                         itemType: "link",
                         title: count > 1 ? `${count} liens supprimés` : "Lien supprimé",
-                        duration: 5,
+                        duration: 7,
                         onExecute: async () => {
                           try {
                             await cfBulkDeleteLinks(idsToDelete, effectiveUserId);
@@ -1640,7 +1640,7 @@ export function LinksReuiDataGrid({
                     id: `bulk_${Date.now()}`,
                     itemType: "link",
                     title: count > 1 ? `${count} liens supprimés` : "Lien supprimé",
-                    duration: 5,
+                    duration: 7,
                     onExecute: async () => {
                       try {
                         await cfBulkDeleteLinks(idsToDelete, effectiveUserId);

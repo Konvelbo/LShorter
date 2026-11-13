@@ -34,6 +34,17 @@ const nextConfig: NextConfig = {
     contentDispositionType: "attachment",
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
     formats: ["image/avif", "image/webp"],
+    minimumCacheTTL: 3600,
+    localPatterns: [
+      {
+        pathname: "/screenshots/**",
+        search: "?v=20261111_2",
+      },
+      {
+        pathname: "/**",
+        search: "",
+      },
+    ],
     remotePatterns: [
       {
         protocol: "https",
@@ -242,6 +253,15 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      {
+        source: "/screenshots/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=3600, must-revalidate",
+          },
+        ],
+      },
     ];
   },
   async redirects() {
@@ -271,6 +291,10 @@ const nextConfig: NextConfig = {
       },
       {
         source: "/banners/og",
+        destination: "/api/og",
+      },
+      {
+        source: "/banners/og.png",
         destination: "/api/og",
       },
       {

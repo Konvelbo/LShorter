@@ -7,12 +7,31 @@ export const listInvoices = query({
   handler: async (ctx, args) => {
     if (!args.orgId) return [];
     try {
-      const items = await ctx.db
-        .query("invoices")
-        .filter((q) => q.eq(q.field("orgId"), args.orgId))
-        .collect();
+      const altOrgId = args.orgId.startsWith("org_")
+        ? args.orgId.replace(/^org_/, "")
+        : `org_${args.orgId}`;
 
-      return items.sort((a, b) => ((b.createdAt || b._creationTime || 0) - (a.createdAt || a._creationTime || 0)));
+      const [directItems, altItems] = await Promise.all([
+        ctx.db
+          .query("invoices")
+          .withIndex("by_orgId", (q) => q.eq("orgId", args.orgId!))
+          .collect(),
+        altOrgId !== args.orgId
+          ? ctx.db
+              .query("invoices")
+              .withIndex("by_orgId", (q) => q.eq("orgId", altOrgId))
+              .collect()
+          : Promise.resolve([]),
+      ]);
+
+      const merged = new Map<string, (typeof directItems)[number]>();
+      for (const item of [...directItems, ...altItems]) {
+        merged.set(String(item._id), item);
+      }
+
+      return Array.from(merged.values()).sort(
+        (a, b) => (b.createdAt || b._creationTime || 0) - (a.createdAt || a._creationTime || 0)
+      );
     } catch (err) {
       console.warn("[invoices:listInvoices] Fallback catch:", err);
       return [];
@@ -25,11 +44,10 @@ export const getInvoiceByNumber = query({
   args: { invoiceNumber: v.string() },
   handler: async (ctx, args) => {
     try {
-      const invoices = await ctx.db
+      return await ctx.db
         .query("invoices")
-        .filter((q) => q.eq(q.field("invoiceNumber"), args.invoiceNumber))
-        .collect();
-      return invoices[0] || null;
+        .withIndex("by_invoiceNumber", (q) => q.eq("invoiceNumber", args.invoiceNumber))
+        .first();
     } catch (err) {
       console.warn("[invoices:getInvoiceByNumber] Fallback catch:", err);
       return null;
@@ -56,11 +74,24 @@ export const createInvoice = mutation({
     try {
       const existing = await ctx.db
         .query("invoices")
-        .filter((q) => q.eq(q.field("invoiceNumber"), args.invoiceNumber))
-        .collect();
+        .withIndex("by_invoiceNumber", (q) => q.eq("invoiceNumber", args.invoiceNumber))
+        .first();
 
-      if (existing.length > 0) {
-        return { id: existing[0]._id, exists: true };
+      if (existing) {
+        const patchData: { status?: string; pdfUrl?: string; amountPaid?: number } = {};
+        if (args.status && args.status !== existing.status && existing.status !== "PAID") {
+          patchData.status = args.status;
+        }
+        if (args.pdfUrl && !existing.pdfUrl) {
+          patchData.pdfUrl = args.pdfUrl;
+        }
+        if (args.amountPaid > 0 && !existing.amountPaid) {
+          patchData.amountPaid = args.amountPaid;
+        }
+        if (Object.keys(patchData).length > 0) {
+          await ctx.db.patch(existing._id, patchData);
+        }
+        return { id: existing._id, exists: true };
       }
 
       const id = await ctx.db.insert("invoices", {

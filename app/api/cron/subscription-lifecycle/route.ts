@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { convexHttp as convex } from "@/lib/convex-server";
 import { api } from "@/convex/_generated/api";
+import { getDodoPaymentsClient } from "@/lib/dodo/dodo-server";
+import { getPaddleInstance } from "@/lib/paddle/paddle-server";
+import { syncUserToCloudflare } from "@/app/actions/sync-user";
 import {
   sendSubscriptionExpiringAlertEmail,
   sendGracePeriodAlertEmail,
@@ -15,15 +18,16 @@ import { FRONTEND_SECRET } from "@/lib/backend-config";
  * Execution: Daily at 00:00 UTC (or triggered on demand via POST/GET)
  *
  * Rules:
- * 1. J-5 (5 days remaining): In-App Warning Notification + Email reminder
- * 2. J-3 (3 days remaining): In-App Warning Notification + Email reminder
- * 3. Grace Period (0 to 24h past expiration):
- *    - Message: "On vous a accordé 1 jour pour vous remettre à jour"
- *    - In-App Alert Notification + Email
- *    - Subscription and active features remain operational for 24h
- * 4. Downgrade (+24h past expiration without renewal):
- *    - Downgrade plan to FREE in Convex (subscriptions + users)
- *    - In-App Info Notification + Email
+ * 1. Pre-renewal Email Reminders (J-3, J-2, J-1):
+ *    - Send email reminder at 3 days, 2 days, and 1 day before renewal
+ *    - Keep frontend grace banner hidden while subscription is active
+ * 2. Renewal Failure / Grace Period (24h / 1 day):
+ *    - Triggered immediately on failure webhook or at expiration without renewal
+ *    - In-App Alert Notification + Email warning (24h left before Freemium)
+ *    - Top grace banner becomes visible for 24h
+ * 3. Downgrade to Freemium (after 24h without renewal):
+ *    - Downgrade plan to FREE in Convex + Cloudflare D1
+ *    - In-App Notification + Email ("Votre plan a été ramené en plan Freemium")
  *    - Existing short links continue redirecting normally
  * ─────────────────────────────────────────────────────────────────────────────
  */
@@ -83,12 +87,74 @@ async function handleLifecycleProcess(req: Request) {
     }
 
     const now = Date.now();
+    const dodoClient = getDodoPaymentsClient();
+    const paddleClient = getPaddleInstance();
     const results = {
       evaluated: activeSubs.length,
-      notified5Days: 0,
+      renewedViaDodo: 0,
+      renewedViaPaddle: 0,
       notified3Days: 0,
+      notified2Days: 0,
+      notified1Day: 0,
       enteredGracePeriod: 0,
       downgradedToFree: 0,
+    };
+
+    const syncConfirmedRenewal = async (opts: {
+      sub: any;
+      cleanUserId: string;
+      userEmail?: string;
+      userName: string;
+      planName: string;
+      provider: "dodo" | "paddle";
+      providerLabel: string;
+      prevBillingMs: number;
+      nextBillingMs: number;
+      cancelAtPeriodEnd: boolean;
+    }) => {
+      await convex.mutation(subscriptionsApi.upsertSubscription, {
+        orgId: opts.sub.orgId,
+        provider: opts.provider,
+        providerSubscriptionId: opts.sub.providerSubscriptionId,
+        currentPeriodStart: opts.prevBillingMs,
+        currentPeriodEnd: opts.nextBillingMs,
+        cancelAtPeriodEnd: opts.cancelAtPeriodEnd,
+        plan: opts.planName,
+        cycle: opts.sub.cycle || "MONTHLY",
+      });
+
+      if (opts.cleanUserId) {
+        await convex
+          .mutation(usersApi.updatePlan, {
+            userId: opts.cleanUserId,
+            plan: opts.planName,
+          })
+          .catch((uPlanErr) =>
+            console.warn("[Lifecycle] Convex updatePlan warning:", uPlanErr)
+          );
+        if (opts.userEmail) {
+          await syncUserToCloudflare({
+            id: opts.cleanUserId,
+            name: opts.userName || opts.cleanUserId,
+            email: opts.userEmail,
+            plan: opts.planName as "FREE" | "FREEMIUM" | "PRO" | "BUSINESS" | "ENTERPRISE",
+          }).catch((e) =>
+            console.warn("[Lifecycle] Cloudflare plan sync error:", e)
+          );
+        }
+      }
+
+      try {
+        await convex.mutation(notificationsApi.createNotification, {
+          orgId: opts.sub.orgId,
+          title: "Abonnement renouvelé avec succès",
+          message: `Votre abonnement ${opts.planName} a été renouvelé automatiquement via ${opts.providerLabel} jusqu'au ${new Date(opts.nextBillingMs).toLocaleDateString("fr-FR")}.`,
+          type: "SUCCESS",
+          linkUrl: "/dashboard/settings?tab=billing",
+        });
+      } catch (notifErr) {
+        console.warn("[Lifecycle] In-app renewal notification error:", notifErr);
+      }
     };
 
     for (const sub of activeSubs) {
@@ -119,23 +185,127 @@ async function handleLifecycleProcess(req: Request) {
       const lastAlert = sub.lastLifecycleAlert || "";
 
       // ───────────────────────────────────────────────────────────────────────
-      // CASE 4: Grace Period Expired (+24h without renewal) -> Downgrade to FREE
+      // CASE 0: Provider Auto-Renewal Reconciliation at Period End (Dodo & Paddle)
+      // Verifies provider status before entering grace period or downgrading so
+      // active recurring subscriptions never falsely lose access due to delayed webhooks.
       // ───────────────────────────────────────────────────────────────────────
-      const graceEndTimestamp =
-        sub.gracePeriodEndsAt || currentPeriodEnd + 24 * 60 * 60 * 1000;
+      if (now >= currentPeriodEnd && sub.providerSubscriptionId) {
+        let transientProviderError = false;
+        if (sub.provider === "dodo" && dodoClient) {
+          try {
+            const dodoSub = await dodoClient.subscriptions.retrieve(sub.providerSubscriptionId);
+            const nextBillingMs = dodoSub?.next_billing_date
+              ? new Date(dodoSub.next_billing_date).getTime()
+              : NaN;
 
-      if (now >= graceEndTimestamp && sub.lifecycleStatus === "GRACE_PERIOD") {
+            if (
+              dodoSub?.status === "active" &&
+              !Number.isNaN(nextBillingMs) &&
+              nextBillingMs > now &&
+              nextBillingMs > currentPeriodEnd
+            ) {
+              const prevBillingMs = dodoSub.previous_billing_date
+                ? new Date(dodoSub.previous_billing_date).getTime()
+                : currentPeriodEnd;
+              await syncConfirmedRenewal({
+                sub,
+                cleanUserId,
+                userEmail,
+                userName,
+                planName,
+                provider: "dodo",
+                providerLabel: "Dodo Payments",
+                prevBillingMs: Number.isNaN(prevBillingMs) ? currentPeriodEnd : prevBillingMs,
+                nextBillingMs,
+                cancelAtPeriodEnd: Boolean(dodoSub.cancel_at_next_billing_date),
+              });
+              results.renewedViaDodo++;
+              continue;
+            }
+          } catch (dodoErr: any) {
+            const status = dodoErr?.status ?? dodoErr?.statusCode;
+            if (status !== 404 && !sub.cancelAtPeriodEnd) {
+              transientProviderError = true;
+            }
+            console.warn(`[Lifecycle] Failed to retrieve Dodo subscription ${sub.providerSubscriptionId}:`, dodoErr);
+          }
+        } else if (sub.provider !== "dodo" && paddleClient && sub.providerSubscriptionId.startsWith("sub_")) {
+          try {
+            const paddleSub = await paddleClient.subscriptions.get(sub.providerSubscriptionId);
+            const nextBillingMs = paddleSub?.currentBillingPeriod?.endsAt
+              ? new Date(paddleSub.currentBillingPeriod.endsAt).getTime()
+              : NaN;
+            if (
+              paddleSub &&
+              (paddleSub.status === "active" || paddleSub.status === "trialing") &&
+              !Number.isNaN(nextBillingMs) &&
+              nextBillingMs > now &&
+              nextBillingMs > currentPeriodEnd
+            ) {
+              const prevBillingMs = paddleSub.currentBillingPeriod?.startsAt
+                ? new Date(paddleSub.currentBillingPeriod.startsAt).getTime()
+                : currentPeriodEnd;
+              await syncConfirmedRenewal({
+                sub,
+                cleanUserId,
+                userEmail,
+                userName,
+                planName,
+                provider: "paddle",
+                providerLabel: "Paddle",
+                prevBillingMs: Number.isNaN(prevBillingMs) ? currentPeriodEnd : prevBillingMs,
+                nextBillingMs,
+                cancelAtPeriodEnd: paddleSub.scheduledChange?.action === "cancel",
+              });
+              results.renewedViaPaddle++;
+              continue;
+            }
+          } catch (paddleErr: any) {
+            const status = paddleErr?.status ?? paddleErr?.statusCode;
+            if (status !== 404 && !sub.cancelAtPeriodEnd) {
+              transientProviderError = true;
+            }
+            console.warn(`[Lifecycle] Failed to retrieve Paddle subscription ${sub.providerSubscriptionId}:`, paddleErr);
+          }
+        }
+
+        if (transientProviderError) {
+          continue;
+        }
+      }
+
+      // ───────────────────────────────────────────────────────────────────────
+      // CASE 4: Grace Period Expired (+24h without renewal) -> Downgrade to Freemium (FREE)
+      // Must ONLY execute after subscription actually entered GRACE_PERIOD with a deadline.
+      // ───────────────────────────────────────────────────────────────────────
+      const inRecordedGrace =
+        sub.lifecycleStatus === "GRACE_PERIOD" &&
+        typeof sub.gracePeriodEndsAt === "number";
+
+      if (inRecordedGrace && now >= sub.gracePeriodEndsAt) {
         // Execute downgrade in Convex (subscription + users table)
         await convex.mutation(subscriptionsApi.downgradeSubscriptionToFree, {
           subscriptionId: sub._id,
         });
 
+        // Sync FREE plan limits to Cloudflare D1 Edge
+        if (cleanUserId && userEmail) {
+          await syncUserToCloudflare({
+            id: cleanUserId,
+            name: userName || cleanUserId,
+            email: userEmail,
+            plan: "FREE",
+          }).catch((cfErr) =>
+            console.warn("[Lifecycle] Cloudflare downgrade sync error:", cfErr)
+          );
+        }
+
         // In-App Notification
         try {
           await convex.mutation(notificationsApi.createNotification, {
             orgId: sub.orgId,
-            title: "ℹ️ Votre compte est repassé en plan Gratuit",
-            message: `La période de grâce de 1 jour accordée pour votre forfait ${planName} est expirée. Vos liens continuent de fonctionner sans interruption.`,
+            title: "ℹ️ Plan ramené en plan Freemium",
+            message: `Le délai de 24h pour renouveler votre abonnement ${planName} est arrivé à échéance sans renouvellement. Votre plan a été ramené en plan Freemium (FREE). Vos liens continuent de fonctionner.`,
             type: "INFO",
             linkUrl: "/dashboard/pricing",
           });
@@ -162,24 +332,34 @@ async function handleLifecycleProcess(req: Request) {
       }
 
       // ───────────────────────────────────────────────────────────────────────
-      // CASE 3: Subscription Period Reached 0 -> Activate 1-Day Grace Period
+      // CASE 3: Renewal Failure / Period Ended -> 24h (1-Day) Grace Period
       // ───────────────────────────────────────────────────────────────────────
-      if (now >= currentPeriodEnd && now < graceEndTimestamp) {
+      const activeGraceDeadline =
+        typeof sub.gracePeriodEndsAt === "number" ? sub.gracePeriodEndsAt : 0;
+      const needsGraceActivation =
+        sub.lifecycleStatus !== "GRACE_PERIOD" && now >= currentPeriodEnd;
+      const inGraceWindow =
+        (sub.lifecycleStatus === "GRACE_PERIOD" &&
+          (!activeGraceDeadline || now < activeGraceDeadline)) ||
+        needsGraceActivation;
+
+      if (inGraceWindow) {
         if (lastAlert !== "GRACE_PERIOD" && lastAlert !== "DOWNGRADED") {
-          // Record Grace Period in Convex
+          const full24hGraceEndsAt = now + 24 * 60 * 60 * 1000;
+          // Record Grace Period in Convex with a full 24h window from notification dispatch
           await convex.mutation(subscriptionsApi.recordLifecycleAlert, {
             subscriptionId: sub._id,
             stage: "GRACE_PERIOD",
             lifecycleStatus: "GRACE_PERIOD",
-            gracePeriodEndsAt: graceEndTimestamp,
+            gracePeriodEndsAt: full24hGraceEndsAt,
           });
 
-          // In-App Notification with exact required message
+          // In-App Notification
           try {
             await convex.mutation(notificationsApi.createNotification, {
               orgId: sub.orgId,
-              title: "⏳ Période de grâce active (24h)",
-              message: `Votre abonnement est arrivé à échéance. On vous a accordé 1 jour pour vous remettre à jour avant le passage au plan gratuit.`,
+              title: "⚠️ Échec de renouvellement — 24h restantes",
+              message: `Le renouvellement de votre abonnement ${planName} a échoué. Il vous reste 24h pour renouveler votre abonnement avant que votre plan soit ramené en Freemium.`,
               type: "ALERT",
               linkUrl: "/dashboard/pricing",
             });
@@ -195,6 +375,7 @@ async function handleLifecycleProcess(req: Request) {
                 name: userName,
                 plan: planName,
                 renewUrl: "https://lsho.cc/dashboard/pricing",
+                isPaymentFailure: true,
               });
             } catch (mailErr) {
               console.error("[Lifecycle] Email grace error:", mailErr);
@@ -207,98 +388,67 @@ async function handleLifecycleProcess(req: Request) {
       }
 
       // ───────────────────────────────────────────────────────────────────────
-      // CASE 2: J-3 Alert (<= 3 days remaining and > 0)
+      // CASE 1: Pre-Renewal Email Reminders (J-3, J-2, J-1 — UI Banner stays hidden)
       // ───────────────────────────────────────────────────────────────────────
-      if (daysRemaining <= 3 && daysRemaining > 0) {
-        if (
-          lastAlert !== "3_DAYS" &&
-          lastAlert !== "GRACE_PERIOD" &&
-          lastAlert !== "DOWNGRADED"
-        ) {
-          await convex.mutation(subscriptionsApi.recordLifecycleAlert, {
-            subscriptionId: sub._id,
-            stage: "3_DAYS",
-            lifecycleStatus: "EXPIRING",
-          });
-
-          // In-App Notification
-          try {
-            await convex.mutation(notificationsApi.createNotification, {
-              orgId: sub.orgId,
-              title: "⚠️ Plus que 3 jours restants",
-              message: `Votre abonnement ${planName} se termine dans 3 jours. Renouvelez dès maintenant pour conserver vos quotas et domaines personnalisés.`,
-              type: "WARNING",
-              linkUrl: "/dashboard/pricing",
-            });
-          } catch (notifErr) {
-            console.warn("[Lifecycle] In-app 3-day notification error:", notifErr);
-          }
-
-          // Email Notification
-          if (userEmail) {
-            try {
-              await sendSubscriptionExpiringAlertEmail({
-                to: userEmail,
-                name: userName,
-                plan: planName,
-                daysRemaining: 3,
-                renewUrl: "https://lsho.cc/dashboard/pricing",
-              });
-            } catch (mailErr) {
-              console.error("[Lifecycle] Email 3-day error:", mailErr);
-            }
-          }
-
-          results.notified3Days++;
+      const reminderConfig: Record<
+        number,
+        {
+          stage: "3_DAYS" | "2_DAYS" | "1_DAY";
+          skippedIf: string[];
+          counterKey: "notified3Days" | "notified2Days" | "notified1Day";
         }
-        continue;
-      }
+      > = {
+        3: {
+          stage: "3_DAYS",
+          skippedIf: ["3_DAYS", "2_DAYS", "1_DAY", "GRACE_PERIOD", "DOWNGRADED"],
+          counterKey: "notified3Days",
+        },
+        2: {
+          stage: "2_DAYS",
+          skippedIf: ["2_DAYS", "1_DAY", "GRACE_PERIOD", "DOWNGRADED"],
+          counterKey: "notified2Days",
+        },
+        1: {
+          stage: "1_DAY",
+          skippedIf: ["1_DAY", "GRACE_PERIOD", "DOWNGRADED"],
+          counterKey: "notified1Day",
+        },
+      };
 
-      // ───────────────────────────────────────────────────────────────────────
-      // CASE 1: J-5 Alert (<= 5 days remaining and > 3)
-      // ───────────────────────────────────────────────────────────────────────
-      if (daysRemaining <= 5 && daysRemaining > 3) {
-        if (
-          lastAlert !== "5_DAYS" &&
-          lastAlert !== "3_DAYS" &&
-          lastAlert !== "GRACE_PERIOD" &&
-          lastAlert !== "DOWNGRADED"
-        ) {
+      const reminder =
+        daysRemaining >= 1 && daysRemaining <= 3
+          ? reminderConfig[daysRemaining]
+          : undefined;
+
+      if (reminder) {
+        if (!reminder.skippedIf.includes(lastAlert)) {
+          const isAutoRenew =
+            Boolean(sub.providerSubscriptionId) && !sub.cancelAtPeriodEnd;
+
           await convex.mutation(subscriptionsApi.recordLifecycleAlert, {
             subscriptionId: sub._id,
-            stage: "5_DAYS",
-            lifecycleStatus: "EXPIRING",
+            stage: reminder.stage,
+            lifecycleStatus: isAutoRenew ? "ACTIVE" : "EXPIRING",
           });
 
-          // In-App Notification
-          try {
-            await convex.mutation(notificationsApi.createNotification, {
-              orgId: sub.orgId,
-              title: "⚠️ Votre abonnement expire dans 5 jours",
-              message: `Il vous reste 5 jours d'accès complet à votre forfait ${planName}. Pensez à renouveler pour conserver vos quotas et fonctionnalités avancées.`,
-              type: "WARNING",
-              linkUrl: "/dashboard/pricing",
-            });
-          } catch (notifErr) {
-            console.warn("[Lifecycle] In-app 5-day notification error:", notifErr);
-          }
-
-          // Email Notification
           if (userEmail) {
             try {
               await sendSubscriptionExpiringAlertEmail({
                 to: userEmail,
                 name: userName,
                 plan: planName,
-                daysRemaining: 5,
-                renewUrl: "https://lsho.cc/dashboard/pricing",
+                daysRemaining,
+                isAutoRenew,
+                renewUrl: isAutoRenew
+                  ? "https://lsho.cc/dashboard/settings?tab=billing"
+                  : "https://lsho.cc/dashboard/pricing",
               });
             } catch (mailErr) {
-              console.error("[Lifecycle] Email 5-day error:", mailErr);
+              console.error(`[Lifecycle] Email J-${daysRemaining} error:`, mailErr);
             }
           }
 
-          results.notified5Days++;
+          results[reminder.counterKey]++;
         }
         continue;
       }

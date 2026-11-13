@@ -1,5 +1,7 @@
 import { LinkMetadata } from "./types";
 import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
+import { mergeLinkWithExtras } from "./link-extras-store";
+import { dispatchUserWebhooks } from "./webhooks";
 
 export async function fetchWorkerLink(slug: string): Promise<LinkMetadata | null> {
   try {
@@ -18,7 +20,7 @@ export async function fetchWorkerLink(slug: string): Promise<LinkMetadata | null
       const singleJson = await singleRes.json().catch(() => null);
       const found = singleJson?.data || singleJson;
       if (found && (found.target_url || found.targetUrl)) {
-        return found;
+        return mergeLinkWithExtras(found);
       }
     }
 
@@ -33,12 +35,12 @@ export async function fetchWorkerLink(slug: string): Promise<LinkMetadata | null
     if (listRes && listRes.ok) {
       const data = await listRes.json().catch(() => null);
       const list = Array.isArray(data?.data) ? data.data : [];
-      return (
+      const matched =
         list.find(
           (l: any) =>
             l.slug?.toLowerCase() === slug.toLowerCase() || l.id === slug,
-        ) || null
-      );
+        ) || null;
+      return matched ? mergeLinkWithExtras(matched) : null;
     }
   } catch (err) {
     console.warn("[Worker Link Lookup error]:", err);
@@ -48,6 +50,15 @@ export async function fetchWorkerLink(slug: string): Promise<LinkMetadata | null
 
 export async function markLinkExpiredAsync(linkIdOrSlug: string, linkMeta?: any): Promise<void> {
   try {
+    const ownerUserId = String(linkMeta?.userId || linkMeta?.user_id || "");
+    if (ownerUserId) {
+      dispatchUserWebhooks(ownerUserId, "link.expired", {
+        linkId: linkMeta?.id || linkIdOrSlug,
+        slug: linkMeta?.slug || linkIdOrSlug,
+        expiresAt: linkMeta?.expires_at || linkMeta?.expiresAt || null,
+      }).catch(() => {});
+    }
+
     fetch(`${WORKER_URL}/api/v1/links/${encodeURIComponent(linkIdOrSlug)}`, {
       method: "PATCH",
       headers: {

@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { withScreenshotCacheBuster } from "@/lib/themed-screenshots";
 import gsap from "gsap";
 import { useSession } from "next-auth/react";
 import {
@@ -601,9 +602,7 @@ export function HeroSection2() {
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 rounded-[12px] bg-[#F9FAFB] dark:bg-white/5 border border-[#E4E7EC] dark:border-white/10 px-4.5 py-2.5 text-[12px] font-mono text-[#475467] dark:text-zinc-300 will-change-transform cursor-pointer hover:border-[#465FFF] transition-colors"
               >
                 <Terminal className="sdk-icon w-3.5 h-3.5 text-[#465FFF] shrink-0 will-change-transform" />
-                <span className="truncate">
-                  POST /v1/links • 11ms Edge API
-                </span>
+                <span className="truncate">POST /v1/links • 11ms Edge API</span>
                 {copiedPrompt ? (
                   <Check className="w-3.5 h-3.5 text-[#12B76A] shrink-0" />
                 ) : (
@@ -632,14 +631,25 @@ export function HeroSection2() {
           </div>
 
           <div className="relative w-full bg-[#F9FAFB] dark:bg-[#101828]">
+            {/* Light Mode Showcase */}
             <Image
-              src="/screenshots/dashboard/dashboardwithsidbare.webp"
-              alt="LShorter SaaS Dashboard Preview"
+              src={withScreenshotCacheBuster("/screenshots/dashboard/dashboardwithsidbare_light1.webp")}
+              alt="LShorter SaaS Dashboard Preview (Light Mode)"
               width={1847}
               height={1013}
               priority
               sizes="(max-width: 1280px) 100vw, 1240px"
-              className="w-full h-auto block transform-gpu"
+              className="w-full h-auto block dark:hidden transform-gpu"
+            />
+            {/* Dark Mode Showcase */}
+            <Image
+              src={withScreenshotCacheBuster("/screenshots/dashboard/dashboardwithsidbare_dark1.webp")}
+              alt="LShorter SaaS Dashboard Preview (Dark Mode)"
+              width={1847}
+              height={1013}
+              priority
+              sizes="(max-width: 1280px) 100vw, 1240px"
+              className="w-full h-auto hidden dark:block transform-gpu"
             />
           </div>
         </div>

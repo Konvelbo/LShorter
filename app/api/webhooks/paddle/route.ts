@@ -132,6 +132,19 @@ export async function POST(request: NextRequest) {
         const customData = (sub.customData as any) || {};
         const orgId = customData.orgId || (customData.userId ? `org_${customData.userId}` : "default");
 
+        if (sub.status === "past_due") {
+          try {
+            await convex.mutation(api.subscriptions.markSubscriptionGracePeriod, {
+              providerSubscriptionId: sub.id,
+              orgId: orgId !== "default" ? orgId : undefined,
+              gracePeriodEndsAt: Date.now() + 24 * 60 * 60 * 1000,
+            });
+          } catch (graceErr) {
+            console.error("[Paddle Webhook] Error marking subscription past_due:", graceErr);
+          }
+          break;
+        }
+
         try {
           await convex.mutation(api.subscriptions.upsertSubscription, {
             orgId,
@@ -149,6 +162,22 @@ export async function POST(request: NextRequest) {
           });
         } catch (subErr) {
           console.error("[Paddle Webhook] Error recording subscription:", subErr);
+        }
+        break;
+      }
+
+      case EventName.SubscriptionPastDue: {
+        const sub = event.data;
+        const customData = (sub.customData as any) || {};
+        const orgId = customData.orgId || (customData.userId ? `org_${customData.userId}` : undefined);
+        try {
+          await convex.mutation(api.subscriptions.markSubscriptionGracePeriod, {
+            providerSubscriptionId: sub.id,
+            orgId,
+            gracePeriodEndsAt: Date.now() + 24 * 60 * 60 * 1000,
+          });
+        } catch (graceErr) {
+          console.error("[Paddle Webhook] Error marking subscription past_due:", graceErr);
         }
         break;
       }

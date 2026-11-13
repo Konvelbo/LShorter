@@ -72,7 +72,7 @@ export const DOC_FEATURES: DocFeature[] = [
     title: "Quickstart & REST API Reference",
     subtitle: "Integrate intelligent edge link shortening, real-time analytics, and conversion tracking with our high-performance REST API and TypeScript SDK.",
     description: "Complete REST API reference, base URLs, authentication headers, rate limits, SDK quickstart, and endpoint catalog for developers.",
-    image: "/screenshots/dashboard/dashboardwithsidbare.png",
+    image: "/screenshots/dashboard/dashboardwithsidbare_dark1.webp",
     readTime: "5 min read",
     overview: [
       "The LShorter REST API provides programmatic access to all link management, edge routing, privacy masking, conversion attribution, and telemetry features of the LShorter platform.",

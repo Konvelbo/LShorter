@@ -434,15 +434,23 @@ export function renderSocialHtml(options: {
       max-width: 560px;
       margin: 0 auto 24px;
     }
+    .preview-card-summary {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 14px;
+    }
     .preview-img { width: 100%; aspect-ratio: 1200/630; object-fit: cover; display: block; }
+    .preview-img-summary { width: 96px; height: 96px; border-radius: 10px; object-fit: cover; flex-shrink: 0; display: block; }
     .preview-content { padding: 18px; }
+    .preview-content-summary { padding: 0; min-width: 0; }
   </style>
 </head>
 <body>
   <div class="wrapper">
     <div class="top-bar">
       <div>
-        <span class="badge"><span class="badge-dot"></span> Mode Dev Preview</span>
+        <span class="badge"><span class="badge-dot"></span> Mode Dev Preview (${cardType === "summary" ? "Default Banner · summary" : "Large Banner · summary_large_image"})</span>
         <h1 style="font-size:16px;font-weight:700;margin-top:6px;">${safeTitle}</h1>
         <p style="font-size:12px;color:var(--text-muted);">${domainName}/${safeSlug}</p>
       </div>
@@ -451,13 +459,25 @@ export function renderSocialHtml(options: {
       </div>
     </div>
 
-    <div class="preview-card">
+    ${cardType === "summary" ? `
+    <div class="preview-card preview-card-summary" data-card-type="summary" data-banner-style="default_banner">
+      <img src="${safeImg}" alt="${safeTitle}" class="preview-img-summary" onerror="this.src='${fallbackGlass}'" />
+      <div class="preview-content-summary">
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">${domainName}</div>
+        <h2 style="font-size:15px;font-weight:600;margin-bottom:4px;">${safeTitle}</h2>
+        <p style="font-size:12.5px;color:var(--text-muted);line-height:1.45;">${safeDesc}</p>
+      </div>
+    </div>
+    ` : `
+    <div class="preview-card" data-card-type="summary_large_image" data-banner-style="large_banner">
       <img src="${safeImg}" alt="${safeTitle}" class="preview-img" onerror="this.src='${fallbackGlass}'" />
       <div class="preview-content">
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">${domainName}</div>
         <h2 style="font-size:16px;font-weight:600;margin-bottom:6px;">${safeTitle}</h2>
         <p style="font-size:13px;color:var(--text-muted);">${safeDesc}</p>
       </div>
     </div>
+    `}
   </div>
 </body>
 </html>`;

@@ -11,10 +11,12 @@ import {
   evaluateProtectionState,
   evaluateRoutingRules,
   resolveAbTargetUrl,
+  preserveUtmParams,
   appendForwardedParams,
+  resolveLinkActivePixels,
+  renderPixelInterstitialHtml,
   shouldTrackClick,
   trackClickAsync,
-  getDicebearGlassUrl,
 } from "@/lib/redirect-engine";
 
 export const dynamic = "force-dynamic";
@@ -142,18 +144,19 @@ export async function GET(
         !rawImage.includes("dicebear")
       );
 
+      const imageOrigin = !cleanHost && isPreviewMode ? url.origin : `https://${detectedDomain}`;
       let image = "";
       if (isCompactCard) {
         if (isCustomBanner) {
           image = rawImage;
         } else {
-          image = `https://${detectedDomain}/banners/og.png?card=summary&title=${encodeURIComponent(title.substring(0, 60))}&desc=${encodeURIComponent(description.substring(0, 80))}&slug=${encodeURIComponent(slug)}`;
+          image = `${imageOrigin}/banners/og.png?card=summary&title=${encodeURIComponent(title.substring(0, 60))}&desc=${encodeURIComponent(description.substring(0, 80))}&slug=${encodeURIComponent(slug)}`;
         }
       } else {
         if (isCustomBanner) {
           image = rawImage;
         } else {
-          image = `https://${detectedDomain}/banners/og.png?title=${encodeURIComponent(title.substring(0, 80))}&slug=${encodeURIComponent(slug)}`;
+          image = `${imageOrigin}/banners/og.png?title=${encodeURIComponent(title.substring(0, 80))}&slug=${encodeURIComponent(slug)}`;
         }
       }
 
@@ -242,13 +245,32 @@ export async function GET(
     const abTarget = resolveAbTargetUrl(link, baseTarget);
     const ruleTarget = evaluateRoutingRules(link, visitor);
     const resolvedTarget = ruleTarget || abTarget;
+    const utmPreservedTarget = preserveUtmParams(resolvedTarget, baseTarget);
 
     const passParams = link.passParams !== false && link.pass_params !== false;
-    const finalUrl = appendForwardedParams(resolvedTarget, req.url, passParams);
+    const finalUrl = appendForwardedParams(utmPreservedTarget, req.url, passParams);
 
     // Track click telemetry in background
     if (shouldTrackClick(visitor.ip, slug, isPrefetch)) {
-      trackClickAsync(req, slug, link, geo);
+      trackClickAsync(req, slug, link, geo, finalUrl);
+    }
+
+    // Fire attached retargeting pixels via lightweight interstitial when present
+    if (!isPrefetch) {
+      const activePixels = await resolveLinkActivePixels(link);
+      if (activePixels.length > 0) {
+        const html = renderPixelInterstitialHtml(finalUrl, activePixels, {
+          title: link.og_title || link.ogTitle || link.meta_title || link.slug,
+        });
+        return new Response(html, {
+          status: 200,
+          headers: {
+            "Content-Type": "text/html; charset=utf-8",
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "X-Robots-Tag": "noindex, nofollow",
+          },
+        });
+      }
     }
 
     const redirectCode =
@@ -258,7 +280,7 @@ export async function GET(
           ? 302
           : 307;
 
-    const response = NextResponse.redirect(finalUrl, redirectCode);
+    const response = NextResponse.redirect(new URL(finalUrl, req.url), redirectCode);
     response.headers.set("X-Robots-Tag", "noindex, nofollow");
     return response;
   } catch (error: any) {

@@ -3,7 +3,15 @@
 import React, { useRef, useEffect, useState, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Sparkles, ArrowRight, Link2, LayoutDashboard, Globe, Activity } from "lucide-react";
+import { withScreenshotCacheBuster } from "@/lib/themed-screenshots";
+import {
+  Sparkles,
+  ArrowRight,
+  Link2,
+  LayoutDashboard,
+  Globe,
+  Activity,
+} from "lucide-react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { EdgeRotatingGlobe } from "@/components/globe/cobe-globe";
@@ -25,7 +33,8 @@ export function ProductSection() {
     if (cards[index]) {
       const cardEl = cards[index] as HTMLElement;
       cardsEl.scrollTo({
-        left: cardEl.offsetLeft - (cardsEl.clientWidth - cardEl.clientWidth) / 2,
+        left:
+          cardEl.offsetLeft - (cardsEl.clientWidth - cardEl.clientWidth) / 2,
         behavior: "smooth",
       });
       setActiveCard(index);
@@ -52,7 +61,7 @@ export function ProductSection() {
             start: "top 85%",
             once: true,
           },
-        }
+        },
       );
 
       // ── 2. Bento cards scroll animation (Fast & fluid single entrance) ──
@@ -70,7 +79,7 @@ export function ProductSection() {
             start: "top 85%",
             once: true,
           },
-        }
+        },
       );
     }, sectionRef);
 
@@ -109,7 +118,13 @@ export function ProductSection() {
 
     // Auto-advance every 4.5 seconds on mobile when not interacting
     const autoAdvanceInterval = setInterval(() => {
-      if (typeof window === "undefined" || window.innerWidth >= 768 || isInteracting || !cardsEl) return;
+      if (
+        typeof window === "undefined" ||
+        window.innerWidth >= 768 ||
+        isInteracting ||
+        !cardsEl
+      )
+        return;
       setActiveCard((prev) => {
         const next = (prev + 1) % 4;
         scrollToCard(next);
@@ -119,9 +134,15 @@ export function ProductSection() {
 
     if (cardsEl) {
       cardsEl.addEventListener("scroll", onScroll, { passive: true });
-      cardsEl.addEventListener("touchstart", pauseInteraction, { passive: true });
-      cardsEl.addEventListener("touchmove", pauseInteraction, { passive: true });
-      cardsEl.addEventListener("touchend", resumeInteraction, { passive: true });
+      cardsEl.addEventListener("touchstart", pauseInteraction, {
+        passive: true,
+      });
+      cardsEl.addEventListener("touchmove", pauseInteraction, {
+        passive: true,
+      });
+      cardsEl.addEventListener("touchend", resumeInteraction, {
+        passive: true,
+      });
       cardsEl.addEventListener("mouseenter", pauseInteraction);
       cardsEl.addEventListener("mouseleave", resumeInteraction);
     }
@@ -148,7 +169,6 @@ export function ProductSection() {
       className="relative w-full pt-24 pb-28 sm:py-28 px-4 sm:px-6 lg:px-8 bg-white dark:bg-[#09090B] transition-colors duration-300 overflow-hidden scroll-mt-14 sm:scroll-mt-20"
     >
       <div className="relative max-w-6xl mx-auto">
-
         {/* ── SECTION HEADER ── */}
         <div className="flex flex-col items-start text-left mb-10 sm:mb-14">
           <div className="product-header-elem inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-brand/10 dark:bg-brand/20 text-brand border border-brand/20 mb-5 select-none">
@@ -161,7 +181,9 @@ export function ProductSection() {
           </h2>
 
           <p className="product-header-elem mt-4 text-base sm:text-lg text-neutral-500 dark:text-neutral-400 max-w-2xl leading-relaxed">
-            Shorten, route, protect, and analyze every link through our ultra-fast Anycast edge infrastructure and real-time telemetry engine.
+            Shorten, route, protect, and analyze every link through our
+            ultra-fast Anycast edge infrastructure and real-time telemetry
+            engine.
           </p>
         </div>
 
@@ -175,7 +197,6 @@ export function ProductSection() {
           className="flex md:grid md:grid-cols-12 gap-4 sm:gap-5 overflow-x-auto md:overflow-visible pt-6 pb-8 md:pt-0 md:pb-0 snap-x snap-mandatory scroll-smooth scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden -mx-4 px-4 sm:mx-0 sm:px-0"
           style={{ WebkitOverflowScrolling: "touch" }}
         >
-
           {/* ── CARD 1 — Wide (7/12) — Retargeting Pixels ── */}
           <div className="product-bento-card w-[86vw] xs:w-[340px] sm:w-[380px] md:w-auto shrink-0 md:shrink md:col-span-7 h-full snap-center py-1 md:py-0">
             <div className="bento-card-scale group relative h-full rounded-2xl bg-neutral-900/5 dark:bg-[#111114] border border-neutral-200/80 dark:border-white/[0.08] dark:[box-shadow:0_-20px_80px_-20px_#ffffff1f_inset] p-5 sm:p-8 md:p-9 flex flex-col justify-between overflow-hidden min-h-[460px] sm:min-h-[490px] cursor-pointer">
@@ -191,7 +212,9 @@ export function ProductSection() {
                   </h3>
                 </div>
                 <p className="text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed">
-                  Automatically fire Meta, Google Tag, TikTok Ads, LinkedIn Insight, and X pixels on every click to build high-converting custom audiences across paid channels.
+                  Automatically fire Meta, Google Tag, TikTok Ads, LinkedIn
+                  Insight, and X pixels on every click to build high-converting
+                  custom audiences across paid channels.
                 </p>
                 <Link
                   href="/docs"
@@ -217,19 +240,28 @@ export function ProductSection() {
                   </h3>
                 </div>
                 <p className="text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed">
-                  Manage links, campaigns, custom domains, and targets with zero friction through a streamlined control center.
+                  Manage links, campaigns, custom domains, and targets with zero
+                  friction through a streamlined control center.
                 </p>
               </div>
 
               {/* BOTTOM screenshot — bleeds right & bottom */}
               <div className="flex-1 mt-6 relative -mr-8 -mb-8 sm:-mr-9 sm:-mb-9 min-h-[200px] rounded-tl-xl overflow-hidden border-t border-l border-white/[0.07]">
                 <Image
-                  src="/screenshots/dashboard/dashboard1.webp"
-                  alt="LShorter Dashboard"
+                  src={withScreenshotCacheBuster("/screenshots/dashboard/dashboard1_light1.webp")}
+                  alt="LShorter Dashboard (Light Mode)"
                   fill
                   loading="lazy"
                   sizes="(max-width: 768px) 100vw, 420px"
-                  className="object-cover object-left-top transition-transform duration-500 ease-out group-hover:scale-[1.02]"
+                  className="object-cover object-left-top block dark:hidden transition-transform duration-500 ease-out group-hover:scale-[1.02]"
+                />
+                <Image
+                  src={withScreenshotCacheBuster("/screenshots/dashboard/dashboard1_dark1.webp")}
+                  alt="LShorter Dashboard (Dark Mode)"
+                  fill
+                  loading="lazy"
+                  sizes="(max-width: 768px) 100vw, 420px"
+                  className="object-cover object-left-top hidden dark:block transition-transform duration-500 ease-out group-hover:scale-[1.02]"
                 />
               </div>
               <div className="pointer-events-none absolute inset-0 transform-gpu transition-all duration-300 group-hover:bg-neutral-500/[.02] group-hover:dark:bg-white/[.02]" />
@@ -248,7 +280,9 @@ export function ProductSection() {
                   </h3>
                 </div>
                 <p className="text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed max-w-[300px]">
-                  With our global edge network across 300+ cities worldwide, your links resolve at the edge closest to your visitor in &lt;12ms.
+                  With our global edge network across 300+ cities worldwide,
+                  your links resolve at the edge closest to your visitor in
+                  &lt;12ms.
                 </p>
               </div>
 
@@ -275,25 +309,34 @@ export function ProductSection() {
                   </h3>
                 </div>
                 <p className="text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed">
-                  Track unique visitors, click velocity, referral sources, and geographic distribution live as clicks happen across global PoPs.
+                  Track unique visitors, click velocity, referral sources, and
+                  geographic distribution live as clicks happen across global
+                  PoPs.
                 </p>
               </div>
 
               {/* BOTTOM screenshot — bleeds right & bottom */}
               <div className="flex-1 mt-6 relative -mr-8 -mb-8 sm:-mr-9 sm:-mb-9 min-h-[220px] rounded-tl-xl overflow-hidden border-t border-l border-white/[0.07]">
                 <Image
-                  src="/screenshots/geo/geowithsidbare.webp"
-                  alt="LShorter Analytics"
+                  src={withScreenshotCacheBuster("/screenshots/geo/geowithsidbare_light.webp")}
+                  alt="LShorter Analytics (Light Mode)"
                   fill
                   loading="lazy"
                   sizes="(max-width: 768px) 100vw, 560px"
-                  className="object-cover object-left-top transition-transform duration-500 ease-out group-hover:scale-[1.02]"
+                  className="object-cover object-left-top block dark:hidden transition-transform duration-500 ease-out group-hover:scale-[1.02]"
+                />
+                <Image
+                  src={withScreenshotCacheBuster("/screenshots/geo/geowithsidbare_dark.webp")}
+                  alt="LShorter Analytics (Dark Mode)"
+                  fill
+                  loading="lazy"
+                  sizes="(max-width: 768px) 100vw, 560px"
+                  className="object-cover object-left-top hidden dark:block transition-transform duration-500 ease-out group-hover:scale-[1.02]"
                 />
               </div>
               <div className="pointer-events-none absolute inset-0 transform-gpu transition-all duration-300 group-hover:bg-neutral-500/[.02] group-hover:dark:bg-white/[.02]" />
             </div>
           </div>
-
         </div>
 
         {/* ── Mobile Carousel Indicators & Swipe Assist ── */}
@@ -317,7 +360,6 @@ export function ProductSection() {
             Swipe to explore • 4 key platform capabilities
           </span>
         </div>
-
       </div>
     </section>
   );

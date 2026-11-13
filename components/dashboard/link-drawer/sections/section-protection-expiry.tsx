@@ -8,6 +8,7 @@ import { FieldErrorAlert } from "../field-error-alert";
 import { triggerPlanUpgrade } from "@/lib/plan-guard";
 import { Input } from "@/components/ui/input";
 import { type Tag as EmblorTag, TagInput } from "emblor";
+import { parsePathLockRoutes } from "@/lib/pathlock-routes";
 
 interface SectionProtectionExpiryProps {
   isProPlan: boolean;
@@ -74,7 +75,7 @@ export function SectionProtectionExpiry({
 }: SectionProtectionExpiryProps) {
   const [hasPassword, setHasPassword] = useState(Boolean(password));
   const [hasExpiry, setHasExpiry] = useState(Boolean(expiresAt));
-  const [hasPathLock, setHasPathLock] = useState(pathLockMode !== "off");
+  const hasPathLock = pathLockMode !== "off";
   const [showPathLockPassword, setShowPathLockPassword] = useState(false);
 
   // Subpath Prefix Tags Input setup (identical to Tags Input in SectionLink)
@@ -82,34 +83,49 @@ export function SectionProtectionExpiry({
   const [activePrefixTagIndex, setActivePrefixTagIndex] = useState<number | null>(null);
 
   const parsePrefixesToTags = (prefixStr: string): EmblorTag[] => {
-    if (!prefixStr || !prefixStr.trim()) return [];
-    return prefixStr
-      .split(",")
-      .map((t) => t.trim())
-      .filter(Boolean)
-      .map((text, idx) => {
-        const normalized = text.startsWith("/") ? text : `/${text}`;
-        return { id: `prefix-${normalized}-${idx}`, text: normalized };
-      });
+    const parsed = parsePathLockRoutes(prefixStr);
+    if (
+      parsed.isEmpty ||
+      (parsed.allowAllSubpaths &&
+        parsed.routes.length === 0 &&
+        !String(prefixStr || "").includes("*"))
+    ) {
+      return [];
+    }
+    const items = parsed.routes.map((route) => `/${route}`);
+    if (parsed.allowAllSubpaths && !items.includes("/*")) {
+      items.unshift("/*");
+    }
+    return items.map((text, idx) => ({
+      id: `prefix-${text}-${idx}`,
+      text,
+    }));
   };
 
   const [emblorPrefixTags, setEmblorPrefixTags] = useState<EmblorTag[]>(() =>
     parsePrefixesToTags(pathLockPrefix)
   );
 
-  const lastDispatchedPrefixRef = useRef<string>(pathLockPrefix || "");
+  const isLocalTagEditRef = useRef<boolean>(false);
+  const lastDispatchedPrefixRef = useRef<string>(
+    emblorPrefixTags.map((t) => t.text).join(", ")
+  );
 
-  // 1. Sync external pathLockPrefix into local emblorPrefixTags if changed externally
+  // 1. Sync external pathLockPrefix into local emblorPrefixTags when edited/loaded externally
   useEffect(() => {
-    const currentSerialized = emblorPrefixTags.map((t) => t.text).join(", ");
-    if (pathLockPrefix !== currentSerialized && pathLockPrefix !== lastDispatchedPrefixRef.current) {
-      lastDispatchedPrefixRef.current = pathLockPrefix || "";
-      setEmblorPrefixTags(parsePrefixesToTags(pathLockPrefix));
+    const externalTags = parsePrefixesToTags(pathLockPrefix);
+    const externalJoined = externalTags.map((t) => t.text).join(", ");
+    if (externalJoined !== lastDispatchedPrefixRef.current) {
+      isLocalTagEditRef.current = false;
+      lastDispatchedPrefixRef.current = externalJoined;
+      setEmblorPrefixTags(externalTags);
     }
   }, [pathLockPrefix]);
 
-  // 2. Safely sync local emblorPrefixTags up to parent state in an effect (avoids set-state in render)
+  // 2. Sync user edits from emblorPrefixTags up to parent state without fighting external loads
   useEffect(() => {
+    if (!isLocalTagEditRef.current) return;
+    isLocalTagEditRef.current = false;
     const joined = emblorPrefixTags.map((t) => t.text).join(", ");
     if (joined !== lastDispatchedPrefixRef.current) {
       lastDispatchedPrefixRef.current = joined;
@@ -118,22 +134,30 @@ export function SectionProtectionExpiry({
   }, [emblorPrefixTags, setPathLockPrefix]);
 
   const handleUpdatePrefixTags = (newTags: React.SetStateAction<EmblorTag[]>) => {
+    isLocalTagEditRef.current = true;
     setEmblorPrefixTags((prev) => {
       const resolved = typeof newTags === "function" ? newTags(prev) : newTags;
-      return resolved
-        .map((t, idx) => {
-          const trimmed = t.text.trim();
-          const withSlash = trimmed
-            ? trimmed.startsWith("/")
-              ? trimmed
-              : `/${trimmed}`
-            : "";
-          return {
-            id: t.id || `prefix-${withSlash}-${idx}`,
-            text: withSlash,
-          };
-        })
-        .filter((t) => Boolean(t.text));
+      const seen = new Set<string>();
+      const normalizedTags: EmblorTag[] = [];
+      for (const item of resolved) {
+        const parsed = parsePathLockRoutes(item.text);
+        const candidates = [
+          ...(parsed.allowAllSubpaths && String(item.text || "").includes("*")
+            ? ["/*"]
+            : []),
+          ...parsed.routes.map((route) => `/${route}`),
+        ];
+        for (const text of candidates) {
+          if (!seen.has(text)) {
+            seen.add(text);
+            normalizedTags.push({
+              id: `prefix-${text}-${normalizedTags.length}`,
+              text,
+            });
+          }
+        }
+      }
+      return normalizedTags;
     });
   };
 
@@ -386,7 +410,6 @@ export function SectionProtectionExpiry({
               checked={hasPathLock}
               onChange={(val) => {
                 handleProGuard(() => {
-                  setHasPathLock(val);
                   setPathLockMode(val ? "strict" : "off");
                 }, "PathLock™ Restricted Browsing");
               }}
@@ -464,7 +487,10 @@ export function SectionProtectionExpiry({
                       setActiveTagIndex={setActivePrefixTagIndex}
                       inlineTags={false}
                       inputFieldPosition="top"
-                      placeholder="Add allowed subpath (e.g. /shop/checkout)... (press Enter)"
+                      addTagsOnBlur
+                      addOnPaste
+                      delimiterList={[",", ";", " "]}
+                      placeholder="Add allowed routes (e.g. /pricing, /checkout)... empty = all (/)"
                       inputProps={
                         {
                           name: "pathlock_subpath_prefix_input",
@@ -493,7 +519,7 @@ export function SectionProtectionExpiry({
                     />
                   </div>
                   <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                    Press enter to add allowed subpath prefixes (e.g. /shop/checkout, /cart).
+                    Press Enter, comma, or click outside to add routes (e.g. <code className="font-mono">/pricing</code>, <code className="font-mono">/checkout</code>). Leave empty to allow the entire site (<code className="font-mono">/</code>).
                   </p>
                 </div>
               )}

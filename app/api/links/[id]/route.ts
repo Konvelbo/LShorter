@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
-import { invalidateBotResponseCache } from "@/lib/redirect-engine";
+import {
+  invalidateBotResponseCache,
+  saveLinkExtras,
+} from "@/lib/redirect-engine";
 import { WORKER_URL, FRONTEND_SECRET, CF_ACCOUNT_ID, CF_D1_DATABASE_ID, CF_API_TOKEN } from "@/lib/backend-config";
 import { auth } from "@/auth";
 import { convexHttp as convex } from "@/lib/convex-server";
@@ -75,6 +78,31 @@ export async function PATCH(
       if (dest && !isSafeHttpUrl(dest)) {
         return NextResponse.json(
           { success: false, error: "Invalid routing rule destination URL scheme. Only HTTP and HTTPS are permitted." },
+          { status: 400 }
+        );
+      }
+    }
+
+    let patchAbVariations: unknown[] = [];
+    const patchAbInput = body.abVariations ?? body.ab_variations;
+    if (Array.isArray(patchAbInput)) {
+      patchAbVariations = patchAbInput;
+    } else if (typeof patchAbInput === "string" && patchAbInput.trim()) {
+      try {
+        const parsedAb = JSON.parse(patchAbInput);
+        if (Array.isArray(parsedAb)) patchAbVariations = parsedAb;
+      } catch {
+        return NextResponse.json(
+          { success: false, error: "Invalid A/B variations payload format." },
+          { status: 400 }
+        );
+      }
+    }
+    for (const variation of patchAbVariations) {
+      const vUrl = String((variation as Record<string, unknown>)?.url || "").trim();
+      if (vUrl && !isSafeHttpUrl(vUrl)) {
+        return NextResponse.json(
+          { success: false, error: "Invalid A/B variation destination URL scheme. Only HTTP and HTTPS are permitted." },
           { status: 400 }
         );
       }
@@ -384,6 +412,7 @@ export async function PATCH(
     };
 
     const targetSlug = (body.slug || id || "").trim();
+    saveLinkExtras({ id, slug: body.slug || targetSlug }, workerPayload);
     if (targetSlug) invalidateBotResponseCache(targetSlug);
     if (id) invalidateBotResponseCache(id);
 

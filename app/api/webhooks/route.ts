@@ -23,11 +23,27 @@ export async function GET() {
       cache: "no-store",
     });
 
-    const data = await res.json().catch(() => ({ success: true, data: [] }));
-    return NextResponse.json(data, { status: res.status });
+    const rawData = await res.json().catch(() => ({ success: true, data: [] }));
+    const rawList = Array.isArray(rawData?.data)
+      ? rawData.data
+      : Array.isArray(rawData?.data?.webhooks)
+        ? rawData.data.webhooks
+        : Array.isArray(rawData?.webhooks)
+          ? rawData.webhooks
+          : [];
+    const normalizedWebhooks = rawList.map((wh: Record<string, unknown>) => ({
+      ...wh,
+      events: Array.isArray(wh?.events) && wh.events.length > 0 ? wh.events : ["click.created"],
+      isActive: wh?.isActive !== false,
+      secretKey: wh?.secretKey || wh?.secret_key || "",
+    }));
+    return NextResponse.json(
+      { ...rawData, success: rawData?.success ?? true, data: { webhooks: normalizedWebhooks } },
+      { status: res.status }
+    );
   } catch (error) {
     console.warn("[Webhooks Proxy GET] Error:", error);
-    return NextResponse.json({ success: true, data: [] }, { status: 200 });
+    return NextResponse.json({ success: true, data: { webhooks: [] } }, { status: 200 });
   }
 }
 
@@ -62,8 +78,21 @@ export async function POST(req: Request) {
       body: JSON.stringify(body),
     });
 
-    const data = await res.json().catch(() => ({}));
-    return NextResponse.json(data, { status: res.status });
+    const rawData = await res.json().catch(() => ({}));
+    const createdWebhook = rawData?.data?.webhook || rawData?.data || rawData;
+    const normalizedWebhook =
+      createdWebhook && typeof createdWebhook === "object"
+        ? {
+            ...createdWebhook,
+            secretKey: createdWebhook.secretKey || body.secretKey || "",
+            events: Array.isArray(createdWebhook.events) ? createdWebhook.events : body.events || ["click.created"],
+            isActive: createdWebhook.isActive ?? body.isActive ?? true,
+          }
+        : createdWebhook;
+    return NextResponse.json(
+      { ...rawData, success: rawData?.success ?? res.ok, data: { webhook: normalizedWebhook } },
+      { status: res.status }
+    );
   } catch (error) {
     console.warn("[Webhooks Proxy POST] Error:", error);
     return NextResponse.json(

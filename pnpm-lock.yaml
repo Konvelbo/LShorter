@@ -85,7 +85,7 @@ importers:
         version: 1.45.0(react@19.2.8)
       d3-scale:
         specifier: ^4.0.2
-        version: 4.0.2
+        version: 4.0.3
       date-fns:
         specifier: ^4.4.0
         version: 4.4.0
@@ -104,6 +104,9 @@ importers:
       gsap:
         specifier: ^3.15.0
         version: 3.15.0
+      lenis:
+        specifier: ^1.3.27
+        version: 1.3.27(react@19.2.8)
       lucide-react:
         specifier: ^1.37.0
         version: 1.37.0(react@19.2.8)
@@ -3689,8 +3692,8 @@ packages:
     resolution: {integrity: sha512-p3KP5HCf/bvjBSSKuXid6Zqijx7wIfNW+J/maPs+iwR35at5JCbLUT0LzF1cnjbCHWhqzQTIN2Jpe8pRebIEFQ==}
     engines: {node: '>=12'}
 
-  d3-scale@4.0.2:
-    resolution: {integrity: sha512-GZW464g1SH7ag3Y7hXjf8RoUuAFIqklOAq3MRl4OaWabTFJY9PN/E1YklhXLh+OQ3fM9yS2nOkCoS+WLZ6kvxQ==}
+  d3-scale@4.0.3:
+    resolution: {integrity: sha512-66cWobCNzcMvlfoaDHCxuIv9TBUWG1BLOWdv9kHHFuCr1JdqAWPvTmsaEYDD5NRMyWZ5+7u0GqiCDfMXMqh3hg==}
     engines: {node: '>=12'}
 
   d3-selection@2.0.0:
@@ -4772,6 +4775,20 @@ packages:
   language-tags@1.0.9:
     resolution: {integrity: sha512-MbjN408fEndfiQXbFQ1vnd+1NoLDsnQW41410oQBXiyXDMYH5z505juWa4KUE1LqxRC7DgOgZDbKLxHIwm27hA==}
     engines: {node: '>=0.10'}
+
+  lenis@1.3.27:
+    resolution: {integrity: sha512-QIHNH4LIfWyLfgH/5K0aTGZgyFJJ7GfHNcaH/AIgyKjb8gstLh5siNGvrVqz1w5ClLXzOvllBVk7vby8JzUVPQ==}
+    peerDependencies:
+      '@nuxt/kit': '>=3.0.0'
+      react: '>=17.0.0'
+      vue: '>=3.0.0'
+    peerDependenciesMeta:
+      '@nuxt/kit':
+        optional: true
+      react:
+        optional: true
+      vue:
+        optional: true
 
   leven@3.1.0:
     resolution: {integrity: sha512-qsda+H8jTaUaN/x5vzW2rzc+8Rw4TAQ/4KjB46IwK5VH+IlVeeeje/EoZRpiXvIqjFgK84QffqPztGI3VBLG1A==}
@@ -9841,7 +9858,7 @@ snapshots:
 
   d3-path@3.1.0: {}
 
-  d3-scale@4.0.2:
+  d3-scale@4.0.3:
     dependencies:
       d3-array: 3.2.4
       d3-format: 3.1.2
@@ -11324,6 +11341,10 @@ snapshots:
     dependencies:
       language-subtag-registry: 0.3.23
 
+  lenis@1.3.27(react@19.2.8):
+    optionalDependencies:
+      react: 19.2.8
+
   leven@3.1.0: {}
 
   levn@0.4.1:
@@ -12646,7 +12667,7 @@ snapshots:
       d3-array: 3.2.4
       d3-ease: 3.0.1
       d3-interpolate: 3.0.1
-      d3-scale: 4.0.2
+      d3-scale: 4.0.3
       d3-shape: 3.2.0
       d3-time: 3.1.0
       d3-timer: 3.0.1

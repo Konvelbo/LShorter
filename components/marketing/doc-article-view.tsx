@@ -22,6 +22,7 @@ import {
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { DocFeature, DocApiEndpoint, DocApiParameter } from "@/lib/docs-data";
+import { getThemedScreenshotPair } from "@/lib/themed-screenshots";
 import { CodeBlock } from "@/components/ui/code-block";
 import {
   Card,
@@ -322,47 +323,47 @@ export function DocArticleView({
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined" || !containerRef.current) return;
     gsap.registerPlugin(ScrollTrigger);
 
-    // 1. Header entrance
-    const headerEl = document.querySelector(".doc-article-header");
-    if (headerEl) {
-      gsap.fromTo(
-        headerEl,
-        { opacity: 0, y: 25 },
-        {
-          opacity: 1,
-          y: 0,
-          duration: 0.7,
-          ease: "power2.out",
-        }
-      );
-    }
+    const ctx = gsap.context(() => {
+      // 1. Header entrance
+      const headerEl = document.querySelector(".doc-article-header");
+      if (headerEl) {
+        gsap.fromTo(
+          headerEl,
+          { opacity: 0, y: 25 },
+          {
+            opacity: 1,
+            y: 0,
+            duration: 0.7,
+            ease: "power2.out",
+          }
+        );
+      }
 
-    // 2. Sections staggered animation on scroll
-    const sections = document.querySelectorAll(".doc-article-section");
-    sections.forEach((sec) => {
-      gsap.fromTo(
-        sec,
-        { opacity: 0, y: 25 },
-        {
-          opacity: 1,
-          y: 0,
-          duration: 0.6,
-          ease: "power2.out",
-          scrollTrigger: {
-            trigger: sec,
-            start: "top 90%",
-            once: true,
-          },
-        }
-      );
-    });
+      // 2. Sections staggered animation on scroll
+      const sections = document.querySelectorAll(".doc-article-section");
+      sections.forEach((sec) => {
+        gsap.fromTo(
+          sec,
+          { opacity: 0, y: 25 },
+          {
+            opacity: 1,
+            y: 0,
+            duration: 0.6,
+            ease: "power2.out",
+            scrollTrigger: {
+              trigger: sec,
+              start: "top 90%",
+              once: true,
+            },
+          }
+        );
+      });
+    }, containerRef);
 
-    return () => {
-      ScrollTrigger.getAll().forEach((st) => st.kill());
-    };
+    return () => ctx.revert();
   }, [feature.slug]);
 
   return (
@@ -400,14 +401,29 @@ export function DocArticleView({
 
         {/* Wide 16:9 Hero Image */}
         <div className="mt-8 relative w-full aspect-[16/9] rounded-2xl overflow-hidden border border-[#E4E7EC] dark:border-white/10 shadow-xl shadow-black/5 dark:shadow-[0_12px_40px_rgba(0,0,0,0.5)] bg-neutral-100 dark:bg-neutral-900">
-          <Image
-            src={feature.image}
-            alt={feature.title}
-            fill
-            priority
-            className="object-cover"
-            sizes="(max-width: 1024px) 100vw, 1024px"
-          />
+          {(() => {
+            const pair = getThemedScreenshotPair(feature.image);
+            return (
+              <>
+                <Image
+                  src={pair.light}
+                  alt={`${feature.title} (mode clair)`}
+                  fill
+                  priority
+                  className="object-cover block dark:hidden"
+                  sizes="(max-width: 1024px) 100vw, 1024px"
+                />
+                <Image
+                  src={pair.dark}
+                  alt={`${feature.title} (mode sombre)`}
+                  fill
+                  priority
+                  className="object-cover hidden dark:block"
+                  sizes="(max-width: 1024px) 100vw, 1024px"
+                />
+              </>
+            );
+          })()}
         </div>
       </header>
 
@@ -639,13 +655,27 @@ export function DocArticleView({
                 >
                   <Card className="doc-interactive-card doc-related-card overflow-hidden p-4 border-[#E4E7EC] dark:border-white/10 bg-white dark:bg-[#121214] shadow-xs">
                     <div className="related-img-container relative w-full aspect-[16/9] rounded-xl overflow-hidden mb-3 bg-neutral-100 dark:bg-neutral-900 border border-[#E4E7EC] dark:border-white/5">
-                      <Image
-                        src={rf.image}
-                        alt={rf.title}
-                        fill
-                        className="object-cover"
-                        sizes="(max-width: 1024px) 100vw, 500px"
-                      />
+                      {(() => {
+                        const pair = getThemedScreenshotPair(rf.image);
+                        return (
+                          <>
+                            <Image
+                              src={pair.light}
+                              alt={`${rf.title} (mode clair)`}
+                              fill
+                              className="object-cover block dark:hidden"
+                              sizes="(max-width: 1024px) 100vw, 500px"
+                            />
+                            <Image
+                              src={pair.dark}
+                              alt={`${rf.title} (mode sombre)`}
+                              fill
+                              className="object-cover hidden dark:block"
+                              sizes="(max-width: 1024px) 100vw, 500px"
+                            />
+                          </>
+                        );
+                      })()}
                     </div>
                     <CardHeader className="p-0 pb-1.5">
                       <CardTitle className="text-base font-bold text-[#101828] dark:text-white group-hover:text-brand transition-colors">

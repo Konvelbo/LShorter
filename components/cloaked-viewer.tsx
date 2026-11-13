@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  useSyncExternalStore,
+} from "react";
 import {
   ExternalLink,
   Shield,
@@ -14,8 +20,10 @@ import {
   ChevronUp,
   ChevronDown,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { isPathAllowedByPathLock } from "@/lib/pathlock-routes";
+
+const emptySubscribe = () => () => {};
 
 export interface CloakedViewerLink {
   slug: string;
@@ -23,9 +31,13 @@ export interface CloakedViewerLink {
   metaTitle?: string;
   isCloaked?: boolean;
   pathLockMode?: string;
+  path_lock_mode?: string;
   pathLockPrefix?: string;
+  path_lock_prefix?: string;
   pathLockMessage?: string;
+  path_lock_message?: string;
   pathLockPassword?: string;
+  path_lock_password?: string;
 }
 
 export interface CloakedViewerProps {
@@ -48,11 +60,18 @@ export function CloakedViewer({ link }: CloakedViewerProps) {
     }
   }, [link.metaTitle]);
 
+  const isMounted = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false,
+  );
+  const effectivePathnameRef = useRef<string | null>(null);
+
   useEffect(() => {
     if (typeof window !== "undefined") {
       const saved = sessionStorage.getItem(`pathlock_unlocked_${link.slug}`);
       if (saved === "true") {
-        setIsDevUnlocked(true);
+        queueMicrotask(() => setIsDevUnlocked(true));
       }
       try {
         const bc = new BroadcastChannel("lshorter_realtime");
@@ -62,27 +81,73 @@ export function CloakedViewer({ link }: CloakedViewerProps) {
     }
   }, [link.slug]);
 
-  const effectiveLockMode =
-    link.pathLockMode || (link as any).path_lock_mode || "off";
+  const effectiveLockMode = String(
+    link.pathLockMode || link.path_lock_mode || "off",
+  )
+    .trim()
+    .toLowerCase();
   const isPathLocked = effectiveLockMode !== "off";
   const targetPassword =
-    link.pathLockPassword || (link as any).path_lock_password || "";
+    link.pathLockPassword || link.path_lock_password || "";
   const title = link.metaTitle || link.slug;
+
+  const validateAndEnforce = useCallback(
+    (urlOrPath: string) => {
+      if (!isPathLocked || isDevUnlocked) return;
+      try {
+        let targetPathname = "/";
+        try {
+          const tu = new URL(
+            link.targetUrl.startsWith("http")
+              ? link.targetUrl
+              : `https://${link.targetUrl}`,
+          );
+          targetPathname = tu.pathname || "/";
+        } catch {}
+
+        const rawPrefix = link.pathLockPrefix || link.path_lock_prefix || "";
+        const allowed = isPathAllowedByPathLock({
+          mode: effectiveLockMode,
+          attemptPathOrUrl: urlOrPath,
+          rawPrefix,
+          slug: link.slug,
+          targetPaths: [targetPathname, effectivePathnameRef.current],
+        });
+
+        if (!allowed) {
+          setIsBlocked(true);
+        }
+      } catch {}
+    },
+    [
+      isPathLocked,
+      isDevUnlocked,
+      link.targetUrl,
+      link.pathLockPrefix,
+      link.path_lock_prefix,
+      link.slug,
+      effectiveLockMode,
+    ],
+  );
 
   // Monitor iframe navigation via postMessage from PathLock proxy interceptor
   useEffect(() => {
     if (!isPathLocked) return;
 
     const handleMessage = (e: MessageEvent) => {
-      if (
-        e.data &&
-        typeof e.data === "object" &&
-        e.data.type === "PATHLOCK_NAVIGATE"
-      ) {
+      if (!e.data || typeof e.data !== "object") return;
+      if (e.data.type === "PATHLOCK_UPSTREAM_RESTRICTED") {
+        setIsBlocked(false);
+        return;
+      }
+      if (e.data.type === "PATHLOCK_NAVIGATE") {
         if (isDevUnlocked) return;
         if (e.data.blocked) {
           setIsBlocked(true);
           return;
+        }
+        if (typeof e.data.effectivePath === "string") {
+          effectivePathnameRef.current = e.data.effectivePath;
         }
         const attempted = String(e.data.url || "");
         validateAndEnforce(attempted);
@@ -91,7 +156,7 @@ export function CloakedViewer({ link }: CloakedViewerProps) {
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [isPathLocked, link.pathLockMode, link.pathLockPrefix, isDevUnlocked]);
+  }, [isPathLocked, isDevUnlocked, validateAndEnforce]);
 
   // Synchronize unlock state with the proxied iframe
   useEffect(() => {
@@ -103,79 +168,19 @@ export function CloakedViewer({ link }: CloakedViewerProps) {
     } catch {}
   }, [isDevUnlocked]);
 
-  const validateAndEnforce = (urlOrPath: string) => {
-    if (!isPathLocked || isDevUnlocked) return;
-    try {
-      let targetPathname = "/";
-      try {
-        const tu = new URL(
-          link.targetUrl.startsWith("http")
-            ? link.targetUrl
-            : `https://${link.targetUrl}`,
-        );
-        targetPathname = tu.pathname || "/";
-      } catch {}
-
-      let pathToCheck = urlOrPath;
-      if (urlOrPath.startsWith("http")) {
-        const u = new URL(urlOrPath);
-        pathToCheck = u.pathname;
-      }
-      const cleanAttempt = pathToCheck.replace(/^\/+/, "").replace(/\/+$/, "");
-      if (
-        cleanAttempt === `r/${link.slug}/proxy` ||
-        cleanAttempt === `r/${link.slug}/view`
-      ) {
-        return;
-      }
-
-      const cleanTargetPath = targetPathname
-        .replace(/^\/+/, "")
-        .replace(/\/+$/, "");
-      const rawPrefix =
-        link.pathLockPrefix || (link as any).path_lock_prefix || "";
-      const prefixes = rawPrefix
-        .split(",")
-        .map((p: string) => p.trim().replace(/^\/+/, "").replace(/\/+$/, ""))
-        .filter(Boolean);
-
-      if (prefixes.length === 0 && cleanTargetPath) {
-        prefixes.push(cleanTargetPath);
-      }
-
-      if (effectiveLockMode === "strict") {
-        const allowed =
-          cleanAttempt === cleanTargetPath || prefixes.includes(cleanAttempt);
-        if (!allowed) {
-          setIsBlocked(true);
-        }
-      } else if (effectiveLockMode === "funnel") {
-        const isRootOrTarget =
-          cleanAttempt === "" ||
-          cleanAttempt === "/" ||
-          cleanAttempt === cleanTargetPath;
-        const isAllowedPrefix = prefixes.some(
-          (p: string) =>
-            cleanAttempt === p || cleanAttempt.startsWith(`${p}/`),
-        );
-        const isHexPalette = /^[0-9a-f]{6}(-[0-9a-f]{6})+$/i.test(cleanAttempt);
-        const isCoolorsGenerator =
-          isHexPalette &&
-          prefixes.some((p: string) => p === "generate" || p.startsWith("generate"));
-        const allowed = isRootOrTarget || isAllowedPrefix || isCoolorsGenerator;
-        if (!allowed) {
-          setIsBlocked(true);
-        }
-      }
-    } catch {}
-  };
-
   const handleIframeLoad = () => {
     if (!isPathLocked || isDevUnlocked) return;
     try {
       const doc = iframeRef.current?.contentDocument;
       const win = iframeRef.current?.contentWindow;
       if (win && doc) {
+        if (win.location.href === "about:blank") return;
+        const effPath = (
+          win as unknown as { __PATHLOCK_EFFECTIVE_PATH__?: string }
+        ).__PATHLOCK_EFFECTIVE_PATH__;
+        if (typeof effPath === "string") {
+          effectivePathnameRef.current = effPath;
+        }
         const currentPath = win.location.pathname;
         validateAndEnforce(currentPath);
       }
@@ -193,9 +198,11 @@ export function CloakedViewer({ link }: CloakedViewerProps) {
     setIframeKey((prev) => prev + 1);
   };
 
-  const iframeSrc = isPathLocked
-    ? `/r/${encodeURIComponent(link.slug)}/proxy${isDevUnlocked ? "?unlocked=1" : ""}`
-    : link.targetUrl;
+  const iframeSrc = !isMounted
+    ? undefined
+    : isPathLocked
+      ? `/r/${encodeURIComponent(link.slug)}/proxy${isDevUnlocked ? "?unlocked=1" : ""}`
+      : link.targetUrl;
 
   return (
     <div className="relative w-screen h-screen flex flex-col bg-black overflow-hidden font-sans select-none">

@@ -3,14 +3,10 @@
 import React, { useRef, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ArrowUpRight } from "lucide-react";
-
-if (typeof window !== "undefined") {
-  gsap.registerPlugin(ScrollTrigger);
-}
 
 const FOOTER_COLUMNS = [
   {
@@ -61,6 +57,7 @@ const FOOTER_COLUMNS = [
 ];
 
 export function LandingFooter() {
+  const pathname = usePathname();
   const { data: session, status } = useSession();
   const footerRef = useRef<HTMLElement>(null);
   const isAuthenticated =
@@ -77,26 +74,53 @@ export function LandingFooter() {
     "https://linkedin.com/company/lshorter";
 
   useEffect(() => {
-    if (!footerRef.current) return;
-    const ctx = gsap.context(() => {
-      gsap.fromTo(
-        ".footer-reveal-item",
-        { opacity: 0, y: 28 },
-        {
-          opacity: 1,
-          y: 0,
-          duration: 0.85,
-          stagger: 0.1,
+    const el = footerRef.current;
+    if (!el || typeof window === "undefined") return;
+
+    let played = false;
+    let animCtx: gsap.Context | undefined;
+
+    const playReveal = () => {
+      if (played) return;
+      played = true;
+      animCtx = gsap.context(() => {
+        gsap.from(".footer-reveal-item", {
+          opacity: 0.2,
+          y: 20,
+          duration: 0.55,
+          stagger: 0.08,
           ease: "expo.out",
-          scrollTrigger: {
-            trigger: footerRef.current,
-            start: "top 85%",
-          },
-        },
-      );
-    }, footerRef);
-    return () => ctx.revert();
-  }, []);
+          clearProps: "opacity,transform",
+        });
+      }, el);
+    };
+
+    const rect = el.getBoundingClientRect();
+    if (rect.top <= window.innerHeight + 120) {
+      playReveal();
+      return () => animCtx?.revert();
+    }
+
+    if (typeof IntersectionObserver === "undefined") {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          playReveal();
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "120px 0px", threshold: 0.01 },
+    );
+
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+      animCtx?.revert();
+    };
+  }, [pathname]);
 
   const handleScrollToProduct = (e: React.MouseEvent) => {
     const productEl = document.getElementById("product");

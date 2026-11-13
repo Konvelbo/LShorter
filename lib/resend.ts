@@ -29,6 +29,15 @@ const DEFAULT_FEEDBACK_RECEIVER =
 // Deduplication guard so a welcome email is never sent more than once per recipient
 const sentWelcomeEmailsCache = new Set<string>();
 
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function renderLightEmailLayout({
   title,
   subtitle,
@@ -544,6 +553,10 @@ export async function sendPlanPurchaseEmail({
   startDate,
   endDate,
   cycle,
+  invoiceNumber,
+  invoiceUrl,
+  amountPaidLabel,
+  isRenewal = false,
 }: {
   to: string;
   name?: string;
@@ -551,8 +564,13 @@ export async function sendPlanPurchaseEmail({
   startDate: string;
   endDate: string;
   cycle: string;
+  invoiceNumber?: string;
+  invoiceUrl?: string;
+  amountPaidLabel?: string;
+  isRenewal?: boolean;
 }): Promise<{ success: boolean; isDevFallback?: boolean; error?: string }> {
-  const userName = name || to.split("@")[0];
+  const userName = escapeHtml(name || to.split("@")[0]);
+  const safePlanName = escapeHtml(planName);
 
   if (!resend) {
     console.log(`\n[DEV EMAIL] Plan Purchase (${planName}) to ${to}\n`);
@@ -560,43 +578,79 @@ export async function sendPlanPurchaseEmail({
   }
 
   try {
+    const safeInvoiceNum = invoiceNumber ? escapeHtml(invoiceNumber) : "";
+    const safeAmountLabel = amountPaidLabel ? escapeHtml(amountPaidLabel) : "";
+    const invoiceRowHtml = safeInvoiceNum
+      ? `
+            <tr>
+              <td style="padding: 6px 0; color: #64748B;">Référence facture :</td>
+              <td style="padding: 6px 0; text-align: right; font-family: monospace; font-weight: 700;">${safeInvoiceNum}</td>
+            </tr>`
+      : "";
+    const amountRowHtml = safeAmountLabel
+      ? `
+            <tr>
+              <td style="padding: 6px 0; color: #64748B;">Montant acquitté :</td>
+              <td style="padding: 6px 0; text-align: right; font-weight: 700;">${safeAmountLabel}</td>
+            </tr>`
+      : "";
+    const invoiceBlockHtml = invoiceUrl
+      ? `
+        <div style="background-color: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 10px; padding: 14px 16px; margin-bottom: 18px;">
+          <p style="margin: 0 0 8px 0; color: #1E3A8A; font-size: 13.5px; font-weight: 600;">
+            📄 Votre facture officielle est disponible
+          </p>
+          <a href="${escapeHtml(invoiceUrl)}" style="color: #2563EB; font-size: 13px; font-weight: 700; text-decoration: underline;">
+            Télécharger la facture PDF${safeInvoiceNum ? ` (${safeInvoiceNum})` : ""} →
+          </a>
+        </div>`
+      : "";
+
     const html = renderLightEmailLayout({
-      title: `Abonnement LShorter ${planName} activé`,
-      subtitle: "Confirmation de votre souscription et activation immédiate",
+      title: isRenewal
+        ? `Renouvellement LShorter ${safePlanName} confirmé`
+        : `Abonnement LShorter ${safePlanName} activé`,
+      subtitle: isRenewal
+        ? "Confirmation de renouvellement et facture disponible"
+        : "Confirmation de votre souscription et activation immédiate",
       bodyHtml: `
         <p style="margin: 0 0 16px 0; color: #09090B;">Bonjour <strong>${userName}</strong>,</p>
         <p style="margin: 0 0 20px 0; color: #334155;">
-          Merci pour votre confiance. Votre abonnement <strong>LShorter ${planName}</strong> est désormais actif sur votre compte.
+          ${isRenewal
+            ? `Votre abonnement <strong>LShorter ${safePlanName}</strong> a bien été renouvelé avec succès.`
+            : `Merci pour votre confiance. Votre abonnement <strong>LShorter ${safePlanName}</strong> est désormais actif sur votre compte.`}
         </p>
         <div style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 18px; margin-bottom: 18px;">
           <table width="100%" style="font-size: 13.5px; color: #09090B; border-collapse: collapse;">
             <tr>
               <td style="padding: 6px 0; color: #64748B;">Forfait activé :</td>
-              <td style="padding: 6px 0; text-align: right; font-weight: 700; color: #2563EB;">LShorter ${planName}</td>
+              <td style="padding: 6px 0; text-align: right; font-weight: 700; color: #2563EB;">LShorter ${safePlanName}</td>
             </tr>
             <tr>
               <td style="padding: 6px 0; color: #64748B;">Cycle de facturation :</td>
               <td style="padding: 6px 0; text-align: right; font-weight: 600;">${cycle}</td>
             </tr>
             <tr>
-              <td style="padding: 6px 0; color: #64748B;">Date d'activation :</td>
+              <td style="padding: 6px 0; color: #64748B;">Date d'effet :</td>
               <td style="padding: 6px 0; text-align: right;">${startDate}</td>
             </tr>
             <tr>
               <td style="padding: 6px 0; color: #64748B;">Prochain renouvellement :</td>
               <td style="padding: 6px 0; text-align: right; font-weight: 600;">${endDate}</td>
-            </tr>
+            </tr>${amountRowHtml}${invoiceRowHtml}
           </table>
-        </div>
+        </div>${invoiceBlockHtml}
       `,
-      ctaLabel: "Ouvrir mon tableau de bord",
-      ctaHref: "https://lsho.cc/dashboard",
+      ctaLabel: invoiceUrl ? "Télécharger ma facture / Tableau de bord" : "Ouvrir mon tableau de bord",
+      ctaHref: invoiceUrl || "https://lsho.cc/dashboard/settings?tab=billing",
     });
 
     const { error } = await resend.emails.send({
       from: FROM_EMAIL,
       to,
-      subject: `Confirmation d'activation de votre forfait LShorter ${planName}`,
+      subject: isRenewal
+        ? `[LShorter] Renouvellement confirmé & Facture${safeInvoiceNum ? ` ${safeInvoiceNum}` : ""} — Forfait ${planName}`
+        : `Confirmation d'activation de votre forfait LShorter ${planName}${safeInvoiceNum ? ` (${safeInvoiceNum})` : ""}`,
       html,
     });
 
@@ -674,28 +728,35 @@ export async function sendMonthlyTargetReachedEmail({
 
 
 /**
- * 9. Email d'alerte expiration imminente (J-5 et J-3)
+ * 9. Email de rappel avant renouvellement / expiration (J-3, J-2, J-1)
  */
 export async function sendSubscriptionExpiringAlertEmail({
   to,
   name,
   plan,
   daysRemaining,
-  renewUrl = "https://lsho.cc/dashboard/pricing",
+  isAutoRenew = false,
+  renewUrl = "https://lsho.cc/dashboard/settings?tab=billing",
 }: {
   to: string;
   name?: string;
   plan: string;
   daysRemaining: number;
+  isAutoRenew?: boolean;
   renewUrl?: string;
 }): Promise<{ success: boolean; isDevFallback?: boolean; error?: string }> {
-  const userName = name || to.split("@")[0];
-  const subject =
-    daysRemaining === 5
-      ? `[LShorter] Plus que 5 jours pour votre abonnement ${plan}`
-      : `[LShorter] Rappel urgent : Plus que 3 jours pour votre abonnement ${plan}`;
+  const userName = escapeHtml(name || to.split("@")[0]);
+  const safePlan = escapeHtml(plan);
+  const dayLabel = daysRemaining === 1 ? "1 jour" : `${daysRemaining} jours`;
+  const subject = isAutoRenew
+    ? `[LShorter] Renouvellement automatique dans ${dayLabel} — Forfait ${plan}`
+    : daysRemaining === 1
+      ? `[LShorter] Dernier rappel (J-1) : Plus que 1 jour pour votre abonnement ${plan}`
+      : `[LShorter] Rappel : Plus que ${dayLabel} pour votre abonnement ${plan}`;
 
-  const title = `Votre abonnement expire dans ${daysRemaining} jours`;
+  const title = isAutoRenew
+    ? `Renouvellement prévu dans ${dayLabel}`
+    : `Votre abonnement expire dans ${dayLabel}`;
 
   if (!resend) {
     console.log(`\n[DEV EMAIL] Subscription Expiring Alert (${daysRemaining} days left) to ${to}\n`);
@@ -705,35 +766,39 @@ export async function sendSubscriptionExpiringAlertEmail({
   try {
     const html = renderLightEmailLayout({
       title,
-      subtitle: `Forfait ${plan} • Échéance de renouvellement`,
+      subtitle: `Forfait ${safePlan} • Échéance J-${daysRemaining}`,
       bodyHtml: `
         <p style="margin: 0 0 16px 0; color: #09090B;">Bonjour <strong>${userName}</strong>,</p>
         <p style="margin: 0 0 16px 0; color: #334155;">
-          Votre abonnement <strong>${plan}</strong> arrive à expiration dans <strong>${daysRemaining} jours</strong>.
+          ${isAutoRenew
+            ? `Votre abonnement <strong>${safePlan}</strong> arrive à sa date de renouvellement automatique dans <strong>${dayLabel}</strong>.`
+            : `Votre abonnement <strong>${safePlan}</strong> arrive à expiration dans <strong>${dayLabel}</strong>.`}
         </p>
         <p style="margin: 0 0 20px 0; color: #334155;">
-          Pour continuer à profiter sans interruption de vos redirections edge ultra-rapides, de vos domaines personnalisés et de vos quotas élevés, pensez à renouveler votre forfait dès aujourd'hui.
+          ${isAutoRenew
+            ? `Aucun geste n'est requis si votre moyen de paiement est à jour : le renouvellement s'effectuera automatiquement à l'échéance. En cas d'échec de paiement, vous disposerez d'un délai de 24h pour régulariser votre compte avant le passage en plan Freemium.`
+            : `Pour continuer à profiter sans interruption de vos redirections edge, domaines personnalisés et quotas élevés, pensez à renouveler votre forfait dès aujourd'hui.`}
         </p>
         <div style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 18px;">
           <table width="100%" style="font-size: 13.5px; color: #09090B; border-collapse: collapse;">
             <tr>
               <td style="padding: 6px 0; color: #64748B;">Forfait actuel :</td>
-              <td style="padding: 6px 0; text-align: right; font-weight: 700; color: #2563EB;">${plan}</td>
+              <td style="padding: 6px 0; text-align: right; font-weight: 700; color: #2563EB;">${safePlan}</td>
             </tr>
             <tr>
-              <td style="padding: 6px 0; color: #64748B;">Temps restant :</td>
-              <td style="padding: 6px 0; text-align: right; font-weight: 700; color: ${daysRemaining <= 3 ? "#DC2626" : "#D97706"};">${daysRemaining} jours</td>
+              <td style="padding: 6px 0; color: #64748B;">Délai avant échéance :</td>
+              <td style="padding: 6px 0; text-align: right; font-weight: 700; color: ${daysRemaining <= 1 ? "#DC2626" : "#D97706"};">${dayLabel}</td>
             </tr>
             <tr>
-              <td style="padding: 6px 0; color: #64748B;">Statut :</td>
-              <td style="padding: 6px 0; text-align: right; font-weight: 600; color: #16A34A;">Actif</td>
+              <td style="padding: 6px 0; color: #64748B;">Mode :</td>
+              <td style="padding: 6px 0; text-align: right; font-weight: 600; color: ${isAutoRenew ? "#16A34A" : "#D97706"};">${isAutoRenew ? "Renouvellement automatique actif" : "Renouvellement manuel requis"}</td>
             </tr>
           </table>
         </div>
       `,
-      ctaLabel: "Renouveler mon abonnement",
+      ctaLabel: isAutoRenew ? "Gérer ma facturation" : "Renouveler mon abonnement",
       ctaHref: renewUrl,
-      footerNote: "Vous recevez cet email car vous avez un forfait actif sur LShorter.",
+      footerNote: "Vous recevez cet email de rappel (J-3, J-2, J-1) car vous avez un forfait payant actif sur LShorter.",
     });
 
     const { error } = await resend.emails.send({
@@ -751,66 +816,72 @@ export async function sendSubscriptionExpiringAlertEmail({
 }
 
 /**
- * 10. Email d'activation de la période de grâce de 24h (1 jour)
- * Message exact demandé : "On vous a accordé 1 jour pour vous remettre à jour"
+ * 10. Email d'échec de renouvellement / activation de la période de grâce 24h (1 jour)
  */
 export async function sendGracePeriodAlertEmail({
   to,
   name,
   plan,
   renewUrl = "https://lsho.cc/dashboard/pricing",
+  isPaymentFailure = true,
 }: {
   to: string;
   name?: string;
   plan: string;
   renewUrl?: string;
+  isPaymentFailure?: boolean;
 }): Promise<{ success: boolean; isDevFallback?: boolean; error?: string }> {
-  const userName = name || to.split("@")[0];
-  const subject = `[LShorter] On vous a accordé 1 jour pour vous remettre à jour`;
-  const title = `On vous a accordé 1 jour pour vous remettre à jour`;
+  const userName = escapeHtml(name || to.split("@")[0]);
+  const safePlan = escapeHtml(plan);
+  const subject = `[LShorter] Échec du renouvellement — 24h restantes avant passage en Freemium`;
+  const title = isPaymentFailure
+    ? `Échec du renouvellement de votre abonnement`
+    : `Il vous reste 24h pour renouveler votre abonnement`;
 
   if (!resend) {
-    console.log(`\n[DEV EMAIL] Grace Period Alert (1 day granted) to ${to}\n`);
+    console.log(`\n[DEV EMAIL] Grace Period Alert (24h failure warning) to ${to}\n`);
     return { success: true, isDevFallback: true };
   }
 
   try {
     const html = renderLightEmailLayout({
       title,
-      subtitle: `Forfait ${plan} • Période de grâce active`,
+      subtitle: `Forfait ${safePlan} • Action requise sous 24 heures`,
       bodyHtml: `
         <p style="margin: 0 0 16px 0; color: #09090B;">Bonjour <strong>${userName}</strong>,</p>
         <p style="margin: 0 0 16px 0; color: #334155;">
-          Votre abonnement <strong>${plan}</strong> est arrivé à son terme.
+          ${isPaymentFailure
+            ? `Le renouvellement automatique de votre abonnement <strong>${safePlan}</strong> a échoué.`
+            : `Votre abonnement <strong>${safePlan}</strong> est arrivé à échéance sans renouvellement confirmé.`}
         </p>
         <div style="background-color: #FEF3C7; border: 1px solid #F59E0B; border-radius: 10px; padding: 16px; margin-bottom: 20px;">
           <p style="margin: 0; color: #92400E; font-size: 14px; font-weight: 600; line-height: 1.5;">
-            ⏳ On vous a accordé 1 jour pour vous remettre à jour avant le passage automatique au forfait gratuit.
+            ⏳ Il vous reste 24 heures (1 jour) pour renouveler votre abonnement. Si les 24h arrivent à échéance sans renouvellement, votre compte sera automatiquement ramené en plan Freemium (FREE).
           </p>
         </div>
         <p style="margin: 0 0 16px 0; color: #334155;">
-          Pendant ces 24 heures de grâce, l'ensemble de vos redirections, domaines et accès premium restent 100 % opérationnels.
+          Pendant ces 24 heures de grâce, l'ensemble de vos redirections, domaines et accès restent 100 % opérationnels.
         </p>
         <div style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 18px;">
           <table width="100%" style="font-size: 13.5px; color: #09090B; border-collapse: collapse;">
             <tr>
               <td style="padding: 6px 0; color: #64748B;">Forfait concerné :</td>
-              <td style="padding: 6px 0; text-align: right; font-weight: 700; color: #2563EB;">${plan}</td>
+              <td style="padding: 6px 0; text-align: right; font-weight: 700; color: #2563EB;">${safePlan}</td>
             </tr>
             <tr>
-              <td style="padding: 6px 0; color: #64748B;">Délai de grâce accordé :</td>
+              <td style="padding: 6px 0; color: #64748B;">Délai restant pour renouveler :</td>
               <td style="padding: 6px 0; text-align: right; font-weight: 700; color: #D97706;">24 heures (1 jour)</td>
             </tr>
             <tr>
-              <td style="padding: 6px 0; color: #64748B;">Action requise :</td>
-              <td style="padding: 6px 0; text-align: right; font-weight: 600; color: #DC2626;">Régularisation / Renouvellement</td>
+              <td style="padding: 6px 0; color: #64748B;">Après 24h sans renouvellement :</td>
+              <td style="padding: 6px 0; text-align: right; font-weight: 600; color: #DC2626;">Passage en plan Freemium (FREE)</td>
             </tr>
           </table>
         </div>
       `,
-      ctaLabel: "Régulariser mon compte maintenant",
+      ctaLabel: "Renouveler mon abonnement maintenant",
       ctaHref: renewUrl,
-      footerNote: "Vos liens courts restent actifs durant toute la durée de la période de grâce.",
+      footerNote: "Vos liens courts restent actifs durant toute la durée de ce délai de 24h.",
     });
 
     const { error } = await resend.emails.send({
@@ -828,7 +899,7 @@ export async function sendGracePeriodAlertEmail({
 }
 
 /**
- * 11. Email de confirmation du passage en plan Gratuit (après expiration de la grâce)
+ * 11. Email de confirmation du passage en plan Freemium (après expiration de la grâce de 24h)
  */
 export async function sendSubscriptionDowngradedEmail({
   to,
@@ -841,23 +912,24 @@ export async function sendSubscriptionDowngradedEmail({
   previousPlan: string;
   upgradeUrl?: string;
 }): Promise<{ success: boolean; isDevFallback?: boolean; error?: string }> {
-  const userName = name || to.split("@")[0];
-  const subject = `[LShorter] Votre compte est repassé en plan Gratuit`;
-  const title = `Compte repassé en plan Gratuit`;
+  const userName = escapeHtml(name || to.split("@")[0]);
+  const safePreviousPlan = escapeHtml(previousPlan);
+  const subject = `[LShorter] Votre plan a été ramené en plan Freemium`;
+  const title = `Plan ramené en plan Freemium (FREE)`;
 
   if (!resend) {
-    console.log(`\n[DEV EMAIL] Subscription Downgraded to FREE for ${to}\n`);
+    console.log(`\n[DEV EMAIL] Subscription Downgraded to FREE/Freemium for ${to}\n`);
     return { success: true, isDevFallback: true };
   }
 
   try {
     const html = renderLightEmailLayout({
       title,
-      subtitle: `Fin de la période de grâce • Statut de votre compte`,
+      subtitle: `Fin du délai de 24h • Passage au plan Freemium`,
       bodyHtml: `
         <p style="margin: 0 0 16px 0; color: #09090B;">Bonjour <strong>${userName}</strong>,</p>
         <p style="margin: 0 0 16px 0; color: #334155;">
-          La période de grâce de 1 jour accordée pour votre abonnement <strong>${previousPlan}</strong> est désormais terminée. Votre compte est maintenant configuré sur le forfait <strong>Gratuit</strong>.
+          Le délai de 24h (1 jour) accordé suite à la fin ou l'échec de renouvellement de votre abonnement <strong>${safePreviousPlan}</strong> est désormais écoulé. Votre plan a été ramené en plan <strong>Freemium (FREE)</strong>.
         </p>
         <div style="background-color: #ECFDF5; border: 1px solid #10B981; border-radius: 10px; padding: 16px; margin-bottom: 20px;">
           <p style="margin: 0; color: #065F46; font-size: 13.5px; font-weight: 600; line-height: 1.5;">
@@ -868,7 +940,7 @@ export async function sendSubscriptionDowngradedEmail({
           Les fonctionnalités avancées (domaines supplémentaires, analytics détaillées, quotas élevés) sont temporairement verrouillées. Vous pouvez réactiver votre forfait à tout moment en un clic.
         </p>
       `,
-      ctaLabel: `Réactiver mon forfait ${previousPlan}`,
+      ctaLabel: `Réactiver mon forfait ${safePreviousPlan}`,
       ctaHref: upgradeUrl,
       footerNote: "Vous pouvez continuer à utiliser gratuitement LShorter avec les quotas standards.",
     });

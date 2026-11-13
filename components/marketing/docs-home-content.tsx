@@ -44,75 +44,75 @@ export function DocsHomeContent() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined" || !pageContainerRef.current) return;
     gsap.registerPlugin(ScrollTrigger);
 
-    // 1. Entrance animation for the Top Hero Section
-    const heroEl = document.querySelector(".docs-hero-section");
-    if (heroEl) {
-      gsap.fromTo(
-        heroEl,
-        { opacity: 0, y: 30 },
-        {
-          opacity: 1,
-          y: 0,
-          duration: 0.8,
-          ease: "power2.out",
-          scrollTrigger: {
-            trigger: heroEl,
-            start: "top 90%",
-            once: true,
-          },
-        }
-      );
-    }
+    const ctx = gsap.context(() => {
+      // 1. Entrance animation for the Top Hero Section
+      const heroEl = document.querySelector(".docs-hero-section");
+      if (heroEl) {
+        gsap.fromTo(
+          heroEl,
+          { opacity: 0, y: 30 },
+          {
+            opacity: 1,
+            y: 0,
+            duration: 0.8,
+            ease: "power2.out",
+            scrollTrigger: {
+              trigger: heroEl,
+              start: "top 90%",
+              once: true,
+            },
+          }
+        );
+      }
 
-    // 2. Entrance animation for the Social Proof Ticker
-    const tickerEl = document.querySelector(".docs-social-proof");
-    if (tickerEl) {
-      gsap.fromTo(
-        tickerEl,
-        { opacity: 0, y: 20 },
-        {
-          opacity: 1,
-          y: 0,
-          duration: 0.7,
-          ease: "power2.out",
-          scrollTrigger: {
-            trigger: tickerEl,
-            start: "top 90%",
-            once: true,
-          },
-        }
-      );
-    }
+      // 2. Entrance animation for the Social Proof Ticker
+      const tickerEl = document.querySelector(".docs-social-proof");
+      if (tickerEl) {
+        gsap.fromTo(
+          tickerEl,
+          { opacity: 0, y: 20 },
+          {
+            opacity: 1,
+            y: 0,
+            duration: 0.7,
+            ease: "power2.out",
+            scrollTrigger: {
+              trigger: tickerEl,
+              start: "top 90%",
+              once: true,
+            },
+          }
+        );
+      }
 
-    // 3. Staggered Entrance for the 3-Column Resource Cards Grid
-    const cardsGrid = document.querySelector(".docs-cards-grid");
-    const cardItems = document.querySelectorAll(".cofounder-card-item");
-    if (cardsGrid && cardItems.length > 0) {
-      gsap.fromTo(
-        cardItems,
-        { opacity: 0, y: 35, scale: 0.98 },
-        {
-          opacity: 1,
-          y: 0,
-          scale: 1,
-          duration: 0.6,
-          stagger: 0.08,
-          ease: "power2.out",
-          scrollTrigger: {
-            trigger: cardsGrid,
-            start: "top 85%",
-            once: true,
-          },
-        }
-      );
-    }
+      // 3. Staggered Entrance for the 3-Column Resource Cards Grid
+      const cardsGrid = document.querySelector(".docs-cards-grid");
+      const cardItems = document.querySelectorAll(".cofounder-card-item");
+      if (cardsGrid && cardItems.length > 0) {
+        gsap.fromTo(
+          cardItems,
+          { opacity: 0, y: 35, scale: 0.98 },
+          {
+            opacity: 1,
+            y: 0,
+            scale: 1,
+            duration: 0.6,
+            stagger: 0.08,
+            ease: "power2.out",
+            scrollTrigger: {
+              trigger: cardsGrid,
+              start: "top 85%",
+              once: true,
+            },
+          }
+        );
+      }
+    }, pageContainerRef);
 
-    return () => {
-      ScrollTrigger.getAll().forEach((st) => st.kill());
-    };
+    return () => ctx.revert();
   }, []);
 
   return (

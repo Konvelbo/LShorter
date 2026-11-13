@@ -1,4 +1,5 @@
 import { LinkMetadata, ProtectionDecision } from "./types";
+import { normalizeDestinationUrl } from "./rules";
 
 export function evaluateProtectionState(
   link: LinkMetadata,
@@ -7,20 +8,7 @@ export function evaluateProtectionState(
 ): ProtectionDecision {
   const slug = link.slug;
 
-  // 1. Link is Paused / Deactivated
-  if (
-    link.is_active === 0 ||
-    link.is_active === false ||
-    link.isActive === false
-  ) {
-    return {
-      type: "redirect",
-      url: new URL(`/r/${encodeURIComponent(slug)}/paused`, baseUrl).toString(),
-      status: 307,
-    };
-  }
-
-  // 2. Link is Expired by date/time
+  // 1. Link is Expired by date/time (checked before paused because expired links often mark is_active=0)
   const expTime = link.expires_at || link.expiresAt;
   if (expTime && new Date(expTime).getTime() <= Date.now()) {
     return {
@@ -30,7 +18,7 @@ export function evaluateProtectionState(
     };
   }
 
-  // 3. Click limit quota reached
+  // 2. Click limit quota reached
   const maxClicks =
     link.max_clicks !== undefined && link.max_clicks !== null
       ? Number(link.max_clicks)
@@ -43,13 +31,26 @@ export function evaluateProtectionState(
     if (fallback) {
       return {
         type: "redirect",
-        url: fallback,
+        url: normalizeDestinationUrl(String(fallback)),
         status: 307,
       };
     }
     return {
       type: "redirect",
       url: new URL(`/r/${encodeURIComponent(slug)}/expired`, baseUrl).toString(),
+      status: 307,
+    };
+  }
+
+  // 3. Link is Paused / Deactivated
+  if (
+    link.is_active === 0 ||
+    link.is_active === false ||
+    link.isActive === false
+  ) {
+    return {
+      type: "redirect",
+      url: new URL(`/r/${encodeURIComponent(slug)}/paused`, baseUrl).toString(),
       status: 307,
     };
   }

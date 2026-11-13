@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { isSafeHttpUrl } from "@/lib/security-utils";
@@ -38,6 +39,16 @@ export async function POST(req: NextRequest) {
       },
     };
 
+    const rawPayload = JSON.stringify(testPayload);
+    const signingSecret =
+      typeof secretKey === "string" && secretKey.trim()
+        ? secretKey.trim()
+        : "whsec_test_signature";
+    const hmacSignature = `sha256=${crypto
+      .createHmac("sha256", signingSecret)
+      .update(rawPayload)
+      .digest("hex")}`;
+
     const startTime = Date.now();
     let status = 200;
     let responseBody = "";
@@ -47,16 +58,17 @@ export async function POST(req: NextRequest) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-LShorter-Signature": secretKey || "whsec_test_signature",
+          "X-LShorter-Signature": hmacSignature,
+          "X-LShorter-Event": "click.test",
           "User-Agent": "LShorter-Webhook-Delivery/1.0",
         },
-        body: JSON.stringify(testPayload),
+        body: rawPayload,
         signal: AbortSignal.timeout(5000),
       });
       status = res.status;
       responseBody = await res.text().catch(() => "");
-    } catch (deliveryErr: any) {
-      // If external target fails or is simulated, return standard test response
+    } catch {
+      // If external target fails or is unreachable in local test, return structured simulation status
       status = 200;
       responseBody = JSON.stringify({ received: true, simulated: true });
     }
@@ -67,6 +79,8 @@ export async function POST(req: NextRequest) {
       success: true,
       status,
       durationMs,
+      signature: hmacSignature,
+      signatureAlgorithm: "HMAC-SHA256",
       payloadSent: testPayload,
       endpointResponse: responseBody.slice(0, 500) || "OK",
     });
