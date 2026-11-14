@@ -32,16 +32,23 @@ export default function DashboardLayout({
         {/* 1. Full-height Left Sidebar (No visible scrollbar) */}
         <Sidebar />
 
-        {/* 2. Right Column: Sticky Topbar + Main Scrollable Workspace with Theme-Adapted Scrollbar */}
-        <div className="relative flex flex-1 flex-col overflow-y-auto overflow-x-hidden ds-bg-app ds-main-scroll">
+        {/* 2. Right Column: Fixed Column containing Topbar, Scrollable Workspace & Bottom Blur Vignette */}
+        <div className="relative flex flex-1 flex-col min-w-0 h-full overflow-hidden ds-bg-app">
           <Topbar />
           <SubscriptionGraceBanner />
 
-          <main className="flex-1">
-            <div className="mx-auto max-w-[1536px] p-4 md:p-6 2xl:p-8 pb-24 md:pb-10">
+          {/* Main Scrollable Workspace with Theme-Adapted Scrollbar */}
+          <div className="flex-1 overflow-y-auto overflow-x-hidden ds-bg-app ds-main-scroll">
+            <main className="mx-auto max-w-[1536px] p-4 md:p-6 2xl:p-8 pb-28 md:pb-16">
               {children}
-            </div>
-          </main>
+            </main>
+          </div>
+
+          {/* Bottom Blur Vignette Overlay — strictly covers the main content page, leaves sidebar untouched */}
+          <div
+            aria-hidden="true"
+            className="ds-bottom-blur-vignette"
+          />
         </div>
 
         {/* 3. Mobile Draggable Floating Action Button for Link Creation (40px, rounded-full, blue, fluid drag) */}

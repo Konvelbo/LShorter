@@ -1320,6 +1320,38 @@ html.light {
   color: var(--ds-text-primary) !important;
 }
 
+/* Bottom Content Blur Vignette — Luxury fade & glassmorphism for page bottom */
+.ds-bottom-blur-vignette {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3.75rem; /* 60px */
+  pointer-events: none;
+  z-index: 20;
+  background: linear-gradient(
+    to top,
+    var(--ds-bg-app) 0%,
+    rgba(249, 250, 251, 0.8) 40%,
+    rgba(249, 250, 251, 0) 100%
+  );
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  mask-image: linear-gradient(to top, rgba(0, 0, 0, 1) 20%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to top, rgba(0, 0, 0, 1) 20%, transparent 100%);
+  transition: background 0.25s ease;
+}
+
+.dark .ds-bottom-blur-vignette,
+html.dark .ds-bottom-blur-vignette {
+  background: linear-gradient(
+    to top,
+    var(--ds-bg-app) 0%,
+    rgba(9, 9, 11, 0.82) 40%,
+    rgba(9, 9, 11, 0) 100%
+  );
+}
+
 .ds-bg-sidebar {
   background-color: var(--ds-bg-sidebar) !important;
   border-color: var(--ds-border) !important;
