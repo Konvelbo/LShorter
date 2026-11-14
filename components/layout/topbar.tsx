@@ -80,13 +80,13 @@ export function Topbar() {
       (convexUser?.plan as string) ||
       ((session?.user as any)?.plan as string);
 
-    if (name || email || avatarUrl || (plan && plan !== "FREE")) {
+    if (name || email || avatarUrl || plan !== undefined) {
       setCachedUser((prev) => {
         const next = {
           name: name?.trim() ? name.trim() : (prev?.name && prev.name !== "User" ? prev.name : ""),
           email: email?.trim() ? email.trim() : prev?.email || "",
           avatarUrl: avatarUrl !== undefined && avatarUrl ? avatarUrl : prev?.avatarUrl || "",
-          plan: plan && plan !== "FREE" ? plan : (prev?.plan && prev.plan !== "FREE" ? prev.plan : "FREE"),
+          plan: plan || prev?.plan || "FREE",
         };
         try {
           if (next.name || next.email) {
