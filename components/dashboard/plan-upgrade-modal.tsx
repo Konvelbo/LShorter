@@ -323,7 +323,7 @@ export function PlanUpgradeModal() {
         </div>
 
         <p className="text-center text-xs text-zinc-400 dark:text-neutral-500 mt-6">
-          No commitment: change or cancel in 1 click from your settings.
+          Instant activation: switch or upgrade your plan in 1 click from your settings.
         </p>
       </div>
     </div>

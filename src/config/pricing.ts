@@ -184,8 +184,8 @@ export const PRICING_COPY = {
       description: "Bank-grade encrypted transactions. Certified PDF invoices are available for download immediately in your billing settings.",
     },
     {
-      title: "Cancel Anytime",
-      description: "No lock-in contracts. Upgrade, downgrade, or cancel your subscription in one click directly from your dashboard.",
+      title: "Instant Plan Switching",
+      description: "Flexible scaling as you grow. Switch or upgrade your plan in one click directly from your billing settings.",
     },
   ],
 };
