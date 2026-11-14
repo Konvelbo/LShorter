@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateInvoicePdf, InvoicePdfData } from "@/lib/billing/pdf-invoice";
 import { PRICING_PLANS } from "@/src/config/pricing";
-import { getPaddleInstance } from "@/lib/paddle/paddle-server";
 import { getDodoPaymentsClient } from "@/lib/dodo/dodo-server";
 import { convexHttp as convex } from "@/lib/convex-server";
 import { api } from "@/convex/_generated/api";
@@ -144,47 +143,7 @@ export async function GET(
       }
     }
 
-    // 2. Check if invoice corresponds to a Paddle transaction (e.g. INV-TXN_... or txn_...)
-    const paddle = getPaddleInstance();
-    let txnId: string | null = null;
-    if (decodedId.toLowerCase().includes("txn_")) {
-      const match = decodedId.match(/txn_[a-zA-Z0-9]+/i);
-      if (match) {
-        txnId = match[0].toLowerCase();
-      }
-    }
-
-    let ownsPaddleMeta = false;
-    if (txnId && paddle) {
-      try {
-        const txn = await paddle.transactions.get(txnId);
-        let ownsPaddleTxn = Boolean(convexInvoice);
-        if (!ownsPaddleTxn && txn?.customerId && userEmail) {
-          const cust = await paddle.customers.get(txn.customerId).catch(() => null);
-          ownsPaddleTxn = cust?.email?.toLowerCase().trim() === userEmail;
-        }
-        if (
-          !ownsPaddleTxn &&
-          userId &&
-          (txn?.customData as Record<string, unknown> | null)?.userId === userId
-        ) {
-          ownsPaddleTxn = true;
-        }
-        if (!ownsPaddleTxn) {
-          return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
-        }
-
-        ownsPaddleMeta = true;
-        const paddleInvoice = await paddle.transactions.getInvoicePDF(txnId);
-        if (paddleInvoice?.url) {
-          return NextResponse.redirect(paddleInvoice.url);
-        }
-      } catch (paddleErr) {
-        console.warn("[Invoice Download] Paddle official invoice fetch fallback:", paddleErr);
-      }
-    }
-
-    if (!convexInvoice && !dodoPaymentMeta && !ownsPaddleMeta) {
+    if (!convexInvoice && !dodoPaymentMeta) {
       return NextResponse.json({ success: false, error: "Invoice not found" }, { status: 404 });
     }
 

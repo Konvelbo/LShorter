@@ -1859,3 +1859,21 @@ html.light main .text-neutral-200 {
   animation-duration: 0.2s;
   animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
 }
+
+/* Suppress browser focus bounding-box rectangle & tap highlight on react-simple-maps SVG paths */
+.rsm-svg,
+.rsm-svg:focus,
+.rsm-svg:focus-visible,
+.rsm-geographies,
+.rsm-geography,
+.rsm-geography:focus,
+.rsm-geography:focus-visible,
+.rsm-geography:active,
+.rsm-marker,
+.rsm-marker:focus,
+.rsm-marker:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-tap-highlight-color: transparent;
+}
+

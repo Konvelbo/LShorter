@@ -54,7 +54,7 @@ export default function TermsOfServicePage() {
     { id: "accounts", title: "2. Account Registration & Security" },
     { id: "acceptable-use", title: "3. Acceptable Use & Anti-Abuse Policy" },
     { id: "edge-sla", title: "4. Edge Infrastructure & SLA Commitments" },
-    { id: "billing", title: "5. Billing, Paddle MoR & No-Refund Policy" },
+    { id: "billing", title: "5. Billing, Dodo Payments MoR & No-Refund Policy" },
     { id: "api-terms", title: "6. Developer API & SDK Usage" },
     { id: "ip-rights", title: "7. Intellectual Property & Domain Ownership" },
     { id: "termination", title: "8. Suspension & Account Termination" },
@@ -350,18 +350,18 @@ export default function TermsOfServicePage() {
             {/* Section 5: Billing & Strict No-Refund Policy */}
             <section id="billing" className="scroll-mt-28">
               <h2 className="text-xl sm:text-2xl font-bold text-neutral-900 dark:text-white mb-4">
-                5. Billing, Paddle Merchant of Record & Strict No-Refund Policy
+                5. Billing, Dodo Payments Merchant of Record & Strict No-Refund Policy
               </h2>
               <div className="space-y-4">
                 <div className="legal-interactive-card p-4 rounded-[10px] border border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-[#121214] text-xs sm:text-sm text-neutral-700 dark:text-neutral-300">
                   <h4 className="font-semibold text-neutral-900 dark:text-white mb-1.5">
-                    Merchant of Record (Paddle)
+                    Merchant of Record (Dodo Payments)
                   </h4>
                   <p>
                     All financial transactions, customer checkouts, invoices, and sales tax/VAT assessments
                     are conducted through our authorized Merchant of Record,{" "}
-                    <strong>Paddle.com Market Ltd</strong> (or its local subsidiaries). When purchasing an
-                    LShorter subscription or capacity add-on, your order is governed by Paddle&apos;s checkout terms.
+                    <strong>Dodo Payments</strong>. When purchasing an
+                    LShorter subscription or capacity add-on, your order is governed by Dodo Payments&apos; checkout terms.
                   </p>
                 </div>
 

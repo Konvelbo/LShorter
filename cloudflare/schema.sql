@@ -127,7 +127,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_orgs_slug ON organizations(slug);
 CREATE TABLE IF NOT EXISTS subscriptions (
   id TEXT PRIMARY KEY,
   org_id TEXT NOT NULL,
-  provider TEXT NOT NULL DEFAULT 'paddle',
+  provider TEXT NOT NULL DEFAULT 'dodo',
   provider_subscription_id TEXT NOT NULL,
   current_period_start INTEGER,
   current_period_end INTEGER,

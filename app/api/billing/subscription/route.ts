@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { getPaddleInstance } from "@/lib/paddle/paddle-server";
 import { getDodoPaymentsClient } from "@/lib/dodo/dodo-server";
 import { convexHttp as convex } from "@/lib/convex-server";
 import { api } from "@/convex/_generated/api";
+import { cancelReplacedSubscriptions } from "@/lib/billing/cancel-replaced-subscription";
 
 export const dynamic = "force-dynamic";
 
 /**
  * GET /api/billing/subscription
  * Retrieves the current user's subscription and auto-renewal status.
- * Combines data from Convex and Paddle Node SDK.
+ * Combines data from Convex and Dodo Payments SDK.
  */
 export async function GET(request: NextRequest) {
   try {
@@ -24,26 +24,34 @@ export async function GET(request: NextRequest) {
 
     const userId = session.user.id || "";
     const email = session.user.email || "";
-    const userPlan = ((session.user as any)?.plan || "FREE").toUpperCase();
+    let userPlan = ((session.user as any)?.plan || "FREE").toUpperCase();
 
-    // 1. Fetch subscription from Convex
+    // 1. Fetch live user & subscription from Convex
     let convexSub: any = null;
     if (userId) {
       try {
-        convexSub = await convex.query(api.subscriptions.getSubscription, {
-          orgId: userId,
-        });
+        const [liveUser, subDoc] = await Promise.all([
+          convex.query(api.users.getCurrentUser, { userId }).catch(() => null),
+          convex.query(api.subscriptions.getSubscription, { orgId: userId }).catch(() => null),
+        ]);
+        if (liveUser?.plan) {
+          userPlan = String(liveUser.plan).toUpperCase();
+        }
+        convexSub = subDoc;
       } catch (err) {
-        console.warn("[Subscription API] Convex getSubscription query failed:", err);
+        console.warn("[Subscription API] Convex query failed:", err);
       }
     }
 
     let providerSubscriptionId = convexSub?.providerSubscriptionId || null;
-    let provider: string = convexSub?.provider || (providerSubscriptionId ? "dodo" : "paddle");
+    const provider = "dodo";
     let cancelAtPeriodEnd = Boolean(convexSub?.cancelAtPeriodEnd);
     let currentPeriodStart = convexSub?.currentPeriodStart || null;
     let currentPeriodEnd = convexSub?.currentPeriodEnd || null;
-    let plan = convexSub?.plan || userPlan;
+    let plan =
+      userPlan !== "FREE" && userPlan !== "FREEMIUM" && userPlan !== "STARTER"
+        ? userPlan
+        : convexSub?.plan || userPlan;
     let cycle = convexSub?.cycle || "MONTHLY";
     let status = convexSub?.lifecycleStatus === "DOWNGRADED"
       ? "canceled"
@@ -51,14 +59,72 @@ export async function GET(request: NextRequest) {
         ? "past_due"
         : "active";
 
-    // 2A. Sync live state from Dodo Payments when provider is Dodo
-    const dodoClient = provider === "dodo" && providerSubscriptionId ? getDodoPaymentsClient() : null;
+    // 2. Sync live state from Dodo Payments
+    const dodoClient = providerSubscriptionId ? getDodoPaymentsClient() : null;
     if (dodoClient && providerSubscriptionId) {
       try {
-        const dodoSub = await dodoClient.subscriptions.retrieve(providerSubscriptionId);
+        let dodoSub: any = await dodoClient.subscriptions.retrieve(providerSubscriptionId);
+
+        // If the stored subscription was cancelled or does not match the newer upgraded plan,
+        // check if the user has a newer active subscription on Dodo Payments
+        if (
+          dodoSub &&
+          (dodoSub.status === "cancelled" ||
+            (dodoSub.metadata?.planId &&
+              String(dodoSub.metadata.planId).toUpperCase() !== plan))
+        ) {
+          const custId = dodoSub.customer?.customer_id;
+          if (custId) {
+            const candidates: any[] = [];
+            for await (const s of dodoClient.subscriptions.list({
+              customer_id: custId,
+              status: "active",
+              page_size: 10,
+            })) {
+              candidates.push(s);
+            }
+            if (candidates.length > 0) {
+              candidates.sort((a, b) => {
+                const tA = a?.created_at ? new Date(a.created_at).getTime() : 0;
+                const tB = b?.created_at ? new Date(b.created_at).getTime() : 0;
+                return tB - tA;
+              });
+              const newest = candidates[0];
+              if (newest?.subscription_id && newest.subscription_id !== providerSubscriptionId) {
+                const oldSubId = providerSubscriptionId;
+                dodoSub = newest;
+                providerSubscriptionId = newest.subscription_id;
+                await cancelReplacedSubscriptions({
+                  userId,
+                  orgId: userId,
+                  customerEmail: email,
+                  dodoCustomerId: String(custId),
+                  newSubscriptionId: newest.subscription_id,
+                  newProvider: "dodo",
+                  newPlan: String(newest.metadata?.planId || plan).toUpperCase(),
+                  previousSubscriptionId: oldSubId,
+                  previousProvider: "dodo",
+                }).catch(() => {});
+              }
+            }
+          }
+        }
+
         if (dodoSub) {
           status = dodoSub.status || status;
           cancelAtPeriodEnd = Boolean(dodoSub.cancel_at_next_billing_date);
+          if (dodoSub.metadata?.planId) {
+            const metaPlan = String(dodoSub.metadata.planId).toUpperCase();
+            if (["PRO", "BUSINESS", "ENTERPRISE"].includes(metaPlan)) {
+              plan = metaPlan;
+            }
+          }
+          if (dodoSub.metadata?.cycle) {
+            const metaCycle = String(dodoSub.metadata.cycle).toUpperCase();
+            if (metaCycle === "YEARLY" || metaCycle === "MONTHLY") {
+              cycle = metaCycle;
+            }
+          }
           const nextMs = dodoSub.next_billing_date ? new Date(dodoSub.next_billing_date).getTime() : NaN;
           const prevMs = dodoSub.previous_billing_date ? new Date(dodoSub.previous_billing_date).getTime() : NaN;
           if (!Number.isNaN(nextMs)) {
@@ -67,13 +133,19 @@ export async function GET(request: NextRequest) {
           if (!Number.isNaN(prevMs)) {
             currentPeriodStart = prevMs;
           }
-          if (dodoSub.status === "active" && currentPeriodEnd && currentPeriodEnd > (convexSub?.currentPeriodEnd || 0) && userId) {
+          if (
+            dodoSub.status === "active" &&
+            userId &&
+            (providerSubscriptionId !== convexSub?.providerSubscriptionId ||
+              plan !== convexSub?.plan ||
+              (currentPeriodEnd && currentPeriodEnd > (convexSub?.currentPeriodEnd || 0)))
+          ) {
             await convex.mutation(api.subscriptions.upsertSubscription, {
               orgId: userId,
               provider: "dodo",
               providerSubscriptionId,
               currentPeriodStart: currentPeriodStart || Date.now(),
-              currentPeriodEnd,
+              currentPeriodEnd: currentPeriodEnd || Date.now() + 30 * 86400000,
               cancelAtPeriodEnd,
               plan,
               cycle,
@@ -82,81 +154,6 @@ export async function GET(request: NextRequest) {
         }
       } catch (dodoErr) {
         console.warn("[Subscription API] Dodo lookup warning:", dodoErr);
-      }
-    }
-
-    // 2B. If provider is not Dodo and Paddle is available, sync with Paddle
-    const paddle = provider !== "dodo" ? getPaddleInstance() : null;
-    if (paddle) {
-      try {
-        if (providerSubscriptionId && providerSubscriptionId.startsWith("sub_")) {
-          const paddleSub = await paddle.subscriptions.get(providerSubscriptionId);
-          if (paddleSub) {
-            status = paddleSub.status;
-            cancelAtPeriodEnd = paddleSub.scheduledChange?.action === "cancel";
-            if (paddleSub.status === "active" || paddleSub.status === "trialing") {
-              if (paddleSub.currentBillingPeriod?.endsAt) {
-                currentPeriodEnd = new Date(paddleSub.currentBillingPeriod.endsAt).getTime();
-              }
-              if (paddleSub.currentBillingPeriod?.startsAt) {
-                currentPeriodStart = new Date(paddleSub.currentBillingPeriod.startsAt).getTime();
-              }
-            } else if (paddleSub.status === "past_due") {
-              // In Paddle, when status is past_due, currentBillingPeriod.startsAt is the end of the paid cycle
-              if (paddleSub.currentBillingPeriod?.startsAt) {
-                currentPeriodEnd = new Date(paddleSub.currentBillingPeriod.startsAt).getTime();
-              }
-            }
-          }
-        } else if (email) {
-          // Look up active subscription for this customer on Paddle
-          const cleanEmail = email.toLowerCase().trim();
-          for await (const customer of paddle.customers.list({ email: [cleanEmail] })) {
-            if (!customer.id || customer.email?.toLowerCase().trim() !== cleanEmail) continue;
-            for await (const sub of paddle.subscriptions.list({
-              customerId: [customer.id],
-              perPage: 5,
-            })) {
-              if (sub.status === "active" || sub.status === "trialing" || sub.status === "past_due") {
-                providerSubscriptionId = sub.id;
-                status = sub.status;
-                cancelAtPeriodEnd = sub.scheduledChange?.action === "cancel";
-                if (sub.currentBillingPeriod?.endsAt) {
-                  currentPeriodEnd = new Date(sub.currentBillingPeriod.endsAt).getTime();
-                }
-                if (sub.currentBillingPeriod?.startsAt) {
-                  currentPeriodStart = new Date(sub.currentBillingPeriod.startsAt).getTime();
-                }
-
-                const customData = (sub.customData as any) || {};
-                if (customData.planId) plan = customData.planId.toUpperCase();
-                if (customData.cycle) cycle = customData.cycle.toUpperCase();
-
-                // Sync back to Convex
-                if (userId) {
-                  try {
-                    await convex.mutation(api.subscriptions.upsertSubscription, {
-                      orgId: userId,
-                      provider: "paddle",
-                      providerSubscriptionId: sub.id,
-                      currentPeriodStart: currentPeriodStart || Date.now(),
-                      currentPeriodEnd: currentPeriodEnd || Date.now() + 30 * 86400000,
-                      cancelAtPeriodEnd,
-                      plan,
-                      cycle,
-                    });
-                  } catch (e) {
-                    console.warn("[Subscription API] Syncing to Convex failed:", e);
-                  }
-                }
-                break;
-              }
-            }
-            if (providerSubscriptionId) break;
-          }
-        }
-      } catch (paddleErr) {
-        console.warn("[Subscription API] Paddle lookup warning:", paddleErr);
       }
     }
 

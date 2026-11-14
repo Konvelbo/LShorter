@@ -16,7 +16,7 @@ export interface D1ApiKey {
 
 export async function executeD1Query<T = any>(sql: string, params: any[] = []): Promise<T[]> {
   if (!CF_ACCOUNT_ID || !CF_D1_DATABASE_ID || !CF_API_TOKEN) {
-    return [];
+    throw new Error("D1 REST API credentials not configured");
   }
 
   const res = await fetch(
@@ -101,9 +101,13 @@ export async function createD1ApiKey(opts: {
  * Directly delete an API key from Cloudflare D1.
  */
 export async function deleteD1ApiKey(keyId: string, userId: string): Promise<boolean> {
-  await executeD1Query(
-    `DELETE FROM api_keys WHERE id = ? AND (user_id = ? OR user_id IN (SELECT id FROM users WHERE email = ?))`,
-    [keyId, userId, userId]
-  );
-  return true;
+  try {
+    await executeD1Query(
+      `DELETE FROM api_keys WHERE id = ? AND (user_id = ? OR user_id IN (SELECT id FROM users WHERE email = ?))`,
+      [keyId, userId, userId]
+    );
+    return true;
+  } catch {
+    return false;
+  }
 }

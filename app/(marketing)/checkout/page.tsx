@@ -16,25 +16,10 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { useTheme } from "@/components/providers/theme-provider";
-import { PRICING_PLANS, getPaddlePriceId } from "@/src/config/pricing";
-import {
-  fetchBillingConfig,
-  getPaddleClient,
-  getPaddleInitStatus,
-} from "@/lib/paddle/paddle-client";
-import { showToast } from "@/components/ui/toast-provider";
-import confetti from "canvas-confetti";
+import { PRICING_PLANS } from "@/src/config/pricing";
 
 type PaidPlanId = "PRO" | "BUSINESS" | "ENTERPRISE";
 type BillingCycle = "MONTHLY" | "YEARLY";
-
-interface LiveCheckoutTotals {
-  currency: string;
-  subtotal: number;
-  discount: number;
-  tax: number;
-  total: number;
-}
 
 const PLAN_FEATURES: Record<PaidPlanId, string[]> = {
   PRO: [
@@ -93,22 +78,15 @@ function CheckoutPageInner() {
   const rawCycle = (searchParams.get("cycle") || "MONTHLY").toUpperCase();
   const initialCycle: BillingCycle = rawCycle === "YEARLY" ? "YEARLY" : "MONTHLY";
 
-  const urlPtxn = searchParams.get("_ptxn") || searchParams.get("ptxn") || "";
   const fromPath = searchParams.get("from") || "/dashboard/pricing";
 
   const [selectedPlan, setSelectedPlan] = useState<PaidPlanId>(initialPlan);
   const [selectedCycle, setSelectedCycle] = useState<BillingCycle>(initialCycle);
-  const [activeTransactionId, setActiveTransactionId] = useState<string>(urlPtxn);
   const [hostedCheckoutUrl, setHostedCheckoutUrl] = useState<string | null>(null);
   const [isRedirectingToDodo, setIsRedirectingToDodo] = useState<boolean>(false);
   const [isLoadingCheckout, setIsLoadingCheckout] = useState<boolean>(true);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
-  const [isAdBlocked, setIsAdBlocked] = useState<boolean>(false);
   const [retryCount, setRetryCount] = useState<number>(0);
-  const [liveTotals, setLiveTotals] = useState<LiveCheckoutTotals | null>(null);
-
-  const usedInitialUrlPtxnRef = useRef<boolean>(false);
-  const completedRef = useRef<boolean>(false);
 
   const userId = session?.user?.id || "";
   const userEmail = session?.user?.email || "";
@@ -146,350 +124,87 @@ function CheckoutPageInner() {
     }
   }, [planDef, selectedCycle]);
 
-  // Listen to Paddle.js events (checkout.loaded, checkout.updated, checkout.completed, checkout.error)
-  useEffect(() => {
-    const handlePaddleEvent = (e: Event) => {
-      const customEvent = e as CustomEvent<any>;
-      const event = customEvent.detail;
-      if (!event?.name) return;
-
-      if (
-        event.name === "checkout.loaded" ||
-        event.name === "checkout.updated" ||
-        event.name === "checkout.discount.applied" ||
-        event.name === "checkout.discount.removed"
-      ) {
-        setIsLoadingCheckout(false);
-        setCheckoutError(null);
-
-        const totals = event.data?.totals;
-        if (totals && typeof totals.total === "number") {
-          const rawSubtotal = Number(totals.subtotal ?? calculatedPricing.subtotal);
-          const scale =
-            calculatedPricing.subtotal > 0 && rawSubtotal > calculatedPricing.subtotal * 10
-              ? 100
-              : 1;
-          setLiveTotals({
-            currency: event.data?.currency_code || "USD",
-            subtotal: rawSubtotal / scale,
-            discount: Number(totals.discount ?? calculatedPricing.discount * scale) / scale,
-            tax: Number(totals.tax ?? 0) / scale,
-            total: Number(totals.total) / scale,
-          });
-        }
-      }
-
-      if (event.name === "checkout.completed" && !completedRef.current) {
-        completedRef.current = true;
-        const txId = event.data?.transaction_id || activeTransactionId;
-        confetti({ particleCount: 90, spread: 80, origin: { y: 0.6 } });
-        showToast.success(`Paiement validé ! Activation de votre forfait ${planDef.name}...`);
-
-        if (txId) {
-          fetch("/api/billing/verify-transaction", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ transactionId: txId, userId }),
-          }).finally(() => {
-            router.push(
-              `/dashboard/settings?tab=billing&checkout_success=true&plan=${selectedPlan}&ptxn=${encodeURIComponent(txId)}`
-            );
-          });
-        } else {
-          router.push(`/dashboard/settings?tab=billing&checkout_success=true&plan=${selectedPlan}`);
-        }
-      }
-
-      if (event.name === "checkout.error") {
-        console.warn("[Paddle Inline Checkout Error]:", event);
-      }
-    };
-
-    window.addEventListener("lshorter_paddle_event", handlePaddleEvent);
-    return () => {
-      window.removeEventListener("lshorter_paddle_event", handlePaddleEvent);
-    };
-  }, [activeTransactionId, calculatedPricing, planDef.name, router, selectedPlan, userId]);
-
-  // Initialize and mount Paddle Inline Checkout whenever plan, cycle, theme, or retry changes
+  // Initiate Dodo Payments Checkout whenever plan, cycle, or retry changes
   useEffect(() => {
     if (status === "loading") return;
 
     let cancelled = false;
-    let observer: MutationObserver | null = null;
     setIsLoadingCheckout(true);
     setCheckoutError(null);
-    setIsAdBlocked(false);
-    setLiveTotals(null);
 
-    const mountInlineCheckout = async () => {
-      // Wait a frame so the container is mounted in DOM
+    const startCheckoutSession = async () => {
       await new Promise((r) => setTimeout(r, 60));
       if (cancelled) return;
 
-      // 1. First attempt to initiate checkout session via server
-      if (!urlPtxn) {
-        try {
-          let discountId: string | undefined = undefined;
-          if (
-            process.env.NEXT_PUBLIC_BILLING_PROVIDER !== "dodo" &&
-            !process.env.NEXT_PUBLIC_DODO_PAYMENTS_ENVIRONMENT
-          ) {
-            if (selectedCycle === "MONTHLY") {
-              if (selectedPlan === "PRO")
-                discountId = process.env.NEXT_PUBLIC_PADDLE_DISCOUNT_PRO_MONTHLY;
-              else if (selectedPlan === "BUSINESS")
-                discountId = process.env.NEXT_PUBLIC_PADDLE_DISCOUNT_BUSINESS_MONTHLY;
-              else if (selectedPlan === "ENTERPRISE")
-                discountId = process.env.NEXT_PUBLIC_PADDLE_DISCOUNT_ENTERPRISE_MONTHLY;
-            }
-          }
+      try {
+        const res = await fetch("/api/billing/checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            planId: selectedPlan,
+            cycle: selectedCycle,
+            userId,
+            customerEmail: userEmail || undefined,
+            successUrl: `${window.location.origin}/dashboard/settings?tab=billing&checkout_success=true&plan=${selectedPlan}`,
+            cancelUrl: `${window.location.origin}/checkout?plan=${selectedPlan}&cycle=${selectedCycle}`,
+          }),
+        });
 
-          const res = await fetch("/api/billing/checkout", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              planId: selectedPlan,
-              cycle: selectedCycle,
-              userId,
-              discountId,
-              customerEmail: userEmail || undefined,
-              successUrl: `${window.location.origin}/dashboard/settings?tab=billing&checkout_success=true&plan=${selectedPlan}`,
-              cancelUrl: `${window.location.origin}/checkout?plan=${selectedPlan}&cycle=${selectedCycle}`,
-            }),
-          });
+        const data = await res.json();
+        if (cancelled) return;
 
-          const data = await res.json();
-          if (cancelled) return;
-
-          if (data.success && data.checkoutUrl) {
-            // If the checkout URL is a hosted gateway page (like Dodo Payments), redirect directly
-            if (
-              data.checkoutUrl.includes("dodopayments.com") ||
-              (!data.transactionId?.startsWith("txn_") && data.checkoutUrl.startsWith("http"))
-            ) {
-              setHostedCheckoutUrl(data.checkoutUrl);
-              setIsRedirectingToDodo(true);
-              setIsLoadingCheckout(false);
-              window.location.href = data.checkoutUrl;
-              return;
-            }
-
-            if (data.transactionId && !data.transactionId.startsWith("txn_paddle_dev_")) {
-              setActiveTransactionId(data.transactionId);
-            }
-          } else if (data.error) {
-            setCheckoutError(data.error);
-            setIsLoadingCheckout(false);
-            return;
-          }
-        } catch (apiErr: any) {
-          console.warn("[Checkout] Server checkout call error:", apiErr);
-          setCheckoutError("Erreur lors de la préparation de la session de paiement.");
+        if (data.success && data.checkoutUrl) {
+          setHostedCheckoutUrl(data.checkoutUrl);
+          setIsRedirectingToDodo(true);
+          setIsLoadingCheckout(false);
+          window.location.href = data.checkoutUrl;
+          return;
+        } else if (data.error) {
+          setCheckoutError(data.error);
           setIsLoadingCheckout(false);
           return;
         }
-      }
-
-      // If Dodo Payments is the billing provider or hosted checkout is active, never load Paddle
-      const isDodoProvider =
-        process.env.NEXT_PUBLIC_BILLING_PROVIDER === "dodo" ||
-        Boolean(process.env.NEXT_PUBLIC_DODO_PAYMENTS_ENVIRONMENT);
-
-      if (isDodoProvider || isRedirectingToDodo || hostedCheckoutUrl) {
-        return;
-      }
-
-      const dynamicConfig = await fetchBillingConfig();
-      const paddle = await getPaddleClient();
-      const initStatus = getPaddleInitStatus();
-
-      if (cancelled) return;
-
-      if (!paddle) {
+      } catch (apiErr: any) {
+        console.warn("[Checkout] Server checkout call error:", apiErr);
+        setCheckoutError("Erreur lors de la préparation de la session de paiement.");
         setIsLoadingCheckout(false);
-        if (initStatus.isBlocked) {
-          setIsAdBlocked(true);
-          setCheckoutError(
-            "Le module de paiement sécurisé Paddle (cdn.paddle.com) est bloqué par une extension de votre navigateur (AdBlock, uBlock ou Brave Shields). Veuillez le désactiver pour afficher le formulaire."
-          );
-        } else {
-          setCheckoutError(
-            "Impossible d'initialiser le formulaire de paiement Paddle. Vérifiez votre connexion ou réessayez."
-          );
-        }
         return;
-      }
-
-      // Watch #paddle-inline-checkout for iframe insertion to hide skeleton smoothly
-      const containerEl = document.getElementById("paddle-inline-checkout");
-      if (containerEl) {
-        containerEl.innerHTML = "";
-        observer = new MutationObserver(() => {
-          const iframe = containerEl.querySelector("iframe");
-          if (iframe) {
-            iframe.style.borderRadius = "8px";
-            iframe.addEventListener("load", () => {
-              if (!cancelled) setIsLoadingCheckout(false);
-            });
-          }
-        });
-        observer.observe(containerEl, { childList: true, subtree: true });
-      }
-
-      const inlineSettings = {
-        displayMode: "inline" as const,
-        frameTarget: "paddle-inline-checkout",
-        frameInitialHeight: 510,
-        frameStyle:
-          "width: 100%; min-width: 280px; background-color: transparent; border: none; border-radius: 8px;",
-        theme: (theme === "dark" ? "dark" : "light") as "dark" | "light",
-        variant: "one-page" as const,
-        locale: "fr",
-      };
-
-      // Case 1: Direct transaction ID from URL on initial load
-      if (urlPtxn && !usedInitialUrlPtxnRef.current) {
-        usedInitialUrlPtxnRef.current = true;
-        setActiveTransactionId(urlPtxn);
-        try {
-          paddle.Checkout.open({
-            transactionId: urlPtxn,
-            settings: {
-              ...inlineSettings,
-              successUrl: `${window.location.origin}/dashboard/settings?tab=billing&checkout_success=true&plan=${selectedPlan}&ptxn=${urlPtxn}`,
-            },
-          });
-          setTimeout(() => {
-            if (!cancelled) setIsLoadingCheckout(false);
-          }, 2200);
-          return;
-        } catch (err: any) {
-          console.warn("[Paddle Inline] Failed opening URL ptxn, creating new session:", err);
-        }
-      }
-
-      // Resolve priceId and discountId
-      let priceId = getPaddlePriceId(selectedPlan, selectedCycle);
-      if (
-        (!priceId ||
-          priceId.startsWith("pri_pro_") ||
-          priceId.startsWith("pri_biz_") ||
-          priceId.startsWith("pri_ent_") ||
-          priceId.startsWith("pri_business_") ||
-          priceId.startsWith("pri_enterprise_")) &&
-        dynamicConfig?.priceIds
-      ) {
-        const planPrices = dynamicConfig.priceIds[selectedPlan];
-        if (planPrices) {
-          priceId = selectedCycle === "YEARLY" ? planPrices.yearly : planPrices.monthly;
-        }
-      }
-
-      let discountId: string | undefined = undefined;
-      if (selectedCycle === "MONTHLY") {
-        if (selectedPlan === "PRO")
-          discountId = process.env.NEXT_PUBLIC_PADDLE_DISCOUNT_PRO_MONTHLY;
-        else if (selectedPlan === "BUSINESS")
-          discountId = process.env.NEXT_PUBLIC_PADDLE_DISCOUNT_BUSINESS_MONTHLY;
-        else if (selectedPlan === "ENTERPRISE")
-          discountId = process.env.NEXT_PUBLIC_PADDLE_DISCOUNT_ENTERPRISE_MONTHLY;
-
-        if (!discountId && dynamicConfig?.discountIds) {
-          discountId = dynamicConfig.discountIds[selectedPlan]?.monthly;
-        }
-      }
-
-      // Case 2: Open with server transaction ID if created
-      if (activeTransactionId && !activeTransactionId.startsWith("txn_paddle_dev_") && paddle) {
-        paddle.Checkout.open({
-          transactionId: activeTransactionId,
-          settings: {
-            ...inlineSettings,
-            successUrl: `${window.location.origin}/dashboard/settings?tab=billing&checkout_success=true&plan=${selectedPlan}&ptxn=${activeTransactionId}`,
-          },
-        });
-        setTimeout(() => {
-          if (!cancelled) setIsLoadingCheckout(false);
-        }, 2200);
-        return;
-      }
-
-      if (cancelled) return;
-
-      // Case 3: Fallback to direct client-side items open
-      if (priceId && !priceId.includes("pri_pro_monthly")) {
-        try {
-          paddle.Checkout.open({
-            items: [{ priceId, quantity: 1 }],
-            discountId: discountId || undefined,
-            customData: {
-              userId: userId || "",
-              planId: selectedPlan,
-              cycle: selectedCycle,
-            },
-            customer: userEmail ? { email: userEmail } : undefined,
-            settings: {
-              ...inlineSettings,
-              successUrl: `${window.location.origin}/dashboard/settings?tab=billing&checkout_success=true&plan=${selectedPlan}`,
-            },
-          });
-          setTimeout(() => {
-            if (!cancelled) setIsLoadingCheckout(false);
-          }, 2200);
-          return;
-        } catch (clientErr: any) {
-          if (!cancelled) {
-            setIsLoadingCheckout(false);
-            setCheckoutError(
-              clientErr?.message || "Impossible de charger le formulaire de paiement Paddle."
-            );
-          }
-          return;
-        }
       }
 
       if (!cancelled) {
         setIsLoadingCheckout(false);
-        setCheckoutError(
-          "Configuration de prix Paddle introuvable pour ce forfait. Vérifiez vos variables d'environnement Paddle."
-        );
+        setCheckoutError("Impossible d'initialiser la session de paiement.");
       }
     };
 
-    mountInlineCheckout();
+    startCheckoutSession();
 
     return () => {
       cancelled = true;
-      observer?.disconnect();
     };
   }, [
     status,
     selectedPlan,
     selectedCycle,
-    theme,
     retryCount,
-    urlPtxn,
     userId,
     userEmail,
   ]);
 
   const handlePlanChange = (newPlan: PaidPlanId) => {
     if (newPlan === selectedPlan) return;
-    usedInitialUrlPtxnRef.current = true;
     setSelectedPlan(newPlan);
   };
 
   const handleCycleChange = (newCycle: BillingCycle) => {
     if (newCycle === selectedCycle) return;
-    usedInitialUrlPtxnRef.current = true;
     setSelectedCycle(newCycle);
   };
 
-  const displaySubtotal = liveTotals ? liveTotals.subtotal : calculatedPricing.subtotal;
-  const displayDiscount = liveTotals ? liveTotals.discount : calculatedPricing.discount;
-  const displayTax = liveTotals ? liveTotals.tax : calculatedPricing.tax;
-  const displayTotal = liveTotals ? liveTotals.total : calculatedPricing.totalToday;
+  const displaySubtotal = calculatedPricing.subtotal;
+  const displayDiscount = calculatedPricing.discount;
+  const displayTax = calculatedPricing.tax;
+  const displayTotal = calculatedPricing.totalToday;
 
   return (
     <div className="min-h-screen w-full bg-[#F8FAFC] dark:bg-[#09090B] text-zinc-900 dark:text-zinc-100 font-sans transition-colors duration-200 flex flex-col">
@@ -709,7 +424,7 @@ function CheckoutPageInner() {
             </div>
           </div>
 
-          {/* RIGHT COLUMN: Paddle Inline Payment Form */}
+          {/* RIGHT COLUMN: Hosted Payment Redirection */}
           <div className="lg:col-span-7 flex flex-col gap-4">
             <div className="rounded-[10px] bg-white dark:bg-[#111114] border border-zinc-200 dark:border-zinc-800 p-5 sm:p-6">
               {/* Card Header */}
@@ -733,16 +448,14 @@ function CheckoutPageInner() {
                 </span>
               </div>
 
-              {/* Error or AdBlocker Alert */}
+              {/* Error Alert */}
               {checkoutError && (
                 <div className="mb-4 p-4 rounded-[8px] bg-red-500/10 border border-red-500/25 text-red-700 dark:text-red-300 text-xs space-y-3">
                   <div className="flex items-start gap-2.5">
                     <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-red-600 dark:text-red-400" />
                     <div className="space-y-1">
                       <p className="font-semibold">
-                        {isAdBlocked
-                          ? "Bloqueur de publicité détecté"
-                          : "Erreur de chargement du paiement"}
+                        Erreur de chargement du paiement
                       </p>
                       <p className="text-red-600/90 dark:text-red-300/90 leading-relaxed">
                         {checkoutError}
@@ -761,78 +474,42 @@ function CheckoutPageInner() {
               )}
 
               {/* Hosted Checkout (Dodo Payments) Redirection UI */}
-              {isRedirectingToDodo || hostedCheckoutUrl ? (
-                <div className="relative min-h-[440px] w-full flex flex-col items-center justify-center py-12 px-6 text-center space-y-6">
-                  <div className="relative">
-                    <div className="w-16 h-16 rounded-2xl bg-blue-500/10 dark:bg-blue-500/20 flex items-center justify-center text-blue-600 dark:text-blue-400 shadow-inner">
-                      <CreditCard className="w-8 h-8 animate-pulse" />
-                    </div>
-                    <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center text-white text-[10px] shadow-sm">
-                      <Check className="w-3 h-3 stroke-[3]" />
-                    </div>
+              <div className="relative min-h-[440px] w-full flex flex-col items-center justify-center py-12 px-6 text-center space-y-6">
+                <div className="relative">
+                  <div className="w-16 h-16 rounded-[10px] bg-blue-500/10 dark:bg-blue-500/20 flex items-center justify-center text-blue-600 dark:text-blue-400 shadow-inner">
+                    <CreditCard className="w-8 h-8 animate-pulse" />
                   </div>
-
-                  <div className="space-y-2 max-w-sm">
-                    <h3 className="text-lg font-semibold text-zinc-900 dark:text-white tracking-tight">
-                      Redirection vers Dodo Payments
-                    </h3>
-                    <p className="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed">
-                      Votre session sécurisée est prête. Vous allez être redirigé vers l&apos;interface de paiement protégée.
-                    </p>
-                  </div>
-
-                  {hostedCheckoutUrl && (
-                    <a
-                      href={hostedCheckoutUrl}
-                      className="inline-flex items-center justify-center gap-2 w-full max-w-xs px-6 py-3.5 rounded-[10px] bg-blue-600 hover:bg-blue-500 text-white font-medium text-sm transition-all shadow-md shadow-blue-500/20 hover:shadow-blue-500/30 cursor-pointer"
-                    >
-                      <Lock className="w-4 h-4" />
-                      <span>Continuer vers le paiement</span>
-                    </a>
-                  )}
-
-                  <div className="flex items-center gap-1.5 text-xs text-zinc-400 dark:text-zinc-500 pt-2">
-                    <ShieldCheck className="w-4 h-4 text-emerald-500" />
-                    <span>Traitement sécurisé conforme PCI-DSS</span>
+                  <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center text-white text-[10px] shadow-sm">
+                    <Check className="w-3 h-3 stroke-[3]" />
                   </div>
                 </div>
-              ) : (
-                /* Paddle Inline Target Container + Skeleton Overlay */
-                <div className="relative min-h-[480px] w-full">
-                  {isLoadingCheckout && !checkoutError && (
-                    <div
-                      className="absolute inset-0 z-10 bg-white dark:bg-[#111114] space-y-4 py-2 animate-pulse"
-                      aria-busy="true"
-                    >
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="h-12 rounded-[8px] bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-800" />
-                        <div className="h-12 rounded-[8px] bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-800" />
-                      </div>
-                      <div className="space-y-1.5">
-                        <div className="h-3.5 w-28 rounded-[6px] bg-zinc-200 dark:bg-zinc-800" />
-                        <div className="h-10 w-full rounded-[8px] bg-zinc-100 dark:bg-zinc-800/80" />
-                      </div>
-                      <div className="space-y-1.5">
-                        <div className="h-3.5 w-36 rounded-[6px] bg-zinc-200 dark:bg-zinc-800" />
-                        <div className="h-10 w-full rounded-[8px] bg-zinc-100 dark:bg-zinc-800/80" />
-                      </div>
-                      <div className="space-y-1.5">
-                        <div className="h-3.5 w-32 rounded-[6px] bg-zinc-200 dark:bg-zinc-800" />
-                        <div className="h-20 w-full rounded-[8px] bg-zinc-100 dark:bg-zinc-800/80" />
-                      </div>
-                      <div className="h-11 w-full rounded-[8px] bg-blue-600/40 dark:bg-blue-500/30 mt-2" />
-                    </div>
-                  )}
 
-                  <div
-                    key={`paddle-inline-${selectedPlan}-${selectedCycle}-${theme}-${retryCount}`}
-                    id="paddle-inline-checkout"
-                    className={`paddle-inline-checkout w-full min-h-[480px] transition-opacity duration-200 ${
-                      isLoadingCheckout ? "opacity-0" : "opacity-100"
-                    }`}
-                  />
+                <div className="space-y-2 max-w-sm">
+                  <h3 className="text-lg font-semibold text-zinc-900 dark:text-white tracking-tight">
+                    Redirection vers Dodo Payments
+                  </h3>
+                  <p className="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                    {isLoadingCheckout
+                      ? "Préparation de votre session de paiement sécurisée..."
+                      : "Votre session sécurisée est prête. Vous allez être redirigé vers l'interface de paiement protégée."}
+                  </p>
                 </div>
-              )}
+
+                {hostedCheckoutUrl && (
+                  <a
+                    href={hostedCheckoutUrl}
+                    className="inline-flex items-center justify-center gap-2 w-full max-w-xs px-6 py-3.5 rounded-[10px] bg-blue-600 hover:bg-blue-500 text-white font-medium text-sm transition-all shadow-md shadow-blue-500/20 hover:shadow-blue-500/30 cursor-pointer"
+                  >
+                    <Lock className="w-4 h-4" />
+                    <span>Continuer vers le paiement</span>
+                  </a>
+                )}
+
+                <div className="flex items-center gap-1.5 text-xs text-zinc-400 dark:text-zinc-500 pt-2">
+                  <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                  <span>Traitement sécurisé conforme PCI-DSS</span>
+                </div>
+              </div>
 
               {/* Security & Compliance Footer */}
               <div className="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-[11px] text-zinc-500 dark:text-zinc-400">

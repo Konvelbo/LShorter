@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { convexHttp as convex } from "@/lib/convex-server";
 import { api } from "@/convex/_generated/api";
 import { getDodoPaymentsClient } from "@/lib/dodo/dodo-server";
-import { getPaddleInstance } from "@/lib/paddle/paddle-server";
 import { syncUserToCloudflare } from "@/app/actions/sync-user";
 import {
   sendSubscriptionExpiringAlertEmail,
@@ -88,11 +87,9 @@ async function handleLifecycleProcess(req: Request) {
 
     const now = Date.now();
     const dodoClient = getDodoPaymentsClient();
-    const paddleClient = getPaddleInstance();
     const results = {
       evaluated: activeSubs.length,
       renewedViaDodo: 0,
-      renewedViaPaddle: 0,
       notified3Days: 0,
       notified2Days: 0,
       notified1Day: 0,
@@ -106,7 +103,7 @@ async function handleLifecycleProcess(req: Request) {
       userEmail?: string;
       userName: string;
       planName: string;
-      provider: "dodo" | "paddle";
+      provider: "dodo";
       providerLabel: string;
       prevBillingMs: number;
       nextBillingMs: number;
@@ -185,13 +182,13 @@ async function handleLifecycleProcess(req: Request) {
       const lastAlert = sub.lastLifecycleAlert || "";
 
       // ───────────────────────────────────────────────────────────────────────
-      // CASE 0: Provider Auto-Renewal Reconciliation at Period End (Dodo & Paddle)
+      // CASE 0: Provider Auto-Renewal Reconciliation at Period End (Dodo Payments)
       // Verifies provider status before entering grace period or downgrading so
       // active recurring subscriptions never falsely lose access due to delayed webhooks.
       // ───────────────────────────────────────────────────────────────────────
       if (now >= currentPeriodEnd && sub.providerSubscriptionId) {
         let transientProviderError = false;
-        if (sub.provider === "dodo" && dodoClient) {
+        if (dodoClient) {
           try {
             const dodoSub = await dodoClient.subscriptions.retrieve(sub.providerSubscriptionId);
             const nextBillingMs = dodoSub?.next_billing_date
@@ -228,44 +225,6 @@ async function handleLifecycleProcess(req: Request) {
               transientProviderError = true;
             }
             console.warn(`[Lifecycle] Failed to retrieve Dodo subscription ${sub.providerSubscriptionId}:`, dodoErr);
-          }
-        } else if (sub.provider !== "dodo" && paddleClient && sub.providerSubscriptionId.startsWith("sub_")) {
-          try {
-            const paddleSub = await paddleClient.subscriptions.get(sub.providerSubscriptionId);
-            const nextBillingMs = paddleSub?.currentBillingPeriod?.endsAt
-              ? new Date(paddleSub.currentBillingPeriod.endsAt).getTime()
-              : NaN;
-            if (
-              paddleSub &&
-              (paddleSub.status === "active" || paddleSub.status === "trialing") &&
-              !Number.isNaN(nextBillingMs) &&
-              nextBillingMs > now &&
-              nextBillingMs > currentPeriodEnd
-            ) {
-              const prevBillingMs = paddleSub.currentBillingPeriod?.startsAt
-                ? new Date(paddleSub.currentBillingPeriod.startsAt).getTime()
-                : currentPeriodEnd;
-              await syncConfirmedRenewal({
-                sub,
-                cleanUserId,
-                userEmail,
-                userName,
-                planName,
-                provider: "paddle",
-                providerLabel: "Paddle",
-                prevBillingMs: Number.isNaN(prevBillingMs) ? currentPeriodEnd : prevBillingMs,
-                nextBillingMs,
-                cancelAtPeriodEnd: paddleSub.scheduledChange?.action === "cancel",
-              });
-              results.renewedViaPaddle++;
-              continue;
-            }
-          } catch (paddleErr: any) {
-            const status = paddleErr?.status ?? paddleErr?.statusCode;
-            if (status !== 404 && !sub.cancelAtPeriodEnd) {
-              transientProviderError = true;
-            }
-            console.warn(`[Lifecycle] Failed to retrieve Paddle subscription ${sub.providerSubscriptionId}:`, paddleErr);
           }
         }
 

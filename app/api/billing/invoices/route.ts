@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { getPaddleInstance } from "@/lib/paddle/paddle-server";
 import { getDodoPaymentsClient } from "@/lib/dodo/dodo-server";
 import { convexHttp as convex } from "@/lib/convex-server";
 import { api } from "@/convex/_generated/api";
@@ -138,64 +137,7 @@ export async function GET() {
       }
     }
 
-    // 2. Fetch official Paddle transactions/invoices
-    const paddle = getPaddleInstance();
-    if (paddle && cleanEmail) {
-      try {
-        for await (const customer of paddle.customers.list({ email: [cleanEmail] })) {
-          if (
-            !customer.id ||
-            customer.email?.toLowerCase().trim() !== cleanEmail
-          ) {
-            continue;
-          }
-
-          for await (const t of paddle.transactions.list({
-            customerId: [customer.id],
-            status: ["completed", "paid"],
-            perPage: 20,
-          })) {
-            if (seenIds.has(t.id)) continue;
-            seenIds.add(t.id);
-
-            const totals = t.details?.totals;
-            const total = totals?.total ? parseFloat(totals.total) / 100 : 0;
-            const subtotal = totals?.subtotal ? parseFloat(totals.subtotal) / 100 : total;
-            const tax = totals?.tax ? parseFloat(totals.tax) / 100 : 0;
-            const billedDate = t.billedAt ? new Date(t.billedAt) : new Date(t.createdAt);
-
-            const customData = (t.customData as any) || {};
-            const planKey = customData.planId || "PRO";
-
-            const invNumber =
-              t.invoiceNumber ||
-              `INV-${t.id.replace(/^txn_/, "").slice(0, 8).toUpperCase()}`;
-
-            invoices.push({
-              id: t.id,
-              number: invNumber,
-              date: billedDate.toLocaleDateString("fr-FR", {
-                day: "2-digit",
-                month: "short",
-                year: "numeric",
-              }),
-              netAmount: subtotal,
-              taxAmount: tax,
-              totalAmount: total,
-              currency: t.currencyCode || "USD",
-              status: "paid",
-              planName: `LShorter ${planKey}`,
-              downloadUrl: `/api/billing/invoices/${t.id}/download`,
-              billedAtTimestamp: billedDate.getTime(),
-            });
-          }
-        }
-      } catch (paddleErr) {
-        console.warn("[Invoices API] Error fetching from Paddle:", paddleErr);
-      }
-    }
-
-    // 3. Complement with Convex invoices (supports both orgId & org_ prefix)
+    // 2. Complement with Convex invoices (supports both orgId & org_ prefix)
     if (userId) {
       try {
         const convexInvoices = await convex.query(api.invoices.listInvoices, {

@@ -1944,10 +1944,10 @@ export function PopulatedState({
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-[#101828] dark:text-white">
-                    Modifier les objectifs mensuels
+                    Edit Monthly Targets
                   </h3>
                   <p className="text-xs text-[#667085] dark:text-[#98A2B3]">
-                    Configurez vos cibles pour le mois en cours
+                    Configure your workspace targets for the current month
                   </p>
                 </div>
               </div>
@@ -1963,7 +1963,7 @@ export function PopulatedState({
             <form onSubmit={handleSaveTargets} noValidate className="mt-4 space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-[#344054] dark:text-[#E4E7EC] mb-1.5">
-                  Objectif de Clics mensuel
+                  Monthly Clicks Target
                 </label>
                 <div className="relative">
                   <input
@@ -1978,7 +1978,7 @@ export function PopulatedState({
                     required
                   />
                   <span className="absolute right-3 top-2 text-xs text-[#667085] dark:text-[#98A2B3]">
-                    clics
+                    clicks
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5 mt-2">
@@ -1997,7 +1997,7 @@ export function PopulatedState({
 
               <div>
                 <label className="block text-xs font-semibold text-[#344054] dark:text-[#E4E7EC] mb-1.5">
-                  Objectif de Revenus mensuel ($)
+                  Monthly Revenue Target ($)
                 </label>
                 <div className="relative">
                   <span className="absolute left-3 top-2 text-sm text-[#667085] dark:text-[#98A2B3]">
@@ -2031,10 +2031,10 @@ export function PopulatedState({
 
               <div className="p-3 rounded-[8px] bg-[#0066FF]/5 border border-[#0066FF]/15 text-[11px] text-[#344054] dark:text-[#D0D5DD] space-y-1">
                 <p className="font-semibold text-[#0066FF] dark:text-[#5294FF] flex items-center gap-1.5">
-                  <Check className="h-3.5 w-3.5" /> Alerte automatique à 100%
+                  <Check className="h-3.5 w-3.5" /> Automatic alert at 100%
                 </p>
                 <p className="text-[#667085] dark:text-[#98A2B3] leading-relaxed">
-                  Dès que votre seuil est atteint, un e-mail de félicitations vous est envoyé et une notification s'affiche dans l'icône cloche du tableau de bord.
+                  As soon as your threshold is reached, a congratulatory email is sent and a notification appears in your dashboard bell icon.
                 </p>
               </div>
 
@@ -2044,13 +2044,13 @@ export function PopulatedState({
                   onClick={() => setIsTargetEditModalOpen(false)}
                   className="px-3.5 py-2 rounded-lg text-xs font-semibold text-[#344054] dark:text-[#E4E7EC] hover:bg-[#F2F4F7] dark:hover:bg-[#101828] transition-colors cursor-pointer"
                 >
-                  Annuler
+                  Cancel
                 </button>
                 <button
                   type="submit"
                   className="px-4 py-2 rounded-lg text-xs font-semibold bg-[#0066FF] text-white hover:bg-[#0055D6] transition-colors shadow-sm cursor-pointer"
                 >
-                  Enregistrer l'objectif
+                  Save Targets
                 </button>
               </div>
             </form>

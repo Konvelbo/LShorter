@@ -117,33 +117,33 @@ export function DashboardOverviewSkeleton() {
           </div>
 
           {/* Monthly Clicks Card (@reui/c-chart-5 Paired Striped/Solid Bar Chart) */}
-          <div className="rounded-[10px] ds-card p-6 shadow-xs flex-1 flex flex-col justify-between min-h-[310px]">
-            <div className="flex items-center justify-between mb-4">
-              <div className="space-y-1.5">
-                <Skeleton className="h-5 w-36 rounded" />
-                <Skeleton className="h-3 w-56 rounded" />
+          <div className="rounded-[10px] ds-card p-5 sm:p-6 shadow-xs flex-1 flex flex-col justify-between min-h-[310px] overflow-hidden">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-4">
+              <div className="space-y-1.5 min-w-0">
+                <Skeleton className="h-5 w-36 max-w-full rounded" />
+                <Skeleton className="h-3 w-48 sm:w-56 max-w-full rounded" />
               </div>
-              <div className="flex items-center gap-3">
-                <Skeleton className="h-3.5 w-20 rounded" />
-                <Skeleton className="h-3.5 w-24 rounded" />
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                <Skeleton className="h-3.5 w-16 sm:w-20 rounded" />
+                <Skeleton className="h-3.5 w-20 sm:w-24 rounded" />
               </div>
             </div>
 
             {/* Paired Bars Skeleton (12 Months) */}
-            <div className="w-full h-[215px] flex items-end justify-between gap-2.5 pt-6 pb-2 px-2 border-b ds-border">
+            <div className="w-full h-[215px] flex items-end justify-between gap-1 sm:gap-2.5 pt-6 pb-2 px-1 sm:px-2 border-b ds-border overflow-hidden">
               {Array.from({ length: 12 }).map((_, i) => (
-                <div key={i} className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
-                  <div className="w-full flex items-end justify-center gap-1 h-full">
+                <div key={i} className="flex-1 min-w-0 flex flex-col items-center gap-1.5 sm:gap-2 h-full justify-end">
+                  <div className="w-full flex items-end justify-center gap-0.5 sm:gap-1 h-full">
                     <Skeleton
-                      className="w-2.5 rounded-t-[4px]"
+                      className="w-1.5 sm:w-2.5 rounded-t-[4px]"
                       style={{ height: `${25 + ((i * 19) % 65)}%` }}
                     />
                     <Skeleton
-                      className="w-2.5 rounded-t-[4px] opacity-60"
+                      className="w-1.5 sm:w-2.5 rounded-t-[4px] opacity-60"
                       style={{ height: `${18 + ((i * 13) % 50)}%` }}
                     />
                   </div>
-                  <Skeleton className="h-2.5 w-5 rounded" />
+                  <Skeleton className="h-2.5 w-3 sm:w-5 max-w-full rounded" />
                 </div>
               ))}
             </div>
@@ -216,15 +216,15 @@ export function DashboardOverviewSkeleton() {
       {/* ════════════════════════════════════════════════════════════════════════
           ROW 3: Statistics Layered Area Chart (@reui/c-chart-14)
          ════════════════════════════════════════════════════════════════════════ */}
-      <div className="rounded-[10px] ds-card p-6 sm:p-7 shadow-xs">
+      <div className="rounded-[10px] ds-card p-6 sm:p-7 shadow-xs overflow-hidden">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
-          <div className="space-y-1.5">
-            <Skeleton className="h-5 w-32 rounded" />
-            <Skeleton className="h-3.5 w-56 rounded" />
+          <div className="space-y-1.5 min-w-0">
+            <Skeleton className="h-5 w-32 max-w-full rounded" />
+            <Skeleton className="h-3.5 w-56 max-w-full rounded" />
           </div>
-          <div className="flex items-center gap-3">
-            <Skeleton className="h-9 w-56 rounded-[10px]" />
-            <Skeleton className="h-9 w-36 rounded-[10px]" />
+          <div className="flex flex-wrap items-center gap-3">
+            <Skeleton className="h-9 w-48 sm:w-56 max-w-full rounded-[10px]" />
+            <Skeleton className="h-9 w-32 sm:w-36 max-w-full rounded-[10px]" />
           </div>
         </div>
 
@@ -246,13 +246,13 @@ export function DashboardOverviewSkeleton() {
       {/* ════════════════════════════════════════════════════════════════════════
           ROW 3.5: Active Segment Donut (@reui/c-chart-22 — Top Clicks | Revenue & Clients)
          ════════════════════════════════════════════════════════════════════════ */}
-      <div className="rounded-[10px] ds-card p-6 sm:p-7 shadow-xs">
+      <div className="rounded-[10px] ds-card p-6 sm:p-7 shadow-xs overflow-hidden">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-          <div className="space-y-1.5">
-            <Skeleton className="h-5 w-64 rounded" />
+          <div className="space-y-1.5 min-w-0">
+            <Skeleton className="h-5 w-64 max-w-full rounded" />
             <Skeleton className="h-3.5 w-80 max-w-full rounded" />
           </div>
-          <Skeleton className="h-9 w-56 rounded-[10px]" />
+          <Skeleton className="h-9 w-56 max-w-full rounded-[10px]" />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
@@ -273,15 +273,15 @@ export function DashboardOverviewSkeleton() {
       {/* ════════════════════════════════════════════════════════════════════════
           ROW 4: LinksReuiDataGrid Table Skeleton
          ════════════════════════════════════════════════════════════════════════ */}
-      <div className="rounded-[10px] ds-card p-6 shadow-xs space-y-4">
+      <div className="rounded-[10px] ds-card p-6 shadow-xs space-y-4 overflow-hidden">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-1.5">
-            <Skeleton className="h-5 w-48 rounded" />
-            <Skeleton className="h-3.5 w-64 rounded" />
+          <div className="space-y-1.5 min-w-0">
+            <Skeleton className="h-5 w-48 max-w-full rounded" />
+            <Skeleton className="h-3.5 w-64 max-w-full rounded" />
           </div>
-          <div className="flex items-center gap-2.5">
-            <Skeleton className="h-9 w-56 rounded-[10px]" />
-            <Skeleton className="h-9 w-28 rounded-[10px]" />
+          <div className="flex flex-wrap items-center gap-2.5">
+            <Skeleton className="h-9 w-48 sm:w-56 max-w-full rounded-[10px]" />
+            <Skeleton className="h-9 w-28 max-w-full rounded-[10px]" />
           </div>
         </div>
         {[1, 2, 3, 4].map((r) => (
@@ -444,28 +444,28 @@ export function AnalyticsPageSkeleton() {
       </div>
 
       {/* Row 2: Full-Width (12-Col) Vertical Bar Chart (@reui/c-chart-5) with 12m | 30d | 7d | 24h Switcher */}
-      <div className="rounded-[10px] ds-card p-5 sm:p-6 shadow-xs">
+      <div className="rounded-[10px] ds-card p-5 sm:p-6 shadow-xs overflow-hidden">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-          <div className="space-y-1.5">
-            <Skeleton className="h-5 w-52 rounded" />
+          <div className="space-y-1.5 min-w-0">
+            <Skeleton className="h-5 w-52 max-w-full rounded" />
             <Skeleton className="h-3.5 w-80 max-w-full rounded" />
           </div>
-          <div className="inline-flex items-center gap-1.5 rounded-lg bg-[#F2F4F7] dark:bg-white/[0.05] p-1">
-            <Skeleton className="h-7 w-20 rounded-md" />
-            <Skeleton className="h-7 w-16 rounded-md" />
-            <Skeleton className="h-7 w-16 rounded-md" />
-            <Skeleton className="h-7 w-20 rounded-md" />
+          <div className="inline-flex flex-wrap items-center gap-1.5 rounded-lg bg-[#F2F4F7] dark:bg-white/[0.05] p-1">
+            <Skeleton className="h-7 w-16 sm:w-20 rounded-md" />
+            <Skeleton className="h-7 w-14 sm:w-16 rounded-md" />
+            <Skeleton className="h-7 w-14 sm:w-16 rounded-md" />
+            <Skeleton className="h-7 w-16 sm:w-20 rounded-md" />
           </div>
         </div>
-        <div className="flex items-end justify-between gap-2 h-[255px] pt-6 pb-3 border-b ds-border">
+        <div className="flex items-end justify-between gap-1 sm:gap-2 h-[255px] pt-6 pb-3 border-b ds-border overflow-hidden">
           {Array.from({ length: 18 }).map((_, idx) => (
-            <div key={idx} className="flex-1 flex items-end justify-center gap-1 h-full">
+            <div key={idx} className="flex-1 min-w-0 flex items-end justify-center gap-0.5 sm:gap-1 h-full">
               <Skeleton
-                className="w-2.5 rounded-t-[4px]"
+                className="w-1.5 sm:w-2.5 rounded-t-[4px]"
                 style={{ height: `${20 + ((idx * 17) % 68)}%` }}
               />
               <Skeleton
-                className="w-2.5 rounded-t-[4px] opacity-55"
+                className="w-1.5 sm:w-2.5 rounded-t-[4px] opacity-55"
                 style={{ height: `${12 + ((idx * 13) % 52)}%` }}
               />
             </div>
@@ -633,26 +633,26 @@ export function AnalyticsRevenueSkeleton() {
 
       {/* 12-Col Grid: Chronological Revenue Trend (@reui/c-chart-5 Paired Bars, 8 cols) + Attribution Breakdown (4 cols) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div className="lg:col-span-8 p-5 sm:p-6 rounded-[10px] ds-card flex flex-col justify-between gap-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1.5">
-              <Skeleton className="h-5 w-52 rounded" />
-              <Skeleton className="h-3.5 w-64 rounded" />
+        <div className="lg:col-span-8 p-5 sm:p-6 rounded-[10px] ds-card flex flex-col justify-between gap-4 overflow-hidden">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+            <div className="space-y-1.5 min-w-0">
+              <Skeleton className="h-5 w-52 max-w-full rounded" />
+              <Skeleton className="h-3.5 w-64 max-w-full rounded" />
             </div>
-            <div className="flex items-center gap-2.5">
+            <div className="flex flex-wrap items-center gap-2.5">
               <Skeleton className="h-4 w-20 rounded" />
               <Skeleton className="h-4 w-20 rounded" />
             </div>
           </div>
-          <div className="w-full h-56 flex items-end gap-2 pt-6 pb-2 border-b ds-border">
+          <div className="w-full h-56 flex items-end gap-1 sm:gap-2 pt-6 pb-2 border-b ds-border overflow-hidden">
             {Array.from({ length: 14 }).map((_, i) => (
-              <div key={i} className="flex-1 flex items-end justify-center gap-1 h-full">
+              <div key={i} className="flex-1 min-w-0 flex items-end justify-center gap-0.5 sm:gap-1 h-full">
                 <Skeleton
-                  className="w-2 rounded-t-[4px]"
+                  className="w-1.5 sm:w-2 rounded-t-[4px]"
                   style={{ height: `${18 + ((i * 23) % 72)}%` }}
                 />
                 <Skeleton
-                  className="w-2 rounded-t-[4px] opacity-60"
+                  className="w-1.5 sm:w-2 rounded-t-[4px] opacity-60"
                   style={{ height: `${14 + ((i * 19) % 58)}%` }}
                 />
               </div>

@@ -33,7 +33,7 @@ export const getSubscription = query({
   },
 });
 
-// ─── Upsert subscription (created or updated from Paddle webhook) ───────────
+// ─── Upsert subscription (created or updated from Dodo Payments webhook) ────
 export const upsertSubscription = mutation({
   args: {
     orgId: v.string(),
@@ -63,20 +63,35 @@ export const upsertSubscription = mutation({
     const now = new Date().toISOString();
 
     if (existing) {
+      const isReplaced =
+        Boolean(existing.providerSubscriptionId) &&
+        existing.providerSubscriptionId !== args.providerSubscriptionId;
+      const previousSubscriptionId = isReplaced
+        ? existing.providerSubscriptionId
+        : undefined;
+      const previousProvider = isReplaced ? existing.provider : undefined;
+      const previousPlan = existing.plan;
+
       await ctx.db.patch(existing._id, {
         provider: args.provider,
         providerSubscriptionId: args.providerSubscriptionId,
         currentPeriodStart: args.currentPeriodStart,
         currentPeriodEnd: args.currentPeriodEnd,
         cancelAtPeriodEnd: args.cancelAtPeriodEnd,
-        plan: args.plan,
-        cycle: args.cycle,
+        plan: args.plan || existing.plan,
+        cycle: args.cycle || existing.cycle,
         lifecycleStatus: "ACTIVE",
         lastLifecycleAlert: undefined,
         gracePeriodEndsAt: undefined,
         updatedAt: now,
       });
-      return { id: existing._id, updated: true };
+      return {
+        id: existing._id,
+        updated: true,
+        previousSubscriptionId,
+        previousProvider,
+        previousPlan,
+      };
     }
 
     const id = await ctx.db.insert("subscriptions", {
@@ -151,7 +166,7 @@ export const setCancelAtPeriodEnd = mutation({
     // If no document exists yet, create one
     const id = await ctx.db.insert("subscriptions", {
       orgId: args.orgId,
-      provider: "paddle",
+      provider: "dodo",
       providerSubscriptionId: args.providerSubscriptionId || `sub_manual_${Date.now()}`,
       currentPeriodStart: Date.now(),
       currentPeriodEnd: args.currentPeriodEnd || Date.now() + 30 * 86400000,
@@ -303,6 +318,20 @@ export const markSubscriptionGracePeriod = mutation({
 
     if (!sub || sub.plan === "FREE" || sub.plan === "FREEMIUM") {
       return { success: false, notFound: true };
+    }
+
+    // Ignore failure/expiration events coming from an older replaced subscription
+    if (
+      args.providerSubscriptionId &&
+      sub.providerSubscriptionId &&
+      !sub.providerSubscriptionId.startsWith("sub_manual_") &&
+      sub.providerSubscriptionId !== args.providerSubscriptionId
+    ) {
+      return {
+        success: false,
+        notFound: true,
+        staleSubscriptionIgnored: true,
+      };
     }
 
     // Preserve original 24h deadline if already in grace so retries do not reset the clock

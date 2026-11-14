@@ -116,7 +116,7 @@ export default defineSchema({
   // ─── 6. Subscriptions (Control Plane) ────────────────────────────────────────
   subscriptions: defineTable({
     orgId: v.string(),
-    provider: v.string(), // "mock", "lemonsqueezy", "stripe", "paystack", "paddle"
+    provider: v.string(), // "dodo", "mock", "lemonsqueezy", "stripe", "paystack"
     providerSubscriptionId: v.string(),
     currentPeriodStart: v.number(),
     currentPeriodEnd: v.number(),

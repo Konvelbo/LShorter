@@ -2,6 +2,44 @@ import { NextRequest, NextResponse } from "next/server";
 import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
 import { auth } from "@/auth";
 import { executeD1Query } from "@/lib/d1-client";
+import { convexHttp } from "@/lib/convex-server";
+import { api } from "@/convex/_generated/api";
+
+async function resolveSessionCanonicalUserIds(opts: {
+  sessionUserId: string;
+  sessionEmail: string;
+  clientUserId: string;
+  isInternal: boolean;
+  isDevPreview: boolean;
+}): Promise<{ effectiveId: string; candidateUserIds: string[] }> {
+  const { sessionUserId, sessionEmail, clientUserId, isInternal, isDevPreview } = opts;
+
+  if (isInternal || isDevPreview) {
+    const effectiveId = clientUserId || sessionUserId || sessionEmail;
+    const candidateUserIds = Array.from(
+      new Set([clientUserId, sessionUserId, sessionEmail, effectiveId])
+    ).filter(Boolean);
+    return { effectiveId, candidateUserIds };
+  }
+
+  let convexUserId = "";
+  if (sessionEmail && (!sessionUserId || !sessionUserId.startsWith("usr_") || (clientUserId && clientUserId !== sessionUserId))) {
+    try {
+      const convexUser = await convexHttp.query(api.users.getUserByEmail, {
+        email: sessionEmail.toLowerCase().trim(),
+      });
+      if (convexUser?.userId) {
+        convexUserId = String(convexUser.userId);
+      }
+    } catch {}
+  }
+
+  const effectiveId = convexUserId || sessionUserId || sessionEmail;
+  const candidateUserIds = Array.from(
+    new Set([convexUserId, sessionUserId, sessionEmail, effectiveId])
+  ).filter(Boolean);
+  return { effectiveId, candidateUserIds };
+}
 
 const INIT_TARGETS_TABLE_SQL = `
 CREATE TABLE IF NOT EXISTS target_alerts (
@@ -12,6 +50,7 @@ CREATE TABLE IF NOT EXISTS target_alerts (
   metric_type TEXT NOT NULL DEFAULT 'clicks',
   limit_value REAL NOT NULL,
   target_value REAL,
+  current_value REAL DEFAULT 0,
   period TEXT NOT NULL DEFAULT 'month',
   notify_expiration INTEGER DEFAULT 0,
   notify_expired INTEGER DEFAULT 0,
@@ -48,22 +87,22 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const userId = isInternal || isDevPreview ? (queryUserId || sessionUserId) : (sessionUserId || queryUserId);
-    const userEmail = sessionEmail;
-    const effectiveId = userId || userEmail;
+    const { effectiveId, candidateUserIds } = await resolveSessionCanonicalUserIds({
+      sessionUserId,
+      sessionEmail,
+      clientUserId: queryUserId,
+      isInternal,
+      isDevPreview,
+    });
 
     // 1. Direct Cloudflare D1 Query (Primary & Authoritative)
     try {
       await executeD1Query(INIT_TARGETS_TABLE_SQL).catch(() => null);
 
-      const userIds = isInternal || isDevPreview
-        ? Array.from(new Set([queryUserId, sessionUserId, sessionEmail, effectiveId])).filter(Boolean)
-        : Array.from(new Set([sessionUserId, sessionEmail])).filter(Boolean);
-
-      if (userIds.length === 0) {
+      if (candidateUserIds.length === 0) {
         return NextResponse.json({ success: true, data: [] });
       }
-      const placeholders = userIds.map(() => "?").join(", ");
+      const placeholders = candidateUserIds.map(() => "?").join(", ");
 
       const d1Rows = await executeD1Query<any>(
         `SELECT t.*,
@@ -76,7 +115,7 @@ export async function GET(req: NextRequest) {
          LEFT JOIN links l ON t.link_id = l.id
          WHERE t.user_id IN (${placeholders})
          ORDER BY CASE WHEN t.link_id IS NULL AND t.metric_type = 'clicks' THEN 0 WHEN t.link_id IS NULL THEN 1 ELSE 2 END, t.updated_at DESC, t.created_at DESC`,
-        userIds
+        candidateUserIds
       );
 
       const formatted = (d1Rows || []).map((r) => ({
@@ -106,21 +145,33 @@ export async function GET(req: NextRequest) {
 
     // 2. Cloudflare Worker Fallback
     try {
-      const workerUrl = `${WORKER_URL}/api/v1/targets?userId=${encodeURIComponent(effectiveId)}`;
-      const res = await fetch(workerUrl, {
-        headers: {
-          "X-Frontend-Secret": FRONTEND_SECRET || "",
-          Authorization: `Bearer ${FRONTEND_SECRET || ""}`,
-          "X-User-Id": effectiveId,
-        },
-        cache: "no-store",
-      }).catch(() => null);
+      const mergedById = new Map<string, any>();
+      for (const candidateId of candidateUserIds) {
+        const workerUrl = `${WORKER_URL}/api/v1/targets?userId=${encodeURIComponent(candidateId)}`;
+        const res = await fetch(workerUrl, {
+          headers: {
+            "X-Frontend-Secret": FRONTEND_SECRET || "",
+            Authorization: `Bearer ${FRONTEND_SECRET || ""}`,
+            "X-User-Id": candidateId,
+          },
+          cache: "no-store",
+        }).catch(() => null);
 
-      if (res && res.ok) {
-        const data = await res.json();
-        if (data?.success && Array.isArray(data.data)) {
-          return NextResponse.json(data);
+        if (res && res.ok) {
+          const data = await res.json().catch(() => null);
+          if (data?.success && Array.isArray(data.data)) {
+            for (const item of data.data) {
+              if (item?.id && !mergedById.has(item.id)) {
+                mergedById.set(item.id, item);
+              }
+            }
+            if (mergedById.size > 0) break;
+          }
         }
+      }
+
+      if (mergedById.size > 0) {
+        return NextResponse.json({ success: true, data: Array.from(mergedById.values()) });
       }
     } catch (workerErr) {
       console.warn("[app/api/targets/route.ts GET] Worker fallback failed:", workerErr);
@@ -160,9 +211,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const userId = isInternal || isDevPreview ? (body.userId || sessionUserId || sessionEmail) : (sessionUserId || body.userId || sessionEmail);
-    const userEmail = sessionEmail || (userId.includes("@") ? userId : "");
-    const effectiveId = userId || userEmail;
+    const { effectiveId, candidateUserIds } = await resolveSessionCanonicalUserIds({
+      sessionUserId,
+      sessionEmail,
+      clientUserId: String(body.userId || ""),
+      isInternal,
+      isDevPreview,
+    });
 
     const sessionPlan = ((session?.user as any)?.plan || "").toUpperCase();
     const userPlan = (isInternal || isDevPreview)
@@ -225,10 +280,13 @@ export async function POST(req: NextRequest) {
 
         if (!linkId) {
           // Global target upsert per user and metric type
-          const existingGlobal = await executeD1Query<any>(
-            `SELECT id FROM target_alerts WHERE (user_id = ? OR user_id = ?) AND link_id IS NULL AND metric_type = ? LIMIT 1`,
-            [effectiveId, userEmail || effectiveId, metricType]
-          );
+          const placeholders = candidateUserIds.map(() => "?").join(", ");
+          const existingGlobal = candidateUserIds.length > 0
+            ? await executeD1Query<any>(
+                `SELECT id FROM target_alerts WHERE user_id IN (${placeholders}) AND link_id IS NULL AND metric_type = ? LIMIT 1`,
+                [...candidateUserIds, metricType]
+              )
+            : [];
 
           if (existingGlobal && existingGlobal.length > 0) {
             const targetId = existingGlobal[0].id;
@@ -272,7 +330,7 @@ export async function POST(req: NextRequest) {
               )
               VALUES (?, ?, NULL, ?, ?, ?, ?, 'month', ?, ?, ?, ?, ?, 'instantly', ?, datetime('now'), datetime('now'))`,
               [
-                newId, effectiveId, `Objectif Global (${metricType === 'revenue' ? 'Revenus' : 'Clics'})`, metricType,
+                newId, effectiveId, `Global Target (${metricType === 'revenue' ? 'Revenue' : 'Clicks'})`, metricType,
                 targetValue, targetValue,
                 notifyExpired, notifyExpired,
                 channel, notifyEmail, notifyBell, status
@@ -304,7 +362,7 @@ export async function POST(req: NextRequest) {
             )
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'instantly', ?, datetime('now'), datetime('now'))`,
             [
-              newId, effectiveId, linkId, targetItem.title || 'Alerte Lien Court', metricType,
+              newId, effectiveId, linkId, targetItem.title || 'Short Link Alert', metricType,
               targetValue, targetValue, period,
               notifyExpired, notifyExpired,
               channel, notifyEmail, notifyBell, status
@@ -330,33 +388,98 @@ export async function POST(req: NextRequest) {
       // 2. Cloudflare Worker Fallback if D1 did not complete
       if (!createdOrUpdated) {
         try {
-          const workerUrl = `${WORKER_URL}/api/v1/targets`;
-          const res = await fetch(workerUrl, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-Frontend-Secret": FRONTEND_SECRET || "",
-              Authorization: `Bearer ${FRONTEND_SECRET || ""}`,
-              "X-User-Id": effectiveId,
-            },
-            body: JSON.stringify({
-              ...targetItem,
-              userId: effectiveId,
-              linkId,
-              metricType,
-              period,
-              targetValue,
-              notifyExpired: Boolean(notifyExpired),
-              notifyEmail: Boolean(notifyEmail),
-              notifyBell: Boolean(notifyBell),
-              status,
-            }),
-          }).catch(() => null);
+          if (!linkId) {
+            // Check if a global target for this metricType already exists on the Worker and PATCH by id
+            const listRes = await fetch(`${WORKER_URL}/api/v1/targets?userId=${encodeURIComponent(effectiveId)}`, {
+              headers: {
+                "X-Frontend-Secret": FRONTEND_SECRET || "",
+                Authorization: `Bearer ${FRONTEND_SECRET || ""}`,
+                "X-User-Id": effectiveId,
+              },
+              cache: "no-store",
+            }).catch(() => null);
+            if (listRes && listRes.ok) {
+              const listData = await listRes.json().catch(() => null);
+              const existingMatch = Array.isArray(listData?.data)
+                ? listData.data.find((t: any) => (!t.linkId || t.linkId === "global") && t.metricType === metricType)
+                : null;
+              if (existingMatch?.id) {
+                const patchRes = await fetch(`${WORKER_URL}/api/v1/targets/${encodeURIComponent(existingMatch.id)}`, {
+                  method: "PATCH",
+                  headers: {
+                    "Content-Type": "application/json",
+                    "X-Frontend-Secret": FRONTEND_SECRET || "",
+                    Authorization: `Bearer ${FRONTEND_SECRET || ""}`,
+                    "X-User-Id": effectiveId,
+                  },
+                  body: JSON.stringify({
+                    metricType,
+                    period: "month",
+                    targetValue,
+                    notifyExpired: false,
+                    notifyEmail: Boolean(notifyEmail),
+                    notifyBell: Boolean(notifyBell),
+                    status,
+                  }),
+                }).catch(() => null);
+                if (patchRes && patchRes.ok) {
+                  createdOrUpdated = {
+                    id: existingMatch.id,
+                    userId: effectiveId,
+                    linkId: null,
+                    metricType,
+                    period: "month",
+                    targetValue,
+                    notifyExpired: false,
+                    notifyEmail: Boolean(notifyEmail),
+                    notifyBell: Boolean(notifyBell),
+                    status,
+                  };
+                }
+              }
+            }
+          }
 
-          if (res && res.ok) {
-            const workerData = await res.json().catch(() => null);
-            if (workerData?.success && workerData.data) {
-              createdOrUpdated = workerData.data;
+          if (!createdOrUpdated) {
+            const workerUrl = `${WORKER_URL}/api/v1/targets`;
+            const res = await fetch(workerUrl, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "X-Frontend-Secret": FRONTEND_SECRET || "",
+                Authorization: `Bearer ${FRONTEND_SECRET || ""}`,
+                "X-User-Id": effectiveId,
+              },
+              body: JSON.stringify({
+                ...targetItem,
+                userId: effectiveId,
+                linkId,
+                metricType,
+                period,
+                targetValue,
+                notifyExpired: Boolean(notifyExpired),
+                notifyEmail: Boolean(notifyEmail),
+                notifyBell: Boolean(notifyBell),
+                status,
+              }),
+            }).catch(() => null);
+
+            if (res && res.ok) {
+              const workerData = await res.json().catch(() => null);
+              if (workerData?.success && workerData.data) {
+                createdOrUpdated = {
+                  id: workerData.data.id || `target_global_${effectiveId}_${metricType}`,
+                  userId: effectiveId,
+                  linkId,
+                  metricType,
+                  period,
+                  targetValue,
+                  notifyExpired: Boolean(notifyExpired),
+                  notifyEmail: Boolean(notifyEmail),
+                  notifyBell: Boolean(notifyBell),
+                  status,
+                };
+              }
             }
           }
         } catch (workerErr) {

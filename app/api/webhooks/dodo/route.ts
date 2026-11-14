@@ -3,6 +3,7 @@ import { verifyDodoWebhook } from "@/lib/dodo/dodo-server";
 import { convexHttp as convex } from "@/lib/convex-server";
 import { api } from "@/convex/_generated/api";
 import { syncUserToCloudflare } from "@/app/actions/sync-user";
+import { cancelReplacedSubscriptions } from "@/lib/billing/cancel-replaced-subscription";
 import {
   sendGracePeriodAlertEmail,
   sendPlanPurchaseEmail,
@@ -211,7 +212,7 @@ export async function POST(request: NextRequest) {
             console.error("[Dodo Webhook] Error updating user plan:", userErr);
           }
 
-          // 2. Sync to Cloudflare D1 Edge database
+          // 2. Sync to Cloudflare D1 Edge database (both userId and email keys)
           try {
             await syncUserToCloudflare({
               id: userId,
@@ -219,6 +220,18 @@ export async function POST(request: NextRequest) {
               name: customerName,
               plan: planId,
             });
+            if (
+              customerEmail &&
+              !customerEmail.endsWith("@lshorter.local") &&
+              customerEmail !== userId
+            ) {
+              await syncUserToCloudflare({
+                id: customerEmail,
+                email: customerEmail,
+                name: customerName,
+                plan: planId,
+              });
+            }
           } catch (cfErr) {
             console.error("[Dodo Webhook] Error syncing to Cloudflare:", cfErr);
           }
@@ -238,22 +251,63 @@ export async function POST(request: NextRequest) {
 
         const now = Date.now();
         const periodEnd = cycle === "YEARLY" ? now + 365 * 86400000 : now + 30 * 86400000;
+        const newSubId = eventData.subscription_id
+          ? String(eventData.subscription_id)
+          : undefined;
+        let previousSubId: string | undefined = ctx.customData?.previousSubscriptionId
+          ? String(ctx.customData.previousSubscriptionId)
+          : undefined;
+        let previousProvider: string | undefined;
+        let previousPlan: string | undefined = ctx.customData?.previousPlan
+          ? String(ctx.customData.previousPlan)
+          : undefined;
 
         // 3b. Ensure active subscription period is synced when payment belongs to a subscription
-        if (eventData.subscription_id) {
+        if (newSubId) {
           try {
-            await convex.mutation(api.subscriptions.upsertSubscription, {
-              orgId: userId || orgId,
-              provider: "dodo",
-              providerSubscriptionId: String(eventData.subscription_id),
-              currentPeriodStart: now,
-              currentPeriodEnd: periodEnd,
-              cancelAtPeriodEnd: false,
-              plan: planId,
-              cycle,
-            });
+            const upsertRes: any = await convex.mutation(
+              api.subscriptions.upsertSubscription,
+              {
+                orgId: userId || orgId,
+                provider: "dodo",
+                providerSubscriptionId: newSubId,
+                currentPeriodStart: now,
+                currentPeriodEnd: periodEnd,
+                cancelAtPeriodEnd: false,
+                plan: planId,
+                cycle,
+              }
+            );
+            if (upsertRes?.previousSubscriptionId) {
+              previousSubId = upsertRes.previousSubscriptionId;
+              previousProvider = upsertRes.previousProvider;
+            }
+            if (upsertRes?.previousPlan) {
+              previousPlan = upsertRes.previousPlan;
+            }
           } catch (subSyncErr) {
             console.error("[Dodo Webhook] Error syncing subscription on payment.succeeded:", subSyncErr);
+          }
+        }
+
+        // 3c. Anti-Double-Billing: Cancel any previous active subscription (e.g. PRO -> BUSINESS switch)
+        if (newSubId || previousSubId) {
+          try {
+            await cancelReplacedSubscriptions({
+              userId: userId || undefined,
+              orgId: userId || orgId,
+              customerEmail,
+              dodoCustomerId: eventData.customer?.customer_id
+                ? String(eventData.customer.customer_id)
+                : undefined,
+              newSubscriptionId: newSubId,
+              newProvider: "dodo",
+              newPlan: planId,
+              previousSubscriptionId: previousSubId,
+              previousProvider,
+            });
+          } catch (cancelPrevErr) {
+            console.warn("[Dodo Webhook] Warning cancelling replaced subscription:", cancelPrevErr);
           }
         }
 
@@ -399,10 +453,40 @@ export async function POST(request: NextRequest) {
           : undefined;
 
         try {
-          if (!resolvedPlan && orgId !== "default") {
-            const existingSub = await convex
-              .query(api.subscriptions.getSubscription, { orgId })
-              .catch(() => null);
+          const existingSub =
+            orgId !== "default"
+              ? await convex
+                  .query(api.subscriptions.getSubscription, { orgId })
+                  .catch(() => null)
+              : null;
+
+          // Guard against a stale renewal or delayed active event from an older replaced subscription
+          const isStaleEventForDifferentSub =
+            existingSub?.providerSubscriptionId &&
+            existingSub.providerSubscriptionId !== subId &&
+            !existingSub.providerSubscriptionId.startsWith("sub_manual_") &&
+            customData.previousSubscriptionId !== existingSub.providerSubscriptionId &&
+            (eventType === "subscription.renewed" ||
+              Boolean(eventData.cancel_at_next_billing_date) ||
+              eventData.status === "cancelled");
+
+          if (isStaleEventForDifferentSub) {
+            console.warn(
+              `[Dodo Webhook] Ignoring & cancelling stale ${eventType} from replaced subscription ${subId} (active is ${existingSub.providerSubscriptionId})`
+            );
+            await cancelReplacedSubscriptions({
+              userId: userId || undefined,
+              orgId,
+              newSubscriptionId: existingSub.providerSubscriptionId,
+              newProvider: "dodo",
+              newPlan: existingSub.plan || "BUSINESS",
+              previousSubscriptionId: String(subId),
+              previousProvider: "dodo",
+            });
+            break;
+          }
+
+          if (!resolvedPlan && existingSub) {
             if (existingSub?.plan && existingSub.plan !== "FREE" && existingSub.plan !== "FREEMIUM") {
               resolvedPlan = String(existingSub.plan).toUpperCase();
             }
@@ -411,24 +495,52 @@ export async function POST(request: NextRequest) {
             }
           }
 
-          await convex.mutation(api.subscriptions.upsertSubscription, {
-            orgId,
-            provider: "dodo",
-            providerSubscriptionId: subId,
-            currentPeriodStart: periodStart,
-            currentPeriodEnd: periodEnd,
-            cancelAtPeriodEnd:
-              Boolean(eventData.cancel_at_next_billing_date) ||
-              eventData.status === "cancelled",
-            plan: resolvedPlan || "PRO",
-            cycle: resolvedCycle || "MONTHLY",
-          });
-
           const activePlan = (
             ["PRO", "BUSINESS", "ENTERPRISE"].includes(resolvedPlan || "")
               ? resolvedPlan
               : "PRO"
           ) as "PRO" | "BUSINESS" | "ENTERPRISE";
+
+          const upsertRes: any = await convex.mutation(
+            api.subscriptions.upsertSubscription,
+            {
+              orgId,
+              provider: "dodo",
+              providerSubscriptionId: subId,
+              currentPeriodStart: periodStart,
+              currentPeriodEnd: periodEnd,
+              cancelAtPeriodEnd:
+                Boolean(eventData.cancel_at_next_billing_date) ||
+                eventData.status === "cancelled",
+              plan: activePlan,
+              cycle: resolvedCycle || "MONTHLY",
+            }
+          );
+
+          // Anti-Double-Billing: Cancel any previous subscription replaced by this active subscription
+          if (eventType === "subscription.active" && subId) {
+            const prevSubId =
+              upsertRes?.previousSubscriptionId ||
+              (customData.previousSubscriptionId
+                ? String(customData.previousSubscriptionId)
+                : undefined);
+            await cancelReplacedSubscriptions({
+              userId: userId || undefined,
+              orgId,
+              customerEmail:
+                eventData.customer?.email || customData.customerEmail || undefined,
+              dodoCustomerId: eventData.customer?.customer_id
+                ? String(eventData.customer.customer_id)
+                : undefined,
+              newSubscriptionId: String(subId),
+              newProvider: "dodo",
+              newPlan: activePlan,
+              previousSubscriptionId: prevSubId,
+              previousProvider: upsertRes?.previousProvider,
+            }).catch((err) =>
+              console.warn("[Dodo Webhook] Warning cancelling replaced subscription on active:", err)
+            );
+          }
 
           if (userId) {
             await convex
@@ -507,10 +619,13 @@ export async function POST(request: NextRequest) {
           eventType.startsWith("subscription.")
             ? String(eventData.subscription_id || eventData.id || "")
             : String(eventData.subscription_id || "");
+        if (!subId) {
+          break;
+        }
         const ctx = await resolveDodoContext(eventData);
         await activateGracePeriodFromDodoEvent({
           eventType,
-          subId: subId || undefined,
+          subId,
           orgIdHint: ctx.userId || (ctx.orgId !== "default" ? ctx.orgId : undefined),
           customerEmail: ctx.customerEmail,
           customerName: ctx.customerName,

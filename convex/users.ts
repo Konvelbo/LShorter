@@ -308,19 +308,44 @@ export const updatePlan = mutation({
     plan: v.union(v.literal("FREE"), v.literal("FREEMIUM"), v.literal("STARTER"), v.literal("PRO"), v.literal("BUSINESS"), v.literal("ENTERPRISE")),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db
+    let user = await ctx.db
       .query("users")
       .withIndex("by_userId", (q) => q.eq("userId", args.userId))
       .first();
 
+    if (!user && args.userId.includes("@")) {
+      user = await ctx.db
+        .query("users")
+        .withIndex("by_email", (q) => q.eq("email", args.userId.toLowerCase().trim()))
+        .first();
+    }
+
     if (!user) throw new Error("USER_NOT_FOUND");
 
+    const now = new Date().toISOString();
     await ctx.db.patch(user._id, {
       plan: args.plan,
-      updatedAt: new Date().toISOString(),
+      updatedAt: now,
     });
 
-    return { success: true };
+    // Also keep any matching workspace organization in sync
+    const normalizedOrgPlan =
+      args.plan === "STARTER" ? "FREE" : args.plan;
+    const orgSlugCandidates = [user.userId, `org_${user.userId}`];
+    for (const slug of orgSlugCandidates) {
+      const org = await ctx.db
+        .query("organizations")
+        .withIndex("by_slug", (q) => q.eq("slug", slug))
+        .first();
+      if (org) {
+        await ctx.db.patch(org._id, {
+          plan: normalizedOrgPlan,
+          updatedAt: now,
+        });
+      }
+    }
+
+    return { success: true, userId: user.userId, email: user.email };
   },
 });
 

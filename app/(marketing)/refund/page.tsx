@@ -41,9 +41,9 @@ export default function NoRefundPolicyPage() {
     },
     {
       icon: CreditCard,
-      title: "Paddle Merchant of Record",
+      title: "Dodo Payments Merchant of Record",
       description:
-        "All checkouts, recurring billing, and invoices are handled securely by Paddle.com Market Ltd as our authorized Merchant of Record.",
+        "All checkouts, recurring billing, and invoices are handled securely by Dodo Payments as our authorized Merchant of Record.",
     },
   ];
 
@@ -52,7 +52,7 @@ export default function NoRefundPolicyPage() {
     { id: "digital-waiver", title: "2. Statutory Digital Waiver (EU & Global)" },
     { id: "subscription-cancellation", title: "3. Cancelling Future Renewals" },
     { id: "overages", title: "4. Click Overages & Capacity Add-ons" },
-    { id: "paddle-billing", title: "5. Paddle Billing & Merchant of Record" },
+    { id: "dodo-billing", title: "5. Dodo Payments Billing & Merchant of Record" },
     { id: "chargebacks", title: "6. Chargeback Protection & Account Freezes" },
     { id: "contact", title: "7. Contact Billing Support" },
   ];
@@ -324,17 +324,17 @@ export default function NoRefundPolicyPage() {
             </section>
 
             {/* Section 5 */}
-            <section id="paddle-billing" className="scroll-mt-28">
+            <section id="dodo-billing" className="scroll-mt-28">
               <h2 className="text-xl sm:text-2xl font-bold text-neutral-900 dark:text-white mb-4">
-                5. Paddle Billing & Merchant of Record
+                5. Dodo Payments Billing & Merchant of Record
               </h2>
               <p className="mb-4">
                 Our order process is conducted by our online reseller and Merchant of Record,{" "}
-                <strong>Paddle.com Market Ltd</strong> (Paddle.com), who also handles order-related inquiries,
+                <strong>Dodo Payments</strong>, who also handles order-related inquiries,
                 invoicing, currency conversion, and global sales tax / VAT compliance.
               </p>
               <p>
-                When you initiate a purchase, you agree to Paddle&apos;s checkout terms in conjunction with
+                When you initiate a purchase, you agree to Dodo Payments&apos; checkout terms in conjunction with
                 these LShorter Terms and No-Refund Policy.
               </p>
             </section>
@@ -395,7 +395,7 @@ export default function NoRefundPolicyPage() {
                     />
                   </div>
                   <p className="pt-1">
-                    <strong>Merchant of Record:</strong> Paddle.com Market Ltd
+                    <strong>Merchant of Record:</strong> Dodo Payments
                   </p>
                   <p>
                     <strong>Platform:</strong> LShorter Inc.

@@ -127,7 +127,7 @@ const VALID_SETTINGS_TABS = [
 
 function SettingsPageContent() {
   const { triggerUndoDelete } = useUndoDelete();
-  const { data: session, status } = useSession();
+  const { data: session, status, update: updateSession } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
   const urlTabParam = searchParams.get("tab");
@@ -483,7 +483,7 @@ function SettingsPageContent() {
       ? 0
       : Number((overageBatches * costPerBatch).toFixed(2));
 
-  // ─── Real Invoices (Fetched from Paddle & Convex) ───────────────────────────
+  // ─── Real Invoices (Fetched from Dodo Payments & Convex) ────────────────────
   const [invoices, setInvoices] = useState<any[]>([]);
   const [loadingInvoices, setLoadingInvoices] = useState(false);
 
@@ -510,53 +510,6 @@ function SettingsPageContent() {
       loadRealInvoices();
     }
   }, [activeTab, loadRealInvoices]);
-
-  // Handle return from Paddle checkout (triggers exactly once without duplicate toasts)
-  const handledCheckoutSuccessRef = useRef(false);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      const isSuccess = params.get("checkout_success") === "true";
-      const ptxn = params.get("_ptxn") || params.get("ptxn");
-
-      if (isSuccess && !handledCheckoutSuccessRef.current) {
-        handledCheckoutSuccessRef.current = true;
-
-        // Clean query parameters from URL immediately to prevent repeated toasts on re-render
-        window.history.replaceState({}, "", "/dashboard/settings?tab=billing");
-
-        if (ptxn) {
-          fetch("/api/billing/verify-transaction", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ transactionId: ptxn, userId }),
-          })
-            .then((r) => r.json())
-            .then((data) => {
-              if (data.success) {
-                confetti({ particleCount: 90, spread: 80, origin: { y: 0.6 } });
-                showToast.success(`Abonnement ${data.plan} confirmé avec succès via Paddle !`);
-                window.dispatchEvent(new Event("lshorter_notifications_sync"));
-                loadRealInvoices();
-              }
-            })
-            .catch((err) => console.error("[Verify Transaction Error]", err));
-        } else {
-          confetti({ particleCount: 90, spread: 80, origin: { y: 0.6 } });
-          showToast.success("Abonnement activé avec succès !");
-          window.dispatchEvent(new Event("lshorter_notifications_sync"));
-          loadRealInvoices();
-        }
-      }
-    }
-  }, [userId, loadRealInvoices]);
-
-  const handleDownloadInvoice = (inv: any) => {
-    const downloadUrl = inv.downloadUrl || `/api/billing/invoices/${inv.id}/download`;
-    window.open(downloadUrl, "_blank");
-    showToast.success(`Téléchargement de la facture officielle (${inv.number})...`);
-  };
 
   // ─── Real Subscription & Auto-Renewal State ───────────────────────────────
   const convexSubscription = useQuery(
@@ -598,6 +551,88 @@ function SettingsPageContent() {
       loadSubscriptionDetails();
     }
   }, [activeTab, loadSubscriptionDetails]);
+
+  // Handle return from Dodo Payments checkout (triggers exactly once without duplicate toasts)
+  const handledCheckoutSuccessRef = useRef(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const isSuccess = params.get("checkout_success") === "true";
+      const ptxn = params.get("_ptxn") || params.get("ptxn");
+      const dodoSubId = params.get("subscription_id");
+      const dodoPaymentId = params.get("payment_id");
+      const dodoSessionId = params.get("session_id");
+      const urlPlan = (params.get("plan") || "").toUpperCase();
+
+      if (isSuccess && !handledCheckoutSuccessRef.current) {
+        handledCheckoutSuccessRef.current = true;
+
+        // Clean query parameters from URL immediately to prevent repeated toasts on re-render
+        window.history.replaceState({}, "", "/dashboard/settings?tab=billing");
+
+        const syncClientPlanState = async (newPlan?: string) => {
+          const validPlan =
+            newPlan && ["PRO", "BUSINESS", "ENTERPRISE"].includes(newPlan.toUpperCase())
+              ? newPlan.toUpperCase()
+              : urlPlan && ["PRO", "BUSINESS", "ENTERPRISE"].includes(urlPlan)
+                ? urlPlan
+                : undefined;
+
+          if (validPlan) {
+            localStorage.setItem("lshorter_user_plan", validPlan);
+            window.dispatchEvent(
+              new CustomEvent("lshorter_plan_updated", {
+                detail: { plan: validPlan },
+              })
+            );
+            try {
+              await updateSession({ plan: validPlan });
+            } catch {}
+          }
+          window.dispatchEvent(new Event("lshorter_notifications_sync"));
+          loadRealInvoices();
+          loadSubscriptionDetails();
+        };
+
+        fetch("/api/billing/verify-transaction", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            transactionId: ptxn || undefined,
+            subscriptionId: dodoSubId || undefined,
+            paymentId: dodoPaymentId || undefined,
+            sessionId: dodoSessionId || undefined,
+            plan: urlPlan || undefined,
+            userId,
+          }),
+        })
+          .then((r) => r.json())
+          .then(async (data) => {
+            const confirmedPlan = data?.plan || urlPlan;
+            await syncClientPlanState(confirmedPlan);
+            confetti({ particleCount: 90, spread: 80, origin: { y: 0.6 } });
+            showToast.success(
+              confirmedPlan
+                ? `Abonnement ${confirmedPlan} activé et synchronisé avec succès !`
+                : "Abonnement activé avec succès !"
+            );
+          })
+          .catch(async (err) => {
+            console.error("[Verify Transaction Error]", err);
+            await syncClientPlanState(urlPlan);
+            confetti({ particleCount: 90, spread: 80, origin: { y: 0.6 } });
+            showToast.success("Abonnement activé avec succès !");
+          });
+      }
+    }
+  }, [userId, loadRealInvoices, loadSubscriptionDetails, updateSession]);
+
+  const handleDownloadInvoice = (inv: any) => {
+    const downloadUrl = inv.downloadUrl || `/api/billing/invoices/${inv.id}/download`;
+    window.open(downloadUrl, "_blank");
+    showToast.success(`Téléchargement de la facture officielle (${inv.number})...`);
+  };
 
   const isCanceledAtPeriodEnd =
     convexSubscription?.cancelAtPeriodEnd ??
@@ -1242,12 +1277,12 @@ console.log("Top Countries:", topAudience.topCountries);`,
     e.preventDefault();
     if (alertMetricType === "both") {
       if (alertTargetClicks <= 0 || alertTargetRevenue <= 0) {
-        showToast.error("Veuillez saisir un seuil valide (> 0) pour les clics et les revenus");
+        showToast.error("Please enter a valid threshold (> 0) for both clicks and revenue");
         return;
       }
     } else {
       if (alertTargetValue <= 0) {
-        showToast.error("Veuillez saisir un seuil d'objectif valide supérieur à 0");
+        showToast.error("Please enter a valid target threshold greater than 0");
         return;
       }
     }
@@ -1288,7 +1323,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
               notifyBell: alertNotifyBell,
             }),
           ]);
-          showToast.success("Objectifs globaux clics et revenus enregistrés dans Cloudflare");
+          showToast.success("Global clicks and revenue targets saved");
         } else if (alertMetricType === "revenue") {
           localStorage.setItem("lshorter_target_revenue", String(alertTargetValue));
           window.dispatchEvent(
@@ -1306,7 +1341,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
             notifyEmail: alertNotifyEmail,
             notifyBell: alertNotifyBell,
           });
-          showToast.success("Objectif global de revenus enregistré dans Cloudflare");
+          showToast.success("Global revenue target saved");
         } else {
           localStorage.setItem("lshorter_target_clicks", String(alertTargetValue));
           window.dispatchEvent(
@@ -1324,7 +1359,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
             notifyEmail: alertNotifyEmail,
             notifyBell: alertNotifyBell,
           });
-          showToast.success("Objectif global de clics enregistré dans Cloudflare");
+          showToast.success("Global clicks target saved");
         }
       } else {
         const effectiveLinkId = (!alertLinkId || alertLinkId === "global" || !isPremium)
@@ -1357,7 +1392,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
               notifyBell: alertNotifyBell,
             });
           }
-          showToast.success("Alerte mise à jour dans Cloudflare D1");
+          showToast.success("Alert updated successfully");
         } else {
           if (alertMetricType === "both") {
             await Promise.all([
@@ -1382,7 +1417,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                 notifyBell: alertNotifyBell,
               }),
             ]);
-            showToast.success("Alertes clics et revenus créées avec succès dans Cloudflare D1");
+            showToast.success("Clicks and revenue alerts created successfully");
           } else {
             await cfCreateTargetAlert({
               userId,
@@ -1394,7 +1429,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
               notifyEmail: alertNotifyEmail,
               notifyBell: alertNotifyBell,
             });
-            showToast.success("Alerte créée avec succès dans Cloudflare D1");
+            showToast.success("Alert created successfully");
           }
         }
       }
@@ -1402,7 +1437,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
       setIsAlertModalOpen(false);
       await loadTargetAlerts();
     } catch (err: any) {
-      showToast.error(err?.message || "Erreur lors de l'enregistrement de l'alerte");
+      showToast.error(err?.message || "Failed to save alert");
     } finally {
       setIsSavingAlert(false);
     }
@@ -2324,7 +2359,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                         </span>
                       </div>
                       <span className="text-[11px] text-zinc-500 dark:text-neutral-500">
-                        Facturation certifiée Paddle
+                        Facturation certifiée Dodo Payments
                       </span>
                     </div>
 
@@ -2339,7 +2374,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                       <span className="text-[11px] text-zinc-500 dark:text-neutral-500">
                         {isCanceledAtPeriodEnd
                           ? "Accès garanti jusqu'à cette date"
-                          : "Prélèvement automatique Paddle"}
+                          : "Prélèvement automatique Dodo Payments"}
                       </span>
                     </div>
 
@@ -2504,14 +2539,14 @@ console.log("Top Countries:", topAudience.topCountries);`,
                 </div>
               </div>
 
-              {/* Certified Dodo Payments & Paddle Invoices Table */}
+              {/* Certified Dodo Payments Invoices Table */}
               <div className="flex flex-col gap-3 pt-2">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <h3 className="text-sm font-bold text-zinc-900 dark:text-white flex items-center gap-2">
                       <FileCheck className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
                       <span>
-                        Factures Officielles (Dodo Payments &amp; Paddle)
+                        Factures Officielles (Dodo Payments)
                       </span>
                     </h3>
                     <p className="text-[11px] text-zinc-500 dark:text-neutral-400 mt-0.5">
@@ -3773,8 +3808,8 @@ console.log("Top Countries:", topAudience.topCountries);`,
                     onClick={() => {
                       if (!isPremium) {
                         triggerPlanUpgrade({
-                          featureName: "Alertes par Lien",
-                          reason: "Passez au forfait PRO pour configurer des alertes de clics, de revenus et d'expiration sur vos liens individuels.",
+                          featureName: "Link Alerts",
+                          reason: "Upgrade to the Pro plan to configure click, revenue, and expiration alerts on your individual links.",
                           targetPlan: "PRO",
                         });
                         return;
@@ -3954,7 +3989,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                         </h3>
                         {!isPremium && (
                           <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/25">
-                            RÉSERVÉ AUX FORFAITS PRO
+                            RESERVED FOR PRO PLANS
                           </span>
                         )}
                       </div>
@@ -3999,14 +4034,14 @@ console.log("Top Countries:", topAudience.topCountries);`,
                         <div className="flex flex-col gap-1">
                           <div className="flex items-center gap-2">
                             <h4 className="text-xs font-bold text-zinc-900 dark:text-white">
-                              Alertes Individuelles par Lien
+                              Individual Link Alerts
                             </h4>
                             <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/25">
-                              PLAN PRO
+                              PRO PLAN
                             </span>
                           </div>
                           <p className="text-xs text-zinc-500 dark:text-neutral-400 leading-relaxed max-w-xl">
-                            La configuration d'alertes personnalisées par lien (seuils de clics, revenus attribués et avertissements d'expiration en temps réel) est réservée aux abonnés Premium. Votre formule Standard bénéficie déjà de l'accès complet à l'<strong>Objectif Global du Workspace</strong> ci-dessus.
+                            Configuring custom per-link alerts (click thresholds, attributed revenue, and real-time expiration warnings) is reserved for Pro subscribers. Your Starter plan already includes full access to the <strong>Global Workspace Target</strong> above.
                           </p>
                         </div>
                       </div>
@@ -4015,15 +4050,15 @@ console.log("Top Countries:", topAudience.topCountries);`,
                         variant="glow"
                         onClick={() =>
                           triggerPlanUpgrade({
-                            featureName: "Alertes par Lien",
-                            reason: "Passez au forfait PRO pour configurer des alertes de clics, de revenus et d'expiration sur vos liens individuels.",
+                            featureName: "Link Alerts",
+                            reason: "Upgrade to the Pro plan to configure click, revenue, and expiration alerts on your individual links.",
                             targetPlan: "PRO",
                           })
                         }
                         className="h-8 px-4 text-xs font-semibold shrink-0 self-start sm:self-auto cursor-pointer shadow-sm rounded-[8px]"
                       >
                         <Sparkles className="w-3.5 h-3.5 mr-1.5" />
-                        <span>Débloquer avec PRO</span>
+                        <span>Unlock with PRO</span>
                       </Button>
                     </div>
                   ) : isLoadingTargets && !isSavingAlert ? (
@@ -4168,7 +4203,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                                 </span>
                                 {alert.notifyExpired && Boolean(alert.linkId) && (
                                   <span className="text-[10px] text-zinc-400">
-                                    · Alerte à l&apos;expiration exacte
+                                    · Alert on exact expiration
                                   </span>
                                 )}
                               </div>
@@ -4291,15 +4326,15 @@ console.log("Top Countries:", topAudience.topCountries);`,
                         <div>
                           <h3 className="text-sm font-bold text-zinc-900 dark:text-white">
                             {isEditingGlobalAlert
-                              ? "Modifier l'Objectif Mensuel Global"
+                              ? "Edit Monthly Global Target"
                               : editingAlert
-                                ? "Modifier l'Alerte"
-                                : "Nouvelle Alerte de Performance"}
+                                ? "Edit Alert"
+                                : "New Performance Alert"}
                           </h3>
                           <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
                             {isEditingGlobalAlert
-                              ? "Configurez l'objectif de clics ou revenus du workspace"
-                              : "Définissez des seuils de clics, revenus ou les deux combinés"}
+                              ? "Configure your workspace monthly click or revenue target"
+                              : "Set click thresholds, revenue limits, or both combined"}
                           </p>
                         </div>
                       </div>
@@ -4318,7 +4353,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                       {!isEditingGlobalAlert && (
                         <div className="flex flex-col gap-1.5 text-xs">
                           <label htmlFor="target-link-select" className="font-semibold text-zinc-700 dark:text-zinc-300">
-                            Cible de l&apos;Alerte (Lien ou Global)
+                            Alert Target (Link or Global)
                           </label>
                           <select
                             id="target-link-select"
@@ -4327,8 +4362,8 @@ console.log("Top Countries:", topAudience.topCountries);`,
                               const val = e.target.value;
                               if (!isPremium && val !== "global") {
                                 triggerPlanUpgrade({
-                                  featureName: "Alertes par Lien",
-                                  reason: "La configuration d'alertes par lien individuel requiert le forfait Pro.",
+                                  featureName: "Link Alerts",
+                                  reason: "Configuring alerts on individual links requires the Pro plan.",
                                   targetPlan: "PRO",
                                 });
                                 return;
@@ -4341,7 +4376,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                             className="h-9 px-3 rounded-[8px] bg-zinc-50 dark:bg-[#18181b] border border-zinc-200 dark:border-[#27272a] text-xs text-zinc-900 dark:text-white focus:outline-none focus:border-blue-500 cursor-pointer"
                           >
                             <option value="global">
-                              🌐 Global (Tous les liens du workspace)
+                              🌐 Global (All workspace links)
                             </option>
                             {userLinksList.map((link: any) => (
                               <option key={link.id || link.slug} value={String(link.id || link.slug)}>
@@ -4355,7 +4390,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                       {/* Metric Type Selector with 3 Options: Clicks, Revenue, or Both */}
                       <div className="flex flex-col gap-1.5 text-xs">
                         <label className="font-semibold text-zinc-700 dark:text-zinc-300">
-                          Métrique à Surveiller
+                          Metric to Monitor
                         </label>
                         <div className="grid grid-cols-3 gap-1.5">
                           <button
@@ -4367,7 +4402,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                                 : "bg-zinc-50 dark:bg-[#18181b] border-zinc-200 dark:border-[#27272a] text-zinc-700 dark:text-zinc-300 hover:border-zinc-300"
                             }`}
                           >
-                            Total Clics
+                            Total Clicks
                           </button>
                           <button
                             type="button"
@@ -4378,7 +4413,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                                 : "bg-zinc-50 dark:bg-[#18181b] border-zinc-200 dark:border-[#27272a] text-zinc-700 dark:text-zinc-300 hover:border-zinc-300"
                             }`}
                           >
-                            Revenus ($)
+                            Revenue ($)
                           </button>
                           <button
                             type="button"
@@ -4389,7 +4424,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                                 : "bg-zinc-50 dark:bg-[#18181b] border-zinc-200 dark:border-[#27272a] text-zinc-700 dark:text-zinc-300 hover:border-zinc-300"
                             }`}
                           >
-                            Les 2 Types
+                            Both Metrics
                           </button>
                         </div>
                       </div>
@@ -4401,10 +4436,10 @@ console.log("Top Countries:", topAudience.topCountries);`,
                           <div className="flex flex-col gap-1.5">
                             <div className="flex items-center justify-between">
                               <span className="text-[11px] font-semibold text-zinc-800 dark:text-zinc-200">
-                                Seuil Clics Total
+                                Total Clicks Threshold
                               </span>
                               <span className="text-[10px] text-blue-600 dark:text-blue-400 font-mono font-semibold">
-                                {alertTargetClicks.toLocaleString()} clics
+                                {alertTargetClicks.toLocaleString()} clicks
                               </span>
                             </div>
                             <input
@@ -4436,7 +4471,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                           <div className="flex flex-col gap-1.5">
                             <div className="flex items-center justify-between">
                               <span className="text-[11px] font-semibold text-zinc-800 dark:text-zinc-200">
-                                Seuil Revenus Attribués ($)
+                                Attributed Revenue Threshold ($)
                               </span>
                               <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono font-semibold">
                                 ${alertTargetRevenue.toLocaleString()} USD
@@ -4469,7 +4504,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                         /* Single Metric Input */
                         <div className="flex flex-col gap-1.5 text-xs">
                           <label className="font-semibold text-zinc-700 dark:text-zinc-300">
-                            Valeur Seuil d&apos;Alerte
+                            Alert Threshold Value
                           </label>
                           <div className="flex items-center gap-2">
                             <input
@@ -4481,12 +4516,12 @@ console.log("Top Countries:", topAudience.topCountries);`,
                               className="flex-1 h-9 px-3 rounded-[8px] bg-zinc-50 dark:bg-[#18181b] border border-zinc-200 dark:border-[#27272a] text-xs font-mono font-bold text-zinc-900 dark:text-white focus:outline-none focus:border-blue-500"
                             />
                             <span className="font-semibold text-xs text-blue-600 dark:text-blue-400 shrink-0">
-                              {alertMetricType === "revenue" ? "USD ($)" : "clics"}
+                              {alertMetricType === "revenue" ? "USD ($)" : "clicks"}
                             </span>
                           </div>
                           {/* Quick presets */}
                           <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                            <span className="text-[10px] text-zinc-400">Rapide:</span>
+                            <span className="text-[10px] text-zinc-400">Quick:</span>
                             {(alertMetricType === "revenue"
                               ? [100, 500, 1000, 2500, 5000]
                               : [500, 1000, 2500, 5000, 10000]
@@ -4507,24 +4542,24 @@ console.log("Top Countries:", topAudience.topCountries);`,
                       {/* Period Selection (Day, Week, Month) */}
                       <div className="flex flex-col gap-1.5 text-xs">
                         <label className="font-semibold text-zinc-700 dark:text-zinc-300 flex items-center justify-between">
-                          <span>Période de Calcul</span>
+                          <span>Tracking Period</span>
                           {isEditingGlobalAlert && (
                             <span className="text-[10px] text-zinc-400 font-normal">
-                              Verrouillé sur Mensuel pour le workspace
+                              Locked to Monthly for workspace
                             </span>
                           )}
                         </label>
                         {isEditingGlobalAlert ? (
                           <div className="h-9 px-3 rounded-[8px] bg-zinc-100 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 text-xs font-semibold text-zinc-600 dark:text-zinc-300 flex items-center">
-                            Mensuel (Objectif du Workspace)
+                            Monthly (Workspace Target)
                           </div>
                         ) : (
                           <div className="grid grid-cols-3 gap-2">
                             {(
                               [
-                                { id: "day", label: "Jour" },
-                                { id: "week", label: "Semaine" },
-                                { id: "month", label: "Mois" },
+                                { id: "day", label: "Day" },
+                                { id: "week", label: "Week" },
+                                { id: "month", label: "Month" },
                               ] as const
                             ).map((p) => (
                               <button
@@ -4560,24 +4595,24 @@ console.log("Top Countries:", topAudience.topCountries);`,
                               <div className="pr-3">
                                 <div className="flex items-center gap-2 flex-wrap">
                                   <p className={`font-semibold ${isGlobalTarget ? "text-zinc-500 dark:text-zinc-400" : "text-zinc-900 dark:text-white"}`}>
-                                    Alerte à l&apos;expiration du lien
+                                    Link expiration alert
                                   </p>
                                   {isGlobalTarget && (
                                     <span className="px-1.5 py-0.5 rounded-[6px] text-[9px] font-semibold bg-zinc-200/80 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
-                                      Lien individuel requis
+                                      Individual link required
                                     </span>
                                   )}
                                 </div>
                                 <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">
                                   {isGlobalTarget
-                                    ? "Inaccessible pour une cible globale. Sélectionnez un lien court spécifique ci-dessus pour être alerté au moment précis de son expiration."
-                                    : "Recevez une notification instantanée au moment précis où le lien expire."}
+                                    ? "Unavailable for a global target. Select a specific short link above to be alerted at its exact expiration time."
+                                    : "Receive an instant notification the exact moment the link expires."}
                                 </p>
                               </div>
                               <input
                                 id="drawer_alert_notify_expired"
                                 type="checkbox"
-                                aria-label="Alerte à l'expiration du lien"
+                                aria-label="Link expiration alert"
                                 disabled={isGlobalTarget}
                                 checked={isGlobalTarget ? false : alertNotifyExpired}
                                 onChange={(e) => {
@@ -4596,10 +4631,10 @@ console.log("Top Countries:", topAudience.topCountries);`,
                         <label className="flex items-center justify-between p-2.5 rounded-[8px] bg-zinc-50 dark:bg-[#18181b] border border-zinc-200 dark:border-[#27272a] hover:border-zinc-300 cursor-pointer transition-colors">
                           <div>
                             <p className="font-semibold text-zinc-900 dark:text-white">
-                              Notification par Email
+                              Email Notification
                             </p>
                             <p className="text-[10px] text-zinc-500">
-                              Alerte transactionnelle envoyée sur l&apos;adresse email de votre compte
+                              Transactional alert sent to your account email address
                             </p>
                           </div>
                           <input
@@ -4613,10 +4648,10 @@ console.log("Top Countries:", topAudience.topCountries);`,
                         <label className="flex items-center justify-between p-2.5 rounded-[8px] bg-zinc-50 dark:bg-[#18181b] border border-zinc-200 dark:border-[#27272a] hover:border-zinc-300 cursor-pointer transition-colors">
                           <div>
                             <p className="font-semibold text-zinc-900 dark:text-white">
-                              Notification In-App (Cloche)
+                              In-App Notification (Bell)
                             </p>
                             <p className="text-[10px] text-zinc-500">
-                              Afficher un badge et une notification dans la barre supérieure
+                              Display a badge and notification in the top navigation bar
                             </p>
                           </div>
                           <input
@@ -4635,7 +4670,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                           onClick={() => setIsAlertModalOpen(false)}
                           className="px-4 h-8 rounded-[8px] text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer transition-colors"
                         >
-                          Annuler
+                          Cancel
                         </button>
                         <Button
                           type="submit"
@@ -4646,12 +4681,12 @@ console.log("Top Countries:", topAudience.topCountries);`,
                           {isSavingAlert ? (
                             <>
                               <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                              <span>Enregistrement...</span>
+                              <span>Saving...</span>
                             </>
                           ) : (
                             <>
                               <Check className="w-3.5 h-3.5" />
-                              <span>{editingAlert || isEditingGlobalAlert ? "Enregistrer" : "Créer l'alerte"}</span>
+                              <span>{editingAlert || isEditingGlobalAlert ? "Save Changes" : "Create Alert"}</span>
                             </>
                           )}
                         </Button>

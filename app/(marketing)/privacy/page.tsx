@@ -295,8 +295,8 @@ export default function PrivacyPolicyPage() {
                     <li>
                       <strong>Billing & Payment Information:</strong> Payment transactions and subscription
                       orders are processed directly through our Merchant of Record and payment provider,{" "}
-                      <strong>Paddle</strong> (Paddle.com Market Ltd), which complies with PCI-DSS Level 1 standards.
-                      Paddle securely manages checkout, recurring billing, fraud prevention, and international tax compliance.
+                      <strong>Dodo Payments</strong>, which complies with PCI-DSS Level 1 standards.
+                      Dodo Payments securely manages checkout, recurring billing, fraud prevention, and international tax compliance.
                       LShorter never stores or sees raw credit card numbers or CVV codes.
                     </li>
                     <li>
@@ -467,7 +467,7 @@ export default function PrivacyPolicyPage() {
                         Billing & Tax Records
                       </td>
                       <td className="p-3">Paid Subscriptions</td>
-                      <td className="p-3">7 Years (Managed by Merchant of Record Paddle for statutory audits)</td>
+                      <td className="p-3">7 Years (Managed by Merchant of Record Dodo Payments for statutory audits)</td>
                     </tr>
                   </tbody>
                 </table>
@@ -507,12 +507,12 @@ export default function PrivacyPolicyPage() {
 
                 <div className="legal-interactive-card p-4 rounded-[10px] bg-neutral-50 dark:bg-[#151518] border border-neutral-200 dark:border-neutral-800">
                   <h4 className="font-semibold text-neutral-900 dark:text-white text-sm mb-1">
-                    Paddle.com Market Ltd
+                    Dodo Payments
                   </h4>
                   <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-2">
                     Merchant of Record, checkout, global payment processing, fraud prevention, and international tax/VAT compliance.
                   </p>
-                  <span className="text-[11px] font-mono text-neutral-400">UK / Global (PCI-DSS Level 1 Merchant of Record)</span>
+                  <span className="text-[11px] font-mono text-neutral-400">Global (PCI-DSS Level 1 Merchant of Record)</span>
                 </div>
 
                 <div className="legal-interactive-card p-4 rounded-[10px] bg-neutral-50 dark:bg-[#151518] border border-neutral-200 dark:border-neutral-800">

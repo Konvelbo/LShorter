@@ -12,6 +12,8 @@ export interface CreateCheckoutSessionParams {
   companyName?: string;
   userId?: string;
   discountId?: string;
+  previousSubscriptionId?: string;
+  previousPlan?: string;
 }
 
 export interface BillingProvider {

@@ -30,7 +30,6 @@ import { showToast } from "@/components/ui/toast-provider";
 import { syncUserToCloudflare } from "@/app/actions/sync-user";
 import { PricingPageSkeleton } from "@/components/ui/skeleton";
 import { PRICING_PLANS, PRICING_COPY } from "@/src/config/pricing";
-import { openPaddleCheckout } from "@/lib/paddle/paddle-client";
 import confetti from "canvas-confetti";
 
 
@@ -44,23 +43,8 @@ export default function PricingPage() {
 
   const [isAnnual, setIsAnnual] = useState(false);
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
-  const [paddleBlocked, setPaddleBlocked] = useState(false);
   const cardsContainerRef = useRef<HTMLDivElement>(null);
   const updatePlanMutation = useMutation(api.users.updatePlan);
-
-  useEffect(() => {
-    // Preload Paddle.js on component mount to warm up checkout and detect blockers early
-    import("@/lib/paddle/paddle-client").then(({ getPaddleClient, getPaddleInitStatus }) => {
-      getPaddleClient().then((paddle) => {
-        if (!paddle) {
-          const status = getPaddleInitStatus();
-          if (status.isBlocked) {
-            setPaddleBlocked(true);
-          }
-        }
-      });
-    });
-  }, []);
 
   useEffect(() => {
     if (cardsContainerRef.current) {
@@ -81,23 +65,17 @@ export default function PricingPage() {
 
   const isVerifyingRef = useRef(false);
 
-  // Detect return from Paddle checkout or transaction redirect
+  // Detect return from checkout redirect
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
-      const ptxn = params.get("_ptxn") || params.get("ptxn");
       const isSuccess = params.get("checkout_success") === "true";
 
       if (isSuccess && !isVerifyingRef.current) {
         isVerifyingRef.current = true;
-        // Clean URL immediately to prevent re-execution on re-render
         window.history.replaceState({}, "", window.location.pathname);
-        // Forward user to Settings > Billing tab as requested
-        router.push(`/dashboard/settings?tab=billing&checkout_success=true${ptxn ? `&ptxn=${encodeURIComponent(ptxn)}` : ""}`);
+        router.push("/dashboard/settings?tab=billing&checkout_success=true");
         return;
-      } else if (ptxn && !isSuccess) {
-        // Redirect to our custom inline checkout page for this transaction
-        router.replace(`/checkout?ptxn=${encodeURIComponent(ptxn)}&from=/dashboard/pricing`);
       }
     }
   }, [router]);
@@ -204,8 +182,6 @@ export default function PricingPage() {
 
       confetti({ particleCount: 75, spread: 80, origin: { y: 0.6 } });
       showToast.success(`Plan successfully updated to ${planKey}!`);
-
-      // Note: Paddle natively handles customer confirmation emails and invoices
     } catch (err: any) {
       showToast.error("Error updating subscription plan.");
     } finally {
@@ -308,6 +284,93 @@ export default function PricingPage() {
     },
   ];
 
+  const comparisonTable = [
+    {
+      feature: "Monthly Click Volume",
+      free: "10,000",
+      pro: "150,000",
+      business: "500,000",
+      enterprise: "Unlimited",
+    },
+    {
+      feature: "Zero-Downtime Guarantee (Overage)",
+      free: "Hard limit at 10,000",
+      pro: "$3 / 50,000 extra clicks",
+      business: "$8 / 125,000 extra clicks",
+      enterprise: "Unlimited ($0 extra)",
+    },
+    {
+      feature: "Custom Branded Domains",
+      free: "3 domains",
+      pro: "6 domains",
+      business: "15 domains",
+      enterprise: "Unlimited",
+    },
+    {
+      feature: "Active Short Links",
+      free: "50 links",
+      pro: "1,000 links",
+      business: "Unlimited",
+      enterprise: "Unlimited",
+    },
+    {
+      feature: "Smart Routing & Targeting",
+      free: "Not included (Paid only)",
+      pro: "Advanced (Country + OS)",
+      business: "Custom (Multi-condition)",
+      enterprise: "Custom (Network + ISP + City)",
+    },
+    {
+      feature: "Protection, PIN Password & Destination Masking",
+      free: false,
+      pro: true,
+      business: true,
+      enterprise: true,
+    },
+    {
+      feature: "Webhooks & Retargeting Pixels",
+      free: false,
+      pro: "5 webhooks / 5 pixels",
+      business: "Unlimited",
+      enterprise: "Unlimited",
+    },
+    {
+      feature: "Target & Notification Alerts",
+      free: "Global Workspace Target only",
+      pro: "Individual Link Alerts (Clicks, Revenue & Expiration)",
+      business: "Unlimited Link Alerts & Instant Expiration",
+      enterprise: "Unlimited Link & Workspace Alerts (VIP)",
+    },
+    {
+      feature: "Analytics Retention",
+      free: "30 days",
+      pro: "365 days",
+      business: "Unlimited",
+      enterprise: "Unlimited + Raw export",
+    },
+    {
+      feature: "Developer API Rate Limit",
+      free: "60 req / min",
+      pro: "200 req / min",
+      business: "600 req / min",
+      enterprise: "1,400 req / min",
+    },
+    {
+      feature: "Team Seats Included",
+      free: "1 seat",
+      pro: "2 seats",
+      business: "5 seats",
+      enterprise: "15 seats",
+    },
+    {
+      feature: "Billing & Official PDF Invoices",
+      free: "Standard receipts",
+      pro: "Automated PDF invoices",
+      business: "Automated PDF invoices",
+      enterprise: "Automated PDF invoices",
+    },
+  ];
+
   return (
     <div className="flex flex-col gap-10 animate-in fade-in pb-16">
       {/* Header & Subtitle */}
@@ -370,17 +433,6 @@ export default function PricingPage() {
           </button>
         </div>
       </div>
-
-      {/* Ad-Blocker Alert Banner if cdn.paddle.com is blocked */}
-      {paddleBlocked && (
-        <div className="max-w-4xl mx-auto w-full p-4 rounded-[10px] border border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-200 text-sm flex items-start sm:items-center gap-3">
-          <Shield className="h-5 w-5 shrink-0 text-amber-500 dark:text-amber-400 mt-0.5 sm:mt-0" />
-          <div className="flex-1 text-xs sm:text-sm leading-relaxed">
-            <span className="font-semibold">Ad blocker or tracking protection detected: </span>
-            The Paddle checkout script (<code className="bg-black/10 dark:bg-black/40 px-1.5 py-0.5 rounded-[4px] text-[11px] font-mono">cdn.paddle.com</code>) is currently blocked by your browser. Please disable Brave Shields, uBlock Origin, or AdBlock for this site so the checkout window can open.
-          </div>
-        </div>
-      )}
 
       {/* Pricing Cards Grid (4 Columns) */}
       <div
@@ -488,9 +540,9 @@ export default function PricingPage() {
               <button
                 type="button"
                 onClick={() => handleSelectPlan(p.id)}
-                disabled={isCurrent || loadingPlan !== null}
+                disabled={isCurrent || loadingPlan !== null || (p.id === "FREE" && currentPlan !== "FREE")}
                 className={`mt-6 w-full py-2.5 rounded-[8px] font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:cursor-default ${
-                  isCurrent
+                  isCurrent || (p.id === "FREE" && currentPlan !== "FREE")
                     ? "bg-zinc-100 dark:bg-white/5 text-zinc-500 dark:text-neutral-400"
                     : p.popular
                       ? "bg-[#1D4ED8] hover:bg-[#1E40AF] text-white shadow-xs"
@@ -506,6 +558,8 @@ export default function PricingPage() {
                   </span>
                 ) : isCurrent ? (
                   <span>Current plan</span>
+                ) : p.id === "FREE" && currentPlan !== "FREE" ? (
+                  <span>Included in your plan</span>
                 ) : p.id === "FREE" ? (
                   <span>Get Started Free</span>
                 ) : (
@@ -544,6 +598,91 @@ export default function PricingPage() {
             </div>
           );
         })}
+      </div>
+
+      {/* Comprehensive Feature Comparison Matrix */}
+      <div className="mt-8 flex flex-col gap-4">
+        <div>
+          <h2 className="text-xl font-bold text-neutral-900 dark:text-white tracking-wide">
+            Feature Comparison Matrix
+          </h2>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
+            All detailed technical specifications, quotas, and capabilities side by side.
+          </p>
+        </div>
+
+        <div className="rounded-[10px] bg-white dark:bg-[#141416] border border-neutral-200 dark:border-[#27272a] overflow-hidden shadow-xs">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-neutral-200 dark:border-[#27272a] bg-neutral-50 dark:bg-[#1a1a1e]/80 text-neutral-600 dark:text-neutral-400 uppercase tracking-wider font-bold text-[10px]">
+                  <th className="p-4 sm:p-5">Feature</th>
+                  <th className="p-4 sm:p-5 text-neutral-700 dark:text-neutral-300">STARTER ($0)</th>
+                  <th className="p-4 sm:p-5 text-brand">PRO ($15/mo)</th>
+                  <th className="p-4 sm:p-5 text-neutral-900 dark:text-white">BUSINESS ($49/mo)</th>
+                  <th className="p-4 sm:p-5 text-neutral-900 dark:text-white">ENTERPRISE ($199/mo)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-neutral-200 dark:divide-[#222225] text-neutral-700 dark:text-neutral-200">
+                {comparisonTable.map((row, idx) => (
+                  <tr key={idx} className="hover:bg-neutral-50/50 dark:hover:bg-white/[0.02] transition-colors">
+                    <td className="p-4 sm:p-5 font-semibold text-neutral-900 dark:text-white">{row.feature}</td>
+                    <td className="p-4 sm:p-5">
+                      {typeof row.free === "boolean" ? (
+                        row.free ? (
+                          <Check className="w-4 h-4 text-emerald-500" />
+                        ) : (
+                          <span className="text-neutral-400">Not included</span>
+                        )
+                      ) : (
+                        <span className="font-mono text-neutral-600 dark:text-neutral-300">{row.free}</span>
+                      )}
+                    </td>
+                    <td className="p-4 sm:p-5">
+                      {typeof row.pro === "boolean" ? (
+                        row.pro ? (
+                          <span className="text-emerald-500 font-semibold flex items-center gap-1">
+                            <Check className="w-4 h-4" /> Included
+                          </span>
+                        ) : (
+                          <span className="text-neutral-400">Not included</span>
+                        )
+                      ) : (
+                        <span className="font-mono font-bold text-brand">{row.pro}</span>
+                      )}
+                    </td>
+                    <td className="p-4 sm:p-5">
+                      {typeof row.business === "boolean" ? (
+                        row.business ? (
+                          <span className="text-emerald-500 font-semibold flex items-center gap-1">
+                            <Check className="w-4 h-4" /> Included
+                          </span>
+                        ) : (
+                          <span className="text-neutral-400">Not included</span>
+                        )
+                      ) : (
+                        <span className="font-mono font-bold text-neutral-900 dark:text-white">{row.business}</span>
+                      )}
+                    </td>
+                    <td className="p-4 sm:p-5">
+                      {typeof row.enterprise === "boolean" ? (
+                        row.enterprise ? (
+                          <span className="text-emerald-500 font-semibold flex items-center gap-1">
+                            <Check className="w-4 h-4" /> Included
+                          </span>
+                        ) : (
+                          <span className="text-neutral-400">Not included</span>
+                        )
+                      ) : (
+                        <span className="font-mono font-bold text-neutral-900 dark:text-white">{row.enterprise}</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
   );

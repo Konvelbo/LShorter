@@ -355,10 +355,12 @@ export function LinkDrawer({
 
   // Active Tab state
   const [activeTab, setActiveTab] = useState<DrawerTabId>("link");
+  const openedAtRef = useRef<number>(0);
 
   // Hardware-accelerated CSS transition lifecycle (pure state, zero close delay timers)
   useEffect(() => {
     if (!isOpen) return;
+    openedAtRef.current = Date.now();
     setIsBodyWarm(true);
     setIsShadowActive(true);
     if (typeof window !== "undefined") {
@@ -1832,7 +1834,11 @@ export function LinkDrawer({
     >
       {/* Scrim backdrop overlay with pure GPU opacity fade (no full-viewport backdrop-blur shader) */}
       <div
-        onClick={onClose}
+        onClick={() => {
+          // Guard against synthesized mobile ghost-clicks firing during the 220ms slide-in animation
+          if (Date.now() - openedAtRef.current < 320) return;
+          onClose();
+        }}
         className={cn(
           "fixed inset-0 bg-black/45 dark:bg-black/70 z-[2000] cursor-pointer",
           "will-change-[opacity] transition-opacity duration-200 ease-out",
@@ -1908,7 +1914,7 @@ export function LinkDrawer({
                   if (tab.id === "routing" && !isProPlan) {
                     triggerPlanUpgrade({
                       featureName: "Dynamic Smart Routing",
-                      reason: "Le système de routage dynamique est strictement réservé aux forfaits payants (Pro, Business et Enterprise).",
+                      reason: "Dynamic Smart Routing is reserved for paid plans (Pro, Business, and Enterprise).",
                       targetPlan: "PRO",
                     });
                     setActiveTab("routing");

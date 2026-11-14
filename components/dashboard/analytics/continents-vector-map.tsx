@@ -60,15 +60,63 @@ export function ContinentsVectorMap({
     percentage: number;
   } | null>(null);
 
+  const [clickedCountryPopup, setClickedCountryPopup] = useState<{
+    code: string;
+    name: string;
+    flag: string;
+    continent: Continent;
+    clicks: number;
+    percentage: number;
+    x: number;
+    y: number;
+  } | null>(null);
+  const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  const fsMapContainerRef = useRef<HTMLDivElement | null>(null);
+
   const [isExpanded, setIsExpanded] = useState(false);
+
+  const openCountryPopupFromEvent = (
+    e: React.MouseEvent<SVGElement | HTMLElement>,
+    containerEl: HTMLDivElement | null,
+    countryInfo: {
+      code: string;
+      name: string;
+      flag: string;
+      continent: Continent;
+      clicks: number;
+      percentage: number;
+    },
+  ) => {
+    e.stopPropagation();
+    if (e.currentTarget instanceof SVGElement || e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.blur();
+    }
+    let x = 160;
+    let y = 140;
+    if (containerEl) {
+      const rect = containerEl.getBoundingClientRect();
+      x = Math.max(108, Math.min(rect.width - 108, e.clientX - rect.left));
+      y = Math.max(118, Math.min(rect.height - 14, e.clientY - rect.top));
+    }
+    setClickedCountryPopup((prev) =>
+      prev?.code === countryInfo.code
+        ? null
+        : {
+            ...countryInfo,
+            x,
+            y,
+          },
+    );
+  };
 
   const [position, setPosition] = useState<{ coordinates: [number, number]; zoom: number }>({
     coordinates: [10, 15],
     zoom: 1,
   });
 
-  // Close modal on Escape
+  // Close modal on Escape & reset popup on fullscreen transition
   useEffect(() => {
+    setClickedCountryPopup(null);
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape" && isExpanded) {
         setIsExpanded(false);
@@ -196,9 +244,11 @@ export function ContinentsVectorMap({
 
       {/* Interactive react-simple-maps Canvas Container */}
       <div
+        ref={mapContainerRef}
+        onClick={() => setClickedCountryPopup(null)}
         onDoubleClick={() => setIsExpanded(true)}
-        className="relative w-full aspect-[2.1/1] max-h-[460px] my-1 flex items-center justify-center bg-[#0d0d10] rounded-[10px] border border-[#1f1f23] overflow-hidden select-none cursor-pointer"
-        title="Double-click to expand fullscreen"
+        className="relative w-full h-[310px] sm:h-[360px] md:h-auto md:aspect-[2.1/1] max-h-[480px] my-1 flex items-center justify-center bg-[#0d0d10] rounded-[10px] border border-[#1f1f23] overflow-hidden select-none cursor-pointer"
+        title="Click a country to view traffic share, or double-click to expand fullscreen"
       >
         <ComposableMap
           projection="geoMercator"
@@ -219,8 +269,8 @@ export function ContinentsVectorMap({
                   const countryData: CountryGeoData = getCountryFromGeography(geo);
                   const continent = countryData.continent;
                   const continentMeta = CONTINENTS_META[continent];
-                  const continentClicks = continentsData[continent]?.clicks || 0;
                   const countryClicks = countryClicksMap.get(countryData.code.toUpperCase()) || 0;
+                  const countryPct = totalAllClicks > 0 ? Math.round((countryClicks / totalAllClicks) * 100) : 0;
 
                   const isContinentSelected = selectedContinent === "ALL" || selectedContinent === continent;
                   const isCountrySelected = !selectedCountry || selectedCountry === "ALL" || selectedCountry === countryData.code;
@@ -235,7 +285,7 @@ export function ContinentsVectorMap({
                     strokeColor = "#ffffff";
                   }
 
-                  if (isHovered) {
+                  if (isHovered || clickedCountryPopup?.code === countryData.code) {
                     fillColor = continentMeta.color;
                     strokeColor = "#ffffff";
                   }
@@ -244,6 +294,8 @@ export function ContinentsVectorMap({
                     <Geography
                       key={geo.rsmKey}
                       geography={geo}
+                      tabIndex={-1}
+                      className="outline-none focus:outline-none"
                       onMouseEnter={() => {
                         setHoveredCountry({
                           code: countryData.code,
@@ -251,11 +303,19 @@ export function ContinentsVectorMap({
                           flag: countryData.flag,
                           continent,
                           clicks: countryClicks,
-                          percentage: totalAllClicks > 0 ? Math.round((countryClicks / totalAllClicks) * 100) : 0,
+                          percentage: countryPct,
                         });
                       }}
                       onMouseLeave={() => setHoveredCountry(null)}
-                      onClick={() => {
+                      onClick={(e) => {
+                        openCountryPopupFromEvent(e, mapContainerRef.current, {
+                          code: countryData.code,
+                          name: countryData.name,
+                          flag: countryData.flag,
+                          continent,
+                          clicks: countryClicks,
+                          percentage: countryPct,
+                        });
                         if (onSelectCountry && countryClicks > 0) {
                           onSelectCountry(selectedCountry === countryData.code ? "ALL" : countryData.code);
                         } else {
@@ -282,7 +342,11 @@ export function ContinentsVectorMap({
                         },
                         pressed: {
                           fill: continentMeta.color,
+                          stroke: "#ffffff",
+                          strokeWidth: 1.4,
+                          opacity: 1,
                           outline: "none",
+                          cursor: "pointer",
                         },
                       }}
                     />
@@ -297,6 +361,7 @@ export function ContinentsVectorMap({
               if (!geoData || !geoData.lng || !geoData.lat) return null;
               const meta = CONTINENTS_META[geoData.continent];
               const isSelected = selectedCountry === c.code;
+              const countryPct = totalAllClicks > 0 ? Math.round((c.count / totalAllClicks) * 100) : 0;
 
               return (
                 <Marker
@@ -309,13 +374,25 @@ export function ContinentsVectorMap({
                       flag: geoData.flag,
                       continent: geoData.continent,
                       clicks: c.count,
-                      percentage: totalAllClicks > 0 ? Math.round((c.count / totalAllClicks) * 100) : 0,
+                      percentage: countryPct,
                     });
                   }}
                   onMouseLeave={() => setHoveredCountry(null)}
-                  onClick={() => onSelectCountry && onSelectCountry(isSelected ? "ALL" : c.code)}
+                  onClick={(e) => {
+                    openCountryPopupFromEvent(e, mapContainerRef.current, {
+                      code: c.code,
+                      name: geoData.name,
+                      flag: geoData.flag,
+                      continent: geoData.continent,
+                      clicks: c.count,
+                      percentage: countryPct,
+                    });
+                    if (onSelectCountry) {
+                      onSelectCountry(isSelected ? "ALL" : c.code);
+                    }
+                  }}
                 >
-                  <g className="cursor-pointer">
+                  <g className="cursor-pointer outline-none focus:outline-none">
                     {/* Pulsing ring */}
                     <circle r="12" fill={meta.color} opacity="0.3" className="animate-ping pointer-events-none" />
                     <circle r="6" fill={meta.color} opacity="0.6" className="pointer-events-none" />
@@ -331,6 +408,61 @@ export function ContinentsVectorMap({
             })}
           </ZoomableGroup>
         </ComposableMap>
+
+        {clickedCountryPopup && (
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              left: `${clickedCountryPopup.x}px`,
+              top: `${clickedCountryPopup.y}px`,
+              transform: "translate(-50%, -100%)",
+            }}
+            className="absolute z-40 min-w-[195px] max-w-[230px] rounded-[10px] bg-[#141416]/98 backdrop-blur-md border border-[#27272a] shadow-2xl p-3 animate-in fade-in zoom-in-95 duration-150"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-base leading-none shrink-0">{clickedCountryPopup.flag}</span>
+                <span className="font-bold text-white text-xs truncate">
+                  {clickedCountryPopup.name}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setClickedCountryPopup(null);
+                }}
+                className="p-0.5 rounded-[6px] text-neutral-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer shrink-0"
+                aria-label="Close country popup"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <div className="mt-2 pt-2 border-t border-[#222225] flex items-center justify-between gap-2">
+              <span className="text-[11px] font-medium text-neutral-400">
+                Traffic share
+              </span>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[6px] bg-[#0066FF]/15 text-[#5294FF] font-mono text-xs font-extrabold">
+                {clickedCountryPopup.percentage}%
+              </span>
+            </div>
+
+            <div className="w-full h-1.5 rounded-full bg-white/10 mt-1.5 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-[#0066FF] transition-all duration-300"
+                style={{ width: `${Math.min(100, clickedCountryPopup.percentage)}%` }}
+              />
+            </div>
+
+            <div className="mt-1.5 flex items-center justify-between text-[10px] text-neutral-400">
+              <span>{CONTINENTS_META[clickedCountryPopup.continent]?.name || clickedCountryPopup.continent}</span>
+              <span className="font-mono font-semibold text-neutral-200">
+                {clickedCountryPopup.clicks} {clickedCountryPopup.clicks === 1 ? "click" : "clicks"}
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* 📍 BOTTOM-LEFT COMPACT HOVER BADGE (Appears ONLY on active country hover) */}
         {hoveredCountry && (
@@ -496,7 +628,11 @@ export function ContinentsVectorMap({
 
         {/* Modal Center Large Map */}
         <div
-          onClick={(e) => e.stopPropagation()}
+          ref={fsMapContainerRef}
+          onClick={(e) => {
+            e.stopPropagation();
+            setClickedCountryPopup(null);
+          }}
           onDoubleClick={() => setIsExpanded(false)}
           className="relative w-full max-w-6xl flex-1 my-3 flex items-center justify-center bg-[#0a0a0d] rounded-[10px] border border-[#1f1f24] overflow-hidden select-none cursor-grab active:cursor-grabbing shadow-2xl min-h-[320px]"
         >
@@ -519,8 +655,8 @@ export function ContinentsVectorMap({
                     const countryData: CountryGeoData = getCountryFromGeography(geo);
                     const continent = countryData.continent;
                     const continentMeta = CONTINENTS_META[continent];
-                    const continentClicks = continentsData[continent]?.clicks || 0;
                     const countryClicks = countryClicksMap.get(countryData.code.toUpperCase()) || 0;
+                    const countryPct = totalAllClicks > 0 ? Math.round((countryClicks / totalAllClicks) * 100) : 0;
 
                     const isContinentSelected = selectedContinent === "ALL" || selectedContinent === continent;
                     const isCountrySelected = !selectedCountry || selectedCountry === "ALL" || selectedCountry === countryData.code;
@@ -534,7 +670,7 @@ export function ContinentsVectorMap({
                       strokeColor = "#ffffff";
                     }
 
-                    if (isHovered) {
+                    if (isHovered || clickedCountryPopup?.code === countryData.code) {
                       fillColor = continentMeta.color;
                       strokeColor = "#ffffff";
                     }
@@ -543,22 +679,32 @@ export function ContinentsVectorMap({
                       <Geography
                         key={geo.rsmKey}
                         geography={geo}
+                        tabIndex={-1}
+                        className="outline-none focus:outline-none"
                         onMouseEnter={() => {
-                          const count = countryClicksMap.get(countryData.code.toUpperCase()) || 0;
-                          const pct = totalAllClicks > 0 ? Math.round((count / totalAllClicks) * 100) : 0;
                           setHoveredCountry({
                             code: countryData.code,
                             name: countryData.name,
                             flag: countryData.flag,
                             continent,
-                            clicks: count,
-                            percentage: pct,
+                            clicks: countryClicks,
+                            percentage: countryPct,
                           });
                         }}
                         onMouseLeave={() => setHoveredCountry(null)}
-                        onClick={() => {
-                          if (onSelectCountry) {
+                        onClick={(e) => {
+                          openCountryPopupFromEvent(e, fsMapContainerRef.current, {
+                            code: countryData.code,
+                            name: countryData.name,
+                            flag: countryData.flag,
+                            continent,
+                            clicks: countryClicks,
+                            percentage: countryPct,
+                          });
+                          if (onSelectCountry && countryClicks > 0) {
                             onSelectCountry(selectedCountry === countryData.code ? "ALL" : countryData.code);
+                          } else {
+                            onSelectContinent(selectedContinent === continent ? "ALL" : continent);
                           }
                         }}
                         style={{
@@ -582,7 +728,9 @@ export function ContinentsVectorMap({
                             fill: continentMeta.color,
                             stroke: "#ffffff",
                             strokeWidth: 1.2,
+                            opacity: 1,
                             outline: "none",
+                            cursor: "pointer",
                           },
                         }}
                       />
@@ -597,6 +745,7 @@ export function ContinentsVectorMap({
                 if (!geoData || !geoData.lng || !geoData.lat) return null;
                 const meta = CONTINENTS_META[geoData.continent];
                 const isSelected = selectedCountry === c.code;
+                const countryPct = totalAllClicks > 0 ? Math.round((c.count / totalAllClicks) * 100) : 0;
 
                 return (
                   <Marker
@@ -609,13 +758,25 @@ export function ContinentsVectorMap({
                         flag: geoData.flag,
                         continent: geoData.continent,
                         clicks: c.count,
-                        percentage: totalAllClicks > 0 ? Math.round((c.count / totalAllClicks) * 100) : 0,
+                        percentage: countryPct,
                       });
                     }}
                     onMouseLeave={() => setHoveredCountry(null)}
-                    onClick={() => onSelectCountry && onSelectCountry(isSelected ? "ALL" : c.code)}
+                    onClick={(e) => {
+                      openCountryPopupFromEvent(e, fsMapContainerRef.current, {
+                        code: c.code,
+                        name: geoData.name,
+                        flag: geoData.flag,
+                        continent: geoData.continent,
+                        clicks: c.count,
+                        percentage: countryPct,
+                      });
+                      if (onSelectCountry) {
+                        onSelectCountry(isSelected ? "ALL" : c.code);
+                      }
+                    }}
                   >
-                    <g className="cursor-pointer">
+                    <g className="cursor-pointer outline-none focus:outline-none">
                       {/* Pulsing ring */}
                       <circle r="14" fill={meta.color} opacity="0.3" className="animate-ping pointer-events-none" />
                       <circle r="7" fill={meta.color} opacity="0.6" className="pointer-events-none" />
@@ -631,6 +792,61 @@ export function ContinentsVectorMap({
               })}
             </ZoomableGroup>
           </ComposableMap>
+
+          {clickedCountryPopup && (
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                left: `${clickedCountryPopup.x}px`,
+                top: `${clickedCountryPopup.y}px`,
+                transform: "translate(-50%, -100%)",
+              }}
+              className="absolute z-40 min-w-[205px] max-w-[240px] rounded-[10px] bg-[#141416]/98 backdrop-blur-md border border-[#27272a] shadow-2xl p-3 animate-in fade-in zoom-in-95 duration-150"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-base leading-none shrink-0">{clickedCountryPopup.flag}</span>
+                  <span className="font-bold text-white text-xs truncate">
+                    {clickedCountryPopup.name}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setClickedCountryPopup(null);
+                  }}
+                  className="p-0.5 rounded-[6px] text-neutral-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer shrink-0"
+                  aria-label="Close country popup"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              <div className="mt-2 pt-2 border-t border-[#222225] flex items-center justify-between gap-2">
+                <span className="text-[11px] font-medium text-neutral-400">
+                  Traffic share
+                </span>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[6px] bg-[#0066FF]/15 text-[#5294FF] font-mono text-xs font-extrabold">
+                  {clickedCountryPopup.percentage}%
+                </span>
+              </div>
+
+              <div className="w-full h-1.5 rounded-full bg-white/10 mt-1.5 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-[#0066FF] transition-all duration-300"
+                  style={{ width: `${Math.min(100, clickedCountryPopup.percentage)}%` }}
+                />
+              </div>
+
+              <div className="mt-1.5 flex items-center justify-between text-[10px] text-neutral-400">
+                <span>{CONTINENTS_META[clickedCountryPopup.continent]?.name || clickedCountryPopup.continent}</span>
+                <span className="font-mono font-semibold text-neutral-200">
+                  {clickedCountryPopup.clicks} {clickedCountryPopup.clicks === 1 ? "click" : "clicks"}
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* Floating Tooltip in Fullscreen */}
           {hoveredCountry && (

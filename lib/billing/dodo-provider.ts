@@ -55,6 +55,12 @@ export class DodoBillingProvider implements BillingProvider {
           planId: params.planId,
           cycle: params.cycle,
           customerEmail: params.customerEmail || "",
+          ...(params.previousSubscriptionId
+            ? { previousSubscriptionId: params.previousSubscriptionId }
+            : {}),
+          ...(params.previousPlan
+            ? { previousPlan: params.previousPlan }
+            : {}),
         },
       };
 
@@ -65,7 +71,7 @@ export class DodoBillingProvider implements BillingProvider {
         };
       }
 
-      // Apply promotional discounts (ignoring legacy Paddle discount IDs)
+      // Apply promotional discounts
       if (params.discountId && !params.discountId.startsWith("dsc_01m")) {
         payload.discount_code = params.discountId;
       } else if (params.cycle === "MONTHLY") {

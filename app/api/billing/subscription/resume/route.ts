@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { getPaddleInstance } from "@/lib/paddle/paddle-server";
 import { dodoBillingProvider } from "@/lib/billing/dodo-provider";
 import { convexHttp as convex } from "@/lib/convex-server";
 import { api } from "@/convex/_generated/api";
@@ -22,7 +21,6 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = session.user.id || "";
-    const email = session.user.email || "";
 
     // 1. Fetch current subscription in Convex
     let convexSub: any = null;
@@ -36,60 +34,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    let subId = convexSub?.providerSubscriptionId || null;
-    let plan = convexSub?.plan || ((session.user as any)?.plan || "PRO").toUpperCase();
-    const isDodoProvider = convexSub?.provider === "dodo";
+    const subId = convexSub?.providerSubscriptionId || null;
+    const plan = convexSub?.plan || ((session.user as any)?.plan || "PRO").toUpperCase();
 
-    const paddle = isDodoProvider ? null : getPaddleInstance();
-
-    // 2. If subId not recorded in Convex and using Paddle, search customer by exact email
-    if (!isDodoProvider && !subId && paddle && email) {
-      try {
-        const cleanEmail = email.toLowerCase().trim();
-        for await (const customer of paddle.customers.list({ email: [cleanEmail] })) {
-          if (!customer.id || customer.email?.toLowerCase().trim() !== cleanEmail) continue;
-          for await (const s of paddle.subscriptions.list({
-            customerId: [customer.id],
-            perPage: 5,
-          })) {
-            if (s.status === "active" || s.status === "trialing") {
-              subId = s.id;
-              break;
-            }
-          }
-          if (subId) break;
-        }
-      } catch (paddleErr) {
-        console.warn("[Resume Subscription] Paddle customer lookup error:", paddleErr);
-      }
-    }
-
-    // 3. Resume on Dodo Payments or Paddle
-    if (isDodoProvider && subId) {
+    // 2. Resume on Dodo Payments
+    if (subId) {
       const resumed = await dodoBillingProvider.resumeSubscription(subId);
       if (!resumed) {
         console.warn(`[Resume Subscription] Dodo SDK did not confirm resumption for ${subId}; updating Convex state.`);
-      }
-    } else if (paddle && subId && subId.startsWith("sub_")) {
-      try {
-        console.info(`[Resume Subscription] Resuming subscription ${subId} on Paddle...`);
-        await paddle.subscriptions.update(subId, {
-          scheduledChange: null,
-        });
-      } catch (paddleErr: any) {
-        console.error("[Resume Subscription] Paddle SDK resume error:", paddleErr?.message);
-        if (
-          !paddleErr?.message?.includes("not found") &&
-          !paddleErr?.message?.includes("scheduled_change")
-        ) {
-          return NextResponse.json(
-            {
-              success: false,
-              error: `Erreur Paddle lors de la réactivation: ${paddleErr?.message || "Échec de l'opération"}`,
-            },
-            { status: 500 }
-          );
-        }
       }
     }
 

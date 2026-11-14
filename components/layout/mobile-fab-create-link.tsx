@@ -5,6 +5,7 @@ import { Link2 } from "lucide-react";
 
 const BUTTON_SIZE = 50; // 50px button requested by user
 const EDGE_SPACING = 16; // 16px lateral padding
+const DRAG_THRESHOLD_PX = 12; // 12px slop to prevent mobile thumb tap-roll from cancelling taps
 
 export function MobileFabCreateLink() {
   const [mounted, setMounted] = useState(false);
@@ -13,6 +14,8 @@ export function MobileFabCreateLink() {
 
   // Position offset relative to initial bottom-right (bottom: 24px, right: 16px)
   const offsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const suppressNextClickRef = useRef(false);
+  const lastOpenTsRef = useRef(0);
 
   const dragRef = useRef<{
     startX: number;
@@ -24,8 +27,12 @@ export function MobileFabCreateLink() {
 
   useEffect(() => {
     setMounted(true);
+  }, []);
 
-    // Restore saved lateral dock side & vertical offset if exists
+  useEffect(() => {
+    if (!mounted) return;
+
+    // Restore saved lateral dock side & vertical offset once buttonRef is mounted
     try {
       const saved = localStorage.getItem("lshorter_mobile_fab_dock");
       if (saved) {
@@ -54,7 +61,20 @@ export function MobileFabCreateLink() {
 
     window.addEventListener("resize", handleResize, { passive: true });
     return () => window.removeEventListener("resize", handleResize);
-  }, []);
+  }, [mounted]);
+
+  const triggerOpenDrawer = () => {
+    const now = Date.now();
+    if (now - lastOpenTsRef.current < 350) return;
+    lastOpenTsRef.current = now;
+
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("lshorter:open-create-drawer"));
+    }
+    try {
+      navigator.vibrate?.(15);
+    } catch {}
+  };
 
   const startDrag = (clientX: number, clientY: number) => {
     const btn = buttonRef.current;
@@ -78,8 +98,9 @@ export function MobileFabCreateLink() {
     const dx = clientX - drag.startX;
     const dy = clientY - drag.startY;
 
-    if (!drag.hasMoved && Math.hypot(dx, dy) > 5) {
+    if (!drag.hasMoved && Math.hypot(dx, dy) > DRAG_THRESHOLD_PX) {
       drag.hasMoved = true;
+      suppressNextClickRef.current = true;
       setIsDragging(true);
     }
 
@@ -99,7 +120,7 @@ export function MobileFabCreateLink() {
     }
   };
 
-  const endDrag = () => {
+  const endDrag = (openOnTap = true) => {
     const drag = dragRef.current;
     const btn = buttonRef.current;
     if (!drag || !btn) return;
@@ -107,14 +128,10 @@ export function MobileFabCreateLink() {
     dragRef.current = null;
 
     if (!drag.hasMoved) {
-      // Tap/click detected -> open creation modal
       setIsDragging(false);
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(new CustomEvent("lshorter:open-create-drawer"));
+      if (openOnTap) {
+        triggerOpenDrawer();
       }
-      try {
-        navigator.vibrate?.(15);
-      } catch {}
       return;
     }
 
@@ -141,9 +158,10 @@ export function MobileFabCreateLink() {
     } catch {}
   };
 
-  // Pointer Events (Mouse / Pen / Modern Touch)
+  // Pointer Events (Mouse / Pen / Touch)
   const onPointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
-    if (e.button !== 0) return;
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    suppressNextClickRef.current = false;
     try {
       e.currentTarget.setPointerCapture(e.pointerId);
     } catch {}
@@ -161,24 +179,26 @@ export function MobileFabCreateLink() {
         e.currentTarget.releasePointerCapture(e.pointerId);
       }
     } catch {}
-    endDrag();
+    endDrag(true);
   };
 
-  // Touch Events (iOS Safari & touch fallback)
-  const onTouchStart = (e: React.TouchEvent<HTMLButtonElement>) => {
-    if (e.touches.length === 1) {
-      startDrag(e.touches[0].clientX, e.touches[0].clientY);
+  const onPointerCancel = (e: React.PointerEvent<HTMLButtonElement>) => {
+    try {
+      if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      }
+    } catch {}
+    endDrag(false);
+  };
+
+  const onClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    if (suppressNextClickRef.current) {
+      suppressNextClickRef.current = false;
+      e.preventDefault();
+      return;
     }
-  };
-
-  const onTouchMove = (e: React.TouchEvent<HTMLButtonElement>) => {
-    if (e.touches.length === 1 && dragRef.current) {
-      moveDrag(e.touches[0].clientX, e.touches[0].clientY);
-    }
-  };
-
-  const onTouchEnd = () => {
-    endDrag();
+    triggerOpenDrawer();
   };
 
   if (!mounted) return null;
@@ -189,25 +209,22 @@ export function MobileFabCreateLink() {
       data-testid="mobile-fab-create-link"
       ref={buttonRef}
       type="button"
+      onClick={onClick}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
-      onPointerCancel={endDrag}
-      onTouchStart={onTouchStart}
-      onTouchMove={onTouchMove}
-      onTouchEnd={onTouchEnd}
-      onTouchCancel={endDrag}
+      onPointerCancel={onPointerCancel}
       style={{
         touchAction: "none",
         willChange: "transform",
       }}
-      className={`sm:hidden fixed bottom-6 right-4 z-40 w-[50px] h-[50px] min-w-[50px] min-h-[50px] max-w-[50px] max-h-[50px] rounded-full aspect-square flex items-center justify-center bg-[#0066FF] hover:bg-[#0052cc] text-white cursor-grab active:cursor-grabbing select-none shadow-md active:scale-95 transition-all shrink-0 ${
+      className={`sm:hidden fixed bottom-6 right-4 z-[60] w-[50px] h-[50px] min-w-[50px] min-h-[50px] max-w-[50px] max-h-[50px] rounded-full aspect-square flex items-center justify-center bg-[#0066FF] hover:bg-[#0052cc] text-white cursor-grab active:cursor-grabbing select-none shadow-md active:scale-95 transition-all shrink-0 ${
         isDragging ? "shadow-lg scale-105" : ""
       }`}
       title="Create Link"
       aria-label="Floating create link button"
     >
-      <Link2 className="w-[22px] h-[22px] text-white stroke-[2.4] shrink-0" />
+      <Link2 className="w-[22px] h-[22px] text-white stroke-[2.4] shrink-0 pointer-events-none" />
     </button>
   );
 }

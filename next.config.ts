@@ -83,12 +83,12 @@ const nextConfig: NextConfig = {
   async headers() {
     const cspDirectives = [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.paddle.com https://challenges.cloudflare.com https://www.googletagmanager.com",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com https://www.googletagmanager.com",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "img-src 'self' data: blob: https: https://www.googletagmanager.com https://*.google-analytics.com",
       "font-src 'self' data: https://fonts.gstatic.com",
-      "connect-src 'self' https://*.convex.cloud https://*.paddle.com https://challenges.cloudflare.com https://*.cloudflare.com https://api.dicebear.com wss://*.convex.cloud https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://cdn.jsdelivr.net https://ipapi.co https://ip-api.com",
-      "frame-src * 'self' https: http: data: blob: https://buy.paddle.com https://sandbox-buy.paddle.com https://challenges.cloudflare.com",
+      "connect-src 'self' https://*.convex.cloud https://*.dodopayments.com https://challenges.cloudflare.com https://*.cloudflare.com https://api.dicebear.com wss://*.convex.cloud https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://cdn.jsdelivr.net https://ipapi.co https://ip-api.com",
+      "frame-src * 'self' https: http: data: blob: https://*.dodopayments.com https://challenges.cloudflare.com",
       "frame-ancestors 'self'",
       "object-src 'none'",
       "base-uri 'self'",

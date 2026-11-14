@@ -2,6 +2,44 @@ import { NextRequest, NextResponse } from "next/server";
 import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
 import { auth } from "@/auth";
 import { executeD1Query } from "@/lib/d1-client";
+import { convexHttp } from "@/lib/convex-server";
+import { api } from "@/convex/_generated/api";
+
+async function resolveSessionCanonicalUserIds(opts: {
+  sessionUserId: string;
+  sessionEmail: string;
+  clientUserId: string;
+  isInternal: boolean;
+  isDevPreview: boolean;
+}): Promise<{ effectiveId: string; userIds: string[] }> {
+  const { sessionUserId, sessionEmail, clientUserId, isInternal, isDevPreview } = opts;
+
+  if (isInternal || isDevPreview) {
+    const effectiveId = clientUserId || sessionUserId || sessionEmail;
+    const userIds = Array.from(
+      new Set([clientUserId, sessionUserId, sessionEmail, effectiveId])
+    ).filter(Boolean);
+    return { effectiveId, userIds };
+  }
+
+  let convexUserId = "";
+  if (sessionEmail && (!sessionUserId || !sessionUserId.startsWith("usr_") || (clientUserId && clientUserId !== sessionUserId))) {
+    try {
+      const convexUser = await convexHttp.query(api.users.getUserByEmail, {
+        email: sessionEmail.toLowerCase().trim(),
+      });
+      if (convexUser?.userId) {
+        convexUserId = String(convexUser.userId);
+      }
+    } catch {}
+  }
+
+  const effectiveId = convexUserId || sessionUserId || sessionEmail;
+  const userIds = Array.from(
+    new Set([convexUserId, sessionUserId, sessionEmail, effectiveId])
+  ).filter(Boolean);
+  return { effectiveId, userIds };
+}
 
 export async function PATCH(
   req: NextRequest,
@@ -28,7 +66,13 @@ export async function PATCH(
       );
     }
 
-    const effectiveId = isInternal || isDevPreview ? (queryUserId || sessionUserId || sessionEmail) : (sessionUserId || sessionEmail);
+    const { effectiveId, userIds } = await resolveSessionCanonicalUserIds({
+      sessionUserId,
+      sessionEmail,
+      clientUserId: queryUserId,
+      isInternal,
+      isDevPreview,
+    });
     const { id } = await params;
 
     // 1. Direct Cloudflare D1 Update (Primary)
@@ -76,9 +120,6 @@ export async function PATCH(
       updates.push("updated_at = datetime('now')");
 
       if (!isInternal) {
-        const userIds = isDevPreview
-          ? Array.from(new Set([queryUserId, sessionUserId, sessionEmail, effectiveId])).filter(Boolean)
-          : Array.from(new Set([sessionUserId, sessionEmail])).filter(Boolean);
         if (userIds.length === 0) {
           return NextResponse.json({ success: false, error: "Authentication required." }, { status: 401 });
         }
@@ -161,15 +202,18 @@ export async function DELETE(
       );
     }
 
-    const effectiveId = isInternal || isDevPreview ? (queryUserId || sessionUserId || sessionEmail) : (sessionUserId || sessionEmail);
+    const { effectiveId, userIds } = await resolveSessionCanonicalUserIds({
+      sessionUserId,
+      sessionEmail,
+      clientUserId: queryUserId,
+      isInternal,
+      isDevPreview,
+    });
     const { id } = await params;
 
     // 1. Direct Cloudflare D1 Delete (Primary)
     try {
       if (!isInternal) {
-        const userIds = isDevPreview
-          ? Array.from(new Set([queryUserId, sessionUserId, sessionEmail, effectiveId])).filter(Boolean)
-          : Array.from(new Set([sessionUserId, sessionEmail])).filter(Boolean);
         if (userIds.length === 0) {
           return NextResponse.json({ success: false, error: "Authentication required." }, { status: 401 });
         }

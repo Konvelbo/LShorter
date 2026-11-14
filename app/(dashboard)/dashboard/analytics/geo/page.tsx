@@ -348,7 +348,51 @@ export default function GeoAnalyticsPage() {
     clicks: number;
     percentage: number;
   } | null>(null);
+  const [clickedCountryPopup, setClickedCountryPopup] = useState<{
+    code: string;
+    name: string;
+    continent: Continent;
+    clicks: number;
+    percentage: number;
+    x: number;
+    y: number;
+  } | null>(null);
+  const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  const fsMapContainerRef = useRef<HTMLDivElement | null>(null);
   const [isMapExpanded, setIsMapExpanded] = useState(false);
+
+  const openCountryPopupFromEvent = (
+    e: React.MouseEvent<SVGElement | HTMLElement>,
+    containerEl: HTMLDivElement | null,
+    countryInfo: {
+      code: string;
+      name: string;
+      continent: Continent;
+      clicks: number;
+      percentage: number;
+    },
+  ) => {
+    e.stopPropagation();
+    if (e.currentTarget instanceof SVGElement || e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.blur();
+    }
+    let x = 160;
+    let y = 140;
+    if (containerEl) {
+      const rect = containerEl.getBoundingClientRect();
+      x = Math.max(108, Math.min(rect.width - 108, e.clientX - rect.left));
+      y = Math.max(118, Math.min(rect.height - 14, e.clientY - rect.top));
+    }
+    setClickedCountryPopup((prev) =>
+      prev?.code === countryInfo.code
+        ? null
+        : {
+            ...countryInfo,
+            x,
+            y,
+          },
+    );
+  };
   const [mapPosition, setMapPosition] = useState<{
     coordinates: [number, number];
     zoom: number;
@@ -359,6 +403,7 @@ export default function GeoAnalyticsPage() {
 
   // Handle ESC key to exit fullscreen mode & lock body scrolling
   useEffect(() => {
+    setClickedCountryPopup(null);
     if (!isMapExpanded) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -1374,15 +1419,17 @@ export default function GeoAnalyticsPage() {
         </div>
 
         <div
+          ref={mapContainerRef}
+          onClick={() => setClickedCountryPopup(null)}
           onDoubleClick={() => setIsMapExpanded(true)}
-          className="relative w-full aspect-[2.1/1] max-h-[460px] my-1 flex items-center justify-center bg-[#F8FAFC] dark:bg-[#09090b] rounded-[10px] border border-slate-200/90 dark:border-[#222225] overflow-hidden select-none cursor-pointer transition-colors duration-200"
-          title="Double-click to expand fullscreen"
+          className="relative w-full h-[310px] sm:h-[360px] md:h-auto md:aspect-[2.1/1] max-h-[480px] my-1 flex items-center justify-center bg-[#F8FAFC] dark:bg-[#09090b] rounded-[10px] border border-slate-200/90 dark:border-[#222225] overflow-hidden select-none cursor-pointer transition-colors duration-200"
+          title="Click a country to view traffic share, or double-click to expand fullscreen"
         >
           <ComposableMap
             width={800}
-            height={400}
+            height={420}
             projection="geoMercator"
-            projectionConfig={{ scale: 122, center: [10, 20] }}
+            projectionConfig={{ scale: 126, center: [10, 20] }}
             className="w-full h-full"
           >
             <ZoomableGroup
@@ -1398,14 +1445,18 @@ export default function GeoAnalyticsPage() {
                     const hasClicks = countryClicks > 0;
                     const countryPct = analytics.totalClicks > 0 ? Math.round((countryClicks / analytics.totalClicks) * 100) : 0;
                     const isContinentMatch = selectedContinent === "ALL" || resolved.continent === selectedContinent;
+                    const isSelectedPopup = clickedCountryPopup?.code === resolved.code;
 
                     let fillColor = isDarkMode ? "#18181c" : "#E2E8F0";
                     let strokeColor = isDarkMode ? "#27272a" : "#CBD5E1";
 
                     if (isContinentMatch) {
                       if (hasClicks) {
-                        fillColor = "#0066FF";
+                        fillColor = isSelectedPopup ? "#0055d4" : "#0066FF";
                         strokeColor = "#ffffff";
+                      } else if (isSelectedPopup) {
+                        fillColor = isDarkMode ? "#2c3e5a" : "#93C5FD";
+                        strokeColor = "#0066FF";
                       } else {
                         fillColor = isDarkMode ? "#1f1f24" : "#E2E8F0";
                         strokeColor = isDarkMode ? "#2e2e34" : "#CBD5E1";
@@ -1415,10 +1466,20 @@ export default function GeoAnalyticsPage() {
                       strokeColor = isDarkMode ? "#18181a" : "#E2E8F0";
                     }
 
+                    const activeFill = isContinentMatch
+                      ? hasClicks
+                        ? "#0055d4"
+                        : isDarkMode
+                          ? "#262630"
+                          : "#CBD5E1"
+                      : fillColor;
+
                     return (
                       <Geography
                         key={geo.rsmKey}
                         geography={geo}
+                        tabIndex={-1}
+                        className="outline-none focus:outline-none"
                         onMouseEnter={() => {
                           if (!isContinentMatch) return;
                           setHoveredCountry({
@@ -1430,24 +1491,40 @@ export default function GeoAnalyticsPage() {
                           });
                         }}
                         onMouseLeave={() => setHoveredCountry(null)}
+                        onClick={(e) => {
+                          if (!isContinentMatch) return;
+                          openCountryPopupFromEvent(e, mapContainerRef.current, {
+                            code: resolved.code,
+                            name: resolved.name,
+                            continent: resolved.continent,
+                            clicks: countryClicks,
+                            percentage: countryPct,
+                          });
+                        }}
                         style={{
                           default: {
                             fill: fillColor,
                             stroke: strokeColor,
-                            strokeWidth: isContinentMatch ? (hasClicks ? 1.2 : 0.4) : 0.2,
+                            strokeWidth: isContinentMatch
+                              ? hasClicks || isSelectedPopup
+                                ? 1.2
+                                : 0.4
+                              : 0.2,
                             opacity: isContinentMatch ? 1 : 0.22,
                             outline: "none",
                             transition: "all 200ms ease",
                             cursor: isContinentMatch ? "pointer" : "default",
                           },
                           hover: {
-                            fill: isContinentMatch
-                              ? (hasClicks
-                                ? "#0055d4"
-                                : isDarkMode
-                                  ? "#222228"
-                                  : "#CBD5E1")
-                              : fillColor,
+                            fill: activeFill,
+                            stroke: isContinentMatch ? "#ffffff" : strokeColor,
+                            strokeWidth: isContinentMatch ? 1.2 : 0.2,
+                            opacity: isContinentMatch ? 1 : 0.22,
+                            outline: "none",
+                            cursor: isContinentMatch ? "pointer" : "default",
+                          },
+                          pressed: {
+                            fill: activeFill,
                             stroke: isContinentMatch ? "#ffffff" : strokeColor,
                             strokeWidth: isContinentMatch ? 1.2 : 0.2,
                             opacity: isContinentMatch ? 1 : 0.22,
@@ -1470,11 +1547,28 @@ export default function GeoAnalyticsPage() {
                     return cont === selectedContinent;
                   })
                   .map((c) => {
-                    const geo = WORLD_COUNTRIES[c.code] || COUNTRY_CENTROIDS[c.code];
+                    const code = (c.code || "").toUpperCase();
+                    const geo = WORLD_COUNTRIES[code] || COUNTRY_CENTROIDS[code];
                     if (!geo || typeof geo.lat !== "number" || typeof geo.lng !== "number") return null;
+                    const countryName = WORLD_COUNTRIES[code]?.name || c.name || code;
+                    const continent = WORLD_COUNTRIES[code]?.continent || ISO2_TO_CONTINENT[code] || getContinentForCountry(code);
+                    const countryClicks = c.count || countryClicksMap.get(code) || 0;
+                    const countryPct = analytics.totalClicks > 0 ? Math.round((countryClicks / analytics.totalClicks) * 100) : 0;
                     return (
-                      <Marker key={`marker-${c.code}`} coordinates={[geo.lng, geo.lat]}>
-                        <g className="cursor-pointer">
+                      <Marker
+                        key={`marker-${code}`}
+                        coordinates={[geo.lng, geo.lat]}
+                        onClick={(e) => {
+                          openCountryPopupFromEvent(e, mapContainerRef.current, {
+                            code,
+                            name: countryName,
+                            continent,
+                            clicks: countryClicks,
+                            percentage: countryPct,
+                          });
+                        }}
+                      >
+                        <g className="cursor-pointer outline-none focus:outline-none">
                           <circle
                             r="12"
                             fill="#0066FF"
@@ -1500,6 +1594,64 @@ export default function GeoAnalyticsPage() {
               }
             </ZoomableGroup>
           </ComposableMap>
+
+          {clickedCountryPopup && (
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                left: `${clickedCountryPopup.x}px`,
+                top: `${clickedCountryPopup.y}px`,
+                transform: "translate(-50%, -100%)",
+              }}
+              className="absolute z-40 min-w-[195px] max-w-[230px] rounded-[10px] bg-white/98 dark:bg-[#141416]/98 backdrop-blur-md border border-[#E4E7EC] dark:border-[#27272a] shadow-2xl p-3 animate-in fade-in zoom-in-95 duration-150"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <CountryFlagBadge
+                    code={clickedCountryPopup.code}
+                    className="w-5 h-3.5 shrink-0"
+                  />
+                  <span className="font-bold text-[#09090B] dark:text-white text-xs truncate">
+                    {clickedCountryPopup.name}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setClickedCountryPopup(null);
+                  }}
+                  className="p-0.5 rounded-[6px] text-zinc-400 hover:text-zinc-700 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-white/10 transition-colors cursor-pointer shrink-0"
+                  aria-label="Close country popup"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              <div className="mt-2 pt-2 border-t border-[#E4E7EC] dark:border-[#222225] flex items-center justify-between gap-2">
+                <span className="text-[11px] font-medium text-zinc-500 dark:text-neutral-400">
+                  Traffic share
+                </span>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[6px] bg-[#0066FF]/10 text-[#0066FF] dark:text-[#5294FF] font-mono text-xs font-extrabold">
+                  {clickedCountryPopup.percentage}%
+                </span>
+              </div>
+
+              <div className="w-full h-1.5 rounded-full bg-zinc-200 dark:bg-white/10 mt-1.5 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-[#0066FF] transition-all duration-300"
+                  style={{ width: `${Math.min(100, clickedCountryPopup.percentage)}%` }}
+                />
+              </div>
+
+              <div className="mt-1.5 flex items-center justify-between text-[10px] text-zinc-500 dark:text-neutral-400">
+                <span>{clickedCountryPopup.continent}</span>
+                <span className="font-mono font-semibold text-[#09090B] dark:text-zinc-200">
+                  {formatNumber(clickedCountryPopup.clicks)} {clickedCountryPopup.clicks === 1 ? "click" : "clicks"}
+                </span>
+              </div>
+            </div>
+          )}
 
           {hoveredCountry && (
             <div className="absolute bottom-3 left-3 sm:bottom-4 sm:left-4 z-30 pointer-events-none animate-in fade-in duration-150">
@@ -1556,10 +1708,11 @@ export default function GeoAnalyticsPage() {
                 onClick={() => {
                   const nextContinent = isSelected ? "ALL" : item.key;
                   setSelectedContinent(nextContinent);
+                  setClickedCountryPopup(null);
                   setMapPosition(CONTINENT_VIEWPORTS[nextContinent] || CONTINENT_VIEWPORTS["ALL"]);
                   setCurrentPage(1);
                 }}
-                className={`p-3.5 rounded-[10px] border text-left flex flex-col justify-between shadow-2xs transition-all cursor-pointer ${
+                className={`p-3.5 rounded-[10px] border text-left flex flex-col justify-between shadow-2xs transition-all cursor-pointer outline-none focus:outline-none ${
                   isSelected
                     ? "bg-[#0066FF]/10 dark:bg-[#0066FF]/15 border-[#0066FF] shadow-xs ring-1 ring-[#0066FF]/50 scale-[1.02]"
                     : "bg-white dark:bg-[#111113] border-[#E4E7EC] dark:border-[#222225] hover:border-[#0066FF]/40 hover:bg-slate-50 dark:hover:bg-white/[0.02]"
@@ -1664,16 +1817,16 @@ export default function GeoAnalyticsPage() {
           <button
             type="button"
             onClick={() => setIsMapExpanded(false)}
-            className="absolute top-4 right-4 sm:top-6 sm:right-6 z-50 p-2.5 sm:p-3 rounded-xl bg-white/90 dark:bg-[#141416]/90 backdrop-blur-md border border-zinc-200/80 dark:border-white/10 text-zinc-700 dark:text-zinc-200 hover:text-red-500 hover:bg-white dark:hover:bg-[#1a1a1e] hover:border-red-300 dark:hover:border-red-500/30 shadow-xl transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer flex items-center gap-2 group"
-            title="Quitter le plein écran (Échap)"
-            aria-label="Quitter le plein écran"
+            className="absolute top-4 right-4 sm:top-6 sm:right-6 z-50 p-2.5 sm:p-3 rounded-[10px] bg-white/90 dark:bg-[#141416]/90 backdrop-blur-md border border-zinc-200/80 dark:border-white/10 text-zinc-700 dark:text-zinc-200 hover:text-red-500 hover:bg-white dark:hover:bg-[#1a1a1e] hover:border-red-300 dark:hover:border-red-500/30 shadow-xl transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer flex items-center gap-2 group"
+            title="Exit fullscreen (Esc)"
+            aria-label="Exit fullscreen"
           >
             <X className="w-5 h-5 transition-transform group-hover:rotate-90" />
-            <span className="hidden sm:inline text-xs font-semibold pr-1">Quitter (Échap)</span>
+            <span className="hidden sm:inline text-xs font-semibold pr-1">Exit (Esc)</span>
           </button>
 
           {/* Floating Zoom Controls at Bottom Right */}
-          <div className="absolute bottom-6 right-6 z-40 flex items-center gap-1.5 p-1.5 rounded-xl bg-white/90 dark:bg-[#141416]/90 backdrop-blur-md border border-zinc-200/80 dark:border-white/10 shadow-xl">
+          <div className="absolute bottom-6 right-6 z-40 flex items-center gap-1.5 p-1.5 rounded-[10px] bg-white/90 dark:bg-[#141416]/90 backdrop-blur-md border border-zinc-200/80 dark:border-white/10 shadow-xl">
             <button
               type="button"
               onClick={() =>
@@ -1682,8 +1835,8 @@ export default function GeoAnalyticsPage() {
                   zoom: Math.min(8, pos.zoom * 1.5),
                 }))
               }
-              title="Zoomer (+)"
-              className="p-2 text-zinc-700 dark:text-zinc-300 hover:text-[#0066FF] dark:hover:text-[#5294FF] hover:bg-zinc-100 dark:hover:bg-white/5 rounded-lg transition-colors cursor-pointer"
+              title="Zoom in (+)"
+              className="p-2 text-zinc-700 dark:text-zinc-300 hover:text-[#0066FF] dark:hover:text-[#5294FF] hover:bg-zinc-100 dark:hover:bg-white/5 rounded-[8px] transition-colors cursor-pointer"
             >
               <ZoomIn className="w-4 h-4" />
             </button>
@@ -1695,8 +1848,8 @@ export default function GeoAnalyticsPage() {
                   zoom: Math.max(1, pos.zoom / 1.5),
                 }))
               }
-              title="Dézoomer (-)"
-              className="p-2 text-zinc-700 dark:text-zinc-300 hover:text-[#0066FF] dark:hover:text-[#5294FF] hover:bg-zinc-100 dark:hover:bg-white/5 rounded-lg transition-colors cursor-pointer"
+              title="Zoom out (-)"
+              className="p-2 text-zinc-700 dark:text-zinc-300 hover:text-[#0066FF] dark:hover:text-[#5294FF] hover:bg-zinc-100 dark:hover:bg-white/5 rounded-[8px] transition-colors cursor-pointer"
             >
               <ZoomOut className="w-4 h-4" />
             </button>
@@ -1705,8 +1858,8 @@ export default function GeoAnalyticsPage() {
               onClick={() =>
                 setMapPosition(CONTINENT_VIEWPORTS[selectedContinent] || CONTINENT_VIEWPORTS["ALL"])
               }
-              title="Réinitialiser la vue"
-              className="p-2 text-zinc-700 dark:text-zinc-300 hover:text-[#0066FF] dark:hover:text-[#5294FF] hover:bg-zinc-100 dark:hover:bg-white/5 rounded-lg transition-colors cursor-pointer"
+              title="Reset view"
+              className="p-2 text-zinc-700 dark:text-zinc-300 hover:text-[#0066FF] dark:hover:text-[#5294FF] hover:bg-zinc-100 dark:hover:bg-white/5 rounded-[8px] transition-colors cursor-pointer"
             >
               <RotateCcw className="w-4 h-4" />
             </button>
@@ -1714,16 +1867,20 @@ export default function GeoAnalyticsPage() {
 
           {/* Active Node Floating Info Badge (Bottom Left) */}
           {topCountry && (
-            <div className="absolute bottom-6 left-6 z-40 hidden sm:flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-white/90 dark:bg-[#141416]/90 backdrop-blur-md border border-zinc-200/80 dark:border-white/10 shadow-xl pointer-events-none">
+            <div className="absolute bottom-6 left-6 z-40 hidden sm:flex items-center gap-2.5 px-3.5 py-2 rounded-[10px] bg-white/90 dark:bg-[#141416]/90 backdrop-blur-md border border-zinc-200/80 dark:border-white/10 shadow-xl pointer-events-none">
               <span className="w-2.5 h-2.5 rounded-full bg-[#0066FF] animate-pulse" />
               <span className="text-xs font-semibold text-zinc-900 dark:text-white">
-                Nœud actif : <strong>{topCountry.name}</strong> ({topCountry.percentage}% du trafic)
+                Active node: <strong>{topCountry.name}</strong> ({topCountry.percentage}% of traffic)
               </span>
             </div>
           )}
 
           {/* 100% Full-bleed World Map */}
-          <div className="relative w-full h-full flex-1 flex items-center justify-center overflow-hidden">
+          <div
+            ref={fsMapContainerRef}
+            onClick={() => setClickedCountryPopup(null)}
+            className="relative w-full h-full flex-1 flex items-center justify-center overflow-hidden"
+          >
             <ComposableMap
               width={1200}
               height={650}
@@ -1743,15 +1900,20 @@ export default function GeoAnalyticsPage() {
                       const resolved = resolveCountryFromGeography(geo);
                       const countryClicks = countryClicksMap.get(resolved.code) || 0;
                       const hasClicks = countryClicks > 0;
+                      const countryPct = analytics.totalClicks > 0 ? Math.round((countryClicks / analytics.totalClicks) * 100) : 0;
                       const isContinentMatch = selectedContinent === "ALL" || resolved.continent === selectedContinent;
+                      const isSelectedPopup = clickedCountryPopup?.code === resolved.code;
 
                       let fillColor = isDarkMode ? "#18181c" : "#E2E8F0";
                       let strokeColor = isDarkMode ? "#27272a" : "#CBD5E1";
 
                       if (isContinentMatch) {
                         if (hasClicks) {
-                          fillColor = "#0066FF";
+                          fillColor = isSelectedPopup ? "#0055d4" : "#0066FF";
                           strokeColor = "#ffffff";
+                        } else if (isSelectedPopup) {
+                          fillColor = isDarkMode ? "#2c3e5a" : "#93C5FD";
+                          strokeColor = "#0066FF";
                         } else {
                           fillColor = isDarkMode ? "#1f1f24" : "#E2E8F0";
                           strokeColor = isDarkMode ? "#2e2e34" : "#CBD5E1";
@@ -1761,17 +1923,70 @@ export default function GeoAnalyticsPage() {
                         strokeColor = isDarkMode ? "#18181a" : "#E2E8F0";
                       }
 
+                      const activeFill = isContinentMatch
+                        ? hasClicks
+                          ? "#0055d4"
+                          : isDarkMode
+                            ? "#262630"
+                            : "#CBD5E1"
+                        : fillColor;
+
                       return (
                         <Geography
                           key={`fs-${geo.rsmKey}`}
                           geography={geo}
+                          tabIndex={-1}
+                          className="outline-none focus:outline-none"
+                          onMouseEnter={() => {
+                            if (!isContinentMatch) return;
+                            setHoveredCountry({
+                              code: resolved.code,
+                              name: resolved.name,
+                              continent: resolved.continent,
+                              clicks: countryClicks,
+                              percentage: countryPct,
+                            });
+                          }}
+                          onMouseLeave={() => setHoveredCountry(null)}
+                          onClick={(e) => {
+                            if (!isContinentMatch) return;
+                            openCountryPopupFromEvent(e, fsMapContainerRef.current, {
+                              code: resolved.code,
+                              name: resolved.name,
+                              continent: resolved.continent,
+                              clicks: countryClicks,
+                              percentage: countryPct,
+                            });
+                          }}
                           style={{
                             default: {
                               fill: fillColor,
                               stroke: strokeColor,
-                              strokeWidth: isContinentMatch ? (hasClicks ? 1.2 : 0.4) : 0.2,
+                              strokeWidth: isContinentMatch
+                                ? hasClicks || isSelectedPopup
+                                  ? 1.2
+                                  : 0.4
+                                : 0.2,
                               opacity: isContinentMatch ? 1 : 0.22,
                               outline: "none",
+                              transition: "all 200ms ease",
+                              cursor: isContinentMatch ? "pointer" : "default",
+                            },
+                            hover: {
+                              fill: activeFill,
+                              stroke: isContinentMatch ? "#ffffff" : strokeColor,
+                              strokeWidth: isContinentMatch ? 1.2 : 0.2,
+                              opacity: isContinentMatch ? 1 : 0.22,
+                              outline: "none",
+                              cursor: isContinentMatch ? "pointer" : "default",
+                            },
+                            pressed: {
+                              fill: activeFill,
+                              stroke: isContinentMatch ? "#ffffff" : strokeColor,
+                              strokeWidth: isContinentMatch ? 1.2 : 0.2,
+                              opacity: isContinentMatch ? 1 : 0.22,
+                              outline: "none",
+                              cursor: isContinentMatch ? "pointer" : "default",
                             },
                           }}
                         />
@@ -1788,28 +2003,105 @@ export default function GeoAnalyticsPage() {
                       return cont === selectedContinent;
                     })
                     .map((c) => {
-                      const geo = WORLD_COUNTRIES[c.code] || COUNTRY_CENTROIDS[c.code];
+                      const code = (c.code || "").toUpperCase();
+                      const geo = WORLD_COUNTRIES[code] || COUNTRY_CENTROIDS[code];
                       if (!geo || typeof geo.lat !== "number" || typeof geo.lng !== "number") return null;
+                      const countryName = WORLD_COUNTRIES[code]?.name || c.name || code;
+                      const continent = WORLD_COUNTRIES[code]?.continent || ISO2_TO_CONTINENT[code] || getContinentForCountry(code);
+                      const countryClicks = c.count || countryClicksMap.get(code) || 0;
+                      const countryPct = analytics.totalClicks > 0 ? Math.round((countryClicks / analytics.totalClicks) * 100) : 0;
                       return (
-                        <Marker key={`fs-marker-${c.code}`} coordinates={[geo.lng, geo.lat]}>
-                          <circle
-                            r="12"
-                            fill="#0066FF"
-                            opacity="0.35"
-                            className="animate-ping"
-                          />
-                          <circle
-                            r="5"
-                            fill="#ffffff"
-                            stroke="#0066FF"
-                            strokeWidth="2.5"
-                          />
+                        <Marker
+                          key={`fs-marker-${code}`}
+                          coordinates={[geo.lng, geo.lat]}
+                          onClick={(e) => {
+                            openCountryPopupFromEvent(e, fsMapContainerRef.current, {
+                              code,
+                              name: countryName,
+                              continent,
+                              clicks: countryClicks,
+                              percentage: countryPct,
+                            });
+                          }}
+                        >
+                          <g className="cursor-pointer outline-none focus:outline-none">
+                            <circle
+                              r="12"
+                              fill="#0066FF"
+                              opacity="0.35"
+                              className="animate-ping pointer-events-none"
+                            />
+                            <circle
+                              r="5"
+                              fill="#ffffff"
+                              stroke="#0066FF"
+                              strokeWidth="2.5"
+                            />
+                          </g>
                         </Marker>
                       );
                     })
                 }
               </ZoomableGroup>
             </ComposableMap>
+
+            {clickedCountryPopup && (
+              <div
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  left: `${clickedCountryPopup.x}px`,
+                  top: `${clickedCountryPopup.y}px`,
+                  transform: "translate(-50%, -100%)",
+                }}
+                className="absolute z-40 min-w-[205px] max-w-[240px] rounded-[10px] bg-white/98 dark:bg-[#141416]/98 backdrop-blur-md border border-[#E4E7EC] dark:border-[#27272a] shadow-2xl p-3 animate-in fade-in zoom-in-95 duration-150"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <CountryFlagBadge
+                      code={clickedCountryPopup.code}
+                      className="w-5 h-3.5 shrink-0"
+                    />
+                    <span className="font-bold text-[#09090B] dark:text-white text-xs truncate">
+                      {clickedCountryPopup.name}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setClickedCountryPopup(null);
+                    }}
+                    className="p-0.5 rounded-[6px] text-zinc-400 hover:text-zinc-700 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-white/10 transition-colors cursor-pointer shrink-0"
+                    aria-label="Close country popup"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                <div className="mt-2 pt-2 border-t border-[#E4E7EC] dark:border-[#222225] flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-medium text-zinc-500 dark:text-neutral-400">
+                    Traffic share
+                  </span>
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[6px] bg-[#0066FF]/10 text-[#0066FF] dark:text-[#5294FF] font-mono text-xs font-extrabold">
+                    {clickedCountryPopup.percentage}%
+                  </span>
+                </div>
+
+                <div className="w-full h-1.5 rounded-full bg-zinc-200 dark:bg-white/10 mt-1.5 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-[#0066FF] transition-all duration-300"
+                    style={{ width: `${Math.min(100, clickedCountryPopup.percentage)}%` }}
+                  />
+                </div>
+
+                <div className="mt-1.5 flex items-center justify-between text-[10px] text-zinc-500 dark:text-neutral-400">
+                  <span>{clickedCountryPopup.continent}</span>
+                  <span className="font-mono font-semibold text-[#09090B] dark:text-zinc-200">
+                    {formatNumber(clickedCountryPopup.clicks)} {clickedCountryPopup.clicks === 1 ? "click" : "clicks"}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

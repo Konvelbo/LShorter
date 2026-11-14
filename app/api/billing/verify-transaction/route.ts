@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getPaddleInstance } from "@/lib/paddle/paddle-server";
+import { getDodoPaymentsClient } from "@/lib/dodo/dodo-server";
 import { convexHttp as convex } from "@/lib/convex-server";
 import { api } from "@/convex/_generated/api";
 import { syncUserToCloudflare } from "@/app/actions/sync-user";
-
-
+import { cancelReplacedSubscriptions } from "@/lib/billing/cancel-replaced-subscription";
 import { auth } from "@/auth";
 
 export async function POST(request: NextRequest) {
@@ -17,178 +16,203 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { transactionId, userId: requestedUserId } = await request.json();
+    const body = await request.json().catch(() => ({}));
+    const {
+      subscriptionId: requestedSubscriptionId,
+      plan: requestedPlan,
+    } = body;
 
-    if (!transactionId) {
-      return NextResponse.json(
-        { success: false, error: "Missing transactionId" },
-        { status: 400 }
-      );
-    }
-
-    const paddle = getPaddleInstance();
-    if (!paddle) {
-      return NextResponse.json(
-        { success: false, error: "Paddle SDK not configured" },
-        { status: 500 }
-      );
-    }
-
-    // 1. Fetch transaction directly from Paddle API
-    const transaction = await paddle.transactions.get(transactionId);
-    console.info(
-      `[Verify Transaction] Retrieved ${transaction.id}: status=${transaction.status}`
-    );
-
-    if (transaction.status !== "completed" && transaction.status !== "paid") {
-      return NextResponse.json({
-        success: false,
-        status: transaction.status,
-        message: "Transaction is not completed yet",
-      });
-    }
-
-    // 2. Extract metadata and enforce authorization check
-    const customData = (transaction.customData as any) || {};
     const sessionUserId = session.user.id || "";
     const sessionEmail = (session.user.email || "").toLowerCase().trim();
+    const sessionName = session.user.name || "Customer";
 
-    // IDOR Protection: ensure transaction belongs to the calling user
-    const txUserId = customData.userId || "";
-    const txEmail = (transaction.customer?.email || "").toLowerCase().trim();
+    // Dodo Payments Reconciliation (when returning from Dodo Checkout)
+    const dodoClient = getDodoPaymentsClient();
+    if (dodoClient) {
+      let targetSub: any = null;
 
-    if (txUserId && txUserId !== sessionUserId) {
-      return NextResponse.json(
-        { success: false, error: "Forbidden: Transaction does not belong to the active user." },
-        { status: 403 }
-      );
-    }
-    if (txEmail && sessionEmail && txEmail !== sessionEmail && !txUserId) {
-      return NextResponse.json(
-        { success: false, error: "Forbidden: Customer email mismatch." },
-        { status: 403 }
-      );
-    }
-
-    const resolvedUserId = txUserId || sessionUserId;
-    const rawPlanId = (customData.planId || "PRO").toUpperCase();
-    const planId = (
-      ["PRO", "BUSINESS", "ENTERPRISE"].includes(rawPlanId) ? rawPlanId : "PRO"
-    ) as "PRO" | "BUSINESS" | "ENTERPRISE";
-    const cycle = ((customData.cycle || "MONTHLY") as string).toUpperCase() === "YEARLY"
-      ? "YEARLY"
-      : "MONTHLY";
-    const orgId = customData.orgId || (resolvedUserId ? `org_${resolvedUserId}` : "default");
-
-    let customerEmail = transaction.customer?.email || "";
-    let customerName = transaction.customer?.name || "";
-
-    if (!customerEmail && transaction.customerId) {
-      try {
-        const c = await paddle.customers.get(transaction.customerId);
-        if (c?.email) customerEmail = c.email;
-        if (c?.name) customerName = c.name;
-      } catch {}
-    }
-
-    if (resolvedUserId && !customerEmail) {
-      try {
-        const u = await convex.query(api.users.getCurrentUser, { userId: resolvedUserId });
-        if (u?.email) customerEmail = u.email;
-        if (u?.name) customerName = u.name;
-      } catch {}
-    }
-
-    // 3. Update Convex database
-    if (resolvedUserId) {
-      try {
-        await convex.mutation(api.users.updatePlan, {
-          userId: resolvedUserId,
-          plan: planId,
-        });
-      } catch (convexErr) {
-        console.error("[Verify Transaction] Error updating Convex plan:", convexErr);
-      }
-
-      // 4. Update Cloudflare D1
-      try {
-        await syncUserToCloudflare({
-          id: resolvedUserId,
-          email: customerEmail || `${resolvedUserId}@lshorter.local`,
-          name: customerName || "Customer",
-          plan: planId,
-        });
-
-        if (customerEmail && customerEmail !== resolvedUserId) {
-          await syncUserToCloudflare({
-            id: customerEmail,
-            email: customerEmail,
-            name: customerName || "Customer",
-            plan: planId,
-          });
+      if (requestedSubscriptionId) {
+        try {
+          const retrieved = await dodoClient.subscriptions.retrieve(
+            String(requestedSubscriptionId)
+          );
+          const subUserId = retrieved?.metadata?.userId
+            ? String(retrieved.metadata.userId).trim()
+            : "";
+          const subEmail = retrieved?.customer?.email
+            ? String(retrieved.customer.email).toLowerCase().trim()
+            : "";
+          if (
+            retrieved &&
+            ((subUserId && subUserId === sessionUserId) ||
+              (sessionEmail && subEmail && subEmail === sessionEmail))
+          ) {
+            targetSub = retrieved;
+          }
+        } catch (err) {
+          console.warn("[Verify Transaction] Dodo retrieve subscription warning:", err);
         }
-      } catch (cfErr) {
-        console.error("[Verify Transaction] Error syncing Cloudflare:", cfErr);
       }
-    }
 
-    // 5. Fetch official Paddle Invoice PDF URL
-    let invoicePdfUrl: string | null = null;
-    try {
-      const invoicePdf = await paddle.transactions.getInvoicePDF(transaction.id);
-      invoicePdfUrl = invoicePdf?.url || null;
-    } catch (pdfErr) {
-      console.warn("[Verify Transaction] Non-fatal invoice PDF fetch warning:", pdfErr);
-    }
+      if (!targetSub) {
+        try {
+          const activePage = await dodoClient.subscriptions.list({
+            status: "active",
+            page_size: 50,
+          });
+          const items: any[] = (activePage as any)?.items || [];
+          const matching = items.filter((sub) => {
+            const subUserId = sub?.metadata?.userId
+              ? String(sub.metadata.userId).trim()
+              : "";
+            const subEmail = sub?.customer?.email
+              ? String(sub.customer.email).toLowerCase().trim()
+              : "";
+            return (
+              (sessionUserId && subUserId && subUserId === sessionUserId) ||
+              (sessionEmail && subEmail && subEmail === sessionEmail)
+            );
+          });
 
-    // 6. Create certified invoice in Convex
-    try {
-      const totalAmount = transaction.details?.totals?.total
-        ? parseFloat(transaction.details.totals.total) / 100
-        : 0;
-      const invoiceNumber = transaction.invoiceNumber || `INV-${transaction.id.replace(/^txn_/, "").toUpperCase()}`;
-      const now = Date.now();
-      const periodEnd = cycle === "YEARLY" ? now + 365 * 86400000 : now + 30 * 86400000;
+          if (matching.length > 0) {
+            // Sort newest first so an upgraded subscription (e.g. BUSINESS) always wins over an older PRO one
+            matching.sort((a, b) => {
+              const tA = a?.created_at ? new Date(a.created_at).getTime() : 0;
+              const tB = b?.created_at ? new Date(b.created_at).getTime() : 0;
+              return tB - tA;
+            });
+            targetSub = matching[0];
+          }
+        } catch (listErr) {
+          console.warn("[Verify Transaction] Dodo list active subscriptions warning:", listErr);
+        }
+      }
 
-      await convex.mutation(api.invoices.createInvoice, {
-        orgId: resolvedUserId || orgId,
-        invoiceNumber,
-        planId,
-        amountPaid: totalAmount,
-        periodStart: now,
-        periodEnd,
-        currency: transaction.currencyCode || "USD",
-        status: "PAID",
-        pdfUrl: invoicePdfUrl || `/api/billing/invoices/${transaction.id}/download`,
-      });
-    } catch (invErr) {
-      console.error("[Verify Transaction] Error creating invoice in Convex:", invErr);
-    }
+      if (targetSub && targetSub.subscription_id) {
+        const subId = String(targetSub.subscription_id);
+        const meta = targetSub.metadata || {};
+        const rawPlan = String(
+          meta.planId || requestedPlan || "PRO"
+        ).toUpperCase();
+        const planId = (
+          ["PRO", "BUSINESS", "ENTERPRISE"].includes(rawPlan) ? rawPlan : "PRO"
+        ) as "PRO" | "BUSINESS" | "ENTERPRISE";
+        const cycle =
+          String(meta.cycle || "").toUpperCase() === "YEARLY" ||
+          targetSub.subscription_period_interval === "Year"
+            ? "YEARLY"
+            : "MONTHLY";
+        const customerEmail =
+          targetSub.customer?.email || sessionEmail || `${sessionUserId}@lshorter.local`;
+        const customerName = targetSub.customer?.name || sessionName;
 
-    // 7. Paddle handles official customer email and certified PDF receipt delivery natively
+        const parsedStart = targetSub.previous_billing_date
+          ? new Date(targetSub.previous_billing_date).getTime()
+          : NaN;
+        const parsedEnd = targetSub.next_billing_date
+          ? new Date(targetSub.next_billing_date).getTime()
+          : NaN;
+        const periodStart = Number.isNaN(parsedStart) ? Date.now() : parsedStart;
+        const periodEnd = Number.isNaN(parsedEnd)
+          ? Date.now() + (cycle === "YEARLY" ? 365 : 30) * 86400000
+          : parsedEnd;
 
-    // 8. Create in-app notification for the Topbar Bell
-    if (resolvedUserId) {
-      try {
-        await convex.mutation(api.notifications.createNotification, {
-          orgId: resolvedUserId,
-          title: `Abonnement ${planId} confirmé`,
-          message: `Félicitations ! Votre abonnement ${planId} (${cycle === "YEARLY" ? "Annuel" : "Mensuel"}) est actif. Votre facture certifiée Paddle est disponible.`,
-          type: "SUCCESS",
-          linkUrl: "/dashboard/settings?tab=billing",
+        if (sessionUserId) {
+          await convex
+            .mutation(api.users.updatePlan, {
+              userId: sessionUserId,
+              plan: planId,
+            })
+            .catch((e) => console.warn("[Verify Transaction] Convex updatePlan warning:", e));
+
+          await convex
+            .mutation(api.organizations.getOrCreateUserOrganization, {
+              userId: sessionUserId,
+              name: `org_${sessionUserId}`,
+              email: customerEmail,
+              plan: planId,
+            })
+            .catch(() => {});
+
+          await syncUserToCloudflare({
+            id: sessionUserId,
+            email: customerEmail,
+            name: customerName,
+            plan: planId,
+          }).catch(() => {});
+
+          if (sessionEmail && sessionEmail !== sessionUserId) {
+            await syncUserToCloudflare({
+              id: sessionEmail,
+              email: sessionEmail,
+              name: customerName,
+              plan: planId,
+            }).catch(() => {});
+          }
+
+          const upsertRes: any = await convex
+            .mutation(api.subscriptions.upsertSubscription, {
+              orgId: sessionUserId,
+              provider: "dodo",
+              providerSubscriptionId: subId,
+              currentPeriodStart: periodStart,
+              currentPeriodEnd: periodEnd,
+              cancelAtPeriodEnd: Boolean(targetSub.cancel_at_next_billing_date),
+              plan: planId,
+              cycle,
+            })
+            .catch(() => null);
+
+          const prevSubId =
+            upsertRes?.previousSubscriptionId ||
+            (meta.previousSubscriptionId
+              ? String(meta.previousSubscriptionId)
+              : undefined);
+
+          await cancelReplacedSubscriptions({
+            userId: sessionUserId,
+            orgId: sessionUserId,
+            customerEmail: sessionEmail || customerEmail,
+            dodoCustomerId: targetSub.customer?.customer_id
+              ? String(targetSub.customer.customer_id)
+              : undefined,
+            newSubscriptionId: subId,
+            newProvider: "dodo",
+            newPlan: planId,
+            previousSubscriptionId: prevSubId,
+            previousProvider: upsertRes?.previousProvider,
+          }).catch((e) =>
+            console.warn("[Verify Transaction] Cancel replaced Dodo sub warning:", e)
+          );
+        }
+
+        return NextResponse.json({
+          success: true,
+          provider: "dodo",
+          subscriptionId: subId,
+          plan: planId,
+          cycle,
+          status: targetSub.status || "active",
         });
-      } catch (notifErr) {
-        console.error("[Verify Transaction] Error creating notification:", notifErr);
       }
     }
 
+    // Fallback: check Convex in case webhook already processed the upgrade
+    const convexUser = sessionUserId
+      ? await convex
+          .query(api.users.getCurrentUser, { userId: sessionUserId })
+          .catch(() => null)
+      : null;
+    const resolvedPlan = String(
+      convexUser?.plan || requestedPlan || "PRO"
+    ).toUpperCase();
     return NextResponse.json({
       success: true,
-      transactionId: transaction.id,
-      plan: planId,
-      cycle,
-      status: transaction.status,
-      invoicePdfUrl,
+      provider: "dodo",
+      plan: ["PRO", "BUSINESS", "ENTERPRISE"].includes(resolvedPlan)
+        ? resolvedPlan
+        : "PRO",
+      status: "completed",
     });
   } catch (error: any) {
     console.error("[Verify Transaction Error]:", error);

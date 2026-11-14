@@ -10,7 +10,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { showToast } from "@/components/ui/toast-provider";
 import { syncUserToCloudflare } from "@/app/actions/sync-user";
@@ -19,6 +19,9 @@ import confetti from "canvas-confetti";
 export function PlanUpgradeModal() {
   const { data: session, update: updateSession } = useSession();
   const userId = session?.user?.id || "";
+  const convexUser = useQuery(api.users.getCurrentUser, userId ? { userId } : "skip");
+  const rawPlan = (convexUser?.plan || (session?.user as any)?.plan || "FREE").toUpperCase();
+  const currentPlan = rawPlan === "FREEMIUM" || rawPlan === "STARTER" ? "FREE" : rawPlan;
 
   const [isOpen, setIsOpen] = useState(false);
   const [reason, setReason] = useState<string | null>(null);
@@ -74,16 +77,56 @@ export function PlanUpgradeModal() {
   };
 
   const handleUpgrade = async (targetPlan: "PRO" | "BUSINESS" | "ENTERPRISE") => {
+    if (currentPlan === targetPlan) {
+      showToast.info(`You are already subscribed to the ${targetPlan} plan.`);
+      return;
+    }
+
+    if (!session?.user) {
+      window.location.href = `/login?redirect=/dashboard/pricing&plan=${targetPlan}`;
+      return;
+    }
+
     setLoadingPlan(targetPlan);
     try {
+      try {
+        const res = await fetch("/api/billing/checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            planId: targetPlan,
+            cycle: "MONTHLY",
+            userId,
+            customerEmail: session?.user?.email || undefined,
+            successUrl: `${window.location.origin}/dashboard/settings?tab=billing&checkout_success=true&plan=${targetPlan}`,
+            cancelUrl: window.location.href,
+          }),
+        });
+
+        const data = await res.json();
+        if (data.success && data.checkoutUrl) {
+          window.location.href = data.checkoutUrl;
+          return;
+        }
+
+        if (data.error) {
+          showToast.error(data.error);
+          setLoadingPlan(null);
+          return;
+        }
+      } catch (apiErr) {
+        console.warn("[UpgradeModal] Direct checkout error, redirecting to /checkout:", apiErr);
+        window.location.href = `/checkout?plan=${targetPlan}&cycle=MONTHLY`;
+        return;
+      }
+
       if (userId) {
-        // 1. Update in Convex database
+        // Fallback for local sandbox when no payment provider is configured
         await updatePlanMutation({
           userId,
           plan: targetPlan,
         });
 
-        // 2. Synchronize plan directly into Cloudflare Worker D1 database
         await syncUserToCloudflare({
           id: userId,
           email: session?.user?.email || `${userId}@lshorter.local`,
@@ -93,13 +136,10 @@ export function PlanUpgradeModal() {
       }
 
       if (typeof window !== "undefined") {
-        // 3. Persist plan in localStorage
         localStorage.setItem("lshorter_user_plan", targetPlan);
-        // 4. Notify all components
         window.dispatchEvent(new CustomEvent("lshorter_plan_updated", { detail: { plan: targetPlan } }));
       }
 
-      // 5. Force NextAuth session refresh
       try {
         await updateSession({ plan: targetPlan });
       } catch {}
@@ -219,17 +259,27 @@ export function PlanUpgradeModal() {
             <button
               type="button"
               onClick={() => handleUpgrade("PRO")}
-              disabled={loadingPlan !== null}
-              className="mt-6 w-full py-2.5 rounded-[8px] bg-[#1D4ED8] hover:bg-[#1E40AF] text-white font-semibold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer disabled:opacity-50"
+              disabled={loadingPlan !== null || currentPlan === "PRO"}
+              className={`mt-6 w-full py-2.5 rounded-[8px] font-semibold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer disabled:cursor-default ${
+                currentPlan === "PRO"
+                  ? "bg-zinc-100 dark:bg-white/5 text-zinc-500 dark:text-neutral-400"
+                  : "bg-[#1D4ED8] hover:bg-[#1E40AF] text-white disabled:opacity-50"
+              }`}
             >
               {loadingPlan === "PRO" ? (
                 <span className="flex items-center gap-2">
                   <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                   <span>Activating...</span>
                 </span>
+              ) : currentPlan === "PRO" ? (
+                <span>Current plan</span>
               ) : (
                 <>
-                  <span>Upgrade to Pro · $3.75</span>
+                  <span>
+                    {currentPlan === "BUSINESS" || currentPlan === "ENTERPRISE"
+                      ? "Switch to Pro · $3.75"
+                      : "Upgrade to Pro · $3.75"}
+                  </span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </>
               )}
@@ -304,14 +354,20 @@ export function PlanUpgradeModal() {
             <button
               type="button"
               onClick={() => handleUpgrade("BUSINESS")}
-              disabled={loadingPlan !== null}
-              className="mt-6 w-full py-2.5 rounded-[8px] bg-[#0F172A] hover:bg-[#1E293B] dark:bg-white dark:hover:bg-zinc-200 text-white dark:text-zinc-900 font-semibold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer disabled:opacity-50"
+              disabled={loadingPlan !== null || currentPlan === "BUSINESS"}
+              className={`mt-6 w-full py-2.5 rounded-[8px] font-semibold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer disabled:cursor-default ${
+                currentPlan === "BUSINESS"
+                  ? "bg-zinc-100 dark:bg-white/5 text-zinc-500 dark:text-neutral-400"
+                  : "bg-[#0F172A] hover:bg-[#1E293B] dark:bg-white dark:hover:bg-zinc-200 text-white dark:text-zinc-900 disabled:opacity-50"
+              }`}
             >
               {loadingPlan === "BUSINESS" ? (
                 <span className="flex items-center gap-2">
                   <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                   <span>Activating...</span>
                 </span>
+              ) : currentPlan === "BUSINESS" ? (
+                <span>Current plan</span>
               ) : (
                 <>
                   <span>Upgrade to Business · $19.60</span>
