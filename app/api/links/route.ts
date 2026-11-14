@@ -10,6 +10,12 @@ import { convexHttp as convex } from "@/lib/convex-server";
 import { api } from "@/convex/_generated/api";
 import { isSafeHttpUrl, isValidSlug } from "@/lib/security-utils";
 import { guardLinkCreation } from "@/lib/billing/quota-service";
+import {
+  getCachedLinksPayload,
+  getStaleCachedLinksPayload,
+  setCachedLinksPayload,
+  invalidateServerLinksCache,
+} from "@/lib/server-links-cache";
 
 function parseTags(raw: any): string[] {
   if (!raw) return [];
@@ -37,8 +43,8 @@ export async function GET(req: Request) {
   let userId = session?.user?.id || reqUrl.searchParams.get("userId") || null;
   let userEmail = session?.user?.email || reqUrl.searchParams.get("userEmail") || null;
 
-  // If userId is missing, anonymous, or email-shaped, resolve authoritative Convex userId
-  if ((!userId || userId === "usr_anonymous" || userId.includes("@")) && userEmail) {
+  // If userId is missing, anonymous, email-shaped, or raw OAuth ID (not starting with usr_), resolve authoritative Convex userId
+  if ((!userId || userId === "usr_anonymous" || userId.includes("@") || !userId.startsWith("usr_")) && userEmail) {
     try {
       const cu = await convex.query(api.users.getUserByEmail, { email: userEmail.toLowerCase().trim() });
       if (cu?.userId) {
@@ -58,32 +64,81 @@ export async function GET(req: Request) {
   const isForceRefresh =
     reqUrl.searchParams.get("forceRefresh") === "true" ||
     Boolean(reqUrl.searchParams.get("_t"));
+  const limit = reqUrl.searchParams.get("limit") || "500";
+  const pageParam = reqUrl.searchParams.get("page") || "1";
+  const cacheKey = `${userId || ""}:${(userEmail || "").toLowerCase()}:${limit}:${pageParam}`;
+
+  if (!isForceRefresh) {
+    const cached = getCachedLinksPayload(cacheKey);
+    if (cached) {
+      return NextResponse.json(cached, {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+          Pragma: "no-cache",
+          Expires: "0",
+        },
+      });
+    }
+  }
 
   try {
     const url = new URL(`${WORKER_URL}/api/v1/links`);
     if (userId) url.searchParams.set("userId", userId);
     if (userEmail) url.searchParams.set("userEmail", userEmail);
-    const limit = reqUrl.searchParams.get("limit") || "500";
     url.searchParams.set("limit", limit);
     if (reqUrl.searchParams.has("page")) {
-      url.searchParams.set("page", reqUrl.searchParams.get("page")!);
+      url.searchParams.set("page", pageParam);
     }
     if (isForceRefresh) {
       url.searchParams.set("forceRefresh", "true");
       url.searchParams.set("_t", Date.now().toString());
     }
 
-    const workerData = await fetch(url.toString(), {
-      headers: {
-        "X-Frontend-Secret": FRONTEND_SECRET || "",
-        Authorization: `Bearer ${FRONTEND_SECRET || ""}`,
-        ...(userId ? { "X-User-Id": userId } : {}),
-        ...(userEmail ? { "X-User-Email": userEmail } : {}),
-      },
-      cache: "no-store",
-    })
-      .then((r) => (r.ok ? r.json() : { success: true, data: [] }))
-      .catch(() => ({ success: true, data: [] }));
+    const reqHeaders: Record<string, string> = {
+      "X-Frontend-Secret": FRONTEND_SECRET || "",
+      Authorization: `Bearer ${FRONTEND_SECRET || ""}`,
+      ...(userId ? { "X-User-Id": userId } : {}),
+      ...(userEmail ? { "X-User-Email": userEmail } : {}),
+    };
+
+    let workerData: any = null;
+    let workerOk = false;
+
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const res = await fetch(url.toString(), {
+          headers: reqHeaders,
+          cache: "no-store",
+        });
+        if (res.ok) {
+          workerData = await res.json();
+          workerOk = true;
+          break;
+        }
+      } catch {}
+      if (attempt === 0) {
+        await new Promise((r) => setTimeout(r, 250));
+      }
+    }
+
+    if (!workerOk || !workerData) {
+      const stale = getStaleCachedLinksPayload(cacheKey);
+      if (stale) {
+        return NextResponse.json(stale, {
+          headers: {
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "X-Server-Cache": "STALE",
+          },
+        });
+      }
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Impossible de contacter temporairement le Worker Cloudflare",
+        },
+        { status: 502 },
+      );
+    }
 
     const workerList = Array.isArray(workerData?.data)
       ? workerData.data
@@ -295,25 +350,25 @@ export async function GET(req: Request) {
       });
     }
 
-    return NextResponse.json(
-      {
-        success: true,
-        data: mergedList,
+    const payload = {
+      success: true,
+      data: mergedList,
+      total: workerData?.pagination?.total ?? mergedList.length,
+      pagination: workerData?.pagination ?? {
+        page: Number(pageParam || 1),
+        limit: Number(limit),
         total: workerData?.pagination?.total ?? mergedList.length,
-        pagination: workerData?.pagination ?? {
-          page: Number(reqUrl.searchParams.get("page") || 1),
-          limit: Number(limit),
-          total: workerData?.pagination?.total ?? mergedList.length,
-        },
       },
-      {
-        headers: {
-          "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
-          Pragma: "no-cache",
-          Expires: "0",
-        },
+    };
+    setCachedLinksPayload(cacheKey, payload);
+
+    return NextResponse.json(payload, {
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        Pragma: "no-cache",
+        Expires: "0",
       },
-    );
+    });
   } catch (error: any) {
     console.warn("[Links Proxy GET] Error connecting to Worker:", error);
     return NextResponse.json(
@@ -679,6 +734,10 @@ export async function POST(req: Request) {
       if (createdSlug) invalidateBotResponseCache(createdSlug);
       if (createdId) invalidateBotResponseCache(createdId);
     } catch {}
+    invalidateServerLinksCache(
+      session?.user?.id || body?.userId,
+      session?.user?.email || body?.userEmail,
+    );
 
     return NextResponse.json(
       {

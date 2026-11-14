@@ -37,7 +37,7 @@ export async function GET(req: Request) {
       { status: 401 }
     );
   }
-  if (userId.includes("@") && userEmail) {
+  if ((!userId || userId === "usr_anonymous" || userId.includes("@") || !userId.startsWith("usr_")) && userEmail) {
     try {
       const cu = await convex.query(api.users.getUserByEmail, { email: userEmail.toLowerCase().trim() });
       if (cu?.userId) {
@@ -117,15 +117,44 @@ export async function GET(req: Request) {
       workerUrl.searchParams.set("_t", Date.now().toString());
     }
 
-    const workerAnalyticsRes = await fetch(workerUrl.toString(), {
-      headers: {
-        "X-Frontend-Secret": FRONTEND_SECRET || "",
-        Authorization: `Bearer ${FRONTEND_SECRET || ""}`,
-      },
-      cache: "no-store",
-    })
-      .then((r) => (r.ok ? r.json() : null))
-      .catch(() => null);
+    let workerAnalyticsRes: any = null;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const res = await fetch(workerUrl.toString(), {
+          headers: {
+            "X-Frontend-Secret": FRONTEND_SECRET || "",
+            Authorization: `Bearer ${FRONTEND_SECRET || ""}`,
+          },
+          cache: "no-store",
+        });
+        if (res.ok) {
+          workerAnalyticsRes = await res.json();
+          break;
+        }
+      } catch {}
+      if (attempt === 0) {
+        await new Promise((r) => setTimeout(r, 250));
+      }
+    }
+
+    if (!workerAnalyticsRes) {
+      const stale = serverAnalyticsCache.get(cacheKey);
+      if (stale?.data) {
+        return NextResponse.json(
+          { success: true, data: stale.data },
+          {
+            headers: {
+              "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+              "X-Server-Cache": "STALE",
+            },
+          },
+        );
+      }
+      return NextResponse.json(
+        { success: false, error: "Impossible de contacter temporairement le Worker analytique." },
+        { status: 502 },
+      );
+    }
 
     const workerStats = workerAnalyticsRes?.data;
     const workerTotalClicks = Number(

@@ -305,7 +305,8 @@ export function Sidebar() {
       }
     };
 
-    fetchLiveClicks(true);
+    // Reuse warm client cache & in-flight dedup on route navigation so Sidebar doesn't stampede Worker API
+    fetchLiveClicks(false);
 
     // Incrémentation optimiste immédiate lors d'un clic dans l'UI
     const handleLinkClicked = () => {
@@ -345,18 +346,21 @@ export function Sidebar() {
         document.visibilityState === "hidden"
       )
         return;
-      fetchLiveClicks(true);
-    }, 20000);
+      fetchLiveClicks(false);
+    }, 45000);
+
+    const handleDataChange = () => fetchLiveClicks(false);
+    const handleLinksUpdated = () => fetchLiveClicks(false);
+    const handleFocus = () => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+      fetchLiveClicks(false);
+    };
 
     window.addEventListener("lshorter_live_clicks_synced", handleSyncedEvent);
-    window.addEventListener("lshorter_data_change", () =>
-      fetchLiveClicks(true),
-    );
-    window.addEventListener("lshorter_links_updated", () =>
-      fetchLiveClicks(true),
-    );
+    window.addEventListener("lshorter_data_change", handleDataChange);
+    window.addEventListener("lshorter_links_updated", handleLinksUpdated);
     window.addEventListener("lshorter_link_clicked", handleLinkClicked);
-    window.addEventListener("focus", () => fetchLiveClicks(true));
+    window.addEventListener("focus", handleFocus);
 
     return () => {
       clearInterval(pollInterval);
@@ -364,14 +368,10 @@ export function Sidebar() {
         "lshorter_live_clicks_synced",
         handleSyncedEvent,
       );
-      window.removeEventListener("lshorter_data_change", () =>
-        fetchLiveClicks(true),
-      );
-      window.removeEventListener("lshorter_links_updated", () =>
-        fetchLiveClicks(true),
-      );
+      window.removeEventListener("lshorter_data_change", handleDataChange);
+      window.removeEventListener("lshorter_links_updated", handleLinksUpdated);
       window.removeEventListener("lshorter_link_clicked", handleLinkClicked);
-      window.removeEventListener("focus", () => fetchLiveClicks(true));
+      window.removeEventListener("focus", handleFocus);
     };
   }, [userId]);
 

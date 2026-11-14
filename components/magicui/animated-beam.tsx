@@ -46,6 +46,7 @@ export const AnimatedBeam: React.FC<AnimatedBeamProps> = ({
   const id = useId();
   const [pathD, setPathD] = useState("");
   const [svgDimensions, setSvgDimensions] = useState({ width: 0, height: 0 });
+  const [isInView, setIsInView] = useState(false);
 
   const [coordinates, setCoordinates] = useState({
     startX: 0,
@@ -53,6 +54,20 @@ export const AnimatedBeam: React.FC<AnimatedBeamProps> = ({
     endX: 0,
     endY: 0,
   });
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") {
+      setIsInView(true);
+      return;
+    }
+    const io = new IntersectionObserver(
+      ([entry]) => setIsInView(entry.isIntersecting),
+      { rootMargin: "120px", threshold: 0 }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [containerRef]);
 
   useEffect(() => {
     const updatePath = () => {
@@ -127,54 +142,58 @@ export const AnimatedBeam: React.FC<AnimatedBeamProps> = ({
         strokeLinecap="round"
       />
 
-      {/* ── 2. Laser beam glow layer ── */}
-      <motion.path
-        d={pathD}
-        stroke={`url(#${id})`}
-        strokeWidth={pathWidth + 2.5}
-        strokeLinecap="round"
-        style={{ filter: "blur(2px)" }}
-        initial={{
-          pathLength: 0.28,
-          pathOffset: reverse ? 1 : -0.28,
-          opacity: 0,
-        }}
-        animate={{
-          pathOffset: reverse ? [-0.28, 1] : [1, -0.28],
-          opacity: [0, 0.75, 0.75, 0],
-        }}
-        transition={{
-          delay,
-          duration,
-          ease: [0.16, 1, 0.3, 1],
-          repeat: Infinity,
-          repeatDelay: 0,
-        }}
-      />
+      {/* ── 2. Laser beam glow layer (opacity stroke halo, no costly SVG filter blur) ── */}
+      {isInView && (
+        <>
+          <motion.path
+            d={pathD}
+            stroke={`url(#${id})`}
+            strokeWidth={pathWidth + 3}
+            strokeOpacity={0.3}
+            strokeLinecap="round"
+            initial={{
+              pathLength: 0.28,
+              pathOffset: reverse ? 1 : -0.28,
+              opacity: 0,
+            }}
+            animate={{
+              pathOffset: reverse ? [-0.28, 1] : [1, -0.28],
+              opacity: [0, 0.75, 0.75, 0],
+            }}
+            transition={{
+              delay,
+              duration,
+              ease: [0.16, 1, 0.3, 1],
+              repeat: Infinity,
+              repeatDelay: 0,
+            }}
+          />
 
-      {/* ── 3. Sharp bright core beam ── */}
-      <motion.path
-        d={pathD}
-        stroke={`url(#${id})`}
-        strokeWidth={pathWidth}
-        strokeLinecap="round"
-        initial={{
-          pathLength: 0.24,
-          pathOffset: reverse ? 1 : -0.24,
-          opacity: 0,
-        }}
-        animate={{
-          pathOffset: reverse ? [-0.24, 1] : [1, -0.24],
-          opacity: [0, 1, 1, 0],
-        }}
-        transition={{
-          delay,
-          duration,
-          ease: [0.16, 1, 0.3, 1],
-          repeat: Infinity,
-          repeatDelay: 0,
-        }}
-      />
+          {/* ── 3. Sharp bright core beam ── */}
+          <motion.path
+            d={pathD}
+            stroke={`url(#${id})`}
+            strokeWidth={pathWidth}
+            strokeLinecap="round"
+            initial={{
+              pathLength: 0.24,
+              pathOffset: reverse ? 1 : -0.24,
+              opacity: 0,
+            }}
+            animate={{
+              pathOffset: reverse ? [-0.24, 1] : [1, -0.24],
+              opacity: [0, 1, 1, 0],
+            }}
+            transition={{
+              delay,
+              duration,
+              ease: [0.16, 1, 0.3, 1],
+              repeat: Infinity,
+              repeatDelay: 0,
+            }}
+          />
+        </>
+      )}
 
       {/* ── 4. Gradient aligned with node vector ── */}
       <defs>

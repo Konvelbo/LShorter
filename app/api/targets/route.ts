@@ -75,7 +75,7 @@ export async function GET(req: NextRequest) {
          FROM target_alerts t
          LEFT JOIN links l ON t.link_id = l.id
          WHERE t.user_id IN (${placeholders})
-         ORDER BY t.created_at DESC`,
+         ORDER BY CASE WHEN t.link_id IS NULL AND t.metric_type = 'clicks' THEN 0 WHEN t.link_id IS NULL THEN 1 ELSE 2 END, t.updated_at DESC, t.created_at DESC`,
         userIds
       );
 

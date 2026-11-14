@@ -615,42 +615,55 @@ export function DashboardMobileMenu({
             </div>
 
             {/* List */}
-            <div className="flex-1 overflow-y-auto py-2 flex flex-col gap-2">
+            <div className="flex-1 overflow-y-auto pt-3 pb-2 flex flex-col gap-2">
               {mergedNotifications.length === 0 ? (
                 <div className="py-8 text-center text-xs ds-text-muted">
                   Aucune notification pour le moment.
                 </div>
               ) : (
-                mergedNotifications.slice(0, 10).map((notif) => (
-                  <div
-                    key={notif.id}
-                    onClick={() => markNotificationRead?.(notif.id)}
-                    className={cn(
-                      "rounded-[10px] p-3 text-left transition-colors cursor-pointer",
-                      notif.isRead
-                        ? "bg-transparent hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
-                        : "bg-[#ECF3FF]/70 dark:bg-[#465FFF]/15 border border-[#465FFF]/20"
-                    )}
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs font-semibold ds-text-primary flex items-center gap-1.5">
-                        {!notif.isRead && (
-                          <span className="h-1.5 w-1.5 rounded-full bg-[#465FFF] shrink-0" />
-                        )}
-                        {notif.title}
+                mergedNotifications.slice(0, 10).map((notif) => {
+                  const d = new Date(notif.createdAt || Date.now());
+                  const datePopLabel = `${String(d.getFullYear()).slice(-2)}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
+                  return (
+                    <div
+                      key={notif.id}
+                      onClick={() => markNotificationRead?.(notif.id)}
+                      className={cn(
+                        "group relative rounded-[10px] p-3 text-left transition-colors cursor-pointer",
+                        notif.isRead
+                          ? "bg-transparent hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
+                          : "bg-[#ECF3FF]/70 dark:bg-[#465FFF]/15 border border-[#465FFF]/20"
+                      )}
+                    >
+                      {/* Hover Date Pop (YY/MM/DD) */}
+                      <span
+                        aria-hidden="true"
+                        className="pointer-events-none absolute -top-2 right-2.5 z-20 inline-flex items-center rounded-[6px] bg-zinc-900 dark:bg-[#27272A] px-2 py-0.5 text-[10px] font-mono font-semibold tracking-wider text-white shadow-md ring-1 ring-black/10 dark:ring-white/15 opacity-0 scale-90 translate-y-1 group-hover:opacity-100 group-hover:scale-100 group-hover:translate-y-0 transition-all duration-150 ease-out"
+                      >
+                        {datePopLabel}
+                        <span className="absolute -bottom-0.5 right-3 h-1.5 w-1.5 rotate-45 bg-zinc-900 dark:bg-[#27272A]" />
                       </span>
-                      <span className="text-[10px] ds-text-muted shrink-0">
-                        {new Date(notif.createdAt).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </span>
+
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-semibold ds-text-primary flex items-center gap-1.5">
+                          {!notif.isRead && (
+                            <span className="h-1.5 w-1.5 rounded-full bg-[#465FFF] shrink-0" />
+                          )}
+                          {notif.title}
+                        </span>
+                        <span className="text-[10px] ds-text-muted shrink-0">
+                          {d.toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs ds-text-secondary leading-relaxed">
+                        {notif.message}
+                      </p>
                     </div>
-                    <p className="mt-1 text-xs ds-text-secondary leading-relaxed">
-                      {notif.message}
-                    </p>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>

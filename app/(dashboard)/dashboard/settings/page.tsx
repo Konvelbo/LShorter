@@ -245,6 +245,7 @@ function SettingsPageContent() {
   const [accountStats, setAccountStats] = useState({
     linksCount: 0,
     clicksThisMonth: 0,
+    trackedRevenue: 0,
     domainsCount: 0,
     userDomains: [] as any[],
   });
@@ -279,9 +280,20 @@ function SettingsPageContent() {
             0),
         0,
       );
+      const sumRevenue = lList.reduce(
+        (acc: number, l: any) => acc + (Number(l.revenue) || 0),
+        0,
+      );
       const analyticsClicks30d = Number(
         analytics30dRes?.data?.totalClicks ??
           analytics30dRes?.data?.total_clicks ??
+          0,
+      );
+      const analyticsRevenue = Number(
+        analytics30dRes?.data?.trackedRevenue ??
+          (analytics30dRes?.data as any)?.tracked_revenue ??
+          analyticsRes?.data?.trackedRevenue ??
+          (analyticsRes?.data as any)?.tracked_revenue ??
           0,
       );
 
@@ -294,10 +306,12 @@ function SettingsPageContent() {
       }
 
       const totalLiveClicks = Math.max(analyticsClicks30d, sumClicks, storedLive);
+      const totalLiveRevenue = Math.max(analyticsRevenue, sumRevenue);
 
       setAccountStats({
         linksCount: lList.length,
         clicksThisMonth: totalLiveClicks,
+        trackedRevenue: totalLiveRevenue,
         domainsCount: dList.length,
         userDomains: dList,
       });
@@ -959,6 +973,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
 
   // ─── Target Alerts & Notifications State (Cloudflare D1 Synced) ─────────────
   const [targetAlerts, setTargetAlerts] = useState<TargetAlert[]>([]);
+  const [globalTargetMetric, setGlobalTargetMetric] = useState<"clicks" | "revenue">("clicks");
   const [userLinksList, setUserLinksList] = useState<any[]>([]);
   const [isLoadingTargets, setIsLoadingTargets] = useState(false);
   const [activeAlertFilter, setActiveAlertFilter] = useState<"all" | "active" | "paused" | "reached">("all");
@@ -980,8 +995,8 @@ console.log("Top Countries:", topAudience.topCountries);`,
   const [alertLinkId, setAlertLinkId] = useState<string>("");
   const [alertMetricType, setAlertMetricType] = useState<"clicks" | "revenue" | "both">("clicks");
   const [alertPeriod, setAlertPeriod] = useState<"day" | "week" | "month">("month");
-  const [alertTargetValue, setAlertTargetValue] = useState<number>(2500);
-  const [alertTargetClicks, setAlertTargetClicks] = useState<number>(2500);
+  const [alertTargetValue, setAlertTargetValue] = useState<number>(1000);
+  const [alertTargetClicks, setAlertTargetClicks] = useState<number>(1000);
   const [alertTargetRevenue, setAlertTargetRevenue] = useState<number>(5000);
   const [alertNotifyExpired, setAlertNotifyExpired] = useState<boolean>(true);
   const [alertNotifyEmail, setAlertNotifyEmail] = useState<boolean>(true);
@@ -992,8 +1007,11 @@ console.log("Top Countries:", topAudience.topCountries);`,
     if (!userId) return;
     setIsLoadingTargets(true);
     try {
-      // 1. Fetch user's links
-      const linksRes = await cfGetLinks(userId).catch(() => null);
+      // 1. Fetch user's links & targets concurrently
+      const [linksRes, res] = await Promise.all([
+        cfGetLinks(userId).catch(() => null),
+        cfGetTargetAlerts(userId).catch(() => null),
+      ]);
       const rawLinks = Array.isArray(linksRes?.data)
         ? linksRes.data
         : Array.isArray((linksRes?.data as any)?.data)
@@ -1001,27 +1019,67 @@ console.log("Top Countries:", topAudience.topCountries);`,
           : [];
       setUserLinksList(rawLinks);
 
-      // 2. Fetch targets from Cloudflare D1
-      const res = await cfGetTargetAlerts(userId).catch(() => null);
       let alerts: TargetAlert[] = [];
       if (res && res.success && Array.isArray(res.data)) {
         alerts = res.data;
       }
 
-      // Check global monthly target from storage or list
+      // Compute live clicks & revenue from links + accountStats so values are never 0 while stats load
+      const linksClicksSum = rawLinks.reduce(
+        (acc: number, l: any) =>
+          acc + (Number(l.clicks_count) || Number(l.clicksCount) || Number(l.clicks) || 0),
+        0
+      );
+      const linksRevenueSum = rawLinks.reduce(
+        (acc: number, l: any) => acc + (Number(l.revenue) || 0),
+        0
+      );
+      const liveClicksTotal = Math.max(accountStats.clicksThisMonth || 0, linksClicksSum);
+      const liveRevenueTotal = Math.max(accountStats.trackedRevenue || 0, linksRevenueSum);
+
+      // Sync global monthly targets between Cloudflare D1 and localStorage
       const savedClk = typeof window !== "undefined" ? Number(localStorage.getItem("lshorter_target_clicks")) : 0;
       const savedRev = typeof window !== "undefined" ? Number(localStorage.getItem("lshorter_target_revenue")) : 0;
 
-      const hasGlobal = alerts.some((a) => !a.linkId);
-      if (!hasGlobal) {
+      const d1GlobalClicks = alerts.find((a) => !a.linkId && a.metricType !== "revenue");
+      const d1GlobalRevenue = alerts.find((a) => !a.linkId && a.metricType === "revenue");
+
+      if (d1GlobalClicks && Number(d1GlobalClicks.targetValue) > 0 && typeof window !== "undefined") {
+        try {
+          localStorage.setItem("lshorter_target_clicks", String(d1GlobalClicks.targetValue));
+        } catch {}
+      }
+      if (d1GlobalRevenue && Number(d1GlobalRevenue.targetValue) > 0 && typeof window !== "undefined") {
+        try {
+          localStorage.setItem("lshorter_target_revenue", String(d1GlobalRevenue.targetValue));
+        } catch {}
+      }
+
+      if (!d1GlobalClicks) {
         alerts.unshift({
-          id: `global_${userId}`,
+          id: `global_${userId}_clicks`,
           userId,
           linkId: null,
           metricType: "clicks",
           period: "month",
-          targetValue: savedClk > 0 ? savedClk : 2500,
-          currentValue: accountStats.clicksThisMonth || 0,
+          targetValue: savedClk > 0 ? savedClk : 1000,
+          currentValue: liveClicksTotal,
+          notifyExpired: false,
+          notifyEmail: true,
+          notifyBell: true,
+          status: "active",
+        });
+      }
+
+      if (!d1GlobalRevenue) {
+        alerts.push({
+          id: `global_${userId}_revenue`,
+          userId,
+          linkId: null,
+          metricType: "revenue",
+          period: "month",
+          targetValue: savedRev > 0 ? savedRev : 5000,
+          currentValue: liveRevenueTotal,
           notifyExpired: false,
           notifyEmail: true,
           notifyBell: true,
@@ -1032,18 +1090,18 @@ console.log("Top Countries:", topAudience.topCountries);`,
       // Compute current live values for alerts from links
       alerts = alerts.map((al) => {
         if (!al.linkId) {
-          const cur = al.metricType === "revenue"
-            ? (accountStats.clicksThisMonth || 0) * 0.05
-            : (accountStats.clicksThisMonth || 0);
+          const cur = al.metricType === "revenue" ? liveRevenueTotal : liveClicksTotal;
           return {
             ...al,
             currentValue: cur,
-            status: cur >= al.targetValue ? "reached" : al.status,
+            status: al.status === "paused" ? "paused" : (cur >= al.targetValue ? "reached" : al.status),
           };
         } else {
           const matched = rawLinks.find((l: any) => String(l.id) === String(al.linkId) || l.slug === al.slug);
           const cur = matched
-            ? (Number(matched.clicks_count) || Number(matched.clicksCount) || Number(matched.clicks) || 0)
+            ? (al.metricType === "revenue"
+                ? (Number(matched.revenue) || 0)
+                : (Number(matched.clicks_count) || Number(matched.clicksCount) || Number(matched.clicks) || 0))
             : (al.currentValue || 0);
           return {
             ...al,
@@ -1051,7 +1109,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
             slug: matched ? matched.slug : al.slug,
             targetUrl: matched ? (matched.target_url || matched.targetUrl) : al.targetUrl,
             currentValue: cur,
-            status: cur >= al.targetValue ? "reached" : al.status,
+            status: al.status === "paused" ? "paused" : (cur >= al.targetValue ? "reached" : al.status),
           };
         }
       });
@@ -1068,7 +1126,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
     if (activeTab === "notifications" && userId) {
       loadTargetAlerts();
     }
-  }, [activeTab, userId, accountStats.clicksThisMonth]);
+  }, [activeTab, userId, accountStats.clicksThisMonth, accountStats.trackedRevenue]);
 
   useEffect(() => {
     const handleTargetUpdate = (e: any) => {
@@ -1145,8 +1203,8 @@ console.log("Top Countries:", topAudience.topCountries);`,
     setAlertLinkId(initialLinkId);
     setAlertMetricType("clicks");
     setAlertPeriod("month");
-    setAlertTargetValue(2500);
-    setAlertTargetClicks(2500);
+    setAlertTargetValue(1000);
+    setAlertTargetClicks(1000);
     setAlertTargetRevenue(5000);
     setAlertNotifyExpired(initialLinkId !== "global");
     setAlertNotifyEmail(true);
@@ -1162,13 +1220,17 @@ console.log("Top Countries:", topAudience.topCountries);`,
     setAlertLinkId(alert.linkId ? String(alert.linkId) : "global");
     setAlertMetricType(alert.metricType || "clicks");
     setAlertPeriod(isGlobal ? "month" : (alert.period || "month"));
-    setAlertTargetValue(alert.targetValue || 2500);
+    const clkAlert = targetAlerts.find((a) => !a.linkId && a.metricType !== "revenue");
+    const revAlert = targetAlerts.find((a) => !a.linkId && a.metricType === "revenue");
+    const savedClk = clkAlert?.targetValue || (typeof window !== "undefined" ? Number(localStorage.getItem("lshorter_target_clicks")) : 0) || 1000;
+    const savedRev = revAlert?.targetValue || (typeof window !== "undefined" ? Number(localStorage.getItem("lshorter_target_revenue")) : 0) || 5000;
+    setAlertTargetValue(alert.targetValue || (alert.metricType === "revenue" ? savedRev : savedClk));
     if (alert.metricType === "revenue") {
-      setAlertTargetRevenue(alert.targetValue || 5000);
-      setAlertTargetClicks(2500);
+      setAlertTargetRevenue(alert.targetValue || savedRev);
+      setAlertTargetClicks(savedClk);
     } else {
-      setAlertTargetClicks(alert.targetValue || 2500);
-      setAlertTargetRevenue(5000);
+      setAlertTargetClicks(alert.targetValue || savedClk);
+      setAlertTargetRevenue(savedRev);
     }
     setAlertNotifyExpired(isGlobal ? false : (alert.notifyExpired !== false));
     setAlertNotifyEmail(alert.notifyEmail !== false);
@@ -3644,7 +3706,12 @@ console.log("Top Countries:", topAudience.topCountries);`,
 
           {/* TAB 8: NOTIFICATIONS (TARGET & LIMIT ALERTS) */}
           {activeTab === "notifications" && (() => {
-            const globalAlert = targetAlerts.find((a) => !a.linkId);
+            const globalClicksAlert = targetAlerts.find((a) => !a.linkId && a.metricType !== "revenue");
+            const globalRevenueAlert = targetAlerts.find((a) => !a.linkId && a.metricType === "revenue");
+            const globalAlert =
+              globalTargetMetric === "revenue"
+                ? (globalRevenueAlert || globalClicksAlert)
+                : (globalClicksAlert || globalRevenueAlert);
             const individualAlerts = targetAlerts.filter((a) => a.linkId);
 
             const filteredAlerts = individualAlerts.filter((a) => {
@@ -3656,18 +3723,37 @@ console.log("Top Countries:", topAudience.topCountries);`,
             const pausedCount = individualAlerts.filter((a) => a.status === "paused").length;
             const reachedCount = individualAlerts.filter((a) => a.status === "reached").length;
 
-            // Global stats
-            const globalCurrent = globalAlert?.currentValue ?? accountStats.clicksThisMonth ?? 0;
-            const globalTarget = globalAlert?.targetValue ?? 2500;
-            const globalProgressPct = Math.min(100, Math.round((globalCurrent / (globalTarget || 1)) * 100));
+            // Global stats synchronized with Dashboard Monthly Target (no 2500 flash or revenue override)
+            const cachedClk =
+              typeof window !== "undefined"
+                ? Number(localStorage.getItem("lshorter_target_clicks")) || 1000
+                : 1000;
+            const cachedRev =
+              typeof window !== "undefined"
+                ? Number(localStorage.getItem("lshorter_target_revenue")) || 5000
+                : 5000;
 
-            const isRevenue = globalAlert?.metricType === "revenue";
+            const isRevenue = globalTargetMetric === "revenue";
+            const globalCurrent = isRevenue
+              ? (globalRevenueAlert?.currentValue ?? accountStats.trackedRevenue ?? 0)
+              : (globalClicksAlert?.currentValue ?? accountStats.clicksThisMonth ?? 0);
+            const globalTarget = isRevenue
+              ? (globalRevenueAlert?.targetValue ?? cachedRev)
+              : (globalClicksAlert?.targetValue ?? cachedClk);
+            const rawGlobalRatio = globalTarget > 0 ? (globalCurrent / globalTarget) * 100 : 0;
+            const globalProgressPct =
+              globalCurrent === 0
+                ? 0
+                : rawGlobalRatio < 1
+                  ? 1
+                  : Math.min(100, Math.round(rawGlobalRatio));
+
             const globalCurrentFormatted = isRevenue
               ? `$${globalCurrent.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-              : globalCurrent.toLocaleString();
+              : globalCurrent.toLocaleString("en-US");
             const globalTargetFormatted = isRevenue
               ? `$${globalTarget.toLocaleString("en-US")}`
-              : globalTarget.toLocaleString();
+              : globalTarget.toLocaleString("en-US");
 
             return (
               <div className="flex flex-col gap-6">
@@ -3709,7 +3795,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
 
                 {/* ─── SECTION 1: GLOBAL WORKSPACE TARGET (MONTHLY) ─────────── */}
                 <div className="rounded-[10px] border border-zinc-200 dark:border-[#222225] bg-white dark:bg-[#111113] p-5 shadow-xs">
-                  <div className="flex items-start justify-between gap-3 pb-4 border-b border-zinc-100 dark:border-[#202024]">
+                  <div className="flex flex-wrap items-start justify-between gap-3 pb-4 border-b border-zinc-100 dark:border-[#202024]">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-[8px] bg-brand/10 text-brand flex items-center justify-center border border-brand/20 shrink-0">
                         <Target className="w-5 h-5" />
@@ -3725,6 +3811,31 @@ console.log("Top Countries:", topAudience.topCountries);`,
                     </div>
 
                     <div className="flex items-center gap-2 relative" data-row-menu>
+                      <div className="inline-flex rounded-[8px] bg-zinc-100 dark:bg-zinc-800/80 p-0.5 border border-zinc-200 dark:border-zinc-700/80">
+                        <button
+                          type="button"
+                          onClick={() => setGlobalTargetMetric("clicks")}
+                          className={`rounded-[6px] px-2.5 py-1 text-[11px] font-medium transition-colors cursor-pointer ${
+                            globalTargetMetric === "clicks"
+                              ? "bg-white dark:bg-[#1a1a1e] text-zinc-900 dark:text-white shadow-2xs font-semibold"
+                              : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
+                          }`}
+                        >
+                          Clicks
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setGlobalTargetMetric("revenue")}
+                          className={`rounded-[6px] px-2.5 py-1 text-[11px] font-medium transition-colors cursor-pointer ${
+                            globalTargetMetric === "revenue"
+                              ? "bg-white dark:bg-[#1a1a1e] text-zinc-900 dark:text-white shadow-2xs font-semibold"
+                              : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
+                          }`}
+                        >
+                          Revenue
+                        </button>
+                      </div>
+
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border ${
                         globalAlert?.status === "paused"
                           ? "bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800"
@@ -3800,7 +3911,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                           Monthly Progress
                         </span>
                         <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
-                          {globalAlert?.metricType === "revenue" ? "Revenue ($)" : "Total Clicks"}
+                          {isRevenue ? "Revenue ($)" : "Total Clicks"}
                         </span>
                       </div>
                       <div className="flex items-baseline gap-2">

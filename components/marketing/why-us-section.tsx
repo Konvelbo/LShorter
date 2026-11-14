@@ -187,12 +187,31 @@ const GeoRoutingDiagram = memo(function GeoRoutingDiagram() {
 
 const SdkLoopDiagram = memo(function SdkLoopDiagram() {
   const [activePillIdx, setActivePillIdx] = useState(2);
+  const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const el = rootRef.current;
+    let isInView = true;
+    let io: IntersectionObserver | null = null;
+    if (el && typeof IntersectionObserver !== "undefined") {
+      isInView = false;
+      io = new IntersectionObserver(
+        ([entry]) => {
+          isInView = entry.isIntersecting;
+        },
+        { threshold: 0 }
+      );
+      io.observe(el);
+    }
+
     const timer = setInterval(() => {
+      if (!isInView || document.hidden) return;
       setActivePillIdx((prev) => (prev + 1) % 6);
     }, 1500);
-    return () => clearInterval(timer);
+    return () => {
+      clearInterval(timer);
+      io?.disconnect();
+    };
   }, []);
 
   const pills = [
@@ -205,7 +224,7 @@ const SdkLoopDiagram = memo(function SdkLoopDiagram() {
   ];
 
   return (
-    <div className="relative w-full h-[230px] sm:h-[250px] flex items-center justify-center overflow-hidden">
+    <div ref={rootRef} className="relative w-full h-[230px] sm:h-[250px] flex items-center justify-center overflow-hidden">
       <svg viewBox="0 0 280 240" className="w-[250px] sm:w-[265px] h-[220px]">
         <circle
           cx="140"
@@ -241,12 +260,31 @@ const SdkLoopDiagram = memo(function SdkLoopDiagram() {
 
 const RevenueStackDiagram = memo(function RevenueStackDiagram() {
   const [activeStackIdx, setActiveStackIdx] = useState(0);
+  const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const el = rootRef.current;
+    let isInView = true;
+    let io: IntersectionObserver | null = null;
+    if (el && typeof IntersectionObserver !== "undefined") {
+      isInView = false;
+      io = new IntersectionObserver(
+        ([entry]) => {
+          isInView = entry.isIntersecting;
+        },
+        { threshold: 0 }
+      );
+      io.observe(el);
+    }
+
     const timer = setInterval(() => {
+      if (!isInView || document.hidden) return;
       setActiveStackIdx((prev) => (prev + 1) % 3);
     }, 1500);
-    return () => clearInterval(timer);
+    return () => {
+      clearInterval(timer);
+      io?.disconnect();
+    };
   }, []);
 
   const bars = [
@@ -277,7 +315,7 @@ const RevenueStackDiagram = memo(function RevenueStackDiagram() {
   ];
 
   return (
-    <div className="relative w-full h-[230px] sm:h-[250px] flex flex-col items-center justify-center px-2 sm:px-4 gap-3 overflow-hidden">
+    <div ref={rootRef} className="relative w-full h-[230px] sm:h-[250px] flex flex-col items-center justify-center px-2 sm:px-4 gap-3 overflow-hidden">
       {bars.map((b, idx) => {
         const isFocused = activeStackIdx === idx;
         return (
@@ -371,21 +409,34 @@ export function WhyUsSection() {
     let velocity = 0;
     let lastClientX = 0;
     let isHovered = false;
-    let rafId: number;
+    let rafId: number | null = null;
+    let isInView = false;
+    let halfWidth = track.scrollWidth / 2;
 
     const autoSpeed = 1.1;
 
-    const getHalfWidth = () => track.scrollWidth / 2;
+    const resizeObserver = new ResizeObserver(() => {
+      halfWidth = track.scrollWidth / 2;
+    });
+    resizeObserver.observe(track);
 
     const normalize = (val: number) => {
-      const half = getHalfWidth();
-      if (!half) return 0;
-      let n = val % half;
-      if (n > 0) n -= half;
+      if (!halfWidth) return 0;
+      let n = val % halfWidth;
+      if (n > 0) n -= halfWidth;
       return n;
     };
 
+    const stopLoop = () => {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+    };
+
     const step = () => {
+      rafId = null;
+      if (!isInView || document.hidden) return;
       if (!isDragging) {
         if (Math.abs(velocity) > 0.08) {
           offset = normalize(offset + velocity);
@@ -398,7 +449,34 @@ export function WhyUsSection() {
       rafId = requestAnimationFrame(step);
     };
 
-    rafId = requestAnimationFrame(step);
+    const startLoop = () => {
+      if (rafId === null && isInView && !document.hidden) {
+        rafId = requestAnimationFrame(step);
+      }
+    };
+
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        isInView = entry.isIntersecting;
+        if (isInView) {
+          halfWidth = track.scrollWidth / 2;
+          startLoop();
+        } else {
+          stopLoop();
+        }
+      },
+      { threshold: 0 }
+    );
+    io.observe(track);
+
+    const onVisibilityChange = () => {
+      if (document.hidden) {
+        stopLoop();
+      } else {
+        startLoop();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
 
     const onPointerDown = (e: PointerEvent) => {
       isDragging = true;
@@ -442,7 +520,10 @@ export function WhyUsSection() {
     track.addEventListener("mouseleave", onMouseLeave);
 
     return () => {
-      cancelAnimationFrame(rafId);
+      stopLoop();
+      io.disconnect();
+      resizeObserver.disconnect();
+      document.removeEventListener("visibilitychange", onVisibilityChange);
       track.removeEventListener("pointerdown", onPointerDown);
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("pointerup", onPointerUp);

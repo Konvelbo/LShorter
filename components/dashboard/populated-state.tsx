@@ -28,7 +28,7 @@ import {
 } from "lucide-react";
 import { ShortLink, GlobalAnalytics } from "@/types";
 import { formatNumber, isLinkActive } from "@/lib/utils";
-import { cfInvalidateCache, cfCreateTargetAlert, cfBulkDeleteLinks, cfDeleteLink } from "@/lib/cloudflare-api";
+import { cfInvalidateCache, cfGetTargetAlerts, cfCreateTargetAlert, cfBulkDeleteLinks, cfDeleteLink } from "@/lib/cloudflare-api";
 import { showToast } from "@/components/ui/toast-provider";
 import { useUndoDelete } from "@/components/ui/undo-delete-provider";
 import {
@@ -117,13 +117,13 @@ export function PopulatedState({
   const linkUserId = links?.[0]?.userId || (links?.[0] as any)?.user_id || "";
   const rawUserId = session?.user?.id || (session?.user as any)?.userId || searchUserId || linkUserId || session?.user?.email || "";
   const rawEmail = session?.user?.email || "";
-  const userId = rawUserId;
   const convexUser = useQuery(
     api.users.getCurrentUser,
     rawUserId || rawEmail
       ? { userId: rawUserId || rawEmail, email: rawEmail || undefined }
       : "skip"
   );
+  const userId = convexUser?.userId || linkUserId || rawUserId;
 
   const cachedName = React.useMemo(() => {
     if (typeof window !== "undefined") {
@@ -195,6 +195,10 @@ export function PopulatedState({
   );
   const [isTargetMenuOpen, setIsTargetMenuOpen] = useState(false);
   const [isTargetEditModalOpen, setIsTargetEditModalOpen] = useState(false);
+  const isTargetEditModalOpenRef = useRef(false);
+  useEffect(() => {
+    isTargetEditModalOpenRef.current = isTargetEditModalOpen;
+  }, [isTargetEditModalOpen]);
   const [isTestingTargetNotif, setIsTestingTargetNotif] = useState(false);
   const [targetRevenueLimit, setTargetRevenueLimit] = useState<number>(5000);
   const [targetClicksLimit, setTargetClicksLimit] = useState<number>(1000);
@@ -215,6 +219,83 @@ export function PopulatedState({
       }
     } catch {}
   }, []);
+
+  // Synchronisation Cloud multi-appareils (Desktop / Mobile / Paramètres) depuis Cloudflare D1
+  useEffect(() => {
+    if (!userId) return;
+    let cancelled = false;
+    let lastSyncedAt = 0;
+
+    const syncTargetsFromCloudflare = async () => {
+      const now = Date.now();
+      if (now - lastSyncedAt < 2500) return;
+      lastSyncedAt = now;
+      try {
+        const res = await cfGetTargetAlerts(userId);
+        if (cancelled || !res?.success || !Array.isArray(res.data)) return;
+
+        const globalClicksAlert = res.data.find(
+          (a: any) => !a.linkId && a.metricType === "clicks"
+        );
+        const globalRevenueAlert = res.data.find(
+          (a: any) => !a.linkId && a.metricType === "revenue"
+        );
+
+        if (globalClicksAlert && Number(globalClicksAlert.targetValue) > 0) {
+          const val = Number(globalClicksAlert.targetValue);
+          setTargetClicksLimit(val);
+          if (!isTargetEditModalOpenRef.current) {
+            setDraftClicksInput(String(val));
+          }
+          try {
+            localStorage.setItem("lshorter_target_clicks", String(val));
+          } catch {}
+        }
+
+        if (globalRevenueAlert && Number(globalRevenueAlert.targetValue) > 0) {
+          const val = Number(globalRevenueAlert.targetValue);
+          setTargetRevenueLimit(val);
+          if (!isTargetEditModalOpenRef.current) {
+            setDraftRevenueInput(String(val));
+          }
+          try {
+            localStorage.setItem("lshorter_target_revenue", String(val));
+          } catch {}
+        }
+      } catch {}
+    };
+
+    syncTargetsFromCloudflare();
+
+    const handleTargetEvent = (e: Event) => {
+      const detail = (e as CustomEvent)?.detail;
+      if (detail?.clicks && Number(detail.clicks) > 0) {
+        setTargetClicksLimit(Number(detail.clicks));
+        setDraftClicksInput(String(detail.clicks));
+      }
+      if (detail?.revenue && Number(detail.revenue) > 0) {
+        setTargetRevenueLimit(Number(detail.revenue));
+        setDraftRevenueInput(String(detail.revenue));
+      }
+    };
+
+    const handleFocus = () => {
+      if (typeof document !== "undefined" && document.visibilityState === "visible") {
+        syncTargetsFromCloudflare();
+      }
+    };
+
+    window.addEventListener("lshorter_target_updated", handleTargetEvent);
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleFocus);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener("lshorter_target_updated", handleTargetEvent);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleFocus);
+    };
+  }, [userId]);
 
   const sumLinkClicks = useMemo(
     () =>

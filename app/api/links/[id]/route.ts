@@ -8,6 +8,7 @@ import { auth } from "@/auth";
 import { convexHttp as convex } from "@/lib/convex-server";
 import { api } from "@/convex/_generated/api";
 import { isSafeHttpUrl, isValidSlug } from "@/lib/security-utils";
+import { invalidateServerLinksCache } from "@/lib/server-links-cache";
 
 function parseTags(raw: any): string[] {
   if (!raw) return [];
@@ -34,12 +35,16 @@ export async function PATCH(
 ) {
   const { id } = await params;
   let body: any = {};
+  let resolvedUserId = "";
+  let resolvedUserEmail = "";
   try {
     const session = await auth().catch(() => null);
     const { searchParams } = new URL(req.url);
     body = await req.json().catch(() => ({}));
     const requestEmail = session?.user?.email || searchParams.get("userEmail") || body?.userEmail || "";
     const requestUserId = session?.user?.id || searchParams.get("userId") || body?.userId || "";
+    resolvedUserId = requestUserId;
+    resolvedUserEmail = requestEmail;
 
     if (!session?.user && !requestUserId && !requestEmail) {
       return NextResponse.json(
@@ -632,6 +637,7 @@ export async function PATCH(
         res.status,
         "- Local fallback succeeded.",
       );
+      invalidateServerLinksCache(resolvedUserId, resolvedUserEmail);
       return NextResponse.json(
         {
           success: true,
@@ -684,6 +690,7 @@ export async function PATCH(
       );
     }
 
+    invalidateServerLinksCache(resolvedUserId, resolvedUserEmail);
     return NextResponse.json(
       {
         ...data,
@@ -763,6 +770,7 @@ export async function PATCH(
     );
   } catch (error: any) {
     console.warn("[Links Proxy PATCH] Error connecting to Worker:", error);
+    invalidateServerLinksCache(resolvedUserId, resolvedUserEmail);
     return NextResponse.json(
       {
         success: true,
@@ -874,12 +882,14 @@ export async function DELETE(
       } catch {}
     }
 
+    invalidateServerLinksCache(userId, userEmail);
     return NextResponse.json({ success: true, data: { deleted: true, id: targetId } });
   } catch (error: any) {
     console.warn(
       "[Links Proxy DELETE] Non-fatal worker connection warning:",
       error,
     );
+    invalidateServerLinksCache(userId, userEmail);
     return NextResponse.json({ success: true, data: { deleted: true, id } });
   }
 }

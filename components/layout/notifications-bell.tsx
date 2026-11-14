@@ -482,16 +482,18 @@ export function NotificationsBell({
               </p>
             </div>
           ) : (
-            <div className="flex flex-col gap-2 mt-2.5">
+            <div className="flex flex-col gap-2 mt-2.5 pt-1">
               {notifications.map((n) => {
                 const isSelected = selectedForDelete.has(n._id);
+                const d = new Date(n.createdAt || Date.now());
+                const datePopLabel = `${String(d.getFullYear()).slice(-2)}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
 
                 return (
                   <div
                     key={n._id}
                     onClick={(e) => handleNotificationClick(n, e)}
                     className={cn(
-                      "group p-2.5 rounded-[10px] transition-all cursor-pointer border text-left select-none",
+                      "group relative p-2.5 rounded-[10px] transition-all cursor-pointer border text-left select-none",
                       isDeleteMode
                         ? isSelected
                           ? "bg-[#1f1f23] border-[#3f3f46]"
@@ -501,6 +503,15 @@ export function NotificationsBell({
                           : "bg-[#141416] border-[#222225] hover:bg-white/5 opacity-75"
                     )}
                   >
+                    {/* Hover Date Pop (YY/MM/DD) */}
+                    <span
+                      aria-hidden="true"
+                      className="pointer-events-none absolute -top-2 right-2.5 z-20 inline-flex items-center rounded-[6px] bg-zinc-900 dark:bg-[#27272A] px-2 py-0.5 text-[10px] font-mono font-semibold tracking-wider text-white shadow-md ring-1 ring-white/15 opacity-0 scale-90 translate-y-1 group-hover:opacity-100 group-hover:scale-100 group-hover:translate-y-0 transition-all duration-150 ease-out"
+                    >
+                      {datePopLabel}
+                      <span className="absolute -bottom-0.5 right-3 h-1.5 w-1.5 rotate-45 bg-zinc-900 dark:bg-[#27272A]" />
+                    </span>
+
                     <div className="flex items-start gap-2.5">
                       {isDeleteMode && (
                         <div

@@ -61,8 +61,33 @@ export default function DashboardOverviewPage() {
   });
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const snapLinks = localStorage.getItem("lshorter_snapshot_links");
+        if (snapLinks) {
+          const parsed = JSON.parse(snapLinks);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setLinks(parsed);
+            setIsLoading(false);
+          }
+        }
+        const snapAnalytics = localStorage.getItem("lshorter_snapshot_analytics");
+        if (snapAnalytics) {
+          const parsedA = JSON.parse(snapAnalytics);
+          if (parsedA && typeof parsedA === "object") {
+            setAnalytics(parsedA);
+          }
+        }
+      } catch {}
+    }
+  }, []);
+
+  useEffect(() => {
     if (typeof window !== "undefined" && userId) {
       try {
+        if (userId !== "usr_anonymous") {
+          localStorage.setItem("lshorter_user_id", userId);
+        }
         const s = localStorage.getItem(`lshorter_live_clicks_${userId}`);
         if (s !== null && !isNaN(Number(s))) {
           setSyncedLiveClicks(Number(s));
@@ -72,12 +97,19 @@ export default function DashboardOverviewPage() {
   }, [userId]);
 
   const loadData = async (isBackground = false, force = false) => {
-    if (!isBackground) setIsLoading(true);
+    if (!isBackground && links.length === 0) setIsLoading(true);
 
     try {
-      const needForce = isBackground || force;
-      // Fetch links from Cloudflare D1 API (proxy resolves userId from query or active session)
+      const needForce = force;
+      // Launch links and 30d analytics requests concurrently to eliminate sequential waterfall
+      const analyticsPromise = userId
+        ? cfGetAnalytics(userId, "30d", undefined, needForce).catch(() => null)
+        : Promise.resolve(null);
       const linksRes = await cfGetLinks(userId || "", needForce);
+      if (linksRes && (linksRes as any).success === false) {
+        if (!isBackground) setIsLoading(false);
+        return;
+      }
       const listData = Array.isArray(linksRes?.data) ? linksRes.data : Array.isArray((linksRes?.data as any)?.data) ? (linksRes?.data as any).data : [];
       const rawLinks: ShortLink[] = listData.map((l: any) => {
         const active = isLinkActive(l);
@@ -203,6 +235,11 @@ export default function DashboardOverviewPage() {
         };
       });
       setLinks(rawLinks);
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem("lshorter_snapshot_links", JSON.stringify(rawLinks));
+        } catch {}
+      }
       if (!isBackground) setIsLoading(false);
 
       // If user has 0 links, reset analytics to zero immediately (ensures instant update on deletion)
@@ -215,9 +252,9 @@ export default function DashboardOverviewPage() {
       const sumLinksClicks = rawLinks.reduce((acc, l) => acc + (l.clicksCount || 0), 0);
       const sumUniqueClicks = rawLinks.reduce((acc, l) => acc + (l.uniqueClicks || 0), 0);
 
-      // Fetch analytics from Cloudflare D1 API
+      // Await parallel analytics request launched alongside links fetch
       try {
-        const analyticsRes = await cfGetAnalytics(userId, "30d", undefined, needForce);
+        const analyticsRes = await analyticsPromise;
         if (analyticsRes?.data) {
           const d = analyticsRes.data;
           const workerTotal = Number(d.total_clicks ?? d.totalClicks ?? 0);
@@ -246,7 +283,7 @@ export default function DashboardOverviewPage() {
               ? rawClicksByDay
               : generateTimelineForRange("month", total, unique, rawClicksByDay, rawLiveEvents);
 
-          setAnalytics({
+          const nextAnalytics: GlobalAnalytics = {
             totalClicks: total,
             clicksGrowth: d.clicks_growth || d.clicksGrowth || 0,
             uniqueClicks: unique,
@@ -315,7 +352,13 @@ export default function DashboardOverviewPage() {
             clicksByMonth: d.clicks_by_month || d.clicksByMonth,
             incomeByMonth: d.income_by_month || d.incomeByMonth,
             // DEMO-END
-          });
+          };
+          setAnalytics(nextAnalytics);
+          if (typeof window !== "undefined") {
+            try {
+              localStorage.setItem("lshorter_snapshot_analytics", JSON.stringify(nextAnalytics));
+            } catch {}
+          }
         } else {
           // Analytics API returned no data — fall back to link-level aggregates.
           // Still generate a real timeline so the charts always show the correct bars.
@@ -338,8 +381,7 @@ export default function DashboardOverviewPage() {
     } catch (err) {
       console.error("Cloudflare API error:", err);
       if (!isBackground) {
-        setLinks([]);
-        setAnalytics(ANALYTICS_ZERO);
+        setLinks((prev) => (prev.length > 0 ? prev : []));
       }
     } finally {
       if (!isBackground) setIsLoading(false);
@@ -351,47 +393,50 @@ export default function DashboardOverviewPage() {
       setIsLoading(false);
       return;
     }
-    if (status === "authenticated" && userId) {
-      loadData(false, false);
+    if ((status === "authenticated" || userId) && userId) {
+      loadData(links.length > 0, false);
     }
   }, [status, userId]);
 
-  // Safety timeout: guarantee skeleton disappears after maximum 3.5s
+  // Safety timeout: guarantee skeleton disappears after maximum 10s
   useEffect(() => {
+    if (status === "loading" && !userId) return;
     const timer = setTimeout(() => {
       setIsLoading(false);
-    }, 3500);
+    }, 10000);
     return () => clearTimeout(timer);
-  }, []);
+  }, [status, userId]);
 
   // Listen for global link creation/update events (from sidebar, modals, etc.)
   useEffect(() => {
     if (!userId) return;
 
-    const handleUpdate = () => {
-      cfInvalidateCache();
-      loadData(true, true);
+    let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+    const scheduleRefresh = (forceRefresh = false) => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => {
+        refreshTimer = null;
+        if (forceRefresh) cfInvalidateCache();
+        loadData(true, forceRefresh);
+      }, 60);
     };
+
+    const handleDataEvent = () => scheduleRefresh(false);
+    const handleForceEvent = () => scheduleRefresh(true);
 
     const handleLiveSync = (e: Event) => {
       const detail = (e as CustomEvent)?.detail;
       if (typeof detail?.clicks === "number") {
         setSyncedLiveClicks((prev) => Math.max(prev, detail.clicks));
         if (!detail?.fromOverview) {
-          cfInvalidateCache();
-          loadData(true, true);
+          scheduleRefresh(false);
         }
       }
     };
 
-    const handleFocus = () => {
-      if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
-      handleUpdate();
-    };
-
     const handleStorage = (e: StorageEvent) => {
       if (e.key === "lshorter_last_click" || e.key === "lshorter_data_change") {
-        handleUpdate();
+        handleForceEvent();
       } else if (e.key === `lshorter_live_clicks_${userId}` && e.newValue) {
         const val = Number(e.newValue);
         if (!isNaN(val)) setSyncedLiveClicks((prev) => Math.max(prev, val));
@@ -415,12 +460,10 @@ export default function DashboardOverviewPage() {
     };
 
     window.addEventListener("lshorter_link_deleted", handleLinkDeleted);
-    window.addEventListener("lshorter_links_updated", handleUpdate);
-    window.addEventListener("lshorter_data_change", handleUpdate);
-    window.addEventListener("lshorter_link_clicked", handleUpdate);
+    window.addEventListener("lshorter_links_updated", handleDataEvent);
+    window.addEventListener("lshorter_data_change", handleDataEvent);
+    window.addEventListener("lshorter_link_clicked", handleForceEvent);
     window.addEventListener("lshorter_live_clicks_synced", handleLiveSync);
-    window.addEventListener("focus", handleFocus);
-    document.addEventListener("visibilitychange", handleFocus);
     window.addEventListener("storage", handleStorage);
 
     // Cross-tab broadcast receiver
@@ -430,10 +473,10 @@ export default function DashboardOverviewPage() {
         channel = new BroadcastChannel("lshorter_realtime");
         channel.onmessage = (event) => {
           if (event.data?.type === "click" || event.data?.type === "refresh") {
-            handleUpdate();
+            handleForceEvent();
           } else if (event.data?.type === "live_clicks_synced" && typeof event.data?.clicks === "number") {
             setSyncedLiveClicks((prev) => Math.max(prev, event.data.clicks));
-            handleUpdate();
+            handleDataEvent();
           }
         };
       }
@@ -441,24 +484,23 @@ export default function DashboardOverviewPage() {
 
     const pollTimer = setInterval(() => {
       if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
-      loadData(true, true);
-    }, 15000);
+      loadData(true, false);
+    }, 45000);
 
     return () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
       window.removeEventListener("lshorter_link_deleted", handleLinkDeleted);
-      window.removeEventListener("lshorter_links_updated", handleUpdate);
-      window.removeEventListener("lshorter_data_change", handleUpdate);
-      window.removeEventListener("lshorter_link_clicked", handleUpdate);
+      window.removeEventListener("lshorter_links_updated", handleDataEvent);
+      window.removeEventListener("lshorter_data_change", handleDataEvent);
+      window.removeEventListener("lshorter_link_clicked", handleForceEvent);
       window.removeEventListener("lshorter_live_clicks_synced", handleLiveSync);
-      window.removeEventListener("focus", handleFocus);
-      document.removeEventListener("visibilitychange", handleFocus);
       window.removeEventListener("storage", handleStorage);
       if (channel) channel.close();
       clearInterval(pollTimer);
     };
   }, [userId]);
 
-  if (status === "loading" || isLoading) {
+  if ((status === "loading" && links.length === 0) || isLoading) {
     return <DashboardOverviewSkeleton />;
   }
 

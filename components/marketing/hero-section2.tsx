@@ -17,6 +17,7 @@ import {
   Split,
   LayoutDashboard,
   Sparkles,
+  BookOpen,
 } from "lucide-react";
 
 const TREND_ITEMS = [
@@ -304,14 +305,6 @@ export function HeroSection2() {
     setTimeout(() => setCopiedPrompt(false), 2000);
   };
 
-  const handleScrollToProduct = (e: React.MouseEvent) => {
-    e.preventDefault();
-    const productEl = document.getElementById("product");
-    if (productEl) {
-      productEl.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  };
-
   return (
     <section
       ref={heroRef}
@@ -581,13 +574,13 @@ export function HeroSection2() {
 
               <div className="hero-action-pill animate-hero-pill-2 will-change-transform w-full sm:w-auto flex justify-center">
                 <Link
-                  href="#product"
-                  onClick={handleScrollToProduct}
+                  href="/docs"
                   onMouseEnter={handleSecondaryBtnEnter}
                   onMouseLeave={handleSecondaryBtnLeave}
                   className="w-full max-w-[320px] sm:max-w-none sm:w-56 inline-flex items-center justify-center gap-2 rounded-[12px] bg-[#F2F4F7] dark:bg-white/10 text-[#101828] dark:text-white border border-[#D0D5DD] dark:border-white/15 px-6 py-3.5 text-[15px] sm:text-[14px] font-medium shadow-xs will-change-transform cursor-pointer hover:bg-white dark:hover:bg-white/15 transition-colors text-center"
                 >
-                  <span>See how it works</span>
+                  <BookOpen className="w-4 h-4 text-[#475467] dark:text-zinc-300 shrink-0" />
+                  <span>API documentation</span>
                 </Link>
               </div>
             </div>

@@ -139,8 +139,26 @@ export default function LinksPage() {
   });
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const snapLinks = localStorage.getItem("lshorter_snapshot_links");
+        if (snapLinks) {
+          const parsed = JSON.parse(snapLinks);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setLinks(parsed);
+            setIsLoading(false);
+          }
+        }
+      } catch {}
+    }
+  }, []);
+
+  useEffect(() => {
     if (typeof window !== "undefined" && userId) {
       try {
+        if (userId !== "usr_anonymous") {
+          localStorage.setItem("lshorter_user_id", userId);
+        }
         const s = localStorage.getItem(`lshorter_live_clicks_${userId}`);
         if (s !== null && !isNaN(Number(s))) {
           setSyncedLiveClicks(Number(s));
@@ -150,10 +168,14 @@ export default function LinksPage() {
   }, [userId]);
 
   const loadLinks = async (isBackground = false, force = false) => {
-    if (!isBackground) setIsLoading(true);
+    if (!isBackground && links.length === 0) setIsLoading(true);
     try {
-      const needForce = isBackground || force;
+      const needForce = force;
       const res = await cfGetLinks(userId || "", needForce);
+      if (res && (res as any).success === false) {
+        if (!isBackground) setIsLoading(false);
+        return;
+      }
       const listData = Array.isArray(res?.data)
         ? res.data
         : Array.isArray((res?.data as any)?.data)
@@ -328,6 +350,11 @@ export default function LinksPage() {
           !(l._id && permanentlyDeletedIdsRef.current.has(String(l._id)))
       );
       setLinks(activeRawLinks);
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem("lshorter_snapshot_links", JSON.stringify(activeRawLinks));
+        } catch {}
+      }
       linkDrawersRef.current?.syncLinksList(activeRawLinks);
       if (!isBackground) setIsLoading(false);
 
@@ -352,7 +379,7 @@ export default function LinksPage() {
         .catch(() => {});
     } catch (err) {
       console.error("Error loading links:", err);
-      if (!isBackground) setLinks([]);
+      if (!isBackground) setLinks((prev) => (prev.length > 0 ? prev : []));
     } finally {
       if (!isBackground) setIsLoading(false);
     }
@@ -367,25 +394,34 @@ export default function LinksPage() {
       setIsLoading(false);
       return;
     }
-    if (status === "authenticated" || isPreview) {
-      loadLinks(false, false);
+    if ((status === "authenticated" || userId || isPreview) && (userId || isPreview)) {
+      loadLinks(links.length > 0, false);
     }
   }, [status, userId]);
 
-  // Safety timeout: guarantee skeleton disappears after maximum 3.5s
+  // Safety timeout: guarantee skeleton disappears after maximum 10s
   useEffect(() => {
+    if (status === "loading" && !userId) return;
     const timer = setTimeout(() => {
       setIsLoading(false);
-    }, 3500);
+    }, 10000);
     return () => clearTimeout(timer);
-  }, []);
+  }, [status, userId]);
 
   // Listen for global link creation/update events (from sidebar, overview, etc.) & browser focus
   useEffect(() => {
     if (!userId) return;
 
+    let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+    const scheduleRefresh = (forceRefresh = false) => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => {
+        refreshTimer = null;
+        loadLinks(true, forceRefresh);
+      }, 60);
+    };
+
     const handleUpdate = (e?: any) => {
-      cfInvalidateCache();
       const clickedSlug = e?.detail?.slug;
       const clickedId = e?.detail?.id;
       const syncedClicks = typeof e?.detail?.clicks === "number" ? e.detail.clicks : null;
@@ -422,27 +458,24 @@ export default function LinksPage() {
           } catch {}
           return next;
         });
+        cfInvalidateCache();
+        scheduleRefresh(true);
       } else if (e?.detail?.id && e?.detail?.targetUrl) {
         setLinks((prev) => [
           e.detail,
           ...prev.filter((l) => l.id !== e.detail.id),
         ]);
         linkDrawersRef.current?.syncLinkIfEditing(e.detail);
+        scheduleRefresh(false);
+      } else {
+        scheduleRefresh(false);
       }
-      loadLinks(true, true);
-      setTimeout(() => {
-        loadLinks(true, true);
-      }, 1200);
-    };
-
-    const handleFocus = () => {
-      if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
-      handleUpdate();
     };
 
     const handleStorage = (e: StorageEvent) => {
       if (e.key === "lshorter_last_click" || e.key === "lshorter_data_change") {
-        handleUpdate();
+        cfInvalidateCache();
+        scheduleRefresh(true);
       }
     };
 
@@ -463,8 +496,6 @@ export default function LinksPage() {
     window.addEventListener("lshorter_data_change", handleUpdate);
     window.addEventListener("lshorter_link_clicked", handleUpdate);
     window.addEventListener("lshorter_live_clicks_synced", handleUpdate);
-    window.addEventListener("focus", handleFocus);
-    document.addEventListener("visibilitychange", handleFocus);
     window.addEventListener("storage", handleStorage);
 
     // Cross-tab broadcast receiver
@@ -482,17 +513,16 @@ export default function LinksPage() {
 
     const pollTimer = setInterval(() => {
       if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
-      loadLinks(true, true);
-    }, 15000);
+      loadLinks(true, false);
+    }, 45000);
 
     return () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
       window.removeEventListener("lshorter_links_updated", handleUpdate);
       window.removeEventListener("lshorter_link_deleted", handleLinkDeleted);
       window.removeEventListener("lshorter_data_change", handleUpdate);
       window.removeEventListener("lshorter_link_clicked", handleUpdate);
       window.removeEventListener("lshorter_live_clicks_synced", handleUpdate);
-      window.removeEventListener("focus", handleFocus);
-      document.removeEventListener("visibilitychange", handleFocus);
       window.removeEventListener("storage", handleStorage);
       if (channel) channel.close();
       clearInterval(pollTimer);

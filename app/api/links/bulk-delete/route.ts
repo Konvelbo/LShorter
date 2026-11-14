@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { WORKER_URL, FRONTEND_SECRET, CF_ACCOUNT_ID, CF_D1_DATABASE_ID, CF_API_TOKEN } from "@/lib/backend-config";
 import { invalidateBotResponseCache } from "@/lib/redirect-engine";
+import { invalidateServerLinksCache } from "@/lib/server-links-cache";
 import { auth } from "@/auth";
 
 export async function POST(req: Request) {
@@ -88,6 +89,7 @@ export async function POST(req: Request) {
           bulkSucceeded = true;
           workerDeletedCount = count;
           workerDeletedIds = Array.isArray(inner?.deletedIds) ? inner.deletedIds : ids;
+          invalidateServerLinksCache(userId, userEmail);
           return NextResponse.json({
             success: true,
             deletedCount: count,
@@ -119,6 +121,7 @@ export async function POST(req: Request) {
     const results = await Promise.allSettled(deletePromises);
     const deletedCount = results.filter((r) => r.status === "fulfilled" && r.value).length;
 
+    invalidateServerLinksCache(userId, userEmail);
     return NextResponse.json({
       success: true,
       deletedCount: deletedCount || ids.length,

@@ -57,6 +57,81 @@ export function sanitizeClientError(raw: any): string {
   return msg;
 }
 
+const PERSISTENT_CACHE_PREFIX = "lshorter_api_cache_v1:";
+const PERSISTENT_STALE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours stale-while-revalidate
+
+function normalizeCacheKey(rawUrl: string): string {
+  return rawUrl
+    .replace(/([?&])forceRefresh=true(&?)/g, (_, p1, p2) => (p2 ? p1 : ""))
+    .replace(/([?&])_t=\d+(&?)/g, (_, p1, p2) => (p2 ? p1 : ""))
+    .replace(/[?&]$/, "");
+}
+
+function readPersistentCache<T>(canonicalKey: string): { data: T; savedAt: number } | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(`${PERSISTENT_CACHE_PREFIX}${canonicalKey}`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed && parsed.data && typeof parsed.savedAt === "number") {
+      if (Date.now() - parsed.savedAt <= PERSISTENT_STALE_TTL_MS) {
+        return parsed as { data: T; savedAt: number };
+      }
+    }
+  } catch {}
+  return null;
+}
+
+function writePersistentCache(canonicalKey: string, data: any): void {
+  if (typeof window === "undefined") return;
+  try {
+    const now = Date.now();
+    const payload = JSON.stringify({ data, savedAt: now });
+    localStorage.setItem(`${PERSISTENT_CACHE_PREFIX}${canonicalKey}`, payload);
+    if (canonicalKey.startsWith("/api/links?")) {
+      localStorage.setItem(`${PERSISTENT_CACHE_PREFIX}last_links`, payload);
+    } else if (canonicalKey.startsWith("/api/analytics?")) {
+      localStorage.setItem(`${PERSISTENT_CACHE_PREFIX}last_analytics`, payload);
+    }
+  } catch {}
+}
+
+export function cfGetCachedLinks(userId?: string, limit = 500): any[] | null {
+  if (typeof window === "undefined") return null;
+  const uid = userId || localStorage.getItem("lshorter_user_id") || "";
+  if (uid) {
+    const key = `/api/links?userId=${encodeURIComponent(uid)}&limit=${limit}`;
+    const mem = apiCache.get(key);
+    if (mem?.data?.data && Array.isArray(mem.data.data) && mem.data.data.length > 0) {
+      return mem.data.data;
+    }
+    const persisted = readPersistentCache<any>(key);
+    if (persisted?.data?.data && Array.isArray(persisted.data.data) && persisted.data.data.length > 0) {
+      return persisted.data.data;
+    }
+  }
+  const last = readPersistentCache<any>("last_links");
+  if (last?.data?.data && Array.isArray(last.data.data) && last.data.data.length > 0) {
+    return last.data.data;
+  }
+  return null;
+}
+
+export function cfGetCachedAnalytics(userId?: string, period = "30d"): any | null {
+  if (typeof window === "undefined") return null;
+  const uid = userId || localStorage.getItem("lshorter_user_id") || "";
+  if (uid) {
+    const key = `/api/analytics?userId=${encodeURIComponent(uid)}&period=${period}`;
+    const mem = apiCache.get(key);
+    if (mem?.data?.data) return mem.data.data;
+    const persisted = readPersistentCache<any>(key);
+    if (persisted?.data?.data) return persisted.data.data;
+  }
+  const last = readPersistentCache<any>("last_analytics");
+  if (last?.data?.data) return last.data.data;
+  return null;
+}
+
 export function cfInvalidateCache(pattern?: string) {
   if (!pattern) {
     apiCache.clear();
@@ -120,13 +195,12 @@ if (typeof window !== "undefined") {
   const handleFocusOrVisibility = () => {
     if (typeof document !== "undefined" && document.visibilityState && document.visibilityState !== "visible") return;
     const now = Date.now();
-    // Throttle focus sync to at most once every 2 seconds (so returning to tab instantly syncs from server)
-    if (now - lastFocusSync < 2000) return;
+    // Throttle focus sync to at most once every 30s to prevent refetch storms when switching tabs/devtools
+    if (now - lastFocusSync < 30000) return;
     lastFocusSync = now;
     cfInvalidateCache("/api/analytics");
     cfInvalidateCache("/api/links");
     window.dispatchEvent(new CustomEvent("lshorter_data_change"));
-    window.dispatchEvent(new CustomEvent("lshorter_links_updated"));
   };
 
   window.addEventListener("focus", handleFocusOrVisibility);
@@ -142,16 +216,17 @@ async function cfFetch<T>(
 ): Promise<T> {
   const isBrowser = typeof window !== "undefined";
   const url = isBrowser ? browserPath : `${WORKER_URL}${workerPath}`;
+  const canonicalKey = isBrowser && method === "GET" ? normalizeCacheKey(url) : url;
 
   // 1. Cache hit for GET requests
   if (isBrowser && method === "GET" && !bypassCache) {
-    const cached = apiCache.get(url);
+    const cached = apiCache.get(canonicalKey);
     if (cached && cached.expiresAt > Date.now()) {
       return cached.data as T;
     }
     // In-flight deduplication (avoids firing multiple identical fetches simultaneously)
-    if (inFlightRequests.has(url)) {
-      return inFlightRequests.get(url) as Promise<T>;
+    if (inFlightRequests.has(canonicalKey)) {
+      return inFlightRequests.get(canonicalKey) as Promise<T>;
     }
   }
 
@@ -171,22 +246,36 @@ async function cfFetch<T>(
 
   const fetchPromise = (async () => {
     try {
-      const res = await fetch(url, {
-        method,
-        headers,
-        ...(body ? { body: JSON.stringify(body) } : {}),
-      });
+      let res: Response | null = null;
+      const maxAttempts = method === "GET" ? 2 : 1;
 
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: res.statusText }));
-        const rawMsg = (err as any).error || (err as any).message || `HTTP ${res.status}`;
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        try {
+          res = await fetch(url, {
+            method,
+            headers,
+            ...(body ? { body: JSON.stringify(body) } : {}),
+          });
+          if (res.ok || res.status < 500 || attempt === maxAttempts - 1) {
+            break;
+          }
+        } catch (netErr) {
+          if (attempt === maxAttempts - 1) throw netErr;
+        }
+        await new Promise((r) => setTimeout(r, 250));
+      }
+
+      if (!res || !res.ok) {
+        const err = res ? await res.json().catch(() => ({ error: res!.statusText })) : { error: "Network error" };
+        const rawMsg = (err as any).error || (err as any).message || `HTTP ${res?.status || 500}`;
         throw new Error(sanitizeClientError(rawMsg));
       }
 
       const data = (await res.json()) as T;
 
-      if (isBrowser && method === "GET" && !bypassCache) {
-        apiCache.set(url, { data, expiresAt: Date.now() + CACHE_TTL_MS });
+      if (isBrowser && method === "GET") {
+        apiCache.set(canonicalKey, { data, expiresAt: Date.now() + CACHE_TTL_MS });
+        writePersistentCache(canonicalKey, data);
       }
 
       if (isBrowser && method !== "GET") {
@@ -198,18 +287,25 @@ async function cfFetch<T>(
     } catch (err: any) {
       console.warn(`[Cloudflare API Client] ${method} ${url}:`, err?.message || err);
       if (method === "GET") {
-        return { success: true, data: [] } as unknown as T;
+        // Fallback to stale memory or persistent localStorage cache before returning empty data
+        if (isBrowser) {
+          const staleMem = apiCache.get(canonicalKey);
+          if (staleMem?.data) return staleMem.data as T;
+          const persisted = readPersistentCache<T>(canonicalKey);
+          if (persisted?.data) return persisted.data;
+        }
+        return { success: false, data: [] } as unknown as T;
       }
       throw new Error(sanitizeClientError(err?.message || err));
     } finally {
       if (isBrowser && method === "GET") {
-        inFlightRequests.delete(url);
+        inFlightRequests.delete(canonicalKey);
       }
     }
   })();
 
   if (isBrowser && method === "GET" && !bypassCache) {
-    inFlightRequests.set(url, fetchPromise);
+    inFlightRequests.set(canonicalKey, fetchPromise);
   }
 
   return fetchPromise;

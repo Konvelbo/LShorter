@@ -264,20 +264,27 @@ function DocsApiDropdown({
               <Link
                 href="/docs"
                 onClick={() => setIsOpen(false)}
-                className="group relative flex-1 rounded-[10px] overflow-hidden flex flex-col justify-start p-5 min-h-[190px] border border-black/5 dark:border-white/10"
+                className="group relative flex-1 rounded-[10px] overflow-hidden flex flex-col justify-start p-5 min-h-[190px] bg-[#121316] dark:bg-[#121316] isolate"
               >
                 {/* Image de fond optimisée WebP : /doc/apiimage.webp */}
                 <Image
                   src="/doc/apiimage.webp"
-                  alt="Documentation"
+                  alt=""
+                  aria-hidden="true"
                   fill
                   loading="lazy"
                   className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
                   sizes="360px"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/30 pointer-events-none" />
+                {/* Gradients équilibrés (-inset-1 transform-gpu) : image bien visible & aucun artefact de ligne blanche */}
+                <div className="absolute -inset-1 transform-gpu bg-gradient-to-t from-black/80 via-black/30 to-black/25 pointer-events-none z-[1]" />
+                <div className="absolute -inset-1 transform-gpu bg-gradient-to-r from-black/45 via-transparent to-transparent pointer-events-none z-[1]" />
+                
+                {/* Bordure nette en overlay avec z-20 pour masquer tout débordement de composition GPU */}
+                <div className="pointer-events-none absolute inset-0 rounded-[10px] ring-1 ring-inset ring-black/10 dark:ring-white/10 z-20" />
+
                 <div className="relative z-10">
-                  <h4 className="text-[16px] sm:text-[17px] font-bold text-white tracking-tight">
+                  <h4 className="text-[16px] sm:text-[17px] font-bold text-white tracking-tight drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)]">
                     Documentation
                   </h4>
                 </div>
@@ -465,12 +472,9 @@ export function LandingNavbar() {
 
   const navLinks = [
     { label: "Hi", href: "/", isHome: true },
-    { label: "Product", href: "/#product" },
     { label: "Features", href: "/#features" },
     { label: "Security", href: "/#security" },
     { label: "Difference", href: "/#why-us" },
-    { label: "Limits", href: "/#analytics" },
-    { label: "FAQ", href: "/#faq" },
     { label: "Pricing", href: "/pricing" },
     { label: "Doc & Api", href: "/docs" },
   ];
@@ -486,10 +490,10 @@ export function LandingNavbar() {
     >
       {/* ─── 1. NAVBAR DESKTOP (>= 768px) ─── */}
       <header
-        className={`hidden md:flex items-center justify-between gap-2 pointer-events-auto backdrop-blur-xl transition-[transform,max-width,width,padding,border-radius] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-[transform,max-width,width,padding,border-radius] ${
+        className={`hidden md:flex items-center justify-between gap-2 pointer-events-auto backdrop-blur-md transition-[transform,max-width,border-radius,background-color] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-transform [contain:layout_style] ${
           isScrolled
-            ? "translate-y-3 sm:translate-y-4 w-[min(1280px,96vw)] max-w-[1280px] rounded-[14px] px-[clamp(0.75rem,1.8vw,2rem)] py-3 bg-white/94 dark:bg-[#09090B]/90 border border-[#E4E7EC]/95 dark:border-white/15 shadow-[0_12px_34px_rgba(0,0,0,0.08)] dark:shadow-[0_14px_38px_rgba(0,0,0,0.58)]"
-            : "translate-y-0 w-full max-w-full rounded-none px-[clamp(1rem,2.5vw,3.5rem)] py-4 bg-white/96 dark:bg-[#09090B]/98 border-b border-[#E4E7EC]/80 dark:border-white/10 shadow-none"
+            ? "translate-y-3 sm:translate-y-4 w-[min(1280px,96vw)] max-w-[1280px] rounded-[14px] px-[clamp(0.75rem,1.8vw,2rem)] py-3 bg-white/95 dark:bg-[#09090B]/92 border border-[#E4E7EC]/95 dark:border-white/15 shadow-[0_12px_34px_rgba(0,0,0,0.08)] dark:shadow-[0_14px_38px_rgba(0,0,0,0.58)]"
+            : "translate-y-0 w-full max-w-full rounded-none px-[clamp(1rem,2.5vw,3.5rem)] py-4 bg-white/97 dark:bg-[#09090B]/98 border-b border-[#E4E7EC]/80 dark:border-white/10 shadow-none"
         }`}
       >
         {/* Logo LShorter (Maillon Duo) */}
@@ -586,10 +590,10 @@ export function LandingNavbar() {
 
       {/* ─── 2. NAVBAR MOBILE (< 768px) ─── */}
       <header
-        className={`flex md:hidden items-center justify-between pointer-events-auto backdrop-blur-xl transition-[transform,max-width,width,padding,border-radius] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-[transform,max-width,width,padding,border-radius] ${
+        className={`flex md:hidden items-center justify-between pointer-events-auto transition-[transform,border-radius,background-color] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-transform [contain:layout_style] ${
           isScrolled
-            ? "translate-y-2.5 w-[calc(100%-1.5rem)] max-w-lg rounded-xl px-3.5 py-2.5 bg-white/94 dark:bg-[#09090B]/90 border border-[#E4E7EC]/95 dark:border-white/15 shadow-[0_12px_34px_rgba(0,0,0,0.08)] dark:shadow-[0_14px_38px_rgba(0,0,0,0.58)]"
-            : "translate-y-0 w-full max-w-full rounded-none px-4 py-3 bg-white/96 dark:bg-[#09090B]/98 border-b border-[#E4E7EC]/80 dark:border-white/10 shadow-none"
+            ? "translate-y-2.5 w-[calc(100%-1.5rem)] max-w-lg rounded-xl px-3.5 py-2.5 bg-white/[0.97] dark:bg-[#09090B]/[0.97] border border-[#E4E7EC]/95 dark:border-white/15 shadow-[0_10px_28px_rgba(0,0,0,0.08)] dark:shadow-[0_12px_32px_rgba(0,0,0,0.55)]"
+            : "translate-y-0 w-full max-w-full rounded-none px-4 py-3 bg-white/[0.98] dark:bg-[#09090B]/[0.98] border-b border-[#E4E7EC]/80 dark:border-white/10 shadow-none"
         }`}
       >
         <Link href="/" className="flex items-center gap-2 select-none">

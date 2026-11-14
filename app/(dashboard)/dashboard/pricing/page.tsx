@@ -217,262 +217,155 @@ export default function PricingPage() {
     {
       id: "FREE" as const,
       name: PRICING_PLANS.FREE.name,
-      tagline: PRICING_COPY.planExplanations.free,
+      tagline: "To explore our Edge infrastructure, no credit card required.",
       displayPrice: "$0",
       originalPrice: null,
       subPriceNote: null,
-      discountPercent: 0,
-      savingsAmount: null,
+      savingsText: null,
       unit: "forever",
       badge: "Free",
       popular: false,
       features: [
-        "10,000 clicks / month included",
-        "3 custom domains included",
-        "50 active short links",
-        "Global Workspace Target (Monthly clicks & revenue monitoring)",
-        "QR Code Studio (Basic styles)",
-        "Analytics retention: 30 days",
-        "Developer API keys (60 req/min)",
+        "10,000 clicks / month",
+        "3 domains and 50 active links",
+        "Global Workspace Target (clicks and revenue)",
+        "QR Code Studio (basic styles)",
+        "30-day analytics · API 60 req/min",
         "Community support",
       ],
-      limitations: [
-        "Dynamic smart routing not included (Paid only)",
-        "Password protection & destination masking not included",
-        "Individual link alerts & exact expiration alerts (Pro & Business only)",
-        "Webhooks & Pixels not included",
-      ],
+      notIncludedNote:
+        "Not included: Smart Routing, PIN protection, individual link alerts, webhooks, and pixels.",
     },
     {
       id: "PRO" as const,
       name: PRICING_PLANS.PRO.name,
-      tagline: PRICING_COPY.planExplanations.pro,
+      tagline: "Grow your brand and maximize your conversion rates.",
       displayPrice: isAnnual ? "$90" : "$3.75",
       originalPrice: isAnnual ? "$180" : "$15",
-      subPriceNote: isAnnual ? "equivalent to $7.50/mo" : "then $15/mo after 2 months",
-      discountPercent: isAnnual ? 50 : 75,
-      savingsAmount: isAnnual ? "$90.00 / yr" : "$22.50 (First 2 months)",
-      unit: isAnnual ? "/ year" : "/ month",
-      badge: isAnnual ? "⚡ -50% Annual" : "🔥 Special Deal: -75%",
+      savingsText: isAnnual ? "Save $90 / yr" : "Save $22.50 over 2 months",
+      subPriceNote: isAnnual ? "or $7.50 / month" : "then $15 / month",
+      unit: isAnnual ? "/ yr" : "/ 2 mo",
+      badge: isAnnual ? "-50% annual" : "-75% promo",
       popular: true,
       features: [
-        "150,000 clicks / month included",
-        "Zero-Downtime Overage (+$3 / 50,000 extra clicks)",
-        "Up to 6 custom branded domains",
-        "1,000 active short links",
-        "Individual Link Alerts (Custom clicks & revenue limits)",
-        "Instant link expiration alerts (Email & in-app bell)",
-        "Dynamic Smart Routing (Country + OS/Device)",
-        "Password PIN gates & destination masking",
-        "5 Webhooks & 5 Retargeting Pixels",
-        "Analytics retention: 365 days",
-        "Developer API keys (200 req/min)",
+        "150,000 clicks / month (+$3 / 50k)",
+        "6 domains and 1,000 active links",
+        "Individual link alerts (clicks, revenue, expiration)",
+        "Dynamic Smart Routing (country + OS/device)",
+        "PIN codes and destination masking",
+        "5 webhooks and 5 retargeting pixels",
+        "365-day analytics · API 200 req/min",
         "Priority email support",
       ],
-      limitations: [],
+      notIncludedNote: null,
     },
     {
       id: "BUSINESS" as const,
       name: PRICING_PLANS.BUSINESS.name,
-      tagline: PRICING_COPY.planExplanations.business,
+      tagline: "For multi-channel campaigns and growing teams.",
       displayPrice: isAnnual ? "$350" : "$19.60",
       originalPrice: isAnnual ? "$588" : "$49",
-      subPriceNote: isAnnual ? "equivalent to $29.16/mo" : "then $49/mo after 2 months",
-      discountPercent: isAnnual ? 40 : 60,
-      savingsAmount: isAnnual ? "$238.00 / yr" : "$58.80 (First 2 months)",
-      unit: isAnnual ? "/ year" : "/ month",
-      badge: isAnnual ? "⚡ -40% Annual" : "🔥 Special Deal: -60%",
+      savingsText: isAnnual ? "Save $238 / yr" : "Save $58.80 over 2 months",
+      subPriceNote: isAnnual ? "or $29.16 / month" : "then $49 / month",
+      unit: isAnnual ? "/ yr" : "/ 2 mo",
+      badge: isAnnual ? "-40% annual" : "-60% promo",
       popular: false,
       features: [
-        "500,000 clicks / month included",
-        "Zero-Downtime Overage (+$8 / 125,000 extra clicks)",
-        "Up to 15 custom branded domains",
-        "Unlimited active short links",
-        "Unlimited Individual Link Alerts & instant expiration tracking",
-        "Custom multi-condition rule builder",
-        "Advanced protection, destination masking & expiration",
-        "Vector QR Code Studio (SVG / PDF export)",
-        "Unlimited Webhooks & Retargeting Pixels",
-        "Unlimited Analytics retention",
-        "5 team seats included",
-        "Developer API keys (600 req/min)",
-        "24/7 dedicated support",
+        "500,000 clicks / month (+$8 / 125k)",
+        "15 domains and unlimited active links",
+        "Unlimited individual link alerts",
+        "Multi-condition rule engine",
+        "Advanced protection and destination masking",
+        "Vector QR Code Studio (SVG / PDF)",
+        "Unlimited webhooks and pixels",
+        "Unlimited analytics · API 600 req/min",
+        "5 team seats · 24/7 support",
       ],
-      limitations: [],
+      notIncludedNote: null,
     },
     {
       id: "ENTERPRISE" as const,
       name: PRICING_PLANS.ENTERPRISE.name,
-      tagline: PRICING_COPY.planExplanations.enterprise,
+      tagline: "Unlimited clicks and dedicated high-throughput Edge SLA.",
       displayPrice: isAnnual ? "$1,670" : "$99.50",
       originalPrice: isAnnual ? "$2,388" : "$199",
-      subPriceNote: isAnnual ? "equivalent to $139.16/mo" : "then $199/mo after 2 months",
-      discountPercent: isAnnual ? 30 : 50,
-      savingsAmount: isAnnual ? "$718.00 / yr" : "$199.00 (First 2 months)",
-      unit: isAnnual ? "/ year" : "/ month",
-      badge: isAnnual ? "⚡ -30% Annual" : "🔥 Special Deal: -50%",
+      savingsText: isAnnual ? "Save $718 / yr" : "Save $199 over 2 months",
+      subPriceNote: isAnnual ? "or $139.16 / month" : "then $199 / month",
+      unit: isAnnual ? "/ yr" : "/ 2 mo",
+      badge: isAnnual ? "-30% annual" : "-50% promo",
       popular: false,
       features: [
-        "Unlimited clicks / month included",
-        "Unlimited custom branded domains",
-        "Unlimited active short links",
-        "Unlimited Link & Global Workspace Alerts with VIP routing",
-        "Hyper-targeted Routing (ISP / ASN / City)",
-        "15 team seats included",
-        "Unlimited Webhooks & Retargeting Pixels",
-        "Unlimited Analytics retention & raw CSV export",
-        "Developer API keys (1,400 req/min)",
-        "99.99% Edge SLA & direct VIP support",
+        "Unlimited clicks, domains, and links",
+        "Global alerts with VIP routing",
+        "Hyper-targeted routing (ISP / ASN / city)",
+        "Unlimited webhooks and pixels",
+        "Unlimited analytics and raw CSV export",
+        "API 1,400 req/min",
+        "15 team seats",
+        "99.99% Edge SLA and direct VIP support",
       ],
-      limitations: [],
-    },
-  ];
-
-  const comparisonTable = [
-    {
-      feature: "Monthly Click Volume",
-      free: "10,000",
-      pro: "150,000",
-      business: "500,000",
-      enterprise: "Unlimited",
-    },
-    {
-      feature: "Zero-Downtime Guarantee (Overage)",
-      free: "Hard limit at 10,000",
-      pro: "$3 / 50,000 extra clicks",
-      business: "$8 / 125,000 extra clicks",
-      enterprise: "Unlimited ($0 extra)",
-    },
-    {
-      feature: "Custom Branded Domains",
-      free: "3 domains",
-      pro: "6 domains",
-      business: "15 domains",
-      enterprise: "Unlimited",
-    },
-    {
-      feature: "Active Short Links",
-      free: "50 links",
-      pro: "1,000 links",
-      business: "Unlimited",
-      enterprise: "Unlimited",
-    },
-    {
-      feature: "Smart Routing & Targeting",
-      free: "Not included (Paid only)",
-      pro: "Advanced (Country + OS)",
-      business: "Custom (Multi-condition)",
-      enterprise: "Custom (Network + ISP + City)",
-    },
-    {
-      feature: "Protection, PIN Password & Destination Masking",
-      free: false,
-      pro: true,
-      business: true,
-      enterprise: true,
-    },
-    {
-      feature: "Webhooks & Retargeting Pixels",
-      free: false,
-      pro: "5 webhooks / 5 pixels",
-      business: "Unlimited",
-      enterprise: "Unlimited",
-    },
-    {
-      feature: "Target & Notification Alerts",
-      free: "Global Workspace Target only",
-      pro: "Individual Link Alerts (Clicks, Revenue & Expiration)",
-      business: "Unlimited Link Alerts & Instant Expiration",
-      enterprise: "Unlimited Link & Workspace Alerts (VIP)",
-    },
-    {
-      feature: "Analytics Retention",
-      free: "30 days",
-      pro: "365 days",
-      business: "Unlimited",
-      enterprise: "Unlimited + Raw export",
-    },
-    {
-      feature: "Developer API Rate Limit",
-      free: "60 req / min",
-      pro: "200 req / min",
-      business: "600 req / min",
-      enterprise: "1,400 req / min",
-    },
-    {
-      feature: "Team Seats Included",
-      free: "1 seat",
-      pro: "2 seats",
-      business: "5 seats",
-      enterprise: "15 seats",
-    },
-    {
-      feature: "Billing & Official PDF Invoices",
-      free: "Standard receipts",
-      pro: "Automated PDF invoices",
-      business: "Automated PDF invoices",
-      enterprise: "Automated PDF invoices",
+      notIncludedNote: null,
     },
   ];
 
   return (
-    <div className="flex flex-col gap-12 animate-in fade-in pb-16">
+    <div className="flex flex-col gap-10 animate-in fade-in pb-16">
       {/* Header & Subtitle */}
       <div className="text-center max-w-3xl mx-auto flex flex-col items-center gap-3">
-        <span className="px-3.5 py-1 rounded-full bg-brand-subtle text-brand border border-brand-subtle text-xs font-bold uppercase tracking-wider">
-          Promotional Pricing Plans
+        <span className="px-3 py-1 rounded-[6px] bg-[#EFF6FF] dark:bg-brand/15 text-[#1D4ED8] dark:text-[#60A5FA] text-[10px] font-bold uppercase tracking-widest">
+          Promotional Offers
         </span>
-        <h1 className="text-3xl sm:text-4xl font-extrabold text-neutral-900 dark:text-white tracking-tight">
-          Simple pricing, <span className="text-brand">Zero-Downtime Guarantee</span>
+        <h1 className="text-3xl sm:text-[42px] font-extrabold text-zinc-900 dark:text-white tracking-tight leading-[1.15]">
+          Simple pricing,
+          <br />
+          <span className="text-[#1D4ED8] dark:text-[#3B82F6]">
+            zero downtime guaranteed
+          </span>
         </h1>
-        <p className="text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed max-w-2xl">
-          Deployed across Cloudflare&apos;s global Edge network. Your links always stay fast and reliable, and certified PDF invoices are generated instantly in 1 click.
+        <p className="text-xs sm:text-sm text-zinc-500 dark:text-neutral-400 leading-relaxed max-w-xl mt-1">
+          Deployed on Cloudflare&apos;s global Edge network, your links stay fast and reliable. Certified PDF invoices are generated instantly in 1 click.
         </p>
 
-        {/* Annual / Monthly Toggle with Promo Badges */}
-        <div className="inline-flex items-center justify-center p-1 sm:p-1.5 rounded-full bg-neutral-200/80 dark:bg-[#141416] border border-neutral-300 dark:border-[#27272a] shadow-xs max-w-full mt-4">
+        {/* Annual / Monthly Toggle with Promo Labels */}
+        <div className="inline-flex items-center justify-center p-1 rounded-[10px] bg-zinc-100 dark:bg-[#141416] border border-zinc-200/80 dark:border-[#27272a] max-w-full mt-3">
           <button
             type="button"
             onClick={() => setIsAnnual(false)}
-            className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs font-bold transition-all flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer select-none whitespace-nowrap ${
+            className={`px-3.5 sm:px-4 py-2 rounded-[8px] text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer select-none whitespace-nowrap ${
               !isAnnual
-                ? "bg-brand text-white shadow-xs"
-                : "text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white"
+                ? "bg-[#1D4ED8] text-white shadow-xs"
+                : "text-zinc-700 hover:text-zinc-900 dark:text-neutral-300 dark:hover:text-white"
             }`}
           >
-            <span>
-              Monthly<span className="hidden sm:inline"> Billing</span>
-            </span>
+            <span>Monthly</span>
             <span
-              className={`px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] font-black font-mono tracking-tight shrink-0 ${
+              className={`text-[11px] font-semibold ${
                 !isAnnual
-                  ? "bg-white/20 text-white"
-                  : "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
+                  ? "text-white/90"
+                  : "text-emerald-600 dark:text-emerald-400"
               }`}
             >
-              -75%<span className="hidden sm:inline"> First 2 Months</span>
+              -75% first 2 months
             </span>
           </button>
           <button
             type="button"
             onClick={() => setIsAnnual(true)}
-            className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs font-bold transition-all flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer select-none whitespace-nowrap ${
+            className={`px-3.5 sm:px-4 py-2 rounded-[8px] text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer select-none whitespace-nowrap ${
               isAnnual
-                ? "bg-brand text-white shadow-xs"
-                : "text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white"
+                ? "bg-[#1D4ED8] text-white shadow-xs"
+                : "text-zinc-700 hover:text-zinc-900 dark:text-neutral-300 dark:hover:text-white"
             }`}
           >
-            <span>
-              Annual<span className="hidden sm:inline"> Billing</span>
-            </span>
+            <span>Annual</span>
             <span
-              className={`px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] font-black font-mono tracking-tight shrink-0 ${
+              className={`text-[11px] font-semibold ${
                 isAnnual
-                  ? "bg-white/20 text-white"
-                  : "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
+                  ? "text-white/90"
+                  : "text-emerald-600 dark:text-emerald-400"
               }`}
             >
-              <span className="hidden sm:inline">Up to </span>-50%
+              up to -50%
             </span>
           </button>
         </div>
@@ -480,11 +373,11 @@ export default function PricingPage() {
 
       {/* Ad-Blocker Alert Banner if cdn.paddle.com is blocked */}
       {paddleBlocked && (
-        <div className="max-w-4xl mx-auto w-full p-4 rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-200 text-sm flex items-start sm:items-center gap-3">
-          <Shield className="h-5 w-5 shrink-0 text-amber-400 mt-0.5 sm:mt-0" />
+        <div className="max-w-4xl mx-auto w-full p-4 rounded-[10px] border border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-200 text-sm flex items-start sm:items-center gap-3">
+          <Shield className="h-5 w-5 shrink-0 text-amber-500 dark:text-amber-400 mt-0.5 sm:mt-0" />
           <div className="flex-1 text-xs sm:text-sm leading-relaxed">
-            <span className="font-semibold text-amber-300">Bloqueur de publicité ou protection de suivi détecté : </span>
-            Le script de paiement Paddle (<code className="bg-black/40 px-1.5 py-0.5 rounded text-[11px] text-amber-200 font-mono">cdn.paddle.com</code>) est actuellement bloqué par votre navigateur. Si vous utilisez <strong>Brave Shields</strong>, <strong>uBlock Origin</strong> ou <strong>AdBlock</strong>, veuillez le désactiver pour <code className="bg-black/40 px-1.5 py-0.5 rounded text-[11px] text-amber-200 font-mono">localhost:3000</code> afin que le modal de paiement Paddle puisse s&apos;afficher.
+            <span className="font-semibold">Ad blocker or tracking protection detected: </span>
+            The Paddle checkout script (<code className="bg-black/10 dark:bg-black/40 px-1.5 py-0.5 rounded-[4px] text-[11px] font-mono">cdn.paddle.com</code>) is currently blocked by your browser. Please disable Brave Shields, uBlock Origin, or AdBlock for this site so the checkout window can open.
           </div>
         </div>
       )}
@@ -492,7 +385,7 @@ export default function PricingPage() {
       {/* Pricing Cards Grid (4 Columns) */}
       <div
         ref={cardsContainerRef}
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 items-stretch"
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 items-stretch pt-2"
       >
         {plansList.map((p) => {
           const isCurrent = currentPlan === p.id;
@@ -502,100 +395,108 @@ export default function PricingPage() {
               key={p.id}
               onMouseEnter={(e) => handleCardMouseEnter(e, p.popular)}
               onMouseLeave={(e) => handleCardMouseLeave(e, p.popular)}
-              className={`relative flex flex-col justify-between p-6 rounded-[14px] bg-white dark:bg-[#141416] border transition-all duration-200 will-change-transform ${
+              className={`relative flex flex-col justify-between p-5 sm:p-6 rounded-[10px] border transition-colors duration-200 will-change-transform ${
                 p.popular
-                  ? "border-brand ring-2 ring-brand/50 shadow-md shadow-brand/10"
-                  : "border-neutral-200 dark:border-[#27272a] hover:border-neutral-400 dark:hover:border-neutral-500 shadow-xs"
+                  ? "bg-[#F8FAFF] dark:bg-[#161822] border-[1.5px] border-[#1D4ED8] dark:border-[#3B82F6] shadow-md shadow-blue-500/5"
+                  : "bg-white dark:bg-[#141416] border-zinc-200/90 dark:border-[#27272a] hover:border-zinc-300 dark:hover:border-neutral-600 shadow-2xs"
               }`}
             >
               {p.badge && (
                 <div
-                  className={`absolute -top-3.5 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-[10.5px] font-black uppercase tracking-wider shadow-md whitespace-nowrap flex items-center gap-1 z-10 ${
-                    p.popular
-                      ? "bg-brand text-white shadow-brand/40 ring-2 ring-brand/30"
-                      : "bg-emerald-600 dark:bg-emerald-500 text-white shadow-emerald-500/20"
+                  className={`absolute -top-3 left-5 px-2.5 py-0.5 rounded-[6px] text-[10.5px] font-bold tracking-wide text-white whitespace-nowrap z-10 ${
+                    p.popular ? "bg-[#1D4ED8]" : "bg-[#047857]"
                   }`}
                 >
-                  <span>{p.badge}</span>
+                  {p.badge}
                 </div>
               )}
 
               <div>
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-bold text-neutral-900 dark:text-white tracking-wide">{p.name}</h3>
-                  {isCurrent && (
-                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[10px] font-bold uppercase">
-                      Current
-                    </span>
-                  )}
+                <div className="flex items-center justify-between mt-1">
+                  <h3
+                    className={`text-base font-bold tracking-tight ${
+                      p.popular
+                        ? "text-[#1D4ED8] dark:text-[#60A5FA]"
+                        : "text-zinc-900 dark:text-white"
+                    }`}
+                  >
+                    {p.name}
+                  </h3>
                 </div>
-                <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-2 min-h-[38px] leading-relaxed">
+                <p className="text-[11.5px] text-zinc-500 dark:text-neutral-400 mt-1.5 min-h-[34px] leading-snug">
                   {p.tagline}
                 </p>
 
-                {/* Price display with High-Visibility Percentage Discount Badge */}
-                <div className="my-5 flex flex-col gap-2">
-                  <div className="flex items-baseline flex-wrap gap-2">
-                    {p.originalPrice && (
-                      <span className="text-sm sm:text-base font-semibold line-through text-neutral-400 dark:text-neutral-500 font-mono">
-                        {p.originalPrice}
+                {/* Price display */}
+                <div className="mt-4 pb-4 border-b border-zinc-200/80 dark:border-[#222225]">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="text-3xl sm:text-[34px] font-extrabold text-zinc-900 dark:text-white tracking-tight leading-none">
+                        {p.displayPrice}
                       </span>
-                    )}
-                    <span className="text-3xl sm:text-4xl font-black text-neutral-900 dark:text-white tracking-tight">
-                      {p.displayPrice}
-                    </span>
-                    <span className="text-xs text-neutral-500 dark:text-neutral-400 font-medium">
-                      {p.unit}
-                    </span>
-                    {p.discountPercent > 0 && (
-                      <span className="ml-auto px-2.5 py-1 rounded-md text-xs font-black font-mono bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40 shadow-xs flex items-center gap-1">
-                        <Zap className="w-3 h-3 fill-emerald-500 text-emerald-500" />
-                        -{p.discountPercent}%
+                      <span className="text-xs text-zinc-500 dark:text-neutral-400 font-medium">
+                        {p.unit}
+                      </span>
+                    </div>
+                    {p.originalPrice && (
+                      <span className="text-xs sm:text-sm font-medium line-through text-zinc-400 dark:text-neutral-500">
+                        {p.originalPrice}
                       </span>
                     )}
                   </div>
 
-                  {p.savingsAmount && (
-                    <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/25 px-2 py-0.5 rounded-md w-fit">
-                      <span>💰 Save {p.savingsAmount}</span>
-                    </div>
-                  )}
-
-                  {p.subPriceNote && (
-                    <span className="text-[11px] font-medium text-neutral-500 dark:text-neutral-400">
-                      {p.subPriceNote}
-                    </span>
-                  )}
+                  <div className="mt-2 min-h-[32px] flex flex-col justify-center">
+                    {p.id === "FREE" ? (
+                      <span className="text-[11.5px] font-medium text-zinc-500 dark:text-neutral-400">
+                        {isCurrent ? "Current plan" : "Free forever"}
+                      </span>
+                    ) : (
+                      <>
+                        {p.savingsText && (
+                          <span className="text-[11.5px] font-semibold text-emerald-600 dark:text-emerald-400 leading-tight">
+                            {p.savingsText}
+                          </span>
+                        )}
+                        {p.subPriceNote && (
+                          <span className="text-[11px] text-zinc-400 dark:text-neutral-500 leading-tight mt-0.5">
+                            {p.subPriceNote}
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </div>
                 </div>
 
                 {/* Features list */}
-                <div className="flex flex-col gap-2.5 text-xs text-neutral-700 dark:text-neutral-300 pt-4 border-t border-neutral-200 dark:border-[#222225]">
+                <div className="flex flex-col gap-2.5 text-[11.5px] text-zinc-700 dark:text-neutral-300 pt-4">
                   {p.features.map((feat, i) => (
                     <div key={i} className="flex items-start gap-2">
-                      <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                      <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
                       <span className="leading-snug">{feat}</span>
                     </div>
                   ))}
 
-                  {p.limitations.map((lim, i) => (
-                    <div key={i} className="flex items-start gap-2 text-neutral-400 dark:text-neutral-500">
-                      <X className="w-4 h-4 text-neutral-400 dark:text-neutral-500 shrink-0 mt-0.5" />
-                      <span className="leading-snug">{lim}</span>
-                    </div>
-                  ))}
+                  {p.notIncludedNote && (
+                    <p className="text-[10.5px] text-zinc-400 dark:text-neutral-500 leading-relaxed pt-2 mt-1 border-t border-zinc-100 dark:border-[#222225]">
+                      {p.notIncludedNote}
+                    </p>
+                  )}
                 </div>
               </div>
 
               {/* Direct Action Button */}
               <button
+                type="button"
                 onClick={() => handleSelectPlan(p.id)}
                 disabled={isCurrent || loadingPlan !== null}
-                className={`mt-7 w-full py-3 rounded-[10px] font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer disabled:cursor-default ${
+                className={`mt-6 w-full py-2.5 rounded-[8px] font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:cursor-default ${
                   isCurrent
-                    ? "bg-neutral-100 dark:bg-white/5 text-neutral-500 dark:text-neutral-400 border border-neutral-200 dark:border-[#27272a]"
+                    ? "bg-zinc-100 dark:bg-white/5 text-zinc-500 dark:text-neutral-400"
                     : p.popular
-                    ? "bg-brand hover:bg-brand-hover text-white shadow-sm"
-                    : "bg-neutral-100 hover:bg-neutral-200 dark:bg-white/10 dark:hover:bg-white/20 text-neutral-900 dark:text-white border border-neutral-300 dark:border-white/20"
+                      ? "bg-[#1D4ED8] hover:bg-[#1E40AF] text-white shadow-xs"
+                      : p.id === "FREE"
+                        ? "bg-zinc-100 hover:bg-zinc-200 dark:bg-white/10 dark:hover:bg-white/15 text-zinc-800 dark:text-white"
+                        : "bg-[#0F172A] hover:bg-[#1E293B] dark:bg-white dark:hover:bg-zinc-200 text-white dark:text-zinc-900 shadow-xs"
                 }`}
               >
                 {loadingPlan === p.id ? (
@@ -604,7 +505,7 @@ export default function PricingPage() {
                     <span>Activating...</span>
                   </span>
                 ) : isCurrent ? (
-                  <span>Current Plan</span>
+                  <span>Current plan</span>
                 ) : p.id === "FREE" ? (
                   <span>Get Started Free</span>
                 ) : (
@@ -620,110 +521,29 @@ export default function PricingPage() {
       </div>
 
       {/* Reassurance Guarantee Blocks */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-2">
         {PRICING_COPY.guarantees.map((g, idx) => {
-          const icons = [ShieldCheck, CreditCard, RefreshCw];
-          const Icon = icons[idx] || ShieldCheck;
+          const icons = [Shield, CreditCard, RefreshCw];
+          const Icon = icons[idx] || Shield;
           return (
             <div
               key={idx}
-              className="p-5 rounded-[12px] bg-white dark:bg-[#141416] border border-neutral-200 dark:border-[#27272a] shadow-xs flex flex-col gap-2.5"
+              className="p-5 rounded-[10px] bg-white dark:bg-[#141416] border border-zinc-200/90 dark:border-[#27272a] shadow-2xs flex items-start gap-3.5"
             >
-              <div className="w-9 h-9 rounded-[8px] bg-brand-subtle text-brand flex items-center justify-center font-bold">
-                <Icon className="w-5 h-5" />
+              <div className="w-9 h-9 rounded-[8px] bg-zinc-50 dark:bg-white/5 border border-zinc-200/80 dark:border-white/10 text-zinc-700 dark:text-neutral-300 flex items-center justify-center shrink-0">
+                <Icon className="w-4 h-4" />
               </div>
-              <h4 className="text-sm font-bold text-neutral-900 dark:text-white">{g.title}</h4>
-              <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed">
-                {g.description}
-              </p>
+              <div className="min-w-0">
+                <h4 className="text-xs font-bold text-zinc-900 dark:text-white leading-snug">
+                  {g.title}
+                </h4>
+                <p className="text-[11.5px] text-zinc-500 dark:text-neutral-400 leading-relaxed mt-1">
+                  {g.description}
+                </p>
+              </div>
             </div>
           );
         })}
-      </div>
-
-      {/* Comprehensive Feature Comparison Matrix */}
-      <div className="mt-8 flex flex-col gap-4">
-        <div>
-          <h2 className="text-xl font-bold text-neutral-900 dark:text-white tracking-wide">
-            Feature Comparison Matrix
-          </h2>
-          <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
-            All detailed technical specifications, quotas, and capabilities side by side.
-          </p>
-        </div>
-
-        <div className="rounded-[12px] bg-white dark:bg-[#141416] border border-neutral-200 dark:border-[#27272a] overflow-hidden shadow-xs">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="border-b border-neutral-200 dark:border-[#27272a] bg-neutral-50 dark:bg-[#1a1a1e]/80 text-neutral-600 dark:text-neutral-400 uppercase tracking-wider font-bold text-[10px]">
-                  <th className="p-4 sm:p-5">Feature</th>
-                  <th className="p-4 sm:p-5 text-neutral-700 dark:text-neutral-300">STARTER ($0)</th>
-                  <th className="p-4 sm:p-5 text-brand">PRO ($15/mo)</th>
-                  <th className="p-4 sm:p-5 text-neutral-900 dark:text-white">BUSINESS ($49/mo)</th>
-                  <th className="p-4 sm:p-5 text-neutral-900 dark:text-white">ENTERPRISE ($199/mo)</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-neutral-200 dark:divide-[#222225] text-neutral-700 dark:text-neutral-200">
-                {comparisonTable.map((row, idx) => (
-                  <tr key={idx} className="hover:bg-neutral-50/50 dark:hover:bg-white/[0.02] transition-colors">
-                    <td className="p-4 sm:p-5 font-semibold text-neutral-900 dark:text-white">{row.feature}</td>
-                    <td className="p-4 sm:p-5">
-                      {typeof row.free === "boolean" ? (
-                        row.free ? (
-                          <Check className="w-4 h-4 text-emerald-500" />
-                        ) : (
-                          <span className="text-neutral-400">Not included</span>
-                        )
-                      ) : (
-                        <span className="font-mono text-neutral-600 dark:text-neutral-300">{row.free}</span>
-                      )}
-                    </td>
-                    <td className="p-4 sm:p-5">
-                      {typeof row.pro === "boolean" ? (
-                        row.pro ? (
-                          <span className="text-emerald-500 font-semibold flex items-center gap-1">
-                            <Check className="w-4 h-4" /> Included
-                          </span>
-                        ) : (
-                          <span className="text-neutral-400">Not included</span>
-                        )
-                      ) : (
-                        <span className="font-mono font-bold text-brand">{row.pro}</span>
-                      )}
-                    </td>
-                    <td className="p-4 sm:p-5">
-                      {typeof row.business === "boolean" ? (
-                        row.business ? (
-                          <span className="text-emerald-500 font-semibold flex items-center gap-1">
-                            <Check className="w-4 h-4" /> Included
-                          </span>
-                        ) : (
-                          <span className="text-neutral-400">Not included</span>
-                        )
-                      ) : (
-                        <span className="font-mono font-bold text-neutral-900 dark:text-white">{row.business}</span>
-                      )}
-                    </td>
-                    <td className="p-4 sm:p-5">
-                      {typeof row.enterprise === "boolean" ? (
-                        row.enterprise ? (
-                          <span className="text-emerald-500 font-semibold flex items-center gap-1">
-                            <Check className="w-4 h-4" /> Included
-                          </span>
-                        ) : (
-                          <span className="text-neutral-400">Not included</span>
-                        )
-                      ) : (
-                        <span className="font-mono font-bold text-neutral-900 dark:text-white">{row.enterprise}</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
       </div>
     </div>
   );

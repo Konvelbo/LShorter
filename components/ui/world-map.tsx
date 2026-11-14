@@ -17,12 +17,28 @@ export function WorldMap({
   dots = [],
   lineColor = "#0066FF",
 }: MapProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const { theme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [isInView, setIsInView] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") {
+      setIsInView(true);
+      return;
+    }
+    const io = new IntersectionObserver(
+      ([entry]) => setIsInView(entry.isIntersecting),
+      { rootMargin: "150px", threshold: 0 }
+    );
+    io.observe(el);
+    return () => io.disconnect();
   }, []);
 
   const isDark = mounted ? theme === "dark" : false;
@@ -31,13 +47,14 @@ export function WorldMap({
     return new DottedMap({ height: 70, grid: "diagonal" });
   }, []);
 
-  const svgMap = useMemo(() => {
-    return map.getSVG({
+  const svgDataUri = useMemo(() => {
+    const raw = map.getSVG({
       radius: 0.22,
       color: isDark ? "#FFFFFF35" : "#00000030",
       shape: "circle",
       backgroundColor: isDark ? "#09090b" : "#ffffff",
     });
+    return `data:image/svg+xml;utf8,${encodeURIComponent(raw)}`;
   }, [map, isDark]);
 
   const projectPoint = (lat: number, lng: number) => {
@@ -56,10 +73,13 @@ export function WorldMap({
   };
 
   return (
-    <div className="w-full aspect-[2/1] bg-white dark:bg-[#09090b] rounded-xl relative font-sans overflow-hidden select-none border border-black/[0.04] dark:border-white/[0.06] shadow-xs">
+    <div
+      ref={containerRef}
+      className="w-full aspect-[2/1] bg-white dark:bg-[#09090b] rounded-xl relative font-sans overflow-hidden select-none border border-black/[0.04] dark:border-white/[0.06] shadow-xs"
+    >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={`data:image/svg+xml;utf8,${encodeURIComponent(svgMap)}`}
+        src={svgDataUri}
         className="h-full w-full [mask-image:linear-gradient(to_bottom,transparent,white_8%,white_92%,transparent)] pointer-events-none select-none object-cover"
         alt="world map"
         height="495"
@@ -81,36 +101,37 @@ export function WorldMap({
           </linearGradient>
         </defs>
 
-        {/* Animated Curved Link Paths */}
-        {dots.map((dot, i) => {
-          const startPoint = projectPoint(dot.start.lat, dot.start.lng);
-          const endPoint = projectPoint(dot.end.lat, dot.end.lng);
-          return (
-            <g key={`path-group-${i}`}>
-              <motion.path
-                d={createCurvedPath(startPoint, endPoint)}
-                fill="none"
-                stroke="url(#path-gradient)"
-                strokeWidth="1.5"
-                initial={{
-                  pathLength: 0,
-                }}
-                animate={{
-                  pathLength: 1,
-                }}
-                transition={{
-                  duration: 1.4,
-                  delay: 0.3 * i,
-                  ease: "easeOut",
-                  repeat: Infinity,
-                  repeatType: "loop",
-                  repeatDelay: 2.2,
-                }}
-                key={`start-upper-${i}`}
-              />
-            </g>
-          );
-        })}
+        {/* Animated Curved Link Paths — paused when off-screen */}
+        {isInView &&
+          dots.map((dot, i) => {
+            const startPoint = projectPoint(dot.start.lat, dot.start.lng);
+            const endPoint = projectPoint(dot.end.lat, dot.end.lng);
+            return (
+              <g key={`path-group-${i}`}>
+                <motion.path
+                  d={createCurvedPath(startPoint, endPoint)}
+                  fill="none"
+                  stroke="url(#path-gradient)"
+                  strokeWidth="1.5"
+                  initial={{
+                    pathLength: 0,
+                  }}
+                  animate={{
+                    pathLength: 1,
+                  }}
+                  transition={{
+                    duration: 1.4,
+                    delay: 0.3 * i,
+                    ease: "easeOut",
+                    repeat: Infinity,
+                    repeatType: "loop",
+                    repeatDelay: 2.2,
+                  }}
+                  key={`start-upper-${i}`}
+                />
+              </g>
+            );
+          })}
 
         {/* Pulse Pin Hubs */}
         {dots.map((dot, i) => {
@@ -126,30 +147,32 @@ export function WorldMap({
                   r="3"
                   fill={lineColor}
                 />
-                <circle
-                  cx={startPt.x}
-                  cy={startPt.y}
-                  r="3"
-                  fill={lineColor}
-                  opacity="0.6"
-                >
-                  <animate
-                    attributeName="r"
-                    from="3"
-                    to="10"
-                    dur="1.8s"
-                    begin={`${0.2 * i}s`}
-                    repeatCount="indefinite"
-                  />
-                  <animate
-                    attributeName="opacity"
-                    from="0.6"
-                    to="0"
-                    dur="1.8s"
-                    begin={`${0.2 * i}s`}
-                    repeatCount="indefinite"
-                  />
-                </circle>
+                {isInView && (
+                  <circle
+                    cx={startPt.x}
+                    cy={startPt.y}
+                    r="3"
+                    fill={lineColor}
+                    opacity="0.6"
+                  >
+                    <animate
+                      attributeName="r"
+                      from="3"
+                      to="10"
+                      dur="1.8s"
+                      begin={`${0.2 * i}s`}
+                      repeatCount="indefinite"
+                    />
+                    <animate
+                      attributeName="opacity"
+                      from="0.6"
+                      to="0"
+                      dur="1.8s"
+                      begin={`${0.2 * i}s`}
+                      repeatCount="indefinite"
+                    />
+                  </circle>
+                )}
               </g>
 
               {/* End node */}
@@ -160,30 +183,32 @@ export function WorldMap({
                   r="3"
                   fill={lineColor}
                 />
-                <circle
-                  cx={endPt.x}
-                  cy={endPt.y}
-                  r="3"
-                  fill={lineColor}
-                  opacity="0.6"
-                >
-                  <animate
-                    attributeName="r"
-                    from="3"
-                    to="10"
-                    dur="1.8s"
-                    begin={`${0.2 * i + 0.3}s`}
-                    repeatCount="indefinite"
-                  />
-                  <animate
-                    attributeName="opacity"
-                    from="0.6"
-                    to="0"
-                    dur="1.8s"
-                    begin={`${0.2 * i + 0.3}s`}
-                    repeatCount="indefinite"
-                  />
-                </circle>
+                {isInView && (
+                  <circle
+                    cx={endPt.x}
+                    cy={endPt.y}
+                    r="3"
+                    fill={lineColor}
+                    opacity="0.6"
+                  >
+                    <animate
+                      attributeName="r"
+                      from="3"
+                      to="10"
+                      dur="1.8s"
+                      begin={`${0.2 * i + 0.3}s`}
+                      repeatCount="indefinite"
+                    />
+                    <animate
+                      attributeName="opacity"
+                      from="0.6"
+                      to="0"
+                      dur="1.8s"
+                      begin={`${0.2 * i + 0.3}s`}
+                      repeatCount="indefinite"
+                    />
+                  </circle>
+                )}
               </g>
             </g>
           );

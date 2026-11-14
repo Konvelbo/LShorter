@@ -227,6 +227,11 @@ export function CobeGlobe({ className = "", topCountries = [] }: CobeGlobeProps)
   const modalBackdropRef = useRef<HTMLDivElement>(null);
   const modalContentRef = useRef<HTMLDivElement>(null);
 
+  // Cached canvas logical dimensions & visibility flags (updated via ResizeObserver/IO, zero reflow in RAF)
+  const canvasSizeRef = useRef(420);
+  const modalSizeRef = useRef(720);
+  const isGlobeInViewRef = useRef(true);
+
   // Rotation angles, drag state & smooth mobile momentum physics
   const rotX = useRef(0.18);
   const rotY = useRef(0.3);
@@ -259,9 +264,9 @@ export function CobeGlobe({ className = "", topCountries = [] }: CobeGlobeProps)
     }
   }, [isExpanded]);
 
-  // Main Render Loop
+  // Main Render Loop (pauses completely when off-screen or tab is hidden)
   useEffect(() => {
-    let animId: number;
+    let animId: number | null = null;
     let time = 0;
 
     const drawGlobeOnCanvas = (
@@ -271,9 +276,9 @@ export function CobeGlobe({ className = "", topCountries = [] }: CobeGlobeProps)
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
 
-      const rect = canvas.getBoundingClientRect();
-      const width = rect.width || (isModal ? 720 : 420);
-      const height = rect.height || (isModal ? 720 : 420);
+      const cachedSize = isModal ? modalSizeRef.current : canvasSizeRef.current;
+      const width = cachedSize || (isModal ? 720 : 420);
+      const height = width;
       const cx = width / 2;
       const cy = height / 2;
       const radius = width * (isModal ? 0.40 : 0.42);
@@ -322,8 +327,8 @@ export function CobeGlobe({ className = "", topCountries = [] }: CobeGlobeProps)
 
       // 3. Grid Lines
       ctx.lineWidth = 0.75;
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
       for (let lat = -60; lat <= 60; lat += 30) {
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
         ctx.beginPath();
         let first = true;
         for (let lng = -180; lng <= 180; lng += 8) {
@@ -343,7 +348,6 @@ export function CobeGlobe({ className = "", topCountries = [] }: CobeGlobeProps)
       }
 
       for (let lng = -180; lng <= 180; lng += 45) {
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
         ctx.beginPath();
         let first = true;
         for (let lat = -80; lat <= 80; lat += 8) {
@@ -362,28 +366,33 @@ export function CobeGlobe({ className = "", topCountries = [] }: CobeGlobeProps)
         ctx.stroke();
       }
 
-      // 4. Continent Dense Dotted Matrix (Pointillés - Bright & High Contrast)
-      GLOBAL_CONTINENT_DOTS.forEach((dot) => {
+      // 4. Continent Dense Dotted Matrix (using globalAlpha avoids 1500+ rgba string allocations/frame)
+      ctx.fillStyle = "#ebf5ff";
+      const baseDot = isModal ? 1.6 : 1.2;
+      const depthDot = isModal ? 1.0 : 0.7;
+      for (let i = 0; i < GLOBAL_CONTINENT_DOTS.length; i++) {
+        const dot = GLOBAL_CONTINENT_DOTS[i];
         const pt = latLngTo3D(dot.lat, dot.lng, radius);
         if (pt.z > 0) {
           const depth = pt.z / radius;
-          const alpha = 0.3 + depth * 0.7;
-          const dotSize = (isModal ? 1.6 : 1.2) + depth * (isModal ? 1.0 : 0.7);
-
-          ctx.fillStyle = `rgba(235, 245, 255, ${alpha})`;
+          ctx.globalAlpha = 0.3 + depth * 0.7;
+          const dotSize = baseDot + depth * depthDot;
           ctx.beginPath();
           ctx.arc(cx + pt.x, cy + pt.y, dotSize, 0, Math.PI * 2);
           ctx.fill();
         }
-      });
+      }
+      ctx.globalAlpha = 1;
 
       // 5. Continent Outlines (Subtle borders)
-      continentContours.forEach((poly) => {
-        ctx.strokeStyle = isModal ? "rgba(255, 255, 255, 0.35)" : "rgba(255, 255, 255, 0.25)";
-        ctx.lineWidth = isModal ? 1.2 : 0.9;
+      ctx.strokeStyle = isModal ? "rgba(255, 255, 255, 0.35)" : "rgba(255, 255, 255, 0.25)";
+      ctx.lineWidth = isModal ? 1.2 : 0.9;
+      for (let p = 0; p < continentContours.length; p++) {
+        const poly = continentContours[p];
         ctx.beginPath();
         let first = true;
-        for (const coord of poly) {
+        for (let c = 0; c < poly.length; c++) {
+          const coord = poly[c];
           const pt = latLngTo3D(coord.lat, coord.lng, radius);
           if (pt.z > -radius * 0.15) {
             if (first) {
@@ -397,10 +406,13 @@ export function CobeGlobe({ className = "", topCountries = [] }: CobeGlobeProps)
           }
         }
         ctx.stroke();
-      });
+      }
 
-      // 6. Flight Arcs
-      arcsRef.current.forEach((arc) => {
+      // 6. Flight Arcs (fast vector glow halo instead of expensive shadowBlur)
+      const packetGlowColor = isBlue ? "rgba(0, 240, 255, 0.32)" : "rgba(255, 102, 0, 0.32)";
+      const packetRadius = isModal ? 4 : 2.5;
+      for (let a = 0; a < arcsRef.current.length; a++) {
+        const arc = arcsRef.current[a];
         const p1 = latLngTo3D(arc.from.lat, arc.from.lng, radius);
         const p2 = latLngTo3D(arc.to.lat, arc.to.lng, radius);
 
@@ -423,25 +435,29 @@ export function CobeGlobe({ className = "", topCountries = [] }: CobeGlobeProps)
           const curX = t1 * t1 * p1.x + 2 * t1 * t * midPt.x + t * t * p2.x;
           const curY = t1 * t1 * p1.y + 2 * t1 * t * midPt.y + t * t * p2.y;
 
-          ctx.fillStyle = "#ffffff";
-          ctx.shadowColor = isBlue ? "#00f0ff" : "#ff6600";
-          ctx.shadowBlur = 12;
+          ctx.fillStyle = packetGlowColor;
           ctx.beginPath();
-          ctx.arc(cx + curX, cy + curY, isModal ? 4 : 2.5, 0, Math.PI * 2);
+          ctx.arc(cx + curX, cy + curY, packetRadius * 2.2, 0, Math.PI * 2);
           ctx.fill();
-          ctx.shadowBlur = 0;
+
+          ctx.fillStyle = "#ffffff";
+          ctx.beginPath();
+          ctx.arc(cx + curX, cy + curY, packetRadius, 0, Math.PI * 2);
+          ctx.fill();
         }
-      });
+      }
 
       // 7. Markers
-      markersRef.current.forEach((m) => {
+      for (let i = 0; i < markersRef.current.length; i++) {
+        const m = markersRef.current[i];
         const pt = latLngTo3D(m.lat, m.lng, radius);
 
         if (pt.z > 0) {
           const depthScale = 0.6 + (pt.z / radius) * 0.6;
           const pulse = (Math.sin(time * 3.5 + m.lat) + 1) / 2;
+          const coreR = m.size * (isModal ? 1.4 : 1) * depthScale;
 
-          // Pulse
+          // Pulse ring
           ctx.strokeStyle = isBlue
             ? `rgba(0, 210, 255, ${0.8 - pulse * 0.6})`
             : `rgba(255, 102, 0, ${0.8 - pulse * 0.6})`;
@@ -450,14 +466,17 @@ export function CobeGlobe({ className = "", topCountries = [] }: CobeGlobeProps)
           ctx.arc(cx + pt.x, cy + pt.y, (m.size * (isModal ? 1.4 : 1) + pulse * 8) * depthScale, 0, Math.PI * 2);
           ctx.stroke();
 
+          // Fast halo (replaces expensive CPU shadowBlur)
+          ctx.fillStyle = isBlue ? "rgba(0, 240, 255, 0.25)" : "rgba(255, 102, 0, 0.25)";
+          ctx.beginPath();
+          ctx.arc(cx + pt.x, cy + pt.y, coreR * 2.3, 0, Math.PI * 2);
+          ctx.fill();
+
           // Core
           ctx.fillStyle = isBlue ? "#00d2ff" : "#ff6600";
-          ctx.shadowColor = isBlue ? "#00f0ff" : "#ff6600";
-          ctx.shadowBlur = 16;
           ctx.beginPath();
-          ctx.arc(cx + pt.x, cy + pt.y, m.size * (isModal ? 1.4 : 1) * depthScale, 0, Math.PI * 2);
+          ctx.arc(cx + pt.x, cy + pt.y, coreR, 0, Math.PI * 2);
           ctx.fill();
-          ctx.shadowBlur = 0;
 
           // White center
           ctx.fillStyle = "#ffffff";
@@ -475,7 +494,6 @@ export function CobeGlobe({ className = "", topCountries = [] }: CobeGlobeProps)
             const paddingX = 6;
             const paddingY = 3.5;
 
-            // Badge Background Pill
             ctx.fillStyle = "rgba(12, 12, 16, 0.88)";
             ctx.strokeStyle = isBlue ? "rgba(0, 210, 255, 0.6)" : "rgba(255, 102, 0, 0.5)";
             ctx.lineWidth = 1;
@@ -492,30 +510,38 @@ export function CobeGlobe({ className = "", topCountries = [] }: CobeGlobeProps)
             ctx.fill();
             ctx.stroke();
 
-            // Badge Text
             ctx.fillStyle = "#ffffff";
             ctx.fillText(m.label, badgeX, badgeY + fontSize * 0.85);
           }
         }
-      });
+      }
+    };
+
+    const stopLoop = () => {
+      if (animId !== null) {
+        cancelAnimationFrame(animId);
+        animId = null;
+      }
     };
 
     const render = () => {
+      animId = null;
+      if (document.hidden || (!isGlobeInViewRef.current && !isExpanded)) return;
+
       time += 0.02;
 
       if (!isDragging.current) {
-        // Silky smooth momentum inertia when released
         if (Math.abs(velocityX.current) > 0.00005 || Math.abs(velocityY.current) > 0.00005) {
           rotY.current += velocityX.current;
           rotX.current = Math.max(-0.85, Math.min(0.85, rotX.current + velocityY.current));
-          velocityX.current *= 0.92; // smooth aerodynamic friction
+          velocityX.current *= 0.92;
           velocityY.current *= 0.92;
         } else {
           rotY.current += 0.0035;
         }
       }
 
-      if (canvasRef.current) {
+      if (canvasRef.current && (isGlobeInViewRef.current || isExpanded)) {
         drawGlobeOnCanvas(canvasRef.current, false);
       }
       if (modalCanvasRef.current && isExpanded) {
@@ -525,10 +551,43 @@ export function CobeGlobe({ className = "", topCountries = [] }: CobeGlobeProps)
       animId = requestAnimationFrame(render);
     };
 
-    render();
+    const startLoop = () => {
+      if (animId === null && !document.hidden && (isGlobeInViewRef.current || isExpanded)) {
+        animId = requestAnimationFrame(render);
+      }
+    };
+
+    let io: IntersectionObserver | null = null;
+    if (typeof IntersectionObserver !== "undefined" && containerRef.current) {
+      io = new IntersectionObserver(
+        ([entry]) => {
+          isGlobeInViewRef.current = entry.isIntersecting;
+          if (entry.isIntersecting || isExpanded) {
+            startLoop();
+          } else {
+            stopLoop();
+          }
+        },
+        { threshold: 0 }
+      );
+      io.observe(containerRef.current);
+    }
+
+    const onVisibilityChange = () => {
+      if (document.hidden) {
+        stopLoop();
+      } else {
+        startLoop();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    startLoop();
 
     return () => {
-      cancelAnimationFrame(animId);
+      stopLoop();
+      io?.disconnect();
+      document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, [isExpanded]);
 
@@ -543,22 +602,24 @@ export function CobeGlobe({ className = "", topCountries = [] }: CobeGlobeProps)
       if (canvasRef.current && containerRef.current) {
         const rect = containerRef.current.getBoundingClientRect();
         const size = Math.min(rect.width || 320, 360);
+        canvasSizeRef.current = size;
         canvasRef.current.width = size * dpr;
         canvasRef.current.height = size * dpr;
         canvasRef.current.style.width = `${size}px`;
         canvasRef.current.style.height = `${size}px`;
         const ctx = canvasRef.current.getContext("2d");
-        if (ctx) ctx.scale(dpr, dpr);
+        if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       }
 
       if (modalCanvasRef.current) {
         const size = Math.min(window.innerWidth * 0.85, window.innerHeight * 0.72, 760);
+        modalSizeRef.current = size;
         modalCanvasRef.current.width = size * dpr;
         modalCanvasRef.current.height = size * dpr;
         modalCanvasRef.current.style.width = `${size}px`;
         modalCanvasRef.current.style.height = `${size}px`;
         const ctx = modalCanvasRef.current.getContext("2d");
-        if (ctx) ctx.scale(dpr, dpr);
+        if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       }
     };
 

@@ -32,13 +32,13 @@ export function Topbar() {
   const { data: session } = useSession();
   const rawUserId = session?.user?.id || (session?.user as any)?.userId || session?.user?.email || "";
   const rawEmail = session?.user?.email || "";
-  const userId = rawUserId;
   const convexUser = useQuery(
     api.users.getCurrentUser,
     rawUserId || rawEmail
       ? { userId: rawUserId || rawEmail, email: rawEmail || undefined }
       : "skip"
   );
+  const userId = convexUser?.userId || rawUserId;
 
   const [isMounted, setIsMounted] = useState(false);
   const [cachedUser, setCachedUser] = useState<{
@@ -89,6 +89,9 @@ export function Topbar() {
           plan: plan || prev?.plan || "FREE",
         };
         try {
+          if (userId && userId !== "usr_anonymous") {
+            localStorage.setItem("lshorter_user_id", userId);
+          }
           if (next.name || next.email) {
             localStorage.setItem("lshorter_cached_user", JSON.stringify(next));
           }
@@ -405,36 +408,49 @@ export function Topbar() {
                       No notifications yet. Set a Monthly Target on your dashboard to receive goal alerts.
                     </div>
                   ) : (
-                    <div className="max-h-72 overflow-y-auto flex flex-col gap-1.5">
-                      {mergedNotifications.slice(0, 8).map((notif) => (
-                        <div
-                          key={notif.id}
-                          onClick={() => markNotificationRead(notif.id)}
-                          className={`rounded-[10px] p-3 text-left transition-all cursor-pointer ${
-                            notif.isRead
-                              ? "bg-transparent hover:bg-[#F2F4F7] dark:hover:bg-white/[0.04]"
-                              : "bg-[#ECF3FF]/70 dark:bg-[#465FFF]/15 border border-[#465FFF]/20"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="text-xs font-semibold ds-text-primary flex items-center gap-1.5">
-                              {!notif.isRead && (
-                                <span className="h-1.5 w-1.5 rounded-full bg-[#465FFF] shrink-0" />
-                              )}
-                              {notif.title}
+                    <div className="max-h-72 overflow-y-auto pt-2.5 -mt-1 flex flex-col gap-1.5">
+                      {mergedNotifications.slice(0, 8).map((notif) => {
+                        const d = new Date(notif.createdAt || Date.now());
+                        const datePopLabel = `${String(d.getFullYear()).slice(-2)}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
+                        return (
+                          <div
+                            key={notif.id}
+                            onClick={() => markNotificationRead(notif.id)}
+                            className={`group relative rounded-[10px] p-3 text-left transition-all cursor-pointer ${
+                              notif.isRead
+                                ? "bg-transparent hover:bg-[#F2F4F7] dark:hover:bg-white/[0.04]"
+                                : "bg-[#ECF3FF]/70 dark:bg-[#465FFF]/15 border border-[#465FFF]/20"
+                            }`}
+                          >
+                            {/* Hover Date Pop (YY/MM/DD) */}
+                            <span
+                              aria-hidden="true"
+                              className="pointer-events-none absolute -top-2 right-2.5 z-20 inline-flex items-center rounded-[6px] bg-zinc-900 dark:bg-[#27272A] px-2 py-0.5 text-[10px] font-mono font-semibold tracking-wider text-white shadow-md ring-1 ring-black/10 dark:ring-white/15 opacity-0 scale-90 translate-y-1 group-hover:opacity-100 group-hover:scale-100 group-hover:translate-y-0 transition-all duration-150 ease-out"
+                            >
+                              {datePopLabel}
+                              <span className="absolute -bottom-0.5 right-3 h-1.5 w-1.5 rotate-45 bg-zinc-900 dark:bg-[#27272A]" />
                             </span>
-                            <span className="text-[10.5px] ds-text-muted shrink-0">
-                              {new Date(notif.createdAt).toLocaleTimeString([], {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
-                            </span>
+
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-xs font-semibold ds-text-primary flex items-center gap-1.5">
+                                {!notif.isRead && (
+                                  <span className="h-1.5 w-1.5 rounded-full bg-[#465FFF] shrink-0" />
+                                )}
+                                {notif.title}
+                              </span>
+                              <span className="text-[10.5px] ds-text-muted shrink-0">
+                                {d.toLocaleTimeString([], {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </span>
+                            </div>
+                            <p className="mt-1 text-xs ds-text-secondary leading-relaxed">
+                              {notif.message}
+                            </p>
                           </div>
-                          <p className="mt-1 text-xs ds-text-secondary leading-relaxed">
-                            {notif.message}
-                          </p>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>

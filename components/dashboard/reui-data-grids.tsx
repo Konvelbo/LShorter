@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import { ShortLink } from "@/types";
 import { BannerLightboxModal } from "@/components/dashboard/banner-lightbox-modal";
-import { triggerClickSync, cfUpdateLink, cfInvalidateCache, cfBulkDeleteLinks } from "@/lib/cloudflare-api";
+import { triggerClickSync, cfUpdateLink, cfInvalidateCache, cfBulkDeleteLinks, cfGetAnalytics, cfGetLinks } from "@/lib/cloudflare-api";
 import { cn, getCountryName, isLinkActive } from "@/lib/utils";
 import { showToast } from "@/components/ui/toast-provider";
 import { triggerGlobalUndoDelete } from "@/components/ui/undo-delete-provider";
@@ -1926,11 +1926,12 @@ export function GeoLogsReuiDataGrid({
     setMounted(true);
   }, []);
 
-  // Horloge de rafraîchissement des minutes (toutes les 5 secondes)
+  // Horloge de rafraîchissement des minutes (toutes les 30 secondes quand visible)
   useEffect(() => {
     const timer = setInterval(() => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
       setCurrentTimeTick(Date.now());
-    }, 5000);
+    }, 30000);
     return () => clearInterval(timer);
   }, []);
 
@@ -1980,21 +1981,17 @@ export function GeoLogsReuiDataGrid({
     if (!userId) return;
     try {
       const [aJson, lJson] = await Promise.all([
-        fetch(`/api/analytics?userId=${encodeURIComponent(userId)}&period=30d`)
-          .then((r) => (r.ok ? r.json() : null))
-          .catch(() => null),
-        fetch(`/api/links?userId=${encodeURIComponent(userId)}`)
-          .then((r) => (r.ok ? r.json() : null))
-          .catch(() => null),
+        cfGetAnalytics(userId, "30d").catch(() => null),
+        cfGetLinks(userId).catch(() => null),
       ]);
-      const d = aJson?.data?.data || aJson?.data || aJson || {};
+      const d = (aJson as any)?.data?.data || (aJson as any)?.data || aJson || {};
       const evs =
         d.liveClickEvents || d.live_click_events || d.recentClicks || [];
       if (Array.isArray(evs) && evs.length > 0) setInternalLogs(evs);
-      const lList = Array.isArray(lJson?.data)
-        ? lJson.data
-        : Array.isArray(lJson?.data?.data)
-          ? lJson.data.data
+      const lList = Array.isArray((lJson as any)?.data)
+        ? (lJson as any).data
+        : Array.isArray((lJson as any)?.data?.data)
+          ? (lJson as any).data.data
           : [];
       if (lList.length > 0) setInternalLinks(lList);
     } catch {}
@@ -2011,26 +2008,24 @@ export function GeoLogsReuiDataGrid({
 
     fetchLogs();
 
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
     const handleUpdate = () => {
-      fetchLogs();
-    };
-
-    const handleFocus = () => {
-      if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
-      fetchLogs();
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        debounceTimer = null;
+        fetchLogs();
+      }, 100);
     };
 
     const handleStorage = (e: StorageEvent) => {
       if (e.key === "lshorter_data_change" || e.key === "lshorter_last_click") {
-        fetchLogs();
+        handleUpdate();
       }
     };
 
     window.addEventListener("lshorter_data_change", handleUpdate);
     window.addEventListener("lshorter_links_updated", handleUpdate);
     window.addEventListener("lshorter_link_clicked", handleUpdate);
-    window.addEventListener("focus", handleFocus);
-    document.addEventListener("visibilitychange", handleFocus);
     window.addEventListener("storage", handleStorage);
 
     // Heartbeat polling (every 60s) only in standalone mode to avoid Cloudflare D1 spikes
@@ -2040,11 +2035,10 @@ export function GeoLogsReuiDataGrid({
     }, 60000);
 
     return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
       window.removeEventListener("lshorter_data_change", handleUpdate);
       window.removeEventListener("lshorter_links_updated", handleUpdate);
       window.removeEventListener("lshorter_link_clicked", handleUpdate);
-      window.removeEventListener("focus", handleFocus);
-      document.removeEventListener("visibilitychange", handleFocus);
       window.removeEventListener("storage", handleStorage);
       clearInterval(pollTimer);
     };
