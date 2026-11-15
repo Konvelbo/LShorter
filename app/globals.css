@@ -1807,47 +1807,61 @@ html.light main .text-neutral-200 {
 @keyframes appear {
   0% {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translate3d(0, 12px, 0);
   }
   100% {
     opacity: 1;
-    transform: translateY(0);
+    transform: translate3d(0, 0, 0);
   }
 }
 
 @keyframes appear-zoom {
   0% {
     opacity: 0;
-    transform: scale(0.95);
+    transform: scale3d(0.96, 0.96, 1);
   }
   100% {
     opacity: 1;
-    transform: scale(1);
+    transform: scale3d(1, 1, 1);
   }
 }
 
 .animate-appear {
-  animation: appear 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: appear 0.42s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
 }
 
 .animate-appear-zoom {
-  animation: appear-zoom 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: appear-zoom 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
 }
 
-.delay-100 {
-  animation-delay: 100ms;
+.delay-75 {
+  animation-delay: 75ms;
+}
+
+.delay-150 {
+  animation-delay: 150ms;
+}
+
+.delay-225 {
+  animation-delay: 225ms;
 }
 
 .delay-300 {
   animation-delay: 300ms;
 }
 
+.delay-100 {
+  animation-delay: 75ms;
+}
+
 .delay-700 {
-  animation-delay: 700ms;
+  animation-delay: 225ms;
 }
 
 .delay-1000 {
-  animation-delay: 1000ms;
+  animation-delay: 300ms;
 }
 
 .fade-bottom {

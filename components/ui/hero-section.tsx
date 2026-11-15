@@ -83,12 +83,12 @@ export function HeroSection({
           </h1>
 
           {/* Description */}
-          <p className="text-md relative z-10 max-w-[620px] animate-appear font-medium text-muted-foreground opacity-0 delay-100 sm:text-xl">
+          <p className="text-md relative z-10 max-w-[620px] animate-appear font-medium text-muted-foreground opacity-0 delay-75 sm:text-xl">
             {description}
           </p>
 
           {/* Actions */}
-          <div className="relative z-10 flex animate-appear justify-center gap-4 opacity-0 delay-300 flex-wrap">
+          <div className="relative z-10 flex animate-appear justify-center gap-4 opacity-0 delay-150 flex-wrap">
             {actions.map((action, index) => (
               <Button
                 key={index}
@@ -112,7 +112,7 @@ export function HeroSection({
           {/* Image with Glow */}
           <div className="relative pt-12 w-full max-w-[1248px]">
             <MockupFrame
-              className="animate-appear opacity-0 delay-700 bg-accent/5 rounded-2xl border border-zinc-200/80 dark:border-white/10"
+              className="animate-appear opacity-0 delay-225 bg-accent/5 rounded-2xl border border-zinc-200/80 dark:border-white/10"
               size="small"
             >
               <Mockup type="responsive" className="bg-white dark:bg-[#101828] border border-zinc-200 dark:border-white/15">
@@ -138,7 +138,7 @@ export function HeroSection({
             </MockupFrame>
             <Glow
               variant="top"
-              className="animate-appear-zoom opacity-0 delay-1000"
+              className="animate-appear-zoom opacity-0 delay-300"
             />
           </div>
         </div>

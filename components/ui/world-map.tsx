@@ -35,7 +35,7 @@ export function WorldMap({
     }
     const io = new IntersectionObserver(
       ([entry]) => setIsInView(entry.isIntersecting),
-      { rootMargin: "150px", threshold: 0 }
+      { rootMargin: "300px", threshold: 0 }
     );
     io.observe(el);
     return () => io.disconnect();
@@ -43,19 +43,32 @@ export function WorldMap({
 
   const isDark = mounted ? theme === "dark" : false;
 
-  const map = useMemo(() => {
-    return new DottedMap({ height: 70, grid: "diagonal" });
-  }, []);
+  // Defer heavy DottedMap SVG calculation until the section approaches viewport
+  // This eliminates a 500ms+ main-thread freeze on initial page load / refresh
+  const [svgDataUri, setSvgDataUri] = useState<string>("");
 
-  const svgDataUri = useMemo(() => {
-    const raw = map.getSVG({
-      radius: 0.22,
-      color: isDark ? "#FFFFFF35" : "#00000030",
-      shape: "circle",
-      backgroundColor: isDark ? "#09090b" : "#ffffff",
-    });
-    return `data:image/svg+xml;utf8,${encodeURIComponent(raw)}`;
-  }, [map, isDark]);
+  useEffect(() => {
+    if (!isInView) return;
+
+    const computeMap = () => {
+      const map = new DottedMap({ height: 70, grid: "diagonal" });
+      const raw = map.getSVG({
+        radius: 0.22,
+        color: isDark ? "#FFFFFF35" : "#00000030",
+        shape: "circle",
+        backgroundColor: isDark ? "#09090b" : "#ffffff",
+      });
+      setSvgDataUri(`data:image/svg+xml;utf8,${encodeURIComponent(raw)}`);
+    };
+
+    if (typeof requestIdleCallback !== "undefined") {
+      const handle = requestIdleCallback(computeMap, { timeout: 1200 });
+      return () => cancelIdleCallback(handle);
+    } else {
+      const timer = setTimeout(computeMap, 30);
+      return () => clearTimeout(timer);
+    }
+  }, [isInView, isDark]);
 
   const projectPoint = (lat: number, lng: number) => {
     const x = (lng + 180) * (800 / 360);
