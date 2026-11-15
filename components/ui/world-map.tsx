@@ -91,14 +91,16 @@ export function WorldMap({
       className="w-full aspect-[2/1] bg-white dark:bg-[#09090b] rounded-xl relative font-sans overflow-hidden select-none border border-black/[0.04] dark:border-white/[0.06] shadow-xs"
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={svgDataUri}
-        className="h-full w-full [mask-image:linear-gradient(to_bottom,transparent,white_8%,white_92%,transparent)] pointer-events-none select-none object-cover"
-        alt="world map"
-        height="495"
-        width="1056"
-        draggable={false}
-      />
+      {svgDataUri ? (
+        <img
+          src={svgDataUri}
+          className="h-full w-full [mask-image:linear-gradient(to_bottom,transparent,white_8%,white_92%,transparent)] pointer-events-none select-none object-cover"
+          alt="world map"
+          height="495"
+          width="1056"
+          draggable={false}
+        />
+      ) : null}
       <svg
         ref={svgRef}
         viewBox="0 0 800 400"

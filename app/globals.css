@@ -1807,7 +1807,7 @@ html.light main .text-neutral-200 {
 @keyframes appear {
   0% {
     opacity: 0;
-    transform: translate3d(0, 12px, 0);
+    transform: translate3d(0, 18px, 0);
   }
   100% {
     opacity: 1;
@@ -1815,10 +1815,19 @@ html.light main .text-neutral-200 {
   }
 }
 
+@keyframes appear-glow {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
 @keyframes appear-zoom {
   0% {
     opacity: 0;
-    transform: scale3d(0.96, 0.96, 1);
+    transform: scale3d(0.97, 0.97, 1);
   }
   100% {
     opacity: 1;
@@ -1827,13 +1836,22 @@ html.light main .text-neutral-200 {
 }
 
 .animate-appear {
-  animation: appear 0.42s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: appear 0.85s cubic-bezier(0.16, 1, 0.3, 1) both;
   will-change: transform, opacity;
 }
 
+.animate-appear-glow {
+  animation: appear-glow 1.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: opacity;
+}
+
 .animate-appear-zoom {
-  animation: appear-zoom 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: appear-zoom 0.85s cubic-bezier(0.16, 1, 0.3, 1) both;
   will-change: transform, opacity;
+}
+
+.delay-60 {
+  animation-delay: 60ms;
 }
 
 .delay-75 {
@@ -1844,6 +1862,10 @@ html.light main .text-neutral-200 {
   animation-delay: 150ms;
 }
 
+.delay-200 {
+  animation-delay: 200ms;
+}
+
 .delay-225 {
   animation-delay: 225ms;
 }
@@ -1852,16 +1874,28 @@ html.light main .text-neutral-200 {
   animation-delay: 300ms;
 }
 
+.delay-450 {
+  animation-delay: 450ms;
+}
+
+.delay-600 {
+  animation-delay: 600ms;
+}
+
+.delay-750 {
+  animation-delay: 750ms;
+}
+
 .delay-100 {
-  animation-delay: 75ms;
+  animation-delay: 100ms;
 }
 
 .delay-700 {
-  animation-delay: 225ms;
+  animation-delay: 700ms;
 }
 
 .delay-1000 {
-  animation-delay: 300ms;
+  animation-delay: 1000ms;
 }
 
 .fade-bottom {

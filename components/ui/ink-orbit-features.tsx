@@ -175,7 +175,7 @@ export function InkOrbitFeatures({
             </div>
             <div className="ib-bento">
               <FlowCard brand={brand} features={F} uid={uid} reduced={reduced} inView={featIn} />
-              <IntegrationsCard copy={F.integrations} reduced={reduced} />
+              <IntegrationsCard copy={F.integrations} reduced={reduced} inView={featIn} />
               <InsightsCard copy={F.insights} uid={uid} reduced={reduced} />
             </div>
           </div>
@@ -646,15 +646,15 @@ function FlowCard({
   );
 }
 
-function IntegrationsCard({ copy, reduced }: { copy: InkFeatures["integrations"]; reduced: boolean }) {
+function IntegrationsCard({ copy, reduced, inView }: { copy: InkFeatures["integrations"]; reduced: boolean; inView?: boolean }) {
   const [hover, setHover] = React.useState(-1);
   const [auto, setAuto] = React.useState(0);
 
   React.useEffect(() => {
-    if (reduced || hover >= 0) return;
+    if (reduced || inView === false || hover >= 0) return;
     const t = setInterval(() => setAuto((a) => (a + 1) % 4), 1700);
     return () => clearInterval(t);
-  }, [reduced, hover]);
+  }, [reduced, inView, hover]);
 
   const on = hover >= 0 ? hover : reduced ? -1 : auto;
   const tiles = [

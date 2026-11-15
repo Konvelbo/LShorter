@@ -34,6 +34,7 @@ const nextConfig: NextConfig = {
     contentDispositionType: "attachment",
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
     formats: ["image/avif", "image/webp"],
+    qualities: [75, 80],
     minimumCacheTTL: 3600,
     localPatterns: [
       {
