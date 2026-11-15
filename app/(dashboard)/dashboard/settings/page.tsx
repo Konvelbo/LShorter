@@ -2039,7 +2039,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
   };
 
   const tabs = [
-    { id: "profile", label: "Profile", icon: User },
+    { id: "profile", label: "Profile & Account", icon: User },
     { id: "billing", label: "Billing & Invoices", icon: CreditCard },
     { id: "api", label: "API & Keys", icon: KeyRound },
     { id: "domains", label: "Domains", icon: Globe2 },
@@ -2058,20 +2058,103 @@ console.log("Top Countries:", topAudience.topCountries);`,
   return (
     <div className="flex flex-col gap-6 animate-in fade-in pb-20 md:pb-16">
       <div className="w-full">
-        {/* TAB 1: PROFILE */}
+        {/* TAB 1: PROFILE & ACCOUNT */}
         {activeTab === "profile" && (
-          <form onSubmit={handleSaveProfile} className="flex flex-col gap-6">
+          <div className="flex flex-col gap-6">
             <div className="flex items-center justify-between pb-4 border-b border-zinc-200 dark:border-[#222225]">
               <div>
                 <h1 className="text-2xl font-bold text-zinc-900 dark:text-white tracking-tight">
-                  User Profile
+                  Profile &amp; Account
                 </h1>
                 <p className="text-xs text-zinc-500 dark:text-neutral-400 mt-0.5">
-                  Personal information, timezone, and display preferences.
+                  Personal information, edge infrastructure quotas, and display preferences.
                 </p>
               </div>
               <Badge variant="orange">Plan {plan}</Badge>
             </div>
+
+            {/* Quota gauges */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-5 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225] flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-zinc-600 dark:text-neutral-400 font-semibold">
+                    Monthly Click Volume
+                  </span>
+                  <span
+                    className="text-xs text-[#0066FF] dark:text-[#5294FF] font-semibold"
+                    data-testid="billing-monthly-clicks-percent"
+                  >
+                    {plan === "ENTERPRISE" || clicksLimit === -1
+                      ? "Unlimited clicks included"
+                      : isOverage
+                        ? `${billingClicksPercentLabel} (Overage active)`
+                        : `${billingClicksPercentLabel} used`}
+                  </span>
+                </div>
+                <p
+                  className="text-2xl font-bold font-bebas text-zinc-900 dark:text-white"
+                  data-testid="billing-monthly-clicks-count"
+                >
+                  {(accountStats?.clicksThisMonth ?? 0).toLocaleString(
+                    "en-US",
+                  )}{" "}
+                  / {clicksLimit === -1 ? "Unlimited" : (clicksLimit ?? 10000).toLocaleString("en-US")}
+                </p>
+                <div className="w-full h-2 rounded-full bg-zinc-200 dark:bg-[#27272a] overflow-hidden mt-1">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${isOverage && plan !== "ENTERPRISE" ? "bg-amber-500" : "bg-[#0066FF]"}`}
+                    style={{ width: `${clicksBarWidthPercent}%` }}
+                  />
+                </div>
+                <div className="flex items-center justify-between text-[11px] text-zinc-500 dark:text-neutral-500 pt-0.5">
+                  <span>
+                    {plan === "ENTERPRISE"
+                      ? "Unlimited clicks included ($0 extra)"
+                      : plan === "BUSINESS"
+                        ? "Overage rate: $8 / 125,000 extra clicks"
+                        : plan === "PRO"
+                          ? "Overage rate: $3 / 50,000 extra clicks"
+                          : "Hard limit at 10,000 clicks/month"}
+                  </span>
+                  {isOverage && (
+                    <span className="text-amber-600 dark:text-amber-400 font-semibold">
+                      {plan === "ENTERPRISE"
+                        ? `+${(overageClicks ?? 0).toLocaleString()} clicks ($0 free overage)`
+                        : `+${(overageClicks ?? 0).toLocaleString()} clicks ($${overageAmount.toFixed(2)} overage)`}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="p-5 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225] flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-zinc-600 dark:text-neutral-400 font-semibold">
+                    Custom Domains
+                  </span>
+                  <span className="text-xs text-zinc-600 dark:text-neutral-400 font-bold">
+                    {accountStats.domainsCount} of {domainsLimit === -1 ? "Unlimited" : domainsLimit}
+                  </span>
+                </div>
+                <p className="text-2xl font-bold font-bebas text-zinc-900 dark:text-white">
+                  {accountStats.domainsCount} / {domainsLimit === -1 ? "Unlimited" : domainsLimit}
+                </p>
+                <div className="w-full h-2 rounded-full bg-zinc-200 dark:bg-[#27272a] overflow-hidden mt-1">
+                  <div
+                    className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                    style={{
+                      width: `${domainsLimit === -1 ? 100 : domainsLimit > 0 ? Math.min(100, (accountStats.domainsCount / domainsLimit) * 100) : 0}%`,
+                    }}
+                  />
+                </div>
+                <span className="text-[11px] text-zinc-500 dark:text-neutral-500">
+                  {domainsLimit === -1
+                    ? "Unlimited custom domains included"
+                    : `${Math.max(0, domainsLimit - accountStats.domainsCount)} domain(s) available`}
+                </span>
+              </div>
+            </div>
+
+            <form onSubmit={handleSaveProfile} className="flex flex-col gap-6">
 
             {/* Avatar Selector */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 p-5 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225]">
@@ -2170,7 +2253,8 @@ console.log("Top Countries:", topAudience.topCountries);`,
                 </div>
               </div>
             </form>
-          )}
+          </div>
+        )}
 
           {/* TAB 2: BILLING & INVOICES */}
           {activeTab === "billing" && (
@@ -2186,8 +2270,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                     </span>
                   </div>
                   <p className="text-xs text-zinc-500 dark:text-neutral-400 mt-1">
-                    Manage your Edge infrastructure quotas, legal billing
-                    details, and download compliant invoices.
+                    Manage your subscription, auto-renewal, and download compliant official invoices.
                   </p>
                 </div>
                 <Button
@@ -2366,87 +2449,6 @@ console.log("Top Countries:", topAudience.topCountries);`,
                     </button>
                   </div>
                 )}
-              </div>
-
-              {/* Quota gauges */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-5 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225] flex flex-col gap-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-zinc-600 dark:text-neutral-400 font-semibold">
-                      Monthly Click Volume
-                    </span>
-                    <span
-                      className="text-xs text-[#0066FF] dark:text-[#5294FF] font-semibold"
-                      data-testid="billing-monthly-clicks-percent"
-                    >
-                      {plan === "ENTERPRISE" || clicksLimit === -1
-                        ? "Unlimited clicks included"
-                        : isOverage
-                          ? `${billingClicksPercentLabel} (Overage active)`
-                          : `${billingClicksPercentLabel} used`}
-                    </span>
-                  </div>
-                  <p
-                    className="text-2xl font-bold font-bebas text-zinc-900 dark:text-white"
-                    data-testid="billing-monthly-clicks-count"
-                  >
-                    {(accountStats?.clicksThisMonth ?? 0).toLocaleString(
-                      "en-US",
-                    )}{" "}
-                    / {clicksLimit === -1 ? "Unlimited" : (clicksLimit ?? 10000).toLocaleString("en-US")}
-                  </p>
-                  <div className="w-full h-2 rounded-full bg-zinc-200 dark:bg-[#27272a] overflow-hidden mt-1">
-                    <div
-                      className={`h-full rounded-full transition-all duration-500 ${isOverage && plan !== "ENTERPRISE" ? "bg-amber-500" : "bg-[#0066FF]"}`}
-                      style={{ width: `${clicksBarWidthPercent}%` }}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between text-[11px] text-zinc-500 dark:text-neutral-500 pt-0.5">
-                    <span>
-                      {plan === "ENTERPRISE"
-                        ? "Unlimited clicks included ($0 extra)"
-                        : plan === "BUSINESS"
-                          ? "Overage rate: $8 / 125,000 extra clicks"
-                          : plan === "PRO"
-                            ? "Overage rate: $3 / 50,000 extra clicks"
-                            : "Hard limit at 10,000 clicks/month"}
-                    </span>
-                    {isOverage && (
-                      <span className="text-amber-600 dark:text-amber-400 font-semibold">
-                        {plan === "ENTERPRISE"
-                          ? `+${(overageClicks ?? 0).toLocaleString()} clicks ($0 free overage)`
-                          : `+${(overageClicks ?? 0).toLocaleString()} clicks ($${overageAmount.toFixed(2)} overage)`}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="p-5 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225] flex flex-col gap-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-zinc-600 dark:text-neutral-400 font-semibold">
-                      Custom Domains
-                    </span>
-                    <span className="text-xs text-zinc-600 dark:text-neutral-400 font-bold">
-                      {accountStats.domainsCount} of {domainsLimit === -1 ? "Unlimited" : domainsLimit}
-                    </span>
-                  </div>
-                  <p className="text-2xl font-bold font-bebas text-zinc-900 dark:text-white">
-                    {accountStats.domainsCount} / {domainsLimit === -1 ? "Unlimited" : domainsLimit}
-                  </p>
-                  <div className="w-full h-2 rounded-full bg-zinc-200 dark:bg-[#27272a] overflow-hidden mt-1">
-                    <div
-                      className="h-full bg-emerald-500 rounded-full transition-all duration-500"
-                      style={{
-                        width: `${domainsLimit === -1 ? 100 : domainsLimit > 0 ? Math.min(100, (accountStats.domainsCount / domainsLimit) * 100) : 0}%`,
-                      }}
-                    />
-                  </div>
-                  <span className="text-[11px] text-zinc-500 dark:text-neutral-500">
-                    {domainsLimit === -1
-                      ? "Unlimited custom domains included"
-                      : `${Math.max(0, domainsLimit - accountStats.domainsCount)} domain(s) available`}
-                  </span>
-                </div>
               </div>
 
               {/* Certified Dodo Payments Invoices Table */}
