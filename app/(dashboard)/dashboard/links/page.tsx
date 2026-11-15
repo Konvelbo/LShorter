@@ -722,15 +722,12 @@ export default function LinksPage() {
     }
     if (
       (e.target as HTMLElement).closest(
-        "button, a, input, select, .dropdown-anchor",
+        'button, a, input, select, textarea, [role="button"], .dropdown-anchor',
       )
     ) {
       return;
     }
-    // If selection mode is active, tapping anywhere on card toggles selection
-    if (selectedLinkIds.size > 0) {
-      toggleSelectLink(linkId);
-    }
+    toggleSelectLink(linkId);
   };
 
   // --- Undoable Delete Flow for a Single Link ---

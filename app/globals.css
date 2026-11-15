@@ -910,7 +910,7 @@ html.light .doc-related-card:hover {
     align-items: flex-start;
     gap: 12px;
     padding: 10px 14px;
-    border-radius: 12px;
+    border-radius: 10px;
     cursor: pointer;
     width: 100%;
     justify-content: space-between;
@@ -1024,8 +1024,7 @@ html.light .lshorter-toast-close:hover {
 
 /* Light Mode Badges & Borders */
 html.light .lshorter-toast-success {
-    border: 1.5px solid #10b981 !important;
-    border-left: 5px solid #10b981 !important;
+    border: 1px solid #10b981 !important;
 }
 html.light .lshorter-toast-badge-success {
     background-color: #10b981 !important;
@@ -1034,8 +1033,7 @@ html.light .lshorter-toast-badge-success {
 }
 
 html.light .lshorter-toast-error {
-    border: 1.5px solid #ef4444 !important;
-    border-left: 5px solid #ef4444 !important;
+    border: 1px solid #ef4444 !important;
 }
 html.light .lshorter-toast-badge-error {
     background-color: #ef4444 !important;
@@ -1044,8 +1042,7 @@ html.light .lshorter-toast-badge-error {
 }
 
 html.light .lshorter-toast-info {
-    border: 1.5px solid #0ea5e9 !important;
-    border-left: 5px solid #0ea5e9 !important;
+    border: 1px solid #0ea5e9 !important;
 }
 html.light .lshorter-toast-badge-info {
     background-color: #0ea5e9 !important;
@@ -1054,8 +1051,7 @@ html.light .lshorter-toast-badge-info {
 }
 
 html.light .lshorter-toast-upgrade {
-    border: 1.5px solid #ff6600 !important;
-    border-left: 5px solid #ff6600 !important;
+    border: 1px solid #ff6600 !important;
 }
 html.light .lshorter-toast-badge-upgrade {
     background-color: #ff6600 !important;
@@ -1096,7 +1092,6 @@ html.dark .lshorter-toast-close:hover {
 html:not(.light) .lshorter-toast-success,
 html.dark .lshorter-toast-success {
     border: 1px solid rgba(16, 185, 129, 0.35) !important;
-    border-left: 4px solid #10b981 !important;
     box-shadow:
         0 16px 40px -4px rgba(0, 0, 0, 0.85),
         0 0 22px -2px rgba(16, 185, 129, 0.22) !important;
@@ -1111,7 +1106,6 @@ html.dark .lshorter-toast-badge-success {
 html:not(.light) .lshorter-toast-error,
 html.dark .lshorter-toast-error {
     border: 1px solid rgba(239, 68, 68, 0.35) !important;
-    border-left: 4px solid #ef4444 !important;
     box-shadow:
         0 16px 40px -4px rgba(0, 0, 0, 0.85),
         0 0 22px -2px rgba(239, 68, 68, 0.22) !important;
@@ -1126,7 +1120,6 @@ html.dark .lshorter-toast-badge-error {
 html:not(.light) .lshorter-toast-info,
 html.dark .lshorter-toast-info {
     border: 1px solid rgba(14, 165, 233, 0.35) !important;
-    border-left: 4px solid #0ea5e9 !important;
     box-shadow:
         0 16px 40px -4px rgba(0, 0, 0, 0.85),
         0 0 22px -2px rgba(14, 165, 233, 0.22) !important;
@@ -1141,7 +1134,6 @@ html.dark .lshorter-toast-badge-info {
 html:not(.light) .lshorter-toast-upgrade,
 html.dark .lshorter-toast-upgrade {
     border: 1px solid rgba(255, 102, 0, 0.35) !important;
-    border-left: 4px solid #ff6600 !important;
     box-shadow:
         0 16px 40px -4px rgba(0, 0, 0, 0.85),
         0 0 22px -2px rgba(255, 102, 0, 0.25) !important;

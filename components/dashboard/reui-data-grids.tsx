@@ -1374,12 +1374,20 @@ export function LinksReuiDataGrid({
                 <div
                   key={row.id}
                   onClick={(e) => {
-                    checkAndHandleShortcut(e, row.id);
+                    const target = e.target as HTMLElement | null;
+                    if (
+                      target?.closest(
+                        'button, a, input, select, textarea, [role="button"]'
+                      )
+                    ) {
+                      return;
+                    }
+                    handleToggleRowSelection(row.id);
                   }}
                   onContextMenu={(e) => {
                     checkAndHandleShortcut(e, row.id);
                   }}
-                  title={`${isMac ? "⌘" : "Ctrl"} + Clic pour sélectionner`}
+                  title="Tap to select link"
                   className={cn(
                     "rounded-[10px] border border-zinc-200 dark:border-[#222225] bg-white dark:bg-[#141416] p-3 transition-colors cursor-pointer select-none",
                     isSelected && "border-[#0066FF] bg-blue-50/40 dark:bg-blue-950/20"
@@ -1391,6 +1399,7 @@ export function LinksReuiDataGrid({
                       <input
                         type="checkbox"
                         checked={isSelected}
+                        onClick={(e) => e.stopPropagation()}
                         onChange={() =>
                           setSelectedIds((prev) => ({
                             ...prev,
@@ -1421,7 +1430,10 @@ export function LinksReuiDataGrid({
                     <div className="flex items-center gap-1 shrink-0">
                       <button
                         type="button"
-                        onClick={() => setExpandedRowId(expandedRowId === row.id ? null : row.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setExpandedRowId(expandedRowId === row.id ? null : row.id);
+                        }}
                         className="w-7 h-7 flex items-center justify-center rounded-[6px] text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
                         title="Afficher les détails"
                         aria-label="Afficher les détails"
@@ -1478,7 +1490,10 @@ export function LinksReuiDataGrid({
                       <div className="flex items-center justify-between pt-1 text-xs">
                         <button
                           type="button"
-                          onClick={() => handleToggleLinkActive(row.raw)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleLinkActive(row.raw);
+                          }}
                           className={cn(
                             "px-2.5 py-1 text-[11px] font-medium rounded-[6px] border transition-colors cursor-pointer",
                             isRowActive
@@ -1494,7 +1509,8 @@ export function LinksReuiDataGrid({
                           {openMobileActionsId !== row.id ? (
                             <button
                               type="button"
-                              onClick={() => {
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 setOpenMobileActionsId(row.id);
                                 setClosingMobileActionsId(null);
                               }}
@@ -1511,7 +1527,8 @@ export function LinksReuiDataGrid({
                                 {/* 1. Share button */}
                                 <button
                                   type="button"
-                                  onClick={() => {
+                                  onClick={(e) => {
+                                    e.stopPropagation();
                                     if (effectiveShare) {
                                       effectiveShare(row.raw);
                                     } else if (typeof navigator !== "undefined" && navigator.share) {
@@ -1538,7 +1555,10 @@ export function LinksReuiDataGrid({
                                 {effectiveEdit && (
                                   <button
                                     type="button"
-                                    onClick={() => effectiveEdit(row.raw)}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      effectiveEdit(row.raw);
+                                    }}
                                     style={{
                                       animation: isClosing
                                         ? "slideOutSmooth 180ms cubic-bezier(0.16, 1, 0.3, 1) forwards"
@@ -1556,7 +1576,10 @@ export function LinksReuiDataGrid({
                                 {effectiveQr && (
                                   <button
                                     type="button"
-                                    onClick={() => effectiveQr(row.raw)}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      effectiveQr(row.raw);
+                                    }}
                                     style={{
                                       animation: isClosing
                                         ? "slideOutSmooth 180ms cubic-bezier(0.16, 1, 0.3, 1) forwards"
@@ -1574,7 +1597,10 @@ export function LinksReuiDataGrid({
                                 {onDeleteLink && (
                                   <button
                                     type="button"
-                                    onClick={() => onDeleteLink(row.raw)}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onDeleteLink(row.raw);
+                                    }}
                                     style={{
                                       animation: isClosing
                                         ? "slideOutSmooth 180ms cubic-bezier(0.16, 1, 0.3, 1) forwards"
@@ -1592,7 +1618,10 @@ export function LinksReuiDataGrid({
                                 {/* 5. Collapse button (reverse animation) */}
                                 <button
                                   type="button"
-                                  onClick={() => handleCloseMobileActions(row.id)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleCloseMobileActions(row.id);
+                                  }}
                                   style={{
                                     animation: isClosing
                                       ? "slideOutSmooth 180ms cubic-bezier(0.16, 1, 0.3, 1) forwards"
