@@ -79,6 +79,7 @@ export async function POST(req: NextRequest) {
     if (message.includes("EMAIL_ALREADY_EXISTS") || message.toLowerCase().includes("already exists")) {
       return NextResponse.json({ error: "An account already exists with this email address. Please sign in." }, { status: 409 });
     }
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("[register] Registration unexpected error:", err);
+    return NextResponse.json({ error: "An unexpected error occurred during registration. Please try again later." }, { status: 500 });
   }
 }

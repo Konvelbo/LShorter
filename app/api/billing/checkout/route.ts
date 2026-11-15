@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { getBillingProvider } from "@/lib/billing";
 import { convexHttp as convex } from "@/lib/convex-server";
 import { api } from "@/convex/_generated/api";
+import { isDodoLiveMode } from "@/lib/dodo/dodo-server";
 
 export async function POST(request: NextRequest) {
   try {
@@ -52,9 +53,7 @@ export async function POST(request: NextRequest) {
             typeof existingSub.currentPeriodEnd === "number" &&
             existingSub.currentPeriodEnd > Date.now();
 
-          const isLiveMode =
-            process.env.DODO_PAYMENTS_ENVIRONMENT === "live_mode" ||
-            process.env.DODO_PAYMENTS_ENVIRONMENT === "live";
+          const isLiveMode = isDodoLiveMode();
 
           if (isLiveMode && !body.force && isCurrentlyActive && existingPlan === planId && existingCycle === normalizedCycle) {
             return NextResponse.json(
