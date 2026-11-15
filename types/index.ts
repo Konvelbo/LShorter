@@ -282,7 +282,7 @@ export interface ApiKeyItem {
   name: string;
   prefix: string;
   rawKey?: string;
-  scope?: 'read' | 'read_write' | 'admin';
+  scope?: 'read' | 'read_write';
   created_at: string;
   lastUsedAt?: string;
   rateLimit?: string;

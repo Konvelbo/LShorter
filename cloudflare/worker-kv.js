@@ -3090,7 +3090,7 @@ export default {
             id: `key_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
             userId,
             name: body.name || 'Clé API',
-            scope: body.scope || 'read_write',
+            scope: body.scope === 'read' ? 'read' : 'read_write',
             key: `lsh_live_${Math.random().toString(36).substring(2, 12)}_${Date.now().toString(36)}`,
             createdAt: new Date().toISOString(),
             lastUsedAt: null,

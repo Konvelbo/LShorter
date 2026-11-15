@@ -75,7 +75,7 @@ export async function createD1ApiKey(opts: {
   const keyHash = crypto.createHash("sha256").update(plainKey).digest("hex");
   const keyId = `key_${Math.random().toString(36).substring(2, 10)}`;
   const keyPrefix = `${plainKey.slice(0, 13)}...${plainKey.slice(-4)}`;
-  const scope = opts.scope || "read_write";
+  const scope = opts.scope === "read" ? "read" : "read_write";
   const rateLimit = opts.rateLimit ?? 600;
   const now = new Date().toISOString();
 

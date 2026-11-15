@@ -725,9 +725,7 @@ function SettingsPageContent() {
   // ─── API Keys State ─────────────────────────────────────────────────────────
   const [apiKeys, setApiKeys] = useState<ApiKeyItem[]>([]);
   const [newKeyName, setNewKeyName] = useState("");
-  const [newKeyScope, setNewKeyScope] = useState<
-    "read" | "read_write" | "admin"
-  >("read_write");
+  const [newKeyScope, setNewKeyScope] = useState<"read" | "read_write">("read_write");
   const [activeCodeTab, setActiveCodeTab] = useState<
     "create" | "track" | "analytics"
   >("create");
@@ -2697,7 +2695,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                       value={newKeyScope}
                       onChange={(e) =>
                         setNewKeyScope(
-                          e.target.value as "read" | "read_write" | "admin",
+                          e.target.value as "read" | "read_write",
                         )
                       }
                       className="w-full h-10 rounded-[10px] bg-white dark:bg-[#0c0c0e] text-zinc-900 dark:text-white border border-zinc-200 dark:border-[#27272a] px-3 text-xs focus:outline-none focus:border-brand cursor-pointer"
@@ -2707,12 +2705,6 @@ console.log("Top Countries:", topAudience.topCountries);`,
                         className="bg-white dark:bg-[#141416] text-zinc-900 dark:text-white"
                       >
                         Read & Write
-                      </option>
-                      <option
-                        value="admin"
-                        className="bg-white dark:bg-[#141416] text-zinc-900 dark:text-white"
-                      >
-                        Full Access (Admin)
                       </option>
                       <option
                         value="read"
@@ -2826,12 +2818,6 @@ console.log("Top Countries:", topAudience.topCountries);`,
                       const isCopied = copiedKeyId === k.id;
 
                       const getScopeBadge = (scope?: string) => {
-                        if (scope === "admin")
-                          return {
-                            label: "Admin",
-                            color:
-                              "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
-                          };
                         if (scope === "read")
                           return {
                             label: "Read Only",

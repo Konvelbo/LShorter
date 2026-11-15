@@ -44,9 +44,7 @@ export default function ApiSdkPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [keyNameInput, setKeyNameInput] = useState("");
-  const [keyScopeInput, setKeyScopeInput] = useState<
-    "read" | "read_write" | "admin"
-  >("read_write");
+  const [keyScopeInput, setKeyScopeInput] = useState<"read" | "read_write">("read_write");
   const [isGenerating, setIsGenerating] = useState(false);
   const [newlyCreatedKey, setNewlyCreatedKey] = useState<ApiKeyItem | null>(
     null,
@@ -348,7 +346,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                 value={keyScopeInput}
                 onChange={(e) =>
                   setKeyScopeInput(
-                    e.target.value as "read" | "read_write" | "admin",
+                    e.target.value as "read" | "read_write",
                   )
                 }
                 className="w-full h-10 rounded-[10px] bg-zinc-50 dark:bg-[#0c0c0e] text-[#09090B] dark:text-white border border-black/[0.08] dark:border-[#27272a] px-3 text-xs focus:outline-none focus:border-brand cursor-pointer"
@@ -358,12 +356,6 @@ console.log("Top Countries:", topAudience.topCountries);`,
                   className="bg-white dark:bg-[#111113] text-[#09090B] dark:text-white"
                 >
                   Read & Write
-                </option>
-                <option
-                  value="admin"
-                  className="bg-white dark:bg-[#111113] text-[#09090B] dark:text-white"
-                >
-                  Full Access (Admin)
                 </option>
                 <option
                   value="read"
@@ -426,12 +418,6 @@ console.log("Top Countries:", topAudience.topCountries);`,
               const isCopied = copiedKey === key.id;
 
               const getScopeBadge = (scope?: string) => {
-                if (scope === "admin")
-                  return {
-                    label: "Admin",
-                    color:
-                      "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
-                  };
                 if (scope === "read")
                   return {
                     label: "Read Only",

@@ -37,7 +37,6 @@ export function ApiKeyCreatedModal({
   };
 
   const getScopeLabel = (scope?: string) => {
-    if (scope === "admin") return "Full Access (Admin)";
     if (scope === "read") return "Read Only";
     return "Read & Write";
   };

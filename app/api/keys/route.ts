@@ -157,7 +157,7 @@ export async function POST(req: Request) {
     }
 
     const keyName = (body.name || "Clé API").trim();
-    const keyScope = body.scope || "read_write";
+    const keyScope = body.scope === "read" ? "read" : "read_write";
 
     // Attempt 1: Create via Cloudflare Worker
     try {
