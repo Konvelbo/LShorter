@@ -205,7 +205,7 @@ function useInView(threshold = 0.12) {
           setInView(entry.isIntersecting);
         }
       },
-      { threshold: 0.08, rootMargin: "0px 0px -40px 0px" },
+      { threshold: 0.05, rootMargin: "-30px 0px -30px 0px" },
     );
     io.observe(el);
     return () => io.disconnect();
@@ -379,7 +379,7 @@ function ToolGlyph({ index }: { index: number }) {
           </svg>
         </g>
       )}
-      {/* 3. Developer Webhooks Pulse Glyph */}
+      {/* 3. Official Lucide Webhooks Triquetra Icon */}
       {k === 3 && (
         <g transform="translate(-10, -10)">
           <svg
@@ -388,14 +388,13 @@ function ToolGlyph({ index }: { index: number }) {
             height="20"
             fill="none"
             stroke="#0066FF"
-            strokeWidth="2"
+            strokeWidth="2.2"
             strokeLinecap="round"
             strokeLinejoin="round"
           >
             <path d="M18 16.98h-5.99c-1.1 0-1.95.94-2.48 1.9A4 4 0 0 1 2 17c.01-.7.2-1.4.57-2" />
-            <path d="m6 17 3.13-5.78c.53-.97.1-2.18-.5-3.1a4 4 0 1 1 6.89-4.06l.58 1.06" />
-            <path d="m12 8 4.46.04c1.1 0 1.95-.94 2.48-1.9A4 4 0 0 1 22 7c-.01.7-.2 1.4-.57 2" />
-            <circle cx="12" cy="12" r="2.2" fill="#0066FF" stroke="none" />
+            <path d="m6 17 3.13-5.78c.53-.97.1-2.18-.5-3.1a4 4 0 1 1 6.89-4.06" />
+            <path d="m12 6 3.13 5.73C15.66 12.7 16.9 13 18 13a4 4 0 0 1 0 8" />
           </svg>
         </g>
       )}
@@ -434,15 +433,15 @@ function FlowCard({
   }, [reduced, inView]);
 
   const team = [
-    { x: 82, y: 40, name: "US-East · 4.2ms edge route" },
-    { x: 124, y: 24, name: "EU-West · Meta pixel fired" },
-    { x: 168, y: 42, name: "AP-East · A/B traffic split" },
-    { x: 76, y: 96, name: "SA-East · PathLock™ verified" },
-    { x: 160, y: 114, name: "AF-South · Geo redirect 9ms" },
+    { x: 82, y: 44, name: "US-East · 4.2ms edge route" },
+    { x: 124, y: 30, name: "EU-West · Meta pixel fired" },
+    { x: 168, y: 46, name: "AP-East · A/B traffic split" },
+    { x: 76, y: 100, name: "SA-East · PathLock™ verified" },
+    { x: 160, y: 116, name: "AF-South · Geo redirect 9ms" },
   ];
 
-  const L1 = "M134,67 C196,67 210,100 262,100"; // out of the link node …
-  const L2 = "M134,73 C186,73 206,120 262,120"; // … into the hub chip
+  const L1 = "M134,70 C196,70 210,100 262,100"; // out of the link node …
+  const L2 = "M134,76 C186,76 206,120 262,120"; // … into the hub chip
   const R1 = "M378,100 C412,100 418,86 450,86"; // hub → front report sheet
   const R2 = "M378,120 C412,120 418,134 450,134";
 
@@ -457,7 +456,7 @@ function FlowCard({
       <div className="ib-card" style={{ padding: 0, overflow: "visible" }}>
         <svg
           className="ib-diagram"
-          viewBox="0 0 640 178"
+          viewBox="0 -18 640 196"
           overflow="visible"
           role="img"
           aria-label={"Global link traffic flows through " + brand + " into finished telemetry reports"}
@@ -472,7 +471,7 @@ function FlowCard({
               <stop offset="1" stopColor="var(--ib-line-strong)" stopOpacity="0" />
             </linearGradient>
           </defs>
-          <rect x="0" y="0" width="640" height="178" fill={"url(#" + glow + ")"} />
+          <rect x="0" y="-18" width="640" height="196" fill={"url(#" + glow + ")"} />
           {RAYS_PATHS.map((d, i) => (
             <path
               key={i}
@@ -486,19 +485,20 @@ function FlowCard({
           <g onMouseEnter={() => setSide("left")} onMouseLeave={() => setSide("")}>
             <rect x="20" y="8" width="180" height="130" fill="transparent" />
             {team.map((m, i) => (
-              <line key={"l" + i} x1={m.x} y1={m.y} x2="121" y2="70" stroke="var(--ib-line-strong)" strokeDasharray="2 3" />
+              <line key={"l" + i} x1={m.x} y1={m.y} x2="121" y2="73" stroke="var(--ib-line-strong)" strokeDasharray="2 3" />
             ))}
-            <g transform="translate(108,57)">
+            <g transform="translate(108,60)">
               <rect width="26" height="26" rx="5" className="ib-node" />
               <g transform="translate(5,5)" style={{ color: "#0066FF" }}>
                 <Mark size={16} />
               </g>
             </g>
             {team.map((m, i) => {
-              const tipWidth = m.name.length * 5.2 + 16;
+              const tipWidth = m.name.length * 5.4 + 18;
               const halfTip = tipWidth / 2;
               const tipX = Math.max(halfTip + 8, Math.min(632 - halfTip, m.x));
-              const tipY = m.y < 36 ? m.y + 24 : m.y - 24;
+              // Placé strictement en haut au-dessus de l'avatar avec pointeur vers le centre
+              const tipY = m.y - 25;
 
               return (
                 <g key={i} className="ib-av" tabIndex={0} role="img" aria-label={m.name}>
@@ -524,10 +524,15 @@ function FlowCard({
                       x={-halfTip}
                       y="-10"
                       width={tipWidth}
-                      height="18"
-                      rx="4"
+                      height="19"
+                      rx="5"
                       fill="#0066FF"
-                      style={{ filter: "drop-shadow(0 2px 8px rgba(0,102,255,0.45))" }}
+                      style={{ filter: "drop-shadow(0 2px 10px rgba(0,102,255,0.45))" }}
+                    />
+                    {/* Pointe indicative orientée vers l'avatar en dessous */}
+                    <polygon
+                      points={`${m.x - tipX - 4},9 ${m.x - tipX},13 ${m.x - tipX + 4},9`}
+                      fill="#0066FF"
                     />
                     <text
                       x="0"
@@ -844,11 +849,13 @@ html:not(.dark) .ib-root[data-theme="auto"], body:not(.dark) .ib-root[data-theme
 .ib-root :where(h2,h3,p){margin:0;padding:0;font-size:inherit;font-weight:inherit}
 .ib-shell{width:100%;max-width:100%;margin:0 auto;container-type:inline-size}
 .ib-sec{position:relative;background:transparent;border:none;border-radius:0;padding:0;box-shadow:none;transition:none}
-.ib-reveal{opacity:0;transform:translateY(28px) scale(0.985);transition:opacity .75s cubic-bezier(.16,1,.3,1),transform .75s cubic-bezier(.16,1,.3,1);will-change:opacity,transform}
+.ib-reveal{opacity:0;transform:translateY(24px) scale(0.985);transition:opacity .7s cubic-bezier(.16,1,.3,1),transform .7s cubic-bezier(.16,1,.3,1);will-change:opacity,transform}
 .ib-reveal[data-in="true"]{opacity:1;transform:translateY(0) scale(1)}
-.ib-head{display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;margin-bottom:clamp(28px,4.5cqw,52px)}
-.ib-tag{display:inline-flex;align-items:center;padding:5px 14px;font-size:12px;font-weight:600;letter-spacing:.02em;color:#0066FF;background:rgba(0,102,255,.08);border:1px solid rgba(0,102,255,.22);border-radius:9999px}
-.ib-h2{font-size:clamp(28px,4.2cqw,46px);line-height:1.1;letter-spacing:-.03em;font-weight:700}
+.ib-head{display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;margin-bottom:clamp(28px,4.5cqw,52px);will-change:opacity,transform}
+.ib-tag{display:inline-flex;align-items:center;padding:5px 14px;font-size:12px;font-weight:600;letter-spacing:.02em;color:#0066FF;background:rgba(0,102,255,.08);border:1px solid rgba(0,102,255,.22);border-radius:9999px;opacity:0;transform:translateY(-14px) scale(0.95);transition:opacity .65s cubic-bezier(.16,1,.3,1),transform .65s cubic-bezier(.16,1,.3,1);will-change:opacity,transform}
+.ib-reveal[data-in="true"] .ib-tag{opacity:1;transform:translateY(0) scale(1)}
+.ib-h2{font-size:clamp(28px,4.2cqw,46px);line-height:1.1;letter-spacing:-.03em;font-weight:700;opacity:0;transform:translateY(32px) scale(0.97);transition:opacity .8s cubic-bezier(.16,1,.3,1) .08s,transform .8s cubic-bezier(.16,1,.3,1) .08s;will-change:opacity,transform}
+.ib-reveal[data-in="true"] .ib-h2{opacity:1;transform:translateY(0) scale(1)}
 .ib-h2>span{display:block}
 .ib-muted{color:var(--ib-faint)}
 .ib-frame{position:relative}

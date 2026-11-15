@@ -49,6 +49,7 @@ export function HeroSection({
         "bg-background text-foreground",
         "py-12 sm:py-24 md:py-32 px-4",
         "fade-bottom overflow-hidden pb-0 relative",
+        "mb-16 sm:mb-24 lg:mb-32",
         className
       )}
     >
