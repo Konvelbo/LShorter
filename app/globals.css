@@ -79,6 +79,35 @@
 }
 
 /* ==========================================================================
+   LENIS SMOOTH SCROLL SYSTEM
+   ========================================================================== */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis:not(.lenis-autoToggle).lenis-stopped {
+  overflow: clip;
+}
+
+.lenis [data-lenis-prevent],
+.lenis [data-lenis-prevent-wheel],
+.lenis [data-lenis-prevent-touch],
+.lenis [data-lenis-prevent-vertical],
+.lenis [data-lenis-prevent-horizontal] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-smooth iframe {
+  pointer-events: none;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+
+/* ==========================================================================
    CSS VARIABLES SYSTEM - LShorter
    Mobile (< 768px): Cyber Blue (#0066FF)
    Desktop (>= 768px): Warm Orange (#ff6600)

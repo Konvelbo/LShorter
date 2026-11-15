@@ -13,6 +13,7 @@ import { useMobileMenu } from "@/components/providers/use-mobile-menu";
 import { LandingNavbar } from "@/components/marketing/landing-navbar";
 import { LandingFooter } from "@/components/marketing/landing-footer";
 import { useSession } from "next-auth/react";
+import { SmoothScrollProvider } from "@/components/providers/smooth-scroll-provider";
 
 export default function MarketingLayout({
   children,
@@ -94,7 +95,8 @@ export default function MarketingLayout({
   }
 
   return (
-    <div className="relative min-h-screen w-full bg-[#FAFAFA] dark:bg-[#09090b] text-[#09090B] dark:text-[#fafafa] font-sans">
+    <SmoothScrollProvider>
+      <div className="relative min-h-screen w-full bg-[#FAFAFA] dark:bg-[#09090b] text-[#09090B] dark:text-[#fafafa] font-sans">
       <div className="w-full relative flex flex-col">
         <main className="w-full flex flex-col">{children}</main>
         <LandingFooter />
@@ -214,5 +216,6 @@ export default function MarketingLayout({
         </aside>
       </div>
     </div>
+    </SmoothScrollProvider>
   );
 }
