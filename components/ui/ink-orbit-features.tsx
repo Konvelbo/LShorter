@@ -100,8 +100,8 @@ const D_FEATURES: InkFeatures = {
   },
   integrations: {
     title: "Retargeting Pixels & Webhooks",
-    description: "Automatically fire Meta, Google Tag, TikTok, and X pixels on every click to build high-converting audiences across paid channels.",
-    tools: ["Meta Ads", "Google Tag", "TikTok Ads", "Webhooks"],
+    description: "Automatically fire Meta Ads, Google Ads, TikTok Ads, and Webhooks on every click to build high-converting audiences across paid channels.",
+    tools: ["Meta Ads", "Google Ads", "TikTok Ads", "Webhooks"],
   },
   insights: {
     title: "Conversion Velocity & Forecaster",
@@ -187,29 +187,29 @@ export function InkOrbitFeatures({
 
 /* ---------------------------------------------------------------- pieces */
 
-// true once the element has been on screen
-function useInView(threshold = 0.2) {
+// Bi-directional observer: animates in when entering viewport whether scrolling down or scrolling back up (scroll reverse)
+function useInView(threshold = 0.12) {
   const ref = React.useRef(null as HTMLElement | null);
   const [inView, setInView] = React.useState(false);
   React.useEffect(() => {
     const el = ref.current;
-    if (!el || inView) return;
+    if (!el) return;
     if (typeof IntersectionObserver !== "function") {
       setInView(true);
       return;
     }
     const io = new IntersectionObserver(
-      (es) => {
-        if (es.some((e) => e.isIntersecting)) {
-          setInView(true);
-          io.disconnect();
+      (entries) => {
+        const entry = entries[0];
+        if (entry) {
+          setInView(entry.isIntersecting);
         }
       },
-      { threshold },
+      { threshold: 0.08, rootMargin: "0px 0px -40px 0px" },
     );
     io.observe(el);
     return () => io.disconnect();
-  }, [inView, threshold]);
+  }, [threshold]);
   return [ref, inView] as const;
 }
 
@@ -328,35 +328,76 @@ function Portrait({ index, size = 38, uid }: { index: number; size?: number; uid
 function ToolGlyph({ index }: { index: number }) {
   const k = index % 4;
   return (
-    <g fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      {/* 0. Meta Pixel / Analytics Node */}
+    <g>
+      {/* 0. Official Meta Ads Logo */}
       {k === 0 && (
-        <>
-          <path d="M-6 2c2-4 4-4 6 0s4 4 6 0" />
-          <circle cx="-6" cy="2" r="1.5" fill="currentColor" />
-          <circle cx="6" cy="2" r="1.5" fill="currentColor" />
-        </>
+        <g transform="translate(-10, -10)">
+          <svg viewBox="0 0 24 24" width="20" height="20">
+            <path
+              fill="#0467DF"
+              d="M6.915 4.03c-1.968 0-3.683 1.28-4.871 3.113C.704 9.208 0 11.883 0 14.449c0 .706.07 1.369.21 1.973a6.624 6.624 0 0 0 .265.86 5.297 5.297 0 0 0 .371.761c.696 1.159 1.818 1.927 3.593 1.927 1.497 0 2.633-.671 3.965-2.444.76-1.012 1.144-1.626 2.663-4.32l.756-1.339.186-.325c.061.1.121.196.183.3l2.152 3.595c.724 1.21 1.665 2.556 2.47 3.314 1.046.987 1.992 1.22 3.06 1.22 1.075 0 1.876-.355 2.455-.843a3.743 3.743 0 0 0 .81-.973c.542-.939.861-2.127.861-3.745 0-2.72-.681-5.357-2.084-7.45-1.282-1.912-2.957-2.93-4.716-2.93-1.047 0-2.088.467-3.053 1.308-.652.57-1.257 1.29-1.82 2.05-.69-.875-1.335-1.547-1.958-2.056-1.182-.966-2.315-1.303-3.454-1.303zm10.16 2.053c1.147 0 2.188.758 2.992 1.999 1.132 1.748 1.647 4.195 1.647 6.4 0 1.548-.368 2.9-1.839 2.9-.58 0-1.027-.23-1.664-1.004-.496-.601-1.343-1.878-2.832-4.358l-.617-1.028a44.908 44.908 0 0 0-1.255-1.98c.07-.109.141-.224.211-.327 1.12-1.667 2.118-2.602 3.358-2.602zm-10.201.553c1.265 0 2.058.791 2.675 1.446.307.327.737.871 1.234 1.579l-1.02 1.566c-.757 1.163-1.882 3.017-2.837 4.338-1.191 1.649-1.81 1.817-2.486 1.817-.524 0-1.038-.237-1.383-.794-.263-.426-.464-1.13-.464-2.046 0-2.221.63-4.535 1.66-6.088.454-.687.964-1.226 1.533-1.533a2.264 2.264 0 0 1 1.088-.285z"
+            />
+          </svg>
+        </g>
       )}
-      {/* 1. Google Tag / Conversion Tag */}
+      {/* 1. Official Google Ads 3-Color Logo */}
       {k === 1 && (
-        <>
-          <path d="M-5 -5l10 0l-4 10l-6 0z" />
-          <circle cx="0" cy="0" r="1.2" fill="currentColor" />
-        </>
+        <g transform="translate(-10, -9)">
+          <svg viewBox="0 0 256 230" width="20" height="18">
+            <path
+              fill="#FBBC04"
+              d="M5.888 166.405L90.88 20.9c10.796 6.356 65.236 36.484 74.028 42.214L79.916 208.627c-9.295 12.28-85.804-23.587-74.028-42.23z"
+            />
+            <path
+              fill="#4285F4"
+              d="M250.084 166.402L165.092 20.906C153.21 1.132 127.62-6.054 106.601 5.625S79.182 42.462 91.064 63.119l84.992 145.514c11.882 19.765 37.473 26.95 58.492 15.272c20.1-11.68 27.418-37.73 15.536-57.486z"
+            />
+            <ellipse cx="42.664" cy="187.924" fill="#34A853" rx="42.664" ry="41.604" />
+          </svg>
+        </g>
       )}
-      {/* 2. TikTok / Audio Media Sync */}
+      {/* 2. Official TikTok Ads Logo with Cyan & Red Chromatic Layers */}
       {k === 2 && (
-        <>
-          <path d="M-2 -5v7a3 3 0 1 1-3-3" />
-          <path d="M-2 -2c2 1 4 1 5-1" />
-        </>
+        <g transform="translate(-10, -10)">
+          <svg viewBox="0 0 24 24" width="20" height="20">
+            <path
+              fill="#25F4EE"
+              d="M19.589 6.686a4.793 4.793 0 0 1-3.77-4.245V2h-3.445v13.672a2.896 2.896 0 0 1-5.201 1.743l-.064-.093a2.895 2.895 0 0 1 2.37-4.547c.307 0 .604.05.882.143V9.37a6.34 6.34 0 0 0-.882-.062 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.34-6.34V8.718a8.214 8.214 0 0 0 4.77 1.522V6.795a4.78 4.78 0 0 1-1.001-.109z"
+              transform="translate(-0.7, -0.5)"
+              opacity="0.9"
+            />
+            <path
+              fill="#FE2C55"
+              d="M19.589 6.686a4.793 4.793 0 0 1-3.77-4.245V2h-3.445v13.672a2.896 2.896 0 0 1-5.201 1.743l-.064-.093a2.895 2.895 0 0 1 2.37-4.547c.307 0 .604.05.882.143V9.37a6.34 6.34 0 0 0-.882-.062 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.34-6.34V8.718a8.214 8.214 0 0 0 4.77 1.522V6.795a4.78 4.78 0 0 1-1.001-.109z"
+              transform="translate(0.7, 0.5)"
+              opacity="0.9"
+            />
+            <path
+              fill="currentColor"
+              d="M19.589 6.686a4.793 4.793 0 0 1-3.77-4.245V2h-3.445v13.672a2.896 2.896 0 0 1-5.201 1.743l-.064-.093a2.895 2.895 0 0 1 2.37-4.547c.307 0 .604.05.882.143V9.37a6.34 6.34 0 0 0-.882-.062 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.34-6.34V8.718a8.214 8.214 0 0 0 4.77 1.522V6.795a4.78 4.78 0 0 1-1.001-.109z"
+            />
+          </svg>
+        </g>
       )}
-      {/* 3. Realtime Webhooks API */}
+      {/* 3. Developer Webhooks Pulse Glyph */}
       {k === 3 && (
-        <>
-          <path d="M-5 -2h10M-5 2h10" />
-          <path d="M-2 -5l4 10" />
-        </>
+        <g transform="translate(-10, -10)">
+          <svg
+            viewBox="0 0 24 24"
+            width="20"
+            height="20"
+            fill="none"
+            stroke="#0066FF"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M18 16.98h-5.99c-1.1 0-1.95.94-2.48 1.9A4 4 0 0 1 2 17c.01-.7.2-1.4.57-2" />
+            <path d="m6 17 3.13-5.78c.53-.97.1-2.18-.5-3.1a4 4 0 1 1 6.89-4.06l.58 1.06" />
+            <path d="m12 8 4.46.04c1.1 0 1.95-.94 2.48-1.9A4 4 0 0 1 22 7c-.01.7-.2 1.4-.57 2" />
+            <circle cx="12" cy="12" r="2.2" fill="#0066FF" stroke="none" />
+          </svg>
+        </g>
       )}
     </g>
   );
@@ -393,15 +434,15 @@ function FlowCard({
   }, [reduced, inView]);
 
   const team = [
-    { x: 58, y: 38, name: "US-East · 4.2ms edge route" },
-    { x: 104, y: 22, name: "EU-West · Meta pixel fired" },
-    { x: 150, y: 40, name: "AP-East · A/B traffic split" },
-    { x: 46, y: 92, name: "SA-East · PathLock™ verified" },
-    { x: 146, y: 114, name: "AF-South · Geo redirect 9ms" },
+    { x: 82, y: 40, name: "US-East · 4.2ms edge route" },
+    { x: 124, y: 24, name: "EU-West · Meta pixel fired" },
+    { x: 168, y: 42, name: "AP-East · A/B traffic split" },
+    { x: 76, y: 96, name: "SA-East · PathLock™ verified" },
+    { x: 160, y: 114, name: "AF-South · Geo redirect 9ms" },
   ];
 
-  const L1 = "M117,67 C196,67 210,100 262,100"; // out of the link node …
-  const L2 = "M117,73 C186,73 206,120 262,120"; // … into the hub chip
+  const L1 = "M134,67 C196,67 210,100 262,100"; // out of the link node …
+  const L2 = "M134,73 C186,73 206,120 262,120"; // … into the hub chip
   const R1 = "M378,100 C412,100 418,86 450,86"; // hub → front report sheet
   const R2 = "M378,120 C412,120 418,134 450,134";
 
@@ -413,10 +454,11 @@ function FlowCard({
   return (
     <div className="ib-frame ib-frame-hover ib-wide">
       <Brackets />
-      <div className="ib-card" style={{ padding: 0, overflow: "hidden" }}>
+      <div className="ib-card" style={{ padding: 0, overflow: "visible" }}>
         <svg
           className="ib-diagram"
           viewBox="0 0 640 178"
+          overflow="visible"
           role="img"
           aria-label={"Global link traffic flows through " + brand + " into finished telemetry reports"}
         >
@@ -442,43 +484,66 @@ function FlowCard({
 
           {/* edge PoP cluster */}
           <g onMouseEnter={() => setSide("left")} onMouseLeave={() => setSide("")}>
-            <rect x="20" y="8" width="170" height="130" fill="transparent" />
+            <rect x="20" y="8" width="180" height="130" fill="transparent" />
             {team.map((m, i) => (
-              <line key={"l" + i} x1={m.x} y1={m.y} x2="104" y2="70" stroke="var(--ib-line-strong)" strokeDasharray="2 3" />
+              <line key={"l" + i} x1={m.x} y1={m.y} x2="121" y2="70" stroke="var(--ib-line-strong)" strokeDasharray="2 3" />
             ))}
-            <g transform="translate(91,57)">
+            <g transform="translate(108,57)">
               <rect width="26" height="26" rx="5" className="ib-node" />
               <g transform="translate(5,5)" style={{ color: "#0066FF" }}>
                 <Mark size={16} />
               </g>
             </g>
-            {team.map((m, i) => (
-              <g key={i} className="ib-av" tabIndex={0} role="img" aria-label={m.name}>
-                <svg x={m.x - 11} y={m.y - 11} width="22" height="22" viewBox="0 0 22 22" overflow="visible">
-                  <clipPath id={uid + "avc" + i}>
-                    <circle cx="11" cy="11" r="11" />
-                  </clipPath>
-                  <g clipPath={"url(#" + uid + "avc" + i + ")"}>
-                    <Portrait index={i} size={22} uid={uid + "f"} />
+            {team.map((m, i) => {
+              const tipWidth = m.name.length * 5.2 + 16;
+              const halfTip = tipWidth / 2;
+              const tipX = Math.max(halfTip + 8, Math.min(632 - halfTip, m.x));
+              const tipY = m.y < 36 ? m.y + 24 : m.y - 24;
+
+              return (
+                <g key={i} className="ib-av" tabIndex={0} role="img" aria-label={m.name}>
+                  <svg x={m.x - 11} y={m.y - 11} width="22" height="22" viewBox="0 0 22 22" overflow="visible">
+                    <clipPath id={uid + "avc" + i}>
+                      <circle cx="11" cy="11" r="11" />
+                    </clipPath>
+                    <g clipPath={"url(#" + uid + "avc" + i + ")"}>
+                      <Portrait index={i} size={22} uid={uid + "f"} />
+                    </g>
+                    <circle cx="11" cy="11" r="10.5" fill="none" stroke="var(--ib-paper)" strokeWidth="1.5" />
+                  </svg>
+                  <circle
+                    cx={m.x + 8}
+                    cy={m.y + 8}
+                    r="2.6"
+                    fill="#0066FF"
+                    stroke="var(--ib-paper)"
+                    className="ib-presence"
+                  />
+                  <g className="ib-av-tip" transform={"translate(" + tipX + "," + tipY + ")"}>
+                    <rect
+                      x={-halfTip}
+                      y="-10"
+                      width={tipWidth}
+                      height="18"
+                      rx="4"
+                      fill="#0066FF"
+                      style={{ filter: "drop-shadow(0 2px 8px rgba(0,102,255,0.45))" }}
+                    />
+                    <text
+                      x="0"
+                      y="2.5"
+                      textAnchor="middle"
+                      fontSize="8.5"
+                      fontWeight="600"
+                      fill="#ffffff"
+                      fontFamily="var(--ib-sans)"
+                    >
+                      {m.name}
+                    </text>
                   </g>
-                  <circle cx="11" cy="11" r="10.5" fill="none" stroke="var(--ib-paper)" strokeWidth="1.5" />
-                </svg>
-                <circle
-                  cx={m.x + 8}
-                  cy={m.y + 8}
-                  r="2.6"
-                  fill="#0066FF"
-                  stroke="var(--ib-paper)"
-                  className="ib-presence"
-                />
-                <g className="ib-av-tip" transform={"translate(" + m.x + "," + (m.y - 18) + ")"}>
-                  <rect x={-m.name.length * 2.45 - 6} y="-9" width={m.name.length * 4.9 + 12} height="14" rx="2" fill="var(--ib-inv)" />
-                  <text x="0" y="1" textAnchor="middle" fontSize="7.5" fill="var(--ib-inv-ink)" fontFamily="var(--ib-sans)">
-                    {m.name}
-                  </text>
                 </g>
-              </g>
-            ))}
+              );
+            })}
           </g>
 
           {/* connectors */}
@@ -588,10 +653,10 @@ function IntegrationsCard({ copy, reduced }: { copy: InkFeatures["integrations"]
 
   const on = hover >= 0 ? hover : reduced ? -1 : auto;
   const tiles = [
-    { x: 66, y: 34 },
-    { x: 66, y: 116 },
-    { x: 234, y: 34 },
-    { x: 234, y: 116 },
+    { x: 66, y: 36 },
+    { x: 234, y: 36 },
+    { x: 66, y: 114 },
+    { x: 234, y: 114 },
   ];
   const path = (i: number) => {
     const t = tiles[i];
@@ -631,7 +696,7 @@ function IntegrationsCard({ copy, reduced }: { copy: InkFeatures["integrations"]
               onBlur={() => setHover(-1)}
             >
               <rect x={t.x - 15} y={t.y - 15} width="30" height="30" rx="6" className="ib-node" />
-              <g transform={"translate(" + t.x + "," + t.y + ")"} style={{ color: on === i ? "#0066FF" : "var(--ib-ink)" }}>
+              <g transform={"translate(" + t.x + "," + t.y + ")"}>
                 <ToolGlyph index={i} />
               </g>
               <text
@@ -649,11 +714,37 @@ function IntegrationsCard({ copy, reduced }: { copy: InkFeatures["integrations"]
               </text>
             </g>
           ))}
-          <text x="150" y="112" textAnchor="middle" fontSize="7" fill="#0066FF" fontFamily="var(--ib-mono)" fontWeight="600">
-            {on >= 0 ? "firing pixel · " + (copy.tools[on] ?? "").toLowerCase() : "4 pixel engines connected"}
-          </text>
         </svg>
-        <div style={{ marginTop: "auto" }}>
+        <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: "10px" }}>
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "7px",
+                fontSize: "11px",
+                fontWeight: "600",
+                fontFamily: "var(--ib-mono)",
+                color: "#0066FF",
+                backgroundColor: "rgba(0,102,255,0.08)",
+                border: "1px solid rgba(0,102,255,0.24)",
+                borderRadius: "9999px",
+                padding: "3px 10px",
+              }}
+            >
+              <span
+                style={{
+                  width: "6px",
+                  height: "6px",
+                  borderRadius: "9999px",
+                  backgroundColor: "#0066FF",
+                  boxShadow: "0 0 6px rgba(0,102,255,0.8)",
+                  animation: "ib-pulse 2s infinite",
+                }}
+              />
+              {on >= 0 ? `Active Dispatch · ${copy.tools[on]}` : "4 Engines Connected"}
+            </span>
+          </div>
           <h3>{copy.title}</h3>
           <p>{copy.description}</p>
         </div>
@@ -744,17 +835,17 @@ function InsightsCard({ copy, uid, reduced }: { copy: InkFeatures["insights"]; u
 }
 
 const IB_CSS = `
-.ib-root{--ib-page:#ffffff;--ib-hatch:rgba(0,102,255,.03);--ib-paper:#ffffff;--ib-card:#f8fafc;--ib-raise:#ffffff;--ib-ink:#0f172a;--ib-soft:#334155;--ib-muted:#64748b;--ib-faint:#94a3b8;--ib-line:#e2e8f0;--ib-line-strong:#cbd5e1;--ib-bracket:#0066FF;--ib-inv:#0066FF;--ib-inv-ink:#ffffff;--ib-shadow:0 1px 3px rgba(0,0,0,.04),0 10px 30px -10px rgba(0,102,255,.08);--ib-sans:"Poppins","Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--ib-mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;position:relative;width:100%;box-sizing:border-box;background-color:transparent;color:var(--ib-ink);font-family:var(--ib-sans);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;padding:24px clamp(10px,2vw,24px);transition:background-color .3s ease,color .3s ease}
+.ib-root{--ib-page:#ffffff;--ib-hatch:rgba(0,102,255,.03);--ib-paper:#ffffff;--ib-card:#f8fafc;--ib-raise:#ffffff;--ib-ink:#0f172a;--ib-soft:#334155;--ib-muted:#64748b;--ib-faint:#94a3b8;--ib-line:#e2e8f0;--ib-line-strong:#cbd5e1;--ib-bracket:#0066FF;--ib-inv:#0066FF;--ib-inv-ink:#ffffff;--ib-shadow:0 1px 3px rgba(0,0,0,.04),0 10px 30px -10px rgba(0,102,255,.08);--ib-sans:"Poppins","Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--ib-mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;position:relative;width:100%;box-sizing:border-box;background-color:transparent;color:var(--ib-ink);font-family:var(--ib-sans);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;padding:0;transition:background-color .3s ease,color .3s ease}
 .ib-root[data-theme="dark"], :is(.dark) .ib-root, html.dark .ib-root, body.dark .ib-root{--ib-page:#09090b;--ib-hatch:rgba(0,102,255,.04);--ib-paper:#0e0e11;--ib-card:#141418;--ib-raise:#1a1a20;--ib-ink:#f8fafc;--ib-soft:#cbd5e1;--ib-muted:#94a3b8;--ib-faint:#64748b;--ib-line:#23232a;--ib-line-strong:#32323c;--ib-bracket:#0066FF;--ib-inv:#0066FF;--ib-inv-ink:#ffffff;--ib-shadow:0 1px 3px rgba(0,0,0,.4),0 12px 32px -12px rgba(0,102,255,.2)}
 html:not(.dark) .ib-root[data-theme="auto"], body:not(.dark) .ib-root[data-theme="auto"]{--ib-page:#ffffff;--ib-hatch:rgba(0,102,255,.03);--ib-paper:#ffffff;--ib-card:#f8fafc;--ib-raise:#ffffff;--ib-ink:#0f172a;--ib-soft:#334155;--ib-muted:#64748b;--ib-faint:#94a3b8;--ib-line:#e2e8f0;--ib-line-strong:#cbd5e1;--ib-bracket:#0066FF;--ib-inv:#0066FF;--ib-inv-ink:#ffffff;--ib-shadow:0 1px 3px rgba(0,0,0,.04),0 10px 30px -10px rgba(0,102,255,.08)}
 .ib-root :where(*){box-sizing:border-box}
 .ib-root :focus-visible{outline:2px solid #0066FF;outline-offset:2px}
 .ib-root :where(svg){display:block;max-width:none;flex:none}
 .ib-root :where(h2,h3,p){margin:0;padding:0;font-size:inherit;font-weight:inherit}
-.ib-shell{width:100%;max-width:1200px;margin:0 auto;container-type:inline-size}
-.ib-sec{position:relative;background:var(--ib-paper);border:1px solid var(--ib-line);border-radius:14px;padding:clamp(36px,5cqw,64px) clamp(16px,3.5cqw,44px);transition:background-color .3s,border-color .3s}
-.ib-reveal{opacity:0;transform:translateY(18px);transition:opacity .65s cubic-bezier(.2,.7,.2,1),transform .65s cubic-bezier(.2,.7,.2,1)}
-.ib-reveal[data-in="true"]{opacity:1;transform:none}
+.ib-shell{width:100%;max-width:100%;margin:0 auto;container-type:inline-size}
+.ib-sec{position:relative;background:transparent;border:none;border-radius:0;padding:0;box-shadow:none;transition:none}
+.ib-reveal{opacity:0;transform:translateY(28px) scale(0.985);transition:opacity .75s cubic-bezier(.16,1,.3,1),transform .75s cubic-bezier(.16,1,.3,1);will-change:opacity,transform}
+.ib-reveal[data-in="true"]{opacity:1;transform:translateY(0) scale(1)}
 .ib-head{display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;margin-bottom:clamp(28px,4.5cqw,52px)}
 .ib-tag{display:inline-flex;align-items:center;padding:5px 14px;font-size:12px;font-weight:600;letter-spacing:.02em;color:#0066FF;background:rgba(0,102,255,.08);border:1px solid rgba(0,102,255,.22);border-radius:9999px}
 .ib-h2{font-size:clamp(28px,4.2cqw,46px);line-height:1.1;letter-spacing:-.03em;font-weight:700}
@@ -771,8 +862,13 @@ html:not(.dark) .ib-root[data-theme="auto"], body:not(.dark) .ib-root[data-theme
 .ib-frame-hover:hover>.ib-c-tr{transform:translate(3px,-3px)}
 .ib-frame-hover:hover>.ib-c-bl{transform:translate(-3px,3px)}
 .ib-frame-hover:hover>.ib-c-br{transform:translate(3px,3px)}
-.ib-bento{display:grid;grid-template-columns:minmax(0,1fr);gap:clamp(20px,2.8cqw,32px)}
-@container (min-width:720px){.ib-bento{grid-template-columns:repeat(2,minmax(0,1fr))}.ib-wide{grid-column:1 / -1;width:min(100%,880px);justify-self:center}}
+.ib-bento{display:grid;grid-template-columns:minmax(0,1fr);gap:clamp(20px,2.5cqw,28px);width:100%}
+@container (min-width:720px){.ib-bento{grid-template-columns:repeat(2,minmax(0,1fr))}.ib-wide{grid-column:1 / -1;width:100%;justify-self:stretch}}
+.ib-bento>.ib-frame{opacity:0;transform:translateY(24px);transition:opacity .65s cubic-bezier(.16,1,.3,1),transform .65s cubic-bezier(.16,1,.3,1);will-change:opacity,transform}
+.ib-reveal[data-in="true"] .ib-bento>.ib-frame{opacity:1;transform:translateY(0)}
+.ib-reveal[data-in="true"] .ib-bento>.ib-frame:nth-child(1){transition-delay:0.06s}
+.ib-reveal[data-in="true"] .ib-bento>.ib-frame:nth-child(2){transition-delay:0.16s}
+.ib-reveal[data-in="true"] .ib-bento>.ib-frame:nth-child(3){transition-delay:0.26s}
 .ib-card{background:linear-gradient(180deg,var(--ib-raise),var(--ib-card));border:1px solid var(--ib-line);border-radius:10px;padding:clamp(16px,2.2cqw,24px);display:flex;flex-direction:column;gap:14px;transition:border-color .3s,box-shadow .35s,background-color .3s}
 .ib-card:hover{border-color:rgba(0,102,255,.45);box-shadow:var(--ib-shadow)}
 .ib-card h3{font-size:15px;font-weight:700;letter-spacing:-.01em;color:var(--ib-ink)}
