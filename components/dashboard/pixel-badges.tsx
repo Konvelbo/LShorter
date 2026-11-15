@@ -38,6 +38,109 @@ export function normalizePixelPlatform(raw: any): "meta" | "google" | "tiktok" |
   return "meta";
 }
 
+export function MetaColorIcon({ className = "w-5 h-5" }: { className?: string }) {
+  const id = React.useId();
+  const gradientId = `meta-brand-gradient-${id.replace(/[:]/g, "")}`;
+  return (
+    <svg viewBox="0 0 24 24" className={cn("shrink-0", className)} fill="none" role="img" aria-label="Meta">
+      <defs>
+        <linearGradient id={gradientId} x1="0" y1="4" x2="24" y2="20" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#0064E0" />
+          <stop offset="45%" stopColor="#0081FB" />
+          <stop offset="85%" stopColor="#0064E0" />
+          <stop offset="100%" stopColor="#0052CC" />
+        </linearGradient>
+      </defs>
+      <path
+        fill={`url(#${gradientId})`}
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M16.96 4C14.71 4 12.83 5.3 12 7.02C11.17 5.3 9.29 4 7.04 4C3.16 4 0 7.21 0 11.17C0 15.65 3.52 19.5 7.68 19.5C9.72 19.5 11.4 18.47 12 17.26C12.6 18.47 14.28 19.5 16.32 19.5C20.48 19.5 24 15.65 24 11.17C24 7.21 20.84 4 16.96 4ZM7.44 16.92C4.78 16.92 2.58 14.36 2.58 11.17C2.58 8.52 4.54 6.58 7.04 6.58C8.94 6.58 10.5 7.9 10.95 9.86C10.74 10.42 10.4 11.05 10 11.66C8.83 13.43 7.82 15.35 7.44 16.92ZM16.56 16.92C16.18 15.35 15.17 13.43 14 11.66C13.6 11.05 13.26 10.42 13.05 9.86C13.5 7.9 15.06 6.58 16.96 6.58C19.46 6.58 21.42 8.52 21.42 11.17C21.42 14.36 19.22 16.92 16.56 16.92Z"
+      />
+    </svg>
+  );
+}
+
+export function GoogleColorIcon({ className = "w-5 h-5" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={cn("shrink-0", className)} role="img" aria-label="Google">
+      <path
+        fill="#4285F4"
+        d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.34 24 12 24z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.16 0 9.94 0 12s.45 3.84 1.25 5.42l4.03-3.15z"
+      />
+      <path
+        fill="#EA4335"
+        d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
+      />
+    </svg>
+  );
+}
+
+export function TikTokColorIcon({ className = "w-5 h-5" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={cn("shrink-0", className)} role="img" aria-label="TikTok">
+      {/* Cyan layer */}
+      <path
+        fill="#25F4EE"
+        d="M19.3 5.4c-1.4-.1-2.7-.8-3.5-1.8-.3-.4-.6-.8-.7-1.3-.2-.5-.3-1-.3-1.6h-2.8v13.2c0 1.9-1.5 3.4-3.4 3.4-1.9 0-3.4-1.5-3.4-3.4 0-1.9 1.5-3.4 3.4-3.4.4 0 .8.1 1.2.2V7.4c-.4 0-.8-.1-1.2-.1-3.6 0-6.6 2.9-6.6 6.6 0 3.6 2.9 6.6 6.6 6.6 3.6 0 6.6-2.9 6.6-6.6V8.3c1.5 1 3.2 1.6 5.1 1.6V6.1c-.4-.1-.7-.3-1-.7z"
+      />
+      {/* Neon Red/Magenta layer */}
+      <path
+        fill="#FE2C55"
+        d="M20.2 6.3c-1.4-.1-2.7-.8-3.5-1.8-.3-.4-.6-.8-.7-1.3-.2-.5-.3-1-.3-1.6h-2.8v13.2c0 1.9-1.5 3.4-3.4 3.4-1.9 0-3.4-1.5-3.4-3.4 0-1.9 1.5-3.4 3.4-3.4.4 0 .8.1 1.2.2V8.3c-.4 0-.8-.1-1.2-.1-3.6 0-6.6 2.9-6.6 6.6 0 3.6 2.9 6.6 6.6 6.6 3.6 0 6.6-2.9 6.6-6.6V9.2c1.5 1 3.2 1.6 5.1 1.6V7c-.4-.1-.7-.3-1-.7z"
+      />
+      {/* Dark/White center note */}
+      <path
+        fill="#111113"
+        className="dark:fill-white"
+        d="M19.7 5.8c-1.4-.1-2.7-.8-3.5-1.8-.3-.4-.6-.8-.7-1.3-.2-.5-.3-1-.3-1.6h-2.8v13.2c0 1.9-1.5 3.4-3.4 3.4-1.9 0-3.4-1.5-3.4-3.4 0-1.9 1.5-3.4 3.4-3.4.4 0 .8.1 1.2.2V7.8c-.4 0-.8-.1-1.2-.1-3.6 0-6.6 2.9-6.6 6.6 0 3.6 2.9 6.6 6.6 6.6 3.6 0 6.6-2.9 6.6-6.6V8.7c1.5 1 3.2 1.6 5.1 1.6V6.5c-.4-.1-.7-.3-1-.7z"
+      />
+    </svg>
+  );
+}
+
+export function LinkedInColorIcon({ className = "w-5 h-5" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={cn("shrink-0", className)} role="img" aria-label="LinkedIn">
+      <rect width="24" height="24" rx="4.5" fill="#0A66C2" />
+      <path
+        fill="#FFFFFF"
+        d="M19.5 19.5h-3.1v-4.9c0-1.2 0-2.7-1.6-2.7-1.6 0-1.9 1.3-1.9 2.6v5H9.8V9.5h3v1.4h0c.4-.8 1.4-1.6 3-1.6 3.2 0 3.8 2.1 3.8 4.8v5.4zM6.5 8.1c-1 0-1.8-.8-1.8-1.8s.8-1.8 1.8-1.8 1.8.8 1.8 1.8-.8 1.8-1.8 1.8zm1.5 11.4H4.9V9.5H8v10z"
+      />
+    </svg>
+  );
+}
+
+export function BrandColorLogo({
+  platform,
+  className = "w-5 h-5",
+}: {
+  platform: string;
+  className?: string;
+}) {
+  const normalized = normalizePixelPlatform(platform);
+  switch (normalized) {
+    case "meta":
+      return <MetaColorIcon className={className} />;
+    case "google":
+      return <GoogleColorIcon className={className} />;
+    case "tiktok":
+      return <TikTokColorIcon className={className} />;
+    case "linkedin":
+      return <LinkedInColorIcon className={className} />;
+    default:
+      return null;
+  }
+}
+
 export function PixelBrandLogo({
   platform,
   className = "w-4.5 h-4.5",
@@ -49,58 +152,13 @@ export function PixelBrandLogo({
 
   switch (normalized) {
     case "meta":
-      return (
-        <svg
-          className={cn("shrink-0 text-[#1877F2]", className)}
-          viewBox="0 0 24 24"
-          fill="currentColor"
-          aria-label="Meta Facebook Pixel"
-        >
-          <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-        </svg>
-      );
+      return <MetaColorIcon className={className} />;
     case "google":
-      return (
-        <svg
-          className={cn("shrink-0", className)}
-          viewBox="0 0 2196 2431"
-          fill="none"
-          aria-label="Google Analytics (GA4)"
-        >
-          {/* Tall right bar */}
-          <path
-            fill="#F9AB00"
-            d="M2195.9 2126.7c0.9 166.9-133.7 302.8-300.5 303.7-12.4 0.1-24.9-0.6-37.2-2.1-154.8-22.9-268.2-157.6-264.4-314V316.1c-3.7-156.6 110-291.3 264.9-314 165.7-19.4 315.8 99.2 335.2 264.9 1.4 12.2 2.1 24.4 2 36.7L2195.9 2126.7z"
-          />
-          {/* Orange circle dot on left & middle bar */}
-          <path
-            fill="#E37400"
-            d="M301.1 1828.7c166.3 0 301.1 134.8 301.1 301.1 0 166.3-134.8 301.1-301.1 301.1C134.8 2430.9 0 2296.1 0 2129.8c0-166.3 134.8-301.1 301.1-301.1z M1093.3 916.2c-167.1 9.2-296.7 149.3-292.8 316.6v808.7c0 219.5 96.6 352.7 238.1 381.1c163.3 33.1 322.4-72.4 355.5-235.7c4.1-20 6.1-40.3 6-60.7v-907.4c0.3-166.9-134.7-302.4-301.6-302.7-1.7 0-3.5 0-5.2.1z"
-          />
-        </svg>
-      );
+      return <GoogleColorIcon className={className} />;
     case "tiktok":
-      return (
-        <svg
-          className={cn("shrink-0 text-zinc-900 dark:text-white", className)}
-          viewBox="0 0 24 24"
-          fill="currentColor"
-          aria-label="TikTok Ads Pixel"
-        >
-          <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.98-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.24 1.07-.14 1.61.24 1.17 1.15 2.12 2.31 2.36.92.23 1.98.08 2.76-.5.71-.5 1.14-1.31 1.19-2.19.03-3.67.01-7.34.02-11.01.01-.58-.01-1.16-.01-1.74-.01-1.9-.01-3.8-.01-5.7z" />
-        </svg>
-      );
+      return <TikTokColorIcon className={className} />;
     case "linkedin":
-      return (
-        <svg
-          className={cn("shrink-0 text-[#0A66C2]", className)}
-          viewBox="0 0 24 24"
-          fill="currentColor"
-          aria-label="LinkedIn Insight Tag"
-        >
-          <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 8.76a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3m1.37 9.74v-8.37H5.1v8.37h2.73z" />
-        </svg>
-      );
+      return <LinkedInColorIcon className={className} />;
     default:
       return null;
   }

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { showToast } from "@/components/ui/toast-provider";
 import { cfCreatePixel } from "@/lib/cloudflare-api";
+import { BrandColorLogo } from "@/components/dashboard/pixel-badges";
 
 interface PixelDrawerProps {
   isOpen: boolean;
@@ -231,22 +232,33 @@ export function PixelDrawer({
                         setPlatform(p.id);
                       }
                     }}
-                    className={`p-3.5 rounded-[8px] border text-left transition-all cursor-pointer flex flex-col gap-1.5 select-none ${
+                    className={`p-3.5 rounded-[10px] border text-left transition-all cursor-pointer flex flex-col gap-2.5 select-none ${
                       isSelected
-                        ? "bg-purple-500/10 border-purple-500/60 shadow-xs ring-1 ring-purple-500/30"
+                        ? "bg-purple-500/10 border-purple-500/70 shadow-xs ring-1 ring-purple-500/30"
                         : "bg-zinc-50/80 dark:bg-[#18181b]/60 border-zinc-200 dark:border-[#27272a] hover:border-zinc-400 dark:hover:border-zinc-600"
                     }`}
                   >
-                    <div className="flex items-center justify-between">
-                      <span
-                        className="px-2 py-0.5 rounded text-[10px] font-bold text-white shadow-xs"
-                        style={{ backgroundColor: p.color }}
-                      >
-                        {p.badge}
-                      </span>
-                      {isSelected && <Check className="w-4 h-4 text-purple-600 dark:text-purple-400 font-bold" />}
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-[8px] bg-white dark:bg-[#151518] border border-zinc-200/90 dark:border-zinc-700/80 shadow-2xs flex items-center justify-center shrink-0 p-1">
+                          <BrandColorLogo platform={p.id} className="w-5 h-5" />
+                        </div>
+                        <span
+                          className="px-2 py-0.5 rounded text-[10px] font-bold text-white shadow-xs"
+                          style={{ backgroundColor: p.color }}
+                        >
+                          {p.badge}
+                        </span>
+                      </div>
+                      {isSelected ? (
+                        <div className="w-5 h-5 rounded-full bg-purple-600 text-white flex items-center justify-center shadow-xs shrink-0">
+                          <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                        </div>
+                      ) : (
+                        <div className="w-5 h-5 rounded-full border border-zinc-300 dark:border-zinc-600 shrink-0" />
+                      )}
                     </div>
-                    <span className="text-xs font-bold text-zinc-950 dark:text-white truncate mt-1">
+                    <span className="text-xs font-bold text-zinc-950 dark:text-white truncate">
                       {p.name}
                     </span>
                   </button>

@@ -4201,24 +4201,24 @@ console.log("Top Countries:", topAudience.topCountries);`,
                 >
                   <DrawerContent
                     direction={isMobile ? "bottom" : "right"}
-                    widthClass="w-full sm:max-w-[480px]"
+                    widthClass="w-full sm:max-w-[620px] md:max-w-[680px]"
                     className="h-auto max-h-[88vh] md:h-full md:max-h-full flex flex-col bg-white dark:bg-[#121215] border-zinc-200 dark:border-[#27272a] rounded-[10px] shadow-2xl overflow-hidden"
                   >
                     {/* Drawer Header */}
-                    <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100 dark:border-[#202024] shrink-0">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-[8px] bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-200/60 dark:border-blue-900/40 shrink-0">
-                          <Target className="w-4 h-4" />
+                    <div className="flex items-center justify-between px-6 py-4.5 border-b border-zinc-100 dark:border-[#202024] shrink-0 bg-white dark:bg-[#121215]">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-[8px] bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-200/60 dark:border-blue-900/40 shrink-0">
+                          <Target className="w-4.5 h-4.5" />
                         </div>
                         <div>
-                          <h3 className="text-sm font-bold text-zinc-900 dark:text-white">
+                          <h3 className="text-base font-bold text-zinc-950 dark:text-white">
                             {isEditingGlobalAlert
                               ? "Edit Monthly Global Target"
                               : editingAlert
                                 ? "Edit Alert"
                                 : "New Performance Alert"}
                           </h3>
-                          <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                          <p className="text-xs font-medium text-zinc-700 dark:text-zinc-200 mt-0.5">
                             {isEditingGlobalAlert
                               ? "Configure your workspace monthly click or revenue target"
                               : "Set click thresholds, revenue limits, or both combined"}
@@ -4228,18 +4228,19 @@ console.log("Top Countries:", topAudience.topCountries);`,
                       <button
                         type="button"
                         onClick={() => setIsAlertModalOpen(false)}
-                        className="p-1.5 rounded-[8px] text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-[#1f1f23] transition-colors cursor-pointer"
+                        aria-label="Close drawer"
+                        className="p-1.5 rounded-[8px] text-zinc-600 hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-[#1f1f23] transition-colors cursor-pointer"
                       >
                         <X className="w-4 h-4" />
                       </button>
                     </div>
 
                     {/* Scrollable Form Body */}
-                    <form onSubmit={handleSaveTarget} noValidate className="flex-1 overflow-y-auto p-5 flex flex-col gap-4 text-xs">
+                    <form onSubmit={handleSaveTarget} noValidate className="flex-1 min-h-0 overflow-y-auto p-6 flex flex-col gap-5 text-xs">
                       {/* Link Selection (hidden if editing global) */}
                       {!isEditingGlobalAlert && (
                         <div className="flex flex-col gap-1.5 text-xs">
-                          <label htmlFor="target-link-select" className="font-semibold text-zinc-700 dark:text-zinc-300">
+                          <label htmlFor="target-link-select" className="font-bold text-zinc-950 dark:text-white">
                             Alert Target (Link or Global)
                           </label>
                           <select
@@ -4260,7 +4261,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                                 setAlertNotifyExpired(false);
                               }
                             }}
-                            className="h-9 px-3 rounded-[8px] bg-zinc-50 dark:bg-[#18181b] border border-zinc-200 dark:border-[#27272a] text-xs text-zinc-900 dark:text-white focus:outline-none focus:border-blue-500 cursor-pointer"
+                            className="h-10 px-3 rounded-[8px] bg-zinc-50 dark:bg-[#18181b] border border-zinc-200 dark:border-[#27272a] text-xs font-medium text-zinc-950 dark:text-white focus:outline-none focus:border-blue-500 cursor-pointer"
                           >
                             <option value="global">
                               🌐 Global (All workspace links)
@@ -4276,17 +4277,17 @@ console.log("Top Countries:", topAudience.topCountries);`,
 
                       {/* Metric Type Selector with 3 Options: Clicks, Revenue, or Both */}
                       <div className="flex flex-col gap-1.5 text-xs">
-                        <label className="font-semibold text-zinc-700 dark:text-zinc-300">
+                        <label className="font-bold text-zinc-950 dark:text-white">
                           Metric to Monitor
                         </label>
-                        <div className="grid grid-cols-3 gap-1.5">
+                        <div className="grid grid-cols-3 gap-2">
                           <button
                             type="button"
                             onClick={() => setAlertMetricType("clicks")}
-                            className={`h-9 rounded-[8px] font-semibold text-[11px] border transition-all cursor-pointer ${
+                            className={`h-9 rounded-[8px] font-bold text-xs border transition-all cursor-pointer ${
                               alertMetricType === "clicks"
                                 ? "bg-blue-600 text-white border-blue-600 shadow-sm"
-                                : "bg-zinc-50 dark:bg-[#18181b] border-zinc-200 dark:border-[#27272a] text-zinc-700 dark:text-zinc-300 hover:border-zinc-300"
+                                : "bg-zinc-50 dark:bg-[#18181b] border-zinc-200 dark:border-[#27272a] text-zinc-800 dark:text-zinc-200 hover:border-zinc-300"
                             }`}
                           >
                             Total Clicks
@@ -4294,10 +4295,10 @@ console.log("Top Countries:", topAudience.topCountries);`,
                           <button
                             type="button"
                             onClick={() => setAlertMetricType("revenue")}
-                            className={`h-9 rounded-[8px] font-semibold text-[11px] border transition-all cursor-pointer ${
+                            className={`h-9 rounded-[8px] font-bold text-xs border transition-all cursor-pointer ${
                               alertMetricType === "revenue"
                                 ? "bg-blue-600 text-white border-blue-600 shadow-sm"
-                                : "bg-zinc-50 dark:bg-[#18181b] border-zinc-200 dark:border-[#27272a] text-zinc-700 dark:text-zinc-300 hover:border-zinc-300"
+                                : "bg-zinc-50 dark:bg-[#18181b] border-zinc-200 dark:border-[#27272a] text-zinc-800 dark:text-zinc-200 hover:border-zinc-300"
                             }`}
                           >
                             Revenue ($)
@@ -4305,10 +4306,10 @@ console.log("Top Countries:", topAudience.topCountries);`,
                           <button
                             type="button"
                             onClick={() => setAlertMetricType("both")}
-                            className={`h-9 rounded-[8px] font-semibold text-[11px] border transition-all cursor-pointer ${
+                            className={`h-9 rounded-[8px] font-bold text-xs border transition-all cursor-pointer ${
                               alertMetricType === "both"
                                 ? "bg-blue-600 text-white border-blue-600 shadow-sm"
-                                : "bg-zinc-50 dark:bg-[#18181b] border-zinc-200 dark:border-[#27272a] text-zinc-700 dark:text-zinc-300 hover:border-zinc-300"
+                                : "bg-zinc-50 dark:bg-[#18181b] border-zinc-200 dark:border-[#27272a] text-zinc-800 dark:text-zinc-200 hover:border-zinc-300"
                             }`}
                           >
                             Both Metrics
@@ -4390,7 +4391,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                       ) : (
                         /* Single Metric Input */
                         <div className="flex flex-col gap-1.5 text-xs">
-                          <label className="font-semibold text-zinc-700 dark:text-zinc-300">
+                          <label className="font-bold text-zinc-950 dark:text-white">
                             Alert Threshold Value
                           </label>
                           <div className="flex items-center gap-2">
@@ -4400,15 +4401,15 @@ console.log("Top Countries:", topAudience.topCountries);`,
                               step="any"
                               value={alertTargetValue}
                               onChange={(e) => setAlertTargetValue(Math.max(1, Number(e.target.value) || 0))}
-                              className="flex-1 h-9 px-3 rounded-[8px] bg-zinc-50 dark:bg-[#18181b] border border-zinc-200 dark:border-[#27272a] text-xs font-mono font-bold text-zinc-900 dark:text-white focus:outline-none focus:border-blue-500"
+                              className="flex-1 h-9 px-3 rounded-[8px] bg-zinc-50 dark:bg-[#18181b] border border-zinc-200 dark:border-[#27272a] text-xs font-mono font-bold text-zinc-950 dark:text-white focus:outline-none focus:border-blue-500"
                             />
-                            <span className="font-semibold text-xs text-blue-600 dark:text-blue-400 shrink-0">
+                            <span className="font-bold text-xs text-blue-600 dark:text-blue-400 shrink-0">
                               {alertMetricType === "revenue" ? "USD ($)" : "clicks"}
                             </span>
                           </div>
                           {/* Quick presets */}
                           <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                            <span className="text-[10px] text-zinc-400">Quick:</span>
+                            <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-semibold">Quick:</span>
                             {(alertMetricType === "revenue"
                               ? [100, 500, 1000, 2500, 5000]
                               : [500, 1000, 2500, 5000, 10000]
@@ -4417,7 +4418,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                                 key={preset}
                                 type="button"
                                 onClick={() => setAlertTargetValue(preset)}
-                                className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer"
+                                className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer"
                               >
                                 {alertMetricType === "revenue" ? `$${preset.toLocaleString()}` : preset.toLocaleString()}
                               </button>
@@ -4428,16 +4429,16 @@ console.log("Top Countries:", topAudience.topCountries);`,
 
                       {/* Period Selection (Day, Week, Month) */}
                       <div className="flex flex-col gap-1.5 text-xs">
-                        <label className="font-semibold text-zinc-700 dark:text-zinc-300 flex items-center justify-between">
+                        <label className="font-bold text-zinc-950 dark:text-white flex items-center justify-between">
                           <span>Tracking Period</span>
                           {isEditingGlobalAlert && (
-                            <span className="text-[10px] text-zinc-400 font-normal">
+                            <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-normal">
                               Locked to Monthly for workspace
                             </span>
                           )}
                         </label>
                         {isEditingGlobalAlert ? (
-                          <div className="h-9 px-3 rounded-[8px] bg-zinc-100 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 text-xs font-semibold text-zinc-600 dark:text-zinc-300 flex items-center">
+                          <div className="h-9 px-3 rounded-[8px] bg-zinc-100 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 text-xs font-semibold text-zinc-700 dark:text-zinc-200 flex items-center">
                             Monthly (Workspace Target)
                           </div>
                         ) : (
@@ -4481,7 +4482,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                             >
                               <div className="pr-3">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                  <p className={`font-semibold ${isGlobalTarget ? "text-zinc-500 dark:text-zinc-400" : "text-zinc-900 dark:text-white"}`}>
+                                  <p className={`font-bold ${isGlobalTarget ? "text-zinc-500 dark:text-zinc-400" : "text-zinc-950 dark:text-white"}`}>
                                     Link expiration alert
                                   </p>
                                   {isGlobalTarget && (
@@ -4490,7 +4491,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                                     </span>
                                   )}
                                 </div>
-                                <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">
+                                <p className="text-[11px] text-zinc-600 dark:text-zinc-300 font-medium mt-0.5">
                                   {isGlobalTarget
                                     ? "Unavailable for a global target. Select a specific short link above to be alerted at its exact expiration time."
                                     : "Receive an instant notification the exact moment the link expires."}
@@ -4517,10 +4518,10 @@ console.log("Top Countries:", topAudience.topCountries);`,
 
                         <label className="flex items-center justify-between p-2.5 rounded-[8px] bg-zinc-50 dark:bg-[#18181b] border border-zinc-200 dark:border-[#27272a] hover:border-zinc-300 cursor-pointer transition-colors">
                           <div>
-                            <p className="font-semibold text-zinc-900 dark:text-white">
+                            <p className="font-bold text-zinc-950 dark:text-white">
                               Email Notification
                             </p>
-                            <p className="text-[10px] text-zinc-500">
+                            <p className="text-[11px] text-zinc-600 dark:text-zinc-300 font-medium">
                               Transactional alert sent to your account email address
                             </p>
                           </div>
@@ -4534,10 +4535,10 @@ console.log("Top Countries:", topAudience.topCountries);`,
 
                         <label className="flex items-center justify-between p-2.5 rounded-[8px] bg-zinc-50 dark:bg-[#18181b] border border-zinc-200 dark:border-[#27272a] hover:border-zinc-300 cursor-pointer transition-colors">
                           <div>
-                            <p className="font-semibold text-zinc-900 dark:text-white">
+                            <p className="font-bold text-zinc-950 dark:text-white">
                               In-App Notification (Bell)
                             </p>
-                            <p className="text-[10px] text-zinc-500">
+                            <p className="text-[11px] text-zinc-600 dark:text-zinc-300 font-medium">
                               Display a badge and notification in the top navigation bar
                             </p>
                           </div>
