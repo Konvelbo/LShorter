@@ -9,6 +9,7 @@ import { Mockup, MockupFrame } from "@/components/ui/mockup";
 import { Glow } from "@/components/ui/glow";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/components/providers/theme-provider";
 
 export interface HeroAction {
   text: string;
@@ -44,6 +45,12 @@ export function HeroSection({
   image,
   className,
 }: HeroProps) {
+  const { theme } = useTheme();
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+  const isDark = mounted ? theme === "dark" : false;
   return (
     <section
       className={cn(
@@ -118,7 +125,8 @@ export function HeroSection({
                   alt={image.alt}
                   width={1847}
                   height={1013}
-                  priority
+                  priority={!isDark}
+                  loading={isDark ? "lazy" : "eager"}
                   sizes="(max-width: 1280px) 100vw, 1248px"
                   className="w-full h-auto block dark:hidden"
                 />
@@ -127,7 +135,8 @@ export function HeroSection({
                   alt={image.alt}
                   width={1847}
                   height={1013}
-                  priority
+                  priority={isDark}
+                  loading={isDark ? "eager" : "lazy"}
                   sizes="(max-width: 1280px) 100vw, 1248px"
                   className="w-full h-auto hidden dark:block"
                 />

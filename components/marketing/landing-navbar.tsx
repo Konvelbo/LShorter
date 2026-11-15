@@ -344,11 +344,24 @@ export function LandingNavbar() {
   }, []);
 
   useEffect(() => {
+    let ticking = false;
+    let isScrolledLocal = window.scrollY > 20;
+    setIsScrolled(isScrolledLocal);
+
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
+      const shouldBeScrolled = window.scrollY > 20;
+      if (shouldBeScrolled !== isScrolledLocal) {
+        if (!ticking) {
+          ticking = true;
+          requestAnimationFrame(() => {
+            isScrolledLocal = window.scrollY > 20;
+            setIsScrolled(isScrolledLocal);
+            ticking = false;
+          });
+        }
+      }
     };
 
-    handleScroll();
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);

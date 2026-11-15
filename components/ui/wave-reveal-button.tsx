@@ -47,7 +47,7 @@ function FramerWaveBlob({
       aria-hidden="true"
       style={style}
       className={cn(
-        "absolute pointer-events-none select-none transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-transform",
+        "absolute pointer-events-none select-none transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:will-change-transform",
         className
       )}
     >
@@ -175,7 +175,7 @@ export const WaveRevealButton = forwardRef<
 
         {/* Sliding Dual Arrow Viewport (Exact Framer Wave Reveal: 15x14px window, 38px inner track, -23px offset) */}
         <span className="relative z-10 w-[15px] h-[14px] overflow-hidden shrink-0 block select-none">
-          <span className="absolute left-0 top-0 flex items-center gap-2 w-[38px] h-[14px] transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] -translate-x-[23px] group-hover:translate-x-0 group-focus-visible:translate-x-0 will-change-transform">
+          <span className="absolute left-0 top-0 flex items-center gap-2 w-[38px] h-[14px] transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] -translate-x-[23px] group-hover:translate-x-0 group-focus-visible:translate-x-0 group-hover:will-change-transform">
             {/* Arrow 1: Slides in from the left on hover */}
             <FramerArrow className={variantStyles.arrowHover} />
             {/* Arrow 2: Visible at rest, slides out to the right on hover */}
@@ -189,7 +189,7 @@ export const WaveRevealButton = forwardRef<
       "group relative inline-flex items-center justify-center cursor-pointer select-none overflow-hidden transition-all duration-300",
       "rounded-[10px]", // Strictly 10px rounded corners
       "outline-none focus-visible:ring-2 focus-visible:ring-[#0066FF] focus-visible:ring-offset-2",
-      "active:scale-[0.98] will-change-transform",
+      "active:scale-[0.98] active:will-change-transform",
       sizeStyles,
       variantStyles.base,
       disabled && "opacity-50 cursor-not-allowed pointer-events-none",

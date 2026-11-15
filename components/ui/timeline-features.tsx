@@ -107,7 +107,7 @@ function FeatureCard({
                   loading="lazy"
                   quality={80}
                   sizes="(max-width: 768px) 100vw, 720px"
-                  className="w-full h-auto max-h-[340px] sm:max-h-none object-cover object-top block dark:hidden transition-transform duration-200 ease-out hover:scale-[1.015] transform-gpu will-change-transform"
+                  className="w-full h-auto max-h-[340px] sm:max-h-none object-cover object-top block dark:hidden transition-transform duration-200 ease-out hover:scale-[1.015]"
                   priority={false}
                 />
                 {/* Mode Sombre */}
@@ -119,7 +119,7 @@ function FeatureCard({
                   loading="lazy"
                   quality={80}
                   sizes="(max-width: 768px) 100vw, 720px"
-                  className="w-full h-auto max-h-[340px] sm:max-h-none object-cover object-top hidden dark:block transition-transform duration-200 ease-out hover:scale-[1.015] transform-gpu will-change-transform"
+                  className="w-full h-auto max-h-[340px] sm:max-h-none object-cover object-top hidden dark:block transition-transform duration-200 ease-out hover:scale-[1.015]"
                   priority={false}
                 />
               </div>
@@ -153,7 +153,7 @@ function FeatureCard({
                     loading="lazy"
                     quality={80}
                     sizes="(max-width: 768px) 100vw, 960px"
-                    className="w-full h-auto object-cover object-top block dark:hidden transition-transform duration-200 ease-out hover:scale-[1.012] transform-gpu will-change-transform"
+                    className="w-full h-auto object-cover object-top block dark:hidden transition-transform duration-200 ease-out hover:scale-[1.012]"
                     priority={false}
                   />
                   {/* Mode Sombre */}
@@ -165,7 +165,7 @@ function FeatureCard({
                     loading="lazy"
                     quality={80}
                     sizes="(max-width: 768px) 100vw, 960px"
-                    className="w-full h-auto object-cover object-top hidden dark:block transition-transform duration-200 ease-out hover:scale-[1.012] transform-gpu will-change-transform"
+                    className="w-full h-auto object-cover object-top hidden dark:block transition-transform duration-200 ease-out hover:scale-[1.012]"
                     priority={false}
                   />
                 </>

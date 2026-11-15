@@ -347,12 +347,12 @@ html.light .nav-link-item.active {
         color 0.16s ease,
         transform 0.16s cubic-bezier(0.16, 1, 0.3, 1),
         box-shadow 0.16s ease !important;
-    will-change: transform;
 }
 .sidebar-link-btn:hover {
     background-color: #222226 !important;
     color: #ffffff !important;
     transform: translateX(3px) scale(1.02) !important;
+    will-change: transform;
 }
 .sidebar-link-btn:active {
     transform: scale(0.98) !important;
@@ -373,10 +373,10 @@ html.light .nav-link-item.active {
         transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
         box-shadow 0.18s ease,
         filter 0.18s ease !important;
-    will-change: transform;
 }
 .btn-hover-scale:hover {
     transform: scale(1.06) !important;
+    will-change: transform;
 }
 .btn-hover-scale:active {
     transform: scale(0.95) !important;
@@ -388,12 +388,12 @@ html.light .nav-link-item.active {
         transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
         border-color 0.2s ease,
         box-shadow 0.2s ease !important;
-    will-change: transform;
 }
 .card-hover-lift:hover {
     transform: translateY(-2px) scale(1.01) !important;
     border-color: rgba(0, 102, 255, 0.4) !important;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
+    will-change: transform;
 }
 
 /* Icon hover glow */
@@ -401,7 +401,6 @@ html.light .nav-link-item.active {
     transition:
         transform 0.18s ease,
         filter 0.18s ease !important;
-    will-change: transform;
 }
 .icon-hover-glow:hover {
     transform: scale(1.15) !important;
@@ -1547,12 +1546,12 @@ html.light main .text-neutral-200 {
   transition: transform 1.3s cubic-bezier(0.16, 1, 0.3, 1),
               box-shadow 1.3s cubic-bezier(0.16, 1, 0.3, 1),
               border-color 1.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
-  will-change: transform, box-shadow;
   transform: translateZ(0);
 }
 
 .product-card-hover:hover {
   transform: scale(1.025) translateY(-4px) !important;
+  will-change: transform, box-shadow;
   border-color: rgba(255, 255, 255, 0.28) !important;
   box-shadow: 0 22px 45px -12px rgba(0, 0, 0, 0.85),
               0 0 30px -4px rgba(0, 102, 255, 0.22) !important;
@@ -1722,10 +1721,10 @@ html.light main .text-neutral-200 {
 /* ─── Bento Grid Cards Hover Scale Animation (Pure CSS, Neutral Hover) ─── */
 .bento-card-scale {
   transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s ease, border-color 0.3s ease !important;
-  will-change: transform;
 }
 
 .bento-card-scale:hover {
+  will-change: transform;
   transform: scale(1.025) translateY(-4px) !important;
   box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.12), 0 0 1px 1px rgba(0, 0, 0, 0.06) !important;
   border-color: rgba(0, 0, 0, 0.18) !important;
@@ -1836,50 +1835,47 @@ html.light main .text-neutral-200 {
 }
 
 .animate-appear {
-  animation: appear 0.85s cubic-bezier(0.16, 1, 0.3, 1) both;
-  will-change: transform, opacity;
+  animation: appear 1.15s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .animate-appear-glow {
-  animation: appear-glow 1.2s cubic-bezier(0.16, 1, 0.3, 1) both;
-  will-change: opacity;
+  animation: appear-glow 1.45s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .animate-appear-zoom {
-  animation: appear-zoom 0.85s cubic-bezier(0.16, 1, 0.3, 1) both;
-  will-change: transform, opacity;
+  animation: appear-zoom 1.15s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .delay-60 {
-  animation-delay: 60ms;
+  animation-delay: 90ms;
 }
 
 .delay-75 {
-  animation-delay: 75ms;
+  animation-delay: 110ms;
 }
 
 .delay-150 {
-  animation-delay: 150ms;
+  animation-delay: 220ms;
 }
 
 .delay-200 {
-  animation-delay: 200ms;
+  animation-delay: 280ms;
 }
 
 .delay-225 {
-  animation-delay: 225ms;
+  animation-delay: 310ms;
 }
 
 .delay-300 {
-  animation-delay: 300ms;
+  animation-delay: 420ms;
 }
 
 .delay-450 {
-  animation-delay: 450ms;
+  animation-delay: 600ms;
 }
 
 .delay-600 {
-  animation-delay: 600ms;
+  animation-delay: 780ms;
 }
 
 .delay-750 {

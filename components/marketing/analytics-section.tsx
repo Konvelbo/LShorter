@@ -19,7 +19,7 @@ export function AnalyticsSection() {
           return (
             <motion.span
               key={charIdx}
-              className="inline-block will-change-transform"
+              className="inline-block"
               initial={{ x: -4, opacity: 0 }}
               whileInView={{ x: 0, opacity: 1 }}
               viewport={{ once: true }}

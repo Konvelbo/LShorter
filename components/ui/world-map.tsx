@@ -1,8 +1,7 @@
 "use client";
 
-import { useRef, useMemo, useState, useEffect } from "react";
+import { useRef, useState, useEffect } from "react";
 import { motion } from "motion/react";
-import DottedMap from "dotted-map";
 import { useTheme } from "@/components/providers/theme-provider";
 
 interface MapProps {
@@ -42,33 +41,7 @@ export function WorldMap({
   }, []);
 
   const isDark = mounted ? theme === "dark" : false;
-
-  // Defer heavy DottedMap SVG calculation until the section approaches viewport
-  // This eliminates a 500ms+ main-thread freeze on initial page load / refresh
-  const [svgDataUri, setSvgDataUri] = useState<string>("");
-
-  useEffect(() => {
-    if (!isInView) return;
-
-    const computeMap = () => {
-      const map = new DottedMap({ height: 70, grid: "diagonal" });
-      const raw = map.getSVG({
-        radius: 0.22,
-        color: isDark ? "#FFFFFF35" : "#00000030",
-        shape: "circle",
-        backgroundColor: isDark ? "#09090b" : "#ffffff",
-      });
-      setSvgDataUri(`data:image/svg+xml;utf8,${encodeURIComponent(raw)}`);
-    };
-
-    if (typeof requestIdleCallback !== "undefined") {
-      const handle = requestIdleCallback(computeMap, { timeout: 1200 });
-      return () => cancelIdleCallback(handle);
-    } else {
-      const timer = setTimeout(computeMap, 30);
-      return () => clearTimeout(timer);
-    }
-  }, [isInView, isDark]);
+  const mapSrc = isDark ? "/images/world-map-dark.svg" : "/images/world-map-light.svg";
 
   const projectPoint = (lat: number, lng: number) => {
     const x = (lng + 180) * (800 / 360);
@@ -91,16 +64,15 @@ export function WorldMap({
       className="w-full aspect-[2/1] bg-white dark:bg-[#09090b] rounded-xl relative font-sans overflow-hidden select-none border border-black/[0.04] dark:border-white/[0.06] shadow-xs"
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      {svgDataUri ? (
-        <img
-          src={svgDataUri}
-          className="h-full w-full [mask-image:linear-gradient(to_bottom,transparent,white_8%,white_92%,transparent)] pointer-events-none select-none object-cover"
-          alt="world map"
-          height="495"
-          width="1056"
-          draggable={false}
-        />
-      ) : null}
+      <img
+        src={mapSrc}
+        className="h-full w-full [mask-image:linear-gradient(to_bottom,transparent,white_8%,white_92%,transparent)] pointer-events-none select-none object-cover"
+        alt="world map"
+        height="495"
+        width="1056"
+        draggable={false}
+        loading="lazy"
+      />
       <svg
         ref={svgRef}
         viewBox="0 0 800 400"
