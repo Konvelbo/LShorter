@@ -89,7 +89,7 @@ export const FONT_FAMILIES: {
   category: "Sans-Serif" | "Serif" | "Display" | "Monospace" | "Cursive" | "Futuristic";
   fontCss: string;
 }[] = [
-  // Sans-Serif Modern & Tech
+  // Sans-Serif Modern & Tech (20)
   { id: "inter", label: "Inter", name: "Inter (Modern)", preview: "Modern & Clean", category: "Sans-Serif", fontCss: "'Inter', sans-serif" },
   { id: "roboto", label: "Roboto", name: "Roboto (Tech)", preview: "Clear & Standard", category: "Sans-Serif", fontCss: "'Roboto', sans-serif" },
   { id: "montserrat", label: "Montserrat", name: "Montserrat (Impact)", preview: "Geometric Impact", category: "Sans-Serif", fontCss: "'Montserrat', sans-serif" },
@@ -99,37 +99,87 @@ export const FONT_FAMILIES: {
   { id: "raleway", label: "Raleway", name: "Raleway (Elegant)", preview: "Slim & Elegant", category: "Sans-Serif", fontCss: "'Raleway', sans-serif" },
   { id: "lato", label: "Lato", name: "Lato (Balanced)", preview: "Corporate & Clean", category: "Sans-Serif", fontCss: "'Lato', sans-serif" },
   { id: "open_sans", label: "Open Sans", name: "Open Sans", preview: "Perfect Readability", category: "Sans-Serif", fontCss: "'Open Sans', sans-serif" },
+  { id: "dm_sans", label: "DM Sans", name: "DM Sans (Geometric)", preview: "Clean & Geometric", category: "Sans-Serif", fontCss: "'DM Sans', sans-serif" },
+  { id: "manrope", label: "Manrope", name: "Manrope (Tech UI)", preview: "Crisp Semi-Geometric", category: "Sans-Serif", fontCss: "'Manrope', sans-serif" },
+  { id: "work_sans", label: "Work Sans", name: "Work Sans (Grotesque)", preview: "Editorial & Print", category: "Sans-Serif", fontCss: "'Work Sans', sans-serif" },
+  { id: "sora", label: "Sora", name: "Sora (Neo-Grotesk)", preview: "Digital & Decisive", category: "Sans-Serif", fontCss: "'Sora', sans-serif" },
+  { id: "space_grotesk", label: "Space Grotesk", name: "Space Grotesk (Tech)", preview: "Cyber Semi-Mono", category: "Sans-Serif", fontCss: "'Space Grotesk', sans-serif" },
+  { id: "lexend", label: "Lexend", name: "Lexend (Readability)", preview: "Instant Legibility", category: "Sans-Serif", fontCss: "'Lexend', sans-serif" },
+  { id: "rubik", label: "Rubik", name: "Rubik (Smooth)", preview: "Soft Rounded Corners", category: "Sans-Serif", fontCss: "'Rubik', sans-serif" },
+  { id: "nunito", label: "Nunito", name: "Nunito (Friendly)", preview: "Friendly & Playful", category: "Sans-Serif", fontCss: "'Nunito', sans-serif" },
+  { id: "urbanist", label: "Urbanist", name: "Urbanist (Fashion)", preview: "Trendy Minimalist", category: "Sans-Serif", fontCss: "'Urbanist', sans-serif" },
+  { id: "jost", label: "Jost", name: "Jost (Futura-like)", preview: "Bauhaus Classic", category: "Sans-Serif", fontCss: "'Jost', sans-serif" },
+  { id: "albert_sans", label: "Albert Sans", name: "Albert Sans (Modern)", preview: "Nordic Functional", category: "Sans-Serif", fontCss: "'Albert Sans', sans-serif" },
 
-  // Serif & Prestige
+  // Serif & Prestige (14)
   { id: "playfair", label: "Playfair", name: "Playfair Display", preview: "Luxury & Editorial", category: "Serif", fontCss: "'Playfair Display', serif" },
   { id: "cinzel", label: "Cinzel", name: "Cinzel (Classic)", preview: "Royal & Antique", category: "Serif", fontCss: "'Cinzel', serif" },
   { id: "lora", label: "Lora", name: "Lora (Literary)", preview: "Poetic & Editorial", category: "Serif", fontCss: "'Lora', serif" },
   { id: "merriweather", label: "Merriweather", name: "Merriweather", preview: "Press & Magazine", category: "Serif", fontCss: "'Merriweather', serif" },
   { id: "cormorant", label: "Cormorant", name: "Cormorant Garamond", preview: "Haute Couture", category: "Serif", fontCss: "'Cormorant Garamond', serif" },
+  { id: "bodoni_moda", label: "Bodoni Moda", name: "Bodoni Moda (Vogue)", preview: "High Fashion & Glamour", category: "Serif", fontCss: "'Bodoni Moda', serif" },
+  { id: "dm_serif", label: "DM Serif", name: "DM Serif Display", preview: "Warm Dramatic Serif", category: "Serif", fontCss: "'DM Serif Display', serif" },
+  { id: "prata", label: "Prata", name: "Prata (Didone)", preview: "Refined & Teardrop", category: "Serif", fontCss: "'Prata', serif" },
+  { id: "eb_garamond", label: "EB Garamond", name: "EB Garamond (Heritage)", preview: "Renaissance Prestige", category: "Serif", fontCss: "'EB Garamond', serif" },
+  { id: "libre_baskerville", label: "Baskerville", name: "Libre Baskerville", preview: "English Traditional", category: "Serif", fontCss: "'Libre Baskerville', serif" },
+  { id: "abril_fatface", label: "Abril Fatface", name: "Abril Fatface (Bold)", preview: "Bold Titling Drama", category: "Serif", fontCss: "'Abril Fatface', serif" },
+  { id: "crimson_pro", label: "Crimson Pro", name: "Crimson Pro (Book)", preview: "Scholarly & Elegant", category: "Serif", fontCss: "'Crimson Pro', serif" },
+  { id: "bitter", label: "Bitter", name: "Bitter (Contemporary)", preview: "Sturdy Slab Serif", category: "Serif", fontCss: "'Bitter', serif" },
+  { id: "castoro", label: "Castoro", name: "Castoro (Scholarly)", preview: "Academic & Poetic", category: "Serif", fontCss: "'Castoro', serif" },
 
-  // Display, Headlines & Posters
+  // Display, Headlines & Posters (16)
   { id: "bebas", label: "Bebas Neue", name: "Bebas Neue (Poster)", preview: "HEADLINE & POSTER", category: "Display", fontCss: "'Bebas Neue', sans-serif" },
   { id: "anton", label: "Anton", name: "Anton (Impact)", preview: "MEGA HEADLINE IMPACT", category: "Display", fontCss: "'Anton', sans-serif" },
   { id: "righteous", label: "Righteous", name: "Righteous (Retro)", preview: "Synthwave & 80s Pop", category: "Display", fontCss: "'Righteous', sans-serif" },
   { id: "syne", label: "Syne", name: "Syne (Avant-Garde)", preview: "Creative & Avant-Garde", category: "Display", fontCss: "'Syne', sans-serif" },
   { id: "oswald", label: "Oswald", name: "Oswald (Condensed)", preview: "BOLD CONDENSED", category: "Display", fontCss: "'Oswald', sans-serif" },
   { id: "russo_one", label: "Russo One", name: "Russo One (Block)", preview: "POWER & BLOCK", category: "Display", fontCss: "'Russo One', sans-serif" },
+  { id: "archivo_black", label: "Archivo Black", name: "Archivo Black (Heavy)", preview: "ULTRA HEAVY WEIGHT", category: "Display", fontCss: "'Archivo Black', sans-serif" },
+  { id: "bangers", label: "Bangers", name: "Bangers (Comic)", preview: "POW! COMIC ACTION", category: "Display", fontCss: "'Bangers', cursive, sans-serif" },
+  { id: "monoton", label: "Monoton", name: "Monoton (Disco)", preview: "DISCO MULTI-LINE", category: "Display", fontCss: "'Monoton', cursive, sans-serif" },
+  { id: "permanent_marker", label: "Perm Marker", name: "Permanent Marker", preview: "STREET GRAFFITI", category: "Display", fontCss: "'Permanent Marker', cursive, sans-serif" },
+  { id: "fredoka", label: "Fredoka", name: "Fredoka (Chunky)", preview: "Super Chunky Bold", category: "Display", fontCss: "'Fredoka', sans-serif" },
+  { id: "press_start", label: "Press Start", name: "Press Start 2P (Arcade)", preview: "RETRO 8-BIT ARCADE", category: "Display", fontCss: "'Press Start 2P', monospace, sans-serif" },
+  { id: "shrikhand", label: "Shrikhand", name: "Shrikhand (Curved)", preview: "Hand-Painted Poster", category: "Display", fontCss: "'Shrikhand', cursive, serif" },
+  { id: "luckiest_guy", label: "Luckiest Guy", name: "Luckiest Guy (Cartoon)", preview: "CARTOON BILLBOARD", category: "Display", fontCss: "'Luckiest Guy', cursive, sans-serif" },
+  { id: "black_ops_one", label: "Black Ops", name: "Black Ops One (Military)", preview: "MILITARY STENCIL", category: "Display", fontCss: "'Black Ops One', cursive, sans-serif" },
+  { id: "bungee", label: "Bungee", name: "Bungee (Urban)", preview: "URBAN SIGNPOST", category: "Display", fontCss: "'Bungee', cursive, sans-serif" },
 
-  // Monospace & Developer
+  // Monospace & Developer (9)
   { id: "jetbrains", label: "JetBrains", name: "JetBrains Mono", preview: "const code = true;", category: "Monospace", fontCss: "'JetBrains Mono', monospace" },
   { id: "fira_code", label: "Fira Code", name: "Fira Code (Dev)", preview: "fn qr() -> &str", category: "Monospace", fontCss: "'Fira Code', monospace" },
   { id: "space_mono", label: "Space Mono", name: "Space Mono", preview: "01010011 // SCAN", category: "Monospace", fontCss: "'Space Mono', monospace" },
+  { id: "source_code_pro", label: "Source Code", name: "Source Code Pro", preview: "git commit -m \"ok\"", category: "Monospace", fontCss: "'Source Code Pro', monospace" },
+  { id: "ibm_plex_mono", label: "IBM Plex", name: "IBM Plex Mono", preview: "sys.platform == 'io'", category: "Monospace", fontCss: "'IBM Plex Mono', monospace" },
+  { id: "roboto_mono", label: "Roboto Mono", name: "Roboto Mono", preview: "let hash = 0xfa;", category: "Monospace", fontCss: "'Roboto Mono', monospace" },
+  { id: "dm_mono", label: "DM Mono", name: "DM Mono (Code)", preview: "std::cout << val;", category: "Monospace", fontCss: "'DM Mono', monospace" },
+  { id: "inconsolata", label: "Inconsolata", name: "Inconsolata (Clean)", preview: "curl -sL https://", category: "Monospace", fontCss: "'Inconsolata', monospace" },
+  { id: "courier_prime", label: "Courier Prime", name: "Courier Prime (Screenplay)", preview: "EXT. DAY - SCENE 1", category: "Monospace", fontCss: "'Courier Prime', monospace" },
 
-  // Cursive & Handwritten
+  // Cursive & Handwritten (11)
   { id: "caveat", label: "Caveat", name: "Caveat (Marker)", preview: "Handwritten Script", category: "Cursive", fontCss: "'Caveat', cursive" },
   { id: "pacifico", label: "Pacifico", name: "Pacifico (Casual)", preview: "California & Fun", category: "Cursive", fontCss: "'Pacifico', cursive" },
   { id: "dancing_script", label: "Dancing Script", name: "Dancing Script", preview: "Free Calligraphy", category: "Cursive", fontCss: "'Dancing Script', cursive" },
   { id: "great_vibes", label: "Great Vibes", name: "Great Vibes (Signature)", preview: "Signature & Prestige", category: "Cursive", fontCss: "'Great Vibes', cursive" },
+  { id: "satisfy", label: "Satisfy", name: "Satisfy (Vintage)", preview: "Warm Brush Script", category: "Cursive", fontCss: "'Satisfy', cursive" },
+  { id: "alex_brush", label: "Alex Brush", name: "Alex Brush (Flourish)", preview: "Fluid Royal Script", category: "Cursive", fontCss: "'Alex Brush', cursive" },
+  { id: "sacramento", label: "Sacramento", name: "Sacramento (Monoline)", preview: "Delicate Monoline", category: "Cursive", fontCss: "'Sacramento', cursive" },
+  { id: "kaushan_script", label: "Kaushan", name: "Kaushan Script (Brush)", preview: "Rough Natural Brush", category: "Cursive", fontCss: "'Kaushan Script', cursive" },
+  { id: "parisienne", label: "Parisienne", name: "Parisienne (Chic)", preview: "Romantic French Chic", category: "Cursive", fontCss: "'Parisienne', cursive" },
+  { id: "yellowtail", label: "Yellowtail", name: "Yellowtail (Retro Script)", preview: "Mid-Century Signage", category: "Cursive", fontCss: "'Yellowtail', cursive" },
+  { id: "shadows_into_light", label: "Shadows Light", name: "Shadows Into Light", preview: "Neat Casual Pencil", category: "Cursive", fontCss: "'Shadows Into Light', cursive" },
 
-  // Futuristic & Cyber
+  // Futuristic & Cyber (10)
   { id: "orbitron", label: "Orbitron", name: "Orbitron (Cyber)", preview: "CYBERPUNK // HUD", category: "Futuristic", fontCss: "'Orbitron', sans-serif" },
   { id: "audiowide", label: "Audiowide", name: "Audiowide (Techno)", preview: "TECHNO MATRIX", category: "Futuristic", fontCss: "'Audiowide', sans-serif" },
   { id: "chakra_petch", label: "Chakra Petch", name: "Chakra Petch (Mecha)", preview: "MECHA PROTOCOL", category: "Futuristic", fontCss: "'Chakra Petch', sans-serif" },
+  { id: "rajdhani", label: "Rajdhani", name: "Rajdhani (Sci-Fi)", preview: "AEROSPACE TECH", category: "Futuristic", fontCss: "'Rajdhani', sans-serif" },
+  { id: "michroma", label: "Michroma", name: "Michroma (Hi-Tech)", preview: "WIDE SCREEN MATRIX", category: "Futuristic", fontCss: "'Michroma', sans-serif" },
+  { id: "bruno_ace", label: "Bruno Ace", name: "Bruno Ace (Speed)", preview: "SPEED RACER PROTOCOL", category: "Futuristic", fontCss: "'Bruno Ace', cursive, sans-serif" },
+  { id: "electrolize", label: "Electrolize", name: "Electrolize (Grid)", preview: "CIRCUIT ELECTRONICS", category: "Futuristic", fontCss: "'Electrolize', sans-serif" },
+  { id: "nova_square", label: "Nova Square", name: "Nova Square (Digital)", preview: "DIGITAL TERMINAL", category: "Futuristic", fontCss: "'Nova Square', cursive, sans-serif" },
+  { id: "syne_mono", label: "Syne Mono", name: "Syne Mono (Glitch)", preview: "GLITCH RUNNER V2", category: "Futuristic", fontCss: "'Syne Mono', monospace, sans-serif" },
+  { id: "teko", label: "Teko", name: "Teko (Tall Cyber)", preview: "TALL KINETIC METRO", category: "Futuristic", fontCss: "'Teko', sans-serif" },
 ];
 
 export function QRGenerator() {
@@ -232,16 +282,32 @@ export function QRGenerator() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Lazy-load QR Studio specialty Google Fonts only when QR Studio is mounted
+  // Lazy-load QR Studio specialty Google Fonts (80 curated unique fonts in 3 batches)
   useEffect(() => {
-    const id = "lshorter-qr-studio-fonts";
-    if (document.getElementById(id)) return;
-    const link = document.createElement("link");
-    link.id = id;
-    link.rel = "stylesheet";
-    link.href =
-      "https://fonts.googleapis.com/css2?family=Anton&family=Audiowide&family=Bebas+Neue&family=Caveat:wght@600;700&family=Chakra+Petch:wght@600;700&family=Cinzel:wght@600;700;900&family=Cormorant+Garamond:wght@600;700&family=Dancing+Script:wght@600;700&family=Fira+Code:wght@500;700&family=Great+Vibes&family=Inter:wght@400;600;700;900&family=JetBrains+Mono:wght@500;700&family=Lato:wght@400;700;900&family=Lora:ital,wght@0,600;0,700;1,600&family=Merriweather:wght@400;700;900&family=Montserrat:wght@500;700;900&family=Open+Sans:wght@400;600;700;800&family=Orbitron:wght@600;800;900&family=Oswald:wght@500;700&family=Outfit:wght@500;700;900&family=Pacifico&family=Playfair+Display:ital,wght@0,600;0,800;1,600&family=Plus+Jakarta+Sans:wght@500;700;800&family=Poppins:wght@500;700;800&family=Raleway:wght@600;700;900&family=Righteous&family=Roboto:wght@500;700;900&family=Russo+One&family=Space+Mono:wght@400;700&family=Syne:wght@600;700;800&display=swap";
-    document.head.appendChild(link);
+    const batches = [
+      {
+        id: "lshorter-qr-studio-fonts-1",
+        href: "https://fonts.googleapis.com/css2?family=Anton&family=Audiowide&family=Bebas+Neue&family=Caveat:wght@600;700&family=Chakra+Petch:wght@600;700&family=Cinzel:wght@600;700;900&family=Cormorant+Garamond:wght@600;700&family=Dancing+Script:wght@600;700&family=Fira+Code:wght@500;700&family=Great+Vibes&family=Inter:wght@400;600;700;900&family=JetBrains+Mono:wght@500;700&family=Lato:wght@400;700;900&family=Lora:ital,wght@0,600;0,700;1,600&family=Merriweather:wght@400;700;900&family=Montserrat:wght@500;700;900&family=Open+Sans:wght@400;600;700;800&family=Orbitron:wght@600;800;900&family=Oswald:wght@500;700&family=Outfit:wght@500;700;900&family=Pacifico&family=Playfair+Display:ital,wght@0,600;0,800;1,600&family=Plus+Jakarta+Sans:wght@500;700;800&family=Poppins:wght@500;700;800&family=Raleway:wght@600;700;900&family=Righteous&family=Roboto:wght@500;700;900&family=Russo+One&family=Space+Mono:wght@400;700&family=Syne:wght@600;700;800&display=swap",
+      },
+      {
+        id: "lshorter-qr-studio-fonts-2",
+        href: "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Manrope:wght@500;700;800&family=Work+Sans:wght@400;600;700&family=Sora:wght@500;700;800&family=Space+Grotesk:wght@500;700&family=Lexend:wght@400;600;700&family=Rubik:wght@500;700;800&family=Nunito:wght@600;700;800&family=Urbanist:wght@500;700;800&family=Jost:wght@500;700;800&family=Albert+Sans:wght@500;700;800&family=Bodoni+Moda:ital,wght@0,600;0,800;1,600&family=DM+Serif+Display:ital@0;1&family=Prata&family=EB+Garamond:wght@500;700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Abril+Fatface&family=Crimson+Pro:wght@500;700&family=Bitter:wght@500;700&family=Castoro:ital@0;1&family=Archivo+Black&family=Bangers&family=Monoton&family=Permanent+Marker&family=Fredoka:wght@600;700&display=swap",
+      },
+      {
+        id: "lshorter-qr-studio-fonts-3",
+        href: "https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Shrikhand&family=Luckiest+Guy&family=Black+Ops+One&family=Bungee&family=Source+Code+Pro:wght@500;700&family=IBM+Plex+Mono:wght@500;700&family=Roboto+Mono:wght@500;700&family=DM+Mono:wght@400;500&family=Inconsolata:wght@500;700;800&family=Courier+Prime:wght@400;700&family=Satisfy&family=Alex+Brush&family=Sacramento&family=Kaushan+Script&family=Parisienne&family=Yellowtail&family=Shadows+Into+Light&family=Rajdhani:wght@600;700&family=Michroma&family=Bruno+Ace&family=Electrolize&family=Nova+Square&family=Syne+Mono&family=Teko:wght@600;700&display=swap",
+      },
+    ];
+
+    batches.forEach((b) => {
+      if (!document.getElementById(b.id)) {
+        const link = document.createElement("link");
+        link.id = b.id;
+        link.rel = "stylesheet";
+        link.href = b.href;
+        document.head.appendChild(link);
+      }
+    });
   }, []);
 
 
@@ -2313,6 +2379,7 @@ export function QRGenerator() {
                       const matchesSearch =
                         !fontSearchQuery ||
                         f.name.toLowerCase().includes(fontSearchQuery.toLowerCase()) ||
+                        f.label.toLowerCase().includes(fontSearchQuery.toLowerCase()) ||
                         f.category.toLowerCase().includes(fontSearchQuery.toLowerCase());
                       return matchesCat && matchesSearch;
                     });

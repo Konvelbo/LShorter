@@ -103,7 +103,7 @@ export function isAnimatedFrame(frame: FrameType): boolean {
 }
 
 export type FontFamilyType =
-  // Sans-Serif
+  // Sans-Serif (20)
   | "inter"
   | "roboto"
   | "montserrat"
@@ -113,32 +113,82 @@ export type FontFamilyType =
   | "raleway"
   | "lato"
   | "open_sans"
-  // Serif
+  | "dm_sans"
+  | "manrope"
+  | "work_sans"
+  | "sora"
+  | "space_grotesk"
+  | "lexend"
+  | "rubik"
+  | "nunito"
+  | "urbanist"
+  | "jost"
+  | "albert_sans"
+  // Serif (14)
   | "playfair"
   | "cinzel"
   | "lora"
   | "merriweather"
   | "cormorant"
-  // Display & Headlines
+  | "bodoni_moda"
+  | "dm_serif"
+  | "prata"
+  | "eb_garamond"
+  | "libre_baskerville"
+  | "abril_fatface"
+  | "crimson_pro"
+  | "bitter"
+  | "castoro"
+  // Display & Headlines (16)
   | "bebas"
   | "anton"
   | "righteous"
   | "syne"
   | "oswald"
   | "russo_one"
-  // Monospace & Code
+  | "archivo_black"
+  | "bangers"
+  | "monoton"
+  | "permanent_marker"
+  | "fredoka"
+  | "press_start"
+  | "shrikhand"
+  | "luckiest_guy"
+  | "black_ops_one"
+  | "bungee"
+  // Monospace & Code (9)
   | "jetbrains"
   | "fira_code"
   | "space_mono"
-  // Cursive & Manuscrit
+  | "source_code_pro"
+  | "ibm_plex_mono"
+  | "roboto_mono"
+  | "dm_mono"
+  | "inconsolata"
+  | "courier_prime"
+  // Cursive & Handwritten (11)
   | "caveat"
   | "pacifico"
   | "dancing_script"
   | "great_vibes"
-  // Futuriste & Cyber
+  | "satisfy"
+  | "alex_brush"
+  | "sacramento"
+  | "kaushan_script"
+  | "parisienne"
+  | "yellowtail"
+  | "shadows_into_light"
+  // Futuristic & Cyber (10)
   | "orbitron"
   | "audiowide"
-  | "chakra_petch";
+  | "chakra_petch"
+  | "rajdhani"
+  | "michroma"
+  | "bruno_ace"
+  | "electrolize"
+  | "nova_square"
+  | "syne_mono"
+  | "teko";
 
 export type FontWeightType = "normal" | "bold" | "900" | "italic";
 
@@ -153,6 +203,7 @@ export function formatFrameText(text: string, transform: TextTransformType = "up
 
 export function getFontFamilyCss(fontFamily: FontFamilyType | string = "inter"): string {
   switch (fontFamily) {
+    // Sans-Serif
     case "roboto":
       return "'Roboto', sans-serif";
     case "montserrat":
@@ -169,6 +220,30 @@ export function getFontFamilyCss(fontFamily: FontFamilyType | string = "inter"):
       return "'Lato', sans-serif";
     case "open_sans":
       return "'Open Sans', sans-serif";
+    case "dm_sans":
+      return "'DM Sans', sans-serif";
+    case "manrope":
+      return "'Manrope', sans-serif";
+    case "work_sans":
+      return "'Work Sans', sans-serif";
+    case "sora":
+      return "'Sora', sans-serif";
+    case "space_grotesk":
+      return "'Space Grotesk', sans-serif";
+    case "lexend":
+      return "'Lexend', sans-serif";
+    case "rubik":
+      return "'Rubik', sans-serif";
+    case "nunito":
+      return "'Nunito', sans-serif";
+    case "urbanist":
+      return "'Urbanist', sans-serif";
+    case "jost":
+      return "'Jost', sans-serif";
+    case "albert_sans":
+      return "'Albert Sans', sans-serif";
+
+    // Serif
     case "playfair":
       return "'Playfair Display', Georgia, serif";
     case "cinzel":
@@ -179,24 +254,80 @@ export function getFontFamilyCss(fontFamily: FontFamilyType | string = "inter"):
       return "'Merriweather', Georgia, serif";
     case "cormorant":
       return "'Cormorant Garamond', Georgia, serif";
+    case "bodoni_moda":
+      return "'Bodoni Moda', Georgia, serif";
+    case "dm_serif":
+      return "'DM Serif Display', Georgia, serif";
+    case "prata":
+      return "'Prata', Georgia, serif";
+    case "eb_garamond":
+      return "'EB Garamond', Georgia, serif";
+    case "libre_baskerville":
+      return "'Libre Baskerville', Georgia, serif";
+    case "abril_fatface":
+      return "'Abril Fatface', Georgia, serif";
+    case "crimson_pro":
+      return "'Crimson Pro', Georgia, serif";
+    case "bitter":
+      return "'Bitter', Georgia, serif";
+    case "castoro":
+      return "'Castoro', Georgia, serif";
+
+    // Display
     case "bebas":
       return "'Bebas Neue', Impact, sans-serif";
     case "anton":
       return "'Anton', Impact, sans-serif";
     case "righteous":
-      return "'Righteous', sans-serif";
+      return "'Righteous', cursive, sans-serif";
     case "syne":
       return "'Syne', sans-serif";
     case "oswald":
       return "'Oswald', sans-serif";
     case "russo_one":
       return "'Russo One', sans-serif";
+    case "archivo_black":
+      return "'Archivo Black', sans-serif";
+    case "bangers":
+      return "'Bangers', cursive, sans-serif";
+    case "monoton":
+      return "'Monoton', cursive, sans-serif";
+    case "permanent_marker":
+      return "'Permanent Marker', cursive, sans-serif";
+    case "fredoka":
+      return "'Fredoka', sans-serif";
+    case "press_start":
+      return "'Press Start 2P', monospace, sans-serif";
+    case "shrikhand":
+      return "'Shrikhand', cursive, serif";
+    case "luckiest_guy":
+      return "'Luckiest Guy', cursive, sans-serif";
+    case "black_ops_one":
+      return "'Black Ops One', cursive, sans-serif";
+    case "bungee":
+      return "'Bungee', cursive, sans-serif";
+
+    // Monospace
     case "jetbrains":
       return "'JetBrains Mono', monospace";
     case "fira_code":
       return "'Fira Code', monospace";
     case "space_mono":
       return "'Space Mono', monospace";
+    case "source_code_pro":
+      return "'Source Code Pro', monospace";
+    case "ibm_plex_mono":
+      return "'IBM Plex Mono', monospace";
+    case "roboto_mono":
+      return "'Roboto Mono', monospace";
+    case "dm_mono":
+      return "'DM Mono', monospace";
+    case "inconsolata":
+      return "'Inconsolata', monospace";
+    case "courier_prime":
+      return "'Courier Prime', monospace";
+
+    // Cursive
     case "caveat":
       return "'Caveat', cursive";
     case "pacifico":
@@ -205,12 +336,43 @@ export function getFontFamilyCss(fontFamily: FontFamilyType | string = "inter"):
       return "'Dancing Script', cursive";
     case "great_vibes":
       return "'Great Vibes', cursive";
+    case "satisfy":
+      return "'Satisfy', cursive";
+    case "alex_brush":
+      return "'Alex Brush', cursive";
+    case "sacramento":
+      return "'Sacramento', cursive";
+    case "kaushan_script":
+      return "'Kaushan Script', cursive";
+    case "parisienne":
+      return "'Parisienne', cursive";
+    case "yellowtail":
+      return "'Yellowtail', cursive";
+    case "shadows_into_light":
+      return "'Shadows Into Light', cursive";
+
+    // Futuristic
     case "orbitron":
       return "'Orbitron', sans-serif";
     case "audiowide":
       return "'Audiowide', cursive, sans-serif";
     case "chakra_petch":
       return "'Chakra Petch', sans-serif";
+    case "rajdhani":
+      return "'Rajdhani', sans-serif";
+    case "michroma":
+      return "'Michroma', sans-serif";
+    case "bruno_ace":
+      return "'Bruno Ace', cursive, sans-serif";
+    case "electrolize":
+      return "'Electrolize', sans-serif";
+    case "nova_square":
+      return "'Nova Square', cursive, sans-serif";
+    case "syne_mono":
+      return "'Syne Mono', monospace, sans-serif";
+    case "teko":
+      return "'Teko', sans-serif";
+
     case "inter":
     default:
       return "'Inter', -apple-system, sans-serif";
