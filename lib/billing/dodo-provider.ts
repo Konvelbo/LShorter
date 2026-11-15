@@ -92,8 +92,14 @@ export class DodoBillingProvider implements BillingProvider {
         }
       }
 
+      if (!session || !session.checkout_url) {
+        throw new Error(
+          "Dodo Payments n'a pas retourné d'URL de redirection valide (checkout_url manquant)."
+        );
+      }
+
       return {
-        checkoutUrl: session.checkout_url || params.successUrl,
+        checkoutUrl: session.checkout_url,
         sessionId: session.session_id,
         transactionId: session.session_id,
       };
