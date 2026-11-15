@@ -344,21 +344,27 @@ export function LandingNavbar() {
   }, []);
 
   useEffect(() => {
-    let ticking = false;
-    let isScrolledLocal = window.scrollY > 20;
+    let isScrolledLocal = window.scrollY > 30;
     setIsScrolled(isScrolledLocal);
 
+    let ticking = false;
+
     const handleScroll = () => {
-      const shouldBeScrolled = window.scrollY > 20;
-      if (shouldBeScrolled !== isScrolledLocal) {
-        if (!ticking) {
-          ticking = true;
-          requestAnimationFrame(() => {
-            isScrolledLocal = window.scrollY > 20;
-            setIsScrolled(isScrolledLocal);
-            ticking = false;
-          });
-        }
+      if (!ticking) {
+        ticking = true;
+        requestAnimationFrame(() => {
+          const y = window.scrollY;
+          // Zone de mort / hystérésis pour éviter tout tressautement :
+          // Passe en mode flottant au-delà de 35px, revient en pleine largeur sous 15px.
+          if (!isScrolledLocal && y > 35) {
+            isScrolledLocal = true;
+            setIsScrolled(true);
+          } else if (isScrolledLocal && y < 15) {
+            isScrolledLocal = false;
+            setIsScrolled(false);
+          }
+          ticking = false;
+        });
       }
     };
 
@@ -496,7 +502,7 @@ export function LandingNavbar() {
   return (
     <div
       style={{ display: isIframeFullscreen ? "none" : undefined }}
-      className={`w-full flex justify-center pointer-events-none transition-all duration-200 ${
+      className={`w-full flex justify-center pointer-events-none transition-opacity duration-300 ${
         isIframeFullscreen
           ? "hidden !opacity-0 !pointer-events-none !-z-50"
           : ""
@@ -504,10 +510,10 @@ export function LandingNavbar() {
     >
       {/* ─── 1. NAVBAR DESKTOP (>= 768px) ─── */}
       <header
-        className={`hidden md:flex items-center justify-between gap-2 pointer-events-auto backdrop-blur-md transition-[transform,max-width,border-radius,background-color] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-transform [contain:layout_style] ${
+        className={`hidden md:flex items-center justify-between gap-2 pointer-events-auto backdrop-blur-md transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-[transform,width,padding,border-radius,box-shadow] ${
           isScrolled
-            ? "translate-y-3 sm:translate-y-4 w-[min(1280px,96vw)] max-w-[1280px] rounded-[14px] px-[clamp(0.75rem,1.8vw,2rem)] py-3 bg-white/95 dark:bg-[#09090B]/92 border border-[#E4E7EC]/95 dark:border-white/15 shadow-[0_12px_34px_rgba(0,0,0,0.08)] dark:shadow-[0_14px_38px_rgba(0,0,0,0.58)]"
-            : "translate-y-0 w-full max-w-full rounded-none px-[clamp(1rem,2.5vw,3.5rem)] py-4 bg-white/97 dark:bg-[#09090B]/98 border-b border-[#E4E7EC]/80 dark:border-white/10 shadow-none"
+            ? "translate-y-3 sm:translate-y-4 w-[min(1280px,96vw)] max-w-[1280px] rounded-[14px] px-[clamp(0.75rem,1.8vw,2rem)] py-3 bg-white/92 dark:bg-[#09090B]/92 border border-[#E4E7EC]/95 dark:border-white/15 shadow-[0_12px_34px_rgba(0,0,0,0.08)] dark:shadow-[0_14px_38px_rgba(0,0,0,0.58)]"
+            : "translate-y-0 w-full max-w-full rounded-none px-[clamp(1rem,2.5vw,3.5rem)] py-4 bg-white/95 dark:bg-[#09090B]/95 border border-b-[#E4E7EC]/80 dark:border-b-white/10 border-t-transparent border-x-transparent shadow-none"
         }`}
       >
         {/* Logo LShorter (Maillon Duo) */}
@@ -589,10 +595,10 @@ export function LandingNavbar() {
 
       {/* ─── 2. NAVBAR MOBILE (< 768px) ─── */}
       <header
-        className={`flex md:hidden items-center justify-between pointer-events-auto transition-[transform,border-radius,background-color] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-transform [contain:layout_style] ${
+        className={`flex md:hidden items-center justify-between pointer-events-auto backdrop-blur-md transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-[transform,width,padding,border-radius,box-shadow] ${
           isScrolled
-            ? "translate-y-2.5 w-[calc(100%-1.5rem)] max-w-lg rounded-xl px-3.5 py-2.5 bg-white/[0.97] dark:bg-[#09090B]/[0.97] border border-[#E4E7EC]/95 dark:border-white/15 shadow-[0_10px_28px_rgba(0,0,0,0.08)] dark:shadow-[0_12px_32px_rgba(0,0,0,0.55)]"
-            : "translate-y-0 w-full max-w-full rounded-none px-4 py-3 bg-white/[0.98] dark:bg-[#09090B]/[0.98] border-b border-[#E4E7EC]/80 dark:border-white/10 shadow-none"
+            ? "translate-y-2.5 w-[calc(100%-1.5rem)] max-w-lg rounded-xl px-3.5 py-2.5 bg-white/[0.95] dark:bg-[#09090B]/[0.95] border border-[#E4E7EC]/95 dark:border-white/15 shadow-[0_10px_28px_rgba(0,0,0,0.08)] dark:shadow-[0_12px_32px_rgba(0,0,0,0.55)]"
+            : "translate-y-0 w-full max-w-full rounded-none px-4 py-3 bg-white/[0.98] dark:bg-[#09090B]/[0.98] border border-b-[#E4E7EC]/80 dark:border-b-white/10 border-t-transparent border-x-transparent shadow-none"
         }`}
       >
         <Link href="/" className="flex items-center gap-2 select-none">
