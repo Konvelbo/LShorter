@@ -22,6 +22,7 @@ import { useGSAP } from "@gsap/react";
 import { useTheme } from "@/components/providers/theme-provider";
 import { useMobileMenu } from "@/components/providers/use-mobile-menu";
 import { useSession } from "next-auth/react";
+import { WaveRevealButton } from "@/components/ui/wave-reveal-button";
 
 // ─── LIEN DESKTOP AVEC EFFET TEXT ROLL ───
 function NavLinkItem({
@@ -555,36 +556,21 @@ export function LandingNavbar() {
             <Sun className="w-4 h-4 hidden dark:block text-amber-300" />
           </button>
 
-          {/* Bouton Dashboard / Get started */}
-          {isAuthenticated ? (
-            <Link
-              href="/dashboard"
-              onMouseEnter={handleCtaEnter}
-              onMouseLeave={handleCtaLeave}
-              onPointerDown={handleCtaPointerDown}
-              onPointerUp={handleCtaPointerUp}
-              style={{ backgroundColor: "#465FFF", color: "#FFFFFF" }}
-              className="inline-flex items-center gap-2 rounded-[12px] px-4.5 py-2 text-[13px] font-semibold whitespace-nowrap !text-white !bg-[#465FFF] border-0 outline-none shadow-sm cursor-pointer will-change-transform shrink-0"
-            >
-              <LayoutDashboard className="cta-dash-icon w-3.5 h-3.5 shrink-0 !text-white will-change-transform" />
-              <span className="!text-white font-medium">Dashboard</span>
-              <ArrowRight className="cta-arrow-icon w-3.5 h-3.5 shrink-0 !text-white will-change-transform" />
-            </Link>
-          ) : (
-            <Link
-              href="/register"
-              onMouseEnter={handleCtaEnter}
-              onMouseLeave={handleCtaLeave}
-              onPointerDown={handleCtaPointerDown}
-              onPointerUp={handleCtaPointerUp}
-              style={{ backgroundColor: "#465FFF", color: "#FFFFFF" }}
-              className="inline-flex items-center gap-2 rounded-[12px] px-4.5 py-2 text-[13px] font-semibold whitespace-nowrap !text-white !bg-[#465FFF] border-0 outline-none shadow-sm cursor-pointer will-change-transform shrink-0"
-            >
-              <Sparkles className="cta-dash-icon w-3.5 h-3.5 shrink-0 !text-white will-change-transform" />
-              <span className="!text-white font-medium">Get started</span>
-              <ArrowRight className="cta-arrow-icon w-3.5 h-3.5 shrink-0 !text-white will-change-transform" />
-            </Link>
-          )}
+          {/* Bouton Dashboard / Get started (Wave Reveal Signature Button) */}
+          <WaveRevealButton
+            href={isAuthenticated ? "/dashboard" : "/register"}
+            variant="primary"
+            size="sm"
+            icon={
+              isAuthenticated ? (
+                <LayoutDashboard className="w-3.5 h-3.5 text-white" />
+              ) : (
+                <Sparkles className="w-3.5 h-3.5 text-white" />
+              )
+            }
+          >
+            {isAuthenticated ? "Dashboard" : "Get started"}
+          </WaveRevealButton>
         </div>
       </header>
 

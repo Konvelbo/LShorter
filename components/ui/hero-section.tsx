@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
+import { WaveRevealButton } from "@/components/ui/wave-reveal-button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowRightIcon } from "lucide-react";
 import { Mockup, MockupFrame } from "@/components/ui/mockup";
@@ -87,26 +88,22 @@ export function HeroSection({
             {description}
           </p>
 
-          {/* Actions */}
+          {/* Actions (Wave Reveal Buttons) */}
           <div className="relative z-10 flex animate-appear delay-450 justify-center gap-4 flex-wrap">
-            {actions.map((action, index) => (
-              <Button
-                key={index}
-                variant={action.variant || "default"}
-                size="lg"
-                asChild
-                className={cn(
-                  "rounded-[10px] cursor-pointer",
-                  (action.variant === "default" || action.variant === "glow" || action.variant === "primary") &&
-                    "bg-[#0066FF] hover:bg-[#0055d4] text-white shadow-lg shadow-blue-500/25 border border-blue-400/30"
-                )}
-              >
-                <a href={action.href} className="flex items-center gap-2">
-                  {action.icon}
+            {actions.map((action, index) => {
+              const isPrimary = index === 0;
+              return (
+                <WaveRevealButton
+                  key={index}
+                  href={action.href}
+                  variant={isPrimary ? "primary" : "outline"}
+                  size="lg"
+                  icon={action.icon}
+                >
                   {action.text}
-                </a>
-              </Button>
-            ))}
+                </WaveRevealButton>
+              );
+            })}
           </div>
 
           {/* Image with Glow */}

@@ -24,6 +24,7 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 import { CanvasRevealCard } from "@/components/ui/canvas-reveal-effect";
+import { WaveRevealButton } from "@/components/ui/wave-reveal-button";
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger);
@@ -654,13 +655,14 @@ export function WhyUsSection() {
         <div className="why-us-scroll-reveal space-y-6 pt-4">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             <div className="space-y-3">
-              <Link
-                href="/#product"
-                className="inline-flex items-center gap-2 rounded-[12px] bg-[#101828] dark:bg-white text-white dark:text-[#101828] px-5 py-2 text-[13px] font-medium hover:bg-[#465FFF] dark:hover:bg-[#465FFF] dark:hover:text-white transition-colors"
+              <WaveRevealButton
+                href="/#features"
+                variant="contrast"
+                size="sm"
+                className="mb-2"
               >
-                <span>Explore the product</span>
-                <ArrowUpRight className="w-3.5 h-3.5" />
-              </Link>
+                Explore all features
+              </WaveRevealButton>
               <h3 className="text-[24px] sm:text-[34px] font-normal tracking-[-0.03em] leading-[1.08] text-[#101828] dark:text-white">
                 Built for every team{" "}
                 <span className="text-[#667085] dark:text-zinc-400">

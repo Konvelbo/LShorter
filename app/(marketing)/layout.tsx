@@ -14,6 +14,7 @@ import { LandingNavbar } from "@/components/marketing/landing-navbar";
 import { LandingFooter } from "@/components/marketing/landing-footer";
 import { useSession } from "next-auth/react";
 import { SmoothScrollProvider } from "@/components/providers/smooth-scroll-provider";
+import { WaveRevealButton } from "@/components/ui/wave-reveal-button";
 
 export default function MarketingLayout({
   children,
@@ -191,7 +192,7 @@ export default function MarketingLayout({
           </nav>
 
           <div className="pt-4 border-t border-black/[0.08] dark:border-white/[0.08] w-full">
-            <Link
+            <WaveRevealButton
               href={
                 isAuthenticated && hasCompletedOnboarding
                   ? "/dashboard"
@@ -200,18 +201,17 @@ export default function MarketingLayout({
                   : "/register"
               }
               onClick={handleCloseMenu}
-              className="w-full h-11 rounded-[12px] bg-[#3B82F6] hover:bg-[#2563EB] active:scale-[0.98] text-white font-medium text-sm border border-black/[0.06] dark:border-white/[0.1] shadow-xs flex items-center justify-center gap-2 transition-[background-color,transform]"
-            >
-              {isAuthenticated ? (
-                <>
+              variant="primary"
+              size="md"
+              className="w-full"
+              icon={
+                isAuthenticated ? (
                   <LayoutDashboard className="w-4 h-4 text-white" />
-                  <span className="text-white">Go in the dashboard</span>
-                </>
-              ) : (
-                <span className="text-white">Get started free</span>
-              )}
-              <ArrowRight className="w-3.5 h-3.5 text-white" />
-            </Link>
+                ) : undefined
+              }
+            >
+              {isAuthenticated ? "Go in the dashboard" : "Get started free"}
+            </WaveRevealButton>
           </div>
         </aside>
       </div>

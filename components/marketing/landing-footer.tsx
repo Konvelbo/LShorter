@@ -6,7 +6,8 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import gsap from "gsap";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, LayoutDashboard, Sparkles } from "lucide-react";
+import { WaveRevealButton } from "@/components/ui/wave-reveal-button";
 
 const FOOTER_COLUMNS = [
   {
@@ -154,68 +155,27 @@ export function LandingFooter() {
         </p>
 
         <div className="mt-9 flex flex-col sm:flex-row items-center justify-center gap-3.5">
-          <Link
+          <WaveRevealButton
             href={isAuthenticated ? "/dashboard" : "/register"}
-            onMouseEnter={(e) => {
-              gsap.to(e.currentTarget, {
-                scale: 1.04,
-                duration: 0.32,
-                ease: "expo.out",
-              });
-              const arrow = e.currentTarget.querySelector(".footer-cta-arrow");
-              if (arrow)
-                gsap.to(arrow, {
-                  x: 2,
-                  y: -2,
-                  duration: 0.32,
-                  ease: "expo.out",
-                });
-            }}
-            onMouseLeave={(e) => {
-              gsap.to(e.currentTarget, {
-                scale: 1,
-                duration: 0.32,
-                ease: "expo.out",
-              });
-              const arrow = e.currentTarget.querySelector(".footer-cta-arrow");
-              if (arrow)
-                gsap.to(arrow, {
-                  x: 0,
-                  y: 0,
-                  duration: 0.32,
-                  ease: "expo.out",
-                });
-            }}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 rounded-[12px] bg-[#465FFF] hover:bg-[#3641F5] text-white pl-6 pr-2.5 py-2.5 text-[13.5px] font-semibold transition-colors shadow-xs"
+            variant="primary"
+            size="md"
+            icon={
+              isAuthenticated ? (
+                <LayoutDashboard className="w-4 h-4 text-white" />
+              ) : (
+                <Sparkles className="w-4 h-4 text-white" />
+              )
+            }
           >
-            <span className="!text-white">
-              {isAuthenticated ? "Dashboard" : "Get started"}
-            </span>
-            <span className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
-              <ArrowUpRight className="footer-cta-arrow w-3.5 h-3.5 text-white" />
-            </span>
-          </Link>
-          <Link
+            {isAuthenticated ? "Dashboard" : "Get started"}
+          </WaveRevealButton>
+          <WaveRevealButton
             href="/pricing"
-            onClick={handleScrollToProduct}
-            onMouseEnter={(e) =>
-              gsap.to(e.currentTarget, {
-                scale: 1.03,
-                duration: 0.32,
-                ease: "expo.out",
-              })
-            }
-            onMouseLeave={(e) =>
-              gsap.to(e.currentTarget, {
-                scale: 1,
-                duration: 0.32,
-                ease: "expo.out",
-              })
-            }
-            className="w-full sm:w-auto inline-flex items-center justify-center rounded-[12px] bg-white dark:bg-[#1C1C1C] hover:bg-[#F2F4F7] dark:hover:bg-[#262626] text-[#101828] dark:text-[#FFFFFF] border border-[#D0D5DD] dark:border-[#2E2E2E] px-6 py-2.5 text-[13.5px] font-medium transition-colors"
+            variant="outline"
+            size="md"
           >
             Access our plans
-          </Link>
+          </WaveRevealButton>
         </div>
       </div>
 
