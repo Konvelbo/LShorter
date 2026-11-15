@@ -23,6 +23,7 @@ import { cfNormalizeImageUrl } from "@/lib/cloudflare-api";
 import { PixelBrandLogo, normalizePixelPlatform } from "@/components/dashboard/pixel-badges";
 import { PixelSelectorModal } from "@/components/dashboard/pixel-selector-modal";
 import { Input } from "@/components/ui/input";
+import { triggerPlanUpgrade } from "@/lib/plan-guard";
 
 interface SectionSocialTrackingProps {
   slug?: string;
@@ -99,7 +100,7 @@ export function SectionSocialTracking({
   selectedPixels = [],
   setSelectedPixels,
   availablePixels = [],
-  isProPlan = true,
+  isProPlan = false,
   slug = "",
 }: SectionSocialTrackingProps) {
   const [hasImageError, setHasImageError] = useState(false);
@@ -304,6 +305,11 @@ export function SectionSocialTracking({
           <label className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
             <Target className="w-3.5 h-3.5 text-[#0066FF]" />
             <span>Pixels de Retargeting</span>
+            {!isProPlan && (
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                PRO
+              </span>
+            )}
           </label>
           {selectedPixels.length > 0 && (
             <span className="text-[11px] font-medium text-[#0066FF]">
@@ -316,7 +322,17 @@ export function SectionSocialTracking({
           /* Clean Sober Empty Trigger */
           <button
             type="button"
-            onClick={() => setIsPixelModalOpen(true)}
+            onClick={() => {
+              if (!isProPlan) {
+                triggerPlanUpgrade({
+                  featureName: "Retargeting Pixels",
+                  reason: "Retargeting Pixels (Meta, Google, TikTok, LinkedIn) are reserved for paid plans (Pro, Business, Enterprise).",
+                  targetPlan: "PRO",
+                });
+                return;
+              }
+              setIsPixelModalOpen(true);
+            }}
             className="w-full py-2.5 px-3 rounded-lg border border-dashed border-zinc-300 dark:border-zinc-700 hover:border-[#0066FF] dark:hover:border-[#0066FF] bg-zinc-50/50 dark:bg-white/[0.02] hover:bg-[#0066FF]/5 text-xs text-zinc-600 dark:text-zinc-400 hover:text-[#0066FF] dark:hover:text-[#5294FF] flex items-center justify-center gap-2 transition-all cursor-pointer font-medium select-none"
           >
             <Plus className="w-3.5 h-3.5" />
@@ -352,7 +368,17 @@ export function SectionSocialTracking({
             </div>
             <button
               type="button"
-              onClick={() => setIsPixelModalOpen(true)}
+              onClick={() => {
+                if (!isProPlan) {
+                  triggerPlanUpgrade({
+                    featureName: "Retargeting Pixels",
+                    reason: "Retargeting Pixels (Meta, Google, TikTok, LinkedIn) are reserved for paid plans (Pro, Business, Enterprise).",
+                    targetPlan: "PRO",
+                  });
+                  return;
+                }
+                setIsPixelModalOpen(true);
+              }}
               className="self-start text-xs font-semibold text-[#0066FF] dark:text-[#5294FF] hover:underline inline-flex items-center gap-1.5 pt-0.5 cursor-pointer"
             >
               <Pencil className="w-3 h-3" />

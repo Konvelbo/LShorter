@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
-import { Check, AlertCircle, Info, X, Sparkles } from "lucide-react";
+import { CheckCircle2, AlertCircle, Info, X, Sparkles } from "lucide-react";
 import gsap from "gsap";
 
 export type ToastType = "success" | "error" | "info" | "upgrade";
@@ -108,28 +108,20 @@ function AnimatedToastCard({
   }, [handleClose, toast.duration]);
 
   let iconBadge = (
-    <div className="lshorter-toast-badge lshorter-toast-badge-info">
-      <Info className="w-4 h-4 md:w-4.5 md:h-4.5 stroke-[2.5]" />
-    </div>
+    <Info className="w-5 h-5 text-sky-500 dark:text-sky-400 shrink-0 stroke-[2.2]" />
   );
 
   if (toast.type === "success") {
     iconBadge = (
-      <div className="lshorter-toast-badge lshorter-toast-badge-success">
-        <Check className="w-4 h-4 md:w-4.5 md:h-4.5 stroke-[2.75]" />
-      </div>
+      <CheckCircle2 className="w-5 h-5 text-emerald-500 dark:text-emerald-400 shrink-0 stroke-[2.2]" />
     );
   } else if (toast.type === "error") {
     iconBadge = (
-      <div className="lshorter-toast-badge lshorter-toast-badge-error">
-        <AlertCircle className="w-4 h-4 md:w-4.5 md:h-4.5 stroke-[2.5]" />
-      </div>
+      <AlertCircle className="w-5 h-5 text-red-500 dark:text-red-400 shrink-0 stroke-[2.2]" />
     );
   } else if (toast.type === "upgrade") {
     iconBadge = (
-      <div className="lshorter-toast-badge lshorter-toast-badge-upgrade">
-        <Sparkles className="w-4 h-4 md:w-4.5 md:h-4.5 stroke-[2.5]" />
-      </div>
+      <Sparkles className="w-5 h-5 text-[#ff6600] shrink-0 stroke-[2.2]" />
     );
   }
 
@@ -155,8 +147,8 @@ function AnimatedToastCard({
       className={`lshorter-toast lshorter-toast-${toast.type} group`}
     >
       {/* Left Icon & Text Layout */}
-      <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1">
-        {iconBadge}
+      <div className="flex items-start gap-3 min-w-0 flex-1">
+        <div className="shrink-0 mt-0.5">{iconBadge}</div>
         <div className="flex-1 min-w-0 pr-1">
           <div className="lshorter-toast-title">
             {toastTitle}
@@ -232,7 +224,12 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       {children}
 
       {/* Floating Toasts Container: Top-Center for all screen sizes */}
-      <div className="fixed z-[99999] pointer-events-none select-none flex flex-col gap-2.5 top-5 left-1/2 -translate-x-1/2 w-full max-w-[380px] sm:max-w-[480px] items-center px-3">
+      <div
+        role="region"
+        aria-label="Notifications"
+        aria-live="polite"
+        className="fixed z-[99999] pointer-events-none select-none flex flex-col gap-2.5 top-5 left-1/2 -translate-x-1/2 w-full max-w-[380px] sm:max-w-[480px] items-center px-3"
+      >
         {toasts.map((t) => (
           <AnimatedToastCard key={t.id} toast={t} onRemove={removeToast} />
         ))}

@@ -310,13 +310,15 @@ export function LinkDrawer({
     "FREE"
   ).toUpperCase();
 
-  const userPlan = rawUserPlan === "FREEMIUM" || rawUserPlan === "STARTER" ? "FREE" : rawUserPlan;
+  const userPlan =
+    rawUserPlan === "FREEMIUM" || rawUserPlan === "STARTER" || rawUserPlan === "FREE"
+      ? "FREE"
+      : rawUserPlan;
 
   const isProPlan =
     userPlan === "PRO" ||
     userPlan === "BUSINESS" ||
-    userPlan === "ENTERPRISE" ||
-    process.env.NODE_ENV !== "production";
+    userPlan === "ENTERPRISE";
 
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const scrollContainerRef = useRef<HTMLFormElement>(null);
@@ -1313,6 +1315,15 @@ export function LinkDrawer({
         setIsSubmitting(false);
         return;
       }
+      if (selectedPixels && selectedPixels.length > 0) {
+        triggerPlanUpgrade({
+          reason: "Retargeting Pixels (Meta, Google, TikTok, LinkedIn) are reserved for paid plans (Pro, Business, Enterprise).",
+          featureName: "Retargeting Pixels",
+          targetPlan: "PRO",
+        });
+        setIsSubmitting(false);
+        return;
+      }
     }
 
     const cleanDomain = domainName
@@ -1482,7 +1493,7 @@ export function LinkDrawer({
             isProPlan && pathLockMode !== "off" && pathLockPassword.trim()
               ? pathLockPassword.trim()
               : null,
-          pixels: selectedPixels,
+          pixels: isProPlan ? selectedPixels : [],
         };
 
         if (password !== undefined) {
@@ -1654,7 +1665,7 @@ export function LinkDrawer({
             isProPlan && pathLockMode !== "off" && pathLockPassword.trim()
               ? pathLockPassword.trim()
               : undefined,
-          pixels: selectedPixels,
+          pixels: isProPlan ? selectedPixels : [],
         };
 
         const isNewLinkExpired = Boolean(

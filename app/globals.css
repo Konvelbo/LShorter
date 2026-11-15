@@ -934,27 +934,20 @@ html.light .doc-related-card:hover {
 }
 
 .lshorter-toast-badge {
-    width: 30px;
-    height: 30px;
-    border-radius: 9px;
+    width: 20px;
+    height: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    transition: transform 0.2s ease;
-}
-
-@media (min-width: 768px) {
-    .lshorter-toast-badge {
-        width: 34px;
-        height: 34px;
-        border-radius: 10px;
-    }
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
 }
 
 .lshorter-toast-title {
     font-size: 13px;
-    line-height: 1.25;
+    line-height: 1.3;
     letter-spacing: -0.01em;
 }
 @media (min-width: 640px) {
@@ -987,7 +980,7 @@ html.light .doc-related-card:hover {
     transition:
         background-color 0.15s ease,
         color 0.15s ease;
-    margin-top: 1px;
+    margin-top: -1px;
 }
 @media (min-width: 640px) {
     .lshorter-toast-close {
@@ -995,75 +988,42 @@ html.light .doc-related-card:hover {
     }
 }
 
-/* ─── Light Mode Styles (High Contrast, Ultra Readable) ─── */
+/* ─── Light Mode Styles (Clean White Card, Neutral Border, No Heavy Colored Blocks) ─── */
 html.light .lshorter-toast {
     background-color: #ffffff !important;
+    border: 1px solid #e4e4e7 !important;
     box-shadow:
-        0 16px 36px -4px rgba(43, 37, 32, 0.18),
-        0 4px 14px rgba(43, 37, 32, 0.08),
-        0 0 0 1px rgba(0, 0, 0, 0.08) !important;
+        0 10px 28px -4px rgba(0, 0, 0, 0.08),
+        0 2px 8px rgba(0, 0, 0, 0.04) !important;
 }
 
 html.light .lshorter-toast-title {
-    color: #0f172a !important;
-    font-weight: 700 !important;
+    color: #09090b !important;
+    font-weight: 600 !important;
 }
 
 html.light .lshorter-toast-msg {
-    color: #334155 !important;
-    font-weight: 500 !important;
+    color: #52525b !important;
+    font-weight: 400 !important;
 }
 
 html.light .lshorter-toast-close {
-    color: #64748b !important;
+    color: #a1a1aa !important;
 }
 html.light .lshorter-toast-close:hover {
-    color: #0f172a !important;
-    background-color: #f1f5f9 !important;
+    color: #09090b !important;
+    background-color: #f4f4f5 !important;
 }
 
-/* Light Mode Badges & Borders */
-html.light .lshorter-toast-success {
-    border: 1px solid #10b981 !important;
-}
-html.light .lshorter-toast-badge-success {
-    background-color: #10b981 !important;
-    color: #ffffff !important;
-    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35) !important;
-}
-
-html.light .lshorter-toast-error {
-    border: 1px solid #ef4444 !important;
-}
-html.light .lshorter-toast-badge-error {
-    background-color: #ef4444 !important;
-    color: #ffffff !important;
-    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.35) !important;
-}
-
-html.light .lshorter-toast-info {
-    border: 1px solid #0ea5e9 !important;
-}
-html.light .lshorter-toast-badge-info {
-    background-color: #0ea5e9 !important;
-    color: #ffffff !important;
-    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.35) !important;
-}
-
-html.light .lshorter-toast-upgrade {
-    border: 1px solid #ff6600 !important;
-}
-html.light .lshorter-toast-badge-upgrade {
-    background-color: #ff6600 !important;
-    color: #ffffff !important;
-    box-shadow: 0 2px 8px rgba(255, 102, 0, 0.35) !important;
-}
-
-/* ─── Dark Mode Styles (Obsidian HUD Glow) ─── */
+/* ─── Dark Mode Styles (Obsidian HUD, Subtle Neutral Border) ─── */
 html:not(.light) .lshorter-toast,
 html.dark .lshorter-toast {
     background-color: rgba(18, 19, 22, 0.96) !important;
     backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    box-shadow:
+        0 16px 40px -4px rgba(0, 0, 0, 0.85),
+        0 0 1px 1px rgba(255, 255, 255, 0.05) !important;
 }
 
 html:not(.light) .lshorter-toast-title,
@@ -1074,75 +1034,18 @@ html.dark .lshorter-toast-title {
 
 html:not(.light) .lshorter-toast-msg,
 html.dark .lshorter-toast-msg {
-    color: #d4d4d8 !important;
+    color: #a1a1aa !important;
     font-weight: 400 !important;
 }
 
 html:not(.light) .lshorter-toast-close,
 html.dark .lshorter-toast-close {
-    color: #a1a1aa !important;
+    color: #71717a !important;
 }
 html:not(.light) .lshorter-toast-close:hover,
 html.dark .lshorter-toast-close:hover {
     color: #ffffff !important;
     background-color: rgba(255, 255, 255, 0.12) !important;
-}
-
-/* Dark Mode Badges & Borders */
-html:not(.light) .lshorter-toast-success,
-html.dark .lshorter-toast-success {
-    border: 1px solid rgba(16, 185, 129, 0.35) !important;
-    box-shadow:
-        0 16px 40px -4px rgba(0, 0, 0, 0.85),
-        0 0 22px -2px rgba(16, 185, 129, 0.22) !important;
-}
-html:not(.light) .lshorter-toast-badge-success,
-html.dark .lshorter-toast-badge-success {
-    background-color: rgba(16, 185, 129, 0.16) !important;
-    border: 1.5px solid rgba(16, 185, 129, 0.8) !important;
-    color: #34d399 !important;
-}
-
-html:not(.light) .lshorter-toast-error,
-html.dark .lshorter-toast-error {
-    border: 1px solid rgba(239, 68, 68, 0.35) !important;
-    box-shadow:
-        0 16px 40px -4px rgba(0, 0, 0, 0.85),
-        0 0 22px -2px rgba(239, 68, 68, 0.22) !important;
-}
-html:not(.light) .lshorter-toast-badge-error,
-html.dark .lshorter-toast-badge-error {
-    background-color: rgba(239, 68, 68, 0.16) !important;
-    border: 1.5px solid rgba(239, 68, 68, 0.8) !important;
-    color: #f87171 !important;
-}
-
-html:not(.light) .lshorter-toast-info,
-html.dark .lshorter-toast-info {
-    border: 1px solid rgba(14, 165, 233, 0.35) !important;
-    box-shadow:
-        0 16px 40px -4px rgba(0, 0, 0, 0.85),
-        0 0 22px -2px rgba(14, 165, 233, 0.22) !important;
-}
-html:not(.light) .lshorter-toast-badge-info,
-html.dark .lshorter-toast-badge-info {
-    background-color: rgba(14, 165, 233, 0.16) !important;
-    border: 1.5px solid rgba(14, 165, 233, 0.8) !important;
-    color: #38bdf8 !important;
-}
-
-html:not(.light) .lshorter-toast-upgrade,
-html.dark .lshorter-toast-upgrade {
-    border: 1px solid rgba(255, 102, 0, 0.35) !important;
-    box-shadow:
-        0 16px 40px -4px rgba(0, 0, 0, 0.85),
-        0 0 22px -2px rgba(255, 102, 0, 0.25) !important;
-}
-html:not(.light) .lshorter-toast-badge-upgrade,
-html.dark .lshorter-toast-badge-upgrade {
-    background-color: rgba(255, 102, 0, 0.16) !important;
-    border: 1.5px solid rgba(255, 102, 0, 0.8) !important;
-    color: #ff6600 !important;
 }
 
 /* Custom Scrollbar for framed canvases and lists */
