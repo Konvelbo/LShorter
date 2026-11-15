@@ -37,7 +37,6 @@ import { Trash2, Loader2 } from "lucide-react";
 
 import { LinkDrawerProps, DRAWER_TABS, DrawerTabId } from "./types";
 import { SectionLink } from "./sections/section-link";
-import { BannerCropModal } from "./banner-crop-modal";
 
 const loadSectionSocialTracking = () =>
   import("./sections/section-social-tracking").then((m) => ({
@@ -320,7 +319,6 @@ export function LinkDrawer({
     userPlan === "BUSINESS" ||
     userPlan === "ENTERPRISE";
 
-  const bannerInputRef = useRef<HTMLInputElement>(null);
   const scrollContainerRef = useRef<HTMLFormElement>(null);
   const tabsNavRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLElement>(null);
@@ -465,8 +463,6 @@ export function LinkDrawer({
   const originalEditOgImageRef = useRef<string>("");
   const originalEditCardRef = useRef<"summary_large_image" | "summary">("summary_large_image");
   const bannerCropReqIdRef = useRef(0);
-  const [isCropModalOpen, setIsCropModalOpen] = useState(false);
-  const [cropModalImageSrc, setCropModalImageSrc] = useState("");
 
   // 3. Tracking & UTM
   const [utmSource, setUtmSource] = useState("");
@@ -888,47 +884,7 @@ export function LinkDrawer({
     }
   };
 
-  // Interactive Banner Upload Handler: Opens React Easy Crop modal for custom positioning & sizing
-  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.startsWith("image/")) {
-      showToast.error("Please select a valid image file (JPG, PNG, WebP).");
-      return;
-    }
-    if (file.size > 10 * 1024 * 1024) {
-      showToast.error("Image file size must be less than 10 MB.");
-      return;
-    }
-
-    rawUploadedBannerFileRef.current = file;
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = reader.result as string;
-      setCropModalImageSrc(dataUrl);
-      setIsCropModalOpen(true);
-    };
-    reader.readAsDataURL(file);
-
-    if (bannerInputRef.current) bannerInputRef.current.value = "";
-  };
-
-  const handleOpenCropModal = () => {
-    const currentSrc = previewImage || cfNormalizeImageUrl(ogImage);
-    if (
-      currentSrc &&
-      !currentSrc.includes("/api/og") &&
-      !currentSrc.includes("/banners/og")
-    ) {
-      setCropModalImageSrc(currentSrc);
-      setIsCropModalOpen(true);
-    } else {
-      bannerInputRef.current?.click();
-    }
-  };
-
+  // Interactive Banner Crop Result Handler: Receives cropped file + dataUrl from SectionSocialTracking inline cropper
   const handleCropCompleteResult = async ({
     file,
     dataUrl,
@@ -2091,9 +2047,7 @@ export function LinkDrawer({
                       setOgImage("");
                       setPreviewImage("");
                     }}
-                    bannerInputRef={bannerInputRef}
-                    handleBannerUpload={handleBannerUpload}
-                    onOpenCropModal={handleOpenCropModal}
+                    onCropCompleteResult={handleCropCompleteResult}
                     isUploadingImage={isUploadingImage}
                     utmSource={utmSource}
                     setUtmSource={setUtmSource}
@@ -2289,15 +2243,6 @@ export function LinkDrawer({
           </div>
         </footer>
       </aside>
-
-      {/* Interactive Social Banner Cropper Modal */}
-      <BannerCropModal
-        isOpen={isCropModalOpen}
-        onClose={() => setIsCropModalOpen(false)}
-        imageSrc={cropModalImageSrc}
-        initialFormat={twitterCard}
-        onCropCompleteResult={handleCropCompleteResult}
-      />
     </div>,
     document.body,
   );
