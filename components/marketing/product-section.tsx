@@ -7,7 +7,7 @@ export function ProductSection() {
   return (
     <section
       id="product"
-      className="relative w-full py-16 sm:py-24 px-4 sm:px-6 lg:px-8 bg-white dark:bg-[#09090B] transition-colors duration-300 overflow-hidden scroll-mt-14 sm:scroll-mt-20 mb-16 sm:mb-24 lg:mb-32"
+      className="relative w-full py-16 sm:py-24 px-4 sm:px-6 lg:px-8 bg-white dark:bg-[#09090B] transition-colors duration-300 overflow-hidden scroll-mt-14 sm:scroll-mt-20 mb-20 sm:mb-24 lg:mb-32"
     >
       <div className="w-full max-w-[1360px] mx-auto">
         <InkOrbitFeatures

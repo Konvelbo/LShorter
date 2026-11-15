@@ -22,7 +22,7 @@ export function HeroSection() {
           href: "#features",
         },
       }}
-      title="Stop wasting ad traffic. Route, convert, and attribute every click to real sales."
+      title="Stop guessing. Start improving."
       description="LShorter unifies branded link shortening, programmable ISO Country & Device edge routing, weighted A/B testing, PathLock™ PIN & destination masking, high-converting bio micro-sites, and cookie-free revenue attribution inside one workspace."
       actions={[
         {

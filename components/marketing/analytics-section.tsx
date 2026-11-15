@@ -36,7 +36,7 @@ export function AnalyticsSection() {
   return (
     <section
       id="analytics"
-      className="relative w-full bg-[#FFFFFF] dark:bg-[#09090B] border-t border-[#E4E7EC] dark:border-white/10 flex flex-col justify-center sm:justify-between items-center overflow-hidden py-10 sm:py-14 sm:min-h-screen sm:h-screen transition-colors duration-300"
+      className="relative w-full bg-[#FFFFFF] dark:bg-[#09090B] border-t border-[#E4E7EC] dark:border-white/10 flex flex-col justify-center sm:justify-between items-center py-16 sm:py-24 md:py-28 min-h-[720px] sm:min-h-[85vh] transition-colors duration-300"
     >
       {/* Bloc texte supérieur : espacement resserré sur mobile et largeur réduite de 10px sur desktop */}
       <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-8 text-center">
