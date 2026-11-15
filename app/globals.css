@@ -112,6 +112,8 @@
     --brand-primary-border: rgba(0, 102, 255, 0.30);
     --brand-primary-glow: rgba(0, 102, 255, 0.35);
     --brand-primary-text: #0066FF;
+    --brand: 216 100% 50%;
+    --brand-foreground: 214 100% 66%;
 
     /* ─── Semantic Components & Elements (Driven by CSS Variables) ─── */
     --primary: var(--brand-primary);
@@ -1770,5 +1772,61 @@ html.light main .text-neutral-200 {
   outline: none !important;
   box-shadow: none !important;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* ─── Hero Section Utilities & Keyframe Animations ─── */
+@keyframes appear {
+  0% {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes appear-zoom {
+  0% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-appear {
+  animation: appear 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-appear-zoom {
+  animation: appear-zoom 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.delay-100 {
+  animation-delay: 100ms;
+}
+
+.delay-300 {
+  animation-delay: 300ms;
+}
+
+.delay-700 {
+  animation-delay: 700ms;
+}
+
+.delay-1000 {
+  animation-delay: 1000ms;
+}
+
+.fade-bottom {
+  mask-image: linear-gradient(to bottom, black 85%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black 85%, transparent 100%);
+}
+
+.max-w-container {
+  max-width: 1280px;
 }
 
