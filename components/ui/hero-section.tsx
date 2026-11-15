@@ -123,18 +123,28 @@ export function HeroSection({
                 : "opacity-0 translate-y-6"
             )}
           >
-            {title.includes(".") ? (
-              <>
-                <span className="text-zinc-950 dark:text-white">
-                  {title.slice(0, title.indexOf(".") + 1)}
-                </span>{" "}
-                <span className="text-zinc-500 dark:text-zinc-400 font-medium">
-                  {title.slice(title.indexOf(".") + 1)}
-                </span>
-              </>
-            ) : (
-              title
-            )}
+            {(() => {
+              const splitIdx =
+                title.includes(".") && title.indexOf(".") < title.length - 2
+                  ? title.indexOf(".") + 1
+                  : title.includes(",")
+                    ? title.indexOf(",") + 1
+                    : -1;
+
+              if (splitIdx !== -1) {
+                return (
+                  <>
+                    <span className="text-zinc-950 dark:text-white">
+                      {title.slice(0, splitIdx)}
+                    </span>{" "}
+                    <span className="text-zinc-500 dark:text-zinc-400 font-medium">
+                      {title.slice(splitIdx).trimStart()}
+                    </span>
+                  </>
+                );
+              }
+              return title;
+            })()}
           </h1>
 
           {/* Description with Bi-directional Reverse Animation */}

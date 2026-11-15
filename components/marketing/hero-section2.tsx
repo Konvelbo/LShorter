@@ -22,7 +22,7 @@ export function HeroSection() {
           href: "#features",
         },
       }}
-      title="Stop guessing. Start improving."
+      title="Control complex edge traffic, track every conversion to real sales, and grow faster."
       description="LShorter unifies branded link shortening, programmable ISO Country & Device edge routing, weighted A/B testing, PathLock™ PIN & destination masking, high-converting bio micro-sites, and cookie-free revenue attribution inside one workspace."
       actions={[
         {
