@@ -1,4 +1,7 @@
-import { drawAnimatedQRFrame } from "./qr-animated-frames";
+import {
+  drawAnimatedQRFrame,
+  type AnimatedFrameRenderOptions,
+} from "./qr-animated-frames";
 import { BRAND_LOGOS, type BrandLogoId } from "./qr-brand-logos";
 import { drawBrandLogoSpec } from "./qr-logo-canvas";
 
@@ -45,6 +48,13 @@ export type EyeStyleType =
 export type FrameType =
   | "none"
   | "simple"
+  | "corner_brackets"
+  | "minimal_box"
+  | "floating_card"
+  | "double_border"
+  | "clean_badge"
+  | "notched_corners"
+  | "stamp_border"
   | "bottom_pill"
   | "top_header"
   | "hand_arrow"
@@ -55,7 +65,6 @@ export type FrameType =
   | "polaroid"
   | "luxury_gold"
   | "circular_badge"
-  | "chat_bubble"
   | "gradient_border"
   // 32 Ultra-Premium Animated Themes
   | "anim_christmas"
@@ -405,13 +414,11 @@ export type LogoType =
   | "none"
   | "custom"
   | "text"
-  | "ql"
-  | "gmail"
+  // 1. Social & Communication (16)
   | "facebook"
   | "instagram"
   | "twitter"
   | "whatsapp"
-  | "whatsapp_call"
   | "tiktok"
   | "youtube"
   | "linkedin"
@@ -420,6 +427,11 @@ export type LogoType =
   | "discord"
   | "snapchat"
   | "github"
+  | "reddit"
+  | "threads"
+  | "twitch"
+  | "gmail"
+  // 2. Commerce, Payments & Travel (10)
   | "paypal"
   | "apple"
   | "google"
@@ -428,13 +440,39 @@ export type LogoType =
   | "amazon"
   | "visa"
   | "mastercard"
-  | "twitch"
-  | "reddit"
-  | "threads"
-  | "slack"
-  | "notion"
   | "airbnb"
   | "uber"
+  // 3. Productivity, Marketing & Business (13)
+  | "slack"
+  | "notion"
+  | "hubspot"
+  | "mailchimp"
+  | "meta_ads"
+  | "google_ads"
+  | "salesforce"
+  | "semrush"
+  | "zapier"
+  | "make"
+  | "webflow"
+  | "wordpress"
+  | "google_analytics"
+  // 4. AI & Machine Learning (7)
+  | "openai"
+  | "anthropic"
+  | "gemini"
+  | "midjourney"
+  | "huggingface"
+  | "mistral"
+  | "deepseek"
+  // 5. Sports & Culture Brands (7)
+  | "nike"
+  | "adidas"
+  | "puma"
+  | "jordan"
+  | "nba"
+  | "formula1"
+  | "redbull"
+  // 6. Tech, Frameworks, Cloud & Languages (43)
   | "nextjs"
   | "react"
   | "vue"
@@ -452,25 +490,6 @@ export type LogoType =
   | "docker"
   | "cloudflare"
   | "vercel"
-  | "openai"
-  | "anthropic"
-  | "gemini"
-  | "midjourney"
-  | "huggingface"
-  | "mistral"
-  | "deepseek"
-  // Sports Brands
-  | "nike"
-  | "adidas"
-  | "puma"
-  | "jordan"
-  | "nba"
-  | "formula1"
-  | "football_ball"
-  | "gym_fitness"
-  | "tennis_ball"
-  | "redbull"
-  // Tech Frameworks, Dev & Cloud
   | "rust"
   | "golang"
   | "cplusplus"
@@ -496,35 +515,7 @@ export type LogoType =
   | "clerk"
   | "neon_db"
   | "resend"
-  // Marketing, Ads & Growth
-  | "hubspot"
-  | "mailchimp"
-  | "meta_ads"
-  | "google_ads"
-  | "salesforce"
-  | "semrush"
-  | "ahrefs"
-  | "klaviyo"
-  | "zapier"
-  | "make"
-  | "webflow"
-  | "wordpress"
-  | "google_analytics"
-  // WiFi & Communication Hotspots
-  | "wifi_classic"
-  | "wifi_free"
-  | "wifi_secure"
-  | "wifi_5g"
-  // Phone & Calls
-  | "phone_call"
-  | "phone_support"
-  | "phone_sos"
-  // Badges
-  | "cart"
-  | "crypto_btc"
-  | "wifi_icon"
-  | "shield_icon"
-  | "star_icon";
+  | "crypto_btc";
 
 // ─── 1. DRAW PIXEL PATTERNS ──────────────────────────────────────────────────
 export function drawPixelModule(
@@ -1013,14 +1004,6 @@ export function drawFinderEye(
   }
 }
 
-// Helper to create Path2D safely across browser and test environments
-function createPath(d: string): any {
-  if (typeof Path2D !== "undefined") {
-    return new Path2D(d);
-  }
-  return d;
-}
-
 // ─── 3. DRAW AUTHENTIC BRAND LOGOS (UNIFIED VECTOR ENGINE) ──────────────────
 export function drawCenterLogo(
   ctx: CanvasRenderingContext2D,
@@ -1035,7 +1018,8 @@ export function drawCenterLogo(
   fontFamily: FontFamilyType | string = "inter",
   fontSize: number = 13,
   fontWeight: FontWeightType = "bold",
-  textTransform: TextTransformType = "uppercase"
+  textTransform: TextTransformType = "uppercase",
+  onRedrawNeeded?: () => void
 ) {
   if (selectedLogo === "none") return;
 
@@ -1056,7 +1040,7 @@ export function drawCenterLogo(
     ctx.roundRect(centerBoxX, centerBoxY, centerBoxSize, centerBoxSize, 8);
     ctx.fill();
     ctx.restore();
-  } else if (selectedLogo === "text" || (spec && !spec.container)) {
+  } else if (selectedLogo === "text" || spec) {
     const clean = pixelColor.replace("#", "").trim();
     const full = clean.length === 3 ? clean.split("").map((c) => c + c).join("") : clean;
     let isDarkText = false;
@@ -1095,13 +1079,9 @@ export function drawCenterLogo(
       );
     } else {
       img.onload = () => {
-        ctx.drawImage(
-          img,
-          centerBoxX + 4,
-          centerBoxY + 4,
-          centerBoxSize - 8,
-          centerBoxSize - 8
-        );
+        if (onRedrawNeeded) {
+          onRedrawNeeded();
+        }
       };
     }
     return;
@@ -1127,7 +1107,8 @@ export function drawCenterLogo(
       centerBoxY,
       centerBoxSize,
       spec,
-      resolvedBgColor
+      resolvedBgColor,
+      onRedrawNeeded
     );
   }
 }
@@ -1145,12 +1126,18 @@ export function drawQRFrame(
   fontFamily: FontFamilyType | string = "inter",
   fontSize: number = 12,
   fontWeight: FontWeightType = "bold",
-  textTransform: TextTransformType = "uppercase"
+  textTransform: TextTransformType = "uppercase",
+  options?: AnimatedFrameRenderOptions
 ) {
-  const txt = formatFrameText(frameText, textTransform);
-  const baseFont = getCanvasFont(fontSize, fontFamily, fontWeight);
-  const fontSmall = getCanvasFont(Math.max(8, fontSize - 2), fontFamily, fontWeight);
-  const fontCursive = getCanvasFont(fontSize + 2, fontFamily === "inter" ? "caveat" : fontFamily, fontWeight === "bold" ? "italic" : fontWeight);
+  const txt = formatFrameText(frameText || "SCAN ME", textTransform);
+  const clampedFontSize = Math.min(22, Math.max(8, fontSize));
+  const baseFont = getCanvasFont(clampedFontSize, fontFamily, fontWeight);
+  const fontSmall = getCanvasFont(Math.max(8, clampedFontSize - 2), fontFamily, fontWeight);
+  const fontCursive = getCanvasFont(
+    Math.min(22, clampedFontSize + 2),
+    fontFamily === "inter" ? "caveat" : fontFamily,
+    fontWeight === "bold" ? "italic" : fontWeight
+  );
 
   if (frame.startsWith("anim_")) {
     drawAnimatedQRFrame(
@@ -1163,9 +1150,10 @@ export function drawQRFrame(
       isProPlan,
       timeSec,
       fontFamily,
-      fontSize,
+      clampedFontSize,
       fontWeight,
-      textTransform
+      textTransform,
+      options
     );
     return;
   }
@@ -1367,17 +1355,34 @@ export function drawQRFrame(
       ctx.lineWidth = 1.5;
       ctx.strokeRect(14, 14, totalWidth - 28, totalHeight - 28);
 
-      // Bottom gold ribbon text
+      // Gold ribbon CTA with pure txt (defaults to "SCAN ME", auto-fits, max 22px)
+      const ribbonText = txt || "SCAN ME";
+      ctx.save();
+      const goldFont = fontFamily === "inter" ? "cinzel" : fontFamily;
+      let activeSize = clampedFontSize;
+      ctx.font = getCanvasFont(activeSize, goldFont, fontWeight);
+      const maxTextWidth = totalWidth - 64;
+      while (ctx.measureText(ribbonText).width > maxTextWidth && activeSize > 8) {
+        activeSize -= 1;
+        ctx.font = getCanvasFont(activeSize, goldFont, fontWeight);
+      }
+
+      const textMetrics = ctx.measureText(ribbonText);
+      const ribbonW = Math.min(totalWidth - 36, Math.max(totalWidth * 0.52, textMetrics.width + 36));
+      const ribbonH = Math.max(26, Math.min(36, activeSize * 1.8 + 6));
+      const ribbonX = (totalWidth - ribbonW) / 2;
+      const ribbonY = totalHeight - 32 - ribbonH / 2;
+
       ctx.fillStyle = grad;
       ctx.beginPath();
-      ctx.roundRect(totalWidth * 0.12, totalHeight - 46, totalWidth * 0.76, 30, 6);
+      ctx.roundRect(ribbonX, ribbonY, ribbonW, ribbonH, 6);
       ctx.fill();
 
       ctx.fillStyle = "#000000";
-      ctx.font = getCanvasFont(fontSize, fontFamily === "inter" ? "cinzel" : fontFamily, fontWeight);
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillText(`PRESTIGE • ${txt} • PRESTIGE`, totalWidth / 2, totalHeight - 31);
+      ctx.fillText(ribbonText, totalWidth / 2, ribbonY + ribbonH / 2);
+      ctx.restore();
       break;
     }
 
@@ -1400,34 +1405,263 @@ export function drawQRFrame(
       ctx.fillText(`🛡️ VÉRIFIÉ • ${txt}`, totalWidth / 2, totalHeight - 32);
       break;
 
-    case "chat_bubble": {
-      // Speech / Chat Message Bubble
+    case "corner_brackets": {
+      const pad = 12;
+      const len = 34;
+      const r = 10;
+      const x1 = pad;
+      const y1 = pad;
+      const x2 = totalWidth - pad;
+      const y2 = totalHeight - 16;
+
+      ctx.save();
       ctx.strokeStyle = frameColor;
       ctx.lineWidth = 3.5;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+
+      // Top-Left corner
       ctx.beginPath();
-      ctx.roundRect(8, 8, totalWidth - 16, totalHeight - 24, 20);
+      ctx.moveTo(x1 + len, y1);
+      ctx.arcTo(x1, y1, x1, y1 + len, r);
+      ctx.lineTo(x1, y1 + len);
       ctx.stroke();
 
-      // Tail of speech bubble (bottom left)
-      ctx.fillStyle = frameColor;
+      // Top-Right corner
       ctx.beginPath();
-      ctx.moveTo(36, totalHeight - 24);
-      ctx.lineTo(24, totalHeight - 8);
-      ctx.lineTo(52, totalHeight - 24);
-      ctx.closePath();
-      ctx.fill();
+      ctx.moveTo(x2 - len, y1);
+      ctx.arcTo(x2, y1, x2, y1 + len, r);
+      ctx.lineTo(x2, y1 + len);
+      ctx.stroke();
 
-      // CTA Pill inside bubble
+      // Bottom-Left corner
+      ctx.beginPath();
+      ctx.moveTo(x1, y2 - len);
+      ctx.arcTo(x1, y2, x1 + len, y2, r);
+      ctx.lineTo(x1 + len, y2);
+      ctx.stroke();
+
+      // Bottom-Right corner
+      ctx.beginPath();
+      ctx.moveTo(x2, y2 - len);
+      ctx.arcTo(x2, y2, x2 - len, y2, r);
+      ctx.lineTo(x2 - len, y2);
+      ctx.stroke();
+
+      // Bottom CTA Pill
       ctx.fillStyle = frameColor;
       ctx.beginPath();
-      ctx.roundRect(totalWidth * 0.14, totalHeight - 58, totalWidth * 0.72, 30, 15);
+      ctx.roundRect(totalWidth * 0.14, totalHeight - 48, totalWidth * 0.72, 34, 17);
       ctx.fill();
 
       ctx.fillStyle = "#ffffff";
       ctx.font = baseFont;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillText(`💬 ${txt}`, totalWidth / 2, totalHeight - 43);
+      ctx.fillText(txt, totalWidth / 2, totalHeight - 31);
+      ctx.restore();
+      break;
+    }
+
+    case "minimal_box": {
+      // Ultra-clean thin frame with text embedded directly in the bottom line
+      const pad = 10;
+      const w = totalWidth - pad * 2;
+      const radius = 16;
+      ctx.save();
+      ctx.font = fontSmall;
+      const textW = ctx.measureText(txt).width;
+      const gapW = Math.min(w * 0.85, textW + 28);
+      const gapX = totalWidth / 2 - gapW / 2;
+
+      ctx.strokeStyle = frameColor;
+      ctx.lineWidth = 2.5;
+
+      // Draw rounded rect with cutout on bottom
+      ctx.beginPath();
+      ctx.moveTo(gapX, totalHeight - pad);
+      ctx.lineTo(pad + radius, totalHeight - pad);
+      ctx.arcTo(pad, totalHeight - pad, pad, totalHeight - pad - radius, radius);
+      ctx.lineTo(pad, pad + radius);
+      ctx.arcTo(pad, pad, pad + radius, pad, radius);
+      ctx.lineTo(totalWidth - pad - radius, pad);
+      ctx.arcTo(totalWidth - pad, pad, totalWidth - pad, pad + radius, radius);
+      ctx.lineTo(totalWidth - pad, totalHeight - pad - radius);
+      ctx.arcTo(totalWidth - pad, totalHeight - pad, totalWidth - pad - radius, totalHeight - pad, radius);
+      ctx.lineTo(gapX + gapW, totalHeight - pad);
+      ctx.stroke();
+
+      // Draw embedded text in the cutout gap
+      ctx.fillStyle = frameColor;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(txt, totalWidth / 2, totalHeight - pad);
+      ctx.restore();
+      break;
+    }
+
+    case "floating_card": {
+      // Minimalist card with subtle divider rule
+      ctx.strokeStyle = frameColor;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.roundRect(8, 8, totalWidth - 16, totalHeight - 16, 16);
+      ctx.stroke();
+
+      // Subtle divider rule
+      ctx.save();
+      ctx.strokeStyle = frameColor;
+      ctx.lineWidth = 1.2;
+      ctx.globalAlpha = 0.45;
+      ctx.beginPath();
+      ctx.moveTo(24, totalHeight - 44);
+      ctx.lineTo(totalWidth - 24, totalHeight - 44);
+      ctx.stroke();
+      ctx.restore();
+
+      // Clean typography
+      ctx.fillStyle = frameColor;
+      ctx.font = baseFont;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(`• ${txt} •`, totalWidth / 2, totalHeight - 24);
+      break;
+    }
+
+    case "double_border": {
+      // Outer border
+      ctx.strokeStyle = frameColor;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.roundRect(8, 8, totalWidth - 16, totalHeight - 16, 16);
+      ctx.stroke();
+
+      // Inner border
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.roundRect(14, 14, totalWidth - 28, totalHeight - 28, 12);
+      ctx.stroke();
+
+      // Bottom CTA Pill
+      ctx.fillStyle = frameColor;
+      ctx.beginPath();
+      ctx.roundRect(totalWidth * 0.14, totalHeight - 46, totalWidth * 0.72, 32, 12);
+      ctx.fill();
+
+      ctx.fillStyle = "#ffffff";
+      ctx.font = baseFont;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(txt, totalWidth / 2, totalHeight - 30);
+      break;
+    }
+
+    case "clean_badge": {
+      // Frame with top mini-badge and bottom CTA pill
+      ctx.strokeStyle = frameColor;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.roundRect(8, 8, totalWidth - 16, totalHeight - 16, 18);
+      ctx.stroke();
+
+      // Top badge
+      ctx.fillStyle = frameColor;
+      ctx.beginPath();
+      ctx.roundRect(totalWidth * 0.28, 14, totalWidth * 0.44, 20, 10);
+      ctx.fill();
+
+      ctx.fillStyle = "#ffffff";
+      ctx.font = fontSmall;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("SCAN ME", totalWidth / 2, 24);
+
+      // Bottom CTA pill
+      ctx.fillStyle = frameColor;
+      ctx.beginPath();
+      ctx.roundRect(totalWidth * 0.12, totalHeight - 46, totalWidth * 0.76, 32, 12);
+      ctx.fill();
+
+      ctx.fillStyle = "#ffffff";
+      ctx.font = baseFont;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(txt, totalWidth / 2, totalHeight - 30);
+      break;
+    }
+
+    case "notched_corners": {
+      // Modern chamfered 45° cut corners
+      const pad = 8;
+      const x = pad;
+      const y = pad;
+      const w = totalWidth - pad * 2;
+      const h = totalHeight - pad * 2;
+      const c = 20;
+
+      ctx.strokeStyle = frameColor;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(x + c, y);
+      ctx.lineTo(x + w - c, y);
+      ctx.lineTo(x + w, y + c);
+      ctx.lineTo(x + w, y + h - c);
+      ctx.lineTo(x + w - c, y + h);
+      ctx.lineTo(x + c, y + h);
+      ctx.lineTo(x, y + h - c);
+      ctx.lineTo(x, y + c);
+      ctx.closePath();
+      ctx.stroke();
+
+      // Bottom chamfered badge
+      const bw = totalWidth * 0.74;
+      const bx = (totalWidth - bw) / 2;
+      const by = totalHeight - 46;
+      const bh = 32;
+      const bc = 8;
+      ctx.fillStyle = frameColor;
+      ctx.beginPath();
+      ctx.moveTo(bx + bc, by);
+      ctx.lineTo(bx + bw - bc, by);
+      ctx.lineTo(bx + bw, by + bc);
+      ctx.lineTo(bx + bw, by + bh - bc);
+      ctx.lineTo(bx + bw - bc, by + bh);
+      ctx.lineTo(bx + bc, by + bh);
+      ctx.lineTo(bx, by + bh - bc);
+      ctx.lineTo(bx, by + bc);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = "#ffffff";
+      ctx.font = baseFont;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(txt, totalWidth / 2, totalHeight - 30);
+      break;
+    }
+
+    case "stamp_border": {
+      // Dashed postal border
+      ctx.save();
+      ctx.setLineDash([8, 6]);
+      ctx.strokeStyle = frameColor;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.roundRect(8, 8, totalWidth - 16, totalHeight - 16, 14);
+      ctx.stroke();
+      ctx.restore();
+
+      // Bottom CTA pill
+      ctx.fillStyle = frameColor;
+      ctx.beginPath();
+      ctx.roundRect(totalWidth * 0.14, totalHeight - 46, totalWidth * 0.72, 32, 10);
+      ctx.fill();
+
+      ctx.fillStyle = "#ffffff";
+      ctx.font = baseFont;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(txt, totalWidth / 2, totalHeight - 30);
       break;
     }
 

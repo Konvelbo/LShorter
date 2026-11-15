@@ -1,1964 +1,991 @@
-import type { LogoType } from "./qr-render-engine";
+// =============================================================================
+// LShorter QR Studio — Official Verified Brand Logos Registry (96 Genuine Brands)
+// Strictly sourced from Simple Icons, SVG Logos (@iconify-json/logos) & Devicon
+// =============================================================================
 
-export interface BrandGradientSpec {
+export interface OfficialBrandLogoSpec {
   id: string;
-  from: string;
-  via?: string;
-  to: string;
-  direction?: "diagonal-tl-br" | "diagonal-bl-tr" | "vertical" | "horizontal";
-  x1?: number;
-  y1?: number;
-  x2?: number;
-  y2?: number;
+  title: string;
+  viewBox: string;
+  body: string;
+  brandColor: string;
+  source: string;
+  pathOnly?: string;
+  isDarkBadge?: boolean;
 }
 
-export interface BrandTransform {
-  translateX?: number;
-  translateY?: number;
-  scale?: number;
-  scaleX?: number;
-  scaleY?: number;
-  rotateDeg?: number;
-  pivotX?: number;
-  pivotY?: number;
-}
-
-export type BrandPrimitive =
-  | {
-      kind: "path";
-      d: string;
-      fill?: string;
-      fillGradient?: BrandGradientSpec;
-      fillRule?: "nonzero" | "evenodd";
-      stroke?: string;
-      strokeWidth?: number;
-      strokeLinecap?: "butt" | "round" | "square";
-      strokeLinejoin?: "miter" | "round" | "bevel";
-      opacity?: number;
-      transform?: BrandTransform;
-      clipToCircle?: { cx: number; cy: number; r: number };
-    }
-  | {
-      kind: "circle";
-      cx: number;
-      cy: number;
-      r: number;
-      fill?: string;
-      fillGradient?: BrandGradientSpec;
-      stroke?: string;
-      strokeWidth?: number;
-      opacity?: number;
-      clipToCircle?: { cx: number; cy: number; r: number };
-    }
-  | {
-      kind: "ellipse";
-      cx: number;
-      cy: number;
-      rx: number;
-      ry: number;
-      rotateDeg?: number;
-      fill?: string;
-      stroke?: string;
-      strokeWidth?: number;
-      opacity?: number;
-      clipToCircle?: { cx: number; cy: number; r: number };
-    }
-  | {
-      kind: "rect";
-      x: number;
-      y: number;
-      width: number;
-      height: number;
-      rx?: number;
-      rotateDeg?: number;
-      pivotX?: number;
-      pivotY?: number;
-      fill?: string;
-      fillGradient?: BrandGradientSpec;
-      stroke?: string;
-      strokeWidth?: number;
-      opacity?: number;
-      clipToCircle?: { cx: number; cy: number; r: number };
-    }
-  | {
-      kind: "text";
-      text: string;
-      x: number;
-      y: number;
-      fill: string;
-      fontSize: number;
-      fontWeight?: number | string;
-      fontStyle?: "normal" | "italic";
-      fontFamily?: "sans" | "serif" | "mono";
-      rotateDeg?: number;
-      pivotX?: number;
-      pivotY?: number;
-    };
-
-export interface BrandLogoContainer {
-  shape: "rounded" | "circle";
-  fill?: string;
-  gradient?: BrandGradientSpec;
-  stroke?: string;
-  darkRim?: boolean;
-}
-
-export interface BrandLogoSpec {
-  container?: BrandLogoContainer;
-  layers: BrandPrimitive[];
-}
-
-export type BrandLogoId = Exclude<LogoType, "none" | "custom" | "text">;
-
-// ─── GEOMETRY HELPERS (24x24 NORMALIZED SPACE) ───────────────────────────────
-
-function regularPolygonPath(
-  sides: number,
-  cx: number,
-  cy: number,
-  r: number,
-  startDeg = -90
-): string {
-  const pts: string[] = [];
-  for (let i = 0; i < sides; i++) {
-    const a = ((startDeg + (360 / sides) * i) * Math.PI) / 180;
-    const x = +(cx + r * Math.cos(a)).toFixed(2);
-    const y = +(cy + r * Math.sin(a)).toFixed(2);
-    pts.push(`${i === 0 ? "M" : "L"}${x} ${y}`);
-  }
-  return `${pts.join(" ")}Z`;
-}
-
-function starPolygonPath(
-  points: number,
-  cx: number,
-  cy: number,
-  outerR: number,
-  innerR: number,
-  startDeg = -90
-): string {
-  const pts: string[] = [];
-  for (let i = 0; i < points * 2; i++) {
-    const r = i % 2 === 0 ? outerR : innerR;
-    const a = ((startDeg + (180 / points) * i) * Math.PI) / 180;
-    const x = +(cx + r * Math.cos(a)).toFixed(2);
-    const y = +(cy + r * Math.sin(a)).toFixed(2);
-    pts.push(`${i === 0 ? "M" : "L"}${x} ${y}`);
-  }
-  return `${pts.join(" ")}Z`;
-}
-
-function darkTile(shape: "rounded" | "circle" = "rounded", fill = "#09090B"): BrandLogoContainer {
-  return { shape, fill, darkRim: true };
-}
-
-function whiteTile(shape: "rounded" | "circle" = "rounded", stroke = "#D4D4D8"): BrandLogoContainer {
-  return { shape, fill: "#FFFFFF", stroke };
-}
-
-function solidTile(fill: string, shape: "rounded" | "circle" = "rounded"): BrandLogoContainer {
-  return { shape, fill };
-}
-
-function gradientTile(
-  id: string,
-  from: string,
-  to: string,
-  direction: BrandGradientSpec["direction"] = "diagonal-tl-br",
-  via?: string,
-  shape: "rounded" | "circle" = "rounded"
-): BrandLogoContainer {
-  return { shape, gradient: { id, from, via, to, direction } };
-}
-
-// ─── CANONICAL 24x24 VECTOR SPECS FOR ALL 114 LOGOS ──────────────────────────
-
-export const BRAND_LOGOS: Record<BrandLogoId, BrandLogoSpec> = {
-  // ── 1-28: BRANDS, SOCIAL & WORK ────────────────────────────────────────────
-  ql: {
-    container: gradientTile("grad-ql", "#3B82F6", "#1D4ED8"),
-    layers: [
-      {
-        kind: "text",
-        text: "LS",
-        x: 12,
-        y: 12.2,
-        fill: "#FFFFFF",
-        fontSize: 10.4,
-        fontWeight: 900,
-        fontFamily: "sans",
-      },
-    ],
-  },
-
-  facebook: {
-    container: solidTile("#1877F2", "circle"),
-    layers: [
-      {
-        kind: "path",
-        d: "M13.55 22.8V14.75h2.65l.4-3.08h-3.05V9.7c0-.89.25-1.5 1.53-1.5h1.63V5.45c-.28-.04-1.25-.12-2.38-.12-2.36 0-3.97 1.44-3.97 4.08v2.26H7.7v3.08h2.66v8.05h3.19z",
-        fill: "#FFFFFF",
-        clipToCircle: { cx: 12, cy: 12, r: 10.4 },
-      },
-    ],
-  },
-
-  instagram: {
-    container: gradientTile("grad-ig", "#F58529", "#515BD4", "diagonal-bl-tr", "#DD2A7B"),
-    layers: [
-      {
-        kind: "rect",
-        x: 5.4,
-        y: 5.4,
-        width: 13.2,
-        height: 13.2,
-        rx: 3.9,
-        stroke: "#FFFFFF",
-        strokeWidth: 1.65,
-      },
-      {
-        kind: "circle",
-        cx: 12,
-        cy: 12,
-        r: 3.2,
-        stroke: "#FFFFFF",
-        strokeWidth: 1.65,
-      },
-      {
-        kind: "circle",
-        cx: 15.85,
-        cy: 8.15,
-        r: 0.95,
-        fill: "#FFFFFF",
-      },
-    ],
-  },
-
-  twitter: {
-    container: darkTile("rounded", "#09090B"),
-    layers: [
-      {
-        kind: "path",
-        d: "M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z",
-        fill: "#FFFFFF",
-        fillRule: "evenodd",
-        transform: { translateX: 5.4, translateY: 5.4, scale: 0.55 },
-      },
-    ],
-  },
-
-  whatsapp: {
-    container: solidTile("#25D366", "circle"),
-    layers: [
-      {
-        kind: "path",
-        d: "M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01C17.18 3.03 14.69 2 12.04 2zm0 18.15c-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31c-.82-1.31-1.26-2.83-1.26-4.38 0-4.54 3.7-8.24 8.24-8.24 2.2 0 4.27.86 5.82 2.42 1.56 1.56 2.41 3.63 2.41 5.83.02 4.54-3.68 8.23-8.22 8.23zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.12-.17.25-.64.81-.78.97-.14.17-.29.19-.54.06-.25-.12-1.05-.39-1.99-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.02-.38.11-.51.11-.11.25-.29.37-.43.12-.14.17-.25.25-.41.08-.17.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.44.06-.66.31-.23.25-.87.85-.87 2.07 0 1.22.89 2.4 1.01 2.57.12.17 1.75 2.67 4.23 3.74.59.26 1.05.41 1.41.52.59.19 1.13.16 1.56.1.48-.07 1.47-.6 1.67-1.18.21-.58.21-1.07.14-1.18-.05-.11-.22-.18-.47-.3z",
-        fill: "#FFFFFF",
-        fillRule: "evenodd",
-        transform: { translateX: 4.56, translateY: 4.56, scale: 0.62 },
-      },
-    ],
-  },
-
-  tiktok: {
-    container: darkTile("rounded", "#09090B"),
-    layers: [
-      {
-        kind: "path",
-        d: "M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z",
-        fill: "#25F4EE",
-        transform: { translateX: 4.7, translateY: 4.65, scale: 0.56 },
-      },
-      {
-        kind: "path",
-        d: "M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z",
-        fill: "#FE2C55",
-        transform: { translateX: 5.85, translateY: 5.75, scale: 0.56 },
-      },
-      {
-        kind: "path",
-        d: "M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z",
-        fill: "#FFFFFF",
-        transform: { translateX: 5.28, translateY: 5.2, scale: 0.56 },
-      },
-    ],
-  },
-
-  youtube: {
-    layers: [
-      {
-        kind: "rect",
-        x: 1.8,
-        y: 4.8,
-        width: 20.4,
-        height: 14.4,
-        rx: 4.4,
-        fill: "#FF0000",
-      },
-      {
-        kind: "path",
-        d: "M10.1 8.8l5.6 3.2-5.6 3.2V8.8z",
-        fill: "#FFFFFF",
-      },
-    ],
-  },
-
-  linkedin: {
-    container: solidTile("#0A66C2"),
-    layers: [
-      { kind: "circle", cx: 7.45, cy: 7.45, r: 1.15, fill: "#FFFFFF" },
-      { kind: "rect", x: 6.4, y: 9.75, width: 2.1, height: 7.85, rx: 0.25, fill: "#FFFFFF" },
-      {
-        kind: "path",
-        d: "M10.3 9.75h2v1.08h.03c.28-.52.96-1.26 2.18-1.26 2.33 0 2.79 1.53 2.79 3.53v4.5h-2.1v-4.05c0-.97-.02-2.21-1.35-2.21-1.35 0-1.56 1.05-1.56 2.14v4.12H10.3V9.75z",
-        fill: "#FFFFFF",
-      },
-    ],
-  },
-
-  spotify: {
-    container: solidTile("#1DB954", "circle"),
-    layers: [
-      {
-        kind: "path",
-        d: "M6.5 9.1c3.7-1.1 8.5-.7 11.4 1.1",
-        stroke: "#FFFFFF",
-        strokeWidth: 1.9,
-        strokeLinecap: "round",
-      },
-      {
-        kind: "path",
-        d: "M7.4 12.5c3.0-.9 6.8-.5 9.3 1.0",
-        stroke: "#FFFFFF",
-        strokeWidth: 1.6,
-        strokeLinecap: "round",
-      },
-      {
-        kind: "path",
-        d: "M8.3 15.7c2.3-.7 5.1-.4 7.0.7",
-        stroke: "#FFFFFF",
-        strokeWidth: 1.35,
-        strokeLinecap: "round",
-      },
-    ],
-  },
-
-  telegram: {
-    container: gradientTile("grad-tg", "#38BDF8", "#0284C7", "vertical", undefined, "circle"),
-    layers: [
-      {
-        kind: "path",
-        d: "M16.95 7.4L5.65 11.75c-.77.3-.76.74-.14.93l2.9.9 6.72-4.24c.32-.2.6-.09.37.12l-5.44 4.91-.2 3.04c.29 0 .42-.13.59-.29l1.42-1.38 2.96 2.18c.55.3.94.15 1.08-.5l1.95-9.2c.2-.8-.31-1.15-.91-.92z",
-        fill: "#FFFFFF",
-      },
-      {
-        kind: "path",
-        d: "M10.06 14.37l-.2 3.04c.29 0 .42-.13.59-.29l1.42-1.38-1.81-1.37z",
-        fill: "#BAE6FD",
-      },
-    ],
-  },
-
-  discord: {
-    container: solidTile("#5865F2"),
-    layers: [
-      {
-        kind: "path",
-        d: "M19.27 5.33C17.94 4.71 16.5 4.26 15 4a.09.09 0 0 0-.07.03c-.18.33-.39.76-.53 1.09a16.09 16.09 0 0 0-4.8 0c-.14-.34-.35-.76-.54-1.09-.01-.02-.04-.03-.07-.03-1.5.26-2.93.71-4.27 1.33-.01 0-.02.01-.03.02-2.72 4.07-3.47 8.03-3.1 11.95 0 .02.01.04.03.05 1.8 1.32 3.53 2.12 5.24 2.65.03.01.06 0 .07-.02.4-.55.76-1.13 1.07-1.74.02-.04 0-.08-.04-.09-.57-.22-1.11-.48-1.64-.78-.04-.02-.04-.08-.01-.11.11-.08.22-.17.33-.25.02-.02.05-.02.07-.01 3.44 1.57 7.15 1.57 10.55 0 .02-.01.05-.01.07.01.11.09.22.17.33.26.04.03.04.09-.01.11-.52.31-1.07.56-1.64.78-.04.01-.05.06-.04.09.32.61.68 1.19 1.07 1.74.03.01.06.02.09.01 1.72-.53 3.45-1.33 5.25-2.65.02-.01.03-.03.03-.05.44-4.53-.73-8.46-3.1-11.95-.01-.01-.02-.02-.04-.02z",
-        fill: "#FFFFFF",
-        transform: { translateX: 4.56, translateY: 4.8, scale: 0.62 },
-      },
-      { kind: "ellipse", cx: 9.85, cy: 12.6, rx: 1.05, ry: 1.25, fill: "#5865F2" },
-      { kind: "ellipse", cx: 14.15, cy: 12.6, rx: 1.05, ry: 1.25, fill: "#5865F2" },
-    ],
-  },
-
-  snapchat: {
-    container: { shape: "rounded", fill: "#FFFC00", stroke: "#E4E4E7" },
-    layers: [
-      {
-        kind: "path",
-        d: "M12.2 4.6c1.9 0 3.3 1.3 3.5 3.1.08.85-.02 1.7-.08 2.25.35-.08.7-.2.9-.2.32 0 .6.2.6.48 0 .28-.26.5-.72.66-.42.14-.62.3-.56.58.26.95 1.15 1.95 2.45 2.45.28.11.42.3.35.53-.08.25-.45.45-1.1.6-.22.05-.3.18-.35.42-.05.24-.16.45-.48.45-.42 0-.9-.14-1.52-.14-.6 0-1.15.32-1.7.72-.52.38-1.08.66-1.5.66-.42 0-.98-.28-1.5-.66-.55-.4-1.1-.72-1.7-.72-.62 0-1.1.14-1.52.14-.32 0-.43-.21-.48-.45-.05-.24-.13-.37-.35-.42-.65-.15-1.02-.35-1.1-.6-.07-.23.07-.42.35-.53 1.3-.5 2.19-1.5 2.45-2.45.06-.28-.14-.44-.56-.58-.46-.16-.72-.38-.72-.66 0-.28.28-.48.6-.48.2 0 .55.12.9.2-.06-.55-.16-1.4-.08-2.25.2-1.8 1.6-3.1 3.5-3.1z",
-        fill: "#FFFFFF",
-        stroke: "#09090B",
-        strokeWidth: 1.0,
-        strokeLinejoin: "round",
-      },
-    ],
-  },
-
-  github: {
-    container: whiteTile("circle", "#D4D4D8"),
-    layers: [
-      {
-        kind: "path",
-        d: "M12 1.8C6.37 1.8 1.8 6.37 1.8 12c0 4.51 2.92 8.33 6.97 9.68.51.09.7-.22.7-.49 0-.24-.01-1.04-.01-1.89-2.56.47-3.22-.63-3.43-1.2-.12-.3-.61-1.2-.99-1.44-.34-.18-.82-.63-.01-.65.77-.01 1.32.71 1.5 1 .88 1.48 2.28 1.06 2.84.81.09-.64.34-1.06.62-1.31-2.26-.26-4.63-1.13-4.63-5.02 0-1.11.39-2.02 1.04-2.73-.1-.26-.45-1.29.1-2.69 0 0 .85-.27 2.8 1.04.81-.23 1.68-.34 2.55-.34.86 0 1.74.11 2.55.34 1.95-1.32 2.8-1.04 2.8-1.04.55 1.4.2 2.43.1 2.69.65.71 1.04 1.61 1.04 2.73 0 3.9-2.38 4.76-4.65 5.01.36.31.68.91.68 1.85 0 1.34-.01 2.41-.01 2.75 0 .27.19.59.71.49C19.28 20.33 22.2 16.51 22.2 12c0-5.63-4.57-10.2-10.2-10.2z",
-        fill: "#18181B",
-        transform: { translateX: 0.6, translateY: 0.6, scale: 0.95 },
-      },
-    ],
-  },
-
-  apple: {
-    container: darkTile("rounded", "#18181B"),
-    layers: [
-      {
-        kind: "path",
-        d: "M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701",
-        fill: "#FFFFFF",
-        transform: { translateX: 5.2, translateY: 5.0, scale: 0.57 },
-      },
-    ],
-  },
-
-  paypal: {
-    container: whiteTile("rounded"),
-    layers: [
-      {
-        kind: "path",
-        d: "M7.2 18.6H4.9a.55.55 0 0 1-.54-.64l1.75-11.2a.75.75 0 0 1 .74-.63h4.35c2.2 0 3.65 1.08 3.28 3.35-.44 2.72-2.42 4.18-5.05 4.18H7.9l-.7 4.94z",
-        fill: "#003087",
-      },
-      {
-        kind: "path",
-        d: "M10.55 19.6H8.3a.5.5 0 0 1-.5-.58l1.6-10.1a.7.7 0 0 1 .7-.58h4.1c2.1 0 3.48 1.02 3.12 3.16-.42 2.55-2.28 3.92-4.78 3.92h-1.4l-.59 4.18z",
-        fill: "#009CDE",
-        opacity: 0.92,
-      },
-    ],
-  },
-
-  google: {
-    container: whiteTile("circle"),
-    layers: [
-      {
-        kind: "path",
-        d: "M18.96 12.16c0-.49-.04-.96-.13-1.42H12v2.69h3.9a3.34 3.34 0 0 1-1.44 2.19v1.81h2.34c1.37-1.26 2.16-3.12 2.16-5.27z",
-        fill: "#4285F4",
-      },
-      {
-        kind: "path",
-        d: "M12 19.2c1.96 0 3.6-.65 4.8-1.77l-2.34-1.81c-.65.44-1.48.7-2.46.7-1.89 0-3.49-1.28-4.06-2.99H5.53v1.87A7.2 7.2 0 0 0 12 19.2z",
-        fill: "#34A853",
-      },
-      {
-        kind: "path",
-        d: "M7.94 13.33a4.35 4.35 0 0 1 0-2.66V8.8H5.53a7.2 7.2 0 0 0 0 6.4l2.41-1.87z",
-        fill: "#FBBC05",
-      },
-      {
-        kind: "path",
-        d: "M12 7.68c1.07 0 2.02.37 2.78 1.09l2.08-2.08A6.92 6.92 0 0 0 12 4.8a7.2 7.2 0 0 0-6.47 4l2.41 1.87c.57-1.71 2.17-2.99 4.06-2.99z",
-        fill: "#EA4335",
-      },
-    ],
-  },
-
-  stripe: {
-    container: solidTile("#635BFF"),
-    layers: [
-      {
-        kind: "path",
-        d: "M11.35 9.85c0-.66.54-.91 1.44-.91 1.29 0 2.91.39 4.2 1.09V6.05c-1.41-.56-2.8-.78-4.2-.78-3.44 0-5.72 1.8-5.72 4.8 0 4.68 6.44 3.93 6.44 5.95 0 .78-.68 1.03-1.63 1.03-1.41 0-3.21-.58-4.63-1.36v4.03c1.58.68 3.17.97 4.63.97 3.53 0 5.95-1.74 5.95-4.78-.02-5.05-6.48-4.15-6.48-6.06z",
-        fill: "#FFFFFF",
-        transform: { translateX: 4.5, translateY: 4.2, scale: 0.62 },
-      },
-    ],
-  },
-
-  shopify: {
-    layers: [
-      {
-        kind: "path",
-        d: "M10.4 7.7V6.0a2.1 2.1 0 0 1 4.2 0v1.7",
-        stroke: "#3D6B29",
-        strokeWidth: 1.35,
-        strokeLinecap: "round",
-      },
-      {
-        kind: "path",
-        d: "M9.1 7.8V5.6a2.3 2.3 0 0 1 4.6 0v2.2",
-        stroke: "#5E8E3E",
-        strokeWidth: 1.45,
-        strokeLinecap: "round",
-      },
-      {
-        kind: "path",
-        d: "M15.4 6.6l2.1.85 1.85 13.0-3.35.95-1.6-14.3 1.0-.5z",
-        fill: "#5E8E3E",
-      },
-      {
-        kind: "path",
-        d: "M5.3 7.7L15.4 6.6l1.65 14.35-11.2.6-.55-13.85z",
-        fill: "#95BF47",
-      },
-      {
-        kind: "path",
-        d: "M13.5 11.45c-.4-.18-.95-.32-1.55-.27-.95.08-1.45.62-1.4 1.25.07.78.95 1.08 1.75 1.42 1.05.45 1.62 1.05 1.72 2.02.18 1.5-.85 2.68-2.55 2.85-.98.1-1.85-.15-2.45-.52l.35-1.55c.55.34 1.25.55 1.92.48.72-.07 1.12-.48 1.05-1.05-.06-.6-.65-.88-1.58-1.28-1.12-.48-1.78-1.12-1.88-2.08-.14-1.38.82-2.48 2.52-2.65.88-.08 1.62.12 2.1.36l-.16 1.02z",
-        fill: "#FFFFFF",
-        transform: { translateX: -0.45, translateY: -0.2 },
-      },
-    ],
-  },
-
-  amazon: {
-    container: darkTile("rounded", "#131921"),
-    layers: [
-      {
-        kind: "path",
-        d: "M13.5 13.85c0 .72.02 1.32.38 1.95.15.27-.02.45-.28.59-.48.27-1.15.65-1.15.65-.15.08-.31.02-.44-.1-.3-.36-.43-.52-.63-.83-.6.62-1.03.81-1.82.81-.93 0-1.65-.58-1.65-1.73 0-.9.49-1.51 1.18-1.81.61-.26 1.45-.31 2.1-.39v-.14c0-.26.02-.57-.13-.79-.14-.2-.39-.28-.61-.28-.41 0-.78.21-.87.64-.02.1-.09.2-.19.2l-1.05-.11c-.09-.02-.19-.09-.16-.23.25-1.3 1.42-1.69 2.47-1.69.54 0 1.24.14 1.66.55.54.5.49 1.17.49 1.9v1.74zm-1.6-.21c-.62.03-1.29.09-1.62.26-.33.17-.45.46-.45.8 0 .46.3.73.73.73.3 0 .67-.15.98-.45.31-.29.36-.65.36-1.12v-.22z",
-        fill: "#FFFFFF",
-        transform: { translateX: 0.7, translateY: -2.0, scale: 1.02 },
-      },
-      {
-        kind: "path",
-        d: "M6.5 15.8c2.45 1.85 5.95 2.4 9.05 1.45.48-.15.92-.34 1.32-.58",
-        stroke: "#FF9900",
-        strokeWidth: 1.4,
-        strokeLinecap: "round",
-      },
-      {
-        kind: "path",
-        d: "M15.8 16.05c1.1-.16 2.02-.06 2.28.25.22.26-.04 1.05-.65 1.82",
-        stroke: "#FF9900",
-        strokeWidth: 1.25,
-        strokeLinecap: "round",
-        strokeLinejoin: "round",
-      },
-    ],
-  },
-
-  visa: {
-    container: solidTile("#1A1F71"),
-    layers: [
-      {
-        kind: "text",
-        text: "VISA",
-        x: 12.1,
-        y: 12.4,
-        fill: "#FFFFFF",
-        fontSize: 6.8,
-        fontWeight: 900,
-        fontStyle: "italic",
-      },
-      {
-        kind: "path",
-        d: "M4.8 9.2l2.5.05-.8 1.5z",
-        fill: "#F7B600",
-      },
-    ],
-  },
-
-  mastercard: {
-    layers: [
-      { kind: "circle", cx: 9.2, cy: 12, r: 5.5, fill: "#EB001B" },
-      { kind: "circle", cx: 14.8, cy: 12, r: 5.5, fill: "#F79E1B" },
-      {
-        kind: "path",
-        d: "M12 7.27a5.49 5.49 0 0 1 0 9.46 5.49 5.49 0 0 1 0-9.46z",
-        fill: "#FF5F00",
-      },
-    ],
-  },
-
-  twitch: {
-    container: solidTile("#9146FF"),
-    layers: [
-      {
-        kind: "path",
-        d: "M6.8 5.2L5.2 7.8v9.8h3.3V19l1.9-1.4h2.8l4.4-4.2V5.2H6.8z",
-        fill: "#FFFFFF",
-      },
-      { kind: "rect", x: 10.6, y: 8.2, width: 1.35, height: 3.4, rx: 0.3, fill: "#9146FF" },
-      { kind: "rect", x: 13.7, y: 8.2, width: 1.35, height: 3.4, rx: 0.3, fill: "#9146FF" },
-    ],
-  },
-
-  reddit: {
-    container: solidTile("#FF4500", "circle"),
-    layers: [
-      { kind: "circle", cx: 6.8, cy: 11.4, r: 1.35, fill: "#FFFFFF" },
-      { kind: "circle", cx: 17.2, cy: 11.4, r: 1.35, fill: "#FFFFFF" },
-      { kind: "ellipse", cx: 12, cy: 13.6, rx: 5.4, ry: 3.9, fill: "#FFFFFF" },
-      {
-        kind: "path",
-        d: "M12 9.7l1.2-3.4 2.75.65",
-        stroke: "#FFFFFF",
-        strokeWidth: 1.15,
-        strokeLinecap: "round",
-        strokeLinejoin: "round",
-      },
-      { kind: "circle", cx: 16.4, cy: 7.05, r: 1.1, fill: "#FFFFFF" },
-      { kind: "circle", cx: 10.0, cy: 13.1, r: 0.9, fill: "#FF4500" },
-      { kind: "circle", cx: 14.0, cy: 13.1, r: 0.9, fill: "#FF4500" },
-      {
-        kind: "path",
-        d: "M10.05 15.25c1.1.85 2.8.85 3.9 0",
-        stroke: "#FF4500",
-        strokeWidth: 1.05,
-        strokeLinecap: "round",
-      },
-    ],
-  },
-
-  threads: {
-    container: darkTile("rounded", "#09090B"),
-    layers: [
-      {
-        kind: "path",
-        d: "M12.186 24h-.007c-3.581-.024-6.334-1.205-8.184-3.509C2.35 18.44 1.5 15.586 1.472 12.01v-.017c.03-3.579.879-6.43 2.525-8.482C5.845 1.205 8.6.024 12.18 0h.014c2.746.02 5.043.725 6.826 2.098 1.677 1.29 2.858 3.13 3.509 5.467l-2.04.569c-1.104-3.96-3.898-5.984-8.304-6.015-2.91.022-5.11.936-6.54 2.717C4.307 6.504 3.616 8.914 3.589 12c.027 3.086.718 5.496 2.057 7.164 1.43 1.783 3.631 2.698 6.54 2.717 2.623-.02 4.358-.631 5.8-2.045 1.647-1.613 1.618-3.593 1.09-4.798-.31-.71-.873-1.3-1.634-1.75-.192 1.352-.622 2.446-1.284 3.272-.886 1.102-2.14 1.704-3.73 1.79-1.202.065-2.361-.218-3.259-.801-1.063-.689-1.685-1.74-1.752-2.964-.065-1.19.408-2.285 1.33-3.082.88-.76 2.119-1.207 3.583-1.291a13.853 13.853 0 0 1 3.02.142c-.126-.742-.375-1.332-.75-1.757-.513-.586-1.308-.883-2.359-.89h-.029c-.844 0-1.992.232-2.721 1.32l-1.757-1.18c.98-1.454 2.568-2.256 4.478-2.256h.044c3.194.02 5.097 1.975 5.287 5.388.108.046.216.094.321.142 1.49.7 2.58 1.761 3.154 3.07.797 1.82.871 4.79-1.548 7.158-1.85 1.81-4.094 2.628-7.277 2.65Zm1.003-11.69c-.242 0-.487.007-.739.021-1.836.103-2.98.946-2.916 2.143.067 1.256 1.452 1.839 2.784 1.767 1.224-.065 2.818-.543 3.086-3.71a10.5 10.5 0 0 0-2.215-.221Z",
-        fill: "#FFFFFF",
-        fillRule: "evenodd",
-        transform: { translateX: 5.04, translateY: 5.04, scale: 0.58 },
-      },
-    ],
-  },
-
-  slack: {
-    container: whiteTile("rounded"),
-    layers: [
-      { kind: "rect", x: 5.5, y: 9.8, width: 4.5, height: 1.9, rx: 0.95, fill: "#E01E5A" },
-      {
-        kind: "path",
-        d: "M8.1 7.15a.95.95 0 0 1 1.9 0v1.7H9.05a.95.95 0 0 1-.95-.95z",
-        fill: "#E01E5A",
-      },
-      { kind: "rect", x: 12.1, y: 5.5, width: 1.9, height: 4.5, rx: 0.95, fill: "#36C5F0" },
-      {
-        kind: "path",
-        d: "M15.85 8.1a.95.95 0 0 1 0 1.9h-1.7V9.05a.95.95 0 0 1 .95-.95z",
-        fill: "#36C5F0",
-      },
-      { kind: "rect", x: 14.0, y: 12.3, width: 4.5, height: 1.9, rx: 0.95, fill: "#2EB67D" },
-      {
-        kind: "path",
-        d: "M14.95 15.9a.95.95 0 0 1-.95-.95v-1.7h.95a.95.95 0 0 1 0 1.9z",
-        fill: "#2EB67D",
-      },
-      { kind: "rect", x: 10.0, y: 14.0, width: 1.9, height: 4.5, rx: 0.95, fill: "#ECB22E" },
-      {
-        kind: "path",
-        d: "M7.2 14.95a.95.95 0 0 1 0-1.9h1.7v.95a.95.95 0 0 1-.95.95z",
-        fill: "#ECB22E",
-      },
-    ],
-  },
-
-  notion: {
-    container: whiteTile("rounded", "#CBD5E1"),
-    layers: [
-      {
-        kind: "path",
-        d: "M6.4 6.2l9.2-.7 2.4 1.7-8.9.7-2.7-1.7z",
-        fill: "#FFFFFF",
-        stroke: "#111115",
-        strokeWidth: 1.15,
-        strokeLinejoin: "round",
-      },
-      {
-        kind: "path",
-        d: "M9.1 7.9l8.9-.7v10.2l-8.9.8V7.9z",
-        fill: "#FFFFFF",
-        stroke: "#111115",
-        strokeWidth: 1.15,
-        strokeLinejoin: "round",
-      },
-      {
-        kind: "path",
-        d: "M6.4 6.2l2.7 1.7v10.3l-2.7-2.1V6.2z",
-        fill: "#E4E4E7",
-        stroke: "#111115",
-        strokeWidth: 1.15,
-        strokeLinejoin: "round",
-      },
-      {
-        kind: "path",
-        d: "M11.35 15.6v-5.2h1.2l2.15 3.35V10.4h1.15v5.2h-1.15l-2.2-3.4v3.4h-1.15z",
-        fill: "#111115",
-      },
-    ],
-  },
-
-  airbnb: {
-    container: solidTile("#FF5A5F"),
-    layers: [
-      {
-        kind: "path",
-        d: "M12 5.6c-1.35 0-4.7 6.0-5.15 7.95-.4 1.75.75 3.45 2.7 3.45 1.15 0 1.95-.55 2.45-1.3.5.75 1.3 1.3 2.45 1.3 1.95 0 3.1-1.7 2.7-3.45-.45-1.95-3.8-7.95-5.15-7.95z",
-        stroke: "#FFFFFF",
-        strokeWidth: 1.5,
-        strokeLinecap: "round",
-        strokeLinejoin: "round",
-      },
-      {
-        kind: "path",
-        d: "M12 15.7c1.05-1.15 1.55-2.3 1.55-3.25a1.55 1.55 0 1 0-3.1 0c0 .95.5 2.1 1.55 3.25z",
-        stroke: "#FFFFFF",
-        strokeWidth: 1.4,
-        strokeLinecap: "round",
-        strokeLinejoin: "round",
-      },
-    ],
-  },
-
-  uber: {
-    container: darkTile("rounded", "#09090B"),
-    layers: [
-      {
-        kind: "text",
-        text: "Uber",
-        x: 12,
-        y: 12.2,
-        fill: "#FFFFFF",
-        fontSize: 7.4,
-        fontWeight: 700,
-      },
-    ],
-  },
-
-  // ── 29-38: SPORTS & LIFESTYLE ──────────────────────────────────────────────
-  nike: {
-    container: darkTile("rounded", "#09090B"),
-    layers: [
-      {
-        kind: "path",
-        d: "M19.5 8.1L8.9 12.25c-1.3.5-2.25.3-2.5-.35-.18-.48.05-1.25.72-2.05-.9.75-2.05 2.0-2.25 3.3-.22 1.35.68 2.45 2.25 2.2.92-.15 2.0-.58 2.98-.98L19.5 8.1z",
-        fill: "#FFFFFF",
-      },
-    ],
-  },
-
-  adidas: {
-    container: darkTile("rounded", "#09090B"),
-    layers: [
-      { kind: "path", d: "M4.8 16.8l2.1-3.4 2.15 3.4H4.8z", fill: "#FFFFFF" },
-      { kind: "path", d: "M9.6 16.8l-1.9-3.1 2.05-1.2 2.65 4.3H9.6z", fill: "#FFFFFF" },
-      { kind: "path", d: "M14.3 16.8L10.35 10.35l2.1-1.25 4.7 7.7H14.3z", fill: "#FFFFFF" },
-    ],
-  },
-
-  puma: {
-    container: darkTile("rounded", "#09090B"),
-    layers: [
-      {
-        kind: "path",
-        d: "M18.6 7.8c-.45-.28-.98-.22-1.35.06l-.4-.48c-.25.32-.32.68-.22.98-.88.58-1.78 1.38-2.62 2.36-1.02.15-2.15.45-3.2 1.0-1.15.58-2.55.55-3.7.02-.52-.24-.95-.72-1.1-1.32-.12-.45-.68-.32-.6.18.2 1.15.95 2.02 2.08 2.42.82.28 1.68.25 2.48.02l-1.65 2.35c-.22.32.02.75.4.75.3 0 .56-.15.72-.42l1.82-2.65c.85-.08 1.65-.42 2.3-.95l.88 2.35c.14.38.55.52.88.32.28-.16.4-.52.28-.85l-.95-2.68c.8-.72 1.58-1.45 2.25-1.95.48.05.92-.12 1.2-.5.42-.5.38-1.3-.1-1.85z",
-        fill: "#FFFFFF",
-      },
-    ],
-  },
-
-  jordan: {
-    container: gradientTile("grad-jordan", "#E11D48", "#BE123C"),
-    layers: [
-      { kind: "circle", cx: 12.1, cy: 6.45, r: 0.9, fill: "#FFFFFF" },
-      { kind: "circle", cx: 7.75, cy: 6.1, r: 1.0, fill: "#FFFFFF" },
-      {
-        kind: "path",
-        d: "M8.3 6.75l2.85 1.85 1.4 3.4-2.8 4.45c-.25.38.12.88.55.72.25-.08.45-.25.6-.48l2.25-3.45 2.45 3.1c.28.34.82.22.92-.2.05-.22 0-.45-.15-.62l-2.35-3.15-.55-2.45 2.55-1.1c.35-.15.52-.55.38-.88-.14-.32-.5-.46-.84-.32l-2.85 1.25-2.75-1.9c-.35-.24-.82.06-.6.45z",
-        fill: "#FFFFFF",
-      },
-    ],
-  },
-
-  nba: {
-    layers: [
-      {
-        kind: "path",
-        d: "M5 3.8h7v16.4H5a2.2 2.2 0 0 1-2.2-2.2V6A2.2 2.2 0 0 1 5 3.8z",
-        fill: "#1D428A",
-      },
-      {
-        kind: "path",
-        d: "M12 3.8h7A2.2 2.2 0 0 1 21.2 6v12a2.2 2.2 0 0 1-2.2 2.2h-7V3.8z",
-        fill: "#C8102E",
-      },
-      { kind: "circle", cx: 11.8, cy: 6.5, r: 0.95, fill: "#FFFFFF" },
-      {
-        kind: "path",
-        d: "M12.2 7.7c-1.0 0-1.85.55-2.35 1.4l-1.55 2.65c-.22.38.12.82.54.72l1.65-.45-.85 2.95 2.0 3.75h1.25l-.65-3.3 1.7-2.65-.95-2.1 1.9.75c.35.14.72-.12.7-.5-.02-.25-.18-.48-.42-.58l-2.0-1.0c-.3-.95-.65-1.64-.97-1.64z",
-        fill: "#FFFFFF",
-      },
-      { kind: "circle", cx: 8.65, cy: 13.8, r: 0.85, fill: "#FFFFFF" },
-      {
-        kind: "rect",
-        x: 2.8,
-        y: 3.8,
-        width: 18.4,
-        height: 16.4,
-        rx: 2.4,
-        stroke: "#FFFFFF",
-        strokeWidth: 0.75,
-      },
-    ],
-  },
-
-  formula1: {
-    container: solidTile("#E10600"),
-    layers: [
-      {
-        kind: "path",
-        d: "M4.1 14.8l3.5-4.35c.8-1.0 2.0-1.55 3.3-1.55h7.6l-1.3 1.72h-5.9c-.65 0-1.25.3-1.65.8l-2.25 3.38H4.1z",
-        fill: "#FFFFFF",
-      },
-      {
-        kind: "path",
-        d: "M8.3 14.8l1.6-2.05c.35-.45.9-.7 1.45-.7h4.4l-1.25 1.62h-2.55c-.25 0-.5.12-.65.32l-.6.81H8.3z",
-        fill: "#FFFFFF",
-      },
-      {
-        kind: "path",
-        d: "M16.95 8.9h2.55l-4.5 5.9h-2.55l4.5-5.9z",
-        fill: "#FFFFFF",
-      },
-    ],
-  },
-
-  football_ball: {
-    container: whiteTile("circle", "#18181B"),
-    layers: [
-      {
-        kind: "path",
-        d: regularPolygonPath(5, 12, 12, 3.25),
-        fill: "#18181B",
-      },
-      { kind: "path", d: "M12 8.75V3.5M15.1 11L20.5 9.2M13.9 14.6L17.2 19.5M10.1 14.6L6.8 19.5M8.9 11L3.5 9.2", stroke: "#18181B", strokeWidth: 0.95, clipToCircle: { cx: 12, cy: 12, r: 9.8 } },
-      { kind: "path", d: "M10.2 3.2L12 4.5l1.8-1.3z", fill: "#18181B", clipToCircle: { cx: 12, cy: 12, r: 10.2 } },
-      { kind: "path", d: "M21.0 7.6L19.6 9.6l1.8 1.6z", fill: "#18181B", clipToCircle: { cx: 12, cy: 12, r: 10.2 } },
-      { kind: "path", d: "M3.0 7.6L4.4 9.6l-1.8 1.6z", fill: "#18181B", clipToCircle: { cx: 12, cy: 12, r: 10.2 } },
-      { kind: "path", d: "M18.6 19.8l-1.8-1.0-1.0 2.0z", fill: "#18181B", clipToCircle: { cx: 12, cy: 12, r: 10.2 } },
-      { kind: "path", d: "M5.4 19.8l1.8-1.0 1.0 2.0z", fill: "#18181B", clipToCircle: { cx: 12, cy: 12, r: 10.2 } },
-    ],
-  },
-
-  gym_fitness: {
-    container: gradientTile("grad-gym", "#FB923C", "#EA580C"),
-    layers: [
-      { kind: "rect", x: 5.0, y: 8.6, width: 2.0, height: 6.8, rx: 0.8, fill: "#FFFFFF" },
-      { kind: "rect", x: 7.4, y: 9.6, width: 1.5, height: 4.8, rx: 0.6, fill: "#FFFFFF" },
-      { kind: "rect", x: 8.9, y: 11.2, width: 6.2, height: 1.6, rx: 0.4, fill: "#FFFFFF" },
-      { kind: "rect", x: 15.1, y: 9.6, width: 1.5, height: 4.8, rx: 0.6, fill: "#FFFFFF" },
-      { kind: "rect", x: 17.0, y: 8.6, width: 2.0, height: 6.8, rx: 0.8, fill: "#FFFFFF" },
-    ],
-  },
-
-  tennis_ball: {
-    container: { shape: "circle", fill: "#A3E635", stroke: "#4D7C0F" },
-    layers: [
-      {
-        kind: "path",
-        d: "M7.2 2.4c3.6 3.5 3.6 15.7 0 19.2",
-        stroke: "#FFFFFF",
-        strokeWidth: 1.55,
-        strokeLinecap: "round",
-        clipToCircle: { cx: 12, cy: 12, r: 10.2 },
-      },
-      {
-        kind: "path",
-        d: "M16.8 2.4c-3.6 3.5-3.6 15.7 0 19.2",
-        stroke: "#FFFFFF",
-        strokeWidth: 1.55,
-        strokeLinecap: "round",
-        clipToCircle: { cx: 12, cy: 12, r: 10.2 },
-      },
-    ],
-  },
-
-  redbull: {
-    container: solidTile("#0C1F4A"),
-    layers: [
-      { kind: "circle", cx: 12, cy: 12, r: 4.8, fill: "#FACC15" },
-      {
-        kind: "path",
-        d: "M4.0 13.8c1.1-1.35 2.8-1.95 4.4-1.85.85.05 1.75.42 2.45 1.0l.75-.45c-.6-.88-1.45-1.38-2.35-1.52-.5-.95-1.05-1.25-1.75-1.2l.4 1.15c-1.3.12-2.6.82-3.5 2.05l-.4.82z",
-        fill: "#EF4444",
-      },
-      {
-        kind: "path",
-        d: "M20.0 13.8c-1.1-1.35-2.8-1.95-4.4-1.85-.85.05-1.75.42-2.45 1.0l-.75-.45c.6-.88 1.45-1.38 2.35-1.52.5-.95 1.05-1.25 1.75-1.2l-.4 1.15c1.3.12 2.6.82 3.5 2.05l.4.82z",
-        fill: "#EF4444",
-      },
-      {
-        kind: "path",
-        d: "M5.2 14.8l4.4-1.45-1.35 2.15H5.2zM18.8 14.8l-4.4-1.45 1.35 2.15h3.05z",
-        fill: "#EF4444",
-      },
-    ],
-  },
-
-  // ── 39-80: DEV STACKS, LANGUAGES, FRAMEWORKS, CLOUD ────────────────────────
-  nextjs: {
-    container: darkTile("circle", "#09090B"),
-    layers: [
-      { kind: "rect", x: 7.7, y: 7.7, width: 1.5, height: 8.6, rx: 0.3, fill: "#FFFFFF" },
-      {
-        kind: "rect",
-        x: 14.8,
-        y: 7.7,
-        width: 1.5,
-        height: 6.2,
-        rx: 0.3,
-        fillGradient: { id: "grad-next-stem", from: "#FFFFFF", via: "#A1A1AA", to: "#09090B", x1: 15.5, y1: 8.0, x2: 15.5, y2: 13.8 },
-      },
-      {
-        kind: "path",
-        d: "M7.8 7.7h1.8l7.3 9.7c-.45.4-.95.7-1.45.95L7.8 7.7z",
-        fillGradient: { id: "grad-next-diag", from: "#FFFFFF", via: "#D4D4D8", to: "#09090B", x1: 9.0, y1: 8.4, x2: 15.8, y2: 16.5 },
-        clipToCircle: { cx: 12, cy: 12, r: 9.6 },
-      },
-    ],
-  },
-
-  react: {
-    container: darkTile("rounded", "#0F172A"),
-    layers: [
-      { kind: "circle", cx: 12, cy: 12, r: 1.45, fill: "#61DAFB" },
-      { kind: "ellipse", cx: 12, cy: 12, rx: 7.4, ry: 2.8, rotateDeg: 0, stroke: "#61DAFB", strokeWidth: 1.0 },
-      { kind: "ellipse", cx: 12, cy: 12, rx: 7.4, ry: 2.8, rotateDeg: 60, stroke: "#61DAFB", strokeWidth: 1.0 },
-      { kind: "ellipse", cx: 12, cy: 12, rx: 7.4, ry: 2.8, rotateDeg: 120, stroke: "#61DAFB", strokeWidth: 1.0 },
-    ],
-  },
-
-  vue: {
-    container: whiteTile("rounded"),
-    layers: [
-      {
-        kind: "path",
-        d: "M4.6 6.2L12 19.0 19.4 6.2h-3.0L12 13.8 7.6 6.2H4.6z",
-        fill: "#41B883",
-      },
-      {
-        kind: "path",
-        d: "M7.6 6.2L12 13.8 16.4 6.2h-2.6L12 9.4 10.2 6.2H7.6z",
-        fill: "#34495E",
-      },
-    ],
-  },
-
-  angular: {
-    layers: [
-      { kind: "path", d: "M12 2.4L3.6 5.4l1.3 11.2L12 20.8l7.1-4.2 1.3-11.2L12 2.4z", fill: "#DD0031" },
-      { kind: "path", d: "M12 2.4v18.4l7.1-4.2 1.3-11.2L12 2.4z", fill: "#C3002F" },
-      {
-        kind: "path",
-        d: "M12 5.4L7.1 16.4h1.85l1.0-2.5h4.1l1.0 2.5H16.9L12 5.4zm-1.45 7.0L12 8.7l1.45 3.7h-2.9z",
-        fill: "#FFFFFF",
-      },
-    ],
-  },
-
-  svelte: {
-    container: whiteTile("rounded"),
-    layers: [
-      {
-        kind: "path",
-        d: "M10.354 21.12a6.453 6.453 0 0 1-5.155-1.99 5.565 5.565 0 0 1-.827-6.115.657.657 0 0 1 .27-.28.606.606 0 0 1 .38-.07.586.586 0 0 1 .265.11.618.618 0 0 1 .188.248l.195.44a3.32 3.32 0 0 0-.143.997c0 .756.298 1.48.832 2.016a3.374 3.374 0 0 0 2.138.943c.768.06 1.53-.13 2.16-.541l4.467-2.852a2.416 2.416 0 0 0 .938-1.158 2.458 2.458 0 0 0-.094-1.787 2.426 2.426 0 0 0-.968-1.111 2.38 2.38 0 0 0-1.466-.359 2.387 2.387 0 0 0-1.132.35l-1.7.997a5.598 5.598 0 0 1-4.88.532 5.42 5.42 0 0 1-3.175-3.443 5.588 5.588 0 0 1 .486-4.703 5.45 5.45 0 0 1 2.008-1.994L11.425.998a6.382 6.382 0 0 1 5.158.027 5.475 5.475 0 0 1 3.173 3.748 5.567 5.567 0 0 1-1.356 4.716.652.652 0 0 1-.27.277.606.606 0 0 1-.38.07.586.586 0 0 1-.264-.11.617.617 0 0 1-.189-.247l-.195-.44c.095-.324.143-.66.143-.997a2.84 2.84 0 0 0-.831-2.016 3.373 3.373 0 0 0-2.138-.944 3.33 3.33 0 0 0-2.161.542l-4.467 2.852a2.42 2.42 0 0 0-.937 1.158 2.46 2.46 0 0 0 .093 1.788c.225.47.575.87 1.011 1.151a2.38 2.38 0 0 0 1.423.318c.4-.02.787-.14 1.132-.35l1.7-.997a5.596 5.596 0 0 1 4.88-.532 5.42 5.42 0 0 1 3.175 3.443 5.588 5.588 0 0 1-.486 4.703 5.451 5.451 0 0 1-2.008 1.994l-4.442 2.848a6.453 6.453 0 0 1-1.258.558Z",
-        fill: "#FF3E00",
-        fillRule: "nonzero",
-        transform: { translateX: 4.92, translateY: 5.04, scale: 0.59 },
-      },
-    ],
-  },
-
-  tanstack: {
-    container: gradientTile("grad-tanstack", "#F97316", "#EA580C", "vertical", undefined, "circle"),
-    layers: [
-      { kind: "circle", cx: 12, cy: 11.2, r: 5.5, fill: "#FEF08A", opacity: 0.9 },
-      {
-        kind: "path",
-        d: "M12.1 16.5c-.1-2.7.5-5.3 1.4-7.2-.95-.65-2.5-.55-3.4.35.95-.2 2.05.05 2.65.45-1.35.15-2.55.85-3.1 1.95.95-.55 2.05-.75 2.85-.6-1.05.65-1.65 1.65-1.75 2.85.65-.8 1.45-1.3 2.15-1.45-.1 1.15-.2 2.35-.2 3.65h-.6z",
-        fill: "#064E3B",
-      },
-      {
-        kind: "path",
-        d: "M13.5 9.3c1.05-.7 2.55-.6 3.45.25-.95-.2-2.0.05-2.65.45 1.3.15 2.45.85 3.0 1.95-.95-.55-2.0-.75-2.8-.6.9.55 1.45 1.4 1.6 2.45-.6-.65-1.3-1.05-2.0-1.25l-.6-3.25z",
-        fill: "#064E3B",
-      },
-      {
-        kind: "path",
-        d: "M5.5 16.6c2.0-1.15 11.0-1.15 13.0 0",
-        stroke: "#0284C7",
-        strokeWidth: 1.5,
-        strokeLinecap: "round",
-      },
-    ],
-  },
-
-  prisma: {
-    container: solidTile("#0C344B"),
-    layers: [
-      {
-        kind: "path",
-        d: "M17.85 15.85l-4.55-9.8c-.28-.6-.95-.72-1.4-.2L6.2 13.7c-.28.38-.25.92.08 1.25l2.75 2.9c.38.4.95.52 1.48.35l6.75-2.18c.65-.2.9-.8.59-1.17z",
-        fill: "#FFFFFF",
-      },
-      {
-        kind: "path",
-        d: "M12.55 7.45l-3.3 8.95 6.45-2.05-3.15-6.9z",
-        fill: "#38BDF8",
-        opacity: 0.35,
-      },
-    ],
-  },
-
-  mongodb: {
-    container: darkTile("rounded", "#001E2B"),
-    layers: [
-      {
-        kind: "path",
-        d: "M12 4.1c-2.3 2.85-3.85 5.4-3.85 8.35 0 2.55 1.4 4.7 3.45 5.7l.4 2.1.4-2.1c2.05-1.0 3.45-3.15 3.45-5.7 0-2.95-1.55-5.5-3.85-8.35z",
-        fill: "#00ED64",
-      },
-      {
-        kind: "path",
-        d: "M12 4.1v14.05c2.05-1.0 3.45-3.15 3.45-5.7 0-2.95-1.55-5.5-3.45-8.35z",
-        fill: "#00C853",
-      },
-      {
-        kind: "path",
-        d: "M12 5.2v13.8",
-        stroke: "#001E2B",
-        strokeWidth: 0.9,
-        strokeLinecap: "round",
-      },
-    ],
-  },
-
-  postgres: {
-    container: solidTile("#336791"),
-    layers: [
-      {
-        kind: "path",
-        d: "M12 5.4c-2.6 0-5.5 1.3-5.9 4.1-.3 2.1.65 4.2 2.25 4.8.45.18.85-.15.95-.7.1-.5.05-1.1.05-1.1.4.25 1.0.45 1.7.45v3.3c0 .95.75 1.65 1.7 1.65.85 0 1.55-.65 1.6-1.5l-.05-.65c-.02-.25-.25-.38-.45-.25-.35.2-.75.02-.8-.35v-2.2c.65-.1 1.25-.4 1.7-.8.45 1.3.5 2.3.98 2.3.58 0 .82-.95.92-1.7.9-.85 1.6-2.25 1.35-4.1C17.5 6.7 14.6 5.4 12 5.4z",
-        fill: "#FFFFFF",
-      },
-      { kind: "path", d: "M9.0 7.6c-1.2 1.1-1.35 3.2-.55 5.1", stroke: "#336791", strokeWidth: 0.75, strokeLinecap: "round" },
-      { kind: "path", d: "M15.0 7.6c1.2 1.1 1.35 3.2.55 5.1", stroke: "#336791", strokeWidth: 0.75, strokeLinecap: "round" },
-      { kind: "circle", cx: 10.6, cy: 9.0, r: 0.55, fill: "#336791" },
-      { kind: "circle", cx: 13.4, cy: 9.0, r: 0.55, fill: "#336791" },
-    ],
-  },
-
-  supabase: {
-    container: darkTile("rounded", "#18181B"),
-    layers: [
-      {
-        kind: "path",
-        d: "M13.15 18.85c-.38.48-1.15.22-1.16-.4l-.13-8.05h6.1c1.1 0 1.72 1.28 1.03 2.15l-5.84 6.3z",
-        fill: "#3ECF8E",
-      },
-      {
-        kind: "path",
-        d: "M10.85 5.15c.38-.48 1.15-.22 1.16.4l.06 8.05H6.04c-1.1 0-1.72-1.28-1.03-2.15l5.84-6.3z",
-        fill: "#24B47E",
-      },
-    ],
-  },
-
-  tailwind: {
-    container: darkTile("rounded", "#0F172A"),
-    layers: [
-      {
-        kind: "path",
-        d: "M12 6.8c-2.2 0-3.58 1.1-4.13 3.3.82-1.1 1.79-1.51 2.89-1.24.63.16 1.08.61 1.57 1.12.81.82 1.74 1.77 3.79 1.77 2.2 0 3.58-1.1 4.13-3.3-.82 1.1-1.79 1.51-2.89 1.24-.63-.16-1.08-.61-1.57-1.12-.81-.82-1.74-1.77-3.79-1.77zM7.88 11.75c-2.2 0-3.58 1.1-4.13 3.3.82-1.1 1.79-1.51 2.89-1.24.63.16 1.08.61 1.57 1.12.81.82 1.74 1.77 3.79 1.77 2.2 0 3.58-1.1 4.13-3.3-.82 1.1-1.79 1.51-2.89 1.24-.63-.16-1.08-.61-1.57-1.12-.81-.82-1.74-1.77-3.79-1.77z",
-        fill: "#38BDF8",
-      },
-    ],
-  },
-
-  nodejs: {
-    layers: [
-      {
-        kind: "path",
-        d: regularPolygonPath(6, 12, 12, 10.2),
-        fill: "#5FA04E",
-      },
-      {
-        kind: "path",
-        d: regularPolygonPath(6, 12, 12, 6.2),
-        fill: "#3C873A",
-      },
-      {
-        kind: "text",
-        text: "JS",
-        x: 12,
-        y: 12.2,
-        fill: "#FFFFFF",
-        fontSize: 6.4,
-        fontWeight: 900,
-      },
-    ],
-  },
-
-  typescript: {
-    container: solidTile("#3178C6"),
-    layers: [
-      {
-        kind: "text",
-        text: "TS",
-        x: 15.1,
-        y: 15.7,
-        fill: "#FFFFFF",
-        fontSize: 8.6,
-        fontWeight: 900,
-      },
-    ],
-  },
-
-  python: {
-    container: whiteTile("rounded"),
-    layers: [
-      {
-        kind: "path",
-        d: "M11.914 0C5.82 0 6.2 2.656 6.2 2.656l.007 2.752h5.814v.826H3.9S0 5.792 0 11.964s3.404 5.953 3.404 5.953h2.03v-2.864s-.109-3.404 3.35-3.404h5.766s3.24.052 3.24-3.131V3.186S18.28 0 11.914 0zm-3.2 1.84a1.044 1.044 0 1 1 0 2.088 1.044 1.044 0 0 1 0-2.088z",
-        fill: "#3776AB",
-        fillRule: "evenodd",
-        transform: { translateX: 5.28, translateY: 5.28, scale: 0.56 },
-      },
-      {
-        kind: "path",
-        d: "M12.086 24c6.094 0 5.714-2.656 5.714-2.656l-.007-2.752h-5.814v-.826H20.1S24 18.208 24 12.036s-3.404-5.953-3.404-5.953h-2.03v2.864s.109 3.404-3.35 3.404H9.45s-3.24-.052-3.24 3.131v5.332S5.72 24 12.086 24zm3.2-1.84a1.044 1.044 0 1 1 0-2.088 1.044 1.044 0 0 1 0 2.088z",
-        fill: "#FFD43B",
-        fillRule: "evenodd",
-        transform: { translateX: 5.28, translateY: 5.28, scale: 0.56 },
-      },
-    ],
-  },
-
-  docker: {
-    container: solidTile("#1D63ED"),
-    layers: [
-      { kind: "rect", x: 7.4, y: 9.2, width: 2.0, height: 1.75, rx: 0.2, fill: "#FFFFFF" },
-      { kind: "rect", x: 9.8, y: 9.2, width: 2.0, height: 1.75, rx: 0.2, fill: "#FFFFFF" },
-      { kind: "rect", x: 12.2, y: 9.2, width: 2.0, height: 1.75, rx: 0.2, fill: "#FFFFFF" },
-      { kind: "rect", x: 9.8, y: 7.0, width: 2.0, height: 1.75, rx: 0.2, fill: "#FFFFFF" },
-      { kind: "rect", x: 12.2, y: 7.0, width: 2.0, height: 1.75, rx: 0.2, fill: "#FFFFFF" },
-      {
-        kind: "path",
-        d: "M18.9 10.9c-.45-.3-.9-.4-1.3-.3-.1-.75-.5-1.45-1.15-1.85-.35.5-.45 1.25-.25 1.85-.35.2-.85.3-1.4.3H5.2c-.25 2.4.85 5.45 4.4 6.2 3.15.65 6.45-.5 7.95-3.45.75-.05 1.45-.55 1.8-1.3-.15-.65-.15-1.1-.45-1.45z",
-        fill: "#FFFFFF",
-      },
-    ],
-  },
-
-  cloudflare: {
-    container: whiteTile("rounded"),
-    layers: [
-      {
-        kind: "path",
-        d: "M15.45 15.75c.14-.46.08-.88-.14-1.2-.22-.3-.57-.47-1.02-.48l-7.25-.1c-.07 0-.13-.04-.16-.1-.03-.06-.03-.14.01-.2.05-.08.13-.13.23-.14l7.3-.1c.8-.04 1.67-.7 1.98-1.52l.42-1.12a.28.28 0 0 0 .01-.16A4.48 4.48 0 0 0 8.5 9.1c-.4-.3-.92-.43-1.45-.36-.95.12-1.7.9-1.78 1.85-.03.28 0 .56.08.82A2.95 2.95 0 0 0 3.0 14.32c0 .22.02.43.07.64.02.1.11.17.21.17h11.88c.13 0 .25-.08.29-.2v.82z",
-        fill: "#F38020",
-      },
-      {
-        kind: "path",
-        d: "M17.55 11.45c-.12 0-.23.01-.34.03-.08.01-.14.07-.17.15l-.3 1.04c-.14.46-.08.88.14 1.2.22.3.57.47 1.02.48l1.62.1c.08 0 .14.05.17.11.03.07.03.15-.01.21-.05.08-.13.13-.23.14l-1.7.1c-.83.04-1.7.72-2 1.56l-.13.36h5.1c.1 0 .18-.07.2-.17.1-.38.15-.78.15-1.18 0-2.28-1.85-4.13-4.13-4.13h.5z",
-        fill: "#FAAE40",
-      },
-      {
-        kind: "path",
-        d: "M15.85 11.2a2.9 2.9 0 0 0-3.45-2.05",
-        stroke: "#F38020",
-        strokeWidth: 0.9,
-        strokeLinecap: "round",
-      },
-    ],
-  },
-
-  vercel: {
-    container: darkTile("rounded", "#09090B"),
-    layers: [
-      { kind: "path", d: "M12 6.8l6.3 10.6H5.7L12 6.8z", fill: "#FFFFFF" },
-    ],
-  },
-
-  openai: {
-    container: solidTile("#10A37F"),
-    layers: [
-      {
-        kind: "path",
-        d: "M22.282 9.821a5.985 5.985 0 0 0-.516-4.91 6.046 6.046 0 0 0-6.51-2.965A6.065 6.065 0 0 0 4.981 4.18a5.985 5.985 0 0 0-3.998 2.9 6.046 6.046 0 0 0 .743 7.097 5.98 5.98 0 0 0 .51 4.911 6.051 6.051 0 0 0 6.515 2.9A5.985 5.985 0 0 0 13.26 24a6.056 6.056 0 0 0 5.772-4.206 5.99 5.99 0 0 0 3.997-2.9 6.056 6.056 0 0 0-.747-7.073zM13.26 22.43a4.476 4.476 0 0 1-2.876-1.04l.141-.081 4.779-2.758a.795.795 0 0 0 .392-.681v-6.737l2.02 1.168a.071.071 0 0 1 .038.052v5.583a4.504 4.504 0 0 1-4.494 4.494zM3.6 18.304a4.47 4.47 0 0 1-.535-3.014l.142.085 4.783 2.759a.771.771 0 0 0 .78 0l5.843-3.369v2.332a.08.08 0 0 1-.033.062L9.74 19.95a4.5 4.5 0 0 1-6.14-1.646zM2.34 7.896a4.485 4.485 0 0 1 2.366-1.973V11.6a.766.766 0 0 0 .388.676l5.815 3.355-2.02 1.168a.076.076 0 0 1-.071 0l-4.83-2.786A4.504 4.504 0 0 1 2.34 7.896zm16.597 3.855l-5.833-3.387L15.119 7.2a.076.076 0 0 1 .071 0l4.83 2.791a4.494 4.494 0 0 1-.676 8.105v-5.678a.79.79 0 0 0-.407-.667zm2.01-3.023l-.141-.085-4.774-2.782a.776.776 0 0 0-.785 0L9.409 9.23V6.897a.066.066 0 0 1 .028-.061l4.83-2.787a4.5 4.5 0 0 1 6.68 4.66zm-12.64 4.135l-2.02-1.164a.08.08 0 0 1-.038-.057V6.075a4.5 4.5 0 0 1 7.375-3.453l-.142.08L8.704 5.46a.795.795 0 0 0-.393.681zm1.097-2.365l2.602-1.5 2.607 1.5v2.999l-2.597 1.5-2.607-1.5Z",
-        fill: "#FFFFFF",
-        transform: { translateX: 5.04, translateY: 5.04, scale: 0.58 },
-      },
-    ],
-  },
-
-  anthropic: {
-    container: solidTile("#D97757"),
-    layers: [
-      { kind: "path", d: "M12 5.3v13.4", stroke: "#FFFFFF", strokeWidth: 1.45, strokeLinecap: "round" },
-      { kind: "path", d: "M5.3 12h13.4", stroke: "#FFFFFF", strokeWidth: 1.45, strokeLinecap: "round" },
-      { kind: "path", d: "M7.2 7.2l9.6 9.6", stroke: "#FFFFFF", strokeWidth: 1.45, strokeLinecap: "round" },
-      { kind: "path", d: "M16.8 7.2l-9.6 9.6", stroke: "#FFFFFF", strokeWidth: 1.45, strokeLinecap: "round" },
-      { kind: "path", d: "M9.4 5.9l5.2 12.2", stroke: "#FFFFFF", strokeWidth: 1.1, strokeLinecap: "round" },
-      { kind: "path", d: "M5.9 14.6l12.2-5.2", stroke: "#FFFFFF", strokeWidth: 1.1, strokeLinecap: "round" },
-    ],
-  },
-
-  gemini: {
-    container: whiteTile("rounded"),
-    layers: [
-      {
-        kind: "path",
-        d: "M12 4.4c.6 4.2 3.4 7.0 7.6 7.6-4.2.6-7.0 3.4-7.6 7.6-.6-4.2-3.4-7.0-7.6-7.6 4.2-.6 7.0-3.4 7.6-7.6z",
-        fillGradient: { id: "grad-gemini", from: "#4285F4", via: "#9B72CB", to: "#D96570", direction: "diagonal-tl-br" },
-      },
-    ],
-  },
-
-  midjourney: {
-    container: darkTile("circle", "#0F172A"),
-    layers: [
-      {
-        kind: "path",
-        d: "M7.4 14.9c2.5-1.7 3.3-4.6 3.0-7.7 2.8 2.1 3.7 4.9 3.3 7.7H7.4z",
-        fill: "#FFFFFF",
-        opacity: 0.92,
-      },
-      {
-        kind: "path",
-        d: "M13.9 14.9c1.5-1.4 2.0-3.3 1.7-5.2 1.5 1.5 2.2 3.4 1.9 5.2h-3.6z",
-        fill: "#CBD5E1",
-      },
-      {
-        kind: "path",
-        d: "M5.8 16.5c2.2 1.15 10.2 1.15 12.4 0M7.4 18.4c2.4.75 6.8.75 9.2 0",
-        stroke: "#38BDF8",
-        strokeWidth: 1.3,
-        strokeLinecap: "round",
-      },
-    ],
-  },
-
-  huggingface: {
-    layers: [
-      { kind: "circle", cx: 12, cy: 11.4, r: 7.4, fill: "#FFD21E", stroke: "#EAB308", strokeWidth: 0.7 },
-      { kind: "path", d: "M8.8 10.4c.45-.85 1.45-.85 1.9 0", stroke: "#18181B", strokeWidth: 1.05, strokeLinecap: "round" },
-      { kind: "path", d: "M13.3 10.4c.45-.85 1.45-.85 1.9 0", stroke: "#18181B", strokeWidth: 1.05, strokeLinecap: "round" },
-      { kind: "circle", cx: 7.8, cy: 11.9, r: 0.9, fill: "#FB923C", opacity: 0.85 },
-      { kind: "circle", cx: 16.2, cy: 11.9, r: 0.9, fill: "#FB923C", opacity: 0.85 },
-      { kind: "path", d: "M9.4 12.3h5.2a2.6 2.6 0 0 1-5.2 0z", fill: "#18181B" },
-      { kind: "path", d: "M10.7 14.2c.65-.45 1.95-.45 2.6 0a2.1 2.1 0 0 1-2.6 0z", fill: "#EF4444" },
-      {
-        kind: "path",
-        d: "M4.5 14.8c0-1.1.9-1.5 1.7-.7l1.3 1.2c.6.6.4 1.7-.4 2.1-.9.4-2.1-.1-2.5-1.1l-.1-1.5z",
-        fill: "#FDE047",
-        stroke: "#18181B",
-        strokeWidth: 0.8,
-        strokeLinejoin: "round",
-      },
-      {
-        kind: "path",
-        d: "M19.5 14.8c0-1.1-.9-1.5-1.7-.7l-1.3 1.2c-.6.6-.4 1.7.4 2.1.9.4 2.1-.1 2.5-1.1l.1-1.5z",
-        fill: "#FDE047",
-        stroke: "#18181B",
-        strokeWidth: 0.8,
-        strokeLinejoin: "round",
-      },
-    ],
-  },
-
-  mistral: {
-    container: whiteTile("rounded"),
-    layers: [
-      { kind: "rect", x: 5.0, y: 6.0, width: 2.8, height: 2.2, fill: "#FFD800" },
-      { kind: "rect", x: 16.2, y: 6.0, width: 2.8, height: 2.2, fill: "#FFD800" },
-      { kind: "rect", x: 5.0, y: 8.2, width: 5.6, height: 2.2, fill: "#FFAF00" },
-      { kind: "rect", x: 13.4, y: 8.2, width: 5.6, height: 2.2, fill: "#FFAF00" },
-      { kind: "rect", x: 5.0, y: 10.4, width: 14.0, height: 2.2, fill: "#FF8205" },
-      { kind: "rect", x: 5.0, y: 12.6, width: 2.8, height: 2.2, fill: "#FA500F" },
-      { kind: "rect", x: 10.6, y: 12.6, width: 2.8, height: 2.2, fill: "#FA500F" },
-      { kind: "rect", x: 16.2, y: 12.6, width: 2.8, height: 2.2, fill: "#FA500F" },
-      { kind: "rect", x: 5.0, y: 14.8, width: 2.8, height: 2.2, fill: "#E10500" },
-      { kind: "rect", x: 16.2, y: 14.8, width: 2.8, height: 2.2, fill: "#E10500" },
-    ],
-  },
-
-  deepseek: {
-    container: whiteTile("rounded"),
-    layers: [
-      {
-        kind: "path",
-        d: "M19.4 8.5c-1.05.2-1.85.9-2.25 1.8-.45-.9-1.05-1.6-1.8-2.0.15 1.0-.1 1.9-.65 2.55-1.25-1.5-3.35-2.15-5.45-1.55-2.65.75-4.35 3.15-3.9 5.55.45 2.4 3.0 3.75 6.0 3.45 2.85-.3 4.85-2.0 5.3-4.55.9-.55 1.75-.75 2.65-.65-.45-.75-.25-1.85.6-2.8-.1-.7-.25-1.35-.5-1.8z",
-        fill: "#4D6BFE",
-      },
-      { kind: "circle", cx: 8.9, cy: 12.1, r: 0.78, fill: "#FFFFFF" },
-      { kind: "path", d: "M7.6 14.7c1.25.65 2.9.55 3.9-.2", stroke: "#FFFFFF", strokeWidth: 0.95, strokeLinecap: "round" },
-    ],
-  },
-
-  crypto_btc: {
-    container: solidTile("#F7931A", "circle"),
-    layers: [
-      {
-        kind: "path",
-        d: "M14.7 10.6c.2-1.35-.82-2.08-2.22-2.56l.45-1.82-1.1-.28-.44 1.77c-.29-.07-.59-.14-.88-.2l.44-1.78-1.1-.27-.45 1.81c-.24-.05-.48-.11-.71-.17l-1.52-.38-.29 1.18s.82.19.8.2c.45.11.53.41.51.64l-.51 2.06c.03.01.07.02.12.04l-.12-.03-.72 2.88c-.05.14-.19.34-.5.26.01.02-.8-.2-.8-.2l-.55 1.26 1.44.36c.27.07.53.14.79.2l-.46 1.84 1.1.27.45-1.82c.3.08.59.16.88.23l-.45 1.81 1.1.28.46-1.84c1.88.36 3.3.21 3.89-1.49.48-1.37-.02-2.16-1.02-2.67.73-.17 1.28-.65 1.42-1.64zm-2.55 3.57c-.34 1.37-2.64.63-3.39.44l.61-2.43c.75.19 3.14.56 2.78 1.99zm.34-3.59c-.31 1.24-2.23.61-2.85.46l.55-2.2c.62.16 2.62.45 2.3 1.74z",
-        fill: "#FFFFFF",
-      },
-    ],
-  },
-
-  cart: {
-    container: gradientTile("grad-cart", "#3B82F6", "#1D4ED8"),
-    layers: [
-      {
-        kind: "path",
-        d: "M5.5 7.2h2.1l1.7 7.1h7.6l1.4-4.9H8.8",
-        stroke: "#FFFFFF",
-        strokeWidth: 1.55,
-        strokeLinecap: "round",
-        strokeLinejoin: "round",
-      },
-      { kind: "circle", cx: 10.2, cy: 17.2, r: 1.2, fill: "#FFFFFF" },
-      { kind: "circle", cx: 15.8, cy: 17.2, r: 1.2, fill: "#FFFFFF" },
-    ],
-  },
-
-  wifi_icon: {
-    container: solidTile("#0EA5E9"),
-    layers: [
-      { kind: "path", d: "M6.1 10.4a8.4 8.4 0 0 1 11.8 0", stroke: "#FFFFFF", strokeWidth: 1.65, strokeLinecap: "round" },
-      { kind: "path", d: "M8.4 13.0a5.1 5.1 0 0 1 7.2 0", stroke: "#FFFFFF", strokeWidth: 1.65, strokeLinecap: "round" },
-      { kind: "circle", cx: 12, cy: 16.0, r: 1.2, fill: "#FFFFFF" },
-    ],
-  },
-
-  shield_icon: {
-    container: solidTile("#10B981"),
-    layers: [
-      {
-        kind: "path",
-        d: "M12 5.4l5.6 2.1v4.4c0 3.45-2.4 6.55-5.6 7.45-3.2-.9-5.6-4.0-5.6-7.45V7.5L12 5.4z",
-        stroke: "#FFFFFF",
-        strokeWidth: 1.5,
-        strokeLinejoin: "round",
-      },
-      {
-        kind: "path",
-        d: "M9.5 12.1l1.7 1.7 3.5-3.6",
-        stroke: "#FFFFFF",
-        strokeWidth: 1.55,
-        strokeLinecap: "round",
-        strokeLinejoin: "round",
-      },
-    ],
-  },
-
-  star_icon: {
-    container: solidTile("#F59E0B"),
-    layers: [
-      {
-        kind: "path",
-        d: starPolygonPath(5, 12, 12.3, 6.4, 2.75),
-        fill: "#FFFFFF",
-      },
-    ],
-  },
-
-  rust: {
-    container: darkTile("circle", "#18181B"),
-    layers: [
-      { kind: "path", d: starPolygonPath(14, 12, 12, 8.7, 7.2), stroke: "#FFFFFF", strokeWidth: 1.15, strokeLinejoin: "round" },
-      { kind: "circle", cx: 12, cy: 12, r: 5.5, fill: "#18181B", stroke: "#FFFFFF", strokeWidth: 1.0 },
-      { kind: "circle", cx: 12, cy: 7.2, r: 0.65, fill: "#FFFFFF" },
-      { kind: "circle", cx: 7.5, cy: 14.3, r: 0.65, fill: "#FFFFFF" },
-      { kind: "circle", cx: 16.5, cy: 14.3, r: 0.65, fill: "#FFFFFF" },
-      { kind: "text", text: "R", x: 12, y: 12.4, fill: "#FFFFFF", fontSize: 9.0, fontWeight: 900, fontFamily: "serif" },
-    ],
-  },
-
-  golang: {
-    container: solidTile("#00ADD8"),
-    layers: [
-      { kind: "path", d: "M4.0 10.6h2.8M4.6 12.4h2.0M3.8 14.2h2.4", stroke: "#FFFFFF", strokeWidth: 0.95, strokeLinecap: "round" },
-      {
-        kind: "text",
-        text: "GO",
-        x: 13.6,
-        y: 12.4,
-        fill: "#FFFFFF",
-        fontSize: 8.6,
-        fontWeight: 900,
-        fontStyle: "italic",
-      },
-    ],
-  },
-
-  cplusplus: {
-    layers: [
-      { kind: "path", d: regularPolygonPath(6, 12, 12, 10.2), fill: "#00599C" },
-      { kind: "path", d: "M12 12l8.8-5.1V17.1L12 12z", fill: "#004482" },
-      { kind: "path", d: "M12 12l8.8 5.1L12 22.2 3.2 17.1 12 12z", fill: "#004482", opacity: 0.55 },
-      {
-        kind: "path",
-        d: "M11.6 15.1a3.6 3.6 0 1 1 0-6.2l-1.3 1.25a1.95 1.95 0 1 0 0 3.7l1.3 1.25z",
-        fill: "#FFFFFF",
-        transform: { translateX: -0.9, translateY: 0 },
-      },
-      { kind: "path", d: "M12.3 12h2.2M13.4 10.9v2.2M15.6 12h2.2M16.7 10.9v2.2", stroke: "#FFFFFF", strokeWidth: 0.95, strokeLinecap: "round" },
-    ],
-  },
-
-  java: {
-    container: whiteTile("rounded"),
-    layers: [
-      { kind: "path", d: "M11.6 4.4c-1.2 1.2-.2 2.2.8 3.2s-.2 1.7-.9 2.2", stroke: "#EA2D2E", strokeWidth: 1.05, strokeLinecap: "round" },
-      { kind: "path", d: "M14.2 5.2c-.9.9-.1 1.7.7 2.4s-.1 1.3-.7 1.7", stroke: "#EA2D2E", strokeWidth: 1.05, strokeLinecap: "round" },
-      { kind: "path", d: "M8.0 11.4h7.5v3.0a3.4 3.4 0 0 1-3.4 3.4h-.7a3.4 3.4 0 0 1-3.4-3.4v-3.0z", fill: "#5382A1" },
-      { kind: "path", d: "M15.5 12.1h1.3c.75 0 1.3.55 1.3 1.25s-.55 1.25-1.3 1.25h-1.3", stroke: "#5382A1", strokeWidth: 1.05 },
-      { kind: "path", d: "M6.5 19.0c2.6.9 8.4.9 11.0 0", stroke: "#5382A1", strokeWidth: 1.2, strokeLinecap: "round" },
-    ],
-  },
-
-  git: {
-    layers: [
-      { kind: "rect", x: 5.0, y: 5.0, width: 14.0, height: 14.0, rx: 2.2, rotateDeg: 45, pivotX: 12, pivotY: 12, fill: "#F05032" },
-      { kind: "path", d: "M9.6 5.6l5.6 5.6M11.6 7.6v6.8", stroke: "#FFFFFF", strokeWidth: 1.3, strokeLinecap: "round" },
-      { kind: "circle", cx: 11.6, cy: 7.8, r: 1.2, fill: "#FFFFFF" },
-      { kind: "circle", cx: 11.6, cy: 14.6, r: 1.2, fill: "#FFFFFF" },
-      { kind: "circle", cx: 15.2, cy: 11.2, r: 1.2, fill: "#FFFFFF" },
-    ],
-  },
-
-  gitlab: {
-    layers: [
-      { kind: "path", d: "M12 20.6l3.3-10.1H8.7L12 20.6z", fill: "#E24329" },
-      { kind: "path", d: "M12 20.6L8.7 10.5H3.9L12 20.6z", fill: "#FC6D26" },
-      { kind: "path", d: "M3.9 10.5L2.9 13.7c-.1.3.01.62.26.8L12 20.6 3.9 10.5z", fill: "#FCA326" },
-      { kind: "path", d: "M3.9 10.5h4.8L6.65 4.2c-.1-.33-.58-.33-.68 0L3.9 10.5z", fill: "#E24329" },
-      { kind: "path", d: "M12 20.6l3.3-10.1h4.8L12 20.6z", fill: "#FC6D26" },
-      { kind: "path", d: "M20.1 10.5l1.0 3.2c.1.3-.01.62-.26.8L12 20.6l8.1-10.1z", fill: "#FCA326" },
-      { kind: "path", d: "M20.1 10.5h-4.8l2.05-6.3c.1-.33.58-.33.68 0l2.07 6.3z", fill: "#E24329" },
-    ],
-  },
-
-  kubernetes: {
-    layers: [
-      { kind: "path", d: regularPolygonPath(7, 12, 12, 10.2), fill: "#326CE5" },
-      { kind: "circle", cx: 12, cy: 12, r: 4.5, stroke: "#FFFFFF", strokeWidth: 1.25 },
-      { kind: "circle", cx: 12, cy: 12, r: 1.4, stroke: "#FFFFFF", strokeWidth: 1.1 },
-      {
-        kind: "path",
-        d: Array.from({ length: 7 }, (_, i) => {
-          const a = ((-90 + (360 / 7) * i) * Math.PI) / 180;
-          const x1 = +(12 + 1.4 * Math.cos(a)).toFixed(2);
-          const y1 = +(12 + 1.4 * Math.sin(a)).toFixed(2);
-          const x2 = +(12 + 6.4 * Math.cos(a)).toFixed(2);
-          const y2 = +(12 + 6.4 * Math.sin(a)).toFixed(2);
-          return `M${x1} ${y1}L${x2} ${y2}`;
-        }).join(""),
-        stroke: "#FFFFFF",
-        strokeWidth: 1.15,
-        strokeLinecap: "round",
-      },
-    ],
-  },
-
-  linux: {
-    container: { shape: "circle", fill: "#F1F5F9", stroke: "#CBD5E1" },
-    layers: [
-      { kind: "ellipse", cx: 12, cy: 13.0, rx: 4.8, ry: 5.5, fill: "#18181B" },
-      { kind: "circle", cx: 12, cy: 7.8, r: 3.1, fill: "#18181B" },
-      { kind: "ellipse", cx: 12, cy: 13.8, rx: 3.2, ry: 4.1, fill: "#FFFFFF" },
-      { kind: "ellipse", cx: 10.9, cy: 7.4, rx: 0.75, ry: 0.95, fill: "#FFFFFF" },
-      { kind: "ellipse", cx: 13.1, cy: 7.4, rx: 0.75, ry: 0.95, fill: "#FFFFFF" },
-      { kind: "circle", cx: 11.0, cy: 7.5, r: 0.38, fill: "#18181B" },
-      { kind: "circle", cx: 13.0, cy: 7.5, r: 0.38, fill: "#18181B" },
-      { kind: "path", d: "M10.4 8.7l1.6-.6 1.6.6-1.6 1.3-1.6-1.3z", fill: "#F59E0B" },
-      { kind: "ellipse", cx: 9.2, cy: 18.2, rx: 1.75, ry: 0.9, fill: "#F59E0B" },
-      { kind: "ellipse", cx: 14.8, cy: 18.2, rx: 1.75, ry: 0.9, fill: "#F59E0B" },
-    ],
-  },
-
-  redis: {
-    container: whiteTile("rounded"),
-    layers: [
-      { kind: "path", d: "M12 14.0l-6.6 2.5L12 19.0l6.6-2.5L12 14.0z", fill: "#A41E11" },
-      { kind: "path", d: "M12 11.6l-6.6 2.5L12 16.6l6.6-2.5L12 11.6z", fill: "#C92A1E" },
-      { kind: "path", d: "M12 6.8L5.4 9.3 12 11.8l6.6-2.5L12 6.8z", fill: "#DC382D" },
-      { kind: "path", d: starPolygonPath(5, 9.8, 9.2, 1.35, 0.55), fill: "#FFFFFF" },
-      { kind: "circle", cx: 13.9, cy: 8.8, r: 1.0, fill: "#FFFFFF" },
-      { kind: "rect", x: 11.4, y: 10.1, width: 1.4, height: 1.2, fill: "#FFFFFF" },
-    ],
-  },
-
-  graphql: {
-    container: whiteTile("rounded"),
-    layers: [
-      { kind: "path", d: regularPolygonPath(6, 12, 12, 7.6), stroke: "#E10098", strokeWidth: 1.15 },
-      { kind: "path", d: regularPolygonPath(3, 12, 12, 7.6), stroke: "#E10098", strokeWidth: 1.1 },
-      ...[0, 1, 2, 3, 4, 5].map((i): BrandPrimitive => {
-        const a = ((-90 + 60 * i) * Math.PI) / 180;
-        return {
-          kind: "circle",
-          cx: +(12 + 7.6 * Math.cos(a)).toFixed(2),
-          cy: +(12 + 7.6 * Math.sin(a)).toFixed(2),
-          r: 1.45,
-          fill: "#E10098",
-        };
-      }),
-    ],
-  },
-
-  figma: {
-    container: darkTile("rounded", "#1E1E24"),
-    layers: [
-      { kind: "path", d: "M9.8 5.2h2.2v4.4H9.8a2.2 2.2 0 1 1 0-4.4z", fill: "#F24E1E" },
-      { kind: "path", d: "M12 5.2h2.2a2.2 2.2 0 1 1 0 4.4H12V5.2z", fill: "#FF7262" },
-      { kind: "path", d: "M9.8 9.6h2.2V14H9.8a2.2 2.2 0 1 1 0-4.4z", fill: "#A259FF" },
-      { kind: "circle", cx: 14.2, cy: 11.8, r: 2.2, fill: "#1ABCFE" },
-      { kind: "path", d: "M9.8 14H12v2.2a2.2 2.2 0 1 1-4.4 0A2.2 2.2 0 0 1 9.8 14z", fill: "#0ACF83" },
-    ],
-  },
-
-  linear: {
-    container: gradientTile("grad-linear", "#5E6AD2", "#4338CA", "diagonal-tl-br", undefined, "circle"),
-    layers: [
-      { kind: "path", d: "M5.5 14.3l4.2 4.2M5.2 12.0l6.8 6.8M6.3 10.1l7.6 7.6", stroke: "#FFFFFF", strokeWidth: 1.2, strokeLinecap: "round", clipToCircle: { cx: 12, cy: 12, r: 9.8 } },
-      { kind: "path", d: "M8.6 6.1a6.6 6.6 0 0 1 9.3 9.3", stroke: "#FFFFFF", strokeWidth: 1.65, strokeLinecap: "round" },
-    ],
-  },
-
-  aws: {
-    container: darkTile("rounded", "#232F3E"),
-    layers: [
-      { kind: "text", text: "aws", x: 12, y: 10.0, fill: "#FFFFFF", fontSize: 7.4, fontWeight: 900 },
-      { kind: "path", d: "M6.8 14.4c3.0 1.9 7.4 1.9 10.4 0", stroke: "#FF9900", strokeWidth: 1.45, strokeLinecap: "round" },
-      { kind: "path", d: "M15.6 14.0l1.9.45-.45 1.85", stroke: "#FF9900", strokeWidth: 1.25, strokeLinecap: "round", strokeLinejoin: "round" },
-    ],
-  },
-
-  vite: {
-    container: whiteTile("rounded"),
-    layers: [
-      {
-        kind: "path",
-        d: "M18.8 5.8l-6.3 11.9c-.2.38-.75.38-.95 0L5.2 5.8c-.22-.4.12-.88.58-.8l6.22 1.15c.1.02.2.02.3 0L18.22 5.0c.46-.08.8.4.58.8z",
-        fillGradient: { id: "grad-vite-bg", from: "#41D1FF", to: "#BD34FE", direction: "diagonal-tl-br" },
-      },
-      {
-        kind: "path",
-        d: "M14.7 4.4l-4.9 1.0-.45 5.4 2.25-.55-.7 3.5 4.4-5.45-2.3.55L14.7 4.4z",
-        fillGradient: { id: "grad-vite-bolt", from: "#FFEA83", to: "#FFA800", direction: "vertical" },
-      },
-    ],
-  },
-
-  bun: {
-    container: darkTile("rounded", "#181523"),
-    layers: [
-      {
-        kind: "path",
-        d: "M5.4 13.6c0-3.8 2.9-6.6 6.6-6.6s6.6 2.8 6.6 6.6c0 2.5-2.4 3.6-6.6 3.6s-6.6-1.1-6.6-3.6z",
-        fill: "#FBF0DF",
-        stroke: "#F59E0B",
-        strokeWidth: 0.7,
-      },
-      { kind: "ellipse", cx: 12, cy: 8.6, rx: 3.1, ry: 0.9, fill: "#FDE68A" },
-      { kind: "circle", cx: 9.6, cy: 12.2, r: 0.75, fill: "#18181B" },
-      { kind: "circle", cx: 14.4, cy: 12.2, r: 0.75, fill: "#18181B" },
-      { kind: "circle", cx: 8.0, cy: 13.5, r: 0.8, fill: "#FB7185", opacity: 0.85 },
-      { kind: "circle", cx: 16.0, cy: 13.5, r: 0.8, fill: "#FB7185", opacity: 0.85 },
-      { kind: "path", d: "M10.7 13.4c.4.6.9.6 1.3 0 .4.6.9.6 1.3 0", stroke: "#18181B", strokeWidth: 0.85, strokeLinecap: "round" },
-    ],
-  },
-
-  astro: {
-    container: darkTile("rounded", "#0D0E14"),
-    layers: [
-      {
-        kind: "path",
-        d: "M9.2 14.7l2.0-8.1c.15-.55.45-.85.8-.85s.65.3.8.85l2.0 8.1c-.95-.55-1.9-.8-2.8-.8s-1.85.25-2.8.8z",
-        fill: "#FFFFFF",
-      },
-      { kind: "path", d: "M10.2 13.9c-.4 1.35.3 2.7 1.8 4.4 1.3-1.45 1.85-2.95 1.35-4.4-.9-.3-2.25-.3-3.15 0z", fillGradient: { id: "grad-astro", from: "#FF5D01", to: "#FFC837", direction: "vertical" } },
-    ],
-  },
-
-  nestjs: {
-    container: solidTile("#E0234E", "circle"),
-    layers: [
-      {
-        kind: "path",
-        d: "M7.2 8.2l2.6 1.6 2.2-2.4 2.2 2.4 2.6-1.6-.6 4.8-1.9 3.6-2.3 1.4-2.3-1.4-1.9-3.6-.6-4.8z",
-        fill: "#FFFFFF",
-      },
-      { kind: "path", d: "M9.6 11.4l1.5.7-1.1.8zM14.4 11.4l-1.5.7 1.1.8z", fill: "#E0234E" },
-      { kind: "path", d: "M10.4 14.6h3.2l-1.6 1.6-1.6-1.6z", fill: "#E0234E" },
-    ],
-  },
-
-  fastapi: {
-    container: solidTile("#009688", "circle"),
-    layers: [
-      { kind: "path", d: "M13.3 5.8L7.4 13.0h4.2l-.9 5.2L16.6 11h-4.2l.9-5.2z", fill: "#FFFFFF" },
-    ],
-  },
-
-  django: {
-    container: solidTile("#092E20"),
-    layers: [
-      {
-        kind: "text",
-        text: "dj",
-        x: 12,
-        y: 12.2,
-        fill: "#FFFFFF",
-        fontSize: 10.6,
-        fontWeight: 900,
-      },
-    ],
-  },
-
-  laravel: {
-    container: whiteTile("rounded"),
-    layers: [
-      {
-        kind: "path",
-        d: "M6.0 8.5l2.5-1.3 2.5 1.3v4.8l3.5-1.9 2.5 1.3v2.7l-6.0 3.3-5.0-2.8V8.5z",
-        stroke: "#FF2D20",
-        strokeWidth: 1.15,
-        strokeLinejoin: "round",
-      },
-      { kind: "path", d: "M6.0 8.5l2.5 1.3 2.5-1.3M8.5 9.8v4.8l6.0-3.3M11.0 13.3l2.5 1.3v3.0M14.5 11.4l2.5 1.3-6.0 3.2-5.0-2.7", stroke: "#FF2D20", strokeWidth: 1.0, strokeLinejoin: "round" },
-    ],
-  },
-
-  flutter: {
-    container: whiteTile("rounded"),
-    layers: [
-      { kind: "path", d: "M13.5 5.2L6.6 12.1l2.1 2.1L17.7 5.2h-4.2z", fill: "#45D1FD" },
-      { kind: "path", d: "M13.5 11.6L9.8 15.3l2.1 2.1 5.8-5.8h-4.2z", fill: "#45D1FD" },
-      { kind: "path", d: "M11.9 17.4l1.6 1.6h4.2l-3.7-3.7-2.1 2.1z", fill: "#02569B" },
-      { kind: "path", d: "M9.8 15.3l2.1 2.1 2.1-2.1-2.1-2.1-2.1 2.1z", fill: "#0175C2" },
-    ],
-  },
-
-  postman: {
-    container: solidTile("#FF6C37", "circle"),
-    layers: [
-      { kind: "path", d: "M6.3 17.3l3.6-5.2 2.5 2.5-6.1 2.7z", fill: "#FFFFFF", opacity: 0.9 },
-      { kind: "circle", cx: 12.2, cy: 11.7, r: 3.1, fill: "#FFFFFF" },
-      { kind: "ellipse", cx: 12.7, cy: 11.4, rx: 1.55, ry: 1.05, rotateDeg: -35, fill: "#FF6C37" },
-      { kind: "path", d: "M13.9 10.1l2.9-2.9", stroke: "#FFFFFF", strokeWidth: 1.95, strokeLinecap: "round" },
-      { kind: "circle", cx: 17.1, cy: 6.9, r: 0.95, fill: "#FFFFFF" },
-    ],
-  },
-
-  clerk: {
-    container: gradientTile("grad-clerk", "#6C47FF", "#4F46E5"),
-    layers: [
-      {
-        kind: "path",
-        d: "M16.2 7.8a5.9 5.9 0 1 0 0 8.4",
-        stroke: "#FFFFFF",
-        strokeWidth: 2.1,
-        strokeLinecap: "round",
-      },
-      { kind: "circle", cx: 12.2, cy: 12, r: 1.9, fill: "#FFFFFF" },
-      {
-        kind: "path",
-        d: "M14.3 9.9a3.0 3.0 0 0 0-4.2 4.2",
-        stroke: "#C4B5FD",
-        strokeWidth: 1.25,
-        strokeLinecap: "round",
-      },
-    ],
-  },
-
-  neon_db: {
-    container: darkTile("rounded", "#090E14"),
-    layers: [
-      {
-        kind: "path",
-        d: "M7.2 5.6h9.6c.9 0 1.6.7 1.6 1.6v9.4c0 .85-.98 1.3-1.6.75l-3.6-3.25v4.3c0 .45-.35.8-.8.8H7.2c-.9 0-1.6-.7-1.6-1.6V7.2c0-.9.7-1.6 1.6-1.6z",
-        fill: "#00E599",
-      },
-      {
-        kind: "path",
-        d: "M8.3 8.2v7.8h2.5v-4.2l4.7 4.2V8.2H13.0v4.1L8.3 8.2z",
-        fill: "#090E14",
-      },
-    ],
-  },
-
-  resend: {
-    container: darkTile("rounded", "#09090B"),
-    layers: [
-      {
-        kind: "path",
-        d: "M7.6 17.6V6.4h4.9c2.15 0 3.55 1.25 3.55 3.15 0 1.6-1.05 2.75-2.75 3.05l3.15 5.0h-2.35l-2.85-4.75H9.65v4.75H7.6zm2.05-6.45h2.65c1.1 0 1.75-.6 1.75-1.6 0-1.0-.65-1.55-1.75-1.55H9.65v3.15z",
-        fill: "#FFFFFF",
-      },
-    ],
-  },
-
-  // ── 81-114: MARKETING, AI, GMAIL, WIFI, CALLS ──────────────────────────────
-  hubspot: {
-    container: whiteTile("rounded"),
-    layers: [
-      { kind: "circle", cx: 11.4, cy: 13.0, r: 3.1, stroke: "#FF7A59", strokeWidth: 1.65 },
-      { kind: "circle", cx: 11.4, cy: 13.0, r: 1.1, fill: "#FF7A59" },
-      { kind: "path", d: "M13.6 10.8l2.5-2.5M14.5 13.0h2.8M11.4 9.9V7.2", stroke: "#FF7A59", strokeWidth: 1.3, strokeLinecap: "round" },
-      { kind: "circle", cx: 11.4, cy: 6.3, r: 1.35, fill: "#FF7A59" },
-      { kind: "circle", cx: 17.2, cy: 7.4, r: 1.45, fill: "#FF7A59" },
-      { kind: "circle", cx: 17.6, cy: 13.0, r: 1.35, fill: "#FF7A59" },
-    ],
-  },
-
-  mailchimp: {
-    container: { shape: "circle", fill: "#FFE01B", stroke: "#EAB308" },
-    layers: [
-      { kind: "path", d: "M7.1 9.6c1.1-2.5 7.4-3.1 9.4-1.2l-1.5 1.8c-2.2-.8-5.1-.6-7.9-.6z", fill: "#241C15" },
-      { kind: "path", d: "M7.2 9.4c3.0-.5 6.4-.4 9.5.4", stroke: "#241C15", strokeWidth: 1.2, strokeLinecap: "round" },
-      { kind: "circle", cx: 9.7, cy: 12.2, r: 0.9, fill: "#241C15" },
-      { kind: "path", d: "M13.2 12.2c.5-.6 1.4-.6 1.9 0", stroke: "#241C15", strokeWidth: 1.1, strokeLinecap: "round" },
-      { kind: "path", d: "M9.3 14.9c1.6 1.3 4.0 1.2 5.4-.2", stroke: "#241C15", strokeWidth: 1.2, strokeLinecap: "round" },
-    ],
-  },
-
-  meta_ads: {
-    container: whiteTile("rounded"),
-    layers: [
-      {
-        kind: "path",
-        d: "M12 12C13.7 9.3 15.1 7.8 16.7 7.8C18.4 7.8 19.5 9.4 19.5 11.6C19.5 14.0 18.3 16.2 16.3 16.2C14.6 16.2 13.4 14.2 12 12C10.6 9.8 9.4 7.8 7.7 7.8C5.7 7.8 4.5 10.0 4.5 12.4C4.5 14.6 5.6 16.2 7.3 16.2C8.9 16.2 10.3 14.7 12 12Z",
-        stroke: "#0081FB",
-        strokeWidth: 2.05,
-        strokeLinecap: "round",
-        strokeLinejoin: "round",
-      },
-      {
-        kind: "path",
-        d: "M12 12C13.7 9.3 15.1 7.8 16.7 7.8C18.4 7.8 19.5 9.4 19.5 11.6C19.5 14.0 18.3 16.2 16.3 16.2",
-        stroke: "#0064E0",
-        strokeWidth: 2.05,
-        strokeLinecap: "round",
-      },
-    ],
-  },
-
-  google_ads: {
-    container: whiteTile("rounded"),
-    layers: [
-      {
-        kind: "path",
-        d: "M13.7 6.3L7.1 17.7",
-        stroke: "#FBBC04",
-        strokeWidth: 3.1,
-        strokeLinecap: "round",
-      },
-      {
-        kind: "path",
-        d: "M10.3 6.3l6.6 11.4",
-        stroke: "#4285F4",
-        strokeWidth: 3.1,
-        strokeLinecap: "round",
-      },
-      { kind: "circle", cx: 7.1, cy: 17.7, r: 1.9, fill: "#34A853" },
-    ],
-  },
-
-  salesforce: {
-    container: whiteTile("rounded"),
-    layers: [
-      {
-        kind: "path",
-        d: "M7.2 17.5a3.0 3.0 0 0 1-.4-5.97 3.75 3.75 0 0 1 6.75-2.05 3.3 3.3 0 0 1 4.55 2.45 2.8 2.8 0 0 1-.55 5.57H7.2z",
-        fill: "#00A1E0",
-      },
-      {
-        kind: "path",
-        d: "M10.2 14.5c.8.55 2.8.55 3.6 0",
-        stroke: "#FFFFFF",
-        strokeWidth: 0.9,
-        strokeLinecap: "round",
-        opacity: 0.8,
-      },
-    ],
-  },
-
-  semrush: {
-    container: solidTile("#FF642D", "circle"),
-    layers: [
-      { kind: "circle", cx: 14.2, cy: 12.0, r: 4.1, fill: "#FFFFFF" },
-      {
-        kind: "path",
-        d: "M5.4 9.7h4.9M4.5 12.0h5.4M5.7 14.3h4.5",
-        stroke: "#FFFFFF",
-        strokeWidth: 1.3,
-        strokeLinecap: "round",
-      },
-      { kind: "circle", cx: 14.9, cy: 11.2, r: 1.45, fill: "#FF642D" },
-      { kind: "circle", cx: 15.4, cy: 10.8, r: 0.55, fill: "#FFFFFF" },
-    ],
-  },
-
-  ahrefs: {
-    container: solidTile("#1A5AE8"),
-    layers: [
-      {
-        kind: "path",
-        d: "M8.3 9.1c.75-.7 1.85-1.15 3.15-1.15 2.25 0 3.65 1.3 3.65 3.55v5.65h-2.1v-.95c-.62.78-1.55 1.18-2.65 1.18-1.78 0-2.95-1.08-2.95-2.62 0-1.62 1.32-2.62 3.55-2.62h2.05v-.68c0-.98-.68-1.6-1.85-1.6-.92 0-1.65.32-2.2.82L8.3 9.1zm4.65 4.85h-1.82c-1.12 0-1.75.42-1.75 1.12 0 .68.58 1.08 1.42 1.08 1.25 0 2.15-.7 2.15-1.72v-.48z",
-        fill: "#FFFFFF",
-      },
-      { kind: "circle", cx: 16.7, cy: 7.4, r: 1.2, fill: "#FF8800" },
-    ],
-  },
-
-  klaviyo: {
-    container: darkTile("rounded", "#18181B"),
-    layers: [
-      { kind: "path", d: "M6.0 7.6h12.0l-3.3 4.4 3.3 4.4H6.0V7.6z", fill: "#FFFFFF" },
-    ],
-  },
-
-  zapier: {
-    container: solidTile("#FF4F00"),
-    layers: [
-      { kind: "path", d: "M12 5.4v13.2M5.4 12.0h13.2M7.3 7.3l9.4 9.4M16.7 7.3l-9.4 9.4", stroke: "#FFFFFF", strokeWidth: 2.05, strokeLinecap: "round" },
-    ],
-  },
-
-  make: {
-    container: gradientTile("grad-make", "#6D28D9", "#C026D3"),
-    layers: [
-      { kind: "path", d: "M5.3 16.8L8.0 7.2h2.3l-2.7 9.6H5.3z", fill: "#FFFFFF" },
-      { kind: "path", d: "M10.4 16.8l2.7-9.6h2.3l-2.7 9.6h-2.3z", fill: "#FFFFFF", opacity: 0.88 },
-      { kind: "rect", x: 15.6, y: 7.2, width: 2.3, height: 9.6, rx: 0.4, fill: "#FFFFFF", opacity: 0.72 },
-    ],
-  },
-
-  webflow: {
-    container: solidTile("#146EF5"),
-    layers: [
-      {
-        kind: "path",
-        d: "M18.6 8.2l-3.1 7.6h-2.6l1.3-3.6h-.05c-.95 2.0-2.1 3.2-3.45 3.6H8.3l-.9-4.1c-.45 1.35-1.15 2.75-2.0 4.1V8.2h2.4l.15 3.9h.05l1.6-3.9h2.2l.15 3.9h.05L14.2 8.2h4.4z",
-        fill: "#FFFFFF",
-      },
-    ],
-  },
-
-  wordpress: {
-    container: whiteTile("circle", "#21759B"),
-    layers: [
-      { kind: "circle", cx: 12, cy: 12, r: 8.6, stroke: "#21759B", strokeWidth: 1.4 },
-      {
-        kind: "path",
-        d: "M5.3 12c0 2.5 1.35 4.7 3.4 5.9l-2.85-7.8A6.7 6.7 0 0 0 5.3 12zm11.2-.35c0-.85-.3-1.45-.55-1.9-.35-.55-.65-1.02-.65-1.58 0-.62.47-1.2 1.14-1.2h.1A6.7 6.7 0 0 0 6.5 8.15h.5c.8 0 2.05-.1 2.05-.1.42-.02.47.59.05.64 0 0-.42.05-.88.07l2.8 8.32 1.68-5.05-1.2-3.27c-.42-.02-.81-.07-.81-.07-.42-.02-.37-.66.05-.64 0 0 1.28.1 2.04.1.8 0 2.05-.1 2.05-.1.42-.02.47.59.05.64 0 0-.42.05-.88.07l2.77 8.25.77-2.57c.33-1.08.57-1.85.57-2.44zm-4.4 1.2l-2.3 6.68a6.73 6.73 0 0 0 4.18-.1l-1.88-6.58zm5.8-4.1c.04.3.06.64.06 1.0 0 .98-.18 2.08-.73 3.46l-2.55 7.36A6.72 6.72 0 0 0 17.9 8.75z",
-        fill: "#21759B",
-      },
-    ],
-  },
-
-  google_analytics: {
-    container: whiteTile("rounded"),
-    layers: [
-      { kind: "circle", cx: 6.8, cy: 17.0, r: 1.7, fill: "#F9AB00" },
-      { kind: "rect", x: 10.3, y: 10.6, width: 3.4, height: 8.1, rx: 1.7, fill: "#F9AB00" },
-      { kind: "rect", x: 15.5, y: 5.3, width: 3.4, height: 13.4, rx: 1.7, fill: "#E37400" },
-    ],
-  },
-
-  gmail: {
-    container: whiteTile("rounded"),
-    layers: [
-      { kind: "path", d: "M4.8 17.2h2.6v-6.1L4.2 8.7v7.5c0 .55.45 1.0 1.0 1.0h-.4z", fill: "#4285F4" },
-      { kind: "path", d: "M16.6 17.2h2.6c.55 0 1.0-.45 1.0-1.0V8.7l-3.2 2.4v6.1h-.4z", fill: "#34A853" },
-      { kind: "path", d: "M16.6 7.1v4.0l3.2-2.4V7.5c0-1.15-1.32-1.82-2.25-1.12L16.6 7.1z", fill: "#FBBC04" },
-      { kind: "path", d: "M7.4 11.1V7.1l4.6 3.45 4.6-3.45v4.0L12 14.55 7.4 11.1z", fill: "#EA4335" },
-      { kind: "path", d: "M4.2 7.5v1.2l3.2 2.4V7.1l-.95-.72C5.52 5.68 4.2 6.35 4.2 7.5z", fill: "#C5221F" },
-    ],
-  },
-
-  wifi_classic: {
-    container: gradientTile("grad-wifi", "#3B82F6", "#1D4ED8"),
-    layers: [
-      { kind: "path", d: "M5.8 10.2a8.8 8.8 0 0 1 12.4 0", stroke: "#FFFFFF", strokeWidth: 1.7, strokeLinecap: "round" },
-      { kind: "path", d: "M8.3 12.9a5.2 5.2 0 0 1 7.4 0", stroke: "#FFFFFF", strokeWidth: 1.7, strokeLinecap: "round" },
-      { kind: "circle", cx: 12, cy: 16.2, r: 1.25, fill: "#FFFFFF" },
-    ],
-  },
-
-  wifi_free: {
-    container: gradientTile("grad-wififree", "#10B981", "#059669"),
-    layers: [
-      { kind: "path", d: "M6.8 8.2a7.4 7.4 0 0 1 10.4 0", stroke: "#FFFFFF", strokeWidth: 1.5, strokeLinecap: "round" },
-      { kind: "path", d: "M9.0 10.5a4.2 4.2 0 0 1 6.0 0", stroke: "#FFFFFF", strokeWidth: 1.5, strokeLinecap: "round" },
-      { kind: "circle", cx: 12, cy: 13.0, r: 1.0, fill: "#FFFFFF" },
-      { kind: "rect", x: 5.0, y: 15.2, width: 14.0, height: 4.5, rx: 1.6, fill: "#FFFFFF" },
-      { kind: "text", text: "FREE", x: 12, y: 17.55, fill: "#059669", fontSize: 3.9, fontWeight: 900 },
-    ],
-  },
-
-  wifi_secure: {
-    container: gradientTile("grad-wifisecure", "#0D9488", "#0F766E"),
-    layers: [
-      { kind: "path", d: "M5.4 9.7a8.4 8.4 0 0 1 11.4-.4", stroke: "#FFFFFF", strokeWidth: 1.55, strokeLinecap: "round" },
-      { kind: "path", d: "M7.6 12.2a5.0 5.0 0 0 1 6.8-.2", stroke: "#FFFFFF", strokeWidth: 1.55, strokeLinecap: "round" },
-      { kind: "circle", cx: 10.8, cy: 14.9, r: 1.1, fill: "#FFFFFF" },
-      { kind: "rect", x: 13.4, y: 13.5, width: 5.8, height: 4.8, rx: 1.1, fill: "#FBBF24" },
-      { kind: "path", d: "M14.7 13.5v-1.2a1.6 1.6 0 0 1 3.2 0v1.2", stroke: "#FBBF24", strokeWidth: 1.25, strokeLinecap: "round" },
-      { kind: "circle", cx: 16.3, cy: 15.9, r: 0.7, fill: "#0F766E" },
-    ],
-  },
-
-  wifi_5g: {
-    container: gradientTile("grad-wifi5g", "#7C3AED", "#4338CA"),
-    layers: [
-      { kind: "path", d: "M6.8 8.0a7.4 7.4 0 0 1 10.4 0", stroke: "#FFFFFF", strokeWidth: 1.5, strokeLinecap: "round" },
-      { kind: "path", d: "M9.0 10.3a4.2 4.2 0 0 1 6.0 0", stroke: "#FFFFFF", strokeWidth: 1.5, strokeLinecap: "round" },
-      { kind: "circle", cx: 12, cy: 12.8, r: 1.0, fill: "#FFFFFF" },
-      { kind: "rect", x: 5.8, y: 15.1, width: 12.4, height: 4.6, rx: 1.6, fill: "#FFFFFF" },
-      { kind: "text", text: "5G", x: 12, y: 17.5, fill: "#4338CA", fontSize: 4.4, fontWeight: 900 },
-    ],
-  },
-
-  phone_call: {
-    container: gradientTile("grad-phone", "#22C55E", "#15803D"),
-    layers: [
-      {
-        kind: "path",
-        d: "M16.9 14.3l-2.0-.9a1.2 1.2 0 0 0-1.3.3l-.9 1.0a7.8 7.8 0 0 1-3.4-3.4l1.0-.9a1.2 1.2 0 0 0 .3-1.3l-.9-2.0a1.2 1.2 0 0 0-1.4-.6l-1.5.4a1.2 1.2 0 0 0-.9 1.2c.1 5.4 4.5 9.8 9.9 9.9a1.2 1.2 0 0 0 1.2-.9l.4-1.5a1.2 1.2 0 0 0-.5-1.4z",
-        fill: "#FFFFFF",
-      },
-    ],
-  },
-
-  phone_support: {
-    container: gradientTile("grad-support", "#0284C7", "#0369A1"),
-    layers: [
-      { kind: "path", d: "M6.5 13.0V11.5a5.5 5.5 0 0 1 11.0 0v1.5", stroke: "#FFFFFF", strokeWidth: 1.5, strokeLinecap: "round" },
-      { kind: "rect", x: 5.3, y: 11.7, width: 2.3, height: 4.1, rx: 1.0, fill: "#FFFFFF" },
-      { kind: "rect", x: 16.4, y: 11.7, width: 2.3, height: 4.1, rx: 1.0, fill: "#FFFFFF" },
-      { kind: "path", d: "M17.5 15.8c0 1.5-1.5 2.4-4.2 2.4", stroke: "#FFFFFF", strokeWidth: 1.25, strokeLinecap: "round" },
-    ],
-  },
-
-  phone_sos: {
-    container: gradientTile("grad-sos", "#EF4444", "#B91C1C"),
-    layers: [
-      {
-        kind: "path",
-        d: "M15.4 10.6l-1.3-.55a.8.8 0 0 0-.85.2l-.6.65a5.2 5.2 0 0 1-2.25-2.25l.65-.6a.8.8 0 0 0 .2-.85l-.55-1.3a.8.8 0 0 0-.9-.4l-1.0.25a.8.8 0 0 0-.6.8c.05 3.6 2.95 6.5 6.55 6.55a.8.8 0 0 0 .8-.6l.25-1.0a.8.8 0 0 0-.35-.9z",
-        fill: "#FFFFFF",
-      },
-      { kind: "rect", x: 5.2, y: 15.0, width: 13.6, height: 4.7, rx: 1.6, fill: "#FFFFFF" },
-      { kind: "text", text: "SOS", x: 12, y: 17.45, fill: "#B91C1C", fontSize: 4.2, fontWeight: 900 },
-    ],
-  },
-
-  whatsapp_call: {
-    container: solidTile("#25D366", "circle"),
-    layers: [
-      {
-        kind: "path",
-        d: "M16.1 14.3l-1.8-.8a1.1 1.1 0 0 0-1.2.3l-.8.9a7.1 7.1 0 0 1-3.1-3.1l.9-.8a1.1 1.1 0 0 0 .3-1.2l-.8-1.8a1.1 1.1 0 0 0-1.3-.6l-1.4.35a1.1 1.1 0 0 0-.8 1.1c.1 4.9 4.1 8.9 9.0 9.0a1.1 1.1 0 0 0 1.1-.8l.35-1.4a1.1 1.1 0 0 0-.45-1.15z",
-        fill: "#FFFFFF",
-      },
-      { kind: "path", d: "M13.5 7.4a3.2 3.2 0 0 1 3.1 3.1", stroke: "#FFFFFF", strokeWidth: 1.25, strokeLinecap: "round" },
-      { kind: "path", d: "M13.8 5.2a5.2 5.2 0 0 1 5.0 5.0", stroke: "#FFFFFF", strokeWidth: 1.25, strokeLinecap: "round" },
-    ],
+export type BrandLogoId =
+  | "facebook"
+  | "instagram"
+  | "twitter"
+  | "whatsapp"
+  | "tiktok"
+  | "youtube"
+  | "linkedin"
+  | "spotify"
+  | "telegram"
+  | "discord"
+  | "snapchat"
+  | "github"
+  | "reddit"
+  | "threads"
+  | "twitch"
+  | "gmail"
+  | "paypal"
+  | "apple"
+  | "google"
+  | "stripe"
+  | "shopify"
+  | "amazon"
+  | "visa"
+  | "mastercard"
+  | "airbnb"
+  | "uber"
+  | "slack"
+  | "notion"
+  | "hubspot"
+  | "mailchimp"
+  | "meta_ads"
+  | "google_ads"
+  | "salesforce"
+  | "semrush"
+  | "zapier"
+  | "make"
+  | "webflow"
+  | "wordpress"
+  | "google_analytics"
+  | "openai"
+  | "anthropic"
+  | "gemini"
+  | "midjourney"
+  | "huggingface"
+  | "mistral"
+  | "deepseek"
+  | "nike"
+  | "adidas"
+  | "puma"
+  | "jordan"
+  | "nba"
+  | "formula1"
+  | "redbull"
+  | "nextjs"
+  | "react"
+  | "vue"
+  | "angular"
+  | "svelte"
+  | "tanstack"
+  | "prisma"
+  | "mongodb"
+  | "postgres"
+  | "supabase"
+  | "tailwind"
+  | "nodejs"
+  | "typescript"
+  | "python"
+  | "docker"
+  | "cloudflare"
+  | "vercel"
+  | "rust"
+  | "golang"
+  | "cplusplus"
+  | "java"
+  | "git"
+  | "gitlab"
+  | "kubernetes"
+  | "linux"
+  | "redis"
+  | "graphql"
+  | "figma"
+  | "linear"
+  | "aws"
+  | "vite"
+  | "bun"
+  | "astro"
+  | "nestjs"
+  | "fastapi"
+  | "django"
+  | "laravel"
+  | "flutter"
+  | "postman"
+  | "clerk"
+  | "neon_db"
+  | "resend"
+  | "crypto_btc";
+
+export const BRAND_LOGOS: Record<BrandLogoId, OfficialBrandLogoSpec> = {
+  "facebook": {
+    id: "facebook",
+    title: "Facebook",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#0866FF\" d=\"M9.101 23.691v-7.98H6.627v-3.667h2.474v-1.58c0-4.085 1.848-5.978 5.858-5.978.401 0 .955.042 1.468.103a8.68 8.68 0 0 1 1.141.195v3.325a8.623 8.623 0 0 0-.653-.036 26.805 26.805 0 0 0-.733-.009c-.707 0-1.259.096-1.675.309a1.686 1.686 0 0 0-.679.622c-.258.42-.374.995-.374 1.752v1.297h3.919l-.386 2.103-.287 1.564h-3.246v8.245C19.396 23.238 24 18.179 24 12.044c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.628 3.874 10.35 9.101 11.647Z\" />",
+    brandColor: "#0866FF",
+    source: "simple-icons:facebook",
+    pathOnly: "M9.101 23.691v-7.98H6.627v-3.667h2.474v-1.58c0-4.085 1.848-5.978 5.858-5.978.401 0 .955.042 1.468.103a8.68 8.68 0 0 1 1.141.195v3.325a8.623 8.623 0 0 0-.653-.036 26.805 26.805 0 0 0-.733-.009c-.707 0-1.259.096-1.675.309a1.686 1.686 0 0 0-.679.622c-.258.42-.374.995-.374 1.752v1.297h3.919l-.386 2.103-.287 1.564h-3.246v8.245C19.396 23.238 24 18.179 24 12.044c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.628 3.874 10.35 9.101 11.647Z",
+  },
+  "instagram": {
+    id: "instagram",
+    title: "Instagram",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#FF0069\" d=\"M7.0301.084c-1.2768.0602-2.1487.264-2.911.5634-.7888.3075-1.4575.72-2.1228 1.3877-.6652.6677-1.075 1.3368-1.3802 2.127-.2954.7638-.4956 1.6365-.552 2.914-.0564 1.2775-.0689 1.6882-.0626 4.947.0062 3.2586.0206 3.6671.0825 4.9473.061 1.2765.264 2.1482.5635 2.9107.308.7889.72 1.4573 1.388 2.1228.6679.6655 1.3365 1.0743 2.1285 1.38.7632.295 1.6361.4961 2.9134.552 1.2773.056 1.6884.069 4.9462.0627 3.2578-.0062 3.668-.0207 4.9478-.0814 1.28-.0607 2.147-.2652 2.9098-.5633.7889-.3086 1.4578-.72 2.1228-1.3881.665-.6682 1.0745-1.3378 1.3795-2.1284.2957-.7632.4966-1.636.552-2.9124.056-1.2809.0692-1.6898.063-4.948-.0063-3.2583-.021-3.6668-.0817-4.9465-.0607-1.2797-.264-2.1487-.5633-2.9117-.3084-.7889-.72-1.4568-1.3876-2.1228C21.2982 1.33 20.628.9208 19.8378.6165 19.074.321 18.2017.1197 16.9244.0645 15.6471.0093 15.236-.005 11.977.0014 8.718.0076 8.31.0215 7.0301.0839m.1402 21.6932c-1.17-.0509-1.8053-.2453-2.2287-.408-.5606-.216-.96-.4771-1.3819-.895-.422-.4178-.6811-.8186-.9-1.378-.1644-.4234-.3624-1.058-.4171-2.228-.0595-1.2645-.072-1.6442-.079-4.848-.007-3.2037.0053-3.583.0607-4.848.05-1.169.2456-1.805.408-2.2282.216-.5613.4762-.96.895-1.3816.4188-.4217.8184-.6814 1.3783-.9003.423-.1651 1.0575-.3614 2.227-.4171 1.2655-.06 1.6447-.072 4.848-.079 3.2033-.007 3.5835.005 4.8495.0608 1.169.0508 1.8053.2445 2.228.408.5608.216.96.4754 1.3816.895.4217.4194.6816.8176.9005 1.3787.1653.4217.3617 1.056.4169 2.2263.0602 1.2655.0739 1.645.0796 4.848.0058 3.203-.0055 3.5834-.061 4.848-.051 1.17-.245 1.8055-.408 2.2294-.216.5604-.4763.96-.8954 1.3814-.419.4215-.8181.6811-1.3783.9-.4224.1649-1.0577.3617-2.2262.4174-1.2656.0595-1.6448.072-4.8493.079-3.2045.007-3.5825-.006-4.848-.0608M16.953 5.5864A1.44 1.44 0 1 0 18.39 4.144a1.44 1.44 0 0 0-1.437 1.4424M5.8385 12.012c.0067 3.4032 2.7706 6.1557 6.173 6.1493 3.4026-.0065 6.157-2.7701 6.1506-6.1733-.0065-3.4032-2.771-6.1565-6.174-6.1498-3.403.0067-6.156 2.771-6.1496 6.1738M8 12.0077a4 4 0 1 1 4.008 3.9921A3.9996 3.9996 0 0 1 8 12.0077\" />",
+    brandColor: "#FF0069",
+    source: "simple-icons:instagram",
+    pathOnly: "M7.0301.084c-1.2768.0602-2.1487.264-2.911.5634-.7888.3075-1.4575.72-2.1228 1.3877-.6652.6677-1.075 1.3368-1.3802 2.127-.2954.7638-.4956 1.6365-.552 2.914-.0564 1.2775-.0689 1.6882-.0626 4.947.0062 3.2586.0206 3.6671.0825 4.9473.061 1.2765.264 2.1482.5635 2.9107.308.7889.72 1.4573 1.388 2.1228.6679.6655 1.3365 1.0743 2.1285 1.38.7632.295 1.6361.4961 2.9134.552 1.2773.056 1.6884.069 4.9462.0627 3.2578-.0062 3.668-.0207 4.9478-.0814 1.28-.0607 2.147-.2652 2.9098-.5633.7889-.3086 1.4578-.72 2.1228-1.3881.665-.6682 1.0745-1.3378 1.3795-2.1284.2957-.7632.4966-1.636.552-2.9124.056-1.2809.0692-1.6898.063-4.948-.0063-3.2583-.021-3.6668-.0817-4.9465-.0607-1.2797-.264-2.1487-.5633-2.9117-.3084-.7889-.72-1.4568-1.3876-2.1228C21.2982 1.33 20.628.9208 19.8378.6165 19.074.321 18.2017.1197 16.9244.0645 15.6471.0093 15.236-.005 11.977.0014 8.718.0076 8.31.0215 7.0301.0839m.1402 21.6932c-1.17-.0509-1.8053-.2453-2.2287-.408-.5606-.216-.96-.4771-1.3819-.895-.422-.4178-.6811-.8186-.9-1.378-.1644-.4234-.3624-1.058-.4171-2.228-.0595-1.2645-.072-1.6442-.079-4.848-.007-3.2037.0053-3.583.0607-4.848.05-1.169.2456-1.805.408-2.2282.216-.5613.4762-.96.895-1.3816.4188-.4217.8184-.6814 1.3783-.9003.423-.1651 1.0575-.3614 2.227-.4171 1.2655-.06 1.6447-.072 4.848-.079 3.2033-.007 3.5835.005 4.8495.0608 1.169.0508 1.8053.2445 2.228.408.5608.216.96.4754 1.3816.895.4217.4194.6816.8176.9005 1.3787.1653.4217.3617 1.056.4169 2.2263.0602 1.2655.0739 1.645.0796 4.848.0058 3.203-.0055 3.5834-.061 4.848-.051 1.17-.245 1.8055-.408 2.2294-.216.5604-.4763.96-.8954 1.3814-.419.4215-.8181.6811-1.3783.9-.4224.1649-1.0577.3617-2.2262.4174-1.2656.0595-1.6448.072-4.8493.079-3.2045.007-3.5825-.006-4.848-.0608M16.953 5.5864A1.44 1.44 0 1 0 18.39 4.144a1.44 1.44 0 0 0-1.437 1.4424M5.8385 12.012c.0067 3.4032 2.7706 6.1557 6.173 6.1493 3.4026-.0065 6.157-2.7701 6.1506-6.1733-.0065-3.4032-2.771-6.1565-6.174-6.1498-3.403.0067-6.156 2.771-6.1496 6.1738M8 12.0077a4 4 0 1 1 4.008 3.9921A3.9996 3.9996 0 0 1 8 12.0077",
+  },
+  "twitter": {
+    id: "twitter",
+    title: "X / Twitter",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"currentColor\" d=\"M14.234 10.162 22.977 0h-2.072l-7.591 8.824L7.251 0H.258l9.168 13.343L.258 24H2.33l8.016-9.318L16.749 24h6.993zm-2.837 3.299-.929-1.329L3.076 1.56h3.182l5.965 8.532.929 1.329 7.754 11.09h-3.182z\" />",
+    brandColor: "#000000",
+    source: "simple-icons:x",
+    pathOnly: "M14.234 10.162 22.977 0h-2.072l-7.591 8.824L7.251 0H.258l9.168 13.343L.258 24H2.33l8.016-9.318L16.749 24h6.993zm-2.837 3.299-.929-1.329L3.076 1.56h3.182l5.965 8.532.929 1.329 7.754 11.09h-3.182z",
+    isDarkBadge: true,
+  },
+  "whatsapp": {
+    id: "whatsapp",
+    title: "Whatsapp",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#25D366\" d=\"M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z\" />",
+    brandColor: "#25D366",
+    source: "simple-icons:whatsapp",
+    pathOnly: "M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z",
+  },
+  "tiktok": {
+    id: "tiktok",
+    title: "TikTok",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"currentColor\" d=\"M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z\" />",
+    brandColor: "#000000",
+    source: "simple-icons:tiktok",
+    pathOnly: "M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z",
+    isDarkBadge: true,
+  },
+  "youtube": {
+    id: "youtube",
+    title: "Youtube",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#FF0000\" d=\"M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z\" />",
+    brandColor: "#FF0000",
+    source: "simple-icons:youtube",
+    pathOnly: "M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z",
+  },
+  "linkedin": {
+    id: "linkedin",
+    title: "Linkedin",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#000000\" d=\"M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037c-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85c3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.06 2.06 0 0 1-2.063-2.065a2.064 2.064 0 1 1 2.063 2.065m1.782 13.019H3.555V9h3.564zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0z\" />",
+    brandColor: "#000000",
+    source: "simple-icons:linkedin",
+    pathOnly: "M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037c-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85c3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.06 2.06 0 0 1-2.063-2.065a2.064 2.064 0 1 1 2.063 2.065m1.782 13.019H3.555V9h3.564zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0z",
+  },
+  "spotify": {
+    id: "spotify",
+    title: "Spotify",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#1ED760\" d=\"M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z\" />",
+    brandColor: "#1ED760",
+    source: "simple-icons:spotify",
+    pathOnly: "M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z",
+  },
+  "telegram": {
+    id: "telegram",
+    title: "Telegram",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#26A5E4\" d=\"M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z\" />",
+    brandColor: "#26A5E4",
+    source: "simple-icons:telegram",
+    pathOnly: "M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z",
+  },
+  "discord": {
+    id: "discord",
+    title: "Discord",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#5865F2\" d=\"M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z\" />",
+    brandColor: "#5865F2",
+    source: "simple-icons:discord",
+    pathOnly: "M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z",
+  },
+  "snapchat": {
+    id: "snapchat",
+    title: "Snapchat",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#FFFC00\" d=\"M12.206.793c.99 0 4.347.276 5.93 3.821.529 1.193.403 3.219.299 4.847l-.003.06c-.012.18-.022.345-.03.51.075.045.203.09.401.09.3-.016.659-.12 1.033-.301.165-.088.344-.104.464-.104.182 0 .359.029.509.09.45.149.734.479.734.838.015.449-.39.839-1.213 1.168-.089.029-.209.075-.344.119-.45.135-1.139.36-1.333.81-.09.224-.061.524.12.868l.015.015c.06.136 1.526 3.475 4.791 4.014.255.044.435.27.42.509 0 .075-.015.149-.045.225-.24.569-1.273.988-3.146 1.271-.059.091-.12.375-.164.57-.029.179-.074.36-.134.553-.076.271-.27.405-.555.405h-.03c-.135 0-.313-.031-.538-.074-.36-.075-.765-.135-1.273-.135-.3 0-.599.015-.913.074-.6.104-1.123.464-1.723.884-.853.599-1.826 1.288-3.294 1.288-.06 0-.119-.015-.18-.015h-.149c-1.468 0-2.427-.675-3.279-1.288-.599-.42-1.107-.779-1.707-.884-.314-.045-.629-.074-.928-.074-.54 0-.958.089-1.272.149-.211.043-.391.074-.54.074-.374 0-.523-.224-.583-.42-.061-.192-.09-.389-.135-.567-.046-.181-.105-.494-.166-.57-1.918-.222-2.95-.642-3.189-1.226-.031-.063-.052-.15-.055-.225-.015-.243.165-.465.42-.509 3.264-.54 4.73-3.879 4.791-4.02l.016-.029c.18-.345.224-.645.119-.869-.195-.434-.884-.658-1.332-.809-.121-.029-.24-.074-.346-.119-1.107-.435-1.257-.93-1.197-1.273.09-.479.674-.793 1.168-.793.146 0 .27.029.383.074.42.194.789.3 1.104.3.234 0 .384-.06.465-.105l-.046-.569c-.098-1.626-.225-3.651.307-4.837C7.392 1.077 10.739.807 11.727.807l.419-.015h.06z\" />",
+    brandColor: "#FFFC00",
+    source: "simple-icons:snapchat",
+    pathOnly: "M12.206.793c.99 0 4.347.276 5.93 3.821.529 1.193.403 3.219.299 4.847l-.003.06c-.012.18-.022.345-.03.51.075.045.203.09.401.09.3-.016.659-.12 1.033-.301.165-.088.344-.104.464-.104.182 0 .359.029.509.09.45.149.734.479.734.838.015.449-.39.839-1.213 1.168-.089.029-.209.075-.344.119-.45.135-1.139.36-1.333.81-.09.224-.061.524.12.868l.015.015c.06.136 1.526 3.475 4.791 4.014.255.044.435.27.42.509 0 .075-.015.149-.045.225-.24.569-1.273.988-3.146 1.271-.059.091-.12.375-.164.57-.029.179-.074.36-.134.553-.076.271-.27.405-.555.405h-.03c-.135 0-.313-.031-.538-.074-.36-.075-.765-.135-1.273-.135-.3 0-.599.015-.913.074-.6.104-1.123.464-1.723.884-.853.599-1.826 1.288-3.294 1.288-.06 0-.119-.015-.18-.015h-.149c-1.468 0-2.427-.675-3.279-1.288-.599-.42-1.107-.779-1.707-.884-.314-.045-.629-.074-.928-.074-.54 0-.958.089-1.272.149-.211.043-.391.074-.54.074-.374 0-.523-.224-.583-.42-.061-.192-.09-.389-.135-.567-.046-.181-.105-.494-.166-.57-1.918-.222-2.95-.642-3.189-1.226-.031-.063-.052-.15-.055-.225-.015-.243.165-.465.42-.509 3.264-.54 4.73-3.879 4.791-4.02l.016-.029c.18-.345.224-.645.119-.869-.195-.434-.884-.658-1.332-.809-.121-.029-.24-.074-.346-.119-1.107-.435-1.257-.93-1.197-1.273.09-.479.674-.793 1.168-.793.146 0 .27.029.383.074.42.194.789.3 1.104.3.234 0 .384-.06.465-.105l-.046-.569c-.098-1.626-.225-3.651.307-4.837C7.392 1.077 10.739.807 11.727.807l.419-.015h.06z",
+  },
+  "github": {
+    id: "github",
+    title: "GitHub",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"currentColor\" d=\"M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12\" />",
+    brandColor: "#181717",
+    source: "simple-icons:github",
+    pathOnly: "M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12",
+    isDarkBadge: true,
+  },
+  "reddit": {
+    id: "reddit",
+    title: "Reddit",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#FF4500\" d=\"M12 0C5.373 0 0 5.373 0 12c0 3.314 1.343 6.314 3.515 8.485l-2.286 2.286C.775 23.225 1.097 24 1.738 24H12c6.627 0 12-5.373 12-12S18.627 0 12 0Zm4.388 3.199c1.104 0 1.999.895 1.999 1.999 0 1.105-.895 2-1.999 2-.946 0-1.739-.657-1.947-1.539v.002c-1.147.162-2.032 1.15-2.032 2.341v.007c1.776.067 3.4.567 4.686 1.363.473-.363 1.064-.58 1.707-.58 1.547 0 2.802 1.254 2.802 2.802 0 1.117-.655 2.081-1.601 2.531-.088 3.256-3.637 5.876-7.997 5.876-4.361 0-7.905-2.617-7.998-5.87-.954-.447-1.614-1.415-1.614-2.538 0-1.548 1.255-2.802 2.803-2.802.645 0 1.239.218 1.712.585 1.275-.79 2.881-1.291 4.64-1.365v-.01c0-1.663 1.263-3.034 2.88-3.207.188-.911.993-1.595 1.959-1.595Zm-8.085 8.376c-.784 0-1.459.78-1.506 1.797-.047 1.016.64 1.429 1.426 1.429.786 0 1.371-.369 1.418-1.385.047-1.017-.553-1.841-1.338-1.841Zm7.406 0c-.786 0-1.385.824-1.338 1.841.047 1.017.634 1.385 1.418 1.385.785 0 1.473-.413 1.426-1.429-.046-1.017-.721-1.797-1.506-1.797Zm-3.703 4.013c-.974 0-1.907.048-2.77.135-.147.015-.241.168-.183.305.483 1.154 1.622 1.964 2.953 1.964 1.33 0 2.47-.81 2.953-1.964.057-.137-.037-.29-.184-.305-.863-.087-1.795-.135-2.769-.135Z\" />",
+    brandColor: "#FF4500",
+    source: "simple-icons:reddit",
+    pathOnly: "M12 0C5.373 0 0 5.373 0 12c0 3.314 1.343 6.314 3.515 8.485l-2.286 2.286C.775 23.225 1.097 24 1.738 24H12c6.627 0 12-5.373 12-12S18.627 0 12 0Zm4.388 3.199c1.104 0 1.999.895 1.999 1.999 0 1.105-.895 2-1.999 2-.946 0-1.739-.657-1.947-1.539v.002c-1.147.162-2.032 1.15-2.032 2.341v.007c1.776.067 3.4.567 4.686 1.363.473-.363 1.064-.58 1.707-.58 1.547 0 2.802 1.254 2.802 2.802 0 1.117-.655 2.081-1.601 2.531-.088 3.256-3.637 5.876-7.997 5.876-4.361 0-7.905-2.617-7.998-5.87-.954-.447-1.614-1.415-1.614-2.538 0-1.548 1.255-2.802 2.803-2.802.645 0 1.239.218 1.712.585 1.275-.79 2.881-1.291 4.64-1.365v-.01c0-1.663 1.263-3.034 2.88-3.207.188-.911.993-1.595 1.959-1.595Zm-8.085 8.376c-.784 0-1.459.78-1.506 1.797-.047 1.016.64 1.429 1.426 1.429.786 0 1.371-.369 1.418-1.385.047-1.017-.553-1.841-1.338-1.841Zm7.406 0c-.786 0-1.385.824-1.338 1.841.047 1.017.634 1.385 1.418 1.385.785 0 1.473-.413 1.426-1.429-.046-1.017-.721-1.797-1.506-1.797Zm-3.703 4.013c-.974 0-1.907.048-2.77.135-.147.015-.241.168-.183.305.483 1.154 1.622 1.964 2.953 1.964 1.33 0 2.47-.81 2.953-1.964.057-.137-.037-.29-.184-.305-.863-.087-1.795-.135-2.769-.135Z",
+  },
+  "threads": {
+    id: "threads",
+    title: "Threads",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"currentColor\" d=\"M18.263 11.097c-.03-3.486-1.92-5.586-5.111-5.586-2.13 0-3.922.963-4.863 2.499l2.062 1.438c.535-.843 1.272-1.543 2.628-1.543 1.528 0 2.318.85 2.544 2.431a15 15 0 0 0-2.236-.173c-4.125 0-6.068 1.867-6.068 4.336s1.943 3.99 4.804 3.99c3.139 0 5.013-2.115 5.781-4.735.798.361 1.348 1.204 1.348 2.47 0 3.387-3.907 5.232-7.22 5.232-4.885 0-8.077-3.207-8.077-8.424 0-6.392 4.223-10.487 9.9-10.487 3.808 0 5.69 1.671 6.97 3.914l2.108-1.475C21.44 2.078 18.331 0 13.663 0 6.227 0 1.168 5.277 1.168 12.934c0 7 4.953 11.066 10.856 11.066 4.878 0 9.809-2.846 9.809-7.716 0-2.545-1.46-4.231-3.569-5.187m-6.33 4.855c-1.077 0-2.026-.512-2.026-1.453 0-1.483 1.822-1.934 3.606-1.934.678 0 1.34.045 1.927.173-.422 1.927-1.671 3.215-3.508 3.214Z\" />",
+    brandColor: "#000000",
+    source: "simple-icons:threads",
+    pathOnly: "M18.263 11.097c-.03-3.486-1.92-5.586-5.111-5.586-2.13 0-3.922.963-4.863 2.499l2.062 1.438c.535-.843 1.272-1.543 2.628-1.543 1.528 0 2.318.85 2.544 2.431a15 15 0 0 0-2.236-.173c-4.125 0-6.068 1.867-6.068 4.336s1.943 3.99 4.804 3.99c3.139 0 5.013-2.115 5.781-4.735.798.361 1.348 1.204 1.348 2.47 0 3.387-3.907 5.232-7.22 5.232-4.885 0-8.077-3.207-8.077-8.424 0-6.392 4.223-10.487 9.9-10.487 3.808 0 5.69 1.671 6.97 3.914l2.108-1.475C21.44 2.078 18.331 0 13.663 0 6.227 0 1.168 5.277 1.168 12.934c0 7 4.953 11.066 10.856 11.066 4.878 0 9.809-2.846 9.809-7.716 0-2.545-1.46-4.231-3.569-5.187m-6.33 4.855c-1.077 0-2.026-.512-2.026-1.453 0-1.483 1.822-1.934 3.606-1.934.678 0 1.34.045 1.927.173-.422 1.927-1.671 3.215-3.508 3.214Z",
+    isDarkBadge: true,
+  },
+  "twitch": {
+    id: "twitch",
+    title: "Twitch",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#9146FF\" d=\"M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z\" />",
+    brandColor: "#9146FF",
+    source: "simple-icons:twitch",
+    pathOnly: "M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z",
+  },
+  "gmail": {
+    id: "gmail",
+    title: "Gmail",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#EA4335\" d=\"M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.91 1.528-1.145C21.69 2.28 24 3.434 24 5.457z\" />",
+    brandColor: "#EA4335",
+    source: "simple-icons:gmail",
+    pathOnly: "M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.91 1.528-1.145C21.69 2.28 24 3.434 24 5.457z",
+  },
+  "paypal": {
+    id: "paypal",
+    title: "Paypal",
+    viewBox: "0 0 256 302",
+    body: "<path fill=\"#27346a\" d=\"M217.168 23.507C203.234 7.625 178.046.816 145.823.816h-93.52A13.39 13.39 0 0 0 39.076 12.11L.136 259.077c-.774 4.87 2.997 9.28 7.933 9.28h57.736l14.5-91.971l-.45 2.88c1.033-6.501 6.593-11.296 13.177-11.296h27.436c53.898 0 96.101-21.892 108.429-85.221c.366-1.873.683-3.696.957-5.477q-2.334-1.236 0 0c3.671-23.407-.025-39.34-12.686-53.765\"/><path fill=\"#27346a\" d=\"M102.397 68.84a11.7 11.7 0 0 1 5.053-1.14h73.318c8.682 0 16.78.565 24.18 1.756a102 102 0 0 1 6.177 1.182a90 90 0 0 1 8.59 2.347c3.638 1.215 7.026 2.63 10.14 4.287c3.67-23.416-.026-39.34-12.687-53.765C203.226 7.625 178.046.816 145.823.816H52.295C45.71.816 40.108 5.61 39.076 12.11L.136 259.068c-.774 4.878 2.997 9.282 7.925 9.282h57.744L95.888 77.58a11.72 11.72 0 0 1 6.509-8.74\"/><path fill=\"#2790c3\" d=\"M228.897 82.749c-12.328 63.32-54.53 85.221-108.429 85.221H93.024c-6.584 0-12.145 4.795-13.168 11.296L61.817 293.621c-.674 4.262 2.622 8.124 6.934 8.124h48.67a11.71 11.71 0 0 0 11.563-9.88l.474-2.48l9.173-58.136l.591-3.213a11.71 11.71 0 0 1 11.562-9.88h7.284c47.147 0 84.064-19.154 94.852-74.55c4.503-23.15 2.173-42.478-9.739-56.054c-3.613-4.112-8.1-7.508-13.327-10.28c-.283 1.79-.59 3.604-.957 5.477\"/><path fill=\"#1f264f\" d=\"M216.952 72.128a90 90 0 0 0-5.818-1.49a110 110 0 0 0-6.177-1.174c-7.408-1.199-15.5-1.765-24.19-1.765h-73.309a11.6 11.6 0 0 0-5.053 1.149a11.68 11.68 0 0 0-6.51 8.74l-15.582 98.798l-.45 2.88c1.025-6.501 6.585-11.296 13.17-11.296h27.444c53.898 0 96.1-21.892 108.428-85.221c.367-1.873.675-3.688.958-5.477q-4.682-2.47-10.14-4.279a83 83 0 0 0-2.77-.865\"/>",
+    brandColor: "#000000",
+    source: "logos:paypal",
+    isDarkBadge: true,
+  },
+  "apple": {
+    id: "apple",
+    title: "Apple",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"currentColor\" d=\"M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701\" />",
+    brandColor: "#000000",
+    source: "simple-icons:apple",
+    pathOnly: "M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701",
+    isDarkBadge: true,
+  },
+  "google": {
+    id: "google",
+    title: "Google",
+    viewBox: "0 0 256 262",
+    body: "<path fill=\"#4285f4\" d=\"M255.878 133.451c0-10.734-.871-18.567-2.756-26.69H130.55v48.448h71.947c-1.45 12.04-9.283 30.172-26.69 42.356l-.244 1.622l38.755 30.023l2.685.268c24.659-22.774 38.875-56.282 38.875-96.027\"/><path fill=\"#34a853\" d=\"M130.55 261.1c35.248 0 64.839-11.605 86.453-31.622l-41.196-31.913c-11.024 7.688-25.82 13.055-45.257 13.055c-34.523 0-63.824-22.773-74.269-54.25l-1.531.13l-40.298 31.187l-.527 1.465C35.393 231.798 79.49 261.1 130.55 261.1\"/><path fill=\"#fbbc05\" d=\"M56.281 156.37c-2.756-8.123-4.351-16.827-4.351-25.82c0-8.994 1.595-17.697 4.206-25.82l-.073-1.73L15.26 71.312l-1.335.635C5.077 89.644 0 109.517 0 130.55s5.077 40.905 13.925 58.602z\"/><path fill=\"#eb4335\" d=\"M130.55 50.479c24.514 0 41.05 10.589 50.479 19.438l36.844-35.974C195.245 12.91 165.798 0 130.55 0C79.49 0 35.393 29.301 13.925 71.947l42.211 32.783c10.59-31.477 39.891-54.251 74.414-54.251\"/>",
+    brandColor: "#000000",
+    source: "logos:google-icon",
+    isDarkBadge: true,
+  },
+  "stripe": {
+    id: "stripe",
+    title: "Stripe",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#635BFF\" d=\"M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-6.99-2.109l-.9 5.555C5.175 22.99 8.385 24 11.714 24c2.641 0 4.843-.624 6.328-1.813 1.664-1.305 2.525-3.236 2.525-5.732 0-4.128-2.524-5.851-6.594-7.305h.003z\" />",
+    brandColor: "#635BFF",
+    source: "simple-icons:stripe",
+    pathOnly: "M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-6.99-2.109l-.9 5.555C5.175 22.99 8.385 24 11.714 24c2.641 0 4.843-.624 6.328-1.813 1.664-1.305 2.525-3.236 2.525-5.732 0-4.128-2.524-5.851-6.594-7.305h.003z",
+  },
+  "shopify": {
+    id: "shopify",
+    title: "Shopify",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#7AB55C\" d=\"M15.337 23.979l7.216-1.561s-2.604-17.613-2.625-17.73c-.018-.116-.114-.192-.211-.192s-1.929-.136-1.929-.136-1.275-1.274-1.439-1.411c-.045-.037-.075-.057-.121-.074l-.914 21.104h.023zM11.71 11.305s-.81-.424-1.774-.424c-1.447 0-1.504.906-1.504 1.141 0 1.232 3.24 1.715 3.24 4.629 0 2.295-1.44 3.76-3.406 3.76-2.354 0-3.54-1.465-3.54-1.465l.646-2.086s1.245 1.066 2.28 1.066c.675 0 .975-.545.975-.932 0-1.619-2.654-1.694-2.654-4.359-.034-2.237 1.571-4.416 4.827-4.416 1.257 0 1.875.361 1.875.361l-.945 2.715-.02.01zM11.17.83c.136 0 .271.038.405.135-.984.465-2.064 1.639-2.508 3.992-.656.213-1.293.405-1.889.578C7.697 3.75 8.951.84 11.17.84V.83zm1.235 2.949v.135c-.754.232-1.583.484-2.394.736.466-1.777 1.333-2.645 2.085-2.971.193.501.309 1.176.309 2.1zm.539-2.234c.694.074 1.141.867 1.429 1.755-.349.114-.735.231-1.158.366v-.252c0-.752-.096-1.371-.271-1.871v.002zm2.992 1.289c-.02 0-.06.021-.078.021s-.289.075-.714.21c-.423-1.233-1.176-2.37-2.508-2.37h-.115C12.135.209 11.669 0 11.265 0 8.159 0 6.675 3.877 6.21 5.846c-1.194.365-2.063.636-2.16.674-.675.213-.694.232-.772.87-.075.462-1.83 14.063-1.83 14.063L15.009 24l.927-21.166z\" />",
+    brandColor: "#7AB55C",
+    source: "simple-icons:shopify",
+    pathOnly: "M15.337 23.979l7.216-1.561s-2.604-17.613-2.625-17.73c-.018-.116-.114-.192-.211-.192s-1.929-.136-1.929-.136-1.275-1.274-1.439-1.411c-.045-.037-.075-.057-.121-.074l-.914 21.104h.023zM11.71 11.305s-.81-.424-1.774-.424c-1.447 0-1.504.906-1.504 1.141 0 1.232 3.24 1.715 3.24 4.629 0 2.295-1.44 3.76-3.406 3.76-2.354 0-3.54-1.465-3.54-1.465l.646-2.086s1.245 1.066 2.28 1.066c.675 0 .975-.545.975-.932 0-1.619-2.654-1.694-2.654-4.359-.034-2.237 1.571-4.416 4.827-4.416 1.257 0 1.875.361 1.875.361l-.945 2.715-.02.01zM11.17.83c.136 0 .271.038.405.135-.984.465-2.064 1.639-2.508 3.992-.656.213-1.293.405-1.889.578C7.697 3.75 8.951.84 11.17.84V.83zm1.235 2.949v.135c-.754.232-1.583.484-2.394.736.466-1.777 1.333-2.645 2.085-2.971.193.501.309 1.176.309 2.1zm.539-2.234c.694.074 1.141.867 1.429 1.755-.349.114-.735.231-1.158.366v-.252c0-.752-.096-1.371-.271-1.871v.002zm2.992 1.289c-.02 0-.06.021-.078.021s-.289.075-.714.21c-.423-1.233-1.176-2.37-2.508-2.37h-.115C12.135.209 11.669 0 11.265 0 8.159 0 6.675 3.877 6.21 5.846c-1.194.365-2.063.636-2.16.674-.675.213-.694.232-.772.87-.075.462-1.83 14.063-1.83 14.063L15.009 24l.927-21.166z",
+  },
+  "amazon": {
+    id: "amazon",
+    title: "Amazon",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#FF9900\" d=\"M.045 18.02q.107-.174.348-.022q5.455 3.165 11.87 3.166q4.278-.001 8.447-1.595l.315-.14c.138-.06.234-.1.293-.13c.226-.088.39-.046.525.13c.12.174.09.336-.12.48c-.256.19-.6.41-1.006.654q-1.867 1.113-4.185 1.726a17.6 17.6 0 0 1-10.951-.577a17.9 17.9 0 0 1-5.43-3.35q-.15-.113-.151-.22c0-.047.021-.09.051-.13zm6.565-6.218q0-1.507.743-2.577c.495-.71 1.17-1.25 2.04-1.615c.796-.335 1.756-.575 2.912-.72c.39-.046 1.033-.103 1.92-.174v-.37c0-.93-.105-1.558-.3-1.875c-.302-.43-.78-.65-1.44-.65h-.182c-.48.046-.896.196-1.246.46c-.35.27-.575.63-.675 1.096c-.06.3-.206.465-.435.51l-2.52-.315c-.248-.06-.372-.18-.372-.39c0-.046.007-.09.022-.15q.372-1.935 1.82-2.88c.976-.616 2.1-.975 3.39-1.05h.54c1.65 0 2.957.434 3.888 1.29c.135.15.27.3.405.48c.12.165.224.314.283.45c.075.134.15.33.195.57c.06.254.105.42.135.51c.03.104.062.3.076.615c.01.313.02.493.02.553v5.28c0 .376.06.72.165 1.036q.157.471.315.674l.51.674q.136.204.136.36q0 .181-.18.314c-1.2 1.05-1.86 1.62-1.963 1.71q-.247.203-.63.045a6 6 0 0 1-.526-.496l-.31-.347a9 9 0 0 1-.317-.42l-.3-.435c-.81.886-1.603 1.44-2.4 1.665c-.494.15-1.093.227-1.83.227c-1.11 0-2.04-.343-2.76-1.034c-.72-.69-1.08-1.665-1.08-2.94l-.05-.076zm3.753-.438q-.001.848.425 1.364c.285.34.675.512 1.155.512c.045 0 .106-.007.195-.02c.09-.016.134-.023.166-.023c.614-.16 1.08-.553 1.424-1.178c.165-.28.285-.58.36-.91c.09-.32.12-.59.135-.8c.015-.195.015-.54.015-1.005v-.54c-.84 0-1.484.06-1.92.18c-1.275.36-1.92 1.17-1.92 2.43l-.035-.02zm9.162 7.027c.03-.06.075-.11.132-.17q.544-.365 1.05-.5a8 8 0 0 1 1.612-.24c.14-.012.28 0 .41.03c.65.06 1.05.168 1.172.33c.063.09.099.228.099.39v.15c0 .51-.149 1.11-.424 1.8q-.418 1.034-1.156 1.68q-.11.09-.197.09c-.03 0-.06 0-.09-.012c-.09-.044-.107-.12-.064-.24c.54-1.26.806-2.143.806-2.64c0-.15-.03-.27-.087-.344c-.145-.166-.55-.257-1.224-.257q-.364 0-.87.046c-.363.045-.7.09-1 .135q-.134 0-.18-.044c-.03-.03-.036-.047-.02-.077c0-.017.006-.03.02-.063v-.06z\" />",
+    brandColor: "#FF9900",
+    source: "simple-icons:amazon",
+    pathOnly: "M.045 18.02q.107-.174.348-.022q5.455 3.165 11.87 3.166q4.278-.001 8.447-1.595l.315-.14c.138-.06.234-.1.293-.13c.226-.088.39-.046.525.13c.12.174.09.336-.12.48c-.256.19-.6.41-1.006.654q-1.867 1.113-4.185 1.726a17.6 17.6 0 0 1-10.951-.577a17.9 17.9 0 0 1-5.43-3.35q-.15-.113-.151-.22c0-.047.021-.09.051-.13zm6.565-6.218q0-1.507.743-2.577c.495-.71 1.17-1.25 2.04-1.615c.796-.335 1.756-.575 2.912-.72c.39-.046 1.033-.103 1.92-.174v-.37c0-.93-.105-1.558-.3-1.875c-.302-.43-.78-.65-1.44-.65h-.182c-.48.046-.896.196-1.246.46c-.35.27-.575.63-.675 1.096c-.06.3-.206.465-.435.51l-2.52-.315c-.248-.06-.372-.18-.372-.39c0-.046.007-.09.022-.15q.372-1.935 1.82-2.88c.976-.616 2.1-.975 3.39-1.05h.54c1.65 0 2.957.434 3.888 1.29c.135.15.27.3.405.48c.12.165.224.314.283.45c.075.134.15.33.195.57c.06.254.105.42.135.51c.03.104.062.3.076.615c.01.313.02.493.02.553v5.28c0 .376.06.72.165 1.036q.157.471.315.674l.51.674q.136.204.136.36q0 .181-.18.314c-1.2 1.05-1.86 1.62-1.963 1.71q-.247.203-.63.045a6 6 0 0 1-.526-.496l-.31-.347a9 9 0 0 1-.317-.42l-.3-.435c-.81.886-1.603 1.44-2.4 1.665c-.494.15-1.093.227-1.83.227c-1.11 0-2.04-.343-2.76-1.034c-.72-.69-1.08-1.665-1.08-2.94l-.05-.076zm3.753-.438q-.001.848.425 1.364c.285.34.675.512 1.155.512c.045 0 .106-.007.195-.02c.09-.016.134-.023.166-.023c.614-.16 1.08-.553 1.424-1.178c.165-.28.285-.58.36-.91c.09-.32.12-.59.135-.8c.015-.195.015-.54.015-1.005v-.54c-.84 0-1.484.06-1.92.18c-1.275.36-1.92 1.17-1.92 2.43l-.035-.02zm9.162 7.027c.03-.06.075-.11.132-.17q.544-.365 1.05-.5a8 8 0 0 1 1.612-.24c.14-.012.28 0 .41.03c.65.06 1.05.168 1.172.33c.063.09.099.228.099.39v.15c0 .51-.149 1.11-.424 1.8q-.418 1.034-1.156 1.68q-.11.09-.197.09c-.03 0-.06 0-.09-.012c-.09-.044-.107-.12-.064-.24c.54-1.26.806-2.143.806-2.64c0-.15-.03-.27-.087-.344c-.145-.166-.55-.257-1.224-.257q-.364 0-.87.046c-.363.045-.7.09-1 .135q-.134 0-.18-.044c-.03-.03-.036-.047-.02-.077c0-.017.006-.03.02-.063v-.06z",
+  },
+  "visa": {
+    id: "visa",
+    title: "Visa",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#1A1F71\" d=\"M9.112 8.262L5.97 15.758H3.92L2.374 9.775c-.094-.368-.175-.503-.461-.658C1.447 8.864.677 8.627 0 8.479l.046-.217h3.3a.904.904 0 01.894.764l.817 4.338 2.018-5.102zm8.033 5.049c.008-1.979-2.736-2.088-2.717-2.972.006-.269.262-.555.822-.628a3.66 3.66 0 011.913.336l.34-1.59a5.207 5.207 0 00-1.814-.333c-1.917 0-3.266 1.02-3.278 2.479-.012 1.079.963 1.68 1.698 2.04.756.367 1.01.603 1.006.931-.005.504-.602.725-1.16.734-.975.015-1.54-.263-1.992-.473l-.351 1.642c.453.208 1.289.39 2.156.398 2.037 0 3.37-1.006 3.377-2.564m5.061 2.447H24l-1.565-7.496h-1.656a.883.883 0 00-.826.55l-2.909 6.946h2.036l.405-1.12h2.488zm-2.163-2.656l1.02-2.815.588 2.815zm-8.16-4.84l-1.603 7.496H8.34l1.605-7.496z\" />",
+    brandColor: "#1A1F71",
+    source: "simple-icons:visa",
+    pathOnly: "M9.112 8.262L5.97 15.758H3.92L2.374 9.775c-.094-.368-.175-.503-.461-.658C1.447 8.864.677 8.627 0 8.479l.046-.217h3.3a.904.904 0 01.894.764l.817 4.338 2.018-5.102zm8.033 5.049c.008-1.979-2.736-2.088-2.717-2.972.006-.269.262-.555.822-.628a3.66 3.66 0 011.913.336l.34-1.59a5.207 5.207 0 00-1.814-.333c-1.917 0-3.266 1.02-3.278 2.479-.012 1.079.963 1.68 1.698 2.04.756.367 1.01.603 1.006.931-.005.504-.602.725-1.16.734-.975.015-1.54-.263-1.992-.473l-.351 1.642c.453.208 1.289.39 2.156.398 2.037 0 3.37-1.006 3.377-2.564m5.061 2.447H24l-1.565-7.496h-1.656a.883.883 0 00-.826.55l-2.909 6.946h2.036l.405-1.12h2.488zm-2.163-2.656l1.02-2.815.588 2.815zm-8.16-4.84l-1.603 7.496H8.34l1.605-7.496z",
+  },
+  "mastercard": {
+    id: "mastercard",
+    title: "Mastercard",
+    viewBox: "0 0 256 199",
+    body: "<path fill=\"currentColor\" d=\"M46.54 198.011V184.84c0-5.05-3.074-8.342-8.343-8.342c-2.634 0-5.488.878-7.464 3.732c-1.536-2.415-3.731-3.732-7.024-3.732c-2.196 0-4.39.658-6.147 3.073v-2.634h-4.61v21.074h4.61v-11.635c0-3.731 1.976-5.488 5.05-5.488c3.072 0 4.61 1.976 4.61 5.488v11.635h4.61v-11.635c0-3.731 2.194-5.488 5.048-5.488c3.074 0 4.61 1.976 4.61 5.488v11.635zm68.271-21.074h-7.463v-6.366h-4.61v6.366h-4.171v4.17h4.17v9.66c0 4.83 1.976 7.683 7.245 7.683c1.976 0 4.17-.658 5.708-1.536l-1.318-3.952c-1.317.878-2.853 1.098-3.951 1.098c-2.195 0-3.073-1.317-3.073-3.513v-9.44h7.463zm39.076-.44c-2.634 0-4.39 1.318-5.488 3.074v-2.634h-4.61v21.074h4.61v-11.854c0-3.512 1.536-5.488 4.39-5.488c.878 0 1.976.22 2.854.439l1.317-4.39c-.878-.22-2.195-.22-3.073-.22m-59.052 2.196c-2.196-1.537-5.269-2.195-8.562-2.195c-5.268 0-8.78 2.634-8.78 6.805c0 3.513 2.634 5.488 7.244 6.147l2.195.22c2.415.438 3.732 1.097 3.732 2.195c0 1.536-1.756 2.634-4.83 2.634s-5.488-1.098-7.025-2.195l-2.195 3.512c2.415 1.756 5.708 2.634 9 2.634c6.147 0 9.66-2.853 9.66-6.805c0-3.732-2.854-5.708-7.245-6.366l-2.195-.22c-1.976-.22-3.512-.658-3.512-1.975c0-1.537 1.536-2.415 3.951-2.415c2.635 0 5.269 1.097 6.586 1.756zm122.495-2.195c-2.635 0-4.391 1.317-5.489 3.073v-2.634h-4.61v21.074h4.61v-11.854c0-3.512 1.537-5.488 4.39-5.488c.879 0 1.977.22 2.855.439l1.317-4.39c-.878-.22-2.195-.22-3.073-.22m-58.833 10.976c0 6.366 4.39 10.976 11.196 10.976c3.073 0 5.268-.658 7.463-2.414l-2.195-3.732c-1.756 1.317-3.512 1.975-5.488 1.975c-3.732 0-6.366-2.634-6.366-6.805c0-3.951 2.634-6.586 6.366-6.805c1.976 0 3.732.658 5.488 1.976l2.195-3.732c-2.195-1.757-4.39-2.415-7.463-2.415c-6.806 0-11.196 4.61-11.196 10.976m42.588 0v-10.537h-4.61v2.634c-1.537-1.975-3.732-3.073-6.586-3.073c-5.927 0-10.537 4.61-10.537 10.976s4.61 10.976 10.537 10.976c3.073 0 5.269-1.097 6.586-3.073v2.634h4.61zm-16.904 0c0-3.732 2.415-6.805 6.366-6.805c3.732 0 6.367 2.854 6.367 6.805c0 3.732-2.635 6.805-6.367 6.805c-3.951-.22-6.366-3.073-6.366-6.805m-55.1-10.976c-6.147 0-10.538 4.39-10.538 10.976s4.39 10.976 10.757 10.976c3.073 0 6.147-.878 8.562-2.853l-2.196-3.293c-1.756 1.317-3.951 2.195-6.146 2.195c-2.854 0-5.708-1.317-6.367-5.05h15.587v-1.755c.22-6.806-3.732-11.196-9.66-11.196m0 3.951c2.853 0 4.83 1.757 5.268 5.05h-10.976c.439-2.854 2.415-5.05 5.708-5.05m114.372 7.025v-18.879h-4.61v10.976c-1.537-1.975-3.732-3.073-6.586-3.073c-5.927 0-10.537 4.61-10.537 10.976s4.61 10.976 10.537 10.976c3.074 0 5.269-1.097 6.586-3.073v2.634h4.61zm-16.903 0c0-3.732 2.414-6.805 6.366-6.805c3.732 0 6.366 2.854 6.366 6.805c0 3.732-2.634 6.805-6.366 6.805c-3.952-.22-6.366-3.073-6.366-6.805m-154.107 0v-10.537h-4.61v2.634c-1.537-1.975-3.732-3.073-6.586-3.073c-5.927 0-10.537 4.61-10.537 10.976s4.61 10.976 10.537 10.976c3.074 0 5.269-1.097 6.586-3.073v2.634h4.61zm-17.123 0c0-3.732 2.415-6.805 6.366-6.805c3.732 0 6.367 2.854 6.367 6.805c0 3.732-2.635 6.805-6.367 6.805c-3.951-.22-6.366-3.073-6.366-6.805\"/><path fill=\"#ff5f00\" d=\"M93.298 16.903h69.15v124.251h-69.15z\"/><path fill=\"#eb001b\" d=\"M97.689 79.029c0-25.245 11.854-47.637 30.074-62.126C114.373 6.366 97.47 0 79.03 0C35.343 0 0 35.343 0 79.029s35.343 79.029 79.029 79.029c18.44 0 35.343-6.366 48.734-16.904c-18.22-14.269-30.074-36.88-30.074-62.125\"/><path fill=\"#f79e1b\" d=\"M255.746 79.029c0 43.685-35.343 79.029-79.029 79.029c-18.44 0-35.343-6.366-48.734-16.904c18.44-14.488 30.075-36.88 30.075-62.125s-11.855-47.637-30.075-62.126C141.373 6.366 158.277 0 176.717 0c43.686 0 79.03 35.563 79.03 79.029\"/>",
+    brandColor: "#000000",
+    source: "logos:mastercard",
+    isDarkBadge: true,
+  },
+  "airbnb": {
+    id: "airbnb",
+    title: "Airbnb",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#FF5A5F\" d=\"M12.001 18.275c-1.353-1.697-2.148-3.184-2.413-4.457-.263-1.027-.16-1.848.291-2.465.477-.71 1.188-1.056 2.121-1.056s1.643.345 2.12 1.063c.446.61.558 1.432.286 2.465-.291 1.298-1.085 2.785-2.412 4.458zm9.601 1.14c-.185 1.246-1.034 2.28-2.2 2.783-2.253.98-4.483-.583-6.392-2.704 3.157-3.951 3.74-7.028 2.385-9.018-.795-1.14-1.933-1.695-3.394-1.695-2.944 0-4.563 2.49-3.927 5.382.37 1.565 1.352 3.343 2.917 5.332-.98 1.085-1.91 1.856-2.732 2.333-.636.344-1.245.558-1.828.609-2.679.399-4.778-2.2-3.825-4.88.132-.345.395-.98.845-1.961l.025-.053c1.464-3.178 3.242-6.79 5.285-10.795l.053-.132.58-1.116c.45-.822.635-1.19 1.351-1.643.346-.21.77-.315 1.246-.315.954 0 1.698.558 2.016 1.007.158.239.345.557.582.953l.558 1.089.08.159c2.041 4.004 3.821 7.608 5.279 10.794l.026.025.533 1.22.318.764c.243.613.294 1.222.213 1.858zm1.22-2.39c-.186-.583-.505-1.271-.9-2.094v-.03c-1.889-4.006-3.642-7.608-5.307-10.844l-.111-.163C15.317 1.461 14.468 0 12.001 0c-2.44 0-3.476 1.695-4.535 3.898l-.081.16c-1.669 3.236-3.421 6.843-5.303 10.847v.053l-.559 1.22c-.21.504-.317.768-.345.847C-.172 20.74 2.611 24 5.98 24c.027 0 .132 0 .265-.027h.372c1.75-.213 3.554-1.325 5.384-3.317 1.829 1.989 3.635 3.104 5.382 3.317h.372c.133.027.239.027.265.027 3.37.003 6.152-3.261 4.802-6.975z\" />",
+    brandColor: "#FF5A5F",
+    source: "simple-icons:airbnb",
+    pathOnly: "M12.001 18.275c-1.353-1.697-2.148-3.184-2.413-4.457-.263-1.027-.16-1.848.291-2.465.477-.71 1.188-1.056 2.121-1.056s1.643.345 2.12 1.063c.446.61.558 1.432.286 2.465-.291 1.298-1.085 2.785-2.412 4.458zm9.601 1.14c-.185 1.246-1.034 2.28-2.2 2.783-2.253.98-4.483-.583-6.392-2.704 3.157-3.951 3.74-7.028 2.385-9.018-.795-1.14-1.933-1.695-3.394-1.695-2.944 0-4.563 2.49-3.927 5.382.37 1.565 1.352 3.343 2.917 5.332-.98 1.085-1.91 1.856-2.732 2.333-.636.344-1.245.558-1.828.609-2.679.399-4.778-2.2-3.825-4.88.132-.345.395-.98.845-1.961l.025-.053c1.464-3.178 3.242-6.79 5.285-10.795l.053-.132.58-1.116c.45-.822.635-1.19 1.351-1.643.346-.21.77-.315 1.246-.315.954 0 1.698.558 2.016 1.007.158.239.345.557.582.953l.558 1.089.08.159c2.041 4.004 3.821 7.608 5.279 10.794l.026.025.533 1.22.318.764c.243.613.294 1.222.213 1.858zm1.22-2.39c-.186-.583-.505-1.271-.9-2.094v-.03c-1.889-4.006-3.642-7.608-5.307-10.844l-.111-.163C15.317 1.461 14.468 0 12.001 0c-2.44 0-3.476 1.695-4.535 3.898l-.081.16c-1.669 3.236-3.421 6.843-5.303 10.847v.053l-.559 1.22c-.21.504-.317.768-.345.847C-.172 20.74 2.611 24 5.98 24c.027 0 .132 0 .265-.027h.372c1.75-.213 3.554-1.325 5.384-3.317 1.829 1.989 3.635 3.104 5.382 3.317h.372c.133.027.239.027.265.027 3.37.003 6.152-3.261 4.802-6.975z",
+  },
+  "uber": {
+    id: "uber",
+    title: "Uber",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"currentColor\" d=\"M0 7.97v4.958c0 1.867 1.302 3.101 3 3.101.826 0 1.562-.316 2.094-.87v.736H6.27V7.97H5.082v4.888c0 1.257-.85 2.106-1.947 2.106-1.11 0-1.946-.827-1.946-2.106V7.971H0zm7.44 0v7.925h1.13v-.725c.521.532 1.257.86 2.06.86a3.006 3.006 0 0 0 3.034-3.01 3.01 3.01 0 0 0-3.033-3.024 2.86 2.86 0 0 0-2.049.861V7.971H7.439zm9.869 2.038c-1.687 0-2.965 1.37-2.965 3 0 1.72 1.334 3.01 3.066 3.01 1.053 0 1.913-.463 2.49-1.233l-.826-.611c-.43.577-.996.847-1.664.847-.973 0-1.753-.7-1.912-1.64h4.697v-.373c0-1.72-1.222-3-2.886-3zm6.295.068c-.634 0-1.098.294-1.381.758v-.713h-1.131v5.774h1.142V12.61c0-.894.544-1.47 1.291-1.47H24v-1.065h-.396zm-6.319.928c.85 0 1.564.588 1.756 1.47H15.52c.203-.882.916-1.47 1.765-1.47zm-6.732.012c1.086 0 1.98.883 1.98 2.004a1.993 1.993 0 0 1-1.98 2.001A1.989 1.989 0 0 1 8.56 13.02a1.99 1.99 0 0 1 1.992-2.004z\" />",
+    brandColor: "#000000",
+    source: "simple-icons:uber",
+    pathOnly: "M0 7.97v4.958c0 1.867 1.302 3.101 3 3.101.826 0 1.562-.316 2.094-.87v.736H6.27V7.97H5.082v4.888c0 1.257-.85 2.106-1.947 2.106-1.11 0-1.946-.827-1.946-2.106V7.971H0zm7.44 0v7.925h1.13v-.725c.521.532 1.257.86 2.06.86a3.006 3.006 0 0 0 3.034-3.01 3.01 3.01 0 0 0-3.033-3.024 2.86 2.86 0 0 0-2.049.861V7.971H7.439zm9.869 2.038c-1.687 0-2.965 1.37-2.965 3 0 1.72 1.334 3.01 3.066 3.01 1.053 0 1.913-.463 2.49-1.233l-.826-.611c-.43.577-.996.847-1.664.847-.973 0-1.753-.7-1.912-1.64h4.697v-.373c0-1.72-1.222-3-2.886-3zm6.295.068c-.634 0-1.098.294-1.381.758v-.713h-1.131v5.774h1.142V12.61c0-.894.544-1.47 1.291-1.47H24v-1.065h-.396zm-6.319.928c.85 0 1.564.588 1.756 1.47H15.52c.203-.882.916-1.47 1.765-1.47zm-6.732.012c1.086 0 1.98.883 1.98 2.004a1.993 1.993 0 0 1-1.98 2.001A1.989 1.989 0 0 1 8.56 13.02a1.99 1.99 0 0 1 1.992-2.004z",
+    isDarkBadge: true,
+  },
+  "slack": {
+    id: "slack",
+    title: "Slack",
+    viewBox: "0 0 256 256",
+    body: "<path fill=\"#e01e5a\" d=\"M53.841 161.32c0 14.832-11.987 26.82-26.819 26.82S.203 176.152.203 161.32c0-14.831 11.987-26.818 26.82-26.818H53.84zm13.41 0c0-14.831 11.987-26.818 26.819-26.818s26.819 11.987 26.819 26.819v67.047c0 14.832-11.987 26.82-26.82 26.82c-14.83 0-26.818-11.988-26.818-26.82z\"/><path fill=\"#36c5f0\" d=\"M94.07 53.638c-14.832 0-26.82-11.987-26.82-26.819S79.239 0 94.07 0s26.819 11.987 26.819 26.819v26.82zm0 13.613c14.832 0 26.819 11.987 26.819 26.819s-11.987 26.819-26.82 26.819H26.82C11.987 120.889 0 108.902 0 94.069c0-14.83 11.987-26.818 26.819-26.818z\"/><path fill=\"#2eb67d\" d=\"M201.55 94.07c0-14.832 11.987-26.82 26.818-26.82s26.82 11.988 26.82 26.82s-11.988 26.819-26.82 26.819H201.55zm-13.41 0c0 14.832-11.988 26.819-26.82 26.819c-14.831 0-26.818-11.987-26.818-26.82V26.82C134.502 11.987 146.489 0 161.32 0s26.819 11.987 26.819 26.819z\"/><path fill=\"#ecb22e\" d=\"M161.32 201.55c14.832 0 26.82 11.987 26.82 26.818s-11.988 26.82-26.82 26.82c-14.831 0-26.818-11.988-26.818-26.82V201.55zm0-13.41c-14.831 0-26.818-11.988-26.818-26.82c0-14.831 11.987-26.818 26.819-26.818h67.25c14.832 0 26.82 11.987 26.82 26.819s-11.988 26.819-26.82 26.819z\"/>",
+    brandColor: "#000000",
+    source: "logos:slack-icon",
+    isDarkBadge: true,
+  },
+  "notion": {
+    id: "notion",
+    title: "Notion",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"currentColor\" d=\"M4.459 4.208c.746.606 1.026.56 2.428.466l13.215-.793c.28 0 .047-.28-.046-.326L17.86 1.968c-.42-.326-.981-.7-2.055-.607L3.01 2.295c-.466.046-.56.28-.374.466zm.793 3.08v13.904c0 .747.373 1.027 1.214.98l14.523-.84c.841-.046.935-.56.935-1.167V6.354c0-.606-.233-.933-.748-.887l-15.177.887c-.56.047-.747.327-.747.933zm14.337.745c.093.42 0 .84-.42.888l-.7.14v10.264c-.608.327-1.168.514-1.635.514-.748 0-.935-.234-1.495-.933l-4.577-7.186v6.952L12.21 19s0 .84-1.168.84l-3.222.186c-.093-.186 0-.653.327-.746l.84-.233V9.854L7.822 9.76c-.094-.42.14-1.026.793-1.073l3.456-.233 4.764 7.279v-6.44l-1.215-.139c-.093-.514.28-.887.747-.933zM1.936 1.035l13.31-.98c1.634-.14 2.055-.047 3.082.7l4.249 2.986c.7.513.934.653.934 1.213v16.378c0 1.026-.373 1.634-1.68 1.726l-15.458.934c-.98.047-1.448-.093-1.962-.747l-3.129-4.06c-.56-.747-.793-1.306-.793-1.96V2.667c0-.839.374-1.54 1.447-1.632z\" />",
+    brandColor: "#000000",
+    source: "simple-icons:notion",
+    pathOnly: "M4.459 4.208c.746.606 1.026.56 2.428.466l13.215-.793c.28 0 .047-.28-.046-.326L17.86 1.968c-.42-.326-.981-.7-2.055-.607L3.01 2.295c-.466.046-.56.28-.374.466zm.793 3.08v13.904c0 .747.373 1.027 1.214.98l14.523-.84c.841-.046.935-.56.935-1.167V6.354c0-.606-.233-.933-.748-.887l-15.177.887c-.56.047-.747.327-.747.933zm14.337.745c.093.42 0 .84-.42.888l-.7.14v10.264c-.608.327-1.168.514-1.635.514-.748 0-.935-.234-1.495-.933l-4.577-7.186v6.952L12.21 19s0 .84-1.168.84l-3.222.186c-.093-.186 0-.653.327-.746l.84-.233V9.854L7.822 9.76c-.094-.42.14-1.026.793-1.073l3.456-.233 4.764 7.279v-6.44l-1.215-.139c-.093-.514.28-.887.747-.933zM1.936 1.035l13.31-.98c1.634-.14 2.055-.047 3.082.7l4.249 2.986c.7.513.934.653.934 1.213v16.378c0 1.026-.373 1.634-1.68 1.726l-15.458.934c-.98.047-1.448-.093-1.962-.747l-3.129-4.06c-.56-.747-.793-1.306-.793-1.96V2.667c0-.839.374-1.54 1.447-1.632z",
+    isDarkBadge: true,
+  },
+  "hubspot": {
+    id: "hubspot",
+    title: "HubSpot",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#FF7A59\" d=\"M18.164 7.93V5.084a2.198 2.198 0 001.267-1.978v-.067A2.2 2.2 0 0017.238.845h-.067a2.2 2.2 0 00-2.193 2.193v.067a2.196 2.196 0 001.252 1.973l.013.006v2.852a6.22 6.22 0 00-2.969 1.31l.012-.01-7.828-6.095A2.497 2.497 0 104.3 4.656l-.012.006 7.697 5.991a6.176 6.176 0 00-1.038 3.446c0 1.343.425 2.588 1.147 3.607l-.013-.02-2.342 2.343a1.968 1.968 0 00-.58-.095h-.002a2.033 2.033 0 102.033 2.033 1.978 1.978 0 00-.1-.595l.005.014 2.317-2.317a6.247 6.247 0 104.782-11.134l-.036-.005zm-.964 9.378a3.206 3.206 0 113.215-3.207v.002a3.206 3.206 0 01-3.207 3.207z\"/>",
+    brandColor: "#FF7A59",
+    source: "simple-icons:hubspot",
+  },
+  "mailchimp": {
+    id: "mailchimp",
+    title: "Mailchimp",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"currentColor\" d=\"M11.267 0C6.791-.015-1.82 10.246 1.397 12.964l.79.669a3.88 3.88 0 0 0-.22 1.792c.084.84.518 1.644 1.22 2.266.666.59 1.542.964 2.392.964 1.406 3.24 4.62 5.228 8.386 5.34 4.04.12 7.433-1.776 8.854-5.182.093-.24.488-1.316.488-2.267 0-.956-.54-1.352-.885-1.352-.01-.037-.078-.286-.172-.586-.093-.3-.19-.51-.19-.51.375-.563.382-1.065.332-1.35-.053-.353-.2-.653-.496-.964-.296-.311-.902-.63-1.753-.868l-.446-.124c-.002-.019-.024-1.053-.043-1.497-.014-.32-.042-.822-.197-1.315-.186-.668-.508-1.253-.911-1.627 1.112-1.152 1.806-2.422 1.804-3.511-.003-2.095-2.576-2.729-5.746-1.416l-.672.285A678.22 678.22 0 0 0 12.7.504C12.304.159 11.817.002 11.267 0zm.073.873c.166 0 .322.019.465.058.297.084 1.28 1.224 1.28 1.224s-1.826 1.013-3.52 2.426c-2.28 1.757-4.005 4.311-5.037 7.082-.811.158-1.526.618-1.963 1.253-.261-.218-.748-.64-.834-.804-.698-1.326.761-3.902 1.781-5.357C5.834 3.44 9.37.867 11.34.873zm3.286 3.273c.04-.002.06.05.028.074-.143.11-.299.26-.413.414a.04.04 0 0 0 .031.064c.659.004 1.587.235 2.192.574.041.023.012.103-.034.092-.915-.21-2.414-.369-3.97.01-1.39.34-2.45.863-3.224 1.426-.04.028-.086-.023-.055-.06.896-1.035 1.999-1.935 2.987-2.44.034-.018.07.019.052.052-.079.143-.23.447-.278.678-.007.035.032.063.062.042.615-.42 1.684-.868 2.622-.926zm3.023 3.205l.056.001a.896.896 0 0 1 .456.146c.534.355.61 1.216.638 1.845.015.36.059 1.229.074 1.478.034.571.184.651.487.751.17.057.33.098.563.164.706.198 1.125.4 1.39.658.157.162.23.333.253.497.083.608-.472 1.36-1.942 2.041-1.607.746-3.557.935-4.904.785l-.471-.053c-1.078-.145-1.693 1.247-1.046 2.201.417.615 1.552 1.015 2.688 1.015 2.604 0 4.605-1.111 5.35-2.072a.987.987 0 0 0 .06-.085c.036-.055.006-.085-.04-.054-.608.416-3.31 2.069-6.2 1.571 0 0-.351-.057-.672-.182-.255-.1-.788-.344-.853-.891 2.333.72 3.801.039 3.801.039a.072.072 0 0 0 .042-.072.067.067 0 0 0-.074-.06s-1.911.283-3.718-.378c.197-.64.72-.408 1.51-.345a11.045 11.045 0 0 0 3.647-.394c.818-.234 1.892-.697 2.727-1.356.281.618.38 1.299.38 1.299s.219-.04.4.073c.173.106.299.326.213.895-.176 1.063-.628 1.926-1.387 2.72a5.714 5.714 0 0 1-1.666 1.244c-.34.18-.704.334-1.087.46-2.863.935-5.794-.093-6.739-2.3a3.545 3.545 0 0 1-.189-.522c-.403-1.455-.06-3.2 1.008-4.299.065-.07.132-.153.132-.256 0-.087-.055-.179-.102-.243-.374-.543-1.669-1.466-1.409-3.254.187-1.284 1.31-2.189 2.357-2.135.089.004.177.01.266.015.453.027.85.085 1.223.1.625.028 1.187-.063 1.853-.618.225-.187.405-.35.71-.401.028-.005.092-.028.215-.028zm.022 2.18a.42.42 0 0 0-.06.005c-.335.054-.347.468-.228 1.04.068.32.187.595.32.765.175-.02.343-.022.498 0 .089-.205.104-.557.024-.942-.112-.535-.261-.872-.554-.868zm-3.66 1.546a1.724 1.724 0 0 0-1.016.326c-.16.117-.311.28-.29.378.008.032.031.056.088.063.131.015.592-.217 1.122-.25.374-.023.684.094.923.2.239.104.386.173.443.113.037-.038.026-.11-.031-.204-.118-.192-.36-.387-.618-.497a1.601 1.601 0 0 0-.621-.129zm4.082.81c-.171-.003-.313.186-.317.42-.004.236.131.43.303.432.172.003.314-.185.318-.42.004-.236-.132-.429-.304-.432zm-3.58.172c-.05 0-.102.002-.155.008-.311.05-.483.152-.593.247-.094.082-.152.173-.152.237a.075.075 0 0 0 .075.076c.07 0 .228-.063.228-.063a1.98 1.98 0 0 1 1.001-.104c.157.018.23.027.265-.026.01-.016.022-.049-.01-.1-.063-.103-.311-.269-.66-.275zm2.26.4c-.127 0-.235.051-.283.148-.075.154.035.363.246.466.21.104.443.063.52-.09.075-.155-.035-.364-.246-.467a.542.542 0 0 0-.237-.058zm-11.635.024c.048 0 .098 0 .149.003.73.04 1.806.6 2.052 2.19.217 1.41-.128 2.843-1.449 3.069-.123.02-.248.029-.374.026-1.22-.033-2.539-1.132-2.67-2.435-.145-1.44.591-2.548 1.894-2.811.117-.024.252-.04.398-.042zm-.07.927a1.144 1.144 0 0 0-.847.364c-.38.418-.439.988-.366 1.19.027.073.07.094.1.098.064.008.16-.039.22-.2a1.2 1.2 0 0 0 .017-.052 1.58 1.58 0 0 1 .157-.37.689.689 0 0 1 .955-.199c.266.174.369.5.255.81-.058.161-.154.469-.133.721.043.511.357.717.64.738.274.01.466-.143.515-.256.029-.067.005-.107-.011-.125-.043-.053-.113-.037-.18-.021a.638.638 0 0 1-.16.022.347.347 0 0 1-.294-.148c-.078-.12-.073-.3.013-.504.011-.028.025-.058.04-.092.138-.308.368-.825.11-1.317-.195-.37-.513-.602-.894-.65a1.135 1.135 0 0 0-.138-.01z\" />",
+    brandColor: "#FFE01B",
+    source: "simple-icons:mailchimp",
+    pathOnly: "M11.267 0C6.791-.015-1.82 10.246 1.397 12.964l.79.669a3.88 3.88 0 0 0-.22 1.792c.084.84.518 1.644 1.22 2.266.666.59 1.542.964 2.392.964 1.406 3.24 4.62 5.228 8.386 5.34 4.04.12 7.433-1.776 8.854-5.182.093-.24.488-1.316.488-2.267 0-.956-.54-1.352-.885-1.352-.01-.037-.078-.286-.172-.586-.093-.3-.19-.51-.19-.51.375-.563.382-1.065.332-1.35-.053-.353-.2-.653-.496-.964-.296-.311-.902-.63-1.753-.868l-.446-.124c-.002-.019-.024-1.053-.043-1.497-.014-.32-.042-.822-.197-1.315-.186-.668-.508-1.253-.911-1.627 1.112-1.152 1.806-2.422 1.804-3.511-.003-2.095-2.576-2.729-5.746-1.416l-.672.285A678.22 678.22 0 0 0 12.7.504C12.304.159 11.817.002 11.267 0zm.073.873c.166 0 .322.019.465.058.297.084 1.28 1.224 1.28 1.224s-1.826 1.013-3.52 2.426c-2.28 1.757-4.005 4.311-5.037 7.082-.811.158-1.526.618-1.963 1.253-.261-.218-.748-.64-.834-.804-.698-1.326.761-3.902 1.781-5.357C5.834 3.44 9.37.867 11.34.873zm3.286 3.273c.04-.002.06.05.028.074-.143.11-.299.26-.413.414a.04.04 0 0 0 .031.064c.659.004 1.587.235 2.192.574.041.023.012.103-.034.092-.915-.21-2.414-.369-3.97.01-1.39.34-2.45.863-3.224 1.426-.04.028-.086-.023-.055-.06.896-1.035 1.999-1.935 2.987-2.44.034-.018.07.019.052.052-.079.143-.23.447-.278.678-.007.035.032.063.062.042.615-.42 1.684-.868 2.622-.926zm3.023 3.205l.056.001a.896.896 0 0 1 .456.146c.534.355.61 1.216.638 1.845.015.36.059 1.229.074 1.478.034.571.184.651.487.751.17.057.33.098.563.164.706.198 1.125.4 1.39.658.157.162.23.333.253.497.083.608-.472 1.36-1.942 2.041-1.607.746-3.557.935-4.904.785l-.471-.053c-1.078-.145-1.693 1.247-1.046 2.201.417.615 1.552 1.015 2.688 1.015 2.604 0 4.605-1.111 5.35-2.072a.987.987 0 0 0 .06-.085c.036-.055.006-.085-.04-.054-.608.416-3.31 2.069-6.2 1.571 0 0-.351-.057-.672-.182-.255-.1-.788-.344-.853-.891 2.333.72 3.801.039 3.801.039a.072.072 0 0 0 .042-.072.067.067 0 0 0-.074-.06s-1.911.283-3.718-.378c.197-.64.72-.408 1.51-.345a11.045 11.045 0 0 0 3.647-.394c.818-.234 1.892-.697 2.727-1.356.281.618.38 1.299.38 1.299s.219-.04.4.073c.173.106.299.326.213.895-.176 1.063-.628 1.926-1.387 2.72a5.714 5.714 0 0 1-1.666 1.244c-.34.18-.704.334-1.087.46-2.863.935-5.794-.093-6.739-2.3a3.545 3.545 0 0 1-.189-.522c-.403-1.455-.06-3.2 1.008-4.299.065-.07.132-.153.132-.256 0-.087-.055-.179-.102-.243-.374-.543-1.669-1.466-1.409-3.254.187-1.284 1.31-2.189 2.357-2.135.089.004.177.01.266.015.453.027.85.085 1.223.1.625.028 1.187-.063 1.853-.618.225-.187.405-.35.71-.401.028-.005.092-.028.215-.028zm.022 2.18a.42.42 0 0 0-.06.005c-.335.054-.347.468-.228 1.04.068.32.187.595.32.765.175-.02.343-.022.498 0 .089-.205.104-.557.024-.942-.112-.535-.261-.872-.554-.868zm-3.66 1.546a1.724 1.724 0 0 0-1.016.326c-.16.117-.311.28-.29.378.008.032.031.056.088.063.131.015.592-.217 1.122-.25.374-.023.684.094.923.2.239.104.386.173.443.113.037-.038.026-.11-.031-.204-.118-.192-.36-.387-.618-.497a1.601 1.601 0 0 0-.621-.129zm4.082.81c-.171-.003-.313.186-.317.42-.004.236.131.43.303.432.172.003.314-.185.318-.42.004-.236-.132-.429-.304-.432zm-3.58.172c-.05 0-.102.002-.155.008-.311.05-.483.152-.593.247-.094.082-.152.173-.152.237a.075.075 0 0 0 .075.076c.07 0 .228-.063.228-.063a1.98 1.98 0 0 1 1.001-.104c.157.018.23.027.265-.026.01-.016.022-.049-.01-.1-.063-.103-.311-.269-.66-.275zm2.26.4c-.127 0-.235.051-.283.148-.075.154.035.363.246.466.21.104.443.063.52-.09.075-.155-.035-.364-.246-.467a.542.542 0 0 0-.237-.058zm-11.635.024c.048 0 .098 0 .149.003.73.04 1.806.6 2.052 2.19.217 1.41-.128 2.843-1.449 3.069-.123.02-.248.029-.374.026-1.22-.033-2.539-1.132-2.67-2.435-.145-1.44.591-2.548 1.894-2.811.117-.024.252-.04.398-.042zm-.07.927a1.144 1.144 0 0 0-.847.364c-.38.418-.439.988-.366 1.19.027.073.07.094.1.098.064.008.16-.039.22-.2a1.2 1.2 0 0 0 .017-.052 1.58 1.58 0 0 1 .157-.37.689.689 0 0 1 .955-.199c.266.174.369.5.255.81-.058.161-.154.469-.133.721.043.511.357.717.64.738.274.01.466-.143.515-.256.029-.067.005-.107-.011-.125-.043-.053-.113-.037-.18-.021a.638.638 0 0 1-.16.022.347.347 0 0 1-.294-.148c-.078-.12-.073-.3.013-.504.011-.028.025-.058.04-.092.138-.308.368-.825.11-1.317-.195-.37-.513-.602-.894-.65a1.135 1.135 0 0 0-.138-.01z",
+    isDarkBadge: true,
+  },
+  "meta_ads": {
+    id: "meta_ads",
+    title: "Meta",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#0467DF\" d=\"M6.915 4.03c-1.968 0-3.683 1.28-4.871 3.113C.704 9.208 0 11.883 0 14.449c0 .706.07 1.369.21 1.973a6.624 6.624 0 0 0 .265.86 5.297 5.297 0 0 0 .371.761c.696 1.159 1.818 1.927 3.593 1.927 1.497 0 2.633-.671 3.965-2.444.76-1.012 1.144-1.626 2.663-4.32l.756-1.339.186-.325c.061.1.121.196.183.3l2.152 3.595c.724 1.21 1.665 2.556 2.47 3.314 1.046.987 1.992 1.22 3.06 1.22 1.075 0 1.876-.355 2.455-.843a3.743 3.743 0 0 0 .81-.973c.542-.939.861-2.127.861-3.745 0-2.72-.681-5.357-2.084-7.45-1.282-1.912-2.957-2.93-4.716-2.93-1.047 0-2.088.467-3.053 1.308-.652.57-1.257 1.29-1.82 2.05-.69-.875-1.335-1.547-1.958-2.056-1.182-.966-2.315-1.303-3.454-1.303zm10.16 2.053c1.147 0 2.188.758 2.992 1.999 1.132 1.748 1.647 4.195 1.647 6.4 0 1.548-.368 2.9-1.839 2.9-.58 0-1.027-.23-1.664-1.004-.496-.601-1.343-1.878-2.832-4.358l-.617-1.028a44.908 44.908 0 0 0-1.255-1.98c.07-.109.141-.224.211-.327 1.12-1.667 2.118-2.602 3.358-2.602zm-10.201.553c1.265 0 2.058.791 2.675 1.446.307.327.737.871 1.234 1.579l-1.02 1.566c-.757 1.163-1.882 3.017-2.837 4.338-1.191 1.649-1.81 1.817-2.486 1.817-.524 0-1.038-.237-1.383-.794-.263-.426-.464-1.13-.464-2.046 0-2.221.63-4.535 1.66-6.088.454-.687.964-1.226 1.533-1.533a2.264 2.264 0 0 1 1.088-.285z\" />",
+    brandColor: "#0467DF",
+    source: "simple-icons:meta",
+    pathOnly: "M6.915 4.03c-1.968 0-3.683 1.28-4.871 3.113C.704 9.208 0 11.883 0 14.449c0 .706.07 1.369.21 1.973a6.624 6.624 0 0 0 .265.86 5.297 5.297 0 0 0 .371.761c.696 1.159 1.818 1.927 3.593 1.927 1.497 0 2.633-.671 3.965-2.444.76-1.012 1.144-1.626 2.663-4.32l.756-1.339.186-.325c.061.1.121.196.183.3l2.152 3.595c.724 1.21 1.665 2.556 2.47 3.314 1.046.987 1.992 1.22 3.06 1.22 1.075 0 1.876-.355 2.455-.843a3.743 3.743 0 0 0 .81-.973c.542-.939.861-2.127.861-3.745 0-2.72-.681-5.357-2.084-7.45-1.282-1.912-2.957-2.93-4.716-2.93-1.047 0-2.088.467-3.053 1.308-.652.57-1.257 1.29-1.82 2.05-.69-.875-1.335-1.547-1.958-2.056-1.182-.966-2.315-1.303-3.454-1.303zm10.16 2.053c1.147 0 2.188.758 2.992 1.999 1.132 1.748 1.647 4.195 1.647 6.4 0 1.548-.368 2.9-1.839 2.9-.58 0-1.027-.23-1.664-1.004-.496-.601-1.343-1.878-2.832-4.358l-.617-1.028a44.908 44.908 0 0 0-1.255-1.98c.07-.109.141-.224.211-.327 1.12-1.667 2.118-2.602 3.358-2.602zm-10.201.553c1.265 0 2.058.791 2.675 1.446.307.327.737.871 1.234 1.579l-1.02 1.566c-.757 1.163-1.882 3.017-2.837 4.338-1.191 1.649-1.81 1.817-2.486 1.817-.524 0-1.038-.237-1.383-.794-.263-.426-.464-1.13-.464-2.046 0-2.221.63-4.535 1.66-6.088.454-.687.964-1.226 1.533-1.533a2.264 2.264 0 0 1 1.088-.285z",
+  },
+  "google_ads": {
+    id: "google_ads",
+    title: "Google ads",
+    viewBox: "0 0 256 230",
+    body: "<path fill=\"#fbbc04\" d=\"M5.888 166.405L90.88 20.9c10.796 6.356 65.236 36.484 74.028 42.214L79.916 208.627c-9.295 12.28-85.804-23.587-74.028-42.23z\"/><path fill=\"#4285f4\" d=\"M250.084 166.402L165.092 20.906C153.21 1.132 127.62-6.054 106.601 5.625S79.182 42.462 91.064 63.119l84.992 145.514c11.882 19.765 37.473 26.95 58.492 15.272c20.1-11.68 27.418-37.73 15.536-57.486z\"/><ellipse cx=\"42.664\" cy=\"187.924\" fill=\"#34a853\" rx=\"42.664\" ry=\"41.604\"/>",
+    brandColor: "#000000",
+    source: "logos:google-ads",
+    isDarkBadge: true,
+  },
+  "salesforce": {
+    id: "salesforce",
+    title: "Salesforce",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#000000\" d=\"M10.006 5.415a4.2 4.2 0 0 1 3.045-1.306c1.56 0 2.954.9 3.69 2.205c.63-.3 1.35-.45 2.1-.45c2.85 0 5.159 2.34 5.159 5.22s-2.31 5.22-5.176 5.22c-.345 0-.69-.044-1.02-.104a3.75 3.75 0 0 1-3.3 1.95c-.6 0-1.155-.15-1.65-.375A4.31 4.31 0 0 1 8.88 20.4a4.3 4.3 0 0 1-4.05-2.82c-.27.062-.54.076-.825.076c-2.204 0-4.005-1.8-4.005-4.05c0-1.5.811-2.805 2.01-3.51c-.255-.57-.39-1.2-.39-1.846c0-2.58 2.1-4.65 4.65-4.65c1.53 0 2.85.705 3.72 1.8\" />",
+    brandColor: "#000000",
+    source: "simple-icons:salesforce",
+    pathOnly: "M10.006 5.415a4.2 4.2 0 0 1 3.045-1.306c1.56 0 2.954.9 3.69 2.205c.63-.3 1.35-.45 2.1-.45c2.85 0 5.159 2.34 5.159 5.22s-2.31 5.22-5.176 5.22c-.345 0-.69-.044-1.02-.104a3.75 3.75 0 0 1-3.3 1.95c-.6 0-1.155-.15-1.65-.375A4.31 4.31 0 0 1 8.88 20.4a4.3 4.3 0 0 1-4.05-2.82c-.27.062-.54.076-.825.076c-2.204 0-4.005-1.8-4.005-4.05c0-1.5.811-2.805 2.01-3.51c-.255-.57-.39-1.2-.39-1.846c0-2.58 2.1-4.65 4.65-4.65c1.53 0 2.85.705 3.72 1.8",
+  },
+  "semrush": {
+    id: "semrush",
+    title: "Semrush",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#FF642D\" d=\"M20.698 11.911c0 .444-.226.516-.79.516-.596 0-.706-.1-.77-.554-.118-1.152-.896-2.13-2.201-2.24-.418-.034-.518-.19-.518-.706 0-.48.074-.708.446-.708 2.265.01 3.833 1.832 3.833 3.69v.002zm3.3 0c0-3.456-2.338-7.11-7.74-7.11H5.52c-.218 0-.354.11-.354.31 0 .109.082.209.156.26.388.31.97.654 1.73 1.036.743.372 1.323.616 1.903.852.246.1.336.208.336.344 0 .19-.136.308-.4.308H.372c-.254 0-.372.164-.372.326 0 .136.044.254.162.372.69.726 1.796 1.596 3.4 2.604 1.466.91 2.98 1.74 4.533 2.492.236.11.308.236.308.372-.008.154-.126.28-.4.28H4.1c-.216 0-.344.12-.344.3 0 .1.08.226.19.326.888.808 2.311 1.688 4.207 2.494 2.53 1.08 5.094 1.721 7.98 1.721 5.465 0 7.867-4.087 7.867-7.289l-.002.002zm-7.133 5.104c-2.794 0-5.132-2.276-5.132-5.114 0-2.794 2.33-5.04 5.132-5.04 2.863 0 5.111 2.24 5.111 5.04a5.086 5.086 0 0 1-5.111 5.114z\" />",
+    brandColor: "#FF642D",
+    source: "simple-icons:semrush",
+    pathOnly: "M20.698 11.911c0 .444-.226.516-.79.516-.596 0-.706-.1-.77-.554-.118-1.152-.896-2.13-2.201-2.24-.418-.034-.518-.19-.518-.706 0-.48.074-.708.446-.708 2.265.01 3.833 1.832 3.833 3.69v.002zm3.3 0c0-3.456-2.338-7.11-7.74-7.11H5.52c-.218 0-.354.11-.354.31 0 .109.082.209.156.26.388.31.97.654 1.73 1.036.743.372 1.323.616 1.903.852.246.1.336.208.336.344 0 .19-.136.308-.4.308H.372c-.254 0-.372.164-.372.326 0 .136.044.254.162.372.69.726 1.796 1.596 3.4 2.604 1.466.91 2.98 1.74 4.533 2.492.236.11.308.236.308.372-.008.154-.126.28-.4.28H4.1c-.216 0-.344.12-.344.3 0 .1.08.226.19.326.888.808 2.311 1.688 4.207 2.494 2.53 1.08 5.094 1.721 7.98 1.721 5.465 0 7.867-4.087 7.867-7.289l-.002.002zm-7.133 5.104c-2.794 0-5.132-2.276-5.132-5.114 0-2.794 2.33-5.04 5.132-5.04 2.863 0 5.111 2.24 5.111 5.04a5.086 5.086 0 0 1-5.111 5.114z",
+  },
+  "zapier": {
+    id: "zapier",
+    title: "Zapier",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#FF4F00\" d=\"M4.157 0A4.151 4.151 0 0 0 0 4.161v15.678A4.151 4.151 0 0 0 4.157 24h15.682A4.152 4.152 0 0 0 24 19.839V4.161A4.152 4.152 0 0 0 19.839 0H4.157Zm10.61 8.761h.03a.577.577 0 0 1 .23.038.585.585 0 0 1 .201.124.63.63 0 0 1 .162.431.612.612 0 0 1-.162.435.58.58 0 0 1-.201.128.58.58 0 0 1-.23.042.529.529 0 0 1-.235-.042.585.585 0 0 1-.332-.328.559.559 0 0 1-.038-.235.613.613 0 0 1 .17-.431.59.59 0 0 1 .405-.162Zm2.853 1.572c.03.004.061.004.095.004.325-.011.646.064.937.219.238.144.431.355.552.609.128.279.189.582.185.888v.193a2 2 0 0 1 0 .219h-2.498c.003.227.075.45.204.642a.78.78 0 0 0 .646.265.714.714 0 0 0 .484-.136.642.642 0 0 0 .23-.318l.915.257a1.398 1.398 0 0 1-.28.537c-.14.159-.321.284-.521.355a2.234 2.234 0 0 1-.836.136 1.923 1.923 0 0 1-1.001-.245 1.618 1.618 0 0 1-.665-.703 2.221 2.221 0 0 1-.227-1.036 1.95 1.95 0 0 1 .48-1.398 1.9 1.9 0 0 1 1.3-.488Zm-9.607.023c.162.004.325.026.48.079.207.065.4.174.563.314.26.302.393.692.366 1.088v2.276H8.53l-.109-.711h-.065c-.064.163-.155.31-.272.439a1.122 1.122 0 0 1-.374.264 1.023 1.023 0 0 1-.453.083 1.334 1.334 0 0 1-.866-.264.965.965 0 0 1-.329-.801.993.993 0 0 1 .076-.431 1.02 1.02 0 0 1 .242-.363 1.478 1.478 0 0 1 1.043-.303h.952v-.181a.696.696 0 0 0-.136-.454.553.553 0 0 0-.438-.154.695.695 0 0 0-.378.086.48.48 0 0 0-.193.254l-.99-.144a1.26 1.26 0 0 1 .257-.563c.14-.174.321-.302.533-.378.261-.091.54-.136.82-.129.053-.003.106-.007.163-.007Zm4.384.007c.174 0 .347.038.506.114.182.083.34.211.458.374.257.423.377.911.351 1.406a2.53 2.53 0 0 1-.355 1.448 1.148 1.148 0 0 1-1.009.517c-.204 0-.401-.045-.582-.136a1.052 1.052 0 0 1-.48-.457 1.298 1.298 0 0 1-.114-.234h-.045l.004 1.784h-1.059v-4.713h.904l.117.805h.057c.068-.208.177-.401.328-.56a1.129 1.129 0 0 1 .843-.344h.076v-.004Zm7.559.084h.903l.113.805h.053a1.37 1.37 0 0 1 .235-.484.813.813 0 0 1 .313-.242.82.82 0 0 1 .39-.076h.234v1.051h-.401a.662.662 0 0 0-.313.008.623.623 0 0 0-.272.155.663.663 0 0 0-.174.26.683.683 0 0 0-.027.314v1.875h-1.054v-3.666Zm-17.515.003h3.262v.896L3.73 13.104l.034.113h1.973l.042.9H2.4v-.9l1.931-1.754-.045-.117H2.441v-.896Zm11.815 0h1.055v3.659h-1.055V10.45Zm3.443.684.019.016a.69.69 0 0 0-.351.045.756.756 0 0 0-.287.204c-.11.155-.174.336-.189.522h1.545c-.034-.526-.257-.787-.74-.787h.003Zm-5.718.163c-.026 0-.057 0-.083.004a.78.78 0 0 0-.31.053.746.746 0 0 0-.257.189 1.016 1.016 0 0 0-.204.695v.064c-.015.257.057.507.204.711a.634.634 0 0 0 .253.196.638.638 0 0 0 .314.061.644.644 0 0 0 .578-.265c.14-.223.204-.48.189-.74a1.216 1.216 0 0 0-.181-.711.677.677 0 0 0-.503-.257Zm-4.509 1.266a.464.464 0 0 0-.268.102.373.373 0 0 0-.114.276c0 .053.008.106.027.155a.375.375 0 0 0 .087.132.576.576 0 0 0 .397.11v.004a.863.863 0 0 0 .563-.182.573.573 0 0 0 .211-.457v-.14h-.903Z\" />",
+    brandColor: "#FF4F00",
+    source: "simple-icons:zapier",
+    pathOnly: "M4.157 0A4.151 4.151 0 0 0 0 4.161v15.678A4.151 4.151 0 0 0 4.157 24h15.682A4.152 4.152 0 0 0 24 19.839V4.161A4.152 4.152 0 0 0 19.839 0H4.157Zm10.61 8.761h.03a.577.577 0 0 1 .23.038.585.585 0 0 1 .201.124.63.63 0 0 1 .162.431.612.612 0 0 1-.162.435.58.58 0 0 1-.201.128.58.58 0 0 1-.23.042.529.529 0 0 1-.235-.042.585.585 0 0 1-.332-.328.559.559 0 0 1-.038-.235.613.613 0 0 1 .17-.431.59.59 0 0 1 .405-.162Zm2.853 1.572c.03.004.061.004.095.004.325-.011.646.064.937.219.238.144.431.355.552.609.128.279.189.582.185.888v.193a2 2 0 0 1 0 .219h-2.498c.003.227.075.45.204.642a.78.78 0 0 0 .646.265.714.714 0 0 0 .484-.136.642.642 0 0 0 .23-.318l.915.257a1.398 1.398 0 0 1-.28.537c-.14.159-.321.284-.521.355a2.234 2.234 0 0 1-.836.136 1.923 1.923 0 0 1-1.001-.245 1.618 1.618 0 0 1-.665-.703 2.221 2.221 0 0 1-.227-1.036 1.95 1.95 0 0 1 .48-1.398 1.9 1.9 0 0 1 1.3-.488Zm-9.607.023c.162.004.325.026.48.079.207.065.4.174.563.314.26.302.393.692.366 1.088v2.276H8.53l-.109-.711h-.065c-.064.163-.155.31-.272.439a1.122 1.122 0 0 1-.374.264 1.023 1.023 0 0 1-.453.083 1.334 1.334 0 0 1-.866-.264.965.965 0 0 1-.329-.801.993.993 0 0 1 .076-.431 1.02 1.02 0 0 1 .242-.363 1.478 1.478 0 0 1 1.043-.303h.952v-.181a.696.696 0 0 0-.136-.454.553.553 0 0 0-.438-.154.695.695 0 0 0-.378.086.48.48 0 0 0-.193.254l-.99-.144a1.26 1.26 0 0 1 .257-.563c.14-.174.321-.302.533-.378.261-.091.54-.136.82-.129.053-.003.106-.007.163-.007Zm4.384.007c.174 0 .347.038.506.114.182.083.34.211.458.374.257.423.377.911.351 1.406a2.53 2.53 0 0 1-.355 1.448 1.148 1.148 0 0 1-1.009.517c-.204 0-.401-.045-.582-.136a1.052 1.052 0 0 1-.48-.457 1.298 1.298 0 0 1-.114-.234h-.045l.004 1.784h-1.059v-4.713h.904l.117.805h.057c.068-.208.177-.401.328-.56a1.129 1.129 0 0 1 .843-.344h.076v-.004Zm7.559.084h.903l.113.805h.053a1.37 1.37 0 0 1 .235-.484.813.813 0 0 1 .313-.242.82.82 0 0 1 .39-.076h.234v1.051h-.401a.662.662 0 0 0-.313.008.623.623 0 0 0-.272.155.663.663 0 0 0-.174.26.683.683 0 0 0-.027.314v1.875h-1.054v-3.666Zm-17.515.003h3.262v.896L3.73 13.104l.034.113h1.973l.042.9H2.4v-.9l1.931-1.754-.045-.117H2.441v-.896Zm11.815 0h1.055v3.659h-1.055V10.45Zm3.443.684.019.016a.69.69 0 0 0-.351.045.756.756 0 0 0-.287.204c-.11.155-.174.336-.189.522h1.545c-.034-.526-.257-.787-.74-.787h.003Zm-5.718.163c-.026 0-.057 0-.083.004a.78.78 0 0 0-.31.053.746.746 0 0 0-.257.189 1.016 1.016 0 0 0-.204.695v.064c-.015.257.057.507.204.711a.634.634 0 0 0 .253.196.638.638 0 0 0 .314.061.644.644 0 0 0 .578-.265c.14-.223.204-.48.189-.74a1.216 1.216 0 0 0-.181-.711.677.677 0 0 0-.503-.257Zm-4.509 1.266a.464.464 0 0 0-.268.102.373.373 0 0 0-.114.276c0 .053.008.106.027.155a.375.375 0 0 0 .087.132.576.576 0 0 0 .397.11v.004a.863.863 0 0 0 .563-.182.573.573 0 0 0 .211-.457v-.14h-.903Z",
+  },
+  "make": {
+    id: "make",
+    title: "Make",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#6D00CC\" d=\"M13.38 3.498c-.27 0-.511.19-.566.465L9.85 18.986a.578.578 0 0 0 .453.678l4.095.826a.58.58 0 0 0 .682-.455l2.963-15.021a.578.578 0 0 0-.453-.678l-4.096-.826a.589.589 0 0 0-.113-.012zm-5.876.098a.576.576 0 0 0-.516.318L.062 17.697a.575.575 0 0 0 .256.774l3.733 1.877a.578.578 0 0 0 .775-.258l6.926-13.781a.577.577 0 0 0-.256-.776L7.762 3.658a.571.571 0 0 0-.258-.062zm11.74.115a.576.576 0 0 0-.576.576v15.426c0 .318.258.578.576.578h4.178a.58.58 0 0 0 .578-.578V4.287a.578.578 0 0 0-.578-.576Z\" />",
+    brandColor: "#6D00CC",
+    source: "simple-icons:make",
+    pathOnly: "M13.38 3.498c-.27 0-.511.19-.566.465L9.85 18.986a.578.578 0 0 0 .453.678l4.095.826a.58.58 0 0 0 .682-.455l2.963-15.021a.578.578 0 0 0-.453-.678l-4.096-.826a.589.589 0 0 0-.113-.012zm-5.876.098a.576.576 0 0 0-.516.318L.062 17.697a.575.575 0 0 0 .256.774l3.733 1.877a.578.578 0 0 0 .775-.258l6.926-13.781a.577.577 0 0 0-.256-.776L7.762 3.658a.571.571 0 0 0-.258-.062zm11.74.115a.576.576 0 0 0-.576.576v15.426c0 .318.258.578.576.578h4.178a.58.58 0 0 0 .578-.578V4.287a.578.578 0 0 0-.578-.576Z",
+  },
+  "webflow": {
+    id: "webflow",
+    title: "Webflow",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#146EF5\" d=\"m24 4.515-7.658 14.97H9.149l3.205-6.204h-.144C9.566 16.713 5.621 18.973 0 19.485v-6.118s3.596-.213 5.71-2.435H0V4.515h6.417v5.278l.144-.001 2.622-5.277h4.854v5.244h.144l2.72-5.244H24Z\" />",
+    brandColor: "#146EF5",
+    source: "simple-icons:webflow",
+    pathOnly: "m24 4.515-7.658 14.97H9.149l3.205-6.204h-.144C9.566 16.713 5.621 18.973 0 19.485v-6.118s3.596-.213 5.71-2.435H0V4.515h6.417v5.278l.144-.001 2.622-5.277h4.854v5.244h.144l2.72-5.244H24Z",
+  },
+  "wordpress": {
+    id: "wordpress",
+    title: "Wordpress",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#21759B\" d=\"M21.469 6.825c.84 1.537 1.318 3.3 1.318 5.175 0 3.979-2.156 7.456-5.363 9.325l3.295-9.527c.615-1.54.82-2.771.82-3.864 0-.405-.026-.78-.07-1.11m-7.981.105c.647-.03 1.232-.105 1.232-.105.582-.075.514-.93-.067-.899 0 0-1.755.135-2.88.135-1.064 0-2.85-.15-2.85-.15-.585-.03-.661.855-.075.885 0 0 .54.061 1.125.09l1.68 4.605-2.37 7.08L5.354 6.9c.649-.03 1.234-.1 1.234-.1.585-.075.516-.93-.065-.896 0 0-1.746.138-2.874.138-.2 0-.438-.008-.69-.015C4.911 3.15 8.235 1.215 12 1.215c2.809 0 5.365 1.072 7.286 2.833-.046-.003-.091-.009-.141-.009-1.06 0-1.812.923-1.812 1.914 0 .89.513 1.643 1.06 2.531.411.72.89 1.643.89 2.977 0 .915-.354 1.994-.821 3.479l-1.075 3.585-3.9-11.61.001.014zM12 22.784c-1.059 0-2.081-.153-3.048-.437l3.237-9.406 3.315 9.087c.024.053.05.101.078.149-1.12.393-2.325.609-3.582.609M1.211 12c0-1.564.336-3.05.935-4.39L7.29 21.709C3.694 19.96 1.212 16.271 1.211 12M12 0C5.385 0 0 5.385 0 12s5.385 12 12 12 12-5.385 12-12S18.615 0 12 0\" />",
+    brandColor: "#21759B",
+    source: "simple-icons:wordpress",
+    pathOnly: "M21.469 6.825c.84 1.537 1.318 3.3 1.318 5.175 0 3.979-2.156 7.456-5.363 9.325l3.295-9.527c.615-1.54.82-2.771.82-3.864 0-.405-.026-.78-.07-1.11m-7.981.105c.647-.03 1.232-.105 1.232-.105.582-.075.514-.93-.067-.899 0 0-1.755.135-2.88.135-1.064 0-2.85-.15-2.85-.15-.585-.03-.661.855-.075.885 0 0 .54.061 1.125.09l1.68 4.605-2.37 7.08L5.354 6.9c.649-.03 1.234-.1 1.234-.1.585-.075.516-.93-.065-.896 0 0-1.746.138-2.874.138-.2 0-.438-.008-.69-.015C4.911 3.15 8.235 1.215 12 1.215c2.809 0 5.365 1.072 7.286 2.833-.046-.003-.091-.009-.141-.009-1.06 0-1.812.923-1.812 1.914 0 .89.513 1.643 1.06 2.531.411.72.89 1.643.89 2.977 0 .915-.354 1.994-.821 3.479l-1.075 3.585-3.9-11.61.001.014zM12 22.784c-1.059 0-2.081-.153-3.048-.437l3.237-9.406 3.315 9.087c.024.053.05.101.078.149-1.12.393-2.325.609-3.582.609M1.211 12c0-1.564.336-3.05.935-4.39L7.29 21.709C3.694 19.96 1.212 16.271 1.211 12M12 0C5.385 0 0 5.385 0 12s5.385 12 12 12 12-5.385 12-12S18.615 0 12 0",
+  },
+  "google_analytics": {
+    id: "google_analytics",
+    title: "Google analytics",
+    viewBox: "0 0 256 284",
+    body: "<path fill=\"#f9ab00\" d=\"M256.003 247.933a35.224 35.224 0 0 1-39.376 35.161c-18.044-2.67-31.266-18.371-30.826-36.606V36.845C185.365 18.591 198.62 2.881 216.687.24a35.22 35.22 0 0 1 39.316 35.16z\"/><path fill=\"#e37400\" d=\"M35.101 213.193c19.386 0 35.101 15.716 35.101 35.101c0 19.386-15.715 35.101-35.101 35.101S0 267.68 0 248.295s15.715-35.102 35.101-35.102m92.358-106.387c-19.477 1.068-34.59 17.406-34.137 36.908v94.285c0 25.588 11.259 41.122 27.755 44.433a35.16 35.16 0 0 0 42.146-34.56V142.089a35.22 35.22 0 0 0-35.764-35.282\"/>",
+    brandColor: "#000000",
+    source: "logos:google-analytics",
+    isDarkBadge: true,
+  },
+  "openai": {
+    id: "openai",
+    title: "Openai",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#000000\" d=\"M22.282 9.821a6 6 0 0 0-.516-4.91a6.05 6.05 0 0 0-6.51-2.9A6.065 6.065 0 0 0 4.981 4.18a6 6 0 0 0-3.998 2.9a6.05 6.05 0 0 0 .743 7.097a5.98 5.98 0 0 0 .51 4.911a6.05 6.05 0 0 0 6.515 2.9A6 6 0 0 0 13.26 24a6.06 6.06 0 0 0 5.772-4.206a6 6 0 0 0 3.997-2.9a6.06 6.06 0 0 0-.747-7.073M13.26 22.43a4.48 4.48 0 0 1-2.876-1.04l.141-.081l4.779-2.758a.8.8 0 0 0 .392-.681v-6.737l2.02 1.168a.07.07 0 0 1 .038.052v5.583a4.504 4.504 0 0 1-4.494 4.494M3.6 18.304a4.47 4.47 0 0 1-.535-3.014l.142.085l4.783 2.759a.77.77 0 0 0 .78 0l5.843-3.369v2.332a.08.08 0 0 1-.033.062L9.74 19.95a4.5 4.5 0 0 1-6.14-1.646M2.34 7.896a4.5 4.5 0 0 1 2.366-1.973V11.6a.77.77 0 0 0 .388.677l5.815 3.354l-2.02 1.168a.08.08 0 0 1-.071 0l-4.83-2.786A4.504 4.504 0 0 1 2.34 7.872zm16.597 3.855l-5.833-3.387L15.119 7.2a.08.08 0 0 1 .071 0l4.83 2.791a4.494 4.494 0 0 1-.676 8.105v-5.678a.79.79 0 0 0-.407-.667m2.01-3.023l-.141-.085l-4.774-2.782a.78.78 0 0 0-.785 0L9.409 9.23V6.897a.07.07 0 0 1 .028-.061l4.83-2.787a4.5 4.5 0 0 1 6.68 4.66zm-12.64 4.135l-2.02-1.164a.08.08 0 0 1-.038-.057V6.075a4.5 4.5 0 0 1 7.375-3.453l-.142.08L8.704 5.46a.8.8 0 0 0-.393.681zm1.097-2.365l2.602-1.5l2.607 1.5v2.999l-2.597 1.5l-2.607-1.5Z\" />",
+    brandColor: "#000000",
+    source: "simple-icons:openai",
+    pathOnly: "M22.282 9.821a6 6 0 0 0-.516-4.91a6.05 6.05 0 0 0-6.51-2.9A6.065 6.065 0 0 0 4.981 4.18a6 6 0 0 0-3.998 2.9a6.05 6.05 0 0 0 .743 7.097a5.98 5.98 0 0 0 .51 4.911a6.05 6.05 0 0 0 6.515 2.9A6 6 0 0 0 13.26 24a6.06 6.06 0 0 0 5.772-4.206a6 6 0 0 0 3.997-2.9a6.06 6.06 0 0 0-.747-7.073M13.26 22.43a4.48 4.48 0 0 1-2.876-1.04l.141-.081l4.779-2.758a.8.8 0 0 0 .392-.681v-6.737l2.02 1.168a.07.07 0 0 1 .038.052v5.583a4.504 4.504 0 0 1-4.494 4.494M3.6 18.304a4.47 4.47 0 0 1-.535-3.014l.142.085l4.783 2.759a.77.77 0 0 0 .78 0l5.843-3.369v2.332a.08.08 0 0 1-.033.062L9.74 19.95a4.5 4.5 0 0 1-6.14-1.646M2.34 7.896a4.5 4.5 0 0 1 2.366-1.973V11.6a.77.77 0 0 0 .388.677l5.815 3.354l-2.02 1.168a.08.08 0 0 1-.071 0l-4.83-2.786A4.504 4.504 0 0 1 2.34 7.872zm16.597 3.855l-5.833-3.387L15.119 7.2a.08.08 0 0 1 .071 0l4.83 2.791a4.494 4.494 0 0 1-.676 8.105v-5.678a.79.79 0 0 0-.407-.667m2.01-3.023l-.141-.085l-4.774-2.782a.78.78 0 0 0-.785 0L9.409 9.23V6.897a.07.07 0 0 1 .028-.061l4.83-2.787a4.5 4.5 0 0 1 6.68 4.66zm-12.64 4.135l-2.02-1.164a.08.08 0 0 1-.038-.057V6.075a4.5 4.5 0 0 1 7.375-3.453l-.142.08L8.704 5.46a.8.8 0 0 0-.393.681zm1.097-2.365l2.602-1.5l2.607 1.5v2.999l-2.597 1.5l-2.607-1.5Z",
+  },
+  "anthropic": {
+    id: "anthropic",
+    title: "Anthropic",
+    viewBox: "0 0 256 176",
+    body: "<path fill=\"#181818\" d=\"m147.487 0l70.081 175.78H256L185.919 0zM66.183 106.221l23.98-61.774l23.98 61.774zM70.07 0L0 175.78h39.18l14.33-36.914h73.308l14.328 36.914h39.179L110.255 0z\"/>",
+    brandColor: "#000000",
+    source: "logos:anthropic-icon",
+    isDarkBadge: true,
+  },
+  "gemini": {
+    id: "gemini",
+    title: "Gemini",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#8E75B2\" d=\"M11.04 19.32Q12 21.51 12 24q0-2.49.93-4.68.96-2.19 2.58-3.81t3.81-2.55Q21.51 12 24 12q-2.49 0-4.68-.93a12.3 12.3 0 0 1-3.81-2.58 12.3 12.3 0 0 1-2.58-3.81Q12 2.49 12 0q0 2.49-.96 4.68-.93 2.19-2.55 3.81a12.3 12.3 0 0 1-3.81 2.58Q2.49 12 0 12q2.49 0 4.68.96 2.19.93 3.81 2.55t2.55 3.81\" />",
+    brandColor: "#8E75B2",
+    source: "simple-icons:googlegemini",
+    pathOnly: "M11.04 19.32Q12 21.51 12 24q0-2.49.93-4.68.96-2.19 2.58-3.81t3.81-2.55Q21.51 12 24 12q-2.49 0-4.68-.93a12.3 12.3 0 0 1-3.81-2.58 12.3 12.3 0 0 1-2.58-3.81Q12 2.49 12 0q0 2.49-.96 4.68-.93 2.19-2.55 3.81a12.3 12.3 0 0 1-3.81 2.58Q2.49 12 0 12q2.49 0 4.68.96 2.19.93 3.81 2.55t2.55 3.81",
+  },
+  "midjourney": {
+    id: "midjourney",
+    title: "Midjourney",
+    viewBox: "0 0 256 214",
+    body: "<path fill=\"#1a222d\" d=\"M240.86 162.892c.662 1.719.119 3.158-1.35 4.34c-13.753 11.071-28.19 21.114-43.904 29.24l-13.12 6.776c2.706 2.161 5.76 2.769 9.003 2.648c3.55-.133 6.524-1.763 9.27-3.858c3.283-2.504 6.387-5.274 9.836-7.519c8.35-5.435 17.35-4.944 25.248 1.185c3.355 2.604 6.439 5.578 9.92 7.988c1.683 1.165 3.838 1.8 5.904 2.257l.457.099c2.507.528 4.03 1.79 3.863 3.955c-.165 2.148-1.867 3.403-4.437 3.237c-5.445-.352-9.713-3.16-13.713-6.556c-2.498-2.12-4.91-4.38-7.606-6.219c-4.999-3.409-10.303-3.508-15.396-.235c-3.001 1.929-5.73 4.289-8.539 6.508c-4.527 3.578-9.413 6.212-15.374 6.302c-6.538.099-11.8-2.835-16.62-6.866c-1.724-1.442-3.431-2.905-5.188-4.306c-6.586-5.254-13.334-5.251-19.943.004a177 177 0 0 0-2.292 1.86l-1.52 1.25a122 122 0 0 1-3.849 3.062c-8.09 6.115-17.355 6.407-25.738.681c-3.05-2.083-5.831-4.561-8.74-6.853c-6.61-5.205-12.096-5.19-18.824-.022l-.55.424l-1.65 1.275c-2.2 1.7-4.415 3.385-6.74 4.896c-8.76 5.696-17.677 5.458-26.384-.047c-3.603-2.278-6.892-5.052-10.305-7.631l-.513-.386c-1.362-1.017-2.708-2.059-4.106-3.024c-1.95-1.346-4.05-1.722-6.162-.44c-3.732 2.266-7.42 4.604-11.116 6.928c-3.493 2.196-6.868 4.61-10.5 6.542c-1.968 1.046-4.332 1.533-6.575 1.82c-2.088.266-3.524-1.284-3.604-3.24c-.078-1.926 1.18-3.136 3.135-3.692l.114-.031c2.078-.556 4.219-1.262 6.022-2.395c5.087-3.199 10.017-6.649 15.003-10.008c.142-.095.224-.276.393-.493l-3.095-5.854q-1.552-2.93-3.093-5.87c-1.8-3.438-.629-5.744 3.237-6.02c10.423-.745 20.853-1.384 31.28-2.055l60.021-3.852c14.187-.913 28.373-1.835 42.56-2.75q30.008-1.936 60.018-3.87c5.32-.342 10.64-.676 15.96-1.024l5.32-.353c1.832-.123 3.302.43 3.982 2.192m-15.22 6.079l-.179-.437l-198.607 12.787l.49.916c1.288 2.412 2.428 4.59 3.673 6.706c.115.195.517.235.938.25l.43.01l.129.005l.122.007c1.726.127 3.612-.177 5.145.428c2.446.966 4.784 2.35 6.94 3.876c3.86 2.733 7.432 5.881 11.34 8.536c6.946 4.716 13.487 4.576 20.32-.206c2.883-2.018 5.618-4.248 8.475-6.306c8.932-6.435 17.394-6.302 26.113.417c2.548 1.964 4.977 4.082 7.52 6.051c6.378 4.938 12.849 4.956 19.194.051c2.113-1.633 4.125-3.397 6.199-5.082c9.406-7.641 18.94-8.378 28.19-1.563l.28.208c2.96 2.232 5.163 2.12 8.113.649l1.436-.718c13.157-6.597 26.065-13.607 37.982-22.318c1.928-1.41 3.838-2.844 5.756-4.267M41.217.675c21.496 9.698 40.8 22.744 58.345 38.424c21.83 19.512 39.036 42.552 51.744 68.903c6.688 13.87 11.89 28.276 14.28 43.572l.114.75l.174 1.198c.003 2.96-2.368 4.699-4.84 3.7c-12.272-4.959-24.944-8.398-38.039-10.362c-17.305-2.596-34.393-1.95-51.217 3.115c-11.157 3.36-21.77 7.942-31.632 14.195c-1.821 1.155-3.752.953-4.94-.46c-1.236-1.467-1.234-3.238.193-4.787c10.303-11.187 16.298-24.622 20.273-39.068c3.883-14.115 5.301-28.538 4.431-43.13c-.653-10.967-3.283-21.579-6.725-31.996c-4.453-13.477-10.231-26.36-17.198-38.717c-1.138-2.02-1.117-3.593.034-4.885c1.191-1.338 2.725-1.48 5.003-.452m66.27 25.192c1.993.581 4.678 1.155 7.204 2.137c10.083 3.925 18.77 10.152 27.046 16.955c13.45 11.056 25.765 23.285 36.779 36.772c7.665 9.387 13.953 19.713 19.686 30.371c6.5 12.087 12.099 24.582 16.85 37.454l.33.899c.126.342.255.683.37 1.028c.501 1.488.439 2.928-.727 4.065c-1.19 1.161-2.618 1.238-4.125.648l-.105-.042c-2.16-.888-4.35-1.707-6.505-2.604l-.922-.389c-6.066-2.604-12.3-3.124-18.72-1.666c-.592.135-1.192.237-1.792.329c-2.382.367-3.87-.564-4.52-2.87c-6.253-22.186-15.069-43.311-26.23-63.467l-.558-1.004c-7.196-12.857-15.434-24.948-26.14-35.22c-6.321-6.067-12.973-11.722-20.32-16.525c-1.702-1.113-2.34-2.658-1.78-4.344c.552-1.658 1.84-2.31 4.18-2.527M47.645 11.789c.02.561.171 1 .375 1.41c4.672 9.423 8.735 19.102 12.034 29.089c3.13 9.474 5.53 19.13 6.68 29.06c1.287 11.114.758 22.2-.767 33.254c-2.007 14.558-6.045 28.482-13.009 41.487l-.81 1.515l-1.228 2.303c.257.07.388.153.472.12a64 64 0 0 0 2.185-.907c14.78-6.488 30.181-10.406 46.357-10.809c18.47-.46 36.36 2.87 53.83 8.67l1.193.396c.864.284 1.786.576 2.98.963c-7.077-30.978-21.748-57.605-41.522-81.557c-19.063-23.09-42.249-41.132-68.77-54.994m87.764 37.559l.234.265l.465.518c.18.202.343.392.496.59a274 274 0 0 0 3.305 4.18l1.819 2.262c2.732 3.404 5.43 6.832 7.802 10.47c15.005 23.014 26.039 47.899 34.082 74.124l.243.795c.418 1.373.992 1.759 2.33 1.557l.093-.015c6.017-1.002 11.898-.481 17.6 1.715l.295.115c.545.216 1.127.336 2.183.645c-7.725-19.275-16.855-37.217-28.408-53.942c-9.99-14.462-36.741-40.14-42.54-43.28\"/>",
+    brandColor: "#000000",
+    source: "logos:midjourney",
+    isDarkBadge: true,
+  },
+  "huggingface": {
+    id: "huggingface",
+    title: "Huggingface",
+    viewBox: "0 0 128 128",
+    body: "<path fill=\"#fff\" d=\"M127.562 91.939a11.8 11.8 0 0 0-1.6-3.538q.234-.856.352-1.734c.516-3.714-.772-7.115-3.198-9.745c-1.315-1.437-2.724-2.386-4.216-2.969c.98-4.19 1.475-8.48 1.477-12.782c0-1.966-.11-3.892-.297-5.788a66 66 0 0 0-.353-2.834a56.6 56.6 0 0 0-1.896-8.21a57 57 0 0 0-1.898-5.205a57 57 0 0 0-3.754-7.305a51 51 0 0 0-3.05-4.513a43 43 0 0 0-1.68-2.142a56 56 0 0 0-5.614-5.895a44 44 0 0 0-2.06-1.779a51 51 0 0 0-2.129-1.68a60 60 0 0 0-4.513-3.05C84.568 7.568 74.524 4.585 63.79 4.585c-31.256 0-56.588 25.333-56.588 56.587a56.3 56.3 0 0 0 1.504 12.942c-1.342.583-2.629 1.492-3.822 2.806c-2.426 2.63-3.714 6.018-3.199 9.732q.118.886.353 1.748a11.8 11.8 0 0 0-1.6 3.539c-.745 2.834-.5 5.39.448 7.63c-1.03 2.928-.773 6.045.569 8.755c.976 1.98 2.372 3.511 4.094 4.88c2.046 1.627 4.608 3.009 7.698 4.335c3.687 1.573 8.187 3.05 10.233 3.592c5.287 1.368 10.356 2.236 15.493 2.278c7.32.068 13.622-1.653 18.135-6.057c2.217.271 4.449.407 6.682.406a58 58 0 0 0 7.06-.444c4.501 4.432 10.829 6.169 18.175 6.099c5.136-.041 10.205-.909 15.478-2.28c2.06-.541 6.559-2.018 10.247-3.59c3.09-1.329 5.652-2.711 7.712-4.336c1.709-1.369 3.104-2.9 4.08-4.879c1.356-2.71 1.6-5.828.583-8.755c.939-2.24 1.183-4.802.438-7.634zm-5.246 7.44c1.039 1.972 1.105 4.198.19 6.272c-1.39 3.143-4.842 5.62-11.546 8.277c-4.169 1.654-7.986 2.71-8.02 2.72c-5.514 1.43-10.5 2.157-14.817 2.157c-7.149 0-12.468-1.973-15.842-5.869a53.1 53.1 0 0 1-17.244.099c-3.378 3.83-8.667 5.77-15.755 5.77c-4.317 0-9.304-.727-14.818-2.157a88 88 0 0 1-8.02-2.72c-6.703-2.658-10.156-5.132-11.545-8.277c-.916-2.074-.85-4.3.189-6.271q.143-.275.309-.535a7.96 7.96 0 0 1-1.074-6.426c.412-1.568 1.264-2.872 2.422-3.809a7.9 7.9 0 0 1-1.076-2.997c-.333-2.308.434-4.612 2.157-6.492c1.342-1.462 3.24-2.267 5.34-2.267h.056a52.5 52.5 0 0 1-2.381-15.683c0-29.006 23.515-52.523 52.524-52.523c29.01 0 52.525 23.514 52.525 52.523a52.5 52.5 0 0 1-2.399 15.723q.38-.038.747-.038c2.1 0 3.998.805 5.34 2.267c1.723 1.878 2.49 4.184 2.156 6.492a7.9 7.9 0 0 1-1.074 2.997c1.157.937 2.01 2.24 2.421 3.808a7.96 7.96 0 0 1-1.073 6.427q.166.257.308.533z\"/><path fill=\"#ffa502\" d=\"M63.364 8.65c-29.008 0-52.525 23.513-52.525 52.522a52.5 52.5 0 0 0 2.382 15.683h-.056c-2.1 0-3.998.804-5.34 2.266c-1.723 1.878-2.49 4.186-2.157 6.493a7.9 7.9 0 0 0 1.075 2.997c-1.157.936-2.01 2.24-2.422 3.808a7.96 7.96 0 0 0 1.075 6.429q-.165.258-.31.534c-1.037 1.97-1.104 4.198-.188 6.272c1.39 3.142 4.843 5.619 11.547 8.277a88 88 0 0 0 8.018 2.719c5.514 1.43 10.502 2.157 14.819 2.157c7.089 0 12.377-1.94 15.755-5.77c5.715.906 11.54.872 17.245-.1c3.373 3.896 8.692 5.87 15.84 5.87c4.317 0 9.305-.727 14.818-2.157a88 88 0 0 0 8.02-2.72c6.704-2.657 10.157-5.134 11.546-8.276c.916-2.074.85-4.302-.19-6.272a6 6 0 0 0-.309-.534a7.96 7.96 0 0 0 1.074-6.428c-.412-1.568-1.265-2.871-2.421-3.808a7.9 7.9 0 0 0 1.074-2.997c.334-2.308-.433-4.613-2.157-6.493c-1.341-1.462-3.24-2.266-5.34-2.266a8 8 0 0 0-.746.038a52.5 52.5 0 0 0 2.395-15.722c0-29.006-23.516-52.522-52.522-52.522m.007 5.422c26.013 0 47.1 21.088 47.1 47.1v.608q0 .152-.004.304q-.002.125-.007.252q0 .113-.005.222c0 .095-.006.19-.01.286v.007l-.013.33l-.013.289l-.002.07l-.017.306q-.056.99-.15 1.98v.007l-.033.326l-.028.254l-.055.5l-.031.253l-.04.297l-.045.326q-.025.18-.053.361l-.042.286l-.051.323q-.026.16-.056.321l-.056.322a37 37 0 0 1-.31 1.596l-.067.315l-.07.315c-1.326-1.288-3.083-1.99-5.019-1.99c-1.757 0-3.563.581-5.37 1.728c-1.2.762-2.526 2.112-3.891 3.809c-1.265-1.754-3.035-2.92-5.058-3.239a7.5 7.5 0 0 0-1.168-.092c-4.623 0-7.404 4.012-8.456 7.62c-.522 1.218-3.028 6.768-6.795 10.533c-5.736 5.717-7.182 11.608-4.387 17.918l-.264.032l-.453.052q-.357.038-.716.07l-.233.02l-.214.019l-.301.024l-.334.025l-.334.022l-.074.005l-.262.014l-.11.006l-.311.016l-.362.016l-.328.01l-.218.007h-.112l-.204.004h-.108q-.102-.001-.205.004l-.278.004h-.388q-.459 0-.913-.01l-.247-.005q-.105-.001-.208-.006l-.261-.007l-.325-.013l-.292-.013l-.075-.002l-.278-.014l-.231-.015l-.18-.01a53 53 0 0 1-.677-.047l-.235-.02l-.298-.025l-.35-.033a38 38 0 0 1-.582-.058h-.01c2.84-6.336 1.404-12.255-4.336-17.99c-3.764-3.759-6.268-9.31-6.787-10.528c-1.052-3.608-3.835-7.619-8.457-7.619q-.587 0-1.167.093c-2.025.318-3.795 1.483-5.058 3.237c-1.365-1.697-2.69-3.046-3.89-3.808c-1.809-1.147-3.613-1.728-5.372-1.728c-2.194 0-4.155.9-5.523 2.535l-.035.042l-.076-.323l-.004-.015a46 46 0 0 1-.654-3.363q.001-.012-.004-.022a37 37 0 0 1-.147-1.015q-.024-.172-.046-.345l-.041-.345l-.038-.328l-.004-.028a49 49 0 0 1-.13-1.343l-.014-.172l-.022-.294q-.01-.12-.017-.242q-.001-.028-.004-.055a33 33 0 0 1-.057-1.03l-.013-.308l-.002-.092l-.01-.284l-.006-.242c0-.096-.006-.194-.008-.29c-.001-.096-.004-.202-.004-.303c-.002-.102 0-.203-.003-.304q-.002-.152 0-.305c0-26.01 21.087-47.1 47.101-47.1zm31.9 31.85a4.4 4.4 0 0 0-3.718 1.958a4.41 4.41 0 0 0 .546 5.563c.409.41.896.733 1.431.955a4.4 4.4 0 0 0 5.756-2.383a4.4 4.4 0 0 0-.955-4.801a4.4 4.4 0 0 0-3.06-1.292m-62.867.005a4.406 4.406 0 1 0 2.231 8.064a4.406 4.406 0 0 0-2.23-8.064zm-9.28 29.136c.69 0 1.534.294 2.466.885c2.89 1.834 8.47 11.422 10.513 15.153c.685 1.25 1.854 1.778 2.907 1.778c2.09 0 3.724-2.078.192-4.718c-5.31-3.973-3.447-10.466-.913-10.865q.163-.026.327-.026c2.304 0 3.32 3.97 3.32 3.97s2.979 7.482 8.097 12.597c4.644 4.642 5.293 8.45 2.587 13.202a21 21 0 0 1-.934 1.488c-.873 1.278-2.022 2.255-3.355 2.981c-2.548 1.39-5.773 1.875-9.05 1.875c-5.175 0-10.482-1.21-13.456-1.982c-.146-.038-18.23-5.147-15.941-9.495c.385-.731 1.02-1.023 1.818-1.023c3.224 0 9.093 4.8 11.615 4.8c.564 0 .962-.24 1.124-.824c1.076-3.856-16.34-5.478-14.874-11.061c.258-.988.961-1.39 1.948-1.39c4.262 0 13.828 7.496 15.829 7.496q.231 0 .323-.14l.025-.043c.94-1.55.4-2.678-6.033-6.619l-.618-.375c-7.079-4.284-12.047-6.864-9.221-9.94c.325-.355.786-.512 1.346-.512c.664 0 1.467.222 2.352.595c3.74 1.576 8.92 5.876 11.085 7.751q.511.444 1.015.896s2.74 2.85 4.398 2.85c.381 0 .705-.15.925-.522c1.175-1.981-10.916-11.142-11.597-14.923c-.463-2.561.325-3.859 1.78-3.859m81.016.01c.576-.032 1.056.127 1.406.477c.424.424.659 1.128.646 2.106q.001.064-.004.131v.048q-.001.066-.007.134c0 .056-.007.112-.012.168l-.015.147a.2.2 0 0 1-.005.043l-.016.131q.001.02-.005.04l-.025.176a3 3 0 0 1-.026.163l-.015.092a3 3 0 0 1-.063.261a4 4 0 0 1-.176.471q-.145.316-.32.615a14 14 0 0 1-.422.664q-.295.42-.612.825l-.097.123q-.52.646-1.07 1.264l-.117.13q-.235.262-.478.527l-.123.134l-.248.267l-.252.27l-.256.269l-.259.27l-.26.27l-.529.546c-2.52 2.585-5.175 5.16-6.074 6.766a3 3 0 0 0-.163.323c-.128.292-.182.542-.145.744q.018.1.069.188a1 1 0 0 0 .288.33c.185.132.408.2.636.193h.07l.073-.006l.073-.007l.06-.009l.025-.006l.056-.01l.014-.003l.06-.014l.023-.005q.032-.007.065-.017c.022-.006.052-.014.078-.023a3 3 0 0 0 .32-.117q.084-.034.163-.073l.083-.04l.083-.04q.3-.156.582-.337l.082-.055q.042-.026.083-.055l.082-.056l.044-.03l.12-.084c.112-.076.215-.155.32-.235l.01-.008l.167-.13c.228-.18.444-.362.64-.533l.13-.114l.013-.01l.068-.061c.16-.145.303-.278.422-.389l.049-.048l.117-.11l.07-.069l.025-.024l.007-.007l.072-.073l.046-.048l.006-.005l.022-.019l.027-.025l.01-.009l.023-.02l.126-.112l.07-.063l.112-.101l.085-.075l.046-.04l.089-.077l.13-.115l.07-.06c.27-.236.598-.52.976-.84l.155-.13l.255-.216l.262-.217q.514-.428 1.099-.898l.256-.205l.666-.528q.138-.108.278-.214a63 63 0 0 1 2.338-1.733l.24-.167q.25-.173.5-.342l.151-.102q.447-.303.905-.591l.15-.096l.15-.092q.225-.14.448-.274l.149-.09l.297-.171l.291-.168l.058-.033l.231-.126q.144-.078.288-.152l.143-.073l.138-.07l.144-.07a13 13 0 0 1 1.215-.525l.255-.09q.114-.038.222-.071l.024-.007q.058-.02.115-.034l.011-.003a5 5 0 0 1 .237-.062h.005a5 5 0 0 1 .67-.114a3 3 0 0 1 .312-.014h.052q.104 0 .203.01c.03 0 .061.007.09.01h.013a2 2 0 0 1 .177.033h.01a1.6 1.6 0 0 1 .532.225q.101.065.19.148l.016.016l.032.03l.03.034c.25.261.457.562.612.89l.024.055a2.06 2.06 0 0 1 .026 1.587a3 3 0 0 1-.21.444a5 5 0 0 1-.684.902l-.055.06a9 9 0 0 1-.259.26q-.06.06-.123.117l-.127.118l-.067.06a14 14 0 0 1-.799.657q-.546.416-1.113.805a62 62 0 0 1-2.422 1.557c-1.222.752-2.577 1.556-4.022 2.43l-.374.227q-.615.375-1.16.716l-.184.116l-.347.222q-.345.221-.688.444l-.185.123q-.135.087-.269.177l-.087.056l-.269.18l-.143.098l-.166.116l-.154.107q-.39.275-.723.525l-.083.063q-.196.148-.388.302q-.288.232-.524.445l-.078.07q-.066.06-.128.121l-.085.083l-.04.04q-.135.133-.26.274l-.041.047a4 4 0 0 0-.24.306l-.032.044a3 3 0 0 0-.184.31l-.03.062l-.02.047l-.013.031l-.01.028l-.015.038a1.6 1.6 0 0 0-.08.325l-.005.039l-.005.035v.197q-.001.022.005.048l.003.03q.001.025.007.05l.01.068v.003l.015.065l.018.068q.019.067.043.133l.029.076l.007.016l.022.05l.032.069q.05.106.109.209l.041.07l.043.072l.025.034l.013.013l.016.015l.016.012a.3.3 0 0 0 .077.04q.02.007.043.012c.359.08 1.096-.216 2.076-.733l.175-.094l.298-.162l.146-.08c.104-.056.209-.119.317-.18l.198-.112c1.294-.745 2.84-1.702 4.439-2.636q.225-.133.45-.262l.302-.193q.526-.302 1.056-.595a50 50 0 0 1 1.348-.715l.296-.15q.294-.145.583-.284a25 25 0 0 1 1.127-.502l.209-.085l.024-.01c1.103-.437 2.104-.706 2.914-.706q.263-.003.521.042h.005q.083.016.158.034h.01q.199.051.383.144q.257.133.454.347q.09.099.159.213q.131.202.205.43q.029.088.054.178c.132.47.12.97-.036 1.433l-.02.056a3 3 0 0 1-.314.618a4 4 0 0 1-.34.441c-.03.033-.057.065-.09.096q-.066.073-.137.142c-.836.83-2.11 1.556-3.553 2.223l-.496.222l-.168.074q-.164.075-.338.146a16 16 0 0 1-.343.144l-.347.143c-.81.334-1.641.651-2.452.965l-.347.135l-.342.135q-.343.133-.675.267l-.33.132l-.324.132l-.16.068l-.314.133c-2.384 1.023-4.1 2.063-3.74 3.355q.016.055.034.105q.049.144.131.272a1 1 0 0 0 .112.141c.424.44 1.195.372 2.168.022q.206-.075.408-.158l.084-.034c.222-.094.458-.2.699-.314q.09-.042.182-.089c1.19-.582 2.537-1.364 3.875-2.077a35 35 0 0 1 1.627-.824c1.267-.596 2.458-1.018 3.415-1.018c.45 0 .846.092 1.176.303l.055.037a1.8 1.8 0 0 1 .586.682c.473.898.077 1.828-.85 2.74c-.889.875-2.272 1.734-3.844 2.528q-.175.089-.353.176c-4.68 2.298-10.808 4.029-10.893 4.05a70 70 0 0 1-6.6 1.395l-.39.06l-.064.01a41 41 0 0 1-1.794.237l-.056.007a43 43 0 0 1-3.33.252h-.016q-.604.02-1.207.02h-.465a29 29 0 0 1-1.839-.082q-.022.001-.044-.004a25 25 0 0 1-1.78-.21l-.45-.075l-.205-.039l-.015-.004a16 16 0 0 1-.644-.136q-.187-.04-.371-.088l-.074-.019l-.18-.047l-.033-.009l-.191-.056l-.21-.062l-.023-.006l-.181-.056l-.204-.065l-.168-.056l-.121-.042a13 13 0 0 1-.352-.129l-.11-.044l-.093-.036q-.263-.106-.524-.222l-.116-.056l-.019-.01l-.123-.055l-.237-.119l-.025-.012l-.114-.06a10 10 0 0 1-.597-.34l-.108-.065l-.16-.102l-.138-.092l-.15-.103l-.089-.064a7 7 0 0 1-.278-.208l-.145-.112l-.171-.14a4 4 0 0 1-.141-.122l-.004-.004a8 8 0 0 1-.292-.268l-.007-.005l-.145-.145q-.073-.072-.145-.146l-.14-.15l-.132-.149l-.014-.017a8 8 0 0 1-.382-.475a11 11 0 0 1-.247-.342l-.076-.114q-.154-.224-.298-.453q-.109-.165-.211-.332l-.129-.212l-.017-.028a15 15 0 0 1-.182-.314c-.02-.038-.045-.077-.067-.116l-.035-.062l-.022-.04l-.122-.226l-.056-.1l-.055-.107l-.056-.106q-.21-.42-.396-.85l-.044-.106l-.084-.208q-.022-.05-.04-.1a10.4 10.4 0 0 1-.482-1.64l-.02-.102a7 7 0 0 1-.078-.501l-.012-.098l-.011-.101a7 7 0 0 1-.03-.397l-.005-.098l-.005-.198c-.035-2.656 1.31-5.209 4.182-8.08c5.118-5.114 8.097-12.596 8.097-12.596s.08-.314.247-.766q.034-.094.075-.195q.145-.38.327-.744l.025-.046q.154-.31.337-.604q.042-.067.089-.136a6 6 0 0 1 .289-.394q.084-.105.176-.204q.035-.04.072-.077c.297-.306.635-.556 1.019-.689l.048-.016l.099-.03q.056-.015.114-.027l.018-.004q.12-.024.245-.032h.007l.132-.004a3 3 0 0 1 .328.026c.46.073.9.348 1.277.772q.216.242.385.52q.113.178.213.378c.026.055.051.105.076.16q.097.21.174.43q.181.513.273 1.051a7 7 0 0 1 .093 1.464a7.4 7.4 0 0 1-.489 2.357q-.04.104-.084.208a7 7 0 0 1-.347.722q-.057.103-.116.205q-.15.255-.324.508l-.07.1q-.413.576-.915 1.075a9.6 9.6 0 0 1-1.056.912a8.6 8.6 0 0 0-1.05.918c-.934.98-1.152 1.846-.942 2.502q.051.155.131.297q.095.162.222.299l.033.034l.034.033q.051.048.107.095l.038.03q.135.105.285.187l.088.046a2.5 2.5 0 0 0 .43.165l.04.01l.056.015l.049.011l.052.011l.05.011l.05.009q.054.01.111.016l.035.005l.065.007l.04.005l.065.005h.038l.069.003h.215l.06-.003l.072-.005l.086-.009l.082-.008c.018 0 .037-.007.056-.01a3 3 0 0 0 .724-.195l.1-.043a3 3 0 0 0 .48-.261a3.3 3.3 0 0 0 .488-.396q.023-.02.043-.04l.082-.087q.3-.33.513-.719a142 142 0 0 1 3.822-6.534l.183-.292l.185-.294q.138-.222.278-.44l.093-.145q.464-.728.943-1.445l.191-.283c.38-.563.759-1.111 1.135-1.632l.187-.259q.614-.845 1.277-1.653l.175-.21c.029-.035.055-.07.087-.103l.172-.2q.042-.049.087-.098l.166-.188l.084-.09q.125-.135.246-.26l.16-.163a6.5 6.5 0 0 1 1.038-.862l.088-.056a3 3 0 0 1 .257-.155c.735-.417 1.406-.64 1.981-.673z\"/><path fill=\"#ffd21e\" fill-rule=\"evenodd\" d=\"M110.464 61.476v-.305c0-26.012-21.08-47.098-47.094-47.098c-26.013 0-47.1 21.088-47.1 47.098v.102a4 4 0 0 0 0 .203q.005.153.003.304l.003.224l.002.08q0 .056.002.111l.003.178l.007.242l.01.284l.003.093l.012.294v.014l.017.344v.009l.02.352l.021.324l.001.02l.019.278l.002.025l.02.268l.002.017l.013.155q.055.672.13 1.343l.003.028l.038.329l.042.345l.03.234l.015.11q.05.381.108.759l.002.017l.037.238q.266 1.706.659 3.388l.003.013l.02.084l.056.24l.035-.042c1.367-1.635 3.329-2.536 5.523-2.536c1.759 0 3.563.582 5.372 1.728c1.2.762 2.526 2.112 3.89 3.809c1.263-1.754 3.033-2.92 5.058-3.238q.58-.09 1.167-.092c4.622 0 7.405 4.01 8.457 7.618c.52 1.219 3.023 6.77 6.8 10.525c5.74 5.735 7.176 11.652 4.335 17.988h.01q.29.033.583.06l.35.032l.04.004l.257.022l.236.018q.337.027.677.048l.18.01l.142.01l.088.005l.278.014l.076.003l.291.013l.325.013l.26.007h.043q.084.005.166.005l.06.002q.55.014 1.1.012h.388l.278-.003q.102-.004.205-.003h.109l.093-.002l.111-.002h.111l.218-.006l.329-.011l.36-.016l.311-.015l.112-.007l.165-.009l.097-.006l.073-.005l.334-.021l.333-.025l.303-.024l.212-.018l.234-.02q.585-.054 1.168-.123l.266-.032c-2.796-6.31-1.349-12.201 4.367-17.913c3.768-3.765 6.272-9.316 6.794-10.535c1.052-3.607 3.834-7.618 8.457-7.618q.587 0 1.168.092c2.022.318 3.793 1.484 5.057 3.238c1.366-1.697 2.691-3.047 3.891-3.809c1.808-1.146 3.614-1.728 5.371-1.728c1.937 0 3.692.703 5.018 1.99l.07-.315l.068-.314l.072-.345a61 61 0 0 0 .238-1.252l.02-.116l.036-.205q.03-.16.056-.322l.007-.041l.044-.282l.043-.285v-.002q.048-.316.09-.633l.007-.052l.039-.297l.032-.253l.055-.5l.022-.2l.006-.055l.033-.325v-.009l.024-.258a51 51 0 0 0 .126-1.72v-.004l.017-.305l.004-.068q.015-.31.025-.619v-.008l.003-.08q.005-.102.006-.205l.001-.027q.004-.097.005-.195l.002-.056l.004-.195l.001-.056l.004-.248zm-58.776 47.051c3.73-5.47 3.466-9.575-1.652-14.69C44.918 88.72 41.94 81.24 41.94 81.24s-1.112-4.345-3.648-3.946c-2.535.4-4.395 6.892.914 10.866c5.309 3.975-1.056 6.67-3.1 2.94s-7.623-13.318-10.515-15.152s-4.927-.806-4.245 2.974c.339 1.876 3.489 5.079 6.431 8.07c2.986 3.036 5.759 5.855 5.166 6.852c-1.177 1.981-5.32-2.327-5.32-2.327s-12.975-11.807-15.799-8.73c-2.604 2.836 1.412 5.247 7.6 8.962l1.622.977c7.08 4.286 7.63 5.417 6.625 7.038c-.37.6-2.74-.823-5.655-2.573c-4.97-2.984-11.521-6.917-12.446-3.396c-.8 3.047 4.02 4.914 8.391 6.607c3.642 1.411 6.973 2.701 6.483 4.453c-.508 1.816-3.26.301-6.27-1.354c-3.377-1.86-7.078-3.895-8.29-1.598c-2.288 4.345 15.793 9.459 15.942 9.497c5.842 1.515 20.678 4.726 25.863-2.874zm24.03 0c-3.73-5.47-3.465-9.575 1.653-14.69s8.097-12.596 8.097-12.596s1.111-4.345 3.647-3.946c2.536.4 4.396 6.892-.913 10.866c-5.31 3.975 1.056 6.67 3.1 2.94s7.619-13.318 10.511-15.152c2.893-1.834 4.928-.806 4.246 2.974c-.338 1.876-3.489 5.079-6.431 8.071c-2.986 3.036-5.758 5.854-5.166 6.851c1.176 1.981 5.323-2.33 5.323-2.33s12.974-11.806 15.799-8.729c2.603 2.835-1.412 5.247-7.6 8.963q-.812.487-1.622.977c-7.08 4.285-7.63 5.416-6.626 7.037c.371.6 2.741-.824 5.655-2.573c4.97-2.983 11.522-6.917 12.447-3.396c.801 3.047-4.02 4.914-8.391 6.608c-3.642 1.41-6.974 2.7-6.484 4.452c.507 1.815 3.26.3 6.267-1.355c3.378-1.859 7.08-3.896 8.29-1.596c2.29 4.346-15.794 9.456-15.94 9.493c-5.842 1.52-20.679 4.73-25.862-2.869\" clip-rule=\"evenodd\"/><path fill=\"#32343d\" fill-rule=\"evenodd\" d=\"M78.667 48.352c.734.26 1.28 1.05 1.8 1.803c.702 1.016 1.356 1.963 2.36 1.43a6.775 6.775 0 0 0 3.564-6.633a6.77 6.77 0 0 0-5.737-6.053a6.777 6.777 0 0 0-6.994 9.883c.465.875 1.497.462 2.586.027c.853-.342 1.743-.697 2.42-.457zm-31.93 0c-.734.26-1.28 1.05-1.8 1.803c-.702 1.017-1.357 1.963-2.36 1.43a6.776 6.776 0 0 1 5.136-12.472a6.78 6.78 0 0 1 4.031 9.67c-.465.874-1.497.461-2.586.026c-.854-.342-1.742-.697-2.42-.457zm26.99 29.055c5.06-3.987 6.92-10.496 6.92-14.506c0-3.17-2.133-2.172-5.547-.482l-.192.095c-3.134 1.552-7.305 3.619-11.884 3.619s-8.752-2.067-11.884-3.62c-3.525-1.745-5.736-2.84-5.736.388c0 4.137 1.978 10.93 7.406 14.875a11.8 11.8 0 0 1 7.194-6.082c.542-.161 1.1.772 1.671 1.727c.551.92 1.115 1.863 1.688 1.863c.61 0 1.21-.928 1.797-1.835c.612-.947 1.21-1.87 1.787-1.686a11.8 11.8 0 0 1 6.78 5.644\" clip-rule=\"evenodd\"/><path fill=\"#ff323d\" d=\"M73.726 77.406c-2.636 2.077-6.14 3.47-10.702 3.47c-4.286 0-7.638-1.23-10.214-3.1a11.78 11.78 0 0 1 7.194-6.082c1.064-.318 2.192 3.59 3.359 3.59c1.25 0 2.453-3.882 3.584-3.521a11.8 11.8 0 0 1 6.779 5.643\"/>",
+    brandColor: "#000000",
+    source: "devicon:huggingface",
+    isDarkBadge: true,
+  },
+  "mistral": {
+    id: "mistral",
+    title: "Mistral AI",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#FA520F\" d=\"M17.143 3.429v3.428h-3.429v3.429h-3.428V6.857H6.857V3.43H3.43v13.714H0v3.428h10.286v-3.428H6.857v-3.429h3.429v3.429h3.429v-3.429h3.428v3.429h-3.428v3.428H24v-3.428h-3.43V3.429z\" />",
+    brandColor: "#FA520F",
+    source: "simple-icons:mistralai",
+    pathOnly: "M17.143 3.429v3.428h-3.429v3.429h-3.428V6.857H6.857V3.43H3.43v13.714H0v3.428h10.286v-3.428H6.857v-3.429h3.429v3.429h3.429v-3.429h3.428v3.429h-3.428v3.428H24v-3.428h-3.43V3.429z",
+  },
+  "deepseek": {
+    id: "deepseek",
+    title: "Deepseek",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#5786FE\" d=\"M23.748 4.651c-.254-.124-.364.113-.512.233-.051.04-.094.09-.137.137-.372.397-.806.657-1.373.626-.829-.046-1.537.214-2.163.848-.133-.782-.575-1.248-1.247-1.548-.352-.155-.708-.311-.955-.65-.172-.24-.219-.509-.305-.774-.055-.16-.11-.323-.293-.35-.2-.031-.278.136-.356.276-.313.572-.434 1.202-.422 1.84.027 1.436.633 2.58 1.838 3.393.137.094.172.187.129.323-.082.28-.18.553-.266.833-.055.179-.137.218-.328.14a5.5 5.5 0 0 1-1.737-1.179c-.857-.828-1.631-1.743-2.597-2.46a12 12 0 0 0-.689-.47c-.985-.957.13-1.743.387-1.836.27-.098.094-.433-.778-.428-.872.003-1.67.295-2.687.685a3 3 0 0 1-.465.136 9.6 9.6 0 0 0-2.883-.101c-1.885.21-3.39 1.1-4.497 2.622C.082 8.776-.231 10.854.152 13.02c.403 2.284 1.568 4.175 3.36 5.653 1.857 1.533 3.997 2.284 6.438 2.14 1.482-.085 3.132-.284 4.994-1.86.47.234.962.328 1.78.398.629.058 1.235-.031 1.705-.129.735-.155.684-.836.418-.961-2.155-1.004-1.682-.595-2.112-.926 1.095-1.295 2.768-3.598 3.284-6.733.05-.346.115-.834.108-1.114-.004-.171.035-.238.23-.257a4.2 4.2 0 0 0 1.545-.475c1.397-.763 1.96-2.016 2.093-3.517.02-.23-.004-.467-.247-.588M11.58 18.168c-2.088-1.642-3.101-2.183-3.52-2.16-.39.024-.32.472-.234.763.09.288.207.487.371.74.114.167.192.416-.113.603-.673.416-1.842-.14-1.897-.168-1.361-.801-2.5-1.86-3.301-3.306-.775-1.393-1.225-2.888-1.299-4.482-.02-.385.094-.522.477-.592a4.7 4.7 0 0 1 1.53-.038c2.131.311 3.946 1.264 5.467 2.774.868.86 1.525 1.887 2.202 2.89.72 1.066 1.494 2.082 2.48 2.915.348.291.626.513.892.677-.802.09-2.14.109-3.055-.615zm1.001-6.44a.306.306 0 0 1 .415-.287.3.3 0 0 1 .113.074.3.3 0 0 1 .086.214c0 .17-.136.307-.308.307a.303.303 0 0 1-.306-.307m3.11 1.596c-.2.081-.4.151-.591.16a1.25 1.25 0 0 1-.798-.254c-.274-.23-.47-.358-.551-.758a1.7 1.7 0 0 1 .015-.588c.07-.327-.007-.537-.238-.727-.188-.156-.426-.199-.689-.199a.6.6 0 0 1-.254-.078.253.253 0 0 1-.114-.358 1 1 0 0 1 .192-.21c.356-.202.767-.136 1.146.016.352.144.618.408 1.001.782.392.451.462.576.685.915.176.264.336.536.446.848.066.194-.02.353-.25.45\" />",
+    brandColor: "#5786FE",
+    source: "simple-icons:deepseek",
+    pathOnly: "M23.748 4.651c-.254-.124-.364.113-.512.233-.051.04-.094.09-.137.137-.372.397-.806.657-1.373.626-.829-.046-1.537.214-2.163.848-.133-.782-.575-1.248-1.247-1.548-.352-.155-.708-.311-.955-.65-.172-.24-.219-.509-.305-.774-.055-.16-.11-.323-.293-.35-.2-.031-.278.136-.356.276-.313.572-.434 1.202-.422 1.84.027 1.436.633 2.58 1.838 3.393.137.094.172.187.129.323-.082.28-.18.553-.266.833-.055.179-.137.218-.328.14a5.5 5.5 0 0 1-1.737-1.179c-.857-.828-1.631-1.743-2.597-2.46a12 12 0 0 0-.689-.47c-.985-.957.13-1.743.387-1.836.27-.098.094-.433-.778-.428-.872.003-1.67.295-2.687.685a3 3 0 0 1-.465.136 9.6 9.6 0 0 0-2.883-.101c-1.885.21-3.39 1.1-4.497 2.622C.082 8.776-.231 10.854.152 13.02c.403 2.284 1.568 4.175 3.36 5.653 1.857 1.533 3.997 2.284 6.438 2.14 1.482-.085 3.132-.284 4.994-1.86.47.234.962.328 1.78.398.629.058 1.235-.031 1.705-.129.735-.155.684-.836.418-.961-2.155-1.004-1.682-.595-2.112-.926 1.095-1.295 2.768-3.598 3.284-6.733.05-.346.115-.834.108-1.114-.004-.171.035-.238.23-.257a4.2 4.2 0 0 0 1.545-.475c1.397-.763 1.96-2.016 2.093-3.517.02-.23-.004-.467-.247-.588M11.58 18.168c-2.088-1.642-3.101-2.183-3.52-2.16-.39.024-.32.472-.234.763.09.288.207.487.371.74.114.167.192.416-.113.603-.673.416-1.842-.14-1.897-.168-1.361-.801-2.5-1.86-3.301-3.306-.775-1.393-1.225-2.888-1.299-4.482-.02-.385.094-.522.477-.592a4.7 4.7 0 0 1 1.53-.038c2.131.311 3.946 1.264 5.467 2.774.868.86 1.525 1.887 2.202 2.89.72 1.066 1.494 2.082 2.48 2.915.348.291.626.513.892.677-.802.09-2.14.109-3.055-.615zm1.001-6.44a.306.306 0 0 1 .415-.287.3.3 0 0 1 .113.074.3.3 0 0 1 .086.214c0 .17-.136.307-.308.307a.303.303 0 0 1-.306-.307m3.11 1.596c-.2.081-.4.151-.591.16a1.25 1.25 0 0 1-.798-.254c-.274-.23-.47-.358-.551-.758a1.7 1.7 0 0 1 .015-.588c.07-.327-.007-.537-.238-.727-.188-.156-.426-.199-.689-.199a.6.6 0 0 1-.254-.078.253.253 0 0 1-.114-.358 1 1 0 0 1 .192-.21c.356-.202.767-.136 1.146.016.352.144.618.408 1.001.782.392.451.462.576.685.915.176.264.336.536.446.848.066.194-.02.353-.25.45",
+  },
+  "nike": {
+    id: "nike",
+    title: "Nike",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"currentColor\" d=\"M24 7.8L6.442 15.276c-1.456.616-2.679.925-3.668.925-1.12 0-1.933-.392-2.437-1.177-.317-.504-.41-1.143-.28-1.918.13-.775.476-1.6 1.036-2.478.467-.71 1.232-1.643 2.297-2.8a6.122 6.122 0 00-.784 1.848c-.28 1.195-.028 2.072.756 2.632.373.261.886.392 1.54.392.522 0 1.11-.084 1.764-.252L24 7.8z\" />",
+    brandColor: "#111111",
+    source: "simple-icons:nike",
+    pathOnly: "M24 7.8L6.442 15.276c-1.456.616-2.679.925-3.668.925-1.12 0-1.933-.392-2.437-1.177-.317-.504-.41-1.143-.28-1.918.13-.775.476-1.6 1.036-2.478.467-.71 1.232-1.643 2.297-2.8a6.122 6.122 0 00-.784 1.848c-.28 1.195-.028 2.072.756 2.632.373.261.886.392 1.54.392.522 0 1.11-.084 1.764-.252L24 7.8z",
+    isDarkBadge: true,
+  },
+  "adidas": {
+    id: "adidas",
+    title: "Adidas",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"currentColor\" d=\"m24 19.535-8.697-15.07-4.659 2.687 7.145 12.383Zm-8.287 0L9.969 9.59 5.31 12.277l4.192 7.258ZM4.658 14.723l2.776 4.812H1.223L0 17.41Z\" />",
+    brandColor: "#000000",
+    source: "simple-icons:adidas",
+    pathOnly: "m24 19.535-8.697-15.07-4.659 2.687 7.145 12.383Zm-8.287 0L9.969 9.59 5.31 12.277l4.192 7.258ZM4.658 14.723l2.776 4.812H1.223L0 17.41Z",
+    isDarkBadge: true,
+  },
+  "puma": {
+    id: "puma",
+    title: "Puma",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"currentColor\" d=\"M23.845 3.008c-.417-.533-1.146-.106-1.467.08-2.284 1.346-2.621 3.716-3.417 5.077-.626 1.09-1.652 1.89-2.58 1.952-.686.049-1.43-.084-2.168-.405-1.807-.781-2.78-1.792-3.017-1.97-.487-.37-4.23-4.015-7.28-4.164 0 0-.372-.75-.465-.763-.222-.025-.45.451-.616.501-.15.053-.413-.512-.565-.487-.153.02-.302.586-.6.877-.22.213-.486.2-.637.463-.052.096-.034.265-.093.42-.127.32-.551.354-.555.697 0 .381.357.454.669.72.248.212.265.362.554.461.258.088.632-.187.964-.088.277.081.543.14.602.423.054.256 0 .658-.34.613-.112-.015-.598-.174-1.198-.11-.725.077-1.553.309-1.634 1.11-.041.447.514.97 1.055.866.371-.071.196-.506.399-.716.267-.27 1.772.944 3.172.944.593 0 1.031-.15 1.467-.605.04-.029.093-.102.155-.11a.632.632 0 01.195.088c1.131.897 1.984 2.7 6.13 2.721.582.007 1.25.279 1.796.777.48.433.764 1.125 1.037 1.825.418 1.053 1.161 2.069 2.292 3.203.06.068.99.78 1.06.833.012.01.084.167.053.255-.02.69-.123 2.67 1.365 2.753.366.02.275-.231.275-.41-.005-.341-.065-.685.113-1.04.253-.478-.526-.709-.509-1.756.019-.784-.645-.651-.984-1.25-.19-.343-.368-.532-.35-.946.073-2.38-.517-3.948-.805-4.327-.227-.294-.423-.403-.207-.54 1.24-.815 1.525-1.574 1.525-1.574.66-1.541 1.256-2.945 2.075-3.57.166-.12.589-.44.852-.56.763-.362 1.173-.578 1.388-.788.356-.337.635-1.053.294-1.48z\" />",
+    brandColor: "#242B2F",
+    source: "simple-icons:puma",
+    pathOnly: "M23.845 3.008c-.417-.533-1.146-.106-1.467.08-2.284 1.346-2.621 3.716-3.417 5.077-.626 1.09-1.652 1.89-2.58 1.952-.686.049-1.43-.084-2.168-.405-1.807-.781-2.78-1.792-3.017-1.97-.487-.37-4.23-4.015-7.28-4.164 0 0-.372-.75-.465-.763-.222-.025-.45.451-.616.501-.15.053-.413-.512-.565-.487-.153.02-.302.586-.6.877-.22.213-.486.2-.637.463-.052.096-.034.265-.093.42-.127.32-.551.354-.555.697 0 .381.357.454.669.72.248.212.265.362.554.461.258.088.632-.187.964-.088.277.081.543.14.602.423.054.256 0 .658-.34.613-.112-.015-.598-.174-1.198-.11-.725.077-1.553.309-1.634 1.11-.041.447.514.97 1.055.866.371-.071.196-.506.399-.716.267-.27 1.772.944 3.172.944.593 0 1.031-.15 1.467-.605.04-.029.093-.102.155-.11a.632.632 0 01.195.088c1.131.897 1.984 2.7 6.13 2.721.582.007 1.25.279 1.796.777.48.433.764 1.125 1.037 1.825.418 1.053 1.161 2.069 2.292 3.203.06.068.99.78 1.06.833.012.01.084.167.053.255-.02.69-.123 2.67 1.365 2.753.366.02.275-.231.275-.41-.005-.341-.065-.685.113-1.04.253-.478-.526-.709-.509-1.756.019-.784-.645-.651-.984-1.25-.19-.343-.368-.532-.35-.946.073-2.38-.517-3.948-.805-4.327-.227-.294-.423-.403-.207-.54 1.24-.815 1.525-1.574 1.525-1.574.66-1.541 1.256-2.945 2.075-3.57.166-.12.589-.44.852-.56.763-.362 1.173-.578 1.388-.788.356-.337.635-1.053.294-1.48z",
+    isDarkBadge: true,
+  },
+  "jordan": {
+    id: "jordan",
+    title: "Air Jordan",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"currentColor\" d=\"M13.55 2.194v-.075c0-.35.113-.663.338-.938.225-.275.512-.412.862-.412s.663.112.938.337.425.525.45.9c.025.375-.088.688-.338.938s-.55.375-.9.375l-.225.075.075.112-.075.413-.15 1.2c.05.05.075.1.075.15l-.15.75c-.05.1-.1.175-.15.225l-.075.3a22.59 22.59 0 01-.45 1.575v.15c-.05.25-.087.45-.112.6-.025.15-.113.4-.263.75-.1.2-.1.525 0 .975l.075.075c0 .15.063.325.188.525s.187.375.187.525c.05 1-.025 1.85-.225 2.55l.15.45c.6.3.775.625.525.975l.375.15c.6.3 1.025.562 1.275.787.25.225.5.463.75.713.2.05.35.125.45.225l.225.075c1.05.7 2.1 1.55 3.15 2.55l.3.225v.075l-.075.15.225.15h.075c.15.1.25.15.3.15h.075c.05 0 .1-.025.15-.075l.15-.075c.1-.1.2-.175.3-.225h.3c.05 0 .05.025 0 .075l-.3.15-.375.45h.525l.525.075c.15-.05.275-.1.375-.15l.375-.225c.15-.05.3 0 .45.15h.075c.05.05.025.125-.075.225l-.9.825c-.25.2-.475.325-.675.375l-.975.675c-.05.05-.1.05-.15 0l-.225-.3-.15-.3-.188-.263-.225-.3-.187-.225-.15-.187-.3-.225c-.1 0-.2-.025-.3-.075l-.975-.75c-.15 0-.325-.075-.525-.225-.75-.65-1.25-1.05-1.5-1.2l-.45-.3-.9-.15c-.3-.05-.7-.2-1.2-.45l-.6-.3c-.4-.2-.675-.3-.825-.3l-.3-.15c-.2-.05-.35-.1-.45-.15l-.15-.15c-.1 0-.2.025-.3.075l-1.5.75-1.875.825c-.5.4-.975.725-1.425.975l-.825.375-1.275.9c-.1.1-.2.1-.3 0l-.15.15c-.15.05-.25.075-.3.075l-.3.15v.15H3.2l-.15.225c-.1.2-.2.312-.3.337-.1.025-.162.063-.187.113a.434.434 0 01-.075.112l-.15.15-.225.15-.338-.037-.45.075-.3.075c-.25.05-.45.012-.6-.113-.15-.125-.275-.312-.375-.562-.1-.15-.05-.275.15-.375l.075-.075c.05-.05.125-.075.225-.075h.45l.6-.225.3-.075c0-.1.025-.175.075-.225.05-.05.125-.075.225-.075v-.075a.666.666 0 01-.075-.3c-.05-.1-.063-.175-.037-.225.025-.05.05-.075.075-.075h.037l.075.225c.05.25.125.325.225.225l.075-.15c.05-.1.125-.15.225-.15l.15.15.15-.15-.075-.075c0-.05.025-.075.075-.075l.3-.3c.25-.3.55-.575.9-.825.7-.55 1.45-.975 2.25-1.275.25-.25.525-.375.825-.375.2-.35.5-.725.9-1.125.35-.25.6-.425.75-.525.1-.2.225-.3.375-.3h.075l.15-.15c.1-.05.175-.1.225-.15v-.375c0-.25.025-.45.075-.6.05-.15.175-.225.375-.225l.3-.3c-.1-.2-.15-.425-.15-.675h-.075c-.1-.15-.15-.3-.15-.45-.15-.25-.25-.45-.3-.6H9.65c-.05.15-.175.25-.375.3l-.075.15c-.2.35-.375.612-.525.787-.15.175-.425.388-.825.638-.25.25-.425.525-.525.825-.05.15-.05.3 0 .45l-.075.15h.075c0 .1.025.15.075.15h.075c.1.05.15.112.15.187s-.075.1-.225.075a.606.606 0 01-.337-.15c-.075-.075-.138-.112-.188-.112l-.225.225c-.1.15-.2.212-.3.187-.1-.025-.125-.062-.075-.112l.075-.075c.05-.1.05-.15 0-.15l-.6.15c-.05.05-.112.05-.187 0s-.063-.1.037-.15l.375-.15c0-.05-.025-.075-.075-.075-.2.1-.4.125-.6.075l-.375-.075-.075-.075c0-.05.025-.075.075-.075.2.05.45.025.75-.075l.525-.225.6-.675.075-.15c.2-.4.413-.763.638-1.088a3.68 3.68 0 01.712-.787l.075-.3c.1-.2.2-.375.3-.525.1-.15.225-.35.375-.6l.225-.3c.2-.3.425-.45.675-.45l.225-.225c.05-.05.075-.125.075-.225l.15-.15-.075-.075c-.3-.25-.45-.475-.45-.675-.05-.35.063-.65.338-.9s.55-.363.825-.338c.275.025.487.113.637.263l.15.15c.05 0 .075.025.075.075l.3.15v.225c.1.1.15.175.15.225.1-.15.25-.325.45-.525l.375-1.2c0-.2.05-.4.15-.6l.15-.225v-.15l.225-.9h.15l.225-.9a.933.933 0 000-.525l-.3-.75-.15-.6z\"/>",
+    brandColor: "#E10600",
+    source: "simple-icons:jordan",
+  },
+  "nba": {
+    id: "nba",
+    title: "NBA",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#253B73\" d=\"M9.19 0a2.486 2.486 0 0 0-2.485 2.484v19.029A2.488 2.488 0 0 0 9.19 24h5.615a2.493 2.493 0 0 0 2.49-2.487V2.484A2.488 2.488 0 0 0 14.81 0zm0 .584h3.21c-.62.237-.707.508-.73 1.366-.105.01-.325-.087-.25.434 0 0 .043.346.18.286-.133.918.023.99-.93 1.031l-.047.067c-.95.093-1.25-.027-2.05 1.603 0 0-.207.505-.268.714-.197.415-.674 1.328-.819 1.919-.046.2-.14.264-.01.553.185.417-.124.527.95.496V9.3s-.286.247-.346.398c-.061.147-.226.89-.22 1.237.019.917.767 1.683.992 2.597l.492.07c.282.634 1.495 2.355 1.743 2.582.057.159.365.355.545.551.149.141 1.025 1.1 2.054 1.692-.007-.001.164.344.249.618-.342.275.32.777.52 1.609.012.107-.19.222.114.495-.022 1.256-.402 1.918.241 2.266H9.191a1.9 1.9 0 0 1-1.9-1.901V2.486a1.9 1.9 0 0 1 1.9-1.902zm3.804.002h1.815a1.9 1.9 0 0 1 1.897 1.898v9.193a1.653 1.653 0 0 0-.22-.397c0-.255-.272-.249-.346-.344-.07-.081.067-.128-.407-.235-.09-.05-.158-.747-.158-.747-.07-.447-.229-.754-.467-1.227-.12-.243-.177-1.001-.305-1.386.071-1.767-.493-2.28-.95-2.569-.174-.11-.262-.191-.433-.29l-.005-.082c-.133-.126-.402-.264-.623-.362-.068-.07-.037-.22.01-.276.15-.02.348-.356.513-.703.129.009.174-.118.214-.19.138-.222.288-.413.096-.542.435-.777.154-1.301-.08-1.321-.095-.195-.26-.316-.551-.42zm.551 6.338c.06.319.34 1.929.456 2.187.123.259.535 1.05.73 1.54a1.69 1.69 0 0 0-1.294 1.646 1.692 1.692 0 0 0 1.693 1.691 1.692 1.692 0 0 0 1.576-1.066v8.59a1.887 1.887 0 0 1-1.598 1.877h-.017c.833-.502.319-1.46.16-2.022-.012-.033.014-.074.026-.1.045-.08-.045-.257-.045-.257-.098-.09-.127-.561-.182-.772-.089-.358.157-.971.157-1.18 0-.206-.156-.491-.445-.858-.069-.078-.276-1.86-.462-2.313-.258-.623-.339-.526-.64-1.266-.24-.525-.055-1.295-.59-3.085.005.006.12-.113.12-.113s-.422-1.55-.561-1.975c-.14-.426-.385-.456-.385-.456s.002-.172.012-.216c.02-.07.516-1.367.558-1.407.001-.03.717-.514.731-.445Z\" />",
+    brandColor: "#253B73",
+    source: "simple-icons:nba",
+    pathOnly: "M9.19 0a2.486 2.486 0 0 0-2.485 2.484v19.029A2.488 2.488 0 0 0 9.19 24h5.615a2.493 2.493 0 0 0 2.49-2.487V2.484A2.488 2.488 0 0 0 14.81 0zm0 .584h3.21c-.62.237-.707.508-.73 1.366-.105.01-.325-.087-.25.434 0 0 .043.346.18.286-.133.918.023.99-.93 1.031l-.047.067c-.95.093-1.25-.027-2.05 1.603 0 0-.207.505-.268.714-.197.415-.674 1.328-.819 1.919-.046.2-.14.264-.01.553.185.417-.124.527.95.496V9.3s-.286.247-.346.398c-.061.147-.226.89-.22 1.237.019.917.767 1.683.992 2.597l.492.07c.282.634 1.495 2.355 1.743 2.582.057.159.365.355.545.551.149.141 1.025 1.1 2.054 1.692-.007-.001.164.344.249.618-.342.275.32.777.52 1.609.012.107-.19.222.114.495-.022 1.256-.402 1.918.241 2.266H9.191a1.9 1.9 0 0 1-1.9-1.901V2.486a1.9 1.9 0 0 1 1.9-1.902zm3.804.002h1.815a1.9 1.9 0 0 1 1.897 1.898v9.193a1.653 1.653 0 0 0-.22-.397c0-.255-.272-.249-.346-.344-.07-.081.067-.128-.407-.235-.09-.05-.158-.747-.158-.747-.07-.447-.229-.754-.467-1.227-.12-.243-.177-1.001-.305-1.386.071-1.767-.493-2.28-.95-2.569-.174-.11-.262-.191-.433-.29l-.005-.082c-.133-.126-.402-.264-.623-.362-.068-.07-.037-.22.01-.276.15-.02.348-.356.513-.703.129.009.174-.118.214-.19.138-.222.288-.413.096-.542.435-.777.154-1.301-.08-1.321-.095-.195-.26-.316-.551-.42zm.551 6.338c.06.319.34 1.929.456 2.187.123.259.535 1.05.73 1.54a1.69 1.69 0 0 0-1.294 1.646 1.692 1.692 0 0 0 1.693 1.691 1.692 1.692 0 0 0 1.576-1.066v8.59a1.887 1.887 0 0 1-1.598 1.877h-.017c.833-.502.319-1.46.16-2.022-.012-.033.014-.074.026-.1.045-.08-.045-.257-.045-.257-.098-.09-.127-.561-.182-.772-.089-.358.157-.971.157-1.18 0-.206-.156-.491-.445-.858-.069-.078-.276-1.86-.462-2.313-.258-.623-.339-.526-.64-1.266-.24-.525-.055-1.295-.59-3.085.005.006.12-.113.12-.113s-.422-1.55-.561-1.975c-.14-.426-.385-.456-.385-.456s.002-.172.012-.216c.02-.07.516-1.367.558-1.407.001-.03.717-.514.731-.445Z",
+  },
+  "formula1": {
+    id: "formula1",
+    title: "Formula 1",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#E10600\" d=\"M9.6 11.24h7.91L19.75 9H9.39c-2.85 0-3.62.34-5.17 1.81C2.71 12.3 0 15 0 15h3.38c.77-.75 2.2-2.13 2.85-2.75c.92-.87 1.37-1.01 3.37-1.01M20.39 9l-6 6H18l6-6zm-3.25 2.61H9.88c-2.22 0-2.6.12-3.55 1.07C5.44 13.57 4 15 4 15h3.15l.75-.75c.49-.49.75-.55 1.78-.55h5.37z\" />",
+    brandColor: "#E10600",
+    source: "simple-icons:f1",
+    pathOnly: "M9.6 11.24h7.91L19.75 9H9.39c-2.85 0-3.62.34-5.17 1.81C2.71 12.3 0 15 0 15h3.38c.77-.75 2.2-2.13 2.85-2.75c.92-.87 1.37-1.01 3.37-1.01M20.39 9l-6 6H18l6-6zm-3.25 2.61H9.88c-2.22 0-2.6.12-3.55 1.07C5.44 13.57 4 15 4 15h3.15l.75-.75c.49-.49.75-.55 1.78-.55h5.37z",
+  },
+  "redbull": {
+    id: "redbull",
+    title: "Red Bull",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#DB0A40\" d=\"M22.381 11.374c-.389 1.244-1.019 2.33-2.142 3.082l-.33.251-.264.236-.091.107-.025.041-.011.028-.004.016v.013l.001.009.002.007.002.006.005.007.002.002.01.008.012.007.011.004a.16.16 0 0 0 .046.006h.024c.178-.007.512-.141.629-.245l-.139.137-.164.149-.173.146-.18.141-.185.136-.197.134-.204.13-.206.123-.213.118-.223.115-.226.108-.225.1-.236.097-.045.018c-1.97.763-4.327.854-5.914-.44.353.344.787.728 1.199.98-.251-.043-.429-.237-.666-.311.004.008.575.751 2.282.946l.316.032.48.031.464.014.448-.009.44-.039.464-.084.401-.107.599-.181.294-.081.128-.033c.104-.026.214-.052.333-.077l.041-.009c.073.031-.524.339-1.344.57-.361.132-.739.2-1.119.227l-.269.012-.216.001-.218-.005-.264-.015-.315-.027-.31-.034-.056-.007c-.401-.049-.781-.107-1.122-.143h-.006.006c.03.015.209.096 1.067.402-.061.022-.346.061-1.536-.448 2.417 1.392 4.988.759 7.266-.585l.352-.215.053-.034.294-.191.151-.103c.178-.121.353-.246.526-.374 0 .009-.004.021-.004.031a.963.963 0 0 0 .075.01c-.014.041-.014.041-.214.279.435-.351.659-.896 1.12-1.225-.236.473-.538.813-1.1 1.361.033-.024.064-.051.095-.078l.028-.026-.028.026a7.88 7.88 0 0 1-3.682 1.965c.126-.014.251-.039.373-.073-.22.061-.227.068-.32.099.058-.007.058-.007.358-.068-.175.086-.377.127-.865.226 2.806-.444 5.721-2.571 5.956-5.449a.142.142 0 0 1-.152-.143c.009-.562-.147-.982-.42-1.302-.163.58-.413 1.136-1.027 2.072-.26.393-.72.41-1.005.771l-.021-.013-.032-.028-.005-.003-.004-.002-.001-.001h-.003l-.007.001h-.003l-.001.001a.193.193 0 0 0-.058.051l.062-.07.067-.092.016-.031.005-.014.002-.01v-.01l-.001-.009-.001-.003-.002-.004-.001-.003-.003-.003a.027.027 0 0 0-.005-.006l-.009-.006-.04-.019-.006-.004-.004-.004-.002-.003-.002-.002-.002-.006v-.006l.001-.007.004-.011.023-.034.014-.016c.622-.687 1.192-1.306 1.438-2.228l.006-.021-.027.032c-.087.103-.147.147-.24.265l.11-.39.035-.127.065-.26.052-.225a.859.859 0 0 0-.118-.055Zm-2.257 6.199a9.006 9.006 0 0 1-1.105.547c-.38.155-.768.279-1.152.354a10.026 10.026 0 0 0 2.257-.901Zm-6.505.203.051.02-.001-.012-.05-.008Zm3.644-2.807c-.372-.201-.515-.63-.744-.945-.6-.62-.701-1.681-.858-2.549-.158-.843-.878-1.467-1.378-2.119-.443-.361-1.599-1.457-2.145-1.632-.72-.299-1.348.267-1.947.544-.487.201-1.002.258-1.432.63-.674.865-1.079.173-1.861.858-1.165 1.22-1.606.146-3.207 1.575-.429.257-.831.515-1.348.487-.823-.039-1.103-1.145-.459-1.633.449-.502 1.552-1.019 1.004-1.831-.57-.508-1.24-.292-1.918-.858-.313.49.087 1.155.601 1.318.211.131.701-.078.802.227-.217.434-.81.669-1.088 1.089-.693.8-.009 2.112.973 2.173.363.117.825-.179 1.06-.057.028.286 0 .544.057.802.027.282.348.584.172.858-.285.245-.654.37-1.03.347-.195.225-.228.48-.344.744-.142.258-.428.372-.629.487-.133.201-.265.424-.545.458-.171.201-.2.458-.257.716.716.19.87.094 1.26-.515.143-.143.344-.029.486 0 .407-.049.711-.321 1.003-.573 1.042-.272 1.032.41 2.233-.372.201-.086.287-.315.373-.487.1-.192.378-.562.028-.658-.899 1.819-2.464.338-3.665 1.715-.184.051-.041-.235 0-.287.862-1.256 2.823-.15 3.493-1.776.117-.25.051-1.247.343-1.232.029 0 .115.029.115.086-.278 1.214-.094 1.591 1.202 1.378.444-.128 1.716.325 1.69-.286 0-.114-.115-.171 0-.257.028-.029.114 0 .143.028.081.49.511.85.919 1.06.823.56.49 1.291-.459 1.26-.315-.172-.4-.487-.63-.745-.267-.234-.633-.122-.944-.057-.155.233.212.511.286.745.143.086.344-.058.458.114.115.171.172.344.344.458.496.476 1.532-.36 2.061-.401.463.051.674-.371.831-.716.261-.477-.434-.948-.487-1.374-.158-.044-.368-.167-.487 0 .088.213.579.993.544 1.231-.064.173-.21.572-.429.544.058-.2.144-.428.144-.658-.105-.245-.565-.953-.602-1.203.092-.242.562-.102.744-.344.201-.315.258-.629.316-1.03a.127.127 0 0 1 .086-.087c.279.18-.005 1.042-.172 1.232-.016.297.568.098.687 0 .221.046.67-.175.773-.029a1.545 1.545 0 0 0-.286.573c-.172.2-.458.344-.458.63.031.18.273-.11.286.114-.249.317-.218.394-.143.745.261.368.761.065 1.088-.028.552-.217 1.172.126 1.604-.459.116.01.222.074.286.172.319.335.769.513 1.231.487.188-.13-.222-.233-.286-.287-.201-.114-.459-.286-.516-.515-.075-.32-.306-.613-.458-.916.669.01.739 1.406 1.716 1.203.048-.033.043-.069.029-.115l-.259-.057Zm-16.866.687c-.339.139-.159.558-.371.773 0 .028-.058.086 0 .115.142.028.257.086.429.114.076-.256.15-.541.2-.773-.058-.086-.143-.2-.258-.229Zm17.317-.39c-.085.109-.274.115-.356.19a.115.115 0 0 0-.023.082.24.24 0 0 1-.073.242c-.087.094-.25.136-.397.126-.734.008-1.092-.351-1.392-.523-.41.265-.665.37-1.201.287-.315-.025-.596.134-.902.212.434.372 2.193.844 1.545.524-1.072-.607-.295-.203.645.019a6.905 6.905 0 0 0 1.625.2 8.043 8.043 0 0 0 2.427-1.279.342.342 0 0 1-.118-.021.192.192 0 0 1-.095-.081c-.031-.052-.048-.136.023-.251.074-.119.286-.327.734-.651a.014.014 0 0 1 .004-.003c1.097-.736 1.71-1.8 2.088-3.015a4.09 4.09 0 0 0-.798-.2c-.405 1.006-.503 1.716-1.458 2.285-1.108.725-.414.539-.403.534.086-.035.168-.079.245-.132-.429.689-1.174 1.129-2.063 1.327a.206.206 0 0 1-.057.128Zm-16.687.39c.2-.115.315-.315.401-.487-.062-.096-.136-.223-.286-.172-.137.106-.28.201-.429.287-.072.194.107.439.315.372h-.001Zm8.648-.63c.114.143.114.343.258.458a.617.617 0 0 0 .486-.143c.086-.057-.028-.143-.057-.229-.086-.115-.028-.344-.229-.344-.217.051-.455-.012-.659.057 0 .087.172.087.201.201Zm5.125-.344a1.694 1.694 0 0 1-.4.057h-.029c-.169-.156.184-.468.372-.458h.086c.105.044.078.32-.029.401Zm7.828-3.179c-.038.169-.078.328-.12.489a.142.142 0 0 1 .133.177c-.243.936-.807 1.571-1.433 2.262l.003.005c.1-.07.207-.127.313-.184.163-.088.326-.176.442-.351.632-.962.872-1.515 1.032-2.115-.11-.106-.233-.2-.37-.283Zm-.948-2.516.117.073c1.725 1.116 2.457 3.197 1.833 4.905l.006-.005c.29-.834.408-1.718.349-2.599-.306-2.281-1.087-4.283-3.87-5.019 1.721.416 1.85.631 2.075.779-1.337-1.235-3.49-1.664-5.667-1.295 1.253-.404 3.303-.361 4.61.417l.031.019c-3.108-1.906-6.839-1.075-9.134 1.114.429.083.806.366 1.157.637l.109-.059.127-.064.131-.062.27-.119.281-.11.295-.105.306-.096.285-.079.323-.079.299-.064.273-.05.17-.027.17-.025.138-.018.172-.019c1.705-.182 3.539.045 4.907.946l.013.008a4.445 4.445 0 0 1 1.518 1.685c-.033.021-.065.016-.094-.001l-.038-.029-.108-.115-.02-.015c-.014-.005-.046-.036-.061-.043l-.209-.189-.248-.186-.266-.162-.044-.024c-.773-.418-1.714-.603-2.55-.779l-.051-.01.415.146.459.135.494.143.299.099.242.094.16.071.143.072.085.046.098.058Zm-1.112 4.436c.186-.409.62-.629.762-1.123-.021.073.134.103.195.103.245-.042.251-.379.33-.449-.061.766-.578 1.393-1.144 1.912a.255.255 0 0 0-.244-.011c-.024-.144.286-.344.101-.432Zm-5.023-.402c-.032.056-.081.202-.143.201-.062-.001-.089.009-.086-.057-.005-.193-.036-.429-.201-.544-.374-.582-.468.147-.601.057-.08-.162.046-.345.115-.487.032-.038.044-.083.086-.114.061-.353.383-.152.458.057.197.245.429.521.401.802-.029-.029-.029.028-.029.085Zm-.549-3.278c-.217-.28-.442-.582-.683-.803 1.207-.431 3.157-.54 4.121-.577.228-.007.352-.022.403-.037a.18.18 0 0 0 .087-.052.143.143 0 0 0 .037-.115.15.15 0 0 0-.066-.11.573.573 0 0 0-.18-.059 8.12 8.12 0 0 0-1.056-.106h-.002c-.657 0-1.409.067-2.124.192.255-.086.515-.156.779-.209a.142.142 0 0 0 .114-.146.143.143 0 0 0-.128-.134c-.122-.013-.895.075-1.605.241-.485.113-.938.266-1.149.438a.08.08 0 0 0-.013.013c-.071-.06-.143-.119-.213-.176 1.546-.816 4.032-1.269 6.157-.782 1.178.269 2.246.83 2.973 1.785-.868-.665-2.087-.901-3.134-1.122a.142.142 0 0 0-.082.27c.762.303 1.566.393 2.28.798 1.572.902 2.381 2.603 2.161 4.159.016-.994-.449-1.573-1.164-1.938-2.191-.92-4.263.309-6 .558v-.014l-.003-.005c-.1-.215.937-.435 1.075-.518.082-.085.222-.056.315-.132.092-.091.23-.111.353-.135.323-.165.679-.219 1.039-.226.127.019.245-.052.372-.043a.347.347 0 0 1 .188-.03c.385-.029.779-.065 1.111-.299.035-.021.153-.086.053-.099-.629-.17-.932.26-1.506-.256.009-.022-.181-.103-.208-.103-.304.061-.589.197-.905.202-.144.032-.201-.04-.345-.04-.193.045-.46.169-.657.184-.092-.017-.542.218-.551.056a.017.017 0 0 1-.01 0c-.048-.182 2.822-1.254 1.641-.532.065.056.447-.105.807-.132.404-.086.941.211 1.118-.185-.007-.065-.162-.046-.2-.019-.077.042-.16.014-.241.032-.135.016-.66-.079-.779-.071-.095-.081.528-.064.583-.073.205-.031.452-.077.657-.115.091-.011.183-.013.274-.006.186.044.684-.024.153-.153-.14-.027-.581-.041-.652-.019-.108.014-.576.153-.825.095-.225-.068.7-.106.59-.168-1.148-.145-2.457-.109-4.724 1-.072-.089-.15-.183-.236-.284Zm-2.543.902c-.029.029-.058.029-.115.029-.077-.29-.104-.592-.258-.831-.08-.079-.184-.181-.115-.315a.138.138 0 0 1 .173-.029c.262.196.306.469.315.802.057.057.028.229 0 .344Zm9.227-1.658Zm-7.497-.15.213-.075.252-.076.266-.068.313-.068.36-.067.313-.049.37-.049.442-.05.467-.042.53-.036.414-.023.446-.018.194-.018.035-.008.013-.005.005-.003v-.001l.003-.002v-.001l.001-.004c0-.002-.001-.004-.004-.007l-.004-.003-.006-.003c-.113-.058-.879-.133-1.149-.136-1.19 0-2.697.224-3.712.611l.238.201Zm2.074-1.11.027.001a6.503 6.503 0 0 0-.867.238l-.496.169-.452.166-.341.132-.285.117-.209-.174c.434-.355 1.968-.598 2.491-.642l.132-.007Zm3.546.188c.08.059.363.23.812.232a.143.143 0 0 0 .131-.086.143.143 0 0 0-.028-.154c-.09-.093-.249-.173-.434-.235-.245-.082-.537-.139-.734-.184a.14.14 0 0 0-.102.016.143.143 0 0 0-.068.083.14.14 0 0 0 .008.111c.01.021.039.059.094.09.075.041.234.099.321.127Zm-.287-.278c-.003-.004-.002-.008.003-.011.302.069.834.165 1.057.344l.04.035a1.47 1.47 0 0 1-.438-.066l-.099-.035-.092-.042-.065-.037a.216.216 0 0 1-.05-.036h.001l-.277-.103-.043-.021a.106.106 0 0 1-.037-.028Zm.305.284.002.001a.203.203 0 0 0-.002-.001Z\" />",
+    brandColor: "#DB0A40",
+    source: "simple-icons:redbull",
+    pathOnly: "M22.381 11.374c-.389 1.244-1.019 2.33-2.142 3.082l-.33.251-.264.236-.091.107-.025.041-.011.028-.004.016v.013l.001.009.002.007.002.006.005.007.002.002.01.008.012.007.011.004a.16.16 0 0 0 .046.006h.024c.178-.007.512-.141.629-.245l-.139.137-.164.149-.173.146-.18.141-.185.136-.197.134-.204.13-.206.123-.213.118-.223.115-.226.108-.225.1-.236.097-.045.018c-1.97.763-4.327.854-5.914-.44.353.344.787.728 1.199.98-.251-.043-.429-.237-.666-.311.004.008.575.751 2.282.946l.316.032.48.031.464.014.448-.009.44-.039.464-.084.401-.107.599-.181.294-.081.128-.033c.104-.026.214-.052.333-.077l.041-.009c.073.031-.524.339-1.344.57-.361.132-.739.2-1.119.227l-.269.012-.216.001-.218-.005-.264-.015-.315-.027-.31-.034-.056-.007c-.401-.049-.781-.107-1.122-.143h-.006.006c.03.015.209.096 1.067.402-.061.022-.346.061-1.536-.448 2.417 1.392 4.988.759 7.266-.585l.352-.215.053-.034.294-.191.151-.103c.178-.121.353-.246.526-.374 0 .009-.004.021-.004.031a.963.963 0 0 0 .075.01c-.014.041-.014.041-.214.279.435-.351.659-.896 1.12-1.225-.236.473-.538.813-1.1 1.361.033-.024.064-.051.095-.078l.028-.026-.028.026a7.88 7.88 0 0 1-3.682 1.965c.126-.014.251-.039.373-.073-.22.061-.227.068-.32.099.058-.007.058-.007.358-.068-.175.086-.377.127-.865.226 2.806-.444 5.721-2.571 5.956-5.449a.142.142 0 0 1-.152-.143c.009-.562-.147-.982-.42-1.302-.163.58-.413 1.136-1.027 2.072-.26.393-.72.41-1.005.771l-.021-.013-.032-.028-.005-.003-.004-.002-.001-.001h-.003l-.007.001h-.003l-.001.001a.193.193 0 0 0-.058.051l.062-.07.067-.092.016-.031.005-.014.002-.01v-.01l-.001-.009-.001-.003-.002-.004-.001-.003-.003-.003a.027.027 0 0 0-.005-.006l-.009-.006-.04-.019-.006-.004-.004-.004-.002-.003-.002-.002-.002-.006v-.006l.001-.007.004-.011.023-.034.014-.016c.622-.687 1.192-1.306 1.438-2.228l.006-.021-.027.032c-.087.103-.147.147-.24.265l.11-.39.035-.127.065-.26.052-.225a.859.859 0 0 0-.118-.055Zm-2.257 6.199a9.006 9.006 0 0 1-1.105.547c-.38.155-.768.279-1.152.354a10.026 10.026 0 0 0 2.257-.901Zm-6.505.203.051.02-.001-.012-.05-.008Zm3.644-2.807c-.372-.201-.515-.63-.744-.945-.6-.62-.701-1.681-.858-2.549-.158-.843-.878-1.467-1.378-2.119-.443-.361-1.599-1.457-2.145-1.632-.72-.299-1.348.267-1.947.544-.487.201-1.002.258-1.432.63-.674.865-1.079.173-1.861.858-1.165 1.22-1.606.146-3.207 1.575-.429.257-.831.515-1.348.487-.823-.039-1.103-1.145-.459-1.633.449-.502 1.552-1.019 1.004-1.831-.57-.508-1.24-.292-1.918-.858-.313.49.087 1.155.601 1.318.211.131.701-.078.802.227-.217.434-.81.669-1.088 1.089-.693.8-.009 2.112.973 2.173.363.117.825-.179 1.06-.057.028.286 0 .544.057.802.027.282.348.584.172.858-.285.245-.654.37-1.03.347-.195.225-.228.48-.344.744-.142.258-.428.372-.629.487-.133.201-.265.424-.545.458-.171.201-.2.458-.257.716.716.19.87.094 1.26-.515.143-.143.344-.029.486 0 .407-.049.711-.321 1.003-.573 1.042-.272 1.032.41 2.233-.372.201-.086.287-.315.373-.487.1-.192.378-.562.028-.658-.899 1.819-2.464.338-3.665 1.715-.184.051-.041-.235 0-.287.862-1.256 2.823-.15 3.493-1.776.117-.25.051-1.247.343-1.232.029 0 .115.029.115.086-.278 1.214-.094 1.591 1.202 1.378.444-.128 1.716.325 1.69-.286 0-.114-.115-.171 0-.257.028-.029.114 0 .143.028.081.49.511.85.919 1.06.823.56.49 1.291-.459 1.26-.315-.172-.4-.487-.63-.745-.267-.234-.633-.122-.944-.057-.155.233.212.511.286.745.143.086.344-.058.458.114.115.171.172.344.344.458.496.476 1.532-.36 2.061-.401.463.051.674-.371.831-.716.261-.477-.434-.948-.487-1.374-.158-.044-.368-.167-.487 0 .088.213.579.993.544 1.231-.064.173-.21.572-.429.544.058-.2.144-.428.144-.658-.105-.245-.565-.953-.602-1.203.092-.242.562-.102.744-.344.201-.315.258-.629.316-1.03a.127.127 0 0 1 .086-.087c.279.18-.005 1.042-.172 1.232-.016.297.568.098.687 0 .221.046.67-.175.773-.029a1.545 1.545 0 0 0-.286.573c-.172.2-.458.344-.458.63.031.18.273-.11.286.114-.249.317-.218.394-.143.745.261.368.761.065 1.088-.028.552-.217 1.172.126 1.604-.459.116.01.222.074.286.172.319.335.769.513 1.231.487.188-.13-.222-.233-.286-.287-.201-.114-.459-.286-.516-.515-.075-.32-.306-.613-.458-.916.669.01.739 1.406 1.716 1.203.048-.033.043-.069.029-.115l-.259-.057Zm-16.866.687c-.339.139-.159.558-.371.773 0 .028-.058.086 0 .115.142.028.257.086.429.114.076-.256.15-.541.2-.773-.058-.086-.143-.2-.258-.229Zm17.317-.39c-.085.109-.274.115-.356.19a.115.115 0 0 0-.023.082.24.24 0 0 1-.073.242c-.087.094-.25.136-.397.126-.734.008-1.092-.351-1.392-.523-.41.265-.665.37-1.201.287-.315-.025-.596.134-.902.212.434.372 2.193.844 1.545.524-1.072-.607-.295-.203.645.019a6.905 6.905 0 0 0 1.625.2 8.043 8.043 0 0 0 2.427-1.279.342.342 0 0 1-.118-.021.192.192 0 0 1-.095-.081c-.031-.052-.048-.136.023-.251.074-.119.286-.327.734-.651a.014.014 0 0 1 .004-.003c1.097-.736 1.71-1.8 2.088-3.015a4.09 4.09 0 0 0-.798-.2c-.405 1.006-.503 1.716-1.458 2.285-1.108.725-.414.539-.403.534.086-.035.168-.079.245-.132-.429.689-1.174 1.129-2.063 1.327a.206.206 0 0 1-.057.128Zm-16.687.39c.2-.115.315-.315.401-.487-.062-.096-.136-.223-.286-.172-.137.106-.28.201-.429.287-.072.194.107.439.315.372h-.001Zm8.648-.63c.114.143.114.343.258.458a.617.617 0 0 0 .486-.143c.086-.057-.028-.143-.057-.229-.086-.115-.028-.344-.229-.344-.217.051-.455-.012-.659.057 0 .087.172.087.201.201Zm5.125-.344a1.694 1.694 0 0 1-.4.057h-.029c-.169-.156.184-.468.372-.458h.086c.105.044.078.32-.029.401Zm7.828-3.179c-.038.169-.078.328-.12.489a.142.142 0 0 1 .133.177c-.243.936-.807 1.571-1.433 2.262l.003.005c.1-.07.207-.127.313-.184.163-.088.326-.176.442-.351.632-.962.872-1.515 1.032-2.115-.11-.106-.233-.2-.37-.283Zm-.948-2.516.117.073c1.725 1.116 2.457 3.197 1.833 4.905l.006-.005c.29-.834.408-1.718.349-2.599-.306-2.281-1.087-4.283-3.87-5.019 1.721.416 1.85.631 2.075.779-1.337-1.235-3.49-1.664-5.667-1.295 1.253-.404 3.303-.361 4.61.417l.031.019c-3.108-1.906-6.839-1.075-9.134 1.114.429.083.806.366 1.157.637l.109-.059.127-.064.131-.062.27-.119.281-.11.295-.105.306-.096.285-.079.323-.079.299-.064.273-.05.17-.027.17-.025.138-.018.172-.019c1.705-.182 3.539.045 4.907.946l.013.008a4.445 4.445 0 0 1 1.518 1.685c-.033.021-.065.016-.094-.001l-.038-.029-.108-.115-.02-.015c-.014-.005-.046-.036-.061-.043l-.209-.189-.248-.186-.266-.162-.044-.024c-.773-.418-1.714-.603-2.55-.779l-.051-.01.415.146.459.135.494.143.299.099.242.094.16.071.143.072.085.046.098.058Zm-1.112 4.436c.186-.409.62-.629.762-1.123-.021.073.134.103.195.103.245-.042.251-.379.33-.449-.061.766-.578 1.393-1.144 1.912a.255.255 0 0 0-.244-.011c-.024-.144.286-.344.101-.432Zm-5.023-.402c-.032.056-.081.202-.143.201-.062-.001-.089.009-.086-.057-.005-.193-.036-.429-.201-.544-.374-.582-.468.147-.601.057-.08-.162.046-.345.115-.487.032-.038.044-.083.086-.114.061-.353.383-.152.458.057.197.245.429.521.401.802-.029-.029-.029.028-.029.085Zm-.549-3.278c-.217-.28-.442-.582-.683-.803 1.207-.431 3.157-.54 4.121-.577.228-.007.352-.022.403-.037a.18.18 0 0 0 .087-.052.143.143 0 0 0 .037-.115.15.15 0 0 0-.066-.11.573.573 0 0 0-.18-.059 8.12 8.12 0 0 0-1.056-.106h-.002c-.657 0-1.409.067-2.124.192.255-.086.515-.156.779-.209a.142.142 0 0 0 .114-.146.143.143 0 0 0-.128-.134c-.122-.013-.895.075-1.605.241-.485.113-.938.266-1.149.438a.08.08 0 0 0-.013.013c-.071-.06-.143-.119-.213-.176 1.546-.816 4.032-1.269 6.157-.782 1.178.269 2.246.83 2.973 1.785-.868-.665-2.087-.901-3.134-1.122a.142.142 0 0 0-.082.27c.762.303 1.566.393 2.28.798 1.572.902 2.381 2.603 2.161 4.159.016-.994-.449-1.573-1.164-1.938-2.191-.92-4.263.309-6 .558v-.014l-.003-.005c-.1-.215.937-.435 1.075-.518.082-.085.222-.056.315-.132.092-.091.23-.111.353-.135.323-.165.679-.219 1.039-.226.127.019.245-.052.372-.043a.347.347 0 0 1 .188-.03c.385-.029.779-.065 1.111-.299.035-.021.153-.086.053-.099-.629-.17-.932.26-1.506-.256.009-.022-.181-.103-.208-.103-.304.061-.589.197-.905.202-.144.032-.201-.04-.345-.04-.193.045-.46.169-.657.184-.092-.017-.542.218-.551.056a.017.017 0 0 1-.01 0c-.048-.182 2.822-1.254 1.641-.532.065.056.447-.105.807-.132.404-.086.941.211 1.118-.185-.007-.065-.162-.046-.2-.019-.077.042-.16.014-.241.032-.135.016-.66-.079-.779-.071-.095-.081.528-.064.583-.073.205-.031.452-.077.657-.115.091-.011.183-.013.274-.006.186.044.684-.024.153-.153-.14-.027-.581-.041-.652-.019-.108.014-.576.153-.825.095-.225-.068.7-.106.59-.168-1.148-.145-2.457-.109-4.724 1-.072-.089-.15-.183-.236-.284Zm-2.543.902c-.029.029-.058.029-.115.029-.077-.29-.104-.592-.258-.831-.08-.079-.184-.181-.115-.315a.138.138 0 0 1 .173-.029c.262.196.306.469.315.802.057.057.028.229 0 .344Zm9.227-1.658Zm-7.497-.15.213-.075.252-.076.266-.068.313-.068.36-.067.313-.049.37-.049.442-.05.467-.042.53-.036.414-.023.446-.018.194-.018.035-.008.013-.005.005-.003v-.001l.003-.002v-.001l.001-.004c0-.002-.001-.004-.004-.007l-.004-.003-.006-.003c-.113-.058-.879-.133-1.149-.136-1.19 0-2.697.224-3.712.611l.238.201Zm2.074-1.11.027.001a6.503 6.503 0 0 0-.867.238l-.496.169-.452.166-.341.132-.285.117-.209-.174c.434-.355 1.968-.598 2.491-.642l.132-.007Zm3.546.188c.08.059.363.23.812.232a.143.143 0 0 0 .131-.086.143.143 0 0 0-.028-.154c-.09-.093-.249-.173-.434-.235-.245-.082-.537-.139-.734-.184a.14.14 0 0 0-.102.016.143.143 0 0 0-.068.083.14.14 0 0 0 .008.111c.01.021.039.059.094.09.075.041.234.099.321.127Zm-.287-.278c-.003-.004-.002-.008.003-.011.302.069.834.165 1.057.344l.04.035a1.47 1.47 0 0 1-.438-.066l-.099-.035-.092-.042-.065-.037a.216.216 0 0 1-.05-.036h.001l-.277-.103-.043-.021a.106.106 0 0 1-.037-.028Zm.305.284.002.001a.203.203 0 0 0-.002-.001Z",
+  },
+  "nextjs": {
+    id: "nextjs",
+    title: "Nextjs",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"currentColor\" d=\"M18.665 21.978C16.758 23.255 14.465 24 12 24 5.377 24 0 18.623 0 12S5.377 0 12 0s12 5.377 12 12c0 3.583-1.574 6.801-4.067 9.001L9.219 7.2H7.2v9.596h1.615V9.251l9.85 12.727Zm-3.332-8.533 1.6 2.061V7.2h-1.6v6.245Z\" />",
+    brandColor: "#000000",
+    source: "simple-icons:nextdotjs",
+    pathOnly: "M18.665 21.978C16.758 23.255 14.465 24 12 24 5.377 24 0 18.623 0 12S5.377 0 12 0s12 5.377 12 12c0 3.583-1.574 6.801-4.067 9.001L9.219 7.2H7.2v9.596h1.615V9.251l9.85 12.727Zm-3.332-8.533 1.6 2.061V7.2h-1.6v6.245Z",
+    isDarkBadge: true,
+  },
+  "react": {
+    id: "react",
+    title: "React",
+    viewBox: "0 0 256 228",
+    body: "<path fill=\"#00d8ff\" d=\"M210.483 73.824a172 172 0 0 0-8.24-2.597c.465-1.9.893-3.777 1.273-5.621c6.238-30.281 2.16-54.676-11.769-62.708c-13.355-7.7-35.196.329-57.254 19.526a171 171 0 0 0-6.375 5.848a156 156 0 0 0-4.241-3.917C100.759 3.829 77.587-4.822 63.673 3.233C50.33 10.957 46.379 33.89 51.995 62.588a171 171 0 0 0 1.892 8.48c-3.28.932-6.445 1.924-9.474 2.98C17.309 83.498 0 98.307 0 113.668c0 15.865 18.582 31.778 46.812 41.427a146 146 0 0 0 6.921 2.165a168 168 0 0 0-2.01 9.138c-5.354 28.2-1.173 50.591 12.134 58.266c13.744 7.926 36.812-.22 59.273-19.855a146 146 0 0 0 5.342-4.923a168 168 0 0 0 6.92 6.314c21.758 18.722 43.246 26.282 56.54 18.586c13.731-7.949 18.194-32.003 12.4-61.268a145 145 0 0 0-1.535-6.842c1.62-.48 3.21-.974 4.76-1.488c29.348-9.723 48.443-25.443 48.443-41.52c0-15.417-17.868-30.326-45.517-39.844m-6.365 70.984q-2.102.694-4.3 1.345c-3.24-10.257-7.612-21.163-12.963-32.432c5.106-11 9.31-21.767 12.459-31.957c2.619.758 5.16 1.557 7.61 2.4c23.69 8.156 38.14 20.213 38.14 29.504c0 9.896-15.606 22.743-40.946 31.14m-10.514 20.834c2.562 12.94 2.927 24.64 1.23 33.787c-1.524 8.219-4.59 13.698-8.382 15.893c-8.067 4.67-25.32-1.4-43.927-17.412a157 157 0 0 1-6.437-5.87c7.214-7.889 14.423-17.06 21.459-27.246c12.376-1.098 24.068-2.894 34.671-5.345q.785 3.162 1.386 6.193M87.276 214.515c-7.882 2.783-14.16 2.863-17.955.675c-8.075-4.657-11.432-22.636-6.853-46.752a157 157 0 0 1 1.869-8.499c10.486 2.32 22.093 3.988 34.498 4.994c7.084 9.967 14.501 19.128 21.976 27.15a135 135 0 0 1-4.877 4.492c-9.933 8.682-19.886 14.842-28.658 17.94M50.35 144.747c-12.483-4.267-22.792-9.812-29.858-15.863c-6.35-5.437-9.555-10.836-9.555-15.216c0-9.322 13.897-21.212 37.076-29.293c2.813-.98 5.757-1.905 8.812-2.773c3.204 10.42 7.406 21.315 12.477 32.332c-5.137 11.18-9.399 22.249-12.634 32.792a135 135 0 0 1-6.318-1.979m12.378-84.26c-4.811-24.587-1.616-43.134 6.425-47.789c8.564-4.958 27.502 2.111 47.463 19.835a144 144 0 0 1 3.841 3.545c-7.438 7.987-14.787 17.08-21.808 26.988c-12.04 1.116-23.565 2.908-34.161 5.309a160 160 0 0 1-1.76-7.887m110.427 27.268a348 348 0 0 0-7.785-12.803c8.168 1.033 15.994 2.404 23.343 4.08c-2.206 7.072-4.956 14.465-8.193 22.045a381 381 0 0 0-7.365-13.322m-45.032-43.861c5.044 5.465 10.096 11.566 15.065 18.186a322 322 0 0 0-30.257-.006c4.974-6.559 10.069-12.652 15.192-18.18M82.802 87.83a323 323 0 0 0-7.227 13.238c-3.184-7.553-5.909-14.98-8.134-22.152c7.304-1.634 15.093-2.97 23.209-3.984a322 322 0 0 0-7.848 12.897m8.081 65.352c-8.385-.936-16.291-2.203-23.593-3.793c2.26-7.3 5.045-14.885 8.298-22.6a321 321 0 0 0 7.257 13.246c2.594 4.48 5.28 8.868 8.038 13.147m37.542 31.03c-5.184-5.592-10.354-11.779-15.403-18.433c4.902.192 9.899.29 14.978.29c5.218 0 10.376-.117 15.453-.343c-4.985 6.774-10.018 12.97-15.028 18.486m52.198-57.817c3.422 7.8 6.306 15.345 8.596 22.52c-7.422 1.694-15.436 3.058-23.88 4.071a382 382 0 0 0 7.859-13.026a347 347 0 0 0 7.425-13.565m-16.898 8.101a359 359 0 0 1-12.281 19.815a329 329 0 0 1-23.444.823c-7.967 0-15.716-.248-23.178-.732a310 310 0 0 1-12.513-19.846h.001a307 307 0 0 1-10.923-20.627a310 310 0 0 1 10.89-20.637l-.001.001a307 307 0 0 1 12.413-19.761c7.613-.576 15.42-.876 23.31-.876H128c7.926 0 15.743.303 23.354.883a329 329 0 0 1 12.335 19.695a359 359 0 0 1 11.036 20.54a330 330 0 0 1-11 20.722m22.56-122.124c8.572 4.944 11.906 24.881 6.52 51.026q-.518 2.504-1.15 5.09c-10.622-2.452-22.155-4.275-34.23-5.408c-7.034-10.017-14.323-19.124-21.64-27.008a161 161 0 0 1 5.888-5.4c18.9-16.447 36.564-22.941 44.612-18.3M128 90.808c12.625 0 22.86 10.235 22.86 22.86s-10.235 22.86-22.86 22.86s-22.86-10.235-22.86-22.86s10.235-22.86 22.86-22.86\"/>",
+    brandColor: "#000000",
+    source: "logos:react",
+    isDarkBadge: true,
+  },
+  "vue": {
+    id: "vue",
+    title: "Vue",
+    viewBox: "0 0 256 221",
+    body: "<path fill=\"#41b883\" d=\"M204.8 0H256L128 220.8L0 0h97.92L128 51.2L157.44 0z\"/><path fill=\"#41b883\" d=\"m0 0l128 220.8L256 0h-51.2L128 132.48L50.56 0z\"/><path fill=\"#35495e\" d=\"M50.56 0L128 133.12L204.8 0h-47.36L128 51.2L97.92 0z\"/>",
+    brandColor: "#000000",
+    source: "logos:vue",
+    isDarkBadge: true,
+  },
+  "angular": {
+    id: "angular",
+    title: "Angular",
+    viewBox: "0 0 256 271",
+    body: "<defs><linearGradient id=\"SVGpqdn3GZR\" x1=\"25.071%\" x2=\"96.132%\" y1=\"90.929%\" y2=\"55.184%\"><stop offset=\"0%\" stop-color=\"#e40035\"/><stop offset=\"24%\" stop-color=\"#f60a48\"/><stop offset=\"35.2%\" stop-color=\"#f20755\"/><stop offset=\"49.4%\" stop-color=\"#dc087d\"/><stop offset=\"74.5%\" stop-color=\"#9717e7\"/><stop offset=\"100%\" stop-color=\"#6c00f5\"/></linearGradient><linearGradient id=\"SVGVcJbhdIj\" x1=\"21.863%\" x2=\"68.367%\" y1=\"12.058%\" y2=\"68.21%\"><stop offset=\"0%\" stop-color=\"#ff31d9\"/><stop offset=\"100%\" stop-color=\"#ff5be1\" stop-opacity=\"0\"/></linearGradient></defs><path fill=\"url(#SVGpqdn3GZR)\" d=\"m256 45.179l-9.244 145.158L158.373 0zm-61.217 187.697l-66.782 38.105l-66.784-38.105L74.8 199.958h106.4zM128.001 72.249l34.994 85.076h-69.99zM9.149 190.337L0 45.179L97.627 0z\"/><path fill=\"url(#SVGVcJbhdIj)\" d=\"m256 45.179l-9.244 145.158L158.373 0zm-61.217 187.697l-66.782 38.105l-66.784-38.105L74.8 199.958h106.4zM128.001 72.249l34.994 85.076h-69.99zM9.149 190.337L0 45.179L97.627 0z\"/>",
+    brandColor: "#000000",
+    source: "logos:angular-icon",
+    isDarkBadge: true,
+  },
+  "svelte": {
+    id: "svelte",
+    title: "Svelte",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#FF3E00\" d=\"M10.354 21.125a4.44 4.44 0 0 1-4.765-1.767 4.109 4.109 0 0 1-.703-3.107 3.898 3.898 0 0 1 .134-.522l.105-.321.287.21a7.21 7.21 0 0 0 2.186 1.092l.208.063-.02.208a1.253 1.253 0 0 0 .226.83 1.337 1.337 0 0 0 1.435.533 1.231 1.231 0 0 0 .343-.15l5.59-3.562a1.164 1.164 0 0 0 .524-.778 1.242 1.242 0 0 0-.211-.937 1.338 1.338 0 0 0-1.435-.533 1.23 1.23 0 0 0-.343.15l-2.133 1.36a4.078 4.078 0 0 1-1.135.499 4.44 4.44 0 0 1-4.765-1.766 4.108 4.108 0 0 1-.702-3.108 3.855 3.855 0 0 1 1.742-2.582l5.589-3.563a4.072 4.072 0 0 1 1.135-.499 4.44 4.44 0 0 1 4.765 1.767 4.109 4.109 0 0 1 .703 3.107 3.943 3.943 0 0 1-.134.522l-.105.321-.286-.21a7.204 7.204 0 0 0-2.187-1.093l-.208-.063.02-.207a1.255 1.255 0 0 0-.226-.831 1.337 1.337 0 0 0-1.435-.532 1.231 1.231 0 0 0-.343.15L8.62 9.368a1.162 1.162 0 0 0-.524.778 1.24 1.24 0 0 0 .211.937 1.338 1.338 0 0 0 1.435.533 1.235 1.235 0 0 0 .344-.151l2.132-1.36a4.067 4.067 0 0 1 1.135-.498 4.44 4.44 0 0 1 4.765 1.766 4.108 4.108 0 0 1 .702 3.108 3.857 3.857 0 0 1-1.742 2.583l-5.589 3.562a4.072 4.072 0 0 1-1.135.499m10.358-17.95C18.484-.015 14.082-.96 10.9 1.068L5.31 4.63a6.412 6.412 0 0 0-2.896 4.295 6.753 6.753 0 0 0 .666 4.336 6.43 6.43 0 0 0-.96 2.396 6.833 6.833 0 0 0 1.168 5.167c2.229 3.19 6.63 4.135 9.812 2.108l5.59-3.562a6.41 6.41 0 0 0 2.896-4.295 6.756 6.756 0 0 0-.665-4.336 6.429 6.429 0 0 0 .958-2.396 6.831 6.831 0 0 0-1.167-5.168Z\" />",
+    brandColor: "#FF3E00",
+    source: "simple-icons:svelte",
+    pathOnly: "M10.354 21.125a4.44 4.44 0 0 1-4.765-1.767 4.109 4.109 0 0 1-.703-3.107 3.898 3.898 0 0 1 .134-.522l.105-.321.287.21a7.21 7.21 0 0 0 2.186 1.092l.208.063-.02.208a1.253 1.253 0 0 0 .226.83 1.337 1.337 0 0 0 1.435.533 1.231 1.231 0 0 0 .343-.15l5.59-3.562a1.164 1.164 0 0 0 .524-.778 1.242 1.242 0 0 0-.211-.937 1.338 1.338 0 0 0-1.435-.533 1.23 1.23 0 0 0-.343.15l-2.133 1.36a4.078 4.078 0 0 1-1.135.499 4.44 4.44 0 0 1-4.765-1.766 4.108 4.108 0 0 1-.702-3.108 3.855 3.855 0 0 1 1.742-2.582l5.589-3.563a4.072 4.072 0 0 1 1.135-.499 4.44 4.44 0 0 1 4.765 1.767 4.109 4.109 0 0 1 .703 3.107 3.943 3.943 0 0 1-.134.522l-.105.321-.286-.21a7.204 7.204 0 0 0-2.187-1.093l-.208-.063.02-.207a1.255 1.255 0 0 0-.226-.831 1.337 1.337 0 0 0-1.435-.532 1.231 1.231 0 0 0-.343.15L8.62 9.368a1.162 1.162 0 0 0-.524.778 1.24 1.24 0 0 0 .211.937 1.338 1.338 0 0 0 1.435.533 1.235 1.235 0 0 0 .344-.151l2.132-1.36a4.067 4.067 0 0 1 1.135-.498 4.44 4.44 0 0 1 4.765 1.766 4.108 4.108 0 0 1 .702 3.108 3.857 3.857 0 0 1-1.742 2.583l-5.589 3.562a4.072 4.072 0 0 1-1.135.499m10.358-17.95C18.484-.015 14.082-.96 10.9 1.068L5.31 4.63a6.412 6.412 0 0 0-2.896 4.295 6.753 6.753 0 0 0 .666 4.336 6.43 6.43 0 0 0-.96 2.396 6.833 6.833 0 0 0 1.168 5.167c2.229 3.19 6.63 4.135 9.812 2.108l5.59-3.562a6.41 6.41 0 0 0 2.896-4.295 6.756 6.756 0 0 0-.665-4.336 6.429 6.429 0 0 0 .958-2.396 6.831 6.831 0 0 0-1.167-5.168Z",
+  },
+  "tanstack": {
+    id: "tanstack",
+    title: "TanStack",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#FF4154\" d=\"M12 0c6.627 0 9.166 4.102 9.166 12S18.626 24 12 24s-9.166-4.096-9.166-12c0-7.898 2.54-12 9.166-12m3.031 17.485c-.861 0-1.33.234-1.708.423-.327.164-.582.292-1.148.292-.567 0-.822-.128-1.148-.292-.378-.189-.848-.423-1.71-.423-.86 0-1.33.234-1.708.423-.327.164-.581.292-1.148.292v1.251c.862 0 1.331-.234 1.709-.423.326-.163.581-.292 1.148-.292s.821.129 1.148.292c.378.189.847.423 1.709.423.861 0 1.33-.234 1.709-.423.326-.163.58-.292 1.147-.292s.822.129 1.148.292c.378.189.848.423 1.71.423v-1.25c-.565 0-.822-.13-1.149-.293-.377-.189-.847-.423-1.709-.423m.41-12.536c.65-.586 0-1.648-.813-1.328-.45.18-.873.438-1.251.779a4.2 4.2 0 0 0-1.202 1.94 4.2 4.2 0 0 0-1.203-1.94 4.3 4.3 0 0 0-1.25-.779c-.814-.32-1.463.742-.814 1.328l2.385 2.153a4.86 4.86 0 0 0-2.731-.839c-.552 0-1.082.09-1.58.26-.836.284-.604 1.532.275 1.532h3.326a4.2 4.2 0 0 0-2.012.988 4 4 0 0 0-.9 1.165c-.403.776.588 1.529 1.237.948l2.686-2.42-.2 6.656c0 .08-.047.158-.107.223a5 5 0 0 1-.257-.123c-.378-.189-.848-.423-1.71-.423-.861 0-1.33.234-1.708.423-.327.164-.581.292-1.148.292v1.251c.861 0 1.33-.234 1.709-.423.326-.164.58-.292 1.148-.292.566 0 .821.128 1.148.292.377.189.847.423 1.708.423.862 0 1.332-.234 1.71-.423.326-.164.58-.292 1.147-.292s.822.128 1.148.292c.378.189.848.423 1.71.423v-1.25c-.565 0-.822-.13-1.149-.293v-.005c-.378-.19-.847-.424-1.709-.424-.861 0-1.33.235-1.709.424-.097.045-.189.094-.283.131a.34.34 0 0 1-.12-.232l-.2-6.69 2.722 2.457c.65.587 1.64-.166 1.236-.948a4.11 4.11 0 0 0-2.911-2.153h3.326c.882 0 1.108-1.245.275-1.531a4.88 4.88 0 0 0-4.311.578l2.385-2.152z\" />",
+    brandColor: "#FF4154",
+    source: "simple-icons:tanstack",
+    pathOnly: "M12 0c6.627 0 9.166 4.102 9.166 12S18.626 24 12 24s-9.166-4.096-9.166-12c0-7.898 2.54-12 9.166-12m3.031 17.485c-.861 0-1.33.234-1.708.423-.327.164-.582.292-1.148.292-.567 0-.822-.128-1.148-.292-.378-.189-.848-.423-1.71-.423-.86 0-1.33.234-1.708.423-.327.164-.581.292-1.148.292v1.251c.862 0 1.331-.234 1.709-.423.326-.163.581-.292 1.148-.292s.821.129 1.148.292c.378.189.847.423 1.709.423.861 0 1.33-.234 1.709-.423.326-.163.58-.292 1.147-.292s.822.129 1.148.292c.378.189.848.423 1.71.423v-1.25c-.565 0-.822-.13-1.149-.293-.377-.189-.847-.423-1.709-.423m.41-12.536c.65-.586 0-1.648-.813-1.328-.45.18-.873.438-1.251.779a4.2 4.2 0 0 0-1.202 1.94 4.2 4.2 0 0 0-1.203-1.94 4.3 4.3 0 0 0-1.25-.779c-.814-.32-1.463.742-.814 1.328l2.385 2.153a4.86 4.86 0 0 0-2.731-.839c-.552 0-1.082.09-1.58.26-.836.284-.604 1.532.275 1.532h3.326a4.2 4.2 0 0 0-2.012.988 4 4 0 0 0-.9 1.165c-.403.776.588 1.529 1.237.948l2.686-2.42-.2 6.656c0 .08-.047.158-.107.223a5 5 0 0 1-.257-.123c-.378-.189-.848-.423-1.71-.423-.861 0-1.33.234-1.708.423-.327.164-.581.292-1.148.292v1.251c.861 0 1.33-.234 1.709-.423.326-.164.58-.292 1.148-.292.566 0 .821.128 1.148.292.377.189.847.423 1.708.423.862 0 1.332-.234 1.71-.423.326-.164.58-.292 1.147-.292s.822.128 1.148.292c.378.189.848.423 1.71.423v-1.25c-.565 0-.822-.13-1.149-.293v-.005c-.378-.19-.847-.424-1.709-.424-.861 0-1.33.235-1.709.424-.097.045-.189.094-.283.131a.34.34 0 0 1-.12-.232l-.2-6.69 2.722 2.457c.65.587 1.64-.166 1.236-.948a4.11 4.11 0 0 0-2.911-2.153h3.326c.882 0 1.108-1.245.275-1.531a4.88 4.88 0 0 0-4.311.578l2.385-2.152z",
+  },
+  "prisma": {
+    id: "prisma",
+    title: "Prisma",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#2D3748\" d=\"M21.8068 18.2848L13.5528.7565c-.207-.4382-.639-.7273-1.1286-.7541-.5023-.0293-.9523.213-1.2062.6253L2.266 15.1271c-.2773.4518-.2718 1.0091.0158 1.4555l4.3759 6.7786c.2608.4046.7127.6388 1.1823.6388.1332 0 .267-.0188.3987-.0577l12.7019-3.7568c.3891-.1151.7072-.3904.8737-.7553s.1633-.7828-.0075-1.1454zm-1.8481.7519L9.1814 22.2242c-.3292.0975-.6448-.1873-.5756-.5194l3.8501-18.4386c.072-.3448.5486-.3996.699-.0803l7.1288 15.138c.1344.2856-.019.6224-.325.7128z\" />",
+    brandColor: "#2D3748",
+    source: "simple-icons:prisma",
+    pathOnly: "M21.8068 18.2848L13.5528.7565c-.207-.4382-.639-.7273-1.1286-.7541-.5023-.0293-.9523.213-1.2062.6253L2.266 15.1271c-.2773.4518-.2718 1.0091.0158 1.4555l4.3759 6.7786c.2608.4046.7127.6388 1.1823.6388.1332 0 .267-.0188.3987-.0577l12.7019-3.7568c.3891-.1151.7072-.3904.8737-.7553s.1633-.7828-.0075-1.1454zm-1.8481.7519L9.1814 22.2242c-.3292.0975-.6448-.1873-.5756-.5194l3.8501-18.4386c.072-.3448.5486-.3996.699-.0803l7.1288 15.138c.1344.2856-.019.6224-.325.7128z",
+  },
+  "mongodb": {
+    id: "mongodb",
+    title: "Mongodb",
+    viewBox: "0 0 128 128",
+    body: "<path fill=\"#439934\" fill-rule=\"evenodd\" d=\"M88.038 42.812c1.605 4.643 2.761 9.383 3.141 14.296c.472 6.095.256 12.147-1.029 18.142c-.035.165-.109.32-.164.48c-.403.001-.814-.049-1.208.012c-3.329.523-6.655 1.065-9.981 1.604c-3.438.557-6.881 1.092-10.313 1.687c-1.216.21-2.721-.041-3.212 1.641c-.014.046-.154.054-.235.08l.166-10.051l-.169-24.252l1.602-.275c2.62-.429 5.24-.864 7.862-1.281c3.129-.497 6.261-.98 9.392-1.465c1.381-.215 2.764-.412 4.148-.618\" clip-rule=\"evenodd\"/><path fill=\"#45a538\" fill-rule=\"evenodd\" d=\"M61.729 110.054c-1.69-1.453-3.439-2.842-5.059-4.37c-8.717-8.222-15.093-17.899-18.233-29.566c-.865-3.211-1.442-6.474-1.627-9.792c-.13-2.322-.318-4.665-.154-6.975c.437-6.144 1.325-12.229 3.127-18.147l.099-.138c.175.233.427.439.516.702q2.638 7.77 5.242 15.551c5.458 16.3 10.909 32.604 16.376 48.9c.107.318.384.579.583.866z\" clip-rule=\"evenodd\"/><path fill=\"#46a037\" fill-rule=\"evenodd\" d=\"M88.038 42.812c-1.384.206-2.768.403-4.149.616c-3.131.485-6.263.968-9.392 1.465c-2.622.417-5.242.852-7.862 1.281l-1.602.275l-.012-1.045c-.053-.859-.144-1.717-.154-2.576c-.069-5.478-.112-10.956-.18-16.434c-.042-3.429-.105-6.857-.175-10.285c-.043-2.13-.089-4.261-.185-6.388c-.052-1.143-.236-2.28-.311-3.423c-.042-.657.016-1.319.029-1.979c.817 1.583 1.616 3.178 2.456 4.749c1.327 2.484 3.441 4.314 5.344 6.311c7.523 7.892 12.864 17.068 16.193 27.433\" clip-rule=\"evenodd\"/><path fill=\"#409433\" fill-rule=\"evenodd\" d=\"M65.036 80.753c.081-.026.222-.034.235-.08c.491-1.682 1.996-1.431 3.212-1.641c3.432-.594 6.875-1.13 10.313-1.687c3.326-.539 6.652-1.081 9.981-1.604c.394-.062.805-.011 1.208-.012c-.622 2.22-1.112 4.488-1.901 6.647c-.896 2.449-1.98 4.839-3.131 7.182a49 49 0 0 1-6.353 9.763c-1.919 2.308-4.058 4.441-6.202 6.548c-1.185 1.165-2.582 2.114-3.882 3.161l-.337-.23l-1.214-1.038l-1.256-2.753a41.4 41.4 0 0 1-1.394-9.838l.023-.561l.171-2.426c.057-.828.133-1.655.168-2.485c.129-2.982.241-5.964.359-8.946\" clip-rule=\"evenodd\"/><path fill=\"#4faa41\" fill-rule=\"evenodd\" d=\"M65.036 80.753c-.118 2.982-.23 5.964-.357 8.947c-.035.83-.111 1.657-.168 2.485l-.765.289c-1.699-5.002-3.399-9.951-5.062-14.913c-2.75-8.209-5.467-16.431-8.213-24.642a4499 4499 0 0 0-6.7-19.867c-.105-.31-.407-.552-.617-.826l4.896-9.002c.168.292.39.565.496.879a6168 6168 0 0 1 6.768 20.118c2.916 8.73 5.814 17.467 8.728 26.198c.116.349.308.671.491 1.062l.67-.78z\" clip-rule=\"evenodd\"/><path fill=\"#4aa73c\" fill-rule=\"evenodd\" d=\"M43.155 32.227c.21.274.511.516.617.826a4499 4499 0 0 1 6.7 19.867c2.746 8.211 5.463 16.433 8.213 24.642c1.662 4.961 3.362 9.911 5.062 14.913l.765-.289l-.171 2.426l-.155.559c-.266 2.656-.49 5.318-.814 7.968c-.163 1.328-.509 2.632-.772 3.947c-.198-.287-.476-.548-.583-.866c-5.467-16.297-10.918-32.6-16.376-48.9a3889 3889 0 0 0-5.242-15.551c-.089-.263-.34-.469-.516-.702z\" clip-rule=\"evenodd\"/><path fill=\"#57ae47\" fill-rule=\"evenodd\" d=\"m65.202 70.702l-.67.78c-.183-.391-.375-.714-.491-1.062c-2.913-8.731-5.812-17.468-8.728-26.198a6168 6168 0 0 0-6.768-20.118c-.105-.314-.327-.588-.496-.879l6.055-7.965c.191.255.463.482.562.769q2.52 7.382 5.003 14.778c1.547 4.604 3.071 9.215 4.636 13.813c.105.308.47.526.714.786l.012 1.045q.087 12.124.171 24.251\" clip-rule=\"evenodd\"/><path fill=\"#60b24f\" fill-rule=\"evenodd\" d=\"M65.021 45.404c-.244-.26-.609-.478-.714-.786c-1.565-4.598-3.089-9.209-4.636-13.813q-2.483-7.395-5.003-14.778c-.099-.287-.371-.514-.562-.769c1.969-1.928 3.877-3.925 5.925-5.764c1.821-1.634 3.285-3.386 3.352-5.968c.003-.107.059-.214.145-.514l.519 1.306c-.013.661-.072 1.322-.029 1.979c.075 1.143.259 2.28.311 3.423c.096 2.127.142 4.258.185 6.388c.069 3.428.132 6.856.175 10.285c.067 5.478.111 10.956.18 16.434c.008.861.098 1.718.152 2.577\" clip-rule=\"evenodd\"/><path fill=\"#a9aa88\" fill-rule=\"evenodd\" d=\"M62.598 107.085c.263-1.315.609-2.62.772-3.947c.325-2.649.548-5.312.814-7.968l.066-.01l.066.011a41.4 41.4 0 0 0 1.394 9.838c-.176.232-.425.439-.518.701c-.727 2.05-1.412 4.116-2.143 6.166c-.1.28-.378.498-.574.744l-.747-2.566z\" clip-rule=\"evenodd\"/><path fill=\"#b6b598\" fill-rule=\"evenodd\" d=\"M62.476 112.621c.196-.246.475-.464.574-.744c.731-2.05 1.417-4.115 2.143-6.166c.093-.262.341-.469.518-.701l1.255 2.754c-.248.352-.59.669-.728 1.061l-2.404 7.059c-.099.283-.437.483-.663.722z\" clip-rule=\"evenodd\"/><path fill=\"#c2c1a7\" fill-rule=\"evenodd\" d=\"M63.171 116.605c.227-.238.564-.439.663-.722l2.404-7.059c.137-.391.48-.709.728-1.061l1.215 1.037c-.587.58-.913 1.25-.717 2.097l-.369 1.208c-.168.207-.411.387-.494.624c-.839 2.403-1.64 4.819-2.485 7.222c-.107.305-.404.544-.614.812q-.164-2.079-.331-4.158\" clip-rule=\"evenodd\"/><path fill=\"#cecdb7\" fill-rule=\"evenodd\" d=\"M63.503 120.763c.209-.269.506-.508.614-.812c.845-2.402 1.646-4.818 2.485-7.222c.083-.236.325-.417.494-.624l-.509 5.545c-.136.157-.333.294-.398.477c-.575 1.614-1.117 3.24-1.694 4.854c-.119.333-.347.627-.525.938c-.158-.207-.441-.407-.454-.623c-.051-.841-.016-1.688-.013-2.533\" clip-rule=\"evenodd\"/><path fill=\"#dbdac7\" fill-rule=\"evenodd\" d=\"M63.969 123.919c.178-.312.406-.606.525-.938c.578-1.613 1.119-3.239 1.694-4.854c.065-.183.263-.319.398-.477l.012 3.64l-1.218 3.124z\" clip-rule=\"evenodd\"/><path fill=\"#ebe9dc\" fill-rule=\"evenodd\" d=\"m65.38 124.415l1.218-3.124l.251 3.696z\" clip-rule=\"evenodd\"/><path fill=\"#cecdb7\" fill-rule=\"evenodd\" d=\"M67.464 110.898c-.196-.847.129-1.518.717-2.097l.337.23z\" clip-rule=\"evenodd\"/><path fill=\"#4faa41\" fill-rule=\"evenodd\" d=\"m64.316 95.172l-.066-.011l-.066.01l.155-.559z\" clip-rule=\"evenodd\"/>",
+    brandColor: "#000000",
+    source: "devicon:mongodb",
+    isDarkBadge: true,
+  },
+  "postgres": {
+    id: "postgres",
+    title: "PostgreSQL",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#4169E1\" d=\"M23.5594 14.7228a.5269.5269 0 0 0-.0563-.1191c-.139-.2632-.4768-.3418-1.0074-.2321-1.6533.3411-2.2935.1312-2.5256-.0191 1.342-2.0482 2.445-4.522 3.0411-6.8297.2714-1.0507.7982-3.5237.1222-4.7316a1.5641 1.5641 0 0 0-.1509-.235C21.6931.9086 19.8007.0248 17.5099.0005c-1.4947-.0158-2.7705.3461-3.1161.4794a9.449 9.449 0 0 0-.5159-.0816 8.044 8.044 0 0 0-1.3114-.1278c-1.1822-.0184-2.2038.2642-3.0498.8406-.8573-.3211-4.7888-1.645-7.2219.0788C.9359 2.1526.3086 3.8733.4302 6.3043c.0409.818.5069 3.334 1.2423 5.7436.4598 1.5065.9387 2.7019 1.4334 3.582.553.9942 1.1259 1.5933 1.7143 1.7895.4474.1491 1.1327.1441 1.8581-.7279.8012-.9635 1.5903-1.8258 1.9446-2.2069.4351.2355.9064.3625 1.39.3772a.0569.0569 0 0 0 .0004.0041 11.0312 11.0312 0 0 0-.2472.3054c-.3389.4302-.4094.5197-1.5002.7443-.3102.064-1.1344.2339-1.1464.8115-.0025.1224.0329.2309.0919.3268.2269.4231.9216.6097 1.015.6331 1.3345.3335 2.5044.092 3.3714-.6787-.017 2.231.0775 4.4174.3454 5.0874.2212.5529.7618 1.9045 2.4692 1.9043.2505 0 .5263-.0291.8296-.0941 1.7819-.3821 2.5557-1.1696 2.855-2.9059.1503-.8707.4016-2.8753.5388-4.1012.0169-.0703.0357-.1207.057-.1362.0007-.0005.0697-.0471.4272.0307a.3673.3673 0 0 0 .0443.0068l.2539.0223.0149.001c.8468.0384 1.9114-.1426 2.5312-.4308.6438-.2988 1.8057-1.0323 1.5951-1.6698zM2.371 11.8765c-.7435-2.4358-1.1779-4.8851-1.2123-5.5719-.1086-2.1714.4171-3.6829 1.5623-4.4927 1.8367-1.2986 4.8398-.5408 6.108-.13-.0032.0032-.0066.0061-.0098.0094-2.0238 2.044-1.9758 5.536-1.9708 5.7495-.0002.0823.0066.1989.0162.3593.0348.5873.0996 1.6804-.0735 2.9184-.1609 1.1504.1937 2.2764.9728 3.0892.0806.0841.1648.1631.2518.2374-.3468.3714-1.1004 1.1926-1.9025 2.1576-.5677.6825-.9597.5517-1.0886.5087-.3919-.1307-.813-.5871-1.2381-1.3223-.4796-.839-.9635-2.0317-1.4155-3.5126zm6.0072 5.0871c-.1711-.0428-.3271-.1132-.4322-.1772.0889-.0394.2374-.0902.4833-.1409 1.2833-.2641 1.4815-.4506 1.9143-1.0002.0992-.126.2116-.2687.3673-.4426a.3549.3549 0 0 0 .0737-.1298c.1708-.1513.2724-.1099.4369-.0417.156.0646.3078.26.3695.4752.0291.1016.0619.2945-.0452.4444-.9043 1.2658-2.2216 1.2494-3.1676 1.0128zm2.094-3.988-.0525.141c-.133.3566-.2567.6881-.3334 1.003-.6674-.0021-1.3168-.2872-1.8105-.8024-.6279-.6551-.9131-1.5664-.7825-2.5004.1828-1.3079.1153-2.4468.079-3.0586-.005-.0857-.0095-.1607-.0122-.2199.2957-.2621 1.6659-.9962 2.6429-.7724.4459.1022.7176.4057.8305.928.5846 2.7038.0774 3.8307-.3302 4.7363-.084.1866-.1633.3629-.2311.5454zm7.3637 4.5725c-.0169.1768-.0358.376-.0618.5959l-.146.4383a.3547.3547 0 0 0-.0182.1077c-.0059.4747-.054.6489-.115.8693-.0634.2292-.1353.4891-.1794 1.0575-.11 1.4143-.8782 2.2267-2.4172 2.5565-1.5155.3251-1.7843-.4968-2.0212-1.2217a6.5824 6.5824 0 0 0-.0769-.2266c-.2154-.5858-.1911-1.4119-.1574-2.5551.0165-.5612-.0249-1.9013-.3302-2.6462.0044-.2932.0106-.5909.019-.8918a.3529.3529 0 0 0-.0153-.1126 1.4927 1.4927 0 0 0-.0439-.208c-.1226-.4283-.4213-.7866-.7797-.9351-.1424-.059-.4038-.1672-.7178-.0869.067-.276.1831-.5875.309-.9249l.0529-.142c.0595-.16.134-.3257.213-.5012.4265-.9476 1.0106-2.2453.3766-5.1772-.2374-1.0981-1.0304-1.6343-2.2324-1.5098-.7207.0746-1.3799.3654-1.7088.5321a5.6716 5.6716 0 0 0-.1958.1041c.0918-1.1064.4386-3.1741 1.7357-4.4823a4.0306 4.0306 0 0 1 .3033-.276.3532.3532 0 0 0 .1447-.0644c.7524-.5706 1.6945-.8506 2.802-.8325.4091.0067.8017.0339 1.1742.081 1.939.3544 3.2439 1.4468 4.0359 2.3827.8143.9623 1.2552 1.9315 1.4312 2.4543-1.3232-.1346-2.2234.1268-2.6797.779-.9926 1.4189.543 4.1729 1.2811 5.4964.1353.2426.2522.4522.2889.5413.2403.5825.5515.9713.7787 1.2552.0696.087.1372.1714.1885.245-.4008.1155-1.1208.3825-1.0552 1.717-.0123.1563-.0423.4469-.0834.8148-.0461.2077-.0702.4603-.0994.7662zm.8905-1.6211c-.0405-.8316.2691-.9185.5967-1.0105a2.8566 2.8566 0 0 0 .135-.0406 1.202 1.202 0 0 0 .1342.103c.5703.3765 1.5823.4213 3.0068.1344-.2016.1769-.5189.3994-.9533.6011-.4098.1903-1.0957.333-1.7473.3636-.7197.0336-1.0859-.0807-1.1721-.151zm.5695-9.2712c-.0059.3508-.0542.6692-.1054 1.0017-.055.3576-.112.7274-.1264 1.1762-.0142.4368.0404.8909.0932 1.3301.1066.887.216 1.8003-.2075 2.7014a3.5272 3.5272 0 0 1-.1876-.3856c-.0527-.1276-.1669-.3326-.3251-.6162-.6156-1.1041-2.0574-3.6896-1.3193-4.7446.3795-.5427 1.3408-.5661 2.1781-.463zm.2284 7.0137a12.3762 12.3762 0 0 0-.0853-.1074l-.0355-.0444c.7262-1.1995.5842-2.3862.4578-3.4385-.0519-.4318-.1009-.8396-.0885-1.2226.0129-.4061.0666-.7543.1185-1.0911.0639-.415.1288-.8443.1109-1.3505.0134-.0531.0188-.1158.0118-.1902-.0457-.4855-.5999-1.938-1.7294-3.253-.6076-.7073-1.4896-1.4972-2.6889-2.0395.5251-.1066 1.2328-.2035 2.0244-.1859 2.0515.0456 3.6746.8135 4.8242 2.2824a.908.908 0 0 1 .0667.1002c.7231 1.3556-.2762 6.2751-2.9867 10.5405zm-8.8166-6.1162c-.025.1794-.3089.4225-.6211.4225a.5821.5821 0 0 1-.0809-.0056c-.1873-.026-.3765-.144-.5059-.3156-.0458-.0605-.1203-.178-.1055-.2844.0055-.0401.0261-.0985.0925-.1488.1182-.0894.3518-.1226.6096-.0867.3163.0441.6426.1938.6113.4186zm7.9305-.4114c.0111.0792-.049.201-.1531.3102-.0683.0717-.212.1961-.4079.2232a.5456.5456 0 0 1-.075.0052c-.2935 0-.5414-.2344-.5607-.3717-.024-.1765.2641-.3106.5611-.352.297-.0414.6111.0088.6356.1851z\"/>",
+    brandColor: "#4169E1",
+    source: "simple-icons:postgresql",
+  },
+  "supabase": {
+    id: "supabase",
+    title: "Supabase",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#3FCF8E\" d=\"M11.9 1.036c-.015-.986-1.26-1.41-1.874-.637L.764 12.05C-.33 13.427.65 15.455 2.409 15.455h9.579l.113 7.51c.014.985 1.259 1.408 1.873.636l9.262-11.653c1.093-1.375.113-3.403-1.645-3.403h-9.642z\" />",
+    brandColor: "#3FCF8E",
+    source: "simple-icons:supabase",
+    pathOnly: "M11.9 1.036c-.015-.986-1.26-1.41-1.874-.637L.764 12.05C-.33 13.427.65 15.455 2.409 15.455h9.579l.113 7.51c.014.985 1.259 1.408 1.873.636l9.262-11.653c1.093-1.375.113-3.403-1.645-3.403h-9.642z",
+  },
+  "tailwind": {
+    id: "tailwind",
+    title: "Tailwind CSS",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#06B6D4\" d=\"M12.001,4.8c-3.2,0-5.2,1.6-6,4.8c1.2-1.6,2.6-2.2,4.2-1.8c0.913,0.228,1.565,0.89,2.288,1.624 C13.666,10.618,15.027,12,18.001,12c3.2,0,5.2-1.6,6-4.8c-1.2,1.6-2.6,2.2-4.2,1.8c-0.913-0.228-1.565-0.89-2.288-1.624 C16.337,6.182,14.976,4.8,12.001,4.8z M6.001,12c-3.2,0-5.2,1.6-6,4.8c1.2-1.6,2.6-2.2,4.2-1.8c0.913,0.228,1.565,0.89,2.288,1.624 c1.177,1.194,2.538,2.576,5.512,2.576c3.2,0,5.2-1.6,6-4.8c-1.2,1.6-2.6,2.2-4.2,1.8c-0.913-0.228-1.565-0.89-2.288-1.624 C10.337,13.382,8.976,12,6.001,12z\" />",
+    brandColor: "#06B6D4",
+    source: "simple-icons:tailwindcss",
+    pathOnly: "M12.001,4.8c-3.2,0-5.2,1.6-6,4.8c1.2-1.6,2.6-2.2,4.2-1.8c0.913,0.228,1.565,0.89,2.288,1.624 C13.666,10.618,15.027,12,18.001,12c3.2,0,5.2-1.6,6-4.8c-1.2,1.6-2.6,2.2-4.2,1.8c-0.913-0.228-1.565-0.89-2.288-1.624 C16.337,6.182,14.976,4.8,12.001,4.8z M6.001,12c-3.2,0-5.2,1.6-6,4.8c1.2-1.6,2.6-2.2,4.2-1.8c0.913,0.228,1.565,0.89,2.288,1.624 c1.177,1.194,2.538,2.576,5.512,2.576c3.2,0,5.2-1.6,6-4.8c-1.2,1.6-2.6,2.2-4.2,1.8c-0.913-0.228-1.565-0.89-2.288-1.624 C10.337,13.382,8.976,12,6.001,12z",
+  },
+  "nodejs": {
+    id: "nodejs",
+    title: "Nodejs",
+    viewBox: "0 0 256 289",
+    body: "<path fill=\"#539e43\" d=\"M128 288.464c-3.975 0-7.685-1.06-11.13-2.915l-35.247-20.936c-5.3-2.915-2.65-3.975-1.06-4.505c7.155-2.385 8.48-2.915 15.9-7.156c.796-.53 1.856-.265 2.65.265l27.032 16.166c1.06.53 2.385.53 3.18 0l105.74-61.217c1.06-.53 1.59-1.59 1.59-2.915V83.08c0-1.325-.53-2.385-1.59-2.915l-105.74-60.953c-1.06-.53-2.385-.53-3.18 0L20.405 80.166c-1.06.53-1.59 1.855-1.59 2.915v122.17c0 1.06.53 2.385 1.59 2.915l28.887 16.695c15.636 7.95 25.44-1.325 25.44-10.6V93.68c0-1.59 1.326-3.18 3.181-3.18h13.516c1.59 0 3.18 1.325 3.18 3.18v120.58c0 20.936-11.396 33.126-31.272 33.126c-6.095 0-10.865 0-24.38-6.625l-27.827-15.9C4.24 220.885 0 213.465 0 205.515V83.346C0 75.396 4.24 67.976 11.13 64L116.87 2.783c6.625-3.71 15.635-3.71 22.26 0L244.87 64C251.76 67.975 256 75.395 256 83.346v122.17c0 7.95-4.24 15.37-11.13 19.345L139.13 286.08c-3.445 1.59-7.42 2.385-11.13 2.385m32.596-84.009c-46.377 0-55.917-21.2-55.917-39.221c0-1.59 1.325-3.18 3.18-3.18h13.78c1.59 0 2.916 1.06 2.916 2.65c2.12 14.045 8.215 20.936 36.306 20.936c22.261 0 31.802-5.035 31.802-16.96c0-6.891-2.65-11.926-37.367-15.372c-28.886-2.915-46.907-9.275-46.907-32.33c0-21.467 18.02-34.187 48.232-34.187c33.921 0 50.617 11.66 52.737 37.101q0 1.193-.795 2.385c-.53.53-1.325 1.06-2.12 1.06h-13.78c-1.326 0-2.65-1.06-2.916-2.385c-3.18-14.575-11.395-19.345-33.126-19.345c-24.38 0-27.296 8.48-27.296 14.84c0 7.686 3.445 10.07 36.306 14.31c32.597 4.24 47.967 10.336 47.967 33.127c-.265 23.321-19.345 36.571-53.002 36.571\"/>",
+    brandColor: "#000000",
+    source: "logos:nodejs-icon",
+    isDarkBadge: true,
+  },
+  "typescript": {
+    id: "typescript",
+    title: "Typescript",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#3178C6\" d=\"M1.125 0C.502 0 0 .502 0 1.125v21.75C0 23.498.502 24 1.125 24h21.75c.623 0 1.125-.502 1.125-1.125V1.125C24 .502 23.498 0 22.875 0zm17.363 9.75c.612 0 1.154.037 1.627.111a6.38 6.38 0 0 1 1.306.34v2.458a3.95 3.95 0 0 0-.643-.361 5.093 5.093 0 0 0-.717-.26 5.453 5.453 0 0 0-1.426-.2c-.3 0-.573.028-.819.086a2.1 2.1 0 0 0-.623.242c-.17.104-.3.229-.393.374a.888.888 0 0 0-.14.49c0 .196.053.373.156.529.104.156.252.304.443.444s.423.276.696.41c.273.135.582.274.926.416.47.197.892.407 1.266.628.374.222.695.473.963.753.268.279.472.598.614.957.142.359.214.776.214 1.253 0 .657-.125 1.21-.373 1.656a3.033 3.033 0 0 1-1.012 1.085 4.38 4.38 0 0 1-1.487.596c-.566.12-1.163.18-1.79.18a9.916 9.916 0 0 1-1.84-.164 5.544 5.544 0 0 1-1.512-.493v-2.63a5.033 5.033 0 0 0 3.237 1.2c.333 0 .624-.03.872-.09.249-.06.456-.144.623-.25.166-.108.29-.234.373-.38a1.023 1.023 0 0 0-.074-1.089 2.12 2.12 0 0 0-.537-.5 5.597 5.597 0 0 0-.807-.444 27.72 27.72 0 0 0-1.007-.436c-.918-.383-1.602-.852-2.053-1.405-.45-.553-.676-1.222-.676-2.005 0-.614.123-1.141.369-1.582.246-.441.58-.804 1.004-1.089a4.494 4.494 0 0 1 1.47-.629 7.536 7.536 0 0 1 1.77-.201zm-15.113.188h9.563v2.166H9.506v9.646H6.789v-9.646H3.375z\" />",
+    brandColor: "#3178C6",
+    source: "simple-icons:typescript",
+    pathOnly: "M1.125 0C.502 0 0 .502 0 1.125v21.75C0 23.498.502 24 1.125 24h21.75c.623 0 1.125-.502 1.125-1.125V1.125C24 .502 23.498 0 22.875 0zm17.363 9.75c.612 0 1.154.037 1.627.111a6.38 6.38 0 0 1 1.306.34v2.458a3.95 3.95 0 0 0-.643-.361 5.093 5.093 0 0 0-.717-.26 5.453 5.453 0 0 0-1.426-.2c-.3 0-.573.028-.819.086a2.1 2.1 0 0 0-.623.242c-.17.104-.3.229-.393.374a.888.888 0 0 0-.14.49c0 .196.053.373.156.529.104.156.252.304.443.444s.423.276.696.41c.273.135.582.274.926.416.47.197.892.407 1.266.628.374.222.695.473.963.753.268.279.472.598.614.957.142.359.214.776.214 1.253 0 .657-.125 1.21-.373 1.656a3.033 3.033 0 0 1-1.012 1.085 4.38 4.38 0 0 1-1.487.596c-.566.12-1.163.18-1.79.18a9.916 9.916 0 0 1-1.84-.164 5.544 5.544 0 0 1-1.512-.493v-2.63a5.033 5.033 0 0 0 3.237 1.2c.333 0 .624-.03.872-.09.249-.06.456-.144.623-.25.166-.108.29-.234.373-.38a1.023 1.023 0 0 0-.074-1.089 2.12 2.12 0 0 0-.537-.5 5.597 5.597 0 0 0-.807-.444 27.72 27.72 0 0 0-1.007-.436c-.918-.383-1.602-.852-2.053-1.405-.45-.553-.676-1.222-.676-2.005 0-.614.123-1.141.369-1.582.246-.441.58-.804 1.004-1.089a4.494 4.494 0 0 1 1.47-.629 7.536 7.536 0 0 1 1.77-.201zm-15.113.188h9.563v2.166H9.506v9.646H6.789v-9.646H3.375z",
+  },
+  "python": {
+    id: "python",
+    title: "Python",
+    viewBox: "0 0 256 255",
+    body: "<defs><linearGradient id=\"SVGg39WleeP\" x1=\"12.959%\" x2=\"79.639%\" y1=\"12.039%\" y2=\"78.201%\"><stop offset=\"0%\" stop-color=\"#387eb8\"/><stop offset=\"100%\" stop-color=\"#366994\"/></linearGradient><linearGradient id=\"SVGlXoRkc4T\" x1=\"19.128%\" x2=\"90.742%\" y1=\"20.579%\" y2=\"88.429%\"><stop offset=\"0%\" stop-color=\"#ffe052\"/><stop offset=\"100%\" stop-color=\"#ffc331\"/></linearGradient></defs><path fill=\"url(#SVGg39WleeP)\" d=\"M126.916.072c-64.832 0-60.784 28.115-60.784 28.115l.072 29.128h61.868v8.745H41.631S.145 61.355.145 126.77c0 65.417 36.21 63.097 36.21 63.097h21.61v-30.356s-1.165-36.21 35.632-36.21h61.362s34.475.557 34.475-33.319V33.97S194.67.072 126.916.072M92.802 19.66a11.12 11.12 0 0 1 11.13 11.13a11.12 11.12 0 0 1-11.13 11.13a11.12 11.12 0 0 1-11.13-11.13a11.12 11.12 0 0 1 11.13-11.13\"/><path fill=\"url(#SVGlXoRkc4T)\" d=\"M128.757 254.126c64.832 0 60.784-28.115 60.784-28.115l-.072-29.127H127.6v-8.745h86.441s41.486 4.705 41.486-60.712c0-65.416-36.21-63.096-36.21-63.096h-21.61v30.355s1.165 36.21-35.632 36.21h-61.362s-34.475-.557-34.475 33.32v56.013s-5.235 33.897 62.518 33.897m34.114-19.586a11.12 11.12 0 0 1-11.13-11.13a11.12 11.12 0 0 1 11.13-11.131a11.12 11.12 0 0 1 11.13 11.13a11.12 11.12 0 0 1-11.13 11.13\"/>",
+    brandColor: "#000000",
+    source: "logos:python",
+    isDarkBadge: true,
+  },
+  "docker": {
+    id: "docker",
+    title: "Docker",
+    viewBox: "0 0 256 185",
+    body: "<path fill=\"#2396ed\" d=\"M250.716 70.497c-5.765-4-18.976-5.5-29.304-3.5c-1.2-10-6.725-18.749-16.333-26.499l-5.524-4l-3.844 5.75c-4.803 7.5-7.205 18-6.485 28c.24 3.499 1.441 9.749 5.044 15.249c-3.362 2-10.328 4.5-19.455 4.5H1.155l-.48 2c-1.682 9.999-1.682 41.248 18.014 65.247c14.892 18.249 36.99 27.499 66.053 27.499c62.93 0 109.528-30.25 131.386-84.997c8.647.25 27.142 0 36.51-18.75c.24-.5.72-1.5 2.401-5.249l.961-2zM139.986 0h-26.42v24.999h26.42zm0 29.999h-26.42v24.999h26.42zm-31.225 0h-26.42v24.999h26.42zm-31.225 0H51.115v24.999h26.421zM46.311 59.998H19.89v24.999h26.42zm31.225 0H51.115v24.999h26.421zm31.225 0h-26.42v24.999h26.42zm31.226 0h-26.422v24.999h26.422zm31.225 0H144.79v24.999h26.422z\"/>",
+    brandColor: "#000000",
+    source: "logos:docker-icon",
+    isDarkBadge: true,
+  },
+  "cloudflare": {
+    id: "cloudflare",
+    title: "Cloudflare",
+    viewBox: "0 0 128 128",
+    body: "<path fill=\"#fff\" d=\"m115.679 69.288l-15.591-8.94l-2.689-1.163l-63.781.436v32.381h82.061z\"/><path fill=\"#f38020\" d=\"M87.295 89.022c.763-2.617.472-5.015-.8-6.796c-1.163-1.635-3.125-2.58-5.488-2.689l-44.737-.581c-.291 0-.545-.145-.691-.363s-.182-.509-.109-.8c.145-.436.581-.763 1.054-.8l45.137-.581c5.342-.254 11.157-4.579 13.192-9.885l2.58-6.723c.109-.291.145-.581.073-.872c-2.906-13.158-14.644-22.97-28.672-22.97c-12.938 0-23.913 8.359-27.838 19.952a13.35 13.35 0 0 0-9.267-2.58c-6.215.618-11.193 5.597-11.811 11.811c-.145 1.599-.036 3.162.327 4.615C10.104 70.051 2 78.337 2 88.549c0 .909.073 1.817.182 2.726a.895.895 0 0 0 .872.763h82.57c.472 0 .909-.327 1.054-.8z\"/><path fill=\"#faae40\" d=\"M101.542 60.275c-.4 0-.836 0-1.236.036c-.291 0-.545.218-.654.509l-1.744 6.069c-.763 2.617-.472 5.015.8 6.796c1.163 1.635 3.125 2.58 5.488 2.689l9.522.581c.291 0 .545.145.691.363s.182.545.109.8c-.145.436-.581.763-1.054.8l-9.924.582c-5.379.254-11.157 4.579-13.192 9.885l-.727 1.853c-.145.363.109.727.509.727h34.089c.4 0 .763-.254.872-.654c.581-2.108.909-4.325.909-6.614c0-13.447-10.975-24.422-24.458-24.422\"/>",
+    brandColor: "#000000",
+    source: "devicon:cloudflare",
+    isDarkBadge: true,
+  },
+  "vercel": {
+    id: "vercel",
+    title: "Vercel",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"currentColor\" d=\"m12 1.608 12 20.784H0Z\" />",
+    brandColor: "#000000",
+    source: "simple-icons:vercel",
+    pathOnly: "m12 1.608 12 20.784H0Z",
+    isDarkBadge: true,
+  },
+  "rust": {
+    id: "rust",
+    title: "Rust",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#000000\" d=\"M23.8346 11.7033l-1.0073-.6236a13.7268 13.7268 0 00-.0283-.2936l.8656-.8069a.3483.3483 0 00-.1154-.578l-1.1066-.414a8.4958 8.4958 0 00-.087-.2856l.6904-.9587a.3462.3462 0 00-.2257-.5446l-1.1663-.1894a9.3574 9.3574 0 00-.1407-.2622l.49-1.0761a.3437.3437 0 00-.0274-.3361.3486.3486 0 00-.3006-.154l-1.1845.0416a6.7444 6.7444 0 00-.1873-.2268l.2723-1.153a.3472.3472 0 00-.417-.4172l-1.1532.2724a14.0183 14.0183 0 00-.2278-.1873l.0415-1.1845a.3442.3442 0 00-.49-.328l-1.076.491c-.0872-.0476-.1742-.0952-.2623-.1407l-.1903-1.1673A.3483.3483 0 0016.256.955l-.9597.6905a8.4867 8.4867 0 00-.2855-.086l-.414-1.1066a.3483.3483 0 00-.5781-.1154l-.8069.8666a9.2936 9.2936 0 00-.2936-.0284L12.2946.1683a.3462.3462 0 00-.5892 0l-.6236 1.0073a13.7383 13.7383 0 00-.2936.0284L9.9803.3374a.3462.3462 0 00-.578.1154l-.4141 1.1065c-.0962.0274-.1903.0567-.2855.086L7.744.955a.3483.3483 0 00-.5447.2258L7.009 2.348a9.3574 9.3574 0 00-.2622.1407l-1.0762-.491a.3462.3462 0 00-.49.328l.0416 1.1845a7.9826 7.9826 0 00-.2278.1873L3.8413 3.425a.3472.3472 0 00-.4171.4171l.2713 1.1531c-.0628.075-.1255.1509-.1863.2268l-1.1845-.0415a.3462.3462 0 00-.328.49l.491 1.0761a9.167 9.167 0 00-.1407.2622l-1.1662.1894a.3483.3483 0 00-.2258.5446l.6904.9587a13.303 13.303 0 00-.087.2855l-1.1065.414a.3483.3483 0 00-.1155.5781l.8656.807a9.2936 9.2936 0 00-.0283.2935l-1.0073.6236a.3442.3442 0 000 .5892l1.0073.6236c.008.0982.0182.1964.0283.2936l-.8656.8079a.3462.3462 0 00.1155.578l1.1065.4141c.0273.0962.0567.1914.087.2855l-.6904.9587a.3452.3452 0 00.2268.5447l1.1662.1893c.0456.088.0922.1751.1408.2622l-.491 1.0762a.3462.3462 0 00.328.49l1.1834-.0415c.0618.0769.1235.1528.1873.2277l-.2713 1.1541a.3462.3462 0 00.4171.4161l1.153-.2713c.075.0638.151.1255.2279.1863l-.0415 1.1845a.3442.3442 0 00.49.327l1.0761-.49c.087.0486.1741.0951.2622.1407l.1903 1.1662a.3483.3483 0 00.5447.2268l.9587-.6904a9.299 9.299 0 00.2855.087l.414 1.1066a.3452.3452 0 00.5781.1154l.8079-.8656c.0972.0111.1954.0203.2936.0294l.6236 1.0073a.3472.3472 0 00.5892 0l.6236-1.0073c.0982-.0091.1964-.0183.2936-.0294l.8069.8656a.3483.3483 0 00.578-.1154l.4141-1.1066a8.4626 8.4626 0 00.2855-.087l.9587.6904a.3452.3452 0 00.5447-.2268l.1903-1.1662c.088-.0456.1751-.0931.2622-.1407l1.0762.49a.3472.3472 0 00.49-.327l-.0415-1.1845a6.7267 6.7267 0 00.2267-.1863l1.1531.2713a.3472.3472 0 00.4171-.416l-.2713-1.1542c.0628-.0749.1255-.1508.1863-.2278l1.1845.0415a.3442.3442 0 00.328-.49l-.49-1.076c.0475-.0872.0951-.1742.1407-.2623l1.1662-.1893a.3483.3483 0 00.2258-.5447l-.6904-.9587.087-.2855 1.1066-.414a.3462.3462 0 00.1154-.5781l-.8656-.8079c.0101-.0972.0202-.1954.0283-.2936l1.0073-.6236a.3442.3442 0 000-.5892zm-6.7413 8.3551a.7138.7138 0 01.2986-1.396.714.714 0 11-.2997 1.396zm-.3422-2.3142a.649.649 0 00-.7715.5l-.3573 1.6685c-1.1035.501-2.3285.7795-3.6193.7795a8.7368 8.7368 0 01-3.6951-.814l-.3574-1.6684a.648.648 0 00-.7714-.499l-1.473.3158a8.7216 8.7216 0 01-.7613-.898h7.1676c.081 0 .1356-.0141.1356-.088v-2.536c0-.074-.0536-.0881-.1356-.0881h-2.0966v-1.6077h2.2677c.2065 0 1.1065.0587 1.394 1.2088.0901.3533.2875 1.5044.4232 1.8729.1346.413.6833 1.2381 1.2685 1.2381h3.5716a.7492.7492 0 00.1296-.0131 8.7874 8.7874 0 01-.8119.9526zM6.8369 20.024a.714.714 0 11-.2997-1.396.714.714 0 01.2997 1.396zM4.1177 8.9972a.7137.7137 0 11-1.304.5791.7137.7137 0 011.304-.579zm-.8352 1.9813l1.5347-.6824a.65.65 0 00.33-.8585l-.3158-.7147h1.2432v5.6025H3.5669a8.7753 8.7753 0 01-.2834-3.348zm6.7343-.5437V8.7836h2.9601c.153 0 1.0792.1772 1.0792.8697 0 .575-.7107.7815-1.2948.7815zm10.7574 1.4862c0 .2187-.008.4363-.0243.651h-.9c-.09 0-.1265.0586-.1265.1477v.413c0 .973-.5487 1.1846-1.0296 1.2382-.4576.0517-.9648-.1913-1.0275-.4717-.2704-1.5186-.7198-1.8436-1.4305-2.4034.8817-.5599 1.799-1.386 1.799-2.4915 0-1.1936-.819-1.9458-1.3769-2.3153-.7825-.5163-1.6491-.6195-1.883-.6195H5.4682a8.7651 8.7651 0 014.907-2.7699l1.0974 1.151a.648.648 0 00.9182.0213l1.227-1.1743a8.7753 8.7753 0 016.0044 4.2762l-.8403 1.8982a.652.652 0 00.33.8585l1.6178.7188c.0283.2875.0425.577.0425.8717zm-9.3006-9.5993a.7128.7128 0 11.984 1.0316.7137.7137 0 01-.984-1.0316zm8.3389 6.71a.7107.7107 0 01.9395-.3625.7137.7137 0 11-.9405.3635z\" />",
+    brandColor: "#000000",
+    source: "simple-icons:rust",
+    pathOnly: "M23.8346 11.7033l-1.0073-.6236a13.7268 13.7268 0 00-.0283-.2936l.8656-.8069a.3483.3483 0 00-.1154-.578l-1.1066-.414a8.4958 8.4958 0 00-.087-.2856l.6904-.9587a.3462.3462 0 00-.2257-.5446l-1.1663-.1894a9.3574 9.3574 0 00-.1407-.2622l.49-1.0761a.3437.3437 0 00-.0274-.3361.3486.3486 0 00-.3006-.154l-1.1845.0416a6.7444 6.7444 0 00-.1873-.2268l.2723-1.153a.3472.3472 0 00-.417-.4172l-1.1532.2724a14.0183 14.0183 0 00-.2278-.1873l.0415-1.1845a.3442.3442 0 00-.49-.328l-1.076.491c-.0872-.0476-.1742-.0952-.2623-.1407l-.1903-1.1673A.3483.3483 0 0016.256.955l-.9597.6905a8.4867 8.4867 0 00-.2855-.086l-.414-1.1066a.3483.3483 0 00-.5781-.1154l-.8069.8666a9.2936 9.2936 0 00-.2936-.0284L12.2946.1683a.3462.3462 0 00-.5892 0l-.6236 1.0073a13.7383 13.7383 0 00-.2936.0284L9.9803.3374a.3462.3462 0 00-.578.1154l-.4141 1.1065c-.0962.0274-.1903.0567-.2855.086L7.744.955a.3483.3483 0 00-.5447.2258L7.009 2.348a9.3574 9.3574 0 00-.2622.1407l-1.0762-.491a.3462.3462 0 00-.49.328l.0416 1.1845a7.9826 7.9826 0 00-.2278.1873L3.8413 3.425a.3472.3472 0 00-.4171.4171l.2713 1.1531c-.0628.075-.1255.1509-.1863.2268l-1.1845-.0415a.3462.3462 0 00-.328.49l.491 1.0761a9.167 9.167 0 00-.1407.2622l-1.1662.1894a.3483.3483 0 00-.2258.5446l.6904.9587a13.303 13.303 0 00-.087.2855l-1.1065.414a.3483.3483 0 00-.1155.5781l.8656.807a9.2936 9.2936 0 00-.0283.2935l-1.0073.6236a.3442.3442 0 000 .5892l1.0073.6236c.008.0982.0182.1964.0283.2936l-.8656.8079a.3462.3462 0 00.1155.578l1.1065.4141c.0273.0962.0567.1914.087.2855l-.6904.9587a.3452.3452 0 00.2268.5447l1.1662.1893c.0456.088.0922.1751.1408.2622l-.491 1.0762a.3462.3462 0 00.328.49l1.1834-.0415c.0618.0769.1235.1528.1873.2277l-.2713 1.1541a.3462.3462 0 00.4171.4161l1.153-.2713c.075.0638.151.1255.2279.1863l-.0415 1.1845a.3442.3442 0 00.49.327l1.0761-.49c.087.0486.1741.0951.2622.1407l.1903 1.1662a.3483.3483 0 00.5447.2268l.9587-.6904a9.299 9.299 0 00.2855.087l.414 1.1066a.3452.3452 0 00.5781.1154l.8079-.8656c.0972.0111.1954.0203.2936.0294l.6236 1.0073a.3472.3472 0 00.5892 0l.6236-1.0073c.0982-.0091.1964-.0183.2936-.0294l.8069.8656a.3483.3483 0 00.578-.1154l.4141-1.1066a8.4626 8.4626 0 00.2855-.087l.9587.6904a.3452.3452 0 00.5447-.2268l.1903-1.1662c.088-.0456.1751-.0931.2622-.1407l1.0762.49a.3472.3472 0 00.49-.327l-.0415-1.1845a6.7267 6.7267 0 00.2267-.1863l1.1531.2713a.3472.3472 0 00.4171-.416l-.2713-1.1542c.0628-.0749.1255-.1508.1863-.2278l1.1845.0415a.3442.3442 0 00.328-.49l-.49-1.076c.0475-.0872.0951-.1742.1407-.2623l1.1662-.1893a.3483.3483 0 00.2258-.5447l-.6904-.9587.087-.2855 1.1066-.414a.3462.3462 0 00.1154-.5781l-.8656-.8079c.0101-.0972.0202-.1954.0283-.2936l1.0073-.6236a.3442.3442 0 000-.5892zm-6.7413 8.3551a.7138.7138 0 01.2986-1.396.714.714 0 11-.2997 1.396zm-.3422-2.3142a.649.649 0 00-.7715.5l-.3573 1.6685c-1.1035.501-2.3285.7795-3.6193.7795a8.7368 8.7368 0 01-3.6951-.814l-.3574-1.6684a.648.648 0 00-.7714-.499l-1.473.3158a8.7216 8.7216 0 01-.7613-.898h7.1676c.081 0 .1356-.0141.1356-.088v-2.536c0-.074-.0536-.0881-.1356-.0881h-2.0966v-1.6077h2.2677c.2065 0 1.1065.0587 1.394 1.2088.0901.3533.2875 1.5044.4232 1.8729.1346.413.6833 1.2381 1.2685 1.2381h3.5716a.7492.7492 0 00.1296-.0131 8.7874 8.7874 0 01-.8119.9526zM6.8369 20.024a.714.714 0 11-.2997-1.396.714.714 0 01.2997 1.396zM4.1177 8.9972a.7137.7137 0 11-1.304.5791.7137.7137 0 011.304-.579zm-.8352 1.9813l1.5347-.6824a.65.65 0 00.33-.8585l-.3158-.7147h1.2432v5.6025H3.5669a8.7753 8.7753 0 01-.2834-3.348zm6.7343-.5437V8.7836h2.9601c.153 0 1.0792.1772 1.0792.8697 0 .575-.7107.7815-1.2948.7815zm10.7574 1.4862c0 .2187-.008.4363-.0243.651h-.9c-.09 0-.1265.0586-.1265.1477v.413c0 .973-.5487 1.1846-1.0296 1.2382-.4576.0517-.9648-.1913-1.0275-.4717-.2704-1.5186-.7198-1.8436-1.4305-2.4034.8817-.5599 1.799-1.386 1.799-2.4915 0-1.1936-.819-1.9458-1.3769-2.3153-.7825-.5163-1.6491-.6195-1.883-.6195H5.4682a8.7651 8.7651 0 014.907-2.7699l1.0974 1.151a.648.648 0 00.9182.0213l1.227-1.1743a8.7753 8.7753 0 016.0044 4.2762l-.8403 1.8982a.652.652 0 00.33.8585l1.6178.7188c.0283.2875.0425.577.0425.8717zm-9.3006-9.5993a.7128.7128 0 11.984 1.0316.7137.7137 0 01-.984-1.0316zm8.3389 6.71a.7107.7107 0 01.9395-.3625.7137.7137 0 11-.9405.3635z",
+  },
+  "golang": {
+    id: "golang",
+    title: "Go",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#00ADD8\" d=\"M1.811 10.231c-.047 0-.058-.023-.035-.059l.246-.315c.023-.035.081-.058.128-.058h4.172c.046 0 .058.035.035.07l-.199.303c-.023.036-.082.07-.117.07zM.047 11.306c-.047 0-.059-.023-.035-.058l.245-.316c.023-.035.082-.058.129-.058h5.328c.047 0 .07.035.058.07l-.093.28c-.012.047-.058.07-.105.07zm2.828 1.075c-.047 0-.059-.035-.035-.07l.163-.292c.023-.035.07-.07.117-.07h2.337c.047 0 .07.035.07.082l-.023.28c0 .047-.047.082-.082.082zm12.129-2.36c-.736.187-1.239.327-1.963.514-.176.046-.187.058-.34-.117-.174-.199-.303-.327-.548-.444-.737-.362-1.45-.257-2.115.175-.795.514-1.204 1.274-1.192 2.22.011.935.654 1.706 1.577 1.835.795.105 1.46-.175 1.987-.77.105-.13.198-.27.315-.434H10.47c-.245 0-.304-.152-.222-.35.152-.362.432-.97.596-1.274a.315.315 0 01.292-.187h4.253c-.023.316-.023.631-.07.947a4.983 4.983 0 01-.958 2.29c-.841 1.11-1.94 1.8-3.33 1.986-1.145.152-2.209-.07-3.143-.77-.865-.655-1.356-1.52-1.484-2.595-.152-1.274.222-2.419.993-3.424.83-1.086 1.928-1.776 3.272-2.02 1.098-.2 2.15-.07 3.096.571.62.41 1.063.97 1.356 1.648.07.105.023.164-.117.2m3.868 6.461c-1.064-.024-2.034-.328-2.852-1.029a3.665 3.665 0 01-1.262-2.255c-.21-1.32.152-2.489.947-3.529.853-1.122 1.881-1.706 3.272-1.95 1.192-.21 2.314-.095 3.33.595.923.63 1.496 1.484 1.648 2.605.198 1.578-.257 2.863-1.344 3.962-.771.783-1.718 1.273-2.805 1.495-.315.06-.63.07-.934.106zm2.78-4.72c-.011-.153-.011-.27-.034-.387-.21-1.157-1.274-1.81-2.384-1.554-1.087.245-1.788.935-2.045 2.033-.21.912.234 1.835 1.075 2.21.643.28 1.285.244 1.905-.07.923-.48 1.425-1.228 1.484-2.233z\" />",
+    brandColor: "#00ADD8",
+    source: "simple-icons:go",
+    pathOnly: "M1.811 10.231c-.047 0-.058-.023-.035-.059l.246-.315c.023-.035.081-.058.128-.058h4.172c.046 0 .058.035.035.07l-.199.303c-.023.036-.082.07-.117.07zM.047 11.306c-.047 0-.059-.023-.035-.058l.245-.316c.023-.035.082-.058.129-.058h5.328c.047 0 .07.035.058.07l-.093.28c-.012.047-.058.07-.105.07zm2.828 1.075c-.047 0-.059-.035-.035-.07l.163-.292c.023-.035.07-.07.117-.07h2.337c.047 0 .07.035.07.082l-.023.28c0 .047-.047.082-.082.082zm12.129-2.36c-.736.187-1.239.327-1.963.514-.176.046-.187.058-.34-.117-.174-.199-.303-.327-.548-.444-.737-.362-1.45-.257-2.115.175-.795.514-1.204 1.274-1.192 2.22.011.935.654 1.706 1.577 1.835.795.105 1.46-.175 1.987-.77.105-.13.198-.27.315-.434H10.47c-.245 0-.304-.152-.222-.35.152-.362.432-.97.596-1.274a.315.315 0 01.292-.187h4.253c-.023.316-.023.631-.07.947a4.983 4.983 0 01-.958 2.29c-.841 1.11-1.94 1.8-3.33 1.986-1.145.152-2.209-.07-3.143-.77-.865-.655-1.356-1.52-1.484-2.595-.152-1.274.222-2.419.993-3.424.83-1.086 1.928-1.776 3.272-2.02 1.098-.2 2.15-.07 3.096.571.62.41 1.063.97 1.356 1.648.07.105.023.164-.117.2m3.868 6.461c-1.064-.024-2.034-.328-2.852-1.029a3.665 3.665 0 01-1.262-2.255c-.21-1.32.152-2.489.947-3.529.853-1.122 1.881-1.706 3.272-1.95 1.192-.21 2.314-.095 3.33.595.923.63 1.496 1.484 1.648 2.605.198 1.578-.257 2.863-1.344 3.962-.771.783-1.718 1.273-2.805 1.495-.315.06-.63.07-.934.106zm2.78-4.72c-.011-.153-.011-.27-.034-.387-.21-1.157-1.274-1.81-2.384-1.554-1.087.245-1.788.935-2.045 2.033-.21.912.234 1.835 1.075 2.21.643.28 1.285.244 1.905-.07.923-.48 1.425-1.228 1.484-2.233z",
+  },
+  "cplusplus": {
+    id: "cplusplus",
+    title: "Cplusplus",
+    viewBox: "0 0 128 128",
+    body: "<path fill=\"#00599c\" d=\"M118.766 95.82c.89-1.543 1.441-3.28 1.441-4.843V36.78c0-1.558-.55-3.297-1.441-4.84l-55.32 31.94Zm0 0\"/><path fill=\"#004482\" d=\"m68.36 126.586l46.933-27.094c1.352-.781 2.582-2.129 3.473-3.672l-55.32-31.94L8.12 95.82c.89 1.543 2.121 2.89 3.473 3.672l46.933 27.094c2.703 1.562 7.13 1.562 9.832 0Zm0 0\"/><path fill=\"#659ad2\" d=\"M118.766 31.941c-.891-1.546-2.121-2.894-3.473-3.671L68.359 1.172c-2.703-1.563-7.129-1.563-9.832 0L11.594 28.27C8.89 29.828 6.68 33.66 6.68 36.78v54.196c0 1.562.55 3.3 1.441 4.843L63.445 63.88Zm0 0\"/><path fill=\"#fff\" d=\"M63.445 26.035c-20.867 0-37.843 16.977-37.843 37.844s16.976 37.844 37.843 37.844c13.465 0 26.024-7.247 32.77-18.91L79.84 73.335c-3.38 5.84-9.66 9.465-16.395 9.465c-10.433 0-18.922-8.488-18.922-18.922s8.49-18.922 18.922-18.922c6.73 0 13.017 3.629 16.39 9.465l16.38-9.477c-6.75-11.664-19.305-18.91-32.77-18.91zM92.88 57.57v4.207h-4.207v4.203h4.207v4.207h4.203V65.98h4.203v-4.203h-4.203V57.57zm15.766 0v4.207h-4.204v4.203h4.204v4.207h4.207V65.98h4.203v-4.203h-4.203V57.57z\"/>",
+    brandColor: "#000000",
+    source: "devicon:cplusplus",
+    isDarkBadge: true,
+  },
+  "java": {
+    id: "java",
+    title: "Java",
+    viewBox: "0 0 256 346",
+    body: "<path fill=\"#5382a1\" d=\"M82.554 267.473s-13.198 7.675 9.393 10.272c27.369 3.122 41.356 2.675 71.517-3.034c0 0 7.93 4.972 19.003 9.279c-67.611 28.977-153.019-1.679-99.913-16.517m-8.262-37.814s-14.803 10.958 7.805 13.296c29.236 3.016 52.324 3.263 92.276-4.43c0 0 5.526 5.602 14.215 8.666c-81.747 23.904-172.798 1.885-114.296-17.532\"/><path fill=\"#e76f00\" d=\"M143.942 165.515c16.66 19.18-4.377 36.44-4.377 36.44s42.301-21.837 22.874-49.183c-18.144-25.5-32.059-38.172 43.268-81.858c0 0-118.238 29.53-61.765 94.6\"/><path fill=\"#5382a1\" d=\"M233.364 295.442s9.767 8.047-10.757 14.273c-39.026 11.823-162.432 15.393-196.714.471c-12.323-5.36 10.787-12.8 18.056-14.362c7.581-1.644 11.914-1.337 11.914-1.337c-13.705-9.655-88.583 18.957-38.034 27.15c137.853 22.356 251.292-10.066 215.535-26.195M88.9 190.48s-62.771 14.91-22.228 20.323c17.118 2.292 51.243 1.774 83.03-.89c25.978-2.19 52.063-6.85 52.063-6.85s-9.16 3.923-15.787 8.448c-63.744 16.765-186.886 8.966-151.435-8.183c29.981-14.492 54.358-12.848 54.358-12.848m112.605 62.942c64.8-33.672 34.839-66.03 13.927-61.67c-5.126 1.066-7.411 1.99-7.411 1.99s1.903-2.98 5.537-4.27c41.37-14.545 73.187 42.897-13.355 65.647c0 .001 1.003-.895 1.302-1.697\"/><path fill=\"#e76f00\" d=\"M162.439.371s35.887 35.9-34.037 91.101c-56.071 44.282-12.786 69.53-.023 98.377c-32.73-29.53-56.75-55.526-40.635-79.72C111.395 74.612 176.918 57.393 162.439.37\"/><path fill=\"#5382a1\" d=\"M95.268 344.665c62.199 3.982 157.712-2.209 159.974-31.64c0 0-4.348 11.158-51.404 20.018c-53.088 9.99-118.564 8.824-157.399 2.421c.001 0 7.95 6.58 48.83 9.201\"/>",
+    brandColor: "#000000",
+    source: "logos:java",
+    isDarkBadge: true,
+  },
+  "git": {
+    id: "git",
+    title: "Git",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#F03C2E\" d=\"M13.09 23.549a1.54 1.54 0 0 1-2.18 0L.451 13.089a1.54 1.54 0 0 1 0-2.179l7.191-7.19 2.733 2.733a1.85 1.85 0 0 0 .964 2.326v6.66a1.849 1.849 0 1 0 1.54 0V8.957l2.508 2.508a1.85 1.85 0 1 0 1.09-1.09l-2.634-2.634a1.85 1.85 0 0 0-2.378-2.377L8.73 2.63 10.91.451a1.54 1.54 0 0 1 2.179 0l10.459 10.46a1.54 1.54 0 0 1 0 2.179z\" />",
+    brandColor: "#F03C2E",
+    source: "simple-icons:git",
+    pathOnly: "M13.09 23.549a1.54 1.54 0 0 1-2.18 0L.451 13.089a1.54 1.54 0 0 1 0-2.179l7.191-7.19 2.733 2.733a1.85 1.85 0 0 0 .964 2.326v6.66a1.849 1.849 0 1 0 1.54 0V8.957l2.508 2.508a1.85 1.85 0 1 0 1.09-1.09l-2.634-2.634a1.85 1.85 0 0 0-2.378-2.377L8.73 2.63 10.91.451a1.54 1.54 0 0 1 2.179 0l10.459 10.46a1.54 1.54 0 0 1 0 2.179z",
+  },
+  "gitlab": {
+    id: "gitlab",
+    title: "Gitlab",
+    viewBox: "0 0 256 247",
+    body: "<path fill=\"#e24329\" d=\"m251.845 97.642l-.328-.986l-34.85-90.903c-.657-1.808-1.972-3.287-3.616-4.274Q210.586 0 207.627 0c-1.973 0-3.78.822-5.26 1.973a8.73 8.73 0 0 0-3.124 4.767l-23.506 71.999H80.56l-23.506-72c-.493-1.808-1.644-3.451-3.123-4.766C52.45.822 50.643 0 48.67 0s-3.781.329-5.425 1.48c-1.644.986-2.96 2.465-3.617 4.273L4.781 96.656l-.33.986c-10.355 26.959-1.479 57.37 21.535 74.794h.328c0 .164 53.096 39.944 53.096 39.944l26.3 19.89l15.946 12c3.78 2.96 9.205 2.96 12.986 0l15.945-12l26.3-19.89l53.424-39.944c23.014-17.425 31.726-47.835 21.37-74.794z\"/><path fill=\"#fc6d26\" d=\"m251.845 97.642l-.328-.986c-17.26 3.616-33.205 10.85-46.849 21.04c-.164 0-41.424 31.398-76.602 57.863a18377 18377 0 0 0 48.657 36.821l53.424-39.944c23.013-17.425 31.726-47.835 21.37-74.794z\"/><path fill=\"#fca326\" d=\"m79.245 212.38l26.301 19.89l15.945 12c3.78 2.96 9.206 2.96 12.986 0l15.945-12l26.301-19.89s-22.684-17.095-48.657-36.82c-26.136 19.725-48.82 36.82-48.82 36.82\"/><path fill=\"#fc6d26\" d=\"M51.465 117.697c-13.644-10.192-29.589-17.589-46.849-21.04l-.329.985c-10.356 26.959-1.479 57.37 21.534 74.794h.33c0 .164 53.094 39.944 53.094 39.944s22.685-17.095 48.821-36.82c-35.013-26.466-76.272-57.699-76.601-57.863\"/>",
+    brandColor: "#000000",
+    source: "logos:gitlab-icon",
+    isDarkBadge: true,
+  },
+  "kubernetes": {
+    id: "kubernetes",
+    title: "Kubernetes",
+    viewBox: "0 0 256 249",
+    body: "<path fill=\"#326de6\" d=\"M82.085 244.934c-5.946 0-11.561-2.642-15.36-7.432L8.92 165.657c-3.799-4.79-5.285-10.9-3.799-16.847l20.645-89.682c1.321-5.946 5.285-10.736 10.736-13.378l83.571-39.97c2.643-1.32 5.616-1.981 8.589-1.981s5.945.66 8.588 1.982l83.572 39.804c5.45 2.642 9.414 7.432 10.735 13.378l20.645 89.682c1.322 5.946 0 12.057-3.798 16.847l-57.807 71.845c-3.799 4.624-9.414 7.432-15.36 7.432z\"/><path fill=\"#fff\" d=\"M128.495 7.928c2.313 0 4.625.495 6.772 1.486l83.572 39.804c4.294 2.147 7.597 6.111 8.588 10.736l20.645 89.682c1.156 4.79 0 9.745-3.138 13.543l-57.806 71.846c-2.973 3.798-7.598 5.945-12.387 5.945H82.085c-4.79 0-9.414-2.147-12.387-5.945l-57.806-71.846c-2.973-3.798-4.13-8.753-3.138-13.543l20.645-89.682c1.156-4.79 4.294-8.754 8.588-10.736L121.56 9.25c2.147-.826 4.624-1.321 6.936-1.321m0-7.763c-3.468 0-6.936.826-10.24 2.312l-83.571 39.97c-6.607 3.138-11.231 8.918-12.883 16.02L1.156 148.15c-1.651 7.102 0 14.369 4.625 20.15l57.806 71.845c4.46 5.615 11.231 8.753 18.333 8.753h92.655c7.102 0 13.874-3.138 18.333-8.753l57.807-71.846c4.624-5.615 6.276-13.047 4.624-20.15l-20.645-89.682c-1.651-7.102-6.276-12.882-12.882-16.02L138.57 2.476C135.432.991 131.964.165 128.495.165\"/><path fill=\"#fff\" d=\"M212.232 142.534q-.248 0 0 0h-.165c-.165 0-.33 0-.33-.165c-.33 0-.66-.165-.991-.165c-1.156-.165-2.147-.33-3.138-.33c-.496 0-.991 0-1.652-.166h-.165c-3.468-.33-6.276-.66-8.919-1.486c-1.156-.496-1.486-1.156-1.817-1.817c0-.165-.165-.165-.165-.33l-2.147-.66a65.3 65.3 0 0 0-1.156-23.289a68 68 0 0 0-9.249-21.636l1.652-1.486v-.33c0-.826.165-1.652.825-2.478c1.982-1.817 4.46-3.303 7.433-5.12c.495-.33.99-.495 1.486-.826c.991-.495 1.817-.99 2.808-1.651c.165-.165.495-.33.826-.66c.165-.166.33-.166.33-.331c2.312-1.982 2.808-5.285 1.156-7.433c-.826-1.156-2.312-1.816-3.799-1.816c-1.32 0-2.477.495-3.633 1.321l-.33.33c-.33.165-.496.496-.826.661c-.826.826-1.487 1.486-2.147 2.312c-.33.33-.66.826-1.156 1.156c-2.313 2.478-4.46 4.46-6.607 5.946q-.742.495-1.486.496c-.33 0-.661 0-.991-.166h-.33l-1.983 1.322c-2.147-2.312-4.459-4.294-6.771-6.276a65.96 65.96 0 0 0-34.519-13.709l-.165-2.147l-.33-.33c-.496-.496-1.156-.991-1.322-2.147c-.165-2.643.166-5.616.496-8.919v-.165c0-.496.165-1.156.33-1.652c.165-.99.33-1.982.496-3.138v-1.486c0-2.973-2.313-5.45-5.12-5.45c-1.322 0-2.643.66-3.634 1.651c-.99.991-1.486 2.312-1.486 3.799v1.321c0 1.156.165 2.147.495 3.138c.165.496.165.991.33 1.652v.165c.33 3.303.826 6.276.496 8.919c-.165 1.156-.826 1.651-1.321 2.147l-.33.33l-.166 2.147c-2.973.33-5.946.66-8.919 1.321c-12.717 2.808-23.948 9.25-32.701 18.498l-1.652-1.156h-.33c-.33 0-.661.165-.991.165q-.743 0-1.487-.495c-2.147-1.486-4.294-3.634-6.606-6.111c-.33-.33-.66-.826-1.156-1.156c-.661-.826-1.322-1.487-2.148-2.312c-.165-.166-.495-.33-.825-.661c-.165-.165-.33-.165-.33-.33a5.77 5.77 0 0 0-3.634-1.322c-1.487 0-2.973.661-3.799 1.817c-1.652 2.147-1.156 5.45 1.156 7.432c.165 0 .165.166.33.166c.33.165.496.495.826.66c.991.66 1.817 1.156 2.808 1.652c.496.165.991.495 1.487.826c2.972 1.816 5.45 3.303 7.432 5.12c.826.825.826 1.651.826 2.477v.33l1.651 1.487c-.33.495-.66.826-.826 1.321c-8.258 13.048-11.396 28.408-9.249 43.603l-2.147.66c0 .166-.165.166-.165.33c-.33.661-.826 1.322-1.817 1.817c-2.477.826-5.45 1.157-8.918 1.487h-.166c-.495 0-1.156 0-1.651.165c-.991 0-1.982.165-3.138.33c-.33 0-.66.166-.991.166c-.165 0-.33 0-.496.165c-2.973.66-4.79 3.468-4.294 6.11c.496 2.313 2.643 3.8 5.285 3.8c.496 0 .826 0 1.322-.166c.165 0 .33 0 .33-.165c.33 0 .66-.165.99-.165c1.157-.33 1.983-.66 2.974-1.156c.495-.165.99-.496 1.486-.66h.165c3.138-1.157 5.946-2.148 8.589-2.478h.33c.991 0 1.652.495 2.147.826c.165 0 .165.165.33.165l2.313-.33c3.964 12.221 11.561 23.122 21.636 31.05c2.312 1.816 4.624 3.303 7.102 4.79l-.991 2.146c0 .166.165.166.165.33c.33.661.66 1.487.33 2.643c-.99 2.478-2.477 4.955-4.294 7.763v.165c-.33.496-.66.826-.99 1.321c-.661.826-1.157 1.652-1.818 2.643c-.165.165-.33.495-.495.826c0 .165-.165.33-.165.33c-1.321 2.808-.33 5.946 2.147 7.102q.99.496 1.982.496c1.982 0 3.964-1.322 4.955-3.139c0-.165.165-.33.165-.33c.165-.33.33-.66.495-.826c.496-1.156.661-1.982.991-2.973l.496-1.486c1.156-3.303 1.982-5.946 3.468-8.258c.66-.991 1.487-1.156 2.147-1.487c.165 0 .165 0 .33-.165l1.157-2.147c7.267 2.808 15.195 4.294 23.122 4.294c4.79 0 9.745-.495 14.37-1.651a73 73 0 0 0 8.588-2.478l.99 1.817c.166 0 .166 0 .331.165c.826.165 1.486.496 2.147 1.487c1.321 2.312 2.312 5.12 3.468 8.258v.165l.496 1.486c.33.991.495 1.982.99 2.973c.166.33.331.496.496.826c0 .165.166.33.166.33c.99 1.982 2.972 3.139 4.954 3.139q.992 0 1.982-.496c1.156-.66 2.147-1.652 2.478-2.973c.33-1.321.33-2.808-.33-4.129c0-.165-.166-.165-.166-.33c-.165-.33-.33-.66-.495-.826c-.496-.991-1.156-1.817-1.817-2.643c-.33-.495-.66-.825-.99-1.32v-.166c-1.818-2.808-3.47-5.285-4.295-7.763c-.33-1.156 0-1.816.165-2.642c0-.165.165-.165.165-.33l-.826-1.982c8.754-5.12 16.186-12.388 21.802-21.306c2.973-4.625 5.285-9.745 6.936-14.865l1.982.33c.166 0 .166-.165.33-.165c.661-.33 1.157-.825 2.148-.825h.33c2.643.33 5.45 1.32 8.589 2.477h.165c.495.165.99.495 1.486.66c.991.496 1.817.826 2.973 1.157c.33 0 .66.165.991.165c.165 0 .33 0 .495.165c.496.165.826.165 1.322.165c2.477 0 4.624-1.651 5.285-3.798c0-1.982-1.817-4.625-4.79-5.45m-76.47-8.093l-7.267 3.469l-7.267-3.469l-1.816-7.762l4.954-6.276h8.093l4.955 6.276zm43.108-17.176a52.1 52.1 0 0 1 1.156 16.68l-25.27-7.266c-2.312-.66-3.633-2.973-3.138-5.285c.165-.661.496-1.322.991-1.817l19.985-18.003c2.807 4.625 4.954 9.91 6.276 15.69m-14.204-25.6l-21.636 15.36c-1.817 1.156-4.295.825-5.781-.991c-.495-.496-.66-1.157-.826-1.817l-1.486-26.922a50.13 50.13 0 0 1 29.729 14.37M116.769 78.12c1.817-.33 3.468-.66 5.285-.99l-1.486 26.425c-.165 2.312-1.982 4.294-4.46 4.294c-.66 0-1.486-.165-1.982-.495L92.16 91.665c6.772-6.772 15.195-11.397 24.609-13.544m-32.537 23.453l19.654 17.507c1.817 1.487 1.982 4.294.496 6.111c-.496.66-1.156 1.156-1.982 1.322l-25.6 7.432c-.991-11.231 1.486-22.627 7.432-32.372m-4.46 44.759l26.262-4.46c2.147-.165 4.129 1.322 4.624 3.469c.165.99.165 1.817-.165 2.643l-10.075 24.278c-9.249-5.946-16.681-15.03-20.645-25.93m60.285 32.867c-3.799.826-7.598 1.321-11.562 1.321c-5.78 0-11.396-.99-16.68-2.642l13.047-23.618c1.321-1.487 3.468-2.147 5.285-1.156a7 7 0 0 1 1.982 1.816l12.717 22.958c-1.486.495-3.138.826-4.79 1.321m32.206-22.957c-4.129 6.606-9.58 11.891-15.855 16.02l-10.405-24.94c-.496-1.981.33-4.128 2.312-5.12c.66-.33 1.486-.495 2.312-.495l26.426 4.46c-.991 3.633-2.643 6.937-4.79 10.075\"/>",
+    brandColor: "#000000",
+    source: "logos:kubernetes",
+    isDarkBadge: true,
+  },
+  "linux": {
+    id: "linux",
+    title: "Linux",
+    viewBox: "0 0 128 128",
+    body: "<radialGradient id=\"SVG8FroHdll\" cx=\"-992.915\" cy=\"-952.952\" r=\"43.267\" gradientTransform=\"matrix(.7 0 0 .35 782.303 444.575)\" gradientUnits=\"userSpaceOnUse\"><stop offset=\"0\" stop-opacity=\".502\"/><stop offset=\"1\" stop-opacity=\"0\"/></radialGradient><path fill=\"url(#SVG8FroHdll)\" d=\"M117.641 111.137c0 8.362-13.557 15.14-30.28 15.14s-30.279-6.778-30.279-15.14s13.556-15.14 30.278-15.14c16.723.001 30.281 6.779 30.281 15.14\"/><radialGradient id=\"SVGr05vKbFV\" cx=\"-770.661\" cy=\"-951.636\" r=\"43.267\" gradientTransform=\"matrix(.719 0 0 .35 595.327 443.952)\" gradientUnits=\"userSpaceOnUse\"><stop offset=\"0\" stop-opacity=\".502\"/><stop offset=\"1\" stop-opacity=\"0\"/></radialGradient><path fill=\"url(#SVGr05vKbFV)\" d=\"M72.546 110.974c0 8.362-13.921 15.14-31.094 15.14s-31.093-6.778-31.093-15.14c0-8.361 13.921-15.14 31.093-15.14s31.094 6.779 31.094 15.14\"/><path fill=\"currentColor\" d=\"M108.095 81.343c-1.534 6.324-9.322 19.527-13.459 25.338c-4.138 5.835-3.626 11.089-11.275 9.043c-7.625-2.045-9.763-1.673-17.644-1.208c-7.833.464-6.137-.233-11.042 1.976c-4.882 2.208-21.27-26.78-22.595-32.173c-1.301-5.393-1.93-4.743 1.464-10.577s3.883-11.6 8.368-18.667c4.487-7.09 9.671-10.693 9.299-16.109c-1.464-20.108-2.626-30.15 6.301-34.8c8.507-4.417 15.621-1.79 18.434-.279c1.208.651 3.673 1.906 5.509 4.115c1.836 2.162 3.487 5.44 4.417 9.577c1.906 8.299-.791 5.556 1.371 15.064c2.139 9.484 6.485 14.133 11.787 21.642c5.299 7.508 10.832 19.898 9.065 27.058\"/><path fill=\"#666\" d=\"M57.644 32.088c1.394-.558 1.16-.632 2.089-2.655c.744-1.557 1.398-2.227 1.375-4.598c0-2.325-.722-3.115-1.814-4.626c-1.045-1.441-2.719-1.511-3.765-1.325c-.604.093-1.395.86-1.93 2c-.348.767-.628 1.744-.651 2.766c-.07 2.743.163 3.79.791 5.649c.743 2.185 2.556 3.325 3.905 2.789\"/><path fill=\"#6d6d6d\" d=\"M57.644 32.08c1.385-.554 1.15-.631 2.074-2.641c.739-1.547 1.392-2.215 1.379-4.573c.009-2.309-.698-3.133-1.771-4.585c-1.065-1.403-2.705-1.456-3.743-1.276c-.619.091-1.406.829-1.95 1.927a6.6 6.6 0 0 0-.673 2.755c-.068 2.724.176 3.775.794 5.624c.732 2.173 2.55 3.3 3.89 2.769\"/><path fill=\"#757575\" d=\"M57.644 32.071c1.376-.551 1.141-.629 2.059-2.626c.735-1.537 1.387-2.202 1.384-4.547c.017-2.294-.676-3.15-1.731-4.544c-1.082-1.364-2.688-1.401-3.719-1.227c-.633.089-1.417.798-1.969 1.854c-.401.725-.675 1.713-.698 2.745c-.067 2.706.191 3.761.798 5.598c.721 2.16 2.545 3.275 3.876 2.747\"/><path fill=\"#7c7c7c\" d=\"M57.644 32.063c1.367-.547 1.132-.628 2.044-2.611c.729-1.528 1.381-2.191 1.389-4.522c.026-2.278-.653-3.167-1.69-4.503c-1.099-1.325-2.673-1.345-3.695-1.178c-.648.088-1.429.769-1.989 1.783c-.427.703-.697 1.697-.72 2.733c-.066 2.687.205 3.747.802 5.573c.707 2.147 2.537 3.248 3.859 2.725\"/><path fill=\"#848484\" d=\"M57.644 32.054c1.359-.544 1.123-.627 2.028-2.598c.726-1.518 1.378-2.179 1.395-4.497c.034-2.263-.629-3.185-1.649-4.462c-1.117-1.287-2.658-1.29-3.672-1.129c-.662.086-1.44.737-2.01 1.709c-.453.683-.721 1.682-.744 2.723c-.064 2.668.22 3.732.808 5.548c.694 2.137 2.531 3.227 3.844 2.706\"/><path fill=\"#8c8c8c\" d=\"M57.644 32.046c1.35-.54 1.113-.626 2.013-2.583c.721-1.507 1.373-2.167 1.4-4.472c.043-2.248-.608-3.202-1.609-4.422c-1.134-1.248-2.643-1.235-3.649-1.08c-.676.085-1.45.707-2.029 1.637c-.479.662-.744 1.667-.766 2.712c-.063 2.65.233 3.718.81 5.522c.683 2.125 2.526 3.203 3.83 2.686\"/><path fill=\"#939393\" d=\"M57.644 32.037c1.34-.536 1.104-.624 1.998-2.569c.715-1.497 1.367-2.154 1.405-4.446c.052-2.232-.584-3.22-1.567-4.381c-1.152-1.209-2.625-1.18-3.625-1.032c-.691.084-1.462.676-2.049 1.565c-.505.641-.768 1.651-.791 2.702c-.06 2.631.249 3.704.815 5.497c.67 2.112 2.517 3.178 3.814 2.664\"/><path fill=\"#9b9b9b\" d=\"M57.644 32.028c1.333-.533 1.095-.624 1.983-2.554c.71-1.488 1.361-2.143 1.41-4.421c.061-2.217-.562-3.237-1.528-4.339c-1.168-1.171-2.609-1.125-3.602-.983c-.705.082-1.473.646-2.069 1.492c-.531.619-.79 1.636-.813 2.691c-.06 2.613.261 3.689.818 5.472c.66 2.099 2.514 3.153 3.801 2.642\"/><path fill=\"#a3a3a3\" d=\"M57.644 32.02c1.323-.529 1.086-.622 1.968-2.54c.706-1.478 1.356-2.13 1.415-4.396c.069-2.202-.54-3.254-1.487-4.299c-1.187-1.132-2.594-1.07-3.579-.934c-.719.081-1.484.615-2.088 1.42c-.557.598-.814 1.621-.836 2.681c-.059 2.593.275 3.674.822 5.446c.649 2.087 2.507 3.129 3.785 2.622\"/><path fill=\"#aaa\" d=\"M57.644 32.011c1.314-.525 1.077-.62 1.953-2.526c.7-1.467 1.351-2.119 1.419-4.37c.078-2.187-.516-3.272-1.445-4.258c-1.205-1.094-2.58-1.015-3.556-.885c-.733.079-1.496.584-2.109 1.347c-.583.578-.837 1.606-.859 2.669c-.057 2.576.289 3.661.826 5.422c.638 2.075 2.5 3.105 3.771 2.601\"/><path fill=\"#b2b2b2\" d=\"M57.644 32.002c1.305-.522 1.067-.62 1.937-2.512c.696-1.457 1.346-2.106 1.425-4.345c.086-2.171-.493-3.29-1.404-4.217c-1.223-1.055-2.563-.959-3.532-.836c-.749.077-1.507.554-2.128 1.275c-.61.556-.861 1.591-.883 2.659c-.055 2.556.304 3.646.831 5.396c.624 2.064 2.493 3.081 3.754 2.58\"/><path fill=\"#bababa\" d=\"M57.644 31.994c1.296-.518 1.058-.618 1.922-2.497c.692-1.448 1.341-2.095 1.43-4.32c.096-2.156-.47-3.307-1.363-4.176c-1.239-1.016-2.547-.903-3.508-.787c-.763.075-1.518.522-2.148 1.202c-.637.535-.885 1.576-.906 2.648c-.054 2.538.317 3.632.834 5.371c.611 2.051 2.486 3.055 3.739 2.559\"/><path fill=\"#c1c1c1\" d=\"M57.644 31.985c1.288-.515 1.049-.616 1.907-2.483c.686-1.437 1.336-2.082 1.435-4.294c.104-2.141-.448-3.324-1.322-4.135c-1.257-.978-2.533-.849-3.486-.738c-.776.074-1.529.492-2.168 1.13c-.662.513-.907 1.56-.929 2.636c-.052 2.519.333 3.618.839 5.346c.599 2.039 2.481 3.031 3.724 2.538\"/><path fill=\"#c9c9c9\" d=\"M57.644 31.976c1.278-.511 1.04-.615 1.892-2.468c.681-1.427 1.33-2.071 1.439-4.269c.114-2.125-.424-3.342-1.281-4.094c-1.274-.939-2.516-.794-3.462-.69c-.79.072-1.54.462-2.188 1.058c-.688.492-.931 1.544-.953 2.626c-.05 2.5.346 3.603.843 5.32c.588 2.027 2.475 3.007 3.71 2.517\"/><path fill=\"#d1d1d1\" d=\"M57.645 31.968c1.269-.508 1.029-.614 1.875-2.454c.678-1.417 1.327-2.059 1.446-4.244c.121-2.11-.402-3.359-1.241-4.053c-1.292-.901-2.501-.739-3.438-.641c-.806.07-1.552.431-2.208.985c-.714.471-.955 1.529-.976 2.616c-.049 2.481.36 3.588.847 5.295c.575 2.014 2.467 2.983 3.695 2.496\"/><path fill=\"#d8d8d8\" d=\"M57.645 31.96c1.259-.504 1.02-.613 1.86-2.44c.672-1.407 1.321-2.046 1.451-4.218c.129-2.095-.38-3.376-1.199-4.013c-1.311-.862-2.486-.683-3.416-.591c-.819.069-1.563.399-2.228.913c-.74.45-.978 1.514-.999 2.604c-.048 2.463.374 3.575.851 5.27c.565 2.001 2.462 2.957 3.68 2.475\"/><path fill=\"#e0e0e0\" d=\"M57.645 31.95c1.251-.5 1.011-.611 1.845-2.425c.667-1.397 1.315-2.034 1.455-4.193c.139-2.079-.356-3.395-1.159-3.972c-1.327-.823-2.47-.628-3.392-.542c-.833.067-1.573.369-2.247.841c-.766.429-1.001 1.499-1.022 2.594c-.047 2.445.389 3.561.855 5.245c.553 1.988 2.455 2.932 3.665 2.452\"/><path fill=\"#e8e8e8\" d=\"M57.645 31.942c1.242-.497 1.002-.61 1.83-2.411c.662-1.387 1.311-2.022 1.46-4.167c.147-2.064-.334-3.412-1.118-3.931c-1.345-.784-2.454-.573-3.369-.494a4.9 4.9 0 0 0-2.268.768c-.791.408-1.024 1.483-1.044 2.583c-.045 2.426.403 3.546.858 5.219c.541 1.978 2.45 2.909 3.651 2.433\"/><path fill=\"#efefef\" d=\"M57.645 31.934c1.232-.494.992-.609 1.814-2.397c.658-1.376 1.305-2.01 1.466-4.142c.156-2.048-.312-3.429-1.077-3.89c-1.362-.746-2.439-.518-3.345-.444a5.4 5.4 0 0 0-2.287.695c-.818.386-1.048 1.468-1.069 2.572c-.044 2.408.417 3.532.863 5.194c.528 1.965 2.442 2.884 3.635 2.412\"/><path fill=\"#f7f7f7\" d=\"M57.645 31.925c1.225-.49.984-.607 1.799-2.383c.653-1.367 1.3-1.998 1.471-4.117c.165-2.033-.289-3.447-1.036-3.849c-1.38-.707-2.423-.462-3.322-.396a6 6 0 0 0-2.308.623c-.844.366-1.071 1.453-1.092 2.562c-.042 2.388.431 3.518.868 5.168c.516 1.954 2.436 2.861 3.62 2.392\"/><path fill=\"#fff\" d=\"M57.645 31.916c1.215-.486.974-.606 1.784-2.368c.648-1.356 1.295-1.986 1.475-4.091c.174-2.018-.266-3.464-.995-3.808c-1.397-.669-2.407-.408-3.298-.348a6.9 6.9 0 0 0-2.326.551c-.871.344-1.095 1.438-1.116 2.551c-.04 2.37.446 3.503.871 5.144c.504 1.94 2.431 2.835 3.605 2.369\"/><path fill=\"currentColor\" d=\"M56.342 22.627c.698 0 1.581.465 1.999 1.092c.442.628.767 1.511.767 2.511c0 1.488-.163 3.138-1.046 3.649c-.279.163-.884.302-1.232.302c-.79 0-.86-.512-1.604-1.279c-.255-.279-1.023-1.627-1.023-2.743c0-.697-.163-1.697.441-2.581c.42-.649.954-.951 1.698-.951m-.186 1.247c.272-.421 1.363-.223 1.759.645c.397.868.322 2.752.049 2.851c-.718.223-.495-.818-1.115-1.76c-.619-.892-.966-1.314-.693-1.736\"/><path fill=\"#070707\" d=\"M56.173 23.893c.269-.416 1.346-.22 1.737.636c.392.856.318 2.717.049 2.814c-.709.22-.489-.808-1.101-1.738c-.611-.88-.954-1.296-.685-1.712\"/><path fill=\"#0f0f0f\" d=\"M56.191 23.91c.266-.411 1.329-.217 1.715.628s.314 2.682.049 2.778c-.701.217-.484-.797-1.088-1.715c-.604-.869-.942-1.28-.676-1.691\"/><path fill=\"#161616\" d=\"M56.208 23.928c.263-.406 1.312-.215 1.692.62c.382.834.311 2.647.048 2.742c-.692.214-.477-.788-1.073-1.693c-.595-.858-.929-1.263-.667-1.669\"/><path fill=\"#1e1e1e\" d=\"M56.226 23.945c.258-.399 1.293-.211 1.67.612c.376.824.306 2.613.047 2.707c-.683.211-.471-.776-1.059-1.67c-.587-.848-.917-1.248-.658-1.649\"/><path fill=\"#262626\" d=\"M56.243 23.963c.255-.395 1.277-.208 1.648.604s.301 2.577.046 2.67c-.672.209-.464-.767-1.044-1.648c-.58-.836-.905-1.231-.65-1.626\"/><path fill=\"#2d2d2d\" d=\"M56.26 23.981c.253-.39 1.26-.206 1.627.595c.366.802.297 2.542.046 2.634c-.665.206-.458-.756-1.031-1.627c-.572-.823-.894-1.212-.642-1.602\"/><path fill=\"#353535\" d=\"M56.278 23.999c.249-.384 1.243-.203 1.604.587c.361.791.293 2.507.046 2.598c-.656.204-.452-.745-1.017-1.604c-.565-.813-.882-1.197-.633-1.581\"/><path fill=\"#3d3d3d\" d=\"M56.295 24.017c.246-.378 1.226-.2 1.582.579c.356.78.29 2.472.045 2.562c-.646.201-.446-.735-1.002-1.581c-.558-.802-.87-1.181-.625-1.56\"/><path fill=\"#444\" d=\"M56.313 24.034c.241-.373 1.208-.197 1.559.571c.352.769.286 2.438.044 2.526c-.637.198-.439-.725-.988-1.559c-.549-.791-.857-1.164-.615-1.538\"/><path fill=\"#4c4c4c\" d=\"M56.33 24.052c.238-.368 1.19-.194 1.537.563c.347.758.281 2.403.044 2.489c-.628.195-.433-.714-.974-1.537c-.543-.779-.845-1.147-.607-1.515\"/><path fill=\"#545454\" d=\"M56.347 24.07c.235-.362 1.174-.192 1.515.554c.341.747.276 2.368.042 2.454c-.619.191-.426-.705-.96-1.515c-.533-.767-.831-1.13-.597-1.493\"/><path fill=\"#5b5b5b\" d=\"M56.365 24.088c.231-.357 1.157-.189 1.493.546s.273 2.333.042 2.417c-.609.189-.42-.694-.946-1.492c-.526-.756-.82-1.114-.589-1.471\"/><path fill=\"#636363\" d=\"M56.383 24.106c.228-.352 1.139-.186 1.47.539c.332.725.269 2.298.041 2.381c-.6.187-.413-.684-.931-1.47c-.518-.746-.808-1.098-.58-1.45\"/><path fill=\"#6b6b6b\" d=\"M56.4 24.124c.224-.347 1.122-.183 1.448.53s.265 2.263.041 2.345c-.591.184-.408-.673-.918-1.447c-.51-.735-.795-1.082-.571-1.428\"/><path fill=\"#727272\" d=\"M56.417 24.141c.221-.341 1.104-.181 1.425.522s.261 2.229.04 2.308c-.582.181-.401-.663-.903-1.425c-.502-.722-.783-1.064-.562-1.405\"/><path fill=\"#7a7a7a\" d=\"M56.434 24.159c.218-.336 1.087-.178 1.403.514s.256 2.193.04 2.272c-.574.178-.395-.653-.889-1.403c-.494-.711-.771-1.047-.554-1.383\"/><path fill=\"#828282\" d=\"M56.452 24.177c.213-.331 1.07-.175 1.38.505c.312.681.252 2.158.039 2.236c-.564.175-.388-.642-.875-1.38c-.486-.699-.758-1.031-.544-1.361\"/><path fill=\"#898989\" d=\"M56.47 24.194c.21-.325 1.053-.172 1.358.498c.307.669.25 2.124.039 2.201c-.555.172-.383-.632-.861-1.358c-.479-.69-.746-1.015-.536-1.341\"/><path fill=\"#919191\" d=\"M56.487 24.212c.207-.32 1.035-.169 1.335.49c.301.658.246 2.088.038 2.164c-.546.17-.376-.621-.846-1.335c-.471-.678-.734-.999-.527-1.319\"/><path fill=\"#999\" d=\"M56.504 24.23c.204-.314 1.018-.167 1.314.481c.295.647.239 2.054.036 2.128c-.536.167-.369-.611-.832-1.314c-.462-.666-.721-.98-.518-1.295\"/><path fill=\"#666\" d=\"M72.056 32.391c3.487-.372 4.719-1.72 5.347-4.068c.558-2.092.582-4.417-.976-7.137c-1.465-2.603-2.301-3.022-4.417-3.185c-3.254-.278-4.789 1.999-5.51 3.626c-.767 1.767-.604 1.511-.558 3.743c.047 2.348 1.37 3.002 2.185 4.467c.813 1.442 3.534 2.577 3.929 2.554\"/><path fill=\"#6d6d6d\" d=\"M72.058 32.377c3.474-.365 4.719-1.729 5.332-4.058c.549-2.106.576-4.419-.969-7.075c-1.432-2.517-2.272-2.932-4.363-3.094c-3.244-.278-4.824 1.896-5.547 3.511c-.744 1.705-.606 1.523-.557 3.726c.052 2.346 1.378 2.978 2.191 4.442c.813 1.446 3.518 2.572 3.913 2.548\"/><path fill=\"#757575\" d=\"M72.059 32.364c3.461-.358 4.721-1.737 5.318-4.048c.541-2.121.572-4.42-.962-7.013c-1.398-2.431-2.243-2.842-4.308-3.002c-3.235-.277-4.86 1.792-5.585 3.395c-.719 1.643-.608 1.536-.556 3.708c.057 2.346 1.385 2.953 2.196 4.419c.813 1.449 3.503 2.565 3.897 2.541\"/><path fill=\"#7c7c7c\" d=\"M72.061 32.351c3.447-.352 4.721-1.745 5.303-4.038c.532-2.136.567-4.423-.955-6.951c-1.365-2.345-2.213-2.751-4.254-2.911c-3.224-.275-4.894 1.69-5.622 3.28c-.697 1.581-.611 1.548-.555 3.691c.062 2.344 1.391 2.929 2.202 4.395c.813 1.451 3.486 2.558 3.881 2.534\"/><path fill=\"#848484\" d=\"M72.063 32.337c3.434-.345 4.721-1.753 5.287-4.027c.524-2.151.563-4.425-.947-6.889c-1.333-2.259-2.186-2.661-4.201-2.819c-3.214-.275-4.929 1.587-5.66 3.164c-.672 1.518-.612 1.56-.554 3.674c.068 2.343 1.399 2.904 2.209 4.37c.815 1.455 3.471 2.552 3.866 2.527\"/><path fill=\"#8c8c8c\" d=\"M72.065 32.324c3.42-.338 4.721-1.762 5.272-4.018c.516-2.165.558-4.426-.94-6.827c-1.299-2.172-2.156-2.571-4.146-2.727c-3.205-.273-4.964 1.484-5.697 3.048c-.649 1.457-.615 1.573-.553 3.658c.073 2.341 1.406 2.879 2.214 4.346c.813 1.458 3.455 2.545 3.85 2.52\"/><path fill=\"#939393\" d=\"M72.066 32.311c3.407-.332 4.724-1.77 5.258-4.008c.507-2.179.553-4.428-.934-6.765c-1.266-2.086-2.125-2.48-4.09-2.636c-3.194-.273-5 1.381-5.736 2.933c-.625 1.394-.616 1.585-.552 3.64c.078 2.34 1.413 2.855 2.221 4.322c.813 1.461 3.439 2.538 3.833 2.514\"/><path fill=\"#9b9b9b\" d=\"M72.068 32.297c3.393-.326 4.723-1.778 5.243-3.998c.498-2.194.547-4.43-.926-6.704c-1.233-2-2.098-2.39-4.038-2.544c-3.184-.271-5.034 1.277-5.773 2.817c-.602 1.333-.619 1.598-.551 3.624c.083 2.339 1.42 2.831 2.226 4.299c.815 1.464 3.424 2.532 3.819 2.506\"/><path fill=\"#a3a3a3\" d=\"M72.069 32.284c3.381-.318 4.724-1.787 5.23-3.988c.489-2.209.542-4.432-.921-6.641c-1.2-1.914-2.068-2.301-3.982-2.453c-3.174-.271-5.069 1.174-5.811 2.702c-.579 1.269-.621 1.61-.551 3.606c.089 2.337 1.427 2.805 2.233 4.274c.815 1.468 3.408 2.525 3.802 2.5\"/><path fill=\"#aaa\" d=\"M72.072 32.27c3.366-.312 4.724-1.795 5.213-3.978c.481-2.224.538-4.434-.912-6.58c-1.167-1.828-2.04-2.209-3.929-2.361c-3.164-.27-5.104 1.071-5.848 2.586c-.555 1.208-.623 1.622-.549 3.589c.093 2.336 1.433 2.781 2.239 4.25c.814 1.473 3.39 2.52 3.786 2.494\"/><path fill=\"#b2b2b2\" d=\"M72.073 32.257c3.353-.305 4.725-1.803 5.199-3.967c.472-2.238.533-4.436-.906-6.519c-1.134-1.741-2.01-2.12-3.874-2.269c-3.153-.269-5.138.968-5.886 2.47c-.531 1.146-.625 1.635-.548 3.572c.099 2.335 1.441 2.756 2.246 4.226c.813 1.475 3.374 2.513 3.769 2.487\"/><path fill=\"#bababa\" d=\"M72.075 32.243c3.34-.298 4.726-1.811 5.184-3.958c.464-2.252.529-4.438-.898-6.456c-1.101-1.656-1.981-2.03-3.82-2.178c-3.144-.268-5.173.865-5.923 2.354c-.507 1.084-.627 1.648-.547 3.555c.104 2.334 1.448 2.732 2.251 4.202c.813 1.48 3.358 2.508 3.753 2.481\"/><path fill=\"#c1c1c1\" d=\"M72.076 32.231c3.327-.292 4.727-1.82 5.17-3.948c.455-2.268.524-4.439-.891-6.395c-1.068-1.569-1.952-1.939-3.766-2.086c-3.133-.267-5.21.761-5.962 2.239c-.483 1.021-.627 1.66-.545 3.538c.109 2.332 1.455 2.708 2.257 4.177c.814 1.482 3.343 2.501 3.737 2.475\"/><path fill=\"#c9c9c9\" d=\"M72.078 32.217c3.313-.285 4.727-1.829 5.155-3.938c.446-2.282.518-4.441-.884-6.332c-1.035-1.483-1.922-1.849-3.711-1.995c-3.124-.266-5.244.659-6 2.124c-.46.959-.631 1.672-.545 3.521c.115 2.331 1.461 2.682 2.263 4.153c.814 1.485 3.327 2.494 3.722 2.467\"/><path fill=\"#d1d1d1\" d=\"M72.079 32.203c3.3-.278 4.728-1.836 5.141-3.928c.438-2.296.513-4.443-.877-6.27c-1.002-1.396-1.893-1.759-3.657-1.903c-3.114-.265-5.279.555-6.037 2.008c-.437.897-.633 1.685-.544 3.504c.119 2.329 1.469 2.658 2.27 4.129c.813 1.489 3.31 2.488 3.704 2.46\"/><path fill=\"#d8d8d8\" d=\"M72.081 32.19c3.286-.272 4.728-1.845 5.126-3.918c.429-2.311.509-4.445-.87-6.208c-.969-1.311-1.864-1.668-3.604-1.812c-3.103-.263-5.314.453-6.074 1.893c-.413.835-.634 1.697-.543 3.487c.125 2.328 1.476 2.633 2.276 4.105c.814 1.492 3.295 2.481 3.689 2.453\"/><path fill=\"#e0e0e0\" d=\"M72.083 32.176c3.273-.264 4.729-1.853 5.111-3.907c.42-2.326.504-4.447-.863-6.147c-.936-1.224-1.835-1.578-3.548-1.72c-3.094-.262-5.349.349-6.112 1.776c-.389.773-.637 1.709-.542 3.47c.13 2.327 1.482 2.609 2.281 4.082c.814 1.495 3.279 2.475 3.673 2.446\"/><path fill=\"#e8e8e8\" d=\"M72.085 32.164c3.259-.259 4.729-1.862 5.097-3.897c.411-2.341.498-4.449-.856-6.084c-.903-1.138-1.805-1.488-3.495-1.628c-3.083-.262-5.384.246-6.149 1.661c-.366.711-.639 1.722-.541 3.453c.135 2.325 1.489 2.583 2.287 4.057c.814 1.495 3.262 2.465 3.657 2.438\"/><path fill=\"#efefef\" d=\"M72.086 32.149c3.247-.251 4.73-1.87 5.082-3.887c.404-2.355.495-4.451-.848-6.022c-.87-1.052-1.776-1.398-3.441-1.538c-3.072-.26-5.418.143-6.187 1.545c-.342.649-.641 1.734-.54 3.436c.141 2.324 1.497 2.56 2.294 4.033c.813 1.502 3.246 2.463 3.64 2.433\"/><path fill=\"#f7f7f7\" d=\"M72.088 32.136c3.233-.244 4.731-1.878 5.067-3.877c.395-2.369.49-4.453-.841-5.96c-.837-.965-1.748-1.308-3.386-1.445c-3.062-.26-5.455.04-6.225 1.429c-.318.587-.642 1.748-.539 3.419c.146 2.323 1.504 2.535 2.3 4.009c.813 1.504 3.23 2.455 3.624 2.425\"/><path fill=\"#fff\" d=\"M72.089 32.123c3.221-.238 4.732-1.887 5.053-3.868c.386-2.384.485-4.455-.834-5.898c-.803-.879-1.718-1.218-3.332-1.354c-3.053-.258-5.488-.062-6.262 1.314c-.295.524-.645 1.759-.538 3.402c.151 2.321 1.511 2.51 2.306 3.985c.813 1.507 3.213 2.448 3.607 2.419\"/><path fill=\"currentColor\" d=\"M71.778 22.534c1.743 0 2.766 1.558 3.114 3.557c.14.907-.07 1.953-.627 2.674c-.628.836-1.744 1.348-2.649 1.348c-.86 0-1.837.14-2.348-.558c-.511-.72-.628-2.325-.628-3.464c0-1.278.373-2.185 1.023-2.906c.487-.535 1.37-.651 2.115-.651m.111.718c.316-.211.843 0 1.45.685c.658.738.948 1.317.158 1.739c-.606.316-.79-.633-1.16-1.028c-.579-.632-1.08-.975-.448-1.396\"/><path fill=\"#070707\" d=\"M71.901 23.271c.311-.209.832 0 1.428.675c.648.727.925 1.298.156 1.712c-.593.316-.776-.623-1.139-1.012c-.57-.622-1.063-.957-.445-1.375\"/><path fill=\"#0f0f0f\" d=\"M71.914 23.29c.303-.209.818 0 1.407.665c.637.715.901 1.278.152 1.687c-.581.314-.761-.614-1.118-.997c-.56-.612-1.047-.941-.441-1.355\"/><path fill=\"#161616\" d=\"M71.927 23.308c.296-.207.806 0 1.385.655c.629.705.878 1.258.151 1.661c-.568.314-.748-.604-1.097-.981c-.554-.601-1.032-.924-.439-1.335\"/><path fill=\"#1e1e1e\" d=\"M71.94 23.327c.291-.206.793 0 1.363.645c.62.693.855 1.239.148 1.635c-.555.313-.732-.595-1.076-.966c-.544-.591-1.014-.906-.435-1.314\"/><path fill=\"#262626\" d=\"M71.953 23.346c.283-.204.78 0 1.341.634c.61.684.833 1.219.147 1.609c-.543.312-.719-.584-1.055-.951c-.536-.579-.999-.887-.433-1.292\"/><path fill=\"#2d2d2d\" d=\"M71.966 23.365c.277-.203.769 0 1.32.624c.6.672.808 1.2.144 1.584c-.53.31-.704-.576-1.034-.936c-.528-.57-.984-.871-.43-1.272\"/><path fill=\"#353535\" d=\"M71.979 23.384c.271-.202.755 0 1.298.614c.589.661.785 1.18.142 1.558c-.517.309-.688-.567-1.013-.921c-.518-.56-.968-.854-.427-1.251\"/><path fill=\"#3d3d3d\" d=\"M71.992 23.403c.264-.201.743 0 1.276.603c.581.651.763 1.162.14 1.533c-.504.309-.674-.557-.992-.905c-.511-.55-.952-.837-.424-1.231\"/><path fill=\"#444\" d=\"M72.004 23.422c.258-.199.731 0 1.256.594c.571.639.738 1.141.137 1.506c-.492.308-.66-.548-.971-.89c-.502-.539-.936-.819-.422-1.21\"/><path fill=\"#4c4c4c\" d=\"M72.017 23.441c.251-.198.719 0 1.234.583c.561.628.716 1.122.135 1.481c-.479.306-.646-.539-.95-.875c-.494-.529-.92-.802-.419-1.189\"/><path fill=\"#545454\" d=\"M72.03 23.46c.245-.197.706 0 1.213.573c.55.617.691 1.103.132 1.455c-.466.305-.631-.529-.929-.86c-.485-.518-.904-.785-.416-1.168\"/><path fill=\"#5b5b5b\" d=\"M72.043 23.479c.238-.196.694 0 1.192.563c.541.606.667 1.083.129 1.429c-.454.305-.617-.52-.908-.844c-.477-.509-.888-.768-.413-1.148\"/><path fill=\"#636363\" d=\"M72.056 23.498c.231-.195.681 0 1.169.553c.532.595.646 1.063.128 1.404c-.44.303-.602-.511-.887-.83c-.468-.498-.872-.751-.41-1.127\"/><path fill=\"#6b6b6b\" d=\"M72.069 23.517c.224-.193.668 0 1.148.542c.521.585.622 1.044.125 1.378c-.428.303-.586-.501-.866-.814c-.46-.488-.856-.733-.407-1.106\"/><path fill=\"#727272\" d=\"M72.082 23.535c.218-.191.656 0 1.127.533c.512.574.599 1.024.123 1.352c-.416.302-.573-.492-.846-.798c-.451-.478-.84-.717-.404-1.087\"/><path fill=\"#7a7a7a\" d=\"M72.095 23.555c.211-.19.643 0 1.104.522c.502.563.576 1.004.121 1.326c-.403.301-.559-.482-.825-.783c-.441-.468-.823-.7-.4-1.065\"/><path fill=\"#828282\" d=\"M72.108 23.574c.205-.189.63 0 1.083.512c.493.551.552.985.119 1.299c-.39.3-.544-.472-.804-.767c-.434-.457-.808-.682-.398-1.044\"/><path fill=\"#898989\" d=\"M72.121 23.592c.198-.188.618 0 1.062.502c.482.541.528.965.116 1.274c-.378.299-.53-.463-.784-.752c-.425-.447-.792-.664-.394-1.024\"/><path fill=\"#919191\" d=\"M72.133 23.611c.193-.187.606 0 1.041.492c.473.53.505.946.114 1.249c-.364.298-.515-.454-.761-.737c-.418-.437-.777-.648-.394-1.004\"/><path fill=\"#999\" d=\"M72.147 23.631c.185-.186.592 0 1.018.481c.464.519.482.926.112 1.223c-.353.297-.501-.444-.742-.722c-.407-.426-.759-.631-.388-.982\"/><path fill=\"currentColor\" d=\"M63.141 24.293c.546-.211.972-.223 1.817.334c1.022.674.551 1.694-.251 1.485c-.693-.179-.78-.22-1.417-.351c-1.002-.207-1.175-1.071-.149-1.468\"/><path fill=\"#050505\" d=\"M63.162 24.335c.536-.204.96-.212 1.793.331c.99.648.534 1.618-.26 1.415c-.688-.177-.757-.212-1.383-.34c-.986-.205-1.157-1.025-.15-1.406\"/><path fill=\"#0a0a0a\" d=\"M63.184 24.376c.524-.195.947-.201 1.77.328c.957.623.517 1.543-.269 1.343c-.684-.174-.733-.203-1.349-.329c-.971-.2-1.14-.977-.152-1.342\"/><path fill=\"#0f0f0f\" d=\"M63.205 24.417c.512-.187.934-.189 1.746.324c.924.598.5 1.468-.277 1.271c-.679-.171-.71-.195-1.315-.317c-.956-.194-1.122-.928-.154-1.278\"/><path fill=\"#141414\" d=\"M63.226 24.457c.501-.178.922-.178 1.721.321c.893.572.484 1.393-.284 1.2c-.676-.168-.688-.187-1.281-.306c-.941-.19-1.106-.879-.156-1.215\"/><path fill=\"#191919\" d=\"M63.247 24.499c.491-.171.91-.168 1.697.317c.86.546.468 1.317-.292 1.129c-.671-.166-.666-.179-1.247-.295c-.926-.186-1.088-.831-.158-1.151\"/><path fill=\"#1e1e1e\" d=\"M63.269 24.539c.478-.163.896-.156 1.672.314c.828.521.451 1.242-.299 1.058c-.667-.163-.643-.171-1.213-.285c-.912-.179-1.072-.782-.16-1.087\"/><path fill=\"#232323\" d=\"M63.29 24.58c.467-.154.884-.145 1.649.312c.795.496.434 1.167-.308.986c-.664-.16-.62-.163-1.18-.273c-.896-.176-1.053-.735-.161-1.025\"/><path fill=\"#282828\" d=\"M63.311 24.621c.456-.146.872-.135 1.625.308c.762.47.417 1.091-.316.916c-.659-.157-.596-.155-1.145-.263c-.882-.171-1.036-.686-.164-.961\"/><path fill=\"#2d2d2d\" d=\"M63.332 24.662c.445-.139.86-.124 1.602.304c.731.445.401 1.016-.325.843c-.654-.154-.572-.146-1.11-.25c-.867-.165-1.02-.638-.167-.897\"/><path fill=\"#333\" d=\"M63.354 24.703c.433-.13.847-.112 1.577.301c.698.418.384.94-.333.772c-.65-.152-.55-.138-1.077-.24c-.852-.16-1.001-.589-.167-.833\"/><path fill=\"#383838\" d=\"M63.375 24.743c.422-.122.834-.101 1.553.298c.667.394.368.865-.34.701c-.646-.148-.527-.13-1.043-.229c-.838-.156-.984-.54-.17-.77\"/><path fill=\"#3d3d3d\" d=\"M63.396 24.784c.411-.113.822-.09 1.53.295c.633.368.352.791-.349.63c-.642-.146-.504-.122-1.008-.218c-.824-.152-.967-.492-.173-.707\"/><path fill=\"#424242\" d=\"M63.418 24.826c.399-.106.81-.08 1.505.291c.601.343.334.715-.357.558c-.638-.143-.481-.114-.974-.207c-.809-.146-.951-.444-.174-.642\"/><path fill=\"#474747\" d=\"M63.439 24.866c.388-.098.796-.068 1.481.288c.569.317.318.64-.365.487c-.634-.14-.457-.105-.94-.196c-.794-.141-.933-.395-.176-.579\"/><path fill=\"#4c4c4c\" d=\"M63.46 24.908c.377-.089.785-.057 1.457.284c.536.292.302.564-.373.416c-.629-.138-.434-.097-.905-.185c-.78-.136-.916-.347-.179-.515\"/><path fill=\"#515151\" d=\"M63.482 24.948c.365-.081.771-.046 1.432.281c.504.266.285.489-.381.345c-.625-.135-.411-.089-.871-.174c-.764-.131-.898-.298-.18-.452\"/><path fill=\"#565656\" d=\"M63.503 24.989c.354-.073.758-.035 1.408.278c.472.241.269.414-.389.273c-.621-.132-.388-.081-.837-.162c-.749-.127-.881-.251-.182-.389\"/><path fill=\"#5b5b5b\" d=\"M63.524 25.03c.343-.065.747-.023 1.385.275c.438.215.25.338-.398.202c-.617-.129-.364-.073-.803-.151c-.734-.123-.863-.203-.184-.326\"/><path fill=\"#606060\" d=\"M63.545 25.071c.332-.057.734-.013 1.361.271c.407.189.235.263-.406.13c-.612-.126-.341-.064-.769-.14c-.719-.117-.846-.153-.186-.261\"/><path fill=\"#666\" d=\"M63.567 25.111c.32-.049.72-.001 1.336.268c.375.164.219.188-.414.059c-.607-.124-.318-.056-.734-.129c-.705-.111-.829-.104-.188-.198M61.363 43.13c-3.022.117-7.811-8.345-7.927-4.834c-.093 2.975.07 2.929.07 5.811c0 1.93-.883 2.069-2.79 4.975c-.977 1.535-1.743 3.185-2.348 4.858c-.372 1-.72 2.046-1 3.069l-.441 1.557c-.953 3.51-4.347 7.835-5.137 11.345c-.792 3.487-1.72 5.718-1.604 10.391c.117 4.673.163 3.324 1.581 4.487c1.395 1.163 2.836 2.255 5.044 4.208c2.325 2.022 7.16 5.556 7.811 6.648c.697 1.116.674 3.627.255 4.44c-.418.79-4.068 1.232-4.045 1.232c-.023 0 3.185 4.416 3.813 5.043c.604.604 3.208 3.511 13.808 1.535c5.975-1.116 10.6-4.463 13.948-7.695c4.323-4.208 2.138-5.416 2.696-7.532c.814-3.045 3.464-4.184 4.068-7.625c.07-.488.232-.86.674-1.58c.674-1.023.512-3.046.512-4.905c0-4.835-.559-9.763-1.674-13.389c-1.023-3.395-2.649-5.765-4.045-8.834c-2.789-6.114-2.649-8.857-5.137-12.762c-2.836-4.51-1.441-7.508-5.207-7.323c-4.696.255-8.485 6.694-12.925 6.88\"/><path fill=\"#6d6d6d\" d=\"M61.357 43.481c-2.996.114-7.666-8.237-7.827-4.901c-.102 2.827.032 2.802.01 5.568c-.049 1.895-.954 2.143-2.818 4.998c-.972 1.538-1.703 3.168-2.257 4.804c-.313 1.05-.504 2.073-.785 3.075c-.135.53-.484 1.029-.706 1.628c-1.051 3.481-4.374 7.807-5.153 11.261c-.796 3.49-1.734 5.713-1.602 10.377c.118 4.52.127 3.286 1.541 4.46c1.383 1.168 2.854 2.282 5.056 4.23c2.319 2.017 7.18 5.559 7.827 6.647c.694 1.112.688 3.654.273 4.463c-.416.787-4.062 1.251-4.039 1.251c-.023 0 3.168 4.38 3.796 5.007c.604.604 3.196 3.49 13.779 1.519c5.98-1.115 10.694-4.44 13.908-7.702c4.128-4.12 1.972-5.415 2.527-7.519c.811-3.041 3.64-4.186 4.243-7.621c.07-.487.243-.857.683-1.575c.676-1.034.504-3.05.511-4.903c.021-4.852-.551-9.762-1.667-13.377c-1.023-3.384-2.648-5.752-4.04-8.816c-2.785-6.104-2.654-8.852-5.146-12.745c-2.771-4.395-1.485-7.291-5.169-7.1c-4.637.269-8.512 6.787-12.945 6.971\"/><path fill=\"#757575\" d=\"M61.351 43.831c-2.971.111-7.522-8.128-7.726-4.967c-.112 2.678-.006 2.675-.051 5.325c-.097 1.861-1.023 2.217-2.845 5.022c-.969 1.542-1.662 3.151-2.167 4.748c-.253 1.101-.288 2.101-.57 3.083c-.152.549-.641 1.012-.969 1.698c-1.147 3.451-4.398 7.781-5.169 11.178c-.801 3.493-1.747 5.708-1.599 10.362c.12 4.368.092 3.248 1.501 4.437c1.37 1.172 2.871 2.31 5.069 4.252c2.313 2.012 7.199 5.561 7.844 6.646c.691 1.108.701 3.681.288 4.486c-.41.784-4.054 1.27-4.03 1.27c-.023 0 3.153 4.343 3.779 4.97c.603.603 3.186 3.469 13.75 1.502c5.988-1.115 10.789-4.417 13.869-7.709c3.935-4.034 1.805-5.415 2.357-7.509c.809-3.034 3.818-4.185 4.419-7.615c.069-.484.254-.854.69-1.567c.679-1.044.497-3.055.51-4.9c.043-4.868-.543-9.76-1.658-13.365c-1.025-3.375-2.647-5.74-4.037-8.798c-2.779-6.095-2.657-8.846-5.15-12.728c-2.708-4.28-1.53-7.074-5.131-6.877c-4.588.277-8.548 6.875-12.974 7.056\"/><path fill=\"#7c7c7c\" d=\"M61.346 44.182c-2.946.108-7.378-8.02-7.627-5.033c-.119 2.529-.042 2.548-.11 5.083c-.146 1.827-1.094 2.291-2.873 5.045a18.7 18.7 0 0 0-2.078 4.693c-.193 1.15-.07 2.128-.354 3.089c-.17.567-.799.995-1.233 1.769c-1.245 3.421-4.424 7.754-5.185 11.094c-.807 3.496-1.76 5.702-1.598 10.349c.123 4.216.057 3.209 1.462 4.41c1.359 1.178 2.89 2.338 5.083 4.276c2.307 2.007 7.218 5.563 7.86 6.645c.688 1.104.715 3.71.305 4.51c-.406.78-4.047 1.288-4.024 1.288c-.023 0 3.137 4.307 3.762 4.931c.603.603 3.174 3.449 13.721 1.488c5.994-1.115 10.882-4.394 13.83-7.717c3.74-3.946 1.638-5.415 2.188-7.498c.806-3.029 3.996-4.184 4.594-7.61c.069-.483.265-.85.698-1.561c.681-1.057.489-3.061.509-4.899c.065-4.883-.535-9.757-1.649-13.352c-1.025-3.366-2.646-5.728-4.032-8.78c-2.774-6.085-2.663-8.841-5.156-12.71c-2.646-4.166-1.575-6.857-5.095-6.655c-4.534.289-8.58 6.966-12.998 7.145\"/><path fill=\"#848484\" d=\"M61.34 44.532c-2.919.107-7.234-7.911-7.526-5.099c-.128 2.381-.08 2.421-.17 4.84c-.194 1.792-1.163 2.365-2.9 5.069a17 17 0 0 0-1.987 4.638c-.134 1.202.147 2.156-.14 3.097c-.188.586-.957.977-1.498 1.839c-1.341 3.391-4.45 7.728-5.199 11.011c-.813 3.5-1.774 5.696-1.596 10.334c.125 4.064.022 3.17 1.423 4.385c1.347 1.184 2.907 2.365 5.095 4.298c2.302 2.002 7.238 5.566 7.876 6.643c.685 1.101.729 3.738.322 4.534c-.403.777-4.042 1.307-4.019 1.307c-.023 0 3.122 4.271 3.746 4.895c.601.601 3.164 3.427 13.692 1.472c6-1.114 10.977-4.372 13.791-7.725c3.544-3.859 1.471-5.414 2.017-7.486c.805-3.025 4.173-4.185 4.77-7.606c.07-.481.276-.847.707-1.554c.683-1.067.481-3.065.509-4.897c.086-4.898-.529-9.755-1.643-13.339c-1.027-3.357-2.645-5.715-4.028-8.763c-2.769-6.076-2.667-8.835-5.163-12.692c-2.581-4.051-1.619-6.64-5.057-6.432c-4.479.298-8.61 7.055-13.022 7.231\"/><path fill=\"#8c8c8c\" d=\"M61.335 44.882c-2.894.104-7.091-7.802-7.427-5.164c-.138 2.232-.118 2.293-.23 4.596c-.242 1.758-1.233 2.439-2.929 5.094a15.6 15.6 0 0 0-1.896 4.583c-.076 1.252.363 2.184.075 3.104c-.206.604-1.114.959-1.761 1.909c-1.438 3.362-4.476 7.702-5.215 10.928c-.818 3.502-1.787 5.69-1.593 10.319c.127 3.912-.014 3.132 1.383 4.36c1.334 1.188 2.924 2.392 5.105 4.32c2.298 1.998 7.259 5.569 7.894 6.643c.681 1.097.742 3.765.338 4.557c-.398.773-4.035 1.325-4.012 1.325c-.023 0 3.106 4.234 3.73 4.857c.601.6 3.153 3.407 13.664 1.456c6.007-1.113 11.07-4.348 13.75-7.732c3.35-3.772 1.305-5.413 1.847-7.475c.802-3.019 4.35-4.184 4.945-7.601c.069-.479.288-.843.714-1.547c.687-1.078.474-3.069.508-4.894c.107-4.915-.52-9.753-1.635-13.327c-1.027-3.349-2.643-5.703-4.022-8.745c-2.765-6.066-2.671-8.831-5.17-12.675c-2.517-3.937-1.663-6.423-5.019-6.21c-4.425.31-8.64 7.146-13.044 7.319\"/><path fill=\"#939393\" d=\"M61.329 45.232c-2.869.102-6.947-7.694-7.326-5.23c-.147 2.083-.155 2.166-.291 4.353c-.292 1.724-1.304 2.513-2.957 5.117a14.2 14.2 0 0 0-1.806 4.527c-.016 1.303.581 2.212.291 3.111c-.224.623-1.272.942-2.025 1.979c-1.536 3.332-4.501 7.675-5.231 10.844c-.825 3.505-1.801 5.685-1.591 10.306c.128 3.759-.049 3.094 1.343 4.334c1.322 1.193 2.942 2.419 5.119 4.343c2.292 1.992 7.277 5.571 7.91 6.641c.678 1.094.756 3.793.355 4.581c-.396.771-4.029 1.344-4.005 1.344c-.023 0 3.09 4.197 3.712 4.82c.6.599 3.141 3.386 13.635 1.44c6.013-1.113 11.164-4.325 13.711-7.74c3.155-3.685 1.137-5.413 1.676-7.463c.8-3.013 4.528-4.184 5.121-7.596c.069-.478.298-.84.722-1.542c.689-1.089.467-3.074.507-4.892c.128-4.931-.512-9.751-1.626-13.314c-1.028-3.339-2.643-5.69-4.019-8.727c-2.759-6.057-2.675-8.825-5.176-12.658c-2.454-3.821-1.708-6.206-4.981-5.987c-4.371.323-8.671 7.239-13.068 7.409\"/><path fill=\"#9b9b9b\" d=\"M61.323 45.583c-2.842.1-6.802-7.585-7.226-5.295c-.156 1.935-.192 2.039-.351 4.11c-.34 1.689-1.373 2.587-2.984 5.14a13 13 0 0 0-1.716 4.473c.044 1.354.798 2.239.506 3.118c-.242.641-1.43.925-2.289 2.049c-1.633 3.303-4.527 7.648-5.247 10.761c-.83 3.509-1.814 5.679-1.589 10.292c.131 3.607-.083 3.056 1.305 4.309c1.31 1.199 2.959 2.447 5.131 4.365c2.287 1.988 7.297 5.575 7.926 6.642c.676 1.088.771 3.82.372 4.602c-.391.768-4.021 1.363-3.999 1.363c-.023 0 3.076 4.161 3.697 4.783c.599.598 3.129 3.365 13.605 1.424c6.019-1.113 11.258-4.302 13.671-7.748c2.962-3.598.971-5.412 1.508-7.452c.798-3.008 4.705-4.185 5.295-7.592c.07-.475.31-.835.731-1.533c.692-1.101.459-3.08.507-4.89c.149-4.948-.506-9.749-1.619-13.302c-1.029-3.33-2.641-5.678-4.015-8.709c-2.754-6.047-2.68-8.819-5.184-12.64c-2.389-3.707-1.751-5.988-4.943-5.765c-4.316.331-8.702 7.327-13.092 7.495\"/><path fill=\"#a3a3a3\" d=\"M61.318 45.933c-2.818.098-6.658-7.476-7.126-5.361c-.165 1.786-.229 1.911-.41 3.867c-.388 1.654-1.443 2.661-3.012 5.164c-.948 1.563-1.418 3.051-1.625 4.417c.102 1.405 1.014 2.267.719 3.125c-.259.66-1.588.908-2.553 2.119c-1.729 3.273-4.552 7.622-5.262 10.678c-.836 3.512-1.828 5.674-1.586 10.278c.134 3.454-.119 3.016 1.265 4.283c1.298 1.205 2.977 2.475 5.144 4.389c2.28 1.982 7.316 5.576 7.941 6.639c.673 1.086.785 3.849.389 4.627c-.387.763-4.015 1.381-3.992 1.381c-.022 0 3.06 4.124 3.68 4.745c.598.598 3.119 3.345 13.576 1.409c6.026-1.113 11.352-4.279 13.632-7.755c2.767-3.511.804-5.412 1.338-7.441c.795-3.003 4.882-4.184 5.47-7.586c.07-.474.32-.833.739-1.527c.694-1.111.451-3.084.506-4.888c.172-4.963-.498-9.747-1.61-13.289c-1.029-3.32-2.639-5.666-4.01-8.691c-2.75-6.038-2.684-8.814-5.189-12.623c-2.326-3.592-1.796-5.771-4.906-5.542c-4.264.342-8.736 7.416-13.118 7.582\"/><path fill=\"#aaa\" d=\"M61.312 46.283c-2.791.095-6.514-7.367-7.025-5.427l-.471 3.624c-.437 1.621-1.513 2.735-3.04 5.188c-.944 1.566-1.376 3.034-1.536 4.361c.162 1.456 1.231 2.295.936 3.133c-.277.677-1.746.89-2.817 2.189c-1.827 3.244-4.579 7.595-5.278 10.594c-.841 3.515-1.841 5.668-1.585 10.263c.136 3.303-.153 2.979 1.226 4.258c1.286 1.209 2.995 2.502 5.156 4.41c2.275 1.978 7.336 5.579 7.958 6.638c.668 1.083.798 3.877.405 4.65c-.383.76-4.008 1.4-3.985 1.4c-.023 0 3.044 4.087 3.664 4.708c.598.596 3.107 3.324 13.547 1.393c6.033-1.112 11.446-4.256 13.594-7.763c2.571-3.423.637-5.411 1.167-7.43c.792-2.998 5.059-4.183 5.645-7.581c.07-.472.332-.83.748-1.521c.697-1.123.444-3.09.505-4.885c.194-4.98-.49-9.746-1.603-13.276c-1.03-3.312-2.638-5.654-4.005-8.674c-2.745-6.028-2.689-8.809-5.197-12.605c-2.262-3.478-1.84-5.555-4.868-5.32c-4.209.356-8.765 7.511-13.141 7.673\"/><path fill=\"#b2b2b2\" d=\"M61.306 46.633c-2.766.092-6.37-7.259-6.925-5.493l-.531 3.381c-.486 1.586-1.584 2.809-3.068 5.211c-.941 1.57-1.336 3.017-1.446 4.306c.222 1.506 1.449 2.323 1.15 3.139c-.295.697-1.904.874-3.081 2.26c-1.924 3.213-4.604 7.569-5.294 10.51c-.847 3.52-1.855 5.664-1.582 10.25c.137 3.15-.189 2.94 1.186 4.233c1.274 1.215 3.013 2.529 5.168 4.433c2.271 1.972 7.356 5.581 7.976 6.637c.665 1.077.812 3.904.421 4.672c-.378.757-4.001 1.419-3.978 1.419c-.023 0 3.029 4.052 3.647 4.67c.596.597 3.097 3.304 13.518 1.378c6.04-1.112 11.54-4.233 13.554-7.77c2.376-3.336.47-5.411.997-7.418c.791-2.992 5.237-4.184 5.822-7.578c.069-.47.342-.825.755-1.514c.699-1.132.436-3.094.504-4.883c.216-4.996-.482-9.743-1.594-13.263c-1.032-3.302-2.636-5.641-4.001-8.657c-2.739-6.019-2.692-8.803-5.202-12.587c-2.199-3.363-1.885-5.337-4.831-5.097c-4.154.368-8.796 7.601-13.165 7.761\"/><path fill=\"#bababa\" d=\"M61.302 46.983c-2.741.09-6.226-7.15-6.826-5.558l-.59 3.137c-.535 1.553-1.653 2.884-3.096 5.236c-.936 1.573-1.294 3-1.354 4.25c.279 1.558 1.665 2.351 1.365 3.147c-.313.715-2.061.856-3.345 2.33c-2.021 3.184-4.629 7.542-5.309 10.427c-.854 3.521-1.868 5.657-1.58 10.234c.14 2.998-.224 2.901 1.147 4.208c1.262 1.219 3.03 2.557 5.18 4.455c2.265 1.967 7.375 5.584 7.991 6.636c.663 1.074.826 3.932.439 4.696c-.375.753-3.995 1.438-3.972 1.438c-.023 0 3.012 4.015 3.63 4.633c.596.596 3.085 3.283 13.488 1.362c6.046-1.112 11.635-4.21 13.515-7.778c2.182-3.25.304-5.41.829-7.406c.788-2.986 5.414-4.184 5.996-7.572c.069-.469.353-.823.763-1.508c.702-1.144.429-3.099.504-4.881c.237-5.011-.475-9.741-1.585-13.25c-1.033-3.293-2.636-5.628-3.997-8.639c-2.735-6.009-2.697-8.797-5.21-12.57c-2.134-3.248-1.929-5.12-4.793-4.875c-4.103.378-8.831 7.691-13.19 7.848\"/><path fill=\"#c1c1c1\" d=\"M61.295 47.334c-2.714.088-6.081-7.042-6.725-5.624c-.199 1.19-.379 1.403-.65 2.895c-.584 1.518-1.724 2.958-3.124 5.26c-.933 1.577-1.254 2.983-1.265 4.195c.339 1.607 1.882 2.378 1.581 3.154c-.332.733-2.22.839-3.609 2.4c-2.118 3.154-4.656 7.516-5.324 10.344c-.859 3.524-1.882 5.651-1.578 10.221c.141 2.845-.26 2.862 1.106 4.182c1.25 1.225 3.048 2.584 5.193 4.479c2.258 1.962 7.395 5.586 8.007 6.634c.659 1.07.84 3.96.455 4.719c-.371.75-3.988 1.457-3.965 1.457c-.023 0 2.997 3.979 3.615 4.596c.594.595 3.074 3.263 13.459 1.346c6.052-1.111 11.729-4.187 13.475-7.786c1.987-3.161.137-5.409.658-7.395c.787-2.982 5.591-4.183 6.172-7.567c.069-.466.364-.818.772-1.5c.704-1.155.421-3.104.503-4.878c.257-5.028-.468-9.74-1.579-13.239c-1.033-3.284-2.634-5.616-3.992-8.621c-2.73-6-2.702-8.793-5.216-12.553c-2.071-3.133-1.974-4.903-4.756-4.652c-4.047.386-8.859 7.777-13.213 7.933\"/><path fill=\"#c9c9c9\" d=\"M61.29 47.684c-2.689.085-5.938-6.933-6.626-5.689c-.209 1.041-.417 1.275-.71 2.651c-.632 1.483-1.794 3.032-3.152 5.284c-.929 1.58-1.212 2.966-1.174 4.14c.399 1.658 2.1 2.406 1.796 3.162c-.349.751-2.377.821-3.873 2.47c-2.214 3.124-4.682 7.489-5.34 10.261c-.864 3.528-1.896 5.646-1.576 10.206c.144 2.693-.295 2.825 1.068 4.158c1.239 1.229 3.065 2.611 5.205 4.5c2.253 1.957 7.415 5.589 8.024 6.633c.656 1.067.854 3.989.472 4.743c-.367.747-3.981 1.475-3.959 1.475c-.022 0 2.981 3.942 3.598 4.558c.595.594 3.063 3.243 13.431 1.331c6.06-1.111 11.822-4.164 13.435-7.793c1.793-3.074-.03-5.408.489-7.384c.785-2.976 5.768-4.183 6.347-7.562c.069-.465.375-.816.779-1.495c.707-1.166.414-3.108.503-4.876c.279-5.043-.46-9.737-1.571-13.225c-1.034-3.275-2.631-5.604-3.988-8.604c-2.725-5.99-2.705-8.787-5.222-12.535c-2.007-3.019-2.019-4.686-4.718-4.43c-3.994.397-8.891 7.868-13.238 8.021\"/><path fill=\"#d1d1d1\" d=\"M61.285 48.035c-2.664.083-5.793-6.825-6.525-5.755c-.218.893-.453 1.148-.771 2.408c-.681 1.449-1.863 3.106-3.178 5.307c-.927 1.584-1.173 2.95-1.085 4.085c.458 1.708 2.316 2.434 2.011 3.167c-.367.771-2.535.805-4.136 2.541c-2.312 3.095-4.708 7.462-5.356 10.177c-.87 3.532-1.909 5.641-1.574 10.192c.146 2.541-.332 2.786 1.029 4.131c1.226 1.234 3.083 2.64 5.216 4.522c2.249 1.953 7.435 5.593 8.041 6.632c.653 1.063.867 4.017.489 4.767c-.364.744-3.975 1.493-3.952 1.493c-.023 0 2.966 3.905 3.582 4.521c.591.593 3.05 3.222 13.401 1.315c6.065-1.11 11.917-4.14 13.396-7.801c1.598-2.987-.197-5.408.317-7.372c.783-2.972 5.946-4.183 6.523-7.558c.069-.463.386-.812.788-1.487c.708-1.177.406-3.114.502-4.875c.3-5.059-.452-9.734-1.563-13.211c-1.035-3.267-2.63-5.592-3.982-8.586c-2.722-5.98-2.711-8.782-5.23-12.518c-1.943-2.904-2.062-4.469-4.679-4.207c-3.943.411-8.926 7.961-13.264 8.112\"/><path fill=\"#d8d8d8\" d=\"M61.279 48.385c-2.638.081-5.649-6.715-6.425-5.821c-.227.743-.491 1.021-.831 2.165c-.729 1.415-1.933 3.18-3.207 5.331c-.922 1.588-1.131 2.933-.994 4.029c.518 1.76 2.534 2.462 2.227 3.175c-.385.789-2.693.788-4.401 2.611c-2.409 3.065-4.733 7.436-5.372 10.093c-.875 3.534-1.922 5.636-1.571 10.178c.148 2.389-.366 2.748.989 4.106c1.213 1.241 3.1 2.667 5.229 4.546c2.243 1.947 7.455 5.594 8.057 6.631c.65 1.059.881 4.043.505 4.789c-.359.741-3.968 1.513-3.945 1.513c-.023 0 2.95 3.868 3.564 4.483c.592.593 3.041 3.201 13.372 1.299c6.072-1.109 12.011-4.117 13.357-7.808c1.403-2.9-.364-5.407.147-7.361c.78-2.966 6.124-4.183 6.698-7.553c.069-.462.397-.808.796-1.48c.711-1.189.399-3.119.501-4.873c.322-5.075-.445-9.733-1.555-13.2c-1.036-3.257-2.63-5.58-3.979-8.568c-2.715-5.972-2.714-8.777-5.235-12.5c-1.879-2.79-2.108-4.251-4.644-3.985c-3.883.422-8.951 8.052-13.283 8.2\"/><path fill=\"#e0e0e0\" d=\"M61.273 48.735c-2.612.078-5.505-6.606-6.325-5.886c-.235.595-.529.893-.89 1.922c-.778 1.381-2.004 3.253-3.235 5.354c-.919 1.591-1.091 2.916-.904 3.974c.577 1.811 2.75 2.49 2.441 3.183c-.403.808-2.85.77-4.664 2.681c-2.506 3.036-4.758 7.41-5.387 10.011c-.882 3.537-1.936 5.63-1.569 10.164c.15 2.237-.402 2.708.949 4.081c1.201 1.245 3.117 2.694 5.241 4.567c2.239 1.941 7.474 5.598 8.074 6.629c.646 1.055.895 4.071.521 4.813c-.354.737-3.96 1.531-3.938 1.531c-.022 0 2.935 3.832 3.547 4.446c.592.591 3.03 3.18 13.344 1.284c6.079-1.109 12.105-4.095 13.316-7.815c1.208-2.814-.531-5.407-.021-7.35c.777-2.96 6.3-4.183 6.874-7.549c.068-.459.408-.805.804-1.473c.713-1.2.391-3.124.5-4.871c.343-5.091-.437-9.73-1.548-13.187c-1.036-3.247-2.627-5.566-3.974-8.55c-2.71-5.962-2.719-8.771-5.242-12.483c-1.815-2.674-2.152-4.034-4.604-3.762c-3.831.432-8.986 8.14-13.31 8.286\"/><path fill=\"#e8e8e8\" d=\"M61.267 49.086c-2.586.075-5.361-6.499-6.224-5.953c-.245.446-.567.766-.951 1.679c-.826 1.346-2.073 3.328-3.262 5.378c-.915 1.595-1.05 2.899-.813 3.919c.636 1.861 2.967 2.517 2.655 3.19c-.42.826-3.009.752-4.929 2.751c-2.603 3.006-4.784 7.383-5.402 9.927c-.888 3.542-1.95 5.624-1.567 10.15c.152 2.084-.437 2.67.91 4.055c1.19 1.25 3.136 2.722 5.254 4.592c2.232 1.937 7.492 5.599 8.09 6.627c.643 1.052.909 4.1.538 4.837c-.35.733-3.954 1.549-3.931 1.549c-.023 0 2.918 3.796 3.531 4.409c.59.59 3.019 3.159 13.315 1.267c6.084-1.109 12.199-4.07 13.277-7.822c1.014-2.727-.697-5.406-.191-7.338c.775-2.955 6.478-4.182 7.048-7.543c.069-.457.419-.802.812-1.467c.716-1.21.384-3.128.5-4.868c.365-5.108-.43-9.729-1.539-13.175c-1.038-3.238-2.626-5.554-3.97-8.532c-2.706-5.953-2.723-8.766-5.249-12.465c-1.751-2.561-2.196-3.817-4.567-3.539c-3.778.44-9.017 8.228-13.335 8.372\"/><path fill=\"#efefef\" d=\"M61.262 49.436c-2.562.073-5.217-6.39-6.125-6.019c-.253.297-.604.639-1.011 1.436c-.874 1.312-2.144 3.401-3.29 5.402c-.911 1.598-1.009 2.882-.723 3.863c.694 1.911 3.184 2.545 2.87 3.197c-.438.844-3.167.735-5.192 2.821c-2.7 2.977-4.809 7.356-5.417 9.844c-.894 3.544-1.963 5.618-1.565 10.136c.155 1.932-.472 2.633.87 4.03c1.178 1.255 3.153 2.749 5.266 4.613c2.228 1.932 7.513 5.603 8.107 6.627c.64 1.047.922 4.127.555 4.86c-.347.729-3.948 1.567-3.925 1.567c-.023 0 2.903 3.758 3.515 4.371c.59.59 3.008 3.139 13.285 1.252c6.092-1.108 12.293-4.047 13.239-7.831c.819-2.639-.864-5.405-.361-7.326c.773-2.95 6.655-4.183 7.224-7.539c.069-.456.43-.798.82-1.461c.719-1.221.376-3.133.499-4.865c.386-5.124-.422-9.727-1.531-13.163c-1.038-3.229-2.625-5.541-3.964-8.514c-2.702-5.943-2.729-8.761-5.256-12.449c-1.688-2.445-2.24-3.599-4.529-3.316c-3.728.456-9.05 8.323-13.361 8.464\"/><path fill=\"#f7f7f7\" d=\"M61.257 49.786c-2.536.07-5.074-6.281-6.025-6.083c-.262.148-.641.511-1.069 1.192c-.924 1.278-2.215 3.476-3.319 5.426c-.908 1.602-.968 2.865-.633 3.809c.754 1.961 3.401 2.573 3.087 3.204c-.457.863-3.325.718-5.457 2.891c-2.797 2.947-4.836 7.33-5.434 9.761c-.899 3.546-1.976 5.613-1.562 10.122c.156 1.781-.507 2.593.831 4.004c1.165 1.262 3.17 2.777 5.279 4.635c2.222 1.927 7.532 5.605 8.124 6.626c.635 1.044.935 4.155.571 4.883c-.343.728-3.941 1.587-3.918 1.587c-.023 0 2.887 3.722 3.498 4.333c.59.588 2.997 3.118 13.257 1.237c6.099-1.109 12.387-4.025 13.199-7.839c.625-2.551-1.032-5.404-.531-7.314c.771-2.944 6.832-4.183 7.398-7.534c.069-.453.441-.794.83-1.454c.72-1.232.369-3.137.498-4.863c.408-5.14-.415-9.725-1.523-13.149c-1.039-3.22-2.624-5.53-3.961-8.497c-2.695-5.934-2.732-8.756-5.262-12.431c-1.624-2.331-2.284-3.383-4.492-3.095c-3.675.464-9.084 8.411-13.386 8.549\"/><path fill=\"#fff\" d=\"M61.25 50.137c-2.51.068-4.93-6.173-5.924-6.15c-.271 0-.678.385-1.131.95c-.972 1.244-2.282 3.55-3.345 5.45c-.905 1.605-.927 2.849-.543 3.753c.813 2.012 3.618 2.601 3.301 3.211c-.475.882-3.482.701-5.721 2.962c-2.894 2.917-4.861 7.303-5.449 9.677c-.905 3.55-1.99 5.607-1.561 10.107c.159 1.628-.543 2.555.792 3.98c1.153 1.266 3.188 2.804 5.291 4.657c2.216 1.922 7.552 5.608 8.14 6.626c.633 1.04.949 4.182.587 4.906c-.339.723-3.934 1.605-3.912 1.605c-.022 0 2.872 3.685 3.482 4.296c.587.588 2.984 3.098 13.229 1.221c6.104-1.108 12.48-4.002 13.158-7.846c.43-2.464-1.198-5.403-.7-7.303c.768-2.939 7.009-4.183 7.574-7.53c.068-.451.452-.791.837-1.446c.723-1.244.361-3.143.497-4.862a33.8 33.8 0 0 0-1.515-13.137c-1.04-3.211-2.623-5.517-3.957-8.479c-2.691-5.924-2.736-8.75-5.269-12.413c-1.56-2.216-2.328-3.166-4.454-2.872c-3.616.474-9.11 8.501-13.407 8.637\"/><path fill=\"#995900\" d=\"M62.967 27.183c1.697-.209 4.021.209 5.091 1c.999.745 1.696 1.14 2.603 1.441c3.045 1 7.044 1.465 6.858 4.208c-.209 3.277-1.162 4.742-3.882 5.602c-2.185.674-6.09 4.463-9.112 4.463c-1.348 0-3.231.07-4.324-.325c-1.046-.372-2.511-2.139-4.231-3.557c-1.721-1.395-3.324-2.882-3.37-4.835c-.07-2.068 1.278-2.743 3.185-4.394c1-.883 2.813-2.348 4.068-2.999c1.161-.581 1.906-.465 3.114-.604\"/><path fill=\"#9e5f00\" d=\"M63.003 27.214c1.687-.208 3.998.208 5.062.994c.993.74 1.688 1.134 2.589 1.433c3.026.994 7.015 1.462 6.832 4.188c-.208 3.258-1.186 4.708-3.888 5.561c-2.171.669-6.06 4.387-9.063 4.404c-1.359.01-3.204.076-4.29-.315c-1.038-.369-2.498-2.134-4.207-3.542c-1.708-1.385-3.312-2.833-3.331-4.767c-.049-2.018 1.263-2.715 3.155-4.354c.992-.875 2.775-2.358 4.024-3.014c1.149-.582 1.914-.449 3.117-.588\"/><path fill=\"#a36400\" d=\"M63.038 27.244c1.677-.207 3.975.207 5.032.988c.988.736 1.677 1.128 2.574 1.425c3.008.988 6.986 1.46 6.805 4.169c-.204 3.237-1.206 4.673-3.893 5.519c-2.157.664-6.029 4.311-9.014 4.344c-1.369.021-3.178.082-4.255-.305c-1.03-.366-2.486-2.129-4.184-3.526c-1.697-1.376-3.3-2.784-3.292-4.699c-.03-1.969 1.248-2.689 3.126-4.316c.984-.867 2.737-2.368 3.98-3.028c1.139-.584 1.926-.433 3.121-.571\"/><path fill=\"#a86a00\" d=\"M63.073 27.274c1.668-.206 3.953.206 5.004.982c.982.731 1.667 1.123 2.559 1.417c2.99.982 6.959 1.458 6.779 4.15c-.203 3.219-1.229 4.639-3.898 5.479c-2.142.659-5.998 4.235-8.964 4.284c-1.381.031-3.151.087-4.222-.295c-1.022-.362-2.473-2.124-4.161-3.511c-1.684-1.368-3.289-2.734-3.251-4.631c-.01-1.919 1.232-2.662 3.097-4.278c.976-.859 2.699-2.378 3.936-3.042c1.125-.585 1.933-.418 3.121-.555\"/><path fill=\"#ad7000\" d=\"M63.109 27.304c1.657-.204 3.929.205 4.974.977c.976.727 1.659 1.117 2.543 1.408c2.971.977 6.931 1.456 6.753 4.131c-.199 3.198-1.25 4.604-3.904 5.437c-2.126.654-5.966 4.159-8.915 4.225c-1.392.041-3.125.093-4.188-.285c-1.014-.359-2.461-2.118-4.138-3.495c-1.672-1.358-3.276-2.685-3.21-4.564c.01-1.869 1.216-2.634 3.065-4.239c.969-.851 2.663-2.389 3.893-3.058c1.116-.584 1.945-.401 3.127-.537\"/><path fill=\"#b27600\" d=\"M63.143 27.335c1.649-.204 3.907.203 4.945.971c.971.722 1.647 1.111 2.529 1.399c2.953.97 6.903 1.453 6.727 4.112c-.198 3.178-1.272 4.57-3.909 5.395c-2.113.649-5.936 4.083-8.867 4.165c-1.401.052-3.097.099-4.152-.275c-1.006-.356-2.449-2.113-4.115-3.48c-1.66-1.349-3.264-2.635-3.17-4.496c.03-1.819 1.201-2.607 3.037-4.201c.96-.842 2.624-2.398 3.848-3.071c1.103-.584 1.954-.384 3.127-.519\"/><path fill=\"#b77b00\" d=\"M63.18 27.364c1.639-.203 3.882.202 4.915.965c.965.718 1.639 1.105 2.514 1.391c2.934.965 6.875 1.451 6.702 4.093c-.196 3.158-1.296 4.535-3.916 5.354c-2.097.645-5.905 4.007-8.816 4.105c-1.413.062-3.07.104-4.119-.265c-.998-.353-2.437-2.108-4.092-3.465c-1.648-1.34-3.252-2.585-3.13-4.427c.05-1.769 1.185-2.58 3.007-4.161c.953-.835 2.586-2.409 3.804-3.087c1.09-.585 1.963-.368 3.131-.503\"/><path fill=\"#bc8100\" d=\"M63.214 27.395c1.629-.201 3.86.201 4.886.96c.96.713 1.629 1.1 2.499 1.383c2.915.959 6.847 1.449 6.675 4.074c-.194 3.138-1.316 4.5-3.92 5.312c-2.083.64-5.874 3.931-8.768 4.046c-1.423.072-3.044.11-4.085-.255c-.99-.35-2.424-2.103-4.067-3.449c-1.637-1.332-3.241-2.536-3.091-4.36c.071-1.719 1.169-2.553 2.978-4.123c.945-.826 2.549-2.419 3.76-3.101c1.079-.588 1.974-.354 3.133-.487\"/><path fill=\"#c18700\" d=\"M63.249 27.425c1.62-.2 3.837.2 4.857.954c.954.709 1.62 1.095 2.484 1.375c2.897.954 6.819 1.446 6.649 4.055c-.191 3.119-1.339 4.467-3.926 5.271c-2.067.635-5.843 3.855-8.718 3.987c-1.433.082-3.017.116-4.051-.245c-.982-.347-2.411-2.098-4.043-3.435c-1.625-1.322-3.229-2.486-3.052-4.292c.09-1.668 1.155-2.526 2.948-4.083c.937-.818 2.511-2.429 3.716-3.116c1.068-.589 1.984-.338 3.136-.471\"/><path fill=\"#c68d00\" d=\"M63.285 27.455c1.609-.198 3.813.198 4.828.948c.947.706 1.609 1.09 2.468 1.367c2.879.947 6.79 1.444 6.625 4.036c-.19 3.098-1.362 4.432-3.932 5.229c-2.054.63-5.812 3.778-8.669 3.926c-1.445.093-2.99.122-4.017-.234c-.973-.344-2.399-2.093-4.021-3.419c-1.613-1.314-3.217-2.438-3.011-4.224c.11-1.619 1.138-2.5 2.918-4.046c.929-.81 2.473-2.439 3.672-3.13c1.055-.589 1.993-.321 3.139-.453\"/><path fill=\"#cc9200\" d=\"M63.32 27.485c1.6-.197 3.79.197 4.798.942c.943.701 1.6 1.083 2.455 1.358c2.859.942 6.761 1.442 6.596 4.018c-.187 3.079-1.383 4.397-3.936 5.187c-2.039.625-5.782 3.703-8.62 3.868c-1.455.103-2.963.127-3.982-.225c-.966-.34-2.387-2.088-3.999-3.404c-1.601-1.304-3.206-2.387-2.971-4.156c.129-1.569 1.123-2.471 2.888-4.006c.922-.802 2.435-2.45 3.629-3.146c1.044-.589 2.003-.305 3.142-.436\"/><path fill=\"#d19800\" d=\"M63.356 27.515c1.589-.196 3.767.196 4.769.937c.936.696 1.589 1.078 2.439 1.35c2.841.936 6.733 1.439 6.57 3.998c-.184 3.06-1.405 4.363-3.942 5.146c-2.024.62-5.75 3.626-8.57 3.807c-1.466.114-2.936.134-3.948-.214c-.957-.337-2.374-2.083-3.975-3.389c-1.589-1.295-3.193-2.338-2.932-4.088c.151-1.52 1.108-2.444 2.859-3.968c.914-.793 2.398-2.459 3.584-3.16c1.034-.59 2.013-.288 3.146-.419\"/><path fill=\"#d69e00\" d=\"M63.391 27.545c1.581-.194 3.744.195 4.74.931c.93.692 1.58 1.073 2.423 1.342c2.823.931 6.706 1.438 6.545 3.979c-.183 3.04-1.427 4.329-3.948 5.105c-2.01.615-5.719 3.55-8.52 3.748c-1.478.124-2.91.14-3.915-.205c-.949-.333-2.362-2.077-3.951-3.372c-1.577-1.287-3.182-2.289-2.891-4.021c.169-1.469 1.092-2.418 2.829-3.929c.906-.785 2.36-2.47 3.541-3.174c1.02-.592 2.022-.274 3.147-.404\"/><path fill=\"#dba300\" d=\"M63.427 27.575c1.57-.193 3.72.194 4.71.925c.925.688 1.57 1.067 2.409 1.333c2.804.925 6.678 1.436 6.519 3.96c-.181 3.02-1.45 4.294-3.953 5.063c-1.995.61-5.689 3.474-8.471 3.688c-1.488.134-2.883.145-3.88-.194c-.941-.331-2.349-2.072-3.928-3.358c-1.565-1.277-3.169-2.239-2.851-3.952c.189-1.419 1.076-2.391 2.799-3.891c.898-.777 2.322-2.48 3.497-3.189c1.007-.591 2.03-.256 3.149-.385\"/><path fill=\"#e0a900\" d=\"M63.462 27.606c1.561-.192 3.698.192 4.681.919c.919.684 1.561 1.062 2.394 1.325c2.786.919 6.649 1.433 6.493 3.94c-.179 3-1.472 4.26-3.958 5.021c-1.981.606-5.657 3.399-8.422 3.629c-1.499.145-2.856.151-3.846-.184c-.933-.328-2.337-2.067-3.905-3.342c-1.553-1.269-3.157-2.189-2.811-3.885c.209-1.369 1.061-2.363 2.771-3.852c.89-.769 2.283-2.49 3.452-3.204c.995-.591 2.039-.24 3.151-.367\"/><path fill=\"#e5af00\" d=\"M63.498 27.635c1.551-.191 3.674.191 4.651.914c.913.68 1.551 1.056 2.379 1.317c2.767.913 6.62 1.431 6.467 3.921c-.176 2.979-1.494 4.225-3.964 4.979c-1.966.601-5.627 3.323-8.373 3.57c-1.51.154-2.83.156-3.812-.174c-.925-.324-2.325-2.062-3.882-3.327c-1.54-1.259-3.145-2.14-2.77-3.816c.229-1.319 1.044-2.336 2.739-3.813c.882-.761 2.246-2.5 3.409-3.218c.985-.593 2.051-.225 3.156-.353\"/><path fill=\"#eab500\" d=\"M63.533 27.666c1.541-.189 3.651.19 4.623.908c.908.675 1.541 1.05 2.364 1.309c2.748.907 6.592 1.428 6.44 3.903c-.174 2.958-1.516 4.19-3.97 4.938c-1.951.596-5.595 3.247-8.323 3.509c-1.521.165-2.802.163-3.778-.164c-.916-.321-2.312-2.057-3.857-3.312c-1.53-1.25-3.134-2.091-2.732-3.749c.249-1.269 1.03-2.309 2.711-3.775c.875-.752 2.208-2.51 3.364-3.232c.973-.594 2.06-.208 3.158-.335\"/><path fill=\"#efba00\" d=\"M63.569 27.695c1.531-.188 3.627.189 4.592.902c.902.671 1.532 1.045 2.349 1.3c2.73.902 6.564 1.426 6.415 3.884c-.172 2.939-1.539 4.156-3.976 4.896c-1.936.591-5.563 3.17-8.273 3.45c-1.532.175-2.776.168-3.744-.154c-.909-.318-2.3-2.052-3.835-3.296c-1.517-1.241-3.121-2.041-2.691-3.681c.271-1.22 1.014-2.282 2.682-3.736c.867-.745 2.171-2.521 3.321-3.248c.96-.593 2.069-.191 3.16-.317\"/><path fill=\"#f4c000\" d=\"M63.603 27.726c1.521-.187 3.606.188 4.564.896c.896.667 1.521 1.04 2.334 1.292c2.711.896 6.536 1.424 6.389 3.864c-.168 2.919-1.56 4.122-3.981 4.855c-1.921.586-5.533 3.095-8.224 3.391c-1.542.186-2.75.174-3.71-.144c-.9-.315-2.287-2.047-3.811-3.281c-1.505-1.232-3.109-1.992-2.651-3.613c.29-1.17.999-2.255 2.651-3.698c.859-.736 2.133-2.531 3.276-3.262c.95-.594 2.08-.175 3.163-.3\"/><path fill=\"#f9c600\" d=\"M63.639 27.755c1.512-.186 3.583.187 4.535.891c.891.663 1.512 1.035 2.32 1.284c2.692.89 6.507 1.421 6.361 3.845c-.167 2.9-1.582 4.088-3.985 4.814c-1.907.581-5.503 3.018-8.175 3.331c-1.553.196-2.722.18-3.675-.133c-.893-.312-2.276-2.042-3.788-3.266c-1.493-1.223-3.098-1.942-2.611-3.545c.309-1.119.983-2.228 2.621-3.659c.853-.729 2.095-2.542 3.233-3.277c.936-.595 2.088-.16 3.164-.285\"/><path fill=\"#fc0\" d=\"M63.675 27.786c1.5-.185 3.559.186 4.504.885c.885.658 1.502 1.029 2.304 1.275c2.674.884 6.48 1.42 6.337 3.826c-.165 2.879-1.604 4.053-3.992 4.772c-1.892.576-5.472 2.942-8.125 3.271c-1.564.206-2.696.185-3.642-.124c-.884-.309-2.263-2.037-3.764-3.25c-1.482-1.214-3.086-1.893-2.572-3.477c.33-1.07.967-2.201 2.592-3.621c.843-.72 2.057-2.551 3.188-3.292c.927-.594 2.1-.142 3.17-.265m.268.932c.327.674 1.163.767 1.721 1.069c.535.303.837.372 1.046.256c.465-.256.117-1.093-.349-1.395c-.441-.302-2.604-.372-2.418.07\"/><path fill=\"#f9c600\" d=\"M63.99 28.725c.316.657 1.133.748 1.677 1.043c.521.294.815.362 1.02.249c.452-.249.113-1.065-.34-1.359c-.432-.296-2.539-.364-2.357.067\"/><path fill=\"#f4c000\" d=\"M64.035 28.731c.309.64 1.103.729 1.633 1.016c.508.287.794.353.993.243c.442-.243.11-1.037-.331-1.324c-.419-.287-2.471-.353-2.295.065\"/><path fill=\"#efba00\" d=\"M64.081 28.739c.301.623 1.074.708 1.59.988c.494.279.773.344.966.236c.429-.236.108-1.01-.322-1.289c-.408-.279-2.406-.343-2.234.065\"/><path fill=\"#eab500\" d=\"M64.127 28.746c.292.605 1.044.689 1.545.961c.481.271.752.334.941.229c.417-.229.104-.982-.314-1.253c-.396-.271-2.339-.335-2.172.063\"/><path fill=\"#e5af00\" d=\"M64.173 28.752c.285.589 1.015.67 1.502.934c.467.264.731.325.914.224c.406-.224.101-.955-.304-1.219c-.386-.263-2.274-.324-2.112.061\"/><path fill=\"#e0a900\" d=\"M64.219 28.759c.277.572.986.651 1.459.907c.453.256.71.315.887.217c.395-.217.099-.927-.296-1.183c-.374-.256-2.207-.315-2.05.059\"/><path fill=\"#dba300\" d=\"M64.265 28.767c.268.555.956.631 1.416.88c.44.249.688.306.861.21c.382-.21.095-.899-.287-1.148c-.364-.249-2.142-.306-1.99.058\"/><path fill=\"#d69e00\" d=\"M64.311 28.773c.26.538.927.612 1.372.853c.427.241.667.296.834.204c.371-.204.093-.871-.277-1.111c-.353-.242-2.078-.298-1.929.054\"/><path fill=\"#d19800\" d=\"M64.357 28.78c.25.521.897.592 1.329.826c.412.233.646.287.807.197c.358-.197.09-.843-.27-1.077c-.34-.232-2.01-.287-1.866.054\"/><path fill=\"#cc9200\" d=\"M64.403 28.788c.244.503.869.573 1.286.799c.398.226.625.277.78.19c.347-.19.087-.816-.26-1.042c-.33-.226-1.945-.277-1.806.053\"/><path fill=\"#c68c00\" d=\"M64.449 28.794c.235.486.839.553 1.241.771c.385.218.604.269.754.184c.335-.184.084-.788-.251-1.006c-.319-.217-1.878-.267-1.744.051\"/><path fill=\"#c18700\" d=\"M64.495 28.801c.226.469.809.535 1.197.745c.372.21.583.259.729.178c.323-.178.081-.761-.243-.971c-.308-.21-1.812-.259-1.683.048\"/><path fill=\"#bc8100\" d=\"M64.541 28.809c.218.452.779.514 1.153.717c.359.203.562.249.703.171c.312-.171.078-.733-.234-.935c-.297-.203-1.747-.25-1.622.047\"/><path fill=\"#b77b00\" d=\"M64.587 28.815c.21.435.75.495 1.11.69c.345.195.54.24.675.165c.3-.165.076-.706-.225-.9c-.285-.194-1.68-.24-1.56.045\"/><path fill=\"#b27500\" d=\"M64.634 28.822c.201.418.719.476 1.065.663c.333.188.519.23.649.159c.288-.159.073-.677-.216-.865c-.274-.187-1.614-.231-1.498.043\"/><path fill=\"#ad7000\" d=\"M64.68 28.829c.193.401.69.456 1.022.636c.317.18.497.221.622.152c.276-.152.069-.649-.208-.83c-.262-.178-1.547-.22-1.436.042\"/><path fill=\"#a86a00\" d=\"M64.725 28.836c.185.384.662.437.979.608c.304.173.476.212.596.146c.264-.146.066-.622-.199-.794c-.251-.171-1.483-.211-1.376.04\"/><path fill=\"#a36400\" d=\"M64.771 28.843c.176.367.631.417.936.582c.29.164.455.202.569.139c.252-.139.062-.594-.19-.759c-.24-.164-1.417-.202-1.315.038\"/><path fill=\"#9e5e00\" d=\"M64.817 28.85c.168.35.603.398.892.555c.277.157.434.192.543.132c.24-.132.061-.566-.182-.724c-.228-.155-1.35-.192-1.253.037\"/><path fill=\"#995900\" d=\"M64.863 28.857c.161.333.573.378.848.528c.264.148.413.183.517.125c.229-.125.057-.539-.173-.688c-.217-.148-1.284-.182-1.192.035\"/><path fill=\"#fc0\" d=\"M59.066 29.584c-.105.262.629.761.998.42a11 11 0 0 1 1.025-.762c.708-.473.447-.814-.735-.604c-1.183.21-1.183.682-1.288.946\"/><path fill=\"#f9c600\" d=\"M59.085 29.58c-.103.257.615.744.975.41c.384-.333.846-.641 1.001-.744c.692-.462.436-.795-.719-.59s-1.155.667-1.257.924\"/><path fill=\"#f4c000\" d=\"M59.104 29.576c-.1.25.601.727.952.401c.375-.325.826-.626.977-.727c.676-.451.426-.776-.702-.576s-1.127.652-1.227.902\"/><path fill=\"#efba00\" d=\"M59.123 29.573c-.098.245.586.708.929.391c.366-.318.806-.611.953-.709c.659-.439.415-.757-.684-.562c-1.1.196-1.1.635-1.198.88\"/><path fill=\"#eab500\" d=\"M59.142 29.57c-.096.238.572.691.905.381c.358-.31.787-.596.93-.692c.644-.428.405-.739-.667-.548s-1.073.62-1.168.859\"/><path fill=\"#e5af00\" d=\"M59.161 29.566c-.093.232.558.673.882.372c.349-.302.767-.58.906-.673c.628-.418.395-.72-.65-.535c-1.046.186-1.045.604-1.138.836\"/><path fill=\"#e0a900\" d=\"M59.18 29.564c-.09.226.543.656.859.362c.339-.294.747-.565.882-.656c.611-.407.384-.702-.634-.52c-1.017.18-1.017.587-1.107.814\"/><path fill=\"#dba300\" d=\"M59.199 29.56c-.088.219.528.638.836.352c.33-.286.727-.55.858-.638c.594-.396.374-.683-.616-.506c-.991.175-.991.571-1.078.792\"/><path fill=\"#d69e00\" d=\"M59.218 29.556c-.086.214.513.621.813.343c.321-.278.707-.535.834-.621c.578-.386.364-.664-.599-.492c-.962.171-.962.556-1.048.77\"/><path fill=\"#d19800\" d=\"M59.237 29.553c-.083.208.499.604.791.333c.311-.27.686-.52.81-.604c.562-.374.354-.645-.582-.478s-.936.541-1.019.749\"/><path fill=\"#cc9200\" d=\"M59.256 29.55c-.081.202.484.586.766.323c.304-.263.667-.505.789-.585c.545-.363.342-.626-.566-.464c-.909.16-.909.524-.989.726\"/><path fill=\"#c68c00\" d=\"M59.275 29.546c-.079.196.47.568.743.313c.294-.254.647-.49.765-.568c.528-.353.332-.607-.549-.45c-.882.158-.882.509-.959.705\"/><path fill=\"#c18700\" d=\"M59.293 29.543c-.076.189.455.55.721.303c.286-.247.626-.474.741-.55c.512-.342.322-.588-.532-.437c-.854.153-.854.494-.93.684\"/><path fill=\"#bc8100\" d=\"M59.312 29.54c-.074.184.44.532.698.294c.275-.239.605-.459.716-.533c.496-.33.312-.57-.515-.422c-.825.147-.825.477-.899.661\"/><path fill=\"#b77b00\" d=\"M59.331 29.537c-.071.177.426.514.675.283c.266-.23.585-.444.692-.515c.479-.319.302-.55-.497-.408s-.799.462-.87.64\"/><path fill=\"#b27500\" d=\"M59.35 29.533c-.069.171.411.497.652.274c.257-.222.565-.428.668-.497c.463-.309.292-.532-.48-.395s-.771.447-.84.618\"/><path fill=\"#ad7000\" d=\"M59.369 29.53c-.066.166.397.48.627.265c.249-.215.546-.414.646-.48c.447-.297.28-.513-.463-.38c-.744.132-.744.429-.81.595\"/><path fill=\"#a86a00\" d=\"M59.389 29.526c-.063.159.382.462.605.255c.239-.207.525-.398.621-.462c.43-.287.271-.494-.446-.366s-.717.414-.78.573\"/><path fill=\"#a36400\" d=\"M59.407 29.523c-.061.153.368.444.582.246c.23-.2.506-.383.598-.445c.414-.276.262-.475-.429-.352c-.689.122-.689.398-.751.551\"/><path fill=\"#9e5e00\" d=\"M59.426 29.52c-.059.146.354.427.559.235c.22-.191.486-.368.574-.427c.397-.265.25-.457-.412-.338c-.662.118-.662.383-.721.53\"/><path fill=\"#995900\" d=\"M59.445 29.517c-.056.141.339.409.536.226a6 6 0 0 1 .55-.409c.381-.255.24-.438-.396-.325c-.633.113-.633.366-.69.508\"/><path fill=\"#fc0\" d=\"M60.381 36.556c-.074.923 2.049-1.384 2.178-1.587c.276-.498 1.199-1.9 1.347-2.491c.276-1.033.775-1.79.461-2.878c-.111-.35-.885-.442-1.236-.221c-.996.59-.848 1.31-.959 1.974c-.37 1.882-1.661 3.782-1.791 5.203\"/><path fill=\"#ffcc02\" d=\"M60.469 36.412c-.072.899 1.994-1.352 2.12-1.55c.269-.486 1.167-1.855 1.309-2.431c.269-1.008.753-1.746.446-2.807c-.109-.342-.864-.431-1.206-.214c-.971.577-.825 1.278-.933 1.926c-.356 1.835-1.613 3.69-1.736 5.076\"/><path fill=\"#ffcc05\" d=\"M60.555 36.268c-.068.877 1.942-1.32 2.063-1.514c.263-.475 1.135-1.809 1.272-2.371c.259-.982.731-1.702.43-2.736c-.107-.333-.843-.418-1.176-.207c-.945.564-.802 1.247-.906 1.878c-.343 1.79-1.564 3.6-1.683 4.95\"/><path fill=\"#ffcc07\" d=\"M60.642 36.124c-.064.854 1.889-1.289 2.008-1.477c.253-.462 1.101-1.764 1.234-2.311c.251-.957.708-1.659.414-2.665c-.105-.324-.821-.405-1.145-.199c-.92.551-.779 1.216-.879 1.831c-.333 1.742-1.519 3.506-1.632 4.821\"/><path fill=\"#ffcd0a\" d=\"M60.728 35.98c-.061.831 1.835-1.258 1.95-1.441c.247-.45 1.069-1.718 1.198-2.25c.243-.932.687-1.616.397-2.594c-.101-.314-.799-.394-1.114-.192c-.894.538-.756 1.184-.852 1.783c-.319 1.696-1.471 3.414-1.579 4.694\"/><path fill=\"#ffcd0c\" d=\"M60.815 35.836c-.058.808 1.782-1.227 1.894-1.405c.238-.438 1.035-1.672 1.16-2.19c.234-.907.666-1.572.383-2.523c-.1-.306-.778-.38-1.084-.185c-.867.524-.733 1.153-.825 1.735c-.309 1.65-1.425 3.323-1.528 4.568\"/><path fill=\"#ffcd0f\" d=\"M60.902 35.691c-.055.785 1.729-1.195 1.836-1.369c.23-.426 1.002-1.626 1.124-2.129c.226-.881.643-1.529.366-2.451c-.097-.297-.756-.369-1.053-.177c-.842.511-.709 1.122-.798 1.688c-.296 1.602-1.378 3.229-1.475 4.438\"/><path fill=\"#ffcd11\" d=\"M60.989 35.547c-.052.762 1.675-1.163 1.78-1.332c.223-.415.97-1.581 1.085-2.069c.217-.855.621-1.485.351-2.38c-.095-.289-.734-.356-1.022-.17c-.816.498-.688 1.09-.771 1.639c-.285 1.557-1.331 3.139-1.423 4.312\"/><path fill=\"#ffce14\" d=\"M61.076 35.403c-.048.739 1.622-1.132 1.723-1.296c.216-.402.936-1.535 1.048-2.009c.208-.83.599-1.441.335-2.309c-.093-.28-.715-.345-.992-.163c-.79.484-.664 1.059-.744 1.591c-.272 1.512-1.284 3.048-1.37 4.186\"/><path fill=\"#ffce16\" d=\"M61.162 35.259c-.045.717 1.569-1.1 1.667-1.259c.208-.39.904-1.489 1.011-1.949c.201-.805.577-1.398.318-2.237c-.09-.271-.693-.332-.961-.156c-.765.471-.64 1.027-.718 1.543c-.259 1.464-1.236 2.955-1.317 4.058\"/><path fill=\"#ffce19\" d=\"M61.249 35.115c-.043.693 1.515-1.068 1.61-1.223c.2-.377.871-1.443.974-1.888c.191-.78.555-1.355.302-2.167c-.088-.262-.671-.319-.93-.148c-.739.458-.618.996-.691 1.496c-.249 1.417-1.188 2.862-1.265 3.93\"/><path fill=\"#ffce1c\" d=\"M61.336 34.971c-.039.67 1.462-1.037 1.553-1.187c.193-.366.839-1.398.936-1.829c.184-.754.533-1.311.288-2.095c-.086-.252-.65-.308-.9-.141c-.713.444-.595.964-.664 1.448c-.237 1.372-1.143 2.771-1.213 3.804\"/><path fill=\"#ffcf1e\" d=\"M61.422 34.826c-.035.648 1.41-1.005 1.498-1.15c.184-.354.806-1.353.898-1.769c.176-.728.511-1.267.271-2.023c-.084-.244-.628-.295-.869-.133c-.688.432-.572.933-.637 1.4c-.225 1.324-1.096 2.678-1.161 3.675\"/><path fill=\"#ffcf21\" d=\"M61.509 34.683c-.032.624 1.356-.975 1.44-1.114c.176-.342.773-1.306.861-1.708c.167-.703.489-1.224.256-1.953c-.082-.235-.607-.282-.839-.126c-.663.418-.548.902-.611 1.353c-.212 1.277-1.047 2.585-1.107 3.548\"/><path fill=\"#ffcf23\" d=\"M61.596 34.539c-.028.601 1.304-.943 1.383-1.078c.169-.33.741-1.261.824-1.648c.159-.677.467-1.18.241-1.882c-.08-.226-.586-.27-.81-.118c-.636.404-.525.87-.583 1.304c-.2 1.232-1 2.494-1.055 3.422\"/><path fill=\"#ffcf26\" d=\"M61.682 34.394c-.026.579 1.25-.911 1.326-1.041c.162-.317.708-1.215.788-1.588c.149-.652.444-1.137.224-1.81c-.077-.217-.564-.257-.778-.111c-.61.392-.502.839-.556 1.256c-.189 1.185-.955 2.402-1.004 3.294\"/><path fill=\"#ffd028\" d=\"M61.769 34.25c-.022.556 1.196-.879 1.27-1.005c.154-.306.675-1.169.75-1.527c.142-.627.424-1.093.208-1.739c-.075-.208-.542-.245-.748-.104c-.584.378-.478.808-.529 1.208c-.177 1.139-.907 2.311-.951 3.167\"/><path fill=\"#ffd02b\" d=\"M61.856 34.106c-.02.533 1.144-.848 1.212-.969c.146-.293.643-1.124.712-1.467c.134-.602.401-1.05.193-1.668c-.073-.199-.521-.232-.718-.096c-.558.364-.455.775-.502 1.161c-.163 1.091-.859 2.218-.897 3.039\"/><path fill=\"#ffd02d\" d=\"M61.943 33.962c-.016.51 1.089-.816 1.155-.932c.14-.282.61-1.079.676-1.407c.125-.576.378-1.006.177-1.597c-.07-.19-.499-.22-.687-.088c-.533.351-.432.744-.475 1.112c-.153 1.046-.813 2.126-.846 2.912\"/><path fill=\"#ffd030\" d=\"M62.03 33.817c-.013.487 1.037-.785 1.099-.895c.131-.27.577-1.033.638-1.347c.117-.55.357-.962.162-1.526c-.068-.181-.478-.208-.657-.082c-.507.338-.409.713-.448 1.065c-.142 1-.766 2.035-.794 2.785\"/><path fill=\"#ffd133\" d=\"M62.116 33.673c-.009.464.985-.753 1.043-.859c.124-.257.544-.987.601-1.287c.108-.525.334-.919.145-1.455c-.066-.173-.456-.196-.626-.074c-.481.325-.385.681-.421 1.017c-.13.954-.719 1.944-.742 2.658\"/><path fill=\"#fc0\" d=\"M67.709 32.716c-1.022 1.116-1.743 2.185-2.324 2.906c-.605.744-2.093 1.627-1.349 2.487c.627.767 3.208-.627 5.208-2.115c1.975-1.488 5.067-2.813 3.557-4.509c-.791-.86-2.651-.675-3.371-.209c-.559.348-.884.534-1.721 1.44\"/><path fill=\"#ffcc02\" d=\"M67.753 32.766c-1.007 1.091-1.715 2.14-2.287 2.844c-.595.726-2.059 1.597-1.334 2.432c.611.746 3.139-.627 5.1-2.088c1.937-1.461 4.966-2.769 3.493-4.417c-.77-.835-2.589-.645-3.296-.188c-.546.341-.861.538-1.676 1.417\"/><path fill=\"#ffcc05\" d=\"M67.797 32.815c-.99 1.066-1.688 2.095-2.25 2.783c-.585.708-2.026 1.566-1.319 2.377c.595.725 3.071-.627 4.993-2.062c1.899-1.434 4.863-2.724 3.43-4.325c-.75-.811-2.53-.616-3.222-.168c-.536.338-.839.544-1.632 1.395\"/><path fill=\"#ffcc07\" d=\"M67.841 32.865c-.975 1.04-1.66 2.049-2.214 2.721c-.575.69-1.991 1.535-1.304 2.323c.579.703 3.004-.627 4.886-2.035c1.86-1.407 4.761-2.679 3.366-4.232c-.729-.787-2.469-.587-3.146-.147c-.524.33-.816.547-1.588 1.37\"/><path fill=\"#ffcd0a\" d=\"M67.885 32.915c-.958 1.014-1.63 2.003-2.177 2.659c-.565.672-1.957 1.504-1.29 2.268c.563.681 2.935-.627 4.778-2.008c1.822-1.381 4.659-2.635 3.303-4.141c-.71-.762-2.41-.557-3.073-.127c-.511.326-.791.554-1.541 1.349\"/><path fill=\"#ffcd0c\" d=\"M67.929 32.964c-.942.99-1.603 1.959-2.141 2.598c-.555.654-1.923 1.473-1.275 2.213c.547.66 2.867-.627 4.671-1.981c1.783-1.354 4.558-2.591 3.239-4.048c-.689-.738-2.349-.528-2.998-.105c-.498.318-.768.556-1.496 1.323\"/><path fill=\"#ffcd0f\" d=\"M67.973 33.014c-.927.964-1.576 1.913-2.104 2.537c-.545.636-1.89 1.442-1.26 2.158c.531.639 2.798-.627 4.563-1.955c1.744-1.327 4.456-2.546 3.176-3.955c-.67-.714-2.29-.5-2.924-.085c-.487.312-.745.56-1.451 1.3\"/><path fill=\"#ffcd11\" d=\"M68.017 33.063c-.911.939-1.548 1.868-2.068 2.476c-.535.618-1.856 1.412-1.245 2.102c.514.617 2.729-.626 4.456-1.927c1.707-1.301 4.354-2.502 3.113-3.863c-.65-.689-2.229-.47-2.848-.064c-.476.306-.723.565-1.408 1.276\"/><path fill=\"#ffce14\" d=\"M68.061 33.112c-.895.914-1.519 1.823-2.031 2.414c-.525.6-1.822 1.381-1.231 2.047c.498.596 2.662-.626 4.349-1.9c1.668-1.273 4.252-2.458 3.048-3.771c-.628-.665-2.167-.44-2.773-.043c-.464.301-.699.57-1.362 1.253\"/><path fill=\"#ffce16\" d=\"M68.105 33.162c-.879.888-1.491 1.777-1.994 2.353c-.515.583-1.788 1.35-1.216 1.993c.481.574 2.593-.625 4.241-1.874c1.628-1.247 4.149-2.414 2.986-3.679c-.61-.641-2.109-.412-2.699-.023c-.452.295-.677.575-1.318 1.23\"/><path fill=\"#ffce19\" d=\"M68.149 33.212c-.863.863-1.462 1.732-1.958 2.291c-.504.564-1.754 1.319-1.202 1.938c.465.553 2.525-.625 4.134-1.847c1.591-1.22 4.048-2.369 2.922-3.586c-.589-.616-2.048-.382-2.625-.002c-.439.288-.652.578-1.271 1.206\"/><path fill=\"#ffce1c\" d=\"M68.193 33.261c-.846.838-1.435 1.687-1.921 2.229c-.495.546-1.72 1.289-1.187 1.882c.449.531 2.457-.625 4.027-1.82c1.552-1.193 3.946-2.325 2.859-3.494c-.57-.591-1.988-.353-2.551.019c-.427.284-.629.584-1.227 1.184\"/><path fill=\"#ffcf1e\" d=\"M68.237 33.311c-.831.813-1.407 1.642-1.884 2.168c-.485.529-1.687 1.258-1.172 1.828c.433.51 2.388-.625 3.919-1.792c1.514-1.167 3.843-2.28 2.795-3.402c-.549-.566-1.927-.324-2.476.039c-.416.276-.606.587-1.182 1.159\"/><path fill=\"#ffcf21\" d=\"M68.281 33.36c-.814.788-1.378 1.597-1.847 2.106c-.475.511-1.654 1.227-1.158 1.773c.416.489 2.32-.624 3.812-1.766c1.475-1.14 3.741-2.236 2.732-3.31c-.529-.542-1.867-.295-2.402.06c-.404.272-.583.593-1.137 1.137\"/><path fill=\"#ffcf23\" d=\"M68.326 33.41c-.8.763-1.352 1.551-1.811 2.045c-.465.493-1.62 1.196-1.143 1.717c.4.468 2.251-.624 3.704-1.739c1.437-1.113 3.64-2.191 2.669-3.217c-.509-.519-1.808-.266-2.327.081c-.394.266-.561.597-1.092 1.113\"/><path fill=\"#ffcf26\" d=\"M68.369 33.459c-.783.737-1.324 1.505-1.774 1.983c-.456.475-1.586 1.166-1.129 1.663c.384.446 2.184-.624 3.598-1.712c1.398-1.086 3.538-2.147 2.605-3.125c-.489-.493-1.748-.236-2.252.101c-.382.26-.537.602-1.048 1.09\"/><path fill=\"#ffd028\" d=\"M68.412 33.509c-.766.711-1.294 1.46-1.736 1.921c-.446.457-1.553 1.135-1.114 1.607c.368.425 2.115-.624 3.49-1.685c1.36-1.061 3.436-2.104 2.543-3.033c-.469-.47-1.688-.208-2.178.122c-.371.255-.515.607-1.005 1.068\"/><path fill=\"#ffd02b\" d=\"M68.456 33.559c-.75.687-1.265 1.415-1.699 1.86c-.436.439-1.519 1.104-1.1 1.553c.353.403 2.047-.623 3.383-1.658c1.321-1.033 3.334-2.058 2.479-2.94c-.448-.445-1.627-.178-2.103.143c-.359.247-.492.609-.96 1.042\"/><path fill=\"#ffd02d\" d=\"M68.501 33.608c-.735.661-1.238 1.37-1.664 1.799c-.426.421-1.485 1.073-1.084 1.498c.335.381 1.978-.624 3.275-1.632c1.284-1.006 3.232-2.014 2.416-2.848c-.429-.42-1.566-.149-2.029.163c-.347.242-.468.615-.914 1.02\"/><path fill=\"#ffd030\" d=\"M68.545 33.657c-.719.636-1.21 1.324-1.627 1.737c-.415.403-1.451 1.043-1.069 1.443c.318.36 1.91-.623 3.168-1.605c1.243-.979 3.129-1.97 2.352-2.756c-.41-.396-1.507-.12-1.955.184c-.335.238-.445.621-.869.997\"/><path fill=\"#ffd133\" d=\"M68.589 33.707c-.704.611-1.183 1.278-1.591 1.676c-.405.385-1.417 1.012-1.055 1.388c.302.338 1.841-.623 3.061-1.578c1.206-.953 3.028-1.926 2.289-2.664c-.388-.372-1.446-.091-1.879.205z\"/><path fill=\"#fff\" d=\"M69.894 56.148c.278-.907 9.322-3.045 10.81-2.348c1.464.697 8.484 10.903 7.23 11.461c-1.255.535-3.953-3.395-7.881-5.208s-10.438-2.975-10.159-3.905\"/><path fill=\"#f9f9f9\" d=\"M70.161 56.167c.273-.892 9.087-2.931 10.554-2.26c1.445.671 8.319 10.622 7.084 11.168c-1.234.525-3.863-3.34-7.729-5.125c-3.867-1.783-10.183-2.869-9.909-3.783\"/><path fill=\"#f4f4f4\" d=\"M70.427 56.186c.268-.876 8.853-2.816 10.299-2.17c1.426.645 8.155 10.339 6.94 10.875c-1.214.515-3.774-3.287-7.579-5.043s-9.929-2.765-9.66-3.662\"/><path fill=\"#efefef\" d=\"M70.693 56.204c.264-.861 8.618-2.701 10.044-2.082c1.407.619 7.989 10.059 6.796 10.583c-1.193.505-3.686-3.233-7.428-4.96s-9.675-2.66-9.412-3.541\"/><path fill=\"#eaeaea\" d=\"M70.959 56.222c.258-.847 8.382-2.585 9.79-1.993c1.387.593 7.824 9.778 6.651 10.291c-1.173.495-3.597-3.179-7.277-4.878s-9.422-2.556-9.164-3.42\"/><path fill=\"#e5e5e5\" d=\"M71.226 56.24c.252-.831 8.148-2.47 9.534-1.903c1.368.566 7.659 9.497 6.507 9.998c-1.153.484-3.509-3.125-7.127-4.796c-3.618-1.67-9.168-2.451-8.914-3.299\"/><path fill=\"#e0e0e0\" d=\"M71.491 56.258c.249-.816 7.914-2.355 9.28-1.815c1.349.541 7.495 9.216 6.363 9.707c-1.132.474-3.42-3.073-6.977-4.714c-3.556-1.642-8.914-2.345-8.666-3.178\"/><path fill=\"#dbdbdb\" d=\"M71.758 56.277c.243-.801 7.678-2.241 9.024-1.727c1.33.515 7.33 8.934 6.218 9.414c-1.11.464-3.331-3.019-6.825-4.631s-8.66-2.24-8.417-3.056\"/><path fill=\"#d6d6d6\" d=\"M72.024 56.295c.237-.786 7.444-2.126 8.769-1.638c1.312.489 7.164 8.653 6.074 9.122c-1.09.454-3.242-2.965-6.675-4.549s-8.406-2.135-8.168-2.935\"/><path fill=\"#d1d1d1\" d=\"M72.29 56.313c.233-.77 7.209-2.011 8.514-1.548c1.292.462 6.999 8.372 5.93 8.829c-1.07.445-3.154-2.911-6.523-4.466c-3.371-1.556-8.153-2.031-7.921-2.815\"/><path fill=\"#ccc\" d=\"M72.556 56.331c.228-.755 6.976-1.896 8.259-1.459c1.273.436 6.835 8.091 5.786 8.537c-1.05.434-3.066-2.858-6.374-4.385s-7.898-1.925-7.671-2.693\"/><path fill=\"#c6c6c6\" d=\"M72.823 56.35c.222-.74 6.74-1.781 8.004-1.371c1.253.41 6.669 7.809 5.64 8.244c-1.028.424-2.977-2.805-6.222-4.302c-3.246-1.498-7.644-1.82-7.422-2.571\"/><path fill=\"#c1c1c1\" d=\"M73.089 56.369c.217-.726 6.505-1.667 7.749-1.283c1.233.384 6.503 7.528 5.496 7.952c-1.008.415-2.887-2.75-6.071-4.221c-3.185-1.469-7.391-1.714-7.174-2.448\"/><path fill=\"#bcbcbc\" d=\"M73.355 56.387c.21-.71 6.27-1.552 7.494-1.194c1.215.358 6.338 7.248 5.352 7.66c-.987.404-2.799-2.697-5.92-4.137c-3.122-1.442-7.137-1.61-6.926-2.329\"/><path fill=\"#b7b7b7\" d=\"M73.621 56.406c.208-.695 6.035-1.437 7.239-1.105c1.196.332 6.174 6.965 5.208 7.367c-.967.394-2.711-2.643-5.771-4.056c-3.06-1.412-6.882-1.505-6.676-2.206\"/><path fill=\"#b2b2b2\" d=\"M73.887 56.423c.202-.679 5.801-1.321 6.984-1.016c1.177.305 6.008 6.685 5.063 7.075c-.946.385-2.622-2.589-5.62-3.973c-2.997-1.383-6.627-1.4-6.427-2.086\"/><path fill=\"#adadad\" d=\"M74.154 56.442c.196-.665 5.565-1.207 6.728-.928c1.159.28 5.844 6.404 4.919 6.783c-.925.373-2.533-2.536-5.469-3.892c-2.935-1.354-6.374-1.294-6.178-1.963\"/><path fill=\"#a8a8a8\" d=\"M74.42 56.46c.19-.649 5.331-1.092 6.474-.839c1.137.253 5.678 6.123 4.774 6.491c-.905.364-2.445-2.482-5.319-3.809s-6.12-1.19-5.929-1.843\"/><path fill=\"#a3a3a3\" d=\"M74.685 56.479c.186-.634 5.097-.977 6.219-.75c1.12.228 5.514 5.842 4.629 6.198c-.883.354-2.355-2.429-5.167-3.727c-2.81-1.298-5.865-1.084-5.681-1.721\"/><path fill=\"#9e9e9e\" d=\"M74.952 56.497c.181-.62 4.862-.862 5.963-.661s5.348 5.56 4.486 5.905c-.863.344-2.267-2.375-5.017-3.644c-2.748-1.269-5.612-.979-5.432-1.6\"/><path fill=\"#999\" d=\"M75.219 56.515c.174-.604 4.627-.747 5.708-.572s5.184 5.279 4.341 5.613s-2.178-2.321-4.866-3.562s-5.358-.874-5.183-1.479\"/><path fill=\"#fff\" d=\"M58.503 70.05c.93.046.047 5.253.047 10.624c0 5.37.72 7.252.047 7.926c-.674.675-1.836-1.743-1.836-7.113c-.001-5.37.813-11.484 1.742-11.437\"/><path fill=\"#f9f9f9\" d=\"M58.494 70.176c.898.052.035 5.182.031 10.467c-.003 5.284.707 7.17.054 7.825s-1.796-1.738-1.791-7.023c.004-5.284.808-11.321 1.706-11.269\"/><path fill=\"#f4f4f4\" d=\"M58.484 70.302c.868.058.025 5.111.017 10.31s.691 7.087.06 7.725c-.63.635-1.755-1.732-1.745-6.933c.008-5.199.802-11.16 1.668-11.102\"/><path fill=\"#efefef\" d=\"M58.475 70.428c.835.064.013 5.042.001 10.154c-.011 5.112.677 7.004.066 7.622c-.609.616-1.714-1.728-1.699-6.843c.012-5.112.797-10.996 1.632-10.933\"/><path fill=\"#eaeaea\" d=\"M58.465 70.555c.804.069.003 4.97-.013 9.996c-.016 5.028.663 6.923.072 7.522c-.587.597-1.673-1.723-1.654-6.753c.017-5.027.792-10.835 1.595-10.765\"/><path fill=\"#e5e5e5\" d=\"M58.456 70.681c.772.074-.009 4.898-.029 9.84s.648 6.839.079 7.42c-.565.577-1.632-1.718-1.608-6.663c.02-4.942.785-10.672 1.558-10.597\"/><path fill=\"#e0e0e0\" d=\"M58.447 70.807c.742.08-.02 4.827-.045 9.682s.634 6.757.086 7.319c-.544.558-1.591-1.711-1.562-6.572c.024-4.856.779-10.509 1.521-10.429\"/><path fill=\"#dbdbdb\" d=\"M58.437 70.933c.709.086-.031 4.756-.059 9.527s.618 6.673.091 7.217c-.521.538-1.55-1.707-1.516-6.483c.028-4.77.774-10.347 1.484-10.261\"/><path fill=\"#d6d6d6\" d=\"M58.428 71.059c.679.091-.042 4.685-.074 9.37s.604 6.591.098 7.116c-.5.519-1.509-1.702-1.471-6.393c.033-4.684.768-10.184 1.447-10.093\"/><path fill=\"#d1d1d1\" d=\"M58.418 71.186c.648.097-.053 4.614-.089 9.212c-.036 4.6.59 6.507.104 7.014c-.477.5-1.468-1.695-1.425-6.302c.036-4.598.763-10.022 1.41-9.924\"/><path fill=\"#ccc\" d=\"M58.409 71.312c.617.103-.063 4.542-.103 9.056s.574 6.425.111 6.914c-.457.479-1.428-1.691-1.38-6.213c.039-4.513.756-9.86 1.372-9.757\"/><path fill=\"#c6c6c6\" d=\"M58.399 71.439c.585.107-.075 4.472-.119 8.899s.56 6.342.117 6.811c-.434.462-1.386-1.684-1.333-6.122c.044-4.427.751-9.697 1.335-9.588\"/><path fill=\"#c1c1c1\" d=\"M58.389 71.564c.554.114-.086 4.4-.134 8.743c-.047 4.342.546 6.259.124 6.71c-.412.441-1.345-1.68-1.288-6.033c.048-4.341.746-9.534 1.298-9.42\"/><path fill=\"#bcbcbc\" d=\"M58.38 71.691c.522.119-.098 4.33-.148 8.586c-.052 4.257.531 6.177.13 6.609c-.392.422-1.305-1.675-1.243-5.942c.052-4.257.74-9.374 1.261-9.253\"/><path fill=\"#b7b7b7\" d=\"M58.37 71.817c.491.125-.108 4.258-.164 8.429s.517 6.094.137 6.507c-.37.403-1.264-1.669-1.197-5.851c.056-4.171.735-9.211 1.224-9.085\"/><path fill=\"#b2b2b2\" d=\"M58.362 71.944c.459.13-.12 4.187-.179 8.271c-.061 4.085.502 6.011.142 6.407c-.347.383-1.223-1.665-1.15-5.762c.059-4.085.727-9.047 1.187-8.916\"/><path fill=\"#adadad\" d=\"M58.351 72.069c.428.136-.13 4.116-.193 8.116c-.064 4 .487 5.928.148 6.305c-.325.363-1.182-1.66-1.104-5.672c.064-3.999.722-8.885 1.149-8.749\"/><path fill=\"#a8a8a8\" d=\"M58.343 72.196c.396.142-.142 4.044-.208 7.959c-.068 3.914.472 5.845.154 6.203c-.303.344-1.14-1.654-1.059-5.582c.068-3.914.716-8.722 1.113-8.58\"/><path fill=\"#a3a3a3\" d=\"M58.332 72.322c.365.148-.152 3.974-.223 7.802c-.072 3.829.458 5.763.162 6.102c-.282.325-1.1-1.648-1.014-5.492c.071-3.827.711-8.561 1.075-8.412\"/><path fill=\"#9e9e9e\" d=\"M58.324 72.448c.333.154-.164 3.903-.24 7.646s.444 5.679.169 6c-.261.306-1.059-1.644-.968-5.401c.075-3.743.705-8.399 1.039-8.245\"/><path fill=\"#999\" d=\"M58.314 72.574c.302.159-.175 3.831-.254 7.489s.429 5.597.175 5.899c-.238.286-1.018-1.638-.922-5.311c.078-3.657.699-8.236 1.001-8.077\"/><path fill=\"#fff\" d=\"M60.538 55.693c.56.062 4.015-.716 4.14-.405c.125.249-2.148.935-2.895 1.712c-.249.25-.902.84-1.308.778c-.311-.031-.498-.685-.965-1.183c-1.121-1.121-1.836-1.027-1.619-1.463c.188-.341 1.682.468 2.647.561\"/><path fill=\"#fbfbfb\" d=\"M60.552 55.707c.549.061 3.932-.701 4.053-.396c.122.244-2.103.914-2.834 1.676c-.244.244-.883.823-1.279.762c-.304-.03-.488-.67-.945-1.157c-1.098-1.097-1.798-1.006-1.585-1.433c.183-.336 1.646.456 2.59.548\"/><path fill=\"#f8f8f8\" d=\"M60.567 55.719c.537.06 3.847-.686 3.966-.388c.12.239-2.057.896-2.773 1.641c-.239.239-.864.806-1.252.746c-.298-.029-.477-.656-.924-1.133c-1.074-1.073-1.759-.984-1.551-1.401c.179-.329 1.61.446 2.534.535\"/><path fill=\"#f5f5f5\" d=\"M60.582 55.732c.525.058 3.762-.67 3.879-.379c.116.234-2.012.875-2.712 1.604c-.233.233-.845.787-1.225.729c-.291-.029-.467-.642-.905-1.108c-1.05-1.05-1.721-.962-1.516-1.371c.175-.32 1.575.438 2.479.525\"/><path fill=\"#f2f2f2\" d=\"M60.596 55.746c.514.057 3.678-.656 3.792-.371c.114.228-1.967.855-2.651 1.567c-.228.229-.828.77-1.198.713c-.284-.028-.456-.627-.884-1.083c-1.026-1.026-1.681-.941-1.482-1.34c.171-.314 1.54.428 2.423.514\"/><path fill=\"#efefef\" d=\"M60.611 55.758c.502.056 3.594-.641 3.705-.362c.112.223-1.921.836-2.59 1.532c-.223.223-.808.752-1.169.697c-.279-.028-.446-.613-.864-1.059c-1.003-1.002-1.644-.919-1.448-1.31c.165-.306 1.502.418 2.366.502\"/><path fill=\"#ebebeb\" d=\"M60.625 55.772c.49.054 3.51-.626 3.618-.354c.109.218-1.877.816-2.529 1.497c-.218.217-.79.734-1.143.68c-.271-.027-.435-.599-.843-1.034c-.979-.979-1.605-.897-1.414-1.278c.162-.301 1.469.406 2.311.489\"/><path fill=\"#e8e8e8\" d=\"M60.64 55.784c.478.053 3.425-.611 3.53-.345c.107.211-1.831.796-2.468 1.46c-.212.212-.771.717-1.115.663c-.265-.026-.425-.583-.823-1.008c-.956-.956-1.567-.876-1.38-1.248c.159-.292 1.433.398 2.256.478\"/><path fill=\"#e5e5e5\" d=\"M60.655 55.797c.466.052 3.34-.596 3.444-.337c.103.207-1.786.777-2.408 1.424c-.208.207-.75.699-1.088.647c-.258-.026-.414-.57-.802-.984c-.932-.932-1.528-.854-1.346-1.217c.154-.284 1.397.389 2.2.467\"/><path fill=\"#e2e2e2\" d=\"M60.669 55.81c.455.051 3.256-.58 3.357-.328c.101.202-1.741.757-2.347 1.388c-.202.202-.732.682-1.06.631c-.252-.025-.404-.555-.783-.959c-.908-.908-1.489-.833-1.312-1.186c.152-.278 1.362.377 2.145.454\"/><path fill=\"#dfdfdf\" d=\"M60.683 55.822c.442.049 3.171-.565 3.27-.319c.099.197-1.696.737-2.286 1.352c-.196.197-.713.664-1.032.614c-.245-.024-.393-.541-.762-.934c-.885-.885-1.45-.811-1.278-1.155c.147-.27 1.326.369 2.088.442\"/><path fill=\"#dbdbdb\" d=\"M60.698 55.835c.432.048 3.087-.551 3.184-.311c.095.19-1.652.717-2.227 1.315c-.19.191-.693.646-1.005.599c-.239-.024-.382-.526-.742-.91c-.861-.861-1.412-.79-1.244-1.125c.143-.261 1.292.36 2.034.432\"/><path fill=\"#d8d8d8\" d=\"M60.713 55.849c.419.046 3.002-.535 3.095-.303c.093.186-1.605.698-2.164 1.28c-.186.186-.675.629-.977.582c-.233-.023-.373-.512-.722-.885c-.838-.837-1.373-.768-1.209-1.094c.138-.255 1.255.349 1.977.42\"/><path fill=\"#d5d5d5\" d=\"M60.727 55.861c.407.045 2.918-.52 3.008-.294c.091.181-1.561.679-2.104 1.244c-.181.181-.656.611-.95.566c-.226-.023-.361-.498-.7-.86c-.814-.813-1.335-.746-1.177-1.062c.136-.249 1.222.338 1.923.406\"/><path fill=\"#d2d2d2\" d=\"M60.742 55.874c.396.044 2.833-.505 2.922-.285c.088.175-1.516.659-2.042 1.208c-.176.175-.637.593-.922.549c-.221-.022-.352-.483-.682-.834c-.79-.791-1.295-.725-1.142-1.032c.13-.243 1.185.328 1.866.394\"/><path fill=\"#cfcfcf\" d=\"M60.757 55.887c.384.043 2.749-.49 2.834-.277c.086.17-1.47.64-1.982 1.172c-.169.171-.618.575-.895.533c-.213-.021-.34-.469-.66-.81c-.768-.768-1.258-.704-1.109-1.002c.128-.233 1.151.32 1.812.384\"/><path fill=\"#ccc\" d=\"M60.771 55.9c.372.042 2.665-.475 2.748-.268c.082.165-1.426.62-1.921 1.135c-.166.166-.599.558-.869.517c-.207-.021-.33-.454-.64-.785c-.743-.744-1.218-.682-1.074-.971c.125-.227 1.116.31 1.756.372\"/><path fill=\"#c8c8c8\" d=\"M60.785 55.913c.36.04 2.581-.46 2.661-.26c.08.16-1.38.6-1.86 1.1c-.16.16-.58.54-.84.5c-.2-.02-.32-.44-.621-.76c-.72-.72-1.18-.66-1.039-.94c.12-.221 1.08.3 1.699.36\"/><path fill=\"#c5c5c5\" d=\"M60.801 55.926c.348.038 2.496-.445 2.573-.252c.077.154-1.335.581-1.799 1.064c-.155.155-.562.522-.813.483c-.194-.02-.31-.425-.599-.735c-.698-.696-1.142-.639-1.007-.91c.116-.211 1.045.292 1.645.35\"/><path fill=\"#c2c2c2\" d=\"M60.815 55.939c.336.038 2.411-.43 2.486-.243c.075.15-1.289.561-1.738 1.028c-.15.149-.543.505-.785.467c-.187-.019-.3-.411-.58-.71c-.672-.673-1.103-.618-.972-.879c.112-.205 1.01.28 1.589.337\"/><path fill=\"#bfbfbf\" d=\"M60.829 55.951c.325.036 2.327-.415 2.4-.235c.072.145-1.245.542-1.678.993c-.145.144-.523.487-.758.451c-.181-.018-.288-.396-.559-.685c-.65-.649-1.064-.596-.938-.849c.108-.198.974.271 1.533.325\"/><path fill=\"currentColor\" d=\"M72.425 5.573c-.394.849-1.23 7.494-.08 6.745c1.161-.756 4.381-1.715 6.42-2.265c2.261-.608-5.548-6.283-6.34-4.48\"/><path fill=\"#060606\" d=\"M72.5 5.696c-.391.838-1.196 7.186-.076 6.459c1.128-.73 4.222-1.646 6.147-2.189c2.128-.614-5.306-6.008-6.071-4.27\"/><path fill=\"#0c0c0c\" d=\"M72.575 5.821c-.386.826-1.161 6.875-.071 6.174c1.095-.706 4.063-1.578 5.874-2.115c1.994-.621-5.064-5.733-5.803-4.059\"/><path fill=\"#131313\" d=\"M72.65 5.945c-.383.814-1.125 6.566-.067 5.889c1.062-.679 3.905-1.51 5.602-2.041c1.86-.627-4.822-5.458-5.535-3.848\"/><path fill=\"#191919\" d=\"M72.724 6.069c-.38.802-1.09 6.257-.062 5.603s3.745-1.441 5.328-1.966c1.727-.633-4.579-5.182-5.266-3.637\"/><path fill=\"#1f1f1f\" d=\"M72.8 6.193c-.375.79-1.056 5.947-.058 5.318c.996-.629 3.585-1.373 5.056-1.892c1.592-.638-4.337-4.907-4.998-3.426\"/><path fill=\"#262626\" d=\"M72.874 6.317c-.372.778-1.021 5.638-.053 5.033c.963-.604 3.427-1.305 4.782-1.817c1.459-.645-4.093-4.632-4.729-3.216\"/><path fill=\"#2c2c2c\" d=\"M72.95 6.441c-.369.766-.987 5.328-.05 4.747c.931-.578 3.269-1.235 4.51-1.742c1.326-.651-3.852-4.356-4.46-3.005\"/><path fill=\"#333\" d=\"M73.025 6.565c-.365.754-.951 5.018-.045 4.461c.897-.553 3.108-1.167 4.235-1.668c1.193-.655-3.607-4.08-4.19-2.793\"/><path fill=\"#393939\" d=\"M73.1 6.69c-.361.742-.916 4.708-.041 4.176c.865-.528 2.951-1.099 3.963-1.594C78.08 8.61 73.656 5.467 73.1 6.69\"/><path fill=\"#3f3f3f\" d=\"M73.175 6.814c-.357.73-.881 4.399-.036 3.89c.831-.502 2.791-1.03 3.689-1.52c.925-.667-3.124-3.529-3.653-2.37\"/><path fill=\"#464646\" d=\"M73.249 6.938c-.354.718-.846 4.089-.032 3.605c.799-.478 2.632-.962 3.417-1.445c.792-.673-2.881-3.254-3.385-2.16\"/><path fill=\"#4c4c4c\" d=\"M73.325 7.063c-.351.706-.812 3.779-.027 3.319c.767-.452 2.473-.895 3.144-1.37c.657-.68-2.639-2.979-3.117-1.949\"/><path fill=\"#525252\" d=\"M73.399 7.187c-.346.694-.776 3.47-.023 3.034c.733-.427 2.314-.826 2.871-1.295c.524-.687-2.396-2.704-2.848-1.739\"/><path fill=\"#595959\" d=\"M73.474 7.311c-.342.682-.741 3.161-.018 2.749c.701-.402 2.156-.757 2.598-1.222c.39-.691-2.154-2.428-2.58-1.527\"/><path fill=\"#5f5f5f\" d=\"M73.549 7.435c-.338.671-.706 2.851-.014 2.462c.667-.376 1.997-.688 2.324-1.147c.258-.696-1.91-2.151-2.31-1.315\"/><path fill=\"#666\" d=\"M73.624 7.559c-.334.659-.671 2.541-.009 2.177c.636-.351 1.837-.62 2.052-1.072c.122-.703-1.669-1.877-2.043-1.105\"/><path fill=\"#6c6c6c\" d=\"M73.699 7.683c-.331.647-.637 2.231-.005 1.892c.603-.325 1.678-.551 1.778-.997c-.009-.71-1.425-1.602-1.773-.895\"/><path fill=\"#727272\" d=\"M73.773 7.807c-.328.635-.601 1.922-.001 1.606c.571-.3 1.52-.483 1.506-.923c-.143-.714-1.182-1.325-1.505-.683\"/><path fill=\"#797979\" d=\"M73.849 7.931c-.325.623-.567 1.612.003 1.321c.537-.275 1.361-.415 1.232-.849c-.277-.72-.939-1.05-1.235-.472\"/><path fill=\"#7f7f7f\" d=\"M73.924 8.055c-.321.611-.532 1.303.007 1.035c.505-.25 1.202-.346.96-.774c-.411-.726-.697-.774-.967-.261\"/><path fill=\"currentColor\" d=\"M56.039 16.7c-.232.697 2.813 1.65 3.488 2.255c.906.813.976 2.417 2.045 1.767c.697-.418.163-1.348-1.117-2.766c-1.882-2.094-4.206-1.838-4.416-1.256\"/><path fill=\"#050505\" d=\"M56.197 16.763c-.23.669 2.672 1.583 3.338 2.177c.886.793.956 2.34 1.984 1.715c.677-.405.145-1.315-1.08-2.673c-1.799-2.003-4.032-1.778-4.242-1.219\"/><path fill=\"#0a0a0a\" d=\"M56.355 16.826c-.229.642 2.532 1.514 3.188 2.098c.865.773.935 2.263 1.923 1.664c.654-.391.126-1.281-1.043-2.581c-1.717-1.912-3.859-1.717-4.068-1.181\"/><path fill=\"#0f0f0f\" d=\"M56.513 16.89c-.227.613 2.39 1.445 3.039 2.02c.845.752.915 2.185 1.861 1.612c.635-.378.111-1.248-1.005-2.488c-1.635-1.824-3.686-1.659-3.895-1.144\"/><path fill=\"#141414\" d=\"M56.67 16.954c-.226.585 2.25 1.376 2.889 1.94c.825.731.895 2.108 1.799 1.561c.613-.365.093-1.214-.968-2.395c-1.551-1.733-3.51-1.599-3.72-1.106\"/><path fill=\"#191919\" d=\"M56.827 17.017c-.224.557 2.109 1.308 2.739 1.862c.805.711.875 2.031 1.739 1.51c.592-.351.075-1.18-.931-2.302c-1.469-1.645-3.337-1.54-3.547-1.07\"/><path fill=\"#1e1e1e\" d=\"M56.985 17.08c-.222.53 1.968 1.24 2.59 1.784c.784.691.854 1.954 1.676 1.458c.571-.338.058-1.147-.894-2.209c-1.386-1.554-3.162-1.48-3.372-1.033\"/><path fill=\"#232323\" d=\"M57.143 17.144c-.222.501 1.827 1.172 2.441 1.706c.764.67.833 1.877 1.615 1.407c.55-.324.04-1.114-.856-2.117c-1.305-1.465-2.99-1.421-3.2-.996\"/><path fill=\"#282828\" d=\"M57.301 17.208c-.22.473 1.686 1.103 2.291 1.627c.744.65.814 1.799 1.555 1.355c.528-.311.022-1.08-.82-2.024c-1.223-1.375-2.816-1.362-3.026-.958\"/><path fill=\"#2d2d2d\" d=\"M57.459 17.272c-.22.445 1.544 1.034 2.141 1.548c.724.629.792 1.722 1.492 1.304c.508-.297.005-1.046-.783-1.931c-1.138-1.286-2.64-1.303-2.85-.921\"/><path fill=\"#333\" d=\"M57.616 17.335c-.217.417 1.404.965 1.992 1.469c.704.609.772 1.645 1.431 1.253c.486-.284-.013-1.013-.747-1.838c-1.055-1.196-2.466-1.243-2.676-.884\"/><path fill=\"#383838\" d=\"M57.774 17.398c-.216.389 1.263.897 1.842 1.391c.683.589.752 1.568 1.369 1.202c.465-.27-.03-.979-.709-1.746c-.972-1.106-2.292-1.183-2.502-.847\"/><path fill=\"#3d3d3d\" d=\"M57.931 17.461c-.214.361 1.123.829 1.692 1.313c.663.568.732 1.49 1.308 1.149c.444-.256-.048-.945-.672-1.652c-.89-1.017-2.117-1.124-2.328-.81\"/><path fill=\"#424242\" d=\"M58.089 17.525c-.212.333.982.76 1.542 1.234c.642.547.712 1.413 1.247 1.098c.423-.243-.065-.912-.636-1.56c-.807-.926-1.942-1.064-2.153-.772\"/><path fill=\"#474747\" d=\"M58.248 17.589c-.211.305.84.691 1.392 1.155c.622.527.691 1.336 1.186 1.047c.401-.229-.083-.878-.599-1.466c-.725-.838-1.77-1.006-1.979-.736\"/><path fill=\"#4c4c4c\" d=\"M58.406 17.652c-.21.278.698.624 1.242 1.078c.602.506.671 1.258 1.124.995c.381-.216-.1-.845-.561-1.374c-.643-.748-1.596-.946-1.805-.699\"/><path fill=\"#515151\" d=\"M58.563 17.715c-.208.25.558.555 1.093.999c.582.486.652 1.181 1.063.944c.359-.202-.118-.811-.525-1.281c-.559-.658-1.42-.887-1.631-.662\"/><path fill=\"#565656\" d=\"M58.72 17.779c-.206.221.418.486.944.92c.562.465.63 1.104 1.001.893c.338-.189-.135-.777-.487-1.188c-.477-.569-1.247-.828-1.458-.625\"/><path fill=\"#5b5b5b\" d=\"M58.877 17.843c-.204.193.277.417.794.841c.542.445.611 1.027.94.841c.317-.176-.152-.744-.45-1.095c-.394-.479-1.072-.768-1.284-.587\"/><path fill=\"#606060\" d=\"M59.036 17.906c-.204.166.136.349.644.763c.521.425.591.95.878.791c.296-.162-.17-.71-.413-1.002c-.312-.391-.899-.71-1.109-.552\"/><path fill=\"#666\" d=\"M59.194 17.969c-.202.137-.006.281.494.685c.501.404.571.872.816.739c.275-.149-.188-.677-.376-.91c-.228-.3-.724-.65-.934-.514\"/><path fill=\"currentColor\" d=\"M72.173 16.444c-.024.349.953.558 1.581.791c.628.209 1.859 1.046 2.441 1.697c.581.627 1.836 2.487 2.116 1.999c.278-.441-.651-1.72-.907-2.255c-.255-.535-1.045-1.697-2.301-2.092c-1.094-.326-2.907-.419-2.93-.14\"/><path fill=\"#060606\" d=\"M72.273 16.469c-.023.338.926.543 1.536.771c.611.204 1.807 1.021 2.372 1.654c.564.611 1.786 2.419 2.058 1.946c.271-.429-.625-1.67-.884-2.194c-.257-.524-1.025-1.644-2.244-2.034c-1.061-.322-2.815-.415-2.838-.143\"/><path fill=\"#0c0c0c\" d=\"M72.372 16.494c-.023.33.899.529 1.491.751c.593.199 1.755.995 2.302 1.61c.547.595 1.738 2.351 2.002 1.893c.262-.416-.599-1.62-.862-2.133c-.26-.513-1.004-1.59-2.188-1.977c-1.026-.318-2.723-.408-2.745-.144\"/><path fill=\"#131313\" d=\"M72.472 16.518c-.023.32.873.516 1.446.732c.576.194 1.702.968 2.233 1.567c.53.578 1.688 2.283 1.944 1.839c.254-.403-.573-1.571-.84-2.072c-.264-.502-.983-1.537-2.13-1.918c-.992-.314-2.631-.404-2.653-.148\"/><path fill=\"#191919\" d=\"M72.572 16.543c-.023.31.845.502 1.402.712c.558.19 1.649.943 2.164 1.524c.512.562 1.639 2.215 1.887 1.786c.248-.39-.547-1.521-.817-2.011c-.266-.491-.961-1.483-2.074-1.861c-.96-.31-2.54-.399-2.562-.15\"/><path fill=\"#1f1f1f\" d=\"M72.672 16.568c-.023.3.817.487 1.358.692c.54.185 1.596.918 2.093 1.481c.494.545 1.589 2.146 1.831 1.732c.237-.376-.522-1.471-.796-1.95c-.269-.479-.94-1.43-2.017-1.803c-.926-.305-2.447-.393-2.469-.152\"/><path fill=\"#262626\" d=\"M72.77 16.592c-.022.291.792.474 1.314.673c.523.18 1.545.893 2.025 1.438c.477.529 1.54 2.079 1.772 1.679c.231-.364-.495-1.421-.773-1.89c-.271-.468-.919-1.376-1.96-1.745c-.891-.301-2.356-.387-2.378-.155\"/><path fill=\"#2c2c2c\" d=\"M72.87 16.617c-.021.282.765.46 1.27.654c.504.175 1.492.867 1.955 1.394c.46.512 1.49 2.011 1.716 1.626c.222-.351-.47-1.372-.751-1.829c-.273-.457-.898-1.323-1.904-1.687c-.859-.298-2.264-.383-2.286-.158\"/><path fill=\"#333\" d=\"M72.97 16.642c-.022.272.737.446 1.226.634c.487.17 1.439.841 1.886 1.351c.442.496 1.44 1.942 1.658 1.573c.214-.338-.445-1.322-.729-1.768c-.276-.446-.878-1.27-1.846-1.629c-.827-.294-2.173-.378-2.195-.161\"/><path fill=\"#393939\" d=\"M73.07 16.667c-.021.263.712.432 1.181.615c.47.166 1.387.815 1.817 1.308c.425.479 1.39 1.875 1.601 1.519c.207-.324-.418-1.271-.706-1.707c-.279-.436-.856-1.216-1.789-1.571c-.794-.291-2.083-.374-2.104-.164\"/><path fill=\"#3f3f3f\" d=\"M73.17 16.691c-.022.253.684.418 1.136.595c.453.161 1.335.79 1.747 1.265c.408.463 1.342 1.806 1.545 1.466c.197-.312-.393-1.222-.685-1.646c-.281-.424-.834-1.162-1.731-1.513c-.761-.287-1.991-.369-2.012-.167\"/><path fill=\"#464646\" d=\"M73.269 16.716c-.021.243.658.404 1.092.576c.435.155 1.282.764 1.678 1.221c.391.447 1.292 1.738 1.488 1.413c.189-.299-.367-1.172-.663-1.585c-.284-.414-.814-1.109-1.676-1.455c-.726-.283-1.899-.364-1.919-.17\"/><path fill=\"#4c4c4c\" d=\"M73.369 16.741c-.021.234.629.39 1.047.557c.417.15 1.229.738 1.608 1.178c.373.43 1.243 1.67 1.43 1.359c.182-.286-.341-1.122-.64-1.525c-.287-.402-.792-1.055-1.619-1.397c-.691-.279-1.806-.359-1.826-.172\"/><path fill=\"#525252\" d=\"M73.469 16.766c-.021.223.604.375 1.002.536c.4.146 1.178.713 1.54 1.135c.356.414 1.194 1.602 1.375 1.306c.172-.273-.315-1.072-.618-1.464c-.29-.391-.772-1.002-1.563-1.339c-.66-.274-1.716-.353-1.736-.174\"/><path fill=\"#595959\" d=\"M73.569 16.791c-.021.214.576.362.958.517c.382.141 1.125.687 1.47 1.091c.338.397 1.144 1.534 1.316 1.253c.166-.26-.29-1.022-.596-1.403c-.291-.38-.75-.949-1.504-1.282c-.627-.27-1.624-.348-1.644-.176\"/><path fill=\"#5f5f5f\" d=\"M73.669 16.815c-.021.205.549.348.913.498c.365.135 1.072.662 1.401 1.049c.32.38 1.094 1.465 1.258 1.199c.158-.247-.262-.973-.573-1.342c-.294-.368-.73-.895-1.448-1.223c-.592-.267-1.532-.344-1.551-.181\"/><path fill=\"#666\" d=\"M73.768 16.84c-.02.194.522.333.869.478c.347.131 1.019.636 1.332 1.005c.303.364 1.043 1.397 1.201 1.146c.15-.234-.237-.922-.551-1.281c-.296-.358-.708-.841-1.391-1.166c-.559-.263-1.441-.338-1.46-.182\"/><path fill=\"#6c6c6c\" d=\"M73.868 16.865c-.021.185.495.32.825.458c.329.126.967.61 1.261.961c.286.348.995 1.329 1.146 1.093c.141-.221-.211-.873-.529-1.22c-.299-.347-.688-.788-1.334-1.108c-.528-.258-1.35-.333-1.369-.184\"/><path fill=\"#727272\" d=\"M73.968 16.889c-.021.176.468.306.779.439c.312.122.914.584 1.192.919c.27.331.946 1.261 1.088 1.039c.133-.208-.186-.823-.506-1.16c-.302-.335-.667-.734-1.277-1.05c-.494-.254-1.258-.327-1.276-.187\"/><path fill=\"#797979\" d=\"M74.068 16.914c-.021.167.441.292.735.419c.294.117.861.559 1.123.876c.251.315.896 1.193 1.031.986c.124-.194-.161-.773-.484-1.098c-.305-.324-.646-.681-1.221-.992c-.46-.251-1.166-.324-1.184-.191\"/><path fill=\"#7f7f7f\" d=\"M74.167 16.939c-.02.157.415.278.691.4c.277.111.809.533 1.054.832c.234.298.846 1.125.974.933c.117-.182-.135-.724-.462-1.038c-.308-.313-.625-.628-1.164-.934c-.427-.247-1.075-.318-1.093-.193\"/><path fill=\"#995900\" d=\"M107.74 86.485c1.441 2.092-.047 4.812 1 6.486c1.72 2.743 5.184 5.508 6.509 6.276c.953.581 2.301 1.139 2.254 2.836c-.07 1.93-1.023 2.44-1.557 2.976c-1.07 1.069-6.462 3.742-10.042 6.183c-4.511 3.091-6.067 4.464-7.532 5.927c-2.278 2.279-4.44 3.045-7.904 3.045s-5.021-.72-6.09-1.674c-1.07-.93-2.254-3.301-2.139-6.834c.093-3.511 1.208-6.719 1.744-12.182c.232-2.348.208-5.253.208-7.833c0-3.255.047-6.021.745-6.439c1.255-.79 1.534-.836 3.021-.836s2.162.092 2.65.581c.464.464.279 1.534.116 3.045c-.14 1.511.582 1.999 1.302 2.627c.721.604 1.372 1.372 3.65 1.558c2.278.162 3.114-.209 4.184-.884c1.07-.674 2.58-1.882 3.139-2.58c.534-.674 1.859-2.999 2.115-2.999c.232 0 1.767-.534 2.627.721\"/><path fill=\"#9e5e00\" d=\"M107.74 86.485c1.441 2.092-.047 4.812 1 6.486c1.72 2.743 5.184 5.508 6.509 6.276c.953.581 2.301 1.139 2.254 2.836c-.07 1.93-1.023 2.44-1.557 2.976c-1.07 1.069-6.496 3.73-10.093 6.136c-4.483 3.025-6.104 4.372-7.594 5.78c-2.231 2.176-4.331 2.933-7.721 2.912c-3.361-.016-4.881-.704-5.945-1.653c-1.064-.925-2.237-3.218-2.135-6.644c.066-3.503 1.194-6.678 1.696-12.036c.216-2.382.132-5.263.109-7.87c-.025-3.25-.024-6.014.673-6.432c1.255-.789 1.534-.837 3.021-.837s2.164.094 2.65.581c.481.481.248 1.578.066 3.037c-.204 1.504.471 2.094 1.226 2.779c.755.665 1.449 1.443 3.723 1.621c2.335.156 3.234-.269 4.315-1.002c1.066-.713 2.509-1.905 3.071-2.637c.53-.689 1.849-3.031 2.105-3.031c.232.001 1.767-.533 2.627.722\"/><path fill=\"#a36400\" d=\"M107.74 86.485c1.441 2.092-.047 4.812 1 6.486c1.72 2.743 5.184 5.508 6.509 6.276c.953.581 2.301 1.139 2.254 2.836c-.07 1.93-1.023 2.44-1.557 2.976c-1.07 1.069-6.53 3.719-10.143 6.09c-4.456 2.958-6.14 4.279-7.657 5.632c-2.186 2.074-4.221 2.82-7.54 2.778c-3.258-.03-4.74-.688-5.8-1.632c-1.06-.92-2.219-3.134-2.131-6.453c.04-3.496 1.18-6.637 1.65-11.891c.198-2.417.053-5.275.007-7.906c-.049-3.248-.093-6.007.602-6.425c1.255-.788 1.535-.837 3.021-.837c1.488 0 2.165.095 2.65.581c.498.498.217 1.621.017 3.029c-.268 1.497.36 2.189 1.147 2.931c.791.726 1.528 1.516 3.799 1.686c2.392.149 3.352-.328 4.445-1.123c1.062-.75 2.438-1.929 3.003-2.694c.526-.703 1.839-3.062 2.094-3.062c.235.001 1.77-.533 2.63.722\"/><path fill=\"#a86a00\" d=\"M107.74 86.485c1.441 2.092-.047 4.812 1 6.486c1.72 2.743 5.184 5.508 6.509 6.276c.953.581 2.301 1.139 2.254 2.836c-.07 1.93-1.023 2.44-1.557 2.976c-1.07 1.069-6.563 3.707-10.193 6.043c-4.43 2.894-6.175 4.188-7.72 5.485c-2.139 1.971-4.112 2.707-7.356 2.644c-3.157-.045-4.599-.671-5.655-1.611c-1.056-.916-2.203-3.049-2.128-6.262c.012-3.489 1.167-6.596 1.604-11.745c.18-2.453-.024-5.285-.094-7.942c-.074-3.244-.163-6 .531-6.418c1.255-.787 1.534-.836 3.021-.836s2.166.096 2.65.581c.513.515.185 1.664-.034 3.021c-.332 1.49.25 2.285 1.072 3.083c.825.786 1.604 1.588 3.873 1.75c2.449.142 3.471-.388 4.574-1.243c1.059-.79 2.368-1.953 2.936-2.751c.521-.716 1.828-3.092 2.084-3.092c.234-.002 1.769-.536 2.629.719\"/><path fill=\"#ad7000\" d=\"M107.74 86.485c1.441 2.092-.047 4.812 1 6.486c1.72 2.743 5.184 5.508 6.509 6.276c.953.581 2.301 1.139 2.254 2.836c-.07 1.93-1.023 2.44-1.557 2.976c-1.07 1.069-6.597 3.695-10.243 5.997c-4.403 2.827-6.211 4.096-7.783 5.337c-2.092 1.869-4.002 2.594-7.174 2.511c-3.054-.061-4.458-.656-5.508-1.59c-1.051-.912-2.186-2.966-2.125-6.072c-.013-3.483 1.153-6.556 1.558-11.601c.163-2.487-.102-5.295-.194-7.979c-.098-3.24-.233-5.993.46-6.411c1.255-.786 1.534-.836 3.021-.836s2.167.097 2.65.58c.53.531.154 1.707-.083 3.013c-.396 1.483.14 2.38.995 3.235c.86.847 1.683 1.661 3.947 1.813c2.507.135 3.59-.446 4.706-1.362c1.056-.827 2.296-1.976 2.869-2.808c.516-.729 1.817-3.124 2.074-3.124c.229.002 1.764-.532 2.624.723\"/><path fill=\"#b27500\" d=\"M107.74 86.485c1.441 2.092-.047 4.812 1 6.486c1.72 2.743 5.184 5.508 6.509 6.276c.953.581 2.301 1.139 2.254 2.836c-.07 1.93-1.023 2.44-1.557 2.976c-1.07 1.069-6.631 3.684-10.292 5.951c-4.376 2.761-6.247 4.004-7.846 5.19c-2.046 1.767-3.894 2.481-6.991 2.376c-2.952-.075-4.318-.639-5.364-1.568c-1.045-.907-2.167-2.883-2.121-5.881c-.041-3.477 1.139-6.516 1.511-11.456c.145-2.522-.181-5.306-.296-8.014c-.123-3.238-.303-5.986.389-6.405c1.255-.784 1.534-.836 3.021-.836s2.167.099 2.65.581c.546.547.122 1.75-.133 3.005c-.459 1.476.029 2.476.918 3.388c.895.907 1.76 1.731 4.021 1.877c2.562.128 3.708-.505 4.835-1.482c1.053-.866 2.227-1.999 2.801-2.865c.512-.744 1.808-3.155 2.063-3.155c.233-.001 1.768-.535 2.628.72\"/><path fill=\"#b77b00\" d=\"M107.74 86.485c1.441 2.092-.047 4.812 1 6.486c1.72 2.743 5.184 5.508 6.509 6.276c.953.581 2.301 1.139 2.254 2.836c-.07 1.93-1.023 2.44-1.557 2.976c-1.07 1.069-6.665 3.673-10.342 5.904c-4.35 2.695-6.283 3.913-7.909 5.042c-1.999 1.665-3.785 2.369-6.809 2.243c-2.849-.091-4.178-.623-5.218-1.548c-1.042-.902-2.15-2.799-2.119-5.69c-.067-3.468 1.125-6.475 1.465-11.31c.128-2.557-.258-5.316-.397-8.05c-.147-3.233-.373-5.979.317-6.397c1.256-.783 1.535-.836 3.022-.836s2.168.1 2.649.581c.563.563.091 1.793-.184 2.997c-.523 1.469-.081 2.571.842 3.541c.929.967 1.838 1.803 4.096 1.941c2.621.121 3.827-.565 4.966-1.602c1.049-.904 2.155-2.022 2.734-2.922c.506-.758 1.796-3.187 2.052-3.187c.234-.002 1.769-.536 2.629.719\"/><path fill=\"#bc8100\" d=\"M107.74 86.485c1.441 2.092-.047 4.812 1 6.486c1.72 2.743 5.184 5.508 6.509 6.276c.953.581 2.301 1.139 2.254 2.836c-.07 1.93-1.023 2.44-1.557 2.976c-1.07 1.069-6.699 3.661-10.392 5.858c-4.323 2.628-6.32 3.821-7.972 4.895c-1.953 1.562-3.675 2.256-6.626 2.11c-2.748-.106-4.037-.607-5.074-1.528c-1.037-.897-2.132-2.715-2.114-5.5c-.094-3.461 1.111-6.434 1.419-11.165c.11-2.592-.336-5.326-.499-8.086c-.171-3.23-.442-5.972.248-6.391c1.255-.782 1.534-.837 3.021-.837s2.17.102 2.65.581c.579.579.059 1.836-.233 2.988c-.587 1.462-.192 2.667.765 3.693c.964 1.028 1.917 1.876 4.17 2.005c2.676.114 3.944-.625 5.095-1.722c1.045-.942 2.083-2.045 2.667-2.979c.502-.772 1.786-3.218 2.042-3.218c.232.001 1.767-.533 2.627.722\"/><path fill=\"#c18700\" d=\"M107.74 86.485c1.441 2.092-.047 4.812 1 6.486c1.72 2.743 5.184 5.508 6.509 6.276c.953.581 2.301 1.139 2.254 2.836c-.07 1.93-1.023 2.44-1.557 2.976c-1.07 1.069-6.733 3.649-10.442 5.811c-4.296 2.563-6.356 3.729-8.035 4.748c-1.906 1.46-3.565 2.144-6.443 1.976c-2.646-.121-3.896-.59-4.929-1.507c-1.032-.892-2.116-2.63-2.111-5.309c-.121-3.454 1.097-6.393 1.372-11.018c.093-2.627-.414-5.338-.6-8.123c-.196-3.227-.512-5.965.176-6.383c1.256-.781 1.535-.837 3.022-.837s2.171.103 2.649.581c.596.596.029 1.878-.283 2.98c-.651 1.455-.302 2.761.688 3.845c.999 1.088 1.994 1.948 4.244 2.069c2.734.107 4.063-.684 5.226-1.841c1.042-.981 2.013-2.069 2.599-3.036c.498-.786 1.776-3.25 2.032-3.25c.234-.001 1.769-.535 2.629.72\"/><path fill=\"#c68c00\" d=\"M107.74 86.485c1.441 2.092-.047 4.812 1 6.486c1.72 2.743 5.184 5.508 6.509 6.276c.953.581 2.301 1.139 2.254 2.836c-.07 1.93-1.023 2.44-1.557 2.976c-1.07 1.069-6.766 3.637-10.492 5.764c-4.269 2.496-6.392 3.638-8.097 4.6c-1.86 1.357-3.457 2.03-6.261 1.843c-2.544-.137-3.756-.575-4.783-1.486c-1.028-.888-2.098-2.548-2.107-5.12c-.147-3.447 1.083-6.352 1.325-10.873c.076-2.662-.491-5.347-.701-8.158c-.22-3.223-.581-5.958.106-6.376c1.255-.78 1.534-.836 3.021-.836s2.172.103 2.65.58c.612.612-.004 1.921-.333 2.972c-.716 1.448-.413 2.857.612 3.998c1.034 1.148 2.071 2.02 4.319 2.132c2.79.1 4.181-.742 5.356-1.961c1.038-1.019 1.942-2.092 2.532-3.093c.492-.8 1.765-3.281 2.021-3.281c.231 0 1.766-.534 2.626.721\"/><path fill=\"#cc9200\" d=\"M107.74 86.485c1.441 2.092-.047 4.812 1 6.486c1.72 2.743 5.184 5.508 6.509 6.276c.953.581 2.301 1.139 2.254 2.836c-.07 1.93-1.023 2.44-1.557 2.976c-1.07 1.069-6.8 3.626-10.542 5.718c-4.243 2.43-6.428 3.545-8.16 4.452c-1.813 1.255-3.347 1.917-6.078 1.708c-2.441-.151-3.615-.558-4.637-1.464c-1.023-.883-2.081-2.465-2.105-4.929c-.173-3.44 1.07-6.312 1.278-10.728c.059-2.697-.569-5.358-.801-8.194c-.245-3.22-.65-5.952.035-6.37c1.255-.779 1.534-.836 3.021-.836s2.173.104 2.65.58c.628.628-.035 1.964-.384 2.964c-.779 1.441-.523 2.952.535 4.15c1.07 1.209 2.15 2.092 4.394 2.197c2.847.093 4.3-.802 5.485-2.081c1.035-1.057 1.871-2.116 2.465-3.149c.488-.814 1.754-3.313 2.011-3.313c.232 0 1.767-.534 2.627.721\"/><path fill=\"#d19800\" d=\"M107.74 86.485c1.441 2.092-.047 4.812 1 6.486c1.72 2.743 5.184 5.508 6.509 6.276c.953.581 2.301 1.139 2.254 2.836c-.07 1.93-1.023 2.44-1.557 2.976c-1.07 1.069-6.833 3.614-10.593 5.671c-4.215 2.363-6.463 3.454-8.222 4.305c-1.767 1.153-3.238 1.805-5.896 1.575c-2.338-.167-3.474-.542-4.492-1.444c-1.019-.879-2.064-2.381-2.101-4.738c-.202-3.433 1.056-6.271 1.231-10.583c.041-2.731-.647-5.368-.902-8.229c-.27-3.216-.721-5.944-.037-6.363c1.255-.777 1.535-.836 3.021-.836c1.488 0 2.176.105 2.65.581c.645.644-.066 2.008-.434 2.957c-.842 1.434-.632 3.047.459 4.301c1.104 1.27 2.228 2.164 4.468 2.26c2.905.086 4.419-.861 5.617-2.2c1.031-1.096 1.8-2.138 2.397-3.207c.483-.828 1.744-3.344 2-3.344c.233-.001 1.768-.535 2.628.72\"/><path fill=\"#d69e00\" d=\"M107.74 86.485c1.441 2.092-.047 4.812 1 6.486c1.72 2.743 5.184 5.508 6.509 6.276c.953.581 2.301 1.139 2.254 2.836c-.07 1.93-1.023 2.44-1.557 2.976c-1.07 1.069-6.868 3.603-10.642 5.625c-4.189 2.297-6.5 3.362-8.286 4.157c-1.719 1.051-3.128 1.692-5.713 1.441c-2.236-.181-3.334-.525-4.348-1.422c-1.013-.874-2.045-2.296-2.097-4.547c-.228-3.426 1.042-6.229 1.187-10.438c.023-2.766-.725-5.379-1.005-8.267c-.292-3.212-.79-5.937-.106-6.355c1.255-.776 1.534-.836 3.021-.836s2.177.106 2.65.581c.66.66-.098 2.051-.484 2.948c-.906 1.428-.743 3.143.381 4.454c1.14 1.33 2.306 2.236 4.542 2.325c2.962.079 4.538-.921 5.747-2.32a16.4 16.4 0 0 0 2.329-3.263c.478-.842 1.733-3.376 1.99-3.376c.233-.002 1.768-.536 2.628.719\"/><path fill=\"#dba300\" d=\"M107.74 86.485c1.441 2.092-.047 4.812 1 6.486c1.72 2.743 5.184 5.508 6.509 6.276c.953.581 2.301 1.139 2.254 2.836c-.07 1.93-1.023 2.44-1.557 2.976c-1.07 1.069-6.9 3.591-10.691 5.578c-4.164 2.231-6.537 3.27-8.348 4.01c-1.675.948-3.02 1.579-5.533 1.307c-2.134-.196-3.192-.509-4.201-1.402c-1.009-.869-2.028-2.213-2.093-4.356c-.255-3.42 1.027-6.189 1.139-10.293c.006-2.801-.803-5.39-1.105-8.302c-.317-3.209-.86-5.93-.179-6.349c1.256-.775 1.535-.836 3.022-.836s2.177.107 2.649.581c.677.677-.128 2.094-.533 2.94c-.971 1.42-.854 3.238.304 4.606c1.174 1.39 2.384 2.308 4.617 2.388c3.019.072 4.656-.979 5.876-2.44c1.024-1.173 1.659-2.186 2.263-3.321c.474-.855 1.723-3.406 1.979-3.406c.233 0 1.768-.534 2.628.721\"/><path fill=\"#e0a900\" d=\"M107.74 86.485c1.441 2.092-.047 4.812 1 6.486c1.72 2.743 5.184 5.508 6.509 6.276c.953.581 2.301 1.139 2.254 2.836c-.07 1.93-1.023 2.44-1.557 2.976c-1.07 1.069-6.935 3.58-10.743 5.532c-4.135 2.165-6.571 3.178-8.41 3.862c-1.627.846-2.91 1.467-5.349 1.174c-2.032-.211-3.052-.493-4.056-1.381c-1.005-.865-2.011-2.129-2.09-4.166c-.282-3.413 1.015-6.149 1.093-10.147c-.011-2.835-.881-5.4-1.206-8.338c-.342-3.205-.93-5.923-.25-6.342c1.255-.774 1.535-.837 3.021-.837c1.488 0 2.179.109 2.65.581c.693.693-.161 2.136-.583 2.932c-1.034 1.413-.964 3.333.229 4.758c1.208 1.451 2.461 2.381 4.69 2.453c3.076.066 4.775-1.039 6.008-2.559c1.02-1.211 1.587-2.209 2.194-3.379c.469-.869 1.712-3.437 1.969-3.437c.232-.001 1.767-.535 2.627.72\"/><path fill=\"#e5af00\" d=\"M107.74 86.485c1.441 2.092-.047 4.812 1 6.486c1.72 2.743 5.184 5.508 6.509 6.276c.953.581 2.301 1.139 2.254 2.836c-.07 1.93-1.023 2.44-1.557 2.976c-1.07 1.069-6.968 3.568-10.792 5.485c-4.108 2.098-6.607 3.086-8.473 3.714c-1.581.744-2.801 1.353-5.167 1.04c-1.93-.227-2.912-.477-3.911-1.36c-1-.86-1.994-2.046-2.087-3.976c-.307-3.405 1-6.107 1.046-10.001c-.029-2.871-.959-5.411-1.307-8.375c-.366-3.202-1-5.916-.32-6.334c1.256-.773 1.535-.836 3.022-.836s2.18.11 2.649.581c.709.709-.191 2.18-.632 2.924c-1.099 1.406-1.076 3.428.15 4.911c1.244 1.511 2.54 2.453 4.765 2.516c3.133.058 4.894-1.098 6.137-2.679c1.017-1.25 1.517-2.232 2.128-3.435c.465-.883 1.702-3.47 1.958-3.47c.233 0 1.768-.534 2.628.721\"/><path fill=\"#eab500\" d=\"M107.74 86.485c1.441 2.092-.047 4.812 1 6.486c1.72 2.743 5.184 5.508 6.509 6.276c.953.581 2.301 1.139 2.254 2.836c-.07 1.93-1.023 2.44-1.557 2.976c-1.07 1.069-7.002 3.557-10.842 5.439c-4.083 2.032-6.643 2.994-8.536 3.566c-1.534.642-2.691 1.241-4.985.907c-1.826-.242-2.77-.46-3.765-1.339c-.995-.855-1.976-1.962-2.083-3.785c-.335-3.398.986-6.067.999-9.856c-.046-2.906-1.036-5.422-1.408-8.411c-.391-3.199-1.07-5.91-.391-6.328c1.256-.772 1.535-.837 3.022-.837s2.181.112 2.649.581c.726.726-.222 2.223-.684 2.915c-1.162 1.399-1.185 3.524.075 5.063c1.278 1.572 2.617 2.525 4.84 2.581c3.189.051 5.012-1.158 6.267-2.798c1.014-1.289 1.446-2.255 2.06-3.492c.46-.898 1.692-3.501 1.948-3.501c.233 0 1.768-.534 2.628.721\"/><path fill=\"#efba00\" d=\"M107.74 86.485c1.441 2.092-.047 4.812 1 6.486c1.72 2.743 5.184 5.508 6.509 6.276c.953.581 2.301 1.139 2.254 2.836c-.07 1.93-1.023 2.44-1.557 2.976c-1.07 1.069-7.035 3.544-10.892 5.393c-4.056 1.965-6.68 2.902-8.598 3.418c-1.488.54-2.583 1.129-4.802.773c-1.725-.256-2.63-.444-3.622-1.318c-.989-.85-1.958-1.878-2.079-3.593c-.361-3.392.972-6.027.953-9.711c-.064-2.941-1.115-5.432-1.51-8.447c-.414-3.195-1.139-5.902-.462-6.32c1.256-.77 1.535-.837 3.022-.837s2.182.113 2.649.581c.743.742-.254 2.266-.732 2.907c-1.227 1.394-1.296 3.62-.003 5.216c1.313 1.632 2.696 2.597 4.915 2.644c3.246.045 5.13-1.216 6.397-2.918c1.01-1.326 1.374-2.278 1.992-3.548c.455-.912 1.682-3.533 1.937-3.533c.234-.002 1.769-.536 2.629.719\"/><path fill=\"#f4c000\" d=\"M107.74 86.485c1.441 2.092-.047 4.812 1 6.486c1.72 2.743 5.184 5.508 6.509 6.276c.953.581 2.301 1.139 2.254 2.836c-.07 1.93-1.023 2.44-1.557 2.976c-1.07 1.069-7.069 3.533-10.942 5.347c-4.029 1.899-6.716 2.81-8.662 3.271c-1.441.437-2.473 1.016-4.619.639c-1.623-.272-2.49-.428-3.476-1.297c-.986-.847-1.941-1.794-2.076-3.404c-.389-3.384.957-5.985.907-9.565c-.082-2.976-1.194-5.442-1.612-8.482c-.439-3.192-1.208-5.896-.533-6.314c1.256-.769 1.535-.836 3.022-.836s2.183.114 2.649.581c.759.758-.285 2.308-.782 2.899c-1.291 1.386-1.407 3.714-.08 5.368c1.348 1.692 2.773 2.669 4.988 2.708c3.303.037 5.249-1.276 6.527-3.039c1.007-1.364 1.305-2.301 1.925-3.605c.451-.925 1.671-3.563 1.927-3.563c.236-.003 1.771-.537 2.631.718\"/><path fill=\"#f9c600\" d=\"M107.74 86.485c1.441 2.092-.047 4.812 1 6.486c1.72 2.743 5.184 5.508 6.509 6.276c.953.581 2.301 1.139 2.254 2.836c-.07 1.93-1.023 2.44-1.557 2.976c-1.07 1.069-7.103 3.521-10.992 5.299c-4.001 1.833-6.752 2.719-8.725 3.124c-1.394.335-2.364.904-4.436.505c-1.521-.287-2.349-.411-3.33-1.276c-.981-.842-1.924-1.711-2.072-3.213c-.415-3.377.944-5.945.86-9.42c-.099-3.011-1.27-5.453-1.711-8.519c-.464-3.188-1.279-5.888-.604-6.307c1.255-.768 1.534-.836 3.021-.836s2.185.115 2.65.581c.773.774-.317 2.351-.833 2.891c-1.354 1.378-1.517 3.81-.156 5.52c1.383 1.753 2.851 2.741 5.062 2.771c3.361.031 5.368-1.335 6.658-3.157c1.003-1.403 1.233-2.324 1.857-3.663c.447-.939 1.662-3.595 1.917-3.595c.233 0 1.768-.534 2.628.721\"/><path fill=\"#fc0\" d=\"M107.74 86.485c1.441 2.092-.047 4.812 1 6.486c1.72 2.743 5.184 5.508 6.509 6.276c.953.581 2.301 1.139 2.254 2.836c-.07 1.93-1.023 2.44-1.557 2.976c-1.07 1.069-7.137 3.51-11.042 5.253c-3.976 1.767-6.788 2.627-8.788 2.976c-1.348.233-2.254.79-4.254.372c-1.418-.302-2.208-.396-3.184-1.255c-.976-.836-1.906-1.627-2.069-3.022c-.442-3.371.93-5.905.813-9.275c-.116-3.045-1.348-5.463-1.813-8.554c-.488-3.185-1.348-5.882-.673-6.3c1.255-.767 1.534-.836 3.021-.836s2.186.116 2.65.58c.791.791-.349 2.395-.883 2.883c-1.418 1.372-1.628 3.905-.233 5.671c1.418 1.814 2.929 2.813 5.138 2.837c3.417.023 5.485-1.395 6.787-3.278c1-1.442 1.164-2.348 1.791-3.72c.442-.953 1.65-3.625 1.906-3.625c.232-.002 1.767-.536 2.627.719m-21.751 4.273c-.229-.084-1.27-4.911-.708-5.244c1.082-.645 1.373-.749 2.704-.749c1.333 0 1.956.104 2.372.52c.687.687-.374 2.164-.79 2.581c-1.206 1.185-3.349 2.974-3.578 2.892\"/><path fill=\"#ffcc02\" d=\"M86.063 90.604c-.249-.106-1.324-4.752-.764-5.083c1.08-.643 1.381-.713 2.686-.713c1.333 0 1.93.087 2.352.518c.679.689-.361 2.121-.774 2.535c-1.204 1.181-3.256 2.843-3.5 2.743\"/><path fill=\"#ffcc05\" d=\"M86.137 90.449c-.268-.126-1.379-4.593-.822-4.922c1.078-.64 1.39-.678 2.669-.678c1.333 0 1.904.069 2.331.514c.673.693-.348 2.08-.758 2.491c-1.201 1.178-3.16 2.714-3.42 2.595\"/><path fill=\"#ffcc07\" d=\"M86.211 90.296c-.289-.149-1.435-4.436-.879-4.762c1.076-.639 1.398-.644 2.651-.644c1.333 0 1.877.052 2.31.511c.667.696-.333 2.039-.741 2.445c-1.197 1.177-3.066 2.586-3.341 2.45\"/><path fill=\"#ffcd0a\" d=\"M86.285 90.142c-.309-.171-1.49-4.278-.936-4.603c1.074-.637 1.406-.608 2.633-.608c1.332 0 1.851.034 2.29.507c.661.7-.321 1.998-.725 2.402c-1.195 1.173-2.971 2.456-3.262 2.302\"/><path fill=\"#ffcd0c\" d=\"M86.358 89.987c-.327-.193-1.545-4.119-.993-4.442c1.071-.635 1.414-.572 2.615-.572c1.333 0 1.825.016 2.268.504c.655.703-.307 1.956-.707 2.357c-1.191 1.17-2.876 2.326-3.183 2.153\"/><path fill=\"#ffcd0f\" d=\"M86.432 89.834c-.347-.214-1.6-3.962-1.051-4.282c1.07-.632 1.423-.537 2.599-.537c1.332 0 1.799-.002 2.247.501c.649.706-.292 1.915-.691 2.311c-1.188 1.167-2.782 2.196-3.104 2.007\"/><path fill=\"#ffcd11\" d=\"M86.506 89.679c-.368-.236-1.656-3.802-1.108-4.122c1.067-.63 1.431-.501 2.581-.501c1.332 0 1.773-.02 2.227.498c.643.708-.281 1.873-.675 2.267c-1.185 1.164-2.687 2.065-3.025 1.858\"/><path fill=\"#ffce14\" d=\"M86.58 89.526c-.386-.259-1.71-3.646-1.165-3.962c1.064-.629 1.44-.466 2.562-.466c1.331 0 1.748-.037 2.206.495c.637.711-.267 1.831-.658 2.223c-1.181 1.161-2.591 1.935-2.945 1.71\"/><path fill=\"#ffce16\" d=\"M86.654 89.372c-.407-.279-1.765-3.487-1.223-3.801c1.064-.626 1.448-.431 2.546-.431c1.331 0 1.722-.055 2.185.492c.631.714-.252 1.789-.641 2.177c-1.179 1.158-2.498 1.806-2.867 1.563\"/><path fill=\"#ffce19\" d=\"M86.727 89.218c-.426-.302-1.82-3.329-1.279-3.641c1.061-.625 1.456-.396 2.528-.396c1.331 0 1.695-.073 2.164.489c.625.718-.239 1.748-.624 2.133c-1.176 1.155-2.403 1.675-2.789 1.415\"/><path fill=\"#ffce1c\" d=\"M86.802 89.064c-.446-.323-1.876-3.171-1.337-3.48c1.059-.622 1.465-.36 2.511-.36c1.331 0 1.669-.09 2.143.486c.618.721-.226 1.707-.608 2.088c-1.173 1.15-2.31 1.544-2.709 1.266\"/><path fill=\"#ffcf1e\" d=\"M86.875 88.91c-.466-.344-1.931-3.012-1.393-3.32c1.056-.621 1.473-.325 2.492-.325c1.332 0 1.644-.108 2.123.482c.612.725-.212 1.665-.591 2.043c-1.17 1.149-2.215 1.416-2.631 1.12\"/><path fill=\"#ffcf21\" d=\"M86.949 88.756c-.486-.367-1.986-2.854-1.451-3.161c1.055-.618 1.481-.289 2.475-.289c1.331 0 1.618-.126 2.102.48c.605.727-.2 1.622-.575 1.998c-1.167 1.146-2.119 1.285-2.551.972\"/><path fill=\"#ffcf23\" d=\"M87.023 88.602c-.505-.389-2.041-2.697-1.508-3c1.053-.616 1.489-.254 2.457-.254c1.331 0 1.592-.144 2.081.477c.599.73-.186 1.582-.558 1.955c-1.164 1.14-2.025 1.153-2.472.822\"/><path fill=\"#ffcf26\" d=\"M87.097 88.448c-.525-.411-2.096-2.538-1.565-2.839c1.051-.614 1.498-.219 2.44-.219c1.331 0 1.565-.161 2.06.473c.593.733-.171 1.54-.541 1.909c-1.162 1.139-1.931 1.025-2.394.676\"/><path fill=\"#ffd028\" d=\"M87.171 88.294c-.545-.433-2.152-2.381-1.623-2.681c1.049-.612 1.506-.182 2.422-.182c1.331 0 1.54-.18 2.039.47c.587.735-.158 1.498-.524 1.863c-1.158 1.137-1.836.896-2.314.53\"/><path fill=\"#ffd02b\" d=\"M87.244 88.14c-.565-.455-2.207-2.222-1.68-2.52c1.046-.609 1.514-.147 2.404-.147c1.331 0 1.513-.197 2.018.468c.58.739-.145 1.455-.508 1.818c-1.153 1.134-1.739.764-2.234.381\"/><path fill=\"#ffd02d\" d=\"M87.318 87.985c-.584-.476-2.261-2.062-1.737-2.359c1.045-.607 1.523-.112 2.387-.112c1.331 0 1.487-.215 1.997.464c.575.743-.131 1.414-.491 1.774c-1.151 1.132-1.646.635-2.156.233\"/><path fill=\"#ffd030\" d=\"M87.392 87.832c-.604-.498-2.317-1.905-1.794-2.199c1.042-.606 1.531-.077 2.368-.077c1.332 0 1.462-.232 1.977.461c.568.746-.117 1.372-.475 1.729c-1.147 1.128-1.551.506-2.076.086\"/><path fill=\"#ffd133\" d=\"M87.466 87.678c-.624-.52-2.372-1.748-1.851-2.039c1.04-.603 1.54-.042 2.351-.042c1.331 0 1.435-.25 1.956.458c.561.749-.104 1.331-.458 1.685c-1.145 1.125-1.457.375-1.998-.062\"/><path fill=\"#fc0\" d=\"M107.461 86.758c1.208 1.763-.02 4.12.853 5.526c-2.199-2.021-3.209-2.852-6.24.119c.833-1.208 1.011-2.021 1.526-3.169c.356-.792 1.406-3.09 1.624-3.09c.198 0 1.525-.436 2.237.614\"/><path fill=\"#ffcc02\" d=\"M107.449 86.77c1.181 1.722.012 4.068.833 5.4c-2.153-1.969-3.141-2.798-6.105.104c.781-1.139.977-1.968 1.487-3.097c.362-.795 1.37-3.003 1.599-3.006c.202-.003 1.49-.426 2.186.599\"/><path fill=\"#ffcc05\" d=\"M107.436 86.782c1.152 1.682.042 4.016.812 5.273c-2.106-1.917-3.074-2.745-5.971.089c.732-1.069.944-1.916 1.449-3.025c.368-.797 1.334-2.917 1.574-2.923c.208-.005 1.456-.415 2.136.586\"/><path fill=\"#ffcc07\" d=\"M107.424 86.794c1.124 1.643.074 3.966.793 5.146c-2.062-1.865-3.005-2.69-5.835.075c.681-1.001.91-1.863 1.41-2.954c.375-.799 1.298-2.829 1.549-2.839c.211-.006 1.419-.404 2.083.572\"/><path fill=\"#ffcd0a\" d=\"M107.411 86.806c1.096 1.602.104 3.915.773 5.021c-2.016-1.814-2.939-2.636-5.702.061c.632-.933.877-1.812 1.373-2.883c.379-.801 1.263-2.743 1.523-2.755c.216-.01 1.386-.395 2.033.556\"/><path fill=\"#ffcd0c\" d=\"M107.399 86.818c1.067 1.562.136 3.863.754 4.894c-1.971-1.763-2.871-2.583-5.567.046c.581-.863.843-1.76 1.334-2.812c.385-.803 1.227-2.655 1.497-2.671c.221-.011 1.35-.384 1.982.543\"/><path fill=\"#ffcd0f\" d=\"M107.386 86.83c1.04 1.521.167 3.812.735 4.767c-1.926-1.711-2.804-2.528-5.434.032c.531-.794.811-1.708 1.296-2.74c.391-.806 1.19-2.569 1.472-2.588c.226-.013 1.317-.373 1.931.529\"/><path fill=\"#ffcd11\" d=\"M107.374 86.843c1.011 1.48.197 3.759.715 4.639c-1.88-1.658-2.736-2.473-5.299.017c.481-.725.776-1.654 1.257-2.668c.397-.808 1.154-2.482 1.446-2.504c.231-.015 1.282-.362 1.881.516\"/><path fill=\"#ffce14\" d=\"M107.361 86.855c.983 1.44.229 3.708.695 4.513c-1.834-1.607-2.667-2.419-5.164.003c.431-.656.744-1.603 1.221-2.597c.402-.811 1.118-2.395 1.42-2.421c.235-.017 1.246-.351 1.828.502\"/><path fill=\"#ffce16\" d=\"M107.348 86.867c.955 1.399.26 3.657.676 4.387c-1.788-1.555-2.601-2.365-5.029-.012c.38-.587.709-1.551 1.181-2.526c.409-.812 1.083-2.308 1.395-2.336c.24-.02 1.212-.341 1.777.487\"/><path fill=\"#ffce19\" d=\"M107.336 86.879c.926 1.359.292 3.605.657 4.26c-1.743-1.503-2.533-2.311-4.896-.026c.33-.518.678-1.498 1.144-2.454c.414-.815 1.047-2.222 1.37-2.253c.244-.022 1.175-.332 1.725.473\"/><path fill=\"#ffce1c\" d=\"M107.324 86.891c.897 1.319.321 3.554.637 4.133c-1.697-1.452-2.465-2.257-4.761-.041c.28-.449.644-1.446 1.105-2.383c.421-.817 1.011-2.134 1.345-2.168c.248-.024 1.14-.32 1.674.459\"/><path fill=\"#ffcf1e\" d=\"M107.311 86.904c.869 1.277.352 3.502.618 4.006c-1.653-1.4-2.398-2.204-4.627-.056c.229-.379.61-1.393 1.068-2.31c.425-.819.974-2.048 1.319-2.087c.252-.024 1.105-.309 1.622.447\"/><path fill=\"#ffcf21\" d=\"M107.298 86.915c.841 1.238.384 3.451.599 3.88c-1.606-1.349-2.33-2.148-4.494-.07c.18-.31.577-1.342 1.03-2.239c.432-.821.938-1.96 1.294-2.002c.258-.027 1.071-.299 1.571.431\"/><path fill=\"#ffcf23\" d=\"M107.286 86.927c.813 1.198.415 3.401.578 3.754c-1.561-1.298-2.262-2.095-4.358-.084c.129-.243.544-1.29.99-2.168c.438-.824.903-1.875 1.27-1.919c.261-.029 1.035-.289 1.52.417\"/><path fill=\"#ffcf26\" d=\"M107.273 86.939c.786 1.157.446 3.349.559 3.628c-1.515-1.245-2.195-2.042-4.225-.099c.079-.173.51-1.237.953-2.096c.443-.826.867-1.787 1.244-1.835c.267-.034 1.001-.279 1.469.402\"/><path fill=\"#ffd028\" d=\"M107.261 86.952c.756 1.117.476 3.297.539 3.501c-1.47-1.194-2.127-1.987-4.089-.114c.029-.104.477-1.185.914-2.024c.449-.828.831-1.701 1.217-1.751c.272-.035.967-.269 1.419.388\"/><path fill=\"#ffd02b\" d=\"M107.248 86.963c.729 1.077.508 3.246.52 3.375c-1.425-1.142-2.06-1.933-3.956-.127c-.021-.036.443-1.133.876-1.954c.455-.83.795-1.613 1.192-1.668c.277-.037.933-.257 1.368.374\"/><path fill=\"#ffd02d\" d=\"M107.235 86.976c.702 1.036.54 3.194.501 3.248c-1.379-1.091-1.992-1.879-3.821-.142c-.072.033.41-1.082.838-1.883c.46-.833.758-1.526 1.167-1.583c.281-.04.897-.248 1.315.36\"/><path fill=\"#ffd030\" d=\"M107.223 86.987c.671.996.571 3.144.481 3.122c-1.334-1.039-1.925-1.825-3.688-.157c-.122.103.377-1.03.8-1.81c.466-.835.723-1.44 1.142-1.501c.286-.041.862-.236 1.265.346\"/><path fill=\"#ffd133\" d=\"M107.21 87c.645.956.602 3.092.462 2.996c-1.289-.988-1.857-1.771-3.554-.171c-.172.171.344-.978.762-1.74c.472-.837.688-1.352 1.117-1.417c.291-.044.827-.227 1.213.332\"/><path fill=\"#fc0\" d=\"M108.46 93.25c1.93 2.534 5.51 5.253 6.788 5.998c.929.535 2.278 1.162 2.254 2.836c-.047 1.906-1.023 2.44-1.557 2.976c-1.07 1.069-7.161 3.533-11.042 5.253c-3.952 1.743-6.812 2.65-8.788 2.976c-1.325.209-2.278.767-4.254.372c-1.395-.279-2.231-.418-3.184-1.255c-.953-.813-1.93-1.674-2.069-3.022c-.396-3.348 1.186-5.462 2.719-8.369c1.255-2.325 3.789-2.79 5.37-2.58c5.672.767 5.3-2.79 6.857-4.347c1.443-1.443 5.558-2.606 6.906-.838\"/><path fill=\"#ffcc02\" d=\"M108.443 93.272c1.925 2.529 5.497 5.242 6.772 5.983c.928.534 2.272 1.16 2.25 2.83c-.047 1.902-1.021 2.435-1.555 2.969c-1.066 1.066-7.212 3.549-11.054 5.194c-3.958 1.671-6.666 2.542-8.654 2.893c-1.316.221-2.311.773-4.28.38c-1.39-.276-2.186-.398-3.134-1.231c-.949-.811-1.858-1.602-1.997-2.944c-.391-3.338 1.087-5.378 2.598-8.282c1.255-2.381 3.806-2.723 5.38-2.51c5.655.779 5.233-2.893 6.787-4.447c1.437-1.436 5.542-2.597 6.887-.835\"/><path fill=\"#ffcc05\" d=\"M108.428 93.297c1.92 2.522 5.482 5.229 6.756 5.969c.925.532 2.267 1.157 2.244 2.823c-.047 1.897-1.019 2.43-1.551 2.962c-1.064 1.064-7.266 3.565-11.068 5.135c-3.964 1.599-6.521 2.435-8.519 2.809c-1.309.233-2.343.779-4.308.388c-1.383-.273-2.137-.377-3.083-1.206c-.944-.807-1.788-1.53-1.924-2.866c-.387-3.329.987-5.293 2.474-8.194c1.256-2.438 3.825-2.657 5.392-2.442c5.636.792 5.164-2.996 6.714-4.545c1.435-1.435 5.529-2.592 6.873-.833\"/><path fill=\"#ffcc07\" d=\"M108.41 93.321c1.916 2.515 5.47 5.216 6.74 5.955c.923.531 2.263 1.154 2.239 2.816c-.046 1.893-1.015 2.424-1.546 2.954c-1.062 1.062-7.319 3.582-11.081 5.078c-3.971 1.525-6.378 2.325-8.386 2.725c-1.299.244-2.376.785-4.334.396c-1.379-.27-2.089-.355-3.033-1.18c-.94-.804-1.717-1.459-1.852-2.787c-.382-3.321.888-5.209 2.352-8.107c1.256-2.495 3.842-2.59 5.402-2.373c5.618.805 5.097-3.1 6.643-4.646c1.432-1.431 5.517-2.586 6.856-.831\"/><path fill=\"#ffcd0a\" d=\"M108.393 93.344c1.911 2.51 5.458 5.205 6.724 5.941c.921.53 2.256 1.151 2.233 2.81c-.046 1.887-1.013 2.417-1.543 2.947c-1.059 1.06-7.372 3.598-11.093 5.018c-3.977 1.453-6.234 2.218-8.253 2.642c-1.29.256-2.408.791-4.361.404c-1.372-.268-2.042-.334-2.982-1.155c-.935-.801-1.646-1.388-1.779-2.71c-.378-3.312.79-5.124 2.229-8.02c1.256-2.551 3.86-2.524 5.413-2.304c5.602.817 5.029-3.202 6.571-4.745c1.43-1.427 5.505-2.578 6.841-.828\"/><path fill=\"#ffcd0c\" d=\"M108.376 93.368c1.907 2.504 5.445 5.192 6.708 5.927c.919.528 2.251 1.148 2.228 2.802c-.046 1.884-1.011 2.413-1.54 2.941c-1.057 1.056-7.425 3.613-11.106 4.959c-3.983 1.379-6.088 2.109-8.119 2.558c-1.281.268-2.44.797-4.387.412c-1.367-.264-1.995-.313-2.931-1.13c-.931-.798-1.575-1.315-1.707-2.632c-.374-3.302.689-5.038 2.106-7.932c1.257-2.607 3.878-2.458 5.423-2.234c5.583.83 4.961-3.304 6.5-4.844c1.427-1.424 5.493-2.573 6.825-.827\"/><path fill=\"#ffcd0f\" d=\"M108.36 93.391c1.903 2.498 5.432 5.179 6.693 5.913c.916.527 2.247 1.146 2.223 2.796c-.045 1.879-1.008 2.406-1.535 2.934c-1.055 1.054-7.479 3.63-11.119 4.9c-3.99 1.308-5.945 2.002-7.985 2.476c-1.273.278-2.472.802-4.414.42c-1.362-.262-1.947-.293-2.881-1.105c-.926-.795-1.503-1.245-1.635-2.554c-.369-3.294.591-4.954 1.984-7.845c1.258-2.664 3.896-2.392 5.435-2.166c5.564.843 4.892-3.408 6.429-4.944c1.419-1.421 5.475-2.566 6.805-.825\"/><path fill=\"#ffcd11\" d=\"M108.344 93.415c1.897 2.492 5.418 5.167 6.676 5.899c.914.525 2.24 1.143 2.217 2.789c-.046 1.875-1.006 2.4-1.532 2.926c-1.052 1.053-7.53 3.646-11.132 4.842c-3.996 1.234-5.8 1.893-7.852 2.392c-1.264.29-2.504.808-4.44.427c-1.355-.259-1.9-.272-2.829-1.08c-.922-.792-1.433-1.173-1.562-2.476c-.366-3.285.491-4.869 1.86-7.758c1.258-2.72 3.913-2.325 5.445-2.096c5.547.855 4.825-3.511 6.356-5.043c1.419-1.417 5.466-2.56 6.793-.822\"/><path fill=\"#ffce14\" d=\"M108.326 93.438c1.893 2.486 5.406 5.155 6.66 5.885c.912.524 2.235 1.14 2.212 2.783c-.046 1.87-1.003 2.395-1.528 2.92c-1.05 1.049-7.584 3.662-11.145 4.783c-4.003 1.161-5.656 1.784-7.718 2.307c-1.256.303-2.537.815-4.467.436c-1.351-.255-1.853-.25-2.779-1.054c-.917-.79-1.362-1.102-1.49-2.398c-.36-3.276.394-4.784 1.738-7.671c1.259-2.778 3.931-2.259 5.456-2.026c5.529.867 4.757-3.615 6.285-5.144c1.416-1.414 5.453-2.554 6.776-.821\"/><path fill=\"#ffce16\" d=\"M108.31 93.462c1.889 2.48 5.393 5.143 6.644 5.871c.91.523 2.23 1.138 2.208 2.776c-.046 1.866-1.001 2.389-1.525 2.912c-1.047 1.047-7.636 3.679-11.158 4.724c-4.008 1.089-5.511 1.677-7.584 2.225c-1.247.315-2.57.821-4.494.444c-1.345-.253-1.805-.23-2.729-1.029c-.912-.786-1.29-1.03-1.417-2.32c-.356-3.267.293-4.699 1.616-7.583c1.258-2.833 3.949-2.192 5.466-1.958c5.512.881 4.689-3.717 6.214-5.242c1.411-1.412 5.439-2.55 6.759-.82\"/><path fill=\"#ffce19\" d=\"M108.293 93.485c1.884 2.475 5.38 5.13 6.628 5.857c.908.522 2.226 1.135 2.202 2.77c-.045 1.861-.998 2.383-1.52 2.905c-1.045 1.044-7.69 3.694-11.17 4.665c-4.015 1.016-5.367 1.568-7.451 2.141c-1.239.327-2.603.828-4.521.453c-1.339-.25-1.758-.209-2.678-1.005c-.909-.783-1.219-.958-1.345-2.242c-.352-3.258.195-4.615 1.494-7.497c1.258-2.89 3.965-2.125 5.476-1.888c5.495.893 4.621-3.821 6.142-5.342c1.408-1.407 5.426-2.541 6.743-.817\"/><path fill=\"#ffce1c\" d=\"M108.276 93.509c1.88 2.469 5.367 5.118 6.613 5.842c.905.521 2.219 1.133 2.196 2.764c-.046 1.856-.997 2.377-1.517 2.898c-1.042 1.042-7.743 3.71-11.184 4.607c-4.021.942-5.222 1.46-7.316 2.057c-1.23.338-2.635.833-4.547.46c-1.334-.248-1.711-.188-2.627-.979c-.904-.78-1.148-.888-1.272-2.165c-.348-3.249.095-4.529 1.37-7.409c1.26-2.947 3.984-2.059 5.488-1.819c5.477.905 4.554-3.923 6.071-5.441c1.403-1.404 5.411-2.535 6.725-.815\"/><path fill=\"#ffcf1e\" d=\"M108.26 93.532c1.875 2.462 5.354 5.106 6.597 5.829c.904.52 2.213 1.129 2.191 2.756c-.045 1.853-.994 2.372-1.514 2.892c-1.039 1.039-7.794 3.726-11.196 4.547c-4.026.87-5.077 1.352-7.184 1.974c-1.221.351-2.665.839-4.572.468c-1.328-.245-1.664-.167-2.577-.954c-.899-.777-1.078-.816-1.2-2.086c-.344-3.239-.005-4.445 1.248-7.322c1.259-3.004 4-1.993 5.498-1.75c5.458.918 4.487-4.028 6-5.541c1.4-1.399 5.398-2.529 6.709-.813\"/><path fill=\"#ffcf21\" d=\"M108.243 93.556c1.87 2.457 5.341 5.094 6.58 5.814c.902.518 2.208 1.127 2.187 2.75c-.045 1.849-.992 2.367-1.51 2.885c-1.037 1.037-7.849 3.742-11.209 4.488c-4.033.797-4.934 1.245-7.05 1.891c-1.213.361-2.698.844-4.599.476c-1.323-.241-1.617-.146-2.526-.929c-.895-.774-1.007-.744-1.128-2.008c-.34-3.231-.103-4.36 1.125-7.234c1.26-3.061 4.019-1.927 5.508-1.682c5.442.931 4.418-4.129 5.928-5.64c1.398-1.397 5.386-2.524 6.694-.811\"/><path fill=\"#ffcf23\" d=\"M108.226 93.58c1.866 2.451 5.328 5.081 6.564 5.8c.9.517 2.203 1.125 2.181 2.743c-.045 1.843-.99 2.361-1.507 2.877c-1.034 1.034-7.901 3.759-11.222 4.431c-4.04.725-4.788 1.136-6.917 1.808c-1.204.373-2.73.85-4.625.484c-1.318-.239-1.57-.126-2.476-.904c-.891-.771-.935-.672-1.055-1.93c-.335-3.222-.202-4.275 1.002-7.148c1.261-3.116 4.038-1.86 5.519-1.611c5.424.943 4.351-4.233 5.858-5.74c1.395-1.395 5.374-2.519 6.678-.81\"/><path fill=\"#ffcf26\" d=\"M108.21 93.604c1.861 2.445 5.315 5.069 6.548 5.786c.897.516 2.198 1.122 2.175 2.736c-.044 1.839-.986 2.354-1.502 2.871c-1.032 1.031-7.955 3.774-11.235 4.37c-4.045.652-4.644 1.029-6.783 1.724c-1.196.385-2.763.857-4.652.493c-1.312-.236-1.522-.105-2.425-.88c-.886-.767-.865-.601-.982-1.851c-.332-3.213-.302-4.19.879-7.06c1.26-3.174 4.055-1.794 5.529-1.543c5.406.956 4.283-4.336 5.785-5.838c1.392-1.391 5.362-2.514 6.663-.808\"/><path fill=\"#ffd028\" d=\"M108.192 93.628c1.858 2.438 5.303 5.055 6.534 5.772c.894.514 2.192 1.118 2.17 2.729c-.045 1.835-.985 2.349-1.499 2.863c-1.03 1.03-8.007 3.791-11.249 4.312c-4.052.579-4.499.92-6.648 1.641c-1.188.396-2.796.862-4.68.499c-1.307-.232-1.474-.083-2.374-.854c-.882-.765-.793-.529-.91-1.774c-.327-3.204-.401-4.105.758-6.973c1.26-3.23 4.071-1.728 5.54-1.473c5.388.968 4.215-4.44 5.714-5.938c1.387-1.387 5.347-2.506 6.644-.804\"/><path fill=\"#ffd02b\" d=\"M108.176 93.651c1.852 2.433 5.289 5.043 6.516 5.758c.894.513 2.188 1.116 2.165 2.723c-.044 1.831-.981 2.344-1.495 2.857c-1.027 1.026-8.061 3.807-11.261 4.253c-4.058.506-4.354.812-6.515 1.557c-1.178.408-2.828.868-4.706.508c-1.301-.23-1.427-.063-2.323-.829c-.877-.762-.722-.458-.837-1.696c-.324-3.195-.5-4.02.633-6.886c1.262-3.286 4.09-1.661 5.551-1.404c5.371.982 4.147-4.542 5.642-6.038c1.385-1.384 5.336-2.5 6.63-.803\"/><path fill=\"#ffd02d\" d=\"M108.159 93.675c1.848 2.426 5.276 5.031 6.501 5.743c.89.513 2.182 1.114 2.159 2.717c-.044 1.826-.979 2.338-1.491 2.85c-1.025 1.024-8.114 3.823-11.273 4.194c-4.064.434-4.21.704-6.382 1.474c-1.169.42-2.86.875-4.732.517c-1.296-.228-1.38-.042-2.273-.805c-.872-.759-.652-.386-.764-1.618c-.319-3.186-.599-3.936.511-6.799c1.262-3.343 4.107-1.595 5.562-1.335c5.353.994 4.08-4.646 5.571-6.137c1.379-1.38 5.32-2.494 6.611-.801\"/><path fill=\"#ffd030\" d=\"M108.143 93.698c1.843 2.421 5.263 5.02 6.485 5.73c.888.511 2.176 1.11 2.154 2.709c-.045 1.822-.978 2.332-1.488 2.843c-1.022 1.022-8.167 3.839-11.287 4.136c-4.069.361-4.065.596-6.248 1.391c-1.161.431-2.892.88-4.759.524c-1.29-.225-1.332-.021-2.221-.779c-.868-.756-.581-.314-.693-1.54c-.314-3.177-.698-3.851.389-6.711c1.262-3.399 4.125-1.529 5.572-1.266c5.335 1.006 4.011-4.749 5.5-6.236c1.376-1.378 5.307-2.489 6.596-.801\"/><path fill=\"#ffd133\" d=\"M108.125 93.722c1.839 2.414 5.251 5.007 6.47 5.715c.886.51 2.171 1.108 2.148 2.703c-.044 1.817-.975 2.326-1.484 2.836c-1.019 1.019-8.22 3.855-11.299 4.076c-4.077.288-3.921.487-6.114 1.308c-1.153.443-2.925.886-4.785.531c-1.285-.221-1.285 0-2.171-.753c-.864-.754-.51-.244-.621-1.462c-.311-3.168-.797-3.766.266-6.624c1.263-3.457 4.143-1.462 5.583-1.197c5.317 1.019 3.944-4.852 5.429-6.336c1.372-1.373 5.294-2.481 6.578-.797\"/><path fill=\"#995900\" d=\"M26.657 90.065c-2.093 1.511-7.393 1.371-8.741 3.138c-1.325 1.767.047 4.324.023 9.066c0 2.023-.348 3.558-.581 4.789c-.325 1.558-.535 2.651.116 3.766c1.187 1.977 3.091 2.465 13.995 4.743c5.834 1.208 11.344 4.347 15.04 4.649c3.696.279 4.487-.953 6.742-2.952c2.231-1.999 2.952-1.372 2.882-5.765c-.069-4.37-2.882-5.672-6.067-10.717c-3.185-5.044-3.695-5.974-5.811-9.322c-2.116-3.301-6.3-9.298-8.694-9.368c-1.907-.046-2.976.977-4.162 2.186c-1.186 1.208-2.651 4.276-4.742 5.787\"/><path fill=\"#9e5e00\" d=\"M26.689 90.158c-2.065 1.518-7.256 1.223-8.737 3.071c-1.341 1.749.074 4.287.032 9.026c-.008 2.011-.372 3.513-.625 4.803c-.335 1.573-.542 2.647.113 3.751c1.222 1.99 3.129 2.3 14.03 4.574c5.832 1.207 11.153 4.296 14.963 4.557c3.611.255 4.379-.913 6.607-2.893c2.226-2 2.913-1.381 2.859-5.62c-.024-4.365-2.682-5.602-5.866-10.646c-3.185-5.043-3.696-5.974-5.812-9.322c-2.115-3.301-6.299-9.298-8.694-9.368c-1.906-.046-2.975.977-4.162 2.186c-1.184 1.209-2.631 4.351-4.708 5.881\"/><path fill=\"#a36400\" d=\"M26.723 90.251c-2.038 1.525-7.12 1.075-8.733 3.004c-1.357 1.729.101 4.249.04 8.985c-.016 2.001-.395 3.47-.669 4.818c-.343 1.588-.549 2.646.11 3.736c1.259 2.003 3.168 2.136 14.065 4.407c5.828 1.205 10.961 4.245 14.885 4.464c3.527.232 4.272-.874 6.472-2.834c2.223-2.001 2.876-1.39 2.839-5.475c.02-4.361-2.48-5.531-5.666-10.575c-3.185-5.043-3.695-5.974-5.811-9.322c-2.116-3.301-6.3-9.298-8.694-9.368c-1.907-.046-2.976.977-4.162 2.186s-2.616 4.426-4.676 5.974\"/><path fill=\"#a86a00\" d=\"M26.757 90.344c-2.012 1.532-6.984.925-8.73 2.936c-1.374 1.711.127 4.212.048 8.944c-.025 1.991-.419 3.428-.714 4.834c-.354 1.603-.556 2.644.106 3.721c1.297 2.018 3.207 1.972 14.103 4.24c5.824 1.202 10.769 4.193 14.807 4.371c3.441.209 4.166-.835 6.337-2.775c2.217-2.002 2.837-1.399 2.816-5.329c.066-4.356-2.28-5.46-5.464-10.504s-3.696-5.974-5.812-9.322c-2.115-3.301-6.299-9.298-8.694-9.368c-1.906-.046-2.975.977-4.162 2.186c-1.185 1.208-2.597 4.499-4.641 6.066\"/><path fill=\"#ad7000\" d=\"M26.791 90.437c-1.985 1.539-6.849.777-8.727 2.869c-1.39 1.693.154 4.175.056 8.904c-.033 1.981-.441 3.384-.757 4.849c-.362 1.618-.563 2.642.102 3.707c1.334 2.031 3.245 1.808 14.138 4.072c5.821 1.2 10.577 4.142 14.729 4.277c3.357.186 4.059-.795 6.203-2.715c2.212-2.003 2.798-1.409 2.793-5.183c.112-4.353-2.079-5.389-5.263-10.434c-3.185-5.044-3.696-5.975-5.812-9.322c-2.115-3.301-6.299-9.298-8.694-9.368c-1.906-.047-2.975.976-4.162 2.185c-1.184 1.208-2.579 4.573-4.606 6.159\"/><path fill=\"#b27500\" d=\"M26.825 90.53c-1.959 1.545-6.713.627-8.724 2.802c-1.406 1.673.181 4.137.064 8.861c-.041 1.971-.465 3.342-.802 4.864c-.371 1.634-.569 2.639.1 3.691c1.372 2.046 3.283 1.645 14.174 3.905c5.818 1.197 10.385 4.092 14.651 4.185c3.272.162 3.952-.756 6.067-2.657c2.208-2.005 2.76-1.418 2.772-5.039c.157-4.347-1.877-5.318-5.062-10.362c-3.186-5.043-3.696-5.974-5.812-9.322c-2.115-3.301-6.299-9.298-8.694-9.368c-1.906-.046-2.975.977-4.162 2.186c-1.184 1.21-2.561 4.649-4.572 6.254\"/><path fill=\"#b77b00\" d=\"M26.859 90.622c-1.932 1.554-6.577.479-8.72 2.734c-1.423 1.655.207 4.1.072 8.822c-.049 1.959-.488 3.299-.846 4.879c-.381 1.648-.576 2.637.095 3.676c1.409 2.06 3.322 1.481 14.211 3.737c5.814 1.196 10.193 4.042 14.573 4.092c3.188.14 3.845-.716 5.933-2.596c2.204-2.007 2.723-1.428 2.75-4.894c.203-4.342-1.676-5.247-4.861-10.292c-3.186-5.043-3.696-5.974-5.812-9.322c-2.116-3.301-6.3-9.298-8.694-9.368c-1.906-.046-2.976.977-4.162 2.186s-2.545 4.725-4.539 6.346\"/><path fill=\"#bc8100\" d=\"M26.892 90.716c-1.905 1.56-6.441.33-8.716 2.667c-1.439 1.636.233 4.063.08 8.782c-.057 1.948-.511 3.254-.89 4.893c-.39 1.664-.583 2.634.092 3.661c1.446 2.074 3.36 1.317 14.247 3.57c5.811 1.193 10.002 3.989 14.495 3.998c3.103.117 3.738-.676 5.798-2.537c2.199-2.007 2.684-1.436 2.728-4.748c.248-4.338-1.475-5.175-4.66-10.22s-3.696-5.975-5.812-9.322c-2.115-3.301-6.299-9.298-8.694-9.368c-1.906-.047-2.975.976-4.162 2.185c-1.185 1.209-2.527 4.797-4.506 6.439\"/><path fill=\"#c18700\" d=\"M26.926 90.808c-1.878 1.567-6.304.182-8.713 2.6c-1.455 1.618.261 4.026.089 8.74c-.065 1.939-.535 3.212-.935 4.909c-.399 1.679-.59 2.632.089 3.646c1.483 2.087 3.398 1.153 14.282 3.403c5.806 1.19 9.81 3.938 14.417 3.905c3.018.093 3.631-.636 5.664-2.478c2.194-2.008 2.645-1.446 2.705-4.603c.292-4.333-1.274-5.105-4.458-10.149c-3.186-5.044-3.696-5.975-5.812-9.322c-2.116-3.301-6.3-9.298-8.694-9.368c-1.906-.047-2.976.976-4.162 2.186c-1.186 1.208-2.51 4.872-4.472 6.531\"/><path fill=\"#c68c00\" d=\"M26.959 90.901c-1.85 1.574-6.167.033-8.709 2.531c-1.471 1.6.288 3.989.097 8.7c-.074 1.929-.558 3.169-.979 4.924c-.409 1.694-.598 2.63.085 3.63c1.521 2.102 3.438.99 14.319 3.236c5.804 1.188 9.618 3.887 14.339 3.813c2.933.07 3.524-.599 5.528-2.419c2.189-2.009 2.606-1.455 2.684-4.458c.338-4.328-1.073-5.034-4.258-10.079c-3.185-5.044-3.695-5.975-5.811-9.322c-2.116-3.301-6.3-9.298-8.694-9.368c-1.907-.047-2.976.976-4.162 2.186s-2.493 4.948-4.439 6.626\"/><path fill=\"#cc9200\" d=\"M26.993 90.994c-1.825 1.581-6.032-.116-8.706 2.465c-1.488 1.581.313 3.952.104 8.659c-.082 1.917-.582 3.127-1.023 4.939c-.419 1.708-.604 2.628.081 3.615c1.558 2.115 3.476.825 14.355 3.068c5.8 1.186 9.426 3.836 14.262 3.719c2.847.046 3.417-.558 5.393-2.359c2.186-2.011 2.569-1.464 2.662-4.312c.384-4.324-.871-4.963-4.057-10.007c-3.185-5.044-3.695-5.975-5.811-9.322c-2.116-3.301-6.3-9.298-8.694-9.368c-1.907-.047-2.976.976-4.162 2.185s-2.474 5.022-4.404 6.718\"/><path fill=\"#d19800\" d=\"M27.027 91.088c-1.798 1.588-5.896-.264-8.702 2.397c-1.504 1.562.34 3.914.113 8.618c-.089 1.907-.604 3.083-1.067 4.955c-.428 1.724-.611 2.625.078 3.6c1.595 2.131 3.514.662 14.39 2.901c5.797 1.184 9.235 3.785 14.184 3.626c2.763.023 3.311-.518 5.259-2.299c2.181-2.013 2.53-1.475 2.64-4.167c.429-4.32-.67-4.893-3.856-9.938c-3.185-5.043-3.695-5.974-5.811-9.322c-2.116-3.301-6.3-9.298-8.694-9.368c-1.907-.046-2.976.977-4.162 2.186s-2.458 5.096-4.372 6.811\"/><path fill=\"#d69e00\" d=\"M27.06 91.181c-1.771 1.595-5.76-.414-8.698 2.329c-1.521 1.544.367 3.877.12 8.578c-.097 1.897-.626 3.04-1.111 4.97c-.437 1.74-.618 2.623.075 3.585c1.631 2.145 3.551.498 14.426 2.734c5.793 1.181 9.043 3.733 14.106 3.533c2.678 0 3.204-.479 5.123-2.241c2.177-2.013 2.493-1.483 2.618-4.021c.475-4.314-.469-4.821-3.654-9.866c-3.185-5.044-3.695-5.975-5.811-9.322c-2.116-3.301-6.3-9.298-8.694-9.368c-1.907-.047-2.976.976-4.162 2.185s-2.441 5.169-4.338 6.904\"/><path fill=\"#dba300\" d=\"M27.095 91.273c-1.745 1.603-5.625-.562-8.696 2.262c-1.536 1.525.395 3.84.129 8.537c-.104 1.886-.65 2.997-1.154 4.984c-.447 1.755-.626 2.62.071 3.57c1.668 2.157 3.59.333 14.463 2.566c5.789 1.178 8.851 3.682 14.028 3.44c2.592-.023 3.097-.439 4.988-2.182c2.172-2.015 2.454-1.493 2.596-3.876c.519-4.311-.27-4.751-3.454-9.796s-3.696-5.975-5.812-9.322c-2.115-3.301-6.299-9.298-8.694-9.368c-1.906-.047-2.975.976-4.162 2.186c-1.185 1.211-2.423 5.247-4.303 6.999\"/><path fill=\"#e0a900\" d=\"M27.128 91.366c-1.718 1.609-5.488-.711-8.692 2.195c-1.553 1.507.42 3.803.137 8.496c-.114 1.876-.673 2.955-1.199 5c-.455 1.77-.632 2.618.068 3.555c1.706 2.171 3.628.17 14.499 2.399c5.786 1.177 8.659 3.632 13.95 3.348c2.509-.047 2.99-.399 4.854-2.122c2.167-2.016 2.415-1.502 2.573-3.732c.565-4.305-.067-4.68-3.253-9.724c-3.185-5.043-3.695-5.974-5.811-9.322c-2.116-3.301-6.3-9.298-8.694-9.368c-1.907-.046-2.976.977-4.162 2.186s-2.405 5.318-4.27 7.089\"/><path fill=\"#e5af00\" d=\"M27.162 91.459c-1.691 1.616-5.353-.859-8.689 2.128c-1.569 1.488.447 3.766.146 8.455c-.123 1.865-.697 2.912-1.244 5.015c-.465 1.785-.639 2.616.063 3.541c1.744 2.184 3.667.005 14.535 2.231c5.783 1.174 8.468 3.58 13.873 3.254c2.423-.07 2.882-.361 4.718-2.063c2.162-2.017 2.377-1.512 2.552-3.586c.609-4.3.132-4.609-3.052-9.653c-3.185-5.043-3.696-5.974-5.812-9.322c-2.115-3.301-6.299-9.298-8.694-9.368c-1.906-.046-2.975.977-4.162 2.186c-1.183 1.209-2.386 5.393-4.234 7.182\"/><path fill=\"#eab500\" d=\"M27.196 91.553c-1.665 1.622-5.217-1.009-8.685 2.06c-1.585 1.469.474 3.728.154 8.415c-.131 1.855-.72 2.868-1.288 5.03c-.474 1.8-.647 2.614.061 3.524c1.78 2.2 3.706-.158 14.571 2.064c5.779 1.172 8.276 3.529 13.794 3.162c2.338-.093 2.775-.32 4.584-2.004c2.157-2.018 2.338-1.52 2.529-3.44c.656-4.296.334-4.539-2.85-9.583c-3.185-5.043-3.696-5.974-5.812-9.322c-2.115-3.301-6.299-9.298-8.694-9.368c-1.906-.046-2.975.977-4.161 2.186s-2.372 5.467-4.203 7.276\"/><path fill=\"#efba00\" d=\"M27.229 91.646c-1.638 1.63-5.081-1.157-8.682 1.992c-1.602 1.451.502 3.692.162 8.375c-.138 1.845-.744 2.826-1.331 5.045c-.484 1.815-.654 2.611.057 3.509c1.817 2.213 3.743-.321 14.607 1.896c5.775 1.17 8.083 3.478 13.715 3.069c2.254-.116 2.669-.281 4.45-1.944c2.153-2.02 2.301-1.53 2.508-3.296c.701-4.291.535-4.466-2.649-9.511s-3.696-5.975-5.812-9.322c-2.115-3.301-6.299-9.298-8.694-9.368c-1.906-.047-2.975.976-4.162 2.185c-1.185 1.21-2.354 5.543-4.169 7.37\"/><path fill=\"#f4c000\" d=\"M27.263 91.739c-1.61 1.635-4.944-1.307-8.678 1.924c-1.618 1.433.528 3.654.169 8.334c-.146 1.834-.768 2.782-1.376 5.061c-.493 1.83-.661 2.609.053 3.494c1.855 2.227 3.782-.486 14.644 1.729c5.772 1.167 7.892 3.427 13.639 2.976c2.168-.14 2.562-.242 4.314-1.885c2.147-2.02 2.262-1.54 2.485-3.15c.747-4.287.736-4.396-2.448-9.441c-3.185-5.043-3.696-5.974-5.812-9.322c-2.115-3.301-6.299-9.298-8.694-9.368c-1.906-.046-2.975.977-4.162 2.186c-1.184 1.209-2.335 5.616-4.134 7.462\"/><path fill=\"#f9c600\" d=\"M27.296 91.831c-1.584 1.644-4.808-1.455-8.674 1.857c-1.633 1.413.555 3.618.179 8.294c-.156 1.823-.791 2.739-1.421 5.075c-.502 1.845-.667 2.606.05 3.479c1.892 2.241 3.821-.65 14.68 1.562c5.768 1.165 7.7 3.375 13.56 2.884c2.085-.163 2.456-.203 4.18-1.826c2.144-2.022 2.224-1.548 2.463-3.006c.792-4.281.938-4.325-2.247-9.37c-3.185-5.043-3.695-5.974-5.811-9.322c-2.116-3.301-6.3-9.298-8.694-9.368c-1.907-.046-2.976.977-4.162 2.186s-2.32 5.691-4.103 7.555\"/><path fill=\"#fc0\" d=\"M27.33 91.924c-1.557 1.65-4.672-1.604-8.67 1.79c-1.65 1.394.581 3.58.186 8.252c-.163 1.813-.813 2.697-1.464 5.091c-.512 1.86-.675 2.604.046 3.464c1.93 2.255 3.859-.813 14.715 1.395c5.765 1.162 7.508 3.324 13.483 2.79c1.999-.186 2.347-.162 4.045-1.767c2.138-2.022 2.184-1.558 2.441-2.859c.836-4.277 1.139-4.254-2.046-9.298c-3.186-5.044-3.696-5.975-5.812-9.322c-2.116-3.301-6.3-9.298-8.694-9.368c-1.906-.047-2.976.976-4.162 2.185s-2.301 5.765-4.068 7.647m1.007 1.816c-1.381 1.466-5.902-.439-8.036 1.173c-1.528 1.13.774 2.553.46 6.739c-.125 1.59-1.234 1.883-.774 4.081c.356 1.653.733 1.611 1.361 2.365c1.715 2.009 1.318.544 11.092 2.511c5.169 1.047 6.76 2.993 12.139 2.512c1.799-.167 2.135-.146 3.642-1.59c1.925-1.8.942-1.424 1.15-2.574c.733-3.83.147-4.5-2.721-9.042s-2.616-4.793-4.499-7.785c-1.884-2.952-4.479-8.33-6.635-8.372c-1.694-.042-2.679.879-3.746 1.967s-1.863 6.342-3.433 8.015\"/><path fill=\"#ffcc02\" d=\"M28.432 93.771c-1.441 1.518-6.006-.386-8.091 1.196c-1.518 1.134.832 2.599.519 6.677c-.129 1.58-1.205 1.897-.793 4.079c.318 1.644.76 1.594 1.399 2.324c1.836 1.98 1.509.59 11.016 2.5c5.139 1.037 6.72 2.976 12.066 2.497c1.789-.166 2.092-.149 3.602-1.565c1.893-1.746.923-1.384 1.102-2.602c.667-3.805.143-4.514-2.644-8.926c-2.851-4.515-2.629-4.745-4.501-7.721c-1.872-2.933-4.423-8.332-6.566-8.373c-1.685-.042-2.663.873-3.723 1.955c-1.063 1.082-1.824 6.297-3.386 7.959\"/><path fill=\"#ffcc05\" d=\"M28.528 93.799c-1.5 1.571-6.112-.333-8.146 1.221c-1.507 1.138.891 2.645.579 6.615c-.134 1.57-1.176 1.91-.813 4.076c.281 1.636.791 1.578 1.438 2.286c1.956 1.949 1.7.635 10.94 2.488c5.109 1.027 6.681 2.957 11.993 2.481c1.778-.164 2.048-.152 3.562-1.54c1.862-1.691.905-1.346 1.053-2.628c.602-3.783.14-4.529-2.567-8.814c-2.835-4.488-2.642-4.699-4.503-7.656c-1.86-2.916-4.368-8.334-6.498-8.375c-1.675-.041-2.647.868-3.702 1.944s-1.782 6.254-3.336 7.902\"/><path fill=\"#ffcc07\" d=\"M28.622 93.829c-1.559 1.624-6.216-.279-8.2 1.245c-1.498 1.143.949 2.69.638 6.552c-.137 1.562-1.146 1.925-.832 4.075c.244 1.626.819 1.561 1.477 2.245c2.076 1.92 1.89.681 10.864 2.478c5.079 1.016 6.641 2.939 11.922 2.466c1.768-.162 2.005-.155 3.521-1.515c1.83-1.638.886-1.307 1.003-2.656c.537-3.758.136-4.543-2.49-8.7c-2.818-4.46-2.655-4.651-4.505-7.591c-1.849-2.898-4.313-8.335-6.43-8.376c-1.665-.041-2.63.863-3.679 1.932s-1.742 6.209-3.289 7.845\"/><path fill=\"#ffcd0a\" d=\"M28.717 93.859c-1.618 1.676-6.321-.226-8.254 1.269c-1.488 1.148 1.007 2.736.697 6.491c-.142 1.553-1.117 1.938-.853 4.072c.208 1.618.848 1.543 1.516 2.205c2.195 1.891 2.08.727 10.788 2.467c5.049 1.007 6.602 2.921 11.849 2.452c1.756-.16 1.962-.158 3.481-1.491c1.798-1.583.868-1.267.954-2.681c.472-3.736.131-4.559-2.413-8.586c-2.802-4.434-2.667-4.605-4.507-7.526c-1.838-2.881-4.258-8.337-6.362-8.379c-1.654-.041-2.615.859-3.656 1.92c-1.042 1.061-1.7 6.162-3.24 7.787\"/><path fill=\"#ffcd0c\" d=\"M28.813 93.888c-1.676 1.729-6.427-.173-8.309 1.293c-1.478 1.151 1.063 2.781.755 6.427c-.145 1.543-1.088 1.952-.871 4.07c.169 1.609.876 1.527 1.555 2.166c2.315 1.861 2.269.772 10.71 2.455c5.021.997 6.563 2.904 11.778 2.437c1.745-.158 1.919-.161 3.441-1.465c1.766-1.529.849-1.229.904-2.71c.407-3.711.129-4.572-2.334-8.472c-2.787-4.406-2.682-4.558-4.509-7.461c-1.828-2.863-4.203-8.34-6.294-8.381c-1.646-.04-2.6.854-3.635 1.909s-1.659 6.121-3.191 7.732\"/><path fill=\"#ffcd0f\" d=\"M28.908 93.917c-1.736 1.783-6.531-.119-8.363 1.319c-1.467 1.156 1.123 2.827.814 6.365c-.148 1.533-1.058 1.965-.89 4.067c.133 1.6.905 1.51 1.594 2.126c2.435 1.833 2.461.817 10.635 2.443c4.99.987 6.523 2.886 11.705 2.422c1.735-.156 1.876-.164 3.401-1.44c1.735-1.475.83-1.189.855-2.737c.341-3.687.125-4.587-2.258-8.358c-2.77-4.379-2.694-4.51-4.511-7.396c-1.816-2.845-4.147-8.341-6.226-8.381c-1.633-.041-2.583.847-3.611 1.897c-1.032 1.049-1.622 6.075-3.145 7.673\"/><path fill=\"#ffcd11\" d=\"M29.002 93.946c-1.795 1.836-6.637-.066-8.417 1.342c-1.458 1.161 1.181 2.873.874 6.303c-.153 1.524-1.029 1.979-.91 4.066c.096 1.59.935 1.492 1.633 2.085c2.554 1.802 2.651.863 10.558 2.432c4.96.977 6.485 2.868 11.632 2.407c1.725-.155 1.833-.167 3.361-1.415c1.703-1.421.812-1.151.806-2.764c.276-3.664.121-4.603-2.182-8.245c-2.754-4.352-2.707-4.464-4.513-7.332c-1.804-2.828-4.091-8.343-6.157-8.383c-1.625-.041-2.566.842-3.589 1.885c-1.023 1.046-1.579 6.034-3.096 7.619\"/><path fill=\"#ffce14\" d=\"M29.097 93.975c-1.854 1.89-6.741-.013-8.473 1.367c-1.447 1.165 1.239 2.918.933 6.241c-.157 1.515-.999 1.993-.929 4.063c.059 1.582.963 1.476 1.672 2.046c2.673 1.773 2.841.908 10.482 2.421c4.931.967 6.446 2.85 11.56 2.392c1.714-.152 1.79-.168 3.321-1.389c1.671-1.368.793-1.112.756-2.792c.211-3.64.118-4.616-2.105-8.131c-2.737-4.324-2.72-4.416-4.513-7.266c-1.793-2.81-4.037-8.346-6.089-8.386c-1.614-.04-2.551.837-3.568 1.873c-1.016 1.038-1.537 5.989-3.047 7.561\"/><path fill=\"#ffce16\" d=\"M29.192 94.005c-1.913 1.943-6.846.041-8.526 1.391c-1.438 1.169 1.297 2.964.991 6.179c-.16 1.505-.969 2.006-.948 4.061c.021 1.574.992 1.459 1.71 2.006c2.793 1.744 3.032.955 10.406 2.411c4.9.957 6.405 2.832 11.487 2.376c1.703-.15 1.746-.172 3.28-1.364c1.64-1.313.775-1.073.708-2.818c.146-3.616.115-4.632-2.026-8.017c-2.723-4.298-2.733-4.37-4.516-7.202c-1.782-2.792-3.982-8.348-6.021-8.388c-1.604-.039-2.535.832-3.545 1.862c-1.011 1.03-1.498 5.944-3 7.503\"/><path fill=\"#ffce19\" d=\"M29.287 94.034c-1.972 1.996-6.951.094-8.58 1.416c-1.428 1.174 1.354 3.01 1.051 6.117c-.165 1.496-.94 2.02-.968 4.059c-.016 1.564 1.021 1.441 1.75 1.966c2.913 1.713 3.221 1 10.33 2.398c4.87.947 6.367 2.814 11.415 2.361c1.693-.148 1.704-.174 3.24-1.339c1.608-1.258.757-1.035.658-2.845c.081-3.593.111-4.646-1.95-7.904c-2.706-4.271-2.747-4.322-4.517-7.136c-1.771-2.776-3.927-8.349-5.954-8.389c-1.594-.04-2.519.827-3.523 1.85s-1.457 5.9-2.952 7.446\"/><path fill=\"#ffce1c\" d=\"M29.383 94.064c-2.032 2.048-7.056.147-8.636 1.439c-1.417 1.178 1.414 3.056 1.11 6.055c-.167 1.485-.91 2.033-.987 4.056c-.053 1.556 1.05 1.425 1.788 1.926c3.034 1.685 3.412 1.046 10.254 2.388c4.841.937 6.327 2.796 11.342 2.347c1.683-.146 1.661-.177 3.2-1.314c1.577-1.205.739-.995.61-2.872c.016-3.569.106-4.662-1.873-7.79c-2.689-4.243-2.759-4.275-4.52-7.072c-1.759-2.757-3.87-8.351-5.885-8.391c-1.584-.039-2.503.822-3.501 1.839c-.996 1.017-1.416 5.854-2.902 7.389\"/><path fill=\"#ffcf1e\" d=\"M29.477 94.092c-2.089 2.102-7.161.201-8.69 1.464c-1.407 1.183 1.472 3.101 1.168 5.992c-.171 1.478-.881 2.048-1.006 4.056c-.09 1.545 1.078 1.407 1.827 1.886c3.153 1.655 3.602 1.092 10.177 2.375c4.81.928 6.287 2.779 11.271 2.333c1.67-.145 1.617-.181 3.159-1.29c1.545-1.151.72-.957.561-2.899c-.051-3.544.102-4.675-1.797-7.675c-2.672-4.217-2.771-4.229-4.521-7.009c-1.749-2.739-3.815-8.353-5.817-8.392c-1.574-.039-2.488.816-3.478 1.827c-.989 1.012-1.375 5.811-2.854 7.332\"/><path fill=\"#ffcf21\" d=\"M29.572 94.122c-2.148 2.155-7.266.253-8.744 1.489c-1.397 1.187 1.529 3.146 1.228 5.93c-.176 1.467-.851 2.062-1.026 4.053c-.128 1.537 1.106 1.39 1.866 1.846c3.272 1.626 3.792 1.137 10.101 2.365c4.781.917 6.248 2.761 11.199 2.317c1.659-.142 1.574-.183 3.119-1.264c1.513-1.097.701-.918.511-2.926c-.116-3.521.099-4.69-1.72-7.562c-2.657-4.19-2.785-4.181-4.522-6.942c-1.737-2.723-3.76-8.356-5.749-8.395c-1.564-.038-2.471.811-3.456 1.815c-.985 1.003-1.335 5.765-2.807 7.274\"/><path fill=\"#ffcf23\" d=\"M29.667 94.151c-2.208 2.208-7.371.307-8.798 1.514c-1.388 1.19 1.586 3.192 1.286 5.867c-.181 1.458-.822 2.074-1.046 4.05c-.164 1.527 1.137 1.374 1.905 1.806c3.393 1.597 3.983 1.183 10.025 2.354c4.751.908 6.209 2.743 11.126 2.301c1.65-.14 1.531-.186 3.08-1.238c1.481-1.042.683-.879.462-2.954c-.181-3.498.096-4.704-1.643-7.447c-2.64-4.163-2.797-4.135-4.524-6.878c-1.727-2.704-3.705-8.357-5.68-8.396c-1.555-.039-2.456.806-3.434 1.803c-.977.998-1.294 5.723-2.759 7.218\"/><path fill=\"#ffcf26\" d=\"M29.763 94.181c-2.268 2.261-7.477.36-8.854 1.538c-1.377 1.195 1.646 3.237 1.346 5.805c-.184 1.448-.793 2.088-1.065 4.047c-.202 1.52 1.165 1.357 1.944 1.768c3.512 1.566 4.173 1.227 9.948 2.342c4.721.897 6.169 2.726 11.054 2.288c1.639-.139 1.487-.189 3.039-1.214c1.45-.988.665-.839.412-2.979c-.246-3.475.092-4.72-1.564-7.334c-2.625-4.136-2.812-4.087-4.527-6.813c-1.715-2.687-3.649-8.359-5.612-8.398c-1.544-.038-2.44.801-3.412 1.792c-.971.988-1.252 5.675-2.709 7.158\"/><path fill=\"#ffd028\" d=\"M29.858 94.21c-2.326 2.314-7.582.414-8.908 1.562c-1.367 1.2 1.704 3.283 1.405 5.743c-.188 1.438-.764 2.102-1.085 4.046c-.237 1.511 1.195 1.339 1.984 1.726c3.632 1.538 4.363 1.274 9.872 2.332c4.691.886 6.13 2.707 10.981 2.271c1.628-.136 1.445-.191 3-1.188c1.418-.936.646-.801.363-3.008c-.312-3.45.088-4.734-1.488-7.22c-2.609-4.109-2.824-4.042-4.528-6.749c-1.704-2.67-3.594-8.361-5.544-8.399c-1.534-.038-2.424.795-3.389 1.78c-.967.984-1.215 5.634-2.663 7.104\"/><path fill=\"#ffd02b\" d=\"M29.952 94.239c-2.385 2.367-7.686.467-8.961 1.586c-1.358 1.204 1.761 3.329 1.463 5.68c-.191 1.43-.733 2.116-1.103 4.043c-.275 1.502 1.223 1.323 2.022 1.688c3.751 1.508 4.553 1.319 9.795 2.319c4.661.878 6.09 2.69 10.909 2.257c1.618-.135 1.401-.195 2.959-1.164c1.386-.881.627-.762.313-3.034c-.375-3.427.086-4.749-1.41-7.107c-2.593-4.081-2.837-3.994-4.53-6.683c-1.693-2.652-3.54-8.363-5.477-8.401c-1.524-.038-2.408.79-3.367 1.768c-.957.979-1.171 5.591-2.613 7.048\"/><path fill=\"#ffd02d\" d=\"M30.047 94.269c-2.444 2.419-7.791.52-9.015 1.61c-1.348 1.208 1.819 3.374 1.522 5.618c-.195 1.419-.705 2.129-1.123 4.042c-.312 1.492 1.251 1.306 2.061 1.646c3.871 1.479 4.744 1.366 9.72 2.309c4.631.867 6.051 2.671 10.836 2.242c1.607-.133 1.358-.197 2.919-1.138c1.354-.828.609-.723.265-3.061c-.441-3.402.081-4.764-1.334-6.993c-2.576-4.054-2.849-3.946-4.532-6.617c-1.681-2.636-3.483-8.366-5.408-8.404c-1.514-.037-2.392.786-3.344 1.756c-.953.972-1.132 5.544-2.567 6.99\"/><path fill=\"#ffd030\" d=\"M30.142 94.298c-2.502 2.472-7.895.573-9.07 1.635c-1.337 1.212 1.877 3.421 1.582 5.556c-.199 1.41-.675 2.143-1.142 4.039c-.35 1.484 1.279 1.289 2.099 1.607c3.992 1.449 4.935 1.411 9.644 2.296c4.602.858 6.012 2.655 10.765 2.228c1.596-.131 1.314-.201 2.879-1.113c1.322-.773.59-.684.214-3.088c-.506-3.379.078-4.778-1.256-6.879c-2.561-4.027-2.863-3.899-4.533-6.553c-1.671-2.617-3.429-8.368-5.34-8.404c-1.503-.038-2.375.78-3.322 1.744c-.948.965-1.093 5.5-2.52 6.932\"/><path fill=\"#ffd133\" d=\"M30.238 94.327c-2.563 2.526-8 .627-9.125 1.659c-1.327 1.217 1.935 3.466 1.64 5.494c-.201 1.4-.645 2.156-1.161 4.037c-.387 1.474 1.309 1.272 2.139 1.567c4.11 1.419 5.125 1.456 9.567 2.286c4.571.848 5.973 2.636 10.691 2.212c1.585-.129 1.272-.203 2.839-1.088c1.291-.718.572-.645.166-3.115c-.572-3.356.074-4.793-1.179-6.766c-2.544-4.001-2.876-3.853-4.535-6.489c-1.66-2.6-3.374-8.37-5.272-8.406c-1.494-.037-2.36.774-3.3 1.733c-.94.961-1.051 5.456-2.47 6.876\"/><path fill=\"currentColor\" d=\"M38.372 72.328c-.302.673-.558 6.462.953 8.717c1.511 2.231 1.07 3.51-.604 1.813c-1.744-1.65-2.883-4.138-2.906-5.858c0-.999.768-5.114 1.07-5.556c.324-.465 1.719.372 1.487.884\"/><path fill=\"#030303\" d=\"M38.343 72.441c-.292.755-.535 6.359.972 8.609c1.506 2.229 1.029 3.387-.594 1.73c-1.689-1.614-2.779-4.026-2.822-5.743c-.014-1.005.721-4.978 1.011-5.421c.311-.449 1.656.32 1.433.825\"/><path fill=\"#070707\" d=\"M38.314 72.554c-.282.836-.511 6.258.99 8.503c1.502 2.225.988 3.264-.584 1.646c-1.633-1.576-2.675-3.914-2.738-5.627c-.028-1.011.677-4.843.954-5.287c.294-.435 1.59.267 1.378.765\"/><path fill=\"#0b0b0b\" d=\"M38.285 72.666c-.271.918-.488 6.156 1.009 8.396c1.497 2.222.947 3.141-.573 1.563c-1.58-1.54-2.573-3.803-2.656-5.514c-.042-1.017.632-4.706.895-5.151c.282-.419 1.526.215 1.325.706\"/><path fill=\"#0f0f0f\" d=\"M38.256 72.779c-.26 1-.465 6.053 1.028 8.29c1.492 2.217.907 3.017-.562 1.479c-1.525-1.501-2.469-3.692-2.571-5.398c-.056-1.023.585-4.569.836-5.016c.264-.405 1.46.161 1.269.645\"/><path fill=\"#131313\" d=\"M38.227 72.891c-.25 1.082-.442 5.952 1.046 8.183c1.488 2.214.866 2.895-.552 1.395c-1.471-1.463-2.366-3.58-2.488-5.282c-.07-1.029.541-4.435.78-4.882c.25-.39 1.394.11 1.214.586\"/><path fill=\"#161616\" d=\"M38.198 73.004c-.239 1.163-.418 5.849 1.065 8.076c1.483 2.211.825 2.771-.542 1.311c-1.417-1.427-2.263-3.468-2.404-5.167c-.084-1.034.495-4.298.721-4.747c.235-.374 1.329.058 1.16.527\"/><path fill=\"#1a1a1a\" d=\"M38.169 73.117c-.229 1.244-.396 5.747 1.083 7.969c1.478 2.207.784 2.647-.532 1.227c-1.361-1.39-2.158-3.357-2.32-5.052c-.098-1.04.451-4.163.663-4.612c.22-.359 1.265.005 1.106.468\"/><path fill=\"#1e1e1e\" d=\"M38.139 73.23c-.219 1.326-.371 5.645 1.102 7.862c1.474 2.204.745 2.525-.52 1.144c-1.307-1.353-2.056-3.245-2.238-4.938c-.11-1.046.405-4.026.605-4.477c.205-.344 1.201-.047 1.051.409\"/><path fill=\"#222\" d=\"M38.111 73.343c-.208 1.406-.349 5.542 1.121 7.755c1.469 2.201.704 2.401-.51 1.06c-1.252-1.315-1.952-3.134-2.153-4.823c-.125-1.052.358-3.89.546-4.342c.189-.329 1.134-.099.996.35\"/><path fill=\"#262626\" d=\"M38.081 73.455c-.197 1.488-.325 5.44 1.139 7.647c1.465 2.197.664 2.278-.499.977c-1.198-1.279-1.849-3.021-2.07-4.707c-.139-1.058.314-3.755.489-4.208c.175-.313 1.069-.15.941.291\"/><path fill=\"#2a2a2a\" d=\"M38.053 73.568c-.187 1.569-.302 5.337 1.158 7.541c1.46 2.193.622 2.155-.489.893c-1.143-1.242-1.745-2.911-1.985-4.593c-.153-1.063.268-3.618.429-4.073c.159-.298 1.004-.203.887.232\"/><path fill=\"#2d2d2d\" d=\"M38.024 73.681c-.177 1.65-.279 5.234 1.177 7.434c1.455 2.19.581 2.032-.479.809c-1.088-1.204-1.642-2.799-1.902-4.477c-.167-1.069.224-3.482.372-3.938c.143-.284.939-.256.832.172\"/><path fill=\"#313131\" d=\"M37.995 73.794c-.167 1.731-.257 5.133 1.194 7.326c1.451 2.187.541 1.909-.468.726c-1.034-1.167-1.538-2.688-1.818-4.362c-.182-1.075.178-3.346.314-3.804c.129-.268.874-.307.778.114\"/><path fill=\"#353535\" d=\"M37.966 73.906c-.155 1.813-.232 5.03 1.213 7.22c1.447 2.183.501 1.786-.457.643c-.979-1.131-1.434-2.576-1.735-4.248c-.194-1.081.133-3.21.256-3.668c.113-.254.809-.36.723.053\"/><path fill=\"#393939\" d=\"M37.937 74.019c-.146 1.895-.209 4.929 1.231 7.114c1.441 2.179.459 1.662-.448.558c-.923-1.093-1.33-2.464-1.65-4.132c-.208-1.087.088-3.074.199-3.534c.098-.238.743-.413.668-.006\"/><path fill=\"#3d3d3d\" d=\"M37.908 74.132c-.136 1.976-.187 4.825 1.25 7.005c1.436 2.176.418 1.54-.437.475c-.87-1.056-1.228-2.353-1.567-4.017c-.224-1.092.041-2.938.139-3.398c.084-.223.68-.465.615-.065\"/><path fill=\"#414141\" d=\"M37.878 74.245c-.124 2.057-.163 4.724 1.27 6.899c1.432 2.172.377 1.416-.427.391c-.814-1.018-1.124-2.241-1.483-3.902c-.237-1.099-.004-2.802.081-3.264c.069-.208.614-.517.559-.124\"/><path fill=\"#444\" d=\"M37.849 74.357c-.114 2.138-.14 4.621 1.289 6.792c1.427 2.17.336 1.293-.416.307c-.761-.981-1.021-2.128-1.4-3.786c-.25-1.104-.048-2.667.023-3.129c.053-.193.549-.569.504-.184\"/><path fill=\"#484848\" d=\"M37.82 74.47c-.104 2.22-.116 4.52 1.306 6.686s.296 1.169-.405.223c-.707-.944-.918-2.018-1.316-3.672c-.265-1.11-.094-2.53-.035-2.994c.039-.178.484-.622.45-.243\"/><path fill=\"#4c4c4c\" d=\"M37.791 74.583c-.093 2.301-.093 4.416 1.325 6.579s.255 1.046-.395.14c-.652-.907-.814-1.906-1.233-3.557c-.278-1.116-.14-2.394-.093-2.859c.024-.164.419-.676.396-.303\"/><path fill=\"currentColor\" d=\"M38.372 72.328c1.395-3.046 2.163-6.324 4.162-9.508c1.976-3.161 1.186-4.394-.279-2.79s-3.068 4.999-3.068 4.999s-1.883 2.975-2.301 6.416c-.072.58 1.253 1.371 1.486.883\"/><path fill=\"#020202\" d=\"M38.432 72.13c1.382-3.066 2.136-6.213 4.063-9.299c1.906-3.063 1.166-4.287-.247-2.735c-1.421 1.565-3.002 4.919-3.024 4.966c0 0-1.819 2.904-2.221 6.211c-.066.572 1.202 1.339 1.429.857\"/><path fill=\"#050505\" d=\"M38.492 71.933c1.368-3.088 2.11-6.104 3.966-9.09c1.835-2.965 1.146-4.181-.213-2.681c-1.379 1.525-2.938 4.84-2.981 4.934c0 0-1.757 2.831-2.14 6.007c-.065.563 1.147 1.305 1.368.83\"/><path fill=\"#070707\" d=\"M38.552 71.736c1.356-3.111 2.083-5.997 3.868-8.882c1.765-2.866 1.125-4.075-.182-2.626c-1.335 1.486-2.872 4.761-2.937 4.902c0 0-1.693 2.757-2.058 5.802c-.062.554 1.093 1.272 1.309.804\"/><path fill=\"#0a0a0a\" d=\"M38.612 71.54c1.342-3.132 2.058-5.888 3.771-8.674c1.693-2.768 1.104-3.968-.15-2.571c-1.292 1.447-2.806 4.682-2.892 4.87c0 0-1.632 2.685-1.978 5.597c-.061.543 1.039 1.239 1.249.778\"/><path fill=\"#0c0c0c\" d=\"M38.671 71.342c1.33-3.154 2.032-5.778 3.672-8.465c1.624-2.67 1.086-3.862-.116-2.517c-1.25 1.408-2.741 4.604-2.848 4.838c0 0-1.568 2.613-1.897 5.393c-.057.534.986 1.205 1.189.751\"/><path fill=\"#0f0f0f\" d=\"M38.731 71.145c1.316-3.175 2.006-5.669 3.575-8.256c1.554-2.571 1.064-3.756-.084-2.463c-1.207 1.369-2.675 4.524-2.804 4.807c0 0-1.506 2.54-1.816 5.188c-.055.524.931 1.171 1.129.724\"/><path fill=\"#111\" d=\"M38.791 70.948c1.303-3.197 1.979-5.561 3.478-8.048c1.483-2.472 1.044-3.649-.052-2.408c-1.164 1.33-2.61 4.446-2.76 4.774c0 0-1.443 2.468-1.735 4.985c-.054.514.876 1.137 1.069.697\"/><path fill=\"#141414\" d=\"M38.851 70.75c1.291-3.219 1.953-5.452 3.38-7.839c1.412-2.374 1.024-3.543-.019-2.354c-1.122 1.291-2.545 4.367-2.718 4.742c0 0-1.379 2.395-1.653 4.78c-.05.506.823 1.105 1.01.671\"/><path fill=\"#161616\" d=\"M38.911 70.553c1.276-3.24 1.928-5.343 3.282-7.631c1.342-2.276 1.004-3.437.014-2.3c-1.079 1.252-2.479 4.289-2.673 4.711c0 0-1.317 2.323-1.574 4.576c-.047.495.769 1.071.951.644\"/><path fill=\"#191919\" d=\"M38.971 70.356c1.265-3.262 1.902-5.233 3.185-7.422c1.271-2.178.984-3.331.047-2.246c-1.036 1.212-2.414 4.21-2.629 4.679c0 0-1.254 2.25-1.493 4.372c-.046.485.714 1.037.89.617\"/><path fill=\"#1c1c1c\" d=\"M39.03 70.159c1.251-3.285 1.876-5.125 3.087-7.215c1.202-2.079.964-3.224.079-2.19c-.992 1.173-2.348 4.13-2.584 4.646c0 0-1.192 2.178-1.412 4.167c-.043.476.661 1.005.83.592\"/><path fill=\"#1e1e1e\" d=\"M39.09 69.961c1.238-3.306 1.85-5.016 2.991-7.006c1.129-1.98.943-3.118.111-2.136c-.949 1.134-2.283 4.052-2.541 4.615c0 0-1.128 2.106-1.331 3.962c-.041.468.607.972.77.565\"/><path fill=\"#212121\" d=\"M39.149 69.764c1.226-3.328 1.824-4.907 2.892-6.797c1.061-1.881.923-3.011.144-2.082c-.906 1.095-2.217 3.973-2.497 4.583c0 0-1.066 2.032-1.25 3.758c-.037.459.554.938.711.538\"/><path fill=\"#232323\" d=\"M39.209 69.567c1.212-3.349 1.798-4.798 2.794-6.588c.99-1.783.903-2.906.177-2.027c-.863 1.055-2.151 3.894-2.453 4.551c0 0-1.003 1.96-1.17 3.553c-.034.447.5.904.652.511\"/><path fill=\"#262626\" d=\"M39.269 69.37c1.198-3.371 1.772-4.689 2.696-6.38c.92-1.685.883-2.799.209-1.973c-.82 1.017-2.087 3.815-2.409 4.52c0 0-.941 1.888-1.088 3.349c-.032.437.445.87.592.484\"/><path fill=\"#282828\" d=\"M39.329 69.173c1.187-3.393 1.747-4.581 2.6-6.171c.848-1.587.862-2.693.242-1.918c-.778.977-2.022 3.736-2.366 4.487c0 0-.876 1.815-1.007 3.144c-.031.428.39.837.531.458\"/><path fill=\"#2b2b2b\" d=\"M39.388 68.975c1.173-3.414 1.72-4.471 2.502-5.963c.779-1.488.842-2.586.273-1.864c-.734.938-1.956 3.657-2.321 4.456c0 0-.814 1.742-.927 2.94c-.026.419.339.804.473.431\"/><path fill=\"#2d2d2d\" d=\"M39.449 68.778c1.16-3.437 1.694-4.363 2.404-5.754c.708-1.39.822-2.48.306-1.81c-.692.9-1.89 3.579-2.278 4.424c0 0-.75 1.67-.845 2.735c-.025.41.284.771.413.405\"/><path fill=\"#303030\" d=\"M39.509 68.581c1.146-3.458 1.667-4.253 2.306-5.546c.638-1.29.802-2.374.339-1.755c-.648.86-1.824 3.5-2.233 4.392c0 0-.688 1.597-.765 2.531c-.023.4.23.736.353.378\"/><path fill=\"#333\" d=\"M39.568 68.383c1.134-3.479 1.643-4.144 2.209-5.337s.783-2.268.372-1.701c-.606.821-1.759 3.421-2.188 4.359c0 0-.627 1.526-.686 2.327c-.02.392.176.704.293.352\"/><path fill=\"currentColor\" d=\"M97.859 74.559c.675-1.906.605-6.764-1.116-9.902c-.604-1.14-1.186-2.464-1.534-2.535c-.372-.069-1.047.675-.977.791c.094.186 3.232 4.604 2.581 10.601c-.046.488.884 1.488 1.046 1.045\"/><path fill=\"#030303\" d=\"M97.829 74.314c.654-1.847.566-6.58-1.08-9.577c-.586-1.1-1.142-2.381-1.484-2.451c-.362-.069-1.009.653-.944.764c.084.181 3.101 4.449 2.496 10.252c-.041.48.855 1.438 1.012 1.012\"/><path fill=\"#070707\" d=\"M97.799 74.067c.635-1.786.529-6.396-1.042-9.252c-.569-1.061-1.098-2.297-1.434-2.367c-.352-.067-.971.632-.911.739c.073.177 2.971 4.293 2.41 9.903c-.038.472.825 1.39.977.977\"/><path fill=\"#0b0b0b\" d=\"M97.768 73.821c.615-1.727.49-6.21-1.006-8.925c-.551-1.022-1.054-2.214-1.382-2.284c-.343-.068-.935.61-.881.712c.064.172 2.841 4.139 2.326 9.554c-.033.465.797 1.341.943.943\"/><path fill=\"#0f0f0f\" d=\"M97.738 73.574c.595-1.667.451-6.025-.969-8.599c-.533-.983-1.011-2.13-1.333-2.201c-.332-.067-.897.589-.848.687c.054.167 2.711 3.984 2.241 9.205c-.029.458.767 1.292.909.908\"/><path fill=\"#131313\" d=\"M97.708 73.328c.574-1.606.412-5.841-.933-8.273c-.515-.944-.967-2.047-1.282-2.117c-.323-.066-.86.566-.815.66c.044.163 2.581 3.83 2.156 8.856c-.026.45.737 1.243.874.874\"/><path fill=\"#161616\" d=\"M97.677 73.082c.556-1.547.375-5.656-.895-7.948c-.497-.905-.923-1.963-1.231-2.034c-.313-.066-.823.546-.783.634c.034.159 2.45 3.675 2.071 8.508c-.022.442.707 1.194.838.84\"/><path fill=\"#1a1a1a\" d=\"M97.646 72.836c.536-1.487.337-5.472-.858-7.623c-.479-.866-.879-1.88-1.181-1.951c-.303-.065-.786.525-.75.609c.024.154 2.319 3.52 1.986 8.159c-.018.434.678 1.145.803.806\"/><path fill=\"#1e1e1e\" d=\"M97.616 72.589c.516-1.427.298-5.287-.822-7.297c-.462-.826-.835-1.796-1.131-1.866c-.292-.063-.749.502-.719.583c.014.149 2.189 3.365 1.901 7.81c-.013.426.651 1.096.771.77\"/><path fill=\"#222\" d=\"M97.585 72.343c.496-1.367.261-5.102-.785-6.97c-.443-.788-.792-1.713-1.081-1.784c-.283-.063-.711.482-.687.557c.005.145 2.06 3.211 1.816 7.462c-.006.417.622 1.045.737.735\"/><path fill=\"#262626\" d=\"M97.555 72.096c.476-1.307.223-4.917-.75-6.645c-.424-.748-.748-1.629-1.029-1.7c-.273-.062-.673.46-.655.53c-.005.141 1.93 3.057 1.731 7.113c-.003.412.593.998.703.702\"/><path fill=\"#2a2a2a\" d=\"M97.524 71.85c.456-1.247.185-4.732-.713-6.319c-.407-.709-.703-1.546-.979-1.617c-.263-.062-.637.439-.623.504c-.015.136 1.8 2.902 1.646 6.764c.002.404.565.95.669.668\"/><path fill=\"#2d2d2d\" d=\"M97.493 71.604c.437-1.188.147-4.547-.674-5.994c-.39-.67-.661-1.462-.929-1.533c-.253-.061-.6.417-.591.479c-.024.132 1.669 2.747 1.562 6.415c.005.396.534.9.632.633\"/><path fill=\"#313131\" d=\"M97.463 71.357c.416-1.127.108-4.362-.639-5.667c-.372-.631-.617-1.38-.878-1.451c-.243-.061-.562.396-.559.452c-.034.127 1.54 2.593 1.477 6.067c.01.39.505.852.599.599\"/><path fill=\"#353535\" d=\"M97.432 71.112c.397-1.068.07-4.178-.602-5.342c-.353-.592-.572-1.296-.827-1.367c-.234-.06-.525.375-.527.426c-.044.123 1.409 2.438 1.392 5.718c.015.38.477.803.564.565\"/><path fill=\"#393939\" d=\"M97.402 70.865c.377-1.007.031-3.993-.565-5.016c-.335-.554-.529-1.213-.778-1.284c-.223-.059-.487.354-.494.401c-.054.118 1.279 2.284 1.307 5.369c.018.373.448.753.53.53\"/><path fill=\"#3d3d3d\" d=\"M97.371 70.619c.357-.948-.007-3.808-.529-4.69c-.317-.514-.485-1.128-.727-1.2c-.214-.058-.451.333-.462.375c-.064.114 1.148 2.128 1.221 5.02c.024.364.421.704.497.495\"/><path fill=\"#414141\" d=\"M97.342 70.373c.338-.888-.045-3.624-.492-4.364c-.3-.475-.441-1.045-.676-1.117c-.206-.058-.414.31-.43.348c-.074.109 1.018 1.974 1.136 4.672c.028.356.39.654.462.461\"/><path fill=\"#444\" d=\"M97.31 70.127c.318-.828-.083-3.439-.455-4.039c-.282-.436-.397-.962-.625-1.033c-.195-.058-.376.289-.398.322c-.083.104.888 1.82 1.053 4.324c.03.348.358.605.425.426\"/><path fill=\"#484848\" d=\"M97.281 69.88c.297-.767-.122-3.253-.419-3.713c-.264-.396-.354-.878-.575-.95c-.185-.057-.339.268-.366.296c-.093.1.759 1.665.967 3.974c.035.342.331.558.393.393\"/><path fill=\"#4c4c4c\" d=\"M97.25 69.633c.277-.708-.16-3.068-.382-3.386c-.247-.357-.311-.795-.525-.866c-.175-.056-.301.246-.333.27c-.103.096.628 1.511.882 3.625c.039.333.302.508.358.357\"/><path fill=\"currentColor\" d=\"M95.21 62.122c-3.301-4.509-7.578-5.974-7.137-4.556c0 0 3.278 1.86 6.16 5.346c.558.675 1.488-.092.977-.79\"/><path fill=\"#030303\" d=\"M95.064 61.998c-3.205-4.356-7.392-5.783-6.954-4.423c.005.004 3.196 1.812 6.007 5.189c.543.651 1.443-.093.947-.766\"/><path fill=\"#070707\" d=\"M94.919 61.873c-3.107-4.205-7.206-5.592-6.772-4.29c.012.007 3.116 1.765 5.856 5.031c.526.627 1.397-.091.916-.741\"/><path fill=\"#0b0b0b\" d=\"M94.774 61.748c-3.011-4.052-7.019-5.4-6.59-4.156c.018.011 3.036 1.717 5.705 4.873c.509.604 1.35-.091.885-.717\"/><path fill=\"#0f0f0f\" d=\"M94.628 61.623c-2.913-3.899-6.832-5.209-6.408-4.023c.023.015 2.955 1.67 5.552 4.715c.495.581 1.306-.09.856-.692\"/><path fill=\"#131313\" d=\"M94.482 61.499c-2.816-3.746-6.645-5.018-6.224-3.89c.028.018 2.873 1.623 5.401 4.557c.477.556 1.258-.09.823-.667\"/><path fill=\"#161616\" d=\"M94.338 61.373c-2.719-3.593-6.459-4.825-6.042-3.756c.034.022 2.792 1.576 5.248 4.398c.46.534 1.213-.087.794-.642\"/><path fill=\"#1a1a1a\" d=\"M94.192 61.249c-2.623-3.441-6.272-4.635-5.86-3.624c.04.025 2.711 1.528 5.096 4.242a.491.491 0 0 0 .764-.618\"/><path fill=\"#1e1e1e\" d=\"M94.047 61.124c-2.527-3.289-6.086-4.443-5.679-3.491c.047.029 2.632 1.481 4.945 4.083c.43.488 1.122-.086.734-.592\"/><path fill=\"#222\" d=\"M93.902 60.999c-2.429-3.135-5.9-4.252-5.496-3.357c.051.032 2.551 1.433 4.793 3.925c.412.464 1.076-.086.703-.568\"/><path fill=\"#262626\" d=\"M93.756 60.874c-2.332-2.982-5.713-4.061-5.312-3.224c.057.036 2.47 1.386 4.64 3.767c.396.441 1.03-.084.672-.543\"/><path fill=\"#2a2a2a\" d=\"M93.611 60.75c-2.235-2.83-5.526-3.87-5.131-3.091c.062.04 2.389 1.339 4.489 3.609c.381.417.985-.084.642-.518\"/><path fill=\"#2d2d2d\" d=\"M93.466 60.625c-2.139-2.678-5.34-3.679-4.949-2.958c.069.043 2.308 1.292 4.337 3.451c.364.394.939-.082.612-.493\"/><path fill=\"#313131\" d=\"M93.32 60.5c-2.041-2.524-5.153-3.487-4.766-2.824c.074.046 2.228 1.244 4.185 3.294c.348.369.893-.083.581-.47\"/><path fill=\"#353535\" d=\"M93.175 60.375c-1.945-2.372-4.967-3.296-4.584-2.691c.08.05 2.146 1.196 4.034 3.135c.33.347.847-.081.55-.444\"/><path fill=\"#393939\" d=\"M93.03 60.25c-1.847-2.219-4.78-3.104-4.402-2.558c.085.054 2.065 1.149 3.881 2.978c.316.324.802-.081.521-.42\"/><path fill=\"#3d3d3d\" d=\"M92.885 60.126c-1.751-2.067-4.594-2.913-4.22-2.425c.091.058 1.985 1.102 3.729 2.819c.299.3.757-.08.491-.394\"/><path fill=\"#414141\" d=\"M92.739 60.001c-1.655-1.914-4.407-2.722-4.038-2.292c.098.061 1.904 1.055 3.578 2.662c.283.277.711-.079.46-.37\"/><path fill=\"#444\" d=\"M92.593 59.876c-1.557-1.762-4.221-2.53-3.855-2.158c.103.064 1.824 1.007 3.425 2.504c.268.253.666-.079.43-.346\"/><path fill=\"#484848\" d=\"M92.449 59.751c-1.461-1.608-4.035-2.339-3.673-2.025c.109.068 1.742.96 3.273 2.346c.251.229.62-.077.4-.321\"/><path fill=\"#4c4c4c\" d=\"M92.303 59.626c-1.363-1.456-3.848-2.147-3.491-1.892c.114.072 1.662.913 3.122 2.188c.235.206.574-.076.369-.296\"/><path fill=\"currentColor\" d=\"M97.859 74.559c.047 2.023-1.859 7.183-2.58 6.998c-.814-.187.163-1.697.906-4.254c.302-1.07.535-3.696.628-3.789c.303-.303 1.046.557 1.046 1.045\"/><path fill=\"#050505\" d=\"M97.801 74.728c.033 1.964-1.82 6.972-2.518 6.786c-.781-.183.177-1.661.909-4.174c.29-1.026.515-3.534.609-3.632c.295-.299 1.015.493 1 1.02\"/><path fill=\"#0a0a0a\" d=\"M97.741 74.897c.021 1.906-1.78 6.761-2.454 6.575c-.75-.18.191-1.626.91-4.095c.279-.981.496-3.372.592-3.474c.286-.297.985.428.952.994\"/><path fill=\"#0f0f0f\" d=\"M97.682 75.065c.006 1.847-1.742 6.549-2.391 6.364c-.719-.178.205-1.591.913-4.015c.265-.938.475-3.211.572-3.317c.279-.294.955.364.906.968\"/><path fill=\"#141414\" d=\"M97.622 75.233c-.006 1.788-1.701 6.338-2.328 6.153c-.686-.175.22-1.555.916-3.935c.253-.894.455-3.049.554-3.159c.271-.29.924.298.858.941\"/><path fill=\"#191919\" d=\"M97.563 75.401c-.021 1.73-1.661 6.127-2.265 5.942c-.655-.172.233-1.52.918-3.854c.242-.851.436-2.887.535-3.002c.264-.288.894.233.812.914\"/><path fill=\"#1e1e1e\" d=\"M97.503 75.57c-.033 1.672-1.621 5.916-2.202 5.731c-.622-.169.248-1.485.92-3.775c.229-.808.416-2.726.517-2.845c.256-.285.864.169.765.889\"/><path fill=\"#232323\" d=\"M97.443 75.738c-.046 1.614-1.582 5.705-2.138 5.52c-.591-.167.262-1.448.921-3.694c.217-.764.397-2.565.499-2.688c.249-.283.835.104.718.862\"/><path fill=\"#282828\" d=\"M97.385 75.907c-.06 1.555-1.542 5.493-2.076 5.309c-.559-.164.276-1.413.924-3.614c.205-.721.377-2.403.48-2.53c.241-.281.804.037.672.835\"/><path fill=\"#2d2d2d\" d=\"M97.325 76.075c-.073 1.497-1.502 5.282-2.011 5.097c-.527-.16.288-1.376.925-3.534l.463-2.373c.232-.277.772-.026.623.81\"/><path fill=\"#333\" d=\"M97.265 76.243c-.086 1.438-1.463 5.071-1.949 4.888c-.495-.158.303-1.342.928-3.455c.18-.634.337-2.081.443-2.216c.227-.274.744-.091.578.783\"/><path fill=\"#383838\" d=\"M97.206 76.412c-.099 1.38-1.422 4.859-1.885 4.676c-.464-.155.317-1.307.929-3.375c.169-.59.318-1.918.426-2.059c.218-.271.713-.155.53.758\"/><path fill=\"#3d3d3d\" d=\"M97.147 76.58c-.113 1.322-1.383 4.648-1.822 4.465c-.432-.152.332-1.271.931-3.295c.157-.546.298-1.756.407-1.9c.211-.269.683-.222.484.73\"/><path fill=\"#424242\" d=\"M97.087 76.749c-.125 1.264-1.343 4.437-1.759 4.254c-.399-.15.347-1.235.934-3.216c.145-.501.279-1.594.389-1.743c.202-.266.652-.286.436.705\"/><path fill=\"#474747\" d=\"M97.028 76.918c-.14 1.205-1.304 4.225-1.696 4.042c-.369-.146.36-1.199.936-3.135c.132-.458.259-1.433.37-1.586c.195-.263.622-.351.39.679\"/><path fill=\"#4c4c4c\" d=\"M96.968 77.085c-.152 1.147-1.264 4.015-1.633 3.833c-.335-.145.374-1.165.939-3.056c.121-.416.239-1.272.351-1.429c.189-.26.592-.416.343.652\"/><path fill=\"#515151\" d=\"M96.91 77.254c-.166 1.088-1.225 3.803-1.57 3.621c-.304-.142.387-1.129.94-2.976c.109-.372.22-1.111.333-1.272c.181-.256.561-.48.297.627\"/><path fill=\"#565656\" d=\"M96.849 77.422c-.179 1.03-1.185 3.591-1.507 3.41c-.272-.139.403-1.093.943-2.896c.096-.328.2-.949.315-1.114c.174-.254.531-.545.249.6\"/><path fill=\"#5b5b5b\" d=\"M96.791 77.59c-.193.972-1.146 3.381-1.444 3.199c-.24-.136.416-1.058.945-2.816c.083-.284.18-.787.296-.957c.165-.251.5-.61.203.574\"/><path fill=\"#606060\" d=\"M96.731 77.759c-.206.913-1.106 3.169-1.38 2.987c-.208-.132.43-1.022.947-2.735c.072-.242.161-.626.278-.8c.157-.248.469-.675.155.548\"/><path fill=\"#666\" d=\"M96.672 77.928c-.219.854-1.066 2.958-1.318 2.776c-.176-.129.445-.986.949-2.656c.06-.197.141-.464.261-.642c.149-.246.438-.739.108.522\"/><path fill=\"currentColor\" d=\"M90.769 62.378c-.496.523-.938 3.226.303 4.163c1.24.91 3.419-.772 3.419-1.736c-.028-2.179-3.225-2.978-3.722-2.427\"/><path fill=\"#010101\" d=\"M90.814 62.424c-.504.52-.929 3.171.277 4.09c1.204.893 3.341-.734 3.353-1.705c-.016-2.123-3.126-2.932-3.63-2.385\"/><path fill=\"#030303\" d=\"M90.858 62.469c-.511.517-.92 3.117.25 4.016c1.17.875 3.264-.695 3.286-1.671c-.003-2.068-3.025-2.888-3.536-2.345\"/><path fill=\"#050505\" d=\"M90.902 62.515c-.518.513-.911 3.062.224 3.942c1.134.856 3.187-.658 3.22-1.64c.01-2.011-2.925-2.841-3.444-2.302\"/><path fill=\"#070707\" d=\"M90.946 62.56c-.525.51-.902 3.008.198 3.87c1.097.839 3.109-.619 3.153-1.607c.023-1.958-2.825-2.798-3.351-2.263\"/><path fill=\"#090909\" d=\"M90.991 62.605c-.532.507-.894 2.954.171 3.797c1.061.821 3.032-.582 3.087-1.574c.035-1.903-2.725-2.753-3.258-2.223\"/><path fill=\"#0b0b0b\" d=\"M91.035 62.65c-.539.502-.885 2.898.144 3.723c1.026.804 2.954-.543 3.022-1.542c.047-1.846-2.626-2.707-3.166-2.181\"/><path fill=\"#0d0d0d\" d=\"M91.078 62.696c-.547.499-.876 2.844.118 3.649c.989.787 2.876-.505 2.955-1.509c.061-1.792-2.525-2.662-3.073-2.14\"/><path fill=\"#0f0f0f\" d=\"M91.123 62.741c-.554.496-.868 2.791.091 3.576c.953.769 2.799-.467 2.889-1.476c.073-1.737-2.425-2.617-2.98-2.1\"/><path fill=\"#111\" d=\"M91.167 62.787c-.561.492-.859 2.734.064 3.502c.919.75 2.722-.43 2.823-1.443c.086-1.682-2.325-2.573-2.887-2.059\"/><path fill=\"#131313\" d=\"M91.211 62.832c-.568.489-.85 2.681.038 3.429c.881.733 2.644-.392 2.756-1.411c.099-1.627-2.224-2.527-2.794-2.018\"/><path fill=\"#151515\" d=\"M91.255 62.877c-.575.486-.841 2.625.012 3.354c.846.716 2.567-.353 2.69-1.377c.111-1.571-2.125-2.482-2.702-1.977\"/><path fill=\"#161616\" d=\"M91.3 62.922c-.583.481-.833 2.572-.015 3.281c.81.699 2.489-.314 2.624-1.345c.124-1.515-2.025-2.437-2.609-1.936\"/><path fill=\"#181818\" d=\"M91.344 62.968c-.59.479-.824 2.518-.042 3.208c.774.68 2.412-.277 2.558-1.313c.136-1.461-1.924-2.392-2.516-1.895\"/><path fill=\"#1a1a1a\" d=\"M91.388 63.013c-.598.475-.815 2.462-.068 3.135c.738.663 2.334-.24 2.492-1.28c.148-1.406-1.825-2.347-2.424-1.855\"/><path fill=\"#1c1c1c\" d=\"M91.432 63.058c-.604.471-.807 2.408-.094 3.061c.703.646 2.256-.2 2.425-1.248c.162-1.348-1.725-2.301-2.331-1.813\"/><path fill=\"#1e1e1e\" d=\"M91.477 63.104c-.613.467-.798 2.353-.122 2.987c.667.627 2.18-.163 2.36-1.214c.174-1.295-1.626-2.257-2.238-1.773\"/><path fill=\"#202020\" d=\"M91.52 63.149c-.619.464-.789 2.3-.147 2.914c.631.61 2.102-.124 2.293-1.182c.187-1.239-1.525-2.212-2.146-1.732\"/><path fill=\"#222\" d=\"M91.564 63.194c-.625.46-.78 2.245-.173 2.841c.595.592 2.025-.086 2.226-1.15c.2-1.184-1.424-2.166-2.053-1.691\"/><path fill=\"#242424\" d=\"M91.608 63.24c-.632.457-.771 2.19-.2 2.768c.559.573 1.947-.049 2.16-1.117c.213-1.13-1.324-2.122-1.96-1.651\"/><path fill=\"#262626\" d=\"M91.653 63.285c-.641.454-.763 2.136-.228 2.694c.523.557 1.87-.01 2.094-1.084c.226-1.074-1.223-2.077-1.866-1.61\"/><path fill=\"currentColor\" d=\"M90.653 84.603c.488.488.907-.721 1.396-1.117c.488-.395 1.278-1.255 2.859-1.255s1.464-.046 1.394-.651c-.046-.581-.511-.535-1.906-.326a4.53 4.53 0 0 0-2.882 1.557c-.535.628-1.14 1.512-.861 1.792\"/><path fill=\"#050505\" d=\"M90.761 84.484c.471.468.872-.685 1.357-1.068s1.269-1.205 2.789-1.205s1.426-.042 1.359-.626c-.045-.562-.498-.515-1.856-.316a4.42 4.42 0 0 0-2.812 1.5c-.522.607-1.11 1.445-.837 1.715\"/><path fill=\"#0a0a0a\" d=\"M90.869 84.364c.453.449.839-.648 1.319-1.019c.482-.371 1.26-1.155 2.72-1.155s1.386-.036 1.322-.601c-.042-.545-.484-.495-1.805-.307a4.3 4.3 0 0 0-2.743 1.443c-.509.585-1.081 1.38-.813 1.639\"/><path fill=\"#0f0f0f\" d=\"M90.976 84.245c.437.429.805-.611 1.283-.97s1.25-1.105 2.649-1.105s1.347-.03 1.286-.576c-.04-.526-.471-.474-1.755-.298a4.2 4.2 0 0 0-2.673 1.388c-.495.562-1.052 1.311-.79 1.561\"/><path fill=\"#141414\" d=\"M91.083 84.127c.42.409.771-.576 1.246-.922c.475-.348 1.24-1.055 2.58-1.056c1.34 0 1.308-.025 1.251-.552c-.039-.508-.458-.453-1.707-.29a4.08 4.08 0 0 0-2.604 1.332c-.48.543-1.021 1.247-.766 1.488\"/><path fill=\"#191919\" d=\"M91.19 84.009c.403.387.738-.54 1.209-.875c.47-.335 1.23-1.004 2.51-1.005s1.269-.02 1.214-.527c-.037-.491-.445-.433-1.655-.28a3.98 3.98 0 0 0-2.534 1.274c-.467.521-.992 1.18-.744 1.413\"/><path fill=\"#1e1e1e\" d=\"M91.298 83.89c.386.368.705-.504 1.171-.826c.467-.323 1.222-.954 2.441-.955s1.229-.014 1.178-.502c-.034-.472-.431-.412-1.606-.27a3.86 3.86 0 0 0-2.464 1.217c-.454.499-.962 1.114-.72 1.336\"/><path fill=\"#232323\" d=\"M91.406 83.771c.37.349.67-.467 1.135-.778s1.211-.903 2.37-.903c1.159-.002 1.189-.009 1.143-.478c-.033-.454-.418-.393-1.556-.263a3.76 3.76 0 0 0-2.394 1.161c-.443.478-.936 1.048-.698 1.261\"/><path fill=\"#282828\" d=\"M91.514 83.652c.352.329.637-.431 1.097-.729c.46-.299 1.202-.853 2.3-.854c1.099-.002 1.151-.004 1.106-.454c-.03-.436-.404-.372-1.505-.252a3.64 3.64 0 0 0-2.324 1.104c-.429.457-.906.981-.674 1.185\"/><path fill=\"#2d2d2d\" d=\"M91.62 83.533c.335.308.603-.395 1.06-.681s1.193-.802 2.23-.803c1.039-.002 1.112.002 1.07-.428c-.028-.418-.391-.352-1.455-.244a3.54 3.54 0 0 0-2.254 1.047c-.414.434-.875.915-.651 1.109\"/><path fill=\"#333\" d=\"M91.728 83.415c.318.288.568-.358 1.022-.633c.453-.275 1.183-.752 2.161-.754s1.072.007 1.034-.403c-.026-.399-.378-.331-1.406-.234a3.43 3.43 0 0 0-2.184.99c-.401.413-.846.85-.627 1.034\"/><path fill=\"#383838\" d=\"M91.836 83.296c.301.268.535-.322.985-.584c.45-.263 1.174-.702 2.092-.704s1.033.013.997-.379c-.024-.38-.364-.31-1.355-.224c-.99.07-1.715.531-2.114.934c-.389.391-.819.782-.605.957\"/><path fill=\"#3d3d3d\" d=\"M91.943 83.177c.284.249.502-.286.949-.536s1.164-.653 2.021-.654c.857-.003.994.018.962-.354c-.022-.363-.351-.29-1.306-.217c-.953.06-1.661.497-2.045.877c-.375.372-.788.719-.581.884\"/><path fill=\"#424242\" d=\"M92.051 83.059c.267.229.467-.25.911-.487c.443-.239 1.154-.603 1.951-.604s.954.024.926-.329c-.021-.345-.338-.27-1.255-.207c-.918.049-1.606.462-1.975.82c-.362.349-.76.651-.558.807\"/><path fill=\"#474747\" d=\"M92.158 82.94c.25.208.434-.213.874-.44c.44-.226 1.145-.551 1.882-.553s.915.029.889-.304c-.019-.327-.324-.25-1.206-.198c-.88.039-1.55.429-1.905.764c-.347.327-.729.584-.534.731\"/><path fill=\"#4c4c4c\" d=\"M92.265 82.821c.233.188.4-.178.836-.391c.437-.215 1.136-.501 1.812-.504s.876.035.854-.279c-.016-.308-.312-.229-1.155-.188c-.844.028-1.495.395-1.836.707c-.333.305-.7.518-.511.655\"/><path fill=\"#515151\" d=\"M92.373 82.702c.215.168.366-.14.799-.343c.433-.201 1.125-.45 1.742-.452c.617-.004.836.039.817-.255c-.015-.29-.298-.208-1.105-.179c-.807.017-1.439.36-1.766.65c-.321.284-.67.452-.487.579\"/><path fill=\"#565656\" d=\"M92.481 82.584c.198.148.332-.104.761-.294c.43-.19 1.117-.4 1.672-.403c.556-.003.797.045.782-.23c-.013-.272-.285-.188-1.056-.17c-.771.007-1.384.326-1.695.593c-.308.262-.642.386-.464.504\"/><path fill=\"#5b5b5b\" d=\"M92.587 82.465c.183.128.299-.068.726-.247c.425-.178 1.106-.35 1.602-.353s.758.05.746-.206c-.01-.253-.271-.168-1.005-.161c-.733-.003-1.329.292-1.625.536s-.614.322-.444.431\"/><path fill=\"#606060\" d=\"M92.695 82.346c.165.108.266-.033.688-.198c.423-.166 1.097-.3 1.533-.303s.719.057.708-.181c-.008-.234-.257-.146-.955-.152c-.696-.014-1.273.258-1.556.479c-.281.221-.582.256-.418.355\"/><path fill=\"#666\" d=\"M92.803 82.228c.147.088.23.003.649-.15c.42-.154 1.088-.249 1.463-.252s.68.062.673-.155c-.006-.217-.245-.127-.905-.143c-.66-.024-1.217.224-1.486.423c-.267.197-.554.187-.394.277\"/><path fill=\"currentColor\" d=\"M96.953 81.557c0 .744 1.511 1 2.952 1.208c1.418.209 2.558.489 2.626 1.977c.07 1.464-.301 2.51.35 2.395c1.395-.256 1.906-1.768 1.883-2.465c0-.698-1.023-1.953-2.859-2.65c-1.348-.512-2.325-.744-3.511-.791c-1.58-.069-1.441.326-1.441.326\"/><path fill=\"#030303\" d=\"M96.994 81.569c.003.723 1.499.959 2.921 1.174c1.405.218 2.503.488 2.619 1.938c.112 1.426-.275 2.427.367 2.321c1.338-.238 1.836-1.679 1.811-2.367c-.005-.694-1.007-1.908-2.82-2.595c-1.333-.504-2.295-.742-3.468-.792c-1.535-.069-1.433.308-1.43.321\"/><path fill=\"#070707\" d=\"M97.034 81.582c.008.702 1.487.918 2.891 1.14c1.392.226 2.447.487 2.61 1.901c.153 1.386-.249 2.341.384 2.248c1.281-.222 1.768-1.592 1.738-2.271c-.009-.693-.991-1.864-2.78-2.541c-1.317-.498-2.268-.74-3.425-.793c-1.488-.071-1.424.289-1.418.316\"/><path fill=\"#0b0b0b\" d=\"M97.075 81.593c.012.681 1.475.878 2.86 1.107c1.379.235 2.392.487 2.603 1.862c.194 1.348-.222 2.256.402 2.174c1.226-.206 1.698-1.504 1.666-2.173c-.014-.69-.974-1.82-2.74-2.486c-1.302-.491-2.238-.738-3.383-.794c-1.444-.071-1.416.27-1.408.31\"/><path fill=\"#0f0f0f\" d=\"M97.116 81.606c.015.66 1.463.838 2.829 1.073c1.366.244 2.338.486 2.596 1.824c.233 1.309-.197 2.173.419 2.102c1.168-.189 1.627-1.417 1.594-2.078c-.019-.687-.959-1.774-2.702-2.431c-1.287-.485-2.208-.736-3.34-.795c-1.398-.072-1.407.252-1.396.305\"/><path fill=\"#131313\" d=\"M97.157 81.619c.019.639 1.451.797 2.798 1.04c1.353.252 2.283.485 2.587 1.786c.276 1.27-.17 2.087.438 2.029c1.112-.173 1.557-1.33 1.521-1.981c-.024-.684-.943-1.73-2.662-2.376c-1.272-.479-2.181-.733-3.298-.797c-1.351-.074-1.399.232-1.384.299\"/><path fill=\"#161616\" d=\"M97.197 81.631c.023.618 1.44.757 2.768 1.006c1.34.26 2.229.484 2.58 1.747c.316 1.231-.143 2.002.455 1.956c1.056-.155 1.488-1.242 1.449-1.885c-.028-.682-.927-1.686-2.623-2.322c-1.257-.471-2.151-.731-3.255-.797c-1.307-.073-1.391.215-1.374.295\"/><path fill=\"#1a1a1a\" d=\"M97.238 81.644c.027.597 1.428.716 2.736.972c1.328.269 2.174.484 2.573 1.71c.357 1.191-.117 1.918.472 1.882c1-.14 1.419-1.156 1.377-1.788c-.034-.679-.911-1.641-2.583-2.268c-1.243-.465-2.124-.729-3.212-.799c-1.26-.073-1.383.197-1.363.291\"/><path fill=\"#1e1e1e\" d=\"M97.279 81.656c.03.575 1.416.675 2.707.938c1.313.277 2.118.483 2.562 1.671c.399 1.152-.09 1.833.491 1.809c.943-.123 1.349-1.067 1.305-1.691c-.038-.676-.896-1.597-2.544-2.213c-1.227-.458-2.094-.727-3.169-.8c-1.216-.073-1.375.179-1.352.286\"/><path fill=\"#222\" d=\"M97.32 81.668c.034.555 1.404.636 2.674.905c1.301.286 2.064.482 2.556 1.633c.44 1.113-.063 1.749.508 1.736c.887-.106 1.279-.98 1.232-1.595c-.043-.674-.879-1.552-2.505-2.158c-1.211-.452-2.064-.726-3.126-.802c-1.169-.073-1.365.161-1.339.281\"/><path fill=\"#262626\" d=\"M97.36 81.68c.038.533 1.391.595 2.644.87c1.289.295 2.01.481 2.548 1.596c.482 1.074-.037 1.664.526 1.663c.831-.09 1.209-.893 1.161-1.499c-.048-.671-.863-1.508-2.465-2.104c-1.196-.446-2.037-.723-3.084-.803c-1.124-.073-1.359.144-1.33.277\"/><path fill=\"#2a2a2a\" d=\"M97.4 81.692c.042.513 1.38.555 2.614.836c1.275.303 1.955.481 2.54 1.558c.523 1.036-.011 1.58.544 1.59c.773-.074 1.14-.805 1.088-1.402c-.053-.669-.847-1.463-2.426-2.049c-1.18-.439-2.007-.721-3.042-.805c-1.077-.073-1.349.127-1.318.272\"/><path fill=\"#2d2d2d\" d=\"M97.441 81.706c.046.491 1.368.513 2.583.801c1.263.312 1.9.481 2.532 1.52c.564.996.016 1.495.562 1.517c.716-.057 1.07-.718 1.015-1.305c-.057-.666-.83-1.419-2.386-1.995c-1.166-.432-1.978-.718-2.999-.805c-1.032-.075-1.34.107-1.307.267\"/><path fill=\"#313131\" d=\"M97.482 81.717c.049.47 1.356.473 2.552.769c1.248.32 1.845.48 2.523 1.482c.605.957.043 1.41.579 1.443c.661-.04 1.001-.63.943-1.208c-.062-.664-.814-1.375-2.346-1.94c-1.151-.425-1.95-.716-2.957-.807c-.985-.074-1.332.089-1.294.261\"/><path fill=\"#353535\" d=\"M97.523 81.73c.053.449 1.343.433 2.521.734c1.236.329 1.791.479 2.516 1.444c.647.918.069 1.325.597 1.37c.604-.024.931-.543.871-1.111c-.067-.661-.799-1.331-2.307-1.885c-1.136-.419-1.92-.715-2.914-.809c-.94-.075-1.325.071-1.284.257\"/><path fill=\"#393939\" d=\"M97.563 81.742c.057.428 1.333.393 2.491.701c1.222.337 1.735.478 2.509 1.406c.687.879.095 1.241.613 1.297c.548-.007.861-.456.798-1.016c-.072-.658-.783-1.285-2.267-1.83c-1.121-.413-1.892-.713-2.872-.811c-.894-.074-1.315.054-1.272.253\"/><path fill=\"#3d3d3d\" d=\"M97.604 81.754c.061.407 1.32.352 2.459.667c1.21.346 1.682.478 2.501 1.368c.729.84.122 1.155.631 1.223c.492.01.792-.368.727-.918c-.076-.655-.766-1.241-2.229-1.775c-1.104-.406-1.862-.712-2.828-.812c-.848-.075-1.307.035-1.261.247\"/><path fill=\"#414141\" d=\"M97.645 81.767c.064.386 1.308.312 2.428.633c1.198.354 1.627.477 2.493 1.331c.769.8.148 1.069.649 1.149c.435.026.722-.28.654-.821c-.081-.653-.75-1.198-2.188-1.722c-1.09-.399-1.834-.708-2.786-.812c-.803-.076-1.299.016-1.25.242\"/><path fill=\"#444\" d=\"M97.686 81.78c.068.364 1.296.27 2.397.599c1.185.363 1.572.477 2.485 1.292c.81.761.174.986.667 1.077c.378.043.652-.193.582-.726c-.086-.65-.736-1.151-2.15-1.666c-1.075-.393-1.805-.707-2.744-.814c-.756-.076-1.289-.002-1.237.238\"/><path fill=\"#484848\" d=\"M97.725 81.792c.073.344 1.286.231 2.367.565c1.172.372 1.518.476 2.477 1.254c.852.723.202.901.686 1.003c.322.06.582-.106.509-.628c-.091-.648-.719-1.108-2.109-1.611c-1.06-.387-1.776-.705-2.702-.816c-.71-.076-1.281-.02-1.228.233\"/><path fill=\"#4c4c4c\" d=\"M97.766 81.804c.076.323 1.272.189 2.336.531c1.159.381 1.462.475 2.469 1.216c.893.684.228.817.703.931c.265.075.513-.019.437-.532c-.095-.645-.703-1.063-2.07-1.557c-1.045-.38-1.747-.703-2.659-.816c-.665-.078-1.272-.039-1.216.227m4.787 1.557c.531.324.437.665.778.894c.171.114.456.114.286-.323c-.229-.513-.418-.798-1.596-1.273c-.759-.304-.608.018.532.702\"/><path fill=\"#505050\" d=\"M102.567 83.366c.518.314.426.648.759.87c.167.111.445.111.278-.315c-.223-.5-.408-.778-1.557-1.242c-.74-.296-.592.019.52.687\"/><path fill=\"#545454\" d=\"M102.58 83.369c.506.307.416.631.741.849c.163.108.434.108.271-.308c-.217-.487-.397-.758-1.518-1.21c-.722-.288-.577.019.506.669\"/><path fill=\"#575757\" d=\"M102.595 83.373c.493.298.405.616.722.827c.159.105.423.105.263-.299c-.21-.475-.387-.739-1.478-1.179c-.704-.282-.563.017.493.651\"/><path fill=\"#5b5b5b\" d=\"M102.61 83.377c.479.292.393.599.701.805c.155.103.411.103.258-.291c-.206-.462-.377-.72-1.439-1.148c-.686-.275-.548.017.48.634\"/><path fill=\"#5f5f5f\" d=\"M102.622 83.38c.467.284.384.584.684.784c.15.1.4.1.25-.283c-.201-.45-.367-.701-1.4-1.117c-.666-.266-.533.017.466.616\"/><path fill=\"#636363\" d=\"M102.638 83.384c.453.276.372.568.664.762c.146.097.389.097.244-.275c-.195-.438-.356-.681-1.361-1.086c-.649-.259-.52.017.453.599\"/><path fill=\"#676767\" d=\"M102.651 83.389c.44.267.362.551.645.739c.142.094.378.094.236-.267c-.188-.425-.346-.661-1.322-1.055c-.628-.252-.503.016.441.583\"/><path fill=\"#6b6b6b\" d=\"M102.665 83.393c.428.259.351.534.627.717c.137.091.366.091.229-.259c-.184-.412-.336-.642-1.284-1.023c-.61-.244-.488.015.428.565\"/><path fill=\"#6e6e6e\" d=\"M102.68 83.397c.414.251.341.518.606.696c.134.088.356.088.223-.251c-.178-.399-.325-.622-1.245-.992c-.591-.238-.473.013.416.547\"/><path fill=\"#727272\" d=\"M102.693 83.4c.401.244.331.501.589.674c.129.085.343.085.215-.244c-.172-.387-.315-.602-1.205-.961c-.573-.229-.459.015.401.531\"/><path fill=\"#767676\" d=\"M102.707 83.404c.388.236.319.486.57.653c.125.083.332.083.208-.236c-.167-.375-.305-.583-1.166-.93c-.555-.222-.444.014.388.513\"/><path fill=\"#7a7a7a\" d=\"M102.722 83.408c.376.228.308.469.55.63c.121.081.322.081.201-.228c-.161-.362-.295-.563-1.126-.898c-.537-.215-.43.013.375.496\"/><path fill=\"#7e7e7e\" d=\"M102.736 83.412c.362.22.297.453.53.608c.117.078.312.078.195-.22c-.155-.35-.285-.543-1.087-.867c-.518-.206-.415.013.362.479\"/><path fill=\"#828282\" d=\"M102.75 83.416c.349.212.287.437.512.586c.112.075.299.075.187-.212c-.149-.336-.274-.524-1.048-.835c-.5-.201-.399.012.349.461\"/><path fill=\"#858585\" d=\"M102.764 83.42c.336.204.275.419.492.564c.108.072.289.072.181-.204c-.145-.325-.265-.505-1.009-.805c-.481-.192-.384.013.336.445\"/><path fill=\"#898989\" d=\"M102.778 83.424c.323.197.266.404.473.543c.104.069.277.069.173-.197c-.139-.311-.254-.485-.97-.773c-.461-.185-.368.011.324.427\"/><path fill=\"#8d8d8d\" d=\"M102.792 83.428c.31.189.255.388.454.521c.1.066.265.066.167-.188c-.133-.299-.245-.466-.931-.743c-.443-.177-.354.011.31.41\"/><path fill=\"#919191\" d=\"M102.806 83.432c.297.181.245.372.435.5c.096.063.256.063.16-.181c-.127-.286-.233-.446-.892-.711c-.424-.171-.34.01.297.392\"/><path fill=\"#959595\" d=\"M102.821 83.435c.283.172.232.356.416.478c.091.061.243.061.152-.173c-.122-.274-.224-.426-.854-.68c-.404-.163-.324.011.286.375\"/><path fill=\"#999\" d=\"M102.834 83.439c.271.165.223.339.397.455c.088.058.232.058.146-.164c-.117-.262-.213-.407-.814-.65c-.387-.154-.31.011.271.359\"/><path fill=\"currentColor\" d=\"M81.472 36.408c-.239.292.186 2.701 1.748 4.289c1.562 1.562 2.516 1.562 3.151.874c1.217-1.297.237-2.515-.503-3.362c-.743-.847-1.695-.556-2.569-1.403s-1.482-.796-1.827-.398\"/><path fill=\"#050505\" d=\"M81.495 36.429c-.236.289.184 2.68 1.733 4.256c1.551 1.55 2.496 1.55 3.126.867c1.208-1.287.236-2.495-.499-3.336s-1.682-.552-2.549-1.392c-.865-.841-1.469-.789-1.811-.395\"/><path fill=\"#0a0a0a\" d=\"M81.518 36.451c-.234.286.183 2.659 1.72 4.223c1.538 1.538 2.476 1.538 3.102.86c1.199-1.277.235-2.477-.495-3.311s-1.669-.547-2.529-1.381s-1.459-.782-1.798-.391\"/><path fill=\"#0f0f0f\" d=\"M81.54 36.473c-.232.284.182 2.638 1.708 4.189c1.526 1.525 2.456 1.525 3.078.853c1.189-1.267.232-2.457-.492-3.284c-.724-.828-1.654-.543-2.509-1.37c-.853-.828-1.448-.776-1.785-.388\"/><path fill=\"#141414\" d=\"M81.563 36.495c-.23.282.18 2.616 1.693 4.155c1.514 1.514 2.437 1.514 3.053.847c1.18-1.257.23-2.438-.488-3.258c-.718-.821-1.642-.539-2.488-1.36s-1.437-.77-1.77-.384\"/><path fill=\"#191919\" d=\"M81.586 36.516c-.229.28.179 2.596 1.68 4.123c1.5 1.501 2.418 1.501 3.028.84c1.171-1.247.229-2.418-.484-3.232c-.712-.813-1.628-.534-2.468-1.348s-1.426-.765-1.756-.383\"/><path fill=\"#1e1e1e\" d=\"M81.609 36.537c-.228.278.177 2.575 1.666 4.09c1.49 1.489 2.399 1.489 3.004.833c1.162-1.237.228-2.398-.48-3.206c-.706-.808-1.615-.53-2.448-1.338c-.834-.808-1.414-.757-1.742-.379\"/><path fill=\"#232323\" d=\"M81.631 36.559c-.225.275.176 2.554 1.652 4.056c1.477 1.477 2.379 1.477 2.98.826c1.151-1.227.226-2.378-.476-3.179c-.701-.801-1.602-.526-2.428-1.327s-1.403-.751-1.728-.376\"/><path fill=\"#282828\" d=\"M81.654 36.581c-.223.273.173 2.533 1.64 4.023c1.465 1.464 2.359 1.464 2.955.819c1.142-1.217.223-2.359-.472-3.154c-.696-.794-1.589-.521-2.409-1.315c-.82-.795-1.391-.746-1.714-.373\"/><path fill=\"#2d2d2d\" d=\"M81.677 36.602c-.222.271.172 2.512 1.625 3.989c1.453 1.453 2.339 1.453 2.93.812c1.132-1.207.221-2.34-.468-3.127c-.689-.788-1.576-.517-2.388-1.305c-.813-.787-1.379-.738-1.699-.369\"/><path fill=\"#333\" d=\"M81.7 36.624c-.221.269.17 2.491 1.612 3.957c1.441 1.44 2.32 1.44 2.906.806c1.123-1.196.22-2.32-.464-3.101c-.685-.781-1.564-.513-2.369-1.294c-.807-.783-1.368-.735-1.685-.368\"/><path fill=\"#383838\" d=\"M81.722 36.645c-.218.267.169 2.47 1.599 3.923c1.429 1.429 2.3 1.429 2.881.799c1.115-1.187.219-2.3-.46-3.076c-.678-.774-1.55-.508-2.348-1.283c-.8-.774-1.357-.726-1.672-.363\"/><path fill=\"#3d3d3d\" d=\"M81.745 36.667c-.216.264.168 2.449 1.584 3.89c1.417 1.417 2.28 1.417 2.857.792c1.104-1.176.216-2.281-.456-3.048c-.673-.769-1.537-.504-2.33-1.272c-.791-.77-1.343-.722-1.655-.362\"/><path fill=\"#424242\" d=\"M81.768 36.689c-.214.262.167 2.428 1.571 3.856c1.405 1.404 2.261 1.404 2.832.785c1.096-1.167.214-2.262-.452-3.023s-1.523-.5-2.308-1.261c-.786-.762-1.334-.715-1.643-.357\"/><path fill=\"#474747\" d=\"M81.791 36.71c-.212.26.165 2.407 1.557 3.823c1.393 1.392 2.242 1.392 2.808.778c1.086-1.157.213-2.242-.448-2.997s-1.511-.495-2.29-1.25c-.778-.755-1.321-.708-1.627-.354\"/><path fill=\"#4c4c4c\" d=\"M81.814 36.732c-.21.257.164 2.386 1.544 3.789c1.38 1.38 2.221 1.38 2.783.772c1.076-1.146.209-2.222-.445-2.971s-1.497-.491-2.268-1.24c-.773-.747-1.311-.701-1.614-.35\"/><path fill=\"#515151\" d=\"M81.836 36.753c-.208.255.163 2.365 1.531 3.756c1.367 1.368 2.203 1.368 2.758.765c1.067-1.136.208-2.202-.44-2.944c-.649-.742-1.484-.487-2.25-1.229c-.764-.742-1.298-.695-1.599-.348\"/><path fill=\"#565656\" d=\"M81.859 36.775c-.207.253.161 2.344 1.517 3.723c1.355 1.356 2.184 1.356 2.734.758c1.057-1.126.207-2.183-.436-2.918c-.644-.735-1.472-.482-2.23-1.218c-.758-.735-1.287-.689-1.585-.345\"/><path fill=\"#5b5b5b\" d=\"M81.882 36.797c-.206.25.159 2.323 1.503 3.689c1.343 1.343 2.164 1.343 2.71.751c1.047-1.116.205-2.164-.433-2.893s-1.457-.478-2.209-1.207c-.752-.727-1.276-.682-1.571-.34\"/><path fill=\"#606060\" d=\"M81.905 36.818c-.204.249.158 2.302 1.489 3.656c1.333 1.331 2.145 1.331 2.686.745c1.038-1.106.203-2.144-.429-2.866c-.632-.723-1.444-.474-2.188-1.196s-1.266-.677-1.558-.339\"/><path fill=\"#666\" d=\"M81.927 36.84c-.201.246.157 2.281 1.476 3.623c1.319 1.318 2.125 1.318 2.661.737c1.029-1.096.201-2.124-.425-2.84s-1.431-.47-2.17-1.186c-.737-.714-1.252-.67-1.542-.334\"/><g transform=\"translate(-3.405 19.001)\"><path fill=\"#fc0\" d=\"M57.6 18.004c.639.441.656.519 1.598 1.135c1.498 1.216 4.16 1.49 5.464 1.533c2.98.474 8.31-2.312 10.419-3.587c1.063-.795 3.029-2.438 3.765-2.466c.453.479-.213.579-1.158 1.219c-1.262.897-2.341 1.665-4.253 2.75c-2.046 1.07-5.19 2.839-9.217 2.601c-2.113-.31-2.12-.331-3.424-.997c-.776-.56-2.552-1.488-3.194-2.188\"/><linearGradient id=\"SVGfp0XhRmc\" x1=\"-257.579\" x2=\"-240.246\" y1=\"-130.856\" y2=\"-130.856\" gradientTransform=\"translate(375.489 179.416)scale(1.234)\" gradientUnits=\"userSpaceOnUse\"><stop offset=\"0\" stop-color=\"#fac700\"/><stop offset=\".415\" stop-color=\"#f7c400\"/><stop offset=\"1\" stop-color=\"#f7c400\"/></linearGradient><path fill=\"url(#SVGfp0XhRmc)\" d=\"M57.585 17.999c.622.411.699.53 1.641 1.147c1.491 1.206 4.105 1.49 5.423 1.538c3.024.469 8.411-2.354 10.447-3.603c1.084-.809 3.017-2.42 3.743-2.455c.441.476-.235.571-1.19 1.231c-1.255.889-2.298 1.636-4.188 2.707c-2.031 1.062-5.191 2.84-9.213 2.616c-2.119-.305-2.212-.345-3.474-.994c-.798-.567-2.543-1.481-3.189-2.187\"/><linearGradient id=\"SVGBau6tcCt\" x1=\"-257.591\" x2=\"-240.258\" y1=\"-130.857\" y2=\"-130.857\" gradientTransform=\"translate(375.489 179.416)scale(1.234)\" gradientUnits=\"userSpaceOnUse\"><stop offset=\"0\" stop-color=\"#f6c200\"/><stop offset=\".415\" stop-color=\"#efbc00\"/><stop offset=\"1\" stop-color=\"#efbc00\"/></linearGradient><path fill=\"url(#SVGBau6tcCt)\" d=\"M57.569 17.992c.605.382.742.542 1.684 1.161c1.483 1.195 4.052 1.491 5.382 1.542c3.067.464 8.513-2.398 10.475-3.619c1.105-.823 3.004-2.403 3.722-2.444c.428.47-.257.563-1.224 1.245c-1.25.879-2.256 1.605-4.124 2.663c-2.016 1.055-5.191 2.84-9.209 2.633c-2.124-.3-2.303-.361-3.522-.992c-.818-.575-2.534-1.474-3.184-2.189\"/><linearGradient id=\"SVGDBchto3g\" x1=\"-257.604\" x2=\"-240.269\" y1=\"-130.859\" y2=\"-130.859\" gradientTransform=\"translate(375.489 179.416)scale(1.234)\" gradientUnits=\"userSpaceOnUse\"><stop offset=\"0\" stop-color=\"#f1bd00\"/><stop offset=\".415\" stop-color=\"#e8b500\"/><stop offset=\"1\" stop-color=\"#e8b500\"/></linearGradient><path fill=\"url(#SVGDBchto3g)\" d=\"M57.553 17.986c.59.353.786.553 1.729 1.174c1.475 1.183 3.997 1.49 5.341 1.545c3.109.46 8.613-2.441 10.501-3.633c1.128-.838 2.994-2.387 3.702-2.434c.415.466-.279.555-1.256 1.257c-1.244.872-2.215 1.577-4.058 2.622c-2.001 1.046-5.191 2.84-9.206 2.649c-2.132-.296-2.395-.376-3.572-.99c-.841-.582-2.527-1.468-3.181-2.19\"/><linearGradient id=\"SVGUYIMfeLC\" x1=\"-257.618\" x2=\"-240.282\" y1=\"-130.86\" y2=\"-130.86\" gradientTransform=\"translate(375.489 179.416)scale(1.234)\" gradientUnits=\"userSpaceOnUse\"><stop offset=\"0\" stop-color=\"#edb800\"/><stop offset=\".415\" stop-color=\"#e0ad00\"/><stop offset=\"1\" stop-color=\"#e0ad00\"/></linearGradient><path fill=\"url(#SVGUYIMfeLC)\" d=\"M57.537 17.98c.573.323.83.566 1.772 1.187c1.467 1.172 3.942 1.49 5.301 1.55c3.153.455 8.713-2.484 10.527-3.648c1.148-.852 2.983-2.37 3.679-2.423c.403.46-.299.546-1.288 1.269c-1.238.863-2.173 1.547-3.993 2.579c-1.985 1.039-5.191 2.841-9.202 2.665c-2.138-.292-2.487-.391-3.62-.988c-.861-.59-2.518-1.462-3.176-2.191\"/><linearGradient id=\"SVG6NcLhd9C\" x1=\"-257.629\" x2=\"-240.292\" y1=\"-130.862\" y2=\"-130.862\" gradientTransform=\"translate(375.489 179.416)scale(1.234)\" gradientUnits=\"userSpaceOnUse\"><stop offset=\"0\" stop-color=\"#e9b300\"/><stop offset=\".415\" stop-color=\"#d8a500\"/><stop offset=\"1\" stop-color=\"#d8a500\"/></linearGradient><path fill=\"url(#SVG6NcLhd9C)\" d=\"M57.523 17.974c.557.293.872.577 1.815 1.2c1.46 1.162 3.888 1.49 5.26 1.554c3.195.45 8.814-2.527 10.555-3.664c1.169-.866 2.97-2.353 3.658-2.413c.39.456-.321.539-1.321 1.282c-1.231.854-2.13 1.517-3.929 2.536c-1.97 1.031-5.19 2.841-9.198 2.681c-2.144-.287-2.579-.405-3.668-.985c-.884-.597-2.512-1.455-3.172-2.191\"/><linearGradient id=\"SVGPYUIle2y\" x1=\"-257.642\" x2=\"-240.304\" y1=\"-130.863\" y2=\"-130.863\" gradientTransform=\"translate(375.489 179.416)scale(1.234)\" gradientUnits=\"userSpaceOnUse\"><stop offset=\"0\" stop-color=\"#e4ae00\"/><stop offset=\".415\" stop-color=\"#d19e00\"/><stop offset=\"1\" stop-color=\"#d19e00\"/></linearGradient><path fill=\"url(#SVGPYUIle2y)\" d=\"M57.506 17.968c.54.264.916.589 1.859 1.213c1.452 1.15 3.834 1.49 5.219 1.559c3.238.445 8.916-2.571 10.582-3.68c1.191-.88 2.959-2.335 3.638-2.402c.377.451-.342.531-1.354 1.295c-1.225.845-2.088 1.488-3.864 2.493c-1.955 1.023-5.191 2.842-9.195 2.697c-2.15-.282-2.67-.421-3.716-.984c-.906-.604-2.503-1.447-3.169-2.191\"/><linearGradient id=\"SVGToKt9Ymj\" x1=\"-257.655\" x2=\"-240.315\" y1=\"-130.864\" y2=\"-130.864\" gradientTransform=\"translate(375.489 179.416)scale(1.234)\" gradientUnits=\"userSpaceOnUse\"><stop offset=\"0\" stop-color=\"#e0a900\"/><stop offset=\".415\" stop-color=\"#c99600\"/><stop offset=\"1\" stop-color=\"#c99600\"/></linearGradient><path fill=\"url(#SVGToKt9Ymj)\" d=\"M57.491 17.962c.523.234.959.601 1.902 1.226c1.445 1.14 3.779 1.49 5.178 1.562c3.281.44 9.017-2.614 10.609-3.696c1.213-.893 2.948-2.317 3.616-2.39c.365.446-.364.522-1.386 1.307c-1.22.837-2.047 1.458-3.799 2.45c-1.939 1.015-5.191 2.843-9.191 2.713c-2.156-.277-2.761-.436-3.766-.981c-.927-.611-2.494-1.44-3.163-2.191\"/><linearGradient id=\"SVG0gfpvbIz\" x1=\"-257.667\" x2=\"-240.325\" y1=\"-130.866\" y2=\"-130.866\" gradientTransform=\"translate(375.489 179.416)scale(1.234)\" gradientUnits=\"userSpaceOnUse\"><stop offset=\"0\" stop-color=\"#dca400\"/><stop offset=\".415\" stop-color=\"#c18e00\"/><stop offset=\"1\" stop-color=\"#c18e00\"/></linearGradient><path fill=\"url(#SVG0gfpvbIz)\" d=\"M57.475 17.957c.507.205 1.003.612 1.946 1.239c1.436 1.128 3.724 1.489 5.137 1.566c3.324.436 9.118-2.657 10.636-3.711c1.234-.908 2.936-2.301 3.596-2.38c.352.441-.386.515-1.419 1.32c-1.213.828-2.005 1.429-3.734 2.408c-1.923 1.006-5.191 2.843-9.187 2.729c-2.162-.272-2.853-.451-3.814-.979c-.951-.62-2.488-1.435-3.161-2.192\"/><linearGradient id=\"SVGK5iiQd2z\" x1=\"-257.68\" x2=\"-240.336\" y1=\"-130.866\" y2=\"-130.866\" gradientTransform=\"translate(375.489 179.416)scale(1.234)\" gradientUnits=\"userSpaceOnUse\"><stop offset=\"0\" stop-color=\"#d79f00\"/><stop offset=\".415\" stop-color=\"#ba8700\"/><stop offset=\"1\" stop-color=\"#ba8700\"/></linearGradient><path fill=\"url(#SVGK5iiQd2z)\" d=\"M57.46 17.95c.491.175 1.047.624 1.989 1.252c1.43 1.117 3.67 1.49 5.097 1.571c3.367.431 9.22-2.7 10.663-3.726c1.257-.922 2.925-2.284 3.574-2.37c.34.437-.407.506-1.451 1.332c-1.208.819-1.962 1.4-3.669 2.365c-1.908.999-5.19 2.843-9.183 2.746c-2.167-.268-2.944-.466-3.863-.977c-.974-.626-2.481-1.427-3.157-2.193\"/><linearGradient id=\"SVGTNictdJX\" x1=\"-257.693\" x2=\"-240.346\" y1=\"-130.867\" y2=\"-130.867\" gradientTransform=\"translate(375.489 179.416)scale(1.234)\" gradientUnits=\"userSpaceOnUse\"><stop offset=\"0\" stop-color=\"#d39b00\"/><stop offset=\".415\" stop-color=\"#b27f00\"/><stop offset=\"1\" stop-color=\"#b27f00\"/></linearGradient><path fill=\"url(#SVGTNictdJX)\" d=\"M57.443 17.944c.475.146 1.091.636 2.033 1.266c1.422 1.106 3.617 1.489 5.058 1.575c3.409.425 9.32-2.744 10.69-3.742c1.277-.936 2.912-2.267 3.552-2.359c.327.432-.429.499-1.484 1.345c-1.202.811-1.921 1.37-3.605 2.322c-1.892.991-5.19 2.844-9.179 2.761c-2.173-.263-3.037-.48-3.912-.975c-.994-.633-2.472-1.42-3.153-2.193\"/><linearGradient id=\"SVGSQHmmbqa\" x1=\"-257.705\" x2=\"-240.357\" y1=\"-130.868\" y2=\"-130.868\" gradientTransform=\"translate(375.489 179.416)scale(1.234)\" gradientUnits=\"userSpaceOnUse\"><stop offset=\"0\" stop-color=\"#cf9600\"/><stop offset=\".415\" stop-color=\"#a70\"/><stop offset=\"1\" stop-color=\"#a70\"/></linearGradient><path fill=\"url(#SVGSQHmmbqa)\" d=\"M57.428 17.938c.458.116 1.134.647 2.077 1.278c1.414 1.095 3.562 1.489 5.016 1.579c3.452.421 9.421-2.786 10.717-3.757c1.299-.95 2.901-2.25 3.532-2.349c.314.427-.45.491-1.517 1.357c-1.196.802-1.878 1.34-3.54 2.28c-1.877.982-5.19 2.844-9.175 2.778c-2.18-.259-3.128-.496-3.961-.973c-1.017-.64-2.464-1.412-3.149-2.193\"/><linearGradient id=\"SVG0h2uUdlf\" x1=\"-257.718\" x2=\"-240.367\" y1=\"-130.869\" y2=\"-130.869\" gradientTransform=\"translate(375.489 179.416)scale(1.234)\" gradientUnits=\"userSpaceOnUse\"><stop offset=\"0\" stop-color=\"#ca9100\"/><stop offset=\".415\" stop-color=\"#a37000\"/><stop offset=\"1\" stop-color=\"#a37000\"/></linearGradient><path fill=\"url(#SVG0h2uUdlf)\" d=\"M57.413 17.932c.442.086 1.176.659 2.12 1.291c1.407 1.084 3.507 1.49 4.976 1.583c3.495.416 9.522-2.829 10.744-3.773c1.321-.964 2.889-2.231 3.51-2.337c.302.422-.471.483-1.549 1.371c-1.189.793-1.836 1.311-3.475 2.237c-1.862.974-5.19 2.844-9.171 2.794c-2.186-.255-3.22-.511-4.009-.971c-1.041-.648-2.458-1.407-3.146-2.195\"/><linearGradient id=\"SVGExDmvcuL\" x1=\"-257.731\" x2=\"-240.377\" y1=\"-130.869\" y2=\"-130.869\" gradientTransform=\"translate(375.489 179.416)scale(1.234)\" gradientUnits=\"userSpaceOnUse\"><stop offset=\"0\" stop-color=\"#c68c00\"/><stop offset=\".415\" stop-color=\"#9b6800\"/><stop offset=\"1\" stop-color=\"#9b6800\"/></linearGradient><path fill=\"url(#SVGExDmvcuL)\" d=\"M57.397 17.926c.426.057 1.221.67 2.164 1.305c1.399 1.073 3.454 1.489 4.935 1.587c3.538.412 9.623-2.873 10.772-3.788c1.342-.979 2.877-2.215 3.488-2.327c.289.417-.493.475-1.582 1.383c-1.184.785-1.794 1.281-3.41 2.194c-1.847.966-5.191 2.845-9.168 2.81c-2.194-.25-3.312-.525-4.059-.968c-1.061-.657-2.448-1.401-3.14-2.196\"/><linearGradient id=\"SVGiTGUab1V\" x1=\"-257.744\" x2=\"-240.387\" y1=\"-130.87\" y2=\"-130.87\" gradientTransform=\"translate(375.489 179.416)scale(1.234)\" gradientUnits=\"userSpaceOnUse\"><stop offset=\"0\" stop-color=\"#c28700\"/><stop offset=\".415\" stop-color=\"#936000\"/><stop offset=\"1\" stop-color=\"#936000\"/></linearGradient><path fill=\"url(#SVGiTGUab1V)\" d=\"M57.381 17.92c.409.027 1.263.682 2.207 1.318c1.392 1.062 3.399 1.489 4.894 1.592c3.581.406 9.725-2.916 10.798-3.804c1.364-.992 2.866-2.198 3.468-2.316c.275.413-.516.467-1.615 1.396c-1.177.776-1.752 1.252-3.345 2.151c-1.832.959-5.191 2.846-9.164 2.826c-2.2-.245-3.403-.541-4.106-.966c-1.083-.664-2.441-1.394-3.137-2.197\"/><linearGradient id=\"SVGMf4SqOdP\" x1=\"-257.756\" x2=\"-240.396\" y1=\"-130.871\" y2=\"-130.871\" gradientTransform=\"translate(375.489 179.416)scale(1.234)\" gradientUnits=\"userSpaceOnUse\"><stop offset=\"0\" stop-color=\"#bd8200\"/><stop offset=\".415\" stop-color=\"#8c5900\"/><stop offset=\"1\" stop-color=\"#8c5900\"/></linearGradient><path fill=\"url(#SVGMf4SqOdP)\" d=\"M57.366 17.914c.393-.002 1.306.694 2.25 1.331c1.384 1.051 3.345 1.489 4.853 1.596c3.624.402 9.826-2.958 10.826-3.819c1.385-1.006 2.855-2.181 3.447-2.306c.262.408-.537.458-1.647 1.408c-1.172.768-1.71 1.222-3.28 2.109c-1.816.95-5.19 2.845-9.16 2.842c-2.204-.241-3.495-.556-4.155-.964c-1.106-.671-2.435-1.386-3.134-2.197\"/><linearGradient id=\"SVGJh0ZT9wd\" x1=\"-257.769\" x2=\"-240.406\" y1=\"-130.871\" y2=\"-130.871\" gradientTransform=\"translate(375.489 179.416)scale(1.234)\" gradientUnits=\"userSpaceOnUse\"><stop offset=\"0\" stop-color=\"#b97d00\"/><stop offset=\".415\" stop-color=\"#845100\"/><stop offset=\"1\" stop-color=\"#845100\"/></linearGradient><path fill=\"url(#SVGJh0ZT9wd)\" d=\"M57.351 17.908c.376-.032 1.349.706 2.293 1.344c1.376 1.04 3.29 1.489 4.812 1.6c3.666.397 9.926-3.002 10.853-3.834c1.406-1.021 2.842-2.163 3.424-2.295c.25.403-.558.451-1.68 1.421c-1.166.759-1.668 1.193-3.215 2.066c-1.8.942-5.19 2.846-9.156 2.858c-2.211-.235-3.586-.571-4.204-.962c-1.126-.679-2.425-1.38-3.127-2.198\"/><linearGradient id=\"SVGPSFbCcAA\" x1=\"-257.782\" x2=\"-240.415\" y1=\"-130.872\" y2=\"-130.872\" gradientTransform=\"translate(375.489 179.416)scale(1.234)\" gradientUnits=\"userSpaceOnUse\"><stop offset=\"0\" stop-color=\"#b57800\"/><stop offset=\".415\" stop-color=\"#7c4900\"/><stop offset=\"1\" stop-color=\"#7c4900\"/></linearGradient><path fill=\"url(#SVGPSFbCcAA)\" d=\"M57.335 17.901c.36-.061 1.393.718 2.337 1.357c1.368 1.029 3.235 1.489 4.772 1.604c3.709.392 10.027-3.045 10.879-3.851c1.428-1.034 2.831-2.146 3.404-2.284c.238.398-.58.443-1.712 1.434c-1.16.75-1.626 1.163-3.15 2.023c-1.785.935-5.191 2.847-9.153 2.875c-2.217-.231-3.679-.586-4.253-.959c-1.148-.685-2.417-1.373-3.124-2.199\"/><linearGradient id=\"SVGaN8mUcyR\" x1=\"-257.794\" x2=\"-240.424\" y1=\"-130.872\" y2=\"-130.872\" gradientTransform=\"translate(375.489 179.416)scale(1.234)\" gradientUnits=\"userSpaceOnUse\"><stop offset=\"0\" stop-color=\"#b07300\"/><stop offset=\".415\" stop-color=\"#754200\"/><stop offset=\"1\" stop-color=\"#754200\"/></linearGradient><path fill=\"url(#SVGaN8mUcyR)\" d=\"M57.319 17.896c.343-.091 1.437.729 2.381 1.37c1.361 1.018 3.181 1.489 4.731 1.608c3.752.387 10.128-3.089 10.907-3.866c1.45-1.048 2.819-2.128 3.383-2.273c.225.393-.601.435-1.745 1.446c-1.153.742-1.584 1.134-3.086 1.98c-1.769.926-5.19 2.847-9.149 2.891c-2.223-.227-3.769-.602-4.301-.958c-1.171-.693-2.41-1.365-3.121-2.198\"/><linearGradient id=\"SVGgIpZXd6N\" x1=\"-257.807\" x2=\"-240.433\" y1=\"-130.872\" y2=\"-130.872\" gradientTransform=\"translate(375.489 179.416)scale(1.234)\" gradientUnits=\"userSpaceOnUse\"><stop offset=\"0\" stop-color=\"#ac6e00\"/><stop offset=\".415\" stop-color=\"#6d3a00\"/><stop offset=\"1\" stop-color=\"#6d3a00\"/></linearGradient><path fill=\"url(#SVGgIpZXd6N)\" d=\"M57.303 17.89c.327-.12 1.481.74 2.425 1.383c1.354 1.006 3.126 1.488 4.69 1.612c3.795.382 10.229-3.132 10.934-3.881c1.471-1.062 2.807-2.112 3.361-2.263c.212.389-.623.427-1.777 1.459c-1.149.732-1.542 1.104-3.021 1.938c-1.755.918-5.191 2.847-9.145 2.906c-2.23-.222-3.862-.616-4.351-.956c-1.192-.699-2.401-1.358-3.116-2.198\"/><linearGradient id=\"SVGz9XMucXQ\" x1=\"-257.82\" x2=\"-240.441\" y1=\"-130.873\" y2=\"-130.873\" gradientTransform=\"translate(375.489 179.416)scale(1.234)\" gradientUnits=\"userSpaceOnUse\"><stop offset=\"0\" stop-color=\"#a86a00\"/><stop offset=\".415\" stop-color=\"#663200\"/><stop offset=\"1\" stop-color=\"#663200\"/></linearGradient><path fill=\"url(#SVGz9XMucXQ)\" d=\"M57.288 17.884c.311-.15 1.523.752 2.468 1.396c1.345.996 3.073 1.489 4.649 1.617c3.838.377 10.331-3.175 10.961-3.896c1.493-1.076 2.796-2.095 3.34-2.252c.2.384-.645.419-1.809 1.472c-1.143.724-1.501 1.075-2.957 1.895c-1.738.91-5.19 2.848-9.141 2.922c-2.236-.217-3.953-.631-4.399-.953c-1.215-.709-2.394-1.354-3.112-2.201\"/></g>",
+    brandColor: "#000000",
+    source: "devicon:linux",
+    isDarkBadge: true,
+  },
+  "redis": {
+    id: "redis",
+    title: "Redis",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#FF4438\" d=\"M22.71 13.145c-1.66 2.092-3.452 4.483-7.038 4.483-3.203 0-4.397-2.825-4.48-5.12.701 1.484 2.073 2.685 4.214 2.63 4.117-.133 6.94-3.852 6.94-7.239 0-4.05-3.022-6.972-8.268-6.972-3.752 0-8.4 1.428-11.455 3.685C2.59 6.937 3.885 9.958 4.35 9.626c2.648-1.904 4.748-3.13 6.784-3.744C8.12 9.244.886 17.05 0 18.425c.1 1.261 1.66 4.648 2.424 4.648.232 0 .431-.133.664-.365a100.49 100.49 0 0 0 5.54-6.765c.222 3.104 1.748 6.898 6.014 6.898 3.819 0 7.604-2.756 9.33-8.965.2-.764-.73-1.361-1.261-.73zm-4.349-5.013c0 1.959-1.926 2.922-3.685 2.922-.941 0-1.664-.247-2.235-.568 1.051-1.592 2.092-3.225 3.21-4.973 1.972.334 2.71 1.43 2.71 2.619z\" />",
+    brandColor: "#FF4438",
+    source: "simple-icons:redis",
+    pathOnly: "M22.71 13.145c-1.66 2.092-3.452 4.483-7.038 4.483-3.203 0-4.397-2.825-4.48-5.12.701 1.484 2.073 2.685 4.214 2.63 4.117-.133 6.94-3.852 6.94-7.239 0-4.05-3.022-6.972-8.268-6.972-3.752 0-8.4 1.428-11.455 3.685C2.59 6.937 3.885 9.958 4.35 9.626c2.648-1.904 4.748-3.13 6.784-3.744C8.12 9.244.886 17.05 0 18.425c.1 1.261 1.66 4.648 2.424 4.648.232 0 .431-.133.664-.365a100.49 100.49 0 0 0 5.54-6.765c.222 3.104 1.748 6.898 6.014 6.898 3.819 0 7.604-2.756 9.33-8.965.2-.764-.73-1.361-1.261-.73zm-4.349-5.013c0 1.959-1.926 2.922-3.685 2.922-.941 0-1.664-.247-2.235-.568 1.051-1.592 2.092-3.225 3.21-4.973 1.972.334 2.71 1.43 2.71 2.619z",
+  },
+  "graphql": {
+    id: "graphql",
+    title: "Graphql",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#E10098\" d=\"M12.002 0a2.138 2.138 0 1 0 0 4.277 2.138 2.138 0 1 0 0-4.277zm8.54 4.931a2.138 2.138 0 1 0 0 4.277 2.138 2.138 0 1 0 0-4.277zm0 9.862a2.138 2.138 0 1 0 0 4.277 2.138 2.138 0 1 0 0-4.277zm-8.54 4.931a2.138 2.138 0 1 0 0 4.276 2.138 2.138 0 1 0 0-4.276zm-8.542-4.93a2.138 2.138 0 1 0 0 4.276 2.138 2.138 0 1 0 0-4.277zm0-9.863a2.138 2.138 0 1 0 0 4.277 2.138 2.138 0 1 0 0-4.277zm8.542-3.378L2.953 6.777v10.448l9.049 5.224 9.047-5.224V6.777zm0 1.601 7.66 13.27H4.34zm-1.387.371L3.97 15.037V7.363zm2.774 0 6.646 3.838v7.674zM5.355 17.44h13.293l-6.646 3.836z\" />",
+    brandColor: "#E10098",
+    source: "simple-icons:graphql",
+    pathOnly: "M12.002 0a2.138 2.138 0 1 0 0 4.277 2.138 2.138 0 1 0 0-4.277zm8.54 4.931a2.138 2.138 0 1 0 0 4.277 2.138 2.138 0 1 0 0-4.277zm0 9.862a2.138 2.138 0 1 0 0 4.277 2.138 2.138 0 1 0 0-4.277zm-8.54 4.931a2.138 2.138 0 1 0 0 4.276 2.138 2.138 0 1 0 0-4.276zm-8.542-4.93a2.138 2.138 0 1 0 0 4.276 2.138 2.138 0 1 0 0-4.277zm0-9.863a2.138 2.138 0 1 0 0 4.277 2.138 2.138 0 1 0 0-4.277zm8.542-3.378L2.953 6.777v10.448l9.049 5.224 9.047-5.224V6.777zm0 1.601 7.66 13.27H4.34zm-1.387.371L3.97 15.037V7.363zm2.774 0 6.646 3.838v7.674zM5.355 17.44h13.293l-6.646 3.836z",
+  },
+  "figma": {
+    id: "figma",
+    title: "Figma",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#F24E1E\" d=\"M15.852 8.981h-4.588V0h4.588c2.476 0 4.49 2.014 4.49 4.49s-2.014 4.491-4.49 4.491zM12.735 7.51h3.117c1.665 0 3.019-1.355 3.019-3.019s-1.355-3.019-3.019-3.019h-3.117V7.51zm0 1.471H8.148c-2.476 0-4.49-2.014-4.49-4.49S5.672 0 8.148 0h4.588v8.981zm-4.587-7.51c-1.665 0-3.019 1.355-3.019 3.019s1.354 3.02 3.019 3.02h3.117V1.471H8.148zm4.587 15.019H8.148c-2.476 0-4.49-2.014-4.49-4.49s2.014-4.49 4.49-4.49h4.588v8.98zM8.148 8.981c-1.665 0-3.019 1.355-3.019 3.019s1.355 3.019 3.019 3.019h3.117V8.981H8.148zM8.172 24c-2.489 0-4.515-2.014-4.515-4.49s2.014-4.49 4.49-4.49h4.588v4.441c0 2.503-2.047 4.539-4.563 4.539zm-.024-7.51a3.023 3.023 0 0 0-3.019 3.019c0 1.665 1.365 3.019 3.044 3.019 1.705 0 3.093-1.376 3.093-3.068v-2.97H8.148zm7.704 0h-.098c-2.476 0-4.49-2.014-4.49-4.49s2.014-4.49 4.49-4.49h.098c2.476 0 4.49 2.014 4.49 4.49s-2.014 4.49-4.49 4.49zm-.097-7.509c-1.665 0-3.019 1.355-3.019 3.019s1.355 3.019 3.019 3.019h.098c1.665 0 3.019-1.355 3.019-3.019s-1.355-3.019-3.019-3.019h-.098z\" />",
+    brandColor: "#F24E1E",
+    source: "simple-icons:figma",
+    pathOnly: "M15.852 8.981h-4.588V0h4.588c2.476 0 4.49 2.014 4.49 4.49s-2.014 4.491-4.49 4.491zM12.735 7.51h3.117c1.665 0 3.019-1.355 3.019-3.019s-1.355-3.019-3.019-3.019h-3.117V7.51zm0 1.471H8.148c-2.476 0-4.49-2.014-4.49-4.49S5.672 0 8.148 0h4.588v8.981zm-4.587-7.51c-1.665 0-3.019 1.355-3.019 3.019s1.354 3.02 3.019 3.02h3.117V1.471H8.148zm4.587 15.019H8.148c-2.476 0-4.49-2.014-4.49-4.49s2.014-4.49 4.49-4.49h4.588v8.98zM8.148 8.981c-1.665 0-3.019 1.355-3.019 3.019s1.355 3.019 3.019 3.019h3.117V8.981H8.148zM8.172 24c-2.489 0-4.515-2.014-4.515-4.49s2.014-4.49 4.49-4.49h4.588v4.441c0 2.503-2.047 4.539-4.563 4.539zm-.024-7.51a3.023 3.023 0 0 0-3.019 3.019c0 1.665 1.365 3.019 3.044 3.019 1.705 0 3.093-1.376 3.093-3.068v-2.97H8.148zm7.704 0h-.098c-2.476 0-4.49-2.014-4.49-4.49s2.014-4.49 4.49-4.49h.098c2.476 0 4.49 2.014 4.49 4.49s-2.014 4.49-4.49 4.49zm-.097-7.509c-1.665 0-3.019 1.355-3.019 3.019s1.355 3.019 3.019 3.019h.098c1.665 0 3.019-1.355 3.019-3.019s-1.355-3.019-3.019-3.019h-.098z",
+  },
+  "linear": {
+    id: "linear",
+    title: "Linear",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#5E6AD2\" d=\"M2.886 4.18A11.982 11.982 0 0 1 11.99 0C18.624 0 24 5.376 24 12.009c0 3.64-1.62 6.903-4.18 9.105L2.887 4.18ZM1.817 5.626l16.556 16.556c-.524.33-1.075.62-1.65.866L.951 7.277c.247-.575.537-1.126.866-1.65ZM.322 9.163l14.515 14.515c-.71.172-1.443.282-2.195.322L0 11.358a12 12 0 0 1 .322-2.195Zm-.17 4.862 9.823 9.824a12.02 12.02 0 0 1-9.824-9.824Z\" />",
+    brandColor: "#5E6AD2",
+    source: "simple-icons:linear",
+    pathOnly: "M2.886 4.18A11.982 11.982 0 0 1 11.99 0C18.624 0 24 5.376 24 12.009c0 3.64-1.62 6.903-4.18 9.105L2.887 4.18ZM1.817 5.626l16.556 16.556c-.524.33-1.075.62-1.65.866L.951 7.277c.247-.575.537-1.126.866-1.65ZM.322 9.163l14.515 14.515c-.71.172-1.443.282-2.195.322L0 11.358a12 12 0 0 1 .322-2.195Zm-.17 4.862 9.823 9.824a12.02 12.02 0 0 1-9.824-9.824Z",
+  },
+  "aws": {
+    id: "aws",
+    title: "AWS",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#FF9900\" d=\"M6.763 10.036q.002.446.088.71c.064.176.144.368.256.576c.04.063.056.127.056.183q.002.12-.152.24l-.503.335a.4.4 0 0 1-.208.072q-.12-.002-.239-.112a2.5 2.5 0 0 1-.287-.375a6 6 0 0 1-.248-.471q-.934 1.101-2.347 1.101c-.67 0-1.205-.191-1.596-.574q-.588-.575-.59-1.533c0-.678.239-1.23.726-1.644c.487-.415 1.133-.623 1.955-.623c.272 0 .551.024.846.064c.296.04.6.104.918.176v-.583q-.001-.909-.375-1.277c-.255-.248-.686-.367-1.3-.367c-.28 0-.568.031-.863.103q-.443.106-.862.272a2 2 0 0 1-.28.104a.5.5 0 0 1-.127.023q-.168.002-.168-.247v-.391c0-.128.016-.224.056-.28a.6.6 0 0 1 .224-.167a4.6 4.6 0 0 1 1.005-.36a4.8 4.8 0 0 1 1.246-.151c.95 0 1.644.216 2.091.647q.66.645.662 1.963v2.586zm-3.24 1.214c.263 0 .534-.048.822-.144a1.8 1.8 0 0 0 .758-.51a1.3 1.3 0 0 0 .272-.512c.047-.191.08-.423.08-.694v-.335a7 7 0 0 0-.735-.136a6 6 0 0 0-.75-.048c-.535 0-.926.104-1.19.32c-.263.215-.39.518-.39.917c0 .375.095.655.295.846c.191.2.47.296.838.296m6.41.862c-.144 0-.24-.024-.304-.08c-.064-.048-.12-.16-.168-.311L7.586 5.55a1.4 1.4 0 0 1-.072-.32c0-.128.064-.2.191-.2h.783q.227-.001.31.08c.065.048.113.16.16.312l1.342 5.284l1.245-5.284q.058-.24.151-.312a.55.55 0 0 1 .32-.08h.638c.152 0 .256.025.32.08c.063.048.12.16.151.312l1.261 5.348l1.381-5.348q.074-.24.16-.312a.52.52 0 0 1 .311-.08h.743c.127 0 .2.065.2.2c0 .04-.009.08-.017.128a1 1 0 0 1-.056.2l-1.923 6.17q-.072.24-.168.311a.5.5 0 0 1-.303.08h-.687c-.151 0-.255-.024-.32-.08c-.063-.056-.119-.16-.15-.32l-1.238-5.148l-1.23 5.14c-.04.16-.087.264-.15.32c-.065.056-.177.08-.32.08zm10.256.215c-.415 0-.83-.048-1.229-.143c-.399-.096-.71-.2-.918-.32c-.128-.071-.215-.151-.247-.223a.6.6 0 0 1-.048-.224v-.407c0-.167.064-.247.183-.247q.072 0 .144.024c.048.016.12.048.2.08q.408.181.878.279c.319.064.63.096.95.096c.502 0 .894-.088 1.165-.264a.86.86 0 0 0 .415-.758a.78.78 0 0 0-.215-.559c-.144-.151-.416-.287-.807-.415l-1.157-.36c-.583-.183-1.014-.454-1.277-.813a1.9 1.9 0 0 1-.4-1.158q0-.502.216-.886c.144-.255.335-.479.575-.654c.24-.184.51-.32.83-.415c.32-.096.655-.136 1.006-.136c.175 0 .359.008.535.032c.183.024.35.056.518.088q.24.058.455.127q.216.072.336.144a.7.7 0 0 1 .24.2a.43.43 0 0 1 .071.263v.375q-.002.254-.184.256a.8.8 0 0 1-.303-.096a3.65 3.65 0 0 0-1.532-.311c-.455 0-.815.071-1.062.223s-.375.383-.375.71c0 .224.08.416.24.567c.159.152.454.304.877.44l1.134.358c.574.184.99.44 1.237.767s.367.702.367 1.117c0 .343-.072.655-.207.926a2.2 2.2 0 0 1-.583.703c-.248.2-.543.343-.886.447c-.36.111-.734.167-1.142.167m1.509 3.88c-2.626 1.94-6.442 2.969-9.722 2.969c-4.598 0-8.74-1.7-11.87-4.526c-.247-.223-.024-.527.272-.351c3.384 1.963 7.559 3.153 11.877 3.153c2.914 0 6.114-.607 9.06-1.852c.439-.2.814.287.383.607m1.094-1.246c-.336-.43-2.22-.207-3.074-.103c-.255.032-.295-.192-.063-.36c1.5-1.053 3.967-.75 4.254-.399c.287.36-.08 2.826-1.485 4.007c-.215.184-.423.088-.327-.151c.32-.79 1.03-2.57.695-2.994\" />",
+    brandColor: "#FF9900",
+    source: "simple-icons:amazonwebservices",
+    pathOnly: "M6.763 10.036q.002.446.088.71c.064.176.144.368.256.576c.04.063.056.127.056.183q.002.12-.152.24l-.503.335a.4.4 0 0 1-.208.072q-.12-.002-.239-.112a2.5 2.5 0 0 1-.287-.375a6 6 0 0 1-.248-.471q-.934 1.101-2.347 1.101c-.67 0-1.205-.191-1.596-.574q-.588-.575-.59-1.533c0-.678.239-1.23.726-1.644c.487-.415 1.133-.623 1.955-.623c.272 0 .551.024.846.064c.296.04.6.104.918.176v-.583q-.001-.909-.375-1.277c-.255-.248-.686-.367-1.3-.367c-.28 0-.568.031-.863.103q-.443.106-.862.272a2 2 0 0 1-.28.104a.5.5 0 0 1-.127.023q-.168.002-.168-.247v-.391c0-.128.016-.224.056-.28a.6.6 0 0 1 .224-.167a4.6 4.6 0 0 1 1.005-.36a4.8 4.8 0 0 1 1.246-.151c.95 0 1.644.216 2.091.647q.66.645.662 1.963v2.586zm-3.24 1.214c.263 0 .534-.048.822-.144a1.8 1.8 0 0 0 .758-.51a1.3 1.3 0 0 0 .272-.512c.047-.191.08-.423.08-.694v-.335a7 7 0 0 0-.735-.136a6 6 0 0 0-.75-.048c-.535 0-.926.104-1.19.32c-.263.215-.39.518-.39.917c0 .375.095.655.295.846c.191.2.47.296.838.296m6.41.862c-.144 0-.24-.024-.304-.08c-.064-.048-.12-.16-.168-.311L7.586 5.55a1.4 1.4 0 0 1-.072-.32c0-.128.064-.2.191-.2h.783q.227-.001.31.08c.065.048.113.16.16.312l1.342 5.284l1.245-5.284q.058-.24.151-.312a.55.55 0 0 1 .32-.08h.638c.152 0 .256.025.32.08c.063.048.12.16.151.312l1.261 5.348l1.381-5.348q.074-.24.16-.312a.52.52 0 0 1 .311-.08h.743c.127 0 .2.065.2.2c0 .04-.009.08-.017.128a1 1 0 0 1-.056.2l-1.923 6.17q-.072.24-.168.311a.5.5 0 0 1-.303.08h-.687c-.151 0-.255-.024-.32-.08c-.063-.056-.119-.16-.15-.32l-1.238-5.148l-1.23 5.14c-.04.16-.087.264-.15.32c-.065.056-.177.08-.32.08zm10.256.215c-.415 0-.83-.048-1.229-.143c-.399-.096-.71-.2-.918-.32c-.128-.071-.215-.151-.247-.223a.6.6 0 0 1-.048-.224v-.407c0-.167.064-.247.183-.247q.072 0 .144.024c.048.016.12.048.2.08q.408.181.878.279c.319.064.63.096.95.096c.502 0 .894-.088 1.165-.264a.86.86 0 0 0 .415-.758a.78.78 0 0 0-.215-.559c-.144-.151-.416-.287-.807-.415l-1.157-.36c-.583-.183-1.014-.454-1.277-.813a1.9 1.9 0 0 1-.4-1.158q0-.502.216-.886c.144-.255.335-.479.575-.654c.24-.184.51-.32.83-.415c.32-.096.655-.136 1.006-.136c.175 0 .359.008.535.032c.183.024.35.056.518.088q.24.058.455.127q.216.072.336.144a.7.7 0 0 1 .24.2a.43.43 0 0 1 .071.263v.375q-.002.254-.184.256a.8.8 0 0 1-.303-.096a3.65 3.65 0 0 0-1.532-.311c-.455 0-.815.071-1.062.223s-.375.383-.375.71c0 .224.08.416.24.567c.159.152.454.304.877.44l1.134.358c.574.184.99.44 1.237.767s.367.702.367 1.117c0 .343-.072.655-.207.926a2.2 2.2 0 0 1-.583.703c-.248.2-.543.343-.886.447c-.36.111-.734.167-1.142.167m1.509 3.88c-2.626 1.94-6.442 2.969-9.722 2.969c-4.598 0-8.74-1.7-11.87-4.526c-.247-.223-.024-.527.272-.351c3.384 1.963 7.559 3.153 11.877 3.153c2.914 0 6.114-.607 9.06-1.852c.439-.2.814.287.383.607m1.094-1.246c-.336-.43-2.22-.207-3.074-.103c-.255.032-.295-.192-.063-.36c1.5-1.053 3.967-.75 4.254-.399c.287.36-.08 2.826-1.485 4.007c-.215.184-.423.088-.327-.151c.32-.79 1.03-2.57.695-2.994",
+  },
+  "vite": {
+    id: "vite",
+    title: "Vite",
+    viewBox: "0 0 128 128",
+    body: "<path fill=\"#006bff\" d=\"M128 3.83L48.72 22.547L36.977 124.17ZM39.464 24.264L0 33.167l35.658 90.604Z\"/>",
+    brandColor: "#000000",
+    source: "devicon:vite",
+    isDarkBadge: true,
+  },
+  "bun": {
+    id: "bun",
+    title: "Bun",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#000000\" d=\"M12 22.596c6.628 0 12-4.338 12-9.688 0-3.318-2.057-6.248-5.219-7.986-1.286-.715-2.297-1.357-3.139-1.89C14.058 2.025 13.08 1.404 12 1.404c-1.097 0-2.334.785-3.966 1.821a49.92 49.92 0 0 1-2.816 1.697C2.057 6.66 0 9.59 0 12.908c0 5.35 5.372 9.687 12 9.687v.001ZM10.599 4.715c.334-.759.503-1.58.498-2.409 0-.145.202-.187.23-.029.658 2.783-.902 4.162-2.057 4.624-.124.048-.199-.121-.103-.209a5.763 5.763 0 0 0 1.432-1.977Zm2.058-.102a5.82 5.82 0 0 0-.782-2.306v-.016c-.069-.123.086-.263.185-.172 1.962 2.111 1.307 4.067.556 5.051-.082.103-.23-.003-.189-.126a5.85 5.85 0 0 0 .23-2.431Zm1.776-.561a5.727 5.727 0 0 0-1.612-1.806v-.014c-.112-.085-.024-.274.114-.218 2.595 1.087 2.774 3.18 2.459 4.407a.116.116 0 0 1-.049.071.11.11 0 0 1-.153-.026.122.122 0 0 1-.022-.083 5.891 5.891 0 0 0-.737-2.331Zm-5.087.561c-.617.546-1.282.76-2.063 1-.117 0-.195-.078-.156-.181 1.752-.909 2.376-1.649 2.999-2.778 0 0 .155-.118.188.085 0 .304-.349 1.329-.968 1.874Zm4.945 11.237a2.957 2.957 0 0 1-.937 1.553c-.346.346-.8.565-1.286.62a2.178 2.178 0 0 1-1.327-.62 2.955 2.955 0 0 1-.925-1.553.244.244 0 0 1 .064-.198.234.234 0 0 1 .193-.069h3.965a.226.226 0 0 1 .19.07c.05.053.073.125.063.197Zm-5.458-2.176a1.862 1.862 0 0 1-2.384-.245 1.98 1.98 0 0 1-.233-2.447c.207-.319.503-.566.848-.713a1.84 1.84 0 0 1 1.092-.11c.366.075.703.261.967.531a1.98 1.98 0 0 1 .408 2.114 1.931 1.931 0 0 1-.698.869v.001Zm8.495.005a1.86 1.86 0 0 1-2.381-.253 1.964 1.964 0 0 1-.547-1.366c0-.384.11-.76.32-1.079.207-.319.503-.567.849-.713a1.844 1.844 0 0 1 1.093-.108c.367.076.704.262.968.534a1.98 1.98 0 0 1 .4 2.117 1.932 1.932 0 0 1-.702.868Z\" />",
+    brandColor: "#000000",
+    source: "simple-icons:bun",
+    pathOnly: "M12 22.596c6.628 0 12-4.338 12-9.688 0-3.318-2.057-6.248-5.219-7.986-1.286-.715-2.297-1.357-3.139-1.89C14.058 2.025 13.08 1.404 12 1.404c-1.097 0-2.334.785-3.966 1.821a49.92 49.92 0 0 1-2.816 1.697C2.057 6.66 0 9.59 0 12.908c0 5.35 5.372 9.687 12 9.687v.001ZM10.599 4.715c.334-.759.503-1.58.498-2.409 0-.145.202-.187.23-.029.658 2.783-.902 4.162-2.057 4.624-.124.048-.199-.121-.103-.209a5.763 5.763 0 0 0 1.432-1.977Zm2.058-.102a5.82 5.82 0 0 0-.782-2.306v-.016c-.069-.123.086-.263.185-.172 1.962 2.111 1.307 4.067.556 5.051-.082.103-.23-.003-.189-.126a5.85 5.85 0 0 0 .23-2.431Zm1.776-.561a5.727 5.727 0 0 0-1.612-1.806v-.014c-.112-.085-.024-.274.114-.218 2.595 1.087 2.774 3.18 2.459 4.407a.116.116 0 0 1-.049.071.11.11 0 0 1-.153-.026.122.122 0 0 1-.022-.083 5.891 5.891 0 0 0-.737-2.331Zm-5.087.561c-.617.546-1.282.76-2.063 1-.117 0-.195-.078-.156-.181 1.752-.909 2.376-1.649 2.999-2.778 0 0 .155-.118.188.085 0 .304-.349 1.329-.968 1.874Zm4.945 11.237a2.957 2.957 0 0 1-.937 1.553c-.346.346-.8.565-1.286.62a2.178 2.178 0 0 1-1.327-.62 2.955 2.955 0 0 1-.925-1.553.244.244 0 0 1 .064-.198.234.234 0 0 1 .193-.069h3.965a.226.226 0 0 1 .19.07c.05.053.073.125.063.197Zm-5.458-2.176a1.862 1.862 0 0 1-2.384-.245 1.98 1.98 0 0 1-.233-2.447c.207-.319.503-.566.848-.713a1.84 1.84 0 0 1 1.092-.11c.366.075.703.261.967.531a1.98 1.98 0 0 1 .408 2.114 1.931 1.931 0 0 1-.698.869v.001Zm8.495.005a1.86 1.86 0 0 1-2.381-.253 1.964 1.964 0 0 1-.547-1.366c0-.384.11-.76.32-1.079.207-.319.503-.567.849-.713a1.844 1.844 0 0 1 1.093-.108c.367.076.704.262.968.534a1.98 1.98 0 0 1 .4 2.117 1.932 1.932 0 0 1-.702.868Z",
+  },
+  "astro": {
+    id: "astro",
+    title: "Astro",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#BC52EE\" d=\"M8.358 20.162c-1.186-1.07-1.532-3.316-1.038-4.944.856 1.026 2.043 1.352 3.272 1.535 1.897.283 3.76.177 5.522-.678.202-.098.388-.229.608-.36.166.473.209.95.151 1.437-.14 1.185-.738 2.1-1.688 2.794-.38.277-.782.525-1.175.787-1.205.804-1.531 1.747-1.078 3.119l.044.148a3.158 3.158 0 0 1-1.407-1.188 3.31 3.31 0 0 1-.544-1.815c-.004-.32-.004-.642-.048-.958-.106-.769-.472-1.113-1.161-1.133-.707-.02-1.267.411-1.415 1.09-.012.053-.028.104-.045.165h.002zm-5.961-4.445s3.24-1.575 6.49-1.575l2.451-7.565c.092-.366.36-.614.662-.614.302 0 .57.248.662.614l2.45 7.565c3.85 0 6.491 1.575 6.491 1.575L16.088.727C15.93.285 15.663 0 15.303 0H8.697c-.36 0-.615.285-.784.727l-5.516 14.99z\" />",
+    brandColor: "#BC52EE",
+    source: "simple-icons:astro",
+    pathOnly: "M8.358 20.162c-1.186-1.07-1.532-3.316-1.038-4.944.856 1.026 2.043 1.352 3.272 1.535 1.897.283 3.76.177 5.522-.678.202-.098.388-.229.608-.36.166.473.209.95.151 1.437-.14 1.185-.738 2.1-1.688 2.794-.38.277-.782.525-1.175.787-1.205.804-1.531 1.747-1.078 3.119l.044.148a3.158 3.158 0 0 1-1.407-1.188 3.31 3.31 0 0 1-.544-1.815c-.004-.32-.004-.642-.048-.958-.106-.769-.472-1.113-1.161-1.133-.707-.02-1.267.411-1.415 1.09-.012.053-.028.104-.045.165h.002zm-5.961-4.445s3.24-1.575 6.49-1.575l2.451-7.565c.092-.366.36-.614.662-.614.302 0 .57.248.662.614l2.45 7.565c3.85 0 6.491 1.575 6.491 1.575L16.088.727C15.93.285 15.663 0 15.303 0H8.697c-.36 0-.615.285-.784.727l-5.516 14.99z",
+  },
+  "nestjs": {
+    id: "nestjs",
+    title: "Nestjs",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#E0234E\" d=\"M14.131.047c-.173 0-.334.037-.483.087.316.21.49.49.576.806.007.043.019.074.025.117a.681.681 0 0 1 .013.112c.024.545-.143.614-.26.936-.18.415-.13.861.086 1.22a.74.74 0 0 0 .074.137c-.235-1.568 1.073-1.803 1.314-2.293.019-.428-.334-.713-.613-.911a1.37 1.37 0 0 0-.732-.21zM16.102.4c-.024.143-.006.106-.012.18-.006.05-.006.112-.012.161-.013.05-.025.1-.044.149-.012.05-.03.1-.05.149l-.067.142c-.02.025-.031.05-.05.075l-.037.055a2.152 2.152 0 0 1-.093.124c-.037.038-.068.081-.112.112v.006c-.037.031-.074.068-.118.1-.13.099-.278.173-.415.266-.043.03-.087.056-.124.093a.906.906 0 0 0-.118.099c-.043.037-.074.074-.111.118-.031.037-.068.08-.093.124a1.582 1.582 0 0 0-.087.13c-.025.05-.043.093-.068.142-.019.05-.037.093-.05.143a2.007 2.007 0 0 0-.043.155c-.006.025-.006.056-.012.08-.007.025-.007.05-.013.075 0 .05-.006.105-.006.155 0 .037 0 .074.006.111 0 .05.006.1.019.155.006.05.018.1.03.15.02.049.032.098.05.148.013.03.031.062.044.087l-1.426-.552c-.241-.068-.477-.13-.719-.186l-.39-.093c-.372-.074-.75-.13-1.128-.167-.013 0-.019-.006-.031-.006A11.082 11.082 0 0 0 8.9 2.855c-.378.025-.756.074-1.134.136a12.45 12.45 0 0 0-.837.174l-.279.074c-.092.037-.18.08-.266.118l-.205.093c-.012.006-.024.006-.03.012-.063.031-.118.056-.174.087a2.738 2.738 0 0 0-.236.118c-.043.018-.086.043-.124.062a.559.559 0 0 1-.055.03c-.056.032-.112.063-.162.094a1.56 1.56 0 0 0-.148.093c-.044.03-.087.055-.124.086-.006.007-.013.007-.019.013-.037.025-.08.056-.118.087l-.012.012-.093.074c-.012.007-.025.019-.037.025-.031.025-.062.056-.093.08-.006.013-.019.02-.025.025-.037.038-.074.069-.111.106-.007 0-.007.006-.013.012a1.742 1.742 0 0 0-.111.106c-.007.006-.007.012-.013.012a1.454 1.454 0 0 0-.093.1c-.012.012-.03.024-.043.036a1.374 1.374 0 0 1-.106.112c-.006.012-.018.019-.024.03-.05.05-.093.1-.143.15l-.018.018c-.1.106-.205.211-.317.304-.111.1-.229.192-.347.273a3.777 3.777 0 0 1-.762.421c-.13.056-.267.106-.403.149-.26.056-.527.161-.756.18-.05 0-.105.012-.155.018l-.155.037-.149.056c-.05.019-.099.044-.148.068-.044.031-.093.056-.137.087a1.011 1.011 0 0 0-.124.106c-.043.03-.087.074-.124.111-.037.043-.074.08-.105.124-.031.05-.068.093-.093.143a1.092 1.092 0 0 0-.087.142c-.025.056-.05.106-.068.161-.019.05-.037.106-.056.161-.012.05-.025.1-.03.15 0 .005-.007.012-.007.018-.012.056-.012.13-.019.167C.006 7.95 0 7.986 0 8.03a.657.657 0 0 0 .074.31v.006c.019.037.044.075.069.112.024.037.05.074.08.111.031.031.068.069.106.1a.906.906 0 0 0 .117.099c.149.13.186.173.378.272.031.019.062.031.1.05.006 0 .012.006.018.006 0 .013 0 .019.006.031a1.272 1.272 0 0 0 .08.298c.02.037.032.074.05.111.007.013.013.025.02.031.024.05.049.093.073.137l.093.13c.031.037.069.08.106.118.037.037.074.068.118.105 0 0 .006.006.012.006.037.031.074.062.112.087a.986.986 0 0 0 .136.08c.043.025.093.05.142.069a.73.73 0 0 0 .124.043c.007.006.013.006.025.012.025.007.056.013.08.019-.018.335-.024.65.026.762.055.124.328-.254.6-.688-.036.428-.061.93 0 1.079.069.155.44-.329.763-.862 4.395-1.016 8.405 2.02 8.826 6.31-.08-.67-.905-1.041-1.283-.948-.186.458-.502 1.047-1.01 1.413.043-.41.025-.83-.062-1.24a4.009 4.009 0 0 1-.769 1.562c-.588.043-1.177-.242-1.487-.67-.025-.018-.031-.055-.05-.08-.018-.043-.037-.087-.05-.13a.515.515 0 0 1-.037-.13c-.006-.044-.006-.087-.006-.137v-.093a.992.992 0 0 1 .031-.13c.013-.043.025-.086.044-.13.024-.043.043-.087.074-.13.105-.298.105-.54-.087-.682a.706.706 0 0 0-.118-.062c-.024-.006-.055-.018-.08-.025l-.05-.018a.847.847 0 0 0-.13-.031.472.472 0 0 0-.13-.019 1.01 1.01 0 0 0-.136-.012c-.031 0-.062.006-.093.006a.484.484 0 0 0-.137.019c-.043.006-.086.012-.13.024a1.068 1.068 0 0 0-.13.044c-.043.018-.08.037-.124.056-.037.018-.074.043-.118.062-1.444.942-.582 3.148.403 3.787-.372.068-.75.148-.855.229l-.013.012c.267.161.546.298.837.416.397.13.818.247 1.004.297v.006a5.996 5.996 0 0 0 1.562.112c2.746-.192 4.996-2.281 5.405-5.033l.037.161c.019.112.043.23.056.347v.006c.012.056.018.112.025.162v.024c.006.056.012.112.012.162.006.068.012.136.012.204v.1c0 .03.007.067.007.098 0 .038-.007.075-.007.112v.087c0 .043-.006.08-.006.124 0 .025 0 .05-.006.08 0 .044-.006.087-.006.137-.006.018-.006.037-.006.055l-.02.143c0 .019 0 .037-.005.056-.007.062-.019.118-.025.18v.012l-.037.174v.018l-.037.167c0 .007-.007.02-.007.025a1.663 1.663 0 0 1-.043.168v.018c-.019.062-.037.118-.05.174-.006.006-.006.012-.006.012l-.056.186c-.024.062-.043.118-.068.18-.025.062-.043.124-.068.18-.025.062-.05.117-.074.18h-.007c-.024.055-.05.117-.08.173a.302.302 0 0 1-.019.043c-.006.006-.006.013-.012.019a5.867 5.867 0 0 1-1.742 2.082c-.05.031-.099.069-.149.106-.012.012-.03.018-.043.03a2.603 2.603 0 0 1-.136.094l.018.037h.007l.26-.037h.006c.161-.025.322-.056.483-.087.044-.006.093-.019.137-.031l.087-.019c.043-.006.086-.018.13-.024.037-.013.074-.02.111-.031.62-.15 1.221-.354 1.798-.595a9.926 9.926 0 0 1-3.85 3.142c.714-.05 1.426-.167 2.114-.366a9.903 9.903 0 0 0 5.857-4.68 9.893 9.893 0 0 1-1.667 3.986 9.758 9.758 0 0 0 1.655-1.376 9.824 9.824 0 0 0 2.61-5.268c.21.98.272 1.99.18 2.987 4.474-6.241.371-12.712-1.346-14.416-.006-.013-.012-.019-.012-.031-.006.006-.006.006-.006.012 0-.006 0-.006-.007-.012 0 .074-.006.148-.012.223a8.34 8.34 0 0 1-.062.415c-.03.136-.068.273-.105.41-.044.13-.093.266-.15.396a5.322 5.322 0 0 1-.185.378 4.735 4.735 0 0 1-.477.688c-.093.111-.192.21-.292.31a3.994 3.994 0 0 1-.18.155l-.142.124a3.459 3.459 0 0 1-.347.241 4.295 4.295 0 0 1-.366.211c-.13.062-.26.118-.39.174a4.364 4.364 0 0 1-.818.223c-.143.025-.285.037-.422.05a4.914 4.914 0 0 1-.297.012 4.66 4.66 0 0 1-.422-.025 3.137 3.137 0 0 1-.421-.062 3.136 3.136 0 0 1-.415-.105h-.007c.137-.013.273-.025.41-.05a4.493 4.493 0 0 0 .818-.223c.136-.05.266-.112.39-.174.13-.062.248-.13.372-.204.118-.08.235-.161.347-.248.112-.087.217-.18.316-.279.105-.093.198-.198.291-.304.093-.111.18-.223.26-.334.013-.019.026-.044.038-.062.062-.1.124-.199.18-.298a4.272 4.272 0 0 0 .334-.775c.044-.13.075-.266.106-.403.025-.142.05-.278.062-.415.012-.142.025-.285.025-.421 0-.1-.007-.199-.013-.298a6.726 6.726 0 0 0-.05-.415 4.493 4.493 0 0 0-.092-.415c-.044-.13-.087-.267-.137-.397-.05-.13-.111-.26-.173-.384-.069-.124-.137-.248-.211-.366a6.843 6.843 0 0 0-.248-.34c-.093-.106-.186-.212-.285-.317a3.878 3.878 0 0 0-.161-.155c-.28-.217-.57-.421-.862-.607a1.154 1.154 0 0 0-.124-.062 2.415 2.415 0 0 0-.589-.26Z\" />",
+    brandColor: "#E0234E",
+    source: "simple-icons:nestjs",
+    pathOnly: "M14.131.047c-.173 0-.334.037-.483.087.316.21.49.49.576.806.007.043.019.074.025.117a.681.681 0 0 1 .013.112c.024.545-.143.614-.26.936-.18.415-.13.861.086 1.22a.74.74 0 0 0 .074.137c-.235-1.568 1.073-1.803 1.314-2.293.019-.428-.334-.713-.613-.911a1.37 1.37 0 0 0-.732-.21zM16.102.4c-.024.143-.006.106-.012.18-.006.05-.006.112-.012.161-.013.05-.025.1-.044.149-.012.05-.03.1-.05.149l-.067.142c-.02.025-.031.05-.05.075l-.037.055a2.152 2.152 0 0 1-.093.124c-.037.038-.068.081-.112.112v.006c-.037.031-.074.068-.118.1-.13.099-.278.173-.415.266-.043.03-.087.056-.124.093a.906.906 0 0 0-.118.099c-.043.037-.074.074-.111.118-.031.037-.068.08-.093.124a1.582 1.582 0 0 0-.087.13c-.025.05-.043.093-.068.142-.019.05-.037.093-.05.143a2.007 2.007 0 0 0-.043.155c-.006.025-.006.056-.012.08-.007.025-.007.05-.013.075 0 .05-.006.105-.006.155 0 .037 0 .074.006.111 0 .05.006.1.019.155.006.05.018.1.03.15.02.049.032.098.05.148.013.03.031.062.044.087l-1.426-.552c-.241-.068-.477-.13-.719-.186l-.39-.093c-.372-.074-.75-.13-1.128-.167-.013 0-.019-.006-.031-.006A11.082 11.082 0 0 0 8.9 2.855c-.378.025-.756.074-1.134.136a12.45 12.45 0 0 0-.837.174l-.279.074c-.092.037-.18.08-.266.118l-.205.093c-.012.006-.024.006-.03.012-.063.031-.118.056-.174.087a2.738 2.738 0 0 0-.236.118c-.043.018-.086.043-.124.062a.559.559 0 0 1-.055.03c-.056.032-.112.063-.162.094a1.56 1.56 0 0 0-.148.093c-.044.03-.087.055-.124.086-.006.007-.013.007-.019.013-.037.025-.08.056-.118.087l-.012.012-.093.074c-.012.007-.025.019-.037.025-.031.025-.062.056-.093.08-.006.013-.019.02-.025.025-.037.038-.074.069-.111.106-.007 0-.007.006-.013.012a1.742 1.742 0 0 0-.111.106c-.007.006-.007.012-.013.012a1.454 1.454 0 0 0-.093.1c-.012.012-.03.024-.043.036a1.374 1.374 0 0 1-.106.112c-.006.012-.018.019-.024.03-.05.05-.093.1-.143.15l-.018.018c-.1.106-.205.211-.317.304-.111.1-.229.192-.347.273a3.777 3.777 0 0 1-.762.421c-.13.056-.267.106-.403.149-.26.056-.527.161-.756.18-.05 0-.105.012-.155.018l-.155.037-.149.056c-.05.019-.099.044-.148.068-.044.031-.093.056-.137.087a1.011 1.011 0 0 0-.124.106c-.043.03-.087.074-.124.111-.037.043-.074.08-.105.124-.031.05-.068.093-.093.143a1.092 1.092 0 0 0-.087.142c-.025.056-.05.106-.068.161-.019.05-.037.106-.056.161-.012.05-.025.1-.03.15 0 .005-.007.012-.007.018-.012.056-.012.13-.019.167C.006 7.95 0 7.986 0 8.03a.657.657 0 0 0 .074.31v.006c.019.037.044.075.069.112.024.037.05.074.08.111.031.031.068.069.106.1a.906.906 0 0 0 .117.099c.149.13.186.173.378.272.031.019.062.031.1.05.006 0 .012.006.018.006 0 .013 0 .019.006.031a1.272 1.272 0 0 0 .08.298c.02.037.032.074.05.111.007.013.013.025.02.031.024.05.049.093.073.137l.093.13c.031.037.069.08.106.118.037.037.074.068.118.105 0 0 .006.006.012.006.037.031.074.062.112.087a.986.986 0 0 0 .136.08c.043.025.093.05.142.069a.73.73 0 0 0 .124.043c.007.006.013.006.025.012.025.007.056.013.08.019-.018.335-.024.65.026.762.055.124.328-.254.6-.688-.036.428-.061.93 0 1.079.069.155.44-.329.763-.862 4.395-1.016 8.405 2.02 8.826 6.31-.08-.67-.905-1.041-1.283-.948-.186.458-.502 1.047-1.01 1.413.043-.41.025-.83-.062-1.24a4.009 4.009 0 0 1-.769 1.562c-.588.043-1.177-.242-1.487-.67-.025-.018-.031-.055-.05-.08-.018-.043-.037-.087-.05-.13a.515.515 0 0 1-.037-.13c-.006-.044-.006-.087-.006-.137v-.093a.992.992 0 0 1 .031-.13c.013-.043.025-.086.044-.13.024-.043.043-.087.074-.13.105-.298.105-.54-.087-.682a.706.706 0 0 0-.118-.062c-.024-.006-.055-.018-.08-.025l-.05-.018a.847.847 0 0 0-.13-.031.472.472 0 0 0-.13-.019 1.01 1.01 0 0 0-.136-.012c-.031 0-.062.006-.093.006a.484.484 0 0 0-.137.019c-.043.006-.086.012-.13.024a1.068 1.068 0 0 0-.13.044c-.043.018-.08.037-.124.056-.037.018-.074.043-.118.062-1.444.942-.582 3.148.403 3.787-.372.068-.75.148-.855.229l-.013.012c.267.161.546.298.837.416.397.13.818.247 1.004.297v.006a5.996 5.996 0 0 0 1.562.112c2.746-.192 4.996-2.281 5.405-5.033l.037.161c.019.112.043.23.056.347v.006c.012.056.018.112.025.162v.024c.006.056.012.112.012.162.006.068.012.136.012.204v.1c0 .03.007.067.007.098 0 .038-.007.075-.007.112v.087c0 .043-.006.08-.006.124 0 .025 0 .05-.006.08 0 .044-.006.087-.006.137-.006.018-.006.037-.006.055l-.02.143c0 .019 0 .037-.005.056-.007.062-.019.118-.025.18v.012l-.037.174v.018l-.037.167c0 .007-.007.02-.007.025a1.663 1.663 0 0 1-.043.168v.018c-.019.062-.037.118-.05.174-.006.006-.006.012-.006.012l-.056.186c-.024.062-.043.118-.068.18-.025.062-.043.124-.068.18-.025.062-.05.117-.074.18h-.007c-.024.055-.05.117-.08.173a.302.302 0 0 1-.019.043c-.006.006-.006.013-.012.019a5.867 5.867 0 0 1-1.742 2.082c-.05.031-.099.069-.149.106-.012.012-.03.018-.043.03a2.603 2.603 0 0 1-.136.094l.018.037h.007l.26-.037h.006c.161-.025.322-.056.483-.087.044-.006.093-.019.137-.031l.087-.019c.043-.006.086-.018.13-.024.037-.013.074-.02.111-.031.62-.15 1.221-.354 1.798-.595a9.926 9.926 0 0 1-3.85 3.142c.714-.05 1.426-.167 2.114-.366a9.903 9.903 0 0 0 5.857-4.68 9.893 9.893 0 0 1-1.667 3.986 9.758 9.758 0 0 0 1.655-1.376 9.824 9.824 0 0 0 2.61-5.268c.21.98.272 1.99.18 2.987 4.474-6.241.371-12.712-1.346-14.416-.006-.013-.012-.019-.012-.031-.006.006-.006.006-.006.012 0-.006 0-.006-.007-.012 0 .074-.006.148-.012.223a8.34 8.34 0 0 1-.062.415c-.03.136-.068.273-.105.41-.044.13-.093.266-.15.396a5.322 5.322 0 0 1-.185.378 4.735 4.735 0 0 1-.477.688c-.093.111-.192.21-.292.31a3.994 3.994 0 0 1-.18.155l-.142.124a3.459 3.459 0 0 1-.347.241 4.295 4.295 0 0 1-.366.211c-.13.062-.26.118-.39.174a4.364 4.364 0 0 1-.818.223c-.143.025-.285.037-.422.05a4.914 4.914 0 0 1-.297.012 4.66 4.66 0 0 1-.422-.025 3.137 3.137 0 0 1-.421-.062 3.136 3.136 0 0 1-.415-.105h-.007c.137-.013.273-.025.41-.05a4.493 4.493 0 0 0 .818-.223c.136-.05.266-.112.39-.174.13-.062.248-.13.372-.204.118-.08.235-.161.347-.248.112-.087.217-.18.316-.279.105-.093.198-.198.291-.304.093-.111.18-.223.26-.334.013-.019.026-.044.038-.062.062-.1.124-.199.18-.298a4.272 4.272 0 0 0 .334-.775c.044-.13.075-.266.106-.403.025-.142.05-.278.062-.415.012-.142.025-.285.025-.421 0-.1-.007-.199-.013-.298a6.726 6.726 0 0 0-.05-.415 4.493 4.493 0 0 0-.092-.415c-.044-.13-.087-.267-.137-.397-.05-.13-.111-.26-.173-.384-.069-.124-.137-.248-.211-.366a6.843 6.843 0 0 0-.248-.34c-.093-.106-.186-.212-.285-.317a3.878 3.878 0 0 0-.161-.155c-.28-.217-.57-.421-.862-.607a1.154 1.154 0 0 0-.124-.062 2.415 2.415 0 0 0-.589-.26Z",
+  },
+  "fastapi": {
+    id: "fastapi",
+    title: "Fastapi",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#009688\" d=\"M12 .0387C5.3729.0384.0003 5.3931 0 11.9988c-.001 6.6066 5.372 11.9628 12 11.9625 6.628.0003 12.001-5.3559 12-11.9625-.0003-6.6057-5.3729-11.9604-12-11.96m-.829 5.4153h7.55l-7.5805 5.3284h5.1828L5.279 18.5436q2.9466-6.5444 5.892-13.0896\" />",
+    brandColor: "#009688",
+    source: "simple-icons:fastapi",
+    pathOnly: "M12 .0387C5.3729.0384.0003 5.3931 0 11.9988c-.001 6.6066 5.372 11.9628 12 11.9625 6.628.0003 12.001-5.3559 12-11.9625-.0003-6.6057-5.3729-11.9604-12-11.96m-.829 5.4153h7.55l-7.5805 5.3284h5.1828L5.279 18.5436q2.9466-6.5444 5.892-13.0896",
+  },
+  "django": {
+    id: "django",
+    title: "Django",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#092E20\" d=\"M11.146 0h3.924v18.166c-2.013.382-3.491.535-5.096.535-4.791 0-7.288-2.166-7.288-6.32 0-4.002 2.65-6.6 6.753-6.6.637 0 1.121.05 1.707.203zm0 9.143a3.894 3.894 0 00-1.325-.204c-1.988 0-3.134 1.223-3.134 3.365 0 2.09 1.096 3.236 3.109 3.236.433 0 .79-.025 1.35-.102V9.142zM21.314 6.06v9.098c0 3.134-.229 4.638-.917 5.937-.637 1.249-1.478 2.039-3.211 2.905l-3.644-1.733c1.733-.815 2.574-1.53 3.109-2.625.561-1.121.739-2.421.739-5.835V6.059h3.924zM17.39.021h3.924v4.026H17.39z\" />",
+    brandColor: "#092E20",
+    source: "simple-icons:django",
+    pathOnly: "M11.146 0h3.924v18.166c-2.013.382-3.491.535-5.096.535-4.791 0-7.288-2.166-7.288-6.32 0-4.002 2.65-6.6 6.753-6.6.637 0 1.121.05 1.707.203zm0 9.143a3.894 3.894 0 00-1.325-.204c-1.988 0-3.134 1.223-3.134 3.365 0 2.09 1.096 3.236 3.109 3.236.433 0 .79-.025 1.35-.102V9.142zM21.314 6.06v9.098c0 3.134-.229 4.638-.917 5.937-.637 1.249-1.478 2.039-3.211 2.905l-3.644-1.733c1.733-.815 2.574-1.53 3.109-2.625.561-1.121.739-2.421.739-5.835V6.059h3.924zM17.39.021h3.924v4.026H17.39z",
+  },
+  "laravel": {
+    id: "laravel",
+    title: "Laravel",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#FF2D20\" d=\"M23.642 5.43a.364.364 0 01.014.1v5.149c0 .135-.073.26-.189.326l-4.323 2.49v4.934a.378.378 0 01-.188.326L9.93 23.949a.316.316 0 01-.066.027c-.008.002-.016.008-.024.01a.348.348 0 01-.192 0c-.011-.002-.02-.008-.03-.012-.02-.008-.042-.014-.062-.025L.533 18.755a.376.376 0 01-.189-.326V2.974c0-.033.005-.066.014-.098.003-.012.01-.02.014-.032a.369.369 0 01.023-.058c.004-.013.015-.022.023-.033l.033-.045c.012-.01.025-.018.037-.027.014-.012.027-.024.041-.034H.53L5.043.05a.375.375 0 01.375 0L9.93 2.647h.002c.015.01.027.021.04.033l.038.027c.013.014.02.03.033.045.008.011.02.021.025.033.01.02.017.038.024.058.003.011.01.021.013.032.01.031.014.064.014.098v9.652l3.76-2.164V5.527c0-.033.004-.066.013-.098.003-.01.01-.02.013-.032a.487.487 0 01.024-.059c.007-.012.018-.02.025-.033.012-.015.021-.03.033-.043.012-.012.025-.02.037-.028.014-.01.026-.023.041-.032h.001l4.513-2.598a.375.375 0 01.375 0l4.513 2.598c.016.01.027.021.042.031.012.01.025.018.036.028.013.014.022.03.034.044.008.012.019.021.024.033.011.02.018.04.024.06.006.01.012.021.015.032zm-.74 5.032V6.179l-1.578.908-2.182 1.256v4.283zm-4.51 7.75v-4.287l-2.147 1.225-6.126 3.498v4.325zM1.093 3.624v14.588l8.273 4.761v-4.325l-4.322-2.445-.002-.003H5.04c-.014-.01-.025-.021-.04-.031-.011-.01-.024-.018-.035-.027l-.001-.002c-.013-.012-.021-.025-.031-.04-.01-.011-.021-.022-.028-.036h-.002c-.008-.014-.013-.031-.02-.047-.006-.016-.014-.027-.018-.043a.49.49 0 01-.008-.057c-.002-.014-.006-.027-.006-.041V5.789l-2.18-1.257zM5.23.81L1.47 2.974l3.76 2.164 3.758-2.164zm1.956 13.505l2.182-1.256V3.624l-1.58.91-2.182 1.255v9.435zm11.581-10.95l-3.76 2.163 3.76 2.163 3.759-2.164zm-.376 4.978L16.21 7.087 14.63 6.18v4.283l2.182 1.256 1.58.908zm-8.65 9.654l5.514-3.148 2.756-1.572-3.757-2.163-4.323 2.489-3.941 2.27z\" />",
+    brandColor: "#FF2D20",
+    source: "simple-icons:laravel",
+    pathOnly: "M23.642 5.43a.364.364 0 01.014.1v5.149c0 .135-.073.26-.189.326l-4.323 2.49v4.934a.378.378 0 01-.188.326L9.93 23.949a.316.316 0 01-.066.027c-.008.002-.016.008-.024.01a.348.348 0 01-.192 0c-.011-.002-.02-.008-.03-.012-.02-.008-.042-.014-.062-.025L.533 18.755a.376.376 0 01-.189-.326V2.974c0-.033.005-.066.014-.098.003-.012.01-.02.014-.032a.369.369 0 01.023-.058c.004-.013.015-.022.023-.033l.033-.045c.012-.01.025-.018.037-.027.014-.012.027-.024.041-.034H.53L5.043.05a.375.375 0 01.375 0L9.93 2.647h.002c.015.01.027.021.04.033l.038.027c.013.014.02.03.033.045.008.011.02.021.025.033.01.02.017.038.024.058.003.011.01.021.013.032.01.031.014.064.014.098v9.652l3.76-2.164V5.527c0-.033.004-.066.013-.098.003-.01.01-.02.013-.032a.487.487 0 01.024-.059c.007-.012.018-.02.025-.033.012-.015.021-.03.033-.043.012-.012.025-.02.037-.028.014-.01.026-.023.041-.032h.001l4.513-2.598a.375.375 0 01.375 0l4.513 2.598c.016.01.027.021.042.031.012.01.025.018.036.028.013.014.022.03.034.044.008.012.019.021.024.033.011.02.018.04.024.06.006.01.012.021.015.032zm-.74 5.032V6.179l-1.578.908-2.182 1.256v4.283zm-4.51 7.75v-4.287l-2.147 1.225-6.126 3.498v4.325zM1.093 3.624v14.588l8.273 4.761v-4.325l-4.322-2.445-.002-.003H5.04c-.014-.01-.025-.021-.04-.031-.011-.01-.024-.018-.035-.027l-.001-.002c-.013-.012-.021-.025-.031-.04-.01-.011-.021-.022-.028-.036h-.002c-.008-.014-.013-.031-.02-.047-.006-.016-.014-.027-.018-.043a.49.49 0 01-.008-.057c-.002-.014-.006-.027-.006-.041V5.789l-2.18-1.257zM5.23.81L1.47 2.974l3.76 2.164 3.758-2.164zm1.956 13.505l2.182-1.256V3.624l-1.58.91-2.182 1.255v9.435zm11.581-10.95l-3.76 2.163 3.76 2.163 3.759-2.164zm-.376 4.978L16.21 7.087 14.63 6.18v4.283l2.182 1.256 1.58.908zm-8.65 9.654l5.514-3.148 2.756-1.572-3.757-2.163-4.323 2.489-3.941 2.27z",
+  },
+  "flutter": {
+    id: "flutter",
+    title: "Flutter",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#02569B\" d=\"M14.314 0L2.3 12 6 15.7 21.684.013h-7.357zm.014 11.072L7.857 17.53l6.47 6.47H21.7l-6.46-6.468 6.46-6.46h-7.37z\" />",
+    brandColor: "#02569B",
+    source: "simple-icons:flutter",
+    pathOnly: "M14.314 0L2.3 12 6 15.7 21.684.013h-7.357zm.014 11.072L7.857 17.53l6.47 6.47H21.7l-6.46-6.468 6.46-6.46h-7.37z",
+  },
+  "postman": {
+    id: "postman",
+    title: "Postman",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#FF6C37\" d=\"M13.527.099C6.955-.744.942 3.9.099 10.473c-.843 6.572 3.8 12.584 10.373 13.428 6.573.843 12.587-3.801 13.428-10.374C24.744 6.955 20.101.943 13.527.099zm2.471 7.485a.855.855 0 0 0-.593.25l-4.453 4.453-.307-.307-.643-.643c4.389-4.376 5.18-4.418 5.996-3.753zm-4.863 4.861l4.44-4.44a.62.62 0 1 1 .847.903l-4.699 4.125-.588-.588zm.33.694l-1.1.238a.06.06 0 0 1-.067-.032.06.06 0 0 1 .01-.073l.645-.645.512.512zm-2.803-.459l1.172-1.172.879.878-1.979.426a.074.074 0 0 1-.085-.039.072.072 0 0 1 .013-.093zm-3.646 6.058a.076.076 0 0 1-.069-.083.077.077 0 0 1 .022-.046h.002l.946-.946 1.222 1.222-2.123-.147zm2.425-1.256a.228.228 0 0 0-.117.256l.203.865a.125.125 0 0 1-.211.117h-.003l-.934-.934-.294-.295 3.762-3.758 1.82-.393.874.874c-1.255 1.102-2.971 2.201-5.1 3.268zm5.279-3.428h-.002l-.839-.839 4.699-4.125a.952.952 0 0 0 .119-.127c-.148 1.345-2.029 3.245-3.977 5.091zm3.657-6.46l-.003-.002a1.822 1.822 0 0 1 2.459-2.684l-1.61 1.613a.119.119 0 0 0 0 .169l1.247 1.247a1.817 1.817 0 0 1-2.093-.343zm2.578 0a1.714 1.714 0 0 1-.271.218h-.001l-1.207-1.207 1.533-1.533c.661.72.637 1.832-.054 2.522zM18.855 6.05a.143.143 0 0 0-.053.157.416.416 0 0 1-.053.45.14.14 0 0 0 .023.197.141.141 0 0 0 .084.03.14.14 0 0 0 .106-.05.691.691 0 0 0 .087-.751.138.138 0 0 0-.194-.033z\" />",
+    brandColor: "#FF6C37",
+    source: "simple-icons:postman",
+    pathOnly: "M13.527.099C6.955-.744.942 3.9.099 10.473c-.843 6.572 3.8 12.584 10.373 13.428 6.573.843 12.587-3.801 13.428-10.374C24.744 6.955 20.101.943 13.527.099zm2.471 7.485a.855.855 0 0 0-.593.25l-4.453 4.453-.307-.307-.643-.643c4.389-4.376 5.18-4.418 5.996-3.753zm-4.863 4.861l4.44-4.44a.62.62 0 1 1 .847.903l-4.699 4.125-.588-.588zm.33.694l-1.1.238a.06.06 0 0 1-.067-.032.06.06 0 0 1 .01-.073l.645-.645.512.512zm-2.803-.459l1.172-1.172.879.878-1.979.426a.074.074 0 0 1-.085-.039.072.072 0 0 1 .013-.093zm-3.646 6.058a.076.076 0 0 1-.069-.083.077.077 0 0 1 .022-.046h.002l.946-.946 1.222 1.222-2.123-.147zm2.425-1.256a.228.228 0 0 0-.117.256l.203.865a.125.125 0 0 1-.211.117h-.003l-.934-.934-.294-.295 3.762-3.758 1.82-.393.874.874c-1.255 1.102-2.971 2.201-5.1 3.268zm5.279-3.428h-.002l-.839-.839 4.699-4.125a.952.952 0 0 0 .119-.127c-.148 1.345-2.029 3.245-3.977 5.091zm3.657-6.46l-.003-.002a1.822 1.822 0 0 1 2.459-2.684l-1.61 1.613a.119.119 0 0 0 0 .169l1.247 1.247a1.817 1.817 0 0 1-2.093-.343zm2.578 0a1.714 1.714 0 0 1-.271.218h-.001l-1.207-1.207 1.533-1.533c.661.72.637 1.832-.054 2.522zM18.855 6.05a.143.143 0 0 0-.053.157.416.416 0 0 1-.053.45.14.14 0 0 0 .023.197.141.141 0 0 0 .084.03.14.14 0 0 0 .106-.05.691.691 0 0 0 .087-.751.138.138 0 0 0-.194-.033z",
+  },
+  "clerk": {
+    id: "clerk",
+    title: "Clerk",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"currentColor\" d=\"m21.47 20.829-2.881-2.881a.572.572 0 0 0-.7-.084 6.854 6.854 0 0 1-7.081 0 .576.576 0 0 0-.7.084l-2.881 2.881a.576.576 0 0 0-.103.69.57.57 0 0 0 .166.186 12 12 0 0 0 14.113 0 .58.58 0 0 0 .239-.423.576.576 0 0 0-.172-.453Zm.002-17.668-2.88 2.88a.569.569 0 0 1-.701.084A6.857 6.857 0 0 0 8.724 8.08a6.862 6.862 0 0 0-1.222 3.692 6.86 6.86 0 0 0 .978 3.764.573.573 0 0 1-.083.699l-2.881 2.88a.567.567 0 0 1-.864-.063A11.993 11.993 0 0 1 6.771 2.7a11.99 11.99 0 0 1 14.637-.405.566.566 0 0 1 .232.418.57.57 0 0 1-.168.448Zm-7.118 12.261a3.427 3.427 0 1 0 0-6.854 3.427 3.427 0 0 0 0 6.854Z\" />",
+    brandColor: "#6C47FF",
+    source: "simple-icons:clerk",
+    pathOnly: "m21.47 20.829-2.881-2.881a.572.572 0 0 0-.7-.084 6.854 6.854 0 0 1-7.081 0 .576.576 0 0 0-.7.084l-2.881 2.881a.576.576 0 0 0-.103.69.57.57 0 0 0 .166.186 12 12 0 0 0 14.113 0 .58.58 0 0 0 .239-.423.576.576 0 0 0-.172-.453Zm.002-17.668-2.88 2.88a.569.569 0 0 1-.701.084A6.857 6.857 0 0 0 8.724 8.08a6.862 6.862 0 0 0-1.222 3.692 6.86 6.86 0 0 0 .978 3.764.573.573 0 0 1-.083.699l-2.881 2.88a.567.567 0 0 1-.864-.063A11.993 11.993 0 0 1 6.771 2.7a11.99 11.99 0 0 1 14.637-.405.566.566 0 0 1 .232.418.57.57 0 0 1-.168.448Zm-7.118 12.261a3.427 3.427 0 1 0 0-6.854 3.427 3.427 0 0 0 0 6.854Z",
+    isDarkBadge: true,
+  },
+  "neon_db": {
+    id: "neon_db",
+    title: "Neon",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#34D59A\" d=\"M24 0V24l-9.365-8.045V24H0V0ZM2.942 21.087h8.751V9.563l9.365 8.204V2.919L2.942 2.914Z\" />",
+    brandColor: "#34D59A",
+    source: "simple-icons:neon",
+    pathOnly: "M24 0V24l-9.365-8.045V24H0V0ZM2.942 21.087h8.751V9.563l9.365 8.204V2.919L2.942 2.914Z",
+  },
+  "resend": {
+    id: "resend",
+    title: "Resend",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#000000\" d=\"M14.679 0c4.648 0 7.413 2.765 7.413 6.434s-2.765 6.434-7.413 6.434H12.33L24 24h-8.245l-8.88-8.44c-.636-.588-.93-1.273-.93-1.86 0-.831.587-1.565 1.713-1.883l4.574-1.224c1.737-.465 2.936-1.81 2.936-3.572 0-2.153-1.761-3.4-3.939-3.4H0V0z\" />",
+    brandColor: "#000000",
+    source: "simple-icons:resend",
+    pathOnly: "M14.679 0c4.648 0 7.413 2.765 7.413 6.434s-2.765 6.434-7.413 6.434H12.33L24 24h-8.245l-8.88-8.44c-.636-.588-.93-1.273-.93-1.86 0-.831.587-1.565 1.713-1.883l4.574-1.224c1.737-.465 2.936-1.81 2.936-3.572 0-2.153-1.761-3.4-3.939-3.4H0V0z",
+  },
+  "crypto_btc": {
+    id: "crypto_btc",
+    title: "Bitcoin",
+    viewBox: "0 0 24 24",
+    body: "<path fill=\"#F7931A\" d=\"M23.638 14.904c-1.602 6.43-8.113 10.34-14.542 8.736C2.67 22.05-1.244 15.525.362 9.105 1.962 2.67 8.475-1.243 14.9.358c6.43 1.605 10.342 8.115 8.738 14.548v-.002zm-6.35-4.613c.24-1.59-.974-2.45-2.64-3.03l.54-2.153-1.315-.33-.525 2.107c-.345-.087-.705-.167-1.064-.25l.526-2.127-1.32-.33-.54 2.165c-.285-.067-.565-.132-.84-.2l-1.815-.45-.35 1.407s.975.225.955.236c.535.136.63.486.615.766l-1.477 5.92c-.075.166-.24.406-.614.314.015.02-.96-.24-.96-.24l-.66 1.51 1.71.426.93.242-.54 2.19 1.32.327.54-2.17c.36.1.705.19 1.05.273l-.51 2.154 1.32.33.545-2.19c2.24.427 3.93.257 4.64-1.774.57-1.637-.03-2.58-1.217-3.196.854-.193 1.5-.76 1.68-1.93h.01zm-3.01 4.22c-.404 1.64-3.157.75-4.05.53l.72-2.9c.896.23 3.757.67 3.33 2.37zm.41-4.24c-.37 1.49-2.662.735-3.405.55l.654-2.64c.744.18 3.137.524 2.75 2.084v.006z\" />",
+    brandColor: "#F7931A",
+    source: "simple-icons:bitcoin",
+    pathOnly: "M23.638 14.904c-1.602 6.43-8.113 10.34-14.542 8.736C2.67 22.05-1.244 15.525.362 9.105 1.962 2.67 8.475-1.243 14.9.358c6.43 1.605 10.342 8.115 8.738 14.548v-.002zm-6.35-4.613c.24-1.59-.974-2.45-2.64-3.03l.54-2.153-1.315-.33-.525 2.107c-.345-.087-.705-.167-1.064-.25l.526-2.127-1.32-.33-.54 2.165c-.285-.067-.565-.132-.84-.2l-1.815-.45-.35 1.407s.975.225.955.236c.535.136.63.486.615.766l-1.477 5.92c-.075.166-.24.406-.614.314.015.02-.96-.24-.96-.24l-.66 1.51 1.71.426.93.242-.54 2.19 1.32.327.54-2.17c.36.1.705.19 1.05.273l-.51 2.154 1.32.33.545-2.19c2.24.427 3.93.257 4.64-1.774.57-1.637-.03-2.58-1.217-3.196.854-.193 1.5-.76 1.68-1.93h.01zm-3.01 4.22c-.404 1.64-3.157.75-4.05.53l.72-2.9c.896.23 3.757.67 3.33 2.37zm.41-4.24c-.37 1.49-2.662.735-3.405.55l.654-2.64c.744.18 3.137.524 2.75 2.084v.006z",
   },
 };

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import QRCode from "qrcode";
 import {
   Link2,
@@ -38,6 +38,36 @@ import {
   Film,
   Search,
   Sliders,
+  Cpu,
+  Terminal,
+  Radar,
+  Cloud,
+  Gamepad2,
+  Gem,
+  Sunset,
+  Music,
+  Coffee,
+  Heart,
+  Waves,
+  CloudRain,
+  Snowflake,
+  Zap,
+  Leaf,
+  Dna,
+  Trophy,
+  Flag,
+  Flame,
+  Rocket,
+  Atom,
+  Brain,
+  Crosshair,
+  Blocks,
+  Activity,
+  Gift,
+  Ghost,
+  Sun,
+  Binary,
+  Swords,
 } from "lucide-react";
 import {
   Drawer,
@@ -63,7 +93,29 @@ import { triggerPlanUpgrade } from "@/lib/plan-guard";
 import { showToast } from "@/components/ui/toast-provider";
 import confetti from "canvas-confetti";
 import { cfUploadImage, cfGetLinks, cfUpdateLink, cfInvalidateCache } from "@/lib/cloudflare-api";
-import { GIFEncoder, quantize, applyPalette } from "gifenc";
+import { exportFramesToGif } from "@/lib/qr/gif-export";
+import {
+  ANIMATED_THEMES,
+  ANIMATED_THEME_CATEGORIES,
+  getAnimatedTheme,
+  type AnimatedThemeCategory,
+  type ThemeMotif,
+} from "./qr-animated-themes";
+import {
+  ANIMATED_LOOP_DURATION_SEC,
+  getAnimatedFramePaddings,
+} from "./qr-animated-frames";
+import { hexToRgbTuple } from "./qr-webgl-shaders";
+import { LiveColorControl } from "./live-color-control";
+import { LiveFontSizeControl } from "./live-font-size-control";
+import { prewarmLogoImages } from "./qr-logo-canvas";
+import {
+  BrandLogosPicker,
+  FramesPicker,
+  FontsPicker,
+  PixelStylesPicker,
+  EyeStylesPicker,
+} from "./qr-studio-pickers";
 import {
   PixelStyleType,
   EyeStyleType,
@@ -191,7 +243,10 @@ export function QRGenerator() {
 
   const userId = session?.user?.id || "";
   const convexUser = useQuery(api.users.getCurrentUser, userId ? { userId } : "skip");
-  const plan = convexUser?.plan || (session?.user as any)?.plan || "FREEMIUM";
+  const plan =
+    convexUser?.plan ||
+    (session?.user as { plan?: string } | undefined)?.plan ||
+    "FREEMIUM";
   const isProDev =
     process.env.NODE_ENV === "development" &&
     searchParams.get("playwright_preview") === "1";
@@ -209,6 +264,8 @@ export function QRGenerator() {
   const [isGeneratingGif, setIsGeneratingGif] = useState(false);
   const [gifProgress, setGifProgress] = useState(0);
   const [frameFilter, setFrameFilter] = useState<"all" | "static" | "animated">("all");
+  const [animatedCategoryFilter, setAnimatedCategoryFilter] =
+    useState<AnimatedThemeCategory>("all");
 
   // Content Inputs
   const [websiteUrl, setWebsiteUrl] = useState("https://lsho.cc/mon-lien");
@@ -237,7 +294,7 @@ export function QRGenerator() {
   const [eyeColor, setEyeColor] = useState("#000000");
 
   // Center Logo / Text Inputs
-  const [selectedLogo, setSelectedLogo] = useState<LogoType | string>("ql");
+  const [selectedLogo, setSelectedLogo] = useState<LogoType | string>("none");
   const [centerText, setCenterText] = useState("SCAN");
   const [uploadedLogo, setUploadedLogo] = useState<string | null>(null);
 
@@ -245,6 +302,7 @@ export function QRGenerator() {
   const [selectedFrame, setSelectedFrame] = useState<FrameType>("bottom_pill");
   const [frameText, setFrameText] = useState("SCAN ME");
   const [frameColor, setFrameColor] = useState("#ff6600");
+  const [tintWithFrameColor, setTintWithFrameColor] = useState(false);
 
   // Typography Inputs
   const [fontFamily, setFontFamily] = useState<FontFamilyType>("inter");
@@ -308,22 +366,27 @@ export function QRGenerator() {
         document.head.appendChild(link);
       }
     });
+
+    // Pre-cache all brand logo SVG vector images for instantaneous 0ms display without jitter
+    prewarmLogoImages();
   }, []);
 
 
   // 1. Initialize websiteUrl from searchParams
   useEffect(() => {
-    if (paramUrl) {
-      setContentType("link");
-      setWebsiteUrl(paramUrl);
-    } else if (paramSlug) {
-      setContentType("link");
-      setWebsiteUrl(
-        typeof window !== "undefined"
-          ? `${window.location.origin}/r/${paramSlug}`
-          : `https://lsho.cc/r/${paramSlug}`
-      );
-    }
+    queueMicrotask(() => {
+      if (paramUrl) {
+        setContentType("link");
+        setWebsiteUrl(paramUrl);
+      } else if (paramSlug) {
+        setContentType("link");
+        setWebsiteUrl(
+          typeof window !== "undefined"
+            ? `${window.location.origin}/r/${paramSlug}`
+            : `https://lsho.cc/r/${paramSlug}`
+        );
+      }
+    });
   }, [paramUrl, paramSlug]);
 
   // 2. Fetch user's links from Cloudflare D1
@@ -333,10 +396,11 @@ export function QRGenerator() {
       setIsLoadingLinks(true);
       try {
         const res = await cfGetLinks(userId);
+        const rawNested = (res?.data as { data?: unknown } | undefined)?.data;
         const listData = Array.isArray(res?.data)
-          ? res.data
-          : Array.isArray((res?.data as any)?.data)
-            ? (res?.data as any).data
+          ? (res.data as ShortLink[])
+          : Array.isArray(rawNested)
+            ? (rawNested as ShortLink[])
             : [];
         setUserLinks(listData);
       } catch (e) {
@@ -398,16 +462,19 @@ export function QRGenerator() {
 
   // 4. Update matched link whenever websiteUrl, userLinks or contentType changes
   useEffect(() => {
-    if (contentType === "link" && websiteUrl) {
-      const m = findMatchingLink(websiteUrl);
-      setMatchedLink(m);
-    } else {
-      setMatchedLink(null);
-    }
+    queueMicrotask(() => {
+      if (contentType === "link" && websiteUrl) {
+        const m = findMatchingLink(websiteUrl);
+        setMatchedLink(m);
+      } else {
+        setMatchedLink(null);
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [websiteUrl, contentType, userLinks, paramId]);
 
-  // Build the raw QR content string
-  const getRawQRValue = (): string => {
+  // Memoized raw QR value & GF(256) matrix (never recomputed when only colors/frames change)
+  const rawQrValue = useMemo((): string => {
     switch (contentType) {
       case "link":
         return websiteUrl || "https://lsho.cc";
@@ -424,7 +491,111 @@ export function QRGenerator() {
       default:
         return websiteUrl;
     }
-  };
+  }, [
+    contentType,
+    websiteUrl,
+    textContent,
+    wifiSsid,
+    wifiPassword,
+    wifiEncryption,
+    emailAddress,
+    emailSubject,
+    phoneNumber,
+    smsNumber,
+    smsMessage,
+  ]);
+
+  const getRawQRValue = (): string => rawQrValue;
+
+  const qrMatrix = useMemo(() => {
+    return QRCode.create(rawQrValue, {
+      errorCorrectionLevel: "H",
+    });
+  }, [rawQrValue]);
+
+  // Memoized live styling bundle synced into renderConfigRef via effect (satisfies React 19 hooks/refs rule)
+  const liveRenderConfig = useMemo(
+    () => ({
+      pixelStyle,
+      eyeStyle,
+      colorMode,
+      pixelColor,
+      pixelColor2,
+      bgMode,
+      bgColor,
+      bgColor2,
+      useSeparateEyeColor,
+      eyeColor,
+      selectedLogo,
+      centerText,
+      uploadedLogo,
+      selectedFrame,
+      frameText,
+      frameColor,
+      tintWithFrameColor,
+      fontFamily,
+      fontSize,
+      fontWeight,
+      textTransform,
+      isProPlan,
+    }),
+    [
+      pixelStyle,
+      eyeStyle,
+      colorMode,
+      pixelColor,
+      pixelColor2,
+      bgMode,
+      bgColor,
+      bgColor2,
+      useSeparateEyeColor,
+      eyeColor,
+      selectedLogo,
+      centerText,
+      uploadedLogo,
+      selectedFrame,
+      frameText,
+      frameColor,
+      tintWithFrameColor,
+      fontFamily,
+      fontSize,
+      fontWeight,
+      textTransform,
+      isProPlan,
+    ]
+  );
+
+  // Ref holding live styling state so color picker drags update Canvas2D/WebGL directly without React re-renders
+  const renderConfigRef = useRef(liveRenderConfig);
+
+  useEffect(() => {
+    renderConfigRef.current = liveRenderConfig;
+  }, [liveRenderConfig]);
+
+  const lastAnimTimeSecRef = useRef(0);
+  const redrawCanvasRef = useRef<() => void>(() => {});
+  const pendingInstantRafRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (pendingInstantRafRef.current !== null) {
+        cancelAnimationFrame(pendingInstantRafRef.current);
+      }
+    };
+  }, []);
+
+  const applyInstantColor = useCallback(
+    (patch: Partial<typeof renderConfigRef.current>) => {
+      renderConfigRef.current = { ...renderConfigRef.current, ...patch };
+      if (pendingInstantRafRef.current === null) {
+        pendingInstantRafRef.current = requestAnimationFrame(() => {
+          pendingInstantRafRef.current = null;
+          redrawCanvasRef.current();
+        });
+      }
+    },
+    []
+  );
 
   // Generate V3 Valid JSON Configuration for Cloudflare D1 backend
   const getV3QRCodeConfigJSON = () => {
@@ -445,6 +616,10 @@ export function QRGenerator() {
       frame: selectedFrame,
       frameText: selectedFrame !== "none" ? frameText : undefined,
       frameColor: selectedFrame !== "none" ? frameColor : undefined,
+      tintWithFrameColor:
+        selectedFrame !== "none" && isAnimatedFrame(selectedFrame)
+          ? tintWithFrameColor
+          : undefined,
       fontFamily,
       fontSize,
       fontWeight,
@@ -457,7 +632,7 @@ export function QRGenerator() {
   const getFramePaddings = (frame: FrameType, quietZone: boolean) => {
     const basePad = quietZone ? 28 : 16;
     if (frame.startsWith("anim_")) {
-      return { top: basePad + 8, bottom: 68, side: basePad + 8 };
+      return getAnimatedFramePaddings(quietZone);
     }
     switch (frame) {
       case "none":
@@ -484,8 +659,20 @@ export function QRGenerator() {
         return { top: 44, bottom: 64, side: basePad + 10 };
       case "circular_badge":
         return { top: 40, bottom: 68, side: basePad + 10 };
-      case "chat_bubble":
-        return { top: basePad + 6, bottom: 72, side: basePad + 6 };
+      case "corner_brackets":
+        return { top: basePad + 8, bottom: 62, side: basePad + 8 };
+      case "minimal_box":
+        return { top: basePad + 8, bottom: basePad + 18, side: basePad + 8 };
+      case "floating_card":
+        return { top: basePad + 6, bottom: 56, side: basePad + 6 };
+      case "double_border":
+        return { top: basePad + 8, bottom: 62, side: basePad + 8 };
+      case "clean_badge":
+        return { top: 52, bottom: 58, side: basePad + 6 };
+      case "notched_corners":
+        return { top: basePad + 8, bottom: 62, side: basePad + 8 };
+      case "stamp_border":
+        return { top: basePad + 8, bottom: 62, side: basePad + 8 };
       case "gradient_border":
         return { top: basePad + 10, bottom: 66, side: basePad + 10 };
       default:
@@ -500,39 +687,55 @@ export function QRGenerator() {
     totalHeight: number,
     qrDrawSize: number,
     paddings: { top: number; bottom: number; side: number },
-    qr: any,
-    timeSec: number
+    qr: ReturnType<typeof QRCode.create>,
+    timeSec: number,
+    cfg = renderConfigRef.current
   ) => {
-    // 1. Draw Background
-    if (bgMode === "transparent") {
+    const isAnim = isAnimatedFrame(cfg.selectedFrame);
+
+    // 1. Draw Background (animated themes handle their own rounded shader shell + QR card)
+    if (isAnim || cfg.bgMode === "transparent") {
       ctx.clearRect(0, 0, totalWidth, totalHeight);
-    } else if (bgMode === "gradient") {
+    } else if (cfg.bgMode === "gradient") {
       const grad = ctx.createLinearGradient(0, 0, totalWidth, totalHeight);
-      grad.addColorStop(0, bgColor);
-      grad.addColorStop(1, bgColor2);
+      grad.addColorStop(0, cfg.bgColor);
+      grad.addColorStop(1, cfg.bgColor2);
       ctx.fillStyle = grad;
+      ctx.beginPath();
       ctx.roundRect(0, 0, totalWidth, totalHeight, 16);
       ctx.fill();
     } else {
-      ctx.fillStyle = bgColor;
+      ctx.fillStyle = cfg.bgColor;
+      ctx.beginPath();
       ctx.roundRect(0, 0, totalWidth, totalHeight, 16);
       ctx.fill();
     }
 
-    // 2. Draw Frame Decor (passing timeSec and dynamic typography)
+    // 2. Draw Frame Decor (passing timeSec, dynamic typography, and adaptive card options)
     drawQRFrame(
       ctx,
-      selectedFrame,
+      cfg.selectedFrame,
       totalWidth,
       totalHeight,
-      frameColor,
-      frameText,
-      isProPlan,
+      cfg.frameColor,
+      cfg.frameText,
+      cfg.isProPlan,
       timeSec,
-      fontFamily,
-      fontSize,
-      fontWeight,
-      textTransform
+      cfg.fontFamily,
+      cfg.fontSize,
+      cfg.fontWeight,
+      cfg.textTransform,
+      isAnim
+        ? {
+            paddings,
+            qrDrawSize,
+            bgMode: cfg.bgMode,
+            bgColor: cfg.bgColor,
+            bgColor2: cfg.bgColor2,
+            pixelColor: cfg.pixelColor,
+            tintWithFrameColor: cfg.tintWithFrameColor,
+          }
+        : undefined
     );
 
     // 3. Draw QR Modules
@@ -548,21 +751,21 @@ export function QRGenerator() {
       return false;
     };
 
-    const centerCutoutRadius = selectedLogo !== "none" ? Math.floor(moduleCount * 0.16) : 0;
+    const centerCutoutRadius = cfg.selectedLogo !== "none" ? Math.floor(moduleCount * 0.16) : 0;
     const centerMid = Math.floor(moduleCount / 2);
     const isCenterLogoArea = (r: number, c: number) => {
-      if (selectedLogo === "none") return false;
+      if (cfg.selectedLogo === "none") return false;
       return (
         Math.abs(r - centerMid) <= centerCutoutRadius &&
         Math.abs(c - centerMid) <= centerCutoutRadius
       );
     };
 
-    let fillStyle: string | CanvasGradient = pixelColor;
-    if (colorMode === "gradient") {
+    let fillStyle: string | CanvasGradient = cfg.pixelColor;
+    if (cfg.colorMode === "gradient") {
       const grad = ctx.createLinearGradient(startX, startY, startX + qrDrawSize, startY + qrDrawSize);
-      grad.addColorStop(0, pixelColor);
-      grad.addColorStop(1, pixelColor2);
+      grad.addColorStop(0, cfg.pixelColor);
+      grad.addColorStop(1, cfg.pixelColor2);
       fillStyle = grad;
     }
 
@@ -573,19 +776,19 @@ export function QRGenerator() {
         if (qr.modules.get(r, c)) {
           const x = startX + c * cellSize;
           const y = startY + r * cellSize;
-          drawPixelModule(ctx, x, y, cellSize, pixelStyle, fillStyle);
+          drawPixelModule(ctx, x, y, cellSize, cfg.pixelStyle, fillStyle);
         }
       }
     }
 
     // 4. Draw Distinct Finder Eyes (3 Corners)
-    const eyeFill = useSeparateEyeColor ? eyeColor : pixelColor;
-    drawFinderEye(ctx, 0, 0, cellSize, startX, startY, eyeStyle, eyeFill);
-    drawFinderEye(ctx, 0, moduleCount - 7, cellSize, startX, startY, eyeStyle, eyeFill);
-    drawFinderEye(ctx, moduleCount - 7, 0, cellSize, startX, startY, eyeStyle, eyeFill);
+    const eyeFill = cfg.useSeparateEyeColor ? cfg.eyeColor : cfg.pixelColor;
+    drawFinderEye(ctx, 0, 0, cellSize, startX, startY, cfg.eyeStyle, eyeFill);
+    drawFinderEye(ctx, 0, moduleCount - 7, cellSize, startX, startY, cfg.eyeStyle, eyeFill);
+    drawFinderEye(ctx, moduleCount - 7, 0, cellSize, startX, startY, cfg.eyeStyle, eyeFill);
 
     // 5. Draw Authentic Center Logo
-    if (selectedLogo !== "none") {
+    if (cfg.selectedLogo !== "none") {
       const centerBoxSize = (centerCutoutRadius * 2 + 1.5) * cellSize;
       const centerBoxX = startX + (moduleCount * cellSize - centerBoxSize) / 2;
       const centerBoxY = startY + (moduleCount * cellSize - centerBoxSize) / 2;
@@ -594,119 +797,104 @@ export function QRGenerator() {
         centerBoxX,
         centerBoxY,
         centerBoxSize,
-        selectedLogo,
-        uploadedLogo,
-        centerText,
-        pixelColor,
-        bgColor,
-        fontFamily,
-        fontSize,
-        fontWeight,
-        textTransform
+        cfg.selectedLogo,
+        cfg.uploadedLogo,
+        cfg.centerText,
+        cfg.pixelColor,
+        cfg.bgMode === "transparent" ? "transparent" : cfg.bgColor,
+        cfg.fontFamily,
+        cfg.fontSize,
+        cfg.fontWeight,
+        cfg.textTransform,
+        redrawCanvasRef.current
       );
     }
   };
 
-  // Render Full QR Code Canvas with 60 FPS requestAnimationFrame
+  // Structural & ~30 FPS WebGL animation loop (decoupled from color/style state changes to prevent canvas reallocations)
   useEffect(() => {
-    const rawData = getRawQRValue();
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-
-    const qr = QRCode.create(rawData, {
-      errorCorrectionLevel: "H",
-    });
 
     const paddings = getFramePaddings(selectedFrame, includeQuietZone);
     const qrDrawSize = size;
     const totalWidth = qrDrawSize + paddings.side * 2;
     const totalHeight = qrDrawSize + paddings.top + paddings.bottom;
 
-    canvas.width = totalWidth * 2;
-    canvas.height = totalHeight * 2;
-    canvas.style.width = `${totalWidth}px`;
-    canvas.style.height = `${totalHeight}px`;
+    const targetW = totalWidth * 2;
+    const targetH = totalHeight * 2;
+    if (canvas.width !== targetW || canvas.height !== targetH) {
+      canvas.width = targetW;
+      canvas.height = targetH;
+      canvas.style.width = `${totalWidth}px`;
+      canvas.style.height = `${totalHeight}px`;
+    }
 
     const isAnim = isAnimatedFrame(selectedFrame);
-    let animationId: number;
+    let animationId: number | undefined;
     const startTime = performance.now();
+    let lastDrawMs = 0;
 
-    const loop = (now: number) => {
+    const drawAtTime = (timeSec: number) => {
+      lastAnimTimeSecRef.current = timeSec;
       try {
         ctx.save();
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.scale(2, 2);
-        const timeSec = (now - startTime) / 1000;
-        renderFrameAtTime(
-          ctx,
-          totalWidth,
-          totalHeight,
-          qrDrawSize,
-          paddings,
-          qr,
-          isAnim && isPlayingAnimation ? timeSec : 0
-        );
+        renderFrameAtTime(ctx, totalWidth, totalHeight, qrDrawSize, paddings, qrMatrix, timeSec);
       } catch (err) {
         console.error("QR canvas render loop error:", err);
       } finally {
         ctx.restore();
       }
-
-      if (isAnim && isPlayingAnimation) {
-        animationId = requestAnimationFrame(loop);
-      }
     };
 
-    loop(performance.now());
+    redrawCanvasRef.current = () => {
+      drawAtTime(isAnim && isPlayingAnimation ? lastAnimTimeSecRef.current : 0);
+    };
+
+    drawAtTime(isAnim && isPlayingAnimation ? lastAnimTimeSecRef.current : 0);
+
+    if (isAnim && isPlayingAnimation && !isGeneratingGif) {
+      const loop = (now: number) => {
+        if (now - lastDrawMs >= 32) {
+          lastDrawMs = now;
+          const timeSec = (now - startTime) / 1000;
+          drawAtTime(timeSec);
+        }
+        animationId = requestAnimationFrame(loop);
+      };
+      animationId = requestAnimationFrame(loop);
+    }
 
     return () => {
-      if (animationId) cancelAnimationFrame(animationId);
+      if (animationId !== undefined) cancelAnimationFrame(animationId);
     };
-  }, [
-    contentType,
-    websiteUrl,
-    textContent,
-    wifiSsid,
-    wifiPassword,
-    wifiEncryption,
-    emailAddress,
-    emailSubject,
-    phoneNumber,
-    smsNumber,
-    smsMessage,
-    pixelStyle,
-    eyeStyle,
-    colorMode,
-    pixelColor,
-    pixelColor2,
-    bgMode,
-    bgColor,
-    bgColor2,
-    useSeparateEyeColor,
-    eyeColor,
-    selectedLogo,
-    centerText,
-    uploadedLogo,
-    selectedFrame,
-    frameText,
-    frameColor,
-    fontFamily,
-    fontSize,
-    fontWeight,
-    textTransform,
-    size,
-    includeQuietZone,
-    isProPlan,
-    isPlayingAnimation,
-  ]);
+  }, [qrMatrix, selectedFrame, size, includeQuietZone, isPlayingAnimation, isGeneratingGif]);
+
+  // Lightweight repaint on color/style/font edits without restarting rAF or reallocating canvas textures
+  useEffect(() => {
+    redrawCanvasRef.current();
+  }, [liveRenderConfig]);
 
   const handlePresetSelect = (hex: string) => {
+    applyInstantColor({ pixelColor: hex });
     setPixelColor(hex);
   };
 
   const handleResetColors = () => {
+    applyInstantColor({
+      pixelColor: "#ff6600",
+      pixelColor2: "#ff3300",
+      colorMode: "monochrome",
+      bgColor: "#ffffff",
+      bgColor2: "#f4f4f5",
+      bgMode: "monochrome",
+      useSeparateEyeColor: false,
+      eyeColor: "#000000",
+    });
     setPixelColor("#ff6600");
     setPixelColor2("#ff3300");
     setColorMode("monochrome");
@@ -813,56 +1001,52 @@ export function QRGenerator() {
     setGifProgress(0);
 
     // Yield to render progress state in UI
-    await new Promise((r) => setTimeout(r, 60));
+    await new Promise((r) => setTimeout(r, 40));
 
     try {
-      const rawData = getRawQRValue();
-      const qr = QRCode.create(rawData, {
-        errorCorrectionLevel: "H",
-      });
+      const qr = qrMatrix;
 
       const paddings = getFramePaddings(selectedFrame, includeQuietZone);
       const qrDrawSize = size;
       const totalWidth = qrDrawSize + paddings.side * 2;
       const totalHeight = qrDrawSize + paddings.top + paddings.bottom;
 
-      const offscreen = document.createElement("canvas");
-      offscreen.width = totalWidth;
-      offscreen.height = totalHeight;
-      const offCtx = offscreen.getContext("2d", { willReadFrequently: true });
-      if (!offCtx) throw new Error("Unable to initialize offscreen canvas context");
+      const isAnim = isAnimatedFrame(selectedFrame);
+      const durationSec = ANIMATED_LOOP_DURATION_SEC;
+      // 30 frames * 80ms = exact 2400ms (8 centiseconds per frame) for crisp, fast looping
+      const totalFrames = isAnim ? 30 : 1;
+      const delayMs = 80;
 
-      const gif = GIFEncoder();
-      const fps = 20;
-      const durationSec = 2.4; // smooth loop
-      const totalFrames = Math.round(fps * durationSec);
-      const delayMs = 1000 / fps;
+      const theme = isAnim ? getAnimatedTheme(selectedFrame) : null;
+      const tintRgb = theme
+        ? hexToRgbTuple(theme.baseBg)
+        : bgMode === "transparent"
+          ? ([255, 255, 255] as [number, number, number])
+          : hexToRgbTuple(bgColor);
 
-      for (let f = 0; f < totalFrames; f++) {
-        const timeSec = (f / totalFrames) * durationSec;
-        offCtx.clearRect(0, 0, totalWidth, totalHeight);
-        renderFrameAtTime(offCtx, totalWidth, totalHeight, qrDrawSize, paddings, qr, timeSec);
+      const blob = await exportFramesToGif({
+        width: totalWidth,
+        height: totalHeight,
+        scale: 1.25,
+        totalFrames,
+        delayMs,
+        durationSec,
+        maxColors: 128,
+        orderedDither: isAnim,
+        tintRgb,
+        cleanCornerAlpha: isAnim,
+        renderFrame: (offCtx, timeSec) => {
+          renderFrameAtTime(offCtx, totalWidth, totalHeight, qrDrawSize, paddings, qr, timeSec);
+        },
+        onProgress: setGifProgress,
+      });
 
-        const imgData = offCtx.getImageData(0, 0, totalWidth, totalHeight);
-        const palette = quantize(imgData.data, 256);
-        const index = applyPalette(imgData.data, palette);
-        gif.writeFrame(index, totalWidth, totalHeight, { palette, delay: delayMs });
-
-        setGifProgress(Math.round(((f + 1) / totalFrames) * 100));
-        if (f % 4 === 0) {
-          await new Promise((r) => setTimeout(r, 10));
-        }
-      }
-
-      gif.finish();
-      const bytes = gif.bytes();
-      const blob = new Blob([bytes as any], { type: "image/gif" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.download = `lshorter-qr-${selectedFrame}-${contentType}.gif`;
       link.href = url;
       link.click();
-      URL.revokeObjectURL(url);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
 
       confetti({ particleCount: 40, spread: 60 });
       showToast.success("Animated GIF QR Code exported successfully!");
@@ -892,10 +1076,11 @@ export function QRGenerator() {
       let currentLinks = userLinks;
       if (!currentLinks.length && userId) {
         const res = await cfGetLinks(userId);
+        const rawNested = (res?.data as { data?: unknown } | undefined)?.data;
         currentLinks = Array.isArray(res?.data)
-          ? res.data
-          : Array.isArray((res?.data as any)?.data)
-            ? (res?.data as any).data
+          ? (res.data as ShortLink[])
+          : Array.isArray(rawNested)
+            ? (rawNested as ShortLink[])
             : [];
         setUserLinks(currentLinks);
       }
@@ -925,7 +1110,7 @@ export function QRGenerator() {
 
       confetti({ particleCount: 40, spread: 60, origin: { y: 0.7 } });
       showToast.success(`QR Code design successfully saved for link /${target.slug}!`);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Save QR error:", err);
       showToast.error("Error saving customization.");
     } finally {
@@ -941,26 +1126,30 @@ export function QRGenerator() {
   };
 
   // Pixel Motifs Definitions
-  const PIXEL_STYLES = [
-    { id: "square" as const, label: "Squares", icon: "■", isPro: false },
-    { id: "rounded" as const, label: "Rounded", icon: "●", isPro: false },
-    { id: "dots" as const, label: "Dots", icon: "•", isPro: true },
-    { id: "diamond" as const, label: "Diamonds", icon: "◆", isPro: true },
-    { id: "classy" as const, label: "Classy", icon: "◈", isPro: true },
-    { id: "stars" as const, label: "Stars", icon: "★", isPro: true },
-    { id: "lines" as const, label: "Lines", icon: "▬", isPro: true },
-    { id: "vertical_bars" as const, label: "Bars", icon: "▮", isPro: true },
-    { id: "cross" as const, label: "Cross +", icon: "✚", isPro: true },
-    { id: "hexagon_dots" as const, label: "Hexagons", icon: "⬡", isPro: true },
-    { id: "heart" as const, label: "Hearts", icon: "♥", isPro: true },
-    { id: "cyber_tiles" as const, label: "Cyber", icon: "⯃", isPro: true },
-    { id: "sparkle" as const, label: "Sparkles", icon: "✦", isPro: true },
-    { id: "pill" as const, label: "Pills", icon: "⬭", isPro: true },
-    { id: "fluid" as const, label: "Fluid", icon: "◎", isPro: true },
-  ];
+  const PIXEL_STYLES = useMemo(
+    () => [
+      { id: "square" as const, label: "Squares", icon: "■", isPro: false },
+      { id: "rounded" as const, label: "Rounded", icon: "●", isPro: false },
+      { id: "dots" as const, label: "Dots", icon: "•", isPro: true },
+      { id: "diamond" as const, label: "Diamonds", icon: "◆", isPro: true },
+      { id: "classy" as const, label: "Classy", icon: "◈", isPro: true },
+      { id: "stars" as const, label: "Stars", icon: "★", isPro: true },
+      { id: "lines" as const, label: "Lines", icon: "▬", isPro: true },
+      { id: "vertical_bars" as const, label: "Bars", icon: "▮", isPro: true },
+      { id: "cross" as const, label: "Cross +", icon: "✚", isPro: true },
+      { id: "hexagon_dots" as const, label: "Hexagons", icon: "⬡", isPro: true },
+      { id: "heart" as const, label: "Hearts", icon: "♥", isPro: true },
+      { id: "cyber_tiles" as const, label: "Cyber", icon: "⯃", isPro: true },
+      { id: "sparkle" as const, label: "Sparkles", icon: "✦", isPro: true },
+      { id: "pill" as const, label: "Pills", icon: "⬭", isPro: true },
+      { id: "fluid" as const, label: "Fluid", icon: "◎", isPro: true },
+    ],
+    []
+  );
 
   // Finder Eyes Definitions
-  const EYE_STYLES = [
+  const EYE_STYLES = useMemo(
+    () => [
     {
       id: "square" as const,
       label: "Square",
@@ -1127,14 +1316,17 @@ export function QRGenerator() {
         </svg>
       ),
     },
-  ];
+    ],
+    []
+  );
 
   // Real Logos List
-  const LOGO_LIST: Array<{ id: LogoType | string; label: string; isPro: boolean; iconNode: React.ReactNode }> = [
+  const LOGO_LIST: Array<{ id: LogoType | string; label: string; isPro: boolean; iconNode: React.ReactNode }> = useMemo(
+    () => [
     { id: "none", label: "None", isPro: false, iconNode: <X className="w-5 h-5 text-neutral-400" /> },
     { id: "custom", label: "Upload Image", isPro: true, iconNode: <Upload className="w-4 h-4 text-brand" /> },
     { id: "text", label: "Custom Text", isPro: true, iconNode: <Type className="w-4 h-4 text-neutral-700 dark:text-neutral-200" /> },
-    { id: "ql", label: "LShorter", isPro: false, iconNode: BrandIcons.ql },
+    // 1. Social & Communication
     { id: "facebook", label: "Facebook", isPro: false, iconNode: BrandIcons.facebook },
     { id: "instagram", label: "Instagram", isPro: false, iconNode: BrandIcons.instagram },
     { id: "twitter", label: "X / Twitter", isPro: true, iconNode: BrandIcons.twitter },
@@ -1147,6 +1339,11 @@ export function QRGenerator() {
     { id: "discord", label: "Discord", isPro: true, iconNode: BrandIcons.discord },
     { id: "snapchat", label: "Snapchat", isPro: true, iconNode: BrandIcons.snapchat },
     { id: "github", label: "GitHub", isPro: true, iconNode: BrandIcons.github },
+    { id: "reddit", label: "Reddit", isPro: true, iconNode: BrandIcons.reddit },
+    { id: "threads", label: "Threads", isPro: true, iconNode: BrandIcons.threads },
+    { id: "twitch", label: "Twitch", isPro: true, iconNode: BrandIcons.twitch },
+    { id: "gmail", label: "Gmail", isPro: true, iconNode: BrandIcons.gmail },
+    // 2. Commerce, Payments & Travel
     { id: "paypal", label: "PayPal", isPro: true, iconNode: BrandIcons.paypal },
     { id: "apple", label: "Apple", isPro: true, iconNode: BrandIcons.apple },
     { id: "google", label: "Google", isPro: true, iconNode: BrandIcons.google },
@@ -1155,25 +1352,39 @@ export function QRGenerator() {
     { id: "amazon", label: "Amazon", isPro: true, iconNode: BrandIcons.amazon },
     { id: "visa", label: "Visa", isPro: true, iconNode: BrandIcons.visa },
     { id: "mastercard", label: "Mastercard", isPro: true, iconNode: BrandIcons.mastercard },
-    { id: "twitch", label: "Twitch", isPro: true, iconNode: BrandIcons.twitch },
-    { id: "reddit", label: "Reddit", isPro: true, iconNode: BrandIcons.reddit },
-    { id: "threads", label: "Threads", isPro: true, iconNode: BrandIcons.threads },
-    { id: "slack", label: "Slack", isPro: true, iconNode: BrandIcons.slack },
-    { id: "notion", label: "Notion", isPro: true, iconNode: BrandIcons.notion },
     { id: "airbnb", label: "Airbnb", isPro: true, iconNode: BrandIcons.airbnb },
     { id: "uber", label: "Uber", isPro: true, iconNode: BrandIcons.uber },
-    // Sport Brands
+    // 3. Productivity, Marketing & Business
+    { id: "slack", label: "Slack", isPro: true, iconNode: BrandIcons.slack },
+    { id: "notion", label: "Notion", isPro: true, iconNode: BrandIcons.notion },
+    { id: "hubspot", label: "HubSpot", isPro: true, iconNode: BrandIcons.hubspot },
+    { id: "mailchimp", label: "Mailchimp", isPro: true, iconNode: BrandIcons.mailchimp },
+    { id: "meta_ads", label: "Meta Ads", isPro: true, iconNode: BrandIcons.meta_ads },
+    { id: "google_ads", label: "Google Ads", isPro: true, iconNode: BrandIcons.google_ads },
+    { id: "salesforce", label: "Salesforce", isPro: true, iconNode: BrandIcons.salesforce },
+    { id: "semrush", label: "Semrush", isPro: true, iconNode: BrandIcons.semrush },
+    { id: "zapier", label: "Zapier", isPro: true, iconNode: BrandIcons.zapier },
+    { id: "make", label: "Make", isPro: true, iconNode: BrandIcons.make },
+    { id: "webflow", label: "Webflow", isPro: true, iconNode: BrandIcons.webflow },
+    { id: "wordpress", label: "WordPress", isPro: true, iconNode: BrandIcons.wordpress },
+    { id: "google_analytics", label: "Google Analytics", isPro: true, iconNode: BrandIcons.google_analytics },
+    // 4. AI & Machine Learning
+    { id: "openai", label: "ChatGPT / OpenAI", isPro: true, iconNode: BrandIcons.openai },
+    { id: "anthropic", label: "Anthropic / Claude", isPro: true, iconNode: BrandIcons.anthropic },
+    { id: "gemini", label: "Google Gemini", isPro: true, iconNode: BrandIcons.gemini },
+    { id: "midjourney", label: "Midjourney", isPro: true, iconNode: BrandIcons.midjourney },
+    { id: "huggingface", label: "Hugging Face", isPro: true, iconNode: BrandIcons.huggingface },
+    { id: "mistral", label: "Mistral AI", isPro: true, iconNode: BrandIcons.mistral },
+    { id: "deepseek", label: "DeepSeek", isPro: true, iconNode: BrandIcons.deepseek },
+    // 5. Sports & Culture Brands
     { id: "nike", label: "Nike", isPro: true, iconNode: BrandIcons.nike },
     { id: "adidas", label: "Adidas", isPro: true, iconNode: BrandIcons.adidas },
     { id: "puma", label: "Puma", isPro: true, iconNode: BrandIcons.puma },
     { id: "jordan", label: "Air Jordan", isPro: true, iconNode: BrandIcons.jordan },
     { id: "nba", label: "NBA", isPro: true, iconNode: BrandIcons.nba },
     { id: "formula1", label: "Formula 1", isPro: true, iconNode: BrandIcons.formula1 },
-    { id: "football_ball", label: "Football", isPro: true, iconNode: BrandIcons.football_ball },
-    { id: "gym_fitness", label: "Fitness Gym", isPro: true, iconNode: BrandIcons.gym_fitness },
-    { id: "tennis_ball", label: "Tennis", isPro: true, iconNode: BrandIcons.tennis_ball },
     { id: "redbull", label: "Red Bull", isPro: true, iconNode: BrandIcons.redbull },
-    // Tech Dev, Frameworks & Cloud
+    // 6. Tech, Frameworks, Cloud & Languages
     { id: "nextjs", label: "Next.js", isPro: true, iconNode: BrandIcons.nextjs },
     { id: "react", label: "React", isPro: true, iconNode: BrandIcons.react },
     { id: "vue", label: "Vue.js", isPro: true, iconNode: BrandIcons.vue },
@@ -1188,13 +1399,15 @@ export function QRGenerator() {
     { id: "nodejs", label: "Node.js", isPro: true, iconNode: BrandIcons.nodejs },
     { id: "typescript", label: "TypeScript", isPro: true, iconNode: BrandIcons.typescript },
     { id: "python", label: "Python", isPro: true, iconNode: BrandIcons.python },
+    { id: "docker", label: "Docker", isPro: true, iconNode: BrandIcons.docker },
+    { id: "cloudflare", label: "Cloudflare", isPro: true, iconNode: BrandIcons.cloudflare },
+    { id: "vercel", label: "Vercel", isPro: true, iconNode: BrandIcons.vercel },
     { id: "rust", label: "Rust", isPro: true, iconNode: BrandIcons.rust },
     { id: "golang", label: "Go", isPro: true, iconNode: BrandIcons.golang },
     { id: "cplusplus", label: "C++", isPro: true, iconNode: BrandIcons.cplusplus },
     { id: "java", label: "Java", isPro: true, iconNode: BrandIcons.java },
     { id: "git", label: "Git", isPro: true, iconNode: BrandIcons.git },
     { id: "gitlab", label: "GitLab", isPro: true, iconNode: BrandIcons.gitlab },
-    { id: "docker", label: "Docker", isPro: true, iconNode: BrandIcons.docker },
     { id: "kubernetes", label: "Kubernetes", isPro: true, iconNode: BrandIcons.kubernetes },
     { id: "linux", label: "Linux", isPro: true, iconNode: BrandIcons.linux },
     { id: "redis", label: "Redis", isPro: true, iconNode: BrandIcons.redis },
@@ -1202,8 +1415,6 @@ export function QRGenerator() {
     { id: "figma", label: "Figma", isPro: true, iconNode: BrandIcons.figma },
     { id: "linear", label: "Linear", isPro: true, iconNode: BrandIcons.linear },
     { id: "aws", label: "AWS", isPro: true, iconNode: BrandIcons.aws },
-    { id: "cloudflare", label: "Cloudflare", isPro: true, iconNode: BrandIcons.cloudflare },
-    { id: "vercel", label: "Vercel", isPro: true, iconNode: BrandIcons.vercel },
     { id: "vite", label: "Vite", isPro: true, iconNode: BrandIcons.vite },
     { id: "bun", label: "Bun", isPro: true, iconNode: BrandIcons.bun },
     { id: "astro", label: "Astro", isPro: true, iconNode: BrandIcons.astro },
@@ -1216,354 +1427,176 @@ export function QRGenerator() {
     { id: "clerk", label: "Clerk", isPro: true, iconNode: BrandIcons.clerk },
     { id: "neon_db", label: "Neon DB", isPro: true, iconNode: BrandIcons.neon_db },
     { id: "resend", label: "Resend", isPro: true, iconNode: BrandIcons.resend },
-    // Marketing, Ads & Growth
-    { id: "hubspot", label: "HubSpot", isPro: true, iconNode: BrandIcons.hubspot },
-    { id: "mailchimp", label: "Mailchimp", isPro: true, iconNode: BrandIcons.mailchimp },
-    { id: "meta_ads", label: "Meta Ads", isPro: true, iconNode: BrandIcons.meta_ads },
-    { id: "google_ads", label: "Google Ads", isPro: true, iconNode: BrandIcons.google_ads },
-    { id: "salesforce", label: "Salesforce", isPro: true, iconNode: BrandIcons.salesforce },
-    { id: "semrush", label: "Semrush", isPro: true, iconNode: BrandIcons.semrush },
-    { id: "ahrefs", label: "Ahrefs", isPro: true, iconNode: BrandIcons.ahrefs },
-    { id: "klaviyo", label: "Klaviyo", isPro: true, iconNode: BrandIcons.klaviyo },
-    { id: "zapier", label: "Zapier", isPro: true, iconNode: BrandIcons.zapier },
-    { id: "make", label: "Make", isPro: true, iconNode: BrandIcons.make },
-    { id: "webflow", label: "Webflow", isPro: true, iconNode: BrandIcons.webflow },
-    { id: "wordpress", label: "WordPress", isPro: true, iconNode: BrandIcons.wordpress },
-    { id: "google_analytics", label: "Google Analytics", isPro: true, iconNode: BrandIcons.google_analytics },
-    // AI
-    { id: "openai", label: "ChatGPT / OpenAI", isPro: true, iconNode: BrandIcons.openai },
-    { id: "anthropic", label: "Anthropic / Claude", isPro: true, iconNode: BrandIcons.anthropic },
-    { id: "gemini", label: "Google Gemini", isPro: true, iconNode: BrandIcons.gemini },
-    { id: "midjourney", label: "Midjourney", isPro: true, iconNode: BrandIcons.midjourney },
-    { id: "huggingface", label: "Hugging Face", isPro: true, iconNode: BrandIcons.huggingface },
-    { id: "mistral", label: "Mistral AI", isPro: true, iconNode: BrandIcons.mistral },
-    { id: "deepseek", label: "DeepSeek", isPro: true, iconNode: BrandIcons.deepseek },
-    // Google & Mail
-    { id: "gmail", label: "Gmail (Google)", isPro: true, iconNode: BrandIcons.gmail },
-    // WiFi & Connexions
-    { id: "wifi_classic", label: "WiFi Signal", isPro: false, iconNode: BrandIcons.wifi_classic },
-    { id: "wifi_free", label: "Free WiFi Zone", isPro: false, iconNode: BrandIcons.wifi_free },
-    { id: "wifi_secure", label: "Secure WiFi", isPro: true, iconNode: BrandIcons.wifi_secure },
-    { id: "wifi_5g", label: "WiFi 5G Max", isPro: true, iconNode: BrandIcons.wifi_5g },
-    // Appels & Téléphonie
-    { id: "phone_call", label: "Direct Call", isPro: false, iconNode: BrandIcons.phone_call },
-    { id: "phone_support", label: "Customer Support", isPro: true, iconNode: BrandIcons.phone_support },
-    { id: "phone_sos", label: "SOS Emergency", isPro: true, iconNode: BrandIcons.phone_sos },
-    { id: "whatsapp_call", label: "WhatsApp Call", isPro: true, iconNode: BrandIcons.whatsapp_call },
-    // Badges & Crypto
-    { id: "cart", label: "E-Commerce", isPro: true, iconNode: BrandIcons.cart },
     { id: "crypto_btc", label: "Bitcoin", isPro: true, iconNode: BrandIcons.crypto_btc },
-    { id: "wifi_icon", label: "WiFi Hotspot", isPro: true, iconNode: BrandIcons.wifi_icon },
-    { id: "shield_icon", label: "Security", isPro: true, iconNode: BrandIcons.shield_icon },
-    { id: "star_icon", label: "VIP Prestige", isPro: true, iconNode: BrandIcons.star_icon },
-  ];
+    ],
+    []
+  );
 
-  // Premium Frames List (14 Statics + 40 Animated Ultra-Pro)
+  const getAnimatedMotifIcon = useCallback((motif: ThemeMotif, className?: string) => {
+    const cls = className ?? "w-3.5 h-3.5 text-neutral-700 dark:text-neutral-300";
+    const iconMap: Record<ThemeMotif, React.ReactNode> = {
+      christmas: <Gift className={cls} />,
+      halloween: <Ghost className={cls} />,
+      sport: <Activity className={cls} />,
+      manga: <Zap className={cls} />,
+      rain: <CloudRain className={cls} />,
+      snow: <Snowflake className={cls} />,
+      cloud: <Cloud className={cls} />,
+      storm: <Zap className={cls} />,
+      cyberpunk: <Cpu className={cls} />,
+      galaxy: <Sparkles className={cls} />,
+      fire: <Flame className={cls} />,
+      luxury_gold: <Crown className={cls} />,
+      hearts: <Heart className={cls} />,
+      waves: <Waves className={cls} />,
+      diamond: <Gem className={cls} />,
+      music: <Music className={cls} />,
+      arcade: <Gamepad2 className={cls} />,
+      nature: <Leaf className={cls} />,
+      coffee: <Coffee className={cls} />,
+      fireworks: <Sparkles className={cls} />,
+      f1_racing: <Flag className={cls} />,
+      basketball: <Trophy className={cls} />,
+      football: <Trophy className={cls} />,
+      tennis: <Sun className={cls} />,
+      boxing: <Swords className={cls} />,
+      terminal_code: <Terminal className={cls} />,
+      rocket_launch: <Rocket className={cls} />,
+      aurora: <Sparkles className={cls} />,
+      dna_biotech: <Dna className={cls} />,
+      glitch: <Zap className={cls} />,
+      sunset_vibes: <Sunset className={cls} />,
+      matrix_rain: <Binary className={cls} />,
+      circuit_board: <Cpu className={cls} />,
+      quantum_grid: <Atom className={cls} />,
+      ai_neural: <Brain className={cls} />,
+      hologram_hud: <Crosshair className={cls} />,
+      fiber_optic: <Zap className={cls} />,
+      blockchain: <Blocks className={cls} />,
+      radar_scan: <Radar className={cls} />,
+      cloud_cluster: <Cloud className={cls} />,
+    };
+    return iconMap[motif];
+  }, []);
+
+  // Premium Frames List (14 Statics + 40 Shader-Driven Animated Themes)
   const FRAME_LIST: Array<{
     id: FrameType;
     label: string;
     isPro: boolean;
     isAnimated?: boolean;
+    category?: Exclude<AnimatedThemeCategory, "all">;
     previewIcon: React.ReactNode;
-  }> = [
+  }> = useMemo(
+    () => [
     // --- Cadres Statiques ---
     { id: "none", label: "None", isPro: false, previewIcon: <X className="w-5 h-5 text-neutral-400" /> },
-    { id: "simple", label: "Thin Frame", isPro: false, previewIcon: <div className="w-6 h-6 border-2 border-current rounded-[8px]" /> },
-    { id: "bottom_pill", label: "Bottom Pill", isPro: false, previewIcon: <div className="flex flex-col items-center gap-0.5"><div className="w-5 h-4 border-2 border-current rounded-[6px]" /><span className="bg-brand text-white px-1 text-[6px] font-bold rounded">SCAN</span></div> },
-    { id: "top_header", label: "Top Header", isPro: true, previewIcon: <div className="flex flex-col items-center gap-0.5"><span className="bg-brand text-white px-1 text-[6px] font-bold rounded">SCAN</span><div className="w-5 h-4 border-2 border-current rounded-[6px]" /></div> },
-    { id: "hand_arrow", label: "Handwritten Arrow", isPro: true, previewIcon: <span className="italic text-[10px] font-serif">Scan me ⤹</span> },
-    { id: "modern_badge", label: "Star Badge", isPro: true, previewIcon: <div className="flex flex-col items-center gap-0.5"><div className="w-5 h-4 border border-current rounded-[6px]" /><span className="text-brand text-[8px] font-bold">★ SCAN ★</span></div> },
-    { id: "neon", label: "Neon Glow", isPro: true, previewIcon: <div className="w-6 h-6 border-2 border-brand rounded-[8px] shadow-brand" /> },
-    { id: "phone", label: "Smartphone Mockup", isPro: true, previewIcon: <Smartphone className="w-5 h-5 text-brand" /> },
-    { id: "tag_ticket", label: "Promo Ticket", isPro: true, previewIcon: <Tag className="w-5 h-5 text-emerald-400" /> },
-    { id: "polaroid", label: "Vintage Polaroid", isPro: true, previewIcon: <div className="w-6 h-7 border-2 border-current rounded-sm flex flex-col justify-end p-0.5"><div className="w-full h-1.5 bg-neutral-500 rounded-xs" /></div> },
-    { id: "luxury_gold", label: "Prestige Gold", isPro: true, previewIcon: <div className="w-6 h-6 border-2 border-amber-400 p-0.5 rounded-[4px]"><div className="w-full h-full border border-amber-300" /></div> },
-    { id: "circular_badge", label: "Verified Badge", isPro: true, previewIcon: <Shield className="w-5 h-5 text-sky-400" /> },
-    { id: "chat_bubble", label: "Chat Bubble", isPro: true, previewIcon: <MessageCircle className="w-5 h-5 text-pink-400" /> },
-    { id: "gradient_border", label: "Sunset Gradient", isPro: true, previewIcon: <div className="w-6 h-6 rounded-[8px] bg-gradient-to-tr from-[#ff007a] via-[#ff6600] to-[#7928ca] p-0.5"><div className="w-full h-full bg-white dark:bg-[#141416] rounded-[6px]" /></div> },
+    { id: "simple", label: "Simple", isPro: false, previewIcon: <div className="w-6 h-6 border-2 border-current rounded-[8px]" /> },
+    {
+      id: "corner_brackets",
+      label: "Brackets",
+      isPro: false,
+      previewIcon: (
+        <div className="w-6 h-6 relative">
+          <span className="absolute top-0.5 left-0.5 w-1.5 h-1.5 border-t-2 border-l-2 border-current" />
+          <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 border-t-2 border-r-2 border-current" />
+          <span className="absolute bottom-0.5 left-0.5 w-1.5 h-1.5 border-b-2 border-l-2 border-current" />
+          <span className="absolute bottom-0.5 right-0.5 w-1.5 h-1.5 border-b-2 border-r-2 border-current" />
+          <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-2.5 h-0.5 bg-brand rounded-full" />
+        </div>
+      ),
+    },
+    {
+      id: "floating_card",
+      label: "Bar",
+      isPro: false,
+      previewIcon: (
+        <div className="w-6 h-6 border-2 border-current rounded-[6px] flex flex-col justify-between p-0.5">
+          <div className="w-full h-3 border border-dashed border-current/40 rounded-xs" />
+          <div className="w-full h-0.5 bg-brand" />
+        </div>
+      ),
+    },
+    {
+      id: "minimal_box",
+      label: "Cutout",
+      isPro: false,
+      previewIcon: (
+        <div className="w-6 h-6 border-2 border-current rounded-[6px] relative flex flex-col justify-end items-center">
+          <span className="w-3 h-0.5 bg-brand -mb-0.5" />
+        </div>
+      ),
+    },
+    {
+      id: "double_border",
+      label: "Double",
+      isPro: false,
+      previewIcon: (
+        <div className="w-6 h-6 border-2 border-current rounded-[8px] p-0.5">
+          <div className="w-full h-full border border-current/60 rounded-[4px]" />
+        </div>
+      ),
+    },
+    { id: "bottom_pill", label: "Pill", isPro: false, previewIcon: <div className="flex flex-col items-center gap-0.5"><div className="w-5 h-4 border-2 border-current rounded-[6px]" /><span className="bg-brand text-white px-1 text-[6px] font-bold rounded">SCAN</span></div> },
+    { id: "top_header", label: "Header", isPro: true, previewIcon: <div className="flex flex-col items-center gap-0.5"><span className="bg-brand text-white px-1 text-[6px] font-bold rounded">SCAN</span><div className="w-5 h-4 border-2 border-current rounded-[6px]" /></div> },
+    {
+      id: "clean_badge",
+      label: "Badge",
+      isPro: true,
+      previewIcon: (
+        <div className="flex flex-col items-center gap-0.5">
+          <span className="w-3 h-0.5 bg-brand rounded-full" />
+          <div className="w-5 h-3.5 border-2 border-current rounded-[4px]" />
+          <span className="w-4 h-0.5 bg-brand rounded-full" />
+        </div>
+      ),
+    },
+    {
+      id: "notched_corners",
+      label: "Notched",
+      isPro: true,
+      previewIcon: (
+        <div className="w-6 h-6 border-2 border-current [clip-path:polygon(25%_0%,75%_0%,100%_25%,100%_75%,75%_100%,25%_100%,0%_75%,0%_25%)] flex items-center justify-center">
+          <div className="w-2 h-2 bg-brand/40" />
+        </div>
+      ),
+    },
+    {
+      id: "stamp_border",
+      label: "Dotted",
+      isPro: true,
+      previewIcon: (
+        <div className="w-6 h-6 border-2 border-dashed border-current rounded-[6px] flex flex-col justify-end items-center p-0.5">
+          <span className="w-3.5 h-1 bg-brand rounded-xs" />
+        </div>
+      ),
+    },
+    { id: "hand_arrow", label: "Cursive", isPro: true, previewIcon: <span className="italic text-[10px] font-serif">Scan me ⤹</span> },
+    { id: "modern_badge", label: "Star", isPro: true, previewIcon: <div className="flex flex-col items-center gap-0.5"><div className="w-5 h-4 border border-current rounded-[6px]" /><span className="text-brand text-[8px] font-bold">★ SCAN ★</span></div> },
+    { id: "neon", label: "Neon", isPro: true, previewIcon: <div className="w-6 h-6 border-2 border-brand rounded-[8px] shadow-brand" /> },
+    { id: "phone", label: "Phone", isPro: true, previewIcon: <Smartphone className="w-5 h-5 text-brand" /> },
+    { id: "tag_ticket", label: "Ticket", isPro: true, previewIcon: <Tag className="w-5 h-5 text-emerald-400" /> },
+    { id: "polaroid", label: "Polaroid", isPro: true, previewIcon: <div className="w-6 h-7 border-2 border-current rounded-sm flex flex-col justify-end p-0.5"><div className="w-full h-1.5 bg-neutral-500 rounded-xs" /></div> },
+    { id: "luxury_gold", label: "Prestige", isPro: true, previewIcon: <div className="w-6 h-6 border-2 border-amber-400 p-0.5 rounded-[4px]"><div className="w-full h-full border border-amber-300" /></div> },
+    { id: "circular_badge", label: "Shield", isPro: true, previewIcon: <Shield className="w-5 h-5 text-sky-400" /> },
+    { id: "gradient_border", label: "Gradient", isPro: true, previewIcon: <div className="w-6 h-6 rounded-[8px] bg-gradient-to-tr from-[#ff007a] via-[#ff6600] to-[#7928ca] p-0.5"><div className="w-full h-full bg-white dark:bg-[#141416] rounded-[6px]" /></div> },
 
-    // --- Cadres Animés Ultra-Premium ---
-    {
-      id: "anim_christmas",
-      label: "🎄 Christmas & Holidays",
+    // --- 40 GPU Shader-Driven Animated Studio Themes (Simple, Sobre & Minimal) ---
+    ...Object.values(ANIMATED_THEMES).map((theme) => ({
+      id: theme.id as FrameType,
+      label: theme.shortLabel,
       isPro: true,
       isAnimated: true,
-      previewIcon: <div className="relative flex items-center justify-center text-sm text-red-500">🎄<span className="text-[9px] absolute -top-1 -right-1">✨</span></div>,
-    },
-    {
-      id: "anim_halloween",
-      label: "🎃 Halloween",
-      isPro: true,
-      isAnimated: true,
-      previewIcon: <div className="relative flex items-center justify-center text-sm text-amber-500">🎃<span className="text-[9px] absolute -top-1 -right-1">👻</span></div>,
-    },
-    {
-      id: "anim_sport",
-      label: "⚡ Sport & Energy",
-      isPro: true,
-      isAnimated: true,
-      previewIcon: <div className="relative flex items-center justify-center text-sm text-lime-400">⚡<span className="text-[9px] absolute -top-1 -right-1">🔥</span></div>,
-    },
-    {
-      id: "anim_manga",
-      label: "🎌 Manga / Anime",
-      isPro: true,
-      isAnimated: true,
-      previewIcon: <div className="relative flex items-center justify-center text-sm text-pink-500">🎌<span className="text-[9px] absolute -top-1 -right-1">💥</span></div>,
-    },
-    {
-      id: "anim_rain",
-      label: "🌧️ Rain & Water",
-      isPro: true,
-      isAnimated: true,
-      previewIcon: <div className="relative flex items-center justify-center text-sm text-cyan-400">🌧️<span className="text-[9px] absolute -top-1 -right-1">💧</span></div>,
-    },
-    {
-      id: "anim_snow",
-      label: "❄️ Snowflakes",
-      isPro: true,
-      isAnimated: true,
-      previewIcon: <div className="relative flex items-center justify-center text-sm text-sky-200">❄️<span className="text-[9px] absolute -top-1 -right-1">✨</span></div>,
-    },
-    {
-      id: "anim_cloud",
-      label: "☁️ Floating Clouds",
-      isPro: true,
-      isAnimated: true,
-      previewIcon: <div className="relative flex items-center justify-center text-sm text-indigo-300">☁️<span className="text-[9px] absolute -top-1 -right-1">🌤️</span></div>,
-    },
-    {
-      id: "anim_storm",
-      label: "⛈️ Electric Storm",
-      isPro: true,
-      isAnimated: true,
-      previewIcon: <div className="relative flex items-center justify-center text-sm text-yellow-400">⛈️<span className="text-[9px] absolute -top-1 -right-1">⚡</span></div>,
-    },
-    {
-      id: "anim_cyberpunk",
-      label: "🔮 Cyberpunk Neon",
-      isPro: true,
-      isAnimated: true,
-      previewIcon: <div className="relative flex items-center justify-center text-sm text-fuchsia-400">🔮<span className="text-[9px] absolute -top-1 -right-1">✨</span></div>,
-    },
-    {
-      id: "anim_galaxy",
-      label: "🌌 Starry Galaxy",
-      isPro: true,
-      isAnimated: true,
-      previewIcon: <div className="relative flex items-center justify-center text-sm text-violet-400">🌌<span className="text-[9px] absolute -top-1 -right-1">⭐</span></div>,
-    },
-    {
-      id: "anim_fire",
-      label: "🔥 Blazing Flames",
-      isPro: true,
-      isAnimated: true,
-      previewIcon: <div className="relative flex items-center justify-center text-sm text-orange-500">🔥<span className="text-[9px] absolute -top-1 -right-1">✨</span></div>,
-    },
-    {
-      id: "anim_luxury_gold",
-      label: "👑 Sparkling Gold",
-      isPro: true,
-      isAnimated: true,
-      previewIcon: <div className="relative flex items-center justify-center text-sm text-amber-400">👑<span className="text-[9px] absolute -top-1 -right-1">💎</span></div>,
-    },
-    {
-      id: "anim_hearts",
-      label: "💖 Floating Hearts",
-      isPro: true,
-      isAnimated: true,
-      previewIcon: <div className="relative flex items-center justify-center text-sm text-rose-500">💖<span className="text-[9px] absolute -top-1 -right-1">✨</span></div>,
-    },
-    {
-      id: "anim_waves",
-      label: "🌊 Ocean Waves",
-      isPro: true,
-      isAnimated: true,
-      previewIcon: <div className="relative flex items-center justify-center text-sm text-teal-400">🌊<span className="text-[9px] absolute -top-1 -right-1">🫧</span></div>,
-    },
-    {
-      id: "anim_diamond",
-      label: "💎 Diamond Prism",
-      isPro: true,
-      isAnimated: true,
-      previewIcon: <div className="relative flex items-center justify-center text-sm text-cyan-300">💎<span className="text-[9px] absolute -top-1 -right-1">✨</span></div>,
-    },
-    {
-      id: "anim_music",
-      label: "🎵 Soundwaves",
-      isPro: true,
-      isAnimated: true,
-      previewIcon: <div className="relative flex items-center justify-center text-sm text-violet-400">🎵<span className="text-[9px] absolute -top-1 -right-1">🎶</span></div>,
-    },
-    {
-      id: "anim_arcade",
-      label: "🕹️ Pixel Arcade",
-      isPro: true,
-      isAnimated: true,
-      previewIcon: <div className="relative flex items-center justify-center text-sm text-yellow-400">🕹️<span className="text-[9px] absolute -top-1 -right-1">👾</span></div>,
-    },
-    {
-      id: "anim_nature",
-      label: "🌿 Botanical Forest",
-      isPro: true,
-      isAnimated: true,
-      previewIcon: <div className="relative flex items-center justify-center text-sm text-emerald-400">🌿<span className="text-[9px] absolute -top-1 -right-1">🍃</span></div>,
-    },
-    {
-      id: "anim_coffee",
-      label: "☕ Coffee Steam",
-      isPro: true,
-      isAnimated: true,
-      previewIcon: <div className="relative flex items-center justify-center text-sm text-amber-600">☕<span className="text-[9px] absolute -top-1 -right-1">♨️</span></div>,
-    },
-    {
-      id: "anim_fireworks",
-      label: "🎆 Fireworks",
-      isPro: true,
-      isAnimated: true,
-      previewIcon: <div className="relative flex items-center justify-center text-sm text-pink-400">🎆<span className="text-[9px] absolute -top-1 -right-1">🎇</span></div>,
-    },
-    {
-      id: "anim_f1_racing",
-      label: "🏎️ F1 Grand Prix",
-      isPro: true,
-      isAnimated: true,
-      previewIcon: <div className="relative flex items-center justify-center text-sm text-red-500">🏎️<span className="text-[9px] absolute -top-1 -right-1 font-mono text-[9px]">🏁</span></div>,
-    },
-    {
-      id: "anim_basketball",
-      label: "🏀 NBA All-Star",
-      isPro: true,
-      isAnimated: true,
-      previewIcon: <div className="relative flex items-center justify-center text-sm text-orange-500">🏀<span className="text-[9px] absolute -top-1 -right-1">🔥</span></div>,
-    },
-    {
-      id: "anim_football",
-      label: "⚽ Football Stadium",
-      isPro: true,
-      isAnimated: true,
-      previewIcon: <div className="relative flex items-center justify-center text-sm text-emerald-400">⚽<span className="text-[9px] absolute -top-1 -right-1">🏆</span></div>,
-    },
-    {
-      id: "anim_tennis",
-      label: "🎾 Tennis Court",
-      isPro: true,
-      isAnimated: true,
-      previewIcon: <div className="relative flex items-center justify-center text-sm text-lime-400">🎾<span className="text-[9px] absolute -top-1 -right-1">🏆</span></div>,
-    },
-    {
-      id: "anim_boxing",
-      label: "🥊 Fight Ring",
-      isPro: true,
-      isAnimated: true,
-      previewIcon: <div className="relative flex items-center justify-center text-sm text-red-600">🥊<span className="text-[9px] absolute -top-1 -right-1">💥</span></div>,
-    },
-    {
-      id: "anim_terminal_code",
-      label: "💻 CLI Terminal",
-      isPro: true,
-      isAnimated: true,
-      previewIcon: <div className="text-[9px] font-mono font-bold text-emerald-400 border border-emerald-500/40 px-1 py-0.5 rounded shadow-[0_0_6px_#22c55e]">&gt;_DEV</div>,
-    },
-    {
-      id: "anim_rocket_launch",
-      label: "🚀 Space Mission",
-      isPro: true,
-      isAnimated: true,
-      previewIcon: <div className="relative flex items-center justify-center text-sm text-sky-400">🚀<span className="text-[9px] absolute -top-1 -right-1">🌌</span></div>,
-    },
-    {
-      id: "anim_aurora",
-      label: "🌌 Northern Lights",
-      isPro: true,
-      isAnimated: true,
-      previewIcon: <div className="relative flex items-center justify-center text-sm text-teal-300">🌌<span className="text-[9px] absolute -top-1 -right-1">✨</span></div>,
-    },
-    {
-      id: "anim_dna_biotech",
-      label: "🧬 DNA Biotech",
-      isPro: true,
-      isAnimated: true,
-      previewIcon: <div className="relative flex items-center justify-center text-sm text-cyan-400">🧬<span className="text-[9px] absolute -top-1 -right-1">🔬</span></div>,
-    },
-    {
-      id: "anim_glitch",
-      label: "⚡ Cyber Glitch",
-      isPro: true,
-      isAnimated: true,
-      previewIcon: <div className="relative flex items-center justify-center text-sm text-fuchsia-400">⚡<span className="text-[9px] absolute -top-1 -right-1 font-mono">01</span></div>,
-    },
-    {
-      id: "anim_sunset_vibes",
-      label: "🌅 80s Sunset",
-      isPro: true,
-      isAnimated: true,
-      previewIcon: <div className="relative flex items-center justify-center text-sm text-amber-500">🌅<span className="text-[9px] absolute -top-1 -right-1">🌴</span></div>,
-    },
-    {
-      id: "anim_matrix_rain",
-      label: "👾 Matrix Rain",
-      isPro: true,
-      isAnimated: true,
-      previewIcon: <div className="relative flex items-center justify-center text-sm text-emerald-400 font-mono text-[10px]">0101</div>,
-    },
-    {
-      id: "anim_circuit_board",
-      label: "⚡ Circuit Board",
-      isPro: true,
-      isAnimated: true,
-      previewIcon: <div className="relative flex items-center justify-center text-sm text-emerald-400">⚡<span className="text-[9px] absolute -top-1 -right-1 font-mono text-amber-400">PCB</span></div>,
-    },
-    {
-      id: "anim_quantum_grid",
-      label: "⚛️ Quantum Grid",
-      isPro: true,
-      isAnimated: true,
-      previewIcon: <div className="relative flex items-center justify-center text-sm text-indigo-400">⚛️<span className="text-[9px] absolute -top-1 -right-1 text-purple-400">✦</span></div>,
-    },
-    {
-      id: "anim_ai_neural",
-      label: "🧠 AI Neural Network",
-      isPro: true,
-      isAnimated: true,
-      previewIcon: <div className="relative flex items-center justify-center text-sm text-blue-400">🧠<span className="text-[9px] absolute -top-1 -right-1 text-pink-400">⚡</span></div>,
-    },
-    {
-      id: "anim_hologram_hud",
-      label: "🎯 HUD Hologram Reticle",
-      isPro: true,
-      isAnimated: true,
-      previewIcon: <div className="relative flex items-center justify-center text-sm text-cyan-400">🎯<span className="text-[9px] absolute -top-1 -right-1 font-mono text-[8px]">HUD</span></div>,
-    },
-    {
-      id: "anim_fiber_optic",
-      label: "⚡ Laser Fiber Optic",
-      isPro: true,
-      isAnimated: true,
-      previewIcon: <div className="relative flex items-center justify-center text-sm text-sky-400">⚡<span className="text-[9px] absolute -top-1 -right-1 text-amber-300">💡</span></div>,
-    },
-    {
-      id: "anim_blockchain",
-      label: "⛓️ Blockchain Ledger",
-      isPro: true,
-      isAnimated: true,
-      previewIcon: <div className="relative flex items-center justify-center text-sm text-amber-400">⛓️<span className="text-[9px] absolute -top-1 -right-1 text-yellow-300">🔒</span></div>,
-    },
-    {
-      id: "anim_radar_scan",
-      label: "📡 Cyber Military Radar",
-      isPro: true,
-      isAnimated: true,
-      previewIcon: <div className="relative flex items-center justify-center text-sm text-emerald-400">📡<span className="text-[9px] absolute -top-1 -right-1 text-green-300">🎯</span></div>,
-    },
-    {
-      id: "anim_cloud_cluster",
-      label: "☁️ Server Cloud Cluster",
-      isPro: true,
-      isAnimated: true,
-      previewIcon: <div className="relative flex items-center justify-center text-sm text-blue-400">☁️<span className="text-[9px] absolute -top-1 -right-1 text-sky-300">🚀</span></div>,
-    },
-  ];
+      category: theme.category,
+      previewIcon: (
+        <div className="w-6 h-6 rounded-[6px] border border-neutral-300 dark:border-[#2a2a2e] bg-neutral-100 dark:bg-[#141416] flex items-center justify-center text-neutral-700 dark:text-neutral-300 group-hover:border-brand/40 transition-colors">
+          {getAnimatedMotifIcon(theme.motif, "w-3.5 h-3.5 text-current")}
+        </div>
+      ),
+    })),
+    ],
+    [getAnimatedMotifIcon]
+  );
 
   const controlsContent = (
     <div className="flex flex-col gap-6">
@@ -1813,81 +1846,46 @@ export function QRGenerator() {
                 </button>
               </div>
 
-              <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-7 gap-2.5">
-                {(showMorePixels ? PIXEL_STYLES : PIXEL_STYLES.slice(0, 7)).map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => {
-                      if (!item.isPro || isProPlan) {
-                        setPixelStyle(item.id);
-                      } else {
-                        triggerPlanUpgrade({
-                          reason: `The pixel pattern "${item.label}" is reserved for Pro & Business plans.`,
-                          featureName: "Pro QR Patterns",
-                        });
-                      }
-                    }}
-                    className={`btn-hover-scale relative flex flex-col items-center justify-center h-14 rounded-[10px] border transition-all duration-200 cursor-pointer ${
-                      pixelStyle === item.id
-                        ? "bg-brand/10 dark:bg-brand-light border-brand text-brand dark:text-white ring-1 ring-brand font-bold"
-                        : "bg-white dark:bg-[#1a1a1e] border-neutral-200 dark:border-[#27272a] text-neutral-700 dark:text-neutral-300 hover:border-neutral-400 dark:hover:border-neutral-500 hover:bg-neutral-50 dark:hover:bg-white/5"
-                    }`}
-                  >
-                    {item.isPro && !isProPlan && (
-                      <Crown className="w-3.5 h-3.5 text-amber-400 absolute -top-1 -right-1" />
-                    )}
-                    <span className="text-lg font-bold leading-none mb-0.5">{item.icon}</span>
-                    <span className={`text-[9px] truncate max-w-[48px] ${pixelStyle === item.id ? "text-brand dark:text-white font-bold" : "text-neutral-500 dark:text-neutral-400"}`}>{item.label}</span>
-                  </button>
-                ))}
-              </div>
+              <PixelStylesPicker
+                styles={PIXEL_STYLES}
+                selectedPixel={pixelStyle}
+                isProPlan={isProPlan}
+                showMore={showMorePixels}
+                onToggleShowMore={() => setShowMorePixels(!showMorePixels)}
+                onSelectPixel={(id, isPro) => {
+                  if (!isPro || isProPlan) {
+                    applyInstantColor({ pixelStyle: id });
+                    setPixelStyle(id);
+                  } else {
+                    triggerPlanUpgrade({
+                      reason: "This pixel style is reserved for Pro & Business plans.",
+                      featureName: "Pro Pixel Patterns",
+                    });
+                  }
+                }}
+              />
             </div>
 
             {/* Angles / Eyes Style */}
             <div className="flex flex-col gap-2.5 pt-3 border-t border-neutral-200 dark:border-[#222225]">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-neutral-500 dark:text-neutral-400">
-                  QR Code Corner Eyes ({EYE_STYLES.length} shapes)
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setShowMoreEyes(!showMoreEyes)}
-                  className="btn-hover-scale text-xs font-semibold text-brand hover:underline cursor-pointer"
-                >
-                  {showMoreEyes ? "Show less ↑" : "View all shapes (" + EYE_STYLES.length + ") ↓"}
-                </button>
-              </div>
-
-              <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-7 gap-2.5">
-                {(showMoreEyes ? EYE_STYLES : EYE_STYLES.slice(0, 7)).map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => {
-                      if (!item.isPro || isProPlan) {
-                        setEyeStyle(item.id);
-                      } else {
-                        triggerPlanUpgrade({
-                          reason: `The eye style "${item.label}" is reserved for Pro & Business plans.`,
-                          featureName: "Pro Eye Shapes",
-                        });
-                      }
-                    }}
-                    className={`btn-hover-scale relative flex flex-col items-center justify-center h-14 rounded-[10px] border transition-all duration-200 cursor-pointer ${
-                      eyeStyle === item.id
-                        ? "bg-brand/10 dark:bg-brand-light border-brand text-brand dark:text-white ring-1 ring-brand font-bold"
-                        : "bg-white dark:bg-[#1a1a1e] border-neutral-200 dark:border-[#27272a] text-neutral-700 dark:text-neutral-300 hover:border-neutral-400 dark:hover:border-neutral-500 hover:bg-neutral-50 dark:hover:bg-white/5"
-                    }`}
-                  >
-                    {item.isPro && !isProPlan && (
-                      <Crown className="w-3.5 h-3.5 text-amber-400 absolute -top-1 -right-1" />
-                    )}
-                    <div className="mb-0.5">{item.svg}</div>
-                    <span className={`text-[9px] truncate max-w-[48px] ${eyeStyle === item.id ? "text-brand dark:text-white font-bold" : "text-neutral-500 dark:text-neutral-400"}`}>{item.label}</span>
-                  </button>
-                ))}
-              </div>
+              <EyeStylesPicker
+                styles={EYE_STYLES}
+                selectedEye={eyeStyle}
+                isProPlan={isProPlan}
+                showMore={showMoreEyes}
+                onToggleShowMore={() => setShowMoreEyes(!showMoreEyes)}
+                onSelectEye={(id, isPro) => {
+                  if (!isPro || isProPlan) {
+                    applyInstantColor({ eyeStyle: id });
+                    setEyeStyle(id);
+                  } else {
+                    triggerPlanUpgrade({
+                      reason: "The eye style is reserved for Pro & Business plans.",
+                      featureName: "Pro Eye Shapes",
+                    });
+                  }
+                }}
+              />
             </div>
           </div>
 
@@ -1963,23 +1961,19 @@ export function QRGenerator() {
                   Hex Value
                 </label>
                 <div className="flex items-center gap-2">
-                  <input
-                    type="color"
+                  <LiveColorControl
+                    ariaLabel="QR module color"
                     value={pixelColor}
-                    onChange={(e) => setPixelColor(e.target.value)}
-                    className="w-8 h-8 rounded-[10px] bg-transparent border-0 cursor-pointer hover:scale-105"
-                  />
-                  <Input
-                    value={pixelColor}
-                    onChange={(e) => setPixelColor(e.target.value)}
-                    className="font-mono uppercase text-xs h-10"
+                    onInstantPreview={(hex) => applyInstantColor({ pixelColor: hex })}
+                    onCommit={setPixelColor}
                   />
                   {colorMode === "gradient" && (
-                    <input
-                      type="color"
+                    <LiveColorControl
+                      ariaLabel="QR module gradient secondary color"
                       value={pixelColor2}
-                      onChange={(e) => setPixelColor2(e.target.value)}
-                      className="w-8 h-8 rounded-[10px] bg-transparent border-0 cursor-pointer hover:scale-105"
+                      showHexInput={false}
+                      onInstantPreview={(hex) => applyInstantColor({ pixelColor2: hex })}
+                      onCommit={setPixelColor2}
                     />
                   )}
                 </div>
@@ -1987,44 +1981,86 @@ export function QRGenerator() {
             </div>
 
             {/* Arrière-plan color row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
-              <div>
-                <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-400 mb-1">Background</label>
-                <select
-                  value={bgMode}
-                  onChange={(e) => setBgMode(e.target.value as "monochrome" | "transparent" | "gradient")}
-                  className="w-full h-10 rounded-[10px] bg-white dark:bg-[#1a1a1e] text-neutral-900 dark:text-white border border-neutral-200 dark:border-[#27272a] px-3 text-xs focus:outline-none focus:border-brand cursor-pointer"
-                >
-                  <option value="monochrome" className="bg-white dark:bg-[#141416] text-neutral-900 dark:text-white">Monochrome</option>
-                  <option value="transparent" className="bg-white dark:bg-[#141416] text-neutral-900 dark:text-white">Transparent</option>
-                  <option value="gradient" className="bg-white dark:bg-[#141416] text-neutral-900 dark:text-white">Gradient</option>
-                </select>
-              </div>
+            <div className="flex flex-col gap-2 pt-2 border-t border-neutral-200 dark:border-[#222225]">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-400 mb-1">
+                    Style de fond du QR code
+                  </label>
+                  <select
+                    value={bgMode}
+                    onChange={(e) => setBgMode(e.target.value as "monochrome" | "transparent" | "gradient")}
+                    className="w-full h-10 rounded-[10px] bg-white dark:bg-[#1a1a1e] text-neutral-900 dark:text-white border border-neutral-200 dark:border-[#27272a] px-3 text-xs focus:outline-none focus:border-brand cursor-pointer"
+                  >
+                    <option value="monochrome" className="bg-white dark:bg-[#141416] text-neutral-900 dark:text-white">Couleur Unie (Solide)</option>
+                    <option value="transparent" className="bg-white dark:bg-[#141416] text-neutral-900 dark:text-white">Transparent (Verre dépoli)</option>
+                    <option value="gradient" className="bg-white dark:bg-[#141416] text-neutral-900 dark:text-white">Dégradé personnalisé</option>
+                  </select>
+                </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-400 mb-1">Hex Value</label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="color"
-                    value={bgColor}
-                    onChange={(e) => setBgColor(e.target.value)}
-                    className="w-8 h-8 rounded-[10px] bg-transparent border-0 cursor-pointer hover:scale-105"
-                  />
-                  <Input
-                    value={bgColor}
-                    onChange={(e) => setBgColor(e.target.value)}
-                    className="font-mono uppercase text-xs h-10"
-                  />
-                  {bgMode === "gradient" && (
-                    <input
-                      type="color"
-                      value={bgColor2}
-                      onChange={(e) => setBgColor2(e.target.value)}
-                      className="w-8 h-8 rounded-[10px] bg-transparent border-0 cursor-pointer hover:scale-105"
-                    />
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-400 mb-1">
+                    {bgMode === "transparent" ? "Transparence" : "Couleur du fond"}
+                  </label>
+                  {bgMode === "transparent" ? (
+                    <div className="flex items-center gap-2 h-10 px-3 rounded-[10px] bg-neutral-50 dark:bg-[#1a1a1e] border border-neutral-200 dark:border-[#27272a] text-xs text-neutral-600 dark:text-neutral-400">
+                      <span className="w-4 h-4 rounded-full bg-[radial-gradient(#94a3b8_1px,transparent_1px)] [background-size:4px_4px] border border-neutral-300 dark:border-neutral-600 shrink-0" />
+                      <span className="font-medium truncate">Fond transparent (laisse passer le shader)</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <LiveColorControl
+                        ariaLabel="QR background color"
+                        value={bgColor}
+                        onInstantPreview={(hex) => applyInstantColor({ bgColor: hex })}
+                        onCommit={setBgColor}
+                      />
+                      {bgMode === "gradient" && (
+                        <LiveColorControl
+                          ariaLabel="QR background gradient secondary color"
+                          value={bgColor2}
+                          showHexInput={false}
+                          onInstantPreview={(hex) => applyInstantColor({ bgColor2: hex })}
+                          onCommit={setBgColor2}
+                        />
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
+
+              {bgMode === "monochrome" && (
+                <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                  <span className="text-[10px] font-semibold text-neutral-500 dark:text-neutral-400 mr-1">Presets fond :</span>
+                  {[
+                    { hex: "#ffffff", label: "Blanc pur" },
+                    { hex: "#0f172a", label: "Obsidienne" },
+                    { hex: "#18181b", label: "Anthracite" },
+                    { hex: "#f4f4f5", label: "Gris doux" },
+                    { hex: "#fef3c7", label: "Crème" },
+                  ].map((preset) => (
+                    <button
+                      key={preset.hex}
+                      type="button"
+                      onClick={() => {
+                        setBgColor(preset.hex);
+                        applyInstantColor({ bgColor: preset.hex });
+                      }}
+                      className={`btn-hover-scale px-2 py-0.5 rounded-[6px] text-[10px] font-semibold border transition-all cursor-pointer flex items-center gap-1 ${
+                        bgColor.toLowerCase() === preset.hex.toLowerCase()
+                          ? "bg-brand/10 border-brand text-brand dark:text-white"
+                          : "bg-neutral-50 dark:bg-[#1a1a1e] border-neutral-200 dark:border-[#27272a] text-neutral-600 dark:text-neutral-400"
+                      }`}
+                    >
+                      <span
+                        className="w-2.5 h-2.5 rounded-full border border-black/10 shrink-0"
+                        style={{ backgroundColor: preset.hex }}
+                      />
+                      <span>{preset.label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Angles Toggle */}
@@ -2040,11 +2076,13 @@ export function QRGenerator() {
                   className="w-4 h-4 accent-[var(--brand-primary)] cursor-pointer"
                 />
                 {useSeparateEyeColor && (
-                  <input
-                    type="color"
+                  <LiveColorControl
+                    ariaLabel="QR eye corner color"
                     value={eyeColor}
-                    onChange={(e) => setEyeColor(e.target.value)}
-                    className="w-6 h-6 rounded-[10px] bg-transparent border-0 cursor-pointer hover:scale-105"
+                    showHexInput={false}
+                    swatchClassName="w-6 h-6 rounded-[10px] bg-transparent border-0 cursor-pointer hover:scale-105 shrink-0"
+                    onInstantPreview={(hex) => applyInstantColor({ eyeColor: hex })}
+                    onCommit={setEyeColor}
                   />
                 )}
               </div>
@@ -2060,13 +2098,6 @@ export function QRGenerator() {
                   {LOGO_LIST.length} HD vector logos ready to use
                 </span>
               </div>
-              <button
-                type="button"
-                onClick={() => setShowMoreLogos(!showMoreLogos)}
-                className="btn-hover-scale text-xs font-semibold text-brand hover:underline cursor-pointer"
-              >
-                {showMoreLogos ? "Show less ↑" : "View all logos (" + LOGO_LIST.length + ") ↓"}
-              </button>
             </div>
 
             <input
@@ -2077,63 +2108,49 @@ export function QRGenerator() {
               onChange={handleLogoUpload}
             />
 
-            <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2.5">
-              {(showMoreLogos ? LOGO_LIST : LOGO_LIST.slice(0, 8)).map((logoItem) => {
-                const isSelected = selectedLogo === logoItem.id;
-                return (
-                  <button
-                    key={logoItem.id}
-                    type="button"
-                    onClick={() => {
-                      if (logoItem.id === "custom") {
-                        if (!isProPlan) {
-                          triggerPlanUpgrade({
-                            reason: "Uploading your own brand logo is reserved for the Pro plan.",
-                            featureName: "Custom Logo Upload",
-                          });
-                          return;
-                        }
-                        fileInputRef.current?.click();
-                        return;
-                      }
+            <BrandLogosPicker
+              logos={LOGO_LIST}
+              selectedLogo={selectedLogo}
+              isProPlan={isProPlan}
+              showMoreLogos={showMoreLogos}
+              onToggleShowMore={() => setShowMoreLogos(!showMoreLogos)}
+              onSelectLogo={(id, label, isPro) => {
+                if (id === "custom") {
+                  if (!isProPlan) {
+                    triggerPlanUpgrade({
+                      reason: "Uploading your own brand logo is reserved for the Pro plan.",
+                      featureName: "Custom Logo Upload",
+                    });
+                    return;
+                  }
+                  fileInputRef.current?.click();
+                  return;
+                }
 
-                      if (logoItem.id === "text") {
-                        if (!isProPlan) {
-                          triggerPlanUpgrade({
-                            reason: "Inserting custom center text requires the Pro plan.",
-                            featureName: "Custom Center Text",
-                          });
-                          return;
-                        }
-                        setSelectedLogo("text");
-                        return;
-                      }
+                if (id === "text") {
+                  if (!isProPlan) {
+                    triggerPlanUpgrade({
+                      reason: "Inserting custom center text requires the Pro plan.",
+                      featureName: "Custom Center Text",
+                    });
+                    return;
+                  }
+                  applyInstantColor({ selectedLogo: "text" });
+                  setSelectedLogo("text");
+                  return;
+                }
 
-                      if (!logoItem.isPro || isProPlan) {
-                        setSelectedLogo(logoItem.id);
-                      } else {
-                        triggerPlanUpgrade({
-                          reason: `The official logo "${logoItem.label}" is reserved for Pro & Business plans.`,
-                          featureName: `Logo ${logoItem.label}`,
-                        });
-                      }
-                    }}
-                    title={logoItem.label}
-                    className={`btn-hover-scale relative flex flex-col items-center justify-center h-14 rounded-[10px] border transition-all duration-200 cursor-pointer ${
-                      isSelected
-                        ? "bg-brand/10 dark:bg-brand-light border-brand text-brand dark:text-white ring-1 ring-brand font-bold"
-                        : "bg-white dark:bg-[#1a1a1e] border-neutral-200 dark:border-[#27272a] text-neutral-700 dark:text-neutral-300 hover:border-neutral-400 dark:hover:border-neutral-500 hover:bg-neutral-50 dark:hover:bg-white/5"
-                    }`}
-                  >
-                    {logoItem.isPro && !isProPlan && (
-                      <Crown className="w-3.5 h-3.5 text-amber-400 absolute -top-1 -right-1" />
-                    )}
-                    <div className="mb-0.5 flex items-center justify-center">{logoItem.iconNode}</div>
-                    <span className={`text-[9px] truncate max-w-[48px] ${isSelected ? "text-brand dark:text-white font-bold" : "text-neutral-500 dark:text-neutral-400"}`}>{logoItem.label}</span>
-                  </button>
-                );
-              })}
-            </div>
+                if (!isPro || isProPlan) {
+                  applyInstantColor({ selectedLogo: id });
+                  setSelectedLogo(id);
+                } else {
+                  triggerPlanUpgrade({
+                    reason: `The official logo "${label}" is reserved for Pro & Business plans.`,
+                    featureName: `Logo ${label}`,
+                  });
+                }
+              }}
+            />
 
             {selectedLogo === "text" && isProPlan && (
               <div className="pt-2 flex flex-col gap-2 animate-in fade-in">
@@ -2143,7 +2160,10 @@ export function QRGenerator() {
                 <Input
                   maxLength={6}
                   value={centerText}
-                  onChange={(e) => setCenterText(e.target.value)}
+                  onChange={(e) => {
+                    applyInstantColor({ centerText: e.target.value });
+                    setCenterText(e.target.value);
+                  }}
                   placeholder="SCAN"
                 />
                 <span className="text-[10px] text-neutral-500 dark:text-neutral-400">
@@ -2169,97 +2189,126 @@ export function QRGenerator() {
                 </span>
               </div>
 
-              {/* Frame Filter Tabs */}
-              <div className="flex items-center gap-1.5 bg-neutral-100 dark:bg-[#1a1a1e] p-1 rounded-[8px] border border-neutral-200 dark:border-[#27272a] w-fit">
-                {[
-                  { id: "all" as const, label: `All (${FRAME_LIST.length})` },
-                  { id: "static" as const, label: `Static (${FRAME_LIST.filter((f) => !f.isAnimated).length})` },
-                  { id: "animated" as const, label: `Animated (${FRAME_LIST.filter((f) => f.isAnimated).length})` },
-                ].map((tab) => (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => {
-                      setFrameFilter(tab.id);
-                      setShowMoreFrames(true);
-                    }}
-                    className={`btn-hover-scale px-2.5 py-1 rounded-[6px] text-[11px] font-semibold transition-all cursor-pointer ${
-                      frameFilter === tab.id
-                        ? "bg-brand text-white shadow-xs font-bold"
-                        : "text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white"
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
             </div>
 
-            {/* Frames Grid */}
-            {(() => {
-              const filteredList = FRAME_LIST.filter((f) => {
-                if (frameFilter === "static") return !f.isAnimated;
-                if (frameFilter === "animated") return !!f.isAnimated;
-                return true;
-              });
-
-              const displayedList = showMoreFrames ? filteredList : filteredList.slice(0, 7);
-
-              return (
-                <div className="flex flex-col gap-3">
-                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-2.5">
-                    {displayedList.map((frameItem) => {
-                      const isSelected = selectedFrame === frameItem.id;
-                      return (
-                        <button
-                          key={frameItem.id}
-                          type="button"
-                          onClick={() => {
-                            if (!frameItem.isPro || isProPlan) {
-                              setSelectedFrame(frameItem.id);
-                            } else {
-                              triggerPlanUpgrade({
-                                reason: `The ${frameItem.isAnimated ? "animated" : ""} frame "${frameItem.label}" is reserved for Pro & Business plans.`,
-                                featureName: `Frame ${frameItem.label}`,
-                              });
-                            }
-                          }}
-                          className={`btn-hover-scale relative flex flex-col items-center justify-center h-16 rounded-[10px] border transition-all duration-200 cursor-pointer ${
-                            isSelected
-                              ? "bg-brand/10 dark:bg-brand-light border-brand text-brand dark:text-white ring-1 ring-brand font-bold"
-                              : "bg-white dark:bg-[#1a1a1e] border-neutral-200 dark:border-[#27272a] text-neutral-700 dark:text-neutral-300 hover:border-neutral-400 dark:hover:border-neutral-500 hover:bg-neutral-50 dark:hover:bg-white/5"
-                          }`}
-                        >
-                          {frameItem.isPro && !isProPlan && (
-                            <Crown className="w-3.5 h-3.5 text-amber-400 absolute -top-1 -right-1" />
-                          )}
-                          {frameItem.isAnimated && (
-                            <span className="absolute top-1 left-1 w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
-                          )}
-                          <div className="mb-1 flex items-center justify-center">{frameItem.previewIcon}</div>
-                          <span className={`text-[9px] truncate max-w-[54px] text-center font-semibold ${isSelected ? "text-brand dark:text-white font-bold" : "text-neutral-600 dark:text-neutral-400"}`}>
-                            {frameItem.label}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {filteredList.length > 7 && (
-                    <button
-                      type="button"
-                      onClick={() => setShowMoreFrames(!showMoreFrames)}
-                      className="btn-hover-scale text-xs font-semibold text-brand hover:underline cursor-pointer self-end"
-                    >
-                      {showMoreFrames ? "Show less ↑" : `View all (${filteredList.length}) ↓`}
-                    </button>
-                  )}
-                </div>
-              );
-            })()}
+            <FramesPicker
+              frames={FRAME_LIST}
+              selectedFrame={selectedFrame}
+              frameFilter={frameFilter}
+              animatedCategoryFilter={animatedCategoryFilter}
+              showMoreFrames={showMoreFrames}
+              isProPlan={isProPlan}
+              onSelectFrame={(id, isPro) => {
+                if (!isPro || isProPlan) {
+                  applyInstantColor({ selectedFrame: id });
+                  setSelectedFrame(id);
+                } else {
+                  triggerPlanUpgrade({
+                    reason: `This frame is reserved for Pro & Business plans.`,
+                    featureName: "Pro Frame",
+                  });
+                }
+              }}
+              onSetFrameFilter={(tab) => {
+                setFrameFilter(tab);
+                if (tab !== "animated") setAnimatedCategoryFilter("all");
+                setShowMoreFrames(true);
+              }}
+              onSetAnimatedCategoryFilter={setAnimatedCategoryFilter}
+              onToggleShowMore={() => setShowMoreFrames(!showMoreFrames)}
+            />
 
             {selectedFrame !== "none" && (
               <div className="flex flex-col gap-4 pt-3 border-t border-neutral-200 dark:border-[#222225] animate-in fade-in">
+                {isAnimatedFrame(selectedFrame) && (() => {
+                  const activeTheme = getAnimatedTheme(selectedFrame);
+                  return (
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3 rounded-[10px] bg-neutral-50 dark:bg-[#1a1a1e] border border-neutral-200 dark:border-[#27272a]">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-8 h-8 rounded-[8px] flex items-center justify-center border border-neutral-300 dark:border-[#2a2a2e] bg-white dark:bg-[#141416] text-neutral-800 dark:text-neutral-200 shrink-0">
+                          {getAnimatedMotifIcon(activeTheme.motif, "w-4 h-4 text-current")}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-bold text-zinc-900 dark:text-white truncate">
+                              {activeTheme.label}
+                            </span>
+                            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                              WebGL Studio
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-neutral-500 dark:text-neutral-400 truncate">
+                            {activeTheme.tagline}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2 shrink-0">
+                        <div className="flex items-center gap-1 bg-white dark:bg-[#141416] p-1 rounded-[10px] border border-neutral-200 dark:border-[#27272a]">
+                          <button
+                            type="button"
+                            onClick={() => setBgMode("monochrome")}
+                            className={`px-2 py-1 rounded-[10px] text-[10px] font-semibold transition-all cursor-pointer ${
+                              bgMode === "monochrome"
+                                ? "bg-brand text-white"
+                                : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
+                            }`}
+                          >
+                            Solid Card
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setBgMode("transparent")}
+                            className={`px-2 py-1 rounded-[10px] text-[10px] font-semibold transition-all cursor-pointer ${
+                              bgMode === "transparent"
+                                ? "bg-brand text-white"
+                                : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
+                            }`}
+                          >
+                            Transparent Card
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setBgMode("gradient")}
+                            className={`px-2 py-1 rounded-[10px] text-[10px] font-semibold transition-all cursor-pointer ${
+                              bgMode === "gradient"
+                                ? "bg-brand text-white"
+                                : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
+                            }`}
+                          >
+                            Gradient Card
+                          </button>
+                        </div>
+
+                        <div className="flex items-center gap-1 bg-white dark:bg-[#141416] p-1 rounded-[10px] border border-neutral-200 dark:border-[#27272a]">
+                          <button
+                            type="button"
+                            onClick={() => setTintWithFrameColor(false)}
+                            className={`px-2 py-1 rounded-[10px] text-[10px] font-semibold transition-all cursor-pointer ${
+                              !tintWithFrameColor
+                                ? "bg-brand text-white"
+                                : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
+                            }`}
+                          >
+                            Theme Palette
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setTintWithFrameColor(true)}
+                            className={`px-2 py-1 rounded-[10px] text-[10px] font-semibold transition-all cursor-pointer ${
+                              tintWithFrameColor
+                                ? "bg-brand text-white"
+                                : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
+                            }`}
+                          >
+                            Custom Tint
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
@@ -2267,26 +2316,38 @@ export function QRGenerator() {
                     </label>
                     <Input
                       value={frameText}
-                      onChange={(e) => setFrameText(e.target.value)}
+                      onChange={(e) => {
+                        applyInstantColor({ frameText: e.target.value });
+                        setFrameText(e.target.value);
+                      }}
                       placeholder="SCAN ME"
                     />
                   </div>
 
                   <div>
                     <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
-                      Frame color
+                      {isAnimatedFrame(selectedFrame) ? "Custom tint color" : "Frame color"}
                     </label>
                     <div className="flex items-center gap-2">
-                      <input
-                        type="color"
+                      <LiveColorControl
+                        ariaLabel="Frame or shader tint color"
                         value={frameColor}
-                        onChange={(e) => setFrameColor(e.target.value)}
-                        className="w-8 h-8 rounded-[10px] bg-transparent border-0 cursor-pointer hover:scale-105"
-                      />
-                      <Input
-                        value={frameColor}
-                        onChange={(e) => setFrameColor(e.target.value)}
-                        className="font-mono uppercase text-xs h-10"
+                        onInstantPreview={(hex) =>
+                          applyInstantColor({
+                            frameColor: hex,
+                            tintWithFrameColor: isAnimatedFrame(
+                              renderConfigRef.current.selectedFrame
+                            )
+                              ? true
+                              : renderConfigRef.current.tintWithFrameColor,
+                          })
+                        }
+                        onCommit={(hex) => {
+                          setFrameColor(hex);
+                          if (isAnimatedFrame(selectedFrame)) {
+                            setTintWithFrameColor(true);
+                          }
+                        }}
                       />
                     </div>
                   </div>
@@ -2324,185 +2385,32 @@ export function QRGenerator() {
                     </button>
                   </div>
 
-                  {/* Search Bar & Category Filter Tabs */}
-                  <div className="flex flex-col gap-2.5">
-                    <div className="relative">
-                      <Search className="w-3.5 h-3.5 text-neutral-400 dark:text-neutral-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                      <Input
-                        value={fontSearchQuery}
-                        onChange={(e) => setFontSearchQuery(e.target.value)}
-                        placeholder="Search a font (e.g. Inter, Playfair, Mono, Orbitron, Bebas)..."
-                        className="pl-8.5 text-xs h-9 bg-white dark:bg-[#141416] border-neutral-200 dark:border-[#27272a] text-neutral-900 dark:text-white placeholder:text-neutral-400 dark:placeholder:text-neutral-500"
-                      />
-                      {fontSearchQuery && (
-                        <button
-                          type="button"
-                          onClick={() => setFontSearchQuery("")}
-                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-700 dark:hover:text-white text-xs cursor-pointer"
-                        >
-                          ✕
-                        </button>
-                      )}
-                    </div>
+                  {/* 1. Visual Font Card Browser (Memoized 80 Curated Google Fonts) */}
+                  <FontsPicker
+                    fonts={FONT_FAMILIES}
+                    fontFamily={fontFamily}
+                    frameText={frameText}
+                    fontCategoryFilter={fontCategoryFilter}
+                    fontSearchQuery={fontSearchQuery}
+                    showAllFonts={showAllFonts}
+                    onSelectFont={(id) => {
+                      applyInstantColor({ fontFamily: id });
+                      setFontFamily(id);
+                    }}
+                    onSetCategoryFilter={setFontCategoryFilter}
+                    onSetSearchQuery={setFontSearchQuery}
+                    onToggleShowAll={() => setShowAllFonts(!showAllFonts)}
+                  />
 
-                    {/* Category Filter Pills */}
-                    <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-                      {[
-                        { id: "all", label: `All (${FONT_FAMILIES.length})` },
-                        { id: "Sans-Serif", label: `Sans-Serif (${FONT_FAMILIES.filter((f) => f.category === "Sans-Serif").length})` },
-                        { id: "Serif", label: `Serif (${FONT_FAMILIES.filter((f) => f.category === "Serif").length})` },
-                        { id: "Display", label: `Display (${FONT_FAMILIES.filter((f) => f.category === "Display").length})` },
-                        { id: "Monospace", label: `Code (${FONT_FAMILIES.filter((f) => f.category === "Monospace").length})` },
-                        { id: "Cursive", label: `Handwritten (${FONT_FAMILIES.filter((f) => f.category === "Cursive").length})` },
-                        { id: "Futuristic", label: `Futuristic (${FONT_FAMILIES.filter((f) => f.category === "Futuristic").length})` },
-                      ].map((cat) => (
-                        <button
-                          key={cat.id}
-                          type="button"
-                          onClick={() => setFontCategoryFilter(cat.id)}
-                          className={`btn-hover-scale px-2.5 py-1 rounded-[6px] text-[10px] font-semibold shrink-0 transition-all cursor-pointer border ${
-                            fontCategoryFilter === cat.id
-                              ? "bg-brand text-white border-brand shadow-xs font-bold"
-                              : "bg-white dark:bg-[#141416] border-neutral-200 dark:border-[#27272a] text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-white/5"
-                          }`}
-                        >
-                          {cat.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Visual Font Card Browser (Google Fonts Interface) */}
-                  {(() => {
-                    const filteredFonts = FONT_FAMILIES.filter((f) => {
-                      const matchesCat = fontCategoryFilter === "all" || f.category === fontCategoryFilter;
-                      const matchesSearch =
-                        !fontSearchQuery ||
-                        f.name.toLowerCase().includes(fontSearchQuery.toLowerCase()) ||
-                        f.label.toLowerCase().includes(fontSearchQuery.toLowerCase()) ||
-                        f.category.toLowerCase().includes(fontSearchQuery.toLowerCase());
-                      return matchesCat && matchesSearch;
-                    });
-
-                    const displayedFonts = showAllFonts ? filteredFonts : filteredFonts.slice(0, 8);
-
-                    return (
-                      <div className="flex flex-col gap-2">
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                          {displayedFonts.map((f) => {
-                            const isSelected = fontFamily === f.id;
-                            return (
-                              <button
-                                key={f.id}
-                                type="button"
-                                onClick={() => setFontFamily(f.id)}
-                                className={`btn-hover-scale relative flex flex-col p-2.5 rounded-[10px] border text-left transition-all cursor-pointer ${
-                                  isSelected
-                                    ? "bg-brand/10 dark:bg-brand-light border-brand text-brand dark:text-white ring-1 ring-brand shadow-xs"
-                                    : "bg-white dark:bg-[#141416] border-neutral-200 dark:border-[#27272a] text-neutral-700 dark:text-neutral-300 hover:border-neutral-400 dark:hover:border-neutral-500 hover:bg-neutral-50 dark:hover:bg-white/5"
-                                }`}
-                              >
-                                <div className="flex items-center justify-between mb-1">
-                                  <span className={`text-[11px] font-bold truncate max-w-[90px] ${
-                                    isSelected
-                                      ? "text-brand dark:text-white"
-                                      : "text-zinc-900 dark:text-white"
-                                  }`}>
-                                    {f.label}
-                                  </span>
-                                  <span className={`text-[8px] font-semibold px-1 py-0.5 rounded border ${
-                                    isSelected
-                                      ? "bg-brand/15 dark:bg-white/10 text-brand dark:text-neutral-300 border-brand/20 dark:border-white/10"
-                                      : "bg-neutral-100 dark:bg-white/5 text-neutral-600 dark:text-neutral-400 border-neutral-200 dark:border-white/5"
-                                  }`}>
-                                    {f.category}
-                                  </span>
-                                </div>
-                                <div
-                                  className={`text-xs truncate mt-0.5 font-medium ${
-                                    isSelected
-                                      ? "text-zinc-900 dark:text-white font-semibold"
-                                      : "text-zinc-800 dark:text-neutral-200"
-                                  }`}
-                                  style={{ fontFamily: f.fontCss }}
-                                >
-                                  {frameText || f.preview}
-                                </div>
-                              </button>
-                            );
-                          })}
-                        </div>
-
-                        {filteredFonts.length > 8 && (
-                          <button
-                            type="button"
-                            onClick={() => setShowAllFonts(!showAllFonts)}
-                            className="btn-hover-scale text-xs font-semibold text-brand hover:underline cursor-pointer self-end mt-1"
-                          >
-                            {showAllFonts
-                              ? "Show less ↑"
-                              : `View all fonts (${filteredFonts.length}) ↓`}
-                          </button>
-                        )}
-
-                        {filteredFonts.length === 0 && (
-                          <div className="text-center py-4 text-xs text-neutral-500 dark:text-neutral-400">
-                            No fonts match &quot;{fontSearchQuery}&quot;.
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })()}
-
-                  {/* 2. Font Size Controls (Slider & Presets) */}
-                  <div className="pt-3 border-t border-neutral-200 dark:border-[#27272a] flex flex-col gap-2.5">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-bold text-zinc-900 dark:text-white">Font Size</span>
-                        <span className="text-[10px] text-neutral-500 dark:text-neutral-400">(8px to 24px)</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-mono font-bold text-brand bg-brand-subtle px-2 py-0.5 rounded border border-brand-subtle">
-                          {fontSize} px
-                        </span>
-                      </div>
-                    </div>
-
-                    <input
-                      type="range"
-                      min={8}
-                      max={24}
-                      step={1}
+                  {/* 2. Font Size Controls (Ultra-Smooth 120 FPS Direct Canvas Preview) */}
+                  <div className="pt-3 border-t border-neutral-200 dark:border-[#27272a]">
+                    <LiveFontSizeControl
                       value={fontSize}
-                      onChange={(e) => setFontSize(Number(e.target.value))}
-                      className="w-full h-2 bg-neutral-200 dark:bg-[#141416] rounded-lg appearance-none cursor-pointer accent-[var(--brand-primary)] border border-neutral-300 dark:border-[#27272a]"
+                      min={8}
+                      max={22}
+                      onInstantPreview={(newSize) => applyInstantColor({ fontSize: newSize })}
+                      onCommit={setFontSize}
                     />
-
-                    {/* Quick Presets for Font Size */}
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-[10px] text-neutral-500 dark:text-neutral-400 mr-1">Presets:</span>
-                      {[
-                        { sz: 8, label: "Mini 8px" },
-                        { sz: 10, label: "Compact 10px" },
-                        { sz: 12, label: "Standard 12px" },
-                        { sz: 15, label: "Large 15px" },
-                        { sz: 18, label: "XL 18px" },
-                        { sz: 22, label: "XXL 22px" },
-                      ].map((preset) => (
-                        <button
-                          key={preset.sz}
-                          type="button"
-                          onClick={() => setFontSize(preset.sz)}
-                          className={`btn-hover-scale px-2.5 py-1 rounded-[6px] text-[10px] font-semibold transition-all cursor-pointer border ${
-                            fontSize === preset.sz
-                              ? "bg-brand text-white border-brand font-bold shadow-xs"
-                              : "bg-white dark:bg-[#141416] border-neutral-200 dark:border-[#27272a] text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-white/5"
-                          }`}
-                        >
-                          {preset.label}
-                        </button>
-                      ))}
-                    </div>
                   </div>
 
                   {/* 3. Weight / Style & 4. Casing (Uppercase / Raw / Lowercase) */}
@@ -2522,7 +2430,10 @@ export function QRGenerator() {
                           <button
                             key={w.id}
                             type="button"
-                            onClick={() => setFontWeight(w.id)}
+                            onClick={() => {
+                              applyInstantColor({ fontWeight: w.id });
+                              setFontWeight(w.id);
+                            }}
                             className={`btn-hover-scale py-1.5 px-2 rounded-[6px] text-[10px] font-semibold text-center border transition-all cursor-pointer ${
                               fontWeight === w.id
                                 ? "bg-brand/10 dark:bg-brand-light border-brand text-brand dark:text-white font-bold shadow-xs"
@@ -2549,7 +2460,10 @@ export function QRGenerator() {
                           <button
                             key={c.id}
                             type="button"
-                            onClick={() => setTextTransform(c.id)}
+                            onClick={() => {
+                              applyInstantColor({ textTransform: c.id });
+                              setTextTransform(c.id);
+                            }}
                             className={`btn-hover-scale py-1.5 px-2 rounded-[6px] text-[10px] font-semibold text-center border transition-all cursor-pointer ${
                               textTransform === c.id
                                 ? "bg-brand/10 dark:bg-brand-light border-brand text-brand dark:text-white font-bold shadow-xs"
@@ -2640,7 +2554,7 @@ export function QRGenerator() {
               <div className="flex items-center gap-2">
                 <div className="flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse" />
-                  <span>Animated 60 FPS</span>
+                  <span>Live WebGL</span>
                 </div>
                 <button
                   type="button"
@@ -2655,11 +2569,21 @@ export function QRGenerator() {
             )}
           </div>
 
-          {/* Big White Card for QR Code Container */}
-          <div className="rounded-[10px] bg-white dark:bg-[#141416] border border-neutral-200 dark:border-[#222225] p-6 flex flex-col items-center justify-center shadow-xs dark:shadow-2xl overflow-hidden">
-            <div className="p-4 rounded-[10px] bg-white flex items-center justify-center shadow-xl">
-              <canvas ref={canvasRef} className="max-w-full h-auto object-contain" />
-            </div>
+          {/* QR Live Preview Stage (no chunky white wrapper box on animated shaders or transparent static QRs) */}
+          <div className="rounded-[10px] bg-neutral-100 dark:bg-[#141416] border border-neutral-200 dark:border-[#222225] p-6 flex flex-col items-center justify-center shadow-xs dark:shadow-2xl overflow-hidden">
+            {isAnimatedFrame(selectedFrame) ? (
+              <div className="flex items-center justify-center">
+                <canvas ref={canvasRef} className="max-w-full h-auto object-contain rounded-[16px] shadow-2xl" />
+              </div>
+            ) : bgMode === "transparent" ? (
+              <div className="p-4 rounded-[10px] bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] dark:bg-[radial-gradient(#27272a_1px,transparent_1px)] [background-size:12px_12px] border border-neutral-200/70 dark:border-[#27272a] flex items-center justify-center">
+                <canvas ref={canvasRef} className="max-w-full h-auto object-contain" />
+              </div>
+            ) : (
+              <div className="p-4 rounded-[10px] bg-white flex items-center justify-center shadow-xl">
+                <canvas ref={canvasRef} className="max-w-full h-auto object-contain" />
+              </div>
+            )}
           </div>
 
           {/* Save Customization CTA Button */}

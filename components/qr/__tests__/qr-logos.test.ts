@@ -43,13 +43,15 @@ function createLogoTestMock2dContext(): CanvasRenderingContext2D {
 describe("QR Unified Brand Logos System", () => {
   const brandIds = Object.keys(BRAND_LOGOS) as BrandLogoId[];
 
-  test("registers all 114 brand/icon logos symmetrically across vector specs and UI icons", () => {
-    expect(brandIds).toHaveLength(114);
+  test("registers all 96 official brand logos symmetrically across vector specs and UI icons", () => {
+    expect(brandIds).toHaveLength(96);
     expect(Object.keys(BrandIcons).sort()).toEqual([...brandIds].sort());
 
     for (const id of brandIds) {
       const spec = BRAND_LOGOS[id];
-      expect(spec.layers.length).toBeGreaterThan(0);
+      expect(spec.body.length).toBeGreaterThan(0);
+      expect(spec.viewBox).toBeTruthy();
+      expect(spec.source).toBeTruthy();
       expect(BrandIcons[id]).toBeTruthy();
     }
   });
