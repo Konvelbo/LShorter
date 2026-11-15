@@ -42,7 +42,7 @@ export async function GET(req: Request) {
     if (authHeader.startsWith("Bearer ")) {
       const rawKey = authHeader.slice(7).trim();
       if (rawKey === FRONTEND_SECRET) {
-        authenticatedUserId = xUserId || "usr_admin";
+        authenticatedUserId = xUserId || "usr_system";
         authenticatedEmail = xUserEmail || null;
       } else {
         return NextResponse.json(
@@ -56,7 +56,7 @@ export async function GET(req: Request) {
         );
       }
     } else if (frontendSecret === FRONTEND_SECRET) {
-      authenticatedUserId = xUserId || "usr_admin";
+      authenticatedUserId = xUserId || "usr_system";
       authenticatedEmail = xUserEmail || null;
     }
 

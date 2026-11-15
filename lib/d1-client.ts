@@ -58,14 +58,14 @@ export async function executeD1Query<T = any>(sql: string, params: any[] = []): 
 export async function createD1ApiKey(opts: {
   userId: string;
   name: string;
-  scope?: string;
+  scope?: "read" | "read_write";
   rateLimit?: number;
 }): Promise<{
   id: string;
   key: string;
   raw_key: string;
   prefix: string;
-  scope: string;
+  scope: "read" | "read_write";
   name: string;
   rate_limit: number;
   created_at: string;
@@ -75,7 +75,7 @@ export async function createD1ApiKey(opts: {
   const keyHash = crypto.createHash("sha256").update(plainKey).digest("hex");
   const keyId = `key_${Math.random().toString(36).substring(2, 10)}`;
   const keyPrefix = `${plainKey.slice(0, 13)}...${plainKey.slice(-4)}`;
-  const scope = opts.scope === "read" ? "read" : "read_write";
+  const scope: "read" | "read_write" = opts.scope === "read" ? "read" : "read_write";
   const rateLimit = opts.rateLimit ?? 600;
   const now = new Date().toISOString();
 

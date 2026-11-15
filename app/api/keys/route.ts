@@ -99,7 +99,13 @@ export async function GET(req: Request) {
       }
     }
 
-    return NextResponse.json({ success: true, data: cfList });
+    // Sanitize all keys so that legacy records or unknown scopes are strictly mapped to "read" or "read_write"
+    const sanitizedList = cfList.map((k: any) => ({
+      ...k,
+      scope: k.scope === "read" ? "read" : "read_write",
+    }));
+
+    return NextResponse.json({ success: true, data: sanitizedList });
   } catch (error) {
     console.error("[API Keys GET] Error retrieving keys from Cloudflare:", error);
     return NextResponse.json({ success: true, data: [] });

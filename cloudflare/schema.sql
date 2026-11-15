@@ -180,4 +180,23 @@ CREATE INDEX IF NOT EXISTS idx_target_alerts_user_id ON target_alerts(user_id);
 CREATE INDEX IF NOT EXISTS idx_target_alerts_link_id ON target_alerts(link_id);
 CREATE INDEX IF NOT EXISTS idx_target_alerts_status ON target_alerts(status);
 
+-- 8. API Keys Table (Scoped Developer Credentials — UI-Only Deletion Enforcement)
+CREATE TABLE IF NOT EXISTS api_keys (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  key_prefix TEXT NOT NULL,
+  key_hash TEXT NOT NULL,
+  raw_key TEXT,
+  scope TEXT NOT NULL DEFAULT 'read_write' CHECK (scope IN ('read', 'read_write')),
+  rate_limit INTEGER DEFAULT 600,
+  last_used_at TEXT,
+  created_at TEXT DEFAULT (datetime('now')),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_api_keys_user_id ON api_keys(user_id);
+CREATE INDEX IF NOT EXISTS idx_api_keys_hash ON api_keys(key_hash);
+
+
 

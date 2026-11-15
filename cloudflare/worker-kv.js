@@ -3080,7 +3080,11 @@ export default {
             try { keysList = JSON.parse(cached); } catch {}
           }
         }
-        return jsonResponse({ success: true, data: keysList });
+        const sanitized = (keysList || []).map(k => ({
+          ...k,
+          scope: k.scope === 'read' ? 'read' : 'read_write'
+        }));
+        return jsonResponse({ success: true, data: sanitized });
       }
 
       if (method === 'POST') {

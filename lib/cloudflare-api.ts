@@ -867,7 +867,7 @@ export async function cfGetApiKeys(userId: string, userEmail?: string) {
 export async function cfCreateApiKey(data: {
   userId: string;
   name: string;
-  scope?: string;
+  scope?: 'read' | 'read_write';
   userEmail?: string;
   userName?: string;
   userFullName?: string;

@@ -103,7 +103,7 @@ export class LShorterClient {
     return [];
   }
 
-  static createApiKey(name: string, scope = "read_write"): any {
+  static createApiKey(name: string, scope: 'read' | 'read_write' = "read_write"): any {
     return { id: `key_${Date.now()}`, name, scope };
   }
 

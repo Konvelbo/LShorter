@@ -12,7 +12,7 @@ interface ApiKeyCreatedModalProps {
     name: string;
     rawKey?: string;
     prefix?: string;
-    scope?: string;
+    scope?: 'read' | 'read_write';
     rateLimit?: string;
   } | null;
 }
@@ -36,7 +36,7 @@ export function ApiKeyCreatedModal({
     setTimeout(() => setHasCopied(false), 2500);
   };
 
-  const getScopeLabel = (scope?: string) => {
+  const getScopeLabel = (scope?: "read" | "read_write") => {
     if (scope === "read") return "Read Only";
     return "Read & Write";
   };
