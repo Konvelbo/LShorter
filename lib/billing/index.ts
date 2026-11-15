@@ -13,18 +13,14 @@ export * from "./pdf-invoice";
 export * from "./cancel-replaced-subscription";
 
 export function getBillingProvider(): BillingProvider {
-  const preferred = (process.env.BILLING_PROVIDER || "").toLowerCase().trim();
-
-  // 1. Explicit preference via BILLING_PROVIDER="dodo"
-  if (preferred === "dodo") {
-    return dodoBillingProvider;
+  // Only use Mock provider if explicitly forced in non-production local development
+  if (
+    process.env.BILLING_PROVIDER === "mock" &&
+    process.env.NODE_ENV !== "production"
+  ) {
+    return mockBillingProvider;
   }
 
-  // 2. Auto-detect Dodo Payments if API key is provided
-  if (process.env.DODO_PAYMENTS_API_KEY) {
-    return dodoBillingProvider;
-  }
-
-  // 3. Defaults to MockBillingProvider for offline / local sandbox simulation
-  return mockBillingProvider;
+  // LShorter officially runs on Dodo Payments
+  return dodoBillingProvider;
 }

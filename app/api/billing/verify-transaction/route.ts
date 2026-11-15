@@ -197,23 +197,26 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Fallback: check Convex in case webhook already processed the upgrade
+    // Fallback: check Convex only if webhook has already processed and confirmed the upgrade
     const convexUser = sessionUserId
       ? await convex
           .query(api.users.getCurrentUser, { userId: sessionUserId })
           .catch(() => null)
       : null;
-    const resolvedPlan = String(
-      convexUser?.plan || requestedPlan || "PRO"
-    ).toUpperCase();
-    return NextResponse.json({
-      success: true,
-      provider: "dodo",
-      plan: ["PRO", "BUSINESS", "ENTERPRISE"].includes(resolvedPlan)
-        ? resolvedPlan
-        : "PRO",
-      status: "completed",
-    });
+    const dbPlan = String(convexUser?.plan || "FREE").toUpperCase();
+    if (dbPlan === "PRO" || dbPlan === "BUSINESS" || dbPlan === "ENTERPRISE") {
+      return NextResponse.json({
+        success: true,
+        provider: "dodo",
+        plan: dbPlan,
+        status: "active",
+      });
+    }
+
+    return NextResponse.json(
+      { success: false, error: "Aucune transaction confirmée trouvée sur Dodo Payments." },
+      { status: 404 }
+    );
   } catch (error: any) {
     console.error("[Verify Transaction Error]:", error);
     return NextResponse.json(

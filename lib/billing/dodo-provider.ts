@@ -16,22 +16,16 @@ export class DodoBillingProvider implements BillingProvider {
     const client = getDodoPaymentsClient();
     const productId = getDodoProductId(params.planId, params.cycle);
 
-    // If Dodo Payments is not configured with an API key, fallback gracefully for local sandbox/testing
-    if (!client || !productId) {
-      console.warn(
-        `[DodoBillingProvider] Dodo Payments SDK or Product ID not configured. Falling back to local redirect.`
+    if (!client) {
+      throw new Error(
+        "Clé d'API Dodo Payments non configurée (DODO_PAYMENTS_API_KEY). Veuillez renseigner votre clé API sur votre hébergeur (Vercel/Cloudflare)."
       );
-      const sessionId = `dodo_dev_${Date.now()}`;
-      const redirectUrl = new URL(params.successUrl, "http://localhost:3000");
-      redirectUrl.searchParams.set("session_id", sessionId);
-      redirectUrl.searchParams.set("plan", params.planId);
-      redirectUrl.searchParams.set("cycle", params.cycle);
-      redirectUrl.searchParams.set("orgId", params.orgId);
-      return {
-        checkoutUrl: redirectUrl.toString(),
-        sessionId,
-        transactionId: sessionId,
-      };
+    }
+
+    if (!productId) {
+      throw new Error(
+        `Identifiant de produit Dodo Payments introuvable pour le plan ${params.planId} (${params.cycle}).`
+      );
     }
 
     try {

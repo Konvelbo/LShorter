@@ -609,20 +609,17 @@ function SettingsPageContent() {
         })
           .then((r) => r.json())
           .then(async (data) => {
-            const confirmedPlan = data?.plan || urlPlan;
-            await syncClientPlanState(confirmedPlan);
-            confetti({ particleCount: 90, spread: 80, origin: { y: 0.6 } });
-            showToast.success(
-              confirmedPlan
-                ? `Abonnement ${confirmedPlan} activé et synchronisé avec succès !`
-                : "Abonnement activé avec succès !"
-            );
+            if (data?.success && data?.plan && ["PRO", "BUSINESS", "ENTERPRISE"].includes(data.plan.toUpperCase())) {
+              const confirmedPlan = data.plan.toUpperCase();
+              await syncClientPlanState(confirmedPlan);
+              confetti({ particleCount: 90, spread: 80, origin: { y: 0.6 } });
+              showToast.success(
+                `Abonnement ${confirmedPlan} activé et synchronisé avec succès !`
+              );
+            }
           })
-          .catch(async (err) => {
-            console.error("[Verify Transaction Error]", err);
-            await syncClientPlanState(urlPlan);
-            confetti({ particleCount: 90, spread: 80, origin: { y: 0.6 } });
-            showToast.success("Abonnement activé avec succès !");
+          .catch((err) => {
+            console.warn("[Verify Transaction Warning]", err);
           });
       }
     }

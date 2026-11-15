@@ -272,58 +272,75 @@ export function formatClickLimit(limit: number): string {
   return limit.toLocaleString('en-US');
 }
 
-const isDodoLive =
-  process.env.DODO_PAYMENTS_ENVIRONMENT === "live_mode" ||
-  process.env.DODO_PAYMENTS_ENVIRONMENT === "live" ||
-  process.env.NEXT_PUBLIC_DODO_PAYMENTS_ENVIRONMENT === "live_mode" ||
-  process.env.NEXT_PUBLIC_DODO_PAYMENTS_ENVIRONMENT === "live";
-
 /**
  * Dodo Payments Product IDs mapping per plan and billing cycle.
- * Can be customized via environment variables from https://app.dodopayments.com/
+ * Live IDs created in real Dodo Payments dashboard; Test IDs for sandbox.
  */
-export const DODO_PRODUCT_IDS: Record<'PRO' | 'BUSINESS' | 'ENTERPRISE', { monthly: string; yearly: string }> = {
+export const DODO_PRODUCT_IDS_LIVE = {
   PRO: {
-    monthly:
-      process.env.DODO_PAYMENTS_PRODUCT_PRO_MONTHLY ||
-      process.env.NEXT_PUBLIC_DODO_PAYMENTS_PRODUCT_PRO_MONTHLY ||
-      (isDodoLive ? "pdt_0NqfmCjzyD28wD9Oj5eaf" : "pdt_0NqfitAmKzhMFS6QkfyWL"),
-    yearly:
-      process.env.DODO_PAYMENTS_PRODUCT_PRO_YEARLY ||
-      process.env.NEXT_PUBLIC_DODO_PAYMENTS_PRODUCT_PRO_YEARLY ||
-      (isDodoLive ? "pdt_0NqfmJePZG75rUPawewm1" : "pdt_0Nqfj1k4O60QR891LZgii"),
+    monthly: "pdt_0NqfmCjzyD28wD9Oj5eaf",
+    yearly: "pdt_0NqfmJePZG75rUPawewm1",
   },
   BUSINESS: {
-    monthly:
-      process.env.DODO_PAYMENTS_PRODUCT_BUSINESS_MONTHLY ||
-      process.env.NEXT_PUBLIC_DODO_PAYMENTS_PRODUCT_BUSINESS_MONTHLY ||
-      (isDodoLive ? "pdt_0NqfmJjtWLZnV5FHSKDl9" : "pdt_0Nqfj1q5a89CtXSulP7VT"),
-    yearly:
-      process.env.DODO_PAYMENTS_PRODUCT_BUSINESS_YEARLY ||
-      process.env.NEXT_PUBLIC_DODO_PAYMENTS_PRODUCT_BUSINESS_YEARLY ||
-      (isDodoLive ? "pdt_0NqfmJpY34JxiqjYz6d0E" : "pdt_0Nqfj1wKP6BntQZD4Ozk0"),
+    monthly: "pdt_0NqfmJjtWLZnV5FHSKDl9",
+    yearly: "pdt_0NqfmJpY34JxiqjYz6d0E",
   },
   ENTERPRISE: {
-    monthly:
-      process.env.DODO_PAYMENTS_PRODUCT_ENTERPRISE_MONTHLY ||
-      process.env.NEXT_PUBLIC_DODO_PAYMENTS_PRODUCT_ENTERPRISE_MONTHLY ||
-      (isDodoLive ? "pdt_0NqfmJvm6OAncY3xUcdfI" : "pdt_0Nqfj21sseKu9CgmzJI83"),
-    yearly:
-      process.env.DODO_PAYMENTS_PRODUCT_ENTERPRISE_YEARLY ||
-      process.env.NEXT_PUBLIC_DODO_PAYMENTS_PRODUCT_ENTERPRISE_YEARLY ||
-      (isDodoLive ? "pdt_0NqfmK1dUUonckx0okrPO" : "pdt_0Nqfj260DZr9a9VSTEsHO"),
+    monthly: "pdt_0NqfmJvm6OAncY3xUcdfI",
+    yearly: "pdt_0NqfmK1dUUonckx0okrPO",
   },
 };
 
+export const DODO_PRODUCT_IDS_TEST = {
+  PRO: {
+    monthly: "pdt_0NqfitAmKzhMFS6QkfyWL",
+    yearly: "pdt_0Nqfj1k4O60QR891LZgii",
+  },
+  BUSINESS: {
+    monthly: "pdt_0Nqfj1q5a89CtXSulP7VT",
+    yearly: "pdt_0Nqfj1wKP6BntQZD4Ozk0",
+  },
+  ENTERPRISE: {
+    monthly: "pdt_0Nqfj21sseKu9CgmzJI83",
+    yearly: "pdt_0Nqfj260DZr9a9VSTEsHO",
+  },
+};
+
+export const DODO_PRODUCT_IDS = DODO_PRODUCT_IDS_TEST;
+
 /**
  * Retrieve Dodo Payments Product ID for a plan and billing cycle.
+ * Dynamically resolves live vs test mode based on key prefix and environment variables.
  */
 export function getDodoProductId(planId: string, cycle: 'MONTHLY' | 'YEARLY'): string | null {
   const normalized = planId.toUpperCase() as 'PRO' | 'BUSINESS' | 'ENTERPRISE';
-  if (['PRO', 'BUSINESS', 'ENTERPRISE'].includes(normalized)) {
-    return cycle === 'YEARLY'
-      ? DODO_PRODUCT_IDS[normalized].yearly
-      : DODO_PRODUCT_IDS[normalized].monthly;
+  if (!['PRO', 'BUSINESS', 'ENTERPRISE'].includes(normalized)) {
+    return null;
   }
-  return null;
+
+  // 1. Explicit environment variable overrides
+  const envVarName = `DODO_PAYMENTS_PRODUCT_${normalized}_${cycle}`;
+  const envValue = process.env[envVarName] || process.env[`NEXT_PUBLIC_${envVarName}`];
+  if (envValue) {
+    return envValue;
+  }
+
+  // 2. Check if running in live mode
+  const apiKey = (
+    process.env.DODO_PAYMENTS_API_KEY ||
+    process.env.NEXT_PUBLIC_DODO_PAYMENTS_API_KEY ||
+    ""
+  ).trim();
+
+  const isLive =
+    apiKey.startsWith("dodo_live_") ||
+    (!apiKey.startsWith("dodo_test_") && (
+      process.env.DODO_PAYMENTS_ENVIRONMENT === "live_mode" ||
+      process.env.DODO_PAYMENTS_ENVIRONMENT === "live" ||
+      process.env.NEXT_PUBLIC_DODO_PAYMENTS_ENVIRONMENT === "live_mode" ||
+      process.env.NEXT_PUBLIC_DODO_PAYMENTS_ENVIRONMENT === "live"
+    ));
+
+  const targetMap = isLive ? DODO_PRODUCT_IDS_LIVE : DODO_PRODUCT_IDS_TEST;
+  return cycle === 'YEARLY' ? targetMap[normalized].yearly : targetMap[normalized].monthly;
 }

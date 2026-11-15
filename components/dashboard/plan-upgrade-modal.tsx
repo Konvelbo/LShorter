@@ -119,36 +119,8 @@ export function PlanUpgradeModal() {
         window.location.href = `/checkout?plan=${targetPlan}&cycle=MONTHLY`;
         return;
       }
-
-      if (userId) {
-        // Fallback for local sandbox when no payment provider is configured
-        await updatePlanMutation({
-          userId,
-          plan: targetPlan,
-        });
-
-        await syncUserToCloudflare({
-          id: userId,
-          email: session?.user?.email || `${userId}@lshorter.local`,
-          name: session?.user?.name || "User",
-          plan: targetPlan,
-        });
-      }
-
-      if (typeof window !== "undefined") {
-        localStorage.setItem("lshorter_user_plan", targetPlan);
-        window.dispatchEvent(new CustomEvent("lshorter_plan_updated", { detail: { plan: targetPlan } }));
-      }
-
-      try {
-        await updateSession({ plan: targetPlan });
-      } catch {}
-
-      confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
-      showToast.success(`Congratulations! You are now subscribed to the ${targetPlan} plan.`);
-      setIsOpen(false);
     } catch {
-      showToast.error("Unable to upgrade subscription plan.");
+      showToast.error("Unable to initiate checkout session.");
     } finally {
       setLoadingPlan(null);
     }
