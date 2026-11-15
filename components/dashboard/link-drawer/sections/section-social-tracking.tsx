@@ -16,6 +16,7 @@ import {
   X,
   Info,
   Globe2,
+  Crop as CropIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { cfNormalizeImageUrl } from "@/lib/cloudflare-api";
@@ -42,6 +43,7 @@ interface SectionSocialTrackingProps {
   onClearBanner?: () => void;
   bannerInputRef: React.RefObject<HTMLInputElement | null>;
   handleBannerUpload: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
+  onOpenCropModal?: () => void;
   isUploadingImage?: boolean;
   // UTM Tracking props
   utmSource: string;
@@ -80,6 +82,7 @@ export function SectionSocialTracking({
   onClearBanner,
   bannerInputRef,
   handleBannerUpload,
+  onOpenCropModal,
   isUploadingImage,
   utmSource,
   setUtmSource,
@@ -495,6 +498,28 @@ export function SectionSocialTracking({
               Note : Les réseaux sociaux mettent en cache de manière définitive le format et les dimensions de la bannière dès le premier partage du lien. La modification de forme (large ou compacte) ne pourra plus être répercutée ultérieurement sur les plateformes.
             </span>
           </p>
+
+          {/* Dedicated Crop & Customization Trigger Bar */}
+          {onOpenCropModal && (
+            <div className="flex items-center justify-between p-2.5 rounded-[8px] bg-blue-50/60 dark:bg-blue-950/25 border border-blue-200/80 dark:border-blue-800/40 mt-1">
+              <div className="flex items-center gap-2">
+                <CropIcon className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                <span className="text-xs font-medium text-zinc-800 dark:text-zinc-200">
+                  {hasCustomImage
+                    ? `Bannière personnalisée (${twitterCard === "summary" ? "600×600 px · Carrée" : "1200×630 px · Large"})`
+                    : "Personnalisez et recadrez votre propre image"}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={onOpenCropModal}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white shadow-xs transition-colors cursor-pointer"
+              >
+                <CropIcon className="w-3.5 h-3.5" />
+                <span>{hasCustomImage ? "Recadrer / Ajuster" : "Importer & Recadrer"}</span>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Live Card Mockup with Integrated Direct Banner Upload & Change */}
@@ -767,10 +792,23 @@ export function SectionSocialTracking({
                       }}
                     />
                     {/* Hover Overlay with Action Buttons */}
-                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2.5 backdrop-blur-[2px]">
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-[2px]">
+                      {onOpenCropModal && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onOpenCropModal();
+                          }}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-md hover:scale-105 transition-transform cursor-pointer"
+                        >
+                          <CropIcon className="w-3.5 h-3.5" />
+                          <span>Recadrer</span>
+                        </button>
+                      )}
                       <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/95 text-zinc-900 text-xs font-semibold shadow-md hover:scale-105 transition-transform">
                         <Upload className="w-3.5 h-3.5 text-[#0066FF]" />
-                        <span>Changer l&apos;image</span>
+                        <span>Changer</span>
                       </span>
                       <button
                         type="button"
@@ -863,7 +901,20 @@ export function SectionSocialTracking({
                       className="w-full h-full object-cover"
                       onError={() => setHasImageError(true)}
                     />
-                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5">
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                      {onOpenCropModal && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onOpenCropModal();
+                          }}
+                          className="p-1 rounded bg-blue-600 text-white cursor-pointer"
+                          title="Recadrer"
+                        >
+                          <CropIcon className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                       <span className="p-1 rounded bg-white text-zinc-900" title="Changer l'image">
                         <Upload className="w-3.5 h-3.5 text-[#0066FF]" />
                       </span>

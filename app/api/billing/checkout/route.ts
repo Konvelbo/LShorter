@@ -42,7 +42,11 @@ export async function POST(request: NextRequest) {
             typeof existingSub.currentPeriodEnd === "number" &&
             existingSub.currentPeriodEnd > Date.now();
 
-          if (isCurrentlyActive && existingPlan === planId && existingCycle === normalizedCycle) {
+          const isLiveMode =
+            process.env.DODO_PAYMENTS_ENVIRONMENT === "live_mode" ||
+            process.env.DODO_PAYMENTS_ENVIRONMENT === "live";
+
+          if (isLiveMode && !body.force && isCurrentlyActive && existingPlan === planId && existingCycle === normalizedCycle) {
             return NextResponse.json(
               {
                 success: false,

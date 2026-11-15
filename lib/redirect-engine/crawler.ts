@@ -234,13 +234,8 @@ export function renderSocialHtml(options: {
         : ogImg.includes(".svg")
           ? "image/svg+xml"
           : "image/jpeg";
-  const imgWidth = cardType === "summary" ? "400" : "1200";
-  const imgHeight = cardType === "summary" ? "400" : "630";
-
-  const isGeneratedOg = safeOgImg.includes("/api/og") || safeOgImg.includes("/banners/og");
-  const isGeneratedTwitter = safeTwitterImg.includes("/api/og") || safeTwitterImg.includes("/banners/og");
-  const hasKnownOgDims = isGeneratedOg || cardType === "summary_large_image";
-  const hasKnownTwitterDims = isGeneratedTwitter || cardType === "summary_large_image";
+  const imgWidth = cardType === "summary" ? "600" : "1200";
+  const imgHeight = cardType === "summary" ? "600" : "630";
 
   if (!options.isPreview) {
     return `<!DOCTYPE html>
@@ -266,7 +261,8 @@ export function renderSocialHtml(options: {
   <meta property="og:image:url" content="${safeOgImg}" />
   <meta property="og:image:secure_url" content="${safeOgImg}" />
   <meta property="og:image:type" content="${ogImgType}" />
-  ${hasKnownOgDims ? `<meta property="og:image:width" content="${imgWidth}" />\n  <meta property="og:image:height" content="${imgHeight}" />` : ""}
+  <meta property="og:image:width" content="${imgWidth}" />
+  <meta property="og:image:height" content="${imgHeight}" />
   <meta property="og:image:alt" content="${safeTitle}" />
 
   <!-- Twitter / X Cards -->
@@ -279,7 +275,8 @@ export function renderSocialHtml(options: {
   <meta name="twitter:description" content="${safeDesc}" />
   <meta name="twitter:image" content="${safeTwitterImg}" />
   <meta name="twitter:image:alt" content="${safeTitle}" />
-  ${hasKnownTwitterDims ? `<meta name="twitter:image:width" content="${imgWidth}" />\n  <meta name="twitter:image:height" content="${imgHeight}" />` : ""}
+  <meta name="twitter:image:width" content="${imgWidth}" />
+  <meta name="twitter:image:height" content="${imgHeight}" />
 </head>
 <body style="background:#09090b;color:#fafafa;font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:24px;box-sizing:border-box;">
   ${cardType === "summary" ? `

@@ -83,7 +83,7 @@ export function PlanUpgradeModal() {
     }
 
     if (!session?.user) {
-      window.location.href = `/login?redirect=/dashboard/pricing&plan=${targetPlan}`;
+      window.location.href = `/checkout?plan=${targetPlan}&cycle=MONTHLY`;
       return;
     }
 
@@ -110,8 +110,8 @@ export function PlanUpgradeModal() {
         }
 
         if (data.error) {
-          showToast.error(data.error);
-          setLoadingPlan(null);
+          console.warn("[UpgradeModal] Direct checkout API notice, falling back to /checkout:", data.error);
+          window.location.href = `/checkout?plan=${targetPlan}&cycle=MONTHLY`;
           return;
         }
       } catch (apiErr) {

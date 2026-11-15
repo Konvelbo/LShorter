@@ -1,10 +1,107 @@
 /**
- * Client-Side Image Compressor
+ * Client-Side Image Compressor & Social Banner Cropper
  * ─────────────────────────────────────────────────────────────────────────────
- * Resizes and compresses images in the browser before sending to CDN / APIs.
- * Uses center-crop to always produce exactly maxWidth×maxHeight (e.g. 1200×630)
- * which is required for Twitter summary_large_image OG cards.
+ * Resizes, crops, and compresses images in the browser before sending to CDN / APIs.
+ * Supports react-easy-crop pixel coordinates to produce exact 1200×630 (Large)
+ * or 600×600 (Compact) dimensions required by Twitter/X and LinkedIn.
  */
+
+export interface CroppedAreaPixels {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/**
+ * Crops an image based on react-easy-crop pixel coordinates and compresses
+ * the output using Canvas into high-definition, lightweight JPEG.
+ */
+export async function cropAndCompressImage(
+  imageSrc: string | File | Blob,
+  croppedAreaPixels: CroppedAreaPixels,
+  targetWidth: number = 1200,
+  targetHeight: number = 630,
+  quality: number = 0.88
+): Promise<{ file: File; dataUrl: string }> {
+  if (typeof window === "undefined") {
+    throw new Error("cropAndCompressImage can only run in the browser");
+  }
+
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    let objectUrl: string | null = null;
+
+    img.onload = () => {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          throw new Error("Could not acquire 2d canvas rendering context");
+        }
+
+        // High quality downscaling
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
+
+        // Draw the exact cropped slice onto the target canvas
+        ctx.drawImage(
+          img,
+          Math.max(0, Math.round(croppedAreaPixels.x)),
+          Math.max(0, Math.round(croppedAreaPixels.y)),
+          Math.max(1, Math.round(croppedAreaPixels.width)),
+          Math.max(1, Math.round(croppedAreaPixels.height)),
+          0,
+          0,
+          targetWidth,
+          targetHeight
+        );
+
+        const dataUrl = canvas.toDataURL("image/jpeg", quality);
+
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              const fallbackFile = new File([], `social-banner-${targetWidth}x${targetHeight}.jpg`, {
+                type: "image/jpeg",
+              });
+              return resolve({ file: fallbackFile, dataUrl });
+            }
+            const file = new File(
+              [blob],
+              `social-banner-${targetWidth}x${targetHeight}.jpg`,
+              {
+                type: "image/jpeg",
+                lastModified: Date.now(),
+              }
+            );
+            resolve({ file, dataUrl });
+          },
+          "image/jpeg",
+          quality
+        );
+      } catch (err) {
+        reject(err);
+      }
+    };
+
+    img.onerror = (err) => {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      reject(new Error("Failed to load source image for cropping"));
+    };
+
+    if (typeof imageSrc === "string") {
+      img.src = imageSrc;
+    } else {
+      objectUrl = URL.createObjectURL(imageSrc);
+      img.src = objectUrl;
+    }
+  });
+}
 
 export async function compressImageFile(
   fileOrBase64: File | Blob | string,

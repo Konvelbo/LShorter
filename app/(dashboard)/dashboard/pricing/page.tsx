@@ -105,14 +105,18 @@ export default function PricingPage() {
   };
 
   const handleSelectPlan = async (planKey: 'FREE' | 'PRO' | 'BUSINESS' | 'ENTERPRISE') => {
-    if (currentPlan === planKey) {
-      showToast.info(`You are already subscribed to the ${planKey} plan.`);
+    const userCycle = String((convexUser as any)?.cycle || (session?.user as any)?.cycle || "MONTHLY").toUpperCase();
+    const isSameCycle = (isAnnual && userCycle === "YEARLY") || (!isAnnual && userCycle === "MONTHLY");
+    const isCurrentExact = currentPlan === planKey && (planKey === "FREE" || isSameCycle);
+
+    if (isCurrentExact) {
+      showToast.info(`You are already subscribed to the ${planKey} (${isAnnual ? "Annual" : "Monthly"}) plan.`);
       return;
     }
 
-    // If user is not logged in, redirect to login
+    // If user is not logged in, redirect directly to checkout where guest checkout is supported
     if (!session?.user) {
-      window.location.href = `/login?redirect=/dashboard/pricing&plan=${planKey}`;
+      window.location.href = `/checkout?plan=${planKey}&cycle=${isAnnual ? "YEARLY" : "MONTHLY"}`;
       return;
     }
 
@@ -141,8 +145,8 @@ export default function PricingPage() {
           }
 
           if (data.error) {
-            showToast.error(data.error);
-            setLoadingPlan(null);
+            console.warn("[Pricing] Direct checkout API notice, falling back to /checkout:", data.error);
+            window.location.href = `/checkout?plan=${planKey}&cycle=${isAnnual ? "YEARLY" : "MONTHLY"}`;
             return;
           }
         } catch (apiErr) {
@@ -440,7 +444,9 @@ export default function PricingPage() {
         className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 items-stretch pt-2"
       >
         {plansList.map((p) => {
-          const isCurrent = currentPlan === p.id;
+          const userCycle = String((convexUser as any)?.cycle || (session?.user as any)?.cycle || "MONTHLY").toUpperCase();
+          const isSameCycle = (isAnnual && userCycle === "YEARLY") || (!isAnnual && userCycle === "MONTHLY");
+          const isCurrent = currentPlan === p.id && (p.id === "FREE" || isSameCycle);
 
           return (
             <div

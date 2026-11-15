@@ -580,11 +580,9 @@ export default {
         const safeImg = escapeMetaUrl(finalImg);
         const safeCanonical = escapeHtml(canonical);
         const safeCard = twitterCard;
-        const imgWidth = isCompact ? '400' : '1200';
-        const imgHeight = isCompact ? '400' : '630';
+        const imgWidth = isCompact ? '600' : '1200';
+        const imgHeight = isCompact ? '600' : '630';
         const imgType = (safeImg.includes('.png') || safeImg.includes('/api/og') || safeImg.includes('/banners/og')) ? 'image/png' : safeImg.includes('.webp') ? 'image/webp' : 'image/jpeg';
-
-        const isGenerated = safeImg.includes('/api/og') || safeImg.includes('/banners/og');
 
         const html = `<!DOCTYPE html>
 <html lang="fr" prefix="og: http://ogp.me/ns#">
@@ -609,7 +607,8 @@ export default {
   <meta property="og:image:url" content="${safeImg}" />
   <meta property="og:image:secure_url" content="${safeImg}" />
   <meta property="og:image:type" content="${imgType}" />
-  ${isGenerated ? `<meta property="og:image:width" content="${imgWidth}" />\n  <meta property="og:image:height" content="${imgHeight}" />` : ''}
+  <meta property="og:image:width" content="${imgWidth}" />
+  <meta property="og:image:height" content="${imgHeight}" />
   <meta property="og:image:alt" content="${safeTitle}" />
 
   <!-- Twitter / X Cards -->
@@ -622,7 +621,8 @@ export default {
   <meta name="twitter:description" content="${safeDesc}" />
   <meta name="twitter:image" content="${safeImg}" />
   <meta name="twitter:image:alt" content="${safeTitle}" />
-  ${isGenerated ? `<meta name="twitter:image:width" content="${imgWidth}" />\n  <meta name="twitter:image:height" content="${imgHeight}" />` : ''}
+  <meta name="twitter:image:width" content="${imgWidth}" />
+  <meta name="twitter:image:height" content="${imgHeight}" />
 </head>
 <body style="background:#09090b;">
 </body>

@@ -85,7 +85,18 @@ export class DodoBillingProvider implements BillingProvider {
         }
       }
 
-      const session = await client.checkoutSessions.create(payload);
+      let session: any;
+      try {
+        session = await client.checkoutSessions.create(payload);
+      } catch (err: any) {
+        if (payload.discount_code) {
+          console.warn("[DodoBillingProvider] Retrying checkout creation without discount_code:", err?.message);
+          delete payload.discount_code;
+          session = await client.checkoutSessions.create(payload);
+        } else {
+          throw err;
+        }
+      }
 
       return {
         checkoutUrl: session.checkout_url || params.successUrl,

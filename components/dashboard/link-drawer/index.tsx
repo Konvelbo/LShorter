@@ -37,6 +37,7 @@ import { Trash2, Loader2 } from "lucide-react";
 
 import { LinkDrawerProps, DRAWER_TABS, DrawerTabId } from "./types";
 import { SectionLink } from "./sections/section-link";
+import { BannerCropModal } from "./banner-crop-modal";
 
 const loadSectionSocialTracking = () =>
   import("./sections/section-social-tracking").then((m) => ({
@@ -462,6 +463,8 @@ export function LinkDrawer({
   const originalEditOgImageRef = useRef<string>("");
   const originalEditCardRef = useRef<"summary_large_image" | "summary">("summary_large_image");
   const bannerCropReqIdRef = useRef(0);
+  const [isCropModalOpen, setIsCropModalOpen] = useState(false);
+  const [cropModalImageSrc, setCropModalImageSrc] = useState("");
 
   // 3. Tracking & UTM
   const [utmSource, setUtmSource] = useState("");
@@ -883,7 +886,7 @@ export function LinkDrawer({
     }
   };
 
-  // Instant Banner Upload Handler (preserves user's Large vs Compact selection)
+  // Interactive Banner Upload Handler: Opens React Easy Crop modal for custom positioning & sizing
   const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -897,23 +900,68 @@ export function LinkDrawer({
       return;
     }
 
-    const reqId = ++bannerCropReqIdRef.current;
     rawUploadedBannerFileRef.current = file;
 
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      setCropModalImageSrc(dataUrl);
+      setIsCropModalOpen(true);
+    };
+    reader.readAsDataURL(file);
+
+    if (bannerInputRef.current) bannerInputRef.current.value = "";
+  };
+
+  const handleOpenCropModal = () => {
+    const currentSrc = previewImage || cfNormalizeImageUrl(ogImage);
+    if (
+      currentSrc &&
+      !currentSrc.includes("/api/og") &&
+      !currentSrc.includes("/banners/og")
+    ) {
+      setCropModalImageSrc(currentSrc);
+      setIsCropModalOpen(true);
+    } else {
+      bannerInputRef.current?.click();
+    }
+  };
+
+  const handleCropCompleteResult = async ({
+    file,
+    dataUrl,
+    format,
+  }: {
+    file: File;
+    dataUrl: string;
+    format: "summary_large_image" | "summary";
+  }) => {
+    setTwitterCard(format);
+    setPreviewImage(dataUrl);
+    rawUploadedBannerFileRef.current = file;
+
+    const reqId = ++bannerCropReqIdRef.current;
     try {
       setIsUploadingImage(true);
-      await uploadCompressedBannerFromSource(file, twitterCard, reqId);
-      if (bannerCropReqIdRef.current === reqId) {
-        showToast.success("Banner uploaded successfully!");
+      const targetW = format === "summary" ? 600 : 1200;
+      const targetH = format === "summary" ? 600 : 630;
+      const uploadRes = await cfUploadImage(dataUrl, "Banners", {
+        maxWidth: targetW,
+        maxHeight: targetH,
+        skipCompress: true,
+      });
+
+      if (bannerCropReqIdRef.current === reqId && uploadRes?.url) {
+        setOgImage(uploadRes.url);
+        showToast.success("Bannière recadrée et compressée avec succès !");
       }
     } catch (err) {
-      console.error("Banner upload error:", err);
-      showToast.error("Error uploading banner image.");
+      console.error("Banner crop & upload error:", err);
+      showToast.error("Erreur lors de l'enregistrement de la bannière.");
     } finally {
       if (bannerCropReqIdRef.current === reqId) {
         setIsUploadingImage(false);
       }
-      if (bannerInputRef.current) bannerInputRef.current.value = "";
     }
   };
 
@@ -2034,6 +2082,7 @@ export function LinkDrawer({
                     }}
                     bannerInputRef={bannerInputRef}
                     handleBannerUpload={handleBannerUpload}
+                    onOpenCropModal={handleOpenCropModal}
                     isUploadingImage={isUploadingImage}
                     utmSource={utmSource}
                     setUtmSource={setUtmSource}
@@ -2229,6 +2278,15 @@ export function LinkDrawer({
           </div>
         </footer>
       </aside>
+
+      {/* Interactive Social Banner Cropper Modal */}
+      <BannerCropModal
+        isOpen={isCropModalOpen}
+        onClose={() => setIsCropModalOpen(false)}
+        imageSrc={cropModalImageSrc}
+        initialFormat={twitterCard}
+        onCropCompleteResult={handleCropCompleteResult}
+      />
     </div>,
     document.body,
   );

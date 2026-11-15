@@ -485,24 +485,31 @@ function CheckoutPageInner() {
                 </div>
 
                 <div className="space-y-2 max-w-sm">
-                  <h3 className="text-lg font-semibold text-zinc-900 dark:text-white tracking-tight">
-                    Redirection vers Dodo Payments
-                  </h3>
+                  <h2 className="text-lg font-semibold text-zinc-900 dark:text-white tracking-tight">
+                    Paiement Sécurisé Dodo Payments
+                  </h2>
                   <p className="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed">
                     {isLoadingCheckout
-                      ? "Préparation de votre session de paiement sécurisée..."
-                      : "Votre session sécurisée est prête. Vous allez être redirigé vers l'interface de paiement protégée."}
+                      ? "Génération de votre lien de paiement sécurisé..."
+                      : hostedCheckoutUrl
+                        ? "Votre session de paiement est prête. Cliquez ci-dessous si la redirection n'a pas débuté."
+                        : "Préparation de la session de paiement..."}
                   </p>
                 </div>
 
-                {hostedCheckoutUrl && (
+                {hostedCheckoutUrl ? (
                   <a
                     href={hostedCheckoutUrl}
-                    className="inline-flex items-center justify-center gap-2 w-full max-w-xs px-6 py-3.5 rounded-[10px] bg-blue-600 hover:bg-blue-500 text-white font-medium text-sm transition-all shadow-md shadow-blue-500/20 hover:shadow-blue-500/30 cursor-pointer"
+                    className="inline-flex items-center justify-center gap-2 w-full max-w-sm px-6 py-3.5 rounded-[10px] bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm transition-all shadow-md shadow-blue-500/25 hover:shadow-blue-500/35 cursor-pointer"
                   >
                     <Lock className="w-4 h-4" />
-                    <span>Continuer vers le paiement</span>
+                    <span>Accéder au paiement Dodo Payments &rarr;</span>
                   </a>
+                ) : (
+                  <div className="flex items-center gap-2 text-xs text-zinc-400">
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin text-blue-600" />
+                    <span>Connexion à l&apos;infrastructure de paiement...</span>
+                  </div>
                 )}
 
                 <div className="flex items-center gap-1.5 text-xs text-zinc-400 dark:text-zinc-500 pt-2">
