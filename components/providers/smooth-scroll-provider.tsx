@@ -40,28 +40,26 @@ export function SmoothScrollProvider({
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    // Respect user's motion preferences
-    const prefersReducedMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)"
-    ).matches;
-    if (prefersReducedMotion) return;
-
     // Register GSAP ScrollTrigger
     gsap.registerPlugin(ScrollTrigger);
 
-    // Initialize Lenis with ultra-smooth cinematic momentum
+    // Initialize Lenis with signature butter-smooth continuous lerp momentum
+    // (Noticeable floating glide, organic damping, and 120fps sync)
     const lenis = new Lenis({
-      duration: 1.25,
-      easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      lerp: 0.055, // Super luxurious butter-smooth inertia (noticeable floating glide)
+      wheelMultiplier: 1.25, // Generous travel per notch so momentum is instantly felt
+      touchMultiplier: 1.6,
+      smoothWheel: true,
+      syncTouch: false,
       orientation: "vertical",
       gestureOrientation: "vertical",
-      smoothWheel: true,
-      wheelMultiplier: 1.05,
-      touchMultiplier: 1.5,
+      respectReducedMotion: false, // Ensure smooth scroll is never silently bypassed by OS settings
     });
 
     lenisRef.current = lenis;
     setLenisInstance(lenis);
+    (window as any).__lenis = lenis;
+    (window as any).lenisInstance = lenis;
 
     // Synchronize Lenis scroll position with GSAP ScrollTrigger
     lenis.on("scroll", ScrollTrigger.update);
