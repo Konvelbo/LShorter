@@ -2245,8 +2245,8 @@ console.log("Top Countries:", topAudience.topCountries);`,
                     <Input
                       type="email"
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
+                      readOnly
+                      className="bg-zinc-50 dark:bg-white/[0.03] text-zinc-600 dark:text-neutral-300 cursor-not-allowed select-all border-zinc-200 dark:border-[#27272a] focus:border-zinc-200 dark:focus:border-[#27272a] focus:ring-0"
                     />
                   </div>
                 </div>
