@@ -110,6 +110,7 @@ import { showToast } from "@/components/ui/toast-provider";
 import { useUndoDelete } from "@/components/ui/undo-delete-provider";
 import { syncUserToCloudflare } from "@/app/actions/sync-user";
 import { triggerPlanUpgrade, getPlanLimits } from "@/lib/plan-guard";
+import { formatCurrencyDisplay } from "@/lib/billing/currency";
 import confetti from "canvas-confetti";
 
 const VALID_SETTINGS_TABS = [
@@ -2590,17 +2591,15 @@ console.log("Top Countries:", topAudience.topCountries);`,
                             </td>
                             <td className="py-3 px-3.5">{inv.date}</td>
                             <td className="py-3 px-3.5 font-mono text-zinc-700 dark:text-neutral-300">
-                              {typeof inv.netAmount === "number" ? inv.netAmount.toFixed(2) : "0.00"} {inv.currency || "USD"}
+                              {formatCurrencyDisplay(inv.netAmount, inv.currency)}
                             </td>
                             <td className="py-3 px-3.5 font-mono text-zinc-500 dark:text-neutral-400">
-                              {typeof inv.taxAmount === "number" && inv.taxAmount > 0
-                                ? `${inv.taxAmount.toFixed(2)} ${inv.currency || "USD"}`
-                                : `0.00 ${inv.currency || "USD"}`}
+                              {inv.taxAmount > 0
+                                ? formatCurrencyDisplay(inv.taxAmount, inv.currency)
+                                : formatCurrencyDisplay(0, inv.currency)}
                             </td>
                             <td className="py-3 px-3.5 font-bold font-mono text-zinc-900 dark:text-white">
-                              {typeof inv.totalAmount === "number"
-                                ? `${inv.totalAmount.toFixed(2)} ${inv.currency || "USD"}`
-                                : `0.00 ${inv.currency || "USD"}`}
+                              {formatCurrencyDisplay(inv.totalAmount, inv.currency)}
                             </td>
                             <td className="py-3 px-3.5">
                               <Badge variant="active">Paid (Acquittée)</Badge>
@@ -2635,13 +2634,11 @@ console.log("Top Countries:", topAudience.topCountries);`,
                           <div className="flex items-center justify-between text-xs text-zinc-500">
                             <span>{inv.date}</span>
                             <span className="font-mono font-bold text-zinc-900 dark:text-white text-xs">
-                              {typeof inv.totalAmount === "number"
-                                ? `${inv.totalAmount.toFixed(2)} ${inv.currency || "USD"}`
-                                : `0.00 ${inv.currency || "USD"}`}
+                              {formatCurrencyDisplay(inv.totalAmount, inv.currency)}
                             </span>
                           </div>
                           <div className="flex items-center justify-between pt-1 border-t border-zinc-200 dark:border-zinc-800 text-[11px] text-zinc-500">
-                            <span>Net HT: {typeof inv.netAmount === "number" ? inv.netAmount.toFixed(2) : "0.00"} {inv.currency || "USD"}</span>
+                            <span>Net HT: {formatCurrencyDisplay(inv.netAmount, inv.currency)}</span>
                             <button
                               type="button"
                               onClick={() => handleDownloadInvoice(inv)}

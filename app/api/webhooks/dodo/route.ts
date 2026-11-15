@@ -4,6 +4,7 @@ import { convexHttp as convex } from "@/lib/convex-server";
 import { api } from "@/convex/_generated/api";
 import { syncUserToCloudflare } from "@/app/actions/sync-user";
 import { cancelReplacedSubscriptions } from "@/lib/billing/cancel-replaced-subscription";
+import { normalizeGatewayAmount, formatCurrencyDisplay } from "@/lib/billing/currency";
 import {
   sendGracePeriodAlertEmail,
   sendPlanPurchaseEmail,
@@ -19,7 +20,7 @@ function formatAmountFromCents(rawEventData: any): {
   amountPaid: number;
   currency: string;
 } {
-  const cents =
+  const raw =
     typeof rawEventData.amount_paid === "number"
       ? rawEventData.amount_paid
       : typeof rawEventData.total_amount === "number"
@@ -30,9 +31,11 @@ function formatAmountFromCents(rawEventData: any): {
             ? rawEventData.amount
             : 0;
 
+  const currency = String(rawEventData.currency || "USD").toUpperCase();
+
   return {
-    amountPaid: cents > 0 ? cents / 100 : 0,
-    currency: String(rawEventData.currency || "USD").toUpperCase(),
+    amountPaid: normalizeGatewayAmount(raw, currency),
+    currency,
   };
 }
 
@@ -372,7 +375,7 @@ export async function POST(request: NextRequest) {
               cycle: cycle === "YEARLY" ? "Annuel" : "Mensuel",
               invoiceNumber,
               invoiceUrl: invoiceFullUrl,
-              amountPaidLabel: amountPaid > 0 ? `${amountPaid.toFixed(2)} ${currency}` : undefined,
+              amountPaidLabel: amountPaid > 0 ? formatCurrencyDisplay(amountPaid, currency) : undefined,
               isRenewal: eventData.charge_type === "renewal",
             });
             console.info(`[Dodo Webhook] Plan purchase email sent successfully to ${customerEmail}`);

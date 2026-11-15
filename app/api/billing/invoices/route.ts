@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getDodoPaymentsClient } from "@/lib/dodo/dodo-server";
 import { convexHttp as convex } from "@/lib/convex-server";
 import { api } from "@/convex/_generated/api";
+import { normalizeGatewayAmount, correctStoredInvoiceAmount } from "@/lib/billing/currency";
 
 import { auth } from "@/auth";
 
@@ -61,8 +62,11 @@ export async function GET() {
           if (p.invoice_id) seenIds.add(String(p.invoice_id));
 
           const billedDate = p.created_at ? new Date(p.created_at) : new Date();
+          const curr = String(p.currency || "USD").toUpperCase();
           const total =
-            typeof p.total_amount === "number" ? p.total_amount / 100 : 0;
+            typeof p.total_amount === "number"
+              ? normalizeGatewayAmount(p.total_amount, curr)
+              : 0;
           const planKey = String(
             p.metadata?.planId || fallbackPlan || "PRO"
           ).toUpperCase();
@@ -81,7 +85,7 @@ export async function GET() {
             netAmount: total,
             taxAmount: 0,
             totalAmount: total,
-            currency: String(p.currency || "USD").toUpperCase(),
+            currency: curr,
             status: "paid",
             planName: `LShorter ${planKey}`,
             downloadUrl: `/api/billing/invoices/${encodeURIComponent(dodoKey)}/download`,
@@ -159,6 +163,11 @@ export async function GET() {
             seenIds.add(ci.invoiceNumber);
 
             const dateObj = new Date(ci.createdAt || ci.periodStart);
+            const curr = String(ci.currency || "USD").toUpperCase();
+            const total = typeof ci.amountPaid === "number"
+              ? correctStoredInvoiceAmount(ci.amountPaid, curr)
+              : 0;
+
             invoices.push({
               id: txnId || (dodoPayId ? `dodo_${dodoPayId}` : ci.invoiceNumber),
               number: ci.invoiceNumber,
@@ -167,10 +176,10 @@ export async function GET() {
                 month: "short",
                 year: "numeric",
               }),
-              netAmount: ci.amountPaid,
+              netAmount: total,
               taxAmount: 0,
-              totalAmount: ci.amountPaid,
-              currency: ci.currency || "USD",
+              totalAmount: total,
+              currency: curr,
               status: ci.status?.toLowerCase() || "paid",
               planName: `LShorter ${ci.planId}`,
               downloadUrl:

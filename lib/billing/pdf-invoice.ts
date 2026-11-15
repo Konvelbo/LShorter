@@ -2,6 +2,8 @@
 // Standard PDF 1.4 Binary Invoice Generator (Pure TypeScript, Zero-Dependency)
 // ============================================================================
 
+import { isZeroDecimalCurrency, correctStoredInvoiceAmount } from "./currency";
+
 export interface InvoicePdfData {
   invoiceNumber: string;
   date: string;
@@ -57,11 +59,19 @@ export function generateInvoicePdf(data: InvoicePdfData): Buffer {
     : "TVA Client : Exoneration / Autoliquidation B2B (Art. 283-2 CGI)";
   const email = data.customerEmail || "customer@lsho.cc";
 
-  const baseAmount = data.overageAmount ? Math.max(0, data.amountPaid - data.overageAmount) : data.amountPaid;
-  const subtotalHt = data.amountPaid.toFixed(2);
+  const isZeroDec = isZeroDecimalCurrency(currency);
+  const normalizedPaid = correctStoredInvoiceAmount(data.amountPaid, currency);
+  const baseAmount = data.overageAmount
+    ? Math.max(0, normalizedPaid - data.overageAmount)
+    : normalizedPaid;
+  const subtotalHt = isZeroDec
+    ? Math.round(normalizedPaid).toLocaleString("fr-FR")
+    : normalizedPaid.toFixed(2);
   const vatRate = "0.00%";
-  const taxAmount = "0.00";
-  const totalTtc = data.amountPaid.toFixed(2);
+  const taxAmount = isZeroDec ? "0" : "0.00";
+  const totalTtc = isZeroDec
+    ? Math.round(normalizedPaid).toLocaleString("fr-FR")
+    : normalizedPaid.toFixed(2);
 
   // Plan quota details for invoice line item description
   const planUpper = String(data.planId || "PRO").toUpperCase();
@@ -174,13 +184,16 @@ export function generateInvoicePdf(data: InvoicePdfData): Buffer {
 
   // 5. Line Item 1: Plan Subscription
   let currentY = 512;
+  const baseFormatted = isZeroDec
+    ? Math.round(baseAmount).toLocaleString("fr-FR")
+    : baseAmount.toFixed(2);
   addText(`Abonnement SaaS LShorter ${data.planName || data.planId}`, 44, currentY, "F2", 9, 0.08, 0.08, 0.09);
   addText(quotaSummary, 44, currentY - 12, "F1", 7.5, 0.42, 0.44, 0.48);
   addText(`Periode : ${data.periodStart} - ${data.periodEnd}`, 44, currentY - 22, "F1", 7, 0.50, 0.52, 0.56);
   addText("1", 298, currentY, "F1", 8.5, 0.15, 0.16, 0.20);
-  addText(`${symbol}${baseAmount.toFixed(2)}`, 345, currentY, "F1", 8.5, 0.15, 0.16, 0.20);
+  addText(`${symbol}${baseFormatted}`, 345, currentY, "F1", 8.5, 0.15, 0.16, 0.20);
   addText(vatRate, 420, currentY, "F1", 8.5, 0.40, 0.42, 0.46);
-  addText(`${symbol}${baseAmount.toFixed(2)}`, 512, currentY, "F2", 9, 0.08, 0.08, 0.09);
+  addText(`${symbol}${baseFormatted}`, 512, currentY, "F2", 9, 0.08, 0.08, 0.09);
 
   addLine(44, currentY - 32, 568, currentY - 32, 0.88, 0.89, 0.92, 0.5);
 
@@ -235,7 +248,7 @@ export function generateInvoicePdf(data: InvoicePdfData): Buffer {
   addLine(350, summaryTopY - 61, 568, summaryTopY - 61, 0.85, 0.86, 0.90, 0.5);
 
   addText("Net a payer", 350, summaryTopY - 74, "F2", 8.5, 0.08, 0.08, 0.09);
-  addText(`${symbol}0.00 ${currency}`, 505, summaryTopY - 74, "F2", 8.5, 0.08, 0.08, 0.09);
+  addText(`${symbol}${isZeroDec ? "0" : "0.00"} ${currency}`, 505, summaryTopY - 74, "F2", 8.5, 0.08, 0.08, 0.09);
 
   // 8. Minimalist Bottom Footer
   const footerY = 55;

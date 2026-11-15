@@ -11,6 +11,7 @@ export * from "./mock-provider";
 export * from "./dodo-provider";
 export * from "./pdf-invoice";
 export * from "./cancel-replaced-subscription";
+export * from "./currency";
 
 export function getBillingProvider(): BillingProvider {
   // Only use Mock provider if explicitly forced in non-production local development

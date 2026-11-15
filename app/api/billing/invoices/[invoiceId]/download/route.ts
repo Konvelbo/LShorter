@@ -4,6 +4,7 @@ import { PRICING_PLANS } from "@/src/config/pricing";
 import { getDodoPaymentsClient } from "@/lib/dodo/dodo-server";
 import { convexHttp as convex } from "@/lib/convex-server";
 import { api } from "@/convex/_generated/api";
+import { normalizeGatewayAmount, correctStoredInvoiceAmount } from "@/lib/billing/currency";
 
 import { auth } from "@/auth";
 
@@ -159,13 +160,17 @@ export async function GET(
       : "PRO") as "PRO" | "BUSINESS" | "ENTERPRISE";
     const plan = PRICING_PLANS[planId] || PRICING_PLANS.PRO;
 
+    const resolvedCurrency = String(
+      dodoPaymentMeta?.currency || convexInvoice?.currency || "USD"
+    ).toUpperCase();
+
     const rawAmount = searchParams.get("amount");
     const parsedQueryAmount = rawAmount ? parseFloat(rawAmount) : NaN;
     const amountPaid =
       typeof dodoPaymentMeta?.total_amount === "number"
-        ? dodoPaymentMeta.total_amount / 100
+        ? normalizeGatewayAmount(dodoPaymentMeta.total_amount, resolvedCurrency)
         : typeof convexInvoice?.amountPaid === "number"
-          ? convexInvoice.amountPaid
+          ? correctStoredInvoiceAmount(convexInvoice.amountPaid, resolvedCurrency)
           : !Number.isNaN(parsedQueryAmount)
             ? parsedQueryAmount
             : planId === "BUSINESS"
@@ -211,9 +216,6 @@ export async function GET(
 
     const periodStartMs = convexInvoice?.periodStart || nowMs;
     const periodEndMs = convexInvoice?.periodEnd || nowMs + 30 * 86400000;
-    const resolvedCurrency = String(
-      dodoPaymentMeta?.currency || convexInvoice?.currency || "USD"
-    ).toUpperCase();
 
     const resolvedNumber = dodoPaymentMeta?.invoice_id
       ? String(dodoPaymentMeta.invoice_id)
