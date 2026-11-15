@@ -8,7 +8,7 @@ export interface D1ApiKey {
   key_prefix: string;
   key_hash: string;
   raw_key: string | null;
-  scope: string;
+  scope: "read" | "read_write";
   rate_limit: number;
   last_used_at: string | null;
   created_at: string;
@@ -79,7 +79,7 @@ export async function createD1ApiKey(opts: {
   const rateLimit = opts.rateLimit ?? 600;
   const now = new Date().toISOString();
 
-  const insertRes = await executeD1Query(
+  await executeD1Query(
     `INSERT INTO api_keys (id, user_id, name, key_prefix, key_hash, raw_key, scope, rate_limit, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [keyId, opts.userId, opts.name, keyPrefix, keyHash, plainKey, scope, rateLimit, now]

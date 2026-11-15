@@ -20,7 +20,7 @@ export interface CodeBlockProps {
 }
 
 /**
- * Lightweight syntax highlighter for Clean visual presentation
+ * Lightweight syntax highlighter with Adaptive Light & Dark mode support
  */
 function highlightSyntax(rawCode: string, lang: string = "bash") {
   const normalizedLang = (lang || "").toLowerCase().trim();
@@ -35,7 +35,7 @@ function highlightSyntax(rawCode: string, lang: string = "bash") {
     // 1. Comments
     if (line.trim().startsWith("//") || line.trim().startsWith("/*") || line.trim().startsWith("*")) {
       return (
-        <span key={lineIdx} className="text-neutral-500 italic">
+        <span key={lineIdx} className="text-zinc-500 dark:text-neutral-500 italic">
           {line}
         </span>
       );
@@ -43,7 +43,7 @@ function highlightSyntax(rawCode: string, lang: string = "bash") {
     if (normalizedLang.includes("bash") || normalizedLang.includes("curl") || normalizedLang.includes("sh")) {
       if (line.trim().startsWith("#")) {
         return (
-          <span key={lineIdx} className="text-neutral-500 italic">
+          <span key={lineIdx} className="text-zinc-500 dark:text-neutral-500 italic">
             {line}
           </span>
         );
@@ -64,31 +64,31 @@ function highlightSyntax(rawCode: string, lang: string = "bash") {
         const token = match[0];
         if (token.endsWith(":") && token.startsWith('"')) {
           parts.push(
-            <span key={match.index} className="text-sky-300 font-medium">
+            <span key={match.index} className="text-blue-700 dark:text-sky-300 font-medium">
               {token}
             </span>
           );
         } else if (token.startsWith('"')) {
           parts.push(
-            <span key={match.index} className="text-emerald-300">
+            <span key={match.index} className="text-emerald-700 dark:text-emerald-300">
               {token}
             </span>
           );
         } else if (/^(true|false|null)$/.test(token)) {
           parts.push(
-            <span key={match.index} className="text-rose-400 font-bold">
+            <span key={match.index} className="text-rose-600 dark:text-rose-400 font-bold">
               {token}
             </span>
           );
         } else if (/^-?\d+(\.\d+)?$/.test(token)) {
           parts.push(
-            <span key={match.index} className="text-amber-400">
+            <span key={match.index} className="text-amber-700 dark:text-amber-400">
               {token}
             </span>
           );
         } else {
           parts.push(
-            <span key={match.index} className="text-neutral-400">
+            <span key={match.index} className="text-zinc-500 dark:text-neutral-400">
               {token}
             </span>
           );
@@ -125,7 +125,7 @@ function highlightSyntax(rawCode: string, lang: string = "bash") {
         const token = match[0];
         if (/^(GET|POST|PUT|PATCH|DELETE)$/.test(token)) {
           parts.push(
-            <span key={match.index} className="text-emerald-400 font-bold">
+            <span key={match.index} className="text-emerald-700 dark:text-emerald-400 font-bold">
               {token}
             </span>
           );
@@ -137,31 +137,31 @@ function highlightSyntax(rawCode: string, lang: string = "bash") {
           );
         } else if (/^https?:\/\//.test(token)) {
           parts.push(
-            <span key={match.index} className="text-cyan-300 underline-offset-2">
+            <span key={match.index} className="text-cyan-700 dark:text-cyan-300 underline-offset-2">
               {token}
             </span>
           );
         } else if (token.startsWith('"') || token.startsWith("'")) {
           parts.push(
-            <span key={match.index} className="text-amber-300">
+            <span key={match.index} className="text-amber-700 dark:text-amber-300">
               {token}
             </span>
           );
         } else if (token.startsWith("$")) {
           parts.push(
-            <span key={match.index} className="text-rose-400 font-semibold">
+            <span key={match.index} className="text-rose-600 dark:text-rose-400 font-semibold">
               {token}
             </span>
           );
         } else if (/^(npm|pnpm|yarn|bun|npx|curl|git|node)$/.test(token)) {
           parts.push(
-            <span key={match.index} className="text-sky-400 font-bold">
+            <span key={match.index} className="text-blue-700 dark:text-sky-400 font-bold">
               {token}
             </span>
           );
         } else if (/^(install|add|run|exec)$/.test(token)) {
           parts.push(
-            <span key={match.index} className="text-purple-400 font-semibold">
+            <span key={match.index} className="text-purple-700 dark:text-purple-400 font-semibold">
               {token}
             </span>
           );
@@ -191,13 +191,13 @@ function highlightSyntax(rawCode: string, lang: string = "bash") {
 
       if (token.startsWith("//")) {
         parts.push(
-          <span key={match.index} className="text-neutral-500 italic">
+          <span key={match.index} className="text-zinc-500 dark:text-neutral-500 italic">
             {token}
           </span>
         );
       } else if (token.startsWith('"') || token.startsWith("'") || token.startsWith("`")) {
         parts.push(
-          <span key={match.index} className="text-emerald-400 dark:text-emerald-300">
+          <span key={match.index} className="text-emerald-700 dark:text-emerald-300">
             {token}
           </span>
         );
@@ -207,49 +207,49 @@ function highlightSyntax(rawCode: string, lang: string = "bash") {
         )
       ) {
         parts.push(
-          <span key={match.index} className="text-purple-400 font-semibold">
+          <span key={match.index} className="text-purple-700 dark:text-purple-400 font-semibold">
             {token}
           </span>
         );
       } else if (/^(true|false|null|undefined)$/.test(token)) {
         parts.push(
-          <span key={match.index} className="text-rose-400 font-bold">
+          <span key={match.index} className="text-rose-600 dark:text-rose-400 font-bold">
             {token}
           </span>
         );
       } else if (/^(string|number|boolean|any|unknown|never|void|Promise|Date|LShorter|LShorterClient|Record|Array|object)$/.test(token)) {
         parts.push(
-          <span key={match.index} className="text-cyan-400 font-medium">
+          <span key={match.index} className="text-cyan-700 dark:text-cyan-400 font-medium">
             {token}
           </span>
         );
       } else if (/^-?\d+(\.\d+)?$/.test(token)) {
         parts.push(
-          <span key={match.index} className="text-amber-400 font-mono">
+          <span key={match.index} className="text-amber-700 dark:text-amber-400 font-mono">
             {token}
           </span>
         );
       } else if (token === "=>") {
         parts.push(
-          <span key={match.index} className="text-purple-400 font-bold">
+          <span key={match.index} className="text-purple-700 dark:text-purple-400 font-bold">
             {token}
           </span>
         );
       } else if (line.slice(match.index + token.length).trim().startsWith(":")) {
         parts.push(
-          <span key={match.index} className="text-pink-400 font-medium">
+          <span key={match.index} className="text-pink-700 dark:text-pink-400 font-medium">
             {token}
           </span>
         );
       } else if (line.slice(match.index + token.length).trim().startsWith("(")) {
         parts.push(
-          <span key={match.index} className="text-sky-400 font-medium">
+          <span key={match.index} className="text-blue-700 dark:text-sky-400 font-medium">
             {token}
           </span>
         );
       } else {
         parts.push(
-          <span key={match.index} className="text-neutral-200">
+          <span key={match.index} className="text-zinc-800 dark:text-neutral-200">
             {token}
           </span>
         );
@@ -296,16 +296,16 @@ export function CodeBlock({
 
   return (
     <div
-      className={`rounded-[10px] border border-[#27272a] bg-[#0c0c0e] overflow-hidden text-xs font-mono text-neutral-200 shadow-2xl transition-all ${className}`}
+      className={`rounded-[10px] border border-zinc-200 dark:border-[#27272a] bg-zinc-50/60 dark:bg-[#0c0c0e] overflow-hidden text-xs font-mono text-zinc-800 dark:text-neutral-200 shadow-sm dark:shadow-2xl transition-all ${className}`}
     >
       {/* Top Window Bar (Traffic lights + Tabs/Title + Copy button) */}
-      <div className="flex items-center justify-between px-3.5 py-2.5 bg-[#141417] border-b border-[#222226] select-none">
+      <div className="flex items-center justify-between px-3.5 py-2.5 bg-zinc-100/90 dark:bg-[#141417] border-b border-zinc-200 dark:border-[#222226] select-none">
         {/* Left: macOS Traffic light dots & filename */}
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5 shrink-0">
-            <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f56]/90 border border-[#e0443e]/50" />
-            <div className="w-2.5 h-2.5 rounded-full bg-[#ffbd2e]/90 border border-[#dea123]/50" />
-            <div className="w-2.5 h-2.5 rounded-full bg-[#27c93f]/90 border border-[#1aab29]/50" />
+            <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f56]/90 border border-black/10 dark:border-[#e0443e]/50" />
+            <div className="w-2.5 h-2.5 rounded-full bg-[#ffbd2e]/90 border border-black/10 dark:border-[#dea123]/50" />
+            <div className="w-2.5 h-2.5 rounded-full bg-[#27c93f]/90 border border-black/10 dark:border-[#1aab29]/50" />
           </div>
 
           {/* Optional Tabs */}
@@ -320,8 +320,8 @@ export function CodeBlock({
                     onClick={() => setActiveTabIdx(idx)}
                     className={`px-2.5 py-1 rounded-[10px] text-[11px] transition-all cursor-pointer ${
                       isActive
-                        ? "bg-brand/15 text-brand border border-brand/40 font-bold shadow-sm"
-                        : "text-neutral-400 hover:text-neutral-200 hover:bg-white/5 border border-transparent font-medium"
+                        ? "bg-brand/15 text-brand border border-brand/40 font-bold shadow-xs"
+                        : "text-zinc-600 dark:text-neutral-400 hover:text-zinc-900 dark:hover:text-neutral-200 hover:bg-black/5 dark:hover:bg-white/5 border border-transparent font-medium"
                     }`}
                   >
                     {tab.name}
@@ -330,9 +330,9 @@ export function CodeBlock({
               })}
             </div>
           ) : (
-            <div className="flex items-center gap-1.5 text-neutral-400">
+            <div className="flex items-center gap-1.5 text-zinc-600 dark:text-neutral-400">
               <Terminal className="w-3.5 h-3.5 text-brand" />
-              <span className="text-[11px] font-medium text-neutral-300">
+              <span className="text-[11px] font-medium text-zinc-700 dark:text-neutral-300">
                 {activeFilename || activeLang}
               </span>
             </div>
@@ -341,7 +341,7 @@ export function CodeBlock({
 
         {/* Right: Language Badge & Copy Button */}
         <div className="flex items-center gap-2">
-          <span className="hidden sm:inline-block px-2 py-0.5 rounded-[10px] bg-white/5 text-[10px] uppercase font-bold text-neutral-400 border border-white/5">
+          <span className="hidden sm:inline-block px-2 py-0.5 rounded-[10px] bg-zinc-200/70 dark:bg-white/5 text-[10px] uppercase font-bold text-zinc-600 dark:text-neutral-400 border border-zinc-300/50 dark:border-white/5">
             {activeLang}
           </span>
 
@@ -350,19 +350,19 @@ export function CodeBlock({
             onClick={handleCopy}
             className={`flex items-center gap-1.5 px-2.5 py-1 rounded-[10px] border transition-all text-[11px] font-medium cursor-pointer ${
               copied
-                ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 shadow-sm"
-                : "bg-white/5 hover:bg-white/10 border-transparent text-neutral-300 hover:text-white"
+                ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 shadow-xs"
+                : "bg-black/5 hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10 border-black/5 dark:border-transparent text-zinc-700 hover:text-zinc-900 dark:text-neutral-300 dark:hover:text-white"
             }`}
             title="Copier le code"
           >
             {copied ? (
               <>
-                <Check className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-emerald-400 text-[10px]">Copié !</span>
+                <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                <span className="text-emerald-600 dark:text-emerald-400 text-[10px]">Copié !</span>
               </>
             ) : (
               <>
-                <Copy className="w-3.5 h-3.5 text-neutral-400" />
+                <Copy className="w-3.5 h-3.5 text-zinc-500 dark:text-neutral-400" />
                 <span className="text-[10px]">Copier</span>
               </>
             )}
@@ -371,18 +371,18 @@ export function CodeBlock({
       </div>
 
       {/* Code Display Area */}
-      <div className="p-4 overflow-x-auto custom-scrollbar">
+      <div className="p-4 overflow-x-auto custom-scrollbar bg-white dark:bg-[#0c0c0e]">
         <pre className="flex leading-relaxed font-mono">
           {showLineNumbers && (
-            <div className="select-none text-neutral-600 pr-4 text-right flex flex-col font-mono text-xs border-r border-white/5 mr-4 shrink-0">
+            <div className="select-none text-zinc-400 dark:text-neutral-600 pr-4 text-right flex flex-col font-mono text-xs border-r border-zinc-200 dark:border-white/5 mr-4 shrink-0">
               {lines.map((_, i) => (
-                <span key={i} className="leading-relaxed opacity-60">
+                <span key={i} className="leading-relaxed opacity-70">
                   {i + 1}
                 </span>
               ))}
             </div>
           )}
-          <code className="flex-1 font-mono text-neutral-100 whitespace-pre flex flex-col">
+          <code className="flex-1 font-mono text-zinc-800 dark:text-neutral-100 whitespace-pre flex flex-col">
             {highlightedLines.map((hLine, i) => (
               <div key={i} className="leading-relaxed">
                 {hLine}
