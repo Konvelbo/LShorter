@@ -32,6 +32,7 @@ import { ApiKeysPageSkeleton } from "@/components/ui/skeleton";
 import { showToast } from "@/components/ui/toast-provider";
 import { useUndoDelete } from "@/components/ui/undo-delete-provider";
 import { ApiKeyCreatedModal } from "@/components/dashboard/api-key-created-modal";
+import { ApiKeyDrawer } from "@/components/dashboard/api-key-drawer";
 import { CodeBlock } from "@/components/ui/code-block";
 import { getPlanLimits } from "@/lib/plan-guard";
 import confetti from "canvas-confetti";
@@ -43,8 +44,6 @@ export default function ApiSdkPage() {
   const [keys, setKeys] = useState<ApiKeyItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [keyNameInput, setKeyNameInput] = useState("");
-  const [keyScopeInput, setKeyScopeInput] = useState<"read" | "read_write">("read_write");
   const [isGenerating, setIsGenerating] = useState(false);
   const [newlyCreatedKey, setNewlyCreatedKey] = useState<ApiKeyItem | null>(
     null,
@@ -63,6 +62,7 @@ export default function ApiSdkPage() {
   };
 
   const userId = session?.user?.id;
+  const userPlan = (session?.user as any)?.plan || "FREE";
 
   const loadKeys = async (isBackground = false) => {
     if (!userId) return;
@@ -129,52 +129,6 @@ export default function ApiSdkPage() {
     navigator.clipboard.writeText(text);
     setCopiedKey(text);
     setTimeout(() => setCopiedKey(null), 2000);
-  };
-
-  const handleCreateKey = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!keyNameInput.trim() || !userId) return;
-
-    try {
-      const res = await cfCreateApiKey({
-        userId,
-        name: keyNameInput.trim(),
-        scope: keyScopeInput,
-        userEmail: session?.user?.email || undefined,
-        userName: session?.user?.name || undefined,
-        userFullName: session?.user?.name || undefined,
-      });
-
-      if (res?.data) {
-        const rawUserPlan = (session?.user as any)?.plan || "FREE";
-        const userPlan = rawUserPlan === "FREEMIUM" || rawUserPlan === "STARTER" ? "FREE" : rawUserPlan;
-        const planLimits = getPlanLimits(userPlan);
-        const currentRateLimit = `${planLimits.rateLimitReqPerMin} req / min`;
-
-        setNewlyCreatedKey({
-          id: res.data.id || `key_${Date.now()}`,
-          name: keyNameInput.trim(),
-          prefix: res.data.prefix || res.data.key_prefix || "lsh_live_...",
-          rawKey: res.data.raw_key || res.data.rawKey || res.data.api_key,
-          scope: keyScopeInput,
-          rateLimit: currentRateLimit,
-          userEmail: session?.user?.email || undefined,
-          userName: session?.user?.name || undefined,
-          userFullName: session?.user?.name || undefined,
-          email: session?.user?.email || undefined,
-          fullName: session?.user?.name || undefined,
-          created_at: new Date().toISOString(),
-        });
-      }
-
-      setKeyNameInput("");
-      setIsGenerating(false);
-      confetti({ particleCount: 50, spread: 70, origin: { y: 0.6 } });
-      showToast.success("API key generated successfully!");
-      loadKeys();
-    } catch (err: any) {
-      showToast.error(err.message || "Error creating API key.");
-    }
   };
 
   const promptRevokeKeyWithUndo = (key: ApiKeyItem) => {
@@ -301,9 +255,9 @@ console.log("Top Countries:", topAudience.topCountries);`,
           </Button>
 
           <Button
-            onClick={() => setIsGenerating(!isGenerating)}
+            onClick={() => setIsGenerating(true)}
             variant="glow"
-            className="font-bebas text-lg tracking-wide gap-1.5 shrink-0"
+            className="font-bebas text-lg tracking-wide gap-1.5 shrink-0 cursor-pointer"
           >
             <Plus className="w-5 h-5" />
             <span>GENERATE API KEY</span>
@@ -311,79 +265,18 @@ console.log("Top Countries:", topAudience.topCountries);`,
         </div>
       </div>
 
-      {/* Key Generation Drawer */}
-      {isGenerating && (
-        <form
-          onSubmit={handleCreateKey}
-          className="p-5 rounded-[10px] bg-white dark:bg-[#111113] text-[#09090B] dark:text-white border border-zinc-200 dark:border-[#222225] shadow-xs flex flex-col gap-4 animate-in fade-in"
-        >
-          <div className="flex items-center justify-between">
-            <h3 className="text-base font-bold text-[#09090B] dark:text-white flex items-center gap-2">
-              <KeyRound className="w-4 h-4 text-brand" />
-              <span>Generate a new API key</span>
-            </h3>
-            <button
-              type="button"
-              onClick={() => setIsGenerating(false)}
-              className="text-xs text-zinc-500 dark:text-neutral-400 hover:text-[#09090B] dark:hover:text-white cursor-pointer"
-            >
-              Close ✕
-            </button>
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-            <div className="flex-1">
-              <Input
-                required
-                placeholder="Application name (e.g. Telegram Bot, Zapier, Backend Worker...)"
-                value={keyNameInput}
-                onChange={(e) => setKeyNameInput(e.target.value)}
-                className="h-10 text-xs bg-zinc-50 dark:bg-[#0c0c0e] text-[#09090B] dark:text-white border-black/[0.08] dark:border-[#27272a]"
-              />
-            </div>
-            <div className="w-full sm:w-56 shrink-0">
-              <select
-                value={keyScopeInput}
-                onChange={(e) =>
-                  setKeyScopeInput(
-                    e.target.value as "read" | "read_write",
-                  )
-                }
-                className="w-full h-10 rounded-[10px] bg-zinc-50 dark:bg-[#0c0c0e] text-[#09090B] dark:text-white border border-black/[0.08] dark:border-[#27272a] px-3 text-xs focus:outline-none focus:border-brand cursor-pointer"
-              >
-                <option
-                  value="read_write"
-                  className="bg-white dark:bg-[#111113] text-[#09090B] dark:text-white"
-                >
-                  Read & Write
-                </option>
-                <option
-                  value="read"
-                  className="bg-white dark:bg-[#111113] text-[#09090B] dark:text-white"
-                >
-                  Read Only
-                </option>
-              </select>
-            </div>
-            <Button
-              type="submit"
-              variant="glow"
-              className="shrink-0 h-10 px-6 text-xs font-bold gap-1.5 cursor-pointer shadow-md"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Create key</span>
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setIsGenerating(false)}
-              className="shrink-0 h-10 px-4 text-xs font-semibold border-black/[0.08] dark:border-[#27272a] text-[#09090B] dark:text-white cursor-pointer"
-            >
-              Cancel
-            </Button>
-          </div>
-        </form>
-      )}
+      {/* Key Generation Sliding Drawer */}
+      <ApiKeyDrawer
+        isOpen={isGenerating}
+        onClose={() => setIsGenerating(false)}
+        onCreated={(newKey) => {
+          setNewlyCreatedKey(newKey);
+          loadKeys();
+        }}
+        userId={userId}
+        userPlan={userPlan}
+        userEmail={session?.user?.email || undefined}
+      />
 
       {/* Active API Keys List */}
       <div className="rounded-[10px] bg-white dark:bg-[#111113] text-[#09090B] dark:text-white border border-black/[0.08] dark:border-[#222225] p-5 shadow-sm flex flex-col gap-4">

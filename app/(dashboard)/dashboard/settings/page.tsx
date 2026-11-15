@@ -98,6 +98,9 @@ import {
   TargetAlert,
 } from "@/types";
 import { ApiKeyCreatedModal } from "@/components/dashboard/api-key-created-modal";
+import { ApiKeyDrawer } from "@/components/dashboard/api-key-drawer";
+import { PixelDrawer } from "@/components/dashboard/pixel-drawer";
+import { DomainDrawer } from "@/components/dashboard/domain-drawer";
 import { TwoFactorSetupModal } from "@/components/dashboard/two-factor-setup-modal";
 import { TwoFactorRecoveryModal } from "@/components/dashboard/two-factor-recovery-modal";
 import { CancellationFeedbackModal } from "@/components/feedback/cancellation-feedback-modal";
@@ -724,8 +727,6 @@ function SettingsPageContent() {
 
   // ─── API Keys State ─────────────────────────────────────────────────────────
   const [apiKeys, setApiKeys] = useState<ApiKeyItem[]>([]);
-  const [newKeyName, setNewKeyName] = useState("");
-  const [newKeyScope, setNewKeyScope] = useState<"read" | "read_write">("read_write");
   const [activeCodeTab, setActiveCodeTab] = useState<
     "create" | "track" | "analytics"
   >("create");
@@ -734,7 +735,6 @@ function SettingsPageContent() {
   );
   const [revealedKeys, setRevealedKeys] = useState<Record<string, boolean>>({});
   const [copiedKeyId, setCopiedKeyId] = useState<string | null>(null);
-  const [isCreatingKey, setIsCreatingKey] = useState(false);
   const [isLoadingApiKeys, setIsLoadingApiKeys] = useState(false);
 
   const toggleRevealKey = (id: string) => {
@@ -813,6 +813,9 @@ console.log("Top Countries:", topAudience.topCountries);`,
   const [isWebhookModalOpen, setIsWebhookModalOpen] = useState(false);
   const [webhookToEdit, setWebhookToEdit] = useState<WebhookModalData | null>(null);
   const [isSavingWebhookModal, setIsSavingWebhookModal] = useState(false);
+  const [isApiKeyDrawerOpen, setIsApiKeyDrawerOpen] = useState(false);
+  const [isPixelDrawerOpen, setIsPixelDrawerOpen] = useState(false);
+  const [isDomainDrawerOpen, setIsDomainDrawerOpen] = useState(false);
 
   const loadWebhooks = async () => {
     if (!userId) return;
@@ -847,11 +850,6 @@ console.log("Top Countries:", topAudience.topCountries);`,
 
   // ─── Pixels State (Cloudflare D1 & Sync) ────────────────────────────────────
   const [pixels, setPixels] = useState<any[]>([]);
-  const [newPixelId, setNewPixelId] = useState("");
-  const [newPixelName, setNewPixelName] = useState("");
-  const [newPixelPlatform, setNewPixelPlatform] = useState<
-    "meta" | "google" | "tiktok" | "linkedin"
-  >("meta");
   const [isLoadingPixels, setIsLoadingPixels] = useState(false);
 
   const loadPixels = async () => {
@@ -1687,46 +1685,6 @@ console.log("Top Countries:", topAudience.topCountries);`,
     }
   };
 
-  const handleCreateApiKey = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (isCreatingKey) return;
-    if (!newKeyName.trim() || !userId) return;
-
-    setIsCreatingKey(true);
-    try {
-      const res = await cfCreateApiKey({
-        userId,
-        name: newKeyName.trim(),
-        scope: newKeyScope,
-      });
-      if (res?.data) {
-        const rawUserPlan = (session?.user as any)?.plan || "FREE";
-        const userPlan = rawUserPlan === "FREEMIUM" || rawUserPlan === "STARTER" ? "FREE" : rawUserPlan;
-        const planLimits = getPlanLimits(userPlan);
-        const currentRateLimit = `${planLimits.rateLimitReqPerMin} req / min`;
-
-        const generatedKeyData: ApiKeyItem = {
-          id: res.data.id || `key_${Date.now()}`,
-          name: newKeyName.trim(),
-          prefix: res.data.prefix || res.data.key_prefix || "lsh_live_...",
-          rawKey: res.data.raw_key || res.data.rawKey || res.data.api_key,
-          scope: newKeyScope,
-          rateLimit: currentRateLimit,
-          created_at: new Date().toISOString(),
-        };
-        setCreatedKeyModal(generatedKeyData);
-      }
-      setNewKeyName("");
-      confetti({ particleCount: 40, spread: 60 });
-      showToast.success("API key created successfully!");
-      await loadApiKeys();
-    } catch (err: any) {
-      showToast.error(err.message || "Error creating API key.");
-    } finally {
-      setIsCreatingKey(false);
-    }
-  };
-
   const promptRevokeKeyWithUndo = (k: ApiKeyItem) => {
     const originalIndex = apiKeys.findIndex((item) => item.id === k.id);
     setApiKeys((prev) => prev.filter((item) => item.id !== k.id));
@@ -1897,50 +1855,6 @@ console.log("Top Countries:", topAudience.topCountries);`,
       showToast.error("Webhook test failed");
     } finally {
       setIsTestingWebhook(false);
-    }
-  };
-
-  const handleAddPixel = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (plan === "FREEMIUM") {
-      triggerPlanUpgrade({
-        featureName: "Retargeting Pixels",
-        reason:
-          "Ad Retargeting Pixels are reserved for PRO and BUSINESS plans.",
-        targetPlan: "PRO",
-      });
-      return;
-    }
-    if (!newPixelId.trim() || !userId) return;
-    const nameMap: Record<string, string> = {
-      meta: "Meta Facebook Pixel",
-      google: "Google Analytics (GA4)",
-      tiktok: "TikTok Ads Tag",
-      linkedin: "LinkedIn Insight Tag",
-    };
-    try {
-      const pName =
-        newPixelName.trim() || nameMap[newPixelPlatform] || "Pixel Tag";
-      const platformMap: Record<string, "facebook" | "google_tag" | "tiktok" | "linkedin"> = {
-        meta: "facebook",
-        google: "google_tag",
-        tiktok: "tiktok",
-        linkedin: "linkedin",
-      };
-      const apiPlatform = platformMap[newPixelPlatform] || (newPixelPlatform as any);
-      await cfCreatePixel({
-        userId,
-        platform: apiPlatform,
-        pixelId: newPixelId.trim(),
-        name: pName,
-        isActive: true,
-      });
-      setNewPixelId("");
-      setNewPixelName("");
-      showToast.success("Retargeting pixel connected!");
-      loadPixels();
-    } catch (err: any) {
-      showToast.error(err?.message || "Failed to create pixel");
     }
   };
 
@@ -2668,71 +2582,15 @@ console.log("Top Countries:", topAudience.topCountries);`,
                     Generate secure <code className="text-brand">lsh_live_...</code> tokens with granular permissions to integrate your applications.
                   </p>
                 </div>
-              </div>
-
-              {/* Create Key Card */}
-              <div className="p-5 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225] flex flex-col gap-4">
-                <h3 className="text-xs font-bold text-zinc-700 dark:text-neutral-300 uppercase tracking-wider flex items-center gap-2">
-                  <Plus className="w-3.5 h-3.5 text-brand" />
-                  <span>Generate a new API key</span>
-                </h3>
-
-                <form
-                  onSubmit={handleCreateApiKey}
-                  className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3"
+                <Button
+                  type="button"
+                  variant="glow"
+                  onClick={() => setIsApiKeyDrawerOpen(true)}
+                  className="h-9 px-4 text-xs font-semibold gap-1.5 shrink-0 rounded-[8px] cursor-pointer shadow-xs"
                 >
-                  <div className="flex-1">
-                    <Input
-                      required
-                      placeholder="Application name (e.g. Telegram Bot, Zapier, Webhook...)"
-                      value={newKeyName}
-                      onChange={(e) => setNewKeyName(e.target.value)}
-                      className="h-10 text-xs bg-white dark:bg-[#0c0c0e] border-zinc-200 dark:border-[#27272a]"
-                    />
-                  </div>
-                  <div className="w-full sm:w-56 shrink-0">
-                    <select
-                      value={newKeyScope}
-                      onChange={(e) =>
-                        setNewKeyScope(
-                          e.target.value as "read" | "read_write",
-                        )
-                      }
-                      className="w-full h-10 rounded-[10px] bg-white dark:bg-[#0c0c0e] text-zinc-900 dark:text-white border border-zinc-200 dark:border-[#27272a] px-3 text-xs focus:outline-none focus:border-brand cursor-pointer"
-                    >
-                      <option
-                        value="read_write"
-                        className="bg-white dark:bg-[#141416] text-zinc-900 dark:text-white"
-                      >
-                        Read & Write
-                      </option>
-                      <option
-                        value="read"
-                        className="bg-white dark:bg-[#141416] text-zinc-900 dark:text-white"
-                      >
-                        Read Only
-                      </option>
-                    </select>
-                  </div>
-                  <Button
-                    type="submit"
-                    variant="glow"
-                    disabled={isCreatingKey || !newKeyName.trim()}
-                    className="shrink-0 h-10 px-5 text-xs font-bold gap-1.5 shadow-md cursor-pointer disabled:opacity-50"
-                  >
-                    {isCreatingKey ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>Création en cours...</span>
-                      </>
-                    ) : (
-                      <>
-                        <KeyRound className="w-4 h-4" />
-                        <span>Generate Key</span>
-                      </>
-                    )}
-                  </Button>
-                </form>
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Nouvelle Clé API</span>
+                </Button>
               </div>
 
               {/* Active Keys Section */}
@@ -2743,7 +2601,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                   </h3>
                 </div>
 
-                {isLoadingApiKeys && !isCreatingKey && apiKeys.length === 0 ? (
+                {isLoadingApiKeys && apiKeys.length === 0 ? (
                   <div className="grid grid-cols-1 gap-3">
                     {[1, 2].map((i) => (
                       <div
@@ -2769,46 +2627,29 @@ console.log("Top Countries:", topAudience.topCountries);`,
                       </div>
                     ))}
                   </div>
-                ) : apiKeys.length === 0 && !isCreatingKey ? (
+                ) : apiKeys.length === 0 ? (
                   <div className="py-12 px-4 text-center flex flex-col items-center justify-center gap-2.5 bg-white dark:bg-[#111113] rounded-[10px] border border-zinc-200 dark:border-[#222225]">
                     <div className="w-10 h-10 rounded-[10px] bg-zinc-200/70 dark:bg-neutral-800/60 border border-zinc-300 dark:border-neutral-700/40 flex items-center justify-center text-zinc-500 dark:text-neutral-500">
                       <KeyRound className="w-5 h-5" />
                     </div>
                     <p className="text-xs font-semibold text-zinc-700 dark:text-neutral-300">
-                      No active API keys yet
+                      Aucune clé API active pour le moment
                     </p>
                     <p className="text-[11px] text-zinc-500 dark:text-neutral-500 max-w-xs">
-                      Use the form above to generate your first authentication
-                      key.
+                      Générez votre premier jeton d&apos;authentification pour intégrer vos applications.
                     </p>
+                    <Button
+                      size="sm"
+                      variant="glow"
+                      onClick={() => setIsApiKeyDrawerOpen(true)}
+                      className="mt-2 h-8 px-4 text-xs font-semibold gap-1.5 cursor-pointer shadow-xs"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Générer une Clé API</span>
+                    </Button>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 gap-3">
-                    {/* Animated Skeleton Card when creating key */}
-                    {isCreatingKey && (
-                      <div className="p-4 rounded-[10px] bg-zinc-50/80 dark:bg-[#141416] border border-blue-500/40 dark:border-blue-500/30 animate-pulse flex flex-col gap-3 shadow-xs">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <div className="flex items-center gap-2.5">
-                            <span className="relative flex h-2 w-2">
-                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                              <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
-                            </span>
-                            <div className="h-4 w-32 bg-blue-200/70 dark:bg-blue-900/50 rounded-md" />
-                            <div className="h-5 w-20 bg-blue-500/20 rounded-[6px]" />
-                            <div className="h-5 w-24 bg-zinc-200 dark:bg-neutral-800 rounded-[6px]" />
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <div className="h-7 w-20 bg-zinc-200 dark:bg-neutral-800 rounded-md" />
-                            <div className="h-7 w-16 bg-zinc-200 dark:bg-neutral-800 rounded-md" />
-                            <div className="h-7 w-7 bg-zinc-200 dark:bg-neutral-800 rounded-md" />
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-between gap-2 pt-2 border-t border-zinc-200/70 dark:border-[#222225]">
-                          <div className="h-4 w-64 sm:w-80 bg-zinc-200 dark:bg-neutral-800 rounded font-mono" />
-                          <div className="h-3 w-24 bg-zinc-200 dark:bg-neutral-800 rounded" />
-                        </div>
-                      </div>
-                    )}
                     {apiKeys.map((k) => {
                       const isRevealed = Boolean(revealedKeys[k.id]);
                       const actualKey = k.rawKey || k.prefix;
@@ -3019,6 +2860,19 @@ console.log("Top Countries:", topAudience.topCountries);`,
                 filename={`sdk - ${activeCodeTab}.ts`}
                 className="min-h-150 sm:min-h-150"
               />
+
+              {/* API Key Sliding Drawer */}
+              <ApiKeyDrawer
+                isOpen={isApiKeyDrawerOpen}
+                onClose={() => setIsApiKeyDrawerOpen(false)}
+                onCreated={(newKey) => {
+                  setCreatedKeyModal(newKey);
+                  loadApiKeys();
+                }}
+                userId={userId}
+                userPlan={plan}
+                userEmail={session?.user?.email || undefined}
+              />
             </div>
           )}
 
@@ -3035,13 +2889,25 @@ console.log("Top Countries:", topAudience.topCountries);`,
                     names.
                   </p>
                 </div>
-                <Button
-                  size="sm"
-                  variant="glow"
-                  onClick={() => router.push("/dashboard/domains")}
-                >
-                  Manage Domains
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => router.push("/dashboard/domains")}
+                    className="h-8.5 text-xs font-medium cursor-pointer"
+                  >
+                    Manage Domains
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="glow"
+                    onClick={() => setIsDomainDrawerOpen(true)}
+                    className="h-8.5 text-xs font-semibold gap-1.5 cursor-pointer shadow-xs"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Connecter un Domaine</span>
+                  </Button>
+                </div>
               </div>
 
               {accountStats.userDomains.length === 0 ? (
@@ -3059,10 +2925,11 @@ console.log("Top Countries:", topAudience.topCountries);`,
                   <Button
                     size="sm"
                     variant="glow"
-                    onClick={() => router.push("/dashboard/domains")}
-                    className="mt-2"
+                    onClick={() => setIsDomainDrawerOpen(true)}
+                    className="mt-2 h-8.5 text-xs font-semibold gap-1.5 cursor-pointer shadow-xs"
                   >
-                    Add a Domain
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Connecter un Domaine</span>
                   </Button>
                 </div>
               ) : (
@@ -3098,6 +2965,26 @@ console.log("Top Countries:", topAudience.topCountries);`,
                   ))}
                 </div>
               )}
+
+              {/* Domain Sliding Drawer */}
+              <DomainDrawer
+                isOpen={isDomainDrawerOpen}
+                onClose={() => setIsDomainDrawerOpen(false)}
+                onCreated={loadAccountStats}
+                userId={userId}
+                userEmail={session?.user?.email || undefined}
+                userName={session?.user?.name || undefined}
+                plan={plan}
+                domainsCount={accountStats.userDomains.length}
+                domainsLimit={domainsLimit}
+                onUpgrade={() =>
+                  triggerPlanUpgrade({
+                    featureName: "Custom Domains",
+                    reason: `Your ${plan} plan is limited to ${domainsLimit} custom domains. Upgrade to add more.`,
+                    targetPlan: plan === "FREE" ? "PRO" : "BUSINESS",
+                  })
+                }
+              />
             </div>
           )}
 
@@ -3412,62 +3299,36 @@ console.log("Top Countries:", topAudience.topCountries);`,
                 </div>
               )}
 
-              <div className="p-4 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225] shadow-xs">
-                <form
-                  onSubmit={handleAddPixel}
-                  className="grid grid-cols-1 sm:grid-cols-4 gap-2"
+              <div className="flex items-center justify-between gap-3 p-4 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225] shadow-xs">
+                <div className="flex flex-col min-w-0">
+                  <span className="text-xs font-bold text-zinc-900 dark:text-white">
+                    Pixels de reciblage ({pixels.length})
+                  </span>
+                  <span className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate">
+                    Associez vos audiences publicitaires Meta, Google, TikTok et LinkedIn à vos redirections
+                  </span>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="glow"
+                  onClick={() => {
+                    if (plan === "FREEMIUM" || plan === "STARTER") {
+                      triggerPlanUpgrade({
+                        featureName: "Retargeting Pixels",
+                        reason:
+                          "Upgrade to PRO to unlock Meta, Google, TikTok, and LinkedIn pixel retargeting.",
+                        targetPlan: "PRO",
+                      });
+                      return;
+                    }
+                    setIsPixelDrawerOpen(true);
+                  }}
+                  className="h-8.5 px-3.5 text-xs font-semibold gap-1.5 shrink-0 rounded-[8px] cursor-pointer shadow-xs"
                 >
-                  <select
-                    value={newPixelPlatform}
-                    onChange={(e) => setNewPixelPlatform(e.target.value as any)}
-                    className="h-9 rounded-[8px] bg-white dark:bg-[#161619] text-zinc-900 dark:text-white border border-zinc-200 dark:border-[#27272a] px-3 text-xs focus:outline-none focus:border-brand cursor-pointer"
-                  >
-                    <option
-                      value="meta"
-                      className="bg-white dark:bg-[#161619] text-zinc-900 dark:text-white"
-                    >
-                      Meta Facebook Pixel
-                    </option>
-                    <option
-                      value="google"
-                      className="bg-white dark:bg-[#161619] text-zinc-900 dark:text-white"
-                    >
-                      Google Analytics (GA4)
-                    </option>
-                    <option
-                      value="tiktok"
-                      className="bg-white dark:bg-[#161619] text-zinc-900 dark:text-white"
-                    >
-                      TikTok Ads Pixel
-                    </option>
-                    <option
-                      value="linkedin"
-                      className="bg-white dark:bg-[#161619] text-zinc-900 dark:text-white"
-                    >
-                      LinkedIn Insight Tag
-                    </option>
-                  </select>
-                  <Input
-                    placeholder="Pixel Name (e.g. My Meta Ads)"
-                    value={newPixelName}
-                    onChange={(e) => setNewPixelName(e.target.value)}
-                    className="bg-white dark:bg-[#161619] border-zinc-200 dark:border-[#27272a] text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-neutral-500 h-9"
-                  />
-                  <Input
-                    required
-                    placeholder="Pixel ID (e.g. 987654321 or G-XXXXXX)"
-                    value={newPixelId}
-                    onChange={(e) => setNewPixelId(e.target.value)}
-                    className="bg-white dark:bg-[#161619] border-zinc-200 dark:border-[#27272a] text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-neutral-500 h-9"
-                  />
-                  <Button
-                    type="submit"
-                    size="sm"
-                    className="text-xs h-9 px-4 font-semibold bg-brand hover:bg-brand-hover text-white rounded-[8px] cursor-pointer"
-                  >
-                    Connect Pixel
-                  </Button>
-                </form>
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Nouveau Pixel</span>
+                </Button>
               </div>
 
               <div className="flex flex-col gap-2.5">
@@ -3476,8 +3337,38 @@ console.log("Top Countries:", topAudience.topCountries);`,
                     Loading connected pixels...
                   </div>
                 ) : pixels.length === 0 ? (
-                  <div className="py-8 text-center text-xs text-zinc-500 dark:text-neutral-400 bg-white dark:bg-[#111113] rounded-[10px] border border-zinc-200 dark:border-[#222225] shadow-xs">
-                    No retargeting pixels configured. Connect your first tag above to start syncing audiences.
+                  <div className="py-12 flex flex-col items-center justify-center text-center gap-3 bg-white dark:bg-[#111113] rounded-[10px] border border-dashed border-zinc-200 dark:border-[#222225] shadow-xs px-4">
+                    <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                      <Target className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-zinc-900 dark:text-white">
+                        Aucun pixel configuré
+                      </p>
+                      <p className="text-[11px] text-zinc-500 dark:text-neutral-400 max-w-sm mt-0.5">
+                        Connectez vos tags publicitaires Meta, Google, TikTok ou LinkedIn pour recibler vos visiteurs.
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => {
+                        if (plan === "FREEMIUM" || plan === "STARTER") {
+                          triggerPlanUpgrade({
+                            featureName: "Retargeting Pixels",
+                            reason:
+                              "Upgrade to PRO to unlock Meta, Google, TikTok, and LinkedIn pixel retargeting.",
+                            targetPlan: "PRO",
+                          });
+                          return;
+                        }
+                        setIsPixelDrawerOpen(true);
+                      }}
+                      className="h-8 text-xs px-3 font-semibold bg-brand hover:bg-brand-hover text-white rounded-[8px] cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5 mr-1" />
+                      Connecter un Pixel
+                    </Button>
                   </div>
                 ) : (
                   pixels.map((px: any) => (
@@ -3531,6 +3422,22 @@ console.log("Top Countries:", topAudience.topCountries);`,
                   ))
                 )}
               </div>
+
+              <PixelDrawer
+                isOpen={isPixelDrawerOpen}
+                onClose={() => setIsPixelDrawerOpen(false)}
+                onCreated={loadPixels}
+                userId={userId}
+                plan={plan}
+                onUpgrade={() =>
+                  triggerPlanUpgrade({
+                    featureName: "Retargeting Pixels",
+                    reason:
+                      "Upgrade to PRO to unlock Meta, Google, TikTok, and LinkedIn pixel retargeting.",
+                    targetPlan: "PRO",
+                  })
+                }
+              />
             </div>
           )}
 

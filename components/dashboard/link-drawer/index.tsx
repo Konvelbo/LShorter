@@ -1874,7 +1874,7 @@ export function LinkDrawer({
         }}
         className={cn(
           "fixed top-0 right-0 bottom-0 z-[2001] flex h-full flex-col [contain:layout_paint_style]",
-          "w-full sm:w-[680px] md:w-[740px] lg:w-[780px] max-w-full",
+          "w-full sm:w-[760px] md:w-[840px] lg:w-[920px] max-w-full",
           "bg-white dark:bg-[#0e0f12] text-[#131417] dark:text-[#f1f2f4]",
           "border-l border-[#e6e7ea] dark:border-[#22242a]",
           "transform-gpu will-change-transform transition-transform duration-220",

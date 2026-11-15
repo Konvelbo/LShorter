@@ -35,6 +35,7 @@ import { showToast } from "@/components/ui/toast-provider";
 import { useUndoDelete } from "@/components/ui/undo-delete-provider";
 import { getPlanLimits, triggerPlanUpgrade } from "@/lib/plan-guard";
 import confetti from "canvas-confetti";
+import { DomainDrawer } from "@/components/dashboard/domain-drawer";
 
 export default function DomainsPage() {
   const { triggerUndoDelete } = useUndoDelete();
@@ -43,170 +44,9 @@ export default function DomainsPage() {
   const [domains, setDomains] = useState<CustomDomain[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [newDomainInput, setNewDomainInput] = useState("");
-  const [domainError, setDomainError] = useState<string | null>(null);
-  const [isSubmittingDomain, setIsSubmittingDomain] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const [copiedValue, setCopiedValue] = useState<string | null>(null);
   const [isVerifyingId, setIsVerifyingId] = useState<string | null>(null);
-
-  // Real-time detection of non-normalized characters & syntax validation
-  const domainValidation = React.useMemo(() => {
-    const raw = newDomainInput;
-    if (!raw) {
-      return {
-        isValid: false,
-        hasNonNormalized: false,
-        issues: [] as string[],
-        normalizedSuggestion: "",
-      };
-    }
-
-    const issues: string[] = [];
-    let hasNonNormalized = false;
-
-    if (/[A-Z]/.test(raw)) {
-      hasNonNormalized = true;
-      issues.push(
-        "Caractères majuscules détectés (les noms de domaine DNS doivent être en minuscules).",
-      );
-    }
-    if (/\s/.test(raw)) {
-      hasNonNormalized = true;
-      issues.push("Espaces détectés dans le champ de saisie.");
-    }
-    if (
-      /^https?:\/\//i.test(raw) ||
-      raw.includes("/") ||
-      raw.includes("?") ||
-      raw.includes("#") ||
-      raw.includes(":")
-    ) {
-      hasNonNormalized = true;
-      issues.push(
-        "Protocole (http/https), barre oblique (/) ou port détecté — saisissez uniquement l'hôte (ex: link.marque.com).",
-      );
-    }
-    if (/[^\x00-\x7F]/.test(raw)) {
-      hasNonNormalized = true;
-      issues.push(
-        "Caractères accentués ou Unicode non normalisés détectés (utilisez l'alphabet ASCII standard a-z, 0-9, -).",
-      );
-    }
-    const invalidChars = raw
-      .replace(/^https?:\/\//i, "")
-      .match(/[^a-zA-Z0-9.-]/g);
-    if (invalidChars && invalidChars.length > 0) {
-      hasNonNormalized = true;
-      const uniqueInvalid = Array.from(new Set(invalidChars)).join(" ");
-      issues.push(`Caractères spéciaux interdits détectés : ${uniqueInvalid}`);
-    }
-
-    const cleaned = raw
-      .trim()
-      .toLowerCase()
-      .replace(/^https?:\/\//i, "")
-      .split("/")[0]
-      .split("?")[0]
-      .split(":")[0]
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-z0-9.-]/g, "");
-
-    const labels = cleaned.split(".");
-    const domainRegex =
-      /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,24}$/;
-    const isSyntaxValid =
-      !hasNonNormalized &&
-      domainRegex.test(cleaned) &&
-      labels.length >= 2 &&
-      !cleaned.includes("..") &&
-      !labels.some((l) => l.startsWith("-") || l.endsWith("-"));
-
-    if (!hasNonNormalized && cleaned.length > 0 && !isSyntaxValid) {
-      issues.push(
-        "Format de domaine incomplet ou extension TLD invalide (ex: link.mycompany.com).",
-      );
-    }
-
-    return {
-      isValid: isSyntaxValid,
-      hasNonNormalized,
-      issues,
-      normalizedSuggestion: cleaned,
-    };
-  }, [newDomainInput]);
-
-  // Verify via Cloudflare DNS-over-HTTPS that the root/registrable domain actually exists on the internet
-  const verifyDomainExistsOnDns = async (
-    hostname: string,
-  ): Promise<{ exists: boolean; reason?: string }> => {
-    const parts = hostname.toLowerCase().split(".");
-    const tld = parts[parts.length - 1];
-    const reservedTlds = [
-      "test",
-      "invalid",
-      "localhost",
-      "local",
-      "example",
-      "internal",
-      "lan",
-    ];
-    if (reservedTlds.includes(tld)) {
-      return {
-        exists: false,
-        reason: `L'extension .${tld} est réservée et n'existe pas sur le réseau DNS public.`,
-      };
-    }
-
-    // Check registrable root domain (last 2 labels, or last 3 for co.uk / com.fr etc.)
-    const rootDomain = parts.length > 2 ? parts.slice(-2).join(".") : hostname;
-    try {
-      const [nsRes, aRes] = await Promise.all([
-        fetch(
-          `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(rootDomain)}&type=NS`,
-          {
-            headers: { Accept: "application/dns-json" },
-          },
-        ),
-        fetch(
-          `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(hostname)}&type=A`,
-          {
-            headers: { Accept: "application/dns-json" },
-          },
-        ),
-      ]);
-
-      if (!nsRes.ok) return { exists: true };
-      const nsData = await nsRes.json();
-      const aData = aRes.ok ? await aRes.json() : null;
-
-      // RCODE 3 = NXDOMAIN (Non-Existent Domain)
-      if (nsData.Status === 3) {
-        return {
-          exists: false,
-          reason: `Le domaine "${rootDomain}" n'existe pas (NXDOMAIN). Aucun serveur DNS n'est associé à ce nom de domaine.`,
-        };
-      }
-
-      const hasNsOrAuthority =
-        (Array.isArray(nsData.Answer) && nsData.Answer.length > 0) ||
-        (Array.isArray(nsData.Authority) && nsData.Authority.length > 0) ||
-        (aData && Array.isArray(aData.Answer) && aData.Answer.length > 0);
-
-      if (!hasNsOrAuthority) {
-        return {
-          exists: false,
-          reason: `Impossible de trouver d'enregistrement DNS actif pour "${rootDomain}". Vérifiez que vous avez bien enregistré ce domaine.`,
-        };
-      }
-
-      return { exists: true };
-    } catch {
-      // If offline/CORS blocked, fall back to strict syntax check
-      return { exists: true };
-    }
-  };
 
   // Filters & Search
   const [searchQuery, setSearchQuery] = useState("");
@@ -325,70 +165,6 @@ export default function DomainsPage() {
     navigator.clipboard.writeText(val);
     setCopiedValue(val);
     setTimeout(() => setCopiedValue(null), 2000);
-  };
-
-  const handleAddDomain = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setDomainError(null);
-    if (!newDomainInput.trim() || !userId) return;
-
-    if (domainValidation.hasNonNormalized || !domainValidation.isValid) {
-      const msg =
-        domainValidation.issues[0] ||
-        "Nom de domaine invalide ou contenant des caractères non normalisés.";
-      setDomainError(msg);
-      showToast.error(msg);
-      return;
-    }
-
-    if (domainsLimit !== -1 && domains.length >= domainsLimit) {
-      triggerPlanUpgrade({
-        featureName: "Custom Domains",
-        reason: `Your ${plan} plan is limited to ${domainsLimit} custom domains. Upgrade to add more.`,
-        targetPlan: plan === "FREE" ? "PRO" : "BUSINESS",
-      });
-      showToast.error(
-        `Your ${plan} plan is limited to ${domainsLimit} custom domains. Upgrade to add more.`,
-      );
-      return;
-    }
-
-    const cleanHost = domainValidation.normalizedSuggestion;
-    setIsSubmittingDomain(true);
-
-    try {
-      const dnsCheck = await verifyDomainExistsOnDns(cleanHost);
-      if (!dnsCheck.exists) {
-        const errReason =
-          dnsCheck.reason ||
-          `Le domaine "${cleanHost}" n'existe pas sur le réseau DNS public.`;
-        setDomainError(errReason);
-        showToast.error(errReason);
-        setIsSubmittingDomain(false);
-        return;
-      }
-
-      await cfAddDomain({
-        userId,
-        domain: cleanHost,
-        userEmail: session?.user?.email || undefined,
-        userName: session?.user?.name || undefined,
-        userFullName: session?.user?.name || undefined,
-      });
-      setNewDomainInput("");
-      setDomainError(null);
-      setIsAdding(false);
-      confetti({ particleCount: 40, spread: 60, origin: { y: 0.6 } });
-      showToast.success(
-        `Domain "${cleanHost}" declared! Configure your DNS records below.`,
-      );
-      loadDomains();
-    } catch (err: any) {
-      setDomainError(err.message || "Error adding domain.");
-      showToast.error(err.message || "Error adding domain.");
-    } finally {
-      setIsSubmittingDomain(false);
-    }
   };
 
   const handleVerify = async (dom: CustomDomain) => {
@@ -511,12 +287,9 @@ export default function DomainsPage() {
           </Button>
 
           <Button
-            onClick={() => {
-              setIsAdding(!isAdding);
-              setDomainError(null);
-            }}
+            onClick={() => setIsAdding(true)}
             variant="glow"
-            className="h-8.5 px-3 text-xs font-semibold tracking-wide gap-1.5 shrink-0 bg-[#465FFF] hover:bg-[#3b51e6] text-white shadow-xs rounded-lg"
+            className="h-8.5 px-3 text-xs font-semibold tracking-wide gap-1.5 shrink-0 bg-[#465FFF] hover:bg-[#3b51e6] text-white shadow-xs rounded-lg cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>ADD A DOMAIN</span>
@@ -524,160 +297,29 @@ export default function DomainsPage() {
         </div>
       </div>
 
-      {/* Add Domain Form Drawer */}
-      {isAdding && (
-        <form
-          onSubmit={handleAddDomain}
-          className="p-6 rounded-[10px] bg-white dark:bg-[#111827] border border-slate-200/90 dark:border-slate-800 shadow-lg flex flex-col gap-5 animate-in fade-in zoom-in-98"
-        >
-          <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <div className="w-8 h-8 rounded-[8px] bg-[#465FFF]/10 flex items-center justify-center text-[#465FFF]">
-              <Globe2 className="w-4 h-4" />
-            </div>
-            <span>Connect a new domain or subdomain</span>
-          </h3>
+      {/* Add Domain Sliding Drawer */}
+      <DomainDrawer
+        isOpen={isAdding}
+        onClose={() => setIsAdding(false)}
+        onCreated={async () => {
+          cfInvalidateCache("/api/domains");
+          await loadDomains();
+        }}
+        userId={userId}
+        userEmail={session?.user?.email || undefined}
+        userName={session?.user?.name || undefined}
+        plan={plan}
+        domainsCount={domains.length}
+        domainsLimit={domainsLimit}
+        onUpgrade={() =>
+          triggerPlanUpgrade({
+            featureName: "Custom Domains",
+            reason: `Your ${plan} plan is limited to ${domainsLimit} custom domains. Upgrade to add more.`,
+            targetPlan: plan === "FREE" ? "PRO" : "BUSINESS",
+          })
+        }
+      />
 
-          {/* Affiliate CTA — domain purchase */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-[8px] bg-amber-50/80 dark:bg-amber-950/25 border border-amber-200/80 dark:border-amber-800/50">
-            <div className="flex items-start gap-2.5">
-              <Info className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-              <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
-                <strong className="font-bold text-slate-900 dark:text-white">
-                  You must already own this domain.
-                </strong>{" "}
-                LShorter connects to your existing domain via Cloudflare for
-                SaaS — it does not sell domain names.
-              </p>
-            </div>
-            <a
-              href={
-                process.env.NEXT_PUBLIC_NAMECHEAP_AFFILIATE_LINK ||
-                "https://namecheap.pxf.io/c/7999167/386170/5618"
-              }
-              target="_blank"
-              rel="noopener noreferrer"
-              className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] bg-[#FF5C35] hover:bg-[#DE3723] text-white text-xs font-bold transition-colors shadow-xs"
-            >
-              <ExternalLink className="w-3.5 h-3.5" />
-              Acheter sur Namecheap
-            </a>
-          </div>
-
-          <p className="text-xs text-slate-600 dark:text-slate-400">
-            Enter your domain (e.g.{" "}
-            <strong className="font-semibold text-slate-900 dark:text-slate-100">
-              link.mycompany.com
-            </strong>{" "}
-            or{" "}
-            <strong className="font-semibold text-slate-900 dark:text-slate-100">
-              go.brand.io
-            </strong>
-            ).
-          </p>
-
-          <div className="flex flex-col gap-2.5">
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="flex-1 relative">
-                <Input
-                  required
-                  data-testid="custom-domain-input"
-                  placeholder="link.mycompany.com"
-                  value={newDomainInput}
-                  onChange={(e) => {
-                    setNewDomainInput(e.target.value);
-                    if (domainError) setDomainError(null);
-                  }}
-                  className={
-                    domainValidation.hasNonNormalized || domainError
-                      ? "border-rose-500 dark:border-rose-500 focus:border-rose-500 ring-2 ring-rose-500/15"
-                      : ""
-                  }
-                />
-              </div>
-              <Button
-                type="submit"
-                variant="glow"
-                disabled={
-                  isSubmittingDomain || domainValidation.hasNonNormalized
-                }
-                className="shrink-0 px-6 bg-[#465FFF] hover:bg-[#3b51e6] text-white font-semibold disabled:opacity-50"
-              >
-                {isSubmittingDomain ? "Checking DNS..." : "Declare domain"}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setIsAdding(false);
-                  setDomainError(null);
-                }}
-                className="shrink-0 border-slate-300 dark:border-slate-700 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold"
-              >
-                Cancel
-              </Button>
-            </div>
-
-            {/* Real-Time Non-Normalized Character & DNS Validation Alert */}
-            {(domainValidation.issues.length > 0 || domainError) && (
-              <div
-                data-testid="domain-validation-alert"
-                className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3 rounded-[8px] bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/60 text-xs text-rose-700 dark:text-rose-300"
-              >
-                <div className="flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
-                  <div className="space-y-0.5">
-                    {domainError ? (
-                      <p className="font-semibold">{domainError}</p>
-                    ) : (
-                      domainValidation.issues.map((issue, idx) => (
-                        <p key={idx} className="font-medium">
-                          {issue}
-                        </p>
-                      ))
-                    )}
-                  </div>
-                </div>
-                {domainValidation.hasNonNormalized &&
-                  domainValidation.normalizedSuggestion && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setNewDomainInput(
-                          domainValidation.normalizedSuggestion,
-                        );
-                        setDomainError(null);
-                      }}
-                      className="shrink-0 px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-semibold text-[11px] transition-colors cursor-pointer"
-                    >
-                      Normaliser en « {domainValidation.normalizedSuggestion} »
-                    </button>
-                  )}
-              </div>
-            )}
-          </div>
-
-          {/* DNS instructions note — fully adapted to Light and Dark Mode */}
-          <div className="p-4 rounded-[8px] bg-slate-50 dark:bg-slate-900/80 border border-slate-200/90 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-            <p className="font-bold text-slate-900 dark:text-white mb-1.5 flex items-center gap-1.5">
-              <span>📋 After clicking &quot;Declare domain&quot; :</span>
-            </p>
-            <ol className="list-decimal list-inside space-y-1 text-slate-600 dark:text-slate-400">
-              <li>Copy the DNS records displayed on your domain card.</li>
-              <li>
-                Paste them into your registrar&apos;s DNS management zone
-                (Hostinger, OVH, Namecheap, etc.).
-              </li>
-              <li>
-                Wait for DNS propagation (5 to 30 minutes), then click{" "}
-                <strong className="font-bold text-slate-900 dark:text-white">
-                  Verify Domain
-                </strong>
-                .
-              </li>
-            </ol>
-          </div>
-        </form>
-      )}
 
       {/* Search & Filtering Bar */}
       <div className="p-3 rounded-[10px] bg-white dark:bg-[#111827] border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
