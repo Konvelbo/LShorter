@@ -10,8 +10,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { orgId, planId, cycle, successUrl, cancelUrl, companyName, discountId } = body;
 
-    const userId = session?.user?.id || body.userId || `guest_${Date.now()}`;
-    const customerEmail = session?.user?.email || body.customerEmail || undefined;
+    // Security hardening: Only trust session.user.id for authenticated requests.
+    // Unauthenticated callers cannot spoof existing registered user IDs.
+    const userId = session?.user?.id || (typeof body.userId === "string" && body.userId.startsWith("guest_") ? body.userId : `guest_${Date.now()}`);
+    const customerEmail = session?.user?.email || (session?.user ? undefined : body.customerEmail);
 
     if (!planId || (planId !== "PRO" && planId !== "BUSINESS" && planId !== "ENTERPRISE")) {
       return NextResponse.json(
@@ -20,7 +22,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const normalizedCycle: "MONTHLY" | "YEARLY" = cycle === "YEARLY" ? "YEARLY" : "MONTHLY";
+    const cleanCycle = typeof cycle === "string" ? cycle.toUpperCase() : "";
+    if (cleanCycle !== "MONTHLY" && cleanCycle !== "YEARLY") {
+      return NextResponse.json(
+        { success: false, error: "Invalid billing cycle. Only 'monthly' or 'yearly' are accepted." },
+        { status: 400 }
+      );
+    }
+
+    const normalizedCycle: "MONTHLY" | "YEARLY" = cleanCycle;
 
     // Check existing subscription to prevent duplicate checkout for the exact same active plan/cycle
     // and attach previousSubscriptionId when upgrading/switching plans so the old subscription is auto-cancelled.

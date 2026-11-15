@@ -9,11 +9,7 @@ import { DodoPayments } from "dodopayments";
  * Auto-detects directly from the key prefix if available, ensuring zero mismatch.
  */
 export function isDodoLiveMode(): boolean {
-  const bearerToken = (
-    process.env.DODO_PAYMENTS_API_KEY ||
-    process.env.NEXT_PUBLIC_DODO_PAYMENTS_API_KEY ||
-    ""
-  ).trim();
+  const bearerToken = (process.env.DODO_PAYMENTS_API_KEY || "").trim();
 
   if (bearerToken.startsWith("dodo_live_")) {
     return true;
@@ -24,9 +20,7 @@ export function isDodoLiveMode(): boolean {
 
   return (
     process.env.DODO_PAYMENTS_ENVIRONMENT === "live_mode" ||
-    process.env.DODO_PAYMENTS_ENVIRONMENT === "live" ||
-    process.env.NEXT_PUBLIC_DODO_PAYMENTS_ENVIRONMENT === "live" ||
-    process.env.NEXT_PUBLIC_DODO_PAYMENTS_ENVIRONMENT === "live_mode"
+    process.env.DODO_PAYMENTS_ENVIRONMENT === "live"
   );
 }
 
@@ -35,11 +29,7 @@ export function isDodoLiveMode(): boolean {
  * Automatically checks for test_mode vs live_mode based on environment variables or key prefix.
  */
 export function getDodoPaymentsClient(): DodoPayments | null {
-  const bearerToken = (
-    process.env.DODO_PAYMENTS_API_KEY ||
-    process.env.NEXT_PUBLIC_DODO_PAYMENTS_API_KEY ||
-    ""
-  ).trim();
+  const bearerToken = (process.env.DODO_PAYMENTS_API_KEY || "").trim();
 
   if (!bearerToken) {
     return null;
@@ -49,8 +39,7 @@ export function getDodoPaymentsClient(): DodoPayments | null {
 
   const webhookKey =
     process.env.DODO_PAYMENTS_WEBHOOK_KEY ||
-    process.env.DODO_PAYMENTS_WEBHOOK_SECRET ||
-    process.env.NEXT_PUBLIC_DODO_PAYMENTS_WEBHOOK_KEY;
+    process.env.DODO_PAYMENTS_WEBHOOK_SECRET;
 
   return new DodoPayments({
     bearerToken,

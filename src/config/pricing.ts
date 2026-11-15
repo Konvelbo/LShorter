@@ -319,24 +319,18 @@ export function getDodoProductId(planId: string, cycle: 'MONTHLY' | 'YEARLY'): s
   }
 
   // 1. Check if running in live mode
-  const apiKey = (
-    process.env.DODO_PAYMENTS_API_KEY ||
-    process.env.NEXT_PUBLIC_DODO_PAYMENTS_API_KEY ||
-    ""
-  ).trim();
+  const apiKey = (process.env.DODO_PAYMENTS_API_KEY || "").trim();
 
   const isLive =
     apiKey.startsWith("dodo_live_") ||
     (!apiKey.startsWith("dodo_test_") && (
       process.env.DODO_PAYMENTS_ENVIRONMENT === "live_mode" ||
-      process.env.DODO_PAYMENTS_ENVIRONMENT === "live" ||
-      process.env.NEXT_PUBLIC_DODO_PAYMENTS_ENVIRONMENT === "live_mode" ||
-      process.env.NEXT_PUBLIC_DODO_PAYMENTS_ENVIRONMENT === "live"
+      process.env.DODO_PAYMENTS_ENVIRONMENT === "live"
     ));
 
   // 2. Explicit environment variable overrides (only if they match the active mode)
   const envVarName = `DODO_PAYMENTS_PRODUCT_${normalized}_${cycle}`;
-  const envValue = process.env[envVarName] || process.env[`NEXT_PUBLIC_${envVarName}`];
+  const envValue = process.env[envVarName];
   if (envValue) {
     const isKnownTestId = Object.values(DODO_PRODUCT_IDS_TEST).some(
       (p) => p.monthly === envValue || p.yearly === envValue

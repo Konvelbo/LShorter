@@ -75,8 +75,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, userId: result.userId }, { status: 201 });
   } catch (err: any) {
-    const message = err?.message || "Server error.";
-    if (message.includes("EMAIL_ALREADY_EXISTS")) {
+    const message = (err?.message || err?.data || String(err) || "Server error.").toString();
+    if (message.includes("EMAIL_ALREADY_EXISTS") || message.toLowerCase().includes("already exists")) {
       return NextResponse.json({ error: "An account already exists with this email address. Please sign in." }, { status: 409 });
     }
     return NextResponse.json({ error: message }, { status: 500 });

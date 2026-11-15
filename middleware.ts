@@ -25,12 +25,14 @@ const authMiddleware = auth((req) => {
   const isProtectedPath =
     pathname.startsWith("/dashboard") || pathname.startsWith("/onboarding");
 
-  const isPlaywrightDevPreview =
+  const isDevPreview =
     process.env.NODE_ENV === "development" &&
     (req.nextUrl.searchParams.get("playwright_preview") === "1" ||
-      req.headers.get("x-playwright-preview") === "true");
+      req.nextUrl.searchParams.get("cypress_preview") === "1" ||
+      req.headers.get("x-playwright-preview") === "true" ||
+      req.headers.get("x-cypress-preview") === "true");
 
-  if (isProtectedPath && !isAuthenticated && !isPlaywrightDevPreview) {
+  if (isProtectedPath && !isAuthenticated && !isDevPreview) {
     const targetPath = pathname.startsWith("/onboarding") ? "/register" : "/login";
     const redirectUrl = new URL(targetPath, req.nextUrl.origin);
     if (pathname.startsWith("/dashboard")) {

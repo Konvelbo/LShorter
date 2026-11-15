@@ -6,11 +6,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   const isLive = isDodoLiveMode();
-  const apiKey = (
-    process.env.DODO_PAYMENTS_API_KEY ||
-    process.env.NEXT_PUBLIC_DODO_PAYMENTS_API_KEY ||
-    ""
-  ).trim();
+  const apiKey = (process.env.DODO_PAYMENTS_API_KEY || "").trim();
 
   return NextResponse.json({
     provider: "dodo",
