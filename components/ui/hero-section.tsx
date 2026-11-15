@@ -1,13 +1,12 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowRightIcon } from "lucide-react";
 import { Mockup, MockupFrame } from "@/components/ui/mockup";
 import { Glow } from "@/components/ui/glow";
 import Image from "next/image";
-import { useTheme } from "@/components/providers/theme-provider";
 import { cn } from "@/lib/utils";
 
 export interface HeroAction {
@@ -44,20 +43,6 @@ export function HeroSection({
   image,
   className,
 }: HeroProps) {
-  const { theme } = useTheme();
-  const resolvedTheme = theme;
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  const imageSrc = mounted
-    ? resolvedTheme === "light"
-      ? image.light
-      : image.dark
-    : image.dark;
-
   return (
     <section
       className={cn(
