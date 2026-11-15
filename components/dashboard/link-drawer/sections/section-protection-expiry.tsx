@@ -188,21 +188,21 @@ export function SectionProtectionExpiry({
   return (
     <div className="flex flex-col gap-5 animate-in fade-in duration-200">
       <div>
-        <h2 className="text-xl font-bold tracking-tight text-[#131417] dark:text-[#f1f2f4]">
+        <h2 className="text-xl font-bold tracking-tight text-zinc-950 dark:text-white">
           Protection &amp; expiry
         </h2>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
+        <p className="text-sm font-medium text-zinc-700 dark:text-zinc-200 mt-1">
           All optional. Turn on only what you need to protect and limit access.
         </p>
       </div>
 
-      <div className="flex flex-col divide-y divide-zinc-200 dark:divide-[#22242a]">
+      <div className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
         {/* 1. PASSWORD PROTECTION */}
         <div className="py-4">
           <div className="flex items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-zinc-900 dark:text-[#f1f2f4]">
+                <span className="text-sm font-bold text-zinc-950 dark:text-white">
                   Password protection
                 </span>
                 {!isProPlan && (
@@ -211,7 +211,7 @@ export function SectionProtectionExpiry({
                   </span>
                 )}
               </div>
-              <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-0.5">
+              <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300 mt-0.5">
                 Visitors must enter a PIN or secret passphrase to continue.
               </p>
             </div>
@@ -228,8 +228,8 @@ export function SectionProtectionExpiry({
           </div>
 
           {hasPassword && isProPlan && (
-            <div className="mt-3.5 pt-3 border-t border-zinc-200/70 dark:border-[#22242a]/50 flex flex-col gap-2">
-              <label className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
+            <div className="mt-3.5 pt-3 border-t border-zinc-200/70 dark:border-zinc-800 flex flex-col gap-2">
+              <label className="text-xs font-bold text-zinc-950 dark:text-white">
                 Choose Password (minimum 4 characters)
               </label>
               <div className="relative">
@@ -241,7 +241,7 @@ export function SectionProtectionExpiry({
                   placeholder="Enter secret access key"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="h-9 text-xs pr-10 font-mono"
+                  className="h-9 text-xs pr-10 font-mono text-zinc-950 dark:text-white"
                   autoComplete="off"
                   autoCorrect="off"
                   autoCapitalize="off"
@@ -255,7 +255,7 @@ export function SectionProtectionExpiry({
                 <button
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-800 dark:text-[#8a8f9a] dark:hover:text-[#f1f2f4] transition-colors cursor-pointer"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-white transition-colors cursor-pointer"
                 >
                   {showPassword ? (
                     <EyeOff className="w-4 h-4" />
@@ -274,7 +274,7 @@ export function SectionProtectionExpiry({
           <div className="flex items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-zinc-900 dark:text-[#f1f2f4]">
+                <span className="text-sm font-bold text-zinc-950 dark:text-white">
                   Expiry date
                 </span>
                 {!isProPlan && (
@@ -283,7 +283,7 @@ export function SectionProtectionExpiry({
                   </span>
                 )}
               </div>
-              <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-0.5">
+              <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300 mt-0.5">
                 Automatically display a “Link expired” page after this date.
               </p>
             </div>
@@ -300,8 +300,8 @@ export function SectionProtectionExpiry({
           </div>
 
           {hasExpiry && isProPlan && (
-            <div className="mt-3.5 pt-3 border-t border-zinc-200/70 dark:border-[#22242a]/50 flex flex-col gap-2">
-              <label className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
+            <div className="mt-3.5 pt-3 border-t border-zinc-200/70 dark:border-zinc-800 flex flex-col gap-2">
+              <label className="text-xs font-bold text-zinc-950 dark:text-white">
                 Select Expiration Date &amp; Time
               </label>
               <Input
@@ -316,7 +316,7 @@ export function SectionProtectionExpiry({
                     }));
                   }
                 }}
-                className="h-9 text-xs"
+                className="h-9 text-xs text-zinc-950 dark:text-white"
               />
               <FieldErrorAlert message={fieldErrors.expiresAt} />
             </div>
@@ -328,7 +328,7 @@ export function SectionProtectionExpiry({
           <div className="flex items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-zinc-900 dark:text-[#f1f2f4]">
+                <span className="text-sm font-bold text-zinc-950 dark:text-white">
                   Click limit
                 </span>
                 {!isProPlan && (
@@ -337,7 +337,7 @@ export function SectionProtectionExpiry({
                   </span>
                 )}
               </div>
-              <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-0.5">
+              <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300 mt-0.5">
                 Redirect elsewhere after a maximum number of clicks.
               </p>
             </div>
@@ -357,9 +357,9 @@ export function SectionProtectionExpiry({
           </div>
 
           {hasClickLimit && isProPlan && (
-            <div className="mt-3.5 pt-3 border-t border-zinc-200/70 dark:border-[#22242a]/50 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="mt-3.5 pt-3 border-t border-zinc-200/70 dark:border-zinc-800 grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
+                <label className="text-xs font-bold text-zinc-950 dark:text-white">
                   Max Clicks
                 </label>
                 <Input
@@ -368,12 +368,12 @@ export function SectionProtectionExpiry({
                   placeholder="e.g. 500"
                   value={maxClicks}
                   onChange={(e) => setMaxClicks(e.target.value)}
-                  className="h-9 text-xs"
+                  className="h-9 text-xs text-zinc-950 dark:text-white"
                 />
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
+                <label className="text-xs font-bold text-zinc-950 dark:text-white">
                   Fallback URL
                 </label>
                 <Input
@@ -381,7 +381,7 @@ export function SectionProtectionExpiry({
                   placeholder="https://example.com/expired"
                   value={fallbackUrl}
                   onChange={(e) => setFallbackUrl(e.target.value)}
-                  className="h-9 text-xs"
+                  className="h-9 text-xs text-zinc-950 dark:text-white"
                 />
               </div>
             </div>
@@ -393,7 +393,7 @@ export function SectionProtectionExpiry({
           <div className="flex items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-zinc-900 dark:text-[#f1f2f4]">
+                <span className="text-sm font-bold text-zinc-950 dark:text-white">
                   Restrict browsing (PathLock™)
                 </span>
                 {!isProPlan && (
@@ -402,7 +402,7 @@ export function SectionProtectionExpiry({
                   </span>
                 )}
               </div>
-              <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-0.5">
+              <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300 mt-0.5">
                 Lock visitors to the landing page or checkout funnel only.
               </p>
             </div>
@@ -418,17 +418,17 @@ export function SectionProtectionExpiry({
           </div>
 
           {hasPathLock && isProPlan && (
-            <div className="mt-3.5 pt-3 border-t border-zinc-200/70 dark:border-[#22242a]/50 flex flex-col gap-3">
+            <div className="mt-3.5 pt-3 border-t border-zinc-200/70 dark:border-zinc-800 flex flex-col gap-3">
               {/* Segmented Mode Selector */}
               <div className="flex gap-1.5 p-1 rounded-lg bg-zinc-100 dark:bg-[#16181d] border border-zinc-200 dark:border-[#22242a]">
                 <button
                   type="button"
                   onClick={() => setPathLockMode("strict")}
                   className={cn(
-                    "flex-1 py-1.5 px-3 rounded-md text-xs font-medium transition-all text-center cursor-pointer",
+                    "flex-1 py-1.5 px-3 rounded-md text-xs transition-all text-center cursor-pointer",
                     pathLockMode === "strict"
-                      ? "bg-white dark:bg-[#0e0f12] text-zinc-900 dark:text-[#f1f2f4] shadow-sm border border-[#1d5fe0] dark:border-[#3b82f6] font-semibold"
-                      : "text-zinc-600 dark:text-[#8a8f9a] hover:text-zinc-900 dark:hover:text-[#f1f2f4]",
+                      ? "bg-white dark:bg-[#0e0f12] text-zinc-950 dark:text-white shadow-sm border border-[#1d5fe0] dark:border-[#3b82f6] font-bold"
+                      : "text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white font-medium",
                   )}
                 >
                   Single page (Strict)
@@ -437,10 +437,10 @@ export function SectionProtectionExpiry({
                   type="button"
                   onClick={() => setPathLockMode("funnel")}
                   className={cn(
-                    "flex-1 py-1.5 px-3 rounded-md text-xs font-medium transition-all text-center cursor-pointer",
+                    "flex-1 py-1.5 px-3 rounded-md text-xs transition-all text-center cursor-pointer",
                     pathLockMode === "funnel"
-                      ? "bg-white dark:bg-[#0e0f12] text-zinc-900 dark:text-[#f1f2f4] shadow-sm border border-[#1d5fe0] dark:border-[#3b82f6] font-semibold"
-                      : "text-zinc-600 dark:text-[#8a8f9a] hover:text-zinc-900 dark:hover:text-[#f1f2f4]",
+                      ? "bg-white dark:bg-[#0e0f12] text-zinc-950 dark:text-white shadow-sm border border-[#1d5fe0] dark:border-[#3b82f6] font-bold"
+                      : "text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white font-medium",
                   )}
                 >
                   Funnel &amp; subpaths
@@ -449,7 +449,7 @@ export function SectionProtectionExpiry({
 
               {/* Informative UI for Single Page (Strict) */}
               {pathLockMode === "strict" && (
-                <div className="p-3.5 rounded-xl bg-blue-50/80 dark:bg-blue-950/25 border border-blue-200/80 dark:border-blue-900/50 flex items-start gap-3 animate-in fade-in duration-150">
+                <div className="p-3.5 rounded-[10px] bg-blue-50/80 dark:bg-blue-950/25 border border-blue-200/80 dark:border-blue-900/50 flex items-start gap-3 animate-in fade-in duration-150">
                   <div className="p-1.5 rounded-lg bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 shrink-0 mt-0.5">
                     <Shield className="w-4 h-4" />
                   </div>
@@ -462,7 +462,7 @@ export function SectionProtectionExpiry({
                         {singlePagePath}
                       </code>
                     </div>
-                    <p className="text-[11px] text-blue-900/80 dark:text-blue-300/80 leading-relaxed">
+                    <p className="text-[11px] font-medium text-blue-900/90 dark:text-blue-200 leading-relaxed">
                       Seule cette page exacte sera accessible. Toutes les autres navigations, liens sortants et sous-pages du site de destination seront automatiquement restreints.
                     </p>
                   </div>
@@ -474,7 +474,7 @@ export function SectionProtectionExpiry({
                 <div className="flex flex-col gap-1.5 w-full">
                   <label
                     htmlFor={prefixTagInputId}
-                    className="text-xs font-semibold text-zinc-800 dark:text-zinc-200"
+                    className="text-xs font-bold text-zinc-950 dark:text-white"
                   >
                     Allowed Subpath Prefix
                   </label>
@@ -506,11 +506,11 @@ export function SectionProtectionExpiry({
                       }
                       styleClasses={{
                         input:
-                          "w-full h-10 rounded-[10px] bg-white dark:bg-[#16181d] border border-zinc-300 dark:border-[#27272a] text-zinc-900 dark:text-[#f1f2f4] placeholder:text-zinc-400 dark:placeholder:text-[#8a8f9a] text-sm px-3 focus:outline-none focus:ring-1 focus:ring-[#0066FF] dark:focus:ring-[#3b82f6] focus:border-[#0066FF] dark:focus:border-[#3b82f6] transition-colors text-left font-mono",
+                          "w-full h-10 rounded-[10px] bg-white dark:bg-[#16181d] border border-zinc-300 dark:border-[#27272a] text-zinc-950 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-[#8a8f9a] text-sm px-3 focus:outline-none focus:ring-1 focus:ring-[#0066FF] dark:focus:ring-[#3b82f6] focus:border-[#0066FF] dark:focus:border-[#3b82f6] transition-colors text-left font-mono",
                         tag: {
-                          body: "relative h-7 bg-zinc-100 dark:bg-[#20222a] border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-200/80 dark:hover:bg-[#282b35] rounded-md font-mono text-xs ps-2 pe-7 text-zinc-800 dark:text-zinc-200 shadow-2xs transition-colors",
+                          body: "relative h-7 bg-zinc-100 dark:bg-[#20222a] border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-200/80 dark:hover:bg-[#282b35] rounded-md font-mono text-xs ps-2 pe-7 text-zinc-950 dark:text-white shadow-2xs transition-colors",
                           closeButton:
-                            "absolute -inset-y-px -end-px p-0 rounded-s-none rounded-e-md flex size-7 transition-colors outline-none text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-100 hover:bg-zinc-200/50 dark:hover:bg-zinc-700/50",
+                            "absolute -inset-y-px -end-px p-0 rounded-s-none rounded-e-md flex size-7 transition-colors outline-none text-zinc-500 hover:text-zinc-950 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-zinc-700/50",
                         },
                         tagList: {
                           container: "flex flex-wrap items-center justify-start gap-1.5 pt-1 w-full",
@@ -518,7 +518,7 @@ export function SectionProtectionExpiry({
                       }}
                     />
                   </div>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                  <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
                     Press Enter, comma, or click outside to add routes (e.g. <code className="font-mono">/pricing</code>, <code className="font-mono">/checkout</code>). Leave empty to allow the entire site (<code className="font-mono">/</code>).
                   </p>
                 </div>
@@ -526,7 +526,7 @@ export function SectionProtectionExpiry({
 
               {/* Message shown when navigation is blocked */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
+                <label className="text-xs font-bold text-zinc-950 dark:text-white">
                   Message shown when navigation is blocked (Optional)
                 </label>
                 <textarea
@@ -534,13 +534,13 @@ export function SectionProtectionExpiry({
                   placeholder="External navigation is disabled for this secure session."
                   value={pathLockMessage}
                   onChange={(e) => setPathLockMessage(e.target.value)}
-                  className="w-full bg-white dark:bg-[#16181d] text-zinc-900 dark:text-[#f1f2f4] border border-zinc-300 dark:border-[#27272a] focus:border-[#0066FF] dark:focus:border-[#3b82f6] focus:ring-1 focus:ring-[#0066FF] dark:focus:ring-[#3b82f6] rounded-lg p-2.5 text-xs outline-none transition-colors resize-none placeholder:text-zinc-500 dark:placeholder:text-zinc-400 font-normal"
+                  className="w-full bg-white dark:bg-[#16181d] text-zinc-950 dark:text-white border border-zinc-300 dark:border-[#27272a] focus:border-[#0066FF] dark:focus:border-[#3b82f6] focus:ring-1 focus:ring-[#0066FF] dark:focus:ring-[#3b82f6] rounded-lg p-2.5 text-xs outline-none transition-colors resize-none placeholder:text-zinc-500 dark:placeholder:text-zinc-400 font-normal"
                 />
               </div>
 
               {/* PathLock bypass password */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
+                <label className="text-xs font-bold text-zinc-950 dark:text-white">
                   Unlock Passcode to leave (Optional)
                 </label>
                 <div className="relative">
@@ -552,7 +552,7 @@ export function SectionProtectionExpiry({
                     placeholder="Optional passcode to bypass lock"
                     value={pathLockPassword}
                     onChange={(e) => setPathLockPassword(e.target.value)}
-                    className="h-9 text-xs pr-10 font-mono"
+                    className="h-9 text-xs pr-10 font-mono text-zinc-950 dark:text-white"
                     autoComplete="off"
                     autoCorrect="off"
                     autoCapitalize="off"
@@ -566,12 +566,12 @@ export function SectionProtectionExpiry({
                   <button
                     type="button"
                     onClick={() => setShowPathLockPassword((prev) => !prev)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-800 dark:text-[#8a8f9a] dark:hover:text-[#f1f2f4] transition-colors cursor-pointer"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-white transition-colors cursor-pointer"
                   >
                     {showPathLockPassword ? (
-                      <EyeOff className="w-3.5 h-3.5" />
+                      <EyeOff className="w-4 h-4" />
                     ) : (
-                      <Eye className="w-3.5 h-3.5" />
+                      <Eye className="w-4 h-4" />
                     )}
                   </button>
                 </div>
@@ -584,10 +584,10 @@ export function SectionProtectionExpiry({
         <div className="py-4">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <span className="text-sm font-semibold text-zinc-900 dark:text-[#f1f2f4]">
+              <span className="text-sm font-bold text-zinc-950 dark:text-white">
                 Hide referrer
               </span>
-              <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-0.5">
+              <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300 mt-0.5">
                 Strips HTTP referrer headers to protect your traffic sources.
               </p>
             </div>
@@ -604,7 +604,7 @@ export function SectionProtectionExpiry({
           <div className="flex items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-zinc-900 dark:text-[#f1f2f4]">
+                <span className="text-sm font-bold text-zinc-950 dark:text-white">
                   Hide destination URL (Branded Masking)
                 </span>
                 {!isProPlan && (
@@ -613,7 +613,7 @@ export function SectionProtectionExpiry({
                   </span>
                 )}
               </div>
-              <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-0.5">
+              <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300 mt-0.5">
                 Keep your branded custom domain in the address bar via secure iframe masking.
               </p>
             </div>

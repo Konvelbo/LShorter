@@ -107,41 +107,41 @@ export function SectionReview({
   return (
     <div className="flex flex-col gap-5 animate-in fade-in duration-200">
       <div>
-        <h2 className="text-xl font-bold tracking-tight text-[#131417] dark:text-[#f1f2f4]">
+        <h2 className="text-xl font-bold tracking-tight text-zinc-950 dark:text-white">
           {isEditMode ? "Ready to save" : "Ready to create"}
         </h2>
-        <p className="text-sm text-[#6c717c] dark:text-[#8a8f9a] mt-1">
+        <p className="text-sm font-medium text-zinc-700 dark:text-zinc-200 mt-1">
           Check the summary below, then finalize your short link.
         </p>
       </div>
 
       {/* Main Link Preview Card */}
-      <div className="p-4 rounded-xl bg-[#f4f5f7] dark:bg-[#16181d] border border-[#e6e7ea] dark:border-[#22242a] flex flex-col gap-3">
+      <div className="p-4 rounded-[10px] bg-zinc-50 dark:bg-[#16181d] border border-zinc-200 dark:border-zinc-800 flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold uppercase tracking-wider text-[#6c717c] dark:text-[#8a8f9a]">
+          <span className="text-xs font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
             Primary Short Link
           </span>
           <button
             type="button"
             onClick={() => onNavigateTab("link")}
-            className="text-xs font-medium text-[#1d5fe0] dark:text-[#3b82f6] hover:underline cursor-pointer"
+            className="text-xs font-semibold text-[#0066FF] dark:text-[#5294FF] hover:underline cursor-pointer"
           >
             Edit
           </button>
         </div>
 
         <div className="flex items-center gap-2">
-          <Link2 className="w-4 h-4 text-[#1d5fe0] dark:text-[#3b82f6] shrink-0" />
-          <span className="text-base font-bold font-mono text-[#131417] dark:text-[#f1f2f4] truncate">
+          <Link2 className="w-4 h-4 text-[#0066FF] dark:text-[#5294FF] shrink-0" />
+          <span className="text-base font-bold font-mono text-zinc-950 dark:text-white truncate">
             {shortUrl}
           </span>
         </div>
 
-        <div className="flex items-start gap-2 pt-1 border-t border-[#e6e7ea] dark:border-[#22242a] text-xs text-[#6c717c] dark:text-[#8a8f9a]">
+        <div className="flex items-start gap-2 pt-1 border-t border-zinc-200 dark:border-zinc-800 text-xs text-zinc-700 dark:text-zinc-300">
           <ExternalLink className="w-3.5 h-3.5 mt-0.5 shrink-0" />
           <span className="break-all">
             Redirects to:{" "}
-            <strong className="text-[#131417] dark:text-[#f1f2f4] font-medium">
+            <strong className="text-zinc-950 dark:text-white font-bold">
               {finalDest}
             </strong>
           </span>
@@ -149,15 +149,15 @@ export function SectionReview({
       </div>
 
       {/* Structured Summary Rows (.rv style) */}
-      <div className="border border-[#e6e7ea] dark:border-[#22242a] rounded-[10px] overflow-hidden bg-white dark:bg-[#0e0f12]">
+      <div className="border border-zinc-200 dark:border-zinc-800 rounded-[10px] overflow-hidden bg-white dark:bg-[#0e0f12]">
         {/* Row: Social Media */}
-        <div className="flex items-center justify-between gap-4 px-4 py-3 border-b border-[#e6e7ea] dark:border-[#22242a] hover:bg-[#f4f5f7]/50 dark:hover:bg-[#16181d]/50 transition-colors">
-          <div className="flex items-center gap-2 text-[#6c717c] dark:text-[#8a8f9a] text-xs font-medium shrink-0">
-            <Share2 className="w-3.5 h-3.5" />
+        <div className="flex items-center justify-between gap-4 px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900/40 transition-colors">
+          <div className="flex items-center gap-2 text-zinc-800 dark:text-zinc-200 text-xs font-semibold shrink-0">
+            <Share2 className="w-3.5 h-3.5 text-[#0066FF] dark:text-[#5294FF]" />
             <span>Social media, tracking & pixel</span>
           </div>
           <div className="flex items-center gap-2 text-xs">
-            <span className="text-[#131417] dark:text-[#f1f2f4] font-medium text-right truncate">
+            <span className="text-zinc-950 dark:text-white font-medium text-right truncate">
               {hasSocial && hasUtm
                 ? "Custom card & UTM enabled"
                 : hasSocial
@@ -169,7 +169,7 @@ export function SectionReview({
             <button
               type="button"
               onClick={() => onNavigateTab("social_tracking")}
-              className="text-[#1d5fe0] dark:text-[#3b82f6] hover:underline text-[11px] cursor-pointer shrink-0"
+              className="text-[#0066FF] dark:text-[#5294FF] hover:underline text-[11px] font-semibold cursor-pointer shrink-0"
             >
               Change
             </button>
@@ -177,13 +177,13 @@ export function SectionReview({
         </div>
 
         {/* Row: Routing */}
-        <div className="flex items-center justify-between gap-4 px-4 py-3 border-b border-[#e6e7ea] dark:border-[#22242a] hover:bg-[#f4f5f7]/50 dark:hover:bg-[#16181d]/50 transition-colors">
-          <div className="flex items-center gap-2 text-[#6c717c] dark:text-[#8a8f9a] text-xs font-medium shrink-0">
-            <Globe2 className="w-3.5 h-3.5" />
+        <div className="flex items-center justify-between gap-4 px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900/40 transition-colors">
+          <div className="flex items-center gap-2 text-zinc-800 dark:text-zinc-200 text-xs font-semibold shrink-0">
+            <Globe2 className="w-3.5 h-3.5 text-[#0066FF] dark:text-[#5294FF]" />
             <span>Smart Routing</span>
           </div>
           <div className="flex items-center gap-2 text-xs">
-            <span className="text-[#131417] dark:text-[#f1f2f4] font-medium text-right">
+            <span className="text-zinc-950 dark:text-white font-medium text-right">
               {routingRulesCount > 0
                 ? `${routingRulesCount} dynamic rule${routingRulesCount > 1 ? "s" : ""} active`
                 : "Direct redirect (None)"}
@@ -191,7 +191,7 @@ export function SectionReview({
             <button
               type="button"
               onClick={() => onNavigateTab("routing")}
-              className="text-[#1d5fe0] dark:text-[#3b82f6] hover:underline text-[11px] cursor-pointer shrink-0"
+              className="text-[#0066FF] dark:text-[#5294FF] hover:underline text-[11px] font-semibold cursor-pointer shrink-0"
             >
               Change
             </button>
@@ -199,32 +199,32 @@ export function SectionReview({
         </div>
 
         {/* Row: Protection & Security */}
-        <div className="flex items-center justify-between gap-4 px-4 py-3 border-b border-[#e6e7ea] dark:border-[#22242a] hover:bg-[#f4f5f7]/50 dark:hover:bg-[#16181d]/50 transition-colors">
-          <div className="flex items-center gap-2 text-[#6c717c] dark:text-[#8a8f9a] text-xs font-medium shrink-0">
-            <Shield className="w-3.5 h-3.5" />
+        <div className="flex items-center justify-between gap-4 px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900/40 transition-colors">
+          <div className="flex items-center gap-2 text-zinc-800 dark:text-zinc-200 text-xs font-semibold shrink-0">
+            <Shield className="w-3.5 h-3.5 text-[#0066FF] dark:text-[#5294FF]" />
             <span>Protection & expiry</span>
           </div>
           <div className="flex items-center gap-2 text-xs">
-            <span className="text-[#131417] dark:text-[#f1f2f4] font-medium text-right">
+            <span className="text-zinc-950 dark:text-white font-medium text-right">
               {hasProtection ? (
                 <span className="flex items-center gap-1.5 justify-end">
                   {password && (
-                    <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-mono text-[10px]">
+                    <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-mono text-[10px] font-bold">
                       Password
                     </span>
                   )}
                   {expiresAt && (
-                    <span className="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px]">
+                    <span className="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-bold">
                       Expiry
                     </span>
                   )}
                   {hasClickLimit && maxClicks && (
-                    <span className="px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[10px]">
+                    <span className="px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[10px] font-bold">
                       {maxClicks} clicks
                     </span>
                   )}
                   {pathLockMode && pathLockMode !== "off" && (
-                    <span className="px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 text-[10px]">
+                    <span className="px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 text-[10px] font-bold">
                       PathLock™
                     </span>
                   )}
@@ -236,7 +236,7 @@ export function SectionReview({
             <button
               type="button"
               onClick={() => onNavigateTab("protection")}
-              className="text-[#1d5fe0] dark:text-[#3b82f6] hover:underline text-[11px] cursor-pointer shrink-0"
+              className="text-[#0066FF] dark:text-[#5294FF] hover:underline text-[11px] font-semibold cursor-pointer shrink-0"
             >
               Change
             </button>
@@ -244,13 +244,13 @@ export function SectionReview({
         </div>
 
         {/* Row: A/B Testing */}
-        <div className="flex items-center justify-between gap-4 px-4 py-3 border-b border-[#e6e7ea] dark:border-[#22242a] hover:bg-[#f4f5f7]/50 dark:hover:bg-[#16181d]/50 transition-colors">
-          <div className="flex items-center gap-2 text-[#6c717c] dark:text-[#8a8f9a] text-xs font-medium shrink-0">
-            <Split className="w-3.5 h-3.5" />
+        <div className="flex items-center justify-between gap-4 px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900/40 transition-colors">
+          <div className="flex items-center gap-2 text-zinc-800 dark:text-zinc-200 text-xs font-semibold shrink-0">
+            <Split className="w-3.5 h-3.5 text-[#0066FF] dark:text-[#5294FF]" />
             <span>A/B Testing</span>
           </div>
           <div className="flex items-center gap-2 text-xs">
-            <span className="text-[#131417] dark:text-[#f1f2f4] font-medium text-right">
+            <span className="text-zinc-950 dark:text-white font-medium text-right">
               {abVariationsCount > 0
                 ? `${abVariationsCount + 1} variations (${mainWeight}% / split)`
                 : "Disabled (100% to primary)"}
@@ -258,7 +258,7 @@ export function SectionReview({
             <button
               type="button"
               onClick={() => onNavigateTab("ab_testing")}
-              className="text-[#1d5fe0] dark:text-[#3b82f6] hover:underline text-[11px] cursor-pointer shrink-0"
+              className="text-[#0066FF] dark:text-[#5294FF] hover:underline text-[11px] font-semibold cursor-pointer shrink-0"
             >
               Change
             </button>
@@ -266,20 +266,20 @@ export function SectionReview({
         </div>
 
         {/* Row: Advanced Settings */}
-        <div className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-[#f4f5f7]/50 dark:hover:bg-[#16181d]/50 transition-colors">
-          <div className="flex items-center gap-2 text-[#6c717c] dark:text-[#8a8f9a] text-xs font-medium shrink-0">
-            <Sliders className="w-3.5 h-3.5" />
+        <div className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-900/40 transition-colors">
+          <div className="flex items-center gap-2 text-zinc-800 dark:text-zinc-200 text-xs font-semibold shrink-0">
+            <Sliders className="w-3.5 h-3.5 text-[#0066FF] dark:text-[#5294FF]" />
             <span>Advanced</span>
           </div>
           <div className="flex items-center gap-2 text-xs">
-            <span className="text-[#131417] dark:text-[#f1f2f4] font-medium text-right">
+            <span className="text-zinc-950 dark:text-white font-medium text-right">
               HTTP {redirectType} • {passParams ? "Forward params" : "Strip params"} •{" "}
               {isActive ? "Active" : "Paused"}
             </span>
             <button
               type="button"
               onClick={() => onNavigateTab("advanced")}
-              className="text-[#1d5fe0] dark:text-[#3b82f6] hover:underline text-[11px] cursor-pointer shrink-0"
+              className="text-[#0066FF] dark:text-[#5294FF] hover:underline text-[11px] font-semibold cursor-pointer shrink-0"
             >
               Change
             </button>
@@ -288,12 +288,12 @@ export function SectionReview({
       </div>
 
       {/* Confirmation & CTA Button */}
-      <div className="p-4 rounded-xl bg-gradient-to-r from-[#1d5fe0]/5 to-transparent dark:from-[#3b82f6]/10 border border-[#1d5fe0]/20 dark:border-[#3b82f6]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="p-4 rounded-[10px] bg-gradient-to-r from-[#0066FF]/5 to-transparent dark:from-[#3b82f6]/10 border border-[#0066FF]/20 dark:border-[#3b82f6]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <span className="text-xs font-bold text-[#131417] dark:text-[#f1f2f4] block">
+          <span className="text-xs font-bold text-zinc-950 dark:text-white block">
             Everything looks good?
           </span>
-          <span className="text-[11px] text-[#6c717c] dark:text-[#8a8f9a] block">
+          <span className="text-[11px] font-medium text-zinc-700 dark:text-zinc-300 block">
             Click below to publish your short link with real-time routing.
           </span>
         </div>
@@ -301,7 +301,7 @@ export function SectionReview({
           type="submit"
           form={formId}
           disabled={isSubmitting}
-          className="bg-[#1d5fe0] dark:bg-[#3b82f6] hover:bg-[#154fc0] dark:hover:bg-[#2563eb] text-white font-semibold text-xs h-9 px-5 rounded-lg shadow-sm cursor-pointer shrink-0"
+          className="bg-[#0066FF] hover:bg-[#0055d4] text-white font-bold text-xs h-9 px-5 rounded-lg shadow-sm cursor-pointer shrink-0"
         >
           {isSubmitting ? (
             <span className="flex items-center gap-1.5">Saving...</span>

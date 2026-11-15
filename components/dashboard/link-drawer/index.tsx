@@ -1886,15 +1886,15 @@ export function LinkDrawer({
         }}
       >
         {/* ── 1. MINIMALIST HEADER ── */}
-        <header className="flex justify-between items-center px-6 pt-5 pb-3 border-b border-[#e6e7ea] dark:border-[#22242a] shrink-0">
-          <b className="font-semibold text-[15px] text-[#131417] dark:text-[#f1f2f4]">
+        <header className="flex justify-between items-center px-6 pt-5 pb-3 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
+          <b className="font-bold text-[15px] text-zinc-950 dark:text-white">
             {isEditMode ? "Edit link" : "Create link"}
           </b>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="text-[#6c717c] dark:text-[#8a8f9a] hover:text-[#131417] dark:hover:text-[#f1f2f4] hover:bg-[#f4f5f7] dark:hover:bg-[#16181d] text-2xl leading-none px-2 py-0.5 rounded-[6px] transition-colors cursor-pointer"
+            className="text-zinc-600 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 text-2xl leading-none px-2 py-0.5 rounded-[6px] transition-colors cursor-pointer"
           >
             ×
           </button>
@@ -1907,7 +1907,7 @@ export function LinkDrawer({
           ref={tabsNavRef}
           aria-label="Drawer steps"
           className={cn(
-            "flex items-center border-b border-[#e6e7ea] dark:border-[#22242a] px-5 sm:px-6 pt-2 pb-0 shrink-0 select-none",
+            "flex items-center border-b border-zinc-200 dark:border-zinc-800 px-5 sm:px-6 pt-2 pb-0 shrink-0 select-none",
             "gap-x-4 sm:gap-x-5 gap-y-1 sm:gap-y-1.5",
             // Mobile: horizontal manual scroll
             "overflow-x-auto whitespace-nowrap flex-nowrap scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none]",
@@ -1957,10 +1957,10 @@ export function LinkDrawer({
                 className={cn(
                   "text-[13px] font-medium py-2.5 border-b-2 -mb-px transition-colors cursor-pointer flex items-center gap-1.5 shrink-0 sm:shrink",
                   isActiveTab
-                    ? "border-[#1d5fe0] dark:border-[#3b82f6] text-[#131417] dark:text-[#f1f2f4] font-semibold"
+                    ? "border-[#1d5fe0] dark:border-[#3b82f6] text-zinc-950 dark:text-white font-bold"
                     : isCompleted
-                      ? "border-transparent text-[#131417] dark:text-[#f1f2f4] hover:text-[#1d5fe0] dark:hover:text-[#3b82f6]"
-                      : "border-transparent text-[#6c717c] dark:text-[#8a8f9a] hover:text-[#131417] dark:hover:text-[#f1f2f4]",
+                      ? "border-transparent text-zinc-800 dark:text-zinc-200 hover:text-[#1d5fe0] dark:hover:text-[#3b82f6] font-medium"
+                      : "border-transparent text-zinc-600 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white font-medium",
                 )}
               >
                 <Icon
@@ -1968,7 +1968,7 @@ export function LinkDrawer({
                     "w-3.5 h-3.5",
                     isActiveTab
                       ? "text-[#1d5fe0] dark:text-[#3b82f6]"
-                      : "opacity-70",
+                      : "opacity-80",
                   )}
                 />
                 <span>{tab.label}</span>
@@ -2178,13 +2178,13 @@ export function LinkDrawer({
         </main>
 
         {/* ── 4. FOOTER (Matching template style) ── */}
-        <footer className="flex justify-between items-center gap-3 px-6 py-3.5 border-t border-[#e6e7ea] dark:border-[#22242a] bg-white dark:bg-[#0e0f12] shrink-0">
+        <footer className="flex justify-between items-center gap-3 px-6 py-3.5 border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#0e0f12] shrink-0">
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={handlePrevTab}
               disabled={isSubmitting}
-              className="text-sm font-medium text-[#131417] dark:text-[#f1f2f4] hover:bg-[#f4f5f7] dark:hover:bg-[#16181d] px-4 py-2 rounded-lg transition-colors cursor-pointer"
+              className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 px-4 py-2 rounded-lg transition-colors cursor-pointer"
             >
               {activeTabIndex > 0 ? "Back" : "Cancel"}
             </button>

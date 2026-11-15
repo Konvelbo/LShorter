@@ -24,18 +24,18 @@ export function SectionAdvanced({
   return (
     <div className="flex flex-col gap-5 animate-in fade-in duration-200">
       <div>
-        <h2 className="text-xl font-bold tracking-tight text-[#131417] dark:text-[#f1f2f4]">
+        <h2 className="text-xl font-bold tracking-tight text-zinc-950 dark:text-white">
           Advanced
         </h2>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
+        <p className="text-sm font-medium text-zinc-700 dark:text-zinc-200 mt-1">
           Redirect status codes, query parameters forwarding, and link availability status.
         </p>
       </div>
 
-      <div className="flex flex-col divide-y divide-zinc-200 dark:divide-[#22242a]">
+      <div className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
         {/* 1. HTTP REDIRECTION CODE */}
         <div className="py-4">
-          <label className="block text-sm font-semibold text-zinc-900 dark:text-[#f1f2f4] mb-2">
+          <label className="block text-sm font-bold text-zinc-950 dark:text-white mb-2">
             Redirect type
           </label>
           <div className="flex gap-1.5 p-1 rounded-lg bg-zinc-100 dark:bg-[#16181d] border border-zinc-200 dark:border-[#22242a]">
@@ -49,10 +49,10 @@ export function SectionAdvanced({
                 type="button"
                 onClick={() => setRedirectType(item.code as any)}
                 className={cn(
-                  "flex-1 py-2 px-3 rounded-md text-xs font-medium transition-all text-center cursor-pointer",
+                  "flex-1 py-2 px-3 rounded-md text-xs transition-all text-center cursor-pointer",
                   redirectType === item.code
-                    ? "bg-white dark:bg-[#0e0f12] text-zinc-900 dark:text-[#f1f2f4] shadow-sm border border-[#1d5fe0] dark:border-[#3b82f6] font-semibold"
-                    : "text-zinc-600 dark:text-[#8a8f9a] hover:text-zinc-900 dark:hover:text-[#f1f2f4]",
+                    ? "bg-white dark:bg-[#0e0f12] text-zinc-950 dark:text-white shadow-sm border border-[#0066FF] dark:border-[#3b82f6] font-bold"
+                    : "text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white font-medium",
                 )}
               >
                 {item.label}
@@ -60,7 +60,7 @@ export function SectionAdvanced({
             ))}
           </div>
 
-          <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-2 leading-relaxed">
+          <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300 mt-2 leading-relaxed">
             {redirectType === "302" &&
               "302 keeps click counts accurate and avoids aggressive browser caching. Recommended for most links."}
             {redirectType === "301" &&
@@ -74,10 +74,10 @@ export function SectionAdvanced({
         <div className="py-4">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <span className="text-sm font-semibold text-zinc-900 dark:text-[#f1f2f4]">
+              <span className="text-sm font-bold text-zinc-950 dark:text-white">
                 Forward query parameters
               </span>
-              <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-0.5">
+              <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300 mt-0.5">
                 Pass ?ref=… and additional query strings on to the destination URL.
               </p>
             </div>
@@ -94,10 +94,10 @@ export function SectionAdvanced({
           <div className="py-4">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <span className="text-sm font-semibold text-zinc-900 dark:text-[#f1f2f4]">
+                <span className="text-sm font-bold text-zinc-950 dark:text-white">
                   Link is active
                 </span>
-                <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-0.5">
+                <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300 mt-0.5">
                   Turn off to pause the redirect and show a suspension notice.
                 </p>
               </div>

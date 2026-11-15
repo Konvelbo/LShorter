@@ -332,31 +332,31 @@ export function SectionSocialTracking({
       />
 
       <div>
-        <h2 className="text-xl font-bold tracking-tight text-[#131417] dark:text-[#f1f2f4]">
+        <h2 className="text-xl font-bold tracking-tight text-zinc-950 dark:text-white">
           Réseaux sociaux, tracking &amp; pixels
         </h2>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
+        <p className="text-sm font-medium text-zinc-700 dark:text-zinc-200 mt-1">
           Configurez les paramètres UTM, associez vos pixels et personnalisez vos cartes de partage social.
         </p>
       </div>
 
       {/* ── GROUP 1: TRAFFIC (UTM BUILDER) ON TOP ── */}
       <div className="flex flex-col gap-4">
-        <div className="flex items-center gap-2 pb-1 border-b border-zinc-200 dark:border-[#22242a]">
-          <Tag className="w-4 h-4 text-[#0066FF] dark:text-[#3b82f6]" />
-          <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-700 dark:text-[#8a8f9a]">
+        <div className="flex items-center gap-2 pb-1.5 border-b border-zinc-200 dark:border-zinc-800">
+          <Tag className="w-4 h-4 text-[#0066FF] dark:text-[#60a5fa]" />
+          <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-950 dark:text-white">
             Campagne &amp; Paramètres UTM
           </h3>
         </div>
 
-        <p className="text-xs text-zinc-600 dark:text-[#8a8f9a] -mt-1">
-          Bisez l&apos;URL de destination pour suivre les clics et conversions dans Google Analytics, Mixpanel ou vos plateformes publicitaires.
+        <p className="text-xs font-medium text-zinc-700 dark:text-zinc-200 -mt-1">
+          Balisez l&apos;URL de destination pour suivre les clics et conversions dans Google Analytics, Mixpanel ou vos plateformes publicitaires.
         </p>
 
         {/* 2-Column UTM Inputs */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
+            <label className="text-xs font-semibold text-zinc-950 dark:text-white">
               UTM Source
             </label>
             <Input
@@ -364,12 +364,12 @@ export function SectionSocialTracking({
               placeholder="google, newsletter, twitter"
               value={utmSource}
               onChange={(e) => setUtmSource(e.target.value)}
-              className="h-9 text-xs"
+              className="h-9 text-xs text-zinc-950 dark:text-white"
             />
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
+            <label className="text-xs font-semibold text-zinc-950 dark:text-white">
               UTM Medium
             </label>
             <Input
@@ -377,12 +377,12 @@ export function SectionSocialTracking({
               placeholder="cpc, banner, email"
               value={utmMedium}
               onChange={(e) => setUtmMedium(e.target.value)}
-              className="h-9 text-xs"
+              className="h-9 text-xs text-zinc-950 dark:text-white"
             />
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
+            <label className="text-xs font-semibold text-zinc-950 dark:text-white">
               UTM Campaign
             </label>
             <Input
@@ -390,12 +390,12 @@ export function SectionSocialTracking({
               placeholder="spring_sale, launch_2026"
               value={utmCampaign}
               onChange={(e) => setUtmCampaign(e.target.value)}
-              className="h-9 text-xs"
+              className="h-9 text-xs text-zinc-950 dark:text-white"
             />
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
+            <label className="text-xs font-semibold text-zinc-950 dark:text-white">
               UTM Term
             </label>
             <Input
@@ -403,12 +403,12 @@ export function SectionSocialTracking({
               placeholder="url shortener, link tracker"
               value={utmTerm}
               onChange={(e) => setUtmTerm(e.target.value)}
-              className="h-9 text-xs"
+              className="h-9 text-xs text-zinc-950 dark:text-white"
             />
           </div>
 
           <div className="flex flex-col gap-1.5 sm:col-span-2">
-            <label className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
+            <label className="text-xs font-semibold text-zinc-950 dark:text-white">
               UTM Content
             </label>
             <Input
@@ -416,7 +416,7 @@ export function SectionSocialTracking({
               placeholder="logolink, sidebar_button"
               value={utmContent}
               onChange={(e) => setUtmContent(e.target.value)}
-              className="h-9 text-xs"
+              className="h-9 text-xs text-zinc-950 dark:text-white"
             />
           </div>
         </div>
@@ -424,10 +424,10 @@ export function SectionSocialTracking({
         {/* Final URL preview */}
         {computeFinalUrlWithUtm && targetUrl && (
           <div className="p-3 rounded-[8px] bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800">
-            <span className="text-[10.5px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 block mb-1">
+            <span className="text-[10.5px] font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300 block mb-1">
               URL Finale de Destination
             </span>
-            <span className="text-xs font-mono text-zinc-700 dark:text-zinc-300 break-all select-all">
+            <span className="text-xs font-mono font-medium text-zinc-950 dark:text-white break-all select-all">
               {computeFinalUrlWithUtm()}
             </span>
           </div>
@@ -437,8 +437,8 @@ export function SectionSocialTracking({
       {/* ── GROUP 1B: RETARGETING PIXELS ── */}
       <div className="flex flex-col gap-2.5 pt-1">
         <div className="flex items-center justify-between">
-          <label className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
-            <Target className="w-3.5 h-3.5 text-[#0066FF]" />
+          <label className="text-xs font-semibold text-zinc-950 dark:text-white flex items-center gap-1.5">
+            <Target className="w-3.5 h-3.5 text-[#0066FF] dark:text-[#60a5fa]" />
             <span>Pixels de Retargeting</span>
             {!isProPlan && (
               <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
@@ -447,7 +447,7 @@ export function SectionSocialTracking({
             )}
           </label>
           {selectedPixels.length > 0 && (
-            <span className="text-[11px] font-medium text-[#0066FF]">
+            <span className="text-[11px] font-semibold text-[#0066FF] dark:text-[#60a5fa]">
               {selectedPixels.length} associé{selectedPixels.length > 1 ? "s" : ""}
             </span>
           )}
@@ -467,7 +467,7 @@ export function SectionSocialTracking({
               }
               setIsPixelModalOpen(true);
             }}
-            className="w-full py-2.5 px-3 rounded-[8px] border border-dashed border-zinc-300 dark:border-zinc-700 hover:border-[#0066FF] dark:hover:border-[#0066FF] bg-zinc-50/50 dark:bg-white/[0.02] hover:bg-[#0066FF]/5 text-xs text-zinc-600 dark:text-zinc-400 hover:text-[#0066FF] dark:hover:text-[#5294FF] flex items-center justify-center gap-2 transition-all cursor-pointer font-medium select-none"
+            className="w-full py-2.5 px-3 rounded-[8px] border border-dashed border-zinc-300 dark:border-zinc-700 hover:border-[#0066FF] dark:hover:border-[#0066FF] bg-zinc-50/50 dark:bg-white/[0.02] hover:bg-[#0066FF]/5 text-xs text-zinc-800 dark:text-zinc-200 hover:text-[#0066FF] dark:hover:text-[#5294FF] flex items-center justify-center gap-2 transition-all cursor-pointer font-semibold select-none"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Sélectionner ou associer un pixel de retargeting</span>
@@ -480,17 +480,17 @@ export function SectionSocialTracking({
                 return (
                   <div
                     key={info.id || idx}
-                    className="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-[8px] bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 text-xs text-zinc-800 dark:text-zinc-200 shadow-2xs"
+                    className="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-[8px] bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 text-xs text-zinc-950 dark:text-white shadow-2xs"
                   >
                     <PixelBrandLogo platform={info.platform} className="w-3.5 h-3.5 shrink-0" />
                     <span className="font-semibold text-xs">{info.name}</span>
-                    <span className="font-mono text-[10.5px] text-zinc-500 dark:text-zinc-400">
+                    <span className="font-mono text-[10.5px] text-zinc-700 dark:text-zinc-300">
                       {info.pixelId}
                     </span>
                     <button
                       type="button"
                       onClick={() => handleRemovePixel(info.id)}
-                      className="p-0.5 rounded text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer ml-0.5"
+                      className="p-0.5 rounded text-zinc-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer ml-0.5"
                       title="Désassocier ce pixel"
                     >
                       <X className="w-3 h-3" />
@@ -533,9 +533,9 @@ export function SectionSocialTracking({
 
       {/* ── GROUP 2: SHARING & SOCIAL PREVIEW ── */}
       <div className="flex flex-col gap-4 pt-2">
-        <div className="flex items-center gap-2 pb-1 border-b border-zinc-200 dark:border-[#22242a]">
-          <Share2 className="w-4 h-4 text-[#0066FF] dark:text-[#3b82f6]" />
-          <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-700 dark:text-[#8a8f9a]">
+        <div className="flex items-center gap-2 pb-1.5 border-b border-zinc-200 dark:border-zinc-800">
+          <Share2 className="w-4 h-4 text-[#0066FF] dark:text-[#60a5fa]" />
+          <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-950 dark:text-white">
             Partage &amp; Aperçu Réseaux Sociaux
           </h3>
         </div>
@@ -544,10 +544,10 @@ export function SectionSocialTracking({
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
+              <label className="text-xs font-semibold text-zinc-950 dark:text-white">
                 Titre de la carte sociale (Open Graph)
               </label>
-              <span className="text-[11px] text-zinc-500 dark:text-[#8a8f9a] font-mono">
+              <span className="text-[11px] font-semibold text-zinc-700 dark:text-zinc-300 font-mono">
                 {ogTitle.length}/70
               </span>
             </div>
@@ -557,16 +557,16 @@ export function SectionSocialTracking({
               placeholder="Titre accrocheur pour Twitter, Facebook, LinkedIn..."
               value={ogTitle}
               onChange={(e) => setOgTitle(e.target.value)}
-              className="h-9 text-xs"
+              className="h-9 text-xs text-zinc-950 dark:text-white"
             />
           </div>
 
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
+              <label className="text-xs font-semibold text-zinc-950 dark:text-white">
                 Description de la carte sociale (Open Graph)
               </label>
-              <span className="text-[11px] text-zinc-500 dark:text-[#8a8f9a] font-mono">
+              <span className="text-[11px] font-semibold text-zinc-700 dark:text-zinc-300 font-mono">
                 {ogDescription.length}/160
               </span>
             </div>
@@ -576,14 +576,14 @@ export function SectionSocialTracking({
               placeholder="Brève description affichée lors du partage sur les plateformes sociales..."
               value={ogDescription}
               onChange={(e) => setOgDescription(e.target.value)}
-              className="w-full bg-white dark:bg-[#16181d] text-zinc-900 dark:text-[#f1f2f4] border border-zinc-300 dark:border-[#27272a] focus:border-[#0066FF] dark:focus:border-[#3b82f6] focus:ring-1 focus:ring-[#0066FF] dark:focus:ring-[#3b82f6] rounded-[8px] px-3 py-2 text-xs outline-none transition-colors placeholder:text-zinc-400 dark:placeholder:text-zinc-500 font-normal resize-vertical min-h-[58px]"
+              className="w-full bg-white dark:bg-[#16181d] text-zinc-950 dark:text-white border border-zinc-300 dark:border-[#27272a] focus:border-[#0066FF] dark:focus:border-[#3b82f6] focus:ring-1 focus:ring-[#0066FF] dark:focus:ring-[#3b82f6] rounded-[8px] px-3 py-2 text-xs outline-none transition-colors placeholder:text-zinc-500 dark:placeholder:text-zinc-400 font-normal resize-vertical min-h-[58px]"
             />
           </div>
         </div>
 
         {/* 2. Banner Format Selector */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
+          <label className="text-xs font-semibold text-zinc-950 dark:text-white">
             Format de la bannière sociale
           </label>
           <div className="flex gap-1.5 p-1 rounded-[8px] bg-zinc-100 dark:bg-[#16181d] border border-zinc-200 dark:border-[#22242a]">
@@ -594,10 +594,10 @@ export function SectionSocialTracking({
                 if (isCropMode) setCropFormat("summary_large_image");
               }}
               className={cn(
-                "flex-1 py-1.5 px-3 rounded-[6px] text-xs font-medium transition-all text-center cursor-pointer flex items-center justify-center gap-1.5",
+                "flex-1 py-1.5 px-3 rounded-[6px] text-xs transition-all text-center cursor-pointer flex items-center justify-center gap-1.5",
                 twitterCard === "summary_large_image"
-                  ? "bg-white dark:bg-[#0e0f12] text-zinc-900 dark:text-[#f1f2f4] shadow-xs border border-zinc-200 dark:border-zinc-700 font-semibold"
-                  : "text-zinc-600 dark:text-[#8a8f9a] hover:text-zinc-900 dark:hover:text-[#f1f2f4]",
+                  ? "bg-white dark:bg-[#0e0f12] text-zinc-950 dark:text-white shadow-xs border border-zinc-200 dark:border-zinc-700 font-semibold"
+                  : "text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white font-medium",
               )}
             >
               <Sparkles className="w-3.5 h-3.5 text-[#0066FF]" />
@@ -611,18 +611,18 @@ export function SectionSocialTracking({
                 if (isCropMode) setCropFormat("summary");
               }}
               className={cn(
-                "flex-1 py-1.5 px-3 rounded-[6px] text-xs font-medium transition-all text-center cursor-pointer flex items-center justify-center gap-1.5",
+                "flex-1 py-1.5 px-3 rounded-[6px] text-xs transition-all text-center cursor-pointer flex items-center justify-center gap-1.5",
                 twitterCard === "summary"
-                  ? "bg-white dark:bg-[#0e0f12] text-zinc-900 dark:text-[#f1f2f4] shadow-xs border border-zinc-200 dark:border-zinc-700 font-semibold"
-                  : "text-zinc-600 dark:text-[#8a8f9a] hover:text-zinc-900 dark:hover:text-[#f1f2f4]",
+                  ? "bg-white dark:bg-[#0e0f12] text-zinc-950 dark:text-white shadow-xs border border-zinc-200 dark:border-zinc-700 font-semibold"
+                  : "text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white font-medium",
               )}
             >
               <LayoutGrid className="w-3.5 h-3.5" />
               <span>Bannière compacte (1:1)</span>
             </button>
           </div>
-          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-relaxed flex items-start gap-1.5 mt-0.5">
-            <Info className="w-3.5 h-3.5 shrink-0 text-zinc-400 mt-0.5" />
+          <p className="text-[11px] font-medium text-zinc-700 dark:text-zinc-300 leading-relaxed flex items-start gap-1.5 mt-0.5">
+            <Info className="w-3.5 h-3.5 shrink-0 text-[#0066FF] dark:text-[#60a5fa] mt-0.5" />
             <span>
               Les réseaux sociaux mettent en cache le format de la bannière dès le premier partage du lien.
             </span>
@@ -640,10 +640,10 @@ export function SectionSocialTracking({
                   <CropIcon className="w-3.5 h-3.5" />
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-zinc-900 dark:text-zinc-100">
+                  <h4 className="text-xs font-bold text-zinc-950 dark:text-white">
                     Ajuster et recadrer la bannière
                   </h4>
-                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                  <p className="text-[11px] font-medium text-zinc-700 dark:text-zinc-300">
                     Positionnez et zoomez pour un rendu optimal sur vos partages
                   </p>
                 </div>
@@ -657,8 +657,8 @@ export function SectionSocialTracking({
                   className={cn(
                     "px-2.5 py-1 rounded-[5px] text-[11px] font-medium transition-colors cursor-pointer",
                     cropFormat === "summary_large_image"
-                      ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white shadow-2xs font-semibold"
-                      : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200"
+                      ? "bg-white dark:bg-zinc-900 text-zinc-950 dark:text-white shadow-2xs font-semibold"
+                      : "text-zinc-700 hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-white"
                   )}
                 >
                   Large 1200×630
@@ -669,8 +669,8 @@ export function SectionSocialTracking({
                   className={cn(
                     "px-2.5 py-1 rounded-[5px] text-[11px] font-medium transition-colors cursor-pointer",
                     cropFormat === "summary"
-                      ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white shadow-2xs font-semibold"
-                      : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200"
+                      ? "bg-white dark:bg-zinc-900 text-zinc-950 dark:text-white shadow-2xs font-semibold"
+                      : "text-zinc-700 hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-white"
                   )}
                 >
                   Carré 600×600
@@ -711,7 +711,7 @@ export function SectionSocialTracking({
                 <button
                   type="button"
                   onClick={() => setZoom((z) => Math.max(1, Number((z - 0.1).toFixed(2))))}
-                  className="p-1.5 rounded-[6px] border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
+                  className="p-1.5 rounded-[6px] border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
                   title="Dézoomer"
                 >
                   <ZoomOut className="w-3.5 h-3.5" />
@@ -730,7 +730,7 @@ export function SectionSocialTracking({
                 <button
                   type="button"
                   onClick={() => setZoom((z) => Math.min(3, Number((z + 0.1).toFixed(2))))}
-                  className="p-1.5 rounded-[6px] border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
+                  className="p-1.5 rounded-[6px] border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
                   title="Zoomer"
                 >
                   <ZoomIn className="w-3.5 h-3.5" />
@@ -742,13 +742,13 @@ export function SectionSocialTracking({
                     setCrop({ x: 0, y: 0 });
                     setZoom(1);
                   }}
-                  className="p-1.5 rounded-[6px] border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
+                  className="p-1.5 rounded-[6px] border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
                   title="Réinitialiser"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
                 </button>
 
-                <span className="text-[11px] font-mono text-zinc-500 dark:text-zinc-400 min-w-[36px]">
+                <span className="text-[11px] font-mono font-semibold text-zinc-700 dark:text-zinc-300 min-w-[36px]">
                   {Math.round(zoom * 100)}%
                 </span>
               </div>
@@ -759,7 +759,7 @@ export function SectionSocialTracking({
                   type="button"
                   onClick={handleCancelCrop}
                   disabled={isProcessingCrop}
-                  className="px-3 py-1.5 rounded-[8px] border border-zinc-200 dark:border-zinc-700 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer disabled:opacity-50"
+                  className="px-3 py-1.5 rounded-[8px] border border-zinc-200 dark:border-zinc-700 text-xs font-semibold text-zinc-800 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer disabled:opacity-50"
                 >
                   Annuler
                 </button>
@@ -797,10 +797,10 @@ export function SectionSocialTracking({
                 />
               </div>
               <div className="flex flex-col min-w-0">
-                <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 truncate">
+                <span className="text-xs font-semibold text-zinc-950 dark:text-white truncate">
                   Bannière personnalisée active
                 </span>
-                <span className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                <span className="text-[11px] font-medium text-zinc-700 dark:text-zinc-300">
                   {twitterCard === "summary" ? "Format 600×600 (1:1)" : "Format 1200×630 (1.91:1)"}
                 </span>
               </div>
@@ -810,7 +810,7 @@ export function SectionSocialTracking({
               <button
                 type="button"
                 onClick={handleStartCropExisting}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-xs font-medium text-zinc-700 dark:text-zinc-200 transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-xs font-semibold text-zinc-800 dark:text-zinc-100 transition-colors cursor-pointer"
                 title="Ajuster le recadrage ou le zoom"
               >
                 <CropIcon className="w-3.5 h-3.5 text-[#0066FF]" />
@@ -819,16 +819,16 @@ export function SectionSocialTracking({
               <button
                 type="button"
                 onClick={() => activeFileInputRef.current?.click()}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-xs font-medium text-zinc-700 dark:text-zinc-200 transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-xs font-semibold text-zinc-800 dark:text-zinc-100 transition-colors cursor-pointer"
                 title="Remplacer par une autre image"
               >
-                <Upload className="w-3.5 h-3.5 text-zinc-500" />
+                <Upload className="w-3.5 h-3.5 text-zinc-600 dark:text-zinc-300" />
                 <span>Remplacer</span>
               </button>
               <button
                 type="button"
                 onClick={handleClearBannerAction}
-                className="p-1 rounded-[6px] text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer"
+                className="p-1 rounded-[6px] text-zinc-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer"
                 title="Supprimer la bannière personnalisée"
               >
                 <Trash2 className="w-3.5 h-3.5" />
@@ -846,16 +846,16 @@ export function SectionSocialTracking({
               "flex flex-col items-center justify-center p-4 rounded-[10px] border border-dashed text-center transition-colors cursor-pointer select-none",
               isDragging
                 ? "border-[#0066FF] bg-[#0066FF]/5"
-                : "border-zinc-300 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-900/30"
+                : "border-zinc-300 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-600 bg-zinc-50/60 dark:bg-zinc-900/40"
             )}
           >
-            <div className="w-8 h-8 rounded-[8px] bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 flex items-center justify-center mb-1.5">
+            <div className="w-8 h-8 rounded-[8px] bg-zinc-200/70 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 flex items-center justify-center mb-1.5">
               <Upload className="w-4 h-4" />
             </div>
-            <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
+            <span className="text-xs font-bold text-zinc-950 dark:text-white">
               Importer une bannière personnalisée
             </span>
-            <span className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">
+            <span className="text-[11px] font-medium text-zinc-700 dark:text-zinc-300 mt-0.5">
               Glissez-déposez ou cliquez · JPG, PNG, WebP (max 10 Mo)
             </span>
           </div>
@@ -863,7 +863,7 @@ export function SectionSocialTracking({
 
         {/* 4. Social Network Switcher Tabs */}
         <div className="flex flex-col gap-1.5 pt-1">
-          <label className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
+          <label className="text-xs font-semibold text-zinc-950 dark:text-white">
             Aperçu sur les réseaux sociaux
           </label>
           <div className="grid grid-cols-4 gap-1 p-1 rounded-[8px] bg-zinc-100 dark:bg-[#16181d] border border-zinc-200 dark:border-[#22242a]">
@@ -880,10 +880,10 @@ export function SectionSocialTracking({
                 type="button"
                 onClick={() => setSocialPlatformPreview(p.id)}
                 className={cn(
-                  "py-1.5 px-2 rounded-[6px] text-[11px] font-medium transition-all text-center cursor-pointer",
+                  "py-1.5 px-2 rounded-[6px] text-[11px] transition-all text-center cursor-pointer",
                   socialPlatformPreview === p.id
-                    ? "bg-white dark:bg-[#0e0f12] text-zinc-900 dark:text-[#f1f2f4] shadow-xs border border-zinc-200 dark:border-zinc-700 font-semibold"
-                    : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white",
+                    ? "bg-white dark:bg-[#0e0f12] text-zinc-950 dark:text-white shadow-xs border border-zinc-200 dark:border-zinc-700 font-semibold"
+                    : "text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white font-medium",
                 )}
               >
                 {p.label}
@@ -892,12 +892,12 @@ export function SectionSocialTracking({
           </div>
         </div>
 
-        {/* 5. Live Card Mockups */}
-        <div className="border border-zinc-200 dark:border-[#22242a] rounded-[10px] overflow-hidden bg-white dark:bg-[#0e0f12] text-left shadow-xs transition-all">
+        {/* 5. Live Card Mockups (Simple, Sobre, Light & Dark Adaptive) */}
+        <div className="border border-zinc-200 dark:border-zinc-800 rounded-[10px] overflow-hidden bg-white dark:bg-[#12141a] text-left shadow-2xs transition-all">
           {socialPlatformPreview === "whatsapp" ? (
-            /* WhatsApp Message Bubble Style */
-            <div className="p-3 bg-[#EFEAE2] dark:bg-[#0b141a]">
-              <div className="max-w-[280px] rounded-[8px] bg-white dark:bg-[#1f2c34] p-2 shadow-xs border border-zinc-200/60 dark:border-transparent flex flex-col gap-1.5">
+            /* WhatsApp Message Card Style (Clean Light/Dark) */
+            <div className="p-3.5 bg-zinc-50 dark:bg-[#0e1015]">
+              <div className="max-w-[320px] rounded-[8px] bg-white dark:bg-[#181b22] p-2.5 shadow-2xs border border-zinc-200 dark:border-zinc-800 flex flex-col gap-2">
                 <div
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
@@ -907,7 +907,7 @@ export function SectionSocialTracking({
                     else activeFileInputRef.current?.click();
                   }}
                   className={cn(
-                    "relative w-full rounded-[6px] overflow-hidden cursor-pointer bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center transition-all group",
+                    "relative w-full rounded-[6px] overflow-hidden cursor-pointer bg-zinc-100 dark:bg-[#12141a] border border-zinc-200/80 dark:border-zinc-800 flex items-center justify-center transition-all group",
                     twitterCard === "summary" ? "h-24 sm:h-28" : "h-32 sm:h-36"
                   )}
                 >
@@ -921,26 +921,26 @@ export function SectionSocialTracking({
                         onError={() => setHasImageError(true)}
                       />
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5">
-                        <span className="p-1 rounded-[5px] bg-white text-zinc-900 text-xs shadow-xs">
+                        <span className="p-1.5 rounded-[6px] bg-white text-zinc-950 text-xs shadow-xs">
                           <CropIcon className="w-3.5 h-3.5 text-[#0066FF]" />
                         </span>
                       </div>
                     </>
                   ) : (
-                    <div className="p-2 text-center text-xs text-zinc-400">
-                      <Upload className="w-4 h-4 mx-auto mb-1 text-zinc-400" />
-                      <span>Ajouter une image</span>
+                    <div className="p-2 text-center flex flex-col items-center gap-1 text-zinc-600 dark:text-zinc-300">
+                      <ImageIcon className="w-5 h-5 text-zinc-400 dark:text-zinc-500" />
+                      <span className="text-[11px] font-medium">Aperçu de l&apos;image</span>
                     </div>
                   )}
                 </div>
                 <div className="px-1">
-                  <span className="text-xs font-bold text-zinc-900 dark:text-[#e9edef] block truncate">
-                    {ogTitle || "Titre WhatsApp"}
+                  <span className="text-xs font-bold text-zinc-950 dark:text-white block truncate">
+                    {ogTitle || "Titre du lien partagé"}
                   </span>
-                  <span className="text-[11px] text-zinc-600 dark:text-[#8696a0] line-clamp-2 leading-snug">
+                  <span className="text-[11px] font-medium text-zinc-700 dark:text-zinc-300 line-clamp-2 leading-snug mt-0.5">
                     {ogDescription || "Aperçu de la description partagée sur WhatsApp."}
                   </span>
-                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono block mt-1">
+                  <span className="text-[11px] font-semibold text-[#0066FF] dark:text-[#60a5fa] font-mono block mt-1">
                     https://{domainName || "lsho.cc"}/{slug || "..."}
                   </span>
                 </div>
@@ -950,7 +950,7 @@ export function SectionSocialTracking({
             /* Facebook Feed Post Card Style */
             twitterCard === "summary" ? (
               /* Compact Facebook Card (Horizontal split) */
-              <div className="flex bg-[#F0F2F5] dark:bg-[#18191a] border border-zinc-200 dark:border-[#22242a] overflow-hidden">
+              <div className="flex bg-white dark:bg-[#12141a] overflow-hidden">
                 <div
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
@@ -959,7 +959,7 @@ export function SectionSocialTracking({
                     if (hasCustomImage) handleStartCropExisting();
                     else activeFileInputRef.current?.click();
                   }}
-                  className="relative w-28 sm:w-32 h-28 sm:h-32 shrink-0 bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center cursor-pointer group border-r border-zinc-200 dark:border-[#22242a]"
+                  className="relative w-28 sm:w-32 h-28 sm:h-32 shrink-0 bg-zinc-100 dark:bg-[#181a20] flex items-center justify-center cursor-pointer group border-r border-zinc-200 dark:border-zinc-800"
                 >
                   {hasCustomImage ? (
                     <>
@@ -970,26 +970,26 @@ export function SectionSocialTracking({
                         className="w-full h-full object-cover"
                         onError={() => setHasImageError(true)}
                       />
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <CropIcon className="w-4 h-4 text-white" />
                       </div>
                     </>
                   ) : (
-                    <div className="p-2 text-center text-xs text-zinc-400">
-                      <Upload className="w-4 h-4 mx-auto mb-1 text-zinc-400" />
-                      <span className="text-[10px]">Image</span>
+                    <div className="p-2 text-center flex flex-col items-center gap-1 text-zinc-600 dark:text-zinc-300">
+                      <ImageIcon className="w-5 h-5 text-zinc-400 dark:text-zinc-500" />
+                      <span className="text-[10px] font-medium">Format 1:1</span>
                     </div>
                   )}
                 </div>
-                <div className="p-3 flex flex-col justify-center min-w-0 flex-1">
-                  <span className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider block">
+                <div className="p-3.5 flex flex-col justify-center min-w-0 flex-1 bg-zinc-50/60 dark:bg-[#151821]">
+                  <span className="text-[10px] text-zinc-600 dark:text-zinc-400 uppercase font-bold tracking-wider block">
                     {(domainName || "lsho.cc").toUpperCase()}
                   </span>
-                  <span className="text-xs sm:text-sm font-bold text-zinc-900 dark:text-white block truncate mt-0.5">
+                  <span className="text-xs sm:text-sm font-bold text-zinc-950 dark:text-white block truncate mt-0.5">
                     {ogTitle || "Titre du lien sur Facebook"}
                   </span>
-                  <span className="text-xs text-zinc-600 dark:text-zinc-400 line-clamp-2 mt-0.5">
-                    {ogDescription || "Description du contenu affichée dans le flux d'actualité Facebook."}
+                  <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300 line-clamp-2 mt-0.5">
+                    {ogDescription || "Description du contenu affichée dans le fil d'actualité Facebook."}
                   </span>
                 </div>
               </div>
@@ -1004,7 +1004,7 @@ export function SectionSocialTracking({
                     if (hasCustomImage) handleStartCropExisting();
                     else activeFileInputRef.current?.click();
                   }}
-                  className="relative w-full h-40 sm:h-44 overflow-hidden cursor-pointer group flex items-center justify-center border-b border-zinc-200 dark:border-[#22242a] bg-zinc-100 dark:bg-[#16181d]"
+                  className="relative w-full h-40 sm:h-44 overflow-hidden cursor-pointer group flex items-center justify-center border-b border-zinc-200 dark:border-zinc-800 bg-zinc-100/80 dark:bg-[#181a20]"
                 >
                   {hasCustomImage ? (
                     <>
@@ -1015,8 +1015,8 @@ export function SectionSocialTracking({
                         className="w-full h-full object-cover"
                         onError={() => setHasImageError(true)}
                       />
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-white/95 text-zinc-900 text-xs font-semibold shadow-xs">
+                      <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-white text-zinc-950 text-xs font-semibold shadow-xs">
                           <CropIcon className="w-3.5 h-3.5 text-[#0066FF]" />
                           <span>Ajuster / Recadrer</span>
                         </span>
@@ -1024,22 +1024,22 @@ export function SectionSocialTracking({
                     </>
                   ) : (
                     <div className="py-5 px-4 flex flex-col items-center justify-center text-center gap-1.5">
-                      <Upload className="w-5 h-5 text-zinc-400" />
-                      <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-                        Aperçu Facebook
+                      <ImageIcon className="w-6 h-6 text-zinc-400 dark:text-zinc-500" />
+                      <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
+                        Aperçu de la bannière (1200 × 630 px)
                       </span>
                     </div>
                   )}
                 </div>
-                <div className="p-3 bg-[#F0F2F5] dark:bg-[#18191a]">
-                  <span className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider block">
+                <div className="p-3.5 bg-zinc-50/70 dark:bg-[#151821]">
+                  <span className="text-[10px] text-zinc-600 dark:text-zinc-400 uppercase font-bold tracking-wider block">
                     {(domainName || "lsho.cc").toUpperCase()}
                   </span>
-                  <span className="text-sm font-bold text-zinc-900 dark:text-white block truncate mt-0.5">
+                  <span className="text-sm font-bold text-zinc-950 dark:text-white block truncate mt-0.5">
                     {ogTitle || "Titre du lien sur Facebook"}
                   </span>
-                  <span className="text-xs text-zinc-600 dark:text-zinc-400 line-clamp-2 mt-0.5">
-                    {ogDescription || "Description du contenu affichée dans le flux d'actualité Facebook."}
+                  <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300 line-clamp-2 mt-0.5">
+                    {ogDescription || "Description du contenu affichée dans le fil d'actualité Facebook."}
                   </span>
                 </div>
               </div>
@@ -1048,7 +1048,7 @@ export function SectionSocialTracking({
             /* LinkedIn Post Card Style */
             twitterCard === "summary" ? (
               /* Compact LinkedIn Card */
-              <div className="flex bg-zinc-50 dark:bg-[#1b1f23] border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+              <div className="flex bg-white dark:bg-[#12141a] overflow-hidden">
                 <div
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
@@ -1057,7 +1057,7 @@ export function SectionSocialTracking({
                     if (hasCustomImage) handleStartCropExisting();
                     else activeFileInputRef.current?.click();
                   }}
-                  className="relative w-24 sm:w-28 h-24 sm:h-28 shrink-0 bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center cursor-pointer group border-r border-zinc-200 dark:border-zinc-800"
+                  className="relative w-24 sm:w-28 h-24 sm:h-28 shrink-0 bg-zinc-100 dark:bg-[#181a20] flex items-center justify-center cursor-pointer group border-r border-zinc-200 dark:border-zinc-800"
                 >
                   {hasCustomImage ? (
                     <>
@@ -1068,22 +1068,25 @@ export function SectionSocialTracking({
                         className="w-full h-full object-cover"
                         onError={() => setHasImageError(true)}
                       />
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <CropIcon className="w-4 h-4 text-white" />
                       </div>
                     </>
                   ) : (
-                    <div className="p-2 text-center text-xs text-zinc-400">
-                      <Upload className="w-4 h-4 mx-auto mb-1 text-zinc-400" />
-                      <span className="text-[10px]">Image</span>
+                    <div className="p-2 text-center flex flex-col items-center gap-1 text-zinc-600 dark:text-zinc-300">
+                      <ImageIcon className="w-5 h-5 text-zinc-400 dark:text-zinc-500" />
+                      <span className="text-[10px] font-medium">Format 1:1</span>
                     </div>
                   )}
                 </div>
-                <div className="p-3 flex flex-col justify-center min-w-0 flex-1">
-                  <span className="text-xs font-semibold text-zinc-900 dark:text-white block truncate">
+                <div className="p-3.5 flex flex-col justify-center min-w-0 flex-1 bg-zinc-50/60 dark:bg-[#151821]">
+                  <span className="text-xs sm:text-sm font-bold text-zinc-950 dark:text-white block truncate">
                     {ogTitle || "Titre professionnel LinkedIn"}
                   </span>
-                  <span className="text-[11px] text-zinc-500 font-mono block mt-0.5">
+                  <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300 line-clamp-1 mt-0.5">
+                    {ogDescription || "Description affichée sur LinkedIn."}
+                  </span>
+                  <span className="text-[11px] font-medium text-zinc-600 dark:text-zinc-400 font-mono block mt-1">
                     {domainName || "lsho.cc"}
                   </span>
                 </div>
@@ -1099,7 +1102,7 @@ export function SectionSocialTracking({
                     if (hasCustomImage) handleStartCropExisting();
                     else activeFileInputRef.current?.click();
                   }}
-                  className="relative w-full h-40 sm:h-44 overflow-hidden cursor-pointer group flex items-center justify-center border-b border-zinc-200 dark:border-[#22242a] bg-zinc-100 dark:bg-[#16181d]"
+                  className="relative w-full h-40 sm:h-44 overflow-hidden cursor-pointer group flex items-center justify-center border-b border-zinc-200 dark:border-zinc-800 bg-zinc-100/80 dark:bg-[#181a20]"
                 >
                   {hasCustomImage ? (
                     <>
@@ -1110,8 +1113,8 @@ export function SectionSocialTracking({
                         className="w-full h-full object-cover"
                         onError={() => setHasImageError(true)}
                       />
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-white/95 text-zinc-900 text-xs font-semibold shadow-xs">
+                      <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-white text-zinc-950 text-xs font-semibold shadow-xs">
                           <CropIcon className="w-3.5 h-3.5 text-[#0066FF]" />
                           <span>Ajuster / Recadrer</span>
                         </span>
@@ -1119,26 +1122,29 @@ export function SectionSocialTracking({
                     </>
                   ) : (
                     <div className="py-5 px-4 flex flex-col items-center justify-center text-center gap-1.5">
-                      <Upload className="w-5 h-5 text-zinc-400" />
-                      <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-                        Aperçu LinkedIn
+                      <ImageIcon className="w-6 h-6 text-zinc-400 dark:text-zinc-500" />
+                      <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
+                        Aperçu de la bannière (1200 × 630 px)
                       </span>
                     </div>
                   )}
                 </div>
-                <div className="p-3 bg-zinc-50 dark:bg-[#1b1f23] border-t border-zinc-200 dark:border-zinc-800">
-                  <span className="text-xs font-semibold text-zinc-900 dark:text-white block truncate">
+                <div className="p-3.5 bg-zinc-50/70 dark:bg-[#151821]">
+                  <span className="text-sm font-bold text-zinc-950 dark:text-white block truncate">
                     {ogTitle || "Titre professionnel LinkedIn"}
                   </span>
-                  <span className="text-[11px] text-zinc-500 font-mono block mt-0.5">
+                  <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300 line-clamp-2 mt-0.5">
+                    {ogDescription || "Description affichée lors du partage sur LinkedIn."}
+                  </span>
+                  <span className="text-[11px] font-medium text-zinc-600 dark:text-zinc-400 font-mono block mt-1">
                     {domainName || "lsho.cc"}
                   </span>
                 </div>
               </div>
             )
           ) : twitterCard === "summary_large_image" ? (
-            /* Twitter / X Large Banner Style (Authentic X Card Layout) */
-            <div className="rounded-[10px] overflow-hidden bg-black text-white border border-[#2f3336] shadow-xs">
+            /* Twitter / X Large Banner Style (Simple, Sobre, Light & Dark Mode) */
+            <div>
               <div
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
@@ -1148,10 +1154,10 @@ export function SectionSocialTracking({
                   else activeFileInputRef.current?.click();
                 }}
                 className={cn(
-                  "relative w-full h-44 sm:h-52 overflow-hidden cursor-pointer group flex items-center justify-center border-b border-[#2f3336] transition-colors",
+                  "relative w-full h-40 sm:h-44 overflow-hidden cursor-pointer group flex items-center justify-center border-b border-zinc-200 dark:border-zinc-800 transition-colors",
                   isDragging
-                    ? "bg-[#0066FF]/20"
-                    : "bg-[#16181c] hover:bg-[#1c1e24]",
+                    ? "bg-[#0066FF]/10"
+                    : "bg-zinc-100/80 dark:bg-[#181a20] hover:bg-zinc-200/50 dark:hover:bg-[#1e2028]",
                 )}
               >
                 {hasCustomImage ? (
@@ -1178,7 +1184,7 @@ export function SectionSocialTracking({
                       }}
                     />
                     {/* Hover Overlay with Action Buttons */}
-                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-[2px]">
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                       <button
                         type="button"
                         onClick={(e) => {
@@ -1196,7 +1202,7 @@ export function SectionSocialTracking({
                           e.stopPropagation();
                           activeFileInputRef.current?.click();
                         }}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-white text-zinc-900 text-xs font-semibold shadow-xs hover:bg-zinc-100 transition-colors cursor-pointer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-white text-zinc-950 text-xs font-semibold shadow-xs hover:bg-zinc-100 transition-colors cursor-pointer"
                       >
                         <Upload className="w-3.5 h-3.5 text-[#0066FF]" />
                         <span>Remplacer</span>
@@ -1215,53 +1221,38 @@ export function SectionSocialTracking({
                     </div>
                   </>
                 ) : (
-                  /* Dynamic Generative Banner */
-                  <div className="w-full h-full relative flex flex-col items-center justify-center bg-gradient-to-br from-[#121316] via-[#1a1c22] to-[#0c0d10] p-4 text-center select-none">
-                    <div className="absolute inset-0 bg-[radial-gradient(#0066FF_1px,transparent_1px)] [background-size:16px_16px] opacity-20 pointer-events-none" />
-                    
-                    <div className="flex items-center gap-1.5 mb-2 px-3 py-0.5 rounded-full bg-[#0066FF]/15 border border-[#0066FF]/30 z-10">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#0066FF] animate-pulse" />
-                      <span className="text-[10px] font-bold text-[#5294FF] uppercase tracking-wider">
-                        {domainName || "lsho.cc"}
-                      </span>
+                  /* Simple & Sober Placeholder (Light & Dark Adaptive) */
+                  <div className="py-5 px-4 flex flex-col items-center justify-center text-center gap-1.5 select-none">
+                    <div className="w-9 h-9 rounded-[8px] bg-white dark:bg-zinc-800/90 border border-zinc-200/80 dark:border-zinc-700/80 flex items-center justify-center text-zinc-500 dark:text-zinc-400 shadow-2xs">
+                      <ImageIcon className="w-4 h-4" />
                     </div>
-                    <span className="text-sm font-bold text-white line-clamp-1 max-w-[85%] z-10">
-                      {ogTitle || "Aperçu de la bannière sociale"}
+                    <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 mt-0.5">
+                      Aperçu de la bannière (1200 × 630 px)
                     </span>
-                    <span className="text-[10.5px] text-zinc-400 mt-0.5 z-10">
-                      Format haute définition 1200 × 630 pixels
+                    <span className="text-[11px] font-medium text-zinc-600 dark:text-zinc-400">
+                      Aucune image personnalisée sélectionnée
                     </span>
-
-                    <div className="mt-3 z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-white/10 hover:bg-white/15 border border-white/15 text-xs font-medium text-zinc-200 group-hover:border-[#0066FF]/50 group-hover:text-white transition-all shadow-2xs">
-                      <Upload className="w-3.5 h-3.5 text-[#0066FF]" />
-                      <span>Cliquez ou déposez pour importer une bannière</span>
-                    </div>
                   </div>
                 )}
-
-                {/* Twitter / X Floating Domain Pill */}
-                <div className="absolute bottom-2.5 left-2.5 z-20 px-2.5 py-1 rounded-[6px] bg-black/80 backdrop-blur-md border border-white/15 text-[11px] font-medium text-white flex items-center gap-1.5 pointer-events-none shadow-xs">
-                  <Globe2 className="w-3 h-3 text-zinc-400" />
-                  <span>{domainName || "lsho.cc"}</span>
-                </div>
               </div>
 
-              {/* Twitter / X Post Metadata Block */}
-              <div className="p-3 bg-black text-white">
-                <span className="text-[11px] text-zinc-400 font-normal">
-                  {domainName || "lsho.cc"}
-                </span>
-                <span className="text-xs sm:text-sm font-bold text-white truncate block mt-0.5">
+              {/* Twitter / X Post Metadata Block (Light & Dark Adaptive) */}
+              <div className="p-3.5 bg-white dark:bg-[#12141a]">
+                <div className="flex items-center gap-1.5 text-[11px] font-semibold text-zinc-600 dark:text-zinc-400">
+                  <Globe2 className="w-3 h-3 text-zinc-500 dark:text-zinc-400" />
+                  <span>{domainName || "lsho.cc"}</span>
+                </div>
+                <span className="text-sm font-bold text-zinc-950 dark:text-white truncate block mt-0.5">
                   {ogTitle || "Titre de votre lien partagé"}
                 </span>
-                <span className="text-[11px] text-zinc-400 line-clamp-2 mt-0.5">
+                <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300 line-clamp-2 mt-0.5 leading-relaxed">
                   {ogDescription || "La description Open Graph apparaîtra ici sur Twitter / X."}
                 </span>
               </div>
             </div>
           ) : (
-            /* Twitter / X Compact Summary Style */
-            <div className="flex items-center gap-3 p-3 bg-black text-white rounded-[10px] border border-[#2f3336]">
+            /* Twitter / X Compact Summary Style (Simple, Sobre, Light & Dark Mode) */
+            <div className="flex items-center gap-3.5 p-3.5 bg-white dark:bg-[#12141a]">
               <div
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
@@ -1271,10 +1262,10 @@ export function SectionSocialTracking({
                   else activeFileInputRef.current?.click();
                 }}
                 className={cn(
-                  "relative w-20 h-20 rounded-[8px] overflow-hidden cursor-pointer group shrink-0 border border-[#2f3336] flex items-center justify-center transition-colors",
+                  "relative w-20 h-20 rounded-[8px] overflow-hidden cursor-pointer group shrink-0 border border-zinc-200 dark:border-zinc-800 flex items-center justify-center transition-colors",
                   isDragging
-                    ? "bg-[#0066FF]/20"
-                    : "bg-[#16181d] hover:bg-[#1c1e24]",
+                    ? "bg-[#0066FF]/10"
+                    : "bg-zinc-100 dark:bg-[#181a20] hover:bg-zinc-200/60 dark:hover:bg-[#1e2028]",
                 )}
               >
                 {hasCustomImage ? (
@@ -1286,7 +1277,7 @@ export function SectionSocialTracking({
                       className="w-full h-full object-cover"
                       onError={() => setHasImageError(true)}
                     />
-                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
                       <button
                         type="button"
                         onClick={(e) => {
@@ -1304,7 +1295,7 @@ export function SectionSocialTracking({
                           e.stopPropagation();
                           activeFileInputRef.current?.click();
                         }}
-                        className="p-1 rounded-[5px] bg-white text-zinc-900 cursor-pointer"
+                        className="p-1 rounded-[5px] bg-white text-zinc-950 cursor-pointer"
                         title="Remplacer"
                       >
                         <Upload className="w-3.5 h-3.5 text-[#0066FF]" />
@@ -1323,10 +1314,10 @@ export function SectionSocialTracking({
                     </div>
                   </>
                 ) : (
-                  <div className="flex flex-col items-center justify-center p-1 text-center text-zinc-400 group-hover:text-[#0066FF] transition-colors">
-                    <Upload className="w-5 h-5 text-zinc-400" />
-                    <span className="text-[9px] font-semibold mt-1 leading-tight">
-                      Importer
+                  <div className="flex flex-col items-center justify-center p-1 text-center text-zinc-500 dark:text-zinc-400">
+                    <ImageIcon className="w-5 h-5" />
+                    <span className="text-[10px] font-semibold mt-1 leading-tight">
+                      1:1
                     </span>
                   </div>
                 )}
@@ -1334,14 +1325,15 @@ export function SectionSocialTracking({
 
               {/* Compact Text Metadata */}
               <div className="min-w-0 flex-1">
-                <span className="text-[10px] text-zinc-400 font-mono block uppercase font-medium">
-                  {domainName || "lsho.cc"}
-                </span>
-                <span className="text-xs font-bold text-white block truncate mt-0.5">
+                <div className="flex items-center gap-1 text-[11px] font-semibold text-zinc-600 dark:text-zinc-400">
+                  <Globe2 className="w-3 h-3 text-zinc-500 dark:text-zinc-400" />
+                  <span>{domainName || "lsho.cc"}</span>
+                </div>
+                <span className="text-sm font-bold text-zinc-950 dark:text-white block truncate mt-0.5">
                   {ogTitle || "Titre de la carte compacte"}
                 </span>
-                <span className="text-[11px] text-zinc-400 line-clamp-1 mt-0.5">
-                  {ogDescription || "Description compacte pour X."}
+                <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300 line-clamp-2 mt-0.5">
+                  {ogDescription || "Description compacte pour Twitter / X."}
                 </span>
               </div>
             </div>

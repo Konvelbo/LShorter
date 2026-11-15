@@ -124,10 +124,10 @@ export const SectionLink = React.memo(function SectionLink({
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <h2 className="text-xl font-bold tracking-tight text-[#131417] dark:text-[#f1f2f4]">
+        <h2 className="text-xl font-bold tracking-tight text-zinc-950 dark:text-white">
           Where should your link go?
         </h2>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
+        <p className="text-sm font-medium text-zinc-700 dark:text-zinc-200 mt-1">
           Paste the destination and choose your short link.
         </p>
       </div>
@@ -136,7 +136,7 @@ export const SectionLink = React.memo(function SectionLink({
       <div className="flex flex-col gap-1.5">
         <label
           htmlFor={`${tagInputId}-dest-url`}
-          className="text-sm font-semibold text-zinc-800 dark:text-zinc-200"
+          className="text-sm font-bold text-zinc-950 dark:text-white"
         >
           Destination URL <span className="text-red-500">*</span>
         </label>
@@ -164,7 +164,7 @@ export const SectionLink = React.memo(function SectionLink({
               }));
             }}
             className={cn(
-              "h-10 text-sm",
+              "h-10 text-sm text-zinc-950 dark:text-white",
               fieldErrors.targetUrl && "border-red-500/70 bg-red-500/5",
             )}
           />
@@ -176,7 +176,7 @@ export const SectionLink = React.memo(function SectionLink({
       <div className="flex flex-col gap-1.5 mt-1">
         <label
           htmlFor={`${tagInputId}-custom-slug`}
-          className="text-sm font-semibold text-zinc-800 dark:text-zinc-200"
+          className="text-sm font-bold text-zinc-950 dark:text-white"
         >
           Short link <span className="text-red-500">*</span>
         </label>
@@ -198,7 +198,7 @@ export const SectionLink = React.memo(function SectionLink({
                 }
               }}
               className={cn(
-                "w-full h-10 appearance-none bg-white dark:bg-[#16181d] text-zinc-900 dark:text-[#f1f2f4] border border-zinc-300 dark:border-[#27272a] focus:border-[#0066FF] dark:focus:border-[#3b82f6] focus:ring-1 focus:ring-[#0066FF] dark:focus:ring-[#3b82f6] rounded-[10px] pl-3 pr-8 py-2 text-sm outline-none transition-colors cursor-pointer",
+                "w-full h-10 appearance-none bg-white dark:bg-[#16181d] text-zinc-950 dark:text-white border border-zinc-300 dark:border-[#27272a] focus:border-[#0066FF] dark:focus:border-[#3b82f6] focus:ring-1 focus:ring-[#0066FF] dark:focus:ring-[#3b82f6] rounded-[10px] pl-3 pr-8 py-2 text-sm outline-none transition-colors cursor-pointer font-medium",
                 isEditMode && "opacity-60 cursor-not-allowed",
                 fieldErrors.domainName && "border-red-500/70 bg-red-500/5",
               )}
@@ -222,7 +222,7 @@ export const SectionLink = React.memo(function SectionLink({
                   <option value={domainName}>{domainName}</option>
                 )}
             </select>
-            <ChevronDown className="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500 dark:text-[#8a8f9a]" />
+            <ChevronDown className="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-600 dark:text-zinc-300" />
           </div>
 
           {/* Custom Slug Input */}
@@ -249,7 +249,7 @@ export const SectionLink = React.memo(function SectionLink({
                 }));
               }}
               className={cn(
-                "h-10 text-sm font-mono",
+                "h-10 text-sm font-mono text-zinc-950 dark:text-white font-medium",
                 fieldErrors.slug && "border-red-500/70 bg-red-500/5",
               )}
             />
@@ -261,7 +261,7 @@ export const SectionLink = React.memo(function SectionLink({
               type="button"
               onClick={generateRandomSlug}
               title="Generate random slug"
-              className="p-2.5 bg-zinc-100 dark:bg-[#16181d] hover:bg-zinc-200 dark:hover:bg-[#22242a] text-zinc-600 hover:text-zinc-900 dark:text-[#8a8f9a] dark:hover:text-[#f1f2f4] rounded-[10px] border border-zinc-200 dark:border-zinc-800 transition-colors cursor-pointer shrink-0"
+              className="p-2.5 bg-zinc-100 dark:bg-[#16181d] hover:bg-zinc-200 dark:hover:bg-[#22242a] text-zinc-700 hover:text-zinc-950 dark:text-zinc-200 dark:hover:text-white rounded-[10px] border border-zinc-200 dark:border-zinc-800 transition-colors cursor-pointer shrink-0"
               aria-label="Generate random slug"
             >
               <Dices className="w-4 h-4" />
@@ -275,9 +275,9 @@ export const SectionLink = React.memo(function SectionLink({
       <div className="flex flex-col gap-1.5 mt-1 w-full">
         <Label
           htmlFor={tagInputId}
-          className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5"
+          className="text-sm font-bold text-zinc-950 dark:text-white flex items-center gap-1.5"
         >
-          <TagIcon className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400" />
+          <TagIcon className="w-3.5 h-3.5 text-zinc-600 dark:text-zinc-300" />
           <span>Tags (Optional)</span>
         </Label>
         <div className="lshorter-tag-container w-full flex flex-col items-start">
@@ -305,11 +305,11 @@ export const SectionLink = React.memo(function SectionLink({
             }
             styleClasses={{
               input:
-                "w-full h-10 rounded-[10px] bg-white dark:bg-[#16181d] border border-zinc-300 dark:border-[#27272a] text-zinc-900 dark:text-[#f1f2f4] placeholder:text-zinc-400 dark:placeholder:text-[#8a8f9a] text-sm px-3 focus:outline-none focus:ring-1 focus:ring-[#0066FF] dark:focus:ring-[#3b82f6] focus:border-[#0066FF] dark:focus:border-[#3b82f6] transition-colors text-left",
+                "w-full h-10 rounded-[10px] bg-white dark:bg-[#16181d] border border-zinc-300 dark:border-[#27272a] text-zinc-950 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-[#8a8f9a] text-sm px-3 focus:outline-none focus:ring-1 focus:ring-[#0066FF] dark:focus:ring-[#3b82f6] focus:border-[#0066FF] dark:focus:border-[#3b82f6] transition-colors text-left",
               tag: {
-                body: "relative h-7 bg-zinc-100 dark:bg-[#20222a] border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-200/80 dark:hover:bg-[#282b35] rounded-md font-medium text-xs ps-2 pe-7 text-zinc-800 dark:text-zinc-200 shadow-2xs transition-colors",
+                body: "relative h-7 bg-zinc-100 dark:bg-[#20222a] border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-200/80 dark:hover:bg-[#282b35] rounded-md font-medium text-xs ps-2 pe-7 text-zinc-950 dark:text-white shadow-2xs transition-colors",
                 closeButton:
-                  "absolute -inset-y-px -end-px p-0 rounded-s-none rounded-e-md flex size-7 transition-colors outline-none text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-100 hover:bg-zinc-200/50 dark:hover:bg-zinc-700/50",
+                  "absolute -inset-y-px -end-px p-0 rounded-s-none rounded-e-md flex size-7 transition-colors outline-none text-zinc-500 hover:text-zinc-950 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-zinc-700/50",
               },
               tagList: {
                 container: "flex flex-wrap items-center justify-start gap-1.5 pt-1 w-full",
@@ -317,20 +317,20 @@ export const SectionLink = React.memo(function SectionLink({
             }}
           />
         </div>
-        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+        <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
           Press enter to add tags to filter and organize links in your dashboard.
         </p>
       </div>
 
       {/* Live Preview Result Box */}
-      <div className="mt-2 p-4 rounded-[10px] bg-zinc-50 dark:bg-[#16181d] border border-zinc-200 dark:border-[#22242a] text-sm text-zinc-700 dark:text-[#8a8f9a] break-all leading-relaxed flex items-start justify-between gap-3 shadow-xs">
+      <div className="mt-2 p-4 rounded-[10px] bg-zinc-50 dark:bg-[#16181d] border border-zinc-200 dark:border-[#22242a] text-sm text-zinc-800 dark:text-zinc-200 break-all leading-relaxed flex items-start justify-between gap-3 shadow-xs">
         <div>
           Visitors to{" "}
-          <b className="text-zinc-900 dark:text-[#f1f2f4] font-semibold">
+          <b className="text-zinc-950 dark:text-white font-bold">
             {currentShortUrl}
           </b>{" "}
           will be sent to{" "}
-          <b className="text-zinc-900 dark:text-[#f1f2f4] font-semibold">
+          <b className="text-zinc-950 dark:text-white font-bold">
             {currentTarget}
           </b>
         </div>
@@ -339,7 +339,7 @@ export const SectionLink = React.memo(function SectionLink({
             type="button"
             onClick={handleCopyPreview}
             title="Copy preview link"
-            className="p-1.5 rounded-md hover:bg-white dark:hover:bg-[#0e0f12] text-zinc-600 dark:text-[#8a8f9a] hover:text-zinc-900 dark:hover:text-[#f1f2f4] transition-colors cursor-pointer shrink-0"
+            className="p-1.5 rounded-md hover:bg-white dark:hover:bg-[#0e0f12] text-zinc-700 dark:text-zinc-200 hover:text-zinc-950 dark:hover:text-white transition-colors cursor-pointer shrink-0"
           >
             {copied ? (
               <Check className="w-4 h-4 text-emerald-500" />

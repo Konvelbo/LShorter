@@ -43,10 +43,10 @@ export function SectionAbTesting({
     <div className="flex flex-col gap-5 animate-in fade-in duration-200">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-[#131417] dark:text-[#f1f2f4]">
+          <h2 className="text-xl font-bold tracking-tight text-zinc-950 dark:text-white">
             A/B Testing
           </h2>
-          <p className="text-sm text-[#6c717c] dark:text-[#8a8f9a] mt-1">
+          <p className="text-sm font-medium text-zinc-700 dark:text-zinc-200 mt-1">
             Split visitors between multiple landing pages to maximize conversion.
           </p>
         </div>
@@ -78,16 +78,16 @@ export function SectionAbTesting({
       >
         <div className="flex flex-col gap-4">
           {/* Variation A (Primary) */}
-          <div className="p-3.5 rounded-xl bg-[#f4f5f7] dark:bg-[#16181d] border border-[#e6e7ea] dark:border-[#22242a] flex flex-col gap-2.5">
+          <div className="p-3.5 rounded-[10px] bg-zinc-50 dark:bg-[#16181d] border border-zinc-200 dark:border-zinc-800 flex flex-col gap-2.5">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-[#1d5fe0] dark:text-[#3b82f6]">
+              <span className="text-xs font-bold text-[#0066FF] dark:text-[#5294FF]">
                 Variation A (Primary Destination)
               </span>
-              <span className="text-xs font-mono font-bold text-[#1d5fe0] dark:text-[#3b82f6]">
+              <span className="text-xs font-mono font-bold text-[#0066FF] dark:text-[#5294FF]">
                 {mainWeight}%
               </span>
             </div>
-            <div className="text-xs font-mono truncate px-3 py-2 rounded-lg bg-white dark:bg-[#0e0f12] border border-[#e6e7ea] dark:border-[#22242a] text-[#131417] dark:text-[#f1f2f4]">
+            <div className="text-xs font-mono font-medium truncate px-3 py-2 rounded-lg bg-white dark:bg-[#0e0f12] border border-zinc-200 dark:border-zinc-800 text-zinc-950 dark:text-white">
               {targetUrl.trim() || "Primary destination URL configured in Link tab"}
             </div>
             <div className="flex items-center gap-3">
@@ -97,7 +97,7 @@ export function SectionAbTesting({
                 max="100"
                 value={mainWeight}
                 onChange={(e) => setMainWeight(Number(e.target.value))}
-                className="flex-1 accent-[#1d5fe0] dark:accent-[#3b82f6] cursor-pointer"
+                className="flex-1 accent-[#0066FF] dark:accent-[#3b82f6] cursor-pointer"
               />
               <div className="flex items-center gap-1 text-xs">
                 <input
@@ -106,9 +106,9 @@ export function SectionAbTesting({
                   max="100"
                   value={mainWeight}
                   onChange={(e) => setMainWeight(Number(e.target.value))}
-                  className="w-14 bg-white dark:bg-[#0e0f12] border border-[#e6e7ea] dark:border-[#22242a] text-center font-mono rounded px-1.5 py-1 text-xs outline-none"
+                  className="w-14 bg-white dark:bg-[#0e0f12] border border-zinc-200 dark:border-zinc-800 text-center font-mono font-bold rounded px-1.5 py-1 text-xs text-zinc-950 dark:text-white outline-none"
                 />
-                <span className="text-[#6c717c] dark:text-[#8a8f9a]">%</span>
+                <span className="text-zinc-700 dark:text-zinc-300 font-semibold">%</span>
               </div>
             </div>
           </div>
@@ -120,14 +120,14 @@ export function SectionAbTesting({
             return (
               <div
                 key={index}
-                className="p-3.5 rounded-xl bg-[#f4f5f7] dark:bg-[#16181d] border border-[#e6e7ea] dark:border-[#22242a] flex flex-col gap-2.5"
+                className="p-3.5 rounded-[10px] bg-zinc-50 dark:bg-[#16181d] border border-zinc-200 dark:border-zinc-800 flex flex-col gap-2.5"
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-[#131417] dark:text-[#f1f2f4]">
+                  <span className="text-xs font-bold text-zinc-950 dark:text-white">
                     Variation {letter}
                   </span>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono font-bold text-[#131417] dark:text-[#f1f2f4]">
+                    <span className="text-xs font-mono font-bold text-zinc-950 dark:text-white">
                       {variation.weight}%
                     </span>
                     <button
@@ -151,7 +151,7 @@ export function SectionAbTesting({
                     setAbVariations(newVars);
                   }}
                   className={cn(
-                    "h-9 text-xs",
+                    "h-9 text-xs text-zinc-950 dark:text-white font-medium",
                     fieldErrors[errKey] && "border-red-500/70 bg-red-500/5",
                   )}
                 />
@@ -168,7 +168,7 @@ export function SectionAbTesting({
                       newVars[index].weight = Number(e.target.value);
                       setAbVariations(newVars);
                     }}
-                    className="flex-1 accent-[#1d5fe0] dark:accent-[#3b82f6] cursor-pointer"
+                    className="flex-1 accent-[#0066FF] dark:accent-[#3b82f6] cursor-pointer"
                   />
                   <div className="flex items-center gap-1 text-xs">
                     <input
@@ -181,9 +181,9 @@ export function SectionAbTesting({
                         newVars[index].weight = Number(e.target.value);
                         setAbVariations(newVars);
                       }}
-                      className="w-14 bg-white dark:bg-[#0e0f12] border border-[#e6e7ea] dark:border-[#22242a] text-center font-mono rounded px-1.5 py-1 text-xs outline-none"
+                      className="w-14 bg-white dark:bg-[#0e0f12] border border-zinc-200 dark:border-zinc-800 text-center font-mono font-bold rounded px-1.5 py-1 text-xs text-zinc-950 dark:text-white outline-none"
                     />
-                    <span className="text-[#6c717c] dark:text-[#8a8f9a]">%</span>
+                    <span className="text-zinc-700 dark:text-zinc-300 font-semibold">%</span>
                   </div>
                 </div>
               </div>
@@ -191,9 +191,9 @@ export function SectionAbTesting({
           })}
 
           {/* Auto-balance & Total Bar */}
-          <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-[#f4f5f7] dark:bg-[#16181d] border border-[#e6e7ea] dark:border-[#22242a] text-xs">
+          <div className="flex items-center justify-between gap-3 p-3 rounded-[10px] bg-zinc-50 dark:bg-[#16181d] border border-zinc-200 dark:border-zinc-800 text-xs">
             <div className="flex items-center gap-2">
-              <span className="text-[#6c717c] dark:text-[#8a8f9a]">Total Weight:</span>
+              <span className="text-zinc-700 dark:text-zinc-300 font-medium">Total Weight:</span>
               <span
                 className={cn(
                   "font-mono font-bold",
@@ -210,7 +210,7 @@ export function SectionAbTesting({
               <button
                 type="button"
                 onClick={handleAutoBalance}
-                className="px-2.5 py-1 rounded-md text-xs font-medium text-[#1d5fe0] dark:text-[#3b82f6] hover:bg-[#1d5fe0]/10 transition-colors flex items-center gap-1 cursor-pointer"
+                className="px-2.5 py-1 rounded-md text-xs font-semibold text-[#0066FF] dark:text-[#5294FF] hover:bg-[#0066FF]/10 transition-colors flex items-center gap-1 cursor-pointer"
               >
                 <RotateCcw className="w-3 h-3" />
                 <span>Auto-balance (100%)</span>

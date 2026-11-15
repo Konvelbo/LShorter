@@ -43,14 +43,14 @@ export function LockedProFeature({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-zinc-900 dark:text-white tracking-wide">
+              <span className="text-xs font-bold text-zinc-950 dark:text-white tracking-wide">
                 {title}
               </span>
               <span className="px-1.5 py-0.5 rounded-[4px] bg-amber-500/15 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 font-extrabold text-[9px] border border-amber-500/30 tracking-wider">
                 PLAN PRO
               </span>
             </div>
-            <p className="text-[11px] text-zinc-600 dark:text-neutral-400 leading-tight mt-0.5">
+            <p className="text-[11px] font-medium text-zinc-700 dark:text-zinc-200 leading-tight mt-0.5">
               {description}
             </p>
           </div>

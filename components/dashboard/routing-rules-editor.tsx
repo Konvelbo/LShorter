@@ -519,11 +519,11 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
   return (
     <div className="flex flex-col gap-4 text-xs">
       <div className="flex items-center justify-between pb-2 border-b border-zinc-200 dark:border-[#27272a]">
-        <h4 className="font-bold text-sm tracking-wider uppercase text-zinc-900 dark:text-white flex items-center gap-2">
+        <h4 className="font-bold text-sm tracking-wider uppercase text-zinc-950 dark:text-white flex items-center gap-2">
           <Globe2 className="w-4 h-4 text-brand" />
           <span>ROUTING RULES</span>
         </h4>
-        <span className="text-[11px] text-zinc-500 dark:text-neutral-400">
+        <span className="text-[11px] font-medium text-zinc-600 dark:text-zinc-300">
           Smart multi-condition redirection
         </span>
       </div>
@@ -650,10 +650,10 @@ function SortableRuleCard({
           >
             <GripVertical className="w-4 h-4" />
           </button>
-          <span className="font-bold text-sm text-zinc-900 dark:text-white">
+          <span className="font-bold text-sm text-zinc-950 dark:text-white">
             {rule.title || `Rule ${index + 1}`}
           </span>
-          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-[4px] bg-zinc-100 dark:bg-white/5 text-zinc-500 dark:text-neutral-400 font-medium">
+          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-[4px] bg-zinc-100 dark:bg-white/5 text-zinc-700 dark:text-zinc-300 font-semibold">
             Priority #{index + 1}
           </span>
         </div>
@@ -662,7 +662,7 @@ function SortableRuleCard({
           <button
             type="button"
             onClick={() => onToggleCollapse(rule.id)}
-            className="flex items-center gap-1 text-xs text-zinc-600 dark:text-neutral-400 hover:text-zinc-900 dark:hover:text-white px-2.5 py-1 rounded-[8px] hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
+            className="flex items-center gap-1 text-xs text-zinc-700 dark:text-zinc-200 hover:text-zinc-950 dark:hover:text-white px-2.5 py-1 rounded-[8px] hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors cursor-pointer font-medium"
           >
             {rule.isCollapsed ? (
               <>
@@ -875,7 +875,7 @@ function SortableRuleCard({
 
           {/* Target URL Destination ("Then redirect to") */}
           <div className="flex flex-col gap-1.5 pt-2 border-t border-zinc-100 dark:border-[#222225]">
-            <label className="text-xs font-semibold text-zinc-700 dark:text-neutral-300">
+            <label className="text-xs font-bold text-zinc-950 dark:text-white">
               Then redirect to <span className="text-brand">*</span>
             </label>
             {(() => {

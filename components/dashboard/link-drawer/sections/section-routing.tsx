@@ -20,10 +20,10 @@ export function SectionRouting({
   return (
     <div className="flex flex-col gap-5 animate-in fade-in duration-200">
       <div>
-        <h2 className="text-xl font-bold tracking-tight text-[#131417] dark:text-[#f1f2f4]">
+        <h2 className="text-xl font-bold tracking-tight text-zinc-950 dark:text-white">
           Routing
         </h2>
-        <p className="text-sm text-[#6c717c] dark:text-[#8a8f9a] mt-1">
+        <p className="text-sm font-medium text-zinc-700 dark:text-zinc-200 mt-1">
           Send visitors elsewhere dynamically by country, device, browser or language.
         </p>
       </div>
