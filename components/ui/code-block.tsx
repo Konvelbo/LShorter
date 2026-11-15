@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Check, Copy, Terminal, Code2 } from "lucide-react";
+import { Check, Copy, Terminal } from "lucide-react";
 
 export interface CodeTab {
   name: string;
