@@ -189,7 +189,7 @@ export function HeroSection({
           {/* Image Mockup with Glow & Bi-directional Reverse Animation */}
           <div
             className={cn(
-              "relative pt-12 w-full max-w-[1248px]",
+              "relative pt-0 sm:-mt-2 lg:-mt-3.5 w-full max-w-[1248px]",
               "transition-all duration-900 ease-[cubic-bezier(0.16,1,0.3,1)] delay-400",
               inView
                 ? "opacity-100 translate-y-0 scale-100"
