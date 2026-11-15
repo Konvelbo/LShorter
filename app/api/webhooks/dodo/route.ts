@@ -20,8 +20,16 @@ function formatAmountFromCents(rawEventData: any): {
   amountPaid: number;
   currency: string;
 } {
-  const raw =
-    typeof rawEventData.amount_paid === "number"
+  // If Dodo Payments generated an official invoice with settlement currency/amount (e.g. USD 19.60),
+  // prefer settlement values so stored invoices in Convex match the official Dodo invoice PDF exactly
+  const hasSettlement =
+    typeof rawEventData.settlement_amount === "number" &&
+    rawEventData.settlement_amount > 0 &&
+    Boolean(rawEventData.settlement_currency);
+
+  const raw = hasSettlement
+    ? rawEventData.settlement_amount
+    : typeof rawEventData.amount_paid === "number"
       ? rawEventData.amount_paid
       : typeof rawEventData.total_amount === "number"
         ? rawEventData.total_amount
@@ -31,7 +39,9 @@ function formatAmountFromCents(rawEventData: any): {
             ? rawEventData.amount
             : 0;
 
-  const currency = String(rawEventData.currency || "USD").toUpperCase();
+  const currency = String(
+    (hasSettlement ? rawEventData.settlement_currency : rawEventData.currency) || "USD"
+  ).toUpperCase();
 
   return {
     amountPaid: normalizeGatewayAmount(raw, currency),

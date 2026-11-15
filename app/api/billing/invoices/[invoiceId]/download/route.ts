@@ -99,6 +99,8 @@ export async function GET(
       created_at?: string;
       customer?: { name?: string | null; email?: string | null };
       currency?: string;
+      settlement_amount?: number;
+      settlement_currency?: string;
       invoice_id?: string | null;
     } | null = null;
     const dodo = getDodoPaymentsClient();
@@ -160,15 +162,28 @@ export async function GET(
       : "PRO") as "PRO" | "BUSINESS" | "ENTERPRISE";
     const plan = PRICING_PLANS[planId] || PRICING_PLANS.PRO;
 
+    const hasSettlement =
+      typeof dodoPaymentMeta?.settlement_amount === "number" &&
+      dodoPaymentMeta.settlement_amount > 0 &&
+      Boolean(dodoPaymentMeta.settlement_currency);
+
     const resolvedCurrency = String(
-      dodoPaymentMeta?.currency || convexInvoice?.currency || "USD"
+      (hasSettlement
+        ? dodoPaymentMeta?.settlement_currency
+        : dodoPaymentMeta?.currency) ||
+        convexInvoice?.currency ||
+        "USD"
     ).toUpperCase();
+
+    const rawTotal = hasSettlement
+      ? dodoPaymentMeta?.settlement_amount
+      : dodoPaymentMeta?.total_amount;
 
     const rawAmount = searchParams.get("amount");
     const parsedQueryAmount = rawAmount ? parseFloat(rawAmount) : NaN;
     const amountPaid =
-      typeof dodoPaymentMeta?.total_amount === "number"
-        ? normalizeGatewayAmount(dodoPaymentMeta.total_amount, resolvedCurrency)
+      typeof rawTotal === "number"
+        ? normalizeGatewayAmount(rawTotal, resolvedCurrency)
         : typeof convexInvoice?.amountPaid === "number"
           ? correctStoredInvoiceAmount(convexInvoice.amountPaid, resolvedCurrency)
           : !Number.isNaN(parsedQueryAmount)

@@ -48,6 +48,8 @@ export async function GET() {
             created_at?: string;
             total_amount?: number;
             currency?: string;
+            settlement_amount?: number;
+            settlement_currency?: string;
             metadata?: Record<string, unknown>;
           },
           fallbackPlan?: string
@@ -62,10 +64,22 @@ export async function GET() {
           if (p.invoice_id) seenIds.add(String(p.invoice_id));
 
           const billedDate = p.created_at ? new Date(p.created_at) : new Date();
-          const curr = String(p.currency || "USD").toUpperCase();
+
+          // Dodo Payments official PDF invoices use settlement_currency and settlement_amount
+          // for adaptive pricing / foreign exchange payments (e.g. USD 19.60 for a 12,130 XOF charge).
+          const hasSettlement =
+            typeof p.settlement_amount === "number" &&
+            p.settlement_amount > 0 &&
+            Boolean(p.settlement_currency);
+
+          const curr = String(
+            (hasSettlement ? p.settlement_currency : p.currency) || "USD"
+          ).toUpperCase();
+
+          const rawTotal = hasSettlement ? p.settlement_amount : p.total_amount;
           const total =
-            typeof p.total_amount === "number"
-              ? normalizeGatewayAmount(p.total_amount, curr)
+            typeof rawTotal === "number"
+              ? normalizeGatewayAmount(rawTotal, curr)
               : 0;
           const planKey = String(
             p.metadata?.planId || fallbackPlan || "PRO"
@@ -101,11 +115,30 @@ export async function GET() {
             ) {
               continue;
             }
+            const fetchedList: any[] = [];
             for await (const p of dodo.payments.list({
               customer_id: customer.customer_id,
               status: "succeeded",
               page_size: 25,
             })) {
+              fetchedList.push(p);
+            }
+
+            // Retrieve full payment objects in parallel to get settlement_currency & settlement_amount
+            // so the table matches the official Dodo Payments invoice PDF exactly
+            const fullPayments = await Promise.all(
+              fetchedList.map(async (p) => {
+                if (p.settlement_amount && p.settlement_currency) return p;
+                try {
+                  const retrieved = await dodo.payments.retrieve(p.payment_id);
+                  return { ...p, ...retrieved };
+                } catch {
+                  return p;
+                }
+              })
+            );
+
+            for (const p of fullPayments) {
               pushDodoPayment(p);
             }
           }
@@ -119,11 +152,34 @@ export async function GET() {
             convexSub?.provider === "dodo" &&
             convexSub?.providerSubscriptionId
           ) {
+            const fetchedSubList: any[] = [];
             for await (const p of dodo.payments.list({
               subscription_id: convexSub.providerSubscriptionId,
               status: "succeeded",
               page_size: 25,
             })) {
+              if (
+                p?.payment_id &&
+                (seenIds.has(p.payment_id) || seenIds.has(`dodo_${p.payment_id}`))
+              ) {
+                continue;
+              }
+              fetchedSubList.push(p);
+            }
+
+            const fullSubPayments = await Promise.all(
+              fetchedSubList.map(async (p) => {
+                if (p.settlement_amount && p.settlement_currency) return p;
+                try {
+                  const retrieved = await dodo.payments.retrieve(p.payment_id);
+                  return { ...p, ...retrieved };
+                } catch {
+                  return p;
+                }
+              })
+            );
+
+            for (const p of fullSubPayments) {
               const metaUserId = String(p.metadata?.userId || "");
               const payEmail = p.customer?.email?.toLowerCase().trim() || "";
               const belongsToUser =
