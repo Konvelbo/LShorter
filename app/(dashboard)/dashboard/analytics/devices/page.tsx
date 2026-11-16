@@ -22,8 +22,15 @@ import {
   MapPin,
 } from "lucide-react";
 import { ShortLink, GlobalAnalytics } from "@/types";
-import { cfGetAnalytics, cfGetLinks, cfInvalidateCache } from "@/lib/cloudflare-api";
-import { ColumnMaskToggle, ColumnDefinition } from "@/components/dashboard/analytics/column-mask-toggle";
+import {
+  cfGetAnalytics,
+  cfGetLinks,
+  cfInvalidateCache,
+} from "@/lib/cloudflare-api";
+import {
+  ColumnMaskToggle,
+  ColumnDefinition,
+} from "@/components/dashboard/analytics/column-mask-toggle";
 import { KpiCardsCarousel } from "@/components/dashboard/analytics/kpi-cards-carousel";
 import { AnalyticsDevicesSkeleton } from "@/components/ui/skeleton";
 import { formatDateRelative, formatNumber } from "@/lib/utils";
@@ -100,15 +107,18 @@ export default function DevicesAnalyticsPage() {
     recentConversions: [],
   });
 
-  const [selectedRange, setSelectedRange] = useState<"day" | "week" | "month" | "year">("month");
+  const [selectedRange, setSelectedRange] = useState<
+    "day" | "week" | "month" | "year"
+  >("month");
   const [selectedLinkId, setSelectedLinkId] = useState<string>("all");
-  const [selectedDeviceFilter, setSelectedDeviceFilter] = useState<string>("ALL");
+  const [selectedDeviceFilter, setSelectedDeviceFilter] =
+    useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(10);
 
   const [visibleColumns, setVisibleColumns] = useState<Set<string>>(
-    new Set(DEVICE_COLUMNS.map((c) => c.key))
+    new Set(DEVICE_COLUMNS.map((c) => c.key)),
   );
 
   const toggleColumn = (key: string) => {
@@ -127,27 +137,58 @@ export default function DevicesAnalyticsPage() {
     setVisibleColumns(new Set(DEVICE_COLUMNS.map((c) => c.key)));
   };
 
-  const loadData = async (range = selectedRange, linkId = selectedLinkId, isBg = false, force = false) => {
+  const loadData = async (
+    range = selectedRange,
+    linkId = selectedLinkId,
+    isBg = false,
+    force = false,
+  ) => {
     if (!userId) return;
     if (!isBg) setIsLoading(true);
 
     try {
-      const periodParam = range === "day" ? "1d" : range === "week" ? "7d" : range === "year" ? "365d" : "30d";
+      const periodParam =
+        range === "day"
+          ? "1d"
+          : range === "week"
+            ? "7d"
+            : range === "year"
+              ? "365d"
+              : "30d";
       const needForce = isBg || force;
       const [analyticsRes, linksRes] = await Promise.all([
-        cfGetAnalytics(userId, periodParam, linkId !== "all" ? linkId : undefined, needForce).catch(() => null),
+        cfGetAnalytics(
+          userId,
+          periodParam,
+          linkId !== "all" ? linkId : undefined,
+          needForce,
+        ).catch(() => null),
         cfGetLinks(userId, needForce).catch(() => null),
       ]);
 
-      const listData = Array.isArray(linksRes?.data) ? linksRes.data : Array.isArray((linksRes?.data as any)?.data) ? (linksRes?.data as any).data : [];
+      const listData = Array.isArray(linksRes?.data)
+        ? linksRes.data
+        : Array.isArray((linksRes?.data as any)?.data)
+          ? (linksRes?.data as any).data
+          : [];
       const fetchedLinks = listData;
       setLinks(fetchedLinks);
 
-      const targetLink = linkId !== "all"
-        ? fetchedLinks.find((l: any) => l.id === linkId || l.slug === linkId)
-        : null;
-      const sumLinksClicks = fetchedLinks.reduce((acc: number, l: any) => acc + (l.clicks_count || l.clicksCount || l.clicks || 0), 0);
-      const linkClicks = targetLink ? (targetLink.clicks_count || targetLink.clicksCount || targetLink.clicks || 0) : 0;
+      const targetLink =
+        linkId !== "all"
+          ? fetchedLinks.find((l: any) => l.id === linkId || l.slug === linkId)
+          : null;
+      const sumLinksClicks = fetchedLinks.reduce(
+        (acc: number, l: any) =>
+          acc + (l.clicks_count || l.clicksCount || l.clicks || 0),
+        0,
+      );
+      const linkClicks = targetLink
+        ? targetLink.clicks_count ||
+          targetLink.clicksCount ||
+          targetLink.clicks ||
+          0
+        : 0;
       const isAll = !targetLink || linkId === "all";
 
       const d = analyticsRes?.data || {};
@@ -155,14 +196,21 @@ export default function DevicesAnalyticsPage() {
 
       const isShortWindow = range === "day" || range === "week";
       const baseTotal = isShortWindow
-        ? (isAll ? workerTotal : (workerTotal || linkClicks))
-        : (isAll
-            ? (workerTotal > 0 ? workerTotal : sumLinksClicks)
-            : (workerTotal || linkClicks));
+        ? isAll
+          ? workerTotal
+          : workerTotal || linkClicks
+        : isAll
+          ? workerTotal > 0
+            ? workerTotal
+            : sumLinksClicks
+          : workerTotal || linkClicks;
 
       if (baseTotal > 0 && typeof window !== "undefined" && userId && isAll) {
         try {
-          localStorage.setItem(`lshorter_live_clicks_${userId}`, String(baseTotal));
+          localStorage.setItem(
+            `lshorter_live_clicks_${userId}`,
+            String(baseTotal),
+          );
         } catch {}
         window.dispatchEvent(
           new CustomEvent("lshorter_live_clicks_synced", {
@@ -171,28 +219,46 @@ export default function DevicesAnalyticsPage() {
         );
       }
 
-      const periodStats = computePeriodMetrics(range, baseTotal, baseTotal, 0, 0);
+      const periodStats = computePeriodMetrics(
+        range,
+        baseTotal,
+        baseTotal,
+        0,
+        0,
+      );
       const total = periodStats.periodClicks;
 
       const rawDevices = d.topDevices ?? d.top_devices ?? [];
-      const devices = (rawDevices.length > 0)
-        ? rawDevices.map((dv: any) => ({
-            label: dv.label || dv.device || dv.name || "Inconnu",
-            device: dv.device || dv.label || dv.name || "Inconnu",
-            count: dv.count || dv.clicks || 0,
-            percentage: dv.percentage !== undefined ? dv.percentage : (total > 0 ? Math.round(((dv.count || dv.clicks || 0) / total) * 100) : 0),
-          }))
-        : [];
+      const devices =
+        rawDevices.length > 0
+          ? rawDevices.map((dv: any) => ({
+              label: dv.label || dv.device || dv.name || "Inconnu",
+              device: dv.device || dv.label || dv.name || "Inconnu",
+              count: dv.count || dv.clicks || 0,
+              percentage:
+                dv.percentage !== undefined
+                  ? dv.percentage
+                  : total > 0
+                    ? Math.round(((dv.count || dv.clicks || 0) / total) * 100)
+                    : 0,
+            }))
+          : [];
 
       const rawBrowsers = d.topBrowsers ?? d.top_browsers ?? [];
-      const browsers = (rawBrowsers.length > 0)
-        ? rawBrowsers.map((br: any) => ({
-            name: br.name || br.browser || "Inconnu",
-            browser: br.browser || br.name || "Inconnu",
-            count: br.count || br.clicks || 0,
-            percentage: br.percentage !== undefined ? br.percentage : (total > 0 ? Math.round(((br.count || br.clicks || 0) / total) * 100) : 0),
-          }))
-        : [];
+      const browsers =
+        rawBrowsers.length > 0
+          ? rawBrowsers.map((br: any) => ({
+              name: br.name || br.browser || "Inconnu",
+              browser: br.browser || br.name || "Inconnu",
+              count: br.count || br.clicks || 0,
+              percentage:
+                br.percentage !== undefined
+                  ? br.percentage
+                  : total > 0
+                    ? Math.round(((br.count || br.clicks || 0) / total) * 100)
+                    : 0,
+            }))
+          : [];
 
       const rawLiveEvents = d.liveClickEvents ?? d.live_click_events ?? [];
       let liveEvents: any[] = [];
@@ -203,21 +269,42 @@ export default function DevicesAnalyticsPage() {
             id: ev.id,
             timestamp: ev.timestamp || new Date().toISOString(),
             slug: ev.slug || "link",
-            countryCode: (ev.country_code || ev.countryCode || "XX").toUpperCase(),
+            countryCode: (
+              ev.country_code ||
+              ev.countryCode ||
+              "XX"
+            ).toUpperCase(),
             countryName: ev.country_name || ev.countryName || "World",
             city: ev.city || "—",
-            device: ev.device && ev.device !== "unknown" ? ev.device : "Inconnu",
-            browser: ev.browser && ev.browser !== "unknown" ? ev.browser : "Inconnu",
-            os: detectedOS && detectedOS !== "Other" && detectedOS !== "unknown" ? detectedOS : (ev.os && ev.os !== "unknown" ? ev.os : "Inconnu"),
+            device:
+              ev.device && ev.device !== "unknown" ? ev.device : "Inconnu",
+            browser:
+              ev.browser && ev.browser !== "unknown" ? ev.browser : "Inconnu",
+            os:
+              detectedOS && detectedOS !== "Other" && detectedOS !== "unknown"
+                ? detectedOS
+                : ev.os && ev.os !== "unknown"
+                  ? ev.os
+                  : "Inconnu",
             referrer: ev.referrer || "Direct",
             userAgent: ev.user_agent || ev.userAgent || "",
-            customerName: ev.customerName || ev.customerFullName || ev.fullName || ev.name || ev.customer_name || null,
-            customerEmail: ev.customerEmail || ev.email || ev.customer_email || null,
+            customerName:
+              ev.customerName ||
+              ev.customerFullName ||
+              ev.fullName ||
+              ev.name ||
+              ev.customer_name ||
+              null,
+            customerEmail:
+              ev.customerEmail || ev.email || ev.customer_email || null,
             conversionAmount: ev.conversionAmount || ev.conversion_amount || 0,
           };
         });
         if (!isAll && targetLink) {
-          liveEvents = liveEvents.filter((ev: any) => ev.slug?.toLowerCase() === targetLink.slug?.toLowerCase());
+          liveEvents = liveEvents.filter(
+            (ev: any) =>
+              ev.slug?.toLowerCase() === targetLink.slug?.toLowerCase(),
+          );
         }
       } else {
         liveEvents = [];
@@ -293,7 +380,11 @@ export default function DevicesAnalyticsPage() {
     };
 
     const handleFocus = () => {
-      if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+      if (
+        typeof document !== "undefined" &&
+        document.visibilityState === "hidden"
+      )
+        return;
       handleUpdate();
     };
 
@@ -322,7 +413,10 @@ export default function DevicesAnalyticsPage() {
         channel.onmessage = (event) => {
           if (event.data?.type === "click" || event.data?.type === "refresh") {
             handleUpdate();
-          } else if (event.data?.type === "live_clicks_synced" && typeof event.data?.clicks === "number") {
+          } else if (
+            event.data?.type === "live_clicks_synced" &&
+            typeof event.data?.clicks === "number"
+          ) {
             setSyncedLiveClicks((prev) => Math.max(prev, event.data.clicks));
             handleUpdate();
           }
@@ -331,7 +425,11 @@ export default function DevicesAnalyticsPage() {
     } catch {}
 
     const pollTimer = setInterval(() => {
-      if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+      if (
+        typeof document !== "undefined" &&
+        document.visibilityState === "hidden"
+      )
+        return;
       loadData(selectedRange, selectedLinkId, true, true);
     }, 15000);
 
@@ -357,17 +455,23 @@ export default function DevicesAnalyticsPage() {
     });
 
     const total = analytics.liveClickEvents.length || 1;
-    return Object.entries(counts).map(([name, count]) => ({
-      name,
-      count,
-      percentage: Math.round((count / total) * 100),
-    })).sort((a, b) => b.count - a.count);
+    return Object.entries(counts)
+      .map(([name, count]) => ({
+        name,
+        count,
+        percentage: Math.round((count / total) * 100),
+      }))
+      .sort((a, b) => b.count - a.count);
   }, [analytics.liveClickEvents]);
 
   // Filtered Events
   const filteredEvents = useMemo(() => {
     return analytics.liveClickEvents.filter((ev) => {
-      if (selectedDeviceFilter !== "ALL" && ev.device?.toLowerCase() !== selectedDeviceFilter.toLowerCase()) return false;
+      if (
+        selectedDeviceFilter !== "ALL" &&
+        ev.device?.toLowerCase() !== selectedDeviceFilter.toLowerCase()
+      )
+        return false;
 
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
@@ -379,18 +483,38 @@ export default function DevicesAnalyticsPage() {
         const matchCountry = ev.countryName?.toLowerCase().includes(q);
         const matchRef = ev.referrer?.toLowerCase().includes(q);
         const matchCustName = (ev.customerName || "").toLowerCase().includes(q);
-        const matchCustEmail = (ev.customerEmail || "").toLowerCase().includes(q);
-        if (!matchSlug && !matchBrowser && !matchDevice && !matchOS && !matchCity && !matchCountry && !matchRef && !matchCustName && !matchCustEmail) return false;
+        const matchCustEmail = (ev.customerEmail || "")
+          .toLowerCase()
+          .includes(q);
+        if (
+          !matchSlug &&
+          !matchBrowser &&
+          !matchDevice &&
+          !matchOS &&
+          !matchCity &&
+          !matchCountry &&
+          !matchRef &&
+          !matchCustName &&
+          !matchCustEmail
+        )
+          return false;
       }
       return true;
     });
   }, [analytics.liveClickEvents, selectedDeviceFilter, searchQuery]);
 
   const totalPages = Math.ceil(filteredEvents.length / pageSize) || 1;
-  const paginatedEvents = filteredEvents.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const paginatedEvents = filteredEvents.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
+  );
 
-  const desktopItem = analytics.topDevices.find((d) => d.device?.toLowerCase() === "desktop");
-  const mobileItem = analytics.topDevices.find((d) => d.device?.toLowerCase() === "mobile");
+  const desktopItem = analytics.topDevices.find(
+    (d) => d.device?.toLowerCase() === "desktop",
+  );
+  const mobileItem = analytics.topDevices.find(
+    (d) => d.device?.toLowerCase() === "mobile",
+  );
 
   if (status === "loading" || isLoading) {
     return <AnalyticsDevicesSkeleton />;
@@ -418,12 +542,10 @@ export default function DevicesAnalyticsPage() {
 
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900 dark:text-white flex items-center gap-2.5">
             <span>Technologies, Screens & Browsers</span>
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30 font-mono">
-              Hardware Intelligence
-            </span>
           </h1>
           <p className="text-xs sm:text-sm text-zinc-500 dark:text-neutral-400 mt-1">
-            Detailed breakdown of visitor hardware: Mobile vs Desktop, Browsers and Operating Systems.
+            Detailed breakdown of visitor hardware: Mobile vs Desktop, Browsers
+            and Operating Systems.
           </p>
         </div>
 
@@ -437,9 +559,18 @@ export default function DevicesAnalyticsPage() {
             }}
             className="px-3 py-1.5 rounded-[10px] bg-zinc-100 dark:bg-[#1a1a1e] border border-zinc-300 dark:border-[#27272a] text-xs font-semibold text-zinc-800 dark:text-white focus:outline-none focus:border-brand cursor-pointer"
           >
-            <option value="all" className="bg-white dark:bg-[#141416] text-zinc-900 dark:text-white">All links combined</option>
+            <option
+              value="all"
+              className="bg-white dark:bg-[#141416] text-zinc-900 dark:text-white"
+            >
+              All links combined
+            </option>
             {links.map((l) => (
-              <option key={l.id} value={l.id} className="bg-white dark:bg-[#141416] text-zinc-900 dark:text-white">
+              <option
+                key={l.id}
+                value={l.id}
+                className="bg-white dark:bg-[#141416] text-zinc-900 dark:text-white"
+              >
                 /{l.slug} ({l.clicksCount || 0} clicks)
               </option>
             ))}
@@ -459,7 +590,13 @@ export default function DevicesAnalyticsPage() {
                     : "text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 dark:text-neutral-400 dark:hover:text-white dark:hover:bg-white/5"
                 }`}
               >
-                {r === "day" ? "24h" : r === "week" ? "7d" : r === "month" ? "30d" : "12m"}
+                {r === "day"
+                  ? "24h"
+                  : r === "week"
+                    ? "7d"
+                    : r === "month"
+                      ? "30d"
+                      : "12m"}
               </button>
             ))}
           </div>
@@ -469,7 +606,9 @@ export default function DevicesAnalyticsPage() {
             className="p-2 rounded-[10px] bg-zinc-100 hover:bg-zinc-200 dark:bg-[#1a1a1e] dark:hover:bg-white/10 text-zinc-700 hover:text-zinc-900 dark:text-neutral-300 dark:hover:text-white border border-zinc-300 dark:border-[#27272a] transition-all cursor-pointer"
             title="Refresh"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin text-brand" : ""}`} />
+            <RefreshCw
+              className={`w-3.5 h-3.5 ${isLoading ? "animate-spin text-brand" : ""}`}
+            />
           </button>
         </div>
       </div>
@@ -478,75 +617,107 @@ export default function DevicesAnalyticsPage() {
       <KpiCardsCarousel autoScroll={true} speed={0.9} pauseOnHover={false}>
         <div className="shrink-0 w-[170px] sm:w-[240px] md:w-[280px] lg:w-[300px] h-[100px] sm:h-[120px] md:h-[135px] lg:h-[145px] p-2.5 sm:p-3.5 md:p-4 rounded-[10px] sm:rounded-[12px] md:rounded-[14px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] shadow-sm flex flex-col justify-between hover:border-blue-500/50 hover:shadow-md transition-all select-none">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] sm:text-xs md:text-sm font-bold text-zinc-600 dark:text-neutral-400 uppercase tracking-wider truncate">Desktop</span>
+            <span className="text-[10px] sm:text-xs md:text-sm font-bold text-zinc-600 dark:text-neutral-400 uppercase tracking-wider truncate">
+              Desktop
+            </span>
             <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-blue-500 shrink-0" />
           </div>
           <div className="my-0 sm:my-0.5 flex items-baseline gap-1.5">
             <span className="font-bebas text-2xl sm:text-3xl md:text-4xl font-black text-blue-600 dark:text-blue-400 leading-none tracking-wide">
               {desktopItem ? `${desktopItem.percentage}%` : "0%"}
             </span>
-            <span className="text-[9px] sm:text-[11px] text-zinc-500 dark:text-neutral-400 font-mono">({desktopItem?.count || 0} clicks)</span>
+            <span className="text-[9px] sm:text-[11px] text-zinc-500 dark:text-neutral-400 font-mono">
+              ({desktopItem?.count || 0} clicks)
+            </span>
           </div>
           <div className="flex items-center justify-between pt-0.5 sm:pt-1 border-t border-zinc-200/60 dark:border-[#222225]">
-            <span className="text-[9px] sm:text-[11px] md:text-xs text-zinc-500 dark:text-neutral-400 font-mono truncate">PC & Mac</span>
-            <span className="text-[8px] sm:text-[10px] md:text-[11px] font-bold text-blue-500 shrink-0">PC</span>
+            <span className="text-[9px] sm:text-[11px] md:text-xs text-zinc-500 dark:text-neutral-400 font-mono truncate">
+              PC & Mac
+            </span>
+            <span className="text-[8px] sm:text-[10px] md:text-[11px] font-bold text-blue-500 shrink-0">
+              PC
+            </span>
           </div>
         </div>
 
         <div className="shrink-0 w-[170px] sm:w-[240px] md:w-[280px] lg:w-[300px] h-[100px] sm:h-[120px] md:h-[135px] lg:h-[145px] p-2.5 sm:p-3.5 md:p-4 rounded-[10px] sm:rounded-[12px] md:rounded-[14px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] shadow-sm flex flex-col justify-between hover:border-emerald-500/50 hover:shadow-md transition-all select-none">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] sm:text-xs md:text-sm font-bold text-zinc-600 dark:text-neutral-400 uppercase tracking-wider truncate">Mobile</span>
+            <span className="text-[10px] sm:text-xs md:text-sm font-bold text-zinc-600 dark:text-neutral-400 uppercase tracking-wider truncate">
+              Mobile
+            </span>
             <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
           </div>
           <div className="my-0 sm:my-0.5 flex items-baseline gap-1.5">
             <span className="font-bebas text-2xl sm:text-3xl md:text-4xl font-black text-emerald-600 dark:text-emerald-400 leading-none tracking-wide">
               {mobileItem ? `${mobileItem.percentage}%` : "0%"}
             </span>
-            <span className="text-[9px] sm:text-[11px] text-zinc-500 dark:text-neutral-400 font-mono">({mobileItem?.count || 0} clicks)</span>
+            <span className="text-[9px] sm:text-[11px] text-zinc-500 dark:text-neutral-400 font-mono">
+              ({mobileItem?.count || 0} clicks)
+            </span>
           </div>
           <div className="flex items-center justify-between pt-0.5 sm:pt-1 border-t border-zinc-200/60 dark:border-[#222225]">
-            <span className="text-[9px] sm:text-[11px] md:text-xs text-zinc-500 dark:text-neutral-400 font-mono truncate">Smartphones</span>
-            <span className="text-[8px] sm:text-[10px] md:text-[11px] font-bold text-emerald-600 dark:text-emerald-400 shrink-0">Mobile</span>
+            <span className="text-[9px] sm:text-[11px] md:text-xs text-zinc-500 dark:text-neutral-400 font-mono truncate">
+              Smartphones
+            </span>
+            <span className="text-[8px] sm:text-[10px] md:text-[11px] font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
+              Mobile
+            </span>
           </div>
         </div>
 
         <div className="shrink-0 w-[170px] sm:w-[240px] md:w-[280px] lg:w-[300px] h-[100px] sm:h-[120px] md:h-[135px] lg:h-[145px] p-2.5 sm:p-3.5 md:p-4 rounded-[10px] sm:rounded-[12px] md:rounded-[14px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] shadow-sm flex flex-col justify-between hover:border-brand hover:shadow-md transition-all select-none">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] sm:text-xs md:text-sm font-bold text-zinc-600 dark:text-neutral-400 uppercase tracking-wider truncate">Browser</span>
+            <span className="text-[10px] sm:text-xs md:text-sm font-bold text-zinc-600 dark:text-neutral-400 uppercase tracking-wider truncate">
+              Browser
+            </span>
             <div className="p-1 sm:p-1.5 rounded-full bg-orange-500/10 shrink-0">
               <Cpu className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-brand" />
             </div>
           </div>
           <div className="my-0 sm:my-0.5 flex items-center gap-1.5 truncate">
             <span className="font-bold text-zinc-900 dark:text-white text-base sm:text-lg md:text-xl truncate">
-              {analytics.totalClicks > 0 && analytics.topBrowsers.length > 0 ? analytics.topBrowsers[0].name : "Pending"}
+              {analytics.totalClicks > 0 && analytics.topBrowsers.length > 0
+                ? analytics.topBrowsers[0].name
+                : "Pending"}
             </span>
           </div>
           <div className="flex items-center justify-between pt-0.5 sm:pt-1 border-t border-zinc-200/60 dark:border-[#222225]">
             <span className="text-[9px] sm:text-[11px] md:text-xs text-brand font-bold truncate">
-              {analytics.totalClicks > 0 && analytics.topBrowsers.length > 0 ? `${analytics.topBrowsers[0].percentage}%` : "0%"}
+              {analytics.totalClicks > 0 && analytics.topBrowsers.length > 0
+                ? `${analytics.topBrowsers[0].percentage}%`
+                : "0%"}
             </span>
-            <span className="text-[8px] sm:text-[10px] md:text-[11px] text-zinc-500 dark:text-neutral-400 font-mono shrink-0">#1</span>
+            <span className="text-[8px] sm:text-[10px] md:text-[11px] text-zinc-500 dark:text-neutral-400 font-mono shrink-0">
+              #1
+            </span>
           </div>
         </div>
 
         <div className="shrink-0 w-[170px] sm:w-[240px] md:w-[280px] lg:w-[300px] h-[100px] sm:h-[120px] md:h-[135px] lg:h-[145px] p-2.5 sm:p-3.5 md:p-4 rounded-[10px] sm:rounded-[12px] md:rounded-[14px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] shadow-sm flex flex-col justify-between hover:border-purple-500/50 hover:shadow-md transition-all select-none">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] sm:text-xs md:text-sm font-bold text-zinc-600 dark:text-neutral-400 uppercase tracking-wider truncate">Operating System</span>
+            <span className="text-[10px] sm:text-xs md:text-sm font-bold text-zinc-600 dark:text-neutral-400 uppercase tracking-wider truncate">
+              Operating System
+            </span>
             <div className="p-1 sm:p-1.5 rounded-full bg-purple-500/10 shrink-0">
               <Layers className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-purple-500" />
             </div>
           </div>
           <div className="my-0 sm:my-0.5 flex items-center gap-1.5 truncate">
             <span className="font-bold text-zinc-900 dark:text-white text-base sm:text-lg md:text-xl truncate">
-              {analytics.totalClicks > 0 && osBreakdown.length > 0 ? osBreakdown[0].name : "Pending"}
+              {analytics.totalClicks > 0 && osBreakdown.length > 0
+                ? osBreakdown[0].name
+                : "Pending"}
             </span>
           </div>
           <div className="flex items-center justify-between pt-0.5 sm:pt-1 border-t border-zinc-200/60 dark:border-[#222225]">
             <span className="text-[9px] sm:text-[11px] md:text-xs text-purple-600 dark:text-purple-400 font-bold truncate">
-              {analytics.totalClicks > 0 && osBreakdown.length > 0 ? `${osBreakdown[0].percentage}%` : "0%"}
+              {analytics.totalClicks > 0 && osBreakdown.length > 0
+                ? `${osBreakdown[0].percentage}%`
+                : "0%"}
             </span>
-            <span className="text-[8px] sm:text-[10px] md:text-[11px] text-zinc-500 dark:text-neutral-400 font-mono shrink-0">OS #1</span>
+            <span className="text-[8px] sm:text-[10px] md:text-[11px] text-zinc-500 dark:text-neutral-400 font-mono shrink-0">
+              OS #1
+            </span>
           </div>
         </div>
       </KpiCardsCarousel>
@@ -561,31 +732,52 @@ export default function DevicesAnalyticsPage() {
                 <Monitor className="w-4 h-4 text-blue-500 dark:text-blue-400" />
                 <span>Screen Formats</span>
               </span>
-              <span className="text-[11px] text-zinc-500 dark:text-neutral-400 font-mono">3 categories</span>
+              <span className="text-[11px] text-zinc-500 dark:text-neutral-400 font-mono">
+                3 categories
+              </span>
             </div>
 
             <div className="space-y-3">
               {analytics.topDevices.map((dv) => {
                 const isDesktop = dv.device?.toLowerCase() === "desktop";
                 const isMobile = dv.device?.toLowerCase() === "mobile";
-                const color = isDesktop ? "#3b82f6" : isMobile ? "#10b981" : "#8b5cf6";
-                const IconComponent = isDesktop ? Laptop : isMobile ? Smartphone : Tablet;
+                const color = isDesktop
+                  ? "#3b82f6"
+                  : isMobile
+                    ? "#10b981"
+                    : "#8b5cf6";
+                const IconComponent = isDesktop
+                  ? Laptop
+                  : isMobile
+                    ? Smartphone
+                    : Tablet;
 
                 return (
-                  <div key={dv.device} className="p-3 rounded-[10px] bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a]">
+                  <div
+                    key={dv.device}
+                    className="p-3 rounded-[10px] bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a]"
+                  >
                     <div className="flex items-center justify-between gap-2 mb-1.5">
                       <div className="flex items-center gap-2">
                         <IconComponent className="w-4 h-4 text-zinc-600 dark:text-neutral-300" />
-                        <span className="text-xs font-bold text-zinc-900 dark:text-white capitalize">{dv.device}</span>
+                        <span className="text-xs font-bold text-zinc-900 dark:text-white capitalize">
+                          {dv.device}
+                        </span>
                       </div>
-                      <span className="text-xs font-bold font-mono" style={{ color }}>
+                      <span
+                        className="text-xs font-bold font-mono"
+                        style={{ color }}
+                      >
                         {dv.percentage}% ({dv.count})
                       </span>
                     </div>
                     <div className="w-full h-1.5 rounded-full bg-zinc-200 dark:bg-white/10 overflow-hidden">
                       <div
                         className="h-full rounded-full transition-all duration-500"
-                        style={{ width: `${dv.percentage}%`, backgroundColor: color }}
+                        style={{
+                          width: `${dv.percentage}%`,
+                          backgroundColor: color,
+                        }}
                       />
                     </div>
                   </div>
@@ -603,32 +795,57 @@ export default function DevicesAnalyticsPage() {
                 <Layers className="w-4 h-4 text-purple-500 dark:text-purple-400" />
                 <span>Operating Systems</span>
               </span>
-              <span className="text-[11px] text-zinc-500 dark:text-neutral-400 font-mono">{osBreakdown.length} OS</span>
+              <span className="text-[11px] text-zinc-500 dark:text-neutral-400 font-mono">
+                {osBreakdown.length} OS
+              </span>
             </div>
 
             <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
               {osBreakdown.map((os) => {
                 const isWin = os.name.toLowerCase().includes("win");
                 const isAndroid = os.name.toLowerCase().includes("android");
-                const isApple = os.name.toLowerCase().includes("ios") || os.name.toLowerCase().includes("mac") || os.name.toLowerCase().includes("ipad");
+                const isApple =
+                  os.name.toLowerCase().includes("ios") ||
+                  os.name.toLowerCase().includes("mac") ||
+                  os.name.toLowerCase().includes("ipad");
                 const isLinux = os.name.toLowerCase().includes("linux");
-                const color = isWin ? "#38bdf8" : isAndroid ? "#22c55e" : isApple ? "#a855f7" : isLinux ? "#f97316" : "#eab308";
+                const color = isWin
+                  ? "#38bdf8"
+                  : isAndroid
+                    ? "#22c55e"
+                    : isApple
+                      ? "#a855f7"
+                      : isLinux
+                        ? "#f97316"
+                        : "#eab308";
 
                 return (
-                  <div key={os.name} className="p-3 rounded-[10px] bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a]">
+                  <div
+                    key={os.name}
+                    className="p-3 rounded-[10px] bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a]"
+                  >
                     <div className="flex items-center justify-between gap-2 mb-1.5">
                       <span className="text-xs font-bold text-zinc-900 dark:text-white flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+                        <span
+                          className="w-2 h-2 rounded-full"
+                          style={{ backgroundColor: color }}
+                        />
                         <span>{os.name}</span>
                       </span>
-                      <span className="text-xs font-bold font-mono" style={{ color }}>
+                      <span
+                        className="text-xs font-bold font-mono"
+                        style={{ color }}
+                      >
                         {os.percentage}% ({os.count})
                       </span>
                     </div>
                     <div className="w-full h-1.5 rounded-full bg-zinc-200 dark:bg-white/10 overflow-hidden">
                       <div
                         className="h-full rounded-full transition-all duration-500"
-                        style={{ width: `${os.percentage}%`, backgroundColor: color }}
+                        style={{
+                          width: `${os.percentage}%`,
+                          backgroundColor: color,
+                        }}
                       />
                     </div>
                   </div>
@@ -652,14 +869,21 @@ export default function DevicesAnalyticsPage() {
                 <Cpu className="w-4 h-4 text-brand" />
                 <span>Web Browsers</span>
               </span>
-              <span className="text-[11px] text-zinc-500 dark:text-neutral-400 font-mono">{analytics.topBrowsers.length} browsers</span>
+              <span className="text-[11px] text-zinc-500 dark:text-neutral-400 font-mono">
+                {analytics.topBrowsers.length} browsers
+              </span>
             </div>
 
             <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
               {analytics.topBrowsers.map((br) => (
-                <div key={br.name} className="p-3 rounded-[10px] bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a]">
+                <div
+                  key={br.name}
+                  className="p-3 rounded-[10px] bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a]"
+                >
                   <div className="flex items-center justify-between gap-2 mb-1.5">
-                    <span className="text-xs font-bold text-zinc-900 dark:text-white">{br.name}</span>
+                    <span className="text-xs font-bold text-zinc-900 dark:text-white">
+                      {br.name}
+                    </span>
                     <span className="text-xs font-bold text-brand font-mono">
                       {br.percentage}% ({br.count})
                     </span>
@@ -692,7 +916,8 @@ export default function DevicesAnalyticsPage() {
               <span>Detailed Technology Stream</span>
             </h3>
             <p className="text-xs text-zinc-500 dark:text-neutral-400">
-              Visitor log with timestamps, device formats, operating systems, and browsers.
+              Visitor log with timestamps, device formats, operating systems,
+              and browsers.
             </p>
           </div>
 
@@ -795,9 +1020,19 @@ export default function DevicesAnalyticsPage() {
               {/* Customer / Acheteur info */}
               {(ev.customerName || ev.customerEmail) && (
                 <div className="flex flex-col gap-0.5 bg-zinc-100 dark:bg-[#0e0e11] px-2.5 py-1.5 rounded-[8px] border border-zinc-200 dark:border-[#222225] text-xs">
-                  <span className="text-[10px] uppercase font-bold text-zinc-500 dark:text-neutral-500">Customer / Buyer</span>
-                  {ev.customerName && <span className="font-semibold text-zinc-900 dark:text-white text-xs truncate">{ev.customerName}</span>}
-                  {ev.customerEmail && <span className="text-[11px] text-zinc-500 dark:text-neutral-400 font-mono truncate">{ev.customerEmail}</span>}
+                  <span className="text-[10px] uppercase font-bold text-zinc-500 dark:text-neutral-500">
+                    Customer / Buyer
+                  </span>
+                  {ev.customerName && (
+                    <span className="font-semibold text-zinc-900 dark:text-white text-xs truncate">
+                      {ev.customerName}
+                    </span>
+                  )}
+                  {ev.customerEmail && (
+                    <span className="text-[11px] text-zinc-500 dark:text-neutral-400 font-mono truncate">
+                      {ev.customerEmail}
+                    </span>
+                  )}
                 </div>
               )}
 
@@ -823,20 +1058,41 @@ export default function DevicesAnalyticsPage() {
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="border-b border-zinc-200 dark:border-[#222225] bg-[#F9FAFB] dark:bg-white/[0.03] text-zinc-700 dark:text-neutral-400 font-semibold text-[11px]">
-                {visibleColumns.has("timestamp") && <th className="py-3.5 pl-5 sm:pl-6 pr-3">Timestamp</th>}
-                {visibleColumns.has("device") && <th className="py-3.5 px-3">Device</th>}
-                {visibleColumns.has("browser") && <th className="py-3.5 px-3">Browser</th>}
-                {visibleColumns.has("os") && <th className="py-3.5 px-3">Operating System (OS)</th>}
-                {visibleColumns.has("customer") && <th className="py-3.5 px-3">Customer / Buyer</th>}
-                {visibleColumns.has("link") && <th className="py-3.5 px-3">Target Link</th>}
-                {visibleColumns.has("city") && <th className="py-3.5 px-3">City</th>}
-                {visibleColumns.has("location") && <th className="py-3.5 px-3">Country</th>}
-                {visibleColumns.has("referrer") && <th className="py-3.5 pl-3 pr-5 sm:pr-6">Referrer Source</th>}
+                {visibleColumns.has("timestamp") && (
+                  <th className="py-3.5 pl-5 sm:pl-6 pr-3">Timestamp</th>
+                )}
+                {visibleColumns.has("device") && (
+                  <th className="py-3.5 px-3">Device</th>
+                )}
+                {visibleColumns.has("browser") && (
+                  <th className="py-3.5 px-3">Browser</th>
+                )}
+                {visibleColumns.has("os") && (
+                  <th className="py-3.5 px-3">Operating System (OS)</th>
+                )}
+                {visibleColumns.has("customer") && (
+                  <th className="py-3.5 px-3">Customer / Buyer</th>
+                )}
+                {visibleColumns.has("link") && (
+                  <th className="py-3.5 px-3">Target Link</th>
+                )}
+                {visibleColumns.has("city") && (
+                  <th className="py-3.5 px-3">City</th>
+                )}
+                {visibleColumns.has("location") && (
+                  <th className="py-3.5 px-3">Country</th>
+                )}
+                {visibleColumns.has("referrer") && (
+                  <th className="py-3.5 pl-3 pr-5 sm:pr-6">Referrer Source</th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-200 dark:divide-[#222225]/60 text-zinc-800 dark:text-neutral-200">
               {paginatedEvents.map((ev) => (
-                <tr key={ev.id} className="hover:bg-zinc-50 dark:hover:bg-white/5 transition-colors">
+                <tr
+                  key={ev.id}
+                  className="hover:bg-zinc-50 dark:hover:bg-white/5 transition-colors"
+                >
                   {visibleColumns.has("timestamp") && (
                     <td className="py-3 pl-5 sm:pl-6 pr-3 font-mono text-zinc-500 dark:text-neutral-400 whitespace-nowrap text-[10.5px]">
                       {formatDateRelative(ev.timestamp)}
@@ -871,12 +1127,27 @@ export default function DevicesAnalyticsPage() {
                         const name = ev.customerName;
                         const email = ev.customerEmail;
                         if (!name && !email) {
-                          return <span className="text-zinc-400 dark:text-neutral-600 font-mono text-[11px]">—</span>;
+                          return (
+                            <span className="text-zinc-400 dark:text-neutral-600 font-mono text-[11px]">
+                              —
+                            </span>
+                          );
                         }
                         return (
                           <div className="flex flex-col min-w-0">
-                            {name && <span className="font-medium text-zinc-900 dark:text-white truncate text-[11.5px]">{name}</span>}
-                            {email && <span className="text-[10px] text-zinc-500 dark:text-neutral-400 font-mono truncate" title={email}>{email}</span>}
+                            {name && (
+                              <span className="font-medium text-zinc-900 dark:text-white truncate text-[11.5px]">
+                                {name}
+                              </span>
+                            )}
+                            {email && (
+                              <span
+                                className="text-[10px] text-zinc-500 dark:text-neutral-400 font-mono truncate"
+                                title={email}
+                              >
+                                {email}
+                              </span>
+                            )}
                           </div>
                         );
                       })()}
@@ -893,7 +1164,11 @@ export default function DevicesAnalyticsPage() {
                     <td className="py-3 px-3 whitespace-nowrap">
                       <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[6px] bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-[10px] font-semibold">
                         <MapPin className="w-2.5 h-2.5 shrink-0" />
-                        <span>{ev.city && ev.city !== "—" && ev.city !== "Inconnue" ? ev.city : "Edge Node"}</span>
+                        <span>
+                          {ev.city && ev.city !== "—" && ev.city !== "Inconnue"
+                            ? ev.city
+                            : "Edge Node"}
+                        </span>
                       </span>
                     </td>
                   )}
@@ -914,7 +1189,10 @@ export default function DevicesAnalyticsPage() {
 
               {paginatedEvents.length === 0 && (
                 <tr>
-                  <td colSpan={visibleColumns.size} className="py-8 text-center text-zinc-500 dark:text-neutral-500 text-xs">
+                  <td
+                    colSpan={visibleColumns.size}
+                    className="py-8 text-center text-zinc-500 dark:text-neutral-500 text-xs"
+                  >
                     No events match the selected criteria.
                   </td>
                 </tr>
@@ -927,7 +1205,8 @@ export default function DevicesAnalyticsPage() {
         <div className="px-5 sm:px-6 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-zinc-200 dark:border-[#222225] text-xs text-zinc-500 dark:text-neutral-400 bg-white dark:bg-[#141416] mt-auto">
           <span className="text-center sm:text-left">
             Showing {(currentPage - 1) * pageSize + 1} to{" "}
-            {Math.min(currentPage * pageSize, filteredEvents.length)} of {filteredEvents.length} events
+            {Math.min(currentPage * pageSize, filteredEvents.length)} of{" "}
+            {filteredEvents.length} events
           </span>
 
           <div className="flex items-center justify-center gap-1.5">
