@@ -212,7 +212,11 @@ export function calculateOverage(
   if (clicksOverage <= 0 || batchSize <= 0 || costPerBatch <= 0) {
     return { batches: 0, cost: 0 };
   }
-  const batches = Math.ceil(clicksOverage / batchSize);
+  // Math.floor: only COMPLETED batches of batchSize are charged.
+  // e.g. Pro: 200,000 total (50,000 over 150k) = 1 batch = $3.
+  //           200,001 total (50,001 over 150k)  = still 1 batch = $3  (2nd batch not yet complete)
+  //           250,000 total (100,000 over 150k) = 2 batches = $6.
+  const batches = Math.floor(clicksOverage / batchSize);
   const cost = Number((batches * costPerBatch).toFixed(2));
   return { batches, cost };
 }

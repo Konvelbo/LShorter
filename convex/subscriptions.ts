@@ -374,3 +374,22 @@ export const markSubscriptionGracePeriod = mutation({
     };
   },
 });
+
+// ─── Mutation: Record successful overage charge for a billing period ────────
+export const recordOverageCharge = mutation({
+  args: {
+    subscriptionId: v.id("subscriptions"),
+    periodStart: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const sub = await ctx.db.get(args.subscriptionId);
+    if (!sub) return { success: false, notFound: true };
+
+    await ctx.db.patch(args.subscriptionId, {
+      lastOverageChargedPeriodStart: args.periodStart,
+      updatedAt: new Date().toISOString(),
+    });
+
+    return { success: true };
+  },
+});

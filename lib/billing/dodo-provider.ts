@@ -154,16 +154,43 @@ export class DodoBillingProvider implements BillingProvider {
   }
 
   /**
-   * Reports metered overage or usage-based clicks.
+   * Reports metered overage or usage-based clicks and charges the subscription via Dodo Payments SDK.
    */
   async reportOverage(
     subscriptionId: string,
     overageUnits: number,
     costPerUnit: number
   ): Promise<void> {
-    console.info(
-      `[DodoBillingProvider] Recorded click overage for subscription ${subscriptionId}: ${overageUnits} units at $${costPerUnit} each.`
-    );
+    const totalCost = Number((overageUnits * costPerUnit).toFixed(2));
+    if (totalCost <= 0) {
+      console.info(
+        `[DodoBillingProvider] No billable overage for subscription ${subscriptionId} (${overageUnits} units @ $${costPerUnit}).`
+      );
+      return;
+    }
+
+    const client = getDodoPaymentsClient();
+    if (!client) {
+      console.warn(
+        `[DodoBillingProvider] Cannot charge overage for sub ${subscriptionId}: Dodo client not configured.`
+      );
+      return;
+    }
+
+    try {
+      await client.subscriptions.charge(subscriptionId, {
+        product_price: Math.round(totalCost * 100),
+        product_description: `LShorter Click Overage (${overageUnits} batch(es) @ $${costPerUnit})`,
+      });
+      console.info(
+        `[DodoBillingProvider] Successfully charged overage of $${totalCost} on subscription ${subscriptionId}`
+      );
+    } catch (err: any) {
+      console.error(
+        `[DodoBillingProvider] Failed to charge overage on subscription ${subscriptionId}:`,
+        err
+      );
+    }
   }
 
   /**

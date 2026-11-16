@@ -9,6 +9,11 @@ import {
   sendGracePeriodAlertEmail,
   sendPlanPurchaseEmail,
 } from "@/lib/resend";
+import {
+  getUserClickUsage,
+  evaluateSubscriptionOverage,
+  chargeSubscriptionOverage,
+} from "@/lib/billing/overage-service";
 
 const GRACE_PERIOD_MS = 24 * 60 * 60 * 1000;
 
@@ -332,32 +337,83 @@ export async function POST(request: NextRequest) {
         const invoiceDownloadPath = `/api/billing/invoices/dodo_${encodeURIComponent(paymentId)}/download`;
         const invoiceFullUrl = `${appUrl}${invoiceDownloadPath}`;
 
+        const isRenewal = eventData.charge_type === "renewal";
+        let overageCharged = false;
+        let overageAmount = 0;
+        let overageBatches = 0;
+        let overageClicksCount = 0;
+
+        // 3d. Overage Reconciliation & Automated Dodo Payments Charge on Renewal
+        if (isRenewal && newSubId) {
+          try {
+            const clicks = await getUserClickUsage(userId || orgId, customerEmail);
+            const evalRes = evaluateSubscriptionOverage(planId, clicks);
+
+            if (evalRes.cost > 0 && evalRes.batches > 0) {
+              const chargeRes = await chargeSubscriptionOverage({
+                subscriptionId: newSubId,
+                orgId: userId || orgId,
+                userId: userId || undefined,
+                planId,
+                clicksThisMonth: clicks,
+                currency,
+                periodStart: now,
+              });
+
+              if (chargeRes.charged) {
+                overageCharged = true;
+                overageAmount = chargeRes.amount;
+                overageBatches = chargeRes.batches;
+                overageClicksCount = chargeRes.overageClicks;
+              }
+            }
+          } catch (overageErr) {
+            console.warn("[Dodo Webhook] Warning evaluating renewal overage:", overageErr);
+          }
+        }
+
+        const totalCharged = amountPaid + overageAmount;
+
         // 4. Create certified invoice in Convex
         try {
           await convex.mutation(api.invoices.createInvoice, {
             orgId: userId || orgId,
             invoiceNumber,
             planId,
-            amountPaid,
+            amountPaid: totalCharged,
             periodStart: now,
             periodEnd,
             currency,
             status: "PAID",
             pdfUrl: invoiceDownloadPath,
+            overageAmount: overageCharged ? overageAmount : undefined,
+            batchesOverage: overageCharged ? overageBatches : undefined,
           });
         } catch (invErr) {
           console.error("[Dodo Webhook] Error creating invoice:", invErr);
         }
 
-        // 5. Push in-app notification in Convex
+        // 5. Push in-app notification in Convex (Informing user of renewal + overage fees)
         try {
-          await convex.mutation(api.notifications.createNotification, {
-            orgId: userId || orgId,
-            title: "Plan activé avec succès",
-            message: `Votre abonnement ${planId} (${cycle === "YEARLY" ? "Annuel" : "Mensuel"}) a été activé avec succès via Dodo Payments. Facture ${invoiceNumber} disponible.`,
-            type: "SUCCESS",
-            linkUrl: "/dashboard/settings?tab=billing",
-          });
+          if (isRenewal && overageCharged) {
+            await convex.mutation(api.notifications.createNotification, {
+              orgId: userId || orgId,
+              title: "Abonnement renouvelé avec succès (Overage inclus)",
+              message: `Votre abonnement ${planId} a été renouvelé avec succès. Des frais d'overage de $${overageAmount.toFixed(2)} ont été prélevés pour ${overageBatches} lot(s) (+${overageClicksCount.toLocaleString()} clics excédentaires). Redirections 100% actives sans coupure. Facture ${invoiceNumber} disponible.`,
+              type: "SUCCESS",
+              linkUrl: "/dashboard/settings?tab=billing",
+            });
+          } else {
+            await convex.mutation(api.notifications.createNotification, {
+              orgId: userId || orgId,
+              title: isRenewal ? "Abonnement renouvelé avec succès" : "Plan activé avec succès",
+              message: isRenewal
+                ? `Votre abonnement ${planId} (${cycle === "YEARLY" ? "Annuel" : "Mensuel"}) a été renouvelé avec succès via Dodo Payments. Facture ${invoiceNumber} disponible.`
+                : `Votre abonnement ${planId} (${cycle === "YEARLY" ? "Annuel" : "Mensuel"}) a été activé avec succès via Dodo Payments. Facture ${invoiceNumber} disponible.`,
+              type: "SUCCESS",
+              linkUrl: "/dashboard/settings?tab=billing",
+            });
+          }
         } catch (notifErr) {
           console.warn("[Dodo Webhook] Error sending notification:", notifErr);
         }
@@ -385,8 +441,17 @@ export async function POST(request: NextRequest) {
               cycle: cycle === "YEARLY" ? "Annuel" : "Mensuel",
               invoiceNumber,
               invoiceUrl: invoiceFullUrl,
-              amountPaidLabel: amountPaid > 0 ? formatCurrencyDisplay(amountPaid, currency) : undefined,
-              isRenewal: eventData.charge_type === "renewal",
+              amountPaidLabel: totalCharged > 0 ? formatCurrencyDisplay(totalCharged, currency) : undefined,
+              isRenewal,
+              overageDetails: overageCharged
+                ? {
+                    overageClicks: overageClicksCount,
+                    batches: overageBatches,
+                    cost: overageAmount,
+                    baseAmount: amountPaid,
+                    totalAmount: totalCharged,
+                  }
+                : undefined,
             });
             console.info(`[Dodo Webhook] Plan purchase email sent successfully to ${customerEmail}`);
           } catch (emailErr) {

@@ -557,6 +557,7 @@ export async function sendPlanPurchaseEmail({
   invoiceUrl,
   amountPaidLabel,
   isRenewal = false,
+  overageDetails,
 }: {
   to: string;
   name?: string;
@@ -568,6 +569,13 @@ export async function sendPlanPurchaseEmail({
   invoiceUrl?: string;
   amountPaidLabel?: string;
   isRenewal?: boolean;
+  overageDetails?: {
+    overageClicks: number;
+    batches: number;
+    cost: number;
+    baseAmount?: number;
+    totalAmount?: number;
+  };
 }): Promise<{ success: boolean; isDevFallback?: boolean; error?: string }> {
   const userName = escapeHtml(name || to.split("@")[0]);
   const safePlanName = escapeHtml(planName);
@@ -587,13 +595,45 @@ export async function sendPlanPurchaseEmail({
               <td style="padding: 6px 0; text-align: right; font-family: monospace; font-weight: 700;">${safeInvoiceNum}</td>
             </tr>`
       : "";
-    const amountRowHtml = safeAmountLabel
-      ? `
+
+    // Overage breakdown rows for renewals
+    const hasOverage = Boolean(overageDetails && overageDetails.cost > 0);
+    let amountSectionHtml = "";
+
+    if (hasOverage && overageDetails) {
+      const baseVal = overageDetails.baseAmount !== undefined ? `$${overageDetails.baseAmount.toFixed(2)}` : safeAmountLabel;
+      const totalVal = overageDetails.totalAmount !== undefined
+        ? `$${overageDetails.totalAmount.toFixed(2)}`
+        : safeAmountLabel;
+
+      amountSectionHtml = `
+            <tr>
+              <td style="padding: 6px 0; color: #64748B;">Abonnement de base (${cycle}) :</td>
+              <td style="padding: 6px 0; text-align: right; font-weight: 600;">${baseVal}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; color: #B45309;">Frais d'overage (${overageDetails.batches} lot(s) • +${overageDetails.overageClicks.toLocaleString()} clics) :</td>
+              <td style="padding: 6px 0; text-align: right; font-weight: 700; color: #B45309;">+$${overageDetails.cost.toFixed(2)}</td>
+            </tr>
+            <tr style="border-top: 1px solid #E2E8F0;">
+              <td style="padding: 8px 0 0 0; color: #09090B; font-weight: 700;">Montant total prélevé :</td>
+              <td style="padding: 8px 0 0 0; text-align: right; font-weight: 800; color: #2563EB; font-size: 14.5px;">${totalVal}</td>
+            </tr>`;
+    } else if (safeAmountLabel) {
+      amountSectionHtml = `
             <tr>
               <td style="padding: 6px 0; color: #64748B;">Montant acquitté :</td>
               <td style="padding: 6px 0; text-align: right; font-weight: 700;">${safeAmountLabel}</td>
-            </tr>`
+            </tr>`;
+    }
+
+    const overageReassuranceHtml = hasOverage && overageDetails
+      ? `
+        <div style="background-color: #F0FDF4; border: 1px solid #BBF7D0; border-left: 4px solid #16A34A; border-radius: 8px; padding: 12px 16px; margin-bottom: 18px; font-size: 13px; color: #166534; line-height: 1.5;">
+          ✓ <strong>Garantie Zéro Coupure honorée</strong> : Grâce au palier d'overage automatique (+${overageDetails.overageClicks.toLocaleString()} clics régularisés), l'intégralité de vos redirections edge est restée 100% active sans aucun blocage.
+        </div>`
       : "";
+
     const invoiceBlockHtml = invoiceUrl
       ? `
         <div style="background-color: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 10px; padding: 14px 16px; margin-bottom: 18px;">
@@ -608,7 +648,9 @@ export async function sendPlanPurchaseEmail({
 
     const html = renderLightEmailLayout({
       title: isRenewal
-        ? `Renouvellement LShorter ${safePlanName} confirmé`
+        ? hasOverage
+          ? `Renouvellement LShorter ${safePlanName} confirmé (Overage inclus)`
+          : `Renouvellement LShorter ${safePlanName} confirmé`
         : `Abonnement LShorter ${safePlanName} activé`,
       subtitle: isRenewal
         ? "Confirmation de renouvellement et facture disponible"
@@ -637,9 +679,9 @@ export async function sendPlanPurchaseEmail({
             <tr>
               <td style="padding: 6px 0; color: #64748B;">Prochain renouvellement :</td>
               <td style="padding: 6px 0; text-align: right; font-weight: 600;">${endDate}</td>
-            </tr>${amountRowHtml}${invoiceRowHtml}
+            </tr>${amountSectionHtml}${invoiceRowHtml}
           </table>
-        </div>${invoiceBlockHtml}
+        </div>${overageReassuranceHtml}${invoiceBlockHtml}
       `,
       ctaLabel: invoiceUrl ? "Télécharger ma facture / Tableau de bord" : "Ouvrir mon tableau de bord",
       ctaHref: invoiceUrl || "https://lsho.cc/dashboard/settings?tab=billing",
@@ -737,6 +779,7 @@ export async function sendSubscriptionExpiringAlertEmail({
   daysRemaining,
   isAutoRenew = false,
   renewUrl = "https://lsho.cc/dashboard/settings?tab=billing",
+  overageInfo,
 }: {
   to: string;
   name?: string;
@@ -744,26 +787,73 @@ export async function sendSubscriptionExpiringAlertEmail({
   daysRemaining: number;
   isAutoRenew?: boolean;
   renewUrl?: string;
+  overageInfo?: {
+    overageClicks: number;
+    batches: number;
+    cost: number;
+    batchSize: number;
+    costPerBatch: number;
+    monthlyIncludedClicks?: number;
+    basePrice?: number;
+  };
 }): Promise<{ success: boolean; isDevFallback?: boolean; error?: string }> {
   const userName = escapeHtml(name || to.split("@")[0]);
   const safePlan = escapeHtml(plan);
   const dayLabel = daysRemaining === 1 ? "1 jour" : `${daysRemaining} jours`;
+
+  const hasOverage = Boolean(overageInfo && overageInfo.cost > 0);
+
   const subject = isAutoRenew
-    ? `[LShorter] Renouvellement automatique dans ${dayLabel} — Forfait ${plan}`
+    ? hasOverage
+      ? `[LShorter] Renouvellement automatique dans ${dayLabel} — Forfait ${plan} (overage inclus : +$${overageInfo!.cost.toFixed(2)})`
+      : `[LShorter] Renouvellement automatique dans ${dayLabel} — Forfait ${plan}`
     : daysRemaining === 1
       ? `[LShorter] Dernier rappel (J-1) : Plus que 1 jour pour votre abonnement ${plan}`
       : `[LShorter] Rappel : Plus que ${dayLabel} pour votre abonnement ${plan}`;
 
   const title = isAutoRenew
-    ? `Renouvellement prévu dans ${dayLabel}`
+    ? hasOverage
+      ? `Renouvellement prévu dans ${dayLabel} (Overage inclus)`
+      : `Renouvellement prévu dans ${dayLabel}`
     : `Votre abonnement expire dans ${dayLabel}`;
 
   if (!resend) {
-    console.log(`\n[DEV EMAIL] Subscription Expiring Alert (${daysRemaining} days left) to ${to}\n`);
+    console.log(`\n[DEV EMAIL] Subscription Expiring Alert (${daysRemaining} days left, overage: ${hasOverage}) to ${to}\n`);
     return { success: true, isDevFallback: true };
   }
 
   try {
+    const overageAlertBoxHtml = hasOverage && overageInfo
+      ? `
+        <div style="background-color: #FFFBEB; border: 1px solid #FCD34D; border-left: 4px solid #F59E0B; border-radius: 8px; padding: 16px; margin: 18px 0;">
+          <div style="font-size: 13.5px; font-weight: 700; color: #92400E; margin-bottom: 8px;">
+            ⚡ Frais d'overage de trafic à prévoir lors du renouvellement
+          </div>
+          <p style="margin: 0 0 12px 0; color: #78350F; font-size: 13px; line-height: 1.5;">
+            Votre trafic a dépassé votre quota mensuel inclus${overageInfo.monthlyIncludedClicks ? ` (${overageInfo.monthlyIncludedClicks.toLocaleString()} clics)` : ""}. Grâce à notre <strong>Garantie Zéro Coupure</strong>, vos redirections sont restées 100% actives sans aucune interruption de service.
+          </p>
+          <table width="100%" style="font-size: 12.5px; color: #78350F; border-collapse: collapse; background: #FEF3C7; border-radius: 6px;">
+            <tr>
+              <td style="padding: 7px 10px;">Clics supplémentaires enregistrés :</td>
+              <td style="padding: 7px 10px; text-align: right; font-weight: 700;">+${overageInfo.overageClicks.toLocaleString()} clics</td>
+            </tr>
+            <tr>
+              <td style="padding: 7px 10px;">Lots d'overage appliqués (${overageInfo.costPerBatch}$ / ${(overageInfo.batchSize / 1000).toLocaleString()}k clics) :</td>
+              <td style="padding: 7px 10px; text-align: right; font-weight: 700;">${overageInfo.batches} lot(s)</td>
+            </tr>
+            <tr style="border-top: 1px solid #FDE68A;">
+              <td style="padding: 8px 10px; font-weight: 700; color: #92400E;">Frais d'overage ajoutés au renouvellement :</td>
+              <td style="padding: 8px 10px; text-align: right; font-weight: 800; color: #B45309; font-size: 13.5px;">+$${overageInfo.cost.toFixed(2)}</td>
+            </tr>
+            ${typeof overageInfo.basePrice === "number" && overageInfo.basePrice > 0 ? `
+            <tr style="border-top: 1px solid #FDE68A;">
+              <td style="padding: 8px 10px; font-weight: 700; color: #1E3A8A;">Total estimé prélevé (${safePlan} + Overage) :</td>
+              <td style="padding: 8px 10px; text-align: right; font-weight: 800; color: #1D4ED8; font-size: 14px;">$${(overageInfo.basePrice + overageInfo.cost).toFixed(2)}</td>
+            </tr>` : ""}
+          </table>
+        </div>`
+      : "";
+
     const html = renderLightEmailLayout({
       title,
       subtitle: `Forfait ${safePlan} • Échéance J-${daysRemaining}`,
@@ -794,7 +884,7 @@ export async function sendSubscriptionExpiringAlertEmail({
               <td style="padding: 6px 0; text-align: right; font-weight: 600; color: ${isAutoRenew ? "#16A34A" : "#D97706"};">${isAutoRenew ? "Renouvellement automatique actif" : "Renouvellement manuel requis"}</td>
             </tr>
           </table>
-        </div>
+        </div>${overageAlertBoxHtml}
       `,
       ctaLabel: isAutoRenew ? "Gérer ma facturation" : "Renouveler mon abonnement",
       ctaHref: renewUrl,

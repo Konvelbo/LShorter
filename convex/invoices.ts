@@ -78,7 +78,13 @@ export const createInvoice = mutation({
         .first();
 
       if (existing) {
-        const patchData: { status?: string; pdfUrl?: string; amountPaid?: number } = {};
+        const patchData: {
+          status?: string;
+          pdfUrl?: string;
+          amountPaid?: number;
+          overageAmount?: number;
+          batchesOverage?: number;
+        } = {};
         if (args.status && args.status !== existing.status && existing.status !== "PAID") {
           patchData.status = args.status;
         }
@@ -87,6 +93,12 @@ export const createInvoice = mutation({
         }
         if (args.amountPaid > 0 && !existing.amountPaid) {
           patchData.amountPaid = args.amountPaid;
+        }
+        if (args.overageAmount !== undefined) {
+          patchData.overageAmount = args.overageAmount;
+        }
+        if (args.batchesOverage !== undefined) {
+          patchData.batchesOverage = args.batchesOverage;
         }
         if (Object.keys(patchData).length > 0) {
           await ctx.db.patch(existing._id, patchData);

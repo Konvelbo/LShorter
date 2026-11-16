@@ -7,8 +7,15 @@ import {
   sendSubscriptionExpiringAlertEmail,
   sendGracePeriodAlertEmail,
   sendSubscriptionDowngradedEmail,
+  sendPlanPurchaseEmail,
 } from "@/lib/resend";
 import { FRONTEND_SECRET } from "@/lib/backend-config";
+import { getPlanDefinition } from "@/src/config/pricing";
+import {
+  getUserClickUsage,
+  evaluateSubscriptionOverage,
+  chargeSubscriptionOverage,
+} from "@/lib/billing/overage-service";
 
 /**
  * ─────────────────────────────────────────────────────────────────────────────
@@ -141,16 +148,103 @@ async function handleLifecycleProcess(req: Request) {
         }
       }
 
+      // ───────────────────────────────────────────────────────────────────────
+      // Overage Reconciliation & Automated Dodo Payments Charge on Renewal
+      // ───────────────────────────────────────────────────────────────────────
+      const periodKey = opts.prevBillingMs || opts.sub.currentPeriodStart;
+      const alreadyCharged = opts.sub.lastOverageChargedPeriodStart === periodKey;
+      let overageCharged = false;
+      let overageAmount = 0;
+      let overageBatches = 0;
+      let overageClicksCount = 0;
+
+      if (!alreadyCharged && opts.sub.providerSubscriptionId) {
+        const clicks = await getUserClickUsage(opts.cleanUserId, opts.userEmail);
+        const evalRes = evaluateSubscriptionOverage(opts.planName, clicks);
+
+        if (evalRes.cost > 0 && evalRes.batches > 0) {
+          const chargeRes = await chargeSubscriptionOverage({
+            subscriptionId: opts.sub.providerSubscriptionId,
+            orgId: opts.sub.orgId,
+            userId: opts.cleanUserId,
+            planId: opts.planName,
+            clicksThisMonth: clicks,
+            periodStart: periodKey,
+          });
+
+          if (chargeRes.charged) {
+            overageCharged = true;
+            overageAmount = chargeRes.amount;
+            overageBatches = chargeRes.batches;
+            overageClicksCount = chargeRes.overageClicks;
+
+            await convex.mutation(subscriptionsApi.recordOverageCharge, {
+              subscriptionId: opts.sub._id,
+              periodStart: periodKey,
+            }).catch((recErr) =>
+              console.warn("[Lifecycle] recordOverageCharge warning:", recErr)
+            );
+          }
+        }
+      }
+
+      const planDef = getPlanDefinition(opts.planName);
+      const isYearly = String(opts.sub.cycle || "MONTHLY").toUpperCase() === "YEARLY";
+      const basePlanPrice = isYearly ? planDef.yearlyPrice : planDef.monthlyPrice;
+      const nextDateFormatted = new Date(opts.nextBillingMs).toLocaleDateString("fr-FR");
+
+      // In-App Notification (Informing user of renewal + overage fees)
       try {
-        await convex.mutation(notificationsApi.createNotification, {
-          orgId: opts.sub.orgId,
-          title: "Abonnement renouvelé avec succès",
-          message: `Votre abonnement ${opts.planName} a été renouvelé automatiquement via ${opts.providerLabel} jusqu'au ${new Date(opts.nextBillingMs).toLocaleDateString("fr-FR")}.`,
-          type: "SUCCESS",
-          linkUrl: "/dashboard/settings?tab=billing",
-        });
+        if (overageCharged) {
+          await convex.mutation(notificationsApi.createNotification, {
+            orgId: opts.sub.orgId,
+            title: "Abonnement renouvelé avec succès (Overage inclus)",
+            message: `Votre abonnement ${opts.planName} a été renouvelé jusqu'au ${nextDateFormatted}. Des frais d'overage de $${overageAmount.toFixed(2)} ont été prélevés pour ${overageBatches} lot(s) (+${overageClicksCount.toLocaleString()} clics excédentaires). Redirections 100% actives sans coupure. Facture disponible.`,
+            type: "SUCCESS",
+            linkUrl: "/dashboard/settings?tab=billing",
+          });
+        } else {
+          await convex.mutation(notificationsApi.createNotification, {
+            orgId: opts.sub.orgId,
+            title: "Abonnement renouvelé avec succès",
+            message: `Votre abonnement ${opts.planName} a été renouvelé automatiquement via ${opts.providerLabel} jusqu'au ${nextDateFormatted}. Facture disponible.`,
+            type: "SUCCESS",
+            linkUrl: "/dashboard/settings?tab=billing",
+          });
+        }
       } catch (notifErr) {
         console.warn("[Lifecycle] In-app renewal notification error:", notifErr);
+      }
+
+      // Email Notification (with itemized overage if charged)
+      if (opts.userEmail) {
+        try {
+          const startDateStr = new Date(opts.prevBillingMs).toLocaleDateString("fr-FR");
+          const endDateStr = nextDateFormatted;
+          const totalPaid = basePlanPrice + overageAmount;
+
+          await sendPlanPurchaseEmail({
+            to: opts.userEmail,
+            name: opts.userName,
+            planName: opts.planName,
+            startDate: startDateStr,
+            endDate: endDateStr,
+            cycle: isYearly ? "Annuel" : "Mensuel",
+            isRenewal: true,
+            amountPaidLabel: `$${totalPaid.toFixed(2)}`,
+            overageDetails: overageCharged
+              ? {
+                  overageClicks: overageClicksCount,
+                  batches: overageBatches,
+                  cost: overageAmount,
+                  baseAmount: basePlanPrice,
+                  totalAmount: totalPaid,
+                }
+              : undefined,
+          });
+        } catch (mailErr) {
+          console.warn("[Lifecycle] Post-renewal email warning:", mailErr);
+        }
       }
     };
 
@@ -390,6 +484,48 @@ async function handleLifecycleProcess(req: Request) {
             lifecycleStatus: isAutoRenew ? "ACTIVE" : "EXPIRING",
           });
 
+          const dayLabel = daysRemaining === 1 ? "1 jour" : `${daysRemaining} jours`;
+          let overageInfo: any = undefined;
+
+          // ───────────────────────────────────────────────────────────────────
+          // Pre-Renewal Overage Projection (Alert user on excess clicks)
+          // ───────────────────────────────────────────────────────────────────
+          if (isAutoRenew && cleanUserId) {
+            try {
+              const clicks = await getUserClickUsage(cleanUserId, userEmail);
+              const evalRes = evaluateSubscriptionOverage(planName, clicks);
+
+              if (evalRes.cost > 0 && evalRes.batches > 0) {
+                const planDef = getPlanDefinition(planName);
+                const isYearly = String(sub.cycle || "MONTHLY").toUpperCase() === "YEARLY";
+                const basePrice = isYearly ? planDef.yearlyPrice : planDef.monthlyPrice;
+
+                overageInfo = {
+                  overageClicks: evalRes.overageClicks,
+                  batches: evalRes.batches,
+                  cost: evalRes.cost,
+                  batchSize: evalRes.batchSize,
+                  costPerBatch: evalRes.costPerBatch,
+                  monthlyIncludedClicks: evalRes.monthlyLimit,
+                  basePrice,
+                };
+
+                // Pre-Renewal In-App Notification (Warning with clear overage breakdown)
+                await convex.mutation(notificationsApi.createNotification, {
+                  orgId: sub.orgId,
+                  title: `📅 Renouvellement dans ${dayLabel} — Overage inclus (+$${evalRes.cost.toFixed(2)})`,
+                  message: `Votre abonnement ${planName} se renouvelle dans ${dayLabel}. Vos clics inclus étant dépassés (+${evalRes.overageClicks.toLocaleString()} clics, soit ${evalRes.batches} lot(s)), un montant d'overage de $${evalRes.cost.toFixed(2)} sera prélevé lors du renouvellement. Vos redirections restent 100% actives sans coupure.`,
+                  type: "WARNING",
+                  linkUrl: "/dashboard/settings?tab=billing",
+                }).catch((notifErr) =>
+                  console.warn("[Lifecycle] In-app pre-renewal overage warning error:", notifErr)
+                );
+              }
+            } catch (evalErr) {
+              console.warn("[Lifecycle] Error evaluating pre-renewal overage:", evalErr);
+            }
+          }
+
           if (userEmail) {
             try {
               await sendSubscriptionExpiringAlertEmail({
@@ -401,6 +537,7 @@ async function handleLifecycleProcess(req: Request) {
                 renewUrl: isAutoRenew
                   ? "https://lsho.cc/dashboard/settings?tab=billing"
                   : "https://lsho.cc/dashboard/pricing",
+                overageInfo,
               });
             } catch (mailErr) {
               console.error(`[Lifecycle] Email J-${daysRemaining} error:`, mailErr);

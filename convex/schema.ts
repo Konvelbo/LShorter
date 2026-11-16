@@ -126,6 +126,7 @@ export default defineSchema({
     lastLifecycleAlert: v.optional(v.string()), // "5_DAYS" | "3_DAYS" | "GRACE_PERIOD" | "DOWNGRADED"
     gracePeriodEndsAt: v.optional(v.number()), // timestamp (ms) when 1-day grace ends
     lifecycleStatus: v.optional(v.string()), // "ACTIVE" | "EXPIRING" | "GRACE_PERIOD" | "DOWNGRADED"
+    lastOverageChargedPeriodStart: v.optional(v.number()), // timestamp of billing period start for which overage was charged
     createdAt: v.optional(v.string()),
     updatedAt: v.optional(v.string()),
   }).index("by_orgId", ["orgId"]),
