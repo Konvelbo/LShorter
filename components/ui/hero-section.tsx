@@ -88,10 +88,8 @@ export function HeroSection({
           {badge && (
             <div
               className={cn(
-                "transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]",
-                inView
-                  ? "opacity-100 translate-y-0 scale-100"
-                  : "opacity-0 -translate-y-3 scale-95"
+                "animate-appear delay-60 transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]",
+                !inView && "!opacity-0 !-translate-y-3 !scale-95"
               )}
             >
               <Badge
@@ -113,14 +111,12 @@ export function HeroSection({
             </div>
           )}
 
-          {/* Title with Bi-directional Reverse Animation */}
+          {/* Title with Appearance Animation & Reverse Scroll Animation */}
           <h1
             className={cn(
               "relative z-10 inline-block text-3xl font-bold tracking-tight leading-[1.15] text-zinc-950 dark:text-white xs:text-4xl sm:text-6xl sm:leading-[1.1] md:text-7xl md:leading-[1.08] max-w-5xl",
-              "transition-all duration-800 ease-[cubic-bezier(0.16,1,0.3,1)] delay-100",
-              inView
-                ? "opacity-100 translate-y-0"
-                : "opacity-0 translate-y-6"
+              "animate-appear delay-150 transition-all duration-800 ease-[cubic-bezier(0.16,1,0.3,1)]",
+              !inView && "!opacity-0 !translate-y-6"
             )}
           >
             {(() => {
@@ -147,27 +143,23 @@ export function HeroSection({
             })()}
           </h1>
 
-          {/* Description with Bi-directional Reverse Animation */}
+          {/* Description with Appearance Animation & Reverse Scroll Animation */}
           <p
             className={cn(
               "text-md relative z-10 max-w-[620px] font-medium text-muted-foreground sm:text-xl",
-              "transition-all duration-800 ease-[cubic-bezier(0.16,1,0.3,1)] delay-200",
-              inView
-                ? "opacity-100 translate-y-0"
-                : "opacity-0 translate-y-5"
+              "animate-appear delay-300 transition-all duration-800 ease-[cubic-bezier(0.16,1,0.3,1)]",
+              !inView && "!opacity-0 !translate-y-5"
             )}
           >
             {description}
           </p>
 
-          {/* Actions (Wave Reveal Buttons) with Bi-directional Reverse Animation */}
+          {/* Actions (Wave Reveal Buttons) with Appearance Animation & Reverse Scroll Animation */}
           <div
             className={cn(
               "relative z-10 flex justify-center gap-4 flex-wrap",
-              "transition-all duration-800 ease-[cubic-bezier(0.16,1,0.3,1)] delay-300",
-              inView
-                ? "opacity-100 translate-y-0"
-                : "opacity-0 translate-y-4"
+              "animate-appear delay-450 transition-all duration-800 ease-[cubic-bezier(0.16,1,0.3,1)]",
+              !inView && "!opacity-0 !translate-y-4"
             )}
           >
             {actions.map((action, index) => {
@@ -186,14 +178,12 @@ export function HeroSection({
             })}
           </div>
 
-          {/* Image Mockup with Glow & Bi-directional Reverse Animation */}
+          {/* Image Mockup with Glow & Appearance Animation */}
           <div
             className={cn(
               "relative pt-0 sm:-mt-2 lg:-mt-3.5 w-full max-w-[1248px]",
-              "transition-all duration-900 ease-[cubic-bezier(0.16,1,0.3,1)] delay-400",
-              inView
-                ? "opacity-100 translate-y-0 scale-100"
-                : "opacity-0 translate-y-8 scale-[0.98]"
+              "animate-appear delay-600 transition-all duration-900 ease-[cubic-bezier(0.16,1,0.3,1)]",
+              !inView && "!opacity-0 !translate-y-8 !scale-[0.98]"
             )}
           >
             <MockupFrame
@@ -226,8 +216,8 @@ export function HeroSection({
             <Glow
               variant="top"
               className={cn(
-                "transition-opacity duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] delay-200",
-                inView ? "opacity-100" : "opacity-0"
+                "animate-appear-glow delay-300 transition-opacity duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)]",
+                !inView && "!opacity-0"
               )}
             />
           </div>
