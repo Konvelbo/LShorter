@@ -64,6 +64,11 @@ const navMenu: NavItem[] = [
         href: "/dashboard/analytics/revenue",
       },
       {
+        id: "devices",
+        name: "Devices & Formats",
+        href: "/dashboard/analytics/devices",
+      },
+      {
         id: "live",
         name: "Live Click Stream",
         href: "/dashboard/analytics/live",
@@ -282,7 +287,8 @@ export function Sidebar() {
           analyticsClicks30d > 0 ? analyticsClicks30d : sumClicksFromLinks;
 
         setLiveClicks((prev) => {
-          const resolved = authoritativeClicks > 0 ? authoritativeClicks : (prev ?? 0);
+          const resolved =
+            authoritativeClicks > 0 ? authoritativeClicks : (prev ?? 0);
           try {
             localStorage.setItem(
               `lshorter_live_clicks_${userId}`,
@@ -334,7 +340,10 @@ export function Sidebar() {
       if (typeof detail?.clicks === "number" && detail.clicks >= 0) {
         setLiveClicks(detail.clicks);
         try {
-          localStorage.setItem(`lshorter_live_clicks_${userId}`, String(detail.clicks));
+          localStorage.setItem(
+            `lshorter_live_clicks_${userId}`,
+            String(detail.clicks),
+          );
         } catch {}
       }
     };
@@ -352,7 +361,11 @@ export function Sidebar() {
     const handleDataChange = () => fetchLiveClicks(false);
     const handleLinksUpdated = () => fetchLiveClicks(false);
     const handleFocus = () => {
-      if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+      if (
+        typeof document !== "undefined" &&
+        document.visibilityState === "hidden"
+      )
+        return;
       fetchLiveClicks(false);
     };
 
@@ -529,7 +542,9 @@ export function Sidebar() {
                 />
                 {!isCollapsed && isContentExpanded && (
                   <>
-                    <span className="flex-1 truncate animate-in fade-in duration-200">{item.name}</span>
+                    <span className="flex-1 truncate animate-in fade-in duration-200">
+                      {item.name}
+                    </span>
                     {item.badge && (
                       <span className="rounded-full bg-[#ECFDF3] dark:bg-[#039855]/15 px-1.5 py-0.2 text-[10px] font-semibold text-[#039855] dark:text-[#32D583] animate-in fade-in duration-200">
                         {item.badge}
@@ -596,7 +611,10 @@ export function Sidebar() {
             isCollapsed ? "justify-center px-2" : "justify-between px-4",
           )}
         >
-          <Link href="/" className="flex items-center gap-2.5 group whitespace-nowrap">
+          <Link
+            href="/"
+            className="flex items-center gap-2.5 group whitespace-nowrap"
+          >
             <div className="flex h-6 w-6 items-center justify-center rounded-[8px] overflow-hidden shadow-xs shrink-0 group-hover:scale-105 transition-transform">
               <Image
                 src="/logo.svg"
@@ -722,7 +740,9 @@ export function Sidebar() {
                 type="button"
                 onClick={() => {
                   if (typeof window !== "undefined") {
-                    window.dispatchEvent(new CustomEvent("lshorter:open-create-drawer"));
+                    window.dispatchEvent(
+                      new CustomEvent("lshorter:open-create-drawer"),
+                    );
                   }
                 }}
                 className="mt-0.5 w-full flex items-center justify-between gap-1.5 rounded-lg bg-[#0066FF] hover:bg-[#0055d4] py-1.5 px-2 text-[11.5px] font-semibold !text-white transition-colors cursor-pointer shadow-2xs group"
@@ -730,7 +750,9 @@ export function Sidebar() {
               >
                 <div className="flex items-center gap-1.5 truncate">
                   <Plus className="h-3.5 w-3.5 !text-white shrink-0" />
-                  <span className="!text-white truncate">Create Short Link</span>
+                  <span className="!text-white truncate">
+                    Create Short Link
+                  </span>
                 </div>
                 <kbd className="hidden xl:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] font-mono font-medium bg-white/20 text-white rounded border border-white/25 shrink-0 leading-none">
                   <span>Ctrl</span>
@@ -745,7 +767,9 @@ export function Sidebar() {
               className="w-9 h-9 rounded-[8px] ds-card mx-auto flex items-center justify-center cursor-pointer hover:border-[#0066FF] transition-colors"
               onClick={() => {
                 if (typeof window !== "undefined") {
-                  window.dispatchEvent(new CustomEvent("lshorter:open-create-drawer"));
+                  window.dispatchEvent(
+                    new CustomEvent("lshorter:open-create-drawer"),
+                  );
                 }
               }}
             >
