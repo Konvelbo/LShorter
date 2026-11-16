@@ -22,7 +22,12 @@ import {
   LogOut,
   Sparkles,
 } from "lucide-react";
-import { Avatar, AvatarImage, AvatarFallback, getDiceBearAvatar } from "@/components/ui/avatar";
+import {
+  Avatar,
+  AvatarImage,
+  AvatarFallback,
+  getDiceBearAvatar,
+} from "@/components/ui/avatar";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import gsap from "gsap";
@@ -60,6 +65,11 @@ const navMenu: NavItem[] = [
         id: "conversions",
         name: "Customers & Revenue",
         href: "/dashboard/analytics/revenue",
+      },
+      {
+        id: "devices",
+        name: "Devices & Formats",
+        href: "/dashboard/analytics/devices",
       },
       {
         id: "live",
@@ -180,7 +190,8 @@ export function DashboardMobileMenu({
   // GSAP animation on open (like landing page mobile menu)
   useEffect(() => {
     if (!linksContainerRef.current) return;
-    const items = linksContainerRef.current.querySelectorAll(".mobile-nav-item");
+    const items =
+      linksContainerRef.current.querySelectorAll(".mobile-nav-item");
     if (isOpen) {
       gsap.fromTo(
         items,
@@ -192,7 +203,7 @@ export function DashboardMobileMenu({
           duration: 0.22,
           ease: "power2.out",
           delay: 0.05,
-        }
+        },
       );
     }
   }, [isOpen]);
@@ -226,11 +237,17 @@ export function DashboardMobileMenu({
     };
 
     window.addEventListener("popstate", syncTabFromWindow);
-    window.addEventListener("lshorter_settings_tab_change", handleSettingsTabEvent);
+    window.addEventListener(
+      "lshorter_settings_tab_change",
+      handleSettingsTabEvent,
+    );
 
     return () => {
       window.removeEventListener("popstate", syncTabFromWindow);
-      window.removeEventListener("lshorter_settings_tab_change", handleSettingsTabEvent);
+      window.removeEventListener(
+        "lshorter_settings_tab_change",
+        handleSettingsTabEvent,
+      );
     };
   }, [pathname]);
 
@@ -251,7 +268,8 @@ export function DashboardMobileMenu({
   };
 
   const isParentActive = (item: NavItem) => {
-    if (item.name === "Dashboard" || item.href === "/dashboard") return pathname === "/dashboard";
+    if (item.name === "Dashboard" || item.href === "/dashboard")
+      return pathname === "/dashboard";
     return pathname.startsWith(item.href);
   };
 
@@ -263,7 +281,7 @@ export function DashboardMobileMenu({
         aria-hidden={!isOpen}
         className={cn(
           "fixed inset-0 z-50 lg:hidden",
-          isOpen ? "pointer-events-auto" : "pointer-events-none"
+          isOpen ? "pointer-events-auto" : "pointer-events-none",
         )}
       >
         {/* Backdrop (clic pour fermer) */}
@@ -271,7 +289,7 @@ export function DashboardMobileMenu({
           onClick={onClose}
           className={cn(
             "absolute inset-0 bg-black/50 will-change-[opacity] transition-opacity duration-200 ease-out",
-            isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+            isOpen ? "opacity-100" : "opacity-0 pointer-events-none",
           )}
         />
 
@@ -280,7 +298,7 @@ export function DashboardMobileMenu({
           className={cn(
             "absolute inset-y-0 right-0 w-[84%] max-w-[320px] h-full flex flex-col justify-between ds-bg-sidebar border-l ds-border transform-gpu will-change-transform [contain:layout_paint_style] transition-transform duration-220 py-5 px-4 select-none",
             isOpen && "shadow-2xl",
-            isOpen ? "translate-x-0" : "translate-x-full"
+            isOpen ? "translate-x-0" : "translate-x-full",
           )}
           style={{
             transitionTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)",
@@ -327,7 +345,11 @@ export function DashboardMobileMenu({
                 onClick={toggleTheme}
                 className="p-2 text-[#52525B] dark:text-[#A1A1AA] hover:text-[#09090B] dark:hover:text-white transition-colors cursor-pointer bg-transparent border-none active:scale-90"
                 aria-label="Toggle theme"
-                title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+                title={
+                  theme === "dark"
+                    ? "Switch to light mode"
+                    : "Switch to dark mode"
+                }
               >
                 {theme === "dark" ? (
                   <Sun className="w-5 h-5 stroke-[1.75] text-amber-400" />
@@ -360,7 +382,9 @@ export function DashboardMobileMenu({
               </span>
               <div className="flex flex-col gap-1">
                 {navMenu.map((item) => {
-                  const hasSubs = Boolean(item.subItems && item.subItems.length > 0);
+                  const hasSubs = Boolean(
+                    item.subItems && item.subItems.length > 0,
+                  );
                   const isExpanded = openMenus[item.name] ?? false;
                   const active = isParentActive(item);
                   const Icon = item.icon;
@@ -375,7 +399,7 @@ export function DashboardMobileMenu({
                             "w-full flex items-center justify-between rounded-[8px] px-2.5 py-2 text-[13px] font-medium transition-colors cursor-pointer",
                             active
                               ? "bg-[#0066FF]/10 text-[#0066FF] dark:text-[#5294FF]"
-                              : "ds-text-secondary hover:bg-black/5 dark:hover:bg-white/5"
+                              : "ds-text-secondary hover:bg-black/5 dark:hover:bg-white/5",
                           )}
                         >
                           <div className="flex items-center gap-2.5">
@@ -385,7 +409,7 @@ export function DashboardMobileMenu({
                           <ChevronDown
                             className={cn(
                               "w-3.5 h-3.5 transition-transform duration-200 ds-text-muted",
-                              isExpanded && "rotate-180"
+                              isExpanded && "rotate-180",
                             )}
                           />
                         </button>
@@ -397,7 +421,7 @@ export function DashboardMobileMenu({
                             "flex items-center justify-between rounded-[8px] px-2.5 py-2 text-[13px] font-medium transition-colors",
                             active
                               ? "bg-[#0066FF]/10 text-[#0066FF] dark:text-[#5294FF]"
-                              : "ds-text-secondary hover:bg-black/5 dark:hover:bg-white/5"
+                              : "ds-text-secondary hover:bg-black/5 dark:hover:bg-white/5",
                           )}
                         >
                           <div className="flex items-center gap-2.5">
@@ -426,7 +450,7 @@ export function DashboardMobileMenu({
                                   "flex items-center justify-between rounded-[6px] px-2.5 py-1.5 text-[12px] font-medium transition-colors",
                                   subActive
                                     ? "bg-[#0066FF]/10 text-[#0066FF] dark:text-[#5294FF] font-semibold"
-                                    : "ds-text-secondary hover:bg-black/5 dark:hover:bg-white/5"
+                                    : "ds-text-secondary hover:bg-black/5 dark:hover:bg-white/5",
                                 )}
                               >
                                 <span className="truncate">{sub.name}</span>
@@ -453,7 +477,9 @@ export function DashboardMobileMenu({
               </span>
               <div className="flex flex-col gap-1">
                 {navOthers.map((item) => {
-                  const hasSubs = Boolean(item.subItems && item.subItems.length > 0);
+                  const hasSubs = Boolean(
+                    item.subItems && item.subItems.length > 0,
+                  );
                   const isExpanded = openMenus[item.name] ?? false;
                   const active = isParentActive(item);
                   const Icon = item.icon;
@@ -468,7 +494,7 @@ export function DashboardMobileMenu({
                             "w-full flex items-center justify-between rounded-[8px] px-2.5 py-2 text-[13px] font-medium transition-colors cursor-pointer",
                             active
                               ? "bg-[#0066FF]/10 text-[#0066FF] dark:text-[#5294FF]"
-                              : "ds-text-secondary hover:bg-black/5 dark:hover:bg-white/5"
+                              : "ds-text-secondary hover:bg-black/5 dark:hover:bg-white/5",
                           )}
                         >
                           <div className="flex items-center gap-2.5">
@@ -478,7 +504,7 @@ export function DashboardMobileMenu({
                           <ChevronDown
                             className={cn(
                               "w-3.5 h-3.5 transition-transform duration-200 ds-text-muted",
-                              isExpanded && "rotate-180"
+                              isExpanded && "rotate-180",
                             )}
                           />
                         </button>
@@ -490,7 +516,7 @@ export function DashboardMobileMenu({
                             "flex items-center justify-between rounded-[8px] px-2.5 py-2 text-[13px] font-medium transition-colors",
                             active
                               ? "bg-[#0066FF]/10 text-[#0066FF] dark:text-[#5294FF]"
-                              : "ds-text-secondary hover:bg-black/5 dark:hover:bg-white/5"
+                              : "ds-text-secondary hover:bg-black/5 dark:hover:bg-white/5",
                           )}
                         >
                           <div className="flex items-center gap-2.5">
@@ -514,7 +540,7 @@ export function DashboardMobileMenu({
                                   "flex items-center justify-between rounded-[6px] px-2.5 py-1.5 text-[12px] font-medium transition-colors",
                                   subActive
                                     ? "bg-[#0066FF]/10 text-[#0066FF] dark:text-[#5294FF] font-semibold"
-                                    : "ds-text-secondary hover:bg-black/5 dark:hover:bg-white/5"
+                                    : "ds-text-secondary hover:bg-black/5 dark:hover:bg-white/5",
                                 )}
                               >
                                 <span className="truncate">{sub.name}</span>
@@ -552,21 +578,33 @@ export function DashboardMobileMenu({
             >
               <Avatar className="h-9 w-9 rounded-[10px] border ds-border shrink-0">
                 <AvatarImage
-                  src={avatarUrl || getDiceBearAvatar(displayEmail || displayName)}
+                  src={
+                    avatarUrl || getDiceBearAvatar(displayEmail || displayName)
+                  }
                   alt={displayName}
                   seed={displayEmail || displayName}
                   className="rounded-[10px] object-cover"
                 />
-                <AvatarFallback suppressHydrationWarning seed={displayEmail || displayName} className="rounded-[10px]">
+                <AvatarFallback
+                  suppressHydrationWarning
+                  seed={displayEmail || displayName}
+                  className="rounded-[10px]"
+                >
                   {displayName.slice(0, 2)}
                 </AvatarFallback>
               </Avatar>
 
               <div className="flex flex-col min-w-0 flex-1 leading-tight text-left">
-                <span suppressHydrationWarning className="text-[13px] font-bold ds-text-primary truncate">
+                <span
+                  suppressHydrationWarning
+                  className="text-[13px] font-bold ds-text-primary truncate"
+                >
                   {displayName}
                 </span>
-                <span suppressHydrationWarning className="text-[11px] ds-text-muted truncate mt-0.5">
+                <span
+                  suppressHydrationWarning
+                  className="text-[11px] ds-text-muted truncate mt-0.5"
+                >
                   {displayEmail}
                 </span>
               </div>
@@ -632,7 +670,7 @@ export function DashboardMobileMenu({
                         "group relative rounded-[10px] p-3 text-left transition-colors cursor-pointer",
                         notif.isRead
                           ? "bg-transparent hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
-                          : "bg-[#ECF3FF]/70 dark:bg-[#465FFF]/15 border border-[#465FFF]/20"
+                          : "bg-[#ECF3FF]/70 dark:bg-[#465FFF]/15 border border-[#465FFF]/20",
                       )}
                     >
                       {/* Hover Date Pop (YY/MM/DD) */}
@@ -682,20 +720,33 @@ export function DashboardMobileMenu({
               <div className="flex items-center gap-3">
                 <Avatar className="h-10 w-10 rounded-[10px] border ds-border shrink-0">
                   <AvatarImage
-                    src={avatarUrl || getDiceBearAvatar(displayEmail || displayName)}
+                    src={
+                      avatarUrl ||
+                      getDiceBearAvatar(displayEmail || displayName)
+                    }
                     alt={displayName}
                     seed={displayEmail || displayName}
                     className="rounded-[10px] object-cover"
                   />
-                  <AvatarFallback suppressHydrationWarning seed={displayEmail || displayName} className="rounded-[10px]">
+                  <AvatarFallback
+                    suppressHydrationWarning
+                    seed={displayEmail || displayName}
+                    className="rounded-[10px]"
+                  >
                     {displayName.slice(0, 2)}
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1 text-left">
-                  <p suppressHydrationWarning className="text-sm font-bold ds-text-primary truncate">
+                  <p
+                    suppressHydrationWarning
+                    className="text-sm font-bold ds-text-primary truncate"
+                  >
                     {displayName}
                   </p>
-                  <p suppressHydrationWarning className="text-xs ds-text-muted truncate mt-0.5">
+                  <p
+                    suppressHydrationWarning
+                    className="text-xs ds-text-muted truncate mt-0.5"
+                  >
                     {displayEmail}
                   </p>
                 </div>
