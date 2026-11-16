@@ -19,7 +19,6 @@ import {
   ChevronUp,
   ChevronDown,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { isPathAllowedByPathLock } from "@/lib/pathlock-routes";
 import { verifyPathLockUnlockPassword } from "@/app/r/[slug]/view/actions";
 
@@ -27,6 +26,7 @@ export interface CloakedViewerLink {
   slug: string;
   targetUrl: string;
   metaTitle?: string;
+  description?: string;
   isCloaked?: boolean;
   pathLockMode?: string;
   path_lock_mode?: string;
@@ -79,8 +79,25 @@ export function CloakedViewer({ link }: CloakedViewerProps) {
     .trim()
     .toLowerCase();
   const isPathLocked = effectiveLockMode !== "off";
-  const hasUnlock = Boolean(link.hasUnlockPassword);
-  const title = link.metaTitle || link.slug;
+  const hasUnlock = Boolean(
+    link.hasUnlockPassword ||
+    (link as any).has_unlock_password ||
+    (link as any).pathLockPassword ||
+    (link as any).path_lock_password
+  );
+  const title = link.metaTitle || `/${link.slug}`;
+  const safeTitle = link.metaTitle || `/${link.slug}`;
+  const cleanPrefix = (link.pathLockPrefix || link.path_lock_prefix || "")
+    .replace(/^\/+/, "")
+    .replace(/\/+$/, "");
+  const authorizedPath = cleanPrefix || link.slug;
+  const descriptionText =
+    link.pathLockMessage ||
+    link.path_lock_message ||
+    link.description ||
+    (effectiveLockMode === "strict"
+      ? "Le propriétaire de ce lien a restreint la navigation à cette page unique. Toute navigation externe est bloquée."
+      : "Le propriétaire de ce lien a restreint l'accès aux seules pages de son périmètre autorisé. Toute navigation externe est verrouillée.");
 
   const validateAndEnforce = useCallback(
     (urlOrPath: string) => {
@@ -191,48 +208,71 @@ export function CloakedViewer({ link }: CloakedViewerProps) {
     setIframeKey((prev) => prev + 1);
   };
 
+  const handleDevUnlockSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const candidate = unlockPasswordInput.trim();
+    if (!candidate) {
+      setUnlockError("Veuillez saisir le mot de passe.");
+      return;
+    }
+    try {
+      const res = await verifyPathLockUnlockPassword(link.slug, candidate);
+      if (res.success) {
+        if (typeof window !== "undefined") {
+          sessionStorage.setItem(`pathlock_unlocked_${link.slug}`, "true");
+        }
+        setIsDevUnlocked(true);
+        setIsBlocked(false);
+        setUnlockError("");
+        setUnlockPasswordInput("");
+      } else {
+        setUnlockError(res.error || "Mot de passe incorrect.");
+      }
+    } catch {
+      setUnlockError("Erreur de vérification.");
+    }
+  };
+
   const iframeSrc = isPathLocked
     ? `/r/${encodeURIComponent(link.slug)}/proxy${isDevUnlocked ? "?unlocked=1" : ""}`
     : link.targetUrl;
 
   return (
-    <div className="relative w-screen h-screen flex flex-col bg-black overflow-hidden font-sans select-none">
-      {/* Cloaked Header Bar */}
+    <div className="relative w-screen h-screen flex flex-col bg-[#0B0C0E] overflow-hidden font-sans select-none text-[#F5F6F8]">
+      {/* ── TOPBAR (Slide-in / Expandable) ── */}
       {!isHeaderCollapsed ? (
-        <header className="h-11 bg-zinc-900/95 dark:bg-[#0f0f12]/95 border-b border-zinc-800 dark:border-[#222226] backdrop-blur-md px-4 flex items-center justify-between text-white z-40 transition-all shrink-0">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-6 h-6 rounded-[6px] bg-brand/10 border border-brand/30 flex items-center justify-center text-brand shrink-0">
-              <ShieldCheck className="w-3.5 h-3.5" />
-            </div>
-            <span className="text-xs font-semibold text-zinc-200 truncate max-w-[220px] sm:max-w-xs">
-              {link.metaTitle || `/${link.slug}`}
+        <header className="relative z-40 h-16 px-4 sm:px-8 flex items-center justify-between box-border border-b border-white/[0.08] bg-[#0B0C0E]/90 backdrop-blur-[20px] transition-all duration-300 shrink-0">
+          {/* Left Brand & Mode */}
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="w-9 h-9 rounded-[10px] bg-blue-600 flex items-center justify-center text-white shrink-0 shadow-md shadow-blue-600/20">
+              <Shield className="w-5 h-5" />
+            </span>
+            <span className="text-[16px] sm:text-[17px] font-bold text-white tracking-[-0.01em] truncate max-w-[180px] sm:max-w-xs">
+              {safeTitle}
             </span>
 
             {/* PathLock Badge */}
             {isPathLocked &&
               (isDevUnlocked ? (
-                <span className="text-[10px] text-emerald-400 font-mono font-bold px-2 py-0.5 rounded-[4px] bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-1">
+                <span className="inline-flex items-center gap-1.5 h-7 px-3 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  <span>Accès Débloqué</span>
+                  <span>Accès débloqué</span>
                 </span>
               ) : (
-                <span className="text-[10px] text-brand font-mono font-bold px-2 py-0.5 rounded-[4px] bg-brand/10 border border-brand/30 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse" />
-                  <span>
-                    PathLock™{" "}
-                    {effectiveLockMode === "strict" ? "Single-Page" : "Funnel"}
-                  </span>
+                <span className="inline-flex items-center h-7 px-3 rounded-full bg-white/[0.05] border border-white/10 text-[#A9C4FF] text-xs font-semibold whitespace-nowrap">
+                  PathLock™ {effectiveLockMode === "strict" ? "Single-Page" : "Funnel"}
                 </span>
               ))}
 
             {!isPathLocked && (
-              <span className="text-[10px] text-zinc-400 font-mono hidden sm:inline px-1.5 py-0.5 rounded-[4px] bg-zinc-800 dark:bg-[#1a1a20] border border-zinc-700/50">
+              <span className="inline-flex items-center h-7 px-3 rounded-full bg-white/[0.05] border border-white/10 text-zinc-400 text-xs font-medium">
                 Protégé
               </span>
             )}
           </div>
 
-          <div className="flex items-center gap-1.5">
+          {/* Right Action Buttons */}
+          <div className="flex items-center gap-2">
             {/* Relock Button if unlocked */}
             {isDevUnlocked && (
               <button
@@ -245,7 +285,7 @@ export function CloakedViewer({ link }: CloakedViewerProps) {
                   setIsBlocked(false);
                   setIframeKey((prev) => prev + 1);
                 }}
-                className="h-8 px-2.5 flex items-center gap-1 text-[11px] text-amber-400 hover:text-amber-300 transition-colors rounded-[6px] bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 font-semibold cursor-pointer"
+                className="h-10 px-3.5 inline-flex items-center gap-1.5 rounded-[10px] bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-semibold transition-colors cursor-pointer"
                 title="Re-verrouiller le tunnel"
               >
                 <Lock className="w-3.5 h-3.5" />
@@ -253,55 +293,63 @@ export function CloakedViewer({ link }: CloakedViewerProps) {
               </button>
             )}
 
-            <Button
+            {/* Refresh Button */}
+            <button
               type="button"
-              variant="ghost"
-              size="sm"
               onClick={handleReload}
-              className="h-8 px-2 text-zinc-300 hover:text-white hover:bg-white/10 rounded-[6px] text-xs gap-1 cursor-pointer"
+              className="h-10 px-3.5 inline-flex items-center gap-2 rounded-[10px] border border-white/10 hover:bg-white/[0.07] text-[#D5D9E2] hover:text-white text-sm font-medium transition-colors cursor-pointer"
               title="Actualiser la page"
             >
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span className="hidden md:inline">Actualiser</span>
-            </Button>
+              <RefreshCw className="w-4 h-4" />
+              <span className="hidden sm:inline">Actualiser</span>
+            </button>
 
+            {/* Original Link Button (if unlocked or not locked) */}
             {(!isPathLocked || isDevUnlocked) && (
               <a
                 href={link.targetUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="h-8 px-2.5 inline-flex items-center gap-1 text-xs text-zinc-300 hover:text-white hover:bg-white/10 rounded-[6px] transition-colors"
+                className="h-10 px-3.5 inline-flex items-center gap-1.5 rounded-[10px] border border-white/10 hover:bg-white/[0.07] text-[#D5D9E2] hover:text-white text-sm font-medium transition-colors"
                 title="Ouvrir le site original"
               >
-                <ExternalLink className="w-3.5 h-3.5" />
-                <span className="hidden md:inline">Original</span>
+                <ExternalLink className="w-4 h-4" />
+                <span className="hidden sm:inline">Original</span>
               </a>
             )}
 
+            {/* Reduce / Collapse Header Button */}
             <button
               type="button"
               onClick={() => setIsHeaderCollapsed(true)}
-              className="h-8 w-8 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-white/10 rounded-[6px] transition-colors cursor-pointer"
+              className="w-10 h-10 inline-flex items-center justify-center rounded-[10px] border border-white/10 hover:bg-white/[0.07] text-[#D5D9E2] hover:text-white transition-colors cursor-pointer"
+              aria-label="Réduire la barre"
               title="Masquer la barre"
             >
               <ChevronUp className="w-4 h-4" />
             </button>
           </div>
         </header>
-      ) : (
+      ) : null}
+
+      {/* ── RESTORE TOPBAR FLOATING PILL (Always visible when top is hidden) ── */}
+      {isHeaderCollapsed && (
         <button
           type="button"
           onClick={() => setIsHeaderCollapsed(false)}
-          className="fixed top-2 right-4 z-50 px-2.5 py-1 rounded-[8px] bg-zinc-900/90 border border-zinc-700/60 text-white text-xs flex items-center gap-1.5 shadow-lg backdrop-blur hover:bg-zinc-800 transition-all cursor-pointer opacity-70 hover:opacity-100"
+          className="fixed top-3.5 left-1/2 -translate-x-1/2 z-[99999] h-10 px-4 rounded-full bg-[#0B0C0E]/95 hover:bg-[#141418] border border-white/20 hover:border-blue-500/60 text-[#F5F6F8] text-xs font-semibold flex items-center gap-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-xl transition-all hover:scale-105 active:scale-95 cursor-pointer animate-in fade-in slide-in-from-top-3 duration-200"
           title="Afficher la barre"
+          aria-label="Afficher la barre"
         >
-          <Shield className="w-3.5 h-3.5 text-brand" />
+          <span className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center text-white shadow-sm shrink-0">
+            <Shield className="w-3 h-3" />
+          </span>
           <span>Afficher la barre</span>
-          <ChevronDown className="w-3.5 h-3.5" />
+          <ChevronDown className="w-3.5 h-3.5 text-[#8DB0FF]" />
         </button>
       )}
 
-      {/* Main Content Area */}
+      {/* ── MAIN CONTENT (Iframe + Gate Overlay) ── */}
       <div className="relative w-full flex-1 bg-white overflow-hidden">
         <iframe
           key={iframeKey}
@@ -315,135 +363,133 @@ export function CloakedViewer({ link }: CloakedViewerProps) {
 
         {/* ── PATHLOCK™ SECURITY GATE BLOCKING OVERLAY ── */}
         {isBlocked && (
-          <div className="absolute inset-0 z-50 bg-[#09090c]/95 backdrop-blur-md flex flex-col items-center justify-center p-4 sm:p-6 text-center animate-in fade-in zoom-in-95 duration-200">
-            {/* Glowing Shield Icon */}
-            <div className="w-16 h-16 rounded-[12px] bg-brand/10 border border-brand/40 flex items-center justify-center shadow-lg shadow-brand/20 mb-4 animate-bounce">
-              <ShieldAlert className="w-8 h-8 text-brand" />
-            </div>
-
-            {/* Badges & Warnings */}
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-[6px] bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-bold uppercase tracking-wider mb-2">
-              <Lock className="w-3.5 h-3.5 shrink-0" />
-              <span>Accès Hors Périmètre Bloqué</span>
-            </div>
-
-            <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight max-w-md">
-              Navigation Restreinte par le Créateur du Lien
-            </h2>
-
-            {/* Explanatory message */}
-            <p className="text-xs sm:text-sm text-zinc-400 max-w-md mt-2 leading-relaxed">
-              {link.pathLockMessage ||
-                `Le propriétaire de ce lien a activé le mode PathLock™ ${
-                  effectiveLockMode === "strict"
-                    ? "Strict Single-Page"
-                    : "Funnel & Subpaths"
-                }. Vous ne pouvez pas naviguer en dehors de la page autorisée.`}
-            </p>
-
-            {/* Allowed route reminder box */}
-            <div className="mt-4 px-4 py-2.5 rounded-[10px] bg-[#141418] border border-[#27272a] text-xs text-zinc-300 flex items-center gap-2 max-w-md w-full justify-center">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
-              <span className="text-zinc-400">Périmètre autorisé :</span>
-              <span className="font-mono font-bold text-white truncate max-w-[260px]">
-                /{link.slug}
-              </span>
-            </div>
-
-            {/* Recovery CTA Button */}
-            <button
-              type="button"
-              onClick={handleRestore}
-              className="mt-6 px-6 py-3 rounded-[8px] bg-brand hover:bg-brand-hover text-white font-bold text-sm tracking-wide shadow-lg shadow-brand/20 flex items-center gap-2 transition-all cursor-pointer"
+          <div className="absolute inset-0 z-50 bg-[#0B0C0E] overflow-y-auto flex flex-col items-center justify-center p-4 sm:p-6 text-white font-sans select-text">
+            {/* Ambient Background Glows */}
+            <div
+              aria-hidden="true"
+              className="absolute inset-0 pointer-events-none overflow-hidden"
             >
-              <ArrowLeft className="w-4 h-4" />
-              <span>Revenir à la page autorisée</span>
-            </button>
+              <div className="absolute left-[15%] top-[15%] w-[560px] h-[72px] rounded-[18px] bg-white/[0.08] blur-[20px]" />
+              <div className="absolute right-[10%] top-[12%] w-[340px] h-[220px] rounded-[24px] bg-white/[0.06] blur-[24px]" />
+              <div className="absolute left-[15%] top-[45%] w-[330px] h-[210px] rounded-[24px] bg-white/[0.05] blur-[24px]" />
+              <div className="absolute right-[10%] top-[45%] w-[330px] h-[210px] rounded-[24px] bg-white/[0.05] blur-[24px]" />
+              <div className="absolute left-[35%] top-[25%] w-[520px] h-[520px] rounded-full bg-blue-600/[0.08] blur-[120px]" />
+              <div className="absolute inset-0 bg-[#090A0C]/55 backdrop-blur-[12px]" />
+            </div>
 
-            {/* Developer / Team Bypass Unlock Form */}
-            {hasUnlock && (
-              <div className="mt-5 p-3.5 rounded-[8px] bg-[#141418] border border-[#27272a] max-w-md w-full flex flex-col gap-2.5 text-left animate-in fade-in">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                    <Lock className="w-3.5 h-3.5 text-amber-400" />
-                    Déverrouillage Équipe / Développeur
-                  </span>
-                  <span className="text-[10px] text-zinc-500">
-                    Accès complet
-                  </span>
+            {/* Centered Modal Card */}
+            <main className="relative z-10 w-full max-w-[460px] flex flex-col items-center my-auto py-8">
+              <section className="w-full box-border p-7 sm:p-10 flex flex-col items-center text-center rounded-[24px] bg-white/[0.05] border border-white/[0.12] backdrop-blur-[28px] shadow-[0_24px_64px_rgba(0,0,0,0.35)] animate-in fade-in zoom-in-95 duration-200">
+                {/* Shield Alert Icon Badge */}
+                <span className="w-16 h-16 rounded-[18px] bg-blue-600/[0.14] border border-[#608CFF]/[0.35] text-[#8DB0FF] flex items-center justify-center shrink-0 shadow-lg shadow-blue-500/10">
+                  <ShieldAlert className="w-8 h-8" />
+                </span>
+
+                {/* Status Tag Pill */}
+                <span className="inline-flex items-center gap-2 mt-6 h-[30px] px-3.5 rounded-full bg-blue-600/[0.14] border border-[#608CFF]/[0.35] text-[#A9C4FF] text-xs font-bold tracking-[0.06em] uppercase">
+                  <Lock className="w-3.5 h-3.5 shrink-0" />
+                  <span>ACCÈS HORS PÉRIMÈTRE BLOQUÉ</span>
+                </span>
+
+                {/* Main Heading */}
+                <h1 className="mt-4 text-2xl sm:text-[30px] leading-tight font-bold tracking-[-0.02em] text-white">
+                  Navigation restreinte par le créateur du lien
+                </h1>
+
+                {/* Link Name */}
+                <p className="mt-3 text-[15px] font-semibold text-[#A9AFBA] max-w-sm truncate">
+                  {safeTitle}
+                </p>
+
+                {/* Description Part */}
+                <div className="w-full mt-3.5 p-3 sm:p-3.5 rounded-xl bg-white/[0.04] border border-white/10 text-center">
+                  <p className="text-xs sm:text-sm text-[#D5D9E2] leading-relaxed break-words">
+                    {descriptionText}
+                  </p>
                 </div>
-                <form
-                  onSubmit={async (e) => {
-                    e.preventDefault();
-                    const candidate = unlockPasswordInput.trim();
-                    if (!candidate) {
-                      setUnlockError("Veuillez saisir le mot de passe.");
-                      return;
-                    }
-                    try {
-                      const res = await verifyPathLockUnlockPassword(link.slug, candidate);
-                      if (res.success) {
-                        if (typeof window !== "undefined") {
-                          sessionStorage.setItem(
-                            `pathlock_unlocked_${link.slug}`,
-                            "true",
-                          );
-                        }
-                        setIsDevUnlocked(true);
-                        setIsBlocked(false);
-                        setUnlockError("");
-                        setUnlockPasswordInput("");
-                      } else {
-                        setUnlockError(res.error || "Mot de passe incorrect.");
-                      }
-                    } catch {
-                      setUnlockError("Erreur de vérification.");
-                    }
-                  }}
-                  className="flex flex-col gap-2"
-                >
-                  <div className="relative">
-                    <input
-                      type={showUnlockPassword ? "text" : "password"}
-                      placeholder="Mot de passe de déblocage..."
-                      value={unlockPasswordInput}
-                      onChange={(e) => {
-                        setUnlockPasswordInput(e.target.value);
-                        if (unlockError) setUnlockError("");
-                      }}
-                      className="w-full bg-[#101012] border border-[#27272a] focus:border-brand text-white placeholder:text-zinc-500 text-xs h-9 rounded-[8px] pl-3 pr-10 outline-none transition-colors"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowUnlockPassword((prev) => !prev)}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white transition-colors cursor-pointer"
-                      title={showUnlockPassword ? "Masquer" : "Afficher"}
-                    >
-                      {showUnlockPassword ? (
-                        <EyeOff className="w-4 h-4" />
-                      ) : (
-                        <Eye className="w-4 h-4" />
-                      )}
-                    </button>
-                  </div>
-                  {unlockError && (
-                    <span className="text-[11px] text-red-400 font-medium">
-                      {unlockError}
-                    </span>
-                  )}
-                  <button
-                    type="submit"
-                    className="w-full py-2 rounded-[8px] bg-white/10 hover:bg-white/15 text-white font-bold text-xs border border-white/10 transition-all cursor-pointer flex items-center justify-center gap-1.5"
-                  >
-                    <span>Déverrouiller l&apos;accès complet</span>
-                  </button>
-                </form>
-              </div>
-            )}
 
-            <span className="text-[10.5px] text-zinc-600 mt-5">
-              Sécurisé par LShorter Edge Gate • PathLock™ Engine
-            </span>
+                {/* Authorized Perimeter Box */}
+                <div className="w-full box-border mt-6 h-[52px] px-4 flex items-center justify-center gap-2.5 rounded-[12px] bg-white/[0.04] border border-white/10">
+                  <span className="text-sm text-[#A9AFBA]">Périmètre autorisé</span>
+                  <code className="font-mono text-sm font-semibold text-[#A9C4FF] px-2.5 py-1 rounded-lg bg-black/30 border border-white/10">
+                    /{authorizedPath}
+                  </code>
+                </div>
+
+                {/* Return Button */}
+                <button
+                  type="button"
+                  onClick={handleRestore}
+                  className="w-full mt-4 h-[52px] flex items-center justify-center gap-2.5 rounded-[12px] bg-blue-600 hover:bg-blue-500 active:scale-[0.99] text-white text-base font-semibold transition-all shadow-lg shadow-blue-600/25 cursor-pointer"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>Revenir à la page autorisée</span>
+                </button>
+
+                {/* Divider Line */}
+                <div className="w-full h-px mt-7 bg-white/10" />
+
+                {/* Developer / Team Unlock Form */}
+                {hasUnlock && (
+                  <div className="w-full mt-6 flex flex-col gap-3.5 text-left">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="inline-flex items-center gap-2 text-sm font-semibold text-white">
+                        <Lock className="w-4 h-4 text-[#8DB0FF]" />
+                        <span>Déverrouillage équipe / développeur</span>
+                      </span>
+                      <span className="text-xs font-medium text-[#A9AFBA] whitespace-nowrap">
+                        Accès complet
+                      </span>
+                    </div>
+
+                    <form onSubmit={handleDevUnlockSubmit} className="flex flex-col gap-3">
+                      <div className="relative">
+                        <label htmlFor="unlock-pass" className="sr-only">
+                          Mot de passe de déblocage
+                        </label>
+                        <input
+                          id="unlock-pass"
+                          type={showUnlockPassword ? "text" : "password"}
+                          placeholder="Mot de passe de déblocage…"
+                          value={unlockPasswordInput}
+                          onChange={(e) => {
+                            setUnlockPasswordInput(e.target.value);
+                            if (unlockError) setUnlockError("");
+                          }}
+                          className="w-full h-12 px-3.5 pr-12 rounded-[10px] bg-black/30 border border-white/[0.14] focus:border-blue-500 text-[#F5F6F8] placeholder:text-[#8A909C] text-sm outline-none transition-colors"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowUnlockPassword(!showUnlockPassword)}
+                          aria-label={showUnlockPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                          className="absolute right-1 top-1 w-10 h-10 flex items-center justify-center text-[#A9AFBA] hover:text-white transition-colors cursor-pointer"
+                        >
+                          {showUnlockPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+
+                      {unlockError && (
+                        <p className="text-xs text-red-400 font-medium">
+                          {unlockError}
+                        </p>
+                      )}
+
+                      <button
+                        type="submit"
+                        className="w-full h-12 rounded-[10px] border border-[#8DB0FF]/40 hover:bg-white/[0.06] text-[#A9C4FF] text-sm font-semibold transition-colors cursor-pointer"
+                      >
+                        Déverrouiller l’accès complet
+                      </button>
+                    </form>
+                  </div>
+                )}
+              </section>
+
+              {/* Footer */}
+              <p className="mt-7 text-xs text-[#9096A3] text-center">
+                Sécurisé par LShorter Edge Gate • PathLock™ Engine
+              </p>
+            </main>
           </div>
         )}
       </div>
