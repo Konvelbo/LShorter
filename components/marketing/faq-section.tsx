@@ -64,13 +64,13 @@ export function FaqSection() {
     <section
       ref={sectionRef}
       id="faq"
-      className="w-full bg-[#FFFFFF] dark:bg-[#09090B] py-20 sm:py-28 md:py-36 lg:py-44 min-h-[720px] sm:min-h-[800px] flex items-center border-t border-[#E4E7EC] dark:border-white/10 transition-colors duration-300"
+      className="w-full bg-[#FFFFFF] dark:bg-[#09090B] py-14 sm:py-20 lg:py-24 border-t border-[#E4E7EC] dark:border-white/10 transition-colors duration-300"
     >
       <div className="w-full max-w-[1340px] mx-auto px-4 sm:px-8">
         <div className="faq-scroll-reveal grid grid-cols-1 lg:grid-cols-12 gap-10 sm:gap-14 lg:gap-16 items-start">
           {/* Left Header */}
-          <div className="lg:col-span-5 flex flex-col justify-center">
-            <h2 className="text-[30px] xs:text-[34px] sm:text-[44px] md:text-[50px] lg:text-[54px] font-normal tracking-[-0.035em] leading-[1.06] mb-4 sm:mb-6">
+          <div className="lg:col-span-5 flex flex-col justify-start pt-2">
+            <h2 className="text-[28px] xs:text-[32px] sm:text-[40px] md:text-[46px] font-normal tracking-[-0.035em] leading-[1.1] mb-3 sm:mb-4">
               <span className="text-[#101828] dark:text-white block">
                 Questions,
               </span>
@@ -78,12 +78,12 @@ export function FaqSection() {
                 answered clearly.
               </span>
             </h2>
-            <p className="text-[14.5px] sm:text-[16px] text-[#667085] dark:text-zinc-400 leading-[1.65] max-w-[430px]">
+            <p className="text-[14px] sm:text-[15.5px] text-[#667085] dark:text-zinc-400 leading-[1.6] max-w-[420px]">
               Everything engineering, growth, and security teams ask before migrating their link infrastructure to LShorter.
             </p>
           </div>
 
-          {/* Right Accordion with Larger Sizing and Generous Padding */}
+          {/* Right Accordion with Balanced Sizing and Elegant Spacing */}
           <div className="lg:col-span-7 border-t border-[#E4E7EC] dark:border-white/15">
             {FAQS.map((item, idx) => {
               const isOpen = openIndex === idx;
@@ -95,21 +95,21 @@ export function FaqSection() {
                   <button
                     type="button"
                     onClick={() => setOpenIndex(isOpen ? null : idx)}
-                    className="w-full py-5 sm:py-6 md:py-7 flex items-center justify-between gap-5 text-left group cursor-pointer"
+                    className="w-full py-4.5 sm:py-5 md:py-5.5 flex items-center justify-between gap-4 text-left group cursor-pointer"
                   >
-                    <span className="text-[16px] sm:text-[18px] md:text-[19.5px] font-medium text-[#101828] dark:text-white tracking-[-0.015em] leading-[1.35] group-hover:text-[#0066FF] dark:group-hover:text-[#5294FF] transition-colors">
+                    <span className="text-[15.5px] sm:text-[17px] md:text-[18px] font-medium text-[#101828] dark:text-white tracking-[-0.015em] leading-[1.35] group-hover:text-[#0066FF] dark:group-hover:text-[#5294FF] transition-colors">
                       {item.q}
                     </span>
-                    <span className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#F2F4F7] dark:bg-white/10 flex items-center justify-center shrink-0 text-[#101828] dark:text-white transition-all duration-200 group-hover:scale-105 group-hover:bg-[#0066FF]/10 dark:group-hover:bg-[#0066FF]/20 group-hover:text-[#0066FF] dark:group-hover:text-[#5294FF]">
+                    <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#F2F4F7] dark:bg-white/10 flex items-center justify-center shrink-0 text-[#101828] dark:text-white transition-all duration-200 group-hover:scale-105 group-hover:bg-[#0066FF]/10 dark:group-hover:bg-[#0066FF]/20 group-hover:text-[#0066FF] dark:group-hover:text-[#5294FF]">
                       {isOpen ? (
-                        <Minus className="w-4 h-4" />
+                        <Minus className="w-3.5 h-3.5" />
                       ) : (
-                        <Plus className="w-4 h-4" />
+                        <Plus className="w-3.5 h-3.5" />
                       )}
                     </span>
                   </button>
                   {isOpen && (
-                    <div className="pb-6 sm:pb-8 pr-6 sm:pr-12 text-[14px] sm:text-[15.5px] text-[#475467] dark:text-zinc-300 leading-[1.75] animate-in fade-in duration-200">
+                    <div className="pb-5 sm:pb-6 pr-4 sm:pr-8 text-[13.5px] sm:text-[14.5px] text-[#475467] dark:text-zinc-300 leading-[1.7] animate-in fade-in duration-200">
                       {item.a}
                     </div>
                   )}

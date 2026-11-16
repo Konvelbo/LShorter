@@ -5,7 +5,6 @@ import React, {
   useRef,
   useEffect,
   useCallback,
-  useSyncExternalStore,
 } from "react";
 import {
   ExternalLink,
@@ -22,8 +21,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { isPathAllowedByPathLock } from "@/lib/pathlock-routes";
-
-const emptySubscribe = () => () => {};
+import { verifyPathLockUnlockPassword } from "@/app/r/[slug]/view/actions";
 
 export interface CloakedViewerLink {
   slug: string;
@@ -36,8 +34,7 @@ export interface CloakedViewerLink {
   path_lock_prefix?: string;
   pathLockMessage?: string;
   path_lock_message?: string;
-  pathLockPassword?: string;
-  path_lock_password?: string;
+  hasUnlockPassword?: boolean;
 }
 
 export interface CloakedViewerProps {
@@ -60,11 +57,6 @@ export function CloakedViewer({ link }: CloakedViewerProps) {
     }
   }, [link.metaTitle]);
 
-  const isMounted = useSyncExternalStore(
-    emptySubscribe,
-    () => true,
-    () => false,
-  );
   const effectivePathnameRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -87,8 +79,7 @@ export function CloakedViewer({ link }: CloakedViewerProps) {
     .trim()
     .toLowerCase();
   const isPathLocked = effectiveLockMode !== "off";
-  const targetPassword =
-    link.pathLockPassword || link.path_lock_password || "";
+  const hasUnlock = Boolean(link.hasUnlockPassword);
   const title = link.metaTitle || link.slug;
 
   const validateAndEnforce = useCallback(
@@ -116,6 +107,8 @@ export function CloakedViewer({ link }: CloakedViewerProps) {
 
         if (!allowed) {
           setIsBlocked(true);
+        } else {
+          setIsBlocked(false);
         }
       } catch {}
     },
@@ -198,11 +191,9 @@ export function CloakedViewer({ link }: CloakedViewerProps) {
     setIframeKey((prev) => prev + 1);
   };
 
-  const iframeSrc = !isMounted
-    ? undefined
-    : isPathLocked
-      ? `/r/${encodeURIComponent(link.slug)}/proxy${isDevUnlocked ? "?unlocked=1" : ""}`
-      : link.targetUrl;
+  const iframeSrc = isPathLocked
+    ? `/r/${encodeURIComponent(link.slug)}/proxy${isDevUnlocked ? "?unlocked=1" : ""}`
+    : link.targetUrl;
 
   return (
     <div className="relative w-screen h-screen flex flex-col bg-black overflow-hidden font-sans select-none">
@@ -370,7 +361,7 @@ export function CloakedViewer({ link }: CloakedViewerProps) {
             </button>
 
             {/* Developer / Team Bypass Unlock Form */}
-            {Boolean(targetPassword) && (
+            {hasUnlock && (
               <div className="mt-5 p-3.5 rounded-[8px] bg-[#141418] border border-[#27272a] max-w-md w-full flex flex-col gap-2.5 text-left animate-in fade-in">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-white flex items-center gap-1.5">
@@ -382,25 +373,31 @@ export function CloakedViewer({ link }: CloakedViewerProps) {
                   </span>
                 </div>
                 <form
-                  onSubmit={(e) => {
+                  onSubmit={async (e) => {
                     e.preventDefault();
-                    if (!unlockPasswordInput.trim()) {
+                    const candidate = unlockPasswordInput.trim();
+                    if (!candidate) {
                       setUnlockError("Veuillez saisir le mot de passe.");
                       return;
                     }
-                    if (unlockPasswordInput.trim() === targetPassword.trim()) {
-                      if (typeof window !== "undefined") {
-                        sessionStorage.setItem(
-                          `pathlock_unlocked_${link.slug}`,
-                          "true",
-                        );
+                    try {
+                      const res = await verifyPathLockUnlockPassword(link.slug, candidate);
+                      if (res.success) {
+                        if (typeof window !== "undefined") {
+                          sessionStorage.setItem(
+                            `pathlock_unlocked_${link.slug}`,
+                            "true",
+                          );
+                        }
+                        setIsDevUnlocked(true);
+                        setIsBlocked(false);
+                        setUnlockError("");
+                        setUnlockPasswordInput("");
+                      } else {
+                        setUnlockError(res.error || "Mot de passe incorrect.");
                       }
-                      setIsDevUnlocked(true);
-                      setIsBlocked(false);
-                      setUnlockError("");
-                      setUnlockPasswordInput("");
-                    } else {
-                      setUnlockError("Mot de passe incorrect.");
+                    } catch {
+                      setUnlockError("Erreur de vérification.");
                     }
                   }}
                   className="flex flex-col gap-2"

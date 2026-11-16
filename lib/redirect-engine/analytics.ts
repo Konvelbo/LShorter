@@ -3,6 +3,7 @@ import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
 import { detectVisitorGeoAsync } from "./geo";
 import { parseUserAgent } from "./device";
 import { dispatchUserWebhooks } from "./webhooks";
+import { incrementWorkerLinkClicks } from "./worker-client";
 
 // In-memory sliding-window click deduplication cache (per-IP + per-slug, 1200ms)
 const clickDedupCache = new Map<string, number>();
@@ -42,6 +43,10 @@ export async function trackClickAsync(
   const userAgent = req.headers.get("user-agent") || "";
   const linkId = meta?.id || slug;
   const userId = String(meta?.userId || meta?.user_id || "");
+
+  // Update in-memory click count immediately so rapid subsequent requests honor max_clicks
+  if (slug) incrementWorkerLinkClicks(slug);
+  if (meta?.id && meta.id !== slug) incrementWorkerLinkClicks(meta.id);
 
   let resolvedGeo = geo;
   if (!resolvedGeo || !resolvedGeo.countryCode || resolvedGeo.countryCode === "XX") {

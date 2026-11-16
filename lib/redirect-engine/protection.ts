@@ -59,7 +59,9 @@ export function evaluateProtectionState(
   if (
     link.password ||
     link.is_password_protected ||
-    link.has_password
+    (link as any).isPasswordProtected ||
+    link.has_password ||
+    (link as any).hasPassword
   ) {
     return {
       type: "redirect",

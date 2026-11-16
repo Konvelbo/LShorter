@@ -206,5 +206,14 @@ export function mergeLinkWithExtras<T extends Record<string, unknown>>(link: T):
     ...(link.fallbackUrl === undefined && link.fallback_url === undefined && extras.fallbackUrl !== undefined
       ? { fallbackUrl: extras.fallbackUrl, fallback_url: extras.fallback_url ?? extras.fallbackUrl }
       : {}),
+    ...(isEmptyArray(link.routingRules) && isEmptyArray(link.routing_rules) && extras.routingRules !== undefined
+      ? { routingRules: extras.routingRules, routing_rules: extras.routing_rules ?? extras.routingRules }
+      : {}),
+    ...(!link.geoTargeting && !link.geo_targeting && extras.geoTargeting !== undefined
+      ? { geoTargeting: extras.geoTargeting, geo_targeting: extras.geo_targeting ?? extras.geoTargeting }
+      : {}),
+    ...(!link.deviceTargeting && !link.device_targeting && extras.deviceTargeting !== undefined
+      ? { deviceTargeting: extras.deviceTargeting, device_targeting: extras.device_targeting ?? extras.deviceTargeting }
+      : {}),
   };
 }

@@ -131,6 +131,7 @@ export async function safeUpstreamFetch(
 
     const res = await fetch(currentUrl, {
       ...init,
+      signal: init.signal || AbortSignal.timeout(12000),
       method,
       body: method === "GET" || method === "HEAD" ? undefined : body,
       redirect: "manual",

@@ -176,20 +176,17 @@ function FeatureCard({
       )}
 
       {/* ── Spec rows ── */}
-      <div>
+      <motion.div
+        variants={fadeUp}
+        initial="hidden"
+        whileInView="visible"
+        viewport={viewport}
+        transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1], delay: 0.08 }}
+      >
         <div className="border-t border-[#e4e5e9] dark:border-[#26282e]" />
         {rows.map((row, idx) => (
-          <motion.div
+          <div
             key={idx}
-            variants={fadeLeft}
-            initial="hidden"
-            whileInView="visible"
-            viewport={viewport}
-            transition={{
-              duration: 0.24,
-              ease: [0.16, 1, 0.3, 1],
-              delay: 0.04 + idx * 0.03,
-            }}
             className="grid grid-cols-[120px_minmax(0,1fr)] gap-3 py-3 border-b border-[#e4e5e9] dark:border-[#26282e]"
           >
             <dt className="text-[13.5px] font-medium text-[#111216] dark:text-[#f2f3f5]">
@@ -198,9 +195,9 @@ function FeatureCard({
             <dd className="text-[13.5px] text-[#6b6f7a] dark:text-[#9a9ea8] m-0 leading-[1.55]">
               {row.value}
             </dd>
-          </motion.div>
+          </div>
         ))}
-      </div>
+      </motion.div>
 
       {/* ── Doc link ── */}
       <motion.div

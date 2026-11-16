@@ -3,7 +3,62 @@ import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
 import { mergeLinkWithExtras } from "./link-extras-store";
 import { dispatchUserWebhooks } from "./webhooks";
 
+const MAX_CACHE_ENTRIES = 2000;
+const workerLinkCache = new Map<string, { link: LinkMetadata | null; expiresAt: number }>();
+
+function setWorkerLinkCache(key: string, link: LinkMetadata | null, ttlMs: number): void {
+  if (workerLinkCache.size >= MAX_CACHE_ENTRIES) {
+    const oldestKey = workerLinkCache.keys().next().value;
+    if (oldestKey !== undefined) workerLinkCache.delete(oldestKey);
+  }
+  workerLinkCache.set(key, { link, expiresAt: Date.now() + ttlMs });
+}
+
+export function invalidateWorkerLinkCache(slugOrId?: string): void {
+  if (slugOrId) {
+    const key = slugOrId.toLowerCase();
+    workerLinkCache.delete(key);
+  } else {
+    workerLinkCache.clear();
+  }
+}
+
+export function incrementWorkerLinkClicks(slugOrId: string): void {
+  if (!slugOrId) return;
+  const key = slugOrId.toLowerCase();
+  const entry = workerLinkCache.get(key);
+  if (entry && entry.link) {
+    const cur = Number(entry.link.clicks_count || entry.link.clicks || 0);
+    const updated = cur + 1;
+    entry.link.clicks_count = updated;
+    entry.link.clicks = updated;
+
+    if (entry.link.slug && entry.link.slug.toLowerCase() !== key) {
+      const slugEntry = workerLinkCache.get(entry.link.slug.toLowerCase());
+      if (slugEntry && slugEntry.link) {
+        slugEntry.link.clicks_count = updated;
+        slugEntry.link.clicks = updated;
+      }
+    }
+    if (entry.link.id && entry.link.id.toLowerCase() !== key) {
+      const idEntry = workerLinkCache.get(entry.link.id.toLowerCase());
+      if (idEntry && idEntry.link) {
+        idEntry.link.clicks_count = updated;
+        idEntry.link.clicks = updated;
+      }
+    }
+  }
+}
+
 export async function fetchWorkerLink(slug: string): Promise<LinkMetadata | null> {
+  const cacheKey = (slug || "").trim().toLowerCase();
+  if (cacheKey) {
+    const cached = workerLinkCache.get(cacheKey);
+    if (cached && Date.now() < cached.expiresAt) {
+      return cached.link;
+    }
+  }
+
   try {
     const singleRes = await fetch(
       `${WORKER_URL}/api/v1/links/${encodeURIComponent(slug)}`,
@@ -20,7 +75,11 @@ export async function fetchWorkerLink(slug: string): Promise<LinkMetadata | null
       const singleJson = await singleRes.json().catch(() => null);
       const found = singleJson?.data || singleJson;
       if (found && (found.target_url || found.targetUrl)) {
-        return mergeLinkWithExtras(found);
+        const merged = mergeLinkWithExtras(found);
+        if (cacheKey) {
+          setWorkerLinkCache(cacheKey, merged, 30000);
+        }
+        return merged;
       }
     }
 
@@ -40,15 +99,31 @@ export async function fetchWorkerLink(slug: string): Promise<LinkMetadata | null
           (l: any) =>
             l.slug?.toLowerCase() === slug.toLowerCase() || l.id === slug,
         ) || null;
-      return matched ? mergeLinkWithExtras(matched) : null;
+      const merged = matched ? mergeLinkWithExtras(matched) : null;
+      if (cacheKey) {
+        setWorkerLinkCache(cacheKey, merged, merged ? 30000 : 5000);
+      }
+      return merged;
     }
   } catch (err) {
     console.warn("[Worker Link Lookup error]:", err);
+  }
+
+  if (cacheKey) {
+    setWorkerLinkCache(cacheKey, null, 5000);
   }
   return null;
 }
 
 export async function markLinkExpiredAsync(linkIdOrSlug: string, linkMeta?: any): Promise<void> {
+  invalidateWorkerLinkCache(linkIdOrSlug);
+  if (linkMeta?.slug) {
+    invalidateWorkerLinkCache(linkMeta.slug);
+  }
+  if (linkMeta?.id) {
+    invalidateWorkerLinkCache(linkMeta.id);
+  }
+
   try {
     const ownerUserId = String(linkMeta?.userId || linkMeta?.user_id || "");
     if (ownerUserId) {

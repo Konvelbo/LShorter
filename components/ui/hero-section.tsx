@@ -9,7 +9,6 @@ import { Mockup, MockupFrame } from "@/components/ui/mockup";
 import { Glow } from "@/components/ui/glow";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
-import { useTheme } from "@/components/providers/theme-provider";
 
 export interface HeroAction {
   text: string;
@@ -45,14 +44,8 @@ export function HeroSection({
   image,
   className,
 }: HeroProps) {
-  const { theme } = useTheme();
-  const [mounted, setMounted] = React.useState(false);
   const sectionRef = React.useRef<HTMLElement>(null);
   const [inView, setInView] = React.useState(true);
-
-  React.useEffect(() => {
-    setMounted(true);
-  }, []);
 
   // Bi-directional observer: animates in on scroll down, reverses on scroll out, re-animates on return
   React.useEffect(() => {
@@ -69,21 +62,19 @@ export function HeroSection({
     return () => io.disconnect();
   }, []);
 
-  const isDark = mounted ? theme === "dark" : false;
-
   return (
     <section
       ref={sectionRef}
       className={cn(
         "bg-background text-foreground",
-        "py-12 sm:py-24 md:py-32 px-4",
+        "py-10 sm:py-16 md:py-20 px-4",
         "fade-bottom overflow-hidden pb-0 relative",
-        "mb-20 sm:mb-24 lg:mb-32",
+        "mb-16 sm:mb-20 lg:mb-24",
         className
       )}
     >
-      <div className="mx-auto flex max-w-container flex-col gap-12 pt-16 sm:gap-24">
-        <div className="flex flex-col items-center gap-6 text-center sm:gap-12">
+      <div className="mx-auto flex max-w-container flex-col gap-8 pt-8 sm:gap-14 sm:pt-12">
+        <div className="flex flex-col items-center gap-5 text-center sm:gap-10">
           {/* Badge — Mobile Responsive Single-Pill Design (Never disjointed or multi-line) */}
           {badge && (
             <div
@@ -94,17 +85,18 @@ export function HeroSection({
             >
               <Badge
                 variant="outline"
-                className="inline-flex items-center gap-1.5 sm:gap-2 border-zinc-300 dark:border-white/15 bg-white/80 dark:bg-white/5 backdrop-blur-md px-3 py-1.5 sm:px-4 sm:py-1.5 rounded-full shadow-xs max-w-[94vw] sm:max-w-none select-none"
+                className="inline-flex items-center flex-nowrap gap-1.5 sm:gap-2.5 border-zinc-300 dark:border-white/15 bg-white/80 dark:bg-white/5 backdrop-blur-md px-3 py-1 sm:px-4 sm:py-1.5 rounded-full shadow-xs select-none max-w-[94vw] overflow-hidden"
               >
-                <span className="text-muted-foreground whitespace-nowrap text-[11px] xs:text-[12px] sm:text-xs">
-                  <span className="hidden xs:inline">{badge.text}</span>
-                  <span className="xs:hidden">Edge Shortener & Smart Routing</span>
+                <span className="text-muted-foreground whitespace-nowrap text-[11px] sm:text-xs font-medium shrink-0">
+                  <span className="sm:hidden">Edge Smart Routing</span>
+                  <span className="hidden sm:inline">{badge.text}</span>
                 </span>
+                <span className="w-1 h-1 rounded-full bg-zinc-300 dark:bg-white/20 shrink-0" aria-hidden="true" />
                 <a
                   href={badge.action.href}
-                  className="shrink-0 inline-flex items-center gap-1 text-[#0066FF] dark:text-[#5294FF] font-semibold hover:underline whitespace-nowrap text-[11px] xs:text-[12px] sm:text-xs ml-0.5"
+                  className="shrink-0 inline-flex items-center gap-1 text-[#0066FF] dark:text-[#5294FF] font-semibold hover:underline whitespace-nowrap text-[11px] sm:text-xs"
                 >
-                  {badge.action.text}
+                  <span>{badge.action.text}</span>
                   <ArrowRightIcon className="h-3 w-3 shrink-0" />
                 </a>
               </Badge>
@@ -181,7 +173,7 @@ export function HeroSection({
           {/* Image Mockup with Glow & Appearance Animation */}
           <div
             className={cn(
-              "relative pt-0 sm:-mt-2 lg:-mt-3.5 w-full max-w-[1248px]",
+              "relative pt-0 -mt-2 sm:-mt-6 lg:-mt-8 w-full max-w-[1248px]",
               "animate-appear delay-600 transition-all duration-900 ease-[cubic-bezier(0.16,1,0.3,1)]",
               !inView && "!opacity-0 !translate-y-8 !scale-[0.98]"
             )}
@@ -196,8 +188,8 @@ export function HeroSection({
                   alt={image.alt}
                   width={1847}
                   height={1013}
-                  priority={!isDark}
-                  loading={isDark ? "lazy" : "eager"}
+                  priority
+                  loading="eager"
                   sizes="(max-width: 1280px) 100vw, 1248px"
                   className="w-full h-auto block dark:hidden"
                 />
@@ -206,8 +198,8 @@ export function HeroSection({
                   alt={image.alt}
                   width={1847}
                   height={1013}
-                  priority={isDark}
-                  loading={isDark ? "eager" : "lazy"}
+                  priority
+                  loading="eager"
                   sizes="(max-width: 1280px) 100vw, 1248px"
                   className="w-full h-auto hidden dark:block"
                 />

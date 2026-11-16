@@ -33,7 +33,7 @@ const BARS = [
 const HEADING_PRIMARY = "Bank-grade security.";
 const HEADING_MUTED = " Sub-12ms global API response.";
 
-/* ── Compteur animé ── */
+/* ── Compteur animé isolé (évite tout re-render de la section parente) ── */
 function useAnimatedCounter(target: number, duration: number, inView: boolean) {
   const [val, setVal] = useState(0);
   useEffect(() => {
@@ -50,6 +50,11 @@ function useAnimatedCounter(target: number, duration: number, inView: boolean) {
   }, [inView, target, duration]);
   return val;
 }
+
+const LatencyCounter = React.memo(function LatencyCounter({ inView }: { inView: boolean }) {
+  const counter = useAnimatedCounter(11.2, 0.45, inView);
+  return <>{counter.toFixed(1)}</>;
+});
 
 /* ── Machine à écrire ── */
 function TypewriterText({
@@ -114,7 +119,6 @@ function Bar({
 export function SecuritySection() {
   const sectionRef = useRef<HTMLElement>(null);
   const inView = useInView(sectionRef, { once: true, margin: "-50px" });
-  const counter = useAnimatedCounter(11.2, 0.45, inView);
 
   return (
     <section
@@ -222,7 +226,7 @@ export function SecuritySection() {
             className="mt-4 flex items-baseline gap-3 leading-none"
           >
             <span className="text-[84px] sm:text-[132px] lg:text-[150px] font-bold tracking-[-0.05em] text-[#101828] dark:text-[#ededee] tabular-nums transition-colors duration-300">
-              {counter.toFixed(1)}
+              <LatencyCounter inView={inView} />
             </span>
             <span className="text-[30px] sm:text-[40px] font-semibold text-[#667085] dark:text-[#7a7a83] transition-colors duration-300">
               ms

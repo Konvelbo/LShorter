@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   invalidateBotResponseCache,
+  invalidateWorkerLinkCache,
   saveLinkExtras,
   mergeLinkWithExtras,
 } from "@/lib/redirect-engine";
@@ -731,8 +732,14 @@ export async function POST(req: Request) {
     const createdId = data?.data?.id || body.id;
     saveLinkExtras({ id: createdId, slug: createdSlug }, workerPayload);
     try {
-      if (createdSlug) invalidateBotResponseCache(createdSlug);
-      if (createdId) invalidateBotResponseCache(createdId);
+      if (createdSlug) {
+        invalidateBotResponseCache(createdSlug);
+        invalidateWorkerLinkCache(createdSlug);
+      }
+      if (createdId) {
+        invalidateBotResponseCache(createdId);
+        invalidateWorkerLinkCache(createdId);
+      }
     } catch {}
     invalidateServerLinksCache(
       session?.user?.id || body?.userId,

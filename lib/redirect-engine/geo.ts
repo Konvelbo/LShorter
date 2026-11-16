@@ -5,56 +5,64 @@ import { detectVisitorGeoAsync as detectDeviceGeoAsync } from "../device-detecti
 export const REGION_COUNTRIES: Record<string, string[]> = {
   // Français
   afrique: [
-    "DZ","AO","BJ","BW","BF","BI","CV","CM","CF","TD","KM","CG","CD","CI",
-    "DJ","EG","GQ","ER","SZ","ET","GA","GM","GH","GN","GW","KE","LS","LR",
-    "LY","MG","MW","ML","MR","MU","MA","MZ","NA","NE","NG","RW","ST","SN",
-    "SC","SL","SO","ZA","SS","SD","TZ","TG","TN","UG","ZM","ZW"
+    "AO", "BF", "BI", "BJ", "BW", "CD", "CF", "CG", "CI", "CM", "CV", "DJ", "DZ",
+    "EG", "EH", "ER", "ET", "GA", "GH", "GM", "GN", "GQ", "GW", "KE", "KM", "LR",
+    "LS", "LY", "MA", "MG", "ML", "MR", "MU", "MW", "MZ", "NA", "NE", "NG", "RE",
+    "RW", "SC", "SD", "SH", "SL", "SN", "SO", "SS", "ST", "SZ", "TD", "TG", "TN",
+    "TZ", "UG", "YT", "ZA", "ZM", "ZW"
   ],
   europe: [
-    "AL","AD","AM","AT","AZ","BY","BE","BA","BG","HR","CY","CZ","DK","EE",
-    "FI","FR","GE","DE","GR","HU","IS","IE","IT","KZ","XK","LV","LI","LT",
-    "LU","MT","MD","MC","ME","NL","MK","NO","PL","PT","RO","RU","SM","RS",
-    "SK","SI","ES","SE","CH","TR","UA","GB","VA"
+    "AL", "AD", "AT", "AX", "BA", "BE", "BG", "BY", "CH", "CY", "CZ", "DE", "DK",
+    "EE", "ES", "FI", "FO", "FR", "GB", "GG", "GI", "GR", "HR", "HU", "IE", "IM",
+    "IS", "IT", "JE", "LI", "LT", "LU", "LV", "MC", "MD", "ME", "MK", "MT", "NL",
+    "NO", "PL", "PT", "RO", "RS", "RU", "SE", "SI", "SJ", "SK", "SM", "UA", "VA", "XK"
   ],
   asie: [
-    "AF","AM","AZ","BH","BD","BT","BN","KH","CN","CY","GE","IN","ID","IR",
-    "IQ","IL","JP","JO","KZ","KW","KG","LA","LB","MY","MV","MN","MM","NP",
-    "KP","OM","PK","PS","PH","QA","SA","SG","KR","LK","SY","TW","TJ","TH",
-    "TL","TR","TM","AE","UZ","VN","YE"
+    "AE", "AF", "AM", "AZ", "BD", "BH", "BN", "BT", "CN", "GE", "HK", "ID", "IL", "IN",
+    "IQ", "IR", "JO", "JP", "KG", "KH", "KP", "KR", "KW", "KZ", "LA", "LB", "LK",
+    "MM", "MN", "MO", "MV", "MY", "NP", "OM", "PH", "PK", "PS", "QA", "SA", "SG",
+    "SY", "TH", "TJ", "TL", "TM", "TR", "TW", "UZ", "VN", "YE"
   ],
   "amerique du nord": [
-    "AG","BS","BB","BZ","CA","CR","CU","DM","DO","SV","GD","GT","HT","HN",
-    "JM","MX","NI","PA","KN","LC","VC","TT","US"
+    "AG", "AI", "AW", "BB", "BL", "BM", "BQ", "BS", "BZ", "CA", "CR", "CU", "CW",
+    "DM", "DO", "GD", "GL", "GP", "GT", "HN", "HT", "JM", "KN", "KY", "LC", "MF",
+    "MQ", "MS", "MX", "NI", "PA", "PM", "PR", "SV", "SX", "TC", "TT", "US", "VC",
+    "VG", "VI"
   ],
   "amerique du sud": [
-    "AR","BO","BR","CL","CO","EC","GY","PY","PE","SR","UY","VE"
+    "AR", "BO", "BR", "CL", "CO", "EC", "FK", "GF", "GY", "PE", "PY", "SR", "UY", "VE"
   ],
   oceanie: [
-    "AU","FJ","KI","MH","FM","NR","NZ","PW","PG","WS","SB","TO","TV","VU"
+    "AS", "AU", "CK", "FJ", "FM", "GU", "KI", "MH", "MP", "NC", "NF", "NR", "NU", "NZ",
+    "PF", "PG", "PN", "PW", "SB", "TK", "TO", "TV", "UM", "VU", "WF", "WS"
   ],
 
   // English aliases
   africa: [
-    "DZ","AO","BJ","BW","BF","BI","CV","CM","CF","TD","KM","CG","CD","CI",
-    "DJ","EG","GQ","ER","SZ","ET","GA","GM","GH","GN","GW","KE","LS","LR",
-    "LY","MG","MW","ML","MR","MU","MA","MZ","NA","NE","NG","RW","ST","SN",
-    "SC","SL","SO","ZA","SS","SD","TZ","TG","TN","UG","ZM","ZW"
+    "AO", "BF", "BI", "BJ", "BW", "CD", "CF", "CG", "CI", "CM", "CV", "DJ", "DZ",
+    "EG", "EH", "ER", "ET", "GA", "GH", "GM", "GN", "GQ", "GW", "KE", "KM", "LR",
+    "LS", "LY", "MA", "MG", "ML", "MR", "MU", "MW", "MZ", "NA", "NE", "NG", "RE",
+    "RW", "SC", "SD", "SH", "SL", "SN", "SO", "SS", "ST", "SZ", "TD", "TG", "TN",
+    "TZ", "UG", "YT", "ZA", "ZM", "ZW"
   ],
   asia: [
-    "AF","AM","AZ","BH","BD","BT","BN","KH","CN","CY","GE","IN","ID","IR",
-    "IQ","IL","JP","JO","KZ","KW","KG","LA","LB","MY","MV","MN","MM","NP",
-    "KP","OM","PK","PS","PH","QA","SA","SG","KR","LK","SY","TW","TJ","TH",
-    "TL","TR","TM","AE","UZ","VN","YE"
+    "AE", "AF", "AM", "AZ", "BD", "BH", "BN", "BT", "CN", "GE", "HK", "ID", "IL", "IN",
+    "IQ", "IR", "JO", "JP", "KG", "KH", "KP", "KR", "KW", "KZ", "LA", "LB", "LK",
+    "MM", "MN", "MO", "MV", "MY", "NP", "OM", "PH", "PK", "PS", "QA", "SA", "SG",
+    "SY", "TH", "TJ", "TL", "TM", "TR", "TW", "UZ", "VN", "YE"
   ],
   "north america": [
-    "AG","BS","BB","BZ","CA","CR","CU","DM","DO","SV","GD","GT","HT","HN",
-    "JM","MX","NI","PA","KN","LC","VC","TT","US"
+    "AG", "AI", "AW", "BB", "BL", "BM", "BQ", "BS", "BZ", "CA", "CR", "CU", "CW",
+    "DM", "DO", "GD", "GL", "GP", "GT", "HN", "HT", "JM", "KN", "KY", "LC", "MF",
+    "MQ", "MS", "MX", "NI", "PA", "PM", "PR", "SV", "SX", "TC", "TT", "US", "VC",
+    "VG", "VI"
   ],
   "south america": [
-    "AR","BO","BR","CL","CO","EC","GY","PY","PE","SR","UY","VE"
+    "AR", "BO", "BR", "CL", "CO", "EC", "FK", "GF", "GY", "PE", "PY", "SR", "UY", "VE"
   ],
   oceania: [
-    "AU","FJ","KI","MH","FM","NR","NZ","PW","PG","WS","SB","TO","TV","VU"
+    "AS", "AU", "CK", "FJ", "FM", "GU", "KI", "MH", "MP", "NC", "NF", "NR", "NU", "NZ",
+    "PF", "PG", "PN", "PW", "SB", "TK", "TO", "TV", "UM", "VU", "WF", "WS"
   ],
 };
 

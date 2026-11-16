@@ -1835,47 +1835,47 @@ html.light main .text-neutral-200 {
 }
 
 .animate-appear {
-  animation: appear 1.15s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: appear 0.78s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .animate-appear-glow {
-  animation: appear-glow 1.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: appear-glow 0.95s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .animate-appear-zoom {
-  animation: appear-zoom 1.15s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: appear-zoom 0.78s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .delay-60 {
-  animation-delay: 90ms;
+  animation-delay: 40ms;
 }
 
 .delay-75 {
-  animation-delay: 110ms;
+  animation-delay: 60ms;
 }
 
 .delay-150 {
-  animation-delay: 220ms;
+  animation-delay: 110ms;
 }
 
 .delay-200 {
-  animation-delay: 280ms;
+  animation-delay: 150ms;
 }
 
 .delay-225 {
-  animation-delay: 310ms;
+  animation-delay: 170ms;
 }
 
 .delay-300 {
-  animation-delay: 420ms;
+  animation-delay: 220ms;
 }
 
 .delay-450 {
-  animation-delay: 600ms;
+  animation-delay: 320ms;
 }
 
 .delay-600 {
-  animation-delay: 780ms;
+  animation-delay: 420ms;
 }
 
 .delay-750 {

@@ -5,31 +5,19 @@ import { motion } from "motion/react";
 import WorldMap from "@/components/ui/world-map";
 
 export function AnalyticsSection() {
-  // Découpage par mot pour empêcher toute coupure de lettre comme "d / ata"
+  // Découpage optimisé par mot avec GPU compositing (remplace 21 observers par lettre par 3 observers par mot)
   const renderAnimatedWords = (text: string) => {
-    let globalCharIndex = 0;
     return text.split(" ").map((word, wordIdx) => (
-      <span
+      <motion.span
         key={wordIdx}
         className="inline-block whitespace-nowrap mr-[0.28em]"
+        initial={{ y: 6, opacity: 0 }}
+        whileInView={{ y: 0, opacity: 1 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.32, delay: wordIdx * 0.07, ease: [0.16, 1, 0.3, 1] }}
       >
-        {word.split("").map((char, charIdx) => {
-          const delay = globalCharIndex * 0.012;
-          globalCharIndex++;
-          return (
-            <motion.span
-              key={charIdx}
-              className="inline-block"
-              initial={{ x: -4, opacity: 0 }}
-              whileInView={{ x: 0, opacity: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.22, delay, ease: [0.16, 1, 0.3, 1] }}
-            >
-              {char}
-            </motion.span>
-          );
-        })}
-      </span>
+        {word}
+      </motion.span>
     ));
   };
 

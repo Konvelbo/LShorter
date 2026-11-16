@@ -43,17 +43,14 @@ export function SmoothScrollProvider({
     // Register GSAP ScrollTrigger
     gsap.registerPlugin(ScrollTrigger);
 
-    // Keep GSAP lag smoothing active to prevent thread locking during page load
-    gsap.ticker.lagSmoothing(500, 33);
-
     // Initialize Lenis: Fast, lightweight, zero-latency responsive scroll with silky anti-jank easing
     const lenis = new Lenis({
-      lerp: 0.1, // Fast responsive initial pickup (no rubber-band latency) + silky deceleration
+      lerp: 0.15, // Fast responsive initial pickup (no rubber-band latency) + silky deceleration
       wheelMultiplier: 1.0, // 1:1 natural wheel response
-      touchMultiplier: 1.2,
+      touchMultiplier: 1.0, // 1:1 natural touch response
       smoothWheel: true,
       syncTouch: false,
-      autoRaf: true, // Native browser compositor VSync loop for 0ms overhead
+      autoRaf: false, // Unified with GSAP ticker loop below to avoid dual competing rAF loops
       orientation: "vertical",
       gestureOrientation: "vertical",
       respectReducedMotion: false,
@@ -69,6 +66,13 @@ export function SmoothScrollProvider({
       ScrollTrigger.update();
     };
     lenis.on("scroll", onScroll);
+
+    // Single unified GSAP render ticker (zero frame drops, 100% VSync lock)
+    const updateRaf = (time: number) => {
+      lenis.raf(time * 1000);
+    };
+    gsap.ticker.add(updateRaf);
+    gsap.ticker.lagSmoothing(0);
 
     // Smooth anchor navigation handling (e.g. #features, #security, #why-us, #product, #faq)
     const handleAnchorClick = (e: MouseEvent) => {
@@ -113,6 +117,7 @@ export function SmoothScrollProvider({
 
     return () => {
       document.removeEventListener("click", handleAnchorClick, { capture: true });
+      gsap.ticker.remove(updateRaf);
       lenis.off("scroll", onScroll);
       lenis.destroy();
       lenisRef.current = null;

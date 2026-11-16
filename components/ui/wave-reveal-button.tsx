@@ -34,34 +34,6 @@ function FramerArrow({ className }: { className?: string }) {
   );
 }
 
-/* ── Organic Wave Blob SVG from Framer Wave Reveal Button component ── */
-function FramerWaveBlob({
-  className,
-  style,
-}: {
-  className?: string;
-  style?: React.CSSProperties;
-}) {
-  return (
-    <div
-      aria-hidden="true"
-      style={style}
-      className={cn(
-        "absolute pointer-events-none select-none transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:will-change-transform",
-        className
-      )}
-    >
-      <svg
-        viewBox="0 0 15 14"
-        fill="currentColor"
-        xmlns="http://www.w3.org/2000/svg"
-        className="w-full h-full block"
-      >
-        <path d="M 5 3.523 C 5.078 3.523 5.155 3.525 5.233 3.528 C 5.873 1.483 7.765 0 10 0 C 12.761 0 15 2.264 15 5.057 C 15 7.85 12.761 10.114 10 10.114 C 9.922 10.114 9.845 10.112 9.767 10.108 C 9.127 12.154 7.235 13.636 5 13.636 C 2.239 13.636 0 11.372 0 8.58 C 0 5.787 2.239 3.523 5 3.523 Z" />
-      </svg>
-    </div>
-  );
-}
 
 export const WaveRevealButton = forwardRef<
   HTMLButtonElement & HTMLAnchorElement,
@@ -72,7 +44,6 @@ export const WaveRevealButton = forwardRef<
       href,
       variant = "primary",
       size = "md",
-      waveColor,
       icon,
       children,
       className,
@@ -84,54 +55,40 @@ export const WaveRevealButton = forwardRef<
     },
     ref
   ) => {
-    // Style configurations per variant
+    // Style configurations per variant (clean enterprise hover states without chantilly blob)
     const variantStyles = {
       primary: {
-        base: "bg-[#0066FF] text-white border border-[#0066FF]/50 shadow-[0_4px_16px_rgba(0,102,255,0.28)] hover:shadow-[0_8px_24px_rgba(0,102,255,0.42)]",
-        wave: waveColor || "text-[#0048c2]",
-        textHover: "group-hover:text-white",
+        base: "bg-[#0066FF] hover:bg-[#0055d6] text-white border border-[#0066FF]/60 shadow-[0_4px_16px_rgba(0,102,255,0.28)] hover:shadow-[0_6px_20px_rgba(0,102,255,0.40)]",
         arrowDefault: "text-white",
         arrowHover: "text-white",
       },
       white: {
-        base: "bg-white text-zinc-950 border border-zinc-200 shadow-2xs hover:border-[#0066FF]/40 hover:shadow-[0_6px_20px_rgba(0,102,255,0.22)]",
-        wave: waveColor || "text-[#0066FF]",
-        textHover: "group-hover:text-white",
+        base: "bg-white hover:bg-zinc-50 text-zinc-950 border border-zinc-200 shadow-2xs hover:border-[#0066FF]/40 hover:shadow-[0_4px_14px_rgba(0,102,255,0.18)]",
         arrowDefault: "text-zinc-950",
-        arrowHover: "text-white",
+        arrowHover: "text-[#0066FF]",
       },
       dark: {
-        base: "bg-[#101828] dark:bg-[#121217] text-white border border-zinc-800 dark:border-white/15 shadow-2xs hover:border-[#0066FF]/60 hover:shadow-[0_6px_22px_rgba(0,102,255,0.3)]",
-        wave: waveColor || "text-[#0066FF]",
-        textHover: "group-hover:text-white",
+        base: "bg-[#101828] hover:bg-[#162036] dark:bg-[#121217] dark:hover:bg-[#1c1c24] text-white border border-zinc-800 dark:border-white/15 shadow-2xs hover:border-[#0066FF]/60 hover:shadow-[0_4px_16px_rgba(0,102,255,0.25)]",
         arrowDefault: "text-white",
-        arrowHover: "text-white",
+        arrowHover: "text-[#5294FF]",
       },
       outline: {
-        base: "bg-white/90 dark:bg-white/5 backdrop-blur-md text-zinc-900 dark:text-white border border-zinc-300 dark:border-white/15 shadow-2xs hover:border-[#0066FF]/50",
-        wave: waveColor || "text-[#0066FF]",
-        textHover: "group-hover:text-white",
+        base: "bg-white/90 hover:bg-zinc-100/90 dark:bg-white/5 dark:hover:bg-white/10 backdrop-blur-md text-zinc-900 dark:text-white border border-zinc-300 dark:border-white/15 shadow-2xs hover:border-[#0066FF]/50",
         arrowDefault: "text-zinc-800 dark:text-zinc-200",
-        arrowHover: "text-white",
+        arrowHover: "text-[#0066FF] dark:text-[#5294FF]",
       },
       secondary: {
-        base: "bg-zinc-100 dark:bg-zinc-800/80 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700 hover:border-[#0066FF]/50",
-        wave: waveColor || "text-[#0066FF]",
-        textHover: "group-hover:text-white",
+        base: "bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800/80 dark:hover:bg-zinc-700/80 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700 hover:border-[#0066FF]/50",
         arrowDefault: "text-zinc-800 dark:text-zinc-200",
-        arrowHover: "text-white",
+        arrowHover: "text-[#0066FF] dark:text-[#5294FF]",
       },
       contrast: {
-        base: "bg-zinc-900 text-white dark:bg-white dark:text-zinc-950 border border-zinc-800 dark:border-white/20 shadow-2xs hover:border-[#0066FF]/60 hover:shadow-[0_6px_22px_rgba(0,102,255,0.3)]",
-        wave: waveColor || "text-[#0066FF]",
-        textHover: "group-hover:text-white dark:group-hover:text-white",
+        base: "bg-zinc-900 hover:bg-black text-white dark:bg-white dark:hover:bg-zinc-100 dark:text-zinc-950 border border-zinc-800 dark:border-white/20 shadow-2xs hover:border-[#0066FF]/60 hover:shadow-[0_4px_16px_rgba(0,102,255,0.25)]",
         arrowDefault: "text-white dark:text-zinc-950",
-        arrowHover: "text-white",
+        arrowHover: "text-white dark:text-zinc-950",
       },
       default: {
-        base: "bg-[#0066FF] text-white border border-[#0066FF]/50 shadow-[0_4px_16px_rgba(0,102,255,0.28)] hover:shadow-[0_8px_24px_rgba(0,102,255,0.42)]",
-        wave: waveColor || "text-[#0048c2]",
-        textHover: "group-hover:text-white",
+        base: "bg-[#0066FF] hover:bg-[#0055d6] text-white border border-[#0066FF]/60 shadow-[0_4px_16px_rgba(0,102,255,0.28)] hover:shadow-[0_6px_20px_rgba(0,102,255,0.40)]",
         arrowDefault: "text-white",
         arrowHover: "text-white",
       },
@@ -146,36 +103,23 @@ export const WaveRevealButton = forwardRef<
 
     const content = (
       <>
-        {/* Wave Fill Background Layer (Organic Framer blob surging across on hover) */}
-        <FramerWaveBlob
-          className={cn(
-            "w-[140px] h-[130px] -left-20 -top-24 opacity-0 scale-50",
-            "group-hover:opacity-100 group-hover:scale-[3.6] group-hover:translate-x-14 group-hover:translate-y-12",
-            "group-focus-visible:opacity-100 group-focus-visible:scale-[3.6] group-focus-visible:translate-x-14 group-focus-visible:translate-y-12",
-            variantStyles.wave
-          )}
-        />
-
         {/* Optional Leading Icon */}
         {icon && (
-          <span className="relative z-10 shrink-0 flex items-center justify-center transition-colors duration-300">
+          <span className="relative z-10 shrink-0 flex items-center justify-center transition-colors duration-200">
             {icon}
           </span>
         )}
 
         {/* Text Label */}
         <span
-          className={cn(
-            "relative z-10 font-semibold tracking-[-0.01em] transition-colors duration-300 select-none whitespace-nowrap",
-            variantStyles.textHover
-          )}
+          className="relative z-10 font-semibold tracking-[-0.01em] transition-colors duration-200 select-none whitespace-nowrap"
         >
           {children}
         </span>
 
-        {/* Sliding Dual Arrow Viewport (Exact Framer Wave Reveal: 15x14px window, 38px inner track, -23px offset) */}
+        {/* Sliding Dual Arrow Viewport (Exact 15x14px window, 38px inner track, -23px offset) */}
         <span className="relative z-10 w-[15px] h-[14px] overflow-hidden shrink-0 block select-none">
-          <span className="absolute left-0 top-0 flex items-center gap-2 w-[38px] h-[14px] transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] -translate-x-[23px] group-hover:translate-x-0 group-focus-visible:translate-x-0 group-hover:will-change-transform">
+          <span className="absolute left-0 top-0 flex items-center gap-2 w-[38px] h-[14px] transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] -translate-x-[23px] group-hover:translate-x-0 group-focus-visible:translate-x-0 group-hover:will-change-transform">
             {/* Arrow 1: Slides in from the left on hover */}
             <FramerArrow className={variantStyles.arrowHover} />
             {/* Arrow 2: Visible at rest, slides out to the right on hover */}

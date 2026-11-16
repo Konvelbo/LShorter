@@ -1,8 +1,7 @@
 import React from "react";
 import { notFound, redirect } from "next/navigation";
 import { CloakedViewer, CloakedViewerLink } from "@/components/cloaked-viewer";
-
-import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
+import { fetchWorkerLink } from "@/lib/redirect-engine";
 
 interface ResolvedLinkResult {
   link: CloakedViewerLink | null;
@@ -11,87 +10,61 @@ interface ResolvedLinkResult {
 
 async function getLink(slug: string): Promise<ResolvedLinkResult> {
   try {
-    // 1. Recherche directe par slug/id auprès du Worker Cloudflare
-    const singleRes = await fetch(
-      `${WORKER_URL}/api/v1/links/${encodeURIComponent(slug)}`,
-      {
-        headers: {
-          "X-Frontend-Secret": FRONTEND_SECRET,
-          Authorization: `Bearer ${FRONTEND_SECRET}`,
-        },
-        cache: "no-store",
-      },
-    ).catch(() => null);
-
-    if (singleRes && singleRes.ok) {
-      const singleJson = await singleRes.json().catch(() => null);
-      const found = singleJson?.data || singleJson;
-      if (found && (found.target_url || found.targetUrl)) {
-        const hasPassword = Boolean(
-          found.password ||
-          found.is_password_protected ||
-          found.isPasswordProtected
-        );
-        if (hasPassword) {
-          return { link: null, requiresGate: true };
-        }
-        return {
-          link: {
-            slug: found.slug || slug,
-            targetUrl: found.target_url || found.targetUrl,
-            metaTitle: found.meta_title || found.og_title || found.slug || slug,
-            isCloaked: true,
-            pathLockMode: found.path_lock_mode || found.pathLockMode || "off",
-            pathLockPrefix: found.path_lock_prefix || found.pathLockPrefix || "",
-            pathLockMessage:
-              found.path_lock_message || found.pathLockMessage || "",
-            pathLockPassword:
-              found.path_lock_password || found.pathLockPassword || "",
-          },
-          requiresGate: false,
-        };
+    const found = await fetchWorkerLink(slug);
+    if (found && (found.target_url || found.targetUrl)) {
+      // 1. Link is Paused / Deactivated
+      if (
+        found.is_active === 0 ||
+        found.is_active === false ||
+        (found as any).isActive === false
+      ) {
+        redirect(`/r/${encodeURIComponent(slug)}/paused`);
       }
-    }
 
-    // 2. Re-tentative sur l'endpoint de liste du Worker
-    const res = await fetch(`${WORKER_URL}/api/v1/links?limit=100`, {
-      headers: {
-        "X-Frontend-Secret": FRONTEND_SECRET,
-        Authorization: `Bearer ${FRONTEND_SECRET}`,
-      },
-      cache: "no-store",
-    });
-    if (!res.ok) return { link: null, requiresGate: false };
-    const data = await res.json();
-    const list = Array.isArray(data?.data) ? data.data : [];
-    const found = list.find(
-      (l: any) => l.slug?.toLowerCase() === slug.toLowerCase(),
-    );
-    if (found) {
+      // 2. Link is Expired by date/time
+      const expTime = found.expires_at || (found as any).expiresAt;
+      if (expTime && new Date(expTime).getTime() <= Date.now()) {
+        redirect(`/r/${encodeURIComponent(slug)}/expired`);
+      }
+
+      // 3. Password Protection Gate
       const hasPassword = Boolean(
         found.password ||
         found.is_password_protected ||
-        found.isPasswordProtected
+        (found as any).isPasswordProtected ||
+        (found as any).has_password ||
+        (found as any).hasPassword
       );
       if (hasPassword) {
         return { link: null, requiresGate: true };
       }
+
+      const rawTarget = String(found.target_url || found.targetUrl || "").trim();
+      const targetUrl =
+        rawTarget.startsWith("http://") || rawTarget.startsWith("https://")
+          ? rawTarget
+          : `https://${rawTarget}`;
+
       return {
         link: {
-          slug: found.slug,
-          targetUrl: found.target_url || found.targetUrl,
-          metaTitle: found.meta_title || found.og_title || found.slug,
+          slug: found.slug || slug,
+          targetUrl,
+          metaTitle: found.meta_title || found.og_title || found.slug || slug,
           isCloaked: true,
           pathLockMode: found.path_lock_mode || found.pathLockMode || "off",
           pathLockPrefix: found.path_lock_prefix || found.pathLockPrefix || "",
-          pathLockMessage: found.path_lock_message || found.pathLockMessage || "",
-          pathLockPassword:
-            found.path_lock_password || found.pathLockPassword || "",
+          pathLockMessage:
+            found.path_lock_message || found.pathLockMessage || "",
+          hasUnlockPassword: Boolean(
+            found.path_lock_password || (found as any).pathLockPassword
+          ),
         },
         requiresGate: false,
       };
     }
-  } catch {}
+  } catch (e: any) {
+    if (e?.digest?.startsWith("NEXT_REDIRECT")) throw e;
+  }
   return { link: null, requiresGate: false };
 }
 

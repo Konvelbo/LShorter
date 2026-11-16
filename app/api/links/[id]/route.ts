@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   invalidateBotResponseCache,
+  invalidateWorkerLinkCache,
   saveLinkExtras,
 } from "@/lib/redirect-engine";
 import { WORKER_URL, FRONTEND_SECRET, CF_ACCOUNT_ID, CF_D1_DATABASE_ID, CF_API_TOKEN } from "@/lib/backend-config";
@@ -211,134 +212,6 @@ export async function PATCH(
       );
     }
 
-    // 1. Persist in local store
-    // if (body.slug || id) {
-    //   try {
-    //     saveProtectedLink({
-    //       id,
-    //       slug: body.slug || id,
-    //       password:
-    //         body.password !== undefined ? body.password || null : undefined,
-    //       isCloaked:
-    //         body.isCloaked !== undefined ? Boolean(body.isCloaked) : undefined,
-    //       metaTitle:
-    //         body.metaTitle !== undefined
-    //           ? body.metaTitle || body.ogTitle || null
-    //           : undefined,
-    //       ogTitle:
-    //         body.ogTitle !== undefined
-    //           ? body.ogTitle || body.og_title || body.metaTitle || null
-    //           : undefined,
-    //       ogDescription:
-    //         body.ogDescription !== undefined
-    //           ? body.ogDescription || body.og_description || null
-    //           : undefined,
-    //       ogImage:
-    //         sanitizedOgImage !== undefined
-    //           ? sanitizedOgImage || null
-    //           : undefined,
-    //       bannerStyle: resolvedBannerStyle,
-    //       banner_style: resolvedBannerStyle,
-    //       twitterCard: resolvedTwitterCard,
-    //       twitter_card: resolvedTwitterCard,
-    //       targetUrl: body.targetUrl || body.target_url || undefined,
-    //       routingRules: parsedRouting !== undefined ? parsedRouting : null,
-    //       geoTargeting: parsedGeo !== undefined ? parsedGeo : null,
-    //       deviceTargeting: parsedDevice !== undefined ? parsedDevice : null,
-    //       maxClicks:
-    //         body.maxClicks !== undefined
-    //           ? body.maxClicks
-    //             ? Number(body.maxClicks)
-    //             : null
-    //           : body.max_clicks !== undefined
-    //             ? body.max_clicks
-    //               ? Number(body.max_clicks)
-    //               : null
-    //             : undefined,
-    //       fallbackUrl:
-    //         body.fallbackUrl !== undefined
-    //           ? body.fallbackUrl || null
-    //           : body.fallback_url !== undefined
-    //             ? body.fallback_url || null
-    //             : undefined,
-    //       abVariations:
-    //         body.abVariations !== undefined
-    //           ? body.abVariations
-    //           : body.ab_variations !== undefined
-    //             ? body.ab_variations
-    //             : undefined,
-    //       mainWeight:
-    //         body.mainWeight !== undefined
-    //           ? Number(body.mainWeight)
-    //           : body.main_weight !== undefined
-    //             ? Number(body.main_weight)
-    //             : undefined,
-    //       userId: body.userId,
-    //       isActive:
-    //         body.isActive !== undefined
-    //           ? Boolean(body.isActive)
-    //           : body.is_active !== undefined
-    //             ? Boolean(body.is_active)
-    //             : undefined,
-    //       expiresAt:
-    //         body.expiresAt !== undefined
-    //           ? body.expiresAt || null
-    //           : body.expires_at !== undefined
-    //             ? body.expires_at || null
-    //             : undefined,
-    //       redirectType: body.redirectType || body.redirect_type || undefined,
-    //       passParams:
-    //         body.passParams !== undefined
-    //           ? Boolean(body.passParams)
-    //           : body.pass_params !== undefined
-    //             ? Boolean(body.pass_params)
-    //             : undefined,
-    //       pathLockMode: body.pathLockMode || body.path_lock_mode || undefined,
-    //       path_lock_mode: body.pathLockMode || body.path_lock_mode || undefined,
-    //       pathLockPrefix:
-    //         body.pathLockPrefix !== undefined
-    //           ? body.pathLockPrefix || null
-    //           : body.path_lock_prefix !== undefined
-    //             ? body.path_lock_prefix || null
-    //             : undefined,
-    //       path_lock_prefix:
-    //         body.pathLockPrefix !== undefined
-    //           ? body.pathLockPrefix || null
-    //           : body.path_lock_prefix !== undefined
-    //             ? body.path_lock_prefix || null
-    //             : undefined,
-    //       pathLockMessage:
-    //         body.pathLockMessage !== undefined
-    //           ? body.pathLockMessage || null
-    //           : body.path_lock_message !== undefined
-    //             ? body.path_lock_message || null
-    //             : undefined,
-    //       path_lock_message:
-    //         body.pathLockMessage !== undefined
-    //           ? body.pathLockMessage || null
-    //           : body.path_lock_message !== undefined
-    //             ? body.path_lock_message || null
-    //             : undefined,
-    //       pathLockPassword:
-    //         body.pathLockPassword !== undefined
-    //           ? body.pathLockPassword || null
-    //           : body.path_lock_password !== undefined
-    //             ? body.path_lock_password || null
-    //             : undefined,
-    //       path_lock_password:
-    //         body.pathLockPassword !== undefined
-    //           ? body.pathLockPassword || null
-    //           : body.path_lock_password !== undefined
-    //             ? body.path_lock_password || null
-    //             : undefined,
-    //     });
-    //     if (body.slug) invalidateBotResponseCache(body.slug);
-    //     invalidateBotResponseCache(id);
-    //   } catch (storeErr) {
-    //     console.warn("[ProtectedLinkStore] Non-fatal save warning:", storeErr);
-    //   }
-    // }
-
     const targetUrlClean = body.targetUrl || body.target_url;
     const finalPathLockMode = body.pathLockMode || body.path_lock_mode;
     let finalPathLockPrefix = body.pathLockPrefix ?? body.path_lock_prefix;
@@ -418,8 +291,14 @@ export async function PATCH(
 
     const targetSlug = (body.slug || id || "").trim();
     saveLinkExtras({ id, slug: body.slug || targetSlug }, workerPayload);
-    if (targetSlug) invalidateBotResponseCache(targetSlug);
-    if (id) invalidateBotResponseCache(id);
+    if (targetSlug) {
+      invalidateBotResponseCache(targetSlug);
+      invalidateWorkerLinkCache(targetSlug);
+    }
+    if (id) {
+      invalidateBotResponseCache(id);
+      invalidateWorkerLinkCache(id);
+    }
 
     const url = new URL(`${WORKER_URL}/api/v1/links/${id}`);
     if (userId) url.searchParams.set("userId", userId);
@@ -810,8 +689,10 @@ export async function DELETE(
     try {
       if (slug) {
         invalidateBotResponseCache(slug);
+        invalidateWorkerLinkCache(slug);
       }
       invalidateBotResponseCache(id);
+      invalidateWorkerLinkCache(id);
     } catch {}
 
     let targetId = id;

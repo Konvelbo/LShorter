@@ -34,11 +34,16 @@ export const Timeline = ({
   const [height, setHeight] = useState(0);
 
   useEffect(() => {
+    let rafId: number | null = null;
     const updateHeight = () => {
-      if (ref.current) {
-        const rect = ref.current.getBoundingClientRect();
-        setHeight(rect.height);
-      }
+      if (rafId !== null) return;
+      rafId = requestAnimationFrame(() => {
+        if (ref.current) {
+          const rect = ref.current.getBoundingClientRect();
+          setHeight(rect.height);
+        }
+        rafId = null;
+      });
     };
 
     updateHeight();
@@ -49,8 +54,9 @@ export const Timeline = ({
       resizeObserver.observe(ref.current);
     }
 
-    window.addEventListener("resize", updateHeight);
+    window.addEventListener("resize", updateHeight, { passive: true });
     return () => {
+      if (rafId !== null) cancelAnimationFrame(rafId);
       if (resizeObserver) resizeObserver.disconnect();
       window.removeEventListener("resize", updateHeight);
     };
