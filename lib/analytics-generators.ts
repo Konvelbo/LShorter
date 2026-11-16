@@ -114,7 +114,7 @@ export function generateTimelineForRange(
 
     // 1. Bucket real live click events by exact hour if timestamps exist
     const hourlyEventCounts = new Map<number, number>();
-    let matchedEventsIn24h = 0;
+    const hourlyUniqueCounts = new Map<number, number>();
 
     if (Array.isArray(liveClickEvents) && liveClickEvents.length > 0) {
       for (const ev of liveClickEvents) {
@@ -129,13 +129,15 @@ export function generateTimelineForRange(
         const diffHours = Math.floor((currentHourStart.getTime() + 3600000 - 1 - ts) / 3600000);
         if (diffHours >= 0 && diffHours <= 23) {
           hourlyEventCounts.set(diffHours, (hourlyEventCounts.get(diffHours) || 0) + 1);
-          matchedEventsIn24h++;
+          if (Boolean((ev as any).isUnique ?? (ev as any).is_unique)) {
+            hourlyUniqueCounts.set(diffHours, (hourlyUniqueCounts.get(diffHours) || 0) + 1);
+          }
         }
       }
     }
 
     // 2. Also check realClicksByDay for hourly keys if liveClickEvents didn't provide points
-    if (matchedEventsIn24h === 0 && Array.isArray(realClicksByDay) && realClicksByDay.length > 0) {
+    if (hourlyEventCounts.size === 0 && Array.isArray(realClicksByDay) && realClicksByDay.length > 0) {
       for (const item of realClicksByDay) {
         if (!item?.date) continue;
         let dStr = String(item.date).trim();
@@ -149,35 +151,27 @@ export function generateTimelineForRange(
         if (diffHours >= 0 && diffHours <= 23) {
           const cnt = Number(item.clicks || 0);
           hourlyEventCounts.set(diffHours, (hourlyEventCounts.get(diffHours) || 0) + cnt);
-          matchedEventsIn24h += cnt;
+          const uniq = item.uniqueClicks ?? item.unique_clicks ?? cnt;
+          hourlyUniqueCounts.set(diffHours, (hourlyUniqueCounts.get(diffHours) || 0) + Number(uniq));
         }
       }
     }
-
-    const hourlyWeights = [
-      0.015, 0.01, 0.008, 0.005, 0.005, 0.01,
-      0.02, 0.035, 0.055, 0.07, 0.08, 0.085,
-      0.075, 0.065, 0.06, 0.065, 0.07, 0.075,
-      0.07, 0.06, 0.05, 0.04, 0.03, 0.02
-    ];
-    const todayIso = toLocalDateKey(now);
-    const dayBase = clicksMap.get(todayIso) || (totalClicks > 0 ? Math.round(totalClicks / 30) : 0);
 
     for (let i = 23; i >= 0; i--) {
       const hDate = new Date(currentHourStart.getTime() - i * 3600000);
       const hourNum = hDate.getHours();
       const hourStr = `${String(hourNum).padStart(2, "0")}h00`;
-      const clicks =
-        matchedEventsIn24h > 0
-          ? (hourlyEventCounts.get(i) ?? 0)
-          : Math.round(dayBase * (hourlyWeights[hourNum] ?? 0.04));
+      const clicks = hourlyEventCounts.get(i) ?? 0;
+      const uniqueClicks =
+        hourlyUniqueCounts.get(i) ??
+        (clicks > 0 ? Math.min(clicks, Math.round(clicks * uniqueRatio)) : 0);
 
       points.push({
         date: hDate.toISOString(),
         dayNumber: hourNum,
         label: hourStr,
         clicks,
-        uniqueClicks: clicks > 0 ? Math.round(clicks * 0.78) : 0,
+        uniqueClicks,
       });
     }
     return points;

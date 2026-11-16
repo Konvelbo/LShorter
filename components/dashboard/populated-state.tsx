@@ -519,21 +519,32 @@ export function PopulatedState({
     const dayCutoffMs = rawCutoffMs - (rawCutoffMs % 86400000);
 
     let clicksFromDays = 0;
+    let uniquesFromDays = 0;
     if (safeClicksByDay.length > 0) {
       for (const d of safeClicksByDay) {
         const dtMs = d.date ? new Date(d.date).getTime() : NaN;
         if (!isNaN(dtMs) && dtMs >= dayCutoffMs) {
-          clicksFromDays += Number(d.clicks || 0);
+          const c = Number(d.clicks || 0);
+          clicksFromDays += c;
+          const u = (d as any).uniqueClicks ?? (d as any).unique_clicks;
+          uniquesFromDays +=
+            u !== undefined && u !== null && !isNaN(Number(u))
+              ? Number(u)
+              : c;
         }
       }
     }
 
     let clicksFromEvents = 0;
+    let uniquesFromEvents = 0;
     if (safeLiveClickEvents.length > 0) {
       for (const ev of safeLiveClickEvents) {
         const dtMs = ev.timestamp ? new Date(ev.timestamp).getTime() : NaN;
         if (!isNaN(dtMs) && dtMs >= rawCutoffMs) {
           clicksFromEvents += 1;
+          if (Boolean((ev as any).isUnique ?? (ev as any).is_unique)) {
+            uniquesFromEvents += 1;
+          }
         }
       }
     }
@@ -543,30 +554,79 @@ export function PopulatedState({
         ? Math.max(clicksFromDays, clicksFromEvents)
         : clicksFromEvents;
 
-    const effectivePeriodClicks = windowClicks;
+    const windowUniques =
+      uniquesFromDays > 0
+        ? Math.max(uniquesFromDays, uniquesFromEvents)
+        : uniquesFromEvents;
+
+    // For Yearly: since safeClicksByDay only covers recent 30-90 days,
+    // the annual click volume must encompass all recorded clicks (displayTotalClicks).
+    const effectivePeriodClicks =
+      saasPeriod === "Yearly"
+        ? Math.max(windowClicks, displayTotalClicks)
+        : windowClicks;
+
     const rev =
-      effectivePeriodClicks > 0 && displayTotalClicks > 0
-        ? Number(
-            (
-              (effectivePeriodClicks / displayTotalClicks) *
-              displayRevenue
-            ).toFixed(2),
-          )
-        : 0;
-    const visitors =
-      effectivePeriodClicks > 0 && displayTotalClicks > 0
-        ? Math.min(
-            effectivePeriodClicks,
-            Math.round(
-              (effectivePeriodClicks / displayTotalClicks) *
-                displayUniqueVisitors,
-            ),
-          )
-        : 0;
+      saasPeriod === "Yearly"
+        ? displayRevenue
+        : effectivePeriodClicks > 0 && displayTotalClicks > 0
+          ? Number(
+              (
+                (effectivePeriodClicks / displayTotalClicks) *
+                displayRevenue
+              ).toFixed(2),
+            )
+          : 0;
+
+    const sampleClicks = Math.max(clicksFromDays, clicksFromEvents);
+    const sampleUniques = Math.max(uniquesFromDays, uniquesFromEvents);
+    const uniqueRatio =
+      sampleClicks > 0 && sampleUniques > 0
+        ? Math.min(1, sampleUniques / sampleClicks)
+        : displayTotalClicks > 0 && displayUniqueVisitors > 0
+          ? Math.min(1, displayUniqueVisitors / Math.min(displayTotalClicks, 40))
+          : 1;
+
+    const sumLinkUniques = links.reduce(
+      (acc, l) => acc + Number((l as any).uniqueClicks ?? (l as any).unique_clicks ?? 0),
+      0,
+    );
+
+    let visitors = 0;
+    if (saasPeriod === "Yearly") {
+      visitors = Math.min(
+        effectivePeriodClicks,
+        Math.max(
+          displayUniqueVisitors,
+          sumLinkUniques > 0
+            ? sumLinkUniques
+            : Math.round(effectivePeriodClicks * uniqueRatio),
+        ),
+      );
+    } else if (saasPeriod === "Monthly") {
+      visitors = Math.min(
+        effectivePeriodClicks,
+        windowUniques > 0
+          ? windowUniques
+          : displayUniqueVisitors > 0
+            ? displayUniqueVisitors
+            : Math.round(effectivePeriodClicks * uniqueRatio),
+      );
+    } else {
+      // Weekly
+      visitors = Math.min(
+        effectivePeriodClicks,
+        windowUniques > 0
+          ? windowUniques
+          : Math.round(effectivePeriodClicks * uniqueRatio),
+      );
+    }
+
     const epc =
       effectivePeriodClicks > 0
         ? Number((rev / effectivePeriodClicks).toFixed(2))
         : Number(analytics?.epc || 0);
+
     const avgClicks =
       links.length > 0
         ? (effectivePeriodClicks / links.length).toFixed(1)
@@ -581,7 +641,7 @@ export function PopulatedState({
     displayUniqueVisitors,
     displayTotalClicks,
     analytics?.epc,
-    links.length,
+    links,
   ]);
 
   // Statistics — Overview / Sales / Revenue (Correction des données et de l'affichage)
@@ -1686,7 +1746,7 @@ export function PopulatedState({
               <span className="text-2xl font-bold text-[#101828] dark:text-white">
                 ${periodMetrics.rev.toFixed(2)}
               </span>
-              <span className="rounded-full bg-[#ECFDF3] px-2 py-0.5 text-xs font-semibold text-[#039855]">
+              <span className="rounded-full bg-[#ECFDF3] dark:bg-[#027A48]/20 px-2 py-0.5 text-xs font-semibold text-[#039855] dark:text-[#12B76A]">
                 Live
               </span>
             </div>
@@ -1702,7 +1762,7 @@ export function PopulatedState({
               <span className="text-2xl font-bold text-[#101828] dark:text-white">
                 {formatNumber(periodMetrics.visitors)}
               </span>
-              <span className="rounded-full bg-[#ECFDF3] px-2 py-0.5 text-xs font-semibold text-[#039855]">
+              <span className="rounded-full bg-[#ECFDF3] dark:bg-[#027A48]/20 px-2 py-0.5 text-xs font-semibold text-[#039855] dark:text-[#12B76A]">
                 Verified
               </span>
             </div>
@@ -1718,7 +1778,7 @@ export function PopulatedState({
               <span className="text-2xl font-bold text-[#101828] dark:text-white">
                 ${periodMetrics.epc.toFixed(2)}
               </span>
-              <span className="rounded-full bg-[#ECFDF3] px-2 py-0.5 text-xs font-semibold text-[#039855]">
+              <span className="rounded-full bg-[#ECFDF3] dark:bg-[#027A48]/20 px-2 py-0.5 text-xs font-semibold text-[#039855] dark:text-[#12B76A]">
                 Attributed
               </span>
             </div>

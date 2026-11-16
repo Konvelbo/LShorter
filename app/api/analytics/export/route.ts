@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { getCountryName } from "@/lib/utils";
 import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
+import { ZipArchive } from "@/lib/export/zip-archive";
+import { formatCleanCsvTable } from "@/lib/export/spaced-csv";
+import { generateTableExcelXml } from "@/lib/export/excel-xml";
 
 function escapeXml(str: any): string {
   if (str === null || str === undefined) return "";
@@ -13,7 +16,7 @@ function escapeXml(str: any): string {
     .replace(/'/g, "&apos;");
 }
 
-interface ExportLink {
+export interface ExportLink {
   slug: string;
   title: string;
   shortUrl: string;
@@ -36,7 +39,7 @@ interface ExportLink {
   utmCampaign: string;
 }
 
-interface ExportClickEvent {
+export interface ExportClickEvent {
   id: string;
   slug: string;
   timestamp: string;
@@ -53,23 +56,34 @@ interface ExportClickEvent {
   revenue: number;
 }
 
+export interface ExportDomain {
+  domain: string;
+  status: string;
+  isVerified: string;
+  rootRedirect: string;
+  notFoundRedirect: string;
+  createdAt: string;
+}
+
+export interface ExportSummary {
+  userName: string;
+  userEmail: string;
+  totalLinks: number;
+  totalClicks: number;
+  uniqueClicks: number;
+  totalConversions: number;
+  totalRevenue: number;
+  avgCtr: string;
+  exportDate: string;
+  period: string;
+}
+
 function generateExcelXml(
   links: ExportLink[],
   events: ExportClickEvent[],
-  summary: {
-    userName: string;
-    userEmail: string;
-    totalLinks: number;
-    totalClicks: number;
-    uniqueClicks: number;
-    totalConversions: number;
-    totalRevenue: number;
-    avgCtr: string;
-    exportDate: string;
-    period: string;
-  },
+  summary: ExportSummary,
 ): string {
-  // ─── Sheet 1: Links Performance ─────────────────────────────────────────
+  // Sheet 1: Links Performance with wide columns
   const linkWidths = [
     120, 190, 190, 260, 95, 95, 95, 90, 110, 80, 140, 120, 140, 90, 80, 85, 110,
     110, 110,
@@ -141,7 +155,7 @@ function generateExcelXml(
       .join("\n");
   }
 
-  // ─── Sheet 2: Clicks & Events Log ────────────────────────────────
+  // Sheet 2: Clicks & Events Log
   const eventWidths = [
     120, 130, 150, 140, 120, 110, 120, 110, 180, 150, 170, 85, 100,
   ];
@@ -200,7 +214,7 @@ function generateExcelXml(
       .join("\n");
   }
 
-  // ─── Sheet 3: Synthèse & Métriques ──────────────────────────────────────────
+  // Sheet 3: Synthèse & Métriques
   const summaryRows = `
     <Row ss:Height="28">
      <Cell ss:StyleID="TitleHeader" ss:MergeAcross="1"><Data ss:Type="String">Rapport de Synthèse Global - LShorter Analytics</Data></Cell>
@@ -241,7 +255,7 @@ function generateExcelXml(
      <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">${escapeXml(summary.avgCtr)}</Data></Cell>
     </Row>
     <Row ss:Height="22">
-     <Cell ss:StyleID="SummaryLabel"><Data ss:Type="String">Revenus Totaux Traqués (€)</Data></Cell>
+     <Cell ss:StyleID="SummaryLabel"><Data ss:Type="String">Revenus Totaux Traqués ($)</Data></Cell>
      <Cell ss:StyleID="MoneyCell"><Data ss:Type="Number">${summary.totalRevenue.toFixed(2)}</Data></Cell>
     </Row>`;
 
@@ -299,13 +313,6 @@ function generateExcelXml(
    </Borders>
    <Font ss:FontName="Calibri" ss:Size="11" ss:Color="#1F2937"/>
   </Style>
-  <Style ss:ID="DataCellBold">
-   <Alignment ss:Horizontal="Left" ss:Vertical="Center"/>
-   <Borders>
-    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#FF6600"/>
-   </Borders>
-   <Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1" ss:Color="#FF6600"/>
-  </Style>
   <Style ss:ID="DataCellCenter">
    <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
    <Borders>
@@ -313,12 +320,19 @@ function generateExcelXml(
    </Borders>
    <Font ss:FontName="Calibri" ss:Size="11" ss:Color="#1F2937"/>
   </Style>
+  <Style ss:ID="DataCellBold">
+   <Alignment ss:Horizontal="Left" ss:Vertical="Center"/>
+   <Borders>
+    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E4E4E7"/>
+   </Borders>
+   <Font ss:FontName="Calibri" ss:Size="11" ss:Color="#111827"/>
+  </Style>
   <Style ss:ID="NumberCell">
    <Alignment ss:Horizontal="Right" ss:Vertical="Center"/>
    <Borders>
     <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E4E4E7"/>
    </Borders>
-   <Font ss:FontName="Calibri" ss:Size="11" ss:Color="#1F2937"/>
+   <Font ss:FontName="Calibri" ss:Size="11" ss:Color="#111827"/>
    <NumberFormat ss:Format="#,##0"/>
   </Style>
   <Style ss:ID="MoneyCell">
@@ -326,33 +340,40 @@ function generateExcelXml(
    <Borders>
     <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E4E4E7"/>
    </Borders>
-   <Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1" ss:Color="#059669"/>
-   <NumberFormat ss:Format="#,##0.00 &quot;€&quot;"/>
+   <Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1" ss:Color="#16A34A"/>
+   <NumberFormat ss:Format="$#,##0.00"/>
   </Style>
   <Style ss:ID="DateCell">
    <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
    <Borders>
     <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E4E4E7"/>
    </Borders>
-   <Font ss:FontName="Calibri" ss:Size="11" ss:Color="#4B5563"/>
+   <Font ss:FontName="Calibri" ss:Size="10" ss:Color="#4B5563"/>
   </Style>
   <Style ss:ID="BadgeActive">
    <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
    <Borders>
     <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E4E4E7"/>
    </Borders>
-   <Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1" ss:Color="#166534"/>
+   <Font ss:FontName="Calibri" ss:Size="10" ss:Bold="1" ss:Color="#15803D"/>
    <Interior ss:Color="#DCFCE7" ss:Pattern="Solid"/>
   </Style>
   <Style ss:ID="BadgeInactive">
    <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
    <Borders>
-    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#991B1B"/>
+    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E4E4E7"/>
    </Borders>
-   <Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1" ss:Color="#991B1B"/>
+   <Font ss:FontName="Calibri" ss:Size="10" ss:Bold="1" ss:Color="#B91C1C"/>
    <Interior ss:Color="#FEE2E2" ss:Pattern="Solid"/>
   </Style>
  </Styles>
+ <Worksheet ss:Name="Synthèse &amp; KPIs">
+  <Table ss:DefaultRowHeight="20">
+   <Column ss:AutoFitWidth="1" ss:Width="260"/>
+   <Column ss:AutoFitWidth="1" ss:Width="260"/>
+${summaryRows}
+  </Table>
+ </Worksheet>
  <Worksheet ss:Name="Performance des Liens">
   <Table ss:DefaultRowHeight="20">
 ${linkColsXml}
@@ -360,195 +381,34 @@ ${linkHeaderRow}
 ${linkDataRows}
   </Table>
  </Worksheet>
- <Worksheet ss:Name="Journal des Clics &amp; Trafic">
+ <Worksheet ss:Name="Journal des Clics &amp; Evénements">
   <Table ss:DefaultRowHeight="20">
 ${eventColsXml}
 ${eventHeaderRow}
 ${eventDataRows}
   </Table>
  </Worksheet>
- <Worksheet ss:Name="Synthèse &amp; Métriques">
-  <Table ss:DefaultRowHeight="20">
-   <Column ss:AutoFitWidth="1" ss:Width="250"/>
-   <Column ss:AutoFitWidth="1" ss:Width="300"/>
-${summaryRows}
-  </Table>
- </Worksheet>
 </Workbook>`;
 }
 
-function generateCsv(
-  links: ExportLink[],
+function aggregateCounts(
   events: ExportClickEvent[],
-  summary: {
-    userName: string;
-    userEmail: string;
-    totalLinks: number;
-    totalClicks: number;
-    uniqueClicks: number;
-    totalConversions: number;
-    totalRevenue: number;
-    avgCtr: string;
-    exportDate: string;
-    period: string;
-  },
-): string {
-  const BOM = "\uFEFF";
-  const padCell = (val: any, width: number = 28) => {
-    const clean = String(val ?? "—")
-      .replace(/"/g, '""')
-      .replace(/\r?\n/g, " ");
-    return `"  ${clean.padEnd(width, " ")}  "`;
-  };
-
-  const lines: string[] = [];
-
-  // Section 1: Synthèse
-  lines.push(`"=== ACCOUNT GLOBAL SUMMARY ==="`);
-  lines.push(
-    `${padCell("Account Holder", 28)} ; ${padCell(summary.userName, 42)}`,
-  );
-  lines.push(
-    `${padCell("Email Address", 28)} ; ${padCell(summary.userEmail, 42)}`,
-  );
-  lines.push(
-    `${padCell("Export Timestamp", 28)} ; ${padCell(summary.exportDate, 42)}`,
-  );
-  lines.push(
-    `${padCell("Reporting Period", 28)} ; ${padCell(summary.period, 42)}`,
-  );
-  lines.push(
-    `${padCell("Total Active Links", 28)} ; ${padCell(summary.totalLinks, 42)}`,
-  );
-  lines.push(
-    `${padCell("Total Clicks", 28)} ; ${padCell(summary.totalClicks, 42)}`,
-  );
-  lines.push(
-    `${padCell("Unique Visitors", 28)} ; ${padCell(summary.uniqueClicks, 42)}`,
-  );
-  lines.push(
-    `${padCell("Attributed Conversions", 28)} ; ${padCell(summary.totalConversions, 42)}`,
-  );
-  lines.push(`${padCell("Average CTR", 28)} ; ${padCell(summary.avgCtr, 42)}`);
-  lines.push(
-    `${padCell("Total Revenue ($)", 28)} ; ${padCell("$" + summary.totalRevenue.toFixed(2), 42)}`,
-  );
-  lines.push("");
-
-  // Section 2: Links Performance
-  lines.push(`"=== SHORT LINKS PERFORMANCE REPORT ==="`);
-  const linkColSpecs = [
-    { label: "SLUG / IDENTIFIER", width: 24 },
-    { label: "LINK TITLE", width: 36 },
-    { label: "SHORT URL", width: 38 },
-    { label: "DESTINATION TARGET URL", width: 64 },
-    { label: "TOTAL CLICKS", width: 16 },
-    { label: "UNIQUE CLICKS", width: 16 },
-    { label: "CONVERSIONS", width: 16 },
-    { label: "CTR (%)", width: 14 },
-    { label: "REVENUE ($)", width: 16 },
-    { label: "STATUS", width: 14 },
-    { label: "CREATED AT (UTC)", width: 24 },
-    { label: "EXPIRES AT", width: 24 },
-    { label: "TAGS", width: 28 },
-    { label: "PASSWORD GATE", width: 16 },
-    { label: "DESTINATION MASKING", width: 22 },
-    { label: "HIDE REFERRER", width: 16 },
-    { label: "UTM SOURCE", width: 24 },
-    { label: "UTM MEDIUM", width: 24 },
-    { label: "UTM CAMPAIGN", width: 28 },
-  ];
-
-  lines.push(linkColSpecs.map((c) => padCell(c.label, c.width)).join(" ; "));
-  lines.push(
-    linkColSpecs.map((c) => padCell("-".repeat(c.width), c.width)).join(" ; "),
-  );
-
-  if (links.length === 0) {
-    lines.push(padCell("No links recorded", 64));
-  } else {
-    links.forEach((l) => {
-      const rowVals = [
-        l.slug,
-        l.title,
-        l.shortUrl,
-        l.targetUrl,
-        l.clicksCount,
-        l.uniqueClicks,
-        l.conversionsCount,
-        l.ctr,
-        `$${l.revenue.toFixed(2)}`,
-        l.status,
-        l.createdAt,
-        l.expiresAt,
-        l.tags,
-        l.isPasswordProtected,
-        l.isCloaked,
-        l.hideReferrer,
-        l.utmSource,
-        l.utmMedium,
-        l.utmCampaign,
-      ];
-      lines.push(
-        rowVals
-          .map((v, idx) => padCell(v, linkColSpecs[idx].width))
-          .join(" ; "),
-      );
-    });
+  extractor: (ev: ExportClickEvent) => string,
+): { name: string; count: number; percentage: string }[] {
+  const map = new Map<string, number>();
+  let total = 0;
+  for (const ev of events) {
+    const val = extractor(ev).trim() || "Inconnu";
+    map.set(val, (map.get(val) || 0) + 1);
+    total++;
   }
-  lines.push("");
-
-  // Section 3: Clicks Log
-  lines.push(`"=== DETAILED EDGE CLICKS & TELEMETRY LOG ==="`);
-  const eventColSpecs = [
-    { label: "EVENT ID", width: 22 },
-    { label: "SHORT LINK SLUG", width: 28 },
-    { label: "TIMESTAMP (UTC)", width: 24 },
-    { label: "COUNTRY", width: 30 },
-    { label: "CITY / POP", width: 26 },
-    { label: "DEVICE TYPE", width: 18 },
-    { label: "BROWSER", width: 22 },
-    { label: "OPERATING SYSTEM", width: 22 },
-    { label: "REFERRER SOURCE URL", width: 44 },
-    { label: "CUSTOMER NAME", width: 32 },
-    { label: "CUSTOMER EMAIL", width: 38 },
-    { label: "UNIQUE", width: 12 },
-    { label: "REVENUE ($)", width: 16 },
-  ];
-
-  lines.push(eventColSpecs.map((c) => padCell(c.label, c.width)).join(" ; "));
-  lines.push(
-    eventColSpecs.map((c) => padCell("-".repeat(c.width), c.width)).join(" ; "),
-  );
-
-  if (events.length === 0) {
-    lines.push(padCell("No click events recorded for this period", 64));
-  } else {
-    events.forEach((ev) => {
-      const evVals = [
-        ev.id,
-        ev.slug,
-        ev.timestamp,
-        ev.country,
-        ev.city,
-        ev.device,
-        ev.browser,
-        ev.os,
-        ev.referrer,
-        ev.customerName,
-        ev.customerEmail,
-        ev.isUnique,
-        `$${ev.revenue.toFixed(2)}`,
-      ];
-      lines.push(
-        evVals
-          .map((v, idx) => padCell(v, eventColSpecs[idx].width))
-          .join(" ; "),
-      );
-    });
-  }
-
-  return BOM + lines.join("\r\n");
+  return Array.from(map.entries())
+    .map(([name, count]) => ({
+      name,
+      count,
+      percentage: total > 0 ? ((count / total) * 100).toFixed(1) + " %" : "0.0 %",
+    }))
+    .sort((a, b) => b.count - a.count);
 }
 
 export async function GET(req: Request) {
@@ -571,18 +431,18 @@ export async function GET(req: Request) {
 
   const periodLabel =
     periodParam === "1d"
-      ? "Last 24 Hours"
+      ? "Dernières 24 Heures"
       : periodParam === "7d"
-        ? "Last 7 Days"
+        ? "7 Derniers Jours"
         : periodParam === "365d"
-          ? "Last 12 Months (Year)"
-          : "Last 30 Days (Month)";
+          ? "Année Complète (365 jours)"
+          : "30 Derniers Jours (Mois)";
 
   // 1. Authenticate user strictly via session
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json(
-      { success: false, error: "Authentication required to export your data." },
+      { success: false, error: "Authentification requise pour exporter vos données." },
       { status: 401 },
     );
   }
@@ -592,7 +452,7 @@ export async function GET(req: Request) {
   const userEmail = session?.user?.email || "—";
 
   try {
-    // 2. Fetch real links and analytics from Cloudflare Worker
+    // 2. Fetch real links, analytics, and custom domains in parallel from Cloudflare Worker
     const linksWorkerUrl = new URL(`${WORKER_URL}/api/v1/links`);
     linksWorkerUrl.searchParams.set("userId", userId);
 
@@ -603,29 +463,44 @@ export async function GET(req: Request) {
       analyticsWorkerUrl.searchParams.set("linkId", linkId);
     }
 
-    const [workerLinksRes, workerAnalyticsRes] = await Promise.all([
-      fetch(linksWorkerUrl.toString(), {
-        headers: {
-          "X-Frontend-Secret": FRONTEND_SECRET,
-          Authorization: `Bearer ${FRONTEND_SECRET}`,
-          "X-User-Id": userId,
-        },
-        cache: "no-store",
-      })
-        .then((r) => (r.ok ? r.json() : { success: true, data: [] }))
-        .catch(() => ({ success: true, data: [] })),
+    const domainsWorkerUrl = new URL(`${WORKER_URL}/api/v1/domains`);
+    domainsWorkerUrl.searchParams.set("userId", userId);
 
-      fetch(analyticsWorkerUrl.toString(), {
-        headers: {
-          "X-Frontend-Secret": FRONTEND_SECRET,
-          Authorization: `Bearer ${FRONTEND_SECRET}`,
-          "X-User-Id": userId,
-        },
-        cache: "no-store",
-      })
-        .then((r) => (r.ok ? r.json() : { success: true, data: {} }))
-        .catch(() => ({ success: true, data: {} })),
-    ]);
+    const [workerLinksRes, workerAnalyticsRes, workerDomainsRes] =
+      await Promise.all([
+        fetch(linksWorkerUrl.toString(), {
+          headers: {
+            "X-Frontend-Secret": FRONTEND_SECRET,
+            Authorization: `Bearer ${FRONTEND_SECRET}`,
+            "X-User-Id": userId,
+          },
+          cache: "no-store",
+        })
+          .then((r) => (r.ok ? r.json() : { success: true, data: [] }))
+          .catch(() => ({ success: true, data: [] })),
+
+        fetch(analyticsWorkerUrl.toString(), {
+          headers: {
+            "X-Frontend-Secret": FRONTEND_SECRET,
+            Authorization: `Bearer ${FRONTEND_SECRET}`,
+            "X-User-Id": userId,
+          },
+          cache: "no-store",
+        })
+          .then((r) => (r.ok ? r.json() : { success: true, data: {} }))
+          .catch(() => ({ success: true, data: {} })),
+
+        fetch(domainsWorkerUrl.toString(), {
+          headers: {
+            "X-Frontend-Secret": FRONTEND_SECRET,
+            Authorization: `Bearer ${FRONTEND_SECRET}`,
+            "X-User-Id": userId,
+          },
+          cache: "no-store",
+        })
+          .then((r) => (r.ok ? r.json() : { success: true, data: [] }))
+          .catch(() => ({ success: true, data: [] })),
+      ]);
 
     const workerList = Array.isArray(workerLinksRes?.data)
       ? workerLinksRes.data
@@ -635,7 +510,6 @@ export async function GET(req: Request) {
 
     const mergedLinksMap = new Map<string, any>();
 
-    // Traitement direct et exclusif des liens issus du Worker
     workerList.forEach((wl: any) => {
       if (!wl?.slug) return;
       const key = String(wl.slug).toLowerCase();
@@ -688,7 +562,6 @@ export async function GET(req: Request) {
 
     let allLinks = Array.from(mergedLinksMap.values());
 
-    // Filter links if specific link was chosen
     if (linkId && linkId !== "all") {
       allLinks = allLinks.filter(
         (l) =>
@@ -696,7 +569,6 @@ export async function GET(req: Request) {
       );
     }
 
-    // Format Link rows for export
     const exportLinks: ExportLink[] = allLinks.map((l) => {
       const clicks = Number(l.clicksCount) || 0;
       const unique = Number(l.uniqueClicks) || (clicks > 0 ? clicks : 0);
@@ -806,13 +678,28 @@ export async function GET(req: Request) {
         })
       : [];
 
-    // Filter events if specific linkId
     const filteredEvents =
       linkId && linkId !== "all"
         ? exportEvents.filter((ev) => ev.slug === linkId)
         : exportEvents;
 
-    // 5. Aggregate Summary KPIs
+    // 5. Extract Custom Domains
+    const rawDomains = Array.isArray(workerDomainsRes?.data)
+      ? workerDomainsRes.data
+      : Array.isArray((workerDomainsRes?.data as any)?.data)
+        ? (workerDomainsRes.data as any).data
+        : [];
+
+    const exportDomains: ExportDomain[] = rawDomains.map((dom: any) => ({
+      domain: dom.domain || dom.domain_name || "—",
+      status: dom.status || (dom.is_verified ? "Actif" : "En attente DNS"),
+      isVerified: dom.is_verified || dom.isVerified ? "Vérifié" : "Non vérifié",
+      rootRedirect: dom.root_redirect || dom.rootRedirect || "—",
+      notFoundRedirect: dom.not_found_redirect || dom.notFoundRedirect || "—",
+      createdAt: dom.created_at || dom.createdAt || "—",
+    }));
+
+    // 6. Aggregate Summary KPIs
     const sumTotalClicks = exportLinks.reduce(
       (acc, l) => acc + l.clicksCount,
       0,
@@ -844,7 +731,11 @@ export async function GET(req: Request) {
         ? ((uniqueClicksFinal / totalClicksFinal) * 100).toFixed(2) + " %"
         : "0.00 %";
 
-    const summary = {
+    const exportDateStr =
+      new Date().toISOString().replace("T", " ").substring(0, 19) + " UTC";
+    const dateFileStr = new Date().toISOString().split("T")[0];
+
+    const summary: ExportSummary = {
       userName,
       userEmail,
       totalLinks: exportLinks.length,
@@ -853,14 +744,494 @@ export async function GET(req: Request) {
       totalConversions: totalConversionsFinal,
       totalRevenue: totalRevenueFinal,
       avgCtr: avgCtrFinal,
-      exportDate:
-        new Date().toISOString().replace("T", " ").substring(0, 19) + " UTC",
+      exportDate: exportDateStr,
       period: periodLabel,
     };
 
-    const dateFileStr = new Date().toISOString().split("T")[0];
+    // --- Master CSV Tables ---
+    const masterLinkHeaders = [
+      "Slug / Identifiant",
+      "Titre du Lien",
+      "URL Courte",
+      "URL de Destination (Cible)",
+      "Domaine",
+      "Clics Totaux",
+      "Clics Uniques",
+      "Conversions",
+      "Taux CTR (%)",
+      "Revenu ($)",
+      "Statut",
+      "Date Création (UTC)",
+      "Date Expiration",
+      "Tags",
+      "Protection Mot de Passe",
+      "Masquage (Cloaking)",
+      "Masquer Referrer",
+      "UTM Source",
+      "UTM Medium",
+      "UTM Campaign",
+    ];
 
-    // 6. Return XML Excel (.xls)
+    const masterLinkRows = exportLinks.map((l) => [
+      l.slug,
+      l.title,
+      l.shortUrl,
+      l.targetUrl,
+      l.domainName,
+      l.clicksCount,
+      l.uniqueClicks,
+      l.conversionsCount,
+      l.ctr,
+      `$${l.revenue.toFixed(2)}`,
+      l.status,
+      l.createdAt,
+      l.expiresAt,
+      l.tags,
+      l.isPasswordProtected,
+      l.isCloaked,
+      l.hideReferrer,
+      l.utmSource,
+      l.utmMedium,
+      l.utmCampaign,
+    ]);
+
+    const masterCsvContent = formatCleanCsvTable({
+      headers: masterLinkHeaders,
+      rows: masterLinkRows,
+    });
+
+    const masterEventHeaders = [
+      "ID du Clic",
+      "Slug du Lien",
+      "Horodatage (UTC)",
+      "Code Pays",
+      "Nom du Pays",
+      "Ville / Edge PoP",
+      "Type d'Appareil",
+      "Navigateur Web",
+      "Système d'Exploitation (OS)",
+      "Source de Trafic / Referrer",
+      "Nom du Client",
+      "Email du Client",
+      "Visiteur Unique",
+      "Revenu Attribué ($)",
+    ];
+
+    const masterEventRows = filteredEvents.map((ev) => [
+      ev.id,
+      ev.slug,
+      ev.timestamp,
+      ev.countryCode,
+      ev.country,
+      ev.city,
+      ev.device,
+      ev.browser,
+      ev.os,
+      ev.referrer,
+      ev.customerName,
+      ev.customerEmail,
+      ev.isUnique,
+      `$${ev.revenue.toFixed(2)}`,
+    ]);
+
+    const masterEventsCsvContent = formatCleanCsvTable({
+      headers: masterEventHeaders,
+      rows: masterEventRows,
+    });
+
+    // 7. FORMAT: Return ZIP Archive with clean subfolders & formatted files
+    if (format === "zip") {
+      const zip = new ZipArchive();
+
+      // --- A) Root Master Files ---
+      zip.addFile("events_and_clicks_master.csv", masterCsvContent);
+      zip.addFile(
+        "events_and_clicks_raw_telemetry.csv",
+        masterEventsCsvContent,
+      );
+
+      // Provide multi-sheet XML Excel workbook with wide auto-sized columns & colored styles
+      const excelXmlWorkbook = generateExcelXml(
+        exportLinks,
+        filteredEvents,
+        summary,
+      );
+      zip.addFile("events_and_clicks_master_excel.xls", excelXmlWorkbook);
+
+      // Telemetry Excel workbook with wide columns
+      const streamXmlCols = [
+        { header: "ID du Clic", width: 160, align: "Center" as const },
+        { header: "Slug du Lien", width: 160 },
+        { header: "Horodatage (UTC)", width: 180, align: "Center" as const },
+        { header: "Code Pays", width: 120, align: "Center" as const },
+        { header: "Nom du Pays", width: 220 },
+        { header: "Ville / Edge PoP", width: 180 },
+        { header: "Type d'Appareil", width: 140, align: "Center" as const },
+        { header: "Navigateur Web", width: 160 },
+        { header: "Système d'Exploitation (OS)", width: 180 },
+        { header: "Source de Trafic / Referrer", width: 260 },
+        { header: "Nom du Client", width: 200 },
+        { header: "Email du Client", width: 240 },
+        { header: "Visiteur Unique", width: 140, align: "Center" as const },
+        { header: "Revenu Attribué ($)", width: 160, isMoney: true, align: "Right" as const },
+      ];
+      zip.addFile(
+        "events_and_clicks_raw_telemetry.xls",
+        generateTableExcelXml("Journal des Clics", streamXmlCols, masterEventRows),
+      );
+
+      // --- B) README / INDEX ---
+      const readme = [
+        "================================================================================",
+        "             LSHORTER — EXPORTATION OFFICIELLE DES DONNEES (ARCHIVE ZIP)         ",
+        "================================================================================",
+        "",
+        `Titulaire du compte : ${summary.userName} (${summary.userEmail})`,
+        `Identifiant Unique : ${userId}`,
+        `Date d'extraction  : ${summary.exportDate}`,
+        `Période couverte   : ${summary.period}`,
+        `Nombre de liens    : ${summary.totalLinks}`,
+        `Volume de clics    : ${summary.totalClicks} (${summary.uniqueClicks} uniques)`,
+        `Conversions traquées: ${summary.totalConversions}`,
+        `Chiffre d'affaires : $${summary.totalRevenue.toFixed(2)}`,
+        "",
+        "--------------------------------------------------------------------------------",
+        "STRUCTURE DES SOUS-DOSSIERS ET CONTENU DES FICHIERS CSV & EXCEL",
+        "--------------------------------------------------------------------------------",
+        "",
+        "📁 / (Racine de l'archive) :",
+        "  ├── events_and_clicks_master.csv          : Directoire complet de vos liens courts & statistiques (format CSV standard).",
+        "  ├── events_and_clicks_master_excel.xls    : Classeur Excel multi-onglets avec colonnes larges pré-formatées (140-260px).",
+        "  ├── events_and_clicks_raw_telemetry.csv   : Journal chronologique de chaque clic individuel (format CSV standard).",
+        "  ├── events_and_clicks_raw_telemetry.xls   : Journal chronologique au format Excel avec colonnes larges et alignées.",
+        "  └── README_ARCHIVE.txt                    : Ce document explicatif et d'indexation.",
+        "",
+        "📁 links/ (Page Liens Courts) :",
+        "  ├── links_directory.csv                   : Directoire exhaustif (format CSV).",
+        "  └── links_directory.xls                   : Directoire au format Excel avec colonnes larges (140 à 320 px).",
+        "",
+        "📁 analytics/ (Module Analytique Multi-Pages) :",
+        "  ├── overview/                             : Métriques globales et historique quotidien (.csv & .xls).",
+        "  ├── geography/                            : Répartition géographique par pays et villes (.csv & .xls).",
+        "  ├── devices/                              : Analyse technologique : appareils, navigateurs, OS (.csv & .xls).",
+        "  ├── sources/                              : Origine et canaux d'acquisition du trafic (.csv & .xls).",
+        "  ├── revenue/                              : Ventes et conversions attribuées (.csv & .xls).",
+        "  └── live_stream/                          : Flux télémétrique en temps réel (.csv & .xls).",
+        "",
+        "📁 domains/ (Page Domaines Personnalisés) :",
+        "  ├── custom_domains.csv                    : Directoire des noms de domaine connectés (format CSV).",
+        "  └── custom_domains.xls                    : Directoire au format Excel avec colonnes larges (140 à 280 px).",
+        "",
+        "--------------------------------------------------------------------------------",
+        "NOTE TECHNIQUE SUR LA LARGEUR DES COLONNES :",
+        "- Les fichiers .xls (Excel) s'ouvrent directement avec des colonnes larges et aérées (140 à 320 px),",
+        "  des en-têtes stylisés en couleur et sans aucune troncature de texte.",
+        "- Les fichiers .csv utilisent le standard universel UTF-8 avec séparateur point-virgule (;).",
+        "================================================================================",
+      ].join("\r\n");
+      zip.addFile("README_ARCHIVE.txt", readme);
+
+      // --- C) Subfolder: links/ ---
+      const linksCsv = formatCleanCsvTable({
+        headers: masterLinkHeaders,
+        rows: masterLinkRows,
+      });
+      zip.addFile("links/links_directory.csv", linksCsv);
+
+      const linkXmlCols = [
+        { header: "Slug / Identifiant", width: 140 },
+        { header: "Titre du Lien", width: 220 },
+        { header: "URL Courte", width: 220 },
+        { header: "URL de Destination (Cible)", width: 320 },
+        { header: "Domaine", width: 120 },
+        { header: "Clics Totaux", width: 100, isNumber: true, align: "Right" as const },
+        { header: "Clics Uniques", width: 100, isNumber: true, align: "Right" as const },
+        { header: "Conversions", width: 100, isNumber: true, align: "Right" as const },
+        { header: "Taux CTR (%)", width: 100, align: "Center" as const },
+        { header: "Revenu ($)", width: 110, isMoney: true, align: "Right" as const },
+        { header: "Statut", width: 100, align: "Center" as const },
+        { header: "Date Création (UTC)", width: 160, align: "Center" as const },
+        { header: "Date Expiration", width: 140, align: "Center" as const },
+        { header: "Tags", width: 160 },
+        { header: "Protection Mot de Passe", width: 140, align: "Center" as const },
+        { header: "Masquage (Cloaking)", width: 140, align: "Center" as const },
+        { header: "Masquer Referrer", width: 130, align: "Center" as const },
+        { header: "UTM Source", width: 140 },
+        { header: "UTM Medium", width: 140 },
+        { header: "UTM Campaign", width: 160 },
+      ];
+      zip.addFile("links/links_directory.xls", generateTableExcelXml("Liens Courts", linkXmlCols, masterLinkRows));
+
+      // --- D) Subfolder: analytics/overview/ ---
+      const overviewKpiRows = [
+        ["Nombre Total de Liens Actifs", summary.totalLinks, "Nombre de liens configurés sur le compte"],
+        ["Volume Total de Clics", summary.totalClicks, "Nombre total de redirections exécutées à l'Edge"],
+        ["Visiteurs Uniques Vérifiés", summary.uniqueClicks, "Visiteurs uniques dédupliqués sur la période"],
+        ["Conversions Traquées", summary.totalConversions, "Actions ou objectifs convertis via les liens"],
+        ["Taux de Clic Moyen (CTR)", summary.avgCtr, "Ratio clics uniques / clics totaux"],
+        ["Chiffre d'Affaires Généré ($)", `$${summary.totalRevenue.toFixed(2)}`, "Valeur marchande cumulée attribuée"],
+        ["Titulaire du Compte", summary.userName, "Nom du compte propriétaire"],
+        ["Email", summary.userEmail, "Adresse email du compte"],
+        ["Période Analysée", summary.period, "Période temporelle sélectionnée"],
+        ["Date d'Extraction", summary.exportDate, "Horodatage UTC de la génération du rapport"],
+      ];
+      const overviewKpisCsv = formatCleanCsvTable({
+        headers: ["Indicateur de Performance (KPI)", "Valeur Mesurée", "Description"],
+        rows: overviewKpiRows,
+      });
+      zip.addFile("analytics/overview/overview_kpis.csv", overviewKpisCsv);
+
+      const kpiXmlCols = [
+        { header: "Indicateur de Performance (KPI)", width: 240 },
+        { header: "Valeur Mesurée", width: 160, align: "Center" as const },
+        { header: "Description", width: 340 },
+      ];
+      zip.addFile("analytics/overview/overview_kpis.xls", generateTableExcelXml("Indicateurs KPIs", kpiXmlCols, overviewKpiRows));
+
+      // Timeline day by day
+      const dailyMap = new Map<string, { clicks: number; unique: number; conversions: number }>();
+      const rawDays = rawAnalytics.clicksByDay || rawAnalytics.clicks_by_day || [];
+      if (Array.isArray(rawDays) && rawDays.length > 0) {
+        rawDays.forEach((d: any) => {
+          const dt = d.date || d.day || d.timestamp || "";
+          if (dt) {
+            dailyMap.set(dt, {
+              clicks: Number(d.clicks || d.count || 0),
+              unique: Number(d.uniqueClicks || d.unique || 0),
+              conversions: Number(d.conversions || 0),
+            });
+          }
+        });
+      }
+      if (dailyMap.size === 0 && filteredEvents.length > 0) {
+        filteredEvents.forEach((ev) => {
+          const dt = ev.timestamp.substring(0, 10);
+          const current = dailyMap.get(dt) || { clicks: 0, unique: 0, conversions: 0 };
+          current.clicks += 1;
+          if (ev.isUnique === "Oui") current.unique += 1;
+          if (ev.revenue > 0) current.conversions += 1;
+          dailyMap.set(dt, current);
+        });
+      }
+
+      const dailyRows = Array.from(dailyMap.entries())
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([date, stats]) => [
+          date,
+          stats.clicks,
+          stats.unique || stats.clicks,
+          stats.conversions,
+          stats.clicks > 0
+            ? (((stats.unique || stats.clicks) / stats.clicks) * 100).toFixed(1) + " %"
+            : "0.0 %",
+        ]);
+
+      const dailyClicksCsv = formatCleanCsvTable({
+        headers: ["Date (AAAA-MM-JJ)", "Volume de Clics", "Visiteurs Uniques", "Conversions", "Taux CTR Quotidien (%)"],
+        rows: dailyRows,
+      });
+      zip.addFile("analytics/overview/daily_clicks.csv", dailyClicksCsv);
+
+      const dailyXmlCols = [
+        { header: "Date (AAAA-MM-JJ)", width: 160, align: "Center" as const },
+        { header: "Volume de Clics", width: 130, isNumber: true, align: "Right" as const },
+        { header: "Visiteurs Uniques", width: 140, isNumber: true, align: "Right" as const },
+        { header: "Conversions", width: 120, isNumber: true, align: "Right" as const },
+        { header: "Taux CTR Quotidien (%)", width: 160, align: "Center" as const },
+      ];
+      zip.addFile("analytics/overview/daily_clicks.xls", generateTableExcelXml("Clics Quotidiens", dailyXmlCols, dailyRows));
+
+      // --- E) Subfolder: analytics/geography/ ---
+      const countryStats = aggregateCounts(filteredEvents, (ev) => ev.countryCode || "XX");
+      const countryRows = countryStats.map((c) => {
+        const full = c.name !== "XX" ? getCountryName(c.name) : "Inconnu";
+        return [c.name, full, c.count, c.percentage];
+      });
+
+      const countriesCsv = formatCleanCsvTable({
+        headers: ["Code Pays (ISO2)", "Nom du Pays", "Volume de Clics", "Part du Trafic (%)"],
+        rows: countryRows,
+      });
+      zip.addFile("analytics/geography/top_countries.csv", countriesCsv);
+
+      const countryXmlCols = [
+        { header: "Code Pays (ISO2)", width: 130, align: "Center" as const },
+        { header: "Nom du Pays", width: 220 },
+        { header: "Volume de Clics", width: 140, isNumber: true, align: "Right" as const },
+        { header: "Part du Trafic (%)", width: 150, align: "Center" as const },
+      ];
+      zip.addFile("analytics/geography/top_countries.xls", generateTableExcelXml("Top Pays", countryXmlCols, countryRows));
+
+      const cityStats = aggregateCounts(filteredEvents, (ev) =>
+        ev.city && ev.city !== "—" ? `${ev.city} (${ev.countryCode})` : "Edge PoP Inconnu",
+      );
+      const cityRows = cityStats.map((c) => [c.name, c.count, c.percentage]);
+
+      const citiesCsv = formatCleanCsvTable({
+        headers: ["Ville / Nœud Edge PoP", "Volume de Clics", "Part du Trafic (%)"],
+        rows: cityRows,
+      });
+      zip.addFile("analytics/geography/top_cities.csv", citiesCsv);
+
+      const cityXmlCols = [
+        { header: "Ville / Nœud Edge PoP", width: 240 },
+        { header: "Volume de Clics", width: 140, isNumber: true, align: "Right" as const },
+        { header: "Part du Trafic (%)", width: 150, align: "Center" as const },
+      ];
+      zip.addFile("analytics/geography/top_cities.xls", generateTableExcelXml("Top Villes", cityXmlCols, cityRows));
+
+      // --- F) Subfolder: analytics/devices/ ---
+      const deviceStats = aggregateCounts(filteredEvents, (ev) => ev.device || "Desktop");
+      const deviceRows = deviceStats.map((d) => [d.name, d.count, d.percentage]);
+      const devicesCsv = formatCleanCsvTable({
+        headers: ["Type d'Appareil", "Volume de Clics", "Part de Marché (%)"],
+        rows: deviceRows,
+      });
+      zip.addFile("analytics/devices/device_types.csv", devicesCsv);
+
+      const devXmlCols = [
+        { header: "Type d'Appareil", width: 200 },
+        { header: "Volume de Clics", width: 140, isNumber: true, align: "Right" as const },
+        { header: "Part de Marché (%)", width: 160, align: "Center" as const },
+      ];
+      zip.addFile("analytics/devices/device_types.xls", generateTableExcelXml("Appareils", devXmlCols, deviceRows));
+
+      const browserStats = aggregateCounts(filteredEvents, (ev) => ev.browser || "Chrome");
+      const browserRows = browserStats.map((b) => [b.name, b.count, b.percentage]);
+      const browsersCsv = formatCleanCsvTable({
+        headers: ["Navigateur Web", "Volume de Clics", "Part du Trafic (%)"],
+        rows: browserRows,
+      });
+      zip.addFile("analytics/devices/browsers.csv", browsersCsv);
+
+      const browserXmlCols = [
+        { header: "Navigateur Web", width: 200 },
+        { header: "Volume de Clics", width: 140, isNumber: true, align: "Right" as const },
+        { header: "Part du Trafic (%)", width: 160, align: "Center" as const },
+      ];
+      zip.addFile("analytics/devices/browsers.xls", generateTableExcelXml("Navigateurs", browserXmlCols, browserRows));
+
+      const osStats = aggregateCounts(filteredEvents, (ev) => ev.os || "Inconnu");
+      const osRows = osStats.map((o) => [o.name, o.count, o.percentage]);
+      const osCsv = formatCleanCsvTable({
+        headers: ["Système d'Exploitation (OS)", "Volume de Clics", "Part du Trafic (%)"],
+        rows: osRows,
+      });
+      zip.addFile("analytics/devices/operating_systems.csv", osCsv);
+
+      const osXmlCols = [
+        { header: "Système d'Exploitation (OS)", width: 220 },
+        { header: "Volume de Clics", width: 140, isNumber: true, align: "Right" as const },
+        { header: "Part du Trafic (%)", width: 160, align: "Center" as const },
+      ];
+      zip.addFile("analytics/devices/operating_systems.xls", generateTableExcelXml("Systèmes OS", osXmlCols, osRows));
+
+      // --- G) Subfolder: analytics/sources/ ---
+      const sourceStats = aggregateCounts(filteredEvents, (ev) => ev.referrer || "Direct");
+      const sourceRows = sourceStats.map((s) => [s.name, s.count, s.percentage]);
+      const sourcesCsv = formatCleanCsvTable({
+        headers: ["Canal / Source de Trafic (Referrer)", "Volume de Clics", "Part du Trafic (%)"],
+        rows: sourceRows,
+      });
+      zip.addFile("analytics/sources/traffic_sources.csv", sourcesCsv);
+
+      const sourceXmlCols = [
+        { header: "Canal / Source de Trafic (Referrer)", width: 280 },
+        { header: "Volume de Clics", width: 140, isNumber: true, align: "Right" as const },
+        { header: "Part du Trafic (%)", width: 160, align: "Center" as const },
+      ];
+      zip.addFile("analytics/sources/traffic_sources.xls", generateTableExcelXml("Sources de Trafic", sourceXmlCols, sourceRows));
+
+      // --- H) Subfolder: analytics/revenue/ ---
+      const conversionEvents = filteredEvents.filter((ev) => ev.revenue > 0);
+      const conversionRows = conversionEvents.map((ev) => [
+        ev.id,
+        ev.slug,
+        ev.timestamp,
+        `$${ev.revenue.toFixed(2)}`,
+        ev.customerName,
+        ev.customerEmail,
+        ev.country,
+      ]);
+      const revenueCsv = formatCleanCsvTable({
+        headers: ["ID Evénement", "Slug du Lien", "Date & Heure (UTC)", "Montant Revenu ($)", "Nom du Client", "Email du Client", "Pays"],
+        rows: conversionRows,
+      });
+      zip.addFile("analytics/revenue/conversions_and_revenue.csv", revenueCsv);
+
+      const revXmlCols = [
+        { header: "ID Evénement", width: 160, align: "Center" as const },
+        { header: "Slug du Lien", width: 180 },
+        { header: "Date & Heure (UTC)", width: 180, align: "Center" as const },
+        { header: "Montant Revenu ($)", width: 150, isMoney: true, align: "Right" as const },
+        { header: "Nom du Client", width: 220 },
+        { header: "Email du Client", width: 260 },
+        { header: "Pays", width: 180 },
+      ];
+      zip.addFile("analytics/revenue/conversions_and_revenue.xls", generateTableExcelXml("Ventes & Revenus", revXmlCols, conversionRows));
+
+      // --- I) Subfolder: analytics/live_stream/ ---
+      const streamRows = filteredEvents.map((ev) => [
+        ev.id,
+        ev.slug,
+        ev.timestamp,
+        ev.country,
+        ev.city,
+        ev.device,
+        ev.browser,
+        ev.os,
+        ev.referrer,
+        ev.isUnique,
+        `$${ev.revenue.toFixed(2)}`,
+      ]);
+      const streamCsv = formatCleanCsvTable({
+        headers: ["ID du Clic", "Slug du Lien", "Horodatage (UTC)", "Pays", "Ville / Edge PoP", "Appareil", "Navigateur", "Système (OS)", "Source / Referrer", "Visiteur Unique", "Revenu Attribué ($)"],
+        rows: streamRows,
+      });
+      zip.addFile("analytics/live_stream/raw_click_events.csv", streamCsv);
+
+      zip.addFile("analytics/live_stream/raw_click_events.xls", generateTableExcelXml("Flux Temps Réel", streamXmlCols, streamRows));
+
+      // --- J) Subfolder: domains/ ---
+      const domainRows = exportDomains.map((d) => [
+        d.domain,
+        d.status,
+        d.isVerified,
+        d.rootRedirect,
+        d.notFoundRedirect,
+        d.createdAt,
+      ]);
+      const domainsCsv = formatCleanCsvTable({
+        headers: ["Nom de Domaine", "Statut", "Vérification DNS", "Redirection Racine", "Redirection 404", "Date de Configuration"],
+        rows: domainRows,
+      });
+      zip.addFile("domains/custom_domains.csv", domainsCsv);
+
+      const domainXmlCols = [
+        { header: "Nom de Domaine", width: 220 },
+        { header: "Statut", width: 140, align: "Center" as const },
+        { header: "Vérification DNS", width: 160, align: "Center" as const },
+        { header: "Redirection Racine", width: 280 },
+        { header: "Redirection 404", width: 280 },
+        { header: "Date de Configuration", width: 180, align: "Center" as const },
+      ];
+      zip.addFile("domains/custom_domains.xls", generateTableExcelXml("Domaines", domainXmlCols, domainRows));
+
+      // Build binary zip buffer
+      const zipBuffer = zip.toBuffer();
+
+      return new NextResponse(new Uint8Array(zipBuffer), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/zip",
+          "Content-Disposition": `attachment; filename="lshorter_data_${userId}_${dateFileStr}.zip"`,
+          "Content-Length": String(zipBuffer.length),
+          "Cache-Control": "no-store, no-cache, must-revalidate",
+        },
+      });
+    }
+
+    // 8. FORMAT: Return XML Excel (.xls)
     if (format === "excel" || format === "xls") {
       const xmlContent = generateExcelXml(exportLinks, filteredEvents, summary);
       return new NextResponse(xmlContent, {
@@ -872,9 +1243,8 @@ export async function GET(req: Request) {
       });
     }
 
-    // 7. Return CSV (.csv)
-    const csvContent = generateCsv(exportLinks, filteredEvents, summary);
-    return new NextResponse(csvContent, {
+    // 9. FORMAT: Return Master Clean CSV (.csv)
+    return new NextResponse(masterCsvContent, {
       status: 200,
       headers: {
         "Content-Type": "text/csv; charset=utf-8",

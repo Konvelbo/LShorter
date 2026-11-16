@@ -577,20 +577,13 @@ export default function GeoAnalyticsPage() {
       let finalLiveEvents: any[] = [];
       if (Array.isArray(rawLiveEvents) && rawLiveEvents.length > 0) {
         finalLiveEvents = rawLiveEvents.map((ev: any, idx: number) => {
-          let cCode = (
+          const cleanCode = (
             ev.country_code ||
             ev.countryCode ||
             ev.country ||
             "XX"
           ).toUpperCase();
-          let city = ev.city && ev.city !== "Inconnue" && ev.city !== "—" ? ev.city : (cCode === "BF" ? "Ouagadougou" : (ev.city || "Edge PoP"));
-          
-          // Re-attribute legacy local testing clicks that recorded FR / Paris due to the old localhost fallback
-          if (cCode === "FR" && (city === "Paris" || ev.city === "Paris")) {
-            cCode = "BF";
-            city = "Ouagadougou";
-          }
-          const cleanCode = cCode;
+          const city = ev.city && ev.city !== "Inconnue" && ev.city !== "—" ? ev.city : (ev.city || "Edge PoP");
           return {
             id: ev.id || `evt_${idx}`,
             timestamp:
@@ -612,10 +605,7 @@ export default function GeoAnalyticsPage() {
       const mappedTopCountries =
         rawTopCountries.length > 0
           ? rawTopCountries.map((c: any) => {
-              let code = (c.code || c.country_code || c.country || "XX").toUpperCase();
-              if (code === "FR" && (c.name === "France" || c.country_name === "France")) {
-                code = "BF";
-              }
+              const code = (c.code || c.country_code || c.country || "XX").toUpperCase();
               const geo = WORLD_COUNTRIES[code] || COUNTRY_CENTROIDS[code];
               const count = Number(c.count || c.clicks || 0);
               return {

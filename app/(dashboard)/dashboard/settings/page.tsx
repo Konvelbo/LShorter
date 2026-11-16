@@ -1471,6 +1471,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
   // ─── Data & RGPD State ──────────────────────────────────────────────────────
   const [deleteConfirmationText, setDeleteConfirmationText] = useState("");
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [isExportingArchive, setIsExportingArchive] = useState(false);
 
   // ─── Convex Mutations ───────────────────────────────────────────────────────
   const storeUserMutation = useMutation(api.users.storeUser);
@@ -1970,24 +1971,30 @@ console.log("Top Countries:", topAudience.topCountries);`,
     }
   };
 
-  const handleExportData = async (type: "json" | "csv") => {
+  const handleExportData = async (type: "json" | "csv" | "zip") => {
     if (!userId) return;
     try {
-      if (type === "csv") {
+      if (type === "zip" || type === "csv") {
+        setIsExportingArchive(true);
         const res = await fetch(
-          `/api/analytics/export?format=csv&userId=${encodeURIComponent(userId)}`,
+          `/api/analytics/export?format=${type}&userId=${encodeURIComponent(userId)}`,
         );
-        if (!res.ok) throw new Error("Error exporting CSV");
+        if (!res.ok) throw new Error("Erreur lors de la génération de l'archive");
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `lshorter_data_${userId}_${new Date().toISOString().split("T")[0]}.csv`;
+        const ext = type === "zip" ? "zip" : "csv";
+        a.download = `lshorter_data_${userId}_${new Date().toISOString().split("T")[0]}.${ext}`;
         document.body.appendChild(a);
         a.click();
         a.remove();
         URL.revokeObjectURL(url);
-        showToast.success("Data exported to CSV successfully!");
+        showToast.success(
+          type === "zip"
+            ? "Archive ZIP complète (sous-dossiers & CSV) téléchargée !"
+            : "Données CSV exportées avec succès !",
+        );
         return;
       }
 
@@ -2017,7 +2024,9 @@ console.log("Top Countries:", topAudience.topCountries);`,
       URL.revokeObjectURL(url);
       showToast.success("JSON archive exported successfully!");
     } catch (err) {
-      showToast.error("Error exporting data.");
+      showToast.error("Erreur lors de l'exportation des données.");
+    } finally {
+      setIsExportingArchive(false);
     }
   };
 
@@ -4626,21 +4635,32 @@ console.log("Top Countries:", topAudience.topCountries);`,
 
                 <div className="p-5 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225] flex flex-col justify-between gap-4 shadow-xs">
                   <div>
-                    <h3 className="text-xs font-bold text-zinc-900 dark:text-white">
-                      Export Events &amp; Clicks (CSV)
+                    <h3 className="text-xs font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+                      <span>Export Events &amp; Clicks (ZIP &amp; CSV)</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-brand/10 text-brand font-medium">
+                        Multi-pages
+                      </span>
                     </h3>
-                    <p className="text-[11px] text-zinc-600 dark:text-neutral-400 mt-1">
-                      UTF-8 tabular format with separated columns, optimized for
-                      Excel and Google Sheets.
+                    <p className="text-[11px] text-zinc-600 dark:text-neutral-400 mt-1 leading-relaxed">
+                      Archive ZIP complète avec sous-dossiers par page (liens, analytics, géographie, appareils, sources, conversions) et fichier CSV complet aéré.
                     </p>
                   </div>
                   <button
                     type="button"
-                    onClick={() => handleExportData("csv")}
-                    className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-[8px] bg-zinc-50 hover:bg-zinc-100 dark:bg-[#161619] dark:hover:bg-[#202024] text-zinc-900 dark:text-white border border-zinc-200 dark:border-[#27272a] text-xs font-semibold shadow-xs transition-all cursor-pointer"
+                    disabled={isExportingArchive}
+                    onClick={() => handleExportData("zip")}
+                    className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-[8px] bg-zinc-50 hover:bg-zinc-100 dark:bg-[#161619] dark:hover:bg-[#202024] text-zinc-900 dark:text-white border border-zinc-200 dark:border-[#27272a] text-xs font-semibold shadow-xs transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    <Download className="w-3.5 h-3.5 text-brand" />
-                    <span>Download CSV</span>
+                    {isExportingArchive ? (
+                      <RefreshCw className="w-3.5 h-3.5 text-brand animate-spin" />
+                    ) : (
+                      <Download className="w-3.5 h-3.5 text-brand" />
+                    )}
+                    <span>
+                      {isExportingArchive
+                        ? "Génération de l'archive ZIP..."
+                        : "Download ZIP & CSV Archive"}
+                    </span>
                   </button>
                 </div>
               </div>

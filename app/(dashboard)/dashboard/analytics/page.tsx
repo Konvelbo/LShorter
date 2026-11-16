@@ -111,8 +111,7 @@ function CryptoEdgeStreamChart({ totalClicks }: { totalClicks: number }) {
         minute: "2-digit",
         second: "2-digit",
       });
-      const nextLat =
-        nextVal > 0 ? Number((2.1 + Math.random() * 0.5).toFixed(1)) : 0;
+      const nextLat = nextVal > 0 ? 2.4 : 0;
 
       setStreamTicks((prev) => {
         if (prev.length === 0) return prev;

@@ -164,7 +164,7 @@ export function generateInvoicePdf(data: InvoicePdfData): Buffer {
   addText(`${data.periodStart} au ${data.periodEnd}`, 92, 595, "F1", 8, 0.15, 0.16, 0.20);
 
   addText("ECHEANCE :", 230, 595, "F2", 7.5, 0.48, 0.50, 0.55);
-  addText("Comptant (Carte / Stripe)", 282, 595, "F1", 8, 0.15, 0.16, 0.20);
+  addText("Comptant (Carte / Dodo Payments)", 282, 595, "F1", 8, 0.15, 0.16, 0.20);
 
   addText("STATUT :", 415, 595, "F2", 7.5, 0.48, 0.50, 0.55);
   addText(status === "PAID" ? "ACQUITTEE (PAID)" : status, 458, 595, "F2", 8, 0.08, 0.52, 0.26);
@@ -224,7 +224,7 @@ export function generateInvoicePdf(data: InvoicePdfData): Buffer {
 
   // Left side: Payment terms & Tax notes
   addText("CONDITIONS DE REGLEMENT & FISCALITE", 44, summaryTopY, "F2", 7.5, 0.45, 0.47, 0.52);
-  addText("Mode de paiement : Prelevement automatique CB / Stripe", 44, summaryTopY - 14, "F1", 7.5, 0.38, 0.40, 0.45);
+  addText("Mode de paiement : Prelevement automatique CB / Dodo Payments", 44, summaryTopY - 14, "F1", 7.5, 0.38, 0.40, 0.45);
   addText("Escompte : Aucun escompte pour paiement anticipe.", 44, summaryTopY - 26, "F1", 7.5, 0.38, 0.40, 0.45);
   addText("Regime TVA : Prestation de services numeriques SaaS.", 44, summaryTopY - 38, "F1", 7.5, 0.38, 0.40, 0.45);
   addText("Autoliquidation / Exoneration Art. 259B du CGI.", 44, summaryTopY - 50, "F1", 7.5, 0.38, 0.40, 0.45);

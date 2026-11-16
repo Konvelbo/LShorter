@@ -77,7 +77,7 @@ export async function fetchWorkerLink(slug: string): Promise<LinkMetadata | null
       if (found && (found.target_url || found.targetUrl)) {
         const merged = mergeLinkWithExtras(found);
         if (cacheKey) {
-          setWorkerLinkCache(cacheKey, merged, 30000);
+          setWorkerLinkCache(cacheKey, merged, 300000);
         }
         return merged;
       }
@@ -101,7 +101,7 @@ export async function fetchWorkerLink(slug: string): Promise<LinkMetadata | null
         ) || null;
       const merged = matched ? mergeLinkWithExtras(matched) : null;
       if (cacheKey) {
-        setWorkerLinkCache(cacheKey, merged, merged ? 30000 : 5000);
+        setWorkerLinkCache(cacheKey, merged, merged ? 300000 : 10000);
       }
       return merged;
     }
