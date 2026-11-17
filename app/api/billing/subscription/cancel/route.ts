@@ -5,6 +5,7 @@ import { dodoBillingProvider } from "@/lib/billing/dodo-provider";
 import { convexHttp as convex } from "@/lib/convex-server";
 import { api } from "@/convex/_generated/api";
 import { sendFeedbackNotificationEmail } from "@/lib/resend";
+import { parseBody, subscriptionCancelBodySchema } from "@/lib/api-schemas";
 
 export const dynamic = "force-dynamic";
 
@@ -28,19 +29,12 @@ export async function POST(request: NextRequest) {
     const userId = session.user.id || "";
     const email = session.user.email || "";
 
-    // Parse optional churn feedback and reasons from body
-    let body: any = {};
-    try {
-      body = await request.json();
-    } catch {
-      body = {};
-    }
-    const reason = typeof body?.reason === "string" ? body.reason.trim() : "";
-    const feedback = typeof body?.feedback === "string" ? body.feedback.trim() : "";
-    const rating =
-      typeof body?.rating === "number" && body.rating >= 1 && body.rating <= 5
-        ? Math.round(body.rating)
-        : undefined;
+    const { data: body, error: bodyError } = await parseBody(request, subscriptionCancelBodySchema);
+    if (bodyError) return bodyError;
+
+    const reason = body.reason || "";
+    const feedback = body.feedback || "";
+    const rating = body.rating;
 
     // 1. Fetch current subscription in Convex
     let convexSub: any = null;

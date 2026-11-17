@@ -8,41 +8,22 @@ import {
   verifyStatelessPinToken,
 } from "@/lib/stateless-pin";
 import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
+import { parseBody, signupPinBodySchema } from "@/lib/api-schemas";
 
 const SIGNUP_COOKIE_NAME = "lsh_signup_token";
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    const { data: body, error } = await parseBody(req, signupPinBodySchema);
+    if (error) return error;
+
     const { action } = body;
 
     // ── 1. SEND PIN (Stateless Option A) ───────────────────────────────────────
     if (action === "send") {
-      const { name, email, password } = body;
-      const cleanEmail = String(email || "").trim().toLowerCase();
-      const cleanName = String(name || "").trim();
-
-      if (!cleanEmail) {
-        return NextResponse.json(
-          { success: false, message: "Email address is required." },
-          { status: 400 }
-        );
-      }
-
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(cleanEmail)) {
-        return NextResponse.json(
-          { success: false, message: "Invalid email address format." },
-          { status: 400 }
-        );
-      }
-
-      if (!password || password.length < 8) {
-        return NextResponse.json(
-          { success: false, message: "Password must be at least 8 characters long." },
-          { status: 400 }
-        );
-      }
+      const cleanEmail = body.email;
+      const cleanName = body.name.trim();
+      const { password } = body;
 
       // Check if user already exists
       try {
@@ -119,16 +100,7 @@ export async function POST(req: NextRequest) {
 
     // ── 2. VERIFY PIN (Stateless Option A) ─────────────────────────────────────
     if (action === "verify") {
-      const { email, pin, token: clientToken } = body;
-      const cleanEmail = String(email || "").trim().toLowerCase();
-      const cleanPin = String(pin || "").trim();
-
-      if (!cleanEmail || cleanPin.length !== 6) {
-        return NextResponse.json(
-          { success: false, valid: false, message: "Invalid PIN code (6 digits required)." },
-          { status: 400 }
-        );
-      }
+      const { email: cleanEmail, pin: cleanPin, token: clientToken } = body;
 
       const token = clientToken || req.cookies.get(SIGNUP_COOKIE_NAME)?.value;
       if (!token) {
@@ -166,16 +138,7 @@ export async function POST(req: NextRequest) {
 
     // ── 3. COMPLETE SIGNUP (Stateless Option A) ────────────────────────────────
     if (action === "complete") {
-      const { email, pin, token: clientToken } = body;
-      const cleanEmail = String(email || "").trim().toLowerCase();
-      const cleanPin = String(pin || "").trim();
-
-      if (!cleanEmail || cleanPin.length !== 6) {
-        return NextResponse.json(
-          { success: false, message: "Please provide a valid 6-digit PIN code." },
-          { status: 400 }
-        );
-      }
+      const { email: cleanEmail, pin: cleanPin, token: clientToken } = body;
 
       const token = clientToken || req.cookies.get(SIGNUP_COOKIE_NAME)?.value;
       if (!token) {

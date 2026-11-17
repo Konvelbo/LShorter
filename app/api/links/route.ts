@@ -17,6 +17,7 @@ import {
   setCachedLinksPayload,
   invalidateServerLinksCache,
 } from "@/lib/server-links-cache";
+import { parseBody, parseQuery, linkCreateBodySchema, linksQuerySchema } from "@/lib/api-schemas";
 
 function parseTags(raw: any): string[] {
   if (!raw) return [];
@@ -39,10 +40,13 @@ function parseTags(raw: any): string[] {
 
 export async function GET(req: Request) {
   const reqUrl = new URL(req.url);
+  const { data: qp, error: qpError } = parseQuery(reqUrl.searchParams, linksQuerySchema);
+  if (qpError) return qpError;
+
   const session = await auth().catch(() => null);
 
-  let userId = session?.user?.id || reqUrl.searchParams.get("userId") || null;
-  let userEmail = session?.user?.email || reqUrl.searchParams.get("userEmail") || null;
+  let userId = session?.user?.id || qp.userId || null;
+  let userEmail = session?.user?.email || qp.userEmail || null;
 
   // If userId is missing, anonymous, email-shaped, or raw OAuth ID (not starting with usr_), resolve authoritative Convex userId
   if ((!userId || userId === "usr_anonymous" || userId.includes("@") || !userId.startsWith("usr_")) && userEmail) {
@@ -63,10 +67,10 @@ export async function GET(req: Request) {
     );
   }
   const isForceRefresh =
-    reqUrl.searchParams.get("forceRefresh") === "true" ||
-    Boolean(reqUrl.searchParams.get("_t"));
-  const limit = reqUrl.searchParams.get("limit") || "500";
-  const pageParam = reqUrl.searchParams.get("page") || "1";
+    qp.forceRefresh === "true" ||
+    Boolean(qp._t);
+  const limit = qp.limit || "500";
+  const pageParam = qp.page || "1";
   const cacheKey = `${userId || ""}:${(userEmail || "").toLowerCase()}:${limit}:${pageParam}`;
 
   if (!isForceRefresh) {
@@ -384,7 +388,11 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+    const { data: _bodyParsed, error: bodyError } = await parseBody(req, linkCreateBodySchema);
+    if (bodyError) return bodyError;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const body = _bodyParsed as any; // Zod validation done above; cast needed for legacy snake_case fields forwarded to Cloudflare Worker
+
     const session = await auth().catch(() => null);
     if (!session?.user) {
       return NextResponse.json(

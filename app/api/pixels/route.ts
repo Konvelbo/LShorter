@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
+import { parseBody, parseQuery, pixelCreateBodySchema, pixelDeleteQuerySchema } from "@/lib/api-schemas";
 
 function normalizePixelRecord(px: Record<string, unknown>) {
   const platform = px?.platform || px?.type || "meta";
@@ -57,7 +58,9 @@ export async function POST(req: Request) {
   const userId = session.user.id;
 
   try {
-    const body = await req.json().catch(() => ({}));
+    const { data: body, error: bodyError } = await parseBody(req, pixelCreateBodySchema);
+    if (bodyError) return bodyError;
+
     const platform = body.platform || body.type || "meta";
     body.userId = userId;
     body.platform = platform;
@@ -103,12 +106,9 @@ export async function DELETE(req: Request) {
   }
   const userId = session.user.id;
 
-  const { searchParams } = new URL(req.url);
-  const id = searchParams.get("id");
-
-  if (!id) {
-    return NextResponse.json({ success: false, error: "Pixel ID is required" }, { status: 400 });
-  }
+  const { data: qp, error: qpError } = parseQuery(new URL(req.url).searchParams, pixelDeleteQuerySchema);
+  if (qpError) return qpError;
+  const id = qp.id;
 
   try {
     const url = new URL(`${WORKER_URL}/api/v1/pixels/${id}`);

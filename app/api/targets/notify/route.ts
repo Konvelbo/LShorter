@@ -4,6 +4,7 @@ import { fetchMutation } from "convex/nextjs";
 import { api } from "@/convex/_generated/api";
 
 import { auth } from "@/auth";
+import { parseBody, targetNotifyBodySchema } from "@/lib/api-schemas";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -12,7 +13,9 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const body = await req.json();
+    const { data: body, error: bodyError } = await parseBody(req, targetNotifyBodySchema);
+    if (bodyError) return bodyError;
+
     const {
       metricType = "revenue",
       achievedValue,
@@ -80,7 +83,7 @@ export async function POST(req: NextRequest) {
     const emailResult = await sendMonthlyTargetReachedEmail({
       to: targetEmail,
       name: targetName,
-      metricType,
+      metricType: (metricType === "revenue" ? "revenue" : "clicks") as "revenue" | "clicks" | "both",
       achievedValue: String(achievedValue),
       targetValue: String(targetValue),
       monthLabel: period,

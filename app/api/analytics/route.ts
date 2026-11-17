@@ -15,6 +15,7 @@ import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
 import { auth } from "@/auth";
 import { convexHttp as convex } from "@/lib/convex-server";
 import { api } from "@/convex/_generated/api";
+import { parseQuery, analyticsQuerySchema } from "@/lib/api-schemas";
 
 interface CachedAnalytics {
   data: any;
@@ -24,12 +25,15 @@ const serverAnalyticsCache = new Map<string, CachedAnalytics>();
 const CACHE_TTL_MS = 20_000; // 20s server cache to protect Cloudflare D1 from spam
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const linkId = searchParams.get("linkId");
-  const period = searchParams.get("period") || "30d";
+  const { data: qp, error: qpError } = parseQuery(searchParams, analyticsQuerySchema);
+  if (qpError) return qpError;
+
+  const linkId = qp.linkId || null;
+  const period = qp.period || "30d";
 
   const session = await auth().catch(() => null);
-  let userId: string = session?.user?.id || searchParams.get("userId") || "";
-  const userEmail = session?.user?.email || searchParams.get("userEmail") || "";
+  let userId: string = session?.user?.id || qp.userId || "";
+  const userEmail = session?.user?.email || qp.userEmail || "";
 
   if (!userId && !userEmail) {
     return NextResponse.json(

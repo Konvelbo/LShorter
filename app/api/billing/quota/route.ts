@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { PRICING_PLANS, evaluateClickQuotaAndOverage } from "@/src/config/pricing";
+import { parseQuery, billingQuotaQuerySchema } from "@/lib/api-schemas";
 
 /**
  * GET /api/billing/quota
@@ -9,18 +10,18 @@ import { PRICING_PLANS, evaluateClickQuotaAndOverage } from "@/src/config/pricin
  */
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
     const session = await auth();
+    const { data: qp, error: qpError } = parseQuery(new URL(request.url).searchParams, billingQuotaQuerySchema);
+    if (qpError) return qpError;
 
     const planParam =
-      searchParams.get("plan") ||
+      qp.plan ||
       (session?.user as any)?.plan ||
       "FREE";
 
-    const clicksParam = searchParams.get("clicks");
     const clicksThisMonth =
-      clicksParam !== null && !Number.isNaN(Number(clicksParam))
-        ? Math.max(0, Number(clicksParam))
+      qp.clicks !== undefined
+        ? qp.clicks
         : Number((session?.user as any)?.clicksThisMonth || 0);
 
     const status = evaluateClickQuotaAndOverage(planParam, clicksThisMonth);

@@ -7,6 +7,7 @@ import { api } from "@/convex/_generated/api";
 import { normalizeGatewayAmount, correctStoredInvoiceAmount } from "@/lib/billing/currency";
 
 import { auth } from "@/auth";
+import { parseParams, invoiceIdParamsSchema } from "@/lib/api-schemas";
 
 function formatFrShortDate(ms: number): string {
   const d = new Date(ms);
@@ -25,7 +26,10 @@ export async function GET(
 
     const userId = session.user.id || "";
     const userEmail = (session.user.email || "").toLowerCase().trim();
-    const { invoiceId } = await params;
+    const rawParams = await params;
+    const { data: pData, error: pError } = parseParams(rawParams, invoiceIdParamsSchema);
+    if (pError) return pError;
+    const invoiceId = pData.invoiceId;
     const decodedId = decodeURIComponent(invoiceId);
 
     // Look up matching Convex invoice for ownership check + real metadata fallback

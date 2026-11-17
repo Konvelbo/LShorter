@@ -6,6 +6,7 @@ import {
   ALLOWED_IMAGE_MIME_TYPES,
   validateSvgSafety,
 } from "@/lib/security-utils";
+import { parseBody, uploadJsonBodySchema } from "@/lib/api-schemas";
 
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB limit
 
@@ -21,7 +22,9 @@ export async function POST(req: NextRequest) {
     let extractedMime = "";
 
     if (contentType.includes("application/json")) {
-      const body = await req.json().catch(() => null);
+      const { data: body, error: bodyError } = await parseBody(req, uploadJsonBodySchema);
+      if (bodyError) return bodyError;
+
       const raw = (body?.data || body?.image || "").trim();
 
       const dataUriMatch = raw.match(/^data:([^;,]+);base64,([A-Za-z0-9+/=]+)$/);

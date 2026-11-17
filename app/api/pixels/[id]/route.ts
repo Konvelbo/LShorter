@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
+import { parseBody, parseParams, pixelUpdateBodySchema, pixelIdParamsSchema } from "@/lib/api-schemas";
 
 export async function PATCH(
   req: Request,
@@ -11,10 +12,14 @@ export async function PATCH(
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
   const userId = session.user.id;
-  const { id } = await params;
+  const rawParams = await params;
+  const { data: pData, error: pError } = parseParams(rawParams, pixelIdParamsSchema);
+  if (pError) return pError;
+  const id = pData.id;
 
   try {
-    const body = await req.json().catch(() => ({}));
+    const { data: body, error: bodyError } = await parseBody(req, pixelUpdateBodySchema);
+    if (bodyError) return bodyError;
     body.userId = userId;
 
     const url = new URL(`${WORKER_URL}/api/v1/pixels/${id}`);
@@ -51,7 +56,10 @@ export async function DELETE(
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
   const userId = session.user.id;
-  const { id } = await params;
+  const rawParams = await params;
+  const { data: pData, error: pError } = parseParams(rawParams, pixelIdParamsSchema);
+  if (pError) return pError;
+  const id = pData.id;
 
   try {
     const url = new URL(`${WORKER_URL}/api/v1/pixels/${id}`);

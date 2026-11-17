@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { executeD1Query } from "@/lib/d1-client";
 import { convexHttp } from "@/lib/convex-server";
 import { api } from "@/convex/_generated/api";
+import { parseBody, targetCreateBodySchema } from "@/lib/api-schemas";
 
 async function resolveSessionCanonicalUserIds(opts: {
   sessionUserId: string;
@@ -196,7 +197,11 @@ export async function POST(req: NextRequest) {
     const frontendSecret = req.headers.get("x-frontend-secret") || "";
     const isInternal = Boolean(FRONTEND_SECRET && (frontendSecret === FRONTEND_SECRET || authHeader === `Bearer ${FRONTEND_SECRET}`));
 
-    const body = await req.json().catch(() => ({}));
+    const { data: _bodyParsed, error: bodyError } = await parseBody(req, targetCreateBodySchema);
+    if (bodyError) return bodyError;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const body = _bodyParsed as any; // Zod validation done above; cast needed for extra fields like `id`
+
     const reqUrl = new URL(req.url);
     const isDevPreview = process.env.NODE_ENV === "development" && (
       reqUrl.searchParams.get("playwright_preview") === "1" ||

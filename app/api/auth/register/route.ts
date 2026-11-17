@@ -3,30 +3,18 @@ import { convexHttp as convex } from "@/lib/convex-server";
 import { api } from "@/convex/_generated/api";
 import bcrypt from "bcryptjs";
 import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
+import { parseBody, registerBodySchema } from "@/lib/api-schemas";
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    const { data: body, error } = await parseBody(req, registerBodySchema);
+    if (error) return error;
+
     const { name, email, password, passwordHash } = body;
 
-    if (!email || (!password && !passwordHash) || !name) {
-      return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
-    }
-
-    const cleanEmail = email.trim().toLowerCase();
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(cleanEmail)) {
-      return NextResponse.json({ error: "Invalid email address format." }, { status: 400 });
-    }
-
+    const cleanEmail = email;
     let finalHash = passwordHash;
     if (password) {
-      if (typeof password !== "string" || password.length < 8) {
-        return NextResponse.json(
-          { error: "Password must be at least 8 characters long." },
-          { status: 400 }
-        );
-      }
       finalHash = await bcrypt.hash(password, 10);
     } else if (passwordHash && !passwordHash.startsWith("$2")) {
       finalHash = await bcrypt.hash(passwordHash, 10);
@@ -35,7 +23,7 @@ export async function POST(req: NextRequest) {
     const result = await convex.mutation(api.users.registerWithEmail, {
       name: name.trim(),
       email: cleanEmail,
-      passwordHash: finalHash,
+      passwordHash: finalHash ?? "",
     });
 
     // Also sync user with Cloudflare backend D1 database

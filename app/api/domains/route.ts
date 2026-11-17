@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
+import { parseBody, parseQuery, domainCreateBodySchema, domainDeleteQuerySchema } from "@/lib/api-schemas";
 
 const NXDOMAIN_ERROR_MESSAGE =
   "This domain does not exist on the public DNS network. You must first purchase and register this domain with a domain registrar (e.g., Cloudflare, Namecheap, OVH) before connecting it.";
@@ -195,16 +196,11 @@ export async function POST(req: Request) {
       );
     }
 
-    const body = await req.json();
+    const { data: body, error: bodyError } = await parseBody(req, domainCreateBodySchema);
+    if (bodyError) return bodyError;
+
     const rawDomain = body.domain || body.domain_name || "";
     const cleanDomain = normalizeDomain(rawDomain);
-
-    if (!cleanDomain) {
-      return NextResponse.json(
-        { success: false, error: "Please enter a valid domain name." },
-        { status: 400 }
-      );
-    }
 
     // 1. Live Cloudflare DoH Existence Check (SOA / NS / A on registrable root domain)
     const dnsCheck = await verifyDomainExistsOnPublicDns(cleanDomain);
@@ -303,13 +299,10 @@ export async function DELETE(req: Request) {
       );
     }
 
-    const { searchParams } = new URL(req.url);
-    const domainId = searchParams.get("id");
+    const { data: qp, error: qpError } = parseQuery(new URL(req.url).searchParams, domainDeleteQuerySchema);
+    if (qpError) return qpError;
+    const domainId = qp.id;
     const userId = session.user.id;
-
-    if (!domainId) {
-      return NextResponse.json({ success: false, error: "Domain ID is required" }, { status: 400 });
-    }
 
     const url = new URL(`${WORKER_URL}/api/v1/domains/${domainId}`);
     if (userId) url.searchParams.set("userId", userId);

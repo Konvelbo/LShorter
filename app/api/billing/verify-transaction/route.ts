@@ -5,6 +5,7 @@ import { api } from "@/convex/_generated/api";
 import { syncUserToCloudflare } from "@/app/actions/sync-user";
 import { cancelReplacedSubscriptions } from "@/lib/billing/cancel-replaced-subscription";
 import { auth } from "@/auth";
+import { parseBody, verifyTransactionBodySchema } from "@/lib/api-schemas";
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,7 +17,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = await request.json().catch(() => ({}));
+    const { data: body, error: bodyError } = await parseBody(request, verifyTransactionBodySchema);
+    if (bodyError) return bodyError;
+
     const {
       subscriptionId: requestedSubscriptionId,
       plan: requestedPlan,

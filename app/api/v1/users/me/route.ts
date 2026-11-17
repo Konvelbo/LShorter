@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { UserMeResponse } from "@/types";
 import { getPlanDefinition, evaluateClickQuotaAndOverage } from "@/src/config/pricing";
+import { parseBody, userPatchBodySchema } from "@/lib/api-schemas";
 
 import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
 
@@ -163,7 +164,9 @@ export async function PATCH(req: Request) {
     const userId = session?.user?.id || req.headers.get("x-user-id") || "";
     const userEmail = session?.user?.email || req.headers.get("x-user-email") || "";
 
-    const body = await req.json().catch(() => ({}));
+    const { data: body, error: bodyError } = await parseBody(req, userPatchBodySchema);
+    if (bodyError) return bodyError;
+
     const newName = body.fullName || body.name;
     const newAvatar = body.avatarUrl || body.avatar_url;
 

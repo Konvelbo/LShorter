@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
 
 import { auth } from "@/auth";
+import { parseBody, userSyncBodySchema } from "@/lib/api-schemas";
 
 export async function POST(req: Request) {
   try {
@@ -14,7 +15,9 @@ export async function POST(req: Request) {
       );
     }
 
-    const body = await req.json();
+    const { data: body, error: bodyError } = await parseBody(req, userSyncBodySchema);
+    if (bodyError) return bodyError;
+
     const id = session.user.id || body.id;
     const email = session.user.email || body.email;
     const name = body.name || session.user.name;

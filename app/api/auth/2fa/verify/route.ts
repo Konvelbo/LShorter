@@ -7,10 +7,13 @@ import {
   generateRecoveryCodes,
 } from "@/lib/totp";
 import QRCode from "qrcode";
+import { parseBody, twoFaBodySchema } from "@/lib/api-schemas";
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+    const { data: body, error: bodyError } = await parseBody(req, twoFaBodySchema);
+    if (bodyError) return bodyError;
+
     const { action } = body;
 
     // 1. Generate 2FA Secret + QR Code + Recovery Codes
@@ -51,12 +54,6 @@ export async function POST(req: Request) {
     // 2. Live Verify TOTP Code
     if (action === "verify") {
       const { secret, code } = body;
-      if (!secret || !code) {
-        return NextResponse.json(
-          { success: false, error: "Secret et code à 6 chiffres requis" },
-          { status: 400 }
-        );
-      }
 
       const isValid = verifyTotp(code, secret, 1); // tolerance +/- 30s
       return NextResponse.json({

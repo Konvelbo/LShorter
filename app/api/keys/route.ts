@@ -4,6 +4,7 @@ import { WORKER_URL, FRONTEND_SECRET as SECRET } from "@/lib/backend-config";
 import { convexHttp as convex } from "@/lib/convex-server";
 import { api } from "@/convex/_generated/api";
 import { executeD1Query, createD1ApiKey } from "@/lib/d1-client";
+import { parseBody, apiKeyCreateBodySchema } from "@/lib/api-schemas";
 
 export async function GET(req: Request) {
   const reqUrl = new URL(req.url);
@@ -114,9 +115,11 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
+    const { data: body, error: bodyError } = await parseBody(req, apiKeyCreateBodySchema);
+    if (bodyError) return bodyError;
+
     const reqUrl = new URL(req.url);
     const session = await auth().catch(() => null);
-    const body = await req.json().catch(() => ({}));
 
     const authHeader = req.headers.get("authorization") || "";
     const frontendSecret = req.headers.get("x-frontend-secret") || "";

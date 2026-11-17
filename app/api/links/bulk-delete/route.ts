@@ -3,12 +3,15 @@ import { WORKER_URL, FRONTEND_SECRET, CF_ACCOUNT_ID, CF_D1_DATABASE_ID, CF_API_T
 import { invalidateBotResponseCache } from "@/lib/redirect-engine";
 import { invalidateServerLinksCache } from "@/lib/server-links-cache";
 import { auth } from "@/auth";
+import { parseBody, bulkDeleteBodySchema } from "@/lib/api-schemas";
 
 export async function POST(req: Request) {
   try {
+    const { data: body, error: bodyError } = await parseBody(req, bulkDeleteBodySchema);
+    if (bodyError) return bodyError;
+
     const reqUrl = new URL(req.url);
     const session = await auth().catch(() => null);
-    const body = await req.json().catch(() => ({}));
     const userId = session?.user?.id || reqUrl.searchParams.get("userId") || body?.userId || "";
     const userEmail = session?.user?.email || reqUrl.searchParams.get("userEmail") || body?.userEmail || "";
 
@@ -19,16 +22,7 @@ export async function POST(req: Request) {
         { status: 401 }
       );
     }
-    const ids: string[] = Array.isArray(body?.ids)
-      ? body.ids.map((i: any) => String(i).trim()).filter(Boolean)
-      : [];
-
-    if (!ids.length) {
-      return NextResponse.json(
-        { success: false, error: "No link IDs provided" },
-        { status: 400 },
-      );
-    }
+    const ids = body.ids;
 
     // Invalidate local memory bot caches
     for (const id of ids) {

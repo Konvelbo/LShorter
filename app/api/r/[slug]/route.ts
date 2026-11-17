@@ -6,6 +6,7 @@ import {
   fetchWorkerLink,
 } from "@/lib/redirect-engine";
 import { checkRateLimit } from "@/lib/security-utils";
+import { parseBody, parseParams, slugParamsSchema, linkUnlockBodySchema } from "@/lib/api-schemas";
 
 async function resolveLinkData(slug: string, req: Request) {
   const linkObj = await fetchWorkerLink(slug);
@@ -62,13 +63,10 @@ export async function GET(
   req: Request,
   { params }: { params: Promise<{ slug: string }> },
 ) {
-  const { slug } = await params;
-  if (!slug) {
-    return NextResponse.json(
-      { success: false, error: "Slug manquant" },
-      { status: 400 },
-    );
-  }
+  const rawParams = await params;
+  const { data: pData, error: pError } = parseParams(rawParams, slugParamsSchema);
+  if (pError) return pError;
+  const slug = pData.slug;
 
   const link = await resolveLinkData(slug, req);
   if (!link) {
@@ -104,13 +102,10 @@ export async function POST(
   req: Request,
   { params }: { params: Promise<{ slug: string }> },
 ) {
-  const { slug } = await params;
-  if (!slug) {
-    return NextResponse.json(
-      { success: false, error: "Slug manquant" },
-      { status: 400 },
-    );
-  }
+  const rawParams = await params;
+  const { data: pData, error: pError } = parseParams(rawParams, slugParamsSchema);
+  if (pError) return pError;
+  const slug = pData.slug;
 
   const link = await resolveLinkData(slug, req);
   if (!link) {
@@ -121,7 +116,8 @@ export async function POST(
   }
 
   try {
-    const body = await req.json();
+    const { data: body, error: bodyError } = await parseBody(req, linkUnlockBodySchema);
+    if (bodyError) return bodyError;
     const providedPassword = (body?.password || "").trim();
     const requiredPassword = (link.password || link.pathLockPassword || "").trim();
 

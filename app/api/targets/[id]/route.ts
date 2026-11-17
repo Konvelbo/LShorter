@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { executeD1Query } from "@/lib/d1-client";
 import { convexHttp } from "@/lib/convex-server";
 import { api } from "@/convex/_generated/api";
+import { parseBody, parseParams, targetUpdateBodySchema, targetIdParamsSchema } from "@/lib/api-schemas";
 
 async function resolveSessionCanonicalUserIds(opts: {
   sessionUserId: string;
@@ -46,6 +47,14 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const rawParams = await params;
+    const { data: pData, error: pError } = parseParams(rawParams, targetIdParamsSchema);
+    if (pError) return pError;
+    const id = pData.id;
+
+    const { data: body, error: bodyError } = await parseBody(req, targetUpdateBodySchema);
+    if (bodyError) return bodyError;
+
     const session = await auth();
     const sessionUserId = (session?.user as any)?.id || (session?.user as any)?.sub || "";
     const sessionEmail = session?.user?.email || "";
@@ -54,7 +63,6 @@ export async function PATCH(
     const frontendSecret = req.headers.get("x-frontend-secret") || "";
     const isInternal = Boolean(FRONTEND_SECRET && (frontendSecret === FRONTEND_SECRET || authHeader === `Bearer ${FRONTEND_SECRET}`));
 
-    const body = await req.json().catch(() => ({}));
     const reqUrl = new URL(req.url);
     const queryUserId = reqUrl.searchParams.get("userId") || body.userId || "";
     const isDevPreview = process.env.NODE_ENV === "development" && (reqUrl.searchParams.get("playwright_preview") === "1" || queryUserId === "mock_playwright_user");
@@ -73,7 +81,6 @@ export async function PATCH(
       isInternal,
       isDevPreview,
     });
-    const { id } = await params;
 
     // 1. Direct Cloudflare D1 Update (Primary)
     try {
@@ -183,6 +190,11 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const rawParams = await params;
+    const { data: pData, error: pError } = parseParams(rawParams, targetIdParamsSchema);
+    if (pError) return pError;
+    const id = pData.id;
+
     const session = await auth();
     const sessionUserId = (session?.user as any)?.id || (session?.user as any)?.sub || "";
     const sessionEmail = session?.user?.email || "";
@@ -209,7 +221,6 @@ export async function DELETE(
       isInternal,
       isDevPreview,
     });
-    const { id } = await params;
 
     // 1. Direct Cloudflare D1 Delete (Primary)
     try {

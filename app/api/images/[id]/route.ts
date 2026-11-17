@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
+import { parseParams, imageIdParamsSchema } from "@/lib/api-schemas";
 
 export const revalidate = 31536000;
 
@@ -60,10 +61,10 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { id } = await params;
-    if (!id) {
-      return new Response("Image ID missing", { status: 400 });
-    }
+    const rawParams = await params;
+    const { data: pData, error: pError } = parseParams(rawParams, imageIdParamsSchema);
+    if (pError) return pError;
+    const id = pData.id;
 
     // Clean image ID if full URL or path was sent
     const cleanId = (id.split("?")[0].split("/").pop() || id).trim();

@@ -4,11 +4,17 @@ import { WORKER_URL, FRONTEND_SECRET as SECRET } from "@/lib/backend-config";
 import { convexHttp as convex } from "@/lib/convex-server";
 import { api } from "@/convex/_generated/api";
 import { deleteD1ApiKey } from "@/lib/d1-client";
+import { parseParams, apiKeyIdParamsSchema } from "@/lib/api-schemas";
 
 export async function DELETE(
   req: Request,
   context: { params: Promise<{ keyId: string }> }
 ) {
+  const rawParams = await context.params;
+  const { data: pData, error: pError } = parseParams(rawParams, apiKeyIdParamsSchema);
+  if (pError) return pError;
+  const keyId = pData.keyId;
+
   const reqUrl = new URL(req.url);
   const session = await auth().catch(() => null);
 
@@ -52,11 +58,6 @@ export async function DELETE(
       { success: false, error: "Authentication required to revoke API keys." },
       { status: 401 }
     );
-  }
-
-  const { keyId } = await context.params;
-  if (!keyId) {
-    return NextResponse.json({ success: false, error: "keyId requis" }, { status: 400 });
   }
 
   try {

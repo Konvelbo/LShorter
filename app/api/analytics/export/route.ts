@@ -5,6 +5,7 @@ import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
 import { ZipArchive } from "@/lib/export/zip-archive";
 import { formatCleanCsvTable } from "@/lib/export/spaced-csv";
 import { generateTableExcelXml } from "@/lib/export/excel-xml";
+import { parseQuery, analyticsExportQuerySchema } from "@/lib/api-schemas";
 
 function escapeXml(str: any): string {
   if (str === null || str === undefined) return "";
@@ -413,11 +414,13 @@ function aggregateCounts(
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const paramUserId = searchParams.get("userId");
-  const linkId = searchParams.get("linkId") || "";
-  const range =
-    searchParams.get("range") || searchParams.get("period") || "30d";
-  const format = searchParams.get("format") || "excel";
+  const { data: qp, error: qpError } = parseQuery(searchParams, analyticsExportQuerySchema);
+  if (qpError) return qpError;
+
+  const paramUserId = qp.userId || null;
+  const linkId = qp.linkId || "";
+  const range = qp.range || qp.period || "30d";
+  const format = qp.format || "excel";
 
   // Map range to Cloudflare period format
   const periodParam =
@@ -1232,7 +1235,7 @@ export async function GET(req: Request) {
     }
 
     // 8. FORMAT: Return XML Excel (.xls)
-    if (format === "excel" || format === "xls") {
+    if (format === "excel") {
       const xmlContent = generateExcelXml(exportLinks, filteredEvents, summary);
       return new NextResponse(xmlContent, {
         status: 200,

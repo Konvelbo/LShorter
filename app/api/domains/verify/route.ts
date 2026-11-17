@@ -22,6 +22,7 @@ async function queryCloudflareDoH(name: string, type: "TXT" | "CNAME") {
 }
 
 import { auth } from "@/auth";
+import { parseBody, domainVerifyBodySchema } from "@/lib/api-schemas";
 
 export async function POST(req: Request) {
   try {
@@ -33,22 +34,12 @@ export async function POST(req: Request) {
       );
     }
 
-    const body = await req.json().catch(() => ({}));
+    const { data: body, error: bodyError } = await parseBody(req, domainVerifyBodySchema);
+    if (bodyError) return bodyError;
+
     const domainId = body.id || body.domainId || "";
     const userId = session.user.id;
     const cleanDomain = normalizeDomain(body.domain || body.domain_name || "");
-
-    if (!cleanDomain) {
-      return NextResponse.json(
-        {
-          success: false,
-          verified: false,
-          status: "pending",
-          error: "Domain name is required to verify DNS records.",
-        },
-        { status: 400 }
-      );
-    }
 
     const expectedToken = generateOwnershipToken(cleanDomain);
     const expectedTxtHost = `_lshorter-verify.${cleanDomain}`;

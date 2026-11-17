@@ -10,6 +10,7 @@ import { convexHttp as convex } from "@/lib/convex-server";
 import { api } from "@/convex/_generated/api";
 import { isSafeHttpUrl, isValidSlug } from "@/lib/security-utils";
 import { invalidateServerLinksCache } from "@/lib/server-links-cache";
+import { parseBody, parseParams, linkUpdateBodySchema, linkIdParamsSchema } from "@/lib/api-schemas";
 
 function parseTags(raw: any): string[] {
   if (!raw) return [];
@@ -34,14 +35,21 @@ export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { id } = await params;
-  let body: any = {};
+  const rawParams = await params;
+  const { data: pData, error: pError } = parseParams(rawParams, linkIdParamsSchema);
+  if (pError) return pError;
+  const id = pData.id;
+
+  const { data: _bodyParsed, error: bodyError } = await parseBody(req, linkUpdateBodySchema);
+  if (bodyError) return bodyError;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const body = _bodyParsed as any; // Zod validation done above; cast needed for legacy snake_case fields forwarded to Cloudflare Worker
+
   let resolvedUserId = "";
   let resolvedUserEmail = "";
   try {
     const session = await auth().catch(() => null);
     const { searchParams } = new URL(req.url);
-    body = await req.json().catch(() => ({}));
     const requestEmail = session?.user?.email || searchParams.get("userEmail") || body?.userEmail || "";
     const requestUserId = session?.user?.id || searchParams.get("userId") || body?.userId || "";
     resolvedUserId = requestUserId;
@@ -667,7 +675,11 @@ export async function DELETE(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { id } = await params;
+  const rawParams = await params;
+  const { data: pData, error: pError } = parseParams(rawParams, linkIdParamsSchema);
+  if (pError) return pError;
+  const id = pData.id;
+
   const { searchParams } = new URL(req.url);
   const session = await auth().catch(() => null);
   const userId = session?.user?.id || searchParams.get("userId") || "";

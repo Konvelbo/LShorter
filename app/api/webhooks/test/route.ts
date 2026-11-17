@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { isSafeHttpUrl } from "@/lib/security-utils";
+import { parseBody, webhookTestBodySchema } from "@/lib/api-schemas";
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,14 +14,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { url, secretKey } = await req.json().catch(() => ({}));
+    const { data: body, error: bodyError } = await parseBody(req, webhookTestBodySchema);
+    if (bodyError) return bodyError;
 
-    if (!url || !isSafeHttpUrl(url)) {
-      return NextResponse.json(
-        { success: false, error: "URL de webhook invalide ou non autorisée. Seules les adresses HTTP/HTTPS publiques sont autorisées." },
-        { status: 400 }
-      );
-    }
+    const { url, secretKey } = body;
 
     const testPayload = {
       event: "click.test",
