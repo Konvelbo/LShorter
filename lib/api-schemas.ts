@@ -83,7 +83,15 @@ export const nameSchema = z
 export const passwordSchema = z
   .string()
   .min(8, "Password must be at least 8 characters long")
-  .max(128, "Password is too long");
+  .max(128, "Password cannot exceed 128 characters")
+  .refine(
+    (p) => p.trim().length >= 8,
+    "Password cannot consist solely of whitespace"
+  );
+
+export const bcryptHashSchema = z
+  .string()
+  .regex(/^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/, "Invalid bcrypt password hash");
 
 export const pinSchema = z.string().regex(/^\d{6}$/, "PIN must be 6 digits");
 
@@ -143,12 +151,22 @@ export const tagsSchema = z
 
 // ─── Auth ───────────────────────────────────────────────────────────────────
 
+/** Credentials login schema */
+export const loginCredentialsSchema = z.object({
+  email: emailSchema,
+  password: z
+    .string()
+    .min(1, "Password is required")
+    .max(128, "Password cannot exceed 128 characters"),
+  twoFactorCode: z.string().trim().max(32).optional(),
+});
+
 /** POST /api/auth/register */
 export const registerBodySchema = z.object({
   name: nameSchema,
   email: emailSchema,
   password: passwordSchema.optional(),
-  passwordHash: z.string().max(256).optional(),
+  passwordHash: bcryptHashSchema.optional(),
 }).refine(
   (d) => d.password || d.passwordHash,
   "Either password or passwordHash is required"
@@ -248,6 +266,7 @@ export const baseLinkBodySchema = z
     // Protection
     isPasswordProtected: z.boolean().optional(),
     password: z.string().max(128).optional(),
+    link_password: z.string().max(128).optional(),
     destinationMasked: z.boolean().optional(),
     // Expiry & Limits
     maxClicks: z.number().int().positive().optional(),
@@ -264,10 +283,14 @@ export const baseLinkBodySchema = z
     pixels: z.array(z.string().max(100)).max(20).optional(),
     pixel_ids: z.array(z.string().max(100)).max(20).optional(),
     // Path lock
-    pathLockMode: z.enum(["off", "prefix", "suffix", "exact"]).optional(),
+    pathLockMode: z.enum(["off", "strict", "funnel", "prefix", "suffix", "exact"]).optional(),
+    path_lock_mode: z.enum(["off", "strict", "funnel", "prefix", "suffix", "exact"]).optional(),
     pathLockPrefix: z.string().trim().max(500).optional(),
+    path_lock_prefix: z.string().trim().max(500).optional(),
     pathLockMessage: z.string().trim().max(500).optional(),
+    path_lock_message: z.string().trim().max(500).optional(),
     pathLockPassword: z.string().max(128).optional(),
+    path_lock_password: z.string().max(128).optional(),
     // Domain
     domainId: z.string().trim().max(100).optional(),
     customDomain: z.string().trim().max(255).optional(),

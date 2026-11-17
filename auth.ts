@@ -6,6 +6,7 @@ import bcrypt from "bcryptjs";
 import { convexHttp as convex } from "@/lib/convex-server";
 import { api } from "@/convex/_generated/api";
 import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
+import { loginCredentialsSchema } from "@/lib/api-schemas";
 
 // Auth.js v5 (NextAuth v5 beta) dynamically resolves host from request headers with trustHost: true.
 // Hardcoded NEXTAUTH_URL or AUTH_URL creates IPv4/IPv6 port collision with Windows local services (e.g. EonVPN on port 3000).
@@ -53,12 +54,31 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         twoFactorCode: { label: "Code 2FA", type: "text" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) return null;
+        if (!credentials) return null;
+
+        const validation = loginCredentialsSchema.safeParse(credentials);
+        if (!validation.success) {
+          // Dev fallback shortcut check before failing
+          if (
+            process.env.NODE_ENV === "development" &&
+            (credentials as any)?.email === "dev@lsho.cc" &&
+            (credentials as any)?.password === "dev123456"
+          ) {
+            return {
+              id: "usr_default",
+              name: "Dev User",
+              email: "dev@lsho.cc",
+            };
+          }
+          return null;
+        }
+
+        const { email: cleanEmail, password: cleanPassword, twoFactorCode } = validation.data;
 
         if (
           process.env.NODE_ENV === "development" &&
-          credentials?.email === "dev@lsho.cc" &&
-          credentials?.password === "dev123456"
+          cleanEmail === "dev@lsho.cc" &&
+          cleanPassword === "dev123456"
         ) {
           return {
             id: "usr_default",
@@ -68,7 +88,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }
 
         try {
-          const cleanEmail = String(credentials.email).toLowerCase().trim();
           const user = await convex.query(api.users.getUserByEmail, {
             email: cleanEmail,
           });
@@ -76,7 +95,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           if (!user || !user.passwordHash) return null;
 
           const isValid = await bcrypt.compare(
-            String(credentials.password),
+            cleanPassword,
             user.passwordHash
           );
 
@@ -84,7 +103,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
           // If 2FA is active on the account, enforce TOTP code or recovery code validation
           if (user.twoFactorEnabled && user.twoFactorSecret) {
-            const code = String(credentials.twoFactorCode || "").trim();
+            const code = String(twoFactorCode || "").trim();
             if (!code) {
               throw new Error("2FA_REQUIRED");
             }
