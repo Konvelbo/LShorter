@@ -234,7 +234,7 @@ export function HeroSection({
             <Glow
               variant="top"
               className={cn(
-                "animate-appear-glow delay-300 transition-opacity duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)]",
+                "-z-10 animate-appear-glow delay-300 transition-opacity duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)]",
                 !inView && "!opacity-0"
               )}
             />
