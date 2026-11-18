@@ -1,4 +1,4 @@
-export const SCREENSHOT_CACHE_VERSION = "20261111_2";
+export const SCREENSHOT_CACHE_VERSION = "20261118_v3";
 
 const RENAMED_BASE_PAIRS: Record<string, { light: string; dark: string }> = {
   "/screenshots/dashboard/dashboardwithsidbare.webp": {

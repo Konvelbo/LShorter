@@ -83,6 +83,26 @@ export async function GET(req: NextRequest) {
       "Access-Control-Allow-Methods": "GET, OPTIONS",
     };
 
+    // If requesting default brand / hero OG image or no specific custom link slug, serve the official hero snapshot
+    const isDefaultBrand =
+      (!slug && (!title || title === "LShorter") && (!desc || desc.includes("Edge URL Shortener") || desc.includes("Next-gen Edge"))) ||
+      searchParams.get("hero") === "true";
+
+    if (isDefaultBrand && !img) {
+      try {
+        const fs = await import("fs/promises");
+        const path = await import("path");
+        const heroPath = path.join(process.cwd(), "public", "og-image.png");
+        const heroBuf = await fs.readFile(heroPath);
+        return new Response(heroBuf, {
+          status: 200,
+          headers: responseHeaders,
+        });
+      } catch (err) {
+        console.warn("[/api/og] Fallback to dynamic renderer:", err);
+      }
+    }
+
     if (img && isSafePublicHttpsImageUrl(img)) {
       return toBufferedPngResponse(
         new ImageResponse(
@@ -138,7 +158,7 @@ export async function GET(req: NextRequest) {
               boxSizing: "border-box",
             }}
           >
-            {/* Orange Glow */}
+            {/* Blue Glow */}
             <div
               style={{
                 position: "absolute",
@@ -147,7 +167,7 @@ export async function GET(req: NextRequest) {
                 width: 240,
                 height: 240,
                 borderRadius: "50%",
-                backgroundColor: "rgba(255, 102, 0, 0.18)",
+                backgroundColor: "rgba(0, 102, 255, 0.22)",
               }}
             />
 
@@ -166,7 +186,7 @@ export async function GET(req: NextRequest) {
                     width: 38,
                     height: 38,
                     borderRadius: 10,
-                    backgroundColor: "#ff6600",
+                    backgroundColor: "#0066FF",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -234,7 +254,7 @@ export async function GET(req: NextRequest) {
                 borderTop: "1px solid rgba(255, 255, 255, 0.08)",
               }}
             >
-              <span style={{ fontSize: 11, fontWeight: 700, color: "#ff8533", letterSpacing: 0.5 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#60A5FA", letterSpacing: 0.5 }}>
                 EDGE VERIFIED
               </span>
               <span style={{ fontSize: 11, color: "rgba(255, 255, 255, 0.4)" }}>
@@ -249,7 +269,7 @@ export async function GET(req: NextRequest) {
                 left: 0,
                 right: 0,
                 height: 3,
-                backgroundColor: "#ff6600",
+                backgroundColor: "#0066FF",
               }}
             />
           </div>
@@ -280,7 +300,7 @@ export async function GET(req: NextRequest) {
             overflow: "hidden",
           }}
         >
-          {/* Subtle Orange Glow Circle */}
+          {/* Subtle Electric Blue Glow Circle */}
           <div
             style={{
               position: "absolute",
@@ -289,7 +309,7 @@ export async function GET(req: NextRequest) {
               width: 440,
               height: 440,
               borderRadius: "50%",
-              backgroundColor: "rgba(255, 102, 0, 0.16)",
+              backgroundColor: "rgba(0, 102, 255, 0.22)",
             }}
           />
 
@@ -309,7 +329,7 @@ export async function GET(req: NextRequest) {
                 width: 44,
                 height: 44,
                 borderRadius: 12,
-                backgroundColor: "#ff6600",
+                backgroundColor: "#0066FF",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -335,13 +355,13 @@ export async function GET(req: NextRequest) {
                 marginLeft: 8,
                 padding: "4px 10px",
                 borderRadius: 20,
-                backgroundColor: "rgba(255, 102, 0, 0.12)",
+                backgroundColor: "rgba(0, 102, 255, 0.16)",
                 fontSize: 11,
                 fontWeight: 700,
-                color: "#ff6600",
+                color: "#60A5FA",
               }}
             >
-              EDGE CLOUD
+              EDGE ROUTING
             </div>
           </div>
 
@@ -412,10 +432,10 @@ export async function GET(req: NextRequest) {
                   display: "flex",
                   padding: "6px 14px",
                   borderRadius: 8,
-                  backgroundColor: "rgba(255, 102, 0, 0.1)",
+                  backgroundColor: "rgba(0, 102, 255, 0.14)",
                   fontSize: 12,
                   fontWeight: 600,
-                  color: "#ff8533",
+                  color: "#60A5FA",
                 }}
               >
                 Edge Verified Link
@@ -431,7 +451,7 @@ export async function GET(req: NextRequest) {
                   color: "rgba(255, 255, 255, 0.65)",
                 }}
               >
-                120+ Edge Locations
+                300+ Anycast Locations
               </div>
             </div>
           </div>
@@ -444,7 +464,7 @@ export async function GET(req: NextRequest) {
               left: 0,
               right: 0,
               height: 4,
-              backgroundColor: "#ff6600",
+              backgroundColor: "#0066FF",
             }}
           />
         </div>

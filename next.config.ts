@@ -38,12 +38,7 @@ const nextConfig: NextConfig = {
     minimumCacheTTL: 3600,
     localPatterns: [
       {
-        pathname: "/screenshots/**",
-        search: "?v=20261111_2",
-      },
-      {
         pathname: "/**",
-        search: "",
       },
     ],
     remotePatterns: [
