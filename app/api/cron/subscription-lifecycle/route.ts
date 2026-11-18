@@ -9,12 +9,14 @@ import {
   sendSubscriptionDowngradedEmail,
   sendPlanPurchaseEmail,
 } from "@/lib/resend";
-import { FRONTEND_SECRET } from "@/lib/backend-config";
 import { getPlanDefinition } from "@/src/config/pricing";
 import {
+  computeCycleClickUsage,
+  getRawUserTotalClicks,
   getUserClickUsage,
   evaluateSubscriptionOverage,
   chargeSubscriptionOverage,
+  isOverageAlreadySettledForCycle,
 } from "@/lib/billing/overage-service";
 
 /**
@@ -47,20 +49,26 @@ export async function POST(req: Request) {
 }
 
 async function handleLifecycleProcess(req: Request) {
-  // 1. Authorization check via CRON_SECRET or FRONTEND_SECRET
-  const cronSecret = process.env.CRON_SECRET;
+  // 1. Authorization check via explicit CRON_SECRET or FRONTEND_API_SECRET env vars
+  const cronSecret = (process.env.CRON_SECRET || "").trim();
+  const explicitFrontendSecret = (process.env.FRONTEND_API_SECRET || "").trim();
   const authHeader = req.headers.get("authorization") || "";
   const token = authHeader.startsWith("Bearer ")
     ? authHeader.slice(7).trim()
     : "";
-  const secretHeader =
-    req.headers.get("x-cron-secret") || req.headers.get("x-frontend-secret") || "";
+  const secretHeader = (
+    req.headers.get("x-cron-secret") ||
+    req.headers.get("x-frontend-secret") ||
+    ""
+  ).trim();
 
+  const isDevLocal =
+    process.env.NODE_ENV !== "production" && !cronSecret && !explicitFrontendSecret;
   const isAuthorized = Boolean(
-    !cronSecret && !FRONTEND_SECRET // Local development fallback
-      ? true
-      : (cronSecret && (token === cronSecret || secretHeader === cronSecret)) ||
-        (FRONTEND_SECRET && (token === FRONTEND_SECRET || secretHeader === FRONTEND_SECRET))
+    isDevLocal ||
+      (cronSecret && (token === cronSecret || secretHeader === cronSecret)) ||
+      (explicitFrontendSecret &&
+        (token === explicitFrontendSecret || secretHeader === explicitFrontendSecret))
   );
 
   if (!isAuthorized) {
@@ -151,16 +159,29 @@ async function handleLifecycleProcess(req: Request) {
       // ───────────────────────────────────────────────────────────────────────
       // Overage Reconciliation & Automated Dodo Payments Charge on Renewal
       // ───────────────────────────────────────────────────────────────────────
-      const periodKey = opts.prevBillingMs || opts.sub.currentPeriodStart;
-      const alreadyCharged = opts.sub.lastOverageChargedPeriodStart === periodKey;
+      const periodKey = opts.prevBillingMs || opts.sub.currentPeriodStart || Date.now();
+      const alreadyCharged = isOverageAlreadySettledForCycle(
+        opts.sub.lastOverageChargedPeriodStart,
+        periodKey
+      );
       let overageCharged = false;
       let overageAmount = 0;
       let overageBatches = 0;
       let overageClicksCount = 0;
 
-      if (!alreadyCharged && opts.sub.providerSubscriptionId) {
-        const clicks = await getUserClickUsage(opts.cleanUserId, opts.userEmail);
+      const rawTotalClicks = await getRawUserTotalClicks(opts.cleanUserId, opts.userEmail);
+      const baselineClicks =
+        typeof opts.sub.periodStartClicksSnapshot === "number"
+          ? opts.sub.periodStartClicksSnapshot
+          : 0;
+      const clicks =
+        rawTotalClicks !== null
+          ? computeCycleClickUsage(rawTotalClicks, baselineClicks)
+          : 0;
+
+      if (!alreadyCharged && opts.sub.providerSubscriptionId && rawTotalClicks !== null) {
         const evalRes = evaluateSubscriptionOverage(opts.planName, clicks);
+        let chargeSucceededOrNotNeeded = evalRes.cost <= 0 || evalRes.batches <= 0;
 
         if (evalRes.cost > 0 && evalRes.batches > 0) {
           const chargeRes = await chargeSubscriptionOverage({
@@ -174,17 +195,24 @@ async function handleLifecycleProcess(req: Request) {
 
           if (chargeRes.charged) {
             overageCharged = true;
+            chargeSucceededOrNotNeeded = true;
             overageAmount = chargeRes.amount;
             overageBatches = chargeRes.batches;
             overageClicksCount = chargeRes.overageClicks;
+          }
+        }
 
-            await convex.mutation(subscriptionsApi.recordOverageCharge, {
+        // Only mark cycle settled and advance baseline when no overage was due or charge succeeded
+        if (chargeSucceededOrNotNeeded) {
+          await convex
+            .mutation(subscriptionsApi.recordOverageCharge, {
               subscriptionId: opts.sub._id,
               periodStart: periodKey,
-            }).catch((recErr) =>
+              periodStartClicksSnapshot: Math.max(baselineClicks, rawTotalClicks),
+            })
+            .catch((recErr) =>
               console.warn("[Lifecycle] recordOverageCharge warning:", recErr)
             );
-          }
         }
       }
 
@@ -492,7 +520,11 @@ async function handleLifecycleProcess(req: Request) {
           // ───────────────────────────────────────────────────────────────────
           if (isAutoRenew && cleanUserId) {
             try {
-              const clicks = await getUserClickUsage(cleanUserId, userEmail);
+              const clicks = await getUserClickUsage(
+                cleanUserId,
+                userEmail,
+                sub.periodStartClicksSnapshot
+              );
               const evalRes = evaluateSubscriptionOverage(planName, clicks);
 
               if (evalRes.cost > 0 && evalRes.batches > 0) {

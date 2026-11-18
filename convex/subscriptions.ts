@@ -44,6 +44,7 @@ export const upsertSubscription = mutation({
     cancelAtPeriodEnd: v.boolean(),
     plan: v.optional(v.string()),
     cycle: v.optional(v.string()),
+    periodStartClicksSnapshot: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const altOrgId = args.orgId.startsWith("org_")
@@ -72,7 +73,7 @@ export const upsertSubscription = mutation({
       const previousProvider = isReplaced ? existing.provider : undefined;
       const previousPlan = existing.plan;
 
-      await ctx.db.patch(existing._id, {
+      const patchPayload: Record<string, any> = {
         provider: args.provider,
         providerSubscriptionId: args.providerSubscriptionId,
         currentPeriodStart: args.currentPeriodStart,
@@ -84,7 +85,12 @@ export const upsertSubscription = mutation({
         lastLifecycleAlert: undefined,
         gracePeriodEndsAt: undefined,
         updatedAt: now,
-      });
+      };
+      if (typeof args.periodStartClicksSnapshot === "number") {
+        patchPayload.periodStartClicksSnapshot = args.periodStartClicksSnapshot;
+      }
+
+      await ctx.db.patch(existing._id, patchPayload);
       return {
         id: existing._id,
         updated: true,
@@ -104,6 +110,9 @@ export const upsertSubscription = mutation({
       plan: args.plan,
       cycle: args.cycle,
       lifecycleStatus: "ACTIVE",
+      ...(typeof args.periodStartClicksSnapshot === "number"
+        ? { periodStartClicksSnapshot: args.periodStartClicksSnapshot }
+        : {}),
       createdAt: now,
       updatedAt: now,
     });
@@ -378,17 +387,40 @@ export const markSubscriptionGracePeriod = mutation({
 // ─── Mutation: Record successful overage charge for a billing period ────────
 export const recordOverageCharge = mutation({
   args: {
-    subscriptionId: v.id("subscriptions"),
+    subscriptionId: v.optional(v.id("subscriptions")),
+    orgId: v.optional(v.string()),
     periodStart: v.number(),
+    periodStartClicksSnapshot: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const sub = await ctx.db.get(args.subscriptionId);
+    let sub = args.subscriptionId ? await ctx.db.get(args.subscriptionId) : null;
+
+    if (!sub && args.orgId) {
+      const altOrgId = args.orgId.startsWith("org_")
+        ? args.orgId.replace(/^org_/, "")
+        : `org_${args.orgId}`;
+      sub =
+        (await ctx.db
+          .query("subscriptions")
+          .withIndex("by_orgId", (q) => q.eq("orgId", args.orgId!))
+          .first()) ||
+        (await ctx.db
+          .query("subscriptions")
+          .withIndex("by_orgId", (q) => q.eq("orgId", altOrgId))
+          .first());
+    }
+
     if (!sub) return { success: false, notFound: true };
 
-    await ctx.db.patch(args.subscriptionId, {
+    const patchData: Record<string, any> = {
       lastOverageChargedPeriodStart: args.periodStart,
       updatedAt: new Date().toISOString(),
-    });
+    };
+    if (typeof args.periodStartClicksSnapshot === "number") {
+      patchData.periodStartClicksSnapshot = args.periodStartClicksSnapshot;
+    }
+
+    await ctx.db.patch(sub._id, patchData);
 
     return { success: true };
   },

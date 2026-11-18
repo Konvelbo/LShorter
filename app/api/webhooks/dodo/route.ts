@@ -10,9 +10,11 @@ import {
   sendPlanPurchaseEmail,
 } from "@/lib/resend";
 import {
-  getUserClickUsage,
+  computeCycleClickUsage,
+  getRawUserTotalClicks,
   evaluateSubscriptionOverage,
   chargeSubscriptionOverage,
+  isOverageAlreadySettledForCycle,
 } from "@/lib/billing/overage-service";
 
 const GRACE_PERIOD_MS = 24 * 60 * 60 * 1000;
@@ -217,6 +219,19 @@ export async function POST(request: NextRequest) {
         const { userId, orgId, planId, cycle, customerEmail, customerName } = ctx;
         const paymentId = String(eventData.payment_id || eventData.id || `pay_${Date.now()}`);
 
+        // Guard: Ignore on-demand overage charges triggered by chargeSubscriptionOverage()
+        // so they do not re-trigger subscription period resets, duplicate base invoices, or activation emails.
+        const isOverageOnDemandCharge =
+          ctx.customData?.type === "overage_charge" ||
+          (eventData.charge_type === "on_demand" && Boolean(ctx.customData?.overageClicks));
+
+        if (isOverageOnDemandCharge) {
+          console.info(
+            `[Dodo Webhook] Acknowledged on-demand overage payment ${paymentId} for org=${userId || orgId} (batches=${ctx.customData?.batches || 0})`
+          );
+          break;
+        }
+
         console.info(`[Dodo Webhook] Processing Payment Succeeded: user=${userId}, plan=${planId}, cycle=${cycle}, payment=${paymentId}`);
 
         // 1. Upgrade user in Convex
@@ -268,10 +283,43 @@ export async function POST(request: NextRequest) {
         }
 
         const now = Date.now();
-        const periodEnd = cycle === "YEARLY" ? now + 365 * 86400000 : now + 30 * 86400000;
+        const servicePeriod = Array.isArray(eventData.service_periods)
+          ? eventData.service_periods[0]
+          : undefined;
+        const parsedServiceStart = servicePeriod?.starts_at
+          ? new Date(servicePeriod.starts_at).getTime()
+          : NaN;
+        const parsedServiceEnd = servicePeriod?.ends_at
+          ? new Date(servicePeriod.ends_at).getTime()
+          : NaN;
+        const periodStart = !Number.isNaN(parsedServiceStart) ? parsedServiceStart : now;
+        const periodEnd = !Number.isNaN(parsedServiceEnd)
+          ? parsedServiceEnd
+          : cycle === "YEARLY"
+            ? periodStart + 365 * 86400000
+            : periodStart + 30 * 86400000;
         const newSubId = eventData.subscription_id
           ? String(eventData.subscription_id)
           : undefined;
+
+        // Fetch existing subscription BEFORE upserting so we can inspect previous period & overage state
+        const existingSubBeforeUpsert =
+          userId || orgId !== "default"
+            ? await convex
+                .query(api.subscriptions.getSubscription, { orgId: userId || orgId })
+                .catch(() => null)
+            : null;
+
+        const isRenewal =
+          eventData.charge_type === "renewal" ||
+          (!eventData.charge_type &&
+            Boolean(newSubId) &&
+            existingSubBeforeUpsert?.providerSubscriptionId === newSubId &&
+            typeof existingSubBeforeUpsert?.currentPeriodStart === "number" &&
+            now - existingSubBeforeUpsert.currentPeriodStart > 24 * 60 * 60 * 1000);
+
+        const rawTotalClicks = await getRawUserTotalClicks(userId || orgId, customerEmail);
+
         let previousSubId: string | undefined = ctx.customData?.previousSubscriptionId
           ? String(ctx.customData.previousSubscriptionId)
           : undefined;
@@ -281,19 +329,23 @@ export async function POST(request: NextRequest) {
           : undefined;
 
         // 3b. Ensure active subscription period is synced when payment belongs to a subscription
+        // On renewals, do NOT overwrite periodStartClicksSnapshot here; recordOverageCharge advances it after settlement.
         if (newSubId) {
           try {
-            const upsertRes: any = await convex.mutation(
+            const upsertRes = await convex.mutation(
               api.subscriptions.upsertSubscription,
               {
                 orgId: userId || orgId,
                 provider: "dodo",
                 providerSubscriptionId: newSubId,
-                currentPeriodStart: now,
+                currentPeriodStart: periodStart,
                 currentPeriodEnd: periodEnd,
                 cancelAtPeriodEnd: false,
                 plan: planId,
                 cycle,
+                ...(!isRenewal && rawTotalClicks !== null
+                  ? { periodStartClicksSnapshot: rawTotalClicks }
+                  : {}),
               }
             );
             if (upsertRes?.previousSubscriptionId) {
@@ -337,7 +389,6 @@ export async function POST(request: NextRequest) {
         const invoiceDownloadPath = `/api/billing/invoices/dodo_${encodeURIComponent(paymentId)}/download`;
         const invoiceFullUrl = `${appUrl}${invoiceDownloadPath}`;
 
-        const isRenewal = eventData.charge_type === "renewal";
         let overageCharged = false;
         let overageAmount = 0;
         let overageBatches = 0;
@@ -346,25 +397,52 @@ export async function POST(request: NextRequest) {
         // 3d. Overage Reconciliation & Automated Dodo Payments Charge on Renewal
         if (isRenewal && newSubId) {
           try {
-            const clicks = await getUserClickUsage(userId || orgId, customerEmail);
-            const evalRes = evaluateSubscriptionOverage(planId, clicks);
+            const alreadyCharged = isOverageAlreadySettledForCycle(
+              existingSubBeforeUpsert?.lastOverageChargedPeriodStart,
+              periodStart
+            );
 
-            if (evalRes.cost > 0 && evalRes.batches > 0) {
-              const chargeRes = await chargeSubscriptionOverage({
-                subscriptionId: newSubId,
-                orgId: userId || orgId,
-                userId: userId || undefined,
-                planId,
-                clicksThisMonth: clicks,
-                currency,
-                periodStart: now,
-              });
+            if (!alreadyCharged && rawTotalClicks !== null) {
+              const baselineClicks =
+                typeof existingSubBeforeUpsert?.periodStartClicksSnapshot === "number"
+                  ? existingSubBeforeUpsert.periodStartClicksSnapshot
+                  : 0;
+              const clicks = computeCycleClickUsage(rawTotalClicks, baselineClicks);
+              const evalRes = evaluateSubscriptionOverage(planId, clicks);
+              let chargeSucceededOrNotNeeded = evalRes.cost <= 0 || evalRes.batches <= 0;
 
-              if (chargeRes.charged) {
-                overageCharged = true;
-                overageAmount = chargeRes.amount;
-                overageBatches = chargeRes.batches;
-                overageClicksCount = chargeRes.overageClicks;
+              if (evalRes.cost > 0 && evalRes.batches > 0) {
+                const chargeRes = await chargeSubscriptionOverage({
+                  subscriptionId: newSubId,
+                  orgId: userId || orgId,
+                  userId: userId || undefined,
+                  planId,
+                  clicksThisMonth: clicks,
+                  currency,
+                  periodStart,
+                });
+
+                if (chargeRes.charged) {
+                  overageCharged = true;
+                  chargeSucceededOrNotNeeded = true;
+                  overageAmount = chargeRes.amount;
+                  overageBatches = chargeRes.batches;
+                  overageClicksCount = chargeRes.overageClicks;
+                }
+              }
+
+              // Record renewal settlement & baseline clicks only when charge succeeded or was not needed
+              if (chargeSucceededOrNotNeeded) {
+                await convex
+                  .mutation(api.subscriptions.recordOverageCharge, {
+                    subscriptionId: existingSubBeforeUpsert?._id,
+                    orgId: userId || orgId,
+                    periodStart,
+                    periodStartClicksSnapshot: Math.max(baselineClicks, rawTotalClicks),
+                  })
+                  .catch((recErr) =>
+                    console.warn("[Dodo Webhook] Warning recording overage settlement:", recErr)
+                  );
               }
             }
           } catch (overageErr) {
@@ -638,15 +716,86 @@ export async function POST(request: NextRequest) {
           }
 
           if (eventType === "subscription.renewed" && orgId !== "default") {
-            await convex
-              .mutation(api.notifications.createNotification, {
-                orgId,
-                title: "Abonnement renouvelé avec succès",
-                message: `Votre forfait ${activePlan} a été automatiquement renouvelé via Dodo Payments.`,
-                type: "SUCCESS",
-                linkUrl: "/dashboard/settings?tab=billing",
-              })
-              .catch(() => {});
+            const customerEmail =
+              eventData.customer?.email ||
+              customData.customerEmail ||
+              (userId ? `${userId}@lshorter.local` : undefined);
+            const alreadyCharged = isOverageAlreadySettledForCycle(
+              existingSub?.lastOverageChargedPeriodStart,
+              periodStart
+            );
+
+            if (!alreadyCharged && subId) {
+              const rawTotalClicks = await getRawUserTotalClicks(orgId, customerEmail);
+              const baselineClicks =
+                typeof existingSub?.periodStartClicksSnapshot === "number"
+                  ? existingSub.periodStartClicksSnapshot
+                  : 0;
+              const clicks =
+                rawTotalClicks !== null
+                  ? computeCycleClickUsage(rawTotalClicks, baselineClicks)
+                  : 0;
+              const evalRes = evaluateSubscriptionOverage(activePlan, clicks);
+
+              let overageCharged = false;
+              let chargeSucceededOrNotNeeded = evalRes.cost <= 0 || evalRes.batches <= 0;
+              let overageAmount = 0;
+              let overageBatches = 0;
+              let overageClicksCount = 0;
+
+              if (rawTotalClicks !== null && evalRes.cost > 0 && evalRes.batches > 0) {
+                const chargeRes = await chargeSubscriptionOverage({
+                  subscriptionId: String(subId),
+                  orgId,
+                  userId: userId || undefined,
+                  planId: activePlan,
+                  clicksThisMonth: clicks,
+                  currency: "USD",
+                  periodStart,
+                });
+
+                if (chargeRes.charged) {
+                  overageCharged = true;
+                  chargeSucceededOrNotNeeded = true;
+                  overageAmount = chargeRes.amount;
+                  overageBatches = chargeRes.batches;
+                  overageClicksCount = chargeRes.overageClicks;
+                }
+              }
+
+              if (rawTotalClicks !== null && chargeSucceededOrNotNeeded) {
+                await convex
+                  .mutation(api.subscriptions.recordOverageCharge, {
+                    subscriptionId: existingSub?._id,
+                    orgId,
+                    periodStart,
+                    periodStartClicksSnapshot: Math.max(baselineClicks, rawTotalClicks),
+                  })
+                  .catch(() => {});
+              }
+
+              if (overageCharged) {
+                await convex
+                  .mutation(api.notifications.createNotification, {
+                    orgId,
+                    title: "Abonnement renouvelé avec succès (Overage inclus)",
+                    message: `Votre forfait ${activePlan} a été automatiquement renouvelé via Dodo Payments. Des frais d'overage de $${overageAmount.toFixed(2)} ont été prélevés pour ${overageBatches} lot(s) (+${overageClicksCount.toLocaleString()} clics excédentaires).`,
+                    type: "SUCCESS",
+                    linkUrl: "/dashboard/settings?tab=billing",
+                  })
+                  .catch(() => {});
+              } else {
+                await convex
+                  .mutation(api.notifications.createNotification, {
+                    orgId,
+                    title: "Abonnement renouvelé avec succès",
+                    message: `Votre forfait ${activePlan} a été automatiquement renouvelé via Dodo Payments.`,
+                    type: "SUCCESS",
+                    linkUrl: "/dashboard/settings?tab=billing",
+                  })
+                  .catch(() => {});
+              }
+            }
           }
         } catch (subErr) {
           console.error("[Dodo Webhook] Error recording subscription:", subErr);
@@ -670,8 +819,11 @@ export async function POST(request: NextRequest) {
         const subId = eventData.subscription_id
           ? String(eventData.subscription_id)
           : "";
-        if (!subId) {
-          // One-time abandoned checkout without an active subscription: do not trigger grace period
+        const isOverageChargeFailure =
+          eventData.metadata?.type === "overage_charge" ||
+          eventData.charge_type === "on_demand";
+        if (!subId || isOverageChargeFailure) {
+          // One-time abandoned checkout or on-demand overage charge failure: do not trigger subscription grace period
           break;
         }
         const ctx = await resolveDodoContext(eventData);

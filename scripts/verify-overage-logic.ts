@@ -2,8 +2,12 @@
 // Comprehensive Overage & Email Rendering Verification Suite
 // ============================================================================
 
-import { evaluateClickQuotaAndOverage, calculateOverage, PRICING_PLANS } from "../src/config/pricing";
-import { evaluateSubscriptionOverage } from "../lib/billing/overage-service";
+import { evaluateClickQuotaAndOverage } from "../src/config/pricing";
+import {
+  computeCycleClickUsage,
+  evaluateSubscriptionOverage,
+  isOverageAlreadySettledForCycle,
+} from "../lib/billing/overage-service";
 import fs from "fs";
 import path from "path";
 
@@ -124,6 +128,43 @@ async function runVerification() {
   const evalEnt = evaluateSubscriptionOverage("ENTERPRISE", 10000000);
   assert(evalEnt.cost === 0, "Enterprise 10M clics: $0.00 overage");
   assert(evalEnt.unlimitedOverage, "Enterprise: illimité");
+
+  // Idempotency & Anti-Double-Charge Guard across Webhook + Cron
+  const renewalTs = 1794960000000;
+  assert(
+    !isOverageAlreadySettledForCycle(undefined, renewalTs),
+    "Idempotence: Non facturé si lastOverageChargedPeriodStart est absent"
+  );
+  assert(
+    isOverageAlreadySettledForCycle(renewalTs, renewalTs),
+    "Idempotence: Déjà facturé si timestamp exact identique"
+  );
+  assert(
+    isOverageAlreadySettledForCycle(renewalTs, renewalTs + 4500),
+    "Idempotence: Déjà facturé si écart de quelques secondes entre Webhook et Cron (< 12h)"
+  );
+  assert(
+    !isOverageAlreadySettledForCycle(renewalTs, renewalTs + 30 * 24 * 60 * 60 * 1000),
+    "Idempotence: Nouveau cycle mensuel (+30j) autorisé à être évalué"
+  );
+
+  // Cycle Click Baseline Reset (periodStartClicksSnapshot)
+  assert(
+    computeCycleClickUsage(200000, 0) === 200000,
+    "Cycle 1: 200,000 clics cumulés (baseline = 0) → 200,000 clics sur la période"
+  );
+  assert(
+    computeCycleClickUsage(200000, 200000) === 0,
+    "Cycle 2 (après renouvellement): 200,000 clics cumulés (baseline = 200,000) → compteur remis à 0"
+  );
+  assert(
+    computeCycleClickUsage(360000, 200000) === 160000,
+    "Cycle 2 (en cours): 360,000 clics cumulés (baseline = 200,000) → 160,000 clics sur le nouveau cycle"
+  );
+  assert(
+    computeCycleClickUsage(180000, 200000) === 0,
+    "Suppression de lien (rawTotalClicks < baseline): ne retombe jamais sur les clics historiques (0)"
+  );
 
   console.log("\n=======================================================");
   console.log("  3. GENERATION DES APERÇUS HTML DES MAILS");
@@ -403,14 +444,14 @@ async function runVerification() {
     fs.mkdirSync(previewDir, { recursive: true });
   }
 
-  // 1. Email Pré-Renouvellement J-2 Pro (175 000 clics = +25k clics, 1 lot de 50k = +$3.00)
+  // 1. Email Pré-Renouvellement J-2 Pro (200 000 clics = +50k clics, 1 lot complet de 50k = +$3.00)
   const preHtml = generatePreRenewalEmailHtml({
     name: "Alexandre Dupont",
     plan: "PRO",
     daysRemaining: 2,
     isAutoRenew: true,
     overageInfo: {
-      overageClicks: 25000,
+      overageClicks: 50000,
       batches: 1,
       cost: 3.0,
       batchSize: 50000,
@@ -432,7 +473,7 @@ async function runVerification() {
     cycle: "Mensuel",
     invoiceNumber: "INV-DODO-7B9F12A",
     overageDetails: {
-      overageClicks: 25000,
+      overageClicks: 50000,
       batches: 1,
       cost: 3.0,
       baseAmount: 15.0,
