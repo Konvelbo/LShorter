@@ -1,5 +1,6 @@
 "use server";
 
+import { after } from "next/server";
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
 import { sendSignupVerificationPinEmail } from "@/lib/resend";
@@ -265,23 +266,31 @@ export async function completeSignupWithPinAction({
       cookieStore.delete(SIGNUP_COOKIE_NAME);
     } catch {}
 
-    // Sync user with Cloudflare backend D1 database
-    try {
-      await fetch(`${WORKER_URL}/api/v1/users/sync`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Frontend-Secret": FRONTEND_SECRET,
-        },
-        body: JSON.stringify({
-          id: createdUser.userId,
-          name: createdUser.name,
-          email: cleanEmail,
-          provider: "credentials",
-        }),
+    // Sync user with Cloudflare backend D1 database (non-blocking in background via after())
+    if (WORKER_URL) {
+      after(async () => {
+        try {
+          const syncRes = await fetch(`${WORKER_URL}/api/v1/users/sync`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-Frontend-Secret": FRONTEND_SECRET,
+            },
+            body: JSON.stringify({
+              id: createdUser.userId,
+              name: createdUser.name,
+              email: cleanEmail,
+              provider: "credentials",
+            }),
+            signal: AbortSignal.timeout(3500),
+          });
+          if (!syncRes.ok) {
+            console.warn("[completeSignupWithPinAction] Cloudflare sync HTTP warning:", syncRes.status);
+          }
+        } catch (syncErr) {
+          console.warn("[completeSignupWithPinAction] Cloudflare sync non-fatal warning:", syncErr);
+        }
       });
-    } catch (syncErr) {
-      console.error("Cloudflare user sync error (ignoring):", syncErr);
     }
 
     return {

@@ -385,6 +385,26 @@ export default function LoginPage({
       }
 
       if (!res?.success) {
+        // If account was already registered (e.g. from a quick retry or preceding submit), attempt immediate sign in
+        if (
+          res?.message?.includes("already registered") ||
+          res?.message?.includes("already exists")
+        ) {
+          const signinRes = await signIn("credentials", {
+            email: cleanEmail,
+            password,
+            redirect: false,
+          });
+          if (!signinRes?.error) {
+            confetti({ particleCount: 80, spread: 80, origin: { y: 0.6 } });
+            if (typeof window !== "undefined") {
+              window.location.href = "/onboarding";
+            } else {
+              router.push("/onboarding");
+            }
+            return;
+          }
+        }
         showToast.error(res?.message || "Invalid or expired PIN code.");
         setIsLoading(false);
         return;
@@ -408,7 +428,11 @@ export default function LoginPage({
       }
 
       confetti({ particleCount: 80, spread: 80, origin: { y: 0.6 } });
-      router.push("/onboarding");
+      if (typeof window !== "undefined") {
+        window.location.href = "/onboarding";
+      } else {
+        router.push("/onboarding");
+      }
     } catch (err: any) {
       console.error("Signup validation error:", err);
       showToast.error(err?.message || "Error activating account.");

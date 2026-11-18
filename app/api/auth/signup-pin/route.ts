@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import bcrypt from "bcryptjs";
 import { sendSignupVerificationPinEmail, sendWelcomeEmail } from "@/lib/resend";
 import { convexHttp } from "@/lib/convex-server";
@@ -195,41 +195,61 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // Sync user with backend D1 database (non-blocking)
-      try {
-        if (WORKER_URL) {
-          await fetch(`${WORKER_URL}/api/v1/users/sync`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-Frontend-Secret": FRONTEND_SECRET,
-            },
-            body: JSON.stringify({
-              id: createdUser.userId,
-              name: createdUser.name,
-              email: cleanEmail,
-              provider: "credentials",
-            }),
-          });
-        }
-      } catch (syncErr) {
-        console.warn("[signup-pin] Cloudflare sync non-fatal warning:", syncErr);
-      }
+      // Non-blocking background tasks managed cleanly by Next.js after() to keep serverless execution alive without delaying response
+      after(async () => {
+        const tasks: Promise<any>[] = [];
 
-      // Send welcome email immediately upon registration
-      try {
-        const welcomeRes = await sendWelcomeEmail({
-          to: cleanEmail,
-          name: createdUser.name || cleanEmail.split("@")[0],
-        });
-        if (welcomeRes.success && (createdUser as any).welcomeEmailId) {
-          await convexHttp.mutation(api.users.markWelcomeEmailSent, {
-            id: (createdUser as any).welcomeEmailId,
-          });
+        if (WORKER_URL) {
+          tasks.push(
+            fetch(`${WORKER_URL}/api/v1/users/sync`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "X-Frontend-Secret": FRONTEND_SECRET,
+              },
+              body: JSON.stringify({
+                id: createdUser.userId,
+                name: createdUser.name,
+                email: cleanEmail,
+                provider: "credentials",
+              }),
+              signal: AbortSignal.timeout(3500),
+            })
+              .then((syncRes) => {
+                if (!syncRes.ok) {
+                  console.warn("[signup-pin] Cloudflare sync HTTP warning:", syncRes.status);
+                }
+              })
+              .catch((syncErr) => {
+                console.warn("[signup-pin] Cloudflare sync non-fatal warning:", syncErr);
+              })
+          );
         }
-      } catch (welcomeErr) {
-        console.warn("[signup-pin] Instant welcome email warning:", welcomeErr);
-      }
+
+        // Only send welcome email if this is a newly created account (prevents duplicate emails on retried submissions)
+        if ((createdUser as any).isNew) {
+          tasks.push(
+            sendWelcomeEmail({
+              to: cleanEmail,
+              name: createdUser.name || cleanEmail.split("@")[0],
+            })
+              .then(async (welcomeRes) => {
+                if (welcomeRes.success && (createdUser as any).welcomeEmailId) {
+                  await convexHttp
+                    .mutation(api.users.markWelcomeEmailSent, {
+                      id: (createdUser as any).welcomeEmailId,
+                    })
+                    .catch(() => {});
+                }
+              })
+              .catch((welcomeErr) => {
+                console.warn("[signup-pin] Instant welcome email warning:", welcomeErr);
+              })
+          );
+        }
+
+        await Promise.allSettled(tasks);
+      });
 
       const response = NextResponse.json({
         success: true,

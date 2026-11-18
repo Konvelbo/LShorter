@@ -398,7 +398,15 @@ export const createUserWithVerifiedEmail = mutation({
       .first();
 
     if (existing) {
-      throw new Error("EMAIL_ALREADY_EXISTS");
+      return {
+        success: true,
+        id: existing._id,
+        userId: existing.userId,
+        name: existing.name,
+        email: cleanEmail,
+        isNew: false,
+        hasCompletedOnboarding: existing.hasCompletedOnboarding ?? false,
+      };
     }
 
     const cleanName = args.name.trim();
@@ -446,7 +454,7 @@ export const createUserWithVerifiedEmail = mutation({
       console.warn("Failed to insert welcome notification/email record (non-fatal):", schedErr);
     }
 
-    return { success: true, id, userId, name: finalName, email: cleanEmail, welcomeEmailId };
+    return { success: true, id, userId, name: finalName, email: cleanEmail, isNew: true, welcomeEmailId };
   },
 });
 
