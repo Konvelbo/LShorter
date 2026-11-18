@@ -730,7 +730,7 @@ export default function LinksPage() {
     toggleSelectLink(linkId);
   };
 
-  // --- Undoable Delete Flow for a Single Link ---
+  // --- Confirmation Modal Delete Flow for a Single Link ---
   const promptDeleteSingle = (linkOrId: any) => {
     if (!linkOrId) return;
     let targetLink: ShortLink | undefined;
@@ -765,40 +765,33 @@ export default function LinksPage() {
     const targetId = String(savedLink.id || (savedLink as any)._id || savedLink.slug);
     const targetSlug = savedLink.slug || targetId;
 
-    // 1. Optimistic removal from state immediately
-    pendingDeletedIdsRef.current.add(targetId);
-    if (targetSlug) pendingDeletedIdsRef.current.add(targetSlug);
-    if ((savedLink as any)._id) pendingDeletedIdsRef.current.add(String((savedLink as any)._id));
+    setActiveMenuLink(null);
 
-    setLinks((prev) =>
-      prev.filter(
-        (l: any) =>
-          String(l.id) !== targetId &&
-          l.slug !== targetSlug &&
-          (l._id ? String(l._id) !== targetId : true)
-      )
-    );
-    setSelectedLinkIds((prev) => {
-      const next = new Set(prev);
-      next.delete(targetId);
-      next.delete(savedLink.id);
-      return next;
-    });
-
-    // 2. Trigger the undo toast with 7-second countdown timer
     triggerUndoDelete({
       id: targetId,
       itemType: "link",
       title: "Lien supprimé",
       description: `/${targetSlug}`,
-      duration: 7,
+      confirmText: targetSlug,
       onExecute: async () => {
         permanentlyDeletedIdsRef.current.add(targetId);
         if (targetSlug) permanentlyDeletedIdsRef.current.add(targetSlug);
         if ((savedLink as any)._id) permanentlyDeletedIdsRef.current.add(String((savedLink as any)._id));
-        pendingDeletedIdsRef.current.delete(targetId);
-        if (targetSlug) pendingDeletedIdsRef.current.delete(targetSlug);
-        if ((savedLink as any)._id) pendingDeletedIdsRef.current.delete(String((savedLink as any)._id));
+
+        setLinks((prev) =>
+          prev.filter(
+            (l: any) =>
+              String(l.id) !== targetId &&
+              l.slug !== targetSlug &&
+              (l._id ? String(l._id) !== targetId : true)
+          )
+        );
+        setSelectedLinkIds((prev) => {
+          const next = new Set(prev);
+          next.delete(targetId);
+          next.delete(savedLink.id);
+          return next;
+        });
 
         try {
           await cfDeleteLink(targetId, userId, targetSlug, savedLink.ogImage);
@@ -814,25 +807,14 @@ export default function LinksPage() {
           if (targetSlug) permanentlyDeletedIdsRef.current.delete(targetSlug);
           if ((savedLink as any)._id) permanentlyDeletedIdsRef.current.delete(String((savedLink as any)._id));
           await loadLinks(true, true);
+          return false;
         }
-      },
-      onCancel: () => {
-        pendingDeletedIdsRef.current.delete(targetId);
-        if (targetSlug) pendingDeletedIdsRef.current.delete(targetSlug);
-        if ((savedLink as any)._id) pendingDeletedIdsRef.current.delete(String((savedLink as any)._id));
-
-        setLinks((prev) => {
-          if (prev.some((l: any) => String(l.id) === targetId || l.slug === targetSlug)) {
-            return prev;
-          }
-          return [savedLink, ...prev];
-        });
       },
     });
   };
   const start10SecondUndoDelete = promptDeleteSingle;
 
-  // Trigger undoable delete for bulk selection
+  // Trigger confirmation modal delete for bulk selection
   const promptDeleteBulk = (customIds?: string[]) => {
     const targetIds = (
       customIds && customIds.length > 0
@@ -852,57 +834,38 @@ export default function LinksPage() {
     const count = Math.max(selectedLinks.length, targetIds.length);
     const savedLinks = [...selectedLinks];
 
-    // 1. Optimistic removal immediately
-    targetIds.forEach((id) => pendingDeletedIdsRef.current.add(id));
-    selectedLinks.forEach((l: any) => {
-      if (l.slug) pendingDeletedIdsRef.current.add(String(l.slug));
-      if (l.id) pendingDeletedIdsRef.current.add(String(l.id));
-      if (l._id) pendingDeletedIdsRef.current.add(String(l._id));
-    });
-
-    setLinks((prev) =>
-      prev.filter(
-        (l: any) =>
-          !targetIds.some(
-            (tid) =>
-              String(l.id) === String(tid) ||
-              l.slug === String(tid) ||
-              (l._id && String(l._id) === String(tid))
-          )
-      )
-    );
-    setSelectedLinkIds(new Set());
-
-    // 2. Trigger the undo toast with 7-second countdown timer
     triggerUndoDelete({
       id: `bulk_${Date.now()}`,
       itemType: "link",
       title: count > 1 ? `${count} liens supprimés` : "Lien supprimé",
       description: count > 1 ? `${count} liens sélectionnés` : (savedLinks[0]?.slug ? `/${savedLinks[0].slug}` : undefined),
-      duration: 7,
+      confirmText: count === 1 && savedLinks[0]?.slug ? savedLinks[0].slug : "DELETE",
       onExecute: async () => {
         targetIds.forEach((id) => {
           permanentlyDeletedIdsRef.current.add(id);
-          pendingDeletedIdsRef.current.delete(id);
         });
         savedLinks.forEach((l: any) => {
-          if (l.slug) {
-            permanentlyDeletedIdsRef.current.add(String(l.slug));
-            pendingDeletedIdsRef.current.delete(String(l.slug));
-          }
-          if (l.id) {
-            permanentlyDeletedIdsRef.current.add(String(l.id));
-            pendingDeletedIdsRef.current.delete(String(l.id));
-          }
-          if (l._id) {
-            permanentlyDeletedIdsRef.current.add(String(l._id));
-            pendingDeletedIdsRef.current.delete(String(l._id));
-          }
+          if (l.slug) permanentlyDeletedIdsRef.current.add(String(l.slug));
+          if (l.id) permanentlyDeletedIdsRef.current.add(String(l.id));
+          if (l._id) permanentlyDeletedIdsRef.current.add(String(l._id));
         });
+
+        setLinks((prev) =>
+          prev.filter(
+            (l: any) =>
+              !targetIds.some(
+                (tid) =>
+                  String(l.id) === String(tid) ||
+                  l.slug === String(tid) ||
+                  (l._id && String(l._id) === String(tid))
+              )
+          )
+        );
+        setSelectedLinkIds(new Set());
 
         try {
           await cfBulkDeleteLinks(targetIds, userId).catch(async () => {
-            return Promise.allSettled(
+            const results = await Promise.allSettled(
               targetIds.map((id) => {
                 const target = savedLinks.find(
                   (l: any) => String(l.id) === String(id) || l.slug === String(id)
@@ -910,6 +873,9 @@ export default function LinksPage() {
                 return cfDeleteLink(id, userId, target?.slug, target?.ogImage);
               })
             );
+            if (results.every((r) => r.status === "rejected")) {
+              throw new Error("All bulk delete operations failed");
+            }
           });
           cfInvalidateCache();
           if (typeof window !== "undefined") {
@@ -926,19 +892,8 @@ export default function LinksPage() {
             if (l._id) permanentlyDeletedIdsRef.current.delete(String(l._id));
           });
           await loadLinks(true, true);
+          return false;
         }
-      },
-      onCancel: () => {
-        targetIds.forEach((id) => pendingDeletedIdsRef.current.delete(id));
-        savedLinks.forEach((l: any) => {
-          if (l.slug) pendingDeletedIdsRef.current.delete(String(l.slug));
-          if (l.id) pendingDeletedIdsRef.current.delete(String(l.id));
-          if (l._id) pendingDeletedIdsRef.current.delete(String(l._id));
-        });
-        setLinks((prev) => {
-          const missing = savedLinks.filter((s) => !prev.some((p) => String(p.id) === String(s.id) || p.slug === s.slug));
-          return [...missing, ...prev];
-        });
       },
     });
   };
@@ -1054,28 +1009,17 @@ export default function LinksPage() {
 
     const deltaX = swipeCurrentXRef.current - swipeStartXRef.current;
     const card = document.getElementById(`link-card-${link.id}`);
-    const wrapper = document.getElementById(`link-wrapper-${link.id}`);
 
     if (card) {
       card.classList.add("link-smooth-snap");
+      card.style.transform = "translateX(0px)";
+      card.style.opacity = "1";
     }
+    const swipeBg = document.getElementById(`link-swipe-bg-${link.id}`);
+    if (swipeBg) swipeBg.style.opacity = "0";
 
     if (deltaX < -80) {
-      if (card) {
-        card.style.transform = "translateX(-110%)";
-        card.style.opacity = "0";
-      }
-      if (wrapper) wrapper.classList.add("link-card-exit");
-      setTimeout(() => {
-        start10SecondUndoDelete(link);
-      }, 300);
-    } else {
-      if (card) {
-        card.style.transform = "translateX(0px)";
-        card.style.opacity = "1";
-      }
-      const swipeBg = document.getElementById(`link-swipe-bg-${link.id}`);
-      if (swipeBg) swipeBg.style.opacity = "0";
+      start10SecondUndoDelete(link);
     }
 
     activeSwipeIdRef.current = null;

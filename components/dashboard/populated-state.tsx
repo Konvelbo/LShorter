@@ -1131,33 +1131,31 @@ export function PopulatedState({
       linkObj = linkOrId;
     } else {
       linkId = String(linkOrId || "");
-      linkSlug = linkId;
       linkObj = links.find((l) => String(l.id) === linkId || l.slug === linkId);
+      linkSlug = String(linkObj?.slug || linkId);
     }
     if (!linkId) return;
 
-    // 1. Optimistic removal from UI immediately
-    setPendingDeletedIds((prev) => {
-      const next = new Set(prev);
-      next.add(linkId);
-      if (linkSlug) next.add(linkSlug);
-      return next;
-    });
-
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(
-        new CustomEvent("lshorter_link_deleted", { detail: { id: linkId, slug: linkSlug } })
-      );
-    }
-
-    // 2. Trigger the undo toast with 7s countdown timer
     triggerUndoDelete({
       id: linkId,
       itemType: "link",
       title: "Lien supprimé",
       description: `/${linkSlug}`,
-      duration: 7,
+      confirmText: linkSlug,
       onExecute: async () => {
+        setPendingDeletedIds((prev) => {
+          const next = new Set(prev);
+          next.add(linkId);
+          if (linkSlug) next.add(linkSlug);
+          return next;
+        });
+
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("lshorter_link_deleted", { detail: { id: linkId, slug: linkSlug } })
+          );
+        }
+
         try {
           await cfDeleteLink(linkId, userId, linkSlug, linkObj?.ogImage);
           cfInvalidateCache();
@@ -1176,19 +1174,7 @@ export function PopulatedState({
             return next;
           });
           onRefresh?.();
-        }
-      },
-      onCancel: () => {
-        setPendingDeletedIds((prev) => {
-          const next = new Set(prev);
-          next.delete(linkId);
-          if (linkSlug) next.delete(linkSlug);
-          return next;
-        });
-        if (typeof window !== "undefined" && linkObj) {
-          window.dispatchEvent(
-            new CustomEvent("lshorter_links_updated", { detail: linkObj })
-          );
+          return false;
         }
       },
     });
@@ -1198,22 +1184,24 @@ export function PopulatedState({
     if (!ids || ids.length === 0) return;
     const targetIds = ids.map((id) => String(id).trim()).filter(Boolean);
     const count = targetIds.length;
+    const firstLink =
+      count === 1
+        ? links.find((l) => String(l.id) === targetIds[0] || l.slug === targetIds[0])
+        : undefined;
 
-    // 1. Optimistic removal immediately
-    setPendingDeletedIds((prev) => {
-      const next = new Set(prev);
-      targetIds.forEach((id) => next.add(id));
-      return next;
-    });
-
-    // 2. Trigger undo delete with 7-second countdown timer
     triggerUndoDelete({
       id: `bulk_${Date.now()}`,
       itemType: "link",
       title: count > 1 ? `${count} liens supprimés` : "Lien supprimé",
-      description: count > 1 ? `${count} liens sélectionnés` : undefined,
-      duration: 7,
+      description: count > 1 ? `${count} liens sélectionnés` : (firstLink?.slug ? `/${firstLink.slug}` : undefined),
+      confirmText: count === 1 && firstLink?.slug ? firstLink.slug : "DELETE",
       onExecute: async () => {
+        setPendingDeletedIds((prev) => {
+          const next = new Set(prev);
+          targetIds.forEach((id) => next.add(id));
+          return next;
+        });
+
         try {
           await cfBulkDeleteLinks(targetIds, userId);
           cfInvalidateCache();
@@ -1231,14 +1219,8 @@ export function PopulatedState({
             return next;
           });
           onRefresh?.();
+          return false;
         }
-      },
-      onCancel: () => {
-        setPendingDeletedIds((prev) => {
-          const next = new Set(prev);
-          targetIds.forEach((id) => next.delete(id));
-          return next;
-        });
       },
     });
   };

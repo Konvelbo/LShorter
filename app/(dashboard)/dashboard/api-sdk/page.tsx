@@ -132,31 +132,23 @@ export default function ApiSdkPage() {
   };
 
   const promptRevokeKeyWithUndo = (key: ApiKeyItem) => {
-    const originalIndex = keys.findIndex((k) => k.id === key.id);
-    setKeys((prev) => prev.filter((k) => k.id !== key.id));
-
+    const label = key.name || key.prefix || "Clé API";
     triggerUndoDelete({
       id: key.id,
       itemType: "api_key",
       title: "Clé API révoquée",
-      description: key.name || key.prefix || "Clé API",
-      duration: 10,
+      description: label,
+      confirmText: label,
       onExecute: async () => {
+        setKeys((prev) => prev.filter((k) => k.id !== key.id));
         try {
           await cfRevokeApiKey(key.id, userId);
           cfInvalidateCache("/api/keys");
         } catch {
           loadKeys();
           showToast.error("Erreur lors de la révocation de la clé API.");
+          return false;
         }
-      },
-      onCancel: () => {
-        setKeys((prev) => {
-          if (prev.some((k) => k.id === key.id)) return prev;
-          const next = [...prev];
-          next.splice(originalIndex >= 0 ? Math.min(originalIndex, next.length) : next.length, 0, key);
-          return next;
-        });
       },
     });
   };

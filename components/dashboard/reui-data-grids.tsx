@@ -1322,22 +1322,25 @@ export function LinksReuiDataGrid({
                   type="button"
                   onClick={async () => {
                     const idsToDelete = [...selectedLinkIdsList];
-                    setSelectedIds({});
-                    if (onDeleteMultiple) {
+                    if (idsToDelete.length === 1 && onDeleteLink) {
+                      const rowObj = rowsData.find((r) => r.id === idsToDelete[0]);
+                      onDeleteLink(rowObj?.raw || idsToDelete[0]);
+                    } else if (onDeleteMultiple) {
                       onDeleteMultiple(idsToDelete);
                     } else if (onDeleteLink) {
-                      idsToDelete.forEach((id) => {
-                        const rowObj = rowsData.find((r) => r.id === id);
-                        onDeleteLink(rowObj?.raw || id);
-                      });
+                      const firstRow = rowsData.find((r) => r.id === idsToDelete[0]);
+                      onDeleteLink(firstRow?.raw || idsToDelete[0]);
                     } else {
                       const count = idsToDelete.length;
+                      const firstRow = rowsData.find((r) => r.id === idsToDelete[0]);
                       triggerGlobalUndoDelete({
                         id: `bulk_${Date.now()}`,
                         itemType: "link",
                         title: count > 1 ? `${count} liens supprimés` : "Lien supprimé",
-                        duration: 7,
+                        description: count > 1 ? `${count} liens sélectionnés` : (firstRow?.slug ? `/${firstRow.slug}` : undefined),
+                        confirmText: count === 1 && firstRow?.slug ? firstRow.slug : "DELETE",
                         onExecute: async () => {
+                          setSelectedIds({});
                           try {
                             await cfBulkDeleteLinks(idsToDelete, effectiveUserId);
                             cfInvalidateCache();
@@ -1345,6 +1348,7 @@ export function LinksReuiDataGrid({
                             window.dispatchEvent(new CustomEvent("lshorter_links_updated"));
                           } catch {
                             showToast.error("Erreur lors de la suppression des liens");
+                            return false;
                           }
                         },
                       });
@@ -1655,22 +1659,25 @@ export function LinksReuiDataGrid({
               type="button"
               onClick={async () => {
                 const idsToDelete = [...selectedLinkIdsList];
-                setSelectedIds({});
-                if (onDeleteMultiple) {
+                if (idsToDelete.length === 1 && onDeleteLink) {
+                  const rowObj = rowsData.find((r) => r.id === idsToDelete[0]);
+                  onDeleteLink(rowObj?.raw || idsToDelete[0]);
+                } else if (onDeleteMultiple) {
                   onDeleteMultiple(idsToDelete);
                 } else if (onDeleteLink) {
-                  idsToDelete.forEach((id) => {
-                    const rowObj = rowsData.find((r) => r.id === id);
-                    onDeleteLink(rowObj?.raw || id);
-                  });
+                  const firstRow = rowsData.find((r) => r.id === idsToDelete[0]);
+                  onDeleteLink(firstRow?.raw || idsToDelete[0]);
                 } else {
                   const count = idsToDelete.length;
+                  const firstRow = rowsData.find((r) => r.id === idsToDelete[0]);
                   triggerGlobalUndoDelete({
                     id: `bulk_${Date.now()}`,
                     itemType: "link",
                     title: count > 1 ? `${count} liens supprimés` : "Lien supprimé",
-                    duration: 7,
+                    description: count > 1 ? `${count} liens sélectionnés` : (firstRow?.slug ? `/${firstRow.slug}` : undefined),
+                    confirmText: count === 1 && firstRow?.slug ? firstRow.slug : "DELETE",
                     onExecute: async () => {
+                      setSelectedIds({});
                       try {
                         await cfBulkDeleteLinks(idsToDelete, effectiveUserId);
                         cfInvalidateCache();
@@ -1678,6 +1685,7 @@ export function LinksReuiDataGrid({
                         window.dispatchEvent(new CustomEvent("lshorter_links_updated"));
                       } catch {
                         showToast.error("Erreur lors de la suppression des liens");
+                        return false;
                       }
                     },
                   });

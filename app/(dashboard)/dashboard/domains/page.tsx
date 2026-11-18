@@ -199,31 +199,22 @@ export default function DomainsPage() {
   };
 
   const promptDeleteDomainWithUndo = (dom: CustomDomain) => {
-    const originalIndex = domains.findIndex((d) => d.id === dom.id);
-    setDomains((prev) => prev.filter((d) => d.id !== dom.id));
-
     triggerUndoDelete({
       id: dom.id,
       itemType: "domain",
       title: "Domaine supprimé",
       description: dom.domain,
-      duration: 10,
+      confirmText: dom.domain,
       onExecute: async () => {
+        setDomains((prev) => prev.filter((d) => d.id !== dom.id));
         try {
           await cfDeleteDomain(dom.id, userId);
           cfInvalidateCache("/api/domains");
         } catch {
           loadDomains();
           showToast.error("Erreur lors de la suppression du domaine.");
+          return false;
         }
-      },
-      onCancel: () => {
-        setDomains((prev) => {
-          if (prev.some((d) => d.id === dom.id)) return prev;
-          const next = [...prev];
-          next.splice(originalIndex >= 0 ? Math.min(originalIndex, next.length) : next.length, 0, dom);
-          return next;
-        });
       },
     });
   };

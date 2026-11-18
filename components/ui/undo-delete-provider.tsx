@@ -9,7 +9,7 @@ import React, {
   useMemo,
   useEffect,
 } from "react";
-import { Trash2, RotateCcw, X } from "lucide-react";
+import { Trash2, X, Check } from "lucide-react";
 import { showToast } from "./toast-provider";
 
 export interface UndoDeleteOptions {
@@ -17,20 +17,32 @@ export interface UndoDeleteOptions {
   itemType?: "link" | "api_key" | "domain" | "pixel" | "webhook" | "other";
   title?: string;
   description?: string;
-  duration?: number; // In seconds, default 7
-  onExecute: () => Promise<void> | void;
+  duration?: number;
+  confirmText?: string;
+  modalTitle?: string;
+  modalQuestion?: string;
+  inputPlaceholder?: string;
+  confirmButtonLabel?: string;
+  onExecute: () => Promise<boolean | void> | boolean | void;
   onCancel?: () => void;
 }
 
-interface PendingDeleteItem extends UndoDeleteOptions {
-  remaining: number;
-  totalDuration: number;
+interface CompletedDeleteToast {
+  id: string;
+  title: string;
+  description?: string;
 }
 
 export interface UndoDeleteActions {
   triggerUndoDelete: (options: UndoDeleteOptions) => void;
   cancelUndoDelete: () => void;
   commitUndoDelete: () => void;
+}
+
+declare global {
+  interface Window {
+    __lshorter_triggerUndoDelete?: (options: UndoDeleteOptions) => void;
+  }
 }
 
 const UndoDeleteActionsContext = createContext<UndoDeleteActions | null>(null);
@@ -43,7 +55,6 @@ export const triggerGlobalUndoDelete = (options: UndoDeleteOptions) => {
   if (globalUndoDeleteHandler) {
     globalUndoDeleteHandler(options);
   } else {
-    // Fallback: execute immediately if provider isn't mounted yet
     void Promise.resolve(options.onExecute()).catch(console.error);
   }
 };
@@ -56,109 +67,306 @@ export const commitGlobalUndoDelete = () => {
   globalCommitHandler?.();
 };
 
+function resolveModalCopy(item: UndoDeleteOptions) {
+  const rawDesc = (item.description || "").trim();
+  const cleanSlug = rawDesc.replace(/^\/+/, "").trim();
+  const customConfirm = (item.confirmText || "").trim();
+  const isBulk =
+    /liens supprimés/i.test(item.title || "") ||
+    /^\d+\s+liens/i.test(rawDesc) ||
+    (item.id.startsWith("bulk_") && (!customConfirm || customConfirm === "DELETE"));
+
+  switch (item.itemType) {
+    case "domain":
+      return {
+        modalTitle: item.modalTitle || "Delete domain",
+        modalQuestion:
+          item.modalQuestion || "Are you sure you want to delete this domain?",
+        confirmText: customConfirm || rawDesc || "DELETE",
+        copyAriaLabel: "Copy domain name",
+        inputAriaLabel: "Domain name",
+        inputPlaceholder: item.inputPlaceholder || "Enter domain name",
+        confirmButtonLabel: item.confirmButtonLabel || "Delete domain",
+      };
+    case "api_key":
+      return {
+        modalTitle: item.modalTitle || "Delete API key",
+        modalQuestion:
+          item.modalQuestion || "Are you sure you want to revoke this API key?",
+        confirmText: customConfirm || rawDesc || "DELETE",
+        copyAriaLabel: "Copy API key name",
+        inputAriaLabel: "API key name",
+        inputPlaceholder: item.inputPlaceholder || "Enter API key name",
+        confirmButtonLabel: item.confirmButtonLabel || "Delete API key",
+      };
+    case "webhook":
+      return {
+        modalTitle: item.modalTitle || "Delete webhook",
+        modalQuestion:
+          item.modalQuestion || "Are you sure you want to delete this webhook?",
+        confirmText: customConfirm || rawDesc || "DELETE",
+        copyAriaLabel: "Copy webhook URL",
+        inputAriaLabel: "Webhook URL",
+        inputPlaceholder: item.inputPlaceholder || "Enter webhook URL",
+        confirmButtonLabel: item.confirmButtonLabel || "Delete webhook",
+      };
+    case "pixel":
+      return {
+        modalTitle: item.modalTitle || "Delete pixel",
+        modalQuestion:
+          item.modalQuestion || "Are you sure you want to delete this pixel?",
+        confirmText: customConfirm || rawDesc || "DELETE",
+        copyAriaLabel: "Copy pixel name",
+        inputAriaLabel: "Pixel name",
+        inputPlaceholder: item.inputPlaceholder || "Enter pixel name",
+        confirmButtonLabel: item.confirmButtonLabel || "Delete pixel",
+      };
+    case "other":
+      return {
+        modalTitle: item.modalTitle || "Delete alert",
+        modalQuestion:
+          item.modalQuestion || "Are you sure you want to delete this alert?",
+        confirmText: customConfirm || cleanSlug || "DELETE",
+        copyAriaLabel: "Copy name",
+        inputAriaLabel: "Confirmation name",
+        inputPlaceholder: item.inputPlaceholder || "Enter name to confirm",
+        confirmButtonLabel: item.confirmButtonLabel || "Delete alert",
+      };
+    case "link":
+    default:
+      if (isBulk) {
+        return {
+          modalTitle: item.modalTitle || "Delete links",
+          modalQuestion:
+            item.modalQuestion ||
+            "Are you sure you want to delete the selected links?",
+          confirmText: customConfirm || "DELETE",
+          copyAriaLabel: "Copy confirmation text",
+          inputAriaLabel: "Confirmation text",
+          inputPlaceholder: item.inputPlaceholder || "Enter DELETE to confirm",
+          confirmButtonLabel: item.confirmButtonLabel || "Delete links",
+        };
+      }
+      return {
+        modalTitle: item.modalTitle || "Delete link",
+        modalQuestion:
+          item.modalQuestion || "Are you sure you want to delete this link?",
+        confirmText: customConfirm || cleanSlug || "Untitled",
+        copyAriaLabel: "Copy link name",
+        inputAriaLabel: "Link name",
+        inputPlaceholder: item.inputPlaceholder || "Enter link name",
+        confirmButtonLabel: item.confirmButtonLabel || "Delete link",
+      };
+  }
+}
+
 export function UndoDeleteProvider({ children }: { children: React.ReactNode }) {
-  const [pendingItem, setPendingItem] = useState<PendingDeleteItem | null>(null);
+  const [pendingItem, setPendingItem] = useState<UndoDeleteOptions | null>(null);
+  const [inputValue, setInputValue] = useState("");
+  const [copiedBadge, setCopiedBadge] = useState(false);
+  const [inputErrorFlash, setInputErrorFlash] = useState(false);
+  const [completedToast, setCompletedToast] = useState<CompletedDeleteToast | null>(
+    null
+  );
 
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const pendingItemRef = useRef<PendingDeleteItem | null>(null);
+  const pendingItemRef = useRef<UndoDeleteOptions | null>(null);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const previousActiveElementRef = useRef<HTMLElement | null>(null);
+  const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const flashTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const copyTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const clearTimers = useCallback(() => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
+  const clearModalTimers = useCallback(() => {
+    if (flashTimerRef.current) {
+      clearTimeout(flashTimerRef.current);
+      flashTimerRef.current = null;
     }
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
+    if (copyTimerRef.current) {
+      clearTimeout(copyTimerRef.current);
+      copyTimerRef.current = null;
     }
   }, []);
 
-  // Commit deletion immediately (execute onExecute)
+  const clearToastTimer = useCallback(() => {
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+      toastTimerRef.current = null;
+    }
+  }, []);
+
+  const dismissCompletedToast = useCallback(() => {
+    clearToastTimer();
+    setCompletedToast(null);
+  }, [clearToastTimer]);
+
+  const showPostDeleteToast = useCallback(
+    (item: UndoDeleteOptions) => {
+      clearToastTimer();
+      setCompletedToast({
+        id: item.id,
+        title: item.title || "Lien supprimé",
+        description: item.description,
+      });
+      toastTimerRef.current = setTimeout(() => {
+        setCompletedToast(null);
+        toastTimerRef.current = null;
+      }, 4000);
+    },
+    [clearToastTimer]
+  );
+
+  // Commit deletion after user confirms in the modal
   const commitUndoDelete = useCallback(async () => {
     const current = pendingItemRef.current;
-    clearTimers();
+    if (!current) return;
+
+    clearModalTimers();
     pendingItemRef.current = null;
     setPendingItem(null);
-    if (current) {
-      try {
-        await current.onExecute();
-      } catch (err) {
-        console.error("Failed to execute deletion:", err);
-        showToast.error("Erreur lors de la suppression.");
-      }
-    }
-  }, [clearTimers]);
+    setInputValue("");
+    setCopiedBadge(false);
+    setInputErrorFlash(false);
 
-  // Cancel deletion and restore state
+    try {
+      const result = await current.onExecute();
+      if (result !== false) {
+        showPostDeleteToast(current);
+      }
+    } catch (err) {
+      console.error("Failed to execute deletion:", err);
+      showToast.error("Erreur lors de la suppression.");
+    }
+  }, [clearModalTimers, showPostDeleteToast]);
+
+  // Cancel modal without deleting
   const cancelUndoDelete = useCallback(() => {
     const current = pendingItemRef.current;
-    clearTimers();
+    clearModalTimers();
     pendingItemRef.current = null;
     setPendingItem(null);
+    setInputValue("");
+    setCopiedBadge(false);
+    setInputErrorFlash(false);
+
     if (current) {
       try {
         current.onCancel?.();
-        showToast.info("Suppression annulée.");
       } catch (err) {
         console.error("Failed to cancel deletion:", err);
       }
     }
-  }, [clearTimers]);
 
-  // Trigger a new undoable deletion with 10s delay
+    const prevEl = previousActiveElementRef.current;
+    previousActiveElementRef.current = null;
+    if (prevEl && typeof prevEl.focus === "function") {
+      setTimeout(() => {
+        try {
+          prevEl.focus();
+        } catch {}
+      }, 0);
+    }
+  }, [clearModalTimers]);
+
+  // Open the confirmation modal
   const triggerUndoDelete = useCallback(
     (options: UndoDeleteOptions) => {
-      // If there's an active item, commit it immediately in the background before starting the next
-      if (pendingItemRef.current) {
-        const prev = pendingItemRef.current;
-        clearTimers();
-        void Promise.resolve(prev.onExecute()).catch((err) => {
-          console.error("Failed to execute previous deletion:", err);
-        });
+      clearModalTimers();
+      if (typeof document !== "undefined") {
+        previousActiveElementRef.current =
+          document.activeElement as HTMLElement | null;
       }
-
-      const totalDuration = options.duration && options.duration > 0 ? options.duration : 7;
-      const newItem: PendingDeleteItem = {
-        ...options,
-        remaining: totalDuration,
-        totalDuration,
-      };
-
-      // Synchronously record ref to eliminate race conditions
-      pendingItemRef.current = newItem;
-      setPendingItem(newItem);
-
-      // Decrement every 1 second
-      intervalRef.current = setInterval(() => {
-        setPendingItem((prev) => {
-          if (!prev) return null;
-          const nextRemaining = prev.remaining <= 1 ? 0 : prev.remaining - 1;
-          if (pendingItemRef.current) {
-            pendingItemRef.current.remaining = nextRemaining;
-          }
-          return { ...prev, remaining: nextRemaining };
-        });
-      }, 1000);
-
-      // Execute deletion after totalDuration * 1000 ms
-      timeoutRef.current = setTimeout(async () => {
-        const itemToExecute = pendingItemRef.current;
-        clearTimers();
-        pendingItemRef.current = null;
-        setPendingItem(null);
-        if (itemToExecute) {
-          try {
-            await itemToExecute.onExecute();
-          } catch (err) {
-            console.error("Failed to execute deletion on timeout:", err);
-            showToast.error("Erreur lors de la suppression.");
-          }
-        }
-      }, totalDuration * 1000);
+      pendingItemRef.current = options;
+      setInputValue("");
+      setCopiedBadge(false);
+      setInputErrorFlash(false);
+      setPendingItem(options);
     },
-    [clearTimers]
+    [clearModalTimers]
   );
+
+  // Focus input when modal opens
+  useEffect(() => {
+    if (pendingItem) {
+      const timer = setTimeout(() => {
+        inputRef.current?.focus();
+      }, 20);
+      return () => clearTimeout(timer);
+    }
+  }, [pendingItem]);
+
+  const modalCopy = useMemo(
+    () => (pendingItem ? resolveModalCopy(pendingItem) : null),
+    [pendingItem]
+  );
+
+  const isConfirmationMatched = useMemo(() => {
+    if (!modalCopy) return false;
+    const expected = modalCopy.confirmText.trim();
+    const typed = inputValue.trim();
+    if (!typed || !expected) return false;
+    return (
+      typed === expected ||
+      typed.replace(/^\/+/, "") === expected.replace(/^\/+/, "")
+    );
+  }, [modalCopy, inputValue]);
+
+  const handleConfirmAttempt = useCallback(() => {
+    if (!pendingItem) return;
+    if (!isConfirmationMatched) {
+      inputRef.current?.focus();
+      setInputErrorFlash(true);
+      if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+      flashTimerRef.current = setTimeout(() => {
+        setInputErrorFlash(false);
+        flashTimerRef.current = null;
+      }, 600);
+      return;
+    }
+    void commitUndoDelete();
+  }, [pendingItem, isConfirmationMatched, commitUndoDelete]);
+
+  // Keyboard shortcuts & Focus trap: Esc to cancel, Ctrl+Enter/Cmd+Enter to confirm, Tab trapped inside modal
+  useEffect(() => {
+    if (!pendingItem) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        cancelUndoDelete();
+      } else if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        e.stopPropagation();
+        handleConfirmAttempt();
+      } else if (e.key === "Tab" && dialogRef.current) {
+        e.stopPropagation();
+        const focusable = Array.from(
+          dialogRef.current.querySelectorAll<HTMLElement>(
+            'button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])'
+          )
+        ).filter((el) => el.offsetParent !== null);
+
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        const active = document.activeElement as HTMLElement | null;
+
+        if (e.shiftKey) {
+          if (!dialogRef.current.contains(active) || active === first) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else if (!dialogRef.current.contains(active) || active === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown, true);
+    return () => window.removeEventListener("keydown", handleKeyDown, true);
+  }, [pendingItem, cancelUndoDelete, handleConfirmAttempt]);
 
   // Hook global listeners
   useEffect(() => {
@@ -167,29 +375,39 @@ export function UndoDeleteProvider({ children }: { children: React.ReactNode }) 
     globalCommitHandler = commitUndoDelete;
 
     if (typeof window !== "undefined") {
-      (window as any).__lshorter_triggerUndoDelete = triggerUndoDelete;
+      window.__lshorter_triggerUndoDelete = triggerUndoDelete;
     }
-
-    // Window beforeunload commit fallback
-    const handleBeforeUnload = () => {
-      if (pendingItemRef.current) {
-        try {
-          void Promise.resolve(pendingItemRef.current.onExecute()).catch(console.error);
-        } catch {}
-      }
-    };
-    window.addEventListener("beforeunload", handleBeforeUnload);
 
     return () => {
       globalUndoDeleteHandler = null;
       globalCancelHandler = null;
       globalCommitHandler = null;
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-      clearTimers();
+      if (typeof window !== "undefined") {
+        delete window.__lshorter_triggerUndoDelete;
+      }
+      clearModalTimers();
+      clearToastTimer();
     };
-  }, [triggerUndoDelete, cancelUndoDelete, commitUndoDelete, clearTimers]);
+  }, [
+    triggerUndoDelete,
+    cancelUndoDelete,
+    commitUndoDelete,
+    clearModalTimers,
+    clearToastTimer,
+  ]);
 
-  // Memoize stable actions context value so consumers NEVER re-render on countdown ticks
+  const handleCopyConfirmText = useCallback(() => {
+    if (!modalCopy) return;
+    navigator.clipboard?.writeText(modalCopy.confirmText).catch(() => {});
+    setCopiedBadge(true);
+    inputRef.current?.focus();
+    if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    copyTimerRef.current = setTimeout(() => {
+      setCopiedBadge(false);
+      copyTimerRef.current = null;
+    }, 1500);
+  }, [modalCopy]);
+
   const actionsValue = useMemo<UndoDeleteActions>(
     () => ({
       triggerUndoDelete,
@@ -199,16 +417,198 @@ export function UndoDeleteProvider({ children }: { children: React.ReactNode }) 
     [triggerUndoDelete, cancelUndoDelete, commitUndoDelete]
   );
 
-  const progressPercent = pendingItem
-    ? Math.max(0, Math.min(100, (pendingItem.remaining / pendingItem.totalDuration) * 100))
-    : 0;
-
   return (
     <UndoDeleteActionsContext.Provider value={actionsValue}>
       {children}
 
-      {/* Floating Undo Toast at Top Center */}
-      {pendingItem && (
+      {/* Broadcast-style Delete Confirmation Modal */}
+      {pendingItem && modalCopy && (
+        <div
+          onClick={cancelUndoDelete}
+          className="fixed inset-0 z-[100000] box-border px-4 sm:px-0 bg-[rgba(9,9,11,0.5)] dark:bg-[rgba(0,0,0,0.72)] backdrop-blur-[2px] flex items-center justify-center animate-in fade-in duration-150"
+          style={{
+            fontFamily:
+              "Inter, system-ui, -apple-system, 'Segoe UI', sans-serif",
+          }}
+        >
+          <div
+            ref={dialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label={modalCopy.modalTitle}
+            onClick={(e) => e.stopPropagation()}
+            className="box-border w-full max-w-[440px] sm:w-[440px] p-4 sm:p-6 rounded-[10px] bg-[#ffffff] dark:bg-[#141416] border border-[#e4e4e7] dark:border-[#27272a] shadow-[0_24px_48px_-12px_rgba(9,9,11,0.22),0_4px_12px_rgba(9,9,11,0.06)] dark:shadow-[0_24px_56px_-12px_rgba(0,0,0,0.85),0_0_1px_1px_rgba(255,255,255,0.05)] animate-in zoom-in-95 duration-150"
+          >
+            {/* Header */}
+            <div className="flex items-center sm:items-start justify-between">
+              <h2 className="m-0 text-[16px] leading-[24px] sm:leading-[1.3] font-semibold text-[#09090b] dark:text-[#fafafa]">
+                {modalCopy.modalTitle}
+              </h2>
+              <button
+                type="button"
+                aria-label="Close"
+                onClick={cancelUndoDelete}
+                className="inline-flex items-center justify-center w-[44px] h-[44px] -my-[10px] -mr-[10px] ml-0 sm:w-[32px] sm:h-[32px] sm:-mt-[4px] sm:-mr-[6px] sm:mb-0 sm:ml-0 p-0 border-0 rounded-[8px] bg-transparent text-[#52525b] dark:text-[#a1a1aa] hover:bg-[#f4f4f5] dark:hover:bg-[#27272a]/60 hover:text-[#09090b] dark:hover:text-[#fafafa] transition-colors cursor-pointer"
+              >
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M18 6 6 18" />
+                  <path d="m6 6 12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Desktop Warning (2 stacked lines) */}
+            <div className="hidden sm:flex mt-4 flex-col gap-1">
+              <p className="m-0 text-[14px] leading-[1.5] text-[#52525b] dark:text-[#a1a1aa]">
+                {modalCopy.modalQuestion}
+              </p>
+              <p className="m-0 text-[14px] leading-[1.5] font-semibold text-[#dc2626] dark:text-[#f87171]">
+                This cannot be undone.
+              </p>
+            </div>
+
+            {/* Mobile Warning (inline paragraph) */}
+            <p className="sm:hidden mt-3 mb-0 text-[14px] leading-[1.45] text-[#52525b] dark:text-[#a1a1aa]">
+              {modalCopy.modalQuestion}{" "}
+              <span className="font-semibold text-[#dc2626] dark:text-[#f87171]">
+                This cannot be undone.
+              </span>
+            </p>
+
+            {/* Type-to-confirm Prompt & Copy Badge */}
+            <p
+              id="delete-confirm-prompt"
+              className="mt-3 mb-2 sm:mt-4 sm:mb-[10px] text-[14px] leading-[1.45] sm:leading-[1.5] text-[#52525b] dark:text-[#a1a1aa]"
+            >
+              Type{" "}
+              <span className="inline-flex items-center gap-[4px] sm:gap-[6px] align-middle bg-[#f4f4f5] dark:bg-[#27272a] border border-[#e4e4e7] dark:border-[#27272a] rounded-[6px] py-[1px] pr-[2px] pl-[8px] sm:py-[2px] sm:pr-[4px] sm:pl-[8px] text-[13px] font-medium text-[#09090b] dark:text-[#fafafa] max-w-full">
+                <span className="truncate max-w-[240px]">
+                  {modalCopy.confirmText}
+                </span>
+                <button
+                  type="button"
+                  aria-label={modalCopy.copyAriaLabel}
+                  onClick={handleCopyConfirmText}
+                  className="inline-flex items-center justify-center w-[28px] h-[28px] sm:w-[22px] sm:h-[22px] m-0 p-0 border-0 rounded-[4px] bg-transparent text-[#52525b] dark:text-[#a1a1aa] hover:bg-black/5 dark:hover:bg-white/10 hover:text-[#09090b] dark:hover:text-[#fafafa] transition-colors cursor-pointer shrink-0"
+                >
+                  {copiedBadge ? (
+                    <Check className="w-[13px] h-[13px] text-emerald-600 dark:text-emerald-400 stroke-[2.2]" />
+                  ) : (
+                    <svg
+                      width="13"
+                      height="13"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+                      <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+                    </svg>
+                  )}
+                </button>
+              </span>{" "}
+              to confirm.
+            </p>
+
+            {/* Confirmation Input */}
+            <input
+              ref={inputRef}
+              type="text"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleConfirmAttempt();
+                }
+              }}
+              aria-label={modalCopy.inputAriaLabel}
+              aria-describedby="delete-confirm-prompt"
+              aria-invalid={inputErrorFlash}
+              placeholder={modalCopy.inputPlaceholder}
+              className={`box-border w-full h-[44px] sm:h-[40px] px-[12px] rounded-[8px] bg-[#ffffff] dark:bg-[#1f1f23] text-[#09090b] dark:text-[#fafafa] placeholder:text-[#a1a1aa] dark:placeholder:text-[#71717a] text-[16px] sm:text-[14px] outline-none transition-all ${
+                inputErrorFlash
+                  ? "border border-[#dc2626] shadow-[0_0_0_3px_rgba(220,38,38,0.22)] dark:shadow-[0_0_0_3px_rgba(248,113,113,0.30)]"
+                  : "border border-[#0066FF] shadow-[0_0_0_3px_rgba(0,102,255,0.18)] dark:shadow-[0_0_0_3px_rgba(0,102,255,0.30)]"
+              }`}
+              style={{
+                fontFamily:
+                  "Inter, system-ui, -apple-system, 'Segoe UI', sans-serif",
+              }}
+            />
+
+            {/* Footer Actions */}
+            <div className="mt-4 sm:mt-6 flex sm:justify-end gap-2 sm:gap-[10px]">
+              <button
+                type="button"
+                onClick={cancelUndoDelete}
+                className="flex-1 sm:flex-initial h-[44px] sm:h-[40px] rounded-[8px] text-[14px] font-semibold inline-flex items-center justify-center gap-2 px-2 sm:px-4 cursor-pointer bg-[#ffffff] dark:bg-[#1f1f23] text-[#09090b] dark:text-[#fafafa] border border-[#d0d5dd] dark:border-[#2e2e33] hover:bg-[#f4f4f5]/60 dark:hover:bg-[#27272a] transition-colors"
+                style={{
+                  fontFamily:
+                    "Inter, system-ui, -apple-system, 'Segoe UI', sans-serif",
+                }}
+              >
+                <span>Cancel</span>
+                <span className="hidden sm:inline-flex items-center h-[18px] px-[5px] rounded-[4px] bg-[#f4f4f5] dark:bg-[#27272a] text-[#52525b] dark:text-[#a1a1aa] text-[11px] font-medium">
+                  Esc
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleConfirmAttempt}
+                className={`flex-1 sm:flex-initial h-[44px] sm:h-[40px] rounded-[8px] text-[14px] font-semibold inline-flex items-center justify-center gap-2 px-2 sm:px-4 bg-[rgba(220,38,38,0.10)] dark:bg-[rgba(239,68,68,0.14)] text-[#b91c1c] dark:text-[#f87171] border border-[rgba(220,38,38,0.25)] dark:border-[rgba(239,68,68,0.30)] transition-all ${
+                  isConfirmationMatched
+                    ? "cursor-pointer hover:bg-[rgba(220,38,38,0.18)] dark:hover:bg-[rgba(239,68,68,0.22)] active:scale-[0.99]"
+                    : "cursor-pointer opacity-90 hover:bg-[rgba(220,38,38,0.14)] dark:hover:bg-[rgba(239,68,68,0.18)]"
+                }`}
+                style={{
+                  fontFamily:
+                    "Inter, system-ui, -apple-system, 'Segoe UI', sans-serif",
+                }}
+              >
+                <span>{modalCopy.confirmButtonLabel}</span>
+                <span className="hidden sm:inline-flex items-center h-[18px] px-[5px] rounded-[4px] bg-[rgba(185,28,28,0.12)] dark:bg-[rgba(248,113,113,0.16)] text-[#b91c1c] dark:text-[#f87171] text-[11px] font-medium">
+                  Ctrl
+                </span>
+                <span className="hidden sm:inline-flex items-center h-[18px] px-[5px] rounded-[4px] bg-[rgba(185,28,28,0.12)] dark:bg-[rgba(248,113,113,0.16)] text-[#b91c1c] dark:text-[#f87171] text-[11px] font-medium">
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <polyline points="9 10 4 15 9 20" />
+                    <path d="M20 4v7a4 4 0 0 1-4 4H4" />
+                  </svg>
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Post-Deletion Notification Toast (No Countdown Timer / No Undo Button) */}
+      {completedToast && (
         <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[99999] pointer-events-auto w-full max-w-[390px] px-3 animate-in fade-in slide-in-from-top-3 duration-200">
           <div
             role="status"
@@ -223,34 +623,21 @@ export function UndoDeleteProvider({ children }: { children: React.ReactNode }) 
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="text-[13px] font-semibold text-neutral-900 dark:text-white truncate leading-tight">
-                    {pendingItem.title || "Lien supprimé"}
+                    {completedToast.title}
                   </div>
-                  {pendingItem.description && (
+                  {completedToast.description && (
                     <div className="text-[11px] text-neutral-500 dark:text-neutral-400 font-mono truncate leading-normal mt-0.5">
-                      {pendingItem.description}
+                      {completedToast.description}
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Right Action: Button "Annuler" + Countdown + Instant Commit */}
+              {/* Right Action: Close Button Only */}
               <div className="flex items-center gap-1.5 shrink-0">
                 <button
                   type="button"
-                  onClick={cancelUndoDelete}
-                  className="h-7 px-2.5 rounded-[7px] bg-neutral-900 text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-950 dark:hover:bg-neutral-200 font-medium text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
-                  title="Annuler la suppression"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Annuler</span>
-                  <span className="font-mono text-[11px] font-semibold tabular-nums opacity-85 border-l border-white/20 dark:border-black/20 pl-1">
-                    {pendingItem.remaining}s
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={commitUndoDelete}
+                  onClick={dismissCompletedToast}
                   className="p-1 rounded-[6px] text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
                   aria-label="Fermer"
                   title="Fermer"
@@ -258,14 +645,6 @@ export function UndoDeleteProvider({ children }: { children: React.ReactNode }) 
                   <X className="w-3.5 h-3.5" />
                 </button>
               </div>
-            </div>
-
-            {/* Subtle Progress Bar */}
-            <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-neutral-100 dark:bg-white/5">
-              <div
-                className="h-full bg-red-500 dark:bg-red-400 transition-all duration-1000 ease-linear"
-                style={{ width: `${progressPercent}%` }}
-              />
             </div>
           </div>
         </div>

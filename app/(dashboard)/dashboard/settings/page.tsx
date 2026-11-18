@@ -1208,20 +1208,37 @@ console.log("Top Countries:", topAudience.topCountries);`,
     }
   };
 
-  const handleDeleteTarget = async (alertId: string) => {
+  const handleDeleteTarget = (alertId: string) => {
     if (alertId.startsWith("global_")) {
       showToast.error("Global workspace target cannot be deleted");
       return;
     }
     setOpenRowMenuId(null);
-    setTargetAlerts((prev) => prev.filter((a) => a.id !== alertId));
-    try {
-      await cfDeleteTargetAlert(alertId);
-      showToast.success("Alert deleted successfully");
-    } catch {
-      showToast.error("Failed to delete alert");
-      loadTargetAlerts();
-    }
+    const targetObj = targetAlerts.find((a) => a.id === alertId);
+    const linked = targetObj
+      ? userLinksList.find(
+          (l) => String(l.id) === String(targetObj.linkId) || l.slug === targetObj.linkId
+        )
+      : undefined;
+    const label = linked?.slug || targetObj?.linkId || "DELETE";
+
+    triggerUndoDelete({
+      id: alertId,
+      itemType: "other",
+      title: "Alerte supprimée",
+      description: linked?.slug ? `/${linked.slug}` : label,
+      confirmText: label,
+      onExecute: async () => {
+        setTargetAlerts((prev) => prev.filter((a) => a.id !== alertId));
+        try {
+          await cfDeleteTargetAlert(alertId);
+        } catch {
+          showToast.error("Failed to delete alert");
+          loadTargetAlerts();
+          return false;
+        }
+      },
+    });
   };
 
   const handleOpenCreateModal = () => {
@@ -1687,31 +1704,23 @@ console.log("Top Countries:", topAudience.topCountries);`,
   };
 
   const promptRevokeKeyWithUndo = (k: ApiKeyItem) => {
-    const originalIndex = apiKeys.findIndex((item) => item.id === k.id);
-    setApiKeys((prev) => prev.filter((item) => item.id !== k.id));
-
+    const label = k.name || k.prefix || "Clé API";
     triggerUndoDelete({
       id: k.id,
       itemType: "api_key",
       title: "Clé API révoquée",
-      description: k.name || k.prefix || "Clé API",
-      duration: 10,
+      description: label,
+      confirmText: label,
       onExecute: async () => {
+        setApiKeys((prev) => prev.filter((item) => item.id !== k.id));
         try {
           await cfRevokeApiKey(k.id, userId);
           cfInvalidateCache("/api/keys");
         } catch {
           loadApiKeys();
           showToast.error("Erreur lors de la révocation de la clé API.");
+          return false;
         }
-      },
-      onCancel: () => {
-        setApiKeys((prev) => {
-          if (prev.some((item) => item.id === k.id)) return prev;
-          const next = [...prev];
-          next.splice(originalIndex >= 0 ? Math.min(originalIndex, next.length) : next.length, 0, k);
-          return next;
-        });
       },
     });
   };
@@ -1777,31 +1786,22 @@ console.log("Top Countries:", topAudience.topCountries);`,
   };
 
   const handleDeleteWebhookWithUndo = (wh: WebhookConfig) => {
-    const originalIndex = webhooks.findIndex((w) => w.id === wh.id);
-    setWebhooks((prev) => prev.filter((w) => w.id !== wh.id));
-
     triggerUndoDelete({
       id: wh.id,
       itemType: "webhook",
       title: "Webhook supprimé",
       description: wh.url,
-      duration: 10,
+      confirmText: wh.url,
       onExecute: async () => {
+        setWebhooks((prev) => prev.filter((w) => w.id !== wh.id));
         try {
           await cfDeleteWebhook(wh.id, userId);
           cfInvalidateCache("/api/webhooks");
         } catch {
           loadWebhooks();
           showToast.error("Échec de suppression du webhook");
+          return false;
         }
-      },
-      onCancel: () => {
-        setWebhooks((prev) => {
-          if (prev.some((w) => w.id === wh.id)) return prev;
-          const next = [...prev];
-          next.splice(originalIndex >= 0 ? Math.min(originalIndex, next.length) : next.length, 0, wh);
-          return next;
-        });
       },
     });
   };
@@ -1860,31 +1860,23 @@ console.log("Top Countries:", topAudience.topCountries);`,
   };
 
   const handleDeletePixelWithUndo = (px: RetargetingPixel) => {
-    const originalIndex = pixels.findIndex((p) => p.id === px.id);
-    setPixels((prev) => prev.filter((p) => p.id !== px.id));
-
+    const label = px.name || px.pixelId;
     triggerUndoDelete({
       id: px.id,
       itemType: "pixel",
       title: "Pixel supprimé",
-      description: px.name || px.pixelId,
-      duration: 10,
+      description: label,
+      confirmText: label,
       onExecute: async () => {
+        setPixels((prev) => prev.filter((p) => p.id !== px.id));
         try {
           await cfDeletePixel(px.id, userId);
           cfInvalidateCache("/api/pixels");
         } catch {
           loadPixels();
           showToast.error("Échec de la suppression du pixel.");
+          return false;
         }
-      },
-      onCancel: () => {
-        setPixels((prev) => {
-          if (prev.some((p) => p.id === px.id)) return prev;
-          const next = [...prev];
-          next.splice(originalIndex >= 0 ? Math.min(originalIndex, next.length) : next.length, 0, px);
-          return next;
-        });
       },
     });
   };

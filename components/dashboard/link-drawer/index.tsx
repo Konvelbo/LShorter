@@ -1054,26 +1054,21 @@ export function LinkDrawer({
   const handleDeleteLinkWithUndo = () => {
     if (!link?.id) return;
     const deletedLink = { ...link };
-    const effectiveSlug = slug || link.slug;
+    const effectiveSlug = (link.slug || slug || "").trim();
 
-    // 1. Optimistic removal event for UI
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(
-        new CustomEvent("lshorter_link_deleted", { detail: { id: link.id } }),
-      );
-    }
-
-    // 2. Close drawer immediately
-    onClose();
-
-    // 3. Trigger 10-second undo delete toast
     triggerUndoDelete({
       id: link.id,
       itemType: "link",
       title: "Lien supprimé",
       description: `/${effectiveSlug}`,
-      duration: 5,
+      confirmText: effectiveSlug,
       onExecute: async () => {
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("lshorter_link_deleted", { detail: { id: link.id } }),
+          );
+        }
+        onClose();
         try {
           await cfDeleteLink(link.id, userId, link.slug, link.ogImage);
           cfInvalidateCache();
@@ -1082,14 +1077,13 @@ export function LinkDrawer({
           }
         } catch {
           showToast.error("Erreur lors de la suppression du lien.");
-        }
-      },
-      onCancel: () => {
-        if (typeof window !== "undefined") {
-          window.dispatchEvent(
-            new CustomEvent("lshorter_links_updated", { detail: deletedLink }),
-          );
-          window.dispatchEvent(new Event("lshorter_data_change"));
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(
+              new CustomEvent("lshorter_links_updated", { detail: deletedLink }),
+            );
+            window.dispatchEvent(new Event("lshorter_data_change"));
+          }
+          return false;
         }
       },
     });
