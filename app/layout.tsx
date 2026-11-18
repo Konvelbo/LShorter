@@ -33,10 +33,19 @@ const poppins = Poppins({
   fallback: ["system-ui", "-apple-system", "sans-serif"],
 });
 
-const siteUrl =
-  process.env.NEXT_PUBLIC_APP_URL && !process.env.NEXT_PUBLIC_APP_URL.includes("localhost")
-    ? process.env.NEXT_PUBLIC_APP_URL
-    : "https://lsho.cc";
+import { getSiteUrl } from "@/lib/site-url";
+
+const siteUrl = getSiteUrl();
+
+function extractVerificationCode(val?: string): string | undefined {
+  if (!val) return undefined;
+  const trimmed = val.trim();
+  const match = trimmed.match(/content=["']([^"']+)["']/i);
+  if (match && match[1]) {
+    return match[1].trim();
+  }
+  return trimmed || undefined;
+}
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -50,6 +59,14 @@ export const metadata: Metadata = {
   authors: [{ name: "LShorter", url: siteUrl }],
   creator: "LShorter",
   publisher: "LShorter",
+  verification: {
+    google: extractVerificationCode(process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION),
+    yandex: extractVerificationCode(process.env.NEXT_PUBLIC_YANDEX_VERIFICATION),
+    yahoo: extractVerificationCode(process.env.NEXT_PUBLIC_YAHOO_VERIFICATION),
+    other: {
+      "msvalidate.01": extractVerificationCode(process.env.NEXT_PUBLIC_BING_VERIFICATION) || "",
+    },
+  },
   keywords: [
     // Brand names & direct search queries (priorité maximale Google)
     "lshorter",
@@ -144,10 +161,10 @@ export const metadata: Metadata = {
       "Raccourcisseur de lien edge, dynamic geo-routing, PathLock™ protection (verrouillage de chemin), and QR codes at the edge (<15ms latency).",
     images: [
       {
-        url: "/api/og?title=LShorter&desc=Enterprise+Edge+URL+Shortener+%26+Smart+Routing",
+        url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "LShorter Enterprise Edge Link Infrastructure",
+        alt: "LShorter Enterprise Edge Link Infrastructure & Hero Overview",
       },
     ],
   },
@@ -156,7 +173,7 @@ export const metadata: Metadata = {
     title: "LShorter — Enterprise Edge URL Shortener & Smart Routing",
     description:
       "Raccourcisseur de lien edge sous 15ms, routage dynamique, protection PathLock™ (verrouillage de chemin) et analytics de revenus.",
-    images: ["/api/og?title=LShorter&desc=Enterprise+Edge+URL+Shortener+%26+Smart+Routing"],
+    images: ["/og-image.png"],
     creator: "@lshorter",
   },
   robots: {
@@ -202,6 +219,21 @@ export default function RootLayout({
             __html: `(function(){try{var k='lshorter_theme_v2',s=localStorage.getItem(k)||localStorage.getItem('lshorter_theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';var t=s==='light'||s==='dark'?s:d;var cl=document.documentElement.classList;cl.remove('light','dark');cl.add(t);document.documentElement.style.colorScheme=t;}catch(e){}})()`,
           }}
         />
+        {/* Google tag (gtag.js) placed in <head> for analytics & Google Search Console verification */}
+        {gaId && (
+          <>
+            <script
+              async
+              src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
+            />
+            <script
+              id="google-tag-manager"
+              dangerouslySetInnerHTML={{
+                __html: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${gaId}',{page_path:window.location.pathname});`,
+              }}
+            />
+          </>
+        )}
         {/* Studio specialty fonts are lazy-loaded only inside QR Studio to avoid render-blocking site-wide CSS */}
         <RootStructuredData />
       </head>
@@ -217,28 +249,6 @@ export default function RootLayout({
             __html: `if(typeof Node==='function'&&Node.prototype){var p=Node.prototype;if(!p.__lshorterPatched){p.__lshorterPatched=true;var r=p.removeChild;p.removeChild=function(c){if(c&&c.parentNode!==this){return c;}return r.apply(this,arguments);};var i=p.insertBefore;p.insertBefore=function(n,ref){if(ref&&ref.parentNode!==this){return this.appendChild(n);}return i.apply(this,arguments);};}}`,
           }}
         />
-        {/* Google tag (gtag.js) */}
-        {gaId && (
-          <>
-            <Script
-              async
-              src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
-              strategy="afterInteractive"
-            />
-            <Script
-              id="google-tag-manager"
-              strategy="afterInteractive"
-              dangerouslySetInnerHTML={{
-                __html: `
-                  window.dataLayer = window.dataLayer || [];
-                  function gtag(){dataLayer.push(arguments);}
-                  gtag('js', new Date());
-                  gtag('config', '${gaId}');
-                `,
-              }}
-            />
-          </>
-        )}
         <ThemeProvider>
           <ConvexClientProvider>
             <ToastProvider>

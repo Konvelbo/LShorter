@@ -1,7 +1,8 @@
 import React from "react";
+import { getSiteUrl } from "@/lib/site-url";
 
 export function RootStructuredData() {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://lsho.cc";
+  const baseUrl = getSiteUrl();
 
   const organizationSchema = {
     "@context": "https://schema.org",
@@ -89,7 +90,7 @@ export function RootStructuredData() {
         name: "PathLock™ Security",
         description:
           "PIN protection, password-gated links, and enterprise link protection against unauthorized access.",
-        url: `${baseUrl}/docs/pathlock`,
+        url: `${baseUrl}/docs/path-lock`,
       },
       {
         "@type": "SiteNavigationElement",
@@ -97,7 +98,7 @@ export function RootStructuredData() {
         name: "Dynamic QR Code Studio",
         description:
           "Create and customize high-resolution dynamic QR codes with live click telemetry and analytics.",
-        url: `${baseUrl}/docs/qr-studio`,
+        url: `${baseUrl}/docs/dynamic-qr-codes`,
       },
       {
         "@type": "SiteNavigationElement",
@@ -105,7 +106,7 @@ export function RootStructuredData() {
         name: "Global Edge Redirection",
         description:
           "Sub-15ms edge redirects powered by Cloudflare Workers and D1 with geo-targeting and device routing.",
-        url: `${baseUrl}/docs/edge-redirection`,
+        url: `${baseUrl}/docs/geo-routing`,
       },
       {
         "@type": "SiteNavigationElement",
@@ -266,7 +267,7 @@ export function DocArticleStructuredData({
   slug: string;
   image?: string;
 }) {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://lsho.cc";
+  const baseUrl = getSiteUrl();
 
   const breadcrumbSchema = {
     "@context": "https://schema.org",

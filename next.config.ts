@@ -274,6 +274,21 @@ const nextConfig: NextConfig = {
         destination: "https://lsho.cc/:path*",
         permanent: true,
       },
+      {
+        source: "/docs/pathlock",
+        destination: "/docs/path-lock",
+        permanent: true,
+      },
+      {
+        source: "/docs/qr-studio",
+        destination: "/docs/dynamic-qr-codes",
+        permanent: true,
+      },
+      {
+        source: "/docs/edge-redirection",
+        destination: "/docs/geo-routing",
+        permanent: true,
+      },
     ];
   },
   async rewrites() {
@@ -295,8 +310,12 @@ const nextConfig: NextConfig = {
         destination: "/api/og",
       },
       {
+        source: "/:file(google[a-zA-Z0-9_-]+\\.html)",
+        destination: "/api/verify/google?file=:file",
+      },
+      {
         source:
-          "/:slug((?!api|_next|favicon\\.ico|favicon\\.svg|lshorter_favicon\\.svg|icon-192\\.png|icon-512\\.png|apple-touch-icon\\.png|logo.*|default_banner\\.jpg|Notification\\.mp3|site\\.webmanifest|robots\\.txt|sitemap\\.xml|login|register|dashboard|onboarding|docs|checkout|refund|showcase|video-preview|r|terms|privacy|pricing|blog|reset-password|screenshots|images|doc|audio|emojis|uploads|banners).*)",
+          "/:slug((?!api|_next|favicon(?:\\.ico|\\.svg|-\\d+x\\d+\\.png)|lshorter_favicon\\.svg|icon-\\d+\\.png|apple-touch-icon.*\\.png|logo(?:\\.png|\\.svg|-[a-zA-Z0-9_-]+\\.[a-zA-Z0-9]+)|default_banner\\.(?:jpg|jpeg|png|webp)|Notification\\.mp3|site\\.webmanifest|robots\\.txt|sitemap(?:_index)?\\.(?:xml|xsl)|google[a-zA-Z0-9_-]+\\.html|BingSiteAuth\\.xml|yandex_[a-zA-Z0-9_-]+\\.html|\\.well-known|login|register|dashboard|onboarding|docs|checkout|refund|showcase|video-preview|r|terms|privacy|pricing|blog|reset-password|screenshots|images|doc|audio|emojis|uploads|banners).*)",
         destination: "/r/:slug",
       },
     ];
