@@ -25,6 +25,16 @@ export async function POST(req: NextRequest) {
       const cleanName = body.name.trim();
       const { password } = body;
 
+      if (cleanName.length < 8 || cleanName.length > 25) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: "Your name must be between 8 and 25 characters.",
+          },
+          { status: 400 }
+        );
+      }
+
       // Check if user already exists
       try {
         const existingUser = await convexHttp.query(api.users.getUserByEmail, {
@@ -244,6 +254,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { success: false, message: "This email address is already registered. Please log in." },
         { status: 409 }
+      );
+    }
+    if (msg.includes("USERNAME_LENGTH_INVALID")) {
+      return NextResponse.json(
+        { success: false, message: "Username must be between 8 and 25 characters." },
+        { status: 400 }
       );
     }
     return NextResponse.json(

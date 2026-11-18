@@ -38,12 +38,20 @@ export interface CloakedViewerLink {
 
 export interface CloakedViewerProps {
   link: CloakedViewerLink;
+  initialBlocked?: boolean;
+  initialHeaderCollapsed?: boolean;
+  hideRestorePill?: boolean;
 }
 
-export function CloakedViewer({ link }: CloakedViewerProps) {
-  const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
+export function CloakedViewer({
+  link,
+  initialBlocked = false,
+  initialHeaderCollapsed = false,
+  hideRestorePill = false,
+}: CloakedViewerProps) {
+  const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(initialHeaderCollapsed);
   const [isReloading, setIsReloading] = useState(false);
-  const [isBlocked, setIsBlocked] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(initialBlocked);
   const [isDevUnlocked, setIsDevUnlocked] = useState(false);
   const [unlockPasswordInput, setUnlockPasswordInput] = useState("");
   const [showUnlockPassword, setShowUnlockPassword] = useState(false);
@@ -268,7 +276,7 @@ export function CloakedViewer({ link }: CloakedViewerProps) {
 
       {/* ── TOPBAR (Slide-in / Expandable with Landing Navbar Cubic-Bezier Animation) ── */}
       <header
-        className={`fixed top-0 left-0 right-0 z-40 h-14 sm:h-16 px-4 sm:px-8 flex items-center justify-between box-border border-b border-white/[0.08] bg-[#0B0C0E]/95 backdrop-blur-[20px] transition-all duration-400 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-[transform,opacity] ${
+        className={`fixed top-0 left-0 right-0 z-[110] h-14 sm:h-16 px-4 sm:px-8 flex items-center justify-between box-border border-b border-white/[0.08] bg-[#0B0C0E]/95 backdrop-blur-[20px] transition-all duration-400 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-[transform,opacity] ${
           isHeaderCollapsed
             ? "-translate-y-full opacity-0 pointer-events-none"
             : "translate-y-0 opacity-100 pointer-events-auto"
@@ -365,23 +373,25 @@ export function CloakedViewer({ link }: CloakedViewerProps) {
       </header>
 
       {/* ── RESTORE TOPBAR FLOATING PILL (Smooth slide-in like landing navbar) ── */}
-      <button
-        type="button"
-        onClick={() => setIsHeaderCollapsed(false)}
-        className={`fixed top-3 left-1/2 -translate-x-1/2 z-[99999] h-10 px-4 rounded-full bg-[#0B0C0E]/95 hover:bg-[#141418] border border-white/20 hover:border-blue-500/60 text-[#F5F6F8] text-xs font-semibold flex items-center gap-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-xl transition-all duration-400 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-[transform,opacity] cursor-pointer hover:scale-105 active:scale-95 ${
-          isHeaderCollapsed
-            ? "translate-y-0 opacity-100 scale-100 pointer-events-auto"
-            : "-translate-y-6 opacity-0 scale-95 pointer-events-none"
-        }`}
-        title="Afficher la barre"
-        aria-label="Afficher la barre"
-      >
-        <span className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center text-white shadow-sm shrink-0">
-          <Shield className="w-3 h-3" />
-        </span>
-        <span>Afficher la barre</span>
-        <ChevronDown className="w-3.5 h-3.5 text-[#8DB0FF]" />
-      </button>
+      {!hideRestorePill && (
+        <button
+          type="button"
+          onClick={() => setIsHeaderCollapsed(false)}
+          className={`fixed top-3 left-1/2 -translate-x-1/2 z-[99999] h-10 px-4 rounded-full bg-[#0B0C0E]/95 hover:bg-[#141418] border border-white/20 hover:border-blue-500/60 text-[#F5F6F8] text-xs font-semibold flex items-center gap-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-xl transition-all duration-400 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-[transform,opacity] cursor-pointer hover:scale-105 active:scale-95 ${
+            isHeaderCollapsed
+              ? "translate-y-0 opacity-100 scale-100 pointer-events-auto"
+              : "-translate-y-6 opacity-0 scale-95 pointer-events-none"
+          }`}
+          title="Afficher la barre"
+          aria-label="Afficher la barre"
+        >
+          <span className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center text-white shadow-sm shrink-0">
+            <Shield className="w-3 h-3" />
+          </span>
+          <span>Afficher la barre</span>
+          <ChevronDown className="w-3.5 h-3.5 text-[#8DB0FF]" />
+        </button>
+      )}
 
       {/* ── MAIN CONTENT (Iframe Container) — Pure GPU Transform, Zero Reflow, Zero White Band ── */}
       <div

@@ -11,6 +11,10 @@ export async function POST(req: NextRequest) {
     if (error) return error;
 
     const { name, email, password, passwordHash } = body;
+    const cleanName = name.trim();
+    if (cleanName.length < 8 || cleanName.length > 25) {
+      return NextResponse.json({ error: "Your name must be between 8 and 25 characters." }, { status: 400 });
+    }
 
     const cleanEmail = email;
     let finalHash = passwordHash;
@@ -21,7 +25,7 @@ export async function POST(req: NextRequest) {
     }
 
     const result = await convex.mutation(api.users.registerWithEmail, {
-      name: name.trim(),
+      name: cleanName,
       email: cleanEmail,
       passwordHash: finalHash ?? "",
     });
@@ -66,6 +70,9 @@ export async function POST(req: NextRequest) {
     const message = (err?.message || err?.data || String(err) || "Server error.").toString();
     if (message.includes("EMAIL_ALREADY_EXISTS") || message.toLowerCase().includes("already exists")) {
       return NextResponse.json({ error: "An account already exists with this email address. Please sign in." }, { status: 409 });
+    }
+    if (message.includes("USERNAME_LENGTH_INVALID")) {
+      return NextResponse.json({ error: "Username must be between 8 and 25 characters." }, { status: 400 });
     }
     console.error("[register] Registration unexpected error:", err);
     return NextResponse.json({ error: "An unexpected error occurred during registration. Please try again later." }, { status: 500 });

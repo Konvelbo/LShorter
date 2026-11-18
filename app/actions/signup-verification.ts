@@ -35,6 +35,19 @@ export async function sendSignupPinAction({
     const cleanEmail = email.trim().toLowerCase();
     const cleanName = name.trim();
 
+    if (!cleanName || cleanName.length < 8) {
+      return {
+        success: false,
+        message: "Your name must be at least 8 characters long.",
+      };
+    }
+    if (cleanName.length > 25) {
+      return {
+        success: false,
+        message: "Your name cannot exceed 25 characters.",
+      };
+    }
+
     if (!cleanEmail) {
       return { success: false, message: "Email address is required." };
     }

@@ -80,6 +80,14 @@ export const nameSchema = z
   .max(80, "Name is too long")
   .regex(/^[^<>]*$/, "Name contains invalid characters");
 
+/** Nom complet / pseudo (création de compte) : 8 à 25 caractères */
+export const usernameSchema = z
+  .string()
+  .trim()
+  .min(8, "Name must be at least 8 characters long")
+  .max(25, "Name cannot exceed 25 characters")
+  .regex(/^[^<>]*$/, "Name contains invalid characters");
+
 export const passwordSchema = z
   .string()
   .min(8, "Password must be at least 8 characters long")
@@ -163,7 +171,7 @@ export const loginCredentialsSchema = z.object({
 
 /** POST /api/auth/register */
 export const registerBodySchema = z.object({
-  name: nameSchema,
+  name: usernameSchema,
   email: emailSchema,
   password: passwordSchema.optional(),
   passwordHash: bcryptHashSchema.optional(),
@@ -175,7 +183,7 @@ export const registerBodySchema = z.object({
 /** POST /api/auth/signup-pin — action: send */
 export const signupPinSendSchema = z.object({
   action: z.literal("send"),
-  name: nameSchema,
+  name: usernameSchema,
   email: emailSchema,
   password: passwordSchema,
 });

@@ -41,6 +41,9 @@ export function OnboardingGuard({ children }: { children: React.ReactNode }) {
         return;
       }
       // If convexUser.hasCompletedOnboarding is true, dashboard is authorized
+      if (typeof document !== "undefined" && !document.cookie.includes("lsh_onboarding_completed=true")) {
+        document.cookie = "lsh_onboarding_completed=true; path=/; max-age=31536000; SameSite=Lax";
+      }
       return;
     }
 

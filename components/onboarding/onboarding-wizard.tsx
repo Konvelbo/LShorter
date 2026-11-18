@@ -792,6 +792,11 @@ export function OnboardingWizard() {
         });
       }
 
+      if (typeof document !== "undefined") {
+        document.cookie =
+          "lsh_onboarding_completed=true; path=/; max-age=31536000; SameSite=Lax";
+      }
+
       try {
         await updateSession?.({ hasCompletedOnboarding: true });
       } catch {}
@@ -804,8 +809,8 @@ export function OnboardingWizard() {
 
       showToast.success("Welcome to LShorter! Your workspace is ready.");
       setTimeout(() => {
-        router.replace("/dashboard");
-      }, 650);
+        window.location.href = "/dashboard";
+      }, 500);
     } catch (err) {
       console.error(err);
       showToast.error("Error saving onboarding details");
@@ -835,13 +840,22 @@ export function OnboardingWizard() {
         });
       }
 
+      if (typeof document !== "undefined") {
+        document.cookie =
+          "lsh_onboarding_completed=true; path=/; max-age=31536000; SameSite=Lax";
+      }
+
       try {
         await updateSession?.({ hasCompletedOnboarding: true });
       } catch {}
 
-      router.replace("/dashboard");
+      window.location.href = "/dashboard";
     } catch {
-      router.replace("/dashboard");
+      if (typeof document !== "undefined") {
+        document.cookie =
+          "lsh_onboarding_completed=true; path=/; max-age=31536000; SameSite=Lax";
+      }
+      window.location.href = "/dashboard";
     } finally {
       setIsSubmitting(false);
     }

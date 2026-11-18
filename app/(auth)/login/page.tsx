@@ -52,6 +52,16 @@ export default function LoginPage({
   const [signupPin, setSignupPin] = useState("");
   const [signupToken, setSignupToken] = useState<string>("");
   const [signupCountdown, setSignupCountdown] = useState(0);
+  const [codeExpiresIn, setCodeExpiresIn] = useState(15 * 60);
+  const [codeExpiresAt, setCodeExpiresAt] = useState<number | null>(null);
+  const [resendAvailableAt, setResendAvailableAt] = useState<number | null>(null);
+
+  const formatCountdown = (totalSeconds: number) => {
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
+
   const [pinDigits, setPinDigits] = useState<string[]>(["", "", "", "", "", ""]);
   const pinInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -113,13 +123,35 @@ export default function LoginPage({
     }
   }, []);
 
-  // Countdown timer effect
+  // Countdown timers effect (15-min code expiration & 60-s resend cooldown)
   useEffect(() => {
-    if (signupCountdown > 0) {
-      const timer = setTimeout(() => setSignupCountdown(signupCountdown - 1), 1000);
-      return () => clearTimeout(timer);
+    if (!showSignupPIN) return;
+
+    // Initialize timestamps if not already set
+    if (!codeExpiresAt) {
+      const now = Date.now();
+      setCodeExpiresAt(now + 15 * 60 * 1000);
+      setResendAvailableAt(now + 60 * 1000);
+      setCodeExpiresIn(15 * 60);
+      setSignupCountdown(60);
+      return;
     }
-  }, [signupCountdown]);
+
+    const updateTimers = () => {
+      const now = Date.now();
+      const remainingCode = Math.max(0, Math.floor((codeExpiresAt - now) / 1000));
+      setCodeExpiresIn(remainingCode);
+
+      if (resendAvailableAt) {
+        const remainingResend = Math.max(0, Math.floor((resendAvailableAt - now) / 1000));
+        setSignupCountdown(remainingResend);
+      }
+    };
+
+    updateTimers();
+    const timerInterval = setInterval(updateTimers, 1000);
+    return () => clearInterval(timerInterval);
+  }, [showSignupPIN, codeExpiresAt, resendAvailableAt]);
 
 
 
@@ -141,8 +173,17 @@ export default function LoginPage({
 
     // ── Registration Flow: Send 6-Digit PIN Code ───────────────────────────
     if (authMode === "register") {
-      if (!name.trim()) {
+      const cleanName = name.trim();
+      if (!cleanName) {
         showToast.error("Please enter your name.");
+        return;
+      }
+      if (cleanName.length < 8) {
+        showToast.error("Your name must be at least 8 characters long.");
+        return;
+      }
+      if (cleanName.length > 25) {
+        showToast.error("Your name cannot exceed 25 characters.");
         return;
       }
       if (!confirmPassword.trim()) {
@@ -161,12 +202,17 @@ export default function LoginPage({
       setIsLoading(true);
       try {
         const cleanEmail = email.trim().toLowerCase();
-        const cleanName =
-          name.trim() || cleanEmail.split("@")[0].replace(/[._-]/g, " ");
-        const userName =
-          cleanName.charAt(0).toUpperCase() + cleanName.slice(1) || "My Account";
+        const userName = cleanName;
 
-        let res: { success: boolean; message: string; isDevFallback?: boolean; email?: string; token?: string };
+        let res: {
+          success: boolean;
+          message?: string;
+          error?: string;
+          details?: Array<{ field?: string; message: string }>;
+          isDevFallback?: boolean;
+          email?: string;
+          token?: string;
+        };
 
         try {
           const apiRes = await fetch("/api/auth/signup-pin", {
@@ -193,13 +239,22 @@ export default function LoginPage({
         }
 
         if (!res?.success) {
-          showToast.error(res?.message || "Registration failed.");
+          const errMsg =
+            res?.message ||
+            (res?.details && res.details.map((d) => d.message).join(", ")) ||
+            res?.error ||
+            "Registration failed.";
+          showToast.error(errMsg);
           setIsLoading(false);
           return;
         }
 
-        setShowSignupPIN(true);
+        const now = Date.now();
+        setCodeExpiresAt(now + 15 * 60 * 1000);
+        setResendAvailableAt(now + 60 * 1000);
+        setCodeExpiresIn(15 * 60);
         setSignupCountdown(60);
+        setShowSignupPIN(true);
         showToast.success(
           "A 6-digit validation PIN has been sent to your email!"
         );
@@ -294,6 +349,10 @@ export default function LoginPage({
   // ── Step 2: Verify 6-digit PIN and activate account ──────────────────────
   const handleVerifySignupPin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (codeExpiresIn <= 0) {
+      showToast.error("This code has expired. Please click 'Resend code'.");
+      return;
+    }
     const cleanPin = signupPin.trim();
     if (cleanPin.length !== 6) {
       showToast.error("Please enter the complete 6-digit PIN code.");
@@ -363,12 +422,16 @@ export default function LoginPage({
     setIsLoading(true);
     try {
       const cleanEmail = email.trim().toLowerCase();
-      const cleanName =
-        name.trim() || cleanEmail.split("@")[0].replace(/[._-]/g, " ");
-      const userName =
-        cleanName.charAt(0).toUpperCase() + cleanName.slice(1) || "My Account";
+      const cleanName = name.trim();
+      const userName = cleanName || "UserAccount";
 
-      let res: { success: boolean; message?: string; token?: string };
+      let res: {
+        success: boolean;
+        message?: string;
+        error?: string;
+        details?: Array<{ field?: string; message: string }>;
+        token?: string;
+      };
       try {
         const apiRes = await fetch("/api/auth/signup-pin", {
           method: "POST",
@@ -394,10 +457,21 @@ export default function LoginPage({
       }
 
       if (res?.success) {
+        const now = Date.now();
+        setCodeExpiresAt(now + 15 * 60 * 1000);
+        setResendAvailableAt(now + 60 * 1000);
+        setCodeExpiresIn(15 * 60);
         setSignupCountdown(60);
+        setPinDigits(["", "", "", "", "", ""]);
+        setSignupPin("");
         showToast.success("New PIN code sent to your email!");
       } else {
-        showToast.error(res?.message || "Error resending code.");
+        const errMsg =
+          res?.message ||
+          (res?.details && res.details.map((d) => d.message).join(", ")) ||
+          res?.error ||
+          "Error resending code.";
+        showToast.error(errMsg);
       }
     } catch {
       showToast.error("Error resending code.");
@@ -679,9 +753,32 @@ export default function LoginPage({
                     />
                   ))}
                 </div>
-                <div className="flex items-center justify-center gap-1.5 mt-3.5 text-[11px] text-neutral-500 dark:text-neutral-400">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  <span>Code valid for 15 minutes</span>
+                <div className="flex items-center justify-center gap-1.5 mt-3.5 text-[11px]">
+                  {codeExpiresIn > 0 ? (
+                    <>
+                      <span
+                        className={cn(
+                          "w-1.5 h-1.5 rounded-full",
+                          codeExpiresIn > 120
+                            ? "bg-emerald-500 animate-pulse"
+                            : "bg-amber-500 animate-ping"
+                        )}
+                      />
+                      <span className="text-neutral-500 dark:text-neutral-400">
+                        Code valid for{" "}
+                        <span className="font-mono font-semibold text-neutral-800 dark:text-neutral-200">
+                          {formatCountdown(codeExpiresIn)}
+                        </span>
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                      <span className="text-red-500 dark:text-red-400 font-semibold">
+                        Code expired &mdash; please click &ldquo;Resend code&rdquo;
+                      </span>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -805,17 +902,33 @@ export default function LoginPage({
           ) : (
             /* Normal Credentials Form */
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-              {/* Name (in Register mode) */}
+              {/* Your Name (in Register mode) */}
               {authMode === "register" && (
                 <div>
-                  <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1.5">
-                    Your Name
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300">
+                      Your Name
+                    </label>
+                    <span
+                      className={`text-[10px] font-medium transition-colors ${
+                        name.trim().length > 0 &&
+                        (name.trim().length < 8 || name.trim().length > 25)
+                          ? "text-amber-500 font-semibold"
+                          : "text-neutral-400 dark:text-neutral-500"
+                      }`}
+                    >
+                      {name.trim().length > 0
+                        ? `${name.trim().length}/25 (8–25 chars)`
+                        : "8–25 characters"}
+                    </span>
+                  </div>
                   <div className="relative">
                     <User className="w-4 h-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
                     <Input
                       required
-                      placeholder="Alex Johnson"
+                      minLength={8}
+                      maxLength={25}
+                      placeholder="e.g. Alex Johnson"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       className="pl-9 bg-white dark:bg-[#141416] border-neutral-300 dark:border-[#27272a] focus:border-brand text-xs h-11 rounded-[10px] text-neutral-900 dark:text-white placeholder:text-neutral-400 dark:placeholder:text-neutral-500 shadow-xs"

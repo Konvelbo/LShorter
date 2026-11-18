@@ -6,8 +6,11 @@ const authMiddleware = auth((req) => {
   const { pathname } = req.nextUrl;
   const session = req.auth as any;
   const isAuthenticated = Boolean(session);
+  const onboardingCookie = req.cookies.get("lsh_onboarding_completed")?.value === "true";
   const hasCompletedOnboarding = Boolean(
-    session?.user?.hasCompletedOnboarding ?? session?.hasCompletedOnboarding
+    onboardingCookie ||
+    session?.user?.hasCompletedOnboarding ||
+    session?.hasCompletedOnboarding
   );
 
   // Security Headers

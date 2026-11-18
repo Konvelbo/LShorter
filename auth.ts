@@ -223,13 +223,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (user.name) token.name = user.name;
       }
 
-      // Handle client-side session update for benign user profile fields only (name, image)
+      // Handle client-side session update for benign user profile fields only (name, image, onboarding status)
       // Security: Authoritative plan elevation from client input is strictly disallowed
       if (trigger === "update" && session) {
         if (session.name) token.name = session.name;
         if (session.image) {
           token.picture = session.image;
           token.avatarUrl = session.image;
+        }
+        if (session.hasCompletedOnboarding !== undefined) {
+          token.hasCompletedOnboarding = Boolean(session.hasCompletedOnboarding);
+          token.lastConvexSync = 0;
         }
       }
 

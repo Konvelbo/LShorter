@@ -138,12 +138,17 @@ export const registerWithEmail = mutation({
       throw new Error("EMAIL_ALREADY_EXISTS");
     }
 
+    const cleanName = args.name.trim();
+    if (cleanName.length < 8 || cleanName.length > 25) {
+      throw new Error("USERNAME_LENGTH_INVALID");
+    }
+
     const now = new Date().toISOString();
     const userId = `usr_${Date.now().toString(36)}`;
 
     const id = await ctx.db.insert("users", {
       userId,
-      name: args.name,
+      name: cleanName,
       email: args.email.toLowerCase(),
       passwordHash: args.passwordHash,
       provider: "credentials",
@@ -396,9 +401,14 @@ export const createUserWithVerifiedEmail = mutation({
       throw new Error("EMAIL_ALREADY_EXISTS");
     }
 
+    const cleanName = args.name.trim();
+    if (cleanName.length < 8 || cleanName.length > 25) {
+      throw new Error("USERNAME_LENGTH_INVALID");
+    }
+
     const userId = `usr_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
     const now = new Date().toISOString();
-    const finalName = args.name.trim() || cleanEmail.split("@")[0];
+    const finalName = cleanName;
 
     const id = await ctx.db.insert("users", {
       userId,
