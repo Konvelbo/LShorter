@@ -3,13 +3,16 @@ import {
   buildPathLockHeadInjection,
   buildRestrictedFallbackHtml,
   detectUpstreamRestriction,
+  extractSetCookiesFromResponse,
   getAllowedHostsForConfig,
+  getMergedUpstreamCookies,
   isSameSiteOrAllowedHost,
   isSafeProxyTargetUrl,
   rememberAllowedHostsForSlug,
   resolvePathLockLinkConfig,
   rewriteCssForPathLock,
   rewriteHtmlForPathLock,
+  rewriteSetCookiesForClient,
   safeUpstreamFetch,
 } from "@/lib/pathlock-proxy";
 
@@ -60,23 +63,44 @@ export async function GET(
   }
 
   try {
-    const { response: upstreamRes, finalUrl } = await safeUpstreamFetch(
+    const targetUrlParsed = new URL(fetchTargetUrl);
+    const forwardHeaders: Record<string, string> = {
+      "User-Agent":
+        req.headers.get("user-agent") ||
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+      Accept:
+        "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+      "Accept-Language":
+        req.headers.get("accept-language") ||
+        "fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7",
+      Origin: targetUrlParsed.origin,
+      Referer: fetchTargetUrl,
+    };
+
+    const mergedCookie = getMergedUpstreamCookies(req.headers.get("cookie"));
+    if (mergedCookie) {
+      forwardHeaders["Cookie"] = mergedCookie;
+    }
+
+    const { response: upstreamRes, finalUrl, redirectCookies } = await safeUpstreamFetch(
       fetchTargetUrl,
       {
-        headers: {
-          "User-Agent":
-            req.headers.get("user-agent") ||
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
-          Accept:
-            "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-          "Accept-Language":
-            req.headers.get("accept-language") ||
-            "fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7",
-        },
+        headers: forwardHeaders,
         cache: "no-store",
       },
       baseTargetUrl,
       hasSubpageOverride ? subpageAllowedHosts : null,
+    );
+
+    const allSetCookies = [
+      ...redirectCookies,
+      ...extractSetCookiesFromResponse(upstreamRes),
+    ];
+    const clientSetCookies = rewriteSetCookiesForClient(
+      allSetCookies,
+      config.slug,
+      req.nextUrl,
+      req.headers.get("x-forwarded-proto"),
     );
 
     const contentType = upstreamRes.headers.get("content-type") || "";
@@ -89,7 +113,7 @@ export async function GET(
 
     if (contentType.toLowerCase().includes("text/css")) {
       const cssText = await upstreamRes.text();
-      return new NextResponse(
+      const cssRes = new NextResponse(
         rewriteCssForPathLock(cssText, effectiveTarget.href, config.slug, allowedHosts),
         {
           status: upstreamRes.status,
@@ -100,17 +124,26 @@ export async function GET(
           },
         },
       );
+      for (const sc of clientSetCookies) {
+        cssRes.headers.append("Set-Cookie", sc);
+      }
+      return cssRes;
     }
 
     if (!contentType.toLowerCase().includes("text/html")) {
-      const bodyBuffer = await upstreamRes.arrayBuffer();
-      return new NextResponse(bodyBuffer, {
+      const isNoBodyStatus = [204, 205, 304].includes(upstreamRes.status);
+      const bodyBuffer = isNoBodyStatus ? null : await upstreamRes.arrayBuffer();
+      const binRes = new NextResponse(bodyBuffer, {
         status: upstreamRes.status,
         headers: {
           "Content-Type": contentType || "application/octet-stream",
           "Access-Control-Allow-Origin": "*",
         },
       });
+      for (const sc of clientSetCookies) {
+        binRes.headers.append("Set-Cookie", sc);
+      }
+      return binRes;
     }
 
     const rawHtml = await upstreamRes.text();
@@ -120,7 +153,7 @@ export async function GET(
       rawHtml,
     );
     if (restriction.restricted) {
-      return new NextResponse(
+      const fbRes = new NextResponse(
         buildRestrictedFallbackHtml(restriction, effectiveTarget.href),
         {
           status: 200,
@@ -132,6 +165,10 @@ export async function GET(
           },
         },
       );
+      for (const sc of clientSetCookies) {
+        fbRes.headers.append("Set-Cookie", sc);
+      }
+      return fbRes;
     }
 
     const cleanedHtml = rewriteHtmlForPathLock(
@@ -162,7 +199,7 @@ export async function GET(
         )
       : `${injectedHeadContent}${cleanedHtml}`;
 
-    return new NextResponse(finalHtml, {
+    const htmlRes = new NextResponse(finalHtml, {
       status: upstreamRes.status,
       headers: {
         "Content-Type": "text/html; charset=utf-8",
@@ -171,6 +208,10 @@ export async function GET(
         "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
       },
     });
+    for (const sc of clientSetCookies) {
+      htmlRes.headers.append("Set-Cookie", sc);
+    }
+    return htmlRes;
   } catch (err) {
     console.error("[PathLock Proxy Error]:", err);
     return new NextResponse(

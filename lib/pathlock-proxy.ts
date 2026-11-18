@@ -116,10 +116,12 @@ export async function safeUpstreamFetch(
   configuredTargetUrl: string,
   allowedHosts: string[] | null,
   maxRedirects: number = 5,
-): Promise<{ response: Response; finalUrl: string }> {
+): Promise<{ response: Response; finalUrl: string; redirectCookies: string[] }> {
   let currentUrl = initialUrl;
   let method = (init.method || "GET").toUpperCase();
   let body = init.body;
+  const redirectCookies: string[] = [];
+  const currentHeaders = new Headers(init.headers);
 
   for (let hop = 0; hop <= maxRedirects; hop++) {
     if (!isSafeProxyTargetUrl(currentUrl, configuredTargetUrl)) {
@@ -131,6 +133,7 @@ export async function safeUpstreamFetch(
 
     const res = await fetch(currentUrl, {
       ...init,
+      headers: currentHeaders,
       signal: init.signal || AbortSignal.timeout(12000),
       method,
       body: method === "GET" || method === "HEAD" ? undefined : body,
@@ -138,12 +141,39 @@ export async function safeUpstreamFetch(
     });
 
     if (res.status >= 300 && res.status < 400) {
+      const hopCookies = extractSetCookiesFromResponse(res);
+      for (const hc of hopCookies) redirectCookies.push(hc);
+
       const loc = res.headers.get("location");
       if (!loc) {
-        return { response: res, finalUrl: currentUrl };
+        return { response: res, finalUrl: currentUrl, redirectCookies };
       }
       try { await res.body?.cancel(); } catch {}
       const nextUrl = new URL(loc, currentUrl).href;
+
+      // Propagate cookies set during intermediate redirect hops into the next hop's headers
+      if (hopCookies.length > 0 && isSameSiteOrAllowedHost(nextUrl, allowedHosts || [new URL(currentUrl).hostname])) {
+        const existingCookie = currentHeaders.get("cookie") || "";
+        const mergedMap = new Map<string, string>();
+        if (existingCookie) {
+          for (const p of existingCookie.split(";")) {
+            const eq = p.indexOf("=");
+            if (eq !== -1) mergedMap.set(p.slice(0, eq).trim(), p.slice(eq + 1).trim());
+          }
+        }
+        for (const raw of hopCookies) {
+          const first = raw.split(";")[0]?.trim();
+          if (first) {
+            const eq = first.indexOf("=");
+            if (eq !== -1) mergedMap.set(first.slice(0, eq).trim(), first.slice(eq + 1).trim());
+          }
+        }
+        currentHeaders.set(
+          "cookie",
+          Array.from(mergedMap.entries()).map(([k, v]) => `${k}=${v}`).join("; ")
+        );
+      }
+
       // Follow standard HTTP redirect semantics (301/302/303 downgrade POST -> GET without resending body)
       if (res.status === 301 || res.status === 302 || res.status === 303) {
         if (method === "POST") {
@@ -155,13 +185,151 @@ export async function safeUpstreamFetch(
       continue;
     }
 
-    return { response: res, finalUrl: currentUrl };
+    return { response: res, finalUrl: currentUrl, redirectCookies };
   }
 
   throw new Error("TOO_MANY_REDIRECTS");
 }
 
 const effectiveHostCache = new Map<string, { hosts: string[]; expiresAt: number }>();
+
+const RESERVED_ORIGIN_COOKIE_PATTERNS = [
+  /^__secure-authjs/i,
+  /^authjs\./i,
+  /^next-auth\./i,
+  /^__host-/i,
+  /^lsh_/i,
+  /^theme$/i,
+  /^__vercel/i,
+];
+
+/**
+ * Checks whether a cookie name belongs to LShorter's own internal session or auth system.
+ */
+export function isReservedOriginCookie(name: string): boolean {
+  const trimmed = (name || "").trim();
+  return RESERVED_ORIGIN_COOKIE_PATTERNS.some((pat) => pat.test(trimmed));
+}
+
+/**
+ * Safely extracts individual Set-Cookie header strings from a Response.
+ */
+export function extractSetCookiesFromResponse(res: Response): string[] {
+  try {
+    if (typeof (res.headers as unknown as { getSetCookie?: () => string[] }).getSetCookie === "function") {
+      const list = (res.headers as unknown as { getSetCookie: () => string[] }).getSetCookie();
+      if (Array.isArray(list) && list.length > 0) return list;
+    }
+  } catch {}
+  const raw = res.headers.get("set-cookie");
+  return raw ? [raw] : [];
+}
+
+/**
+ * Filters incoming client cookies to strip any LShorter application/auth cookies
+ * before forwarding them to an upstream third-party destination.
+ */
+export function getMergedUpstreamCookies(
+  incomingCookieHeader: string | null | undefined,
+): string {
+  if (!incomingCookieHeader) return "";
+  const merged = new Map<string, string>();
+  const parts = incomingCookieHeader.split(";");
+
+  for (const part of parts) {
+    const eq = part.indexOf("=");
+    if (eq !== -1) {
+      const k = part.slice(0, eq).trim();
+      const v = part.slice(eq + 1).trim();
+      if (k && v && !isReservedOriginCookie(k)) {
+        merged.set(k, v);
+      }
+    }
+  }
+
+  // Mirror __Secure- and non-prefixed session identifiers (e.g. PHPSESSID <-> __Secure-PHPSESSID)
+  for (const [k, v] of Array.from(merged.entries())) {
+    if (k.startsWith("__Secure-")) {
+      const bare = k.replace(/^__Secure-/, "");
+      if (!merged.has(bare) && !isReservedOriginCookie(bare)) {
+        merged.set(bare, v);
+      }
+    } else if (k === "PHPSESSID" && !merged.has("__Secure-PHPSESSID")) {
+      merged.set("__Secure-PHPSESSID", v);
+    }
+  }
+
+  return Array.from(merged.entries())
+    .map(([k, v]) => `${k}=${v}`)
+    .join("; ");
+}
+
+/**
+ * Rewrites upstream Set-Cookie headers for safe delivery to the proxy client browser:
+ * - Scopes Path to `/r/<slug>/proxy` so upstream cookies never pollute Path=/ or overwrite LShorter cookies.
+ * - Strips any attempt by upstream to set reserved LShorter cookie names (authjs, next-auth, etc.).
+ * - Corrects SameSite=None on plain HTTP development to prevent browser drops.
+ */
+export function rewriteSetCookiesForClient(
+  upstreamCookies: string[],
+  slug: string,
+  reqUrl: URL,
+  forwardedProto?: string | null,
+): string[] {
+  const isHttps = reqUrl.protocol === "https:" || (forwardedProto || "").toLowerCase() === "https";
+  const rewritten: string[] = [];
+  const scopedPath = `/r/${encodeURIComponent(slug)}/proxy`;
+
+  for (const raw of upstreamCookies) {
+    if (!raw || !raw.trim()) continue;
+    const parts = raw.split(";").map((p) => p.trim()).filter(Boolean);
+    if (parts.length === 0) continue;
+
+    const first = parts[0];
+    const eqIdx = first.indexOf("=");
+    if (eqIdx === -1) continue;
+    const name = first.slice(0, eqIdx).trim();
+    const value = first.slice(eqIdx + 1);
+
+    // Guard against upstream attempting to overwrite LShorter origin cookies
+    if (isReservedOriginCookie(name)) continue;
+
+    let sameSite = "Lax";
+    let isHttpOnly = false;
+    let expiresOrMaxAge = "";
+
+    for (let i = 1; i < parts.length; i++) {
+      const attr = parts[i];
+      if (/^httponly$/i.test(attr)) {
+        isHttpOnly = true;
+      } else if (/^samesite=/i.test(attr)) {
+        const val = attr.slice(9).trim().toLowerCase();
+        if (val === "none") {
+          sameSite = isHttps ? "None" : "Lax";
+        } else {
+          sameSite = "Lax";
+        }
+      } else if (/^(max-age|expires)=/i.test(attr)) {
+        expiresOrMaxAge += `; ${attr}`;
+      }
+    }
+
+    const secureAttr = isHttps ? "; Secure" : "";
+    const httpOnlyAttr = isHttpOnly ? "; HttpOnly" : "";
+    const cookieBase = `; Path=${scopedPath}; SameSite=${sameSite}${secureAttr}${httpOnlyAttr}${expiresOrMaxAge}`;
+
+    if (!isHttps && name.startsWith("__Secure-")) {
+      const bareName = name.replace(/^__Secure-/, "");
+      if (!isReservedOriginCookie(bareName)) {
+        rewritten.push(`${bareName}=${value}${cookieBase}`);
+      }
+    } else {
+      rewritten.push(`${name}=${value}${cookieBase}`);
+    }
+  }
+
+  return rewritten;
+}
 
 /**
  * Registers additional allowed hosts discovered after following an upstream redirect for a slug.
@@ -797,17 +965,30 @@ export function buildPathLockHeadInjection(opts: HeadInjectionOptions): string {
   if (window.fetch) {
     var origFetch = window.fetch;
     window.fetch = function(input, init) {
+      var mappedInput = input;
+      var fetchInit = init;
       try {
         if (typeof input === "string") {
-          input = toProxyAsset(input);
+          mappedInput = toProxyAsset(input);
         } else if (typeof Request !== "undefined" && input instanceof Request) {
-          var mapped = toProxyAsset(input.url);
-          if (mapped !== input.url) {
-            input = new Request(mapped, input);
+          var mappedUrl = toProxyAsset(input.url);
+          if (mappedUrl !== input.url) {
+            mappedInput = new Request(mappedUrl, input);
+          }
+        }
+        var isProxied =
+          (typeof mappedInput === "string" && mappedInput.indexOf(CFG.proxyPrefix) === 0) ||
+          (typeof Request !== "undefined" && mappedInput instanceof Request && mappedInput.url.indexOf(CFG.proxyPrefix) !== -1);
+        if (isProxied) {
+          if (init) {
+            fetchInit = Object.assign({}, init);
+            if (fetchInit.credentials === "omit") fetchInit.credentials = "same-origin";
+          } else if (typeof Request !== "undefined" && mappedInput instanceof Request && mappedInput.credentials === "omit") {
+            mappedInput = new Request(mappedInput, { credentials: "same-origin" });
           }
         }
       } catch (e) {}
-      return origFetch.call(this, input, init);
+      return origFetch.call(this, mappedInput, fetchInit);
     };
   }
 
@@ -818,7 +999,14 @@ export function buildPathLockHeadInjection(opts: HeadInjectionOptions): string {
       try {
         args[1] = toProxyAsset(url);
       } catch (e) {}
-      return origXhrOpen.apply(this, args);
+      var ret = origXhrOpen.apply(this, args);
+      try {
+        // Only set withCredentials on same-origin proxied requests; never on third-party URLs to avoid breaking CORS
+        if (typeof args[1] === "string" && args[1].indexOf(CFG.proxyPrefix) === 0) {
+          this.withCredentials = true;
+        }
+      } catch (e) {}
+      return ret;
     };
   }
 

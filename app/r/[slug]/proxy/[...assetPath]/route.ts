@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
 import {
+  extractSetCookiesFromResponse,
   getAllowedHostsForConfig,
+  getMergedUpstreamCookies,
   isSameSiteOrAllowedHost,
   isSafeProxyTargetUrl,
   parseProxyAssetSegments,
   rememberAllowedHostsForSlug,
   resolvePathLockLinkConfig,
   rewriteCssForPathLock,
+  rewriteSetCookiesForClient,
   safeUpstreamFetch,
 } from "@/lib/pathlock-proxy";
 
@@ -88,24 +91,41 @@ async function handleAssetProxy(
   }
 
   try {
+    const targetUrlParsed = new URL(parsedTarget.url);
     const forwardHeaders: Record<string, string> = {
       "User-Agent":
         req.headers.get("user-agent") ||
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
       Accept: req.headers.get("accept") || "*/*",
       "Accept-Language": req.headers.get("accept-language") || "fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7",
+      Origin: targetUrlParsed.origin,
+      Referer: parsedTarget.url,
     };
+
     const contentTypeIn = req.headers.get("content-type");
     if (contentTypeIn) forwardHeaders["Content-Type"] = contentTypeIn;
     const rscHeader = req.headers.get("rsc");
     if (rscHeader) forwardHeaders["RSC"] = rscHeader;
     const nextRouterStateTree = req.headers.get("next-router-state-tree");
     if (nextRouterStateTree) forwardHeaders["Next-Router-State-Tree"] = nextRouterStateTree;
+    const xRequestedWith = req.headers.get("x-requested-with");
+    if (xRequestedWith) forwardHeaders["X-Requested-With"] = xRequestedWith;
+    const authHeader = req.headers.get("authorization");
+    if (authHeader) forwardHeaders["Authorization"] = authHeader;
+    const csrfToken = req.headers.get("x-csrf-token");
+    if (csrfToken) forwardHeaders["X-CSRF-Token"] = csrfToken;
+    const xsrfToken = req.headers.get("x-xsrf-token");
+    if (xsrfToken) forwardHeaders["X-XSRF-Token"] = xsrfToken;
+
+    const mergedCookie = getMergedUpstreamCookies(req.headers.get("cookie"));
+    if (mergedCookie) {
+      forwardHeaders["Cookie"] = mergedCookie;
+    }
 
     const hasBody = req.method !== "GET" && req.method !== "HEAD";
     const bodyBuffer = hasBody ? await req.arrayBuffer() : undefined;
 
-    const { response: upstreamRes, finalUrl } = await safeUpstreamFetch(
+    const { response: upstreamRes, finalUrl, redirectCookies } = await safeUpstreamFetch(
       parsedTarget.url,
       {
         method: req.method,
@@ -116,10 +136,35 @@ async function handleAssetProxy(
       allowedHosts,
     );
 
+    const allSetCookies = [
+      ...redirectCookies,
+      ...extractSetCookiesFromResponse(upstreamRes),
+    ];
+    const clientSetCookies = rewriteSetCookiesForClient(
+      allSetCookies,
+      slug,
+      reqUrl,
+      req.headers.get("x-forwarded-proto"),
+    );
+
     const finalAllowedHosts = Array.from(
       new Set([configHost, ...allowedHosts, new URL(finalUrl).hostname]),
     );
     const contentType = upstreamRes.headers.get("content-type") || "application/octet-stream";
+
+    const isDynamicAjax =
+      req.method !== "GET" ||
+      parsedTarget.url.includes("/ajax/") ||
+      parsedTarget.url.includes("/api/") ||
+      Boolean(xRequestedWith || rscHeader) ||
+      clientSetCookies.length > 0 ||
+      contentType.toLowerCase().includes("application/json") ||
+      (upstreamRes.headers.get("cache-control") || "").toLowerCase().includes("no-store");
+
+    const cacheControlHeader =
+      upstreamRes.status >= 400 || isDynamicAjax
+        ? "no-store, no-cache, must-revalidate"
+        : "private, max-age=300";
 
     if (contentType.toLowerCase().includes("text/css")) {
       const cssText = await upstreamRes.text();
@@ -129,35 +174,48 @@ async function handleAssetProxy(
         slug,
         finalAllowedHosts,
       );
-      return new NextResponse(rewrittenCss, {
+      const cssRes = new NextResponse(rewrittenCss, {
         status: upstreamRes.status,
         headers: {
           "Content-Type": contentType,
           "Access-Control-Allow-Origin": "*",
-          "Cache-Control": "private, max-age=300",
+          "Cache-Control": cacheControlHeader,
         },
       });
+      for (const sc of clientSetCookies) {
+        cssRes.headers.append("Set-Cookie", sc);
+      }
+      return cssRes;
     }
 
     if (req.method === "HEAD") {
-      return new NextResponse(null, {
+      const headRes = new NextResponse(null, {
         status: upstreamRes.status,
         headers: {
           "Content-Type": contentType,
           "Access-Control-Allow-Origin": "*",
         },
       });
+      for (const sc of clientSetCookies) {
+        headRes.headers.append("Set-Cookie", sc);
+      }
+      return headRes;
     }
 
-    const resBuffer = await upstreamRes.arrayBuffer();
-    return new NextResponse(resBuffer, {
+    const isNoBodyStatus = [204, 205, 304].includes(upstreamRes.status);
+    const resBuffer = isNoBodyStatus ? null : await upstreamRes.arrayBuffer();
+    const binRes = new NextResponse(resBuffer, {
       status: upstreamRes.status,
       headers: {
         "Content-Type": contentType,
         "Access-Control-Allow-Origin": "*",
-        "Cache-Control": upstreamRes.status >= 400 ? "no-store" : "private, max-age=300",
+        "Cache-Control": cacheControlHeader,
       },
     });
+    for (const sc of clientSetCookies) {
+      binRes.headers.append("Set-Cookie", sc);
+    }
+    return binRes;
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "";
     if (msg === "SSRF_BLOCKED" || msg === "HOST_FORBIDDEN") {
