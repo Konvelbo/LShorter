@@ -7,9 +7,14 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-@theme {
+@theme inline {
     --font-mono: var(--font-poppins), 'Poppins', sans-serif;
     --font-poppins: var(--font-poppins), 'Poppins', sans-serif;
+    --animate-border-beam: border-beam calc(var(--duration) * 1s) infinite linear;
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
     --radius: 10px;
     --radius-xs: 2px;
     --radius-sm: 4px;
@@ -1902,4 +1907,11 @@ html.light main .text-neutral-200 {
 .max-w-container {
   max-width: 1280px;
 }
+
+@keyframes border-beam {
+  100% {
+    offset-distance: 100%;
+  }
+}
+
 

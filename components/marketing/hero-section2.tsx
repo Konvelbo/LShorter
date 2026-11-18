@@ -3,7 +3,7 @@
 import React from "react";
 import { useSession } from "next-auth/react";
 import { LayoutDashboard, Sparkles, BookOpen } from "lucide-react";
-import { withScreenshotCacheBuster } from "@/lib/themed-screenshots";
+import { DEFAULT_HERO_SHOWCASE_TABS } from "@/components/ui/hero-195";
 import { HeroSection as UIHeroSection } from "@/components/ui/hero-section";
 
 export function HeroSection() {
@@ -11,7 +11,7 @@ export function HeroSection() {
   const isAuthenticated =
     status === "authenticated" &&
     Boolean(session?.user) &&
-    !(session?.user as any)?.userNotFound;
+    !(session?.user as { userNotFound?: boolean })?.userNotFound;
 
   return (
     <UIHeroSection
@@ -39,18 +39,12 @@ export function HeroSection() {
           text: "API documentation",
           href: "/docs",
           variant: "outline",
-          icon: <BookOpen className="h-4 w-4 text-zinc-600 dark:text-zinc-300" />,
+          icon: (
+            <BookOpen className="h-4 w-4 text-zinc-600 dark:text-zinc-300" />
+          ),
         },
       ]}
-      image={{
-        light: withScreenshotCacheBuster(
-          "/screenshots/dashboard/dashboardwithsidbare_light1.webp"
-        ),
-        dark: withScreenshotCacheBuster(
-          "/screenshots/dashboard/dashboardwithsidbare_dark1.webp"
-        ),
-        alt: "LShorter Enterprise Dashboard Preview",
-      }}
+      tabs={DEFAULT_HERO_SHOWCASE_TABS}
     />
   );
 }

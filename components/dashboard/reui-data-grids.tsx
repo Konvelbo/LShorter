@@ -1421,9 +1421,19 @@ export function LinksReuiDataGrid({
                       />
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
-                          <span className="font-mono text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate">
+                          <a
+                            href={`/r/${encodeURIComponent(row.slug)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenAndTrackClick(row.slug, row.clicks, row.id);
+                            }}
+                            className="font-mono text-xs font-semibold text-zinc-900 dark:text-zinc-100 hover:text-[#0066FF] dark:hover:text-[#5294FF] hover:underline truncate transition-colors"
+                            title={`Open /${row.slug} in a new tab`}
+                          >
                             /{row.slug}
-                          </span>
+                          </a>
                           <span className="font-mono text-[10.5px] text-zinc-500 dark:text-zinc-400 shrink-0">
                             {row.clicks.toLocaleString()} clicks
                           </span>

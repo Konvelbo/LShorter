@@ -1393,9 +1393,18 @@ export default function LinksPage() {
                     {/* Text Information (Slug, Protocol, Target URL) */}
                     <div className="min-w-0 space-y-0.5 text-left">
                       <div className="flex items-center gap-2">
-                        <h3 className="font-bold text-neutral-900 dark:text-white text-xs sm:text-base tracking-tight truncate group-hover:text-[var(--brand-primary-text)] transition-colors">
+                        <a
+                          href={`/r/${encodeURIComponent(link.slug)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            triggerClickSync(link.slug, link.id);
+                          }}
+                          className="font-bold text-neutral-900 dark:text-white text-xs sm:text-base tracking-tight truncate hover:text-[var(--brand-primary-text)] hover:underline transition-colors"
+                        >
                           /{link.slug}
-                        </h3>
+                        </a>
                       </div>
                       <div className="text-[10px] sm:text-[11px] font-mono text-neutral-500 dark:text-neutral-400 truncate">
                         {protocolLabel}

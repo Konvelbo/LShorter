@@ -1,12 +1,16 @@
 "use client";
 
 import React from "react";
-import { Button } from "@/components/ui/button";
 import { WaveRevealButton } from "@/components/ui/wave-reveal-button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowRightIcon } from "lucide-react";
 import { Mockup, MockupFrame } from "@/components/ui/mockup";
 import { Glow } from "@/components/ui/glow";
+import {
+  Hero195Showcase,
+  HeroShowcaseTab,
+  DEFAULT_HERO_SHOWCASE_TABS,
+} from "@/components/ui/hero-195";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 
@@ -14,7 +18,14 @@ export interface HeroAction {
   text: string;
   href: string;
   icon?: React.ReactNode;
-  variant?: "primary" | "secondary" | "outline" | "ghost" | "destructive" | "glow" | "default";
+  variant?:
+    | "primary"
+    | "secondary"
+    | "outline"
+    | "ghost"
+    | "destructive"
+    | "glow"
+    | "default";
 }
 
 export interface HeroProps {
@@ -28,11 +39,12 @@ export interface HeroProps {
   title: string;
   description: string;
   actions: HeroAction[];
-  image: {
+  image?: {
     light: string;
     dark: string;
     alt: string;
   };
+  tabs?: HeroShowcaseTab[];
   className?: string;
 }
 
@@ -42,8 +54,10 @@ export function HeroSection({
   description,
   actions,
   image,
+  tabs,
   className,
 }: HeroProps) {
+  const resolvedTabs = tabs ?? (image ? undefined : DEFAULT_HERO_SHOWCASE_TABS);
   const sectionRef = React.useRef<HTMLElement>(null);
   const [inView, setInView] = React.useState(true);
 
@@ -91,7 +105,10 @@ export function HeroSection({
                   <span className="sm:hidden">Edge Smart Routing</span>
                   <span className="hidden sm:inline">{badge.text}</span>
                 </span>
-                <span className="w-1 h-1 rounded-full bg-zinc-300 dark:bg-white/20 shrink-0" aria-hidden="true" />
+                <span
+                  className="w-1 h-1 rounded-full bg-zinc-300 dark:bg-white/20 shrink-0"
+                  aria-hidden="true"
+                />
                 <a
                   href={badge.action.href}
                   className="shrink-0 inline-flex items-center gap-1 text-[#0066FF] dark:text-[#5294FF] font-semibold hover:underline whitespace-nowrap text-[11px] sm:text-xs"
@@ -170,41 +187,50 @@ export function HeroSection({
             })}
           </div>
 
-          {/* Image Mockup with Glow & Appearance Animation */}
+          {/* Interactive Hero-195 Tabbed Showcase with BorderBeam & Glow */}
           <div
             className={cn(
-              "relative pt-0 -mt-2 sm:-mt-6 lg:-mt-8 w-full max-w-[1248px]",
+              "relative pt-0 -mt-1 sm:-mt-3 lg:-mt-4 w-full max-w-[1248px]",
               "animate-appear delay-600 transition-all duration-900 ease-[cubic-bezier(0.16,1,0.3,1)]",
               !inView && "!opacity-0 !translate-y-8 !scale-[0.98]"
             )}
           >
-            <MockupFrame
-              className="bg-accent/5 rounded-2xl border border-zinc-200/80 dark:border-white/10"
-              size="small"
-            >
-              <Mockup type="responsive" className="bg-white dark:bg-[#101828] border border-zinc-200 dark:border-white/15">
-                <Image
-                  src={image.light}
-                  alt={image.alt}
-                  width={1847}
-                  height={1013}
-                  priority
-                  loading="eager"
-                  sizes="(max-width: 1280px) 100vw, 1248px"
-                  className="w-full h-auto block dark:hidden"
-                />
-                <Image
-                  src={image.dark}
-                  alt={image.alt}
-                  width={1847}
-                  height={1013}
-                  priority
-                  loading="eager"
-                  sizes="(max-width: 1280px) 100vw, 1248px"
-                  className="w-full h-auto hidden dark:block"
-                />
-              </Mockup>
-            </MockupFrame>
+            {resolvedTabs && resolvedTabs.length > 0 ? (
+              <Hero195Showcase tabs={resolvedTabs} />
+            ) : (
+              image && (
+                <MockupFrame
+                  className="bg-accent/5 rounded-2xl border border-zinc-200/80 dark:border-white/10"
+                  size="small"
+                >
+                  <Mockup
+                    type="responsive"
+                    className="bg-white dark:bg-[#101828] border border-zinc-200 dark:border-white/15"
+                  >
+                    <Image
+                      src={image.light}
+                      alt={image.alt}
+                      width={1847}
+                      height={1013}
+                      priority
+                      loading="eager"
+                      sizes="(max-width: 1280px) 100vw, 1248px"
+                      className="w-full h-auto block dark:hidden"
+                    />
+                    <Image
+                      src={image.dark}
+                      alt={image.alt}
+                      width={1847}
+                      height={1013}
+                      priority
+                      loading="eager"
+                      sizes="(max-width: 1280px) 100vw, 1248px"
+                      className="w-full h-auto hidden dark:block"
+                    />
+                  </Mockup>
+                </MockupFrame>
+              )
+            )}
             <Glow
               variant="top"
               className={cn(

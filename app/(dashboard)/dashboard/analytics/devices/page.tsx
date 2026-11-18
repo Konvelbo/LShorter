@@ -407,15 +407,25 @@ export default function DevicesAnalyticsPage() {
       counts[osName] = (counts[osName] || 0) + 1;
     });
 
-    const total = analytics.liveClickEvents.length || 1;
+    const sampleTotal = analytics.liveClickEvents.length || 1;
+    const referenceTotal =
+      analytics.totalClicks > sampleTotal ? analytics.totalClicks : sampleTotal;
+
     return Object.entries(counts)
-      .map(([name, count]) => ({
-        name,
-        count,
-        percentage: Math.round((count / total) * 100),
-      }))
+      .map(([name, rawCount]) => {
+        const percentage = Math.round((rawCount / sampleTotal) * 100);
+        const scaledCount =
+          referenceTotal > sampleTotal
+            ? Math.round((rawCount / sampleTotal) * referenceTotal)
+            : rawCount;
+        return {
+          name,
+          count: scaledCount,
+          percentage,
+        };
+      })
       .sort((a, b) => b.count - a.count);
-  }, [analytics.liveClickEvents]);
+  }, [analytics.liveClickEvents, analytics.totalClicks]);
 
   // Effective devices
   const effectiveDevices = useMemo(() => {
@@ -971,7 +981,14 @@ export default function DevicesAnalyticsPage() {
                     )}
                   </td>
                   <td className="py-3.5 px-3 whitespace-nowrap font-mono font-semibold text-[#0066FF]">
-                    /{ev.slug}
+                    <a
+                      href={`/r/${encodeURIComponent(ev.slug)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[#0066FF] hover:underline"
+                    >
+                      /{ev.slug}
+                    </a>
                   </td>
                   <td className="py-3.5 px-3 whitespace-nowrap text-zinc-600 dark:text-neutral-300">
                     {ev.city && ev.city !== "—" && ev.city !== "Inconnue"
@@ -1035,9 +1052,14 @@ export default function DevicesAnalyticsPage() {
 
               {/* Bottom Row: Link & Location + Source Logo */}
               <div className="flex justify-between items-center mt-3 pt-2.5 border-t border-[#E4E7EC] dark:border-[#222225]">
-                <b className="text-[#0066FF] font-mono text-xs">
+                <a
+                  href={`/r/${encodeURIComponent(ev.slug)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-bold text-[#0066FF] hover:underline font-mono text-xs"
+                >
                   /{ev.slug}
-                </b>
+                </a>
                 <div className="flex items-center gap-2">
                   <span className="text-[11px] text-zinc-500 dark:text-neutral-400">
                     {ev.city && ev.city !== "—" ? ev.city : ev.countryName}
