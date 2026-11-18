@@ -38,10 +38,10 @@ export const metadata: Metadata = {
     title: "LShorter — Enterprise Edge URL Shortener & Smart Routing",
     description:
       "Raccourcisseur de lien edge sous 15ms, routage dynamique par pays/appareil, protection PathLock™ (verrouillage de chemin) et analytics de conversion.",
-    url: "/",
+    url: "https://lsho.cc",
     images: [
       {
-        url: "/og-image.png?v=20261118_banner",
+        url: "https://lsho.cc/lshorter-launch-banner-2026.png",
         width: 1024,
         height: 537,
         alt: "LShorter — Vos liens, à la vitesse de l'Edge",
@@ -53,7 +53,7 @@ export const metadata: Metadata = {
     title: "LShorter — Enterprise Edge URL Shortener & Smart Routing",
     description:
       "Raccourcisseur de lien edge sous 15ms, routage dynamique, protection PathLock™ et analytics.",
-    images: ["/og-image.png?v=20261118_banner"],
+    images: ["https://lsho.cc/lshorter-launch-banner-2026.png"],
     creator: "@lshorter",
   },
 };
