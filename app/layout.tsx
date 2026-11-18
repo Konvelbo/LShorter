@@ -161,10 +161,10 @@ export const metadata: Metadata = {
       "Raccourcisseur de lien edge, dynamic geo-routing, PathLock™ protection (verrouillage de chemin), and QR codes at the edge (<15ms latency).",
     images: [
       {
-        url: "/og-image.png",
-        width: 1200,
-        height: 630,
-        alt: "LShorter Enterprise Edge Link Infrastructure & Hero Overview",
+        url: "/og-image.png?v=20261118_banner",
+        width: 1024,
+        height: 537,
+        alt: "LShorter — Vos liens, à la vitesse de l'Edge",
       },
     ],
   },
@@ -173,7 +173,7 @@ export const metadata: Metadata = {
     title: "LShorter — Enterprise Edge URL Shortener & Smart Routing",
     description:
       "Raccourcisseur de lien edge sous 15ms, routage dynamique, protection PathLock™ (verrouillage de chemin) et analytics de revenus.",
-    images: ["/og-image.png"],
+    images: ["/og-image.png?v=20261118_banner"],
     creator: "@lshorter",
   },
   robots: {

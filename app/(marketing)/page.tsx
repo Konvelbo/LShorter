@@ -40,8 +40,21 @@ export const metadata: Metadata = {
       "Raccourcisseur de lien edge sous 15ms, routage dynamique par pays/appareil, protection PathLock™ (verrouillage de chemin) et analytics de conversion.",
     url: "/",
     images: [
-      "/api/og?title=LShorter&desc=Edge+URL+Shortener+%26+Smart+Routing",
+      {
+        url: "/og-image.png?v=20261118_banner",
+        width: 1024,
+        height: 537,
+        alt: "LShorter — Vos liens, à la vitesse de l'Edge",
+      },
     ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "LShorter — Enterprise Edge URL Shortener & Smart Routing",
+    description:
+      "Raccourcisseur de lien edge sous 15ms, routage dynamique, protection PathLock™ et analytics.",
+    images: ["/og-image.png?v=20261118_banner"],
+    creator: "@lshorter",
   },
 };
 
