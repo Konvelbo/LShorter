@@ -1,3 +1,3 @@
-export const revalidate = 604800;
+export const revalidate = 86400;
 
 export { GET, HEAD, OPTIONS } from "@/app/api/og/route";

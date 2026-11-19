@@ -30,7 +30,7 @@ import { PixelSelectorModal } from "@/components/dashboard/pixel-selector-modal"
 import { Input } from "@/components/ui/input";
 import { showToast } from "@/components/ui/toast-provider";
 import { triggerPlanUpgrade } from "@/lib/plan-guard";
-import { cropAndCompressImage, CroppedAreaPixels } from "@/lib/image-compress";
+import { cropAndCompressImage, compressImageFile, CroppedAreaPixels } from "@/lib/image-compress";
 
 interface SectionSocialTrackingProps {
   slug?: string;
@@ -53,9 +53,18 @@ interface SectionSocialTrackingProps {
   handleBannerUpload?: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void> | void;
   onCropCompleteResult?: (result: {
     file: File;
+    originalFile?: File | null;
     dataUrl: string;
     format: "summary_large_image" | "summary";
   }) => Promise<void> | void;
+  pendingCropRef?: React.MutableRefObject<
+    (() => Promise<{
+      file: File | null;
+      originalFile?: File | null;
+      dataUrl: string;
+      format: "summary_large_image" | "summary";
+    } | null>) | null
+  >;
   isUploadingImage?: boolean;
   // UTM Tracking props
   utmSource: string;
@@ -94,6 +103,7 @@ export function SectionSocialTracking({
   onClearBanner,
   bannerInputRef,
   onCropCompleteResult,
+  pendingCropRef,
   isUploadingImage = false,
   utmSource,
   setUtmSource,
@@ -127,6 +137,7 @@ export function SectionSocialTracking({
   const [zoom, setZoom] = useState<number>(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<CroppedAreaPixels | null>(null);
   const [isProcessingCrop, setIsProcessingCrop] = useState(false);
+  const selectedOriginalFileRef = useRef<File | null>(null);
 
   const localFileInputRef = useRef<HTMLInputElement>(null);
   const activeFileInputRef = bannerInputRef || localFileInputRef;
@@ -143,6 +154,53 @@ export function SectionSocialTracking({
     setCroppedAreaPixels(pixelsCoord);
   }, []);
 
+  // Expose auto-commit hook so clicking "Create Link" / "Save" while in crop mode never drops the banner
+  React.useEffect(() => {
+    if (!pendingCropRef) return;
+    if (isCropMode && cropSourceImage) {
+      pendingCropRef.current = async () => {
+        // Clear ref synchronously so concurrent triggers cannot double-run
+        if (pendingCropRef) pendingCropRef.current = null;
+        const targetW = cropFormat === "summary" ? 600 : 1200;
+        const targetH = cropFormat === "summary" ? 600 : 630;
+        if (croppedAreaPixels) {
+          const { file, dataUrl } = await cropAndCompressImage(
+            cropSourceImage,
+            croppedAreaPixels,
+            targetW,
+            targetH,
+            0.88
+          );
+          setIsCropMode(false);
+          setCropSourceImage("");
+          setCroppedAreaPixels(null);
+          return {
+            file,
+            originalFile: selectedOriginalFileRef.current,
+            dataUrl,
+            format: cropFormat,
+          };
+        }
+        const compressed = await compressImageFile(cropSourceImage, targetW, targetH, 0.88);
+        const dataUrl = typeof compressed === "string" ? compressed : cropSourceImage;
+        setIsCropMode(false);
+        setCropSourceImage("");
+        setCroppedAreaPixels(null);
+        return {
+          file: null,
+          originalFile: selectedOriginalFileRef.current,
+          dataUrl,
+          format: cropFormat,
+        };
+      };
+    } else {
+      pendingCropRef.current = null;
+    }
+    return () => {
+      if (pendingCropRef) pendingCropRef.current = null;
+    };
+  }, [pendingCropRef, isCropMode, cropSourceImage, croppedAreaPixels, cropFormat]);
+
   // Handle local file selection from file input or drag-and-drop
   const handleProcessFile = (file: File) => {
     if (!file.type.startsWith("image/")) {
@@ -154,9 +212,11 @@ export function SectionSocialTracking({
       return;
     }
 
+    selectedOriginalFileRef.current = file;
     const reader = new FileReader();
     reader.onload = () => {
       const dataUrl = reader.result as string;
+      setCroppedAreaPixels(null);
       setCropSourceImage(dataUrl);
       setCropFormat(twitterCard);
       setCrop({ x: 0, y: 0 });
@@ -175,6 +235,7 @@ export function SectionSocialTracking({
       !currentSrc.includes("/api/og") &&
       !currentSrc.includes("/banners/og")
     ) {
+      setCroppedAreaPixels(null);
       setCropSourceImage(currentSrc);
       setCropFormat(twitterCard);
       setCrop({ x: 0, y: 0 });
@@ -188,28 +249,41 @@ export function SectionSocialTracking({
   const handleCancelCrop = () => {
     setIsCropMode(false);
     setCropSourceImage("");
+    setCroppedAreaPixels(null);
     setIsProcessingCrop(false);
   };
 
   const handleApplyCrop = async () => {
-    if (!cropSourceImage || !croppedAreaPixels) return;
+    if (!cropSourceImage || isProcessingCrop) return;
+    if (pendingCropRef) pendingCropRef.current = null;
 
     try {
       setIsProcessingCrop(true);
       const targetW = cropFormat === "summary" ? 600 : 1200;
       const targetH = cropFormat === "summary" ? 600 : 630;
 
-      const { file, dataUrl } = await cropAndCompressImage(
-        cropSourceImage,
-        croppedAreaPixels,
-        targetW,
-        targetH,
-        0.88
-      );
+      let file: File;
+      let dataUrl: string;
+      if (croppedAreaPixels) {
+        const res = await cropAndCompressImage(
+          cropSourceImage,
+          croppedAreaPixels,
+          targetW,
+          targetH,
+          0.88
+        );
+        file = res.file;
+        dataUrl = res.dataUrl;
+      } else {
+        const compressed = await compressImageFile(cropSourceImage, targetW, targetH, 0.88);
+        dataUrl = typeof compressed === "string" ? compressed : cropSourceImage;
+        file = selectedOriginalFileRef.current || new File([], `social-banner-${targetW}x${targetH}.jpg`, { type: "image/jpeg" });
+      }
 
       if (onCropCompleteResult) {
         await onCropCompleteResult({
           file,
+          originalFile: selectedOriginalFileRef.current || file,
           dataUrl,
           format: cropFormat,
         });
@@ -590,12 +664,16 @@ export function SectionSocialTracking({
             <button
               type="button"
               onClick={() => {
-                setTwitterCard("summary_large_image");
-                if (isCropMode) setCropFormat("summary_large_image");
+                if (isCropMode) {
+                  setCroppedAreaPixels(null);
+                  setCropFormat("summary_large_image");
+                } else {
+                  setTwitterCard("summary_large_image");
+                }
               }}
               className={cn(
                 "flex-1 py-1.5 px-3 rounded-[6px] text-xs transition-all text-center cursor-pointer flex items-center justify-center gap-1.5",
-                twitterCard === "summary_large_image"
+                (isCropMode ? cropFormat : twitterCard) === "summary_large_image"
                   ? "bg-white dark:bg-[#0e0f12] text-zinc-950 dark:text-white shadow-xs border border-zinc-200 dark:border-zinc-700 font-semibold"
                   : "text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white font-medium",
               )}
@@ -607,12 +685,16 @@ export function SectionSocialTracking({
             <button
               type="button"
               onClick={() => {
-                setTwitterCard("summary");
-                if (isCropMode) setCropFormat("summary");
+                if (isCropMode) {
+                  setCroppedAreaPixels(null);
+                  setCropFormat("summary");
+                } else {
+                  setTwitterCard("summary");
+                }
               }}
               className={cn(
                 "flex-1 py-1.5 px-3 rounded-[6px] text-xs transition-all text-center cursor-pointer flex items-center justify-center gap-1.5",
-                twitterCard === "summary"
+                (isCropMode ? cropFormat : twitterCard) === "summary"
                   ? "bg-white dark:bg-[#0e0f12] text-zinc-950 dark:text-white shadow-xs border border-zinc-200 dark:border-zinc-700 font-semibold"
                   : "text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white font-medium",
               )}
@@ -653,7 +735,10 @@ export function SectionSocialTracking({
               <div className="inline-flex items-center p-0.5 rounded-[6px] bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700/60 self-start sm:self-auto">
                 <button
                   type="button"
-                  onClick={() => setCropFormat("summary_large_image")}
+                  onClick={() => {
+                    setCroppedAreaPixels(null);
+                    setCropFormat("summary_large_image");
+                  }}
                   className={cn(
                     "px-2.5 py-1 rounded-[5px] text-[11px] font-medium transition-colors cursor-pointer",
                     cropFormat === "summary_large_image"
@@ -665,7 +750,10 @@ export function SectionSocialTracking({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setCropFormat("summary")}
+                  onClick={() => {
+                    setCroppedAreaPixels(null);
+                    setCropFormat("summary");
+                  }}
                   className={cn(
                     "px-2.5 py-1 rounded-[5px] text-[11px] font-medium transition-colors cursor-pointer",
                     cropFormat === "summary"
@@ -1221,33 +1309,50 @@ export function SectionSocialTracking({
                     </div>
                   </>
                 ) : (
-                  /* Simple & Sober Placeholder (Light & Dark Adaptive) */
-                  <div className="py-5 px-4 flex flex-col items-center justify-center text-center gap-1.5 select-none">
-                    <div className="w-9 h-9 rounded-[8px] bg-white dark:bg-zinc-800/90 border border-zinc-200/80 dark:border-zinc-700/80 flex items-center justify-center text-zinc-500 dark:text-zinc-400 shadow-2xs">
-                      <ImageIcon className="w-4 h-4" />
+                  /* Live Auto-Generated Banner Preview (matches /banners/og.png) */
+                  <div className="w-full h-full bg-gradient-to-br from-[#f8faff] to-[#e8f0ff] p-4 flex flex-col justify-between text-left select-none relative overflow-hidden">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-5 h-5 rounded-[5px] bg-[#2563EB] text-white text-[9px] font-black flex items-center justify-center">
+                          LS
+                        </span>
+                        <span className="text-[11px] font-extrabold text-zinc-950">LShorter</span>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-full bg-[#2563EB] text-white text-[9px] font-bold font-mono">
+                        {domainName || "lsho.cc"}/{slug || "slug"}
+                      </span>
                     </div>
-                    <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 mt-0.5">
-                      Aperçu de la bannière (1200 × 630 px)
-                    </span>
-                    <span className="text-[11px] font-medium text-zinc-600 dark:text-zinc-400">
-                      Aucune image personnalisée sélectionnée
-                    </span>
+                    <div className="my-auto py-1">
+                      <div className="text-sm font-black text-zinc-950 line-clamp-1 leading-tight">
+                        {ogTitle || "Titre de votre lien partagé"}
+                      </div>
+                      <div className="text-[11px] font-medium text-zinc-700 line-clamp-2 mt-1 leading-snug">
+                        {ogDescription || "Votre description apparaîtra automatiquement ici sur la bannière."}
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between text-[9px] font-semibold text-zinc-500 border-t border-zinc-900/10 pt-1.5">
+                      <span className="text-[#2563EB] font-bold">Bannière auto-générée (1200×630)</span>
+                      <span>Cliquez pour importer une image</span>
+                    </div>
                   </div>
                 )}
+                {/* Authentic X/Twitter Large Card Title Pill Overlay */}
+                <div className="pointer-events-none absolute bottom-2 left-2 right-2 flex items-center">
+                  <span className="max-w-full truncate px-2 py-0.5 rounded-[5px] bg-black/75 text-white text-[11px] font-semibold backdrop-blur-xs">
+                    {ogTitle || "Titre de votre lien partagé"}
+                  </span>
+                </div>
               </div>
 
-              {/* Twitter / X Post Metadata Block (Light & Dark Adaptive) */}
-              <div className="p-3.5 bg-white dark:bg-[#12141a]">
+              {/* Twitter / X Post Metadata Block */}
+              <div className="px-3.5 py-2.5 bg-white dark:bg-[#12141a] flex flex-col gap-1">
                 <div className="flex items-center gap-1.5 text-[11px] font-semibold text-zinc-600 dark:text-zinc-400">
                   <Globe2 className="w-3 h-3 text-zinc-500 dark:text-zinc-400" />
-                  <span>{domainName || "lsho.cc"}</span>
+                  <span>From {domainName || "lsho.cc"}</span>
                 </div>
-                <span className="text-sm font-bold text-zinc-950 dark:text-white truncate block mt-0.5">
-                  {ogTitle || "Titre de votre lien partagé"}
-                </span>
-                <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300 line-clamp-2 mt-0.5 leading-relaxed">
-                  {ogDescription || "La description Open Graph apparaîtra ici sur Twitter / X."}
-                </span>
+                <p className="text-[11px] font-medium text-zinc-600 dark:text-zinc-400 leading-snug">
+                  Sur X (Twitter), le format Large affiche uniquement l&apos;image et le titre en superposition. Pour afficher le texte de description à côté sur X, utilisez le format <strong className="text-zinc-900 dark:text-zinc-200">Compact (1:1)</strong>. Sur LinkedIn, WhatsApp, Facebook et Discord, la description s&apos;affiche dans les deux formats.
+                </p>
               </div>
             </div>
           ) : (

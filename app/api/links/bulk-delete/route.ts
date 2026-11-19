@@ -3,6 +3,8 @@ import { WORKER_URL, FRONTEND_SECRET, CF_ACCOUNT_ID, CF_D1_DATABASE_ID, CF_API_T
 import { invalidateBotResponseCache } from "@/lib/redirect-engine";
 import { invalidateServerLinksCache } from "@/lib/server-links-cache";
 import { auth } from "@/auth";
+import { convexHttp as convex } from "@/lib/convex-server";
+import { api } from "@/convex/_generated/api";
 import { parseBody, bulkDeleteBodySchema } from "@/lib/api-schemas";
 
 export async function POST(req: Request) {
@@ -10,13 +12,26 @@ export async function POST(req: Request) {
     const { data: body, error: bodyError } = await parseBody(req, bulkDeleteBodySchema);
     if (bodyError) return bodyError;
 
-    const reqUrl = new URL(req.url);
     const session = await auth().catch(() => null);
-    const userId = session?.user?.id || reqUrl.searchParams.get("userId") || body?.userId || "";
-    const userEmail = session?.user?.email || reqUrl.searchParams.get("userEmail") || body?.userEmail || "";
 
-    const isDev = process.env.NODE_ENV === "development";
-    if (!session?.user && !userId && !userEmail && !isDev) {
+    if (!session?.user) {
+      return NextResponse.json(
+        { success: false, error: "Authentication required to delete links." },
+        { status: 401 }
+      );
+    }
+
+    const userEmail = (session.user.email || "").toLowerCase().trim();
+    let userId = session.user.id || "";
+
+    if ((!userId || userId === "usr_anonymous" || userId.includes("@") || !userId.startsWith("usr_")) && userEmail) {
+      try {
+        const cu = await convex.query(api.users.getUserByEmail, { email: userEmail });
+        if (cu?.userId) userId = cu.userId;
+      } catch {}
+    }
+
+    if (!userId && !userEmail) {
       return NextResponse.json(
         { success: false, error: "Authentication required to delete links." },
         { status: 401 }
@@ -31,7 +46,7 @@ export async function POST(req: Request) {
       } catch {}
     }
 
-    // Direct Cloudflare D1 SQL bulk deletion (Guaranteed DB cleanup)
+    // Direct Cloudflare D1 SQL bulk deletion (Strictly Ownership-Scoped)
     if (CF_ACCOUNT_ID && CF_D1_DATABASE_ID && CF_API_TOKEN && ids.length > 0) {
       try {
         const placeholders = ids.map(() => "?").join(", ");
@@ -44,8 +59,8 @@ export async function POST(req: Request) {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              sql: `DELETE FROM links WHERE id IN (${placeholders}) OR slug IN (${placeholders});`,
-              params: [...ids, ...ids],
+              sql: `DELETE FROM links WHERE (id IN (${placeholders}) OR slug IN (${placeholders})) AND (user_id = ? OR user_id IN (SELECT id FROM users WHERE LOWER(email) = LOWER(?)));`,
+              params: [...ids, ...ids, userId || "__never_match__", userEmail || "__never_match__"],
             }),
             cache: "no-store",
           }

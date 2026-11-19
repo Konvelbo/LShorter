@@ -18,6 +18,7 @@ import {
   invalidateServerLinksCache,
 } from "@/lib/server-links-cache";
 import { parseBody, parseQuery, linkCreateBodySchema, linksQuerySchema } from "@/lib/api-schemas";
+import { validateAndPersistOgImage } from "@/lib/og-image-validator";
 
 function parseTags(raw: any): string[] {
   if (!raw) return [];
@@ -45,8 +46,15 @@ export async function GET(req: Request) {
 
   const session = await auth().catch(() => null);
 
-  let userId = session?.user?.id || qp.userId || null;
-  let userEmail = session?.user?.email || qp.userEmail || null;
+  if (!session?.user) {
+    return NextResponse.json(
+      { success: false, error: "Authentication required to access links." },
+      { status: 401 }
+    );
+  }
+
+  let userId = session.user.id || null;
+  const userEmail = session.user.email || null;
 
   // If userId is missing, anonymous, email-shaped, or raw OAuth ID (not starting with usr_), resolve authoritative Convex userId
   if ((!userId || userId === "usr_anonymous" || userId.includes("@") || !userId.startsWith("usr_")) && userEmail) {
@@ -222,10 +230,21 @@ export async function GET(req: Request) {
       const rawLinkOgImg = String(l.og_image ?? l.ogImage ?? "").trim();
       const normalizedLinkOgImg = (() => {
         if (!rawLinkOgImg) return null;
+        const isRelativeOrOwnHost =
+          rawLinkOgImg.startsWith("/") ||
+          (() => {
+            try {
+              const h = new URL(rawLinkOgImg).hostname.toLowerCase();
+              return h === "lsho.cc" || h.endsWith(".lsho.cc") || h.endsWith(".workers.dev") || h === "localhost";
+            } catch {
+              return false;
+            }
+          })();
         if (
-          rawLinkOgImg.includes("/api/v1/images/") ||
-          rawLinkOgImg.includes("/api/images/") ||
-          rawLinkOgImg.includes("/banners/")
+          isRelativeOrOwnHost &&
+          (rawLinkOgImg.includes("/api/v1/images/") ||
+            rawLinkOgImg.includes("/api/images/") ||
+            rawLinkOgImg.includes("/banners/"))
         ) {
           const [pathPart, queryPart] = rawLinkOgImg.split("?");
           const fname = pathPart.split("/").pop();
@@ -575,26 +594,18 @@ export async function POST(req: Request) {
       );
     }
 
-    const rawOg = (body.ogImage || body.og_image || "").trim();
-    let sanitizedOgImage: string | undefined = rawOg || undefined;
-
-    if (
-      sanitizedOgImage &&
-      (sanitizedOgImage.includes("/api/images/") ||
-        sanitizedOgImage.includes("/api/v1/images/") ||
-        sanitizedOgImage.includes("/banners/"))
-    ) {
-      const [pathPart, queryPart] = sanitizedOgImage.split("?");
-      const fName = pathPart.split("/").pop();
-      if (fName && fName !== "og.png" && fName !== "og") {
-        sanitizedOgImage = `/banners/${fName}${queryPart ? `?${queryPart}` : ""}`;
-      }
-    } else if (rawOg && rawOg.startsWith("data:") && rawOg.length > 250000) {
-      const bannerTitle = encodeURIComponent(
-        body.ogTitle || body.metaTitle || body.slug || "LShorter",
+    const ogValidation = await validateAndPersistOgImage(
+      body.ogImage ?? body.og_image,
+      false,
+      finalUserId,
+    );
+    if (!ogValidation.ok) {
+      return NextResponse.json(
+        { success: false, error: ogValidation.error },
+        { status: ogValidation.status },
       );
-      sanitizedOgImage = `/banners/og.png?title=${bannerTitle}`;
     }
+    const sanitizedOgImage = ogValidation.value || undefined;
 
     const rawStyle = body.bannerStyle || body.banner_style;
     const rawCard = body.twitterCard || body.twitter_card;

@@ -1,20 +1,26 @@
 export function getDicebearGlassUrl(seed: string): string {
-  return `https://api.dicebear.com/9.x/glass/svg?seed=${encodeURIComponent(seed || "lshorter")}`;
+  const safeSeed = String(seed || "lshorter").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 64) || "lshorter";
+  return `https://api.dicebear.com/9.x/glass/svg?seed=${encodeURIComponent(safeSeed)}`;
 }
 
+// Strict crawler/bot UA tokens ONLY (never bare brand names like "linkedin" or "reddit"
+// which would match human mobile in-app WebViews and break 307 redirects + click tracking).
 const SOCIAL_CRAWLERS = [
-  "twitter",
   "twitterbot",
   "xbot",
   "facebookexternalhit",
   "facebot",
-  "whatsapp",
+  "meta-externalagent",
+  "meta-externalfetcher",
+  "whatsapp/",
   "telegrambot",
   "linkedinbot",
   "slackbot",
   "slack-imgbatcher",
+  "slack-imgproxy",
   "discordbot",
-  "pinterest",
+  "pinterestbot",
+  "pinterest/",
   "applebot",
   "bingbot",
   "googlebot",
@@ -24,17 +30,22 @@ const SOCIAL_CRAWLERS = [
   "quora link preview",
   "embedly",
   "skypeuripreview",
+  "microsoftpreview",
   "nuzzel",
   "bytespider",
-  "tiktok",
-  "mastodon",
+  "mastodon/",
   "bluesky",
   "opengraph",
   "iframely",
   "metatags",
   "socialsharepreview",
-  "threads",
+  "linkpreview",
+  "cardvalidator",
+  "unfurl",
   "snapchat",
+  "viber",
+  "line-poker",
+  "kakaotalk-scrap",
 ];
 
 export function isSocialCrawler(userAgentRaw: string): boolean {
@@ -183,10 +194,11 @@ export function renderSocialHtml(options: {
   const isSvg = !resolvedImg || resolvedImg.includes(".svg") || resolvedImg.includes("dicebear");
   let twitterImg = resolvedImg;
   if (isSvg) {
+    const descParam = encodeURIComponent((options.description || "").substring(0, 160));
     if (cardType === "summary") {
-      twitterImg = `https://${rawDomain}/banners/og.png?card=summary&title=${encodeURIComponent((options.title || options.slug || "LShorter").substring(0, 60))}&desc=${encodeURIComponent((options.description || "").substring(0, 80))}&slug=${encodeURIComponent(options.slug || "")}`;
+      twitterImg = `https://${rawDomain}/banners/og.png?card=summary&title=${encodeURIComponent((options.title || options.slug || "LShorter").substring(0, 70))}&desc=${descParam}&slug=${encodeURIComponent(options.slug || "")}`;
     } else {
-      twitterImg = `https://${rawDomain}/banners/og.png?title=${encodeURIComponent((options.title || options.slug || "LShorter").substring(0, 80))}&slug=${encodeURIComponent(options.slug || "")}`;
+      twitterImg = `https://${rawDomain}/banners/og.png?title=${encodeURIComponent((options.title || options.slug || "LShorter").substring(0, 80))}&desc=${descParam}&slug=${encodeURIComponent(options.slug || "")}`;
     }
   }
 
@@ -458,7 +470,7 @@ export function renderSocialHtml(options: {
 
     ${cardType === "summary" ? `
     <div class="preview-card preview-card-summary" data-card-type="summary" data-banner-style="default_banner">
-      <img src="${safeImg}" alt="${safeTitle}" class="preview-img-summary" onerror="this.src='${fallbackGlass}'" />
+      <img src="${safeImg}" alt="${safeTitle}" class="preview-img-summary" />
       <div class="preview-content-summary">
         <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">${domainName}</div>
         <h2 style="font-size:15px;font-weight:600;margin-bottom:4px;">${safeTitle}</h2>
@@ -467,7 +479,7 @@ export function renderSocialHtml(options: {
     </div>
     ` : `
     <div class="preview-card" data-card-type="summary_large_image" data-banner-style="large_banner">
-      <img src="${safeImg}" alt="${safeTitle}" class="preview-img" onerror="this.src='${fallbackGlass}'" />
+      <img src="${safeImg}" alt="${safeTitle}" class="preview-img" />
       <div class="preview-content">
         <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">${domainName}</div>
         <h2 style="font-size:16px;font-weight:600;margin-bottom:6px;">${safeTitle}</h2>

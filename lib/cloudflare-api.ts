@@ -6,7 +6,10 @@
  */
 
 import { compressImageFile } from "./image-compress";
-import { WORKER_URL, FRONTEND_SECRET as SECRET } from "./backend-config";
+
+const WORKER_URL =
+  process.env.NEXT_PUBLIC_BACKEND_API_URL ||
+  "https://lshorter-api.fiatechnologiecam.workers.dev";
 
 type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
@@ -239,9 +242,9 @@ async function cfFetch<T>(
     "Content-Type": "application/json",
   };
 
-  // Only attach secret when on server side
-  if (!isBrowser) {
-    if (SECRET) headers["X-Frontend-Secret"] = SECRET;
+  // Only attach secret when on server side (never bundled into client JS)
+  if (!isBrowser && process.env.FRONTEND_API_SECRET) {
+    headers["X-Frontend-Secret"] = process.env.FRONTEND_API_SECRET;
   }
 
   const fetchPromise = (async () => {

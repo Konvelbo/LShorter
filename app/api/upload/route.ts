@@ -11,8 +11,9 @@ import { parseBody, uploadJsonBodySchema } from "@/lib/api-schemas";
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB limit
 
 export async function POST(req: NextRequest) {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const session = await auth().catch(() => null);
+  const resolvedUploaderId = session?.user?.id || session?.user?.email || "";
+  if (!session?.user || !resolvedUploaderId) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
 
@@ -120,7 +121,7 @@ export async function POST(req: NextRequest) {
         "Content-Type": "application/json",
         "X-Frontend-Secret": FRONTEND_SECRET,
         Authorization: `Bearer ${FRONTEND_SECRET}`,
-        "X-User-Id": session.user.id,
+        "X-User-Id": resolvedUploaderId,
       },
       body: JSON.stringify({ data: base64Data }),
     });

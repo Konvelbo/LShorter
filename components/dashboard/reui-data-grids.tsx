@@ -290,6 +290,7 @@ export function LinksReuiDataGrid({
   const [previewBanner, setPreviewBanner] = useState<{
     imageUrl: string;
     title: string;
+    description?: string;
     shortUrl: string;
     slug: string;
   } | null>(null);
@@ -627,6 +628,7 @@ export function LinksReuiDataGrid({
         createdAt:
           item.createdAt || item.created_at || new Date().toISOString(),
         status,
+        ogDescription: String(item.ogDescription || item.og_description || "").trim(),
         ogImage,
         hasCustomBanner,
         avatarUrl,
@@ -1061,6 +1063,7 @@ export function LinksReuiDataGrid({
                                   setPreviewBanner({
                                     imageUrl: row.ogImage || row.avatarUrl,
                                     title: row.ownerName,
+                                    description: row.ogDescription || undefined,
                                     shortUrl: row.shortUrl,
                                     slug: row.slug,
                                   });
@@ -1106,6 +1109,14 @@ export function LinksReuiDataGrid({
                                 {row.role}
                               </span>
                             </div>
+                            {row.ogDescription && (
+                              <p
+                                className="mt-0.5 text-[11px] text-[#64748B] dark:text-[#94A3B8] truncate max-w-[280px]"
+                                title={row.ogDescription}
+                              >
+                                {row.ogDescription}
+                              </p>
+                            )}
                             {/* Tags de lien */}
                             {row.tags && row.tags.length > 0 && (
                               <div className="flex flex-wrap items-center gap-1 mt-1">

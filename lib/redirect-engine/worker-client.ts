@@ -50,9 +50,12 @@ export function incrementWorkerLinkClicks(slugOrId: string): void {
   }
 }
 
-export async function fetchWorkerLink(slug: string): Promise<LinkMetadata | null> {
+export async function fetchWorkerLink(
+  slug: string,
+  bypassCache: boolean = false,
+): Promise<LinkMetadata | null> {
   const cacheKey = (slug || "").trim().toLowerCase();
-  if (cacheKey) {
+  if (cacheKey && !bypassCache) {
     const cached = workerLinkCache.get(cacheKey);
     if (cached && Date.now() < cached.expiresAt) {
       return cached.link;
@@ -60,16 +63,16 @@ export async function fetchWorkerLink(slug: string): Promise<LinkMetadata | null
   }
 
   try {
-    const singleRes = await fetch(
-      `${WORKER_URL}/api/v1/links/${encodeURIComponent(slug)}`,
-      {
-        headers: {
-          "X-Frontend-Secret": FRONTEND_SECRET,
-          Authorization: `Bearer ${FRONTEND_SECRET}`,
-        },
-        cache: "no-store",
+    const singleUrl = bypassCache
+      ? `${WORKER_URL}/api/v1/links/${encodeURIComponent(slug)}?forceRefresh=true&_t=${Date.now()}`
+      : `${WORKER_URL}/api/v1/links/${encodeURIComponent(slug)}`;
+    const singleRes = await fetch(singleUrl, {
+      headers: {
+        "X-Frontend-Secret": FRONTEND_SECRET,
+        Authorization: `Bearer ${FRONTEND_SECRET}`,
       },
-    ).catch(() => null);
+      cache: "no-store",
+    }).catch(() => null);
 
     if (singleRes && singleRes.ok) {
       const singleJson = await singleRes.json().catch(() => null);
@@ -77,7 +80,7 @@ export async function fetchWorkerLink(slug: string): Promise<LinkMetadata | null
       if (found && (found.target_url || found.targetUrl)) {
         const merged = mergeLinkWithExtras(found);
         if (cacheKey) {
-          setWorkerLinkCache(cacheKey, merged, 300000);
+          setWorkerLinkCache(cacheKey, merged, 30000);
         }
         return merged;
       }
@@ -101,7 +104,7 @@ export async function fetchWorkerLink(slug: string): Promise<LinkMetadata | null
         ) || null;
       const merged = matched ? mergeLinkWithExtras(matched) : null;
       if (cacheKey) {
-        setWorkerLinkCache(cacheKey, merged, merged ? 300000 : 10000);
+        setWorkerLinkCache(cacheKey, merged, merged ? 30000 : 3000);
       }
       return merged;
     }
@@ -110,7 +113,7 @@ export async function fetchWorkerLink(slug: string): Promise<LinkMetadata | null
   }
 
   if (cacheKey) {
-    setWorkerLinkCache(cacheKey, null, 5000);
+    setWorkerLinkCache(cacheKey, null, 3000);
   }
   return null;
 }

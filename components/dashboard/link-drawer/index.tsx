@@ -463,6 +463,15 @@ export function LinkDrawer({
   const originalEditOgImageRef = useRef<string>("");
   const originalEditCardRef = useRef<"summary_large_image" | "summary">("summary_large_image");
   const bannerCropReqIdRef = useRef(0);
+  const tabSwitchSeqRef = useRef(0);
+  const pendingCropRef = useRef<
+    (() => Promise<{
+      file: File | null;
+      originalFile?: File | null;
+      dataUrl: string;
+      format: "summary_large_image" | "summary";
+    } | null>) | null
+  >(null);
 
   // 3. Tracking & UTM
   const [utmSource, setUtmSource] = useState("");
@@ -544,6 +553,10 @@ export function LinkDrawer({
   useIsomorphicLayoutEffect(() => {
     if (!isOpen) {
       initializedKeyRef.current = null;
+      bannerCropReqIdRef.current += 1;
+      tabSwitchSeqRef.current += 1;
+      pendingCropRef.current = null;
+      setIsUploadingImage(false);
       return;
     }
 
@@ -841,6 +854,9 @@ export function LinkDrawer({
         setUtmContent("");
       }
 
+      setIsUploadingImage(false);
+      tabSwitchSeqRef.current += 1;
+      pendingCropRef.current = null;
       setFieldErrors({});
       setHasAttemptedSubmit(false);
       setActiveTab("link");
@@ -887,16 +903,22 @@ export function LinkDrawer({
   // Interactive Banner Crop Result Handler: Receives cropped file + dataUrl from SectionSocialTracking inline cropper
   const handleCropCompleteResult = async ({
     file,
+    originalFile,
     dataUrl,
     format,
   }: {
     file: File;
+    originalFile?: File | null;
     dataUrl: string;
     format: "summary_large_image" | "summary";
   }) => {
     setTwitterCard(format);
     setPreviewImage(dataUrl);
-    rawUploadedBannerFileRef.current = file;
+    if (originalFile) {
+      rawUploadedBannerFileRef.current = originalFile;
+    } else if (!rawUploadedBannerFileRef.current) {
+      rawUploadedBannerFileRef.current = file;
+    }
 
     const reqId = ++bannerCropReqIdRef.current;
     try {
@@ -975,23 +997,21 @@ export function LinkDrawer({
         setIsUploadingImage(false);
         return;
       }
-      if (nextCard === "summary") {
-        try {
-          setIsUploadingImage(true);
-          const normalizedSrc = cfNormalizeImageUrl(origImg);
-          const res = await fetch(normalizedSrc);
-          if (res.ok && bannerCropReqIdRef.current === reqId) {
-            const blob = await res.blob();
-            if (bannerCropReqIdRef.current === reqId) {
-              await uploadCompressedBannerFromSource(blob, "summary", reqId);
-            }
-          }
-        } catch (err) {
-          console.warn("Existing banner compact crop fallback:", err);
-        } finally {
+      try {
+        setIsUploadingImage(true);
+        const normalizedSrc = cfNormalizeImageUrl(origImg);
+        const res = await fetch(normalizedSrc);
+        if (res.ok && bannerCropReqIdRef.current === reqId) {
+          const blob = await res.blob();
           if (bannerCropReqIdRef.current === reqId) {
-            setIsUploadingImage(false);
+            await uploadCompressedBannerFromSource(blob, nextCard, reqId);
           }
+        }
+      } catch (err) {
+        console.warn("Existing banner format crop fallback:", err);
+      } finally {
+        if (bannerCropReqIdRef.current === reqId) {
+          setIsUploadingImage(false);
         }
       }
     }
@@ -1092,6 +1112,7 @@ export function LinkDrawer({
   // Submit Handler
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting || isUploadingImage) return;
     setHasAttemptedSubmit(true);
 
     const errors: Record<string, string> = {};
@@ -1288,13 +1309,30 @@ export function LinkDrawer({
       .replace(/[^a-z0-9_-]/g, "");
 
     try {
-      const isDefaultCard = twitterCard === "summary";
+      let effectiveCard = twitterCard;
+      let finalOgImage = (ogImage || previewImage || "").trim();
+
+      // Auto-commit any pending unvalidated crop in the inline Crop Studio so the banner is never dropped
+      if (pendingCropRef.current) {
+        try {
+          const cropped = await pendingCropRef.current();
+          if (cropped?.dataUrl) {
+            effectiveCard = cropped.format;
+            setTwitterCard(cropped.format);
+            setPreviewImage(cropped.dataUrl);
+            finalOgImage = cropped.dataUrl;
+          }
+        } catch (cropErr) {
+          console.warn("[LinkDrawer] Pending crop auto-commit warning:", cropErr);
+        }
+      }
+
+      const isDefaultCard = effectiveCard === "summary";
       const finalBannerStyle: "default_banner" | "large_banner" =
         isDefaultCard ? "default_banner" : "large_banner";
       const resolvedTwitterCard: "summary" | "summary_large_image" =
         isDefaultCard ? "summary" : "summary_large_image";
 
-      let finalOgImage = (ogImage || previewImage || "").trim();
       if (finalOgImage && finalOgImage.startsWith("data:")) {
         const uploadRes = await cfUploadImage(finalOgImage, "Banners", {
           maxWidth: isDefaultCard ? 600 : 1200,
@@ -1716,8 +1754,14 @@ export function LinkDrawer({
               undefined,
             metaTitle:
               res.data.meta_title || res.data.metaTitle || ogTitle || undefined,
-            twitterCard: twitterCard,
-            twitter_card: twitterCard,
+            twitterCard:
+              res.data.twitter_card || res.data.twitterCard || resolvedTwitterCard,
+            twitter_card:
+              res.data.twitter_card || res.data.twitterCard || resolvedTwitterCard,
+            bannerStyle:
+              res.data.banner_style || res.data.bannerStyle || finalBannerStyle,
+            banner_style:
+              res.data.banner_style || res.data.bannerStyle || finalBannerStyle,
             pathLockMode: isProPlan ? pathLockMode : "off",
             path_lock_mode: isProPlan ? pathLockMode : "off",
             pathLockPrefix:
@@ -1799,7 +1843,28 @@ export function LinkDrawer({
 
   const activeTabIndex = DRAWER_TABS.findIndex((t) => t.id === activeTab);
 
-  const handleNextTab = () => {
+  const commitPendingCropIfNeeded = async () => {
+    if (!pendingCropRef.current) return;
+    try {
+      const cropped = await pendingCropRef.current();
+      if (cropped?.dataUrl) {
+        await handleCropCompleteResult({
+          file:
+            cropped.file ||
+            cropped.originalFile ||
+            new File([], "social-banner.jpg", { type: "image/jpeg" }),
+          originalFile: cropped.originalFile,
+          dataUrl: cropped.dataUrl,
+          format: cropped.format,
+        });
+      }
+    } catch (err) {
+      console.warn("[LinkDrawer] Auto-commit crop on tab switch warning:", err);
+    }
+  };
+
+  const handleNextTab = async () => {
+    if (isUploadingImage || isSubmitting) return;
     // If moving past the first tab ("link"), validate destination, domain, and slug
     if (activeTab === "link") {
       const targetErr = checkUrlFormat(targetUrl, true);
@@ -1817,12 +1882,24 @@ export function LinkDrawer({
       }
     }
 
+    const seq = ++tabSwitchSeqRef.current;
+    if (activeTab === "social_tracking") {
+      await commitPendingCropIfNeeded();
+      if (tabSwitchSeqRef.current !== seq) return;
+    }
+
     if (activeTabIndex < DRAWER_TABS.length - 1) {
       setActiveTab(DRAWER_TABS[activeTabIndex + 1].id);
     }
   };
 
-  const handlePrevTab = () => {
+  const handlePrevTab = async () => {
+    if (isUploadingImage || isSubmitting) return;
+    const seq = ++tabSwitchSeqRef.current;
+    if (activeTab === "social_tracking") {
+      await commitPendingCropIfNeeded();
+      if (tabSwitchSeqRef.current !== seq) return;
+    }
     if (activeTabIndex > 0) {
       setActiveTab(DRAWER_TABS[activeTabIndex - 1].id);
     } else {
@@ -1918,8 +1995,15 @@ export function LinkDrawer({
               <button
                 key={tab.id}
                 type="button"
+                disabled={isUploadingImage || isSubmitting}
                 data-active={isActiveTab}
-                onClick={() => {
+                onClick={async () => {
+                  if (isUploadingImage || isSubmitting) return;
+                  const seq = ++tabSwitchSeqRef.current;
+                  if (activeTab === "social_tracking" && tab.id !== "social_tracking") {
+                    await commitPendingCropIfNeeded();
+                    if (tabSwitchSeqRef.current !== seq) return;
+                  }
                   if (tab.id === "routing" && !isProPlan) {
                     triggerPlanUpgrade({
                       featureName: "Dynamic Smart Routing",
@@ -1949,7 +2033,7 @@ export function LinkDrawer({
                   setActiveTab(tab.id);
                 }}
                 className={cn(
-                  "text-[13px] font-medium py-2.5 border-b-2 -mb-px transition-colors cursor-pointer flex items-center gap-1.5 shrink-0 sm:shrink",
+                  "text-[13px] font-medium py-2.5 border-b-2 -mb-px transition-colors cursor-pointer flex items-center gap-1.5 shrink-0 sm:shrink disabled:opacity-50 disabled:cursor-not-allowed",
                   isActiveTab
                     ? "border-[#1d5fe0] dark:border-[#3b82f6] text-zinc-950 dark:text-white font-bold"
                     : isCompleted
@@ -2042,6 +2126,7 @@ export function LinkDrawer({
                       setPreviewImage("");
                     }}
                     onCropCompleteResult={handleCropCompleteResult}
+                    pendingCropRef={pendingCropRef}
                     isUploadingImage={isUploadingImage}
                     utmSource={utmSource}
                     setUtmSource={setUtmSource}
@@ -2161,8 +2246,11 @@ export function LinkDrawer({
                     passParams={passParams}
                     isActive={isActive}
                     tagsInput={tagsInput}
-                    onNavigateTab={(tabId) => setActiveTab(tabId)}
-                    isSubmitting={isSubmitting}
+                    onNavigateTab={(tabId) => {
+                      tabSwitchSeqRef.current += 1;
+                      setActiveTab(tabId);
+                    }}
+                    isSubmitting={isSubmitting || isUploadingImage}
                     formId={drawerFormId}
                   />
                 )}
@@ -2177,8 +2265,8 @@ export function LinkDrawer({
             <button
               type="button"
               onClick={handlePrevTab}
-              disabled={isSubmitting}
-              className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 px-4 py-2 rounded-lg transition-colors cursor-pointer"
+              disabled={isSubmitting || isUploadingImage}
+              className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 px-4 py-2 rounded-lg transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {activeTabIndex > 0 ? "Back" : "Cancel"}
             </button>
@@ -2202,10 +2290,17 @@ export function LinkDrawer({
               <button
                 type="submit"
                 form={drawerFormId}
-                disabled={isSubmitting}
-                className="border border-[#1d5fe0]/30 dark:border-[#3b82f6]/30 bg-transparent hover:bg-[#1d5fe0]/10 text-[#1d5fe0] dark:text-[#3b82f6] font-semibold text-xs sm:text-sm px-3.5 py-2 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5"
+                disabled={isSubmitting || isUploadingImage}
+                className="border border-[#1d5fe0]/30 dark:border-[#3b82f6]/30 bg-transparent hover:bg-[#1d5fe0]/10 text-[#1d5fe0] dark:text-[#3b82f6] font-semibold text-xs sm:text-sm px-3.5 py-2 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                <span>{isEditMode ? "Save now" : "Create Link now"}</span>
+                {isUploadingImage ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Upload bannière...</span>
+                  </>
+                ) : (
+                  <span>{isEditMode ? "Save now" : "Create Link now"}</span>
+                )}
               </button>
             )}
 
@@ -2213,7 +2308,8 @@ export function LinkDrawer({
               <button
                 type="button"
                 onClick={handleNextTab}
-                className="bg-[#1d5fe0] dark:bg-[#3b82f6] hover:bg-[#154fc0] dark:hover:bg-[#2563eb] text-white font-medium text-sm px-5 py-2 rounded-lg shadow-sm transition-colors cursor-pointer"
+                disabled={isUploadingImage}
+                className="bg-[#1d5fe0] dark:bg-[#3b82f6] hover:bg-[#154fc0] dark:hover:bg-[#2563eb] text-white font-medium text-sm px-5 py-2 rounded-lg shadow-sm transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Continue
               </button>
@@ -2221,13 +2317,19 @@ export function LinkDrawer({
               <button
                 type="submit"
                 form={drawerFormId}
-                disabled={isSubmitting}
+                disabled={isSubmitting || isUploadingImage}
                 className="bg-[#1d5fe0] dark:bg-[#3b82f6] hover:bg-[#154fc0] dark:hover:bg-[#2563eb] text-white font-medium text-sm px-5 py-2 rounded-lg shadow-sm transition-colors cursor-pointer flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                {isSubmitting ? (
+                {isSubmitting || isUploadingImage ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>{isEditMode ? "Saving..." : "Creating..."}</span>
+                    <span>
+                      {isUploadingImage
+                        ? "Upload bannière..."
+                        : isEditMode
+                          ? "Saving..."
+                          : "Creating..."}
+                    </span>
                   </>
                 ) : (
                   <span>{isEditMode ? "Save Changes" : "Create Link"}</span>

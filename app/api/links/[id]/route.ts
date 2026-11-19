@@ -11,6 +11,7 @@ import { api } from "@/convex/_generated/api";
 import { isSafeHttpUrl, isValidSlug } from "@/lib/security-utils";
 import { invalidateServerLinksCache } from "@/lib/server-links-cache";
 import { parseBody, parseParams, linkUpdateBodySchema, linkIdParamsSchema } from "@/lib/api-schemas";
+import { validateAndPersistOgImage } from "@/lib/og-image-validator";
 
 function parseTags(raw: any): string[] {
   if (!raw) return [];
@@ -49,13 +50,26 @@ export async function PATCH(
   let resolvedUserEmail = "";
   try {
     const session = await auth().catch(() => null);
-    const { searchParams } = new URL(req.url);
-    const requestEmail = session?.user?.email || searchParams.get("userEmail") || body?.userEmail || "";
-    const requestUserId = session?.user?.id || searchParams.get("userId") || body?.userId || "";
+
+    if (!session?.user) {
+      return NextResponse.json(
+        { success: false, error: "Authentication required to update links." },
+        { status: 401 }
+      );
+    }
+
+    const requestEmail = (session.user.email || "").toLowerCase().trim();
+    let requestUserId = session.user.id || "";
+    if ((!requestUserId || requestUserId === "usr_anonymous" || requestUserId.includes("@") || !requestUserId.startsWith("usr_")) && requestEmail) {
+      try {
+        const cu = await convex.query(api.users.getUserByEmail, { email: requestEmail });
+        if (cu?.userId) requestUserId = cu.userId;
+      } catch {}
+    }
     resolvedUserId = requestUserId;
     resolvedUserEmail = requestEmail;
 
-    if (!session?.user && !requestUserId && !requestEmail) {
+    if (!requestUserId && !requestEmail) {
       return NextResponse.json(
         { success: false, error: "Authentication required to update links." },
         { status: 401 }
@@ -162,20 +176,19 @@ export async function PATCH(
       effectivePlan === "BUSINESS" ||
       effectivePlan === "ENTERPRISE";
 
-    const rawOg = (body.ogImage || body.og_image || "").trim();
-    let sanitizedOgImage: string | undefined = rawOg || undefined;
-    if (
-      sanitizedOgImage &&
-      (sanitizedOgImage.includes("/api/images/") ||
-        sanitizedOgImage.includes("/api/v1/images/") ||
-        sanitizedOgImage.includes("/banners/"))
-    ) {
-      const [pathPart, queryPart] = sanitizedOgImage.split("?");
-      const fName = pathPart.split("/").pop();
-      if (fName && fName !== "og.png" && fName !== "og") {
-        sanitizedOgImage = `https://lsho.cc/banners/${fName}${queryPart ? `?${queryPart}` : ""}`;
-      }
+    const hasExplicitClearOg = body.ogImage === null || body.og_image === null;
+    const ogValidation = await validateAndPersistOgImage(
+      body.ogImage ?? body.og_image,
+      hasExplicitClearOg,
+      userId,
+    );
+    if (!ogValidation.ok) {
+      return NextResponse.json(
+        { success: false, error: ogValidation.error },
+        { status: ogValidation.status },
+      );
     }
+    const sanitizedOgImage = ogValidation.value;
 
     const rawStyle = body.bannerStyle || body.banner_style;
     const rawCard = body.twitterCard || body.twitter_card;
@@ -297,16 +310,19 @@ export async function PATCH(
       userPlan: effectivePlan,
     };
 
-    const targetSlug = (body.slug || id || "").trim();
-    saveLinkExtras({ id, slug: body.slug || targetSlug }, workerPayload);
-    if (targetSlug) {
-      invalidateBotResponseCache(targetSlug);
-      invalidateWorkerLinkCache(targetSlug);
-    }
-    if (id) {
-      invalidateBotResponseCache(id);
-      invalidateWorkerLinkCache(id);
-    }
+    const persistExtrasAndInvalidate = (resolvedId?: string, resolvedSlug?: string) => {
+      const targetSlug = (resolvedSlug || body.slug || id || "").trim();
+      saveLinkExtras({ id: resolvedId || id, slug: targetSlug }, workerPayload);
+      if (targetSlug) {
+        invalidateBotResponseCache(targetSlug);
+        invalidateWorkerLinkCache(targetSlug);
+      }
+      if (id) {
+        invalidateBotResponseCache(id);
+        invalidateWorkerLinkCache(id);
+      }
+      invalidateServerLinksCache(resolvedUserId, resolvedUserEmail);
+    };
 
     const url = new URL(`${WORKER_URL}/api/v1/links/${id}`);
     if (userId) url.searchParams.set("userId", userId);
@@ -317,8 +333,8 @@ export async function PATCH(
       headers: {
         "X-Frontend-Secret": FRONTEND_SECRET,
         Authorization: `Bearer ${FRONTEND_SECRET}`,
-        "X-User-Id": userId,
-        "X-User-Email": requestEmail || "fiatechnologiecam@gmail.com",
+        ...(userId ? { "X-User-Id": userId } : {}),
+        ...(requestEmail ? { "X-User-Email": requestEmail } : {}),
         "X-User-Plan": effectivePlan,
         "Content-Type": "application/json",
       },
@@ -347,6 +363,7 @@ export async function PATCH(
             "X-Frontend-Secret": FRONTEND_SECRET,
             Authorization: `Bearer ${FRONTEND_SECRET}`,
             ...(userId ? { "X-User-Id": userId } : {}),
+            ...(requestEmail ? { "X-User-Email": requestEmail } : {}),
             "X-User-Plan": effectivePlan,
             "Content-Type": "application/json",
           },
@@ -355,6 +372,10 @@ export async function PATCH(
 
         if (retryRes.ok) {
           const retryData = await retryRes.json().catch(() => ({}));
+          persistExtrasAndInvalidate(
+            (retryData.data as any)?.id || id,
+            (retryData.data as any)?.slug || body.slug,
+          );
           return NextResponse.json(
             {
               ...retryData,
@@ -400,22 +421,36 @@ export async function PATCH(
           );
         }
       }
+
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            (data as any)?.error ||
+            (res.status === 403
+              ? "Forbidden: You do not have permission to update this link."
+              : "Invalid link update payload."),
+        },
+        { status: res.status },
+      );
     }
 
-    // 4. If worker returns 404, look up real worker link ID by slug and retry PATCH
+    // 4. If worker returns 404, look up real worker link ID by slug strictly within caller's own links
     if (res.status === 404) {
       try {
         const slugToFind = body.slug || id;
-        const listRes = await fetch(
-          `${WORKER_URL}/api/v1/links?userId=${userId || "all"}`,
-          {
-            headers: {
-              "X-Frontend-Secret": FRONTEND_SECRET,
-              Authorization: `Bearer ${FRONTEND_SECRET}`,
-            },
-            cache: "no-store",
+        const listUrl = new URL(`${WORKER_URL}/api/v1/links`);
+        if (userId) listUrl.searchParams.set("userId", userId);
+        if (requestEmail) listUrl.searchParams.set("userEmail", requestEmail);
+        const listRes = await fetch(listUrl.toString(), {
+          headers: {
+            "X-Frontend-Secret": FRONTEND_SECRET,
+            Authorization: `Bearer ${FRONTEND_SECRET}`,
+            ...(userId ? { "X-User-Id": userId } : {}),
+            ...(requestEmail ? { "X-User-Email": requestEmail } : {}),
           },
-        );
+          cache: "no-store",
+        });
 
         if (listRes.ok) {
           const listJson = await listRes.json();
@@ -425,22 +460,24 @@ export async function PATCH(
               l.slug?.toLowerCase() === slugToFind.toLowerCase() || l.id === id,
           );
           if (found && found.id && found.id !== id) {
-            const retryPatch = await fetch(
-              `${WORKER_URL}/api/v1/links/${found.id}`,
-              {
-                method: "PATCH",
-                headers: {
-                  "X-Frontend-Secret": FRONTEND_SECRET,
-                  Authorization: `Bearer ${FRONTEND_SECRET}`,
-                  ...(userId ? { "X-User-Id": userId } : {}),
-                  "X-User-Plan": effectivePlan,
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify(workerPayload),
+            const retryPatchUrl = new URL(`${WORKER_URL}/api/v1/links/${found.id}`);
+            if (userId) retryPatchUrl.searchParams.set("userId", userId);
+            if (requestEmail) retryPatchUrl.searchParams.set("userEmail", requestEmail);
+            const retryPatch = await fetch(retryPatchUrl.toString(), {
+              method: "PATCH",
+              headers: {
+                "X-Frontend-Secret": FRONTEND_SECRET,
+                Authorization: `Bearer ${FRONTEND_SECRET}`,
+                ...(userId ? { "X-User-Id": userId } : {}),
+                ...(requestEmail ? { "X-User-Email": requestEmail } : {}),
+                "X-User-Plan": effectivePlan,
+                "Content-Type": "application/json",
               },
-            );
+              body: JSON.stringify(workerPayload),
+            });
             if (retryPatch.ok) {
               const patchData = await retryPatch.json().catch(() => ({}));
+              persistExtrasAndInvalidate(found.id, found.slug || body.slug);
               return NextResponse.json(
                 {
                   success: true,
@@ -458,63 +495,19 @@ export async function PATCH(
             }
           }
         }
-
-        const createUrl = new URL(`${WORKER_URL}/api/v1/links`);
-        const createRes = await fetch(createUrl.toString(), {
-          method: "POST",
-          headers: {
-            "X-Frontend-Secret": FRONTEND_SECRET,
-            Authorization: `Bearer ${FRONTEND_SECRET}`,
-            ...(userId ? { "X-User-Id": userId } : {}),
-            ...(requestEmail ? { "X-User-Email": requestEmail } : {}),
-            "X-User-Plan": effectivePlan,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(workerPayload),
-        });
-        if (createRes.ok) {
-          const createData = await createRes.json().catch(() => ({}));
-          return NextResponse.json(
-            {
-              success: true,
-              data: {
-                ...(createData.data || createData),
-                bannerStyle: resolvedBannerStyle,
-                banner_style: resolvedBannerStyle,
-                twitterCard: resolvedTwitterCard,
-                twitter_card: resolvedTwitterCard,
-              },
-            },
-            { status: 200 },
-          );
-        }
-      } catch (createErr) {
+      } catch (lookupErr) {
         console.warn(
-          "[Links Proxy PATCH] Fallback sync to worker failed:",
-          createErr,
+          "[Links Proxy PATCH] Caller-scoped link lookup failed:",
+          lookupErr,
         );
       }
 
       return NextResponse.json(
         {
-          success: true,
-          data: {
-            id,
-            ...workerPayload,
-            ogImage: sanitizedOgImage,
-            og_image: sanitizedOgImage,
-            ogTitle: body.ogTitle ?? body.og_title,
-            og_title: body.ogTitle ?? body.og_title,
-            ogDescription: body.ogDescription ?? body.og_description,
-            og_description: body.ogDescription ?? body.og_description,
-            metaTitle: body.metaTitle ?? body.meta_title,
-            bannerStyle: resolvedBannerStyle,
-            banner_style: resolvedBannerStyle,
-            twitterCard: resolvedTwitterCard,
-            twitter_card: resolvedTwitterCard,
-          },
+          success: false,
+          error: (data as any)?.error || "Link not found or not owned by current user.",
         },
-        { status: 200 },
+        { status: 404 },
       );
     }
 
@@ -522,62 +515,20 @@ export async function PATCH(
       console.warn(
         "[Links Proxy PATCH] Worker returned error status:",
         res.status,
-        "- Local fallback succeeded.",
       );
-      invalidateServerLinksCache(resolvedUserId, resolvedUserEmail);
       return NextResponse.json(
         {
-          success: true,
-          data: {
-            id,
-            ...workerPayload,
-            isActive:
-              body.isActive !== undefined
-                ? Boolean(body.isActive)
-                : body.is_active !== undefined
-                  ? Boolean(body.is_active)
-                  : true,
-            expiresAt: body.expiresAt ?? body.expires_at,
-            ogImage: sanitizedOgImage,
-            og_image: sanitizedOgImage,
-            ogTitle: body.ogTitle ?? body.og_title,
-            og_title: body.ogTitle ?? body.og_title,
-            ogDescription: body.ogDescription ?? body.og_description,
-            og_description: body.ogDescription ?? body.og_description,
-            metaTitle: body.metaTitle ?? body.meta_title,
-            bannerStyle: resolvedBannerStyle,
-            banner_style: resolvedBannerStyle,
-            twitterCard: resolvedTwitterCard,
-            twitter_card: resolvedTwitterCard,
-            password: body.password ?? null,
-            isCloaked: Boolean(body.isCloaked || body.is_cloaked),
-            routingRules: parsedRouting ?? null,
-            geoTargeting: parsedGeo ?? null,
-            deviceTargeting: parsedDevice ?? null,
-            maxClicks:
-              body.maxClicks !== undefined
-                ? body.maxClicks
-                  ? Number(body.maxClicks)
-                  : null
-                : undefined,
-            fallbackUrl: body.fallbackUrl ?? body.fallback_url ?? null,
-            pathLockMode: body.pathLockMode || body.path_lock_mode,
-            path_lock_mode: body.pathLockMode || body.path_lock_mode,
-            pathLockPrefix: body.pathLockPrefix ?? body.path_lock_prefix,
-            path_lock_prefix: body.pathLockPrefix ?? body.path_lock_prefix,
-            pathLockMessage: body.pathLockMessage ?? body.path_lock_message,
-            path_lock_message: body.pathLockMessage ?? body.path_lock_message,
-            pathLockPassword: body.pathLockPassword ?? body.path_lock_password,
-            path_lock_password:
-              body.pathLockPassword ?? body.path_lock_password,
-            tags: body.tags !== undefined ? parseTags(body.tags) : undefined,
-          },
+          success: false,
+          error: (data as any)?.error || "Failed to update link.",
         },
-        { status: 200 },
+        { status: res.status },
       );
     }
 
-    invalidateServerLinksCache(resolvedUserId, resolvedUserEmail);
+    persistExtrasAndInvalidate(
+      (data.data as any)?.id || id,
+      (data.data as any)?.slug || body.slug,
+    );
     return NextResponse.json(
       {
         ...data,
@@ -657,16 +608,12 @@ export async function PATCH(
     );
   } catch (error: any) {
     console.warn("[Links Proxy PATCH] Error connecting to Worker:", error);
-    invalidateServerLinksCache(resolvedUserId, resolvedUserEmail);
     return NextResponse.json(
       {
-        success: true,
-        data: {
-          id,
-          ...body,
-        },
+        success: false,
+        error: "Failed to update link on backend.",
       },
-      { status: 200 },
+      { status: 502 },
     );
   }
 }
@@ -682,11 +629,25 @@ export async function DELETE(
 
   const { searchParams } = new URL(req.url);
   const session = await auth().catch(() => null);
-  const userId = session?.user?.id || searchParams.get("userId") || "";
-  const userEmail = session?.user?.email || searchParams.get("userEmail") || "";
 
-  const isDev = process.env.NODE_ENV === "development";
-  if (!session?.user && !userId && !userEmail && !isDev) {
+  if (!session?.user) {
+    return NextResponse.json(
+      { success: false, error: "Authentication required to delete links." },
+      { status: 401 }
+    );
+  }
+
+  const userEmail = (session.user.email || "").toLowerCase().trim();
+  let userId = session.user.id || "";
+
+  if ((!userId || userId === "usr_anonymous" || userId.includes("@") || !userId.startsWith("usr_")) && userEmail) {
+    try {
+      const cu = await convex.query(api.users.getUserByEmail, { email: userEmail });
+      if (cu?.userId) userId = cu.userId;
+    } catch {}
+  }
+
+  if (!userId && !userEmail) {
     return NextResponse.json(
       { success: false, error: "Authentication required to delete links." },
       { status: 401 }
@@ -694,7 +655,6 @@ export async function DELETE(
   }
 
   const slug = searchParams.get("slug");
-  const imageParam = searchParams.get("image") || searchParams.get("ogImage");
 
   try {
     // 1. Delete from local memory store (by ID and slug)
@@ -709,7 +669,7 @@ export async function DELETE(
 
     let targetId = id;
 
-    // 2. Direct Cloudflare D1 SQL Deletion (Infallible Direct Execution)
+    // 2. Direct Cloudflare D1 SQL Deletion (Strictly Ownership-Scoped)
     if (CF_ACCOUNT_ID && CF_D1_DATABASE_ID && CF_API_TOKEN) {
       try {
         await fetch(
@@ -721,8 +681,8 @@ export async function DELETE(
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              sql: "DELETE FROM links WHERE id = ? OR LOWER(slug) = LOWER(?);",
-              params: [targetId, slug || targetId],
+              sql: "DELETE FROM links WHERE (id = ? OR LOWER(slug) = LOWER(?)) AND (user_id = ? OR user_id IN (SELECT id FROM users WHERE LOWER(email) = LOWER(?)));",
+              params: [targetId, slug || targetId, userId || "__never_match__", userEmail || "__never_match__"],
             }),
             cache: "no-store",
           }
@@ -732,7 +692,7 @@ export async function DELETE(
       }
     }
 
-    // 3. Delete from Worker (KV and Secondary Cache eviction)
+    // 3. Delete from Worker (KV and Secondary Cache eviction, strictly scoped to verified caller)
     const workerHeaders: Record<string, string> = {
       "X-Frontend-Secret": FRONTEND_SECRET,
       Authorization: `Bearer ${FRONTEND_SECRET}`,
@@ -751,25 +711,22 @@ export async function DELETE(
       cache: "no-store",
     });
 
-    if (!res.ok && res.status === 403) {
-      // Fallback attempt without user constraint in case link has legacy/null user_id in KV
-      const fallbackUrl = new URL(`${WORKER_URL}/api/v1/links/${encodeURIComponent(targetId)}`);
-      if (slug) fallbackUrl.searchParams.set("slug", slug);
-      res = await fetch(fallbackUrl.toString(), {
-        method: "DELETE",
-        headers: {
-          "X-Frontend-Secret": FRONTEND_SECRET,
-          Authorization: `Bearer ${FRONTEND_SECRET}`,
-        },
-        cache: "no-store",
-      });
+    if (res.status === 403) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden: You do not have permission to delete this link." },
+        { status: 403 }
+      );
     }
 
-    // If 404 and id does not start with "link_", attempt to resolve authoritative link ID by slug
+    // If 404 and id does not start with "link_", attempt to resolve authoritative link ID by slug within caller's links
     if ((!res.ok || res.status === 404) && (!targetId.startsWith("link_") || slug)) {
       try {
-        const listRes = await fetch(`${WORKER_URL}/api/v1/links?limit=500`, {
-          headers: { "X-Frontend-Secret": FRONTEND_SECRET },
+        const listUrl = new URL(`${WORKER_URL}/api/v1/links`);
+        listUrl.searchParams.set("limit", "500");
+        if (userId) listUrl.searchParams.set("userId", userId);
+        if (userEmail) listUrl.searchParams.set("userEmail", userEmail);
+        const listRes = await fetch(listUrl.toString(), {
+          headers: workerHeaders,
           cache: "no-store",
         });
         if (listRes.ok) {
@@ -778,12 +735,13 @@ export async function DELETE(
           const match = items.find((l: any) => l.slug === (slug || id) || l.id === id);
           if (match?.id && match.id !== id) {
             targetId = match.id;
-            res = await fetch(`${WORKER_URL}/api/v1/links/${encodeURIComponent(targetId)}`, {
+            const retryUrl = new URL(`${WORKER_URL}/api/v1/links/${encodeURIComponent(targetId)}`);
+            if (slug) retryUrl.searchParams.set("slug", slug);
+            if (userId) retryUrl.searchParams.set("userId", userId);
+            if (userEmail) retryUrl.searchParams.set("userEmail", userEmail);
+            res = await fetch(retryUrl.toString(), {
               method: "DELETE",
-              headers: {
-                "X-Frontend-Secret": FRONTEND_SECRET,
-                Authorization: `Bearer ${FRONTEND_SECRET}`,
-              },
+              headers: workerHeaders,
               cache: "no-store",
             });
           }

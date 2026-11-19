@@ -76,7 +76,7 @@ export async function GET(
         }
       }
 
-      const meta = await fetchWorkerLink(slug);
+      const meta = await fetchWorkerLink(slug, true);
 
       const rawQDomain = (url.searchParams.get("domain") || url.searchParams.get("domain_name") || "").trim().toLowerCase();
       const qDomain = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/.test(rawQDomain)
@@ -113,10 +113,31 @@ export async function GET(
       const resolvedCard = isCompactCard ? "summary" : "summary_large_image";
 
       let rawImage = qImage || meta?.og_image || meta?.ogImage || meta?.banner_url || meta?.bannerUrl || "";
+      const isRelativeOrOwnBannerHost =
+        !rawImage ||
+        rawImage.startsWith("/") ||
+        (() => {
+          try {
+            const h = new URL(rawImage).hostname.toLowerCase();
+            return (
+              h === detectedDomain.toLowerCase() ||
+              h === "lsho.cc" ||
+              h.endsWith(".lsho.cc") ||
+              h.endsWith(".workers.dev") ||
+              h === "localhost"
+            );
+          } catch {
+            return false;
+          }
+        })();
+
       if (rawImage && rawImage.startsWith("data:")) {
-        rawImage = `https://${detectedDomain}/banners/${encodeURIComponent(slug)}.jpg`;
+        // Never emit a broken non-existent /banners/<slug>.jpg URL for unuploaded data URIs;
+        // fall through to the dynamic OG image renderer with the link's title & description.
+        rawImage = "";
       } else if (
         rawImage &&
+        isRelativeOrOwnBannerHost &&
         (rawImage.includes("/api/v1/images/") ||
           rawImage.includes("/api/images/") ||
           rawImage.includes("/banners/"))
@@ -145,18 +166,19 @@ export async function GET(
       );
 
       const imageOrigin = !cleanHost && isPreviewMode ? url.origin : `https://${detectedDomain}`;
+      const encodedDesc = encodeURIComponent(description.substring(0, 160));
       let image = "";
       if (isCompactCard) {
         if (isCustomBanner) {
           image = rawImage;
         } else {
-          image = `${imageOrigin}/banners/og.png?card=summary&title=${encodeURIComponent(title.substring(0, 60))}&desc=${encodeURIComponent(description.substring(0, 80))}&slug=${encodeURIComponent(slug)}`;
+          image = `${imageOrigin}/banners/og.png?card=summary&title=${encodeURIComponent(title.substring(0, 70))}&desc=${encodedDesc}&slug=${encodeURIComponent(slug)}`;
         }
       } else {
         if (isCustomBanner) {
           image = rawImage;
         } else {
-          image = `${imageOrigin}/banners/og.png?title=${encodeURIComponent(title.substring(0, 80))}&slug=${encodeURIComponent(slug)}`;
+          image = `${imageOrigin}/banners/og.png?title=${encodeURIComponent(title.substring(0, 80))}&desc=${encodedDesc}&slug=${encodeURIComponent(slug)}`;
         }
       }
 
@@ -174,9 +196,28 @@ export async function GET(
         }
       }
 
-      const targetUrl = qTarget || meta?.target_url || meta?.targetUrl || `https://${detectedDomain}`;
       const isRRoute = url.pathname.startsWith("/r/");
       const canonicalUrl = `https://${detectedDomain}${isRRoute ? "/r/" : "/"}${encodeURIComponent(slug)}${searchStr}`;
+
+      // Do not leak the real destination URL in crawler HTML when the link is password-protected,
+      // cloaked, PathLock-restricted, paused, or expired.
+      const isRestrictedLink = Boolean(
+        meta &&
+        (meta.is_password_protected ||
+          meta.isPasswordProtected ||
+          meta.password ||
+          meta.is_cloaked ||
+          meta.isCloaked ||
+          meta.is_active === 0 ||
+          meta.isActive === false ||
+          (meta.path_lock_mode && meta.path_lock_mode !== "off") ||
+          (meta.pathLockMode && meta.pathLockMode !== "off") ||
+          ((meta.expires_at || meta.expiresAt) &&
+            new Date(String(meta.expires_at || meta.expiresAt)).getTime() <= Date.now())),
+      );
+      const targetUrl = isRestrictedLink
+        ? canonicalUrl
+        : qTarget || meta?.target_url || meta?.targetUrl || `https://${detectedDomain}`;
 
       const html = renderSocialHtml({
         title,
@@ -192,13 +233,13 @@ export async function GET(
 
       const headers = {
         "Content-Type": "text/html; charset=utf-8",
-        "Cache-Control": hasCacheBuster
+        "Cache-Control": hasCacheBuster || !meta
           ? "no-store, no-cache, must-revalidate, max-age=0"
-          : "public, max-age=10, s-maxage=30, stale-while-revalidate=60",
+          : "public, max-age=5, s-maxage=10, stale-while-revalidate=20",
       };
 
-      if (!hasCacheBuster) {
-        setCachedBotResponse(slug, html, headers, 30000, searchStr);
+      if (!hasCacheBuster && meta) {
+        setCachedBotResponse(slug, html, headers, 5000, searchStr);
       }
 
       return new Response(html, { status: 200, headers });

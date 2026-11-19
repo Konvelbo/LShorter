@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
 import { parseParams, imageIdParamsSchema } from "@/lib/api-schemas";
+import { ALLOWED_IMAGE_MIME_TYPES, validateSvgSafety } from "@/lib/security-utils";
 
 export const revalidate = 31536000;
 
@@ -197,13 +198,21 @@ export async function GET(
         "";
 
       if (rawImg && rawImg.startsWith("data:")) {
-        const commaIdx = rawImg.indexOf(",");
-        const meta = rawImg.substring(0, commaIdx);
-        const base64Data = rawImg.substring(commaIdx + 1);
-        const mimeMatch = meta.match(/data:([^;,]+)/);
-        const mime = mimeMatch ? mimeMatch[1] : "image/jpeg";
-        const buffer = Buffer.from(base64Data, "base64");
-        return buildImageResponse(buffer, mime);
+        const dataUriMatch = rawImg.match(/^data:([^;,]+);base64,([A-Za-z0-9+/=]+)$/);
+        if (dataUriMatch) {
+          const mime = dataUriMatch[1].toLowerCase();
+          if (ALLOWED_IMAGE_MIME_TYPES.includes(mime as any)) {
+            const buffer = Buffer.from(dataUriMatch[2], "base64");
+            if (mime === "image/svg+xml") {
+              const safety = validateSvgSafety(buffer.toString("utf-8"));
+              if (!safety.isSafe) {
+                return new Response("Unsafe SVG rejected", { status: 400 });
+              }
+            }
+            return buildImageResponse(buffer, mime);
+          }
+        }
+        return new Response("Unsupported image type", { status: 400 });
       } else if (rawImg) {
         const internalMatch = rawImg.match(
           /\/(?:api\/(?:v1\/)?images|banners)\/([^/?#]+)/i,
