@@ -1,12 +1,8 @@
 "use client";
 
 import React, { useRef, useEffect, useState, memo } from "react";
-import Link from "next/link";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 import {
   Check,
-  X,
   Database,
   CreditCard,
   Cloud,
@@ -21,14 +17,9 @@ import {
   Webhook,
   ShieldCheck,
   Lock,
-  ArrowUpRight,
 } from "lucide-react";
 import { CanvasRevealCard } from "@/components/ui/canvas-reveal-effect";
 import { WaveRevealButton } from "@/components/ui/wave-reveal-button";
-
-if (typeof window !== "undefined") {
-  gsap.registerPlugin(ScrollTrigger);
-}
 
 // ─── DONNÉES DU COMPARATIF ÉPURÉ (STYLE EXACT DE LA CAPTURE) ───────────────
 const TABLE_COMPARISON_ROWS = [
@@ -412,12 +403,18 @@ export function WhyUsSection() {
     let isHovered = false;
     let rafId: number | null = null;
     let isInView = false;
-    let halfWidth = track.scrollWidth / 2;
+    const measureCycleWidth = () => {
+      const secondCopy = track.children[4] as HTMLElement | undefined;
+      return secondCopy && secondCopy.offsetLeft > 0
+        ? secondCopy.offsetLeft
+        : track.scrollWidth / 2;
+    };
+    let halfWidth = measureCycleWidth();
 
     const autoSpeed = 1.1;
 
     const resizeObserver = new ResizeObserver(() => {
-      halfWidth = track.scrollWidth / 2;
+      halfWidth = measureCycleWidth();
     });
     resizeObserver.observe(track);
 
@@ -460,7 +457,7 @@ export function WhyUsSection() {
       ([entry]) => {
         isInView = entry.isIntersecting;
         if (isInView) {
-          halfWidth = track.scrollWidth / 2;
+          halfWidth = measureCycleWidth();
           startLoop();
         } else {
           stopLoop();
@@ -533,27 +530,25 @@ export function WhyUsSection() {
     };
   }, []);
 
+  const [isSectionRevealed, setIsSectionRevealed] = useState(false);
+
   useEffect(() => {
-    if (!sectionRef.current) return;
-    const ctx = gsap.context(() => {
-      gsap.fromTo(
-        ".why-us-scroll-reveal",
-        { opacity: 0, y: 18 },
-        {
-          opacity: 1,
-          y: 0,
-          duration: 0.38,
-          stagger: 0.05,
-          ease: "power3.out",
-          scrollTrigger: {
-            trigger: sectionRef.current,
-            start: "top 85%",
-            once: true,
-          },
-        },
-      );
-    }, sectionRef);
-    return () => ctx.revert();
+    const el = sectionRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") {
+      setIsSectionRevealed(true);
+      return;
+    }
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          setIsSectionRevealed(true);
+          io.disconnect();
+        }
+      },
+      { rootMargin: "80px 0px", threshold: 0.01 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
   }, []);
 
   const summationCards = [
@@ -583,8 +578,8 @@ export function WhyUsSection() {
     },
   ];
 
+  // 2x copies match halfWidth = track.scrollWidth / 2 seamlessly while cutting DOM nodes & timers by 33%
   const infiniteCards = [
-    ...summationCards,
     ...summationCards,
     ...summationCards,
   ];
@@ -593,9 +588,17 @@ export function WhyUsSection() {
     <section
       ref={sectionRef}
       id="why-us"
-      className="w-full max-w-full overflow-hidden bg-[#FFFFFF] dark:bg-[#09090B] py-14 md:py-24 border-t border-[#E4E7EC] dark:border-white/10 transition-colors duration-300"
+      style={{
+        contentVisibility: "auto",
+        containIntrinsicSize: "auto 2100px",
+      }}
+      className="w-full max-w-full overflow-hidden bg-[#FFFFFF] dark:bg-[#09090B] py-14 md:py-24 border-t border-[#E4E7EC] dark:border-white/10 transition-colors duration-300 scroll-mt-20"
     >
-      <div className="max-w-[1240px] mx-auto px-4 sm:px-8 space-y-20">
+      <div
+        className={`max-w-[1240px] mx-auto px-4 sm:px-8 space-y-20 transition-[opacity,transform] duration-400 ease-out ${
+          isSectionRevealed ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+        }`}
+      >
         {/* ─── PARTIE 1 : STYLE EXACT DE VOTRE CAPTURE (TABLEAU ÉPURÉ 3 COLONNES) ─── */}
         <div className="why-us-scroll-reveal w-full max-w-[940px] mx-auto">
           <div className="flex flex-col items-start gap-3 mb-10">

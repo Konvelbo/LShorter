@@ -4,7 +4,6 @@ import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Sparkles, ArrowRight } from "lucide-react";
-import { motion } from "motion/react";
 import { Timeline, TimelineEntry } from "@/components/ui/timeline";
 import { getThemedScreenshotPair } from "@/lib/themed-screenshots";
 
@@ -24,24 +23,6 @@ interface FeatureCardProps {
   docLabel: string;
 }
 
-/* ── Shared animation variants ── */
-const fadeUp = {
-  hidden: { opacity: 0, y: 14 },
-  visible: { opacity: 1, y: 0 },
-};
-
-const fadeLeft = {
-  hidden: { opacity: 0, x: -10 },
-  visible: { opacity: 1, x: 0 },
-};
-
-const scaleIn = {
-  hidden: { opacity: 0, scale: 0.98 },
-  visible: { opacity: 1, scale: 1 },
-};
-
-const viewport = { once: true, margin: "-40px" };
-
 function FeatureCard({
   title,
   lead,
@@ -58,39 +39,18 @@ function FeatureCard({
   return (
     <div className="flex flex-col gap-6">
       {/* ── Title ── */}
-      <motion.h3
-        variants={fadeUp}
-        initial="hidden"
-        whileInView="visible"
-        viewport={viewport}
-        transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-        className="text-[20px] sm:text-[23px] font-medium leading-[1.22] tracking-[-0.025em] text-[#111216] dark:text-[#f2f3f5] max-w-[30ch]"
-      >
+      <h3 className="text-[20px] sm:text-[23px] font-medium leading-[1.22] tracking-[-0.025em] text-[#111216] dark:text-[#f2f3f5] max-w-[30ch]">
         {title}
-      </motion.h3>
+      </h3>
 
       {/* ── Lead ── */}
-      <motion.p
-        variants={fadeUp}
-        initial="hidden"
-        whileInView="visible"
-        viewport={viewport}
-        transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1], delay: 0.03 }}
-        className="text-[14px] text-[#6b6f7a] dark:text-[#9a9ea8] leading-[1.65] max-w-[52ch]"
-      >
+      <p className="text-[14px] text-[#6b6f7a] dark:text-[#9a9ea8] leading-[1.65] max-w-[52ch]">
         {lead}
-      </motion.p>
+      </p>
 
       {/* ── Screenshots (Simple ou Double côte à côte) adaptées au thème actif ── */}
       {isMultiScreenshots ? (
-        <motion.div
-          variants={scaleIn}
-          initial="hidden"
-          whileInView="visible"
-          viewport={viewport}
-          transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
-          className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 w-full"
-        >
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 w-full">
           {screenshotTable.map((imgSrc, idx) => {
             const pair = getThemedScreenshotPair(imgSrc);
             return (
@@ -105,6 +65,7 @@ function FeatureCard({
                   width={720}
                   height={450}
                   loading="lazy"
+                  decoding="async"
                   quality={80}
                   sizes="(max-width: 768px) 100vw, 720px"
                   className="w-full h-auto max-h-[340px] sm:max-h-none object-cover object-top block dark:hidden transition-transform duration-200 ease-out hover:scale-[1.015]"
@@ -117,6 +78,7 @@ function FeatureCard({
                   width={720}
                   height={450}
                   loading="lazy"
+                  decoding="async"
                   quality={80}
                   sizes="(max-width: 768px) 100vw, 720px"
                   className="w-full h-auto max-h-[340px] sm:max-h-none object-cover object-top hidden dark:block transition-transform duration-200 ease-out hover:scale-[1.015]"
@@ -125,21 +87,10 @@ function FeatureCard({
               </div>
             );
           })}
-        </motion.div>
+        </div>
       ) : (
         screenshot && (
-          <motion.div
-            variants={scaleIn}
-            initial="hidden"
-            whileInView="visible"
-            viewport={viewport}
-            transition={{
-              duration: 0.32,
-              ease: [0.16, 1, 0.3, 1],
-              delay: 0.05,
-            }}
-            className="relative w-full overflow-hidden rounded-[10px] border border-[#c9cbd2] dark:border-[#3a3d45] bg-neutral-100 dark:bg-neutral-900 shadow-xs"
-          >
+          <div className="relative w-full overflow-hidden rounded-[10px] border border-[#c9cbd2] dark:border-[#3a3d45] bg-neutral-100 dark:bg-neutral-900 shadow-xs">
             {(() => {
               const pair = getThemedScreenshotPair(screenshot);
               return (
@@ -151,6 +102,7 @@ function FeatureCard({
                     width={960}
                     height={540}
                     loading="lazy"
+                    decoding="async"
                     quality={80}
                     sizes="(max-width: 768px) 100vw, 960px"
                     className="w-full h-auto object-cover object-top block dark:hidden transition-transform duration-200 ease-out hover:scale-[1.012]"
@@ -163,6 +115,7 @@ function FeatureCard({
                     width={960}
                     height={540}
                     loading="lazy"
+                    decoding="async"
                     quality={80}
                     sizes="(max-width: 768px) 100vw, 960px"
                     className="w-full h-auto object-cover object-top hidden dark:block transition-transform duration-200 ease-out hover:scale-[1.012]"
@@ -171,18 +124,12 @@ function FeatureCard({
                 </>
               );
             })()}
-          </motion.div>
+          </div>
         )
       )}
 
       {/* ── Spec rows ── */}
-      <motion.div
-        variants={fadeUp}
-        initial="hidden"
-        whileInView="visible"
-        viewport={viewport}
-        transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1], delay: 0.08 }}
-      >
+      <div>
         <div className="border-t border-[#e4e5e9] dark:border-[#26282e]" />
         {rows.map((row, idx) => (
           <div
@@ -197,21 +144,15 @@ function FeatureCard({
             </dd>
           </div>
         ))}
-      </motion.div>
+      </div>
 
       {/* ── Doc link ── */}
-      <motion.div
-        variants={fadeUp}
-        initial="hidden"
-        whileInView="visible"
-        viewport={viewport}
-        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1], delay: 0.28 }}
-      >
+      <div>
         <Link href={docHref} className="timeline-doc-link">
           <span>{docLabel}</span>
           <ArrowRight className="w-3.5 h-3.5 timeline-doc-link-arrow" />
         </Link>
-      </motion.div>
+      </div>
     </div>
   );
 }

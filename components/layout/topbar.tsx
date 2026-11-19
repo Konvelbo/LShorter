@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -307,6 +307,18 @@ export function Topbar() {
     }
     return raw.slice(0, 2).toUpperCase();
   }, [displayName, displayEmail]);
+
+  const handleCloseMobileMenu = useCallback(() => {
+    setIsMobileMenuOpen(false);
+  }, []);
+
+  const handleOpenCreateLinkFromMenu = useCallback(() => {
+    window.dispatchEvent(new CustomEvent("lshorter:open-create-drawer"));
+  }, []);
+
+  const handleOpenSearchFromMenu = useCallback(() => {
+    setIsCommandModalOpen(true);
+  }, []);
 
   return (
     <>
@@ -640,11 +652,9 @@ export function Topbar() {
       {/* ─── MOBILE MENU BACKDROP (Système identique à la landing page) ─── */}
       <DashboardMobileMenu
         isOpen={isMobileMenuOpen}
-        onClose={() => setIsMobileMenuOpen(false)}
-        onOpenCreateLink={() =>
-          window.dispatchEvent(new CustomEvent("lshorter:open-create-drawer"))
-        }
-        onOpenSearch={() => setIsCommandModalOpen(true)}
+        onClose={handleCloseMobileMenu}
+        onOpenCreateLink={handleOpenCreateLinkFromMenu}
+        onOpenSearch={handleOpenSearchFromMenu}
         mergedNotifications={mergedNotifications}
         unreadCount={unreadCount}
         markAllNotificationsRead={markAllNotificationsRead}

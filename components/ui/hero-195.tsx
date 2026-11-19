@@ -151,7 +151,7 @@ export function Hero195Showcase({
         <div className="relative z-20 flex justify-center px-2">
           <TabsList
             aria-label="Platform showcase views"
-            className="mx-auto mb-5 sm:mb-6 flex h-auto w-full sm:w-fit max-w-full justify-start sm:flex-wrap sm:justify-center overflow-x-auto no-scrollbar gap-1.5 rounded-[10px] border border-zinc-200/90 dark:border-white/10 bg-zinc-100/90 dark:bg-[#141418]/90 p-1.5 backdrop-blur-md shadow-xs"
+            className="mx-auto mb-5 sm:mb-6 flex h-auto w-full sm:w-fit max-w-full justify-start sm:flex-wrap sm:justify-center overflow-x-auto no-scrollbar gap-1.5 rounded-[10px] border border-zinc-200/90 dark:border-white/10 bg-zinc-100/95 dark:bg-[#141418]/95 p-1.5 shadow-xs"
           >
             {tabs.map((tab) => (
               <TabsTrigger
@@ -184,7 +184,8 @@ export function Hero195Showcase({
                     width={1920}
                     height={1080}
                     priority={index === 0}
-                    loading="eager"
+                    loading={index === 0 ? "eager" : "lazy"}
+                    decoding="async"
                     unoptimized
                     sizes="(max-width: 1280px) 100vw, 1248px"
                     className="w-full h-auto block dark:hidden object-top opacity-100"
@@ -195,7 +196,8 @@ export function Hero195Showcase({
                     width={1920}
                     height={1080}
                     priority={index === 0}
-                    loading="eager"
+                    loading={index === 0 ? "eager" : "lazy"}
+                    decoding="async"
                     unoptimized
                     sizes="(max-width: 1280px) 100vw, 1248px"
                     className="w-full h-auto hidden dark:block object-top opacity-100"

@@ -29,22 +29,26 @@ export function CanvasRevealEffect({
 
     let animId: number;
     let startTime = performance.now();
+    let cssWidth = 0;
+    let cssHeight = 0;
 
     const resize = () => {
       const rect = canvas.getBoundingClientRect();
+      cssWidth = rect.width;
+      cssHeight = rect.height;
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
+      canvas.width = cssWidth * dpr;
+      canvas.height = cssHeight * dpr;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
 
     resize();
-    window.addEventListener("resize", resize);
+    window.addEventListener("resize", resize, { passive: true });
 
     const render = (now: number) => {
       const elapsed = ((now - startTime) / 1000) * animationSpeed;
-      const width = canvas.clientWidth;
-      const height = canvas.clientHeight;
+      const width = cssWidth;
+      const height = cssHeight;
       ctx.clearRect(0, 0, width, height);
 
       const gap = dotSize * 3.5;

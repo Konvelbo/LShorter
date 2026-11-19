@@ -128,7 +128,7 @@ const navOthers: NavItem[] = [
   { name: "Documentation", href: "/docs", icon: FileText },
 ];
 
-export function Sidebar() {
+export const Sidebar = React.memo(function Sidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const userId = session?.user?.id || "";
@@ -138,21 +138,6 @@ export function Sidebar() {
   );
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [isContentExpanded, setIsContentExpanded] = useState(!isCollapsed);
-
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (!isCollapsed) {
-      // Opening: coordinate delay (~180ms) so sidebar widens first before rendering inner content
-      timer = setTimeout(() => {
-        setIsContentExpanded(true);
-      }, 180);
-    } else {
-      // Closing: immediately conceal expanded widgets to prevent overflow
-      setIsContentExpanded(false);
-    }
-    return () => clearTimeout(timer);
-  }, [isCollapsed]);
   const [currentTabParam, setCurrentTabParam] = useState<string>("");
   const [liveClicks, setLiveClicks] = useState<number>(() => {
     if (typeof window !== "undefined") {
@@ -480,10 +465,7 @@ export function Sidebar() {
                 type="button"
                 onClick={() => toggleSubmenu(item.name)}
                 className={cn(
-                  "group relative flex w-full items-center rounded-[8px] text-[13px] font-medium transition-all duration-150 cursor-pointer",
-                  isCollapsed
-                    ? "justify-center px-2 py-2"
-                    : "gap-2.5 px-2.5 py-1.5",
+                  "group relative flex w-full items-center gap-2.5 rounded-[8px] px-[18px] py-2 text-[13px] font-medium transition-colors duration-150 cursor-pointer whitespace-nowrap overflow-hidden",
                   isParentActive
                     ? "bg-[#0066FF]/10 text-[#0066FF] dark:text-[#5294FF]"
                     : "ds-text-secondary hover:bg-[#F2F4F7] dark:hover:bg-white/[0.05]",
@@ -498,34 +480,35 @@ export function Sidebar() {
                       : "ds-text-muted group-hover:text-[#344054] dark:group-hover:text-white",
                   )}
                 />
-                {!isCollapsed && isContentExpanded && (
-                  <>
-                    <span className="flex-1 text-left truncate animate-in fade-in duration-200">
-                      {item.name}
+                <span
+                  aria-hidden={isCollapsed}
+                  className={cn(
+                    "flex flex-1 min-w-0 items-center gap-1.5 transition-opacity duration-150",
+                    isCollapsed ? "opacity-0 pointer-events-none" : "opacity-100",
+                  )}
+                >
+                  <span className="flex-1 text-left truncate">
+                    {item.name}
+                  </span>
+                  {item.badge && (
+                    <span className="rounded-full bg-[#ECFDF3] dark:bg-[#039855]/15 px-1.5 py-0.2 text-[10px] font-semibold text-[#039855] dark:text-[#32D583]">
+                      {item.badge}
                     </span>
-                    {item.badge && (
-                      <span className="rounded-full bg-[#ECFDF3] dark:bg-[#039855]/15 px-1.5 py-0.2 text-[10px] font-semibold text-[#039855] dark:text-[#32D583] animate-in fade-in duration-200">
-                        {item.badge}
-                      </span>
+                  )}
+                  <ChevronDown
+                    className={cn(
+                      "w-3.5 h-3.5 shrink-0 transition-transform duration-150",
+                      isOpen ? "rotate-180 text-[#0066FF]" : "ds-text-muted",
                     )}
-                    <ChevronDown
-                      className={cn(
-                        "w-3.5 h-3.5 shrink-0 transition-transform duration-200",
-                        isOpen ? "rotate-180 text-[#0066FF]" : "ds-text-muted",
-                      )}
-                    />
-                  </>
-                )}
+                  />
+                </span>
               </button>
             ) : (
               <Link
                 href={item.href}
                 prefetch={true}
                 className={cn(
-                  "group relative flex w-full items-center rounded-[8px] text-[13px] font-medium transition-all duration-150",
-                  isCollapsed
-                    ? "justify-center px-2 py-2"
-                    : "gap-2.5 px-2.5 py-1.5",
+                  "group relative flex w-full items-center gap-2.5 rounded-[8px] px-[18px] py-2 text-[13px] font-medium transition-colors duration-150 whitespace-nowrap overflow-hidden",
                   isParentActive
                     ? "bg-[#0066FF]/10 text-[#0066FF] dark:text-[#5294FF]"
                     : "ds-text-secondary hover:bg-[#F2F4F7] dark:hover:bg-white/[0.05]",
@@ -540,23 +523,27 @@ export function Sidebar() {
                       : "ds-text-muted group-hover:text-[#344054] dark:group-hover:text-white",
                   )}
                 />
-                {!isCollapsed && isContentExpanded && (
-                  <>
-                    <span className="flex-1 truncate animate-in fade-in duration-200">
-                      {item.name}
+                <span
+                  aria-hidden={isCollapsed}
+                  className={cn(
+                    "flex flex-1 min-w-0 items-center gap-1.5 transition-opacity duration-150",
+                    isCollapsed ? "opacity-0 pointer-events-none" : "opacity-100",
+                  )}
+                >
+                  <span className="flex-1 truncate">
+                    {item.name}
+                  </span>
+                  {item.badge && (
+                    <span className="rounded-full bg-[#ECFDF3] dark:bg-[#039855]/15 px-1.5 py-0.2 text-[10px] font-semibold text-[#039855] dark:text-[#32D583]">
+                      {item.badge}
                     </span>
-                    {item.badge && (
-                      <span className="rounded-full bg-[#ECFDF3] dark:bg-[#039855]/15 px-1.5 py-0.2 text-[10px] font-semibold text-[#039855] dark:text-[#32D583] animate-in fade-in duration-200">
-                        {item.badge}
-                      </span>
-                    )}
-                  </>
-                )}
+                  )}
+                </span>
               </Link>
             )}
 
-            {hasSub && isOpen && !isCollapsed && isContentExpanded && (
-              <ul className="mt-1 flex flex-col gap-0.5 pl-6 animate-in fade-in duration-150">
+            {hasSub && isOpen && !isCollapsed && (
+              <ul className="mt-1 flex flex-col gap-0.5 pl-6">
                 {item.subItems!.map((sub) => {
                   const subActive = isSubItemActive(sub);
                   return (
@@ -572,7 +559,7 @@ export function Sidebar() {
                           setCurrentTabParam(nextTab);
                         }}
                         className={cn(
-                          "flex items-center justify-between rounded-[6px] px-2.5 py-1.5 text-[12px] font-medium transition-all duration-150",
+                          "flex items-center justify-between rounded-[6px] px-2.5 py-1.5 text-[12px] font-medium transition-colors duration-150",
                           subActive
                             ? "bg-[#0066FF]/10 text-[#0066FF] dark:text-[#5294FF]"
                             : "ds-text-secondary hover:bg-[#F2F4F7] dark:hover:bg-white/[0.05]",
@@ -600,17 +587,12 @@ export function Sidebar() {
     <>
       <aside
         className={cn(
-          "relative hidden lg:flex flex-col h-screen shrink-0 ds-bg-sidebar border-r ds-border transition-[width] duration-300 ease-in-out will-change-[width] overflow-x-hidden select-none z-30",
+          "relative hidden lg:flex flex-col h-screen shrink-0 ds-bg-sidebar border-r ds-border overflow-x-hidden select-none z-30 [contain:layout_paint_style]",
           isCollapsed ? "w-[72px]" : "w-[240px]",
         )}
       >
         {/* Header / Logo */}
-        <div
-          className={cn(
-            "flex h-[43px] min-h-[43px] max-h-[43px] items-center shrink-0 border-b ds-border overflow-hidden",
-            isCollapsed ? "justify-center px-2" : "justify-between px-4",
-          )}
-        >
+        <div className="flex h-[43px] min-h-[43px] max-h-[43px] items-center shrink-0 border-b ds-border overflow-hidden px-6">
           <Link
             href="/"
             className="flex items-center gap-2.5 group whitespace-nowrap"
@@ -625,31 +607,43 @@ export function Sidebar() {
                 priority
               />
             </div>
-            {!isCollapsed && isContentExpanded && (
-              <span className="text-[15px] font-bold tracking-tight ds-text-primary animate-in fade-in duration-200">
-                LShorter
-              </span>
-            )}
+            <span
+              aria-hidden={isCollapsed}
+              className={cn(
+                "text-[15px] font-bold tracking-tight ds-text-primary transition-opacity duration-150",
+                isCollapsed ? "opacity-0 pointer-events-none" : "opacity-100",
+              )}
+            >
+              LShorter
+            </span>
           </Link>
         </div>
 
         {/* Scrollable middle navigation */}
         <div className="flex flex-1 flex-col overflow-y-auto overflow-x-hidden px-2.5 py-2.5 no-scrollbar">
           <div className="mb-4">
-            {!isCollapsed && isContentExpanded && (
-              <h3 className="mb-1.5 px-2.5 text-[10px] font-semibold uppercase tracking-wider ds-text-muted animate-in fade-in duration-200 whitespace-nowrap">
-                MENU
-              </h3>
-            )}
+            <h3
+              aria-hidden={isCollapsed}
+              className={cn(
+                "mb-1.5 px-[18px] text-[10px] font-semibold uppercase tracking-wider ds-text-muted whitespace-nowrap transition-opacity duration-150",
+                isCollapsed ? "opacity-0 h-0 mb-0 overflow-hidden" : "opacity-100",
+              )}
+            >
+              MENU
+            </h3>
             {renderGroup(navMenu)}
           </div>
 
           <div className="mb-2">
-            {!isCollapsed && isContentExpanded && (
-              <h3 className="mb-1.5 px-2.5 text-[10px] font-semibold uppercase tracking-wider ds-text-muted animate-in fade-in duration-200 whitespace-nowrap">
-                OTHERS
-              </h3>
-            )}
+            <h3
+              aria-hidden={isCollapsed}
+              className={cn(
+                "mb-1.5 px-[18px] text-[10px] font-semibold uppercase tracking-wider ds-text-muted whitespace-nowrap transition-opacity duration-150",
+                isCollapsed ? "opacity-0 h-0 mb-0 overflow-hidden" : "opacity-100",
+              )}
+            >
+              OTHERS
+            </h3>
             {renderGroup(navOthers)}
           </div>
         </div>
@@ -657,13 +651,13 @@ export function Sidebar() {
         {/* Fixed bottom section with monthly quota widget & feedback button */}
         <div
           className={cn(
-            "shrink-0 border-t ds-border ds-bg-sidebar relative overflow-hidden transition-[padding] duration-200",
+            "shrink-0 border-t ds-border ds-bg-sidebar relative overflow-hidden",
             isCollapsed ? "p-2" : "p-2.5",
           )}
         >
           {/* Widget de quota mensuel avec mise à jour en temps réel */}
-          {!isCollapsed && isContentExpanded ? (
-            <div className="rounded-xl border border-[#E4E7EC] dark:border-[#27272a] bg-[#F9FAFB]/80 dark:bg-[#141416] p-3 text-xs flex flex-col gap-2.5 shadow-2xs animate-in fade-in zoom-in-95 duration-200">
+          {!isCollapsed ? (
+            <div className="rounded-xl border border-[#E4E7EC] dark:border-[#27272a] bg-[#F9FAFB]/80 dark:bg-[#141416] p-3 text-xs flex flex-col gap-2.5 shadow-2xs">
               {/* Header: Plan badge & % usage */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
@@ -782,16 +776,17 @@ export function Sidebar() {
             <button
               type="button"
               onClick={() => setIsFeedbackOpen(true)}
+              title={isCollapsed ? "Feedback & Help" : undefined}
               className={cn(
-                "group relative flex w-full items-center rounded-[8px] text-[12px] font-medium transition-all duration-150 cursor-pointer ds-text-secondary hover:bg-[#0066FF]/10 hover:text-[#0066FF] dark:hover:text-[#5294FF]",
+                "group relative flex w-full items-center rounded-[8px] text-[12px] font-medium transition-colors duration-150 cursor-pointer ds-text-secondary hover:bg-[#0066FF]/10 hover:text-[#0066FF] dark:hover:text-[#5294FF] whitespace-nowrap overflow-hidden",
                 isCollapsed ? "justify-center p-1.5" : "gap-2 px-2.5 py-1.5",
               )}
             >
               <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-[10px] font-extrabold text-[#0066FF] group-hover:border-[#0066FF] group-hover:bg-[#0066FF] group-hover:text-white transition-colors">
                 ?
               </span>
-              {!isCollapsed && isContentExpanded && (
-                <span className="flex-1 text-left truncate font-semibold text-[11.5px] animate-in fade-in duration-200">
+              {!isCollapsed && (
+                <span className="flex-1 text-left truncate font-semibold text-[11.5px]">
                   Feedback &amp; Help
                 </span>
               )}
@@ -807,4 +802,4 @@ export function Sidebar() {
       />
     </>
   );
-}
+});

@@ -58,31 +58,13 @@ export function HeroSection({
   className,
 }: HeroProps) {
   const resolvedTabs = tabs ?? (image ? undefined : DEFAULT_HERO_SHOWCASE_TABS);
-  const sectionRef = React.useRef<HTMLElement>(null);
-  const [inView, setInView] = React.useState(true);
-
-  // Bi-directional observer: animates in on scroll down, reverses on scroll out, re-animates on return
-  React.useEffect(() => {
-    const el = sectionRef.current;
-    if (!el || typeof IntersectionObserver === "undefined") return;
-
-    const io = new IntersectionObserver(
-      ([entry]) => {
-        setInView(entry.isIntersecting);
-      },
-      { threshold: 0.08 }
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
 
   return (
     <section
-      ref={sectionRef}
       className={cn(
         "bg-background text-foreground",
         "py-10 sm:py-16 md:py-20 px-4",
-        "fade-bottom overflow-hidden pb-0 relative",
+        "overflow-hidden pb-0 relative",
         "mb-16 sm:mb-20 lg:mb-24",
         className
       )}
@@ -91,15 +73,10 @@ export function HeroSection({
         <div className="flex flex-col items-center gap-5 text-center sm:gap-10">
           {/* Badge — Mobile Responsive Single-Pill Design (Never disjointed or multi-line) */}
           {badge && (
-            <div
-              className={cn(
-                "animate-appear delay-60 transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]",
-                !inView && "!opacity-0 !-translate-y-3 !scale-95"
-              )}
-            >
+            <div className="animate-appear delay-60">
               <Badge
                 variant="outline"
-                className="inline-flex items-center flex-nowrap gap-1.5 sm:gap-2.5 border-zinc-300 dark:border-white/15 bg-white/80 dark:bg-white/5 backdrop-blur-md px-3 py-1 sm:px-4 sm:py-1.5 rounded-full shadow-xs select-none max-w-[94vw] overflow-hidden"
+                className="inline-flex items-center flex-nowrap gap-1.5 sm:gap-2.5 border-zinc-300 dark:border-white/15 bg-white/95 dark:bg-white/[0.06] px-3 py-1 sm:px-4 sm:py-1.5 rounded-full shadow-xs select-none max-w-[94vw] overflow-hidden"
               >
                 <span className="text-muted-foreground whitespace-nowrap text-[11px] sm:text-xs font-medium shrink-0">
                   <span className="sm:hidden">Edge Smart Routing</span>
@@ -120,14 +97,8 @@ export function HeroSection({
             </div>
           )}
 
-          {/* Title with Appearance Animation & Reverse Scroll Animation */}
-          <h1
-            className={cn(
-              "relative z-10 inline-block text-3xl font-bold tracking-tight leading-[1.15] text-zinc-950 dark:text-white xs:text-4xl sm:text-6xl sm:leading-[1.1] md:text-7xl md:leading-[1.08] max-w-5xl",
-              "animate-appear delay-150 transition-all duration-800 ease-[cubic-bezier(0.16,1,0.3,1)]",
-              !inView && "!opacity-0 !translate-y-6"
-            )}
-          >
+          {/* Title with One-Shot Appearance Animation */}
+          <h1 className="relative z-10 inline-block text-3xl font-bold tracking-tight leading-[1.15] text-zinc-950 dark:text-white xs:text-4xl sm:text-6xl sm:leading-[1.1] md:text-7xl md:leading-[1.08] max-w-5xl animate-appear delay-150">
             {(() => {
               const splitIdx =
                 title.includes(".") && title.indexOf(".") < title.length - 2
@@ -152,25 +123,13 @@ export function HeroSection({
             })()}
           </h1>
 
-          {/* Description with Appearance Animation & Reverse Scroll Animation */}
-          <p
-            className={cn(
-              "text-md relative z-10 max-w-[620px] font-medium text-muted-foreground sm:text-xl",
-              "animate-appear delay-300 transition-all duration-800 ease-[cubic-bezier(0.16,1,0.3,1)]",
-              !inView && "!opacity-0 !translate-y-5"
-            )}
-          >
+          {/* Description */}
+          <p className="text-md relative z-10 max-w-[620px] font-medium text-muted-foreground sm:text-xl animate-appear delay-300">
             {description}
           </p>
 
-          {/* Actions (Wave Reveal Buttons) with Appearance Animation & Reverse Scroll Animation */}
-          <div
-            className={cn(
-              "relative z-10 flex justify-center gap-4 flex-wrap",
-              "animate-appear delay-450 transition-all duration-800 ease-[cubic-bezier(0.16,1,0.3,1)]",
-              !inView && "!opacity-0 !translate-y-4"
-            )}
-          >
+          {/* Actions (Wave Reveal Buttons) */}
+          <div className="relative z-10 flex justify-center gap-4 flex-wrap animate-appear delay-450">
             {actions.map((action, index) => {
               const isPrimary = index === 0;
               return (
@@ -188,13 +147,7 @@ export function HeroSection({
           </div>
 
           {/* Interactive Hero-195 Tabbed Showcase with BorderBeam & Glow */}
-          <div
-            className={cn(
-              "relative pt-0 -mt-1 sm:-mt-3 lg:-mt-4 w-full max-w-[1248px]",
-              "animate-appear delay-600 transition-all duration-900 ease-[cubic-bezier(0.16,1,0.3,1)]",
-              !inView && "!opacity-0 !translate-y-8 !scale-[0.98]"
-            )}
-          >
+          <div className="relative pt-0 -mt-1 sm:-mt-3 lg:-mt-4 w-full max-w-[1248px] animate-appear delay-600">
             {resolvedTabs && resolvedTabs.length > 0 ? (
               <Hero195Showcase tabs={resolvedTabs} />
             ) : (
@@ -214,6 +167,7 @@ export function HeroSection({
                       height={1013}
                       priority
                       loading="eager"
+                      decoding="async"
                       sizes="(max-width: 1280px) 100vw, 1248px"
                       className="w-full h-auto block dark:hidden"
                     />
@@ -224,6 +178,7 @@ export function HeroSection({
                       height={1013}
                       priority
                       loading="eager"
+                      decoding="async"
                       sizes="(max-width: 1280px) 100vw, 1248px"
                       className="w-full h-auto hidden dark:block"
                     />
@@ -233,14 +188,16 @@ export function HeroSection({
             )}
             <Glow
               variant="top"
-              className={cn(
-                "-z-10 animate-appear-glow delay-300 transition-opacity duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)]",
-                !inView && "!opacity-0"
-              )}
+              className="-z-10 animate-appear-glow delay-300"
             />
           </div>
         </div>
       </div>
+      {/* Lightweight bottom fade gradient replacing full-section CSS mask-image offscreen compositing */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-24 z-20 bg-gradient-to-t from-white dark:from-[#09090B] to-transparent"
+      />
     </section>
   );
 }

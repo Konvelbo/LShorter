@@ -32,17 +32,17 @@ export function Glow({
       className={cn(glowVariants({ variant }), className)}
       {...props}
     >
-      {/* Outer ambient glow halo in LShorter blue */}
+      {/* Outer ambient glow halo in LShorter blue — pure soft radial gradient without heavy GPU filter:blur */}
       <div
         className={cn(
-          "from-[#0066FF]/40 to-transparent absolute left-1/2 h-[256px] w-[60%] -translate-x-1/2 scale-[2.5] rounded-[50%] bg-radial from-10% to-60% opacity-30 sm:h-[512px] dark:opacity-85 pointer-events-none blur-3xl",
+          "from-[#0066FF]/30 via-[#0066FF]/10 to-transparent absolute left-1/2 h-[256px] w-[75%] -translate-x-1/2 scale-[1.8] rounded-[50%] bg-radial from-0% via-35% to-70% opacity-45 sm:h-[480px] dark:opacity-80 pointer-events-none",
           variant === "center" && "-translate-y-1/2",
         )}
       />
       {/* Inner focused core glow in electric cyan/blue */}
       <div
         className={cn(
-          "from-[#5294FF]/50 to-transparent absolute left-1/2 h-[128px] w-[40%] -translate-x-1/2 scale-200 rounded-[50%] bg-radial from-10% to-60% opacity-40 sm:h-[256px] dark:opacity-95 pointer-events-none blur-2xl",
+          "from-[#5294FF]/35 via-[#5294FF]/10 to-transparent absolute left-1/2 h-[140px] w-[50%] -translate-x-1/2 scale-150 rounded-[50%] bg-radial from-0% via-35% to-70% opacity-50 sm:h-[260px] dark:opacity-90 pointer-events-none",
           variant === "center" && "-translate-y-1/2",
         )}
       />

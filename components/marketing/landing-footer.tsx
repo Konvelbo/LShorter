@@ -1,12 +1,11 @@
 "use client";
 
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
-import gsap from "gsap";
-import { ArrowUpRight, LayoutDashboard, Sparkles } from "lucide-react";
+import { LayoutDashboard, Sparkles } from "lucide-react";
 import { WaveRevealButton } from "@/components/ui/wave-reveal-button";
 
 const FOOTER_COLUMNS = [
@@ -57,10 +56,11 @@ const FOOTER_COLUMNS = [
   },
 ];
 
-export function LandingFooter() {
+export const LandingFooter = React.memo(function LandingFooter() {
   const pathname = usePathname();
   const { data: session, status } = useSession();
   const footerRef = useRef<HTMLElement>(null);
+  const [isRevealed, setIsRevealed] = useState(false);
   const isAuthenticated =
     status === "authenticated" &&
     Boolean(session?.user) &&
@@ -76,40 +76,15 @@ export function LandingFooter() {
 
   useEffect(() => {
     const el = footerRef.current;
-    if (!el || typeof window === "undefined") return;
-
-    let played = false;
-    let animCtx: gsap.Context | undefined;
-
-    const playReveal = () => {
-      if (played) return;
-      played = true;
-      animCtx = gsap.context(() => {
-        gsap.from(".footer-reveal-item", {
-          opacity: 0.2,
-          y: 20,
-          duration: 0.55,
-          stagger: 0.08,
-          ease: "expo.out",
-          clearProps: "opacity,transform",
-        });
-      }, el);
-    };
-
-    const rect = el.getBoundingClientRect();
-    if (rect.top <= window.innerHeight + 120) {
-      playReveal();
-      return () => animCtx?.revert();
-    }
-
-    if (typeof IntersectionObserver === "undefined") {
+    if (!el || typeof window === "undefined" || typeof IntersectionObserver === "undefined") {
+      setIsRevealed(true);
       return;
     }
 
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries.some((entry) => entry.isIntersecting)) {
-          playReveal();
+          setIsRevealed(true);
           observer.disconnect();
         }
       },
@@ -117,27 +92,24 @@ export function LandingFooter() {
     );
 
     observer.observe(el);
-    return () => {
-      observer.disconnect();
-      animCtx?.revert();
-    };
+    return () => observer.disconnect();
   }, [pathname]);
-
-  const handleScrollToProduct = (e: React.MouseEvent) => {
-    const productEl = document.getElementById("product");
-    if (productEl) {
-      e.preventDefault();
-      productEl.scrollIntoView({ behavior: "smooth" });
-    }
-  };
 
   return (
     <footer
       ref={footerRef}
+      style={{
+        contentVisibility: "auto",
+        containIntrinsicSize: "auto 620px",
+      }}
       className="w-full bg-[#F9FAFB] dark:bg-[#0B0B0B] text-[#101828] dark:text-[#FFFFFF] border-t border-[#E4E7EC] dark:border-[#1E1E1E] transition-colors duration-300"
     >
       {/* Monumental Pre-Footer CTA */}
-      <div className="footer-reveal-item max-w-[1320px] mx-auto px-4 sm:px-8 pt-20 pb-20 md:pt-28 md:pb-24 text-center">
+      <div
+        className={`max-w-[1320px] mx-auto px-4 sm:px-8 pt-20 pb-20 md:pt-28 md:pb-24 text-center transition-[opacity,transform] duration-400 ease-out ${
+          isRevealed ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+        }`}
+      >
         <span className="inline-block text-[11px] font-mono uppercase tracking-[0.18em] text-[#465FFF] mb-5">
           NEXT-GEN LINK INFRASTRUCTURE
         </span>
@@ -339,6 +311,6 @@ export function LandingFooter() {
       </div>
     </footer>
   );
-}
+});
 
 export default LandingFooter;

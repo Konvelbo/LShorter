@@ -299,7 +299,7 @@ function DocsApiDropdown({
 }
 
 // ─── COMPOSANT PRINCIPAL NAVBAR ───
-export function LandingNavbar() {
+export const LandingNavbar = React.memo(function LandingNavbar() {
   const { isOpen, toggle } = useMobileMenu();
   const { toggleTheme } = useTheme();
   const pathname = usePathname();
@@ -510,10 +510,10 @@ export function LandingNavbar() {
     >
       {/* ─── 1. NAVBAR DESKTOP (>= 768px) ─── */}
       <header
-        className={`hidden md:flex items-center justify-between gap-2 pointer-events-auto backdrop-blur-md transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-[transform,width,padding,border-radius,box-shadow] ${
+        className={`hidden md:flex items-center justify-between gap-2 pointer-events-auto transform-gpu transition-[transform,background-color,border-color,box-shadow] duration-250 ease-out [contain:layout_style] ${
           isScrolled
-            ? "translate-y-3 sm:translate-y-4 w-[min(1280px,96vw)] max-w-[1280px] rounded-[14px] px-[clamp(0.75rem,1.8vw,2rem)] py-3 bg-white/92 dark:bg-[#09090B]/92 border border-[#E4E7EC]/95 dark:border-white/15 shadow-[0_12px_34px_rgba(0,0,0,0.08)] dark:shadow-[0_14px_38px_rgba(0,0,0,0.58)]"
-            : "translate-y-0 w-full max-w-full rounded-none px-[clamp(1rem,2.5vw,3.5rem)] py-4 bg-white/95 dark:bg-[#09090B]/95 border border-b-[#E4E7EC]/80 dark:border-b-white/10 border-t-transparent border-x-transparent shadow-none"
+            ? "translate-y-3 sm:translate-y-4 w-[min(1280px,96vw)] max-w-[1280px] rounded-[14px] px-[clamp(0.75rem,1.8vw,2rem)] py-3 bg-white/[0.97] dark:bg-[#09090B]/[0.97] border border-[#E4E7EC]/95 dark:border-white/15 shadow-[0_12px_34px_rgba(0,0,0,0.08)] dark:shadow-[0_14px_38px_rgba(0,0,0,0.58)]"
+            : "translate-y-0 w-full max-w-full rounded-none px-[clamp(1rem,2.5vw,3.5rem)] py-4 bg-white/[0.98] dark:bg-[#09090B]/[0.98] border border-b-[#E4E7EC]/80 dark:border-b-white/10 border-t-transparent border-x-transparent shadow-none"
         }`}
       >
         {/* Logo LShorter (Maillon Duo) */}
@@ -595,9 +595,9 @@ export function LandingNavbar() {
 
       {/* ─── 2. NAVBAR MOBILE (< 768px) ─── */}
       <header
-        className={`flex md:hidden items-center justify-between pointer-events-auto backdrop-blur-md transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-[transform,width,padding,border-radius,box-shadow] ${
+        className={`flex md:hidden items-center justify-between pointer-events-auto transform-gpu transition-[transform,background-color,border-color,box-shadow] duration-250 ease-out [contain:layout_style] ${
           isScrolled
-            ? "translate-y-2.5 w-[calc(100%-1.5rem)] max-w-lg rounded-xl px-3.5 py-2.5 bg-white/[0.95] dark:bg-[#09090B]/[0.95] border border-[#E4E7EC]/95 dark:border-white/15 shadow-[0_10px_28px_rgba(0,0,0,0.08)] dark:shadow-[0_12px_32px_rgba(0,0,0,0.55)]"
+            ? "translate-y-2.5 w-[calc(100%-1.5rem)] max-w-lg rounded-xl px-3.5 py-2.5 bg-white/[0.97] dark:bg-[#09090B]/[0.97] border border-[#E4E7EC]/95 dark:border-white/15 shadow-[0_10px_28px_rgba(0,0,0,0.08)] dark:shadow-[0_12px_32px_rgba(0,0,0,0.55)]"
             : "translate-y-0 w-full max-w-full rounded-none px-4 py-3 bg-white/[0.98] dark:bg-[#09090B]/[0.98] border border-b-[#E4E7EC]/80 dark:border-b-white/10 border-t-transparent border-x-transparent shadow-none"
         }`}
       >
@@ -643,6 +643,6 @@ export function LandingNavbar() {
       </header>
     </div>
   );
-}
+});
 
 export default LandingNavbar;

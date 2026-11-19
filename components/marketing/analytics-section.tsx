@@ -24,7 +24,11 @@ export function AnalyticsSection() {
   return (
     <section
       id="analytics"
-      className="relative w-full bg-[#FFFFFF] dark:bg-[#09090B] border-t border-[#E4E7EC] dark:border-white/10 flex flex-col justify-center sm:justify-between items-center py-16 sm:py-24 md:py-28 min-h-[720px] sm:min-h-[85vh] transition-colors duration-300"
+      style={{
+        contentVisibility: "auto",
+        containIntrinsicSize: "auto 760px",
+      }}
+      className="relative w-full bg-[#FFFFFF] dark:bg-[#09090B] border-t border-[#E4E7EC] dark:border-white/10 flex flex-col justify-center sm:justify-between items-center py-16 sm:py-24 md:py-28 min-h-[720px] sm:min-h-[85vh] transition-colors duration-300 scroll-mt-20"
     >
       {/* Bloc texte supérieur : espacement resserré sur mobile et largeur réduite de 10px sur desktop */}
       <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-8 text-center">

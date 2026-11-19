@@ -1,12 +1,11 @@
 "use client";
 
 import {
-  useMotionValueEvent,
   useScroll,
   useTransform,
   motion,
 } from "motion/react";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef } from "react";
 import { cn } from "@/lib/utils";
 
 export interface TimelineEntry {
@@ -29,46 +28,14 @@ export const Timeline = ({
   badge,
   className,
 }: TimelineProps) => {
-  const ref = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [height, setHeight] = useState(0);
-
-  useEffect(() => {
-    let rafId: number | null = null;
-    const updateHeight = () => {
-      if (rafId !== null) return;
-      rafId = requestAnimationFrame(() => {
-        if (ref.current) {
-          const rect = ref.current.getBoundingClientRect();
-          setHeight(rect.height);
-        }
-        rafId = null;
-      });
-    };
-
-    updateHeight();
-
-    let resizeObserver: ResizeObserver | null = null;
-    if (typeof ResizeObserver !== "undefined" && ref.current) {
-      resizeObserver = new ResizeObserver(updateHeight);
-      resizeObserver.observe(ref.current);
-    }
-
-    window.addEventListener("resize", updateHeight, { passive: true });
-    return () => {
-      if (rafId !== null) cancelAnimationFrame(rafId);
-      if (resizeObserver) resizeObserver.disconnect();
-      window.removeEventListener("resize", updateHeight);
-    };
-  }, []);
 
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start 10%", "end 75%"],
   });
 
-  const heightTransform = useTransform(scrollYProgress, [0, 1], [0, height]);
-  const opacityTransform = useTransform(scrollYProgress, [0, 0.1], [0, 1]);
+  const opacityTransform = useTransform(scrollYProgress, [0, 0.08], [0, 1]);
 
   return (
     <div
@@ -84,7 +51,7 @@ export const Timeline = ({
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
             className="flex flex-col items-center text-center max-w-3xl mx-auto"
           >
             {badge && <div className="mb-3">{badge}</div>}
@@ -102,7 +69,7 @@ export const Timeline = ({
         </div>
       )}
 
-      <div ref={ref} className="relative max-w-7xl mx-auto pb-16">
+      <div className="relative max-w-7xl mx-auto pb-16">
         {data.map((item, index) => (
           <div
             key={index}
@@ -133,7 +100,7 @@ export const Timeline = ({
                 initial={{ opacity: 0.85, y: 12 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, amount: 0.05 }}
-                transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+                transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
               >
                 {item.content}
               </motion.div>
@@ -141,19 +108,16 @@ export const Timeline = ({
           </div>
         ))}
 
-        {/* Dynamic Vertical Scroll Beam */}
+        {/* Dynamic Vertical Scroll Beam — 100% GPU-composited scaleY (zero layout reflow on scroll) */}
         <div
-          style={{
-            height: height + "px",
-          }}
-          className="absolute md:left-8 left-8 top-0 overflow-hidden w-[2px] bg-[linear-gradient(to_bottom,var(--tw-gradient-stops))] from-transparent from-[0%] via-neutral-200 dark:via-neutral-800 to-transparent to-[99%] [mask-image:linear-gradient(to_bottom,transparent_0%,black_5%,black_95%,transparent_100%)] pointer-events-none"
+          className="absolute md:left-8 left-8 inset-y-0 overflow-hidden w-[2px] bg-[linear-gradient(to_bottom,var(--tw-gradient-stops))] from-transparent from-[0%] via-neutral-200 dark:via-neutral-800 to-transparent to-[99%] pointer-events-none"
         >
           <motion.div
             style={{
-              height: heightTransform,
+              scaleY: scrollYProgress,
               opacity: opacityTransform,
             }}
-            className="absolute inset-x-0 top-0 w-[2px] bg-gradient-to-t from-blue-600 via-indigo-500 to-transparent from-[0%] via-[10%] rounded-full shadow-[0_0_12px_rgba(59,130,246,0.6)]"
+            className="absolute inset-0 w-[2px] origin-top will-change-transform bg-gradient-to-t from-blue-600 via-indigo-500 to-transparent from-[0%] via-[10%] rounded-full"
           />
         </div>
       </div>

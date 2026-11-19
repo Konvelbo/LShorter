@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import Link from "next/link";
 import { motion, useInView, animate } from "motion/react";
 
@@ -33,58 +33,29 @@ const BARS = [
 const HEADING_PRIMARY = "Bank-grade security.";
 const HEADING_MUTED = " Sub-12ms global API response.";
 
-/* ── Compteur animé isolé (évite tout re-render de la section parente) ── */
-function useAnimatedCounter(target: number, duration: number, inView: boolean) {
-  const [val, setVal] = useState(0);
+/* ── Compteur animé sans re-render React (mutation textContent directe via ref) ── */
+const LatencyCounter = React.memo(function LatencyCounter({ inView }: { inView: boolean }) {
+  const spanRef = useRef<HTMLSpanElement>(null);
   useEffect(() => {
+    const el = spanRef.current;
+    if (!el) return;
     if (!inView) {
-      setVal(0);
+      el.textContent = "0.0";
       return;
     }
-    const ctrl = animate(0, target, {
-      duration,
+    const ctrl = animate(0, 11.2, {
+      duration: 0.45,
       ease: "easeOut",
-      onUpdate: (v) => setVal(v),
+      onUpdate: (v) => {
+        el.textContent = v.toFixed(1);
+      },
     });
     return () => ctrl.stop();
-  }, [inView, target, duration]);
-  return val;
-}
-
-const LatencyCounter = React.memo(function LatencyCounter({ inView }: { inView: boolean }) {
-  const counter = useAnimatedCounter(11.2, 0.45, inView);
-  return <>{counter.toFixed(1)}</>;
+  }, [inView]);
+  return <span ref={spanRef}>0.0</span>;
 });
 
-/* ── Machine à écrire ── */
-function TypewriterText({
-  text,
-  inView,
-  startDelay,
-  charDelay = 0.012,
-}: {
-  text: string;
-  inView: boolean;
-  startDelay: number;
-  charDelay?: number;
-}) {
-  return (
-    <>
-      {text.split("").map((ch, i) => (
-        <motion.span
-          key={i}
-          initial={{ opacity: 0 }}
-          animate={inView ? { opacity: 1 } : { opacity: 0 }}
-          transition={{ duration: 0.001, delay: startDelay + i * charDelay }}
-        >
-          {ch}
-        </motion.span>
-      ))}
-    </>
-  );
-}
-
-/* ── Barre avec largeur animée et adaptation Light / Dark ── */
+/* ── Barre GPU-composited scaleX (zéro layout reflow pendant l'animation) ── */
 function Bar({
   ms,
   maxMs,
@@ -102,10 +73,11 @@ function Bar({
   return (
     <div className="h-[7px] sm:h-[8px] bg-[#E4E7EC] dark:bg-[#1e1e22] rounded-full overflow-hidden mt-2.5 transition-colors duration-300">
       <motion.div
-        initial={{ width: "0%" }}
-        animate={inView ? { width: `${pct}%` } : { width: "0%" }}
-        transition={{ duration: 0.45, delay: 0.1 + delay * 0.5, ease: [0.16, 1, 0.3, 1] }}
-        className={`h-full rounded-full transition-colors duration-300 ${
+        style={{ width: `${pct}%` }}
+        initial={{ scaleX: 0 }}
+        animate={inView ? { scaleX: 1 } : { scaleX: 0 }}
+        transition={{ duration: 0.45, delay: 0.08 + delay * 0.4, ease: [0.16, 1, 0.3, 1] }}
+        className={`h-full origin-left rounded-full will-change-transform transition-colors duration-300 ${
           accent
             ? "bg-[#465FFF] dark:bg-[#5b6cff]"
             : "bg-[#D0D5DD] dark:bg-[#3a3a42]"
@@ -124,8 +96,12 @@ export function SecuritySection() {
     <section
       ref={sectionRef}
       id="security"
-      style={{ minHeight: "110vh" }}
-      className="w-full bg-[#FFFFFF] dark:bg-[#09090B] border-t border-[#E4E7EC] dark:border-[#1e1e22] overflow-hidden flex items-center transition-colors duration-300"
+      style={{
+        minHeight: "110vh",
+        contentVisibility: "auto",
+        containIntrinsicSize: "auto 920px",
+      }}
+      className="w-full bg-[#FFFFFF] dark:bg-[#09090B] border-t border-[#E4E7EC] dark:border-[#1e1e22] overflow-hidden flex items-center transition-colors duration-300 scroll-mt-20"
     >
       <motion.div
         initial={{ opacity: 0, y: 18 }}
@@ -136,22 +112,24 @@ export function SecuritySection() {
         {/* ═══════════════ COLONNE GAUCHE ═══════════════ */}
         <div className="w-full lg:w-[620px] xl:w-[670px] flex flex-col shrink-0">
 
-          {/* Titre H2 — Machine à écrire (taille augmentée) */}
+          {/* Titre H2 (GPU reveal au lieu de 49 motion.span individuels) */}
           <h2 className="mt-5 text-[32px] sm:text-[44px] lg:text-[50px] font-semibold leading-[1.14] tracking-[-0.025em] text-[#101828] dark:text-[#ededee] transition-colors duration-300">
-            <TypewriterText
-              text={HEADING_PRIMARY}
-              inView={inView}
-              startDelay={0.06}
-              charDelay={0.012}
-            />
-            <span className="text-[#667085] dark:text-[#7a7a83] transition-colors duration-300">
-              <TypewriterText
-                text={HEADING_MUTED}
-                inView={inView}
-                startDelay={0.06 + HEADING_PRIMARY.length * 0.012}
-                charDelay={0.012}
-              />
-            </span>
+            <motion.span
+              initial={{ opacity: 0, y: 8 }}
+              animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
+              transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
+              className="inline"
+            >
+              {HEADING_PRIMARY}
+            </motion.span>
+            <motion.span
+              initial={{ opacity: 0, y: 8 }}
+              animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
+              transition={{ duration: 0.32, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
+              className="inline text-[#667085] dark:text-[#7a7a83] transition-colors duration-300"
+            >
+              {HEADING_MUTED}
+            </motion.span>
           </h2>
 
           {/* Description (taille augmentée) */}

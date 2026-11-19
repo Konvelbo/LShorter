@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -30,7 +30,6 @@ import {
 } from "@/components/ui/avatar";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
-import gsap from "gsap";
 
 interface SubNavItem {
   id: string;
@@ -153,7 +152,7 @@ export interface DashboardMobileMenuProps {
   toggleTheme: () => void;
 }
 
-export function DashboardMobileMenu({
+export const DashboardMobileMenu = React.memo(function DashboardMobileMenu({
   isOpen,
   onClose,
   onOpenCreateLink,
@@ -175,7 +174,6 @@ export function DashboardMobileMenu({
   });
   const [isNotifModalOpen, setIsNotifModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
-  const linksContainerRef = useRef<HTMLDivElement>(null);
 
   // Auto-expand menu containing current path
   useEffect(() => {
@@ -186,27 +184,6 @@ export function DashboardMobileMenu({
       setOpenMenus((prev) => ({ ...prev, Settings: true }));
     }
   }, [pathname]);
-
-  // GSAP animation on open (like landing page mobile menu)
-  useEffect(() => {
-    if (!linksContainerRef.current) return;
-    const items =
-      linksContainerRef.current.querySelectorAll(".mobile-nav-item");
-    if (isOpen) {
-      gsap.fromTo(
-        items,
-        { opacity: 0, x: 20 },
-        {
-          opacity: 1,
-          x: 0,
-          stagger: 0.025,
-          duration: 0.22,
-          ease: "power2.out",
-          delay: 0.05,
-        },
-      );
-    }
-  }, [isOpen]);
 
   // Close modals when menu closes
   useEffect(() => {
@@ -288,7 +265,7 @@ export function DashboardMobileMenu({
         <div
           onClick={onClose}
           className={cn(
-            "absolute inset-0 bg-black/50 will-change-[opacity] transition-opacity duration-200 ease-out",
+            "absolute inset-0 bg-black/50 touch-none will-change-[opacity] transition-opacity duration-200 ease-out",
             isOpen ? "opacity-100" : "opacity-0 pointer-events-none",
           )}
         />
@@ -372,8 +349,7 @@ export function DashboardMobileMenu({
 
           {/* ─── AU MILIEU : Navigation avec sous-pages ─── */}
           <div
-            ref={linksContainerRef}
-            className="flex-1 overflow-y-auto overflow-x-hidden py-3 no-scrollbar space-y-4"
+            className="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain py-3 no-scrollbar space-y-4"
           >
             {/* Section MENU */}
             <div>
@@ -843,4 +819,4 @@ export function DashboardMobileMenu({
       )}
     </>
   );
-}
+});

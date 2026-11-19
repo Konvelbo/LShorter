@@ -1201,7 +1201,7 @@ html.dark .lshorter-toast-close:hover {
 html.dark {
   --ds-bg-app: #09090b;
   --ds-bg-sidebar: #09090b;
-  --ds-bg-topbar: rgba(9, 9, 11, 0.92);
+  --ds-bg-topbar: rgba(9, 9, 11, 0.98);
   --ds-card: #111113;
   --ds-card-elevated: #16161a;
   --ds-surface-muted: #18181b;
@@ -1224,7 +1224,7 @@ html.dark {
 html.light {
   --ds-bg-app: #f9fafb;
   --ds-bg-sidebar: #ffffff;
-  --ds-bg-topbar: rgba(255, 255, 255, 0.94);
+  --ds-bg-topbar: rgba(255, 255, 255, 0.98);
   --ds-card: #ffffff;
   --ds-card-elevated: #ffffff;
   --ds-surface-muted: #f2f4f7;
@@ -1250,34 +1250,29 @@ html.light {
   color: var(--ds-text-primary) !important;
 }
 
-/* Bottom Content Blur Vignette — Luxury fade & glassmorphism for page bottom */
+/* Bottom Content Fade Vignette — GPU-free gradient fade (no backdrop-filter/mask readback during scroll/resize) */
 .ds-bottom-blur-vignette {
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
-  height: 3.75rem; /* 60px */
+  height: 3rem; /* 48px */
   pointer-events: none;
   z-index: 20;
   background: linear-gradient(
     to top,
-    var(--ds-bg-app) 0%,
-    rgba(249, 250, 251, 0.8) 40%,
+    var(--ds-bg-app) 12%,
+    rgba(249, 250, 251, 0.72) 55%,
     rgba(249, 250, 251, 0) 100%
   );
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  mask-image: linear-gradient(to top, rgba(0, 0, 0, 1) 20%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to top, rgba(0, 0, 0, 1) 20%, transparent 100%);
-  transition: background 0.25s ease;
 }
 
 .dark .ds-bottom-blur-vignette,
 html.dark .ds-bottom-blur-vignette {
   background: linear-gradient(
     to top,
-    var(--ds-bg-app) 0%,
-    rgba(9, 9, 11, 0.82) 40%,
+    var(--ds-bg-app) 12%,
+    rgba(9, 9, 11, 0.78) 55%,
     rgba(9, 9, 11, 0) 100%
   );
 }
@@ -1290,7 +1285,6 @@ html.dark .ds-bottom-blur-vignette {
 .ds-bg-topbar {
   background-color: var(--ds-bg-topbar) !important;
   border-color: var(--ds-border) !important;
-  backdrop-filter: blur(14px);
 }
 
 .ds-card {
@@ -1909,6 +1903,9 @@ html.light main .text-neutral-200 {
 }
 
 @keyframes border-beam {
+  0% {
+    offset-distance: 0%;
+  }
   100% {
     offset-distance: 100%;
   }

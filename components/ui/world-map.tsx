@@ -61,17 +61,26 @@ export function WorldMap({
   return (
     <div
       ref={containerRef}
-      className="w-full aspect-[2/1] bg-white dark:bg-[#09090b] rounded-xl relative font-sans overflow-hidden select-none border border-black/[0.04] dark:border-white/[0.06] shadow-xs"
+      className="w-full aspect-[2/1] bg-white dark:bg-[#09090b] rounded-xl relative font-sans overflow-hidden select-none border border-black/[0.04] dark:border-white/[0.06] shadow-xs [contain:layout_paint]"
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={mapSrc}
-        className="h-full w-full [mask-image:linear-gradient(to_bottom,transparent,white_8%,white_92%,transparent)] pointer-events-none select-none object-cover"
+        className="h-full w-full pointer-events-none select-none object-cover"
         alt="world map"
         height="495"
         width="1056"
         draggable={false}
         loading="lazy"
+        decoding="async"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-white dark:from-[#09090b] to-transparent z-[1]"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-white dark:from-[#09090b] to-transparent z-[1]"
       />
       <svg
         ref={svgRef}

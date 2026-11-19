@@ -161,21 +161,26 @@ export function InkOrbitFeatures({
     setReduced(motion.matches);
   }, [theme, activeAppTheme]);
 
-  const [featRef, featIn] = useInView(0.12);
+  const [featRef, featVisible, featRevealed] = useInView(0.08);
 
   return (
-    <div className={"ib-root " + className} data-theme={dark ? "dark" : "light"} style={style}>
+    <div
+      className={"ib-root " + className}
+      data-theme={dark ? "dark" : "light"}
+      data-active={featVisible ? "true" : "false"}
+      style={style}
+    >
       <style>{IB_CSS}</style>
       <div className="ib-shell">
         <section className="ib-sec" aria-labelledby={uid + "feat"}>
-          <div className="ib-reveal" ref={featRef as never} data-in={featIn}>
+          <div className="ib-reveal" ref={featRef as never} data-in={featRevealed}>
             <div className="ib-head" id={uid + "feat"}>
               {F.tag && <span className="ib-tag">{F.tag}</span>}
               <Title text={F.title} />
             </div>
             <div className="ib-bento">
-              <FlowCard brand={brand} features={F} uid={uid} reduced={reduced} inView={featIn} />
-              <IntegrationsCard copy={F.integrations} reduced={reduced} inView={featIn} />
+              <FlowCard brand={brand} features={F} uid={uid} reduced={reduced} inView={featVisible} />
+              <IntegrationsCard copy={F.integrations} reduced={reduced} inView={featVisible} />
               <InsightsCard copy={F.insights} uid={uid} reduced={reduced} />
             </div>
           </div>
@@ -187,30 +192,29 @@ export function InkOrbitFeatures({
 
 /* ---------------------------------------------------------------- pieces */
 
-// Bi-directional observer: animates in when entering viewport whether scrolling down or scrolling back up (scroll reverse)
-function useInView(threshold = 0.12) {
+// Tracks both live visibility (to pause offscreen SVG animations/timers) and one-shot revealed state (no re-hiding jank on scroll)
+function useInView(threshold = 0.08) {
   const ref = React.useRef(null as HTMLElement | null);
-  const [inView, setInView] = React.useState(false);
+  const noIo = typeof window !== "undefined" && typeof IntersectionObserver !== "function";
+  const [visible, setVisible] = React.useState(noIo);
+  const [revealed, setRevealed] = React.useState(noIo);
   React.useEffect(() => {
     const el = ref.current;
-    if (!el) return;
-    if (typeof IntersectionObserver !== "function") {
-      setInView(true);
-      return;
-    }
+    if (!el || typeof IntersectionObserver !== "function") return;
     const io = new IntersectionObserver(
       (entries) => {
         const entry = entries[0];
         if (entry) {
-          setInView(entry.isIntersecting);
+          setVisible(entry.isIntersecting);
+          if (entry.isIntersecting) setRevealed(true);
         }
       },
-      { threshold: 0.05, rootMargin: "-30px 0px -30px 0px" },
+      { threshold, rootMargin: "120px 0px 120px 0px" },
     );
     io.observe(el);
     return () => io.disconnect();
   }, [threshold]);
-  return [ref, inView] as const;
+  return [ref, visible, revealed] as const;
 }
 
 function Brackets() {
@@ -558,7 +562,7 @@ function FlowCard({
           {[R1, R2].map((d, i) => (
             <path key={d} d={d} className={"ib-flow" + (side === "right" ? " ib-flow-on" : "") + (i ? " ib-dash" : "")} />
           ))}
-          {!reduced &&
+          {!reduced && inView &&
             [L1, L2, R1, R2].map((d, i) => (
               <circle key={"p" + i} r="2.2" className="ib-pkt">
                 <animateMotion dur={2.2 + (i % 2) * 0.6 + "s"} begin={i * 0.35 + "s"} repeatCount="indefinite" path={d} />
@@ -677,7 +681,7 @@ function IntegrationsCard({ copy, reduced, inView }: { copy: InkFeatures["integr
           {tiles.map((_, i) => (
             <path key={i} d={path(i)} className={"ib-flow" + (on === i ? " ib-flow-on" : "")} />
           ))}
-          {!reduced && on >= 0 && (
+          {!reduced && inView && on >= 0 && (
             <circle key={on} r="2.2" className="ib-pkt">
               <animateMotion dur="1.1s" repeatCount="indefinite" path={path(on)} />
             </circle>
@@ -759,7 +763,7 @@ function IntegrationsCard({ copy, reduced, inView }: { copy: InkFeatures["integr
 }
 
 function InsightsCard({ copy, uid, reduced }: { copy: InkFeatures["insights"]; uid: string; reduced: boolean }) {
-  const [ref, inView] = useInView(0.3);
+  const [ref, , inView] = useInView(0.2);
   const [hover, setHover] = React.useState(-1);
   const W = 300;
   const H = 130;
@@ -886,7 +890,8 @@ html:not(.dark) .ib-root[data-theme="auto"], body:not(.dark) .ib-root[data-theme
 .ib-flow{stroke:var(--ib-line-strong);fill:none;stroke-width:1.3;transition:stroke .3s}
 .ib-flow-on{stroke:#0066FF;stroke-width:1.6}
 .ib-dash{stroke-dasharray:3 4;animation:ib-dash 1.2s linear infinite}
-.ib-pkt{fill:#0066FF;filter:drop-shadow(0 0 3px rgba(0,102,255,.8))}
+.ib-pkt{fill:#0066FF}
+.ib-root[data-active="false"] .ib-dash,.ib-root[data-active="false"] .ib-presence,.ib-root[data-active="false"] .ib-glow{animation-play-state:paused !important}
 .ib-node{fill:var(--ib-raise);stroke:var(--ib-line-strong);transition:stroke .3s,transform .3s}
 .ib-av{cursor:pointer;transition:transform .35s cubic-bezier(.2,.8,.2,1);transform-box:fill-box;transform-origin:center}
 .ib-av:hover,.ib-av:focus-visible{transform:scale(1.18)}

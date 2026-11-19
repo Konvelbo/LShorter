@@ -1,13 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Plus, Minus } from "lucide-react";
-
-if (typeof window !== "undefined") {
-  gsap.registerPlugin(ScrollTrigger);
-}
 
 const FAQS = [
   {
@@ -34,40 +28,44 @@ const FAQS = [
 
 export function FaqSection() {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
+  const [isVisible, setIsVisible] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
-    if (!sectionRef.current) return;
-    const ctx = gsap.context(() => {
-      gsap.fromTo(
-        ".faq-scroll-reveal",
-        { opacity: 0, y: 24 },
-        {
-          opacity: 1,
-          y: 0,
-          duration: 0.45,
-          stagger: 0.06,
-          ease: "power3.out",
-          scrollTrigger: {
-            trigger: sectionRef.current,
-            start: "top 85%",
-            end: "bottom 10%",
-            toggleActions: "play reverse play reverse",
-          },
+    const el = sectionRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") {
+      setIsVisible(true);
+      return;
+    }
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          setIsVisible(true);
+          io.disconnect();
         }
-      );
-    }, sectionRef);
-    return () => ctx.revert();
+      },
+      { rootMargin: "80px 0px", threshold: 0.01 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
   }, []);
 
   return (
     <section
       ref={sectionRef}
       id="faq"
-      className="w-full bg-[#FFFFFF] dark:bg-[#09090B] py-14 sm:py-20 lg:py-24 border-t border-[#E4E7EC] dark:border-white/10 transition-colors duration-300"
+      style={{
+        contentVisibility: "auto",
+        containIntrinsicSize: "auto 560px",
+      }}
+      className="w-full bg-[#FFFFFF] dark:bg-[#09090B] py-14 sm:py-20 lg:py-24 border-t border-[#E4E7EC] dark:border-white/10 transition-colors duration-300 scroll-mt-20"
     >
       <div className="w-full max-w-[1340px] mx-auto px-4 sm:px-8">
-        <div className="faq-scroll-reveal grid grid-cols-1 lg:grid-cols-12 gap-10 sm:gap-14 lg:gap-16 items-start">
+        <div
+          className={`grid grid-cols-1 lg:grid-cols-12 gap-10 sm:gap-14 lg:gap-16 items-start transition-[opacity,transform] duration-400 ease-out ${
+            isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-5"
+          }`}
+        >
           {/* Left Header */}
           <div className="lg:col-span-5 flex flex-col justify-start pt-2">
             <h2 className="text-[28px] xs:text-[32px] sm:text-[40px] md:text-[46px] font-normal tracking-[-0.035em] leading-[1.1] mb-3 sm:mb-4">

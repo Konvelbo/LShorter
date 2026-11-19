@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { motion, type Transition } from "motion/react";
 import { cn } from "@/lib/utils";
 
 export interface BorderBeamProps {
@@ -15,7 +14,6 @@ export interface BorderBeamProps {
   delay?: number;
   reverse?: boolean;
   initialOffset?: number;
-  transition?: Transition;
   style?: React.CSSProperties;
 }
 
@@ -26,14 +24,31 @@ export const BorderBeam = ({
   duration = 8,
   colorFrom = "#ffaa40",
   colorTo = "#9c40ff",
-  transition,
   style,
   reverse = false,
   initialOffset = 0,
   borderWidth = 1.5,
 }: BorderBeamProps) => {
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = React.useState(true);
+
+  React.useEffect(() => {
+    const el = containerRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(
+      ([entry]) => setIsVisible(entry.isIntersecting),
+      { threshold: 0 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  const effectiveDelay =
+    delay + (reverse ? (100 - initialOffset) / 100 : initialOffset / 100) * duration;
+
   return (
     <div
+      ref={containerRef}
       aria-hidden="true"
       style={
         {
@@ -42,10 +57,10 @@ export const BorderBeam = ({
       }
       className="pointer-events-none absolute inset-0 rounded-[inherit] [border:var(--border-width)_solid_transparent] [mask-clip:padding-box,border-box] [mask-composite:intersect] [mask-image:linear-gradient(transparent,transparent),linear-gradient(#000,#000)]"
     >
-      <motion.div
+      <div
         className={cn(
-          "absolute aspect-square bg-gradient-to-l from-[var(--color-from)] via-[var(--color-to)] to-transparent",
-          className
+          "absolute aspect-square bg-gradient-to-l from-[var(--color-from)] via-[var(--color-to)] to-transparent will-change-[offset-distance]",
+          className,
         )}
         style={
           {
@@ -53,22 +68,16 @@ export const BorderBeam = ({
             offsetPath: `rect(0 auto auto 0 round ${size}px)`,
             "--color-from": colorFrom,
             "--color-to": colorTo,
+            animationName: "border-beam",
+            animationDuration: `${duration}s`,
+            animationTimingFunction: "linear",
+            animationIterationCount: "infinite",
+            animationDirection: reverse ? "reverse" : "normal",
+            animationDelay: `${-effectiveDelay}s`,
+            animationPlayState: isVisible ? "running" : "paused",
             ...style,
           } as React.CSSProperties
         }
-        initial={{ offsetDistance: `${initialOffset}%` }}
-        animate={{
-          offsetDistance: reverse
-            ? [`${100 - initialOffset}%`, `${-initialOffset}%`]
-            : [`${initialOffset}%`, `${100 + initialOffset}%`],
-        }}
-        transition={{
-          repeat: Infinity,
-          ease: "linear",
-          duration,
-          delay: -delay,
-          ...transition,
-        }}
       />
     </div>
   );
