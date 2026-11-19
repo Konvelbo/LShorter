@@ -302,6 +302,10 @@ export function UndoDeleteProvider({ children }: { children: React.ReactNode }) 
 
   const isConfirmationMatched = useMemo(() => {
     if (!modalCopy) return false;
+    // For single link deletions, clicking the delete button in the modal is immediate confirmation
+    if (pendingItem?.itemType === "link" && !pendingItem.id.startsWith("bulk_")) {
+      return true;
+    }
     const expected = modalCopy.confirmText.trim();
     const typed = inputValue.trim();
     if (!typed || !expected) return false;
@@ -309,7 +313,7 @@ export function UndoDeleteProvider({ children }: { children: React.ReactNode }) 
       typed === expected ||
       typed.replace(/^\/+/, "") === expected.replace(/^\/+/, "")
     );
-  }, [modalCopy, inputValue]);
+  }, [modalCopy, inputValue, pendingItem]);
 
   const handleConfirmAttempt = useCallback(() => {
     if (!pendingItem) return;
@@ -399,6 +403,7 @@ export function UndoDeleteProvider({ children }: { children: React.ReactNode }) 
   const handleCopyConfirmText = useCallback(() => {
     if (!modalCopy) return;
     navigator.clipboard?.writeText(modalCopy.confirmText).catch(() => {});
+    setInputValue(modalCopy.confirmText);
     setCopiedBadge(true);
     inputRef.current?.focus();
     if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
@@ -485,71 +490,82 @@ export function UndoDeleteProvider({ children }: { children: React.ReactNode }) 
               </span>
             </p>
 
-            {/* Type-to-confirm Prompt & Copy Badge */}
-            <p
-              id="delete-confirm-prompt"
-              className="mt-3 mb-2 sm:mt-4 sm:mb-[10px] text-[14px] leading-[1.45] sm:leading-[1.5] text-[#52525b] dark:text-[#a1a1aa]"
-            >
-              Type{" "}
-              <span className="inline-flex items-center gap-[4px] sm:gap-[6px] align-middle bg-[#f4f4f5] dark:bg-[#27272a] border border-[#e4e4e7] dark:border-[#27272a] rounded-[6px] py-[1px] pr-[2px] pl-[8px] sm:py-[2px] sm:pr-[4px] sm:pl-[8px] text-[13px] font-medium text-[#09090b] dark:text-[#fafafa] max-w-full">
-                <span className="truncate max-w-[240px]">
-                  {modalCopy.confirmText}
+            {/* Type-to-confirm Prompt & Copy Badge OR Clean Single Link Confirmation */}
+            {pendingItem.itemType === "link" && !pendingItem.id.startsWith("bulk_") ? (
+              <div className="mt-3.5 mb-2 sm:mt-4 sm:mb-2 flex items-center gap-2 p-2.5 rounded-[8px] bg-red-50/70 dark:bg-red-950/20 border border-red-200/60 dark:border-red-900/40">
+                <span className="text-[13px] font-medium text-red-700 dark:text-red-400">Lien concerné :</span>
+                <span className="inline-flex items-center font-mono font-bold text-[13px] text-red-900 dark:text-red-300">
+                  {modalCopy.confirmText.startsWith("/") ? modalCopy.confirmText : `/${modalCopy.confirmText}`}
                 </span>
-                <button
-                  type="button"
-                  aria-label={modalCopy.copyAriaLabel}
-                  onClick={handleCopyConfirmText}
-                  className="inline-flex items-center justify-center w-[28px] h-[28px] sm:w-[22px] sm:h-[22px] m-0 p-0 border-0 rounded-[4px] bg-transparent text-[#52525b] dark:text-[#a1a1aa] hover:bg-black/5 dark:hover:bg-white/10 hover:text-[#09090b] dark:hover:text-[#fafafa] transition-colors cursor-pointer shrink-0"
+              </div>
+            ) : (
+              <>
+                <p
+                  id="delete-confirm-prompt"
+                  className="mt-3 mb-2 sm:mt-4 sm:mb-[10px] text-[14px] leading-[1.45] sm:leading-[1.5] text-[#52525b] dark:text-[#a1a1aa]"
                 >
-                  {copiedBadge ? (
-                    <Check className="w-[13px] h-[13px] text-emerald-600 dark:text-emerald-400 stroke-[2.2]" />
-                  ) : (
-                    <svg
-                      width="13"
-                      height="13"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      aria-hidden="true"
+                  Type{" "}
+                  <span className="inline-flex items-center gap-[4px] sm:gap-[6px] align-middle bg-[#f4f4f5] dark:bg-[#27272a] border border-[#e4e4e7] dark:border-[#27272a] rounded-[6px] py-[1px] pr-[2px] pl-[8px] sm:py-[2px] sm:pr-[4px] sm:pl-[8px] text-[13px] font-medium text-[#09090b] dark:text-[#fafafa] max-w-full">
+                    <span className="truncate max-w-[240px]">
+                      {modalCopy.confirmText}
+                    </span>
+                    <button
+                      type="button"
+                      aria-label={modalCopy.copyAriaLabel}
+                      onClick={handleCopyConfirmText}
+                      className="inline-flex items-center justify-center w-[28px] h-[28px] sm:w-[22px] sm:h-[22px] m-0 p-0 border-0 rounded-[4px] bg-transparent text-[#52525b] dark:text-[#a1a1aa] hover:bg-black/5 dark:hover:bg-white/10 hover:text-[#09090b] dark:hover:text-[#fafafa] transition-colors cursor-pointer shrink-0"
                     >
-                      <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
-                      <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
-                    </svg>
-                  )}
-                </button>
-              </span>{" "}
-              to confirm.
-            </p>
+                      {copiedBadge ? (
+                        <Check className="w-[13px] h-[13px] text-emerald-600 dark:text-emerald-400 stroke-[2.2]" />
+                      ) : (
+                        <svg
+                          width="13"
+                          height="13"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden="true"
+                        >
+                          <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+                          <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+                        </svg>
+                      )}
+                    </button>
+                  </span>{" "}
+                  to confirm.
+                </p>
 
-            {/* Confirmation Input */}
-            <input
-              ref={inputRef}
-              type="text"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  handleConfirmAttempt();
-                }
-              }}
-              aria-label={modalCopy.inputAriaLabel}
-              aria-describedby="delete-confirm-prompt"
-              aria-invalid={inputErrorFlash}
-              placeholder={modalCopy.inputPlaceholder}
-              className={`box-border w-full h-[44px] sm:h-[40px] px-[12px] rounded-[8px] bg-[#ffffff] dark:bg-[#1f1f23] text-[#09090b] dark:text-[#fafafa] placeholder:text-[#a1a1aa] dark:placeholder:text-[#71717a] text-[16px] sm:text-[14px] outline-none transition-all ${
-                inputErrorFlash
-                  ? "border border-[#dc2626] shadow-[0_0_0_3px_rgba(220,38,38,0.22)] dark:shadow-[0_0_0_3px_rgba(248,113,113,0.30)]"
-                  : "border border-[#0066FF] shadow-[0_0_0_3px_rgba(0,102,255,0.18)] dark:shadow-[0_0_0_3px_rgba(0,102,255,0.30)]"
-              }`}
-              style={{
-                fontFamily:
-                  "Inter, system-ui, -apple-system, 'Segoe UI', sans-serif",
-              }}
-            />
+                {/* Confirmation Input */}
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleConfirmAttempt();
+                    }
+                  }}
+                  aria-label={modalCopy.inputAriaLabel}
+                  aria-describedby="delete-confirm-prompt"
+                  aria-invalid={inputErrorFlash}
+                  placeholder={modalCopy.inputPlaceholder}
+                  className={`box-border w-full h-[44px] sm:h-[40px] px-[12px] rounded-[8px] bg-[#ffffff] dark:bg-[#1f1f23] text-[#09090b] dark:text-[#fafafa] placeholder:text-[#a1a1aa] dark:placeholder:text-[#71717a] text-[16px] sm:text-[14px] outline-none transition-all ${
+                    inputErrorFlash
+                      ? "border border-[#dc2626] shadow-[0_0_0_3px_rgba(220,38,38,0.22)] dark:shadow-[0_0_0_3px_rgba(248,113,113,0.30)]"
+                      : "border border-[#0066FF] shadow-[0_0_0_3px_rgba(0,102,255,0.18)] dark:shadow-[0_0_0_3px_rgba(0,102,255,0.30)]"
+                  }`}
+                  style={{
+                    fontFamily:
+                      "Inter, system-ui, -apple-system, 'Segoe UI', sans-serif",
+                  }}
+                />
+              </>
+            )}
 
             {/* Footer Actions */}
             <div className="mt-4 sm:mt-6 flex sm:justify-end gap-2 sm:gap-[10px]">
@@ -571,10 +587,10 @@ export function UndoDeleteProvider({ children }: { children: React.ReactNode }) 
               <button
                 type="button"
                 onClick={handleConfirmAttempt}
-                className={`flex-1 sm:flex-initial h-[44px] sm:h-[40px] rounded-[8px] text-[14px] font-semibold inline-flex items-center justify-center gap-2 px-2 sm:px-4 bg-[rgba(220,38,38,0.10)] dark:bg-[rgba(239,68,68,0.14)] text-[#b91c1c] dark:text-[#f87171] border border-[rgba(220,38,38,0.25)] dark:border-[rgba(239,68,68,0.30)] transition-all ${
+                className={`flex-1 sm:flex-initial h-[44px] sm:h-[40px] rounded-[8px] text-[14px] font-semibold inline-flex items-center justify-center gap-2 px-3 sm:px-5 transition-all ${
                   isConfirmationMatched
-                    ? "cursor-pointer hover:bg-[rgba(220,38,38,0.18)] dark:hover:bg-[rgba(239,68,68,0.22)] active:scale-[0.99]"
-                    : "cursor-pointer opacity-90 hover:bg-[rgba(220,38,38,0.14)] dark:hover:bg-[rgba(239,68,68,0.18)]"
+                    ? "cursor-pointer bg-[#dc2626] hover:bg-[#b91c1c] text-white shadow-sm active:scale-[0.99]"
+                    : "cursor-pointer opacity-70 bg-[#dc2626]/20 text-[#b91c1c] dark:text-[#f87171] border border-red-500/20"
                 }`}
                 style={{
                   fontFamily:
@@ -582,24 +598,8 @@ export function UndoDeleteProvider({ children }: { children: React.ReactNode }) 
                 }}
               >
                 <span>{modalCopy.confirmButtonLabel}</span>
-                <span className="hidden sm:inline-flex items-center h-[18px] px-[5px] rounded-[4px] bg-[rgba(185,28,28,0.12)] dark:bg-[rgba(248,113,113,0.16)] text-[#b91c1c] dark:text-[#f87171] text-[11px] font-medium">
-                  Ctrl
-                </span>
-                <span className="hidden sm:inline-flex items-center h-[18px] px-[5px] rounded-[4px] bg-[rgba(185,28,28,0.12)] dark:bg-[rgba(248,113,113,0.16)] text-[#b91c1c] dark:text-[#f87171] text-[11px] font-medium">
-                  <svg
-                    width="12"
-                    height="12"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                  >
-                    <polyline points="9 10 4 15 9 20" />
-                    <path d="M20 4v7a4 4 0 0 1-4 4H4" />
-                  </svg>
+                <span className="hidden sm:inline-flex items-center h-[18px] px-[5px] rounded-[4px] bg-black/20 text-white text-[11px] font-medium">
+                  Enter ↵
                 </span>
               </button>
             </div>

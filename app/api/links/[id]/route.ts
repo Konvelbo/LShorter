@@ -733,21 +733,37 @@ export async function DELETE(
     }
 
     // 3. Delete from Worker (KV and Secondary Cache eviction)
-    // Note: Do not pass userId/userEmail query param or X-User-Id header to worker DELETE
-    // because links in D1 may have user_id=NULL or legacy ID, and NextAuth session has
-    // already authenticated caller permission. Passing X-Frontend-Secret allows the Worker
-    // to cleanly remove the link from both KV and D1 without 403 authorization mismatch.
+    const workerHeaders: Record<string, string> = {
+      "X-Frontend-Secret": FRONTEND_SECRET,
+      Authorization: `Bearer ${FRONTEND_SECRET}`,
+    };
+    if (userId) workerHeaders["X-User-Id"] = userId;
+    if (userEmail) workerHeaders["X-User-Email"] = userEmail;
+
     const url = new URL(`${WORKER_URL}/api/v1/links/${encodeURIComponent(targetId)}`);
     if (slug) url.searchParams.set("slug", slug);
+    if (userId) url.searchParams.set("userId", userId);
+    if (userEmail) url.searchParams.set("userEmail", userEmail);
 
     let res = await fetch(url.toString(), {
       method: "DELETE",
-      headers: {
-        "X-Frontend-Secret": FRONTEND_SECRET,
-        Authorization: `Bearer ${FRONTEND_SECRET}`,
-      },
+      headers: workerHeaders,
       cache: "no-store",
     });
+
+    if (!res.ok && res.status === 403) {
+      // Fallback attempt without user constraint in case link has legacy/null user_id in KV
+      const fallbackUrl = new URL(`${WORKER_URL}/api/v1/links/${encodeURIComponent(targetId)}`);
+      if (slug) fallbackUrl.searchParams.set("slug", slug);
+      res = await fetch(fallbackUrl.toString(), {
+        method: "DELETE",
+        headers: {
+          "X-Frontend-Secret": FRONTEND_SECRET,
+          Authorization: `Bearer ${FRONTEND_SECRET}`,
+        },
+        cache: "no-store",
+      });
+    }
 
     // If 404 and id does not start with "link_", attempt to resolve authoritative link ID by slug
     if ((!res.ok || res.status === 404) && (!targetId.startsWith("link_") || slug)) {

@@ -56,21 +56,26 @@ export async function POST(req: Request) {
     }
 
     // 1. Attempt bulk delete on Cloudflare Worker endpoint
-    // Note: Do not constrain Worker D1 delete by userId query param because links may have null
-    // or legacy user_id in D1, and NextAuth session has already verified the caller's authority.
     let bulkSucceeded = false;
     let workerDeletedCount = 0;
     let workerDeletedIds: string[] = [];
 
+    const workerHeaders: Record<string, string> = {
+      "Content-Type": "application/json",
+      "X-Frontend-Secret": FRONTEND_SECRET,
+      Authorization: `Bearer ${FRONTEND_SECRET}`,
+    };
+    if (userId) workerHeaders["X-User-Id"] = userId;
+    if (userEmail) workerHeaders["X-User-Email"] = userEmail;
+
     try {
       const url = new URL(`${WORKER_URL}/api/v1/links/bulk-delete`);
+      if (userId) url.searchParams.set("userId", userId);
+      if (userEmail) url.searchParams.set("userEmail", userEmail);
+
       const workerRes = await fetch(url.toString(), {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Frontend-Secret": FRONTEND_SECRET,
-          Authorization: `Bearer ${FRONTEND_SECRET}`,
-        },
+        headers: workerHeaders,
         body: JSON.stringify({ ids }),
         cache: "no-store",
       });
@@ -99,13 +104,12 @@ export async function POST(req: Request) {
     const deletePromises = ids.map(async (id) => {
       const singleUrl = new URL(`${WORKER_URL}/api/v1/links/${encodeURIComponent(id)}`);
       singleUrl.searchParams.set("slug", id);
+      if (userId) singleUrl.searchParams.set("userId", userId);
+      if (userEmail) singleUrl.searchParams.set("userEmail", userEmail);
 
       const r = await fetch(singleUrl.toString(), {
         method: "DELETE",
-        headers: {
-          "X-Frontend-Secret": FRONTEND_SECRET,
-          Authorization: `Bearer ${FRONTEND_SECRET}`,
-        },
+        headers: workerHeaders,
         cache: "no-store",
       }).catch(() => null);
 
