@@ -1,5 +1,6 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { VERIFIED_COUNTRIES } from "@/lib/country-flags";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -86,9 +87,25 @@ const COUNTRY_NAMES: Record<string, string> = {
   ZA: "South Africa",
 };
 
-export function getCountryName(code?: string | null): string {
-  if (!code) return "Unknown";
+export function getCountryName(code?: string | null, lang: "fr" | "en" = "fr"): string {
+  if (!code) return lang === "fr" ? "Inconnu" : "Unknown";
   const upper = code.trim().toUpperCase();
+  if (
+    upper === "XX" ||
+    upper === "UNKNOWN" ||
+    upper === "INCONNU" ||
+    upper === "LOCAL" ||
+    upper === "T1" ||
+    upper === "ZZ" ||
+    upper === "--" ||
+    !/^[A-Z]{2}$/.test(upper)
+  ) {
+    return lang === "fr" ? "Inconnu" : "Unknown";
+  }
+  const entry = VERIFIED_COUNTRIES[upper];
+  if (entry) {
+    return lang === "en" ? entry.nameEn : entry.nameFr;
+  }
   return COUNTRY_NAMES[upper] || upper;
 }
 
@@ -114,7 +131,22 @@ export function isValidUrl(urlString: string): boolean {
  * Robustly checks if a short link is currently active, taking into account
  * expiration dates, paused status, and integer/boolean flags.
  */
-export function isLinkActive(link?: any): boolean {
+export interface LinkStatusCheckable {
+  expires_at?: string | null;
+  expiresAt?: string | null;
+  isExpired?: boolean | null;
+  is_expired?: number | boolean | null;
+  status?: string | null;
+  statusLabel?: string | null;
+  isActive?: boolean | number | string | null;
+  is_active?: boolean | number | string | null;
+}
+
+/**
+ * Robustly checks if a short link is currently active, taking into account
+ * expiration dates, paused status, and integer/boolean flags.
+ */
+export function isLinkActive(link?: LinkStatusCheckable | null): boolean {
   if (!link) return false;
 
   // 1. Expiration check

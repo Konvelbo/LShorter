@@ -38,8 +38,8 @@ import { KpiCardsCarousel } from "@/components/dashboard/analytics/kpi-cards-car
 import { ReuiBarChart5 } from "@/components/examples/c-chart-5";
 import { AnalyticsRevenueSkeleton } from "@/components/ui/skeleton";
 import { formatDateRelative, formatNumber, formatCurrency, getCountryName } from "@/lib/utils";
+import { resolveCountryInfo } from "@/lib/country-flags";
 import { generateTimelineForRange } from "@/lib/analytics-generators";
-import { getCountryFlag } from "@/lib/geo-coordinates";
 import { Button } from "@/components/ui/button";
 import { showToast } from "@/components/ui/toast-provider";
 
@@ -438,7 +438,13 @@ function RevenueAnalyticsContent() {
         ev.userAvatar ||
         "";
       const rev = Number(ev.conversionAmount || 0);
-      const clicks = Number((ev as any).clicks || 1);
+      const evRec = ev as unknown as Record<string, unknown>;
+      const clicks = Number(evRec.clicks || 1);
+      const geo = resolveCountryInfo({
+        countryCode: ev.countryCode || (evRec.country_code as string | undefined),
+        countryName: ev.countryName || (evRec.country_name as string | undefined),
+        city: ev.city,
+      });
 
       return {
         id: ev.id || `ben_${idx}`,
@@ -448,8 +454,9 @@ function RevenueAnalyticsContent() {
         revenue: rev,
         clicks,
         slug: ev.slug || (selectedLinkObj ? selectedLinkObj.slug : ""),
-        countryCode: ev.countryCode || ev.countryName || "",
-        city: ev.city || "",
+        countryCode: geo.countryCode,
+        countryName: geo.countryName,
+        city: geo.city,
         device: ev.device || "",
         os: ev.os || "",
         timestamp: ev.timestamp || new Date().toISOString(),
@@ -1099,7 +1106,7 @@ function RevenueAnalyticsContent() {
                       {/* 5. Location (Country) */}
                       {visibleColumns.has("location") && (
                         <td className="py-3.5 px-3 text-zinc-700 dark:text-neutral-300 text-xs">
-                          {b.countryCode ? (
+                          {b.countryCode && b.countryCode !== "XX" ? (
                             <div className="flex items-center gap-1.5">
                               <img
                                 src={`https://flagcdn.com/w20/${String(b.countryCode).toLowerCase()}.png`}
@@ -1110,7 +1117,7 @@ function RevenueAnalyticsContent() {
                                 }}
                               />
                               <span className="truncate font-medium">
-                                {getCountryName(b.countryCode) || b.countryCode}
+                                {b.countryName || getCountryName(b.countryCode)}
                               </span>
                             </div>
                           ) : (
@@ -1252,12 +1259,15 @@ function RevenueAnalyticsContent() {
                       >
                         /{cleanSlug}
                       </a>
-                      {b.countryCode && (
+                      {b.countryCode && b.countryCode !== "XX" && (
                         <div className="flex items-center gap-1 shrink-0 text-[11px] text-zinc-600 dark:text-neutral-400">
                           <img
                             src={`https://flagcdn.com/w20/${String(b.countryCode).toLowerCase()}.png`}
                             alt={b.countryCode}
                             className="w-4 h-3 rounded-[2px] object-cover shrink-0"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLImageElement).style.display = "none";
+                            }}
                           />
                           <span>{getCountryName(b.countryCode) || b.countryCode}</span>
                         </div>

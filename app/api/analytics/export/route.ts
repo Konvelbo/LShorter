@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { getCountryName } from "@/lib/utils";
+import { resolveCountryInfo } from "@/lib/country-flags";
 import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
 import { ZipArchive } from "@/lib/export/zip-archive";
 import { formatCleanCsvTable } from "@/lib/export/spaced-csv";
@@ -627,15 +628,15 @@ export async function GET(req: Request) {
 
     const exportEvents: ExportClickEvent[] = Array.isArray(rawEvents)
       ? rawEvents.map((ev: any, idx: number) => {
-          const cCode = (
-            ev.country_code ||
-            ev.countryCode ||
-            ev.country ||
-            "XX"
-          ).toUpperCase();
+          const geo = resolveCountryInfo({
+            countryCode: ev.country_code || ev.countryCode || ev.country,
+            countryName: ev.countryName || ev.country_name,
+            city: ev.city,
+          });
+          const cCode = geo.countryCode;
           const countryFull =
             cCode !== "XX"
-              ? `${getCountryName(cCode)} (${cCode})`
+              ? `${geo.countryName} (${cCode})`
               : "Inconnu (XX)";
 
           let formattedTime = ev.timestamp || new Date().toISOString();
@@ -665,7 +666,7 @@ export async function GET(req: Request) {
             timestamp: formattedTime,
             country: countryFull,
             countryCode: cCode,
-            city: ev.city || "—",
+            city: geo.city,
             device: ev.device || "Desktop",
             browser: ev.browser || "Chrome",
             os: ev.os || "—",

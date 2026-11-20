@@ -28,7 +28,8 @@ import {
 import { ShortLink } from "@/types";
 import { BannerLightboxModal } from "@/components/dashboard/banner-lightbox-modal";
 import { triggerClickSync, cfUpdateLink, cfInvalidateCache, cfBulkDeleteLinks, cfGetAnalytics, cfGetLinks } from "@/lib/cloudflare-api";
-import { cn, getCountryName, isLinkActive } from "@/lib/utils";
+import { cn, isLinkActive } from "@/lib/utils";
+import { resolveCountryInfo } from "@/lib/country-flags";
 import { showToast } from "@/components/ui/toast-provider";
 import { triggerGlobalUndoDelete } from "@/components/ui/undo-delete-provider";
 import { ReferrerBadge, ReferrerLogo } from "@/components/dashboard/analytics/referrer-badge";
@@ -2116,15 +2117,14 @@ export function GeoLogsReuiDataGrid({
     // 1. Événements réels individuels si disponibles
     if (effectiveLogs.length > 0) {
       return effectiveLogs.map((c: any, idx: number) => {
-        const cCode = (
-          c.countryCode ||
-          c.country_code ||
-          c.country ||
-          "XX"
-        ).toUpperCase();
-        const country =
-          c.countryName || c.country_name || getCountryName(cCode) || cCode;
-        const city = c.city && c.city !== "Inconnue" && c.city !== "—" ? c.city : "Edge Node";
+        const geo = resolveCountryInfo({
+          countryCode: c.countryCode || c.country_code || c.country,
+          countryName: c.countryName || c.country_name,
+          city: c.city,
+        });
+        const cCode = geo.countryCode;
+        const country = geo.countryName;
+        const city = geo.city;
         const referrer = c.referrer || "Direct";
         const rawSlug = c.rawSlug || c.slug || "link";
         const cleanSlug = String(rawSlug)

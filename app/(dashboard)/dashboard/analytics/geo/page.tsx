@@ -50,6 +50,7 @@ import {
   getCountryFromGeography,
   preprocessWorldGeographies,
 } from "@/lib/geo-coordinates";
+import { resolveCountryInfo } from "@/lib/country-flags";
 import { detectOSFromEvent } from "@/lib/device-detection";
 import { ContinentTraffic } from "@/components/dashboard/analytics/continents-vector-map";
 import {
@@ -577,22 +578,19 @@ export default function GeoAnalyticsPage() {
       let finalLiveEvents: any[] = [];
       if (Array.isArray(rawLiveEvents) && rawLiveEvents.length > 0) {
         finalLiveEvents = rawLiveEvents.map((ev: any, idx: number) => {
-          const cleanCode = (
-            ev.country_code ||
-            ev.countryCode ||
-            ev.country ||
-            "XX"
-          ).toUpperCase();
-          const city = ev.city && ev.city !== "Inconnue" && ev.city !== "—" ? ev.city : (ev.city || "Edge PoP");
+          const geo = resolveCountryInfo({
+            countryCode: ev.country_code || ev.countryCode || ev.country,
+            countryName: ev.countryName || ev.country_name,
+            city: ev.city,
+          });
           return {
             id: ev.id || `evt_${idx}`,
             timestamp:
               ev.timestamp || ev.created_at || new Date().toISOString(),
             slug: ev.slug || "link",
-            countryCode: cleanCode,
-            countryName:
-              ev.countryName || ev.country_name || getCountryName(cleanCode) || cleanCode,
-            city: city,
+            countryCode: geo.countryCode,
+            countryName: geo.countryName,
+            city: geo.city,
             device: ev.device && ev.device !== "unknown" ? ev.device : "Inconnu",
             browser: ev.browser && ev.browser !== "unknown" ? ev.browser : "Inconnu",
             os: detectOSFromEvent(ev) || (ev.os && ev.os !== "unknown" ? ev.os : "Inconnu"),

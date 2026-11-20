@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCountryName } from "@/lib/utils";
+import { resolveCountryInfo } from "@/lib/country-flags";
 import {
   generateTimelineForRange,
   generateEdgeTopCountries,
@@ -279,23 +280,22 @@ export async function GET(req: Request) {
             ? rawLiveEvents
             : [];
 
-    // Formatage des événements pour l'interface
+    // Formatage des événements pour l'interface avec vérification stricte pays/drapeaux
     const liveClickEvents = activeReportingEvents.map((ev: any) => {
-      let cCode = (ev.country_code || ev.countryCode || "XX").toUpperCase();
-      let city = ev.city && ev.city !== "Inconnue" && ev.city !== "—" ? ev.city : (cCode === "BF" ? "Ouagadougou" : "Edge Node");
-      // Sanitize legacy hardcoded localhost events that stored FR / Paris
-      if (cCode === "FR" && (city === "Paris" || ev.city === "Paris")) {
-        cCode = "BF";
-        city = "Ouagadougou";
-      }
+      const geo = resolveCountryInfo({
+        countryCode: ev.country_code || ev.countryCode || ev.country,
+        countryName: ev.countryName || ev.country_name,
+        city: ev.city,
+      });
+
       return {
         id: ev.id || `${Date.now()}-${Math.random()}`,
         linkId: ev.linkId || ev.link_id || ev.slug || "",
         timestamp: ev.timestamp || new Date().toISOString(),
         slug: ev.slug || "link",
-        countryCode: cCode,
-        countryName: ev.countryName || ev.country_name || getCountryName(cCode) || cCode,
-        city: city,
+        countryCode: geo.countryCode,
+        countryName: geo.countryName,
+        city: geo.city,
         device: ev.device || "desktop",
         os: ev.os || "Windows",
         browser: ev.browser || "Chrome",
@@ -341,15 +341,13 @@ export async function GET(req: Request) {
               .sort((a, b) => b.count - a.count)
           : (workerStats?.top_countries || workerStats?.topCountries || []).map(
               (c: any) => {
-                const code = (
-                  c.code ||
-                  c.country_code ||
-                  c.country ||
-                  "XX"
-                ).toUpperCase();
+                const geo = resolveCountryInfo({
+                  countryCode: c.code || c.country_code || c.country,
+                  countryName: c.name || c.country_name,
+                });
                 return {
-                  code,
-                  name: c.name || c.country_name || getCountryName(code) || code,
+                  code: geo.countryCode,
+                  name: geo.countryName,
                   count: c.count || c.clicks || 0,
                   percentage:
                     effectiveTotalClicks > 0
@@ -391,22 +389,24 @@ export async function GET(req: Request) {
               })
               .sort((a, b) => b.count - a.count)
           : (workerStats?.top_cities || workerStats?.topCities || []).map(
-              (c: any) => ({
-                city: c.city || c.name || "Edge Node",
-                countryCode: (
-                  c.countryCode ||
-                  c.country_code ||
-                  "XX"
-                ).toUpperCase(),
-                count: c.count || c.clicks || 0,
-                percentage:
-                  effectiveTotalClicks > 0
-                    ? Math.round(
-                        ((c.count || c.clicks || 0) / effectiveTotalClicks) *
-                          100,
-                      )
-                    : 0,
-              }),
+              (c: any) => {
+                const geo = resolveCountryInfo({
+                  countryCode: c.countryCode || c.country_code,
+                  city: c.city || c.name,
+                });
+                return {
+                  city: geo.city !== "Edge PoP" ? geo.city : (c.city || c.name || "Edge Node"),
+                  countryCode: geo.countryCode,
+                  count: c.count || c.clicks || 0,
+                  percentage:
+                    effectiveTotalClicks > 0
+                      ? Math.round(
+                          ((c.count || c.clicks || 0) / effectiveTotalClicks) *
+                            100,
+                        )
+                      : 0,
+                };
+              },
             );
 
     const topDevices =

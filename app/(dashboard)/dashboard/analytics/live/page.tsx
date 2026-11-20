@@ -35,7 +35,8 @@ import {
   ColumnMaskToggle,
   ColumnDefinition,
 } from "@/components/dashboard/analytics/column-mask-toggle";
-import { formatNumber, getCountryName, isLinkActive } from "@/lib/utils";
+import { formatNumber, isLinkActive } from "@/lib/utils";
+import { resolveCountryInfo } from "@/lib/country-flags";
 import { detectOSFromEvent } from "@/lib/device-detection";
 import { AnalyticsLiveSkeleton } from "@/components/ui/skeleton";
 import { exportToExcelWorkbook } from "@/lib/export-excel";
@@ -227,25 +228,23 @@ function LiveClickStreamContent() {
         [];
       let mappedEvents: any[] = [];
 
-      // Traitement des VRAIS clics reçus
+      // Traitement des VRAIS clics reçus avec vérification stricte pays/drapeau
       if (Array.isArray(rawLive) && rawLive.length > 0) {
         mappedEvents = rawLive.map((ev: any, idx: number) => {
-          const code = (
-            ev.country_code ||
-            ev.countryCode ||
-            ev.country ||
-            "XX"
-          ).toUpperCase();
-          const countryName =
-            ev.countryName || ev.country_name || getCountryName(code) || code;
+          const geo = resolveCountryInfo({
+            countryCode: ev.country_code || ev.countryCode || ev.country,
+            countryName: ev.countryName || ev.country_name,
+            city: ev.city,
+          });
+
           return {
             id: ev.id || `evt_${idx}`,
             timestamp:
               ev.timestamp || ev.created_at || new Date().toISOString(),
             slug: ev.slug || "link",
-            countryCode: code,
-            countryName,
-            city: ev.city && ev.city !== "Inconnue" && ev.city !== "—" ? ev.city : (ev.city || "Edge PoP"),
+            countryCode: geo.countryCode,
+            countryName: geo.countryName,
+            city: geo.city,
             ipMasked: ev.ip_masked || ev.ipMasked || "•••.•••.•••",
             device: ev.device && ev.device !== "unknown" ? ev.device : "Inconnu",
             os: detectOSFromEvent(ev) || (ev.os && ev.os !== "unknown" ? ev.os : "Inconnu"),
