@@ -35,12 +35,13 @@ import {
   ColumnMaskToggle,
   ColumnDefinition,
 } from "@/components/dashboard/analytics/column-mask-toggle";
-import { formatNumber, getCountryName } from "@/lib/utils";
+import { formatNumber, getCountryName, isLinkActive } from "@/lib/utils";
 import { detectOSFromEvent } from "@/lib/device-detection";
 import { AnalyticsLiveSkeleton } from "@/components/ui/skeleton";
 import { exportToExcelWorkbook } from "@/lib/export-excel";
 import { showToast } from "@/components/ui/toast-provider";
 import { ReferrerBadge, ReferrerLogo } from "@/components/dashboard/analytics/referrer-badge";
+import { ActiveEdgeStreamChart } from "@/components/dashboard/analytics/active-edge-stream";
 
 const STREAM_COLUMNS: ColumnDefinition[] = [
   { key: "timestamp", label: "Timestamp", defaultVisible: true },
@@ -390,6 +391,20 @@ function LiveClickStreamContent() {
     });
   }, [events, selectedLinkId, searchQuery]);
 
+  const liveEvents24hCount = useMemo(() => {
+    const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+    const in24h = events.filter((ev) => {
+      const t = new Date(ev.timestamp || ev.created_at || ev.time || 0).getTime();
+      return !isNaN(t) && t >= oneDayAgo;
+    }).length;
+    if (in24h > 0) return in24h;
+    return events.length > 0 ? events.length : totalClicksCount;
+  }, [events, totalClicksCount]);
+
+  const activeLinksCount = useMemo(() => {
+    return links.filter((l) => isLinkActive(l)).length;
+  }, [links]);
+
   const totalPages = Math.max(1, Math.ceil(filteredEvents.length / pageSize));
   const paginatedEvents = filteredEvents.slice(
     (currentPage - 1) * pageSize,
@@ -635,6 +650,15 @@ function LiveClickStreamContent() {
           </div>
         </div>
       </div>
+
+      {/* Active Edge Stream Grand Format */}
+      <ActiveEdgeStreamChart
+        variant="large"
+        totalClicks={totalClicksCount}
+        liveEvents24hCount={liveEvents24hCount}
+        events={events}
+        activeLinksCount={activeLinksCount}
+      />
 
       {/* Table Card */}
       <div className="rounded-[10px] bg-white dark:bg-[#141416] border border-[#E4E7EC] dark:border-[#222225] shadow-sm dark:shadow-2xl flex flex-col">

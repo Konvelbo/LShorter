@@ -16,14 +16,6 @@ import {
 } from "lucide-react";
 import { GeoLogsReuiDataGrid } from "@/components/dashboard/reui-data-grids";
 import { ReuiBarChart5 } from "@/components/examples/c-chart-5";
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  ResponsiveContainer,
-  Tooltip,
-} from "recharts";
 import { generateTimelineForRange } from "@/lib/analytics-generators";
 import { AnalyticsPageSkeleton } from "@/components/ui/skeleton";
 import {
@@ -34,6 +26,7 @@ import {
 import { formatNumber, isLinkActive } from "@/lib/utils";
 import { showToast } from "@/components/ui/toast-provider";
 import { exportToExcelWorkbook } from "@/lib/export-excel";
+import { ActiveEdgeStreamChart } from "@/components/dashboard/analytics/active-edge-stream";
 
 const MONTH_LABELS = [
   "Jan",
@@ -49,165 +42,6 @@ const MONTH_LABELS = [
   "Nov",
   "Dec",
 ];
-
-/* ============================================================================
- * COMPOSANT ACTIVE EDGE STREAM (Vrai comportement flux crypto à descente continue)
- * ========================================================================== */
-function CryptoEdgeStreamChart({ totalClicks }: { totalClicks: number }) {
-  const [streamTicks, setStreamTicks] = useState<
-    { time: string; value: number; latency: number }[]
-  >([]);
-  const currentRateRef = useRef<number>(0);
-  const prevTotalClicksRef = useRef<number>(totalClicks);
-
-  // Détection des nouveaux clics réels
-  useEffect(() => {
-    const diff = totalClicks - prevTotalClicksRef.current;
-    if (diff > 0) {
-      currentRateRef.current = Math.min(25, currentRateRef.current + diff * 3);
-      prevTotalClicksRef.current = totalClicks;
-    }
-  }, [totalClicks]);
-
-  useEffect(() => {
-    const handleEdgeClickEvent = () => {
-      currentRateRef.current = Math.min(25, currentRateRef.current + 4);
-    };
-    window.addEventListener("lshorter_data_change", handleEdgeClickEvent);
-    window.addEventListener("lshorter_link_clicked", handleEdgeClickEvent);
-    return () => {
-      window.removeEventListener("lshorter_data_change", handleEdgeClickEvent);
-      window.removeEventListener("lshorter_link_clicked", handleEdgeClickEvent);
-    };
-  }, []);
-
-  // Initialisation du buffer
-  useEffect(() => {
-    const now = Date.now();
-    const initial: { time: string; value: number; latency: number }[] = [];
-    for (let i = 15; i >= 0; i--) {
-      const ptTime = new Date(now - i * 3 * 1000);
-      initial.push({
-        time: ptTime.toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-        }),
-        value: 0,
-        latency: 0,
-      });
-    }
-    setStreamTicks(initial);
-
-    const interval = setInterval(() => {
-      // RÈGLE : S'il n'y a pas de nouvelle requête, le flux DESCEND continuellement vers 0
-      if (currentRateRef.current > 0) {
-        currentRateRef.current = Math.max(0, currentRateRef.current - 1);
-      }
-
-      const nextVal = currentRateRef.current;
-      const nowStr = new Date().toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-      });
-      const nextLat = nextVal > 0 ? 2.4 : 0;
-
-      setStreamTicks((prev) => {
-        if (prev.length === 0) return prev;
-        return [
-          ...prev.slice(1),
-          { time: nowStr, value: nextVal, latency: nextLat },
-        ];
-      });
-    }, 2500);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  const latestVal = streamTicks[streamTicks.length - 1]?.value ?? 0;
-  const maxVal = Math.max(...streamTicks.map((t) => t.value), 4);
-
-  return (
-    <div className="relative w-full h-[125px] overflow-hidden">
-      <ResponsiveContainer width="100%" height="100%">
-        <AreaChart
-          data={streamTicks}
-          margin={{ top: 12, right: 6, bottom: 0, left: 6 }}
-        >
-          <defs>
-            <linearGradient id="brandCyberBlueGlow" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#0066FF" stopOpacity={0.45} />
-              <stop offset="60%" stopColor="#0066FF" stopOpacity={0.12} />
-              <stop offset="100%" stopColor="#0066FF" stopOpacity={0.01} />
-            </linearGradient>
-          </defs>
-
-          <XAxis dataKey="time" hide />
-          <YAxis domain={[0, Math.ceil(maxVal * 1.2)]} hide />
-
-          <Tooltip
-            content={({ active, payload }) => {
-              if (!active || !payload || !payload.length) return null;
-              const data = payload[0].payload;
-              return (
-                <div className="rounded-xl border border-[#E4E7EC] dark:border-[#222225] bg-white/95 dark:bg-[#141416]/95 p-2.5 shadow-xl backdrop-blur-md text-xs space-y-1">
-                  <div className="flex items-center justify-between gap-3 text-[11px] text-[#667085] dark:text-[#a1a1aa] border-b border-[#E4E7EC] dark:border-[#222225] pb-1">
-                    <span>Edge Throughput</span>
-                    <span className="text-[#0066FF] dark:text-[#5294FF] font-mono font-bold">
-                      {data.time}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between gap-4 font-mono font-semibold text-[#101828] dark:text-[#fafafa]">
-                    <span>Current Rate:</span>
-                    <span className="text-[#0066FF] dark:text-[#5294FF] text-sm">
-                      {data.value} req/s
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between gap-4 text-[10.5px] text-[#667085] dark:text-[#a1a1aa] font-mono">
-                    <span>Edge Latency:</span>
-                    <span>
-                      {data.latency > 0 ? `${data.latency} ms` : "0 ms (Idle)"}
-                    </span>
-                  </div>
-                </div>
-              );
-            }}
-          />
-
-          <Area
-            type="monotone"
-            dataKey="value"
-            stroke="#0066FF"
-            strokeWidth={2.4}
-            fill="url(#brandCyberBlueGlow)"
-            isAnimationActive={false}
-          />
-        </AreaChart>
-      </ResponsiveContainer>
-
-      {/* Ticker / Badge d'état : LIVE si des requêtes traversent le réseau, IDLE sinon */}
-      <div className="absolute right-2 top-2 flex items-center gap-1.5 bg-white/90 dark:bg-[#141416]/90 border border-[#E4E7EC] dark:border-[#222225] rounded-full px-2 py-0.5 text-[10px] font-mono shadow-xs pointer-events-none transition-colors">
-        <span
-          className={`w-1.5 h-1.5 rounded-full ${
-            latestVal > 0
-              ? "bg-[#0066FF] animate-ping"
-              : "bg-gray-400 dark:bg-gray-600"
-          }`}
-        />
-        <span
-          className={
-            latestVal > 0
-              ? "text-[#0066FF] dark:text-[#5294FF] font-bold"
-              : "text-[#667085] dark:text-[#a1a1aa]"
-          }
-        >
-          {latestVal > 0 ? `${latestVal} REQ/S` : "IDLE (0 REQ/S)"}
-        </span>
-      </div>
-    </div>
-  );
-}
 
 export default function AnalyticsPage() {
   const router = useRouter();
@@ -1094,7 +928,13 @@ export default function AnalyticsPage() {
             </div>
 
             <div className="rounded-xl bg-[#F9FAFB] dark:bg-[#09090b] p-2 border border-[#E4E7EC] dark:border-[#222225] shadow-inner relative transition-colors">
-              <CryptoEdgeStreamChart totalClicks={totalClicks} />
+              <ActiveEdgeStreamChart
+                variant="compact"
+                totalClicks={totalClicks}
+                liveEvents24hCount={liveEvents24hCount}
+                events={allLiveEvents}
+                activeLinksCount={activeLinksCount}
+              />
             </div>
 
             <div className="grid grid-cols-3 divide-x divide-[#E4E7EC] dark:divide-[#222225] mt-5 text-center">
