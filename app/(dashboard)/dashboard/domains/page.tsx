@@ -34,7 +34,6 @@ import { Input } from "@/components/ui/input";
 import { showToast } from "@/components/ui/toast-provider";
 import { useUndoDelete } from "@/components/ui/undo-delete-provider";
 import { getPlanLimits, triggerPlanUpgrade } from "@/lib/plan-guard";
-import confetti from "canvas-confetti";
 import { DomainDrawer } from "@/components/dashboard/domain-drawer";
 
 export default function DomainsPage() {
@@ -187,7 +186,6 @@ export default function DomainsPage() {
           `L'enregistrement CNAME de ${dom.domain} vers ${DEFAULT_DOMAIN} n'est pas encore détecté sur les serveurs DNS. Vérifiez votre zone DNS.`,
         );
       } else {
-        confetti({ particleCount: 50, spread: 70, origin: { y: 0.6 } });
         showToast.success("Domain active and SSL certificate verified!");
         loadDomains();
       }

@@ -9,7 +9,6 @@ import { showToast } from "@/components/ui/toast-provider";
 import { cfCreateApiKey } from "@/lib/cloudflare-api";
 import { ApiKeyItem } from "@/types";
 import { getPlanLimits } from "@/lib/plan-guard";
-import confetti from "canvas-confetti";
 
 interface ApiKeyDrawerProps {
   isOpen: boolean;
@@ -88,7 +87,6 @@ export function ApiKeyDrawer({
         };
 
         try {
-          confetti({ particleCount: 40, spread: 60 });
         } catch {}
 
         showToast.success("Clé API créée avec succès !");

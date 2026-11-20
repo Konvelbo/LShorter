@@ -84,16 +84,6 @@ function preloadSecondaryDrawerTabs() {
   ]);
 }
 
-function fireSuccessConfetti(options: {
-  particleCount: number;
-  spread: number;
-  origin: { y: number };
-}) {
-  void import("canvas-confetti")
-    .then((m) => m.default(options))
-    .catch(() => {});
-}
-
 // Pure validation helpers (module-scoped so references remain stable across renders)
 function checkUrlFormat(val: string, isRequired = true): string {
   const trimmed = val.trim();
@@ -1544,12 +1534,6 @@ export function LinkDrawer({
           window.dispatchEvent(new Event("lshorter_data_change"));
         }
 
-        fireSuccessConfetti({
-          particleCount: 50,
-          spread: 60,
-          origin: { y: 0.6 },
-        });
-
         showToast.success("Link updated successfully!");
         setIsSubmitting(false);
         if (onSuccess) onSuccess(updatedShortLink);
@@ -1799,12 +1783,6 @@ export function LinkDrawer({
           );
           window.dispatchEvent(new Event("lshorter_data_change"));
         }
-
-        fireSuccessConfetti({
-          particleCount: 70,
-          spread: 80,
-          origin: { y: 0.6 },
-        });
 
         showToast.success(
           `Link https://${cleanDomain}/${cleanSlug} created successfully!`,

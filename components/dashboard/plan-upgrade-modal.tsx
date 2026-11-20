@@ -14,7 +14,6 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { showToast } from "@/components/ui/toast-provider";
 import { syncUserToCloudflare } from "@/app/actions/sync-user";
-import confetti from "canvas-confetti";
 
 export function PlanUpgradeModal() {
   const { data: session, update: updateSession } = useSession();

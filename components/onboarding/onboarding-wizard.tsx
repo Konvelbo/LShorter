@@ -3,7 +3,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Check, ChevronDown, Search, Sparkles } from "lucide-react";
-import confetti from "canvas-confetti";
 import gsap from "gsap";
 import { useSession } from "next-auth/react";
 import { useMutation } from "convex/react";
@@ -800,12 +799,6 @@ export function OnboardingWizard() {
       try {
         await updateSession?.({ hasCompletedOnboarding: true });
       } catch {}
-
-      confetti({
-        particleCount: 75,
-        spread: 65,
-        origin: { y: 0.6 },
-      });
 
       showToast.success("Welcome to LShorter! Your workspace is ready.");
       setTimeout(() => {

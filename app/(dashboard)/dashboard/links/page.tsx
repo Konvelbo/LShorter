@@ -68,7 +68,6 @@ import {
   LinksReuiDataGrid,
   getDicebearGlassUrl,
 } from "@/components/dashboard/reui-data-grids";
-import confetti from "canvas-confetti";
 
 export default function LinksPage() {
   const { data: session, status } = useSession();
@@ -602,7 +601,6 @@ export default function LinksPage() {
   const handleCopy = (link: ShortLink) => {
     navigator.clipboard.writeText(link.shortUrl);
     setCopiedId(link.id);
-    confetti({ particleCount: 30, spread: 50, origin: { y: 0.7 } });
     setTimeout(() => setCopiedId(null), 2000);
   };
 
@@ -1284,7 +1282,6 @@ export default function LinksPage() {
         onCopy={(text, id) => {
           navigator.clipboard.writeText(text);
           setCopiedId(id);
-          confetti({ particleCount: 25, spread: 50, origin: { y: 0.7 } });
           setTimeout(() => setCopiedId(null), 2000);
         }}
         onShareLink={(l) => setSelectedShareLink(l)}

@@ -16,7 +16,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { showToast } from "@/components/ui/toast-provider";
 import { cfAddDomain } from "@/lib/cloudflare-api";
-import confetti from "canvas-confetti";
 
 interface DomainDrawerProps {
   isOpen: boolean;
@@ -258,7 +257,6 @@ export function DomainDrawer({
       });
 
       try {
-        confetti({ particleCount: 50, spread: 60 });
       } catch {}
 
       showToast.success(`Domaine ${cleanHost} connecté avec succès !`);

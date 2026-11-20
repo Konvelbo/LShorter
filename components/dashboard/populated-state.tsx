@@ -48,7 +48,6 @@ import {
   generateTimelineForRange,
   toLocalDateKey,
 } from "@/lib/analytics-generators";
-import confetti from "canvas-confetti";
 
 interface PopulatedStateProps {
   links: ShortLink[];
@@ -964,12 +963,6 @@ export function PopulatedState({
 
       const data = await res.json();
       if (data?.success) {
-        confetti({
-          particleCount: 90,
-          spread: 80,
-          origin: { y: 0.6 },
-        });
-
         // Trigger in-app topbar notification bell immediately
         window.dispatchEvent(
           new CustomEvent("lshorter:notification", {
@@ -1008,11 +1001,6 @@ export function PopulatedState({
         const alreadyAlerted = localStorage.getItem(alertedKey);
         if (!alreadyAlerted) {
           localStorage.setItem(alertedKey, "sent");
-          confetti({
-            particleCount: 100,
-            spread: 90,
-            origin: { y: 0.6 },
-          });
 
           const targetEmail = session?.user?.email || "contact@lsho.cc";
           const targetName = userName || "Founder";
@@ -1228,7 +1216,6 @@ export function PopulatedState({
   const handleCopyText = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
     setCopiedId(id);
-    confetti({ particleCount: 25, spread: 45, origin: { y: 0.8 } });
     setTimeout(() => setCopiedId(null), 2000);
   };
 

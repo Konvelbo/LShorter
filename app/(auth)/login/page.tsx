@@ -20,7 +20,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { showToast } from "@/components/ui/toast-provider";
-import confetti from "canvas-confetti";
 import { signIn } from "next-auth/react";
 import { ForgotPasswordModal } from "@/components/auth/forgot-password-modal";
 import { useTheme } from "@/components/providers/theme-provider";
@@ -359,7 +358,6 @@ export default function LoginPage({
         return;
       }
 
-      confetti({ particleCount: 60, spread: 70, origin: { y: 0.6 } });
       showToast.success(`Welcome to LShorter, ${userName}!`);
       window.location.href = "/dashboard";
     } catch (error) {
@@ -421,7 +419,6 @@ export default function LoginPage({
             redirect: false,
           });
           if (!signinRes?.error) {
-            confetti({ particleCount: 80, spread: 80, origin: { y: 0.6 } });
             if (typeof window !== "undefined") {
               window.location.href = "/onboarding";
             } else {
@@ -452,7 +449,6 @@ export default function LoginPage({
         return;
       }
 
-      confetti({ particleCount: 80, spread: 80, origin: { y: 0.6 } });
       if (typeof window !== "undefined") {
         window.location.href = "/onboarding";
       } else {
@@ -556,7 +552,6 @@ export default function LoginPage({
     const handleAuthSuccess = () => {
       if (hasRedirected) return;
       hasRedirected = true;
-      confetti({ particleCount: 60, spread: 70, origin: { y: 0.6 } });
       showToast.success("Login successful!");
       setTimeout(() => {
         router.push("/dashboard");

@@ -114,7 +114,6 @@ import { useUndoDelete } from "@/components/ui/undo-delete-provider";
 import { syncUserToCloudflare } from "@/app/actions/sync-user";
 import { triggerPlanUpgrade, getPlanLimits } from "@/lib/plan-guard";
 import { formatCurrencyDisplay } from "@/lib/billing/currency";
-import confetti from "canvas-confetti";
 
 const VALID_SETTINGS_TABS = [
   "profile",
@@ -616,7 +615,6 @@ function SettingsPageContent() {
             if (data?.success && data?.plan && ["PRO", "BUSINESS", "ENTERPRISE"].includes(data.plan.toUpperCase())) {
               const confirmedPlan = data.plan.toUpperCase();
               await syncClientPlanState(confirmedPlan);
-              confetti({ particleCount: 90, spread: 80, origin: { y: 0.6 } });
               showToast.success(
                 `Abonnement ${confirmedPlan} activé et synchronisé avec succès !`
               );
@@ -1696,7 +1694,6 @@ console.log("Top Countries:", topAudience.topCountries);`,
 
       setProfileSuccess(true);
       showToast.success("Profile updated successfully!");
-      confetti({ particleCount: 30, spread: 50, origin: { y: 0.7 } });
       setTimeout(() => setProfileSuccess(false), 2500);
     } catch (err) {
       showToast.error("Error updating profile.");
@@ -1772,7 +1769,6 @@ console.log("Top Countries:", topAudience.topCountries);`,
           secretKey: data.secretKey,
           isActive: true,
         });
-        confetti({ particleCount: 30, spread: 50 });
         showToast.success("Webhook configuré et enregistré dans Cloudflare D1 !");
       }
       setIsWebhookModalOpen(false);
@@ -1954,7 +1950,6 @@ console.log("Top Countries:", topAudience.topCountries);`,
       setCurrentPassword("");
       setNewPassword("");
       setPasswordStrength(0);
-      confetti({ particleCount: 50, spread: 70 });
       showToast.success("Password updated successfully!");
     } catch {
       showToast.error("Error updating password.");

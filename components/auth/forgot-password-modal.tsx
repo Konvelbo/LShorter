@@ -18,7 +18,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { showToast } from "@/components/ui/toast-provider";
-import confetti from "canvas-confetti";
 import {
   sendPasswordResetPinAction,
   verifyResetPinAction,
@@ -178,7 +177,6 @@ export function ForgotPasswordModal({
       });
 
       if (res.success) {
-        confetti({ particleCount: 70, spread: 80, origin: { y: 0.6 } });
         showToast.success("Password reset successfully! You can now log in.");
         if (onSuccess) onSuccess();
         onClose();

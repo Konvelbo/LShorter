@@ -35,7 +35,6 @@ import { ApiKeyCreatedModal } from "@/components/dashboard/api-key-created-modal
 import { ApiKeyDrawer } from "@/components/dashboard/api-key-drawer";
 import { CodeBlock } from "@/components/ui/code-block";
 import { getPlanLimits } from "@/lib/plan-guard";
-import confetti from "canvas-confetti";
 
 export default function ApiSdkPage() {
   const { triggerUndoDelete } = useUndoDelete();

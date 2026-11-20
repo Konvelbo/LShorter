@@ -17,7 +17,6 @@ import {
 import { ShortLink } from "@/types";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import confetti from "canvas-confetti";
 
 interface LinkShareModalProps {
   link: Partial<ShortLink> | null;
@@ -147,7 +146,6 @@ export function LinkShareModal({ link, isOpen, onClose }: LinkShareModalProps) {
   const handleCopy = () => {
     navigator.clipboard.writeText(publicShareUrl);
     setCopied(true);
-    confetti({ particleCount: 30, spread: 50, origin: { y: 0.7 } });
     setTimeout(() => setCopied(false), 2000);
   };
 

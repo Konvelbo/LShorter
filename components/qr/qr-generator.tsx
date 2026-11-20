@@ -91,7 +91,6 @@ import { Input } from "@/components/ui/input";
 import { LinkShareModal } from "@/components/dashboard/link-share-modal";
 import { triggerPlanUpgrade } from "@/lib/plan-guard";
 import { showToast } from "@/components/ui/toast-provider";
-import confetti from "canvas-confetti";
 import { cfUploadImage, cfGetLinks, cfUpdateLink, cfInvalidateCache } from "@/lib/cloudflare-api";
 import { exportFramesToGif } from "@/lib/qr/gif-export";
 import {
@@ -931,7 +930,6 @@ export function QRGenerator() {
     reader.onload = (event) => {
       setUploadedLogo(event.target?.result as string);
       setSelectedLogo("custom");
-      confetti({ particleCount: 30, spread: 50, origin: { y: 0.7 } });
     };
     reader.readAsDataURL(file);
 
@@ -956,7 +954,6 @@ export function QRGenerator() {
     link.download = `lshorter-qr-${contentType}.png`;
     link.href = canvas.toDataURL("image/png");
     link.click();
-    confetti({ particleCount: 30, spread: 50 });
     showToast.success("PNG QR Code downloaded successfully!");
   };
 
@@ -980,7 +977,6 @@ export function QRGenerator() {
       link.href = url;
       link.click();
       URL.revokeObjectURL(url);
-      confetti({ particleCount: 30, spread: 50 });
       showToast.success("Vector SVG QR Code downloaded!");
     } catch (e) {
       console.error("SVG generation error:", e);
@@ -1048,7 +1044,6 @@ export function QRGenerator() {
       link.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
 
-      confetti({ particleCount: 40, spread: 60 });
       showToast.success("Animated GIF QR Code exported successfully!");
     } catch (err) {
       console.error("GIF export error:", err);
@@ -1108,7 +1103,6 @@ export function QRGenerator() {
         window.dispatchEvent(new CustomEvent("lshorter_data_change"));
       }
 
-      confetti({ particleCount: 40, spread: 60, origin: { y: 0.7 } });
       showToast.success(`QR Code design successfully saved for link /${target.slug}!`);
     } catch (err: unknown) {
       console.error("Save QR error:", err);
@@ -1122,7 +1116,6 @@ export function QRGenerator() {
     const json = getV3QRCodeConfigJSON();
     navigator.clipboard.writeText(json);
     showToast.success("V3 JSON configuration copied to clipboard!");
-    confetti({ particleCount: 25, spread: 45 });
   };
 
   // Pixel Motifs Definitions

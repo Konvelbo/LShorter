@@ -30,7 +30,6 @@ import { showToast } from "@/components/ui/toast-provider";
 import { syncUserToCloudflare } from "@/app/actions/sync-user";
 import { PricingPageSkeleton } from "@/components/ui/skeleton";
 import { PRICING_PLANS, PRICING_COPY } from "@/src/config/pricing";
-import confetti from "canvas-confetti";
 
 
 export default function PricingPage() {
@@ -184,7 +183,6 @@ export default function PricingPage() {
         await updateSession({ plan: planKey });
       } catch {}
 
-      confetti({ particleCount: 75, spread: 80, origin: { y: 0.6 } });
       showToast.success(`Plan successfully updated to ${planKey}!`);
     } catch (err: any) {
       showToast.error("Error updating subscription plan.");

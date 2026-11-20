@@ -18,7 +18,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { showToast } from "@/components/ui/toast-provider";
-import confetti from "canvas-confetti";
 
 interface TwoFactorSetupModalProps {
   isOpen: boolean;
@@ -173,7 +172,6 @@ export function TwoFactorSetupModal({
         // Code is mathematically verified against the Base32 secret!
         await onSuccess(secret, recoveryCodes);
         setStep(3);
-        confetti({ particleCount: 70, spread: 80, origin: { y: 0.6 } });
         showToast.success("Code verified! Save your backup codes.");
       } else {
         setErrorMessage("Invalid or expired code. Check your device clock and try again.");
