@@ -80,12 +80,12 @@ export const nameSchema = z
   .max(80, "Name is too long")
   .regex(/^[^<>]*$/, "Name contains invalid characters");
 
-/** Nom complet / pseudo (création de compte) : 8 à 25 caractères */
+/** Nom complet / pseudo (création de compte) : 2 à 50 caractères */
 export const usernameSchema = z
   .string()
   .trim()
-  .min(8, "Name must be at least 8 characters long")
-  .max(25, "Name cannot exceed 25 characters")
+  .min(2, "Name must be at least 2 characters long")
+  .max(50, "Name cannot exceed 50 characters")
   .regex(/^[^<>]*$/, "Name contains invalid characters");
 
 export const passwordSchema = z

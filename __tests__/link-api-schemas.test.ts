@@ -3,7 +3,9 @@
 import {
   linkCreateBodySchema,
   linkUpdateBodySchema,
+  signupPinBodySchema,
   uploadJsonBodySchema,
+  usernameSchema,
 } from "@/lib/api-schemas";
 
 describe("Link API Zod Schemas (Create & Update)", () => {
@@ -193,5 +195,20 @@ describe("Link API Zod Schemas (Create & Update)", () => {
         data: "data:text/html;base64,PHNjcmlwdD4=",
       }).success
     ).toBe(false);
+  });
+
+  test("usernameSchema and signupPinBodySchema accept standard short names (2-50 chars)", () => {
+    expect(usernameSchema.safeParse("Samuel").success).toBe(true);
+    expect(usernameSchema.safeParse("Al").success).toBe(true);
+    expect(usernameSchema.safeParse("A").success).toBe(false);
+    expect(usernameSchema.safeParse("A".repeat(51)).success).toBe(false);
+    expect(
+      signupPinBodySchema.safeParse({
+        action: "send",
+        name: "Samuel",
+        email: "samuel@example.com",
+        password: "strongpassword123",
+      }).success
+    ).toBe(true);
   });
 });

@@ -30,6 +30,31 @@ import {
   completeSignupWithPinAction,
 } from "@/app/actions/signup-verification";
 
+function formatApiValidationDetails(details: unknown): string | null {
+  if (!details) return null;
+  if (typeof details === "string") return details;
+  if (Array.isArray(details)) {
+    const msgs = details
+      .map((d) =>
+        typeof d === "string"
+          ? d
+          : typeof d === "object" && d !== null && "message" in d
+            ? String((d as { message?: unknown }).message ?? "")
+            : ""
+      )
+      .filter(Boolean);
+    return msgs.length > 0 ? msgs.join(", ") : null;
+  }
+  if (typeof details === "object") {
+    const msgs = Object.values(details as Record<string, unknown>)
+      .flatMap((v) => (Array.isArray(v) ? v : [v]))
+      .map((v) => (typeof v === "string" ? v : ""))
+      .filter(Boolean);
+    return msgs.length > 0 ? msgs.join(", ") : null;
+  }
+  return null;
+}
+
 export default function LoginPage({
   initialMode = "login",
 }: {
@@ -208,7 +233,7 @@ export default function LoginPage({
           success: boolean;
           message?: string;
           error?: string;
-          details?: Array<{ field?: string; message: string }>;
+          details?: Record<string, string[]> | Array<{ field?: string; message: string }> | string;
           isDevFallback?: boolean;
           email?: string;
           token?: string;
@@ -241,7 +266,7 @@ export default function LoginPage({
         if (!res?.success) {
           const errMsg =
             res?.message ||
-            (res?.details && res.details.map((d) => d.message).join(", ")) ||
+            formatApiValidationDetails(res?.details) ||
             res?.error ||
             "Registration failed.";
           showToast.error(errMsg);
@@ -453,7 +478,7 @@ export default function LoginPage({
         success: boolean;
         message?: string;
         error?: string;
-        details?: Array<{ field?: string; message: string }>;
+        details?: Record<string, string[]> | Array<{ field?: string; message: string }> | string;
         token?: string;
       };
       try {
@@ -492,7 +517,7 @@ export default function LoginPage({
       } else {
         const errMsg =
           res?.message ||
-          (res?.details && res.details.map((d) => d.message).join(", ")) ||
+          formatApiValidationDetails(res?.details) ||
           res?.error ||
           "Error resending code.";
         showToast.error(errMsg);
