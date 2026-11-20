@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
 
       const raw = (body?.data || body?.image || "").trim();
 
-      const dataUriMatch = raw.match(/^data:([^;,]+);base64,([A-Za-z0-9+/=]+)$/);
+      const dataUriMatch = raw.match(/^data:([^;,]+);base64,([A-Za-z0-9+/=]+)$/i);
       if (!dataUriMatch) {
         return NextResponse.json(
           {

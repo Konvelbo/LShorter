@@ -269,8 +269,24 @@ async function cfFetch<T>(
       }
 
       if (!res || !res.ok) {
-        const err = res ? await res.json().catch(() => ({ error: res!.statusText })) : { error: "Network error" };
-        const rawMsg = (err as any).error || (err as any).message || `HTTP ${res?.status || 500}`;
+        const err: Record<string, unknown> = res
+          ? await res.json().catch(() => ({ error: res!.statusText }))
+          : { error: "Network error" };
+        let rawMsg =
+          (typeof err.error === "string" && err.error) ||
+          (typeof err.message === "string" && err.message) ||
+          `HTTP ${res?.status || 500}`;
+        const details = err.details;
+        if (details && typeof details === "object") {
+          const firstEntry = Object.entries(details as Record<string, unknown>).find(
+            ([, msgs]) => Array.isArray(msgs) && msgs.length > 0 && typeof msgs[0] === "string"
+          );
+          if (firstEntry) {
+            const [field, msgs] = firstEntry as [string, string[]];
+            const detailText = field === "_root" ? msgs[0] : `${field}: ${msgs[0]}`;
+            rawMsg = `${rawMsg} (${detailText})`;
+          }
+        }
         throw new Error(sanitizeClientError(rawMsg));
       }
 
@@ -697,14 +713,14 @@ export async function cfUpdateLink(id: string, updates: any) {
     routingRules: updates.routingRules !== undefined ? updates.routingRules : updates.routing_rules,
     routing_rules: updates.routing_rules !== undefined ? updates.routing_rules : updates.routingRules,
     hide_referrer: updates.hide_referrer !== undefined ? updates.hide_referrer : updates.hideReferrer !== undefined ? (updates.hideReferrer ? 1 : 0) : undefined,
-    og_title: updates.og_title || updates.ogTitle,
-    ogTitle: updates.ogTitle || updates.og_title,
-    meta_title: updates.meta_title || updates.metaTitle,
-    metaTitle: updates.metaTitle || updates.meta_title,
-    og_description: updates.og_description || updates.ogDescription,
-    ogDescription: updates.ogDescription || updates.og_description,
-    og_image: updates.og_image || updates.ogImage,
-    ogImage: updates.ogImage || updates.og_image,
+    og_title: updates.og_title !== undefined ? updates.og_title : updates.ogTitle,
+    ogTitle: updates.ogTitle !== undefined ? updates.ogTitle : updates.og_title,
+    meta_title: updates.meta_title !== undefined ? updates.meta_title : updates.metaTitle,
+    metaTitle: updates.metaTitle !== undefined ? updates.metaTitle : updates.meta_title,
+    og_description: updates.og_description !== undefined ? updates.og_description : updates.ogDescription,
+    ogDescription: updates.ogDescription !== undefined ? updates.ogDescription : updates.og_description,
+    og_image: updates.og_image !== undefined ? updates.og_image : updates.ogImage,
+    ogImage: updates.ogImage !== undefined ? updates.ogImage : updates.og_image,
     banner_style:
       updates.banner_style === "large_banner" || updates.bannerStyle === "large_banner" || updates.twitter_card === "summary_large_image" || updates.twitterCard === "summary_large_image"
         ? "large_banner"
@@ -729,9 +745,12 @@ export async function cfUpdateLink(id: string, updates: any) {
         : updates.twitter_card === "summary" || updates.twitterCard === "summary" || updates.banner_style === "default_banner" || updates.bannerStyle === "default_banner"
           ? "summary"
           : updates.twitterCard || updates.twitter_card,
-    expires_at: updates.expires_at || updates.expiresAt,
+    expires_at: updates.expires_at !== undefined ? updates.expires_at : updates.expiresAt,
+    expiresAt: updates.expiresAt !== undefined ? updates.expiresAt : updates.expires_at,
     max_clicks: updates.max_clicks !== undefined ? updates.max_clicks : updates.maxClicks,
-    fallback_url: updates.fallback_url || updates.fallbackUrl,
+    maxClicks: updates.maxClicks !== undefined ? updates.maxClicks : updates.max_clicks,
+    fallback_url: updates.fallback_url !== undefined ? updates.fallback_url : updates.fallbackUrl,
+    fallbackUrl: updates.fallbackUrl !== undefined ? updates.fallbackUrl : updates.fallback_url,
     ab_variations: updates.ab_variations !== undefined ? updates.ab_variations : updates.abVariations,
     abVariations: updates.abVariations !== undefined ? updates.abVariations : updates.ab_variations,
     main_weight: updates.main_weight !== undefined ? updates.main_weight : updates.mainWeight,

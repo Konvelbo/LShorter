@@ -138,9 +138,9 @@ export const periodSchema = z
   .optional()
   .default("month");
 
-export const tagSchema = z.string().trim().max(50).regex(/^[^<>;&]*$/, "Invalid tag");
+export const tagSchema = z.string().trim().max(50).regex(/^[^<>;]*$/, "Invalid tag");
 
-/** Tags : array ou string CSV */
+/** Tags : array, string CSV/JSON, ou null (sans default pour éviter d'écraser les tags lors d'un PATCH partiel) */
 export const tagsSchema = z
   .union([
     z.array(tagSchema).max(20),
@@ -153,9 +153,9 @@ export const tagsSchema = z
       }
       return s.split(",").map((t) => t.trim()).filter(Boolean);
     }),
+    z.null(),
   ])
-  .optional()
-  .default([]);
+  .optional();
 
 // ─── Auth ───────────────────────────────────────────────────────────────────
 
@@ -231,32 +231,167 @@ export const twoFaBodySchema = z.discriminatedUnion("action", [
 
 // ─── Links ──────────────────────────────────────────────────────────────────
 
+/** URL HTTP ou HTTPS sûre optionnelle ("" ou null autorisé pour effacer un champ) */
+export const optionalNullableSafeUrlSchema = z
+  .union([
+    safeHttpUrlSchema,
+    z.literal("").transform(() => null),
+    z.null(),
+  ])
+  .optional();
+
+/** Entier strictement positif optionnel ("" ou null autorisé pour désactiver une limite) */
+const optionalNullablePositiveIntSchema = z
+  .union([
+    z.number().int().positive(),
+    z
+      .string()
+      .trim()
+      .regex(/^\d+$/, "Must be a positive integer")
+      .transform(Number)
+      .pipe(z.number().int().positive()),
+    z.literal("").transform(() => null),
+    z.null(),
+  ])
+  .optional();
+
+/** Poids / pourcentage (0..100) optionnel/nullable ("" ou null -> undefined pour ne pas forcer Number(null) === 0) */
+const optionalNullableWeightSchema = z
+  .union([
+    z.number().min(0).max(100),
+    z
+      .string()
+      .trim()
+      .regex(/^\d+(\.\d+)?$/, "Weight must be between 0 and 100")
+      .transform(Number)
+      .pipe(z.number().min(0).max(100)),
+    z.literal("").transform(() => undefined),
+    z.null().transform(() => undefined),
+  ])
+  .optional();
+
+/** Code de redirection HTTP (chaîne ou entier 301/302/307/308, ou null/"") */
+const optionalNullableRedirectTypeSchema = z
+  .union([
+    z.enum(["301", "302", "307", "308"]),
+    z
+      .union([z.literal(301), z.literal(302), z.literal(307), z.literal(308)])
+      .transform((n) => String(n) as "301" | "302" | "307" | "308"),
+    z.literal("").transform(() => undefined),
+    z.null(),
+  ])
+  .optional();
+
+/** Pixel attaché à un lien : ID string ou objet pixel structuré du PixelSelectorModal */
+export const linkPixelItemSchema = z.union([
+  z.string().max(200),
+  z
+    .object({
+      id: z.string().max(200).optional().nullable(),
+      platform: z.string().max(100).optional().nullable(),
+      pixelId: z.string().max(200).optional().nullable(),
+      pixel_id: z.string().max(200).optional().nullable(),
+      name: z.string().max(200).optional().nullable(),
+    })
+    .passthrough(),
+]);
+
 export const routingRuleSchema = z
   .object({
-    condition: z.string().trim().max(500).optional(),
-    targetUrl: safeHttpUrlSchema.optional(),
-    target_url: safeHttpUrlSchema.optional(),
-    destinationUrl: safeHttpUrlSchema.optional(),
-    destination_url: safeHttpUrlSchema.optional(),
-    weight: z.number().int().min(0).max(100).optional(),
+    condition: z.string().trim().max(500).optional().nullable(),
+    targetUrl: optionalNullableSafeUrlSchema,
+    target_url: optionalNullableSafeUrlSchema,
+    destinationUrl: optionalNullableSafeUrlSchema,
+    destination_url: optionalNullableSafeUrlSchema,
+    weight: optionalNullableWeightSchema,
   })
   .passthrough();
+
+const routingRulesFieldSchema = z
+  .union([
+    z.array(routingRuleSchema).max(50),
+    z.string().max(50_000).transform((s, ctx) => {
+      if (!s.trim()) return [];
+      try {
+        const parsed = JSON.parse(s);
+        const check = z.array(routingRuleSchema).max(50).safeParse(parsed);
+        if (!check.success) {
+          ctx.addIssue({ code: "custom", message: "Invalid routing rules format" });
+          return z.NEVER;
+        }
+        return check.data;
+      } catch {
+        ctx.addIssue({ code: "custom", message: "Invalid routing rules JSON" });
+        return z.NEVER;
+      }
+    }),
+    z.null(),
+  ])
+  .optional();
 
 export const abVariationSchema = z
   .object({
     url: safeHttpUrlSchema,
-    weight: z.number().int().min(0).max(100),
-    name: z.string().trim().max(100).optional(),
+    weight: z.union([
+      z.number().min(0).max(100),
+      z
+        .string()
+        .trim()
+        .regex(/^\d+(\.\d+)?$/, "Weight must be between 0 and 100")
+        .transform(Number)
+        .pipe(z.number().min(0).max(100)),
+    ]),
+    name: z.string().trim().max(100).optional().nullable(),
   })
   .passthrough();
+
+const abVariationsFieldSchema = z
+  .union([
+    z.array(abVariationSchema).max(20),
+    z.string().max(20_000).transform((s, ctx) => {
+      if (!s.trim()) return [];
+      try {
+        const parsed = JSON.parse(s);
+        const check = z.array(abVariationSchema).max(20).safeParse(parsed);
+        if (!check.success) {
+          ctx.addIssue({ code: "custom", message: "Invalid A/B variations format" });
+          return z.NEVER;
+        }
+        return check.data;
+      } catch {
+        ctx.addIssue({ code: "custom", message: "Invalid A/B variations JSON" });
+        return z.NEVER;
+      }
+    }),
+    z.null(),
+  ])
+  .optional();
 
 export const baseLinkBodySchema = z
   .object({
     targetUrl: safeHttpUrlSchema.optional(),
     target_url: safeHttpUrlSchema.optional(),
-    slug: slugSchema.optional(),
-    userId: userIdSchema.optional(),
-    userEmail: emailSchema.optional(),
+    slug: z
+      .union([
+        slugSchema,
+        z.literal("").transform(() => undefined),
+        z.null().transform(() => undefined),
+      ])
+      .optional(),
+    userId: z
+      .union([
+        userIdSchema,
+        z.literal("").transform(() => undefined),
+        z.null().transform(() => undefined),
+      ])
+      .optional(),
+    userEmail: z
+      .union([
+        emailSchema,
+        z.literal("").transform(() => undefined),
+        z.null().transform(() => undefined),
+      ])
+      .optional(),
     title: z.string().trim().max(200).optional().nullable(),
     description: z.string().trim().max(500).optional().nullable(),
     metaTitle: z.string().trim().max(200).optional().nullable(),
@@ -267,53 +402,97 @@ export const baseLinkBodySchema = z
     og_description: z.string().trim().max(500).optional().nullable(),
     ogImage: z.string().max(7_500_000).optional().nullable(),
     og_image: z.string().max(7_500_000).optional().nullable(),
-    bannerStyle: z.enum(["large_banner", "default_banner", "summary", "summary_large_image"]).optional().nullable(),
-    banner_style: z.enum(["large_banner", "default_banner", "summary", "summary_large_image"]).optional().nullable(),
-    twitterCard: z.enum(["summary_large_image", "summary"]).optional().nullable(),
-    twitter_card: z.enum(["summary_large_image", "summary"]).optional().nullable(),
+    bannerStyle: z
+      .union([
+        z.enum(["large_banner", "default_banner", "summary", "summary_large_image"]),
+        z.literal("").transform(() => undefined),
+        z.null(),
+      ])
+      .optional(),
+    banner_style: z
+      .union([
+        z.enum(["large_banner", "default_banner", "summary", "summary_large_image"]),
+        z.literal("").transform(() => undefined),
+        z.null(),
+      ])
+      .optional(),
+    twitterCard: z
+      .union([
+        z.enum(["summary_large_image", "summary"]),
+        z.literal("").transform(() => undefined),
+        z.null(),
+      ])
+      .optional(),
+    twitter_card: z
+      .union([
+        z.enum(["summary_large_image", "summary"]),
+        z.literal("").transform(() => undefined),
+        z.null(),
+      ])
+      .optional(),
     tags: tagsSchema,
     // Routing & Targeting
-    routingRules: z.array(routingRuleSchema).max(50).optional().nullable(),
-    routing_rules: z.array(routingRuleSchema).max(50).optional().nullable(),
+    routingRules: routingRulesFieldSchema,
+    routing_rules: routingRulesFieldSchema,
     geoTargeting: z.any().optional().nullable(),
+    geo_targeting: z.any().optional().nullable(),
     deviceTargeting: z.any().optional().nullable(),
-    abVariations: z.array(abVariationSchema).max(20).optional(),
-    ab_variations: z.array(abVariationSchema).max(20).optional(),
-    mainWeight: z.number().int().min(0).max(100).optional(),
-    main_weight: z.number().int().min(0).max(100).optional(),
-    redirectType: z.enum(["301", "302", "307", "308"]).optional(),
-    passParams: z.boolean().optional(),
+    device_targeting: z.any().optional().nullable(),
+    abVariations: abVariationsFieldSchema,
+    ab_variations: abVariationsFieldSchema,
+    mainWeight: optionalNullableWeightSchema,
+    main_weight: optionalNullableWeightSchema,
+    redirectType: optionalNullableRedirectTypeSchema,
+    redirect_type: optionalNullableRedirectTypeSchema,
+    passParams: z.union([z.boolean(), z.literal(0), z.literal(1), z.null()]).optional(),
+    pass_params: z.union([z.boolean(), z.literal(0), z.literal(1), z.null()]).optional(),
     // Protection
-    isPasswordProtected: z.boolean().optional(),
-    password: z.string().max(128).optional(),
-    link_password: z.string().max(128).optional(),
-    destinationMasked: z.boolean().optional(),
+    isPasswordProtected: z.boolean().optional().nullable(),
+    password: z.string().max(128).optional().nullable(),
+    link_password: z.string().max(128).optional().nullable(),
+    destinationMasked: z.boolean().optional().nullable(),
     // Expiry & Limits
-    maxClicks: z.number().int().positive().optional(),
+    maxClicks: optionalNullablePositiveIntSchema,
+    max_clicks: optionalNullablePositiveIntSchema,
     expiresAt: z.string().optional().nullable(),
-    fallbackUrl: safeHttpUrlSchema.optional(),
-    fallback_url: safeHttpUrlSchema.optional(),
+    expires_at: z.string().optional().nullable(),
+    fallbackUrl: optionalNullableSafeUrlSchema,
+    fallback_url: optionalNullableSafeUrlSchema,
     // UTM
-    utmSource: z.string().trim().max(100).optional(),
-    utmMedium: z.string().trim().max(100).optional(),
-    utmCampaign: z.string().trim().max(200).optional(),
-    utmTerm: z.string().trim().max(200).optional(),
-    utmContent: z.string().trim().max(200).optional(),
+    utmSource: z.string().trim().max(100).optional().nullable(),
+    utmMedium: z.string().trim().max(100).optional().nullable(),
+    utmCampaign: z.string().trim().max(200).optional().nullable(),
+    utmTerm: z.string().trim().max(200).optional().nullable(),
+    utmContent: z.string().trim().max(200).optional().nullable(),
     // Pixels & extras
-    pixels: z.array(z.string().max(100)).max(20).optional(),
-    pixel_ids: z.array(z.string().max(100)).max(20).optional(),
+    pixels: z.array(linkPixelItemSchema).max(20).optional().nullable(),
+    pixel_ids: z.array(linkPixelItemSchema).max(20).optional().nullable(),
     // Path lock
-    pathLockMode: z.enum(["off", "strict", "funnel", "prefix", "suffix", "exact"]).optional(),
-    path_lock_mode: z.enum(["off", "strict", "funnel", "prefix", "suffix", "exact"]).optional(),
-    pathLockPrefix: z.string().trim().max(500).optional(),
-    path_lock_prefix: z.string().trim().max(500).optional(),
-    pathLockMessage: z.string().trim().max(500).optional(),
-    path_lock_message: z.string().trim().max(500).optional(),
-    pathLockPassword: z.string().max(128).optional(),
-    path_lock_password: z.string().max(128).optional(),
+    pathLockMode: z
+      .union([
+        z.enum(["off", "strict", "funnel", "prefix", "suffix", "exact"]),
+        z.literal("").transform(() => undefined),
+        z.null(),
+      ])
+      .optional(),
+    path_lock_mode: z
+      .union([
+        z.enum(["off", "strict", "funnel", "prefix", "suffix", "exact"]),
+        z.literal("").transform(() => undefined),
+        z.null(),
+      ])
+      .optional(),
+    pathLockPrefix: z.string().trim().max(500).optional().nullable(),
+    path_lock_prefix: z.string().trim().max(500).optional().nullable(),
+    pathLockMessage: z.string().trim().max(500).optional().nullable(),
+    path_lock_message: z.string().trim().max(500).optional().nullable(),
+    pathLockPassword: z.string().max(128).optional().nullable(),
+    path_lock_password: z.string().max(128).optional().nullable(),
     // Domain
-    domainId: z.string().trim().max(100).optional(),
-    customDomain: z.string().trim().max(255).optional(),
+    domainId: z.string().trim().max(100).optional().nullable(),
+    customDomain: z.string().trim().max(255).optional().nullable(),
+    domainName: z.string().trim().max(255).optional().nullable(),
+    domain: z.string().trim().max(255).optional().nullable(),
   })
   .passthrough();
 
@@ -618,10 +797,10 @@ export const userSyncBodySchema = z.object({
 export const userPatchBodySchema = z.object({
   name: nameSchema.optional(),
   fullName: nameSchema.optional(),
-  avatarUrl: z.union([z.literal(""), safeHttpUrlSchema]).optional(),
-  avatar_url: z.union([z.literal(""), safeHttpUrlSchema]).optional(),
-  language: z.string().trim().max(35).optional(),
-  timezone: z.string().trim().max(64).optional(),
+  avatarUrl: z.union([z.literal(""), safeHttpUrlSchema, z.null()]).optional(),
+  avatar_url: z.union([z.literal(""), safeHttpUrlSchema, z.null()]).optional(),
+  language: z.string().trim().max(35).optional().nullable(),
+  timezone: z.string().trim().max(64).optional().nullable(),
   plan: planSchema.optional(),
 });
 
@@ -631,15 +810,17 @@ export const uploadJsonBodySchema = z
   .object({
     data: z
       .string()
+      .trim()
       .regex(
-        /^data:(image\/(jpeg|png|webp|gif|svg\+xml));base64,[A-Za-z0-9+/]+=*$/,
+        /^data:(image\/(jpeg|png|webp|gif|svg\+xml));base64,[A-Za-z0-9+/]+=*$/i,
         "Invalid image Data URI"
       )
       .optional(),
     image: z
       .string()
+      .trim()
       .regex(
-        /^data:(image\/(jpeg|png|webp|gif|svg\+xml));base64,[A-Za-z0-9+/]+=*$/,
+        /^data:(image\/(jpeg|png|webp|gif|svg\+xml));base64,[A-Za-z0-9+/]+=*$/i,
         "Invalid image Data URI"
       )
       .optional(),
