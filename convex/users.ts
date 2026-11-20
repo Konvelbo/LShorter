@@ -139,7 +139,7 @@ export const registerWithEmail = mutation({
     }
 
     const cleanName = args.name.trim();
-    if (cleanName.length < 8 || cleanName.length > 25) {
+    if (cleanName.length < 2 || cleanName.length > 50) {
       throw new Error("USERNAME_LENGTH_INVALID");
     }
 
@@ -410,7 +410,7 @@ export const createUserWithVerifiedEmail = mutation({
     }
 
     const cleanName = args.name.trim();
-    if (cleanName.length < 8 || cleanName.length > 25) {
+    if (cleanName.length < 2 || cleanName.length > 50) {
       throw new Error("USERNAME_LENGTH_INVALID");
     }
 

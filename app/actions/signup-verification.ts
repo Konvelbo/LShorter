@@ -36,16 +36,16 @@ export async function sendSignupPinAction({
     const cleanEmail = email.trim().toLowerCase();
     const cleanName = name.trim();
 
-    if (!cleanName || cleanName.length < 8) {
+    if (!cleanName || cleanName.length < 2) {
       return {
         success: false,
-        message: "Your name must be at least 8 characters long.",
+        message: "Your name must be at least 2 characters long.",
       };
     }
-    if (cleanName.length > 25) {
+    if (cleanName.length > 50) {
       return {
         success: false,
-        message: "Your name cannot exceed 25 characters.",
+        message: "Your name cannot exceed 50 characters.",
       };
     }
 

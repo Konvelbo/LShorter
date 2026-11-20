@@ -12,8 +12,8 @@ export async function POST(req: NextRequest) {
 
     const { name, email, password, passwordHash } = body;
     const cleanName = name.trim();
-    if (cleanName.length < 8 || cleanName.length > 25) {
-      return NextResponse.json({ error: "Your name must be between 8 and 25 characters." }, { status: 400 });
+    if (cleanName.length < 2 || cleanName.length > 50) {
+      return NextResponse.json({ error: "Your name must be between 2 and 50 characters." }, { status: 400 });
     }
 
     const cleanEmail = email;
@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "An account already exists with this email address. Please sign in." }, { status: 409 });
     }
     if (message.includes("USERNAME_LENGTH_INVALID")) {
-      return NextResponse.json({ error: "Username must be between 8 and 25 characters." }, { status: 400 });
+      return NextResponse.json({ error: "Username must be between 2 and 50 characters." }, { status: 400 });
     }
     console.error("[register] Registration unexpected error:", err);
     return NextResponse.json({ error: "An unexpected error occurred during registration. Please try again later." }, { status: 500 });

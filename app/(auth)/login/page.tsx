@@ -178,12 +178,12 @@ export default function LoginPage({
         showToast.error("Please enter your name.");
         return;
       }
-      if (cleanName.length < 8) {
-        showToast.error("Your name must be at least 8 characters long.");
+      if (cleanName.length < 2) {
+        showToast.error("Your name must be at least 2 characters long.");
         return;
       }
-      if (cleanName.length > 25) {
-        showToast.error("Your name cannot exceed 25 characters.");
+      if (cleanName.length > 50) {
+        showToast.error("Your name cannot exceed 50 characters.");
         return;
       }
       if (!confirmPassword.trim()) {
@@ -936,22 +936,22 @@ export default function LoginPage({
                     <span
                       className={`text-[10px] font-medium transition-colors ${
                         name.trim().length > 0 &&
-                        (name.trim().length < 8 || name.trim().length > 25)
+                        (name.trim().length < 2 || name.trim().length > 50)
                           ? "text-amber-500 font-semibold"
                           : "text-neutral-400 dark:text-neutral-500"
                       }`}
                     >
                       {name.trim().length > 0
-                        ? `${name.trim().length}/25 (8–25 chars)`
-                        : "8–25 characters"}
+                        ? `${name.trim().length}/50 (2–50 chars)`
+                        : "2–50 characters"}
                     </span>
                   </div>
                   <div className="relative">
                     <User className="w-4 h-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
                     <Input
                       required
-                      minLength={8}
-                      maxLength={25}
+                      minLength={2}
+                      maxLength={50}
                       placeholder="e.g. Alex Johnson"
                       value={name}
                       onChange={(e) => setName(e.target.value)}

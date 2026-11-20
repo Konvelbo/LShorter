@@ -25,11 +25,11 @@ export async function POST(req: NextRequest) {
       const cleanName = body.name.trim();
       const { password } = body;
 
-      if (cleanName.length < 8 || cleanName.length > 25) {
+      if (cleanName.length < 2 || cleanName.length > 50) {
         return NextResponse.json(
           {
             success: false,
-            message: "Your name must be between 8 and 25 characters.",
+            message: "Your name must be between 2 and 50 characters.",
           },
           { status: 400 }
         );
@@ -278,7 +278,7 @@ export async function POST(req: NextRequest) {
     }
     if (msg.includes("USERNAME_LENGTH_INVALID")) {
       return NextResponse.json(
-        { success: false, message: "Username must be between 8 and 25 characters." },
+        { success: false, message: "Username must be between 2 and 50 characters." },
         { status: 400 }
       );
     }
