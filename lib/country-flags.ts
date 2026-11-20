@@ -349,10 +349,7 @@ export function resolveCountryInfo(input: {
   }
 
   // Ville de repli propre
-  let resolvedCity = rawCity && rawCity !== "Inconnue" && rawCity !== "—" ? rawCity : "Edge PoP";
-  if (cleanCode === "BF" && (!rawCity || rawCity === "Edge PoP" || rawCity === "Inconnue")) {
-    resolvedCity = "Ouagadougou";
-  }
+  const resolvedCity = rawCity && rawCity !== "Inconnue" && rawCity !== "—" ? rawCity : "Edge PoP";
 
   return {
     countryCode: cleanCode,

@@ -8,7 +8,6 @@ import {
   ArrowLeft,
   Laptop,
   Smartphone,
-  Tablet,
   Monitor,
   Layers,
   Cpu,
@@ -53,82 +52,6 @@ function SourceBrandLogo({
     </div>
   );
 }
-
-// Default high-fidelity dataset matching HTML specifications when no traffic has been recorded yet
-const DEFAULT_TOP_DEVICES = [
-  { device: "Mobile", count: 84474, percentage: 60 },
-  { device: "Desktop", count: 49276, percentage: 35 },
-  { device: "Tablette", count: 7040, percentage: 5 },
-];
-
-const DEFAULT_TOP_OS = [
-  { name: "iOS", count: 35197, percentage: 25 },
-  { name: "macOS", count: 35197, percentage: 25 },
-  { name: "Android", count: 35197, percentage: 25 },
-  { name: "Windows", count: 35197, percentage: 25 },
-];
-
-const DEFAULT_TOP_BROWSERS = [
-  { name: "Chrome", count: 70395, percentage: 50 },
-  { name: "Safari", count: 42237, percentage: 30 },
-  { name: "Firefox", count: 14079, percentage: 10 },
-  { name: "Edge", count: 14079, percentage: 10 },
-];
-
-const DEFAULT_EVENTS = [
-  {
-    id: "demo-1",
-    timestamp: new Date(Date.now() - 1 * 60 * 1000).toISOString(),
-    device: "Mobile",
-    browser: "Mobile Safari",
-    os: "iOS",
-    customerName: "Camille Laurent",
-    customerEmail: "c.laurent@outlook.com",
-    slug: "summer-sale-2026",
-    city: "Paris",
-    countryName: "France",
-    referrer: "Instagram",
-  },
-  {
-    id: "demo-2",
-    timestamp: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
-    device: "Desktop",
-    browser: "Chrome",
-    os: "macOS",
-    customerName: "David Miller",
-    customerEmail: "david.m@stripe.com",
-    slug: "blackfriday-vip",
-    city: "New York",
-    countryName: "États-Unis",
-    referrer: "Google",
-  },
-  {
-    id: "demo-3",
-    timestamp: new Date(Date.now() - 3 * 60 * 1000).toISOString(),
-    device: "Mobile",
-    browser: "Chrome Mobile",
-    os: "Android",
-    customerName: "Amadou Koné",
-    customerEmail: "amadou.k@gmail.com",
-    slug: "ios-app-launch",
-    city: "Abidjan",
-    countryName: "Côte d’Ivoire",
-    referrer: "TikTok",
-  },
-  {
-    id: "demo-4",
-    timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
-    device: "Desktop",
-    browser: "Edge",
-    os: "Windows",
-    customerName: "Stefan Weber",
-    customerEmail: "s.weber@fintech.de",
-    slug: "q4-enterprise-deck",
-    city: "Berlin",
-    countryName: "Allemagne",
-    referrer: "LinkedIn",
-  },
-];
 
 export default function DevicesAnalyticsPage() {
   const { data: session, status } = useSession();
@@ -398,8 +321,8 @@ export default function DevicesAnalyticsPage() {
 
   // Derived OS breakdown from live events
   const osBreakdown = useMemo(() => {
-    if (analytics.liveClickEvents.length === 0) {
-      return DEFAULT_TOP_OS;
+    if (!analytics.liveClickEvents || analytics.liveClickEvents.length === 0) {
+      return [];
     }
     const counts: Record<string, number> = {};
     analytics.liveClickEvents.forEach((ev) => {
@@ -429,26 +352,17 @@ export default function DevicesAnalyticsPage() {
 
   // Effective devices
   const effectiveDevices = useMemo(() => {
-    if (analytics.topDevices.length > 0) {
-      return analytics.topDevices;
-    }
-    return DEFAULT_TOP_DEVICES;
+    return analytics.topDevices || [];
   }, [analytics.topDevices]);
 
   // Effective browsers
   const effectiveBrowsers = useMemo(() => {
-    if (analytics.topBrowsers.length > 0) {
-      return analytics.topBrowsers;
-    }
-    return DEFAULT_TOP_BROWSERS;
+    return analytics.topBrowsers || [];
   }, [analytics.topBrowsers]);
 
-  // Effective events (use mock if empty)
+  // Effective events (pure authentic live traffic)
   const effectiveEvents = useMemo(() => {
-    if (analytics.liveClickEvents.length > 0) {
-      return analytics.liveClickEvents;
-    }
-    return DEFAULT_EVENTS;
+    return analytics.liveClickEvents || [];
   }, [analytics.liveClickEvents]);
 
   // Filtered Events
@@ -500,28 +414,28 @@ export default function DevicesAnalyticsPage() {
 
   const desktopItem = effectiveDevices.find(
     (d) => d.device?.toLowerCase() === "desktop",
-  ) || { device: "Desktop", count: 49276, percentage: 35 };
+  ) || { device: "Desktop", count: 0, percentage: 0 };
 
   const mobileItem = effectiveDevices.find(
     (d) => d.device?.toLowerCase() === "mobile",
-  ) || { device: "Mobile", count: 84474, percentage: 60 };
+  ) || { device: "Mobile", count: 0, percentage: 0 };
 
   const tabletItem = effectiveDevices.find(
     (d) =>
       d.device?.toLowerCase() === "tablet" ||
       d.device?.toLowerCase() === "tablette",
-  ) || { device: "Tablette", count: 7040, percentage: 5 };
+  ) || { device: "Tablette", count: 0, percentage: 0 };
 
   const topBrowser = effectiveBrowsers[0] || {
-    name: "Chrome",
-    count: 70395,
-    percentage: 50,
+    name: "—",
+    count: 0,
+    percentage: 0,
   };
 
   const topOS = osBreakdown[0] || {
-    name: "iOS",
-    count: 35197,
-    percentage: 25,
+    name: "—",
+    count: 0,
+    percentage: 0,
   };
 
   if (status === "loading" || isLoading) {
@@ -822,6 +736,11 @@ export default function DevicesAnalyticsPage() {
                   </i>
                 </div>
               ))}
+              {osBreakdown.length === 0 && (
+                <p className="py-6 text-center text-xs text-zinc-500 dark:text-neutral-400">
+                  Aucun système d’exploitation enregistré sur la période.
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -856,6 +775,11 @@ export default function DevicesAnalyticsPage() {
                   </i>
                 </div>
               ))}
+              {effectiveBrowsers.length === 0 && (
+                <p className="py-6 text-center text-xs text-zinc-500 dark:text-neutral-400">
+                  Aucun navigateur enregistré sur la période.
+                </p>
+              )}
             </div>
           </div>
         </div>

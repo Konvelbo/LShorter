@@ -860,7 +860,7 @@ export default {
               const eventId = 'ev_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
               const ipHash = request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || '127.0.0.1';
 
-              let detectedCity = request?.cf?.city || request?.headers?.get('cf-ipcity') || request?.headers?.get('x-city') || (country === 'BF' ? 'Ouagadougou' : 'Inconnue');
+              let detectedCity = request?.cf?.city || request?.headers?.get('cf-ipcity') || request?.headers?.get('x-city') || 'Inconnue';
               let rawRef = request.headers.get('referer') || request.headers.get('referrer') || '';
               let detectedRef = 'Direct';
               if (rawRef) {
@@ -1032,7 +1032,7 @@ export default {
 
         const rawCountry = (clickBody.country && clickBody.country !== 'XX' ? clickBody.country : request.cf?.country || request.headers.get('cf-ipcountry') || request.headers.get('x-country') || 'XX').toUpperCase();
         const country = rawCountry;
-        const rawCity = (clickBody.city && clickBody.city !== 'Inconnue' && clickBody.city !== '—' && clickBody.city !== '' ? clickBody.city : request.cf?.city || request.headers.get('cf-ipcity') || request.headers.get('x-city') || (country === 'BF' ? 'Ouagadougou' : 'Inconnue'));
+        const rawCity = (clickBody.city && clickBody.city !== 'Inconnue' && clickBody.city !== '—' && clickBody.city !== '' ? clickBody.city : request.cf?.city || request.headers.get('cf-ipcity') || request.headers.get('x-city') || 'Inconnue');
         const city = rawCity;
         const device = clickBody.device || request.headers.get('x-device') || detectedDev;
         const browser = clickBody.browser || request.headers.get('x-browser') || detectedBr;
@@ -1942,7 +1942,7 @@ export default {
         const customerName = body.customer?.name || body.customerName || body.customer_name || body.customerFullName || body.fullName || body.name || request.headers.get('x-customer-name') || null;
         const rawCountry = (body.country && body.country !== 'XX' ? body.country : request.headers.get('cf-ipcountry') || request.headers.get('x-country') || request.cf?.country || 'XX').toUpperCase();
         const country = rawCountry;
-        const city = (body.city && body.city !== 'Inconnue' && body.city !== '—' && body.city !== '' ? body.city : request?.cf?.city || request.headers.get('cf-ipcity') || request.headers.get('x-city') || (country === 'BF' ? 'Ouagadougou' : 'Inconnue'));
+        const city = (body.city && body.city !== 'Inconnue' && body.city !== '—' && body.city !== '' ? body.city : request?.cf?.city || request.headers.get('cf-ipcity') || request.headers.get('x-city') || 'Inconnue');
         const device = body.device || 'desktop';
         const browser = body.browser || 'Chrome';
         const os = body.os || 'Windows';
@@ -2165,15 +2165,6 @@ export default {
         const groupBySql = isDayPeriod
           ? "strftime('%Y-%m-%d %H:00', timestamp)"
           : "strftime('%Y-%m-%d', timestamp)";
-
-        // Auto-sanitize legacy events that were incorrectly stored as 'FR' / 'Paris'
-        try {
-          await env.DB.prepare(`
-            UPDATE click_events 
-            SET country_code = 'BF', city = 'Ouagadougou' 
-            WHERE country_code = 'FR' AND city = 'Paris'
-          `).run();
-        } catch {}
 
         // 2. Query authentic aggregates in parallel from click_events
         const [
