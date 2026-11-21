@@ -64,7 +64,7 @@ export function detectOSFromEvent(ev: {
   }
 
   // No hardcoded OS guessing when OS and User-Agent are unknown
-  return "Inconnu";
+  return "Unknown";
 }
 
 export interface VisitorDetails {

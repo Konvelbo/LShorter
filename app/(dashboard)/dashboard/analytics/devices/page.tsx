@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -16,7 +16,14 @@ import {
   ChevronRight,
   Sparkles,
 } from "lucide-react";
-import { ShortLink, GlobalAnalytics } from "@/types";
+import {
+  LiveClickEvent,
+  GlobalAnalytics,
+  ClickDataPoint,
+  CountryStat,
+  CityStat,
+  ReferrerStat,
+} from "@/types";
 import {
   cfGetAnalytics,
   cfGetLinks,
@@ -26,6 +33,57 @@ import { AnalyticsDevicesSkeleton } from "@/components/ui/skeleton";
 import { formatDateRelative, formatNumber } from "@/lib/utils";
 import { detectOSFromEvent } from "@/lib/device-detection";
 import { ReferrerLogo } from "@/components/dashboard/analytics/referrer-badge";
+
+interface RawLinkRecord {
+  id: string;
+  slug?: string;
+  targetUrl?: string;
+  target_url?: string;
+  clicksCount?: number;
+  clicks_count?: number;
+  clicks?: number;
+  created_at?: string;
+}
+
+interface RawEventRecord {
+  id?: string;
+  linkId?: string;
+  link_id?: string;
+  slug?: string;
+  rawSlug?: string;
+  raw_slug?: string;
+  timestamp?: string;
+  country_code?: string;
+  countryCode?: string;
+  country_name?: string;
+  countryName?: string;
+  city?: string;
+  device?: string;
+  browser?: string;
+  os?: string;
+  user_agent?: string;
+  userAgent?: string;
+  referrer?: string;
+  customerName?: string;
+  customerFullName?: string;
+  fullName?: string;
+  name?: string;
+  customer_name?: string;
+  customerEmail?: string;
+  email?: string;
+  customer_email?: string;
+  conversionAmount?: number;
+  conversion_amount?: number;
+}
+
+interface RawStatRecord {
+  name?: string;
+  browser?: string;
+  device?: string;
+  label?: string;
+  count?: number;
+  clicks?: number;
+}
 
 /**
  * Displays official SVG brand logo for referrers, and plain text "Direct" for direct traffic
@@ -46,7 +104,7 @@ export default function DevicesAnalyticsPage() {
   const userId = session?.user?.id || "";
 
   const [isLoading, setIsLoading] = useState(true);
-  const [links, setLinks] = useState<ShortLink[]>([]);
+  const [links, setLinks] = useState<RawLinkRecord[]>([]);
   const [analytics, setAnalytics] = useState<GlobalAnalytics>({
     totalClicks: 0,
     clicksGrowth: 0,
@@ -80,196 +138,232 @@ export default function DevicesAnalyticsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
 
-  const loadData = async (
-    range = selectedRange,
-    linkId = selectedLinkId,
-    isBg = false,
-    force = false,
-  ) => {
-    if (!userId) return;
-    if (!isBg) setIsLoading(true);
+  const loadData = useCallback(
+    async (
+      range = selectedRange,
+      linkId = selectedLinkId,
+      isBg = false,
+      force = false,
+    ) => {
+      if (!userId) return;
+      if (!isBg) setIsLoading(true);
 
-    try {
-      const periodParam =
-        range === "day"
-          ? "1d"
-          : range === "week"
-            ? "7d"
-            : range === "year"
-              ? "365d"
-              : "30d";
-      const needForce = isBg || force;
-      const [analyticsRes, linksRes] = await Promise.all([
-        cfGetAnalytics(
-          userId,
-          periodParam,
-          linkId !== "all" ? linkId : undefined,
-          needForce,
-        ).catch(() => null),
-        cfGetLinks(userId, needForce).catch(() => null),
-      ]);
+      try {
+        const periodParam =
+          range === "day"
+            ? "1d"
+            : range === "week"
+              ? "7d"
+              : range === "year"
+                ? "365d"
+                : "30d";
+        const needForce = isBg || force;
+        const [analyticsRes, linksRes] = await Promise.all([
+          cfGetAnalytics(
+            userId,
+            periodParam,
+            linkId !== "all" ? linkId : undefined,
+            needForce,
+          ).catch(() => null),
+          cfGetLinks(userId, needForce).catch(() => null),
+        ]);
 
-      const listData = Array.isArray(linksRes?.data)
-        ? linksRes.data
-        : Array.isArray((linksRes?.data as any)?.data)
-          ? (linksRes?.data as any).data
-          : [];
-      const fetchedLinks = listData;
-      setLinks(fetchedLinks);
+        const rawLinksContainer = linksRes?.data as
+          | RawLinkRecord[]
+          | { data?: RawLinkRecord[] }
+          | undefined;
+        const listData: RawLinkRecord[] = Array.isArray(rawLinksContainer)
+          ? rawLinksContainer
+          : Array.isArray(rawLinksContainer?.data)
+            ? rawLinksContainer.data
+            : [];
+        const fetchedLinks = listData;
+        setLinks(fetchedLinks);
 
-      const targetLink =
-        linkId !== "all"
-          ? fetchedLinks.find(
-              (l: any) =>
-                l.id === linkId ||
-                String(l.slug || "").toLowerCase() ===
-                  linkId.replace(/^\/+/, "").toLowerCase(),
-            )
-          : null;
-      const isAll = !targetLink || linkId === "all";
+        const targetLink =
+          linkId !== "all"
+            ? fetchedLinks.find(
+                (l) =>
+                  l.id === linkId ||
+                  String(l.slug || "").toLowerCase() ===
+                    linkId.replace(/^\/+/, "").toLowerCase(),
+              )
+            : null;
+        const isAll = !targetLink || linkId === "all";
 
-      const d =
-        analyticsRes?.data?.data || analyticsRes?.data || analyticsRes || {};
-      const workerTotal = Number(d.totalClicks ?? d.total_clicks ?? 0);
+        const resData = analyticsRes?.data as
+          | { data?: Record<string, unknown> }
+          | Record<string, unknown>
+          | undefined;
+        const d = (resData && "data" in resData && resData.data
+          ? resData.data
+          : resData || {}) as Record<string, unknown>;
+        const workerTotal = Number(d.totalClicks ?? d.total_clicks ?? 0);
 
-      const rawLiveEvents = d.liveClickEvents ?? d.live_click_events ?? [];
-      let liveEvents: any[] = [];
-      if (Array.isArray(rawLiveEvents) && rawLiveEvents.length > 0) {
-        liveEvents = rawLiveEvents.map((ev: any, idx: number) => {
-          const detectedOS = detectOSFromEvent(ev);
-          return {
-            id: ev.id || `evt_${idx}`,
-            linkId: ev.linkId || ev.link_id || ev.slug || "",
-            timestamp: ev.timestamp || new Date().toISOString(),
-            slug: ev.slug || "link",
-            rawSlug: ev.rawSlug || ev.raw_slug || ev.slug || "link",
-            countryCode: (
-              ev.country_code ||
-              ev.countryCode ||
-              "XX"
-            ).toUpperCase(),
-            countryName: ev.country_name || ev.countryName || "World",
-            city: ev.city || "—",
-            device:
-              ev.device && ev.device !== "unknown" ? ev.device : "Inconnu",
-            browser:
-              ev.browser && ev.browser !== "unknown" ? ev.browser : "Inconnu",
-            os: detectedOS || "Inconnu",
-            referrer: ev.referrer || "Direct",
-            userAgent: ev.user_agent || ev.userAgent || "",
-            customerName:
-              ev.customerName ||
-              ev.customerFullName ||
-              ev.fullName ||
-              ev.name ||
-              ev.customer_name ||
-              null,
-            customerEmail:
-              ev.customerEmail || ev.email || ev.customer_email || null,
-            conversionAmount: ev.conversionAmount || ev.conversion_amount || 0,
-          };
-        });
-        if (!isAll && targetLink) {
-          const targetSlugLow = String(targetLink.slug || "").toLowerCase();
-          liveEvents = liveEvents.filter(
-            (ev: any) =>
-              ev.linkId === targetLink.id ||
-              String(ev.slug || "").toLowerCase() === targetSlugLow ||
-              String(ev.rawSlug || "").toLowerCase() === targetSlugLow,
-          );
+        const rawLiveEvents = (d.liveClickEvents ??
+          d.live_click_events ??
+          []) as RawEventRecord[];
+        let liveEvents: LiveClickEvent[] = [];
+        if (Array.isArray(rawLiveEvents) && rawLiveEvents.length > 0) {
+          liveEvents = rawLiveEvents.map((ev, idx: number) => {
+            const detectedOS = detectOSFromEvent(ev);
+            return {
+              id: ev.id || `evt_${idx}`,
+              linkId: ev.linkId || ev.link_id || ev.slug || "",
+              timestamp: ev.timestamp || new Date().toISOString(),
+              slug: ev.slug || "link",
+              rawSlug: ev.rawSlug || ev.raw_slug || ev.slug || "link",
+              countryCode: (
+                ev.country_code ||
+                ev.countryCode ||
+                "XX"
+              ).toUpperCase(),
+              countryName: ev.country_name || ev.countryName || "World",
+              city: ev.city || "—",
+              device:
+                ev.device &&
+                ev.device.toLowerCase() !== "unknown" &&
+                ev.device.toLowerCase() !== "inconnu"
+                  ? ev.device
+                  : "Unknown",
+              browser:
+                ev.browser &&
+                ev.browser.toLowerCase() !== "unknown" &&
+                ev.browser.toLowerCase() !== "inconnu"
+                  ? ev.browser
+                  : "Unknown",
+              os:
+                detectedOS && detectedOS !== "Inconnu" ? detectedOS : "Unknown",
+              referrer: ev.referrer || "Direct",
+              ipMasked: "0.0.0.0",
+              customerName:
+                ev.customerName ||
+                ev.customerFullName ||
+                ev.fullName ||
+                ev.name ||
+                ev.customer_name ||
+                undefined,
+              customerEmail:
+                ev.customerEmail || ev.email || ev.customer_email || undefined,
+              conversionAmount: ev.conversionAmount || ev.conversion_amount || 0,
+            };
+          });
+          if (!isAll && targetLink) {
+            const targetSlugLow = String(targetLink.slug || "").toLowerCase();
+            liveEvents = liveEvents.filter(
+              (ev) =>
+                ev.linkId === targetLink.id ||
+                String(ev.slug || "").toLowerCase() === targetSlugLow,
+            );
+          }
         }
+
+        const rawDevices = (d.topDevices ??
+          d.top_devices ??
+          []) as RawStatRecord[];
+        const devicesSum = Array.isArray(rawDevices)
+          ? rawDevices.reduce(
+              (acc: number, dv) => acc + Number(dv.count || dv.clicks || 0),
+              0,
+            )
+          : 0;
+        const total =
+          liveEvents.length > 0
+            ? liveEvents.length
+            : devicesSum > 0
+              ? devicesSum
+              : workerTotal;
+
+        const devices =
+          Array.isArray(rawDevices) && rawDevices.length > 0
+            ? rawDevices.map((dv) => {
+                const cnt = Number(dv.count || dv.clicks || 0);
+                const rawLabel = dv.label || dv.device || dv.name || "Unknown";
+                const label =
+                  rawLabel.toLowerCase() === "inconnu" ||
+                  rawLabel.toLowerCase() === "unknown"
+                    ? "Unknown"
+                    : rawLabel;
+                return {
+                  label,
+                  device: label,
+                  count: cnt,
+                  percentage:
+                    devicesSum > 0
+                      ? Math.round((cnt / devicesSum) * 100)
+                      : total > 0
+                        ? Math.round((cnt / total) * 100)
+                        : 0,
+                };
+              })
+            : [];
+
+        const rawBrowsers = (d.topBrowsers ??
+          d.top_browsers ??
+          []) as RawStatRecord[];
+        const browsersSum = Array.isArray(rawBrowsers)
+          ? rawBrowsers.reduce(
+              (acc: number, br) => acc + Number(br.count || br.clicks || 0),
+              0,
+            )
+          : 0;
+        const browsers =
+          Array.isArray(rawBrowsers) && rawBrowsers.length > 0
+            ? rawBrowsers.map((br) => {
+                const cnt = Number(br.count || br.clicks || 0);
+                const bName =
+                  br.name &&
+                  br.name.toLowerCase() !== "unknown" &&
+                  br.name.toLowerCase() !== "inconnu"
+                    ? br.name
+                    : br.browser &&
+                        br.browser.toLowerCase() !== "unknown" &&
+                        br.browser.toLowerCase() !== "inconnu"
+                      ? br.browser
+                      : "Unknown";
+                return {
+                  name: bName,
+                  browser: bName,
+                  count: cnt,
+                  percentage:
+                    browsersSum > 0
+                      ? Math.round((cnt / browsersSum) * 100)
+                      : total > 0
+                        ? Math.round((cnt / total) * 100)
+                        : 0,
+                };
+              })
+            : [];
+
+        setAnalytics({
+          totalClicks: total,
+          clicksGrowth: 0,
+          uniqueClicks: Number(d.uniqueClicks ?? d.unique_clicks ?? total),
+          uniqueClicksGrowth: 0,
+          trackedRevenue: 0,
+          revenueGrowth: 0,
+          avgCtr: 0,
+          ctrGrowth: 0,
+          bounceRate: 0,
+          epc: 0,
+          avgEngagementTime: "0s",
+          clicksByDay: (d.clicksByDay || d.clicks_by_day || []) as ClickDataPoint[],
+          topCountries: (d.topCountries || d.top_countries || []) as CountryStat[],
+          topCities: (d.topCities || d.top_cities || []) as CityStat[],
+          topDevices: devices,
+          topBrowsers: browsers,
+          topReferrers: (d.topReferrers || d.top_referrers || []) as ReferrerStat[],
+          liveClickEvents: liveEvents,
+          recentConversions: [],
+        });
+      } catch (err) {
+        console.error("Device analytics fetch error:", err);
+      } finally {
+        if (!isBg) setIsLoading(false);
       }
-
-      const rawDevices = d.topDevices ?? d.top_devices ?? [];
-      const devicesSum = Array.isArray(rawDevices)
-        ? rawDevices.reduce(
-            (acc: number, dv: any) => acc + Number(dv.count || dv.clicks || 0),
-            0,
-          )
-        : 0;
-      const total =
-        liveEvents.length > 0
-          ? liveEvents.length
-          : devicesSum > 0
-            ? devicesSum
-            : workerTotal;
-
-      const devices =
-        Array.isArray(rawDevices) && rawDevices.length > 0
-          ? rawDevices.map((dv: any) => {
-              const cnt = Number(dv.count || dv.clicks || 0);
-              return {
-                label: dv.label || dv.device || dv.name || "Inconnu",
-                device: dv.device || dv.label || dv.name || "Inconnu",
-                count: cnt,
-                percentage:
-                  devicesSum > 0
-                    ? Math.round((cnt / devicesSum) * 100)
-                    : total > 0
-                      ? Math.round((cnt / total) * 100)
-                      : 0,
-              };
-            })
-          : [];
-
-      const rawBrowsers = d.topBrowsers ?? d.top_browsers ?? [];
-      const browsersSum = Array.isArray(rawBrowsers)
-        ? rawBrowsers.reduce(
-            (acc: number, br: any) => acc + Number(br.count || br.clicks || 0),
-            0,
-          )
-        : 0;
-      const browsers =
-        Array.isArray(rawBrowsers) && rawBrowsers.length > 0
-          ? rawBrowsers.map((br: any) => {
-              const cnt = Number(br.count || br.clicks || 0);
-              const bName =
-                br.name && br.name !== "unknown"
-                  ? br.name
-                  : br.browser && br.browser !== "unknown"
-                    ? br.browser
-                    : "Inconnu";
-              return {
-                name: bName,
-                browser: bName,
-                count: cnt,
-                percentage:
-                  browsersSum > 0
-                    ? Math.round((cnt / browsersSum) * 100)
-                    : total > 0
-                      ? Math.round((cnt / total) * 100)
-                      : 0,
-              };
-            })
-          : [];
-
-      setAnalytics({
-        totalClicks: total,
-        clicksGrowth: 0,
-        uniqueClicks: Number(d.uniqueClicks ?? d.unique_clicks ?? total),
-        uniqueClicksGrowth: 0,
-        trackedRevenue: 0,
-        revenueGrowth: 0,
-        avgCtr: 0,
-        ctrGrowth: 0,
-        bounceRate: 0,
-        epc: 0,
-        avgEngagementTime: "0s",
-        clicksByDay: d.clicksByDay || d.clicks_by_day || [],
-        topCountries: d.topCountries || d.top_countries || [],
-        topCities: d.topCities || d.top_cities || [],
-        topDevices: devices,
-        topBrowsers: browsers,
-        topReferrers: d.topReferrers || d.top_referrers || [],
-        liveClickEvents: liveEvents,
-        recentConversions: [],
-      });
-    } catch (err) {
-      console.error("Device analytics fetch error:", err);
-    } finally {
-      if (!isBg) setIsLoading(false);
-    }
-  };
+    },
+    [userId, selectedRange, selectedLinkId],
+  );
 
   // Initialize linkId from URL query parameters once on mount
   useEffect(() => {
@@ -277,7 +371,10 @@ export default function DevicesAnalyticsPage() {
       const params = new URLSearchParams(window.location.search);
       const qLinkId = params.get("linkId") || params.get("slug");
       if (qLinkId) {
-        setSelectedLinkId(qLinkId);
+        const timer = setTimeout(() => {
+          setSelectedLinkId(qLinkId);
+        }, 0);
+        return () => clearTimeout(timer);
       }
     }
   }, []);
@@ -288,9 +385,12 @@ export default function DevicesAnalyticsPage() {
       return;
     }
     if (status === "authenticated" && userId) {
-      loadData(selectedRange, selectedLinkId, false, true);
+      const timer = setTimeout(() => {
+        void loadData(selectedRange, selectedLinkId, false, true);
+      }, 0);
+      return () => clearTimeout(timer);
     }
-  }, [status, userId, selectedRange, selectedLinkId]);
+  }, [status, userId, selectedRange, selectedLinkId, loadData, router]);
 
   // Listen for explicit data update events
   useEffect(() => {
@@ -298,7 +398,7 @@ export default function DevicesAnalyticsPage() {
 
     const handleUpdate = () => {
       cfInvalidateCache();
-      loadData(selectedRange, selectedLinkId, true, true);
+      void loadData(selectedRange, selectedLinkId, true, true);
     };
 
     window.addEventListener("lshorter_data_change", handleUpdate);
@@ -310,7 +410,7 @@ export default function DevicesAnalyticsPage() {
       window.removeEventListener("lshorter_links_updated", handleUpdate);
       window.removeEventListener("lshorter_link_clicked", handleUpdate);
     };
-  }, [userId, selectedRange, selectedLinkId]);
+  }, [userId, selectedRange, selectedLinkId, loadData]);
 
   // Derived OS breakdown from real live events (100% authentic counts, zero artificial scaling)
   const osBreakdown = useMemo(() => {
@@ -319,7 +419,8 @@ export default function DevicesAnalyticsPage() {
     }
     const counts: Record<string, number> = {};
     analytics.liveClickEvents.forEach((ev) => {
-      const osName = ev.os || detectOSFromEvent(ev) || "Inconnu";
+      let osName = ev.os || detectOSFromEvent(ev) || "Unknown";
+      if (osName === "Inconnu") osName = "Unknown";
       counts[osName] = (counts[osName] || 0) + 1;
     });
 
@@ -434,7 +535,7 @@ export default function DevicesAnalyticsPage() {
     return {
       desktopItem: { device: "Desktop", count: dCount, percentage: dPct },
       mobileItem: { device: "Mobile", count: mCount, percentage: mPct },
-      tabletItem: { device: "Tablette", count: tCount, percentage: tPct },
+      tabletItem: { device: "Tablet", count: tCount, percentage: tPct },
     };
   }, [effectiveDevices, effectiveEvents]);
 
@@ -443,7 +544,7 @@ export default function DevicesAnalyticsPage() {
     const clean = selectedLinkId.replace(/^\/+/, "").toLowerCase();
     return (
       links.find(
-        (l: any) =>
+        (l) =>
           l.id === selectedLinkId ||
           String(l.slug || "").toLowerCase() === clean,
       ) || null
@@ -477,30 +578,30 @@ export default function DevicesAnalyticsPage() {
               className="flex items-center gap-1.5 text-xs ds-text-muted hover:text-brand transition-colors"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Retour à Analytics</span>
+              <span>Back to Analytics</span>
             </Link>
             <span className="text-zinc-400 dark:text-neutral-600">/</span>
             <span className="text-xs text-brand font-semibold flex items-center gap-1">
               <Laptop className="w-3 h-3" />
-              <span>Appareils & Formats</span>
+              <span>Devices & Formats</span>
             </span>
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight ds-text-primary flex flex-wrap items-center gap-2.5">
-            <span>Technologies, écrans et navigateurs</span>
+            <span>Technologies, Screens & Browsers</span>
             <span className="inline-flex items-center text-xs px-2.5 py-0.5 rounded-full font-semibold bg-[#0066FF]/10 text-[#0066FF] border border-[#0066FF]/30">
               Hardware Intelligence
             </span>
           </h1>
           <p className="text-xs sm:text-sm ds-text-muted mt-1">
-            Détail du matériel des visiteurs : mobile et ordinateur, navigateurs et systèmes d’exploitation.
+            Visitor hardware intelligence: mobile vs desktop, web browsers, and operating systems.
           </p>
         </div>
 
         {/* Global Controls: Period & Link Selector */}
         <div className="flex flex-wrap items-center gap-2.5">
           <select
-            aria-label="Liens"
+            aria-label="Links"
             value={selectedLinkObj ? selectedLinkObj.id : selectedLinkId}
             onChange={(e) => {
               const val = e.target.value;
@@ -510,10 +611,10 @@ export default function DevicesAnalyticsPage() {
             }}
             className="px-3 py-1.5 rounded-[10px] ds-input text-xs font-semibold cursor-pointer"
           >
-            <option value="all">Tous les liens combinés ({links.length})</option>
-            {links.map((l: any) => (
+            <option value="all">All links combined ({links.length})</option>
+            {links.map((l) => (
               <option key={l.id} value={l.id}>
-                /{l.slug} ({l.clicks_count || l.clicksCount || l.clicks || 0} clics)
+                /{l.slug} ({l.clicks_count || l.clicksCount || l.clicks || 0} clicks)
               </option>
             ))}
           </select>
@@ -522,8 +623,8 @@ export default function DevicesAnalyticsPage() {
             {(
               [
                 { id: "day", label: "24h" },
-                { id: "week", label: "7j" },
-                { id: "month", label: "30j" },
+                { id: "week", label: "7d" },
+                { id: "month", label: "30d" },
                 { id: "year", label: "12m" },
               ] as const
             ).map((r) => (
@@ -546,10 +647,10 @@ export default function DevicesAnalyticsPage() {
           </div>
 
           <button
-            aria-label="Actualiser"
+            aria-label="Refresh"
             onClick={() => loadData(selectedRange, selectedLinkId, false, true)}
             className="p-2 rounded-[10px] ds-card ds-text-secondary hover:ds-text-primary hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
-            title="Actualiser les données"
+            title="Refresh data"
           >
             <RefreshCw
               className={`w-3.5 h-3.5 ${isLoading ? "animate-spin text-brand" : ""}`}
@@ -579,7 +680,7 @@ export default function DevicesAnalyticsPage() {
             </span>
           </div>
           <div className="flex items-center justify-between pt-2 border-t border-[#E4E7EC] dark:border-[#222225]">
-            <span className="text-xs ds-text-muted font-mono">{formatNumber(mobileItem.count)} clics</span>
+            <span className="text-xs ds-text-muted font-mono">{formatNumber(mobileItem.count)} clicks</span>
             <span className="text-xs font-semibold text-[#0066FF]">Mobile</span>
           </div>
         </div>
@@ -603,16 +704,16 @@ export default function DevicesAnalyticsPage() {
             </span>
           </div>
           <div className="flex items-center justify-between pt-2 border-t border-[#E4E7EC] dark:border-[#222225]">
-            <span className="text-xs ds-text-muted font-mono">{formatNumber(desktopItem.count)} clics</span>
+            <span className="text-xs ds-text-muted font-mono">{formatNumber(desktopItem.count)} clicks</span>
             <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">Desktop</span>
           </div>
         </div>
 
-        {/* Card 3: NAVIGATEUR N°1 */}
+        {/* Card 3: TOP BROWSER */}
         <div className="p-4 sm:p-5 rounded-[12px] ds-card shadow-xs flex flex-col justify-between gap-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold ds-text-muted uppercase tracking-wider">
-              Navigateur N°1
+              Top Browser
             </span>
             <div className="p-1 rounded-full bg-[#0066FF]/10 shrink-0">
               <Cpu className="w-4 h-4 text-[#0066FF]" />
@@ -625,17 +726,17 @@ export default function DevicesAnalyticsPage() {
           </div>
           <div className="flex items-center justify-between pt-2 border-t border-[#E4E7EC] dark:border-[#222225]">
             <span className="text-xs text-[#0066FF] font-semibold">
-              {topBrowser.percentage} % des clics
+              {topBrowser.percentage} % of clicks
             </span>
             <span className="text-xs ds-text-muted font-mono">#1</span>
           </div>
         </div>
 
-        {/* Card 4: SYSTÈME N°1 */}
+        {/* Card 4: TOP OS */}
         <div className="p-4 sm:p-5 rounded-[12px] ds-card shadow-xs flex flex-col justify-between gap-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold ds-text-muted uppercase tracking-wider">
-              Système N°1
+              Top OS
             </span>
             <div className="p-1 rounded-full bg-purple-500/10 shrink-0">
               <Layers className="w-4 h-4 text-purple-600 dark:text-purple-400" />
@@ -648,25 +749,25 @@ export default function DevicesAnalyticsPage() {
           </div>
           <div className="flex items-center justify-between pt-2 border-t border-[#E4E7EC] dark:border-[#222225]">
             <span className="text-xs text-purple-600 dark:text-purple-400 font-semibold">
-              {topOS.percentage} % des clics
+              {topOS.percentage} % of clicks
             </span>
             <span className="text-xs ds-text-muted font-mono">OS #1</span>
           </div>
         </div>
       </div>
 
-      {/* ─── 3 Middle Cards: Formats, OS & Navigateurs ─── */}
+      {/* ─── 3 Middle Cards: Formats, OS & Browsers ─── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Card 1: Formats d'écran */}
+        {/* Card 1: Screen Formats */}
         <div className="p-5 sm:p-6 rounded-[12px] ds-card shadow-xs flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between pb-3 border-b border-[#E4E7EC] dark:border-[#222225]">
               <span className="text-sm font-bold ds-text-primary flex items-center gap-1.5">
                 <Monitor className="w-4 h-4 text-[#0066FF]" />
-                <span>Formats d’écran</span>
+                <span>Screen Formats</span>
               </span>
               <span className="text-xs ds-text-muted font-mono">
-                3 catégories
+                3 categories
               </span>
             </div>
 
@@ -690,7 +791,7 @@ export default function DevicesAnalyticsPage() {
                 <i
                   style={{ width: `${tabletItem.percentage}%` }}
                   className="block h-full bg-purple-600 dark:bg-purple-400 transition-all duration-300"
-                  title={`Tablette: ${tabletItem.percentage}%`}
+                  title={`Tablet: ${tabletItem.percentage}%`}
                 />
               )}
             </div>
@@ -726,7 +827,7 @@ export default function DevicesAnalyticsPage() {
               <div className="flex justify-between items-center py-3 border-t border-[#E4E7EC] dark:border-[#222225] text-sm">
                 <span className="inline-flex items-center ds-text-primary font-medium">
                   <u className="inline-block w-2.5 h-2.5 mr-2.5 rounded-[3px] bg-purple-600 dark:bg-purple-400 no-underline" />
-                  Tablette
+                  Tablet
                 </span>
                 <span className="font-bold ds-text-primary">
                   {tabletItem.percentage} %
@@ -739,13 +840,13 @@ export default function DevicesAnalyticsPage() {
           </div>
         </div>
 
-        {/* Card 2: Systèmes d'exploitation */}
+        {/* Card 2: Operating Systems */}
         <div className="p-5 sm:p-6 rounded-[12px] ds-card shadow-xs flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between pb-3 border-b border-[#E4E7EC] dark:border-[#222225]">
               <span className="text-sm font-bold ds-text-primary flex items-center gap-1.5">
                 <Layers className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                <span>Systèmes d’exploitation</span>
+                <span>Operating Systems</span>
               </span>
               <span className="text-xs ds-text-muted font-mono">
                 {osBreakdown.length} OS
@@ -771,23 +872,23 @@ export default function DevicesAnalyticsPage() {
               ))}
               {osBreakdown.length === 0 && (
                 <p className="py-6 text-center text-xs text-zinc-500 dark:text-neutral-400">
-                  Aucun système d’exploitation enregistré sur la période.
+                  No operating systems recorded for this period.
                 </p>
               )}
             </div>
           </div>
         </div>
 
-        {/* Card 3: Navigateurs web */}
+        {/* Card 3: Web Browsers */}
         <div className="p-5 sm:p-6 rounded-[12px] ds-card shadow-xs flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between pb-3 border-b border-[#E4E7EC] dark:border-[#222225]">
               <span className="text-sm font-bold ds-text-primary flex items-center gap-1.5">
                 <Cpu className="w-4 h-4 text-[#0066FF]" />
-                <span>Navigateurs web</span>
+                <span>Web Browsers</span>
               </span>
               <span className="text-xs ds-text-muted font-mono">
-                {effectiveBrowsers.length} navigateurs
+                {effectiveBrowsers.length} browsers
               </span>
             </div>
 
@@ -810,7 +911,7 @@ export default function DevicesAnalyticsPage() {
               ))}
               {effectiveBrowsers.length === 0 && (
                 <p className="py-6 text-center text-xs text-zinc-500 dark:text-neutral-400">
-                  Aucun navigateur enregistré sur la période.
+                  No web browsers recorded for this period.
                 </p>
               )}
             </div>
@@ -825,10 +926,10 @@ export default function DevicesAnalyticsPage() {
           <div>
             <h3 className="text-lg font-bold ds-text-primary flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-[#0066FF]" />
-              <span>Flux technologique détaillé</span>
+              <span>Detailed Technology Stream</span>
             </h3>
             <p className="text-xs ds-text-muted mt-0.5">
-              Journal des visites : horodatage, format, système et navigateur.
+              Event log: timestamps, format, operating system, and browser.
             </p>
           </div>
 
@@ -848,16 +949,16 @@ export default function DevicesAnalyticsPage() {
                       : "ds-text-muted hover:ds-text-primary"
                   }`}
                 >
-                  {d === "ALL" ? "Tous" : d}
+                  {d === "ALL" ? "All" : d}
                 </button>
               ))}
             </div>
 
             {/* Filter Input */}
             <input
-              aria-label="Filtrer"
+              aria-label="Filter"
               type="text"
-              placeholder="Filtrer par navigateur, OS, lien…"
+              placeholder="Filter by browser, OS, link…"
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
@@ -874,28 +975,28 @@ export default function DevicesAnalyticsPage() {
             <thead>
               <tr className="border-b border-[#E4E7EC] dark:border-[#222225] bg-[#F9FAFB] dark:bg-white/[0.03] text-zinc-700 dark:text-neutral-400 font-semibold text-[11px]">
                 <th className="py-3.5 pl-5 sm:pl-6 pr-3 whitespace-nowrap">
-                  Horodatage
+                  Timestamp
                 </th>
                 <th className="py-3.5 px-3 whitespace-nowrap">
-                  Appareil
+                  Device
                 </th>
                 <th className="py-3.5 px-3 whitespace-nowrap">
-                  Navigateur
+                  Browser
                 </th>
                 <th className="py-3.5 px-3 whitespace-nowrap">
-                  Système
+                  Operating System
                 </th>
                 <th className="py-3.5 px-3 whitespace-nowrap">
-                  Client
+                  Customer
                 </th>
                 <th className="py-3.5 px-3 whitespace-nowrap">
-                  Lien cible
+                  Target Link
                 </th>
                 <th className="py-3.5 px-3 whitespace-nowrap">
-                  Localisation
+                  Location
                 </th>
                 <th className="py-3.5 pl-3 pr-5 sm:pr-6 whitespace-nowrap text-center">
-                  Source
+                  Referrer Source
                 </th>
               </tr>
             </thead>
@@ -948,7 +1049,7 @@ export default function DevicesAnalyticsPage() {
                     </a>
                   </td>
                   <td className="py-3.5 px-3 whitespace-nowrap text-zinc-600 dark:text-neutral-300">
-                    {ev.city && ev.city !== "—" && ev.city !== "Inconnue"
+                    {ev.city && ev.city !== "—" && ev.city !== "Unknown" && ev.city !== "Inconnue"
                       ? `${ev.city}, ${ev.countryName}`
                       : ev.countryName}
                   </td>
@@ -965,7 +1066,7 @@ export default function DevicesAnalyticsPage() {
                     colSpan={8}
                     className="py-12 text-center text-xs text-zinc-500 dark:text-neutral-400"
                   >
-                    Aucun événement ne correspond aux critères sélectionnés.
+                    No events matching selected criteria.
                   </td>
                 </tr>
               )}
@@ -1019,7 +1120,9 @@ export default function DevicesAnalyticsPage() {
                 </a>
                 <div className="flex items-center gap-2">
                   <span className="text-[11px] text-zinc-500 dark:text-neutral-400">
-                    {ev.city && ev.city !== "—" ? ev.city : ev.countryName}
+                    {ev.city && ev.city !== "—" && ev.city !== "Unknown" && ev.city !== "Inconnue"
+                      ? ev.city
+                      : ev.countryName}
                   </span>
                   {/* Real Official Brand Logo */}
                   <SourceBrandLogo referrer={ev.referrer} size={20} />
@@ -1030,7 +1133,7 @@ export default function DevicesAnalyticsPage() {
 
           {paginatedEvents.length === 0 && (
             <div className="py-8 text-center text-xs text-zinc-500 dark:text-neutral-400">
-              Aucun événement ne correspond aux critères sélectionnés.
+              No events matching selected criteria.
             </div>
           )}
         </div>
@@ -1038,9 +1141,9 @@ export default function DevicesAnalyticsPage() {
         {/* ─── Footer Pagination ─── */}
         <div className="px-5 sm:px-6 py-3.5 border-t border-[#E4E7EC] dark:border-[#222225] text-xs text-zinc-500 dark:text-neutral-400 flex flex-col sm:flex-row justify-between items-center gap-3">
           <p className="m-0">
-            Affichage de {filteredEvents.length > 0 ? (currentPage - 1) * pageSize + 1 : 0} à{" "}
-            {Math.min(currentPage * pageSize, filteredEvents.length)} sur{" "}
-            {filteredEvents.length} événements · Page {currentPage} / {totalPages}
+            Showing {filteredEvents.length > 0 ? (currentPage - 1) * pageSize + 1 : 0} to{" "}
+            {Math.min(currentPage * pageSize, filteredEvents.length)} of{" "}
+            {filteredEvents.length} events · Page {currentPage} of {totalPages}
           </p>
 
           <div className="flex items-center gap-1.5">
@@ -1048,7 +1151,7 @@ export default function DevicesAnalyticsPage() {
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
               className="p-1.5 rounded-[8px] border border-[#E4E7EC] dark:border-[#222225] bg-white dark:bg-[#141416] text-zinc-700 dark:text-neutral-300 hover:text-black dark:hover:text-white disabled:opacity-40 cursor-pointer transition-colors"
-              title="Page précédente"
+              title="Previous page"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
@@ -1059,7 +1162,7 @@ export default function DevicesAnalyticsPage() {
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
               className="p-1.5 rounded-[8px] border border-[#E4E7EC] dark:border-[#222225] bg-white dark:bg-[#141416] text-zinc-700 dark:text-neutral-300 hover:text-black dark:hover:text-white disabled:opacity-40 cursor-pointer transition-colors"
-              title="Page suivante"
+              title="Next page"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
