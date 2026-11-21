@@ -7,8 +7,10 @@ import React, {
   useCallback,
   useMemo,
 } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
+import QRCode from "qrcode";
 import {
   Link2,
   ExternalLink,
@@ -16,6 +18,10 @@ import {
   AlertCircle,
   Loader2,
   CornerDownLeft,
+  QrCode,
+  Download,
+  Lock,
+  Check,
 } from "lucide-react";
 import { WaveRevealButton } from "@/components/ui/wave-reveal-button";
 
@@ -32,6 +38,19 @@ export interface ShortenedItem {
 
 const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
 const HERO_STORAGE_KEY = "lshorter_hero_active_link_v1";
+
+const QR_COLOR_SWATCHES: Array<{
+  id: string;
+  label: string;
+  hex: string;
+  locked: boolean;
+}> = [
+  { id: "black", label: "Classic Black (Default)", hex: "#000000", locked: false },
+  { id: "blue", label: "Electric Blue (Account required)", hex: "#0066FF", locked: true },
+  { id: "indigo", label: "Royal Indigo (Account required)", hex: "#6366F1", locked: true },
+  { id: "violet", label: "Deep Violet (Account required)", hex: "#8B5CF6", locked: true },
+  { id: "emerald", label: "Emerald (Account required)", hex: "#10B981", locked: true },
+];
 
 function formatRemaining24h(ms: number): string {
   const safeSec = Math.max(0, Math.floor(ms / 1000));
@@ -100,6 +119,11 @@ export function HeroShortener() {
   const [limitReached, setLimitReached] = useState(false);
   const [nowMs, setNowMs] = useState<number>(() => Date.now());
 
+  // QR Code hover popup state & generated PNG data URL
+  const [isQrHovered, setIsQrHovered] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState<string>("");
+  const qrCloseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const inputRef = useRef<HTMLInputElement>(null);
   const expiringSlugsRef = useRef<Set<string>>(new Set());
 
@@ -115,6 +139,72 @@ export function HeroShortener() {
   }, [links]);
 
   const activeLink = orderedLinks[0] || null;
+
+  // Generate default black-on-white QR code PNG whenever activeLink changes
+  useEffect(() => {
+    if (!activeLink?.slug) {
+      setQrDataUrl("");
+      setIsQrHovered(false);
+      return;
+    }
+    let cancelled = false;
+    const targetShortUrl = `https://lsho.cc/${activeLink.slug}`;
+    QRCode.toDataURL(targetShortUrl, {
+      width: 360,
+      margin: 2,
+      errorCorrectionLevel: "M",
+      color: {
+        dark: "#000000",
+        light: "#FFFFFF",
+      },
+    })
+      .then((url) => {
+        if (!cancelled) setQrDataUrl(url);
+      })
+      .catch(() => {
+        if (!cancelled) setQrDataUrl("");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeLink?.slug]);
+
+  const handleQrMouseEnter = useCallback(() => {
+    if (qrCloseTimeoutRef.current) {
+      clearTimeout(qrCloseTimeoutRef.current);
+      qrCloseTimeoutRef.current = null;
+    }
+    setIsQrHovered(true);
+  }, []);
+
+  const handleQrMouseLeave = useCallback(() => {
+    qrCloseTimeoutRef.current = setTimeout(() => {
+      setIsQrHovered(false);
+    }, 180);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (qrCloseTimeoutRef.current) {
+        clearTimeout(qrCloseTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleDownloadPng = useCallback(() => {
+    if (!qrDataUrl || !activeLink?.slug) return;
+    const anchor = document.createElement("a");
+    anchor.href = qrDataUrl;
+    anchor.download = `lsho-${activeLink.slug}-qr.png`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+  }, [qrDataUrl, activeLink?.slug]);
+
+  const handleLockedQrAction = useCallback(() => {
+    setIsQrHovered(false);
+    router.push("/register?claim=1");
+  }, [router]);
 
   // Delete an expired link on the server and remove it from the UI when the 24h timer hits zero
   const handleExpireLink = useCallback(async (slug: string) => {
@@ -471,41 +561,167 @@ export function HeroShortener() {
         )}
       </AnimatePresence>
 
-      {/* ── Soft Theme-Harmonious Two-Bar Shortened Link Row with Frosted Backdrop Blur + 24-Hour Live Countdown Timer ── */}
-      <AnimatePresence initial={false}>
+      {/* ── Top-to-Bottom Fade & Slide Shortened Link Row + Hover Scale + QR Hover Popup + 24-Hour Countdown + Signup Prompt ── */}
+      <AnimatePresence mode="wait">
         {activeLink && (
           <motion.div
             key={activeLink.slug}
-            initial={{ opacity: 0, y: -24 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12 }}
+            initial={{ opacity: 0, y: -38, filter: "blur(5px)" }}
+            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+            exit={{ opacity: 0, y: -18, filter: "blur(3px)" }}
             transition={{
-              duration: 0.45,
+              duration: 0.55,
               ease: [0.22, 1, 0.36, 1],
             }}
             aria-live="polite"
-            className="relative z-10 mt-3.5 flex flex-col items-center"
+            className="relative z-30 mt-3.5 flex flex-col items-center"
           >
-            {/* Minimalist Two-Bar Row with Frosted Glass Background Blur */}
-            <div className="w-full border-l-2 border-r-2 border-[#6366F1]/60 dark:border-[#A5B4FC]/60 bg-white/55 dark:bg-[#11131A]/60 backdrop-blur-md shadow-[0_8px_24px_rgba(99,102,241,0.10)] dark:shadow-[0_10px_28px_rgba(0,0,0,0.42)] px-4 py-3 flex items-center justify-between gap-4 text-left">
+            {/* Minimalist Two-Bar Row with Frosted Glass Background Blur & Hover Scale */}
+            <motion.div
+              whileHover={{ scale: 1.018 }}
+              transition={{ type: "spring", stiffness: 360, damping: 24 }}
+              className="relative w-full border-l-2 border-r-2 border-[#6366F1]/60 dark:border-[#A5B4FC]/60 bg-white/55 dark:bg-[#11131A]/60 backdrop-blur-md shadow-[0_8px_24px_rgba(99,102,241,0.10)] dark:shadow-[0_10px_28px_rgba(0,0,0,0.42)] px-4 py-3 flex items-center justify-between gap-4 text-left"
+            >
               {/* Left: Shortened link + icon that redirects on click */}
               <a
                 href={`/${encodeURIComponent(activeLink.slug)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={handleLinkClicked}
-                className="group inline-flex items-center gap-2 text-[15px] sm:text-[16px] font-mono font-semibold text-[#312E81]/95 dark:text-[#E0E7FF]/95 hover:text-[#4F46E5] dark:hover:text-white transition-colors truncate"
+                className="group inline-flex items-center gap-2 text-[15px] sm:text-[16px] font-mono font-semibold text-[#312E81]/95 dark:text-[#E0E7FF]/95 hover:text-[#4F46E5] dark:hover:text-white transition-all duration-200 hover:scale-[1.02] origin-left truncate"
               >
                 <span className="truncate">lsho.cc/{activeLink.slug}</span>
                 <ExternalLink className="w-4 h-4 shrink-0 text-[#6366F1]/85 dark:text-[#A5B4FC]/85 group-hover:text-[#4F46E5] dark:group-hover:text-white group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
               </a>
 
-              {/* Right: Live click count text (0 clicks, 1 click, 2 clicks...) */}
-              <span className="shrink-0 font-mono text-[13.5px] sm:text-[14px] font-medium text-[#4338CA]/85 dark:text-[#C7D2FE]/90 tabular-nums">
-                {activeLink.clicksCount}{" "}
-                {activeLink.clicksCount === 1 ? "click" : "clicks"}
-              </span>
-            </div>
+              {/* Right: Live click count text + QR Code hover trigger button */}
+              <div className="flex items-center gap-3 shrink-0">
+                <span className="font-mono text-[13.5px] sm:text-[14px] font-medium text-[#4338CA]/85 dark:text-[#C7D2FE]/90 tabular-nums">
+                  {activeLink.clicksCount}{" "}
+                  {activeLink.clicksCount === 1 ? "click" : "clicks"}
+                </span>
+
+                {/* QR Code Icon Trigger & Hover Popup */}
+                <div
+                  className="relative"
+                  onMouseEnter={handleQrMouseEnter}
+                  onMouseLeave={handleQrMouseLeave}
+                >
+                  <button
+                    type="button"
+                    aria-label="Preview QR Code"
+                    aria-expanded={isQrHovered}
+                    onClick={() => setIsQrHovered((prev) => !prev)}
+                    className={`w-8 h-8 rounded-[8px] flex items-center justify-center border transition-all duration-150 cursor-pointer ${
+                      isQrHovered
+                        ? "bg-[#6366F1] text-white border-[#6366F1] shadow-[0_4px_14px_rgba(99,102,241,0.35)]"
+                        : "bg-white/65 dark:bg-white/[0.08] border-[#6366F1]/30 dark:border-[#A5B4FC]/25 text-[#312E81] dark:text-[#E0E7FF] hover:bg-[#6366F1]/15 dark:hover:bg-white/[0.15]"
+                    }`}
+                  >
+                    <QrCode className="w-4 h-4" />
+                  </button>
+
+                  {/* Hover QR Code Popup (strictly rounded-[10px], opens upwards so it never clips at the bottom of the screen) */}
+                  <AnimatePresence>
+                    {isQrHovered && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 6, scale: 0.96 }}
+                        transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+                        onMouseEnter={handleQrMouseEnter}
+                        onMouseLeave={handleQrMouseLeave}
+                        role="dialog"
+                        aria-label="QR Code options"
+                        className="absolute right-0 bottom-full mb-2.5 z-50 w-[236px] rounded-[10px] bg-white/95 dark:bg-[#11131A]/95 backdrop-blur-xl border border-[#E4E7EC] dark:border-white/15 p-3.5 shadow-[0_20px_48px_rgba(16,24,40,0.18)] dark:shadow-[0_22px_54px_rgba(0,0,0,0.75)] text-left after:content-[''] after:absolute after:top-full after:left-0 after:right-0 after:h-3"
+                      >
+                        <div className="flex items-center justify-between gap-2 pb-2 mb-2.5 border-b border-[#E4E7EC] dark:border-white/10">
+                          <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-[#312E81] dark:text-[#C7D2FE]">
+                            QR Code
+                          </span>
+                          <span className="font-mono text-[11px] text-[#667085] dark:text-zinc-400 truncate">
+                            lsho.cc/{activeLink.slug}
+                          </span>
+                        </div>
+
+                        {/* QR Code Image Preview */}
+                        <div className="w-full aspect-square max-w-[152px] mx-auto rounded-[8px] bg-white p-2 border border-[#E4E7EC] dark:border-white/15 flex items-center justify-center">
+                          {qrDataUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={qrDataUrl}
+                              alt={`QR Code for lsho.cc/${activeLink.slug}`}
+                              className="w-full h-full object-contain select-none"
+                            />
+                          ) : (
+                            <Loader2 className="w-5 h-5 animate-spin text-[#6366F1]" />
+                          )}
+                        </div>
+
+                        {/* Color Options (Black active by default, others locked with padlock) */}
+                        <div className="mt-3">
+                          <div className="flex items-center justify-between text-[11px] font-medium text-[#475467] dark:text-zinc-400 mb-1.5">
+                            <span>Color</span>
+                            <span className="text-[10.5px] text-[#6366F1] dark:text-[#A5B4FC]">
+                              Pro colors locked
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between gap-1.5">
+                            {QR_COLOR_SWATCHES.map((swatch) => (
+                              <button
+                                key={swatch.id}
+                                type="button"
+                                title={swatch.label}
+                                aria-label={swatch.label}
+                                onClick={
+                                  swatch.locked
+                                    ? handleLockedQrAction
+                                    : undefined
+                                }
+                                className={`relative w-7 h-7 rounded-[7px] flex items-center justify-center transition-transform cursor-pointer ${
+                                  !swatch.locked
+                                    ? "ring-2 ring-[#0066FF] ring-offset-2 ring-offset-white dark:ring-offset-[#11131A] scale-105"
+                                    : "opacity-80 hover:opacity-100 hover:scale-105"
+                                }`}
+                                style={{ backgroundColor: swatch.hex }}
+                              >
+                                {swatch.locked ? (
+                                  <Lock className="w-3 h-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.65)]" />
+                                ) : (
+                                  <Check className="w-3.5 h-3.5 text-white" />
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Action Buttons: Download PNG + Locked GIF Button */}
+                        <div className="mt-3.5 grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={handleDownloadPng}
+                            className="h-8 px-2.5 rounded-[8px] bg-[#0066FF] hover:bg-[#0052CC] text-white text-[12px] font-semibold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                          >
+                            <Download className="w-3.5 h-3.5 shrink-0" />
+                            <span>PNG</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={handleLockedQrAction}
+                            title="Create a free account to export animated GIF QR codes"
+                            className="h-8 px-2.5 rounded-[8px] bg-[#F2F4F7] dark:bg-white/[0.08] hover:bg-[#E4E7EC] dark:hover:bg-white/[0.14] border border-[#D0D5DD] dark:border-white/15 text-[#101828] dark:text-white text-[12px] font-semibold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                          >
+                            <Lock className="w-3 h-3 text-[#6366F1] dark:text-[#A5B4FC] shrink-0" />
+                            <span>GIF</span>
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+            </motion.div>
 
             {/* 24-Hour Live Countdown Timer (decrements every second; auto-deletes link at 00h 00m 00s) */}
             <div className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-[8px] bg-white/40 dark:bg-[#11131A]/45 backdrop-blur-md text-[12.5px] sm:text-[13px] text-[#4338CA]/85 dark:text-[#C7D2FE]/85 select-none">
@@ -517,6 +733,18 @@ export function HeroShortener() {
                 </strong>
               </span>
             </div>
+
+            {/* English Account Creation Prompt (at the red line position below the countdown) */}
+            <p className="mt-2.5 text-center text-[13px] sm:text-[13.5px] text-[#312E81]/90 dark:text-[#C7D2FE]/90 leading-relaxed max-w-[580px]">
+              <Link
+                href="/register?claim=1"
+                className="font-semibold text-[#0066FF] dark:text-[#5294FF] underline-offset-4 hover:underline"
+              >
+                Create your account
+              </Link>{" "}
+              to keep this link forever, customize its slug &amp; QR code, and
+              track every click in real time.
+            </p>
           </motion.div>
         )}
       </AnimatePresence>

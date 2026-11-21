@@ -79,7 +79,7 @@ export function HowItWorksSection() {
   ];
 
   return (
-    <section className="w-full bg-[#F8F9FB] dark:bg-[#0D0E12] py-20 sm:py-24 border-t border-[#E4E7EC] dark:border-white/[0.08] transition-colors duration-300 overflow-x-clip">
+    <section className="w-full bg-[linear-gradient(180deg,rgba(99,51,238,0.13)_0%,rgba(245,243,255,0.65)_42%,#FFFFFF_100%)] dark:bg-[linear-gradient(180deg,rgba(99,51,238,0.20)_0%,#0B0C12_45%,#09090B_100%)] py-20 sm:py-24 transition-colors duration-300 overflow-x-clip">
       <SectionRailFrame>
         <div className="max-w-[620px] mb-12">
           <h2 className="text-[28px] sm:text-[36px] font-semibold tracking-[-0.03em] leading-[1.1] text-[#09090B] dark:text-white text-balance">
@@ -91,15 +91,15 @@ export function HowItWorksSection() {
           {steps.map((step) => (
             <li
               key={step.num}
-              className="pt-6 border-t border-[#D4D4D8] dark:border-white/[0.12] flex flex-col"
+              className="pt-6 border-t border-[#6366F1]/25 dark:border-white/[0.12] flex flex-col"
             >
-              <span className="font-mono text-[13px] font-medium text-[#0066FF] dark:text-[#5294FF] tabular-nums">
+              <span className="font-mono text-[13px] font-semibold text-[#4F46E5] dark:text-[#A5B4FC] tabular-nums">
                 0{step.num}
               </span>
               <h3 className="mt-3 text-[18px] font-semibold tracking-[-0.02em] text-[#09090B] dark:text-white">
                 {step.title}
               </h3>
-              <p className="mt-2.5 text-[14.5px] leading-[1.6] text-[#52525B] dark:text-zinc-400 text-pretty">
+              <p className="mt-2.5 text-[14.5px] leading-[1.6] text-[#3F3F46] dark:text-zinc-400 text-pretty">
                 {step.desc}
               </p>
             </li>
