@@ -14,13 +14,15 @@ import {
   Building2,
   Link2,
   BookOpen,
-  Shield,
-  CreditCard,
-  RefreshCw,
   ArrowRight,
 } from "lucide-react";
 import { WaveRevealButton } from "@/components/ui/wave-reveal-button";
-import { PRICING_PLANS, PRICING_COPY } from "@/src/config/pricing";
+import {
+  Pricing,
+  type PricingPlan,
+  type EnterpriseBannerPlan,
+} from "@/components/ui/pricing";
+import { PRICING_PLANS } from "@/src/config/pricing";
 import {
   EASE_OUT_EXPO,
   SectionRailFrame,
@@ -652,342 +654,145 @@ export function DeveloperApiSection() {
 }
 
 // ============================================================================
-// 8. REAL PRICING SECTION (#pricing-preview — Synced 1:1 with /pricing & PRICING_PLANS)
+// 8. REAL PRICING SECTION (#pricing-preview — Animated NumberFlow + Switch + Confetti)
 // ============================================================================
+const LSHORTER_PRICING_PLANS: PricingPlan[] = [
+  {
+    name: PRICING_PLANS.FREE.name,
+    price: PRICING_PLANS.FREE.monthlyPrice,
+    yearlyPrice: PRICING_PLANS.FREE.yearlyPrice,
+    period: "forever",
+    yearlyPeriod: "forever",
+    monthlyBillingNote: "Free forever, no credit card",
+    yearlyBillingNote: "Free forever, no credit card",
+    badgeMonthly: "Free",
+    badgeYearly: "Free",
+    features: [
+      "10,000 clicks / month",
+      "3 domains and 50 active links",
+      "Global Workspace Target (clicks & revenue)",
+      "QR Code Studio (basic styles)",
+      "30-day analytics · API 60 req/min",
+      "Community support",
+    ],
+    notIncludedNote:
+      "Not included: Smart Routing, PIN protection, individual link alerts, webhooks, and pixels.",
+    description: "To explore our Edge infrastructure, no credit card required.",
+    buttonText: "Get Started Free",
+    href: "/register",
+    yearlyHref: "/register",
+    isPopular: false,
+  },
+  {
+    name: PRICING_PLANS.PRO.name,
+    price: PRICING_PLANS.PRO.promoMonthly.firstMonthPrice,
+    yearlyPrice: PRICING_PLANS.PRO.yearlyPrice,
+    monthlyOriginalPrice: PRICING_PLANS.PRO.monthlyPrice,
+    yearlyOriginalPrice: PRICING_PLANS.PRO.promoYearly.fullPriceBeforeDiscount,
+    period: "2 mo",
+    yearlyPeriod: "yr",
+    monthlySavings: "Save $22.50 over 2 months",
+    yearlySavings: "Save $90 / yr",
+    monthlyBillingNote: `then $${PRICING_PLANS.PRO.monthlyPrice} / month`,
+    yearlyBillingNote: `or $${PRICING_PLANS.PRO.promoYearly.equivalentMonthlyPrice.toFixed(2)} / month`,
+    badgeMonthly: "-75% promo",
+    badgeYearly: "-50% annual",
+    features: [
+      "150,000 clicks / month (+$3 / 50k)",
+      "6 domains and 1,000 active links",
+      "Individual link alerts (clicks, revenue, expiry)",
+      "Dynamic Smart Routing (country + OS/device)",
+      "PIN codes and destination masking",
+      "5 webhooks and 5 retargeting pixels",
+      "365-day analytics · API 200 req/min",
+      "Priority email support",
+    ],
+    description: "Grow your brand and maximize your conversion rates.",
+    buttonText: "Choose Pro",
+    href: "/checkout?plan=PRO&cycle=MONTHLY",
+    yearlyHref: "/checkout?plan=PRO&cycle=YEARLY",
+    isPopular: true,
+  },
+  {
+    name: PRICING_PLANS.BUSINESS.name,
+    price: PRICING_PLANS.BUSINESS.promoMonthly.firstMonthPrice,
+    yearlyPrice: PRICING_PLANS.BUSINESS.yearlyPrice,
+    monthlyOriginalPrice: PRICING_PLANS.BUSINESS.monthlyPrice,
+    yearlyOriginalPrice:
+      PRICING_PLANS.BUSINESS.promoYearly.fullPriceBeforeDiscount,
+    period: "2 mo",
+    yearlyPeriod: "yr",
+    monthlySavings: "Save $58.80 over 2 months",
+    yearlySavings: "Save $238 / yr",
+    monthlyBillingNote: `then $${PRICING_PLANS.BUSINESS.monthlyPrice} / month`,
+    yearlyBillingNote: `or $${PRICING_PLANS.BUSINESS.promoYearly.equivalentMonthlyPrice.toFixed(2)} / month`,
+    badgeMonthly: "-60% promo",
+    badgeYearly: "-40% annual",
+    features: [
+      "500,000 clicks / month (+$8 / 125k)",
+      "15 domains and unlimited active links",
+      "Unlimited individual link alerts",
+      "Multi-condition rule engine",
+      "Advanced protection and destination masking",
+      "Vector QR Code Studio (SVG / PDF)",
+      "Unlimited webhooks and pixels",
+      "Unlimited analytics · API 600 req/min",
+      "5 team seats · 24/7 support",
+    ],
+    description: "For multi-channel campaigns and growing teams.",
+    buttonText: "Choose Business",
+    href: "/checkout?plan=BUSINESS&cycle=MONTHLY",
+    yearlyHref: "/checkout?plan=BUSINESS&cycle=YEARLY",
+    isPopular: false,
+  },
+];
+
+const LSHORTER_ENTERPRISE_PLAN: EnterpriseBannerPlan = {
+  name: PRICING_PLANS.ENTERPRISE.name,
+  monthlyPrice: PRICING_PLANS.ENTERPRISE.promoMonthly.firstMonthPrice,
+  yearlyPrice: PRICING_PLANS.ENTERPRISE.yearlyPrice,
+  monthlyOriginalPrice: PRICING_PLANS.ENTERPRISE.monthlyPrice,
+  yearlyOriginalPrice:
+    PRICING_PLANS.ENTERPRISE.promoYearly.fullPriceBeforeDiscount,
+  monthlyBillingNote: `then $${PRICING_PLANS.ENTERPRISE.monthlyPrice} / month`,
+  yearlyBillingNote: `or $${PRICING_PLANS.ENTERPRISE.promoYearly.equivalentMonthlyPrice.toFixed(2)} / month`,
+  description: "Unlimited clicks and dedicated high-throughput Edge SLA.",
+  features: [
+    "Unlimited clicks, domains, and links",
+    "Hyper-targeted routing (ISP / ASN / city)",
+    "Unlimited analytics & raw CSV export",
+    "API 1,400 req/min · 15 team seats",
+    "99.99% Edge SLA & direct VIP support",
+    "Global alerts with VIP routing",
+  ],
+  buttonText: "Choose Enterprise",
+  monthlyHref: "/checkout?plan=ENTERPRISE&cycle=MONTHLY",
+  yearlyHref: "/checkout?plan=ENTERPRISE&cycle=YEARLY",
+};
+
 export function PricingPreviewSection() {
-  const [isAnnual, setIsAnnual] = useState(false);
-
-  const plansList = [
-    {
-      id: "FREE" as const,
-      name: PRICING_PLANS.FREE.name,
-      tagline: "To explore our Edge infrastructure, no credit card required.",
-      displayPrice: "$0",
-      originalPrice: null as string | null,
-      savingsText: null as string | null,
-      subPriceNote: "Free forever",
-      unit: "forever",
-      badge: "Free",
-      popular: false,
-      cta: "Get Started Free",
-      href: "/register",
-      features: [
-        "10,000 clicks / month",
-        "3 domains and 50 active links",
-        "Global Workspace Target (clicks and revenue)",
-        "QR Code Studio (basic styles)",
-        "30-day analytics · API 60 req/min",
-        "Community support",
-      ],
-      notIncludedNote:
-        "Not included: Smart Routing, PIN protection, individual link alerts, webhooks, and pixels.",
-    },
-    {
-      id: "PRO" as const,
-      name: PRICING_PLANS.PRO.name,
-      tagline: "Grow your brand and maximize your conversion rates.",
-      displayPrice: isAnnual
-        ? `$${PRICING_PLANS.PRO.yearlyPrice}`
-        : `$${PRICING_PLANS.PRO.promoMonthly.firstMonthPrice.toFixed(2)}`,
-      originalPrice: isAnnual
-        ? `$${PRICING_PLANS.PRO.promoYearly.fullPriceBeforeDiscount}`
-        : `$${PRICING_PLANS.PRO.monthlyPrice}`,
-      savingsText: isAnnual ? "Save $90 / yr" : "Save $22.50 over 2 months",
-      subPriceNote: isAnnual
-        ? `or $${PRICING_PLANS.PRO.promoYearly.equivalentMonthlyPrice.toFixed(2)} / month`
-        : `then $${PRICING_PLANS.PRO.monthlyPrice} / month`,
-      unit: isAnnual ? "/ yr" : "/ 2 mo",
-      badge: isAnnual ? "-50% annual" : "-75% promo",
-      popular: true,
-      cta: "Choose Pro",
-      href: `/checkout?plan=PRO&cycle=${isAnnual ? "YEARLY" : "MONTHLY"}`,
-      features: [
-        "150,000 clicks / month (+$3 / 50k)",
-        "6 domains and 1,000 active links",
-        "Individual link alerts (clicks, revenue, expiration)",
-        "Dynamic Smart Routing (country + OS/device)",
-        "PIN codes and destination masking",
-        "5 webhooks and 5 retargeting pixels",
-        "365-day analytics · API 200 req/min",
-        "Priority email support",
-      ],
-      notIncludedNote: null as string | null,
-    },
-    {
-      id: "BUSINESS" as const,
-      name: PRICING_PLANS.BUSINESS.name,
-      tagline: "For multi-channel campaigns and growing teams.",
-      displayPrice: isAnnual
-        ? `$${PRICING_PLANS.BUSINESS.yearlyPrice}`
-        : `$${PRICING_PLANS.BUSINESS.promoMonthly.firstMonthPrice.toFixed(2)}`,
-      originalPrice: isAnnual
-        ? `$${PRICING_PLANS.BUSINESS.promoYearly.fullPriceBeforeDiscount}`
-        : `$${PRICING_PLANS.BUSINESS.monthlyPrice}`,
-      savingsText: isAnnual ? "Save $238 / yr" : "Save $58.80 over 2 months",
-      subPriceNote: isAnnual
-        ? `or $${PRICING_PLANS.BUSINESS.promoYearly.equivalentMonthlyPrice.toFixed(2)} / month`
-        : `then $${PRICING_PLANS.BUSINESS.monthlyPrice} / month`,
-      unit: isAnnual ? "/ yr" : "/ 2 mo",
-      badge: isAnnual ? "-40% annual" : "-60% promo",
-      popular: false,
-      cta: "Choose Business",
-      href: `/checkout?plan=BUSINESS&cycle=${isAnnual ? "YEARLY" : "MONTHLY"}`,
-      features: [
-        "500,000 clicks / month (+$8 / 125k)",
-        "15 domains and unlimited active links",
-        "Unlimited individual link alerts",
-        "Multi-condition rule engine",
-        "Advanced protection and destination masking",
-        "Vector QR Code Studio (SVG / PDF)",
-        "Unlimited webhooks and pixels",
-        "Unlimited analytics · API 600 req/min",
-        "5 team seats · 24/7 support",
-      ],
-      notIncludedNote: null as string | null,
-    },
-    {
-      id: "ENTERPRISE" as const,
-      name: PRICING_PLANS.ENTERPRISE.name,
-      tagline: "Unlimited clicks and dedicated high-throughput Edge SLA.",
-      displayPrice: isAnnual
-        ? `$${PRICING_PLANS.ENTERPRISE.yearlyPrice.toLocaleString("en-US")}`
-        : `$${PRICING_PLANS.ENTERPRISE.promoMonthly.firstMonthPrice.toFixed(2)}`,
-      originalPrice: isAnnual
-        ? `$${PRICING_PLANS.ENTERPRISE.promoYearly.fullPriceBeforeDiscount.toLocaleString("en-US")}`
-        : `$${PRICING_PLANS.ENTERPRISE.monthlyPrice}`,
-      savingsText: isAnnual ? "Save $718 / yr" : "Save $199 over 2 months",
-      subPriceNote: isAnnual
-        ? `or $${PRICING_PLANS.ENTERPRISE.promoYearly.equivalentMonthlyPrice.toFixed(2)} / month`
-        : `then $${PRICING_PLANS.ENTERPRISE.monthlyPrice} / month`,
-      unit: isAnnual ? "/ yr" : "/ 2 mo",
-      badge: isAnnual ? "-30% annual" : "-50% promo",
-      popular: false,
-      cta: "Choose Enterprise",
-      href: `/checkout?plan=ENTERPRISE&cycle=${isAnnual ? "YEARLY" : "MONTHLY"}`,
-      features: [
-        "Unlimited clicks, domains, and links",
-        "Global alerts with VIP routing",
-        "Hyper-targeted routing (ISP / ASN / city)",
-        "Unlimited webhooks and pixels",
-        "Unlimited analytics and raw CSV export",
-        "API 1,400 req/min",
-        "15 team seats",
-        "99.99% Edge SLA and direct VIP support",
-      ],
-      notIncludedNote: null as string | null,
-    },
-  ];
-
-  const guaranteeIcons = [Shield, CreditCard, RefreshCw];
-
   return (
     <section
       id="pricing-preview"
-      className="w-full bg-[#F8F9FB] dark:bg-[#0D0E12] py-24 sm:py-32 border-t border-[#E4E7EC] dark:border-white/[0.08] scroll-mt-20 overflow-x-clip transition-colors duration-300"
+      className="w-full bg-[#F8F9FB] dark:bg-[#0D0E12] border-t border-[#E4E7EC] dark:border-white/[0.08] scroll-mt-20 overflow-x-clip transition-colors duration-300"
     >
-      <SectionRailFrame>
-        {/* Header + Real Monthly / Annual Promo Toggle */}
-        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-12">
-          <div>
-            <h2 className="text-[30px] sm:text-[40px] font-semibold tracking-[-0.03em] leading-[1.08] text-[#09090B] dark:text-white text-balance">
-              Simple pricing, zero downtime guaranteed
-            </h2>
-            <p className="mt-3 text-[15.5px] text-[#52525B] dark:text-zinc-400 max-w-[580px]">
-              Deployed on Cloudflare&apos;s global Edge network, your links stay
-              fast and reliable. Certified PDF invoices are generated instantly
-              in 1 click.
-            </p>
-          </div>
+      <Pricing
+        plans={LSHORTER_PRICING_PLANS}
+        enterprise={LSHORTER_ENTERPRISE_PLAN}
+        title="Simple, transparent pricing"
+        description={"Zero downtime guaranteed across 310+ Cloudflare Edge PoPs.\nCertified PDF invoices generated instantly in one click."}
+        annualSaveLabel="Save up to 50%"
+      />
 
-          <div className="inline-flex flex-wrap sm:flex-nowrap items-center gap-1 p-1 rounded-[10px] bg-white dark:bg-[#14151B] border border-[#E4E7EC] dark:border-white/[0.09] self-start lg:self-auto shrink-0">
-            <button
-              type="button"
-              onClick={() => setIsAnnual(false)}
-              className={`px-3.5 py-2 rounded-[8px] text-[13px] font-medium transition-colors inline-flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
-                !isAnnual
-                  ? "bg-[#0066FF] text-white"
-                  : "text-[#52525B] dark:text-zinc-300 hover:text-[#09090B] dark:hover:text-white"
-              }`}
-            >
-              <span>Monthly</span>
-              <span
-                className={`text-[11.5px] font-medium ${
-                  !isAnnual
-                    ? "text-white/90"
-                    : "text-emerald-600 dark:text-emerald-400"
-                }`}
-              >
-                -75% first 2 months
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsAnnual(true)}
-              className={`px-3.5 py-2 rounded-[8px] text-[13px] font-medium transition-colors inline-flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
-                isAnnual
-                  ? "bg-[#0066FF] text-white"
-                  : "text-[#52525B] dark:text-zinc-300 hover:text-[#09090B] dark:hover:text-white"
-              }`}
-            >
-              <span>Annual</span>
-              <span
-                className={`text-[11.5px] font-medium ${
-                  isAnnual
-                    ? "text-white/90"
-                    : "text-emerald-600 dark:text-emerald-400"
-                }`}
-              >
-                up to -50%
-              </span>
-            </button>
-          </div>
-        </div>
-
-        {/* Real 4-Column Pricing Grid (strictly rounded-[10px]) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 items-stretch">
-          {plansList.map((p) => (
-            <div
-              key={p.id}
-              className={`relative flex flex-col justify-between p-5 sm:p-6 rounded-[10px] border transition-colors ${
-                p.popular
-                  ? "bg-[#F8FAFF] dark:bg-[#131722] border-[#0066FF]"
-                  : "bg-white dark:bg-[#111216] border-[#E4E7EC] dark:border-white/[0.09]"
-              }`}
-            >
-              <div>
-                <div className="flex items-center justify-between gap-2">
-                  <h3
-                    className={`text-[18px] font-semibold tracking-tight ${
-                      p.popular
-                        ? "text-[#0066FF] dark:text-[#6CA8FF]"
-                        : "text-[#09090B] dark:text-white"
-                    }`}
-                  >
-                    {p.name}
-                  </h3>
-                  {p.badge && (
-                    <span
-                      className={`px-2 py-0.5 rounded-[5px] text-[11px] font-medium whitespace-nowrap ${
-                        p.popular
-                          ? "bg-[#0066FF] text-white"
-                          : p.id === "FREE"
-                            ? "bg-[#F4F4F5] dark:bg-white/[0.08] text-[#52525B] dark:text-zinc-300"
-                            : "bg-emerald-500/12 text-emerald-700 dark:text-emerald-400"
-                      }`}
-                    >
-                      {p.badge}
-                    </span>
-                  )}
-                </div>
-
-                <p className="mt-2 text-[12.5px] text-[#71717A] dark:text-zinc-400 leading-snug min-h-[36px]">
-                  {p.tagline}
-                </p>
-
-                {/* Price Block */}
-                <div className="mt-4 pb-4 border-b border-[#E4E7EC] dark:border-white/[0.08]">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-[32px] font-semibold tracking-[-0.03em] leading-none text-[#09090B] dark:text-white tabular-nums">
-                        {p.displayPrice}
-                      </span>
-                      <span className="text-[12.5px] text-[#71717A] dark:text-zinc-400">
-                        {p.unit}
-                      </span>
-                    </div>
-                    {p.originalPrice && (
-                      <span className="text-[13px] line-through text-[#A1A1AA] dark:text-zinc-500 tabular-nums">
-                        {p.originalPrice}
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="mt-2 min-h-[34px] flex flex-col justify-center">
-                    {p.savingsText && (
-                      <span className="text-[12px] font-medium text-emerald-600 dark:text-emerald-400 leading-tight">
-                        {p.savingsText}
-                      </span>
-                    )}
-                    {p.subPriceNote && (
-                      <span className="text-[12px] text-[#71717A] dark:text-zinc-400 leading-tight mt-0.5">
-                        {p.subPriceNote}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Features List */}
-                <ul className="mt-4 space-y-2.5 text-[12.5px] text-[#3F3F46] dark:text-zinc-300">
-                  {p.features.map((feat) => (
-                    <li key={feat} className="flex items-start gap-2">
-                      <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-                      <span className="leading-snug">{feat}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                {p.notIncludedNote && (
-                  <p className="mt-4 pt-3 border-t border-[#E4E7EC] dark:border-white/[0.08] text-[11.5px] text-[#71717A] dark:text-zinc-500 leading-relaxed">
-                    {p.notIncludedNote}
-                  </p>
-                )}
-              </div>
-
-              <div className="mt-6">
-                <WaveRevealButton
-                  href={p.href}
-                  variant={
-                    p.popular
-                      ? "primary"
-                      : p.id === "FREE"
-                        ? "outline"
-                        : "contrast"
-                  }
-                  size="sm"
-                  className="w-full h-10"
-                >
-                  {p.cta}
-                </WaveRevealButton>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* 3 Real Guarantees from PRICING_COPY */}
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-5">
-          {PRICING_COPY.guarantees.map((g, idx) => {
-            const Icon = guaranteeIcons[idx] || Shield;
-            return (
-              <div
-                key={g.title}
-                className="p-5 rounded-[10px] bg-white dark:bg-[#111216] border border-[#E4E7EC] dark:border-white/[0.09] flex items-start gap-3.5"
-              >
-                <div className="w-9 h-9 rounded-[8px] bg-[#F8F9FB] dark:bg-white/[0.05] border border-[#E4E7EC] dark:border-white/[0.09] text-[#52525B] dark:text-zinc-300 flex items-center justify-center shrink-0">
-                  <Icon className="w-4 h-4" />
-                </div>
-                <div className="min-w-0">
-                  <h4 className="text-[13.5px] font-semibold text-[#09090B] dark:text-white leading-snug">
-                    {g.title}
-                  </h4>
-                  <p className="text-[12.5px] text-[#71717A] dark:text-zinc-400 leading-relaxed mt-1">
-                    {g.description}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="mt-8 flex justify-center">
-          <Link
-            href="/pricing"
-            className="inline-flex items-center gap-1.5 text-[14px] font-medium text-[#0066FF] dark:text-[#6CA8FF] hover:underline"
-          >
-            <span>View full plan comparison matrix</span>
-            <ArrowRight className="w-4 h-4" />
-          </Link>
-        </div>
-      </SectionRailFrame>
+      <div className="pb-16 flex justify-center">
+        <Link
+          href="/pricing"
+          className="inline-flex items-center gap-1.5 text-[14px] font-medium text-[#0066FF] dark:text-[#6CA8FF] hover:underline"
+        >
+          <span>View full feature comparison matrix</span>
+          <ArrowRight className="w-4 h-4" />
+        </Link>
+      </div>
     </section>
   );
 }

@@ -1,0 +1,379 @@
+"use client";
+
+import { buttonVariants } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { useMediaQuery } from "@/hooks/use-media-query";
+import { cn } from "@/lib/utils";
+import { motion } from "motion/react";
+import { Check, Star } from "lucide-react";
+import Link from "next/link";
+import { useState, useRef } from "react";
+import confetti from "canvas-confetti";
+import NumberFlow from "@number-flow/react";
+
+export interface PricingPlan {
+  name: string;
+  price: number;
+  yearlyPrice: number;
+  monthlyOriginalPrice?: number;
+  yearlyOriginalPrice?: number;
+  period: string;
+  yearlyPeriod?: string;
+  monthlyBillingNote?: string;
+  yearlyBillingNote?: string;
+  monthlySavings?: string;
+  yearlySavings?: string;
+  badgeMonthly?: string;
+  badgeYearly?: string;
+  features: string[];
+  notIncludedNote?: string;
+  description: string;
+  buttonText: string;
+  href: string;
+  yearlyHref?: string;
+  isPopular: boolean;
+}
+
+export interface EnterpriseBannerPlan {
+  name: string;
+  monthlyPrice: number;
+  yearlyPrice: number;
+  monthlyOriginalPrice: number;
+  yearlyOriginalPrice: number;
+  monthlyBillingNote: string;
+  yearlyBillingNote: string;
+  description: string;
+  features: string[];
+  buttonText: string;
+  monthlyHref: string;
+  yearlyHref: string;
+}
+
+export interface PricingProps {
+  plans: PricingPlan[];
+  enterprise?: EnterpriseBannerPlan;
+  title?: string;
+  description?: string;
+  annualSaveLabel?: string;
+}
+
+export function Pricing({
+  plans,
+  enterprise,
+  title = "Simple, Transparent Pricing",
+  description = "Choose the plan that works for you.\nAll plans run on Cloudflare's 310+ global edge PoPs with instant PDF invoices.",
+  annualSaveLabel = "Save up to 50%",
+}: PricingProps) {
+  const [isMonthly, setIsMonthly] = useState(true);
+  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const switchRef = useRef<HTMLButtonElement>(null);
+
+  const handleToggle = (checked: boolean) => {
+    setIsMonthly(!checked);
+    if (checked && switchRef.current) {
+      const rect = switchRef.current.getBoundingClientRect();
+      const x = rect.left + rect.width / 2;
+      const y = rect.top + rect.height / 2;
+
+      confetti({
+        particleCount: 50,
+        spread: 60,
+        origin: {
+          x: x / window.innerWidth,
+          y: y / window.innerHeight,
+        },
+        colors: ["#0066FF", "#5294FF", "#002E99", "#10B981"],
+        ticks: 200,
+        gravity: 1.2,
+        decay: 0.94,
+        startVelocity: 30,
+        shapes: ["circle"],
+      });
+    }
+  };
+
+  return (
+    <div className="max-w-[1200px] mx-auto px-5 sm:px-8 py-20 sm:py-28">
+      <div className="text-center space-y-4 mb-12">
+        <h2 className="text-[32px] sm:text-[44px] font-semibold tracking-[-0.03em] leading-[1.08] text-[#09090B] dark:text-white text-balance">
+          {title}
+        </h2>
+        <p className="text-[#52525B] dark:text-zinc-400 text-[15.5px] sm:text-[17px] leading-[1.6] whitespace-pre-line max-w-[620px] mx-auto">
+          {description}
+        </p>
+      </div>
+
+      {/* Interactive Switch with Confetti */}
+      <div className="flex flex-wrap items-center justify-center gap-3 mb-12">
+        <span
+          className={cn(
+            "text-[14px] font-medium transition-colors",
+            isMonthly
+              ? "text-[#09090B] dark:text-white"
+              : "text-[#71717A] dark:text-zinc-400"
+          )}
+        >
+          Monthly{" "}
+          <span className="text-emerald-600 dark:text-emerald-400 text-[12.5px] font-medium">
+            (-75% first 2 mo)
+          </span>
+        </span>
+        <Label className="relative inline-flex items-center cursor-pointer">
+          <Switch
+            ref={switchRef}
+            checked={!isMonthly}
+            onCheckedChange={handleToggle}
+            aria-label="Toggle annual billing"
+            className="relative"
+          />
+        </Label>
+        <span
+          className={cn(
+            "text-[14px] font-semibold transition-colors",
+            !isMonthly
+              ? "text-[#09090B] dark:text-white"
+              : "text-[#52525B] dark:text-zinc-300"
+          )}
+        >
+          Annual billing{" "}
+          <span className="text-[#0066FF] dark:text-[#6CA8FF]">
+            ({annualSaveLabel})
+          </span>
+        </span>
+      </div>
+
+      {/* 3-Column Elevated Podium Cards (strictly rounded-[10px]) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch [perspective:1200px]">
+        {plans.map((plan, index) => {
+          const activePrice = isMonthly ? plan.price : plan.yearlyPrice;
+          const activeOriginal = isMonthly
+            ? plan.monthlyOriginalPrice
+            : plan.yearlyOriginalPrice;
+          const activePeriod = isMonthly
+            ? plan.period
+            : plan.yearlyPeriod || plan.period;
+          const activeNote = isMonthly
+            ? plan.monthlyBillingNote || "billed monthly"
+            : plan.yearlyBillingNote || "billed annually";
+          const activeSavings = isMonthly
+            ? plan.monthlySavings
+            : plan.yearlySavings;
+          const activeBadge = isMonthly
+            ? plan.badgeMonthly
+            : plan.badgeYearly;
+          const activeHref = !isMonthly && plan.yearlyHref ? plan.yearlyHref : plan.href;
+          const hasDecimals = !Number.isInteger(activePrice);
+
+          return (
+            <motion.div
+              key={plan.name}
+              initial={{ y: 36, opacity: 1 }}
+              whileInView={
+                isDesktop
+                  ? {
+                      y: plan.isPopular ? -20 : 0,
+                      opacity: 1,
+                      x: index === 2 ? -24 : index === 0 ? 24 : 0,
+                      scale: index === 0 || index === 2 ? 0.94 : 1.0,
+                    }
+                  : { y: 0, opacity: 1 }
+              }
+              viewport={{ once: true, margin: "-40px" }}
+              transition={{
+                duration: 1.4,
+                type: "spring",
+                stiffness: 100,
+                damping: 30,
+                delay: 0.15,
+                opacity: { duration: 0.45 },
+              }}
+              className={cn(
+                "rounded-[10px] border p-6 sm:p-7 bg-white dark:bg-[#111216] text-center flex flex-col relative overflow-hidden",
+                plan.isPopular
+                  ? "border-[#0066FF] border-2 shadow-[0_18px_50px_rgba(0,102,255,0.14)] dark:shadow-[0_22px_56px_rgba(0,102,255,0.22)]"
+                  : "border-[#E4E7EC] dark:border-white/[0.10]",
+                !plan.isPopular && "md:mt-5",
+                index === 0 || index === 2 ? "z-0" : "z-10",
+                index === 0 && "md:origin-right",
+                index === 2 && "md:origin-left"
+              )}
+            >
+              {plan.isPopular && (
+                <div className="absolute top-0 right-0 bg-[#0066FF] py-1 px-2.5 rounded-bl-[8px] rounded-tr-[8px] flex items-center">
+                  <Star className="text-white h-3.5 w-3.5 fill-current" />
+                  <span className="text-white ml-1 text-[12px] font-semibold">
+                    Popular
+                  </span>
+                </div>
+              )}
+
+              <div className="flex-1 flex flex-col">
+                <div className="flex items-center justify-center gap-2">
+                  <p className="text-[15px] font-semibold text-[#52525B] dark:text-zinc-300">
+                    {plan.name}
+                  </p>
+                  {activeBadge && (
+                    <span
+                      className={cn(
+                        "px-2 py-0.5 rounded-[5px] text-[11px] font-semibold",
+                        plan.isPopular
+                          ? "bg-[#0066FF]/12 text-[#0066FF] dark:text-[#6CA8FF]"
+                          : "bg-emerald-500/12 text-emerald-700 dark:text-emerald-400"
+                      )}
+                    >
+                      {activeBadge}
+                    </span>
+                  )}
+                </div>
+
+                {/* Animated NumberFlow Price */}
+                <div className="mt-5 flex flex-wrap items-baseline justify-center gap-x-1.5 gap-y-1">
+                  <span className="text-[42px] sm:text-[46px] font-bold tracking-tight leading-none text-[#09090B] dark:text-white tabular-nums">
+                    <NumberFlow
+                      locales="en-US"
+                      value={activePrice}
+                      format={{
+                        style: "currency",
+                        currency: "USD",
+                        minimumFractionDigits: hasDecimals ? 2 : 0,
+                        maximumFractionDigits: hasDecimals ? 2 : 0,
+                      }}
+                      transformTiming={{
+                        duration: 500,
+                        easing: "ease-out",
+                      }}
+                      willChange
+                    />
+                  </span>
+                  {activePeriod && (
+                    <span className="text-[13px] font-semibold text-[#71717A] dark:text-zinc-400 whitespace-nowrap">
+                      / {activePeriod}
+                    </span>
+                  )}
+                  {activeOriginal !== undefined && activeOriginal > 0 && (
+                    <span className="text-[14px] font-medium line-through text-[#A1A1AA] dark:text-zinc-500 tabular-nums whitespace-nowrap">
+                      ${activeOriginal}
+                    </span>
+                  )}
+                </div>
+
+                <div className="mt-2 min-h-[36px] flex flex-col items-center justify-center">
+                  {activeSavings && (
+                    <p className="text-[12px] font-semibold text-emerald-600 dark:text-emerald-400 leading-tight">
+                      {activeSavings}
+                    </p>
+                  )}
+                  <p className="text-[12px] leading-5 text-[#71717A] dark:text-zinc-400">
+                    {activeNote}
+                  </p>
+                </div>
+
+                <ul className="mt-5 gap-2.5 flex flex-col flex-1 text-[13.5px] text-[#3F3F46] dark:text-zinc-300">
+                  {plan.features.map((feature, idx) => (
+                    <li key={idx} className="flex items-start gap-2">
+                      <Check className="h-4 w-4 text-[#0066FF] dark:text-[#6CA8FF] mt-0.5 flex-shrink-0" />
+                      <span className="text-left leading-snug">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                {plan.notIncludedNote && (
+                  <p className="mt-4 text-[11.5px] text-left leading-relaxed text-[#71717A] dark:text-zinc-500">
+                    {plan.notIncludedNote}
+                  </p>
+                )}
+
+                <hr className="w-full my-5 border-[#E4E7EC] dark:border-white/[0.08]" />
+
+                <Link
+                  href={activeHref}
+                  className={cn(
+                    buttonVariants({
+                      variant: plan.isPopular ? "primary" : "outline",
+                    }),
+                    "group relative w-full h-11 gap-2 overflow-hidden rounded-[10px] text-[14.5px] font-semibold tracking-tight",
+                    "transform-gpu transition-colors duration-200",
+                    plan.isPopular
+                      ? "bg-[#0066FF] hover:bg-[#002E99] text-white border border-[#0066FF] hover:border-[#002E99]"
+                      : "bg-white dark:bg-white/[0.04] text-[#09090B] dark:text-white border-[#D4D4D8] dark:border-white/[0.14] hover:bg-[#0066FF] hover:text-white hover:border-[#0066FF]"
+                  )}
+                >
+                  {plan.buttonText}
+                </Link>
+                <p className="mt-4 text-[12px] leading-5 text-[#71717A] dark:text-zinc-400">
+                  {plan.description}
+                </p>
+              </div>
+            </motion.div>
+          );
+        })}
+      </div>
+
+      {/* Real Enterprise Plan Horizontal Band (keeps 3-col 3D podium symmetric while displaying all 4 real plans) */}
+      {enterprise && (
+        <div className="mt-8 rounded-[10px] border border-[#E4E7EC] dark:border-white/[0.10] bg-white dark:bg-[#111216] p-6 sm:p-7 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+          <div className="lg:col-span-5">
+            <div className="flex items-center gap-2.5">
+              <h3 className="text-[19px] font-semibold text-[#09090B] dark:text-white">
+                {enterprise.name}
+              </h3>
+              <span className="px-2 py-0.5 rounded-[5px] text-[11px] font-semibold bg-emerald-500/12 text-emerald-700 dark:text-emerald-400">
+                {isMonthly ? "-50% promo" : "-30% annual"}
+              </span>
+            </div>
+            <p className="mt-1.5 text-[13.5px] text-[#52525B] dark:text-zinc-400 leading-relaxed">
+              {enterprise.description}
+            </p>
+            <div className="mt-4 flex flex-wrap items-baseline gap-2">
+              <span className="text-[32px] font-bold tracking-tight leading-none text-[#09090B] dark:text-white tabular-nums">
+                <NumberFlow
+                  locales="en-US"
+                  value={isMonthly ? enterprise.monthlyPrice : enterprise.yearlyPrice}
+                  format={{
+                    style: "currency",
+                    currency: "USD",
+                    minimumFractionDigits: isMonthly ? 2 : 0,
+                    maximumFractionDigits: isMonthly ? 2 : 0,
+                  }}
+                  transformTiming={{ duration: 500, easing: "ease-out" }}
+                  willChange
+                />
+              </span>
+              <span className="text-[13px] font-medium text-[#71717A] dark:text-zinc-400">
+                / {isMonthly ? "2 mo" : "yr"}
+              </span>
+              <span className="text-[13px] line-through text-[#A1A1AA] dark:text-zinc-500 tabular-nums">
+                ${(isMonthly ? enterprise.monthlyOriginalPrice : enterprise.yearlyOriginalPrice).toLocaleString("en-US")}
+              </span>
+              <span className="text-[12px] text-[#71717A] dark:text-zinc-400">
+                — {isMonthly ? enterprise.monthlyBillingNote : enterprise.yearlyBillingNote}
+              </span>
+            </div>
+          </div>
+
+          <div className="lg:col-span-5 grid grid-cols-1 sm:grid-cols-2 gap-2 text-[13px] text-[#3F3F46] dark:text-zinc-300">
+            {enterprise.features.map((feat) => (
+              <div key={feat} className="flex items-start gap-2">
+                <Check className="w-4 h-4 text-[#0066FF] dark:text-[#6CA8FF] shrink-0 mt-0.5" />
+                <span>{feat}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="lg:col-span-2 flex lg:justify-end">
+            <Link
+              href={isMonthly ? enterprise.monthlyHref : enterprise.yearlyHref}
+              className={cn(
+                buttonVariants({ variant: "outline" }),
+                "w-full lg:w-auto h-11 px-5 rounded-[10px] text-[14px] font-semibold bg-white dark:bg-white/[0.04] text-[#09090B] dark:text-white border-[#D4D4D8] dark:border-white/[0.14] hover:bg-[#0066FF] hover:text-white hover:border-[#0066FF] transition-colors"
+              )}
+            >
+              {enterprise.buttonText}
+            </Link>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
