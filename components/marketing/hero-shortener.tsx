@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -9,14 +15,11 @@ import {
   Lock,
   Sparkles,
   Clock,
-  ShieldCheck,
   X,
   AlertCircle,
   Loader2,
   CornerDownLeft,
-  Play,
 } from "lucide-react";
-import { useSession } from "next-auth/react";
 import { WaveRevealButton } from "@/components/ui/wave-reveal-button";
 
 export interface ShortenedItem {
@@ -30,27 +33,35 @@ export interface ShortenedItem {
   isGuest: boolean;
 }
 
-export function HeroShortener() {
-  const { data: session, status } = useSession();
-  const isAuthenticated =
-    status === "authenticated" &&
-    Boolean(session?.user) &&
-    !(session?.user as { userNotFound?: boolean })?.userNotFound;
+const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
 
+function formatRemaining24h(ms: number): string {
+  const safeSec = Math.max(0, Math.floor(ms / 1000));
+  const hours = Math.floor(safeSec / 3600);
+  const minutes = Math.floor((safeSec % 3600) / 60);
+  const seconds = safeSec % 60;
+  const hh = String(hours).padStart(2, "0");
+  const mm = String(minutes).padStart(2, "0");
+  const ss = String(seconds).padStart(2, "0");
+  return `${hh}h ${mm}m ${ss}s`;
+}
+
+export function HeroShortener() {
   const [urlInput, setUrlInput] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isPulseHighlighted, setIsPulseHighlighted] = useState(false);
 
   const [links, setLinks] = useState<ShortenedItem[]>([]);
-  const [usedCount, setUsedCount] = useState(0);
-  const [maxLinks, setMaxLinks] = useState(2);
+  const [maxLinks, setMaxLinks] = useState(1);
   const [limitReached, setLimitReached] = useState(false);
   const [showLimitModal, setShowLimitModal] = useState(false);
+  const [nowMs, setNowMs] = useState<number>(() => Date.now());
 
   const inputRef = useRef<HTMLInputElement>(null);
+  const expiringSlugsRef = useRef<Set<string>>(new Set());
 
-  // Order links chronologically (oldest first: 1st shortened link on top, 2nd link cascades below it)
+  // Keep only the single active Hero link (1-link limit)
   const orderedLinks = useMemo(() => {
     return [...links]
       .sort(
@@ -58,12 +69,48 @@ export function HeroShortener() {
           new Date(a.createdAt || 0).getTime() -
           new Date(b.createdAt || 0).getTime()
       )
-      .slice(-2);
+      .slice(-1);
   }, [links]);
 
-  // Fetch current guest links & live clicks from server
+  const activeLink = orderedLinks[0] || null;
+
+  // Delete an expired link on the server and remove it from the UI when the 24h timer hits zero
+  const handleExpireLink = useCallback(async (slug: string) => {
+    if (expiringSlugsRef.current.has(slug)) return;
+    expiringSlugsRef.current.add(slug);
+
+    setLinks((prev) => prev.filter((item) => item.slug !== slug));
+    setLimitReached(false);
+
+    try {
+      const res = await fetch(
+        `/api/public/shorten?slug=${encodeURIComponent(slug)}`,
+        {
+          method: "DELETE",
+          credentials: "same-origin",
+          cache: "no-store",
+        }
+      );
+      if (res.ok) {
+        const data = await res.json().catch(() => null);
+        if (data?.success) {
+          const serverLinks: ShortenedItem[] = Array.isArray(data.links)
+            ? data.links
+            : [];
+          setLinks(serverLinks);
+          setMaxLinks(Number(data.maxLinks ?? 1));
+          setLimitReached(Boolean(data.limitReached));
+        }
+      }
+    } catch {
+      // silent cleanup resilience
+    } finally {
+      expiringSlugsRef.current.delete(slug);
+    }
+  }, []);
+
+  // Fetch current Hero link & live clicks from server
   const fetchGuestState = useCallback(async () => {
-    if (isAuthenticated) return;
     try {
       const res = await fetch("/api/public/shorten", {
         method: "GET",
@@ -78,24 +125,43 @@ export function HeroShortener() {
         ? data.links
         : [];
       setLinks(serverLinks);
-      setUsedCount(Number(data.usedCount ?? serverLinks.length));
-      setMaxLinks(Number(data.maxLinks ?? 2));
+      setMaxLinks(Number(data.maxLinks ?? 1));
       setLimitReached(Boolean(data.limitReached));
     } catch {
       // silent polling resilience
     }
-  }, [isAuthenticated]);
+  }, []);
 
-  // Initial load of guest links (persists across refreshes via httpOnly cookie)
+  // Initial load of Hero link (persists across refreshes via httpOnly cookie / IP hash)
   useEffect(() => {
-    if (!isAuthenticated) {
-      fetchGuestState();
-    }
-  }, [isAuthenticated, fetchGuestState]);
+    fetchGuestState();
+  }, [fetchGuestState]);
 
-  // Real-time 5-second click polling while guest links exist and tab is visible
+  // Real-time 1-second countdown ticker + automatic deletion when timer reaches 00h 00m 00s
   useEffect(() => {
-    if (isAuthenticated || links.length === 0) return;
+    if (!activeLink) return;
+
+    setNowMs(Date.now());
+    const timer = setInterval(() => {
+      const currentNow = Date.now();
+      setNowMs(currentNow);
+
+      const expMs = activeLink.expiresAt
+        ? new Date(activeLink.expiresAt).getTime()
+        : new Date(activeLink.createdAt || currentNow).getTime() +
+          TWENTY_FOUR_HOURS_MS;
+
+      if (expMs - currentNow <= 0) {
+        handleExpireLink(activeLink.slug);
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [activeLink, handleExpireLink]);
+
+  // Real-time 5-second click polling while a link exists and tab is visible
+  useEffect(() => {
+    if (links.length === 0) return;
 
     const interval = setInterval(() => {
       if (
@@ -117,7 +183,7 @@ export function HeroShortener() {
       clearInterval(interval);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, [isAuthenticated, links.length, fetchGuestState]);
+  }, [links.length, fetchGuestState]);
 
   // Listen for Navbar / Final CTA focus events
   useEffect(() => {
@@ -155,7 +221,7 @@ export function HeroShortener() {
       return;
     }
 
-    // Validate basic HTTP(S) URL syntax before triggering the guest limit modal
+    // Validate basic HTTP(S) URL syntax before triggering the limit modal
     const normalizedCandidate = /^https?:\/\//i.test(trimmed)
       ? trimmed
       : /^[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)+([/?#].*)?$/.test(trimmed)
@@ -180,8 +246,8 @@ export function HeroShortener() {
       return;
     }
 
-    // Immediate client gate if already at 2 guest links (server also enforces cookie + IP)
-    if (!isAuthenticated && limitReached) {
+    // Immediate client gate if already at 1 Hero link (server also enforces cookie + IP)
+    if (limitReached || orderedLinks.length >= maxLinks) {
       setShowLimitModal(true);
       return;
     }
@@ -199,7 +265,6 @@ export function HeroShortener() {
 
       if (res.status === 403 && data?.code === "GUEST_LIMIT_REACHED") {
         if (Array.isArray(data.links)) setLinks(data.links);
-        setUsedCount(Number(data.usedCount ?? maxLinks));
         setLimitReached(true);
         setShowLimitModal(true);
         return;
@@ -213,24 +278,25 @@ export function HeroShortener() {
         return;
       }
 
-      if (data.authenticated && data.link) {
-        const created: ShortenedItem = data.link;
-        setLinks((prev) =>
-          [...prev.filter((p) => p.slug !== created.slug), created].slice(-2)
-        );
-        setUrlInput("");
-      } else {
-        const serverLinks: ShortenedItem[] = Array.isArray(data.links)
-          ? data.links
-          : data.link
-            ? [data.link]
-            : [];
-        setLinks(serverLinks);
-        setUsedCount(Number(data.usedCount ?? serverLinks.length));
-        setMaxLinks(Number(data.maxLinks ?? 2));
-        setLimitReached(Boolean(data.limitReached));
-        setUrlInput("");
-      }
+      const fallbackExpiresAt = new Date(
+        Date.now() + TWENTY_FOUR_HOURS_MS
+      ).toISOString();
+
+      const rawLinks: ShortenedItem[] = Array.isArray(data.links)
+        ? data.links
+        : data.link
+          ? [data.link]
+          : [];
+      const normalizedLinks = rawLinks.map((item) => ({
+        ...item,
+        expiresAt: item.expiresAt || fallbackExpiresAt,
+      }));
+
+      setNowMs(Date.now());
+      setLinks(normalizedLinks);
+      setMaxLinks(Number(data.maxLinks ?? 1));
+      setLimitReached(Boolean(data.limitReached ?? normalizedLinks.length >= 1));
+      setUrlInput("");
     } catch {
       setErrorMsg("Network error. Please try again in a moment.");
     } finally {
@@ -240,27 +306,33 @@ export function HeroShortener() {
 
   // Trigger rapid click-sync right after user clicks their newly generated short link
   const handleLinkClicked = () => {
-    if (isAuthenticated) return;
     setTimeout(() => fetchGuestState(), 1100);
     setTimeout(() => fetchGuestState(), 2800);
     setTimeout(() => fetchGuestState(), 5200);
   };
 
-  const remainingGuest = Math.max(0, maxLinks - usedCount);
+  const remainingMs = useMemo(() => {
+    if (!activeLink) return 0;
+    const expMs = activeLink.expiresAt
+      ? new Date(activeLink.expiresAt).getTime()
+      : new Date(activeLink.createdAt || nowMs).getTime() +
+        TWENTY_FOUR_HOURS_MS;
+    return Math.max(0, expMs - nowMs);
+  }, [activeLink, nowMs]);
 
   return (
     <div
       id="hero-shortener"
       className="w-full max-w-[740px] mx-auto scroll-mt-28"
     >
-      {/* ── Clean Single-Surface Link Shortener Bar (strictly rounded-[10px], without Try sample) ── */}
+      {/* ── Clean Single-Surface Link Shortener Bar (strictly rounded-[10px]) ── */}
       <div
-        className={`relative z-20 rounded-[10px] bg-white dark:bg-[#111318] border shadow-[0_10px_30px_rgba(16,24,40,0.06)] dark:shadow-[0_18px_44px_rgba(0,0,0,0.52)] transition-[border-color,box-shadow] duration-200 overflow-hidden ${
+        className={`relative z-20 rounded-[10px] bg-white/95 dark:bg-[#11131A]/95 backdrop-blur-md border shadow-[0_10px_30px_rgba(99,102,241,0.08)] dark:shadow-[0_18px_44px_rgba(0,0,0,0.52)] transition-[border-color,box-shadow] duration-200 overflow-hidden ${
           isPulseHighlighted
             ? "border-[#0066FF] ring-2 ring-[#0066FF]/25"
             : errorMsg
               ? "border-red-500/70"
-              : "border-[#D4D4D8] dark:border-white/[0.14] focus-within:border-[#0066FF] focus-within:ring-2 focus-within:ring-[#0066FF]/15"
+              : "border-[#D4D4D8]/90 dark:border-white/[0.14] focus-within:border-[#0066FF] focus-within:ring-2 focus-within:ring-[#0066FF]/15"
         }`}
       >
         <form onSubmit={handleShorten} className="p-2">
@@ -329,92 +401,57 @@ export function HeroShortener() {
         )}
       </AnimatePresence>
 
-      {/* ── Minimalist Cascading Shortened Link Rows (NO card, ONLY left & right vertical bars) ── */}
-      {orderedLinks.length > 0 && (
-        <div
-          aria-live="polite"
-          className="relative z-10 mt-3.5 flex flex-col gap-2.5"
-        >
-          <AnimatePresence initial={false}>
-            {orderedLinks.map((item, idx) => (
-              <motion.div
-                key={item.slug}
-                initial={{ opacity: 0, y: -24 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -12 }}
-                transition={{
-                  duration: 0.45,
-                  ease: [0.22, 1, 0.36, 1],
-                }}
-                style={{ zIndex: 10 - idx }}
-                className="w-full border-l-2 border-r-2 border-black dark:border-white px-4 py-2.5 flex items-center justify-between gap-4 text-left"
+      {/* ── Soft Theme-Harmonious Two-Bar Shortened Link Row + 24-Hour Live Countdown Timer ── */}
+      <AnimatePresence initial={false}>
+        {activeLink && (
+          <motion.div
+            key={activeLink.slug}
+            initial={{ opacity: 0, y: -24 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
+            transition={{
+              duration: 0.45,
+              ease: [0.22, 1, 0.36, 1],
+            }}
+            aria-live="polite"
+            className="relative z-10 mt-3.5 flex flex-col items-center"
+          >
+            {/* Minimalist Row with Soft Indigo/Lavender Left & Right Vertical Bars */}
+            <div className="w-full border-l-2 border-r-2 border-[#6366F1]/45 dark:border-[#A5B4FC]/45 px-4 py-2.5 flex items-center justify-between gap-4 text-left">
+              {/* Left: Shortened link + icon that redirects on click */}
+              <a
+                href={`/${encodeURIComponent(activeLink.slug)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={handleLinkClicked}
+                className="group inline-flex items-center gap-2 text-[15px] sm:text-[16px] font-mono font-semibold text-[#312E81]/90 dark:text-[#E0E7FF]/95 hover:text-[#4F46E5] dark:hover:text-white transition-colors truncate"
               >
-                {/* Left: Shortened link + icon that redirects on click */}
-                <a
-                  href={`/${encodeURIComponent(item.slug)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={handleLinkClicked}
-                  className="group inline-flex items-center gap-2 text-[15px] sm:text-[16px] font-mono font-semibold text-[#09090B] dark:text-white hover:text-[#0066FF] dark:hover:text-[#5294FF] transition-colors truncate"
-                >
-                  <span className="truncate">lsho.cc/{item.slug}</span>
-                  <ExternalLink className="w-4 h-4 shrink-0 text-[#09090B]/70 dark:text-white/75 group-hover:text-[#0066FF] dark:group-hover:text-[#5294FF] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-                </a>
+                <span className="truncate">lsho.cc/{activeLink.slug}</span>
+                <ExternalLink className="w-4 h-4 shrink-0 text-[#6366F1]/80 dark:text-[#A5B4FC]/85 group-hover:text-[#4F46E5] dark:group-hover:text-white group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+              </a>
 
-                {/* Right: Live click count text (0 clicks, 1 click, 2 clicks...) */}
-                <span className="shrink-0 font-mono text-[13.5px] sm:text-[14px] font-medium text-[#09090B] dark:text-white tabular-nums">
-                  {item.clicksCount}{" "}
-                  {item.clicksCount === 1 ? "click" : "clicks"}
-                </span>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
-      )}
+              {/* Right: Live click count text (0 clicks, 1 click, 2 clicks...) */}
+              <span className="shrink-0 font-mono text-[13.5px] sm:text-[14px] font-medium text-[#4338CA]/80 dark:text-[#C7D2FE]/85 tabular-nums">
+                {activeLink.clicksCount}{" "}
+                {activeLink.clicksCount === 1 ? "click" : "clicks"}
+              </span>
+            </div>
 
-      {/* Sub-line: Guest Quota Status + 6-Minute Walkthrough Link */}
-      <div className="mt-3.5 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-[13px] text-[#52525B] dark:text-zinc-300">
-        {isAuthenticated ? (
-          <span className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium">
-            <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Signed in — links save permanently to your workspace</span>
-          </span>
-        ) : (
-          <>
-            <span>No signup required</span>
-            <span
-              aria-hidden="true"
-              className="hidden sm:inline-block h-3 w-px bg-[#D4D4D8] dark:bg-white/15"
-            />
-            <span className="inline-flex items-center gap-1.5">
-              <Clock className="w-3.5 h-3.5 text-[#0066FF] dark:text-[#5294FF]" />
-              <span>Active for 3 days as a guest</span>
-            </span>
-            <span
-              aria-hidden="true"
-              className="hidden sm:inline-block h-3 w-px bg-[#D4D4D8] dark:bg-white/15"
-            />
-            <span className="font-medium text-[#09090B] dark:text-white tabular-nums">
-              {limitReached
-                ? "2 of 2 guest links used"
-                : `${remainingGuest} free ${remainingGuest === 1 ? "link" : "links"} left`}
-            </span>
-          </>
+            {/* 24-Hour Live Countdown Timer (decrements every second; auto-deletes link at 00h 00m 00s) */}
+            <div className="mt-2.5 inline-flex items-center gap-1.5 text-[12.5px] sm:text-[13px] text-[#4338CA]/75 dark:text-[#C7D2FE]/80 select-none">
+              <Clock className="w-3.5 h-3.5 text-[#6366F1]/85 dark:text-[#A5B4FC]/85 shrink-0" />
+              <span>
+                Expires in{" "}
+                <strong className="font-mono font-semibold tabular-nums text-[#312E81]/90 dark:text-[#E0E7FF]/95">
+                  {formatRemaining24h(remainingMs)}
+                </strong>
+              </span>
+            </div>
+          </motion.div>
         )}
-        <span
-          aria-hidden="true"
-          className="hidden md:inline-block h-3 w-px bg-[#D4D4D8] dark:bg-white/15"
-        />
-        <Link
-          href="/#demo-video"
-          className="inline-flex items-center gap-1.5 font-medium text-[#09090B] dark:text-white hover:text-[#0066FF] dark:hover:text-[#5294FF] transition-colors"
-        >
-          <Play className="w-3 h-3 fill-current text-[#0066FF] dark:text-[#5294FF]" />
-          <span>Watch 6-min walkthrough</span>
-        </Link>
-      </div>
+      </AnimatePresence>
 
-      {/* ── Mandatory 3rd-Link Guest Limit Modal (strictly rounded-[10px]) ── */}
+      {/* ── Mandatory 2nd-Link Guest Limit Modal (strictly rounded-[10px]) ── */}
       <AnimatePresence>
         {showLimitModal && (
           <motion.div
@@ -447,25 +484,24 @@ export function HeroShortener() {
 
               <div className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.14em] text-[#0066FF] dark:text-[#5294FF] mb-3">
                 <Lock className="w-3.5 h-3.5" />
-                <span>GUEST QUOTA // 2 OF 2 USED</span>
+                <span>GUEST QUOTA // 1 OF 1 USED</span>
               </div>
 
               <h3
                 id="guest-limit-modal-title"
                 className="text-[20px] font-bold tracking-[-0.025em] text-[#101828] dark:text-white"
               >
-                You&apos;ve reached the 2-link guest limit
+                You&apos;ve reached the 1-link guest limit
               </h3>
               <p className="mt-2 text-[14px] text-[#475467] dark:text-zinc-400 leading-relaxed">
-                {links.length > 0 ? (
+                {activeLink ? (
                   <>
                     Create a free account to continue shortening links. Your{" "}
                     <strong className="text-[#101828] dark:text-white">
-                      {links.length} existing guest{" "}
-                      {links.length === 1 ? "link" : "links"}
+                      existing guest link
                     </strong>{" "}
-                    and {links.length === 1 ? "its" : "their"} clicks will
-                    automatically transfer into your dashboard and{" "}
+                    and its clicks will automatically save into your dashboard
+                    and{" "}
                     <strong className="text-[#0066FF] dark:text-[#5294FF]">
                       never expire
                     </strong>
@@ -484,27 +520,22 @@ export function HeroShortener() {
                 )}
               </p>
 
-              {links.length > 0 && (
+              {activeLink && (
                 <div className="mt-4 rounded-[10px] border border-[#E4E7EC] dark:border-white/10 bg-[#F7F8FA] dark:bg-white/[0.03] divide-y divide-[#E4E7EC] dark:divide-white/[0.08]">
-                  {orderedLinks.map((item) => (
-                    <div
-                      key={item.slug}
-                      className="px-3.5 py-2.5 flex items-center justify-between gap-3 text-[13px]"
-                    >
-                      <div className="min-w-0">
-                        <div className="font-semibold text-[#0066FF] dark:text-[#5294FF] truncate">
-                          lsho.cc/{item.slug}
-                        </div>
-                        <div className="text-[11.5px] text-[#667085] dark:text-zinc-400 truncate font-mono">
-                          {item.targetUrl}
-                        </div>
+                  <div className="px-3.5 py-2.5 flex items-center justify-between gap-3 text-[13px]">
+                    <div className="min-w-0">
+                      <div className="font-semibold text-[#0066FF] dark:text-[#5294FF] truncate">
+                        lsho.cc/{activeLink.slug}
                       </div>
-                      <span className="shrink-0 px-2 py-0.5 rounded-[6px] bg-white dark:bg-white/[0.06] border border-[#E4E7EC] dark:border-white/10 font-mono text-[11.5px] font-semibold text-[#344054] dark:text-zinc-200 tabular-nums">
-                        {item.clicksCount}{" "}
-                        {item.clicksCount === 1 ? "click" : "clicks"}
-                      </span>
+                      <div className="text-[11.5px] text-[#667085] dark:text-zinc-400 truncate font-mono">
+                        {activeLink.targetUrl}
+                      </div>
                     </div>
-                  ))}
+                    <span className="shrink-0 px-2 py-0.5 rounded-[6px] bg-white dark:bg-white/[0.06] border border-[#E4E7EC] dark:border-white/10 font-mono text-[11.5px] font-semibold text-[#344054] dark:text-zinc-200 tabular-nums">
+                      {activeLink.clicksCount}{" "}
+                      {activeLink.clicksCount === 1 ? "click" : "clicks"}
+                    </span>
+                  </div>
                 </div>
               )}
 
@@ -516,8 +547,8 @@ export function HeroShortener() {
                   className="w-full"
                   icon={<Sparkles className="w-4 h-4" />}
                 >
-                  {links.length > 0
-                    ? "Claim my links & continue free"
+                  {activeLink
+                    ? "Save my link & continue free"
                     : "Create free account & continue"}
                 </WaveRevealButton>
                 <div className="text-center font-mono text-[11.5px] text-[#667085] dark:text-zinc-400">
@@ -529,7 +560,7 @@ export function HeroShortener() {
                     href="/login?claim=1"
                     className="font-semibold text-[#0066FF] dark:text-[#5294FF] hover:underline"
                   >
-                    Sign in {links.length > 0 ? "to claim them" : ""}
+                    Sign in {activeLink ? "to save it" : ""}
                   </Link>
                 </div>
               </div>

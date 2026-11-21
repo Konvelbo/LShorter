@@ -4,6 +4,12 @@ import { api } from "@/convex/_generated/api";
 import bcrypt from "bcryptjs";
 import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
 import { parseBody, registerBodySchema } from "@/lib/api-schemas";
+import {
+  GUEST_COOKIE_NAME,
+  verifyGuestToken,
+  getClientIpHash,
+  claimGuestLinksForUser,
+} from "@/lib/guest-links";
 
 export async function POST(req: NextRequest) {
   try {
@@ -65,7 +71,33 @@ export async function POST(req: NextRequest) {
       console.warn("[register] Instant welcome email warning:", welcomeErr);
     }
 
-    return NextResponse.json({ success: true, userId: result.userId }, { status: 201 });
+    // Immediately claim any Hero short link created before registration into the new user's dashboard
+    let claimedCount = 0;
+    try {
+      const guestToken = req.cookies.get(GUEST_COOKIE_NAME)?.value;
+      const guestId = verifyGuestToken(guestToken);
+      const ipHash = getClientIpHash(req);
+      const claimRes = await claimGuestLinksForUser({
+        guestId,
+        ipHash,
+        userId: result.userId,
+        userEmail: cleanEmail,
+        userName: cleanName,
+        userPlan: "FREE",
+      });
+      claimedCount = claimRes.claimedCount;
+    } catch (claimErr) {
+      console.warn("[register] Guest link auto-claim warning:", claimErr);
+    }
+
+    const res = NextResponse.json(
+      { success: true, userId: result.userId, claimedCount },
+      { status: 201 }
+    );
+    if (claimedCount > 0) {
+      res.cookies.delete(GUEST_COOKIE_NAME);
+    }
+    return res;
   } catch (err: any) {
     const message = (err?.message || err?.data || String(err) || "Server error.").toString();
     if (message.includes("EMAIL_ALREADY_EXISTS") || message.toLowerCase().includes("already exists")) {
