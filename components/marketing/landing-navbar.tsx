@@ -94,7 +94,13 @@ function NavLinkItem({
 }
 
 // ─── DOCS & API MEGA-MENU (100% ENGLISH, ARCHITECTURAL SCHEMA CARD) ───
-function DocsApiDropdown({ isActive }: { isActive: boolean }) {
+function DocsApiDropdown({
+  isActive,
+  onOpenChange,
+}: {
+  isActive: boolean;
+  onOpenChange?: (open: boolean) => void;
+}) {
   const [isOpen, setIsOpen] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -120,27 +126,36 @@ function DocsApiDropdown({ isActive }: { isActive: boolean }) {
     { scope: linkRef }
   );
 
+  const setOpenState = useCallback(
+    (next: boolean) => {
+      setIsOpen(next);
+      onOpenChange?.(next);
+    },
+    [onOpenChange]
+  );
+
   const handleMouseEnter = () => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
     }
     tlRef.current?.play();
-    setIsOpen(true);
+    setOpenState(true);
   };
 
   const handleMouseLeave = () => {
     timeoutRef.current = setTimeout(() => {
       tlRef.current?.reverse();
-      setIsOpen(false);
+      setOpenState(false);
     }, 180);
   };
 
   useEffect(() => {
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      onOpenChange?.(false);
     };
-  }, []);
+  }, [onOpenChange]);
 
   const items = [
     {
@@ -233,7 +248,7 @@ function DocsApiDropdown({ isActive }: { isActive: boolean }) {
                   <Link
                     key={item.title}
                     href={item.href}
-                    onClick={() => setIsOpen(false)}
+                    onClick={() => setOpenState(false)}
                     className="flex items-start gap-3 p-3.5 rounded-[8px] bg-[#F7F8FA] dark:bg-[#14151B] hover:bg-[#0066FF]/[0.06] dark:hover:bg-[#0066FF]/[0.14] border border-[#E4E7EC] dark:border-white/[0.07] hover:border-[#0066FF]/40 transition-all duration-150 group"
                   >
                     <span className="mt-0.5 shrink-0 text-[#475467] dark:text-zinc-400 group-hover:text-[#0066FF] dark:group-hover:text-[#5294FF] transition-colors">
@@ -261,7 +276,7 @@ function DocsApiDropdown({ isActive }: { isActive: boolean }) {
               {/* Bespoke Dark Architectural API Schema Card (replaces legacy cartoon image) */}
               <Link
                 href="/docs"
-                onClick={() => setIsOpen(false)}
+                onClick={() => setOpenState(false)}
                 className="group relative flex-1 rounded-[8px] p-4 flex flex-col justify-between bg-[#09090B] text-white border border-white/12 hover:border-[#0066FF]/60 transition-colors overflow-hidden"
               >
                 <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-white/[0.08]">
@@ -302,7 +317,7 @@ function DocsApiDropdown({ isActive }: { isActive: boolean }) {
 
               <Link
                 href="/#demo-video"
-                onClick={() => setIsOpen(false)}
+                onClick={() => setOpenState(false)}
                 className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-[8px] bg-[#0066FF]/[0.08] hover:bg-[#0066FF]/[0.14] border border-[#0066FF]/25 text-[#0066FF] dark:text-[#5294FF] text-[12.5px] font-semibold transition-colors"
               >
                 <Play className="w-3.5 h-3.5 fill-current shrink-0" />
@@ -329,10 +344,39 @@ export const LandingNavbar = React.memo(function LandingNavbar() {
     !(session?.user as { userNotFound?: boolean } | undefined)?.userNotFound;
 
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isHidden, setIsHidden] = useState(false);
+  const [viewportWidth, setViewportWidth] = useState<number | null>(null);
   const [activeSection, setActiveSection] = useState<string>("");
   const [isIframeFullscreen, setIsIframeFullscreen] = useState(false);
+  const isDocsMenuOpenRef = useRef(false);
+  const isMobileOpenRef = useRef(isOpen);
+  const shellRef = useRef<HTMLDivElement>(null);
   const progressBarDesktopRef = useRef<HTMLDivElement>(null);
   const progressBarMobileRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    isMobileOpenRef.current = isOpen;
+    if (isOpen) {
+      setIsHidden(false);
+    }
+  }, [isOpen]);
+
+  const handleDocsOpenChange = useCallback((open: boolean) => {
+    isDocsMenuOpenRef.current = open;
+    if (open) {
+      setIsHidden(false);
+    }
+  }, []);
+
+  // Track exact inner layout width (excluding scrollbar) so docked -> floating maxWidth interpolates smoothly px-to-px
+  useEffect(() => {
+    const syncViewportWidth = () => {
+      setViewportWidth(document.documentElement.clientWidth);
+    };
+    syncViewportWidth();
+    window.addEventListener("resize", syncViewportWidth, { passive: true });
+    return () => window.removeEventListener("resize", syncViewportWidth);
+  }, []);
 
   useEffect(() => {
     const checkFullscreenState = () => {
@@ -356,16 +400,31 @@ export const LandingNavbar = React.memo(function LandingNavbar() {
     };
   }, []);
 
-  // Scroll state + 2px GPU-accelerated reading progress bar
+  // Smart Headroom Scroll state (docked <-> floating morph + hide on scroll down / reveal on slight scroll up) + 2px GPU reading progress bar
   useEffect(() => {
-    let isScrolledLocal = window.scrollY > 30;
+    const FLOAT_ENTER_Y = 24;
+    const FLOAT_EXIT_Y = 12;
+    const HIDE_AFTER_Y = 140;
+    const DOWN_THRESHOLD_PX = 10;
+    const UP_THRESHOLD_PX = 6;
+
+    let lastY = Math.max(0, window.scrollY);
+    let isScrolledLocal = lastY > FLOAT_ENTER_Y;
+    let isHiddenLocal = false;
+    let downAccum = 0;
+    let upAccum = 0;
+
     setIsScrolled(isScrolledLocal);
+    setIsHidden(false);
     let ticking = false;
 
     const updateProgress = () => {
       const docHeight =
         document.documentElement.scrollHeight - window.innerHeight;
-      const pct = docHeight > 0 ? Math.min(1, Math.max(0, window.scrollY / docHeight)) : 0;
+      const pct =
+        docHeight > 0
+          ? Math.min(1, Math.max(0, window.scrollY / docHeight))
+          : 0;
       const transformVal = `scaleX(${pct})`;
       if (progressBarDesktopRef.current) {
         progressBarDesktopRef.current.style.transform = transformVal;
@@ -381,14 +440,57 @@ export const LandingNavbar = React.memo(function LandingNavbar() {
       if (!ticking) {
         ticking = true;
         requestAnimationFrame(() => {
-          const y = window.scrollY;
-          if (!isScrolledLocal && y > 35) {
+          const y = Math.max(0, window.scrollY);
+          const delta = y - lastY;
+          lastY = y;
+
+          // 1. Smooth docked <-> floating morph with hysteresis
+          if (!isScrolledLocal && y > FLOAT_ENTER_Y) {
             isScrolledLocal = true;
             setIsScrolled(true);
-          } else if (isScrolledLocal && y < 15) {
+          } else if (isScrolledLocal && y <= FLOAT_EXIT_Y) {
             isScrolledLocal = false;
             setIsScrolled(false);
           }
+
+          // 2. Smart headroom: hide floating bar on downward scroll, reveal on tiny upward scroll
+          const activeEl = document.activeElement as HTMLElement | null;
+          const hasKeyboardFocus = Boolean(
+            activeEl &&
+              shellRef.current?.contains(activeEl) &&
+              activeEl.matches?.(":focus-visible")
+          );
+          const keepVisible =
+            y <= HIDE_AFTER_Y ||
+            isDocsMenuOpenRef.current ||
+            isMobileOpenRef.current ||
+            hasKeyboardFocus;
+
+          if (keepVisible) {
+            downAccum = 0;
+            upAccum = 0;
+            if (isHiddenLocal) {
+              isHiddenLocal = false;
+              setIsHidden(false);
+            }
+          } else if (delta > 0.5) {
+            upAccum = 0;
+            downAccum += delta;
+            if (!isHiddenLocal && downAccum >= DOWN_THRESHOLD_PX) {
+              isHiddenLocal = true;
+              setIsHidden(true);
+              downAccum = 0;
+            }
+          } else if (delta < -0.5) {
+            downAccum = 0;
+            upAccum += -delta;
+            if (isHiddenLocal && upAccum >= UP_THRESHOLD_PX) {
+              isHiddenLocal = false;
+              setIsHidden(false);
+              upAccum = 0;
+            }
+          }
+
           if (y < 260) {
             setActiveSection("");
           }
@@ -489,21 +591,57 @@ export const LandingNavbar = React.memo(function LandingNavbar() {
     { label: "Docs & API", href: "/docs" },
   ];
 
+  const desktopMaxWidth =
+    viewportWidth !== null
+      ? `${isScrolled ? Math.min(1200, Math.max(960, viewportWidth - 48)) : viewportWidth}px`
+      : isScrolled
+        ? "min(1200px, calc(100% - 3rem))"
+        : "100%";
+
+  const mobileMaxWidth =
+    viewportWidth !== null
+      ? `${isScrolled ? Math.min(672, Math.max(300, viewportWidth - 24)) : viewportWidth}px`
+      : isScrolled
+        ? "min(672px, calc(100% - 1.5rem))"
+        : "100%";
+
   return (
-    <div className="w-full flex justify-center pointer-events-none transition-opacity duration-300">
+    <div
+      ref={shellRef}
+      data-hidden={isHidden ? "true" : "false"}
+      data-floating={isScrolled ? "true" : "false"}
+      onFocusCapture={(e) => {
+        if ((e.target as HTMLElement)?.matches?.(":focus-visible")) {
+          setIsHidden(false);
+        }
+      }}
+      style={{
+        transform: isHidden
+          ? "translate3d(0, calc(-100% - 24px), 0)"
+          : "translate3d(0, 0, 0)",
+        opacity: isHidden ? 0 : 1,
+      }}
+      className="navbar-headroom-shell w-full flex justify-center pointer-events-none"
+    >
       {/* ─── 1. DESKTOP NAVBAR (>= 1024px / lg) ─── */}
       <header
-        className={`relative hidden lg:flex items-center justify-between gap-2 xl:gap-3 pointer-events-auto transform-gpu transition-[transform,width,background-color,border-color,box-shadow,border-radius] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-visible ${
+        style={{
+          maxWidth: desktopMaxWidth,
+          transform: isScrolled ? "translate3d(0, 12px, 0)" : "translate3d(0, 0px, 0)",
+        }}
+        className={`navbar-morph-surface relative hidden lg:flex w-full items-center justify-between gap-2 xl:gap-3 border overflow-visible ${
+          isHidden ? "pointer-events-none" : "pointer-events-auto"
+        } ${
           isScrolled
-            ? "translate-y-3 w-[min(1200px,96vw)] rounded-[10px] px-4 xl:px-5 py-2.5 bg-white/[0.97] dark:bg-[#0B0C0F]/[0.97] border border-[#E4E7EC] dark:border-white/12 shadow-[0_10px_28px_rgba(16,24,40,0.07)] dark:shadow-[0_14px_36px_rgba(0,0,0,0.55)]"
-            : "translate-y-0 w-full rounded-none px-6 xl:px-10 py-3.5 bg-white/[0.98] dark:bg-[#09090B]/[0.98] border-b border-[#E4E7EC] dark:border-white/[0.08]"
+            ? "h-[56px] rounded-[10px] px-4 xl:px-5 bg-white/[0.97] dark:bg-[#0B0C0F]/[0.97] border-[#E4E7EC] dark:border-white/12 shadow-[0_10px_28px_-4px_rgba(16,24,40,0.08)] dark:shadow-[0_14px_36px_-4px_rgba(0,0,0,0.55)]"
+            : "h-[64px] rounded-none px-6 xl:px-10 bg-white/[0.98] dark:bg-[#09090B]/[0.98] border-transparent border-b-[#E4E7EC] dark:border-b-white/[0.08] shadow-[0_0_0_0_rgba(16,24,40,0)] dark:shadow-[0_0_0_0_rgba(0,0,0,0)]"
         }`}
       >
         {/* Reading Progress Bar (2px #0066FF along bottom edge) */}
         <div
           aria-hidden="true"
-          className={`pointer-events-none absolute bottom-0 left-0 right-0 h-[2px] overflow-hidden ${
-            isScrolled ? "rounded-b-[10px]" : ""
+          className={`pointer-events-none absolute bottom-0 left-0 right-0 h-[2px] overflow-hidden transition-[border-radius] duration-[440ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${
+            isScrolled ? "rounded-b-[10px]" : "rounded-b-none"
           }`}
         >
           <div
@@ -545,6 +683,7 @@ export const LandingNavbar = React.memo(function LandingNavbar() {
                 <DocsApiDropdown
                   key={item.label}
                   isActive={pathname.startsWith("/docs") || activeSection === "api"}
+                  onOpenChange={handleDocsOpenChange}
                 />
               );
             }
@@ -609,10 +748,16 @@ export const LandingNavbar = React.memo(function LandingNavbar() {
 
       {/* ─── 2. MOBILE & TABLET NAVBAR (< 1024px / lg:hidden) ─── */}
       <header
-        className={`relative flex lg:hidden items-center justify-between pointer-events-auto transform-gpu transition-[transform,width,background-color,border-color,box-shadow,border-radius] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-hidden ${
+        style={{
+          maxWidth: mobileMaxWidth,
+          transform: isScrolled ? "translate3d(0, 10px, 0)" : "translate3d(0, 0px, 0)",
+        }}
+        className={`navbar-morph-surface relative flex lg:hidden w-full items-center justify-between border overflow-hidden ${
+          isHidden ? "pointer-events-none" : "pointer-events-auto"
+        } ${
           isScrolled
-            ? "translate-y-2.5 w-[calc(100%-1.5rem)] max-w-2xl rounded-[10px] px-4 py-2.5 bg-white/[0.97] dark:bg-[#0C0C0F]/[0.97] border border-[#E4E7EC] dark:border-white/12 shadow-[0_10px_28px_rgba(0,0,0,0.08)] dark:shadow-[0_12px_32px_rgba(0,0,0,0.58)]"
-            : "translate-y-0 w-full rounded-none px-4 sm:px-6 py-3 bg-white/[0.98] dark:bg-[#09090B]/[0.98] border-b border-[#E4E7EC] dark:border-white/10"
+            ? "h-[52px] rounded-[10px] px-4 bg-white/[0.97] dark:bg-[#0C0C0F]/[0.97] border-[#E4E7EC] dark:border-white/12 shadow-[0_10px_28px_-4px_rgba(0,0,0,0.08)] dark:shadow-[0_12px_32px_-4px_rgba(0,0,0,0.58)]"
+            : "h-[56px] rounded-none px-4 sm:px-6 bg-white/[0.98] dark:bg-[#09090B]/[0.98] border-transparent border-b-[#E4E7EC] dark:border-b-white/10 shadow-[0_0_0_0_rgba(0,0,0,0)]"
         }`}
       >
         {/* Mobile Reading Progress Bar */}

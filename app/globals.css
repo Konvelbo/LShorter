@@ -1927,4 +1927,36 @@ html.light main .text-neutral-200 {
   }
 }
 
+/* ==========================================================================
+   SMART FLOATING HEADROOM NAVBAR — SILKY ZERO-JUMP TRANSITIONS
+   ========================================================================== */
+.navbar-headroom-shell {
+  will-change: transform, opacity;
+  transition-property: transform, opacity;
+  transition-duration: 360ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.navbar-headroom-shell[data-hidden="true"] {
+  transition-duration: 300ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.navbar-morph-surface {
+  will-change: transform, max-width;
+  transition-property:
+    transform,
+    translate,
+    max-width,
+    height,
+    padding-left,
+    padding-right,
+    border-radius,
+    background-color,
+    border-color,
+    box-shadow;
+  transition-duration: 440ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 
