@@ -231,7 +231,7 @@ const MarketingMobileDrawer = React.memo(function MarketingMobileDrawer() {
               ) : undefined
             }
           >
-            {isAuthenticated ? "Open Dashboard" : "Shorten a link — no signup"}
+            {isAuthenticated ? "Open Dashboard" : "Shorten a link"}
           </WaveRevealButton>
         </div>
       </aside>

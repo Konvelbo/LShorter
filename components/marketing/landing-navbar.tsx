@@ -602,14 +602,7 @@ export const LandingNavbar = React.memo(function LandingNavbar() {
               )
             }
           >
-            {isAuthenticated ? (
-              "Dashboard"
-            ) : (
-              <>
-                <span className="hidden xl:inline">Shorten a link — no signup</span>
-                <span className="xl:hidden">Shorten — no signup</span>
-              </>
-            )}
+            {isAuthenticated ? "Dashboard" : "Shorten a link"}
           </WaveRevealButton>
         </div>
       </header>
