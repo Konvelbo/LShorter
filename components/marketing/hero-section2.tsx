@@ -14,6 +14,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { HeroShortener } from "@/components/marketing/hero-shortener";
+import { HeroBackground } from "@/components/ui/tailwind-css-background-snippet";
 import {
   EASE_OUT_EXPO,
   SectionRailFrame,
@@ -264,15 +265,12 @@ export function HeroSection() {
   return (
     <section
       id="hero"
-      className="relative w-full overflow-x-clip bg-[#FFFFFF] dark:bg-[#09090B] pt-20 sm:pt-24 transition-colors duration-300"
+      className="relative isolate w-full overflow-x-clip pt-20 sm:pt-24 transition-colors duration-300"
     >
-      {/* Subtle Cyber Blue Top Surface Light (pure #0066FF, zero purple/cyan gradient) */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 h-[520px] bg-[radial-gradient(ellipse_65%_45%_at_50%_0%,rgba(0,102,255,0.06),transparent_75%)] dark:bg-[radial-gradient(ellipse_65%_45%_at_50%_0%,rgba(0,102,255,0.11),transparent_75%)]"
-      />
+      {/* Background Pattern from tailwind-css-background-snippet */}
+      <HeroBackground />
 
-      <SectionRailFrame className="min-h-[calc(100svh-80px)] sm:min-h-[calc(100svh-96px)] flex flex-col justify-center">
+      <SectionRailFrame className="relative z-10 min-h-[calc(100svh-80px)] sm:min-h-[calc(100svh-96px)] flex flex-col justify-center">
         <div className="py-10 sm:py-14 flex flex-col items-center text-center">
           <motion.h1
             initial={{ opacity: 0.92, y: 6 }}
