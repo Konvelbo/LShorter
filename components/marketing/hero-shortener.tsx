@@ -34,6 +34,7 @@ export interface ShortenedItem {
 }
 
 const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
+const HERO_STORAGE_KEY = "lshorter_hero_active_link_v1";
 
 function formatRemaining24h(ms: number): string {
   const safeSec = Math.max(0, Math.floor(ms / 1000));
@@ -44,6 +45,50 @@ function formatRemaining24h(ms: number): string {
   const mm = String(minutes).padStart(2, "0");
   const ss = String(seconds).padStart(2, "0");
   return `${hh}h ${mm}m ${ss}s`;
+}
+
+function getExpirationMs(item: ShortenedItem): number {
+  if (item.expiresAt) {
+    const parsed = new Date(item.expiresAt).getTime();
+    if (!Number.isNaN(parsed)) return parsed;
+  }
+  const created = item.createdAt
+    ? new Date(item.createdAt).getTime()
+    : Date.now();
+  return (Number.isNaN(created) ? Date.now() : created) + TWENTY_FOUR_HOURS_MS;
+}
+
+function readStoredHeroLink(): ShortenedItem | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(HERO_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as ShortenedItem;
+    if (!parsed || typeof parsed.slug !== "string" || !parsed.slug.trim()) {
+      window.localStorage.removeItem(HERO_STORAGE_KEY);
+      return null;
+    }
+    if (getExpirationMs(parsed) <= Date.now()) {
+      window.localStorage.removeItem(HERO_STORAGE_KEY);
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredHeroLink(item: ShortenedItem | null): void {
+  if (typeof window === "undefined") return;
+  try {
+    if (!item) {
+      window.localStorage.removeItem(HERO_STORAGE_KEY);
+    } else {
+      window.localStorage.setItem(HERO_STORAGE_KEY, JSON.stringify(item));
+    }
+  } catch {
+    // ignore storage quota errors
+  }
 }
 
 export function HeroShortener() {
@@ -79,6 +124,7 @@ export function HeroShortener() {
     if (expiringSlugsRef.current.has(slug)) return;
     expiringSlugsRef.current.add(slug);
 
+    writeStoredHeroLink(null);
     setLinks((prev) => prev.filter((item) => item.slug !== slug));
     setLimitReached(false);
 
@@ -98,6 +144,7 @@ export function HeroShortener() {
             ? data.links
             : [];
           setLinks(serverLinks);
+          writeStoredHeroLink(serverLinks[serverLinks.length - 1] || null);
           setMaxLinks(Number(data.maxLinks ?? 1));
           setLimitReached(Boolean(data.limitReached));
         }
@@ -110,9 +157,15 @@ export function HeroShortener() {
   }, []);
 
   // Fetch current Hero link & live clicks from server
-  const fetchGuestState = useCallback(async () => {
+  const fetchGuestState = useCallback(async (hintSlug?: string) => {
     try {
-      const res = await fetch("/api/public/shorten", {
+      const stored = readStoredHeroLink();
+      const slugToQuery = (hintSlug || stored?.slug || "").trim();
+      const endpoint = slugToQuery
+        ? `/api/public/shorten?slug=${encodeURIComponent(slugToQuery)}`
+        : "/api/public/shorten";
+
+      const res = await fetch(endpoint, {
         method: "GET",
         credentials: "same-origin",
         cache: "no-store",
@@ -124,17 +177,43 @@ export function HeroShortener() {
       const serverLinks: ShortenedItem[] = Array.isArray(data.links)
         ? data.links
         : [];
-      setLinks(serverLinks);
-      setMaxLinks(Number(data.maxLinks ?? 1));
-      setLimitReached(Boolean(data.limitReached));
+
+      if (serverLinks.length > 0) {
+        const latest = serverLinks[serverLinks.length - 1];
+        writeStoredHeroLink(latest);
+        setLinks(serverLinks);
+        setMaxLinks(Number(data.maxLinks ?? 1));
+        setLimitReached(
+          Boolean(data.limitReached || serverLinks.length >= (data.maxLinks ?? 1))
+        );
+      } else {
+        // Keep a freshly shortened local link if D1 is still propagating (< 15s old)
+        const currentStored = readStoredHeroLink();
+        const isVeryFresh =
+          currentStored &&
+          Date.now() - new Date(currentStored.createdAt || 0).getTime() < 15000;
+
+        if (!isVeryFresh) {
+          writeStoredHeroLink(null);
+          setLinks([]);
+          setMaxLinks(Number(data.maxLinks ?? 1));
+          setLimitReached(Boolean(data.limitReached));
+        }
+      }
     } catch {
       // silent polling resilience
     }
   }, []);
 
-  // Initial load of Hero link (persists across refreshes via httpOnly cookie / IP hash)
+  // Initial load of Hero link: hydrate immediately from localStorage, then sync live click count with D1
   useEffect(() => {
-    fetchGuestState();
+    const cached = readStoredHeroLink();
+    if (cached) {
+      setNowMs(Date.now());
+      setLinks([cached]);
+      setLimitReached(true);
+    }
+    fetchGuestState(cached?.slug);
   }, [fetchGuestState]);
 
   // Real-time 1-second countdown ticker + automatic deletion when timer reaches 00h 00m 00s
@@ -146,10 +225,7 @@ export function HeroShortener() {
       const currentNow = Date.now();
       setNowMs(currentNow);
 
-      const expMs = activeLink.expiresAt
-        ? new Date(activeLink.expiresAt).getTime()
-        : new Date(activeLink.createdAt || currentNow).getTime() +
-          TWENTY_FOUR_HOURS_MS;
+      const expMs = getExpirationMs(activeLink);
 
       if (expMs - currentNow <= 0) {
         handleExpireLink(activeLink.slug);
@@ -168,13 +244,13 @@ export function HeroShortener() {
         typeof document !== "undefined" &&
         document.visibilityState === "visible"
       ) {
-        fetchGuestState();
+        fetchGuestState(activeLink?.slug);
       }
     }, 5000);
 
     const handleVisibility = () => {
       if (document.visibilityState === "visible") {
-        fetchGuestState();
+        fetchGuestState(activeLink?.slug);
       }
     };
     document.addEventListener("visibilitychange", handleVisibility);
@@ -183,7 +259,7 @@ export function HeroShortener() {
       clearInterval(interval);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, [links.length, fetchGuestState]);
+  }, [links.length, activeLink?.slug, fetchGuestState]);
 
   // Listen for Navbar / Final CTA focus events
   useEffect(() => {
@@ -254,17 +330,24 @@ export function HeroShortener() {
 
     setIsSubmitting(true);
     try {
+      const existingCached = readStoredHeroLink();
       const res = await fetch("/api/public/shorten", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
-        body: JSON.stringify({ targetUrl: trimmed }),
+        body: JSON.stringify({
+          targetUrl: trimmed,
+          existingSlug: activeLink?.slug || existingCached?.slug || undefined,
+        }),
       });
 
       const data = await res.json().catch(() => ({}));
 
       if (res.status === 403 && data?.code === "GUEST_LIMIT_REACHED") {
-        if (Array.isArray(data.links)) setLinks(data.links);
+        if (Array.isArray(data.links) && data.links.length > 0) {
+          setLinks(data.links);
+          writeStoredHeroLink(data.links[data.links.length - 1]);
+        }
         setLimitReached(true);
         setShowLimitModal(true);
         return;
@@ -292,6 +375,8 @@ export function HeroShortener() {
         expiresAt: item.expiresAt || fallbackExpiresAt,
       }));
 
+      const latest = normalizedLinks[normalizedLinks.length - 1] || null;
+      writeStoredHeroLink(latest);
       setNowMs(Date.now());
       setLinks(normalizedLinks);
       setMaxLinks(Number(data.maxLinks ?? 1));
@@ -306,17 +391,15 @@ export function HeroShortener() {
 
   // Trigger rapid click-sync right after user clicks their newly generated short link
   const handleLinkClicked = () => {
-    setTimeout(() => fetchGuestState(), 1100);
-    setTimeout(() => fetchGuestState(), 2800);
-    setTimeout(() => fetchGuestState(), 5200);
+    const slug = activeLink?.slug;
+    setTimeout(() => fetchGuestState(slug), 1100);
+    setTimeout(() => fetchGuestState(slug), 2800);
+    setTimeout(() => fetchGuestState(slug), 5200);
   };
 
   const remainingMs = useMemo(() => {
     if (!activeLink) return 0;
-    const expMs = activeLink.expiresAt
-      ? new Date(activeLink.expiresAt).getTime()
-      : new Date(activeLink.createdAt || nowMs).getTime() +
-        TWENTY_FOUR_HOURS_MS;
+    const expMs = getExpirationMs(activeLink);
     return Math.max(0, expMs - nowMs);
   }, [activeLink, nowMs]);
 
@@ -401,7 +484,7 @@ export function HeroShortener() {
         )}
       </AnimatePresence>
 
-      {/* ── Soft Theme-Harmonious Two-Bar Shortened Link Row + 24-Hour Live Countdown Timer ── */}
+      {/* ── Soft Theme-Harmonious Two-Bar Shortened Link Row with Frosted Backdrop Blur + 24-Hour Live Countdown Timer ── */}
       <AnimatePresence initial={false}>
         {activeLink && (
           <motion.div
@@ -416,33 +499,33 @@ export function HeroShortener() {
             aria-live="polite"
             className="relative z-10 mt-3.5 flex flex-col items-center"
           >
-            {/* Minimalist Row with Soft Indigo/Lavender Left & Right Vertical Bars */}
-            <div className="w-full border-l-2 border-r-2 border-[#6366F1]/45 dark:border-[#A5B4FC]/45 px-4 py-2.5 flex items-center justify-between gap-4 text-left">
+            {/* Minimalist Two-Bar Row with Frosted Glass Background Blur */}
+            <div className="w-full border-l-2 border-r-2 border-[#6366F1]/60 dark:border-[#A5B4FC]/60 bg-white/55 dark:bg-[#11131A]/60 backdrop-blur-md shadow-[0_8px_24px_rgba(99,102,241,0.10)] dark:shadow-[0_10px_28px_rgba(0,0,0,0.42)] px-4 py-3 flex items-center justify-between gap-4 text-left">
               {/* Left: Shortened link + icon that redirects on click */}
               <a
                 href={`/${encodeURIComponent(activeLink.slug)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={handleLinkClicked}
-                className="group inline-flex items-center gap-2 text-[15px] sm:text-[16px] font-mono font-semibold text-[#312E81]/90 dark:text-[#E0E7FF]/95 hover:text-[#4F46E5] dark:hover:text-white transition-colors truncate"
+                className="group inline-flex items-center gap-2 text-[15px] sm:text-[16px] font-mono font-semibold text-[#312E81]/95 dark:text-[#E0E7FF]/95 hover:text-[#4F46E5] dark:hover:text-white transition-colors truncate"
               >
                 <span className="truncate">lsho.cc/{activeLink.slug}</span>
-                <ExternalLink className="w-4 h-4 shrink-0 text-[#6366F1]/80 dark:text-[#A5B4FC]/85 group-hover:text-[#4F46E5] dark:group-hover:text-white group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                <ExternalLink className="w-4 h-4 shrink-0 text-[#6366F1]/85 dark:text-[#A5B4FC]/85 group-hover:text-[#4F46E5] dark:group-hover:text-white group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
               </a>
 
               {/* Right: Live click count text (0 clicks, 1 click, 2 clicks...) */}
-              <span className="shrink-0 font-mono text-[13.5px] sm:text-[14px] font-medium text-[#4338CA]/80 dark:text-[#C7D2FE]/85 tabular-nums">
+              <span className="shrink-0 font-mono text-[13.5px] sm:text-[14px] font-medium text-[#4338CA]/85 dark:text-[#C7D2FE]/90 tabular-nums">
                 {activeLink.clicksCount}{" "}
                 {activeLink.clicksCount === 1 ? "click" : "clicks"}
               </span>
             </div>
 
             {/* 24-Hour Live Countdown Timer (decrements every second; auto-deletes link at 00h 00m 00s) */}
-            <div className="mt-2.5 inline-flex items-center gap-1.5 text-[12.5px] sm:text-[13px] text-[#4338CA]/75 dark:text-[#C7D2FE]/80 select-none">
-              <Clock className="w-3.5 h-3.5 text-[#6366F1]/85 dark:text-[#A5B4FC]/85 shrink-0" />
+            <div className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-[8px] bg-white/40 dark:bg-[#11131A]/45 backdrop-blur-md text-[12.5px] sm:text-[13px] text-[#4338CA]/85 dark:text-[#C7D2FE]/85 select-none">
+              <Clock className="w-3.5 h-3.5 text-[#6366F1]/90 dark:text-[#A5B4FC]/90 shrink-0" />
               <span>
                 Expires in{" "}
-                <strong className="font-mono font-semibold tabular-nums text-[#312E81]/90 dark:text-[#E0E7FF]/95">
+                <strong className="font-mono font-semibold tabular-nums text-[#312E81] dark:text-[#E0E7FF]">
                   {formatRemaining24h(remainingMs)}
                 </strong>
               </span>

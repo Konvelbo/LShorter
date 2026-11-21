@@ -24,6 +24,7 @@ export interface GuestLinkRecord {
   expiresAt: string;
   createdAt: string;
   isGuest: true;
+  guestId?: string;
 }
 
 interface RawGuestLinkRow {
@@ -145,14 +146,26 @@ export async function ensureGuestLinksTable(): Promise<void> {
 }
 
 /**
- * Deletes an expired or zero-countdown guest link from D1 (`links`, `click_events`, `guest_links`)
- * and removes it from the Cloudflare Edge Worker.
+ * Deletes an expired or zero-countdown guest row.
+ * - If `claimed_by` is NULL (unclaimed guest link), hard-deletes the link from D1 (`links`, `click_events`, `guest_links`)
+ *   and removes it from the Cloudflare Edge Worker KV.
+ * - If `claimed_by` is present (already saved into a user's permanent dashboard), only removes the Hero tracking entry
+ *   from `guest_links` while preserving their permanent dashboard link.
  */
-async function hardDeleteUnclaimedGuestRow(row: {
+async function expireGuestRow(row: {
   link_id: string;
   slug: string;
   guest_id?: string;
+  claimed_by?: string | null;
 }): Promise<void> {
+  await executeD1Query(`DELETE FROM guest_links WHERE link_id = ?`, [
+    row.link_id,
+  ]).catch(() => {});
+
+  if (row.claimed_by) {
+    return;
+  }
+
   await executeD1Query(
     `DELETE FROM links WHERE id = ? OR LOWER(slug) = LOWER(?)`,
     [row.link_id, row.slug]
@@ -162,10 +175,6 @@ async function hardDeleteUnclaimedGuestRow(row: {
     `DELETE FROM click_events WHERE link_id = ? OR LOWER(slug) = LOWER(?)`,
     [row.link_id, row.slug]
   ).catch(() => {});
-
-  await executeD1Query(`DELETE FROM guest_links WHERE link_id = ?`, [
-    row.link_id,
-  ]).catch(() => {});
 
   await fetch(`${WORKER_URL}/api/v1/links/${encodeURIComponent(row.slug)}`, {
     method: "DELETE",
@@ -184,7 +193,7 @@ async function hardDeleteUnclaimedGuestRow(row: {
 }
 
 /**
- * Automatically purges all unclaimed guest links whose 24-hour timer has expired (`expires_at <= now`).
+ * Automatically purges all Hero guest links whose 24-hour timer has expired (`expires_at <= now`).
  */
 export async function purgeExpiredGuestLinks(): Promise<number> {
   await ensureGuestLinksTable();
@@ -194,9 +203,10 @@ export async function purgeExpiredGuestLinks(): Promise<number> {
     link_id: string;
     slug: string;
     guest_id: string;
+    claimed_by: string | null;
   }>(
-    `SELECT link_id, slug, guest_id FROM guest_links
-     WHERE claimed_by IS NULL AND expires_at <= ?
+    `SELECT link_id, slug, guest_id, claimed_by FROM guest_links
+     WHERE expires_at <= ?
      LIMIT 25`,
     [nowIso]
   ).catch(() => []);
@@ -204,14 +214,14 @@ export async function purgeExpiredGuestLinks(): Promise<number> {
   if (!expiredRows.length) return 0;
 
   for (const row of expiredRows) {
-    await hardDeleteUnclaimedGuestRow(row);
+    await expireGuestRow(row);
   }
 
   return expiredRows.length;
 }
 
 /**
- * Deletes a specific unclaimed guest link by slug when its 24h countdown reaches zero on the client.
+ * Deletes a specific guest link by slug when its 24h countdown reaches zero on the client.
  */
 export async function deleteGuestLinkBySlug(params: {
   slug: string;
@@ -227,22 +237,24 @@ export async function deleteGuestLinkBySlug(params: {
     slug: string;
     guest_id: string;
     ip_hash: string;
+    claimed_by: string | null;
   }>(
-    `SELECT link_id, slug, guest_id, ip_hash FROM guest_links
-     WHERE LOWER(slug) = LOWER(?) AND claimed_by IS NULL`,
+    `SELECT link_id, slug, guest_id, ip_hash, claimed_by FROM guest_links
+     WHERE LOWER(slug) = LOWER(?)`,
     [cleanSlug]
   ).catch(() => []);
 
   if (!rows.length) return false;
 
-  const target = rows.find(
-    (r) =>
-      (params.guestId && r.guest_id === params.guestId) ||
-      r.ip_hash === params.ipHash
-  );
+  const target =
+    rows.find(
+      (r) =>
+        (params.guestId && r.guest_id === params.guestId) ||
+        r.ip_hash === params.ipHash
+    ) || rows[0];
   if (!target) return false;
 
-  await hardDeleteUnclaimedGuestRow(target);
+  await expireGuestRow(target);
   return true;
 }
 
@@ -254,12 +266,15 @@ export async function recordGuestLink(entry: {
   guestId: string;
   ipHash: string;
   expiresAt: string;
+  claimedBy?: string | null;
 }): Promise<void> {
   await ensureGuestLinksTable();
   const now = new Date().toISOString();
+  const claimedBy = entry.claimedBy || null;
+  const claimedAt = claimedBy ? now : null;
   await executeD1Query(
     `INSERT OR REPLACE INTO guest_links (link_id, slug, target_url, short_url, guest_id, ip_hash, expires_at, created_at, claimed_by, claimed_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       entry.linkId,
       entry.slug,
@@ -269,13 +284,16 @@ export async function recordGuestLink(entry: {
       entry.ipHash,
       entry.expiresAt,
       now,
+      claimedBy,
+      claimedAt,
     ]
   );
 }
 
 export async function countGuestLinksUsage(
   guestId: string | null,
-  ipHash: string
+  ipHash: string,
+  hintSlug?: string | null
 ): Promise<{
   cookieCount: number;
   ipCount: number;
@@ -293,7 +311,7 @@ export async function countGuestLinksUsage(
   if (guestId) {
     const rows = await executeD1Query<{ cnt: number }>(
       `SELECT COUNT(*) AS cnt FROM guest_links
-       WHERE guest_id = ? AND claimed_by IS NULL AND expires_at > ?`,
+       WHERE guest_id = ? AND expires_at > ?`,
       [guestId, nowIso]
     ).catch(() => []);
     cookieCount = Number(rows[0]?.cnt || 0);
@@ -301,12 +319,22 @@ export async function countGuestLinksUsage(
 
   const ipRows = await executeD1Query<{ cnt: number }>(
     `SELECT COUNT(*) AS cnt FROM guest_links
-     WHERE ip_hash = ? AND claimed_by IS NULL AND created_at > ? AND expires_at > ?`,
+     WHERE ip_hash = ? AND created_at > ? AND expires_at > ?`,
     [ipHash, cutoffIso, nowIso]
   ).catch(() => []);
   const ipCount = Number(ipRows[0]?.cnt || 0);
 
-  const effectiveCount = Math.max(cookieCount, ipCount);
+  let slugCount = 0;
+  if (hintSlug && hintSlug.trim()) {
+    const slugRows = await executeD1Query<{ cnt: number }>(
+      `SELECT COUNT(*) AS cnt FROM guest_links
+       WHERE LOWER(slug) = LOWER(?) AND expires_at > ?`,
+      [hintSlug.trim(), nowIso]
+    ).catch(() => []);
+    slugCount = Number(slugRows[0]?.cnt || 0);
+  }
+
+  const effectiveCount = Math.max(cookieCount, ipCount, slugCount);
   const remaining = Math.max(0, GUEST_MAX_LINKS - effectiveCount);
 
   return {
@@ -320,72 +348,126 @@ export async function countGuestLinksUsage(
 
 export async function getGuestLinksWithLiveClicks(
   guestId: string | null,
-  ipHash?: string
+  ipHash?: string,
+  hintSlug?: string | null
 ): Promise<GuestLinkRecord[]> {
   await ensureGuestLinksTable();
   await purgeExpiredGuestLinks().catch(() => {});
 
-  if (!guestId && !ipHash) return [];
+  const cleanHintSlug = hintSlug?.trim() || null;
+  if (!guestId && !ipHash && !cleanHintSlug) return [];
   const nowIso = new Date().toISOString();
 
-  const rows = await executeD1Query<RawGuestLinkRow>(
-    guestId && ipHash
-      ? `SELECT
-           g.link_id,
-           g.slug,
-           g.target_url,
-           g.short_url,
-           g.guest_id,
-           g.ip_hash,
-           g.expires_at,
-           g.created_at,
-           g.claimed_by,
-           g.claimed_at,
-           COALESCE(l.clicks_count, 0) AS live_clicks
-         FROM guest_links g
-         LEFT JOIN links l ON l.id = g.link_id OR LOWER(l.slug) = LOWER(g.slug)
-         WHERE (g.guest_id = ? OR g.ip_hash = ?) AND g.claimed_by IS NULL AND g.expires_at > ?
-         ORDER BY g.created_at DESC
-         LIMIT 1`
-      : guestId
-        ? `SELECT
-             g.link_id,
-             g.slug,
-             g.target_url,
-             g.short_url,
-             g.guest_id,
-             g.ip_hash,
-             g.expires_at,
-             g.created_at,
-             g.claimed_by,
-             g.claimed_at,
-             COALESCE(l.clicks_count, 0) AS live_clicks
-           FROM guest_links g
-           LEFT JOIN links l ON l.id = g.link_id OR LOWER(l.slug) = LOWER(g.slug)
-           WHERE g.guest_id = ? AND g.claimed_by IS NULL AND g.expires_at > ?
-           ORDER BY g.created_at DESC
-           LIMIT 1`
-        : `SELECT
-             g.link_id,
-             g.slug,
-             g.target_url,
-             g.short_url,
-             g.guest_id,
-             g.ip_hash,
-             g.expires_at,
-             g.created_at,
-             g.claimed_by,
-             g.claimed_at,
-             COALESCE(l.clicks_count, 0) AS live_clicks
-           FROM guest_links g
-           LEFT JOIN links l ON l.id = g.link_id OR LOWER(l.slug) = LOWER(g.slug)
-           WHERE g.ip_hash = ? AND g.claimed_by IS NULL AND g.expires_at > ?
-           ORDER BY g.created_at DESC
-           LIMIT 1`,
-    guestId && ipHash
-      ? [guestId, ipHash, nowIso]
-      : [guestId || ipHash!, nowIso]
+  const conditions: string[] = [];
+  const params: string[] = [];
+
+  if (guestId) {
+    conditions.push("g.guest_id = ?");
+    params.push(guestId);
+  }
+  if (ipHash) {
+    conditions.push("g.ip_hash = ?");
+    params.push(ipHash);
+  }
+  if (cleanHintSlug) {
+    conditions.push("LOWER(g.slug) = LOWER(?)");
+    params.push(cleanHintSlug);
+  }
+
+  params.push(nowIso);
+
+  let rows = await executeD1Query<RawGuestLinkRow>(
+    `SELECT
+       g.link_id,
+       g.slug,
+       g.target_url,
+       g.short_url,
+       g.guest_id,
+       g.ip_hash,
+       g.expires_at,
+       g.created_at,
+       g.claimed_by,
+       g.claimed_at,
+       COALESCE(l.clicks_count, 0) AS live_clicks
+     FROM guest_links g
+     LEFT JOIN links l ON l.id = g.link_id OR LOWER(l.slug) = LOWER(g.slug)
+     WHERE (${conditions.join(" OR ")}) AND g.expires_at > ?
+     ORDER BY g.created_at DESC
+     LIMIT 1`,
+    params
   ).catch(() => []);
+
+  // Fallback recovery: if the browser passes a hintSlug that exists in `links` (created within the last 24h)
+  // but wasn't recorded in `guest_links` yet, backfill `guest_links` so the Hero link persists across refreshes
+  if (rows.length === 0 && cleanHintSlug) {
+    const linkRows = await executeD1Query<{
+      id: string;
+      slug: string;
+      target_url: string;
+      user_id: string | null;
+      clicks_count: number | null;
+      expires_at: string | null;
+      created_at: string | null;
+    }>(
+      `SELECT id, slug, target_url, user_id, clicks_count, expires_at, created_at
+       FROM links
+       WHERE LOWER(slug) = LOWER(?)
+       LIMIT 1`,
+      [cleanHintSlug]
+    ).catch(() => []);
+
+    const found = linkRows[0];
+    if (found) {
+      const createdMs = found.created_at
+        ? new Date(found.created_at).getTime()
+        : Date.now();
+      const computedExpiresMs = found.expires_at
+        ? new Date(found.expires_at).getTime()
+        : createdMs + GUEST_LINK_TTL_MS;
+
+      if (computedExpiresMs > Date.now()) {
+        const recoveredGuestId = guestId || createGuestId();
+        const recoveredExpiresAt = new Date(computedExpiresMs).toISOString();
+        const recoveredCreatedAt = found.created_at || new Date().toISOString();
+        const shortUrl = `https://lsho.cc/${found.slug}`;
+        const isUserOwned =
+          found.user_id && !found.user_id.startsWith("guest_");
+
+        await executeD1Query(
+          `INSERT OR REPLACE INTO guest_links (link_id, slug, target_url, short_url, guest_id, ip_hash, expires_at, created_at, claimed_by, claimed_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            found.id,
+            found.slug,
+            found.target_url,
+            shortUrl,
+            recoveredGuestId,
+            ipHash || "recovered",
+            recoveredExpiresAt,
+            recoveredCreatedAt,
+            isUserOwned ? found.user_id : null,
+            isUserOwned ? recoveredCreatedAt : null,
+          ]
+        ).catch(() => {});
+
+        rows = [
+          {
+            link_id: found.id,
+            slug: found.slug,
+            target_url: found.target_url,
+            short_url: shortUrl,
+            guest_id: recoveredGuestId,
+            ip_hash: ipHash || "recovered",
+            expires_at: recoveredExpiresAt,
+            created_at: recoveredCreatedAt,
+            claimed_by: isUserOwned ? found.user_id : null,
+            claimed_at: isUserOwned ? recoveredCreatedAt : null,
+            live_clicks: Number(found.clicks_count ?? 0),
+          },
+        ];
+      }
+    }
+  }
 
   return rows.map((row) => ({
     linkId: row.link_id,
@@ -399,6 +481,7 @@ export async function getGuestLinksWithLiveClicks(
     expiresAt: row.expires_at,
     createdAt: row.created_at,
     isGuest: true as const,
+    guestId: row.guest_id,
   }));
 }
 

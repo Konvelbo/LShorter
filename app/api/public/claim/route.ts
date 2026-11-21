@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
       userPlan,
     });
 
-    const response = NextResponse.json(
+    return NextResponse.json(
       {
         success: true,
         claimedCount,
@@ -85,8 +85,6 @@ export async function POST(req: NextRequest) {
       },
       { headers: NO_STORE_HEADERS }
     );
-    response.cookies.delete(GUEST_COOKIE_NAME);
-    return response;
   } catch (err) {
     console.error("[POST /api/public/claim] Error:", err);
     return NextResponse.json(

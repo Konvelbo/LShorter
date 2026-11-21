@@ -49,23 +49,44 @@ export async function GET(req: NextRequest) {
     const ipHash = getClientIpHash(req);
     const token = req.cookies.get(GUEST_COOKIE_NAME)?.value;
     const guestId = verifyGuestToken(token);
+    const hintSlug = req.nextUrl.searchParams.get("slug")?.trim() || null;
 
-    const [usage, links] = await Promise.all([
-      countGuestLinksUsage(guestId, ipHash),
-      getGuestLinksWithLiveClicks(guestId, ipHash),
-    ]);
+    const links = await getGuestLinksWithLiveClicks(guestId, ipHash, hintSlug);
+    const usage = await countGuestLinksUsage(
+      guestId || links[0]?.guestId || null,
+      ipHash,
+      hintSlug
+    );
 
-    return NextResponse.json(
+    const response = NextResponse.json(
       {
         success: true,
         links,
-        usedCount: usage.effectiveCount,
-        remaining: usage.remaining,
+        usedCount: Math.max(usage.effectiveCount, links.length),
+        remaining: Math.max(
+          0,
+          GUEST_MAX_LINKS - Math.max(usage.effectiveCount, links.length)
+        ),
         maxLinks: GUEST_MAX_LINKS,
-        limitReached: usage.limitReached,
+        limitReached:
+          usage.limitReached || links.length >= GUEST_MAX_LINKS,
       },
       { headers: NO_STORE_HEADERS }
     );
+
+    // Ensure the httpOnly guest cookie stays synced if matched via IP hash or hintSlug
+    const activeGuestId = guestId || links[0]?.guestId;
+    if (activeGuestId && !guestId) {
+      response.cookies.set(GUEST_COOKIE_NAME, signGuestToken(activeGuestId), {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        path: "/",
+        maxAge: GUEST_COOKIE_MAX_AGE_SEC,
+      });
+    }
+
+    return response;
   } catch (err) {
     console.warn("[GET /api/public/shorten] Error:", err);
     return NextResponse.json(
@@ -85,8 +106,8 @@ export async function GET(req: NextRequest) {
 /**
  * POST /api/public/shorten
  * Creates a 24-hour short link from the Hero section with a strict 1-link limit.
- * When the visitor creates an account, `claimGuestLinksForUser` transfers this link
- * into their permanent dashboard (`expires_at = NULL`).
+ * When the visitor creates an account (or if they are already signed in), the link
+ * is permanently saved into their dashboard (`expires_at = NULL`).
  */
 export async function POST(req: NextRequest) {
   try {
@@ -105,7 +126,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    let body: { targetUrl?: string } = {};
+    let body: { targetUrl?: string; existingSlug?: string } = {};
     try {
       body = await req.json();
     } catch {
@@ -158,14 +179,17 @@ export async function POST(req: NextRequest) {
 
     const existingToken = req.cookies.get(GUEST_COOKIE_NAME)?.value;
     const existingGuestId = verifyGuestToken(existingToken);
+    const hintSlug =
+      typeof body.existingSlug === "string" ? body.existingSlug.trim() : null;
 
     // Enforce the strict 1-link Hero limit (24h TTL)
-    const usage = await countGuestLinksUsage(existingGuestId, ipHash);
-    if (usage.limitReached) {
-      const existingLinks = await getGuestLinksWithLiveClicks(
-        existingGuestId,
-        ipHash
-      );
+    const existingLinks = await getGuestLinksWithLiveClicks(
+      existingGuestId,
+      ipHash,
+      hintSlug
+    );
+    const usage = await countGuestLinksUsage(existingGuestId, ipHash, hintSlug);
+    if (usage.limitReached || existingLinks.length >= GUEST_MAX_LINKS) {
       return NextResponse.json(
         {
           success: false,
@@ -173,7 +197,7 @@ export async function POST(req: NextRequest) {
           error:
             "You've reached the 1-link limit. Create a free account to keep your link forever in your dashboard and shorten more links.",
           links: existingLinks,
-          usedCount: usage.effectiveCount,
+          usedCount: Math.max(usage.effectiveCount, existingLinks.length),
           remaining: 0,
           maxLinks: GUEST_MAX_LINKS,
           limitReached: true,
@@ -184,9 +208,9 @@ export async function POST(req: NextRequest) {
 
     const guestId = existingGuestId || createGuestId();
     const slug = generateGuestSlug();
-    const expiresAt = new Date(Date.now() + GUEST_LINK_TTL_MS).toISOString();
+    const heroExpiresAt = new Date(Date.now() + GUEST_LINK_TTL_MS).toISOString();
 
-    // Check if an authenticated session is also active so the link appears in their dashboard too
+    // Check if an authenticated session is also active so the link saves permanently to their dashboard
     const session = await auth().catch(() => null);
     const isAuthenticated = Boolean(
       session?.user &&
@@ -214,6 +238,9 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    const isClaimedImmediately = isAuthenticated && ownerId !== guestId;
+    const workerLinkExpiresAt = isClaimedImmediately ? null : heroExpiresAt;
+
     const workerRes = await fetch(`${WORKER_URL}/api/v1/links`, {
       method: "POST",
       headers: {
@@ -235,8 +262,8 @@ export async function POST(req: NextRequest) {
         slug,
         targetUrl: normalizedUrl,
         target_url: normalizedUrl,
-        expiresAt,
-        expires_at: expiresAt,
+        expiresAt: workerLinkExpiresAt,
+        expires_at: workerLinkExpiresAt,
         isActive: true,
         is_active: 1,
         pathLockMode: "off",
@@ -259,7 +286,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (isAuthenticated && ownerId !== guestId) {
+    if (isClaimedImmediately) {
       invalidateServerLinksCache(ownerId, ownerEmail);
     }
 
@@ -276,12 +303,13 @@ export async function POST(req: NextRequest) {
       shortUrl,
       guestId,
       ipHash,
-      expiresAt,
+      expiresAt: heroExpiresAt,
+      claimedBy: isClaimedImmediately ? ownerId : null,
     });
 
     const [updatedUsage, updatedLinks] = await Promise.all([
-      countGuestLinksUsage(guestId, ipHash),
-      getGuestLinksWithLiveClicks(guestId, ipHash),
+      countGuestLinksUsage(guestId, ipHash, createdSlug),
+      getGuestLinksWithLiveClicks(guestId, ipHash, createdSlug),
     ]);
 
     const createdLink = updatedLinks.find((l) => l.slug === createdSlug) || {
@@ -290,7 +318,7 @@ export async function POST(req: NextRequest) {
       shortUrl,
       targetUrl: normalizedUrl,
       clicksCount: 0,
-      expiresAt,
+      expiresAt: heroExpiresAt,
       createdAt: new Date().toISOString(),
       isGuest: true as const,
     };
@@ -298,13 +326,13 @@ export async function POST(req: NextRequest) {
     const response = NextResponse.json(
       {
         success: true,
-        authenticated: false,
+        authenticated: isClaimedImmediately,
         link: createdLink,
-        links: updatedLinks,
-        usedCount: updatedUsage.effectiveCount,
-        remaining: updatedUsage.remaining,
+        links: updatedLinks.length > 0 ? updatedLinks : [createdLink],
+        usedCount: Math.max(updatedUsage.effectiveCount, 1),
+        remaining: 0,
         maxLinks: GUEST_MAX_LINKS,
-        limitReached: updatedUsage.limitReached,
+        limitReached: true,
       },
       { status: 201, headers: NO_STORE_HEADERS }
     );
@@ -334,7 +362,7 @@ export async function POST(req: NextRequest) {
 /**
  * DELETE /api/public/shorten?slug=...
  * Invoked automatically when the 24-hour countdown timer reaches 00:00:00,
- * deleting the link from D1 and Cloudflare Worker KV.
+ * deleting the link from D1 and Cloudflare Worker KV (if unclaimed).
  */
 export async function DELETE(req: NextRequest) {
   try {
