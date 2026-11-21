@@ -7,15 +7,12 @@ import React, {
   useCallback,
   useMemo,
 } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Link2,
   ExternalLink,
-  Lock,
-  Sparkles,
   Clock,
-  X,
   AlertCircle,
   Loader2,
   CornerDownLeft,
@@ -92,6 +89,7 @@ function writeStoredHeroLink(item: ShortenedItem | null): void {
 }
 
 export function HeroShortener() {
+  const router = useRouter();
   const [urlInput, setUrlInput] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -100,7 +98,6 @@ export function HeroShortener() {
   const [links, setLinks] = useState<ShortenedItem[]>([]);
   const [maxLinks, setMaxLinks] = useState(1);
   const [limitReached, setLimitReached] = useState(false);
-  const [showLimitModal, setShowLimitModal] = useState(false);
   const [nowMs, setNowMs] = useState<number>(() => Date.now());
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -276,19 +273,15 @@ export function HeroShortener() {
     };
   }, []);
 
-  // Close limit modal on Escape
-  useEffect(() => {
-    if (!showLimitModal) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setShowLimitModal(false);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [showLimitModal]);
-
   const handleShorten = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
+
+    // On the 2nd click (when 1 link has already been shortened), redirect directly to account creation
+    if (limitReached || orderedLinks.length >= maxLinks) {
+      router.push("/register?claim=1");
+      return;
+    }
 
     const trimmed = urlInput.trim();
     if (!trimmed) {
@@ -297,7 +290,7 @@ export function HeroShortener() {
       return;
     }
 
-    // Validate basic HTTP(S) URL syntax before triggering the limit modal
+    // Validate basic HTTP(S) URL syntax
     const normalizedCandidate = /^https?:\/\//i.test(trimmed)
       ? trimmed
       : /^[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)+([/?#].*)?$/.test(trimmed)
@@ -322,12 +315,6 @@ export function HeroShortener() {
       return;
     }
 
-    // Immediate client gate if already at 1 Hero link (server also enforces cookie + IP)
-    if (limitReached || orderedLinks.length >= maxLinks) {
-      setShowLimitModal(true);
-      return;
-    }
-
     setIsSubmitting(true);
     try {
       const existingCached = readStoredHeroLink();
@@ -349,7 +336,7 @@ export function HeroShortener() {
           writeStoredHeroLink(data.links[data.links.length - 1]);
         }
         setLimitReached(true);
-        setShowLimitModal(true);
+        router.push("/register?claim=1");
         return;
       }
 
@@ -530,124 +517,6 @@ export function HeroShortener() {
                 </strong>
               </span>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* ── Mandatory 2nd-Link Guest Limit Modal (strictly rounded-[10px]) ── */}
-      <AnimatePresence>
-        {showLimitModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[10050] flex items-center justify-center p-4 bg-black/60 dark:bg-black/75 backdrop-blur-sm"
-            onMouseDown={(e) => {
-              if (e.target === e.currentTarget) setShowLimitModal(false);
-            }}
-          >
-            <motion.div
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="guest-limit-modal-title"
-              initial={{ opacity: 0, scale: 0.95, y: 12 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 12 }}
-              transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
-              className="relative w-full max-w-[480px] rounded-[10px] bg-white dark:bg-[#111216] border border-[#E4E7EC] dark:border-white/15 p-6 sm:p-7 shadow-[0_24px_64px_rgba(0,0,0,0.35)] text-left"
-            >
-              <button
-                type="button"
-                onClick={() => setShowLimitModal(false)}
-                aria-label="Close modal"
-                className="absolute right-4 top-4 w-8 h-8 rounded-[8px] flex items-center justify-center text-[#667085] dark:text-zinc-400 hover:text-[#101828] dark:hover:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.08] transition-colors cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-
-              <div className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.14em] text-[#0066FF] dark:text-[#5294FF] mb-3">
-                <Lock className="w-3.5 h-3.5" />
-                <span>GUEST QUOTA // 1 OF 1 USED</span>
-              </div>
-
-              <h3
-                id="guest-limit-modal-title"
-                className="text-[20px] font-bold tracking-[-0.025em] text-[#101828] dark:text-white"
-              >
-                You&apos;ve reached the 1-link guest limit
-              </h3>
-              <p className="mt-2 text-[14px] text-[#475467] dark:text-zinc-400 leading-relaxed">
-                {activeLink ? (
-                  <>
-                    Create a free account to continue shortening links. Your{" "}
-                    <strong className="text-[#101828] dark:text-white">
-                      existing guest link
-                    </strong>{" "}
-                    and its clicks will automatically save into your dashboard
-                    and{" "}
-                    <strong className="text-[#0066FF] dark:text-[#5294FF]">
-                      never expire
-                    </strong>
-                    .
-                  </>
-                ) : (
-                  <>
-                    Create a free account to continue shortening permanent links
-                    with live analytics, PathLock™ perimeter rules, and custom
-                    domains that{" "}
-                    <strong className="text-[#0066FF] dark:text-[#5294FF]">
-                      never expire
-                    </strong>
-                    .
-                  </>
-                )}
-              </p>
-
-              {activeLink && (
-                <div className="mt-4 rounded-[10px] border border-[#E4E7EC] dark:border-white/10 bg-[#F7F8FA] dark:bg-white/[0.03] divide-y divide-[#E4E7EC] dark:divide-white/[0.08]">
-                  <div className="px-3.5 py-2.5 flex items-center justify-between gap-3 text-[13px]">
-                    <div className="min-w-0">
-                      <div className="font-semibold text-[#0066FF] dark:text-[#5294FF] truncate">
-                        lsho.cc/{activeLink.slug}
-                      </div>
-                      <div className="text-[11.5px] text-[#667085] dark:text-zinc-400 truncate font-mono">
-                        {activeLink.targetUrl}
-                      </div>
-                    </div>
-                    <span className="shrink-0 px-2 py-0.5 rounded-[6px] bg-white dark:bg-white/[0.06] border border-[#E4E7EC] dark:border-white/10 font-mono text-[11.5px] font-semibold text-[#344054] dark:text-zinc-200 tabular-nums">
-                      {activeLink.clicksCount}{" "}
-                      {activeLink.clicksCount === 1 ? "click" : "clicks"}
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              <div className="mt-6 flex flex-col gap-2.5">
-                <WaveRevealButton
-                  href="/register?claim=1"
-                  variant="primary"
-                  size="lg"
-                  className="w-full"
-                  icon={<Sparkles className="w-4 h-4" />}
-                >
-                  {activeLink
-                    ? "Save my link & continue free"
-                    : "Create free account & continue"}
-                </WaveRevealButton>
-                <div className="text-center font-mono text-[11.5px] text-[#667085] dark:text-zinc-400">
-                  Free plan: 50 permanent links · 10,000 clicks/mo · No credit card
-                </div>
-                <div className="text-center text-[12.5px] text-[#475467] dark:text-zinc-400 pt-1">
-                  Already have an account?{" "}
-                  <Link
-                    href="/login?claim=1"
-                    className="font-semibold text-[#0066FF] dark:text-[#5294FF] hover:underline"
-                  >
-                    Sign in {activeLink ? "to save it" : ""}
-                  </Link>
-                </div>
-              </div>
-            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
