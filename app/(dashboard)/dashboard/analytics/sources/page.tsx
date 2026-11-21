@@ -10,6 +10,17 @@ import React, {
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import {
+  ArrowLeft,
+  Share2,
+  RefreshCw,
+  ChevronLeft,
+  ChevronRight,
+  Globe2,
+  MousePointerClick,
+  Compass,
+  TrendingUp,
+} from "lucide-react";
 import { ShortLink, GlobalAnalytics, LiveClickEvent } from "@/types";
 import {
   cfGetAnalytics,
@@ -250,7 +261,10 @@ function classifyReferrer(rawRef?: string | null): ClassifiedReferrer {
     hostMatches(host, "duckduckgo.com") ||
     hostMatches(host, "yahoo.com")
   ) {
-    const isGoogle = host.startsWith("google.") || host.includes(".google.") || hostMatches(host, "google.com");
+    const isGoogle =
+      host.startsWith("google.") ||
+      host.includes(".google.") ||
+      hostMatches(host, "google.com");
     const isBing = hostMatches(host, "bing.com");
     const isDdg = hostMatches(host, "duckduckgo.com");
     const pName = isGoogle
@@ -874,37 +888,38 @@ export default function SourcesAnalyticsPage() {
   );
 
   return (
-    <div className="max-w-[1440px] mx-auto pb-12 flex flex-col gap-5 animate-in fade-in">
-      {/* Header & Controls */}
-      <header className="flex flex-wrap items-end justify-between gap-4">
+    <div className="space-y-6 max-w-7xl mx-auto pb-12 animate-in fade-in">
+      {/* ─── Breadcrumb, Title & Global Controls (Same colors & dimensions as Devices / Live) ─── */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-1.5 text-[12px] text-[#667085] dark:text-[#7C8596] mb-1.5">
+          <div className="flex items-center gap-2 mb-2">
             <Link
               href="/dashboard/analytics"
-              className="hover:text-[#101828] dark:hover:text-[#E6E8EE] transition-colors"
+              className="flex items-center gap-1.5 text-xs ds-text-muted hover:text-[#0066FF] transition-colors"
             >
-              Analytics
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Back to Analytics</span>
             </Link>
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 24 24"
-              className="w-[13px] h-[13px] stroke-current fill-none stroke-2"
-            >
-              <path d="M9 6l6 6-6 6" />
-            </svg>
-            <span className="text-[#344054] dark:text-[#9AA3B2]">
-              Traffic Sources
+            <span className="text-zinc-400 dark:text-neutral-600">/</span>
+            <span className="text-xs text-[#0066FF] font-semibold flex items-center gap-1">
+              <Share2 className="w-3 h-3" />
+              <span>Traffic Sources</span>
             </span>
           </div>
-          <h1 className="text-[26px] font-bold tracking-[-0.015em] text-[#101828] dark:text-[#E6E8EE] leading-tight">
-            Traffic Sources
+
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight ds-text-primary flex flex-wrap items-center gap-2.5">
+            <span>Traffic Sources</span>
+            <span className="inline-flex items-center text-xs px-2.5 py-0.5 rounded-full font-semibold bg-[#0066FF]/10 text-[#0066FF] border border-[#0066FF]/30">
+              Channel Attribution
+            </span>
           </h1>
-          <p className="text-[14px] text-[#667085] dark:text-[#9AA3B2] mt-1">
+          <p className="text-xs sm:text-sm ds-text-muted mt-1">
             Channels, referrers and campaigns that drive clicks to your links.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
+        {/* Global Controls: Period & Link Selector */}
+        <div className="flex flex-wrap items-center gap-2.5">
           <select
             aria-label="Filter by link"
             value={selectedLinkObj ? selectedLinkObj.id : selectedLinkId}
@@ -914,54 +929,46 @@ export default function SourcesAnalyticsPage() {
               setIsRefreshing(true);
               cfInvalidateCache();
             }}
-            className="h-[44px] px-[14px] rounded-[10px] border border-[#E4E7EC] dark:border-[#2A3040] bg-white dark:bg-[#12151C] text-[#101828] dark:text-[#E6E8EE] text-[13px] font-medium focus:outline-none focus:border-[#2F5FE0] cursor-pointer"
+            className="px-3 py-1.5 rounded-[10px] ds-input text-xs font-semibold cursor-pointer"
           >
-            <option
-              value="all"
-              className="bg-white dark:bg-[#12151C] text-[#101828] dark:text-[#E6E8EE]"
-            >
-              All links combined
-            </option>
+            <option value="all">All links combined ({links.length})</option>
             {links.map((l) => (
-              <option
-                key={l.id}
-                value={l.id}
-                className="bg-white dark:bg-[#12151C] text-[#101828] dark:text-[#E6E8EE]"
-              >
+              <option key={l.id} value={l.id}>
                 /{l.slug} ({getLinkClicks(l)} clicks)
               </option>
             ))}
           </select>
 
           <div
-            className="flex p-[3px] rounded-[10px] border border-[#E4E7EC] dark:border-[#2A3040] bg-white dark:bg-[#12151C]"
+            className="flex items-center gap-1 p-1 rounded-[10px] ds-card text-xs shadow-xs"
             role="group"
             aria-label="Date range"
           >
-            {(["day", "week", "month", "year"] as const).map((r) => (
+            {(
+              [
+                { id: "day", label: "24h" },
+                { id: "week", label: "7d" },
+                { id: "month", label: "30d" },
+                { id: "year", label: "12m" },
+              ] as const
+            ).map((r) => (
               <button
-                key={r}
+                key={r.id}
                 type="button"
-                aria-pressed={selectedRange === r}
+                aria-pressed={selectedRange === r.id}
                 onClick={() => {
-                  setSelectedRange(r);
+                  setSelectedRange(r.id);
                   setCurrentPage(1);
                   setIsRefreshing(true);
                   cfInvalidateCache();
                 }}
-                className={`h-[36px] px-[14px] rounded-[7px] text-[13px] font-medium transition-colors cursor-pointer ${
-                  selectedRange === r
-                    ? "bg-[#2F5FE0] text-white"
-                    : "text-[#667085] dark:text-[#9AA3B2] hover:text-[#101828] dark:hover:text-[#E6E8EE]"
+                className={`px-2.5 py-1 rounded-[8px] font-semibold transition-all cursor-pointer ${
+                  selectedRange === r.id
+                    ? "bg-[#0066FF] !text-white font-bold"
+                    : "ds-text-muted hover:ds-text-primary"
                 }`}
               >
-                {r === "day"
-                  ? "24h"
-                  : r === "week"
-                    ? "7d"
-                    : r === "month"
-                      ? "30d"
-                      : "12m"}
+                {r.label}
               </button>
             ))}
           </div>
@@ -974,330 +981,364 @@ export default function SourcesAnalyticsPage() {
               cfInvalidateCache();
               void loadData(selectedRange, selectedLinkId, false, true);
             }}
-            className="w-[44px] h-[44px] rounded-[10px] border border-[#E4E7EC] dark:border-[#2A3040] bg-white dark:bg-[#12151C] text-[#667085] dark:text-[#9AA3B2] hover:text-[#101828] dark:hover:text-[#E6E8EE] hover:border-[#D0D5DD] dark:hover:border-[#3A4256] grid place-items-center cursor-pointer transition-colors"
+            className="p-2 rounded-[10px] ds-card ds-text-secondary hover:ds-text-primary hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
             title="Refresh"
           >
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 24 24"
-              className={`w-[16px] h-[16px] stroke-current fill-none stroke-[1.8] [stroke-linecap:round] [stroke-linejoin:round] ${
-                isRefreshing ? "animate-spin text-[#2F5FE0]" : ""
+            <RefreshCw
+              className={`w-3.5 h-3.5 ${
+                isRefreshing ? "animate-spin text-[#0066FF]" : ""
               }`}
-            >
-              <path d="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5" />
-            </svg>
+            />
           </button>
         </div>
-      </header>
+      </div>
 
-      {/* 4 KPI Cards */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      {/* ─── 4 Top KPI Summary Cards (Same dimensions & ds-card colors as Devices / Live) ─── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {/* KPI 1: Attributed clicks */}
-        <div className="rounded-[12px] border border-[#E4E7EC] dark:border-[#1E232E] bg-white dark:bg-[#12151C] px-[20px] py-[18px] flex flex-col gap-1.5">
-          <div className="text-[12px] font-semibold uppercase tracking-[0.06em] text-[#667085] dark:text-[#9AA3B2] flex items-center gap-2">
-            Attributed clicks
+        <div className="p-4 sm:p-5 rounded-[12px] ds-card shadow-xs flex flex-col justify-between gap-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold ds-text-muted uppercase tracking-wider">
+              Attributed clicks
+            </span>
+            <div className="p-1 rounded-full bg-[#0066FF]/10 shrink-0">
+              <MousePointerClick className="w-4 h-4 text-[#0066FF]" />
+            </div>
           </div>
-          <div className="text-[30px] font-bold tracking-[-0.02em] leading-[1.15] text-[#101828] dark:text-[#E6E8EE]">
-            {formatNumber(totalAttributedClicks)}
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl sm:text-3xl font-bold ds-text-primary leading-none">
+              {formatNumber(totalAttributedClicks)}
+            </span>
           </div>
-          <div className="text-[13px] text-[#667085] dark:text-[#8E97A7]">
-            {activeChannelsCount}{" "}
-            {activeChannelsCount === 1 ? "channel" : "channels"} ·{" "}
-            {referrersList.length}{" "}
-            {referrersList.length === 1 ? "source" : "sources"}
+          <div className="flex items-center justify-between pt-2 border-t border-[#E4E7EC] dark:border-[#222225]">
+            <span className="text-xs ds-text-muted font-mono">
+              {activeChannelsCount}{" "}
+              {activeChannelsCount === 1 ? "channel" : "channels"} ·{" "}
+              {referrersList.length}{" "}
+              {referrersList.length === 1 ? "source" : "sources"}
+            </span>
+            <span className="text-xs font-semibold text-[#0066FF]">100%</span>
           </div>
         </div>
 
         {/* KPI 2: Direct */}
-        <div className="rounded-[12px] border border-[#E4E7EC] dark:border-[#1E232E] bg-white dark:bg-[#12151C] px-[20px] py-[18px] flex flex-col gap-1.5">
-          <div className="text-[12px] font-semibold uppercase tracking-[0.06em] text-[#667085] dark:text-[#9AA3B2] flex items-center gap-2">
-            <span
-              className="w-2 h-2 rounded-full inline-block shrink-0"
-              style={{ background: "#2DD4A7" }}
-            />
-            Direct
+        <div className="p-4 sm:p-5 rounded-[12px] ds-card shadow-xs flex flex-col justify-between gap-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold ds-text-muted uppercase tracking-wider flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block shrink-0" />
+              Direct
+            </span>
+            <div className="p-1 rounded-full bg-emerald-500/10 shrink-0">
+              <Compass className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            </div>
           </div>
-          <div className="text-[30px] font-bold tracking-[-0.02em] leading-[1.15] text-[#101828] dark:text-[#E6E8EE]">
-            {formatNumber(directClicks)}{" "}
-            <small className="text-[14px] font-medium text-[#667085] dark:text-[#9AA3B2] ml-1.5">
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl sm:text-3xl font-bold ds-text-primary leading-none">
+              {formatNumber(directClicks)}
+            </span>
+            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
               {directPct}%
-            </small>
+            </span>
           </div>
-          <div className="text-[13px] text-[#667085] dark:text-[#8E97A7]">
-            QR codes, SMS, typed links
+          <div className="flex items-center justify-between pt-2 border-t border-[#E4E7EC] dark:border-[#222225]">
+            <span className="text-xs ds-text-muted truncate">
+              QR codes, SMS, typed links
+            </span>
+            <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 shrink-0 ml-1">
+              Direct
+            </span>
           </div>
         </div>
 
         {/* KPI 3: Social */}
-        <div className="rounded-[12px] border border-[#E4E7EC] dark:border-[#1E232E] bg-white dark:bg-[#12151C] px-[20px] py-[18px] flex flex-col gap-1.5">
-          <div className="text-[12px] font-semibold uppercase tracking-[0.06em] text-[#667085] dark:text-[#9AA3B2] flex items-center gap-2">
-            <span
-              className="w-2 h-2 rounded-full inline-block shrink-0"
-              style={{ background: "#5B8CFF" }}
-            />
-            Social
+        <div className="p-4 sm:p-5 rounded-[12px] ds-card shadow-xs flex flex-col justify-between gap-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold ds-text-muted uppercase tracking-wider flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-[#0066FF] inline-block shrink-0" />
+              Social
+            </span>
+            <div className="p-1 rounded-full bg-[#0066FF]/10 shrink-0">
+              <Share2 className="w-4 h-4 text-[#0066FF]" />
+            </div>
           </div>
-          <div className="text-[30px] font-bold tracking-[-0.02em] leading-[1.15] text-[#101828] dark:text-[#E6E8EE]">
-            {formatNumber(socialClicks)}{" "}
-            <small className="text-[14px] font-medium text-[#667085] dark:text-[#9AA3B2] ml-1.5">
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl sm:text-3xl font-bold ds-text-primary leading-none">
+              {formatNumber(socialClicks)}
+            </span>
+            <span className="text-xs text-[#0066FF] font-semibold">
               {socialPct}%
-            </small>
+            </span>
           </div>
-          <div className="text-[13px] text-[#667085] dark:text-[#8E97A7]">
-            {topSocialPlatform
-              ? `Led by ${topSocialPlatform.platformName}`
-              : "No social traffic recorded"}
+          <div className="flex items-center justify-between pt-2 border-t border-[#E4E7EC] dark:border-[#222225]">
+            <span className="text-xs ds-text-muted truncate">
+              {topSocialPlatform
+                ? `Led by ${topSocialPlatform.platformName}`
+                : "No social traffic yet"}
+            </span>
+            <span className="text-xs font-semibold text-[#0066FF] shrink-0 ml-1">
+              Social
+            </span>
           </div>
         </div>
 
         {/* KPI 4: Top referrer */}
-        <div className="rounded-[12px] border border-[#E4E7EC] dark:border-[#1E232E] bg-white dark:bg-[#12151C] px-[20px] py-[18px] flex flex-col gap-1.5">
-          <div className="text-[12px] font-semibold uppercase tracking-[0.06em] text-[#667085] dark:text-[#9AA3B2] flex items-center gap-2">
-            Top referrer
+        <div className="p-4 sm:p-5 rounded-[12px] ds-card shadow-xs flex flex-col justify-between gap-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold ds-text-muted uppercase tracking-wider">
+              Top referrer
+            </span>
+            <div className="p-1 rounded-full bg-purple-500/10 shrink-0">
+              <TrendingUp className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+            </div>
           </div>
-          <div className="text-[30px] font-bold tracking-[-0.02em] leading-[1.15] text-[#101828] dark:text-[#E6E8EE] truncate">
-            {topReferrerHighlight ? topReferrerHighlight.displayHost : "—"}
+          <div className="flex items-baseline gap-2 truncate">
+            <span className="font-bold ds-text-primary text-xl sm:text-2xl truncate leading-none">
+              {topReferrerHighlight ? topReferrerHighlight.displayHost : "—"}
+            </span>
             {topReferrerHighlight && (
-              <small className="text-[14px] font-medium text-[#667085] dark:text-[#9AA3B2] ml-2">
+              <span className="text-xs ds-text-muted font-mono shrink-0">
                 {formatNumber(topReferrerHighlight.count)}{" "}
                 {topReferrerHighlight.count === 1 ? "click" : "clicks"}
-              </small>
+              </span>
             )}
           </div>
-          <div className="text-[13px] text-[#667085] dark:text-[#8E97A7] truncate">
-            {topReferrerHighlight
-              ? `${topReferrerHighlight.platformName} · ${topReferrerHighlight.percentage}% of clicks`
-              : "No referrers recorded"}
-          </div>
-        </div>
-      </section>
-
-      {/* Two-Column Breakdown: Channel Mix & Top Referrers */}
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Left Card: Channel mix */}
-        <div className="rounded-[12px] border border-[#E4E7EC] dark:border-[#1E232E] bg-white dark:bg-[#12151C]">
-          <div className="px-[20px] py-[16px] border-b border-[#E4E7EC] dark:border-[#1E232E] flex items-center justify-between gap-3">
-            <h2 className="text-[15px] font-semibold text-[#101828] dark:text-[#E6E8EE]">
-              Channel mix
-            </h2>
-            <span className="text-[13px] text-[#667085] dark:text-[#9AA3B2]">
-              {formatNumber(totalAttributedClicks)} attributed{" "}
-              {totalAttributedClicks === 1 ? "click" : "clicks"}
+          <div className="flex items-center justify-between pt-2 border-t border-[#E4E7EC] dark:border-[#222225]">
+            <span className="text-xs text-purple-600 dark:text-purple-400 font-semibold truncate">
+              {topReferrerHighlight
+                ? `${topReferrerHighlight.platformName} · ${topReferrerHighlight.percentage}% of clicks`
+                : "No referrers recorded"}
+            </span>
+            <span className="text-xs ds-text-muted font-mono shrink-0 ml-1">
+              #1
             </span>
           </div>
+        </div>
+      </div>
 
-          <div className="p-[20px] flex flex-col gap-[18px]">
+      {/* ─── Two-Column Breakdown: Channel Mix & Top Referrers (Same card padding & colors as Devices) ─── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Left Card: Channel mix */}
+        <div className="p-5 sm:p-6 rounded-[12px] ds-card shadow-xs flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between pb-3 border-b border-[#E4E7EC] dark:border-[#222225]">
+              <span className="text-sm font-bold ds-text-primary flex items-center gap-1.5">
+                <Share2 className="w-4 h-4 text-[#0066FF]" />
+                <span>Channel mix</span>
+              </span>
+              <span className="text-xs ds-text-muted font-mono">
+                {formatNumber(totalAttributedClicks)} attributed{" "}
+                {totalAttributedClicks === 1 ? "click" : "clicks"}
+              </span>
+            </div>
+
             {/* Stacked Channel Bar */}
             <div
               role="img"
               aria-label={`Channel share: Direct ${directPct}%, Social ${socialPct}%`}
-              className="flex h-[12px] rounded-full overflow-hidden gap-[2px] bg-[#EEF2F6] dark:bg-[#232834]"
+              className="flex gap-[2px] h-3 my-5 rounded-[6px] overflow-hidden bg-[#EEF2F6] dark:bg-[#232C3D]"
             >
               {directPct > 0 && (
                 <i
-                  className="block h-full transition-all duration-300"
-                  style={{ width: `${directPct}%`, background: "#2DD4A7" }}
+                  className="block h-full bg-emerald-600 dark:bg-emerald-400 transition-all duration-300"
+                  style={{ width: `${directPct}%` }}
+                  title={`Direct: ${directPct}%`}
                 />
               )}
               {socialPct > 0 && (
                 <i
-                  className="block h-full transition-all duration-300"
-                  style={{ width: `${socialPct}%`, background: "#5B8CFF" }}
+                  className="block h-full bg-[#0066FF] transition-all duration-300"
+                  style={{ width: `${socialPct}%` }}
+                  title={`Social: ${socialPct}%`}
                 />
               )}
               {otherClicks > 0 && otherPct > 0 && (
                 <i
-                  className="block h-full transition-all duration-300"
-                  style={{ width: `${otherPct}%`, background: "#A78BFA" }}
+                  className="block h-full bg-purple-600 dark:bg-purple-400 transition-all duration-300"
+                  style={{ width: `${otherPct}%` }}
+                  title={`Web & Search: ${otherPct}%`}
                 />
               )}
             </div>
 
-            {/* Direct Channel Row */}
-            <div className="flex items-center gap-3">
-              <span
-                className="w-2 h-2 rounded-full inline-block shrink-0"
-                style={{ background: "#2DD4A7" }}
-              />
-              <div className="flex-1 min-w-0">
-                <div className="flex justify-between items-baseline text-[14px]">
-                  <b className="font-semibold text-[#101828] dark:text-[#E6E8EE]">
-                    Direct
-                  </b>
-                  <span className="text-[#667085] dark:text-[#9AA3B2] text-[13px]">
-                    {formatNumber(directClicks)}{" "}
-                    {directClicks === 1 ? "click" : "clicks"} · {directPct}%
+            {/* Channel Rows */}
+            <div className="space-y-0">
+              <div className="flex justify-between items-center py-3 border-t border-[#E4E7EC] dark:border-[#222225] text-sm">
+                <span className="inline-flex items-center ds-text-primary font-medium">
+                  <u className="inline-block w-2.5 h-2.5 mr-2.5 rounded-[3px] bg-emerald-600 dark:bg-emerald-400 no-underline" />
+                  Direct
+                </span>
+                <span className="font-bold ds-text-primary text-xs sm:text-sm">
+                  {formatNumber(directClicks)}{" "}
+                  {directClicks === 1 ? "click" : "clicks"}
+                  <span className="ml-1.5 font-medium ds-text-muted">
+                    · {directPct}%
                   </span>
-                </div>
+                </span>
               </div>
-            </div>
 
-            {/* Social Channel Row */}
-            <div className="flex items-center gap-3">
-              <span
-                className="w-2 h-2 rounded-full inline-block shrink-0"
-                style={{ background: "#5B8CFF" }}
-              />
-              <div className="flex-1 min-w-0">
-                <div className="flex justify-between items-baseline text-[14px]">
-                  <b className="font-semibold text-[#101828] dark:text-[#E6E8EE]">
-                    Social
-                  </b>
-                  <span className="text-[#667085] dark:text-[#9AA3B2] text-[13px]">
-                    {formatNumber(socialClicks)}{" "}
-                    {socialClicks === 1 ? "click" : "clicks"} · {socialPct}%
+              <div className="flex justify-between items-center py-3 border-t border-[#E4E7EC] dark:border-[#222225] text-sm">
+                <span className="inline-flex items-center ds-text-primary font-medium">
+                  <u className="inline-block w-2.5 h-2.5 mr-2.5 rounded-[3px] bg-[#0066FF] no-underline" />
+                  Social
+                </span>
+                <span className="font-bold ds-text-primary text-xs sm:text-sm">
+                  {formatNumber(socialClicks)}{" "}
+                  {socialClicks === 1 ? "click" : "clicks"}
+                  <span className="ml-1.5 font-medium ds-text-muted">
+                    · {socialPct}%
                   </span>
-                </div>
+                </span>
               </div>
-            </div>
 
-            {/* Optional Web / Referral Row if any non-direct non-social clicks exist */}
-            {otherClicks > 0 && (
-              <div className="flex items-center gap-3">
-                <span
-                  className="w-2 h-2 rounded-full inline-block shrink-0"
-                  style={{ background: "#A78BFA" }}
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-baseline text-[14px]">
-                    <b className="font-semibold text-[#101828] dark:text-[#E6E8EE]">
-                      Web &amp; Search
-                    </b>
-                    <span className="text-[#667085] dark:text-[#9AA3B2] text-[13px]">
-                      {formatNumber(otherClicks)}{" "}
-                      {otherClicks === 1 ? "click" : "clicks"} · {otherPct}%
+              {otherClicks > 0 && (
+                <div className="flex justify-between items-center py-3 border-t border-[#E4E7EC] dark:border-[#222225] text-sm">
+                  <span className="inline-flex items-center ds-text-primary font-medium">
+                    <u className="inline-block w-2.5 h-2.5 mr-2.5 rounded-[3px] bg-purple-600 dark:bg-purple-400 no-underline" />
+                    Web &amp; Search
+                  </span>
+                  <span className="font-bold ds-text-primary text-xs sm:text-sm">
+                    {formatNumber(otherClicks)}{" "}
+                    {otherClicks === 1 ? "click" : "clicks"}
+                    <span className="ml-1.5 font-medium ds-text-muted">
+                      · {otherPct}%
                     </span>
-                  </div>
+                  </span>
                 </div>
-              </div>
-            )}
-
-            {/* Social Networks Section */}
-            <div className="text-[12px] font-semibold uppercase tracking-[0.06em] text-[#667085] dark:text-[#7C8596] border-t border-[#E4E7EC] dark:border-[#1E232E] pt-[16px]">
-              Social networks
+              )}
             </div>
 
-            {socialPlatformsList.length === 0 ? (
-              <div className="text-[13px] text-[#667085] dark:text-[#9AA3B2] py-2">
-                No social network clicks recorded for this filter.
+            {/* Social Networks Subsection */}
+            <div className="mt-3 pt-4 border-t border-[#E4E7EC] dark:border-[#222225]">
+              <div className="text-[11px] font-bold uppercase tracking-wider ds-text-muted mb-3">
+                Social networks
               </div>
-            ) : (
-              socialPlatformsList.map((platform) => (
-                <div
-                  key={platform.platformName}
-                  className="flex items-center gap-3"
-                >
-                  <span className="inline-grid place-items-center w-[20px] h-[20px] rounded-[5px] bg-[#F2F4F7] dark:bg-[#1E2430] text-[#101828] dark:text-[#E6E8EE] font-bold text-[11px] shrink-0">
-                    {platform.badgeText}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-baseline text-[14px] mb-[7px]">
-                      <b className="font-semibold text-[#101828] dark:text-[#E6E8EE] truncate">
-                        {platform.platformName}
-                      </b>
-                      <span className="text-[#667085] dark:text-[#9AA3B2] text-[13px] shrink-0 ml-2">
-                        {formatNumber(platform.count)}{" "}
-                        {platform.count === 1 ? "click" : "clicks"} ·{" "}
-                        {platform.shareOfSocial}% of social
+
+              {socialPlatformsList.length === 0 ? (
+                <p className="py-4 text-center text-xs text-zinc-500 dark:text-neutral-400">
+                  No social network clicks recorded for this filter.
+                </p>
+              ) : (
+                <div className="space-y-3.5">
+                  {socialPlatformsList.map((platform) => (
+                    <div
+                      key={platform.platformName}
+                      className="flex items-center gap-3"
+                    >
+                      <span className="inline-grid place-items-center w-6 h-6 rounded-[6px] bg-zinc-100 dark:bg-[#1c1c20] border border-[#E4E7EC] dark:border-[#27272a] ds-text-primary font-bold text-[11px] shrink-0">
+                        {platform.badgeText}
                       </span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between text-xs sm:text-sm font-semibold ds-text-primary">
+                          <span className="truncate">
+                            {platform.platformName}
+                          </span>
+                          <span className="font-medium ds-text-muted text-xs shrink-0 ml-2">
+                            {formatNumber(platform.count)}{" "}
+                            {platform.count === 1 ? "click" : "clicks"} ·{" "}
+                            {platform.shareOfSocial}% of social
+                          </span>
+                        </div>
+                        <i className="block h-1.5 mt-2 rounded-[3px] bg-[#EEF2F6] dark:bg-[#232C3D] overflow-hidden not-italic">
+                          <b
+                            style={{
+                              width: `${Math.min(100, Math.max(4, platform.shareOfSocial))}%`,
+                            }}
+                            className="block h-full rounded-[3px] bg-[#0066FF] transition-all duration-300"
+                          />
+                        </i>
+                      </div>
                     </div>
-                    <div className="h-[6px] rounded-full bg-[#EEF2F6] dark:bg-[#232834] overflow-hidden">
-                      <i
-                        className="block h-full rounded-full transition-all duration-300"
-                        style={{
-                          width: `${platform.shareOfSocial}%`,
-                          background: "#5B8CFF",
-                        }}
-                      />
-                    </div>
-                  </div>
+                  ))}
                 </div>
-              ))
-            )}
+              )}
+            </div>
           </div>
         </div>
 
         {/* Right Card: Top referrers */}
-        <div className="rounded-[12px] border border-[#E4E7EC] dark:border-[#1E232E] bg-white dark:bg-[#12151C]">
-          <div className="px-[20px] py-[16px] border-b border-[#E4E7EC] dark:border-[#1E232E] flex items-center justify-between gap-3">
-            <h2 className="text-[15px] font-semibold text-[#101828] dark:text-[#E6E8EE]">
-              Top referrers
-            </h2>
-            <span className="text-[13px] text-[#667085] dark:text-[#9AA3B2]">
-              {referrersList.length}{" "}
-              {referrersList.length === 1 ? "source" : "sources"}
-            </span>
-          </div>
+        <div className="p-5 sm:p-6 rounded-[12px] ds-card shadow-xs flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between pb-3 border-b border-[#E4E7EC] dark:border-[#222225]">
+              <span className="text-sm font-bold ds-text-primary flex items-center gap-1.5">
+                <Globe2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                <span>Top referrers</span>
+              </span>
+              <span className="text-xs ds-text-muted font-mono">
+                {referrersList.length}{" "}
+                {referrersList.length === 1 ? "source" : "sources"}
+              </span>
+            </div>
 
-          <div className="p-[20px] flex flex-col gap-[18px]">
-            {referrersList.length === 0 ? (
-              <div className="text-[13px] text-[#667085] dark:text-[#9AA3B2] py-4 text-center">
-                No referrers recorded for this period.
-              </div>
-            ) : (
-              referrersList.map((ref, idx) => {
-                const isDirect = ref.channel === "Direct";
-                return (
-                  <div
-                    key={ref.displayHost}
-                    className="flex items-center gap-3"
-                  >
-                    <span className="w-[24px] h-[24px] rounded-[6px] bg-[#F2F4F7] dark:bg-[#1A1F29] text-[#667085] dark:text-[#9AA3B2] text-[12px] font-semibold grid place-items-center shrink-0">
-                      {idx + 1}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-baseline text-[14px] mb-[7px] gap-2">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <b className="font-semibold text-[#101828] dark:text-[#E6E8EE] truncate">
-                            {ref.displayHost}
-                          </b>
-                          <em
-                            className={`not-italic inline-flex items-center px-[10px] py-[2px] rounded-full text-[12px] font-semibold shrink-0 ${
-                              isDirect
-                                ? "bg-[#2DD4A7]/14 text-[#027A48] dark:text-[#5EE0BC]"
-                                : "bg-[#5B8CFF]/15 text-[#2F5FE0] dark:text-[#9DBBFF]"
-                            }`}
-                          >
-                            {ref.channel}
-                          </em>
+            <div className="space-y-4 mt-4">
+              {referrersList.length === 0 ? (
+                <p className="py-6 text-center text-xs text-zinc-500 dark:text-neutral-400">
+                  No referrers recorded for this period.
+                </p>
+              ) : (
+                referrersList.map((ref, idx) => {
+                  const isDirect = ref.channel === "Direct";
+                  return (
+                    <div
+                      key={ref.displayHost}
+                      className="flex items-center gap-3"
+                    >
+                      <span className="w-6 h-6 rounded-[6px] bg-zinc-100 dark:bg-[#1c1c20] border border-[#E4E7EC] dark:border-[#27272a] ds-text-muted text-xs font-semibold grid place-items-center shrink-0 font-mono">
+                        {idx + 1}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-center text-xs sm:text-sm font-semibold ds-text-primary gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="truncate">{ref.displayHost}</span>
+                            <em
+                              className={`not-italic inline-flex items-center px-2 py-0.5 rounded-[10px] text-[11px] font-semibold shrink-0 border ${
+                                isDirect
+                                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25"
+                                  : "bg-[#0066FF]/10 text-[#0066FF] dark:text-[#5294FF] border-[#0066FF]/25"
+                              }`}
+                            >
+                              {ref.channel}
+                            </em>
+                          </div>
+                          <span className="font-medium ds-text-muted text-xs shrink-0">
+                            {formatNumber(ref.count)}{" "}
+                            {ref.count === 1 ? "click" : "clicks"} ·{" "}
+                            {ref.percentage}%
+                          </span>
                         </div>
-                        <span className="text-[#667085] dark:text-[#9AA3B2] text-[13px] shrink-0">
-                          {formatNumber(ref.count)}{" "}
-                          {ref.count === 1 ? "click" : "clicks"} ·{" "}
-                          {ref.percentage}%
-                        </span>
-                      </div>
-                      <div className="h-[6px] rounded-full bg-[#EEF2F6] dark:bg-[#232834] overflow-hidden">
-                        <i
-                          className="block h-full rounded-full transition-all duration-300"
-                          style={{
-                            width: `${ref.percentage}%`,
-                            background: isDirect ? "#2DD4A7" : "#5B8CFF",
-                          }}
-                        />
+                        <i className="block h-1.5 mt-2 rounded-[3px] bg-[#EEF2F6] dark:bg-[#232C3D] overflow-hidden not-italic">
+                          <b
+                            style={{
+                              width: `${Math.min(100, Math.max(4, ref.percentage))}%`,
+                            }}
+                            className={`block h-full rounded-[3px] transition-all duration-300 ${
+                              isDirect
+                                ? "bg-emerald-600 dark:bg-emerald-400"
+                                : "bg-[#0066FF]"
+                            }`}
+                          />
+                        </i>
                       </div>
                     </div>
-                  </div>
-                );
-              })
-            )}
+                  );
+                })
+              )}
+            </div>
           </div>
         </div>
-      </section>
+      </div>
 
-      {/* Bottom Card: Live click stream */}
-      <section className="rounded-[12px] border border-[#E4E7EC] dark:border-[#1E232E] bg-white dark:bg-[#12151C]">
-        <div className="px-[20px] py-[16px] border-b border-[#E4E7EC] dark:border-[#1E232E] flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-[15px] font-semibold text-[#101828] dark:text-[#E6E8EE] flex items-center">
-            Live click stream
-            <span className="inline-flex items-center gap-1.5 text-[12px] text-[#027A48] dark:text-[#2DD4A7] font-medium ml-2.5">
-              <span
-                className="w-2 h-2 rounded-full inline-block"
-                style={{ background: "#2DD4A7" }}
-              />
+      {/* ─── Bottom Card: Live click stream (Same table dimensions & colors as Devices / Live) ─── */}
+      <div className="rounded-[12px] ds-card shadow-sm flex flex-col overflow-hidden">
+        <div className="px-5 sm:px-6 py-4 sm:py-5 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#E4E7EC] dark:border-[#222225]">
+          <div className="flex items-center gap-2.5">
+            <h3 className="text-lg font-bold ds-text-primary flex items-center gap-2">
+              <span>Live click stream</span>
+            </h3>
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse inline-block" />
               Live
             </span>
-          </h2>
+          </div>
 
           <input
             type="search"
@@ -1308,53 +1349,41 @@ export default function SourcesAnalyticsPage() {
               setSearchQuery(e.target.value);
               setCurrentPage(1);
             }}
-            className="h-[44px] w-full sm:w-[260px] px-[14px] rounded-[10px] border border-[#E4E7EC] dark:border-[#2A3040] bg-white dark:bg-[#12151C] text-[#101828] dark:text-[#E6E8EE] placeholder:text-[#98A2B3] dark:placeholder:text-[#7C8596] text-[13px] focus:outline-none focus:border-[#2F5FE0]"
+            className="w-full sm:w-64 px-3 py-1.5 rounded-[10px] border border-[#E4E7EC] dark:border-[#222225] bg-white dark:bg-[#121215] text-xs text-zinc-800 dark:text-neutral-200 placeholder:text-zinc-400 dark:placeholder:text-neutral-500 focus:outline-none focus:border-[#0066FF]"
           />
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-[14px] min-w-[780px]">
+          <table className="w-full text-left text-xs border-collapse min-w-[720px]">
             <thead>
-              <tr>
+              <tr className="border-b border-[#E4E7EC] dark:border-[#222225] bg-[#F9FAFB] dark:bg-white/[0.03] text-zinc-700 dark:text-neutral-400 font-semibold text-[11px]">
                 <th
                   scope="col"
-                  className="text-left text-[12px] font-semibold uppercase tracking-[0.05em] text-[#667085] dark:text-[#8E97A7] px-[20px] py-[12px] border-b border-[#E4E7EC] dark:border-[#1E232E]"
+                  className="py-3.5 pl-5 sm:pl-6 pr-3 whitespace-nowrap"
                 >
                   Time
                 </th>
-                <th
-                  scope="col"
-                  className="text-left text-[12px] font-semibold uppercase tracking-[0.05em] text-[#667085] dark:text-[#8E97A7] px-[20px] py-[12px] border-b border-[#E4E7EC] dark:border-[#1E232E]"
-                >
+                <th scope="col" className="py-3.5 px-3 whitespace-nowrap">
                   Channel
                 </th>
-                <th
-                  scope="col"
-                  className="text-left text-[12px] font-semibold uppercase tracking-[0.05em] text-[#667085] dark:text-[#8E97A7] px-[20px] py-[12px] border-b border-[#E4E7EC] dark:border-[#1E232E]"
-                >
+                <th scope="col" className="py-3.5 px-3 whitespace-nowrap">
                   Referrer
                 </th>
-                <th
-                  scope="col"
-                  className="text-left text-[12px] font-semibold uppercase tracking-[0.05em] text-[#667085] dark:text-[#8E97A7] px-[20px] py-[12px] border-b border-[#E4E7EC] dark:border-[#1E232E]"
-                >
+                <th scope="col" className="py-3.5 px-3 whitespace-nowrap">
                   Short link
                 </th>
-                <th
-                  scope="col"
-                  className="text-left text-[12px] font-semibold uppercase tracking-[0.05em] text-[#667085] dark:text-[#8E97A7] px-[20px] py-[12px] border-b border-[#E4E7EC] dark:border-[#1E232E]"
-                >
+                <th scope="col" className="py-3.5 px-3 whitespace-nowrap">
                   Location
                 </th>
                 <th
                   scope="col"
-                  className="text-left text-[12px] font-semibold uppercase tracking-[0.05em] text-[#667085] dark:text-[#8E97A7] px-[20px] py-[12px] border-b border-[#E4E7EC] dark:border-[#1E232E]"
+                  className="py-3.5 pl-3 pr-5 sm:pr-6 whitespace-nowrap"
                 >
                   Device
                 </th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-[#E4E7EC] dark:divide-[#222225]/60 text-zinc-800 dark:text-neutral-200">
               {paginatedEvents.map((ev) => {
                 const info = classifyReferrer(ev.referrer);
                 const isDirect = info.channel === "Direct";
@@ -1374,32 +1403,32 @@ export default function SourcesAnalyticsPage() {
                 return (
                   <tr
                     key={ev.id}
-                    className="border-b border-[#F2F4F7] dark:border-[#171B24] last:border-b-0 hover:bg-[#F9FAFB] dark:hover:bg-[#161A23] transition-colors"
+                    className="hover:bg-zinc-50 dark:hover:bg-white/5 transition-colors h-[52px]"
                   >
-                    <td className="px-[20px] py-[13px] whitespace-nowrap text-[#667085] dark:text-[#9AA3B2] font-mono text-[13px]">
+                    <td className="py-3.5 pl-5 sm:pl-6 pr-3 font-mono text-zinc-500 dark:text-neutral-400 whitespace-nowrap text-[11px]">
                       {timeStr}
                     </td>
 
-                    <td className="px-[20px] py-[13px] whitespace-nowrap">
+                    <td className="py-3.5 px-3 whitespace-nowrap">
                       <em
-                        className={`not-italic inline-flex items-center px-[10px] py-[2px] rounded-full text-[12px] font-semibold ${
+                        className={`not-italic inline-flex items-center px-2 py-0.5 rounded-[10px] text-[11px] font-semibold border ${
                           isDirect
-                            ? "bg-[#2DD4A7]/14 text-[#027A48] dark:text-[#5EE0BC]"
-                            : "bg-[#5B8CFF]/15 text-[#2F5FE0] dark:text-[#9DBBFF]"
+                            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25"
+                            : "bg-[#0066FF]/10 text-[#0066FF] dark:text-[#5294FF] border-[#0066FF]/25"
                         }`}
                       >
                         {info.channel}
                       </em>
                     </td>
 
-                    <td className="px-[20px] py-[13px] whitespace-nowrap">
+                    <td className="py-3.5 px-3 whitespace-nowrap">
                       {isDirect ? (
-                        <span className="text-[#667085] dark:text-[#9AA3B2]">
+                        <span className="text-zinc-500 dark:text-neutral-400 font-medium">
                           Direct
                         </span>
                       ) : (
-                        <span className="inline-flex items-center text-[#101828] dark:text-[#E6E8EE]">
-                          <span className="inline-grid place-items-center w-[20px] h-[20px] rounded-[5px] bg-[#F2F4F7] dark:bg-[#1E2430] text-[#101828] dark:text-[#E6E8EE] font-bold text-[11px] mr-[6px]">
+                        <span className="inline-flex items-center font-medium text-zinc-800 dark:text-neutral-200">
+                          <span className="inline-grid place-items-center w-5 h-5 rounded-[5px] bg-zinc-100 dark:bg-[#1c1c20] border border-[#E4E7EC] dark:border-[#27272a] ds-text-primary font-bold text-[10px] mr-1.5">
                             {info.badgeText}
                           </span>
                           {info.shortName}
@@ -1407,33 +1436,33 @@ export default function SourcesAnalyticsPage() {
                       )}
                     </td>
 
-                    <td className="px-[20px] py-[13px] whitespace-nowrap">
+                    <td className="py-3.5 px-3 whitespace-nowrap font-mono font-semibold text-[#0066FF]">
                       <Link
                         href="/dashboard/links"
-                        className="font-mono text-[13px] font-medium text-[#2F5FE0] dark:text-[#9DBBFF] hover:underline"
+                        className="text-[#0066FF] dark:text-[#5294FF] hover:underline"
                       >
                         /{cleanSlug}
                       </Link>
                     </td>
 
-                    <td className="px-[20px] py-[13px] whitespace-nowrap">
+                    <td className="py-3.5 px-3 whitespace-nowrap">
                       {hasValidCity ? (
                         <>
-                          <b className="font-semibold text-[#101828] dark:text-[#E6E8EE]">
+                          <b className="font-semibold text-zinc-900 dark:text-neutral-100">
                             {rawCity}
                           </b>{" "}
-                          <span className="text-[#667085] dark:text-[#9AA3B2]">
+                          <span className="text-zinc-500 dark:text-neutral-400">
                             {countryLabel}
                           </span>
                         </>
                       ) : (
-                        <span className="text-[#667085] dark:text-[#9AA3B2]">
+                        <span className="text-zinc-500 dark:text-neutral-400">
                           {countryLabel || "—"}
                         </span>
                       )}
                     </td>
 
-                    <td className="px-[20px] py-[13px] whitespace-nowrap text-[#101828] dark:text-[#E6E8EE]">
+                    <td className="py-3.5 pl-3 pr-5 sm:pr-6 whitespace-nowrap font-medium text-zinc-800 dark:text-neutral-200">
                       {formatDeviceLabel(ev.device)}
                     </td>
                   </tr>
@@ -1444,7 +1473,7 @@ export default function SourcesAnalyticsPage() {
                 <tr>
                   <td
                     colSpan={6}
-                    className="px-[20px] py-10 text-center text-[13px] text-[#667085] dark:text-[#9AA3B2]"
+                    className="py-12 text-center text-xs text-zinc-500 dark:text-neutral-400"
                   >
                     No click events matching your filter.
                   </td>
@@ -1454,31 +1483,28 @@ export default function SourcesAnalyticsPage() {
           </table>
         </div>
 
-        <div className="px-[20px] py-[12px] border-t border-[#E4E7EC] dark:border-[#1E232E] flex flex-wrap items-center justify-between gap-3 text-[13px] text-[#667085] dark:text-[#9AA3B2]">
-          <span>
+        {/* ─── Footer Pagination (Same colors & dimensions as Devices) ─── */}
+        <div className="px-5 sm:px-6 py-3.5 border-t border-[#E4E7EC] dark:border-[#222225] text-xs text-zinc-500 dark:text-neutral-400 flex flex-col sm:flex-row justify-between items-center gap-3">
+          <p className="m-0">
             Showing {showingStart}–{showingEnd} of {filteredEvents.length}{" "}
-            {filteredEvents.length === 1 ? "event" : "events"}
-          </span>
+            {filteredEvents.length === 1 ? "event" : "events"} · Page{" "}
+            {safeCurrentPage} / {totalPages}
+          </p>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <button
               type="button"
               aria-label="Previous page"
               disabled={safeCurrentPage <= 1}
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              className="w-[44px] h-[44px] rounded-[10px] border border-[#E4E7EC] dark:border-[#2A3040] bg-white dark:bg-[#12151C] text-[#667085] dark:text-[#9AA3B2] hover:text-[#101828] dark:hover:text-[#E6E8EE] hover:border-[#D0D5DD] dark:hover:border-[#3A4256] disabled:opacity-40 disabled:pointer-events-none grid place-items-center cursor-pointer transition-colors"
+              className="p-1.5 rounded-[8px] border border-[#E4E7EC] dark:border-[#222225] bg-white dark:bg-[#141416] text-zinc-700 dark:text-neutral-300 hover:text-black dark:hover:text-white disabled:opacity-40 cursor-pointer transition-colors"
+              title="Previous page"
             >
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 24 24"
-                className="w-[16px] h-[16px] stroke-current fill-none stroke-[1.8] [stroke-linecap:round] [stroke-linejoin:round]"
-              >
-                <path d="M15 18l-6-6 6-6" />
-              </svg>
+              <ChevronLeft className="w-4 h-4" />
             </button>
 
-            <span>
-              Page {safeCurrentPage} of {totalPages}
+            <span className="px-2.5 py-1 font-mono text-xs text-zinc-800 dark:text-neutral-200 border border-[#E4E7EC] dark:border-[#222225] bg-white dark:bg-[#141416] rounded-[8px]">
+              {safeCurrentPage} / {totalPages}
             </span>
 
             <button
@@ -1488,19 +1514,14 @@ export default function SourcesAnalyticsPage() {
               onClick={() =>
                 setCurrentPage((p) => Math.min(totalPages, p + 1))
               }
-              className="w-[44px] h-[44px] rounded-[10px] border border-[#E4E7EC] dark:border-[#2A3040] bg-white dark:bg-[#12151C] text-[#667085] dark:text-[#9AA3B2] hover:text-[#101828] dark:hover:text-[#E6E8EE] hover:border-[#D0D5DD] dark:hover:border-[#3A4256] disabled:opacity-40 disabled:pointer-events-none grid place-items-center cursor-pointer transition-colors"
+              className="p-1.5 rounded-[8px] border border-[#E4E7EC] dark:border-[#222225] bg-white dark:bg-[#141416] text-zinc-700 dark:text-neutral-300 hover:text-black dark:hover:text-white disabled:opacity-40 cursor-pointer transition-colors"
+              title="Next page"
             >
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 24 24"
-                className="w-[16px] h-[16px] stroke-current fill-none stroke-[1.8] [stroke-linecap:round] [stroke-linejoin:round]"
-              >
-                <path d="M9 18l6-6-6-6" />
-              </svg>
+              <ChevronRight className="w-4 h-4" />
             </button>
           </div>
         </div>
-      </section>
+      </div>
     </div>
   );
 }
