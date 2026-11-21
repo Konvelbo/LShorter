@@ -161,8 +161,8 @@ export function HeroSection() {
         </div>
       </SectionRailFrame>
 
-      {/* Below-the-Fold Tall Two-Bar Logo Band (pure GPU CSS marquee, 32px icons, slow 68s drift, zero JS lag) */}
-      <div className="relative z-10 w-full mt-12 sm:mt-16 py-12 sm:py-16 min-h-[220px] sm:min-h-[250px] border-t border-b border-[#6366F1]/25 dark:border-white/[0.12] bg-white/45 dark:bg-[#0B0A16]/70 flex flex-col justify-center gap-12 sm:gap-14">
+      {/* Below-the-Fold Two-Bar Logo Band (pure GPU CSS marquee, 32px icons, slow 68s drift, zero hover clipping) */}
+      <div className="relative z-10 w-full mt-12 sm:mt-16 pt-7 pb-5 sm:pt-8 sm:pb-6 border-t border-b border-[#6366F1]/25 dark:border-white/[0.12] bg-white/45 dark:bg-[#0B0A16]/70 flex flex-col justify-center gap-12 sm:gap-16">
         <p className="text-center font-sans text-[11px] sm:text-[12px] font-semibold uppercase tracking-[0.22em] text-[#312E81]/65 dark:text-[#C7D2FE]/65 select-none px-4">
           Track your links everywhere — whether in paid ads or your daily social posts
         </p>
@@ -170,7 +170,7 @@ export function HeroSection() {
         <div
           role="region"
           aria-label="Social networks and ad pixel platforms tracked by LShorter"
-          className="relative w-full overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]"
+          className="relative w-full py-3 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]"
         >
           <div className="hero-logo-marquee-track">
             <LogoStripCopy copyKey="copy-a" />
