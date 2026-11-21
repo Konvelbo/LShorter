@@ -156,7 +156,7 @@ export function BannerLightboxModal({
           <div className="flex flex-wrap items-center gap-2 shrink-0">
             {data.slug && (
               <a
-                href={`/r/${encodeURIComponent(data.slug)}`}
+                href={`/${encodeURIComponent(data.slug)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => {

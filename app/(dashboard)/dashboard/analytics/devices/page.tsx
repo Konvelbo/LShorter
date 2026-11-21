@@ -1040,7 +1040,7 @@ export default function DevicesAnalyticsPage() {
                   </td>
                   <td className="py-3.5 px-3 whitespace-nowrap font-mono font-semibold text-[#0066FF]">
                     <a
-                      href={`/r/${encodeURIComponent(ev.slug)}`}
+                      href={`/${encodeURIComponent(ev.slug)}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-[#0066FF] hover:underline"
@@ -1111,7 +1111,7 @@ export default function DevicesAnalyticsPage() {
               {/* Bottom Row: Link & Location + Source Logo */}
               <div className="flex justify-between items-center mt-3 pt-2.5 border-t border-[#E4E7EC] dark:border-[#222225]">
                 <a
-                  href={`/r/${encodeURIComponent(ev.slug)}`}
+                  href={`/${encodeURIComponent(ev.slug)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="font-bold text-[#0066FF] hover:underline font-mono text-xs"

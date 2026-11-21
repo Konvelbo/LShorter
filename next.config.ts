@@ -315,7 +315,7 @@ const nextConfig: NextConfig = {
       },
       {
         source:
-          "/:slug((?!api|_next|favicon(?:\\.ico|\\.svg|-\\d+x\\d+\\.png)|lshorter_favicon\\.svg|icon-\\d+\\.png|apple-touch-icon.*\\.png|logo(?:\\.png|\\.svg|-[a-zA-Z0-9_-]+\\.[a-zA-Z0-9]+)|default_banner\\.(?:jpg|jpeg|png|webp)|Notification\\.mp3|site\\.webmanifest|robots\\.txt|sitemap(?:_index)?\\.(?:xml|xsl)|google[a-zA-Z0-9_-]+\\.html|BingSiteAuth\\.xml|yandex_[a-zA-Z0-9_-]+\\.html|\\.well-known|login|register|dashboard|onboarding|docs|checkout|refund|showcase|video-preview|r|terms|privacy|pricing|blog|reset-password|screenshots|images|doc|audio|emojis|uploads|banners).*)",
+          "/:slug((?!api|_next|favicon(?:\\.ico|\\.svg|-\\d+x\\d+\\.png)|lshorter_favicon\\.svg|icon-\\d+\\.png|apple-touch-icon.*\\.png|logo(?:\\.png|\\.svg|-[a-zA-Z0-9_-]+\\.[a-zA-Z0-9]+)|default_banner\\.(?:jpg|jpeg|png|webp)|Notification\\.mp3|site\\.webmanifest|robots\\.txt|sitemap(?:_index)?\\.(?:xml|xsl)|google[a-zA-Z0-9_-]+\\.html|BingSiteAuth\\.xml|yandex_[a-zA-Z0-9_-]+\\.html|\\.well-known|login|register|dashboard|onboarding|docs|checkout|refund|showcase|video-preview|pathlock-preview|r|terms|privacy|pricing|blog|reset-password|screenshots|images|doc|audio|emojis|uploads|banners).*)",
         destination: "/r/:slug",
       },
     ];

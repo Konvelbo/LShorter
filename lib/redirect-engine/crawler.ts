@@ -464,7 +464,7 @@ export function renderSocialHtml(options: {
         <p style="font-size:12px;color:var(--text-muted);">${domainName}/${safeSlug}</p>
       </div>
       <div>
-        <a href="/r/${safeSlug}" class="btn btn-primary">Tester la redirection 307</a>
+        <a href="/${safeSlug}" class="btn btn-primary">Tester la redirection 307</a>
       </div>
     </div>
 

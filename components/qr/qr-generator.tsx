@@ -376,13 +376,13 @@ export function QRGenerator() {
     queueMicrotask(() => {
       if (paramUrl) {
         setContentType("link");
-        setWebsiteUrl(paramUrl);
+        setWebsiteUrl(paramUrl.replace(/\/r\/([^/?#]+)$/, "/$1"));
       } else if (paramSlug) {
         setContentType("link");
         setWebsiteUrl(
           typeof window !== "undefined"
-            ? `${window.location.origin}/r/${paramSlug}`
-            : `https://lsho.cc/r/${paramSlug}`
+            ? `${window.location.origin}/${paramSlug}`
+            : `https://lsho.cc/${paramSlug}`
         );
       }
     });
@@ -1645,7 +1645,7 @@ export function QRGenerator() {
                           setWebsiteUrl(e.target.value);
                         }
                       }}
-                      value={matchedLink ? (matchedLink.shortUrl || `https://lsho.cc/r/${matchedLink.slug}`) : ""}
+                      value={matchedLink ? (matchedLink.shortUrl || `https://lsho.cc/${matchedLink.slug}`).replace(/\/r\/([^/?#]+)$/, "/$1") : ""}
                       className="w-full h-10 rounded-[10px] bg-white dark:bg-[#1a1a1e] text-neutral-800 dark:text-neutral-200 border border-neutral-200 dark:border-[#27272a] px-3 text-xs focus:outline-none focus:border-brand cursor-pointer"
                     >
                       <option value="" className="bg-white dark:bg-[#141416] text-neutral-500 dark:text-neutral-400">
@@ -1654,7 +1654,7 @@ export function QRGenerator() {
                       {userLinks.map((l) => (
                         <option
                           key={l.id}
-                          value={l.shortUrl || `https://lsho.cc/r/${l.slug}`}
+                          value={(l.shortUrl || `https://lsho.cc/${l.slug}`).replace(/\/r\/([^/?#]+)$/, "/$1")}
                           className="bg-white dark:bg-[#141416] text-neutral-900 dark:text-white"
                         >
                           /{l.slug} ➔ {l.targetUrl}
@@ -1668,7 +1668,7 @@ export function QRGenerator() {
                   <Input
                     value={websiteUrl}
                     onChange={(e) => setWebsiteUrl(e.target.value)}
-                    placeholder="https://lsho.cc/r/my-link"
+                    placeholder="https://lsho.cc/my-link"
                   />
                 </div>
 

@@ -1172,7 +1172,7 @@ function RevenueAnalyticsContent() {
                           </summary>
                           <div className="absolute right-0 mt-1.5 w-52 rounded-[10px] border border-zinc-200 dark:border-[#27272a] bg-white dark:bg-[#141418] p-1.5 shadow-xl z-50 text-left">
                             <a
-                              href={`/r/${encodeURIComponent(cleanSlug)}`}
+                              href={`/${encodeURIComponent(cleanSlug)}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               onClick={() => {
