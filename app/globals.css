@@ -722,6 +722,40 @@ html.light .shiny-text {
     animation-play-state: paused !important;
 }
 
+/* Seamless GPU-composited BrandScroller / BrandScrollerReverse marquee */
+@keyframes brand-marquee {
+    from {
+        transform: translate3d(0, 0, 0);
+    }
+    to {
+        transform: translate3d(calc(-100% - var(--gap, 4rem)), 0, 0);
+    }
+}
+
+@keyframes brand-marquee-reverse {
+    from {
+        transform: translate3d(calc(-100% - var(--gap, 4rem)), 0, 0);
+    }
+    to {
+        transform: translate3d(0, 0, 0);
+    }
+}
+
+.animate-brand-marquee {
+    will-change: transform;
+    animation: brand-marquee var(--duration, 60s) linear infinite !important;
+}
+
+.animate-brand-marquee-reverse {
+    will-change: transform;
+    animation: brand-marquee-reverse var(--duration, 60s) linear infinite !important;
+}
+
+.group:hover .animate-brand-marquee,
+.group:hover .animate-brand-marquee-reverse {
+    animation-play-state: paused !important;
+}
+
 /* How It Works 3-step hover animations (1.2s blue hairline fill + 1.2s vivid color bloom with 0.3s delay) */
 .how-step-bar-fill {
     transform: scaleX(0);

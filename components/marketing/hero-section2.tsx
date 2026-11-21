@@ -6,99 +6,11 @@ import { HeroShortener } from "@/components/marketing/hero-shortener";
 import { HeroBackground } from "@/components/ui/tailwind-css-background-snippet";
 import { FlipWords } from "@/components/ui/flip-words";
 import { VariableProximity } from "@/components/ui/VariableProximity";
-import {
-  BRAND_LOGOS,
-  type BrandLogoId,
-} from "@/components/qr/qr-brand-logos";
+import { BrandScroller } from "@/components/ui/brand-scoller";
 import {
   EASE_OUT_EXPO,
   SectionRailFrame,
 } from "@/components/marketing/swiss-frame";
-
-/**
- * Official verified brand logos from the QR Studio registry (`components/qr/qr-brand-logos.ts`),
- * rendered in a uniform monochrome silhouette style (32px, without inline labels, excluding WhatsApp).
- */
-const HERO_LOOP_BRANDS: Array<{
-  id: BrandLogoId;
-  label: string;
-}> = [
-  { id: "twitter", label: "X (Twitter)" },
-  { id: "instagram", label: "Instagram" },
-  { id: "tiktok", label: "TikTok" },
-  { id: "youtube", label: "YouTube" },
-  { id: "reddit", label: "Reddit" },
-  { id: "twitch", label: "Twitch" },
-  { id: "spotify", label: "Spotify" },
-  { id: "linkedin", label: "LinkedIn" },
-  { id: "threads", label: "Threads" },
-  { id: "telegram", label: "Telegram" },
-  { id: "discord", label: "Discord" },
-  { id: "snapchat", label: "Snapchat" },
-  { id: "facebook", label: "Facebook" },
-  { id: "meta_ads", label: "Meta Ads" },
-  { id: "google_ads", label: "Google Ads" },
-  { id: "google_analytics", label: "Google Analytics" },
-  { id: "hubspot", label: "HubSpot" },
-];
-
-const MonochromeBrandIcon = React.memo(function MonochromeBrandIcon({
-  id,
-}: {
-  id: BrandLogoId;
-}) {
-  const spec = BRAND_LOGOS[id];
-  if (spec.pathOnly) {
-    return (
-      <svg
-        viewBox="0 0 24 24"
-        className="w-[32px] h-[32px] shrink-0 fill-current"
-        aria-hidden="true"
-      >
-        <path d={spec.pathOnly} fill="currentColor" />
-      </svg>
-    );
-  }
-  const monochromeBody = spec.body.replace(
-    /fill="#[0-9a-fA-F]{3,8}"/g,
-    'fill="currentColor"'
-  );
-  return (
-    <svg
-      viewBox={spec.viewBox}
-      className="w-[32px] h-[32px] shrink-0 fill-current"
-      aria-hidden="true"
-      dangerouslySetInnerHTML={{ __html: monochromeBody }}
-    />
-  );
-});
-
-const LogoStripCopy = React.memo(function LogoStripCopy({
-  copyKey,
-  ariaHidden,
-}: {
-  copyKey: string;
-  ariaHidden?: boolean;
-}) {
-  return (
-    <ul
-      aria-hidden={ariaHidden || undefined}
-      className="flex items-center gap-16 sm:gap-20 pr-16 sm:pr-20 m-0 p-0 list-none shrink-0"
-    >
-      {HERO_LOOP_BRANDS.map(({ id, label }) => (
-        <li key={`${copyKey}-${id}`} className="shrink-0">
-          <span
-            title={label}
-            aria-label={ariaHidden ? undefined : label}
-            className="inline-flex items-center justify-center text-[#312E81]/45 dark:text-[#C7D2FE]/45 hover:text-[#312E81]/90 dark:hover:text-white hover:scale-110 transition-all duration-200"
-          >
-            <MonochromeBrandIcon id={id} />
-          </span>
-        </li>
-      ))}
-    </ul>
-  );
-});
 
 export function HeroSection() {
   const proximityContainerRef = useRef<HTMLDivElement | null>(null);
@@ -161,22 +73,17 @@ export function HeroSection() {
         </div>
       </SectionRailFrame>
 
-      {/* Below-the-Fold Two-Bar Logo Band (pure GPU CSS marquee, 32px icons, slow 68s drift, zero hover clipping) */}
-      <div className="relative z-10 w-full mt-12 sm:mt-16 pt-7 pb-5 sm:pt-8 sm:pb-6 border-t border-b border-[#6366F1]/25 dark:border-white/[0.12] bg-white/45 dark:bg-[#0B0A16]/70 flex flex-col justify-center gap-12 sm:gap-16">
+      {/* Below-the-Fold Two-Bar Logo Band powered by BrandScroller (react-icons, 32px, zero hover clipping) */}
+      <div
+        role="region"
+        aria-label="Social networks and ad pixel platforms tracked by LShorter"
+        className="relative z-10 w-full mt-12 sm:mt-16 pt-7 pb-5 sm:pt-8 sm:pb-6 border-t border-b border-[#6366F1]/25 dark:border-white/[0.12] bg-white/45 dark:bg-[#0B0A16]/70 flex flex-col justify-center gap-12 sm:gap-16"
+      >
         <p className="text-center font-sans text-[11px] sm:text-[12px] font-semibold uppercase tracking-[0.22em] text-[#312E81]/65 dark:text-[#C7D2FE]/65 select-none px-4">
           Track your links everywhere — whether in paid ads or your daily social posts
         </p>
 
-        <div
-          role="region"
-          aria-label="Social networks and ad pixel platforms tracked by LShorter"
-          className="relative w-full py-3 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]"
-        >
-          <div className="hero-logo-marquee-track">
-            <LogoStripCopy copyKey="copy-a" />
-            <LogoStripCopy copyKey="copy-b" ariaHidden />
-          </div>
-        </div>
+        <BrandScroller iconSize={32} duration="64s" />
       </div>
     </section>
   );
