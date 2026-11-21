@@ -1,12 +1,10 @@
 "use client";
 
 import React, { useState } from "react";
-import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Check,
   X as XIcon,
-  ArrowRight,
   Terminal,
   Copy,
   Users,
@@ -21,12 +19,11 @@ import { PRICING_PLANS } from "@/src/config/pricing";
 import {
   EASE_OUT_EXPO,
   SectionRailFrame,
-  SwissSectionIndex,
   scrollToHeroShortener,
 } from "@/components/marketing/swiss-frame";
 
 // ============================================================================
-// 5. THE LSHORTER DIFFERENCE (#difference — Swiss Hairline Ledger)
+// 5. THE LSHORTER DIFFERENCE (#difference — Clean Borderless Editorial Table)
 // ============================================================================
 const COMPARISON_ROWS = [
   {
@@ -39,9 +36,9 @@ const COMPARISON_ROWS = [
   {
     feature: "Self-destructing click caps + fallback",
     others:
-      "Not included or locked behind expensive custom enterprise contracts",
+      "Not included or locked behind custom enterprise contracts",
     lshorter:
-      "Deactivate at an exact click count (e.g. 25 beta spots) or redirect to a fallback URL",
+      "Deactivate at an exact click count or redirect to a fallback URL",
   },
   {
     feature: "Multi-condition Edge routing (< 12ms)",
@@ -53,13 +50,13 @@ const COMPARISON_ROWS = [
     feature: "White-label masking & PIN gate",
     others: "Exposes the raw destination URL immediately in the address bar",
     lshorter:
-      "Masked viewer with your brand title, custom OpenGraph cards, and PIN challenge",
+      "Masked viewer with custom OpenGraph cards and PIN challenge",
   },
   {
     feature: "Editable Vector QR Studio (15 styles)",
-    others: "Basic black-and-white bitmap QR or paid $35+/mo add-on",
+    others: "Basic bitmap QR or paid $35+/mo add-on",
     lshorter:
-      "15 pixel & eye styles, brand gradients, SVG/PNG/GIF export — editable after print",
+      "15 pixel styles, brand gradients, SVG/PNG/GIF export — editable after print",
   },
   {
     feature: "Cookie-free Stripe revenue attribution",
@@ -79,103 +76,79 @@ export function DifferenceSection() {
   return (
     <section
       id="difference"
-      className="w-full bg-[#F7F8FA] dark:bg-[#0B0C10] border-t border-[#E4E7EC] dark:border-white/[0.08] transition-colors duration-300 scroll-mt-24 overflow-x-clip"
+      className="w-full bg-[#FFFFFF] dark:bg-[#09090B] py-24 sm:py-32 border-t border-[#E4E7EC] dark:border-white/[0.08] scroll-mt-20 overflow-x-clip transition-colors duration-300"
     >
-      <SectionRailFrame className="px-4 sm:px-8 py-20 sm:py-28">
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-60px" }}
-          transition={{ duration: 0.45, ease: EASE_OUT_EXPO }}
-          className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end mb-12"
-        >
+      <SectionRailFrame>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end mb-12">
           <div className="lg:col-span-7">
-            <SwissSectionIndex
-              index="05"
-              label="COMPARISON"
-              meta="ARCHITECTURE AUDIT"
-            />
-            <h2 className="mt-4 text-[30px] sm:text-[42px] font-bold tracking-[-0.04em] leading-[1.05] text-[#09090B] dark:text-white">
+            <h2 className="text-[30px] sm:text-[40px] font-semibold tracking-[-0.03em] leading-[1.08] text-[#09090B] dark:text-white text-balance">
               Why teams move off legacy redirectors
             </h2>
           </div>
           <div className="lg:col-span-5">
-            <p className="text-[14.5px] sm:text-[15.5px] text-[#475467] dark:text-zinc-400 leading-[1.6]">
+            <p className="text-[15.5px] text-[#52525B] dark:text-zinc-400 leading-[1.6] text-pretty">
               Traditional shorteners stop helping the millisecond a 302 fires.
               LShorter keeps routing, isolating perimeters, and attributing
               revenue end to end.
             </p>
           </div>
-        </motion.div>
+        </div>
 
-        {/* Swiss Architectural Hairline Ledger (Zero chunky rounded table container) */}
-        <motion.div
-          initial={{ opacity: 0, y: 18 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-50px" }}
-          transition={{ duration: 0.5, ease: EASE_OUT_EXPO }}
-          className="border-y border-[#D0D5DD] dark:border-white/14 bg-white dark:bg-[#0E0F13]"
-        >
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[720px]">
-              <thead>
-                <tr className="border-b border-[#D0D5DD] dark:border-white/12 bg-[#F7F8FA] dark:bg-white/[0.02]">
-                  <th className="py-3.5 px-5 font-mono text-[11px] font-bold uppercase tracking-[0.12em] text-[#667085] dark:text-zinc-400 w-[26%]">
-                    Capability
-                  </th>
-                  <th className="py-3.5 px-5 font-mono text-[11px] font-bold uppercase tracking-[0.12em] text-[#667085] dark:text-zinc-400 border-l border-[#E4E7EC] dark:border-white/[0.08] w-[34%]">
-                    Traditional Shorteners (Bitly, TinyURL…)
-                  </th>
-                  <th className="py-3.5 px-5 font-mono text-[11px] font-bold uppercase tracking-[0.12em] text-[#0066FF] dark:text-[#5294FF] bg-[#0066FF]/[0.05] dark:bg-[#0066FF]/[0.10] border-l border-[#0066FF]/30 w-[40%]">
-                    LShorter Edge Platform
-                  </th>
+        {/* Full-Width Horizontal-Rule Table (zero outer card border) */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse min-w-[700px]">
+            <thead>
+              <tr className="border-b border-[#D4D4D8] dark:border-white/15 text-[13px] font-medium">
+                <th className="py-3.5 pr-6 text-[#71717A] dark:text-zinc-400 w-[28%]">
+                  Capability
+                </th>
+                <th className="py-3.5 px-6 text-[#71717A] dark:text-zinc-400 w-[34%]">
+                  Traditional shorteners (Bitly, TinyURL)
+                </th>
+                <th className="py-3.5 pl-6 text-[#0066FF] dark:text-[#6CA8FF] w-[38%]">
+                  LShorter
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#E4E7EC] dark:divide-white/[0.08] text-[14px]">
+              {COMPARISON_ROWS.map((row) => (
+                <tr
+                  key={row.feature}
+                  className="hover:bg-[#F8F9FB] dark:hover:bg-white/[0.02] transition-colors"
+                >
+                  <td className="py-4 pr-6 font-medium text-[#09090B] dark:text-white align-top">
+                    {row.feature}
+                  </td>
+                  <td className="py-4 px-6 text-[#71717A] dark:text-zinc-400 align-top">
+                    <div className="flex items-start gap-2.5">
+                      <XIcon className="w-4 h-4 text-zinc-400 dark:text-zinc-600 shrink-0 mt-0.5" />
+                      <span>{row.others}</span>
+                    </div>
+                  </td>
+                  <td className="py-4 pl-6 text-[#09090B] dark:text-zinc-100 font-medium align-top">
+                    <div className="flex items-start gap-2.5">
+                      <Check className="w-4 h-4 text-[#0066FF] dark:text-[#6CA8FF] shrink-0 mt-0.5 stroke-[2.25]" />
+                      <span>{row.lshorter}</span>
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-[#E4E7EC] dark:divide-white/[0.08] text-[13.5px]">
-                {COMPARISON_ROWS.map((row, idx) => (
-                  <tr
-                    key={row.feature}
-                    className="hover:bg-[#F7F8FA]/80 dark:hover:bg-white/[0.02] transition-colors"
-                  >
-                    <td className="py-4 px-5 font-semibold text-[#101828] dark:text-white align-top">
-                      <div className="flex items-baseline gap-2.5">
-                        <span className="font-mono text-[10.5px] text-[#98A2B3] dark:text-zinc-500 shrink-0 tabular-nums">
-                          0{idx + 1}
-                        </span>
-                        <span>{row.feature}</span>
-                      </div>
-                    </td>
-                    <td className="py-4 px-5 text-[#667085] dark:text-zinc-400 border-l border-[#E4E7EC] dark:border-white/[0.08] align-top">
-                      <div className="flex items-start gap-2.5">
-                        <XIcon className="w-4 h-4 text-zinc-400 dark:text-zinc-600 shrink-0 mt-0.5" />
-                        <span>{row.others}</span>
-                      </div>
-                    </td>
-                    <td className="py-4 px-5 bg-[#0066FF]/[0.025] dark:bg-[#0066FF]/[0.06] border-l border-[#0066FF]/25 text-[#101828] dark:text-zinc-100 font-medium align-top">
-                      <div className="flex items-start gap-2.5">
-                        <Check className="w-4 h-4 text-[#0066FF] dark:text-[#5294FF] shrink-0 mt-0.5 stroke-[2.5]" />
-                        <span>{row.lshorter}</span>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </motion.div>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
-        <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <span className="font-mono text-[11px] uppercase tracking-wider text-[#667085] dark:text-zinc-400">
-            50 permanent links &amp; 3 custom domains free forever
+        <div className="mt-10 pt-6 border-t border-[#E4E7EC] dark:border-white/[0.08] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <span className="text-[14px] text-[#71717A] dark:text-zinc-400">
+            50 permanent links and 3 custom domains free forever.
           </span>
           <WaveRevealButton
             href="/#hero-shortener"
             onClick={scrollToHeroShortener}
-            variant="primary"
+            variant="outline"
             size="md"
             icon={<Link2 className="w-4 h-4" />}
           >
-            Test the difference — shorten a link now
+            Shorten a link now
           </WaveRevealButton>
         </div>
       </SectionRailFrame>
@@ -184,43 +157,40 @@ export function DifferenceSection() {
 }
 
 // ============================================================================
-// 6. USE CASES BY ROLE (4 Tabs with Concrete 1-Sentence Scenarios + Sliding Pill)
+// 6. USE CASES BY PROFILE (Single-Row Tab Bar + Split Blueprint)
 // ============================================================================
 const USE_CASES = [
   {
     id: "founders",
-    label: "SaaS Founders & Devs",
-    code: "ROLE // 01",
+    label: "SaaS founders & devs",
     icon: Code2,
     scenario:
       "You share a staging demo of your SaaS: one link locks testers strictly inside /app/dashboard/* and automatically closes after 25 clicks.",
     bullets: [
       "Prevent beta testers from exploring unfinished routes with PathLock™",
-      "Cap private invite batches with exact click limits + waitlist fallback",
+      "Cap private invite batches with exact click limits and waitlist fallback",
       "Automate link provisioning directly from CI/CD via REST API",
     ],
     sampleLink: "go.acmesaas.io/beta-v2",
-    sampleRule: "PathLock: /app/dashboard/* · Cap: 25 clicks",
+    sampleRule: "PathLock: /app/dashboard/*  |  Cap: 25 clicks",
   },
   {
     id: "marketers",
-    label: "Affiliates & Marketers",
-    code: "ROLE // 02",
+    label: "Affiliates & marketers",
     icon: Megaphone,
     scenario:
-      "You run paid ads across regions: one short link routes French visitors to your FR checkout, fires Meta & TikTok pixels, and shows which post drove the sale.",
+      "You run paid ads across regions: one short link routes French visitors to your FR checkout, fires Meta and TikTok pixels, and shows which post drove the sale.",
     bullets: [
-      "Split-test two landing pages with weighted A/B routing on 1 link",
-      "Fire Meta Ads, Google Ads & TikTok retargeting pixels automatically",
+      "Split-test two landing pages with weighted A/B routing on one link",
+      "Fire Meta Ads, Google Ads, and TikTok retargeting pixels automatically",
       "Connect Stripe checkouts to see exact revenue per short link",
     ],
     sampleLink: "deals.brand.co/spring",
-    sampleRule: "FR → /fr-offer · A/B 50/50 · Meta Pixel ON",
+    sampleRule: "FR -> /fr-offer  |  A/B 50/50  |  Meta Pixel on",
   },
   {
     id: "creators",
     label: "Creators",
-    code: "ROLE // 03",
     icon: Users,
     scenario:
       "You share a product link on Instagram and YouTube: iPhone followers go straight to the App Store, Android to Google Play, and you track every click live.",
@@ -230,22 +200,21 @@ const USE_CASES = [
       "Branded vector QR codes for merch, slides, and live events",
     ],
     sampleLink: "lsho.cc/creator-kit",
-    sampleRule: "iOS → App Store · Android → Play Store",
+    sampleRule: "iOS -> App Store  |  Android -> Play Store",
   },
   {
     id: "agencies",
     label: "Agencies",
-    code: "ROLE // 04",
     icon: Building2,
     scenario:
       "You manage campaigns for multiple clients: give every client their own verified short domain, live geo reports, and password-protected preview links.",
     bullets: [
-      "Connect up to 15 custom client domains with automated DNS & SSL",
-      "Export clean CSV/Excel reports for every client campaign in 1 click",
+      "Connect up to 15 custom client domains with automated DNS and SSL",
+      "Export clean CSV/Excel reports for every client campaign in one click",
       "Protect confidential pitch decks and client previews behind a PIN gate",
     ],
     sampleLink: "go.clientbrand.com/q4",
-    sampleRule: "Custom SSL · PIN Gate · CSV Telemetry Export",
+    sampleRule: "Custom SSL  |  PIN Gate  |  CSV export",
   },
 ];
 
@@ -254,31 +223,15 @@ export function UseCasesSection() {
   const current = USE_CASES.find((u) => u.id === activeId) || USE_CASES[0];
 
   return (
-    <section className="w-full bg-[#FFFFFF] dark:bg-[#09090B] border-t border-[#E4E7EC] dark:border-white/[0.08] transition-colors duration-300 overflow-x-clip">
-      <SectionRailFrame className="px-4 sm:px-8 py-20 sm:py-26">
-        <motion.div
-          initial={{ opacity: 0, y: 14 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-60px" }}
-          transition={{ duration: 0.45, ease: EASE_OUT_EXPO }}
-          className="mb-8"
-        >
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-end">
-            <div className="lg:col-span-7">
-              <SwissSectionIndex index="06" label="WORKFLOWS" meta="4 ROLE PRESETS" />
-              <h2 className="mt-4 text-[30px] sm:text-[40px] font-bold tracking-[-0.04em] leading-[1.06] text-[#09090B] dark:text-white">
-                Tailored to how your team ships
-              </h2>
-            </div>
-            <div className="lg:col-span-5 lg:text-right">
-              <p className="text-[14px] text-[#475467] dark:text-zinc-400 leading-[1.55]">
-                Select a workflow profile to inspect its live routing blueprint.
-              </p>
-            </div>
-          </div>
+    <section className="w-full bg-[#F8F9FB] dark:bg-[#0D0E12] py-24 sm:py-32 border-t border-[#E4E7EC] dark:border-white/[0.08] overflow-x-clip transition-colors duration-300">
+      <SectionRailFrame>
+        <div className="mb-8">
+          <h2 className="text-[30px] sm:text-[40px] font-semibold tracking-[-0.03em] leading-[1.08] text-[#09090B] dark:text-white text-balance">
+            Tailored to how your team ships
+          </h2>
 
-          {/* Single-Row Tab Bar with Physically Sliding #0066FF Indicator */}
-          <div className="mt-6 inline-flex flex-wrap lg:flex-nowrap gap-1 p-1 rounded-[10px] bg-[#F7F8FA] dark:bg-[#13141A] border border-[#E4E7EC] dark:border-white/10 max-w-full">
+          {/* Single-Row Tab Bar */}
+          <div className="mt-6 inline-flex flex-wrap lg:flex-nowrap gap-1 p-1 rounded-[10px] bg-white dark:bg-[#14151B] border border-[#E4E7EC] dark:border-white/[0.09] max-w-full">
             {USE_CASES.map((tab) => {
               const Icon = tab.icon;
               const isSelected = tab.id === activeId;
@@ -287,66 +240,64 @@ export function UseCasesSection() {
                   key={tab.id}
                   type="button"
                   onClick={() => setActiveId(tab.id)}
-                  className={`relative px-3.5 py-2 rounded-[8px] text-[13px] font-semibold transition-colors cursor-pointer inline-flex items-center gap-2 ${
+                  className={`relative px-3.5 py-2 rounded-[8px] text-[13.5px] font-medium transition-colors cursor-pointer inline-flex items-center gap-2 ${
                     isSelected
                       ? "text-white"
-                      : "text-[#475467] dark:text-zinc-400 hover:text-[#101828] dark:hover:text-white"
+                      : "text-[#52525B] dark:text-zinc-400 hover:text-[#09090B] dark:hover:text-white"
                   }`}
                 >
                   {isSelected && (
                     <motion.span
                       layoutId="use-case-pill"
-                      transition={{ type: "spring", stiffness: 420, damping: 34 }}
-                      className="absolute inset-0 rounded-[8px] bg-[#0066FF] shadow-[0_4px_14px_rgba(0,102,255,0.35)] z-0"
+                      transition={{ type: "spring", stiffness: 440, damping: 36 }}
+                      className="absolute inset-0 rounded-[8px] bg-[#0066FF] z-0"
                     />
                   )}
                   <Icon className="w-3.5 h-3.5 relative z-10 shrink-0" />
-                  <span className="relative z-10 whitespace-nowrap">{tab.label}</span>
+                  <span className="relative z-10 whitespace-nowrap">
+                    {tab.label}
+                  </span>
                 </button>
               );
             })}
           </div>
-        </motion.div>
+        </div>
 
-        {/* Animated Content Switchboard */}
         <AnimatePresence mode="wait">
           <motion.div
             key={current.id}
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.24, ease: EASE_OUT_EXPO }}
-            className="rounded-[10px] border border-[#E4E7EC] dark:border-white/12 bg-[#F7F8FA] dark:bg-[#0D0E12] grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-[#E4E7EC] dark:divide-white/[0.08] overflow-hidden"
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.2, ease: EASE_OUT_EXPO }}
+            className="rounded-[10px] border border-[#E4E7EC] dark:border-white/[0.09] bg-white dark:bg-[#111216] grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-[#E4E7EC] dark:divide-white/[0.08] overflow-hidden"
           >
             <div className="lg:col-span-7 p-6 sm:p-8">
-              <div className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-[#0066FF] dark:text-[#5294FF] mb-3 font-bold">
-                {current.code} · LIVE SCENARIO
-              </div>
-              <p className="text-[18px] sm:text-[21px] font-semibold tracking-[-0.02em] leading-[1.4] text-[#09090B] dark:text-white">
+              <p className="text-[18px] sm:text-[21px] font-medium tracking-[-0.02em] leading-[1.45] text-[#09090B] dark:text-white">
                 &ldquo;{current.scenario}&rdquo;
               </p>
               <ul className="mt-6 space-y-2.5">
                 {current.bullets.map((b) => (
                   <li
                     key={b}
-                    className="flex items-start gap-2.5 text-[14px] text-[#475467] dark:text-zinc-300"
+                    className="flex items-start gap-2.5 text-[14.5px] text-[#52525B] dark:text-zinc-300"
                   >
-                    <Check className="w-4 h-4 text-[#0066FF] dark:text-[#5294FF] shrink-0 mt-0.5" />
+                    <Check className="w-4 h-4 text-[#0066FF] dark:text-[#6CA8FF] shrink-0 mt-0.5" />
                     <span>{b}</span>
                   </li>
                 ))}
               </ul>
             </div>
 
-            <div className="lg:col-span-5 p-6 sm:p-8 flex flex-col justify-between bg-white dark:bg-[#111217]">
+            <div className="lg:col-span-5 p-6 sm:p-8 flex flex-col justify-between bg-[#F8F9FB]/60 dark:bg-[#0D0E12]">
               <div>
-                <div className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-[#667085] dark:text-zinc-500 mb-2">
-                  Configured Link Blueprint
+                <div className="text-[12.5px] font-medium text-[#71717A] dark:text-zinc-400">
+                  Configured link example
                 </div>
-                <div className="font-mono text-[17px] font-bold text-[#0066FF] dark:text-[#5294FF] break-all">
+                <div className="mt-2 font-mono text-[17px] font-semibold text-[#0066FF] dark:text-[#6CA8FF] break-all">
                   {current.sampleLink}
                 </div>
-                <div className="mt-3 px-3.5 py-2.5 rounded-[8px] bg-[#F7F8FA] dark:bg-[#09090B] border border-[#E4E7EC] dark:border-white/[0.08] font-mono text-[12px] font-medium text-[#344054] dark:text-zinc-300">
+                <div className="mt-3 px-3.5 py-2.5 rounded-[8px] bg-white dark:bg-[#111216] border border-[#E4E7EC] dark:border-white/[0.08] font-mono text-[12px] text-[#3F3F46] dark:text-zinc-300">
                   {current.sampleRule}
                 </div>
               </div>
@@ -359,7 +310,7 @@ export function UseCasesSection() {
                   size="sm"
                   className="w-full"
                 >
-                  Try this workflow — no signup
+                  Try this workflow without signup
                 </WaveRevealButton>
               </div>
             </div>
@@ -371,7 +322,7 @@ export function UseCasesSection() {
 }
 
 // ============================================================================
-// 7. DEVELOPER-FIRST REST API & WEBHOOKS (#api — Real Syntax Highlighting)
+// 7. DEVELOPER-FIRST REST API & WEBHOOKS (#api)
 // ============================================================================
 type ApiLangKey = "curl" | "ts" | "python" | "webhook";
 
@@ -428,7 +379,7 @@ response = requests.post(
 print(response.json()["data"]["short_url"])`,
   },
   webhook: {
-    label: "Webhook Payload",
+    label: "Webhook",
     code: `{
   "event": "link.clicked",
   "slug": "beta-demo",
@@ -548,52 +499,39 @@ export function DeveloperApiSection() {
   return (
     <section
       id="api"
-      className="w-full bg-[#F7F8FA] dark:bg-[#0B0C10] border-t border-[#E4E7EC] dark:border-white/[0.08] transition-colors duration-300 scroll-mt-24 overflow-x-clip"
+      className="w-full bg-[#FFFFFF] dark:bg-[#09090B] py-24 sm:py-32 border-t border-[#E4E7EC] dark:border-white/[0.08] scroll-mt-20 overflow-x-clip transition-colors duration-300"
     >
-      <SectionRailFrame className="px-4 sm:px-8 py-20 sm:py-28">
+      <SectionRailFrame>
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
-          {/* Left Column: Description & Primary Button to /docs */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-60px" }}
-            transition={{ duration: 0.45, ease: EASE_OUT_EXPO }}
-            className="lg:col-span-5"
-          >
-            <SwissSectionIndex
-              index="07"
-              label="DEVELOPER API"
-              meta="REST + WEBHOOKS"
-            />
-
-            <h2 className="mt-4 text-[30px] sm:text-[40px] font-bold tracking-[-0.04em] leading-[1.06] text-[#09090B] dark:text-white">
-              Provision links &amp; perimeter rules directly from code
+          <div className="lg:col-span-5">
+            <h2 className="text-[30px] sm:text-[40px] font-semibold tracking-[-0.03em] leading-[1.08] text-[#09090B] dark:text-white text-balance">
+              Provision links and rules from your codebase
             </h2>
 
-            <p className="mt-4 text-[15px] text-[#475467] dark:text-zinc-400 leading-[1.65]">
-              Create links programmatically, enforce PathLock™ URL prefixes, set
-              click caps, and stream signed conversion payloads to your backend.
+            <p className="mt-4 text-[15.5px] text-[#52525B] dark:text-zinc-400 leading-[1.6] text-pretty">
+              Create links programmatically, enforce PathLock™ prefixes, set
+              click caps, and receive signed conversion webhooks in real time.
             </p>
 
-            <div className="mt-6 border-y border-[#E4E7EC] dark:border-white/[0.08] divide-y divide-[#E4E7EC] dark:divide-white/[0.08] text-[13.5px]">
+            <div className="mt-6 border-y border-[#E4E7EC] dark:border-white/[0.08] divide-y divide-[#E4E7EC] dark:divide-white/[0.08] text-[14px]">
               {[
                 {
-                  title: "SHA-256 Scoped API Keys",
-                  desc: "Granular read and read_write Bearer tokens with per-minute rate limits.",
+                  title: "Scoped SHA-256 API keys",
+                  desc: "Granular read and read_write Bearer tokens with rate limits.",
                 },
                 {
-                  title: "Instant Global Edge KV Sync",
-                  desc: "Every POST or PATCH propagates across 310+ edge PoPs immediately.",
+                  title: "Global edge KV sync",
+                  desc: "Every POST or PATCH propagates across 310+ PoPs right away.",
                 },
                 {
-                  title: "Signed Real-Time Webhooks",
-                  desc: "Receive click geo, device metadata, and conversion events in real time.",
+                  title: "Signed webhooks",
+                  desc: "Stream click geo, device metadata, and Stripe revenue events.",
                 },
               ].map((item) => (
-                <div key={item.title} className="py-3 flex items-start gap-2.5">
-                  <Check className="w-4 h-4 text-[#0066FF] dark:text-[#5294FF] shrink-0 mt-0.5" />
-                  <span className="text-[#344054] dark:text-zinc-300">
-                    <strong className="text-[#101828] dark:text-white font-semibold">
+                <div key={item.title} className="py-3.5 flex items-start gap-2.5">
+                  <Check className="w-4 h-4 text-[#0066FF] dark:text-[#6CA8FF] shrink-0 mt-0.5" />
+                  <span className="text-[#52525B] dark:text-zinc-300">
+                    <strong className="text-[#09090B] dark:text-white font-medium">
                       {item.title}:
                     </strong>{" "}
                     {item.desc}
@@ -620,19 +558,11 @@ export function DeveloperApiSection() {
                 Quickstart guide
               </WaveRevealButton>
             </div>
-          </motion.div>
+          </div>
 
-          {/* Right Column: Syntax-Highlighted Workbench Terminal (strictly rounded-[10px]) */}
-          <motion.div
-            initial={{ opacity: 0, y: 18 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-60px" }}
-            transition={{ duration: 0.5, delay: 0.08, ease: EASE_OUT_EXPO }}
-            className="lg:col-span-7"
-          >
-            <div className="rounded-[10px] bg-[#09090B] border border-[#222531] shadow-[0_24px_64px_rgba(0,0,0,0.35)] overflow-hidden">
-              {/* Terminal Top Bar */}
-              <div className="px-4 py-3 border-b border-white/[0.08] flex flex-wrap items-center justify-between gap-2 bg-[#111319]">
+          <div className="lg:col-span-7">
+            <div className="rounded-[10px] bg-[#0B0C10] border border-[#222531] overflow-hidden">
+              <div className="px-4 py-3 border-b border-white/[0.08] flex flex-wrap items-center justify-between gap-2 bg-[#12141B]">
                 <div className="flex items-center gap-1.5 flex-wrap">
                   {(Object.keys(API_SNIPPETS) as ApiLangKey[]).map((key) => {
                     const isSelected = lang === key;
@@ -641,7 +571,7 @@ export function DeveloperApiSection() {
                         key={key}
                         type="button"
                         onClick={() => setLang(key)}
-                        className={`relative px-3 py-1.5 rounded-[7px] font-mono text-[11.5px] font-semibold transition-colors cursor-pointer ${
+                        className={`relative px-3 py-1.5 rounded-[7px] text-[12px] font-medium transition-colors cursor-pointer ${
                           isSelected
                             ? "text-white"
                             : "text-zinc-400 hover:text-zinc-200"
@@ -669,7 +599,7 @@ export function DeveloperApiSection() {
                 <button
                   type="button"
                   onClick={handleCopy}
-                  className="h-8 px-2.5 rounded-[7px] bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-zinc-200 font-mono text-[11.5px] font-medium inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                  className="h-8 px-2.5 rounded-[7px] bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-zinc-200 text-[12px] font-medium inline-flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
                   {copied ? (
                     <>
@@ -679,15 +609,14 @@ export function DeveloperApiSection() {
                   ) : (
                     <>
                       <Copy className="w-3.5 h-3.5" />
-                      <span>Copy code</span>
+                      <span>Copy</span>
                     </>
                   )}
                 </button>
               </div>
 
-              {/* Token-Highlighted Code Body with Line Numbers */}
-              <div className="p-4 sm:p-5 overflow-x-auto bg-[#09090B]">
-                <pre className="font-mono text-[12px] sm:text-[12.5px] leading-[1.7] text-zinc-200">
+              <div className="p-4 sm:p-5 overflow-x-auto bg-[#0B0C10]">
+                <pre className="font-mono text-[12.5px] leading-[1.7] text-zinc-200">
                   <code className="code-syntax block">
                     {lines.map((line, idx) => (
                       <div key={idx} className="table-row">
@@ -703,18 +632,14 @@ export function DeveloperApiSection() {
                 </pre>
               </div>
 
-              {/* Live Edge Response Footer */}
-              <div className="px-4 py-2.5 border-t border-white/[0.08] bg-[#111319] flex flex-wrap items-center justify-between gap-2 font-mono text-[11px]">
-                <span className="inline-flex items-center gap-2 text-emerald-400 font-semibold">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                  <span>201 Created · Edge KV synced</span>
+              <div className="px-4 py-2.5 border-t border-white/[0.08] bg-[#12141B] flex flex-wrap items-center justify-between gap-2 font-mono text-[11.5px]">
+                <span className="text-emerald-400">
+                  201 Created — Edge KV synced
                 </span>
-                <span className="text-zinc-400">
-                  POST /api/v1/links · Bearer SHA-256 Auth
-                </span>
+                <span className="text-zinc-400">POST /api/v1/links</span>
               </div>
             </div>
-          </motion.div>
+          </div>
         </div>
       </SectionRailFrame>
     </section>
@@ -722,7 +647,7 @@ export function DeveloperApiSection() {
 }
 
 // ============================================================================
-// 8. CONDENSED PRICING PREVIEW (Swiss Architectural 3-Column Hairline Ledger)
+// 8. CONDENSED PRICING PREVIEW (#pricing-preview)
 // ============================================================================
 export function PricingPreviewSection() {
   const [yearly, setYearly] = useState(true);
@@ -730,9 +655,9 @@ export function PricingPreviewSection() {
   const plans = [
     {
       def: PRICING_PLANS.FREE,
-      badge: "Starter Free",
+      tag: "Free forever",
       highlight: false,
-      cta: "Shorten free — no card",
+      cta: "Start free — no card",
       ctaHref: "/register",
       features: [
         "50 permanent active links",
@@ -745,7 +670,7 @@ export function PricingPreviewSection() {
     },
     {
       def: PRICING_PLANS.PRO,
-      badge: "Most Popular",
+      tag: "Most popular",
       highlight: true,
       cta: "Upgrade to Pro",
       ctaHref: "/pricing",
@@ -760,7 +685,7 @@ export function PricingPreviewSection() {
     },
     {
       def: PRICING_PLANS.BUSINESS,
-      badge: "Teams & Agencies",
+      tag: "Teams & agencies",
       highlight: false,
       cta: "Explore Business",
       ctaHref: "/pricing",
@@ -778,40 +703,28 @@ export function PricingPreviewSection() {
   return (
     <section
       id="pricing-preview"
-      className="w-full bg-[#FFFFFF] dark:bg-[#09090B] border-t border-[#E4E7EC] dark:border-white/[0.08] transition-colors duration-300 scroll-mt-24 overflow-x-clip"
+      className="w-full bg-[#F8F9FB] dark:bg-[#0D0E12] py-24 sm:py-32 border-t border-[#E4E7EC] dark:border-white/[0.08] scroll-mt-20 overflow-x-clip transition-colors duration-300"
     >
-      <SectionRailFrame className="px-4 sm:px-8 py-20 sm:py-28">
-        <motion.div
-          initial={{ opacity: 0, y: 14 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-60px" }}
-          transition={{ duration: 0.45, ease: EASE_OUT_EXPO }}
-          className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10 sm:mb-12"
-        >
+      <SectionRailFrame>
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
           <div>
-            <SwissSectionIndex
-              index="08"
-              label="PRICING"
-              meta="NO CARD TO START"
-            />
-            <h2 className="mt-4 text-[30px] sm:text-[42px] font-bold tracking-[-0.04em] leading-[1.06] text-[#09090B] dark:text-white">
-              Start free forever, scale as clicks compound
+            <h2 className="text-[30px] sm:text-[40px] font-semibold tracking-[-0.03em] leading-[1.08] text-[#09090B] dark:text-white text-balance">
+              Start free, scale as clicks grow
             </h2>
-            <p className="mt-3 text-[15px] text-[#475467] dark:text-zinc-400">
-              Transparent monthly limits backed by Cloudflare edge infrastructure.
+            <p className="mt-3 text-[15.5px] text-[#52525B] dark:text-zinc-400">
+              Clear monthly limits backed by Cloudflare edge infrastructure.
               Upgrade or cancel anytime.
             </p>
           </div>
 
-          {/* Monthly / Yearly Toggle */}
-          <div className="inline-flex items-center gap-1 p-1 rounded-[10px] bg-[#F7F8FA] dark:bg-[#13141A] border border-[#E4E7EC] dark:border-white/10 self-start md:self-auto shrink-0">
+          <div className="inline-flex items-center gap-1 p-1 rounded-[10px] bg-white dark:bg-[#14151B] border border-[#E4E7EC] dark:border-white/[0.09] self-start md:self-auto shrink-0">
             <button
               type="button"
               onClick={() => setYearly(false)}
-              className={`px-4 py-1.5 rounded-[8px] text-[13px] font-semibold transition-colors cursor-pointer ${
+              className={`px-3.5 py-1.5 rounded-[8px] text-[13px] font-medium transition-colors cursor-pointer ${
                 !yearly
-                  ? "bg-white dark:bg-[#0066FF] text-[#101828] dark:text-white shadow-2xs"
-                  : "text-[#667085] dark:text-zinc-400"
+                  ? "bg-[#09090B] dark:bg-white text-white dark:text-[#09090B]"
+                  : "text-[#52525B] dark:text-zinc-400 hover:text-[#09090B] dark:hover:text-white"
               }`}
             >
               Monthly
@@ -819,121 +732,104 @@ export function PricingPreviewSection() {
             <button
               type="button"
               onClick={() => setYearly(true)}
-              className={`px-4 py-1.5 rounded-[8px] text-[13px] font-semibold transition-colors cursor-pointer inline-flex items-center gap-1.5 ${
+              className={`px-3.5 py-1.5 rounded-[8px] text-[13px] font-medium transition-colors cursor-pointer inline-flex items-center gap-1.5 ${
                 yearly
-                  ? "bg-[#0066FF] text-white shadow-2xs"
-                  : "text-[#667085] dark:text-zinc-400"
+                  ? "bg-[#0066FF] text-white"
+                  : "text-[#52525B] dark:text-zinc-400 hover:text-[#09090B] dark:hover:text-white"
               }`}
             >
               <span>Yearly</span>
               <span
-                className={`px-1.5 py-0.5 rounded-[4px] font-mono text-[10px] font-bold ${
+                className={`text-[11px] font-mono px-1.5 py-0.5 rounded-[4px] ${
                   yearly
                     ? "bg-white/20 text-white"
-                    : "bg-[#0066FF]/10 text-[#0066FF] dark:text-[#5294FF]"
+                    : "bg-[#0066FF]/10 text-[#0066FF] dark:text-[#6CA8FF]"
                 }`}
               >
                 Save up to 50%
               </span>
             </button>
           </div>
-        </motion.div>
+        </div>
 
-        {/* Unified 3-Column Swiss Architectural Ledger (strictly rounded-[10px]) */}
-        <motion.div
-          initial={{ opacity: 0, y: 18 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-50px" }}
-          transition={{ duration: 0.48, ease: EASE_OUT_EXPO }}
-          className="rounded-[10px] border border-[#D0D5DD] dark:border-white/14 bg-white dark:bg-[#0D0E12] grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-[#E4E7EC] dark:divide-white/[0.08] overflow-hidden shadow-[0_14px_40px_rgba(16,24,40,0.05)] dark:shadow-[0_20px_54px_rgba(0,0,0,0.45)]"
-        >
-          {plans.map((p) => {
-            const displayPrice =
-              p.def.monthlyPrice === 0
-                ? "$0"
-                : yearly
-                  ? `$${p.def.promoYearly.equivalentMonthlyPrice
-                      .toFixed(2)
-                      .replace(/\.00$/, "")}`
-                  : `$${p.def.monthlyPrice}`;
-
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
+          {plans.map((plan) => {
+            const displayPrice = yearly
+              ? plan.def.promoYearly.equivalentMonthlyPrice
+              : plan.def.monthlyPrice;
+            const formattedPrice =
+              displayPrice === 0
+                ? "0"
+                : Number.isInteger(displayPrice)
+                  ? String(displayPrice)
+                  : displayPrice.toFixed(2);
             return (
               <div
-                key={p.def.id}
-                className={`relative p-6 sm:p-8 flex flex-col ${
-                  p.highlight
-                    ? "bg-[#0066FF]/[0.03] dark:bg-[#0066FF]/[0.07]"
-                    : ""
+                key={plan.def.id}
+                className={`rounded-[10px] p-6 sm:p-7 flex flex-col justify-between bg-white dark:bg-[#111216] border transition-colors ${
+                  plan.highlight
+                    ? "border-[#0066FF]"
+                    : "border-[#E4E7EC] dark:border-white/[0.09]"
                 }`}
               >
-                {p.highlight && (
-                  <div
-                    aria-hidden="true"
-                    className="absolute top-0 inset-x-0 h-[3px] bg-[#0066FF]"
-                  />
-                )}
+                <div>
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-[19px] font-semibold text-[#09090B] dark:text-white">
+                      {plan.def.name}
+                    </h3>
+                    <span
+                      className={`text-[12px] font-medium ${
+                        plan.highlight
+                          ? "text-[#0066FF] dark:text-[#6CA8FF]"
+                          : "text-[#71717A] dark:text-zinc-400"
+                      }`}
+                    >
+                      {plan.tag}
+                    </span>
+                  </div>
 
-                <div className="flex items-center justify-between gap-2 mb-5">
-                  <h3 className="text-[20px] font-bold tracking-[-0.02em] text-[#09090B] dark:text-white">
-                    {p.def.name}
-                  </h3>
-                  <span
-                    className={`px-2.5 py-0.5 rounded-[5px] font-mono text-[10.5px] font-bold uppercase tracking-wider ${
-                      p.highlight
-                        ? "bg-[#0066FF] text-white"
-                        : "bg-[#F7F8FA] dark:bg-white/[0.06] border border-[#E4E7EC] dark:border-white/10 text-[#475467] dark:text-zinc-300"
-                    }`}
+                  <div className="mt-5 flex items-baseline gap-1.5">
+                    <span className="text-[40px] font-semibold tracking-[-0.03em] leading-none text-[#09090B] dark:text-white tabular-nums">
+                      ${formattedPrice}
+                    </span>
+                    <span className="text-[14px] text-[#71717A] dark:text-zinc-400">
+                      / month
+                    </span>
+                  </div>
+                  <div className="mt-1.5 text-[12.5px] text-[#71717A] dark:text-zinc-400 min-h-[18px]">
+                    {displayPrice === 0
+                      ? "No credit card required"
+                      : yearly
+                        ? `Billed $${plan.def.yearlyPrice} annually`
+                        : "Billed monthly"}
+                  </div>
+
+                  <ul className="mt-6 pt-6 border-t border-[#E4E7EC] dark:border-white/[0.08] space-y-2.5">
+                    {plan.features.map((feat) => (
+                      <li
+                        key={feat}
+                        className="flex items-start gap-2.5 text-[14px] text-[#3F3F46] dark:text-zinc-300"
+                      >
+                        <Check className="w-4 h-4 text-[#0066FF] dark:text-[#6CA8FF] shrink-0 mt-0.5" />
+                        <span>{feat}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="mt-8">
+                  <WaveRevealButton
+                    href={plan.ctaHref}
+                    variant={plan.highlight ? "primary" : "outline"}
+                    size="md"
+                    className="w-full"
                   >
-                    {p.badge}
-                  </span>
+                    {plan.cta}
+                  </WaveRevealButton>
                 </div>
-
-                <div className="flex items-baseline gap-1.5 mb-1">
-                  <span className="text-[40px] font-bold tracking-[-0.045em] text-[#09090B] dark:text-white tabular-nums">
-                    {displayPrice}
-                  </span>
-                  <span className="font-mono text-[12.5px] text-[#667085] dark:text-zinc-400">
-                    / month
-                  </span>
-                </div>
-                <p className="font-mono text-[11.5px] text-[#667085] dark:text-zinc-400 mb-6 min-h-[20px]">
-                  {p.def.monthlyPrice === 0
-                    ? "Free forever · No credit card required"
-                    : yearly
-                      ? `Billed $${p.def.yearlyPrice}/year (${p.def.promoYearly.discountPercent}% off)`
-                      : `Launch offer: $${p.def.promoMonthly.firstMonthPrice.toFixed(2)}/mo for first 2 months`}
-                </p>
-
-                <ul className="space-y-2.5 text-[13.5px] text-[#344054] dark:text-zinc-300 mb-8 pt-5 border-t border-[#E4E7EC] dark:border-white/[0.08] flex-1">
-                  {p.features.map((f) => (
-                    <li key={f} className="flex items-start gap-2.5">
-                      <Check className="w-4 h-4 text-[#0066FF] dark:text-[#5294FF] shrink-0 mt-0.5" />
-                      <span>{f}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                <WaveRevealButton
-                  href={p.ctaHref}
-                  variant={p.highlight ? "primary" : "outline"}
-                  size="md"
-                  className="w-full"
-                >
-                  {p.cta}
-                </WaveRevealButton>
               </div>
             );
           })}
-        </motion.div>
-
-        <div className="mt-8 text-center">
-          <Link
-            href="/pricing"
-            className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-[#0066FF] dark:text-[#5294FF] hover:underline"
-          >
-            <span>Compare all plans &amp; Enterprise limits</span>
-            <ArrowRight className="w-4 h-4" />
-          </Link>
         </div>
       </SectionRailFrame>
     </section>

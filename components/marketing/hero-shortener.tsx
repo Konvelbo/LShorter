@@ -325,55 +325,21 @@ export function HeroShortener() {
   const remainingGuest = Math.max(0, maxLinks - usedCount);
 
   return (
-    <div id="hero-shortener" className="w-full max-w-[760px] mx-auto scroll-mt-28">
-      {/* ── Precision Command Console Shell (strictly rounded-[10px]) ── */}
+    <div id="hero-shortener" className="w-full max-w-[680px] mx-auto scroll-mt-28">
+      {/* ── Clean Single-Surface Link Shortener Bar (strictly rounded-[10px]) ── */}
       <div
-        className={`relative rounded-[10px] bg-white dark:bg-[#0E0F13] border transition-all duration-300 shadow-[0_18px_48px_rgba(16,24,40,0.07)] dark:shadow-[0_24px_64px_rgba(0,0,0,0.65)] overflow-hidden ${
+        className={`relative rounded-[10px] bg-white dark:bg-[#111216] border transition-colors duration-200 overflow-hidden ${
           isPulseHighlighted
-            ? "border-[#0066FF] ring-4 ring-[#0066FF]/20"
+            ? "border-[#0066FF] ring-2 ring-[#0066FF]/20"
             : errorMsg
-              ? "border-red-500/70 ring-2 ring-red-500/15"
-              : "border-[#D0D5DD] dark:border-white/14 focus-within:border-[#0066FF] focus-within:ring-4 focus-within:ring-[#0066FF]/12"
+              ? "border-red-500/70"
+              : "border-[#D4D4D8] dark:border-white/[0.14] focus-within:border-[#0066FF]"
         }`}
       >
-        {/* Top Console Instrument Bar */}
-        <div className="px-4 py-2 bg-[#F7F8FA] dark:bg-[#13141A] border-b border-[#E4E7EC] dark:border-white/[0.08] flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono">
-          <div className="flex items-center gap-2 text-[#475467] dark:text-zinc-400">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-            <span className="font-semibold text-[#101828] dark:text-zinc-200 tracking-wider uppercase">
-              EDGE CONSOLE
-            </span>
-            <span className="text-[#D0D5DD] dark:text-zinc-700">/</span>
-            <span className="text-[#0066FF] dark:text-[#5294FF] font-semibold">
-              lsho.cc/••••••
-            </span>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {!urlInput && (
-              <button
-                type="button"
-                onClick={handleTryExample}
-                className="text-[11px] font-mono font-semibold text-[#0066FF] dark:text-[#5294FF] hover:underline cursor-pointer"
-              >
-                Try sample URL ↗
-              </button>
-            )}
-            <span className="hidden sm:inline text-[#667085] dark:text-zinc-500 tabular-nums">
-              {isAuthenticated
-                ? "ACCOUNT // PERMANENT"
-                : limitReached
-                  ? "GUEST // 2 OF 2 USED"
-                  : `GUEST // ${remainingGuest} FREE LEFT`}
-            </span>
-          </div>
-        </div>
-
-        {/* Form Input Area */}
-        <form onSubmit={handleShorten} className="p-2 sm:p-2.5 bg-white dark:bg-[#0E0F13]">
+        <form onSubmit={handleShorten} className="p-2">
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
             <div className="relative flex-1 flex items-center min-w-0 bg-transparent">
-              <Link2 className="w-4 h-4 text-[#0066FF] dark:text-[#5294FF] ml-3 shrink-0 pointer-events-none" />
+              <Link2 className="w-4 h-4 text-[#71717A] dark:text-zinc-500 ml-3 shrink-0 pointer-events-none" />
               <input
                 ref={inputRef}
                 type="text"
@@ -385,23 +351,27 @@ export function HeroShortener() {
                   setUrlInput(e.target.value);
                   if (errorMsg) setErrorMsg(null);
                 }}
-                placeholder="Paste a long URL to shorten instantly..."
+                placeholder="Paste a long URL to shorten..."
                 aria-label="Paste a long URL to shorten"
-                className="w-full h-11 sm:h-12 px-3 bg-transparent text-[14.5px] sm:text-[15px] text-[#101828] dark:text-white placeholder:text-[#98A2B3] dark:placeholder:text-zinc-500 outline-none border-0"
+                className="w-full h-11 sm:h-12 px-3 bg-transparent text-[15px] text-[#09090B] dark:text-white placeholder:text-[#A1A1AA] dark:placeholder:text-zinc-500 outline-none border-0"
               />
-              <span
-                aria-hidden="true"
-                className="hidden md:inline-flex items-center gap-1 mr-2 px-1.5 py-0.5 rounded-[4px] border border-[#E4E7EC] dark:border-white/10 bg-[#F7F8FA] dark:bg-white/[0.04] font-mono text-[10.5px] text-[#667085] dark:text-zinc-500 shrink-0 select-none"
-              >
-                {urlInput ? (
-                  <>
-                    <CornerDownLeft className="w-2.5 h-2.5" />
-                    <span>Enter</span>
-                  </>
-                ) : (
-                  <span>⌘V</span>
-                )}
-              </span>
+              {!urlInput ? (
+                <button
+                  type="button"
+                  onClick={handleTryExample}
+                  className="hidden sm:inline-flex items-center mr-2 px-2.5 py-1 rounded-[6px] text-[12.5px] font-medium text-[#52525B] dark:text-zinc-400 hover:text-[#0066FF] dark:hover:text-[#5294FF] hover:bg-[#F4F4F5] dark:hover:bg-white/[0.06] transition-colors shrink-0 cursor-pointer"
+                >
+                  Try sample
+                </button>
+              ) : (
+                <span
+                  aria-hidden="true"
+                  className="hidden md:inline-flex items-center gap-1 mr-2 px-1.5 py-0.5 rounded-[5px] border border-[#E4E7EC] dark:border-white/10 bg-[#F8F9FB] dark:bg-white/[0.04] text-[11px] text-[#71717A] dark:text-zinc-500 shrink-0 select-none"
+                >
+                  <CornerDownLeft className="w-2.5 h-2.5" />
+                  <span>Enter</span>
+                </span>
+              )}
             </div>
 
             <WaveRevealButton
@@ -428,9 +398,9 @@ export function HeroShortener() {
       <AnimatePresence>
         {errorMsg && (
           <motion.div
-            initial={{ opacity: 0, y: -6 }}
+            initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
+            exit={{ opacity: 0, y: -4 }}
             className="mt-2.5 flex items-center justify-center gap-2 text-[13px] font-medium text-red-600 dark:text-red-400"
             role="alert"
           >
@@ -440,8 +410,8 @@ export function HeroShortener() {
         )}
       </AnimatePresence>
 
-      {/* Reassuring Micro-copy Under Input */}
-      <div className="mt-3.5 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-[12px] text-[#667085] dark:text-zinc-400 font-mono">
+      {/* Plain Reassuring Sub-line */}
+      <div className="mt-3.5 flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-[13px] text-[#71717A] dark:text-zinc-400">
         {isAuthenticated ? (
           <span className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium">
             <ShieldCheck className="w-3.5 h-3.5" />
@@ -449,20 +419,14 @@ export function HeroShortener() {
           </span>
         ) : (
           <>
-            <span>Free · No signup required</span>
-            <span className="hidden sm:inline text-[#D0D5DD] dark:text-zinc-700" aria-hidden="true">
-              /
-            </span>
+            <span>No signup required</span>
             <span className="inline-flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5 text-[#0066FF] dark:text-[#5294FF]" />
-              <span>3-day guest TTL</span>
+              <span>Active for 3 days as a guest</span>
             </span>
-            <span className="hidden sm:inline text-[#D0D5DD] dark:text-zinc-700" aria-hidden="true">
-              /
-            </span>
-            <span className="font-semibold text-[#101828] dark:text-zinc-200">
+            <span className="font-medium text-[#09090B] dark:text-zinc-200 tabular-nums">
               {limitReached
-                ? "2 / 2 guest links used"
+                ? "2 of 2 guest links used"
                 : `${remainingGuest} free ${remainingGuest === 1 ? "link" : "links"} left`}
             </span>
           </>

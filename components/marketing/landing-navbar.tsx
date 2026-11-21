@@ -495,8 +495,8 @@ export const LandingNavbar = React.memo(function LandingNavbar() {
       <header
         className={`relative hidden lg:flex items-center justify-between gap-2 xl:gap-3 pointer-events-auto transform-gpu transition-[transform,width,background-color,border-color,box-shadow,border-radius] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-visible ${
           isScrolled
-            ? "translate-y-3 w-[min(1240px,96vw)] rounded-[10px] px-4 xl:px-5 py-2.5 bg-white/[0.94] dark:bg-[#0B0C0F]/[0.92] backdrop-blur-xl border border-[#E4E7EC] dark:border-white/12 shadow-[0_12px_36px_rgba(16,24,40,0.08)] dark:shadow-[0_16px_42px_rgba(0,0,0,0.62)]"
-            : "translate-y-0 w-full rounded-none px-5 xl:px-[clamp(1.5rem,3vw,3.5rem)] py-3.5 bg-white/[0.96] dark:bg-[#09090B]/[0.96] backdrop-blur-md border-b border-[#E4E7EC] dark:border-white/[0.08]"
+            ? "translate-y-3 w-[min(1200px,96vw)] rounded-[10px] px-4 xl:px-5 py-2.5 bg-white/[0.94] dark:bg-[#0B0C0F]/[0.92] backdrop-blur-xl border border-[#E4E7EC] dark:border-white/12 shadow-[0_10px_28px_rgba(16,24,40,0.07)] dark:shadow-[0_14px_36px_rgba(0,0,0,0.55)]"
+            : "translate-y-0 w-full rounded-none px-5 xl:px-[max(2rem,calc((100vw-1200px)/2+2rem))] py-3.5 bg-white/[0.96] dark:bg-[#09090B]/[0.96] backdrop-blur-md border-b border-[#E4E7EC] dark:border-white/[0.08]"
         }`}
       >
         {/* Reading Progress Bar (2px #0066FF along bottom edge) */}
