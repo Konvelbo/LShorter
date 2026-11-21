@@ -535,7 +535,7 @@ export function LinksReuiDataGrid({
         "https://lsho.cc";
       const domain =
         item.domainName || item.domain_name || item.domain || "lsho.cc";
-      const shortUrl = item.shortUrl || `https://${domain}/${slug}`;
+      const shortUrl = (item.shortUrl || `https://${domain}/${slug}`).replace(/\/r\/([^/?#]+)$/, "/$1");
       const ownerName =
         item.title ||
         item.metaTitle ||
@@ -1079,7 +1079,7 @@ export function LinksReuiDataGrid({
                           <div className="min-w-0">
                             <div className="relative inline-flex items-center gap-1.5 flex-wrap">
                               <a
-                                href={`/r/${encodeURIComponent(row.slug)}`}
+                                href={`/${encodeURIComponent(row.slug)}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 title={`${isMac ? "⌘" : "Ctrl"} + Clic pour sélectionner`}
@@ -1434,7 +1434,7 @@ export function LinksReuiDataGrid({
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
                           <a
-                            href={`/r/${encodeURIComponent(row.slug)}`}
+                            href={`/${encodeURIComponent(row.slug)}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             onClick={(e) => {
@@ -2393,7 +2393,7 @@ export function GeoLogsReuiDataGrid({
                     {visibleCols.shortLink && (
                       <td className="py-3.5 px-4 font-mono text-[12px] font-medium whitespace-nowrap">
                         <a
-                          href={`/r/${encodeURIComponent(item.rawSlug)}`}
+                          href={`/${encodeURIComponent(item.rawSlug)}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={() => triggerClickSync()}
@@ -2498,7 +2498,7 @@ export function GeoLogsReuiDataGrid({
                   {/* Middle Line: Short Link + Referrer Source */}
                   <div className="flex items-center justify-between gap-2 mt-1.5 pt-1 border-t border-zinc-100 dark:border-zinc-800/60">
                     <a
-                      href={`/r/${encodeURIComponent(item.rawSlug)}`}
+                      href={`/${encodeURIComponent(item.rawSlug)}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="font-mono text-xs font-medium text-[#0066FF] dark:text-[#5294FF] hover:underline truncate"
