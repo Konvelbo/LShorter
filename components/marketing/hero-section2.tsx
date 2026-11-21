@@ -50,7 +50,7 @@ function MonochromeBrandIcon({ id }: { id: BrandLogoId }) {
     return (
       <svg
         viewBox="0 0 24 24"
-        className="w-[22px] h-[22px] shrink-0 fill-current"
+        className="w-[26px] h-[26px] shrink-0 fill-current"
         aria-hidden="true"
       >
         <path d={spec.pathOnly} fill="currentColor" />
@@ -64,7 +64,7 @@ function MonochromeBrandIcon({ id }: { id: BrandLogoId }) {
   return (
     <svg
       viewBox={spec.viewBox}
-      className="w-[22px] h-[22px] shrink-0 fill-current"
+      className="w-[26px] h-[26px] shrink-0 fill-current"
       aria-hidden="true"
       dangerouslySetInnerHTML={{ __html: monochromeBody }}
     />
@@ -144,9 +144,9 @@ export function HeroSection() {
         </div>
       </SectionRailFrame>
 
-      {/* Bottom 90px Two-Bar Band with Interior Tracking Caption & Monochrome <LogoLoop /> */}
-      <div className="relative z-10 w-full mt-auto h-[90px] border-t border-b border-[#6366F1]/25 dark:border-white/[0.12] bg-white/30 dark:bg-[#09090B]/40 backdrop-blur-md flex flex-col justify-center gap-2.5">
-        <p className="text-center font-sans text-[10px] sm:text-[11px] font-semibold uppercase tracking-[0.22em] text-[#312E81]/60 dark:text-[#C7D2FE]/60 select-none px-4">
+      {/* Bottom Two-Bar Band with Reference Height, Padding, Margin, Interior Tracking Caption & Monochrome <LogoLoop /> */}
+      <div className="relative z-10 w-full mt-12 sm:mt-16 py-8 sm:py-9 min-h-[144px] border-t border-b border-[#6366F1]/25 dark:border-white/[0.12] bg-white/30 dark:bg-[#09090B]/40 backdrop-blur-md flex flex-col justify-center gap-6">
+        <p className="text-center font-sans text-[10.5px] sm:text-[11px] font-semibold uppercase tracking-[0.22em] text-[#312E81]/60 dark:text-[#C7D2FE]/60 select-none px-4">
           Track your links everywhere — whether in paid ads or your daily social posts
         </p>
 
@@ -155,8 +155,8 @@ export function HeroSection() {
             logos={MONOCHROME_SOCIAL_AND_ADS_LOGOS}
             speed={34}
             direction="left"
-            logoHeight={22}
-            gap={56}
+            logoHeight={26}
+            gap={68}
             hoverSpeed={10}
             scaleOnHover
             fadeOut
