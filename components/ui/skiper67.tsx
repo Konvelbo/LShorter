@@ -146,7 +146,7 @@ export interface Skiper67Props {
 }
 
 export const Skiper67 = ({
-  videoSrc = "/videos/demo-walkthrough.mp4",
+  videoSrc = "/videos/demo-walkthrough.mp4?v=4",
   thumbnailSrc = "/videos/demo-walkthrough-thumbnail.png",
   thumbnailAlt = "LShorter 6-minute product walkthrough preview",
   caption = "Click the video to play",

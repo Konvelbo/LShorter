@@ -9,7 +9,7 @@ import { Skiper67 } from "@/components/ui/skiper67";
  * Thumbnail copied from `LShorter-Cartoon-Full-6min-4K-v4-Thumbnail-1080p.png`.
  */
 export const DEMO_VIDEO_SRC =
-  process.env.NEXT_PUBLIC_DEMO_VIDEO_URL || "/videos/demo-walkthrough.mp4";
+  process.env.NEXT_PUBLIC_DEMO_VIDEO_URL || "/videos/demo-walkthrough.mp4?v=4";
 export const DEMO_VIDEO_THUMBNAIL = "/videos/demo-walkthrough-thumbnail.png";
 
 export interface VideoChapter {
