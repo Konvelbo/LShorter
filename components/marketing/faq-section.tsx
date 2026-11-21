@@ -3,6 +3,11 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Plus, Minus } from "lucide-react";
+import {
+  EASE_OUT_EXPO,
+  SectionRailFrame,
+  SwissSectionIndex,
+} from "@/components/marketing/swiss-frame";
 
 const FAQS = [
   {
@@ -31,17 +36,15 @@ const FAQS = [
   },
 ];
 
-const EASE_OUT_EXPO: [number, number, number, number] = [0.16, 1, 0.3, 1];
-
 export function FaqSection() {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
   return (
     <section
       id="faq"
-      className="w-full bg-[#F8F9FA] dark:bg-[#0C0D10] py-20 sm:py-28 border-t border-[#E4E7EC] dark:border-white/[0.08] transition-colors duration-300 scroll-mt-24"
+      className="w-full bg-[#F7F8FA] dark:bg-[#0B0C10] border-t border-[#E4E7EC] dark:border-white/[0.08] transition-colors duration-300 scroll-mt-24 overflow-x-clip"
     >
-      <div className="w-full max-w-[1200px] mx-auto px-4 sm:px-6">
+      <SectionRailFrame className="px-4 sm:px-8 py-20 sm:py-28">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -49,50 +52,48 @@ export function FaqSection() {
           transition={{ duration: 0.45, ease: EASE_OUT_EXPO }}
           className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-start"
         >
-          {/* Left Header */}
-          <div className="lg:col-span-5 flex flex-col justify-start">
-            <span className="inline-flex items-center self-start px-3 py-1 rounded-[8px] bg-[#0066FF]/[0.08] dark:bg-[#0066FF]/[0.16] border border-[#0066FF]/25 text-[#0066FF] dark:text-[#5294FF] text-[12px] font-semibold uppercase tracking-wide mb-4">
-              FAQ
-            </span>
-            <h2 className="text-[28px] sm:text-[40px] font-bold tracking-[-0.035em] leading-[1.08] mb-3.5 text-[#101828] dark:text-white">
-              Practical questions,{" "}
-              <span className="text-[#667085] dark:text-zinc-400 font-medium block mt-1">
-                answered clearly.
-              </span>
+          {/* Sticky Left Architectural Rail */}
+          <div className="lg:col-span-5 lg:sticky lg:top-28 flex flex-col justify-start">
+            <SwissSectionIndex index="09" label="FAQ" meta="DIRECT ANSWERS" />
+            <h2 className="mt-4 text-[30px] sm:text-[40px] font-bold tracking-[-0.04em] leading-[1.06] text-[#09090B] dark:text-white">
+              Questions teams ask before migrating
             </h2>
-            <p className="text-[14.5px] text-[#475467] dark:text-zinc-400 leading-[1.65] max-w-[400px]">
-              Everything founders, marketers, and developers ask before moving
-              their links to LShorter.
+            <p className="mt-4 text-[14.5px] text-[#475467] dark:text-zinc-400 leading-[1.65] max-w-[400px]">
+              Everything founders, marketers, and developers check before moving
+              production links onto LShorter.
             </p>
           </div>
 
-          {/* Right Accordion (strictly rounded-[10px] items) */}
-          <div className="lg:col-span-7 space-y-2.5">
+          {/* Right Hairline Accordion (strictly rounded-[10px] container) */}
+          <div className="lg:col-span-7 rounded-[10px] border border-[#D0D5DD] dark:border-white/14 bg-white dark:bg-[#0E0F13] divide-y divide-[#E4E7EC] dark:divide-white/[0.08] overflow-hidden">
             {FAQS.map((item, idx) => {
               const isOpen = openIndex === idx;
               return (
                 <div
                   key={item.q}
-                  className={`rounded-[10px] border transition-colors duration-200 overflow-hidden ${
-                    isOpen
-                      ? "bg-white dark:bg-[#111216] border-[#0066FF]/40 shadow-2xs"
-                      : "bg-white/80 dark:bg-[#111216]/70 border-[#E4E7EC] dark:border-white/10 hover:border-[#D0D5DD] dark:hover:border-white/20"
+                  className={`transition-colors duration-200 ${
+                    isOpen ? "bg-[#0066FF]/[0.02] dark:bg-[#0066FF]/[0.05]" : ""
                   }`}
                 >
                   <button
                     type="button"
                     aria-expanded={isOpen}
                     onClick={() => setOpenIndex(isOpen ? null : idx)}
-                    className="w-full px-5 py-4 flex items-center justify-between gap-4 text-left group cursor-pointer"
+                    className="w-full px-5 sm:px-6 py-4.5 flex items-center justify-between gap-4 text-left group cursor-pointer"
                   >
-                    <span className="text-[15px] sm:text-[16px] font-semibold text-[#101828] dark:text-white tracking-[-0.015em] leading-[1.35] group-hover:text-[#0066FF] dark:group-hover:text-[#5294FF] transition-colors">
-                      {item.q}
+                    <span className="flex items-baseline gap-3 min-w-0">
+                      <span className="font-mono text-[11px] font-bold text-[#0066FF] dark:text-[#5294FF] tabular-nums shrink-0">
+                        0{idx + 1}
+                      </span>
+                      <span className="text-[15px] sm:text-[16px] font-semibold text-[#09090B] dark:text-white tracking-[-0.015em] leading-[1.35] group-hover:text-[#0066FF] dark:group-hover:text-[#5294FF] transition-colors">
+                        {item.q}
+                      </span>
                     </span>
                     <span
-                      className={`w-7 h-7 rounded-[8px] flex items-center justify-center shrink-0 transition-colors duration-200 ${
+                      className={`w-7 h-7 rounded-[6px] flex items-center justify-center shrink-0 border transition-colors duration-200 ${
                         isOpen
-                          ? "bg-[#0066FF] text-white"
-                          : "bg-[#F2F4F7] dark:bg-white/[0.08] text-[#475467] dark:text-zinc-300 group-hover:text-[#0066FF]"
+                          ? "bg-[#0066FF] border-[#0066FF] text-white"
+                          : "bg-[#F7F8FA] dark:bg-white/[0.05] border-[#E4E7EC] dark:border-white/10 text-[#475467] dark:text-zinc-300 group-hover:border-[#0066FF]/50 group-hover:text-[#0066FF]"
                       }`}
                     >
                       {isOpen ? (
@@ -112,7 +113,7 @@ export function FaqSection() {
                         transition={{ duration: 0.24, ease: EASE_OUT_EXPO }}
                         className="overflow-hidden"
                       >
-                        <div className="px-5 pb-5 pr-8 text-[14px] text-[#475467] dark:text-zinc-300 leading-[1.7]">
+                        <div className="px-5 sm:px-6 pl-12 pb-5 pr-8 text-[14px] text-[#475467] dark:text-zinc-300 leading-[1.7]">
                           {item.a}
                         </div>
                       </motion.div>
@@ -123,7 +124,7 @@ export function FaqSection() {
             })}
           </div>
         </motion.div>
-      </div>
+      </SectionRailFrame>
     </section>
   );
 }

@@ -7,6 +7,11 @@ import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { LayoutDashboard, Link2, BookOpen } from "lucide-react";
 import { WaveRevealButton } from "@/components/ui/wave-reveal-button";
+import {
+  SectionRailFrame,
+  SwissSectionIndex,
+  CrosshairNode,
+} from "@/components/marketing/swiss-frame";
 
 const FOOTER_COLUMNS = [
   {
@@ -65,7 +70,7 @@ export const LandingFooter = React.memo(function LandingFooter() {
   const isAuthenticated =
     status === "authenticated" &&
     Boolean(session?.user) &&
-    !(session?.user as any)?.userNotFound;
+    !(session?.user as { userNotFound?: boolean } | undefined)?.userNotFound;
 
   const githubUrl =
     process.env.NEXT_PUBLIC_GITHUB_URL || "https://github.com/lshorter";
@@ -77,7 +82,11 @@ export const LandingFooter = React.memo(function LandingFooter() {
 
   useEffect(() => {
     const el = footerRef.current;
-    if (!el || typeof window === "undefined" || typeof IntersectionObserver === "undefined") {
+    if (
+      !el ||
+      typeof window === "undefined" ||
+      typeof IntersectionObserver === "undefined"
+    ) {
       setIsRevealed(true);
       return;
     }
@@ -115,34 +124,37 @@ export const LandingFooter = React.memo(function LandingFooter() {
   return (
     <footer
       ref={footerRef}
-      className="w-full bg-[#FFFFFF] dark:bg-[#09090B] text-[#101828] dark:text-[#FFFFFF] border-t border-[#E4E7EC] dark:border-white/[0.08] transition-colors duration-300"
+      className="w-full bg-[#FFFFFF] dark:bg-[#09090B] text-[#09090B] dark:text-[#FFFFFF] border-t border-[#E4E7EC] dark:border-white/[0.08] transition-colors duration-300 overflow-x-clip"
     >
-      {/* Final Conversion CTA Block (strictly rounded-[10px]) */}
-      <div
-        className={`max-w-[1220px] mx-auto px-4 sm:px-6 pt-16 pb-16 sm:pt-20 sm:pb-20 transition-[opacity,transform] duration-500 ease-out ${
+      {/* Monumental Minimal Architectural CTA Band (distinct from PathLock, zero radial blur) */}
+      <SectionRailFrame
+        showBottomCrosshairs
+        className={`relative px-4 sm:px-8 py-16 sm:py-24 transition-[opacity,transform] duration-500 ease-out ${
           isRevealed ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
         }`}
       >
-        <div className="relative rounded-[10px] px-6 py-12 sm:px-12 sm:py-16 bg-[#0B0C10] text-white border border-[#1E2230] overflow-hidden text-center shadow-[0_24px_64px_rgba(0,0,0,0.3)]">
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 w-[560px] h-[280px] rounded-full bg-[#0066FF]/22 blur-[110px]"
-          />
-          <div className="relative z-10 max-w-[680px] mx-auto">
-            <span className="inline-block text-[11.5px] font-semibold uppercase tracking-[0.16em] text-[#8DB0FF] mb-4">
-              YOUR FIRST TRACKED LINK IN 10 SECONDS
-            </span>
-            <h2 className="text-[30px] sm:text-[46px] font-bold tracking-[-0.035em] leading-[1.06] text-white">
-              Stop sharing blind links.{" "}
-              <span className="text-[#8DB0FF]">Take full control.</span>
-            </h2>
-            <p className="mt-4 text-[15px] sm:text-[16px] text-zinc-300 leading-[1.6] max-w-[540px] mx-auto">
-              Test LShorter directly from the homepage without creating an
-              account, or start free forever with 50 permanent links and 10,000
-              monthly clicks.
-            </p>
+        <div className="rounded-[10px] border border-[#D0D5DD] dark:border-white/14 bg-[#F7F8FA] dark:bg-[#0D0E12] p-7 sm:p-12 lg:p-14 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center relative overflow-hidden">
+          <CrosshairNode className="hidden sm:inline-flex absolute top-3 left-3 opacity-60" />
+          <CrosshairNode className="hidden sm:inline-flex absolute top-3 right-3 opacity-60" />
 
-            <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
+          <div className="lg:col-span-6">
+            <SwissSectionIndex
+              index="10"
+              label="PROVISION"
+              meta="10 SECONDS TO FIRST LINK"
+            />
+            <h2 className="mt-4 text-[clamp(30px,4vw,48px)] font-bold tracking-[-0.045em] leading-[1.03] text-[#09090B] dark:text-white">
+              Stop sharing blind links. Provision your first governed route.
+            </h2>
+            <p className="mt-4 text-[15px] sm:text-[16px] text-[#475467] dark:text-zinc-400 leading-[1.6] max-w-[520px]">
+              Test LShorter live from the homepage without creating an account,
+              or start free forever with 50 permanent links and 10,000 monthly
+              edge clicks.
+            </p>
+          </div>
+
+          <div className="lg:col-span-6 flex flex-col items-stretch sm:items-start lg:items-end justify-center gap-3.5">
+            <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row gap-3 w-full sm:w-auto">
               <WaveRevealButton
                 href={isAuthenticated ? "/dashboard" : "/#hero-shortener"}
                 onClick={isAuthenticated ? undefined : handlePrimaryCta}
@@ -163,31 +175,30 @@ export const LandingFooter = React.memo(function LandingFooter() {
 
               <WaveRevealButton
                 href="/docs"
-                variant="dark"
+                variant="outline"
                 size="lg"
                 icon={<BookOpen className="w-4 h-4" />}
               >
                 Read API documentation
               </WaveRevealButton>
             </div>
-
-            <p className="mt-4 text-[12px] text-zinc-400">
-              Start free forever · No credit card required · Upgrade or cancel anytime
+            <p className="font-mono text-[11px] text-[#667085] dark:text-zinc-400">
+              Starter $0 forever · No credit card · Upgrade or cancel anytime
             </p>
           </div>
         </div>
-      </div>
+      </SectionRailFrame>
 
       {/* 4-Column Footer Navigation */}
       <div className="border-t border-[#E4E7EC] dark:border-white/[0.08]">
-        <div className="max-w-[1220px] mx-auto px-4 sm:px-6">
+        <SectionRailFrame className="px-4 sm:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-[#E4E7EC] dark:divide-white/[0.08]">
             {FOOTER_COLUMNS.map((col) => (
               <div
                 key={col.title}
                 className="py-8 md:py-10 md:px-6 first:md:pl-0 last:md:pr-0"
               >
-                <div className="text-[11.5px] font-bold uppercase tracking-[0.14em] text-[#667085] dark:text-zinc-500 mb-4">
+                <div className="font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-[#667085] dark:text-zinc-500 mb-4">
                   {col.title}
                 </div>
                 <ul className="space-y-3">
@@ -205,12 +216,12 @@ export const LandingFooter = React.memo(function LandingFooter() {
               </div>
             ))}
           </div>
-        </div>
+        </SectionRailFrame>
       </div>
 
       {/* Bottom Legal, Cloudflare Edge Badge & Social Links */}
-      <div className="border-t border-[#E4E7EC] dark:border-white/[0.08] bg-[#F8F9FA] dark:bg-[#0B0C0E]">
-        <div className="max-w-[1220px] mx-auto px-4 sm:px-6 py-6 flex flex-col lg:flex-row items-center justify-between gap-5 text-[12.5px] text-[#667085] dark:text-zinc-400">
+      <div className="border-t border-[#E4E7EC] dark:border-white/[0.08] bg-[#F7F8FA] dark:bg-[#0B0C0E]">
+        <SectionRailFrame className="px-4 sm:px-8 py-6 flex flex-col lg:flex-row items-center justify-between gap-5 text-[12.5px] text-[#667085] dark:text-zinc-400">
           <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4">
             <div className="flex items-center gap-2.5">
               <div className="w-6 h-6 rounded-[6px] overflow-hidden shrink-0 shadow-2xs">
@@ -220,15 +231,18 @@ export const LandingFooter = React.memo(function LandingFooter() {
                   width={24}
                   height={24}
                   className="w-full h-full object-contain"
+                  loading="eager"
                 />
               </div>
               <span className="font-bold text-[#101828] dark:text-white tracking-tight">
                 LShorter
               </span>
-              <span>© {new Date().getFullYear()} LShorter.</span>
+              <span className="font-mono text-[11.5px]">
+                © {new Date().getFullYear()} LShorter.
+              </span>
             </div>
 
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-[8px] bg-white dark:bg-[#14151A] border border-[#E4E7EC] dark:border-white/10 text-[#344054] dark:text-zinc-200 text-[12px] font-medium">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-[8px] bg-white dark:bg-[#14151A] border border-[#E4E7EC] dark:border-white/10 text-[#344054] dark:text-zinc-200 font-mono text-[11.5px] font-medium">
               <svg
                 className="w-4.5 h-3 shrink-0"
                 viewBox="0 0 64 42"
@@ -248,7 +262,7 @@ export const LandingFooter = React.memo(function LandingFooter() {
             </div>
           </div>
 
-          <div className="inline-flex items-center gap-2 text-[#475467] dark:text-zinc-400">
+          <div className="inline-flex items-center gap-2 font-mono text-[11.5px] text-[#475467] dark:text-zinc-400">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             <span>Global Edge Network Operational</span>
           </div>
@@ -261,14 +275,14 @@ export const LandingFooter = React.memo(function LandingFooter() {
               >
                 Privacy
               </Link>
-              <span className="text-[#D0D5DD] dark:text-zinc-700">•</span>
+              <span className="text-[#D0D5DD] dark:text-zinc-700">/</span>
               <Link
                 href="/terms"
                 className="hover:text-[#0066FF] dark:hover:text-white transition-colors"
               >
                 Terms
               </Link>
-              <span className="text-[#D0D5DD] dark:text-zinc-700">•</span>
+              <span className="text-[#D0D5DD] dark:text-zinc-700">/</span>
               <Link
                 href="/refund"
                 className="hover:text-[#0066FF] dark:hover:text-white transition-colors"
@@ -315,7 +329,7 @@ export const LandingFooter = React.memo(function LandingFooter() {
               </a>
             </div>
           </div>
-        </div>
+        </SectionRailFrame>
       </div>
     </footer>
   );
