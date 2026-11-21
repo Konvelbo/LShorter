@@ -54,7 +54,7 @@ export const metadata: Metadata = {
     template: "%s | LShorter",
   },
   description:
-    "LShorter (lsho.cc) is an enterprise link management, dynamic edge routing and analytics infrastructure for marketing teams and developers. Sub-15ms global redirects, dynamic geo & device routing, PathLock™ funnel protection, real-time analytics, and revenue attribution.",
+    "LShorter (lsho.cc) is an edge link management, smart routing, and real-time analytics platform for developers and marketing teams. Sub-12ms redirects across 310+ Cloudflare PoPs, PathLock™ perimeter security, click caps, dynamic QR codes, and Stripe revenue attribution.",
   applicationName: "LShorter",
   authors: [{ name: "LShorter", url: siteUrl }],
   creator: "LShorter",
@@ -156,23 +156,23 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: siteUrl,
     siteName: "LShorter",
-    title: "LShorter — Enterprise Edge URL Shortener, Smart Routing & QR Code Studio",
+    title: "LShorter — Short Links You Actually Control",
     description:
-      "Raccourcisseur de lien edge, dynamic geo-routing, PathLock™ protection (verrouillage de chemin), and QR codes at the edge (<15ms latency).",
+      "Sub-12ms edge URL shortener across 310+ Cloudflare PoPs with smart geo & device routing, PathLock™ perimeter security, click caps, and Stripe revenue attribution.",
     images: [
       {
         url: `${siteUrl}/lshorter-launch-banner-2026.png`,
         width: 1024,
         height: 537,
-        alt: "LShorter — Vos liens, à la vitesse de l'Edge",
+        alt: "LShorter — Short Links You Actually Control",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "LShorter — Enterprise Edge URL Shortener & Smart Routing",
+    title: "LShorter — Short Links You Actually Control",
     description:
-      "Raccourcisseur de lien edge sous 15ms, routage dynamique, protection PathLock™ (verrouillage de chemin) et analytics de revenus.",
+      "Sub-12ms edge URL shortener with smart routing, PathLock™ perimeter locking, click caps, dynamic QR codes, and real-time analytics.",
     images: [`${siteUrl}/lshorter-launch-banner-2026.png`],
     creator: "@lshorter",
   },

@@ -1,122 +1,99 @@
 import React from "react";
 import type { Metadata } from "next";
-import dynamic from "next/dynamic";
 import { HeroSection } from "@/components/marketing/hero-section2";
+import { DemoVideoSection } from "@/components/marketing/demo-video-section";
+import {
+  TrustStripSection,
+  HowItWorksSection,
+  FeaturesBentoSection,
+  PathLockFocusSection,
+  DifferenceSection,
+  UseCasesSection,
+  DeveloperApiSection,
+  PricingPreviewSection,
+} from "@/components/marketing/landing-sections";
+import { FaqSection } from "@/components/marketing/faq-section";
 import { FaqStructuredData } from "@/components/seo/json-ld";
 
 export const metadata: Metadata = {
-  title: "Enterprise Edge URL Shortener, Smart Routing & QR Code Studio",
+  title: "Short Links You Actually Control | Smart Routing & PathLock™",
   description:
-    "Infrastructure de gestion de liens et routage edge haute performance (<15ms). Routage géographique dynamique, protection PathLock™ (verrouillage de chemin par code PIN), domaines personnalisés et attribution de conversion en temps réel.",
+    "Sub-12ms edge URL shortener across 310+ Cloudflare PoPs. Route visitors by country or device, lock private SaaS demos with PathLock™, cap link clicks, and attribute Stripe revenue in real time.",
   keywords: [
-    "raccourccisseur de lien",
-    "raccourcisseur de lien",
-    "link shorter",
-    "link shortener",
-    "path lock",
-    "pathlock",
-    "verrouillage de chemin",
-    "verrouillage de lien",
-    "lien protégé par mot de passe",
-    "lien sécurisé",
-    "protection de lien",
-    "password protected link",
     "URL shortener",
-    "URL shorter",
-    "réducteur de lien",
-    "raccourcisseur d'url",
-    "smart routing",
+    "link shortener",
+    "smart link routing",
+    "PathLock",
+    "password protected link",
+    "click limit link",
+    "dynamic QR code studio",
+    "custom branded short domains",
+    "Stripe revenue attribution",
+    "Bitly alternative",
     "edge redirect",
-    "dynamic QR codes",
-    "bitly alternative",
-    "alternative bitly",
   ],
   alternates: {
     canonical: "/",
   },
   openGraph: {
-    title: "LShorter — Enterprise Edge URL Shortener & Smart Routing",
+    title: "LShorter — Short Links You Actually Control",
     description:
-      "Raccourcisseur de lien edge sous 15ms, routage dynamique par pays/appareil, protection PathLock™ (verrouillage de chemin) et analytics de conversion.",
-    url: "https://lsho.cc",
+      "Send every visitor to the right page in under 12ms, lock private demos with PathLock™, cap total clicks, and track conversions without third-party cookies.",
+    url: "/",
     images: [
       {
-        url: "https://lsho.cc/lshorter-launch-banner-2026.png",
-        width: 1024,
-        height: 537,
-        alt: "LShorter — Vos liens, à la vitesse de l'Edge",
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "LShorter — Edge URL Shortener, Smart Routing & PathLock",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "LShorter — Enterprise Edge URL Shortener & Smart Routing",
+    title: "LShorter — Short Links You Actually Control",
     description:
-      "Raccourcisseur de lien edge sous 15ms, routage dynamique, protection PathLock™ et analytics.",
-    images: ["https://lsho.cc/lshorter-launch-banner-2026.png"],
-    creator: "@lshorter",
+      "Sub-12ms edge redirects, PathLock™ perimeter locking, click caps, dynamic QR studio, and real-time analytics.",
+    images: ["/og-image.png"],
   },
 };
-
-const ProductSection = dynamic(
-  () =>
-    import("@/components/marketing/product-section").then(
-      (m) => m.ProductSection,
-    ),
-  { ssr: true },
-);
-const TimelineFeatures = dynamic(
-  () =>
-    import("@/components/ui/timeline-features").then((m) => m.TimelineFeatures),
-  { ssr: true },
-);
-const SecuritySection = dynamic(
-  () =>
-    import("@/components/marketing/security-section").then(
-      (m) => m.SecuritySection,
-    ),
-  { ssr: true },
-);
-const WhyUsSection = dynamic(
-  () =>
-    import("@/components/marketing/why-us-section").then((m) => m.WhyUsSection),
-  { ssr: true },
-);
-const AnalyticsSection = dynamic(
-  () =>
-    import("@/components/marketing/analytics-section").then(
-      (m) => m.AnalyticsSection,
-    ),
-  { ssr: true },
-);
-const FaqSection = dynamic(
-  () => import("@/components/marketing/faq-section").then((m) => m.FaqSection),
-  { ssr: true },
-);
 
 export default function LandingPage() {
   return (
     <main className="flex flex-col w-full max-w-full bg-[#FFFFFF] dark:bg-[#09090B] transition-colors duration-300">
       <FaqStructuredData />
-      {/* 1. Hero Section (Ecosystem Overview + Replaceable Dashboard Showcase Image) */}
+
+      {/* 1. Uncluttered Hero + Live Guest Link Shortener Console */}
       <HeroSection />
 
-      {/* 2. Product Section (#product — Interactive Desktop SaaS Iframe + GSAP Collapsible Link Drawer) */}
-      <ProductSection />
+      {/* 2. Verifiable Trust Strip */}
+      <TrustStripSection />
 
-      {/* 3. Features Section (#features — Core Platform Capabilities routing to /docs/[slug]) */}
-      <TimelineFeatures />
+      {/* 3. How It Works (3 Steps with Scroll-Drawn Flow Line) */}
+      <HowItWorksSection />
 
-      {/* 4. Security & Speed Section (#security — SOC 2, PathLock™ PIN Gate & <12ms API Latency) */}
-      <SecuritySection />
+      {/* 4. Dedicated 6-Minute Walkthrough Video (#demo-video) */}
+      <DemoVideoSection />
 
-      {/* 5. Why Us & Integrations (#why-us — Differentiation Matrix + Aceternity CanvasRevealEffect Cards) */}
-      <WhyUsSection />
+      {/* 5. Core Features Bento Grid (#features — Routing, Click Caps, Attribution, QR Studio, Branded Domains + Namecheap, PIN Gate) */}
+      <FeaturesBentoSection />
 
-      {/* 6. Geographic Intelligence Map (#analytics — 2D World Localization & City/ISP Drilldown) */}
-      <AnalyticsSection />
+      {/* 6. Signature Focus: PathLock™ Perimeter Security (#pathlock) */}
+      <PathLockFocusSection />
 
-      {/* 7. FAQ Accordion (#faq — GSAP Animated, followed by Footer in layout.tsx) */}
+      {/* 7. The LShorter Difference (#difference — Direct Comparison vs Traditional Shorteners) */}
+      <DifferenceSection />
+
+      {/* 8. Use Cases by Profile (4 Role Tabs with Concrete 1-Sentence Scenarios) */}
+      <UseCasesSection />
+
+      {/* 9. Developer-First REST API & Webhooks (#api — Interactive Code Terminal + Docs CTA) */}
+      <DeveloperApiSection />
+
+      {/* 10. Condensed Pricing Preview (Real Starter / Pro / Business Plans) */}
+      <PricingPreviewSection />
+
+      {/* 11. Practical FAQ Accordion (#faq — followed by Final CTA & Footer in layout.tsx) */}
       <FaqSection />
     </main>
   );

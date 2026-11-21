@@ -1,104 +1,100 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import { Plus, Minus } from "lucide-react";
 
 const FAQS = [
   {
-    q: "How does LShorter's geographic routing and telemetry work?",
-    a: "LShorter evaluates ISO 3166-1 alpha-2 country routing rules (geoTargeting), device/OS rules (ios, android, desktop), and weighted A/B variations directly at redirect time. Simultaneously, our asynchronous telemetry engine logs the visitor's Continent, Country, City, Device, Browser, and Referrer with zero redirect delay.",
+    q: "Is LShorter really free? Do I need a credit card?",
+    a: "Yes. Our Starter plan is free forever with no credit card required. It includes 50 permanent active links, 10,000 tracked clicks per month, up to 3 custom branded domains with automatic SSL, PathLock™ PIN protection, and our Dynamic QR Code Studio.",
   },
   {
-    q: "Can we connect our own custom branded domains and verify DNS?",
-    a: "Yes. Add your custom domain (e.g., go.yourbrand.com) in the Custom Domains dashboard, configure the CNAME / TXT record, and click Verify DNS. Once verified, any short link can be published on your branded domain with automatic TLS.",
+    q: "What happens to links I shorten without creating an account?",
+    a: "You can shorten up to 2 links immediately from the homepage with live click tracking. Unclaimed guest links stay active for 3 days. As soon as you create a free account (or sign in), those links and all clicks they already received are automatically transferred to your dashboard and become permanent.",
   },
   {
-    q: "How does revenue attribution connect short link clicks to customer purchases?",
-    a: "When a visitor clicks an LShorter link, a first-party click identifier (qk_cid) is generated. Your checkout or backend calls POST /api/v1/conversions (or lshorter.track.conversion) with the clickId, amount, customerEmail, and customerAvatar—attributing exact revenue and EPC back to the originating slug.",
+    q: "What is PathLock™ and how is it different from a normal password?",
+    a: "A standard link password only checks access once before redirecting. PathLock™ goes further: it locks visitors strictly inside the URL prefix you authorize (for example /app/dashboard/*). If a beta tester or client tries to navigate into unfinished or private routes of your SaaS, access is intercepted and blocked unless they enter a team unlock password.",
   },
   {
-    q: "How do PathLock™ PIN protection, click limits, and destination masking work?",
-    a: "Every link supports an optional PIN/password challenge, an expiration timestamp (expiresAt) or maximum click cap (maxClicks), and zero-referrer iframe destination masking with custom page title and favicon.",
+    q: "What happens if my links exceed my monthly click quota?",
+    a: "On the free Starter plan, links pause once you hit 10,000 clicks in a billing month. On Pro (150,000 included clicks/mo) and Business (500,000 included clicks/mo), your redirects are never interrupted — excess traffic is seamlessly handled via transparent metered overage.",
   },
   {
-    q: "Can we export all click telemetry, geographic data, and revenue logs?",
-    a: "Yes. Every dashboard view—Analytics Overview, Geo Analytics, Customers & Revenue, Live Click Stream, and Short Links—includes one-click CSV Export alongside full JSON access via /api/v1/analytics/overview and /api/v1/analytics/geo.",
+    q: "Can I use my own custom domain and how long does DNS setup take?",
+    a: "Yes. Even the free Starter plan includes 3 custom domains. Add your domain (such as go.yourbrand.io) from the dashboard, point a single CNAME record at your registrar (Namecheap, Cloudflare, GoDaddy, etc.), and LShorter automatically verifies DNS and provisions edge SSL certificates within minutes.",
+  },
+  {
+    q: "How does LShorter handle privacy, GDPR, and revenue attribution?",
+    a: "LShorter does not drop third-party ad tracking cookies on your visitors. Redirect telemetry runs on Cloudflare's global edge network (< 12ms across 310+ PoPs) with masked IP handling, and Stripe revenue attribution works via a first-party click token (qk_cid) or server-side webhooks.",
   },
 ];
 
+const EASE_OUT_EXPO: [number, number, number, number] = [0.16, 1, 0.3, 1];
+
 export function FaqSection() {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
-  const [isVisible, setIsVisible] = useState(false);
-  const sectionRef = useRef<HTMLElement>(null);
-
-  useEffect(() => {
-    const el = sectionRef.current;
-    if (!el || typeof IntersectionObserver === "undefined") {
-      setIsVisible(true);
-      return;
-    }
-    const io = new IntersectionObserver(
-      ([entry]) => {
-        if (entry?.isIntersecting) {
-          setIsVisible(true);
-          io.disconnect();
-        }
-      },
-      { rootMargin: "80px 0px", threshold: 0.01 },
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
 
   return (
     <section
-      ref={sectionRef}
       id="faq"
-      style={{
-        contentVisibility: "auto",
-        containIntrinsicSize: "auto 560px",
-      }}
-      className="w-full bg-[#FFFFFF] dark:bg-[#09090B] py-14 sm:py-20 lg:py-24 border-t border-[#E4E7EC] dark:border-white/10 transition-colors duration-300 scroll-mt-20"
+      className="w-full bg-[#F8F9FA] dark:bg-[#0C0D10] py-20 sm:py-28 border-t border-[#E4E7EC] dark:border-white/[0.08] transition-colors duration-300 scroll-mt-24"
     >
-      <div className="w-full max-w-[1340px] mx-auto px-4 sm:px-8">
-        <div
-          className={`grid grid-cols-1 lg:grid-cols-12 gap-10 sm:gap-14 lg:gap-16 items-start transition-[opacity,transform] duration-400 ease-out ${
-            isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-5"
-          }`}
+      <div className="w-full max-w-[1200px] mx-auto px-4 sm:px-6">
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 0.45, ease: EASE_OUT_EXPO }}
+          className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-start"
         >
           {/* Left Header */}
-          <div className="lg:col-span-5 flex flex-col justify-start pt-2">
-            <h2 className="text-[28px] xs:text-[32px] sm:text-[40px] md:text-[46px] font-normal tracking-[-0.035em] leading-[1.1] mb-3 sm:mb-4">
-              <span className="text-[#101828] dark:text-white block">
-                Questions,
-              </span>
-              <span className="text-[#667085] dark:text-zinc-400 block mt-1">
+          <div className="lg:col-span-5 flex flex-col justify-start">
+            <span className="inline-flex items-center self-start px-3 py-1 rounded-[8px] bg-[#0066FF]/[0.08] dark:bg-[#0066FF]/[0.16] border border-[#0066FF]/25 text-[#0066FF] dark:text-[#5294FF] text-[12px] font-semibold uppercase tracking-wide mb-4">
+              FAQ
+            </span>
+            <h2 className="text-[28px] sm:text-[40px] font-bold tracking-[-0.035em] leading-[1.08] mb-3.5 text-[#101828] dark:text-white">
+              Practical questions,{" "}
+              <span className="text-[#667085] dark:text-zinc-400 font-medium block mt-1">
                 answered clearly.
               </span>
             </h2>
-            <p className="text-[14px] sm:text-[15.5px] text-[#667085] dark:text-zinc-400 leading-[1.6] max-w-[420px]">
-              Everything engineering, growth, and security teams ask before migrating their link infrastructure to LShorter.
+            <p className="text-[14.5px] text-[#475467] dark:text-zinc-400 leading-[1.65] max-w-[400px]">
+              Everything founders, marketers, and developers ask before moving
+              their links to LShorter.
             </p>
           </div>
 
-          {/* Right Accordion with Balanced Sizing and Elegant Spacing */}
-          <div className="lg:col-span-7 border-t border-[#E4E7EC] dark:border-white/15">
+          {/* Right Accordion (strictly rounded-[10px] items) */}
+          <div className="lg:col-span-7 space-y-2.5">
             {FAQS.map((item, idx) => {
               const isOpen = openIndex === idx;
               return (
                 <div
-                  key={idx}
-                  className="border-b border-[#E4E7EC] dark:border-white/15"
+                  key={item.q}
+                  className={`rounded-[10px] border transition-colors duration-200 overflow-hidden ${
+                    isOpen
+                      ? "bg-white dark:bg-[#111216] border-[#0066FF]/40 shadow-2xs"
+                      : "bg-white/80 dark:bg-[#111216]/70 border-[#E4E7EC] dark:border-white/10 hover:border-[#D0D5DD] dark:hover:border-white/20"
+                  }`}
                 >
                   <button
                     type="button"
+                    aria-expanded={isOpen}
                     onClick={() => setOpenIndex(isOpen ? null : idx)}
-                    className="w-full py-4.5 sm:py-5 md:py-5.5 flex items-center justify-between gap-4 text-left group cursor-pointer"
+                    className="w-full px-5 py-4 flex items-center justify-between gap-4 text-left group cursor-pointer"
                   >
-                    <span className="text-[15.5px] sm:text-[17px] md:text-[18px] font-medium text-[#101828] dark:text-white tracking-[-0.015em] leading-[1.35] group-hover:text-[#0066FF] dark:group-hover:text-[#5294FF] transition-colors">
+                    <span className="text-[15px] sm:text-[16px] font-semibold text-[#101828] dark:text-white tracking-[-0.015em] leading-[1.35] group-hover:text-[#0066FF] dark:group-hover:text-[#5294FF] transition-colors">
                       {item.q}
                     </span>
-                    <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#F2F4F7] dark:bg-white/10 flex items-center justify-center shrink-0 text-[#101828] dark:text-white transition-all duration-200 group-hover:scale-105 group-hover:bg-[#0066FF]/10 dark:group-hover:bg-[#0066FF]/20 group-hover:text-[#0066FF] dark:group-hover:text-[#5294FF]">
+                    <span
+                      className={`w-7 h-7 rounded-[8px] flex items-center justify-center shrink-0 transition-colors duration-200 ${
+                        isOpen
+                          ? "bg-[#0066FF] text-white"
+                          : "bg-[#F2F4F7] dark:bg-white/[0.08] text-[#475467] dark:text-zinc-300 group-hover:text-[#0066FF]"
+                      }`}
+                    >
                       {isOpen ? (
                         <Minus className="w-3.5 h-3.5" />
                       ) : (
@@ -106,16 +102,27 @@ export function FaqSection() {
                       )}
                     </span>
                   </button>
-                  {isOpen && (
-                    <div className="pb-5 sm:pb-6 pr-4 sm:pr-8 text-[13.5px] sm:text-[14.5px] text-[#475467] dark:text-zinc-300 leading-[1.7] animate-in fade-in duration-200">
-                      {item.a}
-                    </div>
-                  )}
+
+                  <AnimatePresence initial={false}>
+                    {isOpen && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.24, ease: EASE_OUT_EXPO }}
+                        className="overflow-hidden"
+                      >
+                        <div className="px-5 pb-5 pr-8 text-[14px] text-[#475467] dark:text-zinc-300 leading-[1.7]">
+                          {item.a}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               );
             })}
           </div>
-        </div>
+        </motion.div>
       </div>
     </section>
   );
