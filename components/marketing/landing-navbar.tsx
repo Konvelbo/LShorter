@@ -590,7 +590,7 @@ export const LandingNavbar = React.memo(function LandingNavbar() {
           <WaveRevealButton
             href={isAuthenticated ? "/dashboard" : "/#hero-shortener"}
             onClick={isAuthenticated ? undefined : handleFocusShortener}
-            variant="contrast"
+            variant="primary"
             size="sm"
             wave
             className="shrink-0"

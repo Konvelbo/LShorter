@@ -129,7 +129,7 @@ export const LandingFooter = React.memo(function LandingFooter() {
         <div className="mt-9 flex flex-col sm:flex-row items-center justify-center gap-3.5">
           <WaveRevealButton
             href={isAuthenticated ? "/dashboard" : "/register"}
-            variant="contrast"
+            variant="primary"
             size="md"
             wave
             icon={

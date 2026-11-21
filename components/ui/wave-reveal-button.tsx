@@ -113,24 +113,24 @@ export const WaveRevealButton = forwardRef<
 
     const variantStyles = {
       primary: {
-        base: "bg-[#0066FF] text-white border border-[#0066FF]/70 shadow-[0_4px_14px_rgba(0,102,255,0.24)] hover:shadow-[0_8px_24px_rgba(0,102,255,0.40)]",
-        staticHover: "hover:bg-[#0055D4] hover:border-[#3B82F6]",
+        base: "bg-[#0066FF] text-white border border-[#0066FF] shadow-[0_4px_14px_rgba(0,102,255,0.24)] hover:shadow-[0_8px_24px_rgba(0,66,195,0.40)]",
+        staticHover: "hover:bg-[#0052CC] hover:border-[#0052CC]",
         textActive: "text-white",
         arrowDefaultBg: "bg-white",
         arrowHoverBg: "bg-white",
         arrowDefaultText: "text-white",
         arrowHoverStatic: "text-white",
-        waveFill: waveColor || "#0039B3",
+        waveFill: waveColor || "#002E99",
       },
       default: {
-        base: "bg-[#0066FF] text-white border border-[#0066FF]/70 shadow-[0_4px_14px_rgba(0,102,255,0.24)] hover:shadow-[0_8px_24px_rgba(0,102,255,0.40)]",
-        staticHover: "hover:bg-[#0055D4] hover:border-[#3B82F6]",
+        base: "bg-[#0066FF] text-white border border-[#0066FF] shadow-[0_4px_14px_rgba(0,102,255,0.24)] hover:shadow-[0_8px_24px_rgba(0,66,195,0.40)]",
+        staticHover: "hover:bg-[#0052CC] hover:border-[#0052CC]",
         textActive: "text-white",
         arrowDefaultBg: "bg-white",
         arrowHoverBg: "bg-white",
         arrowDefaultText: "text-white",
         arrowHoverStatic: "text-white",
-        waveFill: waveColor || "#0039B3",
+        waveFill: waveColor || "#002E99",
       },
       white: {
         base: "bg-white text-black border border-zinc-200 shadow-2xs",
@@ -369,7 +369,9 @@ export const WaveRevealButton = forwardRef<
       variantStyles.base,
       wave
         ? isWaveActive
-          ? "border-[#0066FF] dark:border-[#0066FF] shadow-[0_8px_24px_rgba(0,102,255,0.36)]"
+          ? variant === "primary" || variant === "default"
+            ? "border-[#002E99] dark:border-[#002E99] shadow-[0_8px_24px_rgba(0,46,153,0.42)]"
+            : "border-[#0066FF] dark:border-[#0066FF] shadow-[0_8px_24px_rgba(0,102,255,0.36)]"
           : ""
         : variantStyles.staticHover,
       disabled && "opacity-50 cursor-not-allowed pointer-events-none",

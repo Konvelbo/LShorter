@@ -20,18 +20,18 @@ export function HeroSection() {
         {/* Main Centered Hero Focus */}
         <div className="my-auto py-10 sm:py-16 flex flex-col items-center text-center">
           <motion.h1
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0.92, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, ease: EASE_OUT_EXPO }}
+            transition={{ duration: 0.35, ease: EASE_OUT_EXPO }}
             className="text-[clamp(40px,5.6vw,68px)] font-semibold tracking-[-0.035em] leading-[1.04] text-[#09090B] dark:text-white max-w-[780px] text-balance"
           >
             Short links you actually control.
           </motion.h1>
 
           <motion.p
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0.92, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, delay: 0.08, ease: EASE_OUT_EXPO }}
+            transition={{ duration: 0.35, delay: 0.04, ease: EASE_OUT_EXPO }}
             className="mt-5 text-[16.5px] sm:text-[18.5px] leading-[1.55] text-[#52525B] dark:text-zinc-400 max-w-[560px] text-pretty"
           >
             Route visitors by country or device in under 12ms, lock private
@@ -40,20 +40,15 @@ export function HeroSection() {
 
           {/* Clean Live Guest Shortener */}
           <motion.div
-            initial={{ opacity: 0, y: 12 }}
+            initial={{ opacity: 0.95, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.48, delay: 0.14, ease: EASE_OUT_EXPO }}
+            transition={{ duration: 0.38, delay: 0.08, ease: EASE_OUT_EXPO }}
             className="mt-9 sm:mt-10 w-full"
           >
             <HeroShortener />
           </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.4, delay: 0.22 }}
-            className="mt-6"
-          >
+          <div className="mt-6">
             <Link
               href="/#demo-video"
               className="inline-flex items-center gap-2 text-[14px] font-medium text-[#52525B] dark:text-zinc-400 hover:text-[#0066FF] dark:hover:text-[#5294FF] transition-colors"
@@ -61,7 +56,7 @@ export function HeroSection() {
               <Play className="w-3.5 h-3.5 fill-current text-[#0066FF] dark:text-[#5294FF]" />
               <span>Watch the 6-minute walkthrough</span>
             </Link>
-          </motion.div>
+          </div>
         </div>
 
         {/* Docked Verifiable Trust Footer (aligned to the exact 1200px grid edges) */}
