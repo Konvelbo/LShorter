@@ -91,17 +91,27 @@ export function HowItWorksSection() {
           {steps.map((step) => (
             <li
               key={step.num}
-              className="pt-6 border-t border-[#6366F1]/25 dark:border-white/[0.12] flex flex-col"
+              className="group relative flex flex-col cursor-default"
             >
-              <span className="font-mono text-[13px] font-semibold text-[#4F46E5] dark:text-[#A5B4FC] tabular-nums">
-                0{step.num}
-              </span>
-              <h3 className="mt-3 text-[18px] font-semibold tracking-[-0.02em] text-[#09090B] dark:text-white">
-                {step.title}
-              </h3>
-              <p className="mt-2.5 text-[14.5px] leading-[1.6] text-[#3F3F46] dark:text-zinc-400 text-pretty">
-                {step.desc}
-              </p>
+              {/* Fine horizontal bar with 1.2s left-to-right blue fill on hover */}
+              <div
+                aria-hidden="true"
+                className="relative w-full h-[1.5px] bg-[#6366F1]/25 dark:bg-white/[0.12] overflow-hidden"
+              >
+                <span className="how-step-bar-fill block h-full w-full bg-[#0066FF] dark:bg-[#3B82F6]" />
+              </div>
+
+              <div className="pt-6 flex flex-col">
+                <span className="how-step-vivid-color font-mono text-[13px] font-semibold text-[#4F46E5]/65 dark:text-[#A5B4FC]/65 group-hover:text-[#0066FF] dark:group-hover:text-[#3B82F6] tabular-nums">
+                  0{step.num}
+                </span>
+                <h3 className="how-step-vivid-color mt-3 text-[18px] font-semibold tracking-[-0.02em] text-[#09090B]/80 dark:text-white/80 group-hover:text-[#0047FF] dark:group-hover:text-[#60A5FA]">
+                  {step.title}
+                </h3>
+                <p className="how-step-vivid-color mt-2.5 text-[14.5px] leading-[1.6] text-[#52525B]/80 dark:text-zinc-400/80 group-hover:text-[#09090B] dark:group-hover:text-white text-pretty">
+                  {step.desc}
+                </p>
+              </div>
             </li>
           ))}
         </ol>
