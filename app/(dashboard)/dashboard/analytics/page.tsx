@@ -137,10 +137,7 @@ export default function AnalyticsPage() {
         0,
       );
 
-      const isShortWindow = selectedPeriod === "24h" || selectedPeriod === "7d";
-      const mergedTotal = isShortWindow
-        ? workerTotal
-        : (workerTotal > 0 ? workerTotal : sumLinksClicks);
+      const mergedTotal = workerTotal;
 
       const mergedData = {
         ...workerData,
@@ -151,16 +148,11 @@ export default function AnalyticsPage() {
       setAnalytics(mergedData);
       hasLoadedOnceRef.current = true;
 
-      if (typeof window !== "undefined" && userId) {
+      if (typeof window !== "undefined" && userId && sumLinksClicks > 0) {
         try {
-          localStorage.setItem(`lshorter_live_clicks_${userId}`, String(mergedTotal));
+          localStorage.setItem(`lshorter_live_clicks_${userId}`, String(sumLinksClicks));
         } catch {}
-        setSyncedLiveClicks(mergedTotal);
-        window.dispatchEvent(
-          new CustomEvent("lshorter_live_clicks_synced", {
-            detail: { clicks: mergedTotal, userId, fromPage: true },
-          }),
-        );
+        setSyncedLiveClicks(sumLinksClicks);
       }
     } catch {
       // fallback
@@ -257,10 +249,8 @@ export default function AnalyticsPage() {
   }, [userId, range]);
 
   const totalClicks = useMemo(() => {
-    const raw = Number(analytics?.totalClicks ?? analytics?.total_clicks ?? 0);
-    const isShortWindow = range === "24h" || range === "7d";
-    return isShortWindow ? raw : Math.max(raw, syncedLiveClicks);
-  }, [analytics, syncedLiveClicks, range]);
+    return Number(analytics?.totalClicks ?? analytics?.total_clicks ?? 0);
+  }, [analytics]);
 
   const uniqueVisitors = useMemo(() => {
     if (totalClicks <= 0) return 0;
@@ -412,18 +402,18 @@ export default function AnalyticsPage() {
   }, [analytics]);
 
   const liveEvents24hCount = useMemo(() => {
+    const dayClicks = Number(analytics?.last24hClicks ?? analytics?.day_clicks ?? -1);
+    if (dayClicks >= 0) return dayClicks;
     const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
-    const in24h = allLiveEvents.filter((ev: any) => {
-      const t = new Date(ev.timestamp || ev.created_at || ev.time || 0).getTime();
+    return allLiveEvents.filter((ev: any) => {
+      let s = String(ev.timestamp || ev.created_at || ev.time || "").trim();
+      if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/.test(s)) {
+        s = s.replace(" ", "T") + "Z";
+      }
+      const t = new Date(s).getTime();
       return !isNaN(t) && t >= oneDayAgo;
     }).length;
-    if (in24h > 0) return in24h;
-    const dayClicks = Number(analytics?.last24hClicks ?? analytics?.day_clicks ?? 0);
-    if (dayClicks > 0) return dayClicks;
-    return allLiveEvents.length > 0
-      ? Math.min(allLiveEvents.length, totalClicks)
-      : (range === "24h" ? totalClicks : 0);
-  }, [allLiveEvents, analytics, totalClicks, range]);
+  }, [allLiveEvents, analytics]);
 
   const topChannels = useMemo(() => {
     if (totalClicks <= 0) return [];
@@ -436,19 +426,13 @@ export default function AnalyticsPage() {
             ? Math.min(100, Math.round((cnt / totalClicks) * 100))
             : 0;
         return {
-          source: r.source || r.referrer || r.name || "Direct / Custom Domain",
+          source: r.source || r.referrer || r.name || "Direct",
           visitors: formatNumber(cnt),
           share,
         };
       });
     }
-    return [
-      {
-        source: "Direct / Short Links",
-        visitors: formatNumber(totalClicks),
-        share: 100,
-      },
-    ];
+    return [];
   }, [analytics, totalClicks]);
 
   const topShortLinks = useMemo(() => {

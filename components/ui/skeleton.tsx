@@ -550,34 +550,64 @@ export function AnalyticsPageSkeleton() {
  */
 export function AnalyticsSourcesSkeleton() {
   return (
-    <div className="flex flex-col gap-6 animate-in fade-in duration-200">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="max-w-[1440px] mx-auto pb-12 flex flex-col gap-5 animate-in fade-in duration-200">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex flex-col gap-1.5">
-          <Skeleton className="h-7 sm:h-8 w-48 sm:w-60" />
-          <Skeleton className="h-3.5 sm:h-4 w-60 sm:w-80 max-w-full" />
+          <Skeleton className="h-3.5 w-36 rounded" />
+          <Skeleton className="h-7 w-48 sm:w-56 rounded-lg" />
+          <Skeleton className="h-4 w-72 sm:w-96 max-w-full rounded" />
         </div>
-        <Skeleton className="h-10 w-36 rounded-[10px]" />
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-[44px] w-44 rounded-[10px]" />
+          <Skeleton className="h-[44px] w-48 rounded-[10px]" />
+          <Skeleton className="h-[44px] w-[44px] rounded-[10px]" />
+        </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {[1, 2, 3, 4].map((i) => (
-          <StatCardSkeleton key={i} />
+          <div
+            key={i}
+            className="rounded-[12px] border border-[#E4E7EC] dark:border-[#1E232E] bg-white dark:bg-[#12151C] px-[20px] py-[18px] flex flex-col gap-2"
+          >
+            <Skeleton className="h-3.5 w-28 rounded" />
+            <Skeleton className="h-8 w-24 rounded-md" />
+            <Skeleton className="h-3.5 w-40 rounded" />
+          </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-        <div className="lg:col-span-7 ds-card rounded-[10px] p-5 flex flex-col gap-4">
-          <Skeleton className="h-5 w-40" />
-          {[1, 2, 3, 4].map((k) => (
-            <div key={k} className="flex items-center justify-between py-2 border-b ds-border">
-              <Skeleton className="h-4 w-32" />
-              <Skeleton className="h-4 w-16" />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {[1, 2].map((panel) => (
+          <div
+            key={panel}
+            className="rounded-[12px] border border-[#E4E7EC] dark:border-[#1E232E] bg-white dark:bg-[#12151C] p-5 flex flex-col gap-4"
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-[#E4E7EC] dark:border-[#1E232E]">
+              <Skeleton className="h-4 w-32 rounded" />
+              <Skeleton className="h-3.5 w-24 rounded" />
             </div>
-          ))}
+            {[1, 2, 3].map((k) => (
+              <div key={k} className="flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <Skeleton className="h-4 w-28 rounded" />
+                  <Skeleton className="h-3.5 w-24 rounded" />
+                </div>
+                <Skeleton className="h-1.5 w-full rounded-full" />
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+
+      <div className="rounded-[12px] border border-[#E4E7EC] dark:border-[#1E232E] bg-white dark:bg-[#12151C] p-5 flex flex-col gap-3">
+        <div className="flex items-center justify-between pb-3 border-b border-[#E4E7EC] dark:border-[#1E232E]">
+          <Skeleton className="h-5 w-40 rounded" />
+          <Skeleton className="h-[44px] w-60 rounded-[10px]" />
         </div>
-        <div className="lg:col-span-5 ds-card rounded-[10px] p-5 flex flex-col items-center justify-center min-h-[260px]">
-          <Skeleton className="w-40 h-40 rounded-full" />
-        </div>
+        {[1, 2, 3, 4, 5].map((r) => (
+          <Skeleton key={r} className="h-11 w-full rounded-[8px]" />
+        ))}
       </div>
     </div>
   );

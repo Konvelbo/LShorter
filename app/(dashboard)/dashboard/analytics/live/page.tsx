@@ -200,25 +200,6 @@ function LiveClickStreamContent() {
       const d =
         analyticsRes?.data?.data || analyticsRes?.data || analyticsRes || {};
       const workerTotal = Number(d.totalClicks ?? d.total_clicks ?? 0);
-      const sumLinksClicks = listData.reduce(
-        (acc: number, l: any) =>
-          acc + Number(l.clicks_count ?? l.clicksCount ?? l.clicks ?? 0),
-        0,
-      );
-
-      let storedLive = 0;
-      if (typeof window !== "undefined" && userId) {
-        try {
-          const s = localStorage.getItem(`lshorter_live_clicks_${userId}`);
-          if (s && !isNaN(Number(s))) storedLive = Number(s);
-        } catch {}
-      }
-
-      const isShortWindow = range === "day" || range === "week";
-      const effectiveTotalClicks = isShortWindow
-        ? workerTotal
-        : Math.max(workerTotal, sumLinksClicks, storedLive);
-      setTotalClicksCount(effectiveTotalClicks);
 
       const rawLive =
         d.liveClickEvents ||
@@ -239,9 +220,11 @@ function LiveClickStreamContent() {
 
           return {
             id: ev.id || `evt_${idx}`,
+            linkId: ev.linkId || ev.link_id || ev.slug || "",
             timestamp:
               ev.timestamp || ev.created_at || new Date().toISOString(),
             slug: ev.slug || "link",
+            rawSlug: ev.rawSlug || ev.raw_slug || ev.slug || "link",
             countryCode: geo.countryCode,
             countryName: geo.countryName,
             city: geo.city,
@@ -250,11 +233,7 @@ function LiveClickStreamContent() {
             os: detectOSFromEvent(ev) || (ev.os && ev.os !== "unknown" ? ev.os : "Inconnu"),
             browser: ev.browser && ev.browser !== "unknown" ? ev.browser : "Inconnu",
             referrer: ev.referrer || "Direct",
-            latencyMs: ev.latency_ms
-              ? `${ev.latency_ms}ms`
-              : ev.latency
-                ? `${ev.latency}ms`
-                : "—",
+            isUnique: Boolean(ev.isUnique ?? ev.is_unique ?? true),
             customerName:
               ev.customerName || ev.customer_name || ev.fullName || null,
             customerEmail:
@@ -266,6 +245,7 @@ function LiveClickStreamContent() {
         });
       }
 
+      setTotalClicksCount(mappedEvents.length > 0 ? mappedEvents.length : workerTotal);
       setEvents(mappedEvents);
       hasLoadedOnceRef.current = true;
     } catch {
@@ -280,14 +260,14 @@ function LiveClickStreamContent() {
     setSelectedLinkId(newLinkId);
     setCurrentPage(1);
     cfInvalidateCache();
-    loadStreamData(selectedRange, newLinkId);
+    loadStreamData(selectedRange, newLinkId, false, true);
   };
 
   const handleRangeChange = (newRange: TimeRange) => {
     setSelectedRange(newRange);
     setCurrentPage(1);
     cfInvalidateCache();
-    loadStreamData(newRange, selectedLinkId);
+    loadStreamData(newRange, selectedLinkId, false, true);
   };
 
   useEffect(() => {
@@ -308,11 +288,7 @@ function LiveClickStreamContent() {
 
     const handleUpdate = () => {
       cfInvalidateCache();
-      const qLinkId =
-        searchParams.get("linkId") ||
-        searchParams.get("slug") ||
-        selectedLinkId;
-      loadStreamData(selectedRange, qLinkId, true, true);
+      loadStreamData(selectedRange, selectedLinkId, true, true);
     };
 
     const handleFocus = () => {
@@ -349,11 +325,7 @@ function LiveClickStreamContent() {
 
     const pollTimer = setInterval(() => {
       if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
-      const qLinkId =
-        searchParams.get("linkId") ||
-        searchParams.get("slug") ||
-        selectedLinkId;
-      loadStreamData(selectedRange, qLinkId, true, true);
+      loadStreamData(selectedRange, selectedLinkId, true, true);
     }, 10000);
 
     return () => {
@@ -367,11 +339,38 @@ function LiveClickStreamContent() {
       if (channel) channel.close();
       clearInterval(pollTimer);
     };
-  }, [userId, selectedRange, selectedLinkId, searchParams]);
+  }, [userId, selectedRange, selectedLinkId]);
+
+  const selectedLinkObj = useMemo(() => {
+    if (selectedLinkId === "all") return null;
+    const clean = selectedLinkId.replace(/^\/+/, "").toLowerCase();
+    return (
+      links.find(
+        (l: any) =>
+          l.id === selectedLinkId ||
+          String(l.slug || "").toLowerCase() === clean,
+      ) || null
+    );
+  }, [links, selectedLinkId]);
 
   const filteredEvents = useMemo(() => {
     return events.filter((ev) => {
-      if (selectedLinkId !== "all" && ev.slug !== selectedLinkId) return false;
+      if (selectedLinkId !== "all") {
+        const cleanSel = selectedLinkId.replace(/^\/+/, "").toLowerCase();
+        const evSlug = String(ev.slug || "").replace(/^\/+/, "").toLowerCase();
+        const evRawSlug = String(ev.rawSlug || "").replace(/^\/+/, "").toLowerCase();
+        const evLinkId = String(ev.linkId || "");
+        const matchesId =
+          evLinkId === selectedLinkId ||
+          (selectedLinkObj && evLinkId === selectedLinkObj.id);
+        const matchesSlug =
+          evSlug === cleanSel ||
+          evRawSlug === cleanSel ||
+          (selectedLinkObj &&
+            (evSlug === String(selectedLinkObj.slug || "").toLowerCase() ||
+              evRawSlug === String(selectedLinkObj.slug || "").toLowerCase()));
+        if (!matchesId && !matchesSlug) return false;
+      }
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const match =
@@ -388,17 +387,27 @@ function LiveClickStreamContent() {
       }
       return true;
     });
-  }, [events, selectedLinkId, searchQuery]);
+  }, [events, selectedLinkId, selectedLinkObj, searchQuery]);
 
   const liveEvents24hCount = useMemo(() => {
     const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
-    const in24h = events.filter((ev) => {
-      const t = new Date(ev.timestamp || ev.created_at || ev.time || 0).getTime();
+    return filteredEvents.filter((ev) => {
+      let s = String(ev.timestamp || ev.created_at || ev.time || "").trim();
+      if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/.test(s)) {
+        s = s.replace(" ", "T") + "Z";
+      }
+      const t = new Date(s).getTime();
       return !isNaN(t) && t >= oneDayAgo;
     }).length;
-    if (in24h > 0) return in24h;
-    return events.length > 0 ? events.length : totalClicksCount;
-  }, [events, totalClicksCount]);
+  }, [filteredEvents]);
+
+  const uniqueVisitorsCount = useMemo(() => {
+    if (filteredEvents.length === 0) return 0;
+    const ips = new Set(
+      filteredEvents.map((ev) => ev.ipMasked || ev.id).filter(Boolean),
+    );
+    return ips.size || filteredEvents.length;
+  }, [filteredEvents]);
 
   const activeLinksCount = useMemo(() => {
     return links.filter((l) => isLinkActive(l)).length;
@@ -435,9 +444,9 @@ function LiveClickStreamContent() {
           ev.city || "—",
           ev.countryCode || "XX",
           ev.countryName || "—",
-          ev.device || "Desktop",
-          ev.os || "Windows",
-          ev.browser || "Chrome",
+          ev.device || "Inconnu",
+          ev.os || "Inconnu",
+          ev.browser || "Inconnu",
           ev.referrer || "Direct",
         ]),
       });
@@ -494,13 +503,13 @@ function LiveClickStreamContent() {
           {/* Link Filter Dropdown */}
           <div className="relative">
             <select
-              value={selectedLinkId}
+              value={selectedLinkObj ? selectedLinkObj.id : selectedLinkId}
               onChange={(e) => handleLinkChange(e.target.value)}
               className="h-9 pl-3 pr-8 rounded-[8px] bg-white dark:bg-[#141416] border border-[#E4E7EC] dark:border-[#222225] text-xs font-semibold text-[#101828] dark:text-[#fafafa] appearance-none cursor-pointer focus:outline-none focus:border-[#0066FF] transition-colors"
             >
-              <option value="all">All short links ({links.length || 1})</option>
+              <option value="all">All short links ({links.length})</option>
               {links.map((l: any) => (
-                <option key={l.id} value={l.slug}>
+                <option key={l.id} value={l.id}>
                   /{l.slug} ({l.clicks_count || l.clicksCount || 0} clicks)
                 </option>
               ))}
@@ -613,17 +622,17 @@ function LiveClickStreamContent() {
         <div className="p-4 rounded-[10px] ds-card flex flex-col justify-between gap-2.5">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold ds-text-muted uppercase tracking-wider">
-              Median Edge Speed
+              Unique Visitors
             </span>
             <Zap className="w-4 h-4 text-amber-500" />
           </div>
           <div className="text-2xl sm:text-3xl font-bold ds-text-primary">
-            2.4 ms
+            {formatNumber(uniqueVisitorsCount)}
           </div>
           <div className="flex items-center justify-between pt-2 border-t ds-border text-xs">
-            <span className="ds-text-muted">V8 Isolate Lookup</span>
+            <span className="ds-text-muted">Distinct IP hashes</span>
             <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
-              Sub-5ms SLA
+              {liveEvents24hCount} in 24h
             </span>
           </div>
         </div>
@@ -653,10 +662,10 @@ function LiveClickStreamContent() {
       {/* Active Edge Stream Grand Format */}
       <ActiveEdgeStreamChart
         variant="large"
-        totalClicks={totalClicksCount}
+        totalClicks={filteredEvents.length > 0 ? filteredEvents.length : totalClicksCount}
         liveEvents24hCount={liveEvents24hCount}
-        events={events}
-        activeLinksCount={activeLinksCount}
+        events={filteredEvents}
+        activeLinksCount={selectedLinkId === "all" ? activeLinksCount : 1}
       />
 
       {/* Table Card */}
@@ -841,7 +850,7 @@ function LiveClickStreamContent() {
                       {visibleColumns.has("status") && (
                         <td className="py-3.5 px-3 text-right whitespace-nowrap">
                           <span className="inline-flex items-center gap-1 rounded-full bg-[#0066FF]/10 text-[#0066FF] dark:text-[#5294FF] px-2 py-0.5 text-[10px] font-semibold">
-                            302 Edge ({ev.latencyMs || "2.4ms"})
+                            HTTP 302
                           </span>
                         </td>
                       )}
@@ -929,7 +938,7 @@ function LiveClickStreamContent() {
                       </span>
                       <div className="flex items-center gap-1.5 shrink-0">
                         <span className="px-1.5 py-0.5 rounded-[4px] bg-[#0066FF]/10 text-[#0066FF] dark:text-[#5294FF] text-[10px] font-medium font-mono">
-                          302 {ev.latencyMs || "2.4ms"}
+                          HTTP 302
                         </span>
                         <button
                           type="button"

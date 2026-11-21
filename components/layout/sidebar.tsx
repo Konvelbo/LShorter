@@ -69,6 +69,11 @@ const navMenu: NavItem[] = [
         href: "/dashboard/analytics/devices",
       },
       {
+        id: "sources",
+        name: "Traffic Sources",
+        href: "/dashboard/analytics/sources",
+      },
+      {
         id: "live",
         name: "Live Click Stream",
         href: "/dashboard/analytics/live",
@@ -245,14 +250,18 @@ export const Sidebar = React.memo(function Sidebar() {
           ),
         ]);
 
-        const lList = Array.isArray(linksRes?.data)
-          ? linksRes.data
-          : Array.isArray((linksRes?.data as any)?.data)
-            ? (linksRes?.data as any).data
+        const rawLinksData = linksRes?.data as
+          | Record<string, unknown>[]
+          | { data?: Record<string, unknown>[] }
+          | undefined;
+        const lList: Record<string, unknown>[] = Array.isArray(rawLinksData)
+          ? rawLinksData
+          : Array.isArray(rawLinksData?.data)
+            ? rawLinksData.data
             : [];
 
         const sumClicksFromLinks = lList.reduce(
-          (acc: number, l: any) =>
+          (acc: number, l: Record<string, unknown>) =>
             acc +
             (Number(l.clicks_count) ||
               Number(l.clicksCount) ||
@@ -373,13 +382,20 @@ export const Sidebar = React.memo(function Sidebar() {
     };
   }, [userId]);
 
+  const sessionUserPlan = (
+    session?.user as { plan?: string } | undefined
+  )?.plan;
   const plan = (
     (convexUser?.plan as string) ||
-    ((session?.user as any)?.plan as string) ||
+    sessionUserPlan ||
     "FREEMIUM"
   ).toUpperCase();
   const planNormalized = (plan === "FREEMIUM" ? "FREE" : plan) as
-    "FREE" | "FREEMIUM" | "PRO" | "BUSINESS" | "ENTERPRISE";
+    | "FREE"
+    | "FREEMIUM"
+    | "PRO"
+    | "BUSINESS"
+    | "ENTERPRISE";
   const planDef = getPlanDefinition(planNormalized);
   const clicksThisMonth = typeof liveClicks === "number" ? liveClicks : 0;
   const clicksLimit =
@@ -394,7 +410,6 @@ export const Sidebar = React.memo(function Sidebar() {
   // Calcul sobre et précis du pourcentage (ex: 0.03% pour 49/150,000 au lieu de 1% erroné)
   const rawClicksRatio =
     clicksLimit > 0 ? (clicksThisMonth / clicksLimit) * 100 : 0;
-  const clicksPercent = Math.min(100, Math.round(rawClicksRatio));
   const formatSidebarPercentage = (used: number, limit: number): string => {
     if (limit === -1) return "Unlimited";
     if (used <= 0) return "0%";

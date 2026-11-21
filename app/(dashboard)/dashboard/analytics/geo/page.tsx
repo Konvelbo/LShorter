@@ -535,36 +535,28 @@ export default function GeoAnalyticsPage() {
 
       const targetLink =
         linkId !== "all"
-          ? fetchedLinks.find((l) => l.id === linkId || l.slug === linkId)
+          ? fetchedLinks.find(
+              (l) =>
+                l.id === linkId ||
+                String(l.slug || "").toLowerCase() ===
+                  linkId.replace(/^\/+/, "").toLowerCase(),
+            )
           : null;
       const sumLinksClicks = fetchedLinks.reduce(
         (acc, l) => acc + (l.clicksCount || 0),
         0,
       );
-      const linkClicks = targetLink ? targetLink.clicksCount || 0 : 0;
       const isAll = !targetLink || linkId === "all";
 
       const d =
         analyticsRes?.data?.data || analyticsRes?.data || analyticsRes || {};
       const workerTotal = Number(d.totalClicks ?? d.total_clicks ?? 0);
-      const baseFromWorker = isAll ? workerTotal : workerTotal || linkClicks;
-      
-      const isShortWindow = range === "day" || range === "week";
-      const total = isShortWindow
-        ? baseFromWorker
-        : isAll
-          ? (baseFromWorker > 0 ? baseFromWorker : sumLinksClicks)
-          : (baseFromWorker || linkClicks);
+      const total = workerTotal;
 
-      if (total > 0 && typeof window !== "undefined" && userId && isAll) {
+      if (sumLinksClicks > 0 && typeof window !== "undefined" && userId && isAll) {
         try {
-          localStorage.setItem(`lshorter_live_clicks_${userId}`, String(total));
+          localStorage.setItem(`lshorter_live_clicks_${userId}`, String(sumLinksClicks));
         } catch {}
-        window.dispatchEvent(
-          new CustomEvent("lshorter_live_clicks_synced", {
-            detail: { clicks: total, userId, fromGeo: true },
-          }),
-        );
       }
 
       // Récupération des clics RÉELS sans génération de faux décalages
@@ -585,9 +577,11 @@ export default function GeoAnalyticsPage() {
           });
           return {
             id: ev.id || `evt_${idx}`,
+            linkId: ev.linkId || ev.link_id || ev.slug || "",
             timestamp:
               ev.timestamp || ev.created_at || new Date().toISOString(),
             slug: ev.slug || "link",
+            rawSlug: ev.rawSlug || ev.raw_slug || ev.slug || "link",
             countryCode: geo.countryCode,
             countryName: geo.countryName,
             city: geo.city,
@@ -597,6 +591,15 @@ export default function GeoAnalyticsPage() {
             referrer: ev.referrer || "Direct",
           };
         });
+        if (!isAll && targetLink) {
+          const targetSlugLow = String(targetLink.slug || "").toLowerCase();
+          finalLiveEvents = finalLiveEvents.filter(
+            (ev: any) =>
+              ev.linkId === targetLink.id ||
+              String(ev.slug || "").toLowerCase() === targetSlugLow ||
+              String(ev.rawSlug || "").toLowerCase() === targetSlugLow,
+          );
+        }
       }
 
       const rawTopCountries = d.topCountries || d.top_countries || [];
@@ -662,8 +665,8 @@ export default function GeoAnalyticsPage() {
       const mappedTopDevices =
         rawTopDevices.length > 0
           ? rawTopDevices.map((dv: any) => ({
-              label: dv.label || dv.device || dv.name || "Desktop",
-              device: dv.device || dv.label || dv.name || "desktop",
+              label: dv.label || dv.device || dv.name || "Inconnu",
+              device: dv.device || dv.label || dv.name || "Inconnu",
               count: Number(dv.count || dv.clicks || 0),
               percentage:
                 dv.percentage !== undefined
@@ -678,8 +681,8 @@ export default function GeoAnalyticsPage() {
       const mappedTopBrowsers =
         rawTopBrowsers.length > 0
           ? rawTopBrowsers.map((br: any) => ({
-              name: br.name || br.browser || "Chrome",
-              browser: br.browser || br.name || "Chrome",
+              name: br.name || br.browser || "Inconnu",
+              browser: br.browser || br.name || "Inconnu",
               count: Number(br.count || br.clicks || 0),
               percentage:
                 br.percentage !== undefined
@@ -971,7 +974,7 @@ export default function GeoAnalyticsPage() {
       if (selectedContinent !== "ALL" && filteredEvents.length > 0) {
         const devMap = new Map<string, number>();
         for (const ev of filteredEvents) {
-          const dev = ev.device || "desktop";
+          const dev = ev.device || "Inconnu";
           devMap.set(dev, (devMap.get(dev) || 0) + 1);
         }
         return Array.from(devMap.entries()).map(([device, value]) => ({
@@ -992,7 +995,7 @@ export default function GeoAnalyticsPage() {
       if (selectedContinent !== "ALL" && filteredEvents.length > 0) {
         const brMap = new Map<string, number>();
         for (const ev of filteredEvents) {
-          const br = ev.browser || "Chrome";
+          const br = ev.browser || "Inconnu";
           brMap.set(br, (brMap.get(br) || 0) + 1);
         }
         return Array.from(brMap.entries()).map(([browser, value]) => ({
@@ -1015,7 +1018,7 @@ export default function GeoAnalyticsPage() {
       : (analytics.liveClickEvents || []);
     const osMap = new Map<string, number>();
     for (const ev of eventsSource) {
-      const os = ev.os || "Other";
+      const os = ev.os || "Inconnu";
       osMap.set(os, (osMap.get(os) || 0) + 1);
     }
     if (osMap.size === 0 && (analytics.topDevices || []).length > 0) {

@@ -182,30 +182,24 @@ function RevenueAnalyticsContent() {
 
       if (analyticsRes?.data) {
         const d = analyticsRes.data;
+        const cleanLinkId = linkId.replace(/^\/+/, "").toLowerCase();
         const targetLink = linkId !== "all"
-          ? fetchedLinks.find((l: any) => l.id === linkId || l.slug === linkId)
+          ? fetchedLinks.find(
+              (l: any) =>
+                l.id === linkId ||
+                String(l.slug || "").toLowerCase() === cleanLinkId,
+            )
           : null;
 
         const sumLinksClicks = fetchedLinks.reduce((acc: number, l: any) => acc + (l.clicks_count || l.clicksCount || l.clicks || 0), 0);
-        const targetClicks = targetLink ? (targetLink.clicks_count || targetLink.clicksCount || targetLink.clicks || 0) : 0;
         const isAll = !targetLink || linkId === "all";
-        const isShortWindow = range === "day" || range === "week";
         const workerTotal = Number(d.totalClicks ?? d.total_clicks ?? 0);
-        const totalClicks = isShortWindow
-          ? workerTotal
-          : isAll
-            ? (workerTotal > 0 ? workerTotal : sumLinksClicks)
-            : (workerTotal || targetClicks);
+        const totalClicks = workerTotal;
 
-        if (totalClicks > 0 && typeof window !== "undefined" && userId && isAll) {
+        if (sumLinksClicks > 0 && typeof window !== "undefined" && userId && isAll) {
           try {
-            localStorage.setItem(`lshorter_live_clicks_${userId}`, String(totalClicks));
+            localStorage.setItem(`lshorter_live_clicks_${userId}`, String(sumLinksClicks));
           } catch {}
-          window.dispatchEvent(
-            new CustomEvent("lshorter_live_clicks_synced", {
-              detail: { clicks: totalClicks, userId, fromRevenue: true },
-            }),
-          );
         }
 
         const trackedRevenue = Number(d.trackedRevenue ?? d.total_revenue ?? 0);
@@ -353,9 +347,15 @@ function RevenueAnalyticsContent() {
     year: "Last 12 months",
   };
 
-  const selectedLinkObj = selectedLinkId !== "all"
-    ? links.find((l: any) => l.id === selectedLinkId || l.slug === selectedLinkId)
-    : undefined;
+  const selectedLinkObj = useMemo(() => {
+    if (selectedLinkId === "all") return undefined;
+    const clean = selectedLinkId.replace(/^\/+/, "").toLowerCase();
+    return links.find(
+      (l: any) =>
+        l.id === selectedLinkId ||
+        String(l.slug || "").toLowerCase() === clean,
+    );
+  }, [links, selectedLinkId]);
 
   // Beneficiaries & Transactions Aggregation
   // We extract all events with conversion or customer details, and group or list them authentically
@@ -364,8 +364,13 @@ function RevenueAnalyticsContent() {
 
     // Filter events matching link filter
     const linkFiltered = rawList.filter((e) => {
-      if (selectedLinkObj && e.slug) {
-        return e.slug.toLowerCase() === selectedLinkObj.slug.toLowerCase();
+      if (selectedLinkObj) {
+        const sLow = String(selectedLinkObj.slug || "").toLowerCase();
+        return (
+          e.linkId === selectedLinkObj.id ||
+          String(e.slug || "").toLowerCase() === sLow ||
+          String((e as any).rawSlug || "").toLowerCase() === sLow
+        );
       }
       return true;
     });
@@ -387,8 +392,13 @@ function RevenueAnalyticsContent() {
 
     // DEMO-START: Also merge recentConversions if not already present in liveClickEvents
     const convCandidates = (analytics.recentConversions || []).filter((c) => {
-      if (selectedLinkObj && c.slug) {
-        return c.slug.toLowerCase() === selectedLinkObj.slug.toLowerCase();
+      if (selectedLinkObj) {
+        const sLow = String(selectedLinkObj.slug || "").toLowerCase();
+        return (
+          c.linkId === selectedLinkObj.id ||
+          String(c.slug || "").toLowerCase() === sLow ||
+          String((c as any).rawSlug || "").toLowerCase() === sLow
+        );
       }
       return true;
     });

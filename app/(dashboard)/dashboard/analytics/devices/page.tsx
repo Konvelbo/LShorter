@@ -25,11 +25,10 @@ import {
 import { AnalyticsDevicesSkeleton } from "@/components/ui/skeleton";
 import { formatDateRelative, formatNumber } from "@/lib/utils";
 import { detectOSFromEvent } from "@/lib/device-detection";
-import { computePeriodMetrics } from "@/lib/analytics-generators";
-import { parseReferrer } from "@/components/dashboard/analytics/referrer-badge";
+import { ReferrerLogo } from "@/components/dashboard/analytics/referrer-badge";
 
 /**
- * Dedicated component to display official real SVG brand logo for referrers
+ * Displays official SVG brand logo for referrers, and plain text "Direct" for direct traffic
  */
 function SourceBrandLogo({
   referrer,
@@ -38,19 +37,7 @@ function SourceBrandLogo({
   referrer?: string | null;
   size?: number;
 }) {
-  const { info, icon, raw } = parseReferrer(referrer);
-  const displayTitle = `${info.platform}${raw && raw !== info.platform ? ` (${raw})` : ""}`;
-
-  return (
-    <div
-      title={displayTitle}
-      aria-label={displayTitle}
-      className="inline-flex items-center justify-center shrink-0 transition-transform duration-150 hover:scale-110 select-none"
-      style={{ width: size, height: size }}
-    >
-      {icon("w-full h-full")}
-    </div>
-  );
+  return <ReferrerLogo referrer={referrer} size={size} />;
 }
 
 export default function DevicesAnalyticsPage() {
@@ -132,85 +119,30 @@ export default function DevicesAnalyticsPage() {
 
       const targetLink =
         linkId !== "all"
-          ? fetchedLinks.find((l: any) => l.id === linkId || l.slug === linkId)
+          ? fetchedLinks.find(
+              (l: any) =>
+                l.id === linkId ||
+                String(l.slug || "").toLowerCase() ===
+                  linkId.replace(/^\/+/, "").toLowerCase(),
+            )
           : null;
-      const sumLinksClicks = fetchedLinks.reduce(
-        (acc: number, l: any) =>
-          acc + (l.clicks_count || l.clicksCount || l.clicks || 0),
-        0,
-      );
-      const linkClicks = targetLink
-        ? targetLink.clicks_count ||
-          targetLink.clicksCount ||
-          targetLink.clicks ||
-          0
-        : 0;
       const isAll = !targetLink || linkId === "all";
 
-      const d = analyticsRes?.data || {};
+      const d =
+        analyticsRes?.data?.data || analyticsRes?.data || analyticsRes || {};
       const workerTotal = Number(d.totalClicks ?? d.total_clicks ?? 0);
-
-      const isShortWindow = range === "day" || range === "week";
-      const baseTotal = isShortWindow
-        ? isAll
-          ? workerTotal
-          : workerTotal || linkClicks
-        : isAll
-          ? workerTotal > 0
-            ? workerTotal
-            : sumLinksClicks
-          : workerTotal || linkClicks;
-
-      const periodStats = computePeriodMetrics(
-        range,
-        baseTotal,
-        baseTotal,
-        0,
-        0,
-      );
-      const total = periodStats.periodClicks;
-
-      const rawDevices = d.topDevices ?? d.top_devices ?? [];
-      const devices =
-        rawDevices.length > 0
-          ? rawDevices.map((dv: any) => ({
-              label: dv.label || dv.device || dv.name || "Inconnu",
-              device: dv.device || dv.label || dv.name || "Inconnu",
-              count: dv.count || dv.clicks || 0,
-              percentage:
-                dv.percentage !== undefined
-                  ? dv.percentage
-                  : total > 0
-                    ? Math.round(((dv.count || dv.clicks || 0) / total) * 100)
-                    : 0,
-            }))
-          : [];
-
-      const rawBrowsers = d.topBrowsers ?? d.top_browsers ?? [];
-      const browsers =
-        rawBrowsers.length > 0
-          ? rawBrowsers.map((br: any) => ({
-              name: br.name || br.browser || "Inconnu",
-              browser: br.browser || br.name || "Inconnu",
-              count: br.count || br.clicks || 0,
-              percentage:
-                br.percentage !== undefined
-                  ? br.percentage
-                  : total > 0
-                    ? Math.round(((br.count || br.clicks || 0) / total) * 100)
-                    : 0,
-            }))
-          : [];
 
       const rawLiveEvents = d.liveClickEvents ?? d.live_click_events ?? [];
       let liveEvents: any[] = [];
-      if (rawLiveEvents.length > 0) {
-        liveEvents = rawLiveEvents.map((ev: any) => {
+      if (Array.isArray(rawLiveEvents) && rawLiveEvents.length > 0) {
+        liveEvents = rawLiveEvents.map((ev: any, idx: number) => {
           const detectedOS = detectOSFromEvent(ev);
           return {
-            id: ev.id,
+            id: ev.id || `evt_${idx}`,
+            linkId: ev.linkId || ev.link_id || ev.slug || "",
             timestamp: ev.timestamp || new Date().toISOString(),
             slug: ev.slug || "link",
+            rawSlug: ev.rawSlug || ev.raw_slug || ev.slug || "link",
             countryCode: (
               ev.country_code ||
               ev.countryCode ||
@@ -222,12 +154,7 @@ export default function DevicesAnalyticsPage() {
               ev.device && ev.device !== "unknown" ? ev.device : "Inconnu",
             browser:
               ev.browser && ev.browser !== "unknown" ? ev.browser : "Inconnu",
-            os:
-              detectedOS && detectedOS !== "Other" && detectedOS !== "unknown"
-                ? detectedOS
-                : ev.os && ev.os !== "unknown"
-                  ? ev.os
-                  : "Inconnu",
+            os: detectedOS || "Inconnu",
             referrer: ev.referrer || "Direct",
             userAgent: ev.user_agent || ev.userAgent || "",
             customerName:
@@ -243,17 +170,83 @@ export default function DevicesAnalyticsPage() {
           };
         });
         if (!isAll && targetLink) {
+          const targetSlugLow = String(targetLink.slug || "").toLowerCase();
           liveEvents = liveEvents.filter(
             (ev: any) =>
-              ev.slug?.toLowerCase() === targetLink.slug?.toLowerCase(),
+              ev.linkId === targetLink.id ||
+              String(ev.slug || "").toLowerCase() === targetSlugLow ||
+              String(ev.rawSlug || "").toLowerCase() === targetSlugLow,
           );
         }
       }
 
+      const rawDevices = d.topDevices ?? d.top_devices ?? [];
+      const devicesSum = Array.isArray(rawDevices)
+        ? rawDevices.reduce(
+            (acc: number, dv: any) => acc + Number(dv.count || dv.clicks || 0),
+            0,
+          )
+        : 0;
+      const total =
+        liveEvents.length > 0
+          ? liveEvents.length
+          : devicesSum > 0
+            ? devicesSum
+            : workerTotal;
+
+      const devices =
+        Array.isArray(rawDevices) && rawDevices.length > 0
+          ? rawDevices.map((dv: any) => {
+              const cnt = Number(dv.count || dv.clicks || 0);
+              return {
+                label: dv.label || dv.device || dv.name || "Inconnu",
+                device: dv.device || dv.label || dv.name || "Inconnu",
+                count: cnt,
+                percentage:
+                  devicesSum > 0
+                    ? Math.round((cnt / devicesSum) * 100)
+                    : total > 0
+                      ? Math.round((cnt / total) * 100)
+                      : 0,
+              };
+            })
+          : [];
+
+      const rawBrowsers = d.topBrowsers ?? d.top_browsers ?? [];
+      const browsersSum = Array.isArray(rawBrowsers)
+        ? rawBrowsers.reduce(
+            (acc: number, br: any) => acc + Number(br.count || br.clicks || 0),
+            0,
+          )
+        : 0;
+      const browsers =
+        Array.isArray(rawBrowsers) && rawBrowsers.length > 0
+          ? rawBrowsers.map((br: any) => {
+              const cnt = Number(br.count || br.clicks || 0);
+              const bName =
+                br.name && br.name !== "unknown"
+                  ? br.name
+                  : br.browser && br.browser !== "unknown"
+                    ? br.browser
+                    : "Inconnu";
+              return {
+                name: bName,
+                browser: bName,
+                count: cnt,
+                percentage:
+                  browsersSum > 0
+                    ? Math.round((cnt / browsersSum) * 100)
+                    : total > 0
+                      ? Math.round((cnt / total) * 100)
+                      : 0,
+              };
+            })
+          : [];
+
       setAnalytics({
         totalClicks: total,
         clicksGrowth: 0,
-        uniqueClicks: periodStats.periodUniques,
+        uniqueClicks: Number(d.uniqueClicks ?? d.unique_clicks ?? total),
         uniqueClicksGrowth: 0,
         trackedRevenue: 0,
         revenueGrowth: 0,
@@ -278,24 +271,24 @@ export default function DevicesAnalyticsPage() {
     }
   };
 
+  // Initialize linkId from URL query parameters once on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const qLinkId = params.get("linkId") || params.get("slug");
+      if (qLinkId) {
+        setSelectedLinkId(qLinkId);
+      }
+    }
+  }, []);
+
   useEffect(() => {
     if (status === "unauthenticated") {
       router.replace("/login");
       return;
     }
     if (status === "authenticated" && userId) {
-      if (typeof window !== "undefined") {
-        const params = new URLSearchParams(window.location.search);
-        const qLinkId = params.get("linkId");
-        const qSlug = params.get("slug");
-        const activeLink = qLinkId || qSlug || selectedLinkId;
-        if (activeLink !== selectedLinkId) {
-          setSelectedLinkId(activeLink);
-        }
-        loadData(selectedRange, activeLink);
-      } else {
-        loadData();
-      }
+      loadData(selectedRange, selectedLinkId, false, true);
     }
   }, [status, userId, selectedRange, selectedLinkId]);
 
@@ -319,7 +312,7 @@ export default function DevicesAnalyticsPage() {
     };
   }, [userId, selectedRange, selectedLinkId]);
 
-  // Derived OS breakdown from live events
+  // Derived OS breakdown from real live events (100% authentic counts, zero artificial scaling)
   const osBreakdown = useMemo(() => {
     if (!analytics.liveClickEvents || analytics.liveClickEvents.length === 0) {
       return [];
@@ -330,25 +323,16 @@ export default function DevicesAnalyticsPage() {
       counts[osName] = (counts[osName] || 0) + 1;
     });
 
-    const sampleTotal = analytics.liveClickEvents.length || 1;
-    const referenceTotal =
-      analytics.totalClicks > sampleTotal ? analytics.totalClicks : sampleTotal;
+    const totalEvents = analytics.liveClickEvents.length || 1;
 
     return Object.entries(counts)
-      .map(([name, rawCount]) => {
-        const percentage = Math.round((rawCount / sampleTotal) * 100);
-        const scaledCount =
-          referenceTotal > sampleTotal
-            ? Math.round((rawCount / sampleTotal) * referenceTotal)
-            : rawCount;
-        return {
-          name,
-          count: scaledCount,
-          percentage,
-        };
-      })
+      .map(([name, rawCount]) => ({
+        name,
+        count: rawCount,
+        percentage: Math.round((rawCount / totalEvents) * 100),
+      }))
       .sort((a, b) => b.count - a.count);
-  }, [analytics.liveClickEvents, analytics.totalClicks]);
+  }, [analytics.liveClickEvents]);
 
   // Effective devices
   const effectiveDevices = useMemo(() => {
@@ -412,19 +396,59 @@ export default function DevicesAnalyticsPage() {
     currentPage * pageSize,
   );
 
-  const desktopItem = effectiveDevices.find(
-    (d) => d.device?.toLowerCase() === "desktop",
-  ) || { device: "Desktop", count: 0, percentage: 0 };
+  const { desktopItem, mobileItem, tabletItem } = useMemo(() => {
+    let dCount = 0;
+    let mCount = 0;
+    let tCount = 0;
 
-  const mobileItem = effectiveDevices.find(
-    (d) => d.device?.toLowerCase() === "mobile",
-  ) || { device: "Mobile", count: 0, percentage: 0 };
+    if (effectiveDevices.length > 0) {
+      for (const item of effectiveDevices) {
+        const key = String(item.device || item.label || "").toLowerCase();
+        const cnt = Number(item.count || 0);
+        if (key.includes("mobile") || key.includes("phone") || key.includes("smart")) {
+          mCount += cnt;
+        } else if (key.includes("tablet") || key.includes("tablette") || key.includes("ipad")) {
+          tCount += cnt;
+        } else {
+          dCount += cnt;
+        }
+      }
+    } else if (effectiveEvents.length > 0) {
+      for (const ev of effectiveEvents) {
+        const key = String(ev.device || "").toLowerCase();
+        if (key.includes("mobile") || key.includes("phone") || key.includes("smart")) {
+          mCount += 1;
+        } else if (key.includes("tablet") || key.includes("tablette") || key.includes("ipad")) {
+          tCount += 1;
+        } else {
+          dCount += 1;
+        }
+      }
+    }
 
-  const tabletItem = effectiveDevices.find(
-    (d) =>
-      d.device?.toLowerCase() === "tablet" ||
-      d.device?.toLowerCase() === "tablette",
-  ) || { device: "Tablette", count: 0, percentage: 0 };
+    const sum = dCount + mCount + tCount;
+    const mPct = sum > 0 ? Math.round((mCount / sum) * 100) : 0;
+    const tPct = sum > 0 ? Math.round((tCount / sum) * 100) : 0;
+    const dPct = sum > 0 ? Math.max(0, 100 - mPct - tPct) : 0;
+
+    return {
+      desktopItem: { device: "Desktop", count: dCount, percentage: dPct },
+      mobileItem: { device: "Mobile", count: mCount, percentage: mPct },
+      tabletItem: { device: "Tablette", count: tCount, percentage: tPct },
+    };
+  }, [effectiveDevices, effectiveEvents]);
+
+  const selectedLinkObj = useMemo(() => {
+    if (selectedLinkId === "all") return null;
+    const clean = selectedLinkId.replace(/^\/+/, "").toLowerCase();
+    return (
+      links.find(
+        (l: any) =>
+          l.id === selectedLinkId ||
+          String(l.slug || "").toLowerCase() === clean,
+      ) || null
+    );
+  }, [links, selectedLinkId]);
 
   const topBrowser = effectiveBrowsers[0] || {
     name: "—",
@@ -477,17 +501,19 @@ export default function DevicesAnalyticsPage() {
         <div className="flex flex-wrap items-center gap-2.5">
           <select
             aria-label="Liens"
-            value={selectedLinkId}
+            value={selectedLinkObj ? selectedLinkObj.id : selectedLinkId}
             onChange={(e) => {
-              setSelectedLinkId(e.target.value);
-              loadData(selectedRange, e.target.value);
+              const val = e.target.value;
+              setSelectedLinkId(val);
+              setCurrentPage(1);
+              cfInvalidateCache();
             }}
             className="px-3 py-1.5 rounded-[10px] ds-input text-xs font-semibold cursor-pointer"
           >
-            <option value="all">Tous les liens combinés</option>
-            {links.map((l) => (
+            <option value="all">Tous les liens combinés ({links.length})</option>
+            {links.map((l: any) => (
               <option key={l.id} value={l.id}>
-                /{l.slug} ({l.clicksCount || 0} clics)
+                /{l.slug} ({l.clicks_count || l.clicksCount || l.clicks || 0} clics)
               </option>
             ))}
           </select>
@@ -505,7 +531,8 @@ export default function DevicesAnalyticsPage() {
                 key={r.id}
                 onClick={() => {
                   setSelectedRange(r.id);
-                  loadData(r.id, selectedLinkId);
+                  setCurrentPage(1);
+                  cfInvalidateCache();
                 }}
                 className={`px-2.5 py-1 rounded-[8px] font-semibold transition-all cursor-pointer ${
                   selectedRange === r.id
@@ -644,22 +671,28 @@ export default function DevicesAnalyticsPage() {
             </div>
 
             {/* Segmented multi-color progress bar */}
-            <div className="flex gap-[2px] h-3 my-5 rounded-[6px] overflow-hidden">
-              <i
-                style={{ width: `${mobileItem.percentage}%` }}
-                className="block h-full bg-[#0066FF]"
-                title={`Mobile: ${mobileItem.percentage}%`}
-              />
-              <i
-                style={{ width: `${desktopItem.percentage}%` }}
-                className="block h-full bg-emerald-600 dark:bg-emerald-400"
-                title={`Desktop: ${desktopItem.percentage}%`}
-              />
-              <i
-                style={{ width: `${tabletItem.percentage}%` }}
-                className="block h-full bg-purple-600 dark:bg-purple-400"
-                title={`Tablette: ${tabletItem.percentage}%`}
-              />
+            <div className="flex gap-[2px] h-3 my-5 rounded-[6px] overflow-hidden bg-[#EEF2F6] dark:bg-[#232C3D]">
+              {mobileItem.percentage > 0 && (
+                <i
+                  style={{ width: `${mobileItem.percentage}%` }}
+                  className="block h-full bg-[#0066FF] transition-all duration-300"
+                  title={`Mobile: ${mobileItem.percentage}%`}
+                />
+              )}
+              {desktopItem.percentage > 0 && (
+                <i
+                  style={{ width: `${desktopItem.percentage}%` }}
+                  className="block h-full bg-emerald-600 dark:bg-emerald-400 transition-all duration-300"
+                  title={`Desktop: ${desktopItem.percentage}%`}
+                />
+              )}
+              {tabletItem.percentage > 0 && (
+                <i
+                  style={{ width: `${tabletItem.percentage}%` }}
+                  className="block h-full bg-purple-600 dark:bg-purple-400 transition-all duration-300"
+                  title={`Tablette: ${tabletItem.percentage}%`}
+                />
+              )}
             </div>
 
             {/* List items */}

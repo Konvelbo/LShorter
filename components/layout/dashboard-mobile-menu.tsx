@@ -71,6 +71,11 @@ const navMenu: NavItem[] = [
         href: "/dashboard/analytics/devices",
       },
       {
+        id: "sources",
+        name: "Traffic Sources",
+        href: "/dashboard/analytics/sources",
+      },
+      {
         id: "live",
         name: "Live Click Stream",
         href: "/dashboard/analytics/live",

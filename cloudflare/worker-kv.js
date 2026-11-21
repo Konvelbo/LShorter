@@ -2119,8 +2119,9 @@ export default {
           linkParams.push(userId, userEmail, userEmail, userEmail, userEmail);
         }
         if (linkId && linkId !== 'all') {
+          const cleanLinkParam = String(linkId).replace(/^\/+/, '').trim();
           linkQuery += ' AND (id = ? OR LOWER(slug) = LOWER(?))';
-          linkParams.push(linkId, linkId);
+          linkParams.push(cleanLinkParam, cleanLinkParam);
         }
 
         let userLinks = [];
@@ -2128,6 +2129,10 @@ export default {
           const r = await env.DB.prepare(linkQuery).bind(...linkParams).all();
           userLinks = r?.results || [];
         } catch {}
+
+        if (linkId && linkId !== 'all' && userId && userId !== 'all' && userLinks.length === 0) {
+          return jsonResponse({ success: true, data: emptyAnalytics });
+        }
 
         const slugs = userLinks.map((l) => l.slug).filter(Boolean);
         const linkIds = userLinks.map((l) => l.id).filter(Boolean);
@@ -2149,8 +2154,11 @@ export default {
         let bindValues = [];
 
         if (linkId && linkId !== 'all') {
-          baseWhere = `(slug = ? OR link_id = ?) AND datetime(timestamp) >= ${dateCutoff}`;
-          bindValues = [linkId, linkId];
+          const cleanLink = String(linkId).replace(/^\/+/, '').trim();
+          const targetIds = allIdentifiers.length > 0 ? allIdentifiers : [cleanLink];
+          const inPlaceholders = targetIds.map(() => 'LOWER(?)').join(',');
+          baseWhere = `(LOWER(slug) IN (${inPlaceholders}) OR LOWER(link_id) IN (${inPlaceholders})) AND datetime(timestamp) >= ${dateCutoff}`;
+          bindValues = [...targetIds, ...targetIds];
         } else if (userId && userId !== 'all') {
           if (allIdentifiers.length > 0) {
             const inPlaceholders = allIdentifiers.map(() => '?').join(',');
@@ -2237,18 +2245,19 @@ export default {
           `).bind(...bindValues).all().catch(() => null),
 
           env.DB.prepare(`
-            SELECT id, slug, UPPER(country_code) as country_code, city, referrer, device, browser, os, conversion_amount, ip_masked as ip_hash, timestamp
+            SELECT id, link_id, slug, UPPER(country_code) as country_code, city, referrer, device, browser, os, conversion_amount, ip_masked as ip_hash, timestamp
             FROM click_events
             WHERE ${baseWhere}
             ORDER BY timestamp DESC
-            LIMIT 50
+            LIMIT 500
           `).bind(...bindValues).all().catch(() => null),
         ]);
 
         const dbTotalClicks = Number(totalsRes?.total_clicks || 0);
         const dbUniqueClicks = Number(totalsRes?.unique_clicks || 0);
         const isShortWindow = (period === '1d' || period === 'day' || period === '24h' || period === '7d' || period === 'week');
-        const finalTotalClicks = isShortWindow ? dbTotalClicks : Math.max(dbTotalClicks, sumClicksFromLinks);
+        const finalTotalClicks = isShortWindow ? dbTotalClicks : (dbTotalClicks > 0 ? dbTotalClicks : sumClicksFromLinks);
+        const pctDenominator = dbTotalClicks > 0 ? dbTotalClicks : (finalTotalClicks || 1);
         const finalUniqueClicks = finalTotalClicks === 0 ? 0 : (dbUniqueClicks > 0 ? Math.min(dbUniqueClicks, finalTotalClicks) : finalTotalClicks);
         const finalTotalRevenue = Number(totalsRes?.total_revenue || 0);
 
@@ -2261,28 +2270,28 @@ export default {
         const topCountries = (countriesRes?.results || []).map((r) => ({
           code: r.code,
           count: Number(r.count || 0),
-          percentage: finalTotalClicks > 0 ? Math.round((Number(r.count || 0) / finalTotalClicks) * 100) : 0,
+          percentage: finalTotalClicks > 0 ? Math.round((Number(r.count || 0) / pctDenominator) * 100) : 0,
         }));
 
         const topCities = (citiesRes?.results || []).map((r) => ({
           city: r.city,
           countryCode: r.countryCode || 'XX',
           count: Number(r.count || 0),
-          percentage: finalTotalClicks > 0 ? Math.round((Number(r.count || 0) / finalTotalClicks) * 100) : 0,
+          percentage: finalTotalClicks > 0 ? Math.round((Number(r.count || 0) / pctDenominator) * 100) : 0,
         }));
 
         const topDevices = (devicesRes?.results || []).map((r) => ({
           label: r.device === 'mobile' ? 'Smartphone (Mobile)' : r.device === 'tablet' ? 'Tablette' : 'Ordinateur (Desktop)',
           device: r.device || 'desktop',
           count: Number(r.count || 0),
-          percentage: finalTotalClicks > 0 ? Math.round((Number(r.count || 0) / finalTotalClicks) * 100) : 0,
+          percentage: finalTotalClicks > 0 ? Math.round((Number(r.count || 0) / pctDenominator) * 100) : 0,
         }));
 
         const topBrowsers = (browsersRes?.results || []).map((r) => ({
           name: r.name || 'Inconnu',
           browser: r.name || 'Inconnu',
           count: Number(r.count || 0),
-          percentage: finalTotalClicks > 0 ? Math.round((Number(r.count || 0) / finalTotalClicks) * 100) : 0,
+          percentage: finalTotalClicks > 0 ? Math.round((Number(r.count || 0) / pctDenominator) * 100) : 0,
         }));
 
         const topReferrers = (referrersRes?.results || []).map((r) => ({
@@ -2291,11 +2300,13 @@ export default {
           name: r.source || 'Direct',
           clicks: Number(r.count || 0),
           count: Number(r.count || 0),
-          percentage: finalTotalClicks > 0 ? Math.round((Number(r.count || 0) / finalTotalClicks) * 100) : 0,
+          percentage: finalTotalClicks > 0 ? Math.round((Number(r.count || 0) / pctDenominator) * 100) : 0,
         }));
 
         const liveClickEvents = (liveEventsRes?.results || []).map((ev) => ({
           id: ev.id,
+          linkId: ev.link_id || ev.slug,
+          link_id: ev.link_id || ev.slug,
           timestamp: ev.timestamp,
           slug: ev.slug,
           country_code: ev.country_code || 'XX',

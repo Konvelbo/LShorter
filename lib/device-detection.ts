@@ -17,7 +17,13 @@ export function detectOSFromEvent(ev: {
   browser?: string;
 }): string {
   // 1. Direct explicit OS field if valid
-  if (ev.os && ev.os.trim() && ev.os.toLowerCase() !== "inconnu" && ev.os.toLowerCase() !== "unknown") {
+  if (
+    ev.os &&
+    ev.os.trim() &&
+    ev.os.toLowerCase() !== "inconnu" &&
+    ev.os.toLowerCase() !== "unknown" &&
+    ev.os.toLowerCase() !== "other"
+  ) {
     const raw = ev.os.trim();
     if (/win/i.test(raw)) return "Windows";
     if (/mac|osx/i.test(raw)) return "macOS";
@@ -27,7 +33,7 @@ export function detectOSFromEvent(ev: {
     return raw;
   }
 
-  // 2. Parse User-Agent string
+  // 2. Parse User-Agent string if available
   const ua = (ev.user_agent || ev.userAgent || "").toLowerCase();
   if (ua) {
     if (
@@ -57,36 +63,8 @@ export function detectOSFromEvent(ev: {
     }
   }
 
-  // 3. Heuristic deduction based on device format and browser
-  const dev = (ev.device || "").toLowerCase();
-  const browser = (ev.browser || "").toLowerCase();
-
-  if (dev.includes("mobile") || dev.includes("smart") || dev.includes("phone")) {
-    if (browser.includes("safari") || browser.includes("apple") || browser.includes("ios")) {
-      return "iOS";
-    }
-    return "Android";
-  }
-
-  if (dev.includes("tablet") || dev.includes("pad")) {
-    if (browser.includes("safari")) {
-      return "iPadOS";
-    }
-    return "Android";
-  }
-
-  if (dev.includes("desktop") || dev.includes("pc")) {
-    if (browser.includes("safari") && !browser.includes("chrome")) {
-      return "macOS";
-    }
-    return "Windows";
-  }
-
-  // Default fallback for unidentified edge clicks
-  if (browser.includes("safari") && !browser.includes("chrome")) {
-    return "iOS";
-  }
-  return "Other";
+  // No hardcoded OS guessing when OS and User-Agent are unknown
+  return "Inconnu";
 }
 
 export interface VisitorDetails {

@@ -998,11 +998,22 @@ export function ReferrerBadge({
   iconOnly = true,
   size = 22,
 }: ReferrerBadgeProps) {
+  const { info, icon, raw } = parseReferrer(referrer);
+  if (info.category === "direct") {
+    return (
+      <span
+        title={raw || "Direct"}
+        className={`inline-block font-medium text-[12.5px] text-[#475467] dark:text-[#98A2B3] tracking-tight ${className}`}
+      >
+        {info.platform}
+      </span>
+    );
+  }
+
   if (!showLabel) {
     return <ReferrerLogo referrer={referrer} size={size} className={className} />;
   }
 
-  const { info, icon, raw } = parseReferrer(referrer);
   return (
     <span
       title={raw}

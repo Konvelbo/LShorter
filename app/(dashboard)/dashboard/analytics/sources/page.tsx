@@ -1,51 +1,324 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+  useRef,
+} from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { ShortLink, GlobalAnalytics, LiveClickEvent } from "@/types";
 import {
-  Share2,
-  ArrowLeft,
-  Calendar,
-  Filter,
-  Search,
-  RefreshCw,
-  Sparkles,
-  ChevronLeft,
-  ChevronRight,
-  Globe2,
-  TrendingUp,
-  MessageSquare,
-  Compass,
-  Link2,
-  MapPin,
-} from "lucide-react";
-import { ShortLink, GlobalAnalytics } from "@/types";
-import { cfGetAnalytics, cfGetLinks, cfInvalidateCache } from "@/lib/cloudflare-api";
-import { ColumnMaskToggle, ColumnDefinition } from "@/components/dashboard/analytics/column-mask-toggle";
-import { KpiCardsCarousel } from "@/components/dashboard/analytics/kpi-cards-carousel";
+  cfGetAnalytics,
+  cfGetLinks,
+  cfInvalidateCache,
+} from "@/lib/cloudflare-api";
 import { AnalyticsSourcesSkeleton } from "@/components/ui/skeleton";
-import { formatDateRelative, formatNumber } from "@/lib/utils";
-import {
-  computePeriodMetrics,
-  generateEdgeTopReferrers,
-  generateEdgeLiveClickEvents,
-} from "@/lib/analytics-generators";
-import { ReferrerBadge, ReferrerLogo } from "@/components/dashboard/analytics/referrer-badge";
+import { formatNumber } from "@/lib/utils";
 
-const SOURCE_COLUMNS: ColumnDefinition[] = [
-  { key: "timestamp", label: "Time", defaultVisible: true },
-  { key: "channel", label: "Channel", defaultVisible: true },
-  { key: "referrer", label: "Referrer Source", defaultVisible: true },
-  { key: "customer", label: "Customer Profile", defaultVisible: true },
-  { key: "link", label: "Short Link", defaultVisible: true },
-  { key: "city", label: "City", defaultVisible: true },
-  { key: "location", label: "Country", defaultVisible: true },
-  { key: "device", label: "Device", defaultVisible: true },
-];
+type ChannelCategory = "Direct" | "Social" | "Search" | "Referral";
+type DateRangeOption = "day" | "week" | "month" | "year";
 
-const SOCIAL_PLATFORMS = ["linkedin", "twitter", "x.com", "whatsapp", "facebook", "instagram", "t.co", "telegram"];
+interface ClassifiedReferrer {
+  raw: string;
+  displayHost: string;
+  channel: ChannelCategory;
+  platformName: string;
+  shortName: string;
+  badgeText: string;
+}
+
+interface RawLinkRecord extends ShortLink {
+  clicks_count?: number;
+  clicks?: number;
+}
+
+interface RawReferrerRecord {
+  source?: string;
+  referrer?: string;
+  name?: string;
+  count?: number;
+  clicks?: number;
+}
+
+interface RawClickEventRecord extends Partial<LiveClickEvent> {
+  rawSlug?: string;
+}
+
+interface RawAnalyticsPayload {
+  totalClicks?: number;
+  total_clicks?: number;
+  uniqueClicks?: number;
+  unique_clicks?: number;
+  clicksByDay?: GlobalAnalytics["clicksByDay"];
+  clicks_by_day?: GlobalAnalytics["clicksByDay"];
+  topCountries?: GlobalAnalytics["topCountries"];
+  top_countries?: GlobalAnalytics["topCountries"];
+  topCities?: GlobalAnalytics["topCities"];
+  top_cities?: GlobalAnalytics["topCities"];
+  topDevices?: GlobalAnalytics["topDevices"];
+  top_devices?: GlobalAnalytics["topDevices"];
+  topBrowsers?: GlobalAnalytics["topBrowsers"];
+  top_browsers?: GlobalAnalytics["topBrowsers"];
+  topReferrers?: RawReferrerRecord[];
+  top_referrers?: RawReferrerRecord[];
+  liveClickEvents?: RawClickEventRecord[];
+  live_click_events?: RawClickEventRecord[];
+  data?: RawAnalyticsPayload;
+}
+
+function extractHostname(input: string): string {
+  const cleaned = input.trim();
+  if (!cleaned) return "";
+  try {
+    const withProtocol = /^https?:\/\//i.test(cleaned)
+      ? cleaned
+      : `https://${cleaned}`;
+    const parsed = new URL(withProtocol);
+    return parsed.hostname.toLowerCase().replace(/^www\./, "");
+  } catch {
+    return cleaned
+      .toLowerCase()
+      .replace(/^https?:\/\/(www\.)?/, "")
+      .split("/")[0]
+      .split("?")[0]
+      .split("#")[0];
+  }
+}
+
+function hostMatches(host: string, domain: string): boolean {
+  return host === domain || host.endsWith(`.${domain}`);
+}
+
+function classifyReferrer(rawRef?: string | null): ClassifiedReferrer {
+  const trimmed = String(rawRef || "").trim();
+  const low = trimmed.toLowerCase();
+
+  if (
+    !trimmed ||
+    low === "direct" ||
+    low === "(direct)" ||
+    low === "none" ||
+    low === "—" ||
+    low === "-"
+  ) {
+    return {
+      raw: "Direct",
+      displayHost: "Direct",
+      channel: "Direct",
+      platformName: "Direct",
+      shortName: "Direct",
+      badgeText: "",
+    };
+  }
+
+  const displayHost = trimmed
+    .replace(/^https?:\/\/(www\.)?/i, "")
+    .replace(/\/+$/, "");
+  const host = extractHostname(trimmed);
+
+  if (
+    hostMatches(host, "t.co") ||
+    hostMatches(host, "x.com") ||
+    hostMatches(host, "twitter.com")
+  ) {
+    return {
+      raw: trimmed,
+      displayHost: displayHost || host || "x.com",
+      channel: "Social",
+      platformName: "X (Twitter)",
+      shortName: "X",
+      badgeText: "X",
+    };
+  }
+
+  if (hostMatches(host, "linkedin.com") || hostMatches(host, "lnkd.in")) {
+    return {
+      raw: trimmed,
+      displayHost: displayHost || host || "linkedin.com",
+      channel: "Social",
+      platformName: "LinkedIn",
+      shortName: "LinkedIn",
+      badgeText: "in",
+    };
+  }
+
+  if (hostMatches(host, "instagram.com") || hostMatches(host, "instagr.am")) {
+    return {
+      raw: trimmed,
+      displayHost: displayHost || host || "instagram.com",
+      channel: "Social",
+      platformName: "Instagram",
+      shortName: "Instagram",
+      badgeText: "IG",
+    };
+  }
+
+  if (
+    hostMatches(host, "facebook.com") ||
+    hostMatches(host, "fb.com") ||
+    hostMatches(host, "fb.me")
+  ) {
+    return {
+      raw: trimmed,
+      displayHost: displayHost || host || "facebook.com",
+      channel: "Social",
+      platformName: "Facebook",
+      shortName: "Facebook",
+      badgeText: "f",
+    };
+  }
+
+  if (hostMatches(host, "whatsapp.com") || hostMatches(host, "wa.me")) {
+    return {
+      raw: trimmed,
+      displayHost: displayHost || host || "wa.me",
+      channel: "Social",
+      platformName: "WhatsApp",
+      shortName: "WhatsApp",
+      badgeText: "WA",
+    };
+  }
+
+  if (
+    hostMatches(host, "t.me") ||
+    hostMatches(host, "telegram.me") ||
+    hostMatches(host, "telegram.org")
+  ) {
+    return {
+      raw: trimmed,
+      displayHost: displayHost || host || "t.me",
+      channel: "Social",
+      platformName: "Telegram",
+      shortName: "Telegram",
+      badgeText: "TG",
+    };
+  }
+
+  if (hostMatches(host, "youtube.com") || hostMatches(host, "youtu.be")) {
+    return {
+      raw: trimmed,
+      displayHost: displayHost || host || "youtube.com",
+      channel: "Social",
+      platformName: "YouTube",
+      shortName: "YouTube",
+      badgeText: "YT",
+    };
+  }
+
+  if (hostMatches(host, "tiktok.com")) {
+    return {
+      raw: trimmed,
+      displayHost: displayHost || host || "tiktok.com",
+      channel: "Social",
+      platformName: "TikTok",
+      shortName: "TikTok",
+      badgeText: "TT",
+    };
+  }
+
+  if (hostMatches(host, "reddit.com") || hostMatches(host, "redd.it")) {
+    return {
+      raw: trimmed,
+      displayHost: displayHost || host || "reddit.com",
+      channel: "Social",
+      platformName: "Reddit",
+      shortName: "Reddit",
+      badgeText: "R",
+    };
+  }
+
+  if (hostMatches(host, "github.com")) {
+    return {
+      raw: trimmed,
+      displayHost: displayHost || host || "github.com",
+      channel: "Social",
+      platformName: "GitHub",
+      shortName: "GitHub",
+      badgeText: "GH",
+    };
+  }
+
+  if (
+    hostMatches(host, "google.com") ||
+    host.startsWith("google.") ||
+    host.includes(".google.") ||
+    hostMatches(host, "bing.com") ||
+    hostMatches(host, "duckduckgo.com") ||
+    hostMatches(host, "yahoo.com")
+  ) {
+    const isGoogle = host.startsWith("google.") || host.includes(".google.") || hostMatches(host, "google.com");
+    const isBing = hostMatches(host, "bing.com");
+    const isDdg = hostMatches(host, "duckduckgo.com");
+    const pName = isGoogle
+      ? "Google"
+      : isBing
+        ? "Bing"
+        : isDdg
+          ? "DuckDuckGo"
+          : "Yahoo";
+    return {
+      raw: trimmed,
+      displayHost: displayHost || host || pName.toLowerCase(),
+      channel: "Search",
+      platformName: pName,
+      shortName: pName,
+      badgeText: pName.slice(0, 1).toUpperCase(),
+    };
+  }
+
+  const cleanHost = host || displayHost.split("/")[0] || trimmed;
+  return {
+    raw: trimmed,
+    displayHost: displayHost || cleanHost,
+    channel: "Referral",
+    platformName: cleanHost,
+    shortName: cleanHost,
+    badgeText: cleanHost.slice(0, 1).toUpperCase(),
+  };
+}
+
+function formatDeviceLabel(rawDevice?: string | null): string {
+  const low = String(rawDevice || "").trim().toLowerCase();
+  if (!low || low === "unknown" || low === "inconnu" || low === "—") {
+    return "Unknown";
+  }
+  if (low === "mobile" || low === "phone" || low === "smartphone") {
+    return "Mobile";
+  }
+  if (low === "desktop" || low === "pc" || low === "computer") {
+    return "Desktop";
+  }
+  if (low === "tablet" || low === "tablette" || low === "ipad") {
+    return "Tablet";
+  }
+  return low.charAt(0).toUpperCase() + low.slice(1);
+}
+
+function formatEventTime(rawTimestamp?: string | number | null): string {
+  if (!rawTimestamp) return "—";
+  let normalized: string | number = rawTimestamp;
+  if (typeof rawTimestamp === "string") {
+    const s = rawTimestamp.trim();
+    if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/.test(s)) {
+      normalized = `${s.replace(" ", "T")}Z`;
+    }
+  }
+  const parsed = new Date(normalized);
+  if (isNaN(parsed.getTime())) return "—";
+  return parsed.toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
+
+function getLinkClicks(link: RawLinkRecord): number {
+  return Number(link.clicks_count ?? link.clicksCount ?? link.clicks ?? 0);
+}
 
 export default function SourcesAnalyticsPage() {
   const { data: session, status } = useSession();
@@ -53,30 +326,8 @@ export default function SourcesAnalyticsPage() {
   const userId = session?.user?.id || "";
 
   const [isLoading, setIsLoading] = useState(true);
-  const [syncedLiveClicks, setSyncedLiveClicks] = useState<number>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const uId = session?.user?.id;
-        if (uId) {
-          const s = localStorage.getItem(`lshorter_live_clicks_${uId}`);
-          if (s !== null && !isNaN(Number(s))) return Number(s);
-        }
-      } catch {}
-    }
-    return 0;
-  });
-
-  useEffect(() => {
-    if (typeof window !== "undefined" && userId) {
-      try {
-        const s = localStorage.getItem(`lshorter_live_clicks_${userId}`);
-        if (s !== null && !isNaN(Number(s))) {
-          setSyncedLiveClicks(Number(s));
-        }
-      } catch {}
-    }
-  }, [userId]);
-  const [links, setLinks] = useState<ShortLink[]>([]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [links, setLinks] = useState<RawLinkRecord[]>([]);
   const [analytics, setAnalytics] = useState<GlobalAnalytics>({
     totalClicks: 0,
     clicksGrowth: 0,
@@ -99,128 +350,228 @@ export default function SourcesAnalyticsPage() {
     recentConversions: [],
   });
 
-  const [selectedRange, setSelectedRange] = useState<"day" | "week" | "month" | "year">("month");
-  const [selectedLinkId, setSelectedLinkId] = useState<string>("all");
-  const [selectedChannelFilter, setSelectedChannelFilter] = useState<string>("ALL");
+  const [selectedRange, setSelectedRange] = useState<DateRangeOption>("month");
+  const [selectedLinkId, setSelectedLinkId] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      return params.get("linkId") || params.get("slug") || "all";
+    }
+    return "all";
+  });
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState<number>(10);
+  const pageSize = 10;
 
-  const [visibleColumns, setVisibleColumns] = useState<Set<string>>(
-    new Set(SOURCE_COLUMNS.map((c) => c.key))
-  );
+  const requestIdRef = useRef(0);
+  const lastRealtimeRefreshRef = useRef(0);
 
-  const toggleColumn = (key: string) => {
-    setVisibleColumns((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) {
-        if (next.size > 2) next.delete(key);
-      } else {
-        next.add(key);
-      }
-      return next;
-    });
-  };
+  const loadData = useCallback(
+    async (
+      range: DateRangeOption,
+      linkId: string,
+      isBg = false,
+      force = false,
+    ) => {
+      if (!userId) return;
+      const reqId = ++requestIdRef.current;
 
-  const resetColumns = () => {
-    setVisibleColumns(new Set(SOURCE_COLUMNS.map((c) => c.key)));
-  };
+      try {
+        const periodParam =
+          range === "day"
+            ? "1d"
+            : range === "week"
+              ? "7d"
+              : range === "year"
+                ? "365d"
+                : "30d";
+        const needForce = isBg || force;
+        const [analyticsRes, linksRes] = await Promise.all([
+          cfGetAnalytics(
+            userId,
+            periodParam,
+            linkId !== "all" ? linkId : undefined,
+            needForce,
+          ).catch(() => null),
+          cfGetLinks(userId, needForce).catch(() => null),
+        ]);
 
-  const loadData = async (range = selectedRange, linkId = selectedLinkId, isBg = false, force = false) => {
-    if (!userId) return;
-    if (!isBg) setIsLoading(true);
+        if (reqId !== requestIdRef.current) return;
 
-    try {
-      const periodParam = range === "day" ? "1d" : range === "week" ? "7d" : range === "year" ? "365d" : "30d";
-      const needForce = isBg || force;
-      const [analyticsRes, linksRes] = await Promise.all([
-        cfGetAnalytics(userId, periodParam, linkId !== "all" ? linkId : undefined, needForce).catch(() => null),
-        cfGetLinks(userId, needForce).catch(() => null),
-      ]);
+        const rawLinksContainer = linksRes?.data as
+          | RawLinkRecord[]
+          | { data?: RawLinkRecord[] }
+          | undefined;
+        const listData: RawLinkRecord[] = Array.isArray(rawLinksContainer)
+          ? rawLinksContainer
+          : Array.isArray(rawLinksContainer?.data)
+            ? rawLinksContainer.data
+            : [];
+        setLinks(listData);
 
-      const listData = Array.isArray(linksRes?.data) ? linksRes.data : Array.isArray((linksRes?.data as any)?.data) ? (linksRes?.data as any).data : [];
-      const fetchedLinks = listData;
-      setLinks(fetchedLinks);
+        const targetLink =
+          linkId !== "all"
+            ? listData.find(
+                (l) =>
+                  l.id === linkId ||
+                  String(l.slug || "").toLowerCase() ===
+                    linkId.replace(/^\/+/, "").toLowerCase(),
+              )
+            : null;
+        const isAll = !targetLink || linkId === "all";
 
-      const targetLink = linkId !== "all"
-        ? fetchedLinks.find((l: any) => l.id === linkId || l.slug === linkId)
-        : null;
-      const sumLinksClicks = fetchedLinks.reduce((acc: number, l: any) => acc + (l.clicks_count || l.clicksCount || l.clicks || 0), 0);
-      const linkClicks = targetLink ? (targetLink.clicks_count || targetLink.clicksCount || targetLink.clicks || 0) : 0;
-      const isAll = !targetLink || linkId === "all";
-
-      const d = analyticsRes?.data || {};
-      const workerTotal = Number(d.totalClicks ?? d.total_clicks ?? 0);
-
-      const isShortWindow = range === "day" || range === "week";
-      const baseTotal = isShortWindow
-        ? (isAll ? workerTotal : (workerTotal || linkClicks))
-        : (isAll
-            ? (workerTotal > 0 ? workerTotal : sumLinksClicks)
-            : (workerTotal || linkClicks));
-
-      if (baseTotal > 0 && typeof window !== "undefined" && userId && isAll) {
-        try {
-          localStorage.setItem(`lshorter_live_clicks_${userId}`, String(baseTotal));
-        } catch {}
-        window.dispatchEvent(
-          new CustomEvent("lshorter_live_clicks_synced", {
-            detail: { clicks: baseTotal, userId, fromSources: true },
-          }),
+        const sumLinksClicks = listData.reduce(
+          (acc, l) => acc + getLinkClicks(l),
+          0,
         );
-      }
-
-      const periodStats = computePeriodMetrics(range, baseTotal, baseTotal, 0, 0);
-      const total = periodStats.periodClicks;
-
-      const rawReferrers = d.topReferrers ?? d.top_referrers ?? [];
-      const referrers = (rawReferrers.length > 0)
-        ? rawReferrers.map((rf: any) => ({
-            name: rf.name || rf.referrer || "Direct",
-            referrer: rf.referrer || rf.name || "Direct",
-            count: rf.count || rf.clicks || 0,
-            percentage: rf.percentage !== undefined ? rf.percentage : (total > 0 ? Math.round(((rf.count || rf.clicks || 0) / total) * 100) : 0),
-          }))
-        : [];
-
-      const rawLiveEvents = d.liveClickEvents ?? d.live_click_events ?? [];
-      let liveEvents: any[] = [];
-      if (rawLiveEvents.length > 0) {
-        liveEvents = rawLiveEvents;
-        if (!isAll && targetLink) {
-          liveEvents = liveEvents.filter((ev: any) => ev.slug?.toLowerCase() === targetLink.slug?.toLowerCase());
+        if (sumLinksClicks > 0 && typeof window !== "undefined" && userId) {
+          try {
+            localStorage.setItem(
+              `lshorter_live_clicks_${userId}`,
+              String(sumLinksClicks),
+            );
+          } catch {}
         }
-      } else {
-        liveEvents = [];
-      }
 
-      setAnalytics({
-        totalClicks: total,
-        clicksGrowth: 0,
-        uniqueClicks: periodStats.periodUniques,
-        uniqueClicksGrowth: 0,
-        trackedRevenue: 0,
-        revenueGrowth: 0,
-        avgCtr: 0,
-        ctrGrowth: 0,
-        bounceRate: 0,
-        epc: 0,
-        avgEngagementTime: "0s",
-        clicksByDay: d.clicksByDay || d.clicks_by_day || [],
-        topCountries: d.topCountries || d.top_countries || [],
-        topCities: d.topCities || d.top_cities || [],
-        topDevices: d.topDevices || d.top_devices || [],
-        topBrowsers: d.topBrowsers || d.top_browsers || [],
-        topReferrers: referrers,
-        liveClickEvents: liveEvents,
-        recentConversions: [],
-      });
-    } catch (err) {
-      console.error("Sources analytics fetch error:", err);
-    } finally {
-      if (!isBg) setIsLoading(false);
-    }
-  };
+        const rawPayload = (analyticsRes?.data ||
+          analyticsRes ||
+          {}) as RawAnalyticsPayload;
+        const d: RawAnalyticsPayload = rawPayload.data || rawPayload;
+        const workerTotal = Number(d.totalClicks ?? d.total_clicks ?? 0);
+
+        const rawLiveEvents = d.liveClickEvents ?? d.live_click_events ?? [];
+        let liveEvents: LiveClickEvent[] = [];
+        if (Array.isArray(rawLiveEvents) && rawLiveEvents.length > 0) {
+          let filteredRaw = rawLiveEvents;
+          if (!isAll && targetLink) {
+            const targetSlugLow = String(targetLink.slug || "").toLowerCase();
+            filteredRaw = rawLiveEvents.filter(
+              (ev) =>
+                ev.linkId === targetLink.id ||
+                String(ev.slug || "").toLowerCase() === targetSlugLow ||
+                String(ev.rawSlug || "").toLowerCase() === targetSlugLow,
+            );
+          }
+          liveEvents = filteredRaw.map((ev, idx) => ({
+            id: ev.id || `${ev.timestamp || "ev"}-${ev.slug || "link"}-${idx}`,
+            linkId: ev.linkId || "",
+            slug: ev.slug || "",
+            timestamp: ev.timestamp || "",
+            countryName: ev.countryName || "Unknown",
+            countryCode: ev.countryCode || "UN",
+            city: ev.city || "—",
+            device: ev.device || "unknown",
+            browser: ev.browser || "Unknown",
+            os: ev.os || "Unknown",
+            referrer: ev.referrer || "Direct",
+            ipMasked: ev.ipMasked || "0.0.0.0",
+            customerName: ev.customerName,
+            customerEmail: ev.customerEmail,
+            customerAvatar: ev.customerAvatar,
+          }));
+        }
+
+        const rawReferrers = d.topReferrers ?? d.top_referrers ?? [];
+        const referrersSum = Array.isArray(rawReferrers)
+          ? rawReferrers.reduce(
+              (acc, rf) => acc + Number(rf.count ?? rf.clicks ?? 0),
+              0,
+            )
+          : 0;
+
+        let referrers: {
+          source: string;
+          name: string;
+          referrer: string;
+          count: number;
+          percentage: number;
+        }[] = [];
+
+        if (
+          Array.isArray(rawReferrers) &&
+          rawReferrers.length > 0 &&
+          (isAll ||
+            (liveEvents.length > 0 && referrersSum === liveEvents.length))
+        ) {
+          const denom = referrersSum > 0 ? referrersSum : workerTotal || 1;
+          referrers = rawReferrers
+            .map((rf) => {
+              const cnt = Number(rf.count ?? rf.clicks ?? 0);
+              const refName = String(
+                rf.source || rf.referrer || rf.name || "Direct",
+              ).trim();
+              return {
+                source: refName,
+                name: refName,
+                referrer: refName,
+                count: cnt,
+                percentage: Math.round((cnt / denom) * 100),
+              };
+            })
+            .filter((rf) => rf.count > 0)
+            .sort((a, b) => b.count - a.count);
+        } else if (liveEvents.length > 0) {
+          const countsMap = new Map<string, number>();
+          for (const ev of liveEvents) {
+            const refName = String(ev.referrer || "Direct").trim() || "Direct";
+            countsMap.set(refName, (countsMap.get(refName) || 0) + 1);
+          }
+          const denom = liveEvents.length || 1;
+          referrers = Array.from(countsMap.entries())
+            .map(([refName, cnt]) => ({
+              source: refName,
+              name: refName,
+              referrer: refName,
+              count: cnt,
+              percentage: Math.round((cnt / denom) * 100),
+            }))
+            .sort((a, b) => b.count - a.count);
+        }
+
+        const computedReferrersTotal = referrers.reduce(
+          (acc, r) => acc + r.count,
+          0,
+        );
+        const total =
+          computedReferrersTotal > 0
+            ? computedReferrersTotal
+            : liveEvents.length > 0
+              ? liveEvents.length
+              : isAll
+                ? workerTotal
+                : 0;
+
+        setAnalytics({
+          totalClicks: total,
+          clicksGrowth: 0,
+          uniqueClicks: Number(d.uniqueClicks ?? d.unique_clicks ?? total),
+          uniqueClicksGrowth: 0,
+          trackedRevenue: 0,
+          revenueGrowth: 0,
+          avgCtr: 0,
+          ctrGrowth: 0,
+          bounceRate: 0,
+          epc: 0,
+          avgEngagementTime: "0s",
+          clicksByDay: d.clicksByDay || d.clicks_by_day || [],
+          topCountries: d.topCountries || d.top_countries || [],
+          topCities: d.topCities || d.top_cities || [],
+          topDevices: d.topDevices || d.top_devices || [],
+          topBrowsers: d.topBrowsers || d.top_browsers || [],
+          topReferrers: referrers,
+          liveClickEvents: liveEvents,
+          recentConversions: [],
+        });
+      } catch (err) {
+        console.error("Sources analytics fetch error:", err);
+      } finally {
+        if (reqId === requestIdRef.current) {
+          if (!isBg) setIsLoading(false);
+          setIsRefreshing(false);
+        }
+      }
+    },
+    [userId],
+  );
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -228,73 +579,59 @@ export default function SourcesAnalyticsPage() {
       return;
     }
     if (status === "authenticated" && userId) {
-      if (typeof window !== "undefined") {
-        const params = new URLSearchParams(window.location.search);
-        const qLinkId = params.get("linkId");
-        const qSlug = params.get("slug");
-        const activeLink = qLinkId || qSlug || selectedLinkId;
-        if (activeLink !== selectedLinkId) {
-          setSelectedLinkId(activeLink);
-        }
-        loadData(selectedRange, activeLink);
-      } else {
-        loadData();
-      }
+      const timer = setTimeout(() => {
+        void loadData(selectedRange, selectedLinkId, false, false);
+      }, 0);
+      return () => clearTimeout(timer);
     }
-  }, [status, userId, selectedRange, selectedLinkId]);
+  }, [status, userId, selectedRange, selectedLinkId, router, loadData]);
 
-  // Listen for explicit data update events
   useEffect(() => {
     if (!userId) return;
 
     const handleUpdate = () => {
+      const now = Date.now();
+      if (now - lastRealtimeRefreshRef.current < 800) return;
+      lastRealtimeRefreshRef.current = now;
       cfInvalidateCache();
-      loadData(selectedRange, selectedLinkId, true, true);
-    };
-
-    const handleLiveSync = (e: Event) => {
-      const detail = (e as CustomEvent)?.detail;
-      if (typeof detail?.clicks === "number") {
-        setSyncedLiveClicks((prev) => Math.max(prev, detail.clicks));
-        if (!detail?.fromSources) {
-          cfInvalidateCache();
-          loadData(selectedRange, selectedLinkId, true, true);
-        }
-      }
+      void loadData(selectedRange, selectedLinkId, true, true);
     };
 
     const handleFocus = () => {
-      if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+      if (
+        typeof document !== "undefined" &&
+        document.visibilityState === "hidden"
+      )
+        return;
       handleUpdate();
     };
 
     const handleStorage = (e: StorageEvent) => {
-      if (e.key === "lshorter_last_click" || e.key === "lshorter_data_change") {
+      if (
+        e.key === "lshorter_last_click" ||
+        e.key === "lshorter_data_change"
+      ) {
         handleUpdate();
-      } else if (e.key === `lshorter_live_clicks_${userId}` && e.newValue) {
-        const val = Number(e.newValue);
-        if (!isNaN(val)) setSyncedLiveClicks((prev) => Math.max(prev, val));
       }
     };
 
     window.addEventListener("lshorter_data_change", handleUpdate);
     window.addEventListener("lshorter_links_updated", handleUpdate);
     window.addEventListener("lshorter_link_clicked", handleUpdate);
-    window.addEventListener("lshorter_live_clicks_synced", handleLiveSync);
     window.addEventListener("focus", handleFocus);
     document.addEventListener("visibilitychange", handleFocus);
     window.addEventListener("storage", handleStorage);
 
-    // Cross-tab broadcast receiver
     let channel: BroadcastChannel | null = null;
     try {
       if (typeof window !== "undefined" && "BroadcastChannel" in window) {
         channel = new BroadcastChannel("lshorter_realtime");
         channel.onmessage = (event) => {
-          if (event.data?.type === "click" || event.data?.type === "refresh") {
-            handleUpdate();
-          } else if (event.data?.type === "live_clicks_synced" && typeof event.data?.clicks === "number") {
-            setSyncedLiveClicks((prev) => Math.max(prev, event.data.clicks));
+          if (
+            event.data?.type === "click" ||
+            event.data?.type === "refresh" ||
+            event.data?.type === "live_clicks_synced"
+          ) {
             handleUpdate();
           }
         };
@@ -302,563 +639,868 @@ export default function SourcesAnalyticsPage() {
     } catch {}
 
     const pollTimer = setInterval(() => {
-      if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
-      loadData(selectedRange, selectedLinkId, true, true);
+      if (
+        typeof document !== "undefined" &&
+        document.visibilityState === "hidden"
+      )
+        return;
+      void loadData(selectedRange, selectedLinkId, true, true);
     }, 15000);
 
     return () => {
       window.removeEventListener("lshorter_data_change", handleUpdate);
       window.removeEventListener("lshorter_links_updated", handleUpdate);
       window.removeEventListener("lshorter_link_clicked", handleUpdate);
-      window.removeEventListener("lshorter_live_clicks_synced", handleLiveSync);
       window.removeEventListener("focus", handleFocus);
       document.removeEventListener("visibilitychange", handleFocus);
       window.removeEventListener("storage", handleStorage);
       if (channel) channel.close();
       clearInterval(pollTimer);
     };
-  }, [userId, selectedRange, selectedLinkId]);
+  }, [userId, selectedRange, selectedLinkId, loadData]);
 
-  // Social Breakdown calculation
-  const socialBreakdown = useMemo(() => {
-    const socialKeywords = ["linkedin", "twitter", "x.com", "whatsapp", "facebook", "instagram", "t.co", "telegram"];
-    return analytics.topReferrers.filter((rf) => {
-      const low = (rf.name || "").toLowerCase();
-      return socialKeywords.some((k) => low.includes(k));
-    });
-  }, [analytics.topReferrers]);
+  const selectedLinkObj = useMemo(() => {
+    if (selectedLinkId === "all") return null;
+    const clean = selectedLinkId.replace(/^\/+/, "").toLowerCase();
+    return (
+      links.find(
+        (l) =>
+          l.id === selectedLinkId ||
+          String(l.slug || "").toLowerCase() === clean,
+      ) || null
+    );
+  }, [links, selectedLinkId]);
 
-  const socialClicksTotal = useMemo(() => {
-    return socialBreakdown.reduce((acc, curr) => acc + curr.count, 0);
-  }, [socialBreakdown]);
-
-  const directClicksTotal = useMemo(() => {
-    const directItem = analytics.topReferrers.find((rf) => (rf.name || "").toLowerCase() === "direct");
-    return directItem ? directItem.count : 0;
-  }, [analytics.topReferrers]);
-
-  const total = analytics.totalClicks || 1;
-  const socialPercentage = Math.round((socialClicksTotal / total) * 100);
-  const directPercentage = Math.round((directClicksTotal / total) * 100);
-
-  // Filtered Events
-  const filteredEvents = useMemo(() => {
-    return analytics.liveClickEvents.filter((ev) => {
-      const ref = (ev.referrer || "Direct").toLowerCase();
-      const isSocial = ["linkedin", "twitter", "x.com", "whatsapp", "facebook", "instagram", "t.co", "telegram"].some((k) => ref.includes(k));
-      const isDirect = ref === "direct" || ref === "";
-
-      if (selectedChannelFilter === "social" && !isSocial) return false;
-      if (selectedChannelFilter === "direct" && !isDirect) return false;
-
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const matchSlug = ev.slug?.toLowerCase().includes(q);
-        const matchRef = ev.referrer?.toLowerCase().includes(q);
-        const matchCity = ev.city?.toLowerCase().includes(q);
-        const matchCountry = ev.countryName?.toLowerCase().includes(q);
-        const matchCustName = (ev.customerName || "").toLowerCase().includes(q);
-        const matchCustEmail = (ev.customerEmail || "").toLowerCase().includes(q);
-        if (!matchSlug && !matchRef && !matchCity && !matchCountry && !matchCustName && !matchCustEmail) return false;
+  const referrersList = useMemo(() => {
+    const grouped = new Map<
+      string,
+      {
+        displayHost: string;
+        channel: ChannelCategory;
+        platformName: string;
+        shortName: string;
+        badgeText: string;
+        count: number;
       }
-      return true;
+    >();
+
+    for (const rf of analytics.topReferrers) {
+      const cnt = Number(rf.count || 0);
+      if (cnt <= 0) continue;
+      const info = classifyReferrer(rf.name || rf.referrer || rf.source);
+      const key = info.displayHost.toLowerCase();
+      const existing = grouped.get(key);
+      if (existing) {
+        existing.count += cnt;
+      } else {
+        grouped.set(key, {
+          displayHost: info.displayHost,
+          channel: info.channel,
+          platformName: info.platformName,
+          shortName: info.shortName,
+          badgeText: info.badgeText,
+          count: cnt,
+        });
+      }
+    }
+
+    const totalSum = Array.from(grouped.values()).reduce(
+      (acc, item) => acc + item.count,
+      0,
+    );
+    const denom = totalSum > 0 ? totalSum : 1;
+
+    return Array.from(grouped.values())
+      .sort((a, b) => b.count - a.count)
+      .map((item) => ({
+        ...item,
+        percentage: Math.round((item.count / denom) * 100),
+      }));
+  }, [analytics.topReferrers]);
+
+  const totalAttributedClicks = useMemo(() => {
+    return referrersList.reduce((acc, item) => acc + item.count, 0);
+  }, [referrersList]);
+
+  const directClicks = useMemo(() => {
+    return referrersList
+      .filter((r) => r.channel === "Direct")
+      .reduce((acc, r) => acc + r.count, 0);
+  }, [referrersList]);
+
+  const socialClicks = useMemo(() => {
+    return referrersList
+      .filter((r) => r.channel === "Social")
+      .reduce((acc, r) => acc + r.count, 0);
+  }, [referrersList]);
+
+  const otherClicks = useMemo(() => {
+    return referrersList
+      .filter((r) => r.channel !== "Direct" && r.channel !== "Social")
+      .reduce((acc, r) => acc + r.count, 0);
+  }, [referrersList]);
+
+  const { directPct, socialPct, otherPct } = useMemo(() => {
+    if (totalAttributedClicks <= 0) {
+      return { directPct: 0, socialPct: 0, otherPct: 0 };
+    }
+    const rawDirect = Math.round((directClicks / totalAttributedClicks) * 100);
+    const rawSocial = Math.round((socialClicks / totalAttributedClicks) * 100);
+    if (otherClicks <= 0) {
+      const clampedSocial =
+        rawDirect + rawSocial > 100 ? Math.max(0, 100 - rawDirect) : rawSocial;
+      return { directPct: rawDirect, socialPct: clampedSocial, otherPct: 0 };
+    }
+    const remaining = Math.max(0, 100 - rawDirect - rawSocial);
+    return {
+      directPct: rawDirect,
+      socialPct: rawSocial,
+      otherPct: remaining,
+    };
+  }, [totalAttributedClicks, directClicks, socialClicks, otherClicks]);
+
+  const activeChannelsCount = useMemo(() => {
+    let count = 0;
+    if (directClicks > 0) count++;
+    if (socialClicks > 0) count++;
+    if (otherClicks > 0) count++;
+    return count;
+  }, [directClicks, socialClicks, otherClicks]);
+
+  const socialPlatformsList = useMemo(() => {
+    const map = new Map<
+      string,
+      {
+        platformName: string;
+        shortName: string;
+        badgeText: string;
+        count: number;
+      }
+    >();
+
+    for (const r of referrersList) {
+      if (r.channel !== "Social" || r.count <= 0) continue;
+      const existing = map.get(r.platformName);
+      if (existing) {
+        existing.count += r.count;
+      } else {
+        map.set(r.platformName, {
+          platformName: r.platformName,
+          shortName: r.shortName,
+          badgeText: r.badgeText,
+          count: r.count,
+        });
+      }
+    }
+
+    const socialDenom = socialClicks || 1;
+    return Array.from(map.values())
+      .sort((a, b) => b.count - a.count)
+      .map((item) => ({
+        ...item,
+        shareOfSocial:
+          socialClicks > 0
+            ? Math.round((item.count / socialDenom) * 100)
+            : 0,
+      }));
+  }, [referrersList, socialClicks]);
+
+  const topSocialPlatform =
+    socialPlatformsList.length > 0 ? socialPlatformsList[0] : null;
+
+  const topReferrerHighlight = useMemo(() => {
+    if (referrersList.length === 0) return null;
+    const topExternal = referrersList.find((r) => r.channel !== "Direct");
+    return topExternal || referrersList[0];
+  }, [referrersList]);
+
+  const filteredEvents = useMemo(() => {
+    if (!searchQuery.trim()) return analytics.liveClickEvents;
+    const q = searchQuery.trim().toLowerCase();
+
+    return analytics.liveClickEvents.filter((ev) => {
+      const info = classifyReferrer(ev.referrer);
+      const matchSlug = String(ev.slug || "")
+        .toLowerCase()
+        .includes(q);
+      const matchRawRef = String(ev.referrer || "Direct")
+        .toLowerCase()
+        .includes(q);
+      const matchPlatform =
+        info.platformName.toLowerCase().includes(q) ||
+        info.shortName.toLowerCase().includes(q) ||
+        info.channel.toLowerCase().includes(q);
+      const matchCity = String(ev.city || "")
+        .toLowerCase()
+        .includes(q);
+      const matchCountry = String(ev.countryName || ev.countryCode || "")
+        .toLowerCase()
+        .includes(q);
+      const matchDevice = String(ev.device || "")
+        .toLowerCase()
+        .includes(q);
+
+      return (
+        matchSlug ||
+        matchRawRef ||
+        matchPlatform ||
+        matchCity ||
+        matchCountry ||
+        matchDevice
+      );
     });
-  }, [analytics.liveClickEvents, selectedChannelFilter, searchQuery]);
+  }, [analytics.liveClickEvents, searchQuery]);
 
-  const totalPages = Math.ceil(filteredEvents.length / pageSize) || 1;
-  const paginatedEvents = filteredEvents.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const totalPages = Math.max(1, Math.ceil(filteredEvents.length / pageSize));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const paginatedEvents = filteredEvents.slice(
+    (safeCurrentPage - 1) * pageSize,
+    safeCurrentPage * pageSize,
+  );
 
-  if (status === "loading" || isLoading) {
+  const showSkeleton =
+    status === "loading" ||
+    (status === "authenticated" && Boolean(userId) && isLoading);
+
+  if (showSkeleton) {
     return <AnalyticsSourcesSkeleton />;
   }
 
+  const showingStart =
+    filteredEvents.length === 0 ? 0 : (safeCurrentPage - 1) * pageSize + 1;
+  const showingEnd = Math.min(
+    safeCurrentPage * pageSize,
+    filteredEvents.length,
+  );
+
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12 animate-in fade-in">
-      {/* Navigation Breadcrumb & Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="max-w-[1440px] mx-auto pb-12 flex flex-col gap-5 animate-in fade-in">
+      {/* Header & Controls */}
+      <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-1.5 text-[12px] text-[#667085] dark:text-[#7C8596] mb-1.5">
             <Link
               href="/dashboard/analytics"
-              className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-brand dark:text-neutral-400 dark:hover:text-brand transition-colors"
+              className="hover:text-[#101828] dark:hover:text-[#E6E8EE] transition-colors"
             >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Back to Analytics</span>
+              Analytics
             </Link>
-            <span className="text-zinc-400 dark:text-neutral-600">/</span>
-            <span className="text-xs text-brand font-semibold flex items-center gap-1">
-              <Share2 className="w-3 h-3" />
-              <span>Traffic Sources</span>
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              className="w-[13px] h-[13px] stroke-current fill-none stroke-2"
+            >
+              <path d="M9 6l6 6-6 6" />
+            </svg>
+            <span className="text-[#344054] dark:text-[#9AA3B2]">
+              Traffic Sources
             </span>
           </div>
-
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900 dark:text-white flex items-center gap-2.5">
-            <span>Origins, Channels & Referrers</span>
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-mono">
-              Traffic Attribution
-            </span>
+          <h1 className="text-[26px] font-bold tracking-[-0.015em] text-[#101828] dark:text-[#E6E8EE] leading-tight">
+            Traffic Sources
           </h1>
-          <p className="text-xs sm:text-sm text-zinc-500 dark:text-neutral-400 mt-1">
-            Tracking source platforms: Social Networks, Direct Shares, Search Engines, and Marketing Campaigns.
+          <p className="text-[14px] text-[#667085] dark:text-[#9AA3B2] mt-1">
+            Channels, referrers and campaigns that drive clicks to your links.
           </p>
         </div>
 
-        {/* Global Controls: Period & Link Selector */}
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex items-center gap-2 flex-wrap">
           <select
-            value={selectedLinkId}
+            aria-label="Filter by link"
+            value={selectedLinkObj ? selectedLinkObj.id : selectedLinkId}
             onChange={(e) => {
               setSelectedLinkId(e.target.value);
-              loadData(selectedRange, e.target.value);
+              setCurrentPage(1);
+              setIsRefreshing(true);
+              cfInvalidateCache();
             }}
-            className="px-3 py-1.5 rounded-[10px] bg-zinc-100 dark:bg-[#1a1a1e] border border-zinc-300 dark:border-[#27272a] text-xs font-semibold text-zinc-800 dark:text-white focus:outline-none focus:border-brand cursor-pointer"
+            className="h-[44px] px-[14px] rounded-[10px] border border-[#E4E7EC] dark:border-[#2A3040] bg-white dark:bg-[#12151C] text-[#101828] dark:text-[#E6E8EE] text-[13px] font-medium focus:outline-none focus:border-[#2F5FE0] cursor-pointer"
           >
-            <option value="all" className="bg-white dark:bg-[#141416] text-zinc-900 dark:text-white">All links combined</option>
+            <option
+              value="all"
+              className="bg-white dark:bg-[#12151C] text-[#101828] dark:text-[#E6E8EE]"
+            >
+              All links combined
+            </option>
             {links.map((l) => (
-              <option key={l.id} value={l.id} className="bg-white dark:bg-[#141416] text-zinc-900 dark:text-white">
-                /{l.slug} ({l.clicksCount || 0} clicks)
+              <option
+                key={l.id}
+                value={l.id}
+                className="bg-white dark:bg-[#12151C] text-[#101828] dark:text-[#E6E8EE]"
+              >
+                /{l.slug} ({getLinkClicks(l)} clicks)
               </option>
             ))}
           </select>
 
-          <div className="flex items-center gap-1 p-1 rounded-[10px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] text-xs shadow-sm">
+          <div
+            className="flex p-[3px] rounded-[10px] border border-[#E4E7EC] dark:border-[#2A3040] bg-white dark:bg-[#12151C]"
+            role="group"
+            aria-label="Date range"
+          >
             {(["day", "week", "month", "year"] as const).map((r) => (
               <button
                 key={r}
+                type="button"
+                aria-pressed={selectedRange === r}
                 onClick={() => {
                   setSelectedRange(r);
-                  loadData(r, selectedLinkId);
+                  setCurrentPage(1);
+                  setIsRefreshing(true);
+                  cfInvalidateCache();
                 }}
-                className={`px-2.5 py-1 rounded-[10px] font-semibold transition-all cursor-pointer ${
+                className={`h-[36px] px-[14px] rounded-[7px] text-[13px] font-medium transition-colors cursor-pointer ${
                   selectedRange === r
-                    ? "bg-brand text-white font-bold"
-                    : "text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 dark:text-neutral-400 dark:hover:text-white dark:hover:bg-white/5"
+                    ? "bg-[#2F5FE0] text-white"
+                    : "text-[#667085] dark:text-[#9AA3B2] hover:text-[#101828] dark:hover:text-[#E6E8EE]"
                 }`}
               >
-                {r === "day" ? "24h" : r === "week" ? "7d" : r === "month" ? "30d" : "12m"}
+                {r === "day"
+                  ? "24h"
+                  : r === "week"
+                    ? "7d"
+                    : r === "month"
+                      ? "30d"
+                      : "12m"}
               </button>
             ))}
           </div>
 
           <button
-            onClick={() => loadData(selectedRange, selectedLinkId)}
-            className="p-2 rounded-[10px] bg-zinc-100 hover:bg-zinc-200 dark:bg-[#1a1a1e] dark:hover:bg-white/10 text-zinc-700 hover:text-zinc-900 dark:text-neutral-300 dark:hover:text-white border border-zinc-300 dark:border-[#27272a] transition-all cursor-pointer"
+            type="button"
+            aria-label="Refresh"
+            onClick={() => {
+              setIsRefreshing(true);
+              cfInvalidateCache();
+              void loadData(selectedRange, selectedLinkId, false, true);
+            }}
+            className="w-[44px] h-[44px] rounded-[10px] border border-[#E4E7EC] dark:border-[#2A3040] bg-white dark:bg-[#12151C] text-[#667085] dark:text-[#9AA3B2] hover:text-[#101828] dark:hover:text-[#E6E8EE] hover:border-[#D0D5DD] dark:hover:border-[#3A4256] grid place-items-center cursor-pointer transition-colors"
             title="Refresh"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin text-brand" : ""}`} />
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              className={`w-[16px] h-[16px] stroke-current fill-none stroke-[1.8] [stroke-linecap:round] [stroke-linejoin:round] ${
+                isRefreshing ? "animate-spin text-[#2F5FE0]" : ""
+              }`}
+            >
+              <path d="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5" />
+            </svg>
           </button>
         </div>
-      </div>
+      </header>
 
-      {/* Top Source KPI Summary Cards (Infinite Auto-Scroll Carousel) */}
-      <KpiCardsCarousel autoScroll={true} speed={0.9} pauseOnHover={false}>
-        <div className="shrink-0 w-[170px] sm:w-[240px] md:w-[280px] lg:w-[300px] h-[100px] sm:h-[120px] md:h-[135px] lg:h-[145px] p-2.5 sm:p-3.5 md:p-4 rounded-[10px] sm:rounded-[12px] md:rounded-[14px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] shadow-sm flex flex-col justify-between hover:border-brand hover:shadow-md transition-all select-none">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] sm:text-xs md:text-sm font-bold text-zinc-600 dark:text-neutral-400 uppercase tracking-wider truncate">Social</span>
-            <div className="p-1 sm:p-1.5 rounded-full bg-orange-500/10 shrink-0">
-              <Share2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-brand" />
-            </div>
+      {/* 4 KPI Cards */}
+      <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        {/* KPI 1: Attributed clicks */}
+        <div className="rounded-[12px] border border-[#E4E7EC] dark:border-[#1E232E] bg-white dark:bg-[#12151C] px-[20px] py-[18px] flex flex-col gap-1.5">
+          <div className="text-[12px] font-semibold uppercase tracking-[0.06em] text-[#667085] dark:text-[#9AA3B2] flex items-center gap-2">
+            Attributed clicks
           </div>
-          <div className="my-0 sm:my-0.5 flex items-baseline gap-1.5">
-            <span className="font-bebas text-2xl sm:text-3xl md:text-4xl font-black text-brand leading-none tracking-wide">
-              {socialPercentage}%
-            </span>
-            <span className="text-[9px] sm:text-[11px] text-zinc-500 dark:text-neutral-400 font-mono">({socialClicksTotal} clicks)</span>
+          <div className="text-[30px] font-bold tracking-[-0.02em] leading-[1.15] text-[#101828] dark:text-[#E6E8EE]">
+            {formatNumber(totalAttributedClicks)}
           </div>
-          <div className="flex items-center justify-between pt-0.5 sm:pt-1 border-t border-zinc-200/60 dark:border-[#222225]">
-            <span className="text-[9px] sm:text-[11px] md:text-xs text-zinc-500 dark:text-neutral-400 font-mono truncate">X, LinkedIn, WA</span>
-            <span className="text-[8px] sm:text-[10px] md:text-[11px] font-bold text-brand shrink-0">Social</span>
+          <div className="text-[13px] text-[#667085] dark:text-[#8E97A7]">
+            {activeChannelsCount}{" "}
+            {activeChannelsCount === 1 ? "channel" : "channels"} ·{" "}
+            {referrersList.length}{" "}
+            {referrersList.length === 1 ? "source" : "sources"}
           </div>
         </div>
 
-        <div className="shrink-0 w-[170px] sm:w-[240px] md:w-[280px] lg:w-[300px] h-[100px] sm:h-[120px] md:h-[135px] lg:h-[145px] p-2.5 sm:p-3.5 md:p-4 rounded-[10px] sm:rounded-[12px] md:rounded-[14px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] shadow-sm flex flex-col justify-between hover:border-emerald-500/50 hover:shadow-md transition-all select-none">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] sm:text-xs md:text-sm font-bold text-zinc-600 dark:text-neutral-400 uppercase tracking-wider truncate">Direct Access</span>
-            <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+        {/* KPI 2: Direct */}
+        <div className="rounded-[12px] border border-[#E4E7EC] dark:border-[#1E232E] bg-white dark:bg-[#12151C] px-[20px] py-[18px] flex flex-col gap-1.5">
+          <div className="text-[12px] font-semibold uppercase tracking-[0.06em] text-[#667085] dark:text-[#9AA3B2] flex items-center gap-2">
+            <span
+              className="w-2 h-2 rounded-full inline-block shrink-0"
+              style={{ background: "#2DD4A7" }}
+            />
+            Direct
           </div>
-          <div className="my-0 sm:my-0.5 flex items-baseline gap-1.5">
-            <span className="font-bebas text-2xl sm:text-3xl md:text-4xl font-black text-emerald-600 dark:text-emerald-400 leading-none tracking-wide">
-              {directPercentage}%
-            </span>
-            <span className="text-[9px] sm:text-[11px] text-zinc-500 dark:text-neutral-400 font-mono">({directClicksTotal} clicks)</span>
+          <div className="text-[30px] font-bold tracking-[-0.02em] leading-[1.15] text-[#101828] dark:text-[#E6E8EE]">
+            {formatNumber(directClicks)}{" "}
+            <small className="text-[14px] font-medium text-[#667085] dark:text-[#9AA3B2] ml-1.5">
+              {directPct}%
+            </small>
           </div>
-          <div className="flex items-center justify-between pt-0.5 sm:pt-1 border-t border-zinc-200/60 dark:border-[#222225]">
-            <span className="text-[9px] sm:text-[11px] md:text-xs text-zinc-500 dark:text-neutral-400 font-mono truncate">QR codes, SMS</span>
-            <span className="text-[8px] sm:text-[10px] md:text-[11px] font-bold text-emerald-600 dark:text-emerald-400 shrink-0">Direct</span>
-          </div>
-        </div>
-
-        <div className="shrink-0 w-[170px] sm:w-[240px] md:w-[280px] lg:w-[300px] h-[100px] sm:h-[120px] md:h-[135px] lg:h-[145px] p-2.5 sm:p-3.5 md:p-4 rounded-[10px] sm:rounded-[12px] md:rounded-[14px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] shadow-sm flex flex-col justify-between hover:border-blue-500/50 hover:shadow-md transition-all select-none">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] sm:text-xs md:text-sm font-bold text-zinc-600 dark:text-neutral-400 uppercase tracking-wider truncate">Top Network</span>
-            <div className="p-1 sm:p-1.5 rounded-full bg-blue-500/10 shrink-0">
-              <Share2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-blue-500" />
-            </div>
-          </div>
-          <div className="my-0 sm:my-0.5 flex items-center gap-1.5 truncate">
-            <span className="font-bold text-zinc-900 dark:text-white text-base sm:text-lg md:text-xl truncate">
-              {socialBreakdown.length > 0 && socialClicksTotal > 0 ? socialBreakdown[0].name : "Pending"}
-            </span>
-          </div>
-          <div className="flex items-center justify-between pt-0.5 sm:pt-1 border-t border-zinc-200/60 dark:border-[#222225]">
-            <span className="text-[9px] sm:text-[11px] md:text-xs text-blue-500 font-bold truncate">
-              {socialBreakdown.length > 0 && socialClicksTotal > 0 ? `${socialBreakdown[0].percentage}%` : "0%"}
-            </span>
-            <span className="text-[8px] sm:text-[10px] md:text-[11px] text-zinc-500 dark:text-neutral-400 font-mono shrink-0">#1</span>
+          <div className="text-[13px] text-[#667085] dark:text-[#8E97A7]">
+            QR codes, SMS, typed links
           </div>
         </div>
 
-        <div className="shrink-0 w-[170px] sm:w-[240px] md:w-[280px] lg:w-[300px] h-[100px] sm:h-[120px] md:h-[135px] lg:h-[145px] p-2.5 sm:p-3.5 md:p-4 rounded-[10px] sm:rounded-[12px] md:rounded-[14px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] shadow-sm flex flex-col justify-between hover:border-purple-500/50 hover:shadow-md transition-all select-none">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] sm:text-xs md:text-sm font-bold text-zinc-600 dark:text-neutral-400 uppercase tracking-wider truncate">Active Channels</span>
-            <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-purple-500 shrink-0" />
+        {/* KPI 3: Social */}
+        <div className="rounded-[12px] border border-[#E4E7EC] dark:border-[#1E232E] bg-white dark:bg-[#12151C] px-[20px] py-[18px] flex flex-col gap-1.5">
+          <div className="text-[12px] font-semibold uppercase tracking-[0.06em] text-[#667085] dark:text-[#9AA3B2] flex items-center gap-2">
+            <span
+              className="w-2 h-2 rounded-full inline-block shrink-0"
+              style={{ background: "#5B8CFF" }}
+            />
+            Social
           </div>
-          <div className="my-0 sm:my-0.5 flex items-baseline gap-1.5">
-            <span className="font-bebas text-2xl sm:text-3xl md:text-4xl font-black text-purple-600 dark:text-purple-400 leading-none tracking-wide">
-              {analytics.topReferrers.length}
-            </span>
-            <span className="text-[9px] sm:text-[11px] text-zinc-500 dark:text-neutral-400 font-mono">sources</span>
+          <div className="text-[30px] font-bold tracking-[-0.02em] leading-[1.15] text-[#101828] dark:text-[#E6E8EE]">
+            {formatNumber(socialClicks)}{" "}
+            <small className="text-[14px] font-medium text-[#667085] dark:text-[#9AA3B2] ml-1.5">
+              {socialPct}%
+            </small>
           </div>
-          <div className="flex items-center justify-between pt-0.5 sm:pt-1 border-t border-zinc-200/60 dark:border-[#222225]">
-            <span className="text-[9px] sm:text-[11px] md:text-xs text-purple-600 dark:text-purple-400 font-bold truncate">Multi-channel</span>
-            <span className="text-[8px] sm:text-[10px] md:text-[11px] text-zinc-500 dark:text-neutral-400 font-mono shrink-0">Channels</span>
+          <div className="text-[13px] text-[#667085] dark:text-[#8E97A7]">
+            {topSocialPlatform
+              ? `Led by ${topSocialPlatform.platformName}`
+              : "No social traffic recorded"}
           </div>
         </div>
-      </KpiCardsCarousel>
 
-      {/* 2-COLUMNS: SOCIAL NETWORKS & ALL REFERRERS */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Dedicated Social Networks */}
-        <div className="rounded-[10px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] p-5 shadow-sm dark:shadow-2xl flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-3 pb-2 border-b border-zinc-200 dark:border-[#222225]">
-              <span className="text-xs font-bold text-zinc-900 dark:text-white flex items-center gap-1.5">
-                <Share2 className="w-4 h-4 text-brand" />
-                <span>Social Media Performance</span>
-              </span>
-              <span className="text-[11px] text-zinc-500 dark:text-neutral-400 font-mono">
-                {socialClicksTotal} social clicks
-              </span>
-            </div>
+        {/* KPI 4: Top referrer */}
+        <div className="rounded-[12px] border border-[#E4E7EC] dark:border-[#1E232E] bg-white dark:bg-[#12151C] px-[20px] py-[18px] flex flex-col gap-1.5">
+          <div className="text-[12px] font-semibold uppercase tracking-[0.06em] text-[#667085] dark:text-[#9AA3B2] flex items-center gap-2">
+            Top referrer
+          </div>
+          <div className="text-[30px] font-bold tracking-[-0.02em] leading-[1.15] text-[#101828] dark:text-[#E6E8EE] truncate">
+            {topReferrerHighlight ? topReferrerHighlight.displayHost : "—"}
+            {topReferrerHighlight && (
+              <small className="text-[14px] font-medium text-[#667085] dark:text-[#9AA3B2] ml-2">
+                {formatNumber(topReferrerHighlight.count)}{" "}
+                {topReferrerHighlight.count === 1 ? "click" : "clicks"}
+              </small>
+            )}
+          </div>
+          <div className="text-[13px] text-[#667085] dark:text-[#8E97A7] truncate">
+            {topReferrerHighlight
+              ? `${topReferrerHighlight.platformName} · ${topReferrerHighlight.percentage}% of clicks`
+              : "No referrers recorded"}
+          </div>
+        </div>
+      </section>
 
-            <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
-              {socialBreakdown.map((soc) => {
-                const nameLow = (soc.name || "").toLowerCase();
-                const color = nameLow.includes("linkedin")
-                  ? "#0a66c2"
-                  : nameLow.includes("twitter") || nameLow.includes("x.com") || nameLow.includes("t.co")
-                  ? "#1d9bf0"
-                  : nameLow.includes("whatsapp")
-                  ? "#25d366"
-                  : nameLow.includes("facebook")
-                  ? "#1877f2"
-                  : "var(--brand-primary)";
+      {/* Two-Column Breakdown: Channel Mix & Top Referrers */}
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Left Card: Channel mix */}
+        <div className="rounded-[12px] border border-[#E4E7EC] dark:border-[#1E232E] bg-white dark:bg-[#12151C]">
+          <div className="px-[20px] py-[16px] border-b border-[#E4E7EC] dark:border-[#1E232E] flex items-center justify-between gap-3">
+            <h2 className="text-[15px] font-semibold text-[#101828] dark:text-[#E6E8EE]">
+              Channel mix
+            </h2>
+            <span className="text-[13px] text-[#667085] dark:text-[#9AA3B2]">
+              {formatNumber(totalAttributedClicks)} attributed{" "}
+              {totalAttributedClicks === 1 ? "click" : "clicks"}
+            </span>
+          </div>
 
-                return (
-                  <div key={soc.name} className="p-3 rounded-[10px] bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a]">
-                    <div className="flex items-center justify-between gap-2 mb-1.5">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <ReferrerBadge referrer={soc.name} />
-                      </div>
-                      <span className="text-xs font-bold font-mono shrink-0" style={{ color }}>
-                        {soc.percentage}% ({soc.count} clicks)
-                      </span>
-                    </div>
-                    <div className="w-full h-1.5 rounded-full bg-zinc-200 dark:bg-white/10 overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all duration-500"
-                        style={{ width: `${soc.percentage}%`, backgroundColor: color }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-
-              {socialBreakdown.length === 0 && (
-                <p className="text-xs text-zinc-500 dark:text-neutral-500 text-center py-8">
-                  Waiting for social media shares...
-                </p>
+          <div className="p-[20px] flex flex-col gap-[18px]">
+            {/* Stacked Channel Bar */}
+            <div
+              role="img"
+              aria-label={`Channel share: Direct ${directPct}%, Social ${socialPct}%`}
+              className="flex h-[12px] rounded-full overflow-hidden gap-[2px] bg-[#EEF2F6] dark:bg-[#232834]"
+            >
+              {directPct > 0 && (
+                <i
+                  className="block h-full transition-all duration-300"
+                  style={{ width: `${directPct}%`, background: "#2DD4A7" }}
+                />
+              )}
+              {socialPct > 0 && (
+                <i
+                  className="block h-full transition-all duration-300"
+                  style={{ width: `${socialPct}%`, background: "#5B8CFF" }}
+                />
+              )}
+              {otherClicks > 0 && otherPct > 0 && (
+                <i
+                  className="block h-full transition-all duration-300"
+                  style={{ width: `${otherPct}%`, background: "#A78BFA" }}
+                />
               )}
             </div>
-          </div>
-        </div>
 
-        {/* All Referrers Ranking */}
-        <div className="rounded-[10px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] p-5 shadow-sm dark:shadow-2xl flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-3 pb-2 border-b border-zinc-200 dark:border-[#222225]">
-              <span className="text-xs font-bold text-zinc-900 dark:text-white flex items-center gap-1.5">
-                <Globe2 className="w-4 h-4 text-emerald-500" />
-                <span>Top Web Referrers</span>
-              </span>
-              <span className="text-[11px] text-zinc-500 dark:text-neutral-400 font-mono">
-                {analytics.topReferrers.length} distinct referrers
-              </span>
-            </div>
-
-            <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
-              {analytics.topReferrers.length === 0 ? (
-                <div className="p-6 text-center text-xs text-zinc-400">No external referrers logged.</div>
-              ) : (
-                analytics.topReferrers.map((ref: any) => (
-                  <div key={ref.name} className="p-3 rounded-[10px] bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200 dark:border-[#27272a]">
-                    <div className="flex items-center justify-between gap-2 mb-1.5">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <ReferrerBadge referrer={ref.name} />
-                      </div>
-                      <span className="text-xs font-bold font-mono text-emerald-600 dark:text-emerald-400 shrink-0">
-                        {ref.percentage}% ({ref.count} clicks)
-                      </span>
-                    </div>
-                    <div className="w-full h-1.5 rounded-full bg-zinc-200 dark:bg-white/10 overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-emerald-500 transition-all duration-500"
-                        style={{ width: `${ref.percentage}%` }}
-                      />
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* RAW EVENTS STREAM & DETAILED SOURCE LOGS */}
-      <div className="rounded-[10px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#222225] shadow-sm dark:shadow-2xl flex flex-col">
-        <div className="px-5 sm:px-6 py-4 sm:py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-200 dark:border-[#222225]">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <h3 className="text-sm font-bold text-zinc-900 dark:text-white">Live Inbound Click Stream</h3>
-            <span className="text-[11px] text-zinc-500 dark:text-neutral-400 font-mono">({filteredEvents.length} events)</span>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
-              <span className="text-[11.5px]">Show</span>
-              <select
-                value={pageSize}
-                onChange={(e) => {
-                  setPageSize(Number(e.target.value));
-                  setCurrentPage(1);
-                }}
-                className="h-8 rounded-[6px] border border-zinc-200 dark:border-[#27272a] bg-white dark:bg-[#141418] px-2 text-xs font-medium text-zinc-800 dark:text-zinc-200 focus:outline-none cursor-pointer"
-              >
-                <option value={5}>5</option>
-                <option value={10}>10</option>
-                <option value={25}>25</option>
-                <option value={50}>50</option>
-              </select>
-              <span className="text-[11.5px]">entries</span>
-            </div>
-
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400" />
-              <input
-                type="text"
-                placeholder="Filter referrer, customer, link..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-8 pl-8 pr-3 rounded-[8px] bg-zinc-100 dark:bg-[#1a1a1e] border border-zinc-300 dark:border-[#27272a] text-xs text-zinc-800 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:border-brand"
+            {/* Direct Channel Row */}
+            <div className="flex items-center gap-3">
+              <span
+                className="w-2 h-2 rounded-full inline-block shrink-0"
+                style={{ background: "#2DD4A7" }}
               />
+              <div className="flex-1 min-w-0">
+                <div className="flex justify-between items-baseline text-[14px]">
+                  <b className="font-semibold text-[#101828] dark:text-[#E6E8EE]">
+                    Direct
+                  </b>
+                  <span className="text-[#667085] dark:text-[#9AA3B2] text-[13px]">
+                    {formatNumber(directClicks)}{" "}
+                    {directClicks === 1 ? "click" : "clicks"} · {directPct}%
+                  </span>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
 
-        <div className="overflow-x-auto overscroll-x-contain">
-          <table className="hidden md:table w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="border-b border-zinc-200 dark:border-[#222225] bg-[#F9FAFB] dark:bg-white/[0.03] text-zinc-700 dark:text-neutral-400 font-semibold text-[11px]">
-                {visibleColumns.has("timestamp") && <th className="py-3.5 pl-5 sm:pl-6 pr-3">Time</th>}
-                {visibleColumns.has("channel") && <th className="py-3.5 px-3">Channel</th>}
-                {visibleColumns.has("referrer") && <th className="py-3.5 px-3 text-center">Referrer Source</th>}
-                {visibleColumns.has("customer") && <th className="py-3.5 px-3">Customer Profile</th>}
-                {visibleColumns.has("link") && <th className="py-3.5 px-3">Short Link</th>}
-                {visibleColumns.has("city") && <th className="py-3.5 px-3">City</th>}
-                {visibleColumns.has("location") && <th className="py-3.5 px-3">Country</th>}
-                {visibleColumns.has("device") && <th className="py-3.5 pl-3 pr-5 sm:pr-6">Device</th>}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-200 dark:divide-[#202024]/60 text-[11px]">
-              {paginatedEvents.map((ev, i) => {
-                const ref = ev.referrer || "Direct";
-                const isSocial = SOCIAL_PLATFORMS.some((s) => ref.toLowerCase().includes(s));
+            {/* Social Channel Row */}
+            <div className="flex items-center gap-3">
+              <span
+                className="w-2 h-2 rounded-full inline-block shrink-0"
+                style={{ background: "#5B8CFF" }}
+              />
+              <div className="flex-1 min-w-0">
+                <div className="flex justify-between items-baseline text-[14px]">
+                  <b className="font-semibold text-[#101828] dark:text-[#E6E8EE]">
+                    Social
+                  </b>
+                  <span className="text-[#667085] dark:text-[#9AA3B2] text-[13px]">
+                    {formatNumber(socialClicks)}{" "}
+                    {socialClicks === 1 ? "click" : "clicks"} · {socialPct}%
+                  </span>
+                </div>
+              </div>
+            </div>
 
-                return (
-                  <tr key={i} className="hover:bg-zinc-50 dark:hover:bg-white/5 transition-colors h-[54px]">
-                    {visibleColumns.has("timestamp") && (
-                      <td className="py-3.5 pl-5 sm:pl-6 pr-3 text-zinc-500 dark:text-neutral-400 whitespace-nowrap text-[10.5px]">
-                        {new Date(ev.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
-                      </td>
-                    )}
+            {/* Optional Web / Referral Row if any non-direct non-social clicks exist */}
+            {otherClicks > 0 && (
+              <div className="flex items-center gap-3">
+                <span
+                  className="w-2 h-2 rounded-full inline-block shrink-0"
+                  style={{ background: "#A78BFA" }}
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-baseline text-[14px]">
+                    <b className="font-semibold text-[#101828] dark:text-[#E6E8EE]">
+                      Web &amp; Search
+                    </b>
+                    <span className="text-[#667085] dark:text-[#9AA3B2] text-[13px]">
+                      {formatNumber(otherClicks)}{" "}
+                      {otherClicks === 1 ? "click" : "clicks"} · {otherPct}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
 
-                    {visibleColumns.has("channel") && (
-                      <td className="py-3.5 px-3">
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-[9.5px] font-semibold border ${
-                            isSocial
-                              ? "bg-brand-subtle text-brand border-brand-subtle"
-                              : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
-                          }`}
-                        >
-                          {isSocial ? "Social Media" : "Direct / QR"}
-                        </span>
-                      </td>
-                    )}
+            {/* Social Networks Section */}
+            <div className="text-[12px] font-semibold uppercase tracking-[0.06em] text-[#667085] dark:text-[#7C8596] border-t border-[#E4E7EC] dark:border-[#1E232E] pt-[16px]">
+              Social networks
+            </div>
 
-                    {visibleColumns.has("referrer") && (
-                      <td className="py-3.5 px-3 whitespace-nowrap text-center">
-                        <div className="flex items-center justify-center">
-                          <ReferrerLogo referrer={ev.referrer} size={22} />
-                        </div>
-                      </td>
-                    )}
-
-                    {visibleColumns.has("customer") && (
-                      <td className="py-3.5 px-3">
-                        {(() => {
-                          const name = ev.customerName || ev.customerFullName || ev.fullName;
-                          const email = ev.customerEmail || ev.email;
-                          if (!name && !email) {
-                            return <span className="text-zinc-400 dark:text-neutral-600 font-mono text-[11px]">—</span>;
-                          }
-                          return (
-                            <div className="flex flex-col min-w-0">
-                              {name && <span className="font-medium text-zinc-900 dark:text-white truncate text-[11.5px]">{name}</span>}
-                              {email && <span className="text-[10px] text-zinc-500 dark:text-neutral-400 font-mono truncate" title={email}>{email}</span>}
-                            </div>
-                          );
-                        })()}
-                      </td>
-                    )}
-
-                    {visibleColumns.has("link") && (
-                      <td className="py-3.5 px-3 font-mono text-brand font-semibold text-[11.5px]">
-                        /{ev.slug}
-                      </td>
-                    )}
-
-                    {visibleColumns.has("city") && (
-                      <td className="py-3.5 px-3 whitespace-nowrap font-medium text-zinc-900 dark:text-zinc-100 text-[11.5px]">
-                        {ev.city && ev.city !== "—" && ev.city !== "Inconnue" ? ev.city : "Edge Node"}
-                      </td>
-                    )}
-
-                    {visibleColumns.has("location") && (
-                      <td className="py-3.5 px-3 text-zinc-700 dark:text-neutral-400 whitespace-nowrap text-[11.5px]">
-                        {ev.countryName}
-                      </td>
-                    )}
-
-                    {visibleColumns.has("device") && (
-                      <td className="py-3.5 pl-3 pr-5 sm:pr-6 text-zinc-700 dark:text-neutral-400 capitalize text-[11.5px]">
-                        {ev.device}
-                      </td>
-                    )}
-                  </tr>
-                );
-              })}
-
-              {paginatedEvents.length === 0 && (
-                <tr>
-                  <td colSpan={visibleColumns.size} className="py-8 text-center text-zinc-500 dark:text-neutral-500 text-xs">
-                    No events matching criteria.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-
-          {/* Mobile Cards Feed (< md: / < 768px) */}
-          <div className="flex flex-col gap-2.5 md:hidden p-4 font-sans">
-            {paginatedEvents.length === 0 ? (
-              <div className="py-8 text-center text-zinc-500 dark:text-neutral-500 text-xs">
-                No events matching criteria.
+            {socialPlatformsList.length === 0 ? (
+              <div className="text-[13px] text-[#667085] dark:text-[#9AA3B2] py-2">
+                No social network clicks recorded for this filter.
               </div>
             ) : (
-              paginatedEvents.map((ev, i) => {
-                const ref = ev.referrer || "Direct";
-                const isSocial = SOCIAL_PLATFORMS.some((s) => ref.toLowerCase().includes(s));
-                const cleanSlug = String(ev.slug || "").replace(/^\//, "");
+              socialPlatformsList.map((platform) => (
+                <div
+                  key={platform.platformName}
+                  className="flex items-center gap-3"
+                >
+                  <span className="inline-grid place-items-center w-[20px] h-[20px] rounded-[5px] bg-[#F2F4F7] dark:bg-[#1E2430] text-[#101828] dark:text-[#E6E8EE] font-bold text-[11px] shrink-0">
+                    {platform.badgeText}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-baseline text-[14px] mb-[7px]">
+                      <b className="font-semibold text-[#101828] dark:text-[#E6E8EE] truncate">
+                        {platform.platformName}
+                      </b>
+                      <span className="text-[#667085] dark:text-[#9AA3B2] text-[13px] shrink-0 ml-2">
+                        {formatNumber(platform.count)}{" "}
+                        {platform.count === 1 ? "click" : "clicks"} ·{" "}
+                        {platform.shareOfSocial}% of social
+                      </span>
+                    </div>
+                    <div className="h-[6px] rounded-full bg-[#EEF2F6] dark:bg-[#232834] overflow-hidden">
+                      <i
+                        className="block h-full rounded-full transition-all duration-300"
+                        style={{
+                          width: `${platform.shareOfSocial}%`,
+                          background: "#5B8CFF",
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
 
+        {/* Right Card: Top referrers */}
+        <div className="rounded-[12px] border border-[#E4E7EC] dark:border-[#1E232E] bg-white dark:bg-[#12151C]">
+          <div className="px-[20px] py-[16px] border-b border-[#E4E7EC] dark:border-[#1E232E] flex items-center justify-between gap-3">
+            <h2 className="text-[15px] font-semibold text-[#101828] dark:text-[#E6E8EE]">
+              Top referrers
+            </h2>
+            <span className="text-[13px] text-[#667085] dark:text-[#9AA3B2]">
+              {referrersList.length}{" "}
+              {referrersList.length === 1 ? "source" : "sources"}
+            </span>
+          </div>
+
+          <div className="p-[20px] flex flex-col gap-[18px]">
+            {referrersList.length === 0 ? (
+              <div className="text-[13px] text-[#667085] dark:text-[#9AA3B2] py-4 text-center">
+                No referrers recorded for this period.
+              </div>
+            ) : (
+              referrersList.map((ref, idx) => {
+                const isDirect = ref.channel === "Direct";
                 return (
                   <div
-                    key={i}
-                    className="rounded-[10px] bg-white dark:bg-[#141418] border border-zinc-200 dark:border-[#222225] p-3 flex flex-col gap-2 hover:border-[#0066FF]/40 transition-colors"
+                    key={ref.displayHost}
+                    className="flex items-center gap-3"
                   >
-                    {/* Top row: Referrer + Channel + Time */}
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <ReferrerLogo referrer={ev.referrer} size={18} />
-                        <span className="font-semibold text-xs text-zinc-900 dark:text-white truncate">
-                          {ev.referrer || "Direct Traffic"}
+                    <span className="w-[24px] h-[24px] rounded-[6px] bg-[#F2F4F7] dark:bg-[#1A1F29] text-[#667085] dark:text-[#9AA3B2] text-[12px] font-semibold grid place-items-center shrink-0">
+                      {idx + 1}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-baseline text-[14px] mb-[7px] gap-2">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <b className="font-semibold text-[#101828] dark:text-[#E6E8EE] truncate">
+                            {ref.displayHost}
+                          </b>
+                          <em
+                            className={`not-italic inline-flex items-center px-[10px] py-[2px] rounded-full text-[12px] font-semibold shrink-0 ${
+                              isDirect
+                                ? "bg-[#2DD4A7]/14 text-[#027A48] dark:text-[#5EE0BC]"
+                                : "bg-[#5B8CFF]/15 text-[#2F5FE0] dark:text-[#9DBBFF]"
+                            }`}
+                          >
+                            {ref.channel}
+                          </em>
+                        </div>
+                        <span className="text-[#667085] dark:text-[#9AA3B2] text-[13px] shrink-0">
+                          {formatNumber(ref.count)}{" "}
+                          {ref.count === 1 ? "click" : "clicks"} ·{" "}
+                          {ref.percentage}%
                         </span>
                       </div>
-                      <span className="text-[10.5px] font-mono text-zinc-500 dark:text-neutral-400 shrink-0">
-                        {new Date(ev.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                      </span>
-                    </div>
-
-                    {/* Middle row: Short link & Channel badge */}
-                    <div className="flex items-center justify-between gap-2 pt-1 border-t border-zinc-100 dark:border-[#222225] text-xs">
-                      <span className="font-mono text-xs font-semibold text-[#0066FF] dark:text-[#5294FF] truncate">
-                        /{cleanSlug}
-                      </span>
-                      <span
-                        className={`px-2 py-0.5 rounded-[4px] text-[10px] font-medium border ${
-                          isSocial
-                            ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20"
-                            : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
-                        }`}
-                      >
-                        {isSocial ? "Social" : "Direct / QR"}
-                      </span>
-                    </div>
-
-                    {/* Customer or Device info */}
-                    {(ev.customerName || ev.customerEmail || ev.city || ev.countryName) && (
-                      <div className="flex items-center justify-between text-[11px] text-zinc-500 dark:text-neutral-400 pt-0.5">
-                        <span className="truncate">
-                          {ev.customerName || ev.customerEmail || (ev.city ? `${ev.city}, ${ev.countryName}` : ev.countryName)}
-                        </span>
-                        <span className="capitalize shrink-0">{ev.device || "Desktop"}</span>
+                      <div className="h-[6px] rounded-full bg-[#EEF2F6] dark:bg-[#232834] overflow-hidden">
+                        <i
+                          className="block h-full rounded-full transition-all duration-300"
+                          style={{
+                            width: `${ref.percentage}%`,
+                            background: isDirect ? "#2DD4A7" : "#5B8CFF",
+                          }}
+                        />
                       </div>
-                    )}
+                    </div>
                   </div>
                 );
               })
             )}
           </div>
         </div>
+      </section>
 
-        {/* Pagination */}
-        <div className="px-5 sm:px-6 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-zinc-200 dark:border-[#222225] text-xs text-zinc-500 dark:text-neutral-400 mt-auto">
-          <span className="text-center sm:text-left">
-            Showing {(currentPage - 1) * pageSize + 1} to{" "}
-            {Math.min(currentPage * pageSize, filteredEvents.length)} of {filteredEvents.length} events
+      {/* Bottom Card: Live click stream */}
+      <section className="rounded-[12px] border border-[#E4E7EC] dark:border-[#1E232E] bg-white dark:bg-[#12151C]">
+        <div className="px-[20px] py-[16px] border-b border-[#E4E7EC] dark:border-[#1E232E] flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-[15px] font-semibold text-[#101828] dark:text-[#E6E8EE] flex items-center">
+            Live click stream
+            <span className="inline-flex items-center gap-1.5 text-[12px] text-[#027A48] dark:text-[#2DD4A7] font-medium ml-2.5">
+              <span
+                className="w-2 h-2 rounded-full inline-block"
+                style={{ background: "#2DD4A7" }}
+              />
+              Live
+            </span>
+          </h2>
+
+          <input
+            type="search"
+            aria-label="Filter events"
+            placeholder="Filter referrer, link, city…"
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="h-[44px] w-full sm:w-[260px] px-[14px] rounded-[10px] border border-[#E4E7EC] dark:border-[#2A3040] bg-white dark:bg-[#12151C] text-[#101828] dark:text-[#E6E8EE] placeholder:text-[#98A2B3] dark:placeholder:text-[#7C8596] text-[13px] focus:outline-none focus:border-[#2F5FE0]"
+          />
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse text-[14px] min-w-[780px]">
+            <thead>
+              <tr>
+                <th
+                  scope="col"
+                  className="text-left text-[12px] font-semibold uppercase tracking-[0.05em] text-[#667085] dark:text-[#8E97A7] px-[20px] py-[12px] border-b border-[#E4E7EC] dark:border-[#1E232E]"
+                >
+                  Time
+                </th>
+                <th
+                  scope="col"
+                  className="text-left text-[12px] font-semibold uppercase tracking-[0.05em] text-[#667085] dark:text-[#8E97A7] px-[20px] py-[12px] border-b border-[#E4E7EC] dark:border-[#1E232E]"
+                >
+                  Channel
+                </th>
+                <th
+                  scope="col"
+                  className="text-left text-[12px] font-semibold uppercase tracking-[0.05em] text-[#667085] dark:text-[#8E97A7] px-[20px] py-[12px] border-b border-[#E4E7EC] dark:border-[#1E232E]"
+                >
+                  Referrer
+                </th>
+                <th
+                  scope="col"
+                  className="text-left text-[12px] font-semibold uppercase tracking-[0.05em] text-[#667085] dark:text-[#8E97A7] px-[20px] py-[12px] border-b border-[#E4E7EC] dark:border-[#1E232E]"
+                >
+                  Short link
+                </th>
+                <th
+                  scope="col"
+                  className="text-left text-[12px] font-semibold uppercase tracking-[0.05em] text-[#667085] dark:text-[#8E97A7] px-[20px] py-[12px] border-b border-[#E4E7EC] dark:border-[#1E232E]"
+                >
+                  Location
+                </th>
+                <th
+                  scope="col"
+                  className="text-left text-[12px] font-semibold uppercase tracking-[0.05em] text-[#667085] dark:text-[#8E97A7] px-[20px] py-[12px] border-b border-[#E4E7EC] dark:border-[#1E232E]"
+                >
+                  Device
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {paginatedEvents.map((ev) => {
+                const info = classifyReferrer(ev.referrer);
+                const isDirect = info.channel === "Direct";
+                const cleanSlug =
+                  String(ev.slug || "").replace(/^\/+/, "") || "link";
+                const rawCity = String(ev.city || "").trim();
+                const hasValidCity =
+                  Boolean(rawCity) &&
+                  rawCity !== "—" &&
+                  rawCity.toLowerCase() !== "inconnue" &&
+                  rawCity.toLowerCase() !== "unknown";
+                const countryLabel = String(
+                  ev.countryName || ev.countryCode || "",
+                ).trim();
+                const timeStr = formatEventTime(ev.timestamp);
+
+                return (
+                  <tr
+                    key={ev.id}
+                    className="border-b border-[#F2F4F7] dark:border-[#171B24] last:border-b-0 hover:bg-[#F9FAFB] dark:hover:bg-[#161A23] transition-colors"
+                  >
+                    <td className="px-[20px] py-[13px] whitespace-nowrap text-[#667085] dark:text-[#9AA3B2] font-mono text-[13px]">
+                      {timeStr}
+                    </td>
+
+                    <td className="px-[20px] py-[13px] whitespace-nowrap">
+                      <em
+                        className={`not-italic inline-flex items-center px-[10px] py-[2px] rounded-full text-[12px] font-semibold ${
+                          isDirect
+                            ? "bg-[#2DD4A7]/14 text-[#027A48] dark:text-[#5EE0BC]"
+                            : "bg-[#5B8CFF]/15 text-[#2F5FE0] dark:text-[#9DBBFF]"
+                        }`}
+                      >
+                        {info.channel}
+                      </em>
+                    </td>
+
+                    <td className="px-[20px] py-[13px] whitespace-nowrap">
+                      {isDirect ? (
+                        <span className="text-[#667085] dark:text-[#9AA3B2]">
+                          Direct
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center text-[#101828] dark:text-[#E6E8EE]">
+                          <span className="inline-grid place-items-center w-[20px] h-[20px] rounded-[5px] bg-[#F2F4F7] dark:bg-[#1E2430] text-[#101828] dark:text-[#E6E8EE] font-bold text-[11px] mr-[6px]">
+                            {info.badgeText}
+                          </span>
+                          {info.shortName}
+                        </span>
+                      )}
+                    </td>
+
+                    <td className="px-[20px] py-[13px] whitespace-nowrap">
+                      <Link
+                        href="/dashboard/links"
+                        className="font-mono text-[13px] font-medium text-[#2F5FE0] dark:text-[#9DBBFF] hover:underline"
+                      >
+                        /{cleanSlug}
+                      </Link>
+                    </td>
+
+                    <td className="px-[20px] py-[13px] whitespace-nowrap">
+                      {hasValidCity ? (
+                        <>
+                          <b className="font-semibold text-[#101828] dark:text-[#E6E8EE]">
+                            {rawCity}
+                          </b>{" "}
+                          <span className="text-[#667085] dark:text-[#9AA3B2]">
+                            {countryLabel}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-[#667085] dark:text-[#9AA3B2]">
+                          {countryLabel || "—"}
+                        </span>
+                      )}
+                    </td>
+
+                    <td className="px-[20px] py-[13px] whitespace-nowrap text-[#101828] dark:text-[#E6E8EE]">
+                      {formatDeviceLabel(ev.device)}
+                    </td>
+                  </tr>
+                );
+              })}
+
+              {paginatedEvents.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={6}
+                    className="px-[20px] py-10 text-center text-[13px] text-[#667085] dark:text-[#9AA3B2]"
+                  >
+                    No click events matching your filter.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="px-[20px] py-[12px] border-t border-[#E4E7EC] dark:border-[#1E232E] flex flex-wrap items-center justify-between gap-3 text-[13px] text-[#667085] dark:text-[#9AA3B2]">
+          <span>
+            Showing {showingStart}–{showingEnd} of {filteredEvents.length}{" "}
+            {filteredEvents.length === 1 ? "event" : "events"}
           </span>
 
-          <div className="flex items-center justify-center gap-1.5">
+          <div className="flex items-center gap-2">
             <button
+              type="button"
+              aria-label="Previous page"
+              disabled={safeCurrentPage <= 1}
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              className="p-1.5 rounded-[10px] bg-zinc-100 hover:bg-zinc-200 dark:bg-[#1a1a1e] border border-zinc-300 dark:border-[#27272a] disabled:opacity-40 text-zinc-700 dark:text-white cursor-pointer"
+              className="w-[44px] h-[44px] rounded-[10px] border border-[#E4E7EC] dark:border-[#2A3040] bg-white dark:bg-[#12151C] text-[#667085] dark:text-[#9AA3B2] hover:text-[#101828] dark:hover:text-[#E6E8EE] hover:border-[#D0D5DD] dark:hover:border-[#3A4256] disabled:opacity-40 disabled:pointer-events-none grid place-items-center cursor-pointer transition-colors"
             >
-              <ChevronLeft className="w-3.5 h-3.5" />
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                className="w-[16px] h-[16px] stroke-current fill-none stroke-[1.8] [stroke-linecap:round] [stroke-linejoin:round]"
+              >
+                <path d="M15 18l-6-6 6-6" />
+              </svg>
             </button>
-            <span className="px-3 py-1 font-mono text-zinc-900 dark:text-white text-xs bg-zinc-100 dark:bg-[#1a1a1e] border border-zinc-300 dark:border-[#27272a] rounded-[10px] whitespace-nowrap">
-              Page {currentPage} / {totalPages}
+
+            <span>
+              Page {safeCurrentPage} of {totalPages}
             </span>
+
             <button
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-              className="p-1.5 rounded-[10px] bg-zinc-100 hover:bg-zinc-200 dark:bg-[#1a1a1e] border border-zinc-300 dark:border-[#27272a] disabled:opacity-40 text-zinc-700 dark:text-white cursor-pointer"
+              type="button"
+              aria-label="Next page"
+              disabled={safeCurrentPage >= totalPages}
+              onClick={() =>
+                setCurrentPage((p) => Math.min(totalPages, p + 1))
+              }
+              className="w-[44px] h-[44px] rounded-[10px] border border-[#E4E7EC] dark:border-[#2A3040] bg-white dark:bg-[#12151C] text-[#667085] dark:text-[#9AA3B2] hover:text-[#101828] dark:hover:text-[#E6E8EE] hover:border-[#D0D5DD] dark:hover:border-[#3A4256] disabled:opacity-40 disabled:pointer-events-none grid place-items-center cursor-pointer transition-colors"
             >
-              <ChevronRight className="w-3.5 h-3.5" />
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                className="w-[16px] h-[16px] stroke-current fill-none stroke-[1.8] [stroke-linecap:round] [stroke-linejoin:round]"
+              >
+                <path d="M9 18l6-6-6-6" />
+              </svg>
             </button>
           </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 }
