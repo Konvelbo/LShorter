@@ -185,10 +185,13 @@ export default function LinksPage() {
         userId: l.user_id || userId,
         slug: l.slug,
         domainName: l.domain_name || "lsho.cc",
-        shortUrl:
-          typeof window !== "undefined"
-            ? `${window.location.origin}/r/${l.slug}`
-            : `http://localhost:3000/r/${l.slug}`,
+        shortUrl: (() => {
+          const dom = l.domain_name || l.domainName || "lsho.cc";
+          if (dom && dom !== "lsho.cc") return `https://${dom}/${l.slug}`;
+          return typeof window !== "undefined"
+            ? `${window.location.origin}/${l.slug}`
+            : `https://lsho.cc/${l.slug}`;
+        })(),
         targetUrl: l.target_url || l.targetUrl,
         clicksCount: l.clicks_count || l.clicksCount || l.clicks || 0,
         uniqueClicks: l.unique_clicks || l.uniqueClicks || 0,
@@ -626,9 +629,9 @@ export default function LinksPage() {
 
   const getTestUrl = (link: ShortLink) => {
     if (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")) {
-      return `/r/${encodeURIComponent(link.slug)}`;
+      return `/${encodeURIComponent(link.slug)}`;
     }
-    return link.shortUrl;
+    return (link.shortUrl || `https://${link.domainName || "lsho.cc"}/${link.slug}`).replace(/\/r\/([^/?#]+)$/, "/$1");
   };
 
   // Toggle selection for a single link
@@ -1090,7 +1093,7 @@ export default function LinksPage() {
         rows: filteredLinks.map((l) => [
           l.id,
           `/${l.slug}`,
-          l.shortUrl || `https://lsho.cc/r/${l.slug}`,
+          (l.shortUrl || `https://lsho.cc/${l.slug}`).replace(/\/r\/([^/?#]+)$/, "/$1"),
           l.targetUrl || "",
           l.clicksCount || 0,
           l.uniqueClicks || 0,
@@ -1391,7 +1394,7 @@ export default function LinksPage() {
                     <div className="min-w-0 space-y-0.5 text-left">
                       <div className="flex items-center gap-2">
                         <a
-                          href={`/r/${encodeURIComponent(link.slug)}`}
+                          href={`/${encodeURIComponent(link.slug)}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={(e) => {

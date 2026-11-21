@@ -124,7 +124,11 @@ export default function DashboardOverviewPage() {
           userId: l.user_id || userId,
           slug: l.slug,
           domainName: l.domain_name || "lsho.cc",
-          shortUrl: typeof window !== "undefined" ? `${window.location.origin}/r/${l.slug}` : `http://localhost:3000/r/${l.slug}`,
+          shortUrl: (() => {
+            const dom = l.domain_name || l.domainName || "lsho.cc";
+            if (dom && dom !== "lsho.cc") return `https://${dom}/${l.slug}`;
+            return typeof window !== "undefined" ? `${window.location.origin}/${l.slug}` : `https://lsho.cc/${l.slug}`;
+          })(),
           targetUrl: l.target_url || l.targetUrl,
           clicksCount: l.clicks_count || l.clicksCount || l.clicks || 0,
           uniqueClicks: l.unique_clicks || l.uniqueClicks || 0,

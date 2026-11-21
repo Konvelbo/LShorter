@@ -102,9 +102,13 @@ export function LinkShareModal({ link, isOpen, onClose }: LinkShareModalProps) {
     if (!isOpen || !link || !canvasRef.current) return;
 
     const rawDomain = link.domainName || "lsho.cc";
-    const targetQr = link.shortUrl?.startsWith("http")
-      ? link.shortUrl
-      : (link.slug ? `https://${rawDomain}/r/${link.slug}` : (link.targetUrl || link.shortUrl || "https://lsho.cc"));
+    const targetQr = (
+      link.shortUrl?.startsWith("http")
+        ? link.shortUrl
+        : link.slug
+          ? `https://${rawDomain}/${link.slug}`
+          : link.targetUrl || link.shortUrl || "https://lsho.cc"
+    ).replace(/\/r\/([^/?#]+)$/, "/$1");
 
     QRCode.toCanvas(
       canvasRef.current,
@@ -136,9 +140,13 @@ export function LinkShareModal({ link, isOpen, onClose }: LinkShareModalProps) {
   if (!isOpen || !link) return null;
 
   const rawDomain = link.domainName || "lsho.cc";
-  const publicShareUrl = link.shortUrl?.startsWith("http")
-    ? link.shortUrl
-    : (link.slug ? `https://${rawDomain}/r/${link.slug}` : (link.targetUrl || link.shortUrl || ""));
+  const publicShareUrl = (
+    link.shortUrl?.startsWith("http")
+      ? link.shortUrl
+      : link.slug
+        ? `https://${rawDomain}/${link.slug}`
+        : link.targetUrl || link.shortUrl || ""
+  ).replace(/\/r\/([^/?#]+)$/, "/$1");
   const shareTitle = link.metaTitle || link.ogTitle || (link.slug ? `Check out this link: ${link.slug}` : "Check out this link");
   const encodedUrl = encodeURIComponent(publicShareUrl);
   const encodedTitle = encodeURIComponent(shareTitle);

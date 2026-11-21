@@ -36,12 +36,20 @@ export function LinkQRModal({ isOpen, onClose, link }: LinkQRModalProps) {
   const [sharedCopied, setSharedCopied] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
+  const cleanShortUrl = link
+    ? (
+        link.shortUrl?.startsWith("http")
+          ? link.shortUrl
+          : `https://${link.domainName || "lsho.cc"}/${link.slug}`
+      ).replace(/\/r\/([^/?#]+)$/, "/$1")
+    : "";
+
   useEffect(() => {
     if (!isOpen || !link || !canvasRef.current) return;
 
     QRCode.toCanvas(
       canvasRef.current,
-      link.shortUrl,
+      cleanShortUrl,
       {
         width: FIXED_EXPORT_RESOLUTION,
         margin: includeQuietZone ? 2 : 0,
@@ -70,7 +78,7 @@ export function LinkQRModal({ isOpen, onClose, link }: LinkQRModalProps) {
 
   const handleDownloadPNG = async () => {
     try {
-      const dataUrl = await QRCode.toDataURL(link.shortUrl, {
+      const dataUrl = await QRCode.toDataURL(cleanShortUrl, {
         width: FIXED_EXPORT_RESOLUTION,
         margin: includeQuietZone ? 2 : 0,
         color: {
@@ -92,7 +100,7 @@ export function LinkQRModal({ isOpen, onClose, link }: LinkQRModalProps) {
 
   const handleDownloadSVG = async () => {
     try {
-      const svgString = await QRCode.toString(link.shortUrl, {
+      const svgString = await QRCode.toString(cleanShortUrl, {
         type: "svg",
         width: FIXED_EXPORT_RESOLUTION,
         margin: includeQuietZone ? 2 : 0,
@@ -121,8 +129,8 @@ export function LinkQRModal({ isOpen, onClose, link }: LinkQRModalProps) {
       try {
         await navigator.share({
           title: `QR Code — ${link.slug}`,
-          text: `Access ${link.shortUrl}`,
-          url: link.shortUrl,
+          text: `Access ${cleanShortUrl}`,
+          url: cleanShortUrl,
         });
         return;
       } catch {
@@ -130,7 +138,7 @@ export function LinkQRModal({ isOpen, onClose, link }: LinkQRModalProps) {
       }
     }
     try {
-      await navigator.clipboard.writeText(link.shortUrl);
+      await navigator.clipboard.writeText(cleanShortUrl);
       setSharedCopied(true);
       setTimeout(() => setSharedCopied(false), 2000);
     } catch {}
@@ -169,7 +177,7 @@ export function LinkQRModal({ isOpen, onClose, link }: LinkQRModalProps) {
               Link QR Code
             </h3>
             <p className="text-xs text-[#71717A] dark:text-[#A1A1AA] font-mono truncate">
-              {link.shortUrl}
+              {cleanShortUrl}
             </p>
           </div>
         </div>
@@ -274,7 +282,7 @@ export function LinkQRModal({ isOpen, onClose, link }: LinkQRModalProps) {
           type="button"
           onClick={() => {
             window.location.href = `/dashboard/qr-code?url=${encodeURIComponent(
-              link.shortUrl
+              cleanShortUrl
             )}&slug=${encodeURIComponent(link.slug)}&id=${encodeURIComponent(
               link.id
             )}`;
