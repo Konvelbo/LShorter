@@ -6,7 +6,6 @@ import { HeroShortener } from "@/components/marketing/hero-shortener";
 import { HeroBackground } from "@/components/ui/tailwind-css-background-snippet";
 import { FlipWords } from "@/components/ui/flip-words";
 import { VariableProximity } from "@/components/ui/VariableProximity";
-import { LogoLoop, type LogoItem } from "@/components/ui/LogoLoop";
 import {
   BRAND_LOGOS,
   type BrandLogoId,
@@ -18,8 +17,7 @@ import {
 
 /**
  * Official verified brand logos from the QR Studio registry (`components/qr/qr-brand-logos.ts`),
- * rendered in a uniform monochrome silhouette style (without inline labels, excluding WhatsApp)
- * matching the reference strip design.
+ * rendered in a uniform monochrome silhouette style (32px, without inline labels, excluding WhatsApp).
  */
 const HERO_LOOP_BRANDS: Array<{
   id: BrandLogoId;
@@ -44,13 +42,17 @@ const HERO_LOOP_BRANDS: Array<{
   { id: "hubspot", label: "HubSpot" },
 ];
 
-function MonochromeBrandIcon({ id }: { id: BrandLogoId }) {
+const MonochromeBrandIcon = React.memo(function MonochromeBrandIcon({
+  id,
+}: {
+  id: BrandLogoId;
+}) {
   const spec = BRAND_LOGOS[id];
   if (spec.pathOnly) {
     return (
       <svg
         viewBox="0 0 24 24"
-        className="w-[26px] h-[26px] shrink-0 fill-current"
+        className="w-[32px] h-[32px] shrink-0 fill-current"
         aria-hidden="true"
       >
         <path d={spec.pathOnly} fill="currentColor" />
@@ -64,24 +66,39 @@ function MonochromeBrandIcon({ id }: { id: BrandLogoId }) {
   return (
     <svg
       viewBox={spec.viewBox}
-      className="w-[26px] h-[26px] shrink-0 fill-current"
+      className="w-[32px] h-[32px] shrink-0 fill-current"
       aria-hidden="true"
       dangerouslySetInnerHTML={{ __html: monochromeBody }}
     />
   );
-}
+});
 
-const MONOCHROME_SOCIAL_AND_ADS_LOGOS: LogoItem[] = HERO_LOOP_BRANDS.map(
-  ({ id, label }) => ({
-    title: label,
-    ariaLabel: label,
-    node: (
-      <span className="inline-flex items-center justify-center text-[#312E81]/45 dark:text-[#C7D2FE]/45 hover:text-[#312E81]/85 dark:hover:text-white transition-colors duration-200">
-        <MonochromeBrandIcon id={id} />
-      </span>
-    ),
-  })
-);
+const LogoStripCopy = React.memo(function LogoStripCopy({
+  copyKey,
+  ariaHidden,
+}: {
+  copyKey: string;
+  ariaHidden?: boolean;
+}) {
+  return (
+    <ul
+      aria-hidden={ariaHidden || undefined}
+      className="flex items-center gap-16 sm:gap-20 pr-16 sm:pr-20 m-0 p-0 list-none shrink-0"
+    >
+      {HERO_LOOP_BRANDS.map(({ id, label }) => (
+        <li key={`${copyKey}-${id}`} className="shrink-0">
+          <span
+            title={label}
+            aria-label={ariaHidden ? undefined : label}
+            className="inline-flex items-center justify-center text-[#312E81]/45 dark:text-[#C7D2FE]/45 hover:text-[#312E81]/90 dark:hover:text-white hover:scale-110 transition-all duration-200"
+          >
+            <MonochromeBrandIcon id={id} />
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+});
 
 export function HeroSection() {
   const proximityContainerRef = useRef<HTMLDivElement | null>(null);
@@ -89,14 +106,14 @@ export function HeroSection() {
   return (
     <section
       id="hero"
-      className="relative isolate w-full overflow-x-clip pt-20 sm:pt-24 min-h-svh flex flex-col justify-between transition-colors duration-300"
+      className="relative isolate w-full overflow-x-clip pt-20 sm:pt-24 flex flex-col transition-colors duration-300"
     >
       {/* Background Pattern from tailwind-css-background-snippet */}
       <HeroBackground />
 
-      <SectionRailFrame className="relative z-30 flex-1 flex flex-col justify-center">
-        {/* Centered Hero Stage */}
-        <div className="my-auto pt-8 sm:pt-12 pb-8 flex flex-col items-center text-center">
+      {/* Full-viewport Hero Stage so the logo strip stays below the initial Hero fold */}
+      <SectionRailFrame className="relative z-30 min-h-[calc(100svh-80px)] sm:min-h-[calc(100svh-96px)] flex flex-col justify-center">
+        <div className="my-auto py-10 sm:py-14 flex flex-col items-center text-center">
           <motion.h1
             initial={{ opacity: 0.92, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
@@ -110,7 +127,7 @@ export function HeroSection() {
             />
           </motion.h1>
 
-          {/* React Bits <VariableProximity /> Interactive Subtitle below Big Title */}
+          {/* React Bits <VariableProximity /> Interactive Subtitle (zero-reflow GRAD axis + scoped pointer) */}
           <motion.div
             ref={proximityContainerRef}
             initial={{ opacity: 0.92, y: 6 }}
@@ -120,14 +137,14 @@ export function HeroSection() {
           >
             <VariableProximity
               label="Turn every click into a smart destination — route visitors by country or device in under 12ms, lock private links with PathLock™, and track real-time revenue attribution."
-              fromFontVariationSettings="'wght' 400, 'opsz' 12"
-              toFontVariationSettings="'wght' 900, 'opsz' 40"
+              fromFontVariationSettings="'wght' 450, 'GRAD' 0"
+              toFontVariationSettings="'wght' 450, 'GRAD' 150"
               containerRef={proximityContainerRef}
-              radius={95}
+              radius={90}
               falloff="gaussian"
-              smoothing={0.18}
-              scale={1.04}
-              lift={0.03}
+              smoothing={0.16}
+              scale={1.06}
+              lift={0.04}
               idleWave={false}
             />
           </motion.div>
@@ -144,28 +161,21 @@ export function HeroSection() {
         </div>
       </SectionRailFrame>
 
-      {/* Bottom Two-Bar Band with Reference Height, Padding, Margin, Interior Tracking Caption & Monochrome <LogoLoop /> */}
-      <div className="relative z-10 w-full mt-12 sm:mt-16 py-8 sm:py-9 min-h-[144px] border-t border-b border-[#6366F1]/25 dark:border-white/[0.12] bg-white/30 dark:bg-[#09090B]/40 backdrop-blur-md flex flex-col justify-center gap-6">
-        <p className="text-center font-sans text-[10.5px] sm:text-[11px] font-semibold uppercase tracking-[0.22em] text-[#312E81]/60 dark:text-[#C7D2FE]/60 select-none px-4">
+      {/* Below-the-Fold Tall Two-Bar Logo Band (pure GPU CSS marquee, 32px icons, slow 68s drift, zero JS lag) */}
+      <div className="relative z-10 w-full mt-12 sm:mt-16 py-12 sm:py-14 min-h-[200px] sm:min-h-[220px] border-t border-b border-[#6366F1]/25 dark:border-white/[0.12] bg-white/45 dark:bg-[#0B0A16]/70 flex flex-col justify-center gap-8">
+        <p className="text-center font-sans text-[11px] sm:text-[12px] font-semibold uppercase tracking-[0.22em] text-[#312E81]/65 dark:text-[#C7D2FE]/65 select-none px-4">
           Track your links everywhere — whether in paid ads or your daily social posts
         </p>
 
-        <div className="w-full flex items-center">
-          <LogoLoop
-            logos={MONOCHROME_SOCIAL_AND_ADS_LOGOS}
-            speed={34}
-            direction="left"
-            logoHeight={26}
-            gap={68}
-            hoverSpeed={10}
-            scaleOnHover
-            fadeOut
-            fadeOutWidth={0.14}
-            labels="none"
-            intro={false}
-            draggable={false}
-            ariaLabel="Social networks and ad pixel platforms tracked by LShorter"
-          />
+        <div
+          role="region"
+          aria-label="Social networks and ad pixel platforms tracked by LShorter"
+          className="relative w-full overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]"
+        >
+          <div className="hero-logo-marquee-track">
+            <LogoStripCopy copyKey="copy-a" />
+            <LogoStripCopy copyKey="copy-b" ariaHidden />
+          </div>
         </div>
       </div>
     </section>

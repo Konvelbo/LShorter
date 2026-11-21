@@ -5,21 +5,15 @@ import React, {
   forwardRef,
   useCallback,
   useEffect,
-  useLayoutEffect,
   useMemo,
   useRef,
-  useState,
   type CSSProperties,
   type RefObject,
 } from "react";
 import "./VariableProximity.css";
 
-const useIsoLayoutEffect =
-  typeof window !== "undefined" ? useLayoutEffect : useEffect;
-
 const GAUSSIAN_EDGE = Math.exp(-2);
-const WAVE_PERIOD = 3.2;
-const WAVE_PEAK = 0.7;
+const QUANTIZATION_STEPS = 8;
 
 const parseSettings = (settings: string) =>
   new Map(
@@ -82,16 +76,16 @@ export const VariableProximity = forwardRef<
 >((props, ref) => {
   const {
     label = "",
-    fromFontVariationSettings = "'wght' 400, 'opsz' 9",
-    toFontVariationSettings = "'wght' 1000, 'opsz' 40",
+    fromFontVariationSettings = "'wght' 450, 'GRAD' 0",
+    toFontVariationSettings = "'wght' 450, 'GRAD' 150",
     containerRef,
-    radius = 50,
-    falloff = "linear",
-    smoothing = 0.2,
+    radius = 85,
+    falloff = "gaussian",
+    smoothing = 0.16,
     fromColor,
     toColor,
-    scale = 1,
-    lift = 0,
+    scale = 1.06,
+    lift = 0.04,
     idleWave = false,
     fontSize,
     className = "",
@@ -102,16 +96,6 @@ export const VariableProximity = forwardRef<
 
   const rootRef = useRef<HTMLSpanElement | null>(null);
   const letterRefs = useRef<Array<HTMLSpanElement | null>>([]);
-  const stateRef = useRef<{
-    pointer: { x: number; y: number; active: boolean };
-    levels: number[];
-    targets: number[];
-  }>({
-    pointer: { x: 0, y: 0, active: false },
-    levels: [],
-    targets: [],
-  });
-  const [lineStarts, setLineStarts] = useState<string | null>(null);
 
   const setRoot = useCallback(
     (node: HTMLSpanElement | null) => {
@@ -123,267 +107,142 @@ export const VariableProximity = forwardRef<
     [ref]
   );
 
-  const axes = useMemo(() => {
+  // Precompute the 9 discrete quantized fontVariationSettings strings so Skia's glyph cache hits 100%
+  const variationBuckets = useMemo(() => {
     const fromSettings = parseSettings(fromFontVariationSettings);
     const toSettings = parseSettings(toFontVariationSettings);
-    return Array.from(fromSettings.entries()).map(([axis, fromValue]) => ({
+    const axes = Array.from(fromSettings.entries()).map(([axis, fromValue]) => ({
       axis,
       fromValue,
       toValue: toSettings.get(axis) ?? fromValue,
     }));
+    const buckets: string[] = [];
+    for (let i = 0; i <= QUANTIZATION_STEPS; i++) {
+      const t = i / QUANTIZATION_STEPS;
+      buckets.push(
+        axes
+          .map(
+            ({ axis, fromValue, toValue }) =>
+              `'${axis}' ${Math.round(fromValue + (toValue - fromValue) * t)}`
+          )
+          .join(", ")
+      );
+    }
+    return buckets;
   }, [fromFontVariationSettings, toFontVariationSettings]);
 
-  useIsoLayoutEffect(() => {
-    const root = rootRef.current;
-    if (!root) return;
-    let frame = 0;
-    let live = true;
-    let lastWidth = -1;
-
-    const measure = () => {
-      frame = 0;
-      if (!live) return;
-      const words = Array.from(
-        root.querySelectorAll<HTMLElement>("[data-word]")
-      );
-      const breaks = Array.from(root.querySelectorAll<HTMLElement>("br"));
-      const letters = letterRefs.current.filter(
-        (l): l is HTMLSpanElement => Boolean(l)
-      );
-      const saved = letters.map((letter) => letter.style.fontVariationSettings);
-      const wrap = root.style.whiteSpace;
-      root.style.whiteSpace = "normal";
-      breaks.forEach((node) => (node.style.display = "none"));
-      letters.forEach(
-        (letter) =>
-          (letter.style.fontVariationSettings = fromFontVariationSettings)
-      );
-      const starts: number[] = [];
-      let lastTop: number | null = null;
-      words.forEach((word, index) => {
-        const top = word.getBoundingClientRect().top;
-        if (lastTop !== null && top > lastTop + 2) starts.push(index);
-        lastTop = top;
-      });
-      letters.forEach(
-        (letter, index) => (letter.style.fontVariationSettings = saved[index])
-      );
-      breaks.forEach((node) => (node.style.display = ""));
-      root.style.whiteSpace = wrap;
-      const key = starts.join(",");
-      setLineStarts((previous) => (previous === key ? previous : key));
-    };
-
-    const queue = (entries?: ResizeObserverEntry[]) => {
-      const width = entries?.[0]?.contentRect.width;
-      if (width !== undefined) {
-        if (Math.abs(width - lastWidth) < 1) return;
-        lastWidth = width;
-      }
-      if (!frame) frame = requestAnimationFrame(measure);
-    };
-
-    measure();
-    const parent = root.parentElement;
-    const observer =
-      parent && typeof ResizeObserver !== "undefined"
-        ? new ResizeObserver(queue)
-        : null;
-    if (parent) observer?.observe(parent);
-    document.fonts?.ready.then(() => queue());
-
-    return () => {
-      live = false;
-      cancelAnimationFrame(frame);
-      observer?.disconnect();
-    };
-  }, [label, fromFontVariationSettings, fontSize]);
-
   useEffect(() => {
-    const { pointer, levels, targets } = stateRef.current;
-    const written: string[] = [];
-    const painted: string[] = [];
-    const moved: string[] = [];
-    // Cached letter centers relative to rootRef top-left to avoid per-frame N*getBoundingClientRect layout thrashing
-    const anchors: Array<{ x: number; y: number }> = [];
-    let cachedRootWidth = 0;
-    let cachedRootHeight = 0;
+    const targetEl = containerRef?.current || rootRef.current;
+    if (!targetEl) return;
 
-    const tinted = Boolean(fromColor || toColor);
-    const restColor = fromColor || "currentColor";
-    const nearColor = toColor || "currentColor";
+    const pointer = { x: 0, y: 0, active: false };
+    const levels: number[] = [];
+    const targets: number[] = [];
+    const writtenBucket: number[] = [];
+    const moved: string[] = [];
+    const anchors: Array<{ x: number; y: number }> = [];
+    let cachedRect: DOMRect | null = null;
+    let anchorsValid = false;
+
     const growth = (Number(scale) || 1) - 1;
     const rise = Number(lift) || 0;
     const transformed = growth !== 0 || rise !== 0;
-    const waving = Boolean(idleWave);
+
     let frame = 0;
     let lastTime = 0;
-    let dirty = true;
-    let layoutDirty = true;
-    let nearAny = false;
-    let lastNear = -Infinity;
-    let waveMix = 0;
-    let span = 1;
-    let visible = true;
-
-    letterRefs.current.forEach((letter) => {
-      if (!letter) return;
-      if (!tinted) letter.style.color = "";
-      if (!transformed) letter.style.transform = "";
-    });
-
-    const settingsAt = (level: number) =>
-      axes
-        .map(
-          ({ axis, fromValue, toValue }) =>
-            `'${axis}' ${(fromValue + (toValue - fromValue) * level).toFixed(1)}`
-        )
-        .join(", ");
+    let dirty = false;
 
     const measureAnchors = () => {
       const rootEl = rootRef.current;
       if (!rootEl) return;
-      const rootRect = rootEl.getBoundingClientRect();
-      cachedRootWidth = rootRect.width;
-      cachedRootHeight = rootRect.height;
-
+      cachedRect = rootEl.getBoundingClientRect();
       const letters = letterRefs.current;
-      let left = Infinity;
-      let right = -Infinity;
-      letters.forEach((letter, index) => {
-        if (!letter) return;
+      anchors.length = letters.length;
+      for (let i = 0; i < letters.length; i++) {
+        const letter = letters[i];
+        if (!letter) continue;
         const rect = letter.getBoundingClientRect();
-        anchors[index] = {
-          x: rect.left - rootRect.left + rect.width / 2,
-          y: rect.top - rootRect.top + rect.height / 2,
+        anchors[i] = {
+          x: rect.left - cachedRect.left + rect.width / 2,
+          y: rect.top - cachedRect.top + rect.height / 2,
         };
-        left = Math.min(left, rect.left);
-        right = Math.max(right, rect.right);
-      });
-      span = Math.max(220, (right - left) * 0.85);
+      }
+      anchorsValid = true;
     };
 
-    const measure = () => {
-      const letters = letterRefs.current;
-      targets.length = letters.length;
-      targets.fill(0);
-      nearAny = false;
-      if (!pointer.active) return;
-
-      const rootEl = rootRef.current;
-      if (!rootEl) return;
-
-      if (layoutDirty || anchors.length !== letters.length) {
-        measureAnchors();
-        layoutDirty = false;
+    const computeTargets = () => {
+      const len = letterRefs.current.length;
+      if (targets.length !== len) {
+        targets.length = len;
+        levels.length = len;
       }
+      targets.fill(0);
+      if (!pointer.active || !cachedRect) return;
 
-      const rootRect = rootEl.getBoundingClientRect();
-      const dx = Math.max(
-        rootRect.left - pointer.x,
-        0,
-        pointer.x - (rootRect.left + (cachedRootWidth || rootRect.width))
-      );
-      const dy = Math.max(
-        rootRect.top - pointer.y,
-        0,
-        pointer.y - (rootRect.top + (cachedRootHeight || rootRect.height))
-      );
-      if (dx * dx + dy * dy >= radius * radius) return;
-
-      const localX = pointer.x - rootRect.left;
-      const localY = pointer.y - rootRect.top;
+      const localX = pointer.x - cachedRect.left;
+      const localY = pointer.y - cachedRect.top;
+      const rSq = radius * radius;
 
       for (let i = 0; i < anchors.length; i++) {
         const anchor = anchors[i];
         if (!anchor) continue;
-        const distance = Math.hypot(localX - anchor.x, localY - anchor.y);
-        const s = strengthAt(distance, radius, falloff);
-        targets[i] = s;
-        if (s > 0) nearAny = true;
+        const dx = localX - anchor.x;
+        const dy = localY - anchor.y;
+        const distSq = dx * dx + dy * dy;
+        if (distSq < rSq) {
+          targets[i] = strengthAt(Math.sqrt(distSq), radius, falloff);
+        }
       }
-    };
-
-    const waveAt = (index: number, time: number) => {
-      const anchor = anchors[index];
-      if (!anchor) return 0;
-      const phase =
-        ((anchor.x + anchor.y * 0.6) / span - time / WAVE_PERIOD) *
-        Math.PI *
-        2;
-      return WAVE_PEAK * ((1 + Math.cos(phase)) / 2) ** 2.2;
     };
 
     const tick = (now: number) => {
       frame = 0;
-      const delta = lastTime ? Math.min(now - lastTime, 64) : 16;
+      const delta = lastTime ? Math.min(now - lastTime, 48) : 16;
       lastTime = now;
 
-      if (layoutDirty) {
-        measureAnchors();
-        layoutDirty = false;
-      }
       if (dirty) {
-        measure();
+        if (!anchorsValid) measureAnchors();
+        computeTargets();
         dirty = false;
       }
 
-      if (nearAny) lastNear = now;
-      const idle = waving && visible && !nearAny && now - lastNear > 500;
-      const goal = idle ? 1 : 0;
-      waveMix += (goal - waveMix) * (1 - Math.exp(-delta / 600));
-      if (Math.abs(goal - waveMix) < 0.002) waveMix = goal;
-
       const ease =
-        smoothing > 0 ? 1 - Math.exp(-delta / (smoothing * 400)) : 1;
-      const time = now / 1000;
+        smoothing > 0 ? 1 - Math.exp(-delta / (smoothing * 360)) : 1;
       let settling = false;
+      const letters = letterRefs.current;
 
-      letterRefs.current.forEach((letter, index) => {
-        if (!letter) return;
-        let target = targets[index] ?? 0;
-        if (waveMix > 0)
-          target = Math.max(target, waveMix * waveAt(index, time));
-        const current = levels[index] ?? 0;
+      for (let i = 0; i < letters.length; i++) {
+        const letter = letters[i];
+        if (!letter) continue;
+        const target = targets[i] ?? 0;
+        const current = levels[i] ?? 0;
         let next = current + (target - current) * ease;
-        if (Math.abs(target - next) < 0.003) {
+        if (Math.abs(target - next) < 0.01) {
           next = target;
         } else {
           settling = true;
         }
-        levels[index] = next;
+        levels[i] = next;
 
-        const settings =
-          next === 0 ? fromFontVariationSettings : settingsAt(next);
-        if (written[index] !== settings) {
-          written[index] = settings;
-          letter.style.fontVariationSettings = settings;
-        }
-
-        if (tinted) {
-          const paint =
-            next === 0
-              ? fromColor || ""
-              : `color-mix(in oklab, ${restColor} ${((1 - next) * 100).toFixed(1)}%, ${nearColor})`;
-          if (painted[index] !== paint) {
-            painted[index] = paint;
-            letter.style.color = paint;
-          }
+        const bucket = Math.round(next * QUANTIZATION_STEPS);
+        if (writtenBucket[i] !== bucket) {
+          writtenBucket[i] = bucket;
+          letter.style.fontVariationSettings = variationBuckets[bucket];
         }
 
         if (transformed) {
           const shift =
-            next === 0
+            next < 0.01
               ? ""
-              : `translateY(${(-rise * next).toFixed(3)}em) scale(${(1 + growth * next).toFixed(3)})`;
-          if (moved[index] !== shift) {
-            moved[index] = shift;
+              : `translate3d(0,${(-rise * next).toFixed(3)}em,0) scale(${(1 + growth * next).toFixed(3)})`;
+          if (moved[i] !== shift) {
+            moved[i] = shift;
             letter.style.transform = shift;
           }
         }
-      });
+      }
 
-      if (settling || waveMix > 0 || (waving && visible && !nearAny)) {
+      if (settling) {
         frame = requestAnimationFrame(tick);
       } else {
         lastTime = 0;
@@ -395,80 +254,62 @@ export const VariableProximity = forwardRef<
       if (!frame) frame = requestAnimationFrame(tick);
     };
 
-    const relayout = () => {
-      layoutDirty = true;
-      schedule();
-    };
-
-    const handleMove = (x: number, y: number) => {
-      pointer.x = x;
-      pointer.y = y;
+    const onPointerEnter = (e: PointerEvent) => {
+      // Refresh rect once upon entering the subtitle area (zero per-move layout reads)
+      if (!anchorsValid) {
+        measureAnchors();
+      } else if (rootRef.current) {
+        cachedRect = rootRef.current.getBoundingClientRect();
+      }
+      pointer.x = e.clientX;
+      pointer.y = e.clientY;
       pointer.active = true;
       schedule();
     };
 
-    const handleMouseMove = (event: MouseEvent) =>
-      handleMove(event.clientX, event.clientY);
-    const handleTouchMove = (event: TouchEvent) => {
-      const touch = event.touches[0];
-      if (touch) handleMove(touch.clientX, touch.clientY);
+    const onPointerMove = (e: PointerEvent) => {
+      pointer.x = e.clientX;
+      pointer.y = e.clientY;
+      pointer.active = true;
+      schedule();
     };
-    const handleLeave = () => {
+
+    const onPointerLeave = () => {
       pointer.active = false;
       schedule();
     };
 
-    const root = document.documentElement;
-    window.addEventListener("mousemove", handleMouseMove, { passive: true });
-    window.addEventListener("touchmove", handleTouchMove, { passive: true });
-    window.addEventListener("touchend", handleLeave);
-    window.addEventListener("touchcancel", handleLeave);
-    window.addEventListener("resize", relayout, { passive: true });
-    root.addEventListener("mouseleave", handleLeave);
+    const onResize = () => {
+      anchorsValid = false;
+      cachedRect = null;
+    };
 
-    let observer: IntersectionObserver | null = null;
-    if (waving && rootRef.current && "IntersectionObserver" in window) {
-      observer = new IntersectionObserver((entries) => {
-        visible = entries.some((entry) => entry.isIntersecting);
-        schedule();
-      });
-      observer.observe(rootRef.current);
-    }
-    document.fonts?.ready.then(relayout);
-
-    schedule();
+    // Scoped strictly to the subtitle container so moving the mouse elsewhere on the page costs 0 CPU
+    targetEl.addEventListener("pointerenter", onPointerEnter, { passive: true });
+    targetEl.addEventListener("pointermove", onPointerMove, { passive: true });
+    targetEl.addEventListener("pointerleave", onPointerLeave, { passive: true });
+    window.addEventListener("resize", onResize, { passive: true });
 
     return () => {
       cancelAnimationFrame(frame);
-      observer?.disconnect();
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("touchmove", handleTouchMove);
-      window.removeEventListener("touchend", handleLeave);
-      window.removeEventListener("touchcancel", handleLeave);
-      window.removeEventListener("resize", relayout);
-      root.removeEventListener("mouseleave", handleLeave);
+      targetEl.removeEventListener("pointerenter", onPointerEnter);
+      targetEl.removeEventListener("pointermove", onPointerMove);
+      targetEl.removeEventListener("pointerleave", onPointerLeave);
+      window.removeEventListener("resize", onResize);
     };
   }, [
-    axes,
-    fromFontVariationSettings,
+    variationBuckets,
     containerRef,
     radius,
     falloff,
     smoothing,
-    fromColor,
-    toColor,
     scale,
     lift,
     idleWave,
-    fontSize,
     label,
-    lineStarts,
   ]);
 
-  const words = label.split(" ");
-  const breakSet = new Set(
-    lineStarts ? lineStarts.split(",").filter(Boolean).map(Number) : []
-  );
+  const words = useMemo(() => label.split(" "), [label]);
   let letterIndex = 0;
 
   return (
@@ -484,14 +325,12 @@ export const VariableProximity = forwardRef<
                 typeof fontSize === "number" ? `${fontSize}px` : fontSize,
             }
           : {}),
-        ...(lineStarts !== null ? { whiteSpace: "nowrap" } : {}),
         ...style,
       }}
       {...restProps}
     >
       {words.map((word, wordIndex) => (
         <Fragment key={wordIndex}>
-          {breakSet.has(wordIndex) && <br />}
           <span
             data-word=""
             style={{ display: "inline-block", whiteSpace: "nowrap" }}
@@ -506,7 +345,7 @@ export const VariableProximity = forwardRef<
                   }}
                   style={{
                     display: "inline-block",
-                    fontVariationSettings: fromFontVariationSettings,
+                    fontVariationSettings: variationBuckets[0],
                     color: fromColor || undefined,
                     transformOrigin: "50% 80%",
                   }}
@@ -516,10 +355,8 @@ export const VariableProximity = forwardRef<
                 </span>
               );
             })}
-            {wordIndex < words.length - 1 && (
-              <span style={{ display: "inline-block" }}>&nbsp;</span>
-            )}
           </span>
+          {wordIndex < words.length - 1 ? " " : null}
         </Fragment>
       ))}
       <span className="sr-only">{label}</span>

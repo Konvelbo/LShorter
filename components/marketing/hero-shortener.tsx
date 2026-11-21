@@ -107,6 +107,49 @@ function writeStoredHeroLink(item: ShortenedItem | null): void {
   }
 }
 
+/**
+ * Isolated 1-second 24-hour countdown timer so ticking once per second
+ * never triggers re-renders of the parent HeroShortener or Hero section.
+ */
+const HeroCountdownTimer = React.memo(function HeroCountdownTimer({
+  slug,
+  expiresAtMs,
+  onExpire,
+}: {
+  slug: string;
+  expiresAtMs: number;
+  onExpire: (slug: string) => void;
+}) {
+  const [remainingMs, setRemainingMs] = useState<number>(() =>
+    Math.max(0, expiresAtMs - Date.now())
+  );
+
+  useEffect(() => {
+    const update = () => {
+      const rem = expiresAtMs - Date.now();
+      setRemainingMs(Math.max(0, rem));
+      if (rem <= 0) {
+        onExpire(slug);
+      }
+    };
+    update();
+    const timer = setInterval(update, 1000);
+    return () => clearInterval(timer);
+  }, [slug, expiresAtMs, onExpire]);
+
+  return (
+    <div className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-[8px] bg-white/55 dark:bg-[#11131A]/70 text-[12.5px] sm:text-[13px] text-[#4338CA]/85 dark:text-[#C7D2FE]/85 select-none">
+      <Clock className="w-3.5 h-3.5 text-[#6366F1]/90 dark:text-[#A5B4FC]/90 shrink-0" />
+      <span>
+        Expires in{" "}
+        <strong className="font-mono font-semibold tabular-nums text-[#312E81] dark:text-[#E0E7FF]">
+          {formatRemaining24h(remainingMs)}
+        </strong>
+      </span>
+    </div>
+  );
+});
+
 export function HeroShortener() {
   const router = useRouter();
   const [urlInput, setUrlInput] = useState("");
@@ -117,7 +160,6 @@ export function HeroShortener() {
   const [links, setLinks] = useState<ShortenedItem[]>([]);
   const [maxLinks, setMaxLinks] = useState(1);
   const [limitReached, setLimitReached] = useState(false);
-  const [nowMs, setNowMs] = useState<number>(() => Date.now());
 
   // QR Code hover popup state & generated PNG data URL
   const [isQrHovered, setIsQrHovered] = useState(false);
@@ -296,31 +338,11 @@ export function HeroShortener() {
   useEffect(() => {
     const cached = readStoredHeroLink();
     if (cached) {
-      setNowMs(Date.now());
       setLinks([cached]);
       setLimitReached(true);
     }
     fetchGuestState(cached?.slug);
   }, [fetchGuestState]);
-
-  // Real-time 1-second countdown ticker + automatic deletion when timer reaches 00h 00m 00s
-  useEffect(() => {
-    if (!activeLink) return;
-
-    setNowMs(Date.now());
-    const timer = setInterval(() => {
-      const currentNow = Date.now();
-      setNowMs(currentNow);
-
-      const expMs = getExpirationMs(activeLink);
-
-      if (expMs - currentNow <= 0) {
-        handleExpireLink(activeLink.slug);
-      }
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [activeLink, handleExpireLink]);
 
   // Real-time 5-second click polling while a link exists and tab is visible
   useEffect(() => {
@@ -454,7 +476,6 @@ export function HeroShortener() {
 
       const latest = normalizedLinks[normalizedLinks.length - 1] || null;
       writeStoredHeroLink(latest);
-      setNowMs(Date.now());
       setLinks(normalizedLinks);
       setMaxLinks(Number(data.maxLinks ?? 1));
       setLimitReached(Boolean(data.limitReached ?? normalizedLinks.length >= 1));
@@ -474,11 +495,10 @@ export function HeroShortener() {
     setTimeout(() => fetchGuestState(slug), 5200);
   };
 
-  const remainingMs = useMemo(() => {
+  const activeExpiresAtMs = useMemo(() => {
     if (!activeLink) return 0;
-    const expMs = getExpirationMs(activeLink);
-    return Math.max(0, expMs - nowMs);
-  }, [activeLink, nowMs]);
+    return getExpirationMs(activeLink);
+  }, [activeLink]);
 
   return (
     <div
@@ -487,7 +507,7 @@ export function HeroShortener() {
     >
       {/* ── Clean Single-Surface Link Shortener Bar (strictly rounded-[10px]) ── */}
       <div
-        className={`relative z-20 rounded-[10px] bg-white/95 dark:bg-[#11131A]/95 backdrop-blur-md border shadow-[0_10px_30px_rgba(99,102,241,0.08)] dark:shadow-[0_18px_44px_rgba(0,0,0,0.52)] transition-[border-color,box-shadow] duration-200 overflow-hidden ${
+        className={`relative z-20 rounded-[10px] bg-white/95 dark:bg-[#11131A]/95 border shadow-[0_10px_30px_rgba(99,102,241,0.08)] dark:shadow-[0_18px_44px_rgba(0,0,0,0.52)] transition-[border-color,box-shadow] duration-200 overflow-hidden ${
           isPulseHighlighted
             ? "border-[#0066FF] ring-2 ring-[#0066FF]/25"
             : errorMsg
@@ -566,15 +586,15 @@ export function HeroShortener() {
         {activeLink && (
           <motion.div
             key={activeLink.slug}
-            initial={{ opacity: 0, y: -38, filter: "blur(5px)" }}
-            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-            exit={{ opacity: 0, y: -18, filter: "blur(3px)" }}
+            initial={{ opacity: 0, y: -38 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -18 }}
             transition={{
-              duration: 0.55,
+              duration: 0.48,
               ease: [0.22, 1, 0.36, 1],
             }}
             aria-live="polite"
-            className="relative z-30 mt-3.5 flex flex-col items-center"
+            className="relative z-30 mt-3.5 flex flex-col items-center will-change-transform"
           >
             {/* Minimalist Two-Bar Row with Frosted Glass Background Blur & Hover Scale */}
             <motion.div
@@ -723,16 +743,12 @@ export function HeroShortener() {
               </div>
             </motion.div>
 
-            {/* 24-Hour Live Countdown Timer (decrements every second; auto-deletes link at 00h 00m 00s) */}
-            <div className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-[8px] bg-white/40 dark:bg-[#11131A]/45 backdrop-blur-md text-[12.5px] sm:text-[13px] text-[#4338CA]/85 dark:text-[#C7D2FE]/85 select-none">
-              <Clock className="w-3.5 h-3.5 text-[#6366F1]/90 dark:text-[#A5B4FC]/90 shrink-0" />
-              <span>
-                Expires in{" "}
-                <strong className="font-mono font-semibold tabular-nums text-[#312E81] dark:text-[#E0E7FF]">
-                  {formatRemaining24h(remainingMs)}
-                </strong>
-              </span>
-            </div>
+            {/* Isolated 24-Hour Live Countdown Timer */}
+            <HeroCountdownTimer
+              slug={activeLink.slug}
+              expiresAtMs={activeExpiresAtMs}
+              onExpire={handleExpireLink}
+            />
 
             {/* English Account Creation Prompt (at the red line position below the countdown) */}
             <p className="mt-2.5 text-center text-[13px] sm:text-[13.5px] text-[#312E81]/90 dark:text-[#C7D2FE]/90 leading-relaxed max-w-[580px]">

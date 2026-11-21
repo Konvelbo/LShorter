@@ -701,6 +701,27 @@ html.light .shiny-text {
     animation-play-state: paused;
 }
 
+/* Pure GPU-composited Hero Logo Strip Marquee (zero JS RAF overhead, never freezes) */
+@keyframes hero-logo-marquee {
+    0% {
+        transform: translate3d(0, 0, 0);
+    }
+    100% {
+        transform: translate3d(-50%, 0, 0);
+    }
+}
+
+.hero-logo-marquee-track {
+    display: flex;
+    width: max-content;
+    will-change: transform;
+    animation: hero-logo-marquee 68s linear infinite !important;
+}
+
+.hero-logo-marquee-track:hover {
+    animation-play-state: paused !important;
+}
+
 /* ==========================================================================
    DOCUMENTATION & MARKETING CARDS INTERACTIVE SCALE & HOVER EFFECTS (PURE CSS)
    ========================================================================== */

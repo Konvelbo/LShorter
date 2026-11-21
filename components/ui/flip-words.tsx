@@ -40,7 +40,7 @@ export const FlipWords = ({
       <motion.span
         initial={{
           opacity: 0,
-          y: 10,
+          y: 12,
         }}
         animate={{
           opacity: 1,
@@ -48,19 +48,17 @@ export const FlipWords = ({
         }}
         transition={{
           type: "spring",
-          stiffness: 140,
-          damping: 14,
+          stiffness: 150,
+          damping: 16,
         }}
         exit={{
           opacity: 0,
-          y: -36,
-          x: 24,
-          filter: "blur(8px)",
-          scale: 1.35,
+          y: -28,
+          scale: 1.08,
           position: "absolute",
         }}
         className={cn(
-          "z-10 inline-block relative text-left text-[#4F46E5] dark:text-[#A5B4FC] px-1",
+          "z-10 inline-block relative text-left text-[#4F46E5] dark:text-[#A5B4FC] px-1 will-change-transform",
           className
         )}
         key={currentWord}
@@ -68,22 +66,22 @@ export const FlipWords = ({
         {currentWord.split(" ").map((word, wordIndex) => (
           <motion.span
             key={word + wordIndex}
-            initial={{ opacity: 0, y: 10, filter: "blur(8px)" }}
-            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{
-              delay: wordIndex * 0.25,
-              duration: 0.28,
+              delay: wordIndex * 0.18,
+              duration: 0.24,
             }}
             className="inline-block whitespace-nowrap"
           >
             {word.split("").map((letter, letterIndex) => (
               <motion.span
                 key={word + letterIndex}
-                initial={{ opacity: 0, y: 10, filter: "blur(8px)" }}
-                animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{
-                  delay: wordIndex * 0.25 + letterIndex * 0.04,
-                  duration: 0.2,
+                  delay: wordIndex * 0.18 + letterIndex * 0.032,
+                  duration: 0.18,
                 }}
                 className="inline-block"
               >
