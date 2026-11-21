@@ -7,7 +7,7 @@ import { SectionRailFrame } from "@/components/marketing/swiss-frame";
 const FAQS = [
   {
     q: "Is LShorter really free? Do I need a credit card?",
-    a: "Yes. Our Starter plan is free forever with no credit card required. It includes 50 permanent active links, 10,000 tracked clicks per month, 3 custom branded domains with automatic SSL, basic QR Code Studio styles, and 30-day real-time analytics. Smart Routing, PIN protection, webhooks, and retargeting pixels unlock starting on Pro.",
+    a: "Yes. Our Starter plan is free forever with no credit card required. It includes 50 permanent active links, 10,000 tracked clicks per month, 3 custom branded domains with automatic SSL, basic QR Code Studio styles, and 30-day real-time analytics. Smart Routing, password protection, webhooks, and retargeting pixels unlock starting on Pro.",
   },
   {
     q: "What happens to links I shorten without creating an account?",
@@ -27,7 +27,7 @@ const FAQS = [
   },
   {
     q: "How does LShorter handle privacy, GDPR, and revenue attribution?",
-    a: "LShorter does not drop third-party ad tracking cookies on your visitors. Redirect telemetry runs on Cloudflare's global edge network (under 12ms across 310+ PoPs) with masked IP handling, and Stripe revenue attribution works via a first-party click token (qk_cid) or server-side webhooks.",
+    a: "LShorter does not drop third-party ad tracking cookies on your visitors. Redirect telemetry runs on Cloudflare's global edge network (under 12ms across 310+ PoPs) with masked IP handling, and live revenue attribution works via a first-party click token (qk_cid) or server-side webhooks.",
   },
 ];
 

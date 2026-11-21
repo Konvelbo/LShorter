@@ -23,7 +23,7 @@ const VIDEO_CHAPTERS: VideoChapter[] = [
   { id: "overview", time: "00:00", seconds: 0, label: "Overview & shortening" },
   { id: "routing", time: "01:10", seconds: 70, label: "Smart routing" },
   { id: "pathlock", time: "02:25", seconds: 145, label: "PathLock™ security" },
-  { id: "caps", time: "03:45", seconds: 225, label: "Click caps & PIN gate" },
+  { id: "caps", time: "03:45", seconds: 225, label: "Click caps & password" },
   { id: "qr", time: "04:40", seconds: 280, label: "Dynamic QR studio" },
   {
     id: "analytics",

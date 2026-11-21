@@ -156,14 +156,14 @@ function DocsApiDropdown({ isActive }: { isActive: boolean }) {
       icon: Globe,
     },
     {
-      title: "PathLock™ & PIN Security",
+      title: "PathLock™ & Password Security",
       desc: "URL perimeter locking, click caps, and white-label masking",
       href: "/docs/pin-protection",
       icon: Lock,
     },
     {
       title: "Real-Time Telemetry & Webhooks",
-      desc: "Live click streams, Stripe attribution, and signed events",
+      desc: "Live click streams, revenue attribution, and signed events",
       href: "/docs/realtime-analytics",
       icon: BarChart3,
     },

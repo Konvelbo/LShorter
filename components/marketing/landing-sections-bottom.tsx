@@ -54,10 +54,10 @@ const COMPARISON_ROWS = [
       "Route 1 link by country, OS, device, browser, or weighted A/B split on 310+ PoPs",
   },
   {
-    feature: "White-label masking & PIN gate",
+    feature: "White-label masking & password protection",
     others: "Exposes the raw destination URL immediately in the address bar",
     lshorter:
-      "Masked viewer with custom OpenGraph cards and PIN challenge",
+      "Masked viewer with custom OpenGraph cards and password challenge",
   },
   {
     feature: "Editable Vector QR Studio (15 styles)",
@@ -66,10 +66,10 @@ const COMPARISON_ROWS = [
       "15 pixel styles, brand gradients, SVG/PNG/GIF export — editable after print",
   },
   {
-    feature: "Cookie-free Stripe revenue attribution",
+    feature: "Cookie-free revenue attribution",
     others: "Raw click counts only — no visibility into which link produced sales",
     lshorter:
-      "Attributes signups and Stripe checkouts directly back to each short slug",
+      "Attributes signups and revenue conversions directly back to each short slug",
   },
   {
     feature: "Free Starter plan (verified limits)",
@@ -190,7 +190,7 @@ const USE_CASES = [
     bullets: [
       "Split-test two landing pages with weighted A/B routing on one link",
       "Fire Meta Ads, Google Ads, and TikTok retargeting pixels automatically",
-      "Connect Stripe checkouts to see exact revenue per short link",
+      "Connect conversion webhooks to see exact revenue per short link",
     ],
     sampleLink: "deals.brand.co/spring",
     sampleRule: "FR -> /fr-offer  |  A/B 50/50  |  Meta Pixel on",
@@ -218,10 +218,10 @@ const USE_CASES = [
     bullets: [
       "Connect up to 15 custom client domains with automated DNS and SSL",
       "Export clean CSV/Excel reports for every client campaign in one click",
-      "Protect confidential pitch decks and client previews behind a PIN gate",
+      "Protect confidential pitch decks and client previews behind a password",
     ],
     sampleLink: "go.clientbrand.com/q4",
-    sampleRule: "Custom SSL  |  PIN Gate  |  CSV export",
+    sampleRule: "Custom SSL  |  Password  |  CSV export",
   },
 ];
 
@@ -532,7 +532,7 @@ export function DeveloperApiSection() {
                 },
                 {
                   title: "Signed webhooks",
-                  desc: "Stream click geo, device metadata, and Stripe revenue events.",
+                  desc: "Stream click geo, device metadata, and live revenue events.",
                 },
               ].map((item) => (
                 <div key={item.title} className="py-3.5 flex items-start gap-2.5">
@@ -676,7 +676,7 @@ const LSHORTER_PRICING_PLANS: PricingPlan[] = [
       "Community support",
     ],
     notIncludedNote:
-      "Not included: Smart Routing, PIN protection, individual link alerts, webhooks, and pixels.",
+      "Not included: Smart Routing, password protection, individual link alerts, webhooks, and pixels.",
     description: "To explore our Edge infrastructure, no credit card required.",
     buttonText: "Get Started Free",
     href: "/register",
@@ -702,7 +702,7 @@ const LSHORTER_PRICING_PLANS: PricingPlan[] = [
       "6 domains and 1,000 active links",
       "Individual link alerts (clicks, revenue, expiry)",
       "Dynamic Smart Routing (country + OS/device)",
-      "PIN codes and destination masking",
+      "Password protection and destination masking",
       "5 webhooks and 5 retargeting pixels",
       "365-day analytics · API 200 req/min",
       "Priority email support",

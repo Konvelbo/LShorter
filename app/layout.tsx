@@ -54,7 +54,7 @@ export const metadata: Metadata = {
     template: "%s | LShorter",
   },
   description:
-    "LShorter (lsho.cc) is an edge link management, smart routing, and real-time analytics platform for developers and marketing teams. Sub-12ms redirects across 310+ Cloudflare PoPs, PathLock™ perimeter security, click caps, dynamic QR codes, and Stripe revenue attribution.",
+    "LShorter (lsho.cc) is an edge link management, smart routing, and real-time analytics platform for developers and marketing teams. Sub-12ms redirects across 310+ Cloudflare PoPs, PathLock™ perimeter security, click caps, dynamic QR codes, and live revenue attribution.",
   applicationName: "LShorter",
   authors: [{ name: "LShorter", url: siteUrl }],
   creator: "LShorter",

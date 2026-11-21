@@ -18,7 +18,7 @@ import { FaqStructuredData } from "@/components/seo/json-ld";
 export const metadata: Metadata = {
   title: "Short Links You Actually Control | Smart Routing & PathLock™",
   description:
-    "Sub-12ms edge URL shortener across 310+ Cloudflare PoPs. Route visitors by country or device, lock private SaaS demos with PathLock™, cap link clicks, and attribute Stripe revenue in real time.",
+    "Sub-12ms edge URL shortener across 310+ Cloudflare PoPs. Route visitors by country or device, lock private SaaS demos with PathLock™, cap link clicks, and attribute revenue in real time.",
   keywords: [
     "URL shortener",
     "link shortener",
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     "click limit link",
     "dynamic QR code studio",
     "custom branded short domains",
-    "Stripe revenue attribution",
+    "revenue attribution",
     "Bitly alternative",
     "edge redirect",
   ],

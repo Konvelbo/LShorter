@@ -24,7 +24,7 @@ const FOOTER_COLUMNS = [
   {
     title: "Security & Access",
     links: [
-      { label: "PathLock™ PIN Protection", href: "/docs/pin-protection" },
+      { label: "PathLock™ Password Protection", href: "/docs/pin-protection" },
       { label: "Branded URL Masking", href: "/docs/url-masking" },
       {
         label: "Click Limits & Expiration",
@@ -122,7 +122,7 @@ export const LandingFooter = React.memo(function LandingFooter() {
         </h2>
         <p className="mt-6 text-[15px] sm:text-[15.5px] text-[#475467] dark:text-[#9A9A9A] max-w-[520px] mx-auto leading-[1.6]">
           Deploy custom domains, ISO country routing, A/B split testing,
-          PathLock™ PIN gates, and deterministic revenue attribution in under
+          PathLock™ password protection, and deterministic revenue attribution in under
           two minutes.
         </p>
 

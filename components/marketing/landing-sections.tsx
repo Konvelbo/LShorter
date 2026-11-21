@@ -13,13 +13,11 @@ import {
   PathLockInteractiveSimulator,
 } from "@/components/marketing/interactive-simulators";
 import {
-  SoftSmartRoutingIllustration,
-  SoftClickCapIllustration,
-  SoftLiveAttributionIllustration,
-  SoftQrStudioIllustration,
-  SoftBrandedDomainIllustration,
-  SoftPinGateIllustration,
-} from "@/components/marketing/soft-feature-illustrations";
+  FeatureUIRow,
+  ChecklistVisual,
+  TimelineVisual,
+  VideoTutorialVisual,
+} from "@/components/ui/feature-ui-row";
 
 export {
   DifferenceSection,
@@ -77,8 +75,8 @@ export function HowItWorksSection() {
     },
     {
       num: "3",
-      title: "Measure clicks and Stripe revenue",
-      desc: "Watch live redirects across 310+ Cloudflare PoPs and trace signups and Stripe checkouts back to each short link.",
+      title: "Measure clicks and live revenue",
+      desc: "Watch live redirects across 310+ Cloudflare PoPs and trace signups and attributed revenue back to each short link.",
     },
   ];
 
@@ -125,11 +123,8 @@ export function HowItWorksSection() {
 }
 
 // ============================================================================
-// 3. CORE PLATFORM FEATURES (#features — Soft Tactile Bento Grid with Auto-Animated UI)
+// 3. CORE PLATFORM FEATURES (#features — Alternating FeatureUIRow Showcase)
 // ============================================================================
-const SOFT_CARD_SURFACE =
-  "relative overflow-hidden rounded-[10px] bg-[linear-gradient(155deg,#F5F6FA_0%,#F2F4FA_65%,#ECEEFF_100%)] dark:bg-[linear-gradient(155deg,#13141C_0%,#111219_65%,#161829_100%)] border border-[#E7E9F2]/90 dark:border-white/[0.08] p-6 sm:p-7 shadow-[0_1px_2px_rgba(16,24,40,0.03),0_16px_36px_-18px_rgba(99,102,241,0.12)] dark:shadow-[0_14px_38px_-14px_rgba(0,0,0,0.6)] transition-shadow duration-300 hover:shadow-[0_4px_10px_rgba(16,24,40,0.04),0_20px_42px_-16px_rgba(99,102,241,0.18)]";
-
 export function FeaturesBentoSection() {
   return (
     <section
@@ -137,8 +132,8 @@ export function FeaturesBentoSection() {
       className="w-full bg-[#FFFFFF] dark:bg-[#09090B] py-24 sm:py-32 border-t border-[#F1F2F6] dark:border-white/[0.06] scroll-mt-20 overflow-x-clip transition-colors duration-300"
     >
       <SectionRailFrame>
-        {/* Soft Centered Header (matching reference layout) */}
-        <div className="max-w-[680px] mx-auto text-center mb-14 sm:mb-16">
+        {/* Centered Header */}
+        <div className="max-w-[680px] mx-auto text-center mb-16 sm:mb-24">
           <h2 className="text-[32px] sm:text-[44px] font-bold tracking-[-0.035em] leading-[1.08] text-[#09090B] dark:text-white text-balance">
             Everything a link needs before and after the click.
           </h2>
@@ -153,50 +148,59 @@ export function FeaturesBentoSection() {
           </p>
         </div>
 
-        {/* Top Asymmetric Soft Bento Cluster (3 columns, tall right-hand card spanning 2 rows) */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Card 1 (Col 1, Row 1): Smart Geo, Device & A/B Routing */}
-          <div className={`${SOFT_CARD_SURFACE} flex flex-col justify-between`}>
-            <div>
-              <h3 className="text-[19px] sm:text-[20px] font-semibold tracking-[-0.025em] text-[#09090B] dark:text-white">
-                Smart Geo, Device &amp; A/B Routing
-              </h3>
-              <p className="mt-2 text-[14px] text-[#52525B] dark:text-zinc-400 leading-[1.6]">
-                Send one short link to different destinations based on country,
-                mobile OS, browser, or a weighted split test.
-              </p>
-            </div>
-            <SoftSmartRoutingIllustration />
-          </div>
+        {/* 6 Alternating FeatureUIRow Blocks — Exact 6 Core Capabilities */}
+        <div className="flex flex-col gap-20 sm:gap-28">
+          {/* 1. Smart Geo, Device & A/B Routing */}
+          <FeatureUIRow
+            tone="royal"
+            eyebrow="01 · Smart Routing"
+            title="Smart Geo, Device & A/B Routing"
+            body="Send one short link to different destinations based on country, mobile OS, browser, or a weighted split test."
+            cta={{ label: "Explore routing rules", href: "/docs/geo-routing" }}
+            visual={
+              <VideoTutorialVisual
+                src="/videos/tutorials/05-Analytics-Geography.mp4"
+                poster="/videos/tutorials/05-Analytics-Geography-poster.jpg"
+                label="Geography & Device Telemetry"
+                ariaLabel="LShorter Geography and Device Analytics tutorial clip"
+              />
+            }
+          />
 
-          {/* Card 2 (Col 2, Row 1): Click Caps & Scheduled Expiry */}
-          <div className={`${SOFT_CARD_SURFACE} flex flex-col justify-between`}>
-            <div>
-              <h3 className="text-[19px] sm:text-[20px] font-semibold tracking-[-0.025em] text-[#09090B] dark:text-white">
-                Click Caps &amp; Scheduled Expiry
-              </h3>
-              <p className="mt-2 text-[14px] text-[#52525B] dark:text-zinc-400 leading-[1.6]">
-                Automatically deactivate invite links or route visitors to a
-                waitlist once a click limit or expiration date is reached.
-              </p>
-            </div>
-            <SoftClickCapIllustration />
-          </div>
+          {/* 2. Click Caps & Scheduled Expiry */}
+          <FeatureUIRow
+            reverse
+            tone="night"
+            eyebrow="02 · Link Lifecycle"
+            title="Click Caps & Scheduled Expiry"
+            body="Automatically deactivate invite links or route visitors to a waitlist once a click limit or expiration date is reached."
+            cta={{
+              label: "See expiry & caps docs",
+              href: "/docs/click-limits-and-expiration",
+            }}
+            visual={
+              <TimelineVisual
+                title="Private beta link lifecycle"
+                total={500}
+                totalLabel="500 clicks cap"
+                stages={[
+                  { label: "Open invites (320)", value: 320 },
+                  { label: "Final cap (180)", value: 180 },
+                ]}
+                ticks={["0", "100", "200", "300", "400", "500"]}
+                badgeLabel="Then"
+                note="Auto-deactivate or redirect visitors to your waitlist"
+              />
+            }
+          />
 
-          {/* Card 3 (Col 3, Row 1-2 Tall Stacked Card): Live Revenue & Pixel Attribution */}
-          <div
-            className={`${SOFT_CARD_SURFACE} lg:row-span-2 flex flex-col`}
-          >
-            {/* Soft Top-Right Periwinkle Aura (matching reference tall card) */}
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute -top-12 -right-12 w-56 h-56 rounded-full bg-[radial-gradient(circle,rgba(129,140,248,0.28)_0%,transparent_70%)] dark:bg-[radial-gradient(circle,rgba(99,102,241,0.24)_0%,transparent_70%)]"
-            />
-            <div className="relative z-10">
-              <h3 className="text-[19px] sm:text-[20px] font-semibold tracking-[-0.025em] text-[#09090B] dark:text-white">
-                Live Revenue &amp; Pixel Attribution
-              </h3>
-              <p className="mt-2 text-[14px] text-[#52525B] dark:text-zinc-400 leading-[1.6]">
+          {/* 3. Live Revenue & Pixel Attribution */}
+          <FeatureUIRow
+            tone="royal"
+            eyebrow="03 · Revenue Attribution"
+            title="Live Revenue & Pixel Attribution"
+            body={
+              <>
                 Connect{" "}
                 <JargonTooltip
                   term="first-party attribution"
@@ -204,117 +208,133 @@ export function FeaturesBentoSection() {
                 />{" "}
                 to track real-time revenue and fire Meta, Google, or TikTok
                 pixels on redirect.
-              </p>
-            </div>
-            <div className="relative z-10 flex-1 flex flex-col">
-              <SoftLiveAttributionIllustration />
-            </div>
-          </div>
+              </>
+            }
+            cta={{
+              label: "Explore revenue tracking",
+              href: "/docs/conversion-tracking-amount-count",
+            }}
+            visual={
+              <VideoTutorialVisual
+                src="/videos/tutorials/06-Analytics-Revenue.mp4"
+                poster="/videos/tutorials/06-Analytics-Revenue-poster.jpg"
+                label="Live Revenue Attribution"
+                ariaLabel="LShorter Live Revenue Attribution tutorial clip"
+              />
+            }
+          />
 
-          {/* Card 4 (Cols 1-2 Wide Split Card, Row 2): Dynamic Vector QR Studio */}
-          <div
-            className={`${SOFT_CARD_SURFACE} lg:col-span-2 grid grid-cols-1 md:grid-cols-12 gap-6 items-center`}
-          >
-            {/* Soft Top-Right Periwinkle Aura (matching reference horizontal bottom card) */}
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute -top-10 -right-10 w-64 h-64 rounded-full bg-[radial-gradient(circle,rgba(129,140,248,0.24)_0%,transparent_70%)] dark:bg-[radial-gradient(circle,rgba(99,102,241,0.20)_0%,transparent_70%)]"
-            />
-            <div className="relative z-10 md:col-span-5">
-              <h3 className="text-[19px] sm:text-[21px] font-semibold tracking-[-0.025em] text-[#09090B] dark:text-white">
-                Dynamic Vector QR Studio
-              </h3>
-              <p className="mt-2.5 text-[14px] text-[#52525B] dark:text-zinc-400 leading-[1.65]">
-                15 pixel styles, custom brand gradients, SVG, PNG &amp; animated
-                GIF exports, and editable destinations even after printing.
-              </p>
-            </div>
-            <div className="relative z-10 md:col-span-7">
-              <SoftQrStudioIllustration />
-            </div>
-          </div>
-        </div>
+          {/* 4. Dynamic Vector QR Studio */}
+          <FeatureUIRow
+            reverse
+            tone="night"
+            eyebrow="04 · Dynamic QR Studio"
+            title="Dynamic Vector QR Studio"
+            body="15 pixel styles, custom brand gradients, SVG, PNG & animated GIF exports, and editable destinations even after printing."
+            cta={{
+              label: "Explore QR Studio docs",
+              href: "/docs/dynamic-qr-codes",
+            }}
+            visual={
+              <VideoTutorialVisual
+                src="/videos/tutorials/10-QR-Studio.mp4"
+                poster="/videos/tutorials/10-QR-Studio-poster.jpg"
+                label="QR Studio · Logos & Frames"
+                ariaLabel="LShorter Dynamic Vector QR Studio tutorial clip"
+              />
+            }
+          />
 
-        {/* Bottom Balanced Soft Pair (Branded Domains + PIN Gate) */}
-        <div className="mt-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Card 5 (Span 7): Custom Branded Domains + Namecheap Partner Block */}
-          <div
-            className={`${SOFT_CARD_SURFACE} lg:col-span-7 flex flex-col justify-between`}
-          >
-            <div>
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <h3 className="text-[19px] sm:text-[20px] font-semibold tracking-[-0.025em] text-[#09090B] dark:text-white">
-                  Custom Branded Domains &amp; Auto SSL
-                </h3>
-                <span className="px-2.5 py-0.5 rounded-full bg-white/80 dark:bg-white/[0.06] border border-[#E4E7EC] dark:border-white/10 text-[11.5px] font-semibold text-[#4F46E5] dark:text-[#A5B4FC]">
-                  3 free domains included
-                </span>
-              </div>
-              <p className="mt-2 text-[14px] text-[#52525B] dark:text-zinc-400 leading-[1.6]">
+          {/* 5. Custom Branded Domains & Auto SSL */}
+          <FeatureUIRow
+            tone="royal"
+            eyebrow="05 · Branded Domains · 3 free included"
+            title="Custom Branded Domains & Auto SSL"
+            body={
+              <>
                 Replace generic domains with{" "}
-                <code className="font-mono text-[12.5px] px-1.5 py-0.5 rounded-[6px] bg-white/80 dark:bg-white/[0.06] text-[#09090B] dark:text-zinc-200 border border-black/[0.04] dark:border-white/[0.08]">
+                <code className="font-mono text-[13px] px-1.5 py-0.5 rounded-[6px] bg-[#F4F5F8] dark:bg-white/[0.07] text-[#09090B] dark:text-zinc-200 border border-black/[0.06] dark:border-white/[0.08]">
                   go.yourbrand.io
                 </code>
                 . Point a single CNAME record and LShorter provisions edge SSL
                 automatically.
-              </p>
-
-              <SoftBrandedDomainIllustration />
-            </div>
-
-            {/* Soft Namecheap Partner Row */}
-            <div className="mt-5 rounded-[10px] bg-white/80 dark:bg-[#0D0E14]/90 border border-black/[0.04] dark:border-white/[0.07] p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
-              <div className="flex items-start gap-3">
-                <div className="w-9 h-9 rounded-[8px] bg-[#F5F6FA] dark:bg-white/[0.06] border border-[#E7E9F2] dark:border-white/[0.10] flex items-center justify-center shrink-0">
-                  <NamecheapLogo className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="text-[13px] font-semibold text-[#09090B] dark:text-white">
-                    Need a short branded domain?
+              </>
+            }
+            cta={{ label: "Connect a custom domain", href: "/register" }}
+            extraContent={
+              <div className="rounded-[10px] bg-[#F8F9FC] dark:bg-[#111218] border border-[#E7E9F2] dark:border-white/[0.08] p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-start gap-2.5">
+                  <div className="w-8 h-8 rounded-[8px] bg-white dark:bg-white/[0.06] border border-[#E7E9F2] dark:border-white/[0.10] flex items-center justify-center shrink-0">
+                    <NamecheapLogo className="w-4 h-4" />
                   </div>
-                  <p className="text-[12px] text-[#71717A] dark:text-zinc-400 mt-0.5">
-                    Partner registrar — affordable{" "}
-                    <span className="font-mono text-[#09090B] dark:text-zinc-200">
-                      .co
-                    </span>
-                    ,{" "}
-                    <span className="font-mono text-[#09090B] dark:text-zinc-200">
-                      .io
-                    </span>{" "}
-                    &amp;{" "}
-                    <span className="font-mono text-[#09090B] dark:text-zinc-200">
-                      .cc
-                    </span>{" "}
-                    domains with free DNS.
-                  </p>
+                  <div>
+                    <div className="text-[12.5px] font-semibold text-[#09090B] dark:text-white">
+                      Need a short branded domain?
+                    </div>
+                    <p className="text-[11.5px] text-[#71717A] dark:text-zinc-400 mt-0.5">
+                      Partner registrar —{" "}
+                      <span className="font-mono text-[#09090B] dark:text-zinc-200">
+                        .co
+                      </span>
+                      ,{" "}
+                      <span className="font-mono text-[#09090B] dark:text-zinc-200">
+                        .io
+                      </span>{" "}
+                      &amp;{" "}
+                      <span className="font-mono text-[#09090B] dark:text-zinc-200">
+                        .cc
+                      </span>{" "}
+                      with free DNS.
+                    </p>
+                  </div>
                 </div>
+
+                <a
+                  href={NAMECHEAP_AFFILIATE_URL}
+                  target="_blank"
+                  rel="noopener noreferrer sponsored"
+                  className="inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-[8px] bg-[#09090B] hover:bg-[#0066FF] dark:bg-white dark:hover:bg-[#0066FF] text-white dark:text-[#09090B] dark:hover:text-white text-[12px] font-semibold transition-colors whitespace-nowrap shrink-0"
+                >
+                  <span>Namecheap</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
               </div>
+            }
+            visual={
+              <VideoTutorialVisual
+                src="/videos/tutorials/11-Custom-Domains.mp4"
+                poster="/videos/tutorials/11-Custom-Domains-poster.jpg"
+                label="Custom Domains & Edge SSL"
+                ariaLabel="LShorter Custom Branded Domains tutorial clip"
+              />
+            }
+          />
 
-              <a
-                href={NAMECHEAP_AFFILIATE_URL}
-                target="_blank"
-                rel="noopener noreferrer sponsored"
-                className="inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-[8px] bg-[#09090B] hover:bg-[#0066FF] dark:bg-white dark:hover:bg-[#0066FF] text-white dark:text-[#09090B] dark:hover:text-white text-[12px] font-semibold transition-colors whitespace-nowrap shrink-0"
-              >
-                <span>Register on Namecheap</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
-            </div>
-          </div>
-
-          {/* Card 6 (Span 5): PIN Gate & Branded Masking */}
-          <div className={`${SOFT_CARD_SURFACE} lg:col-span-5 flex flex-col`}>
-            <div>
-              <h3 className="text-[19px] sm:text-[20px] font-semibold tracking-[-0.025em] text-[#09090B] dark:text-white">
-                PIN Gate &amp; Branded Masking
-              </h3>
-              <p className="mt-2 text-[14px] text-[#52525B] dark:text-zinc-400 leading-[1.6]">
-                Protect confidential decks behind a PIN challenge, strip
-                referrer headers, and customize OpenGraph social previews.
-              </p>
-            </div>
-            <SoftPinGateIllustration />
-          </div>
+          {/* 6. Password Protection & Branded Masking */}
+          <FeatureUIRow
+            reverse
+            tone="night"
+            eyebrow="06 · Access & Masking"
+            title="Password Protection & Branded Masking"
+            body="Protect confidential decks behind a password challenge, strip referrer headers, and customize OpenGraph social previews."
+            cta={{ label: "Explore access & masking", href: "/docs/url-masking" }}
+            visual={
+              <ChecklistVisual
+                title="Protected link · lsho.cc/q4-deck"
+                rows={[
+                  { label: "Password verification", value: "SHA-256" },
+                  { label: "Referrer header", value: "Stripped" },
+                  { label: "Destination URL", value: "Masked" },
+                  { label: "OpenGraph card", value: "Custom preview" },
+                ]}
+                stat={{
+                  value: 100,
+                  suffix: "%",
+                  label: "Edge-enforced link privacy",
+                }}
+              />
+            }
+          />
         </div>
       </SectionRailFrame>
     </section>
