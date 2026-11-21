@@ -10,12 +10,16 @@ import {
   scrollToHeroShortener,
 } from "@/components/marketing/swiss-frame";
 import {
-  SmartRoutingSwitchboard,
-  ClickCapSimulator,
-  DynamicQrStudioCard,
-  PinGateMaskingCard,
   PathLockInteractiveSimulator,
 } from "@/components/marketing/interactive-simulators";
+import {
+  SoftSmartRoutingIllustration,
+  SoftClickCapIllustration,
+  SoftLiveAttributionIllustration,
+  SoftQrStudioIllustration,
+  SoftBrandedDomainIllustration,
+  SoftPinGateIllustration,
+} from "@/components/marketing/soft-feature-illustrations";
 
 export {
   DifferenceSection,
@@ -121,199 +125,155 @@ export function HowItWorksSection() {
 }
 
 // ============================================================================
-// 3. CORE PLATFORM FEATURES (#features — Clean 2-Column Architectural Grid)
+// 3. CORE PLATFORM FEATURES (#features — Soft Tactile Bento Grid with Auto-Animated UI)
 // ============================================================================
+const SOFT_CARD_SURFACE =
+  "relative overflow-hidden rounded-[10px] bg-[linear-gradient(155deg,#F5F6FA_0%,#F2F4FA_65%,#ECEEFF_100%)] dark:bg-[linear-gradient(155deg,#13141C_0%,#111219_65%,#161829_100%)] border border-[#E7E9F2]/90 dark:border-white/[0.08] p-6 sm:p-7 shadow-[0_1px_2px_rgba(16,24,40,0.03),0_16px_36px_-18px_rgba(99,102,241,0.12)] dark:shadow-[0_14px_38px_-14px_rgba(0,0,0,0.6)] transition-shadow duration-300 hover:shadow-[0_4px_10px_rgba(16,24,40,0.04),0_20px_42px_-16px_rgba(99,102,241,0.18)]";
+
 export function FeaturesBentoSection() {
   return (
     <section
       id="features"
-      className="w-full bg-[#F8F9FB] dark:bg-[#0D0E12] py-24 sm:py-32 border-t border-[#E4E7EC] dark:border-white/[0.08] scroll-mt-20 overflow-x-clip transition-colors duration-300"
+      className="w-full bg-[#FFFFFF] dark:bg-[#09090B] py-24 sm:py-32 border-t border-[#F1F2F6] dark:border-white/[0.06] scroll-mt-20 overflow-x-clip transition-colors duration-300"
     >
       <SectionRailFrame>
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end mb-12">
-          <div className="lg:col-span-7">
-            <h2 className="text-[30px] sm:text-[40px] font-semibold tracking-[-0.03em] leading-[1.08] text-[#09090B] dark:text-white text-balance">
-              Everything a link needs before and after the click
-            </h2>
+        {/* Soft Centered Header (matching reference layout) */}
+        <div className="max-w-[680px] mx-auto text-center mb-14 sm:mb-16">
+          <h2 className="text-[32px] sm:text-[44px] font-bold tracking-[-0.035em] leading-[1.08] text-[#09090B] dark:text-white text-balance">
+            Everything a link needs before and after the click.
+          </h2>
+          <p className="mt-4 text-[15.5px] sm:text-[16.5px] text-[#52525B] dark:text-zinc-400 leading-[1.6] max-w-[540px] mx-auto text-pretty">
+            Built on Cloudflare&apos;s{" "}
+            <JargonTooltip
+              term="edge network"
+              explanation="Your redirect executes on whichever of 310+ global Cloudflare servers is physically closest to the visitor, keeping response time under 12ms."
+            />{" "}
+            so routing, access control, and analytics run without slowing the
+            redirect down.
+          </p>
+        </div>
+
+        {/* Top Asymmetric Soft Bento Cluster (3 columns, tall right-hand card spanning 2 rows) */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Card 1 (Col 1, Row 1): Smart Geo, Device & A/B Routing */}
+          <div className={`${SOFT_CARD_SURFACE} flex flex-col justify-between`}>
+            <div>
+              <h3 className="text-[19px] sm:text-[20px] font-semibold tracking-[-0.025em] text-[#09090B] dark:text-white">
+                Smart Geo, Device &amp; A/B Routing
+              </h3>
+              <p className="mt-2 text-[14px] text-[#52525B] dark:text-zinc-400 leading-[1.6]">
+                Send one short link to different destinations based on country,
+                mobile OS, browser, or a weighted split test.
+              </p>
+            </div>
+            <SoftSmartRoutingIllustration />
           </div>
-          <div className="lg:col-span-5">
-            <p className="text-[15.5px] text-[#52525B] dark:text-zinc-400 leading-[1.6] text-pretty">
-              Built on Cloudflare&apos;s{" "}
-              <JargonTooltip
-                term="edge network"
-                explanation="Your redirect executes on whichever of 310+ global Cloudflare servers is physically closest to the visitor, keeping response time under 12ms."
-              />{" "}
-              so routing, access control, and analytics run without slowing the
-              redirect down.
-            </p>
+
+          {/* Card 2 (Col 2, Row 1): Click Caps & Scheduled Expiry */}
+          <div className={`${SOFT_CARD_SURFACE} flex flex-col justify-between`}>
+            <div>
+              <h3 className="text-[19px] sm:text-[20px] font-semibold tracking-[-0.025em] text-[#09090B] dark:text-white">
+                Click Caps &amp; Scheduled Expiry
+              </h3>
+              <p className="mt-2 text-[14px] text-[#52525B] dark:text-zinc-400 leading-[1.6]">
+                Automatically deactivate invite links or route visitors to a
+                waitlist once a click limit or expiration date is reached.
+              </p>
+            </div>
+            <SoftClickCapIllustration />
+          </div>
+
+          {/* Card 3 (Col 3, Row 1-2 Tall Stacked Card): Live Revenue & Pixel Attribution */}
+          <div
+            className={`${SOFT_CARD_SURFACE} lg:row-span-2 flex flex-col`}
+          >
+            {/* Soft Top-Right Periwinkle Aura (matching reference tall card) */}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute -top-12 -right-12 w-56 h-56 rounded-full bg-[radial-gradient(circle,rgba(129,140,248,0.28)_0%,transparent_70%)] dark:bg-[radial-gradient(circle,rgba(99,102,241,0.24)_0%,transparent_70%)]"
+            />
+            <div className="relative z-10">
+              <h3 className="text-[19px] sm:text-[20px] font-semibold tracking-[-0.025em] text-[#09090B] dark:text-white">
+                Live Revenue &amp; Pixel Attribution
+              </h3>
+              <p className="mt-2 text-[14px] text-[#52525B] dark:text-zinc-400 leading-[1.6]">
+                Connect{" "}
+                <JargonTooltip
+                  term="first-party attribution"
+                  explanation="LShorter passes a first-party click token (qk_cid) through to your checkout webhook without dropping third-party ad cookies."
+                />{" "}
+                to track real-time revenue and fire Meta, Google, or TikTok
+                pixels on redirect.
+              </p>
+            </div>
+            <div className="relative z-10 flex-1 flex flex-col">
+              <SoftLiveAttributionIllustration />
+            </div>
+          </div>
+
+          {/* Card 4 (Cols 1-2 Wide Split Card, Row 2): Dynamic Vector QR Studio */}
+          <div
+            className={`${SOFT_CARD_SURFACE} lg:col-span-2 grid grid-cols-1 md:grid-cols-12 gap-6 items-center`}
+          >
+            {/* Soft Top-Right Periwinkle Aura (matching reference horizontal bottom card) */}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute -top-10 -right-10 w-64 h-64 rounded-full bg-[radial-gradient(circle,rgba(129,140,248,0.24)_0%,transparent_70%)] dark:bg-[radial-gradient(circle,rgba(99,102,241,0.20)_0%,transparent_70%)]"
+            />
+            <div className="relative z-10 md:col-span-5">
+              <h3 className="text-[19px] sm:text-[21px] font-semibold tracking-[-0.025em] text-[#09090B] dark:text-white">
+                Dynamic Vector QR Studio
+              </h3>
+              <p className="mt-2.5 text-[14px] text-[#52525B] dark:text-zinc-400 leading-[1.65]">
+                15 pixel styles, custom brand gradients, SVG, PNG &amp; animated
+                GIF exports, and editable destinations even after printing.
+              </p>
+            </div>
+            <div className="relative z-10 md:col-span-7">
+              <SoftQrStudioIllustration />
+            </div>
           </div>
         </div>
 
-        {/* Clean 12-Col Grid (single border elevation, zero nested box bloat, strictly rounded-[10px]) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Card 1 (Span 7): Smart Edge Routing */}
-          <div className="lg:col-span-7 rounded-[10px] bg-white dark:bg-[#111216] border border-[#E4E7EC] dark:border-white/[0.09] p-6 sm:p-7 flex flex-col">
-            <h3 className="text-[20px] sm:text-[22px] font-semibold tracking-[-0.025em] text-[#09090B] dark:text-white">
-              Smart Geo, Device &amp; A/B Routing
-            </h3>
-            <p className="mt-2 text-[14.5px] text-[#52525B] dark:text-zinc-400 leading-[1.6] max-w-[540px]">
-              Send one short link to different destinations based on country,
-              mobile OS, browser, or a weighted split test.
-            </p>
-            <SmartRoutingSwitchboard />
-          </div>
-
-          {/* Card 2 (Span 5): Click Caps & Scheduled Expiry */}
-          <div className="lg:col-span-5 rounded-[10px] bg-white dark:bg-[#111216] border border-[#E4E7EC] dark:border-white/[0.09] p-6 sm:p-7 flex flex-col">
-            <h3 className="text-[20px] sm:text-[22px] font-semibold tracking-[-0.025em] text-[#09090B] dark:text-white">
-              Click Caps &amp; Scheduled Expiry
-            </h3>
-            <p className="mt-2 text-[14.5px] text-[#52525B] dark:text-zinc-400 leading-[1.6]">
-              Automatically deactivate invite links or route visitors to a
-              waitlist once a click limit or expiration date is reached.
-            </p>
-            <ul className="mt-5 space-y-2 text-[13.5px] text-[#52525B] dark:text-zinc-300">
-              <li className="flex items-center gap-2">
-                <Check className="w-3.5 h-3.5 text-[#0066FF] dark:text-[#6CA8FF] shrink-0" />
-                <span>Exact click limit enforcement at the edge</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <Check className="w-3.5 h-3.5 text-[#0066FF] dark:text-[#6CA8FF] shrink-0" />
-                <span>Custom fallback URL or scheduled end timestamp</span>
-              </li>
-            </ul>
-            <ClickCapSimulator />
-          </div>
-
-          {/* Card 3 (Span 6): Real-Time Telemetry & Stripe Revenue Attribution */}
-          <div className="lg:col-span-6 rounded-[10px] bg-white dark:bg-[#111216] border border-[#E4E7EC] dark:border-white/[0.09] p-6 sm:p-7 flex flex-col">
-            <div className="flex items-start justify-between gap-3">
-              <h3 className="text-[20px] sm:text-[22px] font-semibold tracking-[-0.025em] text-[#09090B] dark:text-white">
-                Stripe Revenue Attribution
-              </h3>
-              <span className="px-2 py-0.5 rounded-[5px] bg-[#F8F9FB] dark:bg-white/[0.06] border border-[#E4E7EC] dark:border-white/[0.10] text-[11.5px] text-[#71717A] dark:text-zinc-400 shrink-0">
-                Example data
-              </span>
-            </div>
-            <p className="mt-2 text-[14.5px] text-[#52525B] dark:text-zinc-400 leading-[1.6]">
-              Track clicks by country and UTM, connect{" "}
-              <JargonTooltip
-                term="first-party attribution"
-                explanation="LShorter passes a first-party click token (qk_cid) through to your Stripe checkout webhook without dropping third-party ad cookies."
-              />{" "}
-              to Stripe, and fire Meta, Google, or TikTok pixels on redirect.
-            </p>
-
-            <div className="mt-auto pt-6 space-y-3">
-              <div className="rounded-[10px] border border-[#E4E7EC] dark:border-white/[0.08] bg-[#F8F9FB] dark:bg-[#09090B] grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-[#E4E7EC] dark:divide-white/[0.08] overflow-hidden">
-                <div className="p-4">
-                  <div className="text-[11.5px] text-[#71717A] dark:text-zinc-500">
-                    1. Click captured
-                  </div>
-                  <div className="mt-1 font-mono text-[13px] font-medium text-[#0066FF] dark:text-[#5294FF] truncate">
-                    lsho.cc/launch
-                  </div>
-                  <div className="mt-1 text-[12px] text-[#71717A] dark:text-zinc-400">
-                    Paris, iOS
-                  </div>
-                </div>
-
-                <div className="p-4">
-                  <div className="text-[11.5px] text-[#71717A] dark:text-zinc-500">
-                    2. Stripe checkout
-                  </div>
-                  <div className="mt-1 text-[13.5px] font-medium text-[#09090B] dark:text-white">
-                    Pro Yearly Plan
-                  </div>
-                  <div className="mt-1 text-[12px] text-[#71717A] dark:text-zinc-400">
-                    Webhook matched
-                  </div>
-                </div>
-
-                <div className="p-4 bg-emerald-500/[0.05] dark:bg-emerald-500/[0.08]">
-                  <div className="text-[11.5px] font-medium text-emerald-700 dark:text-emerald-400">
-                    3. Attributed sale
-                  </div>
-                  <div className="mt-1 font-mono text-[17px] font-semibold text-emerald-700 dark:text-emerald-400 tabular-nums">
-                    +$240.00
-                  </div>
-                  <div className="mt-0.5 text-[12px] text-emerald-700/80 dark:text-emerald-400/80">
-                    Tied to slug
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-center justify-between gap-2 text-[12px] text-[#71717A] dark:text-zinc-400">
-                <span>Retargeting pixels fired on edge hop</span>
-                <div className="flex items-center gap-1.5 font-medium text-[#3F3F46] dark:text-zinc-300">
-                  <span className="px-2 py-0.5 rounded-[5px] bg-[#F8F9FB] dark:bg-white/[0.05] border border-[#E4E7EC] dark:border-white/[0.08]">
-                    Meta CAPI
-                  </span>
-                  <span className="px-2 py-0.5 rounded-[5px] bg-[#F8F9FB] dark:bg-white/[0.05] border border-[#E4E7EC] dark:border-white/[0.08]">
-                    Google Ads
-                  </span>
-                  <span className="px-2 py-0.5 rounded-[5px] bg-[#F8F9FB] dark:bg-white/[0.05] border border-[#E4E7EC] dark:border-white/[0.08]">
-                    TikTok Pixel
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Card 4 (Span 6): Dynamic Vector QR Studio */}
-          <div className="lg:col-span-6 rounded-[10px] bg-white dark:bg-[#111216] border border-[#E4E7EC] dark:border-white/[0.09] p-6 sm:p-7 flex flex-col">
-            <h3 className="text-[20px] sm:text-[22px] font-semibold tracking-[-0.025em] text-[#09090B] dark:text-white">
-              Dynamic Vector QR Studio
-            </h3>
-            <p className="mt-2 text-[14.5px] text-[#52525B] dark:text-zinc-400 leading-[1.6]">
-              15 pixel styles, custom brand gradients, SVG/PNG/GIF exports, and
-              editable destinations even after printing.
-            </p>
-            <DynamicQrStudioCard />
-          </div>
-
+        {/* Bottom Balanced Soft Pair (Branded Domains + PIN Gate) */}
+        <div className="mt-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Card 5 (Span 7): Custom Branded Domains + Namecheap Partner Block */}
-          <div className="lg:col-span-7 rounded-[10px] bg-white dark:bg-[#111216] border border-[#E4E7EC] dark:border-white/[0.09] p-6 sm:p-7 flex flex-col justify-between">
+          <div
+            className={`${SOFT_CARD_SURFACE} lg:col-span-7 flex flex-col justify-between`}
+          >
             <div>
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <h3 className="text-[20px] sm:text-[22px] font-semibold tracking-[-0.025em] text-[#09090B] dark:text-white">
+                <h3 className="text-[19px] sm:text-[20px] font-semibold tracking-[-0.025em] text-[#09090B] dark:text-white">
                   Custom Branded Domains &amp; Auto SSL
                 </h3>
-                <span className="text-[12.5px] font-medium text-[#0066FF] dark:text-[#5294FF]">
+                <span className="px-2.5 py-0.5 rounded-full bg-white/80 dark:bg-white/[0.06] border border-[#E4E7EC] dark:border-white/10 text-[11.5px] font-semibold text-[#4F46E5] dark:text-[#A5B4FC]">
                   3 free domains included
                 </span>
               </div>
-              <p className="mt-2 text-[14.5px] text-[#52525B] dark:text-zinc-400 leading-[1.6]">
+              <p className="mt-2 text-[14px] text-[#52525B] dark:text-zinc-400 leading-[1.6]">
                 Replace generic domains with{" "}
-                <code className="font-mono text-[13px] px-1.5 py-0.5 rounded-[5px] bg-[#F8F9FB] dark:bg-white/[0.06] text-[#09090B] dark:text-zinc-200">
+                <code className="font-mono text-[12.5px] px-1.5 py-0.5 rounded-[6px] bg-white/80 dark:bg-white/[0.06] text-[#09090B] dark:text-zinc-200 border border-black/[0.04] dark:border-white/[0.08]">
                   go.yourbrand.io
                 </code>
                 . Point a single CNAME record and LShorter provisions edge SSL
                 automatically.
               </p>
 
-              <div className="mt-5 rounded-[8px] px-3.5 py-2.5 bg-[#F8F9FB] dark:bg-[#09090B] border border-[#E4E7EC] dark:border-white/[0.08] flex items-center justify-between gap-3">
-                <span className="font-mono text-[13px] font-medium text-[#09090B] dark:text-zinc-100 truncate">
-                  go.yourbrand.io/launch
-                </span>
-                <span className="text-[12px] font-medium text-emerald-600 dark:text-emerald-400 shrink-0">
-                  SSL active
-                </span>
-              </div>
+              <SoftBrandedDomainIllustration />
             </div>
 
-            {/* Clean Namecheap Affiliate Partner Block */}
-            <div className="mt-6 pt-5 border-t border-[#E4E7EC] dark:border-white/[0.08] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            {/* Soft Namecheap Partner Row */}
+            <div className="mt-5 rounded-[10px] bg-white/80 dark:bg-[#0D0E14]/90 border border-black/[0.04] dark:border-white/[0.07] p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
               <div className="flex items-start gap-3">
-                <div className="w-9 h-9 rounded-[8px] bg-[#F8F9FB] dark:bg-white/[0.06] border border-[#E4E7EC] dark:border-white/[0.10] flex items-center justify-center shrink-0">
+                <div className="w-9 h-9 rounded-[8px] bg-[#F5F6FA] dark:bg-white/[0.06] border border-[#E7E9F2] dark:border-white/[0.10] flex items-center justify-center shrink-0">
                   <NamecheapLogo className="w-5 h-5" />
                 </div>
                 <div>
-                  <div className="text-[13.5px] font-medium text-[#09090B] dark:text-white">
+                  <div className="text-[13px] font-semibold text-[#09090B] dark:text-white">
                     Need a short branded domain?
                   </div>
-                  <p className="text-[12.5px] text-[#71717A] dark:text-zinc-400 mt-0.5">
-                    Recommended registrar (partner link) — affordable{" "}
+                  <p className="text-[12px] text-[#71717A] dark:text-zinc-400 mt-0.5">
+                    Partner registrar — affordable{" "}
                     <span className="font-mono text-[#09090B] dark:text-zinc-200">
                       .co
                     </span>
@@ -321,7 +281,7 @@ export function FeaturesBentoSection() {
                     <span className="font-mono text-[#09090B] dark:text-zinc-200">
                       .io
                     </span>{" "}
-                    and{" "}
+                    &amp;{" "}
                     <span className="font-mono text-[#09090B] dark:text-zinc-200">
                       .cc
                     </span>{" "}
@@ -334,7 +294,7 @@ export function FeaturesBentoSection() {
                 href={NAMECHEAP_AFFILIATE_URL}
                 target="_blank"
                 rel="noopener noreferrer sponsored"
-                className="inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-[8px] bg-[#09090B] hover:bg-[#0066FF] dark:bg-white dark:hover:bg-[#0066FF] text-white dark:text-[#09090B] dark:hover:text-white text-[12.5px] font-medium transition-colors whitespace-nowrap shrink-0"
+                className="inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-[8px] bg-[#09090B] hover:bg-[#0066FF] dark:bg-white dark:hover:bg-[#0066FF] text-white dark:text-[#09090B] dark:hover:text-white text-[12px] font-semibold transition-colors whitespace-nowrap shrink-0"
               >
                 <span>Register on Namecheap</span>
                 <ExternalLink className="w-3.5 h-3.5" />
@@ -343,15 +303,17 @@ export function FeaturesBentoSection() {
           </div>
 
           {/* Card 6 (Span 5): PIN Gate & Branded Masking */}
-          <div className="lg:col-span-5 rounded-[10px] bg-white dark:bg-[#111216] border border-[#E4E7EC] dark:border-white/[0.09] p-6 sm:p-7 flex flex-col">
-            <h3 className="text-[20px] sm:text-[22px] font-semibold tracking-[-0.025em] text-[#09090B] dark:text-white">
-              PIN Gate &amp; Branded Masking
-            </h3>
-            <p className="mt-2 text-[14.5px] text-[#52525B] dark:text-zinc-400 leading-[1.6]">
-              Protect confidential decks behind a PIN challenge, strip referrer
-              headers, and customize OpenGraph social previews.
-            </p>
-            <PinGateMaskingCard />
+          <div className={`${SOFT_CARD_SURFACE} lg:col-span-5 flex flex-col`}>
+            <div>
+              <h3 className="text-[19px] sm:text-[20px] font-semibold tracking-[-0.025em] text-[#09090B] dark:text-white">
+                PIN Gate &amp; Branded Masking
+              </h3>
+              <p className="mt-2 text-[14px] text-[#52525B] dark:text-zinc-400 leading-[1.6]">
+                Protect confidential decks behind a PIN challenge, strip
+                referrer headers, and customize OpenGraph social previews.
+              </p>
+            </div>
+            <SoftPinGateIllustration />
           </div>
         </div>
       </SectionRailFrame>
