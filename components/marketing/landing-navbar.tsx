@@ -1,21 +1,21 @@
 "use client";
 
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
-  ArrowRight,
   Menu,
   X,
   LayoutDashboard,
   Sun,
   Moon,
-  Sparkles,
   Terminal,
   Globe,
   Lock,
   BarChart3,
+  Play,
+  Link2,
 } from "lucide-react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
@@ -24,15 +24,14 @@ import { useMobileMenu } from "@/components/providers/use-mobile-menu";
 import { useSession } from "next-auth/react";
 import { WaveRevealButton } from "@/components/ui/wave-reveal-button";
 
-// ─── LIEN DESKTOP AVEC EFFET TEXT ROLL ───
+// ─── DESKTOP NAV LINK WITH VERTICAL TEXT-ROLL HOVER ───
 function NavLinkItem({
   item,
   isActive,
   onClick,
 }: {
-  item: { label: string; href: string; isHome?: boolean };
+  item: { label: string; href: string; sectionId?: string };
   isActive: boolean;
-  isLightSurface?: boolean;
   onClick?: (e: React.MouseEvent) => void;
 }) {
   const primaryTextRef = useRef<HTMLSpanElement>(null);
@@ -54,7 +53,7 @@ function NavLinkItem({
         .to(primary, { yPercent: 100, duration: 0.18, ease: "power2.out" }, 0)
         .to(clone, { yPercent: 0, duration: 0.18, ease: "power2.out" }, 0);
     },
-    { scope: linkRef },
+    { scope: linkRef }
   );
 
   return (
@@ -64,10 +63,10 @@ function NavLinkItem({
       onClick={onClick}
       onMouseEnter={() => tlRef.current?.play()}
       onMouseLeave={() => tlRef.current?.reverse()}
-      className={`relative px-[clamp(0.45rem,0.75vw,0.85rem)] py-1.5 rounded-[10px] text-[clamp(0.75rem,0.88vw,0.85rem)] font-normal tracking-[-0.01em] transition-colors cursor-pointer overflow-hidden whitespace-nowrap select-none bg-transparent hover:bg-transparent ${
+      className={`relative px-[clamp(0.5rem,0.8vw,0.85rem)] py-1.5 rounded-[8px] text-[13.5px] tracking-[-0.01em] transition-colors cursor-pointer overflow-hidden whitespace-nowrap select-none ${
         isActive
-          ? "bg-black/5 dark:bg-white/15 text-black dark:text-white font-medium"
-          : "text-[#111111] dark:text-neutral-300 hover:text-black dark:hover:text-white"
+          ? "bg-[#0066FF]/10 dark:bg-[#0066FF]/18 text-[#0066FF] dark:text-[#5294FF] font-semibold"
+          : "text-[#344054] dark:text-zinc-300 hover:text-[#101828] dark:hover:text-white font-medium"
       }`}
     >
       <span className="relative block overflow-hidden leading-tight">
@@ -80,7 +79,11 @@ function NavLinkItem({
         <span
           ref={cloneTextRef}
           aria-hidden="true"
-          className="absolute inset-0 block select-none pointer-events-none font-medium will-change-transform text-black dark:text-white"
+          className={`absolute inset-0 block select-none pointer-events-none font-semibold will-change-transform ${
+            isActive
+              ? "text-[#0066FF] dark:text-[#5294FF]"
+              : "text-[#0066FF] dark:text-white"
+          }`}
         >
           {item.label}
         </span>
@@ -89,16 +92,11 @@ function NavLinkItem({
   );
 }
 
-// ─── DROPDOWN MÉGA-MENU DOCS & API (STYLE ZENOVAY - MAX ROUNDED 10px STRICT) ───
-function DocsApiDropdown({
-  isActive,
-}: {
-  isActive: boolean;
-}) {
+// ─── DOCS & API MEGA-MENU (100% ENGLISH, STRICT ROUNDED-[10px]) ───
+function DocsApiDropdown({ isActive }: { isActive: boolean }) {
   const [isOpen, setIsOpen] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Animation GSAP Text-Roll sur le bouton déclencheur (exactement comme NavLinkItem)
   const primaryTextRef = useRef<HTMLSpanElement>(null);
   const cloneTextRef = useRef<HTMLSpanElement>(null);
   const linkRef = useRef<HTMLAnchorElement>(null);
@@ -118,7 +116,7 @@ function DocsApiDropdown({
         .to(primary, { yPercent: 100, duration: 0.18, ease: "power2.out" }, 0)
         .to(clone, { yPercent: 0, duration: 0.18, ease: "power2.out" }, 0);
     },
-    { scope: linkRef },
+    { scope: linkRef }
   );
 
   const handleMouseEnter = () => {
@@ -139,34 +137,32 @@ function DocsApiDropdown({
 
   useEffect(() => {
     return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
   }, []);
 
   const items = [
     {
-      title: "SDK & API Reference",
-      desc: "Endpoints REST, clés Bearer et SDK TypeScript",
+      title: "REST API & SDK Quickstart",
+      desc: "Endpoints, SHA-256 Bearer keys, and code examples",
       href: "/docs/sdk-quickstart",
       icon: Terminal,
     },
     {
-      title: "Routage intelligent & Géo",
-      desc: "Ciblage pays, OS mobile et redirection Edge",
+      title: "Smart Geo & Device Routing",
+      desc: "ISO country, OS, browser rules, and A/B split testing",
       href: "/docs/geo-routing",
       icon: Globe,
     },
     {
-      title: "PathLock™ & Sécurité",
-      desc: "Protection par code PIN, expiration et masquage",
+      title: "PathLock™ & PIN Security",
+      desc: "Perimeter locking, click caps, and white-label masking",
       href: "/docs/pin-protection",
       icon: Lock,
     },
     {
-      title: "Télémétrie & Analytics",
-      desc: "Flux de clics en direct, attribution et webhooks",
+      title: "Real-Time Telemetry & Webhooks",
+      desc: "Live click streams, Stripe attribution, and signed events",
       href: "/docs/realtime-analytics",
       icon: BarChart3,
     },
@@ -178,14 +174,13 @@ function DocsApiDropdown({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      {/* Bouton déclencheur avec l'animation GSAP Text-Roll originelle */}
       <Link
         ref={linkRef}
         href="/docs"
-        className={`relative px-[clamp(0.45rem,0.75vw,0.85rem)] py-1.5 rounded-[10px] text-[clamp(0.75rem,0.88vw,0.85rem)] font-normal tracking-[-0.01em] transition-colors cursor-pointer select-none inline-flex items-center gap-1.5 overflow-hidden whitespace-nowrap bg-transparent hover:bg-transparent ${
+        className={`relative px-[clamp(0.5rem,0.8vw,0.85rem)] py-1.5 rounded-[8px] text-[13.5px] tracking-[-0.01em] transition-colors cursor-pointer select-none inline-flex items-center gap-1.5 overflow-hidden whitespace-nowrap ${
           isActive || isOpen
-            ? "bg-black/5 dark:bg-white/15 text-black dark:text-white font-medium"
-            : "text-[#111111] dark:text-neutral-300 hover:text-black dark:hover:text-white"
+            ? "bg-[#0066FF]/10 dark:bg-[#0066FF]/18 text-[#0066FF] dark:text-[#5294FF] font-semibold"
+            : "text-[#344054] dark:text-zinc-300 hover:text-[#101828] dark:hover:text-white font-medium"
         }`}
       >
         <span className="relative block overflow-hidden leading-tight">
@@ -193,14 +188,14 @@ function DocsApiDropdown({
             ref={primaryTextRef}
             className="block select-none pointer-events-none will-change-transform"
           >
-            Doc &amp; Api
+            Docs &amp; API
           </span>
           <span
             ref={cloneTextRef}
             aria-hidden="true"
-            className="absolute inset-0 block select-none pointer-events-none font-medium will-change-transform text-black dark:text-white"
+            className="absolute inset-0 block select-none pointer-events-none font-semibold will-change-transform text-[#0066FF] dark:text-white"
           >
-            Doc &amp; Api
+            Docs &amp; API
           </span>
         </span>
         <svg
@@ -220,18 +215,17 @@ function DocsApiDropdown({
         </svg>
       </Link>
 
-      {/* MÉGA MENU DÉROULANT LARGE & SOBRE (MAX ROUNDED: 10px STRICT) */}
+      {/* Mega Menu strictly rounded-[10px] */}
       <div
-        className={`absolute top-full mt-2.5 right-[-20px] sm:right-[-60px] md:right-[-100px] lg:right-[-130px] w-[min(840px,calc(100vw-32px))] z-50 transform-gpu transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] before:content-[''] before:absolute before:-top-3 before:left-0 before:right-0 before:h-3.5 ${
+        className={`absolute top-full mt-2.5 right-[-20px] sm:right-[-60px] md:right-[-110px] w-[min(820px,calc(100vw-32px))] z-50 transform-gpu transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] before:content-[''] before:absolute before:-top-3 before:left-0 before:right-0 before:h-3.5 ${
           isOpen
             ? "opacity-100 translate-y-0 scale-100 pointer-events-auto visible"
             : "opacity-0 -translate-y-2 scale-[0.98] pointer-events-none invisible"
         }`}
       >
-        <div className="rounded-[10px] p-6 shadow-[0_16px_45px_rgba(0,0,0,0.08)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.65)] border backdrop-blur-xl transition-colors bg-white dark:bg-[#0E0E12] border-[#E4E7EC] dark:border-white/10">
-          <div className="grid grid-cols-1 md:grid-cols-[1.65fr_1fr] gap-6 items-stretch">
-            {/* Grille 2x2 des 4 éléments sobres */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+        <div className="rounded-[10px] p-5 shadow-[0_18px_48px_rgba(0,0,0,0.10)] dark:shadow-[0_22px_54px_rgba(0,0,0,0.72)] border backdrop-blur-xl bg-white dark:bg-[#0E0E12] border-[#E4E7EC] dark:border-white/10">
+          <div className="grid grid-cols-1 md:grid-cols-[1.65fr_1fr] gap-5 items-stretch">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {items.map((item) => {
                 const Icon = item.icon;
                 return (
@@ -239,16 +233,16 @@ function DocsApiDropdown({
                     key={item.title}
                     href={item.href}
                     onClick={() => setIsOpen(false)}
-                    className="flex items-start gap-3.5 p-4 rounded-[10px] bg-[#F8F9FA] dark:bg-[#151518] hover:bg-[#F2F4F7] dark:hover:bg-white/[0.08] border border-black/[0.03] dark:border-white/[0.04] transition-colors duration-150 group"
+                    className="flex items-start gap-3 p-3.5 rounded-[10px] bg-[#F8F9FA] dark:bg-[#151519] hover:bg-[#0066FF]/[0.06] dark:hover:bg-[#0066FF]/[0.12] border border-black/[0.04] dark:border-white/[0.05] hover:border-[#0066FF]/30 transition-all duration-150 group"
                   >
-                    <span className="mt-0.5 flex-shrink-0 w-8 h-8 rounded-[8px] bg-white dark:bg-white/10 flex items-center justify-center text-gray-500 dark:text-zinc-400 group-hover:text-gray-900 dark:group-hover:text-white transition-colors shadow-2xs">
+                    <span className="mt-0.5 flex-shrink-0 w-8 h-8 rounded-[8px] bg-white dark:bg-white/[0.07] flex items-center justify-center text-[#475467] dark:text-zinc-300 group-hover:text-[#0066FF] dark:group-hover:text-[#5294FF] transition-colors shadow-2xs">
                       <Icon className="w-4 h-4" />
                     </span>
                     <div className="flex-1 min-w-0">
-                      <div className="text-[14px] font-medium text-gray-900 dark:text-white">
+                      <div className="text-[13.5px] font-semibold text-[#101828] dark:text-white group-hover:text-[#0066FF] dark:group-hover:text-[#5294FF] transition-colors">
                         {item.title}
                       </div>
-                      <div className="text-[12px] text-gray-500 dark:text-zinc-400 mt-0.5 leading-snug">
+                      <div className="text-[12px] text-[#667085] dark:text-zinc-400 mt-0.5 leading-snug">
                         {item.desc}
                       </div>
                     </div>
@@ -257,38 +251,41 @@ function DocsApiDropdown({
               })}
             </div>
 
-            {/* Partie droite : Carte RESSOURCES avec l'image exacte de la doc */}
-            <div className="flex flex-col">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-zinc-500 mb-2.5">
-                RESSOURCES
+            <div className="flex flex-col gap-3">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-[#667085] dark:text-zinc-500">
+                Resources
               </span>
               <Link
                 href="/docs"
                 onClick={() => setIsOpen(false)}
-                className="group relative flex-1 rounded-[10px] overflow-hidden flex flex-col justify-start p-5 min-h-[190px] bg-[#121316] dark:bg-[#121316] isolate"
+                className="group relative flex-1 rounded-[10px] overflow-hidden flex flex-col justify-end p-4 min-h-[120px] bg-[#121316] isolate border border-white/10"
               >
-                {/* Image de fond optimisée WebP : /doc/apiimage.webp */}
                 <Image
                   src="/doc/apiimage.webp"
                   alt=""
                   aria-hidden="true"
                   fill
                   loading="lazy"
-                  className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
-                  sizes="360px"
+                  className="object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+                  sizes="320px"
                 />
-                {/* Gradients équilibrés (-inset-1 transform-gpu) : image bien visible & aucun artefact de ligne blanche */}
-                <div className="absolute -inset-1 transform-gpu bg-gradient-to-t from-black/80 via-black/30 to-black/25 pointer-events-none z-[1]" />
-                <div className="absolute -inset-1 transform-gpu bg-gradient-to-r from-black/45 via-transparent to-transparent pointer-events-none z-[1]" />
-                
-                {/* Bordure nette en overlay avec z-20 pour masquer tout débordement de composition GPU */}
-                <div className="pointer-events-none absolute inset-0 rounded-[10px] ring-1 ring-inset ring-black/10 dark:ring-white/10 z-20" />
-
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-black/20 pointer-events-none z-[1]" />
                 <div className="relative z-10">
-                  <h4 className="text-[16px] sm:text-[17px] font-bold text-white tracking-tight drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)]">
-                    Documentation
-                  </h4>
+                  <div className="text-[15px] font-bold text-white tracking-tight">
+                    Full Documentation Hub
+                  </div>
+                  <div className="text-[12px] text-zinc-300 mt-0.5">
+                    Guides, API schema &amp; webhook recipes
+                  </div>
                 </div>
+              </Link>
+              <Link
+                href="/#demo-video"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-[10px] bg-[#0066FF]/[0.08] hover:bg-[#0066FF]/[0.14] border border-[#0066FF]/25 text-[#0066FF] dark:text-[#5294FF] text-[12.5px] font-semibold transition-colors"
+              >
+                <Play className="w-3.5 h-3.5 fill-current shrink-0" />
+                <span>Watch 6-min Product Walkthrough</span>
               </Link>
             </div>
           </div>
@@ -298,11 +295,12 @@ function DocsApiDropdown({
   );
 }
 
-// ─── COMPOSANT PRINCIPAL NAVBAR ───
+// ─── MAIN LANDING NAVBAR ───
 export const LandingNavbar = React.memo(function LandingNavbar() {
   const { isOpen, toggle } = useMobileMenu();
   const { toggleTheme } = useTheme();
   const pathname = usePathname();
+  const router = useRouter();
   const { data: session, status } = useSession();
   const isAuthenticated =
     status === "authenticated" &&
@@ -310,14 +308,15 @@ export const LandingNavbar = React.memo(function LandingNavbar() {
     !(session?.user as any)?.userNotFound;
 
   const [isScrolled, setIsScrolled] = useState(false);
+  const [activeSection, setActiveSection] = useState<string>("");
   const [isIframeFullscreen, setIsIframeFullscreen] = useState(false);
+  const progressBarDesktopRef = useRef<HTMLDivElement>(null);
+  const progressBarMobileRef = useRef<HTMLDivElement>(null);
 
-  // Synchronisation avec le mode plein écran pour masquer la navbar
   useEffect(() => {
     const checkFullscreenState = () => {
       const isFs =
-        document.documentElement.getAttribute("data-iframe-fullscreen") ===
-          "true" ||
+        document.documentElement.getAttribute("data-iframe-fullscreen") === "true" ||
         document.body.getAttribute("data-iframe-fullscreen") === "true";
       setIsIframeFullscreen(isFs);
     };
@@ -328,34 +327,40 @@ export const LandingNavbar = React.memo(function LandingNavbar() {
     };
 
     checkFullscreenState();
-    window.addEventListener(
-      "product-fullscreen-change",
-      handleFullscreenChange,
-    );
+    window.addEventListener("product-fullscreen-change", handleFullscreenChange);
     window.addEventListener("resize", checkFullscreenState);
-
     return () => {
-      window.removeEventListener(
-        "product-fullscreen-change",
-        handleFullscreenChange,
-      );
+      window.removeEventListener("product-fullscreen-change", handleFullscreenChange);
       window.removeEventListener("resize", checkFullscreenState);
     };
   }, []);
 
+  // Scroll state + 2px GPU-accelerated reading progress bar
   useEffect(() => {
     let isScrolledLocal = window.scrollY > 30;
     setIsScrolled(isScrolledLocal);
-
     let ticking = false;
+
+    const updateProgress = () => {
+      const docHeight =
+        document.documentElement.scrollHeight - window.innerHeight;
+      const pct = docHeight > 0 ? Math.min(1, Math.max(0, window.scrollY / docHeight)) : 0;
+      const transformVal = `scaleX(${pct})`;
+      if (progressBarDesktopRef.current) {
+        progressBarDesktopRef.current.style.transform = transformVal;
+      }
+      if (progressBarMobileRef.current) {
+        progressBarMobileRef.current.style.transform = transformVal;
+      }
+    };
+
+    updateProgress();
 
     const handleScroll = () => {
       if (!ticking) {
         ticking = true;
         requestAnimationFrame(() => {
           const y = window.scrollY;
-          // Zone de mort / hystérésis pour éviter tout tressautement :
-          // Passe en mode flottant au-delà de 35px, revient en pleine largeur sous 15px.
           if (!isScrolledLocal && y > 35) {
             isScrolledLocal = true;
             setIsScrolled(true);
@@ -363,166 +368,124 @@ export const LandingNavbar = React.memo(function LandingNavbar() {
             isScrolledLocal = false;
             setIsScrolled(false);
           }
+          if (y < 260) {
+            setActiveSection("");
+          }
+          updateProgress();
           ticking = false;
         });
       }
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+    window.addEventListener("resize", updateProgress, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", updateProgress);
+    };
+  }, [pathname]);
 
-  if (isIframeFullscreen) {
-    return null;
-  }
-
-  // --- ANIMATIONS HOVER 100% GSAP SUR LE BOUTON DASHBOARD ---
-  const handleCtaEnter = (e: React.MouseEvent<HTMLElement>) => {
-    const button = e.currentTarget;
-    const arrow = button.querySelector(".cta-arrow-icon");
-    const dashIcon = button.querySelector(".cta-dash-icon");
-
-    gsap.to(button, {
-      scale: 1.045,
-      y: -2,
-      backgroundColor: "#3641F5",
-      boxShadow: "0 8px 24px rgba(70, 95, 255, 0.45)",
-      duration: 0.25,
-      ease: "power2.out",
-      overwrite: "auto",
-    });
-
-    if (dashIcon) {
-      gsap.to(dashIcon, {
-        rotate: 12,
-        scale: 1.15,
-        duration: 0.25,
-        ease: "power2.out",
-        overwrite: "auto",
-      });
+  // Scroll-spy for home landing sections
+  useEffect(() => {
+    if (pathname !== "/") {
+      setActiveSection("");
+      return;
     }
+    const sectionIds = ["demo-video", "features", "pathlock", "difference", "api"];
+    const elements = sectionIds
+      .map((id) => document.getElementById(id))
+      .filter((el): el is HTMLElement => Boolean(el));
 
-    if (arrow) {
-      gsap.to(arrow, {
-        x: 3.5,
-        duration: 0.25,
-        ease: "power2.out",
-        overwrite: "auto",
-      });
-    }
-  };
+    if (!elements.length || typeof IntersectionObserver === "undefined") return;
 
-  const handleCtaLeave = (e: React.MouseEvent<HTMLElement>) => {
-    const button = e.currentTarget;
-    const arrow = button.querySelector(".cta-arrow-icon");
-    const dashIcon = button.querySelector(".cta-dash-icon");
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+        if (visible[0]?.target?.id) {
+          setActiveSection(visible[0].target.id);
+        }
+      },
+      { rootMargin: "-22% 0px -55% 0px", threshold: [0.1, 0.35, 0.6] }
+    );
 
-    gsap.to(button, {
-      scale: 1,
-      y: 0,
-      backgroundColor: "#465FFF",
-      boxShadow: "0 2px 8px rgba(70, 95, 255, 0.25)",
-      duration: 0.25,
-      ease: "power2.out",
-      overwrite: "auto",
-    });
-
-    if (dashIcon) {
-      gsap.to(dashIcon, {
-        rotate: 0,
-        scale: 1,
-        duration: 0.25,
-        ease: "power2.out",
-        overwrite: "auto",
-      });
-    }
-
-    if (arrow) {
-      gsap.to(arrow, {
-        x: 0,
-        duration: 0.25,
-        ease: "power2.out",
-        overwrite: "auto",
-      });
-    }
-  };
-
-  const handleCtaPointerDown = (e: React.PointerEvent<HTMLElement>) => {
-    gsap.to(e.currentTarget, {
-      scale: 0.95,
-      duration: 0.12,
-      ease: "power1.out",
-      overwrite: "auto",
-    });
-  };
-
-  const handleCtaPointerUp = (e: React.PointerEvent<HTMLElement>) => {
-    gsap.to(e.currentTarget, {
-      scale: 1.045,
-      duration: 0.16,
-      ease: "power1.out",
-      overwrite: "auto",
-    });
-  };
+    elements.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, [pathname]);
 
   const handleToggleTheme = (e: React.MouseEvent<HTMLButtonElement>) => {
     gsap.fromTo(
       e.currentTarget,
       { scale: 0.78, rotate: -30 },
-      { scale: 1, rotate: 0, duration: 0.35, ease: "back.out(2)" },
+      { scale: 1, rotate: 0, duration: 0.35, ease: "back.out(2)" }
     );
     toggleTheme();
   };
 
-  const handleBurgerClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-    gsap.fromTo(
-      e.currentTarget,
-      { scale: 0.8 },
-      { scale: 1, duration: 0.28, ease: "back.out(2.5)" },
-    );
-    toggle();
-  };
+  const handleFocusShortener = useCallback(
+    (e: React.MouseEvent) => {
+      if (isAuthenticated) return;
+      if (pathname === "/") {
+        e.preventDefault();
+        const el = document.getElementById("hero-shortener");
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+        } else {
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+        window.dispatchEvent(new CustomEvent("lshorter_focus_shortener"));
+      } else {
+        e.preventDefault();
+        router.push("/#hero-shortener");
+      }
+    },
+    [isAuthenticated, pathname, router]
+  );
 
-  const handleHomeClick = (e: React.MouseEvent) => {
-    if (pathname === "/") {
-      e.preventDefault();
-      window.location.reload();
-    }
-  };
+  if (isIframeFullscreen) return null;
 
   const navLinks = [
-    { label: "Hi", href: "/", isHome: true },
-    { label: "Features", href: "/#features" },
-    { label: "Security", href: "/#security" },
-    { label: "Difference", href: "/#why-us" },
+    { label: "Features", href: "/#features", sectionId: "features" },
+    { label: "PathLock", href: "/#pathlock", sectionId: "pathlock" },
+    { label: "Difference", href: "/#difference", sectionId: "difference" },
+    { label: "Demo Video", href: "/#demo-video", sectionId: "demo-video" },
     { label: "Pricing", href: "/pricing" },
-    { label: "Doc & Api", href: "/docs" },
+    { label: "Docs & API", href: "/docs" },
   ];
 
   return (
     <div
-      style={{ display: isIframeFullscreen ? "none" : undefined }}
-      className={`w-full flex justify-center pointer-events-none transition-opacity duration-300 ${
-        isIframeFullscreen
-          ? "hidden !opacity-0 !pointer-events-none !-z-50"
-          : ""
-      }`}
+      className="w-full flex justify-center pointer-events-none transition-opacity duration-300"
     >
-      {/* ─── 1. NAVBAR DESKTOP (>= 768px) ─── */}
+      {/* ─── 1. DESKTOP NAVBAR (>= 768px) ─── */}
       <header
-        className={`hidden md:flex items-center justify-between gap-2 pointer-events-auto transform-gpu transition-[transform,background-color,border-color,box-shadow] duration-250 ease-out [contain:layout_style] ${
+        className={`relative hidden md:flex items-center justify-between gap-3 pointer-events-auto transform-gpu transition-[transform,width,background-color,border-color,box-shadow,border-radius] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-visible ${
           isScrolled
-            ? "translate-y-3 sm:translate-y-4 w-[min(1280px,96vw)] max-w-[1280px] rounded-[14px] px-[clamp(0.75rem,1.8vw,2rem)] py-3 bg-white/[0.97] dark:bg-[#09090B]/[0.97] border border-[#E4E7EC]/95 dark:border-white/15 shadow-[0_12px_34px_rgba(0,0,0,0.08)] dark:shadow-[0_14px_38px_rgba(0,0,0,0.58)]"
-            : "translate-y-0 w-full max-w-full rounded-none px-[clamp(1rem,2.5vw,3.5rem)] py-4 bg-white/[0.98] dark:bg-[#09090B]/[0.98] border border-b-[#E4E7EC]/80 dark:border-b-white/10 border-t-transparent border-x-transparent shadow-none"
+            ? "translate-y-3 w-[min(1220px,95vw)] rounded-[10px] px-5 py-2.5 bg-white/[0.92] dark:bg-[#0C0C0F]/[0.90] backdrop-blur-xl border border-[#E4E7EC] dark:border-white/12 shadow-[0_12px_36px_rgba(16,24,40,0.08)] dark:shadow-[0_16px_42px_rgba(0,0,0,0.62)]"
+            : "translate-y-0 w-full rounded-none px-[clamp(1.25rem,3vw,3.5rem)] py-3.5 bg-white/[0.96] dark:bg-[#09090B]/[0.96] backdrop-blur-md border-b border-[#E4E7EC]/80 dark:border-white/[0.08]"
         }`}
       >
-        {/* Logo LShorter (Maillon Duo) */}
+        {/* Reading Progress Bar (2px #0066FF along bottom edge) */}
+        <div
+          aria-hidden="true"
+          className={`pointer-events-none absolute bottom-0 left-0 right-0 h-[2px] overflow-hidden ${
+            isScrolled ? "rounded-b-[10px]" : ""
+          }`}
+        >
+          <div
+            ref={progressBarDesktopRef}
+            style={{ transform: "scaleX(0)" }}
+            className="h-full w-full origin-left bg-[#0066FF] will-change-transform"
+          />
+        </div>
+
+        {/* Left: LShorter Brand */}
         <Link
           href="/"
-          onClick={handleHomeClick}
           className="flex items-center gap-2.5 select-none cursor-pointer group shrink-0"
         >
-          <div className="w-8 h-8 rounded-[9px] overflow-hidden shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+          <div className="w-8 h-8 rounded-[8px] overflow-hidden shrink-0 shadow-xs group-hover:scale-105 transition-transform duration-200">
             <Image
               src="/logo.svg"
               alt="LShorter Logo"
@@ -532,75 +495,98 @@ export const LandingNavbar = React.memo(function LandingNavbar() {
               priority
             />
           </div>
-          <span className="text-[clamp(0.95rem,1.1vw,1.125rem)] font-bold tracking-[-0.025em] text-[#101828] dark:text-white">
+          <span className="text-[17px] font-bold tracking-[-0.03em] text-[#101828] dark:text-white">
             LShorter
           </span>
         </Link>
 
-        {/* Liens Desktop */}
-        <nav className="flex items-center gap-[clamp(0.1rem,0.35vw,0.5rem)] min-w-0">
+        {/* Center: Clean 100% English Navigation Links */}
+        <nav
+          aria-label="Primary navigation"
+          className="flex items-center gap-0.5 lg:gap-1 min-w-0"
+        >
           {navLinks.map((item) => {
-            if (item.label === "Doc & Api") {
+            if (item.label === "Docs & API") {
               return (
                 <DocsApiDropdown
                   key={item.label}
-                  isActive={pathname.startsWith("/docs")}
+                  isActive={pathname.startsWith("/docs") || activeSection === "api"}
                 />
               );
             }
+            const isItemActive = item.sectionId
+              ? pathname === "/" && activeSection === item.sectionId
+              : pathname.startsWith(item.href);
             return (
               <NavLinkItem
                 key={item.label}
                 item={item}
-                isActive={
-                  item.href === "/"
-                    ? pathname === "/"
-                    : pathname.startsWith(item.href) && !item.href.includes("#")
-                }
+                isActive={isItemActive}
               />
             );
           })}
         </nav>
 
-        {/* Actions Desktop */}
-        <div className="flex items-center gap-2 lg:gap-3 shrink-0">
+        {/* Right: Theme Toggle + Subtle Sign In + Wave Action CTA */}
+        <div className="flex items-center gap-2 lg:gap-2.5 shrink-0">
           <button
             type="button"
             onClick={handleToggleTheme}
-            className="w-8 h-8 lg:w-9 lg:h-9 rounded-full flex items-center justify-center border transition-colors cursor-pointer shrink-0 border-[#E4E7EC] dark:border-white/15 text-[#344054] dark:text-neutral-200 hover:text-black dark:hover:text-white hover:bg-[#F9FAFB] dark:hover:bg-white/10"
-            title="Toggle theme"
-            aria-label="Toggle theme"
+            className="w-9 h-9 rounded-[10px] flex items-center justify-center border transition-colors cursor-pointer shrink-0 border-[#E4E7EC] dark:border-white/12 bg-white dark:bg-white/[0.04] text-[#344054] dark:text-zinc-300 hover:border-[#0066FF]/50 hover:text-[#0066FF] dark:hover:text-white"
+            title="Toggle color theme"
+            aria-label="Toggle color theme"
           >
             <Moon className="w-4 h-4 dark:hidden" />
             <Sun className="w-4 h-4 hidden dark:block text-amber-300" />
           </button>
 
-          {/* Bouton Dashboard / Get started (Wave Reveal Signature Button) */}
+          {!isAuthenticated && (
+            <Link
+              href="/login"
+              className="hidden lg:inline-flex items-center px-3 h-9 rounded-[10px] text-[13.5px] font-medium text-[#475467] dark:text-zinc-300 hover:text-[#101828] dark:hover:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors whitespace-nowrap"
+            >
+              Sign in
+            </Link>
+          )}
+
           <WaveRevealButton
-            href={isAuthenticated ? "/dashboard" : "/register"}
+            href={isAuthenticated ? "/dashboard" : "/#hero-shortener"}
+            onClick={isAuthenticated ? undefined : handleFocusShortener}
             variant="primary"
             size="sm"
             icon={
               isAuthenticated ? (
-                <LayoutDashboard className="w-3.5 h-3.5 text-white" />
+                <LayoutDashboard className="w-3.5 h-3.5" />
               ) : (
-                <Sparkles className="w-3.5 h-3.5 text-white" />
+                <Link2 className="w-3.5 h-3.5" />
               )
             }
           >
-            {isAuthenticated ? "Dashboard" : "Get started"}
+            {isAuthenticated ? "Dashboard" : "Shorten a link — no signup"}
           </WaveRevealButton>
         </div>
       </header>
 
-      {/* ─── 2. NAVBAR MOBILE (< 768px) ─── */}
+      {/* ─── 2. MOBILE NAVBAR (< 768px) ─── */}
       <header
-        className={`flex md:hidden items-center justify-between pointer-events-auto transform-gpu transition-[transform,background-color,border-color,box-shadow] duration-250 ease-out [contain:layout_style] ${
+        className={`relative flex md:hidden items-center justify-between pointer-events-auto transform-gpu transition-[transform,width,background-color,border-color,box-shadow,border-radius] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-hidden ${
           isScrolled
-            ? "translate-y-2.5 w-[calc(100%-1.5rem)] max-w-lg rounded-xl px-3.5 py-2.5 bg-white/[0.97] dark:bg-[#09090B]/[0.97] border border-[#E4E7EC]/95 dark:border-white/15 shadow-[0_10px_28px_rgba(0,0,0,0.08)] dark:shadow-[0_12px_32px_rgba(0,0,0,0.55)]"
-            : "translate-y-0 w-full max-w-full rounded-none px-4 py-3 bg-white/[0.98] dark:bg-[#09090B]/[0.98] border border-b-[#E4E7EC]/80 dark:border-b-white/10 border-t-transparent border-x-transparent shadow-none"
+            ? "translate-y-2.5 w-[calc(100%-1.5rem)] max-w-lg rounded-[10px] px-3.5 py-2.5 bg-white/[0.94] dark:bg-[#0C0C0F]/[0.94] backdrop-blur-xl border border-[#E4E7EC] dark:border-white/12 shadow-[0_10px_28px_rgba(0,0,0,0.08)] dark:shadow-[0_12px_32px_rgba(0,0,0,0.58)]"
+            : "translate-y-0 w-full rounded-none px-4 py-3 bg-white/[0.98] dark:bg-[#09090B]/[0.98] border-b border-[#E4E7EC]/80 dark:border-white/10"
         }`}
       >
+        {/* Mobile Reading Progress Bar */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute bottom-0 left-0 right-0 h-[2px] overflow-hidden"
+        >
+          <div
+            ref={progressBarMobileRef}
+            style={{ transform: "scaleX(0)" }}
+            className="h-full w-full origin-left bg-[#0066FF] will-change-transform"
+          />
+        </div>
+
         <Link href="/" className="flex items-center gap-2 select-none">
           <div className="w-7 h-7 rounded-[8px] overflow-hidden shrink-0 shadow-2xs">
             <Image
@@ -611,7 +597,7 @@ export const LandingNavbar = React.memo(function LandingNavbar() {
               className="w-full h-full object-contain"
             />
           </div>
-          <span className="text-[16px] font-bold tracking-[-0.025em] text-[#09090B] dark:text-white">
+          <span className="text-[16px] font-bold tracking-[-0.025em] text-[#101828] dark:text-white">
             LShorter
           </span>
         </Link>
@@ -620,8 +606,8 @@ export const LandingNavbar = React.memo(function LandingNavbar() {
           <button
             type="button"
             onClick={handleToggleTheme}
-            className="w-8 h-8 rounded-[10px] flex items-center justify-center border transition-colors bg-black/[0.03] dark:bg-white/[0.06] border-black/[0.08] dark:border-white/10 text-[#52525B] dark:text-neutral-300"
-            aria-label="Basculer le thème"
+            className="w-8 h-8 rounded-[10px] flex items-center justify-center border transition-colors bg-black/[0.03] dark:bg-white/[0.06] border-black/[0.08] dark:border-white/10 text-[#52525B] dark:text-zinc-300"
+            aria-label="Toggle color theme"
           >
             <Moon className="w-4 h-4 dark:hidden" />
             <Sun className="w-4 h-4 hidden dark:block text-amber-300" />
@@ -632,10 +618,10 @@ export const LandingNavbar = React.memo(function LandingNavbar() {
             onClick={() => toggle()}
             className={`w-8 h-8 rounded-[10px] flex items-center justify-center transition-all active:scale-90 cursor-pointer ${
               isOpen
-                ? "bg-[#3B82F6] text-white"
-                : "bg-black/[0.03] dark:bg-white/[0.06] text-[#09090B] dark:text-white border border-black/[0.08] dark:border-white/10"
+                ? "bg-[#0066FF] text-white"
+                : "bg-black/[0.03] dark:bg-white/[0.06] text-[#101828] dark:text-white border border-black/[0.08] dark:border-white/10"
             }`}
-            aria-label="Menu"
+            aria-label="Toggle navigation menu"
           >
             {isOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
           </button>
