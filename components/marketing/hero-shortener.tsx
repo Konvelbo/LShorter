@@ -1,27 +1,18 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Link from "next/link";
-import QRCode from "qrcode";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Link2,
-  Copy,
-  Check,
   ExternalLink,
-  QrCode,
   Lock,
   Sparkles,
   Clock,
-  BarChart3,
-  Globe2,
-  Smartphone,
   ShieldCheck,
   X,
-  Download,
   AlertCircle,
   Loader2,
-  LayoutDashboard,
   CornerDownLeft,
   Play,
 } from "lucide-react";
@@ -39,35 +30,6 @@ export interface ShortenedItem {
   isGuest: boolean;
 }
 
-const SAMPLE_DEMO_URL =
-  "https://stripe.com/docs/webhooks/quickstart?utm_source=lshorter-demo";
-
-function AnimatedClickCounter({ count }: { count: number }) {
-  return (
-    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[8px] bg-[#0066FF]/[0.08] dark:bg-[#0066FF]/[0.16] border border-[#0066FF]/25 text-[#0066FF] dark:text-[#5294FF] text-[12px] font-mono font-semibold tabular-nums">
-      <span className="relative flex h-2 w-2 shrink-0">
-        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-      </span>
-      <span className="relative inline-flex overflow-hidden h-[17px] leading-[17px]">
-        <AnimatePresence mode="popLayout" initial={false}>
-          <motion.span
-            key={count}
-            initial={{ y: 14, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: -14, opacity: 0 }}
-            transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-            className="inline-block font-bold"
-          >
-            {count.toLocaleString()}
-          </motion.span>
-        </AnimatePresence>
-      </span>
-      <span>{count === 1 ? "click" : "clicks"}</span>
-    </span>
-  );
-}
-
 export function HeroShortener() {
   const { data: session, status } = useSession();
   const isAuthenticated =
@@ -81,20 +43,23 @@ export function HeroShortener() {
   const [isPulseHighlighted, setIsPulseHighlighted] = useState(false);
 
   const [links, setLinks] = useState<ShortenedItem[]>([]);
-  const [activeSlug, setActiveSlug] = useState<string | null>(null);
   const [usedCount, setUsedCount] = useState(0);
   const [maxLinks, setMaxLinks] = useState(2);
   const [limitReached, setLimitReached] = useState(false);
   const [showLimitModal, setShowLimitModal] = useState(false);
 
-  const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
-  const [showQr, setShowQr] = useState(false);
-  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
-
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const activeLink =
-    links.find((l) => l.slug === activeSlug) || links[0] || null;
+  // Order links chronologically (oldest first: 1st shortened link on top, 2nd link cascades below it)
+  const orderedLinks = useMemo(() => {
+    return [...links]
+      .sort(
+        (a, b) =>
+          new Date(a.createdAt || 0).getTime() -
+          new Date(b.createdAt || 0).getTime()
+      )
+      .slice(-2);
+  }, [links]);
 
   // Fetch current guest links & live clicks from server
   const fetchGuestState = useCallback(async () => {
@@ -116,10 +81,6 @@ export function HeroShortener() {
       setUsedCount(Number(data.usedCount ?? serverLinks.length));
       setMaxLinks(Number(data.maxLinks ?? 2));
       setLimitReached(Boolean(data.limitReached));
-      setActiveSlug((prev) => {
-        if (prev && serverLinks.some((l) => l.slug === prev)) return prev;
-        return serverLinks[0]?.slug ?? null;
-      });
     } catch {
       // silent polling resilience
     }
@@ -137,7 +98,10 @@ export function HeroShortener() {
     if (isAuthenticated || links.length === 0) return;
 
     const interval = setInterval(() => {
-      if (typeof document !== "undefined" && document.visibilityState === "visible") {
+      if (
+        typeof document !== "undefined" &&
+        document.visibilityState === "visible"
+      ) {
         fetchGuestState();
       }
     }, 5000);
@@ -170,28 +134,6 @@ export function HeroShortener() {
     };
   }, []);
 
-  // Generate QR preview data URL when toggled
-  useEffect(() => {
-    if (!showQr || !activeLink) {
-      setQrDataUrl(null);
-      return;
-    }
-    let cancelled = false;
-    QRCode.toDataURL(activeLink.shortUrl, {
-      width: 240,
-      margin: 2,
-      color: { dark: "#09090B", light: "#FFFFFF" },
-      errorCorrectionLevel: "M",
-    })
-      .then((url) => {
-        if (!cancelled) setQrDataUrl(url);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [showQr, activeLink]);
-
   // Close limit modal on Escape
   useEffect(() => {
     if (!showLimitModal) return;
@@ -217,8 +159,8 @@ export function HeroShortener() {
     const normalizedCandidate = /^https?:\/\//i.test(trimmed)
       ? trimmed
       : /^[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)+([/?#].*)?$/.test(trimmed)
-      ? `https://${trimmed}`
-      : "";
+        ? `https://${trimmed}`
+        : "";
     let hasValidUrl = false;
     if (normalizedCandidate) {
       try {
@@ -231,7 +173,9 @@ export function HeroShortener() {
       }
     }
     if (!hasValidUrl) {
-      setErrorMsg("Please enter a valid website URL (for example, https://example.com).");
+      setErrorMsg(
+        "Please enter a valid website URL (for example, https://example.com)."
+      );
       inputRef.current?.focus();
       return;
     }
@@ -272,11 +216,9 @@ export function HeroShortener() {
       if (data.authenticated && data.link) {
         const created: ShortenedItem = data.link;
         setLinks((prev) =>
-          [created, ...prev.filter((p) => p.slug !== created.slug)].slice(0, 5)
+          [...prev.filter((p) => p.slug !== created.slug), created].slice(-2)
         );
-        setActiveSlug(created.slug);
         setUrlInput("");
-        setShowQr(false);
       } else {
         const serverLinks: ShortenedItem[] = Array.isArray(data.links)
           ? data.links
@@ -284,35 +226,16 @@ export function HeroShortener() {
             ? [data.link]
             : [];
         setLinks(serverLinks);
-        setActiveSlug(data.link?.slug || serverLinks[0]?.slug || null);
         setUsedCount(Number(data.usedCount ?? serverLinks.length));
         setMaxLinks(Number(data.maxLinks ?? 2));
         setLimitReached(Boolean(data.limitReached));
         setUrlInput("");
-        setShowQr(false);
       }
     } catch {
       setErrorMsg("Network error. Please try again in a moment.");
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleCopy = async (link: ShortenedItem) => {
-    try {
-      await navigator.clipboard.writeText(link.shortUrl);
-      setCopiedSlug(link.slug);
-      setTimeout(
-        () => setCopiedSlug((prev) => (prev === link.slug ? null : prev)),
-        2000
-      );
-    } catch {}
-  };
-
-  const handleTryExample = () => {
-    setErrorMsg(null);
-    setUrlInput(SAMPLE_DEMO_URL);
-    inputRef.current?.focus();
   };
 
   // Trigger rapid click-sync right after user clicks their newly generated short link
@@ -326,10 +249,13 @@ export function HeroShortener() {
   const remainingGuest = Math.max(0, maxLinks - usedCount);
 
   return (
-    <div id="hero-shortener" className="w-full max-w-[740px] mx-auto scroll-mt-28">
-      {/* ── Clean Single-Surface Link Shortener Bar (strictly rounded-[10px]) ── */}
+    <div
+      id="hero-shortener"
+      className="w-full max-w-[740px] mx-auto scroll-mt-28"
+    >
+      {/* ── Clean Single-Surface Link Shortener Bar (strictly rounded-[10px], without Try sample) ── */}
       <div
-        className={`relative rounded-[10px] bg-white dark:bg-[#111318] border shadow-[0_10px_30px_rgba(16,24,40,0.06)] dark:shadow-[0_18px_44px_rgba(0,0,0,0.52)] transition-[border-color,box-shadow] duration-200 overflow-hidden ${
+        className={`relative z-20 rounded-[10px] bg-white dark:bg-[#111318] border shadow-[0_10px_30px_rgba(16,24,40,0.06)] dark:shadow-[0_18px_44px_rgba(0,0,0,0.52)] transition-[border-color,box-shadow] duration-200 overflow-hidden ${
           isPulseHighlighted
             ? "border-[#0066FF] ring-2 ring-[#0066FF]/25"
             : errorMsg
@@ -352,19 +278,11 @@ export function HeroShortener() {
                   setUrlInput(e.target.value);
                   if (errorMsg) setErrorMsg(null);
                 }}
-                placeholder="Paste a long URL to shorten (e.g. https://stripe.com/docs)..."
+                placeholder="Paste a long URL to shorten..."
                 aria-label="Paste a long URL to shorten"
                 className="w-full h-11 sm:h-12 px-3 bg-transparent text-[15px] text-[#09090B] dark:text-white placeholder:text-[#71717A] dark:placeholder:text-zinc-500 outline-none border-0"
               />
-              {!urlInput ? (
-                <button
-                  type="button"
-                  onClick={handleTryExample}
-                  className="hidden sm:inline-flex items-center mr-2 px-2.5 py-1 rounded-[6px] text-[12.5px] font-medium text-[#52525B] dark:text-zinc-300 bg-[#F4F4F5] dark:bg-white/[0.06] hover:text-[#0066FF] dark:hover:text-[#5294FF] hover:bg-[#0066FF]/[0.08] dark:hover:bg-[#0066FF]/[0.16] transition-colors shrink-0 cursor-pointer"
-                >
-                  Try sample
-                </button>
-              ) : (
+              {urlInput && (
                 <span
                   aria-hidden="true"
                   className="hidden md:inline-flex items-center gap-1 mr-2 px-1.5 py-0.5 rounded-[5px] border border-[#E4E7EC] dark:border-white/10 bg-[#F8F9FB] dark:bg-white/[0.04] text-[11px] text-[#71717A] dark:text-zinc-400 shrink-0 select-none"
@@ -411,8 +329,51 @@ export function HeroShortener() {
         )}
       </AnimatePresence>
 
-      {/* Cohesive Sub-line: Guest Quota Status + 6-Minute Walkthrough Link */}
-      <div className="mt-3.5 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-[13px] text-[#52525B] dark:text-zinc-400">
+      {/* ── Minimalist Cascading Shortened Link Rows (NO card, ONLY left & right vertical bars) ── */}
+      {orderedLinks.length > 0 && (
+        <div
+          aria-live="polite"
+          className="relative z-10 mt-3.5 flex flex-col gap-2.5"
+        >
+          <AnimatePresence initial={false}>
+            {orderedLinks.map((item, idx) => (
+              <motion.div
+                key={item.slug}
+                initial={{ opacity: 0, y: -24 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -12 }}
+                transition={{
+                  duration: 0.45,
+                  ease: [0.22, 1, 0.36, 1],
+                }}
+                style={{ zIndex: 10 - idx }}
+                className="w-full border-l-2 border-r-2 border-black dark:border-white px-4 py-2.5 flex items-center justify-between gap-4 text-left"
+              >
+                {/* Left: Shortened link + icon that redirects on click */}
+                <a
+                  href={`/${encodeURIComponent(item.slug)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={handleLinkClicked}
+                  className="group inline-flex items-center gap-2 text-[15px] sm:text-[16px] font-mono font-semibold text-[#09090B] dark:text-white hover:text-[#0066FF] dark:hover:text-[#5294FF] transition-colors truncate"
+                >
+                  <span className="truncate">lsho.cc/{item.slug}</span>
+                  <ExternalLink className="w-4 h-4 shrink-0 text-[#09090B]/70 dark:text-white/75 group-hover:text-[#0066FF] dark:group-hover:text-[#5294FF] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                </a>
+
+                {/* Right: Live click count text (0 clicks, 1 click, 2 clicks...) */}
+                <span className="shrink-0 font-mono text-[13.5px] sm:text-[14px] font-medium text-[#09090B] dark:text-white tabular-nums">
+                  {item.clicksCount}{" "}
+                  {item.clicksCount === 1 ? "click" : "clicks"}
+                </span>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
+      )}
+
+      {/* Sub-line: Guest Quota Status + 6-Minute Walkthrough Link */}
+      <div className="mt-3.5 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-[13px] text-[#52525B] dark:text-zinc-300">
         {isAuthenticated ? (
           <span className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium">
             <ShieldCheck className="w-3.5 h-3.5" />
@@ -423,7 +384,7 @@ export function HeroShortener() {
             <span>No signup required</span>
             <span
               aria-hidden="true"
-              className="hidden sm:inline-block h-3 w-px bg-[#D4D4D8] dark:bg-white/12"
+              className="hidden sm:inline-block h-3 w-px bg-[#D4D4D8] dark:bg-white/15"
             />
             <span className="inline-flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5 text-[#0066FF] dark:text-[#5294FF]" />
@@ -431,9 +392,9 @@ export function HeroShortener() {
             </span>
             <span
               aria-hidden="true"
-              className="hidden sm:inline-block h-3 w-px bg-[#D4D4D8] dark:bg-white/12"
+              className="hidden sm:inline-block h-3 w-px bg-[#D4D4D8] dark:bg-white/15"
             />
-            <span className="font-medium text-[#09090B] dark:text-zinc-200 tabular-nums">
+            <span className="font-medium text-[#09090B] dark:text-white tabular-nums">
               {limitReached
                 ? "2 of 2 guest links used"
                 : `${remainingGuest} free ${remainingGuest === 1 ? "link" : "links"} left`}
@@ -442,228 +403,16 @@ export function HeroShortener() {
         )}
         <span
           aria-hidden="true"
-          className="hidden md:inline-block h-3 w-px bg-[#D4D4D8] dark:bg-white/12"
+          className="hidden md:inline-block h-3 w-px bg-[#D4D4D8] dark:bg-white/15"
         />
         <Link
           href="/#demo-video"
-          className="inline-flex items-center gap-1.5 font-medium text-[#09090B] dark:text-zinc-200 hover:text-[#0066FF] dark:hover:text-[#5294FF] transition-colors"
+          className="inline-flex items-center gap-1.5 font-medium text-[#09090B] dark:text-white hover:text-[#0066FF] dark:hover:text-[#5294FF] transition-colors"
         >
           <Play className="w-3 h-3 fill-current text-[#0066FF] dark:text-[#5294FF]" />
           <span>Watch 6-min walkthrough</span>
         </Link>
       </div>
-
-      {/* ── Live Result Card (Expands Smoothly After Shortening) ── */}
-      <AnimatePresence mode="wait">
-        {activeLink && (
-          <motion.div
-            key="shortener-result-card"
-            initial={{ opacity: 0, y: 12, scale: 0.985 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8, scale: 0.985 }}
-            transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
-            className="mt-5 rounded-[10px] bg-white dark:bg-[#0E0F13] border border-[#E4E7EC] dark:border-white/14 shadow-[0_18px_48px_rgba(16,24,40,0.08)] dark:shadow-[0_24px_60px_rgba(0,0,0,0.62)] overflow-hidden text-left"
-          >
-            {/* Optional tab switcher when 2 links exist */}
-            {links.length > 1 && (
-              <div className="flex items-center justify-between gap-2 px-4 py-2 bg-[#F7F8FA] dark:bg-white/[0.03] border-b border-[#E4E7EC] dark:border-white/[0.08]">
-                <span className="text-[11px] font-mono uppercase tracking-wider text-[#667085] dark:text-zinc-400">
-                  Recent links ({links.length})
-                </span>
-                <div className="flex items-center gap-1.5 overflow-x-auto">
-                  {links.map((item) => {
-                    const isSelected = item.slug === activeLink.slug;
-                    return (
-                      <button
-                        key={item.slug}
-                        type="button"
-                        onClick={() => {
-                          setActiveSlug(item.slug);
-                          setShowQr(false);
-                        }}
-                        className={`px-2.5 py-1 rounded-[6px] font-mono text-[11.5px] font-semibold transition-colors cursor-pointer whitespace-nowrap ${
-                          isSelected
-                            ? "bg-[#0066FF] text-white"
-                            : "bg-white dark:bg-white/[0.06] text-[#475467] dark:text-zinc-300 border border-[#E4E7EC] dark:border-white/10 hover:border-[#0066FF]/50"
-                        }`}
-                      >
-                        /{item.slug} · {item.clicksCount}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Top Row: Short Link + Copy + QR + Live Click Counter */}
-            <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2.5">
-                  <a
-                    href={`/${encodeURIComponent(activeLink.slug)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={handleLinkClicked}
-                    className="inline-flex items-center gap-1.5 text-[17px] sm:text-[18px] font-bold tracking-[-0.02em] text-[#0066FF] dark:text-[#5294FF] hover:underline break-all"
-                  >
-                    <span>lsho.cc/{activeLink.slug}</span>
-                    <ExternalLink className="w-4 h-4 shrink-0" />
-                  </a>
-
-                  <AnimatedClickCounter count={activeLink.clicksCount} />
-                </div>
-
-                <p className="mt-1.5 text-[12.5px] text-[#667085] dark:text-zinc-400 truncate max-w-full">
-                  Redirects to{" "}
-                  <span className="text-[#344054] dark:text-zinc-300 font-medium font-mono text-[12px]">
-                    {activeLink.targetUrl}
-                  </span>
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => handleCopy(activeLink)}
-                  className={`h-9 px-3.5 rounded-[8px] inline-flex items-center gap-1.5 text-[13px] font-semibold border transition-all cursor-pointer ${
-                    copiedSlug === activeLink.slug
-                      ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-600 dark:text-emerald-400"
-                      : "bg-[#F7F8FA] dark:bg-white/[0.06] border-[#D0D5DD] dark:border-white/14 text-[#101828] dark:text-white hover:border-[#0066FF] hover:text-[#0066FF] dark:hover:text-[#5294FF]"
-                  }`}
-                >
-                  {copiedSlug === activeLink.slug ? (
-                    <>
-                      <Check className="w-3.5 h-3.5" />
-                      <span>Copied</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3.5 h-3.5" />
-                      <span>Copy</span>
-                    </>
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setShowQr((v) => !v)}
-                  aria-label="Toggle QR code preview"
-                  className={`h-9 px-3 rounded-[8px] inline-flex items-center gap-1.5 text-[13px] font-medium border transition-colors cursor-pointer ${
-                    showQr
-                      ? "bg-[#0066FF]/10 border-[#0066FF]/40 text-[#0066FF] dark:text-[#5294FF]"
-                      : "bg-[#F7F8FA] dark:bg-white/[0.06] border-[#D0D5DD] dark:border-white/14 text-[#344054] dark:text-zinc-300 hover:border-[#0066FF]/50"
-                  }`}
-                >
-                  <QrCode className="w-3.5 h-3.5" />
-                  <span>QR</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Inline QR Code Drawer */}
-            <AnimatePresence>
-              {showQr && qrDataUrl && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.22 }}
-                  className="overflow-hidden border-t border-[#E4E7EC] dark:border-white/[0.08] bg-[#F7F8FA] dark:bg-white/[0.02]"
-                >
-                  <div className="p-4 flex flex-col sm:flex-row items-center gap-4">
-                    <div className="p-2 rounded-[10px] bg-white border border-[#E4E7EC] shadow-xs shrink-0">
-                      <img
-                        src={qrDataUrl}
-                        alt={`QR code for ${activeLink.shortUrl}`}
-                        className="w-28 h-28 block"
-                      />
-                    </div>
-                    <div className="flex-1 text-center sm:text-left">
-                      <div className="text-[13.5px] font-semibold text-[#101828] dark:text-white">
-                        Instant QR Code for lsho.cc/{activeLink.slug}
-                      </div>
-                      <p className="text-[12.5px] text-[#667085] dark:text-zinc-400 mt-0.5">
-                        Scan with your phone to test live click tracking right now — the counter above updates automatically.
-                      </p>
-                      <a
-                        href={qrDataUrl}
-                        download={`lsho-${activeLink.slug}-qr.png`}
-                        className="mt-2.5 inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-[#0066FF] dark:text-[#5294FF] hover:underline"
-                      >
-                        <Download className="w-3.5 h-3.5" />
-                        Download PNG
-                      </a>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Bottom Conversion Banner: Locked Analytics Teaser + Keep Forever CTA */}
-            {!isAuthenticated ? (
-              <div className="px-4 py-3.5 sm:px-5 sm:py-4 bg-[#F7F8FA] dark:bg-[#13141A] border-t border-[#E4E7EC] dark:border-white/[0.08] flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-start gap-3 min-w-0">
-                  <span className="mt-0.5 text-[#0066FF] dark:text-[#5294FF] shrink-0">
-                    <Lock className="w-4 h-4" />
-                  </span>
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-[13.5px] font-semibold text-[#101828] dark:text-white">
-                        {activeLink.clicksCount === 0
-                          ? "0 clicks so far — click your link to watch it update live"
-                          : `${activeLink.clicksCount} live ${activeLink.clicksCount === 1 ? "click" : "clicks"} recorded — detailed analytics locked`}
-                      </span>
-                    </div>
-                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-[#475467] dark:text-zinc-400 font-mono">
-                      <span className="inline-flex items-center gap-1">
-                        <Globe2 className="w-3.5 h-3.5 text-[#0066FF]/80" />
-                        <span className="blur-[2.5px] select-none">Paris, FR</span>
-                      </span>
-                      <span className="inline-flex items-center gap-1">
-                        <Smartphone className="w-3.5 h-3.5 text-[#0066FF]/80" />
-                        <span className="blur-[2.5px] select-none">iOS · Safari</span>
-                      </span>
-                      <span className="inline-flex items-center gap-1">
-                        <BarChart3 className="w-3.5 h-3.5 text-[#0066FF]/80" />
-                        <span>Expires in 3 days unless claimed</span>
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex flex-col items-stretch md:items-end gap-1 shrink-0">
-                  <WaveRevealButton
-                    href="/register?claim=1"
-                    variant="primary"
-                    size="sm"
-                    icon={<Sparkles className="w-3.5 h-3.5" />}
-                  >
-                    Keep this link forever &amp; unlock analytics
-                  </WaveRevealButton>
-                  <span className="text-[11px] font-mono text-[#667085] dark:text-zinc-400 text-center md:text-right">
-                    Free plan · 10,000 clicks/mo · No credit card
-                  </span>
-                </div>
-              </div>
-            ) : (
-              <div className="px-4 py-3 sm:px-5 bg-emerald-500/[0.06] dark:bg-emerald-500/[0.10] border-t border-emerald-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <span className="text-[13px] font-medium text-emerald-700 dark:text-emerald-300 inline-flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 shrink-0" />
-                  Saved permanently to your LShorter workspace.
-                </span>
-                <WaveRevealButton
-                  href="/dashboard/links"
-                  variant="outline"
-                  size="sm"
-                  icon={<LayoutDashboard className="w-3.5 h-3.5" />}
-                >
-                  View analytics in dashboard
-                </WaveRevealButton>
-              </div>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* ── Mandatory 3rd-Link Guest Limit Modal (strictly rounded-[10px]) ── */}
       <AnimatePresence>
@@ -737,7 +486,7 @@ export function HeroShortener() {
 
               {links.length > 0 && (
                 <div className="mt-4 rounded-[10px] border border-[#E4E7EC] dark:border-white/10 bg-[#F7F8FA] dark:bg-white/[0.03] divide-y divide-[#E4E7EC] dark:divide-white/[0.08]">
-                  {links.slice(0, 2).map((item) => (
+                  {orderedLinks.map((item) => (
                     <div
                       key={item.slug}
                       className="px-3.5 py-2.5 flex items-center justify-between gap-3 text-[13px]"
