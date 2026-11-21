@@ -408,6 +408,7 @@ export function HeroShortener() {
               type="submit"
               variant="primary"
               size="lg"
+              wave
               disabled={isSubmitting}
               showArrow={!isSubmitting}
               className="sm:shrink-0 h-11 sm:h-12 px-6"

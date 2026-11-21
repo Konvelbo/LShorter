@@ -9,6 +9,11 @@ export interface WaveRevealButtonProps
   href?: string;
   variant?: "primary" | "secondary" | "outline" | "white" | "dark" | "contrast" | "default";
   size?: "sm" | "md" | "lg";
+  /**
+   * Enable the signature bottom-left-to-top-right blue wave expansion effect.
+   * Keep `false` (default) for secondary/standard buttons; set `true` ONLY on high-priority CTAs.
+   */
+  wave?: boolean;
   waveColor?: string;
   icon?: React.ReactNode;
   showArrow?: boolean;
@@ -36,9 +41,10 @@ function FramerArrow({ className }: { className?: string }) {
 }
 
 /**
- * Liquid Sine-Wave Hover Button (strictly capped at rounded-[10px]).
- * On hover/focus, a crisp SVG sine-wave crest rises smoothly from the bottom edge
- * while sliding horizontally, synchronized with a dual-arrow slide and tactile press.
+ * Primary & Standard Marketing Button (strictly capped at rounded-[10px]).
+ * - Default (`wave = false`): clean, restrained hover state for standard/secondary actions.
+ * - High-priority CTA (`wave = true`): tactile blue wave expanding progressively from the
+ *   bottom-left corner across the entire button with deliberate entrance delay and dual-layer crest.
  */
 export const WaveRevealButton = forwardRef<
   HTMLButtonElement & HTMLAnchorElement,
@@ -49,6 +55,7 @@ export const WaveRevealButton = forwardRef<
       href,
       variant = "primary",
       size = "md",
+      wave = false,
       waveColor,
       icon,
       showArrow = true,
@@ -65,60 +72,82 @@ export const WaveRevealButton = forwardRef<
   ) => {
     const variantStyles = {
       primary: {
-        base: "bg-[#0066FF] text-white border border-[#0066FF]/70 shadow-[0_4px_16px_rgba(0,102,255,0.28)] hover:shadow-[0_8px_26px_rgba(0,102,255,0.44)] hover:border-[#5294FF]/70",
-        textHover: "group-hover:text-white group-focus-visible:text-white",
+        base: "bg-[#0066FF] text-white border border-[#0066FF]/70 shadow-[0_4px_14px_rgba(0,102,255,0.24)] hover:shadow-[0_8px_24px_rgba(0,102,255,0.40)] hover:border-[#3B82F6]",
+        staticHover: "hover:bg-[#0055D4]",
+        textHoverWave: "group-hover:text-white group-focus-visible:text-white",
+        textHoverStatic: "",
         arrowDefault: "text-white",
-        arrowHover: "text-white",
-        waveFill: waveColor || "#0044CC",
-        crestFill: "rgba(82, 148, 255, 0.45)",
+        arrowHoverWave: "text-white",
+        arrowHoverStatic: "text-white",
+        waveFill: waveColor || "#003EB8",
+        crestFill: "rgba(96, 165, 250, 0.72)",
       },
       default: {
-        base: "bg-[#0066FF] text-white border border-[#0066FF]/70 shadow-[0_4px_16px_rgba(0,102,255,0.28)] hover:shadow-[0_8px_26px_rgba(0,102,255,0.44)] hover:border-[#5294FF]/70",
-        textHover: "group-hover:text-white group-focus-visible:text-white",
+        base: "bg-[#0066FF] text-white border border-[#0066FF]/70 shadow-[0_4px_14px_rgba(0,102,255,0.24)] hover:shadow-[0_8px_24px_rgba(0,102,255,0.40)] hover:border-[#3B82F6]",
+        staticHover: "hover:bg-[#0055D4]",
+        textHoverWave: "group-hover:text-white group-focus-visible:text-white",
+        textHoverStatic: "",
         arrowDefault: "text-white",
-        arrowHover: "text-white",
-        waveFill: waveColor || "#0044CC",
-        crestFill: "rgba(82, 148, 255, 0.45)",
+        arrowHoverWave: "text-white",
+        arrowHoverStatic: "text-white",
+        waveFill: waveColor || "#003EB8",
+        crestFill: "rgba(96, 165, 250, 0.72)",
       },
       white: {
-        base: "bg-white text-zinc-950 border border-zinc-200 shadow-2xs hover:border-[#0066FF] hover:shadow-[0_6px_20px_rgba(0,102,255,0.24)]",
-        textHover: "group-hover:text-white group-focus-visible:text-white",
+        base: "bg-white text-zinc-950 border border-zinc-200 shadow-2xs hover:border-[#0066FF]",
+        staticHover: "hover:bg-zinc-50 hover:border-zinc-300",
+        textHoverWave: "group-hover:text-white group-focus-visible:text-white",
+        textHoverStatic: "",
         arrowDefault: "text-zinc-950",
-        arrowHover: "text-white",
+        arrowHoverWave: "text-white",
+        arrowHoverStatic: "text-[#0066FF]",
         waveFill: waveColor || "#0066FF",
-        crestFill: "rgba(82, 148, 255, 0.35)",
+        crestFill: "rgba(96, 165, 250, 0.55)",
       },
       dark: {
-        base: "bg-[#101828] dark:bg-[#141418] text-white border border-zinc-800 dark:border-white/15 shadow-2xs hover:border-[#0066FF] hover:shadow-[0_6px_22px_rgba(0,102,255,0.32)]",
-        textHover: "group-hover:text-white group-focus-visible:text-white",
+        base: "bg-[#101828] dark:bg-[#141418] text-white border border-zinc-800 dark:border-white/15 shadow-2xs hover:border-[#0066FF]",
+        staticHover: "hover:bg-[#182235] dark:hover:bg-[#1D1E25] hover:border-zinc-700",
+        textHoverWave: "group-hover:text-white group-focus-visible:text-white",
+        textHoverStatic: "",
         arrowDefault: "text-white",
-        arrowHover: "text-white",
+        arrowHoverWave: "text-white",
+        arrowHoverStatic: "text-[#5294FF]",
         waveFill: waveColor || "#0066FF",
-        crestFill: "rgba(82, 148, 255, 0.40)",
+        crestFill: "rgba(96, 165, 250, 0.55)",
       },
       outline: {
-        base: "bg-white/95 dark:bg-white/[0.04] backdrop-blur-md text-zinc-900 dark:text-white border border-[#D0D5DD] dark:border-white/15 shadow-2xs hover:border-[#0066FF] hover:shadow-[0_6px_20px_rgba(0,102,255,0.24)]",
-        textHover: "group-hover:text-white group-focus-visible:text-white",
+        base: "bg-white/95 dark:bg-white/[0.04] backdrop-blur-md text-zinc-900 dark:text-white border border-[#D0D5DD] dark:border-white/15 shadow-2xs",
+        staticHover:
+          "hover:bg-zinc-100/90 dark:hover:bg-white/[0.09] hover:border-zinc-400 dark:hover:border-white/25",
+        textHoverWave: "group-hover:text-white group-focus-visible:text-white",
+        textHoverStatic: "",
         arrowDefault: "text-zinc-700 dark:text-zinc-200",
-        arrowHover: "text-white",
+        arrowHoverWave: "text-white",
+        arrowHoverStatic: "text-[#0066FF] dark:text-[#5294FF]",
         waveFill: waveColor || "#0066FF",
-        crestFill: "rgba(82, 148, 255, 0.35)",
+        crestFill: "rgba(96, 165, 250, 0.55)",
       },
       secondary: {
-        base: "bg-zinc-100 dark:bg-zinc-800/80 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700 hover:border-[#0066FF] hover:shadow-[0_6px_20px_rgba(0,102,255,0.22)]",
-        textHover: "group-hover:text-white group-focus-visible:text-white",
+        base: "bg-zinc-100 dark:bg-zinc-800/80 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700",
+        staticHover: "hover:bg-zinc-200/80 dark:hover:bg-zinc-700/80",
+        textHoverWave: "group-hover:text-white group-focus-visible:text-white",
+        textHoverStatic: "",
         arrowDefault: "text-zinc-700 dark:text-zinc-200",
-        arrowHover: "text-white",
+        arrowHoverWave: "text-white",
+        arrowHoverStatic: "text-[#0066FF] dark:text-[#5294FF]",
         waveFill: waveColor || "#0066FF",
-        crestFill: "rgba(82, 148, 255, 0.35)",
+        crestFill: "rgba(96, 165, 250, 0.55)",
       },
       contrast: {
-        base: "bg-zinc-900 text-white dark:bg-white dark:text-zinc-950 border border-zinc-800 dark:border-white/20 shadow-2xs hover:border-[#0066FF] hover:shadow-[0_6px_22px_rgba(0,102,255,0.28)]",
-        textHover: "group-hover:text-white group-focus-visible:text-white",
-        arrowDefault: "text-white dark:text-zinc-950",
-        arrowHover: "text-white",
+        base: "bg-[#09090B] text-white dark:bg-white dark:text-[#09090B] border border-[#09090B] dark:border-white/20 shadow-[0_4px_14px_rgba(0,0,0,0.14)] dark:shadow-[0_4px_16px_rgba(0,0,0,0.40)]",
+        staticHover: "hover:bg-zinc-800 dark:hover:bg-zinc-100",
+        textHoverWave: "group-hover:text-white group-focus-visible:text-white dark:group-hover:text-white dark:group-focus-visible:text-white",
+        textHoverStatic: "",
+        arrowDefault: "text-white dark:text-[#09090B]",
+        arrowHoverWave: "text-white",
+        arrowHoverStatic: "text-white dark:text-[#09090B]",
         waveFill: waveColor || "#0066FF",
-        crestFill: "rgba(82, 148, 255, 0.35)",
+        crestFill: "rgba(96, 165, 250, 0.65)",
       },
     }[variant];
 
@@ -128,52 +157,56 @@ export const WaveRevealButton = forwardRef<
       lg: "h-12 px-6 text-[15px] gap-2.5 rounded-[10px]",
     }[size];
 
+    const textHoverClass = wave
+      ? variantStyles.textHoverWave
+      : variantStyles.textHoverStatic;
+    const arrowHoverClass = wave
+      ? variantStyles.arrowHoverWave
+      : variantStyles.arrowHoverStatic;
+
     const content = (
       <>
-        {/* ── Liquid Sine-Wave Hover Layer (strictly clipped to rounded-[10px]) ── */}
-        <span
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[10px]"
-        >
-          {/* Back translucent highlight crest (slightly delayed for real wave depth) */}
+        {/* ── Bottom-Left Expanding Blue Wave Layer (ONLY on high-importance CTAs with wave={true}) ── */}
+        {wave && (
           <span
-            className="absolute -left-[22%] top-[-22%] w-[150%] h-[165%] transform-gpu translate-y-[118%] translate-x-0 transition-transform duration-[480ms] ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:translate-y-[-8%] group-hover:translate-x-[8%] group-focus-visible:translate-y-[-8%] group-focus-visible:translate-x-[8%] motion-reduce:transition-none"
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[10px]"
           >
-            <svg
-              viewBox="0 0 360 120"
-              preserveAspectRatio="none"
-              className="w-full h-full block"
-            >
-              <path
-                d="M0,26 C48,6 96,44 144,24 C192,4 240,42 288,22 C318,10 342,16 360,24 L360,120 L0,120 Z"
-                fill={variantStyles.crestFill}
-              />
-            </svg>
-          </span>
+            {/* Leading luminous wave crest: leaves bottom-left corner first (80ms delay, 900ms fluid sweep) */}
+            <span
+              style={{ backgroundColor: variantStyles.crestFill }}
+              className={cn(
+                "absolute left-0 top-full w-[228%] aspect-square rounded-[46%_54%_52%_48%/52%_44%_56%_48%] transform-gpu",
+                "-translate-x-1/2 -translate-y-1/2 scale-0 rotate-[-18deg]",
+                "transition-transform duration-[540ms] delay-[70ms] ease-[cubic-bezier(0.4,0,0.2,1)]",
+                "group-hover:scale-[1.04] group-hover:rotate-[10deg] group-hover:duration-[900ms] group-hover:delay-[80ms] group-hover:ease-[cubic-bezier(0.42,0,0.2,1)]",
+                "group-focus-visible:scale-[1.04] group-focus-visible:rotate-[10deg] group-focus-visible:duration-[900ms] group-focus-visible:delay-[80ms]",
+                "motion-reduce:transition-none"
+              )}
+            />
 
-          {/* Front primary liquid wave */}
-          <span
-            className="absolute -left-[12%] top-[-16%] w-[150%] h-[165%] transform-gpu translate-y-[115%] translate-x-0 transition-transform duration-[380ms] ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:translate-y-[-14%] group-hover:-translate-x-[10%] group-focus-visible:translate-y-[-14%] group-focus-visible:-translate-x-[10%] motion-reduce:transition-none"
-          >
-            <svg
-              viewBox="0 0 360 120"
-              preserveAspectRatio="none"
-              className="w-full h-full block"
-            >
-              <path
-                d="M0,24 C55,44 105,4 165,24 C225,44 285,4 360,22 L360,120 L0,120 Z"
-                fill={variantStyles.waveFill}
-              />
-            </svg>
+            {/* Primary deep blue wave body: follows right behind (180ms delay, 1020ms fluid sweep across full button) */}
+            <span
+              style={{ backgroundColor: variantStyles.waveFill }}
+              className={cn(
+                "absolute left-0 top-full w-[228%] aspect-square rounded-[52%_48%_45%_55%/46%_54%_46%_54%] transform-gpu",
+                "-translate-x-1/2 -translate-y-1/2 scale-0 rotate-[12deg]",
+                "transition-transform duration-[480ms] delay-0 ease-[cubic-bezier(0.4,0,0.2,1)]",
+                "group-hover:scale-[1.04] group-hover:rotate-[-6deg] group-hover:duration-[1020ms] group-hover:delay-[180ms] group-hover:ease-[cubic-bezier(0.42,0,0.2,1)]",
+                "group-focus-visible:scale-[1.04] group-focus-visible:rotate-[-6deg] group-focus-visible:duration-[1020ms] group-focus-visible:delay-[180ms]",
+                "motion-reduce:transition-none"
+              )}
+            />
           </span>
-        </span>
+        )}
 
         {/* Optional Leading Icon */}
         {icon && (
           <span
             className={cn(
               "relative z-10 shrink-0 flex items-center justify-center transition-colors duration-300",
-              variantStyles.textHover
+              wave && "duration-[450ms] group-hover:delay-[200ms]",
+              textHoverClass
             )}
           >
             {icon}
@@ -184,7 +217,8 @@ export const WaveRevealButton = forwardRef<
         <span
           className={cn(
             "relative z-10 font-semibold tracking-[-0.01em] transition-colors duration-300 select-none whitespace-nowrap",
-            variantStyles.textHover
+            wave && "duration-[450ms] group-hover:delay-[240ms]",
+            textHoverClass
           )}
         >
           {children}
@@ -193,8 +227,13 @@ export const WaveRevealButton = forwardRef<
         {/* Sliding Dual Arrow Viewport */}
         {showArrow && (
           <span className="relative z-10 w-[14px] h-[13px] overflow-hidden shrink-0 block select-none">
-            <span className="absolute left-0 top-0 flex items-center gap-2 w-[36px] h-[13px] transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] -translate-x-[22px] group-hover:translate-x-0 group-focus-visible:translate-x-0">
-              <FramerArrow className={variantStyles.arrowHover} />
+            <span
+              className={cn(
+                "absolute left-0 top-0 flex items-center gap-2 w-[36px] h-[13px] transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] -translate-x-[22px] group-hover:translate-x-0 group-focus-visible:translate-x-0",
+                wave && "duration-[500ms] group-hover:delay-[260ms]"
+              )}
+            >
+              <FramerArrow className={arrowHoverClass} />
               <FramerArrow className={variantStyles.arrowDefault} />
             </span>
           </span>
@@ -203,12 +242,15 @@ export const WaveRevealButton = forwardRef<
     );
 
     const commonClasses = cn(
-      "group relative isolate inline-flex items-center justify-center cursor-pointer select-none overflow-hidden transition-[border-color,box-shadow,transform,color] duration-300",
+      "group relative isolate inline-flex items-center justify-center cursor-pointer select-none overflow-hidden transition-[background-color,border-color,box-shadow,transform,color] duration-300",
       "rounded-[10px]",
       "outline-none focus-visible:ring-2 focus-visible:ring-[#0066FF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#09090B]",
       "active:scale-[0.98]",
       sizeStyles,
       variantStyles.base,
+      wave
+        ? "hover:border-[#0066FF] hover:shadow-[0_8px_26px_rgba(0,102,255,0.38)]"
+        : variantStyles.staticHover,
       disabled && "opacity-50 cursor-not-allowed pointer-events-none",
       className
     );
