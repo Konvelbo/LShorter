@@ -50,3 +50,6 @@ next-env.d.ts
 
 # Large local demo video assets (swapped externally / hosted via CDN in prod)
 /public/videos/*.mp4
+
+# Local GAN design evaluation harness
+/gan-harness/

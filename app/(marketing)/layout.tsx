@@ -113,7 +113,7 @@ const MarketingMobileDrawer = React.memo(function MarketingMobileDrawer() {
       ref={overlayRef}
       inert={!isOpen ? true : undefined}
       aria-hidden={!isOpen}
-      className={`fixed inset-0 z-[10000] md:hidden overflow-hidden ${
+      className={`fixed inset-0 z-[10000] lg:hidden overflow-hidden ${
         isOpen ? "pointer-events-auto" : "pointer-events-none"
       }`}
     >
@@ -147,6 +147,7 @@ const MarketingMobileDrawer = React.memo(function MarketingMobileDrawer() {
                 alt="LShorter Logo"
                 width={28}
                 height={28}
+                loading="eager"
                 className="w-full h-full object-contain"
               />
             </div>
@@ -264,7 +265,7 @@ export default function MarketingLayout({
 
   return (
     <SmoothScrollProvider>
-      <div className="relative min-h-screen w-full bg-[#FAFAFA] dark:bg-[#09090b] text-[#09090B] dark:text-[#fafafa] font-sans">
+      <div className="relative min-h-screen w-full bg-[#FFFFFF] dark:bg-[#09090B] text-[#09090B] dark:text-[#FAFAFA] font-sans">
         <div className="w-full relative flex flex-col">
           <main className="w-full flex flex-col">{children}</main>
           <LandingFooter />

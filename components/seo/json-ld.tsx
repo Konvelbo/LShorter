@@ -32,7 +32,7 @@ export function RootStructuredData() {
       "@type": "ContactPoint",
       contactType: "customer support",
       email: "contact@lsho.cc",
-      availableLanguage: ["English", "French"],
+      availableLanguage: ["English"],
     },
   };
 
@@ -53,7 +53,7 @@ export function RootStructuredData() {
     ],
     url: baseUrl,
     keywords:
-      "lshorter, Lshorter, lsho, Lsho, lsho.cc, lsho cc, lshorter saas, lshorter url shortener, lshorter link shortener, raccourccisseur de lien, raccourcisseur de lien, link shorter, link shortener, path lock, pathlock, verrouillage de chemin, verrouillage de lien, lien protégé par mot de passe, password protected link, secure URL shortener, edge routing, dynamic QR code",
+      "lshorter, Lshorter, lsho, Lsho, lsho.cc, lsho cc, lshorter saas, lshorter url shortener, lshorter link shortener, link shorter, link shortener, path lock, pathlock, password protected link, secure URL shortener, edge routing, dynamic QR code",
     potentialAction: {
       "@type": "SearchAction",
       target: {
@@ -73,7 +73,7 @@ export function RootStructuredData() {
         position: 1,
         name: "Pricing & Plans",
         description:
-          "Transparent pricing for individuals, startups, and enterprises. Free starter to Enterprise tier.",
+          "Transparent pricing for individuals, startups, and enterprises. Free Starter to Enterprise tier.",
         url: `${baseUrl}/pricing`,
       },
       {
@@ -89,15 +89,15 @@ export function RootStructuredData() {
         position: 3,
         name: "PathLock™ Security",
         description:
-          "PIN protection, password-gated links, and enterprise link protection against unauthorized access.",
-        url: `${baseUrl}/docs/path-lock`,
+          "PIN protection, URL perimeter locking, and enterprise link protection against unauthorized access.",
+        url: `${baseUrl}/docs/pin-protection`,
       },
       {
         "@type": "SiteNavigationElement",
         position: 4,
         name: "Dynamic QR Code Studio",
         description:
-          "Create and customize high-resolution dynamic QR codes with live click telemetry and analytics.",
+          "Create and customize high-resolution dynamic vector QR codes with live click telemetry and analytics.",
         url: `${baseUrl}/docs/dynamic-qr-codes`,
       },
       {
@@ -105,7 +105,7 @@ export function RootStructuredData() {
         position: 5,
         name: "Global Edge Redirection",
         description:
-          "Sub-15ms edge redirects powered by Cloudflare Workers and D1 with geo-targeting and device routing.",
+          "Sub-12ms edge redirects powered by 310+ Cloudflare edge PoPs with geo-targeting and device routing.",
         url: `${baseUrl}/docs/geo-routing`,
       },
       {
@@ -135,45 +135,45 @@ export function RootStructuredData() {
     operatingSystem: "Cloud, All Modern Web Browsers",
     applicationCategory: "BusinessApplication",
     description:
-      "LShorter (lsho.cc) - Enterprise link management, Cloudflare edge redirection under 15ms, dynamic geo-targeting, A/B split testing, PathLock™ (verrouillage de chemin) protection, and real-time revenue attribution.",
+      "LShorter (lsho.cc) — Enterprise link management, < 12ms redirects across 310+ Cloudflare edge PoPs, dynamic geo-targeting, A/B split testing, PathLock™ perimeter locking, and real-time Stripe revenue attribution.",
     keywords:
-      "lshorter, Lshorter, lsho, Lsho, lsho.cc, lsho cc, lshorter saas, lshorter url shortener, raccourccisseur de lien, raccourcisseur de lien, link shorter, link shortener, path lock, pathlock, verrouillage de chemin, lien protégé par mot de passe, password protected link, enterprise link management",
+      "lshorter, Lshorter, lsho, Lsho, lsho.cc, lsho cc, lshorter saas, lshorter url shortener, link shorter, link shortener, path lock, pathlock, password protected link, enterprise link management, click caps, edge routing",
     offers: [
       {
         "@type": "Offer",
-        name: "Free Starter",
+        name: "Starter",
         price: "0",
         priceCurrency: "USD",
       },
       {
         "@type": "Offer",
         name: "Pro",
-        price: "9",
+        price: "15",
         priceCurrency: "USD",
         billingDuration: "P1M",
       },
       {
         "@type": "Offer",
         name: "Business",
-        price: "29",
+        price: "49",
         priceCurrency: "USD",
         billingDuration: "P1M",
       },
       {
         "@type": "Offer",
         name: "Enterprise",
-        price: "99",
+        price: "199",
         priceCurrency: "USD",
         billingDuration: "P1M",
       },
     ],
     featureList: [
-      "Sub-15ms Edge Redirection (Raccourcisseur de lien ultra-rapide)",
-      "Dynamic Geo & Device Smart Routing",
-      "PathLock™ PIN Link Gate (Verrouillage de chemin & protection par mot de passe)",
+      "Sub-12ms Edge Redirection across 310+ Cloudflare PoPs",
+      "Dynamic Geo, OS, Device & Weighted A/B Smart Routing",
+      "PathLock™ URL Prefix Perimeter Locking & PIN Gate",
       "Real-time Telemetry & City-level Analytics",
-      "Revenue Attribution & EPC Tracking",
-      "Dynamic QR Code Studio",
+      "Cookie-free Stripe Revenue Attribution",
+      "Dynamic Vector QR Code Studio",
       "Custom Branded Domains with Auto SSL",
     ],
   };

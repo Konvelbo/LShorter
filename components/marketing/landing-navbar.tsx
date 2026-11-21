@@ -16,6 +16,7 @@ import {
   BarChart3,
   Play,
   Link2,
+  ArrowUpRight,
 } from "lucide-react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
@@ -63,7 +64,7 @@ function NavLinkItem({
       onClick={onClick}
       onMouseEnter={() => tlRef.current?.play()}
       onMouseLeave={() => tlRef.current?.reverse()}
-      className={`relative px-[clamp(0.5rem,0.8vw,0.85rem)] py-1.5 rounded-[8px] text-[13.5px] tracking-[-0.01em] transition-colors cursor-pointer overflow-hidden whitespace-nowrap select-none ${
+      className={`relative shrink-0 px-2.5 xl:px-3 py-1.5 rounded-[8px] text-[13px] xl:text-[13.5px] tracking-[-0.01em] transition-colors cursor-pointer overflow-hidden whitespace-nowrap select-none ${
         isActive
           ? "bg-[#0066FF]/10 dark:bg-[#0066FF]/18 text-[#0066FF] dark:text-[#5294FF] font-semibold"
           : "text-[#344054] dark:text-zinc-300 hover:text-[#101828] dark:hover:text-white font-medium"
@@ -92,7 +93,7 @@ function NavLinkItem({
   );
 }
 
-// ─── DOCS & API MEGA-MENU (100% ENGLISH, STRICT ROUNDED-[10px]) ───
+// ─── DOCS & API MEGA-MENU (100% ENGLISH, ARCHITECTURAL SCHEMA CARD) ───
 function DocsApiDropdown({ isActive }: { isActive: boolean }) {
   const [isOpen, setIsOpen] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -144,19 +145,19 @@ function DocsApiDropdown({ isActive }: { isActive: boolean }) {
   const items = [
     {
       title: "REST API & SDK Quickstart",
-      desc: "Endpoints, SHA-256 Bearer keys, and code examples",
+      desc: "Endpoints, SHA-256 Bearer keys, and TypeScript / Python examples",
       href: "/docs/sdk-quickstart",
       icon: Terminal,
     },
     {
       title: "Smart Geo & Device Routing",
-      desc: "ISO country, OS, browser rules, and A/B split testing",
+      desc: "ISO country, OS, browser rules, and weighted A/B traffic splits",
       href: "/docs/geo-routing",
       icon: Globe,
     },
     {
       title: "PathLock™ & PIN Security",
-      desc: "Perimeter locking, click caps, and white-label masking",
+      desc: "URL perimeter locking, click caps, and white-label masking",
       href: "/docs/pin-protection",
       icon: Lock,
     },
@@ -170,14 +171,14 @@ function DocsApiDropdown({ isActive }: { isActive: boolean }) {
 
   return (
     <div
-      className="relative inline-block"
+      className="relative inline-block shrink-0"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
       <Link
         ref={linkRef}
         href="/docs"
-        className={`relative px-[clamp(0.5rem,0.8vw,0.85rem)] py-1.5 rounded-[8px] text-[13.5px] tracking-[-0.01em] transition-colors cursor-pointer select-none inline-flex items-center gap-1.5 overflow-hidden whitespace-nowrap ${
+        className={`relative shrink-0 px-2.5 xl:px-3 py-1.5 rounded-[8px] text-[13px] xl:text-[13.5px] tracking-[-0.01em] transition-colors cursor-pointer select-none inline-flex items-center gap-1.5 overflow-hidden whitespace-nowrap ${
           isActive || isOpen
             ? "bg-[#0066FF]/10 dark:bg-[#0066FF]/18 text-[#0066FF] dark:text-[#5294FF] font-semibold"
             : "text-[#344054] dark:text-zinc-300 hover:text-[#101828] dark:hover:text-white font-medium"
@@ -202,7 +203,7 @@ function DocsApiDropdown({ isActive }: { isActive: boolean }) {
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
-          className={`w-3.5 h-3.5 transition-transform duration-300 ${
+          className={`w-3.5 h-3.5 transition-transform duration-300 shrink-0 ${
             isOpen ? "rotate-180" : ""
           }`}
         >
@@ -215,17 +216,17 @@ function DocsApiDropdown({ isActive }: { isActive: boolean }) {
         </svg>
       </Link>
 
-      {/* Mega Menu strictly rounded-[10px] */}
+      {/* Mega Menu strictly rounded-[10px], cleanly anchored */}
       <div
-        className={`absolute top-full mt-2.5 right-[-20px] sm:right-[-60px] md:right-[-110px] w-[min(820px,calc(100vw-32px))] z-50 transform-gpu transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] before:content-[''] before:absolute before:-top-3 before:left-0 before:right-0 before:h-3.5 ${
+        className={`absolute top-full mt-2.5 right-[-180px] xl:right-[-240px] w-[min(780px,calc(100vw-48px))] z-50 transform-gpu transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] before:content-[''] before:absolute before:-top-3 before:left-0 before:right-0 before:h-3.5 ${
           isOpen
             ? "opacity-100 translate-y-0 scale-100 pointer-events-auto visible"
             : "opacity-0 -translate-y-2 scale-[0.98] pointer-events-none invisible"
         }`}
       >
-        <div className="rounded-[10px] p-5 shadow-[0_18px_48px_rgba(0,0,0,0.10)] dark:shadow-[0_22px_54px_rgba(0,0,0,0.72)] border backdrop-blur-xl bg-white dark:bg-[#0E0E12] border-[#E4E7EC] dark:border-white/10">
-          <div className="grid grid-cols-1 md:grid-cols-[1.65fr_1fr] gap-5 items-stretch">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="rounded-[10px] p-5 shadow-[0_20px_56px_rgba(16,24,40,0.12)] dark:shadow-[0_24px_64px_rgba(0,0,0,0.78)] border backdrop-blur-xl bg-white dark:bg-[#0D0E12] border-[#E4E7EC] dark:border-white/12">
+          <div className="grid grid-cols-1 md:grid-cols-[1.55fr_1fr] gap-5 items-stretch">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               {items.map((item) => {
                 const Icon = item.icon;
                 return (
@@ -233,16 +234,16 @@ function DocsApiDropdown({ isActive }: { isActive: boolean }) {
                     key={item.title}
                     href={item.href}
                     onClick={() => setIsOpen(false)}
-                    className="flex items-start gap-3 p-3.5 rounded-[10px] bg-[#F8F9FA] dark:bg-[#151519] hover:bg-[#0066FF]/[0.06] dark:hover:bg-[#0066FF]/[0.12] border border-black/[0.04] dark:border-white/[0.05] hover:border-[#0066FF]/30 transition-all duration-150 group"
+                    className="flex items-start gap-3 p-3.5 rounded-[8px] bg-[#F7F8FA] dark:bg-[#14151B] hover:bg-[#0066FF]/[0.06] dark:hover:bg-[#0066FF]/[0.14] border border-[#E4E7EC] dark:border-white/[0.07] hover:border-[#0066FF]/40 transition-all duration-150 group"
                   >
-                    <span className="mt-0.5 flex-shrink-0 w-8 h-8 rounded-[8px] bg-white dark:bg-white/[0.07] flex items-center justify-center text-[#475467] dark:text-zinc-300 group-hover:text-[#0066FF] dark:group-hover:text-[#5294FF] transition-colors shadow-2xs">
+                    <span className="mt-0.5 shrink-0 text-[#475467] dark:text-zinc-400 group-hover:text-[#0066FF] dark:group-hover:text-[#5294FF] transition-colors">
                       <Icon className="w-4 h-4" />
                     </span>
                     <div className="flex-1 min-w-0">
-                      <div className="text-[13.5px] font-semibold text-[#101828] dark:text-white group-hover:text-[#0066FF] dark:group-hover:text-[#5294FF] transition-colors">
+                      <div className="text-[13px] font-semibold text-[#101828] dark:text-white group-hover:text-[#0066FF] dark:group-hover:text-[#5294FF] transition-colors">
                         {item.title}
                       </div>
-                      <div className="text-[12px] text-[#667085] dark:text-zinc-400 mt-0.5 leading-snug">
+                      <div className="text-[11.5px] text-[#667085] dark:text-zinc-400 mt-1 leading-snug">
                         {item.desc}
                       </div>
                     </div>
@@ -251,38 +252,58 @@ function DocsApiDropdown({ isActive }: { isActive: boolean }) {
               })}
             </div>
 
-            <div className="flex flex-col gap-3">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-[#667085] dark:text-zinc-500">
-                Resources
-              </span>
+            <div className="flex flex-col gap-2.5">
+              <div className="flex items-center justify-between text-[10.5px] font-mono uppercase tracking-[0.14em] text-[#667085] dark:text-zinc-500">
+                <span>API Reference</span>
+                <span className="text-[#0066FF] dark:text-[#5294FF]">v1 · REST</span>
+              </div>
+
+              {/* Bespoke Dark Architectural API Schema Card (replaces legacy cartoon image) */}
               <Link
                 href="/docs"
                 onClick={() => setIsOpen(false)}
-                className="group relative flex-1 rounded-[10px] overflow-hidden flex flex-col justify-end p-4 min-h-[120px] bg-[#121316] isolate border border-white/10"
+                className="group relative flex-1 rounded-[8px] p-4 flex flex-col justify-between bg-[#09090B] text-white border border-white/12 hover:border-[#0066FF]/60 transition-colors overflow-hidden"
               >
-                <Image
-                  src="/doc/apiimage.webp"
-                  alt=""
-                  aria-hidden="true"
-                  fill
-                  loading="lazy"
-                  className="object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
-                  sizes="320px"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-black/20 pointer-events-none z-[1]" />
-                <div className="relative z-10">
-                  <div className="text-[15px] font-bold text-white tracking-tight">
-                    Full Documentation Hub
+                <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-white/[0.08]">
+                  <span className="inline-flex items-center gap-1.5 font-mono text-[11px] font-semibold text-white">
+                    <span className="px-1.5 py-0.5 rounded-[4px] bg-[#0066FF] text-white text-[10px]">
+                      POST
+                    </span>
+                    <span className="text-zinc-300">/api/v1/links</span>
+                  </span>
+                  <span className="font-mono text-[10.5px] text-emerald-400">
+                    201 · 11.4ms
+                  </span>
+                </div>
+
+                <div className="my-3 font-mono text-[11px] leading-[1.6] text-zinc-400">
+                  <div>
+                    <span className="text-[#5294FF]">&quot;slug&quot;</span>:{" "}
+                    <span className="text-emerald-400">&quot;beta-demo&quot;</span>,
                   </div>
-                  <div className="text-[12px] text-zinc-300 mt-0.5">
-                    Guides, API schema &amp; webhook recipes
+                  <div>
+                    <span className="text-[#5294FF]">&quot;pathLockPrefix&quot;</span>:{" "}
+                    <span className="text-amber-300">&quot;/app/dashboard/*&quot;</span>
                   </div>
                 </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-white/[0.08]">
+                  <div>
+                    <div className="text-[13.5px] font-bold text-white tracking-tight">
+                      Full Documentation Hub
+                    </div>
+                    <div className="text-[11px] text-zinc-400">
+                      Guides, OpenAPI schema &amp; webhooks
+                    </div>
+                  </div>
+                  <ArrowUpRight className="w-4 h-4 text-zinc-400 group-hover:text-[#5294FF] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all shrink-0" />
+                </div>
               </Link>
+
               <Link
                 href="/#demo-video"
                 onClick={() => setIsOpen(false)}
-                className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-[10px] bg-[#0066FF]/[0.08] hover:bg-[#0066FF]/[0.14] border border-[#0066FF]/25 text-[#0066FF] dark:text-[#5294FF] text-[12.5px] font-semibold transition-colors"
+                className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-[8px] bg-[#0066FF]/[0.08] hover:bg-[#0066FF]/[0.14] border border-[#0066FF]/25 text-[#0066FF] dark:text-[#5294FF] text-[12.5px] font-semibold transition-colors"
               >
                 <Play className="w-3.5 h-3.5 fill-current shrink-0" />
                 <span>Watch 6-min Product Walkthrough</span>
@@ -305,7 +326,7 @@ export const LandingNavbar = React.memo(function LandingNavbar() {
   const isAuthenticated =
     status === "authenticated" &&
     Boolean(session?.user) &&
-    !(session?.user as any)?.userNotFound;
+    !(session?.user as { userNotFound?: boolean } | undefined)?.userNotFound;
 
   const [isScrolled, setIsScrolled] = useState(false);
   const [activeSection, setActiveSection] = useState<string>("");
@@ -385,16 +406,26 @@ export const LandingNavbar = React.memo(function LandingNavbar() {
     };
   }, [pathname]);
 
-  // Scroll-spy for home landing sections
+  // Scroll-spy for home landing sections (includes pricing-preview & faq clearance)
   useEffect(() => {
     if (pathname !== "/") {
       setActiveSection("");
       return;
     }
-    const sectionIds = ["demo-video", "features", "pathlock", "difference", "api"];
+    const sectionIds = [
+      "demo-video",
+      "features",
+      "pathlock",
+      "difference",
+      "api",
+      "pricing-preview",
+      "faq",
+    ];
     const elements = sectionIds
       .map((id) => document.getElementById(id))
       .filter((el): el is HTMLElement => Boolean(el));
+    const footerEl = document.querySelector("footer");
+    if (footerEl) elements.push(footerEl);
 
     if (!elements.length || typeof IntersectionObserver === "undefined") return;
 
@@ -403,8 +434,12 @@ export const LandingNavbar = React.memo(function LandingNavbar() {
         const visible = entries
           .filter((e) => e.isIntersecting)
           .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
-        if (visible[0]?.target?.id) {
-          setActiveSection(visible[0].target.id);
+        if (visible[0]?.target) {
+          const target = visible[0].target as HTMLElement;
+          const id = target.id;
+          setActiveSection(
+            !id || id === "faq" || target.tagName === "FOOTER" ? "" : id
+          );
         }
       },
       { rootMargin: "-22% 0px -55% 0px", threshold: [0.1, 0.35, 0.6] }
@@ -450,20 +485,18 @@ export const LandingNavbar = React.memo(function LandingNavbar() {
     { label: "PathLock", href: "/#pathlock", sectionId: "pathlock" },
     { label: "Difference", href: "/#difference", sectionId: "difference" },
     { label: "Demo Video", href: "/#demo-video", sectionId: "demo-video" },
-    { label: "Pricing", href: "/pricing" },
+    { label: "Pricing", href: "/pricing", sectionId: "pricing-preview" },
     { label: "Docs & API", href: "/docs" },
   ];
 
   return (
-    <div
-      className="w-full flex justify-center pointer-events-none transition-opacity duration-300"
-    >
-      {/* ─── 1. DESKTOP NAVBAR (>= 768px) ─── */}
+    <div className="w-full flex justify-center pointer-events-none transition-opacity duration-300">
+      {/* ─── 1. DESKTOP NAVBAR (>= 1024px / lg) ─── */}
       <header
-        className={`relative hidden md:flex items-center justify-between gap-3 pointer-events-auto transform-gpu transition-[transform,width,background-color,border-color,box-shadow,border-radius] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-visible ${
+        className={`relative hidden lg:flex items-center justify-between gap-2 xl:gap-3 pointer-events-auto transform-gpu transition-[transform,width,background-color,border-color,box-shadow,border-radius] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-visible ${
           isScrolled
-            ? "translate-y-3 w-[min(1220px,95vw)] rounded-[10px] px-5 py-2.5 bg-white/[0.92] dark:bg-[#0C0C0F]/[0.90] backdrop-blur-xl border border-[#E4E7EC] dark:border-white/12 shadow-[0_12px_36px_rgba(16,24,40,0.08)] dark:shadow-[0_16px_42px_rgba(0,0,0,0.62)]"
-            : "translate-y-0 w-full rounded-none px-[clamp(1.25rem,3vw,3.5rem)] py-3.5 bg-white/[0.96] dark:bg-[#09090B]/[0.96] backdrop-blur-md border-b border-[#E4E7EC]/80 dark:border-white/[0.08]"
+            ? "translate-y-3 w-[min(1240px,96vw)] rounded-[10px] px-4 xl:px-5 py-2.5 bg-white/[0.94] dark:bg-[#0B0C0F]/[0.92] backdrop-blur-xl border border-[#E4E7EC] dark:border-white/12 shadow-[0_12px_36px_rgba(16,24,40,0.08)] dark:shadow-[0_16px_42px_rgba(0,0,0,0.62)]"
+            : "translate-y-0 w-full rounded-none px-5 xl:px-[clamp(1.5rem,3vw,3.5rem)] py-3.5 bg-white/[0.96] dark:bg-[#09090B]/[0.96] backdrop-blur-md border-b border-[#E4E7EC] dark:border-white/[0.08]"
         }`}
       >
         {/* Reading Progress Bar (2px #0066FF along bottom edge) */}
@@ -485,7 +518,7 @@ export const LandingNavbar = React.memo(function LandingNavbar() {
           href="/"
           className="flex items-center gap-2.5 select-none cursor-pointer group shrink-0"
         >
-          <div className="w-8 h-8 rounded-[8px] overflow-hidden shrink-0 shadow-xs group-hover:scale-105 transition-transform duration-200">
+          <div className="w-7 h-7 xl:w-8 xl:h-8 rounded-[8px] overflow-hidden shrink-0 shadow-xs group-hover:scale-105 transition-transform duration-200">
             <Image
               src="/logo.svg"
               alt="LShorter Logo"
@@ -493,17 +526,18 @@ export const LandingNavbar = React.memo(function LandingNavbar() {
               height={32}
               className="w-full h-full object-contain"
               priority
+              loading="eager"
             />
           </div>
-          <span className="text-[17px] font-bold tracking-[-0.03em] text-[#101828] dark:text-white">
+          <span className="text-[16px] xl:text-[17px] font-bold tracking-[-0.03em] text-[#101828] dark:text-white">
             LShorter
           </span>
         </Link>
 
-        {/* Center: Clean 100% English Navigation Links */}
+        {/* Center: Clean 100% English Navigation Links (never sliced) */}
         <nav
           aria-label="Primary navigation"
-          className="flex items-center gap-0.5 lg:gap-1 min-w-0"
+          className="flex items-center gap-0.5 xl:gap-1 shrink-0"
         >
           {navLinks.map((item) => {
             if (item.label === "Docs & API") {
@@ -514,9 +548,13 @@ export const LandingNavbar = React.memo(function LandingNavbar() {
                 />
               );
             }
-            const isItemActive = item.sectionId
-              ? pathname === "/" && activeSection === item.sectionId
-              : pathname.startsWith(item.href);
+            const isItemActive =
+              item.sectionId === "pricing-preview"
+                ? pathname.startsWith("/pricing") ||
+                  (pathname === "/" && activeSection === "pricing-preview")
+                : item.sectionId
+                  ? pathname === "/" && activeSection === item.sectionId
+                  : pathname.startsWith(item.href);
             return (
               <NavLinkItem
                 key={item.label}
@@ -528,7 +566,7 @@ export const LandingNavbar = React.memo(function LandingNavbar() {
         </nav>
 
         {/* Right: Theme Toggle + Subtle Sign In + Wave Action CTA */}
-        <div className="flex items-center gap-2 lg:gap-2.5 shrink-0">
+        <div className="flex items-center gap-1.5 xl:gap-2.5 shrink-0">
           <button
             type="button"
             onClick={handleToggleTheme}
@@ -543,7 +581,7 @@ export const LandingNavbar = React.memo(function LandingNavbar() {
           {!isAuthenticated && (
             <Link
               href="/login"
-              className="hidden lg:inline-flex items-center px-3 h-9 rounded-[10px] text-[13.5px] font-medium text-[#475467] dark:text-zinc-300 hover:text-[#101828] dark:hover:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors whitespace-nowrap"
+              className="inline-flex items-center px-2.5 xl:px-3 h-9 rounded-[10px] text-[13px] xl:text-[13.5px] font-medium text-[#475467] dark:text-zinc-300 hover:text-[#101828] dark:hover:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors whitespace-nowrap shrink-0"
             >
               Sign in
             </Link>
@@ -554,6 +592,7 @@ export const LandingNavbar = React.memo(function LandingNavbar() {
             onClick={isAuthenticated ? undefined : handleFocusShortener}
             variant="primary"
             size="sm"
+            className="shrink-0"
             icon={
               isAuthenticated ? (
                 <LayoutDashboard className="w-3.5 h-3.5" />
@@ -562,17 +601,24 @@ export const LandingNavbar = React.memo(function LandingNavbar() {
               )
             }
           >
-            {isAuthenticated ? "Dashboard" : "Shorten a link — no signup"}
+            {isAuthenticated ? (
+              "Dashboard"
+            ) : (
+              <>
+                <span className="hidden xl:inline">Shorten a link — no signup</span>
+                <span className="xl:hidden">Shorten — no signup</span>
+              </>
+            )}
           </WaveRevealButton>
         </div>
       </header>
 
-      {/* ─── 2. MOBILE NAVBAR (< 768px) ─── */}
+      {/* ─── 2. MOBILE & TABLET NAVBAR (< 1024px / lg:hidden) ─── */}
       <header
-        className={`relative flex md:hidden items-center justify-between pointer-events-auto transform-gpu transition-[transform,width,background-color,border-color,box-shadow,border-radius] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-hidden ${
+        className={`relative flex lg:hidden items-center justify-between pointer-events-auto transform-gpu transition-[transform,width,background-color,border-color,box-shadow,border-radius] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-hidden ${
           isScrolled
-            ? "translate-y-2.5 w-[calc(100%-1.5rem)] max-w-lg rounded-[10px] px-3.5 py-2.5 bg-white/[0.94] dark:bg-[#0C0C0F]/[0.94] backdrop-blur-xl border border-[#E4E7EC] dark:border-white/12 shadow-[0_10px_28px_rgba(0,0,0,0.08)] dark:shadow-[0_12px_32px_rgba(0,0,0,0.58)]"
-            : "translate-y-0 w-full rounded-none px-4 py-3 bg-white/[0.98] dark:bg-[#09090B]/[0.98] border-b border-[#E4E7EC]/80 dark:border-white/10"
+            ? "translate-y-2.5 w-[calc(100%-1.5rem)] max-w-2xl rounded-[10px] px-4 py-2.5 bg-white/[0.94] dark:bg-[#0C0C0F]/[0.94] backdrop-blur-xl border border-[#E4E7EC] dark:border-white/12 shadow-[0_10px_28px_rgba(0,0,0,0.08)] dark:shadow-[0_12px_32px_rgba(0,0,0,0.58)]"
+            : "translate-y-0 w-full rounded-none px-4 sm:px-6 py-3 bg-white/[0.98] dark:bg-[#09090B]/[0.98] border-b border-[#E4E7EC] dark:border-white/10"
         }`}
       >
         {/* Mobile Reading Progress Bar */}
@@ -587,7 +633,7 @@ export const LandingNavbar = React.memo(function LandingNavbar() {
           />
         </div>
 
-        <Link href="/" className="flex items-center gap-2 select-none">
+        <Link href="/" className="flex items-center gap-2 select-none shrink-0">
           <div className="w-7 h-7 rounded-[8px] overflow-hidden shrink-0 shadow-2xs">
             <Image
               src="/logo.svg"
@@ -595,6 +641,7 @@ export const LandingNavbar = React.memo(function LandingNavbar() {
               width={28}
               height={28}
               className="w-full h-full object-contain"
+              loading="eager"
             />
           </div>
           <span className="text-[16px] font-bold tracking-[-0.025em] text-[#101828] dark:text-white">
@@ -602,7 +649,7 @@ export const LandingNavbar = React.memo(function LandingNavbar() {
           </span>
         </Link>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
             onClick={handleToggleTheme}
