@@ -1,8 +1,14 @@
 "use client";
 
-import React, { forwardRef, useId, useState } from "react";
+import React, {
+  forwardRef,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import Link from "next/link";
-import { LayoutGroup, motion } from "motion/react";
+import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
 
 export interface WaveRevealButtonProps
@@ -32,24 +38,34 @@ export interface WaveRevealButtonProps
 }
 
 /**
- * Exact spring physics from Framer Wave Reveal Button (`XyPxxbn4B.js`):
- * `const transition1 = { bounce: 0, delay: 0, duration: 1, type: "spring" };`
+ * Spring physics derived from Framer Wave Reveal Button (`XyPxxbn4B.js`):
+ * - Enter: `{ type: "spring", bounce: 0, duration: 0.9 }`
+ * - Exit / Reverse: `{ type: "spring", bounce: 0, duration: 0.72 }` so reverse begins
+ *   on the very first frame of pointerleave with zero dead-zone lag.
  */
-const FRAMER_WAVE_SPRING = {
-  type: "spring" as const,
-  bounce: 0,
-  delay: 0,
-  duration: 1,
+const FRAMER_WAVE_ENTER_TRANSITION = {
+  duration: 0.52,
+  ease: [0.22, 1, 0.36, 1] as const,
+};
+
+const FRAMER_WAVE_EXIT_TRANSITION = {
+  duration: 0.46,
+  ease: [0.32, 0.08, 0.24, 1] as const,
 };
 
 /**
- * Exact CSS mask SVGs extracted verbatim from the Framer sub-modules:
+ * Exact SVG paths extracted verbatim from the Framer sub-modules:
  * - Arrow (`dK6JXX8w_.js`)
  * - WaveFill (`mzBpRU2t3.js`)
  */
-const FRAMER_ARROW_MASK = `url('data:image/svg+xml,<svg display="block" role="presentation" viewBox="0 0 15 14" xmlns="http://www.w3.org/2000/svg"><path d="M 14.817 7.496 L 9.192 13.796 C 8.948 14.069 8.552 14.069 8.308 13.796 C 8.064 13.522 8.064 13.079 8.308 12.805 L 12.866 7.7 L 0.625 7.7 C 0.28 7.7 0 7.387 0 7 C 0 6.614 0.28 6.3 0.625 6.3 L 12.866 6.3 L 8.308 1.196 C 8.064 0.922 8.064 0.479 8.308 0.205 C 8.552 -0.068 8.948 -0.068 9.192 0.205 L 14.817 6.505 C 14.935 6.636 15 6.815 15 7 C 15 7.186 14.935 7.364 14.817 7.496 Z" fill="black"/></svg>')`;
+const FRAMER_ARROW_PATH =
+  "M 14.817 7.496 L 9.192 13.796 C 8.948 14.069 8.552 14.069 8.308 13.796 C 8.064 13.522 8.064 13.079 8.308 12.805 L 12.866 7.7 L 0.625 7.7 C 0.28 7.7 0 7.387 0 7 C 0 6.614 0.28 6.3 0.625 6.3 L 12.866 6.3 L 8.308 1.196 C 8.064 0.922 8.064 0.479 8.308 0.205 C 8.552 -0.068 8.948 -0.068 9.192 0.205 L 14.817 6.505 C 14.935 6.636 15 6.815 15 7 C 15 7.186 14.935 7.364 14.817 7.496 Z";
 
-const FRAMER_WAVE_FILL_MASK = `url('data:image/svg+xml,<svg display="block" role="presentation" viewBox="0 0 15 14" xmlns="http://www.w3.org/2000/svg"><path d="M 5 3.523 C 5.078 3.523 5.155 3.525 5.233 3.528 C 5.873 1.483 7.765 0 10 0 C 12.761 0 15 2.264 15 5.057 C 15 7.85 12.761 10.114 10 10.114 C 9.922 10.114 9.845 10.112 9.767 10.108 C 9.127 12.154 7.235 13.636 5 13.636 C 2.239 13.636 0 11.372 0 8.58 C 0 5.787 2.239 3.523 5 3.523 Z" fill="black" transform="translate(0 0.18)"/></svg>')`;
+const FRAMER_WAVE_FILL_PATH =
+  "M 5 3.523 C 5.078 3.523 5.155 3.525 5.233 3.528 C 5.873 1.483 7.765 0 10 0 C 12.761 0 15 2.264 15 5.057 C 15 7.85 12.761 10.114 10 10.114 C 9.922 10.114 9.845 10.112 9.767 10.108 C 9.127 12.154 7.235 13.636 5 13.636 C 2.239 13.636 0 11.372 0 8.58 C 0 5.787 2.239 3.523 5 3.523 Z";
+
+const useIsomorphicLayoutEffect =
+  typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 function StaticArrow({ className }: { className?: string }) {
   return (
@@ -59,19 +75,20 @@ function StaticArrow({ className }: { className?: string }) {
       xmlns="http://www.w3.org/2000/svg"
       className={cn("w-[15px] h-[14px] shrink-0 block", className)}
     >
-      <path
-        d="M 14.817 7.496 L 9.192 13.796 C 8.948 14.069 8.552 14.069 8.308 13.796 C 8.064 13.522 8.064 13.079 8.308 12.805 L 12.866 7.7 L 0.625 7.7 C 0.28 7.7 0 7.387 0 7 C 0 6.614 0.28 6.3 0.625 6.3 L 12.866 6.3 L 8.308 1.196 C 8.064 0.922 8.064 0.479 8.308 0.205 C 8.552 -0.068 8.948 -0.068 9.192 0.205 L 14.817 6.505 C 14.935 6.636 15 6.815 15 7 C 15 7.186 14.935 7.364 14.817 7.496 Z"
-        fill="currentColor"
-      />
+      <path d={FRAMER_ARROW_PATH} fill="currentColor" />
     </svg>
   );
 }
 
 /**
  * Native Next.js / Motion port of Framer's `Wave-Reveal-Button-S1VRPa.js@fuWldc87dwJ27x3jDkBQ`.
- * - `wave = true` (high-priority CTAs only): exact Framer `WaveFill` dual-lobe organic shape
- *   and dual-arrow `justify-end -> justify-start` FLIP layout spring (`duration: 1, bounce: 0`).
- * - `wave = false` (default for secondary/standard buttons): clean, restrained hover state.
+ *
+ * Uses pure GPU `scaleX` / `scaleY` transforms anchored at `left: -84px, top: -100px`
+ * (`transformOrigin: "0px 0px"`) instead of FLIP `layout` projection so:
+ * 1. Forward and reverse share the exact same top-left anchor with zero vertical shift ("zéro décalage").
+ * 2. The hovered bounding box is calibrated to the button's exact dimensions `(W + 104, H + 224)`,
+ *    eliminating invisible overshoot outside the button so reverse starts visibly on frame 1 of pointerleave.
+ * 3. Mid-hover interruption reverses immediately from the current interpolated transform value.
  */
 export const WaveRevealButton = forwardRef<
   HTMLButtonElement & HTMLAnchorElement,
@@ -102,23 +119,78 @@ export const WaveRevealButton = forwardRef<
       onBlur,
       ...rest
     },
-    ref
+    forwardedRef
   ) => {
-    const groupId = useId();
+    const localRef = useRef<HTMLElement | null>(null);
     const [isHovered, setIsHovered] = useState(false);
     const [isPressed, setIsPressed] = useState(false);
+    const [btnSize, setBtnSize] = useState<{ width: number; height: number }>({
+      width: 176,
+      height: 44,
+    });
+
+    const setRefs = (node: HTMLElement | null) => {
+      localRef.current = node;
+      if (typeof forwardedRef === "function") {
+        forwardedRef(node as HTMLButtonElement & HTMLAnchorElement);
+      } else if (forwardedRef) {
+        (
+          forwardedRef as React.MutableRefObject<
+            (HTMLButtonElement & HTMLAnchorElement) | null
+          >
+        ).current = node as HTMLButtonElement & HTMLAnchorElement;
+      }
+    };
+
+    useIsomorphicLayoutEffect(() => {
+      if (!wave) return;
+      const el = localRef.current;
+      if (!el) return;
+
+      const updateSize = () => {
+        const w = el.offsetWidth;
+        const h = el.offsetHeight;
+        if (w > 0 && h > 0) {
+          setBtnSize((prev) =>
+            prev.width === w && prev.height === h ? prev : { width: w, height: h }
+          );
+        }
+      };
+
+      updateSize();
+
+      if (typeof ResizeObserver === "undefined") return;
+      const ro = new ResizeObserver(updateSize);
+      ro.observe(el);
+      return () => ro.disconnect();
+    }, [wave]);
 
     const isWaveActive = wave && (isHovered || isPressed);
-    const layoutDep = `${isWaveActive}-${isPressed}`;
+    const activeTransition = isWaveActive
+      ? FRAMER_WAVE_ENTER_TRANSITION
+      : FRAMER_WAVE_EXIT_TRANSITION;
+
+    // Exact boundary-calibrated rest & hover dimensions anchored at (left: -84, top: -100)
+    // with transformOrigin at "0px 118px" (vertically aligned with the button center):
+    // - Keeps the button's vertical window permanently inside the smooth diagonal wave arc (y_svg in [4.5, 8.8]),
+    //   never crossing the y_svg = 10.29 two-circle seam that previously caused a horizontal offset on reverse.
+    // - At p = 0 (restWidth = 82), the wave's leading edge sits 2px left of the button's left edge (x_box = 84).
+    // - At p = 1 (hoverWidth = W + 96), the wave's leading edge cleanly covers the button's right corners.
+    const restWidth = 82;
+    const restHeight = 140;
+    const hoverWidth = Math.max(btnSize.width + 96, 210);
+    const hoverHeight = Math.max(btnSize.height + 216, 252);
+    const restScaleX = restWidth / hoverWidth;
+    const restScaleY = restHeight / hoverHeight;
+    const originY = Math.round(100 + btnSize.height * 0.45);
 
     const variantStyles = {
       primary: {
         base: "bg-[#0066FF] text-white border border-[#0066FF] shadow-[0_4px_14px_rgba(0,102,255,0.24)] hover:shadow-[0_8px_24px_rgba(0,66,195,0.40)]",
         staticHover: "hover:bg-[#0052CC] hover:border-[#0052CC]",
         textActive: "text-white",
-        arrowDefaultBg: "bg-white",
-        arrowHoverBg: "bg-white",
         arrowDefaultText: "text-white",
+        arrowHoverText: "text-white",
         arrowHoverStatic: "text-white",
         waveFill: waveColor || "#002E99",
       },
@@ -126,9 +198,8 @@ export const WaveRevealButton = forwardRef<
         base: "bg-[#0066FF] text-white border border-[#0066FF] shadow-[0_4px_14px_rgba(0,102,255,0.24)] hover:shadow-[0_8px_24px_rgba(0,66,195,0.40)]",
         staticHover: "hover:bg-[#0052CC] hover:border-[#0052CC]",
         textActive: "text-white",
-        arrowDefaultBg: "bg-white",
-        arrowHoverBg: "bg-white",
         arrowDefaultText: "text-white",
+        arrowHoverText: "text-white",
         arrowHoverStatic: "text-white",
         waveFill: waveColor || "#002E99",
       },
@@ -136,9 +207,8 @@ export const WaveRevealButton = forwardRef<
         base: "bg-white text-black border border-zinc-200 shadow-2xs",
         staticHover: "hover:bg-zinc-50 hover:border-zinc-300",
         textActive: "text-white",
-        arrowDefaultBg: "bg-black",
-        arrowHoverBg: "bg-white",
         arrowDefaultText: "text-black",
+        arrowHoverText: "text-white",
         arrowHoverStatic: "text-[#0066FF]",
         waveFill: waveColor || "#0066FF",
       },
@@ -147,9 +217,8 @@ export const WaveRevealButton = forwardRef<
         staticHover:
           "hover:bg-[#182235] dark:hover:bg-[#1D1E25] hover:border-zinc-700",
         textActive: "text-white",
-        arrowDefaultBg: "bg-white",
-        arrowHoverBg: "bg-white",
         arrowDefaultText: "text-white",
+        arrowHoverText: "text-white",
         arrowHoverStatic: "text-[#5294FF]",
         waveFill: waveColor || "#0066FF",
       },
@@ -158,9 +227,8 @@ export const WaveRevealButton = forwardRef<
         staticHover:
           "hover:bg-zinc-100/90 dark:hover:bg-white/[0.09] hover:border-zinc-400 dark:hover:border-white/25",
         textActive: "text-white",
-        arrowDefaultBg: "bg-zinc-800 dark:bg-zinc-200",
-        arrowHoverBg: "bg-white",
         arrowDefaultText: "text-zinc-700 dark:text-zinc-200",
+        arrowHoverText: "text-white",
         arrowHoverStatic: "text-[#0066FF] dark:text-[#5294FF]",
         waveFill: waveColor || "#0066FF",
       },
@@ -168,9 +236,8 @@ export const WaveRevealButton = forwardRef<
         base: "bg-zinc-100 dark:bg-zinc-800/80 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700",
         staticHover: "hover:bg-zinc-200/80 dark:hover:bg-zinc-700/80",
         textActive: "text-white",
-        arrowDefaultBg: "bg-zinc-800 dark:bg-zinc-200",
-        arrowHoverBg: "bg-white",
         arrowDefaultText: "text-zinc-700 dark:text-zinc-200",
+        arrowHoverText: "text-white",
         arrowHoverStatic: "text-[#0066FF] dark:text-[#5294FF]",
         waveFill: waveColor || "#0066FF",
       },
@@ -178,9 +245,8 @@ export const WaveRevealButton = forwardRef<
         base: "bg-[#09090B] text-white dark:bg-white dark:text-black border border-[#09090B] dark:border-white/20 shadow-[0_4px_14px_rgba(0,0,0,0.14)] dark:shadow-[0_4px_16px_rgba(0,0,0,0.40)]",
         staticHover: "hover:bg-zinc-800 dark:hover:bg-zinc-100",
         textActive: "text-white dark:text-white",
-        arrowDefaultBg: "bg-white dark:bg-black",
-        arrowHoverBg: "bg-white",
         arrowDefaultText: "text-white dark:text-black",
+        arrowHoverText: "text-white",
         arrowHoverStatic: "text-white dark:text-black",
         waveFill: waveColor || "#0066FF",
       },
@@ -237,46 +303,49 @@ export const WaveRevealButton = forwardRef<
 
     const content = (
       <>
-        {/* ── Exact Framer WaveFill Layer (`mzBpRU2t3.js` + `XyPxxbn4B.js` layout spring) ── */}
+        {/* ── Deterministic GPU-Scaled Framer WaveFill (`mzBpRU2t3.js`) ── */}
         {wave && (
           <motion.div
             aria-hidden="true"
-            layout
-            layoutDependency={layoutDep}
-            transition={FRAMER_WAVE_SPRING}
+            initial={false}
+            animate={{
+              scaleX: isWaveActive ? 1 : restScaleX,
+              scaleY: isWaveActive ? 1 : restScaleY,
+            }}
+            transition={activeTransition}
             style={{
-              backgroundColor: variantStyles.waveFill,
-              WebkitMask: `${FRAMER_WAVE_FILL_MASK} alpha no-repeat center / contain`,
-              mask: `${FRAMER_WAVE_FILL_MASK} alpha no-repeat center / contain`,
               position: "absolute",
+              left: -84,
+              top: -100,
+              width: hoverWidth,
+              height: hoverHeight,
+              transformOrigin: `0px ${originY}px`,
               pointerEvents: "none",
               zIndex: 1,
-              ...(isWaveActive
-                ? {
-                    left: -84,
-                    right: -53,
-                    bottom: -153,
-                    top: "auto",
-                    width: "calc(max(100%, 176px) + 137px)",
-                    aspectRatio: "1.0474631751227497 / 1",
-                  }
-                : {
-                    left: -84,
-                    top: -100,
-                    width: 132,
-                    height: 123,
-                    aspectRatio: "1.0731707317073171 / 1",
-                  }),
             }}
-          />
+          >
+            <svg
+              viewBox="0 0 15 14"
+              preserveAspectRatio="none"
+              xmlns="http://www.w3.org/2000/svg"
+              className="w-full h-full block"
+            >
+              <path
+                d={FRAMER_WAVE_FILL_PATH}
+                fill={variantStyles.waveFill}
+                transform="translate(0 0.18)"
+              />
+            </svg>
+          </motion.div>
         )}
 
         {/* Optional Leading Icon */}
         {icon &&
           (wave ? (
             <motion.span
+              initial={false}
               animate={{ scale: isPressed ? 0.95 : 1 }}
-              transition={FRAMER_WAVE_SPRING}
+              transition={activeTransition}
               className={cn(
                 "relative z-[2] shrink-0 flex items-center justify-center transition-colors duration-300",
                 isWaveActive && variantStyles.textActive
@@ -293,8 +362,9 @@ export const WaveRevealButton = forwardRef<
         {/* Label (`scale: 0.95` on pressed + smooth color flip to white on wave reveal) */}
         {wave ? (
           <motion.span
+            initial={false}
             animate={{ scale: isPressed ? 0.95 : 1 }}
-            transition={FRAMER_WAVE_SPRING}
+            transition={activeTransition}
             className={cn(
               "relative z-[2] font-semibold tracking-[-0.02em] select-none whitespace-nowrap transition-colors duration-300",
               isWaveActive && variantStyles.textActive
@@ -308,46 +378,24 @@ export const WaveRevealButton = forwardRef<
           </span>
         )}
 
-        {/* Arrow Viewport */}
+        {/* Arrow Viewport (15x14px window with dual arrows sliding 23px in lockstep) */}
         {showArrow &&
           (wave ? (
-            /* Exact Framer Icon Wrapper (`width: 15px, gap: 8px, justify-end -> justify-start` with FLIP spring) */
             <motion.span
+              initial={false}
               animate={{ scale: isPressed ? 0.95 : 1 }}
-              transition={FRAMER_WAVE_SPRING}
-              className={cn(
-                "relative z-[2] w-[15px] h-[14px] overflow-hidden shrink-0 flex flex-row flex-nowrap items-center gap-[8px] select-none",
-                isWaveActive ? "justify-start" : "justify-end"
-              )}
+              transition={activeTransition}
+              className="relative z-[2] w-[15px] h-[14px] overflow-hidden shrink-0 block select-none"
             >
-              {/* Arrow Hover: slides in from the left */}
               <motion.span
-                layout="position"
-                layoutDependency={layoutDep}
-                transition={FRAMER_WAVE_SPRING}
-                style={{
-                  WebkitMask: `${FRAMER_ARROW_MASK} alpha no-repeat center / contain`,
-                  mask: `${FRAMER_ARROW_MASK} alpha no-repeat center / contain`,
-                }}
-                className={cn(
-                  "block flex-none w-[15px] h-[14px]",
-                  variantStyles.arrowHoverBg
-                )}
-              />
-              {/* Arrow Default: visible at rest, slides out to the right */}
-              <motion.span
-                layout="position"
-                layoutDependency={layoutDep}
-                transition={FRAMER_WAVE_SPRING}
-                style={{
-                  WebkitMask: `${FRAMER_ARROW_MASK} alpha no-repeat center / contain`,
-                  mask: `${FRAMER_ARROW_MASK} alpha no-repeat center / contain`,
-                }}
-                className={cn(
-                  "block flex-none w-[15px] h-[14px]",
-                  variantStyles.arrowDefaultBg
-                )}
-              />
+                initial={false}
+                animate={{ x: isWaveActive ? 0 : -23 }}
+                transition={activeTransition}
+                className="absolute left-0 top-0 flex items-center gap-[8px] w-[38px] h-[14px] will-change-transform"
+              >
+                <StaticArrow className={variantStyles.arrowHoverText} />
+                <StaticArrow className={variantStyles.arrowDefaultText} />
+              </motion.span>
             </motion.span>
           ) : (
             <span className="relative z-[2] w-[15px] h-[14px] overflow-hidden shrink-0 block select-none">
@@ -378,29 +426,15 @@ export const WaveRevealButton = forwardRef<
       className
     );
 
-    const anchorHandlers = interactionHandlers as React.HTMLAttributes<HTMLAnchorElement>;
+    const anchorHandlers =
+      interactionHandlers as React.HTMLAttributes<HTMLAnchorElement>;
 
-    const renderElement = () => {
-      if (href) {
-        const isInternal = href.startsWith("/") || href.startsWith("#");
-        if (isInternal) {
-          return (
-            <Link
-              ref={ref as any}
-              href={href}
-              onClick={onClick as any}
-              className={commonClasses}
-              target={target}
-              rel={rel}
-              {...anchorHandlers}
-            >
-              {content}
-            </Link>
-          );
-        }
+    if (href) {
+      const isInternal = href.startsWith("/") || href.startsWith("#");
+      if (isInternal) {
         return (
-          <a
-            ref={ref as any}
+          <Link
+            ref={setRefs as any}
             href={href}
             onClick={onClick as any}
             className={commonClasses}
@@ -409,30 +443,37 @@ export const WaveRevealButton = forwardRef<
             {...anchorHandlers}
           >
             {content}
-          </a>
+          </Link>
         );
       }
-
       return (
-        <button
-          ref={ref as any}
-          type={type}
-          onClick={onClick}
-          disabled={disabled}
+        <a
+          ref={setRefs as any}
+          href={href}
+          onClick={onClick as any}
           className={commonClasses}
-          {...interactionHandlers}
-          {...rest}
+          target={target}
+          rel={rel}
+          {...anchorHandlers}
         >
           {content}
-        </button>
+        </a>
       );
-    };
-
-    if (wave) {
-      return <LayoutGroup id={groupId}>{renderElement()}</LayoutGroup>;
     }
 
-    return renderElement();
+    return (
+      <button
+        ref={setRefs as any}
+        type={type}
+        onClick={onClick}
+        disabled={disabled}
+        className={commonClasses}
+        {...interactionHandlers}
+        {...rest}
+      >
+        {content}
+      </button>
+    );
   }
 );
 

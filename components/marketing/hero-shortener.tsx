@@ -23,6 +23,7 @@ import {
   Loader2,
   LayoutDashboard,
   CornerDownLeft,
+  Play,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { WaveRevealButton } from "@/components/ui/wave-reveal-button";
@@ -325,21 +326,21 @@ export function HeroShortener() {
   const remainingGuest = Math.max(0, maxLinks - usedCount);
 
   return (
-    <div id="hero-shortener" className="w-full max-w-[680px] mx-auto scroll-mt-28">
+    <div id="hero-shortener" className="w-full max-w-[740px] mx-auto scroll-mt-28">
       {/* ── Clean Single-Surface Link Shortener Bar (strictly rounded-[10px]) ── */}
       <div
-        className={`relative rounded-[10px] bg-white dark:bg-[#111216] border transition-colors duration-200 overflow-hidden ${
+        className={`relative rounded-[10px] bg-white dark:bg-[#111318] border shadow-[0_10px_30px_rgba(16,24,40,0.06)] dark:shadow-[0_18px_44px_rgba(0,0,0,0.52)] transition-[border-color,box-shadow] duration-200 overflow-hidden ${
           isPulseHighlighted
-            ? "border-[#0066FF] ring-2 ring-[#0066FF]/20"
+            ? "border-[#0066FF] ring-2 ring-[#0066FF]/25"
             : errorMsg
               ? "border-red-500/70"
-              : "border-[#D4D4D8] dark:border-white/[0.14] focus-within:border-[#0066FF]"
+              : "border-[#D4D4D8] dark:border-white/[0.14] focus-within:border-[#0066FF] focus-within:ring-2 focus-within:ring-[#0066FF]/15"
         }`}
       >
         <form onSubmit={handleShorten} className="p-2">
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
             <div className="relative flex-1 flex items-center min-w-0 bg-transparent">
-              <Link2 className="w-4 h-4 text-[#71717A] dark:text-zinc-500 ml-3 shrink-0 pointer-events-none" />
+              <Link2 className="w-4 h-4 text-[#71717A] dark:text-zinc-400 ml-3.5 shrink-0 pointer-events-none" />
               <input
                 ref={inputRef}
                 type="text"
@@ -351,22 +352,22 @@ export function HeroShortener() {
                   setUrlInput(e.target.value);
                   if (errorMsg) setErrorMsg(null);
                 }}
-                placeholder="Paste a long URL to shorten..."
+                placeholder="Paste a long URL to shorten (e.g. https://stripe.com/docs)..."
                 aria-label="Paste a long URL to shorten"
-                className="w-full h-11 sm:h-12 px-3 bg-transparent text-[15px] text-[#09090B] dark:text-white placeholder:text-[#A1A1AA] dark:placeholder:text-zinc-500 outline-none border-0"
+                className="w-full h-11 sm:h-12 px-3 bg-transparent text-[15px] text-[#09090B] dark:text-white placeholder:text-[#71717A] dark:placeholder:text-zinc-500 outline-none border-0"
               />
               {!urlInput ? (
                 <button
                   type="button"
                   onClick={handleTryExample}
-                  className="hidden sm:inline-flex items-center mr-2 px-2.5 py-1 rounded-[6px] text-[12.5px] font-medium text-[#52525B] dark:text-zinc-400 hover:text-[#0066FF] dark:hover:text-[#5294FF] hover:bg-[#F4F4F5] dark:hover:bg-white/[0.06] transition-colors shrink-0 cursor-pointer"
+                  className="hidden sm:inline-flex items-center mr-2 px-2.5 py-1 rounded-[6px] text-[12.5px] font-medium text-[#52525B] dark:text-zinc-300 bg-[#F4F4F5] dark:bg-white/[0.06] hover:text-[#0066FF] dark:hover:text-[#5294FF] hover:bg-[#0066FF]/[0.08] dark:hover:bg-[#0066FF]/[0.16] transition-colors shrink-0 cursor-pointer"
                 >
                   Try sample
                 </button>
               ) : (
                 <span
                   aria-hidden="true"
-                  className="hidden md:inline-flex items-center gap-1 mr-2 px-1.5 py-0.5 rounded-[5px] border border-[#E4E7EC] dark:border-white/10 bg-[#F8F9FB] dark:bg-white/[0.04] text-[11px] text-[#71717A] dark:text-zinc-500 shrink-0 select-none"
+                  className="hidden md:inline-flex items-center gap-1 mr-2 px-1.5 py-0.5 rounded-[5px] border border-[#E4E7EC] dark:border-white/10 bg-[#F8F9FB] dark:bg-white/[0.04] text-[11px] text-[#71717A] dark:text-zinc-400 shrink-0 select-none"
                 >
                   <CornerDownLeft className="w-2.5 h-2.5" />
                   <span>Enter</span>
@@ -410,8 +411,8 @@ export function HeroShortener() {
         )}
       </AnimatePresence>
 
-      {/* Plain Reassuring Sub-line */}
-      <div className="mt-3.5 flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-[13px] text-[#71717A] dark:text-zinc-400">
+      {/* Cohesive Sub-line: Guest Quota Status + 6-Minute Walkthrough Link */}
+      <div className="mt-3.5 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-[13px] text-[#52525B] dark:text-zinc-400">
         {isAuthenticated ? (
           <span className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium">
             <ShieldCheck className="w-3.5 h-3.5" />
@@ -420,10 +421,18 @@ export function HeroShortener() {
         ) : (
           <>
             <span>No signup required</span>
+            <span
+              aria-hidden="true"
+              className="hidden sm:inline-block h-3 w-px bg-[#D4D4D8] dark:bg-white/12"
+            />
             <span className="inline-flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5 text-[#0066FF] dark:text-[#5294FF]" />
               <span>Active for 3 days as a guest</span>
             </span>
+            <span
+              aria-hidden="true"
+              className="hidden sm:inline-block h-3 w-px bg-[#D4D4D8] dark:bg-white/12"
+            />
             <span className="font-medium text-[#09090B] dark:text-zinc-200 tabular-nums">
               {limitReached
                 ? "2 of 2 guest links used"
@@ -431,6 +440,17 @@ export function HeroShortener() {
             </span>
           </>
         )}
+        <span
+          aria-hidden="true"
+          className="hidden md:inline-block h-3 w-px bg-[#D4D4D8] dark:bg-white/12"
+        />
+        <Link
+          href="/#demo-video"
+          className="inline-flex items-center gap-1.5 font-medium text-[#09090B] dark:text-zinc-200 hover:text-[#0066FF] dark:hover:text-[#5294FF] transition-colors"
+        >
+          <Play className="w-3 h-3 fill-current text-[#0066FF] dark:text-[#5294FF]" />
+          <span>Watch 6-min walkthrough</span>
+        </Link>
       </div>
 
       {/* ── Live Result Card (Expands Smoothly After Shortening) ── */}

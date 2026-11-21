@@ -119,15 +119,19 @@ export function Pricing({
             (-75% first 2 mo)
           </span>
         </span>
-        <Label className="relative inline-flex items-center cursor-pointer">
+        <div className="relative inline-flex items-center">
           <Switch
+            id="pricing-billing-switch"
             ref={switchRef}
             checked={!isMonthly}
             onCheckedChange={handleToggle}
             aria-label="Toggle annual billing"
-            className="relative"
+            className="relative cursor-pointer"
           />
-        </Label>
+          <Label htmlFor="pricing-billing-switch" className="sr-only">
+            Toggle annual billing
+          </Label>
+        </div>
         <span
           className={cn(
             "text-[14px] font-semibold transition-colors",
