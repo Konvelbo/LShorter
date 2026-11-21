@@ -1,70 +1,91 @@
 "use client";
 
-import React from "react";
+import React, { useRef } from "react";
 import { motion } from "motion/react";
 import { HeroShortener } from "@/components/marketing/hero-shortener";
 import { HeroBackground } from "@/components/ui/tailwind-css-background-snippet";
 import { FlipWords } from "@/components/ui/flip-words";
-import { TechText } from "@/components/ui/TechText";
+import { VariableProximity } from "@/components/ui/VariableProximity";
 import { LogoLoop, type LogoItem } from "@/components/ui/LogoLoop";
 import {
   BRAND_LOGOS,
   type BrandLogoId,
 } from "@/components/qr/qr-brand-logos";
-import { BrandLogoSvg } from "@/components/qr/qr-icons";
 import {
   EASE_OUT_EXPO,
   SectionRailFrame,
 } from "@/components/marketing/swiss-frame";
 
 /**
- * Official verified brand logos directly from the QR Studio registry (`components/qr/qr-brand-logos.ts`
- * — Simple Icons & @iconify-json/logos), excluding WhatsApp per user request.
+ * Official verified brand logos from the QR Studio registry (`components/qr/qr-brand-logos.ts`),
+ * rendered in a uniform monochrome silhouette style (without inline labels, excluding WhatsApp)
+ * matching the reference strip design.
  */
 const HERO_LOOP_BRANDS: Array<{
   id: BrandLogoId;
   label: string;
-  overrideColor?: string;
 }> = [
-  { id: "google_ads", label: "Google Ads", overrideColor: "#4285F4" },
-  { id: "meta_ads", label: "Meta Ads", overrideColor: "#0467DF" },
-  { id: "instagram", label: "Instagram", overrideColor: "#FF0069" },
-  { id: "tiktok", label: "TikTok Ads" },
-  { id: "linkedin", label: "LinkedIn Ads", overrideColor: "#0A66C2" },
-  { id: "youtube", label: "YouTube", overrideColor: "#FF0000" },
   { id: "twitter", label: "X (Twitter)" },
-  { id: "facebook", label: "Facebook Pixel", overrideColor: "#0866FF" },
-  { id: "google_analytics", label: "Google Analytics", overrideColor: "#F9AB00" },
-  { id: "snapchat", label: "Snapchat Ads", overrideColor: "#FFFC00" },
-  { id: "reddit", label: "Reddit Ads", overrideColor: "#FF4500" },
+  { id: "instagram", label: "Instagram" },
+  { id: "tiktok", label: "TikTok" },
+  { id: "youtube", label: "YouTube" },
+  { id: "reddit", label: "Reddit" },
+  { id: "twitch", label: "Twitch" },
+  { id: "spotify", label: "Spotify" },
+  { id: "linkedin", label: "LinkedIn" },
   { id: "threads", label: "Threads" },
-  { id: "telegram", label: "Telegram", overrideColor: "#26A5E4" },
-  { id: "discord", label: "Discord", overrideColor: "#5865F2" },
-  { id: "twitch", label: "Twitch", overrideColor: "#9146FF" },
-  { id: "hubspot", label: "HubSpot", overrideColor: "#FF7A59" },
+  { id: "telegram", label: "Telegram" },
+  { id: "discord", label: "Discord" },
+  { id: "snapchat", label: "Snapchat" },
+  { id: "facebook", label: "Facebook" },
+  { id: "meta_ads", label: "Meta Ads" },
+  { id: "google_ads", label: "Google Ads" },
+  { id: "google_analytics", label: "Google Analytics" },
+  { id: "hubspot", label: "HubSpot" },
 ];
 
-const COLORED_SOCIAL_AND_ADS_LOGOS: LogoItem[] = HERO_LOOP_BRANDS.map(
-  ({ id, label, overrideColor }) => {
-    const baseSpec = BRAND_LOGOS[id];
-    const spec =
-      overrideColor && id === "linkedin"
-        ? {
-            ...baseSpec,
-            brandColor: overrideColor,
-            body: baseSpec.body.replace('fill="#000000"', `fill="${overrideColor}"`),
-          }
-        : baseSpec;
-
-    return {
-      title: label,
-      hoverColor: overrideColor || baseSpec.brandColor,
-      node: <BrandLogoSvg spec={spec} className="w-7 h-7 shrink-0" />,
-    };
+function MonochromeBrandIcon({ id }: { id: BrandLogoId }) {
+  const spec = BRAND_LOGOS[id];
+  if (spec.pathOnly) {
+    return (
+      <svg
+        viewBox="0 0 24 24"
+        className="w-[22px] h-[22px] shrink-0 fill-current"
+        aria-hidden="true"
+      >
+        <path d={spec.pathOnly} fill="currentColor" />
+      </svg>
+    );
   }
+  const monochromeBody = spec.body.replace(
+    /fill="#[0-9a-fA-F]{3,8}"/g,
+    'fill="currentColor"'
+  );
+  return (
+    <svg
+      viewBox={spec.viewBox}
+      className="w-[22px] h-[22px] shrink-0 fill-current"
+      aria-hidden="true"
+      dangerouslySetInnerHTML={{ __html: monochromeBody }}
+    />
+  );
+}
+
+const MONOCHROME_SOCIAL_AND_ADS_LOGOS: LogoItem[] = HERO_LOOP_BRANDS.map(
+  ({ id, label }) => ({
+    title: label,
+    ariaLabel: label,
+    node: (
+      <span className="inline-flex items-center justify-center text-[#312E81]/45 dark:text-[#C7D2FE]/45 hover:text-[#312E81]/85 dark:hover:text-white transition-colors duration-200">
+        <MonochromeBrandIcon id={id} />
+      </span>
+    ),
+  })
 );
 
 export function HeroSection() {
+  const proximityContainerRef = useRef<HTMLDivElement | null>(null);
+
   return (
     <section
       id="hero"
@@ -89,46 +110,26 @@ export function HeroSection() {
             />
           </motion.h1>
 
-          {/* React Bits <TechText /> Interactive Subtitle below Big Title */}
+          {/* React Bits <VariableProximity /> Interactive Subtitle below Big Title */}
           <motion.div
+            ref={proximityContainerRef}
             initial={{ opacity: 0.92, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35, delay: 0.04, ease: EASE_OUT_EXPO }}
-            className="mt-5 sm:mt-6 w-full max-w-[780px] mx-auto flex flex-col items-center text-[#27272A] dark:text-zinc-200"
+            className="mt-5 sm:mt-6 relative max-w-[660px] mx-auto text-[16.5px] sm:text-[18.5px] leading-[1.6] text-[#3F3F46] dark:text-zinc-300 text-pretty cursor-default"
           >
-            <div className="w-full h-[42px] sm:h-[48px] relative">
-              <TechText
-                text="Route visitors by country or device in under 12ms,"
-                fontWeight={500}
-                fontSize={22}
-                letterSpacing={-0.02}
-                reveal="letter"
-                dashLength={3}
-                dashGap={2}
-                specks={12}
-                accentColor="#6366F1"
-                intro="none"
-                clickKick
-                guides={false}
-              />
-            </div>
-            <div className="w-full h-[42px] sm:h-[48px] relative -mt-2">
-              <TechText
-                text="lock private links with PathLock™ & track live revenue."
-                fontWeight={500}
-                fontSize={22}
-                letterSpacing={-0.02}
-                reveal="letter"
-                dashLength={3}
-                dashGap={2}
-                specks={12}
-                accentColor="#6366F1"
-                intro="none"
-                clickKick
-                guides={false}
-                speed={0.85}
-              />
-            </div>
+            <VariableProximity
+              label="Turn every click into a smart destination — route visitors by country or device in under 12ms, lock private links with PathLock™, and track real-time revenue attribution."
+              fromFontVariationSettings="'wght' 400, 'opsz' 12"
+              toFontVariationSettings="'wght' 900, 'opsz' 40"
+              containerRef={proximityContainerRef}
+              radius={95}
+              falloff="gaussian"
+              smoothing={0.18}
+              scale={1.04}
+              lift={0.03}
+              idleWave={false}
+            />
           </motion.div>
 
           {/* Primary Interactive Guest Shortener Command Bar + Cascading Two-Bar Link Row */}
@@ -136,33 +137,33 @@ export function HeroSection() {
             initial={{ opacity: 0.95, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.38, delay: 0.08, ease: EASE_OUT_EXPO }}
-            className="mt-7 sm:mt-9 w-full"
+            className="mt-8 sm:mt-10 w-full"
           >
             <HeroShortener />
           </motion.div>
         </div>
       </SectionRailFrame>
 
-      {/* Bottom Tracking Caption (with subtle blur) + 90px Two-Bar Auto-Scrolling <LogoLoop /> */}
-      <div className="relative z-10 w-full mt-auto pt-4">
-        <div className="mb-3.5 flex justify-center px-4">
-          <span className="inline-flex items-center px-4 py-1.5 rounded-[8px] bg-white/40 dark:bg-[#11131A]/50 backdrop-blur-md border border-[#6366F1]/25 dark:border-white/[0.10] text-[12.5px] sm:text-[13.5px] font-medium text-[#312E81]/95 dark:text-[#E0E7FF]/90 text-center shadow-[0_4px_16px_rgba(99,102,241,0.08)]">
-            Track your links everywhere — whether in paid ads or your daily social posts
-          </span>
-        </div>
+      {/* Bottom 90px Two-Bar Band with Interior Tracking Caption & Monochrome <LogoLoop /> */}
+      <div className="relative z-10 w-full mt-auto h-[90px] border-t border-b border-[#6366F1]/25 dark:border-white/[0.12] bg-white/30 dark:bg-[#09090B]/40 backdrop-blur-md flex flex-col justify-center gap-2.5">
+        <p className="text-center font-sans text-[10px] sm:text-[11px] font-semibold uppercase tracking-[0.22em] text-[#312E81]/60 dark:text-[#C7D2FE]/60 select-none px-4">
+          Track your links everywhere — whether in paid ads or your daily social posts
+        </p>
 
-        <div className="w-full h-[90px] flex items-center border-t-2 border-b-2 border-[#6366F1]/35 dark:border-[#A5B4FC]/25 bg-white/30 dark:bg-[#09090B]/45 backdrop-blur-md text-[#09090B] dark:text-white">
+        <div className="w-full flex items-center">
           <LogoLoop
-            logos={COLORED_SOCIAL_AND_ADS_LOGOS}
-            speed={38}
+            logos={MONOCHROME_SOCIAL_AND_ADS_LOGOS}
+            speed={34}
             direction="left"
-            logoHeight={28}
-            gap={48}
+            logoHeight={22}
+            gap={56}
             hoverSpeed={10}
             scaleOnHover
             fadeOut
-            fadeOutWidth={0.12}
-            labels="inline"
+            fadeOutWidth={0.14}
+            labels="none"
+            intro={false}
+            draggable={false}
             ariaLabel="Social networks and ad pixel platforms tracked by LShorter"
           />
         </div>
