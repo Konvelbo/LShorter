@@ -5,6 +5,7 @@ import { Play, Plus } from "lucide-react";
 import {
   MediaControlBar,
   MediaController,
+  MediaFullscreenButton,
   MediaMuteButton,
   MediaPlayButton,
   MediaSeekBackwardButton,
@@ -14,7 +15,7 @@ import {
   MediaVolumeRange,
 } from "media-chrome/react";
 import type { ComponentProps } from "react";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -112,6 +113,17 @@ export const VideoPlayerMuteButton = ({
   <MediaMuteButton className={cn("", className)} {...props} />
 );
 
+export type VideoPlayerFullscreenButtonProps = ComponentProps<
+  typeof MediaFullscreenButton
+>;
+
+export const VideoPlayerFullscreenButton = ({
+  className,
+  ...props
+}: VideoPlayerFullscreenButtonProps) => (
+  <MediaFullscreenButton className={cn("", className)} {...props} />
+);
+
 export type VideoPlayerContentProps = ComponentProps<"video">;
 
 export const VideoPlayerContent = ({
@@ -147,12 +159,15 @@ export const Skiper67 = ({
   const [internalOpen, setInternalOpen] = useState(false);
   const showVideoPopOver = isOpen !== undefined ? isOpen : internalOpen;
 
-  const setShowVideoPopOver = (next: boolean) => {
-    if (isOpen === undefined) {
-      setInternalOpen(next);
-    }
-    onOpenChange?.(next);
-  };
+  const setShowVideoPopOver = useCallback(
+    (next: boolean) => {
+      if (isOpen === undefined) {
+        setInternalOpen(next);
+      }
+      onOpenChange?.(next);
+    },
+    [isOpen, onOpenChange]
+  );
 
   const SPRING = {
     mass: 0.1,
@@ -260,16 +275,45 @@ const VideoPopOver = ({
   setShowVideoPopOver: (showVideoPopOver: boolean) => void;
 }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const controllerRef = useRef<HTMLElement | null>(null);
+
+  const [canStartPlayback, setCanStartPlayback] = useState(false);
+
+  const handleClose = useCallback(() => {
+    // Immediately pause 4K playback before closing so the exit animation runs at a locked 60fps
+    try {
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {});
+      }
+      videoRef.current?.pause();
+    } catch {}
+    setShowVideoPopOver(false);
+  }, [setShowVideoPopOver]);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setShowVideoPopOver(false);
+      if (e.key === "Escape" && !document.fullscreenElement) {
+        handleClose();
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [setShowVideoPopOver]);
+  }, [handleClose]);
+
+  // Start 4K playback right after the 0.22s GPU entrance animation finishes so opening never hitches
+  useEffect(() => {
+    if (!canStartPlayback) return;
+    const v = videoRef.current;
+    if (!v) return;
+    if (
+      typeof initialSeekSeconds === "number" &&
+      initialSeekSeconds > 0 &&
+      v.readyState >= 1
+    ) {
+      v.currentTime = initialSeekSeconds;
+    }
+    v.play().catch(() => {});
+  }, [canStartPlayback, initialSeekSeconds]);
 
   const handleLoadedMetadata = () => {
     const v = videoRef.current;
@@ -277,7 +321,19 @@ const VideoPopOver = ({
     if (typeof initialSeekSeconds === "number" && initialSeekSeconds > 0) {
       v.currentTime = initialSeekSeconds;
     }
-    v.play().catch(() => {});
+    if (canStartPlayback) {
+      v.play().catch(() => {});
+    }
+  };
+
+  const handleDoubleClickVideo = () => {
+    const el = controllerRef.current || videoRef.current;
+    if (!el) return;
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+    } else if (el.requestFullscreen) {
+      el.requestFullscreen().catch(() => {});
+    }
   };
 
   return (
@@ -287,40 +343,31 @@ const VideoPopOver = ({
       aria-label="LShorter Walkthrough Video Player"
       className="fixed inset-0 z-[10060] flex h-screen w-screen items-center justify-center p-4 sm:p-8"
     >
-      {/* Dimmed Backdrop */}
+      {/* Lightweight High-Contrast Scrim (zero expensive full-screen backdrop-blur over 4K video) */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        transition={{ duration: 0.2 }}
-        className="absolute inset-0 bg-black/85 backdrop-blur-md"
-        onClick={() => setShowVideoPopOver(false)}
+        transition={{ duration: 0.16, ease: "easeOut" }}
+        className="absolute inset-0 bg-black/90"
+        onClick={handleClose}
       />
 
-      {/* Signature Skiper67 Clip-Path Spring PopOver */}
+      {/* GPU-Composited Transform + Opacity PopOver (eliminates clipPath 4K re-rasterization freezes) */}
       <motion.div
-        initial={{ clipPath: "inset(43.5% 43.5% 33.5% 43.5%)", opacity: 0 }}
-        animate={{ clipPath: "inset(0 0 0 0)", opacity: 1 }}
-        exit={{
-          clipPath: "inset(43.5% 43.5% 33.5% 43.5%)",
-          opacity: 0,
-          transition: {
-            duration: 0.65,
-            type: "spring",
-            stiffness: 120,
-            damping: 22,
-            opacity: { duration: 0.2, delay: 0.45 },
-          },
-        }}
+        initial={{ opacity: 0, scale: 0.94, y: 12 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 8 }}
         transition={{
-          duration: 0.85,
-          type: "spring",
-          stiffness: 110,
-          damping: 20,
+          duration: 0.22,
+          ease: [0.16, 1, 0.3, 1],
         }}
-        className="relative z-10 aspect-video w-full max-w-6xl overflow-hidden rounded-[10px] border border-white/15 bg-black shadow-[0_28px_80px_rgba(0,0,0,0.85)]"
+        onAnimationComplete={() => setCanStartPlayback(true)}
+        className="relative z-10 aspect-video w-full max-w-6xl overflow-hidden rounded-[10px] border border-white/15 bg-black shadow-[0_28px_80px_rgba(0,0,0,0.85)] will-change-transform"
       >
         <VideoPlayer
+          ref={controllerRef as any}
+          autohide="3"
           style={{
             width: "100%",
             height: "100%",
@@ -332,9 +379,10 @@ const VideoPopOver = ({
             ref={videoRef}
             src={videoSrc}
             poster={thumbnailSrc}
-            autoPlay
             playsInline
+            preload="metadata"
             slot="media"
+            onDoubleClick={handleDoubleClickVideo}
             onLoadedMetadata={handleLoadedMetadata}
             onTimeUpdate={(e) =>
               onTimeUpdate?.((e.currentTarget as HTMLVideoElement).currentTime)
@@ -346,13 +394,13 @@ const VideoPopOver = ({
           <button
             type="button"
             aria-label="Close video player"
-            onClick={() => setShowVideoPopOver(false)}
-            className="absolute right-3 top-3 z-20 flex h-9 w-9 items-center justify-center rounded-[8px] bg-black/65 hover:bg-black/90 border border-white/15 text-white transition-colors cursor-pointer"
+            onClick={handleClose}
+            className="absolute right-3 top-3 z-20 flex h-9 w-9 items-center justify-center rounded-[8px] bg-black/75 hover:bg-black/95 border border-white/15 text-white transition-colors cursor-pointer"
           >
             <Plus className="size-5 rotate-45 text-white" />
           </button>
 
-          <VideoPlayerControlBar className="absolute bottom-0 left-1/2 flex w-full max-w-6xl -translate-x-1/2 items-center justify-center gap-1.5 bg-black/75 backdrop-blur-md border-t border-white/10 px-4 py-2.5 md:px-6 md:py-3 [--media-background-color:transparent] [--media-control-background:transparent] [--media-control-hover-background:rgba(255,255,255,0.14)] [--media-primary-color:#ffffff] [--media-secondary-color:rgba(255,255,255,0.85)] [--media-range-bar-color:#0066FF]">
+          <VideoPlayerControlBar className="absolute bottom-0 left-1/2 flex w-full max-w-6xl -translate-x-1/2 items-center justify-center gap-1.5 bg-gradient-to-t from-black/95 via-black/75 to-transparent px-4 py-2.5 md:px-6 md:py-3 [--media-background-color:transparent] [--media-control-background:transparent] [--media-control-hover-background:rgba(255,255,255,0.14)] [--media-primary-color:#ffffff] [--media-secondary-color:rgba(255,255,255,0.85)] [--media-range-bar-color:#0066FF]">
             <VideoPlayerPlayButton className="h-8 w-8 rounded-[6px] bg-transparent" />
             <VideoPlayerSeekBackwardButton
               seekOffset={10}
@@ -369,6 +417,7 @@ const VideoPopOver = ({
             />
             <VideoPlayerMuteButton className="h-8 w-8 rounded-[6px] bg-transparent" />
             <VideoPlayerVolumeRange className="hidden md:inline-flex w-24 bg-transparent" />
+            <VideoPlayerFullscreenButton className="h-8 w-8 rounded-[6px] bg-transparent" />
           </VideoPlayerControlBar>
         </VideoPlayer>
       </motion.div>
