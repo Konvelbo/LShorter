@@ -189,14 +189,14 @@ const createEngine = (
     scrollVel: 0,
     scrollY: window.scrollY,
     scrollT: 0,
-    visible: typeof IntersectionObserver === "undefined",
+    visible: true,
     introStart: -1,
     introDone: !config.current.intro,
     itemMode: false,
     active: null,
     raf: 0,
     last: 0,
-    reduced: !!query?.matches,
+    reduced: false,
     destroyed: false,
   };
 
@@ -994,7 +994,7 @@ const createEngine = (
   };
 
   const onMotion = () => {
-    st.reduced = !!query?.matches;
+    st.reduced = false;
     wake();
   };
 
