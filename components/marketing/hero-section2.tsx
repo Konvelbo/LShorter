@@ -162,7 +162,7 @@ export function HeroSection() {
       </SectionRailFrame>
 
       {/* Below-the-Fold Tall Two-Bar Logo Band (pure GPU CSS marquee, 32px icons, slow 68s drift, zero JS lag) */}
-      <div className="relative z-10 w-full mt-12 sm:mt-16 py-12 sm:py-14 min-h-[200px] sm:min-h-[220px] border-t border-b border-[#6366F1]/25 dark:border-white/[0.12] bg-white/45 dark:bg-[#0B0A16]/70 flex flex-col justify-center gap-8">
+      <div className="relative z-10 w-full mt-12 sm:mt-16 py-12 sm:py-16 min-h-[220px] sm:min-h-[250px] border-t border-b border-[#6366F1]/25 dark:border-white/[0.12] bg-white/45 dark:bg-[#0B0A16]/70 flex flex-col justify-center gap-12 sm:gap-14">
         <p className="text-center font-sans text-[11px] sm:text-[12px] font-semibold uppercase tracking-[0.22em] text-[#312E81]/65 dark:text-[#C7D2FE]/65 select-none px-4">
           Track your links everywhere — whether in paid ads or your daily social posts
         </p>
