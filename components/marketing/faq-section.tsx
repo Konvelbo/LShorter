@@ -7,7 +7,7 @@ import { SectionRailFrame } from "@/components/marketing/swiss-frame";
 const FAQS = [
   {
     q: "Is LShorter really free? Do I need a credit card?",
-    a: "Yes. Our Starter plan is free forever with no credit card required. It includes 50 permanent active links, 10,000 tracked clicks per month, up to 3 custom branded domains with automatic SSL, PathLock™ PIN protection, and our Dynamic QR Code Studio.",
+    a: "Yes. Our Starter plan is free forever with no credit card required. It includes 50 permanent active links, 10,000 tracked clicks per month, 3 custom branded domains with automatic SSL, basic QR Code Studio styles, and 30-day real-time analytics. Smart Routing, PIN protection, webhooks, and retargeting pixels unlock starting on Pro.",
   },
   {
     q: "What happens to links I shorten without creating an account?",
