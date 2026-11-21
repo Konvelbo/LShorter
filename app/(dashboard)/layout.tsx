@@ -5,6 +5,7 @@ import { Topbar } from "@/components/layout/topbar";
 import { OnboardingGuard } from "@/components/auth/onboarding-guard";
 import { MobileFabCreateLink } from "@/components/layout/mobile-fab-create-link";
 import { SubscriptionGraceBanner } from "@/components/dashboard/subscription-grace-banner";
+import { GuestLinksClaimer } from "@/components/dashboard/guest-links-claimer";
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -28,6 +29,7 @@ export default function DashboardLayout({
 }) {
   return (
     <OnboardingGuard>
+      <GuestLinksClaimer />
       <div className="flex h-screen w-screen overflow-hidden ds-bg-app ds-text-primary">
         {/* 1. Full-height Left Sidebar (No visible scrollbar) */}
         <Sidebar />

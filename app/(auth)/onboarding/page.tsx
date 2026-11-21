@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { OnboardingWizard } from "@/components/onboarding/onboarding-wizard";
+import { GuestLinksClaimer } from "@/components/dashboard/guest-links-claimer";
 
 export default function OnboardingPage() {
   const { data: session } = useSession();
@@ -26,5 +27,10 @@ export default function OnboardingPage() {
     }
   }, [convexUser]);
 
-  return <OnboardingWizard />;
+  return (
+    <>
+      <GuestLinksClaimer />
+      <OnboardingWizard />
+    </>
+  );
 }

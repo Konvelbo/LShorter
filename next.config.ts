@@ -292,33 +292,38 @@ const nextConfig: NextConfig = {
     ];
   },
   async rewrites() {
-    return [
-      {
-        source: "/api/og.png",
-        destination: "/api/og",
-      },
-      {
-        source: "/api/v1/:path((?!images/).*)",
-        destination: "https://lshorter-api.fiatechnologiecam.workers.dev/api/v1/:path*",
-      },
-      {
-        source: "/banners/og",
-        destination: "/api/og",
-      },
-      {
-        source: "/banners/og.png",
-        destination: "/api/og",
-      },
-      {
-        source: "/:file(google[a-zA-Z0-9_-]+\\.html)",
-        destination: "/api/verify/google?file=:file",
-      },
-      {
-        source:
-          "/:slug((?!api|_next|favicon(?:\\.ico|\\.svg|-\\d+x\\d+\\.png)|lshorter_favicon\\.svg|icon-\\d+\\.png|apple-touch-icon.*\\.png|logo(?:\\.png|\\.svg|-[a-zA-Z0-9_-]+\\.[a-zA-Z0-9]+)|default_banner\\.(?:jpg|jpeg|png|webp)|Notification\\.mp3|site\\.webmanifest|robots\\.txt|sitemap(?:_index)?\\.(?:xml|xsl)|google[a-zA-Z0-9_-]+\\.html|BingSiteAuth\\.xml|yandex_[a-zA-Z0-9_-]+\\.html|\\.well-known|login|register|dashboard|onboarding|docs|checkout|refund|showcase|video-preview|pathlock-preview|r|terms|privacy|pricing|blog|reset-password|screenshots|images|doc|audio|emojis|uploads|banners).*)",
-        destination: "/r/:slug",
-      },
-    ];
+    return {
+      beforeFiles: [],
+      afterFiles: [
+        {
+          source: "/api/og.png",
+          destination: "/api/og",
+        },
+        {
+          source: "/api/v1/:path((?!images/).*)",
+          destination: "https://lshorter-api.fiatechnologiecam.workers.dev/api/v1/:path*",
+        },
+        {
+          source: "/banners/og",
+          destination: "/api/og",
+        },
+        {
+          source: "/banners/og.png",
+          destination: "/api/og",
+        },
+        {
+          source: "/:file(google[a-zA-Z0-9_-]+\\.html)",
+          destination: "/api/verify/google?file=:file",
+        },
+      ],
+      fallback: [
+        {
+          source:
+            "/:slug((?!(?:api|_next|r|login|register|dashboard|onboarding|docs|checkout|refund|showcase|video-preview|pathlock-preview|videos|terms|privacy|pricing|blog|reset-password|screenshots|images|doc|audio|emojis|uploads|banners|\\.well-known|favicon\\.ico|favicon\\.svg|robots\\.txt|sitemap\\.xml|sitemap_index\\.xml|site\\.webmanifest)(?:$|/)).*)",
+          destination: "/r/:slug",
+        },
+      ],
+    };
   },
 };
 
