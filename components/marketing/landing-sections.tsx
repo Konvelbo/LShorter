@@ -2,16 +2,13 @@
 
 import React from "react";
 import Link from "next/link";
-import { Check, ExternalLink, Lock } from "lucide-react";
-import { WaveRevealButton } from "@/components/ui/wave-reveal-button";
+import { ExternalLink, ShieldCheck, KeyRound, Gauge } from "lucide-react";
 import {
   SectionRailFrame,
   JargonTooltip,
   scrollToHeroShortener,
 } from "@/components/marketing/swiss-frame";
-import {
-  PathLockInteractiveSimulator,
-} from "@/components/marketing/interactive-simulators";
+import { PathLockCartoonPanel } from "@/components/marketing/pathlock-cartoon-panel";
 import {
   FeatureUIRow,
   ChecklistVisual,
@@ -344,80 +341,94 @@ export function FeaturesBentoSection() {
 // ============================================================================
 // 4. SIGNATURE FOCUS: PATHLOCK™ PERIMETER SECURITY (#pathlock)
 // ============================================================================
+const PATHLOCK_FEATURES = [
+  {
+    icon: ShieldCheck,
+    title: "Strict URL prefix enforcement",
+    desc: "Blocks out-of-scope routes immediately at the edge before internal pages load.",
+  },
+  {
+    icon: KeyRound,
+    title: "Optional team unlock password",
+    desc: "Built directly into the gate so authorized reviewers can bypass restrictions.",
+  },
+  {
+    icon: Gauge,
+    title: "Click Caps & scheduled expiry",
+    desc: "Automatically close private beta links or route visitors to a waitlist after N visits.",
+  },
+];
+
 export function PathLockFocusSection() {
   return (
     <section
       id="pathlock"
-      className="relative w-full bg-[#09090B] text-white py-24 sm:py-32 border-t border-white/[0.08] scroll-mt-20 overflow-x-clip"
+      className="relative w-full bg-[#FFFFFF] dark:bg-[#09090B] text-[#101828] dark:text-[#FAFAFA] py-20 sm:py-24 border-t border-[#E4E7EC] dark:border-[#222225] scroll-mt-20 overflow-x-clip transition-colors duration-300"
     >
       <SectionRailFrame>
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-          <div className="lg:col-span-5">
-            <h2 className="text-[32px] sm:text-[42px] font-semibold tracking-[-0.03em] leading-[1.06] text-white text-balance">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] gap-12 lg:gap-16 items-center">
+          {/* Left Column (5fr) — Editorial Hairline Feature Architecture */}
+          <div className="min-w-0">
+            <h2 className="m-0 font-medium text-[clamp(32px,4.2vw,44px)] leading-[1.1] tracking-[-0.02em] text-[#101828] dark:text-[#FAFAFA] text-balance">
               Expose{" "}
-              <code className="font-mono text-[#6CA8FF] font-semibold">
+              <code className="font-mono text-[#0066FF] dark:text-[#529DFF] font-medium">
                 /app/dashboard/*
               </code>
               . Lock the rest of your app.
             </h2>
 
-            <p className="mt-5 text-[15.5px] text-zinc-400 leading-[1.65] text-pretty">
+            <p className="mt-5 max-w-[44ch] text-[17px] leading-[28px] text-[#344054] dark:text-[#D4D4D8] text-pretty">
               Sharing a staging SaaS or investor preview?{" "}
               <JargonTooltip
                 term="PathLock™"
-                darkSurface
                 explanation="Unlike basic link passwords that stop working after the redirect, PathLock enforces an authorized URL prefix boundary while visitors browse your preview."
               />{" "}
               enforces a strict URL perimeter so visitors cannot wander into
               unfinished billing, admin, or settings pages.
             </p>
 
-            <ul className="mt-7 space-y-3 text-[14.5px] text-zinc-300">
-              <li className="flex items-start gap-2.5">
-                <Check className="w-4 h-4 text-[#6CA8FF] shrink-0 mt-1" />
-                <span>
-                  Strict URL prefix enforcement blocks out-of-scope routes
-                  immediately.
-                </span>
-              </li>
-              <li className="flex items-start gap-2.5">
-                <Check className="w-4 h-4 text-[#6CA8FF] shrink-0 mt-1" />
-                <span>
-                  Optional team unlock password built directly into the gate.
-                </span>
-              </li>
-              <li className="flex items-start gap-2.5">
-                <Check className="w-4 h-4 text-[#6CA8FF] shrink-0 mt-1" />
-                <span>
-                  Combines with Click Caps so private beta links close after N
-                  visits.
-                </span>
-              </li>
+            <ul className="mt-8 list-none p-0 border-t border-[#E4E7EC] dark:border-[#222225]">
+              {PATHLOCK_FEATURES.map((feat) => {
+                const Icon = feat.icon;
+                return (
+                  <li
+                    key={feat.title}
+                    className="grid grid-cols-[20px_1fr] gap-3 py-4 border-b border-[#E4E7EC] dark:border-[#222225]"
+                  >
+                    <Icon className="w-5 h-5 mt-0.5 text-[#667085] dark:text-[#A1A1AA] stroke-[1.5]" />
+                    <div>
+                      <b className="block font-medium text-[15px] text-[#101828] dark:text-[#FAFAFA]">
+                        {feat.title}
+                      </b>
+                      <span className="block text-[15px] leading-[1.55] text-[#344054] dark:text-[#D4D4D8] mt-0.5">
+                        {feat.desc}
+                      </span>
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
 
-            <div className="mt-8 flex flex-wrap items-center gap-4">
-              <WaveRevealButton
+            <div className="mt-8 flex flex-wrap gap-3">
+              <a
                 href="/#hero-shortener"
                 onClick={scrollToHeroShortener}
-                variant="primary"
-                size="md"
-                icon={<Lock className="w-4 h-4" />}
+                className="inline-flex items-center h-[44px] px-[18px] rounded-[10px] bg-[#0066FF] hover:bg-[#0055D4] text-white text-[15px] font-medium leading-none transition-colors focus-visible:outline-2 focus-visible:outline-[#0066FF] focus-visible:outline-offset-2"
               >
                 Protect a demo link
-              </WaveRevealButton>
+              </a>
 
               <Link
-                href="/docs/pin-protection"
-                className="text-[14px] font-medium text-zinc-300 hover:text-white transition-colors"
+                href="/docs/path-lock"
+                className="inline-flex items-center h-[44px] px-[18px] rounded-[10px] border border-[#D0D5DD] dark:border-[#2E2E33] text-[#101828] dark:text-[#FAFAFA] hover:bg-[#101828]/[0.05] dark:hover:bg-[#FAFAFA]/[0.06] text-[15px] font-medium leading-none transition-colors focus-visible:outline-2 focus-visible:outline-[#0066FF] focus-visible:outline-offset-2"
               >
                 Read PathLock docs
               </Link>
             </div>
           </div>
 
-          <div className="lg:col-span-7">
-            <PathLockInteractiveSimulator />
-          </div>
+          {/* Right Column (7fr) — Animated 2D Cartoon Explainer Panel */}
+          <PathLockCartoonPanel />
         </div>
       </SectionRailFrame>
     </section>
