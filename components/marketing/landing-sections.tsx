@@ -78,7 +78,7 @@ export function HowItWorksSection() {
   ];
 
   return (
-    <section className="w-full bg-[linear-gradient(180deg,rgba(99,51,238,0.13)_0%,rgba(245,243,255,0.65)_42%,#FFFFFF_100%)] dark:bg-[linear-gradient(180deg,rgba(99,51,238,0.20)_0%,#0B0C12_45%,#09090B_100%)] py-20 sm:py-24 transition-colors duration-300 overflow-x-clip">
+    <section className="w-full bg-[linear-gradient(180deg,rgba(0,102,255,0.12)_0%,rgba(239,246,255,0.68)_42%,#FFFFFF_100%)] dark:bg-[linear-gradient(180deg,rgba(0,85,255,0.22)_0%,#090D16_45%,#09090B_100%)] py-20 sm:py-24 transition-colors duration-300 overflow-x-clip">
       <SectionRailFrame>
         <div className="max-w-[620px] mb-12">
           <h2 className="text-[28px] sm:text-[36px] font-semibold tracking-[-0.03em] leading-[1.1] text-[#09090B] dark:text-white text-balance">
@@ -95,13 +95,13 @@ export function HowItWorksSection() {
               {/* Fine horizontal bar with 1.2s left-to-right blue fill on hover */}
               <div
                 aria-hidden="true"
-                className="relative w-full h-[1.5px] bg-[#6366F1]/25 dark:bg-white/[0.12] overflow-hidden"
+                className="relative w-full h-[1.5px] bg-[#0066FF]/20 dark:bg-white/[0.12] overflow-hidden"
               >
                 <span className="how-step-bar-fill block h-full w-full bg-[#0066FF] dark:bg-[#3B82F6]" />
               </div>
 
               <div className="pt-6 flex flex-col">
-                <span className="how-step-vivid-color font-mono text-[13px] font-semibold text-[#4F46E5]/65 dark:text-[#A5B4FC]/65 group-hover:text-[#0066FF] dark:group-hover:text-[#3B82F6] tabular-nums">
+                <span className="how-step-vivid-color font-mono text-[13px] font-semibold text-[#0066FF]/70 dark:text-[#60A5FA]/75 group-hover:text-[#0066FF] dark:group-hover:text-[#3B82F6] tabular-nums">
                   0{step.num}
                 </span>
                 <h3 className="how-step-vivid-color mt-3 text-[18px] font-semibold tracking-[-0.02em] text-[#09090B]/80 dark:text-white/80 group-hover:text-[#0047FF] dark:group-hover:text-[#60A5FA]">

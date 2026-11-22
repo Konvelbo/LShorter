@@ -59,7 +59,7 @@ export const FlipWords = ({
             scale: 1.05,
           }}
           className={cn(
-            "z-10 inline-block relative text-left text-[#4F46E5] dark:text-[#A5B4FC] px-1 whitespace-nowrap will-change-transform",
+            "z-10 inline-block relative text-left text-[#0066FF] dark:text-[#60A5FA] px-1 whitespace-nowrap will-change-transform",
             className
           )}
           key={currentWord}

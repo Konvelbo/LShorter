@@ -154,11 +154,11 @@ const HeroCountdownTimer = React.memo(function HeroCountdownTimer({
   }, [slug, expiresAtMs, onExpire]);
 
   return (
-    <div className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-[8px] bg-white/55 dark:bg-[#11131A]/70 text-[12.5px] sm:text-[13px] text-[#4338CA]/85 dark:text-[#C7D2FE]/85 select-none">
-      <Clock className="w-3.5 h-3.5 text-[#6366F1]/90 dark:text-[#A5B4FC]/90 shrink-0" />
+    <div className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-[8px] bg-white/60 dark:bg-[#0D1320]/75 text-[12.5px] sm:text-[13px] text-[#0F2952]/85 dark:text-[#BFDBFE]/85 select-none">
+      <Clock className="w-3.5 h-3.5 text-[#0066FF]/90 dark:text-[#60A5FA]/90 shrink-0" />
       <span>
         Expires in{" "}
-        <strong className="font-mono font-semibold tabular-nums text-[#312E81] dark:text-[#E0E7FF]">
+        <strong className="font-mono font-semibold tabular-nums text-[#0A1F44] dark:text-[#DBEAFE]">
           {formatRemaining24h(remainingMs)}
         </strong>
       </span>
@@ -719,7 +719,7 @@ export function HeroShortener() {
     >
       {/* ── Clean Single-Surface Link Shortener Bar (strictly rounded-[10px]) ── */}
       <div
-        className={`relative z-20 rounded-[10px] bg-white/95 dark:bg-[#11131A]/95 border shadow-[0_10px_30px_rgba(99,102,241,0.08)] dark:shadow-[0_18px_44px_rgba(0,0,0,0.52)] transition-[border-color,box-shadow] duration-200 overflow-hidden ${
+        className={`relative z-20 rounded-[10px] bg-white/95 dark:bg-[#0D1320]/95 border shadow-[0_10px_30px_rgba(0,102,255,0.10)] dark:shadow-[0_18px_44px_rgba(0,0,0,0.52)] transition-[border-color,box-shadow] duration-200 overflow-hidden ${
           isPulseHighlighted
             ? "border-[#0066FF] ring-2 ring-[#0066FF]/25"
             : errorMsg
@@ -795,15 +795,15 @@ export function HeroShortener() {
 
       {/* Greeting for authenticated users when no link has been shortened in this Hero yet */}
       {isAuthenticated && !activeLink && (
-        <p className="mt-[clamp(10px,1.8svh,18px)] sm:mt-3 text-center text-[clamp(13px,min(3.8vw,1.85svh),15px)] sm:text-[13.5px] text-[#312E81]/85 dark:text-[#C7D2FE]/85 leading-[1.55] sm:leading-relaxed">
+        <p className="mt-[clamp(10px,1.8svh,18px)] sm:mt-3 text-center text-[clamp(13px,min(3.8vw,1.85svh),15px)] sm:text-[13.5px] text-[#0F2952]/85 dark:text-[#BFDBFE]/85 leading-[1.55] sm:leading-relaxed">
           Welcome back,{" "}
-          <span className="font-semibold text-[#1E1B4B] dark:text-white">
+          <span className="font-semibold text-[#0A1F44] dark:text-white">
             {userFirstName}
           </span>
           ! Any link you shorten here is saved straight to your account —{" "}
           <Link
             href={dashboardHref}
-            className="inline-flex items-center gap-1 font-semibold text-[#0066FF] dark:text-[#5294FF] underline-offset-4 hover:underline"
+            className="inline-flex items-center gap-1 font-semibold text-[#0066FF] dark:text-[#60A5FA] underline-offset-4 hover:underline"
           >
             <span>Open Dashboard</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -830,7 +830,7 @@ export function HeroShortener() {
             <motion.div
               whileHover={{ scale: 1.018 }}
               transition={{ type: "spring", stiffness: 360, damping: 24 }}
-              className="relative w-full border-l-2 border-r-2 border-[#6366F1]/60 dark:border-[#A5B4FC]/60 bg-white/55 dark:bg-[#11131A]/60 backdrop-blur-md shadow-[0_8px_24px_rgba(99,102,241,0.10)] dark:shadow-[0_10px_28px_rgba(0,0,0,0.42)] px-3.5 sm:px-4 py-[clamp(10px,1.6svh,16px)] sm:py-3 flex items-center justify-between gap-2.5 sm:gap-4 text-left"
+              className="relative w-full border-l-2 border-r-2 border-[#0066FF]/60 dark:border-[#60A5FA]/60 bg-white/60 dark:bg-[#0D1320]/65 backdrop-blur-md shadow-[0_8px_24px_rgba(0,102,255,0.10)] dark:shadow-[0_10px_28px_rgba(0,0,0,0.42)] px-3.5 sm:px-4 py-[clamp(10px,1.6svh,16px)] sm:py-3 flex items-center justify-between gap-2.5 sm:gap-4 text-left"
             >
               {/* Left: Shortened link + icon that redirects on click */}
               <a
@@ -838,15 +838,15 @@ export function HeroShortener() {
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={handleLinkClicked}
-                className="group inline-flex items-center gap-1.5 sm:gap-2 text-[clamp(14.5px,min(4.2vw,2.1svh),17px)] sm:text-[16px] font-mono font-semibold text-[#312E81]/95 dark:text-[#E0E7FF]/95 hover:text-[#4F46E5] dark:hover:text-white transition-all duration-200 hover:scale-[1.02] origin-left truncate min-w-0"
+                className="group inline-flex items-center gap-1.5 sm:gap-2 text-[clamp(14.5px,min(4.2vw,2.1svh),17px)] sm:text-[16px] font-mono font-semibold text-[#0A1F44]/95 dark:text-[#DBEAFE]/95 hover:text-[#0066FF] dark:hover:text-white transition-all duration-200 hover:scale-[1.02] origin-left truncate min-w-0"
               >
                 <span className="truncate">lsho.cc/{activeLink.slug}</span>
-                <ExternalLink className="w-4 h-4 shrink-0 text-[#6366F1]/85 dark:text-[#A5B4FC]/85 group-hover:text-[#4F46E5] dark:group-hover:text-white group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                <ExternalLink className="w-4 h-4 shrink-0 text-[#0066FF]/85 dark:text-[#60A5FA]/85 group-hover:text-[#0052CC] dark:group-hover:text-white group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
               </a>
 
               {/* Right: Live click count text + QR Code hover trigger button */}
               <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
-                <span className="font-mono text-[clamp(13px,min(3.6vw,1.8svh),15px)] sm:text-[14px] font-medium text-[#4338CA]/85 dark:text-[#C7D2FE]/90 tabular-nums whitespace-nowrap">
+                <span className="font-mono text-[clamp(13px,min(3.6vw,1.8svh),15px)] sm:text-[14px] font-medium text-[#1D4ED8]/85 dark:text-[#BFDBFE]/90 tabular-nums whitespace-nowrap">
                   {activeLink.clicksCount}{" "}
                   {activeLink.clicksCount === 1 ? "click" : "clicks"}
                 </span>
@@ -864,8 +864,8 @@ export function HeroShortener() {
                     onClick={handleQrToggleClick}
                     className={`w-[clamp(34px,4.8svh,40px)] h-[clamp(34px,4.8svh,40px)] sm:w-8 sm:h-8 rounded-[8px] flex items-center justify-center border transition-all duration-150 cursor-pointer ${
                       isQrHovered
-                        ? "bg-[#6366F1] text-white border-[#6366F1] shadow-[0_4px_14px_rgba(99,102,241,0.35)]"
-                        : "bg-white/65 dark:bg-white/[0.08] border-[#6366F1]/30 dark:border-[#A5B4FC]/25 text-[#312E81] dark:text-[#E0E7FF] hover:bg-[#6366F1]/15 dark:hover:bg-white/[0.15]"
+                        ? "bg-[#0066FF] text-white border-[#0066FF] shadow-[0_4px_14px_rgba(0,102,255,0.35)]"
+                        : "bg-white/65 dark:bg-white/[0.08] border-[#0066FF]/30 dark:border-[#60A5FA]/30 text-[#0A1F44] dark:text-[#DBEAFE] hover:bg-[#0066FF]/15 dark:hover:bg-white/[0.15]"
                     }`}
                   >
                     <QrCode className="w-4 h-4" />
@@ -883,10 +883,10 @@ export function HeroShortener() {
                         onMouseLeave={handleQrMouseLeave}
                         role="dialog"
                         aria-label="QR Code options"
-                        className="absolute right-0 bottom-full mb-2.5 z-50 w-[236px] rounded-[10px] bg-white/95 dark:bg-[#11131A]/95 backdrop-blur-xl border border-[#E4E7EC] dark:border-white/15 p-3.5 shadow-[0_20px_48px_rgba(16,24,40,0.18)] dark:shadow-[0_22px_54px_rgba(0,0,0,0.75)] text-left after:content-[''] after:absolute after:top-full after:left-0 after:right-0 after:h-3"
+                        className="absolute right-0 bottom-full mb-2.5 z-50 w-[236px] rounded-[10px] bg-white/95 dark:bg-[#0D1320]/95 backdrop-blur-xl border border-[#E4E7EC] dark:border-white/15 p-3.5 shadow-[0_20px_48px_rgba(16,24,40,0.18)] dark:shadow-[0_22px_54px_rgba(0,0,0,0.75)] text-left after:content-[''] after:absolute after:top-full after:left-0 after:right-0 after:h-3"
                       >
                         <div className="flex items-center justify-between gap-2 pb-2 mb-2.5 border-b border-[#E4E7EC] dark:border-white/10">
-                          <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-[#312E81] dark:text-[#C7D2FE]">
+                          <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-[#0A1F44] dark:text-[#BFDBFE]">
                             QR Code
                           </span>
                           <span className="font-mono text-[11px] text-[#667085] dark:text-zinc-400 truncate">
@@ -904,7 +904,7 @@ export function HeroShortener() {
                               className="w-full h-full object-contain select-none"
                             />
                           ) : (
-                            <Loader2 className="w-5 h-5 animate-spin text-[#6366F1]" />
+                            <Loader2 className="w-5 h-5 animate-spin text-[#0066FF]" />
                           )}
                         </div>
 
@@ -912,7 +912,7 @@ export function HeroShortener() {
                         <div className="mt-3">
                           <div className="flex items-center justify-between text-[11px] font-medium text-[#475467] dark:text-zinc-400 mb-1.5">
                             <span>Color</span>
-                            <span className="text-[10.5px] text-[#6366F1] dark:text-[#A5B4FC]">
+                            <span className="text-[10.5px] text-[#0066FF] dark:text-[#60A5FA]">
                               {isAuthenticated
                                 ? activeColorName
                                 : "Account colors locked"}
@@ -945,7 +945,7 @@ export function HeroShortener() {
                                   }}
                                   className={`relative w-7 h-7 rounded-[7px] flex items-center justify-center transition-transform cursor-pointer ${
                                     isSelected
-                                      ? "ring-2 ring-[#0066FF] ring-offset-2 ring-offset-white dark:ring-offset-[#11131A] scale-105"
+                                      ? "ring-2 ring-[#0066FF] ring-offset-2 ring-offset-white dark:ring-offset-[#0D1320] scale-105"
                                       : "opacity-85 hover:opacity-100 hover:scale-105"
                                   }`}
                                   style={{ backgroundColor: swatch.hex }}
@@ -994,7 +994,7 @@ export function HeroShortener() {
                               title="Create a free account to export animated GIF QR codes"
                               className="h-8 px-2.5 rounded-[8px] bg-[#F2F4F7] dark:bg-white/[0.08] hover:bg-[#E4E7EC] dark:hover:bg-white/[0.14] border border-[#D0D5DD] dark:border-white/15 text-[#101828] dark:text-white text-[12px] font-semibold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                             >
-                              <Lock className="w-3 h-3 text-[#6366F1] dark:text-[#A5B4FC] shrink-0" />
+                              <Lock className="w-3 h-3 text-[#0066FF] dark:text-[#60A5FA] shrink-0" />
                               <span>GIF</span>
                             </button>
                           )}
@@ -1017,25 +1017,25 @@ export function HeroShortener() {
 
             {/* Authenticated Greeting + Dashboard link OR Guest Account Creation Prompt */}
             {isAuthenticated ? (
-              <p className="mt-[clamp(10px,1.8svh,18px)] sm:mt-3 text-center text-[clamp(13px,min(3.8vw,1.85svh),15px)] sm:text-[13.5px] text-[#312E81]/90 dark:text-[#C7D2FE]/90 leading-[1.5] sm:leading-relaxed max-w-[580px]">
+              <p className="mt-[clamp(10px,1.8svh,18px)] sm:mt-3 text-center text-[clamp(13px,min(3.8vw,1.85svh),15px)] sm:text-[13.5px] text-[#0F2952]/90 dark:text-[#BFDBFE]/90 leading-[1.5] sm:leading-relaxed max-w-[580px]">
                 Welcome back,{" "}
-                <span className="font-semibold text-[#1E1B4B] dark:text-white">
+                <span className="font-semibold text-[#0A1F44] dark:text-white">
                   {userFirstName}
                 </span>
                 ! This link is saved permanently in your workspace —{" "}
                 <Link
                   href={dashboardHref}
-                  className="inline-flex items-center gap-1 font-semibold text-[#0066FF] dark:text-[#5294FF] underline-offset-4 hover:underline"
+                  className="inline-flex items-center gap-1 font-semibold text-[#0066FF] dark:text-[#60A5FA] underline-offset-4 hover:underline"
                 >
                   <span>Go to your Dashboard</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </p>
             ) : (
-              <p className="mt-[clamp(10px,1.6svh,16px)] sm:mt-2.5 text-center text-[clamp(13px,min(3.8vw,1.85svh),15px)] sm:text-[13.5px] text-[#312E81]/90 dark:text-[#C7D2FE]/90 leading-[1.5] sm:leading-relaxed max-w-[580px]">
+              <p className="mt-[clamp(10px,1.6svh,16px)] sm:mt-2.5 text-center text-[clamp(13px,min(3.8vw,1.85svh),15px)] sm:text-[13.5px] text-[#0F2952]/90 dark:text-[#BFDBFE]/90 leading-[1.5] sm:leading-relaxed max-w-[580px]">
                 <Link
                   href="/register?claim=1"
-                  className="font-semibold text-[#0066FF] dark:text-[#5294FF] underline-offset-4 hover:underline"
+                  className="font-semibold text-[#0066FF] dark:text-[#60A5FA] underline-offset-4 hover:underline"
                 >
                   Create your account
                 </Link>{" "}
