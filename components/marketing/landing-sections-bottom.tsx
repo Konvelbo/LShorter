@@ -15,6 +15,16 @@ import {
   Link2,
   BookOpen,
   ArrowRight,
+  Globe,
+  ShieldCheck,
+  Lock,
+  Download,
+  Gauge,
+  Activity,
+  DollarSign,
+  Smartphone,
+  QrCode,
+  Share2,
 } from "lucide-react";
 import { WaveRevealButton } from "@/components/ui/wave-reveal-button";
 import {
@@ -164,81 +174,212 @@ export function DifferenceSection() {
 }
 
 // ============================================================================
-// 6. USE CASES BY PROFILE (Single-Row Tab Bar + Split Blueprint)
+// 6. USE CASES BY PROFILE (Segmented Tab Bar + Split Interactive Governance Card)
 // ============================================================================
-const USE_CASES = [
+interface UseCaseRuleRow {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: string;
+  verifiedDot?: boolean;
+}
+
+interface UseCaseBarRow {
+  label: string;
+  percent: number;
+  count: string;
+}
+
+interface UseCaseItem {
+  id: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  eyebrow: string;
+  headline: string;
+  bullets: string[];
+  shortUrl: string;
+  destination: string;
+  status: string;
+  rules: UseCaseRuleRow[];
+  chartTitle: string;
+  chartSub: string;
+  actionLabel: string;
+  actionDoneLabel: string;
+  bars: UseCaseBarRow[];
+}
+
+const USE_CASES: UseCaseItem[] = [
   {
     id: "founders",
     label: "SaaS founders & devs",
     icon: Code2,
-    scenario:
-      "You share a staging demo of your SaaS: one link locks testers strictly inside /app/dashboard/* and automatically closes after 25 clicks.",
+    eyebrow: "For SaaS teams shipping staging demos & private betas",
+    headline:
+      "Lock beta testers inside /app/dashboard/* and auto-close invites after 25 clicks",
     bullets: [
       "Prevent beta testers from exploring unfinished routes with PathLock™",
       "Cap private invite batches with exact click limits and waitlist fallback",
       "Automate link provisioning directly from CI/CD via REST API",
     ],
-    sampleLink: "go.acmesaas.io/beta-v2",
-    sampleRule: "PathLock: /app/dashboard/*  |  Cap: 25 clicks",
+    shortUrl: "go.acmesaas.io/beta-v2",
+    destination: "staging.acmesaas.io/app/dashboard/overview",
+    status: "Live",
+    rules: [
+      {
+        icon: ShieldCheck,
+        label: "PathLock™ prefix",
+        value: "/app/dashboard/*",
+        verifiedDot: true,
+      },
+      { icon: Gauge, label: "Click cap", value: "19 / 25 clicks" },
+      { icon: Terminal, label: "Provisioning", value: "REST API · CI/CD" },
+    ],
+    chartTitle: "Route activity",
+    chartSub: "Last 7 days",
+    actionLabel: "Export CSV",
+    actionDoneLabel: "Exported",
+    bars: [
+      { label: "/dashboard", percent: 100, count: "142" },
+      { label: "/metrics", percent: 64, count: "91" },
+      { label: "/admin", percent: 18, count: "26" },
+      { label: "/billing", percent: 11, count: "15" },
+    ],
   },
   {
     id: "marketers",
     label: "Affiliates & marketers",
     icon: Megaphone,
-    scenario:
-      "You run paid ads across regions: one short link routes French visitors to your FR checkout, fires Meta and TikTok pixels, and shows which post drove the sale.",
+    eyebrow: "For growth teams running paid campaigns across regions",
+    headline:
+      "Route every region to its local offer, fire ad pixels and track attributed revenue",
     bullets: [
       "Split-test two landing pages with weighted A/B routing on one link",
       "Fire Meta Ads, Google Ads, and TikTok retargeting pixels automatically",
       "Connect conversion webhooks to see exact revenue per short link",
     ],
-    sampleLink: "deals.brand.co/spring",
-    sampleRule: "FR -> /fr-offer  |  A/B 50/50  |  Meta Pixel on",
+    shortUrl: "deals.brand.co/spring",
+    destination: "brand.co/offers/spring-campaign",
+    status: "Live",
+    rules: [
+      {
+        icon: Globe,
+        label: "Geo & A/B split",
+        value: "FR → /fr · 50/50",
+        verifiedDot: true,
+      },
+      { icon: Activity, label: "Retargeting pixels", value: "Meta · TikTok" },
+      { icon: DollarSign, label: "Attributed revenue", value: "$4,820" },
+    ],
+    chartTitle: "Clicks by country",
+    chartSub: "Last 7 days",
+    actionLabel: "Export CSV",
+    actionDoneLabel: "Exported",
+    bars: [
+      { label: "France", percent: 100, count: "2,140" },
+      { label: "United States", percent: 72, count: "1,538" },
+      { label: "United Kingdom", percent: 44, count: "942" },
+      { label: "Canada", percent: 29, count: "618" },
+    ],
   },
   {
     id: "creators",
     label: "Creators",
     icon: Users,
-    scenario:
-      "You share a product link on Instagram and YouTube: iPhone followers go straight to the App Store, Android to Google Play, and you track every click live.",
+    eyebrow: "For creators sharing drops across Instagram, YouTube & TikTok",
+    headline:
+      "Send iOS followers to the App Store, Android to Google Play and track live clicks",
     bullets: [
       "Smart OS detection routes iOS, Android, and desktop visitors automatically",
       "Custom OpenGraph cards so links look sharp on X, LinkedIn, and Discord",
       "Branded vector QR codes for merch, slides, and live events",
     ],
-    sampleLink: "lsho.cc/creator-kit",
-    sampleRule: "iOS -> App Store  |  Android -> Play Store",
+    shortUrl: "lsho.cc/creator-kit",
+    destination: "apps.apple.com/app/creator-kit",
+    status: "Live",
+    rules: [
+      {
+        icon: Smartphone,
+        label: "Smart OS routing",
+        value: "iOS · Android · Web",
+        verifiedDot: true,
+      },
+      { icon: QrCode, label: "Dynamic QR code", value: "SVG · Branded" },
+      { icon: Share2, label: "OpenGraph card", value: "Custom preview" },
+    ],
+    chartTitle: "Clicks by device",
+    chartSub: "Last 7 days",
+    actionLabel: "Export CSV",
+    actionDoneLabel: "Exported",
+    bars: [
+      { label: "iOS", percent: 100, count: "3,412" },
+      { label: "Android", percent: 58, count: "1,978" },
+      { label: "Desktop", percent: 27, count: "924" },
+      { label: "QR Scans", percent: 19, count: "648" },
+    ],
   },
   {
     id: "agencies",
     label: "Agencies",
     icon: Building2,
-    scenario:
-      "You manage campaigns for multiple clients: give every client their own verified short domain, live geo reports, and password-protected preview links.",
+    eyebrow: "For agencies running campaigns for multiple clients",
+    headline:
+      "Give every client a verified short domain, live geo reports and password-protected previews",
     bullets: [
       "Connect up to 15 custom client domains with automated DNS and SSL",
       "Export clean CSV/Excel reports for every client campaign in one click",
       "Protect confidential pitch decks and client previews behind a password",
     ],
-    sampleLink: "go.clientbrand.com/q4",
-    sampleRule: "Custom SSL  |  Password  |  CSV export",
+    shortUrl: "go.clientbrand.com/q4",
+    destination: "clientbrand.com/campaigns/q4-launch",
+    status: "Live",
+    rules: [
+      {
+        icon: Globe,
+        label: "Custom domain",
+        value: "Verified",
+        verifiedDot: true,
+      },
+      { icon: ShieldCheck, label: "SSL certificate", value: "Active" },
+      { icon: Lock, label: "Password", value: "Required" },
+    ],
+    chartTitle: "Clicks by country",
+    chartSub: "Last 7 days",
+    actionLabel: "Export CSV",
+    actionDoneLabel: "Exported",
+    bars: [
+      { label: "United States", percent: 100, count: "1,284" },
+      { label: "Germany", percent: 50, count: "642" },
+      { label: "France", percent: 33, count: "418" },
+      { label: "Brazil", percent: 23, count: "291" },
+    ],
   },
 ];
 
 export function UseCasesSection() {
-  const [activeId, setActiveId] = useState(USE_CASES[0].id);
-  const current = USE_CASES.find((u) => u.id === activeId) || USE_CASES[0];
+  const [activeId, setActiveId] = useState("agencies");
+  const [exportedId, setExportedId] = useState<string | null>(null);
+  const current = USE_CASES.find((u) => u.id === activeId) || USE_CASES[3];
+
+  const handlePreviewExport = (id: string) => {
+    setExportedId(id);
+    window.setTimeout(() => {
+      setExportedId((prev) => (prev === id ? null : prev));
+    }, 1600);
+  };
 
   return (
-    <section className="w-full bg-[#F8F9FB] dark:bg-[#0D0E12] py-24 sm:py-32 border-t border-[#E4E7EC] dark:border-white/[0.08] overflow-x-clip transition-colors duration-300">
+    <section className="w-full bg-[#f7f8fa] dark:bg-[#0D0E12] py-20 sm:py-24 border-t border-[#0f1217]/[0.08] dark:border-white/[0.08] overflow-x-clip transition-colors duration-300">
       <SectionRailFrame>
-        <div className="mb-8">
-          <h2 className="text-[30px] sm:text-[40px] font-semibold tracking-[-0.03em] leading-[1.08] text-[#09090B] dark:text-white text-balance">
+        <div className="flex flex-col gap-8">
+          <h2 className="m-0 text-[32px] sm:text-[44px] leading-[1.16] font-semibold tracking-[-0.03em] text-[#0f1217] dark:text-white text-balance">
             Tailored to how your team ships
           </h2>
 
-          {/* Single-Row Tab Bar */}
-          <div className="mt-6 inline-flex flex-wrap lg:flex-nowrap gap-1 p-1 rounded-[10px] bg-white dark:bg-[#14151B] border border-[#E4E7EC] dark:border-white/[0.09] max-w-full">
+          {/* Segmented Tab Bar */}
+          <div
+            role="tablist"
+            aria-label="Audience"
+            className="self-start inline-flex flex-wrap sm:flex-nowrap items-center gap-1 p-1 bg-white dark:bg-[#14151B] border border-[#0f1217]/[0.09] dark:border-white/[0.10] rounded-[10px] max-w-full"
+          >
             {USE_CASES.map((tab) => {
               const Icon = tab.icon;
               const isSelected = tab.id === activeId;
@@ -246,21 +387,23 @@ export function UseCasesSection() {
                 <button
                   key={tab.id}
                   type="button"
+                  role="tab"
+                  aria-selected={isSelected}
                   onClick={() => setActiveId(tab.id)}
-                  className={`relative px-3.5 py-2 rounded-[8px] text-[13.5px] font-medium transition-colors cursor-pointer inline-flex items-center gap-2 ${
+                  className={`relative h-9 px-3.5 inline-flex items-center gap-2 rounded-[6px] text-[14px] font-medium transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-[#1f5fe0] focus-visible:outline-offset-2 ${
                     isSelected
-                      ? "text-white"
-                      : "text-[#52525B] dark:text-zinc-400 hover:text-[#09090B] dark:hover:text-white"
+                      ? "text-[#0f1217] dark:text-white"
+                      : "text-[#5b6270] dark:text-zinc-400 hover:text-[#0f1217] dark:hover:text-white"
                   }`}
                 >
                   {isSelected && (
                     <motion.span
                       layoutId="use-case-pill"
-                      transition={{ type: "spring", stiffness: 440, damping: 36 }}
-                      className="absolute inset-0 rounded-[8px] bg-[#0066FF] z-0"
+                      transition={{ type: "spring", stiffness: 460, damping: 38 }}
+                      className="absolute inset-0 rounded-[6px] bg-[#eef0f4] dark:bg-white/[0.11] border border-[#0f1217]/[0.10] dark:border-white/[0.14] z-0"
                     />
                   )}
-                  <Icon className="w-3.5 h-3.5 relative z-10 shrink-0" />
+                  <Icon className="w-4 h-4 relative z-10 shrink-0 stroke-[1.6]" />
                   <span className="relative z-10 whitespace-nowrap">
                     {tab.label}
                   </span>
@@ -268,61 +411,169 @@ export function UseCasesSection() {
               );
             })}
           </div>
-        </div>
 
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={current.id}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.2, ease: EASE_OUT_EXPO }}
-            className="rounded-[10px] border border-[#E4E7EC] dark:border-white/[0.09] bg-white dark:bg-[#111216] grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-[#E4E7EC] dark:divide-white/[0.08] overflow-hidden"
-          >
-            <div className="lg:col-span-7 p-6 sm:p-8">
-              <p className="text-[18px] sm:text-[21px] font-medium tracking-[-0.02em] leading-[1.45] text-[#09090B] dark:text-white">
-                &ldquo;{current.scenario}&rdquo;
-              </p>
-              <ul className="mt-6 space-y-2.5">
-                {current.bullets.map((b) => (
-                  <li
-                    key={b}
-                    className="flex items-start gap-2.5 text-[14.5px] text-[#52525B] dark:text-zinc-300"
+          {/* Split Panel Card */}
+          <div className="bg-white dark:bg-[#121319] border border-[#0f1217]/[0.09] dark:border-white/[0.09] rounded-[10px] overflow-hidden">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={current.id}
+                role="tabpanel"
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={{ duration: 0.22, ease: EASE_OUT_EXPO }}
+                className="grid grid-cols-1 lg:grid-cols-[1.05fr_1fr]"
+              >
+                {/* Left Column: Narrative + Bullets + Primary CTA */}
+                <div className="p-7 sm:p-10 flex flex-col justify-between gap-8">
+                  <div className="flex flex-col gap-8">
+                    <div className="flex flex-col gap-3">
+                      <span className="text-[14px] leading-5 font-medium text-[#5b6270] dark:text-zinc-400">
+                        {current.eyebrow}
+                      </span>
+                      <h3 className="m-0 text-[24px] sm:text-[30px] leading-[1.33] font-semibold tracking-[-0.02em] text-[#0f1217] dark:text-white text-balance">
+                        {current.headline}
+                      </h3>
+                    </div>
+
+                    <ul className="flex flex-col gap-3">
+                      {current.bullets.map((b) => (
+                        <li
+                          key={b}
+                          className="flex items-start gap-3 text-[15px] leading-6 text-[#4a5160] dark:text-zinc-300"
+                        >
+                          <Check className="w-4 h-4 shrink-0 mt-1 stroke-[1.6] text-[#4a5160] dark:text-zinc-400" />
+                          <span>{b}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <a
+                    href="/#hero-shortener"
+                    onClick={scrollToHeroShortener}
+                    className="self-start h-11 px-5 inline-flex items-center gap-2.5 bg-[#1f5fe0] hover:bg-[#1a52c4] text-white rounded-[8px] text-[15px] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-[#1f5fe0] focus-visible:outline-offset-2"
                   >
-                    <Check className="w-4 h-4 text-[#0066FF] dark:text-[#6CA8FF] shrink-0 mt-0.5" />
-                    <span>{b}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+                    <span>Try this workflow without signup</span>
+                    <ArrowRight className="w-4 h-4 stroke-[1.75]" />
+                  </a>
+                </div>
 
-            <div className="lg:col-span-5 p-6 sm:p-8 flex flex-col justify-between bg-[#F8F9FB]/60 dark:bg-[#0D0E12]">
-              <div>
-                <div className="text-[12.5px] font-medium text-[#71717A] dark:text-zinc-400">
-                  Configured link example
-                </div>
-                <div className="mt-2 font-mono text-[17px] font-semibold text-[#0066FF] dark:text-[#6CA8FF] break-all">
-                  {current.sampleLink}
-                </div>
-                <div className="mt-3 px-3.5 py-2.5 rounded-[8px] bg-white dark:bg-[#111216] border border-[#E4E7EC] dark:border-white/[0.08] font-mono text-[12px] text-[#3F3F46] dark:text-zinc-300">
-                  {current.sampleRule}
-                </div>
-              </div>
+                {/* Right Column: Elevated Live Link Governance Card */}
+                <div className="p-6 sm:p-8 bg-[#f1f3f6] dark:bg-[#0A0B0F] border-t lg:border-t-0 lg:border-l border-[#0f1217]/[0.09] dark:border-white/[0.08] flex flex-col justify-center">
+                  <div className="bg-white dark:bg-[#15171F] border border-[#0f1217]/[0.10] dark:border-white/[0.10] rounded-[8px] shadow-[0_1px_2px_rgba(15,18,23,0.06),0_8px_24px_rgba(15,18,23,0.06)] dark:shadow-[0_12px_32px_rgba(0,0,0,0.45)] overflow-hidden">
+                    {/* Link Header */}
+                    <div className="px-5 pt-5 pb-4 flex flex-col gap-1">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="font-mono text-[17px] sm:text-[18px] leading-7 font-medium text-[#1f5fe0] dark:text-[#60A5FA] truncate">
+                          {current.shortUrl}
+                        </span>
+                        <span className="inline-flex items-center gap-2 text-[13px] text-[#4a5160] dark:text-zinc-300 shrink-0">
+                          <span className="w-2 h-2 rounded-full bg-[#2f8f5b] dark:bg-emerald-400" />
+                          {current.status}
+                        </span>
+                      </div>
+                      <span className="font-mono text-[13px] leading-5 text-[#5b6270] dark:text-zinc-400 truncate">
+                        {current.destination}
+                      </span>
+                    </div>
 
-              <div className="mt-6 pt-5 border-t border-[#E4E7EC] dark:border-white/[0.08]">
-                <WaveRevealButton
-                  href="/#hero-shortener"
-                  onClick={scrollToHeroShortener}
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                >
-                  Try this workflow without signup
-                </WaveRevealButton>
-              </div>
-            </div>
-          </motion.div>
-        </AnimatePresence>
+                    {/* Structured Governance Rows */}
+                    <div className="border-t border-[#0f1217]/[0.08] dark:border-white/[0.08]">
+                      {current.rules.map((rule, idx) => {
+                        const RuleIcon = rule.icon;
+                        return (
+                          <div
+                            key={rule.label}
+                            className={`h-11 px-5 flex items-center gap-3 text-[14px] ${
+                              idx > 0
+                                ? "border-t border-[#0f1217]/[0.08] dark:border-white/[0.08]"
+                                : ""
+                            }`}
+                          >
+                            <RuleIcon className="w-4 h-4 shrink-0 text-[#4a5160] dark:text-zinc-400 stroke-[1.6]" />
+                            <span className="flex-1 text-[#4a5160] dark:text-zinc-400 truncate">
+                              {rule.label}
+                            </span>
+                            <span className="inline-flex items-center gap-2 text-[#0f1217] dark:text-white font-normal shrink-0">
+                              {rule.verifiedDot && (
+                                <span className="w-2 h-2 rounded-full bg-[#2f8f5b] dark:bg-emerald-400" />
+                              )}
+                              {rule.value}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Country / Activity Breakdown + Ghost Export Button */}
+                    <div className="border-t border-[#0f1217]/[0.08] dark:border-white/[0.08] px-5 pt-4 pb-5 flex flex-col gap-3.5">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-[14px] leading-5 font-medium text-[#0f1217] dark:text-white">
+                            {current.chartTitle}
+                          </span>
+                          <span className="text-[13px] leading-4 text-[#5b6270] dark:text-zinc-400">
+                            {current.chartSub}
+                          </span>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handlePreviewExport(current.id)}
+                          className="h-8 px-3 inline-flex items-center gap-2 bg-white dark:bg-white/[0.04] hover:bg-[#f1f3f6] dark:hover:bg-white/[0.09] border border-[#0f1217]/[0.14] dark:border-white/[0.14] rounded-[6px] text-[#0f1217] dark:text-zinc-200 text-[13px] font-medium transition-colors cursor-pointer shrink-0 focus-visible:outline-2 focus-visible:outline-[#1f5fe0] focus-visible:outline-offset-2"
+                        >
+                          {exportedId === current.id ? (
+                            <>
+                              <Check className="w-3.5 h-3.5 text-[#2f8f5b] dark:text-emerald-400" />
+                              <span>{current.actionDoneLabel}</span>
+                            </>
+                          ) : (
+                            <>
+                              <Download className="w-3.5 h-3.5 stroke-[1.6]" />
+                              <span>{current.actionLabel}</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+
+                      <div className="flex flex-col gap-3 text-[13px] text-[#4a5160] dark:text-zinc-400">
+                        {current.bars.map((bar, idx) => (
+                          <div
+                            key={bar.label}
+                            className="grid grid-cols-[112px_1fr_48px] items-center gap-3"
+                          >
+                            <span className="truncate">{bar.label}</span>
+                            <span className="h-1 rounded-[2px] bg-[#e6e9ee] dark:bg-white/[0.08] overflow-hidden">
+                              <motion.span
+                                initial={{ scaleX: 0 }}
+                                animate={{ scaleX: bar.percent / 100 }}
+                                transition={{
+                                  duration: 0.45,
+                                  delay: 0.05 + idx * 0.05,
+                                  ease: EASE_OUT_EXPO,
+                                }}
+                                style={{ transformOrigin: "left" }}
+                                className={`block w-full h-1 rounded-[2px] ${
+                                  idx === 0
+                                    ? "bg-[#1f5fe0] dark:bg-[#3B82F6]"
+                                    : "bg-[#aeb5c1] dark:bg-zinc-600"
+                                }`}
+                              />
+                            </span>
+                            <span className="text-right font-mono tabular-nums text-[#0f1217] dark:text-zinc-200">
+                              {bar.count}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        </div>
       </SectionRailFrame>
     </section>
   );
