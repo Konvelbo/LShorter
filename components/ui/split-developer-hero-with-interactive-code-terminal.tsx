@@ -265,9 +265,19 @@ function CodeWindow({
     tabRefs.current[next]?.focus();
   };
 
+  const maxLines = React.useMemo(
+    () =>
+      Math.max(
+        1,
+        ...tabs.map((t) => t.code.replace(/\n$/, "").split("\n").length),
+      ),
+    [tabs],
+  );
+
   const current = tabs[shown] ?? tabs[0];
   if (!current) return null;
   const lines = current.code.replace(/\n$/, "").split("\n");
+  const fixedPanelHeight = maxLines * 24 + 48;
 
   return (
     <div className="min-w-0 overflow-hidden rounded-[10px] border border-[#E4E7EC] dark:border-white/[0.10] bg-white dark:bg-[#0D0E14] text-[#09090B] dark:text-zinc-100 shadow-[0_18px_48px_-18px_rgba(16,24,40,0.14)] dark:shadow-[0_24px_60px_-18px_rgba(0,0,0,0.65)]">
@@ -313,14 +323,15 @@ function CodeWindow({
         <CopyButton text={current.code} />
       </div>
 
-      {/* Code viewport */}
+      {/* Code viewport — fixed height sized to largest tab to prevent layout shifts */}
       <div
         role="tabpanel"
         id={`${baseId}-panel`}
         aria-labelledby={`${baseId}-tab-${active}`}
         tabIndex={0}
+        style={{ height: `${fixedPanelHeight}px` }}
         className={cn(
-          "overflow-x-auto p-4 sm:p-5 font-mono text-[12.5px] sm:text-[13px] leading-6 transition-opacity duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0066FF] motion-reduce:transition-none",
+          "overflow-auto p-4 sm:p-5 font-mono text-[12.5px] sm:text-[13px] leading-6 transition-opacity duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0066FF] motion-reduce:transition-none",
           visible ? "opacity-100" : "opacity-0",
         )}
       >
