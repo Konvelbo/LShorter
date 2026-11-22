@@ -7,13 +7,11 @@ import {
   Check,
   X as XIcon,
   Terminal,
-  Copy,
   Users,
   Code2,
   Megaphone,
   Building2,
   Link2,
-  BookOpen,
   ArrowRight,
   Globe,
   ShieldCheck,
@@ -27,6 +25,10 @@ import {
   Share2,
 } from "lucide-react";
 import { WaveRevealButton } from "@/components/ui/wave-reveal-button";
+import {
+  SplitDeveloperHero,
+  type CodeTab,
+} from "@/components/ui/split-developer-hero-with-interactive-code-terminal";
 import {
   Pricing,
   type PricingPlan,
@@ -582,11 +584,10 @@ export function UseCasesSection() {
 // ============================================================================
 // 7. DEVELOPER-FIRST REST API & WEBHOOKS (#api)
 // ============================================================================
-type ApiLangKey = "curl" | "ts" | "python" | "webhook";
-
-const API_SNIPPETS: Record<ApiLangKey, { label: string; code: string }> = {
-  curl: {
+const DEVELOPER_API_TABS: CodeTab[] = [
+  {
     label: "cURL",
+    language: "bash",
     code: `curl -X POST https://lsho.cc/api/v1/links \\
   -H "Authorization: Bearer lsh_live_9f8a2c..." \\
   -H "Content-Type: application/json" \\
@@ -599,8 +600,9 @@ const API_SNIPPETS: Record<ApiLangKey, { label: string; code: string }> = {
     "geoTargeting": { "FR": "https://fr.acmesaas.io/demo" }
   }'`,
   },
-  ts: {
+  {
     label: "TypeScript",
+    language: "typescript",
     code: `const res = await fetch("https://lsho.cc/api/v1/links", {
   method: "POST",
   headers: {
@@ -619,8 +621,9 @@ const API_SNIPPETS: Record<ApiLangKey, { label: string; code: string }> = {
 const { data } = await res.json();
 console.log(data.short_url); // https://lsho.cc/beta-demo`,
   },
-  python: {
+  {
     label: "Python",
+    language: "python",
     code: `import os, requests
 
 response = requests.post(
@@ -636,8 +639,9 @@ response = requests.post(
 )
 print(response.json()["data"]["short_url"])`,
   },
-  webhook: {
+  {
     label: "Webhook",
+    language: "json",
     code: `{
   "event": "link.clicked",
   "slug": "beta-demo",
@@ -650,257 +654,42 @@ print(response.json()["data"]["short_url"])`,
   "timestamp": "2026-11-21T04:12:08.412Z"
 }`,
   },
-};
+];
 
-const TOKEN_REGEX =
-  /(\/\/.*$|#.*$|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`|\b(?:const|await|import|from|export|return|true|false|null|curl|POST|GET|PATCH|DELETE)\b|\b(?:fetch|JSON|stringify|console|log|requests|post|print|os|environ|process|env)\b|\s-[A-Za-z]+\b|\b\d+(?:\.\d+)?\b)/g;
-
-const KEYWORDS = new Set([
-  "const",
-  "await",
-  "import",
-  "from",
-  "export",
-  "return",
-  "true",
-  "false",
-  "null",
-  "curl",
-  "POST",
-  "GET",
-  "PATCH",
-  "DELETE",
-]);
-
-const BUILTINS = new Set([
-  "fetch",
-  "JSON",
-  "stringify",
-  "console",
-  "log",
-  "requests",
-  "post",
-  "print",
-  "os",
-  "environ",
-  "process",
-  "env",
-]);
-
-function renderHighlightedLine(line: string, lineIdx: number): React.ReactNode {
-  if (!line) return " ";
-  const parts: React.ReactNode[] = [];
-  let lastIndex = 0;
-  TOKEN_REGEX.lastIndex = 0;
-  let match: RegExpExecArray | null;
-
-  while ((match = TOKEN_REGEX.exec(line)) !== null) {
-    if (match.index > lastIndex) {
-      parts.push(line.slice(lastIndex, match.index));
-    }
-    const token = match[0];
-    const trimmed = token.trim();
-    const after = line.slice(match.index + token.length);
-    const isJsonKey =
-      (token.startsWith('"') || token.startsWith("'")) && /^\s*:/.test(after);
-
-    let cls = "text-zinc-200";
-    if (token.startsWith("//") || token.startsWith("#")) {
-      cls = "text-zinc-500 italic";
-    } else if (isJsonKey) {
-      cls = "text-[#7AB3FF]";
-    } else if (
-      token.startsWith('"') ||
-      token.startsWith("'") ||
-      token.startsWith("`")
-    ) {
-      cls = "text-emerald-400";
-    } else if (KEYWORDS.has(trimmed)) {
-      cls = "text-[#5294FF] font-semibold";
-    } else if (BUILTINS.has(trimmed)) {
-      cls = "text-sky-300";
-    } else if (/^-[A-Za-z]+$/.test(trimmed)) {
-      cls = "text-amber-300";
-    } else if (/^\d+(?:\.\d+)?$/.test(trimmed)) {
-      cls = "text-amber-300";
-    }
-
-    parts.push(
-      <span key={`${lineIdx}-${match.index}`} className={cls}>
-        {token}
-      </span>
-    );
-    lastIndex = match.index + token.length;
-  }
-
-  if (lastIndex < line.length) {
-    parts.push(line.slice(lastIndex));
-  }
-
-  return parts;
-}
+const DEVELOPER_API_HIGHLIGHTS = [
+  {
+    title: "Scoped SHA-256 API keys",
+    desc: "Granular read and read_write Bearer tokens with rate limits.",
+  },
+  {
+    title: "Global edge KV sync",
+    desc: "Every POST or PATCH propagates across 310+ PoPs right away.",
+  },
+  {
+    title: "Signed webhooks",
+    desc: "Stream click geo, device metadata, and live revenue events.",
+  },
+];
 
 export function DeveloperApiSection() {
-  const [lang, setLang] = useState<ApiLangKey>("curl");
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(API_SNIPPETS[lang].code);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
-    } catch {}
-  };
-
-  const lines = API_SNIPPETS[lang].code.split("\n");
-
   return (
-    <section
+    <SplitDeveloperHero
       id="api"
-      className="w-full bg-[#FFFFFF] dark:bg-[#09090B] py-24 sm:py-32 border-t border-[#E4E7EC] dark:border-white/[0.08] scroll-mt-20 overflow-x-clip transition-colors duration-300"
-    >
-      <SectionRailFrame>
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
-          <div className="lg:col-span-5">
-            <h2 className="text-[30px] sm:text-[40px] font-semibold tracking-[-0.03em] leading-[1.08] text-[#09090B] dark:text-white text-balance">
-              Provision links and rules from your codebase
-            </h2>
-
-            <p className="mt-4 text-[15.5px] text-[#52525B] dark:text-zinc-400 leading-[1.6] text-pretty">
-              Create links programmatically, enforce PathLock™ prefixes, set
-              click caps, and receive signed conversion webhooks in real time.
-            </p>
-
-            <div className="mt-6 border-y border-[#E4E7EC] dark:border-white/[0.08] divide-y divide-[#E4E7EC] dark:divide-white/[0.08] text-[14px]">
-              {[
-                {
-                  title: "Scoped SHA-256 API keys",
-                  desc: "Granular read and read_write Bearer tokens with rate limits.",
-                },
-                {
-                  title: "Global edge KV sync",
-                  desc: "Every POST or PATCH propagates across 310+ PoPs right away.",
-                },
-                {
-                  title: "Signed webhooks",
-                  desc: "Stream click geo, device metadata, and live revenue events.",
-                },
-              ].map((item) => (
-                <div key={item.title} className="py-3.5 flex items-start gap-2.5">
-                  <Check className="w-4 h-4 text-[#0066FF] dark:text-[#6CA8FF] shrink-0 mt-0.5" />
-                  <span className="text-[#52525B] dark:text-zinc-300">
-                    <strong className="text-[#09090B] dark:text-white font-medium">
-                      {item.title}:
-                    </strong>{" "}
-                    {item.desc}
-                  </span>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-8 flex flex-wrap items-center gap-3">
-              <WaveRevealButton
-                href="/docs"
-                variant="primary"
-                size="md"
-                icon={<BookOpen className="w-4 h-4" />}
-              >
-                Explore API documentation
-              </WaveRevealButton>
-              <WaveRevealButton
-                href="/docs/sdk-quickstart"
-                variant="outline"
-                size="md"
-                icon={<Terminal className="w-4 h-4" />}
-              >
-                Quickstart guide
-              </WaveRevealButton>
-            </div>
-          </div>
-
-          <div className="lg:col-span-7">
-            <div className="rounded-[10px] bg-[#0B0C10] border border-[#222531] overflow-hidden">
-              <div className="px-4 py-3 border-b border-white/[0.08] flex flex-wrap items-center justify-between gap-2 bg-[#12141B]">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {(Object.keys(API_SNIPPETS) as ApiLangKey[]).map((key) => {
-                    const isSelected = lang === key;
-                    return (
-                      <button
-                        key={key}
-                        type="button"
-                        onClick={() => setLang(key)}
-                        className={`relative px-3 py-1.5 rounded-[7px] text-[12px] font-medium transition-colors cursor-pointer ${
-                          isSelected
-                            ? "text-white"
-                            : "text-zinc-400 hover:text-zinc-200"
-                        }`}
-                      >
-                        {isSelected && (
-                          <motion.span
-                            layoutId="api-code-tab"
-                            transition={{
-                              type: "spring",
-                              stiffness: 450,
-                              damping: 35,
-                            }}
-                            className="absolute inset-0 rounded-[7px] bg-[#0066FF] z-0"
-                          />
-                        )}
-                        <span className="relative z-10">
-                          {API_SNIPPETS[key].label}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleCopy}
-                  className="h-8 px-2.5 rounded-[7px] bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-zinc-200 text-[12px] font-medium inline-flex items-center gap-1.5 transition-colors cursor-pointer"
-                >
-                  {copied ? (
-                    <>
-                      <Check className="w-3.5 h-3.5 text-emerald-400" />
-                      <span className="text-emerald-400">Copied</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3.5 h-3.5" />
-                      <span>Copy</span>
-                    </>
-                  )}
-                </button>
-              </div>
-
-              <div className="p-4 sm:p-5 overflow-x-auto bg-[#0B0C10]">
-                <pre className="font-mono text-[12.5px] leading-[1.7] text-zinc-200">
-                  <code className="code-syntax block">
-                    {lines.map((line, idx) => (
-                      <div key={idx} className="table-row">
-                        <span className="table-cell pr-4 select-none text-right text-zinc-600 tabular-nums w-8">
-                          {idx + 1}
-                        </span>
-                        <span className="table-cell whitespace-pre">
-                          {renderHighlightedLine(line, idx)}
-                        </span>
-                      </div>
-                    ))}
-                  </code>
-                </pre>
-              </div>
-
-              <div className="px-4 py-2.5 border-t border-white/[0.08] bg-[#12141B] flex flex-wrap items-center justify-between gap-2 font-mono text-[11.5px]">
-                <span className="text-emerald-400">
-                  201 Created — Edge KV synced
-                </span>
-                <span className="text-zinc-400">POST /api/v1/links</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </SectionRailFrame>
-    </section>
+      badge="REST API v1 · Edge KV synced"
+      title="Provision links and rules from your codebase"
+      description="Create links programmatically, enforce PathLock™ prefixes, set click caps, and receive signed conversion webhooks in real time."
+      highlights={DEVELOPER_API_HIGHLIGHTS}
+      primaryAction={{ label: "Explore API documentation", href: "/docs" }}
+      secondaryAction={{
+        label: "Quickstart guide",
+        href: "/docs/sdk-quickstart",
+      }}
+      codeTabs={DEVELOPER_API_TABS}
+      terminalFooter={{
+        status: "201 Created — Edge KV synced",
+        endpoint: "POST /api/v1/links",
+      }}
+    />
   );
 }
 
