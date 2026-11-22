@@ -339,7 +339,7 @@ export function Pricing({
                       className={cn(
                         buttonVariants({ variant: "outline" }),
                         "group relative w-full h-11 gap-2 overflow-hidden rounded-[10px] text-[14.5px] font-semibold tracking-tight cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed",
-                        "transform-gpu transition-colors duration-200",
+                        "transform-gpu transition-[background-color,border-color,box-shadow,color] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)] btn-hover-slow",
                         "bg-white dark:bg-white/[0.04] text-[#09090B] dark:text-white border-[#D4D4D8] dark:border-white/[0.14] hover:bg-[#0066FF] hover:text-white hover:border-[#0066FF]"
                       )}
                     >
@@ -369,7 +369,7 @@ export function Pricing({
                     className={cn(
                       buttonVariants({ variant: "outline" }),
                       "group relative w-full h-11 gap-2 overflow-hidden rounded-[10px] text-[14.5px] font-semibold tracking-tight",
-                      "transform-gpu transition-colors duration-200",
+                      "transform-gpu transition-[background-color,border-color,box-shadow,color] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)] btn-hover-slow",
                       "bg-white dark:bg-white/[0.04] text-[#09090B] dark:text-white border-[#D4D4D8] dark:border-white/[0.14] hover:bg-[#0066FF] hover:text-white hover:border-[#0066FF]"
                     )}
                   >
@@ -439,7 +439,7 @@ export function Pricing({
                     isMonthly ? "MONTHLY" : "YEARLY"
                   )
                 }
-                className="inline-flex items-center gap-2 h-[44px] mt-6 px-5 rounded-[10px] border border-[#D0D5DD] dark:border-[#2E2E33] text-[15px] font-medium leading-none text-[#101828] dark:text-[#FAFAFA] hover:bg-[#101828]/[0.05] dark:hover:bg-[#FAFAFA]/[0.06] transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-[#0066FF] focus-visible:outline-offset-2"
+                className="inline-flex items-center gap-2 h-[44px] mt-6 px-5 rounded-[10px] border border-[#D0D5DD] dark:border-[#2E2E33] text-[15px] font-medium leading-none text-[#101828] dark:text-[#FAFAFA] hover:bg-[#101828]/[0.05] dark:hover:bg-[#FAFAFA]/[0.06] transition-[background-color,border-color,box-shadow,color] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)] btn-hover-slow cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-[#0066FF] focus-visible:outline-offset-2"
               >
                 {loadingPlan === (enterprise.planId || "ENTERPRISE") ? (
                   <>
@@ -453,7 +453,7 @@ export function Pricing({
             ) : (
               <Link
                 href={isMonthly ? enterprise.monthlyHref : enterprise.yearlyHref}
-                className="inline-flex items-center h-[44px] mt-6 px-5 rounded-[10px] border border-[#D0D5DD] dark:border-[#2E2E33] text-[15px] font-medium leading-none text-[#101828] dark:text-[#FAFAFA] hover:bg-[#101828]/[0.05] dark:hover:bg-[#FAFAFA]/[0.06] transition-colors focus-visible:outline-2 focus-visible:outline-[#0066FF] focus-visible:outline-offset-2"
+                className="inline-flex items-center h-[44px] mt-6 px-5 rounded-[10px] border border-[#D0D5DD] dark:border-[#2E2E33] text-[15px] font-medium leading-none text-[#101828] dark:text-[#FAFAFA] hover:bg-[#101828]/[0.05] dark:hover:bg-[#FAFAFA]/[0.06] transition-[background-color,border-color,box-shadow,color] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)] btn-hover-slow focus-visible:outline-2 focus-visible:outline-[#0066FF] focus-visible:outline-offset-2"
               >
                 {enterprise.buttonText}
               </Link>

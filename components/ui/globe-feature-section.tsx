@@ -196,7 +196,7 @@ export function GlobeFeatureSection() {
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Button
                 asChild
-                className="inline-flex h-11 items-center gap-2 rounded-[10px] bg-[#09090B] hover:bg-[#0066FF] dark:bg-white dark:hover:bg-[#0066FF] px-6 text-[14.5px] font-semibold text-white dark:text-[#09090B] dark:hover:text-white shadow-none transition-colors"
+                className="inline-flex h-11 items-center gap-2 rounded-[10px] bg-[#09090B] hover:bg-[#0066FF] dark:bg-white dark:hover:bg-[#0066FF] px-6 text-[14.5px] font-semibold text-white dark:text-[#09090B] dark:hover:text-white shadow-none transition-[background-color,border-color,color] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)] btn-hover-slow"
               >
                 <Link href="/register">
                   <span>Start tracking free</span>

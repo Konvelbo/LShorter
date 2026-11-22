@@ -281,7 +281,7 @@ export const WaveRevealButton = forwardRef<
               {icon}
             </motion.span>
           ) : (
-            <span className="relative z-[2] shrink-0 flex items-center justify-center transition-colors duration-200">
+            <span className="relative z-[2] shrink-0 flex items-center justify-center transition-colors duration-[1100ms] btn-hover-slow">
               {icon}
             </span>
           ))}
@@ -300,7 +300,7 @@ export const WaveRevealButton = forwardRef<
             {children}
           </motion.span>
         ) : (
-          <span className="relative z-[2] font-semibold tracking-[-0.01em] select-none whitespace-nowrap transition-colors duration-200">
+          <span className="relative z-[2] font-semibold tracking-[-0.01em] select-none whitespace-nowrap transition-colors duration-[1100ms] btn-hover-slow">
             {children}
           </span>
         )}
@@ -326,7 +326,7 @@ export const WaveRevealButton = forwardRef<
             </motion.span>
           ) : (
             <span className="relative z-[2] w-[15px] h-[14px] overflow-hidden shrink-0 block select-none">
-              <span className="absolute left-0 top-0 flex items-center gap-[8px] w-[38px] h-[14px] transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] -translate-x-[23px] group-hover:translate-x-0 group-focus-visible:translate-x-0">
+              <span className="absolute left-0 top-0 flex items-center gap-[8px] w-[38px] h-[14px] transition-transform duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)] btn-hover-slow -translate-x-[23px] group-hover:translate-x-0 group-focus-visible:translate-x-0">
                 <StaticArrow className={variantStyles.arrowHoverStatic} />
                 <StaticArrow className={variantStyles.arrowDefaultText} />
               </span>
@@ -336,7 +336,10 @@ export const WaveRevealButton = forwardRef<
     );
 
     const commonClasses = cn(
-      "group relative isolate inline-flex items-center justify-center cursor-pointer select-none overflow-hidden transform-gpu transition-[background-color,border-color,box-shadow,color] duration-300",
+      "group relative isolate inline-flex items-center justify-center cursor-pointer select-none overflow-hidden transform-gpu transition-[background-color,border-color,box-shadow,color]",
+      wave
+        ? "duration-300"
+        : "duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)] btn-hover-slow",
       "rounded-[10px]",
       "outline-none focus-visible:ring-2 focus-visible:ring-[#0066FF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#09090B]",
       !wave && "active:scale-[0.98]",

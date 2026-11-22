@@ -290,7 +290,7 @@ export function FeaturesBentoSection() {
                   href={NAMECHEAP_AFFILIATE_URL}
                   target="_blank"
                   rel="noopener noreferrer sponsored"
-                  className="inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-[8px] bg-[#09090B] hover:bg-[#0066FF] dark:bg-white dark:hover:bg-[#0066FF] text-white dark:text-[#09090B] dark:hover:text-white text-[12px] font-semibold transition-colors whitespace-nowrap shrink-0"
+                  className="inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-[8px] bg-[#09090B] hover:bg-[#0066FF] dark:bg-white dark:hover:bg-[#0066FF] text-white dark:text-[#09090B] dark:hover:text-white text-[12px] font-semibold transition-[background-color,border-color,color] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)] btn-hover-slow whitespace-nowrap shrink-0"
                 >
                   <span>Namecheap</span>
                   <ExternalLink className="w-3 h-3" />
@@ -415,14 +415,14 @@ export function PathLockFocusSection() {
               <a
                 href="/#hero-shortener"
                 onClick={scrollToHeroShortener}
-                className="inline-flex items-center h-[44px] px-[18px] rounded-[10px] bg-[#0066FF] hover:bg-[#0055D4] text-white text-[15px] font-medium leading-none transition-colors focus-visible:outline-2 focus-visible:outline-[#0066FF] focus-visible:outline-offset-2"
+                className="inline-flex items-center h-[44px] px-[18px] rounded-[10px] bg-[#0066FF] hover:bg-[#0055D4] text-white text-[15px] font-medium leading-none transition-[background-color,border-color,color] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)] btn-hover-slow focus-visible:outline-2 focus-visible:outline-[#0066FF] focus-visible:outline-offset-2"
               >
                 Protect a demo link
               </a>
 
               <Link
                 href="/docs/path-lock"
-                className="inline-flex items-center h-[44px] px-[18px] rounded-[10px] border border-[#D0D5DD] dark:border-[#2E2E33] text-[#101828] dark:text-[#FAFAFA] hover:bg-[#101828]/[0.05] dark:hover:bg-[#FAFAFA]/[0.06] text-[15px] font-medium leading-none transition-colors focus-visible:outline-2 focus-visible:outline-[#0066FF] focus-visible:outline-offset-2"
+                className="inline-flex items-center h-[44px] px-[18px] rounded-[10px] border border-[#D0D5DD] dark:border-[#2E2E33] text-[#101828] dark:text-[#FAFAFA] hover:bg-[#101828]/[0.05] dark:hover:bg-[#FAFAFA]/[0.06] text-[15px] font-medium leading-none transition-[background-color,border-color,color] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)] btn-hover-slow focus-visible:outline-2 focus-visible:outline-[#0066FF] focus-visible:outline-offset-2"
               >
                 Read PathLock docs
               </Link>

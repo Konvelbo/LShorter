@@ -380,7 +380,7 @@ function ActionButton({
   variant: "primary" | "secondary";
 }) {
   const classes = cn(
-    "group inline-flex h-11 items-center justify-center gap-2 rounded-[10px] px-5 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0066FF] focus-visible:ring-offset-2 active:scale-[0.98] cursor-pointer",
+    "group inline-flex h-11 items-center justify-center gap-2 rounded-[10px] px-5 text-sm font-medium transition-[background-color,border-color,box-shadow,color] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)] btn-hover-slow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0066FF] focus-visible:ring-offset-2 active:scale-[0.98] cursor-pointer",
     variant === "primary"
       ? "bg-[#0066FF] text-white shadow-sm hover:bg-[#0055D4]"
       : "border border-[#E4E7EC] dark:border-white/15 bg-white dark:bg-white/[0.04] text-[#09090B] dark:text-white hover:bg-[#F8F9FB] dark:hover:bg-white/[0.08]",
@@ -397,7 +397,7 @@ function ActionButton({
           strokeLinecap="round"
           strokeLinejoin="round"
           aria-hidden="true"
-          className="size-4 transition-transform group-hover:translate-x-0.5"
+          className="size-4 transition-transform duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)] btn-hover-slow group-hover:translate-x-0.5"
         >
           <path d="M5 12h14M13 6l6 6-6 6" />
         </svg>

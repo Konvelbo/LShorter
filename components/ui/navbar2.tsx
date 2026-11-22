@@ -609,7 +609,7 @@ export function Navbar2() {
                   <Link
                     href="/login"
                     onClick={closeAll}
-                    className="inline-flex h-9 items-center rounded-full border border-zinc-200 dark:border-white/14 bg-zinc-50 dark:bg-white/[0.05] px-5 text-sm font-semibold text-zinc-900 dark:text-zinc-100 transition-colors hover:bg-zinc-100 dark:hover:bg-white/[0.10]"
+                    className="inline-flex h-9 items-center rounded-full border border-zinc-200 dark:border-white/14 bg-zinc-50 dark:bg-white/[0.05] px-5 text-sm font-semibold text-zinc-900 dark:text-zinc-100 transition-[background-color,border-color,color] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)] btn-hover-slow hover:bg-zinc-100 dark:hover:bg-white/[0.10]"
                   >
                     Sign in
                   </Link>
@@ -872,7 +872,7 @@ export function Navbar2() {
                   <Link
                     href="/login"
                     onClick={closeAll}
-                    className="inline-flex h-11 items-center justify-center rounded-full border border-zinc-200 dark:border-white/15 bg-zinc-50 dark:bg-white/[0.05] px-5 text-center text-sm font-semibold text-zinc-900 dark:text-white"
+                    className="inline-flex h-11 items-center justify-center rounded-full border border-zinc-200 dark:border-white/15 bg-zinc-50 dark:bg-white/[0.05] px-5 text-center text-sm font-semibold text-zinc-900 dark:text-white hover:bg-zinc-100 dark:hover:bg-white/[0.10] transition-[background-color,border-color,color] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)] btn-hover-slow"
                   >
                     Sign in
                   </Link>

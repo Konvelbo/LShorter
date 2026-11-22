@@ -463,7 +463,7 @@ export function UseCasesSection() {
                   <a
                     href="/#hero-shortener"
                     onClick={scrollToHeroShortener}
-                    className="self-start h-11 px-5 inline-flex items-center gap-2.5 bg-[#1f5fe0] hover:bg-[#1a52c4] text-white rounded-[8px] text-[15px] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-[#1f5fe0] focus-visible:outline-offset-2"
+                    className="self-start h-11 px-5 inline-flex items-center gap-2.5 bg-[#1f5fe0] hover:bg-[#1a52c4] text-white rounded-[8px] text-[15px] font-medium transition-[background-color,border-color,color] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)] btn-hover-slow focus-visible:outline-2 focus-visible:outline-[#1f5fe0] focus-visible:outline-offset-2"
                   >
                     <span>Try this workflow without signup</span>
                     <ArrowRight className="w-4 h-4 stroke-[1.75]" />
@@ -532,7 +532,7 @@ export function UseCasesSection() {
                         <button
                           type="button"
                           onClick={() => handlePreviewExport(current.id)}
-                          className="h-8 px-3 inline-flex items-center gap-2 bg-white dark:bg-white/[0.04] hover:bg-[#f1f3f6] dark:hover:bg-white/[0.09] border border-[#0f1217]/[0.14] dark:border-white/[0.14] rounded-[6px] text-[#0f1217] dark:text-zinc-200 text-[13px] font-medium transition-colors cursor-pointer shrink-0 focus-visible:outline-2 focus-visible:outline-[#1f5fe0] focus-visible:outline-offset-2"
+                          className="h-8 px-3 inline-flex items-center gap-2 bg-white dark:bg-white/[0.04] hover:bg-[#f1f3f6] dark:hover:bg-white/[0.09] border border-[#0f1217]/[0.14] dark:border-white/[0.14] rounded-[6px] text-[#0f1217] dark:text-zinc-200 text-[13px] font-medium transition-[background-color,border-color,color] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)] btn-hover-slow cursor-pointer shrink-0 focus-visible:outline-2 focus-visible:outline-[#1f5fe0] focus-visible:outline-offset-2"
                         >
                           {exportedId === current.id ? (
                             <>
