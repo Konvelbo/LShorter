@@ -66,8 +66,8 @@ const DOCS_API_MENU: MegaMenu = {
   ],
   showSocials: true,
   image: {
-    src: "/videos/tutorials/05-Analytics-Geography-poster.jpg",
-    alt: "LShorter REST API, PathLock and real-time analytics preview",
+    src: "/doc/apiimage.webp",
+    alt: "LShorter REST API & developer documentation",
     href: "/docs",
   },
   imageCaption: "REST API v1, PathLock™ & live edge telemetry across 310+ PoPs",
@@ -538,17 +538,17 @@ export function Navbar2() {
                     </div>
                   ))}
 
-                  {/* Real Product Preview Card */}
+                  {/* Preview Card */}
                   <Link
                     href={activeMenu.image.href}
                     onClick={closeAll}
-                    className="group relative hidden h-64 w-72 flex-col justify-end overflow-hidden rounded-[10px] border border-zinc-200/80 dark:border-white/12 bg-zinc-100 dark:bg-zinc-900 md:flex"
+                    className="group relative hidden h-64 w-72 flex-col justify-end overflow-hidden rounded-[10px] border border-zinc-200/80 dark:border-white/12 bg-white dark:bg-zinc-900 md:flex"
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={activeMenu.image.src}
                       alt={activeMenu.image.alt}
-                      className="absolute inset-0 h-full w-full object-cover object-top transition-transform duration-500 group-hover:scale-[1.03]"
+                      className="absolute inset-0 h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-[1.03]"
                     />
                     {activeMenu.imageCaption && (
                       <div className="relative z-10 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 pt-12">
