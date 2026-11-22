@@ -314,23 +314,25 @@ export function Pricing({
         })}
       </div>
 
-      {/* Real Enterprise Plan Horizontal Band (keeps 3-col 3D podium symmetric while displaying all 4 real plans) */}
+      {/* Real Enterprise Plan Horizontal Card */}
       {enterprise && (
-        <div className="mt-8 rounded-[10px] border border-[#E4E7EC] dark:border-white/[0.10] bg-white dark:bg-[#111216] p-6 sm:p-7 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-          <div className="lg:col-span-5">
-            <div className="flex items-center gap-2.5">
-              <h3 className="text-[19px] font-semibold text-[#09090B] dark:text-white">
+        <article className="mt-8 grid grid-cols-1 lg:grid-cols-[minmax(0,360px)_minmax(0,1fr)] gap-8 lg:gap-12 p-6 sm:p-10 rounded-[10px] bg-white dark:bg-[#111113] border border-[#E4E7EC] dark:border-[#222225] text-left transition-colors duration-300">
+          <div>
+            <div className="flex items-baseline gap-3">
+              <h3 className="m-0 font-medium text-[20px] leading-[28px] text-[#101828] dark:text-[#FAFAFA]">
                 {enterprise.name}
               </h3>
-              <span className="px-2 py-0.5 rounded-[5px] text-[11px] font-semibold bg-emerald-500/12 text-emerald-700 dark:text-emerald-400">
-                {isMonthly ? "-50% promo" : "-30% annual"}
+              <span className="text-[13px] leading-[16px] text-[#15803D] dark:text-[#4ADE80]">
+                {isMonthly ? "−50% promo" : "−30% annual"}
               </span>
             </div>
-            <p className="mt-1.5 text-[13.5px] text-[#52525B] dark:text-zinc-400 leading-relaxed">
+
+            <p className="mt-2 text-[16px] leading-[24px] text-[#344054] dark:text-[#D4D4D8]">
               {enterprise.description}
             </p>
-            <div className="mt-4 flex flex-wrap items-baseline gap-2">
-              <span className="text-[32px] font-bold tracking-tight leading-none text-[#09090B] dark:text-white tabular-nums">
+
+            <div className="mt-7 flex flex-wrap items-baseline gap-2">
+              <span className="font-medium text-[44px] sm:text-[48px] leading-[56px] tracking-[-0.02em] tabular-nums text-[#101828] dark:text-[#FAFAFA]">
                 <NumberFlow
                   locales="en-US"
                   value={isMonthly ? enterprise.monthlyPrice : enterprise.yearlyPrice}
@@ -344,39 +346,40 @@ export function Pricing({
                   willChange
                 />
               </span>
-              <span className="text-[13px] font-medium text-[#71717A] dark:text-zinc-400">
+              <span className="text-[16px] text-[#667085] dark:text-[#A1A1AA]">
                 / {isMonthly ? "2 mo" : "yr"}
               </span>
-              <span className="text-[13px] line-through text-[#A1A1AA] dark:text-zinc-500 tabular-nums">
+              <span className="text-[16px] line-through tabular-nums text-[#667085] dark:text-[#A1A1AA]">
                 ${(isMonthly ? enterprise.monthlyOriginalPrice : enterprise.yearlyOriginalPrice).toLocaleString("en-US")}
               </span>
-              <span className="text-[12px] text-[#71717A] dark:text-zinc-400">
-                — {isMonthly ? enterprise.monthlyBillingNote : enterprise.yearlyBillingNote}
-              </span>
             </div>
-          </div>
 
-          <div className="lg:col-span-5 grid grid-cols-1 sm:grid-cols-2 gap-2 text-[13px] text-[#3F3F46] dark:text-zinc-300">
-            {enterprise.features.map((feat) => (
-              <div key={feat} className="flex items-start gap-2">
-                <Check className="w-4 h-4 text-[#0066FF] dark:text-[#6CA8FF] shrink-0 mt-0.5" />
-                <span>{feat}</span>
-              </div>
-            ))}
-          </div>
+            <p className="mt-1 text-[14px] leading-[20px] text-[#667085] dark:text-[#A1A1AA]">
+              {isMonthly ? enterprise.monthlyBillingNote : enterprise.yearlyBillingNote}
+            </p>
 
-          <div className="lg:col-span-2 flex lg:justify-end">
             <Link
               href={isMonthly ? enterprise.monthlyHref : enterprise.yearlyHref}
-              className={cn(
-                buttonVariants({ variant: "outline" }),
-                "w-full lg:w-auto h-11 px-5 rounded-[10px] text-[14px] font-semibold bg-white dark:bg-white/[0.04] text-[#09090B] dark:text-white border-[#D4D4D8] dark:border-white/[0.14] hover:bg-[#0066FF] hover:text-white hover:border-[#0066FF] transition-colors"
-              )}
+              className="inline-flex items-center h-[44px] mt-6 px-5 rounded-[10px] border border-[#D0D5DD] dark:border-[#2E2E33] text-[15px] font-medium leading-none text-[#101828] dark:text-[#FAFAFA] hover:bg-[#101828]/[0.05] dark:hover:bg-[#FAFAFA]/[0.06] transition-colors focus-visible:outline-2 focus-visible:outline-[#0066FF] focus-visible:outline-offset-2"
             >
               {enterprise.buttonText}
             </Link>
           </div>
-        </div>
+
+          <div className="flex items-center pt-8 lg:pt-0 lg:pl-12 border-t lg:border-t-0 lg:border-l border-[#E4E7EC] dark:border-[#222225]">
+            <ul className="list-none m-0 p-0 w-full grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6">
+              {enterprise.features.map((feat) => (
+                <li
+                  key={feat}
+                  className="grid grid-cols-[20px_minmax(0,1fr)] gap-3 text-[15px] leading-[24px] text-[#101828] dark:text-[#FAFAFA]"
+                >
+                  <Check className="w-5 h-5 mt-0.5 text-[#667085] dark:text-[#A1A1AA] stroke-[1.5]" />
+                  <span>{feat}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </article>
       )}
     </div>
   );
