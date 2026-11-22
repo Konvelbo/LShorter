@@ -77,17 +77,17 @@ export function HeroSection() {
         </div>
       </SectionRailFrame>
 
-      {/* Below-the-Fold Two-Bar Logo Band powered by BrandScroller (react-icons, 32px, zero hover clipping) */}
+      {/* Below-the-Fold Logo Band powered by BrandScroller (seamless transparent overlay over the continuous Hero fade) */}
       <div
         role="region"
         aria-label="Social networks and ad pixel platforms tracked by LShorter"
-        className="relative z-10 w-full mt-12 sm:mt-16 pt-7 pb-5 sm:pt-8 sm:pb-6 border-t border-b border-[#0066FF]/20 dark:border-white/[0.12] bg-white/50 dark:bg-[#070B14]/75 flex flex-col justify-center gap-12 sm:gap-16"
+        className="relative z-10 w-full mt-10 sm:mt-14 pt-8 pb-10 sm:pt-10 sm:pb-12 bg-transparent flex flex-col justify-center gap-10 sm:gap-12"
       >
         <motion.p
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.85, delay: 0.48, ease: EASE_OUT_EXPO }}
-          className="text-center font-sans text-[11px] sm:text-[12px] font-semibold uppercase tracking-[0.22em] text-[#0F2952]/70 dark:text-[#BFDBFE]/70 select-none px-4"
+          className="text-center font-sans text-[11px] sm:text-[12px] font-semibold uppercase tracking-[0.22em] text-[#0F2952]/75 dark:text-[#BFDBFE]/75 select-none px-4"
         >
           Track your links everywhere — whether in paid ads or your daily social posts
         </motion.p>

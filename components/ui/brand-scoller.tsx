@@ -73,7 +73,7 @@ function BrandRowItems({
           aria-label={copyIndex === 0 ? name : undefined}
           aria-hidden={copyIndex > 0 ? true : undefined}
           className={cn(
-            "flex items-center shrink-0 text-[#312E81]/45 dark:text-[#C7D2FE]/45 hover:text-[#312E81]/90 dark:hover:text-white transition-all duration-200 hover:scale-110 select-none",
+            "flex items-center shrink-0 text-[#0F2952]/50 dark:text-[#BFDBFE]/50 hover:text-[#0066FF] dark:hover:text-white transition-all duration-200 hover:scale-110 select-none",
             showLabels ? "gap-3" : "justify-center"
           )}
         >

@@ -78,7 +78,7 @@ export function HowItWorksSection() {
   ];
 
   return (
-    <section className="w-full bg-[linear-gradient(180deg,rgba(0,102,255,0.12)_0%,rgba(239,246,255,0.68)_42%,#FFFFFF_100%)] dark:bg-[linear-gradient(180deg,rgba(0,85,255,0.22)_0%,#090D16_45%,#09090B_100%)] py-20 sm:py-24 transition-colors duration-300 overflow-x-clip">
+    <section className="w-full bg-[#FFFFFF] dark:bg-[#09090B] py-20 sm:py-24 transition-colors duration-300 overflow-x-clip">
       <SectionRailFrame>
         <div className="max-w-[620px] mb-12">
           <h2 className="text-[28px] sm:text-[36px] font-semibold tracking-[-0.03em] leading-[1.1] text-[#09090B] dark:text-white text-balance">
