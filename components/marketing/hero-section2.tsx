@@ -25,12 +25,12 @@ export function HeroSection() {
 
       {/* Full-viewport Hero Stage so the logo strip stays below the initial Hero fold */}
       <SectionRailFrame className="relative z-30 min-h-[calc(100svh-80px)] sm:min-h-[calc(100svh-96px)] flex flex-col justify-center">
-        <div className="my-auto py-10 sm:py-14 flex flex-col items-center text-center">
+        <div className="my-auto py-5 sm:py-14 flex flex-col items-center text-center">
           <motion.h1
             initial={{ opacity: 0.92, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35, ease: EASE_OUT_EXPO }}
-            className="text-[clamp(48px,7.2vw,88px)] font-bold tracking-[-0.04em] leading-[1.02] text-[#09090B] dark:text-white max-w-[1020px] text-balance"
+            className="text-[clamp(52px,13.8vw,64px)] sm:text-[clamp(56px,7.2vw,88px)] font-bold tracking-[-0.04em] leading-[1.03] sm:leading-[1.02] text-[#09090B] dark:text-white max-w-[1020px] text-balance"
           >
             Short links you actually{" "}
             <FlipWords
@@ -45,7 +45,7 @@ export function HeroSection() {
             initial={{ opacity: 0.92, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35, delay: 0.04, ease: EASE_OUT_EXPO }}
-            className="mt-5 sm:mt-6 relative max-w-[660px] mx-auto text-[16.5px] sm:text-[18.5px] leading-[1.6] text-[#3F3F46] dark:text-zinc-300 text-pretty cursor-default"
+            className="mt-5 sm:mt-6 relative max-w-[660px] mx-auto text-[18.5px] sm:text-[18.5px] leading-[1.58] sm:leading-[1.6] text-[#3F3F46] dark:text-zinc-300 text-pretty cursor-default"
           >
             <VariableProximity
               label="Turn every click into a smart destination — route visitors by country or device in under 12ms, lock private links with PathLock™, and track real-time revenue attribution."
@@ -66,7 +66,7 @@ export function HeroSection() {
             initial={{ opacity: 0.95, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.38, delay: 0.08, ease: EASE_OUT_EXPO }}
-            className="mt-8 sm:mt-10 w-full"
+            className="mt-7 sm:mt-10 w-full"
           >
             <HeroShortener />
           </motion.div>

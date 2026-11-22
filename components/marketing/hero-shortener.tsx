@@ -727,10 +727,10 @@ export function HeroShortener() {
               : "border-[#D4D4D8]/90 dark:border-white/[0.14] focus-within:border-[#0066FF] focus-within:ring-2 focus-within:ring-[#0066FF]/15"
         }`}
       >
-        <form onSubmit={handleShorten} className="p-2">
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+        <form onSubmit={handleShorten} className="p-3 sm:p-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-2">
             <div className="relative flex-1 flex items-center min-w-0 bg-transparent">
-              <Link2 className="w-4 h-4 text-[#71717A] dark:text-zinc-400 ml-3.5 shrink-0 pointer-events-none" />
+              <Link2 className="w-5 h-5 sm:w-4 sm:h-4 text-[#71717A] dark:text-zinc-400 ml-3.5 shrink-0 pointer-events-none" />
               <input
                 ref={inputRef}
                 type="text"
@@ -744,7 +744,7 @@ export function HeroShortener() {
                 }}
                 placeholder="Paste a long URL to shorten..."
                 aria-label="Paste a long URL to shorten"
-                className="w-full h-11 sm:h-12 px-3 bg-transparent text-[15px] text-[#09090B] dark:text-white placeholder:text-[#71717A] dark:placeholder:text-zinc-500 outline-none border-0"
+                className="w-full h-14 sm:h-12 px-3.5 sm:px-3 bg-transparent text-[17px] sm:text-[15px] text-[#09090B] dark:text-white placeholder:text-[#71717A] dark:placeholder:text-zinc-500 outline-none border-0"
               />
               {urlInput && (
                 <span
@@ -764,7 +764,7 @@ export function HeroShortener() {
               wave
               disabled={isSubmitting}
               showArrow={!isSubmitting}
-              className="sm:shrink-0 h-11 sm:h-12 px-6"
+              className="sm:shrink-0 h-14 sm:h-12 px-6 text-[17px] sm:text-[15px]"
               icon={
                 isSubmitting ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -795,7 +795,7 @@ export function HeroShortener() {
 
       {/* Greeting for authenticated users when no link has been shortened in this Hero yet */}
       {isAuthenticated && !activeLink && (
-        <p className="mt-3 text-center text-[13px] sm:text-[13.5px] text-[#312E81]/85 dark:text-[#C7D2FE]/85 leading-relaxed">
+        <p className="mt-5 sm:mt-3 text-center text-[15.5px] sm:text-[13.5px] text-[#312E81]/85 dark:text-[#C7D2FE]/85 leading-[1.65] sm:leading-relaxed">
           Welcome back,{" "}
           <span className="font-semibold text-[#1E1B4B] dark:text-white">
             {userFirstName}
@@ -806,7 +806,7 @@ export function HeroShortener() {
             className="inline-flex items-center gap-1 font-semibold text-[#0066FF] dark:text-[#5294FF] underline-offset-4 hover:underline"
           >
             <span>Open Dashboard</span>
-            <ArrowRight className="w-3.5 h-3.5" />
+            <ArrowRight className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
           </Link>
         </p>
       )}
@@ -824,13 +824,13 @@ export function HeroShortener() {
               ease: [0.22, 1, 0.36, 1],
             }}
             aria-live="polite"
-            className="relative z-30 mt-3.5 flex flex-col items-center will-change-transform"
+            className="relative z-30 mt-5 sm:mt-3.5 flex flex-col items-center will-change-transform"
           >
             {/* Minimalist Two-Bar Row with Frosted Glass Background Blur & Hover Scale */}
             <motion.div
               whileHover={{ scale: 1.018 }}
               transition={{ type: "spring", stiffness: 360, damping: 24 }}
-              className="relative w-full border-l-2 border-r-2 border-[#6366F1]/60 dark:border-[#A5B4FC]/60 bg-white/55 dark:bg-[#11131A]/60 backdrop-blur-md shadow-[0_8px_24px_rgba(99,102,241,0.10)] dark:shadow-[0_10px_28px_rgba(0,0,0,0.42)] px-4 py-3 flex items-center justify-between gap-4 text-left"
+              className="relative w-full border-l-2 border-r-2 border-[#6366F1]/60 dark:border-[#A5B4FC]/60 bg-white/55 dark:bg-[#11131A]/60 backdrop-blur-md shadow-[0_8px_24px_rgba(99,102,241,0.10)] dark:shadow-[0_10px_28px_rgba(0,0,0,0.42)] px-4 sm:px-4 py-4 sm:py-3 flex items-center justify-between gap-3 sm:gap-4 text-left"
             >
               {/* Left: Shortened link + icon that redirects on click */}
               <a
@@ -838,15 +838,15 @@ export function HeroShortener() {
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={handleLinkClicked}
-                className="group inline-flex items-center gap-2 text-[15px] sm:text-[16px] font-mono font-semibold text-[#312E81]/95 dark:text-[#E0E7FF]/95 hover:text-[#4F46E5] dark:hover:text-white transition-all duration-200 hover:scale-[1.02] origin-left truncate"
+                className="group inline-flex items-center gap-2 text-[17.5px] sm:text-[16px] font-mono font-semibold text-[#312E81]/95 dark:text-[#E0E7FF]/95 hover:text-[#4F46E5] dark:hover:text-white transition-all duration-200 hover:scale-[1.02] origin-left truncate"
               >
                 <span className="truncate">lsho.cc/{activeLink.slug}</span>
-                <ExternalLink className="w-4 h-4 shrink-0 text-[#6366F1]/85 dark:text-[#A5B4FC]/85 group-hover:text-[#4F46E5] dark:group-hover:text-white group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                <ExternalLink className="w-4.5 h-4.5 sm:w-4 sm:h-4 shrink-0 text-[#6366F1]/85 dark:text-[#A5B4FC]/85 group-hover:text-[#4F46E5] dark:group-hover:text-white group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
               </a>
 
               {/* Right: Live click count text + QR Code hover trigger button */}
               <div className="flex items-center gap-3 shrink-0">
-                <span className="font-mono text-[13.5px] sm:text-[14px] font-medium text-[#4338CA]/85 dark:text-[#C7D2FE]/90 tabular-nums">
+                <span className="font-mono text-[15.5px] sm:text-[14px] font-medium text-[#4338CA]/85 dark:text-[#C7D2FE]/90 tabular-nums">
                   {activeLink.clicksCount}{" "}
                   {activeLink.clicksCount === 1 ? "click" : "clicks"}
                 </span>
@@ -862,13 +862,13 @@ export function HeroShortener() {
                     aria-label="Preview QR Code"
                     aria-expanded={isQrHovered}
                     onClick={handleQrToggleClick}
-                    className={`w-8 h-8 rounded-[8px] flex items-center justify-center border transition-all duration-150 cursor-pointer ${
+                    className={`w-10 h-10 sm:w-8 sm:h-8 rounded-[8px] flex items-center justify-center border transition-all duration-150 cursor-pointer ${
                       isQrHovered
                         ? "bg-[#6366F1] text-white border-[#6366F1] shadow-[0_4px_14px_rgba(99,102,241,0.35)]"
                         : "bg-white/65 dark:bg-white/[0.08] border-[#6366F1]/30 dark:border-[#A5B4FC]/25 text-[#312E81] dark:text-[#E0E7FF] hover:bg-[#6366F1]/15 dark:hover:bg-white/[0.15]"
                     }`}
                   >
-                    <QrCode className="w-4 h-4" />
+                    <QrCode className="w-5 h-5 sm:w-4 sm:h-4" />
                   </button>
 
                   {/* Hover QR Code Popup (strictly rounded-[10px], opens upwards so it never clips at the bottom of the screen) */}
@@ -1017,7 +1017,7 @@ export function HeroShortener() {
 
             {/* Authenticated Greeting + Dashboard link OR Guest Account Creation Prompt */}
             {isAuthenticated ? (
-              <p className="mt-3 text-center text-[13px] sm:text-[13.5px] text-[#312E81]/90 dark:text-[#C7D2FE]/90 leading-relaxed max-w-[580px]">
+              <p className="mt-5 sm:mt-3 text-center text-[15.5px] sm:text-[13.5px] text-[#312E81]/90 dark:text-[#C7D2FE]/90 leading-[1.65] sm:leading-relaxed max-w-[580px]">
                 Welcome back,{" "}
                 <span className="font-semibold text-[#1E1B4B] dark:text-white">
                   {userFirstName}
@@ -1028,11 +1028,11 @@ export function HeroShortener() {
                   className="inline-flex items-center gap-1 font-semibold text-[#0066FF] dark:text-[#5294FF] underline-offset-4 hover:underline"
                 >
                   <span>Go to your Dashboard</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
+                  <ArrowRight className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
                 </Link>
               </p>
             ) : (
-              <p className="mt-2.5 text-center text-[13px] sm:text-[13.5px] text-[#312E81]/90 dark:text-[#C7D2FE]/90 leading-relaxed max-w-[580px]">
+              <p className="mt-4 sm:mt-2.5 text-center text-[15px] sm:text-[13.5px] text-[#312E81]/90 dark:text-[#C7D2FE]/90 leading-[1.65] sm:leading-relaxed max-w-[580px]">
                 <Link
                   href="/register?claim=1"
                   className="font-semibold text-[#0066FF] dark:text-[#5294FF] underline-offset-4 hover:underline"

@@ -13,7 +13,7 @@ import {
   Sun,
   X,
 } from "lucide-react";
-import { FaXTwitter, FaLinkedin, FaYoutube } from "react-icons/fa6";
+import { FaGithub, FaXTwitter, FaLinkedin, FaYoutube } from "react-icons/fa6";
 import { useTheme } from "@/components/providers/theme-provider";
 import { lerp, useLenis } from "@/components/providers/smooth-scroll-provider";
 import { scrollToHeroShortener } from "@/components/marketing/swiss-frame";
@@ -79,10 +79,134 @@ const NAV_ITEMS = [
 ] as const;
 
 const SOCIALS = [
-  { href: "https://x.com", label: "X", icon: FaXTwitter },
-  { href: "https://linkedin.com", label: "LinkedIn", icon: FaLinkedin },
-  { href: "https://youtube.com", label: "YouTube", icon: FaYoutube },
+  {
+    href: process.env.NEXT_PUBLIC_TWITTER_URL || "https://x.com/lshorter",
+    label: "X",
+    icon: FaXTwitter,
+  },
+  {
+    href: process.env.NEXT_PUBLIC_GITHUB_URL || "https://github.com/lshorter",
+    label: "GitHub",
+    icon: FaGithub,
+  },
+  {
+    href:
+      process.env.NEXT_PUBLIC_LINKEDIN_URL ||
+      "https://linkedin.com/company/lshorter",
+    label: "LinkedIn",
+    icon: FaLinkedin,
+  },
+  {
+    href: process.env.NEXT_PUBLIC_YOUTUBE_URL || "https://youtube.com",
+    label: "YouTube",
+    icon: FaYoutube,
+  },
 ];
+
+/**
+ * Smooth imperative rAF + lerp curtain controller (matching the navbar's own lerp physics).
+ * Animates strictly GPU-composited clip-path, transform, and opacity — zero layout reflow,
+ * zero backdrop-blur resize repaint, and seamless mid-flight reversal.
+ */
+function useLerpPanelReveal(
+  isOpen: boolean,
+  panelRef: React.RefObject<HTMLDivElement | null>,
+  contentRef: React.RefObject<HTMLDivElement | null>,
+  shadowPadX: number,
+  shadowPadBottom: number,
+) {
+  const targetRef = useRef(isOpen ? 1 : 0);
+  const currentRef = useRef(isOpen ? 1 : 0);
+  const frameRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    targetRef.current = isOpen ? 1 : 0;
+
+    const panel = panelRef.current;
+    if (!panel) return;
+
+    const reduced =
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+    const applyState = (p: number) => {
+      const clamped = Math.max(0, Math.min(1, p));
+      const content = contentRef.current;
+
+      if (clamped <= 0.002) {
+        panel.style.clipPath = `inset(0px -${shadowPadX}px 100% -${shadowPadX}px)`;
+        panel.style.opacity = "0";
+        panel.style.transform = "translate3d(0, -10px, 0)";
+        panel.style.visibility = "hidden";
+        panel.style.pointerEvents = "none";
+        if (content) {
+          content.style.transform = "translate3d(0, -14px, 0)";
+          content.style.opacity = "0";
+        }
+        return;
+      }
+
+      panel.style.visibility = "visible";
+      panel.style.pointerEvents = targetRef.current > 0.5 ? "auto" : "none";
+
+      if (clamped >= 0.996) {
+        panel.style.clipPath = `inset(0px -${shadowPadX}px -${shadowPadBottom}px -${shadowPadX}px)`;
+        panel.style.opacity = "1";
+        panel.style.transform = "translate3d(0, 0px, 0)";
+        if (content) {
+          content.style.transform = "translate3d(0, 0px, 0)";
+          content.style.opacity = "1";
+        }
+        return;
+      }
+
+      const clipBottomPct = ((1 - clamped) * 100).toFixed(2);
+      panel.style.clipPath = `inset(0px -${shadowPadX}px ${clipBottomPct}% -${shadowPadX}px)`;
+      panel.style.opacity = Math.min(1, clamped * 1.45).toFixed(3);
+      panel.style.transform = `translate3d(0, ${(-(1 - clamped) * 10).toFixed(2)}px, 0)`;
+
+      if (content) {
+        const contentAlpha = Math.max(0, Math.min(1, (clamped - 0.1) / 0.9));
+        content.style.transform = `translate3d(0, ${(-(1 - clamped) * 14).toFixed(2)}px, 0)`;
+        content.style.opacity = contentAlpha.toFixed(3);
+      }
+    };
+
+    if (reduced) {
+      currentRef.current = targetRef.current;
+      applyState(currentRef.current);
+      return;
+    }
+
+    const tick = () => {
+      const target = targetRef.current;
+      const diff = Math.abs(currentRef.current - target);
+
+      if (diff <= 0.0015) {
+        currentRef.current = target;
+        applyState(currentRef.current);
+        frameRef.current = null;
+        return;
+      }
+
+      currentRef.current = lerp(currentRef.current, target, 0.14);
+      applyState(currentRef.current);
+      frameRef.current = requestAnimationFrame(tick);
+    };
+
+    if (frameRef.current !== null) {
+      cancelAnimationFrame(frameRef.current);
+    }
+    frameRef.current = requestAnimationFrame(tick);
+
+    return () => {
+      if (frameRef.current !== null) {
+        cancelAnimationFrame(frameRef.current);
+        frameRef.current = null;
+      }
+    };
+  }, [isOpen, panelRef, contentRef, shadowPadX, shadowPadBottom]);
+}
 
 export function Navbar2() {
   const pathname = usePathname();
@@ -109,10 +233,19 @@ export function Navbar2() {
   const headerRef = useRef<HTMLElement>(null);
   const innerWrapRef = useRef<HTMLDivElement>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
+  const docsPanelRef = useRef<HTMLDivElement>(null);
+  const docsContentRef = useRef<HTMLDivElement>(null);
+  const mobilePanelRef = useRef<HTMLDivElement>(null);
+  const mobileContentRef = useRef<HTMLDivElement>(null);
+
   const docsOpenRef = useRef(false);
   const mobileOpenRef = useRef(false);
   const isHoveringRef = useRef(false);
   const forceShowRef = useRef<(() => void) | null>(null);
+
+  // Smooth rAF + lerp reveal for both Desktop Docs & API dropdown and Mobile menu
+  useLerpPanelReveal(docsOpen, docsPanelRef, docsContentRef, 48, 64);
+  useLerpPanelReveal(mobileOpen, mobilePanelRef, mobileContentRef, 32, 48);
 
   useEffect(() => {
     docsOpenRef.current = docsOpen;
@@ -358,7 +491,7 @@ export function Navbar2() {
         ref={innerWrapRef}
         className="pointer-events-auto relative w-full max-w-7xl"
       >
-        {/* Fixed-height Top Bar (never reflows or re-blurs when dropdown opens/closes) */}
+        {/* Fixed-height Top Bar */}
         <div
           className={`relative z-20 overflow-hidden border border-zinc-200/80 dark:border-white/[0.11] bg-white/[0.97] dark:bg-[#0D0E12]/[0.97] backdrop-blur-md transition-[border-radius,border-color] duration-200 ${
             isAnyPanelOpen
@@ -430,7 +563,7 @@ export function Navbar2() {
                   >
                     {item.label}
                     <ChevronDown
-                      className={`h-4 w-4 transition-transform duration-200 ${
+                      className={`h-4 w-4 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
                         docsOpen ? "rotate-180" : ""
                       }`}
                     />
@@ -523,137 +656,138 @@ export function Navbar2() {
           </div>
         </div>
 
-        {/* Desktop Docs & API Mega-Dropdown — 100% GPU-Composited Curtain (zero height reflow, zero backdrop-blur resize jank, pre-decoded image) */}
+        {/* Desktop Docs & API Mega-Dropdown — Silky rAF + lerp GPU Curtain (same physics as navbar) */}
         <div
+          ref={docsPanelRef}
           id="navbar-docs-megamenu"
           aria-hidden={!docsOpen}
           inert={!docsOpen ? true : undefined}
           style={{
-            clipPath: docsOpen
-              ? "inset(0px -48px -64px -48px)"
-              : "inset(0px -48px 100% -48px)",
-            opacity: docsOpen ? 1 : 0,
-            transform: docsOpen
-              ? "translate3d(0, 0px, 0)"
-              : "translate3d(0, -10px, 0)",
-            transition:
-              "clip-path 260ms cubic-bezier(0.22, 1, 0.36, 1), transform 260ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms ease-out",
+            clipPath: "inset(0px -48px 100% -48px)",
+            opacity: 0,
+            transform: "translate3d(0, -10px, 0)",
+            visibility: "hidden",
+            pointerEvents: "none",
           }}
-          className={`hidden lg:block absolute left-0 right-0 top-full -mt-px z-10 rounded-b-[10px] border border-t-0 border-zinc-200/80 dark:border-white/[0.11] bg-white dark:bg-[#0D0E12] shadow-[0_22px_48px_-14px_rgba(0,0,0,0.16)] dark:shadow-[0_26px_56px_-14px_rgba(0,0,0,0.82)] will-change-[clip-path,transform,opacity] ${
-            docsOpen ? "pointer-events-auto" : "pointer-events-none"
-          }`}
+          className="hidden lg:block absolute left-0 right-0 top-full -mt-px z-10 rounded-b-[10px] border border-t-0 border-zinc-200/80 dark:border-white/[0.11] bg-white dark:bg-[#0D0E12] shadow-[0_22px_48px_-14px_rgba(0,0,0,0.16)] dark:shadow-[0_26px_56px_-14px_rgba(0,0,0,0.82)] will-change-[clip-path,transform,opacity]"
         >
-          <div className="grid grid-cols-[1fr_1fr_auto] gap-10 px-8 pb-7 pt-6">
-            {DOCS_API_MENU.columns.map((col, colIdx) => (
-              <div key={col.eyebrow} className="flex flex-col gap-5">
-                <span className="w-fit rounded-full border border-zinc-200 dark:border-white/12 px-3.5 py-1 text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                  {col.eyebrow}
-                </span>
-                <ul className="flex flex-col gap-3.5">
-                  {col.links.map((link) => (
-                    <li key={link.label}>
-                      <Link
-                        href={link.href}
-                        onClick={closeAll}
-                        className={`group flex items-center gap-2 text-[19px] font-semibold text-zinc-900 dark:text-white hover:text-[#0066FF] dark:hover:text-[#60A5FA] transition-colors ${
-                          link.active
-                            ? "underline decoration-zinc-300 dark:decoration-white/30 underline-offset-4"
-                            : ""
-                        }`}
-                      >
-                        <span>{link.label}</span>
-                        {link.badge && (
-                          <span className="rounded-full bg-zinc-900 dark:bg-[#0066FF] px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-wide text-white group-hover:bg-[#0066FF] transition-colors">
-                            {link.badge}
-                          </span>
-                        )}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-
-                {colIdx === DOCS_API_MENU.columns.length - 1 &&
-                  DOCS_API_MENU.footerLinks && (
-                    <div className="mt-auto flex flex-col gap-1.5 pt-10">
-                      {DOCS_API_MENU.footerLinks.map((item) => (
+          <div
+            ref={docsContentRef}
+            style={{ transform: "translate3d(0, -14px, 0)", opacity: 0 }}
+            className="will-change-[transform,opacity]"
+          >
+            <div className="grid grid-cols-[1fr_1fr_auto] gap-10 px-8 pb-7 pt-6">
+              {DOCS_API_MENU.columns.map((col, colIdx) => (
+                <div key={col.eyebrow} className="flex flex-col gap-5">
+                  <span className="w-fit rounded-full border border-zinc-200 dark:border-white/12 px-3.5 py-1 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                    {col.eyebrow}
+                  </span>
+                  <ul className="flex flex-col gap-3.5">
+                    {col.links.map((link) => (
+                      <li key={link.label}>
                         <Link
-                          key={item.label}
-                          href={item.href}
+                          href={link.href}
                           onClick={closeAll}
-                          className="text-sm text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
+                          className={`group flex items-center gap-2 text-[19px] font-semibold text-zinc-900 dark:text-white hover:text-[#0066FF] dark:hover:text-[#60A5FA] transition-colors ${
+                            link.active
+                              ? "underline decoration-zinc-300 dark:decoration-white/30 underline-offset-4"
+                              : ""
+                          }`}
                         >
-                          {item.label}
+                          <span>{link.label}</span>
+                          {link.badge && (
+                            <span className="rounded-full bg-zinc-900 dark:bg-[#0066FF] px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-wide text-white group-hover:bg-[#0066FF] transition-colors">
+                              {link.badge}
+                            </span>
+                          )}
                         </Link>
-                      ))}
-                    </div>
-                  )}
-              </div>
-            ))}
+                      </li>
+                    ))}
+                  </ul>
 
-            {/* Pre-decoded API Preview Card */}
-            <Link
-              href={DOCS_API_MENU.image.href}
-              onClick={closeAll}
-              className="group relative hidden h-64 w-72 flex-col justify-end overflow-hidden rounded-[10px] border border-zinc-200/80 dark:border-white/12 bg-white dark:bg-zinc-900 md:flex"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={DOCS_API_MENU.image.src}
-                alt={DOCS_API_MENU.image.alt}
-                loading="eager"
-                decoding="async"
-                className="absolute inset-0 h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-[1.03]"
-              />
-              {DOCS_API_MENU.imageCaption && (
-                <div className="relative z-10 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 pt-12">
-                  <p className="text-sm font-medium leading-snug text-white">
-                    {DOCS_API_MENU.imageCaption}
-                  </p>
+                  {colIdx === DOCS_API_MENU.columns.length - 1 &&
+                    DOCS_API_MENU.footerLinks && (
+                      <div className="mt-auto flex flex-col gap-1.5 pt-10">
+                        {DOCS_API_MENU.footerLinks.map((item) => (
+                          <Link
+                            key={item.label}
+                            href={item.href}
+                            onClick={closeAll}
+                            className="text-sm text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
+                          >
+                            {item.label}
+                          </Link>
+                        ))}
+                      </div>
+                    )}
                 </div>
-              )}
-            </Link>
-          </div>
-
-          {/* Kept Socials Only: X, LinkedIn, YouTube */}
-          {DOCS_API_MENU.showSocials && (
-            <div className="flex items-center gap-4 px-8 pb-7">
-              {SOCIALS.map(({ href, label, icon: Icon }) => (
-                <a
-                  key={label}
-                  href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={label}
-                  className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
-                >
-                  <Icon className="h-[18px] w-[18px]" />
-                </a>
               ))}
+
+              {/* Pre-decoded API Preview Card */}
+              <Link
+                href={DOCS_API_MENU.image.href}
+                onClick={closeAll}
+                className="group relative hidden h-64 w-72 flex-col justify-end overflow-hidden rounded-[10px] border border-zinc-200/80 dark:border-white/12 bg-white dark:bg-zinc-900 md:flex"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={DOCS_API_MENU.image.src}
+                  alt={DOCS_API_MENU.image.alt}
+                  loading="eager"
+                  decoding="async"
+                  className="absolute inset-0 h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-[1.03]"
+                />
+                {DOCS_API_MENU.imageCaption && (
+                  <div className="relative z-10 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 pt-12">
+                    <p className="text-sm font-medium leading-snug text-white">
+                      {DOCS_API_MENU.imageCaption}
+                    </p>
+                  </div>
+                )}
+              </Link>
             </div>
-          )}
+
+            {/* Social Links from .env: X, GitHub, LinkedIn, YouTube */}
+            {DOCS_API_MENU.showSocials && (
+              <div className="flex items-center gap-4 px-8 pb-7">
+                {SOCIALS.map(({ href, label, icon: Icon }) => (
+                  <a
+                    key={label}
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={label}
+                    title={label}
+                    className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
+                  >
+                    <Icon className="h-[18px] w-[18px]" />
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Integrated Mobile Panel — 100% GPU-Composited Curtain (zero layout jank) */}
+        {/* Integrated Mobile Panel — Silky rAF + lerp GPU Curtain */}
         <div
+          ref={mobilePanelRef}
           data-lenis-prevent
           aria-hidden={!mobileOpen}
           inert={!mobileOpen ? true : undefined}
           style={{
-            clipPath: mobileOpen
-              ? "inset(0px -32px -48px -32px)"
-              : "inset(0px -32px 100% -32px)",
-            opacity: mobileOpen ? 1 : 0,
-            transform: mobileOpen
-              ? "translate3d(0, 0px, 0)"
-              : "translate3d(0, -10px, 0)",
-            transition:
-              "clip-path 240ms cubic-bezier(0.22, 1, 0.36, 1), transform 240ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms ease-out",
+            clipPath: "inset(0px -32px 100% -32px)",
+            opacity: 0,
+            transform: "translate3d(0, -10px, 0)",
+            visibility: "hidden",
+            pointerEvents: "none",
           }}
-          className={`lg:hidden absolute left-0 right-0 top-full -mt-px z-10 rounded-b-[10px] border border-t-0 border-zinc-200/80 dark:border-white/[0.11] bg-white dark:bg-[#0D0E12] shadow-[0_22px_48px_-14px_rgba(0,0,0,0.18)] dark:shadow-[0_26px_56px_-14px_rgba(0,0,0,0.85)] will-change-[clip-path,transform,opacity] ${
-            mobileOpen ? "pointer-events-auto" : "pointer-events-none"
-          }`}
+          className="lg:hidden absolute left-0 right-0 top-full -mt-px z-10 rounded-b-[10px] border border-t-0 border-zinc-200/80 dark:border-white/[0.11] bg-white dark:bg-[#0D0E12] shadow-[0_22px_48px_-14px_rgba(0,0,0,0.18)] dark:shadow-[0_26px_56px_-14px_rgba(0,0,0,0.85)] will-change-[clip-path,transform,opacity]"
         >
-          <div className="flex max-h-[calc(100svh-96px)] flex-col gap-1 overflow-y-auto px-5 pb-5 pt-3">
+          <div
+            ref={mobileContentRef}
+            style={{ transform: "translate3d(0, -14px, 0)", opacity: 0 }}
+            className="flex max-h-[calc(100svh-96px)] flex-col gap-1 overflow-y-auto px-5 pb-5 pt-3 will-change-[transform,opacity]"
+          >
             {NAV_ITEMS.map((item) =>
               item.hasMenu ? (
                 <div key={item.label} className="flex flex-col">
@@ -671,7 +805,6 @@ export function Navbar2() {
                     />
                   </button>
 
-                  {/* Smooth CSS grid 0fr -> 1fr accordion for mobile Docs sublinks */}
                   <div
                     className={`grid transition-[grid-template-rows,opacity] duration-200 ease-out ${
                       mobileDocsOpen
