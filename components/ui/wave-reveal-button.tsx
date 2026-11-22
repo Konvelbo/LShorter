@@ -1,12 +1,6 @@
 "use client";
 
-import React, {
-  forwardRef,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import React, { forwardRef, useState } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
@@ -24,8 +18,8 @@ export interface WaveRevealButtonProps
     | "default";
   size?: "sm" | "md" | "lg";
   /**
-   * Enable the exact Framer Wave Reveal Button effect (from Wave-Reveal-Button-S1VRPa.js).
-   * Keep `false` (default) for secondary/standard buttons; set `true` ONLY on high-priority CTAs.
+   * Enable the Framer Motion liquid Wave Reveal effect on hover/focus.
+   * Keep `false` (default) for secondary/standard buttons; set `true` on primary CTAs.
    */
   wave?: boolean;
   waveColor?: string;
@@ -37,35 +31,29 @@ export interface WaveRevealButtonProps
   rel?: string;
 }
 
-/**
- * Spring physics derived from Framer Wave Reveal Button (`XyPxxbn4B.js`):
- * - Enter: `{ type: "spring", bounce: 0, duration: 0.9 }`
- * - Exit / Reverse: `{ type: "spring", bounce: 0, duration: 0.72 }` so reverse begins
- *   on the very first frame of pointerleave with zero dead-zone lag.
- */
 const FRAMER_WAVE_ENTER_TRANSITION = {
-  duration: 0.52,
+  duration: 0.6,
   ease: [0.22, 1, 0.36, 1] as const,
 };
 
 const FRAMER_WAVE_EXIT_TRANSITION = {
-  duration: 0.46,
+  duration: 0.48,
   ease: [0.32, 0.08, 0.24, 1] as const,
 };
 
-/**
- * Exact SVG paths extracted verbatim from the Framer sub-modules:
- * - Arrow (`dK6JXX8w_.js`)
- * - WaveFill (`mzBpRU2t3.js`)
- */
 const FRAMER_ARROW_PATH =
   "M 14.817 7.496 L 9.192 13.796 C 8.948 14.069 8.552 14.069 8.308 13.796 C 8.064 13.522 8.064 13.079 8.308 12.805 L 12.866 7.7 L 0.625 7.7 C 0.28 7.7 0 7.387 0 7 C 0 6.614 0.28 6.3 0.625 6.3 L 12.866 6.3 L 8.308 1.196 C 8.064 0.922 8.064 0.479 8.308 0.205 C 8.552 -0.068 8.948 -0.068 9.192 0.205 L 14.817 6.505 C 14.935 6.636 15 6.815 15 7 C 15 7.186 14.935 7.364 14.817 7.496 Z";
 
-const FRAMER_WAVE_FILL_PATH =
-  "M 5 3.523 C 5.078 3.523 5.155 3.525 5.233 3.528 C 5.873 1.483 7.765 0 10 0 C 12.761 0 15 2.264 15 5.057 C 15 7.85 12.761 10.114 10 10.114 C 9.922 10.114 9.845 10.112 9.767 10.108 C 9.127 12.154 7.235 13.636 5 13.636 C 2.239 13.636 0 11.372 0 8.58 C 0 5.787 2.239 3.523 5 3.523 Z";
-
-const useIsomorphicLayoutEffect =
-  typeof window !== "undefined" ? useLayoutEffect : useEffect;
+/**
+ * Lush convex liquid-wave crest (`viewBox="0 0 72 100"`), matching the organic curved
+ * profile of Framer's Wave Reveal Button.
+ *
+ * Translated at a fixed 1:1 scale via Framer Motion (`x: "-102%" -> "0%"`) alongside a
+ * seamless `flex-1` solid backing instead of non-uniform `scaleX`/`scaleY` scaling on an
+ * oversized SVG — eliminating Chromium's 256px GPU tile tearing / vertical-stripe stutter
+ * while preserving the exact liquid wave sweep and instant mid-flight reversal.
+ */
+const LIQUID_WAVE_EDGE_PATH = "M 0 0 L 72 0 C 68 38, 42 78, 0 100 Z";
 
 function StaticArrow({ className }: { className?: string }) {
   return (
@@ -80,16 +68,6 @@ function StaticArrow({ className }: { className?: string }) {
   );
 }
 
-/**
- * Native Next.js / Motion port of Framer's `Wave-Reveal-Button-S1VRPa.js@fuWldc87dwJ27x3jDkBQ`.
- *
- * Uses pure GPU `scaleX` / `scaleY` transforms anchored at `left: -84px, top: -100px`
- * (`transformOrigin: "0px 0px"`) instead of FLIP `layout` projection so:
- * 1. Forward and reverse share the exact same top-left anchor with zero vertical shift ("zéro décalage").
- * 2. The hovered bounding box is calibrated to the button's exact dimensions `(W + 104, H + 224)`,
- *    eliminating invisible overshoot outside the button so reverse starts visibly on frame 1 of pointerleave.
- * 3. Mid-hover interruption reverses immediately from the current interpolated transform value.
- */
 export const WaveRevealButton = forwardRef<
   HTMLButtonElement & HTMLAnchorElement,
   WaveRevealButtonProps
@@ -121,16 +99,10 @@ export const WaveRevealButton = forwardRef<
     },
     forwardedRef
   ) => {
-    const localRef = useRef<HTMLElement | null>(null);
     const [isHovered, setIsHovered] = useState(false);
     const [isPressed, setIsPressed] = useState(false);
-    const [btnSize, setBtnSize] = useState<{ width: number; height: number }>({
-      width: 176,
-      height: 44,
-    });
 
     const setRefs = (node: HTMLElement | null) => {
-      localRef.current = node;
       if (typeof forwardedRef === "function") {
         forwardedRef(node as HTMLButtonElement & HTMLAnchorElement);
       } else if (forwardedRef) {
@@ -142,47 +114,10 @@ export const WaveRevealButton = forwardRef<
       }
     };
 
-    useIsomorphicLayoutEffect(() => {
-      if (!wave) return;
-      const el = localRef.current;
-      if (!el) return;
-
-      const updateSize = () => {
-        const w = el.offsetWidth;
-        const h = el.offsetHeight;
-        if (w > 0 && h > 0) {
-          setBtnSize((prev) =>
-            prev.width === w && prev.height === h ? prev : { width: w, height: h }
-          );
-        }
-      };
-
-      updateSize();
-
-      if (typeof ResizeObserver === "undefined") return;
-      const ro = new ResizeObserver(updateSize);
-      ro.observe(el);
-      return () => ro.disconnect();
-    }, [wave]);
-
     const isWaveActive = wave && (isHovered || isPressed);
     const activeTransition = isWaveActive
       ? FRAMER_WAVE_ENTER_TRANSITION
       : FRAMER_WAVE_EXIT_TRANSITION;
-
-    // Exact boundary-calibrated rest & hover dimensions anchored at (left: -84, top: -100)
-    // with transformOrigin at "0px 118px" (vertically aligned with the button center):
-    // - Keeps the button's vertical window permanently inside the smooth diagonal wave arc (y_svg in [4.5, 8.8]),
-    //   never crossing the y_svg = 10.29 two-circle seam that previously caused a horizontal offset on reverse.
-    // - At p = 0 (restWidth = 82), the wave's leading edge sits 2px left of the button's left edge (x_box = 84).
-    // - At p = 1 (hoverWidth = W + 96), the wave's leading edge cleanly covers the button's right corners.
-    const restWidth = 82;
-    const restHeight = 140;
-    const hoverWidth = Math.max(btnSize.width + 96, 210);
-    const hoverHeight = Math.max(btnSize.height + 216, 252);
-    const restScaleX = restWidth / hoverWidth;
-    const restScaleY = restHeight / hoverHeight;
-    const originY = Math.round(100 + btnSize.height * 0.45);
 
     const variantStyles = {
       primary: {
@@ -303,40 +238,32 @@ export const WaveRevealButton = forwardRef<
 
     const content = (
       <>
-        {/* ── Deterministic GPU-Scaled Framer WaveFill (`mzBpRU2t3.js`) ── */}
+        {/* ── Framer Motion 1:1 GPU Liquid Wave Sweep (zero scaleX tile tearing) ── */}
         {wave && (
-          <motion.div
+          <motion.span
             aria-hidden="true"
             initial={false}
-            animate={{
-              scaleX: isWaveActive ? 1 : restScaleX,
-              scaleY: isWaveActive ? 1 : restScaleY,
-            }}
+            animate={{ x: isWaveActive ? "0%" : "-102%" }}
             transition={activeTransition}
             style={{
-              position: "absolute",
-              left: -84,
-              top: -100,
-              width: hoverWidth,
-              height: hoverHeight,
-              transformOrigin: `0px ${originY}px`,
-              pointerEvents: "none",
-              zIndex: 1,
+              willChange: "transform",
+              backfaceVisibility: "hidden",
             }}
+            className="pointer-events-none absolute -top-[2px] -bottom-[2px] -left-[2px] z-[1] flex w-[calc(100%+76px)]"
           >
+            <span
+              style={{ backgroundColor: variantStyles.waveFill }}
+              className="block h-full flex-1"
+            />
             <svg
-              viewBox="0 0 15 14"
+              viewBox="0 0 72 100"
               preserveAspectRatio="none"
               xmlns="http://www.w3.org/2000/svg"
-              className="w-full h-full block"
+              className="block h-full w-[72px] shrink-0 -ml-[2px]"
             >
-              <path
-                d={FRAMER_WAVE_FILL_PATH}
-                fill={variantStyles.waveFill}
-                transform="translate(0 0.18)"
-              />
+              <path d={LIQUID_WAVE_EDGE_PATH} fill={variantStyles.waveFill} />
             </svg>
-          </motion.div>
+          </motion.span>
         )}
 
         {/* Optional Leading Icon */}
@@ -359,7 +286,7 @@ export const WaveRevealButton = forwardRef<
             </span>
           ))}
 
-        {/* Label (`scale: 0.95` on pressed + smooth color flip to white on wave reveal) */}
+        {/* Label */}
         {wave ? (
           <motion.span
             initial={false}
@@ -409,7 +336,7 @@ export const WaveRevealButton = forwardRef<
     );
 
     const commonClasses = cn(
-      "group relative isolate inline-flex items-center justify-center cursor-pointer select-none overflow-hidden transition-[background-color,border-color,box-shadow,color] duration-300",
+      "group relative isolate inline-flex items-center justify-center cursor-pointer select-none overflow-hidden transform-gpu transition-[background-color,border-color,box-shadow,color] duration-300",
       "rounded-[10px]",
       "outline-none focus-visible:ring-2 focus-visible:ring-[#0066FF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#09090B]",
       !wave && "active:scale-[0.98]",

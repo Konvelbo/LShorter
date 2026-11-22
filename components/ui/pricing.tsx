@@ -158,7 +158,7 @@ export function Pricing({
       </div>
 
       {/* 3-Column Elevated Podium Cards (strictly rounded-[10px]) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch [perspective:1200px]">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
         {plans.map((plan, index) => {
           const activePrice = isMonthly ? plan.price : plan.yearlyPrice;
           const activeOriginal = isMonthly

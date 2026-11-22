@@ -596,7 +596,7 @@ export function Navbar2() {
                 <WaveRevealButton
                   href={dashboardHref}
                   onClick={closeAll}
-                  variant="contrast"
+                  variant="primary"
                   size="sm"
                   wave
                   icon={<LayoutDashboard className="h-3.5 w-3.5" />}
@@ -617,7 +617,7 @@ export function Navbar2() {
                   <WaveRevealButton
                     href="/#hero-shortener"
                     onClick={handleGetStartedClick}
-                    variant="contrast"
+                    variant="primary"
                     size="sm"
                     wave
                     className="h-9 rounded-full px-4 text-[13.5px]"
@@ -859,7 +859,7 @@ export function Navbar2() {
                 <WaveRevealButton
                   href={dashboardHref}
                   onClick={closeAll}
-                  variant="contrast"
+                  variant="primary"
                   size="md"
                   wave
                   icon={<LayoutDashboard className="h-4 w-4" />}
@@ -879,7 +879,7 @@ export function Navbar2() {
                   <WaveRevealButton
                     href="/#hero-shortener"
                     onClick={handleGetStartedClick}
-                    variant="contrast"
+                    variant="primary"
                     size="md"
                     wave
                     className="w-full rounded-full"
