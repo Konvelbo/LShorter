@@ -121,7 +121,15 @@ export function WebhookModal({
     }
 
     try {
-      new URL(url);
+      const parsedUrl = new URL(url.trim());
+      if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+        setErrorMsg("L'URL doit commencer par https:// ou http://.");
+        return;
+      }
+      if (!parsedUrl.hostname.includes(".") || parsedUrl.hostname === "localhost") {
+        setErrorMsg("Veuillez saisir un nom de domaine public complet (ex. https://mon-serveur.com/api/webhook).");
+        return;
+      }
     } catch {
       setErrorMsg("L'URL saisie est invalide (doit commencer par https:// ou http://).");
       return;

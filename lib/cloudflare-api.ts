@@ -42,13 +42,32 @@ export function sanitizeClientError(raw: any): string {
   const msg = typeof raw === "string" ? raw : raw.message || raw.error || String(raw);
   const lower = msg.toLowerCase();
 
-  if (lower.includes("unique") || lower.includes("idx_links_slug") || lower.includes("already exists")) {
+  if (
+    lower.includes("valid public http(s) url") ||
+    lower.includes("private/internal addresses") ||
+    lower.includes("only http and https urls are permitted")
+  ) {
+    return "URL invalide : veuillez saisir une adresse publique complète en https:// ou http:// avec un nom de domaine (ex. https://mon-serveur.com/api).";
+  }
+  if (
+    lower.includes("idx_links_slug") ||
+    lower.includes("slug_conflict") ||
+    lower.includes("unique constraint") ||
+    lower.includes("slug") && (lower.includes("already taken") || lower.includes("already exists"))
+  ) {
     return "Ce slug personnalisé est déjà utilisé. Veuillez en choisir un autre.";
   }
   if (lower.includes("self-referencing") || lower.includes("infinite_redirect")) {
     return "L'URL de destination ne peut pas pointer vers le même domaine (lsho.cc). Veuillez entrer une URL externe.";
   }
-  if (lower.includes("403") || lower.includes("plan_upgrade") || lower.includes("forbidden") || lower.includes("quota")) {
+  if (
+    lower.includes("plan_upgrade") ||
+    lower.includes("plan_limit_reached") ||
+    lower.includes("domain_limit_reached") ||
+    lower.includes("quota") ||
+    lower.includes("requires a pro") ||
+    lower.includes("requires the pro")
+  ) {
     return "Cette fonctionnalité nécessite un forfait supérieur.";
   }
   if (lower.includes("foreign key") || lower.includes("constraint failed") || lower.includes("sqlite")) {
