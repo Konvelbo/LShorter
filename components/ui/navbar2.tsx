@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { AnimatePresence, motion } from "motion/react";
 import {
   ChevronDown,
   LayoutDashboard,
@@ -104,10 +105,13 @@ const SOCIALS = [
   },
 ];
 
+const DROPDOWN_EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
+
 /**
- * Smooth imperative rAF + lerp curtain controller (matching the navbar's own lerp physics).
- * Animates strictly GPU-composited clip-path, transform, and opacity — zero layout reflow,
- * zero backdrop-blur resize repaint, and seamless mid-flight reversal.
+ * Refresh-rate-independent imperative rAF + lerp curtain controller (matching the
+ * navbar's own lerp physics). Animates strictly GPU-composited clip-path, transform,
+ * and opacity — zero layout reflow, zero backdrop-blur resize repaint, seamless
+ * mid-flight reversal, and uniform smoothness across 60Hz/120Hz/144Hz monitors.
  */
 function useLerpPanelReveal(
   isOpen: boolean,
@@ -115,10 +119,14 @@ function useLerpPanelReveal(
   contentRef: React.RefObject<HTMLDivElement | null>,
   shadowPadX: number,
   shadowPadBottom: number,
+  onVisualOpenChange?: (visuallyOpen: boolean) => void,
 ) {
   const targetRef = useRef(isOpen ? 1 : 0);
   const currentRef = useRef(isOpen ? 1 : 0);
   const frameRef = useRef<number | null>(null);
+  const visualOpenRef = useRef(isOpen);
+  const onVisualOpenChangeRef = useRef(onVisualOpenChange);
+  onVisualOpenChangeRef.current = onVisualOpenChange;
 
   useEffect(() => {
     targetRef.current = isOpen ? 1 : 0;
@@ -126,9 +134,16 @@ function useLerpPanelReveal(
     const panel = panelRef.current;
     if (!panel) return;
 
-    const reduced =
-      typeof window !== "undefined" &&
-      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const emitVisualOpen = (next: boolean) => {
+      if (visualOpenRef.current !== next) {
+        visualOpenRef.current = next;
+        onVisualOpenChangeRef.current?.(next);
+      }
+    };
+
+    if (isOpen) {
+      emitVisualOpen(true);
+    }
 
     const applyState = (p: number) => {
       const clamped = Math.max(0, Math.min(1, p));
@@ -144,6 +159,7 @@ function useLerpPanelReveal(
           content.style.transform = "translate3d(0, -14px, 0)";
           content.style.opacity = "0";
         }
+        emitVisualOpen(false);
         return;
       }
 
@@ -162,7 +178,7 @@ function useLerpPanelReveal(
       }
 
       const clipBottomPct = ((1 - clamped) * 100).toFixed(2);
-      panel.style.clipPath = `inset(0px -${shadowPadX}px ${clipBottomPct}% -${shadowPadX}px)`;
+      panel.style.clipPath = `inset(0px -${shadowPadX}px ${clipBottomPct}% -${shadowPadX}px round 0 0 10px 10px)`;
       panel.style.opacity = Math.min(1, clamped * 1.45).toFixed(3);
       panel.style.transform = `translate3d(0, ${(-(1 - clamped) * 10).toFixed(2)}px, 0)`;
 
@@ -173,13 +189,12 @@ function useLerpPanelReveal(
       }
     };
 
-    if (reduced) {
-      currentRef.current = targetRef.current;
-      applyState(currentRef.current);
-      return;
-    }
+    let lastTime = performance.now();
 
-    const tick = () => {
+    const tick = (now: number) => {
+      const dt = Math.min(64, Math.max(4, now - lastTime));
+      lastTime = now;
+
       const target = targetRef.current;
       const diff = Math.abs(currentRef.current - target);
 
@@ -190,7 +205,9 @@ function useLerpPanelReveal(
         return;
       }
 
-      currentRef.current = lerp(currentRef.current, target, 0.14);
+      // Delta-time normalized lerp (0.11 per 60fps frame -> silky ~450ms glide on any refresh rate)
+      const factor = 1 - Math.pow(1 - 0.11, dt / 16.667);
+      currentRef.current = lerp(currentRef.current, target, factor);
       applyState(currentRef.current);
       frameRef.current = requestAnimationFrame(tick);
     };
@@ -227,7 +244,9 @@ export function Navbar2() {
     sessionUser?.hasCompletedOnboarding === false ? "/onboarding" : "/dashboard";
 
   const [docsOpen, setDocsOpen] = useState(false);
+  const [docsVisuallyOpen, setDocsVisuallyOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileVisuallyOpen, setMobileVisuallyOpen] = useState(false);
   const [mobileDocsOpen, setMobileDocsOpen] = useState(false);
   const [isIframeFullscreen, setIsIframeFullscreen] = useState(false);
 
@@ -244,9 +263,23 @@ export function Navbar2() {
   const isHoveringRef = useRef(false);
   const forceShowRef = useRef<(() => void) | null>(null);
 
-  // Smooth rAF + lerp reveal for both Desktop Docs & API dropdown and Mobile menu
-  useLerpPanelReveal(docsOpen, docsPanelRef, docsContentRef, 48, 64);
-  useLerpPanelReveal(mobileOpen, mobilePanelRef, mobileContentRef, 32, 48);
+  // Smooth refresh-rate-independent rAF + lerp reveal for both Desktop Docs & API dropdown and Mobile menu
+  useLerpPanelReveal(
+    docsOpen,
+    docsPanelRef,
+    docsContentRef,
+    48,
+    64,
+    setDocsVisuallyOpen,
+  );
+  useLerpPanelReveal(
+    mobileOpen,
+    mobilePanelRef,
+    mobileContentRef,
+    32,
+    48,
+    setMobileVisuallyOpen,
+  );
 
   useEffect(() => {
     docsOpenRef.current = docsOpen;
@@ -470,7 +503,8 @@ export function Navbar2() {
 
   if (isIframeFullscreen) return null;
 
-  const isAnyPanelOpen = docsOpen || mobileOpen;
+  const isAnyPanelOpen =
+    docsOpen || docsVisuallyOpen || mobileOpen || mobileVisuallyOpen;
 
   return (
     <header
@@ -563,11 +597,15 @@ export function Navbar2() {
                     }`}
                   >
                     {item.label}
-                    <ChevronDown
-                      className={`h-4 w-4 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-                        docsOpen ? "rotate-180" : ""
-                      }`}
-                    />
+                    <motion.span
+                      aria-hidden="true"
+                      initial={false}
+                      animate={{ rotate: docsOpen ? 180 : 0 }}
+                      transition={{ duration: 0.42, ease: DROPDOWN_EASE }}
+                      className="inline-flex items-center justify-center"
+                    >
+                      <ChevronDown className="h-4 w-4" />
+                    </motion.span>
                   </button>
                 );
               })}
@@ -805,42 +843,62 @@ export function Navbar2() {
                     className="flex items-center justify-between rounded-[8px] px-3 py-2.5 text-left text-[15px] font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100/80 dark:hover:bg-white/[0.06] cursor-pointer"
                   >
                     <span>{item.label}</span>
-                    <ChevronDown
-                      className={`h-4 w-4 transition-transform duration-200 ${
-                        mobileDocsOpen ? "rotate-180" : ""
-                      }`}
-                    />
+                    <motion.span
+                      aria-hidden="true"
+                      initial={false}
+                      animate={{ rotate: mobileDocsOpen ? 180 : 0 }}
+                      transition={{ duration: 0.4, ease: DROPDOWN_EASE }}
+                      className="inline-flex items-center justify-center"
+                    >
+                      <ChevronDown className="h-4 w-4" />
+                    </motion.span>
                   </button>
 
-                  <div
-                    className={`grid transition-[grid-template-rows,opacity] duration-200 ease-out ${
-                      mobileDocsOpen
-                        ? "grid-rows-[1fr] opacity-100"
-                        : "grid-rows-[0fr] opacity-0"
-                    }`}
-                  >
-                    <div className="overflow-hidden min-h-0">
-                      <div className="ml-3 mb-2 flex flex-col gap-2.5 border-l border-zinc-200 dark:border-white/10 pl-4 pt-2">
-                        {DOCS_API_MENU.columns.flatMap((c) =>
-                          c.links.map((link) => (
-                            <Link
-                              key={link.label}
-                              href={link.href}
-                              onClick={closeAll}
-                              className="flex items-center gap-2 py-0.5 text-sm font-medium text-zinc-600 dark:text-zinc-300 hover:text-[#0066FF] dark:hover:text-[#60A5FA]"
-                            >
-                              <span>{link.label}</span>
-                              {link.badge && (
-                                <span className="rounded-full bg-zinc-900 dark:bg-[#0066FF] px-1.5 py-0.5 text-[10px] font-semibold uppercase text-white">
-                                  {link.badge}
-                                </span>
-                              )}
-                            </Link>
-                          )),
-                        )}
-                      </div>
-                    </div>
-                  </div>
+                  <AnimatePresence initial={false}>
+                    {mobileDocsOpen && (
+                      <motion.div
+                        key="mobile-docs-panel"
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{
+                          height: "auto",
+                          opacity: 1,
+                          transition: {
+                            height: { duration: 0.42, ease: DROPDOWN_EASE },
+                            opacity: { duration: 0.32, delay: 0.05, ease: DROPDOWN_EASE },
+                          },
+                        }}
+                        exit={{
+                          height: 0,
+                          opacity: 0,
+                          transition: {
+                            height: { duration: 0.38, ease: DROPDOWN_EASE },
+                            opacity: { duration: 0.22, ease: DROPDOWN_EASE },
+                          },
+                        }}
+                        className="overflow-hidden will-change-[height,opacity]"
+                      >
+                        <div className="ml-3 mb-2 flex flex-col gap-2.5 border-l border-zinc-200 dark:border-white/10 pl-4 pt-2">
+                          {DOCS_API_MENU.columns.flatMap((c) =>
+                            c.links.map((link) => (
+                              <Link
+                                key={link.label}
+                                href={link.href}
+                                onClick={closeAll}
+                                className="flex items-center gap-2 py-0.5 text-sm font-medium text-zinc-600 dark:text-zinc-300 hover:text-[#0066FF] dark:hover:text-[#60A5FA]"
+                              >
+                                <span>{link.label}</span>
+                                {link.badge && (
+                                  <span className="rounded-full bg-zinc-900 dark:bg-[#0066FF] px-1.5 py-0.5 text-[10px] font-semibold uppercase text-white">
+                                    {link.badge}
+                                  </span>
+                                )}
+                              </Link>
+                            )),
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               ) : (
                 <Link
