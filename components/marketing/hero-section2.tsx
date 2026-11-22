@@ -30,13 +30,17 @@ export function HeroSection() {
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.85, delay: 0.05, ease: EASE_OUT_EXPO }}
-            className="text-[clamp(36px,min(13.2vw,6.4svh),64px)] sm:text-[clamp(48px,min(7vw,8.6svh),86px)] font-bold tracking-[-0.04em] leading-[1.03] sm:leading-[1.02] text-[#09090B] dark:text-white max-w-[1020px] text-balance will-change-[transform,opacity]"
+            className="flex flex-col items-center text-center text-[clamp(30px,min(9.2vw,6.8svh),64px)] sm:text-[clamp(46px,min(7.2vw,8.6svh),86px)] font-bold tracking-[-0.04em] leading-[1.03] sm:leading-[1.02] text-[#09090B] dark:text-white will-change-[transform,opacity]"
           >
-            Short links you actually{" "}
-            <FlipWords
-              words={["control.", "manage.", "protect.", "monetize."]}
-              className="text-[#4F46E5] dark:text-[#A5B4FC]"
-            />
+            <span className="block whitespace-nowrap">Short links you</span>
+            <span className="inline-flex items-baseline justify-center whitespace-nowrap">
+              <span>actually</span>
+              <span aria-hidden="true">&nbsp;</span>
+              <FlipWords
+                words={["control.", "manage.", "protect.", "monetize."]}
+                className="px-0 text-[#4F46E5] dark:text-[#A5B4FC]"
+              />
+            </span>
           </motion.h1>
 
           {/* React Bits <VariableProximity /> Interactive Subtitle (zero-reflow GRAD axis + scoped pointer) */}
