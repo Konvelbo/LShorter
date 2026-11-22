@@ -11,8 +11,7 @@ export const WORKER_URL =
   process.env.NEXT_PUBLIC_BACKEND_API_URL ||
   "https://lshorter-api.fiatechnologiecam.workers.dev";
 
-export const FRONTEND_SECRET =
-  process.env.FRONTEND_API_SECRET || "lsh_secret_live_prod_2026";
+export const FRONTEND_SECRET = (process.env.FRONTEND_API_SECRET || "").trim();
 
 export const CF_ACCOUNT_ID =
   (process.env.CLOUDFLARE_ACCOUNT_ID || "").replace(/['"]/g, "").trim();

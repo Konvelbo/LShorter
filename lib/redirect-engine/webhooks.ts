@@ -10,6 +10,20 @@ interface StoredWebhookRecord {
   isActive?: boolean;
 }
 
+function isSelfWebhookTarget(rawUrl: unknown): boolean {
+  if (typeof rawUrl !== "string") return true;
+  try {
+    const host = new URL(rawUrl).hostname.toLowerCase().replace(/\.$/, "");
+    return (
+      host === "lsho.cc" ||
+      host.endsWith(".lsho.cc") ||
+      host === "lshorter-api.fiatechnologiecam.workers.dev"
+    );
+  } catch {
+    return true;
+  }
+}
+
 export async function dispatchUserWebhooks(
   userId: string,
   eventName: string,
@@ -43,7 +57,7 @@ export async function dispatchUserWebhooks(
           : [];
 
     const matching = list.filter((wh) => {
-      if (!wh || wh.isActive === false || !isSafeHttpUrl(wh.url)) return false;
+      if (!wh || wh.isActive === false || !isSafeHttpUrl(wh.url) || isSelfWebhookTarget(wh.url)) return false;
       const events =
         Array.isArray(wh.events) && wh.events.length > 0
           ? wh.events.map(String)
@@ -77,6 +91,7 @@ export async function dispatchUserWebhooks(
 
         await fetch(String(wh.url), {
           method: "POST",
+          redirect: "manual",
           headers: {
             "Content-Type": "application/json",
             "X-LShorter-Signature": signature,

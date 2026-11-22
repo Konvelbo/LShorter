@@ -62,26 +62,42 @@ export function isSafeHttpUrl(urlStr: unknown): boolean {
       return false;
     }
 
-    const host = parsed.hostname.toLowerCase();
+    const host = parsed.hostname.toLowerCase().replace(/\.$/, "");
+    const unbracketed = host.replace(/^\[|\]$/g, "");
 
-    // Block cloud metadata services (AWS, GCP, Azure, DigitalOcean, Alibaba) & IPv6 loopback
-    if (
+    const isIpv6Private =
+      unbracketed.includes(":") &&
+      (unbracketed === "::" ||
+        unbracketed === "::1" ||
+        unbracketed.startsWith("::ffff:") ||
+        /^fe[89ab]/i.test(unbracketed) ||
+        /^f[cd]/i.test(unbracketed) ||
+        unbracketed.startsWith("ff"));
+
+    const isPrivateOrLocal =
       host === "169.254.169.254" ||
+      /^169\.254\.\d{1,3}\.\d{1,3}$/.test(host) ||
       host === "metadata.google.internal" ||
+      host === "metadata.goog" ||
       host === "instance-data" ||
       host === "100.100.100.200" ||
-      host === "[::1]" ||
-      host === "::1" ||
       host === "localhost" ||
       host.endsWith(".localhost") ||
       host.endsWith(".local") ||
       host.endsWith(".internal") ||
-      host === "127.0.0.1" ||
-      host === "0.0.0.0" ||
+      host.endsWith(".lan") ||
+      host.endsWith(".home.arpa") ||
+      /^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host) ||
+      /^0\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host) ||
       /^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host) ||
       /^192\.168\.\d{1,3}\.\d{1,3}$/.test(host) ||
-      /^172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}$/.test(host)
-    ) {
+      /^172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}$/.test(host) ||
+      /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.\d{1,3}\.\d{1,3}$/.test(host) ||
+      isIpv6Private ||
+      (!unbracketed.includes(":") && (!host.includes(".") || /^(0x[0-9a-f]+|\d+)$/i.test(host)));
+
+    // Block cloud metadata services, private RFC1918/IPv6 ranges, and single-label internal hosts
+    if (isPrivateOrLocal) {
       if (process.env.ALLOW_LOCAL_TARGETS !== "true") {
         return false;
       }
