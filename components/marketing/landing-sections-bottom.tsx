@@ -419,7 +419,12 @@ export function UseCasesSection() {
           </div>
 
           {/* Split Panel Card */}
-          <div className="bg-white dark:bg-[#121319] border border-[#0f1217]/[0.09] dark:border-white/[0.09] rounded-[10px] overflow-hidden">
+          <div
+            data-parallax="float"
+            data-parallax-depth="0.055"
+            data-parallax-max="26"
+            className="bg-white dark:bg-[#121319] border border-[#0f1217]/[0.09] dark:border-white/[0.09] rounded-[10px] overflow-hidden"
+          >
             <AnimatePresence mode="wait">
               <motion.div
                 key={current.id}

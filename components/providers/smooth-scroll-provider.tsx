@@ -38,6 +38,9 @@ const SmoothScrollContext = createContext<SmoothScrollContextType>({
 
 export const useLenis = () => useContext(SmoothScrollContext);
 
+export const lerp = (start: number, end: number, factor: number): number =>
+  start + (end - start) * factor;
+
 const EXPO_OUT_EASING = (t: number) =>
   Math.min(1, 1.001 - Math.pow(2, -10 * t));
 
@@ -50,7 +53,7 @@ function prefersReducedMotion(): boolean {
 
 /**
  * Shared smooth-scroll helper backed by the active Lenis instance.
- * Falls back cleanly to native scroll when reduced motion is active or Lenis is unmounted.
+ * Automatically respects CSS `scroll-margin-top` (e.g. Tailwind `scroll-mt-20`).
  */
 export function smoothScrollTo(
   target: string | number | HTMLElement,
@@ -68,8 +71,6 @@ export function smoothScrollTo(
 
   if (typeof target !== "number" && !resolvedEl) return;
 
-  // Lenis v1.3 automatically honors CSS scroll-margin-top (e.g. Tailwind scroll-mt-20).
-  // Only apply the default -80 navbar clearance when the target has no scroll-margin-top.
   const cssScrollMarginTop = resolvedEl
     ? Number.parseFloat(window.getComputedStyle(resolvedEl).scrollMarginTop) || 0
     : 0;
@@ -111,11 +112,111 @@ export function smoothScrollTo(
 }
 
 /**
- * Smooth Scroll Provider (Lenis + GSAP ScrollTrigger Single-Loop Architecture)
- * - Silky, frame-rate-independent inertial wheel scrolling across the entire landing page.
- * - Driven exclusively by gsap.ticker (no competing rAF loop, zero ScrollTrigger jitter).
- * - Honors OS prefers-reduced-motion (including live preference toggles).
- * - Preserves native touch physics on mobile and allows nested scrollable panels.
+ * Hand-rolled rAF + lerp parallax closure (React 19 StrictMode-safe teardown).
+ * - `.parallax-image`: exact tuning constants (depth 0.2, lerp 0.1, scale 1.25 -> 1.5).
+ * - `[data-parallax="float"]`: viewport-centered soft parallax lag (lerp 0.1, scale 1)
+ *   for UI frames, videos, code terminals, and the 3D globe without clipping text.
+ */
+function initParallaxElement(el: HTMLElement, lenis: Lenis): () => void {
+  const mode = el.dataset.parallax || (el.classList.contains("parallax-image") ? "image" : "float");
+  const isImageMode = mode === "image";
+
+  const depth = Number.parseFloat(
+    el.dataset.parallaxDepth || (isImageMode ? "0.2" : "0.08"),
+  );
+  const smoothing = Number.parseFloat(el.dataset.parallaxSmoothing || "0.1");
+  const initialScale = Number.parseFloat(
+    el.dataset.parallaxInitialScale || (isImageMode ? "1.25" : "1"),
+  );
+  const activeScale = Number.parseFloat(
+    el.dataset.parallaxScale || (isImageMode ? "1.5" : "1"),
+  );
+  const maxDrift = Number.parseFloat(
+    el.dataset.parallaxMax || (isImageMode ? "220" : "40"),
+  );
+
+  let bounds: { top: number; bottom: number; centerY: number } | null = null;
+  let currentTranslateY = 0;
+  let targetTranslateY = 0;
+  let hasScrolled = false;
+  const initialScrollY = window.scrollY;
+  let frameId: number | null = null;
+
+  const prevWillChange = el.style.willChange;
+  const prevTransform = el.style.transform;
+
+  el.style.willChange = "transform";
+  if (isImageMode) {
+    el.style.transform = `translate3d(0, 0px, 0) scale(${initialScale})`;
+  } else {
+    el.style.transform = "translate3d(0, 0px, 0)";
+  }
+
+  const updateBounds = () => {
+    const rect = el.getBoundingClientRect();
+    // Compensate for our own current translateY so resize measurements stay accurate
+    const top = rect.top + window.scrollY - currentTranslateY;
+    const bottom = rect.bottom + window.scrollY - currentTranslateY;
+    bounds = {
+      top,
+      bottom,
+      centerY: top + (bottom - top) / 2,
+    };
+  };
+
+  updateBounds();
+
+  const onScroll = ({ scroll }: { scroll: number }) => {
+    if (!bounds) return;
+    if (!hasScrolled && Math.abs(scroll - initialScrollY) < 0.5) return;
+    hasScrolled = true;
+
+    if (isImageMode) {
+      const relativeScroll = scroll - bounds.top;
+      const rawTarget = relativeScroll * depth;
+      targetTranslateY = Math.max(-maxDrift, Math.min(maxDrift, rawTarget));
+    } else {
+      const viewportCenter = scroll + window.innerHeight * 0.5;
+      const relativeScroll = viewportCenter - bounds.centerY;
+      const rawTarget = relativeScroll * depth;
+      targetTranslateY = Math.max(-maxDrift, Math.min(maxDrift, rawTarget));
+    }
+  };
+
+  lenis.on("scroll", onScroll);
+  window.addEventListener("resize", updateBounds, { passive: true });
+
+  const animate = () => {
+    currentTranslateY = lerp(currentTranslateY, targetTranslateY, smoothing);
+    if (hasScrolled && Math.abs(currentTranslateY - targetTranslateY) > 0.01) {
+      if (isImageMode) {
+        el.style.transform = `translate3d(0, ${currentTranslateY.toFixed(2)}px, 0) scale(${activeScale})`;
+      } else {
+        el.style.transform = `translate3d(0, ${currentTranslateY.toFixed(2)}px, 0)`;
+      }
+    }
+    frameId = requestAnimationFrame(animate);
+  };
+
+  frameId = requestAnimationFrame(animate);
+
+  return () => {
+    if (frameId !== null) {
+      cancelAnimationFrame(frameId);
+    }
+    lenis.off("scroll", onScroll);
+    window.removeEventListener("resize", updateBounds);
+    el.style.willChange = prevWillChange;
+    el.style.transform = prevTransform;
+  };
+}
+
+/**
+ * Smooth Scroll + Lerp Parallax Provider
+ * - Single Lenis instance (`autoRaf: true`, buttery `lerp: 0.075`) across the entire landing page.
+ * - Keeps GSAP ScrollTrigger synced via `lenis.on("scroll", ScrollTrigger.update)` with zero duplicate loop.
+ * - Drives `.parallax-image` and `[data-parallax]` elements with hand-rolled rAF + `lerp(..., 0.1)`.
+ * - Full React 19 StrictMode teardown and live `prefers-reduced-motion` support.
  */
 export function SmoothScrollProvider({
   children,
@@ -125,22 +226,18 @@ export function SmoothScrollProvider({
   const pathname = usePathname();
   const [lenis, setLenis] = useState<Lenis | null>(null);
 
+  // 1. Single Lenis instance lifecycle
   useEffect(() => {
     if (typeof window === "undefined") return;
 
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
     let instance: Lenis | null = null;
-    let tickerFn: ((time: number) => void) | null = null;
     let resizeTimer: number | null = null;
 
     const teardown = () => {
       if (resizeTimer !== null) {
         window.clearTimeout(resizeTimer);
         resizeTimer = null;
-      }
-      if (tickerFn) {
-        gsap.ticker.remove(tickerFn);
-        tickerFn = null;
       }
       if (instance) {
         instance.off("scroll", ScrollTrigger.update);
@@ -156,28 +253,22 @@ export function SmoothScrollProvider({
       if (mq.matches) return;
 
       instance = new Lenis({
-        lerp: 0.085,
+        autoRaf: true,
+        lerp: 0.075,
         smoothWheel: true,
         wheelMultiplier: 0.95,
         touchMultiplier: 1.4,
         syncTouch: false,
         autoResize: true,
         allowNestedScroll: true,
-        autoRaf: false,
       });
 
       activeLenisInstance = instance;
       setLenis(instance);
 
-      // Single unified loop: GSAP ticker drives Lenis (seconds -> ms) & updates ScrollTrigger
+      // Keep any GSAP ScrollTrigger instances (e.g. /docs) aligned to Lenis
       instance.on("scroll", ScrollTrigger.update);
-      tickerFn = (time: number) => {
-        instance?.raf(time * 1000);
-      };
-      gsap.ticker.add(tickerFn);
-      gsap.ticker.lagSmoothing(0);
 
-      // Refresh measurements once web fonts & late media settle
       if (document.fonts?.ready) {
         document.fonts.ready.then(() => {
           instance?.resize();
@@ -192,9 +283,7 @@ export function SmoothScrollProvider({
 
     setup();
 
-    const handleReducedMotionChange = () => {
-      setup();
-    };
+    const handleReducedMotionChange = () => setup();
 
     const handleFullscreenChange = (e: Event) => {
       const customEvent = e as CustomEvent<{ isFullscreen: boolean }>;
@@ -247,24 +336,47 @@ export function SmoothScrollProvider({
     };
   }, []);
 
-  // Re-measure document height on route changes & honor incoming #hash targets
+  // 2. Scoped rAF + lerp parallax bindings across <main> (StrictMode-safe teardown per route)
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined" || !lenis) return;
 
-    const timer = window.setTimeout(() => {
-      activeLenisInstance?.resize();
+    let teardowns: Array<() => void> = [];
+
+    const bindParallax = () => {
+      teardowns.forEach((fn) => fn());
+      teardowns = [];
+
+      const root = document.querySelector("main") || document.body;
+      const targets = root.querySelectorAll<HTMLElement>(
+        ".parallax-image, [data-parallax]",
+      );
+      teardowns = Array.from(targets, (el) => initParallaxElement(el, lenis));
+    };
+
+    // Wait one paint after route render so layout bounds are settled
+    const rafBind = requestAnimationFrame(() => {
+      bindParallax();
+      lenis.resize();
       ScrollTrigger.refresh();
+    });
 
+    const hashTimer = window.setTimeout(() => {
+      lenis.resize();
       if (window.location.hash && window.location.hash.length > 1) {
         const targetEl = document.querySelector<HTMLElement>(window.location.hash);
         if (targetEl) {
           smoothScrollTo(targetEl, { duration: 1.0 });
         }
       }
-    }, 120);
+    }, 150);
 
-    return () => window.clearTimeout(timer);
-  }, [pathname]);
+    return () => {
+      cancelAnimationFrame(rafBind);
+      window.clearTimeout(hashTimer);
+      teardowns.forEach((fn) => fn());
+      teardowns = [];
+    };
+  }, [lenis, pathname]);
 
   const scrollTo = useCallback(
     (target: string | number | HTMLElement, options?: SmoothScrollToOptions) => {

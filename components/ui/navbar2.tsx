@@ -23,7 +23,7 @@ import {
   FaWhatsapp,
 } from "react-icons/fa6";
 import { useTheme } from "@/components/providers/theme-provider";
-import { useLenis } from "@/components/providers/smooth-scroll-provider";
+import { lerp, useLenis } from "@/components/providers/smooth-scroll-provider";
 import { scrollToHeroShortener } from "@/components/marketing/swiss-frame";
 
 export type MegaColumn = {
@@ -114,23 +114,25 @@ export function Navbar2() {
 
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [isHidden, setIsHidden] = useState(false);
   const [isIframeFullscreen, setIsIframeFullscreen] = useState(false);
 
   const headerRef = useRef<HTMLElement>(null);
+  const innerWrapRef = useRef<HTMLDivElement>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
   const openMenuRef = useRef<string | null>(null);
   const mobileOpenRef = useRef(false);
+  const isHoveringRef = useRef(false);
+  const forceShowRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     openMenuRef.current = openMenu;
-    if (openMenu) setIsHidden(false);
+    if (openMenu) forceShowRef.current?.();
   }, [openMenu]);
 
   useEffect(() => {
     mobileOpenRef.current = mobileOpen;
     if (mobileOpen) {
-      setIsHidden(false);
+      forceShowRef.current?.();
       lenis?.stop();
     } else {
       lenis?.start();
@@ -195,80 +197,131 @@ export function Navbar2() {
     };
   }, []);
 
-  // Smart headroom hide-on-scroll-down / reveal-on-scroll-up + subtle 2px reading progress bar
+  // Ultra-smooth zero-rerender Lenis + lerp rAF headroom glide (eliminates CSS/React stutter)
   useEffect(() => {
-    const HIDE_AFTER_Y = 160;
-    const DOWN_THRESHOLD_PX = 12;
+    const HIDE_AFTER_Y = 140;
+    const DOWN_THRESHOLD_PX = 18;
     const UP_THRESHOLD_PX = 6;
+    const NAV_LERP = 0.12;
 
     let lastY = Math.max(0, window.scrollY);
-    let isHiddenLocal = false;
+    let targetHidden = 0; // 0 = fully visible, 1 = smoothly tucked above viewport
+    let currentHidden = 0;
     let downAccum = 0;
     let upAccum = 0;
-    let ticking = false;
+    let frameId: number | null = null;
+    let isPointerBlocked = false;
 
-    const updateProgress = () => {
+    const applyTransform = (progress: number) => {
+      const header = headerRef.current;
+      if (!header) return;
+      const clamped = Math.max(0, Math.min(1, progress));
+      const translateY = -clamped * 108;
+      const opacity = 1 - clamped;
+      header.style.transform = `translate3d(0, ${translateY.toFixed(2)}px, 0)`;
+      header.style.opacity = opacity.toFixed(3);
+
+      const shouldBlock = opacity < 0.08;
+      if (shouldBlock !== isPointerBlocked && innerWrapRef.current) {
+        isPointerBlocked = shouldBlock;
+        innerWrapRef.current.style.pointerEvents = shouldBlock ? "none" : "auto";
+      }
+    };
+
+    const updateProgress = (scrollY: number) => {
       const docHeight =
         document.documentElement.scrollHeight - window.innerHeight;
       const pct =
-        docHeight > 0 ? Math.min(1, Math.max(0, window.scrollY / docHeight)) : 0;
+        docHeight > 0 ? Math.min(1, Math.max(0, scrollY / docHeight)) : 0;
       if (progressBarRef.current) {
         progressBarRef.current.style.transform = `scaleX(${pct})`;
       }
     };
 
-    updateProgress();
+    const onScrollPosition = (rawY: number) => {
+      const y = Math.max(0, rawY);
+      const delta = y - lastY;
+      lastY = y;
 
-    const handleScroll = () => {
-      if (ticking) return;
-      ticking = true;
-      requestAnimationFrame(() => {
-        const y = Math.max(0, window.scrollY);
-        const delta = y - lastY;
-        lastY = y;
+      const keepVisible =
+        y <= HIDE_AFTER_Y ||
+        Boolean(openMenuRef.current) ||
+        mobileOpenRef.current ||
+        isHoveringRef.current;
 
-        const keepVisible =
-          y <= HIDE_AFTER_Y ||
-          Boolean(openMenuRef.current) ||
-          mobileOpenRef.current;
-
-        if (keepVisible) {
+      if (keepVisible) {
+        downAccum = 0;
+        upAccum = 0;
+        targetHidden = 0;
+      } else if (delta > 0.25) {
+        upAccum = 0;
+        downAccum += delta;
+        if (downAccum >= DOWN_THRESHOLD_PX) {
+          targetHidden = 1;
           downAccum = 0;
-          upAccum = 0;
-          if (isHiddenLocal) {
-            isHiddenLocal = false;
-            setIsHidden(false);
-          }
-        } else if (delta > 0.5) {
-          upAccum = 0;
-          downAccum += delta;
-          if (!isHiddenLocal && downAccum >= DOWN_THRESHOLD_PX) {
-            isHiddenLocal = true;
-            setIsHidden(true);
-            downAccum = 0;
-          }
-        } else if (delta < -0.5) {
-          downAccum = 0;
-          upAccum += -delta;
-          if (isHiddenLocal && upAccum >= UP_THRESHOLD_PX) {
-            isHiddenLocal = false;
-            setIsHidden(false);
-            upAccum = 0;
-          }
         }
+      } else if (delta < -0.25) {
+        downAccum = 0;
+        upAccum += -delta;
+        if (upAccum >= UP_THRESHOLD_PX) {
+          targetHidden = 0;
+          upAccum = 0;
+        }
+      }
 
-        updateProgress();
-        ticking = false;
-      });
+      updateProgress(y);
     };
 
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    window.addEventListener("resize", updateProgress, { passive: true });
+    forceShowRef.current = () => {
+      targetHidden = 0;
+      downAccum = 0;
+      upAccum = 0;
+    };
+
+    applyTransform(0);
+    updateProgress(lastY);
+
+    const animate = () => {
+      const diff = Math.abs(currentHidden - targetHidden);
+      if (diff > 0.001) {
+        currentHidden = lerp(currentHidden, targetHidden, NAV_LERP);
+        if (Math.abs(currentHidden - targetHidden) <= 0.001) {
+          currentHidden = targetHidden;
+        }
+        applyTransform(currentHidden);
+      }
+      frameId = requestAnimationFrame(animate);
+    };
+    frameId = requestAnimationFrame(animate);
+
+    const handleLenisScroll = ({ scroll }: { scroll: number }) => {
+      onScrollPosition(scroll);
+    };
+    const handleNativeScroll = () => {
+      onScrollPosition(window.scrollY);
+    };
+    const handleResize = () => {
+      updateProgress(window.scrollY);
+    };
+
+    if (lenis) {
+      lenis.on("scroll", handleLenisScroll);
+    } else {
+      window.addEventListener("scroll", handleNativeScroll, { passive: true });
+    }
+    window.addEventListener("resize", handleResize, { passive: true });
+
     return () => {
-      window.removeEventListener("scroll", handleScroll);
-      window.removeEventListener("resize", updateProgress);
+      forceShowRef.current = null;
+      if (frameId !== null) cancelAnimationFrame(frameId);
+      if (lenis) {
+        lenis.off("scroll", handleLenisScroll);
+      } else {
+        window.removeEventListener("scroll", handleNativeScroll);
+      }
+      window.removeEventListener("resize", handleResize);
     };
-  }, [pathname]);
+  }, [lenis, pathname]);
 
   const toggleMenu = (label: string, hasMenu: boolean) => {
     if (!hasMenu) {
@@ -305,23 +358,23 @@ export function Navbar2() {
     <header
       ref={headerRef}
       style={{
-        transform: isHidden ? "translate3d(0, -115%, 0)" : "translate3d(0, 0, 0)",
-        opacity: isHidden ? 0 : 1,
+        transform: "translate3d(0, 0px, 0)",
+        opacity: 1,
       }}
-      className={`relative flex justify-center px-3 sm:px-5 pt-3 sm:pt-4 transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform ${
-        isHidden ? "pointer-events-none" : "pointer-events-none"
-      }`}
+      onMouseEnter={() => {
+        isHoveringRef.current = true;
+        forceShowRef.current?.();
+      }}
+      onMouseLeave={() => {
+        isHoveringRef.current = false;
+      }}
+      className="pointer-events-none relative flex justify-center px-3 sm:px-5 pt-3 sm:pt-4 will-change-[transform,opacity]"
     >
       <div
-        className={`w-full max-w-7xl ${
-          isHidden ? "pointer-events-none" : "pointer-events-auto"
-        }`}
+        ref={innerWrapRef}
+        className="pointer-events-auto w-full max-w-7xl"
       >
-        <motion.div
-          layout
-          transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-          className="relative overflow-hidden rounded-[10px] border border-zinc-200/75 dark:border-white/[0.11] bg-white/95 dark:bg-[#0D0E12]/95 backdrop-blur-xl shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_32px_-8px_rgba(0,0,0,0.10)] dark:shadow-[0_14px_38px_-8px_rgba(0,0,0,0.68)]"
-        >
+        <div className="relative overflow-hidden rounded-[10px] border border-zinc-200/75 dark:border-white/[0.11] bg-white/95 dark:bg-[#0D0E12]/95 backdrop-blur-xl shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_32px_-8px_rgba(0,0,0,0.10)] dark:shadow-[0_14px_38px_-8px_rgba(0,0,0,0.68)]">
           {/* Subtle 2px GPU-composited reading progress indicator */}
           <div
             ref={progressBarRef}
@@ -678,7 +731,7 @@ export function Navbar2() {
               </motion.div>
             )}
           </AnimatePresence>
-        </motion.div>
+        </div>
       </div>
     </header>
   );

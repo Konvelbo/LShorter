@@ -206,7 +206,12 @@ export function GlobeFeatureSection() {
             </div>
           </div>
 
-          <div className="relative lg:col-span-6 h-[320px] sm:h-[380px] lg:h-[380px] w-full">
+          <div
+            data-parallax="float"
+            data-parallax-depth="0.14"
+            data-parallax-max="54"
+            className="relative lg:col-span-6 h-[320px] sm:h-[380px] lg:h-[380px] w-full"
+          >
             <Globe className="absolute left-1/2 -translate-x-1/2 -top-8 w-[480px] sm:w-[620px] lg:left-auto lg:translate-x-0 lg:-right-16 xl:-right-8 lg:-top-16 lg:w-[760px]" />
           </div>
         </div>

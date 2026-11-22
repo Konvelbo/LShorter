@@ -79,7 +79,12 @@ export function DemoVideoSection() {
         </div>
 
         {/* Redesigned Skiper67 Interactive Video Stage + PopOver Player + 6 Chapter Jump Controls */}
-        <div className="rounded-[10px] border border-[#E4E7EC] dark:border-white/[0.10] overflow-hidden bg-[#F5F4F3] dark:bg-[#111216]">
+        <div
+          data-parallax="float"
+          data-parallax-depth="0.065"
+          data-parallax-max="32"
+          className="rounded-[10px] border border-[#E4E7EC] dark:border-white/[0.10] overflow-hidden bg-[#F5F4F3] dark:bg-[#111216]"
+        >
           <Skiper67
             videoSrc={DEMO_VIDEO_SRC}
             thumbnailSrc={DEMO_VIDEO_THUMBNAIL}

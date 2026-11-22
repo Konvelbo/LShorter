@@ -17,10 +17,12 @@ export const HeroBackground = ({ className }: { className?: string }) => {
       aria-hidden="true"
       className={cn("pointer-events-none absolute inset-0 overflow-hidden", className)}
     >
-      {/* Dark mode (exact snippet class) */}
-      <div className="hidden dark:block absolute inset-0 -z-10 h-full w-full items-center px-5 py-24 [background:radial-gradient(125%_125%_at_50%_10%,#000_40%,#63e_100%)]" />
-      {/* Light mode counterpart */}
-      <div className="block dark:hidden absolute inset-0 -z-10 h-full w-full items-center px-5 py-24 [background:radial-gradient(125%_125%_at_50%_10%,#fff_40%,#63e_100%)]" />
+      <div className="parallax-image absolute inset-0 h-full w-full">
+        {/* Dark mode (exact snippet class) */}
+        <div className="hidden dark:block absolute inset-0 -z-10 h-full w-full items-center px-5 py-24 [background:radial-gradient(125%_125%_at_50%_10%,#000_40%,#63e_100%)]" />
+        {/* Light mode counterpart */}
+        <div className="block dark:hidden absolute inset-0 -z-10 h-full w-full items-center px-5 py-24 [background:radial-gradient(125%_125%_at_50%_10%,#fff_40%,#63e_100%)]" />
+      </div>
     </div>
   );
 };

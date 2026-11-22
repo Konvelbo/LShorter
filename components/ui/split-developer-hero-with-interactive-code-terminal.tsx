@@ -500,7 +500,12 @@ export function SplitDeveloperHero({
           </div>
         </div>
 
-        <div className="relative min-w-0">
+        <div
+          data-parallax="float"
+          data-parallax-depth="0.075"
+          data-parallax-max="36"
+          className="relative min-w-0"
+        >
           <div
             aria-hidden="true"
             className="pointer-events-none absolute -inset-6 -z-10 rounded-[10px] bg-[radial-gradient(ellipse_at_center,rgba(0,102,255,0.14)_0%,transparent_72%)] dark:bg-[radial-gradient(ellipse_at_center,rgba(0,102,255,0.22)_0%,transparent_72%)]"

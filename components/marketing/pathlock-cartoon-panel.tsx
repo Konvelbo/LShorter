@@ -99,6 +99,9 @@ export function PathLockCartoonPanel() {
   return (
     <div
       ref={containerRef}
+      data-parallax="float"
+      data-parallax-depth="0.075"
+      data-parallax-max="32"
       className="group relative w-full h-full aspect-video lg:aspect-auto overflow-hidden rounded-[10px] border border-[#E4E7EC] dark:border-[#222225] bg-[#F6F7FA] dark:bg-[#111216] shadow-[0_18px_48px_-20px_rgba(15,23,42,0.16)] dark:shadow-[0_24px_64px_-20px_rgba(0,0,0,0.65)] flex items-center justify-center"
     >
       <video

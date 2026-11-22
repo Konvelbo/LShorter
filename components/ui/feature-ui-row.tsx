@@ -486,7 +486,12 @@ export function FeatureUIRow({
             maskImage: "linear-gradient(270deg, #000, transparent)",
           }}
         />
-        <div className="relative z-10 flex w-full items-center justify-center">
+        <div
+          data-parallax="float"
+          data-parallax-depth="0.14"
+          data-parallax-max="42"
+          className="relative z-10 flex w-full items-center justify-center"
+        >
           {visual}
         </div>
       </motion.div>
