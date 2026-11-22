@@ -197,17 +197,24 @@ export function DocsHomeContent() {
             Over <strong className="text-[#101828] dark:text-white font-semibold">100,000+ Edge redirections</strong> processed daily with 99.99% uptime.
           </p>
 
-          {/* Infinite Marquee Container with subtle edge fade masks */}
-          <div className="w-full lg:max-w-xl overflow-hidden relative [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]">
-            <div className="animate-marquee flex gap-3 w-max select-none">
-              {/* Duplicated items to create a seamless infinite marquee */}
-              {[...ECOSYSTEM_STACK, ...ECOSYSTEM_STACK].map((item, idx) => (
-                <span
-                  key={idx}
-                  className="px-3.5 py-1.5 rounded-xl bg-white dark:bg-[#141416] border border-[#E4E7EC] dark:border-white/10 text-xs font-mono text-neutral-700 dark:text-neutral-300 shadow-2xs shrink-0 cursor-default transition-all hover:border-brand hover:scale-105"
+          {/* Seamless Infinite Auto-Scrolling Marquee with subtle edge fade masks */}
+          <div className="w-full lg:max-w-xl overflow-hidden relative py-1 [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]">
+            <div className="animate-marquee flex w-max select-none">
+              {[0, 1].map((copyIdx) => (
+                <div
+                  key={copyIdx}
+                  aria-hidden={copyIdx === 1 ? true : undefined}
+                  className="flex shrink-0 items-center gap-3 pr-3"
                 >
-                  {item.name}
-                </span>
+                  {ECOSYSTEM_STACK.map((item) => (
+                    <span
+                      key={`${copyIdx}-${item.name}`}
+                      className="px-3.5 py-1.5 rounded-xl bg-white dark:bg-[#141416] border border-[#E4E7EC] dark:border-white/10 text-xs font-mono text-neutral-700 dark:text-neutral-300 shadow-2xs shrink-0 cursor-default transition-all hover:border-brand hover:scale-105"
+                    >
+                      {item.name}
+                    </span>
+                  ))}
+                </div>
               ))}
             </div>
           </div>
