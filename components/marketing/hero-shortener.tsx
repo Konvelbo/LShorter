@@ -374,10 +374,10 @@ export function HeroShortener() {
   useEffect(() => {
     const handleFocusEvent = () => {
       setTimeout(() => {
-        inputRef.current?.focus();
+        inputRef.current?.focus({ preventScroll: true });
         setIsPulseHighlighted(true);
         setTimeout(() => setIsPulseHighlighted(false), 1400);
-      }, 220);
+      }, 320);
     };
     window.addEventListener("lshorter_focus_shortener", handleFocusEvent);
     return () => {

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { smoothScrollTo } from "@/components/providers/smooth-scroll-provider";
 
 export const EASE_OUT_EXPO: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
@@ -96,9 +97,13 @@ export function scrollToHeroShortener(e?: React.MouseEvent) {
   if (e) e.preventDefault();
   const el = document.getElementById("hero-shortener");
   if (el) {
-    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    const centeredOffset = Math.min(
+      -80,
+      -Math.round((window.innerHeight - el.offsetHeight) / 2),
+    );
+    smoothScrollTo(el, { offset: centeredOffset, duration: 1.05 });
   } else {
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    smoothScrollTo(0, { offset: 0, duration: 1.0 });
   }
   window.dispatchEvent(new CustomEvent("lshorter_focus_shortener"));
 }

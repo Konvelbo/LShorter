@@ -12,7 +12,10 @@ import { useMobileMenu } from "@/components/providers/use-mobile-menu";
 import { LandingNavbar } from "@/components/marketing/landing-navbar";
 import { LandingFooter } from "@/components/marketing/landing-footer";
 import { useSession } from "next-auth/react";
-import { SmoothScrollProvider } from "@/components/providers/smooth-scroll-provider";
+import {
+  SmoothScrollProvider,
+  useLenis,
+} from "@/components/providers/smooth-scroll-provider";
 import { WaveRevealButton } from "@/components/ui/wave-reveal-button";
 
 const MARKETING_NAV_LINKS = [
@@ -32,6 +35,7 @@ const MARKETING_NAV_LINKS = [
  */
 const MarketingMobileDrawer = React.memo(function MarketingMobileDrawer() {
   const { isOpen, setIsOpen } = useMobileMenu();
+  const { lenis } = useLenis();
   const pathname = usePathname();
   const { data: session, status } = useSession();
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -43,6 +47,7 @@ const MarketingMobileDrawer = React.memo(function MarketingMobileDrawer() {
   useEffect(() => {
     if (!isOpen) return;
 
+    lenis?.stop();
     prevFocusRef.current = document.activeElement as HTMLElement | null;
     closeBtnRef.current?.focus({ preventScroll: true });
 
@@ -86,12 +91,13 @@ const MarketingMobileDrawer = React.memo(function MarketingMobileDrawer() {
     overlay?.addEventListener("touchmove", blockBackgroundScroll, { passive: false });
 
     return () => {
+      lenis?.start();
       window.removeEventListener("keydown", onKeyDown);
       overlay?.removeEventListener("wheel", blockBackgroundScroll);
       overlay?.removeEventListener("touchmove", blockBackgroundScroll);
       prevFocusRef.current?.focus?.({ preventScroll: true });
     };
-  }, [isOpen, setIsOpen]);
+  }, [isOpen, setIsOpen, lenis]);
 
   useEffect(() => {
     setIsOpen(false);
@@ -126,6 +132,7 @@ const MarketingMobileDrawer = React.memo(function MarketingMobileDrawer() {
 
       <aside
         ref={drawerRef}
+        data-lenis-prevent
         role="dialog"
         aria-modal={isOpen}
         aria-label="Navigation menu"

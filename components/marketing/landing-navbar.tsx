@@ -24,6 +24,7 @@ import { useTheme } from "@/components/providers/theme-provider";
 import { useMobileMenu } from "@/components/providers/use-mobile-menu";
 import { useSession } from "next-auth/react";
 import { WaveRevealButton } from "@/components/ui/wave-reveal-button";
+import { scrollToHeroShortener } from "@/components/marketing/swiss-frame";
 
 // ─── DESKTOP NAV LINK WITH VERTICAL TEXT-ROLL HOVER ───
 function NavLinkItem({
@@ -564,14 +565,7 @@ export const LandingNavbar = React.memo(function LandingNavbar() {
     (e: React.MouseEvent) => {
       if (isAuthenticated) return;
       if (pathname === "/") {
-        e.preventDefault();
-        const el = document.getElementById("hero-shortener");
-        if (el) {
-          el.scrollIntoView({ behavior: "smooth", block: "center" });
-        } else {
-          window.scrollTo({ top: 0, behavior: "smooth" });
-        }
-        window.dispatchEvent(new CustomEvent("lshorter_focus_shortener"));
+        scrollToHeroShortener(e);
       } else {
         e.preventDefault();
         router.push("/#hero-shortener");
