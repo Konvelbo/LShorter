@@ -77,7 +77,7 @@ export const DOC_FEATURES: DocFeature[] = [
     overview: [
       "The LShorter REST API provides programmatic access to all link management, edge routing, privacy masking, conversion attribution, and telemetry features of the LShorter platform.",
       "All requests are routed to Cloudflare's global edge network (over 300+ data centers worldwide) to guarantee sub-15ms response times, 99.99% availability, and automatic TLS 1.3 encryption.",
-      "Developers can interact directly via standard HTTP requests or use our official typed SDKs for TypeScript/JavaScript (lshorter-api), Python (lshorter-api), Rust (lshorter), Go (github.com/Konvelbo/LShorter-api/sdks/go), and PHP (lshorter/lshorter-php)."
+      "Developers can interact directly via standard HTTP requests or use our official typed SDKs for TypeScript/JavaScript (lshorter-api), Python (lshorter-api), Rust (lshorter-api), Go (github.com/Konvelbo/LShorter-api/sdks/go), and PHP (lshorter/lshorter-api)."
     ],
     keyPoints: [
       {
@@ -385,9 +385,9 @@ echo "Found " . $links["pagination"]["total"] . " links" . PHP_EOL;`
             { name: "yarn", code: "yarn add lshorter-api", language: "bash" },
             { name: "bun", code: "bun add lshorter-api", language: "bash" },
             { name: "Python (pip)", code: "pip install lshorter-api", language: "bash" },
-            { name: "Rust (cargo)", code: "cargo add lshorter", language: "bash" },
+            { name: "Rust (cargo)", code: "cargo add lshorter-api", language: "bash" },
             { name: "Go", code: "go get github.com/Konvelbo/LShorter-api/sdks/go", language: "bash" },
-            { name: "PHP (composer)", code: "composer require lshorter/lshorter-php", language: "bash" }
+            { name: "PHP (composer)", code: "composer require lshorter/lshorter-api", language: "bash" }
           ]
         }
       },

@@ -65,8 +65,8 @@ export const SDK_INSTALL_OPTIONS: SdkInstallOption[] = [
     langBadge: "Rust",
     prefix: "cargo",
     subcmd: "add",
-    pkg: "lshorter",
-    command: "cargo add lshorter",
+    pkg: "lshorter-api",
+    command: "cargo add lshorter-api",
   },
   {
     id: "go",
@@ -83,8 +83,8 @@ export const SDK_INSTALL_OPTIONS: SdkInstallOption[] = [
     langBadge: "PHP",
     prefix: "composer",
     subcmd: "require",
-    pkg: "lshorter/lshorter-php",
-    command: "composer require lshorter/lshorter-php",
+    pkg: "lshorter/lshorter-api",
+    command: "composer require lshorter/lshorter-api",
   },
 ];
 
