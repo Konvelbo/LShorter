@@ -156,7 +156,7 @@ export function Globe({
     <div
       ref={containerRef}
       className={cn(
-        "absolute inset-0 mx-auto aspect-square w-full max-w-[600px]",
+        "relative aspect-square w-full max-w-[760px]",
         className,
       )}
     >
@@ -177,12 +177,12 @@ export function GlobeFeatureSection() {
   return (
     <section
       id="global-control"
-      className="w-full bg-[#FFFFFF] dark:bg-[#09090B] py-16 sm:py-24 px-5 sm:px-8 border-t border-[#E4E7EC] dark:border-white/[0.08] overflow-x-clip transition-colors duration-300"
+      className="relative w-full overflow-hidden bg-[#FFFFFF] dark:bg-[#09090B] border-t border-[#E4E7EC] dark:border-white/[0.08] transition-colors duration-300"
     >
-      <div className="relative mx-auto w-full max-w-[1280px] overflow-hidden rounded-[10px] bg-[#F7F8FA] dark:bg-[#111216] border border-[#E4E7EC] dark:border-white/[0.09] shadow-[0_12px_36px_-18px_rgba(16,24,40,0.08)] dark:shadow-[0_18px_48px_-18px_rgba(0,0,0,0.6)] px-6 py-14 sm:px-12 sm:py-20 md:px-16 md:py-24">
-        <div className="flex flex-col-reverse items-center justify-between gap-10 md:flex-row">
-          <div className="z-10 max-w-xl text-left">
-            <h2 className="text-[28px] sm:text-[34px] lg:text-[38px] font-medium leading-[1.2] tracking-[-0.025em] text-[#09090B] dark:text-white text-balance">
+      <div className="relative mx-auto w-full max-w-[1520px] px-6 sm:px-10 xl:px-14 py-20 sm:py-28 lg:py-32">
+        <div className="grid grid-cols-1 lg:grid-cols-12 items-center gap-12 lg:gap-8">
+          <div className="relative z-10 lg:col-span-6 max-w-[620px] text-left">
+            <h2 className="text-[30px] sm:text-[38px] lg:text-[44px] font-medium leading-[1.16] tracking-[-0.025em] text-[#09090B] dark:text-white text-balance">
               Track without limits with{" "}
               <span className="text-[#0066FF] dark:text-[#60A5FA] font-semibold">
                 LShorter
@@ -193,10 +193,10 @@ export function GlobeFeatureSection() {
               </span>
             </h2>
 
-            <div className="mt-7 flex flex-wrap items-center gap-3">
+            <div className="mt-8 flex flex-wrap items-center gap-3">
               <Button
                 asChild
-                className="inline-flex h-11 items-center gap-2 rounded-[10px] bg-[#09090B] hover:bg-[#0066FF] dark:bg-white dark:hover:bg-[#0066FF] px-6 text-[14px] font-semibold text-white dark:text-[#09090B] dark:hover:text-white shadow-none transition-colors"
+                className="inline-flex h-11 items-center gap-2 rounded-[10px] bg-[#09090B] hover:bg-[#0066FF] dark:bg-white dark:hover:bg-[#0066FF] px-6 text-[14.5px] font-semibold text-white dark:text-[#09090B] dark:hover:text-white shadow-none transition-colors"
               >
                 <Link href="/register">
                   <span>Start tracking free</span>
@@ -206,8 +206,8 @@ export function GlobeFeatureSection() {
             </div>
           </div>
 
-          <div className="relative h-[220px] sm:h-[240px] w-full max-w-[520px] shrink-0">
-            <Globe className="absolute -bottom-24 sm:-bottom-28 md:-right-28 lg:-right-36 scale-125 sm:scale-150" />
+          <div className="relative lg:col-span-6 h-[320px] sm:h-[380px] lg:h-[380px] w-full">
+            <Globe className="absolute left-1/2 -translate-x-1/2 -top-8 w-[480px] sm:w-[620px] lg:left-auto lg:translate-x-0 lg:-right-16 xl:-right-8 lg:-top-16 lg:w-[760px]" />
           </div>
         </div>
       </div>
