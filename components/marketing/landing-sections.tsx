@@ -130,7 +130,7 @@ export function FeaturesBentoSection() {
     >
       <SectionRailFrame>
         {/* Centered Header */}
-        <div className="max-w-[680px] mx-auto text-center mb-16 sm:mb-24">
+        <div className="max-w-[680px] mx-auto text-center pb-10 sm:pb-16 mb-16 sm:mb-24">
           <h2 className="text-[32px] sm:text-[44px] font-bold tracking-[-0.035em] leading-[1.08] text-[#09090B] dark:text-white text-balance">
             Everything a link needs before and after the click.
           </h2>
