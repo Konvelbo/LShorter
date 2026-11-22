@@ -1,6 +1,7 @@
 "use client";
 
 import { buttonVariants } from "@/components/ui/button";
+import { WaveRevealButton } from "@/components/ui/wave-reveal-button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useMediaQuery } from "@/hooks/use-media-query";
@@ -300,47 +301,76 @@ export function Pricing({
                 <hr className="w-full my-5 border-[#E4E7EC] dark:border-white/[0.08]" />
 
                 {onSelectPlan && plan.planId && plan.planId !== "FREE" ? (
-                  <button
-                    type="button"
-                    disabled={Boolean(loadingPlan)}
-                    onClick={() =>
-                      onSelectPlan(
-                        plan.planId as PaidPlanId,
-                        isMonthly ? "MONTHLY" : "YEARLY"
-                      )
-                    }
-                    className={cn(
-                      buttonVariants({
-                        variant: plan.isPopular ? "primary" : "outline",
-                      }),
-                      "group relative w-full h-11 gap-2 overflow-hidden rounded-[10px] text-[14.5px] font-semibold tracking-tight cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed",
-                      "transform-gpu transition-colors duration-200",
-                      plan.isPopular
-                        ? "bg-[#0066FF] hover:bg-[#002E99] text-white border border-[#0066FF] hover:border-[#002E99]"
-                        : "bg-white dark:bg-white/[0.04] text-[#09090B] dark:text-white border-[#D4D4D8] dark:border-white/[0.14] hover:bg-[#0066FF] hover:text-white hover:border-[#0066FF]"
-                    )}
+                  plan.isPopular ? (
+                    <WaveRevealButton
+                      type="button"
+                      variant="primary"
+                      size="md"
+                      wave
+                      disabled={Boolean(loadingPlan)}
+                      showArrow={loadingPlan !== plan.planId}
+                      icon={
+                        loadingPlan === plan.planId ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : undefined
+                      }
+                      onClick={() =>
+                        onSelectPlan(
+                          plan.planId as PaidPlanId,
+                          isMonthly ? "MONTHLY" : "YEARLY"
+                        )
+                      }
+                      className="w-full text-[14.5px]"
+                    >
+                      {loadingPlan === plan.planId
+                        ? "Redirecting..."
+                        : plan.buttonText}
+                    </WaveRevealButton>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={Boolean(loadingPlan)}
+                      onClick={() =>
+                        onSelectPlan(
+                          plan.planId as PaidPlanId,
+                          isMonthly ? "MONTHLY" : "YEARLY"
+                        )
+                      }
+                      className={cn(
+                        buttonVariants({ variant: "outline" }),
+                        "group relative w-full h-11 gap-2 overflow-hidden rounded-[10px] text-[14.5px] font-semibold tracking-tight cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed",
+                        "transform-gpu transition-colors duration-200",
+                        "bg-white dark:bg-white/[0.04] text-[#09090B] dark:text-white border-[#D4D4D8] dark:border-white/[0.14] hover:bg-[#0066FF] hover:text-white hover:border-[#0066FF]"
+                      )}
+                    >
+                      {loadingPlan === plan.planId ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <span>Redirecting...</span>
+                        </>
+                      ) : (
+                        plan.buttonText
+                      )}
+                    </button>
+                  )
+                ) : plan.isPopular ? (
+                  <WaveRevealButton
+                    href={activeHref}
+                    variant="primary"
+                    size="md"
+                    wave
+                    className="w-full text-[14.5px]"
                   >
-                    {loadingPlan === plan.planId ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span>Redirecting...</span>
-                      </>
-                    ) : (
-                      plan.buttonText
-                    )}
-                  </button>
+                    {plan.buttonText}
+                  </WaveRevealButton>
                 ) : (
                   <Link
                     href={activeHref}
                     className={cn(
-                      buttonVariants({
-                        variant: plan.isPopular ? "primary" : "outline",
-                      }),
+                      buttonVariants({ variant: "outline" }),
                       "group relative w-full h-11 gap-2 overflow-hidden rounded-[10px] text-[14.5px] font-semibold tracking-tight",
                       "transform-gpu transition-colors duration-200",
-                      plan.isPopular
-                        ? "bg-[#0066FF] hover:bg-[#002E99] text-white border border-[#0066FF] hover:border-[#002E99]"
-                        : "bg-white dark:bg-white/[0.04] text-[#09090B] dark:text-white border-[#D4D4D8] dark:border-white/[0.14] hover:bg-[#0066FF] hover:text-white hover:border-[#0066FF]"
+                      "bg-white dark:bg-white/[0.04] text-[#09090B] dark:text-white border-[#D4D4D8] dark:border-white/[0.14] hover:bg-[#0066FF] hover:text-white hover:border-[#0066FF]"
                     )}
                   >
                     {plan.buttonText}
