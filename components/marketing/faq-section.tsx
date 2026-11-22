@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useState } from "react";
-import { Plus, Minus } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import { SectionRailFrame } from "@/components/marketing/swiss-frame";
+
+const FAQ_EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
 const FAQS = [
   {
@@ -52,7 +54,7 @@ export function FaqSection() {
             </p>
           </div>
 
-          {/* Right Borderless Hairline Accordion (60fps CSS Grid 0fr -> 1fr transition) */}
+          {/* Right Borderless Hairline Accordion (Silky Framer Motion Open/Close) */}
           <div className="lg:col-span-7 border-t border-[#E4E7EC] dark:border-white/[0.09] divide-y divide-[#E4E7EC] dark:divide-white/[0.09]">
             {FAQS.map((item, idx) => {
               const isOpen = openIndex === idx;
@@ -64,32 +66,77 @@ export function FaqSection() {
                     onClick={() => setOpenIndex(isOpen ? null : idx)}
                     className="w-full py-5 flex items-center justify-between gap-4 text-left group cursor-pointer focus-visible:outline-2 focus-visible:outline-[#0066FF] focus-visible:outline-offset-2 rounded-[6px]"
                   >
-                    <span className="text-[15.5px] sm:text-[16.5px] font-medium text-[#09090B] dark:text-white leading-[1.4] group-hover:text-[#0066FF] dark:group-hover:text-[#6CA8FF] transition-colors">
+                    <span
+                      className={`text-[15.5px] sm:text-[16.5px] font-medium leading-[1.4] transition-colors duration-300 ${
+                        isOpen
+                          ? "text-[#0066FF] dark:text-[#6CA8FF]"
+                          : "text-[#09090B] dark:text-white group-hover:text-[#0066FF] dark:group-hover:text-[#6CA8FF]"
+                      }`}
+                    >
                       {item.q}
                     </span>
-                    <span className="w-7 h-7 rounded-[6px] flex items-center justify-center shrink-0 text-[#52525B] dark:text-zinc-400 group-hover:text-[#0066FF] dark:group-hover:text-[#6CA8FF] transition-colors">
-                      {isOpen ? (
-                        <Minus className="w-4 h-4" />
-                      ) : (
-                        <Plus className="w-4 h-4" />
-                      )}
+                    <span
+                      aria-hidden="true"
+                      className={`relative w-7 h-7 rounded-[6px] flex items-center justify-center shrink-0 transition-colors duration-300 ${
+                        isOpen
+                          ? "text-[#0066FF] dark:text-[#6CA8FF]"
+                          : "text-[#52525B] dark:text-zinc-400 group-hover:text-[#0066FF] dark:group-hover:text-[#6CA8FF]"
+                      }`}
+                    >
+                      <span className="block w-3.5 h-[1.5px] rounded-full bg-current" />
+                      <motion.span
+                        initial={false}
+                        animate={{
+                          rotate: isOpen ? 90 : 0,
+                          opacity: isOpen ? 0 : 1,
+                          scaleY: isOpen ? 0.2 : 1,
+                        }}
+                        transition={{ duration: 0.42, ease: FAQ_EASE }}
+                        className="absolute block w-[1.5px] h-3.5 rounded-full bg-current"
+                      />
                     </span>
                   </button>
 
-                  {/* 60fps CSS Grid height animation (no JS layout measurement, no height: auto jank) */}
-                  <div
-                    className={`grid transition-[grid-template-rows,opacity] duration-250 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-                      isOpen
-                        ? "grid-rows-[1fr] opacity-100"
-                        : "grid-rows-[0fr] opacity-0"
-                    }`}
-                  >
-                    <div className="overflow-hidden min-h-0">
-                      <p className="pb-5 pr-8 text-[14.5px] text-[#52525B] dark:text-zinc-400 leading-[1.7] text-pretty">
-                        {item.a}
-                      </p>
-                    </div>
-                  </div>
+                  <AnimatePresence initial={false}>
+                    {isOpen && (
+                      <motion.div
+                        key="faq-panel"
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{
+                          height: "auto",
+                          opacity: 1,
+                          transition: {
+                            height: { duration: 0.48, ease: FAQ_EASE },
+                            opacity: { duration: 0.36, delay: 0.06, ease: FAQ_EASE },
+                          },
+                        }}
+                        exit={{
+                          height: 0,
+                          opacity: 0,
+                          transition: {
+                            height: { duration: 0.42, ease: FAQ_EASE },
+                            opacity: { duration: 0.26, ease: FAQ_EASE },
+                          },
+                        }}
+                        className="overflow-hidden will-change-[height,opacity]"
+                      >
+                        <motion.p
+                          initial={{ y: -6 }}
+                          animate={{
+                            y: 0,
+                            transition: { duration: 0.44, ease: FAQ_EASE },
+                          }}
+                          exit={{
+                            y: -6,
+                            transition: { duration: 0.34, ease: FAQ_EASE },
+                          }}
+                          className="pb-5 pr-8 text-[14.5px] text-[#52525B] dark:text-zinc-400 leading-[1.7] text-pretty"
+                        >
+                          {item.a}
+                        </motion.p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               );
             })}
