@@ -371,7 +371,19 @@ export interface WebhookConfig {
 
 export interface RetargetingPixel {
   id: string;
-  platform: 'facebook' | 'google_tag' | 'tiktok' | 'linkedin';
+  platform:
+    | 'facebook'
+    | 'meta'
+    | 'instagram'
+    | 'google_tag'
+    | 'google'
+    | 'youtube'
+    | 'tiktok'
+    | 'linkedin'
+    | 'pinterest'
+    | 'snapchat'
+    | 'x'
+    | 'twitter';
   pixelId: string;
   name: string;
   isActive: boolean;

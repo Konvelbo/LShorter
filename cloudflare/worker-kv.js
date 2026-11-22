@@ -90,9 +90,14 @@ function escapeWorkerHtml(val) {
 function normalizeWorkerPixelPlatform(raw) {
   const v = String(raw || '').trim().toLowerCase();
   if (v === 'meta' || v === 'facebook' || v === 'fb') return 'meta';
+  if (v === 'instagram' || v === 'ig') return 'instagram';
   if (v === 'google' || v === 'google_tag' || v === 'ga4' || v === 'gtag') return 'google';
+  if (v === 'youtube' || v === 'yt') return 'youtube';
   if (v === 'tiktok' || v === 'tt') return 'tiktok';
   if (v === 'linkedin' || v === 'li') return 'linkedin';
+  if (v === 'pinterest' || v === 'pin') return 'pinterest';
+  if (v === 'snapchat' || v === 'snap') return 'snapchat';
+  if (v === 'x' || v === 'twitter' || v === 'tw' || v === 'x_ads') return 'x';
   return null;
 }
 
@@ -145,21 +150,50 @@ async function resolveWorkerActivePixels(env, link) {
   return out;
 }
 
+function safeWorkerInlineJson(value) {
+  return JSON.stringify(value)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
+}
+
+function sanitizeWorkerRedirectUrl(rawUrl) {
+  try {
+    const parsed = new URL(String(rawUrl || ''));
+    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+      return parsed.toString();
+    }
+  } catch {}
+  return 'https://lsho.cc';
+}
+
 function buildWorkerPixelInterstitialHtml(finalUrl, pixels, title) {
-  const safeHref = escapeWorkerHtml(finalUrl);
-  const inlineDest = JSON.stringify(finalUrl).replace(/</g, '\\u003c').replace(/>/g, '\\u003e');
+  const safeTarget = sanitizeWorkerRedirectUrl(finalUrl);
+  const safeHref = escapeWorkerHtml(safeTarget);
+  const inlineDest = safeWorkerInlineJson(safeTarget);
   const safeTitle = escapeWorkerHtml(title || 'Redirecting...');
   const snippets = pixels.map((px) => {
-    const idJson = JSON.stringify(px.pixelId).replace(/</g, '\\u003c');
+    const idJson = safeWorkerInlineJson(px.pixelId);
     const idAttr = encodeURIComponent(px.pixelId);
-    if (px.platform === 'meta') {
+    if (px.platform === 'meta' || px.platform === 'instagram') {
       return `<script>!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init',${idJson});fbq('track','PageView');</script>`;
     }
-    if (px.platform === 'google') {
+    if (px.platform === 'google' || px.platform === 'youtube') {
       return `<script async src="https://www.googletagmanager.com/gtag/js?id=${idAttr}"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config',${idJson});</script>`;
     }
     if (px.platform === 'tiktok') {
       return `<script>!function(w,d,t){w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=['page','track','identify','instances','debug','on','off','once','ready','alias','group','enableCookie','disableCookie'];ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.load=function(e){var s=d.createElement('script');s.async=!0;s.src='https://analytics.tiktok.com/i18n/pixel/events.js?sdkid='+encodeURIComponent(e)+'&lib='+t;var a=d.getElementsByTagName('script')[0];a.parentNode.insertBefore(s,a);};ttq.load(${idJson});ttq.page();}(window,document,'ttq');</script>`;
+    }
+    if (px.platform === 'pinterest') {
+      return `<script>!function(e){if(!window.pintrk){window.pintrk=function(){window.pintrk.queue.push(Array.prototype.slice.call(arguments))};var n=window.pintrk;n.queue=[],n.version="3.0";var t=document.createElement("script");t.async=!0,t.src=e;var r=document.getElementsByTagName("script")[0];r.parentNode.insertBefore(t,r)}}("https://s.pinimg.com/ct/core.js");pintrk('load',${idJson});pintrk('page');</script>`;
+    }
+    if (px.platform === 'snapchat') {
+      return `<script>(function(e,t,n){if(e.snaptr)return;var a=e.snaptr=function(){a.handleRequest?a.handleRequest.apply(a,arguments):a.queue.push(arguments)};a.queue=[];var r=t.createElement('script');r.async=!0;r.src=n;var u=t.getElementsByTagName('script')[0];u.parentNode.insertBefore(r,u);})(window,document,'https://sc-static.net/scevent.min.js');snaptr('init',${idJson});snaptr('track','PAGE_VIEW');</script>`;
+    }
+    if (px.platform === 'x') {
+      return `<script>!function(e,t,n,s,u,a){e.twq||(s=e.twq=function(){s.exe?s.exe.apply(s,arguments):s.queue.push(arguments);},s.version='1.1',s.queue=[],u=t.createElement(n),u.async=!0,u.src='https://static.ads-twitter.com/uwt.js',a=t.getElementsByTagName(n)[0],a.parentNode.insertBefore(u,a))}(window,document,'script');twq('config',${idJson});</script>`;
     }
     return `<script>window._linkedin_data_partner_ids=window._linkedin_data_partner_ids||[];window._linkedin_data_partner_ids.push(${idJson});(function(l){if(!l){window.lintrk=function(a,b){window.lintrk.q.push([a,b])};window.lintrk.q=[]}var s=document.getElementsByTagName('script')[0];var b=document.createElement('script');b.type='text/javascript';b.async=!0;b.src='https://snap.licdn.com/li.lms-analytics/insight.min.js';s.parentNode.insertBefore(b,s);})(window.lintrk);</script>`;
   }).join('\n');

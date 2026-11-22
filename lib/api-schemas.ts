@@ -597,10 +597,14 @@ export const domainDeleteQuerySchema = z.object({
 export const pixelPlatformSchema = z.enum([
   "meta",
   "facebook",
+  "instagram",
   "google",
+  "google_tag",
+  "youtube",
   "tiktok",
   "linkedin",
   "twitter",
+  "x",
   "snapchat",
   "pinterest",
   "reddit",
@@ -611,11 +615,16 @@ export const pixelPlatformSchema = z.enum([
   "custom",
 ]);
 
-export const pixelCreateBodySchema = z.object({
+const pixelIdValueSchema = z
+  .string()
+  .trim()
+  .regex(/^[A-Za-z0-9_-]{2,64}$/, "Invalid Pixel ID (letters, numbers, hyphens, underscores; 2-64 chars)");
+
+const pixelBaseBodySchema = z.object({
   platform: pixelPlatformSchema.optional(),
   type: pixelPlatformSchema.optional(),
-  pixelId: z.string().trim().min(1).max(200).optional(),
-  pixel_id: z.string().trim().min(1).max(200).optional(),
+  pixelId: pixelIdValueSchema.optional(),
+  pixel_id: pixelIdValueSchema.optional(),
   name: z.string().trim().max(100).optional(),
   isActive: z.boolean().optional().default(true),
   events: z.array(z.string().trim().max(100)).max(50).optional(),
@@ -625,7 +634,12 @@ export const pixelCreateBodySchema = z.object({
   trackAllPages: z.boolean().optional(),
 }).passthrough();
 
-export const pixelUpdateBodySchema = pixelCreateBodySchema.partial();
+export const pixelCreateBodySchema = pixelBaseBodySchema.refine(
+  (d) => Boolean(d.pixelId || d.pixel_id),
+  { message: "pixelId is required", path: ["pixelId"] }
+);
+
+export const pixelUpdateBodySchema = pixelBaseBodySchema.partial();
 
 export const pixelDeleteQuerySchema = z.object({
   id: idSchema,

@@ -10,206 +10,214 @@ import {
   Check,
   Plus,
   ExternalLink,
-  SlidersHorizontal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
+  CanonicalPixelPlatform,
   PixelBrandLogo,
+  PixelInput,
+  PixelRecordLike,
+  getPixelPlatformShortLabel,
   normalizePixelPlatform,
 } from "@/components/dashboard/pixel-badges";
-import { cfGetPixels, RetargetingPixel } from "@/lib/cloudflare-api";
+import { cfGetPixels } from "@/lib/cloudflare-api";
 import { useSession } from "next-auth/react";
 
 export interface PixelSelectorModalProps {
   isOpen: boolean;
   onClose: () => void;
-  selectedPixelIds: any[];
-  onSave: (selectedPixels: any[]) => void;
-  availablePixels?: any[];
+  selectedPixelIds: PixelInput[];
+  onSave: (selectedPixels: PixelRecordLike[]) => void;
+  availablePixels?: PixelRecordLike[];
 }
 
-export function PixelSelectorModal({
-  isOpen,
+function getPixelKey(px: PixelRecordLike): string {
+  return String(px.id || px.pixelId || px.pixel_id || "").trim();
+}
+
+function buildInitialSelection(
+  selectedPixelIds: PixelInput[],
+  pixels: PixelRecordLike[]
+): Record<string, boolean> {
+  const map: Record<string, boolean> = {};
+  const barePlatformStrings = new Set<string>();
+
+  for (const item of selectedPixelIds) {
+    if (typeof item === "string") {
+      const trimmed = item.trim();
+      if (trimmed) {
+        map[trimmed] = true;
+        barePlatformStrings.add(trimmed.toLowerCase());
+      }
+    } else if (item && typeof item === "object") {
+      if (item.id) map[String(item.id)] = true;
+      if (item.pixelId) map[String(item.pixelId)] = true;
+      if (item.pixel_id) map[String(item.pixel_id)] = true;
+    }
+  }
+
+  for (const px of pixels) {
+    const key = getPixelKey(px);
+    if (!key) continue;
+    const isIdMatch = Boolean(
+      (px.id && map[String(px.id)]) ||
+        (px.pixelId && map[String(px.pixelId)]) ||
+        (px.pixel_id && map[String(px.pixel_id)])
+    );
+    const isLegacyBarePlatform = Boolean(
+      px.platform && barePlatformStrings.has(String(px.platform).toLowerCase())
+    );
+    if (isIdMatch || isLegacyBarePlatform) {
+      map[key] = true;
+    }
+  }
+
+  return map;
+}
+
+function loadCachedPixels(userId: string): PixelRecordLike[] {
+  if (typeof window === "undefined") return [];
+  try {
+    if (userId && userId !== "usr_anonymous") {
+      const saved = localStorage.getItem(`lshorter_pixels_${userId}`);
+      if (saved) {
+        const parsed: unknown = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed as PixelRecordLike[];
+      }
+    }
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith("lshorter_pixels_")) {
+        const parsed: unknown = JSON.parse(localStorage.getItem(k) || "[]");
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed as PixelRecordLike[];
+        }
+      }
+    }
+  } catch {}
+  return [];
+}
+
+function PixelSelectorModalInner({
   onClose,
   selectedPixelIds = [],
   onSave,
   availablePixels: propAvailablePixels,
-}: PixelSelectorModalProps) {
-  const { data: session } = useSession();
-  const userId = session?.user?.id || "";
-
-  const [mounted, setMounted] = useState(false);
-  const [internalPixels, setInternalPixels] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  userId,
+}: Omit<PixelSelectorModalProps, "isOpen"> & { userId: string }) {
+  const hasPropPixels = Boolean(propAvailablePixels && propAvailablePixels.length > 0);
+  const [fetchedPixels, setFetchedPixels] = useState<PixelRecordLike[]>(() =>
+    hasPropPixels ? [] : loadCachedPixels(userId)
+  );
+  const [isLoading, setIsLoading] = useState<boolean>(
+    () => !hasPropPixels && Boolean(userId && userId !== "usr_anonymous")
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [activePlatformFilter, setActivePlatformFilter] = useState<
-    "all" | "meta" | "google" | "tiktok" | "linkedin"
+    "all" | CanonicalPixelPlatform
   >("all");
+  const [tempSelected, setTempSelected] = useState<Record<string, boolean>>(() =>
+    buildInitialSelection(
+      selectedPixelIds,
+      hasPropPixels ? propAvailablePixels! : loadCachedPixels(userId)
+    )
+  );
 
-  // Selection state as map of ID -> boolean
-  const [tempSelected, setTempSelected] = useState<Record<string, boolean>>({});
-
+  // Async fetch when pixels aren't already supplied by props; preserves user edits & filters!
   useEffect(() => {
-    setMounted(true);
-  }, []);
+    if (hasPropPixels || !userId || userId === "usr_anonymous") return;
 
-  // Fetch or resolve available pixels
-  useEffect(() => {
-    if (!isOpen) return;
-
-    if (propAvailablePixels && propAvailablePixels.length > 0) {
-      setInternalPixels(propAvailablePixels);
-      return;
-    }
-
-    if (userId && userId !== "usr_anonymous") {
-      setIsLoading(true);
-      cfGetPixels(userId)
-        .then((res) => {
-          const list = res?.data?.pixels || [];
-          setInternalPixels(list);
-          if (typeof window !== "undefined") {
-            try {
-              localStorage.setItem(
-                `lshorter_pixels_${userId}`,
-                JSON.stringify(list)
-              );
-            } catch {}
+    let cancelled = false;
+    cfGetPixels(userId)
+      .then((res) => {
+        if (cancelled) return;
+        const list = (res?.data?.pixels || []) as PixelRecordLike[];
+        setFetchedPixels(list);
+        setTempSelected((prev) => {
+          // Only hydrate newly discovered IDs from initial selectedPixelIds without clobbering toggles
+          const hydrated = buildInitialSelection(selectedPixelIds, list);
+          const merged = { ...prev };
+          for (const [k, v] of Object.entries(hydrated)) {
+            if (merged[k] === undefined) merged[k] = v;
           }
-        })
-        .catch(() => {
-          // Fallback to localStorage
-          if (typeof window !== "undefined") {
-            try {
-              const saved = localStorage.getItem(`lshorter_pixels_${userId}`);
-              if (saved) setInternalPixels(JSON.parse(saved));
-            } catch {}
-          }
-        })
-        .finally(() => setIsLoading(false));
-    } else if (typeof window !== "undefined") {
-      // Check localStorage for any cached pixels
-      try {
-        for (let i = 0; i < localStorage.length; i++) {
-          const k = localStorage.key(i);
-          if (k && k.startsWith("lshorter_pixels_")) {
-            const saved = JSON.parse(localStorage.getItem(k) || "[]");
-            if (Array.isArray(saved) && saved.length > 0) {
-              setInternalPixels(saved);
-              break;
-            }
-          }
+          return merged;
+        });
+        if (typeof window !== "undefined") {
+          try {
+            localStorage.setItem(`lshorter_pixels_${userId}`, JSON.stringify(list));
+          } catch {}
         }
-      } catch {}
-    }
-  }, [isOpen, propAvailablePixels, userId]);
-
-  const allPixels = useMemo(() => {
-    if (propAvailablePixels && propAvailablePixels.length > 0) {
-      return propAvailablePixels;
-    }
-    return internalPixels;
-  }, [propAvailablePixels, internalPixels]);
-
-  // Sync temp selection from incoming props when modal opens
-  useEffect(() => {
-    if (!isOpen) return;
-    const initialMap: Record<string, boolean> = {};
-
-    selectedPixelIds.forEach((item: any) => {
-      if (typeof item === "string") {
-        initialMap[item] = true;
-      } else if (typeof item === "object" && item !== null) {
-        if (item.id) initialMap[item.id] = true;
-        if (item.pixelId) initialMap[item.pixelId] = true;
-        if (item.platform) initialMap[item.platform] = true;
-      }
-    });
-
-    // Also match against allPixels if ID, pixelId or platform matches
-    allPixels.forEach((px) => {
-      const match = selectedPixelIds.some((selected: any) => {
-        if (typeof selected === "string") {
-          return (
-            selected === px.id ||
-            selected === px.pixelId ||
-            selected === px.platform
-          );
-        }
-        if (typeof selected === "object" && selected !== null) {
-          return (
-            selected.id === px.id ||
-            selected.pixelId === px.pixelId ||
-            selected.platform === px.platform
-          );
-        }
-        return false;
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
       });
-      if (match) {
-        initialMap[px.id || px.pixelId] = true;
-      }
-    });
 
-    setTempSelected(initialMap);
-    setSearchQuery("");
-    setActivePlatformFilter("all");
-  }, [isOpen, selectedPixelIds, allPixels]);
+    return () => {
+      cancelled = true;
+    };
+  }, [hasPropPixels, userId, selectedPixelIds]);
 
   // Handle escape key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isOpen) {
-        onClose();
-      }
+      if (e.key === "Escape") onClose();
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [onClose]);
 
-  const togglePixel = (px: any) => {
-    const key = px.id || px.pixelId || px.platform;
+  const allPixels = useMemo(
+    () => (hasPropPixels ? propAvailablePixels! : fetchedPixels),
+    [hasPropPixels, propAvailablePixels, fetchedPixels]
+  );
+
+  const isPixelSelected = (px: PixelRecordLike): boolean => {
+    const key = getPixelKey(px);
+    if (!key) return false;
+    if (key in tempSelected) return Boolean(tempSelected[key]);
+    if (px.id && String(px.id) in tempSelected) return Boolean(tempSelected[String(px.id)]);
+    if (px.pixelId && String(px.pixelId) in tempSelected) return Boolean(tempSelected[String(px.pixelId)]);
+    return false;
+  };
+
+  const togglePixel = (px: PixelRecordLike) => {
+    const key = getPixelKey(px);
+    if (!key) return;
     setTempSelected((prev) => {
       const next = { ...prev };
-      if (next[key]) {
-        delete next[key];
-        if (px.pixelId) delete next[px.pixelId];
-        if (px.id) delete next[px.id];
-        if (px.platform) delete next[px.platform];
-      } else {
-        next[key] = true;
-      }
+      const currentlySelected = Boolean(
+        prev[key] ||
+          (px.id && prev[String(px.id)]) ||
+          (px.pixelId && prev[String(px.pixelId)])
+      );
+      const nextValue = !currentlySelected;
+      next[key] = nextValue;
+      if (px.id) next[String(px.id)] = nextValue;
+      if (px.pixelId) next[String(px.pixelId)] = nextValue;
       return next;
     });
   };
 
   const handleApply = () => {
-    // Collect selected pixel items or IDs
-    const result: any[] = [];
-    allPixels.forEach((px) => {
-      const key = px.id || px.pixelId;
-      if (
-        tempSelected[key] ||
-        (px.id && tempSelected[px.id]) ||
-        (px.pixelId && tempSelected[px.pixelId]) ||
-        (px.platform && tempSelected[px.platform])
-      ) {
+    const result: PixelRecordLike[] = [];
+    for (const px of allPixels) {
+      if (isPixelSelected(px)) {
         result.push({
           id: px.id,
-          platform: px.platform,
-          pixelId: px.pixelId,
+          platform: px.platform || px.type,
+          pixelId: px.pixelId || px.pixel_id,
           name: px.name,
         });
       }
-    });
-
+    }
     onSave(result);
     onClose();
   };
 
-  // Filtered pixels
   const filteredPixels = useMemo(() => {
     return allPixels.filter((px) => {
-      const platform = normalizePixelPlatform(px.platform || px.id);
+      const platform = normalizePixelPlatform(px);
       if (activePlatformFilter !== "all" && platform !== activePlatformFilter) {
         return false;
       }
@@ -217,26 +225,26 @@ export function PixelSelectorModal({
         const q = searchQuery.toLowerCase().trim();
         const nameMatch = String(px.name || "").toLowerCase().includes(q);
         const idMatch = String(px.pixelId || px.id || "").toLowerCase().includes(q);
-        const platformMatch = String(px.platform || "").toLowerCase().includes(q);
-        return nameMatch || idMatch || platformMatch;
+        const platformMatch = String(px.platform || px.type || "").toLowerCase().includes(q);
+        const labelMatch = getPixelPlatformShortLabel(platform).toLowerCase().includes(q);
+        return nameMatch || idMatch || platformMatch || labelMatch;
       }
       return true;
     });
   }, [allPixels, activePlatformFilter, searchQuery]);
 
-  const selectedCount = useMemo(() => {
-    return allPixels.filter((px) => {
-      const key = px.id || px.pixelId;
-      return Boolean(
-        tempSelected[key] ||
-        (px.id && tempSelected[px.id]) ||
-        (px.pixelId && tempSelected[px.pixelId]) ||
-        (px.platform && tempSelected[px.platform])
-      );
-    }).length;
-  }, [allPixels, tempSelected]);
-
-  if (!isOpen || !mounted) return null;
+  const selectedCount = useMemo(
+    () =>
+      allPixels.filter((px) => {
+        const key = getPixelKey(px);
+        if (!key) return false;
+        if (key in tempSelected) return Boolean(tempSelected[key]);
+        if (px.id && String(px.id) in tempSelected) return Boolean(tempSelected[String(px.id)]);
+        if (px.pixelId && String(px.pixelId) in tempSelected) return Boolean(tempSelected[String(px.pixelId)]);
+        return false;
+      }).length,
+    [allPixels, tempSelected]
+  );
 
   const modalContent = (
     <div
@@ -244,6 +252,9 @@ export function PixelSelectorModal({
       onClick={onClose}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="pixel-selector-modal-title"
         className="w-full max-w-[540px] rounded-[10px] border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#151518] shadow-2xl overflow-hidden flex flex-col max-h-[85vh] transition-all transform scale-100 animate-in zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}
       >
@@ -254,7 +265,10 @@ export function PixelSelectorModal({
               <Target className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-[15px] font-semibold text-zinc-900 dark:text-white leading-tight">
+              <h3
+                id="pixel-selector-modal-title"
+                className="text-[15px] font-semibold text-zinc-900 dark:text-white leading-tight"
+              >
                 Sélectionner des Pixels de Retargeting
               </h3>
               <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
@@ -287,19 +301,26 @@ export function PixelSelectorModal({
 
           {/* Platform Pills */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
-            {[
-              { id: "all", label: "Tous" },
-              { id: "meta", label: "Meta / FB" },
-              { id: "google", label: "Google Analytics (GA4)" },
-              { id: "tiktok", label: "TikTok" },
-              { id: "linkedin", label: "LinkedIn" },
-            ].map((tab) => {
+            {(
+              [
+                { id: "all", label: "Tous" },
+                { id: "meta", label: "Facebook" },
+                { id: "instagram", label: "Instagram" },
+                { id: "google", label: "Google / GA4" },
+                { id: "youtube", label: "YouTube" },
+                { id: "tiktok", label: "TikTok" },
+                { id: "linkedin", label: "LinkedIn" },
+                { id: "pinterest", label: "Pinterest" },
+                { id: "snapchat", label: "Snapchat" },
+                { id: "x", label: "X Ads" },
+              ] as const
+            ).map((tab) => {
               const isActive = activePlatformFilter === tab.id;
               return (
                 <button
                   key={tab.id}
                   type="button"
-                  onClick={() => setActivePlatformFilter(tab.id as any)}
+                  onClick={() => setActivePlatformFilter(tab.id)}
                   className={cn(
                     "px-2.5 py-1 rounded-md text-[11px] font-medium whitespace-nowrap transition-colors cursor-pointer shrink-0",
                     isActive
@@ -322,7 +343,6 @@ export function PixelSelectorModal({
               <span>Chargement des pixels configurés...</span>
             </div>
           ) : allPixels.length === 0 ? (
-            /* Empty State: No Pixels configured on account */
             <div className="py-8 px-4 flex flex-col items-center text-center gap-3">
               <div className="w-12 h-12 rounded-full bg-zinc-100 dark:bg-zinc-800/80 flex items-center justify-center text-zinc-400">
                 <Target className="w-6 h-6" />
@@ -332,7 +352,7 @@ export function PixelSelectorModal({
                   Aucun pixel de retargeting configuré
                 </h4>
                 <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 leading-relaxed">
-                  Vous n'avez pas encore enregistré de pixel sur votre compte. Ajoutez-en un dans vos Paramètres pour commencer à recibler vos visiteurs.
+                  Vous n&apos;avez pas encore enregistré de pixel sur votre compte. Ajoutez-en un dans vos Paramètres pour commencer à recibler vos visiteurs.
                 </p>
               </div>
               <Link
@@ -346,37 +366,25 @@ export function PixelSelectorModal({
               </Link>
             </div>
           ) : filteredPixels.length === 0 ? (
-            /* Search yielded no results */
             <div className="py-10 text-center text-xs text-zinc-500 dark:text-zinc-400">
               Aucun pixel ne correspond à votre filtre de recherche.
             </div>
           ) : (
-            /* List of Pixels */
             <div className="flex flex-col gap-2">
               {filteredPixels.map((px) => {
-                const key = px.id || px.pixelId;
-                const isSelected = Boolean(
-                  tempSelected[key] ||
-                  (px.id && tempSelected[px.id]) ||
-                  (px.pixelId && tempSelected[px.pixelId]) ||
-                  (px.platform && tempSelected[px.platform])
-                );
-
-                const platformTag =
-                  px.platform === "meta"
-                    ? "Meta"
-                    : px.platform === "google"
-                    ? "GA4"
-                    : px.platform === "tiktok"
-                    ? "TikTok"
-                    : "LinkedIn";
+                const isSelected = isPixelSelected(px);
+                const platformTag = getPixelPlatformShortLabel(px);
+                const rowKey = getPixelKey(px) || `${px.platform}-${px.name}`;
 
                 return (
-                  <div
-                    key={px.id || px.pixelId}
+                  <button
+                    key={rowKey}
+                    type="button"
+                    role="checkbox"
+                    aria-checked={isSelected}
                     onClick={() => togglePixel(px)}
                     className={cn(
-                      "flex items-center justify-between p-2.5 rounded-[8px] border text-left transition-all cursor-pointer select-none",
+                      "w-full flex items-center justify-between p-2.5 rounded-[8px] border text-left transition-all cursor-pointer select-none",
                       isSelected
                         ? "bg-[#0066FF]/5 border-[#0066FF] text-zinc-900 dark:text-white ring-1 ring-[#0066FF]/20"
                         : "bg-white dark:bg-[#16181d] border-zinc-200 dark:border-zinc-800/80 text-zinc-700 dark:text-zinc-300 hover:border-zinc-300 dark:hover:border-zinc-700 hover:bg-zinc-50/50 dark:hover:bg-zinc-800/30"
@@ -384,7 +392,7 @@ export function PixelSelectorModal({
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800/90 flex items-center justify-center shrink-0 border border-zinc-200/80 dark:border-zinc-700/60">
-                        <PixelBrandLogo platform={px.platform} className="w-4 h-4" />
+                        <PixelBrandLogo platform={px} className="w-4 h-4" decorative />
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
@@ -402,6 +410,7 @@ export function PixelSelectorModal({
                     </div>
 
                     <div
+                      aria-hidden="true"
                       className={cn(
                         "w-4.5 h-4.5 rounded-md border flex items-center justify-center shrink-0 transition-colors ml-3",
                         isSelected
@@ -411,7 +420,7 @@ export function PixelSelectorModal({
                     >
                       {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
                     </div>
-                  </div>
+                  </button>
                 );
               })}
             </div>
@@ -449,4 +458,27 @@ export function PixelSelectorModal({
   );
 
   return createPortal(modalContent, document.body);
+}
+
+export function PixelSelectorModal({
+  isOpen,
+  onClose,
+  selectedPixelIds = [],
+  onSave,
+  availablePixels,
+}: PixelSelectorModalProps) {
+  const { data: session } = useSession();
+  const userId = session?.user?.id || "";
+
+  if (!isOpen || typeof document === "undefined") return null;
+
+  return (
+    <PixelSelectorModalInner
+      onClose={onClose}
+      selectedPixelIds={selectedPixelIds}
+      onSave={onSave}
+      availablePixels={availablePixels}
+      userId={userId}
+    />
+  );
 }

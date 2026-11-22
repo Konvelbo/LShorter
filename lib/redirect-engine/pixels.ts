@@ -2,7 +2,16 @@ import { LinkMetadata } from "./types";
 import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
 import { isSafeHttpUrl } from "@/lib/security-utils";
 
-export type PixelPlatform = "meta" | "google" | "tiktok" | "linkedin";
+export type PixelPlatform =
+  | "meta"
+  | "instagram"
+  | "google"
+  | "youtube"
+  | "tiktok"
+  | "linkedin"
+  | "pinterest"
+  | "snapchat"
+  | "x";
 
 export interface ActivePixel {
   id?: string;
@@ -18,9 +27,14 @@ const VALID_PIXEL_ID_REGEX = /^[A-Za-z0-9_-]{2,64}$/;
 export function normalizePixelPlatform(raw: unknown): PixelPlatform | null {
   const val = String(raw || "").trim().toLowerCase();
   if (val === "meta" || val === "facebook" || val === "fb") return "meta";
+  if (val === "instagram" || val === "ig") return "instagram";
   if (val === "google" || val === "google_tag" || val === "ga4" || val === "gtag") return "google";
+  if (val === "youtube" || val === "yt") return "youtube";
   if (val === "tiktok" || val === "tt") return "tiktok";
   if (val === "linkedin" || val === "li") return "linkedin";
+  if (val === "pinterest" || val === "pin") return "pinterest";
+  if (val === "snapchat" || val === "snap") return "snapchat";
+  if (val === "x" || val === "twitter" || val === "tw" || val === "x_ads") return "x";
   return null;
 }
 
@@ -158,6 +172,7 @@ function buildPixelTagSnippet(pixel: ActivePixel): { headScript: string; noscrip
 
   switch (pixel.platform) {
     case "meta":
+    case "instagram":
       return {
         headScript: `<script>
 !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
@@ -171,6 +186,7 @@ fbq('track', 'PageView');
         noscript: `<noscript><img height="1" width="1" style="display:none" alt="" src="https://www.facebook.com/tr?id=${safeIdAttr}&ev=PageView&noscript=1" /></noscript>`,
       };
     case "google":
+    case "youtube":
       return {
         headScript: `<script async src="https://www.googletagmanager.com/gtag/js?id=${safeIdAttr}"></script>
 <script>
@@ -206,6 +222,38 @@ b.type='text/javascript';b.async=!0;b.src='https://snap.licdn.com/li.lms-analyti
 s.parentNode.insertBefore(b,s);})(window.lintrk);
 </script>`,
         noscript: `<noscript><img height="1" width="1" style="display:none" alt="" src="https://px.ads.linkedin.com/collect/?pid=${safeIdAttr}&fmt=gif" /></noscript>`,
+      };
+    case "pinterest":
+      return {
+        headScript: `<script>
+!function(e){if(!window.pintrk){window.pintrk=function(){window.pintrk.queue.push(Array.prototype.slice.call(arguments))};
+var n=window.pintrk;n.queue=[],n.version="3.0";var t=document.createElement("script");
+t.async=!0,t.src=e;var r=document.getElementsByTagName("script")[0];r.parentNode.insertBefore(t,r)}}("https://s.pinimg.com/ct/core.js");
+pintrk('load', ${safeIdLiteral});
+pintrk('page');
+</script>`,
+        noscript: `<noscript><img height="1" width="1" style="display:none" alt="" src="https://ct.pinterest.com/v3/?event=init&tid=${safeIdAttr}&noscript=1" /></noscript>`,
+      };
+    case "snapchat":
+      return {
+        headScript: `<script>
+(function(e,t,n){if(e.snaptr)return;var a=e.snaptr=function(){a.handleRequest?a.handleRequest.apply(a,arguments):a.queue.push(arguments)};
+a.queue=[];var s='script';var r=t.createElement(s);r.async=!0;r.src=n;
+var u=t.getElementsByTagName(s)[0];u.parentNode.insertBefore(r,u);})(window,document,'https://sc-static.net/scevent.min.js');
+snaptr('init', ${safeIdLiteral});
+snaptr('track', 'PAGE_VIEW');
+</script>`,
+        noscript: "",
+      };
+    case "x":
+      return {
+        headScript: `<script>
+!function(e,t,n,s,u,a){e.twq||(s=e.twq=function(){s.exe?s.exe.apply(s,arguments):s.queue.push(arguments);},
+s.version='1.1',s.queue=[],u=t.createElement(n),u.async=!0,u.src='https://static.ads-twitter.com/uwt.js',
+a=t.getElementsByTagName(n)[0],a.parentNode.insertBefore(u,a))}(window,document,'script');
+twq('config', ${safeIdLiteral});
+</script>`,
+        noscript: "",
       };
   }
 }

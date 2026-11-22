@@ -85,7 +85,7 @@ import {
   cfDeleteTargetAlert,
   cfInvalidateCache,
 } from "@/lib/cloudflare-api";
-import { PixelBrandLogo } from "@/components/dashboard/pixel-badges";
+import { PixelBrandLogo, getPixelPlatformShortLabel } from "@/components/dashboard/pixel-badges";
 import QRCode from "qrcode";
 import bcrypt from "bcryptjs";
 import {
@@ -3252,8 +3252,8 @@ console.log("Top Countries:", topAudience.topCountries);`,
                     )}
                   </div>
                   <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                    Attach your Meta Facebook, Google Analytics 4, TikTok Ads,
-                    or LinkedIn Insight tags to your short links.
+                    Attach your Facebook, Instagram, Google, YouTube, TikTok,
+                    LinkedIn, Pinterest, Snapchat, or X Ads tags to your short links.
                   </p>
                 </div>
               </div>
@@ -3275,8 +3275,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                         </span>
                       </div>
                       <p className="text-xs text-zinc-500 dark:text-neutral-400 mt-0.5">
-                        Automatic pixel tracking for Meta, Google Tag, TikTok,
-                        and LinkedIn is reserved for Pro and Business plans.
+                        Automatic pixel tracking for Facebook, Instagram, Google, YouTube, TikTok, LinkedIn, Pinterest, Snapchat, and X Ads is reserved for Pro and Business plans.
                       </p>
                     </div>
                   </div>
@@ -3286,7 +3285,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                       triggerPlanUpgrade({
                         featureName: "Retargeting Pixels",
                         reason:
-                          "Upgrade to PRO to unlock Meta, Google, TikTok, and LinkedIn pixel retargeting.",
+                          "Upgrade to PRO to unlock Facebook, Instagram, Google, YouTube, TikTok, LinkedIn, Pinterest, Snapchat & X Ads pixel retargeting.",
                         targetPlan: "PRO",
                       })
                     }
@@ -3303,7 +3302,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                     Pixels de reciblage ({pixels.length})
                   </span>
                   <span className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate">
-                    Associez vos audiences publicitaires Meta, Google, TikTok et LinkedIn à vos redirections
+                    Associez vos audiences Facebook, Instagram, Google, YouTube, TikTok, LinkedIn, Pinterest, Snapchat &amp; X Ads
                   </span>
                 </div>
                 <Button
@@ -3315,7 +3314,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                       triggerPlanUpgrade({
                         featureName: "Retargeting Pixels",
                         reason:
-                          "Upgrade to PRO to unlock Meta, Google, TikTok, and LinkedIn pixel retargeting.",
+                          "Upgrade to PRO to unlock Facebook, Instagram, Google, YouTube, TikTok, LinkedIn, Pinterest, Snapchat & X Ads pixel retargeting.",
                         targetPlan: "PRO",
                       });
                       return;
@@ -3344,7 +3343,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                         Aucun pixel configuré
                       </p>
                       <p className="text-[11px] text-zinc-500 dark:text-neutral-400 max-w-sm mt-0.5">
-                        Connectez vos tags publicitaires Meta, Google, TikTok ou LinkedIn pour recibler vos visiteurs.
+                        Connectez vos tags publicitaires Facebook, Instagram, Google, YouTube, TikTok, LinkedIn, Pinterest, Snapchat ou X Ads pour recibler vos visiteurs.
                       </p>
                     </div>
                     <Button
@@ -3355,7 +3354,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                           triggerPlanUpgrade({
                             featureName: "Retargeting Pixels",
                             reason:
-                              "Upgrade to PRO to unlock Meta, Google, TikTok, and LinkedIn pixel retargeting.",
+                              "Upgrade to PRO to unlock Facebook, Instagram, Google, YouTube, TikTok, LinkedIn, Pinterest, Snapchat & X Ads pixel retargeting.",
                             targetPlan: "PRO",
                           });
                           return;
@@ -3376,7 +3375,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                     >
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-lg bg-white dark:bg-[#18181b] border border-neutral-200 dark:border-[#27272a] flex items-center justify-center shrink-0">
-                          <PixelBrandLogo platform={px.platform || px.name} className="w-4 h-4" />
+                          <PixelBrandLogo platform={px} className="w-4 h-4" />
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
@@ -3384,7 +3383,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                               {px.name}
                             </p>
                             <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-neutral-200/60 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 uppercase">
-                              {px.platform}
+                              {getPixelPlatformShortLabel(px.platform || px.type || px.name)}
                             </span>
                           </div>
                           <div className="flex items-center gap-2 text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5">
@@ -3431,7 +3430,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                   triggerPlanUpgrade({
                     featureName: "Retargeting Pixels",
                     reason:
-                      "Upgrade to PRO to unlock Meta, Google, TikTok, and LinkedIn pixel retargeting.",
+                      "Upgrade to PRO to unlock Facebook, Instagram, Google, YouTube, TikTok, LinkedIn, Pinterest, Snapchat & X Ads pixel retargeting.",
                     targetPlan: "PRO",
                   })
                 }

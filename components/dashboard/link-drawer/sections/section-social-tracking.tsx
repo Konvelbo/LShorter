@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { cfNormalizeImageUrl } from "@/lib/cloudflare-api";
-import { PixelBrandLogo, normalizePixelPlatform } from "@/components/dashboard/pixel-badges";
+import { PixelBrandLogo, getPixelPlatformLabel, normalizePixelPlatform } from "@/components/dashboard/pixel-badges";
 import { PixelSelectorModal } from "@/components/dashboard/pixel-selector-modal";
 import { Input } from "@/components/ui/input";
 import { showToast } from "@/components/ui/toast-provider";
@@ -337,14 +337,7 @@ export function SectionSocialTracking({
       };
     }
     const normPlatform = normalizePixelPlatform(p);
-    const platformName =
-      normPlatform === "meta"
-        ? "Meta Pixel"
-        : normPlatform === "google"
-        ? "Google Analytics (GA4)"
-        : normPlatform === "tiktok"
-        ? "TikTok Ads"
-        : "LinkedIn Tag";
+    const platformName = getPixelPlatformLabel(normPlatform);
     return {
       id: p,
       name: platformName,
@@ -534,7 +527,7 @@ export function SectionSocialTracking({
               if (!isProPlan) {
                 triggerPlanUpgrade({
                   featureName: "Retargeting Pixels",
-                  reason: "Retargeting Pixels (Meta, Google, TikTok, LinkedIn) are reserved for paid plans (Pro, Business, Enterprise).",
+                  reason: "Retargeting Pixels (Facebook, Instagram, Google, YouTube, TikTok, LinkedIn, Pinterest, Snapchat & X Ads) are reserved for paid plans (Pro, Business, Enterprise).",
                   targetPlan: "PRO",
                 });
                 return;
@@ -579,7 +572,7 @@ export function SectionSocialTracking({
                 if (!isProPlan) {
                   triggerPlanUpgrade({
                     featureName: "Retargeting Pixels",
-                    reason: "Retargeting Pixels (Meta, Google, TikTok, LinkedIn) are reserved for paid plans (Pro, Business, Enterprise).",
+                    reason: "Retargeting Pixels (Facebook, Instagram, Google, YouTube, TikTok, LinkedIn, Pinterest, Snapchat & X Ads) are reserved for paid plans (Pro, Business, Enterprise).",
                     targetPlan: "PRO",
                   });
                   return;

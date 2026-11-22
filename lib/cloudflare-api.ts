@@ -962,7 +962,20 @@ export const EMPTY_ANALYTICS = {
 export interface RetargetingPixel {
   id: string;
   userId: string;
-  platform: "meta" | "google" | "tiktok" | "linkedin";
+  platform:
+    | "meta"
+    | "facebook"
+    | "instagram"
+    | "google"
+    | "google_tag"
+    | "youtube"
+    | "tiktok"
+    | "linkedin"
+    | "pinterest"
+    | "snapchat"
+    | "x"
+    | "twitter"
+    | string;
   pixelId: string;
   name: string;
   isActive: boolean;
@@ -980,7 +993,7 @@ export async function cfGetPixels(userId: string) {
 
 export async function cfCreatePixel(data: {
   userId: string;
-  platform: "meta" | "google" | "tiktok" | "linkedin" | string;
+  platform: RetargetingPixel["platform"];
   pixelId: string;
   name: string;
   isActive?: boolean;
