@@ -70,8 +70,23 @@ function parsePixelArray(raw: unknown): RawPixelEntry[] {
   return [];
 }
 
-async function fetchUserConfiguredPixels(userId: string): Promise<Record<string, unknown>[]> {
-  if (!userId) return [];
+/**
+ * Strict Content-Security-Policy for the retargeting pixel interstitial page:
+ * permits ONLY the 9 supported official ad-network SDK & tracking beacon origins.
+ */
+export const PIXEL_INTERSTITIAL_CSP = [
+  "default-src 'none'",
+  "script-src 'unsafe-inline' https://connect.facebook.net https://www.googletagmanager.com https://analytics.tiktok.com https://snap.licdn.com https://s.pinimg.com https://sc-static.net https://static.ads-twitter.com",
+  "style-src 'unsafe-inline'",
+  "img-src 'self' data: https://www.facebook.com https://www.google.com https://www.google-analytics.com https://*.google-analytics.com https://googleads.g.doubleclick.net https://analytics.tiktok.com https://px.ads.linkedin.com https://ct.pinterest.com https://analytics.pinterest.com https://tr.snapchat.com https://analytics.twitter.com https://t.co",
+  "connect-src https://www.facebook.com https://connect.facebook.net https://www.google.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://googleads.g.doubleclick.net https://analytics.tiktok.com https://px.ads.linkedin.com https://ct.pinterest.com https://analytics.pinterest.com https://tr.snapchat.com https://analytics.twitter.com https://t.co",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "frame-ancestors 'none'",
+].join("; ");
+
+async function fetchUserConfiguredPixels(userId: string): Promise<Record<string, unknown>[] | null> {
+  if (!userId) return null;
   try {
     const url = new URL(`${WORKER_URL}/api/v1/pixels`);
     url.searchParams.set("userId", userId);
@@ -84,7 +99,7 @@ async function fetchUserConfiguredPixels(userId: string): Promise<Record<string,
       cache: "no-store",
       signal: AbortSignal.timeout(2000),
     });
-    if (!res.ok) return [];
+    if (!res.ok) return null;
     const json = (await res.json().catch(() => null)) as Record<string, unknown> | null;
     const data = json?.data as Record<string, unknown> | unknown[] | undefined;
     if (Array.isArray(data)) {
@@ -95,35 +110,31 @@ async function fetchUserConfiguredPixels(userId: string): Promise<Record<string,
     }
     return [];
   } catch {
-    return [];
+    return null;
   }
 }
 
 /**
  * Resolves all active retargeting pixels attached to a link, supporting both
  * embedded pixel objects and pixel record IDs stored on the link owner account.
+ * Respects live pause/delete state from the owner's configured pixel store when reachable.
  */
 export async function resolveLinkActivePixels(link: LinkMetadata): Promise<ActivePixel[]> {
   const rawEntries = parsePixelArray(link.pixels || link.pixel_ids || link.pixelIds);
   if (rawEntries.length === 0) return [];
 
-  const needsOwnerLookup = rawEntries.some(
-    (entry) =>
-      typeof entry === "string" ||
-      (!entry?.pixelId && !entry?.pixel_id)
-  );
-
   const userId = String(link.userId || link.user_id || "");
-  const ownerPixels = needsOwnerLookup && userId
-    ? await fetchUserConfiguredPixels(userId)
-    : [];
+  const ownerPixels = userId ? await fetchUserConfiguredPixels(userId) : null;
+  const hasAuthoritativeOwnerStore = Array.isArray(ownerPixels);
 
   const ownerById = new Map<string, Record<string, unknown>>();
-  for (const px of ownerPixels) {
-    if (!px || typeof px !== "object") continue;
-    if (px.id) ownerById.set(String(px.id), px);
-    if (px.pixelId || px.pixel_id) {
-      ownerById.set(String(px.pixelId || px.pixel_id), px);
+  if (ownerPixels) {
+    for (const px of ownerPixels) {
+      if (!px || typeof px !== "object") continue;
+      if (px.id) ownerById.set(String(px.id), px);
+      if (px.pixelId || px.pixel_id) {
+        ownerById.set(String(px.pixelId || px.pixel_id), px);
+      }
     }
   }
 
@@ -137,9 +148,16 @@ export async function resolveLinkActivePixels(link: LinkMetadata): Promise<Activ
     if (typeof entry === "string") {
       candidate = ownerById.get(entry.trim()) || null;
     } else if (typeof entry === "object") {
-      const lookupKey = String(entry.id || entry.pixelId || entry.pixel_id || "").trim();
-      const matched = lookupKey ? ownerById.get(lookupKey) : null;
-      candidate = matched ? { ...matched, ...entry } : entry;
+      const idKey = entry.id ? String(entry.id).trim() : "";
+      const pidKey = String(entry.pixelId || entry.pixel_id || "").trim();
+      const matched = (idKey && ownerById.get(idKey)) || (pidKey && ownerById.get(pidKey)) || null;
+
+      // If the owner's store loaded authoritatively and a managed pixel record ID was deleted, skip it
+      if (hasAuthoritativeOwnerStore && idKey && !matched) {
+        continue;
+      }
+      // Owner store is authoritative for live isActive toggle state
+      candidate = matched ? { ...entry, ...matched } : entry;
     }
 
     if (!candidate) continue;

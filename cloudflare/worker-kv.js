@@ -101,6 +101,17 @@ function normalizeWorkerPixelPlatform(raw) {
   return null;
 }
 
+const WORKER_PIXEL_INTERSTITIAL_CSP = [
+  "default-src 'none'",
+  "script-src 'unsafe-inline' https://connect.facebook.net https://www.googletagmanager.com https://analytics.tiktok.com https://snap.licdn.com https://s.pinimg.com https://sc-static.net https://static.ads-twitter.com",
+  "style-src 'unsafe-inline'",
+  "img-src 'self' data: https://www.facebook.com https://www.google.com https://www.google-analytics.com https://*.google-analytics.com https://googleads.g.doubleclick.net https://analytics.tiktok.com https://px.ads.linkedin.com https://ct.pinterest.com https://analytics.pinterest.com https://tr.snapchat.com https://analytics.twitter.com https://t.co",
+  "connect-src https://www.facebook.com https://connect.facebook.net https://www.google.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://googleads.g.doubleclick.net https://analytics.tiktok.com https://px.ads.linkedin.com https://ct.pinterest.com https://analytics.pinterest.com https://tr.snapchat.com https://analytics.twitter.com https://t.co",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "frame-ancestors 'none'",
+].join('; ');
+
 async function resolveWorkerActivePixels(env, link) {
   let rawEntries = link.pixels || link.pixel_ids || link.pixelIds || [];
   if (typeof rawEntries === 'string') {
@@ -109,14 +120,15 @@ async function resolveWorkerActivePixels(env, link) {
   if (!Array.isArray(rawEntries) || rawEntries.length === 0) return [];
 
   const ownerId = String(link.user_id || link.userId || '');
-  const needsLookup = rawEntries.some((e) => typeof e === 'string' || (!e?.pixelId && !e?.pixel_id));
   const ownerMap = new Map();
-  if (needsLookup && ownerId && env?.LINKS_KV) {
+  let hasAuthoritativeStore = false;
+  if (ownerId && env?.LINKS_KV) {
     try {
       const cached = await env.LINKS_KV.get(`pixels:${ownerId}`);
-      if (cached) {
+      if (cached !== null) {
         const list = JSON.parse(cached);
         if (Array.isArray(list)) {
+          hasAuthoritativeStore = true;
           for (const px of list) {
             if (!px || typeof px !== 'object') continue;
             if (px.id) ownerMap.set(String(px.id), px);
@@ -134,9 +146,11 @@ async function resolveWorkerActivePixels(env, link) {
     let cand = null;
     if (typeof entry === 'string') cand = ownerMap.get(entry.trim()) || null;
     else if (typeof entry === 'object') {
-      const key = String(entry.id || entry.pixelId || entry.pixel_id || '').trim();
-      const matched = key ? ownerMap.get(key) : null;
-      cand = matched ? { ...matched, ...entry } : entry;
+      const idKey = entry.id ? String(entry.id).trim() : '';
+      const pidKey = String(entry.pixelId || entry.pixel_id || '').trim();
+      const matched = (idKey && ownerMap.get(idKey)) || (pidKey && ownerMap.get(pidKey)) || null;
+      if (hasAuthoritativeStore && idKey && !matched) continue;
+      cand = matched ? { ...entry, ...matched } : entry;
     }
     if (!cand || cand.isActive === false || cand.is_active === false || cand.is_active === 0) continue;
     const platform = normalizeWorkerPixelPlatform(cand.platform || cand.type);
@@ -145,9 +159,36 @@ async function resolveWorkerActivePixels(env, link) {
     const k = `${platform}:${pixelId}`;
     if (seen.has(k)) continue;
     seen.add(k);
-    out.push({ platform, pixelId });
+    out.push({ id: cand.id ? String(cand.id) : undefined, platform, pixelId });
   }
   return out;
+}
+
+async function incrementWorkerPixelEventCounts(env, ownerId, firedPixels) {
+  if (!env?.LINKS_KV || !ownerId || !Array.isArray(firedPixels) || firedPixels.length === 0) return;
+  try {
+    const kvKey = `pixels:${ownerId}`;
+    const cached = await env.LINKS_KV.get(kvKey);
+    if (!cached) return;
+    const list = JSON.parse(cached);
+    if (!Array.isArray(list) || list.length === 0) return;
+    const firedIds = new Set(firedPixels.map((p) => p.id).filter(Boolean));
+    const firedKeys = new Set(firedPixels.map((p) => `${p.platform}:${p.pixelId}`));
+    let changed = false;
+    const updated = list.map((px) => {
+      if (!px || typeof px !== 'object') return px;
+      const normPlat = normalizeWorkerPixelPlatform(px.platform || px.type);
+      const pid = String(px.pixelId || px.pixel_id || '').trim();
+      if ((px.id && firedIds.has(String(px.id))) || (normPlat && firedKeys.has(`${normPlat}:${pid}`))) {
+        changed = true;
+        return { ...px, eventsTrackedCount: Number(px.eventsTrackedCount ?? px.events_tracked_count ?? 0) + 1 };
+      }
+      return px;
+    });
+    if (changed) {
+      await env.LINKS_KV.put(kvKey, JSON.stringify(updated));
+    }
+  } catch {}
 }
 
 function safeWorkerInlineJson(value) {
@@ -977,6 +1018,10 @@ export default {
       if (!isBot && !isPrefetch && !isInternalProbe) {
         const activePixels = await resolveWorkerActivePixels(env, link);
         if (activePixels.length > 0) {
+          const ownerIdForPx = String(link.user_id || link.userId || '');
+          if (ownerIdForPx) {
+            ctx.waitUntil(incrementWorkerPixelEventCounts(env, ownerIdForPx, activePixels));
+          }
           const pxHtml = buildWorkerPixelInterstitialHtml(
             targetUrl,
             activePixels,
@@ -989,6 +1034,7 @@ export default {
               'Content-Type': 'text/html; charset=utf-8',
               'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
               'X-Robots-Tag': 'noindex, nofollow',
+              'Content-Security-Policy': WORKER_PIXEL_INTERSTITIAL_CSP,
             },
           });
         }

@@ -13,6 +13,7 @@ import {
   resolveAbTargetUrl,
   preserveUtmParams,
   appendForwardedParams,
+  PIXEL_INTERSTITIAL_CSP,
   resolveLinkActivePixels,
   renderPixelInterstitialHtml,
   shouldTrackClick,
@@ -309,6 +310,7 @@ export async function GET(
             "Content-Type": "text/html; charset=utf-8",
             "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
             "X-Robots-Tag": "noindex, nofollow",
+            "Content-Security-Policy": PIXEL_INTERSTITIAL_CSP,
           },
         });
       }
