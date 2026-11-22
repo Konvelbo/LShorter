@@ -117,41 +117,81 @@ export function DifferenceSection() {
           </div>
         </div>
 
-        {/* Full-Width Horizontal-Rule Table (zero outer card border) */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[700px]">
+        {/* Full-Width Horizontal-Rule Comparison — Zero Horizontal Scroll on Any Viewport */}
+        {/* Mobile (< 640px): Identical borderless editorial rows with full-width capability + 2-column side-by-side comparison */}
+        <div className="sm:hidden w-full">
+          <div className="grid grid-cols-2 gap-4 pb-3 border-b border-[#D4D4D8] dark:border-white/15 text-[12px] font-medium">
+            <span className="text-[#71717A] dark:text-zinc-400 leading-snug">
+              Traditional shorteners (Bitly, TinyURL)
+            </span>
+            <span className="text-[#0066FF] dark:text-[#6CA8FF] leading-snug">
+              LShorter
+            </span>
+          </div>
+          <div className="divide-y divide-[#E4E7EC] dark:divide-white/[0.08]">
+            {COMPARISON_ROWS.map((row) => (
+              <div key={row.feature} className="py-4">
+                <div className="text-[13.5px] font-medium text-[#09090B] dark:text-white leading-snug mb-2.5">
+                  {row.feature}
+                </div>
+                <div className="grid grid-cols-2 gap-4 text-[12.5px] leading-[1.48]">
+                  <div className="min-w-0 flex items-start gap-1.5 text-[#71717A] dark:text-zinc-400">
+                    <XIcon className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-600 shrink-0 mt-0.5" />
+                    <span className="min-w-0 [overflow-wrap:anywhere]">
+                      {row.others}
+                    </span>
+                  </div>
+                  <div className="min-w-0 flex items-start gap-1.5 text-[#09090B] dark:text-zinc-100 font-medium">
+                    <Check className="w-3.5 h-3.5 text-[#0066FF] dark:text-[#6CA8FF] shrink-0 mt-0.5 stroke-[2.25]" />
+                    <span className="min-w-0 [overflow-wrap:anywhere]">
+                      {row.lshorter}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Tablet & Desktop (>= 640px): Exact 3-column horizontal-rule table occupying 100% width with zero scrollbar */}
+        <div className="hidden sm:block w-full">
+          <table className="w-full table-fixed text-left border-collapse">
             <thead>
-              <tr className="border-b border-[#D4D4D8] dark:border-white/15 text-[13px] font-medium">
-                <th className="py-3.5 pr-6 text-[#71717A] dark:text-zinc-400 w-[28%]">
+              <tr className="border-b border-[#D4D4D8] dark:border-white/15 text-[12.5px] md:text-[13px] font-medium">
+                <th className="py-3.5 pr-3 md:pr-6 text-[#71717A] dark:text-zinc-400 w-[28%]">
                   Capability
                 </th>
-                <th className="py-3.5 px-6 text-[#71717A] dark:text-zinc-400 w-[34%]">
+                <th className="py-3.5 px-3 md:px-6 text-[#71717A] dark:text-zinc-400 w-[34%]">
                   Traditional shorteners (Bitly, TinyURL)
                 </th>
-                <th className="py-3.5 pl-6 text-[#0066FF] dark:text-[#6CA8FF] w-[38%]">
+                <th className="py-3.5 pl-3 md:pl-6 text-[#0066FF] dark:text-[#6CA8FF] w-[38%]">
                   LShorter
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#E4E7EC] dark:divide-white/[0.08] text-[14px]">
+            <tbody className="divide-y divide-[#E4E7EC] dark:divide-white/[0.08] text-[13px] md:text-[14px]">
               {COMPARISON_ROWS.map((row) => (
                 <tr
                   key={row.feature}
                   className="hover:bg-[#F8F9FB] dark:hover:bg-white/[0.02] transition-colors"
                 >
-                  <td className="py-4 pr-6 font-medium text-[#09090B] dark:text-white align-top">
+                  <td className="py-4 pr-3 md:pr-6 font-medium text-[#09090B] dark:text-white align-top break-words">
                     {row.feature}
                   </td>
-                  <td className="py-4 px-6 text-[#71717A] dark:text-zinc-400 align-top">
-                    <div className="flex items-start gap-2.5">
+                  <td className="py-4 px-3 md:px-6 text-[#71717A] dark:text-zinc-400 align-top">
+                    <div className="flex items-start gap-2 md:gap-2.5">
                       <XIcon className="w-4 h-4 text-zinc-400 dark:text-zinc-600 shrink-0 mt-0.5" />
-                      <span>{row.others}</span>
+                      <span className="min-w-0 [overflow-wrap:anywhere]">
+                        {row.others}
+                      </span>
                     </div>
                   </td>
-                  <td className="py-4 pl-6 text-[#09090B] dark:text-zinc-100 font-medium align-top">
-                    <div className="flex items-start gap-2.5">
+                  <td className="py-4 pl-3 md:pl-6 text-[#09090B] dark:text-zinc-100 font-medium align-top">
+                    <div className="flex items-start gap-2 md:gap-2.5">
                       <Check className="w-4 h-4 text-[#0066FF] dark:text-[#6CA8FF] shrink-0 mt-0.5 stroke-[2.25]" />
-                      <span>{row.lshorter}</span>
+                      <span className="min-w-0 [overflow-wrap:anywhere]">
+                        {row.lshorter}
+                      </span>
                     </div>
                   </td>
                 </tr>
