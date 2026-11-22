@@ -95,7 +95,7 @@ export interface ChecklistVisualProps {
 
 export function ChecklistVisual({ title, rows, stat }: ChecklistVisualProps) {
   const ref = React.useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once: true, amount: 0.16 });
+  const inView = useInView(ref, { once: false, amount: 0.22 });
 
   return (
     <div ref={ref} className="relative mt-12 w-[min(410px,82vw)]">
@@ -191,20 +191,20 @@ export function TimelineVisual({
   note,
 }: TimelineVisualProps) {
   const ref = React.useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once: true, amount: 0.16 });
+  const inView = useInView(ref, { once: false, amount: 0.22 });
   let acc = 0;
 
   const axisTicks =
     ticks ?? Array.from({ length: total + 1 }, (_, i) => String(i));
 
   return (
-    <motion.div
-      ref={ref}
-      className="w-[min(450px,80vw)] rounded-[10px] border border-white/15 bg-[#0b1424]/90 p-5 text-white shadow-[0_14px_32px_-12px_rgba(0,0,0,0.45)]"
-      initial={{ opacity: 0, y: 24 }}
-      animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 24 }}
-      transition={{ duration: 0.65, ease: EASE_SMOOTH }}
-    >
+    <div ref={ref} className="w-[min(450px,80vw)]">
+      <motion.div
+        className="w-full rounded-[10px] border border-white/15 bg-[#0b1424]/90 p-5 text-white shadow-[0_14px_32px_-12px_rgba(0,0,0,0.45)] will-change-[transform,opacity]"
+        initial={{ opacity: 0, y: 44 }}
+        animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 44 }}
+        transition={{ duration: 0.8, ease: EASE_SMOOTH }}
+      >
       <div className="flex items-baseline justify-between gap-3 text-[13.5px]">
         <span className="font-medium text-white">{title}</span>
         <span className="font-mono text-[12px] text-white/55 tabular-nums">
@@ -258,7 +258,8 @@ export function TimelineVisual({
         </span>
         <span>{note}</span>
       </motion.p>
-    </motion.div>
+      </motion.div>
+    </div>
   );
 }
 
@@ -410,7 +411,10 @@ export function FeatureUIRow({
   className,
 }: FeatureUIRowProps) {
   const rowRef = React.useRef<HTMLDivElement>(null);
-  const inView = useInView(rowRef, { once: true, amount: 0.12 });
+  const inView = useInView(rowRef, { once: false, amount: 0.16 });
+
+  const textHiddenX = reverse ? 36 : -36;
+  const visualHiddenX = reverse ? -36 : 36;
 
   return (
     <div
@@ -425,9 +429,13 @@ export function FeatureUIRow({
     >
       <motion.div
         className={cn("max-w-[460px] will-change-[transform,opacity]", reverse && "md:order-2")}
-        initial={{ opacity: 0, y: 18 }}
-        animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 18 }}
-        transition={{ duration: 0.55, ease: EASE_OUT_EXPO }}
+        initial={{ opacity: 0, x: textHiddenX, y: 20 }}
+        animate={
+          inView
+            ? { opacity: 1, x: 0, y: 0 }
+            : { opacity: 0, x: textHiddenX, y: 20 }
+        }
+        transition={{ duration: 0.65, ease: EASE_OUT_EXPO }}
       >
         <p className="flex items-center gap-2.5 text-[13px] font-medium tracking-[0.01em] text-[#52525B] dark:text-zinc-400">
           <span className="h-px w-5 bg-[#09090B]/35 dark:bg-white/35" />
@@ -462,12 +470,16 @@ export function FeatureUIRow({
             : "bg-[#0b1424] border-[#0b1424]/20 dark:border-white/10",
           reverse && "md:order-1",
         )}
-        initial={{ opacity: 0, y: 20 }}
-        animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+        initial={{ opacity: 0, x: visualHiddenX, y: 26, scale: 0.97 }}
+        animate={
+          inView
+            ? { opacity: 1, x: 0, y: 0, scale: 1 }
+            : { opacity: 0, x: visualHiddenX, y: 26, scale: 0.97 }
+        }
         transition={{
-          duration: 0.6,
+          duration: 0.72,
           ease: EASE_OUT_EXPO,
-          delay: inView ? 0.06 : 0,
+          delay: inView ? 0.08 : 0,
         }}
       >
         {/* Hairline texture on both edges */}
