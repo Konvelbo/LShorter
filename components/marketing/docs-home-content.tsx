@@ -8,6 +8,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { getAllDocFeatures } from "@/lib/docs-data";
 import { CofounderResourceCard } from "@/components/marketing/cofounder-resource-card";
 import { ApiCartoonPanel } from "@/components/marketing/api-cartoon-panel";
+import { SdkInstallBar } from "@/components/marketing/sdk-install-bar";
 import { ReuiCommandModal } from "@/components/search/reui-command-modal";
 
 const CARD_META: Record<string, { tag: string; color: string; date: string }> = {
@@ -35,6 +36,7 @@ const ECOSYSTEM_STACK = [
   { name: "Docker", icon: "🐳" },
   { name: "Python", icon: "🐍" },
   { name: "Go", icon: "🔷" },
+  { name: "PHP", icon: "🐘" },
 ];
 
 export function DocsHomeContent() {
@@ -142,22 +144,9 @@ export function DocsHomeContent() {
               Deploy contextual routing rules, protect links with PIN codes, and measure every click with millisecond precision across a global distributed edge network.
             </p>
 
-            {/* Documentation Search Input Trigger */}
+            {/* Official Multi-Language SDK Install Commands */}
             <div className="pt-1">
-              <button
-                type="button"
-                onClick={() => setIsSearchOpen(true)}
-                className="w-full flex items-center justify-between gap-3 h-11 px-3.5 rounded-[10px] bg-white dark:bg-[#141416] text-[#09090B] dark:text-[#FAFAFA] border border-black/[0.08] dark:border-white/[0.1] hover:border-black/[0.18] dark:hover:border-white/[0.2] shadow-xs transition-all cursor-pointer group/search"
-                aria-label="Search documentation, endpoints, and pages"
-              >
-                <span className="flex items-center gap-2.5 text-xs sm:text-sm text-[#71717A] dark:text-[#A1A1AA] group-hover/search:text-[#09090B] dark:group-hover/search:text-[#FAFAFA] transition-colors">
-                  <Search className="w-4 h-4 shrink-0" />
-                  <span>Search docs, API endpoints, guides...</span>
-                </span>
-                <kbd className="inline-flex items-center gap-0.5 rounded-[5px] bg-black/[0.04] dark:bg-white/[0.06] border border-black/[0.08] dark:border-white/[0.1] px-2 py-0.5 text-[11px] font-mono text-[#71717A] dark:text-[#A1A1AA]">
-                  ⌘K
-                </kbd>
-              </button>
+              <SdkInstallBar />
             </div>
 
             <div className="pt-1">

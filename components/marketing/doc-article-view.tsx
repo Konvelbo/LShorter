@@ -499,7 +499,7 @@ export function DocArticleView({
                 Implementation &amp; SDK Examples
               </h2>
               <p className="text-xs sm:text-sm text-neutral-500 dark:text-neutral-400 mt-1">
-                Ready-to-use TypeScript code snippets and configuration examples for your integrations.
+                Ready-to-use TypeScript, Python, Rust, Go, and PHP SDK snippets and configuration examples for your integrations.
               </p>
             </div>
 

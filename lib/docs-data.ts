@@ -70,14 +70,14 @@ export const DOC_FEATURES: DocFeature[] = [
   {
     slug: "sdk-quickstart",
     title: "Quickstart & REST API Reference",
-    subtitle: "Integrate intelligent edge link shortening, real-time analytics, and conversion tracking with our high-performance REST API and TypeScript SDK.",
-    description: "Complete REST API reference, base URLs, authentication headers, rate limits, SDK quickstart, and endpoint catalog for developers.",
+    subtitle: "Integrate intelligent edge link shortening, real-time analytics, and conversion tracking with our REST API and official TypeScript, Python, Rust, Go, and PHP SDKs.",
+    description: "Complete REST API reference, base URLs, authentication headers, rate limits, multi-language SDK quickstart (JS/TS, Python, Rust, Go, PHP), and endpoint catalog for developers.",
     image: "/screenshots/dashboard/dashboardwithsidbare_dark1.webp",
     readTime: "5 min read",
     overview: [
       "The LShorter REST API provides programmatic access to all link management, edge routing, privacy masking, conversion attribution, and telemetry features of the LShorter platform.",
       "All requests are routed to Cloudflare's global edge network (over 300+ data centers worldwide) to guarantee sub-15ms response times, 99.99% availability, and automatic TLS 1.3 encryption.",
-      "Developers can interact directly via standard HTTP requests or use the official typed Node.js / TypeScript SDK (lshorter-api)."
+      "Developers can interact directly via standard HTTP requests or use our official typed SDKs for TypeScript/JavaScript (lshorter-api), Python (lshorter), Rust (lshorter), Go (github.com/Konvelbo/LShorter-api/sdks/go), and PHP (lshorter/lshorter-php)."
     ],
     keyPoints: [
       {
@@ -130,7 +130,7 @@ export const DOC_FEATURES: DocFeature[] = [
   -H "Authorization: Bearer $LSHORTER_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{
-    "url": "https://my-store.com/summer-sale",
+    "targetUrl": "https://my-store.com/summer-sale",
     "slug": "summer-2026",
     "tags": ["marketing", "summer-promo"],
     "maxClicks": 500,
@@ -145,105 +145,105 @@ export const DOC_FEATURES: DocFeature[] = [
 const lshorter = new LShorter({ apiKey: process.env.LSHORTER_API_KEY! });
 
 const link = await lshorter.links.create({
-  url: "https://my-store.com/summer-sale",
+  targetUrl: "https://my-store.com/summer-sale",
   slug: "summer-2026",
   tags: ["marketing", "summer-promo"],
   maxClicks: 500,
-  expiresAt: new Date("2026-10-31T23:59:59Z"),
+  expiresAt: "2026-10-31T23:59:59Z",
 });
 
 console.log("Short link:", link.shortUrl);`
           },
           {
-            name: "Node.js (Fetch)",
-            language: "javascript",
-            code: `const response = await fetch("https://lsho.cc/api/v1/links", {
-  method: "POST",
-  headers: {
-    "Authorization": \`Bearer \${process.env.LSHORTER_API_KEY}\`,
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify({
-    url: "https://my-store.com/summer-sale",
-    slug: "summer-2026",
-    tags: ["marketing", "summer-promo"],
-  }),
-});
-
-const data = await response.json();
-console.log(data);`
-          },
-          {
-            name: "Python (Requests)",
+            name: "Python SDK",
             language: "python",
             code: `import os
-import requests
+from lshorter import LShorter
 
-url = "https://lsho.cc/api/v1/links"
-headers = {
-    "Authorization": f"Bearer {os.environ.get('LSHORTER_API_KEY')}",
-    "Content-Type": "application/json"
-}
-payload = {
-    "url": "https://my-store.com/summer-sale",
+lsh = LShorter(api_key=os.environ["LSHORTER_API_KEY"])
+
+link = lsh.links.create({
+    "targetUrl": "https://my-store.com/summer-sale",
     "slug": "summer-2026",
-    "tags": ["marketing", "summer-promo"]
-}
+    "tags": ["marketing", "summer-promo"],
+    "maxClicks": 500,
+    "expiresAt": "2026-10-31T23:59:59Z",
+})
 
-response = requests.post(url, json=payload, headers=headers)
-print(response.json())`
+print("Short link:", link["shortUrl"])`
           },
           {
-            name: "Go",
+            name: "Rust SDK",
+            language: "rust",
+            code: `use lshorter::{CreateLinkOptions, LShorter};
+
+#[tokio::main]
+async fn main() -> lshorter::Result<()> {
+    let client = LShorter::new(std::env::var("LSHORTER_API_KEY").unwrap());
+
+    let link = client.links().create(&CreateLinkOptions {
+        target_url: "https://my-store.com/summer-sale".into(),
+        slug: Some("summer-2026".into()),
+        tags: Some(vec!["marketing".into(), "summer-promo".into()]),
+        max_clicks: Some(500),
+        expires_at: Some("2026-10-31T23:59:59Z".into()),
+        ..Default::default()
+    }).await?;
+
+    println!("Short link: {}", link.short_url);
+    Ok(())
+}`
+          },
+          {
+            name: "Go SDK",
             language: "go",
             code: `package main
 
 import (
-	"bytes"
-	"encoding/json"
+	"context"
 	"fmt"
-	"net/http"
+	"log"
 	"os"
+
+	lshorter "github.com/Konvelbo/LShorter-api/sdks/go"
 )
 
 func main() {
-	payload := map[string]interface{}{
-		"url":  "https://my-store.com/summer-sale",
-		"slug": "summer-2026",
-		"tags": []string{"marketing", "summer-promo"},
+	client := lshorter.New(os.Getenv("LSHORTER_API_KEY"))
+	maxClicks := 500
+
+	link, err := client.Links.Create(context.Background(), lshorter.CreateLinkOptions{
+		TargetURL: "https://my-store.com/summer-sale",
+		Slug:      "summer-2026",
+		Tags:      []string{"marketing", "summer-promo"},
+		MaxClicks: &maxClicks,
+		ExpiresAt: "2026-10-31T23:59:59Z",
+	})
+	if err != nil {
+		log.Fatal(err)
 	}
-	body, _ := json.Marshal(payload)
-
-	req, _ := http.NewRequest("POST", "https://lsho.cc/api/v1/links", bytes.NewBuffer(body))
-	req.Header.Set("Authorization", "Bearer "+os.Getenv("LSHORTER_API_KEY"))
-	req.Header.Set("Content-Type", "application/json")
-
-	client := &http.Client{}
-	resp, _ := client.Do(req)
-	defer resp.Body.Close()
-	fmt.Println("Response Status:", resp.Status)
+	fmt.Println("Short link:", link.ShortURL)
 }`
           },
           {
-            name: "PHP",
+            name: "PHP SDK",
             language: "php",
             code: `<?php
-$ch = curl_init("https://lsho.cc/api/v1/links");
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-curl_setopt($ch, CURLOPT_POST, true);
-curl_setopt($ch, CURLOPT_HTTPHEADER, [
-    "Authorization: Bearer " . getenv("LSHORTER_API_KEY"),
-    "Content-Type: application/json"
-]);
-curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
-    "url" => "https://my-store.com/summer-sale",
-    "slug" => "summer-2026",
-    "tags" => ["marketing", "summer-promo"]
-]));
+require __DIR__ . "/vendor/autoload.php";
 
-$response = curl_exec($ch);
-curl_close($ch);
-echo $response;`
+use LShorter\\LShorter;
+
+$lsh = new LShorter(getenv("LSHORTER_API_KEY"));
+
+$link = $lsh->links->create([
+    "targetUrl" => "https://my-store.com/summer-sale",
+    "slug" => "summer-2026",
+    "tags" => ["marketing", "summer-promo"],
+    "maxClicks" => 500,
+    "expiresAt" => "2026-10-31T23:59:59Z",
+]);
+
+echo "Short link: " . $link["shortUrl"] . PHP_EOL;`
           }
         ],
         responses: [
@@ -298,7 +298,7 @@ echo $response;`
           {
             name: "cURL",
             language: "bash",
-            code: `curl -X GET "https://lsho.cc/api/v1/links?page=1&limit=20&tag=marketing" \\
+            code: `curl -X GET "https://lsho.cc/api/v1/links?page=1&limit=20" \\
   -H "Authorization: Bearer $LSHORTER_API_KEY"`
           },
           {
@@ -307,12 +307,36 @@ echo $response;`
             code: `const links = await lshorter.links.list({
   page: 1,
   limit: 20,
-  tag: "marketing",
-  sortBy: "clicksCount",
-  order: "desc",
 });
 
-console.log(\`Found \${links.total} links:\`, links.data);`
+console.log(\`Found \${links.pagination.total} links:\`, links.data);`
+          },
+          {
+            name: "Python SDK",
+            language: "python",
+            code: `links = lsh.links.list(page=1, limit=20)
+print(f"Found {links['pagination']['total']} links:", links["data"])`
+          },
+          {
+            name: "Rust SDK",
+            language: "rust",
+            code: `let links = client.links().list(Some(1), Some(20)).await?;
+println!("Found {} links", links.pagination.total);`
+          },
+          {
+            name: "Go SDK",
+            language: "go",
+            code: `links, err := client.Links.List(ctx, 1, 20)
+if err != nil {
+	log.Fatal(err)
+}
+fmt.Printf("Found %d links\\n", links.Pagination.Total)`
+          },
+          {
+            name: "PHP SDK",
+            language: "php",
+            code: `$links = $lsh->links->list(page: 1, limit: 20);
+echo "Found " . $links["pagination"]["total"] . " links" . PHP_EOL;`
           }
         ],
         responses: [
@@ -349,8 +373,8 @@ console.log(\`Found \${links.total} links:\`, links.data);`
     ],
     codeSnippets: [
       {
-        title: "1. Official SDK Installation",
-        description: "Install the official lshorter-api package using your favorite package manager:",
+        title: "1. Official SDK Installation (JS/TS, Python, Rust, Go & PHP)",
+        description: "Install the official LShorter SDK for your stack using your favorite package manager:",
         snippet: {
           language: "bash",
           filename: "Terminal",
@@ -359,13 +383,17 @@ console.log(\`Found \${links.total} links:\`, links.data);`
             { name: "npm", code: "npm install lshorter-api", language: "bash" },
             { name: "pnpm", code: "pnpm add lshorter-api", language: "bash" },
             { name: "yarn", code: "yarn add lshorter-api", language: "bash" },
-            { name: "bun", code: "bun add lshorter-api", language: "bash" }
+            { name: "bun", code: "bun add lshorter-api", language: "bash" },
+            { name: "Python (pip)", code: "pip install lshorter", language: "bash" },
+            { name: "Rust (cargo)", code: "cargo add lshorter", language: "bash" },
+            { name: "Go", code: "go get github.com/Konvelbo/LShorter-api/sdks/go", language: "bash" },
+            { name: "PHP (composer)", code: "composer require lshorter/lshorter-php", language: "bash" }
           ]
         }
       },
       {
         title: "2. Client Initialization",
-        description: "Configure your LShorter client with your secret API key:",
+        description: "Configure your LShorter client with your secret API key across any supported language:",
         snippet: {
           language: "typescript",
           filename: "lib/lshorter.ts",
@@ -373,28 +401,147 @@ console.log(\`Found \${links.total} links:\`, links.data);`
 
 export const lshorter = new LShorter({
   apiKey: process.env.LSHORTER_API_KEY!,
-  endpoint: "https://lsho.cc/api/v1", // Optional custom endpoint
-  timeout: 5000, // 5s request timeout
-  maxRetries: 3, // Auto-retry on 5xx or network hiccups
+});`,
+          tabs: [
+            {
+              name: "TypeScript",
+              language: "typescript",
+              code: `import { LShorter } from "lshorter-api";
+
+export const lshorter = new LShorter({
+  apiKey: process.env.LSHORTER_API_KEY!,
+  // Optional: custom baseUrl (defaults to https://lsho.cc)
+  baseUrl: "https://lsho.cc",
 });`
+            },
+            {
+              name: "Python",
+              language: "python",
+              code: `import os
+from lshorter import LShorter
+
+lsh = LShorter(
+    api_key=os.environ["LSHORTER_API_KEY"],
+    # Optional custom base URL & timeout
+    base_url="https://lsho.cc",
+    timeout=15.0,
+)`
+            },
+            {
+              name: "Rust",
+              language: "rust",
+              code: `use lshorter::LShorter;
+
+let api_key = std::env::var("LSHORTER_API_KEY")
+    .expect("LSHORTER_API_KEY must be set");
+let client = LShorter::new(api_key);`
+            },
+            {
+              name: "Go",
+              language: "go",
+              code: `import (
+	"os"
+	lshorter "github.com/Konvelbo/LShorter-api/sdks/go"
+)
+
+client := lshorter.New(os.Getenv("LSHORTER_API_KEY"))`
+            },
+            {
+              name: "PHP",
+              language: "php",
+              code: `<?php
+require __DIR__ . "/vendor/autoload.php";
+
+use LShorter\\LShorter;
+
+$lsh = new LShorter(getenv("LSHORTER_API_KEY"));`
+            }
+          ]
         }
       },
       {
         title: "3. Creating Your First Short Link",
-        description: "Create a trackable short link with custom slug and tags:",
+        description: "Create a trackable short link with custom slug, geo-targeting, and retargeting pixels:",
         snippet: {
           language: "typescript",
           filename: "create-link.ts",
           code: `import { lshorter } from "@/lib/lshorter";
 
 const link = await lshorter.links.create({
-  url: "https://my-store.com/summer-promo",
+  targetUrl: "https://my-store.com/summer-promo",
   slug: "summer-2026",
   tags: ["marketing", "summer-sale"],
+  pixels: ["px_meta_main"],
 });
 
-console.log("Short URL generated:", link.shortUrl);
-// Output: https://lsho.cc/summer-2026`
+console.log("Short URL generated:", link.shortUrl);`,
+          tabs: [
+            {
+              name: "TypeScript",
+              language: "typescript",
+              code: `const link = await lshorter.links.create({
+  targetUrl: "https://my-store.com/summer-promo",
+  slug: "summer-2026",
+  tags: ["marketing", "summer-sale"],
+  pixels: ["px_meta_main"],
+});
+
+console.log("Short URL generated:", link.shortUrl);`
+            },
+            {
+              name: "Python",
+              language: "python",
+              code: `link = lsh.links.create({
+    "targetUrl": "https://my-store.com/summer-promo",
+    "slug": "summer-2026",
+    "tags": ["marketing", "summer-sale"],
+    "pixels": ["px_meta_main"],
+})
+
+print("Short URL generated:", link["shortUrl"])`
+            },
+            {
+              name: "Rust",
+              language: "rust",
+              code: `use lshorter::CreateLinkOptions;
+
+let link = client.links().create(&CreateLinkOptions {
+    target_url: "https://my-store.com/summer-promo".into(),
+    slug: Some("summer-2026".into()),
+    tags: Some(vec!["marketing".into(), "summer-sale".into()]),
+    pixels: Some(vec!["px_meta_main".into()]),
+    ..Default::default()
+}).await?;
+
+println!("Short URL generated: {}", link.short_url);`
+            },
+            {
+              name: "Go",
+              language: "go",
+              code: `link, err := client.Links.Create(ctx, lshorter.CreateLinkOptions{
+	TargetURL: "https://my-store.com/summer-promo",
+	Slug:      "summer-2026",
+	Tags:      []string{"marketing", "summer-sale"},
+	Pixels:    []string{"px_meta_main"},
+})
+if err != nil {
+	log.Fatal(err)
+}
+fmt.Println("Short URL generated:", link.ShortURL)`
+            },
+            {
+              name: "PHP",
+              language: "php",
+              code: `$link = $lsh->links->create([
+    "targetUrl" => "https://my-store.com/summer-promo",
+    "slug" => "summer-2026",
+    "tags" => ["marketing", "summer-sale"],
+    "pixels" => ["px_meta_main"],
+]);
+
+echo "Short URL generated: " . $link["shortUrl"] . PHP_EOL;`
+            }
+          ]
         }
       },
       {
@@ -403,21 +550,108 @@ console.log("Short URL generated:", link.shortUrl);
         snippet: {
           language: "typescript",
           filename: "track-purchase.ts",
-          code: `import { lshorter } from "@/lib/lshorter";
-
-// Record monetary revenue and attribute it to the click with customer avatar
-await lshorter.track.conversion({
+          code: `await lshorter.track.conversion({
   eventName: "purchase",
   amount: 49.00,
-  currency: "USD",
-  clickId: "clk_9921ab01", // Captured from the short link visit (?ref=clk_...)
-  orderId: "ch_9921823ab",
+  currency: "EUR",
+  linkId: "link_01",
+  clickId: "clk_9921ab01",
   customer: {
+    id: "usr_123",
     email: "alex@example.com",
     name: "Alex Johnson",
-    avatarUrl: "https://lh3.googleusercontent.com/a/ACg8oc...", // Profile photo from Google OAuth or Gravatar
+    avatarUrl: "https://example.com/avatars/alex.jpg",
+  },
+});`,
+          tabs: [
+            {
+              name: "TypeScript",
+              language: "typescript",
+              code: `await lshorter.track.conversion({
+  eventName: "purchase",
+  amount: 49.00,
+  currency: "EUR",
+  linkId: "link_01",
+  clickId: "clk_9921ab01",
+  customer: {
+    id: "usr_123",
+    email: "alex@example.com",
+    name: "Alex Johnson",
+    avatarUrl: "https://example.com/avatars/alex.jpg",
   },
 });`
+            },
+            {
+              name: "Python",
+              language: "python",
+              code: `lsh.track.conversion(
+    event_name="purchase",
+    amount=49.00,
+    currency="EUR",
+    link_id="link_01",
+    click_id="clk_9921ab01",
+    customer={
+        "id": "usr_123",
+        "email": "alex@example.com",
+        "name": "Alex Johnson",
+        "avatarUrl": "https://example.com/avatars/alex.jpg",
+    },
+)`
+            },
+            {
+              name: "Rust",
+              language: "rust",
+              code: `use lshorter::{CustomerInput, TrackConversionOptions};
+
+client.track().conversion(&TrackConversionOptions {
+    event_name: "purchase".into(),
+    link_id: "link_01".into(),
+    amount: 49.00,
+    currency: Some("EUR".into()),
+    click_id: Some("clk_9921ab01".into()),
+    customer: Some(CustomerInput {
+        id: Some("usr_123".into()),
+        email: Some("alex@example.com".into()),
+        name: Some("Alex Johnson".into()),
+        avatar_url: Some("https://example.com/avatars/alex.jpg".into()),
+    }),
+}).await?;`
+            },
+            {
+              name: "Go",
+              language: "go",
+              code: `_, err := client.Track.Conversion(ctx, lshorter.TrackConversionOptions{
+	EventName: "purchase",
+	Amount:    49.00,
+	Currency:  "EUR",
+	LinkID:    "link_01",
+	ClickID:   "clk_9921ab01",
+	Customer: &lshorter.CustomerInput{
+		ID:        "usr_123",
+		Email:     "alex@example.com",
+		Name:      "Alex Johnson",
+		AvatarURL: "https://example.com/avatars/alex.jpg",
+	},
+})`
+            },
+            {
+              name: "PHP",
+              language: "php",
+              code: `$lsh->track->conversion([
+    "eventName" => "purchase",
+    "amount" => 49.00,
+    "currency" => "EUR",
+    "linkId" => "link_01",
+    "clickId" => "clk_9921ab01",
+    "customer" => [
+        "id" => "usr_123",
+        "email" => "alex@example.com",
+        "name" => "Alex Johnson",
+        "avatarUrl" => "https://example.com/avatars/alex.jpg",
+    ],
+]);`
+            }
+          ]
         }
       },
       {
@@ -426,13 +660,56 @@ await lshorter.track.conversion({
         snippet: {
           language: "typescript",
           filename: "get-analytics.ts",
-          code: `import { lshorter } from "@/lib/lshorter";
-
-const stats = await lshorter.analytics.getRevenue("summer-2026", { period: "30d" });
+          code: `const stats = await lshorter.analytics.dashboard({ linkId: "link_01" });
 
 console.log("Total Clicks:", stats.totalClicks);
-console.log("Tracked Revenue:", stats.trackedRevenue, "USD");
-console.log("Earnings Per Click (EPC):", stats.epc, "USD/click");`
+console.log("Tracked Revenue:", stats.trackedRevenue, "EUR");
+console.log("Earnings Per Click (EPC):", stats.epc);`,
+          tabs: [
+            {
+              name: "TypeScript",
+              language: "typescript",
+              code: `const stats = await lshorter.analytics.dashboard({ linkId: "link_01" });
+
+console.log("Total Clicks:", stats.totalClicks);
+console.log("Tracked Revenue:", stats.trackedRevenue, "EUR");
+console.log("Earnings Per Click (EPC):", stats.epc);`
+            },
+            {
+              name: "Python",
+              language: "python",
+              code: `stats = lsh.analytics.dashboard(link_id="link_01")
+
+print("Total Clicks:", stats["totalClicks"])
+print("Tracked Revenue:", stats["trackedRevenue"], "EUR")
+print("Top Countries:", lsh.analytics.top(link_id="link_01")["topCountries"])`
+            },
+            {
+              name: "Rust",
+              language: "rust",
+              code: `let stats = client.analytics().dashboard(Some("link_01"), None, None).await?;
+
+println!("Total Clicks: {}", stats.total_clicks);
+println!("Tracked Revenue: {} EUR", stats.tracked_revenue);`
+            },
+            {
+              name: "Go",
+              language: "go",
+              code: `stats, err := client.Analytics.Dashboard(ctx, "link_01", "", "")
+if err != nil {
+	log.Fatal(err)
+}
+fmt.Printf("Clicks: %d | Revenue: %.2f EUR\\n", stats.TotalClicks, stats.TrackedRevenue)`
+            },
+            {
+              name: "PHP",
+              language: "php",
+              code: `$stats = $lsh->analytics->dashboard(linkId: "link_01");
+
+echo "Total Clicks: " . $stats["totalClicks"] . PHP_EOL;
+echo "Tracked Revenue: " . $stats["trackedRevenue"] . " EUR" . PHP_EOL;`
+            }
+          ]
         }
       }
     ],
@@ -560,22 +837,81 @@ requests.patch(
     ],
     codeSnippets: [
       {
-        title: "1. Configuring Routing via SDK",
-        description: "Attach country-based redirection rules to an existing link:",
+        title: "1. Configuring Geo & Device Routing via SDK",
+        description: "Attach country-based and device-based redirection rules across any official SDK:",
         snippet: {
           language: "typescript",
           filename: "set-geo-routing.ts",
-          code: `import { lshorter } from "@/lib/lshorter";
-
-await lshorter.links.updateRouting("global-promo", {
+          code: `await lshorter.links.update("link_global_promo", {
   fallbackUrl: "https://store.com/global",
-  rules: [
-    { country: "US", targetUrl: "https://store.com/us/fall-sale" },
-    { country: "GB", targetUrl: "https://store.com/uk/autumn-sale" },
-    { country: "DE", targetUrl: "https://store.com/de/herbst-angebote" },
-    { country: "FR", targetUrl: "https://store.com/fr/offres-automne" },
-  ],
+  geoTargeting: {
+    US: "https://store.com/us/fall-sale",
+    GB: "https://store.com/uk/autumn-sale",
+    DE: "https://store.com/de/herbst-angebote",
+    FR: "https://store.com/fr/offres-automne",
+  },
+});`,
+          tabs: [
+            {
+              name: "TypeScript",
+              language: "typescript",
+              code: `await lshorter.links.update("link_global_promo", {
+  fallbackUrl: "https://store.com/global",
+  geoTargeting: {
+    US: "https://store.com/us/fall-sale",
+    GB: "https://store.com/uk/autumn-sale",
+    DE: "https://store.com/de/herbst-angebote",
+    FR: "https://store.com/fr/offres-automne",
+  },
 });`
+            },
+            {
+              name: "Python",
+              language: "python",
+              code: `lsh.links.update("link_global_promo", {
+    "fallbackUrl": "https://store.com/global",
+    "geoTargeting": {
+        "US": "https://store.com/us/fall-sale",
+        "GB": "https://store.com/uk/autumn-sale",
+        "DE": "https://store.com/de/herbst-angebote",
+        "FR": "https://store.com/fr/offres-automne",
+    },
+})`
+            },
+            {
+              name: "Rust",
+              language: "rust",
+              code: `client.links().update("link_global_promo", &serde_json::json!({
+    "fallbackUrl": "https://store.com/global",
+    "geoTargeting": {
+        "US": "https://store.com/us/fall-sale",
+        "FR": "https://store.com/fr/offres-automne",
+    },
+})).await?;`
+            },
+            {
+              name: "Go",
+              language: "go",
+              code: `_, err := client.Links.Update(ctx, "link_global_promo", lshorter.CreateLinkOptions{
+	FallbackURL: "https://store.com/global",
+	GeoTargeting: map[string]string{
+		"US": "https://store.com/us/fall-sale",
+		"FR": "https://store.com/fr/offres-automne",
+	},
+})`
+            },
+            {
+              name: "PHP",
+              language: "php",
+              code: `$lsh->links->update("link_global_promo", [
+    "fallbackUrl" => "https://store.com/global",
+    "geoTargeting" => [
+        "US" => "https://store.com/us/fall-sale",
+        "FR" => "https://store.com/fr/offres-automne",
+    ],
+]);`
+            }
+          ]
         }
       }
     ],
@@ -846,19 +1182,62 @@ print(resp.json())`
     codeSnippets: [
       {
         title: "1. Fetching Statistics via SDK",
-        description: "Query comprehensive metrics for a specific link:",
+        description: "Query comprehensive real-time metrics for a specific link in TypeScript, Python, Rust, Go, or PHP:",
         snippet: {
           language: "typescript",
           filename: "get-analytics.ts",
-          code: `import { lshorter } from "@/lib/lshorter";
-
-const stats = await lshorter.analytics.get("launch-2026", {
-  period: "30d", // 24h, 7d, 30d, 90d, all
-});
+          code: `const stats = await lshorter.analytics.dashboard({ linkId: "launch-2026" });
 
 console.log("Total Clicks:", stats.totalClicks);
 console.log("Top Countries:", stats.topCountries);
-console.log("Device Breakdown:", stats.devices);`
+console.log("Top Devices:", stats.topDevices);`,
+          tabs: [
+            {
+              name: "TypeScript",
+              language: "typescript",
+              code: `const stats = await lshorter.analytics.dashboard({ linkId: "launch-2026" });
+
+console.log("Total Clicks:", stats.totalClicks);
+console.log("Top Countries:", stats.topCountries);
+console.log("Top Devices:", stats.topDevices);`
+            },
+            {
+              name: "Python",
+              language: "python",
+              code: `stats = lsh.analytics.dashboard(link_id="launch-2026")
+top = lsh.analytics.top(link_id="launch-2026")
+
+print("Total Clicks:", stats["totalClicks"])
+print("Top Countries:", top["topCountries"])
+print("Top Devices:", top["topDevices"])`
+            },
+            {
+              name: "Rust",
+              language: "rust",
+              code: `let stats = client.analytics().dashboard(Some("launch-2026"), None, None).await?;
+let top = client.analytics().top(Some("launch-2026")).await?;
+
+println!("Total Clicks: {}", stats.total_clicks);
+println!("Top Breakdown: {top}");`
+            },
+            {
+              name: "Go",
+              language: "go",
+              code: `stats, err := client.Analytics.Dashboard(ctx, "launch-2026", "", "")
+if err != nil {
+	log.Fatal(err)
+}
+fmt.Println("Total Clicks:", stats.TotalClicks)`
+            },
+            {
+              name: "PHP",
+              language: "php",
+              code: `$stats = $lsh->analytics->dashboard(linkId: "launch-2026");
+$top = $lsh->analytics->top(linkId: "launch-2026");
+
+echo "Total Clicks: " . $stats["totalClicks"] . PHP_EOL;`
+            }
+          ]
         }
       }
     ],
@@ -2403,15 +2782,71 @@ const link = await lshorter.links.create({
         snippet: {
           language: "typescript",
           filename: "pathlock-funnel.ts",
-          code: `import { lshorter } from "@/lib/lshorter";
-
-const link = await lshorter.links.create({
+          code: `const link = await lshorter.links.create({
+  targetUrl: "https://shop.com/checkout/step-1",
+  slug: "secure-checkout",
+  pathLockMode: "funnel",
+  pathLockPrefix: "checkout",
+  pathLockMessage: "Please complete your order within this secure funnel.",
+});`,
+          tabs: [
+            {
+              name: "TypeScript",
+              language: "typescript",
+              code: `const link = await lshorter.links.create({
   targetUrl: "https://shop.com/checkout/step-1",
   slug: "secure-checkout",
   pathLockMode: "funnel",
   pathLockPrefix: "checkout",
   pathLockMessage: "Please complete your order within this secure funnel.",
 });`
+            },
+            {
+              name: "Python",
+              language: "python",
+              code: `link = lsh.links.create({
+    "targetUrl": "https://shop.com/checkout/step-1",
+    "slug": "secure-checkout",
+    "pathLockMode": "funnel",
+    "pathLockPrefix": "checkout",
+    "pathLockMessage": "Please complete your order within this secure funnel.",
+})`
+            },
+            {
+              name: "Rust",
+              language: "rust",
+              code: `let link = client.links().create(&CreateLinkOptions {
+    target_url: "https://shop.com/checkout/step-1".into(),
+    slug: Some("secure-checkout".into()),
+    path_lock_mode: Some("funnel".into()),
+    path_lock_prefix: Some("checkout".into()),
+    path_lock_message: Some("Please complete your order within this secure funnel.".into()),
+    ..Default::default()
+}).await?;`
+            },
+            {
+              name: "Go",
+              language: "go",
+              code: `link, err := client.Links.Create(ctx, lshorter.CreateLinkOptions{
+	TargetURL:       "https://shop.com/checkout/step-1",
+	Slug:            "secure-checkout",
+	PathLockMode:    "funnel",
+	PathLockPrefix:  "checkout",
+	PathLockMessage: "Please complete your order within this secure funnel.",
+})`
+            },
+            {
+              name: "PHP",
+              language: "php",
+              code: `$link = $lsh->links->create([
+    "targetUrl" => "https://shop.com/checkout/step-1",
+    "slug" => "secure-checkout",
+    "pathLockMode" => "funnel",
+    "pathLockPrefix" => "checkout",
+    "pathLockMessage" => "Please complete your order within this secure funnel.",
+]);`
+            }
+          ]
         }
       }
     ],

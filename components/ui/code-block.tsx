@@ -40,7 +40,14 @@ function highlightSyntax(rawCode: string, lang: string = "bash") {
         </span>
       );
     }
-    if (normalizedLang.includes("bash") || normalizedLang.includes("curl") || normalizedLang.includes("sh")) {
+    if (
+      normalizedLang.includes("bash") ||
+      normalizedLang.includes("curl") ||
+      normalizedLang.includes("sh") ||
+      normalizedLang.includes("python") ||
+      normalizedLang.includes("py") ||
+      normalizedLang.includes("php")
+    ) {
       if (line.trim().startsWith("#")) {
         return (
           <span key={lineIdx} className="text-zinc-500 dark:text-neutral-500 italic">
@@ -111,9 +118,14 @@ function highlightSyntax(rawCode: string, lang: string = "bash") {
       line.startsWith("npm ") ||
       line.startsWith("pnpm ") ||
       line.startsWith("yarn ") ||
-      line.startsWith("bun ")
+      line.startsWith("bun ") ||
+      line.startsWith("pip ") ||
+      line.startsWith("pip3 ") ||
+      line.startsWith("cargo ") ||
+      line.startsWith("go ") ||
+      line.startsWith("composer ")
     ) {
-      const bashRegex = /(\b(?:GET|POST|PUT|PATCH|DELETE)\b|(-[a-zA-Z]+|--[a-zA-Z0-9_-]+)|https?:\/\/[^\s"\\]+|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|\$[A-Z0-9_]+|\b(?:npm|pnpm|yarn|bun|npx|curl|git|node)\b|\b(?:install|add|run|exec)\b)/g;
+      const bashRegex = /(\b(?:GET|POST|PUT|PATCH|DELETE)\b|(-[a-zA-Z]+|--[a-zA-Z0-9_-]+)|https?:\/\/[^\s"\\]+|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|\$[A-Z0-9_]+|\b(?:npm|pnpm|yarn|bun|npx|pip|pip3|uv|poetry|cargo|go|composer|curl|git|node)\b|\b(?:install|add|get|require|run|exec)\b)/g;
       const parts: React.ReactNode[] = [];
       let lastIndex = 0;
       let match: RegExpExecArray | null;
@@ -153,13 +165,13 @@ function highlightSyntax(rawCode: string, lang: string = "bash") {
               {token}
             </span>
           );
-        } else if (/^(npm|pnpm|yarn|bun|npx|curl|git|node)$/.test(token)) {
+        } else if (/^(npm|pnpm|yarn|bun|npx|pip|pip3|uv|poetry|cargo|go|composer|curl|git|node)$/.test(token)) {
           parts.push(
             <span key={match.index} className="text-blue-700 dark:text-sky-400 font-bold">
               {token}
             </span>
           );
-        } else if (/^(install|add|run|exec)$/.test(token)) {
+        } else if (/^(install|add|get|require|run|exec)$/.test(token)) {
           parts.push(
             <span key={match.index} className="text-purple-700 dark:text-purple-400 font-semibold">
               {token}
@@ -176,8 +188,8 @@ function highlightSyntax(rawCode: string, lang: string = "bash") {
       return <span key={lineIdx}>{parts}</span>;
     }
 
-    // 4. TypeScript / JavaScript / Universal Tokenizer
-    const tsRegex = /(\/\/[^\n]*|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`|\b(?:import|export|from|as|default|const|let|var|function|class|interface|type|enum|extends|implements|await|async|return|new|typeof|instanceof|void|delete|in|of|if|else|switch|case|break|continue|try|catch|finally|throw)\b|\b(?:true|false|null|undefined)\b|\b(?:string|number|boolean|any|unknown|never|void|Promise|Date|LShorter|LShorterClient|Record|Array|object)\b|\b-?\d+(?:\.\d+)?\b|\b[a-zA-Z_$][a-zA-Z0-9_$]*(?=\s*:)|[a-zA-Z_$][a-zA-Z0-9_$]*(?=\s*\()|=>|===|!==|==|!=|\+=|-=|\*=|&&|\|\|)/g;
+    // 4. TypeScript / JavaScript / Python / Rust / Go / PHP Universal Tokenizer
+    const tsRegex = /(\/\/[^\n]*|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`|\b(?:import|export|from|as|default|const|let|var|function|def|fn|pub|use|mut|struct|impl|package|func|defer|echo|require|class|interface|type|enum|extends|implements|await|async|return|new|typeof|instanceof|void|delete|in|of|if|else|elif|switch|case|match|break|continue|try|catch|except|finally|throw|raise|with)\b|\b(?:true|false|True|False|null|None|nil|undefined|Ok|Err|Some)\b|\b(?:string|number|boolean|any|unknown|never|void|Promise|Date|LShorter|LShorterClient|LShorterError|Record|Array|object|String|HashMap|Option|Result|context|error)\b|\b-?\d+(?:\.\d+)?\b|\b[a-zA-Z_$][a-zA-Z0-9_$]*(?=\s*:)|[a-zA-Z_$][a-zA-Z0-9_$]*(?=\s*\()|=>|===|!==|==|!=|\+=|-=|\*=|&&|\|\|)/g;
 
     const parts: React.ReactNode[] = [];
     let lastIndex = 0;
@@ -202,7 +214,7 @@ function highlightSyntax(rawCode: string, lang: string = "bash") {
           </span>
         );
       } else if (
-        /^(import|export|from|as|default|const|let|var|function|class|interface|type|enum|extends|implements|await|async|return|new|typeof|instanceof|void|delete|in|of|if|else|switch|case|break|continue|try|catch|finally|throw)$/.test(
+        /^(import|export|from|as|default|const|let|var|function|def|fn|pub|use|mut|struct|impl|package|func|defer|echo|require|class|interface|type|enum|extends|implements|await|async|return|new|typeof|instanceof|void|delete|in|of|if|else|elif|switch|case|match|break|continue|try|catch|except|finally|throw|raise|with)$/.test(
           token
         )
       ) {
@@ -211,13 +223,13 @@ function highlightSyntax(rawCode: string, lang: string = "bash") {
             {token}
           </span>
         );
-      } else if (/^(true|false|null|undefined)$/.test(token)) {
+      } else if (/^(true|false|True|False|null|None|nil|undefined|Ok|Err|Some)$/.test(token)) {
         parts.push(
           <span key={match.index} className="text-rose-600 dark:text-rose-400 font-bold">
             {token}
           </span>
         );
-      } else if (/^(string|number|boolean|any|unknown|never|void|Promise|Date|LShorter|LShorterClient|Record|Array|object)$/.test(token)) {
+      } else if (/^(string|number|boolean|any|unknown|never|void|Promise|Date|LShorter|LShorterClient|LShorterError|Record|Array|object|String|HashMap|Option|Result|context|error)$/.test(token)) {
         parts.push(
           <span key={match.index} className="text-cyan-700 dark:text-cyan-400 font-medium">
             {token}
