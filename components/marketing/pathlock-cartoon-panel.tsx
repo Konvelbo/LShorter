@@ -6,8 +6,8 @@ import { Maximize2, Pause, Play, Volume2, VolumeX } from "lucide-react";
 const CARTOON_CHAPTERS = [
   { id: "dilemma", label: "Scenario", sec: 0 },
   { id: "exposed", label: "No Lock", sec: 10 },
-  { id: "setup", label: "PathLock™", sec: 20 },
-  { id: "blocked", label: "403 Block", sec: 31 },
+  { id: "setup", label: "PathLock™", sec: 19.7 },
+  { id: "blocked", label: "403 Block", sec: 30.5 },
 ] as const;
 
 function formatTime(sec: number) {
@@ -180,8 +180,8 @@ export function PathLockCartoonPanel() {
       <div className="group relative aspect-video w-full bg-[#0B0C10] overflow-hidden">
         <video
           ref={videoRef}
-          src="/videos/pathlock-cartoon.mp4?v=2"
-          poster="/videos/pathlock-cartoon-poster.jpg"
+          src="/videos/pathlock-cartoon.mp4?v=3"
+          poster="/videos/pathlock-cartoon-poster.jpg?v=3"
           muted={isMuted}
           loop
           playsInline
@@ -211,8 +211,12 @@ export function PathLockCartoonPanel() {
           </button>
         )}
 
-        {/* Bottom Scrub Bar + Compact Play/Pause */}
-        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent px-3.5 pt-6 pb-2.5 opacity-95 transition-opacity">
+        {/* Bottom Scrub Bar — reveals cleanly on hover or pause so FR subtitles remain 100% unobstructed */}
+        <div
+          className={`absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/35 to-transparent px-3.5 pt-6 pb-2.5 transition-opacity duration-200 ${
+            isPlaying ? "opacity-0 group-hover:opacity-100" : "opacity-100"
+          }`}
+        >
           <div className="flex items-center gap-3">
             <button
               type="button"
