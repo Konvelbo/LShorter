@@ -365,51 +365,53 @@ export function PathLockFocusSection() {
       id="pathlock"
       className="relative w-full bg-[#FFFFFF] dark:bg-[#09090B] text-[#101828] dark:text-[#FAFAFA] py-20 sm:py-24 border-t border-[#E4E7EC] dark:border-[#222225] scroll-mt-20 overflow-x-clip transition-colors duration-300"
     >
-      <SectionRailFrame>
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] gap-12 lg:gap-16 items-center">
-          {/* Left Column (5fr) — Editorial Hairline Feature Architecture */}
-          <div className="min-w-0">
-            <h2 className="m-0 font-medium text-[clamp(32px,4.2vw,44px)] leading-[1.1] tracking-[-0.02em] text-[#101828] dark:text-[#FAFAFA] text-balance">
-              Expose{" "}
-              <code className="font-mono text-[#0066FF] dark:text-[#529DFF] font-medium">
-                /app/dashboard/*
-              </code>
-              . Lock the rest of your app.
-            </h2>
+      <div className="mx-auto w-full max-w-[1400px] px-5 sm:px-8 xl:px-10">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,5.2fr)_minmax(0,8fr)] gap-8 xl:gap-12 items-stretch">
+          {/* Left Column — Wider Editorial Hairline Feature Architecture */}
+          <div className="min-w-0 flex flex-col justify-between">
+            <div>
+              <h2 className="m-0 font-medium text-[clamp(28px,3.1vw,38px)] leading-[1.12] tracking-[-0.025em] text-[#101828] dark:text-[#FAFAFA] text-balance">
+                Expose{" "}
+                <code className="font-mono text-[#0066FF] dark:text-[#529DFF] font-medium">
+                  /app/dashboard/*
+                </code>
+                . Lock the rest of your app.
+              </h2>
 
-            <p className="mt-5 max-w-[44ch] text-[17px] leading-[28px] text-[#344054] dark:text-[#D4D4D8] text-pretty">
-              Sharing a staging SaaS or investor preview?{" "}
-              <JargonTooltip
-                term="PathLock™"
-                explanation="Unlike basic link passwords that stop working after the redirect, PathLock enforces an authorized URL prefix boundary while visitors browse your preview."
-              />{" "}
-              enforces a strict URL perimeter so visitors cannot wander into
-              unfinished billing, admin, or settings pages.
-            </p>
+              <p className="mt-3.5 text-[15.5px] leading-[1.6] text-[#344054] dark:text-[#D4D4D8] text-pretty">
+                Sharing a staging SaaS or investor preview?{" "}
+                <JargonTooltip
+                  term="PathLock™"
+                  explanation="Unlike basic link passwords that stop working after the redirect, PathLock enforces an authorized URL prefix boundary while visitors browse your preview."
+                />{" "}
+                enforces a strict URL perimeter so visitors cannot wander into
+                unfinished billing, admin, or settings pages.
+              </p>
 
-            <ul className="mt-8 list-none p-0 border-t border-[#E4E7EC] dark:border-[#222225]">
-              {PATHLOCK_FEATURES.map((feat) => {
-                const Icon = feat.icon;
-                return (
-                  <li
-                    key={feat.title}
-                    className="grid grid-cols-[20px_1fr] gap-3 py-4 border-b border-[#E4E7EC] dark:border-[#222225]"
-                  >
-                    <Icon className="w-5 h-5 mt-0.5 text-[#667085] dark:text-[#A1A1AA] stroke-[1.5]" />
-                    <div>
-                      <b className="block font-medium text-[15px] text-[#101828] dark:text-[#FAFAFA]">
-                        {feat.title}
-                      </b>
-                      <span className="block text-[15px] leading-[1.55] text-[#344054] dark:text-[#D4D4D8] mt-0.5">
-                        {feat.desc}
-                      </span>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
+              <ul className="mt-5 list-none p-0 border-t border-[#E4E7EC] dark:border-[#222225]">
+                {PATHLOCK_FEATURES.map((feat) => {
+                  const Icon = feat.icon;
+                  return (
+                    <li
+                      key={feat.title}
+                      className="grid grid-cols-[20px_1fr] gap-3 py-3 border-b border-[#E4E7EC] dark:border-[#222225]"
+                    >
+                      <Icon className="w-5 h-5 mt-0.5 text-[#667085] dark:text-[#A1A1AA] stroke-[1.5]" />
+                      <div>
+                        <b className="block font-medium text-[14.5px] text-[#101828] dark:text-[#FAFAFA]">
+                          {feat.title}
+                        </b>
+                        <span className="block text-[14px] leading-[1.5] text-[#344054] dark:text-[#D4D4D8] mt-0.5">
+                          {feat.desc}
+                        </span>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
 
-            <div className="mt-8 flex flex-wrap gap-3">
+            <div className="mt-6 flex flex-wrap gap-3">
               <a
                 href="/#hero-shortener"
                 onClick={scrollToHeroShortener}
@@ -427,10 +429,10 @@ export function PathLockFocusSection() {
             </div>
           </div>
 
-          {/* Right Column (7fr) — Animated 2D Cartoon Explainer Panel */}
+          {/* Right Column — Full-Height & Full-Width Pure Video Frame */}
           <PathLockCartoonPanel />
         </div>
-      </SectionRailFrame>
+      </div>
     </section>
   );
 }
