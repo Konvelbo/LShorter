@@ -1608,22 +1608,22 @@ console.log("Vector SVG QR Code exported successfully!");`
     image: "/screenshots/webhooks/niveau.png",
     readTime: "4 min read",
     overview: [
-      "LShorter webhooks notify your backend systems in real time whenever an event occurs on your short links (click registered, conversion recorded, quota reached, link expired).",
+      "LShorter webhooks notify your backend systems in real time whenever an event occurs on your short links (click registered, conversion recorded, QR scanned, link updated or deleted).",
       "All outgoing HTTP POST payloads are cryptographically signed with an HMAC-SHA256 secret key via the x-lshorter-signature header to guarantee authenticity and prevent tampering.",
-      "Pour des raisons de sécurité et d'intégrité, la création et la configuration des webhooks s'effectuent exclusivement depuis le tableau de bord web LShorter (Paramètres > Webhooks). L'API et le SDK vous permettent de lister vos abonnements actifs et de traiter les événements entrants."
+      "Les abonnements webhooks peuvent être créés, listés, modifiés et supprimés aussi bien depuis le tableau de bord LShorter (Paramètres > Webhooks) que programmatiquement via le SDK ou l'API REST (forfaits Pro, Business et Enterprise, avec validation anti-SSRF et isolation stricte par compte)."
     ],
     keyPoints: [
       {
         title: "Supported Event Types",
-        description: "link.clicked, link.converted, link.limit_reached, link.expired, link.created, link.deleted."
+        description: "click.created, click.unique, conversion.created, link.created, link.updated, link.deleted, link.expired, qr.scanned, target.reached."
       },
       {
         title: "Cryptographic HMAC-SHA256 Signatures",
         description: "Validate the x-lshorter-signature header to verify payload integrity before processing."
       },
       {
-        title: "Configuration via Tableau de Bord",
-        description: "Enregistrement sécurisé des endpoints d'écoute directement depuis l'interface Paramètres > Webhooks."
+        title: "Full Dashboard & SDK Management (Pro+)",
+        description: "Create, list, update, pause, and delete signed webhook subscriptions programmatically via lsh.webhooks.create(...) or from Settings > Webhooks."
       },
       {
         title: "Exponential Backoff Retries",
@@ -1632,18 +1632,20 @@ console.log("Vector SVG QR Code exported successfully!");`
     ],
     apiEndpoints: [
       {
-        name: "List Webhook Subscriptions",
-        method: "GET",
+        name: "Create & List Webhook Subscriptions",
+        method: "POST",
         path: "/api/v1/webhooks",
-        description: "Retrieves all active webhook subscriptions configured for your account. (Note: New webhooks must be registered securely from the LShorter Web Dashboard in Settings > Webhooks).",
+        description: "Registers a new signed webhook endpoint (requires PRO, BUSINESS, or ENTERPRISE plan; protected by anti-SSRF, anti-loop, and per-account quota enforcement).",
         authentication: "Bearer <API_KEY>",
-        rateLimit: "60 to 1,400 req/min (by plan)",
+        rateLimit: "20 req/min on creation",
         codeExamples: [
           {
             name: "cURL",
             language: "bash",
-            code: `curl -X GET "https://lsho.cc/api/v1/webhooks" \\
-  -H "Authorization: Bearer $LSHORTER_API_KEY"`
+            code: `curl -X POST "https://lsho.cc/api/v1/webhooks" \\
+  -H "Authorization: Bearer $LSHORTER_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{"url":"https://api.my-domain.com/webhooks/lshorter","events":["click.created","conversion.created","qr.scanned"]}'`
           },
           {
             name: "TypeScript SDK",
@@ -1652,8 +1654,12 @@ console.log("Vector SVG QR Code exported successfully!");`
 
 const lshorter = new LShorter({ apiKey: process.env.LSHORTER_API_KEY! });
 
+const created = await lshorter.webhooks.create({
+  url: "https://api.my-domain.com/webhooks/lshorter",
+  events: ["click.created", "conversion.created", "qr.scanned"],
+});
 const webhooks = await lshorter.webhooks.list();
-console.log("Configured webhooks:", webhooks);`
+console.log("Created & active webhooks:", created, webhooks);`
           }
         ],
         responses: [
