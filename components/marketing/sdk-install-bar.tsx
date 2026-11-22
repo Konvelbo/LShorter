@@ -56,8 +56,8 @@ export const SDK_INSTALL_OPTIONS: SdkInstallOption[] = [
     langBadge: "Python",
     prefix: "pip",
     subcmd: "install",
-    pkg: "lshorter",
-    command: "pip install lshorter",
+    pkg: "lshorter-api",
+    command: "pip install lshorter-api",
   },
   {
     id: "cargo",
