@@ -180,7 +180,7 @@ export function PathLockCartoonPanel() {
       <div className="group relative aspect-video w-full bg-[#0B0C10] overflow-hidden">
         <video
           ref={videoRef}
-          src="/videos/pathlock-cartoon.mp4"
+          src="/videos/pathlock-cartoon.mp4?v=2"
           poster="/videos/pathlock-cartoon-poster.jpg"
           muted={isMuted}
           loop
