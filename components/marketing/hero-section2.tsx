@@ -18,19 +18,19 @@ export function HeroSection() {
   return (
     <section
       id="hero"
-      className="relative isolate w-full overflow-x-clip pt-20 sm:pt-24 flex flex-col transition-colors duration-300"
+      className="relative isolate w-full overflow-x-clip pt-[74px] sm:pt-[86px] flex flex-col transition-colors duration-300"
     >
       {/* Background Pattern from tailwind-css-background-snippet */}
       <HeroBackground />
 
-      {/* Full-viewport Hero Stage so the logo strip stays below the initial Hero fold */}
-      <SectionRailFrame className="relative z-30 min-h-[calc(100svh-80px)] sm:min-h-[calc(100svh-96px)] flex flex-col justify-center">
-        <div className="my-auto py-5 sm:py-14 flex flex-col items-center text-center">
+      {/* Fluid 2D-responsive Hero Stage — fits cleanly above the fold on every screen size (360x640 -> 2560x1440) */}
+      <SectionRailFrame className="relative z-30 min-h-[calc(100svh-74px)] sm:min-h-[calc(100svh-86px)] flex flex-col justify-center">
+        <div className="my-auto py-[clamp(12px,2.8svh,44px)] flex flex-col items-center text-center w-full">
           <motion.h1
             initial={{ opacity: 0.92, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35, ease: EASE_OUT_EXPO }}
-            className="text-[clamp(52px,13.8vw,64px)] sm:text-[clamp(56px,7.2vw,88px)] font-bold tracking-[-0.04em] leading-[1.03] sm:leading-[1.02] text-[#09090B] dark:text-white max-w-[1020px] text-balance"
+            className="text-[clamp(36px,min(13.2vw,6.4svh),64px)] sm:text-[clamp(48px,min(7vw,8.6svh),86px)] font-bold tracking-[-0.04em] leading-[1.03] sm:leading-[1.02] text-[#09090B] dark:text-white max-w-[1020px] text-balance"
           >
             Short links you actually{" "}
             <FlipWords
@@ -45,7 +45,7 @@ export function HeroSection() {
             initial={{ opacity: 0.92, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35, delay: 0.04, ease: EASE_OUT_EXPO }}
-            className="mt-5 sm:mt-6 relative max-w-[660px] mx-auto text-[18.5px] sm:text-[18.5px] leading-[1.58] sm:leading-[1.6] text-[#3F3F46] dark:text-zinc-300 text-pretty cursor-default"
+            className="mt-[clamp(12px,2.4svh,26px)] relative max-w-[660px] mx-auto text-[clamp(14.5px,min(4.6vw,2.2svh),18.5px)] sm:text-[clamp(16px,2.1svh,18.5px)] leading-[1.52] sm:leading-[1.6] text-[#3F3F46] dark:text-zinc-300 text-pretty cursor-default"
           >
             <VariableProximity
               label="Turn every click into a smart destination — route visitors by country or device in under 12ms, lock private links with PathLock™, and track real-time revenue attribution."
@@ -66,7 +66,7 @@ export function HeroSection() {
             initial={{ opacity: 0.95, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.38, delay: 0.08, ease: EASE_OUT_EXPO }}
-            className="mt-7 sm:mt-10 w-full"
+            className="mt-[clamp(16px,3.2svh,38px)] w-full"
           >
             <HeroShortener />
           </motion.div>
