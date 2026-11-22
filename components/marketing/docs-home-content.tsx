@@ -1,14 +1,13 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Search } from "lucide-react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { getAllDocFeatures } from "@/lib/docs-data";
 import { CofounderResourceCard } from "@/components/marketing/cofounder-resource-card";
-import { CardContainer, CardBody, CardItem } from "@/components/ui/3d-card";
+import { ApiCartoonPanel } from "@/components/marketing/api-cartoon-panel";
 import { ReuiCommandModal } from "@/components/search/reui-command-modal";
 
 const CARD_META: Record<string, { tag: string; color: string; date: string }> = {
@@ -122,24 +121,9 @@ export function DocsHomeContent() {
       <section className="docs-hero-section max-w-6xl mx-auto pt-6 pb-4">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
           
-          {/* Left Column: 3D Interactive Card strictly around the Image */}
+          {/* Left Column: Animated Cartoon Explainer Video showcasing all REST API v1 capabilities */}
           <div className="lg:col-span-7 flex items-center justify-center">
-            <CardContainer containerClassName="w-full py-0" className="w-full">
-              <CardBody className="w-full h-auto">
-                <CardItem translateZ="50" className="w-full">
-                  <div className="relative w-full aspect-[16/10] sm:aspect-[16/9] rounded-2xl overflow-hidden border border-[#E4E7EC] dark:border-white/10 shadow-2xl bg-neutral-900 group">
-                    <Image
-                      src="/doc/apiimage.webp"
-                      alt="LShorter global edge architecture and API infrastructure"
-                      fill
-                      priority
-                      className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
-                      sizes="(max-width: 1024px) 100vw, 680px"
-                    />
-                  </div>
-                </CardItem>
-              </CardBody>
-            </CardContainer>
+            <ApiCartoonPanel />
           </div>
 
           {/* Right Column: Editorial Typography & Action */}
