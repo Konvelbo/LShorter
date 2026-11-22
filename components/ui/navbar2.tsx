@@ -17,6 +17,7 @@ import { FaGithub, FaXTwitter, FaLinkedin, FaYoutube } from "react-icons/fa6";
 import { useTheme } from "@/components/providers/theme-provider";
 import { lerp, useLenis } from "@/components/providers/smooth-scroll-provider";
 import { scrollToHeroShortener } from "@/components/marketing/swiss-frame";
+import { WaveRevealButton } from "@/components/ui/wave-reveal-button";
 
 export type MegaColumn = {
   eyebrow: string;
@@ -592,31 +593,37 @@ export function Navbar2() {
               </button>
 
               {isAuthenticated ? (
-                <Link
+                <WaveRevealButton
                   href={dashboardHref}
                   onClick={closeAll}
-                  className="inline-flex items-center gap-2 rounded-full bg-zinc-900 dark:bg-white px-5 py-2 text-sm font-semibold text-white dark:text-zinc-950 transition-colors hover:bg-[#0066FF] dark:hover:bg-[#0066FF] dark:hover:text-white"
+                  variant="contrast"
+                  size="sm"
+                  wave
+                  icon={<LayoutDashboard className="h-3.5 w-3.5" />}
+                  className="h-9 rounded-full px-4 text-[13.5px]"
                 >
-                  <LayoutDashboard className="h-4 w-4" />
-                  <span>Dashboard</span>
-                </Link>
+                  Dashboard
+                </WaveRevealButton>
               ) : (
                 <>
                   <Link
                     href="/login"
                     onClick={closeAll}
-                    className="rounded-full border border-zinc-200 dark:border-white/14 bg-zinc-50 dark:bg-white/[0.05] px-5 py-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100 transition-colors hover:bg-zinc-100 dark:hover:bg-white/[0.10]"
+                    className="inline-flex h-9 items-center rounded-full border border-zinc-200 dark:border-white/14 bg-zinc-50 dark:bg-white/[0.05] px-5 text-sm font-semibold text-zinc-900 dark:text-zinc-100 transition-colors hover:bg-zinc-100 dark:hover:bg-white/[0.10]"
                   >
                     Sign in
                   </Link>
 
-                  <Link
+                  <WaveRevealButton
                     href="/#hero-shortener"
                     onClick={handleGetStartedClick}
-                    className="rounded-full bg-zinc-900 dark:bg-white px-5 py-2 text-sm font-semibold text-white dark:text-zinc-950 transition-colors hover:bg-[#0066FF] dark:hover:bg-[#0066FF] dark:hover:text-white"
+                    variant="contrast"
+                    size="sm"
+                    wave
+                    className="h-9 rounded-full px-4 text-[13.5px]"
                   >
                     Shorten a link
-                  </Link>
+                  </WaveRevealButton>
                 </>
               )}
             </div>
@@ -849,30 +856,36 @@ export function Navbar2() {
 
             <div className="mt-3 flex flex-col gap-2.5 border-t border-zinc-200/70 dark:border-white/[0.08] pt-4">
               {isAuthenticated ? (
-                <Link
+                <WaveRevealButton
                   href={dashboardHref}
                   onClick={closeAll}
-                  className="inline-flex items-center justify-center gap-2 rounded-full bg-zinc-900 dark:bg-white px-5 py-2.5 text-center text-sm font-semibold text-white dark:text-zinc-950"
+                  variant="contrast"
+                  size="md"
+                  wave
+                  icon={<LayoutDashboard className="h-4 w-4" />}
+                  className="w-full rounded-full"
                 >
-                  <LayoutDashboard className="h-4 w-4" />
-                  <span>Open Dashboard</span>
-                </Link>
+                  Open Dashboard
+                </WaveRevealButton>
               ) : (
                 <>
                   <Link
                     href="/login"
                     onClick={closeAll}
-                    className="rounded-full border border-zinc-200 dark:border-white/15 bg-zinc-50 dark:bg-white/[0.05] px-5 py-2.5 text-center text-sm font-semibold text-zinc-900 dark:text-white"
+                    className="inline-flex h-11 items-center justify-center rounded-full border border-zinc-200 dark:border-white/15 bg-zinc-50 dark:bg-white/[0.05] px-5 text-center text-sm font-semibold text-zinc-900 dark:text-white"
                   >
                     Sign in
                   </Link>
-                  <Link
+                  <WaveRevealButton
                     href="/#hero-shortener"
                     onClick={handleGetStartedClick}
-                    className="rounded-full bg-zinc-900 dark:bg-white px-5 py-2.5 text-center text-sm font-semibold text-white dark:text-zinc-950"
+                    variant="contrast"
+                    size="md"
+                    wave
+                    className="w-full rounded-full"
                   >
                     Shorten a link
-                  </Link>
+                  </WaveRevealButton>
                 </>
               )}
             </div>
