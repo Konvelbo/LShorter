@@ -267,9 +267,9 @@ html {
     html {
         scroll-behavior: auto !important;
     }
-    *:not(.btn-hover-slow):not(.animate-marquee),
-    *::before,
-    *::after {
+    :where(*:not(.btn-hover-slow):not(.animate-marquee):not(.animate-brand-marquee):not(.animate-brand-marquee-reverse):not(.hero-logo-marquee-track)),
+    :where(*::before),
+    :where(*::after) {
         animation-duration: 0.01ms !important;
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;

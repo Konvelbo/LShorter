@@ -17,7 +17,6 @@ import {
 import { FaGithub, FaXTwitter, FaLinkedin, FaYoutube } from "react-icons/fa6";
 import { useTheme } from "@/components/providers/theme-provider";
 import { lerp, useLenis } from "@/components/providers/smooth-scroll-provider";
-import { scrollToHeroShortener } from "@/components/marketing/swiss-frame";
 import { WaveRevealButton } from "@/components/ui/wave-reveal-button";
 
 export type MegaColumn = {
@@ -487,20 +486,6 @@ export function Navbar2() {
     setMobileDocsOpen(false);
   }, []);
 
-  const handleGetStartedClick = useCallback(
-    (e: React.MouseEvent) => {
-      closeAll();
-      if (isAuthenticated) return;
-      if (pathname === "/") {
-        scrollToHeroShortener(e);
-      } else {
-        e.preventDefault();
-        router.push("/#hero-shortener");
-      }
-    },
-    [closeAll, isAuthenticated, pathname, router],
-  );
-
   if (isIframeFullscreen) return null;
 
   const isAnyPanelOpen =
@@ -653,8 +638,8 @@ export function Navbar2() {
                   </Link>
 
                   <WaveRevealButton
-                    href="/#hero-shortener"
-                    onClick={handleGetStartedClick}
+                    href="/register"
+                    onClick={closeAll}
                     variant="primary"
                     size="sm"
                     wave
@@ -935,8 +920,8 @@ export function Navbar2() {
                     Sign in
                   </Link>
                   <WaveRevealButton
-                    href="/#hero-shortener"
-                    onClick={handleGetStartedClick}
+                    href="/register"
+                    onClick={closeAll}
                     variant="primary"
                     size="md"
                     wave
