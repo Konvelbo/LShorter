@@ -17,7 +17,7 @@ export function ApiCartoonPanel() {
   const [userPaused, setUserPaused] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(54);
+  const [duration, setDuration] = useState(53.6);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -115,8 +115,8 @@ export function ApiCartoonPanel() {
     >
       <video
         ref={videoRef}
-        src="/videos/api-cartoon.mp4?v=1"
-        poster="/videos/api-cartoon-poster.jpg?v=1"
+        src="/videos/api-cartoon.mp4?v=2"
+        poster="/videos/api-cartoon-poster.jpg?v=2"
         muted={isMuted}
         loop
         playsInline

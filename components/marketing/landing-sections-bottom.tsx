@@ -726,6 +726,7 @@ export function DeveloperApiSection() {
       id="api"
       badge="REST API v1 · Edge KV synced"
       title="Provision links and rules from your codebase"
+      installCommand="npm i lshorter-api"
       description="Create links programmatically, enforce PathLock™ prefixes, set click caps, and receive signed conversion webhooks in real time."
       highlights={DEVELOPER_API_HIGHLIGHTS}
       primaryAction={{ label: "Explore API documentation", href: "/docs" }}

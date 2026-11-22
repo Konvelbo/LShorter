@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Check } from "lucide-react";
+import { Check, Copy, Terminal } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ */
@@ -34,6 +34,8 @@ export interface SplitDeveloperHeroProps {
   /** Small status pill above the headline. */
   badge?: string;
   title: React.ReactNode;
+  /** Optional highlighted CLI install command displayed directly beneath the title. */
+  installCommand?: string;
   description: string;
   highlights?: SplitDeveloperHighlight[];
   primaryAction: HeroAction;
@@ -420,6 +422,81 @@ function ActionButton({
 }
 
 /* ------------------------------------------------------------------ */
+/* Highlighted CLI Install Command Bar                                 */
+/* ------------------------------------------------------------------ */
+
+function InstallCommandBar({ command }: { command: string }) {
+  const [copied, setCopied] = React.useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard?.writeText(command).catch(() => {});
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1800);
+  };
+
+  const tokens = command.trim().split(/\s+/);
+  const pkgManager = tokens[0] ?? "";
+  const subCmd = tokens.length > 2 ? tokens.slice(1, -1).join(" ") : "";
+  const pkgName = tokens.length > 1 ? tokens[tokens.length - 1] : "";
+
+  return (
+    <div className="pt-0.5">
+      <button
+        type="button"
+        onClick={handleCopy}
+        aria-label={`Copy install command: ${command}`}
+        className="group/cmd inline-flex max-w-full items-center gap-3 rounded-[10px] border border-[#0066FF]/22 dark:border-[#60A5FA]/25 bg-gradient-to-r from-[#F4F8FF] to-[#F8FAFC] dark:from-[#0066FF]/[0.12] dark:to-white/[0.03] px-2.5 py-2 pr-3 shadow-[0_2px_12px_-4px_rgba(0,102,255,0.16)] dark:shadow-[0_4px_20px_-6px_rgba(0,102,255,0.28)] hover:border-[#0066FF]/45 dark:hover:border-[#60A5FA]/50 hover:shadow-[0_6px_20px_-6px_rgba(0,102,255,0.25)] transition-[border-color,box-shadow,background-color] duration-300 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0066FF] focus-visible:ring-offset-2 active:scale-[0.99]"
+      >
+        <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-[7px] bg-[#0066FF]/10 dark:bg-[#0066FF]/20 text-[#0066FF] dark:text-[#60A5FA]">
+          <Terminal className="size-3.5" aria-hidden="true" />
+        </span>
+
+        <code className="flex items-center gap-1.5 overflow-x-auto font-mono text-[13.5px] sm:text-[14px] tracking-[-0.01em] whitespace-nowrap">
+          <span className="select-none text-[#94A3B8] dark:text-zinc-500">$</span>
+          <span className="font-semibold text-[#0066FF] dark:text-[#60A5FA]">
+            {pkgManager}
+          </span>
+          {subCmd && (
+            <span className="text-[#52525B] dark:text-zinc-400">{subCmd}</span>
+          )}
+          {pkgName && (
+            <span className="font-semibold text-[#09090B] dark:text-white">
+              {pkgName}
+            </span>
+          )}
+        </code>
+
+        <span
+          aria-hidden="true"
+          className="h-4 w-px shrink-0 bg-[#0066FF]/18 dark:bg-white/12"
+        />
+
+        <span
+          className={cn(
+            "inline-flex shrink-0 items-center gap-1 text-[11.5px] font-medium transition-colors",
+            copied
+              ? "text-emerald-600 dark:text-emerald-400"
+              : "text-[#52525B] dark:text-zinc-400 group-hover/cmd:text-[#0066FF] dark:group-hover/cmd:text-[#60A5FA]",
+          )}
+        >
+          {copied ? (
+            <>
+              <Check className="size-3.5" aria-hidden="true" />
+              <span>Copied</span>
+            </>
+          ) : (
+            <>
+              <Copy className="size-3.5" aria-hidden="true" />
+              <span>Copy</span>
+            </>
+          )}
+        </span>
+      </button>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /* Main Split Developer Hero Section                                   */
 /* ------------------------------------------------------------------ */
 
@@ -427,6 +504,7 @@ export function SplitDeveloperHero({
   id,
   badge,
   title,
+  installCommand,
   description,
   highlights,
   primaryAction,
@@ -468,6 +546,8 @@ export function SplitDeveloperHero({
           <HeadingTag className="text-balance text-[30px] sm:text-[40px] lg:text-[42px] font-semibold tracking-[-0.03em] leading-[1.08] text-[#09090B] dark:text-white">
             {title}
           </HeadingTag>
+
+          {installCommand && <InstallCommandBar command={installCommand} />}
 
           <p className="max-w-xl text-pretty text-[15.5px] leading-[1.65] text-[#52525B] dark:text-zinc-400">
             {description}
