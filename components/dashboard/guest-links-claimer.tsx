@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { showToast } from "@/components/ui/toast-provider";
+import { cfInvalidateCache } from "@/lib/cloudflare-api";
 
 /**
  * Automatically claims any short links created in the Hero before signup/login,
@@ -30,6 +31,8 @@ export function GuestLinksClaimer() {
         const data = await res.json().catch(() => null);
         const count = Number(data?.claimedCount || 0);
         if (count > 0 && !cancelled) {
+          cfInvalidateCache("/api/links");
+          cfInvalidateCache("/api/analytics");
           showToast.success(
             count === 1
               ? "Your link has been added permanently to your account!"

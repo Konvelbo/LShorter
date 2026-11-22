@@ -9,6 +9,7 @@ import React, {
 } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "motion/react";
 import QRCode from "qrcode";
 import {
@@ -22,8 +23,10 @@ import {
   Download,
   Lock,
   Check,
+  ArrowRight,
 } from "lucide-react";
 import { WaveRevealButton } from "@/components/ui/wave-reveal-button";
+import { cfInvalidateCache } from "@/lib/cloudflare-api";
 
 export interface ShortenedItem {
   linkId: string;
@@ -41,15 +44,15 @@ const HERO_STORAGE_KEY = "lshorter_hero_active_link_v1";
 
 const QR_COLOR_SWATCHES: Array<{
   id: string;
-  label: string;
+  name: string;
   hex: string;
-  locked: boolean;
+  guestLocked: boolean;
 }> = [
-  { id: "black", label: "Classic Black (Default)", hex: "#000000", locked: false },
-  { id: "blue", label: "Electric Blue (Account required)", hex: "#0066FF", locked: true },
-  { id: "indigo", label: "Royal Indigo (Account required)", hex: "#6366F1", locked: true },
-  { id: "violet", label: "Deep Violet (Account required)", hex: "#8B5CF6", locked: true },
-  { id: "emerald", label: "Emerald (Account required)", hex: "#10B981", locked: true },
+  { id: "black", name: "Classic Black", hex: "#000000", guestLocked: false },
+  { id: "blue", name: "Electric Blue", hex: "#0066FF", guestLocked: true },
+  { id: "indigo", name: "Royal Indigo", hex: "#6366F1", guestLocked: true },
+  { id: "violet", name: "Deep Violet", hex: "#8B5CF6", guestLocked: true },
+  { id: "emerald", name: "Emerald", hex: "#10B981", guestLocked: true },
 ];
 
 function formatRemaining24h(ms: number): string {
@@ -64,17 +67,21 @@ function formatRemaining24h(ms: number): string {
 }
 
 function getExpirationMs(item: ShortenedItem): number {
+  if (!item.isGuest && !item.expiresAt) {
+    return 0;
+  }
   if (item.expiresAt) {
     const parsed = new Date(item.expiresAt).getTime();
     if (!Number.isNaN(parsed)) return parsed;
   }
+  if (!item.isGuest) return 0;
   const created = item.createdAt
     ? new Date(item.createdAt).getTime()
     : Date.now();
   return (Number.isNaN(created) ? Date.now() : created) + TWENTY_FOUR_HOURS_MS;
 }
 
-function readStoredHeroLink(): ShortenedItem | null {
+function readStoredHeroLink(isAuthenticated: boolean): ShortenedItem | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = window.localStorage.getItem(HERO_STORAGE_KEY);
@@ -83,6 +90,16 @@ function readStoredHeroLink(): ShortenedItem | null {
     if (!parsed || typeof parsed.slug !== "string" || !parsed.slug.trim()) {
       window.localStorage.removeItem(HERO_STORAGE_KEY);
       return null;
+    }
+    if (isAuthenticated) {
+      return {
+        ...parsed,
+        expiresAt: null,
+        isGuest: false,
+      };
+    }
+    if (!parsed.isGuest && parsed.expiresAt === null) {
+      return parsed;
     }
     if (getExpirationMs(parsed) <= Date.now()) {
       window.localStorage.removeItem(HERO_STORAGE_KEY);
@@ -108,8 +125,7 @@ function writeStoredHeroLink(item: ShortenedItem | null): void {
 }
 
 /**
- * Isolated 1-second 24-hour countdown timer so ticking once per second
- * never triggers re-renders of the parent HeroShortener or Hero section.
+ * Isolated 1-second 24-hour countdown timer (rendered strictly for guest links).
  */
 const HeroCountdownTimer = React.memo(function HeroCountdownTimer({
   slug,
@@ -152,6 +168,34 @@ const HeroCountdownTimer = React.memo(function HeroCountdownTimer({
 
 export function HeroShortener() {
   const router = useRouter();
+  const { data: session, status: sessionStatus } = useSession();
+  const sessionUser = session?.user as
+    | {
+        id?: string;
+        name?: string | null;
+        email?: string | null;
+        userNotFound?: boolean;
+        hasCompletedOnboarding?: boolean;
+      }
+    | undefined;
+
+  const isAuthenticated =
+    sessionStatus === "authenticated" &&
+    Boolean(sessionUser) &&
+    !sessionUser?.userNotFound;
+
+  const dashboardHref =
+    sessionUser?.hasCompletedOnboarding === false
+      ? "/onboarding"
+      : "/dashboard";
+
+  const userFirstName = useMemo(() => {
+    const rawName = sessionUser?.name?.trim();
+    if (rawName) return rawName.split(/\s+/)[0];
+    const emailPrefix = sessionUser?.email?.split("@")[0]?.trim();
+    return emailPrefix || "there";
+  }, [sessionUser?.name, sessionUser?.email]);
+
   const [urlInput, setUrlInput] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -161,15 +205,18 @@ export function HeroShortener() {
   const [maxLinks, setMaxLinks] = useState(1);
   const [limitReached, setLimitReached] = useState(false);
 
-  // QR Code hover popup state & generated PNG data URL
+  // QR Code hover popup state, active color & export states
   const [isQrHovered, setIsQrHovered] = useState(false);
+  const [selectedQrColor, setSelectedQrColor] = useState<string>("#000000");
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
+  const [isExportingGif, setIsExportingGif] = useState(false);
   const qrCloseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const qrOpenedAtRef = useRef<number>(0);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const expiringSlugsRef = useRef<Set<string>>(new Set());
 
-  // Keep only the single active Hero link (1-link limit)
+  // Display the latest shortened Hero link
   const orderedLinks = useMemo(() => {
     return [...links]
       .sort(
@@ -181,8 +228,18 @@ export function HeroShortener() {
   }, [links]);
 
   const activeLink = orderedLinks[0] || null;
+  const activeColorName =
+    QR_COLOR_SWATCHES.find((s) => s.hex === selectedQrColor)?.name ||
+    "Classic Black";
 
-  // Generate default black-on-white QR code PNG whenever activeLink changes
+  // Reset color to Classic Black if user logs out
+  useEffect(() => {
+    if (!isAuthenticated && selectedQrColor !== "#000000") {
+      setSelectedQrColor("#000000");
+    }
+  }, [isAuthenticated, selectedQrColor]);
+
+  // Generate QR code PNG whenever activeLink or selectedQrColor changes
   useEffect(() => {
     if (!activeLink?.slug) {
       setQrDataUrl("");
@@ -196,7 +253,7 @@ export function HeroShortener() {
       margin: 2,
       errorCorrectionLevel: "M",
       color: {
-        dark: "#000000",
+        dark: isAuthenticated ? selectedQrColor : "#000000",
         light: "#FFFFFF",
       },
     })
@@ -209,14 +266,31 @@ export function HeroShortener() {
     return () => {
       cancelled = true;
     };
-  }, [activeLink?.slug]);
+  }, [activeLink?.slug, selectedQrColor, isAuthenticated]);
 
   const handleQrMouseEnter = useCallback(() => {
     if (qrCloseTimeoutRef.current) {
       clearTimeout(qrCloseTimeoutRef.current);
       qrCloseTimeoutRef.current = null;
     }
-    setIsQrHovered(true);
+    setIsQrHovered((prev) => {
+      if (!prev) qrOpenedAtRef.current = Date.now();
+      return true;
+    });
+  }, []);
+
+  const handleQrToggleClick = useCallback(() => {
+    setIsQrHovered((prev) => {
+      if (!prev) {
+        qrOpenedAtRef.current = Date.now();
+        return true;
+      }
+      // If hover just opened the popup right before click, keep it open instead of snapping shut
+      if (Date.now() - qrOpenedAtRef.current < 350) {
+        return true;
+      }
+      return false;
+    });
   }, []);
 
   const handleQrMouseLeave = useCallback(() => {
@@ -243,106 +317,205 @@ export function HeroShortener() {
     document.body.removeChild(anchor);
   }, [qrDataUrl, activeLink?.slug]);
 
+  const handleDownloadGif = useCallback(async () => {
+    if (!qrDataUrl || !activeLink?.slug || isExportingGif) return;
+    setIsExportingGif(true);
+    try {
+      const [{ exportFramesToGif }, img] = await Promise.all([
+        import("@/lib/qr/gif-export"),
+        new Promise<HTMLImageElement>((resolve, reject) => {
+          const image = new Image();
+          image.onload = () => resolve(image);
+          image.onerror = reject;
+          image.src = qrDataUrl;
+        }),
+      ]);
+
+      const accent = isAuthenticated ? selectedQrColor : "#000000";
+      const size = 320;
+      const blob = await exportFramesToGif({
+        width: size,
+        height: size,
+        scale: 1,
+        totalFrames: 18,
+        delayMs: 85,
+        durationSec: 1.53,
+        maxColors: 64,
+        renderFrame: (ctx, timeSec) => {
+          const phase = (timeSec / 1.53) * Math.PI * 2;
+          const pulse = 0.96 + 0.04 * Math.sin(phase);
+          const scanY = 26 + ((timeSec / 1.53) * (size - 52));
+
+          ctx.fillStyle = "#FFFFFF";
+          ctx.fillRect(0, 0, size, size);
+
+          // Crisp centered QR code with subtle breathing pulse
+          const drawSize = Math.round((size - 40) * pulse);
+          const offset = Math.round((size - drawSize) / 2);
+          ctx.drawImage(img, offset, offset, drawSize, drawSize);
+
+          // Subtle animated scan line in the selected QR color
+          ctx.save();
+          ctx.globalAlpha = 0.22;
+          ctx.fillStyle = accent;
+          ctx.fillRect(24, Math.round(scanY), size - 48, 3);
+          ctx.restore();
+
+          // Subtle rounded border
+          ctx.strokeStyle = "#E4E7EC";
+          ctx.lineWidth = 2;
+          ctx.strokeRect(1, 1, size - 2, size - 2);
+        },
+      });
+
+      const objectUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = objectUrl;
+      anchor.download = `lsho-${activeLink.slug}-qr.gif`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 1500);
+    } catch {
+      // Fallback to PNG download if GIF encoder encounters an environment limitation
+      handleDownloadPng();
+    } finally {
+      setIsExportingGif(false);
+    }
+  }, [
+    qrDataUrl,
+    activeLink?.slug,
+    isExportingGif,
+    isAuthenticated,
+    selectedQrColor,
+    handleDownloadPng,
+  ]);
+
   const handleLockedQrAction = useCallback(() => {
     setIsQrHovered(false);
     router.push("/register?claim=1");
   }, [router]);
 
-  // Delete an expired link on the server and remove it from the UI when the 24h timer hits zero
-  const handleExpireLink = useCallback(async (slug: string) => {
-    if (expiringSlugsRef.current.has(slug)) return;
-    expiringSlugsRef.current.add(slug);
+  // Delete an expired guest link on the server (never called for authenticated links)
+  const handleExpireLink = useCallback(
+    async (slug: string) => {
+      if (isAuthenticated) return;
+      if (expiringSlugsRef.current.has(slug)) return;
+      expiringSlugsRef.current.add(slug);
 
-    writeStoredHeroLink(null);
-    setLinks((prev) => prev.filter((item) => item.slug !== slug));
-    setLimitReached(false);
+      writeStoredHeroLink(null);
+      setLinks((prev) => prev.filter((item) => item.slug !== slug));
+      setLimitReached(false);
 
-    try {
-      const res = await fetch(
-        `/api/public/shorten?slug=${encodeURIComponent(slug)}`,
-        {
-          method: "DELETE",
-          credentials: "same-origin",
-          cache: "no-store",
+      try {
+        const res = await fetch(
+          `/api/public/shorten?slug=${encodeURIComponent(slug)}`,
+          {
+            method: "DELETE",
+            credentials: "same-origin",
+            cache: "no-store",
+          }
+        );
+        if (res.ok) {
+          const data = await res.json().catch(() => null);
+          if (data?.success) {
+            const serverLinks: ShortenedItem[] = Array.isArray(data.links)
+              ? data.links
+              : [];
+            setLinks(serverLinks);
+            writeStoredHeroLink(serverLinks[serverLinks.length - 1] || null);
+            setMaxLinks(Number(data.maxLinks ?? 1));
+            setLimitReached(Boolean(data.limitReached));
+          }
         }
-      );
-      if (res.ok) {
-        const data = await res.json().catch(() => null);
-        if (data?.success) {
-          const serverLinks: ShortenedItem[] = Array.isArray(data.links)
-            ? data.links
-            : [];
-          setLinks(serverLinks);
-          writeStoredHeroLink(serverLinks[serverLinks.length - 1] || null);
-          setMaxLinks(Number(data.maxLinks ?? 1));
-          setLimitReached(Boolean(data.limitReached));
-        }
+      } catch {
+        // silent cleanup resilience
+      } finally {
+        expiringSlugsRef.current.delete(slug);
       }
-    } catch {
-      // silent cleanup resilience
-    } finally {
-      expiringSlugsRef.current.delete(slug);
-    }
-  }, []);
+    },
+    [isAuthenticated]
+  );
 
   // Fetch current Hero link & live clicks from server
-  const fetchGuestState = useCallback(async (hintSlug?: string) => {
-    try {
-      const stored = readStoredHeroLink();
-      const slugToQuery = (hintSlug || stored?.slug || "").trim();
-      const endpoint = slugToQuery
-        ? `/api/public/shorten?slug=${encodeURIComponent(slugToQuery)}`
-        : "/api/public/shorten";
+  const fetchHeroState = useCallback(
+    async (hintSlug?: string) => {
+      try {
+        const stored = readStoredHeroLink(isAuthenticated);
+        const slugToQuery = (hintSlug || stored?.slug || "").trim();
+        const endpoint = slugToQuery
+          ? `/api/public/shorten?slug=${encodeURIComponent(slugToQuery)}`
+          : "/api/public/shorten";
 
-      const res = await fetch(endpoint, {
-        method: "GET",
-        credentials: "same-origin",
-        cache: "no-store",
-      });
-      if (!res.ok) return;
-      const data = await res.json().catch(() => null);
-      if (!data?.success) return;
+        const res = await fetch(endpoint, {
+          method: "GET",
+          credentials: "same-origin",
+          cache: "no-store",
+        });
+        if (!res.ok) return;
+        const data = await res.json().catch(() => null);
+        if (!data?.success) return;
 
-      const serverLinks: ShortenedItem[] = Array.isArray(data.links)
-        ? data.links
-        : [];
-
-      if (serverLinks.length > 0) {
-        const latest = serverLinks[serverLinks.length - 1];
-        writeStoredHeroLink(latest);
-        setLinks(serverLinks);
-        setMaxLinks(Number(data.maxLinks ?? 1));
-        setLimitReached(
-          Boolean(data.limitReached || serverLinks.length >= (data.maxLinks ?? 1))
+        const serverAuthenticated = Boolean(data.authenticated || isAuthenticated);
+        const serverLinks: ShortenedItem[] = (
+          Array.isArray(data.links) ? data.links : []
+        ).map((item: ShortenedItem) =>
+          serverAuthenticated
+            ? { ...item, expiresAt: null, isGuest: false }
+            : item
         );
-      } else {
-        // Keep a freshly shortened local link if D1 is still propagating (< 15s old)
-        const currentStored = readStoredHeroLink();
-        const isVeryFresh =
-          currentStored &&
-          Date.now() - new Date(currentStored.createdAt || 0).getTime() < 15000;
 
-        if (!isVeryFresh) {
-          writeStoredHeroLink(null);
-          setLinks([]);
-          setMaxLinks(Number(data.maxLinks ?? 1));
-          setLimitReached(Boolean(data.limitReached));
+        if (serverLinks.length > 0) {
+          const latest = serverLinks[serverLinks.length - 1];
+          writeStoredHeroLink(latest);
+          setLinks(serverLinks);
+          setMaxLinks(serverAuthenticated ? -1 : Number(data.maxLinks ?? 1));
+          setLimitReached(
+            serverAuthenticated
+              ? false
+              : Boolean(
+                  data.limitReached || serverLinks.length >= (data.maxLinks ?? 1)
+                )
+          );
+        } else {
+          const currentStored = readStoredHeroLink(serverAuthenticated);
+          const isVeryFresh =
+            currentStored &&
+            Date.now() - new Date(currentStored.createdAt || 0).getTime() <
+              15000;
+
+          if (!isVeryFresh) {
+            writeStoredHeroLink(null);
+            setLinks([]);
+            setMaxLinks(serverAuthenticated ? -1 : Number(data.maxLinks ?? 1));
+            setLimitReached(
+              serverAuthenticated ? false : Boolean(data.limitReached)
+            );
+          } else if (serverAuthenticated && currentStored) {
+            setLinks([{ ...currentStored, expiresAt: null, isGuest: false }]);
+            setMaxLinks(-1);
+            setLimitReached(false);
+          }
         }
+      } catch {
+        // silent polling resilience
       }
-    } catch {
-      // silent polling resilience
-    }
-  }, []);
+    },
+    [isAuthenticated]
+  );
 
-  // Initial load of Hero link: hydrate immediately from localStorage, then sync live click count with D1
+  // Initial load & auth transition sync: hydrate from localStorage, then sync live clicks with D1
   useEffect(() => {
-    const cached = readStoredHeroLink();
+    if (sessionStatus === "loading") return;
+    const cached = readStoredHeroLink(isAuthenticated);
     if (cached) {
       setLinks([cached]);
-      setLimitReached(true);
+      setLimitReached(!isAuthenticated);
+    } else if (isAuthenticated) {
+      setLimitReached(false);
     }
-    fetchGuestState(cached?.slug);
-  }, [fetchGuestState]);
+    fetchHeroState(cached?.slug);
+  }, [sessionStatus, isAuthenticated, fetchHeroState]);
 
   // Real-time 5-second click polling while a link exists and tab is visible
   useEffect(() => {
@@ -353,13 +526,13 @@ export function HeroShortener() {
         typeof document !== "undefined" &&
         document.visibilityState === "visible"
       ) {
-        fetchGuestState(activeLink?.slug);
+        fetchHeroState(activeLink?.slug);
       }
     }, 5000);
 
     const handleVisibility = () => {
       if (document.visibilityState === "visible") {
-        fetchGuestState(activeLink?.slug);
+        fetchHeroState(activeLink?.slug);
       }
     };
     document.addEventListener("visibilitychange", handleVisibility);
@@ -368,7 +541,7 @@ export function HeroShortener() {
       clearInterval(interval);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, [links.length, activeLink?.slug, fetchGuestState]);
+  }, [links.length, activeLink?.slug, fetchHeroState]);
 
   // Listen for Navbar / Final CTA focus events
   useEffect(() => {
@@ -389,8 +562,8 @@ export function HeroShortener() {
     e.preventDefault();
     setErrorMsg(null);
 
-    // On the 2nd click (when 1 link has already been shortened), redirect directly to account creation
-    if (limitReached || orderedLinks.length >= maxLinks) {
+    // Guests only: after 1 temporary link, guide to free account creation
+    if (!isAuthenticated && (limitReached || (maxLinks > 0 && orderedLinks.length >= maxLinks))) {
       router.push("/register?claim=1");
       return;
     }
@@ -429,20 +602,22 @@ export function HeroShortener() {
 
     setIsSubmitting(true);
     try {
-      const existingCached = readStoredHeroLink();
+      const existingCached = readStoredHeroLink(isAuthenticated);
       const res = await fetch("/api/public/shorten", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
         body: JSON.stringify({
           targetUrl: trimmed,
-          existingSlug: activeLink?.slug || existingCached?.slug || undefined,
+          existingSlug: !isAuthenticated
+            ? activeLink?.slug || existingCached?.slug || undefined
+            : undefined,
         }),
       });
 
       const data = await res.json().catch(() => ({}));
 
-      if (res.status === 403 && data?.code === "GUEST_LIMIT_REACHED") {
+      if (!isAuthenticated && res.status === 403 && data?.code === "GUEST_LIMIT_REACHED") {
         if (Array.isArray(data.links) && data.links.length > 0) {
           setLinks(data.links);
           writeStoredHeroLink(data.links[data.links.length - 1]);
@@ -460,9 +635,10 @@ export function HeroShortener() {
         return;
       }
 
-      const fallbackExpiresAt = new Date(
-        Date.now() + TWENTY_FOUR_HOURS_MS
-      ).toISOString();
+      const serverAuthenticated = Boolean(data.authenticated || isAuthenticated);
+      const fallbackExpiresAt = serverAuthenticated
+        ? null
+        : new Date(Date.now() + TWENTY_FOUR_HOURS_MS).toISOString();
 
       const rawLinks: ShortenedItem[] = Array.isArray(data.links)
         ? data.links
@@ -471,15 +647,46 @@ export function HeroShortener() {
           : [];
       const normalizedLinks = rawLinks.map((item) => ({
         ...item,
-        expiresAt: item.expiresAt || fallbackExpiresAt,
+        expiresAt: serverAuthenticated
+          ? null
+          : item.expiresAt || fallbackExpiresAt,
+        isGuest: !serverAuthenticated,
       }));
 
       const latest = normalizedLinks[normalizedLinks.length - 1] || null;
       writeStoredHeroLink(latest);
       setLinks(normalizedLinks);
-      setMaxLinks(Number(data.maxLinks ?? 1));
-      setLimitReached(Boolean(data.limitReached ?? normalizedLinks.length >= 1));
+      setMaxLinks(serverAuthenticated ? -1 : Number(data.maxLinks ?? 1));
+      setLimitReached(
+        serverAuthenticated
+          ? false
+          : Boolean(data.limitReached ?? normalizedLinks.length >= 1)
+      );
       setUrlInput("");
+
+      // Synchronize authenticated link creation immediately with the Dashboard (same tab & other open tabs)
+      if (serverAuthenticated && latest) {
+        cfInvalidateCache("/api/links");
+        cfInvalidateCache("/api/analytics");
+        try {
+          const bc = new BroadcastChannel("lshorter_realtime");
+          bc.postMessage({
+            type: "click",
+            timestamp: Date.now(),
+            slug: latest.slug,
+            id: latest.linkId,
+          });
+          bc.close();
+        } catch {
+          // ignore BroadcastChannel unavailability
+        }
+        window.dispatchEvent(
+          new CustomEvent("lshorter_links_updated", {
+            detail: { slug: latest.slug, id: latest.linkId },
+          })
+        );
+        window.dispatchEvent(new Event("lshorter_data_change"));
+      }
     } catch {
       setErrorMsg("Network error. Please try again in a moment.");
     } finally {
@@ -490,15 +697,20 @@ export function HeroShortener() {
   // Trigger rapid click-sync right after user clicks their newly generated short link
   const handleLinkClicked = () => {
     const slug = activeLink?.slug;
-    setTimeout(() => fetchGuestState(slug), 1100);
-    setTimeout(() => fetchGuestState(slug), 2800);
-    setTimeout(() => fetchGuestState(slug), 5200);
+    setTimeout(() => fetchHeroState(slug), 1100);
+    setTimeout(() => fetchHeroState(slug), 2800);
+    setTimeout(() => fetchHeroState(slug), 5200);
   };
 
   const activeExpiresAtMs = useMemo(() => {
-    if (!activeLink) return 0;
+    if (!activeLink || isAuthenticated || !activeLink.isGuest) return 0;
     return getExpirationMs(activeLink);
-  }, [activeLink]);
+  }, [activeLink, isAuthenticated]);
+
+  const showGuestCountdown =
+    !isAuthenticated &&
+    Boolean(activeLink?.isGuest) &&
+    activeExpiresAtMs > 0;
 
   return (
     <div
@@ -581,7 +793,25 @@ export function HeroShortener() {
         )}
       </AnimatePresence>
 
-      {/* ── Top-to-Bottom Fade & Slide Shortened Link Row + Hover Scale + QR Hover Popup + 24-Hour Countdown + Signup Prompt ── */}
+      {/* Greeting for authenticated users when no link has been shortened in this Hero yet */}
+      {isAuthenticated && !activeLink && (
+        <p className="mt-3 text-center text-[13px] sm:text-[13.5px] text-[#312E81]/85 dark:text-[#C7D2FE]/85 leading-relaxed">
+          Welcome back,{" "}
+          <span className="font-semibold text-[#1E1B4B] dark:text-white">
+            {userFirstName}
+          </span>
+          ! Any link you shorten here is saved straight to your account —{" "}
+          <Link
+            href={dashboardHref}
+            className="inline-flex items-center gap-1 font-semibold text-[#0066FF] dark:text-[#5294FF] underline-offset-4 hover:underline"
+          >
+            <span>Open Dashboard</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </p>
+      )}
+
+      {/* ── Shortened Link Row + Hover Scale + QR Hover Popup + Guest Timer/Prompt OR Auth Greeting ── */}
       <AnimatePresence mode="wait">
         {activeLink && (
           <motion.div
@@ -631,7 +861,7 @@ export function HeroShortener() {
                     type="button"
                     aria-label="Preview QR Code"
                     aria-expanded={isQrHovered}
-                    onClick={() => setIsQrHovered((prev) => !prev)}
+                    onClick={handleQrToggleClick}
                     className={`w-8 h-8 rounded-[8px] flex items-center justify-center border transition-all duration-150 cursor-pointer ${
                       isQrHovered
                         ? "bg-[#6366F1] text-white border-[#6366F1] shadow-[0_4px_14px_rgba(99,102,241,0.35)]"
@@ -678,44 +908,60 @@ export function HeroShortener() {
                           )}
                         </div>
 
-                        {/* Color Options (Black active by default, others locked with padlock) */}
+                        {/* Color Options: Fully unlocked for authenticated users, locked padlocks for guests only */}
                         <div className="mt-3">
                           <div className="flex items-center justify-between text-[11px] font-medium text-[#475467] dark:text-zinc-400 mb-1.5">
                             <span>Color</span>
                             <span className="text-[10.5px] text-[#6366F1] dark:text-[#A5B4FC]">
-                              Pro colors locked
+                              {isAuthenticated
+                                ? activeColorName
+                                : "Account colors locked"}
                             </span>
                           </div>
                           <div className="flex items-center justify-between gap-1.5">
-                            {QR_COLOR_SWATCHES.map((swatch) => (
-                              <button
-                                key={swatch.id}
-                                type="button"
-                                title={swatch.label}
-                                aria-label={swatch.label}
-                                onClick={
-                                  swatch.locked
-                                    ? handleLockedQrAction
-                                    : undefined
-                                }
-                                className={`relative w-7 h-7 rounded-[7px] flex items-center justify-center transition-transform cursor-pointer ${
-                                  !swatch.locked
-                                    ? "ring-2 ring-[#0066FF] ring-offset-2 ring-offset-white dark:ring-offset-[#11131A] scale-105"
-                                    : "opacity-80 hover:opacity-100 hover:scale-105"
-                                }`}
-                                style={{ backgroundColor: swatch.hex }}
-                              >
-                                {swatch.locked ? (
-                                  <Lock className="w-3 h-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.65)]" />
-                                ) : (
-                                  <Check className="w-3.5 h-3.5 text-white" />
-                                )}
-                              </button>
-                            ))}
+                            {QR_COLOR_SWATCHES.map((swatch) => {
+                              const isLocked =
+                                !isAuthenticated && swatch.guestLocked;
+                              const isSelected = isAuthenticated
+                                ? selectedQrColor === swatch.hex
+                                : !swatch.guestLocked;
+                              const swatchLabel = isLocked
+                                ? `${swatch.name} (Account required)`
+                                : swatch.name;
+
+                              return (
+                                <button
+                                  key={swatch.id}
+                                  type="button"
+                                  title={swatchLabel}
+                                  aria-label={swatchLabel}
+                                  aria-pressed={isSelected}
+                                  onClick={() => {
+                                    if (isLocked) {
+                                      handleLockedQrAction();
+                                    } else {
+                                      setSelectedQrColor(swatch.hex);
+                                    }
+                                  }}
+                                  className={`relative w-7 h-7 rounded-[7px] flex items-center justify-center transition-transform cursor-pointer ${
+                                    isSelected
+                                      ? "ring-2 ring-[#0066FF] ring-offset-2 ring-offset-white dark:ring-offset-[#11131A] scale-105"
+                                      : "opacity-85 hover:opacity-100 hover:scale-105"
+                                  }`}
+                                  style={{ backgroundColor: swatch.hex }}
+                                >
+                                  {isLocked ? (
+                                    <Lock className="w-3 h-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.65)]" />
+                                  ) : isSelected ? (
+                                    <Check className="w-3.5 h-3.5 text-white" />
+                                  ) : null}
+                                </button>
+                              );
+                            })}
                           </div>
                         </div>
 
-                        {/* Action Buttons: Download PNG + Locked GIF Button */}
+                        {/* Action Buttons: Download PNG + GIF (unlocked for authenticated users, locked for guests) */}
                         <div className="mt-3.5 grid grid-cols-2 gap-2">
                           <button
                             type="button"
@@ -726,15 +972,32 @@ export function HeroShortener() {
                             <span>PNG</span>
                           </button>
 
-                          <button
-                            type="button"
-                            onClick={handleLockedQrAction}
-                            title="Create a free account to export animated GIF QR codes"
-                            className="h-8 px-2.5 rounded-[8px] bg-[#F2F4F7] dark:bg-white/[0.08] hover:bg-[#E4E7EC] dark:hover:bg-white/[0.14] border border-[#D0D5DD] dark:border-white/15 text-[#101828] dark:text-white text-[12px] font-semibold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                          >
-                            <Lock className="w-3 h-3 text-[#6366F1] dark:text-[#A5B4FC] shrink-0" />
-                            <span>GIF</span>
-                          </button>
+                          {isAuthenticated ? (
+                            <button
+                              type="button"
+                              disabled={isExportingGif}
+                              onClick={handleDownloadGif}
+                              title="Download animated GIF QR code"
+                              className="h-8 px-2.5 rounded-[8px] bg-[#F2F4F7] dark:bg-white/[0.08] hover:bg-[#E4E7EC] dark:hover:bg-white/[0.14] border border-[#D0D5DD] dark:border-white/15 text-[#101828] dark:text-white text-[12px] font-semibold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-60"
+                            >
+                              {isExportingGif ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+                              ) : (
+                                <Download className="w-3.5 h-3.5 shrink-0" />
+                              )}
+                              <span>GIF</span>
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={handleLockedQrAction}
+                              title="Create a free account to export animated GIF QR codes"
+                              className="h-8 px-2.5 rounded-[8px] bg-[#F2F4F7] dark:bg-white/[0.08] hover:bg-[#E4E7EC] dark:hover:bg-white/[0.14] border border-[#D0D5DD] dark:border-white/15 text-[#101828] dark:text-white text-[12px] font-semibold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                            >
+                              <Lock className="w-3 h-3 text-[#6366F1] dark:text-[#A5B4FC] shrink-0" />
+                              <span>GIF</span>
+                            </button>
+                          )}
                         </div>
                       </motion.div>
                     )}
@@ -743,24 +1006,43 @@ export function HeroShortener() {
               </div>
             </motion.div>
 
-            {/* Isolated 24-Hour Live Countdown Timer */}
-            <HeroCountdownTimer
-              slug={activeLink.slug}
-              expiresAtMs={activeExpiresAtMs}
-              onExpire={handleExpireLink}
-            />
+            {/* 24-Hour Live Countdown Timer (strictly for unauthenticated guest links) */}
+            {showGuestCountdown && (
+              <HeroCountdownTimer
+                slug={activeLink.slug}
+                expiresAtMs={activeExpiresAtMs}
+                onExpire={handleExpireLink}
+              />
+            )}
 
-            {/* English Account Creation Prompt (at the red line position below the countdown) */}
-            <p className="mt-2.5 text-center text-[13px] sm:text-[13.5px] text-[#312E81]/90 dark:text-[#C7D2FE]/90 leading-relaxed max-w-[580px]">
-              <Link
-                href="/register?claim=1"
-                className="font-semibold text-[#0066FF] dark:text-[#5294FF] underline-offset-4 hover:underline"
-              >
-                Create your account
-              </Link>{" "}
-              to keep this link forever, customize its slug &amp; QR code, and
-              track every click in real time.
-            </p>
+            {/* Authenticated Greeting + Dashboard link OR Guest Account Creation Prompt */}
+            {isAuthenticated ? (
+              <p className="mt-3 text-center text-[13px] sm:text-[13.5px] text-[#312E81]/90 dark:text-[#C7D2FE]/90 leading-relaxed max-w-[580px]">
+                Welcome back,{" "}
+                <span className="font-semibold text-[#1E1B4B] dark:text-white">
+                  {userFirstName}
+                </span>
+                ! This link is saved permanently in your workspace —{" "}
+                <Link
+                  href={dashboardHref}
+                  className="inline-flex items-center gap-1 font-semibold text-[#0066FF] dark:text-[#5294FF] underline-offset-4 hover:underline"
+                >
+                  <span>Go to your Dashboard</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </p>
+            ) : (
+              <p className="mt-2.5 text-center text-[13px] sm:text-[13.5px] text-[#312E81]/90 dark:text-[#C7D2FE]/90 leading-relaxed max-w-[580px]">
+                <Link
+                  href="/register?claim=1"
+                  className="font-semibold text-[#0066FF] dark:text-[#5294FF] underline-offset-4 hover:underline"
+                >
+                  Create your account
+                </Link>{" "}
+                to keep this link forever, customize its slug &amp; QR code, and
+                track every click in real time.
+              </p>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
