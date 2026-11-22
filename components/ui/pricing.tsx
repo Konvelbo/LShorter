@@ -6,13 +6,17 @@ import { Switch } from "@/components/ui/switch";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { cn } from "@/lib/utils";
 import { motion } from "motion/react";
-import { Check, Star } from "lucide-react";
+import { Check, Loader2, Star } from "lucide-react";
 import Link from "next/link";
 import { useState, useRef } from "react";
 import confetti from "canvas-confetti";
 import NumberFlow from "@number-flow/react";
 
+export type PaidPlanId = "PRO" | "BUSINESS" | "ENTERPRISE";
+export type BillingCycle = "MONTHLY" | "YEARLY";
+
 export interface PricingPlan {
+  planId?: "FREE" | PaidPlanId;
   name: string;
   price: number;
   yearlyPrice: number;
@@ -36,6 +40,7 @@ export interface PricingPlan {
 }
 
 export interface EnterpriseBannerPlan {
+  planId?: "ENTERPRISE";
   name: string;
   monthlyPrice: number;
   yearlyPrice: number;
@@ -56,6 +61,8 @@ export interface PricingProps {
   title?: string;
   description?: string;
   annualSaveLabel?: string;
+  onSelectPlan?: (planId: PaidPlanId, cycle: BillingCycle) => void | Promise<void>;
+  loadingPlan?: string | null;
 }
 
 export function Pricing({
@@ -64,6 +71,8 @@ export function Pricing({
   title = "Simple, Transparent Pricing",
   description = "Choose the plan that works for you.\nAll plans run on Cloudflare's 310+ global edge PoPs with instant PDF invoices.",
   annualSaveLabel = "Save up to 50%",
+  onSelectPlan,
+  loadingPlan,
 }: PricingProps) {
   const [isMonthly, setIsMonthly] = useState(true);
   const isDesktop = useMediaQuery("(min-width: 768px)");
@@ -290,21 +299,53 @@ export function Pricing({
 
                 <hr className="w-full my-5 border-[#E4E7EC] dark:border-white/[0.08]" />
 
-                <Link
-                  href={activeHref}
-                  className={cn(
-                    buttonVariants({
-                      variant: plan.isPopular ? "primary" : "outline",
-                    }),
-                    "group relative w-full h-11 gap-2 overflow-hidden rounded-[10px] text-[14.5px] font-semibold tracking-tight",
-                    "transform-gpu transition-colors duration-200",
-                    plan.isPopular
-                      ? "bg-[#0066FF] hover:bg-[#002E99] text-white border border-[#0066FF] hover:border-[#002E99]"
-                      : "bg-white dark:bg-white/[0.04] text-[#09090B] dark:text-white border-[#D4D4D8] dark:border-white/[0.14] hover:bg-[#0066FF] hover:text-white hover:border-[#0066FF]"
-                  )}
-                >
-                  {plan.buttonText}
-                </Link>
+                {onSelectPlan && plan.planId && plan.planId !== "FREE" ? (
+                  <button
+                    type="button"
+                    disabled={Boolean(loadingPlan)}
+                    onClick={() =>
+                      onSelectPlan(
+                        plan.planId as PaidPlanId,
+                        isMonthly ? "MONTHLY" : "YEARLY"
+                      )
+                    }
+                    className={cn(
+                      buttonVariants({
+                        variant: plan.isPopular ? "primary" : "outline",
+                      }),
+                      "group relative w-full h-11 gap-2 overflow-hidden rounded-[10px] text-[14.5px] font-semibold tracking-tight cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed",
+                      "transform-gpu transition-colors duration-200",
+                      plan.isPopular
+                        ? "bg-[#0066FF] hover:bg-[#002E99] text-white border border-[#0066FF] hover:border-[#002E99]"
+                        : "bg-white dark:bg-white/[0.04] text-[#09090B] dark:text-white border-[#D4D4D8] dark:border-white/[0.14] hover:bg-[#0066FF] hover:text-white hover:border-[#0066FF]"
+                    )}
+                  >
+                    {loadingPlan === plan.planId ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span>Redirecting...</span>
+                      </>
+                    ) : (
+                      plan.buttonText
+                    )}
+                  </button>
+                ) : (
+                  <Link
+                    href={activeHref}
+                    className={cn(
+                      buttonVariants({
+                        variant: plan.isPopular ? "primary" : "outline",
+                      }),
+                      "group relative w-full h-11 gap-2 overflow-hidden rounded-[10px] text-[14.5px] font-semibold tracking-tight",
+                      "transform-gpu transition-colors duration-200",
+                      plan.isPopular
+                        ? "bg-[#0066FF] hover:bg-[#002E99] text-white border border-[#0066FF] hover:border-[#002E99]"
+                        : "bg-white dark:bg-white/[0.04] text-[#09090B] dark:text-white border-[#D4D4D8] dark:border-white/[0.14] hover:bg-[#0066FF] hover:text-white hover:border-[#0066FF]"
+                    )}
+                  >
+                    {plan.buttonText}
+                  </Link>
+                )}
                 <p className="mt-4 text-[12px] leading-5 text-[#71717A] dark:text-zinc-400">
                   {plan.description}
                 </p>
@@ -358,12 +399,35 @@ export function Pricing({
               {isMonthly ? enterprise.monthlyBillingNote : enterprise.yearlyBillingNote}
             </p>
 
-            <Link
-              href={isMonthly ? enterprise.monthlyHref : enterprise.yearlyHref}
-              className="inline-flex items-center h-[44px] mt-6 px-5 rounded-[10px] border border-[#D0D5DD] dark:border-[#2E2E33] text-[15px] font-medium leading-none text-[#101828] dark:text-[#FAFAFA] hover:bg-[#101828]/[0.05] dark:hover:bg-[#FAFAFA]/[0.06] transition-colors focus-visible:outline-2 focus-visible:outline-[#0066FF] focus-visible:outline-offset-2"
-            >
-              {enterprise.buttonText}
-            </Link>
+            {onSelectPlan ? (
+              <button
+                type="button"
+                disabled={Boolean(loadingPlan)}
+                onClick={() =>
+                  onSelectPlan(
+                    enterprise.planId || "ENTERPRISE",
+                    isMonthly ? "MONTHLY" : "YEARLY"
+                  )
+                }
+                className="inline-flex items-center gap-2 h-[44px] mt-6 px-5 rounded-[10px] border border-[#D0D5DD] dark:border-[#2E2E33] text-[15px] font-medium leading-none text-[#101828] dark:text-[#FAFAFA] hover:bg-[#101828]/[0.05] dark:hover:bg-[#FAFAFA]/[0.06] transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-[#0066FF] focus-visible:outline-offset-2"
+              >
+                {loadingPlan === (enterprise.planId || "ENTERPRISE") ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Redirecting...</span>
+                  </>
+                ) : (
+                  enterprise.buttonText
+                )}
+              </button>
+            ) : (
+              <Link
+                href={isMonthly ? enterprise.monthlyHref : enterprise.yearlyHref}
+                className="inline-flex items-center h-[44px] mt-6 px-5 rounded-[10px] border border-[#D0D5DD] dark:border-[#2E2E33] text-[15px] font-medium leading-none text-[#101828] dark:text-[#FAFAFA] hover:bg-[#101828]/[0.05] dark:hover:bg-[#FAFAFA]/[0.06] transition-colors focus-visible:outline-2 focus-visible:outline-[#0066FF] focus-visible:outline-offset-2"
+              >
+                {enterprise.buttonText}
+              </Link>
+            )}
           </div>
 
           <div className="flex items-center pt-8 lg:pt-0 lg:pl-12 border-t lg:border-t-0 lg:border-l border-[#E4E7EC] dark:border-[#222225]">

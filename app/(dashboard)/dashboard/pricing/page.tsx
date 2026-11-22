@@ -113,48 +113,38 @@ export default function PricingPage() {
       return;
     }
 
-    // If user is not logged in, redirect directly to checkout where guest checkout is supported
-    if (!session?.user) {
-      window.location.href = `/checkout?plan=${planKey}&cycle=${isAnnual ? "YEARLY" : "MONTHLY"}`;
+    // Guests selecting Starter go straight to free registration
+    if (!session?.user && planKey === "FREE") {
+      router.push("/register");
       return;
     }
 
     setLoadingPlan(planKey);
     try {
-      // For paid plans, initiate checkout session
+      // For paid plans, initiate direct Dodo Payments hosted checkout (authenticated or guest)
       if (planKey !== "FREE") {
-        try {
-          const res = await fetch("/api/billing/checkout", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              planId: planKey,
-              cycle: isAnnual ? "YEARLY" : "MONTHLY",
-              userId,
-              customerEmail: session?.user?.email || undefined,
-              successUrl: `${window.location.origin}/dashboard/settings?tab=billing&checkout_success=true&plan=${planKey}`,
-              cancelUrl: `${window.location.origin}/dashboard/pricing`,
-            }),
-          });
+        const res = await fetch("/api/billing/checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            planId: planKey,
+            cycle: isAnnual ? "YEARLY" : "MONTHLY",
+            userId: userId || undefined,
+            customerEmail: session?.user?.email || undefined,
+            successUrl: `${window.location.origin}/dashboard/settings?tab=billing&checkout_success=true&plan=${planKey}`,
+            cancelUrl: window.location.href,
+          }),
+        });
 
-          const data = await res.json();
-          if (data.success && data.checkoutUrl) {
-            window.location.href = data.checkoutUrl;
-            return;
-          }
-
-          if (data.error) {
-            console.warn("[Pricing] Direct checkout API notice, falling back to /checkout:", data.error);
-            window.location.href = `/checkout?plan=${planKey}&cycle=${isAnnual ? "YEARLY" : "MONTHLY"}`;
-            return;
-          }
-        } catch (apiErr) {
-          console.warn("[Pricing] Direct checkout error, redirecting to /checkout:", apiErr);
-          window.location.href = `/checkout?plan=${planKey}&cycle=${isAnnual ? "YEARLY" : "MONTHLY"}`;
+        const data = await res.json();
+        if (res.ok && data.success && data.checkoutUrl) {
+          window.location.href = data.checkoutUrl;
           return;
         }
 
-        setLoadingPlan(null);
+        showToast.error(
+          data.error || "Unable to initiate Dodo Payments checkout session."
+        );
         return;
       }
 

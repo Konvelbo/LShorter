@@ -363,10 +363,10 @@ export function PathLockFocusSection() {
   return (
     <section
       id="pathlock"
-      className="relative w-full bg-[#FFFFFF] dark:bg-[#09090B] text-[#101828] dark:text-[#FAFAFA] py-20 sm:py-24 border-t border-[#E4E7EC] dark:border-[#222225] scroll-mt-20 overflow-x-clip transition-colors duration-300"
+      className="relative w-full min-h-[100svh] flex items-center bg-[#FFFFFF] dark:bg-[#09090B] text-[#101828] dark:text-[#FAFAFA] py-20 sm:py-24 border-t border-[#E4E7EC] dark:border-[#222225] scroll-mt-16 overflow-x-clip transition-colors duration-300"
     >
-      <div className="mx-auto w-full max-w-[1400px] px-5 sm:px-8 xl:px-10">
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,5.2fr)_minmax(0,8fr)] gap-8 xl:gap-12 items-stretch">
+      <div className="mx-auto w-full max-w-[1520px] px-6 sm:px-10 xl:px-14">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,5fr)_minmax(0,8.2fr)] gap-10 xl:gap-14 items-stretch">
           {/* Left Column — Wider Editorial Hairline Feature Architecture */}
           <div className="min-w-0 flex flex-col justify-between">
             <div>

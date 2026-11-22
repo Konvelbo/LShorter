@@ -13,6 +13,7 @@ import {
   PricingPreviewSection,
 } from "@/components/marketing/landing-sections";
 import { FaqSection } from "@/components/marketing/faq-section";
+import { GlobeFeatureSection } from "@/components/ui/globe-feature-section";
 import { FaqStructuredData } from "@/components/seo/json-ld";
 
 export const metadata: Metadata = {
@@ -89,6 +90,9 @@ export default function LandingPage() {
 
       {/* 9. Developer-First REST API & Webhooks (#api — Interactive Code Terminal + Docs CTA) */}
       <DeveloperApiSection />
+
+      {/* 9B. Global Control & Unlimited Tracking Interactive Globe Section */}
+      <GlobeFeatureSection />
 
       {/* 10. Condensed Pricing Preview (Real Starter / Pro / Business Plans) */}
       <PricingPreviewSection />

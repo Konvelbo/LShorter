@@ -244,7 +244,6 @@ export default function MarketingLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const pathname = usePathname();
   const [isIframeFullscreen, setIsIframeFullscreen] = useState(false);
 
   useEffect(() => {
@@ -258,10 +257,6 @@ export default function MarketingLayout({
       window.removeEventListener("product-fullscreen-change", handleFullscreenChange);
     };
   }, []);
-
-  if (pathname?.startsWith("/checkout")) {
-    return <>{children}</>;
-  }
 
   return (
     <SmoothScrollProvider>

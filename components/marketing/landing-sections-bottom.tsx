@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Check,
@@ -33,7 +34,10 @@ import {
   Pricing,
   type PricingPlan,
   type EnterpriseBannerPlan,
+  type PaidPlanId,
+  type BillingCycle,
 } from "@/components/ui/pricing";
+import { showToast } from "@/components/ui/toast-provider";
 import { PRICING_PLANS } from "@/src/config/pricing";
 import {
   EASE_OUT_EXPO,
@@ -698,6 +702,7 @@ export function DeveloperApiSection() {
 // ============================================================================
 const LSHORTER_PRICING_PLANS: PricingPlan[] = [
   {
+    planId: "FREE",
     name: PRICING_PLANS.FREE.name,
     price: PRICING_PLANS.FREE.monthlyPrice,
     yearlyPrice: PRICING_PLANS.FREE.yearlyPrice,
@@ -724,6 +729,7 @@ const LSHORTER_PRICING_PLANS: PricingPlan[] = [
     isPopular: false,
   },
   {
+    planId: "PRO",
     name: PRICING_PLANS.PRO.name,
     price: PRICING_PLANS.PRO.promoMonthly.firstMonthPrice,
     yearlyPrice: PRICING_PLANS.PRO.yearlyPrice,
@@ -749,11 +755,12 @@ const LSHORTER_PRICING_PLANS: PricingPlan[] = [
     ],
     description: "Grow your brand and maximize your conversion rates.",
     buttonText: "Choose Pro",
-    href: "/checkout?plan=PRO&cycle=MONTHLY",
-    yearlyHref: "/checkout?plan=PRO&cycle=YEARLY",
+    href: "/pricing",
+    yearlyHref: "/pricing",
     isPopular: true,
   },
   {
+    planId: "BUSINESS",
     name: PRICING_PLANS.BUSINESS.name,
     price: PRICING_PLANS.BUSINESS.promoMonthly.firstMonthPrice,
     yearlyPrice: PRICING_PLANS.BUSINESS.yearlyPrice,
@@ -781,13 +788,14 @@ const LSHORTER_PRICING_PLANS: PricingPlan[] = [
     ],
     description: "For multi-channel campaigns and growing teams.",
     buttonText: "Choose Business",
-    href: "/checkout?plan=BUSINESS&cycle=MONTHLY",
-    yearlyHref: "/checkout?plan=BUSINESS&cycle=YEARLY",
+    href: "/pricing",
+    yearlyHref: "/pricing",
     isPopular: false,
   },
 ];
 
 const LSHORTER_ENTERPRISE_PLAN: EnterpriseBannerPlan = {
+  planId: "ENTERPRISE",
   name: PRICING_PLANS.ENTERPRISE.name,
   monthlyPrice: PRICING_PLANS.ENTERPRISE.promoMonthly.firstMonthPrice,
   yearlyPrice: PRICING_PLANS.ENTERPRISE.yearlyPrice,
@@ -806,11 +814,52 @@ const LSHORTER_ENTERPRISE_PLAN: EnterpriseBannerPlan = {
     "Global alerts with VIP routing",
   ],
   buttonText: "Choose Enterprise",
-  monthlyHref: "/checkout?plan=ENTERPRISE&cycle=MONTHLY",
-  yearlyHref: "/checkout?plan=ENTERPRISE&cycle=YEARLY",
+  monthlyHref: "/pricing",
+  yearlyHref: "/pricing",
 };
 
 export function PricingPreviewSection() {
+  const { data: session } = useSession();
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+
+  const handleDirectCheckout = async (
+    planId: PaidPlanId,
+    cycle: BillingCycle
+  ) => {
+    setLoadingPlan(planId);
+    try {
+      const userId = (session?.user as { id?: string } | undefined)?.id;
+      const res = await fetch("/api/billing/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          planId,
+          cycle,
+          userId: userId || undefined,
+          customerEmail: session?.user?.email || undefined,
+          successUrl: `${window.location.origin}/dashboard/settings?tab=billing&checkout_success=true&plan=${planId}`,
+          cancelUrl: `${window.location.origin}/#pricing-preview`,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success && data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+        return;
+      }
+
+      showToast.error(
+        data.error || "Unable to initiate Dodo Payments checkout session."
+      );
+    } catch {
+      showToast.error(
+        "Unable to reach Dodo Payments checkout. Please try again."
+      );
+    } finally {
+      setLoadingPlan(null);
+    }
+  };
+
   return (
     <section
       id="pricing-preview"
@@ -822,6 +871,8 @@ export function PricingPreviewSection() {
         title="Simple, transparent pricing"
         description={"Zero downtime guaranteed across 310+ Cloudflare Edge PoPs.\nCertified PDF invoices generated instantly in one click."}
         annualSaveLabel="Save up to 50%"
+        onSelectPlan={handleDirectCheckout}
+        loadingPlan={loadingPlan}
       />
 
       <div className="pb-16 flex justify-center">

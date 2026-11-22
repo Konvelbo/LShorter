@@ -36,7 +36,7 @@ export default function robots(): MetadataRoute.Robots {
           "/api/v1/images/",
           "/r/",
         ],
-        disallow: ["/dashboard/", "/checkout/", "/onboarding/"],
+        disallow: ["/dashboard/", "/onboarding/"],
       },
       {
         userAgent: "*",
@@ -63,8 +63,6 @@ export default function robots(): MetadataRoute.Robots {
           "/login",
           "/register",
           "/onboarding",
-          "/checkout",
-          "/checkout/",
           "/video-preview",
           "/*?*debug=*",
           "/*?*preview=*",

@@ -442,7 +442,7 @@ export function SplitDeveloperHero({
     <section
       id={id}
       className={cn(
-        "relative isolate w-full overflow-x-clip bg-[#FFFFFF] dark:bg-[#09090B] px-5 sm:px-8 py-24 sm:py-32 text-[#09090B] dark:text-white border-t border-[#E4E7EC] dark:border-white/[0.08] scroll-mt-20 transition-colors duration-300",
+        "relative isolate w-full min-h-[100svh] flex items-center overflow-x-clip bg-[#FFFFFF] dark:bg-[#09090B] px-6 sm:px-10 xl:px-14 py-20 sm:py-24 text-[#09090B] dark:text-white border-t border-[#E4E7EC] dark:border-white/[0.08] scroll-mt-16 transition-colors duration-300",
         className,
       )}
     >
@@ -453,7 +453,7 @@ export function SplitDeveloperHero({
       />
 
       {/* Two columns on desktop, stacked on mobile. min-w-0 lets the code window scroll instead of stretching the page */}
-      <div className="mx-auto grid max-w-[1200px] items-center gap-12 lg:grid-cols-[minmax(0,5fr)_minmax(0,6.5fr)] lg:gap-14">
+      <div className="mx-auto grid w-full max-w-[1520px] items-center gap-12 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] xl:gap-16">
         <div className="min-w-0 space-y-5">
           {badge && (
             <div className="inline-flex items-center gap-2 rounded-full border border-[#E4E7EC] dark:border-white/12 bg-[#F8F9FB] dark:bg-white/[0.05] px-3 py-1 text-xs font-medium text-[#52525B] dark:text-zinc-300 shadow-2xs">

@@ -81,45 +81,32 @@ export function PlanUpgradeModal() {
       return;
     }
 
-    if (!session?.user) {
-      window.location.href = `/checkout?plan=${targetPlan}&cycle=MONTHLY`;
-      return;
-    }
-
     setLoadingPlan(targetPlan);
     try {
-      try {
-        const res = await fetch("/api/billing/checkout", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            planId: targetPlan,
-            cycle: "MONTHLY",
-            userId,
-            customerEmail: session?.user?.email || undefined,
-            successUrl: `${window.location.origin}/dashboard/settings?tab=billing&checkout_success=true&plan=${targetPlan}`,
-            cancelUrl: window.location.href,
-          }),
-        });
+      const res = await fetch("/api/billing/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          planId: targetPlan,
+          cycle: "MONTHLY",
+          userId: userId || undefined,
+          customerEmail: session?.user?.email || undefined,
+          successUrl: `${window.location.origin}/dashboard/settings?tab=billing&checkout_success=true&plan=${targetPlan}`,
+          cancelUrl: window.location.href,
+        }),
+      });
 
-        const data = await res.json();
-        if (data.success && data.checkoutUrl) {
-          window.location.href = data.checkoutUrl;
-          return;
-        }
-
-        if (data.error) {
-          console.warn("[UpgradeModal] Direct checkout API notice, falling back to /checkout:", data.error);
-          window.location.href = `/checkout?plan=${targetPlan}&cycle=MONTHLY`;
-          return;
-        }
-      } catch (apiErr) {
-        console.warn("[UpgradeModal] Direct checkout error, redirecting to /checkout:", apiErr);
-        window.location.href = `/checkout?plan=${targetPlan}&cycle=MONTHLY`;
+      const data = await res.json();
+      if (res.ok && data.success && data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
         return;
       }
+
+      showToast.error(
+        data.error || "Unable to initiate Dodo Payments checkout session."
+      );
     } catch {
-      showToast.error("Unable to initiate checkout session.");
+      showToast.error("Unable to initiate checkout session. Please try again.");
     } finally {
       setLoadingPlan(null);
     }
